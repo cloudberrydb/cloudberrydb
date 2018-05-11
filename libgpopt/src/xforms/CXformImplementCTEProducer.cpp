@@ -28,17 +28,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementCTEProducer::CXformImplementCTEProducer
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementation
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalCTEProducer(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))
+				mp,
+				GPOS_NEW(mp) CLogicalCTEProducer(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))
 				)
 		)
 {}
@@ -84,13 +84,13 @@ CXformImplementCTEProducer::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalCTEProducer *popCTEProducer = CLogicalCTEProducer::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
-	ULONG ulId = popCTEProducer->UlCTEId();
+	ULONG id = popCTEProducer->UlCTEId();
 
-	DrgPcr *pdrgpcr = popCTEProducer->Pdrgpcr();
-	pdrgpcr->AddRef();
+	CColRefArray *colref_array = popCTEProducer->Pdrgpcr();
+	colref_array->AddRef();
 
 	// child of CTEProducer operator
 	CExpression *pexprChild = (*pexpr)[0];
@@ -98,10 +98,10 @@ CXformImplementCTEProducer::Transform
 
 	// create physical CTE Producer
 	CExpression *pexprAlt =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalCTEProducer(pmp, ulId, pdrgpcr),
+			mp,
+			GPOS_NEW(mp) CPhysicalCTEProducer(mp, id, colref_array),
 			pexprChild
 			);
 

@@ -143,20 +143,20 @@
 		<xsd:attribute name="StorageType" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="Heap"/>
-					<xsd:enumeration value="AppendOnly, Column-oriented"/>
-					<xsd:enumeration value="AppendOnly, Row-oriented"/>
-					<xsd:enumeration value="Virtual"/>
-					<xsd:enumeration value="External"/>
+					<xsd:enumeration m_bytearray_value="Heap"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Column-oriented"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Row-oriented"/>
+					<xsd:enumeration m_bytearray_value="Virtual"/>
+					<xsd:enumeration m_bytearray_value="External"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
 		<xsd:attribute name="DistributionPolicy" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="MasterOnly"/>
-					<xsd:enumeration value="Hash"/>
-					<xsd:enumeration value="Random"/>
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -177,9 +177,9 @@
 		<xsd:attribute name="DistributionPolicy" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="MasterOnly"/>
-					<xsd:enumeration value="Hash"/>
-					<xsd:enumeration value="Random"/>
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -200,11 +200,11 @@
 		<xsd:attribute name="StorageType" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="Heap"/>
-					<xsd:enumeration value="AppendOnly, Column-oriented"/>
-					<xsd:enumeration value="AppendOnly, Row-oriented"/>
-					<xsd:enumeration value="Virtual"/>
-					<xsd:enumeration value="External"/>
+					<xsd:enumeration m_bytearray_value="Heap"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Column-oriented"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Row-oriented"/>
+					<xsd:enumeration m_bytearray_value="Virtual"/>
+					<xsd:enumeration m_bytearray_value="External"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -212,9 +212,9 @@
 		<xsd:attribute name="DistributionPolicy" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="MasterOnly"/>
-					<xsd:enumeration value="Hash"/>
-					<xsd:enumeration value="Random"/>
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -245,8 +245,8 @@
 		<xsd:attribute name="IndexType" use="optional">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="B-tree"/>
-					<xsd:enumeration value="Bitmap"/>
+					<xsd:enumeration m_bytearray_value="B-tree"/>
+					<xsd:enumeration m_bytearray_value="Bitmap"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -375,13 +375,13 @@
 		<xsd:attribute name="ComparisonType" use="required">
 		<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="Eq"/>
-					<xsd:enumeration value="NEq"/>
-					<xsd:enumeration value="LT"/>
-					<xsd:enumeration value="LEq"/>
-				    <xsd:enumeration value="GT"/>
-					<xsd:enumeration value="GEq"/>
-					<xsd:enumeration value="Other"/>
+					<xsd:enumeration m_bytearray_value="Eq"/>
+					<xsd:enumeration m_bytearray_value="NEq"/>
+					<xsd:enumeration m_bytearray_value="LT"/>
+					<xsd:enumeration m_bytearray_value="LEq"/>
+				    <xsd:enumeration m_bytearray_value="GT"/>
+					<xsd:enumeration m_bytearray_value="GEq"/>
+					<xsd:enumeration m_bytearray_value="Other"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -398,19 +398,19 @@
 		<xsd:attribute name="Stability" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="Immutable"/>
-					<xsd:enumeration value="Stable"/>
-					<xsd:enumeration value="Volatile"/>
+					<xsd:enumeration m_bytearray_value="Immutable"/>
+					<xsd:enumeration m_bytearray_value="Stable"/>
+					<xsd:enumeration m_bytearray_value="Volatile"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
 		<xsd:attribute name="DataAccess" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="NoSQL"/>
-					<xsd:enumeration value="ContainsSQL"/>
-					<xsd:enumeration value="ReadsSQLData"/>
-					<xsd:enumeration value="ModifiesSQLData"/>
+					<xsd:enumeration m_bytearray_value="NoSQL"/>
+					<xsd:enumeration m_bytearray_value="ContainsSQL"/>
+					<xsd:enumeration m_bytearray_value="ReadsSQLData"/>
+					<xsd:enumeration m_bytearray_value="ModifiesSQLData"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -688,20 +688,20 @@
 		<xsd:attribute name="StorageType" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="Heap"/>
-					<xsd:enumeration value="AppendOnly, Column-oriented"/>
-					<xsd:enumeration value="AppendOnly, Row-oriented"/>
-					<xsd:enumeration value="Virtual"/>
-					<xsd:enumeration value="External"/>
+					<xsd:enumeration m_bytearray_value="Heap"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Column-oriented"/>
+					<xsd:enumeration m_bytearray_value="AppendOnly, Row-oriented"/>
+					<xsd:enumeration m_bytearray_value="Virtual"/>
+					<xsd:enumeration m_bytearray_value="External"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
 		<xsd:attribute name="DistributionPolicy" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="MasterOnly"/>
-					<xsd:enumeration value="Hash"/>
-					<xsd:enumeration value="Random"/>
+					<xsd:enumeration m_bytearray_value="MasterOnly"/>
+					<xsd:enumeration m_bytearray_value="Hash"/>
+					<xsd:enumeration m_bytearray_value="Random"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -1108,9 +1108,9 @@
 				<xsd:attribute name="AggregationStrategy" use="required">
 					<xsd:simpleType>
 						<xsd:restriction base="xsd:string">
-							<xsd:enumeration value="Plain"/>
-							<xsd:enumeration value="Sorted"/>
-							<xsd:enumeration value="Hashed"/>
+							<xsd:enumeration m_bytearray_value="Plain"/>
+							<xsd:enumeration m_bytearray_value="Sorted"/>
+							<xsd:enumeration m_bytearray_value="Hashed"/>
 						</xsd:restriction>
 					</xsd:simpleType>
 				</xsd:attribute>
@@ -1397,10 +1397,10 @@
 		<xsd:attribute name="AggStage" use="required">
 			<xsd:simpleType>
 				<xsd:restriction base="xsd:string">
-					<xsd:enumeration value="Normal"/>
-					<xsd:enumeration value="Partial"/>
-					<xsd:enumeration value="Intermediate"/>
-					<xsd:enumeration value="Final"/>
+					<xsd:enumeration m_bytearray_value="Normal"/>
+					<xsd:enumeration m_bytearray_value="Partial"/>
+					<xsd:enumeration m_bytearray_value="Intermediate"/>
+					<xsd:enumeration m_bytearray_value="Final"/>
 				</xsd:restriction>
 			</xsd:simpleType>
 		</xsd:attribute>
@@ -1431,8 +1431,8 @@
            <xsd:attribute name="OperatorType" use="required">
 			<xsd:simpleType>
                 	<xsd:restriction base="xsd:string">
-                     		<xsd:enumeration value="Any"/>
-                     		<xsd:enumeration value="All"/>
+                     		<xsd:enumeration m_bytearray_value="Any"/>
+                     		<xsd:enumeration m_bytearray_value="All"/>
                 	</xsd:restriction>
            	</xsd:simpleType>
 		</xsd:attribute>
@@ -1713,12 +1713,12 @@
 
 	<xsd:simpleType name="JoinType">
 		<xsd:restriction base="xsd:string">
-			<xsd:enumeration value="Inner"/>
-			<xsd:enumeration value="Left"/>
-			<xsd:enumeration value="Full"/>
-			<xsd:enumeration value="Right"/>
-			<xsd:enumeration value="In"/>
-			<xsd:enumeration value="LeftAntiSemiJoin"/>
+			<xsd:enumeration m_bytearray_value="Inner"/>
+			<xsd:enumeration m_bytearray_value="Left"/>
+			<xsd:enumeration m_bytearray_value="Full"/>
+			<xsd:enumeration m_bytearray_value="Right"/>
+			<xsd:enumeration m_bytearray_value="In"/>
+			<xsd:enumeration m_bytearray_value="LeftAntiSemiJoin"/>
 		</xsd:restriction>						
 	</xsd:simpleType>
 

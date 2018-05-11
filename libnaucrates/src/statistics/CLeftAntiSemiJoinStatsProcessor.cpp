@@ -19,60 +19,60 @@ using namespace gpmd;
 void
 CLeftAntiSemiJoinStatsProcessor::JoinHistogramsLASJ
 			(
-			IMemoryPool *pmp,
-			const CHistogram *phist1,
-			const CHistogram *phist2,
-			CStatsPredJoin *pstatsjoin,
-			CDouble dRows1,
-			CDouble ,//dRows2,
-			CHistogram **pphist1, // output: histogram 1 after join
-			CHistogram **pphist2, // output: histogram 2 after join
-			CDouble *pdScaleFactor, // output: scale factor based on the join
-			BOOL fEmptyInput,
+			IMemoryPool *mp,
+			const CHistogram *histogram1,
+			const CHistogram *histogram2,
+			CStatsPredJoin *join_stats,
+			CDouble num_rows1,
+			CDouble ,//num_rows2,
+			CHistogram **result_hist1, // output: histogram 1 after join
+			CHistogram **result_hist2, // output: histogram 2 after join
+			CDouble *scale_factor, // output: scale factor based on the join
+			BOOL is_input_empty,
 			IStatistics::EStatsJoinType,
-			BOOL fIgnoreLasjHistComputation
+			BOOL DoIgnoreLASJHistComputation
 			)
 {
-	GPOS_ASSERT(NULL != phist1);
-	GPOS_ASSERT(NULL != phist2);
-	GPOS_ASSERT(NULL != pstatsjoin);
-	GPOS_ASSERT(NULL != pphist1);
-	GPOS_ASSERT(NULL != pphist2);
-	GPOS_ASSERT(NULL != pdScaleFactor);
+	GPOS_ASSERT(NULL != histogram1);
+	GPOS_ASSERT(NULL != histogram2);
+	GPOS_ASSERT(NULL != join_stats);
+	GPOS_ASSERT(NULL != result_hist1);
+	GPOS_ASSERT(NULL != result_hist2);
+	GPOS_ASSERT(NULL != scale_factor);
 
 	// anti-semi join should give the full outer side.
 	// use 1.0 as scale factor if anti semi join
-	*pdScaleFactor = 1.0;
+	*scale_factor = 1.0;
 
-	CStatsPred::EStatsCmpType escmpt = pstatsjoin->Escmpt();
+	CStatsPred::EStatsCmpType stats_cmp_type = join_stats->GetCmpType();
 
-	if (fEmptyInput)
+	if (is_input_empty)
 	{
-		*pphist1 = phist1->PhistCopy(pmp);
-		*pphist2 = NULL;
+		*result_hist1 = histogram1->CopyHistogram(mp);
+		*result_hist2 = NULL;
 
 		return;
 	}
 
-	BOOL fEmptyHistograms = phist1->FEmpty() || phist2->FEmpty();
-	if (!fEmptyHistograms && CHistogram::FSupportsJoinPred(escmpt))
+	BOOL empty_histograms = histogram1->IsEmpty() || histogram2->IsEmpty();
+	if (!empty_histograms && CHistogram::JoinPredCmpTypeIsSupported(stats_cmp_type))
 	{
-		*pphist1 = phist1->PhistLASJoinNormalized
+		*result_hist1 = histogram1->MakeLASJHistogramNormalize
 				(
-				pmp,
-				escmpt,
-				dRows1,
-				phist2,
-				pdScaleFactor,
-				fIgnoreLasjHistComputation
+				mp,
+				stats_cmp_type,
+				num_rows1,
+				histogram2,
+				scale_factor,
+				DoIgnoreLASJHistComputation
 				);
-		*pphist2 = NULL;
+		*result_hist2 = NULL;
 
-		if ((*pphist1)->FEmpty())
+		if ((*result_hist1)->IsEmpty())
 		{
 			// if the LASJ histograms is empty then all tuples of the outer join column
 			// joined with those on the inner side. That is, LASJ will produce no rows
-			*pdScaleFactor = dRows1;
+			*scale_factor = num_rows1;
 		}
 
 		return;
@@ -80,66 +80,66 @@ CLeftAntiSemiJoinStatsProcessor::JoinHistogramsLASJ
 
 	// for an unsupported join predicate operator or in the case of missing stats,
 	// copy input histograms and use default scale factor
-	*pdScaleFactor = CDouble(CScaleFactorUtils::DDefaultScaleFactorJoin);
-	*pphist1 = phist1->PhistCopy(pmp);
-	*pphist2 = NULL;
+	*scale_factor = CDouble(CScaleFactorUtils::DefaultJoinPredScaleFactor);
+	*result_hist1 = histogram1->CopyHistogram(mp);
+	*result_hist2 = NULL;
 }
 
 //	Return statistics object after performing LASJ
 CStatistics *
-CLeftAntiSemiJoinStatsProcessor::PstatsLASJoinStatic
+CLeftAntiSemiJoinStatsProcessor::CalcLASJoinStatsStatic
 		(
-		IMemoryPool *pmp,
-		const IStatistics *pistatsOuter,
-		const IStatistics *pistatsInner,
-		DrgPstatspredjoin *pdrgpstatspredjoin,
-		BOOL fIgnoreLasjHistComputation
+		IMemoryPool *mp,
+		const IStatistics *outer_stats_input,
+		const IStatistics *inner_stats_input,
+		CStatsPredJoinArray *join_preds_stats,
+		BOOL DoIgnoreLASJHistComputation
 		)
 {
-	GPOS_ASSERT(NULL != pistatsInner);
-	GPOS_ASSERT(NULL != pistatsOuter);
-	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
-	const CStatistics *pstatsOuter = dynamic_cast<const CStatistics *> (pistatsOuter);
+	GPOS_ASSERT(NULL != inner_stats_input);
+	GPOS_ASSERT(NULL != outer_stats_input);
+	GPOS_ASSERT(NULL != join_preds_stats);
+	const CStatistics *outer_stats = dynamic_cast<const CStatistics *> (outer_stats_input);
 
-	return CJoinStatsProcessor::PstatsJoinDriver
+	return CJoinStatsProcessor::SetResultingJoinStats
 			(
-			pmp,
-			pstatsOuter->PStatsConf(),
-			pistatsOuter,
-			pistatsInner,
-			pdrgpstatspredjoin,
+			mp,
+			outer_stats->GetStatsConfig(),
+			outer_stats_input,
+			inner_stats_input,
+			join_preds_stats,
 			IStatistics::EsjtLeftAntiSemiJoin /* esjt */,
-			fIgnoreLasjHistComputation
+			DoIgnoreLASJHistComputation
 			);
 }
 
 // Compute the null frequency for LASJ
 CDouble
-CLeftAntiSemiJoinStatsProcessor::DNullFreqLASJ
+CLeftAntiSemiJoinStatsProcessor::NullFreqLASJ
 		(
-		CStatsPred::EStatsCmpType escmpt,
-		const CHistogram *phistOuter,
-		const CHistogram *phistInner
+		CStatsPred::EStatsCmpType stats_cmp_type,
+		const CHistogram *outer_histogram,
+		const CHistogram *inner_histogram
 		)
 {
-	GPOS_ASSERT(NULL != phistOuter);
-	GPOS_ASSERT(NULL != phistInner);
+	GPOS_ASSERT(NULL != outer_histogram);
+	GPOS_ASSERT(NULL != inner_histogram);
 
-	if (CStatsPred::EstatscmptINDF != escmpt)
+	if (CStatsPred::EstatscmptINDF != stats_cmp_type)
 	{
 		// for equality predicate NULLs on the outer side of the join
 		// will not join with those in the inner side
-		return phistOuter->DNullFreq();
+		return outer_histogram->GetNullFreq();
 	}
 
-	if (CStatistics::DEpsilon < phistInner->DNullFreq())
+	if (CStatistics::Epsilon < inner_histogram->GetNullFreq())
 	{
 		// for INDF predicate NULLs on the outer side of the join
 		// will join with those in the inner side if they are present
 		return CDouble(0.0);
 	}
 
-	return phistOuter->DNullFreq();
+	return outer_histogram->GetNullFreq();
 }
 
 

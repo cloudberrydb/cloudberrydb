@@ -36,7 +36,7 @@ namespace gpdxl
 		private:
 
 			// index scan direction
-			EdxlIndexScanDirection m_edxlisd;
+			EdxlIndexScanDirection m_index_scan_dir;
 
 			// private copy ctor
 			CParseHandlerIndexScan(const CParseHandlerIndexScan &);
@@ -44,18 +44,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		protected:
@@ -63,27 +63,27 @@ namespace gpdxl
 			// common StartElement functionality for IndexScan and IndexOnlyScan
 			void StartElementHelper
 				(
-				const XMLCh* const xmlszLocalname,
+				const XMLCh* const element_local_name,
 				const Attributes& attrs,
-				Edxltoken edxltoken
+				Edxltoken token_type
 				);
 
 			// common EndElement functionality for IndexScan and IndexOnlyScan
 			void EndElementHelper
 				(
-				const XMLCh* const xmlszLocalname,
-				Edxltoken edxltoken,
-				ULONG ulPartIndexId = 0,
-				ULONG ulPartIndexIdPrintable = 0
+				const XMLCh* const element_local_name,
+				Edxltoken token_type,
+				ULONG part_idx_id = 0,
+				ULONG part_idx_id_printable = 0
 				);
 
 		public:
 			// ctor
 			CParseHandlerIndexScan
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

@@ -34,7 +34,7 @@ namespace gpdxl
 	{
 		private:
 			// identify if the parser is for a leading or trailing edge
-			BOOL m_fLeading;
+			BOOL m_leading_edge;
 
 			// private copy ctor
 			CParseHandlerScalarWindowFrameEdge(const CParseHandlerScalarWindowFrameEdge &);
@@ -42,28 +42,28 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 						(
-						const XMLCh* const xmlszUri,
-						const XMLCh* const xmlszLocalname,
-						const XMLCh* const xmlszQname,
+						const XMLCh* const element_uri,
+						const XMLCh* const element_local_name,
+						const XMLCh* const element_qname,
 						const Attributes& attr
 						);
 
 			// process the end of an element
 			void EndElement
 						(
-						const XMLCh* const xmlszUri,
-						const XMLCh* const xmlszLocalname,
-						const XMLCh* const xmlszQname
+						const XMLCh* const element_uri,
+						const XMLCh* const element_local_name,
+						const XMLCh* const element_qname
 						);
 
 		public:
 			// ctor
 			CParseHandlerScalarWindowFrameEdge
 						(
-						IMemoryPool *pmp,
-						CParseHandlerManager *pphm,
-						CParseHandlerBase *pphRoot,
-						BOOL fLeading
+						IMemoryPool *mp,
+						CParseHandlerManager *parse_handler_mgr,
+						CParseHandlerBase *parse_handler_root,
+						BOOL leading_edge
 						);
 
 		};

@@ -40,10 +40,10 @@ namespace gpopt
 			explicit
 			CPatternTree
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				: 
-				CPattern(pmp)
+				CPattern(mp)
 			{}
 
 			// dtor

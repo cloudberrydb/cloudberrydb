@@ -28,28 +28,28 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalAppend::CDXLPhysicalAppend
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	BOOL fIsTarget,
 	BOOL fIsZapped
 	)
 	:
-	CDXLPhysical(pmp),
-	m_fIsTarget(fIsTarget),
-	m_fIsZapped(fIsZapped)
+	CDXLPhysical(mp),
+	m_used_in_upd_del(fIsTarget),
+	m_is_zapped(fIsZapped)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalAppend::Edxlop
+//		CDXLPhysicalAppend::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalAppend::Edxlop() const
+CDXLPhysicalAppend::GetDXLOperator() const
 {
 	return EdxlopPhysicalAppend;
 }
@@ -57,44 +57,44 @@ CDXLPhysicalAppend::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalAppend::PstrOpName
+//		CDXLPhysicalAppend::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalAppend::PstrOpName() const
+CDXLPhysicalAppend::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalAppend);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalAppend);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalAppend::FIsTarget
+//		CDXLPhysicalAppend::IsUsedInUpdDel
 //
 //	@doc:
 //		Is the append node updating a target relation
 //
 //---------------------------------------------------------------------------
 BOOL
-CDXLPhysicalAppend::FIsTarget() const
+CDXLPhysicalAppend::IsUsedInUpdDel() const
 {
-	return m_fIsTarget;
+	return m_used_in_upd_del;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalAppend::FIsZapped
+//		CDXLPhysicalAppend::IsZapped
 //
 //	@doc:
 //		Is the append node zapped
 //
 //---------------------------------------------------------------------------
 BOOL
-CDXLPhysicalAppend::FIsZapped() const
+CDXLPhysicalAppend::IsZapped() const
 {
-	return m_fIsZapped;
+	return m_is_zapped;
 }
 
 //---------------------------------------------------------------------------
@@ -108,25 +108,25 @@ CDXLPhysicalAppend::FIsZapped() const
 void
 CDXLPhysicalAppend::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 	
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenAppendIsTarget), m_fIsTarget);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenAppendIsZapped), m_fIsZapped);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenAppendIsTarget), m_used_in_upd_del);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenAppendIsZapped), m_is_zapped);
 	
 	// serialize properties
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	dxlnode->SerializePropertiesToDXL(xml_serializer);
 	
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);		
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);		
 }
 
 
@@ -142,22 +142,22 @@ CDXLPhysicalAppend::SerializeToDXL
 void
 CDXLPhysicalAppend::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) const
 {
 	// assert proj list and filter are valid
-	CDXLPhysical::AssertValid(pdxln, fValidateChildren);
+	CDXLPhysical::AssertValid(dxlnode, validate_children);
 	
-	const ULONG ulChildren = pdxln->UlArity();
+	const ULONG ulChildren = dxlnode->Arity();
 	for (ULONG ul = EdxlappendIndexFirstChild; ul < ulChildren; ul++)
 	{
-		CDXLNode *pdxlnChild = (*pdxln)[ul];
-		GPOS_ASSERT(EdxloptypePhysical == pdxlnChild->Pdxlop()->Edxloperatortype());
+		CDXLNode *child_dxlnode = (*dxlnode)[ul];
+		GPOS_ASSERT(EdxloptypePhysical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 		
-		if (fValidateChildren)
+		if (validate_children)
 		{
-			pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+			child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 		}
 	}
 	

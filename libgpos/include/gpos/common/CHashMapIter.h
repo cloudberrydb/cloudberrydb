@@ -27,66 +27,66 @@ namespace gpos
 	//
 	//---------------------------------------------------------------------------
 	template <class K, class T, 
-				ULONG (*pfnHash)(const K*), 
-				BOOL (*pfnEq)(const K*, const K*),
-				void (*pfnDestroyK)(K*),
-				void (*pfnDestroyT)(T*)>
+				ULONG (*HashFn)(const K*), 
+				BOOL (*EqFn)(const K*, const K*),
+				void (*DestroyKFn)(K*),
+				void (*DestroyTFn)(T*)>
 	class CHashMapIter : public CStackObject
 	{
 	
 		// short hand for hashmap type
-		typedef CHashMap<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> TMap;
+		typedef CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> TMap;
 	
 		private:
 
 			// map to iterate
-			const TMap *m_ptm;
+			const TMap *m_map;
 
 			// current hashchain
-			ULONG m_ulChain;
+			ULONG m_chain_idx;
 
 			// current key
-			ULONG m_ulKey;
+			ULONG m_key_idx;
 
 			// is initialized?
-			BOOL m_fInit;
+			BOOL m_is_initialized;
 
 			// private copy ctor
-			CHashMapIter(const CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> &);
+			CHashMapIter(const CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &);
 			
 			// method to return the current element
-			const typename TMap::CHashMapElem *Phme() const
+			const typename TMap::CHashMapElem *Get() const
             {
-                typename TMap::CHashMapElem *phme = NULL;
-                K *k = (*(m_ptm->m_pdrgKeys))[m_ulKey-1];
-                m_ptm->Lookup(k, &phme);
+                typename TMap::CHashMapElem *elem = NULL;
+                K *k = (*(m_map->m_keys))[m_key_idx-1];
+                elem = m_map->Lookup(k);
 
-                return phme;
+                return elem;
             }
 
 		public:
 		
 			// ctor
-			CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> (TMap *ptm)
+			CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> (TMap *ptm)
             :
-            m_ptm(ptm),
-            m_ulChain(0),
-            m_ulKey(0)
+            m_map(ptm),
+            m_chain_idx(0),
+            m_key_idx(0)
             {
                 GPOS_ASSERT(NULL != ptm);
             }
 
 			// dtor
 			virtual
-			~CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> ()
+			~CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> ()
 			{}
 
 			// advance iterator to next element
-			BOOL FAdvance()
+			BOOL Advance()
             {
-                if (m_ulKey < m_ptm->m_pdrgKeys->UlLength())
+                if (m_key_idx < m_map->m_keys->Size())
                 {
-                    m_ulKey++;
+                    m_key_idx++;
                     return true;
                 }
 
@@ -94,23 +94,23 @@ namespace gpos
             }
 			
 			// current key
-			const K *Pk() const
+			const K *Key() const
             {
-                const typename TMap::CHashMapElem *phme = Phme();
-                if (NULL != phme)
+                const typename TMap::CHashMapElem *elem = Get();
+                if (NULL != elem)
                 {
-                    return phme->Pk();
+                    return elem->Key();
                 }
                 return NULL;
             }
 
 			// current value
-			const T *Pt() const
+			const T *Value() const
             {
-                const typename TMap::CHashMapElem *phme = Phme();
-                if (NULL != phme)
+                const typename TMap::CHashMapElem *elem = Get();
+                if (NULL != elem)
                 {
-                    return phme->Pt();
+                    return elem->Value();
                 }
                 return NULL;
             }

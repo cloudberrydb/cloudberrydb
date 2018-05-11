@@ -35,7 +35,7 @@ namespace gpopt
 	class CCostContext;
 
 	// array of cost contexts
-	typedef CDynamicPtrArray<CCostContext, CleanupRelease> DrgPcc;
+	typedef CDynamicPtrArray<CCostContext, CleanupRelease> CCostContextArray;
 
 	// cost context pointer definition
 	typedef  CCostContext * COSTCTXT_PTR;
@@ -70,7 +70,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// cost of group expression under optimization context
 			CCost m_cost;
@@ -85,7 +85,7 @@ namespace gpopt
 			CGroupExpression *m_pgexprForStats;
 
 			// array of optimization contexts of child groups
-			DrgPoc *m_pdrgpoc;
+			COptimizationContextArray *m_pdrgpoc;
 
 			// derived properties of the carried plan
 			CDrvdPropPlan *m_pdpplan;
@@ -124,7 +124,7 @@ namespace gpopt
 			SLink m_link;
 
 			// ctor
-			CCostContext(IMemoryPool *pmp, COptimizationContext *poc, ULONG ulOptReq, CGroupExpression *pgexpr);
+			CCostContext(IMemoryPool *mp, COptimizationContext *poc, ULONG ulOptReq, CGroupExpression *pgexpr);
 
 			// dtor
 			virtual
@@ -157,7 +157,7 @@ namespace gpopt
 			}
 
 			// accessor of child optimization contexts array
-			DrgPoc *Pdrgpoc() const
+			COptimizationContextArray *Pdrgpoc() const
 			{
 				return m_pdrgpoc;
 			}
@@ -215,7 +215,7 @@ namespace gpopt
 			}
 
 			// derive properties of the plan carried by cost context
-			void DerivePlanProps(IMemoryPool *pmp);
+			void DerivePlanProps(IMemoryPool *mp);
 
 			// set cost context state
 			void SetState
@@ -231,7 +231,7 @@ namespace gpopt
 			// set child contexts
 			void SetChildContexts
 				(
-				DrgPoc *pdrgpoc
+				COptimizationContextArray *pdrgpoc
 				)
 			{
 				GPOS_ASSERT(NULL == m_pdrgpoc);
@@ -242,20 +242,20 @@ namespace gpopt
 
 
 			// check validity by comparing derived and required properties
-			BOOL FValid(IMemoryPool *pmp);
+			BOOL IsValid(IMemoryPool *mp);
 
 			// comparison operator
 			BOOL operator == (const CCostContext &cc) const;
 
 			// compute cost
-			CCost CostCompute(IMemoryPool *pmp, DrgPcost *pdrgpcostChildren);
+			CCost CostCompute(IMemoryPool *mp, CCostArray *pdrgpcostChildren);
 
 			// is current context better than the given equivalent context based on cost?
 			BOOL FBetterThan(const CCostContext *pcc) const;
 
 			// equality function
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
 				const CCostContext &ccLeft,
 				const CCostContext &ccRight
@@ -269,38 +269,38 @@ namespace gpopt
 
 				return ccLeft.UlOptReq() == ccRight.UlOptReq() &&
 					ccLeft.Pgexpr() == ccRight.Pgexpr() &&
-					ccLeft.Poc()->FMatch(ccRight.Poc());
+					ccLeft.Poc()->Matches(ccRight.Poc());
 			}
 
 			// equality function
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
 				const CCostContext *pccLeft,
 				const CCostContext *pccRight
 				)
 			{
-				return FEqual(*pccLeft, *pccRight);
+				return Equals(*pccLeft, *pccRight);
 			}
 
 			// hash function
 			static
-			ULONG UlHash
+			ULONG HashValue
 				(
 				const CCostContext &cc
 				)
 			{
-				return COptimizationContext::UlHash(*(cc.Poc()));
+				return COptimizationContext::HashValue(*(cc.Poc()));
 			}
 
 			// hash function
 			static
-			ULONG UlHash
+			ULONG HashValue
 				(
 				const CCostContext *pcc
 				)
 			{
-				return UlHash(*pcc);
+				return HashValue(*pcc);
 			}
 
 			// debug print

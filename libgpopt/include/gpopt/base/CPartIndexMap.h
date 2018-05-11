@@ -78,11 +78,11 @@ namespace gpopt
 				private:
 
 					// scan id
-					ULONG m_ulScanId;
+					ULONG m_scan_id;
 
 					// part constraints for partial scans and partition resolvers indexed
 					// by the scan id
-					PartCnstrMap *m_ppartcnstrmap;
+					UlongToPartConstraintMap *m_ppartcnstrmap;
 
 					// manipulator type
 					EPartIndexManipulator m_epim;
@@ -91,10 +91,10 @@ namespace gpopt
 					BOOL m_fPartialScans;
 
 					// partition table mdid
-					IMDId *m_pmdid;
+					IMDId *m_mdid;
 
 					// partition keys
-					DrgPpartkeys *m_pdrgppartkeys;
+					CPartKeysArray *m_pdrgppartkeys;
 
 					// part constraint of the relation
 					CPartConstraint *m_ppartcnstrRel;
@@ -108,25 +108,25 @@ namespace gpopt
 					const CHAR *m_szManipulator[EpimSentinel];
 
 					// add a part constraint
-					void AddPartConstraint(IMemoryPool *pmp, ULONG ulPartIndexId, CPartConstraint *ppartcnstr);
+					void AddPartConstraint(IMemoryPool *mp, ULONG part_idx_id, CPartConstraint *ppartcnstr);
 
 					// private copy ctor
 					CPartTableInfo(const CPartTableInfo &);
 
 					// does the given part constraint map define partial scans
 					static
-					BOOL FDefinesPartialScans(PartCnstrMap *ppartcnstrmap, CPartConstraint *ppartcnstrRel);
+					BOOL FDefinesPartialScans(UlongToPartConstraintMap *ppartcnstrmap, CPartConstraint *ppartcnstrRel);
 
 				public:
 
 					// ctor
 					CPartTableInfo
 						(
-						ULONG ulScanId,
-						PartCnstrMap *ppartcnstrmap,
+						ULONG scan_id,
+						UlongToPartConstraintMap *ppartcnstrmap,
 						EPartIndexManipulator epim,
-						IMDId *pmdid,
-						DrgPpartkeys *pdrgppartkeys,
+						IMDId *mdid,
+						CPartKeysArray *pdrgppartkeys,
 						CPartConstraint *ppartcnstrRel,
 						ULONG ulPropagators
 						);
@@ -137,13 +137,13 @@ namespace gpopt
 
 					// partition index accessor
 					virtual
-					ULONG UlScanId() const
+					ULONG ScanId() const
 					{
-						return m_ulScanId;
+						return m_scan_id;
 					}
 
 					// part constraint map accessor
-					PartCnstrMap *Ppartcnstrmap() const
+					UlongToPartConstraintMap *Ppartcnstrmap() const
 					{
 						return m_ppartcnstrmap;
 					}
@@ -182,14 +182,14 @@ namespace gpopt
 
 					// mdid of partition table
 					virtual
-					IMDId *Pmdid() const
+					IMDId *MDId() const
 					{
-						return m_pmdid;
+						return m_mdid;
 					}
 
 					// partition keys of partition table
 					virtual
-					DrgPpartkeys *Pdrgppartkeys() const
+					CPartKeysArray *Pdrgppartkeys() const
 					{
 						return m_pdrgppartkeys;
 					}
@@ -198,7 +198,7 @@ namespace gpopt
 					const CHAR *SzManipulatorType(EPartIndexManipulator epim);
 
 					// add part constraints
-					void AddPartConstraints(IMemoryPool *pmp, PartCnstrMap *ppartcnstrmap);
+					void AddPartConstraints(IMemoryPool *mp, UlongToPartConstraintMap *ppartcnstrmap);
 
 					IOstream &OsPrint(IOstream &os) const;
 
@@ -210,18 +210,18 @@ namespace gpopt
 			}; // CPartTableInfo
 
 			// map scan id to partition table info entry
-			typedef CHashMap<ULONG, CPartTableInfo, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CPartTableInfo> > PartIndexMap;
+			typedef CHashMap<ULONG, CPartTableInfo, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CPartTableInfo> > ScanIdToPartTableInfoMap;
 
 			// map iterator
-			typedef CHashMapIter<ULONG, CPartTableInfo, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CPartTableInfo> > PartIndexMapIter;
+			typedef CHashMapIter<ULONG, CPartTableInfo, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CPartTableInfo> > ScanIdToPartTableInfoMapIter;
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// partition index map
-			PartIndexMap *m_pim;
+			ScanIdToPartTableInfoMap *m_pim;
 
 			// number of unresolved entries
 			ULONG m_ulUnresolved;
@@ -233,7 +233,7 @@ namespace gpopt
 			CPartIndexMap(const CPartIndexMap&);
 
 			// lookup info for given scan id
-			CPartTableInfo *PptiLookup(ULONG ulScanId) const;
+			CPartTableInfo *PptiLookup(ULONG scan_id) const;
 
 			// check if part index map entry satisfies the corresponding required
 			// partition propagation spec entry
@@ -253,17 +253,17 @@ namespace gpopt
 
 			// helper to add part-index id's found in first map and are unresolved based on second map
 			static
-			void AddUnresolved(IMemoryPool *pmp, const CPartIndexMap &pimFst, const CPartIndexMap &pimSnd, CPartIndexMap* ppimResult);
+			void AddUnresolved(IMemoryPool *mp, const CPartIndexMap &pimFst, const CPartIndexMap &pimSnd, CPartIndexMap* ppimResult);
 
 			// print part constraint map
 			static
-			IOstream &OsPrintPartCnstrMap(ULONG ulPartIndexId, PartCnstrMap *ppartcnstrmap, IOstream &os);
+			IOstream &OsPrintPartCnstrMap(ULONG part_idx_id, UlongToPartConstraintMap *ppartcnstrmap, IOstream &os);
 			
 		public:
 
 			// ctor
 			explicit
-			CPartIndexMap(IMemoryPool *pmp);
+			CPartIndexMap(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -272,12 +272,12 @@ namespace gpopt
 			// inserting a new map entry
 			void Insert
 				(
-				ULONG ulScanId,
-				PartCnstrMap *ppartcnstrmap, 
+				ULONG scan_id,
+				UlongToPartConstraintMap *ppartcnstrmap, 
 				EPartIndexManipulator epim,
 				ULONG ulExpectedPropagators,
-				IMDId *pmdid, 
-				DrgPpartkeys *pdrgppartkeys,
+				IMDId *mdid, 
+				CPartKeysArray *pdrgppartkeys,
 				CPartConstraint *ppartcnstrRel
 				);
 
@@ -288,21 +288,21 @@ namespace gpopt
 			BOOL FContainsUnresolvedZeroPropagators() const;
 
 			// extract scan ids in the given memory pool
-			DrgPul *PdrgpulScanIds(IMemoryPool *pmp, BOOL fConsumersOnly = false) const;
+			ULongPtrArray *PdrgpulScanIds(IMemoryPool *mp, BOOL fConsumersOnly = false) const;
 
 			// check if two part index maps are equal
-			BOOL FEqual
+			BOOL Equals
 				(
 				const CPartIndexMap *ppim
 				) 
 				const
 			{
-				return  (m_pim->UlEntries() == ppim->m_pim->UlEntries()) &&
+				return  (m_pim->Size() == ppim->m_pim->Size()) &&
 						ppim->FSubset(this);
 			}
 			
 			// hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// check if partition index map satsfies required partition propagation spec
 			BOOL FSatisfies(const CPartitionPropagationSpec *ppps) const;
@@ -311,49 +311,49 @@ namespace gpopt
 			BOOL FSubset(const CPartIndexMap *ppim) const;
 
 			// check if part index map contains the given scan id
-			BOOL FContains
+			BOOL Contains
 				(
-				ULONG ulScanId
+				ULONG scan_id
 				)
 				const
 			{
-				return NULL != m_pim->PtLookup(&ulScanId);
+				return NULL != m_pim->Find(&scan_id);
 			}
 
 			// check if the given expression derives unneccessary partition selectors
 			BOOL FContainsRedundantPartitionSelectors(CPartIndexMap *ppimReqd) const;
 
 			// part keys of the entry with the given scan id
-			DrgPpartkeys *Pdrgppartkeys(ULONG ulScanId) const;
+			CPartKeysArray *Pdrgppartkeys(ULONG scan_id) const;
 
 			// relation mdid of the entry with the given scan id
-			IMDId *PmdidRel(ULONG ulScanId) const;
+			IMDId *GetRelMdId(ULONG scan_id) const;
 
 			// part constraint map of the entry with the given scan id
-			PartCnstrMap *Ppartcnstrmap(ULONG ulScanId) const;
+			UlongToPartConstraintMap *Ppartcnstrmap(ULONG scan_id) const;
 
 			// relation part constraint of the entry with the given scan id
-			CPartConstraint *PpartcnstrRel(ULONG ulScanId) const;
+			CPartConstraint *PpartcnstrRel(ULONG scan_id) const;
 
 			// manipulator type of the entry with the given scan id
-			EPartIndexManipulator Epim(ULONG ulScanId) const;
+			EPartIndexManipulator Epim(ULONG scan_id) const;
 
 			// number of expected propagators of the entry with the given scan id
-			ULONG UlExpectedPropagators(ULONG ulScanId) const;
+			ULONG UlExpectedPropagators(ULONG scan_id) const;
 
 			// set the number of expected propagators for the entry with the given scan id
-			void SetExpectedPropagators(ULONG ulScanId, ULONG ulPropagators);
+			void SetExpectedPropagators(ULONG scan_id, ULONG ulPropagators);
 
 			// check whether the entry with the given scan id has partial scans
-			BOOL FPartialScans(ULONG ulScanId) const;
+			BOOL FPartialScans(ULONG scan_id) const;
 
 			// get part consumer with given scanId from the given map, and add it to the
 			// current map with the given array of keys
-			void AddRequiredPartPropagation(CPartIndexMap *ppimSource, ULONG ulScanId, EPartPropagationRequestAction eppra, DrgPpartkeys *pdrgppartkeys = NULL);
+			void AddRequiredPartPropagation(CPartIndexMap *ppimSource, ULONG scan_id, EPartPropagationRequestAction eppra, CPartKeysArray *pdrgppartkeys = NULL);
 
 			// return a new part index map for a partition selector with the given
 			// scan id, and the given number of expected selectors above it
-			CPartIndexMap *PpimPartitionSelector(IMemoryPool *pmp, ULONG ulScanId, ULONG ulExpectedFromReq) const;
+			CPartIndexMap *PpimPartitionSelector(IMemoryPool *mp, ULONG scan_id, ULONG ulExpectedFromReq) const;
 
 			// print function
 			virtual
@@ -361,7 +361,7 @@ namespace gpopt
 
 			// combine the two given maps and return the resulting map
 			static
-			CPartIndexMap *PpimCombine(IMemoryPool *pmp, const CPartIndexMap &pimFst, const CPartIndexMap &pimSnd);
+			CPartIndexMap *PpimCombine(IMemoryPool *mp, const CPartIndexMap &pimFst, const CPartIndexMap &pimSnd);
 
 #ifdef GPOS_DEBUG
 			// debug print for interactive debugging sessions only

@@ -76,7 +76,7 @@ namespace gpopt
 			struct SJobLink
 			{
 				// link id, set by sync set
-				ULONG m_ulId;
+				ULONG m_id;
 
 				// pointer to job
 				CJob *m_pj;
@@ -88,7 +88,7 @@ namespace gpopt
 				void Init(CJob *pj)
 				{
 					m_pj = pj;
-					m_link.m_pvPrev = m_link.m_pvNext = NULL;
+					m_link.m_prev = m_link.m_next = NULL;
 				}
 			};
 
@@ -166,7 +166,7 @@ namespace gpopt
 			void ResumeParent(CJob *pj);
 
 			// check if all jobs have completed
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
 			{
 				return (0 == m_ulpTotal);
 			}
@@ -174,13 +174,13 @@ namespace gpopt
 			// increment counter of active tasks
 			void IncTasksActive()
 			{
-				(void) UlpExchangeAdd(&m_ulpTasksActive, 1);
+				(void) ExchangeAddUlongPtrWithInt(&m_ulpTasksActive, 1);
 			}
 
 			// decrement counter of active tasks
 			void DecrTasksActive()
 			{
-				(void) UlpExchangeAdd(&m_ulpTasksActive, -1);
+				(void) ExchangeAddUlongPtrWithInt(&m_ulpTasksActive, -1);
 			}
 
 			// check if there is enough work for more workers
@@ -203,7 +203,7 @@ namespace gpopt
 			// ctor
 			CScheduler
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulJobs,
 				ULONG_PTR ulpTasks
 #ifdef GPOS_DEBUG

@@ -33,7 +33,7 @@ CParseHandlerNLJIndexParamList::CParseHandlerNLJIndexParamList
 	:
 	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root)
 {
-	m_nest_params_colrefs_array = GPOS_NEW(mp) DrgPdxlcr(mp);
+	m_nest_params_colrefs_array = GPOS_NEW(mp) CDXLColRefArray(mp);
 	m_is_param_list = false;
 }
 
@@ -67,8 +67,8 @@ CParseHandlerNLJIndexParamList::StartElement
 		GPOS_ASSERT(m_is_param_list);
 
 		// start new param
-		CParseHandlerBase *nest_param_parse_handler = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenNLJIndexParam), m_pphm, this);
-		m_pphm->ActivateParseHandler(nest_param_parse_handler);
+		CParseHandlerBase *nest_param_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenNLJIndexParam), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(nest_param_parse_handler);
 
 		// store parse handler
 		this->Append(nest_param_parse_handler);
@@ -77,8 +77,8 @@ CParseHandlerNLJIndexParamList::StartElement
 	}
 	else
 	{
-		CWStringDynamic *str = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), element_local_name);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -93,11 +93,11 @@ CParseHandlerNLJIndexParamList::EndElement
 {
 	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenNLJIndexParamList), element_local_name))
 	{
-		CWStringDynamic *str = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), element_local_name);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	const ULONG size = this->UlLength();
+	const ULONG size = this->Length();
 	// add constructed children from child parse handlers
 	for (ULONG idx = 0; idx < size; idx++)
 	{
@@ -109,7 +109,7 @@ CParseHandlerNLJIndexParamList::EndElement
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

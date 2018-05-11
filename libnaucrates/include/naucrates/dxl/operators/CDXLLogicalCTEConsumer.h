@@ -30,17 +30,17 @@ namespace gpdxl
 		private:
 
 			// cte id
-			ULONG m_ulId;
+			ULONG m_id;
 
 			// output column ids
-			DrgPul *m_pdrgpulColIds;
+			ULongPtrArray *m_output_colids_array;
 			
 			// private copy ctor
 			CDXLLogicalCTEConsumer(CDXLLogicalCTEConsumer&);
 
 		public:
 			// ctor
-			CDXLLogicalCTEConsumer(IMemoryPool *pmp, ULONG ulId, DrgPul *pdrgpulColIds);
+			CDXLLogicalCTEConsumer(IMemoryPool *mp, ULONG id, ULongPtrArray *output_colids_array);
 			
 			// dtor
 			virtual
@@ -48,47 +48,47 @@ namespace gpdxl
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// cte identifier
-			ULONG UlId() const
+			ULONG Id() const
 			{
-				return m_ulId;
+				return m_id;
 			}
 			
-			DrgPul *PdrgpulColIds() const
+			ULongPtrArray *GetOutputColIdsArray() const
 			{
-				return m_pdrgpulColIds;
+				return m_output_colids_array;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// check if given column is defined by operator
 			virtual
-			BOOL FDefinesColumn(ULONG ulColId) const;
+			BOOL IsColDefined(ULONG colid) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 			// conversion function
 			static
-			CDXLLogicalCTEConsumer *PdxlopConvert
+			CDXLLogicalCTEConsumer *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalCTEConsumer == pdxlop->Edxlop());
-				return dynamic_cast<CDXLLogicalCTEConsumer*>(pdxlop);
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalCTEConsumer == dxl_op->GetDXLOperator());
+				return dynamic_cast<CDXLLogicalCTEConsumer*>(dxl_op);
 			}
 
 	};

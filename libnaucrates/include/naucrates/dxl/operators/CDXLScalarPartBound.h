@@ -32,20 +32,20 @@ namespace gpdxl
 		private:
 
 			// partitioning level
-			ULONG m_ulLevel;
+			ULONG m_partitioning_level;
 
 			// boundary type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// whether this represents a lower or upper bound
-			BOOL m_fLower;
+			BOOL m_is_lower_bound;
 
 			// private copy ctor
 			CDXLScalarPartBound(const CDXLScalarPartBound&);
 
 		public:
 			// ctor
-			CDXLScalarPartBound(IMemoryPool *pmp, ULONG ulLevel, IMDId *pmdidType, BOOL fLower);
+			CDXLScalarPartBound(IMemoryPool *mp, ULONG partitioning_level, IMDId *mdid_type, BOOL is_lower_bound);
 
 			// dtor
 			virtual
@@ -53,56 +53,56 @@ namespace gpdxl
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// partitioning level
-			ULONG UlLevel() const
+			ULONG GetPartitioningLevel() const
 			{
-				return m_ulLevel;
+				return m_partitioning_level;
 			}
 
 			// boundary type
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				return m_pmdidType;
+				return m_mdid_type;
 			}
 
 			// is this a lower (or upper) bound
-			BOOL FLower() const
+			BOOL IsLowerBound() const
 			{
-				return m_fLower;
+				return m_is_lower_bound;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// conversion function
 			static
-			CDXLScalarPartBound *PdxlopConvert
+			CDXLScalarPartBound *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarPartBound == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarPartBound == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarPartBound*>(pdxlop);
+				return dynamic_cast<CDXLScalarPartBound*>(dxl_op);
 			}
 	};
 }

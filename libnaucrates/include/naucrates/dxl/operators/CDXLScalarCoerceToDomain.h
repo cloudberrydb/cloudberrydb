@@ -52,11 +52,11 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarCoerceToDomain
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				EdxlCoercionForm edxlcf,
-				INT iLoc
+				IMemoryPool *mp,
+				IMDId *mdid_type,
+				INT type_modifier,
+				EdxlCoercionForm dxl_coerce_format,
+				INT location
 				);
 
 			virtual
@@ -66,26 +66,26 @@ namespace gpdxl
 
 			// ident accessor
 			virtual
-			Edxlopid Edxlop() const
+			Edxlopid GetDXLOperator() const
 			{
 				return EdxlopScalarCoerceToDomain;
 			}
 
 			// name of the DXL operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// conversion function
 			static
-			CDXLScalarCoerceToDomain *PdxlopConvert
+			CDXLScalarCoerceToDomain *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarCoerceToDomain == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarCoerceToDomain == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarCoerceToDomain*>(pdxlop);
+				return dynamic_cast<CDXLScalarCoerceToDomain*>(dxl_op);
 			}
 	};
 }

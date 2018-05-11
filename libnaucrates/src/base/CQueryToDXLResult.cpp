@@ -26,16 +26,16 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CQueryToDXLResult::CQueryToDXLResult
 	(
-	CDXLNode *pdxln,
-	DrgPdxln *pdrgpdxlnOutput,
-	DrgPdxln *pdrgpdxlnCTE
+	CDXLNode *query,
+	CDXLNodeArray *query_output,
+	CDXLNodeArray *cte_producers
 	)
 	:
-	m_pdxln(pdxln),
-	m_pdrgpdxlnQueryOutput(pdrgpdxlnOutput),
-	m_pdrgpdxlnCTE(pdrgpdxlnCTE)
+	m_query_dxl(query),
+	m_query_output(query_output),
+	m_cte_producers(cte_producers)
 {
-	GPOS_ASSERT(NULL != pdxln);
+	GPOS_ASSERT(NULL != query);
 }
 
 //---------------------------------------------------------------------------
@@ -48,52 +48,52 @@ CQueryToDXLResult::CQueryToDXLResult
 //---------------------------------------------------------------------------
 CQueryToDXLResult::~CQueryToDXLResult()
 {
-	m_pdxln->Release();
-	CRefCount::SafeRelease(m_pdrgpdxlnQueryOutput);
-	CRefCount::SafeRelease(m_pdrgpdxlnCTE);
+	m_query_dxl->Release();
+	CRefCount::SafeRelease(m_query_output);
+	CRefCount::SafeRelease(m_cte_producers);
 
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CQueryToDXLResult::PdrgpdxlnOutputCols
+//		CQueryToDXLResult::GetOutputColumnsDXLArray
 //
 //	@doc:
 //		Return the array of dxl nodes representing the query output
 //
 //---------------------------------------------------------------------------
-const DrgPdxln*
-CQueryToDXLResult::PdrgpdxlnOutputCols() const
+const CDXLNodeArray*
+CQueryToDXLResult::GetOutputColumnsDXLArray() const
 {
-	return m_pdrgpdxlnQueryOutput;
+	return m_query_output;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CQueryToDXLResult::PdrgpdxlnCTE
+//		CQueryToDXLResult::GetCTEProducerDXLArray
 //
 //	@doc:
 //		Return the array of CTEs
 //
 //---------------------------------------------------------------------------
-const DrgPdxln*
-CQueryToDXLResult::PdrgpdxlnCTE() const
+const CDXLNodeArray*
+CQueryToDXLResult::GetCTEProducerDXLArray() const
 {
-	return m_pdrgpdxlnCTE;
+	return m_cte_producers;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CQueryToDXLResult::Pdxln
+//		CQueryToDXLResult::CreateDXLNode
 //
 //	@doc:
 //		Return the DXL node representing the query
 //
 //---------------------------------------------------------------------------
 const CDXLNode *
-CQueryToDXLResult::Pdxln() const
+CQueryToDXLResult::CreateDXLNode() const
 {
-	return m_pdxln;
+	return m_query_dxl;
 }
 
 

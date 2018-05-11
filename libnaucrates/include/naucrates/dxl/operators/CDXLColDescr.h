@@ -29,7 +29,7 @@ namespace gpdxl
 	class CXMLSerializer;
 	class CDXLColDescr;
 	
-	typedef CDynamicPtrArray<CDXLColDescr, CleanupRelease> DrgPdxlcd;
+	typedef CDynamicPtrArray<CDXLColDescr, CleanupRelease> CDXLColDescrArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -43,27 +43,27 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// name
-			CMDName *m_pmdname;
+			CMDName *m_md_name;
 	
 			// column id: unique identifier of that instance of the column in the query
-			ULONG m_ulId;
+			ULONG m_column_id;
 			
 			// attribute number in the database (corresponds to varattno in GPDB)
-			INT m_iAttno;
+			INT m_attr_no;
 			
 			// mdid of column's type
-			IMDId *m_pmdidType;
+			IMDId *m_column_mdid_type;
 
-			INT m_iTypeModifier;
+			INT m_type_modifier;
 
 			// is column dropped from the table: needed for correct restoring of attribute numbers in the range table entries
-			BOOL m_fDropped;
+			BOOL m_is_dropped;
 
 			// width of the column, for instance  char(10) column has width 10
-			ULONG m_ulWidth;
+			ULONG m_column_width;
 			
 			// private copy ctor
 			CDXLColDescr(const CDXLColDescr &);
@@ -74,38 +74,38 @@ namespace gpdxl
 				(
 				IMemoryPool *,
 				CMDName *,
-				ULONG ulId,
-				INT iAttno,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				BOOL fDropped,
-				ULONG ulWidth = gpos::ulong_max
+				ULONG column_id,
+				INT attr_no,
+				IMDId *column_mdid_type,
+				INT type_modifier,
+				BOOL is_dropped,
+				ULONG width = gpos::ulong_max
 				);
 
 			//dtor
 			~CDXLColDescr();
 			
 			// column name
-			const CMDName *Pmdname() const;
+			const CMDName *MdName() const;
 
 			// column identifier
-			ULONG UlID() const;
+			ULONG Id() const;
 
 			// attribute number of the column in the base table
-			INT IAttno() const;
+			INT AttrNum() const;
 
 			// is the column dropped in the base table
-			BOOL FDropped() const;
+			BOOL IsDropped() const;
 
 			// column type
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
 			// column width
-			ULONG UlWidth() const;
+			ULONG Width() const;
 			
-			void SerializeToDXL(CXMLSerializer *pxmlser) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer) const;
 	};
 
 }

@@ -32,13 +32,13 @@ namespace gpopt
 		private:
 
 			// array of column descriptors: the schema of the const table
-			DrgPcoldesc *m_pdrgpcoldesc;
+			CColumnDescriptorArray *m_pdrgpcoldesc;
 		
 			// array of datum arrays
-			DrgPdrgPdatum *m_pdrgpdrgpdatum;
+			IDatum2dArray *m_pdrgpdrgpdatum;
 			
 			// output columns
-			DrgPcr *m_pdrgpcrOutput;
+			CColRefArray *m_pdrgpcrOutput;
 			
 			// private copy ctor
 			CPhysicalConstTableGet(const CPhysicalConstTableGet &);
@@ -48,10 +48,10 @@ namespace gpopt
 			// ctor
 			CPhysicalConstTableGet
 				(
-				IMemoryPool *pmp,
-				DrgPcoldesc *pdrgpcoldesc,
-				DrgPdrgPdatum *pdrgpdrgpconst,
-				DrgPcr *pdrgpcrOutput
+				IMemoryPool *mp,
+				CColumnDescriptorArray *pdrgpcoldesc,
+				IDatum2dArray *pdrgpdrgpconst,
+				CColRefArray *pdrgpcrOutput
 				);
 
 			// dtor
@@ -72,19 +72,19 @@ namespace gpopt
 			}
 
 			// col descr accessor
-			DrgPcoldesc *Pdrgpcoldesc() const
+			CColumnDescriptorArray *Pdrgpcoldesc() const
 			{
 				return m_pdrgpcoldesc;
 			}
 			
 			// const table values accessor
-			DrgPdrgPdatum *Pdrgpdrgpdatum () const
+			IDatum2dArray *Pdrgpdrgpdatum () const
 			{
 				return m_pdrgpdrgpdatum;
 			}
 			
 			// output columns accessors
-			DrgPcr *PdrgpcrOutput() const
+			CColRefArray *PdrgpcrOutput() const
 			{
 				return m_pdrgpcrOutput;
 			}
@@ -92,7 +92,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -110,11 +110,11 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 		
@@ -122,11 +122,11 @@ namespace gpopt
 			virtual
 			CCTEReq *PcteRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CCTEReq *pcter,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -135,11 +135,11 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -148,11 +148,11 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -161,11 +161,11 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -174,11 +174,11 @@ namespace gpopt
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *, //pmp,
+				IMemoryPool *, //mp,
 				CExpressionHandle &, //exprhdl,
 				CPartitionPropagationSpec *, //pppsRequired,
-				ULONG , //ulChildIndex,
-				DrgPdp *, //pdrgpdpCtxt,
+				ULONG , //child_index,
+				CDrvdProp2dArray *, //pdrgpdpCtxt,
 				ULONG //ulOptReq
 				)
 			{
@@ -196,44 +196,44 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive distribution
 			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 			
 			// derive rewindability
 			virtual
-			CRewindabilitySpec *PrsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CRewindabilitySpec *PrsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive cte map
 			virtual
-			CCTEMap *PcmDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CCTEMap *PcmDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition index map
 			virtual
 			CPartIndexMap *PpimDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &, //exprhdl
 				CDrvdPropCtxt * //pdpctxt
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CPartIndexMap(pmp);
+				return GPOS_NEW(mp) CPartIndexMap(mp);
 			}
 			
 			// derive partition filter map
 			virtual
 			CPartFilterMap *PpfmDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 				const
 			{
 				// return empty part filter map
-				return GPOS_NEW(pmp) CPartFilterMap(pmp);
+				return GPOS_NEW(mp) CPartFilterMap(mp);
 			}
 
 			//-------------------------------------------------------------------------------------

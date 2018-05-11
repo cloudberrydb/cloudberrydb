@@ -5,7 +5,7 @@
 
 namespace gpopt
 {
-	CDistributionSpecStrictHashed::CDistributionSpecStrictHashed(DrgPexpr *pdrgpexpr, BOOL fNullsColocated)
+	CDistributionSpecStrictHashed::CDistributionSpecStrictHashed(CExpressionArray *pdrgpexpr, BOOL fNullsColocated)
 		: CDistributionSpecHashed(pdrgpexpr, fNullsColocated) {}
 
 	CDistributionSpec::EDistributionType CDistributionSpecStrictHashed::Edt() const

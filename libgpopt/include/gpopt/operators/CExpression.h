@@ -31,10 +31,10 @@ namespace gpopt
 {
 	// cleanup function for arrays
 	class CExpression;	
-	typedef CDynamicPtrArray<CExpression, CleanupRelease> DrgPexpr;
+	typedef CDynamicPtrArray<CExpression, CleanupRelease> CExpressionArray;
 
 	// array of arrays of expression pointers
-	typedef CDynamicPtrArray<DrgPexpr, CleanupRelease> DrgPdrgPexpr;
+	typedef CDynamicPtrArray<CExpressionArray, CleanupRelease> CExpressionArrays;
 
 	class CGroupExpression;
 	class CDrvdPropPlan;
@@ -57,13 +57,13 @@ namespace gpopt
 		private:
 		
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// operator class
 			COperator *m_pop;
 			
 			// array of children
-			DrgPexpr *m_pdrgpexpr;
+			CExpressionArray *m_pdrgpexpr;
 
 			// derived relational properties
 			CDrvdPropRelational *m_pdprel;
@@ -93,12 +93,12 @@ namespace gpopt
 			ULONG m_ulOriginGrpExprId;
 
 			// set expression's derivable property
-			void SetPdp(CDrvdProp *pdp, const CDrvdProp::EPropType ept);
+			void SetPdp(DrvdPropArray *pdp, const DrvdPropArray::EPropType ept);
 
 #ifdef GPOS_DEBUG
 
 			// assert valid property derivation
-			void AssertValidPropDerivation(const CDrvdProp::EPropType ept);
+			void AssertValidPropDerivation(const DrvdPropArray::EPropType ept);
 
 			// print expression properties
 			void PrintProperties(IOstream &os, CPrintPrefix &pfx) const;
@@ -112,10 +112,10 @@ namespace gpopt
 			BOOL FValidChildrenDistribution(CDrvdPropCtxtPlan *pdpctxtplan);
 
 			// copy group properties and stats to expression
-			void CopyGroupPropsAndStats(IStatistics *pstatsInput);
+			void CopyGroupPropsAndStats(IStatistics *input_stats);
 
 			// decorate expression tree with required plan properties
-			CReqdPropPlan* PrppDecorate(IMemoryPool *pmp, CReqdPropPlan *prppInput);
+			CReqdPropPlan* PrppDecorate(IMemoryPool *mp, CReqdPropPlan *prppInput);
 
 			// private copy ctor
 			CExpression(const CExpression &);
@@ -127,7 +127,7 @@ namespace gpopt
 			// ctor for leaf nodes
 			CExpression
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COperator *pop,
 				CGroupExpression *pgexpr = NULL
 				);
@@ -135,7 +135,7 @@ namespace gpopt
 			// ctor for unary expressions
 			CExpression
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COperator *pop,
 				CExpression *pexpr
 				);
@@ -143,7 +143,7 @@ namespace gpopt
 			// ctor for binary expressions
 			CExpression
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COperator *pop,
 				CExpression *pexprChildFirst,
 				CExpression *pexprChildSecond
@@ -152,7 +152,7 @@ namespace gpopt
 			// ctor for ternary expressions
 			CExpression
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COperator *pop,
 				CExpression *pexprChildFirst,
 				CExpression *pexprChildSecond,
@@ -162,27 +162,27 @@ namespace gpopt
 			// ctor n-ary expressions
 			CExpression
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COperator *pop,
-				DrgPexpr *pdrgpexpr
+				CExpressionArray *pdrgpexpr
 				);
 			
 			// ctor for n-ary expression with origin group expression
 			CExpression
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COperator *pop,
 				CGroupExpression *pgexpr,
-				DrgPexpr *pdrgpexpr,
-				IStatistics *pstatsInput,
+				CExpressionArray *pdrgpexpr,
+				IStatistics *input_stats,
 				CCost cost = GPOPT_INVALID_COST
 				);
 
 			// ctor for expression with derived properties
 			CExpression
 				(
-				IMemoryPool *pmp,
-				CDrvdProp *pdprop
+				IMemoryPool *mp,
+				DrvdPropArray *pdprop
 				);
 			
 			// dtor
@@ -200,9 +200,9 @@ namespace gpopt
 			};
 	
 			// arity function
-			ULONG UlArity() const
+			ULONG Arity() const
 			{
-				return m_pdrgpexpr == NULL ? 0 : m_pdrgpexpr->UlLength();
+				return m_pdrgpexpr == NULL ? 0 : m_pdrgpexpr->Size();
 			}
 			
 			// accessor for operator
@@ -213,7 +213,7 @@ namespace gpopt
 			}
 		
 			// accessor of children array
-			DrgPexpr *PdrgPexpr() const
+			CExpressionArray *PdrgPexpr() const
 			{
 				return m_pdrgpexpr;
 			}
@@ -231,7 +231,7 @@ namespace gpopt
 			}
 
 			// get expression's derived property given its type
-			CDrvdProp *Pdp(const CDrvdProp::EPropType ept) const;
+			DrvdPropArray *Pdp(const DrvdPropArray::EPropType ept) const;
 
 			// get derived statistics object
 			const IStatistics *Pstats() const
@@ -246,16 +246,16 @@ namespace gpopt
 			}
 
 			// get the suitable derived property type based on operator
-			CDrvdProp::EPropType Ept() const;
+			DrvdPropArray::EPropType Ept() const;
 
 			// derive properties, determine the suitable derived property type internally
-			CDrvdProp *PdpDerive(CDrvdPropCtxt *pdpctxt = NULL);
+			DrvdPropArray *PdpDerive(CDrvdPropCtxt *pdpctxt = NULL);
 
 			// derive statistics
-			IStatistics *PstatsDerive(CReqdPropRelational *prprel, DrgPstat *pdrgpstatCtxt);
+			IStatistics *PstatsDerive(CReqdPropRelational *prprel, IStatisticsArray *stats_ctxt);
 
 			// reset a derived property
-			void ResetDerivedProperty(CDrvdProp::EPropType ept);
+			void ResetDerivedProperty(DrvdPropArray::EPropType ept);
 
 			// reset all derived properties
 			void ResetDerivedProperties();
@@ -264,10 +264,10 @@ namespace gpopt
 			void ResetStats();
 
 			// compute required plan properties of all expression nodes
-			CReqdPropPlan* PrppCompute(IMemoryPool *pmp, CReqdPropPlan *prppInput);
+			CReqdPropPlan* PrppCompute(IMemoryPool *mp, CReqdPropPlan *prppInput);
 
 			// check for outer references
-			BOOL FHasOuterRefs();
+			BOOL HasOuterRefs();
 
 			// print driver
 			IOstream &OsPrint
@@ -282,10 +282,10 @@ namespace gpopt
 			BOOL FMatchPattern(CGroupExpression *pgexpr) const;
 			
 			// return a copy of the expression with remapped columns
-			CExpression *PexprCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist) const;
+			CExpression *PexprCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist) const;
 
 			// compare entire expression rooted here
-			BOOL FMatch(CExpression *pexpr) const;
+			BOOL Matches(CExpression *pexpr) const;
 
 #ifdef GPOS_DEBUG
 			// match against given pattern
@@ -310,7 +310,7 @@ namespace gpopt
 
 			// static hash function
 			static
-			ULONG UlHash(const CExpression *pexpr);
+			ULONG HashValue(const CExpression *pexpr);
 
 			// static hash function
 			static
@@ -318,7 +318,7 @@ namespace gpopt
 
 			// rehydrate expression from a given cost context and child expressions
 			static
-			CExpression *PexprRehydrate(IMemoryPool *pmp, CCostContext *pcc, DrgPexpr *pdrgpexpr, CDrvdPropCtxtPlan *pdpctxtplan);
+			CExpression *PexprRehydrate(IMemoryPool *mp, CCostContext *pcc, CExpressionArray *pdrgpexpr, CDrvdPropCtxtPlan *pdpctxtplan);
 
 
 	}; // class CExpression
@@ -332,12 +332,12 @@ namespace gpopt
 	}
 
 	// hash map from ULONG to expression
-	typedef CHashMap<ULONG, CExpression, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<CExpression> > HMUlExpr;
+	typedef CHashMap<ULONG, CExpression, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<CExpression> > UlongToExprMap;
 
 	// map iterator
-	typedef CHashMapIter<ULONG, CExpression, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<CExpression> > HMUlExprIter;
+	typedef CHashMapIter<ULONG, CExpression, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<CExpression> > UlongToExprMapIter;
 
 }
 

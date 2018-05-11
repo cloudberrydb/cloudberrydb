@@ -63,45 +63,45 @@ CParseHandlerManagerTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 		
 	// create XML reader and a parse handler manager for it
-	CDXLMemoryManager *pmm = GPOS_NEW(pmp) CDXLMemoryManager(pmp);
+	CDXLMemoryManager *dxl_memory_manager = GPOS_NEW(mp) CDXLMemoryManager(mp);
 
 	SAX2XMLReader* parser = NULL;
 	{
 		CAutoTraceFlag atf(EtraceSimulateOOM, false);
-		parser = XMLReaderFactory::createXMLReader(pmm);
+		parser = XMLReaderFactory::createXMLReader(dxl_memory_manager);
 	}
 
-	CParseHandlerManager *pphm = GPOS_NEW(pmp) CParseHandlerManager(pmm, parser);
+	CParseHandlerManager *parse_handler_mgr = GPOS_NEW(mp) CParseHandlerManager(dxl_memory_manager, parser);
 	
 	// create some parse handlers
-	CParseHandlerPlan *pphPlan = GPOS_NEW(pmp) CParseHandlerPlan(pmp, pphm, NULL);
-	CParseHandlerHashJoin *pphHJ = GPOS_NEW(pmp) CParseHandlerHashJoin(pmp, pphm, pphPlan);
+	CParseHandlerPlan *pphPlan = GPOS_NEW(mp) CParseHandlerPlan(mp, parse_handler_mgr, NULL);
+	CParseHandlerHashJoin *pphHJ = GPOS_NEW(mp) CParseHandlerHashJoin(mp, parse_handler_mgr, pphPlan);
 	
-	pphm->ActivateParseHandler(pphPlan);
-	GPOS_ASSERT(pphPlan == pphm->PphCurrent());
+	parse_handler_mgr->ActivateParseHandler(pphPlan);
+	GPOS_ASSERT(pphPlan == parse_handler_mgr->GetCurrentParseHandler());
 	GPOS_ASSERT(pphPlan == parser->getContentHandler());
 
-	pphm->ActivateParseHandler(pphHJ);
-	GPOS_ASSERT(pphHJ == pphm->PphCurrent());
+	parse_handler_mgr->ActivateParseHandler(pphHJ);
+	GPOS_ASSERT(pphHJ == parse_handler_mgr->GetCurrentParseHandler());
 	GPOS_ASSERT(pphHJ == parser->getContentHandler());
 
 
-	pphm->DeactivateHandler();
-	GPOS_ASSERT(pphPlan == pphm->PphCurrent());
+	parse_handler_mgr->DeactivateHandler();
+	GPOS_ASSERT(pphPlan == parse_handler_mgr->GetCurrentParseHandler());
 	GPOS_ASSERT(pphPlan == parser->getContentHandler());
 	
-	pphm->DeactivateHandler();
+	parse_handler_mgr->DeactivateHandler();
 	// no more parse handlers
-	GPOS_ASSERT(NULL == pphm->PphCurrent());
+	GPOS_ASSERT(NULL == parse_handler_mgr->GetCurrentParseHandler());
 	GPOS_ASSERT(NULL == parser->getContentHandler());
 
 	// cleanup
-	GPOS_DELETE(pphm);
+	GPOS_DELETE(parse_handler_mgr);
 	delete parser;
-	GPOS_DELETE(pmm);
+	GPOS_DELETE(dxl_memory_manager);
 	GPOS_DELETE(pphPlan);
 	GPOS_DELETE(pphHJ);
 

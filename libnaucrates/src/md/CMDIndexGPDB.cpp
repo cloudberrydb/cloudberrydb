@@ -33,39 +33,39 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDIndexGPDB::CMDIndexGPDB
 	(
-	IMemoryPool *pmp, 
-	IMDId *pmdid, 
-	CMDName *pmdname,
-	BOOL fClustered, 
-	IMDIndex::EmdindexType emdindt,
-	IMDId *pmdidItemType,
-	DrgPul *pdrgpulKeyCols,
-	DrgPul *pdrgpulIncludedCols,
-	DrgPmdid *pdrgpmdidOpClasses,
-	IMDPartConstraint *pmdpartcnstr
+	IMemoryPool *mp,
+	IMDId *mdid, 
+	CMDName *mdname,
+	BOOL is_clustered,
+	IMDIndex::EmdindexType index_type,
+	IMDId *mdid_item_type,
+	ULongPtrArray *index_key_cols_array,
+	ULongPtrArray *included_cols_array,
+	IMdIdArray *mdid_op_classes_array,
+	IMDPartConstraint *mdpart_constraint
 	)
 	:
-	m_pmp(pmp),
-	m_pmdid(pmdid),
-	m_pmdname(pmdname),
-	m_fClustered(fClustered),
-	m_emdindt(emdindt),
-	m_pmdidItemType(pmdidItemType),
-	m_pdrgpulKeyCols(pdrgpulKeyCols),
-	m_pdrgpulIncludedCols(pdrgpulIncludedCols),
-	m_pdrgpmdidOpClasses(pdrgpmdidOpClasses),
-	m_pmdpartcnstr(pmdpartcnstr)
+	m_mp(mp),
+	m_mdid(mdid),
+	m_mdname(mdname),
+	m_clustered(is_clustered),
+	m_index_type(index_type),
+	m_mdid_item_type(mdid_item_type),
+	m_index_key_cols_array(index_key_cols_array),
+	m_included_cols_array(included_cols_array),
+	m_mdid_op_classes_array(mdid_op_classes_array),
+	m_mdpart_constraint(mdpart_constraint)
 {
-	GPOS_ASSERT(pmdid->FValid());
-	GPOS_ASSERT(IMDIndex::EmdindSentinel > emdindt);
-	GPOS_ASSERT(NULL != pdrgpulKeyCols);
-	GPOS_ASSERT(0 < pdrgpulKeyCols->UlLength());
-	GPOS_ASSERT(NULL != pdrgpulIncludedCols);
-	GPOS_ASSERT_IMP(NULL != pmdidItemType, IMDIndex::EmdindBitmap == emdindt || IMDIndex::EmdindGist == emdindt);
-	GPOS_ASSERT_IMP(IMDIndex::EmdindBitmap == emdindt, NULL != pmdidItemType && pmdidItemType->FValid());
-	GPOS_ASSERT(NULL != pdrgpmdidOpClasses);
+	GPOS_ASSERT(mdid->IsValid());
+	GPOS_ASSERT(IMDIndex::EmdindSentinel > index_type);
+	GPOS_ASSERT(NULL != index_key_cols_array);
+	GPOS_ASSERT(0 < index_key_cols_array->Size());
+	GPOS_ASSERT(NULL != included_cols_array);
+	GPOS_ASSERT_IMP(NULL != mdid_item_type, IMDIndex::EmdindBitmap == index_type || IMDIndex::EmdindGist == index_type);
+	GPOS_ASSERT_IMP(IMDIndex::EmdindBitmap == index_type, NULL != mdid_item_type && mdid_item_type->IsValid());
+	GPOS_ASSERT(NULL != mdid_op_classes_array);
 	
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
 //---------------------------------------------------------------------------
@@ -78,28 +78,28 @@ CMDIndexGPDB::CMDIndexGPDB
 //---------------------------------------------------------------------------
 CMDIndexGPDB::~CMDIndexGPDB()
 {
-	GPOS_DELETE(m_pmdname);
-	GPOS_DELETE(m_pstr);
-	m_pmdid->Release();
-	CRefCount::SafeRelease(m_pmdidItemType);
-	m_pdrgpulKeyCols->Release();
-	m_pdrgpulIncludedCols->Release();
-	m_pdrgpmdidOpClasses->Release();
-	CRefCount::SafeRelease(m_pmdpartcnstr);
+	GPOS_DELETE(m_mdname);
+	GPOS_DELETE(m_dxl_str);
+	m_mdid->Release();
+	CRefCount::SafeRelease(m_mdid_item_type);
+	m_index_key_cols_array->Release();
+	m_included_cols_array->Release();
+	m_mdid_op_classes_array->Release();
+	CRefCount::SafeRelease(m_mdpart_constraint);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::Pmdid
+//		CMDIndexGPDB::MDId
 //
 //	@doc:
 //		Returns the metadata id of this index
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDIndexGPDB::Pmdid() const
+CMDIndexGPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -113,89 +113,89 @@ CMDIndexGPDB::Pmdid() const
 CMDName
 CMDIndexGPDB::Mdname() const
 {
-	return *m_pmdname;
+	return *m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::FClustered
+//		CMDIndexGPDB::IsClustered
 //
 //	@doc:
 //		Is the index clustered
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDIndexGPDB::FClustered() const
+CMDIndexGPDB::IsClustered() const
 {
-	return m_fClustered;
+	return m_clustered;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::Emdindt
+//		CMDIndexGPDB::IndexType
 //
 //	@doc:
 //		Index type
 //
 //---------------------------------------------------------------------------
 IMDIndex::EmdindexType
-CMDIndexGPDB::Emdindt() const
+CMDIndexGPDB::IndexType() const
 {
-	return m_emdindt;
+	return m_index_type;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::UlKeys
+//		CMDIndexGPDB::Keys
 //
 //	@doc:
 //		Returns the number of index keys
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIndexGPDB::UlKeys() const
+CMDIndexGPDB::Keys() const
 {
-	return m_pdrgpulKeyCols->UlLength();
+	return m_index_key_cols_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::UlKey
+//		CMDIndexGPDB::KeyAt
 //
 //	@doc:
 //		Returns the n-th key column
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIndexGPDB::UlKey
+CMDIndexGPDB::KeyAt
 	(
-	ULONG ulPos
+	ULONG pos
 	) 
 	const
 {
-	return *((*m_pdrgpulKeyCols)[ulPos]);
+	return *((*m_index_key_cols_array)[pos]);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::UlPosInKey
+//		CMDIndexGPDB::GetKeyPos
 //
 //	@doc:
 //		Return the position of the key column in the index
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIndexGPDB::UlPosInKey
+CMDIndexGPDB::GetKeyPos
 	(
-	ULONG ulCol
+	ULONG column
 	)
 	const
 {
-	const ULONG ulSize = UlKeys();
+	const ULONG size = Keys();
 
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG ul = 0; ul < size; ul++)
 	{
-		if (UlKey(ul) == ulCol)
+		if (KeyAt(ul) == column)
 		{
 			return ul;
 		}
@@ -206,56 +206,56 @@ CMDIndexGPDB::UlPosInKey
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::UlIncludedCols
+//		CMDIndexGPDB::IncludedCols
 //
 //	@doc:
 //		Returns the number of included columns
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIndexGPDB::UlIncludedCols() const
+CMDIndexGPDB::IncludedCols() const
 {
-	return m_pdrgpulIncludedCols->UlLength();
+	return m_included_cols_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::UlIncludedCol
+//		CMDIndexGPDB::IncludedColAt
 //
 //	@doc:
 //		Returns the n-th included column
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIndexGPDB::UlIncludedCol
+CMDIndexGPDB::IncludedColAt
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	return *((*m_pdrgpulIncludedCols)[ulPos]);
+	return *((*m_included_cols_array)[pos]);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::UlPosInIncludedCol
+//		CMDIndexGPDB::GetIncludedColPos
 //
 //	@doc:
 //		Return the position of the included column in the index
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIndexGPDB::UlPosInIncludedCol
+CMDIndexGPDB::GetIncludedColPos
 	(
-	ULONG ulCol
+	ULONG column
 	)
 	const
 {
-	const ULONG ulSize = UlIncludedCols();
+	const ULONG size = IncludedCols();
 
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG ul = 0; ul < size; ul++)
 	{
-		if (UlIncludedCol(ul) == ulCol)
+		if (IncludedColAt(ul) == column)
 		{
 			return ul;
 		}
@@ -268,16 +268,16 @@ CMDIndexGPDB::UlPosInIncludedCol
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::Pmdpartcnstr
+//		CMDIndexGPDB::MDPartConstraint
 //
 //	@doc:
 //		Return the part constraint
 //
 //---------------------------------------------------------------------------
 IMDPartConstraint *
-CMDIndexGPDB::Pmdpartcnstr() const
+CMDIndexGPDB::MDPartConstraint() const
 {
-	return m_pmdpartcnstr;
+	return m_mdpart_constraint;
 }
 
 //---------------------------------------------------------------------------
@@ -291,43 +291,43 @@ CMDIndexGPDB::Pmdpartcnstr() const
 void
 CMDIndexGPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenIndex));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenIndex));
 	
-	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexClustered), m_fClustered);
+	m_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIndexClustered), m_clustered);
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexType), PstrIndexType(m_emdindt));
-	if (NULL != m_pmdidItemType)
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIndexType), GetDXLStr(m_index_type));
+	if (NULL != m_mdid_item_type)
 	{
-		m_pmdidItemType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenIndexItemType));
+		m_mdid_item_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenIndexItemType));
 	}
 		
 	// serialize index keys
-	CWStringDynamic *pstrKeyCols = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulKeyCols);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexKeyCols), pstrKeyCols);
-	GPOS_DELETE(pstrKeyCols);
+	CWStringDynamic *index_key_cols_str = CDXLUtils::Serialize(m_mp, m_index_key_cols_array);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIndexKeyCols), index_key_cols_str);
+	GPOS_DELETE(index_key_cols_str);
 
-	CWStringDynamic *pstrAvailCols = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulIncludedCols);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexIncludedCols), pstrAvailCols);
-	GPOS_DELETE(pstrAvailCols);
+	CWStringDynamic *available_cols_str = CDXLUtils::Serialize(m_mp, m_included_cols_array);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIndexIncludedCols), available_cols_str);
+	GPOS_DELETE(available_cols_str);
 		
 	// serialize operator class information
-	SerializeMDIdList(pxmlser, m_pdrgpmdidOpClasses, 
-						CDXLTokens::PstrToken(EdxltokenOpClasses), 
-						CDXLTokens::PstrToken(EdxltokenOpClass));
+	SerializeMDIdList(xml_serializer, m_mdid_op_classes_array, 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpClasses), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpClass));
 	
-	if (NULL != m_pmdpartcnstr)
+	if (NULL != m_mdpart_constraint)
 	{
-		m_pmdpartcnstr->Serialize(pxmlser);
+		m_mdpart_constraint->Serialize(xml_serializer);
 	}
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenIndex));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenIndex));
 }
 
 #ifdef GPOS_DEBUG
@@ -347,16 +347,16 @@ CMDIndexGPDB::DebugPrint
 	const
 {
 	os << "Index id: ";
-	Pmdid()->OsPrint(os);
+	MDId()->OsPrint(os);
 	os << std::endl;
 	
-	os << "Index name: " << (Mdname()).Pstr()->Wsz() << std::endl;
-	os << "Index type: " << PstrIndexType(m_emdindt)->Wsz() << std::endl;
+	os << "Index name: " << (Mdname()).GetMDName()->GetBuffer() << std::endl;
+	os << "Index type: " << GetDXLStr(m_index_type)->GetBuffer() << std::endl;
 
 	os << "Index keys: ";
-	for (ULONG ul = 0; ul < UlKeys(); ul++)
+	for (ULONG ul = 0; ul < Keys(); ul++)
 	{
-		ULONG ulKey = UlKey(ul);
+		ULONG ulKey = KeyAt(ul);
 		if (ul > 0)
 		{
 			os << ", ";
@@ -366,9 +366,9 @@ CMDIndexGPDB::DebugPrint
 	os << std::endl;	
 
 	os << "Included Columns: ";
-	for (ULONG ul = 0; ul < UlIncludedCols(); ul++)
+	for (ULONG ul = 0; ul < IncludedCols(); ul++)
 	{
-		ULONG ulKey = UlIncludedCol(ul);
+		ULONG ulKey = IncludedColAt(ul);
 		if (ul > 0)
 		{
 			os << ", ";
@@ -382,21 +382,21 @@ CMDIndexGPDB::DebugPrint
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::PmdidType
+//		CMDIndexGPDB::MdidType
 //
 //	@doc:
 //		Type of items returned by the index
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDIndexGPDB::PmdidItemType() const
+CMDIndexGPDB::GetIndexRetItemTypeMdid() const
 {
-	return m_pmdidItemType;
+	return m_mdid_item_type;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIndexGPDB::FCompatible
+//		CMDIndexGPDB::IsCompatible
 //
 //	@doc:
 //		Check if given scalar comparison can be used with the index key 
@@ -404,25 +404,25 @@ CMDIndexGPDB::PmdidItemType() const
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDIndexGPDB::FCompatible
+CMDIndexGPDB::IsCompatible
 	(
-	const IMDScalarOp *pmdscop, 
-	ULONG ulKeyPos
+	const IMDScalarOp *md_scalar_op, 
+	ULONG key_pos
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pmdscop);
-	GPOS_ASSERT(ulKeyPos < m_pdrgpmdidOpClasses->UlLength());
+	GPOS_ASSERT(NULL != md_scalar_op);
+	GPOS_ASSERT(key_pos < m_mdid_op_classes_array->Size());
 	
 	// check if the index opclass for the key at the given position is one of 
 	// the classes the scalar comparison belongs to
-	const IMDId *pmdidOpClass = (*m_pdrgpmdidOpClasses)[ulKeyPos];
+	const IMDId *mdid_op_class = (*m_mdid_op_classes_array)[key_pos];
 	
-	const ULONG ulScOpClasses = pmdscop->UlOpCLasses();
+	const ULONG op_classes_count = md_scalar_op->OpClassesCount();
 	
-	for (ULONG ul = 0; ul < ulScOpClasses; ul++)
+	for (ULONG ul = 0; ul < op_classes_count; ul++)
 	{
-		if (pmdidOpClass->FEquals(pmdscop->PmdidOpClass(ul)))
+		if (mdid_op_class->Equals(md_scalar_op->OpClassMdidAt(ul)))
 		{
 			return true;
 		}

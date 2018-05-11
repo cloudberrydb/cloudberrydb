@@ -32,20 +32,20 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarArrayCoerceExpr::CScalarArrayCoerceExpr
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidElementFunc,
-	IMDId *pmdidResultType,
-	INT iTypeModifier,
-	BOOL fIsExplicit,
+	IMemoryPool *mp,
+	IMDId *element_func,
+	IMDId *result_type_mdid,
+	INT type_modifier,
+	BOOL is_explicit,
 	ECoercionForm ecf,
-	INT iLoc
+	INT location
 	)
 	:
-	CScalarCoerceBase(pmp, pmdidResultType, iTypeModifier, ecf, iLoc),
-	m_pmdidElementFunc(pmdidElementFunc),
-	m_fIsExplicit(fIsExplicit)
+	CScalarCoerceBase(mp, result_type_mdid, type_modifier, ecf, location),
+	m_pmdidElementFunc(element_func),
+	m_is_explicit(is_explicit)
 {
-	GPOS_ASSERT(NULL != pmdidElementFunc);
+	GPOS_ASSERT(NULL != element_func);
 }
 
 //---------------------------------------------------------------------------
@@ -79,16 +79,16 @@ CScalarArrayCoerceExpr::PmdidElementFunc() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayCoerceExpr::FIsExplicit
+//		CScalarArrayCoerceExpr::IsExplicit
 //
 //	@doc:
 //		Conversion semantics flag to pass to func
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarArrayCoerceExpr::FIsExplicit() const
+CScalarArrayCoerceExpr::IsExplicit() const
 {
-	return m_fIsExplicit;
+	return m_is_explicit;
 }
 
 
@@ -124,14 +124,14 @@ CScalarArrayCoerceExpr::SzId() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayCoerceExpr::FMatch
+//		CScalarArrayCoerceExpr::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarArrayCoerceExpr::FMatch
+CScalarArrayCoerceExpr::Matches
 	(
 	COperator *pop
 	)
@@ -144,12 +144,12 @@ CScalarArrayCoerceExpr::FMatch
 
 	CScalarArrayCoerceExpr *popCoerce = CScalarArrayCoerceExpr::PopConvert(pop);
 
-	return popCoerce->PmdidElementFunc()->FEquals(m_pmdidElementFunc) &&
-			popCoerce->PmdidType()->FEquals(PmdidType()) &&
-			popCoerce->ITypeModifier() == ITypeModifier() &&
-			popCoerce->FIsExplicit() == m_fIsExplicit &&
+	return popCoerce->PmdidElementFunc()->Equals(m_pmdidElementFunc) &&
+			popCoerce->MdidType()->Equals(MdidType()) &&
+			popCoerce->TypeModifier() == TypeModifier() &&
+			popCoerce->IsExplicit() == m_is_explicit &&
 			popCoerce->Ecf() == Ecf() &&
-			popCoerce->ILoc() == ILoc();
+			popCoerce->Location() == Location();
 }
 
 

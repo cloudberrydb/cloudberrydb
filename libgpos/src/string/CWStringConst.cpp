@@ -27,18 +27,18 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CWStringConst::CWStringConst
 	(
-	const WCHAR *wszBuf
+	const WCHAR *w_str_buffer
 	)
 	:
 	CWStringBase
 		(
-		GPOS_WSZ_LENGTH(wszBuf),
-		false // fOwnsMemory
+		GPOS_WSZ_LENGTH(w_str_buffer),
+		false // owns_memory
 		),
-	m_wszBuf(wszBuf)
+	m_w_str_buffer(w_str_buffer)
 {
-	GPOS_ASSERT(NULL != wszBuf);
-	GPOS_ASSERT(FValid());
+	GPOS_ASSERT(NULL != w_str_buffer);
+	GPOS_ASSERT(IsValid());
 }
 
 //---------------------------------------------------------------------------
@@ -52,34 +52,34 @@ CWStringConst::CWStringConst
 //---------------------------------------------------------------------------
 CWStringConst::CWStringConst
 	(
-	IMemoryPool *pmp,
-	const WCHAR *wszBuf
+	IMemoryPool *mp,
+	const WCHAR *w_str_buffer
 	)
 	:
 	CWStringBase
 		(
-		GPOS_WSZ_LENGTH(wszBuf),
-		true // fOwnsMemory
+		GPOS_WSZ_LENGTH(w_str_buffer),
+		true // owns_memory
 		),
-	m_wszBuf(NULL)
+	m_w_str_buffer(NULL)
 {
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(NULL != wszBuf);
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(NULL != w_str_buffer);
 
-	if (0 == m_ulLength)
+	if (0 == m_length)
 	{
 		// string is empty
-		m_wszBuf = &m_wcEmpty;
+		m_w_str_buffer = &m_empty_wcstr;
 	}
 	else
 	{
 		// make a copy of the string
-		WCHAR *wszTempBuf = GPOS_NEW_ARRAY(pmp, WCHAR, m_ulLength + 1);
-		clib::WszWcsNCpy(wszTempBuf, wszBuf, m_ulLength + 1);
-		m_wszBuf = wszTempBuf;
+		WCHAR *w_str_temp_buffer = GPOS_NEW_ARRAY(mp, WCHAR, m_length + 1);
+		clib::WcStrNCpy(w_str_temp_buffer, w_str_buffer, m_length + 1);
+		m_w_str_buffer = w_str_temp_buffer;
 	}
 
-	GPOS_ASSERT(FValid());
+	GPOS_ASSERT(IsValid());
 }
 
 //---------------------------------------------------------------------------
@@ -97,13 +97,13 @@ CWStringConst::CWStringConst
 	:
 	CWStringBase
 		(
-		str.UlLength(),
-		false // fOwnsMemory
+		str.Length(),
+		false // owns_memory
 		),
-	m_wszBuf(str.Wsz())
+	m_w_str_buffer(str.GetBuffer())
 {
-	GPOS_ASSERT(NULL != m_wszBuf);
-	GPOS_ASSERT(FValid());
+	GPOS_ASSERT(NULL != m_w_str_buffer);
+	GPOS_ASSERT(IsValid());
 }
 //---------------------------------------------------------------------------
 //	@function:
@@ -116,24 +116,24 @@ CWStringConst::CWStringConst
 //---------------------------------------------------------------------------
 CWStringConst::~CWStringConst()
 {
-	if (m_fOwnsMemory && m_wszBuf != &m_wcEmpty)
+	if (m_owns_memory && m_w_str_buffer != &m_empty_wcstr)
 	{
-		GPOS_DELETE_ARRAY(m_wszBuf);
+		GPOS_DELETE_ARRAY(m_w_str_buffer);
 	}
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CWStringConst::Wsz
+//		CWStringConst::GetBuffer
 //
 //	@doc:
 //		Returns the wide character buffer
 //
 //---------------------------------------------------------------------------
 const WCHAR*
-CWStringConst::Wsz() const
+CWStringConst::GetBuffer() const
 {
-	return m_wszBuf;
+	return m_w_str_buffer;
 }
 
 // EOF

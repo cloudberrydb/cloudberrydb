@@ -25,20 +25,20 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CFunctionProp::CFunctionProp
 	(
-	IMDFunction::EFuncStbl efsStability,
-	IMDFunction::EFuncDataAcc efdaDataAccess,
+	IMDFunction::EFuncStbl func_stability,
+	IMDFunction::EFuncDataAcc func_data_access,
 	BOOL fHasVolatileFunctionScan,
 	BOOL fScan
 	)
 	:
-	m_efs(efsStability),
-	m_efda(efdaDataAccess),
+	m_efs(func_stability),
+	m_efda(func_data_access),
 	m_fHasVolatileFunctionScan(fHasVolatileFunctionScan),
 	m_fScan(fScan)
 {
-	GPOS_ASSERT(IMDFunction::EfsSentinel > efsStability);
-	GPOS_ASSERT(IMDFunction::EfdaSentinel > efdaDataAccess);
-	GPOS_ASSERT_IMP(fScan && IMDFunction::EfsVolatile == efsStability, fHasVolatileFunctionScan);
+	GPOS_ASSERT(IMDFunction::EfsSentinel > func_stability);
+	GPOS_ASSERT(IMDFunction::EfdaSentinel > func_data_access);
+	GPOS_ASSERT_IMP(fScan && IMDFunction::EfsVolatile == func_stability, fHasVolatileFunctionScan);
 }
 
 //---------------------------------------------------------------------------

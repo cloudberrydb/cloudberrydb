@@ -29,12 +29,12 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarSubquery::CDXLScalarSubquery
 	(
-	IMemoryPool *pmp,
-	ULONG ulColId
+	IMemoryPool *mp,
+	ULONG colid
 	)
 	:
-	CDXLScalar(pmp),
-	m_ulColId(ulColId)
+	CDXLScalar(mp),
+	m_colid(colid)
 {
 }
 
@@ -52,14 +52,14 @@ CDXLScalarSubquery::~CDXLScalarSubquery()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarSubquery::Edxlop
+//		CDXLScalarSubquery::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarSubquery::Edxlop() const
+CDXLScalarSubquery::GetDXLOperator() const
 {
 	return EdxlopScalarSubquery;
 }
@@ -67,16 +67,16 @@ CDXLScalarSubquery::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarSubquery::PstrOpName
+//		CDXLScalarSubquery::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarSubquery::PstrOpName() const
+CDXLScalarSubquery::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarSubquery);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarSubquery);
 }
 
 //---------------------------------------------------------------------------
@@ -90,19 +90,19 @@ CDXLScalarSubquery::PstrOpName() const
 void
 CDXLScalarSubquery::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	const CWStringConst *element_name = GetOpNameStr();
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
 	// serialize computed column id
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColId), m_ulColId);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenColId), m_colid);
 
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -117,17 +117,17 @@ CDXLScalarSubquery::SerializeToDXL
 void
 CDXLScalarSubquery::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) 
 	const
 {
-	GPOS_ASSERT(1 == pdxln->UlArity());
+	GPOS_ASSERT(1 == dxlnode->Arity());
 	
-	CDXLNode *pdxlnChild = (*pdxln)[0];
-	GPOS_ASSERT(EdxloptypeLogical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	CDXLNode *child_dxlnode = (*dxlnode)[0];
+	GPOS_ASSERT(EdxloptypeLogical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	pdxln->AssertValid(fValidateChildren);
+	dxlnode->AssertValid(validate_children);
 }
 #endif // GPOS_DEBUG
 

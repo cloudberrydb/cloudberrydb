@@ -73,7 +73,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// definition of context hash table accessor
 			typedef
@@ -97,12 +97,12 @@ namespace gpopt
 					CSpinlockCC> ShtAccIter;
 
 			// map of partial plans to their costs
-			typedef CHashMap<CPartialPlan, CCost, CPartialPlan::UlHash, CPartialPlan::FEqual,
-						CleanupRelease<CPartialPlan>, CleanupDelete<CCost> > PartialPlanCostMap;
+			typedef CHashMap<CPartialPlan, CCost, CPartialPlan::HashValue, CPartialPlan::Equals,
+						CleanupRelease<CPartialPlan>, CleanupDelete<CCost> > PartialPlanToCostMap;
 
 
 			// expression id
-			ULONG m_ulId;
+			ULONG m_id;
 
 			// duplicate group expression
 			CGroupExpression *m_pgexprDuplicate;
@@ -111,11 +111,11 @@ namespace gpopt
 			COperator *m_pop;
 			
 			// array of child groups
-			DrgPgroup *m_pdrgpgroup;
+			CGroupArray *m_pdrgpgroup;
 			
 			// sorted array of children groups for faster comparison 
 			// of order-insensitive operators
-			DrgPgroup *m_pdrgpgroupSorted;
+			CGroupArray *m_pdrgpgroupSorted;
 			
 			// back pointer to group
 			CGroup *m_pgroup;
@@ -137,7 +137,7 @@ namespace gpopt
 			EOptimizationLevel m_eol;
 
 			// map of partial plans to their cost lower bound
-			PartialPlanCostMap *m_ppartialplancostmap;
+			PartialPlanToCostMap *m_ppartialplancostmap;
 
 			// hashtable of cost contexts
 			ShtCC m_sht;
@@ -146,12 +146,12 @@ namespace gpopt
 			void SetGroup(CGroup *pgroup);
 
 			// set group expression id
-			void SetId(ULONG ulId);
+			void SetId(ULONG id);
 
 			// print transformation
 			void PrintXform
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CXform *pxform,
 				CExpression *pexpr,
 				CXformResult *pxfres,
@@ -175,13 +175,13 @@ namespace gpopt
 				);
 
 			// costing scheme
-			CCost CostCompute(IMemoryPool *pmp, CCostContext *pcc) const;
+			CCost CostCompute(IMemoryPool *mp, CCostContext *pcc) const;
 
 			// set optimization level of group expression
 			void SetOptimizationLevel();
 
 			// check validity of group expression
-			BOOL FValidContext(IMemoryPool *pmp, COptimizationContext *poc, DrgPoc *pdrgpocChild);
+			BOOL FValidContext(IMemoryPool *mp, COptimizationContext *poc, COptimizationContextArray *pdrgpocChild);
 			
 			// remove cost context in hash table
 			CCostContext *PccRemove(COptimizationContext *poc, ULONG ulOptReq);
@@ -198,8 +198,8 @@ namespace gpopt
 			//private dummy ctor; used for creating invalid gexpr
 			CGroupExpression()
 				:
-				m_pmp(NULL),
-				m_ulId(GPOPT_INVALID_GEXPR_ID),
+				m_mp(NULL),
+				m_id(GPOPT_INVALID_GEXPR_ID),
 				m_pop(NULL),
 				m_pdrgpgroup(NULL),
 				m_pdrgpgroupSorted(NULL),
@@ -218,9 +218,9 @@ namespace gpopt
 			// ctor
 			CGroupExpression
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COperator *pop,
-				DrgPgroup *pdrgpgroup,
+				CGroupArray *pdrgpgroup,
 				CXform::EXformId exfid,
 				CGroupExpression *pgexprOrigin,
 				BOOL fIntermediate
@@ -250,26 +250,26 @@ namespace gpopt
 			void CleanupContexts();
 
 			// check if cost context already exists in group expression hash table
-			BOOL FCostContextExists(COptimizationContext *poc, DrgPoc *pdrgpoc);
+			BOOL FCostContextExists(COptimizationContext *poc, COptimizationContextArray *pdrgpoc);
 
 			// compute and store expression's cost under a given context
-			CCostContext *PccComputeCost(IMemoryPool *pmp, COptimizationContext *poc, ULONG ulOptReq, DrgPoc *pdrgpoc, BOOL fPruned, CCost costLowerBound);
+			CCostContext *PccComputeCost(IMemoryPool *mp, COptimizationContext *poc, ULONG ulOptReq, COptimizationContextArray *pdrgpoc, BOOL fPruned, CCost costLowerBound);
 
 			// compute a cost lower bound for plans, rooted by current group expression, and satisfying the given required properties
-			CCost CostLowerBound(IMemoryPool *pmp, CReqdPropPlan *prppInput, CCostContext *pccChild, ULONG ulChildIndex);
+			CCost CostLowerBound(IMemoryPool *mp, CReqdPropPlan *prppInput, CCostContext *pccChild, ULONG child_index);
 
 			// initialize group expression
-			void Init(CGroup *pgroup, ULONG ulId);
+			void Init(CGroup *pgroup, ULONG id);
 
 			// reset group expression
 			void Reset
 				(
 				CGroup *pgroup,
-				ULONG ulId
+				ULONG id
 				)
 			{
 				m_pgroup = pgroup;
-				m_ulId = ulId;
+				m_id = id;
 			}
 
 			// optimization level accessor
@@ -301,9 +301,9 @@ namespace gpopt
 			};
 
 			// arity function
-			ULONG UlArity() const
+			ULONG Arity() const
 			{
-				return m_pdrgpgroup->UlLength();
+				return m_pdrgpgroup->Size();
 			}
 			
 			// accessor for operator
@@ -313,9 +313,9 @@ namespace gpopt
 			}
 
 			// accessor for id
-			ULONG UlId() const
+			ULONG Id() const
 			{
-				return m_ulId;
+				return m_id;
 			}
 
 			// accessor for containing group
@@ -349,12 +349,12 @@ namespace gpopt
 				)
 				const
 			{
-				return gexpr.FMatch(this);
+				return gexpr.Matches(this);
 			}
 			
 			 // equality function for hash table
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
 				const CGroupExpression &gexprLeft,
 				const CGroupExpression &gexprRight
@@ -364,29 +364,29 @@ namespace gpopt
 			}
 
 			// match group expression against given operator and its children
-			BOOL FMatch(const CGroupExpression *) const;
+			BOOL Matches(const CGroupExpression *) const;
 			
 			// match non-scalar children of group expression against given children of passed expression
 			BOOL FMatchNonScalarChildren(const CGroupExpression *pgexpr) const;
 
 			// hash function
-			ULONG UlHash() const
+			ULONG HashValue() const
 			{
-				return UlHash(m_pop, m_pdrgpgroup);
+				return HashValue(m_pop, m_pdrgpgroup);
 			}
 			
 			// static hash function for operator and group references
 			static
-			ULONG UlHash(COperator *pop, DrgPgroup *drgpgroup);
+			ULONG HashValue(COperator *pop, CGroupArray *drgpgroup);
 			
 			// static hash function for group expression
 			static
-			ULONG UlHash(const CGroupExpression&);
+			ULONG HashValue(const CGroupExpression&);
 
 			// transform group expression
 			void Transform
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				IMemoryPool *pmpLocal,
 				CXform *pxform,
 				CXformResult *pxfres,
@@ -414,7 +414,7 @@ namespace gpopt
 			// check if transition to the given state is completed
 			BOOL FTransitioned(EState estate) const;
 
-			DrgPgroup *Pdrgpgroup() const
+			CGroupArray *Pdrgpgroup() const
 			{
 				return m_pdrgpgroup;
 			}
@@ -423,7 +423,7 @@ namespace gpopt
 			CCostContext *PccLookup(COptimizationContext *poc, ULONG ulOptReq);
 
 			// lookup all cost contexts matching given optimization context
-			DrgPcc *PdrgpccLookupAll(IMemoryPool *pmp, COptimizationContext *poc);
+			CCostContextArray *PdrgpccLookupAll(IMemoryPool *mp, COptimizationContext *poc);
 
 			// insert a cost context in hash table
 			CCostContext *PccInsert(CCostContext *pcc);
@@ -434,7 +434,7 @@ namespace gpopt
 				IMemoryPool *pmpLocal,
 				IMemoryPool *pmpGlobal,
 				CReqdPropRelational *prprel,
-				DrgPstat *pdrgpstatCtxt,
+				IStatisticsArray *stats_ctxt,
 				BOOL fComputeRootStats = true
 				);
 

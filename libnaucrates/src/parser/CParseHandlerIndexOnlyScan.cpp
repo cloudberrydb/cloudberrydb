@@ -31,12 +31,12 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerIndexOnlyScan::CParseHandlerIndexOnlyScan
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerIndexScan(pmp, pphm, pphRoot)
+	CParseHandlerIndexScan(mp, parse_handler_mgr, parse_handler_root)
 {
 }
 
@@ -51,13 +51,13 @@ CParseHandlerIndexOnlyScan::CParseHandlerIndexOnlyScan
 void
 CParseHandlerIndexOnlyScan::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& attrs
 	)
 {
-	StartElementHelper(xmlszLocalname, attrs, EdxltokenPhysicalIndexOnlyScan);
+	StartElementHelper(element_local_name, attrs, EdxltokenPhysicalIndexOnlyScan);
 }
 
 //---------------------------------------------------------------------------
@@ -71,12 +71,12 @@ CParseHandlerIndexOnlyScan::StartElement
 void
 CParseHandlerIndexOnlyScan::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	EndElementHelper(xmlszLocalname, EdxltokenPhysicalIndexOnlyScan);
+	EndElementHelper(element_local_name, EdxltokenPhysicalIndexOnlyScan);
 }
 
 // EOF

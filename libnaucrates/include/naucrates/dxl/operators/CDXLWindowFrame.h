@@ -51,30 +51,30 @@ namespace gpdxl
 		private:
 
 			// memory pool;
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// row or range based window specification method
-			EdxlFrameSpec m_edxlfs;
+			EdxlFrameSpec m_dxl_win_frame_spec;
 
 			// exclusion strategy
-			EdxlFrameExclusionStrategy m_edxlfes;
+			EdxlFrameExclusionStrategy m_dxl_frame_exclusion_strategy;
 
 			// private copy ctor
 			CDXLWindowFrame(const CDXLWindowFrame&);
 
-			// scalar value representing the boundary leading
-			CDXLNode *m_pdxlnLeading;
+		// scalar value representing the boundary leading
+			CDXLNode *m_dxlnode_leading;
 
-			// scalar value representing the boundary trailing
-			CDXLNode *m_pdxlnTrailing;
+		// scalar value representing the boundary trailing
+			CDXLNode *m_dxlnode_trailing;
 
 		public:
 			// ctor
 			CDXLWindowFrame
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				EdxlFrameSpec edxlfs,
-				EdxlFrameExclusionStrategy edxlfes,
+				EdxlFrameExclusionStrategy frame_exc_strategy,
 				CDXLNode *pdxlnLeading,
 				CDXLNode *pdxlnTrailing
 				);
@@ -83,27 +83,27 @@ namespace gpdxl
 			virtual
 			~CDXLWindowFrame();
 
-			EdxlFrameSpec Edxlfs() const
+			EdxlFrameSpec ParseDXLFrameSpec() const
 			{
-				return  m_edxlfs;
+				return  m_dxl_win_frame_spec;
 			}
 
 			// exclusion strategy
-			EdxlFrameExclusionStrategy Edxlfes() const
+			EdxlFrameExclusionStrategy ParseFrameExclusionStrategy() const
 			{
-				return m_edxlfes;
+				return m_dxl_frame_exclusion_strategy;
 			}
 
 			// return window boundary trailing
 			CDXLNode *PdxlnTrailing() const
 			{
-				return m_pdxlnTrailing;
+				return m_dxlnode_trailing;
 			}
 
 			// return window boundary leading
 			CDXLNode *PdxlnLeading() const
 			{
-				return m_pdxlnLeading;
+				return m_dxlnode_leading;
 			}
 			
 			// return the string representation of the exclusion strategy
@@ -114,7 +114,7 @@ namespace gpdxl
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer) const;
 	};
 }
 

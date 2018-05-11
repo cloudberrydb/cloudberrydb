@@ -59,10 +59,10 @@ const CDecorrelator::SOperatorProcessor CDecorrelator::m_rgopproc[] =
 BOOL
 CDecorrelator::FPullableCorrelations
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
-	DrgPexpr *pdrgpexprChildren,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprChildren,
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
@@ -70,16 +70,16 @@ CDecorrelator::FPullableCorrelations
 	GPOS_ASSERT(NULL != pdrgpexprCorrelations);
 
 	// check for pullable semi join correlations
-	COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
-	BOOL fSemiJoin =
-		COperator::EopLogicalLeftSemiJoin == eopid ||
-		COperator::EopLogicalLeftAntiSemiJoin == eopid ||
+	COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
+	BOOL semi_join =
+		COperator::EopLogicalLeftSemiJoin == op_id ||
+		COperator::EopLogicalLeftAntiSemiJoin == op_id ||
 		CUtils::FCorrelatedApply(pexpr->Pop());
-	GPOS_ASSERT_IMP(fSemiJoin, 2 == pdrgpexprChildren->UlLength());
+	GPOS_ASSERT_IMP(semi_join, 2 == pdrgpexprChildren->Size());
 
-	if (fSemiJoin)
+	if (semi_join)
 	{
-		return CPredicateUtils::FValidSemiJoinCorrelations(pmp, (*pdrgpexprChildren)[0], (*pdrgpexprChildren)[1], pdrgpexprCorrelations);
+		return CPredicateUtils::FValidSemiJoinCorrelations(mp, (*pdrgpexprChildren)[0], (*pdrgpexprChildren)[1], pdrgpexprCorrelations);
 	}
 
 	return true;
@@ -112,7 +112,7 @@ CDecorrelator::FDelayableScalarOp
 			return CScalarIdent::FCastedScId(pexprScalar);
 
 		case COperator::EopScalarCmp:
-			return CPredicateUtils::FEquality(pexprScalar);
+			return CPredicateUtils::IsEqualityOp(pexprScalar);
 
 		default:
 			return false;
@@ -144,13 +144,13 @@ CDecorrelator::FDelayable
 	
 	BOOL fDelay = true;
 
-	COperator::EOperatorId eopid = pexprLogical->Pop()->Eopid();
- 	if (COperator::EopLogicalLeftSemiJoin == eopid || COperator::EopLogicalLeftAntiSemiJoin == eopid)
+	COperator::EOperatorId op_id = pexprLogical->Pop()->Eopid();
+ 	if (COperator::EopLogicalLeftSemiJoin == op_id || COperator::EopLogicalLeftAntiSemiJoin == op_id)
  	{
  		// for semi-joins, we disallow predicates referring to inner child to be pulled above the join
- 		CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprScalar->PdpDerive())->PcrsUsed();
- 		CColRefSet *pcrsInner = CDrvdPropRelational::Pdprel((*pexprLogical)[1]->PdpDerive())->PcrsOutput();
- 		if (!pcrsUsed->FDisjoint(pcrsInner))
+ 		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+ 		CColRefSet *pcrsInner = CDrvdPropRelational::GetRelationalProperties((*pexprLogical)[1]->PdpDerive())->PcrsOutput();
+ 		if (!pcrsUsed->IsDisjoint(pcrsInner))
  		{
  			// predicate uses a column produced by semi-join inner child
 
@@ -165,8 +165,8 @@ CDecorrelator::FDelayable
 	}
 
 	// check its children
-	const ULONG ulArity = pexprScalar->UlArity();
-	for (ULONG ul = 0; ul < ulArity && fDelay; ul++)
+	const ULONG arity = pexprScalar->Arity();
+	for (ULONG ul = 0; ul < arity && fDelay; ul++)
 	{
 		fDelay = FDelayable(pexprLogical, (*pexprScalar)[ul], fEqualityOnly);
 	}
@@ -186,11 +186,11 @@ CDecorrelator::FDelayable
 BOOL
 CDecorrelator::FProcess
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_CHECK_STACK_SIZE;
@@ -199,23 +199,23 @@ CDecorrelator::FProcess
 	GPOS_ASSERT_IMP(CUtils::FApply(pexpr->Pop()), CUtils::FCorrelatedApply(pexpr->Pop()) &&
 			"Apply expression is encountered by decorrelator");
 
-	CDrvdPropRelational *pdprel = CDrvdPropRelational::Pdprel(pexpr->PdpDerive());
+	CDrvdPropRelational *pdprel = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive());
 
 	// no outer references?
-	if (0 == pdprel->PcrsOuter()->CElements())
+	if (0 == pdprel->PcrsOuter()->Size())
 	{
 		pexpr->AddRef();
 		*ppexprDecorrelated = pexpr;
 		return true;
 	}
 	
-	BOOL fSuccess = FProcessOperator(pmp, pexpr, fEqualityOnly, ppexprDecorrelated, pdrgpexprCorrelations);
+	BOOL fSuccess = FProcessOperator(mp, pexpr, fEqualityOnly, ppexprDecorrelated, pdrgpexprCorrelations);
 
 	// in case of success make sure there are no outer references left
 	GPOS_ASSERT_IMP
 		(
 		fSuccess,
-		0 == CDrvdPropRelational::Pdprel((*ppexprDecorrelated)->PdpDerive())->PcrsOuter()->CElements()
+		0 == CDrvdPropRelational::GetRelationalProperties((*ppexprDecorrelated)->PdpDerive())->PcrsOuter()->Size()
 		);
 
 	return fSuccess;
@@ -233,20 +233,20 @@ CDecorrelator::FProcess
 BOOL
 CDecorrelator::FProcessOperator
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	FnProcessor *pfnp = NULL;
-	COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
-	const ULONG ulSize = GPOS_ARRAY_SIZE(m_rgopproc);
+	COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
+	const ULONG size = GPOS_ARRAY_SIZE(m_rgopproc);
 	// find the handler corresponding to the given operator
-	for (ULONG ul = 0; pfnp == NULL && ul < ulSize; ul++)
+	for (ULONG ul = 0; pfnp == NULL && ul < size; ul++)
 	{
-		if (eopid == m_rgopproc[ul].m_eopid)
+		if (op_id == m_rgopproc[ul].m_eopid)
 		{
 			pfnp = m_rgopproc[ul].m_pfnp;
 		}
@@ -255,8 +255,8 @@ CDecorrelator::FProcessOperator
 	if (NULL != pfnp)
 	{
 		// subqueries must be processed before reaching here
-		const ULONG ulArity = pexpr->UlArity();
-		if ((*pexpr)[ulArity - 1]->Pop()->FScalar() && CUtils::FHasSubquery((*pexpr)[ulArity - 1]))
+		const ULONG arity = pexpr->Arity();
+		if ((*pexpr)[arity - 1]->Pop()->FScalar() && CUtils::FHasSubquery((*pexpr)[arity - 1]))
 		{
 			return false;
 		}
@@ -264,7 +264,7 @@ CDecorrelator::FProcessOperator
 		// check for abort before descending into recursion
 		GPOS_CHECK_ABORT;
 
-		return pfnp(pmp, pexpr, fEqualityOnly, ppexprDecorrelated, pdrgpexprCorrelations);
+		return pfnp(mp, pexpr, fEqualityOnly, ppexprDecorrelated, pdrgpexprCorrelations);
 	}
 	
 	return false;
@@ -282,13 +282,13 @@ CDecorrelator::FProcessOperator
 BOOL
 CDecorrelator::FProcessPredicate
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprLogical, // logical parent of predicate tree
 	CExpression *pexprScalar,
 	BOOL fEqualityOnly,
 	CColRefSet *pcrsOutput,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_ASSERT(pexprLogical->Pop()->FLogical());
@@ -296,18 +296,18 @@ CDecorrelator::FProcessPredicate
 
 	*ppexprDecorrelated = NULL;
 	
-	DrgPexpr *pdrgpexprConj = CPredicateUtils::PdrgpexprConjuncts(pmp, pexprScalar);
-	DrgPexpr *pdrgpexprResiduals = GPOS_NEW(pmp) DrgPexpr(pmp);
+	CExpressionArray *pdrgpexprConj = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
+	CExpressionArray *pdrgpexprResiduals = GPOS_NEW(mp) CExpressionArray(mp);
 	BOOL fSuccess = true;
 	
 	// divvy up the predicates in residuals (w/ no outer ref) and correlations (w/ outer refs)
-	ULONG ulLength = pdrgpexprConj->UlLength();
-	for(ULONG ul = 0; ul < ulLength && fSuccess; ul++)
+	ULONG length = pdrgpexprConj->Size();
+	for(ULONG ul = 0; ul < length && fSuccess; ul++)
 	{
 		CExpression *pexprConj = (*pdrgpexprConj)[ul];
-		CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprConj->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprConj->PdpDerive())->PcrsUsed();
 		
-		if (pcrsOutput->FSubset(pcrsUsed))
+		if (pcrsOutput->ContainsAll(pcrsUsed))
 		{
 			// no outer ref
 			pexprConj->AddRef();
@@ -327,7 +327,7 @@ CDecorrelator::FProcessPredicate
 
 	pdrgpexprConj->Release();
 
-	if (!fSuccess || 0 == pdrgpexprResiduals->UlLength())
+	if (!fSuccess || 0 == pdrgpexprResiduals->Size())
 	{
 		// clean up
 		pdrgpexprResiduals->Release();
@@ -335,7 +335,7 @@ CDecorrelator::FProcessPredicate
 	else
 	{
 		// residuals become new predicate
-		*ppexprDecorrelated = CPredicateUtils::PexprConjunction(pmp, pdrgpexprResiduals);
+		*ppexprDecorrelated = CPredicateUtils::PexprConjunction(mp, pdrgpexprResiduals);
 	}
 
 
@@ -354,18 +354,18 @@ CDecorrelator::FProcessPredicate
 BOOL
 CDecorrelator::FProcessSelect
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_ASSERT(COperator::EopLogicalSelect == pexpr->Pop()->Eopid());
 
 	// decorrelate relational child
 	CExpression *pexprRelational = NULL;
-	if (!FProcess(pmp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
+	if (!FProcess(mp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
 	{
 		GPOS_ASSERT(NULL == pexprRelational);
 		return false;
@@ -373,8 +373,8 @@ CDecorrelator::FProcessSelect
 
 	// process predicate
 	CExpression *pexprPredicate = NULL;
-	CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel(pexpr->PdpDerive())->PcrsOutput();
-	BOOL fSuccess  = FProcessPredicate(pmp, pexpr, (*pexpr)[1], fEqualityOnly, pcrsOutput, &pexprPredicate, pdrgpexprCorrelations);
+	CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	BOOL fSuccess  = FProcessPredicate(mp, pexpr, (*pexpr)[1], fEqualityOnly, pcrsOutput, &pexprPredicate, pdrgpexprCorrelations);
 	
 	// build substitute
 	if (fSuccess)
@@ -384,7 +384,7 @@ CDecorrelator::FProcessSelect
 			CLogicalSelect *popSelect = CLogicalSelect::PopConvert(pexpr->Pop());
 			popSelect->AddRef();
 			
-			*ppexprDecorrelated = GPOS_NEW(pmp) CExpression(pmp, popSelect, pexprRelational, pexprPredicate);
+			*ppexprDecorrelated = GPOS_NEW(mp) CExpression(mp, popSelect, pexprRelational, pexprPredicate);
 		}
 		else 
 		{
@@ -412,17 +412,17 @@ CDecorrelator::FProcessSelect
 BOOL
 CDecorrelator::FProcessGbAgg
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL, // fEqualityOnly
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	CLogicalGbAgg *popAggOriginal = CLogicalGbAgg::PopConvert(pexpr->Pop());
 	
 	// fail if agg has outer references
-	if (CUtils::FHasOuterRefs(pexpr) && !CUtils::FHasOuterRefs((*pexpr)[0]))
+	if (CUtils::HasOuterRefs(pexpr) && !CUtils::HasOuterRefs((*pexpr)[0]))
 	{
 		return false;
 	}
@@ -431,21 +431,21 @@ CDecorrelator::FProcessGbAgg
 
 	// decorrelate relational child
 	CExpression *pexprRelational = NULL;
-	if (!FProcess(pmp, (*pexpr)[0], true /*fEqualityOnly*/, &pexprRelational, pdrgpexprCorrelations))
+	if (!FProcess(mp, (*pexpr)[0], true /*fEqualityOnly*/, &pexprRelational, pdrgpexprCorrelations))
 	{
 		GPOS_ASSERT(NULL == pexprRelational);
 		return false;
 	}
 	
 	// get the output columns of decorrelated child
-	CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel(pexprRelational->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(pexprRelational->PdpDerive())->PcrsOutput();
 
 	// create temp expression of correlations to determine inner columns
 	pdrgpexprCorrelations->AddRef();
-	CExpression *pexprTemp = CPredicateUtils::PexprConjunction(pmp, pdrgpexprCorrelations);
+	CExpression *pexprTemp = CPredicateUtils::PexprConjunction(mp, pdrgpexprCorrelations);
 	CColRefSet *pcrs = 
-		GPOS_NEW(pmp) CColRefSet(pmp,
-			*(CDrvdPropScalar::Pdpscalar(pexprTemp->PdpDerive())->PcrsUsed()));
+		GPOS_NEW(mp) CColRefSet(mp,
+			*(CDrvdPropScalar::GetDrvdScalarProps(pexprTemp->PdpDerive())->PcrsUsed()));
 		
 	pcrs->Intersection(pcrsOutput);
 	pexprTemp->Release();
@@ -454,14 +454,14 @@ CDecorrelator::FProcessGbAgg
 	pcrs->Include(popAggOriginal->Pdrgpcr());
 
 	// assemble grouping columns
-	DrgPcr *pdrgpcr = pcrs->Pdrgpcr(pmp);
+	CColRefArray *colref_array = pcrs->Pdrgpcr(mp);
 	pcrs->Release();
 	
 	// assemble agg
 	CExpression *pexprProjList = (*pexpr)[1];
 	pexprProjList->AddRef();
-	CLogicalGbAgg *popAgg = GPOS_NEW(pmp) CLogicalGbAgg(pmp, pdrgpcr, popAggOriginal->Egbaggtype());
-	*ppexprDecorrelated = GPOS_NEW(pmp) CExpression(pmp, popAgg, pexprRelational, pexprProjList);
+	CLogicalGbAgg *popAgg = GPOS_NEW(mp) CLogicalGbAgg(mp, colref_array, popAggOriginal->Egbaggtype());
+	*ppexprDecorrelated = GPOS_NEW(mp) CExpression(mp, popAgg, pexprRelational, pexprProjList);
 	
 	return true;
 }
@@ -478,27 +478,27 @@ CDecorrelator::FProcessGbAgg
 BOOL
 CDecorrelator::FProcessJoin
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_ASSERT(CUtils::FLogicalJoin(pexpr->Pop()) || CUtils::FApply(pexpr->Pop()));
 
-	ULONG ulArity = pexpr->UlArity();	
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp, ulArity);
-	CColRefSet *pcrsOutput = GPOS_NEW(pmp) CColRefSet(pmp);
+	ULONG arity = pexpr->Arity();	
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp, arity);
+	CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
 
 	// decorrelate all relational children
-	for (ULONG ul = 0; ul < ulArity - 1; ul++)
+	for (ULONG ul = 0; ul < arity - 1; ul++)
 	{
 		CExpression *pexprInput = NULL;
-		if (FProcess(pmp, (*pexpr)[ul], fEqualityOnly, &pexprInput, pdrgpexprCorrelations))
+		if (FProcess(mp, (*pexpr)[ul], fEqualityOnly, &pexprInput, pdrgpexprCorrelations))
 		{
 			pdrgpexpr->Append(pexprInput);
-			pcrsOutput->Union(CDrvdPropRelational::Pdprel(pexprInput->PdpDerive())->PcrsOutput());
+			pcrsOutput->Union(CDrvdPropRelational::GetRelationalProperties(pexprInput->PdpDerive())->PcrsOutput());
 		}
 		else
 		{
@@ -510,7 +510,7 @@ CDecorrelator::FProcessJoin
 	}
 
 	// check for valid semi join correlations
-	if (!FPullableCorrelations(pmp, pexpr, pdrgpexpr, pdrgpexprCorrelations))
+	if (!FPullableCorrelations(mp, pexpr, pdrgpexpr, pdrgpexprCorrelations))
 	{
 		pdrgpexpr->Release();
 		pcrsOutput->Release();
@@ -520,7 +520,7 @@ CDecorrelator::FProcessJoin
 
 	// decorrelate predicate and build new join operator
 	CExpression *pexprPredicate = NULL;
-	BOOL fSuccess = FProcessPredicate(pmp, pexpr, (*pexpr)[ulArity - 1], fEqualityOnly, pcrsOutput, &pexprPredicate, pdrgpexprCorrelations);
+	BOOL fSuccess = FProcessPredicate(mp, pexpr, (*pexpr)[arity - 1], fEqualityOnly, pcrsOutput, &pexprPredicate, pdrgpexprCorrelations);
 	pcrsOutput->Release();
 
 	if (fSuccess)
@@ -528,14 +528,14 @@ CDecorrelator::FProcessJoin
 		// in case entire predicate is being deferred, plug in a 'true'
 		if (NULL == pexprPredicate)
 		{
-			pexprPredicate = CUtils::PexprScalarConstBool(pmp, true /*fVal*/);
+			pexprPredicate = CUtils::PexprScalarConstBool(mp, true /*value*/);
 		}
 		
 		pdrgpexpr->Append(pexprPredicate);
 		
 		COperator *pop = pexpr->Pop();
 		pop->AddRef();
-		*ppexprDecorrelated = GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
+		*ppexprDecorrelated = GPOS_NEW(mp) CExpression(mp, pop, pdrgpexpr);
 	}
 	else
 	{
@@ -558,11 +558,11 @@ CDecorrelator::FProcessJoin
 BOOL
 CDecorrelator::FProcessAssert
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
@@ -573,16 +573,16 @@ CDecorrelator::FProcessAssert
 	CExpression *pexprScalar = (*pexpr)[1];
 
 	// fail if assert expression has outer references
-	CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel((*pexpr)[0]->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprScalar->PdpDerive())->PcrsUsed();
-	if (!pcrsOutput->FSubset(pcrsUsed))
+	CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties((*pexpr)[0]->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	if (!pcrsOutput->ContainsAll(pcrsUsed))
 	{
 		return false;
 	}
 
 	// decorrelate relational child
 	CExpression *pexprRelational = NULL;
-	if (!FProcess(pmp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
+	if (!FProcess(mp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
 	{
 		GPOS_ASSERT(NULL == pexprRelational);
 		return false;
@@ -591,7 +591,7 @@ CDecorrelator::FProcessAssert
 	// assemble new project
 	pop->AddRef();
 	pexprScalar->AddRef();
-	*ppexprDecorrelated = GPOS_NEW(pmp) CExpression(pmp, pop, pexprRelational, pexprScalar);
+	*ppexprDecorrelated = GPOS_NEW(mp) CExpression(mp, pop, pexprRelational, pexprScalar);
 
 	return true;
 }
@@ -608,11 +608,11 @@ CDecorrelator::FProcessAssert
 BOOL
 CDecorrelator::FProcessMaxOneRow
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
@@ -621,14 +621,14 @@ CDecorrelator::FProcessMaxOneRow
 	GPOS_ASSERT(COperator::EopLogicalMaxOneRow == pop->Eopid());
 
 	// fail if MaxOneRow expression has outer references
-	if (CUtils::FHasOuterRefs(pexpr))
+	if (CUtils::HasOuterRefs(pexpr))
 	{
 		return false;
 	}
 
 	// decorrelate relational child
 	CExpression *pexprRelational = NULL;
-	if (!FProcess(pmp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
+	if (!FProcess(mp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
 	{
 		GPOS_ASSERT(NULL == pexprRelational);
 		return false;
@@ -636,7 +636,7 @@ CDecorrelator::FProcessMaxOneRow
 
 	// assemble new project
 	pop->AddRef();
-	*ppexprDecorrelated = GPOS_NEW(pmp) CExpression(pmp, pop, pexprRelational);
+	*ppexprDecorrelated = GPOS_NEW(mp) CExpression(mp, pop, pexprRelational);
 
 	return true;
 }
@@ -672,32 +672,32 @@ CDecorrelator::FProcessMaxOneRow
 BOOL
 CDecorrelator::FProcessProject
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
-	COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
+	COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
 
-	GPOS_ASSERT(COperator::EopLogicalProject == eopid ||
-			COperator::EopLogicalSequenceProject == eopid);
+	GPOS_ASSERT(COperator::EopLogicalProject == op_id ||
+			COperator::EopLogicalSequenceProject == op_id);
 
 	CExpression *pexprPrjList = (*pexpr)[1];
 
 	// fail if project elements have outer references
-	CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel((*pexpr)[0]->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprPrjList->PdpDerive())->PcrsUsed();
-	if (!pcrsOutput->FSubset(pcrsUsed))
+	CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties((*pexpr)[0]->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprPrjList->PdpDerive())->PcrsUsed();
+	if (!pcrsOutput->ContainsAll(pcrsUsed))
 	{
 		return false;
 	}
 
-	if (COperator::EopLogicalSequenceProject == eopid)
+	if (COperator::EopLogicalSequenceProject == op_id)
 	{
 		(void) pexpr->PdpDerive();
-		CExpressionHandle exprhdl(pmp);
+		CExpressionHandle exprhdl(mp);
 		exprhdl.Attach(pexpr);
 		exprhdl.DeriveProps(NULL /*pdpctxt*/);
 		
@@ -721,7 +721,7 @@ CDecorrelator::FProcessProject
 
 	// decorrelate relational child
 	CExpression *pexprRelational = NULL;
-	if (!FProcess(pmp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
+	if (!FProcess(mp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
 	{
 		GPOS_ASSERT(NULL == pexprRelational);
 		return false;
@@ -732,7 +732,7 @@ CDecorrelator::FProcessProject
 	pop->AddRef();
 	pexprPrjList->AddRef();
 	
-	*ppexprDecorrelated = GPOS_NEW(pmp) CExpression(pmp, pop, pexprRelational, pexprPrjList);
+	*ppexprDecorrelated = GPOS_NEW(mp) CExpression(mp, pop, pexprRelational, pexprPrjList);
 	
 	return true;
 }
@@ -749,11 +749,11 @@ CDecorrelator::FProcessProject
 BOOL
 CDecorrelator::FProcessLimit
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEqualityOnly,
 	CExpression **ppexprDecorrelated,
-	DrgPexpr *pdrgpexprCorrelations
+	CExpressionArray *pdrgpexprCorrelations
 	)
 {
 	GPOS_ASSERT(COperator::EopLogicalLimit == pexpr->Pop()->Eopid());
@@ -762,14 +762,14 @@ CDecorrelator::FProcessLimit
 	CExpression *pexprRowCount = (*pexpr)[2];
 
 	// fail if there are any outer references below Limit
-	if (CUtils::FHasOuterRefs(pexpr))
+	if (CUtils::HasOuterRefs(pexpr))
 	{
 		return false;
 	}
 
 	// decorrelate relational child
 	CExpression *pexprRelational = NULL;
-	if (!FProcess(pmp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
+	if (!FProcess(mp, (*pexpr)[0], fEqualityOnly, &pexprRelational, pdrgpexprCorrelations))
 	{
 		GPOS_ASSERT(NULL == pexprRelational);
 		return false;
@@ -781,7 +781,7 @@ CDecorrelator::FProcessLimit
 	pexprOffset->AddRef();
 	pexprRowCount->AddRef();
 
-	*ppexprDecorrelated = GPOS_NEW(pmp) CExpression(pmp, pop, pexprRelational, pexprOffset, pexprRowCount);
+	*ppexprDecorrelated = GPOS_NEW(mp) CExpression(mp, pop, pexprRelational, pexprOffset, pexprRowCount);
 
 	return true;
 }

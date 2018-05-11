@@ -53,12 +53,12 @@ GPOS_RESULT
 CContradictionTest::EresUnittest_Constraint()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 
 	typedef CExpression *(*Pfpexpr)(IMemoryPool*);
@@ -96,24 +96,24 @@ CContradictionTest::EresUnittest_Constraint()
 		// install opt context in TLS
 		CAutoOptCtxt aoc
 						(
-						pmp,
+						mp,
 						&mda,
 						NULL,  /* pceeval */
-						CTestUtils::Pcm(pmp)
+						CTestUtils::GetCostModel(mp)
 						);
 
 		// generate simple expression
-		CExpression *pexpr = rgpf[i](pmp);
+		CExpression *pexpr = rgpf[i](mp);
 
 		// self-match
 		GPOS_ASSERT(pexpr->FMatchDebug(pexpr));
 
 		// debug print
-		CWStringDynamic str(pmp, GPOS_WSZ_LIT("\n"));
+		CWStringDynamic str(mp, GPOS_WSZ_LIT("\n"));
 		COstreamString oss(&str);
 
 		oss << "EXPR:" << std::endl << *pexpr << std::endl;
-		GPOS_TRACE(str.Wsz());
+		GPOS_TRACE(str.GetBuffer());
 		str.Reset();
 
 
@@ -122,14 +122,14 @@ CContradictionTest::EresUnittest_Constraint()
 		(void) pexpr->PdpDerive();
 
 		oss << std::endl << "DERIVED PROPS:" << std::endl;
-		GPOS_TRACE(str.Wsz());
+		GPOS_TRACE(str.GetBuffer());
 		str.Reset();
 		pexpr->DbgPrint();
 #endif // GPOS_DEBUG
 
- 		CExpression *pexprPreprocessed = CExpressionPreprocessor::PexprPreprocess(pmp, pexpr);
+ 		CExpression *pexprPreprocessed = CExpressionPreprocessor::PexprPreprocess(mp, pexpr);
 		oss	<< std::endl << "PREPROCESSED EXPR:" << std::endl << *pexprPreprocessed << std::endl;
-		GPOS_TRACE(str.Wsz());
+		GPOS_TRACE(str.GetBuffer());
 		str.Reset();
 
 		// cleanup

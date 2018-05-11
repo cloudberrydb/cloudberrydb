@@ -35,13 +35,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerHint::CParseHandlerHint
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_phint(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_hint(NULL)
 {
 }
 
@@ -55,7 +55,7 @@ CParseHandlerHint::CParseHandlerHint
 //---------------------------------------------------------------------------
 CParseHandlerHint::~CParseHandlerHint()
 {
-	CRefCount::SafeRelease(m_phint);
+	CRefCount::SafeRelease(m_hint);
 }
 
 //---------------------------------------------------------------------------
@@ -69,34 +69,34 @@ CParseHandlerHint::~CParseHandlerHint()
 void
 CParseHandlerHint::StartElement
 	(
-	const XMLCh* const , //xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const , //xmlszQname,
+	const XMLCh* const , //element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const , //element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenHint), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenHint), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// parse hint configuration options
-	ULONG ulMinNumOfPartsToRequireSortOnInsert = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenMinNumOfPartsToRequireSortOnInsert, EdxltokenHint);
-	ULONG ulJoinArityForAssociativityCommutativity = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenJoinArityForAssociativityCommutativity, EdxltokenHint, true, gpos::int_max);
-	ULONG ulArrayExpansionThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenArrayExpansionThreshold, EdxltokenHint, true, gpos::int_max);
-	ULONG ulJoinOrderDPThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenJoinOrderDPThreshold, EdxltokenHint, true, JOIN_ORDER_DP_THRESHOLD);
-	ULONG ulBroadcastThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenBroadcastThreshold, EdxltokenHint, true, BROADCAST_THRESHOLD);
-	ULONG fEnforceConstraintsOnDML = CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenEnforceConstraintsOnDML, EdxltokenHint, true, true);
+	ULONG min_num_of_parts_to_require_sort_on_insert = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenMinNumOfPartsToRequireSortOnInsert, EdxltokenHint);
+	ULONG join_arity_for_associativity_commutativity = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenJoinArityForAssociativityCommutativity, EdxltokenHint, true, gpos::int_max);
+	ULONG array_expansion_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenArrayExpansionThreshold, EdxltokenHint, true, gpos::int_max);
+	ULONG join_order_dp_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenJoinOrderDPThreshold, EdxltokenHint, true, JOIN_ORDER_DP_THRESHOLD);
+	ULONG broadcast_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenBroadcastThreshold, EdxltokenHint, true, BROADCAST_THRESHOLD);
+	ULONG enforce_constraint_on_dml = CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenEnforceConstraintsOnDML, EdxltokenHint, true, true);
 
-	m_phint = GPOS_NEW(m_pmp) CHint
+	m_hint = GPOS_NEW(m_mp) CHint
 								(
-								ulMinNumOfPartsToRequireSortOnInsert,
-								ulJoinArityForAssociativityCommutativity,
-								ulArrayExpansionThreshold,
-								ulJoinOrderDPThreshold,
-								ulBroadcastThreshold,
-								fEnforceConstraintsOnDML
+								min_num_of_parts_to_require_sort_on_insert,
+								join_arity_for_associativity_commutativity,
+								array_expansion_threshold,
+								join_order_dp_threshold,
+								broadcast_threshold,
+								enforce_constraint_on_dml
 								);
 }
 
@@ -111,50 +111,50 @@ CParseHandlerHint::StartElement
 void
 CParseHandlerHint::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenHint), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenHint), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(NULL != m_phint);
-	GPOS_ASSERT(0 == this->UlLength());
+	GPOS_ASSERT(NULL != m_hint);
+	GPOS_ASSERT(0 == this->Length());
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerHint::Edxlphtype
+//		CParseHandlerHint::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler.
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerHint::Edxlphtype() const
+CParseHandlerHint::GetParseHandlerType() const
 {
 	return EdxlphHint;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerHint::Phint
+//		CParseHandlerHint::GetHint
 //
 //	@doc:
 //		Returns the hint configuration
 //
 //---------------------------------------------------------------------------
 CHint *
-CParseHandlerHint::Phint() const
+CParseHandlerHint::GetHint() const
 {
-	return m_phint;
+	return m_hint;
 }
 
 // EOF

@@ -47,7 +47,7 @@ namespace gpopt
 		private:
 
 			// return type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// min/max type
 			EScalarMinMaxType m_esmmt;
@@ -61,7 +61,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarMinMax(IMemoryPool *pmp, IMDId *pmdidType, EScalarMinMaxType esmmt);
+			CScalarMinMax(IMemoryPool *mp, IMDId *mdid_type, EScalarMinMaxType esmmt);
 
 			// dtor
 			virtual
@@ -83,9 +83,9 @@ namespace gpopt
 
 			// return type
 			virtual
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				return m_pmdidType;
+				return m_mdid_type;
 			}
 
 			// min/max type
@@ -96,11 +96,11 @@ namespace gpopt
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -113,9 +113,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -125,7 +125,7 @@ namespace gpopt
 			virtual
 			EBoolEvalResult Eber
 				(
-				DrgPul *pdrgpulChildren
+				ULongPtrArray *pdrgpulChildren
 				)
 				const
 			{

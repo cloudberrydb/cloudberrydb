@@ -35,7 +35,7 @@ namespace gpdxl
 		private:
 
 			// hint configuration
-			CHint *m_phint;
+			CHint *m_hint;
 
 			// private copy ctor
 			CParseHandlerHint(const CParseHandlerHint&);
@@ -43,27 +43,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor
 			CParseHandlerHint
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// dtor
@@ -72,10 +72,10 @@ namespace gpdxl
 
 			// type of the parse handler
 			virtual
-			EDxlParseHandlerType Edxlphtype() const;
+			EDxlParseHandlerType GetParseHandlerType() const;
 
 			// hint configuration
-			CHint *Phint() const;
+			CHint *GetHint() const;
 	};
 }
 

@@ -35,7 +35,7 @@ namespace gpdxl
 		private:
 
 			// search stages
-			DrgPss *m_pdrgpss;
+		CSearchStageArray *m_search_stage_array;
 
 			// private ctor
 			CParseHandlerSearchStrategy(const CParseHandlerSearchStrategy&);
@@ -43,39 +43,39 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlstrUri, 		// URI of element's namespace
- 				const XMLCh* const xmlstrLocalname,	// local part of element's name
-				const XMLCh* const xmlstrQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+ 				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlstrUri, 		// URI of element's namespace
-				const XMLCh* const xmlstrLocalname,	// local part of element's name
-				const XMLCh* const xmlstrQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor/dtor
 			CParseHandlerSearchStrategy
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			virtual
 			~CParseHandlerSearchStrategy();
 
 			// returns the dxl representation of search stages
-			DrgPss *Pdrgppss()
+			CSearchStageArray *GetSearchStageArray()
 			{
-				return m_pdrgpss;
+				return m_search_stage_array;
 			}
 
-			EDxlParseHandlerType Edxlphtype() const
+			EDxlParseHandlerType GetParseHandlerType() const
 			{
 				return EdxlphSearchStrategy;
 			}

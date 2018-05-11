@@ -28,15 +28,15 @@ namespace gpopt
 	class CColRef;
 
 	// colref array
-	typedef CDynamicPtrArray<CColRef, CleanupNULL> DrgPcr;
-	typedef CDynamicPtrArray<DrgPcr, CleanupRelease> DrgDrgPcr;
+	typedef CDynamicPtrArray<CColRef, CleanupNULL> CColRefArray;
+	typedef CDynamicPtrArray<CColRefArray, CleanupRelease> CColRef2dArray;
 	
 	// hash map mapping ULONG -> CColRef
-	typedef CHashMap<ULONG, CColRef, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupNULL<CColRef> > HMUlCr;
+	typedef CHashMap<ULONG, CColRef, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupNULL<CColRef> > UlongToColRefMap;
 	// iterator
-	typedef CHashMapIter<ULONG, CColRef, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupNULL<CColRef> > HMIterUlCr;
+	typedef CHashMapIter<ULONG, CColRef, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupNULL<CColRef> > UlongToColRefMapIter;
 	
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -56,7 +56,7 @@ namespace gpopt
 			const IMDType *m_pmdtype;
 
 			// type modifier
-			const INT m_iTypeModifier;
+			const INT m_type_modifier;
 
 			// name: SQL alias or artificial name
 			const CName *m_pname;
@@ -75,22 +75,22 @@ namespace gpopt
 			};
 		
 			// ctor
-			CColRef(const IMDType *pmdtype, const INT iTypeModifier, ULONG ulId, const CName *pname);
+			CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id, const CName *pname);
 
 			// dtor
 			virtual
 			~CColRef();
 			
 			// accessor to type info
-			const IMDType *Pmdtype() const
+			const IMDType *RetrieveType() const
 			{
 				return m_pmdtype;
 			}
 
 			// type modifier
-			INT ITypeModifier() const
+			INT TypeModifier() const
 			{
-				return m_iTypeModifier;
+				return m_type_modifier;
 			}
 			
 			// name
@@ -100,9 +100,9 @@ namespace gpopt
 			}
 
 			// id
-			ULONG UlId() const
+			ULONG Id() const
 			{
-				return m_ulId;
+				return m_id;
 			}
 			
 			// overloaded equality operator
@@ -112,19 +112,19 @@ namespace gpopt
 				)
 				const
 			{
-				return FEqual(m_ulId, cr.UlId());
+				return Equals(m_id, cr.Id());
 			}
 
 			// static hash functions
 			static
-			ULONG UlHash(const ULONG &);
+			ULONG HashValue(const ULONG &);
 
 			static
-			ULONG UlHash(const CColRef *pcr);
+			ULONG HashValue(const CColRef *colref);
 
 			 // equality function for hash table
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
 				const ULONG &ulKey,
 				const ULONG &ulKeyOther
@@ -135,26 +135,26 @@ namespace gpopt
 
 			 // equality function
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
 				const CColRef *pcrFirst,
 				const CColRef *pcrSecond
 				)
 			{
-				return FEqual(pcrFirst->UlId(), pcrSecond->UlId());
+				return Equals(pcrFirst->Id(), pcrSecond->Id());
 			}
 
 			// extract array of colids from array of colrefs
 			static
-			DrgPul *Pdrgpul(IMemoryPool *pmp, DrgPcr *pdrgpcr);
+			ULongPtrArray *Pdrgpul(IMemoryPool *mp, CColRefArray *colref_array);
 
 			// check if the the array of column references are equal
 			static
-			BOOL FEqual(const DrgPcr *pdrgpcr1, const DrgPcr *pdrgpcr2);
+			BOOL Equals(const CColRefArray *pdrgpcr1, const CColRefArray *pdrgpcr2);
 
 			// check if the the array of column reference arrays are equal
 			static
-			BOOL FEqual(const DrgDrgPcr *pdrgdrgpcr1, const DrgDrgPcr *pdrgdrgpcr2);
+			BOOL Equals(const CColRef2dArray *pdrgdrgpcr1, const CColRef2dArray *pdrgdrgpcr2);
 
 			// type of column reference (base/computed)
 			virtual
@@ -171,7 +171,7 @@ namespace gpopt
 			SLink m_link;
 
 			// id, serves as hash key
-			const ULONG m_ulId;
+			const ULONG m_id;
 			
 			// invalid key
 			static

@@ -54,7 +54,7 @@ namespace gpopt
 				private:
 
 					// cte id
-					ULONG m_ulId;
+					ULONG m_id;
 
 					// cte type
 					CCTEMap::ECteType m_ect;
@@ -71,16 +71,16 @@ namespace gpopt
 				public:
 
 					// ctor
-					CCTEReqEntry(ULONG ulId, CCTEMap::ECteType ect, BOOL fRequired, CDrvdPropPlan *pdpplan);
+					CCTEReqEntry(ULONG id, CCTEMap::ECteType ect, BOOL fRequired, CDrvdPropPlan *pdpplan);
 
 					// dtor
 					virtual
 					~CCTEReqEntry();
 
 					// cte id
-					ULONG UlId() const
+					ULONG Id() const
 					{
-						return m_ulId;
+						return m_id;
 					}
 
 					// cte type
@@ -102,10 +102,10 @@ namespace gpopt
 					}
 
 					// hash function
-					ULONG UlHash() const;
+					ULONG HashValue() const;
 
 					// equality function
-					BOOL FEqual(CCTEReqEntry *pcre) const;
+					BOOL Equals(CCTEReqEntry *pcre) const;
 
 					// print function
 					virtual
@@ -114,21 +114,21 @@ namespace gpopt
 			}; // class CCTEReqEntry
 
 			// map CTE id to CTE Req entry
-			typedef CHashMap<ULONG, CCTEReqEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CCTEReqEntry> > HMCteReq;
+			typedef CHashMap<ULONG, CCTEReqEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CCTEReqEntry> > UlongToCTEReqEntryMap;
 
 			// map iterator
-			typedef CHashMapIter<ULONG, CCTEReqEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CCTEReqEntry> > HMCteReqIter;
+			typedef CHashMapIter<ULONG, CCTEReqEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CCTEReqEntry> > UlongToCTEReqEntryMapIter;
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// cte map
-			HMCteReq *m_phmcter;
+			UlongToCTEReqEntryMap *m_phmcter;
 
 			// required cte ids (not optional)
-			DrgPul* m_pdrgpulRequired;
+			ULongPtrArray* m_pdrgpulRequired;
 
 			// private copy ctor
 			CCTEReq(const CCTEReq&);
@@ -140,57 +140,57 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CCTEReq(IMemoryPool *pmp);
+			CCTEReq(IMemoryPool *mp);
 
 			// dtor
 			virtual
 			~CCTEReq();
 
 			// required cte ids
-			DrgPul *PdrgpulRequired() const
+			ULongPtrArray *PdrgpulRequired() const
 			{
 				return m_pdrgpulRequired;
 			}
 
 			// return the CTE type associated with the given ID in the requirements
-			CCTEMap::ECteType Ect(const ULONG ulId) const;
+			CCTEMap::ECteType Ect(const ULONG id) const;
 
 			// insert a new entry, no entry with the same id can already exist
 			void Insert(ULONG ulCteId, CCTEMap::ECteType ect, BOOL fRequired, CDrvdPropPlan *pdpplan);
 
 			// insert a new consumer entry with the given id. The plan properties are
 			// taken from the given context
-			void InsertConsumer(ULONG ulId, DrgPdp *pdrgpdpCtxt);
+			void InsertConsumer(ULONG id, CDrvdProp2dArray *pdrgpdpCtxt);
 
 			// check if two cte requirements are equal
-			BOOL FEqual
+			BOOL Equals
 					(
 					const CCTEReq *pcter
 					)
 					const
 			{
 				GPOS_ASSERT(NULL != pcter);
-				return (m_phmcter->UlEntries() == pcter->m_phmcter->UlEntries()) && this->FSubset(pcter);
+				return (m_phmcter->Size() == pcter->m_phmcter->Size()) && this->FSubset(pcter);
 			}
 
 			// check if current requirement is a subset of the given one
 			BOOL FSubset(const CCTEReq *pcter) const;
 
 			// check if the given CTE is in the requirements
-			BOOL FContainsRequirement(const ULONG ulId, const CCTEMap::ECteType ect) const;
+			BOOL FContainsRequirement(const ULONG id, const CCTEMap::ECteType ect) const;
 
 			// hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// returns a new requirement containing unresolved CTE requirements given a derived CTE map
-			CCTEReq *PcterUnresolved(IMemoryPool *pmp, CCTEMap *pcm);
+			CCTEReq *PcterUnresolved(IMemoryPool *mp, CCTEMap *pcm);
 
 			// unresolved CTE requirements given a derived CTE map for a sequence
 			// operator
-			CCTEReq *PcterUnresolvedSequence(IMemoryPool *pmp, CCTEMap *pcm, DrgPdp *pdrgpdpCtxt);
+			CCTEReq *PcterUnresolvedSequence(IMemoryPool *mp, CCTEMap *pcm, CDrvdProp2dArray *pdrgpdpCtxt);
 
 			// create a copy of the current requirement where all the entries are marked optional
-			CCTEReq *PcterAllOptional(IMemoryPool *pmp);
+			CCTEReq *PcterAllOptional(IMemoryPool *mp);
 
 			// lookup plan properties for given cte id
 			CDrvdPropPlan *Pdpplan (ULONG ulCteId) const;

@@ -24,7 +24,7 @@ namespace gpnaucrates
         class CUpperBoundNDVs;
 
         // dynamic array of upper bound ndvs
-        typedef CDynamicPtrArray<CUpperBoundNDVs, CleanupDelete> DrgPubndvs;
+	typedef CDynamicPtrArray<CUpperBoundNDVs, CleanupDelete> CUpperBoundNDVPtrArray;
 
         //---------------------------------------------------------------------------
         //      @class:
@@ -40,10 +40,10 @@ namespace gpnaucrates
                 private:
 
                         // set of column references
-                        CColRefSet *m_pcrs;
+                        CColRefSet *m_column_refset;
 
                         // upper bound of ndvs
-                        CDouble m_dUpperBoundNDVs;
+                        CDouble m_upper_bound_ndv;
 
                         // private copy constructor
                         CUpperBoundNDVs(const CUpperBoundNDVs &);
@@ -53,41 +53,41 @@ namespace gpnaucrates
                         // ctor
                         CUpperBoundNDVs
                                 (
-                                CColRefSet *pcrs,
-                                CDouble dUpperBoundNDVs
+                                CColRefSet *column_refset,
+                                CDouble upper_bound_ndv
                                 )
                                 :
-                                m_pcrs(pcrs),
-                                m_dUpperBoundNDVs(dUpperBoundNDVs)
+                                m_column_refset(column_refset),
+                                m_upper_bound_ndv(upper_bound_ndv)
                         {
-                                GPOS_ASSERT(NULL != pcrs);
+                                GPOS_ASSERT(NULL != m_column_refset);
                         }
 
                         // dtor
                         ~CUpperBoundNDVs()
                         {
-                                m_pcrs->Release();
+                                m_column_refset->Release();
                         }
 
                         // return the upper bound of ndvs
-                        CDouble DUpperBoundNDVs() const
+                        CDouble UpperBoundNDVs() const
                         {
-                                return m_dUpperBoundNDVs;
+                                return m_upper_bound_ndv;
                         }
 
                         // check if the column is present
-                        BOOL FPresent(const CColRef *pcr) const
+                        BOOL IsPresent(const CColRef *column_ref) const
                         {
-                                return m_pcrs->FMember(pcr);
+                                return m_column_refset->FMember(column_ref);
                         }
 
                         // copy upper bound ndvs
-                        CUpperBoundNDVs *PubndvCopy(IMemoryPool *pmp) const;
-                        CUpperBoundNDVs *PubndvCopy(IMemoryPool *pmp, CDouble dUpperBoundNDVs) const;
+                        CUpperBoundNDVs *CopyUpperBoundNDVs(IMemoryPool *mp) const;
+                        CUpperBoundNDVs *CopyUpperBoundNDVs(IMemoryPool *mp, CDouble upper_bound_ndv) const;
 
                         // copy upper bound ndvs with remapped column id; function will
                         // return null if there is no mapping found for any of the columns
-                        CUpperBoundNDVs *PubndvCopyWithRemap(IMemoryPool *pmp, HMUlCr *phmulcr) const;
+                        CUpperBoundNDVs *CopyUpperBoundNDVWithRemap(IMemoryPool *mp, UlongToColRefMap *colid_to_colref_map) const;
 
                         // print function
                         IOstream &OsPrint(IOstream &os) const;

@@ -34,18 +34,18 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformIntersectAll2LeftSemiJoin::CXformIntersectAll2LeftSemiJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CLogicalIntersectAll(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // left relational child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)) // right relational child
+					mp,
+					GPOS_NEW(mp) CLogicalIntersectAll(mp),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // left relational child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)) // right relational child
 					)
 		)
 {}
@@ -73,39 +73,39 @@ CXformIntersectAll2LeftSemiJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// TODO: we currently only handle intersect all operators that
 	// have two children
-	GPOS_ASSERT(2 == pexpr->UlArity());
+	GPOS_ASSERT(2 == pexpr->Arity());
 
 	// extract components
 	CExpression *pexprLeftChild = (*pexpr)[0];
 	CExpression *pexprRightChild = (*pexpr)[1];
 
 	CLogicalIntersectAll *popIntersectAll = CLogicalIntersectAll::PopConvert(pexpr->Pop());
-	DrgDrgPcr *pdrgpdrgpcrInput = popIntersectAll->PdrgpdrgpcrInput();
+	CColRef2dArray *pdrgpdrgpcrInput = popIntersectAll->PdrgpdrgpcrInput();
 
-	CExpression *pexprLeftWindow = CXformUtils::PexprWindowWithRowNumber(pmp, pexprLeftChild, (*pdrgpdrgpcrInput)[0]);
-	CExpression *pexprRightWindow = CXformUtils::PexprWindowWithRowNumber(pmp, pexprRightChild, (*pdrgpdrgpcrInput)[1]);
+	CExpression *pexprLeftWindow = CXformUtils::PexprWindowWithRowNumber(mp, pexprLeftChild, (*pdrgpdrgpcrInput)[0]);
+	CExpression *pexprRightWindow = CXformUtils::PexprWindowWithRowNumber(mp, pexprRightChild, (*pdrgpdrgpcrInput)[1]);
 
-	DrgDrgPcr *pdrgpdrgpcrInputNew = GPOS_NEW(pmp) DrgDrgPcr(pmp);
-	DrgPcr *pdrgpcrLeftNew = CUtils::PdrgpcrExactCopy(pmp, (*pdrgpdrgpcrInput)[0]);
+	CColRef2dArray *pdrgpdrgpcrInputNew = GPOS_NEW(mp) CColRef2dArray(mp);
+	CColRefArray *pdrgpcrLeftNew = CUtils::PdrgpcrExactCopy(mp, (*pdrgpdrgpcrInput)[0]);
 	pdrgpcrLeftNew->Append(CXformUtils::PcrProjectElement(pexprLeftWindow, 0 /* row_number window function*/));
 
-	DrgPcr *pdrgpcrRightNew = CUtils::PdrgpcrExactCopy(pmp, (*pdrgpdrgpcrInput)[1]);
+	CColRefArray *pdrgpcrRightNew = CUtils::PdrgpcrExactCopy(mp, (*pdrgpdrgpcrInput)[1]);
 	pdrgpcrRightNew->Append(CXformUtils::PcrProjectElement(pexprRightWindow, 0 /* row_number window function*/));
 
 	pdrgpdrgpcrInputNew->Append(pdrgpcrLeftNew);
 	pdrgpdrgpcrInputNew->Append(pdrgpcrRightNew);
 
-	CExpression *pexprScCond = CUtils::PexprConjINDFCond(pmp, pdrgpdrgpcrInputNew);
+	CExpression *pexprScCond = CUtils::PexprConjINDFCond(mp, pdrgpdrgpcrInputNew);
 
 	// assemble the new logical operator
-	CExpression *pexprLSJ = GPOS_NEW(pmp) CExpression
+	CExpression *pexprLSJ = GPOS_NEW(mp) CExpression
 										(
-										pmp,
-										GPOS_NEW(pmp) CLogicalLeftSemiJoin(pmp),
+										mp,
+										GPOS_NEW(mp) CLogicalLeftSemiJoin(mp),
 										pexprLeftWindow,
 										pexprRightWindow,
 										pexprScCond

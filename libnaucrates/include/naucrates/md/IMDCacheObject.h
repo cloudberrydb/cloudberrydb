@@ -51,16 +51,16 @@ namespace gpmd
 			// as the root XML element for the list, and each metadata id is
 			// serialized in the form of a pstrTokenListItem element.
 			// The serialized information looks like this:
-			// <pstrTokenList>
-			//		<pstrTokenListItem .../>...
-			// </pstrTokenList>
+			// <strTokenList>
+			//		<strTokenListItem .../>...
+			// </strTokenList>
 			static
 			void SerializeMDIdList
 				(
-				CXMLSerializer *pxmlser,
-				const DrgPmdid *pdrgpmdid,
-				const CWStringConst *pstrTokenList,
-				const CWStringConst *pstrTokenListItem
+				CXMLSerializer *xml_serializer,
+				const IMdIdArray *mdid_array,
+				const CWStringConst *strTokenList,
+				const CWStringConst *strTokenListItem
 				);
 		
 		public:
@@ -83,7 +83,7 @@ namespace gpmd
 			
 			// md id of cache object
 			virtual 
-			IMDId *Pmdid() const = 0;
+			IMDId *MDId() const = 0;
 
 			// cache object name
 			virtual 
@@ -91,7 +91,7 @@ namespace gpmd
 
 			// object type
 			virtual
-			Emdtype Emdt() const = 0;
+			Emdtype MDType() const = 0;
 			
 			// serialize object in DXL format
 			virtual 
@@ -99,7 +99,7 @@ namespace gpmd
 
 			// DXL string representation of cache object 
 			virtual 
-			const CWStringDynamic *Pstr() const = 0;
+			const CWStringDynamic *GetStrRepr() const = 0;
 			
 						
 			// serialize the metadata id information as the attributes of an 
@@ -107,9 +107,9 @@ namespace gpmd
 			virtual 
 			void SerializeMDIdAsElem
 				(
-				gpdxl::CXMLSerializer *pxmlser, 
-				const CWStringConst *pstrElem, 
-				const IMDId *pmdid
+				gpdxl::CXMLSerializer *xml_serializer, 
+				const CWStringConst *element_name,
+				const IMDId *mdid
 				) const;
 			
 #ifdef GPOS_DEBUG
@@ -117,7 +117,7 @@ namespace gpmd
 #endif
 	};
 	
-	typedef CDynamicPtrArray<IMDCacheObject, CleanupRelease> DrgPimdobj;
+	typedef CDynamicPtrArray<IMDCacheObject, CleanupRelease> IMDCacheObjectArray;
 
 }
 

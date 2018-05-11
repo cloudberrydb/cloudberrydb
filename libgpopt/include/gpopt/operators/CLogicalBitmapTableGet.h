@@ -49,7 +49,7 @@ namespace gpopt
 			const CName *m_pnameTableAlias;
 
 			// output columns
-			DrgPcr *m_pdrgpcrOutput;
+			CColRefArray *m_pdrgpcrOutput;
 
 			// private copy ctor
 			CLogicalBitmapTableGet(const CLogicalBitmapTableGet &);
@@ -58,17 +58,17 @@ namespace gpopt
 			// ctor
 			CLogicalBitmapTableGet
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CTableDescriptor *ptabdesc,
 				ULONG ulOriginOpId,
 				const CName *pnameTableAlias,
-				DrgPcr *pdrgpcrOutput
+				CColRefArray *pdrgpcrOutput
 				);
 
 			// ctor
 			// only for transformations
 			explicit
-			CLogicalBitmapTableGet(IMemoryPool *pmp);
+			CLogicalBitmapTableGet(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -87,7 +87,7 @@ namespace gpopt
 			}
 
 			// array of output column references
-			DrgPcr *PdrgpcrOutput() const
+			CColRefArray *PdrgpcrOutput() const
 			{
 				return m_pdrgpcrOutput;
 			}
@@ -114,11 +114,11 @@ namespace gpopt
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -129,37 +129,37 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOutput(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOuter(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive partition consumer info
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & //exprhdl
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CPartInfo(pmp);
+				return GPOS_NEW(mp) CPartInfo(mp);
 			}
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CPropConstraint *PpcDeriveConstraint(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive join depth
 			virtual
-			ULONG UlJoinDepth
+			ULONG JoinDepth
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle & // exprhdl
 				)
 				const
@@ -171,27 +171,27 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &, // exprhdl
 				CColRefSet *, //pcrsInput
-				ULONG // ulChildIndex
+				ULONG // child_index
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CColRefSet(pmp);
+				return GPOS_NEW(mp) CColRefSet(mp);
 			}
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			// derive statistics
 			virtual
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
-				DrgPstat *pdrgpstatCtxt
+				IStatisticsArray *stats_ctxt
 				)
 				const;
 

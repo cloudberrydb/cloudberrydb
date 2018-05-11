@@ -37,16 +37,16 @@ namespace gpdxl
 		private:
 		
 			// id of the sorting column
-			ULONG m_ulColId;
+			ULONG m_colid;
 			
 			// catalog Oid of the sorting operator
-			IMDId *m_pmdidSortOp;
+			IMDId *m_mdid_sort_op;
 			
 			// name of sorting operator 
-			CWStringConst *m_pstrSortOpName;
+			CWStringConst *m_sort_op_name_str;
 			
 			// sort nulls before other values
-			BOOL m_fSortNullsFirst;
+			BOOL m_must_sort_nulls_first;
 			
 			// private copy ctor
 			CDXLScalarSortCol(CDXLScalarSortCol&);
@@ -55,9 +55,9 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarSortCol
 				(
-				IMemoryPool *pmp,
-				ULONG ulColId,
-				IMDId *pmdidSortOp,
+				IMemoryPool *mp,
+				ULONG colid,
+				IMDId *sort_op_id,
 				CWStringConst *pstrTypeName,
 				BOOL fSortNullsFirst
 				);
@@ -66,19 +66,19 @@ namespace gpdxl
 			~CDXLScalarSortCol();
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// name of the operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// Id of the sorting column
-			ULONG UlColId() const;
+			ULONG GetColId() const;
 			
 			// mdid of the sorting operator
-			IMDId *PmdidSortOp() const;
+			IMDId *GetMdIdSortOp() const;
 			
 			// whether nulls are sorted before other values
-			BOOL FSortNullsFirst() const;
+			BOOL IsSortedNullsFirst() const;
 			
 			// serialize operator in DXL format
 			virtual
@@ -86,22 +86,22 @@ namespace gpdxl
 
 			// conversion function
 			static
-			CDXLScalarSortCol *PdxlopConvert
+			CDXLScalarSortCol *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarSortCol == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarSortCol == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarSortCol*>(pdxlop);
+				return dynamic_cast<CDXLScalarSortCol*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{
@@ -112,7 +112,7 @@ namespace gpdxl
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG			
 	};
 }

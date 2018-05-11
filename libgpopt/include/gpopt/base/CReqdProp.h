@@ -27,7 +27,7 @@ namespace gpopt
 	class CReqdProp;
 
 	// dynamic array for required properties
-	typedef CDynamicPtrArray<CReqdProp, CleanupRelease> DrgPrp;
+	typedef CDynamicPtrArray<CReqdProp, CleanupRelease> CReqdPropArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -110,11 +110,11 @@ namespace gpopt
 			virtual
 			void Compute
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CReqdProp *prpInput,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				) = 0;
 

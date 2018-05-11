@@ -33,8 +33,8 @@ namespace gpopt
 		private:
 
 			// hash map between expression and a column reference
-			typedef CHashMap<CExpression, CColRef, CExpression::UlHash, CUtils::FEqual,
-						CleanupRelease<CExpression>, CleanupNULL<CColRef> > HMExprCr;
+			typedef CHashMap<CExpression, CColRef, CExpression::HashValue, CUtils::Equals,
+						CleanupRelease<CExpression>, CleanupNULL<CColRef> > ExprToColRefMap;
 
 			// private copy ctor
 			CXformSplitDQA(const CXformSplitDQA &);
@@ -43,13 +43,13 @@ namespace gpopt
 			static
 			CExpression *PexprMultiLevelAggregation
 							(
-							IMemoryPool *pmp,
+							IMemoryPool *mp,
 							CExpression *pexprRelational,
-							DrgPexpr *pdrgpexprPrElFirstStage,
-							DrgPexpr *pdrgpexprPrElSecondStage,
-							DrgPexpr *pdrgpexprPrElThirdStage,
-							DrgPcr *pdrgpcrArgDQA,
-							DrgPcr *pdrgpcrLastStage,
+							CExpressionArray *pdrgpexprPrElFirstStage,
+							CExpressionArray *pdrgpexprPrElSecondStage,
+							CExpressionArray *pdrgpexprPrElThirdStage,
+							CColRefArray *pdrgpcrArgDQA,
+							CColRefArray *pdrgpcrLastStage,
 							BOOL fSplit2LevelsOnly,
 							BOOL fAddDistinctColToLocalGb
 							);
@@ -58,26 +58,26 @@ namespace gpopt
 			static
 			CExpression *PexprSplitIntoLocalDQAGlobalAgg
 							(
-							IMemoryPool *pmp,
-							CColumnFactory *pcf,
-							CMDAccessor *pmda,
+							IMemoryPool *mp,
+							CColumnFactory *col_factory,
+							CMDAccessor *md_accessor,
 							CExpression *pexpr,
 							CExpression *pexprRelational,
-							HMExprCr *phmexprcr,
-							DrgPcr *pdrgpcrArgDQA
+							ExprToColRefMap *phmexprcr,
+							CColRefArray *pdrgpcrArgDQA
 							);
 
 			// helper function to split DQA
 			static
 			CExpression *PexprSplitHelper
 				(
-				IMemoryPool *pmp,
-				CColumnFactory *pcf,
-				CMDAccessor *pmda,
+				IMemoryPool *mp,
+				CColumnFactory *col_factory,
+				CMDAccessor *md_accessor,
 				CExpression *pexpr,
 				CExpression *pexprRelational,
-				HMExprCr *phmexprcr,
-				DrgPcr *pdrgpcrArgDQA,
+				ExprToColRefMap *phmexprcr,
+				CColRefArray *pdrgpcrArgDQA,
 				BOOL fScalarAggregate
 				);
 
@@ -88,13 +88,13 @@ namespace gpopt
 			static
 			void PopulatePrLMultiPhaseAgg
 					(
-					IMemoryPool *pmp,
-					CColumnFactory *pcf,
-					CMDAccessor *pmda,
+					IMemoryPool *mp,
+					CColumnFactory *col_factory,
+					CMDAccessor *md_accessor,
 					CExpression *pexprPrEl,
-					DrgPexpr *pdrgpexprPrElFirstStage,
-					DrgPexpr *pdrgpexprPrElSecondStage,
-					DrgPexpr *pdrgpexprPrElLastStage,
+					CExpressionArray *pdrgpexprPrElFirstStage,
+					CExpressionArray *pdrgpexprPrElSecondStage,
+					CExpressionArray *pdrgpexprPrElLastStage,
 					BOOL fSplit2LevelsOnly
 					);
 
@@ -102,7 +102,7 @@ namespace gpopt
 			static
 			CExpression *PexprPrElAgg
 							(
-							IMemoryPool *pmp,
+							IMemoryPool *mp,
 							CExpression *pexprAggFunc,
 							EAggfuncStage eaggfuncstage,
 							CColRef *pcrPreviousStage,
@@ -113,31 +113,31 @@ namespace gpopt
 			static
 			void ExtractDistinctCols
 					(
-					IMemoryPool *pmp,
-					CColumnFactory *pcf,
-					CMDAccessor *pmda,
+					IMemoryPool *mp,
+					CColumnFactory *col_factory,
+					CMDAccessor *md_accessor,
 					CExpression *pexpr,
-					DrgPexpr *pdrgpexprChildPrEl,
-					HMExprCr *phmexprcr,
-					DrgPcr **ppdrgpcrArgDQA
+					CExpressionArray *pdrgpexprChildPrEl,
+					ExprToColRefMap *phmexprcr,
+					CColRefArray **ppdrgpcrArgDQA
 					);
 
 			// return the column reference of the argument to the aggregate function
 			static
 			CColRef *PcrAggFuncArgument
 						(
-						IMemoryPool *pmp,
-						CMDAccessor *pmda,
-						CColumnFactory *pcf,
+						IMemoryPool *mp,
+						CMDAccessor *md_accessor,
+						CColumnFactory *col_factory,
 						CExpression *pexprArg,
-						DrgPexpr *pdrgpexprChildPrEl
+						CExpressionArray *pdrgpexprChildPrEl
 						);
 
 		public:
 
 			// ctor
 			explicit
-			CXformSplitDQA(IMemoryPool *pmp);
+			CXformSplitDQA(IMemoryPool *mp);
 
 			// dtor
 			virtual

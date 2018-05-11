@@ -37,10 +37,10 @@ namespace gpopt
 			CLogicalGbAgg(const CLogicalGbAgg &);
 			
 			// array of grouping columns
-			DrgPcr *m_pdrgpcr;
+			CColRefArray *m_pdrgpcr;
 
 			// minimal grouping columns based on FD's
-			DrgPcr *m_pdrgpcrMinimal;
+			CColRefArray *m_pdrgpcrMinimal;
 
 			// local / intermediate / global aggregate
 			COperator::EGbAggType m_egbaggtype;
@@ -52,16 +52,16 @@ namespace gpopt
 
 			// array of columns used in distinct qualified aggregates (DQA)
 			// used only in the case of intermediate aggregates
-			DrgPcr *m_pdrgpcrArgDQA;
+			CColRefArray *m_pdrgpcrArgDQA;
 
 			// compute required stats columns for a GbAgg
 			CColRefSet *PcrsStatGbAgg
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
-				ULONG ulChildIndex,
-				DrgPcr *pdrgpcrGrp
+				ULONG child_index,
+				CColRefArray *pdrgpcrGrp
 				)
 				const;
 
@@ -69,44 +69,44 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalGbAgg(IMemoryPool *pmp);
+			CLogicalGbAgg(IMemoryPool *mp);
 
 			// ctor
 			CLogicalGbAgg
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
 				COperator::EGbAggType egbaggtype
 				);
 
 			// ctor
 			CLogicalGbAgg
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
 				COperator::EGbAggType egbaggtype,
 				BOOL fGeneratesDuplicates,
-				DrgPcr *pdrgpcrArgDQA
+				CColRefArray *pdrgpcrArgDQA
 				);
 
 			// ctor
 			CLogicalGbAgg
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
-				DrgPcr *pdrgpcrMinimal,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				CColRefArray *pdrgpcrMinimal,
 				COperator::EGbAggType egbaggtype
 				);
 
 			// ctor
 			CLogicalGbAgg
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
-				DrgPcr *pdrgpcrMinimal,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				CColRefArray *pdrgpcrMinimal,
 				COperator::EGbAggType egbaggtype,
 				BOOL fGeneratesDuplicates,
-				DrgPcr *pdrgpcrArgDQA
+				CColRefArray *pdrgpcrArgDQA
 				);
 
 			// dtor
@@ -136,20 +136,20 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// grouping columns accessor
-			DrgPcr *Pdrgpcr() const
+			CColRefArray *Pdrgpcr() const
 			{
 				return m_pdrgpcr;
 			}
 
 			// array of columns used in distinct qualified aggregates (DQA)
-			DrgPcr *PdrgpcrArgDQA() const
+			CColRefArray *PdrgpcrArgDQA() const
 			{
 				return m_pdrgpcrArgDQA;
 			}
@@ -167,14 +167,14 @@ namespace gpopt
 			}
 
 			// minimal grouping columns accessor
-			DrgPcr *PdrgpcrMinimal() const
+			CColRefArray *PdrgpcrMinimal() const
 			{
 				return m_pdrgpcrMinimal;
 			}
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -186,23 +186,23 @@ namespace gpopt
 			
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOuter(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive not null columns
 			virtual
-			CColRefSet *PcrsDeriveNotNull(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CColRefSet *PcrsDeriveNotNull(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CPropConstraint *PpcDeriveConstraint(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required stats columns of the n-th child
 			//-------------------------------------------------------------------------------------
@@ -213,10 +213,10 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
-				ULONG ulChildIndex
+				ULONG child_index
 				)
 				const;
 
@@ -225,15 +225,15 @@ namespace gpopt
 			//-------------------------------------------------------------------------------------
 
 			// candidate set of xforms
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			// derive statistics
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 
@@ -271,11 +271,11 @@ namespace gpopt
 			static
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *pmp,
-				IStatistics *pstatsChild,
-				DrgPcr *pdrgpcrGroupingCols,
-				DrgPul *pdrgpulComputedCols,
-				CBitSet *pbsKeys
+				IMemoryPool *mp,
+				IStatistics *child_stats,
+				CColRefArray *pdrgpcrGroupingCols,
+				ULongPtrArray *pdrgpulComputedCols,
+				CBitSet *keys
 				);
 
 			// print group by aggregate type

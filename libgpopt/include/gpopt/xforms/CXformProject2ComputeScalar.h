@@ -38,7 +38,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CXformProject2ComputeScalar(IMemoryPool *pmp);
+			CXformProject2ComputeScalar(IMemoryPool *mp);
 
 			// dtor
 			virtual 
@@ -66,7 +66,7 @@ namespace gpopt
 				)
 				const
 			{
-				if (exprhdl.Pdpscalar(1)->FHasSubquery())
+				if (exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
 				{
 					return CXform::ExfpNone;
 				}

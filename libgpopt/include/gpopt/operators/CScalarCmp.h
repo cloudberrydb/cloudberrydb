@@ -37,16 +37,16 @@ namespace gpopt
 		private:
 
 			// metadata id in the catalog
-			IMDId *m_pmdidOp;
+			IMDId *m_mdid_op;
 
 			// comparison operator name
 			const CWStringConst *m_pstrOp;
 			
 			// comparison type
-			IMDType::ECmpType m_ecmpt;
+			IMDType::ECmpType m_comparision_type;
 
 			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 
 			// is comparison commutative
 			BOOL m_fCommutative;
@@ -59,17 +59,17 @@ namespace gpopt
 			// ctor
 			CScalarCmp
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidOp,
+				IMemoryPool *mp,
+				IMDId *mdid_op,
 				const CWStringConst *pstrOp,
-				IMDType::ECmpType ecmpt
+				IMDType::ECmpType cmp_type
 				);
 
 			// dtor
 			virtual 
 			~CScalarCmp()
 			{
-				m_pmdidOp->Release();
+				m_mdid_op->Release();
 				GPOS_DELETE(m_pstrOp);
 			}
 
@@ -82,9 +82,9 @@ namespace gpopt
 			}
 			
 			// comparison type
-			IMDType::ECmpType Ecmpt() const
+			IMDType::ECmpType ParseCmpType() const
 			{
-				return m_ecmpt;
+				return m_comparision_type;
 			}
 			
 			// return a string for operator name
@@ -96,10 +96,10 @@ namespace gpopt
 
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const;
@@ -108,9 +108,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -121,17 +121,17 @@ namespace gpopt
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// name of the comparison operator
 			const CWStringConst *Pstr() const;
 
 			// metadata id
-			IMDId *PmdidOp() const;
+			IMDId *MdIdOp() const;
 			
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// print
 			virtual 
@@ -152,15 +152,15 @@ namespace gpopt
 		
 			// get commuted scalar comparision operator
 			virtual
-			CScalarCmp *PopCommutedOp(IMemoryPool *pmp, COperator *pop);
+			CScalarCmp *PopCommutedOp(IMemoryPool *mp, COperator *pop);
 		
 			// get the string representation of a metadata object
 			static
-			CWStringConst *Pstr(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid);
+			CWStringConst *Pstr(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid);
 
 			// get metadata id of the commuted operator
 			static
-			IMDId *PmdidCommuteOp(CMDAccessor *pmda, COperator *pop);
+			IMDId *PmdidCommuteOp(CMDAccessor *md_accessor, COperator *pop);
 		
 		
 

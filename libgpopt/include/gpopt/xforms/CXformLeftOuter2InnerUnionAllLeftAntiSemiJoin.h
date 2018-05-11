@@ -54,7 +54,7 @@ namespace gpopt
 			CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(const CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin &);
 
 			// check the stats ratio to decide whether to apply the xform or not
-			BOOL FApplyXformUsingStatsInfo(const IStatistics *pstatsOuter, const IStatistics *pstatsInner) const;
+			BOOL FApplyXformUsingStatsInfo(const IStatistics *outer_stats, const IStatistics *inner_side_stats) const;
 
 			// check if the inner expression is of a type which should be considered by this xform
 			static
@@ -65,12 +65,12 @@ namespace gpopt
 			static
 			CExpression *PexprLeftAntiSemiJoinWithInnerGroupBy
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrOuter,
-				DrgPcr *pdrgpcrOuterCopy,
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrOuter,
+				CColRefArray *pdrgpcrOuterCopy,
 				CColRefSet *pcrsScalar,
 				CColRefSet *pcrsInner,
-				DrgPcr *pdrgpcrJoinOutput,
+				CColRefArray *pdrgpcrJoinOutput,
 				ULONG ulCTEJoinId,
 				ULONG ulCTEOuterId
 				);
@@ -80,20 +80,20 @@ namespace gpopt
 			static
 			CExpression *PexprProjectOverLeftAntiSemiJoin
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrOuter,
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrOuter,
 				CColRefSet *pcrsScalar,
 				CColRefSet *pcrsInner,
-				DrgPcr *pdrgpcrJoinOutput,
+				CColRefArray *pdrgpcrJoinOutput,
 				ULONG ulCTEJoinId,
 				ULONG ulCTEOuterId,
-				DrgPcr **ppdrgpcrProjectOutput
+				CColRefArray **ppdrgpcrProjectOutput
 				);
 
 		public:
 			// ctor
 			explicit
-			CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(IMemoryPool *pmp);
+			CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin(IMemoryPool *mp);
 
 			// dtor
 			virtual

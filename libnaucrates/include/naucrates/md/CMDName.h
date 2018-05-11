@@ -32,14 +32,14 @@ namespace gpmd
 	{
 		private:
 			// the string holding the name
-			const CWStringConst *m_psc;
+			const CWStringConst *m_name;
 			
 			// keep track of copy status
-			BOOL m_fDeepCopy;
+			BOOL m_deep_copy;
 		
 		public:
 			// ctor/dtor
-			CMDName(IMemoryPool *pmp, const CWStringBase *pstr);
+			CMDName(IMemoryPool *mp, const CWStringBase *str);
 			CMDName(const CWStringConst *, BOOL fOwnsMemory = false);
 			
 			// shallow copy ctor
@@ -48,15 +48,15 @@ namespace gpmd
 			~CMDName();
 
 			// accessors
-			const CWStringConst *Pstr() const
+			const CWStringConst *GetMDName() const
 			{
-				return m_psc;
+				return m_name;
 			}
 	};
 
 	// array of names
-	typedef CDynamicPtrArray<CMDName, CleanupDelete> DrgPmdname;
-}
+	typedef CDynamicPtrArray<CMDName, CleanupDelete> CMDNameArray;
+}  // namespace gpmd
 
 #endif // !GPMD_CMDName_H
 

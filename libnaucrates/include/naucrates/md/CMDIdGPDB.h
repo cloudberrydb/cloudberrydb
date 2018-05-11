@@ -51,13 +51,13 @@ namespace gpmd
 			OID m_oid;
 			
 			// major version number
-			ULONG m_ulVersionMajor;
+			ULONG m_major_version;
 			
 			// minor version number
-			ULONG m_ulVersionMinor;
+			ULONG m_minor_version;
 		
 			// buffer for the serialized mdid
-			WCHAR m_wszBuffer[GPDXL_MDID_LENGTH];
+			WCHAR m_mdid_array[GPDXL_MDID_LENGTH];
 			
 			// string representation of the mdid
 			CWStringStatic m_str;
@@ -71,21 +71,21 @@ namespace gpmd
 			CMDIdGPDB(CSystemId sysid, OID oid);
 			explicit 
 			CMDIdGPDB(OID oid);
-			CMDIdGPDB(OID oid, ULONG ulVersionMajor, ULONG ulVersionMinor);
+			CMDIdGPDB(OID oid, ULONG version_major, ULONG version_minor);
 			
 			// copy ctor
 			explicit
 			CMDIdGPDB(const CMDIdGPDB &mdidSource);
 
 			virtual
-			EMDIdType Emdidt() const
+			EMDIdType MdidType() const
 			{
 				return EmdidGPDB;
 			}
 			
 			// string representation of mdid
 			virtual
-			const WCHAR *Wsz() const;
+			const WCHAR *GetBuffer() const;
 			
 			// source system id
 			virtual
@@ -96,36 +96,36 @@ namespace gpmd
 			
 			// oid
 			virtual
-			OID OidObjectId() const;
+			OID Oid() const;
 			
 			// major version
 			virtual
-			ULONG UlVersionMajor() const;
+			ULONG VersionMajor() const;
 			
 			// minor version
 			virtual
-			ULONG UlVersionMinor() const;
+			ULONG VersionMinor() const;
 
 			// equality check
 			virtual
-			BOOL FEquals(const IMDId *pmdid) const;
+			BOOL Equals(const IMDId *mdid) const;
 			
 			// computes the hash value for the metadata id
 			virtual
-			ULONG UlHash() const
+			ULONG HashValue() const
 			{
-				return gpos::UlCombineHashes(Emdidt(),
-						gpos::UlCombineHashes(gpos::UlHash(&m_oid),
-											gpos::UlCombineHashes(gpos::UlHash(&m_ulVersionMajor), gpos::UlHash(&m_ulVersionMinor))));
+				return gpos::CombineHashes(MdidType(),
+						gpos::CombineHashes(gpos::HashValue(&m_oid),
+											gpos::CombineHashes(gpos::HashValue(&m_major_version), gpos::HashValue(&m_minor_version))));
 			}
 			
 			// is the mdid valid
 			virtual
-			BOOL FValid() const;
+			BOOL IsValid() const;
 
-			// serialize mdid in DXL as the value of the specified attribute 
+			// serialize mdid in DXL as the value of the specified attribute
 			virtual
-			void Serialize(CXMLSerializer *pxmlser, const CWStringConst *pstrAttribute) const;
+			void Serialize(CXMLSerializer *xml_serializer, const CWStringConst *pstrAttribute) const;
 						
 			// debug print of the metadata id
 			virtual
@@ -133,133 +133,133 @@ namespace gpmd
 			
 			// const converter
 			static
-			const CMDIdGPDB *PmdidConvert(const IMDId *pmdid)
+			const CMDIdGPDB *CastMdid(const IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && EmdidGPDB == pmdid->Emdidt());
+				GPOS_ASSERT(NULL != mdid && EmdidGPDB == mdid->MdidType());
 
-				return dynamic_cast<const CMDIdGPDB *>(pmdid);
+				return dynamic_cast<const CMDIdGPDB *>(mdid);
 			}
 			
 			// non-const converter
 			static
-			CMDIdGPDB *PmdidConvert(IMDId *pmdid)
+			CMDIdGPDB *CastMdid(IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && (EmdidGPDB == pmdid->Emdidt() || EmdidGPDBCtas == pmdid->Emdidt()));
+				GPOS_ASSERT(NULL != mdid && (EmdidGPDB == mdid->MdidType() || EmdidGPDBCtas == mdid->MdidType()));
 
-				return dynamic_cast<CMDIdGPDB *>(pmdid);
+				return dynamic_cast<CMDIdGPDB *>(mdid);
 			}
 			
 			// invalid mdid
 			static 
-			CMDIdGPDB m_mdidInvalidKey;
+			CMDIdGPDB m_mdid_invalid_key;
 
 			// int2 mdid
 			static
-			CMDIdGPDB m_mdidInt2;
+			CMDIdGPDB m_mdid_int2;
 
 			// int4 mdid
 			static
-			CMDIdGPDB m_mdidInt4;
+			CMDIdGPDB m_mdid_int4;
 
 			// int8 mdid
 			static
-			CMDIdGPDB m_mdidInt8;
+			CMDIdGPDB m_mdid_int8;
 
 			// oid mdid
 			static
-			CMDIdGPDB m_mdidOid;
+			CMDIdGPDB m_mdid_oid;
 
 			// bool mdid
 			static
-			CMDIdGPDB m_mdidBool;
+			CMDIdGPDB m_mdid_bool;
 
 			// numeric mdid
 			static
-			CMDIdGPDB m_mdidNumeric;
+			CMDIdGPDB m_mdid_numeric;
 
 			// date mdid
 			static
-			CMDIdGPDB m_mdidDate;
+			CMDIdGPDB m_mdid_date;
 
 			// time mdid
 			static
-			CMDIdGPDB m_mdidTime;
+			CMDIdGPDB m_mdid_time;
 
 			// time with time zone mdid
 			static
-			CMDIdGPDB m_mdidTimeTz;
+			CMDIdGPDB m_mdid_timeTz;
 
 			// timestamp mdid
 			static
-			CMDIdGPDB m_mdidTimestamp;
+			CMDIdGPDB m_mdid_timestamp;
 
 			// timestamp with time zone mdid
 			static
-			CMDIdGPDB m_mdidTimestampTz;
+			CMDIdGPDB m_mdid_timestampTz;
 
 			// absolute time mdid
 			static
-			CMDIdGPDB m_mdidAbsTime;
+			CMDIdGPDB m_mdid_abs_time;
 
 			// relative time mdid
 			static
-			CMDIdGPDB m_mdidRelTime;
+			CMDIdGPDB m_mdid_relative_time;
 
 			// interval mdid
 			static
-			CMDIdGPDB m_mdidInterval;
+			CMDIdGPDB m_mdid_interval;
 
 			// time interval mdid
 			static
-			CMDIdGPDB m_mdidTimeInterval;
+			CMDIdGPDB m_mdid_time_interval;
 
 			// bpchar mdid
 			static
-			CMDIdGPDB m_mdidBPChar;
+			CMDIdGPDB m_mdid_bpchar;
 
 			// varchar mdid
 			static
-			CMDIdGPDB m_mdidVarChar;
+			CMDIdGPDB m_mdid_varchar;
 
 			// text mdid
 			static
-			CMDIdGPDB m_mdidText;
+			CMDIdGPDB m_mdid_text;
 
 			// float4 mdid
 			static
-			CMDIdGPDB m_mdidFloat4;
+			CMDIdGPDB m_mdid_float4;
 
 			// float8 mdid
 			static
-			CMDIdGPDB m_mdidFloat8;
+			CMDIdGPDB m_mdid_float8;
 
 			// cash mdid
 			static
-			CMDIdGPDB m_mdidCash;
+			CMDIdGPDB m_mdid_cash;
 
 			// inet mdid
 			static
-			CMDIdGPDB m_mdidInet;
+			CMDIdGPDB m_mdid_inet;
 
 			// cidr mdid
 			static
-			CMDIdGPDB m_mdidCidr;
+			CMDIdGPDB m_mdid_cidr;
 
 			// macaddr mdid
 			static
-			CMDIdGPDB m_mdidMacaddr;
+			CMDIdGPDB m_mdid_macaddr;
 
 			// count(*) mdid
 			static
-			CMDIdGPDB m_mdidCountStar;
+			CMDIdGPDB m_mdid_count_star;
 
 			// count(Any) mdid
 			static
-			CMDIdGPDB m_mdidCountAny;
+			CMDIdGPDB m_mdid_count_any;
 
 			// unknown datatype mdid
 			static
-			CMDIdGPDB m_mdidUnknown;
+			CMDIdGPDB m_mdid_unknown;
 	};
 
 }

@@ -41,27 +41,27 @@ namespace gpmd
 	{
 		private:
 			// attribute name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// attribute number
-			INT m_iAttNo;
+			INT m_attno;
 			
 			// column type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
-			INT m_iTypeModifier;
+			INT m_type_modifier;
 
-			// is NULL an allowed value for the attribute
-			BOOL m_fNullable;
+		// is NULL an allowed value for the attribute
+			BOOL m_is_nullable;
 
 			// is column dropped
-			BOOL m_fDropped;
+			BOOL m_is_dropped;
 			
 			// length of the column
-			ULONG m_ulLength;
+			ULONG m_length;
 			
-			// default value expression
-			gpdxl::CDXLNode *m_pdxlnDefaultValue;
+		// default value expression
+			gpdxl::CDXLNode *m_dxl_default_val;
 						
 			// private copy ctor
 			CMDColumn(const CMDColumn &);
@@ -70,14 +70,14 @@ namespace gpmd
 			// ctor
 			CMDColumn
 				(
-				CMDName *pmdname,
-				INT iAttNo,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				BOOL fNullable,
-				BOOL fDropped,
-				gpdxl::CDXLNode *pdxnlDefaultValue,
-				ULONG ulLength = gpos::ulong_max
+				CMDName *mdname,
+				INT attrnum,
+				IMDId *mdid_type,
+				INT type_modifier,
+				BOOL is_nullable,
+				BOOL is_dropped,
+				gpdxl::CDXLNode *dxl_dafault_value,
+				ULONG length = gpos::ulong_max
 				);
 
 			// dtor
@@ -90,35 +90,35 @@ namespace gpmd
 			
 			// column type
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			virtual
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
 			// attribute number
 			virtual
-			INT IAttno() const;
+			INT AttrNum() const;
 			
 			// is this a system column
 			virtual
-			BOOL FSystemColumn() const
+			BOOL IsSystemColumn() const
 			{
-				return (0 > m_iAttNo);
+				return (0 > m_attno);
 			}
 
 			// length of the column
-			ULONG UlLength() const
+			ULONG Length() const
 			{
-				return m_ulLength;
+				return m_length;
 			}
 
 			// is the column nullable
 			virtual
-			BOOL FNullable() const;
+			BOOL IsNullable() const;
 			
 			// is the column dropped
 			virtual
-			BOOL FDropped() const;
+			BOOL IsDropped() const;
 		
 			// serialize metadata object in DXL format given a serializer object
 			virtual	
@@ -132,7 +132,7 @@ namespace gpmd
 	};
 
 	// array of metadata column descriptor
-	typedef CDynamicPtrArray<CMDColumn, CleanupRelease> DrgPmdcol;
+	typedef CDynamicPtrArray<CMDColumn, CleanupRelease> CMDColumnArray;
 
 }
 

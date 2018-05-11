@@ -26,14 +26,14 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarHashExpr::CDXLScalarHashExpr
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType
+	IMemoryPool *mp,
+	IMDId *mdid_type
 	)
 	:
-	CDXLScalar(pmp),
-	m_pmdidType(pmdidType)
+	CDXLScalar(mp),
+	m_mdid_type(mdid_type)
 {
-	GPOS_ASSERT(m_pmdidType->FValid());
+	GPOS_ASSERT(m_mdid_type->IsValid());
 }
 
 //---------------------------------------------------------------------------
@@ -46,19 +46,19 @@ CDXLScalarHashExpr::CDXLScalarHashExpr
 //---------------------------------------------------------------------------
 CDXLScalarHashExpr::~CDXLScalarHashExpr()
 {
-	m_pmdidType->Release();
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarHashExpr::Edxlop
+//		CDXLScalarHashExpr::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarHashExpr::Edxlop() const
+CDXLScalarHashExpr::GetDXLOperator() const
 {
 	return EdxlopScalarHashExpr;
 }
@@ -66,30 +66,30 @@ CDXLScalarHashExpr::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarHashExpr::PstrOpName
+//		CDXLScalarHashExpr::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarHashExpr::PstrOpName() const
+CDXLScalarHashExpr::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarHashExpr);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarHashExpr);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarHashExpr::PmdidType
+//		CDXLScalarHashExpr::MdidType
 //
 //	@doc:
 //		Hash expression type from the catalog
 //
 //---------------------------------------------------------------------------
 IMDId *
-CDXLScalarHashExpr::PmdidType() const
+CDXLScalarHashExpr::MdidType() const
 {
-	return m_pmdidType;
+	return m_mdid_type;
 }
 
 //---------------------------------------------------------------------------
@@ -103,18 +103,18 @@ CDXLScalarHashExpr::PmdidType() const
 void
 CDXLScalarHashExpr::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	const CWStringConst *element_name = GetOpNameStr();
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
 
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	node->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -129,19 +129,19 @@ CDXLScalarHashExpr::SerializeToDXL
 void
 CDXLScalarHashExpr::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren 
+	const CDXLNode *node,
+	BOOL validate_children 
 	) 
 	const
 {
-	GPOS_ASSERT(1 == pdxln->UlArity());
-	CDXLNode *pdxlnChild = (*pdxln)[0];
+	GPOS_ASSERT(1 == node->Arity());
+	CDXLNode *child_dxlnode = (*node)[0];
 	
-	GPOS_ASSERT(EdxloptypeScalar == pdxlnChild->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(EdxloptypeScalar == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 

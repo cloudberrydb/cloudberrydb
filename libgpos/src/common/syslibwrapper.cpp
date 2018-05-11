@@ -36,18 +36,18 @@ using namespace gpos;
 void
 gpos::syslib::GetTimeOfDay
 	(
-	TIMEVAL *ptv,
-	TIMEZONE *ptz
+	TIMEVAL *tv,
+	TIMEZONE *tz
 	)
 {
-	GPOS_ASSERT(NULL != ptv);
+	GPOS_ASSERT(NULL != tv);
 
 #ifdef GPOS_DEBUG
-	INT iRes =
+	INT res =
 #endif // GPOS_DEBUG
-	gettimeofday(ptv, ptz);
+	gettimeofday(tv, tz);
 
-	GPOS_ASSERT(0 == iRes);
+	GPOS_ASSERT(0 == res);
 }
 
 
@@ -62,17 +62,17 @@ gpos::syslib::GetTimeOfDay
 void
 gpos::syslib::GetRusage
 	(
-	RUSAGE *prusage
+	RUSAGE *usage
 	)
 {
-	GPOS_ASSERT(NULL != prusage);
+	GPOS_ASSERT(NULL != usage);
 
 #ifdef GPOS_DEBUG
-	INT iRes =
+	INT res =
 #endif // GPOS_DEBUG
-	getrusage(RUSAGE_SELF, prusage);
+	getrusage(RUSAGE_SELF, usage);
 
-	GPOS_ASSERT(0 == iRes);
+	GPOS_ASSERT(0 == res);
 }
 
 
@@ -90,11 +90,11 @@ gpos::syslib::SchedYield
 	)
 {
 #ifdef GPOS_DEBUG
-	INT iRes =
+	INT res =
 #endif // GPOS_DEBUG
 	sched_yield();
 
-	GPOS_ASSERT(0 == iRes && "Failed to yield");
+	GPOS_ASSERT(0 == res && "Failed to yield");
 }
 
 
@@ -109,12 +109,12 @@ gpos::syslib::SchedYield
 void
 gpos::syslib::OpenLog
 	(
-	const CHAR *szIdent,
-	INT iOption,
-	INT iFacility
+	const CHAR *ident,
+	INT option,
+	INT facility
 	)
 {
-	openlog(szIdent, iOption, iFacility);
+	openlog(ident, option, facility);
 }
 
 
@@ -129,11 +129,11 @@ gpos::syslib::OpenLog
 void
 gpos::syslib::SysLog
 	(
-	INT iPriority,
-	const CHAR *szMessage
+	INT priority,
+	const CHAR *format
 	)
 {
-	syslog(iPriority, "%s", szMessage);
+	syslog(priority, "%s", format);
 }
 
 

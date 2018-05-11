@@ -73,7 +73,7 @@ CDrvdPropPlan::~CDrvdPropPlan()
 CDrvdPropPlan *
 CDrvdPropPlan::Pdpplan
 	(
-	CDrvdProp *pdp
+	DrvdPropArray *pdp
 	)
 {
 	GPOS_ASSERT(NULL != pdp);
@@ -94,7 +94,7 @@ CDrvdPropPlan::Pdpplan
 void
 CDrvdPropPlan::Derive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt *pdpctxt
 	)
@@ -102,22 +102,22 @@ CDrvdPropPlan::Derive
 	CPhysical *popPhysical = CPhysical::PopConvert(exprhdl.Pop());
 	if (NULL != pdpctxt && COperator::EopPhysicalCTEConsumer == popPhysical->Eopid())
 	{
-		CopyCTEProducerPlanProps(pmp, pdpctxt, popPhysical);
+		CopyCTEProducerPlanProps(mp, pdpctxt, popPhysical);
 	}
 	else
 	{
 		// call property derivation functions on the operator
-		m_pos = popPhysical->PosDerive(pmp, exprhdl);
-		m_pds = popPhysical->PdsDerive(pmp, exprhdl);
-		m_prs = popPhysical->PrsDerive(pmp, exprhdl);
-		m_ppim = popPhysical->PpimDerive(pmp, exprhdl, pdpctxt);
-		m_ppfm = popPhysical->PpfmDerive(pmp, exprhdl);
+		m_pos = popPhysical->PosDerive(mp, exprhdl);
+		m_pds = popPhysical->PdsDerive(mp, exprhdl);
+		m_prs = popPhysical->PrsDerive(mp, exprhdl);
+		m_ppim = popPhysical->PpimDerive(mp, exprhdl, pdpctxt);
+		m_ppfm = popPhysical->PpfmDerive(mp, exprhdl);
 
 		GPOS_ASSERT(NULL != m_ppim);
 		GPOS_ASSERT(CDistributionSpec::EdtAny != m_pds->Edt() && "CDistributionAny is a require-only, cannot be derived");
 	}
 
-	m_pcm = popPhysical->PcmDerive(pmp, exprhdl);
+	m_pcm = popPhysical->PcmDerive(mp, exprhdl);
 }
 
 
@@ -132,7 +132,7 @@ CDrvdPropPlan::Derive
 void
 CDrvdPropPlan::CopyCTEProducerPlanProps
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CDrvdPropCtxt *pdpctxt,
 	COperator *pop
 	)
@@ -140,13 +140,13 @@ CDrvdPropPlan::CopyCTEProducerPlanProps
 	CDrvdPropCtxtPlan *pdpctxtplan = CDrvdPropCtxtPlan::PdpctxtplanConvert(pdpctxt);
 	CPhysicalCTEConsumer *popCTEConsumer = CPhysicalCTEConsumer::PopConvert(pop);
 	ULONG ulCTEId = popCTEConsumer->UlCTEId();
-	HMUlCr *phmulcr = popCTEConsumer->Phmulcr();
+	UlongToColRefMap *colref_mapping = popCTEConsumer->Phmulcr();
 	CDrvdPropPlan *pdpplan = pdpctxtplan->PdpplanCTEProducer(ulCTEId);
 	if (NULL != pdpplan)
 	{
 		// copy producer plan properties after remapping columns
-		m_pos = pdpplan->Pos()->PosCopyWithRemappedColumns(pmp, phmulcr, true /*fMustExist*/);
-		m_pds = pdpplan->Pds()->PdsCopyWithRemappedColumns(pmp, phmulcr, true /*fMustExist*/);
+		m_pos = pdpplan->Pos()->PosCopyWithRemappedColumns(mp, colref_mapping, true /*must_exist*/);
+		m_pds = pdpplan->Pds()->PdsCopyWithRemappedColumns(mp, colref_mapping, true /*must_exist*/);
 
 		// rewindability and partition filter map do not need column remapping,
 		// we add-ref producer's properties directly
@@ -158,7 +158,7 @@ CDrvdPropPlan::CopyCTEProducerPlanProps
 
 		// no need to copy the part index map. return an empty one. This is to
 		// distinguish between a CTE consumer and the inlined expression
-		m_ppim = GPOS_NEW(pmp) CPartIndexMap(pmp);
+		m_ppim = GPOS_NEW(mp) CPartIndexMap(mp);
 
 		GPOS_ASSERT(CDistributionSpec::EdtAny != m_pds->Edt() && "CDistributionAny is a require-only, cannot be derived");
 	}
@@ -198,43 +198,43 @@ CDrvdPropPlan::FSatisfies
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDrvdPropPlan::UlHash
+//		CDrvdPropPlan::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CDrvdPropPlan::UlHash() const
+CDrvdPropPlan::HashValue() const
 {
-	ULONG ulHash = gpos::UlCombineHashes(m_pos->UlHash(), m_pds->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, m_prs->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, m_ppim->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, m_pcm->UlHash());
+	ULONG ulHash = gpos::CombineHashes(m_pos->HashValue(), m_pds->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, m_prs->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, m_ppim->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, m_pcm->HashValue());
 
 	return ulHash;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDrvdPropPlan::FEqual
+//		CDrvdPropPlan::Equals
 //
 //	@doc:
 //		Equality function
 //
 //---------------------------------------------------------------------------
 ULONG
-CDrvdPropPlan::FEqual
+CDrvdPropPlan::Equals
 	(
 	const CDrvdPropPlan *pdpplan
 	)
 	const
 {
-	return m_pos->FMatch(pdpplan->Pos()) &&
-			m_pds->FMatch(pdpplan->Pds()) &&
-			m_prs->FMatch(pdpplan->Prs()) &&
-			m_ppim->FEqual(pdpplan->Ppim()) &&
-			m_pcm->FEqual(pdpplan->Pcm());
+	return m_pos->Matches(pdpplan->Pos()) &&
+			m_pds->Matches(pdpplan->Pds()) &&
+			m_prs->Matches(pdpplan->Prs()) &&
+			m_ppim->Equals(pdpplan->Ppim()) &&
+			m_pcm->Equals(pdpplan->GetCostModel());
 }
 
 //---------------------------------------------------------------------------

@@ -33,7 +33,7 @@ namespace gpdxl
 	{
 		private:
 			// column reference
-			CDXLColRef *m_pdxlcr;
+			CDXLColRef *m_dxl_colref;
 			
 			// private copy ctor
 			CDXLScalarIdent(CDXLScalarIdent&);
@@ -50,42 +50,42 @@ namespace gpdxl
 			~CDXLScalarIdent();
 			
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// name of the operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// accessors
-			const CDXLColRef *Pdxlcr() const;
+			const CDXLColRef *GetDXLColRef() const;
 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLScalarIdent *PdxlopConvert
+			CDXLScalarIdent *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarIdent == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarIdent == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarIdent*>(pdxlop);
+				return dynamic_cast<CDXLScalarIdent*>(dxl_op);
 			}
 			
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

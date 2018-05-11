@@ -38,26 +38,26 @@ namespace gpmd
 
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtScCmp;
 			}
 
 			// left type
 			virtual 
-			IMDId *PmdidLeft() const = 0;
+			IMDId *GetLeftMdid() const = 0;
 
 			// right type
 			virtual
-			IMDId *PmdidRight() const = 0;
+			IMDId *GetRightMdid() const = 0;
 			
 			// comparison type
 			virtual 
-			IMDType::ECmpType Ecmpt() const = 0;
+			IMDType::ECmpType ParseCmpType() const = 0;
 
 			// comparison operator id
 			virtual 
-			IMDId *PmdidOp() const = 0;
+			IMDId *MdIdOp() const = 0;
 	};
 		
 }

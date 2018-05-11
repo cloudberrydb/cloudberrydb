@@ -40,10 +40,10 @@ namespace gpdxl
 			//ctor
 			CDXLPhysicalIndexOnlyScan
 				(
-				IMemoryPool *pmp,
-				CDXLTableDescr *pdxltabdesc,
-				CDXLIndexDescr *pdxlid,
-				EdxlIndexScanDirection edxlisd
+				IMemoryPool *mp,
+				CDXLTableDescr *table_descr,
+				CDXLIndexDescr *dxl_index_descr,
+				EdxlIndexScanDirection idx_scan_direction
 				);
 
 			//dtor
@@ -53,23 +53,23 @@ namespace gpdxl
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// conversion function
 			static
-			CDXLPhysicalIndexOnlyScan *PdxlopConvert
+			CDXLPhysicalIndexOnlyScan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalIndexOnlyScan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalIndexOnlyScan == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalIndexOnlyScan*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalIndexOnlyScan*>(dxl_op);
 			}
 	};
 }

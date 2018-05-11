@@ -38,10 +38,10 @@ namespace gpdxl
 	{
 		private:
 			// catalog MDId of element coerce function
-			IMDId *m_pmdidElementFunc;
+			IMDId *m_coerce_func_mdid;
 
 			// conversion semantics flag to pass to func
-			BOOL m_fIsExplicit;
+			BOOL m_explicit;
 
 			// private copy ctor
 			CDXLScalarArrayCoerceExpr(const CDXLScalarArrayCoerceExpr&);
@@ -49,58 +49,58 @@ namespace gpdxl
 		public:
 			CDXLScalarArrayCoerceExpr
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidElementFunc,
-				IMDId *pmdidResultType,
-				INT iTypeModifier,
-				BOOL fIsExplicit,
-				EdxlCoercionForm edxlcf,
-				INT iLoc
+				IMemoryPool *mp,
+				IMDId *coerce_func_mdid,
+				IMDId *result_type_mdid,
+				INT type_modifier,
+				BOOL is_explicit,
+				EdxlCoercionForm coerce_format,
+				INT location
 				);
 
 			virtual
 			~CDXLScalarArrayCoerceExpr()
 			{
-				m_pmdidElementFunc->Release();
+				m_coerce_func_mdid->Release();
 			}
 
 			// ident accessor
 			virtual
-			Edxlopid Edxlop() const
+			Edxlopid GetDXLOperator() const
 			{
 				return EdxlopScalarArrayCoerceExpr;
 			}
 
 			// return metadata id of element coerce function
-			IMDId *PmdidElementFunc() const
+			IMDId *GetCoerceFuncMDid() const
 			{
-				return m_pmdidElementFunc;
+				return m_coerce_func_mdid;
 			}
 
-			BOOL FIsExplicit() const
+			BOOL IsExplicit() const
 			{
-				return m_fIsExplicit;
+				return m_explicit;
 			}
 
 			// name of the DXL operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLScalarArrayCoerceExpr *PdxlopConvert
+			CDXLScalarArrayCoerceExpr *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarArrayCoerceExpr == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarArrayCoerceExpr == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarArrayCoerceExpr*>(pdxlop);
+				return dynamic_cast<CDXLScalarArrayCoerceExpr*>(dxl_op);
 			}
 	};
 }

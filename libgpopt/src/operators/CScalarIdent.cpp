@@ -21,30 +21,30 @@ using namespace gpopt;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarIdent::UlHash
+//		CScalarIdent::HashValue
 //
 //	@doc:
 //		Hash value built from colref and Eop
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarIdent::UlHash() const 
+CScalarIdent::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(),
-							   gpos::UlHashPtr<CColRef>(m_pcr));
+	return gpos::CombineHashes(COperator::HashValue(),
+							   gpos::HashPtr<CColRef>(m_pcr));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarIdent::FMatch
+//		CScalarIdent::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarIdent::FMatch
+CScalarIdent::Matches
 	(
 	COperator *pop
 	)
@@ -88,55 +88,55 @@ CScalarIdent::FInputOrderSensitive() const
 COperator *
 CScalarIdent::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	ULONG ulId = m_pcr->UlId();
-	CColRef *pcr = phmulcr->PtLookup(&ulId);
-	if (NULL == pcr)
+	ULONG id = m_pcr->Id();
+	CColRef *colref = colref_mapping->Find(&id);
+	if (NULL == colref)
 	{
-		if (fMustExist)
+		if (must_exist)
 		{
 			// not found in hashmap, so create a new colref and add to hashmap
-			CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+			CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
-			pcr = pcf->PcrCopy(m_pcr);
+			colref = col_factory->PcrCopy(m_pcr);
 
 #ifdef GPOS_DEBUG
-			BOOL fResult =
+			BOOL result =
 #endif // GPOS_DEBUG
-			phmulcr->FInsert(GPOS_NEW(pmp) ULONG(ulId), pcr);
-			GPOS_ASSERT(fResult);
+			colref_mapping->Insert(GPOS_NEW(mp) ULONG(id), colref);
+			GPOS_ASSERT(result);
 		}
 		else
 		{
-			pcr = const_cast<CColRef *>(m_pcr);
+			colref = const_cast<CColRef *>(m_pcr);
 		}
 	}
 
-	return GPOS_NEW(pmp) CScalarIdent(pmp, pcr);
+	return GPOS_NEW(mp) CScalarIdent(mp, colref);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarIdent::PmdidType
+//		CScalarIdent::MdidType
 //
 //	@doc:
 //		Expression type
 //
 //---------------------------------------------------------------------------
 IMDId*
-CScalarIdent::PmdidType() const
+CScalarIdent::MdidType() const
 {
-	return m_pcr->Pmdtype()->Pmdid();
+	return m_pcr->RetrieveType()->MDId();
 }
 
 INT
-CScalarIdent::ITypeModifier() const
+CScalarIdent::TypeModifier() const
 {
-	return m_pcr->ITypeModifier();
+	return m_pcr->TypeModifier();
 }
 
 //---------------------------------------------------------------------------
@@ -171,11 +171,11 @@ BOOL
 CScalarIdent::FCastedScId
 	(
 	CExpression *pexpr,
-	CColRef *pcr
+	CColRef *colref
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
-	GPOS_ASSERT(NULL != pcr);
+	GPOS_ASSERT(NULL != colref);
 
 	if (!FCastedScId(pexpr))
 	{
@@ -184,7 +184,7 @@ CScalarIdent::FCastedScId
 
 	CScalarIdent *pScIdent = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
 
-	return pcr == pScIdent->Pcr();
+	return colref == pScIdent->Pcr();
 }
 
 //---------------------------------------------------------------------------

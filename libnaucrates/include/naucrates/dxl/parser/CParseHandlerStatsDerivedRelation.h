@@ -37,13 +37,13 @@ namespace gpdxl
 		private:
 
 			// number of rows in the relation
-			CDouble m_dRows;
+			CDouble m_rows;
 
 			// flag to express that the statistics is on an empty input
-			BOOL m_fEmpty;
+			BOOL m_empty;
 
 			// relation stats
-			CDXLStatsDerivedRelation *m_pdxlstatsderrel;
+			CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
 			// private copy ctor
 			CParseHandlerStatsDerivedRelation(const CParseHandlerStatsDerivedRelation&);
@@ -51,18 +51,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
@@ -70,18 +70,18 @@ namespace gpdxl
 			// ctor
 			CParseHandlerStatsDerivedRelation
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// dtor
 			virtual ~CParseHandlerStatsDerivedRelation();
 
 			// the derived relation stats
-			CDXLStatsDerivedRelation *Pdxlstatsderrel() const
+			CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation() const
 			{
-				return m_pdxlstatsderrel;
+				return m_dxl_stats_derived_relation;
 			}
 	};
 }

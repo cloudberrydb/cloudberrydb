@@ -36,21 +36,21 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarCoerceBase::CDXLScalarCoerceBase
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	INT iTypeModifier,
-	EdxlCoercionForm edxlcf,
-	INT iLoc
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	INT type_modifier,
+	EdxlCoercionForm dxl_coerce_format,
+	INT location
 	)
 	:
-	CDXLScalar(pmp),
-	m_pmdidResultType(pmdidType),
-	m_iTypeModifier(iTypeModifier),
-	m_edxlcf(edxlcf),
-	m_iLoc(iLoc)
+	CDXLScalar(mp),
+	m_result_type_mdid(mdid_type),
+	m_type_modifier(type_modifier),
+	m_dxl_coerce_format(dxl_coerce_format),
+	m_location(location)
 {
-	GPOS_ASSERT(NULL != pmdidType);
-	GPOS_ASSERT(pmdidType->FValid());
+	GPOS_ASSERT(NULL != mdid_type);
+	GPOS_ASSERT(mdid_type->IsValid());
 }
 
 
@@ -64,7 +64,7 @@ CDXLScalarCoerceBase::CDXLScalarCoerceBase
 //---------------------------------------------------------------------------
 CDXLScalarCoerceBase::~CDXLScalarCoerceBase()
 {
-	m_pmdidResultType->Release();
+	m_result_type_mdid->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -78,45 +78,45 @@ CDXLScalarCoerceBase::~CDXLScalarCoerceBase()
 void
 CDXLScalarCoerceBase::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
-	m_pmdidResultType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+	m_result_type_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
 
-	if (IDefaultTypeModifier != ITypeModifier())
+	if (default_type_modifier != TypeModifier())
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTypeMod), TypeModifier());
 	}
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCoercionForm), (ULONG) m_edxlcf);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenLocation), m_iLoc);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenCoercionForm), (ULONG) m_dxl_coerce_format);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenLocation), m_location);
 
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	node->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarCoerceBase::FBoolean
+//		CDXLScalarCoerceBase::HasBoolResult
 //
 //	@doc:
 //		Does the operator return a boolean result
 //
 //---------------------------------------------------------------------------
 BOOL
-CDXLScalarCoerceBase::FBoolean
+CDXLScalarCoerceBase::HasBoolResult
 	(
-	CMDAccessor *pmda
+	CMDAccessor *md_accessor
 	)
 	const
 {
-	return (IMDType::EtiBool == pmda->Pmdtype(m_pmdidResultType)->Eti());
+	return (IMDType::EtiBool == md_accessor->RetrieveType(m_result_type_mdid)->GetDatumType());
 }
 
 #ifdef GPOS_DEBUG
@@ -131,18 +131,18 @@ CDXLScalarCoerceBase::FBoolean
 void
 CDXLScalarCoerceBase::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) const
 {
-	GPOS_ASSERT(1 == pdxln->UlArity());
+	GPOS_ASSERT(1 == node->Arity());
 
-	CDXLNode *pdxlnChild = (*pdxln)[0];
-	GPOS_ASSERT(EdxloptypeScalar == pdxlnChild->Pdxlop()->Edxloperatortype());
+	CDXLNode *child_dxlnode = (*node)[0];
+	GPOS_ASSERT(EdxloptypeScalar == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

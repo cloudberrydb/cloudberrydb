@@ -31,16 +31,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalHashAgg::CPhysicalHashAgg
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr,
-	DrgPcr *pdrgpcrMinimal,
+	IMemoryPool *mp,
+	CColRefArray *colref_array,
+	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,
 	BOOL fGeneratesDuplicates,
-	DrgPcr *pdrgpcrArgDQA,
+	CColRefArray *pdrgpcrArgDQA,
 	BOOL fMultiStage
 	)
 	:
-	CPhysicalAgg(pmp, pdrgpcr, pdrgpcrMinimal, egbaggtype, fGeneratesDuplicates, pdrgpcrArgDQA, fMultiStage)
+	CPhysicalAgg(mp, colref_array, pdrgpcrMinimal, egbaggtype, fGeneratesDuplicates, pdrgpcrArgDQA, fMultiStage)
 {}
 
 
@@ -67,23 +67,23 @@ CPhysicalHashAgg::~CPhysicalHashAgg()
 COrderSpec *
 CPhysicalHashAgg::PosRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	COrderSpec *, // posRequired
 	ULONG
 #ifdef GPOS_DEBUG
-	ulChildIndex
+	child_index
 #endif // GPOS_DEBUG
 	,
-	DrgPdp *, // pdrgpdpCtxt
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 
 	// return empty sort order
-	return GPOS_NEW(pmp) COrderSpec(pmp);
+	return GPOS_NEW(mp) COrderSpec(mp);
 }
 
 
@@ -98,13 +98,13 @@ CPhysicalHashAgg::PosRequired
 COrderSpec *
 CPhysicalHashAgg::PosDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
 {
 	// return empty sort order
-	return GPOS_NEW(pmp) COrderSpec(pmp);
+	return GPOS_NEW(mp) COrderSpec(mp);
 }
 
 
@@ -128,7 +128,7 @@ CPhysicalHashAgg::EpetOrder
 	const
 {
 	GPOS_ASSERT(NULL != peo);
-	GPOS_ASSERT(!peo->PosRequired()->FEmpty());
+	GPOS_ASSERT(!peo->PosRequired()->IsEmpty());
 
 	return CEnfdProp::EpetRequired;
 }

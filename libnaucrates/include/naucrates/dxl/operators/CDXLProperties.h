@@ -19,11 +19,11 @@ namespace gpdxl
 	using namespace gpos;
 	using namespace gpmd;
 
-	enum Edxlprop
+	enum Edxlproperty
 	{
-		EdxlpropLogical,
-		EdxlpropPhysical,
-		EdxlpropSentinel
+		EdxlpropertyLogical,
+		EdxlpropertyPhysical,
+		EdxlpropertySentinel
 	};
 
 	//---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ namespace gpdxl
 		private:
 
 			// derived statistics
-			CDXLStatsDerivedRelation *m_pdxlstatsderrel;
+			CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
 			// private copy ctor
 			CDXLProperties(const CDXLProperties&);
@@ -47,7 +47,7 @@ namespace gpdxl
 		protected:
 
 			// serialize statistics in DXL format
-			void SerializeStatsToDXL(CXMLSerializer *pxmlser) const;
+			void SerializeStatsToDXL(CXMLSerializer *xml_serializer) const;
 
 		public:
 
@@ -61,21 +61,21 @@ namespace gpdxl
 
 			// setter
 			virtual
-			void SetStats(CDXLStatsDerivedRelation *pdxlstatsderrel);
+			void SetStats(CDXLStatsDerivedRelation *dxl_stats_derived_relation);
 
 			// statistical information
 			virtual
-			const CDXLStatsDerivedRelation *Pdxlstatsderrel() const;
+			const CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation() const;
 
 			virtual
-			Edxlprop Edxlproptype() const
+			Edxlproperty GetDXLPropertyType() const
 			{
-				return EdxlpropLogical;
+				return EdxlpropertyLogical;
 			}
 
 			// serialize properties in DXL format
 			virtual
-			void SerializePropertiesToDXL(CXMLSerializer *pxmlser) const;
+			void SerializePropertiesToDXL(CXMLSerializer *xml_serializer) const;
 	};
 
 }

@@ -23,10 +23,10 @@ namespace gpos
 {	
 	// fwd declaration
 	template <class K, class T, 
-		ULONG (*pfnHash)(const K*), 
-		BOOL (*pfnEq)(const K*, const K*),
-		void (*pfnDestroyK)(K*),
-		void (*pfnDestroyT)(T*)>
+		ULONG (*HashFn)(const K*), 
+		BOOL (*EqFn)(const K*, const K*),
+		void (*DestroyKFn)(K*),
+		void (*DestroyTFn)(T*)>
 	class CHashMapIter;
 	
 	//---------------------------------------------------------------------------
@@ -38,14 +38,14 @@ namespace gpos
 	//
 	//---------------------------------------------------------------------------
 	template <class K, class T, 
-				ULONG (*pfnHash)(const K*), 
-				BOOL (*pfnEq)(const K*, const K*),
-				void (*pfnDestroyK)(K*),
-				void (*pfnDestroyT)(T*)>
+				ULONG (*HashFn)(const K*), 
+				BOOL (*EqFn)(const K*, const K*),
+				void (*DestroyKFn)(K*),
+				void (*DestroyTFn)(T*)>
 	class CHashMap : public CRefCount
 	{
 		// fwd declaration
-		friend class CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT>;
+		friend class CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>;
 
 		private:
 		
@@ -54,19 +54,18 @@ namespace gpos
 			//		CHashMapElem
 			//
 			//	@doc:
-			//		Anchor for key/value pair
+		//		Anchor for key/value pair
 			//
 			//---------------------------------------------------------------------------		
 			class CHashMapElem
 			{
 				private:
-				
 					// key/value pair
-					K *m_pk;
-					T *m_pt;
+					K *m_key;
+					T *m_value;
 					
 					// own objects
-					BOOL m_fOwn;
+					BOOL m_owns_objects;
 					
 					// private copy ctor
 					CHashMapElem(const CHashMapElem &);
@@ -74,13 +73,13 @@ namespace gpos
 				public:
 				
 					// ctor
-					CHashMapElem(K *pk, T *pt, BOOL fOwn)
+					CHashMapElem(K *key, T *value, BOOL fOwn)
                     :
-                    m_pk(pk),
-                    m_pt(pt),
-                    m_fOwn(fOwn)
+                    m_key(key),
+                    m_value(value),
+                    m_owns_objects(fOwn)
                     {
-                        GPOS_ASSERT(NULL != pk);
+                        GPOS_ASSERT(NULL != key);
                     }
 
 					// dtor 
@@ -88,179 +87,174 @@ namespace gpos
                     {
                         // in case of a temporary hashmap element for lookup we do NOT own the
                         // objects, otherwise call destroy functions
-                        if (m_fOwn)
+                        if (m_owns_objects)
                         {
-                            pfnDestroyK(m_pk);
-                            pfnDestroyT(m_pt);
+                            DestroyKFn(m_key);
+                            DestroyTFn(m_value);
                         }
                     }
 
 					// key accessor
-					K *Pk() const
+					K *Key() const
 					{
-						return m_pk;
+						return m_key;
 					}
 
 					// value accessor
-					T *Pt() const
+					T *Value() const
 					{
-						return m_pt;
+						return m_value;
 					}
 					
 					// replace value
-					void ReplaceValue(T *ptNew)
+					void ReplaceValue(T *new_value)
                     {
-                        if (m_fOwn)
+                        if (m_owns_objects)
                         {
-                            pfnDestroyT(m_pt);
+                            DestroyTFn(m_value);
                         }
-                        m_pt = ptNew;
+                        m_value = new_value;
                     }
 
 					// equality operator -- map elements are equal if their keys match
-					BOOL operator == (const CHashMapElem &hme) const
+					BOOL operator == (const CHashMapElem &elem) const
 					{
-						return pfnEq(m_pk, hme.m_pk);
+						return EqFn(m_key, elem.m_key);
 					}
 			};
 
 			// memory pool
-			IMemoryPool *const m_pmp;
+			IMemoryPool *const m_mp;
 			
 			// size
-			ULONG m_ulSize;
+			ULONG m_num_chains;
 		
 			// number of entries
-			ULONG m_ulEntries;
+			ULONG m_size;
 
 			// each hash chain is an array of hashmap elements
-			typedef CDynamicPtrArray<CHashMapElem, CleanupDelete> DrgHashChain;
-			DrgHashChain **const m_ppdrgchain;
+		typedef CDynamicPtrArray<CHashMapElem, CleanupDelete> CHashSetElemArray;
+		CHashSetElemArray **const m_chains;
 
 			// array for keys
 			// We use CleanupNULL because the keys are owned by the hash table
-			typedef CDynamicPtrArray<K, CleanupNULL> DrgKeys;
-			DrgKeys *const m_pdrgKeys;
+			typedef CDynamicPtrArray<K, CleanupNULL> Keys;
+			Keys *const m_keys;
 
-			DrgPi *const m_pdrgPiFilledBuckets;
+			IntPtrArray *const m_filled_chains;
 
 			// private copy ctor
-			CHashMap(const CHashMap<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> &);
+			CHashMap(const CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &);
 			
 			// lookup appropriate hash chain in static table, may be NULL if
 			// no elements have been inserted yet
-			DrgHashChain **PpdrgChain(const K *pk) const
+      CHashSetElemArray **GetChain(const K *key) const
 			{
-				GPOS_ASSERT(NULL != m_ppdrgchain);
-				return &m_ppdrgchain[pfnHash(pk) % m_ulSize];
+				GPOS_ASSERT(NULL != m_chains);
+				return &m_chains[HashFn(key) % m_num_chains];
 			}
 
 			// clear elements
 			void Clear()
             {
-                for (ULONG i = 0; i < m_pdrgPiFilledBuckets->UlLength(); i++)
+                for (ULONG i = 0; i < m_filled_chains->Size(); i++)
                 {
                     // release each hash chain
-                    m_ppdrgchain[*(*m_pdrgPiFilledBuckets)[i]]->Release();
+                    m_chains[*(*m_filled_chains)[i]]->Release();
                 }
-                m_ulEntries = 0;
-                m_pdrgPiFilledBuckets->Clear();
+                m_size = 0;
+                m_filled_chains->Clear();
             }
 	
 			// lookup an element by its key
-			void Lookup(const K *pk, CHashMapElem **pphme) const
+			CHashMapElem *Lookup(const K *key) const
             {
-                GPOS_ASSERT(NULL != pphme);
-
-                CHashMapElem hme(const_cast<K*>(pk), NULL /*T*/, false /*fOwn*/);
-                CHashMapElem *phme = NULL;
-                DrgHashChain **ppdrgchain = PpdrgChain(pk);
-                if (NULL != *ppdrgchain)
+                CHashMapElem hme(const_cast<K*>(key), NULL /*T*/, false /*fOwn*/);
+                CHashMapElem *found_hme = NULL;
+			CHashSetElemArray **chain = GetChain(key);
+                if (NULL != *chain)
                 {
-                    phme = (*ppdrgchain)->PtLookup(&hme);
-                    GPOS_ASSERT_IMP(NULL != phme, *phme == hme);
+                    found_hme = (*chain)->Find(&hme);
+                    GPOS_ASSERT_IMP(NULL != found_hme, *found_hme == hme);
                 }
 
-                *pphme = phme;
+                return found_hme;
             }
 
 		public:
 		
 			// ctor
-			CHashMap<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> (IMemoryPool *pmp, ULONG ulSize = 128)
+			CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> (IMemoryPool *mp, ULONG num_chains = 128)
             :
-            m_pmp(pmp),
-            m_ulSize(ulSize),
-            m_ulEntries(0),
-            m_ppdrgchain(GPOS_NEW_ARRAY(m_pmp, DrgHashChain*, m_ulSize)),
-            m_pdrgKeys(GPOS_NEW(m_pmp) DrgKeys(m_pmp)),
-            m_pdrgPiFilledBuckets(GPOS_NEW(pmp) DrgPi(pmp))
+            m_mp(mp),
+            m_num_chains(num_chains),
+            m_size(0),
+            m_chains(GPOS_NEW_ARRAY(m_mp, CHashSetElemArray*, m_num_chains)),
+            m_keys(GPOS_NEW(m_mp) Keys(m_mp)),
+            m_filled_chains(GPOS_NEW(mp) IntPtrArray(mp))
             {
-                GPOS_ASSERT(ulSize > 0);
-                (void) clib::PvMemSet(m_ppdrgchain, 0, m_ulSize * sizeof(DrgHashChain*));
+                GPOS_ASSERT(m_num_chains > 0);
+                (void) clib::Memset(m_chains, 0, m_num_chains * sizeof(CHashSetElemArray*));
             }
 
 			// dtor
-			~CHashMap<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> ()
+			~CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> ()
             {
                 // release all hash chains
                 Clear();
 
-                GPOS_DELETE_ARRAY(m_ppdrgchain);
-                m_pdrgKeys->Release();
-                m_pdrgPiFilledBuckets->Release();
+                GPOS_DELETE_ARRAY(m_chains);
+                m_keys->Release();
+                m_filled_chains->Release();
             }
 
 			// insert an element if key is not yet present
-			BOOL FInsert(K *pk, T *pt)
+			BOOL Insert(K *key, T *value)
             {
-                if (NULL != PtLookup(pk))
+                if (NULL != Find(key))
                 {
                     return false;
                 }
 
-                DrgHashChain **ppdrgchain = PpdrgChain(pk);
-                if (NULL == *ppdrgchain)
+			CHashSetElemArray **chain = GetChain(key);
+                if (NULL == *chain)
                 {
-                    *ppdrgchain = GPOS_NEW(m_pmp) DrgHashChain(m_pmp);
-                    INT iBucket = pfnHash(pk) % m_ulSize;
-                    m_pdrgPiFilledBuckets->Append(GPOS_NEW(m_pmp) INT(iBucket));
+				*chain = GPOS_NEW(m_mp) CHashSetElemArray(m_mp);
+                    INT chain_idx = HashFn(key) % m_num_chains;
+                    m_filled_chains->Append(GPOS_NEW(m_mp) INT(chain_idx));
                 }
 
-                CHashMapElem *phme = GPOS_NEW(m_pmp) CHashMapElem(pk, pt, true /*fOwn*/);
-                (*ppdrgchain)->Append(phme);
+                CHashMapElem *elem = GPOS_NEW(m_mp) CHashMapElem(key, value, true /*fOwn*/);
+                (*chain)->Append(elem);
 
-                m_ulEntries++;
-
-                m_pdrgKeys->Append(pk);
+                m_size++;
+                m_keys->Append(key);
 
                 return true;
             }
 			
 			// lookup a value by its key
-			T *PtLookup(const K *pk) const
+			T *Find(const K *key) const
             {
-                CHashMapElem *phme = NULL;
-                Lookup(pk, &phme);
-                if (NULL != phme)
+                CHashMapElem *elem = Lookup(key);
+                if (NULL != elem)
                 {
-                    return phme->Pt();
+                    return elem->Value();
                 }
 
                 return NULL;
             }
 
 			// replace the value in a map entry with a new given value
-			BOOL FReplace(const K *pk, T *ptNew)
+			BOOL Replace(const K *key, T *ptNew)
             {
-                GPOS_ASSERT(NULL != pk);
+                GPOS_ASSERT(NULL != key);
 
                 BOOL fSuccess = false;
-                CHashMapElem *phme = NULL;
-                Lookup(pk, &phme);
-                if (NULL != phme)
+				CHashMapElem *elem = Lookup(key);
+                if (NULL != elem)
                 {
-                    phme->ReplaceValue(ptNew);
+                    elem->ReplaceValue(ptNew);
                     fSuccess = true;
                 }
 
@@ -268,9 +262,9 @@ namespace gpos
             }
 
 			// return number of map entries
-			ULONG UlEntries() const
+			ULONG Size() const
 			{
-				return m_ulEntries;
+				return m_size;
 			}		
 
 	}; // class CHashMap

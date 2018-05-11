@@ -34,18 +34,18 @@ const ULONG CColRef::m_ulInvalid = gpos::ulong_max;
 CColRef::CColRef
 	(
 	const IMDType *pmdtype,
-	const INT iTypeModifier,
-	ULONG ulId,
+	const INT type_modifier,
+	ULONG id,
 	const CName *pname
 	)
 	:
 	m_pmdtype(pmdtype),
-	m_iTypeModifier(iTypeModifier),
+	m_type_modifier(type_modifier),
 	m_pname(pname),
-	m_ulId(ulId)
+	m_id(id)
 {
 	GPOS_ASSERT(NULL != pmdtype);
-	GPOS_ASSERT(pmdtype->Pmdid()->FValid());
+	GPOS_ASSERT(pmdtype->MDId()->IsValid());
 	GPOS_ASSERT(NULL != pname);
 }
 
@@ -67,37 +67,37 @@ CColRef::~CColRef()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CColRef::UlHash
+//		CColRef::HashValue
 //
 //	@doc:
 //		static hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CColRef::UlHash
+CColRef::HashValue
 	(
 	const ULONG &ulptr
 	)
 {
-	return gpos::UlHash<ULONG>(&ulptr);
+	return gpos::HashValue<ULONG>(&ulptr);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CColRef::UlHash
+//		CColRef::HashValue
 //
 //	@doc:
 //		static hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CColRef::UlHash
+CColRef::HashValue
 	(
-	const CColRef *pcr
+	const CColRef *colref
 	)
 {
-	ULONG ulId = pcr->UlId();
-	return gpos::UlHash<ULONG>(&ulId);
+	ULONG id = colref->Id();
+	return gpos::HashValue<ULONG>(&id);
 }
 
 
@@ -117,7 +117,7 @@ CColRef::OsPrint
 	const
 {
 	m_pname->OsPrint(os);
-	os << " (" << UlId() << ")";
+	os << " (" << Id() << ")";
 	
 	return os;
 }
@@ -130,19 +130,19 @@ CColRef::OsPrint
 //		Extract array of colids from array of colrefs
 //
 //---------------------------------------------------------------------------
-DrgPul *
+ULongPtrArray *
 CColRef::Pdrgpul
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr
+	IMemoryPool *mp,
+	CColRefArray *colref_array
 	)
 {
-	DrgPul *pdrgpul = GPOS_NEW(pmp) DrgPul(pmp);
-	const ULONG ulLen = pdrgpcr->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	ULongPtrArray *pdrgpul = GPOS_NEW(mp) ULongPtrArray(mp);
+	const ULONG length = colref_array->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		CColRef *pcr = (*pdrgpcr)[ul];
-		pdrgpul->Append(GPOS_NEW(pmp) ULONG(pcr->UlId()));
+		CColRef *colref = (*colref_array)[ul];
+		pdrgpul->Append(GPOS_NEW(mp) ULONG(colref->Id()));
 	}
 
 	return pdrgpul;
@@ -150,17 +150,17 @@ CColRef::Pdrgpul
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CColRef::FEqual
+//		CColRef::Equals
 //
 //	@doc:
 //		Are the two arrays of column references equivalent
 //
 //---------------------------------------------------------------------------
 BOOL
-CColRef::FEqual
+CColRef::Equals
 	(
-	const DrgPcr *pdrgpcr1,
-	const DrgPcr *pdrgpcr2
+	const CColRefArray *pdrgpcr1,
+	const CColRefArray *pdrgpcr2
 	)
 {
 	if (NULL == pdrgpcr1 || NULL == pdrgpcr2)
@@ -168,20 +168,20 @@ CColRef::FEqual
 		return  (NULL == pdrgpcr1 && NULL == pdrgpcr2);
 	}
 
-	return pdrgpcr1->FEqual(pdrgpcr2);
+	return pdrgpcr1->Equals(pdrgpcr2);
 }
 
 // check if the the array of column references are equal. Note that since we have unique
 // copy of the column references, we can compare pointers.
 BOOL
-CColRef::FEqual
+CColRef::Equals
 	(
-	const DrgDrgPcr *pdrgdrgpcr1,
-	const DrgDrgPcr *pdrgdrgpcr2
+	const CColRef2dArray *pdrgdrgpcr1,
+	const CColRef2dArray *pdrgdrgpcr2
 	)
 {
-	ULONG ulLen1 = (pdrgdrgpcr1 == NULL) ? 0 : pdrgdrgpcr1->UlLength();
-	ULONG ulLen2 = (pdrgdrgpcr2 == NULL) ? 0 : pdrgdrgpcr2->UlLength();
+	ULONG ulLen1 = (pdrgdrgpcr1 == NULL) ? 0 : pdrgdrgpcr1->Size();
+	ULONG ulLen2 = (pdrgdrgpcr2 == NULL) ? 0 : pdrgdrgpcr2->Size();
 
 	if (ulLen1 != ulLen2)
 	{
@@ -190,7 +190,7 @@ CColRef::FEqual
 
 	for (ULONG ulLevel = 0; ulLevel < ulLen1; ulLevel++)
 	{
-		BOOL fEqual = (*pdrgdrgpcr1)[ulLevel]->FEqual((*pdrgdrgpcr2)[ulLevel]);
+		BOOL fEqual = (*pdrgdrgpcr1)[ulLevel]->Equals((*pdrgdrgpcr2)[ulLevel]);
 		if (!fEqual)
 		{
 			return false;

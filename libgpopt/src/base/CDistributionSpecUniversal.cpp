@@ -19,7 +19,7 @@ namespace gpopt
 		// universal distribution does not satisfy duplicate-sensitive
 		// hash distributions
 		if (CDistributionSpec::EdtHashed == pds->Edt() &&
-			(CDistributionSpecHashed::PdsConvert(pds))->FDuplicateSensitive())
+			(CDistributionSpecHashed::PdsConvert(pds))->IsDuplicateSensitive())
 		{
 			return false;
 		}
@@ -27,7 +27,7 @@ namespace gpopt
 		// universal distribution does not satisfy duplicate-sensitive
 		// random distributions
 		if (CDistributionSpec::EdtRandom == pds->Edt() &&
-			(CDistributionSpecRandom::PdsConvert(pds))->FDuplicateSensitive())
+			(CDistributionSpecRandom::PdsConvert(pds))->IsDuplicateSensitive())
 		{
 			return false;
 		}
@@ -46,7 +46,7 @@ namespace gpopt
 		return false;
 	}
 
-	BOOL CDistributionSpecUniversal::FMatch(const CDistributionSpec *pds) const
+	BOOL CDistributionSpecUniversal::Matches(const CDistributionSpec *pds) const
 	{
 		// universal distribution needs to match replicated / singleton requests
 		// to avoid generating duplicates
@@ -56,7 +56,7 @@ namespace gpopt
 				CDistributionSpec::EdtReplicated == edt);
 	}
 
-	void CDistributionSpecUniversal::AppendEnforcers(IMemoryPool *, CExpressionHandle &, CReqdPropPlan *, DrgPexpr *,
+	void CDistributionSpecUniversal::AppendEnforcers(IMemoryPool *, CExpressionHandle &, CReqdPropPlan *, CExpressionArray *,
 													 CExpression *)
 	{
 		GPOS_ASSERT(!"attempt to enforce UNIVERSAL distribution");

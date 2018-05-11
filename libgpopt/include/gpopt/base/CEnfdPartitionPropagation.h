@@ -74,7 +74,7 @@ namespace gpopt
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// required propagation accessor
 			CPartitionPropagationSpec *PppsRequired() const
@@ -89,10 +89,10 @@ namespace gpopt
 			}
 
 			// is required partition propagation resolved by the given part index map
-			BOOL FResolved(IMemoryPool *pmp, CPartIndexMap *ppim) const;
+			BOOL FResolved(IMemoryPool *mp, CPartIndexMap *ppim) const;
 
 			// are the dynamic scans required by the partition propagation in the scope defined by the given part index map
-			BOOL FInScope(IMemoryPool *pmp, CPartIndexMap *ppim) const;
+			BOOL FInScope(IMemoryPool *mp, CPartIndexMap *ppim) const;
 			
 			// get distribution enforcing type for the given operator
 			EPropEnforcingType Epet
@@ -110,7 +110,7 @@ namespace gpopt
 			}
 
 			// matching function
-			BOOL FMatch
+			BOOL Matches
 				(
 				CEnfdPartitionPropagation *pepp
 				)
@@ -118,8 +118,8 @@ namespace gpopt
 				GPOS_ASSERT(NULL != pepp);
 
 				return m_eppm == pepp->Eppm() &&
-						m_ppps->FMatch(pepp->PppsRequired()) &&
-						PpfmDerived()->FEqual(pepp->PpfmDerived());
+						m_ppps->Matches(pepp->PppsRequired()) &&
+						PpfmDerived()->Equals(pepp->PpfmDerived());
 			}
 
 			// print function

@@ -64,26 +64,26 @@ CBitVectorTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	ULONG cSize = 129;
 
-	CBitVector bv(pmp, cSize);
-	GPOS_ASSERT(bv.FEmpty());
+	CBitVector bv(mp, cSize);
+	GPOS_ASSERT(bv.IsEmpty());
 
 	for(ULONG i = 0; i < cSize; i++)
 	{
-		BOOL fSet = bv.FExchangeSet(i);
+		BOOL fSet = bv.ExchangeSet(i);
 		if(fSet)
 		{
 			return GPOS_FAILED;
 		}
-		GPOS_ASSERT(bv.FBit(i));
+		GPOS_ASSERT(bv.Get(i));
 
-		CBitVector bvCopy(pmp, bv);
+		CBitVector bvCopy(mp, bv);
 		for(ULONG j = 0; j <= i; j++)
 		{
-			BOOL fSetAlt = bvCopy.FBit(j);
+			BOOL fSetAlt = bvCopy.Get(j);
 			GPOS_ASSERT(fSetAlt);
 
 			if (true != fSetAlt)
@@ -92,15 +92,15 @@ CBitVectorTest::EresUnittest_Basics()
 			}
 
 			// clear and check
-			bvCopy.FExchangeClear(j);
-			fSetAlt = bvCopy.FBit(j);
+			bvCopy.ExchangeClear(j);
+			fSetAlt = bvCopy.Get(j);
 			GPOS_ASSERT(!fSetAlt);
 		}
 
-		GPOS_ASSERT(bvCopy.CElements() == 0);
+		GPOS_ASSERT(bvCopy.CountSetBits() == 0);
 	}
 
-	GPOS_ASSERT(bv.CElements() == cSize);
+	GPOS_ASSERT(bv.CountSetBits() == cSize);
 
 	return GPOS_OK;
 }
@@ -120,38 +120,38 @@ CBitVectorTest::EresUnittest_SetOps()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	ULONG cSize = 129;
-	CBitVector bvEmpty(pmp, cSize);
+	CBitVector bvEmpty(mp, cSize);
 
-	CBitVector bvEven(pmp, cSize);
+	CBitVector bvEven(mp, cSize);
 	for(ULONG i = 0; i < cSize; i += 2)
 	{
-		bvEven.FExchangeSet(i);
+		bvEven.ExchangeSet(i);
 	}
-	GPOS_ASSERT(bvEven.FSubset(&bvEmpty));
+	GPOS_ASSERT(bvEven.ContainsAll(&bvEmpty));
 
-	CBitVector bvOdd(pmp, cSize);
+	CBitVector bvOdd(mp, cSize);
 	for(ULONG i = 1; i < cSize; i += 2)
 	{
-		bvOdd.FExchangeSet(i);
+		bvOdd.ExchangeSet(i);
 	}
-	GPOS_ASSERT(bvOdd.FSubset(&bvEmpty));
-	GPOS_ASSERT(bvOdd.FDisjoint(&bvEven));
+	GPOS_ASSERT(bvOdd.ContainsAll(&bvEmpty));
+	GPOS_ASSERT(bvOdd.IsDisjoint(&bvEven));
 
-	GPOS_ASSERT(!bvEven.FSubset(&bvOdd));
-	GPOS_ASSERT(!bvOdd.FSubset(&bvEven));
+	GPOS_ASSERT(!bvEven.ContainsAll(&bvOdd));
+	GPOS_ASSERT(!bvOdd.ContainsAll(&bvEven));
 
-	CBitVector bv(pmp, bvOdd);
+	CBitVector bv(mp, bvOdd);
 
-	bv.Union(&bvEven);
-	bv.Intersection(&bvOdd);
-	GPOS_ASSERT(bv.FEqual(&bvOdd));
+	bv.Or(&bvEven);
+	bv.And(&bvOdd);
+	GPOS_ASSERT(bv.Equals(&bvOdd));
 
-	bv.Union(&bvEven);
-	bv.Intersection(&bvEven);
-	GPOS_ASSERT(bv.FEqual(&bvEven));
+	bv.Or(&bvEven);
+	bv.And(&bvEven);
+	GPOS_ASSERT(bv.Equals(&bvEven));
 
 	return GPOS_OK;
 }
@@ -170,17 +170,17 @@ CBitVectorTest::EresUnittest_Cursor()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CBitVector bv(pmp, 129);
+	CBitVector bv(mp, 129);
 	for(ULONG i = 1; i < 20; i ++)
 	{
-		bv.FExchangeSet(i * 3);
+		bv.ExchangeSet(i * 3);
 	}
 
 	ULONG ulCursor = 0;
-	bv.FNextBit(0, ulCursor);
-	while(bv.FNextBit(ulCursor + 1, ulCursor))
+	bv.GetNextSetBit(0, ulCursor);
+	while(bv.GetNextSetBit(ulCursor + 1, ulCursor))
 	{
 		GPOS_ASSERT(ulCursor == ((ulCursor / 3) * 3));
 	}
@@ -202,39 +202,39 @@ CBitVectorTest::EresUnittest_Random()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// set up control vector
 	ULONG cTotal = 10000;
-	CHAR *rg = GPOS_NEW_ARRAY(pmp, CHAR, cTotal);
+	CHAR *rg = GPOS_NEW_ARRAY(mp, CHAR, cTotal);
 	
 	CRandom rand;
 	
-	clib::PvMemSet(rg, 0 , cTotal);
+	clib::Memset(rg, 0 , cTotal);
 
 	// set random chars in the control vector
 	for (ULONG i = 0; i < cTotal * 0.2; i++)
 	{
-		ULONG index = rand.ULNext() % (cTotal - 1);
+		ULONG index = rand.Next() % (cTotal - 1);
 		GPOS_ASSERT(index < cTotal);
 		rg[index] = 1;
 	}
 
 	ULONG cElements = 0;
-	CBitVector bv(pmp, cTotal);
+	CBitVector bv(mp, cTotal);
 	for (ULONG i = 0; i < cTotal; i++)
 	{
 		if (1 == rg[i])
 		{
-			bv.FExchangeSet(i);
+			bv.ExchangeSet(i);
 			cElements++;
 		}
 	}
 
-	GPOS_ASSERT(cElements == bv.CElements());
+	GPOS_ASSERT(cElements == bv.CountSetBits());
 
 	ULONG ulCursor = 0;
-	while(bv.FNextBit(ulCursor + 1, ulCursor))
+	while(bv.GetNextSetBit(ulCursor + 1, ulCursor))
 	{
 		GPOS_ASSERT(1 == rg[ulCursor]);
 		cElements--;
@@ -262,12 +262,12 @@ CBitVectorTest::EresUnittest_OutOfBounds()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CBitVector bv(pmp, 129);
+	CBitVector bv(mp, 129);
 
 	// this must assert
-	bv.FExchangeSet(130);
+	bv.ExchangeSet(130);
 
 	return GPOS_FAILED;
 }

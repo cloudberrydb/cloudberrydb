@@ -108,7 +108,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// array of parameters
 			// cost param enum is used as index in this array
@@ -321,7 +321,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CCostModelParamsGPDB(IMemoryPool *pmp);
+			CCostModelParamsGPDB(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -329,7 +329,7 @@ namespace gpopt
 
 			// lookup param by id
 			virtual
-			SCostParam *PcpLookup(ULONG ulId) const;
+			SCostParam *PcpLookup(ULONG id) const;
 
 			// lookup param by name
 			virtual
@@ -337,7 +337,7 @@ namespace gpopt
 
 			// set param by id
 			virtual
-			void SetParam(ULONG ulId, CDouble dVal, CDouble dLowerBound, CDouble dUpperBound);
+			void SetParam(ULONG id, CDouble dVal, CDouble dLowerBound, CDouble dUpperBound);
 
 			// set param by name
 			virtual
@@ -348,10 +348,10 @@ namespace gpopt
 			IOstream &OsPrint(IOstream &os) const;
 
 			virtual BOOL
-			FEquals(ICostModelParams *pcm) const;
+			Equals(ICostModelParams *pcm) const;
 
 			virtual const CHAR *
-			SzNameLookup(ULONG ulId) const;
+			SzNameLookup(ULONG id) const;
 
 	}; // class CCostModelParamsGPDB
 

@@ -36,14 +36,14 @@ namespace gpdxl
 	{
 		private:
 			// memory manager to use for Xerces allocation
-			CDXLMemoryManager *m_pmm;
+		CDXLMemoryManager *m_dxl_memory_manager;
 			
 		public:
 			// ctor
-			explicit CParseHandlerDummy(CDXLMemoryManager *pmm);
+		explicit CParseHandlerDummy(CDXLMemoryManager *dxl_memory_manager);
 						
 			// process a parsing error
-			void error(const SAXParseException &saxex);
+			void error(const SAXParseException &sax_parse_ex);
 	};
 }
 

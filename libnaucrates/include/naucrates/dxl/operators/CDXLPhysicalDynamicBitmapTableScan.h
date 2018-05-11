@@ -36,10 +36,10 @@ namespace gpdxl
 	{
 		private:
 			// id of partition index structure
-			ULONG m_ulPartIndexId;
+			ULONG m_part_index_id;
 
 			// printable partition index id
-			ULONG m_ulPartIndexIdPrintable;
+			ULONG m_part_index_id_printable;
 
 			// private copy ctor
 			CDXLPhysicalDynamicBitmapTableScan(const CDXLPhysicalDynamicBitmapTableScan &);
@@ -48,17 +48,17 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalDynamicBitmapTableScan
 				(
-				IMemoryPool *pmp,
-				CDXLTableDescr *pdxltabdesc,
-				ULONG ulPartIndexId,
-				ULONG ulPartIndexIdPrintable
+				IMemoryPool *mp,
+				CDXLTableDescr *table_descr,
+				ULONG part_idx_id,
+				ULONG part_idx_id_printable
 				)
 				:
-				CDXLPhysicalAbstractBitmapScan(pmp, pdxltabdesc),
-				m_ulPartIndexId(ulPartIndexId),
-				m_ulPartIndexIdPrintable(ulPartIndexIdPrintable)
+				CDXLPhysicalAbstractBitmapScan(mp, table_descr),
+				m_part_index_id(part_idx_id),
+				m_part_index_id_printable(part_idx_id_printable)
 			{
-				GPOS_ASSERT(NULL != pdxltabdesc);
+				GPOS_ASSERT(NULL != table_descr);
 			}
 
 			// dtor
@@ -68,42 +68,42 @@ namespace gpdxl
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const
+			Edxlopid GetDXLOperator() const
 			{
 				return EdxlopPhysicalDynamicBitmapTableScan;
 			}
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// partition index id
-			ULONG UlPartIndexId() const
+			ULONG GetPartIndexId() const
 			{
-				return m_ulPartIndexId;
+				return m_part_index_id;
 			}
 
 			// printable partition index id
-			ULONG UlPartIndexIdPrintable() const
+			ULONG GetPartIndexIdPrintable() const
 			{
-				return m_ulPartIndexIdPrintable;
+				return m_part_index_id_printable;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLPhysicalDynamicBitmapTableScan *PdxlopConvert
+			CDXLPhysicalDynamicBitmapTableScan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalDynamicBitmapTableScan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalDynamicBitmapTableScan == dxl_op->GetDXLOperator());
 
- 	 	 		return dynamic_cast<CDXLPhysicalDynamicBitmapTableScan *>(pdxlop);
+ 	 	 		return dynamic_cast<CDXLPhysicalDynamicBitmapTableScan *>(dxl_op);
 			}
 
 	};  // class CDXLPhysicalDynamicBitmapTableScan

@@ -28,8 +28,8 @@ namespace gpopt
 	class CLogicalCTEConsumer;
 
 	// hash map: CColRef -> ULONG
-	typedef CHashMap<CColRef, ULONG, gpos::UlHash<CColRef>, gpos::FEqual<CColRef>,
-					CleanupNULL<CColRef>, CleanupDelete<ULONG> > HMCrUl;
+	typedef CHashMap<CColRef, ULONG, gpos::HashValue<CColRef>, gpos::Equals<CColRef>,
+					CleanupNULL<CColRef>, CleanupDelete<ULONG> > ColRefToUlongMap;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -101,16 +101,16 @@ namespace gpopt
 			};
 
 			// hash map mapping ULONG -> SConsumerCounter
-			typedef CHashMap<ULONG, SConsumerCounter, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupDelete<SConsumerCounter> > HMUlConsumerMap;
+			typedef CHashMap<ULONG, SConsumerCounter, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupDelete<SConsumerCounter> > UlongToConsumerCounterMap;
 
 			// map iterator
-			typedef CHashMapIter<ULONG, SConsumerCounter, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-							CleanupDelete<ULONG>, CleanupDelete<SConsumerCounter> > HMUlConsumerMapIter;
+			typedef CHashMapIter<ULONG, SConsumerCounter, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+							CleanupDelete<ULONG>, CleanupDelete<SConsumerCounter> > UlongToConsumerCounterMapIter;
 
-			// hash map mapping ULONG -> HMUlConsumerMap: maps from CTE producer ID to all consumers inside this CTE
-			typedef CHashMap<ULONG, HMUlConsumerMap, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<HMUlConsumerMap> > HMUlProdConsMap;
+			// hash map mapping ULONG -> UlongToConsumerCounterMap: maps from CTE producer ID to all consumers inside this CTE
+			typedef CHashMap<ULONG, UlongToConsumerCounterMap, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<UlongToConsumerCounterMap> > UlongToProducerConsumerMap;
 
 			//-------------------------------------------------------------------
 			//	@struct:
@@ -125,13 +125,13 @@ namespace gpopt
 				private:
 
 					// memory pool
-					IMemoryPool *m_pmp;
+					IMemoryPool *m_mp;
 
 					// logical producer expression
 					CExpression *m_pexprCTEProducer;
 
 					// map columns of all created consumers of current CTE to their positions in consumer output
-					HMCrUl *m_phmcrulConsumers;
+					ColRefToUlongMap *m_phmcrulConsumers;
 
 					// is this CTE used
 					BOOL m_fUsed;
@@ -142,8 +142,8 @@ namespace gpopt
 					CMutex m_mutex;
 
 					// ctors
-					CCTEInfoEntry(IMemoryPool *pmp, CExpression *pexprCTEProducer);
-					CCTEInfoEntry(IMemoryPool *pmp, CExpression *pexprCTEProducer, BOOL fUsed);
+					CCTEInfoEntry(IMemoryPool *mp, CExpression *pexprCTEProducer);
+					CCTEInfoEntry(IMemoryPool *mp, CExpression *pexprCTEProducer, BOOL fUsed);
 
 					// dtor
 					~CCTEInfoEntry();
@@ -170,26 +170,26 @@ namespace gpopt
 					}
 
 					// add given columns to consumers column map
-					void AddConsumerCols(DrgPcr *pdrgpcr);
+					void AddConsumerCols(CColRefArray *colref_array);
 
 					// return position of given consumer column in consumer output
-					ULONG UlConsumerColPos(CColRef *pcr);
+					ULONG UlConsumerColPos(CColRef *colref);
 
 			}; //class CCTEInfoEntry
 
 			// hash maps mapping ULONG -> CCTEInfoEntry
-			typedef CHashMap<ULONG, CCTEInfoEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<CCTEInfoEntry> > HMUlCTEInfoEntry;
+			typedef CHashMap<ULONG, CCTEInfoEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<CCTEInfoEntry> > UlongToCTEInfoEntryMap;
 
 			// map iterator
-			typedef CHashMapIter<ULONG, CCTEInfoEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-							CleanupDelete<ULONG>, CleanupRelease<CCTEInfoEntry> > HMUlCTEInfoEntryIter;
+			typedef CHashMapIter<ULONG, CCTEInfoEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+							CleanupDelete<ULONG>, CleanupRelease<CCTEInfoEntry> > UlongToCTEInfoEntryMapIter;
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// mapping from cte producer id -> cte info entry
-			HMUlCTEInfoEntry *m_phmulcteinfoentry;
+			UlongToCTEInfoEntryMap *m_phmulcteinfoentry;
 
 			// next available CTE Id
 			CAtomicULONG m_ulNextCTEId;
@@ -198,7 +198,7 @@ namespace gpopt
 			BOOL m_fEnableInlining;
 
 			// consumers inside each cte/main query
-			HMUlProdConsMap *m_phmulprodconsmap;
+			UlongToProducerConsumerMap *m_phmulprodconsmap;
 
 			// initialize default statistics for a given CTE Producer
 			void InitDefaultStats(CExpression *pexprCTEProducer);
@@ -218,7 +218,7 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CCTEInfo(IMemoryPool *pmp);
+			CCTEInfo(IMemoryPool *mp);
 
 			//dtor
 			virtual
@@ -245,9 +245,9 @@ namespace gpopt
 			void ReplaceCTEProducer(CExpression *pexprCTEProducer);
 
 			// next available CTE id
-			ULONG UlNextId()
+			ULONG next_id()
 			{
-				return m_ulNextCTEId.TIncr();
+				return m_ulNextCTEId.Incr();
 			}
 
 			// derive the statistics on the CTE producer
@@ -258,10 +258,10 @@ namespace gpopt
 				);
 
 			// return a CTE requirement with all the producers as optional
-			CCTEReq *PcterProducers(IMemoryPool *pmp) const;
+			CCTEReq *PcterProducers(IMemoryPool *mp) const;
 
 			// return an array of all stored CTE expressions
-			DrgPexpr *PdrgPexpr(IMemoryPool *pmp) const;
+			CExpressionArray *PdrgPexpr(IMemoryPool *mp) const;
 
 			// disable CTE inlining
 			void DisableInlining()
@@ -280,16 +280,16 @@ namespace gpopt
 
 			// walk the producer expressions and add the mapping between computed column
 			// and their corresponding used column(s)
-			void MapComputedToUsedCols(CColumnFactory *pcf) const;
+			void MapComputedToUsedCols(CColumnFactory *col_factory) const;
 
 			// add given columns to consumers column map
-			void AddConsumerCols(ULONG ulCTEId, DrgPcr *pdrgpcr);
+			void AddConsumerCols(ULONG ulCTEId, CColRefArray *colref_array);
 
 			// return position of given consumer column in consumer output
-			ULONG UlConsumerColPos(ULONG ulCTEId, CColRef *pcr);
+			ULONG UlConsumerColPos(ULONG ulCTEId, CColRef *colref);
 
 			// return a map from Id's of consumer columns in the given column set to their corresponding producer columns
-			HMUlCr *PhmulcrConsumerToProducer(IMemoryPool *pmp, ULONG ulCTEId, CColRefSet *pcrs, DrgPcr *pdrgpcrProducer);
+			UlongToColRefMap *PhmulcrConsumerToProducer(IMemoryPool *mp, ULONG ulCTEId, CColRefSet *pcrs, CColRefArray *pdrgpcrProducer);
 
 	}; // CCTEInfo
 }

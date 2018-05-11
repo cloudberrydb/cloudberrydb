@@ -28,13 +28,13 @@ namespace gpos
 		private:
 		
 			// size in bits
-			ULONG m_cBits;
+			ULONG m_nbits;
 		
 			// size of vector in units, not bits
-			ULONG m_cUnits;
+			ULONG m_len;
 		
 			// vector
-			ULLONG *m_rgull;
+			ULLONG *m_vec;
 		
 			// no default copy ctor
 			CBitVector(const CBitVector&);
@@ -45,49 +45,49 @@ namespace gpos
 		public:
 				
 			// ctor
-			CBitVector(IMemoryPool *pmp, ULONG cBits);
+			CBitVector(IMemoryPool *mp, ULONG cBits);
 			
 			// dtor
 			~CBitVector();
 			
 			// copy ctor with target mem pool
-			CBitVector(IMemoryPool *pmp, const CBitVector &);
+			CBitVector(IMemoryPool *mp, const CBitVector &);
 			
 			// determine if bit is set
-			BOOL FBit(ULONG ulBit) const;
+			BOOL Get(ULONG ulBit) const;
 			
-			// set given bit; return previous value
-			BOOL FExchangeSet(ULONG ulBit);
+		// set given bit; return previous value
+			BOOL ExchangeSet(ULONG ulBit);
 						
-			// clear given bit; return previous value
-			BOOL FExchangeClear(ULONG ulBit);
+		// clear given bit; return previous value
+			BOOL ExchangeClear(ULONG ulBit);
 			
 			// union vectors
-			void Union(const CBitVector *);
+			void Or(const CBitVector *);
 			
 			// intersect vectors
-			void Intersection(const CBitVector *);
+			void And(const CBitVector *);
 			
 			// is subset
-			BOOL FSubset(const CBitVector *) const;
+			BOOL ContainsAll(const CBitVector *) const;
 			
 			// is dijoint
-			BOOL FDisjoint(const CBitVector *) const;
+			BOOL IsDisjoint(const CBitVector *) const;
 			
 			// equality
-			BOOL FEqual(const CBitVector *) const;
+			BOOL Equals(const CBitVector *) const;
 			
 			// is empty?
-			BOOL FEmpty() const;
+			BOOL IsEmpty() const;
 			
 			// find next bit from given position
-			BOOL FNextBit(ULONG, ULONG&) const;
+			BOOL GetNextSetBit(ULONG, ULONG&) const;
 
 			// number of bits set
-			ULONG CElements() const;
+			ULONG CountSetBits() const;
 			
-			// hash value
-			ULONG UlHash() const;
+		// hash value
+			ULONG HashValue() const;
 
 	}; // class CBitVector
 

@@ -35,7 +35,7 @@ namespace gpos
 			CMutexBase &m_mutex;
 
 			// lock count
-			ULONG m_cLock;
+			ULONG m_lock_count;
 
 			// no copy ctor
 			CAutoMutex
@@ -53,7 +53,7 @@ namespace gpos
 				)
 				:
 				m_mutex(mutex),
-				m_cLock(0)
+				m_lock_count(0)
 			{}
 
 
@@ -65,15 +65,15 @@ namespace gpos
 			void Lock()
 			{
 				m_mutex.Lock();
-				++m_cLock;
+				++m_lock_count;
 			}
 			
 			// attempt locking
-			BOOL FTryLock()
+			BOOL TryLock()
 			{
-				if (m_mutex.FTryLock())
+				if (m_mutex.TryLock())
 				{
-					++m_cLock;
+					++m_lock_count;
 					return true;
 				}
 				return false;
@@ -82,9 +82,9 @@ namespace gpos
 			// release lock
 			void Unlock()
 			{
-				GPOS_ASSERT(0 < m_cLock && "Mutex not locked");
+				GPOS_ASSERT(0 < m_lock_count && "GetMutex not locked");
 				
-				--m_cLock;
+				--m_lock_count;
 				m_mutex.Unlock();
 			}
 

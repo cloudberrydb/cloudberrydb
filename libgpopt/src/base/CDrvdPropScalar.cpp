@@ -70,7 +70,7 @@ CDrvdPropScalar::~CDrvdPropScalar()
 void
 CDrvdPropScalar::Derive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt * // pdpctxt
 	)
@@ -79,27 +79,27 @@ CDrvdPropScalar::Derive
 	
 	// call derivation functions on the operator
 	GPOS_ASSERT(NULL == m_pcrsDefined);
-	m_pcrsDefined = popScalar->PcrsDefined(pmp, exprhdl);
+	m_pcrsDefined = popScalar->PcrsDefined(mp, exprhdl);
 
 	GPOS_ASSERT(NULL == m_pcrsSetReturningFunction);
-	m_pcrsSetReturningFunction = popScalar->PcrsSetReturningFunction(pmp, exprhdl);
+	m_pcrsSetReturningFunction = popScalar->PcrsSetReturningFunction(mp, exprhdl);
 	
 	GPOS_ASSERT(NULL == m_pcrsUsed);
-	m_pcrsUsed = popScalar->PcrsUsed(pmp, exprhdl);
+	m_pcrsUsed = popScalar->PcrsUsed(mp, exprhdl);
 
 	// derive function properties
-	m_pfp = popScalar->PfpDerive(pmp, exprhdl);
+	m_pfp = popScalar->PfpDerive(mp, exprhdl);
 
 	// add defined and used columns of children
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG i = 0; i < ulArity; i++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG i = 0; i < arity; i++)
 	{
 		// only propagate properties from scalar children
 		if (exprhdl.FScalarChild(i))
 		{
-			m_pcrsDefined->Union(exprhdl.Pdpscalar(i)->PcrsDefined());
-			m_pcrsUsed->Union(exprhdl.Pdpscalar(i)->PcrsUsed());
-			m_pcrsSetReturningFunction->Union(exprhdl.Pdpscalar(i)->PcrsSetReturningFunction());
+			m_pcrsDefined->Union(exprhdl.GetDrvdScalarProps(i)->PcrsDefined());
+			m_pcrsUsed->Union(exprhdl.GetDrvdScalarProps(i)->PcrsUsed());
+			m_pcrsSetReturningFunction->Union(exprhdl.GetDrvdScalarProps(i)->PcrsSetReturningFunction());
 		}
 		else
 		{
@@ -107,7 +107,7 @@ CDrvdPropScalar::Derive
 
 			// parent operator is a subquery, add outer references
 			// from its relational child as used columns
- 			m_pcrsUsed->Union(exprhdl.Pdprel(0)->PcrsOuter());
+ 			m_pcrsUsed->Union(exprhdl.GetRelationalProperties(0)->PcrsOuter());
 		}
 	}
 
@@ -117,11 +117,11 @@ CDrvdPropScalar::Derive
 	
 	if (m_fHasSubquery)
 	{
-		m_ppartinfo = popScalar->PpartinfoDerive(pmp, exprhdl);
+		m_ppartinfo = popScalar->PpartinfoDerive(mp, exprhdl);
 	}
 	else
 	{
-		m_ppartinfo = GPOS_NEW(pmp) CPartInfo(pmp);
+		m_ppartinfo = GPOS_NEW(mp) CPartInfo(mp);
 	}
 
 	m_fHasNonScalarFunction = popScalar->FHasNonScalarFunction(exprhdl);
@@ -147,16 +147,16 @@ CDrvdPropScalar::Derive
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDrvdPropScalar::Pdpscalar
+//		CDrvdPropScalar::GetDrvdScalarProps
 //
 //	@doc:
 //		Short hand for conversion
 //
 //---------------------------------------------------------------------------
 CDrvdPropScalar *
-CDrvdPropScalar::Pdpscalar
+CDrvdPropScalar::GetDrvdScalarProps
 	(
-	CDrvdProp *pdp
+	DrvdPropArray *pdp
 	)
 {
 	GPOS_ASSERT(NULL != pdp);
@@ -184,7 +184,7 @@ CDrvdPropScalar::FSatisfies
 	GPOS_ASSERT(NULL != prpp);
 	GPOS_ASSERT(NULL != prpp->PcrsRequired());
 
-	BOOL fSatisfies = m_pcrsDefined->FSubset(prpp->PcrsRequired());
+	BOOL fSatisfies = m_pcrsDefined->ContainsAll(prpp->PcrsRequired());
 
 	return fSatisfies;
 }

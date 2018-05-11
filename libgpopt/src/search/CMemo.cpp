@@ -45,25 +45,25 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMemo::CMemo
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_pgroupRoot(NULL),
 	m_ulpGrps(0),
 	m_pmemotmap(NULL)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 
 	m_sht.Init
 		(
-		pmp,
+		mp,
 		GPOPT_MEMO_HT_BUCKETS,
 		GPOS_OFFSET(CGroupExpression, m_linkMemo),
 		0, /*cKeyOffset (0 because we use CGroupExpression class as key)*/
 		&(CGroupExpression::m_gexprInvalid),
-		CGroupExpression::UlHash,
-		CGroupExpression::FEqual
+		CGroupExpression::HashValue,
+		CGroupExpression::Equals
 		);
 
 	m_listGroups.Init(GPOS_OFFSET(CGroup, m_link));
@@ -83,7 +83,7 @@ CMemo::~CMemo()
 	CGroup *pgroup = m_listGroups.PtFirst();
 	while(NULL != pgroup)
 	{
-		CGroup *pgroupNext = m_listGroups.PtNext(pgroup);
+		CGroup *pgroupNext = m_listGroups.Next(pgroup);
 		pgroup->Release();
 		
 		pgroup = pgroupNext;
@@ -134,25 +134,25 @@ CMemo::Add
 	GPOS_ASSERT(!pexprOrigin->Pop()->FPhysical() && "Physical operators do not create new groups");
 
 	// extract expression props
-	CDrvdProp *pdp = NULL;
+	DrvdPropArray *pdp = NULL;
 	if (pexprOrigin->Pop()->FScalar())
 	{
-		pdp = pexprOrigin->Pdp(CDrvdProp::EptScalar);
+		pdp = pexprOrigin->Pdp(DrvdPropArray::EptScalar);
 	}
 	else
 	{
-		pdp = pexprOrigin->Pdp(CDrvdProp::EptRelational);
+		pdp = pexprOrigin->Pdp(DrvdPropArray::EptRelational);
 	}
 	GPOS_ASSERT(NULL != pdp);
 
-	ULONG ulId = m_aul.TIncr();
+	ULONG id = m_aul.Incr();
 	pdp->AddRef();
 #ifdef GPOS_DEBUG
 	CGroupExpression *pgexpr = NULL;
 #endif  // GPOS_DEBUG
 	{
 		CGroupProxy gp(pgroup);
-		gp.SetId(ulId);
+		gp.SetId(id);
 		gp.InitProperties(pdp);
 #ifdef GPOS_DEBUG
 		pgexpr = gp.PgexprFirst();
@@ -161,7 +161,7 @@ CMemo::Add
 
 	GPOS_ASSERT(NULL != pgexpr);
 	m_listGroups.Push(pgroup);
-	(void) UlpExchangeAdd(&m_ulpGrps, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpGrps, 1);
 }
 
 
@@ -189,7 +189,7 @@ CMemo::PgroupInsert
 	ShtAcc shta(m_sht, *pgexpr);
 
 	// we do a lookup since group expression may have been already inserted
-	CGroupExpression *pgexprFound = shta.PtLookup();
+	CGroupExpression *pgexprFound = shta.Find();
 	if (NULL == pgexprFound)
 	{
 		shta.Insert(pgexpr);
@@ -232,7 +232,7 @@ CMemo::FNewGroup
 
 	if (NULL == *ppgroupTarget && NULL == pgexpr)
 	{
-		*ppgroupTarget = GPOS_NEW(m_pmp) CGroup(m_pmp, fScalar);
+		*ppgroupTarget = GPOS_NEW(m_mp) CGroup(m_mp, fScalar);
 
 		return true;
 	}
@@ -265,14 +265,14 @@ CMemo::PgroupInsert
 	GPOS_CHECK_ABORT;
 	GPOS_ASSERT(NULL != pexprOrigin);
 	GPOS_ASSERT(pgexpr->Pop() == pexprOrigin->Pop());
-	GPOS_ASSERT(pgexpr->UlArity() == pexprOrigin->UlArity());
+	GPOS_ASSERT(pgexpr->Arity() == pexprOrigin->Arity());
 
 	CGroup *pgroupContainer = NULL;
 	CGroupExpression *pgexprFound = NULL;
 	// hash table accessor's scope
 	{
 		ShtAcc shta(m_sht, *pgexpr);
-		pgexprFound = shta.PtLookup();
+		pgexprFound = shta.Find();
 	}
 
 	// check if we may need to create a new group
@@ -322,7 +322,7 @@ CMemo::PgroupInsert
 CExpression *
 CMemo::PexprExtractPlan
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CGroup *pgroupRoot,
 	CReqdPropPlan *prppInput,
 	ULONG ulSearchStages
@@ -335,7 +335,7 @@ CMemo::PexprExtractPlan
 	CGroupExpression *pgexprBest = NULL;
 	COptimizationContext *poc = NULL;
 	CCost cost = GPOPT_INVALID_COST;
-	IStatistics *pstats = NULL;
+	IStatistics *stats = NULL;
 	if (pgroupRoot->FScalar())
 	{
 		// If the group has scalar expression, this group is called scalar group.
@@ -352,14 +352,14 @@ CMemo::PexprExtractPlan
 		// or physical expressions. In this case, we lookup the best optimization context
 		// for the given required plan properties, and then retrieve the best group
 		// expression under the optimization context.
-		poc = pgroupRoot->PocLookupBest(pmp, ulSearchStages, prppInput);
+		poc = pgroupRoot->PocLookupBest(mp, ulSearchStages, prppInput);
 		GPOS_ASSERT(NULL != poc);
 
 		pgexprBest = pgroupRoot->PgexprBest(poc);
 		if (NULL != pgexprBest)
 		{
 			cost = poc->PccBest()->Cost();
-			pstats = poc->PccBest()->Pstats();
+			stats = poc->PccBest()->Pstats();
 		}
 	}
 
@@ -369,14 +369,14 @@ CMemo::PexprExtractPlan
 		return NULL;
 	}
 
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 	// Get the length of groups for the best group expression
 	// i.e. given the best expression is
 	// 0: CScalarCmp (>=) [ 1 7 ]
-	// the ulArity is 2, which means the pgexprBest has 2 children:
+	// the arity is 2, which means the pgexprBest has 2 children:
 	// Group 1 and Group 7. Every single child is a CGroup.
-	ULONG ulArity = pgexprBest->UlArity();
-	for (ULONG i = 0; i < ulArity; i++)
+	ULONG arity = pgexprBest->Arity();
+	for (ULONG i = 0; i < arity; i++)
 	{
 		CGroup *pgroupChild = (*pgexprBest)[i];
 		CReqdPropPlan * prpp = NULL;
@@ -413,22 +413,22 @@ CMemo::PexprExtractPlan
 			prpp = pocChild->Prpp();
 		}
 
-		CExpression *pexprChild = PexprExtractPlan(pmp, pgroupChild, prpp, ulSearchStages);
+		CExpression *pexprChild = PexprExtractPlan(mp, pgroupChild, prpp, ulSearchStages);
 		pdrgpexpr->Append(pexprChild);
 	}
 
 	pgexprBest->Pop()->AddRef();
-	CExpression *pexpr = GPOS_NEW(pmp) CExpression
+	CExpression *pexpr = GPOS_NEW(mp) CExpression
 							(
-							pmp,
+							mp,
 							pgexprBest->Pop(),
 							pgexprBest,
 							pdrgpexpr,
-							pstats,
+							stats,
 							cost
 							);
 
-	if (pexpr->Pop()->FPhysical() && !poc->PccBest()->FValid(pmp))
+	if (pexpr->Pop()->FPhysical() && !poc->PccBest()->IsValid(mp))
 	{
 		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsatisfiedRequiredProperties);
 	}
@@ -449,18 +449,18 @@ CMemo::PexprExtractPlan
 CGroup *
 CMemo::Pgroup
 	(
-	ULONG ulId
+	ULONG id
 	)
 {
 	CGroup *pgroup = m_listGroups.PtFirst();
 
 	while (NULL != pgroup)
 	{
-		if (ulId == pgroup->UlId())
+		if (id == pgroup->Id())
 		{
 			return pgroup;
 		}
-		pgroup = m_listGroups.PtNext(pgroup);
+		pgroup = m_listGroups.Next(pgroup);
 	}
 
 	return NULL;
@@ -525,11 +525,11 @@ CMemo::FRehash()
 
 	ShtIter shtit(m_sht);
 	CGroupExpression *pgexpr = NULL;
-	while (NULL != pgexpr || shtit.FAdvance())
+	while (NULL != pgexpr || shtit.Advance())
 	{
 		{
 			ShtAccIter shtitacc(shtit);
-			pgexpr = shtitacc.Pt();
+			pgexpr = shtitacc.Value();
 			if (NULL != pgexpr)
 			{
 				shtitacc.Remove(pgexpr);
@@ -542,7 +542,7 @@ CMemo::FRehash()
 	// iterate on list and insert non-duplicate group expressions
 	// back to memo hash table
 	BOOL fNewDupGroups = false;
-	while (!listGExprs.FEmpty())
+	while (!listGExprs.IsEmpty())
 	{
 		CGroupExpression *pgexpr = listGExprs.RemoveHead();
 		CGroupExpression *pgexprFound = NULL;
@@ -550,7 +550,7 @@ CMemo::FRehash()
 		{
 			// hash table accessor scope
  			ShtAcc shta(m_sht, *pgexpr);
- 			pgexprFound = shta.PtLookup();
+ 			pgexprFound = shta.Find();
 
  			if (NULL == pgexprFound)
  			{
@@ -617,7 +617,7 @@ CMemo::GroupMerge()
 		while (NULL != pgroup)
 		{
 			pgroup->MergeGroup();
-			pgroup = m_listGroups.PtNext(pgroup);
+			pgroup = m_listGroups.Next(pgroup);
 
 			GPOS_CHECK_ABORT;
 		}
@@ -644,12 +644,12 @@ CMemo::GroupMerge()
 void
 CMemo::Trace()
 {
-	CWStringDynamic str(m_pmp);
+	CWStringDynamic str(m_mp);
 	COstreamString oss(&str);
 
 	OsPrint(oss);
 
-	GPOS_TRACE(str.Wsz());
+	GPOS_TRACE(str.GetBuffer());
 }
 
 
@@ -671,7 +671,7 @@ CMemo::OsPrint
 	
 	while (NULL != pgroup)
 	{
-		CAutoTrace at(m_pmp);
+		CAutoTrace at(m_mp);
 
 		if (m_pgroupRoot == pgroup)
 		{
@@ -679,7 +679,7 @@ CMemo::OsPrint
 		}
 		
 		pgroup->OsPrint(at.Os());
-		pgroup = m_listGroups.PtNext(pgroup);
+		pgroup = m_listGroups.Next(pgroup);
 
 		GPOS_CHECK_ABORT;
 	}
@@ -710,12 +710,12 @@ CMemo::DeriveStatsIfAbsent
 		{
 			CGroupExpression *pgexprFirst = CEngine::PgexprFirst(pgroup);
 
-			CExpressionHandle exprhdl(m_pmp);
+			CExpressionHandle exprhdl(m_mp);
 			exprhdl.Attach(pgexprFirst);
-			exprhdl.DeriveStats(pmpLocal, m_pmp, NULL, NULL);
+			exprhdl.DeriveStats(pmpLocal, m_mp, NULL, NULL);
 		}
 
-		pgroup = m_listGroups.PtNext(pgroup);
+		pgroup = m_listGroups.Next(pgroup);
 
 		GPOS_CHECK_ABORT;
 	}
@@ -741,7 +741,7 @@ CMemo::ResetGroupStates()
 		pgroup->ResetGroupJobQueues();
 		pgroup->ResetHasNewLogicalOperators();
 
-		pgroup = m_listGroups.PtNext(pgroup);
+		pgroup = m_listGroups.Next(pgroup);
 	}
 }
 
@@ -780,9 +780,9 @@ CMemo::BuildTreeMap
 	GPOS_ASSERT(NULL != poc);
 	GPOS_ASSERT(NULL == m_pmemotmap && "tree map is already built");
 
-	m_pmemotmap = GPOS_NEW(m_pmp) MemoTreeMap(m_pmp, CExpression::PexprRehydrate);
-	m_pgroupRoot->BuildTreeMap(m_pmp, poc, NULL /*pccParent*/,
-							   gpos::ulong_max /*ulChildIndex*/, m_pmemotmap);
+	m_pmemotmap = GPOS_NEW(m_mp) MemoTreeMap(m_mp, CExpression::PexprRehydrate);
+	m_pgroupRoot->BuildTreeMap(m_mp, poc, NULL /*pccParent*/,
+							   gpos::ulong_max /*child_index*/, m_pmemotmap);
 }
 
 
@@ -808,7 +808,7 @@ CMemo::ResetTreeMap()
 	while (NULL != pgroup)
 	{
 		pgroup->ResetLinkMap();
-		pgroup = m_listGroups.PtNext(pgroup);
+		pgroup = m_listGroups.Next(pgroup);
 	}
 }
 
@@ -832,7 +832,7 @@ CMemo::UlDuplicateGroups()
 		{
 			ulDuplicates ++;
 		}
-		pgroup = m_listGroups.PtNext(pgroup);
+		pgroup = m_listGroups.Next(pgroup);
 	}
 
 	return ulDuplicates;
@@ -855,7 +855,7 @@ CMemo::UlGrpExprs()
 	while (NULL != pgroup)
 	{
 		ulGExprs += pgroup->UlGExprs();
-		pgroup = m_listGroups.PtNext(pgroup);
+		pgroup = m_listGroups.Next(pgroup);
 	}
 
 	return ulGExprs;
@@ -865,7 +865,7 @@ CMemo::UlGrpExprs()
 void
 CMemo::DbgPrint()
 {
-	CAutoTrace at(m_pmp);
+	CAutoTrace at(m_mp);
 	(void) this->OsPrint(at.Os());
 }
 #endif // GPOS_DEBUG

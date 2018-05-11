@@ -36,37 +36,37 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CDXLPhysicalSequence(IMemoryPool *pmp);
+			CDXLPhysicalSequence(IMemoryPool *mp);
 			
 			// dtor
 			virtual
 			~CDXLPhysicalSequence();
 			
 			// accessors
-			Edxlopid Edxlop() const;
-			const CWStringConst *PstrOpName() const;
+			Edxlopid GetDXLOperator() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalSequence *PdxlopConvert
+			CDXLPhysicalSequence *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalSequence == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalSequence == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalSequence*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalSequence*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 	};

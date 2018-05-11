@@ -34,42 +34,42 @@ namespace gpdxl
 			CDXLLogicalJoin(CDXLLogicalJoin&);
 
 			// join type (inner, outer, ...)
-			EdxlJoinType m_edxljt;
+			EdxlJoinType m_join_type;
 
 		public:
 			// ctor/dtor
 			CDXLLogicalJoin(IMemoryPool *, 	EdxlJoinType);
 
 			// accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// join type
-			EdxlJoinType Edxltype() const;
+			EdxlJoinType GetJoinType() const;
 
-			const CWStringConst *PstrJoinTypeName() const;
+			const CWStringConst *GetJoinTypeNameStr() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLLogicalJoin *PdxlopConvert
+			CDXLLogicalJoin *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalJoin == pdxlop->Edxlop());
-				return dynamic_cast<CDXLLogicalJoin*>(pdxlop);
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalJoin == dxl_op->GetDXLOperator());
+				return dynamic_cast<CDXLLogicalJoin*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 	};

@@ -36,7 +36,7 @@ CXformLeftAntiSemiApply2LeftAntiSemiJoin::Exfp
 {
 	// if there are outer refs that include columns from the immediate outer child, the
 	// transformation is applicable
-	if (exprhdl.FHasOuterRefs(1 /*ulChildIndex*/) && !CUtils::FInnerUsesExternalColsOnly(exprhdl))
+	if (exprhdl.HasOuterRefs(1 /*child_index*/) && !CUtils::FInnerUsesExternalColsOnly(exprhdl))
 	{
 		return CXform::ExfpHigh;
 	}

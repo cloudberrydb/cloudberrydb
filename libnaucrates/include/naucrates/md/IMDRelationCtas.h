@@ -40,34 +40,34 @@ namespace gpmd
 
 			// schema name
 			virtual
-			CMDName *PmdnameSchema() const = 0;
+			CMDName *GetMdNameSchema() const = 0;
 			
 			// is this a partitioned table
 			virtual
-			BOOL FPartitioned() const
+			BOOL IsPartitioned() const
 			{
 				return false;
 			}
 			
 			// number of partition columns
 			virtual
-			ULONG UlPartColumns() const
+			ULONG PartColumnCount() const
 			{
 				return 0;
 			}
 
 			// number of partitions
 			virtual
-			ULONG UlPartitions() const
+			ULONG PartitionCount() const
 			{
 				return 0;
 			}
 
 			// retrieve the partition column at the given position
 			virtual
-			const IMDColumn *PmdcolPartColumn
+			const IMDColumn *PartColAt
 				(
-				ULONG // ulPos
+				ULONG // pos
 				) 
 				const
 			{
@@ -77,7 +77,7 @@ namespace gpmd
 			
 			// retrieve list of partition types
 			virtual
-			DrgPsz *PdrgpszPartTypes() const
+			CharPtrArray *GetPartitionTypes() const
 			{
 				GPOS_ASSERT(!"CTAS tables have no partition types");
 				return NULL;
@@ -85,7 +85,7 @@ namespace gpmd
 
 			// retrieve the partition column at the given position
 			virtual
-			CHAR SzPartType(ULONG /*ulPos*/) const
+			CHAR PartTypeAtLevel(ULONG /*pos*/) const
 			{
 				GPOS_ASSERT(!"CTAS tables have no partition types");
 				return (CHAR) 0;
@@ -93,23 +93,23 @@ namespace gpmd
 
 			// return true if a hash distributed table needs to be considered as random
 			virtual
-			BOOL FConvertHashToRandom() const
+			BOOL ConvertHashToRandom() const
 			{
 				return false;
 			}
 			
 			// returns the number of key sets
 			virtual
-			ULONG UlKeySets() const
+			ULONG KeySetCount() const
 			{	
 				return 0;
 			}
 
 			// returns the key set at the specified position
 			virtual
-			const DrgPul *PdrgpulKeyset
+			const ULongPtrArray *KeySetAt
 				(
-				ULONG // ulPos
+				ULONG // pos
 				) 
 				const
 			{	
@@ -119,14 +119,14 @@ namespace gpmd
 
 			// part constraint
 			virtual
-			IMDPartConstraint *Pmdpartcnstr() const
+			IMDPartConstraint *MDPartConstraint() const
 			{
 				return NULL;
 			}
 
 			// CTAS storage options
 			virtual 
-			CDXLCtasStorageOptions *Pdxlctasopt() const = 0;
+			CDXLCtasStorageOptions *GetDxlCtasStorageOption() const = 0;
 
 	};
 }

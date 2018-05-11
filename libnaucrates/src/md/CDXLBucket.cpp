@@ -29,25 +29,25 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CDXLBucket::CDXLBucket
 	(
-	CDXLDatum *pdxldatumLower,
-	CDXLDatum *pdxldatumUpper,
-	BOOL fLowerClosed,
-	BOOL fUpperClosed,
-	CDouble dFrequency,
-	CDouble dDistinct
+	CDXLDatum *dxl_datum_lower,
+	CDXLDatum *dxl_datum_upper,
+	BOOL is_lower_closed,
+	BOOL is_upper_closed,
+	CDouble frequency,
+	CDouble distinct
 	)
 	:
-	m_pdxldatumLower(pdxldatumLower),
-	m_pdxldatumUpper(pdxldatumUpper),
-	m_fLowerClosed(fLowerClosed),
-	m_fUpperClosed(fUpperClosed),
-	m_dFrequency(dFrequency),
-	m_dDistinct(dDistinct)
+	m_lower_bound_dxl_datum(dxl_datum_lower),
+	m_upper_bound_dxl_datum(dxl_datum_upper),
+	m_is_lower_closed(is_lower_closed),
+	m_is_upper_closed(is_upper_closed),
+	m_frequency(frequency),
+	m_distinct(distinct)
 {
-	GPOS_ASSERT(NULL != pdxldatumLower);
-	GPOS_ASSERT(NULL != pdxldatumUpper);
-	GPOS_ASSERT(m_dFrequency >= 0.0 && m_dFrequency <= 1.0);
-	GPOS_ASSERT(m_dDistinct >= 0);
+	GPOS_ASSERT(NULL != dxl_datum_lower);
+	GPOS_ASSERT(NULL != dxl_datum_upper);
+	GPOS_ASSERT(m_frequency >= 0.0 && m_frequency <= 1.0);
+	GPOS_ASSERT(m_distinct >= 0);
 }
 
 //---------------------------------------------------------------------------
@@ -60,64 +60,64 @@ CDXLBucket::CDXLBucket
 //---------------------------------------------------------------------------
 CDXLBucket::~CDXLBucket()
 {
-	m_pdxldatumLower->Release();
-	m_pdxldatumUpper->Release();
+	m_lower_bound_dxl_datum->Release();
+	m_upper_bound_dxl_datum->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLBucket::PdxldatumLower
+//		CDXLBucket::GetDXLDatumLower
 //
 //	@doc:
 //		Returns the lower bound for the bucket
 //
 //---------------------------------------------------------------------------
 const CDXLDatum *
-CDXLBucket::PdxldatumLower() const
+CDXLBucket::GetDXLDatumLower() const
 {
-	return m_pdxldatumLower;
+	return m_lower_bound_dxl_datum;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLBucket::PdxldatumUpper
+//		CDXLBucket::GetDXLDatumUpper
 //
 //	@doc:
 //		Returns the upper bound for the bucket
 //
 //---------------------------------------------------------------------------
 const CDXLDatum *
-CDXLBucket::PdxldatumUpper() const
+CDXLBucket::GetDXLDatumUpper() const
 {
-	return m_pdxldatumUpper;
+	return m_upper_bound_dxl_datum;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLBucket::DFrequency
+//		CDXLBucket::GetFrequency
 //
 //	@doc:
 //		Returns the frequency for this bucket
 //
 //---------------------------------------------------------------------------
 CDouble
-CDXLBucket::DFrequency() const
+CDXLBucket::GetFrequency() const
 {
-	return m_dFrequency;
+	return m_frequency;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLBucket::DDistinct
+//		CDXLBucket::GetNumDistinct
 //
 //	@doc:
 //		Returns the number of distinct in this bucket
 //
 //---------------------------------------------------------------------------
 CDouble
-CDXLBucket::DDistinct() const
+CDXLBucket::GetNumDistinct() const
 {
-	return m_dDistinct;
+	return m_distinct;
 }
 
 
@@ -132,21 +132,21 @@ CDXLBucket::DDistinct() const
 void
 CDXLBucket::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) 
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumnStatsBucket));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumnStatsBucket));
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenStatsFrequency), m_dFrequency);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenStatsDistinct), m_dDistinct);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenStatsFrequency), m_frequency);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenStatsDistinct), m_distinct);
 	
-	SerializeBoundaryValue(pxmlser, CDXLTokens::PstrToken(EdxltokenStatsBucketLowerBound), m_pdxldatumLower, m_fLowerClosed);
-	SerializeBoundaryValue(pxmlser, CDXLTokens::PstrToken(EdxltokenStatsBucketUpperBound), m_pdxldatumUpper, m_fUpperClosed);
+	SerializeBoundaryValue(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenStatsBucketLowerBound), m_lower_bound_dxl_datum, m_is_lower_closed);
+	SerializeBoundaryValue(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenStatsBucketUpperBound), m_upper_bound_dxl_datum, m_is_upper_closed);
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumnStatsBucket));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumnStatsBucket));
 
 	GPOS_CHECK_ABORT;
 }
@@ -162,17 +162,17 @@ CDXLBucket::Serialize
 void
 CDXLBucket::SerializeBoundaryValue
 	(
-	CXMLSerializer *pxmlser,
-	const CWStringConst *pstrElem,
-	CDXLDatum *pdxldatum,
-	BOOL fBoundClosed
+	CXMLSerializer *xml_serializer,
+	const CWStringConst *elem_str,
+	CDXLDatum *dxl_datum,
+	BOOL is_bound_closed
 	)
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElem);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenStatsBoundClosed), fBoundClosed);
-	pdxldatum->Serialize(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElem);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), elem_str);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenStatsBoundClosed), is_bound_closed);
+	dxl_datum->Serialize(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), elem_str);
 }
 
 #ifdef GPOS_DEBUG

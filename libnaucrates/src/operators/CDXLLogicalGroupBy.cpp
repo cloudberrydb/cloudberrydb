@@ -26,11 +26,11 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalGroupBy::CDXLLogicalGroupBy
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLLogical(pmp),
-	m_pdrgpulGrpColId(NULL)
+	CDXLLogical(mp),
+	m_grouping_colid_array(NULL)
 {
 }
 
@@ -44,12 +44,12 @@ CDXLLogicalGroupBy::CDXLLogicalGroupBy
 //---------------------------------------------------------------------------
 CDXLLogicalGroupBy::CDXLLogicalGroupBy
 	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpulGrpColIds
+	IMemoryPool *mp,
+	ULongPtrArray *pdrgpulGrpColIds
 	)
 	:
-	CDXLLogical(pmp),
-	m_pdrgpulGrpColId(pdrgpulGrpColIds)
+	CDXLLogical(mp),
+	m_grouping_colid_array(pdrgpulGrpColIds)
 {
 	GPOS_ASSERT(NULL != pdrgpulGrpColIds);
 }
@@ -64,35 +64,35 @@ CDXLLogicalGroupBy::CDXLLogicalGroupBy
 //---------------------------------------------------------------------------
 CDXLLogicalGroupBy::~CDXLLogicalGroupBy()
 {
-	CRefCount::SafeRelease(m_pdrgpulGrpColId);
+	CRefCount::SafeRelease(m_grouping_colid_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalGroupBy::Edxlop
+//		CDXLLogicalGroupBy::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLLogicalGroupBy::Edxlop() const
+CDXLLogicalGroupBy::GetDXLOperator() const
 {
 	return EdxlopLogicalGrpBy;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalGroupBy::PstrOpName
+//		CDXLLogicalGroupBy::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLLogicalGroupBy::PstrOpName() const
+CDXLLogicalGroupBy::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenLogicalGrpBy);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenLogicalGrpBy);
 }
 
 //---------------------------------------------------------------------------
@@ -106,25 +106,25 @@ CDXLLogicalGroupBy::PstrOpName() const
 void
 CDXLLogicalGroupBy::SetGroupingColumns
 	(
-	DrgPul *pdrgpul
+	ULongPtrArray *grouping_colid_array
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpul);
-	m_pdrgpulGrpColId = pdrgpul;
+	GPOS_ASSERT(NULL != grouping_colid_array);
+	m_grouping_colid_array = grouping_colid_array;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalGroupBy::PdrgpulGroupingCols
+//		CDXLLogicalGroupBy::GetGroupingColidArray
 //
 //	@doc:
 //		Grouping column indices
 //
 //---------------------------------------------------------------------------
-const DrgPul *
-CDXLLogicalGroupBy::PdrgpulGroupingCols() const
+const ULongPtrArray *
+CDXLLogicalGroupBy::GetGroupingColidArray() const
 {
-	return m_pdrgpulGrpColId;
+	return m_grouping_colid_array;
 }
 
 //---------------------------------------------------------------------------
@@ -138,29 +138,29 @@ CDXLLogicalGroupBy::PdrgpulGroupingCols() const
 void
 CDXLLogicalGroupBy::SerializeGrpColsToDXL
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	if(NULL != m_pdrgpulGrpColId)
+	if(NULL != m_grouping_colid_array)
 	{
-		const CWStringConst *pstrTokenGroupingCols = CDXLTokens::PstrToken(EdxltokenGroupingCols);
-		const CWStringConst *pstrTokenGroupingCol = CDXLTokens::PstrToken(EdxltokenGroupingCol);
+		const CWStringConst *grouping_cols_str = CDXLTokens::GetDXLTokenStr(EdxltokenGroupingCols);
+		const CWStringConst *grouping_col_str = CDXLTokens::GetDXLTokenStr(EdxltokenGroupingCol);
 
-		pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenGroupingCols);
+		xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), grouping_cols_str);
 
-		for (ULONG ul = 0; ul < m_pdrgpulGrpColId->UlLength(); ul++)
+		for (ULONG idx = 0; idx < m_grouping_colid_array->Size(); idx++)
 		{
-			GPOS_ASSERT(NULL != (*m_pdrgpulGrpColId)[ul]);
-			ULONG ulGroupingCol = *((*m_pdrgpulGrpColId)[ul]);
+			GPOS_ASSERT(NULL != (*m_grouping_colid_array)[idx]);
+			ULONG grouping_col = *((*m_grouping_colid_array)[idx]);
 
-			pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenGroupingCol);
-			pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColId), ulGroupingCol);
+			xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), grouping_col_str);
+			xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenColId), grouping_col);
 
-			pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenGroupingCol);
+			xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), grouping_col_str);
 		}
 
-		pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenGroupingCols);
+		xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), grouping_cols_str);
 	}
 }
 
@@ -175,22 +175,22 @@ CDXLLogicalGroupBy::SerializeGrpColsToDXL
 void
 CDXLLogicalGroupBy::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
 	// serialize grouping columns
-	SerializeGrpColsToDXL(pxmlser);
+	SerializeGrpColsToDXL(xml_serializer);
 
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	node->SerializeChildrenToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -205,37 +205,37 @@ CDXLLogicalGroupBy::SerializeToDXL
 void
 CDXLLogicalGroupBy::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) 
 	const
 {
 	// 1 Child node
 	// 1 Group By project list
 
-	const ULONG ulChildren = pdxln->UlArity();
-	GPOS_ASSERT(2 == ulChildren);
+	const ULONG num_of_child = node->Arity();
+	GPOS_ASSERT(2 == num_of_child);
 
-	CDXLNode *pdxlnPrL = (*pdxln)[0];
-	GPOS_ASSERT(EdxlopScalarProjectList == pdxlnPrL->Pdxlop()->Edxlop());
+	CDXLNode *proj_list = (*node)[0];
+	GPOS_ASSERT(EdxlopScalarProjectList == proj_list->GetOperator()->GetDXLOperator());
 
-	CDXLNode *pdxlnOpType = (*pdxln)[1];
-	GPOS_ASSERT(EdxloptypeLogical == pdxlnOpType->Pdxlop()->Edxloperatortype());
+	CDXLNode *dxl_op_type = (*node)[1];
+	GPOS_ASSERT(EdxloptypeLogical == dxl_op_type->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		for(ULONG ul = 0; ul < ulChildren; ul++)
+		for(ULONG idx = 0; idx < num_of_child; idx++)
 		{
-			CDXLNode *pdxlnChild = (*pdxln)[ul];
-			pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+			CDXLNode *child_dxlnode = (*node)[idx];
+			child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 		}
 	}
 
-	const ULONG ulArity = pdxlnPrL->UlArity();
-	for (ULONG ul = 0; ul < ulArity; ++ul)
+	const ULONG num_of_proj_elem = proj_list->Arity();
+	for (ULONG idx = 0; idx < num_of_proj_elem; ++idx)
 	{
-		CDXLNode *pdxlnPrEl = (*pdxlnPrL)[ul];
-		GPOS_ASSERT(EdxlopScalarIdent != pdxlnPrEl->Pdxlop()->Edxlop());
+		CDXLNode *proj_elem = (*proj_list)[idx];
+		GPOS_ASSERT(EdxlopScalarIdent != proj_elem->GetOperator()->GetDXLOperator());
 	}
 }
 #endif // GPOS_DEBUG

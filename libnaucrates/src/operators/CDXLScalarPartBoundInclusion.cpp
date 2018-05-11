@@ -30,43 +30,43 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarPartBoundInclusion::CDXLScalarPartBoundInclusion
 	(
-	IMemoryPool *pmp,
-	ULONG ulLevel,
-	BOOL fLower
+	IMemoryPool *mp,
+	ULONG partitioning_level,
+	BOOL is_lower_bound
 	)
 	:
-	CDXLScalar(pmp),
-	m_ulLevel(ulLevel),
-	m_fLower(fLower)
+	CDXLScalar(mp),
+	m_partitioning_level(partitioning_level),
+	m_is_lower_bound(is_lower_bound)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarPartBoundInclusion::Edxlop
+//		CDXLScalarPartBoundInclusion::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarPartBoundInclusion::Edxlop() const
+CDXLScalarPartBoundInclusion::GetDXLOperator() const
 {
 	return EdxlopScalarPartBoundInclusion;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarPartBoundInclusion::PstrOpName
+//		CDXLScalarPartBoundInclusion::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarPartBoundInclusion::PstrOpName() const
+CDXLScalarPartBoundInclusion::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarPartBoundInclusion);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarPartBoundInclusion);
 }
 
 //---------------------------------------------------------------------------
@@ -80,17 +80,17 @@ CDXLScalarPartBoundInclusion::PstrOpName() const
 void
 CDXLScalarPartBoundInclusion::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode * // pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode * // dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartLevel), m_ulLevel);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenScalarPartBoundLower), m_fLower);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartLevel), m_partitioning_level);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenScalarPartBoundLower), m_is_lower_bound);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -105,12 +105,12 @@ CDXLScalarPartBoundInclusion::SerializeToDXL
 void
 CDXLScalarPartBoundInclusion::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL // fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL // validate_children
 	)
 	const
 {
-	GPOS_ASSERT(0 == pdxln->UlArity());
+	GPOS_ASSERT(0 == dxlnode->Arity());
 }
 #endif // GPOS_DEBUG
 

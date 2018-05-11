@@ -32,31 +32,31 @@ CAtomicULONG COperator::m_aulOpIdCounter(0);
 //---------------------------------------------------------------------------
 COperator::COperator
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	m_ulOpId(m_aulOpIdCounter.TIncr()),
-	m_pmp(pmp),
+	m_ulOpId(m_aulOpIdCounter.Incr()),
+	m_mp(mp),
 	m_fPattern(false)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		COperator::UlHash
+//		COperator::HashValue
 //
 //	@doc:
 //		default hash function based on operator ID
 //
 //---------------------------------------------------------------------------
 ULONG
-COperator::UlHash() const
+COperator::HashValue() const
 {
 	ULONG ulEopid = (ULONG) Eopid();
 	
-	return gpos::UlHash<ULONG>(&ulEopid);
+	return gpos::HashValue<ULONG>(&ulEopid);
 }
 
 
@@ -96,8 +96,8 @@ COperator::EfdaDeriveFromChildren
 {
 	IMDFunction::EFuncDataAcc efda = efdaDefault;
 
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		IMDFunction::EFuncDataAcc efdaChild = exprhdl.PfpChild(ul)->Efda();
 		if (efdaChild > efda)
@@ -126,8 +126,8 @@ COperator::EfsDeriveFromChildren
 {
 	IMDFunction::EFuncStbl efs = efsDefault;
 
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		IMDFunction::EFuncStbl efsChild = exprhdl.PfpChild(ul)->Efs();
 		if (efsChild > efs)
@@ -150,7 +150,7 @@ COperator::EfsDeriveFromChildren
 CFunctionProp *
 COperator::PfpDeriveFromChildren
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	IMDFunction::EFuncStbl efsDefault,
 	IMDFunction::EFuncDataAcc efdaDefault,
@@ -161,7 +161,7 @@ COperator::PfpDeriveFromChildren
 	IMDFunction::EFuncStbl efs = EfsDeriveFromChildren(exprhdl, efsDefault);
 	IMDFunction::EFuncDataAcc efda = EfdaDeriveFromChildren(exprhdl, efdaDefault);
 
-	return GPOS_NEW(pmp) CFunctionProp
+	return GPOS_NEW(mp) CFunctionProp
 						(
 						efs,
 						efda,

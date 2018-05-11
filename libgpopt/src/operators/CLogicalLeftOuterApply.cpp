@@ -26,12 +26,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalLeftOuterApply::CLogicalLeftOuterApply
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalApply(pmp)
+	CLogicalApply(mp)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 
 	m_fPattern = true;
 }
@@ -47,14 +47,14 @@ CLogicalLeftOuterApply::CLogicalLeftOuterApply
 //---------------------------------------------------------------------------
 CLogicalLeftOuterApply::CLogicalLeftOuterApply
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcrInner,
+	IMemoryPool *mp,
+	CColRefArray *pdrgpcrInner,
 	EOperatorId eopidOriginSubq
 	)
 	:
-	CLogicalApply(pmp, pdrgpcrInner, eopidOriginSubq)
+	CLogicalApply(mp, pdrgpcrInner, eopidOriginSubq)
 {
-	GPOS_ASSERT(0 < pdrgpcrInner->UlLength());
+	GPOS_ASSERT(0 < pdrgpcrInner->Size());
 }
 
 
@@ -80,12 +80,12 @@ CLogicalLeftOuterApply::~CLogicalLeftOuterApply()
 CMaxCard
 CLogicalLeftOuterApply::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.Pdprel(0)->Maxcard());
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.GetRelationalProperties(0)->Maxcard());
 }
 
 //---------------------------------------------------------------------------
@@ -99,16 +99,16 @@ CLogicalLeftOuterApply::Maxcard
 CXformSet *
 CLogicalLeftOuterApply::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterApply2LeftOuterJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterApply2LeftOuterJoinNoCorrelations);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterApply2LeftOuterJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterApply2LeftOuterJoinNoCorrelations);
 
-	return pxfs;
+	return xform_set;
 }
 
 
@@ -123,14 +123,14 @@ CLogicalLeftOuterApply::PxfsCandidates
 COperator *
 CLogicalLeftOuterApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPcr *pdrgpcrInner = CUtils::PdrgpcrRemap(pmp, m_pdrgpcrInner, phmulcr, fMustExist);
+	CColRefArray *pdrgpcrInner = CUtils::PdrgpcrRemap(mp, m_pdrgpcrInner, colref_mapping, must_exist);
 
-	return GPOS_NEW(pmp) CLogicalLeftOuterApply(pmp, pdrgpcrInner, m_eopidOriginSubq);
+	return GPOS_NEW(mp) CLogicalLeftOuterApply(mp, pdrgpcrInner, m_eopidOriginSubq);
 }
 
 // EOF

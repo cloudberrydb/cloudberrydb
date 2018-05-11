@@ -31,10 +31,10 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalIntersectAll::CLogicalIntersectAll
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalSetOp(pmp)
+	CLogicalSetOp(mp)
 {
 	m_fPattern = true;
 }
@@ -49,12 +49,12 @@ CLogicalIntersectAll::CLogicalIntersectAll
 //---------------------------------------------------------------------------
 CLogicalIntersectAll::CLogicalIntersectAll
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcrOutput,
-	DrgDrgPcr *pdrgpdrgpcrInput
+	IMemoryPool *mp,
+	CColRefArray *pdrgpcrOutput,
+	CColRef2dArray *pdrgpdrgpcrInput
 	)
 	:
-	CLogicalSetOp(pmp, pdrgpcrOutput, pdrgpdrgpcrInput)
+	CLogicalSetOp(mp, pdrgpcrOutput, pdrgpdrgpcrInput)
 {
 }
 
@@ -81,19 +81,19 @@ CLogicalIntersectAll::~CLogicalIntersectAll()
 CMaxCard
 CLogicalIntersectAll::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
 	// contradictions produce no rows
-	if (CDrvdPropRelational::Pdprel(exprhdl.Pdp())->Ppc()->FContradiction())
+	if (CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
 	{
 		return CMaxCard(0 /*ull*/);
 	}
 
-	CMaxCard maxcardL = exprhdl.Pdprel(0)->Maxcard();
-	CMaxCard maxcardR = exprhdl.Pdprel(1)->Maxcard();
+	CMaxCard maxcardL = exprhdl.GetRelationalProperties(0)->Maxcard();
+	CMaxCard maxcardR = exprhdl.GetRelationalProperties(1)->Maxcard();
 
 	if (maxcardL <= maxcardR)
 	{
@@ -114,15 +114,15 @@ CLogicalIntersectAll::Maxcard
 COperator *
 CLogicalIntersectAll::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPcr *pdrgpcrOutput = CUtils::PdrgpcrRemap(pmp, m_pdrgpcrOutput, phmulcr, fMustExist);
-	DrgDrgPcr *pdrgpdrgpcrInput = CUtils::PdrgpdrgpcrRemap(pmp, m_pdrgpdrgpcrInput, phmulcr, fMustExist);
+	CColRefArray *pdrgpcrOutput = CUtils::PdrgpcrRemap(mp, m_pdrgpcrOutput, colref_mapping, must_exist);
+	CColRef2dArray *pdrgpdrgpcrInput = CUtils::PdrgpdrgpcrRemap(mp, m_pdrgpdrgpcrInput, colref_mapping, must_exist);
 
-	return GPOS_NEW(pmp) CLogicalIntersectAll(pmp, pdrgpcrOutput, pdrgpdrgpcrInput);
+	return GPOS_NEW(mp) CLogicalIntersectAll(mp, pdrgpcrOutput, pdrgpdrgpcrInput);
 }
 
 //---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ CLogicalIntersectAll::PopCopyWithRemappedColumns
 CKeyCollection *
 CLogicalIntersectAll::PkcDeriveKeys
 	(
-	IMemoryPool *, //pmp,
+	IMemoryPool *, //mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
@@ -156,14 +156,14 @@ CLogicalIntersectAll::PkcDeriveKeys
 CXformSet *
 CLogicalIntersectAll::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
-	(void) pxfs->FExchangeSet(CXform::ExfIntersectAll2LeftSemiJoin);
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfIntersectAll2LeftSemiJoin);
 
-	return pxfs;
+	return xform_set;
 }
 
 //---------------------------------------------------------------------------
@@ -177,36 +177,36 @@ CLogicalIntersectAll::PxfsCandidates
 IStatistics *
 CLogicalIntersectAll::PstatsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
-	DrgDrgPcr *pdrgpdrgpcrInput,
-	DrgPcrs *pdrgpcrsOutput // output of relational children
+	CColRef2dArray *pdrgpdrgpcrInput,
+	CColRefSetArray *output_colrefsets // output of relational children
 	)
 {
-	GPOS_ASSERT(2 == exprhdl.UlArity());
+	GPOS_ASSERT(2 == exprhdl.Arity());
 
-	IStatistics *pstatsOuter = exprhdl.Pstats(0);
-	IStatistics *pstatsInner = exprhdl.Pstats(1);
+	IStatistics *outer_stats = exprhdl.Pstats(0);
+	IStatistics *inner_side_stats = exprhdl.Pstats(1);
 
 	// construct the scalar condition similar to transform that turns an "intersect all" into a "left semi join"
 	// over a window operation on the individual input (for row_number)
 
 	// TODO:  Jan 8th 2012, add the stats for window operation
-	CExpression *pexprScCond = CUtils::PexprConjINDFCond(pmp, pdrgpdrgpcrInput);
-	CColRefSet *pcrsOuterRefs = exprhdl.Pdprel()->PcrsOuter();
-	DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::Pdrgpstatspredjoin
+	CExpression *pexprScCond = CUtils::PexprConjINDFCond(mp, pdrgpdrgpcrInput);
+	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
+	CStatsPredJoinArray *join_preds_stats = CStatsPredUtils::ExtractJoinStatsFromExpr
 														(
-														pmp, 
+														mp, 
 														exprhdl, 
 														pexprScCond, 
-														pdrgpcrsOutput, 
-														pcrsOuterRefs
+														output_colrefsets, 
+														outer_refs
 														);
-	IStatistics *pstatsSemiJoin = CLogicalLeftSemiJoin::PstatsDerive(pmp, pdrgpstatspredjoin, pstatsOuter, pstatsInner);
+	IStatistics *pstatsSemiJoin = CLogicalLeftSemiJoin::PstatsDerive(mp, join_preds_stats, outer_stats, inner_side_stats);
 
 	// clean up
 	pexprScCond->Release();
-	pdrgpstatspredjoin->Release();
+	join_preds_stats->Release();
 
 	return pstatsSemiJoin;
 }
@@ -222,27 +222,27 @@ CLogicalIntersectAll::PstatsDerive
 IStatistics *
 CLogicalIntersectAll::PstatsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
-	DrgPstat * // not used
+	IStatisticsArray * // not used
 	)
 	const
 {
 	GPOS_ASSERT(Esp(exprhdl) > EspNone);
 
-	DrgPcrs *pdrgpcrsOutput = GPOS_NEW(pmp) DrgPcrs(pmp);
-	const ULONG ulSize = m_pdrgpdrgpcrInput->UlLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	CColRefSetArray *output_colrefsets = GPOS_NEW(mp) CColRefSetArray(mp);
+	const ULONG size = m_pdrgpdrgpcrInput->Size();
+	for (ULONG ul = 0; ul < size; ul++)
 	{
-		CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp, (*m_pdrgpdrgpcrInput)[ul]);
-		pdrgpcrsOutput->Append(pcrs);
+		CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, (*m_pdrgpdrgpcrInput)[ul]);
+		output_colrefsets->Append(pcrs);
 	}
-	IStatistics *pstats = PstatsDerive(pmp, exprhdl, m_pdrgpdrgpcrInput, pdrgpcrsOutput);
+	IStatistics *stats = PstatsDerive(mp, exprhdl, m_pdrgpdrgpcrInput, output_colrefsets);
 
 	// clean up
-	pdrgpcrsOutput->Release();
+	output_colrefsets->Release();
 
-	return pstats;
+	return stats;
 }
 
 // EOF

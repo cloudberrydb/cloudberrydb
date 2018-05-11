@@ -78,12 +78,12 @@ const CHAR rgszCostParamNames[CCostModelParamsGPDBLegacy::EcpSentinel][GPOPT_COS
 //---------------------------------------------------------------------------
 CCostModelParamsGPDBLegacy::CCostModelParamsGPDBLegacy
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	m_pmp(pmp)
+	m_mp(mp)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 
 	for (ULONG ul = 0; ul < EcpSentinel; ul++)
 	{
@@ -91,17 +91,17 @@ CCostModelParamsGPDBLegacy::CCostModelParamsGPDBLegacy
 	}
 
 	// populate param array with default param values
-	m_rgpcp[EcpSeqIOBandwidth] = GPOS_NEW(pmp) SCostParam(EcpSeqIOBandwidth, DSeqIOBandwidthVal, DSeqIOBandwidthVal - 128.0, DSeqIOBandwidthVal + 128.0);
-	m_rgpcp[EcpRandomIOBandwidth] = GPOS_NEW(pmp) SCostParam(EcpRandomIOBandwidth, DRandomIOBandwidthVal, DRandomIOBandwidthVal - 8.0, DRandomIOBandwidthVal + 8.0);
-	m_rgpcp[EcpTupProcBandwidth] = GPOS_NEW(pmp) SCostParam(EcpTupProcBandwidth, DTupProcBandwidthVal, DTupProcBandwidthVal - 32.0, DTupProcBandwidthVal + 32.0);
-	m_rgpcp[EcpTupUpdateBandwith] = GPOS_NEW(pmp) SCostParam(EcpTupUpdateBandwith, DTupUpdateBandwidthVal, DTupUpdateBandwidthVal - 32.0, DTupUpdateBandwidthVal + 32.0);
-	m_rgpcp[EcpNetBandwidth] = GPOS_NEW(pmp) SCostParam(EcpNetBandwidth, DNetBandwidthVal, DNetBandwidthVal - 128.0, DNetBandwidthVal + 128.0);
-	m_rgpcp[EcpSegments] = GPOS_NEW(pmp) SCostParam(EcpSegments, DSegmentsVal, DSegmentsVal - 2.0, DSegmentsVal + 2.0);
-	m_rgpcp[EcpNLJOuterFactor] = GPOS_NEW(pmp) SCostParam(EcpNLJOuterFactor, DNLJOuterFactorVal, DNLJOuterFactorVal - 128.0, DNLJOuterFactorVal + 128.0);
-	m_rgpcp[EcpNLJFactor] = GPOS_NEW(pmp) SCostParam(EcpNLJFactor, DNLJFactorVal, DNLJFactorVal - 0.5, DNLJFactorVal + 0.5);
-	m_rgpcp[EcpHJFactor] = GPOS_NEW(pmp) SCostParam(EcpHJFactor, DHJFactorVal, DHJFactorVal - 1.0, DHJFactorVal + 1.0);
-	m_rgpcp[EcpHashFactor] = GPOS_NEW(pmp) SCostParam(EcpHashFactor, DHashFactorVal, DHashFactorVal - 1.0, DHashFactorVal + 1.0);
-	m_rgpcp[EcpDefaultCost] = GPOS_NEW(pmp) SCostParam(EcpDefaultCost, DDefaultCostVal, DDefaultCostVal - 32.0, DDefaultCostVal + 32.0);
+	m_rgpcp[EcpSeqIOBandwidth] = GPOS_NEW(mp) SCostParam(EcpSeqIOBandwidth, DSeqIOBandwidthVal, DSeqIOBandwidthVal - 128.0, DSeqIOBandwidthVal + 128.0);
+	m_rgpcp[EcpRandomIOBandwidth] = GPOS_NEW(mp) SCostParam(EcpRandomIOBandwidth, DRandomIOBandwidthVal, DRandomIOBandwidthVal - 8.0, DRandomIOBandwidthVal + 8.0);
+	m_rgpcp[EcpTupProcBandwidth] = GPOS_NEW(mp) SCostParam(EcpTupProcBandwidth, DTupProcBandwidthVal, DTupProcBandwidthVal - 32.0, DTupProcBandwidthVal + 32.0);
+	m_rgpcp[EcpTupUpdateBandwith] = GPOS_NEW(mp) SCostParam(EcpTupUpdateBandwith, DTupUpdateBandwidthVal, DTupUpdateBandwidthVal - 32.0, DTupUpdateBandwidthVal + 32.0);
+	m_rgpcp[EcpNetBandwidth] = GPOS_NEW(mp) SCostParam(EcpNetBandwidth, DNetBandwidthVal, DNetBandwidthVal - 128.0, DNetBandwidthVal + 128.0);
+	m_rgpcp[EcpSegments] = GPOS_NEW(mp) SCostParam(EcpSegments, DSegmentsVal, DSegmentsVal - 2.0, DSegmentsVal + 2.0);
+	m_rgpcp[EcpNLJOuterFactor] = GPOS_NEW(mp) SCostParam(EcpNLJOuterFactor, DNLJOuterFactorVal, DNLJOuterFactorVal - 128.0, DNLJOuterFactorVal + 128.0);
+	m_rgpcp[EcpNLJFactor] = GPOS_NEW(mp) SCostParam(EcpNLJFactor, DNLJFactorVal, DNLJFactorVal - 0.5, DNLJFactorVal + 0.5);
+	m_rgpcp[EcpHJFactor] = GPOS_NEW(mp) SCostParam(EcpHJFactor, DHJFactorVal, DHJFactorVal - 1.0, DHJFactorVal + 1.0);
+	m_rgpcp[EcpHashFactor] = GPOS_NEW(mp) SCostParam(EcpHashFactor, DHashFactorVal, DHashFactorVal - 1.0, DHashFactorVal + 1.0);
+	m_rgpcp[EcpDefaultCost] = GPOS_NEW(mp) SCostParam(EcpDefaultCost, DDefaultCostVal, DDefaultCostVal - 32.0, DDefaultCostVal + 32.0);
 }
 
 
@@ -135,11 +135,11 @@ CCostModelParamsGPDBLegacy::~CCostModelParamsGPDBLegacy()
 CCostModelParamsGPDBLegacy::SCostParam *
 CCostModelParamsGPDBLegacy::PcpLookup
 	(
-	ULONG ulId
+	ULONG id
 	)
 	const
 {
-	ECostParam ecp = (ECostParam) ulId;
+	ECostParam ecp = (ECostParam) id;
 	GPOS_ASSERT(EcpSentinel > ecp);
 
 	return m_rgpcp[ecp];
@@ -166,7 +166,7 @@ CCostModelParamsGPDBLegacy::PcpLookup
 
 	for (ULONG ul = 0; ul < EcpSentinel; ul++)
 	{
-		if (0 == clib::IStrCmp(szName, rgszCostParamNames[ul]))
+		if (0 == clib::Strcmp(szName, rgszCostParamNames[ul]))
 		{
 			return PcpLookup((ECostParam) ul);
 		}
@@ -187,18 +187,18 @@ CCostModelParamsGPDBLegacy::PcpLookup
 void
 CCostModelParamsGPDBLegacy::SetParam
 	(
-	ULONG ulId,
+	ULONG id,
 	CDouble dVal,
 	CDouble dLowerBound,
 	CDouble dUpperBound
 	)
 {
-	ECostParam ecp = (ECostParam) ulId;
+	ECostParam ecp = (ECostParam) id;
 	GPOS_ASSERT(EcpSentinel > ecp);
 
 	GPOS_DELETE(m_rgpcp[ecp]);
 	m_rgpcp[ecp] = NULL;
-	m_rgpcp[ecp] =  GPOS_NEW(m_pmp) SCostParam(ecp, dVal, dLowerBound, dUpperBound);
+	m_rgpcp[ecp] =  GPOS_NEW(m_mp) SCostParam(ecp, dVal, dLowerBound, dUpperBound);
 }
 
 
@@ -223,11 +223,11 @@ CCostModelParamsGPDBLegacy::SetParam
 
 	for (ULONG ul = 0; ul < EcpSentinel; ul++)
 	{
-		if (0 == clib::IStrCmp(szName, rgszCostParamNames[ul]))
+		if (0 == clib::Strcmp(szName, rgszCostParamNames[ul]))
 		{
 			GPOS_DELETE(m_rgpcp[ul]);
 			m_rgpcp[ul] = NULL;
-			m_rgpcp[ul] = GPOS_NEW(m_pmp) SCostParam(ul, dVal, dLowerBound, dUpperBound);
+			m_rgpcp[ul] = GPOS_NEW(m_mp) SCostParam(ul, dVal, dLowerBound, dUpperBound);
 
 			return;
 		}
@@ -255,15 +255,15 @@ CCostModelParamsGPDBLegacy::OsPrint
 		SCostParam *pcp = PcpLookup((ECostParam) ul);
 		os
 			<< rgszCostParamNames[ul] << " : "
-			<< pcp->DVal()
-			<< "  [" << pcp->DLowerBound() << "," << pcp->DUpperBound() <<"]"
+			<< pcp->Get()
+			<< "  [" << pcp->GetLowerBoundVal() << "," << pcp->GetUpperBoundVal() <<"]"
 			<< std::endl;
 	}
 	return os;
 }
 
 BOOL
-CCostModelParamsGPDBLegacy::FEquals(ICostModelParams *pcm) const
+CCostModelParamsGPDBLegacy::Equals(ICostModelParams *pcm) const
 {
 	CCostModelParamsGPDBLegacy *pcmgOther = dynamic_cast<CCostModelParamsGPDBLegacy *>(pcm);
 	if (NULL == pcmgOther)
@@ -271,7 +271,7 @@ CCostModelParamsGPDBLegacy::FEquals(ICostModelParams *pcm) const
 
 	for (ULONG ul = 0U; ul < GPOS_ARRAY_SIZE(m_rgpcp); ul++)
 	{
-		if (!m_rgpcp[ul]->FEquals(pcmgOther->m_rgpcp[ul]))
+		if (!m_rgpcp[ul]->Equals(pcmgOther->m_rgpcp[ul]))
 			return false;
 	}
 
@@ -279,9 +279,9 @@ CCostModelParamsGPDBLegacy::FEquals(ICostModelParams *pcm) const
 }
 
 const CHAR *
-CCostModelParamsGPDBLegacy::SzNameLookup(ULONG ulId) const
+CCostModelParamsGPDBLegacy::SzNameLookup(ULONG id) const
 {
-	ECostParam ecp = (ECostParam) ulId;
+	ECostParam ecp = (ECostParam) id;
 	GPOS_ASSERT(EcpSentinel > ecp);
 	return rgszCostParamNames[ecp];
 }

@@ -37,13 +37,13 @@ namespace gpdxl
 		private:
 
 			// current array of datums being parsed
-			DrgPdxldatum *m_pdrgpdxldatum;
+		CDXLDatumArray *m_dxl_datum_array;
 			
 			// array of datum combinations
-			DrgPdrgPdxldatum *m_pdrgpdrgpdxldatum;
+			CDXLDatum2dArray *m_datum_array_combination;
 		
 			// direct dispatch spec
-			CDXLDirectDispatchInfo *m_pdxlddinfo;
+			CDXLDirectDispatchInfo *m_direct_dispatch_info;
 			
 			// private copy ctor
 			CParseHandlerDirectDispatchInfo(const CParseHandlerDirectDispatchInfo &);
@@ -51,34 +51,34 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor
 			CParseHandlerDirectDispatchInfo
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// dtor
 			~CParseHandlerDirectDispatchInfo();
 			
 			// accessor to the parsed direct dispatch spec
-			CDXLDirectDispatchInfo *Pdxlddinfo() const;
+			CDXLDirectDispatchInfo *GetDXLDirectDispatchInfo() const;
 	};
 }
 

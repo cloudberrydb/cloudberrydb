@@ -38,7 +38,7 @@ CGroupProxy::CGroupProxy
 {
 	GPOS_ASSERT(NULL != pgroup);
 
-	m_pgroup->m_slock.Lock();
+	m_pgroup->m_lock.Lock();
 }
 
 
@@ -52,7 +52,7 @@ CGroupProxy::CGroupProxy
 //---------------------------------------------------------------------------
 CGroupProxy::~CGroupProxy()
 {
-	m_pgroup->m_slock.Unlock();
+	m_pgroup->m_lock.Unlock();
 }
 
 
@@ -95,13 +95,13 @@ CGroupProxy::MoveDuplicateGExpr
 	GPOS_ASSERT(pgexpr->Pgroup() == m_pgroup);
 
 #ifdef GPOS_DEBUG
-	ULONG ulGExprsOld = m_pgroup->m_listGExprs.UlSize() + m_pgroup->m_listDupGExprs.UlSize();
+	ULONG ulGExprsOld = m_pgroup->m_listGExprs.Size() + m_pgroup->m_listDupGExprs.Size();
 #endif	// GPOS_DEBUG
 
 	m_pgroup->MoveDuplicateGExpr(pgexpr);
 	GPOS_ASSERT
 		(
-		ulGExprsOld == (m_pgroup->m_listGExprs.UlSize() + m_pgroup->m_listDupGExprs.UlSize())
+		ulGExprsOld == (m_pgroup->m_listGExprs.Size() + m_pgroup->m_listDupGExprs.Size())
 		);
 }
 
@@ -116,7 +116,7 @@ CGroupProxy::MoveDuplicateGExpr
 void
 CGroupProxy::InitProperties
 	(
-	CDrvdProp *pdp
+	DrvdPropArray *pdp
 	)
 {
 	m_pgroup->InitProperties(pdp);
@@ -134,10 +134,10 @@ CGroupProxy::InitProperties
 void
 CGroupProxy::InitStats
 	(
-	IStatistics *pstats
+	IStatistics *stats
 	)
 {
-	m_pgroup->InitStats(pstats);
+	m_pgroup->InitStats(stats);
 }
 
 

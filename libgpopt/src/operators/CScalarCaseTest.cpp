@@ -26,14 +26,14 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCaseTest::CScalarCaseTest
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType
+	IMemoryPool *mp,
+	IMDId *mdid_type
 	)
 	:
-	CScalar(pmp),
-	m_pmdidType(pmdidType)
+	CScalar(mp),
+	m_mdid_type(mdid_type)
 {
-	GPOS_ASSERT(pmdidType->FValid());
+	GPOS_ASSERT(mdid_type->IsValid());
 }
 
 //---------------------------------------------------------------------------
@@ -46,12 +46,12 @@ CScalarCaseTest::CScalarCaseTest
 //---------------------------------------------------------------------------
 CScalarCaseTest::~CScalarCaseTest()
 {
-	m_pmdidType->Release();
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCaseTest::UlHash
+//		CScalarCaseTest::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -59,9 +59,9 @@ CScalarCaseTest::~CScalarCaseTest()
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarCaseTest::UlHash() const
+CScalarCaseTest::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(), m_pmdidType->UlHash());
+	return gpos::CombineHashes(COperator::HashValue(), m_mdid_type->HashValue());
 }
 
 //---------------------------------------------------------------------------
@@ -81,14 +81,14 @@ CScalarCaseTest::FInputOrderSensitive() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCaseTest::FMatch
+//		CScalarCaseTest::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarCaseTest::FMatch
+CScalarCaseTest::Matches
 	(
 	COperator *pop
 	)
@@ -99,7 +99,7 @@ CScalarCaseTest::FMatch
 		CScalarCaseTest *popScCaseTest = CScalarCaseTest::PopConvert(pop);
 
 		// match if return types are identical
-		return popScCaseTest->PmdidType()->FEquals(m_pmdidType);
+		return popScCaseTest->MdidType()->Equals(m_mdid_type);
 	}
 
 	return false;

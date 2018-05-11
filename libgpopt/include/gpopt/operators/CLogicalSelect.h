@@ -19,8 +19,8 @@
 namespace gpopt
 {
 
-	typedef CHashMap<CExpression, CExpression, CExpression::UlHash, CUtils::FEqual,
-		CleanupRelease<CExpression>, CleanupRelease<CExpression> > HMPexprPartPred;
+	typedef CHashMap<CExpression, CExpression, CExpression::HashValue, CUtils::Equals,
+		CleanupRelease<CExpression>, CleanupRelease<CExpression> > ExprPredToExprPredPartMap;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -37,13 +37,13 @@ namespace gpopt
 			// private copy ctor
 			CLogicalSelect(const CLogicalSelect &);
 
-			HMPexprPartPred *m_phmPexprPartPred;
+			ExprPredToExprPredPartMap *m_phmPexprPartPred;
 
 		public:
 
 			// ctor
 			explicit
-			CLogicalSelect(IMemoryPool *pmp);
+			CLogicalSelect(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -72,32 +72,32 @@ namespace gpopt
 			
 			// dervive keys
 			virtual 
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;		
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;		
 					
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
 			{
-				return PpcDeriveConstraintFromPredicates(pmp, exprhdl);
+				return PpcDeriveConstraintFromPredicates(mp, exprhdl);
 			}
 
 			// compute partition predicate to pass down to n-th child
 			virtual
 			CExpression *PexprPartPred
 							(
-							IMemoryPool *pmp,
+							IMemoryPool *mp,
 							CExpressionHandle &exprhdl,
 							CExpression *pexprInput,
-							ULONG ulChildIndex
+							ULONG child_index
 							)
 							const;
 
@@ -137,9 +137,9 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 

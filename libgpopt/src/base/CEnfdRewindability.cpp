@@ -96,16 +96,16 @@ CEnfdRewindability::FCompatible
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CEnfdRewindability::UlHash
+//		CEnfdRewindability::HashValue
 //
 //	@doc:
 // 		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CEnfdRewindability::UlHash() const
+CEnfdRewindability::HashValue() const
 {
-	return gpos::UlCombineHashes(m_erm + 1, m_prs->UlHash());
+	return gpos::CombineHashes(m_erm + 1, m_prs->HashValue());
 }
 
 

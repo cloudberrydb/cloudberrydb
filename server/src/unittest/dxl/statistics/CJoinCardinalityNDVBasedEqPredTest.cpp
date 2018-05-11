@@ -15,7 +15,7 @@
 /* These tests test the accuracy of cardinality estimation
  * for equijoins with predicates of the form f(a) = b
  * For a query T1 JOIN T2 WHERE T1.a + 1 = T2.b, the function
- * PstatsJoinArray takes an array of statistics objects
+ * CalcAllJoinStats takes an array of statistics objects
  * for the tables being joined (T1 and T2)
  * and the join predicate(s) (T1.a + 1 = T2.b) and
  * accumulates the statistics in the array according to the
@@ -41,39 +41,39 @@ namespace
 				return CTestUtils::m_pmdpf;
 			}
 
-			DrgPstat *m_pdrgpstat;
+			IStatisticsArray *m_pdrgpstat;
 
 		public:
 
 			Fixture
 					(
-						const CHAR *szFileName
+						const CHAR *file_name
 					) :
 					m_amp(),
 					m_mda(m_amp.Pmp(), CMDCache::Pcache(), CTestUtils::m_sysidDefault, Pmdp()),
-					m_aoc(m_amp.Pmp(), &m_mda, NULL /* pceeval */, CTestUtils::Pcm(m_amp.Pmp())),
-					m_pdrgpstat(GPOS_NEW(m_amp.Pmp()) DrgPstat(m_amp.Pmp()))
+					m_aoc(m_amp.Pmp(), &m_mda, NULL /* pceeval */, CTestUtils::GetCostModel(m_amp.Pmp())),
+					m_pdrgpstat(GPOS_NEW(m_amp.Pmp()) IStatisticsArray(m_amp.Pmp()))
 			{
-				CHAR *szDXLInput = CDXLUtils::SzRead(Pmp(), szFileName);
+				CHAR *szDXLInput = CDXLUtils::Read(Pmp(), file_name);
 				GPOS_CHECK_ABORT;
 				// read the stats from the input xml
-				DrgPdxlstatsderrel *pdrgpdxlstatsderrel = CDXLUtils::PdrgpdxlstatsderrelParseDXL(Pmp(), szDXLInput,
+				CDXLStatsDerivedRelationArray *dxl_derived_rel_stats_array = CDXLUtils::ParseDXLToStatsDerivedRelArray(Pmp(), szDXLInput,
 																								 NULL);
-				DrgPstats *pdrgpstats = CDXLUtils::PdrgpstatsTranslateStats(Pmp(), &m_mda, pdrgpdxlstatsderrel);
+				CStatisticsArray *pdrgpstats = CDXLUtils::ParseDXLToOptimizerStatisticObjArray(Pmp(), &m_mda, dxl_derived_rel_stats_array);
 				GPOS_ASSERT(pdrgpstats != NULL);
-				GPOS_ASSERT(2 == pdrgpstats->UlLength());
-				// PdrgpstatsTranslateStats returns an array of CStatistics (DrgPstats)
-				// and PStatsJoinArray takes an array of IStatistics (DrgPstat) as input
-				// So, iterate through DrgPstats and append members to a DrgPstat
-				ULONG ulArity = pdrgpstats->UlLength();
-				for (ULONG ul = 0; ul < ulArity; ul++)
+				GPOS_ASSERT(2 == pdrgpstats->Size());
+				// ParseDXLToOptimizerStatisticObjArray returns an array of CStatistics (CStatisticsArray)
+				// and PStatsJoinArray takes an array of IStatistics (IStatisticsArray) as input
+				// So, iterate through CStatisticsArray and append members to a IStatisticsArray
+				ULONG arity = pdrgpstats->Size();
+				for (ULONG ul = 0; ul < arity; ul++)
 				{
-					IStatistics *pstats = (*pdrgpstats)[ul];
-					pstats->AddRef();
-					m_pdrgpstat->Append(pstats);
+					IStatistics *stats = (*pdrgpstats)[ul];
+					stats->AddRef();
+					m_pdrgpstat->Append(stats);
 				}
 				pdrgpstats->Release();
-				pdrgpdxlstatsderrel->Release();
+				dxl_derived_rel_stats_array->Release();
 				GPOS_DELETE_ARRAY(szDXLInput);
 			}
 
@@ -87,7 +87,7 @@ namespace
 				return m_amp.Pmp();
 			}
 
-			DrgPstat *PdrgPstat()
+			IStatisticsArray *PdrgPstat()
 			{
 				return m_pdrgpstat;
 			}
@@ -97,7 +97,7 @@ namespace
 namespace gpnaucrates
 {
 	// input xml file has stats for 3 columns from 2 relations, i.e. T1 (0, 1) and T2(2)
-	const CHAR *szFileName = "../data/dxl/statistics/Join-Statistics-NDVBasedCardEstimation-EqPred-Input.xml";
+	const CHAR *file_name = "../data/dxl/statistics/Join-Statistics-NDVBasedCardEstimation-EqPred-Input.xml";
 
 	// test cardinality for predicates of the form: a + 1 = b
 	// for such predicates, NDV based cardinality estimation is applicable
@@ -106,29 +106,29 @@ namespace gpnaucrates
 	{
 		CDouble dRowsExpected(10000); // the minimum cardinality is min(NDV a, NDV b)
 
-		Fixture f(szFileName);
-		IMemoryPool *pmp = f.Pmp();
-		DrgPstat *pdrgpstat = f.PdrgPstat();
+		Fixture f(file_name);
+		IMemoryPool *mp = f.Pmp();
+		IStatisticsArray *statistics_array = f.PdrgPstat();
 
-		CExpression *pexprLgGet = CTestUtils::PexprLogicalGet(pmp);
+		CExpression *pexprLgGet = CTestUtils::PexprLogicalGet(mp);
 		CLogicalGet *popGet = CLogicalGet::PopConvert(pexprLgGet->Pop());
-		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
+		CColRefArray *colref_array = popGet->PdrgpcrOutput();
 
 		// use the colid available in the input xml file
-		CColRef *pcrLeft = (*pdrgpcr)[2];
-		CColRef *pcrRight = (*pdrgpcr)[0];
+		CColRef *pcrLeft = (*colref_array)[2];
+		CColRef *pcrRight = (*colref_array)[0];
 
 		// create a scalar ident
 		// CScalarIdent "column_0000" (0)
-		CExpression *pexprScalarIdentRight = CUtils::PexprScalarIdent(pmp, pcrRight);
+		CExpression *pexprScalarIdentRight = CUtils::PexprScalarIdent(mp, pcrRight);
 
 		// create a scalar op expression column_0002 + 10
 		//  CScalarOp (+)
 		//	|--CScalarIdent "column_0002" (2)
 		//	+--CScalarConst (10)
-		CExpression *pexprScConst = CUtils::PexprScalarConstInt4(pmp, 10 /* iVal */);
-		CExpression *pexprScOp = CUtils::PexprScalarOp(pmp, pcrLeft, pexprScConst, CWStringConst(GPOS_WSZ_LIT("+")),
-													   GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT4_ADD_OP));
+		CExpression *pexprScConst = CUtils::PexprScalarConstInt4(mp, 10 /* val */);
+		CExpression *pexprScOp = CUtils::PexprScalarOp(mp, pcrLeft, pexprScConst, CWStringConst(GPOS_WSZ_LIT("+")),
+													   GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_ADD_OP));
 
 		// create a scalar comparision operator
 		//	+--CScalarCmp (=)
@@ -136,21 +136,21 @@ namespace gpnaucrates
 		//	|  |--CScalarIdent "column_0002" (2)
 		//	|  +--CScalarConst (10)
 		//	+--CScalarIdent "column_0000" (0)
-		CExpression *pScalarCmp = CUtils::PexprScalarEqCmp(pmp, pexprScOp, pexprScalarIdentRight);
+		CExpression *pScalarCmp = CUtils::PexprScalarEqCmp(mp, pexprScOp, pexprScalarIdentRight);
 
-		IStatistics *pstatsJoin = CJoinStatsProcessor::PstatsJoinArray(pmp, pdrgpstat, pScalarCmp,
+		IStatistics *join_stats = CJoinStatsProcessor::CalcAllJoinStats(mp, statistics_array, pScalarCmp,
 																	   IStatistics::EsjtInnerJoin);
 
-		GPOS_ASSERT(NULL != pstatsJoin);
-		CDouble dRowsActual(pstatsJoin->DRows());
+		GPOS_ASSERT(NULL != join_stats);
+		CDouble dRowsActual(join_stats->Rows());
 		GPOS_RESULT eres = GPOS_OK;
 
-		if (std::floor(dRowsActual.DVal()) != dRowsExpected)
+		if (std::floor(dRowsActual.Get()) != dRowsExpected)
 		{
 			eres = GPOS_FAILED;
 		}
 
-		pstatsJoin->Release();
+		join_stats->Release();
 		pexprLgGet->Release();
 		pScalarCmp->Release();
 
@@ -166,31 +166,31 @@ namespace gpnaucrates
 		// 2.5 = 1/.4 -- where .4 is default selectivity
 		CDouble dRowsExpected(76004000);
 
-		Fixture f(szFileName);
-		IMemoryPool *pmp = f.Pmp();
-		DrgPstat *pdrgpstat = f.PdrgPstat();
+		Fixture f(file_name);
+		IMemoryPool *mp = f.Pmp();
+		IStatisticsArray *statistics_array = f.PdrgPstat();
 
-		CExpression *pexprLgGet = CTestUtils::PexprLogicalGet(pmp);
+		CExpression *pexprLgGet = CTestUtils::PexprLogicalGet(mp);
 		CLogicalGet *popGet = CLogicalGet::PopConvert(pexprLgGet->Pop());
-		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
+		CColRefArray *colref_array = popGet->PdrgpcrOutput();
 
 		// use the colid available in the input xml file
-		CColRef *pcrLeft1 = (*pdrgpcr)[2];
-		CColRef *pcrLeft2 = (*pdrgpcr)[1];
-		CColRef *pcrRight = (*pdrgpcr)[0];
+		CColRef *pcrLeft1 = (*colref_array)[2];
+		CColRef *pcrLeft2 = (*colref_array)[1];
+		CColRef *pcrRight = (*colref_array)[0];
 
 		// create a scalar ident
 		// CScalarIdent "column_0000" (0)
-		CExpression *pexprScalarIdentRight = CUtils::PexprScalarIdent(pmp, pcrRight);
-		CExpression *pexprScalarIdentLeft2 = CUtils::PexprScalarIdent(pmp, pcrLeft2);
+		CExpression *pexprScalarIdentRight = CUtils::PexprScalarIdent(mp, pcrRight);
+		CExpression *pexprScalarIdentLeft2 = CUtils::PexprScalarIdent(mp, pcrLeft2);
 
 		// create a scalar op expression column_0002 + column_0001
 		//  CScalarOp (+)
 		//	|--CScalarIdent "column_0002" (2)
 		//	+--CScalarIdent "column_0001" (1)
-		CExpression *pexprScOp = CUtils::PexprScalarOp(pmp, pcrLeft1, pexprScalarIdentLeft2,
+		CExpression *pexprScOp = CUtils::PexprScalarOp(mp, pcrLeft1, pexprScalarIdentLeft2,
 													   CWStringConst(GPOS_WSZ_LIT("+")),
-													   GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT4_ADD_OP));
+													   GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_ADD_OP));
 
 		// create a scalar comparision operator
 		//	+--CScalarCmp (=)
@@ -198,20 +198,20 @@ namespace gpnaucrates
 		//	|  |--CScalarIdent "column_0002" (2)
 		//	|  +--CScalarIdent "column_0001" (1)
 		//	+--CScalarIdent "column_0000" (0)
-		CExpression *pScalarCmp = CUtils::PexprScalarEqCmp(pmp, pexprScOp, pexprScalarIdentRight);
-		IStatistics *pstatsJoin = CJoinStatsProcessor::PstatsJoinArray(pmp, pdrgpstat, pScalarCmp,
+		CExpression *pScalarCmp = CUtils::PexprScalarEqCmp(mp, pexprScOp, pexprScalarIdentRight);
+		IStatistics *join_stats = CJoinStatsProcessor::CalcAllJoinStats(mp, statistics_array, pScalarCmp,
 																	   IStatistics::EsjtInnerJoin);
 
-		GPOS_ASSERT(NULL != pstatsJoin);
-		CDouble dRowsActual(pstatsJoin->DRows());
+		GPOS_ASSERT(NULL != join_stats);
+		CDouble dRowsActual(join_stats->Rows());
 
 		GPOS_RESULT eres = GPOS_OK;
-		if (floor(dRowsActual.DVal()) != dRowsExpected)
+		if (floor(dRowsActual.Get()) != dRowsExpected)
 		{
 			eres = GPOS_FAILED;
 		}
 
-		pstatsJoin->Release();
+		join_stats->Release();
 		pexprLgGet->Release();
 		pScalarCmp->Release();
 
@@ -228,29 +228,29 @@ namespace gpnaucrates
 		// 2.5 = 1/.4 -- where .4 is default selectivity
 		CDouble dRowsExpected(76004000);
 
-		Fixture f(szFileName);
-		IMemoryPool *pmp = f.Pmp();
-		DrgPstat *pdrgpstat = f.PdrgPstat();
+		Fixture f(file_name);
+		IMemoryPool *mp = f.Pmp();
+		IStatisticsArray *statistics_array = f.PdrgPstat();
 
-		CExpression *pexprLgGet = CTestUtils::PexprLogicalGet(pmp);
+		CExpression *pexprLgGet = CTestUtils::PexprLogicalGet(mp);
 		CLogicalGet *popGet = CLogicalGet::PopConvert(pexprLgGet->Pop());
-		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
+		CColRefArray *colref_array = popGet->PdrgpcrOutput();
 
 		// use the colid available in the input xml file
-		CColRef *pcrLeft = (*pdrgpcr)[2];
-		CColRef *pcrRight = (*pdrgpcr)[0];
+		CColRef *pcrLeft = (*colref_array)[2];
+		CColRef *pcrRight = (*colref_array)[0];
 
 		// create a scalar ident
 		// CScalarIdent "column_0000" (0)
-		CExpression *pexprScalarIdentRight = CUtils::PexprScalarIdent(pmp, pcrRight);
+		CExpression *pexprScalarIdentRight = CUtils::PexprScalarIdent(mp, pcrRight);
 
 		// create a scalar op expression column_0002 + 10
 		//  CScalarOp (+)
 		//	|--CScalarIdent "column_0002" (2)
 		//	+--CScalarConst (10)
-		CExpression *pexprScConst = CUtils::PexprScalarConstInt4(pmp, 10 /* iVal */);
-		CExpression *pexprScOp = CUtils::PexprScalarOp(pmp, pcrLeft, pexprScConst, CWStringConst(GPOS_WSZ_LIT("+")),
-													   GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT4_ADD_OP));
+		CExpression *pexprScConst = CUtils::PexprScalarConstInt4(mp, 10 /* val */);
+		CExpression *pexprScOp = CUtils::PexprScalarOp(mp, pcrLeft, pexprScConst, CWStringConst(GPOS_WSZ_LIT("+")),
+													   GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_ADD_OP));
 
 		// create a scalar comparision operator
 		//	+--CScalarCmp (<=)
@@ -258,25 +258,25 @@ namespace gpnaucrates
 		//	|  |--CScalarIdent "column_0002" (2)
 		//	|  +--CScalarConst (10)
 		//	+--CScalarIdent "column_0000" (0)
-		CExpression *pScalarCmp = CUtils::PexprScalarCmp(pmp,
+		CExpression *pScalarCmp = CUtils::PexprScalarCmp(mp,
 														 pexprScOp,
 														 pexprScalarIdentRight,
 														 IMDType::EcmptLEq
 		);
 
-		IStatistics *pstatsJoin = CJoinStatsProcessor::PstatsJoinArray(pmp, pdrgpstat, pScalarCmp,
+		IStatistics *join_stats = CJoinStatsProcessor::CalcAllJoinStats(mp, statistics_array, pScalarCmp,
 																	   IStatistics::EsjtInnerJoin);
 
-		GPOS_ASSERT(NULL != pstatsJoin);
-		CDouble dRowsActual(pstatsJoin->DRows());
+		GPOS_ASSERT(NULL != join_stats);
+		CDouble dRowsActual(join_stats->Rows());
 
 		GPOS_RESULT eres = GPOS_OK;
-		if (floor(dRowsActual.DVal()) != dRowsExpected)
+		if (floor(dRowsActual.Get()) != dRowsExpected)
 		{
 			eres = GPOS_FAILED;
 		}
 
-		pstatsJoin->Release();
+		join_stats->Release();
 		pexprLgGet->Release();
 		pScalarCmp->Release();
 

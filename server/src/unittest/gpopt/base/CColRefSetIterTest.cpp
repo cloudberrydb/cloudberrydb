@@ -47,7 +47,7 @@ CColRefSetIterTest::EresUnittest()
 //		CColRefSetIterTest::EresUnittest_Basics
 //
 //	@doc:
-//		Testing ctors/dtor; and pcr decoding;
+//		Testing ctors/dtor; and colref decoding;
 //		Other functionality already tested in vanilla CBitSetIter;
 //
 //---------------------------------------------------------------------------
@@ -55,27 +55,27 @@ GPOS_RESULT
 CColRefSetIterTest::EresUnittest_Basics()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// Setup an MD cache with a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache());
+	CMDAccessor mda(mp, CMDCache::Pcache());
 	mda.RegisterProvider(CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
 	CAutoOptCtxt aoc
 				(
-				pmp,
+				mp,
 				&mda,
 				NULL /* pceeval */,
-				CTestUtils::Pcm(pmp)
+				CTestUtils::GetCostModel(mp)
 				);
 
 	// get column factory from optimizer context object
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 	CWStringConst strName(GPOS_WSZ_LIT("Test Column"));
 	CName name(&strName);
 
@@ -83,33 +83,33 @@ CColRefSetIterTest::EresUnittest_Basics()
 	const IMDTypeInt4 *pmdtypeint4 = mda.PtMDType<IMDTypeInt4>();
 
 
-	ULONG ulCols = 10;
-	for(ULONG i = 0; i < ulCols; i++)
+	ULONG num_cols = 10;
+	for(ULONG i = 0; i < num_cols; i++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
-		pcrs->Include(pcr);
+		CColRef *colref = col_factory->PcrCreate(pmdtypeint4, default_type_modifier, name);
+		pcrs->Include(colref);
 
-		GPOS_ASSERT(pcrs->FMember(pcr));
+		GPOS_ASSERT(pcrs->FMember(colref));
 	}
 
-	GPOS_ASSERT(pcrs->CElements() == ulCols);
+	GPOS_ASSERT(pcrs->Size() == num_cols);
 
-	ULONG ulCount = 0;
+	ULONG count = 0;
 	CColRefSetIter crsi(*pcrs);
-	while(crsi.FAdvance())
+	while(crsi.Advance())
 	{
 		GPOS_ASSERT((BOOL)crsi);
 
-		CColRef *pcr = crsi.Pcr();
-		GPOS_ASSERT(pcr->Name().FEquals(name));
+		CColRef *colref = crsi.Pcr();
+		GPOS_ASSERT(colref->Name().Equals(name));
 
 		// to avoid unused variable warnings
-		(void) pcr->UlId();
+		(void) colref->Id();
 
-		ulCount++;
+		count++;
 	}
 
-	GPOS_ASSERT(ulCols == ulCount);
+	GPOS_ASSERT(num_cols == count);
 	GPOS_ASSERT(!((BOOL)crsi));
 
 	pcrs->Release();

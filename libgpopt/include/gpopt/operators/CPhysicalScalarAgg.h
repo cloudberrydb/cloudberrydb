@@ -39,12 +39,12 @@ namespace gpopt
 			// ctor
 			CPhysicalScalarAgg
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
-				DrgPcr *pdrgpcrMinimal, // minimal grouping columns based on FD's
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				CColRefArray *pdrgpcrMinimal, // minimal grouping columns based on FD's
 				COperator::EGbAggType egbaggtype,
 				BOOL fGeneratesDuplicates,
-				DrgPcr *pdrgpcrArgDQA,
+				CColRefArray *pdrgpcrArgDQA,
 				BOOL fMultiStage
 				);
 
@@ -75,11 +75,11 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -90,7 +90,7 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties

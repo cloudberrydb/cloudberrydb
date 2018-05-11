@@ -33,19 +33,19 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CCTEInfo::CCTEInfoEntry::CCTEInfoEntry
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprCTEProducer
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_pexprCTEProducer(pexprCTEProducer),
 	m_phmcrulConsumers(NULL),
 	m_fUsed(true)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexprCTEProducer);
 
-	m_phmcrulConsumers = GPOS_NEW(pmp) HMCrUl(pmp);
+	m_phmcrulConsumers = GPOS_NEW(mp) ColRefToUlongMap(mp);
 }
 
 
@@ -59,20 +59,20 @@ CCTEInfo::CCTEInfoEntry::CCTEInfoEntry
 //---------------------------------------------------------------------------
 CCTEInfo::CCTEInfoEntry::CCTEInfoEntry
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprCTEProducer,
 	BOOL fUsed
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_pexprCTEProducer(pexprCTEProducer),
 	m_phmcrulConsumers(NULL),
 	m_fUsed(fUsed)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexprCTEProducer);
 
-	m_phmcrulConsumers = GPOS_NEW(pmp) HMCrUl(pmp);
+	m_phmcrulConsumers = GPOS_NEW(mp) ColRefToUlongMap(mp);
 }
 
 
@@ -102,21 +102,21 @@ CCTEInfo::CCTEInfoEntry::~CCTEInfoEntry()
 void
 CCTEInfo::CCTEInfoEntry::AddConsumerCols
 	(
-	DrgPcr *pdrgpcr
+	CColRefArray *colref_array
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpcr);
+	GPOS_ASSERT(NULL != colref_array);
 
-	const ULONG ulSize = pdrgpcr->UlLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	const ULONG size = colref_array->Size();
+	for (ULONG ul = 0; ul < size; ul++)
 	{
-		CColRef *pcr = (*pdrgpcr)[ul];
-		if (NULL == m_phmcrulConsumers->PtLookup(pcr))
+		CColRef *colref = (*colref_array)[ul];
+		if (NULL == m_phmcrulConsumers->Find(colref))
 		{
 #ifdef GPOS_DEBUG
 			BOOL fSuccess =
 #endif // GPOS_DEBUG
-				m_phmcrulConsumers->FInsert(pcr, GPOS_NEW(m_pmp) ULONG(ul));
+				m_phmcrulConsumers->Insert(colref, GPOS_NEW(m_mp) ULONG(ul));
 			GPOS_ASSERT(fSuccess);
 		}
 	}
@@ -135,12 +135,12 @@ CCTEInfo::CCTEInfoEntry::AddConsumerCols
 ULONG
 CCTEInfo::CCTEInfoEntry::UlConsumerColPos
 	(
-	CColRef *pcr
+	CColRef *colref
 	)
 {
-	GPOS_ASSERT(NULL != pcr);
+	GPOS_ASSERT(NULL != colref);
 
-	ULONG *pul = m_phmcrulConsumers->PtLookup(pcr);
+	ULONG *pul = m_phmcrulConsumers->Find(colref);
 	if (NULL == pul)
 	{
 		return gpos::ulong_max;
@@ -174,17 +174,17 @@ ULONG CCTEInfo::CCTEInfoEntry::UlCTEId() const
 //---------------------------------------------------------------------------
 CCTEInfo::CCTEInfo
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_phmulcteinfoentry(NULL),
 	m_ulNextCTEId(0),
 	m_fEnableInlining(true)
 {
-	GPOS_ASSERT(NULL != pmp);
-	m_phmulcteinfoentry = GPOS_NEW(m_pmp) HMUlCTEInfoEntry(m_pmp);
-	m_phmulprodconsmap = GPOS_NEW(m_pmp) HMUlProdConsMap(m_pmp);
+	GPOS_ASSERT(NULL != mp);
+	m_phmulcteinfoentry = GPOS_NEW(m_mp) UlongToCTEInfoEntryMap(m_mp);
+	m_phmulprodconsmap = GPOS_NEW(m_mp) UlongToProducerConsumerMap(m_mp);
 }
 
 //---------------------------------------------------------------------------
@@ -223,15 +223,15 @@ CCTEInfo::PexprPreprocessCTEProducer
 	// get cte output cols for preprocessing use
 	CColRefSet *pcrsOutput = CLogicalCTEProducer::PopConvert(pexprCTEProducer->Pop())->pcrsOutput();
 
-	CExpression *pexprChildPreprocessed = CExpressionPreprocessor::PexprPreprocess(m_pmp, pexprProducerChild, pcrsOutput);
+	CExpression *pexprChildPreprocessed = CExpressionPreprocessor::PexprPreprocess(m_mp, pexprProducerChild, pcrsOutput);
 
 	COperator *pop = pexprCTEProducer->Pop();
 	pop->AddRef();
 
 	CExpression *pexprProducerPreprocessed
-					= GPOS_NEW(m_pmp) CExpression
+					= GPOS_NEW(m_mp) CExpression
 									(
-									m_pmp,
+									m_mp,
 									pop,
 									pexprChildPreprocessed
 									);
@@ -265,7 +265,7 @@ CCTEInfo::AddCTEProducer
 #ifdef GPOS_DEBUG
 	BOOL fInserted =
 #endif
-	m_phmulcteinfoentry->FInsert(GPOS_NEW(m_pmp) ULONG(ulCTEId), GPOS_NEW(m_pmp) CCTEInfoEntry(m_pmp, pexprProducerToAdd));
+	m_phmulcteinfoentry->Insert(GPOS_NEW(m_mp) ULONG(ulCTEId), GPOS_NEW(m_mp) CCTEInfoEntry(m_mp, pexprProducerToAdd));
 	GPOS_ASSERT(fInserted);
 }
 
@@ -287,7 +287,7 @@ CCTEInfo::ReplaceCTEProducer
 	COperator *pop = pexprCTEProducer->Pop();
 	ULONG ulCTEId = CLogicalCTEProducer::PopConvert(pop)->UlCTEId();
 
-	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->PtLookup(&ulCTEId);
+	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->Find(&ulCTEId);
 	GPOS_ASSERT(NULL != pcteinfoentry);
 
 #ifdef GPOS_DBUG
@@ -301,7 +301,7 @@ CCTEInfo::ReplaceCTEProducer
 #ifdef GPOS_DEBUG
 	BOOL fReplaced =
 #endif
-		m_phmulcteinfoentry->FReplace(&ulCTEId, GPOS_NEW(m_pmp) CCTEInfoEntry(m_pmp, pexprCTEProducerNew, pcteinfoentry->FUsed()));
+		m_phmulcteinfoentry->Replace(&ulCTEId, GPOS_NEW(m_mp) CCTEInfoEntry(m_mp, pexprCTEProducerNew, pcteinfoentry->FUsed()));
 	GPOS_ASSERT(fReplaced);
 }
 
@@ -323,8 +323,8 @@ CCTEInfo::InitDefaultStats
 	// Generate statistics with empty requirement. This handles cases when
 	// the CTE is a N-Ary join that will require statistics calculation
 
-	CReqdPropRelational *prprel = GPOS_NEW(m_pmp) CReqdPropRelational(GPOS_NEW(m_pmp) CColRefSet(m_pmp));
-	(void) pexprCTEProducer->PstatsDerive(prprel, NULL /* pdrgpstatCtxt */);
+	CReqdPropRelational *prprel = GPOS_NEW(m_mp) CReqdPropRelational(GPOS_NEW(m_mp) CColRefSet(m_mp));
+	(void) pexprCTEProducer->PstatsDerive(prprel, NULL /* stats_ctxt */);
 
 	// cleanup
 	prprel->Release();
@@ -348,7 +348,7 @@ CCTEInfo::DeriveProducerStats
 {
 	const ULONG ulCTEId = popConsumer->UlCTEId();
 
-	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->PtLookup(&ulCTEId);
+	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->Find(&ulCTEId);
 	GPOS_ASSERT(NULL != pcteinfoentry);
 
 	CExpression *pexprCTEProducer = pcteinfoentry->Pexpr();
@@ -360,11 +360,11 @@ CCTEInfo::DeriveProducerStats
 
 	// Given the subset of CTE consumer columns needed for statistics derivation,
 	// compute its corresponding set of columns in the CTE Producer
-	CColRefSet *pcrsCTEProducer = CUtils::PcrsCTEProducerColumns(m_pmp, pcrsStat, popConsumer);
-	GPOS_ASSERT(pcrsStat->CElements() == pcrsCTEProducer->CElements());
+	CColRefSet *pcrsCTEProducer = CUtils::PcrsCTEProducerColumns(m_mp, pcrsStat, popConsumer);
+	GPOS_ASSERT(pcrsStat->Size() == pcrsCTEProducer->Size());
 
-	CReqdPropRelational *prprel = GPOS_NEW(m_pmp) CReqdPropRelational(pcrsCTEProducer);
-	(void) pexprCTEProducer->PstatsDerive(prprel, NULL /* pdrgpstatCtxt */);
+	CReqdPropRelational *prprel = GPOS_NEW(m_mp) CReqdPropRelational(pcrsCTEProducer);
+	(void) pexprCTEProducer->PstatsDerive(prprel, NULL /* stats_ctxt */);
 
 	// cleanup
 	prprel->Release();
@@ -385,7 +385,7 @@ CCTEInfo::PexprCTEProducer
 	)
 	const
 {
-	const CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->PtLookup(&ulCTEId);
+	const CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->Find(&ulCTEId);
 	GPOS_ASSERT(NULL != pcteinfoentry);
 
 	return pcteinfoentry->Pexpr();
@@ -409,14 +409,14 @@ CCTEInfo::UlConsumersInParent
 	const
 {
 	// get map of given parent
-	const HMUlConsumerMap *phmulconsumermap = m_phmulprodconsmap->PtLookup(&ulParentId);
+	const UlongToConsumerCounterMap *phmulconsumermap = m_phmulprodconsmap->Find(&ulParentId);
 	if (NULL == phmulconsumermap)
 	{
 		return 0;
 	}
 
 	// find counter of given consumer inside this map
-	const SConsumerCounter *pconsumercounter = phmulconsumermap->PtLookup(&ulConsumerId);
+	const SConsumerCounter *pconsumercounter = phmulconsumermap->Find(&ulConsumerId);
 	if (NULL == pconsumercounter)
 	{
 		return 0;
@@ -445,10 +445,10 @@ CCTEInfo::UlConsumers
 	ULONG ulConsumers = UlConsumersInParent(ulCTEId, gpos::ulong_max);
 
 	// find consumers in other CTEs
-	HMUlCTEInfoEntryIter hmulei(m_phmulcteinfoentry);
-	while (hmulei.FAdvance())
+	UlongToCTEInfoEntryMapIter hmulei(m_phmulcteinfoentry);
+	while (hmulei.Advance())
 	{
-		const CCTEInfoEntry *pcteinfoentry = hmulei.Pt();
+		const CCTEInfoEntry *pcteinfoentry = hmulei.Value();
 		if (pcteinfoentry->FUsed())
 		{
 			ulConsumers += UlConsumersInParent(ulCTEId, pcteinfoentry->UlCTEId());
@@ -474,7 +474,7 @@ CCTEInfo::FUsed
 	)
 	const
 {
-	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->PtLookup(&ulCTEId);
+	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->Find(&ulCTEId);
 	GPOS_ASSERT(NULL != pcteinfoentry);
 	return pcteinfoentry->FUsed();
 }
@@ -496,26 +496,26 @@ CCTEInfo::IncrementConsumers
 )
 {
 	// get map of given parent
-	HMUlConsumerMap *phmulconsumermap = const_cast<HMUlConsumerMap *>(m_phmulprodconsmap->PtLookup(&ulParentCTEId));
+	UlongToConsumerCounterMap *phmulconsumermap = const_cast<UlongToConsumerCounterMap *>(m_phmulprodconsmap->Find(&ulParentCTEId));
 	if (NULL == phmulconsumermap)
 	{
-		phmulconsumermap = GPOS_NEW(m_pmp) HMUlConsumerMap(m_pmp);
+		phmulconsumermap = GPOS_NEW(m_mp) UlongToConsumerCounterMap(m_mp);
 #ifdef GPOS_DEBUG
 		BOOL fInserted =
 #endif
-		m_phmulprodconsmap->FInsert(GPOS_NEW(m_pmp) ULONG(ulParentCTEId), phmulconsumermap);
+		m_phmulprodconsmap->Insert(GPOS_NEW(m_mp) ULONG(ulParentCTEId), phmulconsumermap);
 		GPOS_ASSERT(fInserted);
 	}
 
 	// find counter of given consumer inside this map
-	SConsumerCounter *pconsumercounter = const_cast<SConsumerCounter *>(phmulconsumermap->PtLookup(&ulConsumerId));
+	SConsumerCounter *pconsumercounter = const_cast<SConsumerCounter *>(phmulconsumermap->Find(&ulConsumerId));
 	if (NULL == pconsumercounter)
 	{
 		// no existing counter - start a new one
 #ifdef GPOS_DEBUG
 		BOOL fInserted =
 #endif
-		phmulconsumermap->FInsert(GPOS_NEW(m_pmp) ULONG(ulConsumerId), GPOS_NEW(m_pmp) SConsumerCounter(ulConsumerId));
+		phmulconsumermap->Insert(GPOS_NEW(m_mp) ULONG(ulConsumerId), GPOS_NEW(m_mp) SConsumerCounter(ulConsumerId));
 		GPOS_ASSERT(fInserted);
 	}
 	else
@@ -540,16 +540,16 @@ CCTEInfo::IncrementConsumers
 CCTEReq *
 CCTEInfo::PcterProducers
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CCTEReq *pcter = GPOS_NEW(pmp) CCTEReq(pmp);
+	CCTEReq *pcter = GPOS_NEW(mp) CCTEReq(mp);
 
-	HMUlCTEInfoEntryIter hmulei(m_phmulcteinfoentry);
-	while (hmulei.FAdvance())
+	UlongToCTEInfoEntryMapIter hmulei(m_phmulcteinfoentry);
+	while (hmulei.Advance())
 	{
-		const CCTEInfoEntry *pcteinfoentry = hmulei.Pt();
+		const CCTEInfoEntry *pcteinfoentry = hmulei.Value();
 		pcter->Insert(pcteinfoentry->UlCTEId(), CCTEMap::EctProducer, false /*fRequired*/, NULL /*pdpplan*/);
 	}
 
@@ -565,18 +565,18 @@ CCTEInfo::PcterProducers
 //		Return an array of all stored CTE expressions
 //
 //---------------------------------------------------------------------------
-DrgPexpr *
+CExpressionArray *
 CCTEInfo::PdrgPexpr
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-	HMUlCTEInfoEntryIter hmulei(m_phmulcteinfoentry);
-	while (hmulei.FAdvance())
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	UlongToCTEInfoEntryMapIter hmulei(m_phmulcteinfoentry);
+	while (hmulei.Advance())
 	{
-		CExpression *pexpr = const_cast<CExpression *>(hmulei.Pt()->Pexpr());
+		CExpression *pexpr = const_cast<CExpression *>(hmulei.Value()->Pexpr());
 		pexpr->AddRef();
 		pdrgpexpr->Append(pexpr);
 	}
@@ -597,16 +597,16 @@ CCTEInfo::PdrgPexpr
 void
 CCTEInfo::MapComputedToUsedCols
 	(
-	CColumnFactory *pcf
+	CColumnFactory *col_factory
 	)
 	const
 {
-	HMUlCTEInfoEntryIter hmulei(m_phmulcteinfoentry);
-	while (hmulei.FAdvance())
+	UlongToCTEInfoEntryMapIter hmulei(m_phmulcteinfoentry);
+	while (hmulei.Advance())
 	{
-		CExpression *pexprProducer = const_cast<CExpression *>(hmulei.Pt()->Pexpr());
+		CExpression *pexprProducer = const_cast<CExpression *>(hmulei.Value()->Pexpr());
 		GPOS_ASSERT(NULL != pexprProducer);
-		CQueryContext::MapComputedToUsedCols(pcf, pexprProducer);
+		CQueryContext::MapComputedToUsedCols(col_factory, pexprProducer);
 	}
 }
 
@@ -623,18 +623,18 @@ void
 CCTEInfo::AddConsumerCols
 	(
 	ULONG ulCTEId,
-	DrgPcr *pdrgpcr
+	CColRefArray *colref_array
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpcr);
+	GPOS_ASSERT(NULL != colref_array);
 
-	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->PtLookup(&ulCTEId);
+	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->Find(&ulCTEId);
 	GPOS_ASSERT(NULL != pcteinfoentry);
 
 	CAutoMutex am(pcteinfoentry->m_mutex);
 	am.Lock();
 
-	pcteinfoentry->AddConsumerCols(pdrgpcr);
+	pcteinfoentry->AddConsumerCols(colref_array);
 }
 
 
@@ -650,18 +650,18 @@ ULONG
 CCTEInfo::UlConsumerColPos
 	(
 	ULONG ulCTEId,
-	CColRef *pcr
+	CColRef *colref
 	)
 {
-	GPOS_ASSERT(NULL != pcr);
+	GPOS_ASSERT(NULL != colref);
 
-	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->PtLookup(&ulCTEId);
+	CCTEInfoEntry *pcteinfoentry = m_phmulcteinfoentry->Find(&ulCTEId);
 	GPOS_ASSERT(NULL != pcteinfoentry);
 
 	CAutoMutex am(pcteinfoentry->m_mutex);
 	am.Lock();
 
-	return pcteinfoentry->UlConsumerColPos(pcr);
+	return pcteinfoentry->UlConsumerColPos(colref);
 }
 
 
@@ -680,22 +680,22 @@ void CCTEInfo::FindConsumersInParent
 	CStack<ULONG> *pstack
 	)
 {
-	HMUlConsumerMap *phmulconsumermap = const_cast<HMUlConsumerMap *>(m_phmulprodconsmap->PtLookup(&ulParentId));
+	UlongToConsumerCounterMap *phmulconsumermap = const_cast<UlongToConsumerCounterMap *>(m_phmulprodconsmap->Find(&ulParentId));
 	if (NULL == phmulconsumermap)
 	{
 		// no map found for given parent - there are no consumers inside it
 		return;
 	}
 
-	HMUlConsumerMapIter hmulci(phmulconsumermap);
-	while (hmulci.FAdvance())
+	UlongToConsumerCounterMapIter hmulci(phmulconsumermap);
+	while (hmulci.Advance())
 	{
-		const SConsumerCounter *pconsumercounter = hmulci.Pt();
+		const SConsumerCounter *pconsumercounter = hmulci.Value();
 		ULONG ulConsumerId = pconsumercounter->UlCTEId();
-		if (pbsUnusedConsumers->FBit(ulConsumerId))
+		if (pbsUnusedConsumers->Get(ulConsumerId))
 		{
-			pstack->Push(GPOS_NEW(m_pmp) ULONG(ulConsumerId));
-			pbsUnusedConsumers->FExchangeClear(ulConsumerId);
+			pstack->Push(GPOS_NEW(m_mp) ULONG(ulConsumerId));
+			pbsUnusedConsumers->ExchangeClear(ulConsumerId);
 		}
 	}
 }
@@ -711,22 +711,22 @@ void CCTEInfo::FindConsumersInParent
 void
 CCTEInfo::MarkUnusedCTEs()
 {
-	CBitSet *pbsUnusedConsumers = GPOS_NEW(m_pmp) CBitSet(m_pmp);
+	CBitSet *pbsUnusedConsumers = GPOS_NEW(m_mp) CBitSet(m_mp);
 
 	// start with all CTEs
-	HMUlCTEInfoEntryIter hmulei(m_phmulcteinfoentry);
-	while (hmulei.FAdvance())
+	UlongToCTEInfoEntryMapIter hmulei(m_phmulcteinfoentry);
+	while (hmulei.Advance())
 	{
-		const CCTEInfoEntry *pcteinfoentry = hmulei.Pt();
-		pbsUnusedConsumers->FExchangeSet(pcteinfoentry->UlCTEId());
+		const CCTEInfoEntry *pcteinfoentry = hmulei.Value();
+		pbsUnusedConsumers->ExchangeSet(pcteinfoentry->UlCTEId());
 	}
 
 	// start with the main query and find out which CTEs are used there
-	CStack<ULONG> stack(m_pmp);
+	CStack<ULONG> stack(m_mp);
 	FindConsumersInParent(gpos::ulong_max, pbsUnusedConsumers, &stack);
 
 	// repeatedly find CTEs that are used in these CTEs
-	while (!stack.FEmpty())
+	while (!stack.IsEmpty())
 	{
 		// get one CTE id from list, and see which consumers are inside this CTE
 		ULONG *pulCTEId = stack.Pop();
@@ -735,11 +735,11 @@ CCTEInfo::MarkUnusedCTEs()
 	}
 
 	// now the only CTEs remaining in the bitset are the unused ones. mark them as such
-	HMUlCTEInfoEntryIter hmulei2(m_phmulcteinfoentry);
-	while (hmulei2.FAdvance())
+	UlongToCTEInfoEntryMapIter hmulei2(m_phmulcteinfoentry);
+	while (hmulei2.Advance())
 	{
-		CCTEInfoEntry *pcteinfoentry = const_cast<CCTEInfoEntry *>(hmulei2.Pt());
-		if (pbsUnusedConsumers->FBit(pcteinfoentry->UlCTEId()))
+		CCTEInfoEntry *pcteinfoentry = const_cast<CCTEInfoEntry *>(hmulei2.Value());
+		if (pbsUnusedConsumers->Get(pcteinfoentry->UlCTEId()))
 		{
 			pcteinfoentry->MarkUnused();
 		}
@@ -758,39 +758,39 @@ CCTEInfo::MarkUnusedCTEs()
 //		to their corresponding producer columns in the given column array
 //
 //---------------------------------------------------------------------------
-HMUlCr *
+UlongToColRefMap *
 CCTEInfo::PhmulcrConsumerToProducer
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ULONG ulCTEId,
 	CColRefSet *pcrs, // set of columns to check
-	DrgPcr *pdrgpcrProducer // producer columns
+	CColRefArray *pdrgpcrProducer // producer columns
 	)
 {
 	GPOS_ASSERT(NULL != pcrs);
 	GPOS_ASSERT(NULL != pdrgpcrProducer);
 
-	HMUlCr *phmulcr = GPOS_NEW(pmp) HMUlCr(pmp);
+	UlongToColRefMap *colref_mapping = GPOS_NEW(mp) UlongToColRefMap(mp);
 
 	CColRefSetIter crsi(*pcrs);
-	while (crsi.FAdvance())
+	while (crsi.Advance())
 	{
-		CColRef *pcr = crsi.Pcr();
-		ULONG ulPos = UlConsumerColPos(ulCTEId, pcr);
+		CColRef *colref = crsi.Pcr();
+		ULONG ulPos = UlConsumerColPos(ulCTEId, colref);
 
 		if (gpos::ulong_max != ulPos)
 		{
-			GPOS_ASSERT(ulPos < pdrgpcrProducer->UlLength());
+			GPOS_ASSERT(ulPos < pdrgpcrProducer->Size());
 
 			CColRef *pcrProducer = (*pdrgpcrProducer)[ulPos];
 #ifdef GPOS_DEBUG
 			BOOL fSuccess =
 #endif // GPOS_DEBUG
-				phmulcr->FInsert(GPOS_NEW(pmp) ULONG(pcr->UlId()), pcrProducer);
+				colref_mapping->Insert(GPOS_NEW(mp) ULONG(colref->Id()), pcrProducer);
 			GPOS_ASSERT(fSuccess);
 		}
 	}
-	return phmulcr;
+	return colref_mapping;
 }
 
 

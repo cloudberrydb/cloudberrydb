@@ -39,16 +39,16 @@ namespace gpopt
 		private:
 
 			// metadata id in the catalog
-			IMDId *m_pmdidOp;
+			IMDId *m_mdid_op;
 
 			// return type id or NULL if it can be inferred from the metadata
-			IMDId *m_pmdidReturnType;
+			IMDId *m_return_type_mdid;
 			
 			// scalar operator name
 			const CWStringConst *m_pstrOp;
 
 			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 
 			// is operator return type BOOL?
 			BOOL m_fBoolReturnType;
@@ -64,9 +64,9 @@ namespace gpopt
 			// ctor
 			CScalarOp
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidOp,
-				IMDId *pmdidReturnType,
+				IMemoryPool *mp,
+				IMDId *mdid_op,
+				IMDId *return_type_mdid,
 				const CWStringConst *pstrOp
 				);
 
@@ -74,8 +74,8 @@ namespace gpopt
 			virtual
 			~CScalarOp()
 			{
-				m_pmdidOp->Release();
-				CRefCount::SafeRelease(m_pmdidReturnType);
+				m_mdid_op->Release();
+				CRefCount::SafeRelease(m_return_type_mdid);
 				GPOS_DELETE(m_pstrOp);
 			}
 
@@ -95,17 +95,17 @@ namespace gpopt
 			}
 			
 			// accessor to the return type field
-			IMDId *PmdidReturnType() const;
+			IMDId *GetReturnTypeMdId() const;
 
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const;
@@ -114,9 +114,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -141,13 +141,13 @@ namespace gpopt
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// name of the scalar operator
 			const CWStringConst *Pstr() const;
 
 			// metadata id
-			IMDId *PmdidOp() const;
+			IMDId *MdIdOp() const;
 
 			// print
 			virtual

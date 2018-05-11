@@ -26,29 +26,29 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCoerceToDomain::CScalarCoerceToDomain
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	INT iTypeModifier,
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	INT type_modifier,
 	ECoercionForm ecf,
-	INT iLoc
+	INT location
 	)
 	:
-	CScalarCoerceBase(pmp, pmdidType, iTypeModifier, ecf, iLoc),
-	m_fReturnsNullOnNullInput(false)
+	CScalarCoerceBase(mp, mdid_type, type_modifier, ecf, location),
+	m_returns_null_on_null_input(false)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCoerceToDomain::FMatch
+//		CScalarCoerceToDomain::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarCoerceToDomain::FMatch
+CScalarCoerceToDomain::Matches
 	(
 	COperator *pop
 	)
@@ -58,10 +58,10 @@ CScalarCoerceToDomain::FMatch
 	{
 		CScalarCoerceToDomain *popCoerce = CScalarCoerceToDomain::PopConvert(pop);
 
-		return popCoerce->PmdidType()->FEquals(PmdidType()) &&
-				popCoerce->ITypeModifier() == ITypeModifier() &&
+		return popCoerce->MdidType()->Equals(MdidType()) &&
+				popCoerce->TypeModifier() == TypeModifier() &&
 				popCoerce->Ecf() == Ecf() &&
-				popCoerce->ILoc() == ILoc();
+				popCoerce->Location() == Location();
 	}
 
 	return false;
@@ -79,11 +79,11 @@ CScalarCoerceToDomain::FMatch
 CScalar::EBoolEvalResult
 CScalarCoerceToDomain::Eber
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 	const
 {
-	if (m_fReturnsNullOnNullInput)
+	if (m_returns_null_on_null_input)
 	{
 		return EberNullOnAnyNullChild(pdrgpulChildren);
 	}

@@ -37,7 +37,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CPhysicalLeftAntiSemiNLJoin(IMemoryPool *pmp);
+			CPhysicalLeftAntiSemiNLJoin(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -65,11 +65,11 @@ namespace gpopt
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 			

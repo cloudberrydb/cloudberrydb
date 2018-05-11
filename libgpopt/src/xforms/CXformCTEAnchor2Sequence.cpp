@@ -28,17 +28,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformCTEAnchor2Sequence::CXformCTEAnchor2Sequence
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalCTEAnchor(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))
+				mp,
+				GPOS_NEW(mp) CLogicalCTEAnchor(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))
 				)
 		)
 {}
@@ -58,11 +58,11 @@ CXformCTEAnchor2Sequence::Exfp
 	)
 	const
 {
-	ULONG ulId = CLogicalCTEAnchor::PopConvert(exprhdl.Pop())->UlId();
-	const ULONG ulConsumers = COptCtxt::PoctxtFromTLS()->Pcteinfo()->UlConsumers(ulId);
+	ULONG id = CLogicalCTEAnchor::PopConvert(exprhdl.Pop())->Id();
+	const ULONG ulConsumers = COptCtxt::PoctxtFromTLS()->Pcteinfo()->UlConsumers(id);
 	GPOS_ASSERT(0 < ulConsumers);
 
-	if (1 == ulConsumers && CXformUtils::FInlinableCTE(ulId))
+	if (1 == ulConsumers && CXformUtils::FInlinableCTE(id))
 	{
 		return CXform::ExfpNone;
 	}
@@ -92,11 +92,11 @@ CXformCTEAnchor2Sequence::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalCTEAnchor *popCTEAnchor = CLogicalCTEAnchor::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
-	ULONG ulId = popCTEAnchor->UlId();
+	ULONG id = popCTEAnchor->Id();
 
-	CExpression *pexprProducer = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(ulId);
+	CExpression *pexprProducer = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(id);
 	GPOS_ASSERT(NULL != pexprProducer);
 
 	pexprProducer->AddRef();
@@ -107,10 +107,10 @@ CXformCTEAnchor2Sequence::Transform
 
 	// create logical sequence
 	CExpression *pexprSequence =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CLogicalSequence(pmp),
+			mp,
+			GPOS_NEW(mp) CLogicalSequence(mp),
 			pexprProducer,
 			pexprChild
 			);

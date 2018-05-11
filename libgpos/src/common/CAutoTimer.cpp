@@ -29,8 +29,8 @@ CAutoTimer::CAutoTimer
 	BOOL fPrint
 	)
 	: 
-	m_sz(sz),
-	m_fPrint(fPrint)
+	m_timer_text_label(sz),
+	m_print_text_label(fPrint)
 {
 	GPOS_ASSERT(NULL != sz);	
 }
@@ -46,14 +46,14 @@ CAutoTimer::CAutoTimer
 //---------------------------------------------------------------------------
 CAutoTimer::~CAutoTimer() throw()
 {
-	if (m_fPrint)
+	if (m_print_text_label)
 	{
 		// suspend cancellation - destructors should not throw
 		CAutoSuspendAbort asa;
 
-		ULONG ulElapsedTimeMS = m_clock.UlElapsedMS();
+		ULONG ulElapsedTimeMS = m_clock.ElapsedMS();
 
-		GPOS_TRACE_FORMAT("timer:%s: %dms", m_sz, ulElapsedTimeMS);
+		GPOS_TRACE_FORMAT("timer:%s: %dms", m_timer_text_label, ulElapsedTimeMS);
 	}
 }
 

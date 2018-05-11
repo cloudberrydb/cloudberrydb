@@ -33,17 +33,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSelect2DynamicBitmapBoolOp::CXformSelect2DynamicBitmapBoolOp
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalSelect(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalDynamicGet(pmp)),  // logical child
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))  		// predicate tree
+				mp,
+				GPOS_NEW(mp) CLogicalSelect(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalDynamicGet(mp)),  // logical child
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))  		// predicate tree
 				)
 		)
 {}
@@ -87,13 +87,13 @@ CXformSelect2DynamicBitmapBoolOp::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
-	CExpression *pexprResult = CXformUtils::PexprSelect2BitmapBoolOp(pmp, pexpr);
+	IMemoryPool *mp = pxfctxt->Pmp();
+	CExpression *pexprResult = CXformUtils::PexprSelect2BitmapBoolOp(mp, pexpr);
 
 	if (NULL != pexprResult)
 	{
 		// create a redundant SELECT on top of DynamicIndexGet to be able to use predicate in partition elimination
-		CExpression *pexprRedundantSelect = CXformUtils::PexprRedundantSelectForDynamicIndex(pmp, pexprResult);
+		CExpression *pexprRedundantSelect = CXformUtils::PexprRedundantSelectForDynamicIndex(mp, pexprResult);
 		pexprResult->Release();
 
 		pxfres->Add(pexprRedundantSelect);

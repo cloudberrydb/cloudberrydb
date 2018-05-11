@@ -28,7 +28,7 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 void SetTraceflags
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const CBitSet *pbsInput, // set of trace flags to be enabled
 	CBitSet **ppbsEnabled,   // output: enabled trace flags before function is called
 	CBitSet **ppbsDisabled   // output: disabled trace flags before function is called
@@ -49,19 +49,19 @@ void SetTraceflags
 	CAutoTraceFlag atf3(EtraceSimulateNetError, false);
 	CAutoTraceFlag atf4(EtraceSimulateIOError, false);
 
-	*ppbsEnabled = GPOS_NEW(pmp) CBitSet(pmp, EopttraceSentinel);
-	*ppbsDisabled = GPOS_NEW(pmp) CBitSet(pmp, EopttraceSentinel);
+	*ppbsEnabled = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
+	*ppbsDisabled = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
 	CBitSetIter bsiter(*pbsInput);
-	while (bsiter.FAdvance())
+	while (bsiter.Advance())
 	{
-		ULONG ulTraceFlag = bsiter.UlBit();
+		ULONG ulTraceFlag = bsiter.Bit();
 		if (GPOS_FTRACE(ulTraceFlag))
 		{
 			// set trace flag in the enabled set
 #ifdef GPOS_DEBUG
 			BOOL fSet =
 #endif	// GPOS_DEBUG
-				(*ppbsEnabled)->FExchangeSet(ulTraceFlag);
+				(*ppbsEnabled)->ExchangeSet(ulTraceFlag);
 			GPOS_ASSERT(!fSet);
 		}
 		else
@@ -70,7 +70,7 @@ void SetTraceflags
 #ifdef GPOS_DEBUG
 			BOOL fSet =
 #endif	// GPOS_DEBUG
-				(*ppbsDisabled)->FExchangeSet(ulTraceFlag);
+				(*ppbsDisabled)->ExchangeSet(ulTraceFlag);
 			GPOS_ASSERT(!fSet);
 		}
 
@@ -110,16 +110,16 @@ void ResetTraceflags
 	CAutoTraceFlag atf4(EtraceSimulateIOError, false);
 
 	CBitSetIter bsiterEnabled(*pbsEnabled);
-	while (bsiterEnabled.FAdvance())
+	while (bsiterEnabled.Advance())
 	{
-		ULONG ulTraceFlag = bsiterEnabled.UlBit();
+		ULONG ulTraceFlag = bsiterEnabled.Bit();
 		GPOS_SET_TRACE(ulTraceFlag);
 	}
 
 	CBitSetIter bsiterDisabled(*pbsDisabled);
-	while (bsiterDisabled.FAdvance())
+	while (bsiterDisabled.Advance())
 	{
-		ULONG ulTraceFlag = bsiterDisabled.UlBit();
+		ULONG ulTraceFlag = bsiterDisabled.Bit();
 		GPOS_UNSET_TRACE(ulTraceFlag);
 	}
 }

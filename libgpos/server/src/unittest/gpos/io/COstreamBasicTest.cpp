@@ -79,14 +79,14 @@ GPOS_RESULT
 COstreamBasicTest::EresUnittest_Strings()
 {
 	// define basic stream over wide char out stream
-	COstreamBasic os(&std::wcout);
+	COstreamBasic ostream(&std::wcout);
 	
 	// all non-string, non-number types
 	WCHAR wsz[] = GPOS_WSZ_LIT("test string for wide chars");
 	CHAR sz[] = "test string for regular chars";
 
-	os << wsz << std::endl;
-	os << sz << std::endl;
+	ostream << wsz << std::endl;
+	ostream << sz << std::endl;
 	
 	return GPOS_OK;
 }

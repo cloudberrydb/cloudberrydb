@@ -56,12 +56,12 @@ GPOS_RESULT
 CDecorrelatorTest::EresUnittest_Decorrelate()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 	
 	// test cases
 	typedef CExpression *(*Pfpexpr)(IMemoryPool*);
@@ -78,36 +78,36 @@ CDecorrelatorTest::EresUnittest_Decorrelate()
 		// install opt context in TLS
 		CAutoOptCtxt aoc
 					(
-					pmp,
+					mp,
 					&mda,
 					NULL,  /* pceeval */
-					CTestUtils::Pcm(pmp)
+					CTestUtils::GetCostModel(mp)
 					);
 
 		// generate expression
-		CExpression *pexpr = rgpf[ulCase](pmp);
+		CExpression *pexpr = rgpf[ulCase](mp);
 
-		CWStringDynamic str(pmp);
+		CWStringDynamic str(mp);
 		COstreamString oss(&str);
 		oss	<< std::endl << "INPUT:" << std::endl << *pexpr << std::endl;
-		GPOS_TRACE(str.Wsz());
+		GPOS_TRACE(str.GetBuffer());
 		str.Reset();
 
 		CExpression *pexprResult = NULL;
-		DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 #ifdef GPOS_DEBUG
 		BOOL fSuccess = 
 #endif // GPOS_DEBUG
-		CDecorrelator::FProcess(pmp, pexpr, false /*fEqualityOnly*/, &pexprResult, pdrgpexpr);
+		CDecorrelator::FProcess(mp, pexpr, false /*fEqualityOnly*/, &pexprResult, pdrgpexpr);
 		GPOS_ASSERT(fSuccess);
 		
 		// convert residuals into one single conjunct
-		CExpression *pexprResidual = CPredicateUtils::PexprConjunction(pmp, pdrgpexpr);
+		CExpression *pexprResidual = CPredicateUtils::PexprConjunction(mp, pdrgpexpr);
 
 		oss	<< std::endl << "RESIDUAL RELATIONAL:" << std::endl << *pexprResult << std::endl;
 		oss	<< std::endl << "RESIDUAL SCALAR:" << std::endl << *pexprResidual << std::endl;
 
-		GPOS_TRACE(str.Wsz());
+		GPOS_TRACE(str.GetBuffer());
 		str.Reset();
 
 		pexprResult->Release();

@@ -23,27 +23,27 @@ using namespace gpos;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStackDescriptor::IGetStackFrames
+//		CStackDescriptor::GetStackFrames
 //
 //	@doc:
 //		Method called by walkcontext function to store return addresses
 //
 //---------------------------------------------------------------------------
 INT
-CStackDescriptor::IGetStackFrames
+CStackDescriptor::GetStackFrames
 	(
-	ULONG_PTR ulpFp,
+	ULONG_PTR func_ptr,
 	INT sig __attribute__((unused)),
-	void *pvContext
+	void *context
 	)
 {
-	CStackDescriptor *psd = (CStackDescriptor *) pvContext;
+	CStackDescriptor *stack_descriptor = (CStackDescriptor *) context;
 
 	// check if max number of frames has been reached
-	if (psd->m_ulDepth < GPOS_STACK_TRACE_DEPTH)
+	if (stack_descriptor->m_depth < GPOS_STACK_TRACE_DEPTH)
 	{
 		// set frame address
-		psd->m_rgpvAddresses[psd->m_ulDepth++] = (void *) ulpFp;
+		stack_descriptor->m_array_of_addresses[stack_descriptor->m_depth++] = (void *) func_ptr;
 	}
 
 	return 0;
@@ -60,33 +60,33 @@ CStackDescriptor::IGetStackFrames
 void
 CStackDescriptor::BackTrace
 	(
-	ULONG ulSkip
+	ULONG top_frames_to_skip
 	)
 {
 	// reset stack depth
 	Reset();
 
 	// retrieve stack context
-	ucontext_t uc;
-	if (0 != clib::IGetContext(&uc))
+	ucontext_t context;
+	if (0 != clib::GetContext(&context))
 	{
 		return;
 	}
 
 	// walk stack context to get stack addresses
-	if (0 != clib::IWalkContext(&uc, IGetStackFrames, this))
+	if (0 != clib::WalkContext(&context, GetStackFrames, this))
 	{
 		return;
 	}
 
 	// skip top frames
-	if (ulSkip <= m_ulDepth)
+	if (top_frames_to_skip <= m_depth)
 	{
-		m_ulDepth -= ulSkip;
+		m_depth -= top_frames_to_skip;
 
-		for (ULONG i = 0; i < m_ulDepth; i++)
+		for (ULONG i = 0; i < m_depth; i++)
 		{
-			m_rgpvAddresses[i] = m_rgpvAddresses[i + ulSkip];
+			m_array_of_addresses[i] = m_array_of_addresses[i + top_frames_to_skip];
 		}
 	}
 }
@@ -104,55 +104,55 @@ CStackDescriptor::BackTrace
 void
 CStackDescriptor::BackTrace
 	(
-	ULONG ulSkip
+	ULONG top_frames_to_skip
 	)
 {
 	// get base pointer of current frame
-	ULONG_PTR ulpCurrFrame;
-	GPOS_GET_FRAME_POINTER(ulpCurrFrame);
+	ULONG_PTR current_frame;
+	GPOS_GET_FRAME_POINTER(current_frame);
 
 	// reset stack depth
 	Reset();
 
 	// pointer to next frame in stack
-	void **ppvNextFrame = (void**)ulpCurrFrame;
+	void **next_frame = (void**)current_frame;
 
 	// get stack start address
-	ULONG_PTR ulpStackStart = 0;
-	IWorker *pwrkr = IWorker::PwrkrSelf();
-	if (NULL == pwrkr)
+	ULONG_PTR stack_start = 0;
+	IWorker *worker = IWorker::Self();
+	if (NULL == worker)
 	{
 		// no worker in stack, return immediately
 		return;
 	}
 
 	// get address from worker
-	ulpStackStart = pwrkr->UlpStackStart();
+	stack_start = worker->GetStackStart();
 
 	// consider the first GPOS_STACK_TRACE_DEPTH frames below worker object
-	for (ULONG ulFrame = 0; ulFrame < GPOS_STACK_TRACE_DEPTH; ulFrame++)
+	for (ULONG frame_counter = 0; frame_counter < GPOS_STACK_TRACE_DEPTH; frame_counter++)
 	{
 		// check if the frame pointer is after stack start and before previous frame
-		if ((ULONG_PTR) *ppvNextFrame > ulpStackStart ||
-			(ULONG_PTR) *ppvNextFrame < (ULONG_PTR) ppvNextFrame)
+		if ((ULONG_PTR) *next_frame > stack_start ||
+			(ULONG_PTR) *next_frame < (ULONG_PTR) next_frame)
 		{
 			break;
 	 	}
 
 		// skip top frames
-		if (0 < ulSkip)
+		if (0 < top_frames_to_skip)
 		{
-			ulSkip--;
+			top_frames_to_skip--;
 		}
 		else
 		{
 			// get return address (one above the base pointer)
-			ULONG_PTR *pulpIP = (ULONG_PTR*)(ppvNextFrame + 1);
-			m_rgpvAddresses[m_ulDepth++] = (void *) *pulpIP;
+			ULONG_PTR *frame_address = (ULONG_PTR*)(next_frame + 1);
+			m_array_of_addresses[m_depth++] = (void *) *frame_address;
 		}
 
 		// move to next frame
-		ppvNextFrame = (void**)*ppvNextFrame;
+		next_frame = (void**)*next_frame;
 	}
 }
 
@@ -181,54 +181,54 @@ CStackDescriptor::BackTrace
 void
 CStackDescriptor::AppendSymbolInfo
 	(
-	CWString *pws,
-	CHAR *szDemangleBuf,
+	CWString *ws,
+	CHAR *demangling_symbol_buffer,
 	SIZE_T size,
-	const DL_INFO &info,
-	ULONG ulIdx
+	const DL_INFO &symbol_info,
+	ULONG index
 	)
 	const
 {
-	const CHAR* szSymbol = szDemangleBuf;
+	const CHAR* symbol_name = demangling_symbol_buffer;
 
 	// resolve symbol name
-	if (info.dli_sname)
+	if (symbol_info.dli_sname)
 	{
-		INT iStatus = 0;
-		szSymbol = info.dli_sname;
+		INT status = 0;
+		symbol_name = symbol_info.dli_sname;
 
 		// demangle C++ symbol
-		CHAR *pcDemangled = clib::SzDemangle(szSymbol, szDemangleBuf, &size, &iStatus);
+		CHAR *demangled_symbol = clib::Demangle(symbol_name, demangling_symbol_buffer, &size, &status);
 		GPOS_ASSERT(size <= GPOS_STACK_SYMBOL_SIZE);
 		
-		if (0 == iStatus)
+		if (0 == status)
 		{
-			// skip args and template info
+			// skip args and template symbol_info
 			for (ULONG ul = 0; ul < size; ul++)
 			{
-				if ('(' == szDemangleBuf[ul] || '<' == szDemangleBuf[ul])
+				if ('(' == demangling_symbol_buffer[ul] || '<' == demangling_symbol_buffer[ul])
 				{
-					szDemangleBuf[ul] = '\0';
+					demangling_symbol_buffer[ul] = '\0';
 					break;
 				}
 			}
 
-			szSymbol = pcDemangled;
+			symbol_name = demangled_symbol;
 		}
 	}
 	else
 	{
-		szSymbol = "<symbol not found>";
+		symbol_name = "<symbol not found>";
 	}
 
-	// format symbol info
-	pws->AppendFormat
+	// format symbol symbol_info
+	ws->AppendFormat
 		(
 		GPOS_WSZ_LIT("%-4d 0x%016lx %s + %lu\n"),
-		ulIdx + 1,										// frame no.
-		(long unsigned int) m_rgpvAddresses[ulIdx],		// current address in frame
-		szSymbol,										// symbol name
-		(long unsigned int) m_rgpvAddresses[ulIdx] - (ULONG_PTR) info.dli_saddr
+		index + 1,										// frame no.
+		(long unsigned int) m_array_of_addresses[index],		// current address in frame
+		symbol_name,										// symbol name
+		(long unsigned int) m_array_of_addresses[index] - (ULONG_PTR) symbol_info.dli_saddr
 														// offset from frame start
 		);
 }
@@ -245,28 +245,28 @@ CStackDescriptor::AppendSymbolInfo
 void
 CStackDescriptor::AppendTrace
 	(
-	CWString *pws,
-	ULONG ulDepth
+	CWString *ws,
+	ULONG depth
 	)
 	const
 {
-	GPOS_ASSERT(GPOS_STACK_TRACE_DEPTH >= m_ulDepth && "Stack exceeds maximum depth");
+	GPOS_ASSERT(GPOS_STACK_TRACE_DEPTH >= m_depth && "Stack exceeds maximum depth");
 
-	// symbol info
-	Dl_info info;
+	// symbol symbol_info
+	Dl_info symbol_info;
 
 
 	// buffer for symbol demangling
-	CHAR szDemangleBuf[GPOS_STACK_SYMBOL_SIZE];
+	CHAR demangling_symbol_buffer[GPOS_STACK_SYMBOL_SIZE];
 	
-	// print info for frames in stack
-	for (ULONG i = 0; i < m_ulDepth && i < ulDepth; i++)
+	// print symbol_info for frames in stack
+	for (ULONG i = 0; i < m_depth && i < depth; i++)
 	{
 		// resolve address
-		clib::DlAddr(m_rgpvAddresses[i], &info);
+		clib::Dladdr(m_array_of_addresses[i], &symbol_info);
 
 		// get symbol description
-		AppendSymbolInfo(pws, szDemangleBuf, GPOS_STACK_SYMBOL_SIZE, info, i);
+		AppendSymbolInfo(ws, demangling_symbol_buffer, GPOS_STACK_SYMBOL_SIZE, symbol_info, i);
 	}
 }
 
@@ -283,36 +283,36 @@ void
 CStackDescriptor::AppendTrace
 	(
 	IOstream &os,
-	ULONG ulDepth
+	ULONG depth
 	)
 	const
 {
 	WCHAR wsz[GPOS_STACK_DESCR_TRACE_BUF];
 	CWStringStatic str(wsz, GPOS_ARRAY_SIZE(wsz));
 
-	AppendTrace(&str, ulDepth);
-	os << str.Wsz();
+	AppendTrace(&str, depth);
+	os << str.GetBuffer();
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStackDescriptor::UlHash
+//		CStackDescriptor::HashValue
 //
 //	@doc:
 //		Get hash value for stored stack
 //
 //---------------------------------------------------------------------------
 ULONG
-CStackDescriptor::UlHash() const
+CStackDescriptor::HashValue() const
 {
-	GPOS_ASSERT(0 < m_ulDepth && "No stack to hash");
-	GPOS_ASSERT(GPOS_STACK_TRACE_DEPTH >= m_ulDepth && "Stack exceeds maximum depth");
+	GPOS_ASSERT(0 < m_depth && "No stack to hash");
+	GPOS_ASSERT(GPOS_STACK_TRACE_DEPTH >= m_depth && "Stack exceeds maximum depth");
 
-	return gpos::UlHashByteArray
+	return gpos::HashByteArray
 				(
-				(BYTE *) m_rgpvAddresses,
-				m_ulDepth * GPOS_SIZEOF(m_rgpvAddresses[0])
+				(BYTE *) m_array_of_addresses,
+				m_depth * GPOS_SIZEOF(m_array_of_addresses[0])
 				);
 }
 

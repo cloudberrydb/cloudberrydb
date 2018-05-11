@@ -24,10 +24,10 @@ using namespace gpopt;
 //		expression has to take care of this on a higher level
 //
 //---------------------------------------------------------------------------
-CDrvdProp *
+DrvdPropArray *
 CPattern::PdpCreate
 	(
-	IMemoryPool * // pmp
+	IMemoryPool * // mp
 	)
 	const
 {
@@ -48,7 +48,7 @@ CPattern::PdpCreate
 CReqdProp *
 CPattern::PrpCreate
 	(
-	IMemoryPool * // pmp
+	IMemoryPool * // mp
 	)
 	const
 {
@@ -59,14 +59,14 @@ CPattern::PrpCreate
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPattern::FMatch
+//		CPattern::Matches
 //
 //	@doc:
 //		match against an operator
 //
 //---------------------------------------------------------------------------
 BOOL
-CPattern::FMatch
+CPattern::Matches
 	(
 	COperator *pop
 	)
@@ -102,9 +102,9 @@ CPattern::FInputOrderSensitive() const
 COperator *
 CPattern::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *, //pmp,
-	HMUlCr *, //phmulcr,
-	BOOL //fMustExist
+	IMemoryPool *, //mp,
+	UlongToColRefMap *, //colref_mapping,
+	BOOL //must_exist
 	)
 {
 	GPOS_ASSERT(!"PopCopyWithRemappedColumns should not be called for a pattern");

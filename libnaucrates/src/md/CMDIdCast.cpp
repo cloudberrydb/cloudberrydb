@@ -26,16 +26,16 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDIdCast::CMDIdCast
 	(
-	CMDIdGPDB *pmdidSrc,
-	CMDIdGPDB *pmdidDest
+	CMDIdGPDB *mdid_src,
+	CMDIdGPDB *mdid_dest
 	)
 	:
-	m_pmdidSrc(pmdidSrc),
-	m_pmdidDest(pmdidDest),
-	m_str(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer))
+	m_mdid_src(mdid_src),
+	m_mdid_dest(mdid_dest),
+	m_str(m_mdid_buffer, GPOS_ARRAY_SIZE(m_mdid_buffer))
 {
-	GPOS_ASSERT(pmdidSrc->FValid());
-	GPOS_ASSERT(pmdidDest->FValid());
+	GPOS_ASSERT(mdid_src->IsValid());
+	GPOS_ASSERT(mdid_dest->IsValid());
 	
 	// serialize mdid into static string 
 	Serialize();
@@ -51,8 +51,8 @@ CMDIdCast::CMDIdCast
 //---------------------------------------------------------------------------
 CMDIdCast::~CMDIdCast()
 {
-	m_pmdidSrc->Release();
-	m_pmdidDest->Release();
+	m_mdid_src->Release();
+	m_mdid_dest->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -70,82 +70,82 @@ CMDIdCast::Serialize()
 	m_str.AppendFormat
 			(
 			GPOS_WSZ_LIT("%d.%d.%d.%d;%d.%d.%d"), 
-			Emdidt(), 
-			m_pmdidSrc->OidObjectId(),
-			m_pmdidSrc->UlVersionMajor(),
-			m_pmdidSrc->UlVersionMinor(),
-			m_pmdidDest->OidObjectId(),
-			m_pmdidDest->UlVersionMajor(),
-			m_pmdidDest->UlVersionMinor()			
+			MdidType(), 
+					   m_mdid_src->Oid(),
+			m_mdid_src->VersionMajor(),
+			m_mdid_src->VersionMinor(),
+					   m_mdid_dest->Oid(),
+			m_mdid_dest->VersionMajor(),
+			m_mdid_dest->VersionMinor()
 			);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdCast::Wsz
+//		CMDIdCast::GetBuffer
 //
 //	@doc:
 //		Returns the string representation of the mdid
 //
 //---------------------------------------------------------------------------
 const WCHAR *
-CMDIdCast::Wsz() const
+CMDIdCast::GetBuffer() const
 {
-	return m_str.Wsz();
+	return m_str.GetBuffer();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdCast::PmdidSrc
+//		CMDIdCast::MdidSrc
 //
 //	@doc:
 //		Returns the source type id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDIdCast::PmdidSrc() const
+CMDIdCast::MdidSrc() const
 {
-	return m_pmdidSrc;
+	return m_mdid_src;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdCast::PmdidDest
+//		CMDIdCast::MdidDest
 //
 //	@doc:
 //		Returns the destination type id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDIdCast::PmdidDest() const
+CMDIdCast::MdidDest() const
 {
-	return m_pmdidDest;
+	return m_mdid_dest;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdCast::FEquals
+//		CMDIdCast::Equals
 //
 //	@doc:
 //		Checks if the mdids are equal
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDIdCast::FEquals
+CMDIdCast::Equals
 	(
-	const IMDId *pmdid
+	const IMDId *mdid
 	) 
 	const
 {
-	if (NULL == pmdid || EmdidCastFunc != pmdid->Emdidt())
+	if (NULL == mdid || EmdidCastFunc != mdid->MdidType())
 	{
 		return false;
 	}
 	
-	const CMDIdCast *pmdidCastFunc = CMDIdCast::PmdidConvert(pmdid);
+	const CMDIdCast *mdid_cast_func = CMDIdCast::CastMdid(mdid);
 	
-	return m_pmdidSrc->FEquals(pmdidCastFunc->PmdidSrc()) && 
-			m_pmdidDest->FEquals(pmdidCastFunc->PmdidDest()); 
+	return m_mdid_src->Equals(mdid_cast_func->MdidSrc()) &&
+			m_mdid_dest->Equals(mdid_cast_func->MdidDest());
 }
 
 //---------------------------------------------------------------------------
@@ -159,12 +159,12 @@ CMDIdCast::FEquals
 void
 CMDIdCast::Serialize
 	(
-	CXMLSerializer * pxmlser,
+	CXMLSerializer * xml_serializer,
 	const CWStringConst *pstrAttribute
 	)
 	const
 {
-	pxmlser->AddAttribute(pstrAttribute, &m_str);
+	xml_serializer->AddAttribute(pstrAttribute, &m_str);
 }
 
 //---------------------------------------------------------------------------
@@ -182,7 +182,7 @@ CMDIdCast::OsPrint
 	) 
 	const
 {
-	os << "(" << m_str.Wsz() << ")";
+	os << "(" << m_str.GetBuffer() << ")";
 	return os;
 }
 

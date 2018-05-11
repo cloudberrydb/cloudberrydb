@@ -44,34 +44,34 @@ namespace gpmd
 		private:
 		
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// metadata id of the object
-			CMDIdColStats *m_pmdidColStats;
+			CMDIdColStats *m_mdid_col_stats;
 			
 			// column name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// column width
-			CDouble m_dWidth;
+			CDouble m_width;
 			
 			// null fraction
-			CDouble m_dNullFreq;
+			CDouble m_null_freq;
 
 			// ndistinct of remaining tuples
-			CDouble m_dDistinctRemain;
+			CDouble m_distinct_remaining;
 
 			// frequency of remaining tuples
-			CDouble m_dFreqRemain;
+			CDouble m_freq_remaining;
 
 			// histogram buckets
-			DrgPdxlbucket *m_pdrgpdxlbucket;
+		CDXLBucketArray *m_dxl_stats_bucket_array;
 			
 			// is column statistics missing in the database
-			BOOL m_fColStatsMissing;
+			BOOL m_is_col_stats_missing;
 
 			// DXL string for object
-			CWStringDynamic *m_pstr;
+			CWStringDynamic *m_dxl_str;
 			
 			// private copy ctor
 			CDXLColStats(const CDXLColStats &);
@@ -80,15 +80,15 @@ namespace gpmd
 			// ctor
 			CDXLColStats
 				(
-				IMemoryPool *pmp,
-				CMDIdColStats *pmdidColStats,
-				CMDName *pmdname,
-				CDouble dWidth,
-				CDouble dNullFreq,
-				CDouble dDistinctRemain,
-				CDouble dFreqRemain,
-				DrgPdxlbucket *pdrgpdxlbucket,
-				BOOL fColStatsMissing
+				IMemoryPool *mp,
+				CMDIdColStats *mdid_col_stats,
+				CMDName *mdname,
+				CDouble width,
+				CDouble null_freq,
+				CDouble distinct_remaining,
+				CDouble freq_remaining,
+				CDXLBucketArray *dxl_stats_bucket_array,
+				BOOL is_col_stats_missing
 				);
 			
 			// dtor
@@ -97,7 +97,7 @@ namespace gpmd
 			
 			// the metadata id
 			virtual 
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// relation name
 			virtual 
@@ -105,47 +105,47 @@ namespace gpmd
 			
 			// DXL string representation of cache object 
 			virtual 
-			const CWStringDynamic *Pstr() const;
+			const CWStringDynamic *GetStrRepr() const;
 			
 			// number of buckets
 			virtual
-			ULONG UlBuckets() const;
+			ULONG Buckets() const;
 
 			// width
 			virtual
-			CDouble DWidth() const
+			CDouble Width() const
 			{
-				return m_dWidth;
+				return m_width;
 			}
 
 			// null fraction
 			virtual
-			CDouble DNullFreq() const
+			CDouble GetNullFreq() const
 			{
-				return m_dNullFreq;
+				return m_null_freq;
 			}
 
 			// ndistinct of remaining tuples
-			CDouble DDistinctRemain() const
+			CDouble GetDistinctRemain() const
 			{
-				return m_dDistinctRemain;
+				return m_distinct_remaining;
 			}
 
 			// frequency of remaining tuples
-			CDouble DFreqRemain() const
+			CDouble GetFreqRemain() const
 			{
-				return m_dFreqRemain;
+				return m_freq_remaining;
 			}
 
 			// is the column statistics missing in the database
-			BOOL FColStatsMissing() const
+			BOOL IsColStatsMissing() const
 			{
-				return m_fColStatsMissing;
+				return m_is_col_stats_missing;
 			}
 
 			// get the bucket at the given position
 			virtual
-			const CDXLBucket *Pdxlbucket(ULONG ul) const;
+			const CDXLBucket *GetDXLBucketAt(ULONG ul) const;
 
 			// serialize column stats in DXL format
 			virtual 
@@ -159,13 +159,13 @@ namespace gpmd
 
 			// dummy colstats
 			static
-			CDXLColStats *PdxlcolstatsDummy(IMemoryPool *pmp, IMDId *pmdid, CMDName *pmdname, CDouble dWidth);
+			CDXLColStats *CreateDXLDummyColStats(IMemoryPool *mp, IMDId *mdid, CMDName *mdname, CDouble width);
 
 	};
 
 	// array of dxl column stats
-	typedef CDynamicPtrArray<CDXLColStats, CleanupRelease> DrgPcolstats;
-}
+	typedef CDynamicPtrArray<CDXLColStats, CleanupRelease> CDXLColStatsArray;
+}  // namespace gpmd
 
 
 

@@ -26,12 +26,12 @@
 
 // macro to trigger failure simulation; must be macro to get accurate 
 // file/line information
-#define GPOS_SIMULATE_FAILURE(etrace, exma, exmi)	\
+#define GPOS_SIMULATE_FAILURE(trace, major, minor)	\
 		do { \
-			if (ITask::PtskSelf()->FTrace(etrace) && \
-				CFSimulator::Pfsim()->FNewStack(exma, exmi)) \
+			if (ITask::Self()->IsTraceSet(trace) && \
+				CFSimulator::FSim()->NewStack(major, minor)) \
 			{ \
-				GPOS_RAISE(exma, exmi); \
+				GPOS_RAISE(major, minor); \
 			} \
 		} while(0)
 
@@ -71,7 +71,7 @@ namespace gpos
 				
 					//---------------------------------------------------------------------------
 					//	@struct:
-					//		SStackKey
+					//		StackKey
 					//
 					//	@doc:
 					//		Wrapper around the two parts of an exception identification; provides
@@ -81,70 +81,70 @@ namespace gpos
 					struct SStackKey
 					{
 						// stack trackers are identified by the exceptions they manage
-						ULONG m_ulMajor;
-						ULONG m_ulMinor;
+						ULONG m_major;
+						ULONG m_minor;
 						
 						// ctor
 						SStackKey
 							(
-							ULONG ulMajor,
-							ULONG ulMinor
+							ULONG major,
+							ULONG minor
 							)
 							:
-							m_ulMajor(ulMajor),
-							m_ulMinor(ulMinor)
+							m_major(major),
+							m_minor(minor)
 							{}
 						
 						// simple comparison
 						BOOL operator ==
 							(
-							const SStackKey &skey
+							const SStackKey &key
 							)
 							const
 						{
-							return m_ulMajor == skey.m_ulMajor && m_ulMinor == skey.m_ulMinor;
+							return m_major == key.m_major && m_minor == key.m_minor;
 						}
 
 						// equality function -- needed for hashtable
 						static
-						BOOL FEqual
+						BOOL Equals
 							(
-							const SStackKey &skey,
-							const SStackKey &skeyOther
+							const SStackKey &key,
+							const SStackKey &other_key
 							)
 						{
-							return skey == skeyOther;
+							return key == other_key;
 						}
 						
 						// basic hash function
 						static
-						ULONG UlHash
+						ULONG HashValue
 							(
-							const SStackKey &skey
+							const SStackKey &key
 							)
 						{
-							return skey.m_ulMajor ^ skey.m_ulMinor;
+							return key.m_major ^ key.m_minor;
 						}
 
-					}; // struct SStackKey
+					}; // struct StackKey
 		
 								
 					// ctor
         			explicit
-					CStackTracker(IMemoryPool *pmp, ULONG cResolution, SStackKey skey);
+					CStackTracker(IMemoryPool *mp, ULONG resolution, SStackKey key);
 					
 					// exchange/set function
-					BOOL FExchangeSet(ULONG ulBit);
+					BOOL ExchangeSet(ULONG bit);
 					
 					// link element for hashtable
 					SLink m_link;
 
 					// identifier
-					SStackKey m_skey;
+					SStackKey m_key;
 
 					// invalid key
 					static
-					const SStackKey m_skeyInvalid;
+					const SStackKey m_invalid_key;
 
 				private:
 				
@@ -152,7 +152,7 @@ namespace gpos
 					CStackTracker(const CStackTracker &);
 
 					// bitvector to hold stack hashes
-					CBitVector *m_pbv;
+					CBitVector *m_bit_vector;
 										
 			}; // class CStackTracker
 		
@@ -162,42 +162,42 @@ namespace gpos
 			CFSimulator(const CFSimulator&);
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// resolution
-			ULONG m_cResolution;
+			ULONG m_resolution;
 			
 			// short hands for stack repository and accessor
-			typedef CSyncHashtable<CStackTracker, CStackTracker::SStackKey, 
+			typedef CSyncHashtable<CStackTracker, CStackTracker::SStackKey,
 				CSpinlockOS> CStackTable;
 
 			typedef CSyncHashtableAccessByKey<CStackTracker, CStackTracker::SStackKey,
 				CSpinlockOS> CStackTableAccessor;
 				
 			// stack repository
-			CStackTable m_st;
+			CStackTable m_stack;
 
 			// insert new tracker 
-			void AddTracker(CStackTracker::SStackKey skey);
+			void AddTracker(CStackTracker::SStackKey key);
 
 		public:
 		
 			// ctor
-			CFSimulator(IMemoryPool *pmp, ULONG cResolution);
+			CFSimulator(IMemoryPool *mp, ULONG resolution);
 
 			// dtor
 			~CFSimulator() {}
 
 			// determine if stack is new
-			BOOL FNewStack(ULONG ulMajor, ULONG ulMinor);
+			BOOL NewStack(ULONG major, ULONG minor);
 
 			// global instance
 			static
-			CFSimulator *m_pfsim;
+			CFSimulator *m_fsim;
 			
 			// initializer for global f-simulator
 			static
-			GPOS_RESULT EresInit();
+			GPOS_RESULT Init();
 			
 #ifdef GPOS_DEBUG
 			// destroy simulator
@@ -206,21 +206,21 @@ namespace gpos
 			
 			// accessor for global instance
 			static
-			CFSimulator *Pfsim()
+			CFSimulator *FSim()
 			{
-				return m_pfsim;
+				return m_fsim;
 			}
 
 			// check if simulation is activated
 			static
 			BOOL FSimulation()
 			{
-				ITask *ptsk = ITask::PtskSelf();
+				ITask *task = ITask::Self();
 				return
-					ptsk->FTrace(EtraceSimulateOOM) ||
-					ptsk->FTrace(EtraceSimulateAbort) ||
-					ptsk->FTrace(EtraceSimulateIOError) ||
-					ptsk->FTrace(EtraceSimulateNetError);
+					task->IsTraceSet(EtraceSimulateOOM) ||
+					task->IsTraceSet(EtraceSimulateAbort) ||
+					task->IsTraceSet(EtraceSimulateIOError) ||
+					task->IsTraceSet(EtraceSimulateNetError);
 			}
 
 	}; // class CFSimulator

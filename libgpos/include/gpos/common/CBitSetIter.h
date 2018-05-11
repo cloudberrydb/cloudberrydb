@@ -33,13 +33,13 @@ namespace gpos
 			const CBitSet &m_bs;
 
 			// current cursor position (in current link)
-			ULONG m_ulCursor;
+			ULONG m_cursor;
 				
 			// current cursor link
-			CBitSet::CBitSetLink *m_pbsl;
+			CBitSet::CBitSetLink *m_bsl;
 		
 			// is iterator active or exhausted
-			BOOL m_fActive;
+			BOOL m_active;
 						
 			// private copy ctor
 			CBitSetIter(const CBitSetIter&);
@@ -55,14 +55,14 @@ namespace gpos
 			// short hand for cast
 			operator BOOL () const
 			{
-				return m_fActive;
+				return m_active;
 			}
 			
 			// move to next bit
-			BOOL FAdvance();
+			BOOL Advance();
 			
 			// current bit
-			ULONG UlBit() const;
+			ULONG Bit() const;
 
 	}; // class CBitSetIter
 }

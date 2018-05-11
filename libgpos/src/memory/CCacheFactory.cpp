@@ -17,7 +17,7 @@
 using namespace gpos;
 
 // global instance of cache factory
-CCacheFactory *CCacheFactory::m_pcf = NULL;
+CCacheFactory *CCacheFactory::m_factory = NULL;
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -29,10 +29,10 @@ CCacheFactory *CCacheFactory::m_pcf = NULL;
 //---------------------------------------------------------------------------
 CCacheFactory::CCacheFactory
 	(
-		IMemoryPool *pmp
+		IMemoryPool *mp
 	)
 	:
-	m_pmp(pmp)
+	m_mp(mp)
 {
 
 }
@@ -49,52 +49,56 @@ CCacheFactory::CCacheFactory
 IMemoryPool *
 CCacheFactory::Pmp() const
 {
-	return m_pmp;
+	return m_mp;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CCacheFactory::EresInit
+//		CCacheFactory::Init
 //
 //	@doc:
 //		Initializes global instance
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CCacheFactory::EresInit()
+CCacheFactory::Init()
 {
-	GPOS_ASSERT(NULL == Pcf() &&
+	GPOS_ASSERT(NULL == GetFactory() &&
 			    "Cache factory was already initialized");
 
-	GPOS_RESULT eres = GPOS_OK;
+	GPOS_RESULT res = GPOS_OK;
 
 	// create cache factory memory pool
-    IMemoryPool *pmp = CMemoryPoolManager::Pmpm()->PmpCreate(
-        CMemoryPoolManager::EatTracker, true /*fThreadSafe*/, gpos::ullong_max);
+	IMemoryPool *mp = CMemoryPoolManager::GetMemoryPoolMgr()->Create
+							(
+							CMemoryPoolManager::EatTracker,
+							true /*fThreadSafe*/,
+							gpos::ullong_max
+							);
 	GPOS_TRY
 	{
 		// create cache factory instance
-		CCacheFactory::m_pcf = GPOS_NEW(pmp) CCacheFactory(pmp);
+		CCacheFactory::m_factory = GPOS_NEW(mp) CCacheFactory(mp);
 	}
 	GPOS_CATCH_EX(ex)
 	{
 		// destroy memory pool if global instance was not created
-		CMemoryPoolManager::Pmpm()->Destroy(pmp);
+		CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(mp);
 
-		CCacheFactory::m_pcf = NULL;
+		CCacheFactory::m_factory = NULL;
 
 		if (GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiOOM))
 		{
-			eres = GPOS_OOM;
+			res = GPOS_OOM;
 		}
 		else
 		{
-			eres = GPOS_FAILED;
+			res = GPOS_FAILED;
 		}
 	}
 	GPOS_CATCH_END;
-	return eres;
+	return res;
 }
 
 
@@ -109,18 +113,18 @@ CCacheFactory::EresInit()
 void
 CCacheFactory::Shutdown()
 {
-	CCacheFactory *pcf = CCacheFactory::Pcf();
+	CCacheFactory *factory = CCacheFactory::GetFactory();
 
-	GPOS_ASSERT(NULL != pcf &&
+	GPOS_ASSERT(NULL != factory &&
 			    "Cache factory has not been initialized");
 
-	IMemoryPool *pmp = pcf->m_pmp;
+	IMemoryPool *mp = factory->m_mp;
 
 	// destroy cache factory
-	CCacheFactory::m_pcf = NULL;
-	GPOS_DELETE(pcf);
+	CCacheFactory::m_factory = NULL;
+	GPOS_DELETE(factory);
 
 	// release allocated memory pool
-	CMemoryPoolManager::Pmpm()->Destroy(pmp);
+	CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(mp);
 }
 // EOF

@@ -40,22 +40,22 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformPushGbBelowSetOp(IMemoryPool *pmp)
+			CXformPushGbBelowSetOp(IMemoryPool *mp)
                 :
                 CXformExploration
                 (
                  // pattern
-                 GPOS_NEW(pmp) CExpression
+                 GPOS_NEW(mp) CExpression
                         (
-                         pmp,
-                         GPOS_NEW(pmp) CLogicalGbAgg(pmp),
-                         GPOS_NEW(pmp) CExpression  // left child is a set operation
+                         mp,
+                         GPOS_NEW(mp) CLogicalGbAgg(mp),
+                         GPOS_NEW(mp) CExpression  // left child is a set operation
                                 (
-                                 pmp,
-                                 GPOS_NEW(pmp) TSetOp(pmp),
-                                 GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternMultiLeaf(pmp))
+                                 mp,
+                                 GPOS_NEW(mp) TSetOp(mp),
+                                 GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiLeaf(mp))
                                  ),
-                         GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp)) // project list of group-by
+                         GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp)) // project list of group-by
                          )
                 )
             {}
@@ -91,11 +91,11 @@ namespace gpopt
                 GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
                 GPOS_ASSERT(FCheckPattern(pexpr));
 
-                IMemoryPool *pmp = pxfctxt->Pmp();
+                IMemoryPool *mp = pxfctxt->Pmp();
 
                 CExpression *pexprSetOp = (*pexpr)[0];
                 CExpression *pexprPrjList = (*pexpr)[1];
-                if (0 < pexprPrjList->UlArity())
+                if (0 < pexprPrjList->Arity())
                 {
                     // bail-out if group-by has any aggregate functions
                     return;
@@ -104,29 +104,29 @@ namespace gpopt
                 CLogicalGbAgg *popGbAgg = CLogicalGbAgg::PopConvert(pexpr->Pop());
                 CLogicalSetOp *popSetOp = CLogicalSetOp::PopConvert(pexprSetOp->Pop());
 
-                DrgPcr *pdrgpcrGb = popGbAgg->Pdrgpcr();
-                DrgPcr *pdrgpcrOutput = popSetOp->PdrgpcrOutput();
-                CColRefSet *pcrsOutput = GPOS_NEW(pmp) CColRefSet(pmp, pdrgpcrOutput);
-                DrgDrgPcr *pdrgpdrgpcrInput = popSetOp->PdrgpdrgpcrInput();
-                DrgPexpr *pdrgpexprNewChildren = GPOS_NEW(pmp) DrgPexpr(pmp);
-                DrgDrgPcr *pdrgpdrgpcrNewInput = GPOS_NEW(pmp) DrgDrgPcr(pmp);
-                const ULONG ulArity = pexprSetOp->UlArity();
+                CColRefArray *pdrgpcrGb = popGbAgg->Pdrgpcr();
+                CColRefArray *pdrgpcrOutput = popSetOp->PdrgpcrOutput();
+                CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp, pdrgpcrOutput);
+                CColRef2dArray *pdrgpdrgpcrInput = popSetOp->PdrgpdrgpcrInput();
+                CExpressionArray *pdrgpexprNewChildren = GPOS_NEW(mp) CExpressionArray(mp);
+                CColRef2dArray *pdrgpdrgpcrNewInput = GPOS_NEW(mp) CColRef2dArray(mp);
+                const ULONG arity = pexprSetOp->Arity();
 
                 BOOL fNewChild = false;
 
-                for (ULONG ulChild = 0; ulChild < ulArity; ulChild++)
+                for (ULONG ulChild = 0; ulChild < arity; ulChild++)
                 {
                     CExpression *pexprChild = (*pexprSetOp)[ulChild];
-                    DrgPcr *pdrgpcrChild = (*pdrgpdrgpcrInput)[ulChild];
-                    CColRefSet *pcrsChild =  GPOS_NEW(pmp) CColRefSet(pmp, pdrgpcrChild);
+                    CColRefArray *pdrgpcrChild = (*pdrgpdrgpcrInput)[ulChild];
+                    CColRefSet *pcrsChild =  GPOS_NEW(mp) CColRefSet(mp, pdrgpcrChild);
 
-                    DrgPcr *pdrgpcrChildGb = NULL;
-                    if (!pcrsChild->FEqual(pcrsOutput))
+                    CColRefArray *pdrgpcrChildGb = NULL;
+                    if (!pcrsChild->Equals(pcrsOutput))
                     {
                         // use column mapping in SetOp to set child grouping colums
-                        HMUlCr *phmulcr = CUtils::PhmulcrMapping(pmp, pdrgpcrOutput, pdrgpcrChild);
-                        pdrgpcrChildGb = CUtils::PdrgpcrRemap(pmp, pdrgpcrGb, phmulcr, true /*fMustExist*/);
-                        phmulcr->Release();
+                        UlongToColRefMap *colref_mapping = CUtils::PhmulcrMapping(mp, pdrgpcrOutput, pdrgpcrChild);
+                        pdrgpcrChildGb = CUtils::PdrgpcrRemap(mp, pdrgpcrGb, colref_mapping, true /*must_exist*/);
+                        colref_mapping->Release();
                     }
                     else
                     {
@@ -144,7 +144,7 @@ namespace gpopt
                     if (COperator::EopLogicalGbAgg == popChild->Eopid())
                     {
                         CLogicalGbAgg *popGbAgg = CLogicalGbAgg::PopConvert(popChild);
-                        if (CColRef::FEqual(popGbAgg->Pdrgpcr(), pdrgpcrChildGb))
+                        if (CColRef::Equals(popGbAgg->Pdrgpcr(), pdrgpcrChildGb))
                         {
                             pdrgpexprNewChildren->Append(pexprChild);
                             pdrgpdrgpcrNewInput->Append(pdrgpcrChildGb);
@@ -155,7 +155,7 @@ namespace gpopt
 
                     fNewChild = true;
                     pexprPrjList->AddRef();
-                    CExpression *pexprChildGb = CUtils::PexprLogicalGbAggGlobal(pmp, pdrgpcrChildGb, pexprChild, pexprPrjList);
+                    CExpression *pexprChildGb = CUtils::PexprLogicalGbAggGlobal(mp, pdrgpcrChildGb, pexprChild, pexprPrjList);
                     pdrgpexprNewChildren->Append(pexprChildGb);
 
                     pdrgpcrChildGb->AddRef();
@@ -175,12 +175,12 @@ namespace gpopt
                 }
 
                 pdrgpcrGb->AddRef();
-                TSetOp *popSetOpNew = GPOS_NEW(pmp) TSetOp(pmp, pdrgpcrGb, pdrgpdrgpcrNewInput);
-                CExpression *pexprNewSetOp = GPOS_NEW(pmp) CExpression(pmp, popSetOpNew, pdrgpexprNewChildren);
+                TSetOp *popSetOpNew = GPOS_NEW(mp) TSetOp(mp, pdrgpcrGb, pdrgpdrgpcrNewInput);
+                CExpression *pexprNewSetOp = GPOS_NEW(mp) CExpression(mp, popSetOpNew, pdrgpexprNewChildren);
 
                 popGbAgg->AddRef();
                 pexprPrjList->AddRef();
-                CExpression *pexprResult = GPOS_NEW(pmp) CExpression(pmp, popGbAgg, pexprNewSetOp, pexprPrjList); 
+                CExpression *pexprResult = GPOS_NEW(mp) CExpression(mp, popGbAgg, pexprNewSetOp, pexprPrjList); 
 
                 pxfres->Add(pexprResult);
             }

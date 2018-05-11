@@ -50,7 +50,7 @@ const CWindowFrame CWindowFrame::m_wfEmpty;
 //---------------------------------------------------------------------------
 CWindowFrame::CWindowFrame
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	EFrameSpec efs,
 	EFrameBoundary efbLeading,
 	EFrameBoundary efbTrailing,
@@ -71,15 +71,15 @@ CWindowFrame::CWindowFrame
 	GPOS_ASSERT_IMP(EfbBoundedPreceding == m_efbTrailing || EfbBoundedFollowing == m_efbTrailing, NULL != pexprTrailing);
 
 	// include used columns by frame edges
-	m_pcrsUsed = GPOS_NEW(pmp) CColRefSet(pmp);
+	m_pcrsUsed = GPOS_NEW(mp) CColRefSet(mp);
 	if (NULL != pexprLeading)
 	{
-		m_pcrsUsed->Include(CDrvdPropScalar::Pdpscalar(pexprLeading->PdpDerive())->PcrsUsed());
+		m_pcrsUsed->Include(CDrvdPropScalar::GetDrvdScalarProps(pexprLeading->PdpDerive())->PcrsUsed());
 	}
 
 	if (NULL != pexprTrailing)
 	{
-		m_pcrsUsed->Include(CDrvdPropScalar::Pdpscalar(pexprTrailing->PdpDerive())->PcrsUsed());
+		m_pcrsUsed->Include(CDrvdPropScalar::GetDrvdScalarProps(pexprTrailing->PdpDerive())->PcrsUsed());
 	}
 }
 
@@ -122,14 +122,14 @@ CWindowFrame::~CWindowFrame()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CWindowFrame::FMatch
+//		CWindowFrame::Matches
 //
 //	@doc:
 //		Check for equality between window frames
 //
 //---------------------------------------------------------------------------
 BOOL
-CWindowFrame::FMatch
+CWindowFrame::Matches
 	(
 	const CWindowFrame *pwf
 	)
@@ -140,35 +140,35 @@ CWindowFrame::FMatch
 		m_efbLeading == pwf->EfbLeading() &&
 		m_efbTrailing == pwf->EfbTrailing() &&
 		m_efes == pwf->Efes() &&
-		CUtils::FEqual(m_pexprLeading , pwf->PexprLeading()) &&
-		CUtils::FEqual(m_pexprTrailing , pwf->PexprTrailing());
+		CUtils::Equals(m_pexprLeading , pwf->PexprLeading()) &&
+		CUtils::Equals(m_pexprTrailing , pwf->PexprTrailing());
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CWindowFrame::UlHash
+//		CWindowFrame::HashValue
 //
 //	@doc:
 //		Hash of components
 //
 //---------------------------------------------------------------------------
 ULONG
-CWindowFrame::UlHash() const
+CWindowFrame::HashValue() const
 {
 	ULONG ulHash = 0;
-	ulHash = gpos::UlCombineHashes(ulHash, m_efs);
-	ulHash = gpos::UlCombineHashes(ulHash, m_efbLeading);
-	ulHash = gpos::UlCombineHashes(ulHash, m_efbTrailing);
-	ulHash = gpos::UlCombineHashes(ulHash, m_efes);
+	ulHash = gpos::CombineHashes(ulHash, m_efs);
+	ulHash = gpos::CombineHashes(ulHash, m_efbLeading);
+	ulHash = gpos::CombineHashes(ulHash, m_efbTrailing);
+	ulHash = gpos::CombineHashes(ulHash, m_efes);
 	if (NULL != m_pexprLeading)
 	{
-		ulHash = gpos::UlCombineHashes(ulHash, CExpression::UlHash(m_pexprLeading));
+		ulHash = gpos::CombineHashes(ulHash, CExpression::HashValue(m_pexprLeading));
 	}
 
 	if (NULL != m_pexprTrailing)
 	{
-		ulHash = gpos::UlCombineHashes(ulHash, CExpression::UlHash(m_pexprTrailing));
+		ulHash = gpos::CombineHashes(ulHash, CExpression::HashValue(m_pexprTrailing));
 	}
 
 	return ulHash;
@@ -186,9 +186,9 @@ CWindowFrame::UlHash() const
 CWindowFrame *
 CWindowFrame::PwfCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
 	if (this == &m_wfEmpty)
@@ -200,16 +200,16 @@ CWindowFrame::PwfCopyWithRemappedColumns
 	CExpression *pexprLeading = NULL;
 	if (NULL != m_pexprLeading)
 	{
-		pexprLeading = m_pexprLeading->PexprCopyWithRemappedColumns(pmp, phmulcr, fMustExist);
+		pexprLeading = m_pexprLeading->PexprCopyWithRemappedColumns(mp, colref_mapping, must_exist);
 	}
 
 	CExpression *pexprTrailing = NULL;
 	if (NULL != m_pexprTrailing)
 	{
-		pexprTrailing = m_pexprTrailing->PexprCopyWithRemappedColumns(pmp, phmulcr, fMustExist);
+		pexprTrailing = m_pexprTrailing->PexprCopyWithRemappedColumns(mp, colref_mapping, must_exist);
 	}
 
-	return GPOS_NEW(pmp) CWindowFrame(pmp, m_efs, m_efbLeading, m_efbTrailing, pexprLeading, pexprTrailing, m_efes);
+	return GPOS_NEW(mp) CWindowFrame(mp, m_efs, m_efbLeading, m_efbTrailing, pexprLeading, pexprTrailing, m_efes);
 }
 
 //---------------------------------------------------------------------------
@@ -257,17 +257,17 @@ CWindowFrame::OsPrint
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CWindowFrame::FEqual
+//		CWindowFrame::Equals
 //
 //	@doc:
 //		 Matching function over frame arrays
 //
 //---------------------------------------------------------------------------
 BOOL
-CWindowFrame::FEqual
+CWindowFrame::Equals
 	(
-	const DrgPwf *pdrgpwfFirst,
-	const DrgPwf *pdrgpwfSecond
+	const CWindowFrameArray *pdrgpwfFirst,
+	const CWindowFrameArray *pdrgpwfSecond
 	)
 {
 	if (NULL == pdrgpwfFirst || NULL == pdrgpwfSecond)
@@ -275,16 +275,16 @@ CWindowFrame::FEqual
 		return (NULL == pdrgpwfFirst && NULL ==pdrgpwfSecond);
 	}
 
-	if (pdrgpwfFirst->UlLength() != pdrgpwfSecond->UlLength())
+	if (pdrgpwfFirst->Size() != pdrgpwfSecond->Size())
 	{
 		return false;
 	}
 
-	const ULONG ulSize = pdrgpwfFirst->UlLength();
+	const ULONG size = pdrgpwfFirst->Size();
 	BOOL fMatch = true;
-	for (ULONG ul = 0; fMatch && ul < ulSize; ul++)
+	for (ULONG ul = 0; fMatch && ul < size; ul++)
 	{
-		fMatch = (*pdrgpwfFirst)[ul]->FMatch((*pdrgpwfSecond)[ul]);
+		fMatch = (*pdrgpwfFirst)[ul]->Matches((*pdrgpwfSecond)[ul]);
 	}
 
 	return fMatch;
@@ -293,26 +293,26 @@ CWindowFrame::FEqual
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CWindowFrame::UlHash
+//		CWindowFrame::HashValue
 //
 //	@doc:
 //		 Combine hash values of a maximum number of entries
 //
 //---------------------------------------------------------------------------
 ULONG
-CWindowFrame::UlHash
+CWindowFrame::HashValue
 	(
-	const DrgPwf *pdrgpwf,
+	const CWindowFrameArray *pdrgpwf,
 	ULONG ulMaxSize
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpwf);
-	const ULONG ulSize = std::min(ulMaxSize, pdrgpwf->UlLength());
+	const ULONG size = std::min(ulMaxSize, pdrgpwf->Size());
 
 	ULONG ulHash = 0;
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG ul = 0; ul < size; ul++)
 	{
-		ulHash = gpos::UlCombineHashes(ulHash, (*pdrgpwf)[ul]->UlHash());
+		ulHash = gpos::CombineHashes(ulHash, (*pdrgpwf)[ul]->HashValue());
 	}
 
 	return ulHash;
@@ -330,20 +330,20 @@ IOstream &
 CWindowFrame::OsPrint
 	(
 	IOstream &os,
-	const DrgPwf *pdrgpwf
+	const CWindowFrameArray *pdrgpwf
 	)
 {
 	os	<< "[";
-	const ULONG ulSize = pdrgpwf->UlLength();
-	if (0 < ulSize)
+	const ULONG size = pdrgpwf->Size();
+	if (0 < size)
 	{
-		for (ULONG ul = 0; ul < ulSize - 1; ul++)
+		for (ULONG ul = 0; ul < size - 1; ul++)
 		{
 			(void) (*pdrgpwf)[ul]->OsPrint(os);
 			os <<	", ";
 		}
 
-		(void) (*pdrgpwf)[ulSize - 1]->OsPrint(os);
+		(void) (*pdrgpwf)[size - 1]->OsPrint(os);
 	}
 
 	return os << "]";

@@ -24,7 +24,7 @@ namespace gpopt
 {
 	// type definition of corresponding dynamic pointer array
 	class CWindowFrame;
-	typedef CDynamicPtrArray<CWindowFrame, CleanupRelease> DrgPwf;
+	typedef CDynamicPtrArray<CWindowFrame, CleanupRelease> CWindowFrameArray;
 
 	using namespace gpos;
 
@@ -114,7 +114,7 @@ namespace gpopt
 			// ctor
 			CWindowFrame
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				EFrameSpec efs,
 				EFrameBoundary efbLeading,
 				EFrameBoundary efbTrailing,
@@ -164,15 +164,15 @@ namespace gpopt
 			}
 
 			// matching function
- 			BOOL FMatch(const CWindowFrame *pwf) const;
+ 			BOOL Matches(const CWindowFrame *pwf) const;
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// return a copy of the window frame with remapped columns
 			virtual
-			CWindowFrame *PwfCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			CWindowFrame *PwfCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// return columns used by frame edges
 			CColRefSet *PcrsUsed() const
@@ -186,19 +186,19 @@ namespace gpopt
 
 			// matching function over frame arrays
 			static
-			BOOL FEqual(const DrgPwf *pdrgpwfFirst, const DrgPwf *pdrgpwfSecond);
+			BOOL Equals(const CWindowFrameArray *pdrgpwfFirst, const CWindowFrameArray *pdrgpwfSecond);
 
 			// combine hash values of a maximum number of entries
 			static
-			ULONG UlHash(const DrgPwf *pdrgpwfFirst, ULONG ulMaxSize);
+			ULONG HashValue(const CWindowFrameArray *pdrgpwfFirst, ULONG ulMaxSize);
 
 			// print array of window frame objects
 			static
-			IOstream &OsPrint(IOstream &os, const DrgPwf *pdrgpwf);
+			IOstream &OsPrint(IOstream &os, const CWindowFrameArray *pdrgpwf);
 
 			// check if a given window frame is empty
 			static
-			BOOL FEmpty
+			BOOL IsEmpty
 				(
 				CWindowFrame *pwf
 				)

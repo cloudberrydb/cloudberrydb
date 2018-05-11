@@ -40,21 +40,21 @@ namespace gpmd
 		private:
 
 			// column identifier
-			ULONG m_ulColId;
+			ULONG m_colid;
 
 			// column width
-			CDouble m_dWidth;
+			CDouble m_width;
 
 			// null fraction
-			CDouble m_dNullFreq;
+			CDouble m_null_freq;
 
 			// ndistinct of remaining tuples
-			CDouble m_dDistinctRemain;
+			CDouble m_distinct_remaining;
 
 			// frequency of remaining tuples
-			CDouble m_dFreqRemain;
+			CDouble m_freq_remaining;
 
-			DrgPdxlbucket *m_pdrgpdxlbucket;
+		CDXLBucketArray *m_dxl_stats_bucket_array;
 
 			// private copy ctor
 			CDXLStatsDerivedColumn(const CDXLStatsDerivedColumn &);
@@ -64,12 +64,12 @@ namespace gpmd
 			// ctor
 			CDXLStatsDerivedColumn
 				(
-				ULONG ulColId,
-				CDouble dWidth,
-				CDouble dNullFreq,
-				CDouble dDistinctRemain,
-				CDouble dFreqRemain,
-				DrgPdxlbucket *pdrgpdxlbucket
+				ULONG colid,
+				CDouble width,
+				CDouble null_freq,
+				CDouble distinct_remaining,
+				CDouble freq_remaining,
+				CDXLBucketArray *dxl_stats_bucket_array
 				);
 
 			// dtor
@@ -77,36 +77,36 @@ namespace gpmd
 			~CDXLStatsDerivedColumn();
 
 			// column identifier
-			ULONG UlColId() const
+			ULONG GetColId() const
 			{
-				return m_ulColId;
+				return m_colid;
 			}
 
 			// column width
-			CDouble DWidth() const
+			CDouble Width() const
 			{
-				return m_dWidth;
+				return m_width;
 			}
 
 			// null fraction of this column
-			CDouble DNullFreq() const
+			CDouble GetNullFreq() const
 			{
-				return m_dNullFreq;
+				return m_null_freq;
 			}
 
 			// ndistinct of remaining tuples
-			CDouble DDistinctRemain() const
+			CDouble GetDistinctRemain() const
 			{
-				return m_dDistinctRemain;
+				return m_distinct_remaining;
 			}
 
 			// frequency of remaining tuples
-			CDouble DFreqRemain() const
+			CDouble GetFreqRemain() const
 			{
-				return m_dFreqRemain;
+				return m_freq_remaining;
 			}
 
-			const DrgPdxlbucket *Pdrgpdxlbucket() const;
+		const CDXLBucketArray *TransformHistogramToDXLBucketArray() const;
 
 			// serialize bucket in DXL format
 			void Serialize(gpdxl::CXMLSerializer *) const;
@@ -119,7 +119,7 @@ namespace gpmd
 	};
 
 	// array of dxl buckets
-	typedef CDynamicPtrArray<CDXLStatsDerivedColumn, CleanupRelease> DrgPdxlstatsdercol;
+	typedef CDynamicPtrArray<CDXLStatsDerivedColumn, CleanupRelease> CDXLStatsDerivedColumnArray;
 }
 
 #endif // !GPMD_CDXLStatsDerivedColumn_H

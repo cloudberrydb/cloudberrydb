@@ -35,33 +35,33 @@ namespace gpos
 		protected:
 
 			// null-terminated wide character buffer
-			WCHAR *m_wszBuf;
+			WCHAR *m_w_str_buffer;
 
 			// appends the contents of a buffer to the current string
-			virtual void AppendBuffer(const WCHAR *wszBuf) = 0;
+			virtual void AppendBuffer(const WCHAR *w_str_buffer) = 0;
 			
 		public:
 
 			// ctor
-			CWString(ULONG ulLength);
+			CWString(ULONG length);
 
 			// dtor
 			virtual ~CWString()
 			{}
 					
 			// returns the wide character buffer storing the string
-			const WCHAR* Wsz() const;
+			const WCHAR* GetBuffer() const;
 			
 			// appends a string
-			void Append(const CWStringBase *pstr);
+			void Append(const CWStringBase *str);
 
 			// appends a formatted string
 			virtual
-			void AppendFormat(const WCHAR *wszFormat, ...) = 0;
+			void AppendFormat(const WCHAR *format, ...) = 0;
 
 			// appends a string and replaces character with string
 			virtual
-			void AppendEscape(const CWStringBase *pstr, WCHAR wc, const WCHAR *wszReplace) = 0;
+			void AppendEscape(const CWStringBase *str, WCHAR wc, const WCHAR *w_str_replace) = 0;
 
 			// appends a null terminated character array
 			virtual
@@ -69,7 +69,7 @@ namespace gpos
 
 			// appends a null terminated wide character array
 			virtual
-			void AppendWideCharArray(const WCHAR *wsz) = 0;
+			void AppendWideCharArray(const WCHAR *w_str) = 0;
 
 			// resets string
 			virtual void Reset() = 0;

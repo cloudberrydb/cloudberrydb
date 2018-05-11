@@ -38,16 +38,16 @@ namespace gpopt
 		private:
 
 			// catalog MDId of the result type
-			IMDId *m_pmdidResultType;
+			IMDId *m_result_type_mdid;
 
 			// output type modifier
-			INT m_iTypeModifier;
+			INT m_type_modifier;
 
 			// coercion form
 			ECoercionForm m_ecf;
 
 			// location of token to be coerced
-			INT m_iLoc;
+			INT m_location;
 
 			// private copy ctor
 			CScalarCoerceBase(const CScalarCoerceBase &);
@@ -57,11 +57,11 @@ namespace gpopt
 			// ctor
 			CScalarCoerceBase
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				ECoercionForm edxlcf,
-				INT iLoc
+				IMemoryPool *mp,
+				IMDId *mdid_type,
+				INT type_modifier,
+				ECoercionForm dxl_coerce_format,
+				INT location
 				);
 
 			// dtor
@@ -70,24 +70,24 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// return type modifier
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
 			// return coercion form
 			ECoercionForm Ecf() const;
 
 			// return token location
-			INT ILoc() const;
+			INT Location() const;
 
 			// return a copy of the operator with remapped columns
 			virtual
 			COperator *PopCopyWithRemappedColumns
 				(
-				IMemoryPool *pmp,
-				HMUlCr *phmulcr,
-				BOOL fMustExist
+				IMemoryPool *mp,
+				UlongToColRefMap *colref_mapping,
+				BOOL must_exist
 				);
 
 	}; // class CScalarCoerceBase

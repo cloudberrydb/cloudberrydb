@@ -29,13 +29,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerScalarExpr::CParseHandlerScalarExpr
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pdxln(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_dxl_node(NULL)
 {
 }
 
@@ -49,33 +49,33 @@ CParseHandlerScalarExpr::CParseHandlerScalarExpr
 //---------------------------------------------------------------------------
 CParseHandlerScalarExpr::~CParseHandlerScalarExpr()
 {
-	CRefCount::SafeRelease(m_pdxln);
+	CRefCount::SafeRelease(m_dxl_node);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerScalarExpr::Pdxln
+//		CParseHandlerScalarExpr::CreateDXLNode
 //
 //	@doc:
 //		Root of constructed DXL expression
 //
 //---------------------------------------------------------------------------
 CDXLNode *
-CParseHandlerScalarExpr::Pdxln() const
+CParseHandlerScalarExpr::CreateDXLNode() const
 {
-	return m_pdxln;
+	return m_dxl_node;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerScalarExpr::Edxlphtype
+//		CParseHandlerScalarExpr::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler.
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerScalarExpr::Edxlphtype() const
+CParseHandlerScalarExpr::GetParseHandlerType() const
 {
 	return EdxlphScalarExpr;
 }
@@ -92,22 +92,22 @@ void
 CParseHandlerScalarExpr::StartElement
 	(
 	const XMLCh* const,
-	const XMLCh* const xmlszLocalname,
+	const XMLCh* const element_local_name,
 	const XMLCh* const,
 	const Attributes &
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarExpr), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarExpr), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
-	GPOS_ASSERT(NULL != m_pmp);
+	GPOS_ASSERT(NULL != m_mp);
 
 	// parse handler for child node
-	CParseHandlerBase *pphChild = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphChild);
-	Append(pphChild);
+	CParseHandlerBase *child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(child_parse_handler);
+	Append(child_parse_handler);
 }
 
 //---------------------------------------------------------------------------
@@ -121,23 +121,23 @@ CParseHandlerScalarExpr::StartElement
 void
 CParseHandlerScalarExpr::EndElement
 	(
-	const XMLCh* const, //= xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname,
+	const XMLCh* const, //= element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname,
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarExpr), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarExpr), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	CParseHandlerScalarOp *pphChild = dynamic_cast<CParseHandlerScalarOp *>((*this)[0]);
+	CParseHandlerScalarOp *child_parse_handler = dynamic_cast<CParseHandlerScalarOp *>((*this)[0]);
 	// extract constructed element
-	GPOS_ASSERT(NULL != pphChild && NULL != pphChild->Pdxln());
-	m_pdxln = pphChild->Pdxln();
-	m_pdxln->AddRef();
+	GPOS_ASSERT(NULL != child_parse_handler && NULL != child_parse_handler->CreateDXLNode());
+	m_dxl_node = child_parse_handler->CreateDXLNode();
+	m_dxl_node->AddRef();
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }

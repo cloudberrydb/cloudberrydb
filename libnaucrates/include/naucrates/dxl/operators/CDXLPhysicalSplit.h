@@ -35,25 +35,25 @@ namespace gpdxl
 		private:
 
 			// list of deletion column ids
-			DrgPul *m_pdrgpulDelete;
+			ULongPtrArray *m_deletion_colid_array;
 
 			// list of insertion column ids
-			DrgPul *m_pdrgpulInsert;
+			ULongPtrArray *m_insert_colid_array;
 
 			// action column id
-			ULONG m_ulAction;
+			ULONG m_action_colid;
 
 			// ctid column id
-			ULONG m_ulCtid;
+			ULONG m_ctid_colid;
 
 			// segmentid column id
-			ULONG m_ulSegmentId;
+			ULONG m_segid_colid;
 
 			// should update preserve tuple oids
-			BOOL m_fPreserveOids;	
+			BOOL m_preserve_oids;	
 
 			// tuple oid column id
-			ULONG m_ulTupleOid;
+			ULONG m_tuple_oid;
 			
 			// private copy ctor
 			CDXLPhysicalSplit(const CDXLPhysicalSplit &);
@@ -63,14 +63,14 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalSplit
 				(
-				IMemoryPool *pmp,
-				DrgPul *pdrgpulDelete,
-				DrgPul *pdrgpulInsert,
-				ULONG ulAction,
-				ULONG ulCtid,
-				ULONG ulSegmentId,
-				BOOL fPreserveOids,
-				ULONG ulTupleOid
+				IMemoryPool *mp,
+				ULongPtrArray *delete_colid_array,
+				ULongPtrArray *insert_colid_array,
+				ULONG action_colid,
+				ULONG ctid_colid,
+				ULONG segid_colid,
+				BOOL preserve_oids,
+				ULONG tuple_oid
 				);
 
 			// dtor
@@ -78,74 +78,74 @@ namespace gpdxl
 			~CDXLPhysicalSplit();
 
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// deletion column ids
-			DrgPul *PdrgpulDelete() const
+			ULongPtrArray *GetDeletionColIdArray() const
 			{
-				return m_pdrgpulDelete;
+				return m_deletion_colid_array;
 			}
 
 			// insertion column ids
-			DrgPul *PdrgpulInsert() const
+			ULongPtrArray *GetInsertionColIdArray() const
 			{
-				return m_pdrgpulInsert;
+				return m_insert_colid_array;
 			}
 
 			// action column id
-			ULONG UlAction() const
+			ULONG ActionColId() const
 			{
-				return m_ulAction;
+				return m_action_colid;
 			}
 
 			// ctid column id
-			ULONG UlCtid() const
+			ULONG GetCtIdColId() const
 			{
-				return m_ulCtid;
+				return m_ctid_colid;
 			}
 
 			// segmentid column id
-			ULONG UlSegmentId() const
+			ULONG GetSegmentIdColId() const
 			{
-				return m_ulSegmentId;
+				return m_segid_colid;
 			}
 			
 			// does update preserve oids
-			BOOL FPreserveOids() const
+			BOOL IsOidsPreserved() const
 			{
-				return m_fPreserveOids;
+				return m_preserve_oids;
 			}
 
 			// tuple oid column id
-			ULONG UlTupleOid() const
+			ULONG GetTupleOid() const
 			{
-				return m_ulTupleOid;
+				return m_tuple_oid;
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalSplit *PdxlopConvert
+			CDXLPhysicalSplit *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalSplit == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalSplit == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalSplit*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalSplit*>(dxl_op);
 			}
 	};
 }

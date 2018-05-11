@@ -65,9 +65,9 @@ COstreamStringTest::EresUnittest_Basic()
 {
 	// create memory pool of 128KB
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 	
-	CWStringDynamic str(pmp);
+	CWStringDynamic str(mp);
 	
 	// define basic stream over wide char out stream
 	COstreamString osb(&str);
@@ -77,7 +77,7 @@ COstreamStringTest::EresUnittest_Basic()
 	CHAR c = 'C';
 	ULONG ul = 102;
 	INT i = -10;
-	WCHAR wsz[] = GPOS_WSZ_LIT("some regular string");	
+	WCHAR wc_array[] = GPOS_WSZ_LIT("some regular string");	
 	INT hex = 0xdeadbeef;
 	
 	osb 
@@ -85,14 +85,14 @@ COstreamStringTest::EresUnittest_Basic()
 		<< c 
 		<< ul
 		<< i 
-		<< wsz 
+		<< wc_array 
 		<< COstream::EsmHex 
 		<< hex
 		;
 	
 	CWStringConst sexp(GPOS_WSZ_LIT("WC102-10some regular stringdeadbeef"));
 		
-	GPOS_ASSERT(str.FEquals(&sexp) && "Constructed string does not match expected output");
+	GPOS_ASSERT(str.Equals(&sexp) && "Constructed string does not match expected output");
 	
 	return GPOS_OK;
 }
@@ -116,9 +116,9 @@ COstreamStringTest::EresUnittest_OOM()
 		false /*fThreadSafe*/,
 		1024
 		);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWStringDynamic str(pmp);
+	CWStringDynamic str(mp);
 	
 	// define basic stream over wide char out stream
 	COstreamString osb(&str);
@@ -146,9 +146,9 @@ COstreamStringTest::EresUnittest_EndlAssert()
 {
 	// create memory pool of 1KB
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWStringDynamic str(pmp);
+	CWStringDynamic str(mp);
 	
 	// define basic stream over wide char out stream
 	COstreamString osb(&str);

@@ -36,10 +36,10 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalDynamicGet::CLogicalDynamicGet
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalDynamicGetBase(pmp)
+	CLogicalDynamicGetBase(mp)
 {
 }
 
@@ -54,19 +54,19 @@ CLogicalDynamicGet::CLogicalDynamicGet
 //---------------------------------------------------------------------------
 CLogicalDynamicGet::CLogicalDynamicGet
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	ULONG ulPartIndex,
-	DrgPcr *pdrgpcrOutput,
-	DrgDrgPcr *pdrgpdrgpcrPart,
+	CColRefArray *pdrgpcrOutput,
+	CColRef2dArray *pdrgpdrgpcrPart,
 	ULONG ulSecondaryPartIndexId,
-	BOOL fPartial,
+	BOOL is_partial,
 	CPartConstraint *ppartcnstr, 
 	CPartConstraint *ppartcnstrRel
 	)
 	:
-	CLogicalDynamicGetBase(pmp, pnameAlias, ptabdesc, ulPartIndex, pdrgpcrOutput, pdrgpdrgpcrPart, ulSecondaryPartIndexId, fPartial, ppartcnstr, ppartcnstrRel)
+	CLogicalDynamicGetBase(mp, pnameAlias, ptabdesc, ulPartIndex, pdrgpcrOutput, pdrgpdrgpcrPart, ulSecondaryPartIndexId, is_partial, ppartcnstr, ppartcnstrRel)
 {
 }
 
@@ -81,13 +81,13 @@ CLogicalDynamicGet::CLogicalDynamicGet
 //---------------------------------------------------------------------------
 CLogicalDynamicGet::CLogicalDynamicGet
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	ULONG ulPartIndex
 	)
 	:
-	CLogicalDynamicGetBase(pmp, pnameAlias, ptabdesc, ulPartIndex)
+	CLogicalDynamicGetBase(mp, pnameAlias, ptabdesc, ulPartIndex)
 {
 }
 
@@ -106,17 +106,17 @@ CLogicalDynamicGet::~CLogicalDynamicGet()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDynamicGet::UlHash
+//		CLogicalDynamicGet::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CLogicalDynamicGet::UlHash() const
+CLogicalDynamicGet::HashValue() const
 {
-	ULONG ulHash = gpos::UlCombineHashes(COperator::UlHash(), m_ptabdesc->Pmdid()->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
+	ULONG ulHash = gpos::CombineHashes(COperator::HashValue(), m_ptabdesc->MDId()->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
 
 	return ulHash;
 }
@@ -124,14 +124,14 @@ CLogicalDynamicGet::UlHash() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDynamicGet::FMatch
+//		CLogicalDynamicGet::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CLogicalDynamicGet::FMatch
+CLogicalDynamicGet::Matches
 	(
 	COperator *pop
 	)
@@ -151,28 +151,28 @@ CLogicalDynamicGet::FMatch
 COperator *
 CLogicalDynamicGet::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPcr *pdrgpcrOutput = NULL;
-	if (fMustExist)
+	CColRefArray *pdrgpcrOutput = NULL;
+	if (must_exist)
 	{
-		pdrgpcrOutput = CUtils::PdrgpcrRemapAndCreate(pmp, m_pdrgpcrOutput, phmulcr);
+		pdrgpcrOutput = CUtils::PdrgpcrRemapAndCreate(mp, m_pdrgpcrOutput, colref_mapping);
 	}
 	else
 	{
-		pdrgpcrOutput = CUtils::PdrgpcrRemap(pmp, m_pdrgpcrOutput, phmulcr, fMustExist);
+		pdrgpcrOutput = CUtils::PdrgpcrRemap(mp, m_pdrgpcrOutput, colref_mapping, must_exist);
 	}
-	DrgDrgPcr *pdrgpdrgpcrPart = PdrgpdrgpcrCreatePartCols(pmp, pdrgpcrOutput, m_ptabdesc->PdrgpulPart());
-	CName *pnameAlias = GPOS_NEW(pmp) CName(pmp, *m_pnameAlias);
+	CColRef2dArray *pdrgpdrgpcrPart = PdrgpdrgpcrCreatePartCols(mp, pdrgpcrOutput, m_ptabdesc->PdrgpulPart());
+	CName *pnameAlias = GPOS_NEW(mp) CName(mp, *m_pnameAlias);
 	m_ptabdesc->AddRef();
 
-	CPartConstraint *ppartcnstr = m_ppartcnstr->PpartcnstrCopyWithRemappedColumns(pmp, phmulcr, fMustExist);
-	CPartConstraint *ppartcnstrRel = m_ppartcnstrRel->PpartcnstrCopyWithRemappedColumns(pmp, phmulcr, fMustExist);
+	CPartConstraint *ppartcnstr = m_part_constraint->PpartcnstrCopyWithRemappedColumns(mp, colref_mapping, must_exist);
+	CPartConstraint *ppartcnstrRel = m_ppartcnstrRel->PpartcnstrCopyWithRemappedColumns(mp, colref_mapping, must_exist);
 
-	return GPOS_NEW(pmp) CLogicalDynamicGet(pmp, pnameAlias, m_ptabdesc, m_ulScanId, pdrgpcrOutput, pdrgpdrgpcrPart, m_ulSecondaryScanId, m_fPartial, ppartcnstr, ppartcnstrRel);
+	return GPOS_NEW(mp) CLogicalDynamicGet(mp, pnameAlias, m_ptabdesc, m_scan_id, pdrgpcrOutput, pdrgpdrgpcrPart, m_ulSecondaryScanId, m_is_partial, ppartcnstr, ppartcnstrRel);
 }
 
 //---------------------------------------------------------------------------
@@ -201,13 +201,13 @@ CLogicalDynamicGet::FInputOrderSensitive() const
 CXformSet *
 CLogicalDynamicGet::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	) 
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
-	(void) pxfs->FExchangeSet(CXform::ExfDynamicGet2DynamicTableScan);
-	return pxfs;
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfDynamicGet2DynamicTableScan);
+	return xform_set;
 }
 
 
@@ -241,15 +241,15 @@ CLogicalDynamicGet::OsPrint
 		os << " (";
 		m_ptabdesc->Name().OsPrint(os);
 		os <<"), ";
-		m_ppartcnstr->OsPrint(os);
+		m_part_constraint->OsPrint(os);
 		os << "), Columns: [";
 		CUtils::OsPrintDrgPcr(os, m_pdrgpcrOutput);
-		os << "] Scan Id: " << m_ulScanId << "." << m_ulSecondaryScanId;
+		os << "] Scan Id: " << m_scan_id << "." << m_ulSecondaryScanId;
 		
-		if (!m_ppartcnstr->FUnbounded())
+		if (!m_part_constraint->IsConstraintUnbounded())
 		{
 			os << ", ";
-			m_ppartcnstr->OsPrint(os);
+			m_part_constraint->OsPrint(os);
 		}
 	}
 		
@@ -267,20 +267,20 @@ CLogicalDynamicGet::OsPrint
 IStatistics *
 CLogicalDynamicGet::PstatsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
-	DrgPstat * // not used
+	IStatisticsArray * // not used
 	)
 	const
 {
-	CReqdPropRelational *prprel = CReqdPropRelational::Prprel(exprhdl.Prp());
-	IStatistics *pstats = PstatsDeriveFilter(pmp, exprhdl, prprel->PexprPartPred());
+	CReqdPropRelational *prprel = CReqdPropRelational::GetReqdRelationalProps(exprhdl.Prp());
+	IStatistics *stats = PstatsDeriveFilter(mp, exprhdl, prprel->PexprPartPred());
 
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp, m_pdrgpcrOutput);
-	CUpperBoundNDVs *pubndv = GPOS_NEW(pmp) CUpperBoundNDVs(pcrs, pstats->DRows());
-	CStatistics::PstatsConvert(pstats)->AddCardUpperBound(pubndv);
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, m_pdrgpcrOutput);
+	CUpperBoundNDVs *upper_bound_NDVs = GPOS_NEW(mp) CUpperBoundNDVs(pcrs, stats->Rows());
+	CStatistics::CastStats(stats)->AddCardUpperBound(upper_bound_NDVs);
 
-	return pstats;
+	return stats;
 }
 
 // EOF

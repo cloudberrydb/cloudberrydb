@@ -41,11 +41,11 @@ namespace gpmd
 			
 			// copy ctor
 			explicit
-			CMDIdGPDBCtas(const CMDIdGPDBCtas &mdidSource);
+			CMDIdGPDBCtas(const CMDIdGPDBCtas &mdid_source);
 
 			// mdid type
 			virtual
-			EMDIdType Emdidt() const
+			EMDIdType MdidType() const
 			{
 				return EmdidGPDBCtas;
 			}
@@ -59,11 +59,11 @@ namespace gpmd
 
 			// equality check
 			virtual
-			BOOL FEquals(const IMDId *pmdid) const;
+			BOOL Equals(const IMDId *mdid) const;
 			
 			// is the mdid valid
 			virtual
-			BOOL FValid() const;
+			BOOL IsValid() const;
 						
 			// debug print of the metadata id
 			virtual
@@ -71,24 +71,24 @@ namespace gpmd
 			
 			// invalid mdid
 			static 
-			CMDIdGPDBCtas m_mdidInvalidKey;
+			CMDIdGPDBCtas m_mdid_invalid_key;
 			
 			// const converter
 			static
-			const CMDIdGPDBCtas *PmdidConvert(const IMDId *pmdid)
+			const CMDIdGPDBCtas *CastMdid(const IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && EmdidGPDBCtas == pmdid->Emdidt());
+				GPOS_ASSERT(NULL != mdid && EmdidGPDBCtas == mdid->MdidType());
 
-				return dynamic_cast<const CMDIdGPDBCtas *>(pmdid);
+				return dynamic_cast<const CMDIdGPDBCtas *>(mdid);
 			}
 			
 			// non-const converter
 			static
-			CMDIdGPDBCtas *PmdidConvert(IMDId *pmdid)
+			CMDIdGPDBCtas *CastMdid(IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && EmdidGPDBCtas == pmdid->Emdidt());
+				GPOS_ASSERT(NULL != mdid && EmdidGPDBCtas == mdid->MdidType());
 
-				return dynamic_cast<CMDIdGPDBCtas *>(pmdid);
+				return dynamic_cast<CMDIdGPDBCtas *>(mdid);
 			}
 	};
 

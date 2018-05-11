@@ -28,24 +28,24 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CIndexDescriptor::CIndexDescriptor
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	IMDId *pmdidIndex,
 	const CName &name,
-	DrgPcoldesc *pdrgcoldescKeyCols,
-	DrgPcoldesc *pdrgcoldescIncludedCols,
-	BOOL fClustered,
-	IMDIndex::EmdindexType emdindtype
+	CColumnDescriptorArray *pdrgcoldescKeyCols,
+	CColumnDescriptorArray *pdrgcoldescIncludedCols,
+	BOOL is_clustered,
+	IMDIndex::EmdindexType index_type
 	)
 	:
 	m_pmdidIndex(pmdidIndex),
-	m_name(pmp, name),
+	m_name(mp, name),
 	m_pdrgpcoldescKeyCols(pdrgcoldescKeyCols),
 	m_pdrgpcoldescIncludedCols(pdrgcoldescIncludedCols),
-	m_fClustered(fClustered),
-	m_emdindt(emdindtype)
+	m_clustered(is_clustered),
+	m_index_type(index_type)
 {
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(pmdidIndex->FValid());
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(pmdidIndex->IsValid());
 	GPOS_ASSERT(NULL != pdrgcoldescKeyCols);
 	GPOS_ASSERT(NULL != pdrgcoldescIncludedCols);
 }
@@ -68,16 +68,16 @@ CIndexDescriptor::~CIndexDescriptor()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CIndexDescriptor::UlKeys
+//		CIndexDescriptor::Keys
 //
 //	@doc:
 //		number of key columns
 //
 //---------------------------------------------------------------------------
 ULONG
-CIndexDescriptor::UlKeys() const
+CIndexDescriptor::Keys() const
 {
-	return m_pdrgpcoldescKeyCols->UlLength();
+	return m_pdrgpcoldescKeyCols->Size();
 }
 
 //---------------------------------------------------------------------------
@@ -94,7 +94,7 @@ CIndexDescriptor::UlIncludedColumns() const
 	// array allocated in ctor
 	GPOS_ASSERT(NULL != m_pdrgpcoldescIncludedCols);
 
-	return m_pdrgpcoldescIncludedCols->UlLength();
+	return m_pdrgpcoldescIncludedCols->Size();
 }
 
 //---------------------------------------------------------------------------
@@ -109,21 +109,21 @@ CIndexDescriptor::UlIncludedColumns() const
 CIndexDescriptor *
 CIndexDescriptor::Pindexdesc
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const CTableDescriptor *ptabdesc,
 	const IMDIndex *pmdindex
 	)
 {
-	CWStringConst strIndexName(pmp, pmdindex->Mdname().Pstr()->Wsz());
+	CWStringConst strIndexName(mp, pmdindex->Mdname().GetMDName()->GetBuffer());
 
-	DrgPcoldesc *pdrgpcoldesc = ptabdesc->Pdrgpcoldesc();
+	CColumnDescriptorArray *pdrgpcoldesc = ptabdesc->Pdrgpcoldesc();
 
-	pmdindex->Pmdid()->AddRef();
+	pmdindex->MDId()->AddRef();
 
 	// array of index column descriptors
-	DrgPcoldesc *pdrgcoldescKey = GPOS_NEW(pmp) DrgPcoldesc(pmp);
+	CColumnDescriptorArray *pdrgcoldescKey = GPOS_NEW(mp) CColumnDescriptorArray(mp);
 
-	for (ULONG ul = 0; ul < pmdindex->UlKeys(); ul++)
+	for (ULONG ul = 0; ul < pmdindex->Keys(); ul++)
 	{
 		CColumnDescriptor *pcoldesc = (*pdrgpcoldesc)[ul];
 		pcoldesc->AddRef();
@@ -131,8 +131,8 @@ CIndexDescriptor::Pindexdesc
 	}
 
 	// array of included column descriptors
-	DrgPcoldesc *pdrgcoldescIncluded = GPOS_NEW(pmp) DrgPcoldesc(pmp);
-	for (ULONG ul = 0; ul < pmdindex->UlIncludedCols(); ul++)
+	CColumnDescriptorArray *pdrgcoldescIncluded = GPOS_NEW(mp) CColumnDescriptorArray(mp);
+	for (ULONG ul = 0; ul < pmdindex->IncludedCols(); ul++)
 	{
 		CColumnDescriptor *pcoldesc = (*pdrgpcoldesc)[ul];
 		pcoldesc->AddRef();
@@ -141,15 +141,15 @@ CIndexDescriptor::Pindexdesc
 
 
 	// create the index descriptors
-	CIndexDescriptor *pindexdesc = GPOS_NEW(pmp) CIndexDescriptor
+	CIndexDescriptor *pindexdesc = GPOS_NEW(mp) CIndexDescriptor
 											(
-											pmp,
-											pmdindex->Pmdid(),
+											mp,
+											pmdindex->MDId(),
 											CName(&strIndexName),
 											pdrgcoldescKey,
 											pdrgcoldescIncluded,
-											pmdindex->FClustered(),
-											pmdindex->Emdindt()
+											pmdindex->IsClustered(),
+											pmdindex->IndexType()
 											);
 	return pindexdesc;
 }
@@ -172,15 +172,15 @@ CIndexDescriptor::OsPrint
 {
 	m_name.OsPrint(os);
 	os << ": (Keys :";
-	CUtils::OsPrintDrgPcoldesc(os, m_pdrgpcoldescKeyCols, m_pdrgpcoldescKeyCols->UlLength());
+	CUtils::OsPrintDrgPcoldesc(os, m_pdrgpcoldescKeyCols, m_pdrgpcoldescKeyCols->Size());
 	os << "); ";
 
 	os << "(Included Columns :";
-	CUtils::OsPrintDrgPcoldesc(os, m_pdrgpcoldescIncludedCols, m_pdrgpcoldescIncludedCols->UlLength());
+	CUtils::OsPrintDrgPcoldesc(os, m_pdrgpcoldescIncludedCols, m_pdrgpcoldescIncludedCols->Size());
 	os << ")";
 
 	os << " [ Clustered :";
-	if (m_fClustered)
+	if (m_clustered)
 	{
 		os << "true";
 	}

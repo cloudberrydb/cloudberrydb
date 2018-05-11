@@ -45,16 +45,16 @@ namespace gpnaucrates
 
 			// lower point
 			virtual
-			CPoint *PpLower() const = 0;
+			CPoint *GetLowerBound() const = 0;
 
 			// upper point
 			virtual
-			CPoint *PpUpper() const = 0;
+			CPoint *GetUpperBound() const = 0;
 
 			// is bucket singleton?
-			BOOL FSingleton() const
+			BOOL IsSingleton() const
 			{
-				return PpLower()->FEqual(PpUpper());
+				return GetLowerBound()->Equals(GetUpperBound());
 			}
 
 			// d'tor

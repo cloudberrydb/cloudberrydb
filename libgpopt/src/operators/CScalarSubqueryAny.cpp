@@ -25,13 +25,13 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScalarSubqueryAny::CScalarSubqueryAny
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidScalarOp,
+	IMemoryPool *mp,
+	IMDId *scalar_op_mdid,
 	const CWStringConst *pstrScalarOp,
-	const CColRef *pcr
+	const CColRef *colref
 	)
 	:
-	CScalarSubqueryQuantified(pmp, pmdidScalarOp, pstrScalarOp, pcr)
+	CScalarSubqueryQuantified(mp, scalar_op_mdid, pstrScalarOp, colref)
 {}
 
 //---------------------------------------------------------------------------
@@ -45,19 +45,19 @@ CScalarSubqueryAny::CScalarSubqueryAny
 COperator *
 CScalarSubqueryAny::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	CColRef *pcr = CUtils::PcrRemap(Pcr(), phmulcr, fMustExist);
+	CColRef *colref = CUtils::PcrRemap(Pcr(), colref_mapping, must_exist);
 
-	IMDId *pmdidScalarOp = PmdidOp();
-	pmdidScalarOp->AddRef();
+	IMDId *scalar_op_mdid = MdIdOp();
+	scalar_op_mdid->AddRef();
 
-	CWStringConst *pstrScalarOp = GPOS_NEW(pmp) CWStringConst(pmp, PstrOp()->Wsz());
+	CWStringConst *pstrScalarOp = GPOS_NEW(mp) CWStringConst(mp, PstrOp()->GetBuffer());
 
-	return GPOS_NEW(pmp) CScalarSubqueryAny(pmp, pmdidScalarOp, pstrScalarOp, pcr);
+	return GPOS_NEW(mp) CScalarSubqueryAny(mp, scalar_op_mdid, pstrScalarOp, colref);
 }
 
 // EOF

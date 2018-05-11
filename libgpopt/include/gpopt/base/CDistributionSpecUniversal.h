@@ -60,7 +60,7 @@ namespace gpopt
 
 			// does this distribution match the given one
 			virtual
-			BOOL FMatch
+			BOOL Matches
 				(
 				const CDistributionSpec *pds
 				)
@@ -70,10 +70,10 @@ namespace gpopt
 			virtual
 			void AppendEnforcers
 				(
-				IMemoryPool *, //pmp, 
+				IMemoryPool *, //mp, 
 				CExpressionHandle &, // exprhdl
 				CReqdPropPlan *, //prpp,
-				DrgPexpr * , // pdrgpexpr, 
+				CExpressionArray * , // pdrgpexpr, 
 				CExpression * // pexpr
 				);
 

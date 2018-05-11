@@ -27,25 +27,25 @@ namespace gpdxl
 	XERCES_CPP_NAMESPACE_USE
 
 	// shorthand for functions creating operator parse handlers 
-	typedef CParseHandlerBase* (PfParseHandlerOpCreator) (IMemoryPool *pmp, CParseHandlerManager *, CParseHandlerBase *);
+	typedef CParseHandlerBase* (ParseHandlerOpCreatorFunc) (IMemoryPool *mp, CParseHandlerManager *, CParseHandlerBase *);
 	
 	// fwd decl
 	class CDXLTokens;
 	
-	const ULONG ulHashMapSize = 128;
+	const ULONG HASH_MAP_SIZE = 128;
 	
 	// function for hashing xerces strings
 	inline 
-	ULONG UlHashXMLStr(const XMLCh *xmlsz)
+	ULONG GetHashXMLStr(const XMLCh *xml_str)
 	{
-		return (ULONG) XMLString::hash(xmlsz, ulHashMapSize);
+		return (ULONG) XMLString::hash(xml_str, HASH_MAP_SIZE);
 	}
 	
 	// function for equality on xerces strings
 	inline 
-	BOOL FEqualXMLStr(const XMLCh *xmlsz1, const XMLCh *xmlsz2)
+	BOOL IsXMLStrEqual(const XMLCh *xml_str1, const XMLCh *xml_str2)
 	{
-		return (0 == XMLString::compareString(xmlsz1, xmlsz2));
+		return (0 == XMLString::compareString(xml_str1, xml_str2));
 	}
 
 	
@@ -60,1592 +60,1592 @@ namespace gpdxl
 	class CParseHandlerFactory
 	{
 		
-		typedef CHashMap<const XMLCh, PfParseHandlerOpCreator, UlHashXMLStr, FEqualXMLStr,
-			CleanupNULL, CleanupNULL > HMXMLStrPfPHCreator;
+		typedef CHashMap<const XMLCh, ParseHandlerOpCreatorFunc, GetHashXMLStr, IsXMLStrEqual,
+			CleanupNULL, CleanupNULL > TokenParseHandlerFuncMap;
 
 		// pair of DXL token type and the corresponding parse handler
 		struct SParseHandlerMapping
 		{
 			// type
-			Edxltoken edxltoken;
+			Edxltoken token_type;
 
 			// translator function pointer
-			PfParseHandlerOpCreator *pfphopc;
+			ParseHandlerOpCreatorFunc *parse_handler_op_func;
 		};
 		
 		private:
 			// mappings DXL token -> ParseHandler creator
 			static 
-			HMXMLStrPfPHCreator *m_phmPHCreators;
+			TokenParseHandlerFuncMap *m_token_parse_handler_func_map;
 
 			static 
-			void AddMapping(Edxltoken edxltok, PfParseHandlerOpCreator *pfphopc);
+			void AddMapping(Edxltoken token_type, ParseHandlerOpCreatorFunc *parse_handler_op_func);
 						
 			// construct a physical op parse handlers
 			static
-			CParseHandlerBase *PphPhysOp
+			CParseHandlerBase *CreatePhysicalOpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a GPDB plan parse handler
 			static
-			CParseHandlerBase *PphPlan
+			CParseHandlerBase *CreatePlanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a metadata parse handler
 			static
-			CParseHandlerBase *PphMetadata
+			CParseHandlerBase *CreateMetadataParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a metadata request parse handler
 			static
-			CParseHandlerBase *PphMDRequest
+			CParseHandlerBase *CreateMDRequestParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
 				CParseHandlerBase *pph
 				);
 			
 			// construct a parse handler for the optimizer configuration
 			static 
-			CParseHandlerBase *PphOptimizerConfig
+			CParseHandlerBase *CreateOptimizerCfgParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a parse handler for the enumerator configuration
 			static
-			CParseHandlerBase *PphEnumeratorConfig
+			CParseHandlerBase *CreateEnumeratorCfgParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a parse handler for the statistics configuration
 			static
-			CParseHandlerBase *PphStatisticsConfig
+			CParseHandlerBase *CreateStatisticsCfgParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a parse handler for the CTE configuration
 			static
-			CParseHandlerBase *PphCTEConfig
+			CParseHandlerBase *CreateCTECfgParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a parse handler for the cost model configuration
 			static
-			CParseHandlerBase *PphCostModelConfig
+			CParseHandlerBase *CreateCostModelCfgParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct hint parse handler
 			static
-			CParseHandlerBase *PphHint
+			CParseHandlerBase *CreateHintParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct window oids parse handler
 			static
-			CParseHandlerBase *PphWindowOids
+			CParseHandlerBase *CreateWindowOidsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a trace flag parse handler
 			static 
-			CParseHandlerBase *PphTraceFlags
+			CParseHandlerBase *CreateTraceFlagsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a MD relation parse handler
 			static 
-			CParseHandlerBase *PphMetadataRelation
+			CParseHandlerBase *CreateMDRelationParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a MD external relation parse handler
 			static
-			CParseHandlerBase *PphMetadataRelationExternal
+			CParseHandlerBase *CreateMDRelationExtParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a MD CTAS relation parse handler
 			static
-			CParseHandlerBase *PphMetadataRelationCTAS
+			CParseHandlerBase *CreateMDRelationCTASParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an MD index parse handler
 			static 
-			CParseHandlerBase *PphMDIndex
+			CParseHandlerBase *CreateMDIndexParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a relation stats parse handler
 			static 
-			CParseHandlerBase *PphRelStats
+			CParseHandlerBase *CreateRelStatsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a column stats parse handler
 			static 
-			CParseHandlerBase *PphColStats
+			CParseHandlerBase *CreateColStatsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a column stats bucket parse handler
 			static 
-			CParseHandlerBase *PphColStatsBucket
+			CParseHandlerBase *CreateColStatsBucketParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an MD type parse handler
 			static
-			CParseHandlerBase *PphMDGPDBType
+			CParseHandlerBase *CreateMDTypeParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an MD scalarop parse handler
 			static
-			CParseHandlerBase *PphMDGPDBScalarOp
+			CParseHandlerBase *CreateMDScalarOpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an MD function parse handler
 			static
-			CParseHandlerBase *PphMDGPDBFunc
+			CParseHandlerBase *CreateMDFuncParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an MD aggregate operation parse handler
 			static
-			CParseHandlerBase *PphMDGPDBAgg
+			CParseHandlerBase *CreateMDAggParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an MD trigger parse handler
 			static
-			CParseHandlerBase *PphMDGPDBTrigger
+			CParseHandlerBase *CreateMDTriggerParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an MD cast parse handler
 			static
-			CParseHandlerBase *PphMDCast
+			CParseHandlerBase *CreateMDCastParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an MD scalar comparison parse handler
 			static
-			CParseHandlerBase *PphMDScCmp
+			CParseHandlerBase *CreateMDScCmpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an MD check constraint parse handler
 			static
-			CParseHandlerBase *PphMDGPDBCheckConstraint
+			CParseHandlerBase *CreateMDChkConstraintParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a parse handler for a list of MD ids
 			static
-			CParseHandlerBase *PphMetadataIdList
+			CParseHandlerBase *CreateMDIdListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a metadata columns parse handler
 			static
-			CParseHandlerBase *PphMetadataColumns
+			CParseHandlerBase *CreateMDColsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			static
-			CParseHandlerBase * PphMDIndexInfoList
+			CParseHandlerBase * CreateMDIndexInfoListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a column MD parse handler
 			static
-			CParseHandlerBase *PphMetadataColumn
+			CParseHandlerBase *CreateMDColParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a column default value expression parse handler
 			static
-			CParseHandlerBase *PphColumnDefaultValueExpr
+			CParseHandlerBase *CreateColDefaultValExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar operator parse handler
 			static
-			CParseHandlerBase *PphScalarOp
+			CParseHandlerBase *CreateScalarOpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a properties parse handler
 			static
-			CParseHandlerBase *PphProperties
+			CParseHandlerBase *CreatePropertiesParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a filter operator parse handler
 			static
-			CParseHandlerBase *PphFilter
+			CParseHandlerBase *CreateFilterParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a table scan parse handler
 			static
-			CParseHandlerBase *PphTableScan
+			CParseHandlerBase *CreateTableScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a bitmap table scan parse handler
 			static
-			CParseHandlerBase *PphBitmapTableScan
+			CParseHandlerBase *CreateBitmapTableScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a dynamic bitmap table scan parse handler
 			static
-			CParseHandlerBase *PphDynamicBitmapTableScan
+			CParseHandlerBase *CreateDynBitmapTableScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an external scan parse handler
 			static
-			CParseHandlerBase *PphExternalScan
+			CParseHandlerBase *CreateExternalScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a subquery scan parse handler
 			static
-			CParseHandlerBase *PphSubqScan
+			CParseHandlerBase *CreateSubqueryScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a result node parse handler
 			static
-			CParseHandlerBase *PphResult
+			CParseHandlerBase *CreateResultParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a HJ parse handler
 			static
-			CParseHandlerBase *PphHashJoin
+			CParseHandlerBase *CreateHashJoinParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a NLJ parse handler
 			static
-			CParseHandlerBase *PphNLJoin
+			CParseHandlerBase *CreateNLJoinParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a merge join parse handler
 			static
-			CParseHandlerBase *PphMergeJoin
+			CParseHandlerBase *CreateMergeJoinParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a sort parse handler
 			static
-			CParseHandlerBase *PphSort
+			CParseHandlerBase *CreateSortParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an append parse handler
 			static
-			CParseHandlerBase *PphAppend
+			CParseHandlerBase *CreateAppendParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a materialize parse handler
 			static
-			CParseHandlerBase *PphMaterialize
+			CParseHandlerBase *CreateMaterializeParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a dynamic table scan parse handler
 			static
-			CParseHandlerBase *PphDynamicTableScan
+			CParseHandlerBase *CreateDTSParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a dynamic index scan parse handler
 			static
-			CParseHandlerBase *PphDynamicIndexScan
+			CParseHandlerBase *CreateDynamicIdxScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a partition selector parse handler
 			static
-			CParseHandlerBase *PphPartitionSelector
+			CParseHandlerBase *CreatePartitionSelectorParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a sequence parse handler
 			static
-			CParseHandlerBase *PphSequence
+			CParseHandlerBase *CreateSequenceParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a limit (physical) parse handler
 			static
-			CParseHandlerBase *PphLimit
+			CParseHandlerBase *CreateLimitParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a limit count parse handler
 			static
-			CParseHandlerBase *PphLimitcount
+			CParseHandlerBase *CreateLimitCountParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a limit offset parse handler
 			static
-			CParseHandlerBase *PphLimitoffset
+			CParseHandlerBase *CreateLimitOffsetParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a subquery parse handler
 			static
-			CParseHandlerBase *PphScalarSubquery
+			CParseHandlerBase *CreateScSubqueryParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a subquery parse handler
 			static
-			CParseHandlerBase *PphScalarBitmapBoolOp
+			CParseHandlerBase *CreateScBitmapBoolOpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an array parse handler
 			static
-			CParseHandlerBase *PphScalarArray
+			CParseHandlerBase *CreateScArrayParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an arrayref parse handler
 			static
-			CParseHandlerBase *PphScalarArrayRef
+			CParseHandlerBase *CreateScArrayRefParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an arrayref index list parse handler
 			static
-			CParseHandlerBase *PphScalarArrayRefIndexList
+			CParseHandlerBase *CreateScArrayRefIdxListParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an assert predicate parse handler
 			static
-			CParseHandlerBase *PphScalarAssertConstraintList
+			CParseHandlerBase *CreateScAssertConstraintListParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 
 			// construct a DML action parse handler
 			static
-			CParseHandlerBase *PphScalarDMLAction
+			CParseHandlerBase *CreateScDMLActionParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a scalar operator list
 			static
-			CParseHandlerBase *PphScalarOpList
+			CParseHandlerBase *CreateScOpListParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar part oid
 			static
-			CParseHandlerBase *PphScalarPartOid
+			CParseHandlerBase *CreateScPartOidParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar part default
 			static
-			CParseHandlerBase *PphScalarPartDefault
+			CParseHandlerBase *CreateScPartDefaultParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar part bound
 			static
-			CParseHandlerBase *PphScalarPartBound
+			CParseHandlerBase *CreateScPartBoundParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar part bound inclusion
 			static
-			CParseHandlerBase *PphScalarPartBoundInclusion
+			CParseHandlerBase *CreateScPartBoundInclParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar part bound openness
 			static
-			CParseHandlerBase *PphScalarPartBoundOpen
+			CParseHandlerBase *CreateScPartBoundOpenParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar part list values
 			static
-			CParseHandlerBase *PphScalarPartListValues
+			CParseHandlerBase *CreateScPartListValuesParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar part list null test
 			static
-			CParseHandlerBase *PphScalarPartListNullTest
+			CParseHandlerBase *CreateScPartListNullTestParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a direct dispatch info parse handler
 			static
-			CParseHandlerBase *PphDirectDispatchInfo
+			CParseHandlerBase *CreateDirectDispatchParseHandler
 				(
-				IMemoryPool* pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool* mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a gather motion parse handler
 			static
-			CParseHandlerBase *PphGatherMotion
+			CParseHandlerBase *CreateGatherMotionParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a broadcast motion parse handler
 			static
-			CParseHandlerBase *PphBroadcastMotion
+			CParseHandlerBase *CreateBroadcastMotionParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a redistribute motion parse handler
 			static
-			CParseHandlerBase *PphRedistributeMotion
+			CParseHandlerBase *CreateRedistributeMotionParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a routed motion parse handler
 			static
-			CParseHandlerBase *PphRoutedMotion
+			CParseHandlerBase *CreateRoutedMotionParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a random motion parse handler
 			static
-			CParseHandlerBase *PphRandomMotion
+			CParseHandlerBase *CreateRandomMotionParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a physical aggregate parse handler
 			static
-			CParseHandlerBase *PphAgg
+			CParseHandlerBase *CreateAggParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an aggregate function parse handler
 			static
-			CParseHandlerBase *PphAggref
+			CParseHandlerBase *CreateAggRefParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a parse handler for a physical window node
 			static
-			CParseHandlerBase *PphWindow
+			CParseHandlerBase *CreateWindowParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an window function parse handler
 			static
-			CParseHandlerBase *PphWindowRef
+			CParseHandlerBase *CreateWindowRefParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an window frame parse handler
 			static
-			CParseHandlerBase *PphWindowFrame
+			CParseHandlerBase *CreateWindowFrameParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an window key parse handler
 			static
-			CParseHandlerBase *PphWindowKey
+			CParseHandlerBase *CreateWindowKeyParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a parse handler to parse the list of window keys
 			static
-			CParseHandlerBase *PphWindowKeyList
+			CParseHandlerBase *CreateWindowKeyListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an window specification parse handler
 			static
-			CParseHandlerBase *PphWindowSpec
+			CParseHandlerBase *CreateWindowSpecParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a parse handler to parse the list of window specifications
 			static
-			CParseHandlerBase *PphWindowSpecList
+			CParseHandlerBase *CreateWindowSpecListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a grouping column list parse handler
 			static
-			CParseHandlerBase *PphGroupingColList
+			CParseHandlerBase *CreateGroupingColListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a comparison operator parse handler
 			static
-			CParseHandlerBase *PphScalarCmp
+			CParseHandlerBase *CreateScCmpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a distinct compare parse handler
 			static
-			CParseHandlerBase *PphDistinctCmp
+			CParseHandlerBase *CreateDistinctCmpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a scalar identifier parse handler
 			static
-			CParseHandlerBase *PphScalarId
+			CParseHandlerBase *CreateScIdParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a scalar operator parse handler
 			static
-			CParseHandlerBase *PphScalarOpexpr
+			CParseHandlerBase *CreateScOpExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an array compare parse handler
 			static
-			CParseHandlerBase *PphScalarArrayCmp
+			CParseHandlerBase *CreateScArrayCmpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a boolean expression parse handler
 			static
-			CParseHandlerBase *PphScalarBoolExpr
+			CParseHandlerBase *CreateScBoolExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a min/max parse handler
 			static
-			CParseHandlerBase *PphScalarMinMax
+			CParseHandlerBase *CreateScMinMaxParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a boolean test parse handler
 			static
-			CParseHandlerBase *PphBooleanTest
+			CParseHandlerBase *CreateBooleanTestParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a null test parse handler
 			static
-			CParseHandlerBase *PphScalarNullTest
+			CParseHandlerBase *CreateScNullTestParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a nullif parse handler
 			static
-			CParseHandlerBase *PphScalarNullIf
+			CParseHandlerBase *CreateScNullIfParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a cast parse handler
 			static
-			CParseHandlerBase *PphScalarCast
+			CParseHandlerBase *CreateScCastParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a coerce parse handler
 			static
-			CParseHandlerBase *PphScalarCoerceToDomain
+			CParseHandlerBase *CreateScCoerceToDomainParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a coerceviaio parse handler
 			static
-			CParseHandlerBase *PphScalarCoerceViaIO
+			CParseHandlerBase *CreateScCoerceViaIOParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a ArrayCoerceExpr parse handler
 			static
-			CParseHandlerBase *PphScalarArrayCoerceExpr
+			CParseHandlerBase *CreateScArrayCoerceExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a sub plan parse handler
 			static
-			CParseHandlerBase *PphScalarSubPlan
+			CParseHandlerBase *CreateScSubPlanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// create a parse handler for parsing a SubPlan test expression
 			static
-			CParseHandlerBase *PphScalarSubPlanTestExpr
+			CParseHandlerBase *CreateScSubPlanTestExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a sub plan params parse handler
 			static
-			CParseHandlerBase *PphScalarSubPlanParamList
+			CParseHandlerBase *CreateScSubPlanParamListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a sub plan param parse handler
 			static
-			CParseHandlerBase *PphScalarSubPlanParam
+			CParseHandlerBase *CreateScSubPlanParamParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical TVF parse handler
 			static
-			CParseHandlerBase *PphLogicalTVF
+			CParseHandlerBase *CreateLogicalTVFParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a physical TVF parse handler
 			static
-			CParseHandlerBase *PphPhysicalTVF
+			CParseHandlerBase *CreatePhysicalTVFParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a coalesce parse handler
 			static
-			CParseHandlerBase *PphScalarCoalesce
+			CParseHandlerBase *CreateScCoalesceParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a switch parse handler
 			static
-			CParseHandlerBase *PphScalarSwitch
+			CParseHandlerBase *CreateScSwitchParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a switch case parse handler
 			static
-			CParseHandlerBase *PphScalarSwitchCase
+			CParseHandlerBase *CreateScSwitchCaseParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a case test parse handler
 			static
-			CParseHandlerBase *PphScalarCaseTest
+			CParseHandlerBase *CreateScCaseTestParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a constant parse handler
 			static
-			CParseHandlerBase *PphScalarConstValue
+			CParseHandlerBase *CreateScConstValueParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an if statement parse handler
 			static
-			CParseHandlerBase *PphIfStmt
+			CParseHandlerBase *CreateIfStmtParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a function parse handler
 			static
-			CParseHandlerBase *PphScalarFuncExpr
+			CParseHandlerBase *CreateScFuncExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a project list parse handler
 			static
-			CParseHandlerBase *PphProjList
+			CParseHandlerBase *CreateProjListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a project element parse handler
 			static
-			CParseHandlerBase *PphProjElem
+			CParseHandlerBase *CreateProjElemParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a hash expression list parse handler
 			static
-			CParseHandlerBase *PphHashExprList
+			CParseHandlerBase *CreateHashExprListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);		
 			
 			// construct a hash expression parse handler
 			static
-			CParseHandlerBase *PphHashExpr
+			CParseHandlerBase *CreateHashExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a condition list parse handler
 			static
-			CParseHandlerBase *PphCondList
+			CParseHandlerBase *CreateCondListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a sort column list parse handler
 			static
-			CParseHandlerBase *PphSortColList
+			CParseHandlerBase *CreateSortColListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a sort column parse handler
 			static
-			CParseHandlerBase *PphSortCol
+			CParseHandlerBase *CreateSortColParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a cost parse handler
 			static
-			CParseHandlerBase *PphCost
+			CParseHandlerBase *CreateCostParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a table descriptor parse handler
 			static
-			CParseHandlerBase *PphTableDesc
+			CParseHandlerBase *CreateTableDescParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a column descriptor parse handler
 			static
-			CParseHandlerBase *PphColDesc
+			CParseHandlerBase *CreateColDescParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct an index scan list parse handler
 			static
-			CParseHandlerBase *PphIndexScan
+			CParseHandlerBase *CreateIdxScanListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an index only scan parse handler
 			static
-			CParseHandlerBase *PphIndexOnlyScan
+			CParseHandlerBase *CreateIdxOnlyScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a bitmap index scan list parse handler
 			static
-			CParseHandlerBase *PphBitmapIndexProbe
+			CParseHandlerBase *CreateBitmapIdxProbeParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an index descriptor list parse handler
 			static
-			CParseHandlerBase *PphIndexDescr
+			CParseHandlerBase *CreateIdxDescrParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct an index condition list parse handler
 			static
-			CParseHandlerBase *PphIndexCondList
+			CParseHandlerBase *CreateIdxCondListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 
 			// construct a query parse handler
 			static
-			CParseHandlerBase *PphQuery
+			CParseHandlerBase *CreateQueryParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical get parse handler
 			static
-			CParseHandlerBase *PphLgGet
+			CParseHandlerBase *CreateLogicalGetParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical external get parse handler
 			static
-			CParseHandlerBase *PphLgExternalGet
+			CParseHandlerBase *CreateLogicalExtGetParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical operator parse handler
 			static
-			CParseHandlerBase *PphLgOp
+			CParseHandlerBase *CreateLogicalOpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical project parse handler
 			static
-			CParseHandlerBase *PphLgProject
+			CParseHandlerBase *CreateLogicalProjParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical CTE producer parse handler
 			static
-			CParseHandlerBase *PphLgCTEProducer
+			CParseHandlerBase *CreateLogicalCTEProdParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a logical CTE consumer parse handler
 			static
-			CParseHandlerBase *PphLgCTEConsumer
+			CParseHandlerBase *CreateLogicalCTEConsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a logical CTE anchor parse handler
 			static
-			CParseHandlerBase *PphLgCTEAnchor
+			CParseHandlerBase *CreateLogicalCTEAnchorParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a CTE list
 			static
-			CParseHandlerBase *PphCTEList
+			CParseHandlerBase *CreateCTEListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a logical window parse handler
 			static
-			CParseHandlerBase *PphLgWindow
+			CParseHandlerBase *CreateLogicalWindowParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical insert parse handler
 			static
-			CParseHandlerBase *PphLgInsert
+			CParseHandlerBase *CreateLogicalInsertParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a logical delete parse handler
 			static
-			CParseHandlerBase *PphLgDelete
+			CParseHandlerBase *CreateLogicalDeleteParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical update parse handler
 			static
-			CParseHandlerBase *PphLgUpdate
+			CParseHandlerBase *CreateLogicalUpdateParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a logical CTAS parse handler
 			static
-			CParseHandlerBase *PphLgCTAS
+			CParseHandlerBase *CreateLogicalCTASParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a physical CTAS parse handler
 			static
-			CParseHandlerBase *PphPhCTAS
+			CParseHandlerBase *CreatePhysicalCTASParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a parse handler for parsing CTAS storage options
 			static
-			CParseHandlerBase *PphCTASOptions
+			CParseHandlerBase *CreateCTASOptionsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a physical CTE producer parse handler
 			static
-			CParseHandlerBase *PphPhCTEProducer
+			CParseHandlerBase *CreatePhysicalCTEProdParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a physical CTE consumer parse handler
 			static
-			CParseHandlerBase *PphPhCTEConsumer
+			CParseHandlerBase *CreatePhysicalCTEConsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a physical DML parse handler
 			static
-			CParseHandlerBase *PphPhDML
+			CParseHandlerBase *CreatePhysicalDMLParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a physical split parse handler
 			static
-			CParseHandlerBase *PphPhSplit
+			CParseHandlerBase *CreatePhysicalSplitParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a physical row trigger parse handler
 			static
-			CParseHandlerBase *PphPhRowTrigger
+			CParseHandlerBase *CreatePhysicalRowTriggerParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a physical assert parse handler
 			static
-			CParseHandlerBase *PphPhAssert
+			CParseHandlerBase *CreatePhysicalAssertParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a logical set operator parse handler
 			static
-			CParseHandlerBase *PphLgSetOp
+			CParseHandlerBase *CreateLogicalSetOpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical select parse handler
 			static
-			CParseHandlerBase *PphLgSelect
+			CParseHandlerBase *CreateLogicalSelectParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical join parse handler
 			static
-			CParseHandlerBase *PphLgJoin
+			CParseHandlerBase *CreateLogicalJoinParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical query output parse handler
 			static
-			CParseHandlerBase *PphQueryOutput
+			CParseHandlerBase *CreateLogicalQueryOpParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a logical groupby parse handler
 			static
-			CParseHandlerBase *PphLgGrpBy
+			CParseHandlerBase *CreateLogicalGrpByParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);	
 
 			// construct a logical limit parse handler
 			static
-			CParseHandlerBase *PphLgLimit
+			CParseHandlerBase *CreateLogicalLimitParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a logical const table parse handler
 			static
-			CParseHandlerBase *PphLgConstTable
+			CParseHandlerBase *CreateLogicalConstTableParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a quantified subquery parse handler
 			static
-			CParseHandlerBase *PphScSubqueryQuantified
+			CParseHandlerBase *CreateScScalarSubqueryQuantifiedParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	
 			// construct a subquery parse handler
 			static
-			CParseHandlerBase *PphScSubqueryExists
+			CParseHandlerBase *CreateScScalarSubqueryExistsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a pass-through parse handler for stack traces
 			static
-			CParseHandlerBase *PphStacktrace
+			CParseHandlerBase *CreateStackTraceParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pph
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a statistics parse handler
 			static
-			CParseHandlerBase *PphStats
+			CParseHandlerBase *CreateStatsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a derived column parse handler
 			static
-			CParseHandlerBase *PphStatsDerivedColumn
+			CParseHandlerBase *CreateStatsDrvdColParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a derived relation stats parse handler
 			static
-			CParseHandlerBase *PphStatsDerivedRelation
+			CParseHandlerBase *CreateStatsDrvdRelParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a bucket bound parse handler
 			static
-			CParseHandlerBase *PphStatsBucketBound
+			CParseHandlerBase *CreateStatsBucketBoundParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			// construct a trailing window frame edge parser
 			static
-			CParseHandlerBase *PphWindowFrameTrailingEdge
+			CParseHandlerBase *CreateFrameTrailingEdgeParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a leading window frame edge parser
 			static
-			CParseHandlerBase *PphWindowFrameLeadingEdge
+			CParseHandlerBase *CreateFrameLeadingEdgeParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct search strategy parse handler
 			static
-			CParseHandlerBase *PphSearchStrategy
+			CParseHandlerBase *CreateSearchStrategyParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct search stage parse handler
 			static
-			CParseHandlerBase *PphSearchStage
+			CParseHandlerBase *CreateSearchStageParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct xform parse handler
 			static
-			CParseHandlerBase *PphXform
+			CParseHandlerBase *CreateXformParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct cost params parse handler
 			static
-			CParseHandlerBase *PphCostParams
+			CParseHandlerBase *CreateCostParamsParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct cost param parse handler
 			static
-			CParseHandlerBase *PphCostParam
+			CParseHandlerBase *CreateCostParamParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar expression parse handler
 			static
-			CParseHandlerBase *PphScalarExpr
+			CParseHandlerBase *CreateScExprParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a scalar values list parse handler
 			static
-			CParseHandlerBase *PphScalarValuesList
+			CParseHandlerBase *CreateScValuesListParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a values scan parse handler
 			static
-			CParseHandlerBase *PphValuesScan
+			CParseHandlerBase *CreateValuesScanParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
-			// construct a values scan parse handler
+			// construct a md array coerce cast parse handler
 			static
-			CParseHandlerBase *PphMDArrayCoerceCast
+			CParseHandlerBase *CreateMDArrayCoerceCastParseHandler
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// construct a nested loop param list parse handler
@@ -1670,23 +1670,23 @@ namespace gpdxl
 			
 			// initialize mappings of tokens to parse handlers
 			static 
-			void Init(IMemoryPool *pmp);
+			void Init(IMemoryPool *mp);
 			
 			// return the parse handler creator for operator with the given name
 			static 
-			CParseHandlerBase *Pph
+			CParseHandlerBase *GetParseHandler
 				(
-				IMemoryPool *pmp,
-				const XMLCh *xmlsz,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				const XMLCh *xml_str,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// factory methods for creating parse handlers
 			static 
-			CParseHandlerDXL *Pphdxl
+			CParseHandlerDXL *GetParseHandlerDXL
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CParseHandlerManager*
 				);
 	};

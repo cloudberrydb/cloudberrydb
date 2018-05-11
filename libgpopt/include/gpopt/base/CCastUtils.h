@@ -30,7 +30,7 @@ namespace gpopt
 
 			// is the given expression a binary coercible cast of a scalar identifier for the given column
 			static
-			BOOL FBinaryCoercibleCastedScId(CExpression *pexpr, CColRef *pcr);
+			BOOL FBinaryCoercibleCastedScId(CExpression *pexpr, CColRef *colref);
 			
 			// is the given expression a binary coercible cast of a scalar identifier
 			static
@@ -44,7 +44,7 @@ namespace gpopt
 
 			// cast the input column reference to the destination mdid
 			static
-			CExpression *PexprCast( IMemoryPool *pmp, CMDAccessor *pmda, const CColRef *pcr, IMDId *pmdidDest);
+			CExpression *PexprCast( IMemoryPool *mp, CMDAccessor *md_accessor, const CColRef *colref, IMDId *mdid_dest);
 
 			// check whether the given expression is a binary coercible cast of something
 			static
@@ -61,15 +61,15 @@ namespace gpopt
 
             // add explicit casting to equality operations between compatible types
             static
-            DrgPexpr *PdrgpexprCastEquality(IMemoryPool *pmp, CExpression *pexpr);
+            CExpressionArray *PdrgpexprCastEquality(IMemoryPool *mp, CExpression *pexpr);
 
             // helper to add explicit casting to left child of given equality predicate
             static
-            CExpression *PexprAddCast(IMemoryPool *pmp, CExpression *pexprPred);
+            CExpression *PexprAddCast(IMemoryPool *mp, CExpression *pexprPred);
 
             // add explicit casting on the input expression to the destination type
             static
-            CExpression *PexprCast(IMemoryPool *pmp, CMDAccessor *pmda, CExpression *pexpr, IMDId *pmdidDest);
+            CExpression *PexprCast(IMemoryPool *mp, CMDAccessor *md_accessor, CExpression *pexpr, IMDId *mdid_dest);
 	}; // class CCastUtils
 
 } // namespace gpopt

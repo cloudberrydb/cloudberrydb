@@ -23,16 +23,16 @@ using namespace gpdxl;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarRecheckCondFilter::PstrOpName
+//		CDXLScalarRecheckCondFilter::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarRecheckCondFilter::PstrOpName() const
+CDXLScalarRecheckCondFilter::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarRecheckCondFilter);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarRecheckCondFilter);
 }
 
 // EOF

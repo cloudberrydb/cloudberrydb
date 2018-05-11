@@ -23,10 +23,10 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CAutoTrace::CAutoTrace
 	(
-	IMemoryPool*pmp
+	IMemoryPool*mp
 	)
 	:
-	m_wstr(pmp),
+	m_wstr(mp),
 	m_os(&m_wstr)
 {}
 
@@ -41,9 +41,9 @@ CAutoTrace::CAutoTrace
 //---------------------------------------------------------------------------
 CAutoTrace::~CAutoTrace()
 {
-	if (0 < m_wstr.UlLength() && !ITask::PtskSelf()->Perrctxt()->FPending())
+	if (0 < m_wstr.Length() && !ITask::Self()->GetErrCtxt()->IsPending())
 	{
-		GPOS_TRACE(m_wstr.Wsz());
+		GPOS_TRACE(m_wstr.GetBuffer());
 	}
 }
 

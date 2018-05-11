@@ -36,19 +36,19 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CEnumeratorConfig::CEnumeratorConfig
 	(
-	IMemoryPool *pmp,
-	ULLONG ullPlanId,
+	IMemoryPool *mp,
+	ULLONG plan_id,
 	ULLONG ullSamples,
-	CDouble dCostThreshold
+	CDouble cost_threshold
 	)
 	:
-	m_pmp(pmp),
-	m_ullPlanId(ullPlanId),
+	m_mp(mp),
+	m_plan_id(plan_id),
 	m_ullSpaceSize(0),
 	m_ullInputSamples(ullSamples),
 	m_costBest(GPOPT_INVALID_COST),
 	m_costMax(GPOPT_INVALID_COST),
-	m_dCostThreshold(dCostThreshold),
+	m_dCostThreshold(cost_threshold),
 	m_pdrgpsp(NULL),
 	m_dStep(0.5),
 	m_pdX(NULL),
@@ -57,7 +57,7 @@ CEnumeratorConfig::CEnumeratorConfig
 	m_fSampleValidPlans(true),
 	m_pfpc(NULL)
 {
-	m_pdrgpsp = GPOS_NEW(pmp) DrgPsp(pmp);
+	m_pdrgpsp = GPOS_NEW(mp) SSamplePlanArray(mp);
 }
 
 
@@ -149,7 +149,7 @@ CEnumeratorConfig::ClearSamples()
 BOOL
 CEnumeratorConfig::FAddSample
 	(
-	ULLONG ullPlanId,
+	ULLONG plan_id,
 	CCost cost
 	)
 {
@@ -159,7 +159,7 @@ CEnumeratorConfig::FAddSample
 					(cost <= m_costBest * m_dCostThreshold);
 	if (fAccept)
 	{
-		m_pdrgpsp->Append(GPOS_NEW(m_pmp) SSamplePlan(ullPlanId, cost));
+		m_pdrgpsp->Append(GPOS_NEW(m_mp) SSamplePlan(plan_id, cost));
 
 		if (GPOPT_INVALID_COST == m_costMax || cost > m_costMax)
 		{
@@ -209,13 +209,13 @@ void
 CEnumeratorConfig::InitCostDistrSize()
 {
 	//  bound estimated distribution using relative cost of most expensive plan
-	DOUBLE dMax = log2(CDouble((m_costMax / CostBest())).DVal());
+	DOUBLE dMax = log2(CDouble((m_costMax / CostBest())).Get());
 
 	// fix number of points in estimated distribution to 100
 	m_dStep = CDouble(dMax / 100.0);
 
 	// compute target distribution size
-	m_ulDistrSize = (ULONG) (floor(dMax / m_dStep.DVal()) + 1.0);
+	m_ulDistrSize = (ULONG) (floor(dMax / m_dStep.Get()) + 1.0);
 }
 
 
@@ -235,7 +235,7 @@ CEnumeratorConfig::GussianKernelDensity
 	ULONG ulObservations,
 	DOUBLE *pdX, // input: X-values we need to compute estimates for
 	DOUBLE *pdY, // output: estimated Y-values for given X-values
-	ULONG ulSize // number of input X-values
+	ULONG size // number of input X-values
 	)
 {
 	GPOS_ASSERT(NULL != pdObervationX);
@@ -263,7 +263,7 @@ CEnumeratorConfig::GussianKernelDensity
 
 	// kernel bandwidth set to 1% of distribution span
 	DOUBLE dBandWidth = 0.01 * (dMax - dMin);
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG ul = 0; ul < size; ul++)
 	{
 		DOUBLE dx = pdX[ul];
 		DOUBLE dy = 0;
@@ -296,14 +296,14 @@ CEnumeratorConfig::FitCostDistribution()
 	GPOS_DELETE_ARRAY(m_pdY);
 	InitCostDistrSize();
 	ULONG ulCreatedSamples = UlCreatedSamples();
-	m_pdX = GPOS_NEW_ARRAY(m_pmp, DOUBLE, m_ulDistrSize);
-	m_pdY = GPOS_NEW_ARRAY(m_pmp, DOUBLE, m_ulDistrSize);
-	DOUBLE *pdObervationX = GPOS_NEW_ARRAY(m_pmp, DOUBLE, ulCreatedSamples);
-	DOUBLE *pdObervationY = GPOS_NEW_ARRAY(m_pmp, DOUBLE, ulCreatedSamples);
+	m_pdX = GPOS_NEW_ARRAY(m_mp, DOUBLE, m_ulDistrSize);
+	m_pdY = GPOS_NEW_ARRAY(m_mp, DOUBLE, m_ulDistrSize);
+	DOUBLE *pdObervationX = GPOS_NEW_ARRAY(m_mp, DOUBLE, ulCreatedSamples);
+	DOUBLE *pdObervationY = GPOS_NEW_ARRAY(m_mp, DOUBLE, ulCreatedSamples);
 
 	for (ULONG ul = 0; ul < ulCreatedSamples; ul++)
 	{
-		pdObervationX[ul] = log2(CDouble((CostPlanSample(ul) / CostBest())).DVal());
+		pdObervationX[ul] = log2(CDouble((CostPlanSample(ul) / CostBest())).Get());
 		pdObervationY[ul] = 1.0;
 	}
 
@@ -312,7 +312,7 @@ CEnumeratorConfig::FitCostDistribution()
 	{
 		m_pdX[ul] = d;
 		m_pdY[ul] = 0.0;
-		d = d + m_dStep.DVal();
+		d = d + m_dStep.Get();
 	}
 
 	GussianKernelDensity(pdObervationX, pdObervationY, ulCreatedSamples, m_pdX, m_pdY, m_ulDistrSize);
@@ -333,25 +333,25 @@ CEnumeratorConfig::FitCostDistribution()
 void
 CEnumeratorConfig::DumpSamples
 	(
-	CWStringDynamic *pstr, // samples dump
+	CWStringDynamic *str, // samples dump
 	ULONG ulSessionId,
 	ULONG ulCommandId
 	)
 {
-	GPOS_ASSERT(NULL != pstr);
+	GPOS_ASSERT(NULL != str);
 
 	CAutoSuspendAbort asa;
 
 	// dump samples to output file
-	CHAR szFileName[GPOS_FILE_NAME_BUF_SIZE];
-	CUtils::GenerateFileName(szFileName, "SamplePlans", "xml", GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCommandId);
-	CHAR *sz = CUtils::SzFromWsz(m_pmp, const_cast<WCHAR *>(pstr->Wsz()));
-	CIOUtils::Dump(szFileName, sz);
+	CHAR file_name[GPOS_FILE_NAME_BUF_SIZE];
+	CUtils::GenerateFileName(file_name, "SamplePlans", "xml", GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCommandId);
+	CHAR *sz = CUtils::CreateMultiByteCharStringFromWCString(m_mp, const_cast<WCHAR *>(str->GetBuffer()));
+	CIOUtils::Dump(file_name, sz);
 	GPOS_DELETE_ARRAY(sz);
 
 	// reset time slice
 #ifdef GPOS_DEBUG
-	CWorker::PwrkrSelf()->ResetTimeSlice();
+	CWorker::Self()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 }
 
@@ -367,25 +367,25 @@ CEnumeratorConfig::DumpSamples
 void
 CEnumeratorConfig::DumpCostDistr
 	(
-	CWStringDynamic *pstr, // cost distribution dump
+	CWStringDynamic *str, // cost distribution dump
 	ULONG ulSessionId,
 	ULONG ulCommandId
 	)
 {
-	GPOS_ASSERT(NULL != pstr);
+	GPOS_ASSERT(NULL != str);
 
 	CAutoSuspendAbort asa;
 
 	// dump cost distribution to output file
-	CHAR szFileName[GPOS_FILE_NAME_BUF_SIZE];
-	CUtils::GenerateFileName(szFileName, "CostDistr", "xml", GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCommandId);
-	CHAR *sz = CUtils::SzFromWsz(m_pmp, const_cast<WCHAR *>(pstr->Wsz()));
-	CIOUtils::Dump(szFileName, sz);
+	CHAR file_name[GPOS_FILE_NAME_BUF_SIZE];
+	CUtils::GenerateFileName(file_name, "CostDistr", "xml", GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCommandId);
+	CHAR *sz = CUtils::CreateMultiByteCharStringFromWCString(m_mp, const_cast<WCHAR *>(str->GetBuffer()));
+	CIOUtils::Dump(file_name, sz);
 	GPOS_DELETE_ARRAY(sz);
 
 	// reset time slice
 #ifdef GPOS_DEBUG
-	CWorker::PwrkrSelf()->ResetTimeSlice();
+	CWorker::Self()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 }
 
@@ -401,7 +401,7 @@ CEnumeratorConfig::DumpCostDistr
 void
 CEnumeratorConfig::PrintPlanSample() const
 {
-	CAutoTrace at(m_pmp);
+	CAutoTrace at(m_mp);
 
 	const ULONG ulSamples = UlCreatedSamples();
 	at.Os() << "[OPT]: Generated "<< ulSamples <<" plan samples: ";

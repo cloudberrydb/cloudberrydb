@@ -61,11 +61,11 @@ namespace gpopt
 
 				// hashing function
 				static
-				ULONG UlHash(const SComponentPair *pcomppair);
+				ULONG HashValue(const SComponentPair *pcomppair);
 
 				// equality function
 				static
-				BOOL FEqual(const SComponentPair *pcomppairFst, const SComponentPair *pcomppairSnd);
+				BOOL Equals(const SComponentPair *pcomppairFst, const SComponentPair *pcomppairSnd);
 			};
 
 			// hashing function
@@ -77,7 +77,7 @@ namespace gpopt
 			{
 				GPOS_ASSERT(NULL != pbs);
 
-				return pbs->UlHash();
+				return pbs->HashValue();
 			}
 
 			 // equality function
@@ -91,32 +91,32 @@ namespace gpopt
 				GPOS_ASSERT(NULL != pbsFst);
 				GPOS_ASSERT(NULL != pbsSnd);
 
-				return pbsFst->FEqual(pbsSnd);
+				return pbsFst->Equals(pbsSnd);
 			}
 
 			// hash map from component to best join order
 			typedef CHashMap<CBitSet, CExpression, UlHashBitSet, FEqualBitSet,
-				CleanupRelease<CBitSet>, CleanupRelease<CExpression> > HMBSExpr;
+				CleanupRelease<CBitSet>, CleanupRelease<CExpression> > BitSetToExpressionMap;
 
 			// hash map from component pair to connecting edges
-			typedef CHashMap<SComponentPair, CExpression, SComponentPair::UlHash, SComponentPair::FEqual,
-				CleanupRelease<SComponentPair>, CleanupRelease<CExpression> > HMCompLink;
+			typedef CHashMap<SComponentPair, CExpression, SComponentPair::HashValue, SComponentPair::Equals,
+				CleanupRelease<SComponentPair>, CleanupRelease<CExpression> > ComponentPairToExpressionMap;
 
 			// hash map from expression to cost of best join order
-			typedef CHashMap<CExpression, CDouble, CExpression::UlHash, CUtils::FEqual,
-				CleanupRelease<CExpression>, CleanupDelete<CDouble> > HMExprCost;
+			typedef CHashMap<CExpression, CDouble, CExpression::HashValue, CUtils::Equals,
+				CleanupRelease<CExpression>, CleanupDelete<CDouble> > ExpressionToCostMap;
 
 			// lookup table for links
-			HMCompLink *m_phmcomplink;
+			ComponentPairToExpressionMap *m_phmcomplink;
 
 			// dynamic programming table
-			HMBSExpr *m_phmbsexpr;
+			BitSetToExpressionMap *m_phmbsexpr;
 
 			// map of expressions to its cost
-			HMExprCost *m_phmexprcost;
+			ExpressionToCostMap *m_phmexprcost;
 
 			// array of top-k join expression
-			DrgPexpr *m_pdrgpexprTopKOrders;
+			CExpressionArray *m_pdrgpexprTopKOrders;
 
 			// dummy expression to used for non-joinable components
 			CExpression *m_pexprDummy;
@@ -166,20 +166,20 @@ namespace gpopt
 
 			// generate all subsets of the given array of elements
 			static
-			void GenerateSubsets(IMemoryPool *pmp, CBitSet *pbsCurrent, ULONG *pulElems, ULONG ulSize, ULONG ulIndex, DrgPbs *pdrgpbsSubsets);
+			void GenerateSubsets(IMemoryPool *mp, CBitSet *pbsCurrent, ULONG *pulElems, ULONG size, ULONG ulIndex, CBitSetArray *pdrgpbsSubsets);
 
 			// driver of subset generation
 			static
-			DrgPbs *PdrgpbsSubsets(IMemoryPool *pmp, CBitSet *pbs);
+			CBitSetArray *PdrgpbsSubsets(IMemoryPool *mp, CBitSet *pbs);
 
 		public:
 
 			// ctor
 			CJoinOrderDP
 				(
-				IMemoryPool *pmp,
-				DrgPexpr *pdrgpexprComponents,
-				DrgPexpr *pdrgpexprConjuncts
+				IMemoryPool *mp,
+				CExpressionArray *pdrgpexprComponents,
+				CExpressionArray *pdrgpexprConjuncts
 				);
 
 			// dtor
@@ -191,7 +191,7 @@ namespace gpopt
 			CExpression *PexprExpand();
 
 			// best join orders
-			DrgPexpr *PdrgpexprTopK() const
+			CExpressionArray *PdrgpexprTopK() const
 			{
 				return m_pdrgpexprTopKOrders;
 			}

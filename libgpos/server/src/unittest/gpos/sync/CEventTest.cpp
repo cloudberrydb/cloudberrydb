@@ -56,7 +56,7 @@ GPOS_RESULT
 CEventTest::EresUnittest_ProducerConsumer()
 {
 	// abort simulation will lead to a deadlock
-	if (ITask::PtskSelf()->FTrace(EtraceSimulateAbort))
+	if (ITask::Self()->IsTraceSet(EtraceSimulateAbort))
 	{
 		return GPOS_OK;
 	}
@@ -67,16 +67,16 @@ CEventTest::EresUnittest_ProducerConsumer()
 	event.Init(&mutex);
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for tasks
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CTask *rgPtsk[2];
-		rgPtsk[0] = atp.PtskCreate(CEventTest::PvUnittest_Consumer, &event);
-		rgPtsk[1] = atp.PtskCreate(CEventTest::PvUnittest_Producer, &event);
+		rgPtsk[0] = atp.Create(CEventTest::PvUnittest_Consumer, &event);
+		rgPtsk[1] = atp.Create(CEventTest::PvUnittest_Producer, &event);
 
 		// OPT-58: take care to avoid race where producer overtakes consumer
 		// synchronize startup through explicit handshake between consumer and main thread
@@ -89,7 +89,7 @@ CEventTest::EresUnittest_ProducerConsumer()
 			// wait for consumer to start up
 			event.Wait();
 
-			GPOS_ASSERT(rgPtsk[0]->FCheckStatus(false /*fCompleted*/));
+			GPOS_ASSERT(rgPtsk[0]->CheckStatus(false /*fCompleted*/));
 		}
 
 		// We got the mutex back and Consumer is the only one waiting on the event;
@@ -123,15 +123,15 @@ CEventTest::EresUnittest_TimedWait()
 	event.Init(&mutex);
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for tasks
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 
-		CTask *ptsk = atp.PtskCreate(CEventTest::PvUnittest_TimedWait, &event);
+		CTask *ptsk = atp.Create(CEventTest::PvUnittest_TimedWait, &event);
 
 		// scope for mutex
 		{
@@ -142,42 +142,42 @@ CEventTest::EresUnittest_TimedWait()
 			atp.Schedule(ptsk);
 
 			// test wait with no timeout expiration
-			if (GPOS_OK != event.EresTimedWait(gpos::ulong_max))
+			if (GPOS_OK != event.TimedWait(gpos::ulong_max))
 			{
 				return GPOS_FAILED;
 			}
 
 			// test zero timeout
-			if (GPOS_TIMEOUT != event.EresTimedWait(0))
+			if (GPOS_TIMEOUT != event.TimedWait(0))
 			{
 				return GPOS_FAILED;
 			}
 
 			// test short timeout
-			if (GPOS_TIMEOUT != event.EresTimedWait(10))
+			if (GPOS_TIMEOUT != event.TimedWait(10))
 			{
 				return GPOS_FAILED;
 			}
 
 			// test medium timeout
-			if (GPOS_TIMEOUT != event.EresTimedWait(100))
+			if (GPOS_TIMEOUT != event.TimedWait(100))
 			{
 				return GPOS_FAILED;
 			}
 
 			// test long timeout
-			if (GPOS_TIMEOUT != event.EresTimedWait(1200))
+			if (GPOS_TIMEOUT != event.TimedWait(1200))
 			{
 				return GPOS_FAILED;
 			}
 
-			GPOS_ASSERT(ptsk->FCheckStatus(false /*fCompleted*/));
+			GPOS_ASSERT(ptsk->CheckStatus(false /*fCompleted*/));
 
 			// signal child to complete
 			event.Signal();
 
 			// test wait with no timeout expiration
-			if (GPOS_OK != event.EresTimedWait(gpos::ulong_max))
+			if (GPOS_OK != event.TimedWait(gpos::ulong_max))
 			{
 				return GPOS_FAILED;
 			}
@@ -206,7 +206,7 @@ CEventTest::PvUnittest_Producer
 	)
 {
 	CEvent *pevent = (CEvent*)pv;
-	CMutexBase *pmutex = pevent->Pmutex();
+	CMutexBase *pmutex = pevent->GetMutex();
 
 	CAutoMutex am(*pmutex);
 	am.Lock();
@@ -245,7 +245,7 @@ CEventTest::PvUnittest_Consumer
 	)
 {
 	CEvent *pevent = (CEvent*)pv;
-	CMutexBase *pmutex = pevent->Pmutex();
+	CMutexBase *pmutex = pevent->GetMutex();
 
 	CAutoMutex am(*pmutex);
 	am.Lock();
@@ -286,7 +286,7 @@ CEventTest::PvUnittest_TimedWait
 	)
 {
 	CEvent *pevent = (CEvent *) pv;
-	CMutexBase *pmutex = pevent->Pmutex();
+	CMutexBase *pmutex = pevent->GetMutex();
 
 	CAutoMutex am(*pmutex);
 	am.Lock();
@@ -295,7 +295,7 @@ CEventTest::PvUnittest_TimedWait
 	pevent->Signal();
 
 	// wait for signal - no expiration
-	pevent->EresTimedWait(gpos::ulong_max);
+	pevent->TimedWait(gpos::ulong_max);
 
 	// signal complete
 	pevent->Signal();

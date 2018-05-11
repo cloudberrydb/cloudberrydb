@@ -40,11 +40,11 @@ namespace gpopt
 			// spec for the children of a nested loop join
 			CPartitionPropagationSpec *PppsRequiredNLJoinChild
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 			
@@ -52,7 +52,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CPhysicalNLJoin(IMemoryPool *pmp);
+			CPhysicalNLJoin(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -66,11 +66,11 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posInput,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -79,11 +79,11 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -92,11 +92,11 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *, // pdrgpdpCtxt
+				ULONG child_index,
+				CDrvdProp2dArray *, // pdrgpdpCtxt
 				ULONG // ulOptReq
 				);
 			
@@ -104,17 +104,17 @@ namespace gpopt
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 			{
 				GPOS_ASSERT(ulOptReq < UlPartPropagateRequests());
 
-				return PppsRequiredNLJoinChild(pmp, exprhdl, pppsRequired, ulChildIndex, pdrgpdpCtxt, ulOptReq);
+				return PppsRequiredNLJoinChild(mp, exprhdl, pppsRequired, child_index, pdrgpdpCtxt, ulOptReq);
 			}
 
 			//-------------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ namespace gpopt
 
 			// return required inner columns -- overloaded by correlated join children
 			virtual
-			DrgPcr *PdrgPcrInner() const
+			CColRefArray *PdrgPcrInner() const
 			{
 				return NULL;
 			}

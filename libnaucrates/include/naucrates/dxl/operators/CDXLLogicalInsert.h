@@ -35,10 +35,10 @@ namespace gpdxl
 		private:
 
 			// target table descriptor
-			CDXLTableDescr *m_pdxltabdesc;
+		CDXLTableDescr *m_dxl_table_descr;
 
 			// list of source column ids		
-			DrgPul *m_pdrgpul;
+			ULongPtrArray *m_src_colids_array;
 			
 			// private copy ctor
 			CDXLLogicalInsert(const CDXLLogicalInsert &);
@@ -46,50 +46,50 @@ namespace gpdxl
 		public:
 			
 			// ctor/dtor
-			CDXLLogicalInsert(IMemoryPool *pmp, CDXLTableDescr *pdxltabdesc, DrgPul *pdrgpul);
+			CDXLLogicalInsert(IMemoryPool *mp, CDXLTableDescr *table_descr, ULongPtrArray *src_colids_array);
 						
 			virtual
 			~CDXLLogicalInsert();
 		
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// target table descriptor 
-			CDXLTableDescr *Pdxltabdesc() const
+			CDXLTableDescr *GetDXLTableDescr() const
 			{
-				return m_pdxltabdesc;
+			return m_dxl_table_descr;
 			}
 			
 			// source column ids
-			DrgPul *Pdrgpul() const
+			ULongPtrArray *GetSrcColIdsArray() const
 			{
-				return m_pdrgpul;
+				return m_src_colids_array;
 			}
 			
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLLogicalInsert *PdxlopConvert
+			CDXLLogicalInsert *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalInsert == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalInsert == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLLogicalInsert*>(pdxlop);
+				return dynamic_cast<CDXLLogicalInsert*>(dxl_op);
 			}
 
 	};

@@ -40,11 +40,11 @@ namespace gpopt
 		public:
 			// load a minidump
 			static
-			CDXLMinidump *PdxlmdLoad(IMemoryPool *pmp, const CHAR *szFileName);
+			CDXLMinidump *PdxlmdLoad(IMemoryPool *mp, const CHAR *file_name);
 			
 			// generate a minidump file name in the provided buffer
 			static
-			void GenerateMinidumpFileName(CHAR *szBuf, ULONG ulLength, ULONG ulSessionId, ULONG ulCmdId, const CHAR *szMinidumpFileName = NULL);
+			void GenerateMinidumpFileName(CHAR *buf, ULONG length, ULONG ulSessionId, ULONG ulCmdId, const CHAR *szMinidumpFileName = NULL);
 			
 			// finalize minidump and dump to a file
 			static 
@@ -58,12 +58,12 @@ namespace gpopt
 			static
 			CDXLNode *PdxlnExecuteMinidump
 				(
-				IMemoryPool *pmp, 
-				const CHAR *szFileName,
+				IMemoryPool *mp, 
+				const CHAR *file_name,
 				ULONG ulSegments, 
 				ULONG ulSessionId, 
 				ULONG ulCmdId,
-				COptimizerConfig *poconf,
+				COptimizerConfig *optimizer_config,
 				IConstExprEvaluator *pceeval = NULL
 				);
 			
@@ -71,13 +71,13 @@ namespace gpopt
 			static
 			CDXLNode *PdxlnExecuteMinidump
 				(
-				IMemoryPool *pmp, 
+				IMemoryPool *mp, 
 				CDXLMinidump *pdxlmdp,
-				const CHAR *szFileName, 
+				const CHAR *file_name,
 				ULONG ulSegments, 
 				ULONG ulSessionId, 
 				ULONG ulCmdId,
-				COptimizerConfig *poconf,
+				COptimizerConfig *optimizer_config,
 				IConstExprEvaluator *pceeval = NULL
 				);
 			
@@ -85,14 +85,14 @@ namespace gpopt
 			static
 			CDXLNode *PdxlnExecuteMinidump
 				(
-				IMemoryPool *pmp,
-				CMDAccessor *pmda,
+				IMemoryPool *mp,
+				CMDAccessor *md_accessor,
 				CDXLMinidump *pdxlmd,
-				const CHAR *szFileName,
+				const CHAR *file_name,
 				ULONG ulSegments,
 				ULONG ulSessionId,
 				ULONG ulCmdId,
-				COptimizerConfig *poconf,
+				COptimizerConfig *optimizer_config,
 				IConstExprEvaluator *pceeval
 				);
 

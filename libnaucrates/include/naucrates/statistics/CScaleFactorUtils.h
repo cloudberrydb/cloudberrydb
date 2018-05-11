@@ -34,43 +34,43 @@ namespace gpnaucrates
 
 			// calculate the cumulative join scaling factor
 			static
-			CDouble DCumulativeJoinScaleFactor(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpd);
+			CDouble CumulativeJoinScaleFactor(const CStatisticsConfig *stats_config, CDoubleArray *join_conds_scale_factors);
 
 			// return scaling factor of the join predicate after apply damping
 			static
-			CDouble DDampingJoin(const CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
+			CDouble DampedJoinScaleFactor(const CStatisticsConfig *stats_config, ULONG num_columns);
 
 			// return scaling factor of the filter after apply damping
 			static
-			CDouble DDampingFilter(const CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
+			CDouble DampedFilterScaleFactor(const CStatisticsConfig *stats_config, ULONG num_columns);
 
 			// return scaling factor of the group by predicate after apply damping
 			static
-			CDouble DDampingGroupBy(const CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
+			CDouble DampedGroupByScaleFactor(const CStatisticsConfig *stats_config, ULONG num_columns);
 
 			// sort the array of scaling factor
 			static
-			void SortScalingFactor(DrgPdouble *pdrgpdScaleFactor, BOOL fDescending);
+			void SortScalingFactor(CDoubleArray *scale_factors, BOOL is_descending);
 
 			// calculate the cumulative scaling factor for conjunction after applying damping multiplier
 			static
-			CDouble DScaleFactorCumulativeConj(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdScaleFactor);
+			CDouble CalcScaleFactorCumulativeConj(const CStatisticsConfig *stats_config, CDoubleArray *scale_factors);
 
 			// calculate the cumulative scaling factor for disjunction after applying damping multiplier
 			static
-			CDouble DScaleFactorCumulativeDisj(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdScaleFactor, CDouble dRowsTotal);
+			CDouble CalcScaleFactorCumulativeDisj(const CStatisticsConfig *stats_config, CDoubleArray *scale_factors, CDouble tota_rows);
 
 			// comparison function in descending order
 			static
-			INT IDoubleDescCmp(const void *pv1, const void *pv2);
+			INT DescendingOrderCmpFunc(const void *val1, const void *val2);
 
 			// comparison function in ascending order
 			static
-			INT IDoubleAscCmp(const void *pv1, const void *pv2);
+			INT AscendingOrderCmpFunc(const void *val1, const void *val2);
 
 			// helper function for double comparison
 			static
-			INT IDoubleCmp(const CDouble *pd1, const CDouble *pd2, BOOL fDesc);
+			INT DoubleCmpFunc(const CDouble *double_data1, const CDouble *double_data2, BOOL is_descending);
 
 			// default scaling factor of LIKE predicate
 			static
@@ -78,16 +78,16 @@ namespace gpnaucrates
 
 			// default scaling factor of join predicate
 			static
-			const CDouble DDefaultScaleFactorJoin;
+			const CDouble DefaultJoinPredScaleFactor;
 
 			// default scaling factor of non-equality (<, <=, >=, <=) join predicate
 			// Note: scale factor of InEquality (!= also denoted as <>) is computed from scale factor of equi-join
 			static
-			const CDouble DDefaultScaleFactorNonEqualityJoin;
+			const CDouble DefaultInequalityJoinPredScaleFactor;
 
 			// invalid scale factor
 			static
-			const CDouble DInvalidScaleFactor;
+			const CDouble InvalidScaleFactor;
 	}; // class CScaleFactorUtils
 }
 

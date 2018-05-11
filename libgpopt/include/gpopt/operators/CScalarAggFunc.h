@@ -54,13 +54,13 @@ namespace gpopt
 			IMDId *m_pmdidResolvedRetType;
 
 			// return type obtained by looking up MD cache
-			IMDId *m_pmdidRetType;
+			IMDId *m_return_type_mdid;
 
 			// aggregate function name
 			const CWStringConst *m_pstrAggFunc;
 			
 			// distinct aggregate computation
-			BOOL m_fDistinct;
+			BOOL m_is_distinct;
 	
 			// stage of the aggregate function
 			EAggfuncStage m_eaggfuncstage;
@@ -76,11 +76,11 @@ namespace gpopt
 			// ctor
 			CScalarAggFunc
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				IMDId *pmdidAggFunc,
-				IMDId *pmdidResolvedRetType,
+				IMDId *resolved_rettype,
 				const CWStringConst *pstrAggFunc,
-				BOOL fDistinct,
+				BOOL is_distinct,
 				EAggfuncStage eaggfuncstage,
 				BOOL fSplit
 				);
@@ -91,7 +91,7 @@ namespace gpopt
 			{
 				m_pmdidAggFunc->Release();
 				CRefCount::SafeRelease(m_pmdidResolvedRetType);
-				CRefCount::SafeRelease(m_pmdidRetType);
+				CRefCount::SafeRelease(m_return_type_mdid);
 				GPOS_DELETE(m_pstrAggFunc);
 			}
 
@@ -112,10 +112,10 @@ namespace gpopt
 
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -127,9 +127,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -153,12 +153,12 @@ namespace gpopt
 			const CWStringConst *PstrAggFunc() const;
 
 			// aggregate func id
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// ident accessors
-			BOOL FDistinct() const
+			BOOL IsDistinct() const
 			{
-				return m_fDistinct;
+				return m_is_distinct;
 			}
 
 			// stage of the aggregate function
@@ -181,11 +181,11 @@ namespace gpopt
 
 			// type of expression's result
 			virtual 
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
 				if (NULL == m_pmdidResolvedRetType)
 				{
-					return m_pmdidRetType;
+					return m_return_type_mdid;
 				}
 
 				return m_pmdidResolvedRetType;

@@ -28,73 +28,73 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDRelationCtasGPDB::CMDRelationCtasGPDB
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid,
-	CMDName *pmdnameSchema,
-	CMDName *pmdname,
+	IMemoryPool *mp,
+	IMDId *mdid,
+	CMDName *mdname_schema,
+	CMDName *mdname,
 	BOOL fTemporary,
 	BOOL fHasOids,
-	Erelstoragetype erelstorage,
-	Ereldistrpolicy ereldistrpolicy,
-	DrgPmdcol *pdrgpmdcol,
-	DrgPul *pdrgpulDistrColumns,
-	DrgPdrgPul *pdrgpdrgpulKeys,
-	CDXLCtasStorageOptions *pdxlctasopt,
-	DrgPi *pdrgpiVarTypeMod
+	Erelstoragetype rel_storage_type,
+	Ereldistrpolicy rel_distr_policy,
+										 CMDColumnArray *mdcol_array,
+	ULongPtrArray *distr_col_array,
+	ULongPtr2dArray *keyset_array,
+	CDXLCtasStorageOptions *dxl_ctas_storage_options,
+	IntPtrArray *vartypemod_array
 	)
 	:
-	m_pmp(pmp),
-	m_pmdid(pmdid),
-	m_pmdnameSchema(pmdnameSchema),
-	m_pmdname(pmdname),
-	m_fTemporary(fTemporary),
-	m_fHasOids(fHasOids),
-	m_erelstorage(erelstorage),
-	m_ereldistrpolicy(ereldistrpolicy),
-	m_pdrgpmdcol(pdrgpmdcol),
-	m_pdrgpulDistrColumns(pdrgpulDistrColumns),
-	m_pdrgpdrgpulKeys(pdrgpdrgpulKeys),
-	m_ulSystemColumns(0),
-	m_pdrgpulNonDroppedCols(NULL),
-	m_pdxlctasopt(pdxlctasopt),
-	m_pdrgpiVarTypeMod(pdrgpiVarTypeMod)
+	m_mp(mp),
+	m_mdid(mdid),
+	m_mdname_schema(mdname_schema),
+	m_mdname(mdname),
+	m_is_temp_table(fTemporary),
+	m_has_oids(fHasOids),
+	m_rel_storage_type(rel_storage_type),
+	m_rel_distr_policy(rel_distr_policy),
+	m_md_col_array(mdcol_array),
+	m_distr_col_array(distr_col_array),
+	m_keyset_array(keyset_array),
+	m_system_columns(0),
+	m_nondrop_col_pos_array(NULL),
+	m_dxl_ctas_storage_option(dxl_ctas_storage_options),
+	m_vartypemod_array(vartypemod_array)
 {
-	GPOS_ASSERT(pmdid->FValid());
-	GPOS_ASSERT(NULL != pdrgpmdcol);
-	GPOS_ASSERT(NULL != pdxlctasopt);
-	GPOS_ASSERT(IMDRelation::ErelstorageSentinel > m_erelstorage);	
-	GPOS_ASSERT(0 == pdrgpdrgpulKeys->UlLength());
-	GPOS_ASSERT(NULL != pdrgpiVarTypeMod);
+	GPOS_ASSERT(mdid->IsValid());
+	GPOS_ASSERT(NULL != mdcol_array);
+	GPOS_ASSERT(NULL != dxl_ctas_storage_options);
+	GPOS_ASSERT(IMDRelation::ErelstorageSentinel > m_rel_storage_type);	
+	GPOS_ASSERT(0 == keyset_array->Size());
+	GPOS_ASSERT(NULL != vartypemod_array);
 	
-	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
-	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
-	m_pdrgpdoubleColWidths = GPOS_NEW(pmp) DrgPdouble(pmp);
+	m_attrno_nondrop_col_pos_map = GPOS_NEW(m_mp) IntToUlongMap(m_mp);
+	m_nondrop_col_pos_array = GPOS_NEW(m_mp) ULongPtrArray(m_mp);
+	m_col_width_array = GPOS_NEW(mp) CDoubleArray(mp);
 
-	const ULONG ulArity = pdrgpmdcol->UlLength();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = mdcol_array->Size();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		IMDColumn *pmdcol = (*pdrgpmdcol)[ul];
-		GPOS_ASSERT(!pmdcol->FDropped() && "Cannot create a table with dropped columns");
+		IMDColumn *mdcol = (*mdcol_array)[ul];
+		GPOS_ASSERT(!mdcol->IsDropped() && "Cannot create a table with dropped columns");
 
-		BOOL fSystemCol = pmdcol->FSystemColumn();
-		if (fSystemCol)
+		BOOL is_system_col = mdcol->IsSystemColumn();
+		if (is_system_col)
 		{
-			m_ulSystemColumns++;
+			m_system_columns++;
 		}
 		else
 		{
-			m_pdrgpulNonDroppedCols->Append(GPOS_NEW(m_pmp) ULONG(ul));
+			m_nondrop_col_pos_array->Append(GPOS_NEW(m_mp) ULONG(ul));
 		}		
 
-		(void) m_phmiulAttno2Pos->FInsert
+		(void) m_attrno_nondrop_col_pos_map->Insert
 									(
-									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
-									GPOS_NEW(m_pmp) ULONG(ul)
+									GPOS_NEW(m_mp) INT(mdcol->AttrNum()),
+									GPOS_NEW(m_mp) ULONG(ul)
 									);
 
-		m_pdrgpdoubleColWidths->Append(GPOS_NEW(pmp) CDouble(pmdcol->UlLength()));
+		m_col_width_array->Append(GPOS_NEW(mp) CDouble(mdcol->Length()));
 	}
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
 //---------------------------------------------------------------------------
@@ -107,32 +107,32 @@ CMDRelationCtasGPDB::CMDRelationCtasGPDB
 //---------------------------------------------------------------------------
 CMDRelationCtasGPDB::~CMDRelationCtasGPDB()
 {
-	GPOS_DELETE(m_pmdnameSchema);
-	GPOS_DELETE(m_pmdname);
-	GPOS_DELETE(m_pstr);
-	m_pmdid->Release();
-	m_pdrgpmdcol->Release();
-	m_pdrgpdrgpulKeys->Release();
-	m_pdrgpdoubleColWidths->Release();
-	CRefCount::SafeRelease(m_pdrgpulDistrColumns);
-	CRefCount::SafeRelease(m_phmiulAttno2Pos);
-	CRefCount::SafeRelease(m_pdrgpulNonDroppedCols);
-	m_pdxlctasopt->Release();
-	m_pdrgpiVarTypeMod->Release();
+	GPOS_DELETE(m_mdname_schema);
+	GPOS_DELETE(m_mdname);
+	GPOS_DELETE(m_dxl_str);
+	m_mdid->Release();
+	m_md_col_array->Release();
+	m_keyset_array->Release();
+	m_col_width_array->Release();
+	CRefCount::SafeRelease(m_distr_col_array);
+	CRefCount::SafeRelease(m_attrno_nondrop_col_pos_map);
+	CRefCount::SafeRelease(m_nondrop_col_pos_array);
+	m_dxl_ctas_storage_option->Release();
+	m_vartypemod_array->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::Pmdid
+//		CMDRelationCtasGPDB::MDId
 //
 //	@doc:
 //		Returns the metadata id of this relation
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDRelationCtasGPDB::Pmdid() const
+CMDRelationCtasGPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -146,152 +146,152 @@ CMDRelationCtasGPDB::Pmdid() const
 CMDName
 CMDRelationCtasGPDB::Mdname() const
 {
-	return *m_pmdname;
+	return *m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::PmdnameSchema
+//		CMDRelationCtasGPDB::GetMdNameSchema
 //
 //	@doc:
 //		Returns schema name
 //
 //---------------------------------------------------------------------------
 CMDName *
-CMDRelationCtasGPDB::PmdnameSchema() const
+CMDRelationCtasGPDB::GetMdNameSchema() const
 {
-	return m_pmdnameSchema;
+	return m_mdname_schema;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::Ereldistribution
+//		CMDRelationCtasGPDB::GetRelDistribution
 //
 //	@doc:
 //		Returns the distribution policy for this relation
 //
 //---------------------------------------------------------------------------
 IMDRelation::Ereldistrpolicy
-CMDRelationCtasGPDB::Ereldistribution() const
+CMDRelationCtasGPDB::GetRelDistribution() const
 {
-	return m_ereldistrpolicy;
+	return m_rel_distr_policy;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::UlColumns
+//		CMDRelationCtasGPDB::ColumnCount
 //
 //	@doc:
 //		Returns the number of columns of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationCtasGPDB::UlColumns() const
+CMDRelationCtasGPDB::ColumnCount() const
 {
-	GPOS_ASSERT(NULL != m_pdrgpmdcol);
+	GPOS_ASSERT(NULL != m_md_col_array);
 
-	return m_pdrgpmdcol->UlLength();
+	return m_md_col_array->Size();
 }
 
 // Return the width of a column with regards to the position
 DOUBLE
-CMDRelationCtasGPDB::DColWidth
+CMDRelationCtasGPDB::ColWidth
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 const
 {
-	return (*m_pdrgpdoubleColWidths)[ulPos]->DVal();
+	return (*m_col_width_array)[pos]->Get();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::UlSystemColumns
+//		CMDRelationCtasGPDB::SystemColumnsCount
 //
 //	@doc:
 //		Returns the number of system columns of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationCtasGPDB::UlSystemColumns() const
+CMDRelationCtasGPDB::SystemColumnsCount() const
 {
-	return m_ulSystemColumns;
+	return m_system_columns;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::UlPosFromAttno
+//		CMDRelationCtasGPDB::GetPosFromAttno
 //
 //	@doc:
 //		Return the position of a column in the metadata object given the
 //		attribute number in the system catalog
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationCtasGPDB::UlPosFromAttno
+CMDRelationCtasGPDB::GetPosFromAttno
 	(
-	INT iAttno
+	INT attno
 	)
 	const
 {
-	ULONG *pul = m_phmiulAttno2Pos->PtLookup(&iAttno);
-	GPOS_ASSERT(NULL != pul);
+	ULONG *att_pos = m_attrno_nondrop_col_pos_map->Find(&attno);
+	GPOS_ASSERT(NULL != att_pos);
 
-	return *pul;
+	return *att_pos;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::UlDistrColumns
+//		CMDRelationCtasGPDB::DistrColumnCount
 //
 //	@doc:
 //		Returns the number of columns in the distribution column list of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationCtasGPDB::UlDistrColumns() const
+CMDRelationCtasGPDB::DistrColumnCount() const
 {
-	return (m_pdrgpulDistrColumns == NULL) ? 0 : m_pdrgpulDistrColumns->UlLength();
+	return (m_distr_col_array == NULL) ? 0 : m_distr_col_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::Pmdcol
+//		CMDRelationCtasGPDB::GetMdCol
 //
 //	@doc:
 //		Returns the column at the specified position
 //
 //---------------------------------------------------------------------------
 const IMDColumn *
-CMDRelationCtasGPDB::Pmdcol
+CMDRelationCtasGPDB::GetMdCol
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	GPOS_ASSERT(ulPos < m_pdrgpmdcol->UlLength());
+	GPOS_ASSERT(pos < m_md_col_array->Size());
 
-	return (*m_pdrgpmdcol)[ulPos];
+	return (*m_md_col_array)[pos];
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationCtasGPDB::PmdcolDistrColumn
+//		CMDRelationCtasGPDB::GetDistrColAt
 //
 //	@doc:
 //		Returns the distribution column at the specified position in the distribution column list
 //
 //---------------------------------------------------------------------------
 const IMDColumn *
-CMDRelationCtasGPDB::PmdcolDistrColumn
+CMDRelationCtasGPDB::GetDistrColAt
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	GPOS_ASSERT(ulPos < m_pdrgpulDistrColumns->UlLength());
+	GPOS_ASSERT(pos < m_distr_col_array->Size());
 
-	ULONG ulDistrKeyPos = (*(*m_pdrgpulDistrColumns)[ulPos]);
-	return Pmdcol(ulDistrKeyPos);
+	ULONG distr_key_pos = (*(*m_distr_col_array)[pos]);
+	return GetMdCol(distr_key_pos);
 }
 
 //---------------------------------------------------------------------------
@@ -305,58 +305,58 @@ CMDRelationCtasGPDB::PmdcolDistrColumn
 void
 CMDRelationCtasGPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenRelationCTAS));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenRelationCTAS));
 
-	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	if (NULL != m_pmdnameSchema)
+	m_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	if (NULL != m_mdname_schema)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenSchema), m_pmdnameSchema->Pstr());
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenSchema), m_mdname_schema->GetMDName());
 	}
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelTemporary), m_fTemporary);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelHasOids), m_fHasOids);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelStorageType), IMDRelation::PstrStorageType(m_erelstorage));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelTemporary), m_is_temp_table);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelHasOids), m_has_oids);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageType), IMDRelation::GetStorageTypeStr(m_rel_storage_type));
 
 	// serialize vartypmod list
-	CWStringDynamic *pstrVarTypeModList = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpiVarTypeMod);
-	GPOS_ASSERT(NULL != pstrVarTypeModList);
+	CWStringDynamic *var_typemod_list_array = CDXLUtils::Serialize(m_mp, m_vartypemod_array);
+	GPOS_ASSERT(NULL != var_typemod_list_array);
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenVarTypeModList), pstrVarTypeModList);
-	GPOS_DELETE(pstrVarTypeModList);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenVarTypeModList), var_typemod_list_array);
+	GPOS_DELETE(var_typemod_list_array);
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelDistrPolicy), PstrDistrPolicy(m_ereldistrpolicy));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrPolicy), GetDistrPolicyStr(m_rel_distr_policy));
 
-	if (EreldistrHash == m_ereldistrpolicy)
+	if (EreldistrHash == m_rel_distr_policy)
 	{
-		GPOS_ASSERT(NULL != m_pdrgpulDistrColumns);
+		GPOS_ASSERT(NULL != m_distr_col_array);
 
 		// serialize distribution columns
-		CWStringDynamic *pstrDistrColumns = PstrColumns(m_pmp, m_pdrgpulDistrColumns);
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenDistrColumns), pstrDistrColumns);
-		GPOS_DELETE(pstrDistrColumns);
+		CWStringDynamic *distr_col_array = ColumnsToStr(m_mp, m_distr_col_array);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenDistrColumns), distr_col_array);
+		GPOS_DELETE(distr_col_array);
 	}
 
 	// serialize columns
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenColumns));
-	const ULONG ulCols = m_pdrgpmdcol->UlLength();
-	for (ULONG ul = 0; ul < ulCols; ul++)
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumns));
+	const ULONG columns = m_md_col_array->Size();
+	for (ULONG ul = 0; ul < columns; ul++)
 	{
-		CMDColumn *pmdcol = (*m_pdrgpmdcol)[ul];
-		pmdcol->Serialize(pxmlser);
+		CMDColumn *mdcol = (*m_md_col_array)[ul];
+		mdcol->Serialize(xml_serializer);
 	}
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenColumns));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumns));
 
-	m_pdxlctasopt->Serialize(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenRelationCTAS));
+	m_dxl_ctas_storage_option->Serialize(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenRelationCTAS));
 }
 
 #ifdef GPOS_DEBUG
@@ -376,33 +376,33 @@ CMDRelationCtasGPDB::DebugPrint
 	const
 {
 	os << "CTAS Relation id: ";
-	Pmdid()->OsPrint(os);
+	MDId()->OsPrint(os);
 	os << std::endl;
 
-	os << "Relation name: " << (Mdname()).Pstr()->Wsz() << std::endl;
+	os << "Relation name: " << (Mdname()).GetMDName()->GetBuffer() << std::endl;
 
-	os << "Distribution policy: " << PstrDistrPolicy(m_ereldistrpolicy)->Wsz() << std::endl;
+	os << "Distribution policy: " << GetDistrPolicyStr(m_rel_distr_policy)->GetBuffer() << std::endl;
 
 	os << "Relation columns: " << std::endl;
-	const ULONG ulColumns = UlColumns();
-	for (ULONG ul = 0; ul < ulColumns; ul++)
+	const ULONG total_columns = ColumnCount();
+	for (ULONG ul = 0; ul < total_columns; ul++)
 	{
-		const IMDColumn *pimdcol = Pmdcol(ul);
-		pimdcol->DebugPrint(os);
+		const IMDColumn *mdcol = GetMdCol(ul);
+		mdcol->DebugPrint(os);
 	}
 	os << std::endl;
 
 	os << "Distributed by: ";
-	const ULONG ulDistrColumns = UlDistrColumns();
-	for (ULONG ul = 0; ul < ulDistrColumns; ul++)
+	const ULONG distr_col_count = DistrColumnCount();
+	for (ULONG ul = 0; ul < distr_col_count; ul++)
 	{
 		if (0 < ul)
 		{
 			os << ", ";
 		}
 
-		const IMDColumn *pimdcolDistrKey = PmdcolDistrColumn(ul);
-		os << (pimdcolDistrKey->Mdname()).Pstr()->Wsz();
+		const IMDColumn *mdcol_distr_key = GetDistrColAt(ul);
+		os << (mdcol_distr_key->Mdname()).GetMDName()->GetBuffer();
 	}
 
 	os << std::endl;

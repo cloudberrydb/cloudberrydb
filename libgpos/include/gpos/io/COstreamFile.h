@@ -30,7 +30,7 @@ namespace gpos
 		private:
 			
 			// underlying file writer
-			CFileWriter m_fw;
+			CFileWriter m_file_writer;
 
 			// private copy ctor
 			COstreamFile(const COstreamFile &);
@@ -43,8 +43,8 @@ namespace gpos
 			// ctor
 			COstreamFile
 				(
-				const CHAR *szPath,
-				ULONG ulPerms = S_IRUSR | S_IWUSR
+				const CHAR *file_path,
+				ULONG permission_bits = S_IRUSR | S_IWUSR
 				);
 
 			// dtor

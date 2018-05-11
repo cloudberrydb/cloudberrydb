@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformSplitGbAggDedup(IMemoryPool *pmp);
+			CXformSplitGbAggDedup(IMemoryPool *mp);
 
 			// dtor
 			virtual

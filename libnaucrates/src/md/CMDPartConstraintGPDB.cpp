@@ -30,18 +30,18 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMDPartConstraintGPDB::CMDPartConstraintGPDB
 	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpulDefaultParts,
-	BOOL fUnbounded,
-	CDXLNode *pdxln
+	IMemoryPool *mp,
+	ULongPtrArray *level_with_default_part_array,
+	BOOL is_unbounded,
+	CDXLNode *dxlnode
 	)
 	:
-	m_pmp(pmp),
-	m_pdrgpulDefaultParts(pdrgpulDefaultParts),
-	m_fUnbounded(fUnbounded),
-	m_pdxln(pdxln)
+	m_mp(mp),
+	m_level_with_default_part_array(level_with_default_part_array),
+	m_is_unbounded(is_unbounded),
+	m_dxl_node(dxlnode)
 {
-	GPOS_ASSERT(NULL != pdrgpulDefaultParts);
+	GPOS_ASSERT(NULL != level_with_default_part_array);
 }
 
 //---------------------------------------------------------------------------
@@ -54,61 +54,61 @@ CMDPartConstraintGPDB::CMDPartConstraintGPDB
 //---------------------------------------------------------------------------
 CMDPartConstraintGPDB::~CMDPartConstraintGPDB()
 {
-	if (NULL != m_pdxln)
-		m_pdxln->Release();
-	m_pdrgpulDefaultParts->Release();
+	if (NULL != m_dxl_node)
+		m_dxl_node->Release();
+	m_level_with_default_part_array->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDPartConstraintGPDB::Pexpr
+//		CMDPartConstraintGPDB::GetPartConstraintExpr
 //
 //	@doc:
 //		Scalar expression of the check constraint
 //
 //---------------------------------------------------------------------------
 CExpression *
-CMDPartConstraintGPDB::Pexpr
+CMDPartConstraintGPDB::GetPartConstraintExpr
 	(
-	IMemoryPool *pmp,
-	CMDAccessor *pmda,
-	DrgPcr *pdrgpcr
+	IMemoryPool *mp,
+	CMDAccessor *md_accessor,
+	CColRefArray *colref_array
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdrgpcr);
+	GPOS_ASSERT(NULL != colref_array);
 
 	// translate the DXL representation of the part constraint expression
-	CTranslatorDXLToExpr dxltr(pmp, pmda);
-	return dxltr.PexprTranslateScalar(m_pdxln, pdrgpcr);
+	CTranslatorDXLToExpr dxltr(mp, md_accessor);
+	return dxltr.PexprTranslateScalar(m_dxl_node, colref_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDPartConstraintGPDB::PdrgpulDefaultParts
+//		CMDPartConstraintGPDB::GetDefaultPartsArray
 //
 //	@doc:
 //		Included default partitions
 //
 //---------------------------------------------------------------------------
-DrgPul *
-CMDPartConstraintGPDB::PdrgpulDefaultParts() const
+ULongPtrArray *
+CMDPartConstraintGPDB::GetDefaultPartsArray() const
 {
-	return m_pdrgpulDefaultParts;
+	return m_level_with_default_part_array;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDPartConstraintGPDB::FUnbounded
+//		CMDPartConstraintGPDB::IsConstraintUnbounded
 //
 //	@doc:
 //		Is constraint unbounded
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDPartConstraintGPDB::FUnbounded() const
+CMDPartConstraintGPDB::IsConstraintUnbounded() const
 {
-	return m_fUnbounded;
+	return m_is_unbounded;
 }
 
 //---------------------------------------------------------------------------
@@ -122,26 +122,26 @@ CMDPartConstraintGPDB::FUnbounded() const
 void
 CMDPartConstraintGPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenPartConstraint));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenPartConstraint));
 	
 	// serialize default parts
-	CWStringDynamic *pstrDefParts = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulDefaultParts);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenDefaultPartition), pstrDefParts);
-	GPOS_DELETE(pstrDefParts);
+	CWStringDynamic *default_part_array = CDXLUtils::Serialize(m_mp, m_level_with_default_part_array);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenDefaultPartition), default_part_array);
+	GPOS_DELETE(default_part_array);
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartConstraintUnbounded), m_fUnbounded);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartConstraintUnbounded), m_is_unbounded);
 
 	// serialize the scalar expression
-	if (NULL != m_pdxln)
-		m_pdxln->SerializeToDXL(pxmlser);
+	if (NULL != m_dxl_node)
+		m_dxl_node->SerializeToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenPartConstraint));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenPartConstraint));
 
 	GPOS_CHECK_ABORT;
 }

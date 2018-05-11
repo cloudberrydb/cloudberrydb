@@ -36,36 +36,36 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarWindowFunc::CScalarWindowFunc
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidFunc,
-	IMDId *pmdidRetType,
+	IMemoryPool *mp,
+	IMDId *mdid_func,
+	IMDId *mdid_return_type,
 	const CWStringConst *pstrFunc,
 	EWinStage ewinstage,
-	BOOL fDistinct,
-	BOOL fStarArg,
-	BOOL fSimpleAgg
+	BOOL is_distinct,
+	BOOL is_star_arg,
+	BOOL is_simple_agg
 	)
 	:
-	CScalarFunc(pmp),
+	CScalarFunc(mp),
 	m_ewinstage(ewinstage),
-	m_fDistinct(fDistinct),
-	m_fStarArg(fStarArg),
-	m_fSimpleAgg(fSimpleAgg),
+	m_is_distinct(is_distinct),
+	m_is_star_arg(is_star_arg),
+	m_is_simple_agg(is_simple_agg),
 	m_fAgg(false)
 {
-	GPOS_ASSERT(pmdidFunc->FValid());
-	GPOS_ASSERT(pmdidRetType->FValid());
-	m_pmdidFunc = pmdidFunc;
-	m_pmdidRetType = pmdidRetType;
+	GPOS_ASSERT(mdid_func->IsValid());
+	GPOS_ASSERT(mdid_return_type->IsValid());
+	m_func_mdid = mdid_func;
+	m_return_type_mdid = mdid_return_type;
 	m_pstrFunc = pstrFunc;
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_fAgg = pmda->FAggWindowFunc(m_pmdidFunc);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	m_fAgg = md_accessor->FAggWindowFunc(m_func_mdid);
 	if (!m_fAgg)
 	{
-		const IMDFunction *pmdfunc = pmda->Pmdfunc(m_pmdidFunc);
-		m_efs = pmdfunc->EfsStability();
-		m_efda = pmdfunc->EfdaDataAccess();
+		const IMDFunction *pmdfunc = md_accessor->RetrieveFunc(m_func_mdid);
+		m_efs = pmdfunc->GetFuncStability();
+		m_efda = pmdfunc->GetFuncDataAccess();
 	}
 	else
 	{
@@ -77,53 +77,53 @@ CScalarWindowFunc::CScalarWindowFunc
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarWindowFunc::UlHash
+//		CScalarWindowFunc::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarWindowFunc::UlHash() const
+CScalarWindowFunc::HashValue() const
 {
-	return gpos::UlCombineHashes
+	return gpos::CombineHashes
 					(
-					UlCombineHashes
+					CombineHashes
 						(
-						UlCombineHashes
+						CombineHashes
 							(
-							UlCombineHashes
+							CombineHashes
 								(
-								gpos::UlCombineHashes
+								gpos::CombineHashes
 									(
-									COperator::UlHash(),
-									gpos::UlCombineHashes
+									COperator::HashValue(),
+									gpos::CombineHashes
 										(
-											m_pmdidFunc->UlHash(),
-											m_pmdidRetType->UlHash()
+											m_func_mdid->HashValue(),
+											m_return_type_mdid->HashValue()
 										)
 									),
 								m_ewinstage
 								),
-							gpos::UlHash<BOOL>(&m_fDistinct)
+							gpos::HashValue<BOOL>(&m_is_distinct)
 							),
-						gpos::UlHash<BOOL>(&m_fStarArg)
+						gpos::HashValue<BOOL>(&m_is_star_arg)
 						),
-					gpos::UlHash<BOOL>(&m_fSimpleAgg)
+					gpos::HashValue<BOOL>(&m_is_simple_agg)
 					);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarWindowFunc::FMatch
+//		CScalarWindowFunc::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarWindowFunc::FMatch
+CScalarWindowFunc::Matches
 	(
 	COperator *pop
 	)
@@ -134,12 +134,12 @@ CScalarWindowFunc::FMatch
 		CScalarWindowFunc *popFunc = CScalarWindowFunc::PopConvert(pop);
 
 		// match if the func id, and properties are identical
-		return ((popFunc->FDistinct() ==  m_fDistinct)
-				&& (popFunc->FStarArg() ==  m_fStarArg)
-				&& (popFunc->FSimpleAgg() ==  m_fSimpleAgg)
+		return ((popFunc->IsDistinct() ==  m_is_distinct)
+				&& (popFunc->IsStarArg() ==  m_is_star_arg)
+				&& (popFunc->IsSimpleAgg() ==  m_is_simple_agg)
 				&& (popFunc->FAgg() == m_fAgg)
-				&& m_pmdidFunc->FEquals(popFunc->PmdidFunc())
-				&& m_pmdidRetType->FEquals(popFunc->PmdidType())
+				&& m_func_mdid->Equals(popFunc->FuncMdId())
+				&& m_return_type_mdid->Equals(popFunc->MdidType())
 				&& (popFunc->Ews() == m_ewinstage));
 	}
 
@@ -162,11 +162,11 @@ CScalarWindowFunc::OsPrint
 	const
 {
 	os << SzId() << " (";
-	os << PstrFunc()->Wsz();
+	os << PstrFunc()->GetBuffer();
 	os << " , Agg: " << (m_fAgg ? "true" : "false");
-	os << " , Distinct: " << (m_fDistinct ? "true" : "false");
-	os << " , StarArgument: " << (m_fStarArg ? "true" : "false");
-	os << " , SimpleAgg: " << (m_fSimpleAgg ? "true" : "false");
+	os << " , Distinct: " << (m_is_distinct ? "true" : "false");
+	os << " , StarArgument: " << (m_is_star_arg ? "true" : "false");
+	os << " , SimpleAgg: " << (m_is_simple_agg ? "true" : "false");
 	os << ")";
 
 	return os;

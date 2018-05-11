@@ -44,7 +44,7 @@ namespace gpopt
 			BOOL m_fHasCount;
 
 			// the limit must be kept, even if it has no offset, nor count
-			BOOL m_fTopLimitUnderDML;
+			BOOL m_top_limit_under_dml;
 
 			// private copy ctor
 			CLogicalLimit(const CLogicalLimit &);
@@ -53,10 +53,10 @@ namespace gpopt
 
 			// ctors
 			explicit
-			CLogicalLimit(IMemoryPool *pmp);
+			CLogicalLimit(IMemoryPool *mp);
 			CLogicalLimit
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				COrderSpec *pos,
 				BOOL fGlobal,
 				BOOL fHasCount,
@@ -98,14 +98,14 @@ namespace gpopt
 			}
 
 			// must the limit be always kept
-			BOOL FTopLimitUnderDML() const
+			BOOL IsTopLimitUnderDMLorCTAS() const
 			{
-				return m_fTopLimitUnderDML;
+				return m_top_limit_under_dml;
 			}
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -116,11 +116,11 @@ namespace gpopt
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// print
 			virtual
@@ -132,25 +132,25 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(IMemoryPool * pmp,CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOutput(IMemoryPool * mp,CExpressionHandle &exprhdl);
 				
 			// derive outer references
 			virtual
-			CColRefSet *PcrsDeriveOuter(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOuter(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// dervive keys
 			virtual 
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;			
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;			
 			
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle &exprhdl
 				) 
 				const
@@ -162,7 +162,7 @@ namespace gpopt
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *, //pmp,
+				IMemoryPool *, //mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -176,7 +176,7 @@ namespace gpopt
 
 			// compute required stat columns of the n-th child
 			virtual
-			CColRefSet *PcrsStat(IMemoryPool *pmp, CExpressionHandle &exprhdl, CColRefSet *pcrsInput, ULONG ulChildIndex) const;
+			CColRefSet *PcrsStat(IMemoryPool *mp, CExpressionHandle &exprhdl, CColRefSet *pcrsInput, ULONG child_index) const;
 			
 			//-------------------------------------------------------------------------------------
 			// Transformations
@@ -197,9 +197,9 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 

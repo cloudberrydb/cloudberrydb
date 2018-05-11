@@ -48,20 +48,20 @@ namespace gpmd
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// included default partitions
-			DrgPul *m_pdrgpulDefaultParts;
+			ULongPtrArray *m_level_with_default_part_array;
 			
 			// is constraint unbounded
-			BOOL m_fUnbounded;
+			BOOL m_is_unbounded;
 
 			// the DXL representation of the part constraint
-			CDXLNode *m_pdxln;
+			CDXLNode *m_dxl_node;
 		public:
 
 			// ctor
-			CMDPartConstraintGPDB(IMemoryPool *pmp, DrgPul *pdrgpulDefaultParts, BOOL fUnbounded, CDXLNode *pdxln);
+			CMDPartConstraintGPDB(IMemoryPool *mp, ULongPtrArray *level_with_default_part_array, BOOL is_unbounded, CDXLNode *dxlnode);
 
 			// dtor
 			virtual
@@ -69,19 +69,19 @@ namespace gpmd
 
 			// serialize constraint in DXL format
 			virtual
-			void Serialize(CXMLSerializer *pxmlser) const;
+			void Serialize(CXMLSerializer *xml_serializer) const;
 			
-			// the scalar expression of the check constraint
+			// the scalar expression of the part constraint
 			virtual
-			CExpression *Pexpr(IMemoryPool *pmp, CMDAccessor *pmda, DrgPcr *pdrgpcr) const;
+			CExpression *GetPartConstraintExpr(IMemoryPool *mp, CMDAccessor *md_accessor, CColRefArray *colref_array) const;
 			
 			// included default partitions
 			virtual
-			DrgPul *PdrgpulDefaultParts() const;
+			ULongPtrArray *GetDefaultPartsArray() const;
 
 			// is constraint unbounded
 			virtual
-			BOOL FUnbounded() const;
+			BOOL IsConstraintUnbounded() const;
 
 	};
 }

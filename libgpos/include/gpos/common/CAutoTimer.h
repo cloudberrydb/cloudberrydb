@@ -36,10 +36,10 @@ namespace gpos
 			CWallClock m_clock;
 			
 			// label for timer output
-			const CHAR *m_sz;
+			const CHAR *m_timer_text_label;
 			
 			// trigger printing at destruction time
-			BOOL m_fPrint;
+			BOOL m_print_text_label;
 		
 			// private copy ctor
 			CAutoTimer(const CAutoTimer &);

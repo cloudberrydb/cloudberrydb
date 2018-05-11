@@ -39,7 +39,7 @@ namespace gpos
 
 			// retrieve elapsed user time in micro-seconds
 			virtual
-			ULONG UlElapsedUS() const;
+			ULONG ElapsedUS() const;
 
 			// restart timer
 			virtual

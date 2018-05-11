@@ -23,9 +23,9 @@
 #define GPOS_CHECK_STACK_SIZE \
 	do \
 	{ \
-		if (NULL != IWorker::PwrkrSelf()) \
+		if (NULL != IWorker::Self()) \
 		{ \
-			(void) IWorker::PwrkrSelf()->FCheckStackSize(); \
+			(void) IWorker::Self()->CheckStackSize(); \
 		} \
 	} \
 	while (0)
@@ -35,8 +35,8 @@
 #define GPOS_ASSERT_NO_SPINLOCK  \
 		GPOS_ASSERT_IMP \
 		( \
-			NULL != IWorker::PwrkrSelf(), \
-			(!IWorker::PwrkrSelf()->FOwnsSpinlocks()) && "Must not hold a spinlock!" \
+			NULL != IWorker::Self(), \
+			(!IWorker::Self()->OwnsSpinlocks()) && "Must not hold a spinlock!" \
 		)
 
 
@@ -82,32 +82,32 @@ namespace gpos
 			virtual ~IWorker() {}
 
 			// accessors
-			virtual ULONG UlThreadId() const = 0;
-			virtual CWorkerId Wid() const = 0;
-			virtual ULONG_PTR UlpStackStart() const = 0;
-			virtual ITask *Ptsk() = 0;
+			virtual ULONG GetThreadId() const = 0;
+			virtual CWorkerId GetWid() const = 0;
+			virtual ULONG_PTR GetStackStart() const = 0;
+			virtual ITask *GetTask() = 0;
 
 			// stack check
-			virtual BOOL FCheckStackSize(ULONG ulRequest = 0) const = 0;
+			virtual BOOL CheckStackSize(ULONG request = 0) const = 0;
 			
 #ifdef GPOS_DEBUG
-			virtual BOOL FCanAcquireSpinlock(const CSpinlockBase*) const = 0;
-			virtual BOOL FOwnsSpinlocks() const = 0;
+			virtual BOOL CanAcquireSpinlock(const CSpinlockBase*) const = 0;
+			virtual BOOL OwnsSpinlocks() const = 0;
 			virtual void RegisterSpinlock(CSpinlockBase *) = 0;
 			virtual void UnregisterSpinlock(CSpinlockBase*) = 0;
 			
-			virtual BOOL FOwnsMutexes() const = 0;
+			virtual BOOL OwnsMutexes() const = 0;
 			virtual void RegisterMutex(CMutexBase *) = 0;
 			virtual void UnregisterMutex(CMutexBase *) = 0;
 
-			static BOOL m_fEnforceTimeSlices;
+			static BOOL m_enforce_time_slices;
 #endif // GPOS_DEBUG
 
 			// lookup worker in worker pool manager
-			static IWorker *PwrkrSelf();
+			static IWorker *Self();
 
 			// check for aborts
-			static void CheckAbort(const CHAR *szFile, ULONG cLine);
+			static void CheckAbort(const CHAR *file, ULONG line_num);
 		
 	}; // class IWorker
 }

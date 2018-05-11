@@ -34,13 +34,13 @@ namespace gpnaucrates
 		private:
 
 			// type information
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 		
-			// integer value
-			LINT m_lVal;
+		// integer value
+			LINT m_val;
 
 			// is null
-			BOOL m_fNull;
+			BOOL m_is_null;
 
 
 			// private copy ctor
@@ -49,8 +49,8 @@ namespace gpnaucrates
 		public:
 
 			// ctors
-			CDatumInt8GPDB(CSystemId sysid, LINT lVal, BOOL fNull = false);
-			CDatumInt8GPDB(IMDId *pmdid, LINT lVal, BOOL fNull = false);
+			CDatumInt8GPDB(CSystemId sysid, LINT val, BOOL is_null = false);
+			CDatumInt8GPDB(IMDId *mdid, LINT val, BOOL is_null = false);
 
 			// dtor
 			virtual
@@ -58,35 +58,35 @@ namespace gpnaucrates
 
 			// accessor of metadata type id
 			virtual
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 
 			// accessor of size
 			virtual
-			ULONG UlSize() const;
+			ULONG Size() const;
 
 			// accessor of integer value
 			virtual
-			LINT LValue() const;
+			LINT Value() const;
 
 			// accessor of is null
 			virtual
-			BOOL FNull() const;
+			BOOL IsNull() const;
 
 			// return string representation
 			virtual
-			const CWStringConst *Pstr(IMemoryPool *pmp) const;
+			const CWStringConst *GetStrRepr(IMemoryPool *mp) const;
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function for datums
 			virtual
-			BOOL FMatch(const IDatum *) const;
+			BOOL Matches(const IDatum *) const;
 
 			// copy datum
 			virtual
-			IDatum *PdatumCopy(IMemoryPool *pmp) const;
+			IDatum *MakeCopy(IMemoryPool *mp) const;
 
 			// print function
 			virtual

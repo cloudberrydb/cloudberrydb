@@ -50,7 +50,7 @@ namespace gpos
 			~CTaskLocalStorageObject() {}
 			
 			// accessor
-			const CTaskLocalStorage::Etlsidx &Etlsidx() const
+			const CTaskLocalStorage::Etlsidx &idx() const
 			{
 				return m_etlsidx;
 			}

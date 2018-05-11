@@ -56,7 +56,7 @@ namespace gpopt
 				private:
 
 					// scan id
-					ULONG m_ulScanId;
+					ULONG m_scan_id;
 
 					// scalar expression
 					CExpression *m_pexpr;
@@ -69,9 +69,9 @@ namespace gpopt
 					// ctor
 					CPartFilter
 						(
-						ULONG ulScanId,
+						ULONG scan_id,
 						CExpression *pexpr,
-						IStatistics *pstats = NULL
+						IStatistics *stats = NULL
 						);
 
 					// dtor
@@ -79,12 +79,12 @@ namespace gpopt
 					~CPartFilter();
 
 					// match function
-					BOOL FMatch(const CPartFilter *ppf) const;
+					BOOL Matches(const CPartFilter *ppf) const;
 
 					// return scan id
-					ULONG UlScanId() const
+					ULONG ScanId() const
 					{
-						return m_ulScanId;
+						return m_scan_id;
 					}
 
 					// return scalar expression
@@ -105,23 +105,23 @@ namespace gpopt
 			}; // class CPartFilter
 
 			// map of partition index ids to filter expressions
-			typedef CHashMap<ULONG, CPartFilter, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CPartFilter> > HMULPartFilter;
+			typedef CHashMap<ULONG, CPartFilter, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CPartFilter> > UlongToPartFilterMap;
 
 			// map iterator
-			typedef CHashMapIter<ULONG, CPartFilter, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CPartFilter> > HMULPartFilterIter;
+			typedef CHashMapIter<ULONG, CPartFilter, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CPartFilter> > UlongToPartFilterMapIter;
 
 			// hash map from ScanId to CPartFilter
-			HMULPartFilter *m_phmulpf;
+			UlongToPartFilterMap *m_phmulpf;
 
 		public:
 
 			// ctors
 			explicit
-			CPartFilterMap(IMemoryPool *pmp);
+			CPartFilterMap(IMemoryPool *mp);
 
-			CPartFilterMap(IMemoryPool *pmp, CPartFilterMap *ppfm);
+			CPartFilterMap(IMemoryPool *mp, CPartFilterMap *ppfm);
 
 			// dtor
 			virtual
@@ -130,30 +130,30 @@ namespace gpopt
 			// check whether map contains the given scan id
 			BOOL FContainsScanId
 				(
-				ULONG ulScanId
+				ULONG scan_id
 				)
 				const
 			{
-				return (NULL != m_phmulpf->PtLookup(&ulScanId));
+				return (NULL != m_phmulpf->Find(&scan_id));
 			}
 
 			// the expression associated with the given scan id
-			CExpression *Pexpr(ULONG ulScanId) const;
+			CExpression *Pexpr(ULONG scan_id) const;
 
 			// stats associated with the given scan id
-			IStatistics *Pstats(ULONG ulScanId) const;
+			IStatistics *Pstats(ULONG scan_id) const;
 
 			// check whether the map is empty
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
 			{
-				return 0 == m_phmulpf->UlEntries();
+				return 0 == m_phmulpf->Size();
 			}
 
 			// check whether current part filter map is a subset of the given one
 			BOOL FSubset(CPartFilterMap *ppfm);
 
 			// check equality of part filter maps
-			BOOL FEqual
+			BOOL Equals
 				(
 				CPartFilterMap *ppfm
 				)
@@ -161,27 +161,27 @@ namespace gpopt
 				GPOS_ASSERT(NULL != ppfm);
 
 				return
-					(m_phmulpf->UlEntries() == ppfm->m_phmulpf->UlEntries()) &&
+					(m_phmulpf->Size() == ppfm->m_phmulpf->Size()) &&
 					this->FSubset(ppfm);
 			}
 
 			// extract part Scan id's in the given memory pool
-			DrgPul *PdrgpulScanIds(IMemoryPool *pmp) const;
+			ULongPtrArray *PdrgpulScanIds(IMemoryPool *mp) const;
 
 			// add part filter to map
 			void AddPartFilter
 				(
-				IMemoryPool *pmp,
-				ULONG ulScanId,
+				IMemoryPool *mp,
+				ULONG scan_id,
 				CExpression *pexpr,
-				IStatistics *pstats
+				IStatistics *stats
 				);
 
 			// look for given scan id in given map and, if found, copy the corresponding entry to current map
-			BOOL FCopyPartFilter(IMemoryPool *pmp, ULONG ulScanId, CPartFilterMap *ppfmSource);
+			BOOL FCopyPartFilter(IMemoryPool *mp, ULONG scan_id, CPartFilterMap *ppfmSource);
 
 			// copy all part filters from source map to current map
-			void CopyPartFilterMap(IMemoryPool *pmp, CPartFilterMap *ppfmSource);
+			void CopyPartFilterMap(IMemoryPool *mp, CPartFilterMap *ppfmSource);
 
 			// print function
 			IOstream &OsPrint(IOstream &os) const;

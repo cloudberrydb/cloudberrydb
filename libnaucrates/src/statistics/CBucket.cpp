@@ -30,32 +30,32 @@ using namespace gpnaucrates;
 //---------------------------------------------------------------------------
 CBucket::CBucket
 	(
-	CPoint *ppointLower,
-	CPoint *ppointUpper,
-	BOOL fLowerClosed,
-	BOOL fUpperClosed,
-	CDouble dFrequency,
-	CDouble dDistinct
+	CPoint *bucket_lower_bound,
+	CPoint *bucket_upper_bound,
+	BOOL is_lower_closed,
+	BOOL is_upper_closed,
+	CDouble frequency,
+	CDouble distinct
 	)
 	:
-	m_ppointLower(ppointLower),
-	m_ppointUpper(ppointUpper),
-	m_fLowerClosed(fLowerClosed),
-	m_fUpperClosed(fUpperClosed),
-	m_dFrequency(dFrequency),
-	m_dDistinct(dDistinct)
+	m_bucket_lower_bound(bucket_lower_bound),
+	m_bucket_upper_bound(bucket_upper_bound),
+	m_is_lower_closed(is_lower_closed),
+	m_is_upper_closed(is_upper_closed),
+	m_frequency(frequency),
+	m_distinct(distinct)
 {
-	GPOS_ASSERT(NULL != m_ppointLower);
-	GPOS_ASSERT(NULL != m_ppointUpper);
-	GPOS_ASSERT(0.0 <= m_dFrequency && 1.0 >= m_dFrequency);
-	GPOS_ASSERT(0.0 <= m_dDistinct);
+	GPOS_ASSERT(NULL != m_bucket_lower_bound);
+	GPOS_ASSERT(NULL != m_bucket_upper_bound);
+	GPOS_ASSERT(0.0 <= m_frequency && 1.0 >= m_frequency);
+	GPOS_ASSERT(0.0 <= m_distinct);
 
 	// singleton bucket lower and upper bound are closed
-	GPOS_ASSERT_IMP(FSingleton(), fLowerClosed && fUpperClosed);
+	GPOS_ASSERT_IMP(IsSingleton(), is_lower_closed && is_upper_closed);
 
 	// null values should be in null fraction of the histogram
-	GPOS_ASSERT(!m_ppointLower->Pdatum()->FNull());
-	GPOS_ASSERT(!m_ppointUpper->Pdatum()->FNull());
+	GPOS_ASSERT(!m_bucket_lower_bound->GetDatum()->IsNull());
+	GPOS_ASSERT(!m_bucket_upper_bound->GetDatum()->IsNull());
 }
 
 //---------------------------------------------------------------------------
@@ -68,135 +68,135 @@ CBucket::CBucket
 //---------------------------------------------------------------------------
 CBucket::~CBucket()
 {
-	m_ppointLower->Release();
-	m_ppointLower = NULL;
-	m_ppointUpper->Release();
-	m_ppointUpper = NULL;
+	m_bucket_lower_bound->Release();
+	m_bucket_lower_bound = NULL;
+	m_bucket_upper_bound->Release();
+	m_bucket_upper_bound = NULL;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::FContains
+//		CBucket::Contains
 //
 //	@doc:
 //		Does bucket contain the point?
 //
 //---------------------------------------------------------------------------
 BOOL
-CBucket::FContains
+CBucket::Contains
 	(
-	const CPoint *ppoint
+	const CPoint *point
 	)
 	const
 {
 	// special case for singleton bucket
-	if (FSingleton())
+	if (IsSingleton())
 	{
-		return m_ppointLower->FEqual(ppoint);
+		return m_bucket_lower_bound->Equals(point);
 	}
 
 	// special case if point equal to lower bound
-	if (m_fLowerClosed && m_ppointLower->FEqual(ppoint))
+	if (m_is_lower_closed && m_bucket_lower_bound->Equals(point))
 	{
 		return true;
 	}
 
 	// special case if point equal to upper bound
-	if (m_fUpperClosed && m_ppointUpper->FEqual(ppoint))
+	if (m_is_upper_closed && m_bucket_upper_bound->Equals(point))
 	{
 		return true;
 	}
 
-	return m_ppointLower->FLessThan(ppoint) && m_ppointUpper->FGreaterThan(ppoint);
+	return m_bucket_lower_bound->IsLessThan(point) && m_bucket_upper_bound->IsGreaterThan(point);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::FBefore
+//		CBucket::IsBefore
 //
 //	@doc:
 //		Is the point before the lower bound of the bucket
 //
 //---------------------------------------------------------------------------
 BOOL
-CBucket::FBefore
+CBucket::IsBefore
 	(
-	const CPoint *ppoint
+	const CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
+	GPOS_ASSERT(NULL != point);
 
-	return (m_fLowerClosed && m_ppointLower->FGreaterThan(ppoint)) || (!m_fLowerClosed && m_ppointLower->FGreaterThanOrEqual(ppoint));
+	return (m_is_lower_closed && m_bucket_lower_bound->IsGreaterThan(point)) || (!m_is_lower_closed && m_bucket_lower_bound->IsGreaterThanOrEqual(point));
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::FAfter
+//		CBucket::IsAfter
 //
 //	@doc:
 //		Is the point after the upper bound of the bucket
 //
 //---------------------------------------------------------------------------
 BOOL
-CBucket::FAfter
+CBucket::IsAfter
 	(
-	const CPoint *ppoint
+	const CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
+	GPOS_ASSERT(NULL != point);
 
-	return ((m_fUpperClosed && m_ppointUpper->FLessThan(ppoint)) || (!m_fUpperClosed && m_ppointUpper->FLessThanOrEqual(ppoint)));
+	return ((m_is_upper_closed && m_bucket_upper_bound->IsLessThan(point)) || (!m_is_upper_closed && m_bucket_upper_bound->IsLessThanOrEqual(point)));
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::DOverlap
+//		CBucket::GetOverlapPercentage
 //
 //	@doc:
 //		What percentage of the bucket is covered by [lower bound, point]
 //
 //---------------------------------------------------------------------------
 CDouble
-CBucket::DOverlap
+CBucket::GetOverlapPercentage
 	(
-	const CPoint *ppoint
+	const CPoint *point
 	)
 	const
 {
-	// special case of upper bound equal to ppoint
-	if (this->PpUpper()->FLessThanOrEqual(ppoint))
+	// special case of upper bound equal to point
+	if (this->GetUpperBound()->IsLessThanOrEqual(point))
 	{
 		return CDouble(1.0);
 	}
 	// if point is not contained, then no overlap
-	if (!this->FContains(ppoint))
+	if (!this->Contains(point))
 	{
 		return CDouble(0.0);
 	}
 
 	// special case for singleton bucket
-	if (FSingleton())
+	if (IsSingleton())
 	{
-		GPOS_ASSERT(this->m_ppointLower->FEqual(ppoint));
+		GPOS_ASSERT(this->m_bucket_lower_bound->Equals(point));
 
 		return CDouble(1.0);
 	}
 
 	// general case, compute distance ratio
-	CDouble dDistanceUpper = m_ppointUpper->DDistance(m_ppointLower);
-	GPOS_ASSERT(dDistanceUpper > 0.0);
-	CDouble dDistanceMiddle = ppoint->DDistance(m_ppointLower);
-	GPOS_ASSERT(dDistanceMiddle >= 0.0);
+	CDouble distance_upper = m_bucket_upper_bound->Distance(m_bucket_lower_bound);
+	GPOS_ASSERT(distance_upper > 0.0);
+	CDouble distance_middle = point->Distance(m_bucket_lower_bound);
+	GPOS_ASSERT(distance_middle >= 0.0);
 
-	CDouble dRes = 1 / dDistanceUpper;
-	if (dDistanceMiddle > 0.0)
+	CDouble res = 1 / distance_upper;
+	if (distance_middle > 0.0)
 	{
-		dRes = dRes * dDistanceMiddle;
+		res = res * distance_middle;
 	}
 
-	return CDouble(std::min(dRes.DVal(), DOUBLE(1.0)));
+	return CDouble(std::min(res.Get(), DOUBLE(1.0)));
 
 }
 
@@ -217,7 +217,7 @@ CBucket::OsPrint
 {
 	os << "CBucket(";
 
-	if (m_fLowerClosed)
+	if (m_is_lower_closed)
 	{
 		os << " [";
 	}
@@ -226,11 +226,11 @@ CBucket::OsPrint
 		os << " (";
 	}
 
-	m_ppointLower->OsPrint(os);
+	m_bucket_lower_bound->OsPrint(os);
 	os << ", ";
-	m_ppointUpper->OsPrint(os);
+	m_bucket_upper_bound->OsPrint(os);
 
-	if (m_fUpperClosed)
+	if (m_is_upper_closed)
 	{
 		os << "]";
 	}
@@ -240,7 +240,7 @@ CBucket::OsPrint
 	}
 
 	os << " ";
-	os << m_dFrequency << ", " << m_dDistinct ;
+	os << m_frequency << ", " << m_distinct ;
 	os << ")";
 
 	return os;
@@ -248,50 +248,50 @@ CBucket::OsPrint
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketGreaterThan
+//		CBucket::MakeBucketGreaterThan
 //
 //	@doc:
 //		Construct new bucket with lower bound greater than given point and
 //		the new bucket's upper bound is the upper bound of the current bucket
 //---------------------------------------------------------------------------
 CBucket *
-CBucket::PbucketGreaterThan
+CBucket::MakeBucketGreaterThan
 	(
-	IMemoryPool *pmp,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(FContains(ppoint));
+	GPOS_ASSERT(Contains(point));
 
-	if (FSingleton() || PpUpper()->FEqual(ppoint))
+	if (IsSingleton() || GetUpperBound()->Equals(point))
 	{
 		return NULL;
 	}
 
-	CBucket *pbucketGT = NULL;
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	CPoint *ppointNew = CStatisticsUtils::PpointNext(pmp, pmda, ppoint);
+	CBucket *result_bucket = NULL;
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	CPoint *point_new = CStatisticsUtils::NextPoint(mp, md_accessor, point);
 
-	if (NULL != ppointNew)
+	if (NULL != point_new)
 	{
-		if (FContains(ppointNew))
+		if (Contains(point_new))
 		{
-			pbucketGT = PbucketScaleLower(pmp, ppointNew, true /* fIncludeLower */);
+			result_bucket = MakeBucketScaleLower(mp, point_new, true /* include_lower */);
 		}
-		ppointNew->Release();
+		point_new->Release();
 	}
 	else
 	{
-		pbucketGT = PbucketScaleLower(pmp, ppoint,  false /* fIncludeLower */);
+		result_bucket = MakeBucketScaleLower(mp, point,  false /* include_lower */);
 	}
 
-	return pbucketGT;
+	return result_bucket;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketScaleUpper
+//		CBucket::MakeBucketScaleUpper
 //
 //	@doc:
 //		Create a new bucket that is a scaled down version
@@ -299,60 +299,60 @@ CBucket::PbucketGreaterThan
 //
 //---------------------------------------------------------------------------
 CBucket*
-CBucket::PbucketScaleUpper
+CBucket::MakeBucketScaleUpper
 	(
-	IMemoryPool *pmp,
-	CPoint *ppointUpperNew,
-	BOOL fIncludeUpper
+	IMemoryPool *mp,
+	CPoint *point_upper_new,
+	BOOL include_upper
 	)
 	const
 {
-	GPOS_ASSERT(pmp);
-	GPOS_ASSERT(ppointUpperNew);
+	GPOS_ASSERT(mp);
+	GPOS_ASSERT(point_upper_new);
 
-	GPOS_ASSERT(this->FContains(ppointUpperNew));
+	GPOS_ASSERT(this->Contains(point_upper_new));
 
 	// scaling upper to be same as lower is identical to producing a singleton bucket
-	if (this->m_ppointLower->FEqual(ppointUpperNew))
+	if (this->m_bucket_lower_bound->Equals(point_upper_new))
 	{
 		// invalid bucket, e.g. if bucket is [5,10) and
-		// ppointUpperNew is 5 open, null should be returned
-		if (false == fIncludeUpper)
+		// point_upper_new is 5 open, null should be returned
+		if (false == include_upper)
 		{
 			return NULL;
 		}
-		return PbucketSingleton(pmp, ppointUpperNew);
+		return MakeBucketSingleton(mp, point_upper_new);
 	}
 
-	CDouble dFrequencyNew = this->DFrequency();
-	CDouble dDistinctNew = this->DDistinct();
+	CDouble frequency_new = this->GetFrequency();
+	CDouble distinct_new = this->GetNumDistinct();
 
-	if (!this->m_ppointUpper->FEqual(ppointUpperNew))
+	if (!this->m_bucket_upper_bound->Equals(point_upper_new))
 	{
-		CDouble dOverlap = this->DOverlap(ppointUpperNew);
-		dFrequencyNew = dFrequencyNew * dOverlap;
-		dDistinctNew = dDistinctNew * dOverlap;
+		CDouble overlap = this->GetOverlapPercentage(point_upper_new);
+		frequency_new = frequency_new * overlap;
+		distinct_new = distinct_new * overlap;
 	}
 
 
 	// reuse the lower from this bucket
-	this->m_ppointLower->AddRef();
-	ppointUpperNew->AddRef();
+	this->m_bucket_lower_bound->AddRef();
+	point_upper_new->AddRef();
 
-	return GPOS_NEW(pmp) CBucket
+	return GPOS_NEW(mp) CBucket
 						(
-						this->m_ppointLower,
-						ppointUpperNew,
-						this->m_fLowerClosed,
-						fIncludeUpper,
-						dFrequencyNew,
-						dDistinctNew
+						this->m_bucket_lower_bound,
+						point_upper_new,
+						this->m_is_lower_closed,
+						include_upper,
+						frequency_new,
+						distinct_new
 						);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketScaleLower
+//		CBucket::MakeBucketScaleLower
 //
 //	@doc:
 //		Create a new bucket that is a scaled down version
@@ -360,53 +360,53 @@ CBucket::PbucketScaleUpper
 //
 //---------------------------------------------------------------------------
 CBucket*
-CBucket::PbucketScaleLower
+CBucket::MakeBucketScaleLower
 	(
-	IMemoryPool *pmp,
-	CPoint *ppointLowerNew,
-	BOOL fIncludeLower
+	IMemoryPool *mp,
+	CPoint *point_lower_new,
+	BOOL include_lower
 	)
 	const
 {
-	GPOS_ASSERT(pmp);
-	GPOS_ASSERT(ppointLowerNew);
+	GPOS_ASSERT(mp);
+	GPOS_ASSERT(point_lower_new);
 
-	GPOS_ASSERT(this->FContains(ppointLowerNew));
+	GPOS_ASSERT(this->Contains(point_lower_new));
 
 	// scaling lower to be same as upper is identical to producing a singleton bucket
-	if (this->m_ppointUpper->FEqual(ppointLowerNew))
+	if (this->m_bucket_upper_bound->Equals(point_lower_new))
 	{
-		return PbucketSingleton(pmp, ppointLowerNew);
+		return MakeBucketSingleton(mp, point_lower_new);
 	}
 
-	CDouble dFrequencyNew = this->DFrequency();
-	CDouble dDistinctNew = this->DDistinct();
+	CDouble frequency_new = this->GetFrequency();
+	CDouble distinct_new = this->GetNumDistinct();
 
-	if (!this->PpLower()->FEqual(ppointLowerNew))
+	if (!this->GetLowerBound()->Equals(point_lower_new))
 	{
-		CDouble dOverlap = CDouble(1.0) - this->DOverlap(ppointLowerNew);
-		dFrequencyNew = this->DFrequency() * dOverlap;
-		dDistinctNew = this->DDistinct() * dOverlap;
+		CDouble overlap = CDouble(1.0) - this->GetOverlapPercentage(point_lower_new);
+		frequency_new = this->GetFrequency() * overlap;
+		distinct_new = this->GetNumDistinct() * overlap;
 	}
 
 	// reuse the lower from this bucket
-	this->m_ppointUpper->AddRef();
-	ppointLowerNew->AddRef();
+	this->m_bucket_upper_bound->AddRef();
+	point_lower_new->AddRef();
 
-	return GPOS_NEW(pmp) CBucket
+	return GPOS_NEW(mp) CBucket
 						(
-						ppointLowerNew,
-						this->m_ppointUpper,
-						fIncludeLower,
-						this->m_fUpperClosed,
-						dFrequencyNew,
-						dDistinctNew
+						point_lower_new,
+						this->m_bucket_upper_bound,
+						include_lower,
+						this->m_is_upper_closed,
+						frequency_new,
+						distinct_new
 						);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketSingleton
+//		CBucket::MakeBucketSingleton
 //
 //	@doc:
 //		Create a new bucket that is a scaled down version
@@ -414,88 +414,88 @@ CBucket::PbucketScaleLower
 //
 //---------------------------------------------------------------------------
 CBucket*
-CBucket::PbucketSingleton
+CBucket::MakeBucketSingleton
 	(
-	IMemoryPool *pmp,
-	CPoint *ppointSingleton
+	IMemoryPool *mp,
+	CPoint *point_singleton
 	)
 	const
 {
-	GPOS_ASSERT(pmp);
-	GPOS_ASSERT(ppointSingleton);
-	GPOS_ASSERT(this->FContains(ppointSingleton));
+	GPOS_ASSERT(mp);
+	GPOS_ASSERT(point_singleton);
+	GPOS_ASSERT(this->Contains(point_singleton));
 
 	// assume that this point is one of the ndistinct values
 	// in the bucket
-	CDouble dDistinctRatio = CDouble(1.0) / this->m_dDistinct;
+	CDouble distinct_ratio = CDouble(1.0) / this->m_distinct;
 
-	CDouble dFrequencyNew = std::min(DOUBLE(1.0), (this->m_dFrequency * dDistinctRatio).DVal());
-	CDouble dDistinctNew = CDouble(1.0);
+	CDouble frequency_new = std::min(DOUBLE(1.0), (this->m_frequency * distinct_ratio).Get());
+	CDouble distinct_new = CDouble(1.0);
 
 	// singleton point is both lower and upper
-	ppointSingleton->AddRef();
-	ppointSingleton->AddRef();
+	point_singleton->AddRef();
+	point_singleton->AddRef();
 
-	return GPOS_NEW(pmp) CBucket
+	return GPOS_NEW(mp) CBucket
 						(
-						ppointSingleton,
-						ppointSingleton,
-						true /* fLowerClosed */,
-						true /* fUpperClosed */,
-						dFrequencyNew,
-						dDistinctNew
+						point_singleton,
+						point_singleton,
+						true /* is_lower_closed */,
+						true /* is_upper_closed */,
+						frequency_new,
+						distinct_new
 						);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketCopy
+//		CBucket::MakeBucketCopy
 //
 //	@doc:
 //		Copy of bucket. Points are shared.
 //
 //---------------------------------------------------------------------------
 CBucket *
-CBucket::PbucketCopy
+CBucket::MakeBucketCopy
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
 	// reuse the points
-	m_ppointLower->AddRef();
-	m_ppointUpper->AddRef();
+	m_bucket_lower_bound->AddRef();
+	m_bucket_upper_bound->AddRef();
 
-	return GPOS_NEW(pmp) CBucket(m_ppointLower, m_ppointUpper, m_fLowerClosed, m_fUpperClosed, m_dFrequency, m_dDistinct);
+	return GPOS_NEW(mp) CBucket(m_bucket_lower_bound, m_bucket_upper_bound, m_is_lower_closed, m_is_upper_closed, m_frequency, m_distinct);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketUpdateFrequency
+//		CBucket::MakeBucketUpdateFrequency
 //
 //	@doc:
 //		Create copy of bucket with a copy of the bucket with updated frequency
 //		based on the new total number of rows
 //---------------------------------------------------------------------------
 CBucket *
-CBucket::PbucketUpdateFrequency
+CBucket::MakeBucketUpdateFrequency
 	(
-	IMemoryPool *pmp,
-	CDouble dRowsOld,
-	CDouble dRowsNew
+	IMemoryPool *mp,
+	CDouble rows_old,
+	CDouble rows_new
 	)
 {
 	// reuse the points
-	m_ppointLower->AddRef();
-	m_ppointUpper->AddRef();
+	m_bucket_lower_bound->AddRef();
+	m_bucket_upper_bound->AddRef();
 
-	CDouble dFrequencyNew = (this->m_dFrequency * dRowsOld) / dRowsNew;
+	CDouble frequency_new = (this->m_frequency * rows_old) / rows_new;
 
-	return GPOS_NEW(pmp) CBucket(m_ppointLower, m_ppointUpper, m_fLowerClosed, m_fUpperClosed, dFrequencyNew, m_dDistinct);
+	return GPOS_NEW(mp) CBucket(m_bucket_lower_bound, m_bucket_upper_bound, m_is_lower_closed, m_is_upper_closed, frequency_new, m_distinct);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::ICompareLowerBounds
+//		CBucket::CompareLowerBounds
 //
 //	@doc:
 //		Compare lower bounds of the buckets, return 0 if they match, 1 if
@@ -503,31 +503,31 @@ CBucket::PbucketUpdateFrequency
 //
 //---------------------------------------------------------------------------
 INT
-CBucket::ICompareLowerBounds
+CBucket::CompareLowerBounds
 	(
-	const CBucket *pbucket1,
-	const CBucket *pbucket2
+	const CBucket *bucket1,
+	const CBucket *bucket2
 	)
 {
-	GPOS_ASSERT(NULL != pbucket1);
-	GPOS_ASSERT(NULL != pbucket2);
+	GPOS_ASSERT(NULL != bucket1);
+	GPOS_ASSERT(NULL != bucket2);
 
-	CPoint *ppoint1 = pbucket1->PpLower();
-	CPoint *ppoint2 = pbucket2->PpLower();
+	CPoint *point1 = bucket1->GetLowerBound();
+	CPoint *point2 = bucket2->GetLowerBound();
 
-	BOOL fClosedPoint1 = pbucket1->FLowerClosed();
-	BOOL fClosedPoint2 = pbucket1->FLowerClosed();
+	BOOL is_closed_point1 = bucket1->IsLowerClosed();
+	BOOL is_closed_point2 = bucket1->IsLowerClosed();
 
-	if (ppoint1->FEqual(ppoint2))
+	if (point1->Equals(point2))
 	{
-		if (fClosedPoint1 == fClosedPoint2)
+		if (is_closed_point1 == is_closed_point2)
 		{
 			return 0;
 		}
 
-		if (fClosedPoint1)
+		if (is_closed_point1)
 		{
-			// pbucket1 contains the lower bound (lb), while pbucket2 contain all
+			// bucket1 contains the lower bound (lb), while bucket2 contain all
 			// values between (lb + delta) and upper bound (ub)
 			return -1;
 		}
@@ -535,7 +535,7 @@ CBucket::ICompareLowerBounds
 		return 1;
 	}
 
-	if (ppoint1->FLessThan(ppoint2))
+	if (point1->IsLessThan(point2))
 	{
 		return -1;
 	}
@@ -545,7 +545,7 @@ CBucket::ICompareLowerBounds
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::ICompareLowerBoundToUpperBound
+//		CBucket::CompareLowerBoundToUpperBound
 //
 //	@doc:
 //		Compare lb of the first bucket to the ub of the second bucket,
@@ -553,27 +553,27 @@ CBucket::ICompareLowerBounds
 //		than ub of bucket2 and -1 otherwise.
 //---------------------------------------------------------------------------
 INT
-CBucket::ICompareLowerBoundToUpperBound
+CBucket::CompareLowerBoundToUpperBound
 	(
-	const CBucket *pbucket1,
-	const CBucket *pbucket2
+	const CBucket *bucket1,
+	const CBucket *bucket2
 	)
 {
-	CPoint *ppoint1Lower = pbucket1->PpLower();
-	CPoint *ppoint2Upper = pbucket2->PpUpper();
+	CPoint *lower_bound_first = bucket1->GetLowerBound();
+	CPoint *upper_bound_second = bucket2->GetUpperBound();
 
-	if (ppoint1Lower->FGreaterThan(ppoint2Upper))
+	if (lower_bound_first->IsGreaterThan(upper_bound_second))
 	{
 		return 1;
 	}
 
-	if (ppoint1Lower->FLessThan(ppoint2Upper))
+	if (lower_bound_first->IsLessThan(upper_bound_second))
 	{
 		return -1;
 	}
 
 	// equal
-	if (pbucket1->FLowerClosed() && pbucket2->FUpperClosed())
+	if (bucket1->IsLowerClosed() && bucket2->IsUpperClosed())
 	{
 		return 0;
 	}
@@ -583,7 +583,7 @@ CBucket::ICompareLowerBoundToUpperBound
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::ICompareUpperBounds
+//		CBucket::CompareUpperBounds
 //
 //	@doc:
 //		Compare upper bounds of the buckets, return 0 if they match, 1 if
@@ -591,39 +591,39 @@ CBucket::ICompareLowerBoundToUpperBound
 //
 //---------------------------------------------------------------------------
 INT
-CBucket::ICompareUpperBounds
+CBucket::CompareUpperBounds
 	(
-	const CBucket *pbucket1,
-	const CBucket *pbucket2
+	const CBucket *bucket1,
+	const CBucket *bucket2
 	)
 {
-	GPOS_ASSERT(NULL != pbucket1);
-	GPOS_ASSERT(NULL != pbucket2);
+	GPOS_ASSERT(NULL != bucket1);
+	GPOS_ASSERT(NULL != bucket2);
 
-	CPoint *ppoint1 = pbucket1->PpUpper();
-	CPoint *ppoint2 = pbucket2->PpUpper();
+	CPoint *point1 = bucket1->GetUpperBound();
+	CPoint *point2 = bucket2->GetUpperBound();
 
-	BOOL fClosedPoint1 = pbucket1->FUpperClosed();
-	BOOL fClosedPoint2 = pbucket1->FUpperClosed();
+	BOOL is_closed_point1 = bucket1->IsUpperClosed();
+	BOOL is_closed_point2 = bucket1->IsUpperClosed();
 
-	if (ppoint1->FEqual(ppoint2))
+	if (point1->Equals(point2))
 	{
-		if (fClosedPoint1 == fClosedPoint2)
+		if (is_closed_point1 == is_closed_point2)
 		{
 			return 0;
 		}
 
-		if (fClosedPoint1)
+		if (is_closed_point1)
 		{
-			// pbucket2 contains all values less than upper bound not including upper bound point
-			// therefore pbucket1 upper bound greater than pbucket2 upper bound
+			// bucket2 contains all values less than upper bound not including upper bound point
+			// therefore bucket1 upper bound greater than bucket2 upper bound
 			return 1;
 		}
 
 		return -1;
 	}
 
-	if (ppoint1->FLessThan(ppoint2))
+	if (point1->IsLessThan(point2))
 	{
 		return -1;
 	}
@@ -633,44 +633,44 @@ CBucket::ICompareUpperBounds
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::FIntersects
+//		CBucket::Intersects
 //
 //	@doc:
 //		Does this bucket intersect with another?
 //
 //---------------------------------------------------------------------------
 BOOL
-CBucket::FIntersects
+CBucket::Intersects
 	(
-	const CBucket *pbucket
+	const CBucket *bucket
 	)
 	const
 {
 
-	if (this->FSingleton() && pbucket->FSingleton())
+	if (this->IsSingleton() && bucket->IsSingleton())
 	{
-		return PpLower()->FEqual(pbucket->PpLower());
+		return GetLowerBound()->Equals(bucket->GetLowerBound());
 	}
 
-	if (this->FSingleton())
+	if (this->IsSingleton())
 	{
-		return pbucket->FContains(PpLower());
+		return bucket->Contains(GetLowerBound());
 	}
 
-	if (pbucket->FSingleton())
+	if (bucket->IsSingleton())
 	{
-		return FContains(pbucket->PpLower());
+		return Contains(bucket->GetLowerBound());
 	}
 
-	if (this->FSubsumes(pbucket) || pbucket->FSubsumes(this))
+	if (this->Subsumes(bucket) || bucket->Subsumes(this))
 	{
 		return true;
 	}
 
-	if (0 >= ICompareLowerBounds(this, pbucket))
+	if (0 >= CompareLowerBounds(this, bucket))
 	{
 		// current bucket starts before the other bucket
-		if (0 >= ICompareLowerBoundToUpperBound(pbucket, this))
+		if (0 >= CompareLowerBoundToUpperBound(bucket, this))
 		{
 			// other bucket starts before current bucket ends
 			return true;
@@ -679,7 +679,7 @@ CBucket::FIntersects
 		return false;
 	}
 	
-	if (0 >= ICompareLowerBoundToUpperBound(this, pbucket))
+	if (0 >= CompareLowerBoundToUpperBound(this, bucket))
 	{
 		// current bucket starts before the other bucket ends
 		return true;
@@ -690,42 +690,42 @@ CBucket::FIntersects
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::FSubsumes
+//		CBucket::Subsumes
 //
 //	@doc:
 //		Does this bucket subsume another?
 //
 //---------------------------------------------------------------------------
 BOOL
-CBucket::FSubsumes
+CBucket::Subsumes
 	(
-	const CBucket *pbucket
+	const CBucket *bucket
 	)
 	const
 {
 
 	// both are singletons
-	if (this->FSingleton()
-		&& pbucket->FSingleton())
+	if (this->IsSingleton()
+		&& bucket->IsSingleton())
 	{
-		return PpLower()->FEqual(pbucket->PpLower());
+		return GetLowerBound()->Equals(bucket->GetLowerBound());
 	}
 
 	// other one is a singleton
-	if (pbucket->FSingleton())
+	if (bucket->IsSingleton())
 	{
-		return this->FContains(pbucket->PpLower());
+		return this->Contains(bucket->GetLowerBound());
 	}
 
-	INT iPoint1LowerPoint2Lower = ICompareLowerBounds(this, pbucket);
-	INT iPoint1UpperPoint2Upper = ICompareUpperBounds(this, pbucket);
+	INT lower_bounds_comparison = CompareLowerBounds(this, bucket);
+	INT upper_bounds_comparison = CompareUpperBounds(this, bucket);
 
-	return (0 >= iPoint1LowerPoint2Lower && 0 <= iPoint1UpperPoint2Upper);
+	return (0 >= lower_bounds_comparison && 0 <= upper_bounds_comparison);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketIntersect
+//		CBucket::MakeBucketIntersect
 //
 //	@doc:
 //		Create a new bucket by intersecting with another
@@ -733,72 +733,72 @@ CBucket::FSubsumes
 // 		Points will be shared
 //---------------------------------------------------------------------------
 CBucket *
-CBucket::PbucketIntersect
+CBucket::MakeBucketIntersect
 	(
-	IMemoryPool *pmp,
-	CBucket *pbucket,
-	CDouble *pdFreqIntersect1,
-	CDouble *pdFreqIntersect2
+	IMemoryPool *mp,
+	CBucket *bucket,
+	CDouble *result_freq_intersect1,
+	CDouble *result_freq_intersect2
 	)
 	const
 {
 	// should only be called on intersecting bucket
-	GPOS_ASSERT(FIntersects(pbucket));
+	GPOS_ASSERT(Intersects(bucket));
 
-	CPoint *ppNewLower = CPoint::PpointMax(this->PpLower(), pbucket->PpLower());
-	CPoint *ppNewUpper = CPoint::PpointMin(this->PpUpper(), pbucket->PpUpper());
+	CPoint *lower_new = CPoint::MaxPoint(this->GetLowerBound(), bucket->GetLowerBound());
+	CPoint *upper_new = CPoint::MinPoint(this->GetUpperBound(), bucket->GetUpperBound());
 
-	BOOL fNewLowerClosed = true;
-	BOOL fNewUpperClosed = true;
+	BOOL lower_new_is_closed = true;
+	BOOL upper_new_is_closed = true;
 
-	CDouble dDistanceNew = 1.0;
-	if (!ppNewLower->FEqual(ppNewUpper))
+	CDouble distance_new = 1.0;
+	if (!lower_new->Equals(upper_new))
 	{
-		fNewLowerClosed = this->m_fLowerClosed;
-		fNewUpperClosed = this->m_fUpperClosed;
+		lower_new_is_closed = this->m_is_lower_closed;
+		upper_new_is_closed = this->m_is_upper_closed;
 
-		if (ppNewLower->FEqual(pbucket->PpLower()))
+		if (lower_new->Equals(bucket->GetLowerBound()))
 		{
-			fNewLowerClosed = pbucket->FLowerClosed();
-			if (ppNewLower->FEqual(this->PpLower()))
+			lower_new_is_closed = bucket->IsLowerClosed();
+			if (lower_new->Equals(this->GetLowerBound()))
 			{
-				fNewLowerClosed = this->FLowerClosed() && pbucket->FLowerClosed();
+				lower_new_is_closed = this->IsLowerClosed() && bucket->IsLowerClosed();
 			}
 		}
 
-		if (ppNewUpper->FEqual(pbucket->PpUpper()))
+		if (upper_new->Equals(bucket->GetUpperBound()))
 		{
-			fNewUpperClosed = pbucket->FUpperClosed();
-			if (ppNewUpper->FEqual(this->PpUpper()))
+			upper_new_is_closed = bucket->IsUpperClosed();
+			if (upper_new->Equals(this->GetUpperBound()))
 			{
-				fNewUpperClosed = this->FUpperClosed() && pbucket->FUpperClosed();
+				upper_new_is_closed = this->IsUpperClosed() && bucket->IsUpperClosed();
 			}
 		}
 
-		dDistanceNew = ppNewUpper->DDistance(ppNewLower);
+		distance_new = upper_new->Distance(lower_new);
 	}
 
 	// TODO: , May 1 2013, distance function for data types such as bpchar/varchar
 	// that require binary comparison
-	GPOS_ASSERT_IMP(!ppNewUpper->Pdatum()->FSupportsBinaryComp(ppNewLower->Pdatum()), dDistanceNew <= DWidth());
-	GPOS_ASSERT_IMP(!ppNewUpper->Pdatum()->FSupportsBinaryComp(ppNewLower->Pdatum()), dDistanceNew <= pbucket->DWidth());
+	GPOS_ASSERT_IMP(!upper_new->GetDatum()->SupportsBinaryComp(lower_new->GetDatum()), distance_new <= Width());
+	GPOS_ASSERT_IMP(!upper_new->GetDatum()->SupportsBinaryComp(lower_new->GetDatum()), distance_new <= bucket->Width());
 
-	CDouble dRatio1 = dDistanceNew / DWidth();
-	CDouble dRatio2 = dDistanceNew / pbucket->DWidth();
+	CDouble ratio1 = distance_new / Width();
+	CDouble ratio2 = distance_new / bucket->Width();
 
 	// edge case
-	if (FSingleton() && pbucket->FSingleton())
+	if (IsSingleton() && bucket->IsSingleton())
 	{
-		dRatio1 = CDouble(1.0);
-		dRatio2 = CDouble(1.0);
+		ratio1 = CDouble(1.0);
+		ratio2 = CDouble(1.0);
 	}
 
-	CDouble dDistinctNew
+	CDouble distinct_new
 					(
 					std::min
 						(
-						dRatio1.DVal() * m_dDistinct.DVal(),
-						dRatio2.DVal() * pbucket->m_dDistinct.DVal()
+						ratio1.Get() * m_distinct.Get(),
+						ratio2.Get() * bucket->m_distinct.Get()
 						)
 					);
 
@@ -808,56 +808,56 @@ CBucket::PbucketIntersect
 	// 1. proportional to the modified frequency values of both buckets
 	// 2. inversely proportional to the max number of distinct values in both buckets
 
-	CDouble dFreqIntersect1 = dRatio1 * m_dFrequency;
-	CDouble dFreqIntersect2 = dRatio2 * pbucket->m_dFrequency;
+	CDouble freq_intersect1 = ratio1 * m_frequency;
+	CDouble freq_intersect2 = ratio2 * bucket->m_frequency;
 
-	CDouble dFrequencyNew
+	CDouble frequency_new
 					(
-					dFreqIntersect1 *
-					dFreqIntersect2 *
+					freq_intersect1 *
+					freq_intersect2 *
 					DOUBLE(1.0) /
 					std::max
 						(
-						dRatio1.DVal() * m_dDistinct.DVal(),
-						dRatio2.DVal() * pbucket->DDistinct().DVal()
+						ratio1.Get() * m_distinct.Get(),
+						ratio2.Get() * bucket->GetNumDistinct().Get()
 						)
 					);
 
-	ppNewLower->AddRef();
-	ppNewUpper->AddRef();
+	lower_new->AddRef();
+	upper_new->AddRef();
 
-	*pdFreqIntersect1 = dFreqIntersect1;
-	*pdFreqIntersect2 = dFreqIntersect2;
+	*result_freq_intersect1 = freq_intersect1;
+	*result_freq_intersect2 = freq_intersect2;
 
-	return GPOS_NEW(pmp) CBucket
+	return GPOS_NEW(mp) CBucket
 						(
-						ppNewLower,
-						ppNewUpper,
-						fNewLowerClosed,
-						fNewUpperClosed,
-						dFrequencyNew,
-						dDistinctNew
+						lower_new,
+						upper_new,
+						lower_new_is_closed,
+						upper_new_is_closed,
+						frequency_new,
+						distinct_new
 						);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::DWidth
+//		CBucket::Width
 //
 //	@doc:
 //		Width of bucket
 //
 //---------------------------------------------------------------------------
 CDouble
-CBucket::DWidth() const
+CBucket::Width() const
 {
-	if (FSingleton())
+	if (IsSingleton())
 	{
 		return CDouble(1.0);
 	}
 	else
 	{
-		return m_ppointUpper->DDistance(m_ppointLower);
+		return m_bucket_upper_bound->Distance(m_bucket_lower_bound);
 	}
 }
 
@@ -874,50 +874,50 @@ CBucket::DWidth() const
 void
 CBucket::Difference
 	(
-	IMemoryPool *pmp,
-	CBucket *pbucketOther,
-	CBucket **ppbucketLower,
-	CBucket **ppbucketUpper
+	IMemoryPool *mp,
+	CBucket *bucket_other,
+	CBucket **result_bucket_lower,
+	CBucket **result_bucket_upper
 	)
 {
 	// we shouldn't be overwriting anything important
-	GPOS_ASSERT(NULL == *ppbucketLower);
-	GPOS_ASSERT(NULL == *ppbucketUpper);
+	GPOS_ASSERT(NULL == *result_bucket_lower);
+	GPOS_ASSERT(NULL == *result_bucket_upper);
 
 	// if other bucket subsumes this bucket, then result is NULL, NULL
-	if (pbucketOther->FSubsumes(this))
+	if (bucket_other->Subsumes(this))
 	{
-		*ppbucketLower = NULL;
-		*ppbucketUpper = NULL;
+		*result_bucket_lower = NULL;
+		*result_bucket_upper = NULL;
 		return;
 	}
 
 	// if this bucket is below the other bucket, then return this, NULL
-	if (this->FBefore(pbucketOther))
+	if (this->IsBefore(bucket_other))
 	{
-		*ppbucketLower = this->PbucketCopy(pmp);
-		*ppbucketUpper = NULL;
+		*result_bucket_lower = this->MakeBucketCopy(mp);
+		*result_bucket_upper = NULL;
 		return;
 	}
 
 	// if other bucket is "below" this bucket, then return NULL, this
-	if (pbucketOther->FBefore(this))
+	if (bucket_other->IsBefore(this))
 	{
-		*ppbucketLower = NULL;
-		*ppbucketUpper = this->PbucketCopy(pmp);
+		*result_bucket_lower = NULL;
+		*result_bucket_upper = this->MakeBucketCopy(mp);
 		return;
 	}
 
 	// if other bucket's LB is after this bucket's LB, then we get a valid first split
-	if (this->PpLower()->FLessThan(pbucketOther->PpLower()))
+	if (this->GetLowerBound()->IsLessThan(bucket_other->GetLowerBound()))
 	{
-		*ppbucketLower = this->PbucketScaleUpper(pmp, pbucketOther->PpLower(), !pbucketOther->FLowerClosed());
+		*result_bucket_lower = this->MakeBucketScaleUpper(mp, bucket_other->GetLowerBound(), !bucket_other->IsLowerClosed());
 	}
 
 	// if other bucket's UB is lesser than this bucket's LB, then we get a valid split
-	if (pbucketOther->PpUpper()->FLessThan(this->PpUpper()))
+	if (bucket_other->GetUpperBound()->IsLessThan(this->GetUpperBound()))
 	{
-		*ppbucketUpper = this->PbucketScaleLower(pmp, pbucketOther->PpUpper(), !pbucketOther->FUpperClosed());
+		*result_bucket_upper = this->MakeBucketScaleLower(mp, bucket_other->GetUpperBound(), !bucket_other->IsUpperClosed());
 	}
 
 	return;
@@ -925,53 +925,53 @@ CBucket::Difference
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::FBefore
+//		CBucket::IsBefore
 //
 //	@doc:
 //		Does this bucket occur before other? E.g. [1,2) is before [3,4)
 //
 //---------------------------------------------------------------------------
 BOOL
-CBucket::FBefore
+CBucket::IsBefore
 	(
-	const CBucket *pbucket
+	const CBucket *bucket
 	)
 	const
 {
-	if (this->FIntersects(pbucket))
+	if (this->Intersects(bucket))
 	{
 		return false;
 	}
 
-	return this->PpUpper()->FLessThanOrEqual(pbucket->PpLower());
+	return this->GetUpperBound()->IsLessThanOrEqual(bucket->GetLowerBound());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::FAfter
+//		CBucket::IsAfter
 //
 //	@doc:
 //		Does this bucket occur after other? E.g. [2,4) is after [1,2)
 //
 //---------------------------------------------------------------------------
 BOOL
-CBucket::FAfter
+CBucket::IsAfter
 	(
-	const CBucket *pbucket
+	const CBucket *bucket
 	)
 	const
 {
-	if (this->FIntersects(pbucket))
+	if (this->Intersects(bucket))
 	{
 		return false;
 	}
 
-	return this->PpLower()->FGreaterThanOrEqual(pbucket->PpUpper());
+	return this->GetLowerBound()->IsGreaterThanOrEqual(bucket->GetUpperBound());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketMerge
+//		CBucket::MakeBucketMerged
 //
 //	@doc:
 //		Merges with another bucket. Returns merged bucket that should be part
@@ -983,92 +983,92 @@ CBucket::FAfter
 //
 //---------------------------------------------------------------------------
 CBucket *
-CBucket::PbucketMerge
+CBucket::MakeBucketMerged
 	(
-	IMemoryPool *pmp,
-	CBucket *pbucketOther,
-	CDouble dRows,
-	CDouble dRowsOther,
-	CBucket **ppbucket1New,
-	CBucket **ppbucket2New,
-	BOOL fUnionAll
+	IMemoryPool *mp,
+	CBucket *bucket_other,
+	CDouble rows,
+	CDouble rows_other,
+	CBucket **result_bucket_new1,
+	CBucket **result_bucket_new2,
+	BOOL is_union_all
 	)
 {
 	// we shouldn't be overwriting anything important
-	GPOS_ASSERT(NULL == *ppbucket1New);
-	GPOS_ASSERT(NULL == *ppbucket2New);
+	GPOS_ASSERT(NULL == *result_bucket_new1);
+	GPOS_ASSERT(NULL == *result_bucket_new2);
 
-	CPoint *ppLowerNew = CPoint::PpointMin(this->PpLower(), pbucketOther->PpLower());
-	CPoint *ppUpperNew = CPoint::PpointMin(this->PpUpper(), pbucketOther->PpUpper());
+	CPoint *result_lower_new = CPoint::MinPoint(this->GetLowerBound(), bucket_other->GetLowerBound());
+	CPoint *result_upper_new = CPoint::MinPoint(this->GetUpperBound(), bucket_other->GetUpperBound());
 
-	CDouble dOverlap = this->DOverlap(ppUpperNew);
-	CDouble dDistinct = this->DDistinct() * dOverlap;
-	CDouble dRowNew = dRows * this->DFrequency() * dOverlap;
+	CDouble overlap = this->GetOverlapPercentage(result_upper_new);
+	CDouble distinct = this->GetNumDistinct() * overlap;
+	CDouble rows_new = rows * this->GetFrequency() * overlap;
 
-	CDouble dFrequency = this->DFrequency() * this->DOverlap(ppUpperNew);
-	if (fUnionAll)
+	CDouble frequency = this->GetFrequency() * this->GetOverlapPercentage(result_upper_new);
+	if (is_union_all)
 	{
-		CDouble dRowsOutput = (dRowsOther + dRows);
-		CDouble dOverlapOther = pbucketOther->DOverlap(ppUpperNew);
-		dDistinct = dDistinct + (pbucketOther->DDistinct() * dOverlapOther);
-		dRowNew = dRowsOther * pbucketOther->DFrequency() * dOverlapOther;
-		dFrequency = dRowNew / dRowsOutput;
+		CDouble rows_output = (rows_other + rows);
+		CDouble overlap_other = bucket_other->GetOverlapPercentage(result_upper_new);
+		distinct = distinct + (bucket_other->GetNumDistinct() * overlap_other);
+		rows_new = rows_other * bucket_other->GetFrequency() * overlap_other;
+		frequency = rows_new / rows_output;
 	}
 
-	BOOL fUpperClosed = ppLowerNew->FEqual(ppUpperNew);
+	BOOL is_upper_closed = result_lower_new->Equals(result_upper_new);
 
-	if (ppUpperNew->FLessThan(this->PpUpper()))
+	if (result_upper_new->IsLessThan(this->GetUpperBound()))
 	{
-		*ppbucket1New = this->PbucketScaleLower(pmp, ppUpperNew, !fUpperClosed);
+		*result_bucket_new1 = this->MakeBucketScaleLower(mp, result_upper_new, !is_upper_closed);
 	}
 
-	if (ppUpperNew->FLessThan(pbucketOther->PpUpper()))
+	if (result_upper_new->IsLessThan(bucket_other->GetUpperBound()))
 	{
-		*ppbucket2New = pbucketOther->PbucketScaleLower(pmp, ppUpperNew, !fUpperClosed);
+		*result_bucket_new2 = bucket_other->MakeBucketScaleLower(mp, result_upper_new, !is_upper_closed);
 	}
 
-	ppLowerNew->AddRef();
-	ppUpperNew->AddRef();
+	result_lower_new->AddRef();
+	result_upper_new->AddRef();
 
-	return GPOS_NEW(pmp) CBucket(ppLowerNew, ppUpperNew, true /* fLowerClosed */, fUpperClosed, dFrequency, dDistinct);
+	return GPOS_NEW(mp) CBucket(result_lower_new, result_upper_new, true /* is_lower_closed */, is_upper_closed, frequency, distinct);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::DSample
+//		CBucket::GetSample
 //
 //	@doc:
 //		Generate a random data point within bucket boundaries
 //
 //---------------------------------------------------------------------------
 CDouble
-CBucket::DSample
+CBucket::GetSample
 	(
-	ULONG *pulSeed
+	ULONG *seed
 	)
 	const
 {
-	GPOS_ASSERT(FCanSample());
+	GPOS_ASSERT(CanSample());
 
-	IDatumStatisticsMappable *pdatumstatsmapableLower = dynamic_cast<IDatumStatisticsMappable *>(m_ppointLower->Pdatum());
-	IDatumStatisticsMappable *pdatumstatsmapableUpper = dynamic_cast<IDatumStatisticsMappable *>(m_ppointUpper->Pdatum());
+	IDatumStatisticsMappable *stats_mappable_lower = dynamic_cast<IDatumStatisticsMappable *>(m_bucket_lower_bound->GetDatum());
+	IDatumStatisticsMappable *stats_mappable_upper = dynamic_cast<IDatumStatisticsMappable *>(m_bucket_upper_bound->GetDatum());
 
-	DOUBLE dLowerVal = pdatumstatsmapableLower->DMappingVal().DVal();
-	if (FSingleton())
+	DOUBLE lower_val = stats_mappable_lower->GetValAsDouble().Get();
+	if (IsSingleton())
 	{
-		return CDouble(dLowerVal);
+		return CDouble(lower_val);
 	}
 
-	DOUBLE dUpperVal = pdatumstatsmapableUpper->DMappingVal().DVal();
-	DOUBLE dRandVal = ((DOUBLE) clib::UlRandR(pulSeed)) / RAND_MAX;
+	DOUBLE upper_val = stats_mappable_upper->GetValAsDouble().Get();
+	DOUBLE rand_val = ((DOUBLE) clib::Rand(seed)) / RAND_MAX;
 
-	return CDouble(dLowerVal + dRandVal * (dUpperVal - dLowerVal));
+	return CDouble(lower_val + rand_val * (upper_val - lower_val));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CBucket::PbucketSingleton
+//		CBucket::MakeBucketSingleton
 //
 //	@doc:
 //		Create a new singleton bucket with the given datum as it lower
@@ -1076,23 +1076,23 @@ CBucket::DSample
 //
 //---------------------------------------------------------------------------
 CBucket*
-CBucket::PbucketSingleton
+CBucket::MakeBucketSingleton
 	(
-	IMemoryPool *pmp,
-	IDatum *pdatum
+	IMemoryPool *mp,
+	IDatum *datum
 	)
 {
-	GPOS_ASSERT(NULL != pdatum);
+	GPOS_ASSERT(NULL != datum);
 
-	pdatum->AddRef();
-	pdatum->AddRef();
+	datum->AddRef();
+	datum->AddRef();
 
-	return GPOS_NEW(pmp) CBucket
+	return GPOS_NEW(mp) CBucket
 						(
-						GPOS_NEW(pmp) CPoint(pdatum),
-						GPOS_NEW(pmp) CPoint(pdatum),
-						true /* fLowerClosed */,
-						true /* fUpperClosed */,
+						GPOS_NEW(mp) CPoint(datum),
+						GPOS_NEW(mp) CPoint(datum),
+						true /* is_lower_closed */,
+						true /* is_upper_closed */,
 						CDouble(1.0),
 						CDouble(1.0)
 						);

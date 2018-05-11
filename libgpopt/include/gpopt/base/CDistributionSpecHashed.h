@@ -34,7 +34,7 @@ namespace gpopt
 		private:
 
 			// array of distribution expressions
-			DrgPexpr *m_pdrgpexpr;
+			CExpressionArray *m_pdrgpexpr;
 			
 			// are NULLS consistently distributed
 			BOOL m_fNullsColocated;
@@ -61,7 +61,7 @@ namespace gpopt
 				)
 				const
 			{
-				return (m_fDuplicateSensitive || !pds->m_fDuplicateSensitive);
+				return (m_is_duplicate_sensitive || !pds->m_is_duplicate_sensitive);
 			}
 
 			// exact match against given hashed distribution
@@ -73,10 +73,10 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CDistributionSpecHashed(DrgPexpr *pdrgpexpr, BOOL fNullsColocated);
+			CDistributionSpecHashed(CExpressionArray *pdrgpexpr, BOOL fNullsColocated);
 			
 			// ctor
-			CDistributionSpecHashed(DrgPexpr *pdrgpexpr, BOOL fNullsColocated, CDistributionSpecHashed *pdshashedEquiv);
+			CDistributionSpecHashed(CExpressionArray *pdrgpexpr, BOOL fNullsColocated, CDistributionSpecHashed *pdshashedEquiv);
 
 			// dtor
 			virtual 
@@ -96,7 +96,7 @@ namespace gpopt
 			}
 
 			// expression array accessor
-			DrgPexpr *Pdrgpexpr() const
+			CExpressionArray *Pdrgpexpr() const
 			{
 				return m_pdrgpexpr;
 			}
@@ -115,15 +115,15 @@ namespace gpopt
 
 			// columns used by distribution expressions
 			virtual
-			CColRefSet *PcrsUsed(IMemoryPool *pmp) const;
+			CColRefSet *PcrsUsed(IMemoryPool *mp) const;
 
 			// return a copy of the distribution spec after excluding the given columns
 			virtual
-			CDistributionSpecHashed *PdshashedExcludeColumns(IMemoryPool *pmp, CColRefSet *pcrs);
+			CDistributionSpecHashed *PdshashedExcludeColumns(IMemoryPool *mp, CColRefSet *pcrs);
 
 			// does this distribution match the given one
 			virtual 
-			BOOL FMatch(const CDistributionSpec *pds) const;
+			BOOL Matches(const CDistributionSpec *pds) const;
 
 			// does this distribution satisfy the given one
 			virtual 
@@ -134,19 +134,19 @@ namespace gpopt
 			BOOL FMatchSubset(const CDistributionSpecHashed *pds) const;
 
 			// equality function
-			BOOL FEqual(const CDistributionSpecHashed *pds) const;
+			BOOL Equals(const CDistributionSpecHashed *pds) const;
 
 			// return a copy of the distribution spec with remapped columns
 			virtual
-			CDistributionSpec *PdsCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			CDistributionSpec *PdsCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *pmp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, DrgPexpr *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// hash function for hashed distribution spec
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// return distribution partitioning type
 			virtual
@@ -163,8 +163,8 @@ namespace gpopt
 			static
 			CDistributionSpecHashed *PdshashedMaximal
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
 				BOOL fNullsColocated
 				);
 

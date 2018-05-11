@@ -66,29 +66,29 @@ namespace gpopt
 			}
 
 			// check if rewindability specs match
- 			BOOL FMatch(const CRewindabilitySpec *prs) const;
+ 			BOOL Matches(const CRewindabilitySpec *prs) const;
 
 			// check if rewindability spec satisfies a req'd rewindability spec
 			BOOL FSatisfies(const CRewindabilitySpec *prs) const;
 
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *pmp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, DrgPexpr *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// extract columns used by the rewindability spec
 			virtual
 			CColRefSet *PcrsUsed
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				const
 			{
 				// return an empty set
-				return GPOS_NEW(pmp) CColRefSet(pmp);
+				return GPOS_NEW(mp) CColRefSet(mp);
 			}
 
 			// property type

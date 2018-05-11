@@ -36,13 +36,13 @@ namespace gpdxl
 		private:
 
 			// set of search stage xforms
-			CXformSet *m_pxfs;
+			CXformSet *m_xforms;
 
 			// cost threshold
-			CCost m_costThreshold;
+			CCost m_cost_threshold;
 
 			// time threshold in milliseconds
-			ULONG m_ulTimeThreshold;
+			ULONG m_time_threshold;
 
 			// private ctor
 			CParseHandlerSearchStage(const CParseHandlerSearchStage&);
@@ -50,18 +50,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlstrUri, 		// URI of element's namespace
- 				const XMLCh* const xmlstrLocalname,	// local part of element's name
-				const XMLCh* const xmlstrQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+ 				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlstrUri, 		// URI of element's namespace
-				const XMLCh* const xmlstrLocalname,	// local part of element's name
-				const XMLCh* const xmlstrQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
@@ -69,9 +69,9 @@ namespace gpdxl
 			// ctor
 			CParseHandlerSearchStage
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// dtor
@@ -79,24 +79,24 @@ namespace gpdxl
 			~CParseHandlerSearchStage();
 
 			// returns stage xforms
-			CXformSet *Pxfs() const
+			CXformSet *GetXformSet() const
 			{
-				return m_pxfs;
+				return m_xforms;
 			}
 
 			// returns stage cost threshold
 			CCost CostThreshold() const
 			{
-				return m_costThreshold;
+				return m_cost_threshold;
 			}
 
 			// returns time threshold
-			ULONG UlTimeThreshold() const
+			ULONG TimeThreshold() const
 			{
-				return m_ulTimeThreshold;
+				return m_time_threshold;
 			}
 
-			EDxlParseHandlerType Edxlphtype() const
+			EDxlParseHandlerType GetParseHandlerType() const
 			{
 				return EdxlphSearchStrategy;
 			}

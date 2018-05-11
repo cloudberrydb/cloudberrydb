@@ -39,9 +39,9 @@ namespace gpdxl
 			virtual
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 				
@@ -49,9 +49,9 @@ namespace gpdxl
 			virtual
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 			
 			// private copy ctor
@@ -60,7 +60,7 @@ namespace gpdxl
 		public:
 			
 			// ctor
-			CParseHandlerArray(IMemoryPool *pmp, CParseHandlerManager *pphm, CParseHandlerBase *pph);						
+			CParseHandlerArray(IMemoryPool *mp, CParseHandlerManager *parse_handler_mgr, CParseHandlerBase *parse_handler_root);
 	};
 }
 

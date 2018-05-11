@@ -44,20 +44,20 @@ namespace gpmd
 			
 			// extract the scalar expression of the constraint with the given
 			// column mappings
-			virtual
-			CExpression *Pexpr(IMemoryPool *pmp, CMDAccessor *pmda, DrgPcr *pdrgpcr) const = 0;
+      virtual
+      CExpression *GetPartConstraintExpr(IMemoryPool *mp, CMDAccessor *md_accessor, CColRefArray *colref_array) const = 0;
 			
 			// included default partitions
 			virtual
-			DrgPul *PdrgpulDefaultParts() const = 0;
+			ULongPtrArray *GetDefaultPartsArray() const = 0;
 
 			// is constraint unbounded
 			virtual
-			BOOL FUnbounded() const = 0;
+			BOOL IsConstraintUnbounded() const = 0;
 			
 			// serialize constraint in DXL format
 			virtual
-			void Serialize(CXMLSerializer *pxmlser) const = 0;
+			void Serialize(CXMLSerializer *xml_serializer) const = 0;
 
 	};
 }

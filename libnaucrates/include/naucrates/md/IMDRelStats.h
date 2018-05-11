@@ -38,18 +38,18 @@ namespace gpmd
 		
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtRelStats;
 			}
 		
 			// number of rows
 			virtual
-			CDouble DRows() const = 0;			
+			CDouble Rows() const = 0;			
 
 			// is statistics on an empty input
 			virtual
-			BOOL FEmpty() const = 0;
+			BOOL IsEmpty() const = 0;
 	};
 }
 

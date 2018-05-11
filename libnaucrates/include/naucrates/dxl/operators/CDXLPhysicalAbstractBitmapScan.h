@@ -51,20 +51,20 @@ namespace gpdxl
 
 		protected:
 			// table descriptor for the scanned table
-			CDXLTableDescr *m_pdxltabdesc;
+		CDXLTableDescr *m_dxl_table_descr;
 
 		public:
 			// ctor
 			CDXLPhysicalAbstractBitmapScan
 				(
-				IMemoryPool *pmp,
-				CDXLTableDescr *pdxltabdesc
+				IMemoryPool *mp,
+				CDXLTableDescr *table_descr
 				)
 				:
-				CDXLPhysical(pmp),
-				m_pdxltabdesc(pdxltabdesc)
+				CDXLPhysical(mp),
+				m_dxl_table_descr(table_descr)
 			{
-				GPOS_ASSERT(NULL != pdxltabdesc);
+				GPOS_ASSERT(NULL != table_descr);
 			}
 
 			// dtor
@@ -72,16 +72,16 @@ namespace gpdxl
 			~CDXLPhysicalAbstractBitmapScan();
 
 			// table descriptor
-			const CDXLTableDescr *Pdxltabdesc()
+			const CDXLTableDescr *GetDXLTableDescr()
 			{
-				return m_pdxltabdesc;
+			return m_dxl_table_descr;
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 	};  // class CDXLPhysicalAbstractBitmapScan
 }

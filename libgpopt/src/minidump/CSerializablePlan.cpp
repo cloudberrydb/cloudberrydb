@@ -31,18 +31,18 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializablePlan::CSerializablePlan
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const CDXLNode *pdxlnPlan,
-	ULLONG ullPlanId,
-	ULLONG ullPlanSpaceSize
+	ULLONG plan_id,
+	ULLONG plan_space_size
 	)
 	:
 	CSerializable(),
-	m_pmp(pmp),
-	m_pdxlnPlan(pdxlnPlan),
+	m_mp(mp),
+	m_plan_dxl_root(pdxlnPlan),
 	m_pstrPlan(NULL),
-	m_ullPlanId(ullPlanId),
-	m_ullPlanSpaceSize(ullPlanSpaceSize)
+	m_plan_id(plan_id),
+	m_plan_space_size(plan_space_size)
 {
 	GPOS_ASSERT(NULL != pdxlnPlan);
 }
@@ -77,13 +77,13 @@ CSerializablePlan::Serialize
 {
 	CDXLUtils::SerializePlan
 				(
-				m_pmp,
+				m_mp,
 				oos,
-				m_pdxlnPlan,
-				m_ullPlanId,
-				m_ullPlanSpaceSize,
+				m_plan_dxl_root,
+				m_plan_id,
+				m_plan_space_size,
 				false /*fSerializeHeaders*/,
-				false /*fIndent*/
+				false /*indentation*/
 				);
 }
 

@@ -29,13 +29,13 @@ namespace gpos
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// flag indicating if handler is initialized
-			BOOL m_fInit;
+			BOOL m_initialized;
 
 			// flag indicating if handler is finalized
-			BOOL m_fFinal;
+			BOOL m_finalized;
 
 			// private copy ctor
 			CMiniDumper(const CMiniDumper&);
@@ -49,7 +49,7 @@ namespace gpos
 			// ctor
 			CMiniDumper
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				);
 
 			// dtor

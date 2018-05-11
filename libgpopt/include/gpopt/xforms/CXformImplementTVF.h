@@ -38,7 +38,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformImplementTVF(IMemoryPool *pmp);
+			CXformImplementTVF(IMemoryPool *mp);
 
 			// ctor
 			explicit

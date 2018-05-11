@@ -29,7 +29,7 @@ using namespace gpos;
 CFileWriter::CFileWriter()
 	:
 	CFileDescriptor(),
-	m_ullSize(0)
+	m_file_size(0)
 {}
 
 
@@ -44,17 +44,17 @@ CFileWriter::CFileWriter()
 void
 CFileWriter::Open
 	(
-	const CHAR *szPath,
-	ULONG ulPerms
+	const CHAR *file_path,
+	ULONG permission_bits
 	)
 {
-	GPOS_ASSERT(NULL != szPath);
+	GPOS_ASSERT(NULL != file_path);
 
-	OpenInternal(szPath, O_CREAT | O_WRONLY | O_RDONLY | O_TRUNC, ulPerms);
+	OpenFile(file_path, O_CREAT | O_WRONLY | O_RDONLY | O_TRUNC, permission_bits);
 
-	GPOS_ASSERT(0 == ioutils::UllFileSize(szPath));
+	GPOS_ASSERT(0 == ioutils::FileSize(file_path));
 
-	m_ullSize = 0;
+	m_file_size = 0;
 }
 
 
@@ -69,9 +69,9 @@ CFileWriter::Open
 void
 CFileWriter::Close()
 {
-	CloseInternal();
+	CloseFile();
 
-	m_ullSize = 0;
+	m_file_size = 0;
 }
 
 
@@ -86,25 +86,25 @@ CFileWriter::Close()
 void
 CFileWriter::Write
 	(
-	const BYTE *pb,
-	const ULONG_PTR ulpWriteSize
+	const BYTE *read_buffer,
+	const ULONG_PTR write_size
 	)
 {
-	GPOS_ASSERT(CFileDescriptor::FOpened() && "Attempt to write to invalid file descriptor");
-	GPOS_ASSERT(0 < ulpWriteSize);
-	GPOS_ASSERT(NULL != pb);
+	GPOS_ASSERT(CFileDescriptor::IsFileOpen() && "Attempt to write to invalid file descriptor");
+	GPOS_ASSERT(0 < write_size);
+	GPOS_ASSERT(NULL != read_buffer);
 
-	ULONG_PTR ulpBytesLeft = ulpWriteSize;
+	ULONG_PTR bytes_left_to_write = write_size;
 
-	while (0 < ulpBytesLeft)
+	while (0 < bytes_left_to_write)
 	{
-		INT_PTR iBytes = -1;
+		INT_PTR current_byte = -1;
 
 		// write to file and check to simulate I/O error
-		GPOS_CHECK_SIM_IO_ERR(&iBytes, ioutils::IWrite(IFileDescr(), pb, ulpBytesLeft));
+		GPOS_CHECK_SIM_IO_ERR(&current_byte, ioutils::Write(GetFileDescriptor(), read_buffer, bytes_left_to_write));
 
 		// check for error
-		if (-1 == iBytes)
+		if (-1 == current_byte)
 		{
 			// in case an interrupt was received we retry
 			if (EINTR == errno)
@@ -117,12 +117,12 @@ CFileWriter::Write
 			GPOS_RAISE(CException::ExmaSystem, CException::ExmiIOError, errno);
 		}
 
-		GPOS_ASSERT(iBytes <= (INT_PTR) ulpBytesLeft);
+		GPOS_ASSERT(current_byte <= (INT_PTR) bytes_left_to_write);
 
 		// increase file size
-		m_ullSize += iBytes;
-		pb += iBytes;
-		ulpBytesLeft -= iBytes;
+		m_file_size += current_byte;
+		read_buffer += current_byte;
+		bytes_left_to_write -= current_byte;
 	}
 }
 

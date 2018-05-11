@@ -38,9 +38,9 @@ namespace gpopt
 			// ctor
 			CPhysicalLeftOuterHashJoin
 				(
-				IMemoryPool *pmp,
-				DrgPexpr *pdrgpexprOuterKeys,
-				DrgPexpr *pdrgpexprInnerKeys
+				IMemoryPool *mp,
+				CExpressionArray *pdrgpexprOuterKeys,
+				CExpressionArray *pdrgpexprInnerKeys
 				);
 
 			// dtor

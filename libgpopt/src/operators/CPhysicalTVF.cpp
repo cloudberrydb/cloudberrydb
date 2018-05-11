@@ -33,29 +33,29 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalTVF::CPhysicalTVF
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidFunc,
-	IMDId *pmdidRetType,
-	CWStringConst *pstr,
-	DrgPcoldesc *pdrgpcoldesc,
+	IMemoryPool *mp,
+	IMDId *mdid_func,
+	IMDId *mdid_return_type,
+	CWStringConst *str,
+	CColumnDescriptorArray *pdrgpcoldesc,
 	CColRefSet *pcrsOutput
 	)
 	:
-	CPhysical(pmp),
-	m_pmdidFunc(pmdidFunc),
-	m_pmdidRetType(pmdidRetType),
-	m_pstr(pstr),
+	CPhysical(mp),
+	m_func_mdid(mdid_func),
+	m_return_type_mdid(mdid_return_type),
+	m_pstr(str),
 	m_pdrgpcoldesc(pdrgpcoldesc),
 	m_pcrsOutput(pcrsOutput)
 {
-	GPOS_ASSERT(m_pmdidFunc->FValid());
-	GPOS_ASSERT(m_pmdidRetType->FValid());
+	GPOS_ASSERT(m_func_mdid->IsValid());
+	GPOS_ASSERT(m_return_type_mdid->IsValid());
 	GPOS_ASSERT(NULL != m_pstr);
 	GPOS_ASSERT(NULL != m_pdrgpcoldesc);
 	GPOS_ASSERT(NULL != m_pcrsOutput);
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_pmdfunc = pmda->Pmdfunc(m_pmdidFunc);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	m_pmdfunc = md_accessor->RetrieveFunc(m_func_mdid);
 }
 
 
@@ -69,8 +69,8 @@ CPhysicalTVF::CPhysicalTVF
 //---------------------------------------------------------------------------
 CPhysicalTVF::~CPhysicalTVF()
 {
-	m_pmdidFunc->Release();
-	m_pmdidRetType->Release();
+	m_func_mdid->Release();
+	m_return_type_mdid->Release();
 	m_pdrgpcoldesc->Release();
 	m_pcrsOutput->Release();
 	GPOS_DELETE(m_pstr);
@@ -78,14 +78,14 @@ CPhysicalTVF::~CPhysicalTVF()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalTVF::FMatch
+//		CPhysicalTVF::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalTVF::FMatch
+CPhysicalTVF::Matches
 	(
 	COperator *pop
 	)
@@ -95,10 +95,10 @@ CPhysicalTVF::FMatch
 	{
 		CPhysicalTVF *popTVF = CPhysicalTVF::PopConvert(pop);
 
-		return m_pmdidFunc->FEquals(popTVF->PmdidFunc()) &&
-				m_pmdidRetType->FEquals(popTVF->PmdidRetType()) &&
+		return m_func_mdid->Equals(popTVF->FuncMdId()) &&
+				m_return_type_mdid->Equals(popTVF->ReturnTypeMdId()) &&
 				m_pdrgpcoldesc == popTVF->Pdrgpcoldesc() &&
-				m_pcrsOutput->FEqual(popTVF->PcrsOutput());
+				m_pcrsOutput->Equals(popTVF->PcrsOutput());
 	}
 
 	return false;
@@ -130,11 +130,11 @@ CPhysicalTVF::FInputOrderSensitive() const
 CColRefSet *
 CPhysicalTVF::PcrsRequired
 	(
-	IMemoryPool *, // pmp,
+	IMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CColRefSet *, // pcrsRequired,
-	ULONG , // ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG , // child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
@@ -153,11 +153,11 @@ CPhysicalTVF::PcrsRequired
 COrderSpec *
 CPhysicalTVF::PosRequired
 	(
-	IMemoryPool *, // pmp,
+	IMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	COrderSpec *, // posRequired,
-	ULONG ,// ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG ,// child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -177,11 +177,11 @@ CPhysicalTVF::PosRequired
 CDistributionSpec *
 CPhysicalTVF::PdsRequired
 	(
-	IMemoryPool *, // pmp,
+	IMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CDistributionSpec *, // pdsRequired,
-	ULONG , //ulChildIndex
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG , //child_index
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -201,11 +201,11 @@ CPhysicalTVF::PdsRequired
 CRewindabilitySpec *
 CPhysicalTVF::PrsRequired
 	(
-	IMemoryPool *, // pmp,
+	IMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
 	CRewindabilitySpec *, // prsRequired,
-	ULONG , // ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG , // child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
@@ -225,11 +225,11 @@ CPhysicalTVF::PrsRequired
 CCTEReq *
 CPhysicalTVF::PcteRequired
 	(
-	IMemoryPool *, //pmp,
+	IMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *, //pcter,
-	ULONG , //ulChildIndex,
-	DrgPdp *, //pdrgpdpCtxt,
+	ULONG , //child_index,
+	CDrvdProp2dArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 	const
@@ -257,7 +257,7 @@ CPhysicalTVF::FProvidesReqdCols
 {
 	GPOS_ASSERT(NULL != pcrsRequired);
 
-	return m_pcrsOutput->FSubset(pcrsRequired);
+	return m_pcrsOutput->ContainsAll(pcrsRequired);
 }
 
 //---------------------------------------------------------------------------
@@ -271,12 +271,12 @@ CPhysicalTVF::FProvidesReqdCols
 COrderSpec *
 CPhysicalTVF::PosDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle & // exprhdl
 	)
 	const
 {
-	return GPOS_NEW(pmp) COrderSpec(pmp);
+	return GPOS_NEW(mp) COrderSpec(mp);
 }
 
 //---------------------------------------------------------------------------
@@ -290,17 +290,17 @@ CPhysicalTVF::PosDerive
 CDistributionSpec *
 CPhysicalTVF::PdsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
 	if (exprhdl.FMasterOnly())
 	{
-		return GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 	}
 
-	return GPOS_NEW(pmp) CDistributionSpecUniversal();
+	return GPOS_NEW(mp) CDistributionSpecUniversal();
 }
 
 //---------------------------------------------------------------------------
@@ -314,17 +314,17 @@ CPhysicalTVF::PdsDerive
 CRewindabilitySpec *
 CPhysicalTVF::PrsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	if (IMDFunction::EfsVolatile == exprhdl.Pdprel()->Pfp()->Efs() || 0 < exprhdl.UlArity())
+	if (IMDFunction::EfsVolatile == exprhdl.GetRelationalProperties()->Pfp()->Efs() || 0 < exprhdl.Arity())
 	{
-		return GPOS_NEW(pmp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
 	}
 
-	return GPOS_NEW(pmp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
 }
 
 //---------------------------------------------------------------------------
@@ -338,12 +338,12 @@ CPhysicalTVF::PrsDerive
 CCTEMap *
 CPhysicalTVF::PcmDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 	const
 {
-	return GPOS_NEW(pmp) CCTEMap(pmp);
+	return GPOS_NEW(mp) CCTEMap(mp);
 }
 
 //---------------------------------------------------------------------------
@@ -366,7 +366,7 @@ CPhysicalTVF::EpetOrder
 	const
 {
 	GPOS_ASSERT(NULL != peo);
-	GPOS_ASSERT(!peo->PosRequired()->FEmpty());
+	GPOS_ASSERT(!peo->PosRequired()->IsEmpty());
 
 	return CEnfdProp::EpetRequired;
 }
@@ -396,7 +396,7 @@ CPhysicalTVF::EpetRewindability
 	 	return CEnfdProp::EpetUnnecessary;
 	}
 
-	if (exprhdl.FHasOuterRefs())
+	if (exprhdl.HasOuterRefs())
 	{
 		// a TVF should not have a materialize on top of it if it has an outer ref
 		return CEnfdProp::EpetProhibited;

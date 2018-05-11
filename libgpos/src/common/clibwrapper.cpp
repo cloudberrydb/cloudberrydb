@@ -39,29 +39,29 @@ using namespace gpos;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IGetContext
+//		clib::GetContext
 //
 //	@doc:
 //		Get current user context
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IGetContext
+gpos::clib::GetContext
 	(
-	ucontext_t *puc
+	ucontext_t *user_ctxt
 	)
 {
-	INT iRes = getcontext(puc);
+	INT res = getcontext(user_ctxt);
 
-	GPOS_ASSERT_(0 == iRes && "Failed to retrieve stack context");
+	GPOS_ASSERT_(0 == res && "Failed to retrieve stack context");
 
-	return iRes;
+	return res;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IWalkContext
+//		clib::WalkContext
 //
 //	@doc:
 //		Call the user-supplied function for each routine found on
@@ -69,18 +69,18 @@ gpos::clib::IGetContext
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IWalkContext
+gpos::clib::WalkContext
 	(
-	const ucontext_t *puc,
-	PFnCallback fnCallback,
-	void *pvArg
+	const ucontext_t *user_ctxt,
+	Callback callback,
+	void *arg
 	)
 {
-	INT iRes = walkcontext(puc, fnCallback, pvArg);
+	INT res = walkcontext(user_ctxt, callback, arg);
 
-	GPOS_ASSERT_(0 == iRes && "Failed to walk stack context");
+	GPOS_ASSERT_(0 == res && "Failed to walk stack context");
 
-	return iRes;
+	return res;
 }
 
 #endif //GPOS_sparc
@@ -98,467 +98,467 @@ gpos::clib::IWalkContext
 void
 gpos::clib::USleep
 	(
-	ULONG ulUs
+	ULONG usecs
 	)
 {
-	GPOS_ASSERT(1000000 >= ulUs);
+	GPOS_ASSERT(1000000 >= usecs);
 
 	// ignore return value
-	(void) usleep(ulUs);
+	(void) usleep(usecs);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IStrCmp
+//		clib::Strcmp
 //
 //	@doc:
 //		Compare two strings
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IStrCmp
+gpos::clib::Strcmp
 	(
-	const CHAR *szLhs,
-	const CHAR *szRhs
+	const CHAR *left,
+	const CHAR *right
 	)
 {
-	GPOS_ASSERT(NULL != szLhs);
-	GPOS_ASSERT(NULL != szRhs);
+	GPOS_ASSERT(NULL != left);
+	GPOS_ASSERT(NULL != right);
 
-	return strcmp(szLhs, szRhs);
+	return strcmp(left, right);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IStrNCmp
+//		clib::Strncmp
 //
 //	@doc:
 //		Compare two strings up to a specified number of characters
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IStrNCmp
+gpos::clib::Strncmp
 	(
-	const CHAR *szLhs,
-	const CHAR *szRhs,
-	SIZE_T ulNum
+	const CHAR *left,
+	const CHAR *right,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != szLhs);
-	GPOS_ASSERT(NULL != szRhs);
+	GPOS_ASSERT(NULL != left);
+	GPOS_ASSERT(NULL != right);
 
-	return strncmp(szLhs, szRhs, ulNum);
+	return strncmp(left, right, num_bytes);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IMemCmp
+//		clib::Memcmp
 //
 //	@doc:
 //		Compare a specified number of bytes of two regions of memory
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IMemCmp
+gpos::clib::Memcmp
 	(
-	const void* pvLhs,
-	const void* pvRhs,
-	SIZE_T ulNum
+	const void* left,
+	const void* right,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != pvLhs);
-	GPOS_ASSERT(NULL != pvRhs);
+	GPOS_ASSERT(NULL != left);
+	GPOS_ASSERT(NULL != right);
 
-	return memcmp(pvLhs, pvRhs, ulNum);
+	return memcmp(left, right, num_bytes);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IWcsNCmp
+//		clib::Wcsncmp
 //
 //	@doc:
 //		Compare two strings up to a specified number of wide characters
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IWcsNCmp
+gpos::clib::Wcsncmp
 	(
-	const WCHAR *wszLhs,
-	const WCHAR *wszRhs,
-	SIZE_T ulNum
+	const WCHAR *left,
+	const WCHAR *right,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != wszLhs);
-	GPOS_ASSERT(NULL != wszRhs);
+	GPOS_ASSERT(NULL != left);
+	GPOS_ASSERT(NULL != right);
 
-	return wcsncmp(wszLhs, wszRhs, ulNum);
+	return wcsncmp(left, right, num_bytes);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::WszWcsNCpy
+//		clib::WcStrNCpy
 //
 //	@doc:
 //		Copy two strings up to a specified number of wide characters
 //
 //---------------------------------------------------------------------------
 WCHAR*
-gpos::clib::WszWcsNCpy
+gpos::clib::WcStrNCpy
 	(
-	WCHAR *wszDest,
-	const WCHAR *wszSrc,
-	SIZE_T ulNum
+	WCHAR *dest,
+	const WCHAR *src,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != wszDest);
-	GPOS_ASSERT(NULL != wszSrc && ulNum > 0);
+	GPOS_ASSERT(NULL != dest);
+	GPOS_ASSERT(NULL != src && num_bytes > 0);
 
 	// check for overlap
-	GPOS_ASSERT(((wszSrc + ulNum) <= wszDest) || ((wszDest + ulNum) <= wszSrc));
+	GPOS_ASSERT(((src + num_bytes) <= dest) || ((dest + num_bytes) <= src));
 
-	return wcsncpy(wszDest, wszSrc, ulNum);
+	return wcsncpy(dest, src, num_bytes);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::PvMemCpy
+//		clib::Memcpy
 //
 //	@doc:
 //		Copy a specified number of bytes between two memory areas
 //
 //---------------------------------------------------------------------------
 void*
-gpos::clib::PvMemCpy
+gpos::clib::Memcpy
 	(
-	void *pvDest,
-	const void* pvSrc,
-	SIZE_T ulNum
+	void *dest,
+	const void* src,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != pvDest);
+	GPOS_ASSERT(NULL != dest);
 
-	GPOS_ASSERT(NULL != pvSrc && ulNum > 0);
+	GPOS_ASSERT(NULL != src && num_bytes > 0);
 
 #ifdef GPOS_DEBUG
-	const BYTE* szSrcAddr = static_cast<const BYTE*>(pvSrc);
-	const BYTE* szDestAddr = static_cast<const BYTE*>(pvDest);
+	const BYTE* src_addr = static_cast<const BYTE*>(src);
+	const BYTE* dest_addr = static_cast<const BYTE*>(dest);
 #endif // GPOS_DEBUG
 
 	// check for overlap
-	GPOS_ASSERT(((szSrcAddr + ulNum) <= szDestAddr) || ((szDestAddr + ulNum) <= szSrcAddr));
+	GPOS_ASSERT(((src_addr + num_bytes) <= dest_addr) || ((dest_addr + num_bytes) <= src_addr));
 
-	return memcpy(pvDest, pvSrc, ulNum);
+	return memcpy(dest, src, num_bytes);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::WszWMemCpy
+//		clib::Wmemcpy
 //
 //	@doc:
 //		Copy a specified number of wide characters
 //
 //---------------------------------------------------------------------------
 WCHAR*
-gpos::clib::WszWMemCpy
+gpos::clib::Wmemcpy
 	(
-	WCHAR *wszDest,
-	const WCHAR *wszSrc,
-	SIZE_T ulNum
+	WCHAR *dest,
+	const WCHAR *src,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != wszDest);
-	GPOS_ASSERT(NULL != wszSrc && ulNum > 0);
+	GPOS_ASSERT(NULL != dest);
+	GPOS_ASSERT(NULL != src && num_bytes > 0);
 
 #ifdef GPOS_DEBUG
-	const WCHAR* wszSrcAddr = static_cast<const WCHAR*>(wszSrc);
-	const WCHAR* wszDestAddr = static_cast<WCHAR*>(wszDest);
+	const WCHAR* src_addr = static_cast<const WCHAR*>(src);
+	const WCHAR* dest_addr = static_cast<WCHAR*>(dest);
 #endif
 
 	// check for overlap
-	GPOS_ASSERT(((wszSrcAddr + ulNum) <= wszDestAddr) || ((wszDestAddr + ulNum) <= wszSrcAddr));
+	GPOS_ASSERT(((src_addr + num_bytes) <= dest_addr) || ((dest_addr + num_bytes) <= src_addr));
 
-	return wmemcpy(wszDest, wszSrc, ulNum);
+	return wmemcpy(dest, src, num_bytes);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::SzStrNCpy
+//		clib::Strncpy
 //
 //	@doc:
 //		Copy a specified number of characters
 //
 //---------------------------------------------------------------------------
 CHAR*
-gpos::clib::SzStrNCpy
+gpos::clib::Strncpy
 	(
-	CHAR *szDest,
-	const CHAR *szSrc,
-	SIZE_T ulNum
+	CHAR *dest,
+	const CHAR *src,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != szDest);
-	GPOS_ASSERT(NULL != szSrc && ulNum > 0);
-	GPOS_ASSERT(((szSrc + ulNum) <= szDest) || ((szDest + ulNum) <= szSrc));
+	GPOS_ASSERT(NULL != dest);
+	GPOS_ASSERT(NULL != src && num_bytes > 0);
+	GPOS_ASSERT(((src + num_bytes) <= dest) || ((dest + num_bytes) <= src));
 
-	return strncpy(szDest, szSrc, ulNum);
+	return strncpy(dest, src, num_bytes);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::SzStrChr
+//		clib::Strchr
 //
 //	@doc:
 //		Find the first occurrence of the character c (converted to a char) in
-//		the null-terminated string beginning at szSrc. Returns a pointer to the
+//		the null-terminated string beginning at src. Returns a pointer to the
 //		located character, or a null pointer if no match was found
 //
 //---------------------------------------------------------------------------
 CHAR *
-gpos::clib::SzStrChr
+gpos::clib::Strchr
 	(
-	const CHAR *szSrc,
+	const CHAR *src,
 	INT c
 	)
 {
-	GPOS_ASSERT(NULL != szSrc);
+	GPOS_ASSERT(NULL != src);
 
-	return (CHAR *) strchr (szSrc, c);
+	return (CHAR *) strchr (src, c);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::PvMemSet
+//		clib::Memset
 //
 //	@doc:
 //		Set the bytes of a given memory block to a specific value
 //
 //---------------------------------------------------------------------------
 void*
-gpos::clib::PvMemSet
+gpos::clib::Memset
 	(
-	void *pvDest,
-	INT iValue,
-	SIZE_T ulNum
+	void *dest,
+	INT value,
+	SIZE_T num_bytes
 	)
 {
-	GPOS_ASSERT(NULL != pvDest);
-	GPOS_ASSERT_IFF(0 <= iValue, 255 >= iValue);
+	GPOS_ASSERT(NULL != dest);
+	GPOS_ASSERT_IFF(0 <= value, 255 >= value);
 
-	return memset(pvDest, iValue, ulNum);
+	return memset(dest, value, num_bytes);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::QSort
+//		clib::Qsort
 //
 //	@doc:
 //		Sort a specified number of elements
 //
 //---------------------------------------------------------------------------
 void
-gpos::clib::QSort
+gpos::clib::Qsort
 	(
-	void *pvDest,
-	SIZE_T ulNum,
-	SIZE_T ulSize,
-	PFnComparator fnComparator
+	void *dest,
+	SIZE_T num_bytes,
+	SIZE_T size,
+	Comparator comparator
 	)
 {
-	GPOS_ASSERT(NULL != pvDest);
+	GPOS_ASSERT(NULL != dest);
 
-	qsort(pvDest, ulNum, ulSize, fnComparator);
+	qsort(dest, num_bytes, size, comparator);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IGetOpt
+//		clib::Getopt
 //
 //	@doc:
 //		Parse the command-line arguments
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IGetOpt
+gpos::clib::Getopt
 	(
-	INT iArgc,
-	CHAR * const rgszArgv[],
-	const CHAR *szOptstring
+	INT argc,
+	CHAR * const argv[],
+	const CHAR *opt_string
 	)
 {
-	return getopt(iArgc, rgszArgv, szOptstring);
+	return getopt(argc, argv, opt_string);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::LStrToL
+//		clib::Strtol
 //
 //	@doc:
 //		Convert string to long integer
 //
 //---------------------------------------------------------------------------
 LINT
-gpos::clib::LStrToL
+gpos::clib::Strtol
 	(
-	const CHAR *szVal,
-	CHAR **ppcEnd,
-	ULONG ulBase
+	const CHAR *val,
+	CHAR **end,
+	ULONG base
 	)
 {
-	GPOS_ASSERT(NULL != szVal);
-	GPOS_ASSERT(0 == ulBase || 2 == ulBase || 10 == ulBase || 16 == ulBase);
+	GPOS_ASSERT(NULL != val);
+	GPOS_ASSERT(0 == base || 2 == base || 10 == base || 16 == base);
 
-	return strtol(szVal, ppcEnd, ulBase);
+	return strtol(val, end, base);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::LStrToLL
+//		clib::Strtoll
 //
 //	@doc:
 //		Convert string to long long integer
 //
 //---------------------------------------------------------------------------
 LINT
-gpos::clib::LStrToLL
+gpos::clib::Strtoll
 	(
-	const CHAR *szVal,
-	CHAR **ppcEnd,
-	ULONG ulBase
+	const CHAR *val,
+	CHAR **end,
+	ULONG base
 	)
 {
-	GPOS_ASSERT(NULL != szVal);
-	GPOS_ASSERT(0 == ulBase || 2 == ulBase || 10 == ulBase || 16 == ulBase);
+	GPOS_ASSERT(NULL != val);
+	GPOS_ASSERT(0 == base || 2 == base || 10 == base || 16 == base);
 
-	return strtoll(szVal, ppcEnd, ulBase);
+	return strtoll(val, end, base);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::UlRandR
+//		clib::Rand
 //
 //	@doc:
 //		Return a pseudo-random integer between 0 and RAND_MAX
 //
 //---------------------------------------------------------------------------
 ULONG
-gpos::clib::UlRandR
+gpos::clib::Rand
 	(
-	ULONG *pulSeed
+	ULONG *seed
 	)
 {
-	GPOS_ASSERT(NULL != pulSeed);
+	GPOS_ASSERT(NULL != seed);
 
-	INT iRes = rand_r(pulSeed);
+	INT res = rand_r(seed);
 
-	GPOS_ASSERT(iRes >= 0 && iRes <= RAND_MAX);
+	GPOS_ASSERT(res >= 0 && res <= RAND_MAX);
 
-	return static_cast<ULONG>(iRes);
+	return static_cast<ULONG>(res);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IVswPrintf
+//		clib::Vswprintf
 //
 //	@doc:
 //		Format wide character output conversion
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IVswPrintf
+gpos::clib::Vswprintf
 	(
-	WCHAR *wszStr,
-	SIZE_T ulMaxLen,
-	const WCHAR * wszFormat,
+	WCHAR *wcstr,
+	SIZE_T max_len,
+	const WCHAR * format,
 	VA_LIST vaArgs
 	)
 {
-	GPOS_ASSERT(NULL != wszStr);
-	GPOS_ASSERT(NULL != wszFormat);
+	GPOS_ASSERT(NULL != wcstr);
+	GPOS_ASSERT(NULL != format);
 
-	INT iRes = vswprintf(wszStr, ulMaxLen, wszFormat, vaArgs);
-	if (-1 == iRes && EILSEQ == errno)
+	INT res = vswprintf(wcstr, max_len, format, vaArgs);
+	if (-1 == res && EILSEQ == errno)
 	{
 		// Invalid multibyte character encountered. This can happen if the byte sequence does not
 		// match with the server encoding.
 		GPOS_RAISE(CException::ExmaSystem, CException::ExmiIllegalByteSequence);
 	}
 
-	return iRes;
+	return res;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IVsnPrintf
+//		clib::Vsnprintf
 //
 //	@doc:
 //		Format string
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IVsnPrintf
+gpos::clib::Vsnprintf
 	(
-	CHAR *szSrc,
-	SIZE_T ulSize,
-	const CHAR *szFormat,
+	CHAR *src,
+	SIZE_T size,
+	const CHAR *format,
 	VA_LIST vaArgs
 	)
 {
-	GPOS_ASSERT(NULL != szSrc);
-	GPOS_ASSERT(NULL != szFormat);
+	GPOS_ASSERT(NULL != src);
+	GPOS_ASSERT(NULL != format);
 
-	return vsnprintf(szSrc, ulSize, szFormat, vaArgs);
+	return vsnprintf(src, size, format, vaArgs);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::StrErrorR
+//		clib::Strerror_r
 //
 //	@doc:
 //		Return string describing error number
 //
 //---------------------------------------------------------------------------
 void
-gpos::clib::StrErrorR
+gpos::clib::Strerror_r
 	(
-	INT iErrnum,
-	CHAR *szbuf,
-	SIZE_T ulBufLen
+	INT errnum,
+	CHAR *buf,
+	SIZE_T buf_len
 	)
 {
-	GPOS_ASSERT(NULL != szbuf);
+	GPOS_ASSERT(NULL != buf);
 
 #ifdef _GNU_SOURCE
 	// GNU-specific strerror_r() returns char*.
-	CHAR *szError = strerror_r(iErrnum, szbuf, ulBufLen);
-	GPOS_ASSERT(NULL != szError);
+	CHAR *error_str = strerror_r(errnum, buf, buf_len);
+	GPOS_ASSERT(NULL != error_str);
 
 	// GNU strerror_r() may return a pointer to a static error string.
-	// Copy it into 'szbuf' if that is the case.
-	if (szError != szbuf) {
-		strncpy(szbuf, szError, ulBufLen);
+	// Copy it into 'buf' if that is the case.
+	if (error_str != buf) {
+		strncpy(buf, error_str, buf_len);
 		// Ensure null-terminated.
-		szbuf[ulBufLen - 1] = '\0';
+		buf[buf_len - 1] = '\0';
 	}
 #else  // !_GNU_SOURCE
 	// POSIX.1-2001 standard strerror_r() returns int.
 #ifdef GPOS_DEBUG
-	INT iStrErrorCode =
+	INT str_err_code =
 #endif
-			strerror_r(iErrnum, szbuf, ulBufLen);
-	GPOS_ASSERT(0 == iStrErrorCode);
+			strerror_r(errnum, buf, buf_len);
+	GPOS_ASSERT(0 == str_err_code);
 
 #endif
 }
@@ -566,67 +566,67 @@ gpos::clib::StrErrorR
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::UlWcsLen
+//		clib::Wcslen
 //
 //	@doc:
 //		Calculate the length of a wide-character string
 //
 //---------------------------------------------------------------------------
 ULONG
-gpos::clib::UlWcsLen
+gpos::clib::Wcslen
 	(
-	const WCHAR *wszDest
+	const WCHAR *dest
 	)
 {
-	GPOS_ASSERT(NULL != wszDest);
+	GPOS_ASSERT(NULL != dest);
 
-	return (ULONG) wcslen(wszDest);
+	return (ULONG) wcslen(dest);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::PtmLocalTimeR
+//		clib::Localtime_r
 //
 //	@doc:
-//		Convert the calendar time ptTime to broken-time representation;
+//		Convert the calendar time time to broken-time representation;
 //		Expressed relative to the user's specified time zone
 //
 //---------------------------------------------------------------------------
 struct tm*
-gpos::clib::PtmLocalTimeR
+gpos::clib::Localtime_r
 	(
-	const TIME_T *ptTime,
-	TIME *ptmResult
+	const TIME_T *time,
+	TIME *result
 	)
 {
-	GPOS_ASSERT(NULL != ptTime);
+	GPOS_ASSERT(NULL != time);
 
-	localtime_r(ptTime, ptmResult);
+	localtime_r(time, result);
 
-	GPOS_ASSERT(NULL != ptmResult);
+	GPOS_ASSERT(NULL != result);
 
-	return ptmResult;
+	return result;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::PvMalloc
+//		clib::Malloc
 //
 //	@doc:
 //		Allocate dynamic memory
 //
 //---------------------------------------------------------------------------
 void*
-gpos::clib::PvMalloc
+gpos::clib::Malloc
 	(
-	SIZE_T ulSize
+	SIZE_T size
 	)
 {
 	GPOS_ASSERT_NO_SPINLOCK;
 
-	return malloc(ulSize);
+	return malloc(size);
 }
 
 
@@ -641,100 +641,100 @@ gpos::clib::PvMalloc
 void
 gpos::clib::Free
 	(
-	void *pvSrc
+	void *src
 	)
 {
 	GPOS_ASSERT_NO_SPINLOCK;
 
-	free(pvSrc);
+	free(src);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::UlStrLen
+//		clib::Strlen
 //
 //	@doc:
 //		Calculate the length of a string
 //
 //---------------------------------------------------------------------------
 ULONG
-gpos::clib::UlStrLen
+gpos::clib::Strlen
 	(
-	const CHAR *szBuf
+	const CHAR *buf
 	)
 {
-	GPOS_ASSERT(NULL != szBuf);
+	GPOS_ASSERT(NULL != buf);
 
-	return (ULONG) strlen(szBuf);
+	return (ULONG) strlen(buf);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::IWcToMb
+//		clib::Wctomb
 //
 //	@doc:
 //		Convert a wide character to a multibyte sequence
 //
 //---------------------------------------------------------------------------
 INT
-gpos::clib::IWcToMb
+gpos::clib::Wctomb
 	(
-	CHAR *szDest,
-	WCHAR wcSrc
+	CHAR *dest,
+	WCHAR src
 	)
 {
-	return wctomb(szDest, wcSrc);
+	return wctomb(dest, src);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::UlMbToWcs
+//		clib::Mbstowcs
 //
 //	@doc:
 //		Convert a multibyte sequence to wide character array
 //
 //---------------------------------------------------------------------------
 ULONG
-gpos::clib::UlMbToWcs
+gpos::clib::Mbstowcs
 	(
-	WCHAR *wszDest,
-	const CHAR *szSrc,
-	SIZE_T ulLen
+	WCHAR *dest,
+	const CHAR *src,
+	SIZE_T len
 	)
 {
-	GPOS_ASSERT(NULL != wszDest);
-	GPOS_ASSERT(NULL != szSrc);
+	GPOS_ASSERT(NULL != dest);
+	GPOS_ASSERT(NULL != src);
 
-	return (ULONG) mbstowcs(wszDest, szSrc, ulLen);
+	return (ULONG) mbstowcs(dest, src, len);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::WcsToMbs
+//		clib::Wcstombs
 //
 //	@doc:
 //		Convert a wide-character string to a multi-byte string
 //
 //---------------------------------------------------------------------------
 LINT
-gpos::clib::LWcsToMbs
+gpos::clib::Wcstombs
 	(
-	CHAR *szDest,
-	WCHAR *wszSrc,
-	ULONG_PTR ulpDestSize
+	CHAR *dest,
+	WCHAR *src,
+	ULONG_PTR dest_size
 	)
 {
-	return wcstombs(szDest, wszSrc, ulpDestSize);
+	return wcstombs(dest, src, dest_size);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::DStrToD
+//		clib::Strtod
 //
 //	@doc:
 //		Convert string to double;
@@ -742,38 +742,38 @@ gpos::clib::LWcsToMbs
 //
 //---------------------------------------------------------------------------
 DOUBLE
-gpos::clib::DStrToD
+gpos::clib::Strtod
 	(
-	const CHAR *sz
+	const CHAR *str
 	)
 {
-	return strtod(sz, NULL);
+	return strtod(str, NULL);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::SzGetEnv
+//		clib::GetEnv
 //
 //	@doc:
 //		Get an environment variable
 //
 //---------------------------------------------------------------------------
 CHAR*
-gpos::clib::SzGetEnv
+gpos::clib::GetEnv
 	(
-	const CHAR *szName
+	const CHAR *name
 	)
 {
-	GPOS_ASSERT(NULL != szName);
+	GPOS_ASSERT(NULL != name);
 
-	return getenv(szName);
+	return getenv(name);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::SzDemangle
+//		clib::Demangle
 //
 //	@doc:
 //		Return a pointer to the start of the NULL-terminated
@@ -781,45 +781,45 @@ gpos::clib::SzGetEnv
 //
 //---------------------------------------------------------------------------
 CHAR*
-gpos::clib::SzDemangle
+gpos::clib::Demangle
 	(
-	const CHAR *szSymbol,
-	CHAR *szBuffer,
-	SIZE_T *pulLen,
-	INT *piStatus
+	const CHAR *symbol,
+	CHAR *buf,
+	SIZE_T *len,
+	INT *status
 	)
 {
-	GPOS_ASSERT(NULL != szSymbol);
+	GPOS_ASSERT(NULL != symbol);
 
-	CHAR* szRes = abi::__cxa_demangle(szSymbol, szBuffer, pulLen, piStatus);
+	CHAR* res = abi::__cxa_demangle(symbol, buf, len, status);
 
-	GPOS_ASSERT(-3 != *piStatus && "One of the arguments is invalid.");
+	GPOS_ASSERT(-3 != *status && "One of the arguments is invalid.");
 
-	return szRes;
+	return res;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		clib::DlAddr
+//		clib::Dladdr
 //
 //	@doc:
 //		Resolve symbol information from its address
 //
 //---------------------------------------------------------------------------
 void
-gpos::clib::DlAddr
+gpos::clib::Dladdr
 	(
-	void *pvAddr,
-	DL_INFO *pdlInfo
+	void *addr,
+	DL_INFO *info
 	)
 {
 #ifdef GPOS_DEBUG
-	INT iRes =
+	INT res =
 #endif
-	dladdr(pvAddr, pdlInfo);
+	dladdr(addr, info);
 
-	GPOS_ASSERT(0 != iRes);
+	GPOS_ASSERT(0 != res);
 }
 
 // EOF

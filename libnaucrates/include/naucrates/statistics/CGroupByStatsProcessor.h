@@ -27,13 +27,13 @@ namespace gpnaucrates
 
 		// group by
 		static
-		CStatistics *PstatsGroupBy
+		CStatistics *CalcGroupByStats
 						(
-						IMemoryPool *pmp,
-						const CStatistics *pstatsInput,
-						DrgPul *pdrgpulGC,
-						DrgPul *pdrgpulAgg,
-						CBitSet *pbsKeys
+						IMemoryPool *mp,
+						const CStatistics *input_stats,
+						ULongPtrArray *GCs,
+						ULongPtrArray *aggs,
+						CBitSet *keys
 						);
 	};
 }

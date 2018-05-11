@@ -34,12 +34,12 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerMDScCmp::CParseHandlerMDScCmp
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerMetadataObject(pmp, pphm, pphRoot)
+	CParseHandlerMetadataObject(mp, parse_handler_mgr, parse_handler_root)
 {}
 
 //---------------------------------------------------------------------------
@@ -53,73 +53,73 @@ CParseHandlerMDScCmp::CParseHandlerMDScCmp
 void
 CParseHandlerMDScCmp::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBMDScCmp), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBMDScCmp), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 	
 	// parse operator name
-	const XMLCh *xmlszOpName = CDXLOperatorFactory::XmlstrFromAttrs
+	const XMLCh *xml_str_op_name = CDXLOperatorFactory::ExtractAttrValue
 														(
 														attrs,
 														EdxltokenName,
 														EdxltokenGPDBMDScCmp
 														);
 
-	CMDName *pmdname = CDXLUtils::PmdnameFromXmlsz(m_pphm->Pmm(), xmlszOpName);
+	CMDName *mdname = CDXLUtils::CreateMDNameFromXMLChar(m_parse_handler_mgr->GetDXLMemoryManager(), xml_str_op_name);
 
 
 	// parse scalar comparison properties
-	IMDId *pmdid = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenMdid,
 									EdxltokenGPDBMDScCmp
 									);
 	
-	IMDId *pmdidLeft = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid_left = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenGPDBScalarOpLeftTypeId,
 									EdxltokenGPDBMDScCmp
 									);
 	
-	IMDId *pmdidRight = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid_right = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenGPDBScalarOpRightTypeId,
 									EdxltokenGPDBMDScCmp
 									);
 	
-	IMDId *pmdidOp = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid_op = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenOpNo,
 									EdxltokenGPDBMDScCmp
 									);
 		
 	// parse comparison type
-	const XMLCh *xmlszCmpType = CDXLOperatorFactory::XmlstrFromAttrs
+	const XMLCh *xml_str_comp_type = CDXLOperatorFactory::ExtractAttrValue
 								(
 								attrs,
 								EdxltokenGPDBScalarOpCmpType,
 								EdxltokenGPDBMDScCmp
 								);
 
-	IMDType::ECmpType ecmpt = CDXLOperatorFactory::Ecmpt(xmlszCmpType);
+	IMDType::ECmpType comparision_type = CDXLOperatorFactory::ParseCmpType(xml_str_comp_type);
 	
-	m_pimdobj = GPOS_NEW(m_pmp) CMDScCmpGPDB(m_pmp, pmdid, pmdname, pmdidLeft, pmdidRight, ecmpt, pmdidOp);
+	m_imd_obj = GPOS_NEW(m_mp) CMDScCmpGPDB(m_mp, mdid, mdname, mdid_left, mdid_right, comparision_type, mdid_op);
 }
 
 //---------------------------------------------------------------------------
@@ -133,19 +133,19 @@ CParseHandlerMDScCmp::StartElement
 void
 CParseHandlerMDScCmp::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBMDScCmp), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBMDScCmp), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 		
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

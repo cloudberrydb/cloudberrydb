@@ -35,49 +35,49 @@ namespace gpmd
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// DXL for object
-			const CWStringDynamic *m_pstr;
+			const CWStringDynamic *m_dxl_str;
 			
 			// func id
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// func name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// result type
-			IMDId *m_pmdidTypeResult;
+			IMDId *m_mdid_type_result;
 			
 			// output argument types
-			DrgPmdid *m_pdrgpmdidTypes;
+		IMdIdArray *m_mdid_types_array;
 
 			// whether function returns a set of values
-			BOOL m_fReturnsSet;
+			BOOL m_returns_set;
 			
 			// function stability
-			EFuncStbl m_efsStability;
+			EFuncStbl m_func_stability;
 			
 			// function data access
-			EFuncDataAcc m_efdaDataAccess;
+			EFuncDataAcc m_func_data_access;
 
 			// function strictness (i.e. whether func returns NULL on NULL input)
-			BOOL m_fStrict;
+			BOOL m_is_strict;
 
 			// dxl token array for stability
-			Edxltoken m_drgDxlStability[EfsSentinel];
+			Edxltoken m_dxl_func_stability_array[EfsSentinel];
 
 			// dxl token array for data access
-			Edxltoken m_drgDxlDataAccess[EfdaSentinel];
+			Edxltoken m_dxl_data_access_array[EfdaSentinel];
 			
 			// returns the string representation of the function stability
-			const CWStringConst *PstrStability() const;
+			const CWStringConst *GetFuncStabilityStr() const;
 
 			// returns the string representation of the function data access
-			const CWStringConst *PstrDataAccess() const;
+			const CWStringConst *GetFuncDataAccessStr() const;
 
 			// serialize the array of output arg types into a comma-separated string
-			CWStringDynamic *PstrOutArgTypes() const;
+			CWStringDynamic *GetOutputArgTypeArrayStr() const;
 
 			// initialize dxl token arrays
 			void InitDXLTokenArrays();
@@ -89,15 +89,15 @@ namespace gpmd
 			// ctor/dtor
 			CMDFunctionGPDB
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdid,
-				CMDName *pmdname,
-				IMDId *pmdidTypeResult,
-				DrgPmdid *pdrgpmdidTypes,
-				BOOL fReturnsSet,
-				EFuncStbl efsStability,
-				EFuncDataAcc efdaDataAccess,
-				BOOL fStrict
+				IMemoryPool *mp,
+				IMDId *mdid,
+				CMDName *mdname,
+				IMDId *result_type_mdid,
+						IMdIdArray *mdid_array,
+				BOOL ReturnsSet,
+				EFuncStbl func_stability,
+				EFuncDataAcc func_data_access,
+				BOOL is_strict
 				);
 			
 			virtual
@@ -105,14 +105,14 @@ namespace gpmd
 			
 			// accessors
 			virtual 
-			const CWStringDynamic *Pstr() const
+			const CWStringDynamic *GetStrRepr() const
 			{
-				return m_pstr;
+				return m_dxl_str;
 			}
 			
 			// function id
 			virtual 
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// function name
 			virtual 
@@ -120,40 +120,40 @@ namespace gpmd
 			
 			// result type
 			virtual 
-			IMDId *PmdidTypeResult() const;
+			IMDId *GetResultTypeMdid() const;
 
 			// output argument types
 			virtual
-			DrgPmdid *PdrgpmdidOutputArgTypes() const;
+			IMdIdArray *OutputArgTypesMdidArray() const;
 
 			// does function return NULL on NULL input
 			virtual 
-			BOOL FStrict() const
+			BOOL IsStrict() const
 			{
-				return m_fStrict;
+				return m_is_strict;
 			}
 			
 			// function stability
 			virtual
-			EFuncStbl EfsStability() const
+			EFuncStbl GetFuncStability() const
 			{
-				return m_efsStability;
+				return m_func_stability;
 			}
 
 			// function data access
 			virtual
-			EFuncDataAcc EfdaDataAccess() const
+			EFuncDataAcc GetFuncDataAccess() const
 			{
-				return m_efdaDataAccess;
+				return m_func_data_access;
 			}
 
 			// does function return a set of values
 			virtual 
-			BOOL FReturnsSet() const;
+			BOOL ReturnsSet() const;
 			
 			// serialize object in DXL format
 			virtual 
-			void Serialize(gpdxl::CXMLSerializer *pxmlser) const;
+			void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
 			
 #ifdef GPOS_DEBUG
 			// debug print of the type in the provided stream

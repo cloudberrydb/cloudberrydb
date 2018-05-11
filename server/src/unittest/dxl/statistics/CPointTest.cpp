@@ -38,15 +38,15 @@ CPointTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL /* pceeval */, CTestUtils::Pcm(pmp));
+	CAutoOptCtxt aoc(mp, &mda, NULL /* pceeval */, CTestUtils::GetCostModel(mp));
 
 	return CUnittest::EresExecute(rgutSharedOptCtxt, GPOS_ARRAY_SIZE(rgutSharedOptCtxt));
 }
@@ -57,26 +57,26 @@ CPointTest::EresUnittest_CPointInt4()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// generate integer points
-	CPoint *ppoint1 = CTestUtils::PpointInt4(pmp, 1);
-	CPoint *ppoint2 = CTestUtils::PpointInt4(pmp, 2);
+	CPoint *point1 = CTestUtils::PpointInt4(mp, 1);
+	CPoint *point2 = CTestUtils::PpointInt4(mp, 2);
 
-	GPOS_RTL_ASSERT_MSG(ppoint1->FEqual(ppoint1), "1 == 1");
-	GPOS_RTL_ASSERT_MSG(ppoint1->FLessThan(ppoint2), "1 < 2");
-	GPOS_RTL_ASSERT_MSG(ppoint2->FGreaterThan(ppoint1), "2 > 1");
-	GPOS_RTL_ASSERT_MSG(ppoint1->FLessThanOrEqual(ppoint2), "1 <= 2");
-	GPOS_RTL_ASSERT_MSG(ppoint2->FGreaterThanOrEqual(ppoint2), "2 >= 2");
+	GPOS_RTL_ASSERT_MSG(point1->Equals(point1), "1 == 1");
+	GPOS_RTL_ASSERT_MSG(point1->IsLessThan(point2), "1 < 2");
+	GPOS_RTL_ASSERT_MSG(point2->IsGreaterThan(point1), "2 > 1");
+	GPOS_RTL_ASSERT_MSG(point1->IsLessThanOrEqual(point2), "1 <= 2");
+	GPOS_RTL_ASSERT_MSG(point2->IsGreaterThanOrEqual(point2), "2 >= 2");
 
-	CDouble dDistance = ppoint2->DDistance(ppoint1);
+	CDouble dDistance = point2->Distance(point1);
 
 	// should be 1.0
 	GPOS_RTL_ASSERT_MSG(0.99 < dDistance
 						&& dDistance < 1.01, "incorrect distance calculation");
 
-	ppoint1->Release();
-	ppoint2->Release();
+	point1->Release();
+	point2->Release();
 
 	return GPOS_OK;
 }
@@ -87,20 +87,20 @@ CPointTest::EresUnittest_CPointBool()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// generate boolean points
-	CPoint *ppoint1 = CTestUtils::PpointBool(pmp, true);
-	CPoint *ppoint2 = CTestUtils::PpointBool(pmp, false);
+	CPoint *point1 = CTestUtils::PpointBool(mp, true);
+	CPoint *point2 = CTestUtils::PpointBool(mp, false);
 
 	// true == true
-	GPOS_RTL_ASSERT_MSG(ppoint1->FEqual(ppoint1), "true must be equal to true");
+	GPOS_RTL_ASSERT_MSG(point1->Equals(point1), "true must be equal to true");
 
 	// true != false
-	GPOS_RTL_ASSERT_MSG(ppoint1->FNotEqual(ppoint2), "true must not be equal to false");
+	GPOS_RTL_ASSERT_MSG(point1->IsNotEqual(point2), "true must not be equal to false");
 
-	ppoint1->Release();
-	ppoint2->Release();
+	point1->Release();
+	point2->Release();
 
 	return GPOS_OK;
 }

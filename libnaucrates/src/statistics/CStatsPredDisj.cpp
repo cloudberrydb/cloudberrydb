@@ -25,32 +25,32 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CStatsPredDisj::CStatsPredDisj
 	(
-	DrgPstatspred *pdrgpstatspred
+	CStatsPredPtrArry *disj_pred_stats_array
 	)
 	:
 	CStatsPred(gpos::ulong_max),
-	m_pdrgpstatspred(pdrgpstatspred)
+	m_disj_pred_stats_array(disj_pred_stats_array)
 {
-	GPOS_ASSERT(NULL != pdrgpstatspred);
-	m_ulColId = CStatisticsUtils::UlColId(pdrgpstatspred);
+	GPOS_ASSERT(NULL != disj_pred_stats_array);
+	m_colid = CStatisticsUtils::GetColId(disj_pred_stats_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatsPrefDisj::Pstatspred
+//		CStatsPrefDisj::GetPredStats
 //
 //	@doc:
 //		Return the point filter at a particular position
 //
 //---------------------------------------------------------------------------
 CStatsPred *
-CStatsPredDisj::Pstatspred
+CStatsPredDisj::GetPredStats
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	return (*m_pdrgpstatspred)[ulPos];
+	return (*m_disj_pred_stats_array)[pos];
 }
 
 //---------------------------------------------------------------------------
@@ -64,25 +64,25 @@ CStatsPredDisj::Pstatspred
 void
 CStatsPredDisj::Sort() const
 {
-	if (1 < UlFilters())
+	if (1 < GetNumPreds())
 	{
 		// sort the filters on column ids
-		m_pdrgpstatspred->Sort(CStatsPred::IStatsFilterCmp);
+		m_disj_pred_stats_array->Sort(CStatsPred::StatsPredSortCmpFunc);
 	}
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatsPrefDisj::UlColId
+//		CStatsPrefDisj::GetColId
 //
 //	@doc:
 //		Return the column identifier on which the predicates are on
 //
 //---------------------------------------------------------------------------
 ULONG
-CStatsPredDisj::UlColId() const
+CStatsPredDisj::GetColId() const
 {
-	return m_ulColId;
+	return m_colid;
 }
 
 // EOF

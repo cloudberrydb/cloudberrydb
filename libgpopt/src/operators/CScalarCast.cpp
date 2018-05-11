@@ -35,40 +35,40 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCast::CScalarCast
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidReturnType,
-	IMDId *pmdidFunc,
-	BOOL fBinaryCoercible
+	IMemoryPool *mp,
+	IMDId *return_type_mdid,
+	IMDId *mdid_func,
+	BOOL is_binary_coercible
 	)
 	:
-	CScalar(pmp),
-	m_pmdidReturnType(pmdidReturnType),
-	m_pmdidFunc(pmdidFunc),
-	m_fBinaryCoercible(fBinaryCoercible),
-	m_fReturnsNullOnNullInput(false),
+	CScalar(mp),
+	m_return_type_mdid(return_type_mdid),
+	m_func_mdid(mdid_func),
+	m_is_binary_coercible(is_binary_coercible),
+	m_returns_null_on_null_input(false),
 	m_fBoolReturnType(false)
 {
-	if (NULL != m_pmdidFunc && m_pmdidFunc->FValid())
+	if (NULL != m_func_mdid && m_func_mdid->IsValid())
 	{
-		CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-		const IMDFunction *pmdfunc = pmda->Pmdfunc(m_pmdidFunc);
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+		const IMDFunction *pmdfunc = md_accessor->RetrieveFunc(m_func_mdid);
 
-		m_fReturnsNullOnNullInput = pmdfunc->FStrict();
-		m_fBoolReturnType = CMDAccessorUtils::FBoolType(pmda, m_pmdidReturnType);
+		m_returns_null_on_null_input = pmdfunc->IsStrict();
+		m_fBoolReturnType = CMDAccessorUtils::FBoolType(md_accessor, m_return_type_mdid);
 	}
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCast::FMatch
+//		CScalarCast::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarCast::FMatch
+CScalarCast::Matches
 	(
 	COperator *pop
 	)
@@ -79,8 +79,8 @@ CScalarCast::FMatch
 		CScalarCast *pscop = CScalarCast::PopConvert(pop);
 
 		// match if the return type oids are identical
-		return pscop->PmdidType()->FEquals(m_pmdidReturnType) &&
-				((!IMDId::FValid(pscop->PmdidFunc()) && !IMDId::FValid(m_pmdidFunc)) || pscop->PmdidFunc()->FEquals(m_pmdidFunc));
+		return pscop->MdidType()->Equals(m_return_type_mdid) &&
+				((!IMDId::IsValid(pscop->FuncMdId()) && !IMDId::IsValid(m_func_mdid)) || pscop->FuncMdId()->Equals(m_func_mdid));
 	}
 
 	return false;

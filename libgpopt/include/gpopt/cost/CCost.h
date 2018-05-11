@@ -20,7 +20,7 @@ namespace gpopt
 	using namespace gpos;
 
 	class CCost;
-	typedef CDynamicPtrArray<CCost, CleanupDelete> DrgPcost;
+	typedef CDynamicPtrArray<CCost, CleanupDelete> CCostArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -49,7 +49,7 @@ namespace gpopt
 				(
 				CDouble d
 				)
-				: CDouble(d.DVal())
+				: CDouble(d.Get())
 			{}
 
 			// ctor
@@ -57,7 +57,7 @@ namespace gpopt
 				(
 				const CCost &cost
 				)
-				: CDouble(cost.DVal())
+				: CDouble(cost.Get())
 			{}
 
 			// assignment

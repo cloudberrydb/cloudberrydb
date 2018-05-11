@@ -48,17 +48,17 @@ namespace gpos
 
 			// ctor
 			explicit
-			CAutoRef<T>(T *pt)
+			CAutoRef<T>(T *object)
 				:
-				CAutoP<T>(pt)
+				CAutoP<T>(object)
 			{}
 
 			virtual ~CAutoRef();
 
 			// simple assignment
-			CAutoRef<T> const & operator = (T* pt)
+			CAutoRef<T> const & operator = (T* object)
 			{
-				CAutoP<T>::m_pt = pt;
+				CAutoP<T>::m_object = object;
 				return *this;
 			}
 
@@ -75,13 +75,13 @@ namespace gpos
 	template <class T>
 	CAutoRef<T>::~CAutoRef()
 	{
-		if (NULL != CAutoP<T>::m_pt)
+		if (NULL != CAutoP<T>::m_object)
 		{
-			reinterpret_cast<CRefCount*>(CAutoP<T>::m_pt)->Release();
+			reinterpret_cast<CRefCount*>(CAutoP<T>::m_object)->Release();
 		}
 
 		// null out pointer before ~CAutoP() gets called
-		CAutoP<T>::m_pt = NULL;
+		CAutoP<T>::m_object = NULL;
 	}
 }
 

@@ -38,15 +38,15 @@ namespace gpmd
 		public:
 
 			// type id
-			static ETypeInfo EtiType()
+			static ETypeInfo GetTypeInfo()
 			{
 				return EtiGeneric;
 			}
 
 			// type id
-			virtual ETypeInfo Eti() const
+			virtual ETypeInfo GetDatumType() const
 			{
-				return IMDTypeGeneric::EtiType();
+				return IMDTypeGeneric::GetTypeInfo();
 			}
 	};
 }

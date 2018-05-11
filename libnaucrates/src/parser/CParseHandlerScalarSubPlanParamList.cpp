@@ -34,15 +34,15 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerScalarSubPlanParamList::CParseHandlerScalarSubPlanParamList
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerScalarOp(pmp, pphm, pphRoot)
+	CParseHandlerScalarOp(mp, parse_handler_mgr, parse_handler_root)
 {
-	m_pdrgdxlcr = GPOS_NEW(pmp) DrgPdxlcr(pmp);
-	m_fParamList = false;
+	m_dxl_colref_array = GPOS_NEW(mp) CDXLColRefArray(mp);
+	m_has_param_list = false;
 }
 
 //---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ CParseHandlerScalarSubPlanParamList::CParseHandlerScalarSubPlanParamList
 //---------------------------------------------------------------------------
 CParseHandlerScalarSubPlanParamList::~CParseHandlerScalarSubPlanParamList()
 {
-	m_pdrgdxlcr->Release();
+	m_dxl_colref_array->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -69,37 +69,37 @@ CParseHandlerScalarSubPlanParamList::~CParseHandlerScalarSubPlanParamList()
 void
 CParseHandlerScalarSubPlanParamList::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes &attrs
 	)
 {
-	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParamList), xmlszLocalname))
+	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParamList), element_local_name))
 	{
 		// we can't have seen a paramlist already
-		GPOS_ASSERT(!m_fParamList);
+		GPOS_ASSERT(!m_has_param_list);
 		// start the paramlist
-		m_fParamList = true;
+		m_has_param_list = true;
 	}
-	else if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParam), xmlszLocalname))
+	else if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParam), element_local_name))
 	{
 		// we must have seen a paramlist already
-		GPOS_ASSERT(m_fParamList);
+		GPOS_ASSERT(m_has_param_list);
 
 		// start new param
-		CParseHandlerBase *pphParam = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParam), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphParam);
+		CParseHandlerBase *parse_handler_subplan_param = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParam), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(parse_handler_subplan_param);
 
 		// store parse handler
-		this->Append(pphParam);
+		this->Append(parse_handler_subplan_param);
 
-		pphParam->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		parse_handler_subplan_param->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -114,30 +114,30 @@ CParseHandlerScalarSubPlanParamList::StartElement
 void
 CParseHandlerScalarSubPlanParamList::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParamList), xmlszLocalname) && NULL != m_pdxln)
+	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSubPlanParamList), element_local_name) && NULL != m_dxl_node)
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	const ULONG ulSize = this->UlLength();
+	const ULONG arity = this->Length();
 	// add constructed children from child parse handlers
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		CParseHandlerScalarSubPlanParam *pphParam = dynamic_cast<CParseHandlerScalarSubPlanParam *>((*this)[ul]);
+		CParseHandlerScalarSubPlanParam *parse_handler_subplan_param = dynamic_cast<CParseHandlerScalarSubPlanParam *>((*this)[ul]);
 
-		CDXLColRef *pdxlcr = pphParam->Pdxlcr();
-		pdxlcr->AddRef();
-		m_pdrgdxlcr->Append(pdxlcr);
+		CDXLColRef *dxl_colref = parse_handler_subplan_param->MakeDXLColRef();
+		dxl_colref->AddRef();
+		m_dxl_colref_array->Append(dxl_colref);
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

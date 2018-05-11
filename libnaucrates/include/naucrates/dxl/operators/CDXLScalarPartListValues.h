@@ -19,20 +19,20 @@ namespace gpdxl
 	{
 		private:
 			// partitioning level
-			ULONG m_ulLevel;
+			ULONG m_partitioning_level;
 
 			// result type
-			IMDId *m_pmdidResult;
+			IMDId *m_result_type_mdid;
 
 			// element type
-			IMDId *m_pmdidElement;
+			IMDId *m_elem_type_mdid;
 
 			// private copy ctor
 			CDXLScalarPartListValues(const CDXLScalarPartListValues&);
 
 		public:
 			// ctor
-			CDXLScalarPartListValues(IMemoryPool *pmp, ULONG ulLevel, IMDId *pmdidResult, IMDId *pmdidElement);
+			CDXLScalarPartListValues(IMemoryPool *mp, ULONG partitioning_level, IMDId *result_type_mdid, IMDId *elem_type_mdid);
 
 			// dtor
 			virtual
@@ -40,39 +40,39 @@ namespace gpdxl
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// partitioning level
-			ULONG UlLevel() const;
+			ULONG GetPartitioningLevel() const;
 
 			// result type
-			IMDId *PmdidResult() const;
+			IMDId *GetResultTypeMdId() const;
 
 			// element type
-			IMDId *PmdidElement() const;
+			IMDId *GetElemTypeMdId() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// conversion function
 			static
-			CDXLScalarPartListValues *PdxlopConvert(CDXLOperator *pdxlop);
+			CDXLScalarPartListValues *Cast(CDXLOperator *dxl_op);
 	};
 }
 

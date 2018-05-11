@@ -28,17 +28,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformCTEAnchor2TrivialSelect::CXformCTEAnchor2TrivialSelect
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalCTEAnchor(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))
+				mp,
+				GPOS_NEW(mp) CLogicalCTEAnchor(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))
 				)
 		)
 {}
@@ -58,13 +58,13 @@ CXformCTEAnchor2TrivialSelect::Exfp
 	)
 	const
 {
-	ULONG ulId = CLogicalCTEAnchor::PopConvert(exprhdl.Pop())->UlId();
+	ULONG id = CLogicalCTEAnchor::PopConvert(exprhdl.Pop())->Id();
 	CCTEInfo *pcteinfo = COptCtxt::PoctxtFromTLS()->Pcteinfo();
-	const ULONG ulConsumers = pcteinfo->UlConsumers(ulId);
+	const ULONG ulConsumers = pcteinfo->UlConsumers(id);
 	GPOS_ASSERT(0 < ulConsumers);
 
 	if ((pcteinfo->FEnableInlining() || 1 == ulConsumers) &&
-		CXformUtils::FInlinableCTE(ulId))
+		CXformUtils::FInlinableCTE(id))
 	{
 		return CXform::ExfpHigh;
 	}
@@ -93,19 +93,19 @@ CXformCTEAnchor2TrivialSelect::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// child of CTE anchor
 	CExpression *pexprChild = (*pexpr)[0];
 	pexprChild->AddRef();
 
 	CExpression *pexprSelect =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CLogicalSelect(pmp),
+			mp,
+			GPOS_NEW(mp) CLogicalSelect(mp),
 			pexprChild,
-			CUtils::PexprScalarConstBool(pmp, true /*fValue*/)
+			CUtils::PexprScalarConstBool(mp, true /*fValue*/)
 			);
 
 	pxfres->Add(pexprSelect);

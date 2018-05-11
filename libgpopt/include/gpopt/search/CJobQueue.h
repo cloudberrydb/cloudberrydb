@@ -45,7 +45,7 @@ namespace gpopt
 			CList<CJob> m_listjQueued;
 
 			// lock protecting queue
-			CSpinlockJobQueue m_slock;
+			CSpinlockJobQueue m_lock;
 
 		public:
 
@@ -71,16 +71,16 @@ namespace gpopt
 			{
 				GPOS_ASSERT_IMP
 					(
-					NULL != ITask::PtskSelf() &&
-					!ITask::PtskSelf()->FPendingExc(),
-					m_listjQueued.FEmpty()
+					NULL != ITask::Self() &&
+					!ITask::Self()->HasPendingExceptions(),
+					m_listjQueued.IsEmpty()
 					);
 			}
 
 			// reset job queue
 			void Reset()
 			{
-				GPOS_ASSERT(m_listjQueued.FEmpty());
+				GPOS_ASSERT(m_listjQueued.IsEmpty());
 
 				m_pj = NULL;
 				m_fCompleted = false;

@@ -27,24 +27,24 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalRowTrigger::CDXLPhysicalRowTrigger
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidRel,
-	INT iType,
-	DrgPul *pdrgpulOld,
-	DrgPul *pdrgpulNew
+	IMemoryPool *mp,
+	IMDId *rel_mdid,
+	INT type,
+	ULongPtrArray *colids_old,
+	ULongPtrArray *colids_new
 	)
 	:
-	CDXLPhysical(pmp),
-	m_pmdidRel(pmdidRel),
-	m_iType(iType),
-	m_pdrgpulOld(pdrgpulOld),
-	m_pdrgpulNew(pdrgpulNew)
+	CDXLPhysical(mp),
+	m_rel_mdid(rel_mdid),
+	m_type(type),
+	  m_colids_old(colids_old),
+	  m_colids_new(colids_new)
 {
-	GPOS_ASSERT(pmdidRel->FValid());
-	GPOS_ASSERT(0 != iType);
-	GPOS_ASSERT(NULL != pdrgpulNew || NULL != pdrgpulOld);
-	GPOS_ASSERT_IMP(NULL != pdrgpulNew && NULL != pdrgpulOld,
-			pdrgpulNew->UlLength() == pdrgpulOld->UlLength());
+	GPOS_ASSERT(rel_mdid->IsValid());
+	GPOS_ASSERT(0 != type);
+	GPOS_ASSERT(NULL != colids_new || NULL != colids_old);
+	GPOS_ASSERT_IMP(NULL != colids_new && NULL != colids_old,
+					colids_new->Size() == colids_old->Size());
 }
 
 //---------------------------------------------------------------------------
@@ -57,37 +57,37 @@ CDXLPhysicalRowTrigger::CDXLPhysicalRowTrigger
 //---------------------------------------------------------------------------
 CDXLPhysicalRowTrigger::~CDXLPhysicalRowTrigger()
 {
-	m_pmdidRel->Release();
-	CRefCount::SafeRelease(m_pdrgpulOld);
-	CRefCount::SafeRelease(m_pdrgpulNew);
+	m_rel_mdid->Release();
+	CRefCount::SafeRelease(m_colids_old);
+	CRefCount::SafeRelease(m_colids_new);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalRowTrigger::Edxlop
+//		CDXLPhysicalRowTrigger::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalRowTrigger::Edxlop() const
+CDXLPhysicalRowTrigger::GetDXLOperator() const
 {
 	return EdxlopPhysicalRowTrigger;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalRowTrigger::PstrOpName
+//		CDXLPhysicalRowTrigger::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalRowTrigger::PstrOpName() const
+CDXLPhysicalRowTrigger::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalRowTrigger);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalRowTrigger);
 }
 
 //---------------------------------------------------------------------------
@@ -101,39 +101,39 @@ CDXLPhysicalRowTrigger::PstrOpName() const
 void
 CDXLPhysicalRowTrigger::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	m_pmdidRel->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenRelationMdid));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMDType), m_iType);
+	const CWStringConst *element_name = GetOpNameStr();
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	m_rel_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenRelationMdid));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDType), m_type);
 
-	if (NULL != m_pdrgpulOld)
+	if (NULL != m_colids_old)
 	{
-		CWStringDynamic *pstrColsOld = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulOld);
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenOldCols), pstrColsOld);
+		CWStringDynamic *pstrColsOld = CDXLUtils::Serialize(m_mp, m_colids_old);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenOldCols), pstrColsOld);
 		GPOS_DELETE(pstrColsOld);
 	}
 
-	if (NULL != m_pdrgpulNew)
+	if (NULL != m_colids_new)
 	{
-		CWStringDynamic *pstrColsNew = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulNew);
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenNewCols), pstrColsNew);
+		CWStringDynamic *pstrColsNew = CDXLUtils::Serialize(m_mp, m_colids_new);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenNewCols), pstrColsNew);
 		GPOS_DELETE(pstrColsNew);
 	}
 
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	dxlnode->SerializePropertiesToDXL(xml_serializer);
 
 	// serialize project list
-	(*pdxln)[0]->SerializeToDXL(pxmlser);
+	(*dxlnode)[0]->SerializeToDXL(xml_serializer);
 
 	// serialize physical child
-	(*pdxln)[1]->SerializeToDXL(pxmlser);
+	(*dxlnode)[1]->SerializeToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -148,18 +148,18 @@ CDXLPhysicalRowTrigger::SerializeToDXL
 void
 CDXLPhysicalRowTrigger::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	)
 	const
 {
-	GPOS_ASSERT(2 == pdxln->UlArity());
-	CDXLNode *pdxlnChild = (*pdxln)[1];
-	GPOS_ASSERT(EdxloptypePhysical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(2 == dxlnode->Arity());
+	CDXLNode *child_dxlnode = (*dxlnode)[1];
+	GPOS_ASSERT(EdxloptypePhysical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 

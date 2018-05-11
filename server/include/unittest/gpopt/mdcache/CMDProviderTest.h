@@ -35,12 +35,12 @@ namespace gpdxl
 		private:
 			// test lookup of MD objects with given MD provider
 			static
-			void TestMDLookup(IMemoryPool *pmp,	IMDProvider *pmdp);
+			void TestMDLookup(IMemoryPool *mp,	IMDProvider *pmdp);
 		
 		public:
 			
 			// file for the file-based MD provider
-			static const CHAR *szFileName;
+			static const CHAR *file_name;
 			
 			// unittests
 			static GPOS_RESULT EresUnittest();

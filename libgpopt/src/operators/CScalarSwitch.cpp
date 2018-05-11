@@ -29,18 +29,18 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarSwitch::CScalarSwitch
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType
+	IMemoryPool *mp,
+	IMDId *mdid_type
 	)
 	:
-	CScalar(pmp),
-	m_pmdidType(pmdidType),
+	CScalar(mp),
+	m_mdid_type(mdid_type),
 	m_fBoolReturnType(false)
 {
-	GPOS_ASSERT(pmdidType->FValid());
+	GPOS_ASSERT(mdid_type->IsValid());
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_fBoolReturnType = CMDAccessorUtils::FBoolType(pmda, m_pmdidType);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	m_fBoolReturnType = CMDAccessorUtils::FBoolType(md_accessor, m_mdid_type);
 }
 
 //---------------------------------------------------------------------------
@@ -53,12 +53,12 @@ CScalarSwitch::CScalarSwitch
 //---------------------------------------------------------------------------
 CScalarSwitch::~CScalarSwitch()
 {
-	m_pmdidType->Release();
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarSwitch::UlHash
+//		CScalarSwitch::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -66,21 +66,21 @@ CScalarSwitch::~CScalarSwitch()
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarSwitch::UlHash() const
+CScalarSwitch::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(), m_pmdidType->UlHash());
+	return gpos::CombineHashes(COperator::HashValue(), m_mdid_type->HashValue());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarSwitch::FMatch
+//		CScalarSwitch::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarSwitch::FMatch
+CScalarSwitch::Matches
 	(
 	COperator *pop
 	)
@@ -91,7 +91,7 @@ CScalarSwitch::FMatch
 		CScalarSwitch *popScSwitch = CScalarSwitch::PopConvert(pop);
 
 		// match if return types are identical
-		return popScSwitch->PmdidType()->FEquals(m_pmdidType);
+		return popScSwitch->MdidType()->Equals(m_mdid_type);
 	}
 
 	return false;

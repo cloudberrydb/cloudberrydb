@@ -32,18 +32,18 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLDatumStatsDoubleMappable::CDXLDatumStatsDoubleMappable
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	INT iTypeModifier,
-	BOOL fByVal,
-	BOOL fNull,
-	BYTE *pba,
-	ULONG ulLength,
-	CDouble dValue
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	INT type_modifier,
+	BOOL is_passed_by_value,
+	BOOL is_null,
+	BYTE *data,
+	ULONG length,
+	CDouble val
 	)
 	:
-	CDXLDatumGeneric(pmp, pmdidType, iTypeModifier, fByVal, fNull, pba, ulLength),
-	m_dValue(dValue)
+	CDXLDatumGeneric(mp, mdid_type, type_modifier, is_passed_by_value, is_null, data, length),
+	m_val(val)
 {
 }
 //---------------------------------------------------------------------------
@@ -57,18 +57,18 @@ CDXLDatumStatsDoubleMappable::CDXLDatumStatsDoubleMappable
 void
 CDXLDatumStatsDoubleMappable::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 {
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
-	if (IDefaultTypeModifier != ITypeModifier())
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
+	if (default_type_modifier != TypeModifier())
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTypeMod), TypeModifier());
 	}
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsNull), m_fNull);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsByValue), m_fByVal);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenValue), m_fNull, Pba(), UlLength());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenDoubleValue), DStatsMapping());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsNull), m_is_null);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsByValue), m_is_passed_by_value);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenValue), m_is_null, GetByteArray(), Length());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenDoubleValue), GetDoubleMapping());
 }
 
 // EOF

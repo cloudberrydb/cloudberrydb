@@ -25,10 +25,10 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CDXLOperator::CDXLOperator
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	m_pmp(pmp)
+	m_mp(mp)
 {
 }
 
@@ -46,76 +46,76 @@ CDXLOperator::~CDXLOperator()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLOperator::PstrJoinTypeName
+//		CDXLOperator::GetJoinTypeNameStr
 //
 //	@doc:
 //		Join type name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLOperator::PstrJoinTypeName
+CDXLOperator::GetJoinTypeNameStr
 	(
-	EdxlJoinType edxljt
+	EdxlJoinType join_type
 	)
 {
-	GPOS_ASSERT(EdxljtSentinel > edxljt);
+	GPOS_ASSERT(EdxljtSentinel > join_type);
 
-	switch (edxljt)
+	switch (join_type)
 	{
 		case EdxljtInner:
-			return CDXLTokens::PstrToken(EdxltokenJoinInner);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenJoinInner);
 
 		case EdxljtLeft:
-			return CDXLTokens::PstrToken(EdxltokenJoinLeft);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenJoinLeft);
 
 		case EdxljtFull:
-			return CDXLTokens::PstrToken(EdxltokenJoinFull);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenJoinFull);
 
 		case EdxljtRight:
-			return CDXLTokens::PstrToken(EdxltokenJoinRight);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenJoinRight);
 
 		case EdxljtIn:
-			return CDXLTokens::PstrToken(EdxltokenJoinIn);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenJoinIn);
 
 		case EdxljtLeftAntiSemijoin:
-			return CDXLTokens::PstrToken(EdxltokenJoinLeftAntiSemiJoin);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenJoinLeftAntiSemiJoin);
 
 		case EdxljtLeftAntiSemijoinNotIn:
-			return CDXLTokens::PstrToken(EdxltokenJoinLeftAntiSemiJoinNotIn);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenJoinLeftAntiSemiJoinNotIn);
 
 		default:
-			return CDXLTokens::PstrToken(EdxltokenUnknown);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenUnknown);
 	}
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLOperator::PstrIndexScanDirection
+//		CDXLOperator::GetIdxScanDirectionStr
 //
 //	@doc:
 //		Return the index scan direction name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLOperator::PstrIndexScanDirection
+CDXLOperator::GetIdxScanDirectionStr
 	(
-	EdxlIndexScanDirection edxlisd
+	EdxlIndexScanDirection idx_scan_direction
 	)
 {
-	switch (edxlisd)
+	switch (idx_scan_direction)
 	{
 		case EdxlisdBackward:
-			return CDXLTokens::PstrToken(EdxltokenIndexScanDirectionBackward);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenIndexScanDirectionBackward);
 
 		case EdxlisdForward:
-			return CDXLTokens::PstrToken(EdxltokenIndexScanDirectionForward);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenIndexScanDirectionForward);
 
 		case EdxlisdNoMovement:
-			return CDXLTokens::PstrToken(EdxltokenIndexScanDirectionNoMovement);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenIndexScanDirectionNoMovement);
 
 		default:
 			GPOS_ASSERT(!"Unrecognized index scan direction");
-			return CDXLTokens::PstrToken(EdxltokenUnknown);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenUnknown);
 	}
 }
 

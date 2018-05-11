@@ -31,10 +31,10 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarSubqueryExistential::CScalarSubqueryExistential
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CScalar(pmp)
+	CScalar(mp)
 {}
 
 //---------------------------------------------------------------------------
@@ -51,30 +51,30 @@ CScalarSubqueryExistential::~CScalarSubqueryExistential()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarSubqueryExistential::PmdidType
+//		CScalarSubqueryExistential::MdidType
 //
 //	@doc:
 //		Type of scalar's value
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarSubqueryExistential::PmdidType() const
+CScalarSubqueryExistential::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	return pmda->PtMDType<IMDTypeBool>()->Pmdid();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	return md_accessor->PtMDType<IMDTypeBool>()->MDId();
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarSubqueryExistential::FMatch
+//		CScalarSubqueryExistential::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarSubqueryExistential::FMatch
+CScalarSubqueryExistential::Matches
 	(
 	COperator *pop
 	)
@@ -97,12 +97,12 @@ CScalarSubqueryExistential::FMatch
 CPartInfo *
 CScalarSubqueryExistential::PpartinfoDerive
 	(
-	IMemoryPool *, // pmp, 
+	IMemoryPool *, // mp, 
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	CPartInfo *ppartinfoChild = exprhdl.Pdprel(0 /*ulChildIndex*/)->Ppartinfo();
+	CPartInfo *ppartinfoChild = exprhdl.GetRelationalProperties(0 /*child_index*/)->Ppartinfo();
 	GPOS_ASSERT(NULL != ppartinfoChild);
 	ppartinfoChild->AddRef();
 	return ppartinfoChild;

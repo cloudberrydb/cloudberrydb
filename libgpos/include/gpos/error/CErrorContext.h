@@ -38,40 +38,40 @@ namespace gpos
 		private:
 
 			// copy of original exception
-			CException m_exc;
+			CException m_exception;
 
 			// exception severity
-			ULONG m_ulSev;
+			ULONG m_severity;
 
 			// flag to indicate if handled yet
-			BOOL m_fPending;
+			BOOL m_pending;
 			
 			// flag to indicate if handled yet
-			BOOL m_fRethrow;
+			BOOL m_rethrown;
 
 			// flag to indicate that we are currently serializing this.
-			BOOL m_fSerializing;
+			BOOL m_serializing;
 
 			// error message buffer
-			WCHAR m_wsz[GPOS_ERROR_MESSAGE_BUFFER_SIZE];
+			WCHAR m_error_msg[GPOS_ERROR_MESSAGE_BUFFER_SIZE];
 			
 			// system error message buffer
-			CHAR m_sz[GPOS_ERROR_MESSAGE_BUFFER_SIZE];
+			CHAR m_system_error_msg[GPOS_ERROR_MESSAGE_BUFFER_SIZE];
 
 			// string with static buffer allocation
-			CWStringStatic m_wss;
+			CWStringStatic m_static_buffer;
 
 			// stack descriptor to store error stack info
-			CStackDescriptor m_sd;
+			CStackDescriptor m_stack_descriptor;
 
 			// list of objects to serialize on exception
-			CList<CSerializable> m_listSerial;
+			CList<CSerializable> m_serializable_objects_list;
 
 			// spinlock protecting the list of serializable objects
-			CSpinlockOS m_slockSerial;
+			CSpinlockOS m_serial_lock;
 
 			// minidump handler
-			CMiniDumper *m_pmdr;
+			CMiniDumper *m_mini_dumper_handle;
 
 			// private copy ctor
 			CErrorContext(const CErrorContext&);
@@ -80,7 +80,7 @@ namespace gpos
 
 			// ctor
 			explicit
-			CErrorContext(CMiniDumper *pmdr = NULL);
+			CErrorContext(CMiniDumper *mini_dumper_handle = NULL);
 			
 			// dtor
 			virtual
@@ -96,72 +96,72 @@ namespace gpos
 
 			// accessors
 			virtual
-			CException Exc() const
+			CException GetException() const
 			{
-				return m_exc;
+				return m_exception;
 			}
 			
 			virtual
-			const WCHAR *WszMsg() const
+			const WCHAR *GetErrorMsg() const
 			{
-				return m_wsz;
+				return m_error_msg;
 			}
 			
-			CStackDescriptor *Psd()
+			CStackDescriptor *GetStackDescriptor()
 			{
-				return &m_sd;
+				return &m_stack_descriptor;
 			}
 
-			CMiniDumper *Pmdr()
+			CMiniDumper *GetMiniDumper()
 			{
-				return m_pmdr;
+				return m_mini_dumper_handle;
 			}
 
 			// register minidump handler
 			void Register
 				(
-				CMiniDumper *pmdr
+				CMiniDumper *mini_dumper_handle
 				)
 			{
-				GPOS_ASSERT(NULL == m_pmdr);
+				GPOS_ASSERT(NULL == m_mini_dumper_handle);
 
-				m_pmdr = pmdr;
+				m_mini_dumper_handle = mini_dumper_handle;
 			}
 
 			// unregister minidump handler
 			void Unregister
 				(
 #ifdef GPOS_DEBUG
-				CMiniDumper *pmdr
+				CMiniDumper *mini_dumper_handle
 #endif // GPOS_DEBUG
 				)
 			{
-				GPOS_ASSERT(pmdr == m_pmdr);
-				m_pmdr = NULL;
+				GPOS_ASSERT(mini_dumper_handle == m_mini_dumper_handle);
+				m_mini_dumper_handle = NULL;
 			}
 
 			// register object to serialize
 			void Register
 				(
-				CSerializable *pserial
+				CSerializable *serializable_obj
 				)
 			{
-				CAutoSpinlock asl(m_slockSerial);
+				CAutoSpinlock asl(m_serial_lock);
 				asl.Lock();
 
-				m_listSerial.Append(pserial);
+				m_serializable_objects_list.Append(serializable_obj);
 			}
 
 			// unregister object to serialize
 			void Unregister
 				(
-				CSerializable *pserial
+				CSerializable *serializable_obj
 				)
 			{
-				CAutoSpinlock asl(m_slockSerial);
+				CAutoSpinlock asl(m_serial_lock);
 				asl.Lock();
 
-				m_listSerial.Remove(pserial);
+				m_serializable_objects_list.Remove(serializable_obj);
 			}
 
 			// serialize registered objects
@@ -173,27 +173,27 @@ namespace gpos
 
 			// severity accessor
 			virtual
-			ULONG UlSev() const
+			ULONG GetSeverity() const
 			{
-				return m_ulSev;
+				return m_severity;
 			}
 
 			// set severity
 			virtual
 			void SetSev
 				(
-				ULONG ulSev
+				ULONG severity
 				)
 			{
-				m_ulSev = ulSev;
+				m_severity = severity;
 			}
 
 			// print error stack trace
 			virtual
 			void AppendStackTrace()
 			{
-				m_wss.AppendFormat(GPOS_WSZ_LIT("\nStack trace:\n"));
-				m_sd.AppendTrace(&m_wss);
+				m_static_buffer.AppendFormat(GPOS_WSZ_LIT("\nStack trace:\n"));
+				m_stack_descriptor.AppendTrace(&m_static_buffer);
 			}
 
 			// print errno message
@@ -201,21 +201,21 @@ namespace gpos
 			void AppendErrnoMsg();
 
 			virtual
-			BOOL FPending() const
+			BOOL IsPending() const
 			{
-				return m_fPending;
+				return m_pending;
 			}
 
 			virtual
-			BOOL FRethrow() const
+			BOOL IsRethrown() const
 			{
-				return m_fRethrow;
+				return m_rethrown;
 			}
 
 			virtual
 			void SetRethrow()
 			{
-				m_fRethrow = true;
+				m_rethrown = true;
 			}
 
 	}; // class CErrorContext

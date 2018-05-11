@@ -21,7 +21,7 @@
 #include "gpos/common/clibwrapper.h"
 #include "gpos/common/CSyncHashtable.h"
 
-#define GPOS_WSZ_WSZLEN(x)    (L##x), (gpos::clib::UlWcsLen(L##x))
+#define GPOS_WSZ_WSZLEN(x)    (L##x), (gpos::clib::Wcslen(L##x))
 
 #define GPOS_ERRMSG_FORMAT(...) \
 	gpos::CMessage::FormatMessage(__VA_ARGS__)
@@ -42,49 +42,49 @@ namespace gpos
 		private:
 
 			// severity
-			ULONG m_ulSev;
+			ULONG m_severity;
 			
 			// format string
-			const WCHAR *m_wszFmt;
+			const WCHAR *m_fmt;
 			
 			// length of format string
-			ULONG m_ulLenFmt;
+			ULONG m_fmt_len;
 
 			// number of parameters
-			ULONG m_ulParams;
+			ULONG m_num_params;
 			
 			// comment string
-			const WCHAR *m_wszComment;
+			const WCHAR *m_comment;
 			
 			// length of commen string
-			ULONG m_ulLenComment;
+			ULONG m_comment_len;
 
 		public:
 		
 			// exception carries error number/identification
-			CException m_exc;
+			CException m_exception;
 
 			// TODO: 6/29/2010: incorporate string class
 			// as soon as available
 			//
 			// ctor
 			CMessage(CException exc, 
-					 ULONG ulSev,
-					 const WCHAR *wszFmt, ULONG ulLenFmt, 
-					 ULONG ulParams,
-					 const WCHAR *wszComment, ULONG ulLenComment);
+					 ULONG severity,
+					 const WCHAR *fmt, ULONG fmt_len,
+					 ULONG num_params,
+					 const WCHAR *comment, ULONG comment_len);
 
 			// copy ctor
 			CMessage(const CMessage&);
 
 			// format contents into given buffer
 			void
-			Format(CWStringStatic *pwss, VA_LIST) const;
+			Format(CWStringStatic *buf, VA_LIST) const;
 
 			// severity accessor
-			ULONG UlSev() const
+			ULONG GetSeverity() const
 			{
-				return m_ulSev;
+				return m_severity;
 			}
 
 			// link object
@@ -92,11 +92,11 @@ namespace gpos
 
 			// access a message by index
 			static
-			CMessage *Pmsg(ULONG ulIndex);
+			CMessage *GetMessage(ULONG index);
 
 			// format an error message
 			static 
-			void FormatMessage(CWStringStatic *pstr, ULONG ulMajor, ULONG ulMinor, ...);
+			void FormatMessage(CWStringStatic *str, ULONG major, ULONG minor, ...);
 			
 #ifdef GPOS_DEBUG
 			// debug print function

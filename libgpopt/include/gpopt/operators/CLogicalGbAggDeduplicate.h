@@ -47,31 +47,31 @@ namespace gpopt
 			CLogicalGbAggDeduplicate(const CLogicalGbAggDeduplicate &);
 
 			// array of keys from the join's child
-			DrgPcr *m_pdrgpcrKeys;
+			CColRefArray *m_pdrgpcrKeys;
 
 		public:
 
 			// ctor
 			explicit
-			CLogicalGbAggDeduplicate(IMemoryPool *pmp);
+			CLogicalGbAggDeduplicate(IMemoryPool *mp);
 
 			// ctor
 			CLogicalGbAggDeduplicate
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
 				COperator::EGbAggType egbaggtype,
-				DrgPcr *pdrgpcrKeys = NULL
+				CColRefArray *pdrgpcrKeys = NULL
 				);
 
 			// ctor
 			CLogicalGbAggDeduplicate
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
-				DrgPcr *pdrgpcrMinimal,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				CColRefArray *pdrgpcrMinimal,
 				COperator::EGbAggType egbaggtype,
-				DrgPcr *pdrgpcrKeys = NULL
+				CColRefArray *pdrgpcrKeys = NULL
 				);
 
 			// dtor
@@ -93,22 +93,22 @@ namespace gpopt
 			}
 
 			// array of keys from the join's child that needs to be deduped
-			DrgPcr *PdrgpcrKeys() const
+			CColRefArray *PdrgpcrKeys() const
 			{
 				return m_pdrgpcrKeys;
 			}
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -116,7 +116,7 @@ namespace gpopt
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required stats columns of the n-th child
 			//-------------------------------------------------------------------------------------
@@ -127,10 +127,10 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
-				ULONG ulChildIndex
+				ULONG child_index
 				)
 				const;
 
@@ -140,15 +140,15 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			// derive statistics
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 

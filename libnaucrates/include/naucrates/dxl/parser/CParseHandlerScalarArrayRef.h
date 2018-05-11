@@ -34,13 +34,13 @@ namespace gpdxl
 		private:
 
 			// number of index lists parsed
-			ULONG m_ulIndexLists;
+			ULONG m_parse_index_lists;
 
 			// whether the parser is currently parsing the ref expr
-			BOOL m_fParsingRefExpr;
+			BOOL m_parsing_ref_expr;
 
 			// whether the parser is currently parsing the assign expr
-			BOOL m_fParsingAssignExpr;
+			BOOL m_parsing_assign_expr;
 
 			// private copy ctor
 			CParseHandlerScalarArrayRef(const CParseHandlerScalarArrayRef&);
@@ -48,27 +48,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor
 			CParseHandlerScalarArrayRef
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

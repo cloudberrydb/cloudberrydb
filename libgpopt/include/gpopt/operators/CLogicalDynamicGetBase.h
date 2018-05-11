@@ -42,22 +42,22 @@ namespace gpopt
 			CTableDescriptor *m_ptabdesc;
 			
 			// dynamic scan id
-			ULONG m_ulScanId;
+			ULONG m_scan_id;
 			
 			// output columns
-			DrgPcr *m_pdrgpcrOutput;
+			CColRefArray *m_pdrgpcrOutput;
 			
 			// partition keys
-			DrgDrgPcr *m_pdrgpdrgpcrPart;
+			CColRef2dArray *m_pdrgpdrgpcrPart;
 
 			// secondary scan id in case of a partial scan
 			ULONG m_ulSecondaryScanId;
 			
 			// is scan partial -- only used with heterogeneous indexes defined on a subset of partitions
-			BOOL m_fPartial;
+			BOOL m_is_partial;
 			
 			// dynamic get part constraint
-			CPartConstraint *m_ppartcnstr;
+			CPartConstraint *m_part_constraint;
 			
 			// relation part constraint
 			CPartConstraint *m_ppartcnstrRel;
@@ -70,37 +70,37 @@ namespace gpopt
 
 			// given a colrefset from a table, get colids and attno
 			void
-			ExtractColIdsAttno(IMemoryPool *pmp, CColRefSet *pcrs, DrgPul *pdrgpulColIds, DrgPul *pdrgpulPos) const;
+			ExtractColIdsAttno(IMemoryPool *mp, CColRefSet *pcrs, ULongPtrArray *colids, ULongPtrArray *pdrgpulPos) const;
 
 			// derive stats from base table using filters on partition and/or index columns
-			IStatistics *PstatsDeriveFilter(IMemoryPool *pmp, CExpressionHandle &exprhdl, CExpression *pexprFilter) const;
+			IStatistics *PstatsDeriveFilter(IMemoryPool *mp, CExpressionHandle &exprhdl, CExpression *pexprFilter) const;
 
 		public:
 		
 			// ctors
 			explicit
-			CLogicalDynamicGetBase(IMemoryPool *pmp);
+			CLogicalDynamicGetBase(IMemoryPool *mp);
 
 			CLogicalDynamicGetBase
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				const CName *pnameAlias,
 				CTableDescriptor *ptabdesc,
-				ULONG ulScanId,
-				DrgPcr *pdrgpcr,
-				DrgDrgPcr *pdrgpdrgpcrPart,
+				ULONG scan_id,
+				CColRefArray *colref_array,
+				CColRef2dArray *pdrgpdrgpcrPart,
 				ULONG ulSecondaryScanId,
-				BOOL fPartial,
+				BOOL is_partial,
 				CPartConstraint *ppartcnstr, 
 				CPartConstraint *ppartcnstrRel
 				);
 			
 			CLogicalDynamicGetBase
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				const CName *pnameAlias,
 				CTableDescriptor *ptabdesc,
-				ULONG ulScanId
+				ULONG scan_id
 				);
 
 			// dtor
@@ -109,7 +109,7 @@ namespace gpopt
 
 			// accessors
 			virtual
-			DrgPcr *PdrgpcrOutput() const
+			CColRefArray *PdrgpcrOutput() const
 			{
 				return m_pdrgpcrOutput;
 			}
@@ -137,14 +137,14 @@ namespace gpopt
 			
 			// return scan id
 			virtual
-			ULONG UlScanId() const
+			ULONG ScanId() const
 			{
-				return m_ulScanId;
+				return m_scan_id;
 			}
 			
 			// return the partition columns
 			virtual
-			DrgDrgPcr *PdrgpdrgpcrPart() const
+			CColRef2dArray *PdrgpdrgpcrPart() const
 			{
 				return m_pdrgpdrgpcrPart;
 			}
@@ -158,16 +158,16 @@ namespace gpopt
 
 			// is this a partial scan -- true if the scan operator corresponds to heterogeneous index
 			virtual
-			BOOL FPartial() const
+			BOOL IsPartial() const
 			{
-				return m_fPartial;
+				return m_is_partial;
 			}
 			
 			// return dynamic get part constraint
 			virtual
 			CPartConstraint *Ppartcnstr() const
 			{
-				return m_ppartcnstr;
+				return m_part_constraint;
 			}
 
 			// return relation part constraint
@@ -183,7 +183,7 @@ namespace gpopt
 			
 			// set secondary scan id
 			virtual
-			void SetSecondaryScanId(ULONG ulScanId);
+			void SetSecondaryScanId(ULONG scan_id);
 			
 			// set scan to partial
 			virtual
@@ -199,21 +199,21 @@ namespace gpopt
 
 			// derive keys
 			virtual 
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CPartInfo *PpartinfoDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 			
 			// derive constraint property
 			virtual
-			CPropConstraint *PpcDeriveConstraint(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CPropConstraint *PpcDeriveConstraint(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 		
 			// derive join depth
 			virtual
-			ULONG UlJoinDepth
+			ULONG JoinDepth
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle & // exprhdl
 				)
 				const

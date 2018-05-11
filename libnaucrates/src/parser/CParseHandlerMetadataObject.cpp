@@ -29,13 +29,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerMetadataObject::CParseHandlerMetadataObject
 	(
-	IMemoryPool *pmp, 
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp, 
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pimdobj(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_imd_obj(NULL)
 {
 }
 
@@ -49,21 +49,21 @@ CParseHandlerMetadataObject::CParseHandlerMetadataObject
 //---------------------------------------------------------------------------
 CParseHandlerMetadataObject::~CParseHandlerMetadataObject()
 {
-	CRefCount::SafeRelease(m_pimdobj);
+	CRefCount::SafeRelease(m_imd_obj);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerMetadataObject::Pimdobj
+//		CParseHandlerMetadataObject::GetImdObj
 //
 //	@doc:
 //		Returns the constructed metadata object.
 //
 //---------------------------------------------------------------------------
 IMDCacheObject *
-CParseHandlerMetadataObject::Pimdobj() const
+CParseHandlerMetadataObject::GetImdObj() const
 {
-	return m_pimdobj;
+	return m_imd_obj;
 }
 
 

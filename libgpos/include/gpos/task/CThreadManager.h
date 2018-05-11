@@ -35,13 +35,13 @@ namespace gpos
 		public:
 
 			// thread descriptor struct; encapsulates PTHREAD_T descriptor
-			struct SThreadDescriptor
+			struct ThreadDescriptor
 			{
 					// pthread descriptor
 					PTHREAD_T m_pthrdt;
 
 					// thread id
-					ULONG ulId;
+					ULONG id;
 
 					// list link
 					SLink m_link;
@@ -49,33 +49,33 @@ namespace gpos
 
 		private:
 
-			typedef CList<SThreadDescriptor> TDL;
+			typedef CList<ThreadDescriptor> TDL;
 
 			// array of thread descriptors
-			SThreadDescriptor m_rgTd[GPOS_THREAD_MAX];
+			ThreadDescriptor m_thread_descriptors[GPOS_THREAD_MAX];
 
 			// list of unused thread descriptors
-			TDL m_tdlUnused;
+			TDL m_unused_descriptors;
 
 			// descriptor list of running threads
-			TDL m_tdlRunning;
+			TDL m_running_descriptors;
 
 			// descriptor list of finished threads
-			TDL m_tdlFinished;
+			TDL m_finished_descriptors;
 
 			// mutex
 			CMutexOS m_mutex;
 
 			// pthread attribute
-			PTHREAD_ATTR_T m_pthrAttr;
+			PTHREAD_ATTR_T m_pthread_attr;
 
 			// run worker;
 			// function run by threads
 			// declared static to be used by pthread_create
-			static void *RunWorker(void *pv);
+			static void *RunWorker(void *worker);
 
 			// mark thread as finished
-			void SetFinished(SThreadDescriptor *ptd);
+			void SetFinished(ThreadDescriptor *descriptor);
 
 			// garbage collection;
 			// join finished threads and recycle their descriptors;
@@ -97,10 +97,10 @@ namespace gpos
 			~CThreadManager();
 
 			// create new thread
-			GPOS_RESULT EresCreate();
+			GPOS_RESULT Create();
 
 			// check if given thread is in the running threads list
-			BOOL FRunningThread(PTHREAD_T pthrdt);
+			BOOL IsThreadRunning(PTHREAD_T thread);
 
 			// shutdown thread manager;
 			// return when all threads are joined (exit);

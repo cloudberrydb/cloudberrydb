@@ -28,18 +28,18 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementSequenceProject::CXformImplementSequenceProject
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformImplementation
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 						(
-						pmp,
-						GPOS_NEW(pmp) CLogicalSequenceProject(pmp),
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // relational child
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))  // scalar child
+						mp,
+						GPOS_NEW(mp) CLogicalSequenceProject(mp),
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // relational child
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))  // scalar child
 						)
 		)
 {}
@@ -66,7 +66,7 @@ CXformImplementSequenceProject::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprRelational = (*pexpr)[0];
@@ -79,18 +79,18 @@ CXformImplementSequenceProject::Transform
 	// extract members of logical sequence project operator
 	CLogicalSequenceProject *popLogicalSequenceProject = CLogicalSequenceProject::PopConvert(pexpr->Pop());
 	CDistributionSpec *pds = popLogicalSequenceProject->Pds();
-	DrgPos *pdrgpos = popLogicalSequenceProject->Pdrgpos();
-	DrgPwf *pdrgpwf = popLogicalSequenceProject->Pdrgpwf();
+	COrderSpecArray *pdrgpos = popLogicalSequenceProject->Pdrgpos();
+	CWindowFrameArray *pdrgpwf = popLogicalSequenceProject->Pdrgpwf();
 	pds->AddRef();
 	pdrgpos->AddRef();
 	pdrgpwf->AddRef();
 
 	// assemble physical operator
 	CExpression *pexprSequenceProject =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CPhysicalSequenceProject(pmp, pds, pdrgpos, pdrgpwf),
+					mp,
+					GPOS_NEW(mp) CPhysicalSequenceProject(mp, pds, pdrgpos, pdrgpwf),
 					pexprRelational,
 					pexprScalar
 					);

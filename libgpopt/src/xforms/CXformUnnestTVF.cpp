@@ -29,17 +29,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformUnnestTVF::CXformUnnestTVF
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalTVF(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternMultiTree(pmp)) // variable number of args, each is a deep tree
+				mp,
+				GPOS_NEW(mp) CLogicalTVF(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiTree(mp)) // variable number of args, each is a deep tree
 				)
 		)
 {}
@@ -60,10 +60,10 @@ CXformUnnestTVF::Exfp
 	)
 	const
 {
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		if (exprhdl.Pdpscalar(ul)->FHasSubquery())
+		if (exprhdl.GetDrvdScalarProps(ul)->FHasSubquery())
 		{
 			// xform is applicable if TVF argument is a subquery
 			return CXform::ExfpHigh;
@@ -83,10 +83,10 @@ CXformUnnestTVF::Exfp
 //		after mapping to consumer output
 //
 //---------------------------------------------------------------------------
-DrgPcr *
+CColRefArray *
 CXformUnnestTVF::PdrgpcrSubqueries
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprCTEProd,
 	CExpression *pexprCTECons
 	)
@@ -94,29 +94,29 @@ CXformUnnestTVF::PdrgpcrSubqueries
 	CExpression *pexprProject = (*pexprCTEProd)[0];
 	GPOS_ASSERT(COperator::EopLogicalProject == pexprProject->Pop()->Eopid());
 
-	DrgPcr *pdrgpcrProdOutput = CDrvdPropRelational::Pdprel(pexprCTEProd->PdpDerive())->PcrsOutput()->Pdrgpcr(pmp);
-	DrgPcr *pdrgpcrConsOutput = CDrvdPropRelational::Pdprel(pexprCTECons->PdpDerive())->PcrsOutput()->Pdrgpcr(pmp);
-	GPOS_ASSERT(pdrgpcrProdOutput->UlLength() == pdrgpcrConsOutput->UlLength());
+	CColRefArray *pdrgpcrProdOutput = CDrvdPropRelational::GetRelationalProperties(pexprCTEProd->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrConsOutput = CDrvdPropRelational::GetRelationalProperties(pexprCTECons->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	GPOS_ASSERT(pdrgpcrProdOutput->Size() == pdrgpcrConsOutput->Size());
 
-	DrgPcr *pdrgpcr = GPOS_NEW(pmp) DrgPcr(pmp);
-	const ULONG ulPrjElems = (*pexprProject)[1]->UlArity();
+	CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
+	const ULONG ulPrjElems = (*pexprProject)[1]->Arity();
 	for (ULONG ulOuter = 0; ulOuter < ulPrjElems; ulOuter++)
 	{
 		CExpression *pexprPrjElem = (*(*pexprProject)[1])[ulOuter];
-		if (CDrvdPropScalar::Pdpscalar((*pexprPrjElem)[0]->PdpDerive())->FHasSubquery())
+		if (CDrvdPropScalar::GetDrvdScalarProps((*pexprPrjElem)[0]->PdpDerive())->FHasSubquery())
 		{
 			CColRef *pcrProducer = CScalarProjectElement::PopConvert(pexprPrjElem->Pop())->Pcr();
 			CColRef *pcrConsumer =  CUtils::PcrMap(pcrProducer, pdrgpcrProdOutput, pdrgpcrConsOutput);
 			GPOS_ASSERT(NULL != pcrConsumer);
 
-			pdrgpcr->Append(pcrConsumer);
+			colref_array->Append(pcrConsumer);
 		}
 	}
 
 	pdrgpcrProdOutput->Release();
 	pdrgpcrConsOutput->Release();
 
-	return pdrgpcr;
+	return colref_array;
 }
 
 
@@ -132,28 +132,28 @@ CXformUnnestTVF::PdrgpcrSubqueries
 CExpression *
 CXformUnnestTVF::PexprProjectSubqueries
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprTVF
 	)
 {
 	GPOS_ASSERT(COperator::EopLogicalTVF == pexprTVF->Pop()->Eopid());
 
 	// collect subquery arguments
-	DrgPexpr *pdrgpexprSubqueries = GPOS_NEW(pmp) DrgPexpr(pmp);
-	const ULONG ulArity = pexprTVF->UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	CExpressionArray *pdrgpexprSubqueries = GPOS_NEW(mp) CExpressionArray(mp);
+	const ULONG arity = pexprTVF->Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CExpression *pexprScalarChild = (*pexprTVF)[ul];
-		if (CDrvdPropScalar::Pdpscalar(pexprScalarChild->PdpDerive())->FHasSubquery())
+		if (CDrvdPropScalar::GetDrvdScalarProps(pexprScalarChild->PdpDerive())->FHasSubquery())
 		{
 			pexprScalarChild->AddRef();
 			pdrgpexprSubqueries->Append(pexprScalarChild);
 		}
 	}
-	GPOS_ASSERT(0 < pdrgpexprSubqueries->UlLength());
+	GPOS_ASSERT(0 < pdrgpexprSubqueries->Size());
 
-	CExpression *pexprCTG = CUtils::PexprLogicalCTGDummy(pmp);
-	CExpression *pexprProject = CUtils::PexprAddProjection(pmp, pexprCTG, pdrgpexprSubqueries);
+	CExpression *pexprCTG = CUtils::PexprLogicalCTGDummy(mp);
+	CExpression *pexprProject = CUtils::PexprAddProjection(mp, pexprCTG, pdrgpexprSubqueries);
 	pdrgpexprSubqueries->Release();
 
 	return pexprProject;
@@ -195,54 +195,54 @@ CXformUnnestTVF::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// create a project expression on subquery arguments
-	CExpression *pexprProject = PexprProjectSubqueries(pmp, pexpr);
+	CExpression *pexprProject = PexprProjectSubqueries(mp, pexpr);
 
 	// create a CTE producer on top of the project
 	CCTEInfo *pcteinfo = COptCtxt::PoctxtFromTLS()->Pcteinfo();
-	const ULONG ulCTEId = pcteinfo->UlNextId();
+	const ULONG ulCTEId = pcteinfo->next_id();
 
 	// construct CTE producer output from subquery columns
-	DrgPcr *pdrgpcrOutput = GPOS_NEW(pmp) DrgPcr(pmp);
-	const ULONG ulPrjElems = (*pexprProject)[1]->UlArity();
+	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+	const ULONG ulPrjElems = (*pexprProject)[1]->Arity();
 	for (ULONG ulOuter = 0; ulOuter < ulPrjElems; ulOuter++)
 	{
 		CExpression *pexprPrjElem = (*(*pexprProject)[1])[ulOuter];
-		if (CDrvdPropScalar::Pdpscalar((*pexprPrjElem)[0]->PdpDerive())->FHasSubquery())
+		if (CDrvdPropScalar::GetDrvdScalarProps((*pexprPrjElem)[0]->PdpDerive())->FHasSubquery())
 		{
 			CColRef *pcrSubq = CScalarProjectElement::PopConvert(pexprPrjElem->Pop())->Pcr();
 			pdrgpcrOutput->Append(pcrSubq);
 		}
 	}
 
-	CExpression *pexprCTEProd = CXformUtils::PexprAddCTEProducer(pmp, ulCTEId, pdrgpcrOutput, pexprProject);
+	CExpression *pexprCTEProd = CXformUtils::PexprAddCTEProducer(mp, ulCTEId, pdrgpcrOutput, pexprProject);
 	pdrgpcrOutput->Release();
 	pexprProject->Release();
 
 	// create CTE consumer
-	DrgPcr *pdrgpcrProducerOutput = CDrvdPropRelational::Pdprel(pexprCTEProd->PdpDerive())->PcrsOutput()->Pdrgpcr(pmp);
-	DrgPcr *pdrgpcrConsumerOutput = CUtils::PdrgpcrCopy(pmp, pdrgpcrProducerOutput);
-	CLogicalCTEConsumer *popConsumer = GPOS_NEW(pmp) CLogicalCTEConsumer(pmp, ulCTEId, pdrgpcrConsumerOutput);
-	CExpression *pexprCTECons = GPOS_NEW(pmp) CExpression(pmp, popConsumer);
+	CColRefArray *pdrgpcrProducerOutput = CDrvdPropRelational::GetRelationalProperties(pexprCTEProd->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
+	CColRefArray *pdrgpcrConsumerOutput = CUtils::PdrgpcrCopy(mp, pdrgpcrProducerOutput);
+	CLogicalCTEConsumer *popConsumer = GPOS_NEW(mp) CLogicalCTEConsumer(mp, ulCTEId, pdrgpcrConsumerOutput);
+	CExpression *pexprCTECons = GPOS_NEW(mp) CExpression(mp, popConsumer);
 	pcteinfo->IncrementConsumers(ulCTEId);
 	pdrgpcrProducerOutput->Release();
 
 	// find columns corresponding to subqueries in consumer's output
-	DrgPcr *pdrgpcrSubqueries = PdrgpcrSubqueries(pmp, pexprCTEProd, pexprCTECons);
+	CColRefArray *pdrgpcrSubqueries = PdrgpcrSubqueries(mp, pexprCTEProd, pexprCTECons);
 
 	// create new function arguments by replacing subqueries with columns in CTE consumer output
-	DrgPexpr *pdrgpexprNewArgs = GPOS_NEW(pmp) DrgPexpr(pmp);
+	CExpressionArray *pdrgpexprNewArgs = GPOS_NEW(mp) CExpressionArray(mp);
 	ULONG ulIndex = 0;
-	const ULONG ulArity = pexpr->UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = pexpr->Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CExpression *pexprScalarChild = (*pexpr)[ul];
-		if (CDrvdPropScalar::Pdpscalar(pexprScalarChild->PdpDerive())->FHasSubquery())
+		if (CDrvdPropScalar::GetDrvdScalarProps(pexprScalarChild->PdpDerive())->FHasSubquery())
 		{
-			CColRef *pcr =(*pdrgpcrSubqueries)[ulIndex];
-			pdrgpexprNewArgs->Append(CUtils::PexprScalarIdent(pmp, pcr));
+			CColRef *colref =(*pdrgpcrSubqueries)[ulIndex];
+			pdrgpexprNewArgs->Append(CUtils::PexprScalarIdent(mp, colref));
 			ulIndex++;
 		}
 		else
@@ -258,19 +258,19 @@ CXformUnnestTVF::Transform
 	CExpression *pexprCorrApply =
 		CUtils::PexprLogicalApply<CLogicalLeftOuterCorrelatedApply>
 				(
-				pmp,
-				GPOS_NEW(pmp) CExpression(pmp, popTVF, pdrgpexprNewArgs),
+				mp,
+				GPOS_NEW(mp) CExpression(mp, popTVF, pdrgpexprNewArgs),
 				pexprCTECons,
 				pdrgpcrSubqueries,
 				COperator::EopScalarSubquery,
-				CPredicateUtils::PexprConjunction(pmp, NULL /*pdrgpexpr*/)	// scalar expression is const True
+				CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/)	// scalar expression is const True
 				);
 
 	CExpression *pexprAlt =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CLogicalCTEAnchor(pmp, ulCTEId),
+			mp,
+			GPOS_NEW(mp) CLogicalCTEAnchor(mp, ulCTEId),
 			pexprCorrApply
 			);
 

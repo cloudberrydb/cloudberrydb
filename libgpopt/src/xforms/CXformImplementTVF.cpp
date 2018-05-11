@@ -27,17 +27,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementTVF::CXformImplementTVF
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementation
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalTVF(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternMultiLeaf(pmp))
+				mp,
+				GPOS_NEW(mp) CLogicalTVF(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiLeaf(mp))
 				)
 		)
 {}
@@ -74,10 +74,10 @@ CXformImplementTVF::Exfp
 	)
 	const
 {
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		if (exprhdl.Pdpscalar(ul)->FHasSubquery())
+		if (exprhdl.GetDrvdScalarProps(ul)->FHasSubquery())
 		{
 			// xform is inapplicable if TVF argument is a subquery
 			return CXform::ExfpNone;
@@ -110,38 +110,38 @@ CXformImplementTVF::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalTVF *popTVF = CLogicalTVF::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// create/extract components for alternative
-	IMDId *pmdidFunc = popTVF->PmdidFunc();
-	pmdidFunc->AddRef();
+	IMDId *mdid_func = popTVF->FuncMdId();
+	mdid_func->AddRef();
 
-	IMDId *pmdidRetType = popTVF->PmdidRetType();
-	pmdidRetType->AddRef();
+	IMDId *mdid_return_type = popTVF->ReturnTypeMdId();
+	mdid_return_type->AddRef();
 
-	CWStringConst *pstr = GPOS_NEW(pmp) CWStringConst(popTVF->Pstr()->Wsz());
+	CWStringConst *str = GPOS_NEW(mp) CWStringConst(popTVF->Pstr()->GetBuffer());
 
-	DrgPcoldesc *pdrgpcoldesc = popTVF->Pdrgpcoldesc();
+	CColumnDescriptorArray *pdrgpcoldesc = popTVF->Pdrgpcoldesc();
 	pdrgpcoldesc->AddRef();
 
-	DrgPcr *pdrgpcrOutput = popTVF->PdrgpcrOutput();
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefArray *pdrgpcrOutput = popTVF->PdrgpcrOutput();
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
 	pcrs->Include(pdrgpcrOutput);
 
-	DrgPexpr *pdrgpexpr = pexpr->PdrgPexpr();
+	CExpressionArray *pdrgpexpr = pexpr->PdrgPexpr();
 
-	CPhysicalTVF *pphTVF = GPOS_NEW(pmp) CPhysicalTVF(pmp, pmdidFunc, pmdidRetType, pstr, pdrgpcoldesc, pcrs);
+	CPhysicalTVF *pphTVF = GPOS_NEW(mp) CPhysicalTVF(mp, mdid_func, mdid_return_type, str, pdrgpcoldesc, pcrs);
 
 	CExpression *pexprAlt = NULL;
 	// create alternative expression
-	if(NULL == pdrgpexpr || 0 == pdrgpexpr->UlLength())
+	if(NULL == pdrgpexpr || 0 == pdrgpexpr->Size())
 	{
-		pexprAlt = GPOS_NEW(pmp) CExpression(pmp, pphTVF);
+		pexprAlt = GPOS_NEW(mp) CExpression(mp, pphTVF);
 	}
 	else
 	{
 		pdrgpexpr->AddRef();
-		pexprAlt = GPOS_NEW(pmp) CExpression(pmp, pphTVF, pdrgpexpr);
+		pexprAlt = GPOS_NEW(mp) CExpression(mp, pphTVF, pdrgpexpr);
 	}
 
 	// add alternative to transformation result

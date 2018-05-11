@@ -3,7 +3,7 @@
 //	Copyright (C) 2009 - 2011 EMC CORP.
 //
 //	@filename:
-//		CDrvdProp.h
+//		DrvdPropArray.h
 //
 //	@doc:
 //		Base class for all derived properties
@@ -23,23 +23,23 @@ namespace gpopt
 	// fwd declarations
 	class CExpressionHandle;
 	class COperator;
-	class CDrvdProp;
+	class DrvdPropArray;
 	class CDrvdPropCtxt;
 	class CReqdPropPlan;
 	
 	// dynamic array for properties
-	typedef CDynamicPtrArray<CDrvdProp, CleanupRelease> DrgPdp;
+	typedef CDynamicPtrArray<DrvdPropArray, CleanupRelease> CDrvdProp2dArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
-	//		CDrvdProp
+	//		DrvdPropArray
 	//
 	//	@doc:
 	//		Abstract base class for all derived properties. Individual property
-	//		components are added separately. CDrvdProp is memory pool-agnostic.
+	//		components are added separately. DrvdPropArray is memory pool-agnostic.
 	//
 	//		All derived property classes implement a pure virtual function
-	//		CDrvdProp::Derive(). This function is responsible for filling in the
+	//		DrvdPropArray::Derive(). This function is responsible for filling in the
 	//		different properties in the property container. For example
 	//		CDrvdPropScalar::Derive() fills in used and defined columns in the
 	//		current scalar property container.
@@ -62,7 +62,7 @@ namespace gpopt
 	//		CExpressionHandle::DeriveProps().
 	//
 	//---------------------------------------------------------------------------
-	class CDrvdProp : public CRefCount
+	class DrvdPropArray : public CRefCount
 	{
 
 		public:
@@ -81,16 +81,16 @@ namespace gpopt
 		private:
 
 			// private copy ctor
-			CDrvdProp(const CDrvdProp &);
+			DrvdPropArray(const DrvdPropArray &);
 
 		public:
 
 			// ctor
-			CDrvdProp();
+			DrvdPropArray();
 
 			// dtor
 			virtual 
-			~CDrvdProp() {}
+			~DrvdPropArray() {}
 
 			// type of properties
 			virtual
@@ -98,7 +98,7 @@ namespace gpopt
 
 			// derivation function
 			virtual
-			void Derive(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdppropctxt) = 0;
+			void Derive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdppropctxt) = 0;
 
 			// check for satisfying required plan properties
 			virtual
@@ -113,10 +113,10 @@ namespace gpopt
 			void DbgPrint() const;
 #endif // GPOS_DEBUG
 
-	}; // class CDrvdProp
+	}; // class DrvdPropArray
 
  	// shorthand for printing
-	IOstream &operator << (IOstream &os, const CDrvdProp &drvdprop);
+	IOstream &operator << (IOstream &os, const DrvdPropArray &drvdprop);
 
 }
 

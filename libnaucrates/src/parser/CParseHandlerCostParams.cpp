@@ -31,13 +31,13 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CParseHandlerCostParams::CParseHandlerCostParams
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pcp(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_cost_model_params(NULL)
 {}
 
 
@@ -51,7 +51,7 @@ CParseHandlerCostParams::CParseHandlerCostParams
 //---------------------------------------------------------------------------
 CParseHandlerCostParams::~CParseHandlerCostParams()
 {
-	CRefCount::SafeRelease(m_pcp);
+	CRefCount::SafeRelease(m_cost_model_params);
 }
 
 
@@ -66,34 +66,34 @@ CParseHandlerCostParams::~CParseHandlerCostParams()
 void
 CParseHandlerCostParams::StartElement
 	(
-	const XMLCh* const xmlstrUri,
-	const XMLCh* const xmlstrLocalname,
-	const XMLCh* const xmlstrQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParams), xmlstrLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParams), element_local_name))
 	{
 		// as of now, we only parse params of GPDB cost model
-		m_pcp = GPOS_NEW(m_pmp) CCostModelParamsGPDB(m_pmp);
+		m_cost_model_params = GPOS_NEW(m_mp) CCostModelParamsGPDB(m_mp);
 	}
-	else if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParam), xmlstrLocalname))
+	else if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParam), element_local_name))
 	{
-		GPOS_ASSERT(NULL != m_pcp);
+		GPOS_ASSERT(NULL != m_cost_model_params);
 
 		// start new search stage
-		CParseHandlerBase *pphCostParam = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenCostParam), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphCostParam);
+		CParseHandlerBase *parse_handler_cost_params = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenCostParam), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(parse_handler_cost_params);
 
 		// store parse handler
-		this->Append(pphCostParam);
+		this->Append(parse_handler_cost_params);
 
-		pphCostParam->startElement(xmlstrUri, xmlstrLocalname, xmlstrQname, attrs);
+		parse_handler_cost_params->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlstrLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -109,26 +109,26 @@ CParseHandlerCostParams::StartElement
 void
 CParseHandlerCostParams::EndElement
 	(
-	const XMLCh* const, // xmlstrUri,
-	const XMLCh* const xmlstrLocalname,
-	const XMLCh* const // xmlstrQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParams), xmlstrLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParams), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlstrLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	const ULONG ulSize = this->UlLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	const ULONG length = this->Length();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		CParseHandlerCostParam *pphCostParam = dynamic_cast<CParseHandlerCostParam*>((*this)[ul]);
-		m_pcp->SetParam(pphCostParam->SzName(), pphCostParam->DVal(), pphCostParam->DLowerBound(), pphCostParam->DUpperBound());
+		CParseHandlerCostParam *parse_handler_cost_params = dynamic_cast<CParseHandlerCostParam*>((*this)[ul]);
+		m_cost_model_params->SetParam(parse_handler_cost_params->GetName(), parse_handler_cost_params->Get(), parse_handler_cost_params->GetLowerBoundVal(), parse_handler_cost_params->GetUpperBoundVal());
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

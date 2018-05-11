@@ -32,16 +32,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CDrvdPropCtxtPlan::CDrvdPropCtxtPlan
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	BOOL fUpdateCTEMap
 	)
 	:
-	CDrvdPropCtxt(pmp),
+	CDrvdPropCtxt(mp),
 	m_phmulpdpCTEs(NULL),
 	m_ulExpectedPartitionSelectors(0),
 	m_fUpdateCTEMap(fUpdateCTEMap)
 {
-	m_phmulpdpCTEs = GPOS_NEW(m_pmp) HMUlPdp(m_pmp);
+	m_phmulpdpCTEs = GPOS_NEW(m_mp) UlongToDrvdPropPlanMap(m_mp);
 }
 
 
@@ -70,23 +70,23 @@ CDrvdPropCtxtPlan::~CDrvdPropCtxtPlan()
 CDrvdPropCtxt *
 CDrvdPropCtxtPlan::PdpctxtCopy
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CDrvdPropCtxtPlan *pdpctxtplan = GPOS_NEW(pmp) CDrvdPropCtxtPlan(pmp);
+	CDrvdPropCtxtPlan *pdpctxtplan = GPOS_NEW(mp) CDrvdPropCtxtPlan(mp);
 	pdpctxtplan->m_ulExpectedPartitionSelectors = m_ulExpectedPartitionSelectors;
 
-	HMUlPdpIter hmulpdpiter(m_phmulpdpCTEs);
-	while (hmulpdpiter.FAdvance())
+	UlongToDrvdPropPlanMapIter hmulpdpiter(m_phmulpdpCTEs);
+	while (hmulpdpiter.Advance())
 	{
-		ULONG ulId = *(hmulpdpiter.Pk());
-		CDrvdPropPlan *pdpplan = const_cast<CDrvdPropPlan *>(hmulpdpiter.Pt());
+		ULONG id = *(hmulpdpiter.Key());
+		CDrvdPropPlan *pdpplan = const_cast<CDrvdPropPlan *>(hmulpdpiter.Value());
 		pdpplan->AddRef();
 	#ifdef GPOS_DEBUG
 		BOOL fInserted =
 	#endif // GPOS_DEBUG
-			pdpctxtplan->m_phmulpdpCTEs->FInsert(GPOS_NEW(m_pmp) ULONG(ulId), pdpplan);
+			pdpctxtplan->m_phmulpdpCTEs->Insert(GPOS_NEW(m_mp) ULONG(id), pdpplan);
 		GPOS_ASSERT(fInserted);
 	}
 
@@ -105,10 +105,10 @@ CDrvdPropCtxtPlan::PdpctxtCopy
 void
 CDrvdPropCtxtPlan::AddProps
 	(
-	CDrvdProp *pdp
+	DrvdPropArray *pdp
 	)
 {
-	if (CDrvdProp::EptPlan != pdp->Ept())
+	if (DrvdPropArray::EptPlan != pdp->Ept())
 	{
 		// passed property is not a plan property container
 		return;
@@ -117,7 +117,7 @@ CDrvdPropCtxtPlan::AddProps
 	CDrvdPropPlan *pdpplan = CDrvdPropPlan::Pdpplan(pdp);
 
 	ULONG ulProducerId = gpos::ulong_max;
-	CDrvdPropPlan *pdpplanProducer = pdpplan->Pcm()->PdpplanProducer(&ulProducerId);
+	CDrvdPropPlan *pdpplanProducer = pdpplan->GetCostModel()->PdpplanProducer(&ulProducerId);
 	if (NULL == pdpplanProducer)
 	{
 		return;
@@ -129,7 +129,7 @@ CDrvdPropCtxtPlan::AddProps
 #ifdef GPOS_DEBUG
 		BOOL fInserted =
 #endif // GPOS_DEBUG
-				m_phmulpdpCTEs->FInsert(GPOS_NEW(m_pmp) ULONG(ulProducerId), pdpplanProducer);
+				m_phmulpdpCTEs->Insert(GPOS_NEW(m_mp) ULONG(ulProducerId), pdpplanProducer);
 		GPOS_ASSERT(fInserted);
 	}
 }
@@ -151,13 +151,13 @@ CDrvdPropCtxtPlan::OsPrint
 	const
 {
 	// iterate on local map and print entries
-	HMUlPdpIter hmulpdpiter(m_phmulpdpCTEs);
-	while (hmulpdpiter.FAdvance())
+	UlongToDrvdPropPlanMapIter hmulpdpiter(m_phmulpdpCTEs);
+	while (hmulpdpiter.Advance())
 	{
-		ULONG ulId = *(hmulpdpiter.Pk());
-		CDrvdPropPlan *pdpplan = const_cast<CDrvdPropPlan *>(hmulpdpiter.Pt());
+		ULONG id = *(hmulpdpiter.Key());
+		CDrvdPropPlan *pdpplan = const_cast<CDrvdPropPlan *>(hmulpdpiter.Value());
 
-		os << ulId << "-->" << *pdpplan << std::endl;
+		os << id << "-->" << *pdpplan << std::endl;
 	}
 
 	return os;
@@ -181,7 +181,7 @@ CDrvdPropCtxtPlan::PdpplanCTEProducer
 {
 	GPOS_ASSERT(NULL != m_phmulpdpCTEs);
 
-	return m_phmulpdpCTEs->PtLookup(&ulCTEId);
+	return m_phmulpdpCTEs->Find(&ulCTEId);
 }
 
 
@@ -206,7 +206,7 @@ CDrvdPropCtxtPlan::CopyCTEProducerProps
 #ifdef GPOS_DEBUG
 	BOOL fInserted =
 #endif // GPOS_DEBUG
-		m_phmulpdpCTEs->FInsert(GPOS_NEW(m_pmp) ULONG(ulCTEId), pdpplan);
+		m_phmulpdpCTEs->Insert(GPOS_NEW(m_mp) ULONG(ulCTEId), pdpplan);
 	GPOS_ASSERT(fInserted);
 }
 
@@ -226,25 +226,25 @@ CDrvdPropCtxtPlan::SetExpectedPartitionSelectors
 	CCostContext *pcc
 	)
 {
-	ULONG ulScanId = 0;
+	ULONG scan_id = 0;
 	if (CUtils::FPhysicalScan(pop) && CPhysicalScan::PopConvert(pop)->FDynamicScan())
 	{
-		ulScanId = CPhysicalDynamicScan::PopConvert(pop)->UlScanId();
+		scan_id = CPhysicalDynamicScan::PopConvert(pop)->ScanId();
 	}
-	else if (COperator::EopPhysicalSerialUnionAll == pop->Eopid() && CPhysicalUnionAll::PopConvert(pop)->FPartialIndex())
+	else if (COperator::EopPhysicalSerialUnionAll == pop->Eopid() && CPhysicalUnionAll::PopConvert(pop)->IsPartialIndex())
 	{
-		ulScanId = CPhysicalUnionAll::PopConvert(pop)->UlScanIdPartialIndex();
+		scan_id = CPhysicalUnionAll::PopConvert(pop)->UlScanIdPartialIndex();
 	}
 	else if (COperator::EopPhysicalPartitionSelector == pop->Eopid())
 	{
-		ulScanId = CPhysicalPartitionSelector::PopConvert(pop)->UlScanId();
+		scan_id = CPhysicalPartitionSelector::PopConvert(pop)->ScanId();
 	}
 	else
 	{
 		return;
 	}
 
-	m_ulExpectedPartitionSelectors = pcc->Poc()->Prpp()->Pepp()->PppsRequired()->Ppim()->UlExpectedPropagators(ulScanId);
+	m_ulExpectedPartitionSelectors = pcc->Poc()->Prpp()->Pepp()->PppsRequired()->Ppim()->UlExpectedPropagators(scan_id);
 }
 
 // EOF

@@ -46,7 +46,7 @@ namespace gpos
 			void Serialize(COstream &oos) = 0;
 
 			// link for list in error context
-			SLink m_linkErrCtxt;
+			SLink m_err_ctxt_link;
 
 	}; // class CSerializable
 }

@@ -36,10 +36,10 @@ namespace gpdxl
 		private:
 
 			// return type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// min/max type
-			CDXLScalarMinMax::EdxlMinMaxType m_emmt;
+			CDXLScalarMinMax::EdxlMinMaxType m_min_max_type;
 
 			// private copy ctor
 			CParseHandlerScalarMinMax(const CParseHandlerScalarMinMax &);
@@ -47,31 +47,31 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 					(
-					const XMLCh* const xmlszUri,
-					const XMLCh* const xmlszLocalname,
-					const XMLCh* const xmlszQname,
+					const XMLCh* const element_uri,
+					const XMLCh* const element_local_name,
+					const XMLCh* const element_qname,
 					const Attributes& attr
 					);
 
 			// process the end of an element
 			void EndElement
 					(
-					const XMLCh* const xmlszUri,
-					const XMLCh* const xmlszLocalname,
-					const XMLCh* const xmlszQname
+					const XMLCh* const element_uri,
+					const XMLCh* const element_local_name,
+					const XMLCh* const element_qname
 					);
 
 			// parse the min/max type from the attribute value
 			static
-			CDXLScalarMinMax::EdxlMinMaxType Emmt(const XMLCh *xmlszLocalname);
+			CDXLScalarMinMax::EdxlMinMaxType GetMinMaxType(const XMLCh *element_local_name);
 
 		public:
 			// ctor
 			CParseHandlerScalarMinMax
 					(
-					IMemoryPool *pmp,
-					CParseHandlerManager *pphm,
-					CParseHandlerBase *pphRoot
+					IMemoryPool *mp,
+					CParseHandlerManager *parse_handler_mgr,
+					CParseHandlerBase *parse_handler_root
 					);
 
 		};

@@ -25,33 +25,33 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CStatsPredConj::CStatsPredConj
 	(
-	DrgPstatspred *pdrgpstatspred
+	CStatsPredPtrArry *conj_pred_stats_array
 	)
 	:
 	CStatsPred(gpos::ulong_max),
-	m_pdrgpstatspred(pdrgpstatspred)
+	m_conj_pred_stats_array(conj_pred_stats_array)
 {
-	GPOS_ASSERT(NULL != pdrgpstatspred);
-	m_ulColId = CStatisticsUtils::UlColId(pdrgpstatspred);
+	GPOS_ASSERT(NULL != conj_pred_stats_array);
+	m_colid = CStatisticsUtils::GetColId(conj_pred_stats_array);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatsPredConj::Pstatspred
+//		CStatsPredConj::GetPredStats
 //
 //	@doc:
 //		Return the filter at a particular position
 //
 //---------------------------------------------------------------------------
 CStatsPred *
-CStatsPredConj::Pstatspred
+CStatsPredConj::GetPredStats
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	return (*m_pdrgpstatspred)[ulPos];
+	return (*m_conj_pred_stats_array)[pos];
 }
 
 
@@ -66,26 +66,26 @@ CStatsPredConj::Pstatspred
 void
 CStatsPredConj::Sort() const
 {
-	if (1 < UlFilters())
+	if (1 < GetNumPreds())
 	{
 		// sort the filters on column ids
-		m_pdrgpstatspred->Sort(CStatsPred::IStatsFilterCmp);
+		m_conj_pred_stats_array->Sort(CStatsPred::StatsPredSortCmpFunc);
 	}
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatsPredConj::UlColId
+//		CStatsPredConj::GetColId
 //
 //	@doc:
 //		Return the column identifier on which the predicates are on
 //
 //---------------------------------------------------------------------------
 ULONG
-CStatsPredConj::UlColId() const
+CStatsPredConj::GetColId() const
 {
-	return m_ulColId;
+	return m_colid;
 }
 
 // EOF

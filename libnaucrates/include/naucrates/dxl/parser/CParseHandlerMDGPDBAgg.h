@@ -38,25 +38,25 @@ namespace gpdxl
 	{
 		private:
 			// metadata id comprising of id and version info.
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 					
 			// result type
-			IMDId *m_pmdidTypeResult;
+			IMDId *m_mdid_type_result;
 			
 			// intermediate result type
-			IMDId *m_pmdidTypeIntermediate;
+			IMDId *m_mdid_type_intermediate;
 						
 			// is aggregate ordered
-			BOOL m_fOrdered;
+			BOOL m_is_ordered;
 			
 			// is aggregate splittable
-			BOOL m_fSplittable;
+			BOOL m_is_splittable;
 			
 			// can we use hash aggregation to compute agg function
-			BOOL m_fHashAggCapable;
+			BOOL m_hash_agg_capable;
 
 			// private copy ctor
 			CParseHandlerMDGPDBAgg(const CParseHandlerMDGPDBAgg &);
@@ -64,27 +64,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 						
 		public:
 			// ctor
 			CParseHandlerMDGPDBAgg
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);			
 	};
 }

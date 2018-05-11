@@ -18,88 +18,88 @@ using namespace gpmd;
 
 // initialize static members
 // invalid key
-CMDIdGPDB CMDIdGPDB::m_mdidInvalidKey(0, 0, 0);
+CMDIdGPDB CMDIdGPDB::m_mdid_invalid_key(0, 0, 0);
 
 // int2 mdid
-CMDIdGPDB CMDIdGPDB::m_mdidInt2(GPDB_INT2);
+CMDIdGPDB CMDIdGPDB::m_mdid_int2(GPDB_INT2);
 
 // int4 mdid
-CMDIdGPDB CMDIdGPDB::m_mdidInt4(GPDB_INT4);
+CMDIdGPDB CMDIdGPDB::m_mdid_int4(GPDB_INT4);
 
 // int8 mdid
-CMDIdGPDB CMDIdGPDB::m_mdidInt8(GPDB_INT8);
+CMDIdGPDB CMDIdGPDB::m_mdid_int8(GPDB_INT8);
 
 // bool mdid
-CMDIdGPDB CMDIdGPDB::m_mdidBool(GPDB_BOOL);
+CMDIdGPDB CMDIdGPDB::m_mdid_bool(GPDB_BOOL);
 
 // oid mdid
-CMDIdGPDB CMDIdGPDB::m_mdidOid(GPDB_OID);
+CMDIdGPDB CMDIdGPDB::m_mdid_oid(GPDB_OID);
 
 // numeric mdid
-CMDIdGPDB CMDIdGPDB::m_mdidNumeric(GPDB_NUMERIC);
+CMDIdGPDB CMDIdGPDB::m_mdid_numeric(GPDB_NUMERIC);
 
 // date mdid
-CMDIdGPDB CMDIdGPDB::m_mdidDate(GPDB_DATE);
+CMDIdGPDB CMDIdGPDB::m_mdid_date(GPDB_DATE);
 
 // time mdid
-CMDIdGPDB CMDIdGPDB::m_mdidTime(GPDB_TIME);
+CMDIdGPDB CMDIdGPDB::m_mdid_time(GPDB_TIME);
 
 // time with time zone mdid
-CMDIdGPDB CMDIdGPDB::m_mdidTimeTz(GPDB_TIMETZ);
+CMDIdGPDB CMDIdGPDB::m_mdid_timeTz(GPDB_TIMETZ);
 
 // timestamp mdid
-CMDIdGPDB CMDIdGPDB::m_mdidTimestamp(GPDB_TIMESTAMP);
+CMDIdGPDB CMDIdGPDB::m_mdid_timestamp(GPDB_TIMESTAMP);
 
 // timestamp with time zone mdid
-CMDIdGPDB CMDIdGPDB::m_mdidTimestampTz(GPDB_TIMESTAMPTZ);
+CMDIdGPDB CMDIdGPDB::m_mdid_timestampTz(GPDB_TIMESTAMPTZ);
 
 // absolute time mdid
-CMDIdGPDB CMDIdGPDB::m_mdidAbsTime(GPDB_ABSTIME);
+CMDIdGPDB CMDIdGPDB::m_mdid_abs_time(GPDB_ABSTIME);
 
 // relative time mdid
-CMDIdGPDB CMDIdGPDB::m_mdidRelTime(GPDB_RELTIME);
+CMDIdGPDB CMDIdGPDB::m_mdid_relative_time(GPDB_RELTIME);
 
 // interval mdid
-CMDIdGPDB CMDIdGPDB::m_mdidInterval(GPDB_INTERVAL);
+CMDIdGPDB CMDIdGPDB::m_mdid_interval(GPDB_INTERVAL);
 
 // time interval mdid
-CMDIdGPDB CMDIdGPDB::m_mdidTimeInterval(GPDB_TIMEINTERVAL);
+CMDIdGPDB CMDIdGPDB::m_mdid_time_interval(GPDB_TIMEINTERVAL);
 
 // bpchar mdid
-CMDIdGPDB CMDIdGPDB::m_mdidBPChar(GPDB_CHAR);
+CMDIdGPDB CMDIdGPDB::m_mdid_bpchar(GPDB_CHAR);
 
 // varchar mdid
-CMDIdGPDB CMDIdGPDB::m_mdidVarChar(GPDB_VARCHAR);
+CMDIdGPDB CMDIdGPDB::m_mdid_varchar(GPDB_VARCHAR);
 
 // text mdid
-CMDIdGPDB CMDIdGPDB::m_mdidText(GPDB_TEXT);
+CMDIdGPDB CMDIdGPDB::m_mdid_text(GPDB_TEXT);
 
 // float4 mdid
-CMDIdGPDB CMDIdGPDB::m_mdidFloat4(GPDB_FLOAT4);
+CMDIdGPDB CMDIdGPDB::m_mdid_float4(GPDB_FLOAT4);
 
 // float8 mdid
-CMDIdGPDB CMDIdGPDB::m_mdidFloat8(GPDB_FLOAT8);
+CMDIdGPDB CMDIdGPDB::m_mdid_float8(GPDB_FLOAT8);
 
 // cash mdid
-CMDIdGPDB CMDIdGPDB::m_mdidCash(GPDB_CASH);
+CMDIdGPDB CMDIdGPDB::m_mdid_cash(GPDB_CASH);
 
 // inet mdid
-CMDIdGPDB CMDIdGPDB::m_mdidInet(GPDB_INET);
+CMDIdGPDB CMDIdGPDB::m_mdid_inet(GPDB_INET);
 
 // cidr mdid
-CMDIdGPDB CMDIdGPDB::m_mdidCidr(GPDB_CIDR);
+CMDIdGPDB CMDIdGPDB::m_mdid_cidr(GPDB_CIDR);
 
 // macaddr mdid
-CMDIdGPDB CMDIdGPDB::m_mdidMacaddr(GPDB_MACADDR);
+CMDIdGPDB CMDIdGPDB::m_mdid_macaddr(GPDB_MACADDR);
 
 // count(*) mdid
-CMDIdGPDB CMDIdGPDB::m_mdidCountStar(GPDB_COUNT_STAR);
+CMDIdGPDB CMDIdGPDB::m_mdid_count_star(GPDB_COUNT_STAR);
 
 // count(Any) mdid
-CMDIdGPDB CMDIdGPDB::m_mdidCountAny(GPDB_COUNT_ANY);
+CMDIdGPDB CMDIdGPDB::m_mdid_count_any(GPDB_COUNT_ANY);
 
 // unknown mdid
-CMDIdGPDB CMDIdGPDB::m_mdidUnknown(GPDB_UNKNOWN);
+CMDIdGPDB CMDIdGPDB::m_mdid_unknown(GPDB_UNKNOWN);
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -118,14 +118,14 @@ CMDIdGPDB::CMDIdGPDB
 	:
 	m_sysid(sysid),
 	m_oid(oid),
-	m_ulVersionMajor(1),
-	m_ulVersionMinor(0),
-	m_str(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer))
+	m_major_version(1),
+	m_minor_version(0),
+	m_str(m_mdid_array, GPOS_ARRAY_SIZE(m_mdid_array))
 {
-	if (CMDIdGPDB::m_mdidInvalidKey.OidObjectId() == oid)
+	if (CMDIdGPDB::m_mdid_invalid_key.Oid() == oid)
 	{
 		// construct an invalid mdid 0.0.0
-		m_ulVersionMajor = 0;
+		m_major_version = 0;
 	}
 		
 	// serialize mdid into static string 
@@ -148,14 +148,14 @@ CMDIdGPDB::CMDIdGPDB
 	:
 	m_sysid(IMDId::EmdidGPDB, GPMD_GPDB_SYSID),
 	m_oid(oid),
-	m_ulVersionMajor(1),
-	m_ulVersionMinor(0),
-	m_str(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer))
+	m_major_version(1),
+	m_minor_version(0),
+	m_str(m_mdid_array, GPOS_ARRAY_SIZE(m_mdid_array))
 {
-	if (CMDIdGPDB::m_mdidInvalidKey.OidObjectId() == oid)
+	if (CMDIdGPDB::m_mdid_invalid_key.Oid() == oid)
 	{
 		// construct an invalid mdid 0.0.0
-		m_ulVersionMajor = 0;
+		m_major_version = 0;
 	}
 	
 	// TODO:  - Jan 31, 2012; supply system id in constructor
@@ -175,15 +175,15 @@ CMDIdGPDB::CMDIdGPDB
 CMDIdGPDB::CMDIdGPDB
 	(
 	OID oid,
-	ULONG ulVersionMajor,
-	ULONG ulVersionMinor
+	ULONG version_major,
+	ULONG version_minor
 	)
 	:
 	m_sysid(IMDId::EmdidGPDB, GPMD_GPDB_SYSID),
 	m_oid(oid),
-	m_ulVersionMajor(ulVersionMajor),
-	m_ulVersionMinor(ulVersionMinor),
-	m_str(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer))
+	m_major_version(version_major),
+	m_minor_version(version_minor),
+	m_str(m_mdid_array, GPOS_ARRAY_SIZE(m_mdid_array))
 {
 	// TODO:  - Jan 31, 2012; supply system id in constructor
 	// serialize mdid into static string
@@ -200,18 +200,18 @@ CMDIdGPDB::CMDIdGPDB
 //---------------------------------------------------------------------------
 CMDIdGPDB::CMDIdGPDB
 	(
-	const CMDIdGPDB &mdidSource
+	const CMDIdGPDB &mdid_source
 	)
 	:
 	IMDId(),
-	m_sysid(mdidSource.Sysid()),
-	m_oid(mdidSource.OidObjectId()),
-	m_ulVersionMajor(mdidSource.UlVersionMajor()),
-	m_ulVersionMinor(mdidSource.UlVersionMinor()),
-	m_str(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer))
+	m_sysid(mdid_source.Sysid()),
+	  m_oid(mdid_source.Oid()),
+	m_major_version(mdid_source.VersionMajor()),
+	m_minor_version(mdid_source.VersionMinor()),
+	m_str(m_mdid_array, GPOS_ARRAY_SIZE(m_mdid_array))
 {
-	GPOS_ASSERT(mdidSource.FValid());
-	GPOS_ASSERT(IMDId::EmdidGPDB == mdidSource.Emdidt());
+	GPOS_ASSERT(mdid_source.IsValid());
+	GPOS_ASSERT(IMDId::EmdidGPDB == mdid_source.MdidType());
 
 	// serialize mdid into static string
 	Serialize();
@@ -230,33 +230,33 @@ CMDIdGPDB::Serialize()
 {
 	m_str.Reset();
 	// serialize mdid as SystemType.Oid.Major.Minor
-	m_str.AppendFormat(GPOS_WSZ_LIT("%d.%d.%d.%d"), Emdidt(), m_oid, m_ulVersionMajor, m_ulVersionMinor);
+	m_str.AppendFormat(GPOS_WSZ_LIT("%d.%d.%d.%d"), MdidType(), m_oid, m_major_version, m_minor_version);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdGPDB::Wsz
+//		CMDIdGPDB::GetBuffer
 //
 //	@doc:
 //		Returns the string representation of the mdid
 //
 //---------------------------------------------------------------------------
 const WCHAR *
-CMDIdGPDB::Wsz() const
+CMDIdGPDB::GetBuffer() const
 {
-	return m_str.Wsz();
+	return m_str.GetBuffer();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdGPDB::OidObjectId
+//		CMDIdGPDB::Oid
 //
 //	@doc:
 //		Returns the object id
 //
 //---------------------------------------------------------------------------
 OID
-CMDIdGPDB::OidObjectId() const
+CMDIdGPDB::Oid() const
 {
 	return m_oid;
 }
@@ -264,36 +264,36 @@ CMDIdGPDB::OidObjectId() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdGPDB::UlVersionMajor
+//		CMDIdGPDB::VersionMajor
 //
 //	@doc:
 //		Returns the object's major version
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIdGPDB::UlVersionMajor() const
+CMDIdGPDB::VersionMajor() const
 {
-	return m_ulVersionMajor;
+	return m_major_version;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdGPDB::UlVersionMinor
+//		CMDIdGPDB::VersionMinor
 //
 //	@doc:
 //		Returns the object's minor version
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIdGPDB::UlVersionMinor() const
+CMDIdGPDB::VersionMinor() const
 {
-	return m_ulVersionMinor;
+	return m_minor_version;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdGPDB::FEquals
+//		CMDIdGPDB::Equals
 //
 //	@doc:
 //		Checks if the version of the current object is compatible with another version
@@ -301,35 +301,35 @@ CMDIdGPDB::UlVersionMinor() const
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDIdGPDB::FEquals
+CMDIdGPDB::Equals
 	(
-	const IMDId *pmdid
+	const IMDId *mdid
 	) 
 	const
 {
-	if (NULL == pmdid || EmdidGPDB != pmdid->Emdidt())
+	if (NULL == mdid || EmdidGPDB != mdid->MdidType())
 	{
 		return false;
 	}
 	
-	const CMDIdGPDB *pmdidGPDB = CMDIdGPDB::PmdidConvert(const_cast<IMDId *>(pmdid));
+	const CMDIdGPDB *mdidGPDB = CMDIdGPDB::CastMdid(const_cast<IMDId *>(mdid));
 	
-	return (m_oid == pmdidGPDB->OidObjectId() && m_ulVersionMajor == pmdidGPDB->UlVersionMajor() &&
-			m_ulVersionMinor == pmdidGPDB->UlVersionMinor()); 
+	return (m_oid == mdidGPDB->Oid() && m_major_version == mdidGPDB->VersionMajor() &&
+			m_minor_version == mdidGPDB->VersionMinor());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdGPDB::FValid
+//		CMDIdGPDB::IsValid
 //
 //	@doc:
 //		Is the mdid valid
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDIdGPDB::FValid() const
+CMDIdGPDB::IsValid() const
 {
-	return !FEquals(&CMDIdGPDB::m_mdidInvalidKey);
+	return !Equals(&CMDIdGPDB::m_mdid_invalid_key);
 }
 
 //---------------------------------------------------------------------------
@@ -343,12 +343,12 @@ CMDIdGPDB::FValid() const
 void
 CMDIdGPDB::Serialize
 	(
-	CXMLSerializer * pxmlser,
-	const CWStringConst *pstrAttribute
+	CXMLSerializer * xml_serializer,
+	const CWStringConst *attribute_str
 	)
 	const
 {
-	pxmlser->AddAttribute(pstrAttribute, &m_str);
+	xml_serializer->AddAttribute(attribute_str, &m_str);
 }
 
 //---------------------------------------------------------------------------
@@ -366,8 +366,8 @@ CMDIdGPDB::OsPrint
 	) 
 	const
 {
-	os << "(" << OidObjectId() << "," << 
-				UlVersionMajor() << "." << UlVersionMinor() << ")";
+	os << "(" << Oid() << "," << 
+				VersionMajor() << "." << VersionMinor() << ")";
 	return os;
 }
 

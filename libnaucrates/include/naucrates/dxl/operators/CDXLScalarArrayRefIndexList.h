@@ -42,46 +42,46 @@ namespace gpdxl
 		private:
 
 			// index list bound
-			EIndexListBound m_eilb;
+			EIndexListBound m_index_list_bound;
 
 			// private copy ctor
 			CDXLScalarArrayRefIndexList(const CDXLScalarArrayRefIndexList&);
 
 			// string representation of index list bound
 			static
-			const CWStringConst *PstrIndexListBound(EIndexListBound eilb);
+			const CWStringConst *GetDXLIndexListBoundStr(EIndexListBound index_list_bound);
 
 		public:
 			// ctor
 			CDXLScalarArrayRefIndexList
 				(
-				IMemoryPool *pmp,
-				EIndexListBound eilt
+				IMemoryPool *mp,
+				EIndexListBound index_list_bound
 				);
 
 			// ident accessors
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// index list bound
-			EIndexListBound Eilb() const
+			EIndexListBound GetDXLIndexListBound() const
 			{
-				return m_eilb;
+				return m_index_list_bound;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 				(
-				CMDAccessor * //pmda
+				CMDAccessor * //md_accessor
 				)
 				const
 			{
@@ -92,20 +92,20 @@ namespace gpdxl
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// conversion function
 			static
-			CDXLScalarArrayRefIndexList *PdxlopConvert
+			CDXLScalarArrayRefIndexList *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarArrayRefIndexList == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarArrayRefIndexList == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarArrayRefIndexList*>(pdxlop);
+				return dynamic_cast<CDXLScalarArrayRefIndexList*>(dxl_op);
 			}
 	};
 }

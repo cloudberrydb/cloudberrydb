@@ -37,43 +37,43 @@ namespace gpmd
 		private:
 		
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// DXL for object
-			const CWStringDynamic *m_pstr;
+			const CWStringDynamic *m_dxl_str;
 			
 			// operator id
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// operator name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// type of left operand
-			IMDId *m_pmdidTypeLeft;
+			IMDId *m_mdid_type_left;
 			
 			// type of right operand
-			IMDId *m_pmdidTypeRight;
+			IMDId *m_mdid_type_right;
 
 			// type of result operand
-			IMDId *m_pmdidTypeResult;
+			IMDId *m_mdid_type_result;
 			
 			// id of function which implements the operator
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 			
 			// id of commute operator
-			IMDId *m_pmdidOpCommute;
+			IMDId *m_mdid_commute_opr;
 			
 			// id of inverse operator
-			IMDId *m_pmdidOpInverse;
+			IMDId *m_mdid_inverse_opr;
 			
 			// comparison type for comparison operators
-			IMDType::ECmpType m_ecmpt;
+			IMDType::ECmpType m_comparision_type;
 			
 			// does operator return NULL when all inputs are NULL?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 			
 			// operator classes this operator belongs to
-			DrgPmdid *m_pdrgpmdidOpClasses;
+		IMdIdArray *m_mdid_op_classes_array;
 
 			CMDScalarOpGPDB(const CMDScalarOpGPDB &);
 			
@@ -82,32 +82,32 @@ namespace gpmd
 			// ctor/dtor
 			CMDScalarOpGPDB
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdid,
-				CMDName *pmdname,
-				IMDId *pmdidTypeLeft,
-				IMDId *pmdidTypeRight,
-				IMDId *pmdidTypeResult,
-				IMDId *pmdidFunc,
-				IMDId *pmdidOpCommute,
-				IMDId *pmdidOpInverse,
-				IMDType::ECmpType ecmpt,
-				BOOL fReturnsNullOnNullInput,
-				DrgPmdid *pdrgpmdidOpClasses
+				IMemoryPool *mp,
+				IMDId *mdid,
+				CMDName *mdname,
+				IMDId *mdid_type_left,
+				IMDId *mdid_type_right,
+				IMDId *result_type_mdid,
+				IMDId *mdid_func,
+				IMDId *mdid_commute_opr,
+				IMDId *m_mdid_inverse_opr,
+				IMDType::ECmpType cmp_type,
+				BOOL returns_null_on_null_input,
+				IMdIdArray *mdid_op_classes_array
 				);
 			
 			~CMDScalarOpGPDB();
 			
 			// accessors
 			virtual 
-			const CWStringDynamic *Pstr() const
+			const CWStringDynamic *GetStrRepr() const
 			{
-				return m_pstr;
+				return m_dxl_str;
 			}
 			
 			// operator id
 			virtual
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// operator name
 			virtual
@@ -115,53 +115,53 @@ namespace gpmd
 
 			// left operand type id
 			virtual
-			IMDId *PmdidTypeLeft() const;
+			IMDId *GetLeftMdid() const;
 			
 			// right operand type id
 			virtual
-			IMDId *PmdidTypeRight() const;
+			IMDId *GetRightMdid() const;
 
 			// resulttype id
 			virtual
-			IMDId *PmdidTypeResult() const;
+			IMDId *GetResultTypeMdid() const;
 
 			// implementer function id
 			virtual
-			IMDId *PmdidFunc() const;
+			IMDId *FuncMdId() const;
 
 			// commutor id
 			virtual
-			IMDId *PmdidOpCommute() const;
+			IMDId *GetCommuteOpMdid() const;
 
 			// inverse operator id
 			virtual
-			IMDId *PmdidOpInverse() const;
+			IMDId *GetInverseOpMdid() const;
 
 			// is this an equality operator
 			virtual
-			BOOL FEquality() const;
+			BOOL IsEqualityOp() const;
 
 			// does operator return NULL when all inputs are NULL?
 			// STRICT implies NULL-returning, but the opposite is not always true,
 			// the implementation in GPDB returns what STRICT property states
 			virtual
-			BOOL FReturnsNullOnNullInput() const;
+			BOOL ReturnsNullOnNullInput() const;
 
 			// comparison type
 			virtual
-			IMDType::ECmpType Ecmpt() const;
+			IMDType::ECmpType ParseCmpType() const;
 			
 			// serialize object in DXL format
 			virtual
-			void Serialize(gpdxl::CXMLSerializer *pxmlser) const;
+			void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
 			
 			// number of classes this operator belongs to
 			virtual
-			ULONG UlOpCLasses() const;
+			ULONG OpClassesCount() const;
 			
 			// operator class at given position
 			virtual
-			IMDId *PmdidOpClass(ULONG ulPos) const;
+			IMDId *OpClassMdidAt(ULONG pos) const;
 			
 #ifdef GPOS_DEBUG
 			// debug print of the type in the provided stream

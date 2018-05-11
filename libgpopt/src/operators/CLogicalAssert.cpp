@@ -33,10 +33,10 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalAssert::CLogicalAssert
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalUnary(pmp),
+	CLogicalUnary(mp),
 	m_pexc(NULL)
 {
 	m_fPattern = true;
@@ -52,11 +52,11 @@ CLogicalAssert::CLogicalAssert
 //---------------------------------------------------------------------------
 CLogicalAssert::CLogicalAssert
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CException *pexc
 	)
 	:
-	CLogicalUnary(pmp),
+	CLogicalUnary(mp),
 	m_pexc(pexc)
 {
 	GPOS_ASSERT(NULL != pexc);
@@ -64,14 +64,14 @@ CLogicalAssert::CLogicalAssert
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalAssert::FMatch
+//		CLogicalAssert::Matches
 //
 //	@doc:
 //		Match operators
 //
 //---------------------------------------------------------------------------
 BOOL
-CLogicalAssert::FMatch
+CLogicalAssert::Matches
 	(
 	COperator *pop
 	)
@@ -83,7 +83,7 @@ CLogicalAssert::FMatch
 	}
 	
 	CLogicalAssert *popAssert = CLogicalAssert::PopConvert(pop); 
-	return CException::FEqual(*(popAssert->Pexc()), *m_pexc);
+	return CException::Equals(*(popAssert->Pexc()), *m_pexc);
 }
 
 //---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ CLogicalAssert::FMatch
 CColRefSet *
 CLogicalAssert::PcrsDeriveOutput
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -116,7 +116,7 @@ CLogicalAssert::PcrsDeriveOutput
 CKeyCollection *
 CLogicalAssert::PkcDeriveKeys
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -136,13 +136,13 @@ CLogicalAssert::PkcDeriveKeys
 CXformSet *
 CLogicalAssert::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	) 
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
-	(void) pxfs->FExchangeSet(CXform::ExfImplementAssert);
-	return pxfs;
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfImplementAssert);
+	return xform_set;
 }
 
 //---------------------------------------------------------------------------
@@ -156,7 +156,7 @@ CLogicalAssert::PxfsCandidates
 CMaxCard
 CLogicalAssert::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -166,7 +166,7 @@ CLogicalAssert::Maxcard
 	GPOS_ASSERT(NULL != pexprScalar);
 
 	if (CUtils::FScalarConstFalse(pexprScalar) ||
-		CDrvdPropRelational::Pdprel(exprhdl.Pdp())->Ppc()->FContradiction())
+		CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
 	{
 		return CMaxCard(1 /*ull*/);
 	}
@@ -180,7 +180,7 @@ CLogicalAssert::Maxcard
 	}
 
 	// pass on max card of first child
-	return exprhdl.Pdprel(0)->Maxcard();
+	return exprhdl.GetRelationalProperties(0)->Maxcard();
 }
 
 
@@ -195,18 +195,18 @@ CLogicalAssert::Maxcard
 IStatistics *
 CLogicalAssert::PstatsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
-	DrgPstat * // not used
+	IStatisticsArray * // not used
 	)
 	const
 {
-	CMaxCard maxcard = CLogicalAssert::PopConvert(exprhdl.Pop())->Maxcard(pmp, exprhdl);
+	CMaxCard maxcard = CLogicalAssert::PopConvert(exprhdl.Pop())->Maxcard(mp, exprhdl);
 	if (1 == maxcard.Ull())
 	{
 		// a max card of one requires re-scaling stats
-		IStatistics *pstats = exprhdl.Pstats(0);
-		return  pstats->PstatsScale(pmp, CDouble(1.0 / pstats->DRows()));
+		IStatistics *stats = exprhdl.Pstats(0);
+		return  stats->ScaleStats(mp, CDouble(1.0 / stats->Rows()));
 	}
 
 	return PstatsPassThruOuter(exprhdl);
@@ -232,7 +232,7 @@ CLogicalAssert::OsPrint
 		return COperator::OsPrint(os);
 	}
 	
-	os << SzId() << " (Error code: " << m_pexc->SzSQLState() << ")";
+	os << SzId() << " (Error code: " << m_pexc->GetSQLState() << ")";
 	return os;
 }
 

@@ -6,22 +6,22 @@
 
 using namespace gpopt;
 
-DrgPcnstr *
+CConstraintArray *
 CColConstraintsArrayMapper::PdrgPcnstrLookup
 	(
-		CColRef *pcr
+		CColRef *colref
 	)
 {
 	const BOOL fExclusive = true;
-	return CConstraint::PdrgpcnstrOnColumn(m_pmp, m_pdrgpcnstr, pcr, fExclusive);
+	return CConstraint::PdrgpcnstrOnColumn(m_mp, m_pdrgpcnstr, colref, fExclusive);
 }
 
 CColConstraintsArrayMapper::CColConstraintsArrayMapper
 	(
-		gpos::IMemoryPool *pmp,
-		DrgPcnstr *pdrgpcnstr
+		gpos::IMemoryPool *mp,
+		CConstraintArray *pdrgpcnstr
 	) :
-	m_pmp(pmp),
+	m_mp(mp),
 	m_pdrgpcnstr(pdrgpcnstr)
 {
 }

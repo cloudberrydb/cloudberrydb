@@ -26,11 +26,11 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDIdRelStats::CMDIdRelStats
 	(
-	CMDIdGPDB *pmdidRel
+	CMDIdGPDB *rel_mdid
 	)
 	:
-	m_pmdidRel(pmdidRel),
-	m_str(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer))
+	m_rel_mdid(rel_mdid),
+	m_str(m_mdid_array, GPOS_ARRAY_SIZE(m_mdid_array))
 {
 	// serialize mdid into static string 
 	Serialize();
@@ -46,7 +46,7 @@ CMDIdRelStats::CMDIdRelStats
 //---------------------------------------------------------------------------
 CMDIdRelStats::~CMDIdRelStats()
 {
-	m_pmdidRel->Release();
+	m_rel_mdid->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -64,64 +64,64 @@ CMDIdRelStats::Serialize()
 	m_str.AppendFormat
 			(
 			GPOS_WSZ_LIT("%d.%d.%d.%d"), 
-			Emdidt(), 
-			m_pmdidRel->OidObjectId(),
-			m_pmdidRel->UlVersionMajor(),
-			m_pmdidRel->UlVersionMinor()
+			MdidType(), 
+					   m_rel_mdid->Oid(),
+			m_rel_mdid->VersionMajor(),
+			m_rel_mdid->VersionMinor()
 			);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdRelStats::Wsz
+//		CMDIdRelStats::GetBuffer
 //
 //	@doc:
 //		Returns the string representation of the mdid
 //
 //---------------------------------------------------------------------------
 const WCHAR *
-CMDIdRelStats::Wsz() const
+CMDIdRelStats::GetBuffer() const
 {
-	return m_str.Wsz();
+	return m_str.GetBuffer();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdRelStats::PmdidRel
+//		CMDIdRelStats::GetRelMdId
 //
 //	@doc:
 //		Returns the base relation id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDIdRelStats::PmdidRel() const
+CMDIdRelStats::GetRelMdId() const
 {
-	return m_pmdidRel;
+	return m_rel_mdid;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdRelStats::FEquals
+//		CMDIdRelStats::Equals
 //
 //	@doc:
 //		Checks if the mdids are equal
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDIdRelStats::FEquals
+CMDIdRelStats::Equals
 	(
-	const IMDId *pmdid
+	const IMDId *mdid
 	) 
 	const
 {
-	if (NULL == pmdid || EmdidRelStats != pmdid->Emdidt())
+	if (NULL == mdid || EmdidRelStats != mdid->MdidType())
 	{
 		return false;
 	}
 	
-	const CMDIdRelStats *pmdidRelStats = CMDIdRelStats::PmdidConvert(pmdid);
+	const CMDIdRelStats *rel_stats_mdid = CMDIdRelStats::CastMdid(mdid);
 	
-	return m_pmdidRel->FEquals(pmdidRelStats->PmdidRel()); 
+	return m_rel_mdid->Equals(rel_stats_mdid->GetRelMdId()); 
 }
 
 //---------------------------------------------------------------------------
@@ -135,12 +135,12 @@ CMDIdRelStats::FEquals
 void
 CMDIdRelStats::Serialize
 	(
-	CXMLSerializer * pxmlser,
-	const CWStringConst *pstrAttribute
+	CXMLSerializer * xml_serializer,
+	const CWStringConst *attribute_str
 	)
 	const
 {
-	pxmlser->AddAttribute(pstrAttribute, &m_str);
+	xml_serializer->AddAttribute(attribute_str, &m_str);
 }
 
 //---------------------------------------------------------------------------
@@ -158,7 +158,7 @@ CMDIdRelStats::OsPrint
 	) 
 	const
 {
-	os << "(" << m_str.Wsz() << ")";
+	os << "(" << m_str.GetBuffer() << ")";
 	return os;
 }
 

@@ -35,16 +35,16 @@ namespace gpdxl
 		private:
 
 			// target table descriptor
-			CDXLTableDescr *m_pdxltabdesc;
+		CDXLTableDescr *m_dxl_table_descr;
 
 			// ctid column id
-			ULONG m_ulCtid;
+			ULONG m_ctid_colid;
 
 			// segmentId column id
-			ULONG m_ulSegmentId;
+			ULONG m_segid_colid;
 
 			// list of deletion column ids
-			DrgPul *m_pdrgpulDelete;
+			ULongPtrArray *m_deletion_colid_array;
 
 			// private copy ctor
 			CDXLLogicalDelete(const CDXLLogicalDelete &);
@@ -52,63 +52,63 @@ namespace gpdxl
 		public:
 
 			// ctor
-			CDXLLogicalDelete(IMemoryPool *pmp, CDXLTableDescr *pdxltabdesc, ULONG ulCtid, ULONG ulSegmentId, DrgPul *pdrgpulDelete);
+			CDXLLogicalDelete(IMemoryPool *mp, CDXLTableDescr *table_descr, ULONG ctid_colid, ULONG segid_colid, ULongPtrArray *delete_colid_array);
 
 			// dtor
 			virtual
 			~CDXLLogicalDelete();
 
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// target table descriptor
-			CDXLTableDescr *Pdxltabdesc() const
+			CDXLTableDescr *GetDXLTableDescr() const
 			{
-				return m_pdxltabdesc;
+			return m_dxl_table_descr;
 			}
 
 			// ctid column
-			ULONG UlCtid() const
+			ULONG GetCtIdColId() const
 			{
-				return m_ulCtid;
+				return m_ctid_colid;
 			}
 
 			// segment id column
-			ULONG UlSegmentId() const
+			ULONG GetSegmentIdColId() const
 			{
-				return m_ulSegmentId;
+				return m_segid_colid;
 			}
 
 			// deletion column ids
-			DrgPul *PdrgpulDelete() const
+			ULongPtrArray *GetDeletionColIdArray() const
 			{
-				return m_pdrgpulDelete;
+				return m_deletion_colid_array;
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLLogicalDelete *PdxlopConvert
+			CDXLLogicalDelete *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalDelete == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalDelete == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLLogicalDelete*>(pdxlop);
+				return dynamic_cast<CDXLLogicalDelete*>(dxl_op);
 			}
 
 	};

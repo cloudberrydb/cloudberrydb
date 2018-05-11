@@ -42,10 +42,10 @@ namespace gpopt
 			explicit
 			CXformPushGbBelowUnionAll
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CXformPushGbBelowSetOp<CLogicalUnionAll>(pmp)
+				CXformPushGbBelowSetOp<CLogicalUnionAll>(mp)
 			{}
 
 			// dtor

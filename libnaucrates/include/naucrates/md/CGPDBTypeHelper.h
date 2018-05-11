@@ -30,100 +30,100 @@ namespace gpmd
 		public:
 
 			// serialize object in DXL format
-			static void Serialize(CXMLSerializer *pxmlser, const T *pt)
+			static void Serialize(CXMLSerializer *xml_serializer, const T *mdtype)
             {
-                pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-                                     CDXLTokens::PstrToken(EdxltokenMDType));
+                xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+                                     CDXLTokens::GetDXLTokenStr(EdxltokenMDType));
 
-                pt->Pmdid()->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
+                mdtype->MDId()->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
 
-                pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), pt->Mdname().Pstr());
-                pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMDTypeRedistributable), pt->FRedistributable());
-                pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMDTypeHashable), pt->FHashable());
-                pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMDTypeComposite), pt->FComposite());
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), mdtype->Mdname().GetMDName());
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeRedistributable), mdtype->IsRedistributable());
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeHashable), mdtype->IsHashable());
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeComposite), mdtype->IsComposite());
 
-                if (pt->FComposite())
+                if (mdtype->IsComposite())
                 {
-                    pt->PmdidBaseRelation()->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeRelid));
+                    mdtype->GetBaseRelMdid()->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeRelid));
                 }
 
-                pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMDTypeFixedLength), pt->FFixedLength());
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeFixedLength), mdtype->IsFixedLength());
 
-                if (pt->FFixedLength())
+                if (mdtype->IsFixedLength())
                 {
-                    pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMDTypeLength), pt->UlLength());
+                    xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLength), mdtype->Length());
                 }
 
-                pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMDTypeByValue), pt->FByValue());
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeByValue), mdtype->IsPassedByValue());
 
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeEqOp), pt->PmdidCmp(IMDType::EcmptEq));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeNEqOp), pt->PmdidCmp(IMDType::EcmptNEq));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeLTOp), pt->PmdidCmp(IMDType::EcmptL));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeLEqOp), pt->PmdidCmp(IMDType::EcmptLEq));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeGTOp), pt->PmdidCmp(IMDType::EcmptG));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeGEqOp), pt->PmdidCmp(IMDType::EcmptGEq));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeCompOp), pt->PmdidOpComp());
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeArray), pt->PmdidTypeArray());
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeEqOp), mdtype->GetMdidForCmpType(IMDType::EcmptEq));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeNEqOp), mdtype->GetMdidForCmpType(IMDType::EcmptNEq));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLTOp), mdtype->GetMdidForCmpType(IMDType::EcmptL));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLEqOp), mdtype->GetMdidForCmpType(IMDType::EcmptLEq));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeGTOp), mdtype->GetMdidForCmpType(IMDType::EcmptG));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeGEqOp), mdtype->GetMdidForCmpType(IMDType::EcmptGEq));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeCompOp), mdtype->CmpOpMdid());
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeArray), mdtype->GetArrayTypeMdid());
 
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeAggMin), pt->PmdidAgg(IMDType::EaggMin));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeAggMax), pt->PmdidAgg(IMDType::EaggMax));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeAggAvg), pt->PmdidAgg(IMDType::EaggAvg));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeAggSum), pt->PmdidAgg(IMDType::EaggSum));
-                pt->SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(EdxltokenMDTypeAggCount), pt->PmdidAgg(IMDType::EaggCount));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeAggMin), mdtype->GetMdidForAggType(IMDType::EaggMin));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeAggMax), mdtype->GetMdidForAggType(IMDType::EaggMax));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeAggAvg), mdtype->GetMdidForAggType(IMDType::EaggAvg));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeAggSum), mdtype->GetMdidForAggType(IMDType::EaggSum));
+                mdtype->SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeAggCount), mdtype->GetMdidForAggType(IMDType::EaggCount));
 
-                pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-                                      CDXLTokens::PstrToken(EdxltokenMDType));
+                xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+                                      CDXLTokens::GetDXLTokenStr(EdxltokenMDType));
 
                 GPOS_CHECK_ABORT;
             }
 
 #ifdef GPOS_DEBUG
 			// debug print of the type in the provided stream
-			static void DebugPrint(IOstream &os, const T *pt)
+			static void DebugPrint(IOstream &os, const T *mdtype)
             {
                 os << "Type id: ";
-                pt->Pmdid()->OsPrint(os);
+                mdtype->MDId()->OsPrint(os);
                 os << std::endl;
 
-                os << "Type name: " << pt->Mdname().Pstr()->Wsz() << std::endl;
+                os << "Type name: " << mdtype->Mdname().GetMDName()->GetBuffer() << std::endl;
 
-                const CWStringConst *pstrRedistributable = pt->FRedistributable() ?
-                CDXLTokens::PstrToken(EdxltokenTrue):
-                CDXLTokens::PstrToken(EdxltokenFalse);
+                const CWStringConst *redistributable_str = mdtype->IsRedistributable() ?
+                CDXLTokens::GetDXLTokenStr(EdxltokenTrue):
+                CDXLTokens::GetDXLTokenStr(EdxltokenFalse);
 
-                os << "Redistributable: " << pstrRedistributable->Wsz() << std::endl;
+                os << "Redistributable: " << redistributable_str->GetBuffer() << std::endl;
 
-                const CWStringConst *pstrFixedLength = pt->FFixedLength() ?
-                CDXLTokens::PstrToken(EdxltokenTrue):
-                CDXLTokens::PstrToken(EdxltokenFalse);
+                const CWStringConst *fixed_len_str = mdtype->IsFixedLength() ?
+                CDXLTokens::GetDXLTokenStr(EdxltokenTrue):
+                CDXLTokens::GetDXLTokenStr(EdxltokenFalse);
 
-                os << "Fixed length: " << pstrFixedLength->Wsz() << std::endl;
+                os << "Fixed length: " << fixed_len_str->GetBuffer() << std::endl;
 
-                if (pt->FFixedLength())
+                if (mdtype->IsFixedLength())
                 {
-                    os << "Type length: " << pt->UlLength() << std::endl;
+                    os << "Type length: " << mdtype->Length() << std::endl;
                 }
 
-                const CWStringConst *pstrByValue = pt->FByValue() ?
-                CDXLTokens::PstrToken(EdxltokenTrue):
-                CDXLTokens::PstrToken(EdxltokenFalse);
+                const CWStringConst *passed_by_val_str = mdtype->IsPassedByValue() ?
+                CDXLTokens::GetDXLTokenStr(EdxltokenTrue):
+                CDXLTokens::GetDXLTokenStr(EdxltokenFalse);
 
-                os << "Pass by value: " << pstrByValue->Wsz() << std::endl;
+			os << "Pass by value: " << passed_by_val_str->GetBuffer() << std::endl;
 
                 os << "Equality operator id: ";
-                pt->PmdidCmp(IMDType::EcmptEq)->OsPrint(os);
+                mdtype->GetMdidForCmpType(IMDType::EcmptEq)->OsPrint(os);
                 os << std::endl;
 
                 os << "Less-than operator id: ";
-                pt->PmdidCmp(IMDType::EcmptL)->OsPrint(os);
+                mdtype->GetMdidForCmpType(IMDType::EcmptL)->OsPrint(os);
                 os << std::endl;
 
                 os << "Greater-than operator id: ";
-                pt->PmdidCmp(IMDType::EcmptG)->OsPrint(os);
+                mdtype->GetMdidForCmpType(IMDType::EcmptG)->OsPrint(os);
                 os << std::endl;
 
                 os << "Comparison operator id: ";
-                pt->PmdidOpComp()->OsPrint(os);
+                mdtype->CmpOpMdid()->OsPrint(os);
                 os << std::endl;
 
                 os << std::endl;

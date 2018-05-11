@@ -49,8 +49,8 @@ CReqdProp::~CReqdProp()
 void
 CReqdProp::DbgPrint() const
 {
-	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
-	CAutoTrace at(pmp);
+	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(mp);
 	at.Os() << *this;
 }
 #endif // GPOS_DEBUG

@@ -27,11 +27,11 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CAutoSuspendAbort::CAutoSuspendAbort()
 {
-	m_ptsk = CTask::PtskSelf();
+	m_task = CTask::Self();
 	
-	if (NULL != m_ptsk)
+	if (NULL != m_task)
 	{
-		m_ptsk->SuspendAbort();
+		m_task->SuspendAbort();
 	}
 }
 
@@ -46,9 +46,9 @@ CAutoSuspendAbort::CAutoSuspendAbort()
 //---------------------------------------------------------------------------
 CAutoSuspendAbort::~CAutoSuspendAbort()
 {
-	if (NULL != m_ptsk)
+	if (NULL != m_task)
 	{
-		m_ptsk->ResumeAbort();
+		m_task->ResumeAbort();
 	}
 }
 

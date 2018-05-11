@@ -31,9 +31,9 @@ namespace gpos
 
 	// fwd declaration
 	template <class T,
-		ULONG (*pfnHash)(const T*),
-		BOOL (*pfnEq)(const T*, const T*),
-		void (*pfnDestroy)(T*)>
+		ULONG (*HashFn)(const T*),
+		BOOL (*EqFn)(const T*, const T*),
+		void (*CleanupFn)(T*)>
 	class CHashSetIter;
 
 	//---------------------------------------------------------------------------
@@ -45,13 +45,13 @@ namespace gpos
 	//
 	//---------------------------------------------------------------------------
 	template <class T,
-				ULONG (*pfnHash)(const T*),
-				BOOL (*pfnEq)(const T*, const T*),
-				void (*pfnDestroy)(T*)>
+				ULONG (*HashFn)(const T*),
+				BOOL (*EqFn)(const T*, const T*),
+				void (*CleanupFn)(T*)>
 	class CHashSet : public CRefCount
 	{
 		// fwd declaration
-		friend class CHashSetIter<T, pfnHash, pfnEq, pfnDestroy>;
+		friend class CHashSetIter<T, HashFn, EqFn, CleanupFn>;
 
 		private:
 
@@ -68,10 +68,10 @@ namespace gpos
 				private:
 
 					// pointer to object
-					T *m_pt;
+					T *m_value;
 
 					// does hash set element own object?
-					BOOL m_fOwn;
+					BOOL m_owns_object;
 
 					// private copy ctor
 					CHashSetElem(const CHashSetElem &);
@@ -79,12 +79,12 @@ namespace gpos
 				public:
 
 					// ctor
-					CHashSetElem(T *pt, BOOL fOwn)
+					CHashSetElem(T *value, BOOL fOwn)
                     :
-                    m_pt(pt),
-                    m_fOwn(fOwn)
+                    m_value(value),
+                    m_owns_object(fOwn)
                     {
-                        GPOS_ASSERT(NULL != pt);
+                        GPOS_ASSERT(NULL != value);
                     }
 
 					// dtor
@@ -92,157 +92,154 @@ namespace gpos
                     {
                         // in case of a temporary HashSet element for lookup we do NOT own the
                         // objects, otherwise call destroy functions
-                        if (m_fOwn)
+                        if (m_owns_object)
                         {
-                            pfnDestroy(m_pt);
+                            CleanupFn(m_value);
                         }
                     }
 
 					// object accessor
-					T *Pt() const
+					T *Value() const
 					{
-						return m_pt;
+						return m_value;
 					}
 
 					// equality operator
 					BOOL operator == (const CHashSetElem &hse) const
 					{
-						return pfnEq(m_pt, hse.m_pt);
+						return EqFn(m_value, hse.m_value);
 					}
 			};	// class CHashSetElem
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// number of hash chains
-			ULONG m_ulSize;
+			ULONG m_num_chains;
 
 			// total number of entries
-			ULONG m_ulEntries;
+			ULONG m_size;
 
 			// each hash chain is an array of hashset elements
-			typedef CDynamicPtrArray<CHashSetElem, CleanupDelete> DrgHashChain;
-			DrgHashChain **m_ppdrgchain;
+		typedef CDynamicPtrArray<CHashSetElem, CleanupDelete> HashSetElemArray;
+		HashSetElemArray **m_chains;
 
 			// array for elements
 			// We use CleanupNULL because the elements are owned by the hash table
-			typedef CDynamicPtrArray<T, CleanupNULL> DrgElements;
-			DrgElements *const m_pdrgElements;
+			typedef CDynamicPtrArray<T, CleanupNULL> Elements;
+			Elements *const m_elements;
 
-			DrgPi *const m_pdrgPiFilledBuckets;
+			IntPtrArray *const m_filled_chains;
 
 			// private copy ctor
-			CHashSet(const CHashSet<T, pfnHash, pfnEq, pfnDestroy> &);
+			CHashSet(const CHashSet<T, HashFn, EqFn, CleanupFn> &);
 
 			// lookup appropriate hash chain in static table, may be NULL if
 			// no elements have been inserted yet
-			DrgHashChain **PpdrgChain(const T *pt) const
+			HashSetElemArray **GetChain(const T *value) const
 			{
-				GPOS_ASSERT(NULL != m_ppdrgchain);
-				return &m_ppdrgchain[pfnHash(pt) % m_ulSize];
+				GPOS_ASSERT(NULL != m_chains);
+				return &m_chains[HashFn(value) % m_num_chains];
 			}
 
 			// clear elements
 			void Clear()
             {
-                for (ULONG i = 0; i < m_pdrgPiFilledBuckets->UlLength(); i++)
+                for (ULONG i = 0; i < m_filled_chains->Size(); i++)
                 {
                     // release each hash chain
-                    m_ppdrgchain[*(*m_pdrgPiFilledBuckets)[i]]->Release();
+                    m_chains[*(*m_filled_chains)[i]]->Release();
                 }
-                m_ulEntries = 0;
-                m_pdrgPiFilledBuckets->Clear();
+                m_size = 0;
+                m_filled_chains->Clear();
             }
 
 			// lookup an element by its key
-			void Lookup(const T *pt, CHashSetElem **pphse) const
+			CHashSetElem *Lookup(const T *value) const
             {
-                GPOS_ASSERT(NULL != pphse);
-
-                CHashSetElem hse(const_cast<T*>(pt), false /*fOwn*/);
-                CHashSetElem *phse = NULL;
-                DrgHashChain **ppdrgchain = PpdrgChain(pt);
-                if (NULL != *ppdrgchain)
+                CHashSetElem hse(const_cast<T*>(value), false /*fOwn*/);
+                CHashSetElem *found_hse = NULL;
+			HashSetElemArray **chain = GetChain(value);
+                if (NULL != *chain)
                 {
-                    phse = (*ppdrgchain)->PtLookup(&hse);
-                    GPOS_ASSERT_IMP(NULL != phse, *phse == hse);
+                    found_hse = (*chain)->Find(&hse);
+                    GPOS_ASSERT_IMP(NULL != found_hse, *found_hse == hse);
                 }
 
-                *pphse = phse;
+				return found_hse;
             }
 
 		public:
 
 			// ctor
-			CHashSet<T, pfnHash, pfnEq, pfnDestroy> (IMemoryPool *pmp, ULONG ulSize = 128)
+			CHashSet<T, HashFn, EqFn, CleanupFn> (IMemoryPool *mp, ULONG size = 128)
             :
-            m_pmp(pmp),
-            m_ulSize(ulSize),
-            m_ulEntries(0),
-            m_ppdrgchain(GPOS_NEW_ARRAY(m_pmp, DrgHashChain*, m_ulSize)),
-            m_pdrgElements(GPOS_NEW(m_pmp) DrgElements(m_pmp)),
-            m_pdrgPiFilledBuckets(GPOS_NEW(pmp) DrgPi(pmp))
+            m_mp(mp),
+            m_num_chains(size),
+            m_size(0),
+            m_chains(GPOS_NEW_ARRAY(m_mp, HashSetElemArray*, m_num_chains)),
+            m_elements(GPOS_NEW(m_mp) Elements(m_mp)),
+            m_filled_chains(GPOS_NEW(mp) IntPtrArray(mp))
             {
-                GPOS_ASSERT(ulSize > 0);
-
-                (void) clib::PvMemSet(m_ppdrgchain, 0, m_ulSize * sizeof(DrgHashChain*));
+                GPOS_ASSERT(size > 0);
+                (void) clib::Memset(m_chains, 0, m_num_chains * sizeof(HashSetElemArray*));
             }
 
 			// dtor
-			~CHashSet<T, pfnHash, pfnEq, pfnDestroy> ()
+			~CHashSet<T, HashFn, EqFn, CleanupFn> ()
             {
                 // release all hash chains
                 Clear();
 
-                GPOS_DELETE_ARRAY(m_ppdrgchain);
-                m_pdrgElements->Release();
-                m_pdrgPiFilledBuckets->Release();
+                GPOS_DELETE_ARRAY(m_chains);
+                m_elements->Release();
+                m_filled_chains->Release();
             }
 
 			// insert an element if not present
-			BOOL FInsert(T *pt)
+			BOOL Insert(T *value)
             {
-                if (FExists(pt))
+                if (Contains(value))
                 {
                     return false;
                 }
 
-                DrgHashChain **ppdrgchain = PpdrgChain(pt);
-                if (NULL == *ppdrgchain)
+			HashSetElemArray **chain = GetChain(value);
+                if (NULL == *chain)
                 {
-                    *ppdrgchain = GPOS_NEW(m_pmp) DrgHashChain(m_pmp);
-                    INT iBucket = pfnHash(pt) % m_ulSize;
-                    m_pdrgPiFilledBuckets->Append(GPOS_NEW(m_pmp) INT(iBucket));
+				*chain = GPOS_NEW(m_mp) HashSetElemArray(m_mp);
+                    INT chain_idx = HashFn(value) % m_num_chains;
+                    m_filled_chains->Append(GPOS_NEW(m_mp) INT(chain_idx));
                 }
 
-                CHashSetElem *phse = GPOS_NEW(m_pmp) CHashSetElem(pt, true /*fOwn*/);
-                (*ppdrgchain)->Append(phse);
+                CHashSetElem *elem = GPOS_NEW(m_mp) CHashSetElem(value, true /*fOwn*/);
+                (*chain)->Append(elem);
 
-                m_ulEntries++;
-                m_pdrgElements->Append(pt);
+                m_size++;
+                m_elements->Append(value);
 
                 return true;
             }
 
 			// lookup element
-			BOOL FExists(const T *pt) const
+			BOOL Contains(const T *value) const
             {
-                CHashSetElem hse(const_cast<T*>(pt), false /*fOwn*/);
-                DrgHashChain **ppdrgchain = PpdrgChain(pt);
-                if (NULL != *ppdrgchain)
+                CHashSetElem hse(const_cast<T*>(value), false /*fOwn*/);
+                HashSetElemArray **chain = GetChain(value);
+                if (NULL != *chain)
                 {
-                    CHashSetElem *phse = (*ppdrgchain)->PtLookup(&hse);
+                    CHashSetElem *found_hse = (*chain)->Find(&hse);
 
-                    return (NULL != phse);
+                    return (NULL != found_hse);
                 }
 
                 return false;
             }
 
 			// return number of map entries
-			ULONG UlEntries() const
+			ULONG Size() const
 			{
-				return m_ulEntries;
+				return m_size;
 			}
 
 	}; // class CHashSet

@@ -51,16 +51,16 @@ namespace gpos
 					CBitSetLink(const CBitSetLink &);
 
 					// offset
-					ULONG m_ulOffset;
+					ULONG m_offset;
 					
 					// bitvector
-					CBitVector *m_pbv;
+					CBitVector *m_vec;
 
 				public:
 				
 					// ctor
                     explicit
-                    CBitSetLink(IMemoryPool *, ULONG ulOffset, ULONG cSizeBits);
+                    CBitSetLink(IMemoryPool *, ULONG offset, ULONG vector_size);
 
         			explicit
 					CBitSetLink(IMemoryPool *, const CBitSetLink &);
@@ -69,15 +69,15 @@ namespace gpos
 					~CBitSetLink();
 
 					// accessor
-					ULONG UlOffset() const
+					ULONG GetOffset() const
 					{
-						return m_ulOffset;
+						return m_offset;
 					}
 					
 					// accessor
-					CBitVector *Pbv() const
+					CBitVector *GetVec() const
 					{
-						return m_pbv;
+						return m_vec;
 					}
 										
 					// list link
@@ -86,29 +86,28 @@ namespace gpos
 			}; // class CBitSetLink
 		
 			// list of bit set links
-			typedef CList<CBitSetLink> BSLList;
-			BSLList m_bsllist;
+			CList<CBitSetLink> m_bsllist;
 		
 			// pool to allocate links from
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 		
 			// size of individual bitvectors
-			ULONG m_cSizeBits;
+			ULONG m_vector_size;
 			
 			// number of elements
-			ULONG m_cElements;
+			ULONG m_size;
 		
 			// private copy ctor
 			CBitSet(const CBitSet&);
 			
-			// find link with offset less or equal to given value
-			CBitSetLink *PbslLocate(ULONG, CBitSetLink * = NULL) const;
+		// find link with offset less or equal to given value
+			CBitSetLink *FindLinkByOffset(ULONG, CBitSetLink * = NULL) const;
 			
 			// reset set
 			void Clear();
 			
 			// compute target offset
-			ULONG UlOffset(ULONG) const;
+			ULONG ComputeOffset(ULONG) const;
 			
 			// re-compute size of set
 			void RecomputeSize();
@@ -116,20 +115,20 @@ namespace gpos
 		public:
 				
 			// ctor
-			CBitSet(IMemoryPool *pmp, ULONG cSizeBits = 256);
-			CBitSet(IMemoryPool *pmp, const CBitSet &);
+			CBitSet(IMemoryPool *mp, ULONG vector_size = 256);
+			CBitSet(IMemoryPool *mp, const CBitSet &);
 			
 			// dtor
 			virtual ~CBitSet();
 			
 			// determine if bit is set
-			BOOL FBit(ULONG ulBit) const;
+			BOOL Get(ULONG pos) const;
 			
-			// set given bit; return previous value
-			BOOL FExchangeSet(ULONG ulBit);
+		// set given bit; return previous value
+			BOOL ExchangeSet(ULONG pos);
 						
-			// clear given bit; return previous value
-			BOOL FExchangeClear(ULONG ulBit);
+		// clear given bit; return previous value
+			BOOL ExchangeClear(ULONG pos);
 			
 			// union sets
 			void Union(const CBitSet *);
@@ -141,21 +140,21 @@ namespace gpos
 			void Difference(const CBitSet *);
 			
 			// is subset
-			BOOL FSubset(const CBitSet *) const;
+			BOOL ContainsAll(const CBitSet *) const;
 			
 			// equality
-			BOOL FEqual(const CBitSet *) const;
+			BOOL Equals(const CBitSet *) const;
 			
 			// disjoint
-			BOOL FDisjoint(const CBitSet *) const;
+			BOOL IsDisjoint(const CBitSet *) const;
 			
-			// hash value for set
-			ULONG UlHash() const;
+		// hash value for set
+			ULONG HashValue() const;
 			
 			// number of elements
-			ULONG CElements() const
+			ULONG Size() const
 			{
-				return m_cElements;
+				return m_size;
 			}
 			
 			// print function

@@ -31,7 +31,7 @@ namespace gpos
 			typedef CSyncHashtable<
 						CMessage, 
 						CException, 
-						CSpinlockOS> MT;
+						CSpinlockOS> MessageTable;
 
 			// short hand for message table accessor
 			typedef CSyncHashtableAccessByKey<
@@ -40,7 +40,7 @@ namespace gpos
 						CSpinlockOS> MTAccessor;
 		
 			// message hashtable
-			MT m_sht;
+			MessageTable m_hash_table;
 		
 			// private copy ctor
 			CMessageTable(const CMessageTable&);
@@ -48,13 +48,13 @@ namespace gpos
 		public:
 
 			// ctor
-			CMessageTable(IMemoryPool *pmp, ULONG ulSize, ELocale eloc);
+			CMessageTable(IMemoryPool *mp, ULONG size, ELocale locale);
 		
 			// lookup message by error/local
-			CMessage *PmsgLookup(CException exc);
+			CMessage *LookupMessage(CException exc);
 			
 			// insert message
-			void AddMessage(CMessage *pmsg);
+			void AddMessage(CMessage *msg);
 
 			// simple comparison
 			BOOL operator ==
@@ -63,39 +63,39 @@ namespace gpos
 				)
 				const
 			{
-				return m_eloc == mt.m_eloc;
+				return m_locale == mt.m_locale;
 			}
 			
 			// equality function -- needed for hashtable
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
-				const ELocale &eloc,
-				const ELocale &elocOther
+				const ELocale &locale,
+				const ELocale &other_locale
 				)
 			{
-				return eloc == elocOther;
+				return locale == other_locale;
 			}
 
 			// basic hash function
 			static
-			ULONG UlHash
+			ULONG HashValue
 				(
-				const ELocale &eloc
+				const ELocale &locale
 				)
 			{
-				return (ULONG) eloc;
+				return (ULONG) locale;
 			}
 
 			// link object
 			SLink m_link;
 
 			// locale
-			ELocale m_eloc;
+			ELocale m_locale;
 
 			// invalid locale
 			static
-			const ELocale m_elocInvalid;
+			const ELocale m_invalid_locale;
 					
 	}; // class CMessageTable
 }

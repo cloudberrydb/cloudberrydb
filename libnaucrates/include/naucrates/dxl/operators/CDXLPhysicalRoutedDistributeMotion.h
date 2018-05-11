@@ -43,55 +43,55 @@ namespace gpdxl
 			};
 		
 			// segment id column
-			ULONG m_ulSegmentIdCol;
+			ULONG m_segment_id_col;
 		
 			// private copy ctor
 			CDXLPhysicalRoutedDistributeMotion(const CDXLPhysicalRoutedDistributeMotion&);
 			
 		public:
 			// ctor
-			CDXLPhysicalRoutedDistributeMotion(IMemoryPool *pmp, ULONG ulSegmentIdCol);
+			CDXLPhysicalRoutedDistributeMotion(IMemoryPool *mp, ULONG segment_id_col);
 			
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// segment id column
-			ULONG UlSegmentIdCol() const
+			ULONG SegmentIdCol() const
 			{
-				return m_ulSegmentIdCol;
+				return m_segment_id_col;
 			}
 			
 			// index of relational child node in the children array
 			virtual 
-			ULONG UlChildIndex() const
+			ULONG GetRelationChildIdx() const
 			{
 				return EdxlroutedmIndexChild;
 			}
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalRoutedDistributeMotion *PdxlopConvert
+			CDXLPhysicalRoutedDistributeMotion *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalMotionRoutedDistribute == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalMotionRoutedDistribute == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalRoutedDistributeMotion*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalRoutedDistributeMotion*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

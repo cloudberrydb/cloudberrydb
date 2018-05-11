@@ -33,24 +33,24 @@ namespace gpos
 		private:
 
 			// stack depth
-			ULONG m_ulDepth;
+			ULONG m_depth;
 
 			// array with frame return addresses
-			void *m_rgpvAddresses[GPOS_STACK_TRACE_DEPTH];
+			void *m_array_of_addresses[GPOS_STACK_TRACE_DEPTH];
 
 			// append formatted symbol description
-			void AppendSymbolInfo(CWString *pws, CHAR *szDemangleBuf, SIZE_T size, const Dl_info &rgInfo, ULONG ulIdx) const;
+			void AppendSymbolInfo(CWString *ws, CHAR *demangling_symbol_buffer, SIZE_T size, const Dl_info &symbol_info_array, ULONG index) const;
 
 #if (GPOS_sparc)
 			//  method called by walkcontext function to store return addresses
-			static INT IGetStackFrames(ULONG_PTR ulpFp, INT sig __attribute__((unused)), void *pvContext);
+			static INT GetStackFrames(ULONG_PTR func_ptr, INT sig __attribute__((unused)), void *context);
 #endif // GPOS_sparc
 
 			// reset descriptor
 			void Reset()
 			{
 				// reset stack depth
-				m_ulDepth = 0;
+				m_depth = 0;
 			}
 
 		public:
@@ -58,30 +58,30 @@ namespace gpos
 			// ctor
 			CStackDescriptor()
 				:
-				m_ulDepth(0)
+				m_depth(0)
 			{
 				Reset();
 			}
 
-			// store current stack skipping (ulSkip) top frames
-			void BackTrace(ULONG ulSkip = 0);
+			// store current stack skipping (top_frames_to_skip) top frames
+			void BackTrace(ULONG top_frames_to_skip = 0);
 
 			// append trace of stored stack to string
 			void AppendTrace
 				(
-				CWString *pws,
-				ULONG ulDepth = GPOS_STACK_TRACE_DEPTH
+				CWString *ws,
+				ULONG depth = GPOS_STACK_TRACE_DEPTH
 				) const;
 
 			// append trace of stored stack to stream
 			void AppendTrace
 				(
 				IOstream &os,
-				ULONG ulDepth = GPOS_STACK_TRACE_DEPTH
+				ULONG depth = GPOS_STACK_TRACE_DEPTH
 				) const;
 
-			// get hash value for stored stack
-			ULONG UlHash() const;
+		// get hash value for stored stack
+			ULONG HashValue() const;
 
 	}; // class CStackTrace
 

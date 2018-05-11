@@ -41,35 +41,35 @@ namespace gpopt
 			CColRefSet *m_pcrsMinimalGrpCols;
 
 			// construct order spec on grouping column so that it covers required order spec
-			COrderSpec *PosCovering(IMemoryPool *pmp, COrderSpec *posRequired, DrgPcr *pdrgpcrGrp) const;
+			COrderSpec *PosCovering(IMemoryPool *mp, COrderSpec *posRequired, CColRefArray *pdrgpcrGrp) const;
 
 		protected:
 
 			// compute required sort columns of the n-th child
 			COrderSpec *PosRequiredStreamAgg
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
-				ULONG ulChildIndex,
-				DrgPcr *pdrgpcrGrp
+				ULONG child_index,
+				CColRefArray *pdrgpcrGrp
 				)
 				const;
 
 			// initialize the order spec using the given array of columns
-			void InitOrderSpec(IMemoryPool *pmp, DrgPcr *pdrgpcrOrder);
+			void InitOrderSpec(IMemoryPool *mp, CColRefArray *pdrgpcrOrder);
 
 		public:
 
 			// ctor
 			CPhysicalStreamAgg
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
-				DrgPcr *pdrgpcrMinimal, // minimal grouping columns based on FD's
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				CColRefArray *pdrgpcrMinimal, // minimal grouping columns based on FD's
 				COperator::EGbAggType egbaggtype,
 				BOOL fGeneratesDuplicates,
-				DrgPcr *pdrgpcrArgDQA,
+				CColRefArray *pdrgpcrArgDQA,
 				BOOL fMultiStage
 				);
 
@@ -100,16 +100,16 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
-				ULONG ulChildIndex,
-				DrgPdp *, //pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *, //pdrgpdpCtxt,
 				ULONG //ulOptReq
 				)
 				const
 			{
-				return PosRequiredStreamAgg(pmp, exprhdl, posRequired, ulChildIndex, m_pdrgpcrMinimal);
+				return PosRequiredStreamAgg(mp, exprhdl, posRequired, child_index, m_pdrgpcrMinimal);
 			}
 
 			//-------------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties

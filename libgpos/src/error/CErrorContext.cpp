@@ -36,18 +36,18 @@ GPOS_CPL_ASSERT
 //---------------------------------------------------------------------------
 CErrorContext::CErrorContext
 	(
-	CMiniDumper *pmdr
+	CMiniDumper *mini_dumper_handle
 	)
 	:
-	m_exc(CException::m_excInvalid),
-	m_ulSev(CException::ExsevError),
-	m_fPending(false),
-	m_fRethrow(false),
-	m_fSerializing(false),
-	m_wss(m_wsz, GPOS_ARRAY_SIZE(m_wsz)),
-	m_pmdr(pmdr)
+	m_exception(CException::m_invalid_exception),
+	m_severity(CException::ExsevError),
+	m_pending(false),
+	m_rethrown(false),
+	m_serializing(false),
+	m_static_buffer(m_error_msg, GPOS_ARRAY_SIZE(m_error_msg)),
+	m_mini_dumper_handle(mini_dumper_handle)
 {
-	m_listSerial.Init(GPOS_OFFSET(CSerializable, m_linkErrCtxt));
+	m_serializable_objects_list.Init(GPOS_OFFSET(CSerializable, m_err_ctxt_link));
 }
 
 
@@ -61,7 +61,7 @@ CErrorContext::CErrorContext
 //---------------------------------------------------------------------------
 CErrorContext::~CErrorContext()
 {
-	GPOS_ASSERT(!m_fPending && "unhandled error pending");
+	GPOS_ASSERT(!m_pending && "unhandled error pending");
 }
 
 
@@ -76,13 +76,13 @@ CErrorContext::~CErrorContext()
 void
 CErrorContext::Reset()
 {
-	GPOS_ASSERT(m_fPending);
+	GPOS_ASSERT(m_pending);
 	
-	m_fPending = false;
-	m_fRethrow = false;
-	m_fSerializing = false;
-	m_exc = CException::m_excInvalid;
-	m_wss.Reset();
+	m_pending = false;
+	m_rethrown = false;
+	m_serializing = false;
+	m_exception = CException::m_invalid_exception;
+	m_static_buffer.Reset();
 }
 
 
@@ -101,34 +101,34 @@ CErrorContext::Record
 	VA_LIST vl
 	)
 {
-	if (m_fSerializing)
+	if (m_serializing)
 		return;
 
 #ifdef GPOS_DEBUG
-	if (m_fPending)
+	if (m_pending)
 	{
 		// reset pending flag so we can throw from here
-		m_fPending = false;
+		m_pending = false;
 		
 		GPOS_ASSERT(!"Pending error unhandled when raising new error");
  	}
 #endif // GPOS_DEBUG
 	
-	m_fPending = true;
-	m_exc = exc;
+	m_pending = true;
+	m_exception = exc;
 	
 	// store stack, skipping current frame
-	m_sd.BackTrace(1);
+	m_stack_descriptor.BackTrace(1);
 
-	ELocale eloc = ITask::PtskSelf()->Eloc();
-	CMessage *pmsg = CMessageRepository::Pmr()->PmsgLookup(exc, eloc);
-	pmsg->Format(&m_wss, vl);
+	ELocale locale = ITask::Self()->Locale();
+	CMessage *msg = CMessageRepository::GetMessageRepository()->LookupMessage(exc, locale);
+	msg->Format(&m_static_buffer, vl);
 
-	m_ulSev = pmsg->UlSev();
+	m_severity = msg->GetSeverity();
 
 	if (GPOS_FTRACE(EtracePrintExceptionOnRaise))
 	{
-		std::wcerr << GPOS_WSZ_LIT("Exception: ") << m_wss.Wsz() << std::endl;
+		std::wcerr << GPOS_WSZ_LIT("Exception: ") << m_static_buffer.GetBuffer() << std::endl;
 	}
 }
 
@@ -144,18 +144,18 @@ CErrorContext::Record
 void
 CErrorContext::AppendErrnoMsg()
 {
-	GPOS_ASSERT(m_fPending);
+	GPOS_ASSERT(m_pending);
 	GPOS_ASSERT
 		(
-		GPOS_MATCH_EX(m_exc, CException::ExmaSystem, CException::ExmiIOError) ||
-		GPOS_MATCH_EX(m_exc, CException::ExmaSystem, CException::ExmiNetError)
+		GPOS_MATCH_EX(m_exception, CException::ExmaSystem, CException::ExmiIOError) ||
+		GPOS_MATCH_EX(m_exception, CException::ExmaSystem, CException::ExmiNetError)
 		);
 	GPOS_ASSERT(0 < errno && "Errno has not been set");
 
 	// get errno description
-	clib::StrErrorR(errno, m_sz, GPOS_ARRAY_SIZE(m_sz));
+	clib::Strerror_r(errno, m_system_error_msg, GPOS_ARRAY_SIZE(m_system_error_msg));
 
-	m_wss.AppendFormat(GPOS_WSZ_LIT(" (%s)"), m_sz);
+	m_static_buffer.AppendFormat(GPOS_WSZ_LIT(" (%s)"), m_system_error_msg);
 }
 
 
@@ -170,22 +170,22 @@ CErrorContext::AppendErrnoMsg()
 void
 CErrorContext::CopyPropErrCtxt
 	(
-	const IErrorContext *perrctxt
+	const IErrorContext *err_ctxt
 	)
 {
-	GPOS_ASSERT(!m_fPending);
+	GPOS_ASSERT(!m_pending);
 
-	m_fPending = true;
+	m_pending = true;
 
 	// copy exception
-	m_exc = perrctxt->Exc();
+	m_exception = err_ctxt->GetException();
 
 	// copy error message
-	m_wss.Reset();
-	m_wss.Append(&(reinterpret_cast<const CErrorContext*>(perrctxt)->m_wss));
+	m_static_buffer.Reset();
+	m_static_buffer.Append(&(reinterpret_cast<const CErrorContext*>(err_ctxt)->m_static_buffer));
 
 	// copy severity
-	m_ulSev = perrctxt->UlSev();
+	m_severity = err_ctxt->GetSeverity();
 }
 
 
@@ -200,35 +200,35 @@ CErrorContext::CopyPropErrCtxt
 void
 CErrorContext::Serialize()
 {
-	if (m_fSerializing)
+	if (m_serializing)
 		return;
 
-	if (NULL == m_pmdr || m_listSerial.FEmpty())
+	if (NULL == m_mini_dumper_handle || m_serializable_objects_list.IsEmpty())
 	{
 		return;
 	}
 
-	m_fSerializing = true;
+	m_serializing = true;
 
 	// Abort might throw an error, so prevent aborting to
 	// avoid recursion.
 	CAutoSuspendAbort asa;
 	// get mini-dumper's stream to serialize to
-	COstream& oos = m_pmdr->GetOStream();
+	COstream& oos = m_mini_dumper_handle->GetOStream();
 
 	// serialize objects to reserved space
-	m_pmdr->SerializeEntryHeader();
+	m_mini_dumper_handle->SerializeEntryHeader();
 
-	for (CSerializable *pserial = m_listSerial.PtFirst();
-	     NULL != pserial;
-	     pserial = m_listSerial.PtNext(pserial))
+	for (CSerializable *serializable_obj = m_serializable_objects_list.First();
+	     NULL != serializable_obj;
+	     serializable_obj = m_serializable_objects_list.Next(serializable_obj))
 	{
-		pserial->Serialize(oos);
+		serializable_obj->Serialize(oos);
 	}
 
-	m_pmdr->SerializeEntryFooter();
+	m_mini_dumper_handle->SerializeEntryFooter();
 
-	m_fSerializing = false;
+	m_serializing = false;
 }
 
 

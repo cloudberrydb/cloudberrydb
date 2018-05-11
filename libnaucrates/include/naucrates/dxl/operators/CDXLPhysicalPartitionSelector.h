@@ -43,20 +43,20 @@ namespace gpdxl
 		private:
 
 			// table id
-			IMDId *m_pmdidRel;
+			IMDId *m_rel_mdid;
 
 			// number of partitioning levels
-			ULONG m_ulLevels;
+			ULONG m_num_of_part_levels;
 			
 			// scan id
-			ULONG m_ulScanId;
+			ULONG m_scan_id;
 
 			// private copy ctor
 			CDXLPhysicalPartitionSelector(CDXLPhysicalPartitionSelector&);
 
 		public:
 			// ctor
-			CDXLPhysicalPartitionSelector(IMemoryPool *pmp, IMDId *pmdidRel, ULONG ulLevels, ULONG ulScanId);
+			CDXLPhysicalPartitionSelector(IMemoryPool *mp, IMDId *mdid_rel, ULONG num_of_part_levels, ULONG scan_id);
 			
 			// dtor
 			virtual
@@ -64,52 +64,52 @@ namespace gpdxl
 			
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// table id
-			IMDId *PmdidRel() const
+			IMDId *GetRelMdId() const
 			{
-				return m_pmdidRel;
+				return m_rel_mdid;
 			}
 
 			// number of partitioning levels
-			ULONG UlLevels() const
+			ULONG GetPartitioningLevel() const
 			{
-				return m_ulLevels;
+				return m_num_of_part_levels;
 			}
 
 			// scan id
-			ULONG UlScanId() const
+			ULONG ScanId() const
 			{
-				return m_ulScanId;
+				return m_scan_id;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// conversion function
 			static
-			CDXLPhysicalPartitionSelector *PdxlopConvert
+			CDXLPhysicalPartitionSelector *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalPartitionSelector == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalPartitionSelector == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalPartitionSelector*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalPartitionSelector*>(dxl_op);
 			}
 	};
 }

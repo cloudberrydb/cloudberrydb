@@ -13,18 +13,18 @@ namespace gpopt
 {
 	CPhysicalParallelUnionAll::CPhysicalParallelUnionAll
 		(
-			IMemoryPool *pmp,
-			DrgPcr *pdrgpcrOutput,
-			DrgDrgPcr *pdrgpdrgpcrInput,
+			IMemoryPool *mp,
+			CColRefArray *pdrgpcrOutput,
+			CColRef2dArray *pdrgpdrgpcrInput,
 			ULONG ulScanIdPartialIndex
 		) : CPhysicalUnionAll
 		(
-			pmp,
+			mp,
 			pdrgpcrOutput,
 			pdrgpdrgpcrInput,
 			ulScanIdPartialIndex
 		),
-			m_pdrgpds(GPOS_NEW(pmp) CStrictHashedDistributions(pmp, pdrgpcrOutput, pdrgpdrgpcrInput))
+			m_pdrgpds(GPOS_NEW(mp) CStrictHashedDistributions(mp, pdrgpcrOutput, pdrgpdrgpcrInput))
 	{
 		// ParallelUnionAll creates two distribution requests to enforce distribution of its children:
 		// (1) (StrictHashed, StrictHashed, ...): used to force redistribute motions that mirror the
@@ -48,31 +48,31 @@ namespace gpopt
 	CDistributionSpec *
 	CPhysicalParallelUnionAll::PdsRequired
 		(
-			IMemoryPool *pmp,
+			IMemoryPool *mp,
 			CExpressionHandle &,
 			CDistributionSpec *,
-			ULONG ulChildIndex,
-			DrgPdp *,
+			ULONG child_index,
+			CDrvdProp2dArray *,
 			ULONG ulOptReq
 		)
 	const
 	{
 		if (0 == ulOptReq)
 		{
-			CDistributionSpec *pdsChild = (*m_pdrgpds)[ulChildIndex];
+			CDistributionSpec *pdsChild = (*m_pdrgpds)[child_index];
 			pdsChild->AddRef();
 			return pdsChild;
 		}
 		else
 		{
-			DrgPcr *pdrgpcrChildInputColumns = (*PdrgpdrgpcrInput())[ulChildIndex];
-			DrgPexpr *pdrgpexprFakeRequestedColumns = GPOS_NEW(pmp) DrgPexpr(pmp);
+			CColRefArray *pdrgpcrChildInputColumns = (*PdrgpdrgpcrInput())[child_index];
+			CExpressionArray *pdrgpexprFakeRequestedColumns = GPOS_NEW(mp) CExpressionArray(mp);
 
 			CColRef *pcrFirstColumn = (*pdrgpcrChildInputColumns)[0];
-			CExpression *pexprScalarIdent = CUtils::PexprScalarIdent(pmp, pcrFirstColumn);
+			CExpression *pexprScalarIdent = CUtils::PexprScalarIdent(mp, pcrFirstColumn);
 			pdrgpexprFakeRequestedColumns->Append(pexprScalarIdent);
 
-			return GPOS_NEW(pmp) CDistributionSpecHashedNoOp(pdrgpexprFakeRequestedColumns);
+			return GPOS_NEW(mp) CDistributionSpecHashedNoOp(pdrgpexprFakeRequestedColumns);
 		}
 	}
 
@@ -80,8 +80,8 @@ namespace gpopt
 	CPhysicalParallelUnionAll::Edm
 		(
 		CReqdPropPlan *, // prppInput
-		ULONG,  // ulChildIndex
-		DrgPdp *, //pdrgpdpCtxt
+		ULONG,  // child_index
+		CDrvdProp2dArray *, //pdrgpdpCtxt
 		ULONG // ulOptReq
 		)
 	{

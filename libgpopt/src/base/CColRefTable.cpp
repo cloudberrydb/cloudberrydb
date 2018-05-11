@@ -29,20 +29,20 @@ using namespace gpmd;
 CColRefTable::CColRefTable
 	(
 	const CColumnDescriptor *pcoldesc,
-	ULONG ulId,
+	ULONG id,
 	const CName *pname,
 	ULONG ulOpSource
 	)
 	:
-	CColRef(pcoldesc->Pmdtype(), pcoldesc->ITypeModifier(), ulId, pname),
+	CColRef(pcoldesc->RetrieveType(), pcoldesc->TypeModifier(), id, pname),
 	m_iAttno(0),
 	m_ulSourceOpId(ulOpSource),
-	m_ulWidth(pcoldesc->UlWidth())
+	m_width(pcoldesc->Width())
 {
 	GPOS_ASSERT(NULL != pname);
 
-	m_iAttno = pcoldesc->IAttno();
-	m_fNullable = pcoldesc->FNullable();
+	m_iAttno = pcoldesc->AttrNum();
+	m_is_nullable = pcoldesc->IsNullable();
 }
 
 //---------------------------------------------------------------------------
@@ -57,20 +57,20 @@ CColRefTable::CColRefTable
 CColRefTable::CColRefTable
 	(
 	const IMDType *pmdtype,
-	INT iTypeModifier,
-	INT iAttno,
-	BOOL fNullable,
-	ULONG ulId,
+	INT type_modifier,
+	INT attno,
+	BOOL is_nullable,
+	ULONG id,
 	const CName *pname,
 	ULONG ulOpSource,
 	ULONG ulWidth
 	)
 	:
-	CColRef(pmdtype, iTypeModifier, ulId, pname),
-	m_iAttno(iAttno),
-	m_fNullable(fNullable),
+	CColRef(pmdtype, type_modifier, id, pname),
+	m_iAttno(attno),
+	m_is_nullable(is_nullable),
 	m_ulSourceOpId(ulOpSource),
-	m_ulWidth(ulWidth)
+	m_width(ulWidth)
 {
 	GPOS_ASSERT(NULL != pname);
 }

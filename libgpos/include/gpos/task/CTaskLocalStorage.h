@@ -54,40 +54,40 @@ namespace gpos
 			~CTaskLocalStorage();
 
 			// reset
-			void Reset(IMemoryPool *pmp);
+			void Reset(IMemoryPool *mp);
 			
 			// accessors
 			void Store(CTaskLocalStorageObject *);
-			CTaskLocalStorageObject *Ptlsobj(const Etlsidx);
+			CTaskLocalStorageObject *Get(const Etlsidx);
 			
 			// delete object
 			void Remove(CTaskLocalStorageObject *);			
 
 			// equality function -- used for hashtable
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
-				const CTaskLocalStorage::Etlsidx &etlsidx,
-				const CTaskLocalStorage::Etlsidx &etlsidxOther
+				const CTaskLocalStorage::Etlsidx &idx,
+				const CTaskLocalStorage::Etlsidx &idx_other
 				)
 			{
-				return etlsidx == etlsidxOther;
+				return idx == idx_other;
 			}
 
 			// hash function
 			static
-			ULONG UlHashIdx
+			ULONG HashIdx
 				(
-				const CTaskLocalStorage::Etlsidx &etlsidx
+				const CTaskLocalStorage::Etlsidx &idx
 				)
 			{
 				// keys are unique
-				return static_cast<ULONG>(etlsidx);
+				return static_cast<ULONG>(idx);
 			}
 
 			// invalid Etlsidx
 			static
-			const Etlsidx m_etlsidxInvalid;
+			const Etlsidx m_invalid_idx;
 
 		private:
 		
@@ -95,7 +95,7 @@ namespace gpos
 			CSyncHashtable
 				<CTaskLocalStorageObject, 
 				Etlsidx,
-				CSpinlockOS> m_sht;
+				CSpinlockOS> m_hash_table;
 
 			// private copy ctor
 			CTaskLocalStorage(const CTaskLocalStorage &);

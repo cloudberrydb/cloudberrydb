@@ -39,7 +39,7 @@ namespace gpdxl
 
 		private:
 			// is nul or is not null operation
-			BOOL m_fIsNull;
+			BOOL m_is_null;
 
 			// private copy ctor
 			CDXLScalarNullTest(const CDXLScalarNullTest&);
@@ -48,18 +48,18 @@ namespace gpdxl
 			// ctor/
 			CDXLScalarNullTest
 				(
-				IMemoryPool *pmp,
-				BOOL fIsNull
+				IMemoryPool *mp,
+				BOOL is_null
 				);
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// name of the DXL operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// NullTest operator type
-			BOOL FIsNullTest() const;
+			BOOL IsNullTest() const;
 
 			// name of the operator
 			const CWStringConst *PstrTestName() const;
@@ -70,22 +70,22 @@ namespace gpdxl
 
 			// conversion function
 			static
-			CDXLScalarNullTest *PdxlopConvert
+			CDXLScalarNullTest *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarNullTest == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarNullTest == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarNullTest*>(pdxlop);
+				return dynamic_cast<CDXLScalarNullTest*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{
@@ -95,7 +95,7 @@ namespace gpdxl
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 	};
 }

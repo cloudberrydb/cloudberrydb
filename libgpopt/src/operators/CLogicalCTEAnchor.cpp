@@ -28,11 +28,11 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalCTEAnchor::CLogicalCTEAnchor
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogical(pmp),
-	m_ulId(0)
+	CLogical(mp),
+	m_id(0)
 {
 	m_fPattern = true;
 }
@@ -47,12 +47,12 @@ CLogicalCTEAnchor::CLogicalCTEAnchor
 //---------------------------------------------------------------------------
 CLogicalCTEAnchor::CLogicalCTEAnchor
 	(
-	IMemoryPool *pmp,
-	ULONG ulId
+	IMemoryPool *mp,
+	ULONG id
 	)
 	:
-	CLogical(pmp),
-	m_ulId(ulId)
+	CLogical(mp),
+	m_id(id)
 {}
 
 //---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ CLogicalCTEAnchor::CLogicalCTEAnchor
 CColRefSet *
 CLogicalCTEAnchor::PcrsDeriveOutput
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -84,7 +84,7 @@ CLogicalCTEAnchor::PcrsDeriveOutput
 CKeyCollection *
 CLogicalCTEAnchor::PkcDeriveKeys
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -103,19 +103,19 @@ CLogicalCTEAnchor::PkcDeriveKeys
 CPartInfo *
 CLogicalCTEAnchor::PpartinfoDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	CPartInfo *ppartinfoChild = exprhdl.Pdprel(0 /*ulChildIndex*/)->Ppartinfo();
+	CPartInfo *ppartinfoChild = exprhdl.GetRelationalProperties(0 /*child_index*/)->Ppartinfo();
 	GPOS_ASSERT(NULL != ppartinfoChild);
 
-	CExpression *pexprProducer = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_ulId);
+	CExpression *pexprProducer = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PexprCTEProducer(m_id);
 	GPOS_ASSERT(NULL != pexprProducer);
-	CPartInfo *ppartinfoCTEProducer = CDrvdPropRelational::Pdprel(pexprProducer->PdpDerive())->Ppartinfo();
+	CPartInfo *ppartinfoCTEProducer = CDrvdPropRelational::GetRelationalProperties(pexprProducer->PdpDerive())->Ppartinfo();
 
-	return CPartInfo::PpartinfoCombine(pmp, ppartinfoChild, ppartinfoCTEProducer);
+	return CPartInfo::PpartinfoCombine(mp, ppartinfoChild, ppartinfoCTEProducer);
 }
 
 //---------------------------------------------------------------------------
@@ -129,25 +129,25 @@ CLogicalCTEAnchor::PpartinfoDerive
 CMaxCard
 CLogicalCTEAnchor::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
 	// pass on max card of first child
-	return exprhdl.Pdprel(0)->Maxcard();
+	return exprhdl.GetRelationalProperties(0)->Maxcard();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEAnchor::FMatch
+//		CLogicalCTEAnchor::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL
-CLogicalCTEAnchor::FMatch
+CLogicalCTEAnchor::Matches
 	(
 	COperator *pop
 	)
@@ -160,21 +160,21 @@ CLogicalCTEAnchor::FMatch
 
 	CLogicalCTEAnchor *popCTEAnchor = CLogicalCTEAnchor::PopConvert(pop);
 
-	return m_ulId == popCTEAnchor->UlId();
+	return m_id == popCTEAnchor->Id();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalCTEAnchor::UlHash
+//		CLogicalCTEAnchor::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CLogicalCTEAnchor::UlHash() const
+CLogicalCTEAnchor::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(), m_ulId);
+	return gpos::CombineHashes(COperator::HashValue(), m_id);
 }
 
 //---------------------------------------------------------------------------
@@ -188,14 +188,14 @@ CLogicalCTEAnchor::UlHash() const
 CXformSet *
 CLogicalCTEAnchor::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
-	(void) pxfs->FExchangeSet(CXform::ExfCTEAnchor2Sequence);
-	(void) pxfs->FExchangeSet(CXform::ExfCTEAnchor2TrivialSelect);
-	return pxfs;
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfCTEAnchor2Sequence);
+	(void) xform_set->ExchangeSet(CXform::ExfCTEAnchor2TrivialSelect);
+	return xform_set;
 }
 
 //---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ CLogicalCTEAnchor::OsPrint
 	const
 {
 	os << SzId() << " (";
-	os << m_ulId;
+	os << m_id;
 	os << ")";
 
 	return os;

@@ -28,90 +28,90 @@ namespace gpnaucrates
 
 			// return join cardinality based on scaling factor and join type
 			static
-			CDouble DJoinCardinality
+			CDouble CalcJoinCardinality
 				(
-				 CStatisticsConfig *pstatsconf,
-				 CDouble dRowsLeft,
-				 CDouble dRowsRight,
-				 DrgPdouble *pdrgpd,
-				 IStatistics::EStatsJoinType eStatsJoinType
+				 CStatisticsConfig *stats_config,
+				 CDouble left_num_rows,
+				 CDouble right_num_rows,
+				 CDoubleArray *join_conds_scale_factors,
+				 IStatistics::EStatsJoinType join_type
 				);
 
 
 			// check if the join statistics object is empty output based on the input
 			// histograms and the join histograms
 			static
-			BOOL FEmptyJoinStats
+			BOOL JoinStatsAreEmpty
 				(
-				 BOOL fEmptyOuter,
-				 BOOL fEmptyOutput,
-				 const CHistogram *phistOuter,
-				 const CHistogram *phistInner,
-				 CHistogram *phistJoin,
-				 IStatistics::EStatsJoinType eStatsJoinType
+				 BOOL outer_is_empty,
+				 BOOL output_is_empty,
+				 const CHistogram *outer_histogram,
+				 const CHistogram *inner_histogram,
+				 CHistogram *join_histogram,
+				 IStatistics::EStatsJoinType join_type
 				 );
 
 			// helper for joining histograms
 			static
 			void JoinHistograms
-				(
-				 IMemoryPool *pmp,
-				 const CHistogram *phist1,
-				 const CHistogram *phist2,
-				 CStatsPredJoin *pstatsjoin,
-				 CDouble dRows1,
-				 CDouble dRows2,
-				 CHistogram **pphist1, // output: histogram 1 after join
-				 CHistogram **pphist2, // output: histogram 2 after join
-				 CDouble *pdScaleFactor, // output: scale factor based on the join
-				 BOOL fEmptyInput, // if true, one of the inputs is empty
-				 IStatistics::EStatsJoinType eStatsJoinType,
-				 BOOL fIgnoreLasjHistComputation
-				 );
+					(
+							IMemoryPool *mp,
+							const CHistogram *histogram1,
+							const CHistogram *histogram2,
+							CStatsPredJoin *join_pred_stats,
+							CDouble num_rows1,
+							CDouble num_rows2,
+							CHistogram **result_hist1, // output: histogram 1 after join
+							CHistogram **result_hist2, // output: histogram 2 after join
+							CDouble *scale_factor, // output: scale factor based on the join
+							BOOL is_input_empty, // if true, one of the inputs is empty
+							IStatistics::EStatsJoinType join_type,
+							BOOL DoIgnoreLASJHistComputation
+					);
 
 		public:
 
 			// main driver to generate join stats
 			static
-			CStatistics *PstatsJoinDriver
+			CStatistics *SetResultingJoinStats
 				(
-				 IMemoryPool *pmp,
-				 CStatisticsConfig *pstatsconf,
-				 const IStatistics *pistatsOuter,
-				 const IStatistics *pistatsInner,
-				 DrgPstatspredjoin *pdrgpstatspredjoin,
-				 IStatistics::EStatsJoinType eStatsJoinType,
-				 BOOL fIgnoreLasjHistComputation
+				 IMemoryPool *mp,
+				 CStatisticsConfig *stats_config,
+				 const IStatistics *outer_stats_input,
+				 const IStatistics *inner_stats_input,
+												  CStatsPredJoinArray *join_preds_stats,
+				 IStatistics::EStatsJoinType join_type,
+				 BOOL DoIgnoreLASJHistComputation
 				 );
 
 			static
-			IStatistics *PstatsJoinArray
+			IStatistics *CalcAllJoinStats
 				(
-				 IMemoryPool *pmp,
-				 DrgPstat *pdrgpstat,
-				 CExpression *pexprScalar,
-				 IStatistics::EStatsJoinType eStatsJoinType
+				 IMemoryPool *mp,
+				 IStatisticsArray *statistics_array,
+				 CExpression *expr,
+				 IStatistics::EStatsJoinType join_type
 				 );
 
 			// derive statistics for join operation given array of statistics object
 			static
-			IStatistics *PstatsJoin
+			IStatistics *DeriveJoinStats
 				(
-				 IMemoryPool *pmp,
+				 IMemoryPool *mp,
 				 CExpressionHandle &exprhdl,
-				 DrgPstat *pdrgpstatCtxt
+				 IStatisticsArray *stats_ctxt
 				 );
 
 			// derive statistics when scalar expression has outer references
 			static
-			IStatistics *PstatsDeriveWithOuterRefs
+			IStatistics *DeriveStatsWithOuterRefs
 				(
-				 IMemoryPool *pmp,
+				 IMemoryPool *mp,
 				 CExpressionHandle &exprhdl, // handle attached to the logical expression we want to derive stats for
-				 CExpression *pexprScalar, // scalar condition used for stats derivation
-				 IStatistics *pstats, // statistics object of attached expression
-				 DrgPstat *pdrgpstatOuter, // array of stats objects where outer references are defined
-				 IStatistics::EStatsJoinType eStatsJoinType
+				 CExpression *expr, // scalar condition used for stats derivation
+				 IStatistics *stats, // statistics object of attached expression
+				 IStatisticsArray *all_outer_stats, // array of stats objects where outer references are defined
+				 IStatistics::EStatsJoinType join_type
 				 );
 	};
 }

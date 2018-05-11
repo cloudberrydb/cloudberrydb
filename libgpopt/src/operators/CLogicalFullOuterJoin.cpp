@@ -30,12 +30,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalFullOuterJoin::CLogicalFullOuterJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalJoin(pmp)
+	CLogicalJoin(mp)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 }
 
 
@@ -50,7 +50,7 @@ CLogicalFullOuterJoin::CLogicalFullOuterJoin
 CMaxCard
 CLogicalFullOuterJoin::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -69,13 +69,13 @@ CLogicalFullOuterJoin::Maxcard
 CXformSet *
 CLogicalFullOuterJoin::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
-	(void) pxfs->FExchangeSet(CXform::ExfExpandFullOuterJoin);
-	return pxfs;
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfExpandFullOuterJoin);
+	return xform_set;
 }
 
 // EOF

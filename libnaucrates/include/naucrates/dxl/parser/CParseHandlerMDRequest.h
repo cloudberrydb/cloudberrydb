@@ -38,10 +38,10 @@ namespace gpdxl
 		private:
 		
 			// array of metadata ids
-			DrgPmdid *m_pdrgpmdid;
+		IMdIdArray *m_mdid_array;
 			
 			// array of type requests
-			CMDRequest::DrgPtr *m_pdrgptr;
+		CMDRequest::SMDTypeRequestArray *m_mdtype_request_array;
 
 			// private copy ctor
 			CParseHandlerMDRequest(const CParseHandlerMDRequest &);
@@ -49,23 +49,23 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor
-			CParseHandlerMDRequest(IMemoryPool *pmp, CParseHandlerManager *pphm, CParseHandlerBase *pph);
+			CParseHandlerMDRequest(IMemoryPool *mp, CParseHandlerManager *parse_handler_mgr, CParseHandlerBase *pph);
 			
 			// dtor
 			virtual
@@ -73,13 +73,13 @@ namespace gpdxl
 			
 			// parse handler type
 			virtual 
-			EDxlParseHandlerType Edxlphtype() const;
+			EDxlParseHandlerType GetParseHandlerType() const;
 
 			// parsed mdids
-			DrgPmdid *Pdrgpmdid() const;	
+		IMdIdArray *GetMdIdArray() const;
 			
 			// parsed type requests
-			CMDRequest::DrgPtr *Pdrgptr() const;	
+		CMDRequest::SMDTypeRequestArray *GetMDTypeRequestArray() const;
 	};
 }
 

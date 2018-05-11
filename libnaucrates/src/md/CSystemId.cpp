@@ -25,22 +25,22 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CSystemId::CSystemId
 	(
-	IMDId::EMDIdType emdidt,
-	const WCHAR *wsz,
-	ULONG ulLength
+	IMDId::EMDIdType mdid_type,
+	const WCHAR *sysid_char,
+	ULONG length
 	)
 	:
-	m_emdidt(emdidt)
+	m_mdid_type(mdid_type)
 {
-	GPOS_ASSERT(GPDXL_SYSID_LENGTH >= ulLength);
+	GPOS_ASSERT(GPDXL_SYSID_LENGTH >= length);
 
-	if (ulLength > 0)
+	if (length > 0)
 	{
-		clib::WszWcsNCpy(m_wsz, wsz, ulLength);
+		clib::WcStrNCpy(m_sysid_char, sysid_char, length);
 	}
 	
 	// ensure string is terminated
-	m_wsz[ulLength] = WCHAR_EOS;
+	m_sysid_char[length] = WCHAR_EOS;
 }
 
 //---------------------------------------------------------------------------
@@ -56,43 +56,43 @@ CSystemId::CSystemId
 	const CSystemId &sysid
 	)
 	:
-	m_emdidt(sysid.Emdidt())
+	m_mdid_type(sysid.MdidType())
 {
-	clib::WszWcsNCpy(m_wsz, sysid.Wsz(), GPDXL_SYSID_LENGTH);
+	clib::WcStrNCpy(m_sysid_char, sysid.GetBuffer(), GPDXL_SYSID_LENGTH);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CSystemId::FEquals
+//		CSystemId::Equals
 //
 //	@doc:
 //		Equality function
 //
 //---------------------------------------------------------------------------
 BOOL
-CSystemId::FEquals
+CSystemId::Equals
 	(
 	const CSystemId &sysid
 	)
 	const
 {
-	ULONG ulLength = GPOS_WSZ_LENGTH(m_wsz);
-	return ulLength == GPOS_WSZ_LENGTH(sysid.m_wsz) &&
-			0 == clib::IWcsNCmp(m_wsz, sysid.m_wsz, ulLength);
+	ULONG length = GPOS_WSZ_LENGTH(m_sysid_char);
+	return length == GPOS_WSZ_LENGTH(sysid.m_sysid_char) &&
+			0 == clib::Wcsncmp(m_sysid_char, sysid.m_sysid_char, length);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CSystemId::UlHash
+//		CSystemId::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CSystemId::UlHash() const
+CSystemId::HashValue() const
 {
-	return gpos::UlHashByteArray((BYTE*) m_wsz, GPOS_WSZ_LENGTH(m_wsz) * GPOS_SIZEOF(WCHAR));
+	return gpos::HashByteArray((BYTE*) m_sysid_char, GPOS_WSZ_LENGTH(m_sysid_char) * GPOS_SIZEOF(WCHAR));
 }
 
 // EOF

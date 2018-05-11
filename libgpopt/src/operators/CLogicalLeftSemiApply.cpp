@@ -30,12 +30,12 @@ using namespace gpopt;
 CMaxCard
 CLogicalLeftSemiApply::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.Pdprel(0)->Maxcard());
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.GetRelationalProperties(0)->Maxcard());
 }
 
 //---------------------------------------------------------------------------
@@ -49,17 +49,17 @@ CLogicalLeftSemiApply::Maxcard
 CXformSet *
 CLogicalLeftSemiApply::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 
-	(void) pxfs->FExchangeSet(CXform::ExfLeftSemiApply2LeftSemiJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftSemiApplyWithExternalCorrs2InnerJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftSemiApply2LeftSemiJoinNoCorrelations);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftSemiApply2LeftSemiJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftSemiApplyWithExternalCorrs2InnerJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftSemiApply2LeftSemiJoinNoCorrelations);
 
-	return pxfs;
+	return xform_set;
 }
 
 
@@ -74,11 +74,11 @@ CLogicalLeftSemiApply::PxfsCandidates
 CColRefSet *
 CLogicalLeftSemiApply::PcrsDeriveOutput
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
-	GPOS_ASSERT(3 == exprhdl.UlArity());
+	GPOS_ASSERT(3 == exprhdl.Arity());
 
 	return PcrsDeriveOutputPassThru(exprhdl);
 }
@@ -95,14 +95,14 @@ CLogicalLeftSemiApply::PcrsDeriveOutput
 COperator *
 CLogicalLeftSemiApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPcr *pdrgpcrInner = CUtils::PdrgpcrRemap(pmp, m_pdrgpcrInner, phmulcr, fMustExist);
+	CColRefArray *pdrgpcrInner = CUtils::PdrgpcrRemap(mp, m_pdrgpcrInner, colref_mapping, must_exist);
 
-	return GPOS_NEW(pmp) CLogicalLeftSemiApply(pmp, pdrgpcrInner, m_eopidOriginSubq);
+	return GPOS_NEW(mp) CLogicalLeftSemiApply(mp, pdrgpcrInner, m_eopidOriginSubq);
 }
 
 // EOF

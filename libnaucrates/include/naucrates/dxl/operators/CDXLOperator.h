@@ -223,7 +223,7 @@ namespace gpdxl
 			
 		protected:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 		public:
 			// ctor/dtor
@@ -235,14 +235,14 @@ namespace gpdxl
 					
 			// ident accessors
 			virtual
-			Edxlopid Edxlop() const = 0;
+			Edxlopid GetDXLOperator() const = 0;
 			
 			// name of the operator
 			virtual
-			const CWStringConst *PstrOpName() const = 0;
+			const CWStringConst *GetOpNameStr() const = 0;
 			
 			virtual
-			Edxloptype Edxloperatortype() const = 0;
+			Edxloptype GetDXLOperatorType() const = 0;
             
 			// serialize operator in DXL format given a serializer object and the
 			// host DXL node, providing access to the operator's children
@@ -251,9 +251,9 @@ namespace gpdxl
 
 			// check if given column is defined by operator
 			virtual
-			BOOL FDefinesColumn
+			BOOL IsColDefined
 				(
-				ULONG // ulColId
+				ULONG // colid
 				)
 				const
 			{
@@ -262,17 +262,17 @@ namespace gpdxl
 			}
 
 			static
-			const CWStringConst *PstrJoinTypeName(EdxlJoinType );
+			const CWStringConst *GetJoinTypeNameStr(EdxlJoinType );
 
 			// Return the index scan direction
 			static
-			const CWStringConst *PstrIndexScanDirection(EdxlIndexScanDirection );
+			const CWStringConst *GetIdxScanDirectionStr(EdxlIndexScanDirection );
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const = 0;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const = 0;
 #endif // GPOS_DEBUG
 	};
 	

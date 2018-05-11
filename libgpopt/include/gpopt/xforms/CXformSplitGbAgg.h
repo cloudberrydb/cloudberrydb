@@ -45,7 +45,7 @@ namespace gpopt
 			static
 			void PopulateLocalGlobalProjectList
 					(
-					IMemoryPool *pmp, // memory pool
+					IMemoryPool *mp, // memory pool
 					CExpression *pexprProjListOrig, // project list of the original global aggregate
 					CExpression **ppexprProjListLocal, // project list of the new local aggregate
 					CExpression **ppexprProjListGlobal // project list of the new global aggregate
@@ -55,7 +55,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformSplitGbAgg(IMemoryPool *pmp);
+			CXformSplitGbAgg(IMemoryPool *mp);
 
 			// ctor
 			explicit

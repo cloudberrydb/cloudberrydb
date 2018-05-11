@@ -45,18 +45,18 @@ namespace gpopt
 			virtual
 			CDrvdPropCtxt *PdpctxtCopy
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CDrvdPropCtxtScalar(pmp);
+				return GPOS_NEW(mp) CDrvdPropCtxtScalar(mp);
 			}
 
 			// add props to context
 			virtual
 			void AddProps
 				(
-				CDrvdProp * // pdp
+				DrvdPropArray * // pdp
 				)
 			{
 				// derived scalar context is currently empty
@@ -67,10 +67,10 @@ namespace gpopt
 			// ctor
 			CDrvdPropCtxtScalar
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CDrvdPropCtxt(pmp)
+				CDrvdPropCtxt(mp)
 			{}
 
 			// dtor

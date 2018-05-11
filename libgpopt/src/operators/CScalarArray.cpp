@@ -26,41 +26,41 @@ using namespace gpmd;
 // Ctor
 CScalarArray::CScalarArray
 	(
-	IMemoryPool *pmp, 
-	IMDId *pmdidElem, 
-	IMDId *pmdidArray, 
-	BOOL fMultiDimensional
+	IMemoryPool *mp, 
+	IMDId *elem_type_mdid, 
+	IMDId *array_type_mdid, 
+	BOOL is_multidimenstional
 	)
 	:
-	CScalar(pmp),
-	m_pmdidElem(pmdidElem),
-	m_pmdidArray(pmdidArray),
-	m_fMultiDimensional(fMultiDimensional)
+	CScalar(mp),
+	m_pmdidElem(elem_type_mdid),
+	m_pmdidArray(array_type_mdid),
+	m_fMultiDimensional(is_multidimenstional)
 {
-	GPOS_ASSERT(pmdidElem->FValid());
-	GPOS_ASSERT(pmdidArray->FValid());
-	m_pdrgPconst = GPOS_NEW(pmp) DrgPconst(pmp);
+	GPOS_ASSERT(elem_type_mdid->IsValid());
+	GPOS_ASSERT(array_type_mdid->IsValid());
+	m_pdrgPconst = GPOS_NEW(mp) CScalarConstArray(mp);
 }
 
 
 // Ctor
 CScalarArray::CScalarArray
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidElem,
-	IMDId *pmdidArray,
-	BOOL fMultiDimensional,
-	DrgPconst *pdrgPconst
+	IMemoryPool *mp,
+	IMDId *elem_type_mdid,
+	IMDId *array_type_mdid,
+	BOOL is_multidimenstional,
+	CScalarConstArray *pdrgPconst
 	)
 :
-CScalar(pmp),
-m_pmdidElem(pmdidElem),
-m_pmdidArray(pmdidArray),
-m_fMultiDimensional(fMultiDimensional),
+CScalar(mp),
+m_pmdidElem(elem_type_mdid),
+m_pmdidArray(array_type_mdid),
+m_fMultiDimensional(is_multidimenstional),
 m_pdrgPconst(pdrgPconst)
 {
-	GPOS_ASSERT(pmdidElem->FValid());
-	GPOS_ASSERT(pmdidArray->FValid());
+	GPOS_ASSERT(elem_type_mdid->IsValid());
+	GPOS_ASSERT(array_type_mdid->IsValid());
 }
 
 // Dtor
@@ -115,33 +115,33 @@ CScalarArray::FMultiDimensional() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArray::UlHash
+//		CScalarArray::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarArray::UlHash() const
+CScalarArray::HashValue() const
 {
-	return gpos::UlCombineHashes
+	return gpos::CombineHashes
 					(
-					UlCombineHashes(m_pmdidElem->UlHash(), m_pmdidArray->UlHash()),
-					gpos::UlHash<BOOL>(&m_fMultiDimensional)
+					CombineHashes(m_pmdidElem->HashValue(), m_pmdidArray->HashValue()),
+					gpos::HashValue<BOOL>(&m_fMultiDimensional)
 					);
 }
 
 	
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArray::FMatch
+//		CScalarArray::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarArray::FMatch
+CScalarArray::Matches
 	(
 	COperator *pop
 	)
@@ -153,15 +153,15 @@ CScalarArray::FMatch
 		
 		// match if components are identical
 		if (popArray->FMultiDimensional() == FMultiDimensional() &&
-			PmdidElem()->FEquals(popArray->PmdidElem()) &&
-			PmdidArray()->FEquals(popArray->PmdidArray()) &&
-			m_pdrgPconst->UlLength() == popArray->PdrgPconst()->UlLength())
+			PmdidElem()->Equals(popArray->PmdidElem()) &&
+			PmdidArray()->Equals(popArray->PmdidArray()) &&
+			m_pdrgPconst->Size() == popArray->PdrgPconst()->Size())
 		{
-			for (ULONG ul = 0; ul < m_pdrgPconst->UlLength(); ul++)
+			for (ULONG ul = 0; ul < m_pdrgPconst->Size(); ul++)
 			{
 				CScalarConst *popConst1 = (*m_pdrgPconst)[ul];
 				CScalarConst *popConst2 = (*popArray->PdrgPconst())[ul];
-				if (!popConst1->FMatch(popConst2))
+				if (!popConst1->Matches(popConst2))
 				{
 					return false;
 				}
@@ -175,19 +175,19 @@ CScalarArray::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArray::PmdidType
+//		CScalarArray::MdidType
 //
 //	@doc:
 //		Type of expression's result
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarArray::PmdidType() const
+CScalarArray::MdidType() const
 {
 	return m_pmdidArray;
 }
 
-DrgPconst *
+CScalarConstArray *
 CScalarArray::PdrgPconst() const
 {
 	return m_pdrgPconst;
@@ -204,7 +204,7 @@ CScalarArray::OsPrint(IOstream &os) const
 	{
 		os << ", multidimensional";
 	}
-	for (ULONG ul = 0; ul < m_pdrgPconst->UlLength(); ul++)
+	for (ULONG ul = 0; ul < m_pdrgPconst->Size(); ul++)
 	{
 		os << " ";
 		(*m_pdrgPconst)[ul]->OsPrint(os);

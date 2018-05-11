@@ -31,21 +31,21 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CDXLRelStats::CDXLRelStats
 	(
-	IMemoryPool *pmp,
-	CMDIdRelStats *pmdidRelStats,
-	CMDName *pmdname,
-	CDouble dRows,
-	BOOL fEmpty
+	IMemoryPool *mp,
+	CMDIdRelStats *rel_stats_mdid,
+	CMDName *mdname,
+	CDouble rows,
+	BOOL is_empty
 	)
 	:
-	m_pmp(pmp),
-	m_pmdidRelStats(pmdidRelStats),
-	m_pmdname(pmdname),
-	m_dRows(dRows),
-	m_fEmpty(fEmpty)
+	m_mp(mp),
+	m_rel_stats_mdid(rel_stats_mdid),
+	m_mdname(mdname),
+	m_rows(rows),
+	m_empty(is_empty)
 {
-	GPOS_ASSERT(pmdidRelStats->FValid());
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	GPOS_ASSERT(rel_stats_mdid->IsValid());
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
 //---------------------------------------------------------------------------
@@ -58,23 +58,23 @@ CDXLRelStats::CDXLRelStats
 //---------------------------------------------------------------------------
 CDXLRelStats::~CDXLRelStats()
 {
-	GPOS_DELETE(m_pmdname);
-	GPOS_DELETE(m_pstr);
-	m_pmdidRelStats->Release();
+	GPOS_DELETE(m_mdname);
+	GPOS_DELETE(m_dxl_str);
+	m_rel_stats_mdid->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLRelStats::Pmdid
+//		CDXLRelStats::MDId
 //
 //	@doc:
 //		Returns the metadata id of this relation stats object
 //
 //---------------------------------------------------------------------------
 IMDId *
-CDXLRelStats::Pmdid() const
+CDXLRelStats::MDId() const
 {
-	return m_pmdidRelStats;
+	return m_rel_stats_mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -88,35 +88,35 @@ CDXLRelStats::Pmdid() const
 CMDName
 CDXLRelStats::Mdname() const
 {
-	return *m_pmdname;
+	return *m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLRelStats::Pstr
+//		CDXLRelStats::GetMDName
 //
 //	@doc:
 //		Returns the DXL string for this object
 //
 //---------------------------------------------------------------------------
 const CWStringDynamic *
-CDXLRelStats::Pstr() const
+CDXLRelStats::GetStrRepr() const
 {
-	return m_pstr;
+	return m_dxl_str;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLRelStats::DRows
+//		CDXLRelStats::Rows
 //
 //	@doc:
 //		Returns the number of rows
 //
 //---------------------------------------------------------------------------
 CDouble
-CDXLRelStats::DRows() const
+CDXLRelStats::Rows() const
 {
-	return m_dRows;
+	return m_rows;
 }
 
 //---------------------------------------------------------------------------
@@ -130,19 +130,19 @@ CDXLRelStats::DRows() const
 void
 CDXLRelStats::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenRelationStats));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenRelationStats));
 	
-	m_pmdidRelStats->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRows), m_dRows);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenEmptyRelation), m_fEmpty);
+	m_rel_stats_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRows), m_rows);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenEmptyRelation), m_empty);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenRelationStats));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenRelationStats));
 
 	GPOS_CHECK_ABORT;
 }
@@ -166,42 +166,42 @@ CDXLRelStats::DebugPrint
 	const
 {
 	os << "Relation id: ";
-	Pmdid()->OsPrint(os);
+	MDId()->OsPrint(os);
 	os << std::endl;
 	
-	os << "Relation name: " << (Mdname()).Pstr()->Wsz() << std::endl;
+	os << "Relation name: " << (Mdname()).GetMDName()->GetBuffer() << std::endl;
 	
-	os << "Rows: " << DRows() << std::endl;
+	os << "Rows: " << Rows() << std::endl;
 
-	os << "Empty: " << FEmpty() << std::endl;
+	os << "Empty: " << IsEmpty() << std::endl;
 }
 
 #endif // GPOS_DEBUG
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLRelStats::PdxlrelstatsDummy
+//		CDXLRelStats::CreateDXLDummyRelStats
 //
 //	@doc:
 //		Dummy relation stats
 //
 //---------------------------------------------------------------------------
 CDXLRelStats *
-CDXLRelStats::PdxlrelstatsDummy
+CDXLRelStats::CreateDXLDummyRelStats
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid
+	IMemoryPool *mp,
+	IMDId *mdid
 	)
 {
-	CMDIdRelStats *pmdidRelStats = CMDIdRelStats::PmdidConvert(pmdid);
-	CAutoP<CWStringDynamic> a_pstr;
-	a_pstr = GPOS_NEW(pmp) CWStringDynamic(pmp, pmdidRelStats->Wsz());
-	CAutoP<CMDName> a_pmdname;
-	a_pmdname = GPOS_NEW(pmp) CMDName(pmp, a_pstr.Pt());
-	CAutoRef<CDXLRelStats> a_pdxlrelstats;
-	a_pdxlrelstats = GPOS_NEW(pmp) CDXLRelStats(pmp, pmdidRelStats, a_pmdname.Pt(), CStatistics::DDefaultColumnWidth, false /* fEmpty */);
-	a_pmdname.PtReset();
-	return a_pdxlrelstats.PtReset();
+	CMDIdRelStats *rel_stats_mdid = CMDIdRelStats::CastMdid(mdid);
+	CAutoP<CWStringDynamic> str;
+	str = GPOS_NEW(mp) CWStringDynamic(mp, rel_stats_mdid->GetBuffer());
+	CAutoP<CMDName> mdname;
+	mdname = GPOS_NEW(mp) CMDName(mp, str.Value());
+	CAutoRef<CDXLRelStats> rel_stats_dxl;
+	rel_stats_dxl = GPOS_NEW(mp) CDXLRelStats(mp, rel_stats_mdid, mdname.Value(), CStatistics::DefaultColumnWidth, false /* is_empty */);
+	mdname.Reset();
+	return rel_stats_dxl.Reset();
 }
 
 // EOF

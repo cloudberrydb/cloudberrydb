@@ -17,7 +17,7 @@
 namespace gpopt
 {
 	// dynamic array of datum arrays -- array owns elements
-	typedef CDynamicPtrArray<DrgPdatum, CleanupRelease> DrgPdrgPdatum;
+	typedef CDynamicPtrArray<IDatumArray, CleanupRelease> IDatum2dArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -32,38 +32,38 @@ namespace gpopt
 
 		private:
 			// array of column descriptors: the schema of the const table
-			DrgPcoldesc *m_pdrgpcoldesc;
+			CColumnDescriptorArray *m_pdrgpcoldesc;
 		
 			// array of datum arrays
-			DrgPdrgPdatum *m_pdrgpdrgpdatum;
+			IDatum2dArray *m_pdrgpdrgpdatum;
 			
 			// output columns
-			DrgPcr *m_pdrgpcrOutput;
+			CColRefArray *m_pdrgpcrOutput;
 			
 			// private copy ctor
 			CLogicalConstTableGet(const CLogicalConstTableGet &);
 			
 			// construct column descriptors from column references
-			DrgPcoldesc *PdrgpcoldescMapping(IMemoryPool *pmp, DrgPcr *pdrgpcr)	const;
+			CColumnDescriptorArray *PdrgpcoldescMapping(IMemoryPool *mp, CColRefArray *colref_array)	const;
 
 		public:
 		
 			// ctors
 			explicit
-			CLogicalConstTableGet(IMemoryPool *pmp);
+			CLogicalConstTableGet(IMemoryPool *mp);
 
 			CLogicalConstTableGet
 				(
-				IMemoryPool *pmp,
-				DrgPcoldesc *pdrgpcoldesc,
-				DrgPdrgPdatum *pdrgpdrgpdatum
+				IMemoryPool *mp,
+				CColumnDescriptorArray *pdrgpcoldesc,
+				IDatum2dArray *pdrgpdrgpdatum
 				);
 
 			CLogicalConstTableGet
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrOutput,
-				DrgPdrgPdatum *pdrgpdrgpdatum
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrOutput,
+				IDatum2dArray *pdrgpdrgpdatum
 				);
 
 			// dtor
@@ -85,19 +85,19 @@ namespace gpopt
 			}
 			
 			// col descr accessor
-			DrgPcoldesc *Pdrgpcoldesc() const
+			CColumnDescriptorArray *Pdrgpcoldesc() const
 			{
 				return m_pdrgpcoldesc;
 			}
 			
 			// const table values accessor
-			DrgPdrgPdatum *Pdrgpdrgpdatum () const
+			IDatum2dArray *Pdrgpdrgpdatum () const
 			{
 				return m_pdrgpdrgpdatum;
 			}
 			
 			// accessors
-			DrgPcr *PdrgpcrOutput() const
+			CColRefArray *PdrgpcrOutput() const
 			{
 				return m_pdrgpcrOutput;
 			}
@@ -107,15 +107,15 @@ namespace gpopt
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -127,32 +127,32 @@ namespace gpopt
 				
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & //exprhdl
 				) 
 				const
 			{
-				return GPOS_NEW(pmp) CPartInfo(pmp);
+				return GPOS_NEW(mp) CPartInfo(mp);
 			}
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 				const
 			{
 				// TODO:  - Jan 11, 2013; compute constraints based on the
 				// datum values in this CTG
-				return GPOS_NEW(pmp) CPropConstraint(pmp, GPOS_NEW(pmp) DrgPcrs(pmp), NULL /*pcnstr*/);
+				return GPOS_NEW(mp) CPropConstraint(mp, GPOS_NEW(mp) CColRefSetArray(mp), NULL /*pcnstr*/);
 			}
 
 			//-------------------------------------------------------------------------------------
@@ -163,10 +163,10 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *,// pmp
+				IMemoryPool *,// mp
 				CExpressionHandle &,// exprhdl
 				CColRefSet *,// pcrsInput
-				ULONG // ulChildIndex
+				ULONG // child_index
 				)
 				const
 			{
@@ -178,9 +178,9 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 
@@ -190,7 +190,7 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			// stat promise
 			virtual

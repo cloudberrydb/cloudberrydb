@@ -31,10 +31,10 @@ namespace gpos
 		private:
 
 			// old logger
-			ILogger *m_ploggerOld;
+			ILogger *m_old_logger;
 
 			// flag indicating if logger is used for error logging
-			BOOL m_fError;
+			BOOL m_error;
 
 			// private copy ctor
 			CAutoLogger(const CAutoLogger &);
@@ -44,43 +44,43 @@ namespace gpos
 			// ctor
 			CAutoLogger
 				(
-				ILogger *plogger,
-				BOOL fError
+				ILogger *logger,
+				BOOL error
 				)
 				:
-				m_ploggerOld(NULL),
-				m_fError(fError)
+				m_old_logger(NULL),
+				m_error(error)
 			{
-				GPOS_ASSERT(NULL != plogger);
+				GPOS_ASSERT(NULL != logger);
 
-				ITask *ptsk = ITask::PtskSelf();
-				GPOS_ASSERT(NULL != ptsk);
+				ITask *task = ITask::Self();
+				GPOS_ASSERT(NULL != task);
 
-				if (m_fError)
+				if (m_error)
 				{
-					m_ploggerOld = ptsk->PlogErr();
-					ptsk->Ptskctxt()->SetLogErr(plogger);
+					m_old_logger = task->GetErrorLogger();
+					task->GetTaskCtxt()->SetLogErr(logger);
 				}
 				else
 				{
-					m_ploggerOld = ptsk->PlogOut();
-					ptsk->Ptskctxt()->SetLogOut(plogger);
+					m_old_logger = task->GetOutputLogger();
+					task->GetTaskCtxt()->SetLogOut(logger);
 				}
 			}
 
 			// dtor
 			~CAutoLogger()
 			{
-				ITask *ptsk = ITask::PtskSelf();
-				GPOS_ASSERT(NULL != ptsk);
+				ITask *task = ITask::Self();
+				GPOS_ASSERT(NULL != task);
 
-				if (m_fError)
+				if (m_error)
 				{
-					ptsk->Ptskctxt()->SetLogErr(m_ploggerOld);
+					task->GetTaskCtxt()->SetLogErr(m_old_logger);
 				}
 				else
 				{
-					ptsk->Ptskctxt()->SetLogOut(m_ploggerOld);
+					task->GetTaskCtxt()->SetLogOut(m_old_logger);
 				}
 			}
 

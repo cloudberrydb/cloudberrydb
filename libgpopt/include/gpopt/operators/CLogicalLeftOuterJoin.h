@@ -35,7 +35,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalLeftOuterJoin(IMemoryPool *pmp);
+			CLogicalLeftOuterJoin(IMemoryPool *mp);
 
 			// dtor
 			virtual 
@@ -60,10 +60,10 @@ namespace gpopt
 			virtual
 			BOOL FCanPullProjectionsUp
 				(
-				ULONG ulChildIndex
+				ULONG child_index
 				) const
 			{
-				return (0 == ulChildIndex);
+				return (0 == child_index);
 			}
 
 			//-------------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveNotNull
 				(
-				IMemoryPool *,// pmp
+				IMemoryPool *,// mp
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -85,13 +85,13 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *, //pmp,
+				IMemoryPool *, //mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -104,7 +104,7 @@ namespace gpopt
 			//-------------------------------------------------------------------------------------
 
 			// candidate set of xforms
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			//-------------------------------------------------------------------------------------
 			//-------------------------------------------------------------------------------------

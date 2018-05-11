@@ -38,12 +38,12 @@ namespace gpopt
 		protected:
 
 			// func id
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 
 			// return type
-			IMDId *m_pmdidRetType;
+			IMDId *m_return_type_mdid;
 
-			const INT m_iRetTypeModifier;
+			const INT m_return_type_modifier;
 
 			// function name
 			const CWStringConst *m_pstrFunc;
@@ -55,10 +55,10 @@ namespace gpopt
 			IMDFunction::EFuncDataAcc m_efda;
 
 			// can the function return multiple rows?
-			BOOL m_fReturnsSet;
+			BOOL m_returns_set;
 
 			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 
 			// is operator return type BOOL?
 			BOOL m_fBoolReturnType;
@@ -71,10 +71,10 @@ namespace gpopt
 
 		public:
 			explicit
-			CScalarFunc(IMemoryPool *pmp);
+			CScalarFunc(IMemoryPool *mp);
 
 			// ctor
-			CScalarFunc(IMemoryPool *pmp, IMDId *pmdidFunc, IMDId *pmdidRetType, INT iRetTypeModifier, const CWStringConst *pstrFunc);
+			CScalarFunc(IMemoryPool *mp, IMDId *mdid_func, IMDId *mdid_return_type, INT return_type_modifier, const CWStringConst *pstrFunc);
 
 			// dtor
 			virtual 
@@ -95,10 +95,10 @@ namespace gpopt
 			}
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -110,9 +110,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -122,12 +122,12 @@ namespace gpopt
 			virtual
 			CFunctionProp *PfpDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
 			{
-				return PfpDeriveFromChildren(pmp, exprhdl, m_efs, m_efda, false /*fHasVolatileFunctionScan*/, false /*fScan*/);
+				return PfpDeriveFromChildren(mp, exprhdl, m_efs, m_efda, false /*fHasVolatileFunctionScan*/, false /*fScan*/);
 			}
 
 			// derive non-scalar function existence
@@ -152,20 +152,20 @@ namespace gpopt
 			const CWStringConst *PstrFunc() const;
 
 			// func id
-			IMDId *PmdidFunc() const;
+			IMDId *FuncMdId() const;
 
-			virtual INT ITypeModifier() const;
+			virtual INT TypeModifier() const;
 
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// function stability
 			IMDFunction::EFuncStbl EfsGetFunctionStability() const;
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// print
 			virtual 

@@ -50,17 +50,17 @@ CDXLMemoryManagerTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 	
-	CDXLMemoryManager *pmm = GPOS_NEW(pmp) CDXLMemoryManager(pmp);
-	void *pvMemory = pmm->allocate(5);
+	CDXLMemoryManager *dxl_memory_manager = GPOS_NEW(mp) CDXLMemoryManager(mp);
+	void *pvMemory = dxl_memory_manager->allocate(5);
 	
 	GPOS_ASSERT(NULL != pvMemory);
 	
-	pmm->deallocate(pvMemory);
+	dxl_memory_manager->deallocate(pvMemory);
 	
 	// cleanup
-	GPOS_DELETE(pmm);
+	GPOS_DELETE(dxl_memory_manager);
 	// pvMemory is deallocated through the memory manager, otherwise the test will throw
 	// with a memory leak
 	

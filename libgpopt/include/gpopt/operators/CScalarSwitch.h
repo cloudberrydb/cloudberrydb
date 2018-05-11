@@ -46,7 +46,7 @@ namespace gpopt
 		private:
 
 			// return type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// is operator return type BOOL?
 			BOOL m_fBoolReturnType;
@@ -57,7 +57,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarSwitch(IMemoryPool *pmp, IMDId *pmdidType);
+			CScalarSwitch(IMemoryPool *mp, IMDId *mdid_type);
 
 			// dtor
 			virtual
@@ -79,18 +79,18 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				return m_pmdidType;
+				return m_mdid_type;
 			}
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual BOOL
-			FMatch(COperator *pop) const;
+			Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -103,9 +103,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -115,7 +115,7 @@ namespace gpopt
 			virtual
 			EBoolEvalResult Eber
 				(
-				DrgPul *pdrgpulChildren
+				ULongPtrArray *pdrgpulChildren
 				)
 				const
 			{

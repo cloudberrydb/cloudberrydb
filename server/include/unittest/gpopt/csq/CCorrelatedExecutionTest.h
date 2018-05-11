@@ -26,7 +26,7 @@
 // forward declarations
 namespace gpdxl
 {
-	typedef CDynamicPtrArray<INT, CleanupDelete> DrgPi;
+	typedef CDynamicPtrArray<INT, CleanupDelete> IntPtrArray;
 }
 
 namespace gpopt

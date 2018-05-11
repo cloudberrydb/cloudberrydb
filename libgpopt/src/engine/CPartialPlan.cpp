@@ -36,17 +36,17 @@ CPartialPlan::CPartialPlan
 	CGroupExpression *pgexpr,
 	CReqdPropPlan *prpp,
 	CCostContext *pccChild,
-	ULONG ulChildIndex
+	ULONG child_index
 	)
 	:
 	m_pgexpr(pgexpr),	// not owned
 	m_prpp(prpp),
 	m_pccChild(pccChild),	// cost context of an already optimized child
-	m_ulChildIndex(ulChildIndex)
+	m_ulChildIndex(child_index)
 {
 	GPOS_ASSERT(NULL != pgexpr);
 	GPOS_ASSERT(NULL != prpp);
-	GPOS_ASSERT_IMP(NULL != pccChild, ulChildIndex < pgexpr->UlArity());
+	GPOS_ASSERT_IMP(NULL != pccChild, child_index < pgexpr->Arity());
 }
 
 
@@ -75,7 +75,7 @@ CPartialPlan::~CPartialPlan()
 void
 CPartialPlan::ExtractChildrenCostingInfo
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ICostModel *pcm,
 	CExpressionHandle &exprhdl,
 	ICostModel::SCostingInfo *pci
@@ -83,11 +83,11 @@ CPartialPlan::ExtractChildrenCostingInfo
 {
 	GPOS_ASSERT(m_pgexpr == exprhdl.Pgexpr());
 	GPOS_ASSERT(NULL != pci);
-	GPOS_ASSERT_IMP(NULL != m_pccChild, m_ulChildIndex < exprhdl.UlArity());
+	GPOS_ASSERT_IMP(NULL != m_pccChild, m_ulChildIndex < exprhdl.Arity());
 
-	const ULONG ulArity = m_pgexpr->UlArity();
+	const ULONG arity = m_pgexpr->Arity();
 	ULONG ulIndex = 0;
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CGroup *pgroupChild = (*m_pgexpr)[ul];
 		if (pgroupChild->FScalar())
@@ -97,8 +97,8 @@ CPartialPlan::ExtractChildrenCostingInfo
 		}
 
 		CReqdPropPlan *prppChild = exprhdl.Prpp(ul);
-		IStatistics *pstatsChild = pgroupChild->Pstats();
-		RaiseExceptionIfStatsNull(pstatsChild);
+		IStatistics *child_stats = pgroupChild->Pstats();
+		RaiseExceptionIfStatsNull(child_stats);
 
 		if (ul == m_ulChildIndex)
 		{
@@ -106,21 +106,21 @@ CPartialPlan::ExtractChildrenCostingInfo
 			// we have perfect costing information about this child
 
 			// use stats in provided child context
-			pstatsChild = m_pccChild->Pstats();
+			child_stats = m_pccChild->Pstats();
 
 			// use provided child cost context to collect accurate costing info
-			DOUBLE dRowsChild = pstatsChild->DRows().DVal();
+			DOUBLE dRowsChild = child_stats->Rows().Get();
 			if (CDistributionSpec::EdptPartitioned == m_pccChild->Pdpplan()->Pds()->Edpt())
 			{
 				// scale statistics row estimate by number of segments
-				dRowsChild = pcm->DRowsPerHost(CDouble(dRowsChild)).DVal();
+				dRowsChild = pcm->DRowsPerHost(CDouble(dRowsChild)).Get();
 			}
 
 			pci->SetChildRows(ulIndex, dRowsChild);
-			DOUBLE dWidthChild = pstatsChild->DWidth(pmp, prppChild->PcrsRequired()).DVal();
+			DOUBLE dWidthChild = child_stats->Width(mp, prppChild->PcrsRequired()).Get();
 			pci->SetChildWidth(ulIndex, dWidthChild);
-			pci->SetChildRebinds(ulIndex, pstatsChild->DRebinds().DVal());
-			pci->SetChildCost(ulIndex, m_pccChild->Cost().DVal());
+			pci->SetChildRebinds(ulIndex, child_stats->NumRebinds().Get());
+			pci->SetChildCost(ulIndex, m_pccChild->Cost().Get());
 
 			// continue with next child
 			ulIndex++;
@@ -129,17 +129,17 @@ CPartialPlan::ExtractChildrenCostingInfo
 
 		// otherwise, we do not know child plan yet,
 		// we assume lower bounds on child row estimate and cost
-		DOUBLE dRowsChild = pstatsChild->DRows().DVal();
-		dRowsChild = pcm->DRowsPerHost(CDouble(dRowsChild)).DVal();
+		DOUBLE dRowsChild = child_stats->Rows().Get();
+		dRowsChild = pcm->DRowsPerHost(CDouble(dRowsChild)).Get();
 		pci->SetChildRows(ulIndex, dRowsChild);
 
-		pci->SetChildRebinds(ulIndex, pstatsChild->DRebinds().DVal());
+		pci->SetChildRebinds(ulIndex, child_stats->NumRebinds().Get());
 
-		DOUBLE dWidthChild =  pstatsChild->DWidth(pmp, prppChild->PcrsRequired()).DVal();
+		DOUBLE dWidthChild =  child_stats->Width(mp, prppChild->PcrsRequired()).Get();
 		pci->SetChildWidth(ulIndex, dWidthChild);
 
 		// use child group's cost lower bound as the child cost
-		DOUBLE dCostChild = pgroupChild->CostLowerBound(pmp, prppChild).DVal();
+		DOUBLE dCostChild = pgroupChild->CostLowerBound(mp, prppChild).Get();
 		pci->SetChildCost(ulIndex, dCostChild);
 
 		// advance to next child
@@ -159,10 +159,10 @@ CPartialPlan::ExtractChildrenCostingInfo
 void
 CPartialPlan::RaiseExceptionIfStatsNull
 	(
-	IStatistics *pstats
+	IStatistics *stats
 	)
 {
-	if (NULL == pstats)
+	if (NULL == stats)
 	{
 		GPOS_RAISE
 			(
@@ -185,10 +185,10 @@ CPartialPlan::RaiseExceptionIfStatsNull
 CCost
 CPartialPlan::CostCompute
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
-	CExpressionHandle exprhdl(pmp);
+	CExpressionHandle exprhdl(mp);
 	exprhdl.Attach(m_pgexpr);
 
 	// init required properties of expression
@@ -196,23 +196,23 @@ CPartialPlan::CostCompute
 	exprhdl.InitReqdProps(m_prpp);
 
 	// create array of child derived properties
-	DrgPdp *pdrgpdp = GPOS_NEW(pmp) DrgPdp(pmp);
-	const ULONG ulArity =  m_pgexpr->UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	CDrvdProp2dArray *pdrgpdp = GPOS_NEW(mp) CDrvdProp2dArray(mp);
+	const ULONG arity =  m_pgexpr->Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		// compute required columns of the n-th child
 		exprhdl.ComputeChildReqdCols(ul, pdrgpdp);
 	}
 	pdrgpdp->Release();
 
-	IStatistics *pstats = m_pgexpr->Pgroup()->Pstats();
-	RaiseExceptionIfStatsNull(pstats);
+	IStatistics *stats = m_pgexpr->Pgroup()->Pstats();
+	RaiseExceptionIfStatsNull(stats);
 
-	pstats->AddRef();
-	ICostModel::SCostingInfo ci(pmp, exprhdl.UlNonScalarChildren(), GPOS_NEW(pmp) ICostModel::CCostingStats(pstats));
+	stats->AddRef();
+	ICostModel::SCostingInfo ci(mp, exprhdl.UlNonScalarChildren(), GPOS_NEW(mp) ICostModel::CCostingStats(stats));
 
-	ICostModel *pcm = COptCtxt::PoctxtFromTLS()->Pcm();
-	ExtractChildrenCostingInfo(pmp, pcm, exprhdl, &ci);
+	ICostModel *pcm = COptCtxt::PoctxtFromTLS()->GetCostModel();
+	ExtractChildrenCostingInfo(mp, pcm, exprhdl, &ci);
 
 	CDistributionSpec::EDistributionPartitioningType edpt = CDistributionSpec::EdptSentinel;
 	if (NULL != m_prpp->Ped())
@@ -226,7 +226,7 @@ CPartialPlan::CostCompute
 		CDistributionSpec::EdptPartitioned == CPhysicalMotion::PopConvert(pop)->Pds()->Edpt();
 
 	// extract rows from stats
-	DOUBLE dRows = m_pgexpr->Pgroup()->Pstats()->DRows().DVal();
+	DOUBLE rows = m_pgexpr->Pgroup()->Pstats()->Rows().Get();
 	if (
 		fDataPartitioningMotion ||	// root operator is known to distribute data across segments
 		NULL == m_prpp->Ped() ||	// required distribution not known yet, we assume data partitioning since we need a lower-bound on number of rows
@@ -235,29 +235,29 @@ CPartialPlan::CostCompute
 		)
 	{
 		// use rows per host as a cardinality lower bound
-		dRows = pcm->DRowsPerHost(CDouble(dRows)).DVal();
+		rows = pcm->DRowsPerHost(CDouble(rows)).Get();
 	}
-	ci.SetRows(dRows);
+	ci.SetRows(rows);
 
 	// extract width from stats
-	DOUBLE dWidth = m_pgexpr->Pgroup()->Pstats()->DWidth(pmp, m_prpp->PcrsRequired()).DVal();
-	ci.SetWidth(dWidth);
+	DOUBLE width = m_pgexpr->Pgroup()->Pstats()->Width(mp, m_prpp->PcrsRequired()).Get();
+	ci.SetWidth(width);
 
 	// extract rebinds
-	DOUBLE dRebinds = m_pgexpr->Pgroup()->Pstats()->DRebinds().DVal();
-	ci.SetRebinds(dRebinds);
+	DOUBLE num_rebinds = m_pgexpr->Pgroup()->Pstats()->NumRebinds().Get();
+	ci.SetRebinds(num_rebinds);
 
 	// compute partial plan cost
 	CCost cost = pcm->Cost(exprhdl, &ci);
 
-	if (0 < ci.UlChildren() && 1.0 < cost.DVal())
+	if (0 < ci.ChildCount() && 1.0 < cost.Get())
 	{
 		// cost model implementation adds an artificial const (1.0) to
 		// sum of children cost,
 		// we subtract this 1.0 here since we compute a lower bound
 
 		// TODO:  05/07/2014: remove artificial const 1.0 in CostSum() function
-		cost = CCost(cost.DVal() - 1.0);
+		cost = CCost(cost.Get() - 1.0);
 	}
 
 	return cost;
@@ -266,35 +266,35 @@ CPartialPlan::CostCompute
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPartialPlan::UlHash
+//		CPartialPlan::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CPartialPlan::UlHash
+CPartialPlan::HashValue
 	(
 	const CPartialPlan *ppp
 	)
 {
 	GPOS_ASSERT(NULL != ppp);
 
-	ULONG ulHash = ppp->Pgexpr()->UlHash();
-	return UlCombineHashes(ulHash, CReqdPropPlan::UlHashForCostBounding(ppp->Prpp()));
+	ULONG ulHash = ppp->Pgexpr()->HashValue();
+	return CombineHashes(ulHash, CReqdPropPlan::UlHashForCostBounding(ppp->Prpp()));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPartialPlan::FEqual
+//		CPartialPlan::Equals
 //
 //	@doc:
 //		Equality function
 //
 //---------------------------------------------------------------------------
 BOOL
-CPartialPlan::FEqual
+CPartialPlan::Equals
 	(
 	const CPartialPlan *pppFst,
 	const CPartialPlan *pppSnd

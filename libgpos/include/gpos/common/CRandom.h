@@ -31,7 +31,7 @@ namespace gpos
 			CRandom(const CRandom &); 
 
 			// seed
-			ULONG m_iSeed;
+			ULONG m_seed;
 			
 		public:
 
@@ -42,7 +42,7 @@ namespace gpos
 			CRandom(ULONG seed);
 
 			// next random number
-			ULONG ULNext();
+			ULONG Next();
 			
 			// d'tor
 			~CRandom();

@@ -26,47 +26,47 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalMotion::CDXLPhysicalMotion
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLPhysical(pmp),
-	m_pdrgpiInputSegIds(NULL),
-	m_pdrgpiOutputSegIds(NULL)
+	CDXLPhysical(mp),
+	m_input_segids_array(NULL),
+	m_output_segids_array(NULL)
 {
 }
 
 CDXLPhysicalMotion::~CDXLPhysicalMotion()
 {
-	CRefCount::SafeRelease(m_pdrgpiInputSegIds);
-	CRefCount::SafeRelease(m_pdrgpiOutputSegIds);
+	CRefCount::SafeRelease(m_input_segids_array);
+	CRefCount::SafeRelease(m_output_segids_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalMotion::PdrgpiInputSegIds
+//		CDXLPhysicalMotion::GetInputSegIdsArray
 //
 //	@doc:
 //		
 //
 //---------------------------------------------------------------------------
-const DrgPi *
-CDXLPhysicalMotion::PdrgpiInputSegIds() const
+const IntPtrArray *
+CDXLPhysicalMotion::GetInputSegIdsArray() const
 {
-	return m_pdrgpiInputSegIds;
+	return m_input_segids_array;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalMotion::PdrgpiOutputSegIds
+//		CDXLPhysicalMotion::GetOutputSegIdsArray
 //
 //	@doc:
 //		
 //
 //---------------------------------------------------------------------------
-const DrgPi *
-CDXLPhysicalMotion::PdrgpiOutputSegIds() const
+const IntPtrArray *
+CDXLPhysicalMotion::GetOutputSegIdsArray() const
 {
-	return m_pdrgpiOutputSegIds;
+	return m_output_segids_array;
 }
 
 //---------------------------------------------------------------------------
@@ -78,11 +78,11 @@ CDXLPhysicalMotion::PdrgpiOutputSegIds() const
 //
 //---------------------------------------------------------------------------
 void
-CDXLPhysicalMotion::SetInputSegIds(DrgPi *pdrgpiInputSegIds)
+CDXLPhysicalMotion::SetInputSegIds(IntPtrArray *input_segids_array)
 {
-	GPOS_ASSERT(NULL == m_pdrgpiInputSegIds);
-	GPOS_ASSERT(NULL != pdrgpiInputSegIds);
-	m_pdrgpiInputSegIds = pdrgpiInputSegIds;
+	GPOS_ASSERT(NULL == m_input_segids_array);
+	GPOS_ASSERT(NULL != input_segids_array);
+	m_input_segids_array = input_segids_array;
 }
 
 //---------------------------------------------------------------------------
@@ -94,11 +94,11 @@ CDXLPhysicalMotion::SetInputSegIds(DrgPi *pdrgpiInputSegIds)
 //
 //---------------------------------------------------------------------------
 void
-CDXLPhysicalMotion::SetOutputSegIds(DrgPi *pdrgpiOutputSegIds)
+CDXLPhysicalMotion::SetOutputSegIds(IntPtrArray *output_segids_array)
 {
-	GPOS_ASSERT(NULL == m_pdrgpiOutputSegIds);
-	GPOS_ASSERT(NULL != pdrgpiOutputSegIds);
-	m_pdrgpiOutputSegIds = pdrgpiOutputSegIds;
+	GPOS_ASSERT(NULL == m_output_segids_array);
+	GPOS_ASSERT(NULL != output_segids_array);
+	m_output_segids_array = output_segids_array;
 }
 
 //---------------------------------------------------------------------------
@@ -112,77 +112,77 @@ CDXLPhysicalMotion::SetOutputSegIds(DrgPi *pdrgpiOutputSegIds)
 void
 CDXLPhysicalMotion::SetSegmentInfo
 	(
-	DrgPi *pdrgpiInputSegIds, 
-	DrgPi *pdrgpiOutputSegIds
+	IntPtrArray *input_segids_array, 
+	IntPtrArray *output_segids_array
 	)
 {
-	GPOS_ASSERT(NULL == m_pdrgpiOutputSegIds && NULL == m_pdrgpiInputSegIds);
-	GPOS_ASSERT(NULL != pdrgpiOutputSegIds && NULL != pdrgpiInputSegIds);
+	GPOS_ASSERT(NULL == m_output_segids_array && NULL == m_input_segids_array);
+	GPOS_ASSERT(NULL != output_segids_array && NULL != input_segids_array);
 	
-	m_pdrgpiInputSegIds = pdrgpiInputSegIds;
-	m_pdrgpiOutputSegIds = pdrgpiOutputSegIds;
+	m_input_segids_array = input_segids_array;
+	m_output_segids_array = output_segids_array;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalMotion::PstrSegIds
+//		CDXLPhysicalMotion::GetSegIdsCommaSeparatedStr
 //
 //	@doc:
 //		Serialize the array of segment ids into a comma-separated string		
 //
 //---------------------------------------------------------------------------
 CWStringDynamic *
-CDXLPhysicalMotion::PstrSegIds(const DrgPi *pdrgpi) const
+CDXLPhysicalMotion::GetSegIdsCommaSeparatedStr(const IntPtrArray *segment_ids_array) const
 {
-	GPOS_ASSERT(pdrgpi != NULL && 0 < pdrgpi->UlLength());
+	GPOS_ASSERT(segment_ids_array != NULL && 0 < segment_ids_array->Size());
 	
-	CWStringDynamic *pstr = GPOS_NEW(m_pmp) CWStringDynamic(m_pmp);
+	CWStringDynamic *str = GPOS_NEW(m_mp) CWStringDynamic(m_mp);
 	
-	ULONG ulNumSegments = pdrgpi->UlLength();
-	for (ULONG ul = 0; ul < ulNumSegments; ul++)
+	ULONG num_of_segments = segment_ids_array->Size();
+	for (ULONG idx = 0; idx < num_of_segments; idx++)
 	{
-		INT iSegId = *((*pdrgpi)[ul]);
-		if (ul == ulNumSegments - 1)
+		INT segment_id = *((*segment_ids_array)[idx]);
+		if (idx == num_of_segments - 1)
 		{
 			// last element: do not print a comma
-			pstr->AppendFormat(GPOS_WSZ_LIT("%d"), iSegId);
+			str->AppendFormat(GPOS_WSZ_LIT("%d"), segment_id);
 		}
 		else
 		{
-			pstr->AppendFormat(GPOS_WSZ_LIT("%d%ls"), iSegId, CDXLTokens::PstrToken(EdxltokenComma)->Wsz());
+			str->AppendFormat(GPOS_WSZ_LIT("%d%ls"), segment_id, CDXLTokens::GetDXLTokenStr(EdxltokenComma)->GetBuffer());
 		}
 	}
 	
-	return pstr;
+	return str;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalMotion::PstrInputSegIds
+//		CDXLPhysicalMotion::GetInputSegIdsStr
 //
 //	@doc:
 //		Serialize the array of input segment ids into a comma-separated string		
 //
 //---------------------------------------------------------------------------
 CWStringDynamic *
-CDXLPhysicalMotion::PstrInputSegIds() const
+CDXLPhysicalMotion::GetInputSegIdsStr() const
 {	
-	return PstrSegIds(m_pdrgpiInputSegIds);
+	return GetSegIdsCommaSeparatedStr(m_input_segids_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalMotion::PstrOutputSegIds
+//		CDXLPhysicalMotion::GetOutputSegIdsStr
 //
 //	@doc:
 //		Serialize the array of output segment ids into a comma-separated string		
 //
 //---------------------------------------------------------------------------
 CWStringDynamic *
-CDXLPhysicalMotion::PstrOutputSegIds() const
+CDXLPhysicalMotion::GetOutputSegIdsStr() const
 {	
-	return PstrSegIds(m_pdrgpiOutputSegIds);
+	return GetSegIdsCommaSeparatedStr(m_output_segids_array);
 }
 
 //---------------------------------------------------------------------------
@@ -196,17 +196,17 @@ CDXLPhysicalMotion::PstrOutputSegIds() const
 void
 CDXLPhysicalMotion::SerializeSegmentInfoToDXL
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) const
 {
-	CWStringDynamic *pstrInputSegIds = PstrInputSegIds();
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenInputSegments), pstrInputSegIds);
+	CWStringDynamic *input_segment_ids_str = GetInputSegIdsStr();
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenInputSegments), input_segment_ids_str);
 	
-	CWStringDynamic *pstrOutputSegIds = PstrOutputSegIds();
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenOutputSegments), pstrOutputSegIds);
+	CWStringDynamic *output_segment_ids_str = GetOutputSegIdsStr();
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenOutputSegments), output_segment_ids_str);
 		
-	GPOS_DELETE(pstrInputSegIds);
-	GPOS_DELETE(pstrOutputSegIds);
+	GPOS_DELETE(input_segment_ids_str);
+	GPOS_DELETE(output_segment_ids_str);
 }
 
 

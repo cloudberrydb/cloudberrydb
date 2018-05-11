@@ -35,25 +35,25 @@ namespace gpdxl
 		private:
 
 			// deletion col ids
-			DrgPul *m_pdrgpulDelete;
+			ULongPtrArray *m_deletion_colid_array;
 
 			// insertion col ids
-			DrgPul *m_pdrgpulInsert;
+			ULongPtrArray *m_insert_colid_array;
 
 			// action column id
-			ULONG m_ulAction;
+			ULONG m_action_colid;
 
 			// ctid column id
-			ULONG m_ulCtid;
+			ULONG m_ctid_colid;
 
 			// segmentId column id
-			ULONG m_ulSegmentId;
+			ULONG m_segid_colid;
 
 			// does update preserve oids
-			BOOL m_fPreserveOids;
+			BOOL m_preserve_oids;
 			
 			// tuple oid column id
-			ULONG m_ulTupleOidColId;
+			ULONG m_tuple_oid_col_oid;
 			
 			// private copy ctor
 			CParseHandlerPhysicalSplit(const CParseHandlerPhysicalSplit &);
@@ -61,27 +61,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor
 			CParseHandlerPhysicalSplit
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

@@ -6,44 +6,44 @@
 
 using namespace gpopt;
 
-DrgPcnstr *
+CConstraintArray *
 CColConstraintsHashMapper::PdrgPcnstrLookup
 	(
-		CColRef *pcr
+		CColRef *colref
 	)
 {
-	DrgPcnstr *pdrgpcnstrCol = m_phmColConstr->PtLookup(pcr);
+	CConstraintArray *pdrgpcnstrCol = m_phmColConstr->Find(colref);
 	pdrgpcnstrCol->AddRef();
 	return pdrgpcnstrCol;
 }
 
 // mapping between columns and single column constraints in array of constraints
 static
-HMColConstr *
+ColRefToConstraintArrayMap *
 PhmcolconstrSingleColConstr
 	(
-		IMemoryPool *pmp,
-		DrgPcnstr *drgPcnstr
+		IMemoryPool *mp,
+		CConstraintArray *drgPcnstr
 	)
 {
-	CAutoRef<DrgPcnstr> arpdrgpcnstr(drgPcnstr);
-	HMColConstr *phmcolconstr = GPOS_NEW(pmp) HMColConstr(pmp);
+	CAutoRef<CConstraintArray> arpdrgpcnstr(drgPcnstr);
+	ColRefToConstraintArrayMap *phmcolconstr = GPOS_NEW(mp) ColRefToConstraintArrayMap(mp);
 
-	const ULONG ulLen = arpdrgpcnstr->UlLength();
+	const ULONG length = arpdrgpcnstr->Size();
 
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	for (ULONG ul = 0; ul < length; ul++)
 	{
 		CConstraint *pcnstrChild = (*arpdrgpcnstr)[ul];
 		CColRefSet *pcrs = pcnstrChild->PcrsUsed();
 
-		if (1 == pcrs->CElements())
+		if (1 == pcrs->Size())
 		{
-			CColRef *pcr = pcrs->PcrFirst();
-			DrgPcnstr *pcnstrMapped = phmcolconstr->PtLookup(pcr);
+			CColRef *colref = pcrs->PcrFirst();
+			CConstraintArray *pcnstrMapped = phmcolconstr->Find(colref);
 			if (NULL == pcnstrMapped)
 			{
-				pcnstrMapped = GPOS_NEW(pmp) DrgPcnstr(pmp);
-				phmcolconstr->FInsert(pcr, pcnstrMapped);
+				pcnstrMapped = GPOS_NEW(mp) CConstraintArray(mp);
+				phmcolconstr->Insert(colref, pcnstrMapped);
 			}
 			pcnstrChild->AddRef();
 			pcnstrMapped->Append(pcnstrChild);
@@ -55,10 +55,10 @@ PhmcolconstrSingleColConstr
 
 CColConstraintsHashMapper::CColConstraintsHashMapper
 	(
-		IMemoryPool *pmp,
-		DrgPcnstr *pdrgpcnstr
+		IMemoryPool *mp,
+		CConstraintArray *pdrgpcnstr
 	) :
-	m_phmColConstr(PhmcolconstrSingleColConstr(pmp, pdrgpcnstr))
+	m_phmColConstr(PhmcolconstrSingleColConstr(mp, pdrgpcnstr))
 {
 }
 

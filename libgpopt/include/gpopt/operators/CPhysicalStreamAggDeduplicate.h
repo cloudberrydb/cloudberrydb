@@ -29,7 +29,7 @@ namespace gpopt
 		private:
 
 			// array of keys from the join's child
-			DrgPcr *m_pdrgpcrKeys;
+			CColRefArray *m_pdrgpcrKeys;
 
 			// private copy ctor
 			CPhysicalStreamAggDeduplicate(const CPhysicalStreamAggDeduplicate &);
@@ -39,11 +39,11 @@ namespace gpopt
 			// ctor
 			CPhysicalStreamAggDeduplicate
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr,
-				DrgPcr *pdrgpcrMinimal,
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				CColRefArray *pdrgpcrMinimal,
 				COperator::EGbAggType egbaggtype,
-				DrgPcr *pdrgpcrKeys,
+				CColRefArray *pdrgpcrKeys,
 				BOOL fGeneratesDuplicates,
 				BOOL fMultiStage
 				);
@@ -67,7 +67,7 @@ namespace gpopt
 			}
 
 			// array of keys from the join's child
-			DrgPcr *PdrgpcrKeys() const
+			CColRefArray *PdrgpcrKeys() const
 			{
 				return m_pdrgpcrKeys;
 			}
@@ -80,47 +80,47 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *, //pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *, //pdrgpdpCtxt,
 				ULONG //ulOptReq
 				)
 			{
-				return PcrsRequiredAgg(pmp, exprhdl, pcrsRequired, ulChildIndex, m_pdrgpcrKeys);
+				return PcrsRequiredAgg(mp, exprhdl, pcrsRequired, child_index, m_pdrgpcrKeys);
 			}
 
 			// compute required sort columns of the n-th child
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
-				ULONG ulChildIndex,
-				DrgPdp *, //pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *, //pdrgpdpCtxt,
 				ULONG //ulOptReq
 				)
 				const
 			{
-				return PosRequiredStreamAgg(pmp, exprhdl, posRequired, ulChildIndex, m_pdrgpcrKeys);
+				return PosRequiredStreamAgg(mp, exprhdl, posRequired, child_index, m_pdrgpcrKeys);
 			}
 
 			// compute required distribution of the n-th child
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *, //pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *, //pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const
 			{
-				return PdsRequiredAgg(pmp, exprhdl, pdsRequired, ulChildIndex, ulOptReq, m_pdrgpcrKeys, m_pdrgpcrKeys);
+				return PdsRequiredAgg(mp, exprhdl, pdsRequired, child_index, ulOptReq, m_pdrgpcrKeys, m_pdrgpcrKeys);
 			}
 
 			//-------------------------------------------------------------------------------------

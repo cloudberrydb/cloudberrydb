@@ -31,11 +31,11 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CJobFactory::CJobFactory
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ULONG ulJobs
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_ulJobs(ulJobs),
 	m_pspjTest(NULL),
 	m_pspjGroupOptimization(NULL),
@@ -253,7 +253,7 @@ CJobFactory::Truncate
 	}
 
 #ifdef GPOS_DEBUG
-    CWorker::PwrkrSelf()->ResetTimeSlice();
+    CWorker::Self()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 }
 

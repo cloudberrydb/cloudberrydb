@@ -99,7 +99,7 @@ namespace gpopt
 			void ScheduleChildGroupsJobs(CSchedulerContext *psc) = 0;
 
 			// schedule transformation jobs for the given set of xforms
-			void ScheduleTransformations(CSchedulerContext *psc, CXformSet *pxfs);
+			void ScheduleTransformations(CSchedulerContext *psc, CXformSet *xform_set);
 
 			// job's function
 			virtual

@@ -24,132 +24,132 @@ using namespace gpmd;
 
 
 // default scaling factor of a non-equality (<, >, <=, >=) join predicates
-const CDouble CScaleFactorUtils::DDefaultScaleFactorNonEqualityJoin(3.0);
+const CDouble CScaleFactorUtils::DefaultInequalityJoinPredScaleFactor(3.0);
 
 // default scaling factor of join predicates
-const CDouble CScaleFactorUtils::DDefaultScaleFactorJoin(100.0);
+const CDouble CScaleFactorUtils::DefaultJoinPredScaleFactor(100.0);
 
 // default scaling factor of LIKE predicate
 const CDouble CScaleFactorUtils::DDefaultScaleFactorLike(150.0);
 
 // invalid scale factor
-const CDouble CScaleFactorUtils::DInvalidScaleFactor(0.0);
+const CDouble CScaleFactorUtils::InvalidScaleFactor(0.0);
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::DCumulativeJoinScaleFactor
+//		CScaleFactorUtils::CumulativeJoinScaleFactor
 //
 //	@doc:
 //		Calculate the cumulative join scaling factor
 //
 //---------------------------------------------------------------------------
 CDouble
-CScaleFactorUtils::DCumulativeJoinScaleFactor
+CScaleFactorUtils::CumulativeJoinScaleFactor
 	(
-	const CStatisticsConfig *pstatsconf,
-	DrgPdouble *pdrgpd
+	const CStatisticsConfig *stats_config,
+	CDoubleArray *join_conds_scale_factors
 	)
 {
-	GPOS_ASSERT(NULL != pstatsconf);
-	GPOS_ASSERT(NULL != pdrgpd);
+	GPOS_ASSERT(NULL != stats_config);
+	GPOS_ASSERT(NULL != join_conds_scale_factors);
 
-	const ULONG ulJoinConds = pdrgpd->UlLength();
-	if (1 < ulJoinConds)
+	const ULONG num_join_conds = join_conds_scale_factors->Size();
+	if (1 < num_join_conds)
 	{
 		// sort (in desc order) the scaling factor of the join conditions
-		pdrgpd->Sort(CScaleFactorUtils::IDoubleDescCmp);
+		join_conds_scale_factors->Sort(CScaleFactorUtils::DescendingOrderCmpFunc);
 	}
 
-	CDouble dScaleFactor(1.0);
+	CDouble scale_factor(1.0);
 	// iterate over joins
-	for (ULONG ul = 0; ul < ulJoinConds; ul++)
+	for (ULONG ul = 0; ul < num_join_conds; ul++)
 	{
-		CDouble dScaleFactorLocal = *(*pdrgpd)[ul];
+		CDouble local_scale_factor = *(*join_conds_scale_factors)[ul];
 
-		dScaleFactor = dScaleFactor * std::max
+		scale_factor = scale_factor * std::max
 										(
-										CStatistics::DMinRows.DVal(),
-										(dScaleFactorLocal * DDampingJoin(pstatsconf, ul + 1)).DVal()
+										CStatistics::MinRows.Get(),
+										(local_scale_factor * DampedJoinScaleFactor(stats_config, ul + 1)).Get()
 										);
 	}
 
-	return dScaleFactor;
+	return scale_factor;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::DDampingJoin
+//		CScaleFactorUtils::DampedJoinScaleFactor
 //
 //	@doc:
 //		Return scaling factor of the join predicate after apply damping
 //
 //---------------------------------------------------------------------------
 CDouble
-CScaleFactorUtils::DDampingJoin
+CScaleFactorUtils::DampedJoinScaleFactor
 	(
-	const CStatisticsConfig *pstatsconf,
-	ULONG ulNumColumns
+	const CStatisticsConfig *stats_config,
+	ULONG num_columns
 	)
 {
-	if (1 >= ulNumColumns)
+	if (1 >= num_columns)
 	{
 		return CDouble(1.0);
 	}
 
-	return pstatsconf->DDampingFactorJoin().FpPow(CDouble(ulNumColumns));
+	return stats_config->DDampingFactorJoin().Pow(CDouble(num_columns));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::DDampingFilter
+//		CScaleFactorUtils::DampedFilterScaleFactor
 //
 //	@doc:
 //		Return scaling factor of the filter after apply damping
 //
 //---------------------------------------------------------------------------
 CDouble
-CScaleFactorUtils::DDampingFilter
+CScaleFactorUtils::DampedFilterScaleFactor
 	(
-	const CStatisticsConfig *pstatsconf,
-	ULONG ulNumColumns
+	const CStatisticsConfig *stats_config,
+	ULONG num_columns
 	)
 {
-	GPOS_ASSERT(NULL != pstatsconf);
+	GPOS_ASSERT(NULL != stats_config);
 
-	if (1 >= ulNumColumns)
+	if (1 >= num_columns)
 	{
 		return CDouble(1.0);
 	}
 
-	return pstatsconf->DDampingFactorFilter().FpPow(CDouble(ulNumColumns));
+	return stats_config->DDampingFactorFilter().Pow(CDouble(num_columns));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::DDampingGroupBy
+//		CScaleFactorUtils::DampedGroupByScaleFactor
 //
 //	@doc:
 //		Return scaling factor of the group by predicate after apply damping
 //
 //---------------------------------------------------------------------------
 CDouble
-CScaleFactorUtils::DDampingGroupBy
+CScaleFactorUtils::DampedGroupByScaleFactor
 	(
-	const CStatisticsConfig *pstatsconf,
-	ULONG ulNumColumns
+	const CStatisticsConfig *stats_config,
+	ULONG num_columns
 	)
 {
-	GPOS_ASSERT(NULL != pstatsconf);
+	GPOS_ASSERT(NULL != stats_config);
 
-	if (1 > ulNumColumns)
+	if (1 > num_columns)
 	{
 		return CDouble(1.0);
 	}
 
-	return pstatsconf->DDampingFactorGroupBy().FpPow(CDouble(ulNumColumns + 1));
+	return stats_config->DDampingFactorGroupBy().Pow(CDouble(num_columns + 1));
 }
 
 
@@ -164,23 +164,23 @@ CScaleFactorUtils::DDampingGroupBy
 void
 CScaleFactorUtils::SortScalingFactor
 	(
-	DrgPdouble *pdrgpdScaleFactor,
-	BOOL fDescending
+	CDoubleArray *scale_factors,
+	BOOL is_descending
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpdScaleFactor);
-	const ULONG ulCols = pdrgpdScaleFactor->UlLength();
-	if (1 < ulCols)
+	GPOS_ASSERT(NULL != scale_factors);
+	const ULONG num_cols = scale_factors->Size();
+	if (1 < num_cols)
 	{
-		if (fDescending)
+		if (is_descending)
 		{
 			// sort (in desc order) the scaling factor based on the selectivity of each column
-			pdrgpdScaleFactor->Sort(CScaleFactorUtils::IDoubleDescCmp);
+			scale_factors->Sort(CScaleFactorUtils::DescendingOrderCmpFunc);
 		}
 		else
 		{
 			// sort (in ascending order) the scaling factor based on the selectivity of each column
-			pdrgpdScaleFactor->Sort(CScaleFactorUtils::IDoubleAscCmp);
+			scale_factors->Sort(CScaleFactorUtils::AscendingOrderCmpFunc);
 		}
 	}
 }
@@ -188,80 +188,80 @@ CScaleFactorUtils::SortScalingFactor
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::IDoubleDescCmp
+//		CScaleFactorUtils::DescendingOrderCmpFunc
 //
 //	@doc:
 //		Comparison function for sorting double
 //
 //---------------------------------------------------------------------------
 INT
-CScaleFactorUtils::IDoubleDescCmp
+CScaleFactorUtils::DescendingOrderCmpFunc
 	(
-	const void *pv1,
-	const void *pv2
+	const void *val1,
+	const void *val2
 	)
 {
-	GPOS_ASSERT(NULL != pv1 && NULL != pv2);
-	const CDouble *pd1 = *(const CDouble **) pv1;
-	const CDouble *pd2 = *(const CDouble **) pv2;
+	GPOS_ASSERT(NULL != val1 && NULL != val2);
+	const CDouble *double_val1 = *(const CDouble **) val1;
+	const CDouble *double_val2 = *(const CDouble **) val2;
 
-	return IDoubleCmp(pd1, pd2, true /*fDesc*/);
+	return DoubleCmpFunc(double_val1, double_val2, true /*is_descending*/);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::IDoubleAscCmp
+//		CScaleFactorUtils::AscendingOrderCmpFunc
 //
 //	@doc:
 //		Comparison function for sorting double
 //
 //---------------------------------------------------------------------------
 INT
-CScaleFactorUtils::IDoubleAscCmp
+CScaleFactorUtils::AscendingOrderCmpFunc
 	(
-	const void *pv1,
-	const void *pv2
+	const void *val1,
+	const void *val2
 	)
 {
-	GPOS_ASSERT(NULL != pv1 && NULL != pv2);
-	const CDouble *pd1 = *(const CDouble **) pv1;
-	const CDouble *pd2 = *(const CDouble **) pv2;
+	GPOS_ASSERT(NULL != val1 && NULL != val2);
+	const CDouble *double_val1 = *(const CDouble **) val1;
+	const CDouble *double_val2 = *(const CDouble **) val2;
 
-	return IDoubleCmp(pd1, pd2, false /*fDesc*/);
+	return DoubleCmpFunc(double_val1, double_val2, false /*is_descending*/);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::IDoubleCmp
+//		CScaleFactorUtils::DoubleCmpFunc
 //
 //	@doc:
 //		Helper function for double comparison
 //
 //---------------------------------------------------------------------------
 INT
-CScaleFactorUtils::IDoubleCmp
+CScaleFactorUtils::DoubleCmpFunc
 	(
-	const CDouble *pd1,
-	const CDouble *pd2,
-	BOOL fDesc
+	const CDouble *double_val1,
+	const CDouble *double_val2,
+	BOOL is_descending
 	)
 {
-	GPOS_ASSERT(NULL != pd1);
-	GPOS_ASSERT(NULL != pd2);
+	GPOS_ASSERT(NULL != double_val1);
+	GPOS_ASSERT(NULL != double_val2);
 
-	if (pd1->DVal() == pd2->DVal())
+	if (double_val1->Get() == double_val2->Get())
 	{
 		return 0;
 	}
 
-	if (pd1->DVal() < pd2->DVal() && fDesc)
+	if (double_val1->Get() < double_val2->Get() && is_descending)
 	{
 	    return 1;
 	}
 
-	if (pd1->DVal() > pd2->DVal() && !fDesc)
+	if (double_val1->Get() > double_val2->Get() && !is_descending)
 	{
 	    return 1;
 	}
@@ -271,7 +271,7 @@ CScaleFactorUtils::IDoubleCmp
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::DScaleFactorCumulativeConj
+//		CScaleFactorUtils::CalcScaleFactorCumulativeConj
 //
 //	@doc:
 //		Calculate the cumulative scaling factor for conjunction of filters
@@ -279,41 +279,41 @@ CScaleFactorUtils::IDoubleCmp
 //
 //---------------------------------------------------------------------------
 CDouble
-CScaleFactorUtils::DScaleFactorCumulativeConj
+CScaleFactorUtils::CalcScaleFactorCumulativeConj
 	(
-	const CStatisticsConfig *pstatsconf,
-	DrgPdouble *pdrgpdScaleFactor
+	const CStatisticsConfig *stats_config,
+	CDoubleArray *scale_factors
 	)
 {
-	GPOS_ASSERT(NULL != pstatsconf);
-	GPOS_ASSERT(NULL != pdrgpdScaleFactor);
+	GPOS_ASSERT(NULL != stats_config);
+	GPOS_ASSERT(NULL != scale_factors);
 
-	const ULONG ulCols = pdrgpdScaleFactor->UlLength();
-	CDouble dScaleFactor(1.0);
-	if (1 < ulCols)
+	const ULONG num_cols = scale_factors->Size();
+	CDouble scale_factor(1.0);
+	if (1 < num_cols)
 	{
 		// sort (in desc order) the scaling factor based on the selectivity of each column
-		pdrgpdScaleFactor->Sort(CScaleFactorUtils::IDoubleDescCmp);
+		scale_factors->Sort(CScaleFactorUtils::DescendingOrderCmpFunc);
 	}
 
-	for (ULONG ul = 0; ul < ulCols; ul++)
+	for (ULONG ul = 0; ul < num_cols; ul++)
 	{
 		// apply damping factor
-		CDouble dScaleFactorLocal = *(*pdrgpdScaleFactor)[ul];
-		dScaleFactor = dScaleFactor * std::max
+		CDouble local_scale_factor = *(*scale_factors)[ul];
+		scale_factor = scale_factor * std::max
 										(
-										CStatistics::DMinRows.DVal(),
-										(dScaleFactorLocal * CScaleFactorUtils::DDampingFilter(pstatsconf, ul + 1)).DVal()
+										CStatistics::MinRows.Get(),
+										(local_scale_factor * CScaleFactorUtils::DampedFilterScaleFactor(stats_config, ul + 1)).Get()
 										);
 	}
 
-	return dScaleFactor;
+	return scale_factor;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScaleFactorUtils::DScaleFactorCumulativeDisj
+//		CScaleFactorUtils::CalcScaleFactorCumulativeDisj
 //
 //	@doc:
 //		Calculate the cumulative scaling factor for disjunction of filters
@@ -321,52 +321,52 @@ CScaleFactorUtils::DScaleFactorCumulativeConj
 //
 //---------------------------------------------------------------------------
 CDouble
-CScaleFactorUtils::DScaleFactorCumulativeDisj
+CScaleFactorUtils::CalcScaleFactorCumulativeDisj
 	(
-	const CStatisticsConfig *pstatsconf,
-	DrgPdouble *pdrgpdScaleFactor,
-	CDouble dRowsTotal
+	const CStatisticsConfig *stats_config,
+	CDoubleArray *scale_factors,
+	CDouble total_rows
 	)
 {
-	GPOS_ASSERT(NULL != pstatsconf);
-	GPOS_ASSERT(NULL != pdrgpdScaleFactor);
+	GPOS_ASSERT(NULL != stats_config);
+	GPOS_ASSERT(NULL != scale_factors);
 
-	const ULONG ulCols = pdrgpdScaleFactor->UlLength();
-	GPOS_ASSERT(0 < ulCols);
+	const ULONG num_cols = scale_factors->Size();
+	GPOS_ASSERT(0 < num_cols);
 
-	if (1 == ulCols)
+	if (1 == num_cols)
 	{
-		return *(*pdrgpdScaleFactor)[0];
+		return *(*scale_factors)[0];
 	}
 
 	// sort (in ascending order) the scaling factor based on the selectivity of each column
-	pdrgpdScaleFactor->Sort(CScaleFactorUtils::IDoubleAscCmp);
+	scale_factors->Sort(CScaleFactorUtils::AscendingOrderCmpFunc);
 
 	// accumulate row estimates of different predicates after applying damping
 	// rows = rows0 + rows1 * 0.75 + rows2 *(0.75)^2 + ...
 
-	CDouble dRows(0.0);
-	for (ULONG ul = 0; ul < ulCols; ul++)
+	CDouble rows(0.0);
+	for (ULONG ul = 0; ul < num_cols; ul++)
 	{
-		CDouble dScaleFactorLocal = *(*pdrgpdScaleFactor)[ul];
-		GPOS_ASSERT(DInvalidScaleFactor < dScaleFactorLocal);
+		CDouble local_scale_factor = *(*scale_factors)[ul];
+		GPOS_ASSERT(InvalidScaleFactor < local_scale_factor);
 
 		// get a row estimate based on current scale factor
-		CDouble dRowsLocal = dRowsTotal / dScaleFactorLocal;
+		CDouble local_rows = total_rows / local_scale_factor;
 
 		// accumulate row estimates after damping
-		dRows = dRows + std::max
+		rows = rows + std::max
 							(
-							CStatistics::DMinRows.DVal(),
-							(dRowsLocal * CScaleFactorUtils::DDampingFilter(pstatsconf, ul + 1)).DVal()
+							CStatistics::MinRows.Get(),
+							(local_rows * CScaleFactorUtils::DampedFilterScaleFactor(stats_config, ul + 1)).Get()
 							);
 
 		// cap accumulated row estimate with total number of rows
-		dRows = std::min(dRows.DVal(), dRowsTotal.DVal());
+		rows = std::min(rows.Get(), total_rows.Get());
 	}
 
 	// return an accumulated scale factor based on accumulated row estimate
-	return CDouble(dRowsTotal / dRows);
+	return CDouble(total_rows / rows);
 }
 
 

@@ -122,7 +122,7 @@ namespace gpos
 						// entry's key
 						ULONG m_ulKey;
 
-						// entry's value
+				// entry's value
 						ULONG m_ulValue;
 
 						// ctor
@@ -162,7 +162,7 @@ namespace gpos
 						);
 
 					// key accessor
-					CDeepObjectList *PKey()
+					CDeepObjectList *Key()
 					{
 						return &m_list;
 					}
@@ -170,7 +170,7 @@ namespace gpos
 					// add a new entry to the linked list
 					void AddEntry
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						ULONG ulKey,
 						ULONG ulVal
 						);

@@ -28,24 +28,24 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDColumn::CMDColumn
 	(
-	CMDName *pmdname,
-	INT iAttNo,
-	IMDId *pmdidType,
-	INT iTypeModifier,
-	BOOL fNullable,
-	BOOL fDropped,
-	CDXLNode *pdxnlDefaultValue,
-	ULONG ulLength
+	CMDName *mdname,
+	INT attrnum,
+	IMDId *mdid_type,
+	INT type_modifier,
+	BOOL is_nullable,
+	BOOL is_dropped,
+	CDXLNode *dxl_dafault_value,
+	ULONG length
 	)
 	:
-	m_pmdname(pmdname),
-	m_iAttNo(iAttNo),
-	m_pmdidType(pmdidType),
-	m_iTypeModifier(iTypeModifier),
-	m_fNullable(fNullable),
-	m_fDropped(fDropped),
-	m_ulLength(ulLength),
-	m_pdxlnDefaultValue(pdxnlDefaultValue)
+	m_mdname(mdname),
+	m_attno(attrnum),
+	m_mdid_type(mdid_type),
+	m_type_modifier(type_modifier),
+	m_is_nullable(is_nullable),
+	m_is_dropped(is_dropped),
+	m_length(length),
+	m_dxl_default_val(dxl_dafault_value)
 {
 }
 
@@ -59,9 +59,9 @@ CMDColumn::CMDColumn
 //---------------------------------------------------------------------------
 CMDColumn::~CMDColumn()
 {
-	GPOS_DELETE(m_pmdname);
-	m_pmdidType->Release();
-	CRefCount::SafeRelease(m_pdxlnDefaultValue);
+	GPOS_DELETE(m_mdname);
+	m_mdid_type->Release();
+	CRefCount::SafeRelease(m_dxl_default_val);
 }
 
 
@@ -76,69 +76,69 @@ CMDColumn::~CMDColumn()
 CMDName
 CMDColumn::Mdname() const
 {
-	return *m_pmdname;
+	return *m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDColumn::IAttno
+//		CMDColumn::AttrNum
 //
 //	@doc:
 //		Attribute number
 //
 //---------------------------------------------------------------------------
 INT
-CMDColumn::IAttno() const
+CMDColumn::AttrNum() const
 {
-	return m_iAttNo;
+	return m_attno;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDColumn::PmdidType
+//		CMDColumn::MdidType
 //
 //	@doc:
 //		Attribute type id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDColumn::PmdidType() const
+CMDColumn::MdidType() const
 {
-	return m_pmdidType;
+	return m_mdid_type;
 }
 
 INT
-CMDColumn::ITypeModifier() const
+CMDColumn::TypeModifier() const
 {
-	return m_iTypeModifier;
+	return m_type_modifier;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDColumn::FNullable
+//		CMDColumn::IsNullable
 //
 //	@doc:
 //		Returns whether NULLs are allowed for this column
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDColumn::FNullable() const
+CMDColumn::IsNullable() const
 {
-	return m_fNullable;
+	return m_is_nullable;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDColumn::FDropped
+//		CMDColumn::IsDropped
 //
 //	@doc:
 //		Returns whether column is dropped
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDColumn::FDropped() const
+CMDColumn::IsDropped() const
 {
-	return m_fDropped;
+	return m_is_dropped;
 }
 
 //---------------------------------------------------------------------------
@@ -152,47 +152,47 @@ CMDColumn::FDropped() const
 void
 CMDColumn::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) 
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumn));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumn));
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenAttno), m_iAttNo);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenAttno), m_attno);
 
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	if (IDefaultTypeModifier != ITypeModifier())
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	if (default_type_modifier != TypeModifier())
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTypeMod), TypeModifier());
 	}
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColumnNullable), m_fNullable);
-	if (gpos::ulong_max != m_ulLength)
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenColumnNullable), m_is_nullable);
+	if (gpos::ulong_max != m_length)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColWidth), m_ulLength);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenColWidth), m_length);
 	}
 
-	if (m_fDropped)
+	if (m_is_dropped)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColDropped), m_fDropped);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenColDropped), m_is_dropped);
 	}
 	
 	// serialize default value
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumnDefaultValue));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumnDefaultValue));
 	
-	if (NULL != m_pdxlnDefaultValue)
+	if (NULL != m_dxl_default_val)
 	{
-		m_pdxlnDefaultValue->SerializeToDXL(pxmlser);
+		m_dxl_default_val->SerializeToDXL(xml_serializer);
 	}
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumnDefaultValue));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumnDefaultValue));
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumn));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumn));
 }
 
 #ifdef GPOS_DEBUG
@@ -211,18 +211,18 @@ CMDColumn::DebugPrint
 	) 
 	const
 {
-	os << "Attno: " << IAttno() << std::endl;
+	os << "Attno: " << AttrNum() << std::endl;
 	
-	os << "Column name: " << (Mdname()).Pstr()->Wsz() << std::endl;
+	os << "Column name: " << (Mdname()).GetMDName()->GetBuffer() << std::endl;
 	os << "Column type: ";
-	PmdidType()->OsPrint(os);
+	MdidType()->OsPrint(os);
 	os << std::endl;
 
-	const CWStringConst *pstrNullsAllowed = FNullable() ?
-												CDXLTokens::PstrToken(EdxltokenTrue) :
-												CDXLTokens::PstrToken(EdxltokenFalse);
+	const CWStringConst *pstrNullsAllowed = IsNullable() ?
+												CDXLTokens::GetDXLTokenStr(EdxltokenTrue) :
+												CDXLTokens::GetDXLTokenStr(EdxltokenFalse);
 	
-	os << "Nulls allowed: " << pstrNullsAllowed->Wsz() << std::endl;
+	os << "Nulls allowed: " << pstrNullsAllowed->GetBuffer() << std::endl;
 }
 
 #endif // GPOS_DEBUG

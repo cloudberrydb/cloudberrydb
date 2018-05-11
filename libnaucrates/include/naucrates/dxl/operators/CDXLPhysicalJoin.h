@@ -34,16 +34,16 @@ namespace gpdxl
 			CDXLPhysicalJoin(const CDXLPhysicalJoin&);
 
 			// join type (inner, outer, ...)
-			EdxlJoinType m_edxljt;
+			EdxlJoinType m_join_type;
 			
 		public:
 			// ctor
-			CDXLPhysicalJoin(IMemoryPool *pmp, EdxlJoinType edxljt);
+			CDXLPhysicalJoin(IMemoryPool *mp, EdxlJoinType join_type);
 			
 			// join type
-			EdxlJoinType Edxltype() const;
+			EdxlJoinType GetJoinType() const;
 			
-			const CWStringConst *PstrJoinTypeName() const;
+			const CWStringConst *GetJoinTypeNameStr() const;
 
 	};
 }

@@ -34,21 +34,21 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLWindowSpec::CDXLWindowSpec
 	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpulPartCol,
-	CMDName *pmdname,
-	CDXLNode *pdxlnSortColList,
-	CDXLWindowFrame *pdxlwf
+	IMemoryPool *mp,
+	ULongPtrArray *partition_by_colid_array,
+	CMDName *mdname,
+	CDXLNode *sort_col_list_dxlnode,
+	CDXLWindowFrame *window_frame
 	)
 	:
-	m_pmp(pmp),
-	m_pdrgpulPartCol(pdrgpulPartCol),
-	m_pmdname(pmdname),
-	m_pdxlnSortColList(pdxlnSortColList),
-	m_pdxlwf(pdxlwf)
+	m_mp(mp),
+	m_partition_by_colid_array(partition_by_colid_array),
+	m_mdname(mdname),
+	m_sort_col_list_dxlnode(sort_col_list_dxlnode),
+	m_window_frame(window_frame)
 {
-	GPOS_ASSERT(NULL != m_pmp);
-	GPOS_ASSERT(NULL != m_pdrgpulPartCol);
+	GPOS_ASSERT(NULL != m_mp);
+	GPOS_ASSERT(NULL != m_partition_by_colid_array);
 }
 
 //---------------------------------------------------------------------------
@@ -61,10 +61,10 @@ CDXLWindowSpec::CDXLWindowSpec
 //---------------------------------------------------------------------------
 CDXLWindowSpec::~CDXLWindowSpec()
 {
-	m_pdrgpulPartCol->Release();
-	CRefCount::SafeRelease(m_pdxlwf);
-	CRefCount::SafeRelease(m_pdxlnSortColList);
-	GPOS_DELETE(m_pmdname);
+	m_partition_by_colid_array->Release();
+	CRefCount::SafeRelease(m_window_frame);
+	CRefCount::SafeRelease(m_sort_col_list_dxlnode);
+	GPOS_DELETE(m_mdname);
 }
 
 //---------------------------------------------------------------------------
@@ -78,38 +78,38 @@ CDXLWindowSpec::~CDXLWindowSpec()
 void
 CDXLWindowSpec::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	const CWStringConst *pstrElemName = CDXLTokens::PstrToken(EdxltokenWindowSpec);
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	const CWStringConst *element_name = CDXLTokens::GetDXLTokenStr(EdxltokenWindowSpec);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
-	GPOS_ASSERT(NULL != m_pdrgpulPartCol);
+	GPOS_ASSERT(NULL != m_partition_by_colid_array);
 
 	// serialize partition keys
-	CWStringDynamic *pstrPartCols = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulPartCol);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartKeys), pstrPartCols);
-	GPOS_DELETE(pstrPartCols);
+	CWStringDynamic *partition_by_colid_string = CDXLUtils::Serialize(m_mp, m_partition_by_colid_array);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartKeys), partition_by_colid_string);
+	GPOS_DELETE(partition_by_colid_string);
 
-	if (NULL != m_pmdname)
+	if (NULL != m_mdname)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenAlias), m_pmdname->Pstr());
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenAlias), m_mdname->GetMDName());
 	}
 
 	// serialize sorting columns
-	if (NULL != m_pdxlnSortColList)
+	if (NULL != m_sort_col_list_dxlnode)
 	{
-		m_pdxlnSortColList->SerializeToDXL(pxmlser);
+		m_sort_col_list_dxlnode->SerializeToDXL(xml_serializer);
 	}
 
 	// serialize window frames
-	if (NULL != m_pdxlwf)
+	if (NULL != m_window_frame)
 	{
-		m_pdxlwf->SerializeToDXL(pxmlser);
+		m_window_frame->SerializeToDXL(xml_serializer);
 	}
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 // EOF

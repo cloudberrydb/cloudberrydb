@@ -68,33 +68,33 @@ namespace gpos
 		private:
 
 			// common header for each allocation
-			struct SAllocHeader
+			struct AllocHeader
 			{
 				// pointer to pool
-				IMemoryPool *m_pmp;
+				IMemoryPool *m_mp;
 
 				// allocation request size
-				ULONG m_ulAlloc;
+				ULONG m_alloc;
 			};
 
 			// reference counter
-			ULONG m_ulRef;
+			ULONG m_ref_counter;
 
 			// hash key is only set by pool manager
-			ULONG_PTR m_ulpKey;
+			ULONG_PTR m_hash_key;
 
 			// underlying memory pool - optional
-			IMemoryPool *m_pmpUnderlying;
+			IMemoryPool *m_underlying_memory_pool;
 
 			// flag indicating if this pool owns the underlying pool
-			const BOOL m_fOwnsUnderlying;
+			const BOOL m_owns_underlying_memory_pool;
 
 			// flag indicating if memory pool is thread-safe
-			const BOOL m_fThreadSafe;
+			const BOOL m_thread_safe;
 
 #ifdef GPOS_DEBUG
 			// stack where pool is created
-			CStackDescriptor m_sd;
+			CStackDescriptor m_stack_desc;
 #endif // GPOS_DEBUG
 
 			// link structure to manage pools
@@ -105,20 +105,20 @@ namespace gpos
 			// ctor
 			CMemoryPool
 				(
-				IMemoryPool *pmpUnderlying,
-				BOOL fOwnsUnderlying,
-				BOOL fThreadSafe
+				IMemoryPool *underlying_memory_pool,
+				BOOL owns_underlying_memory_pool,
+				BOOL thread_safe
 				);
 
 			// underlying pool accessor
-			IMemoryPool *PmpUnderlying() const
+			IMemoryPool *GetUnderlyingMemoryPool() const
 			{
-				return m_pmpUnderlying;
+				return m_underlying_memory_pool;
 			}
 
 			// invalid memory pool key
 			static
-			const ULONG_PTR m_ulpInvalid;
+			const ULONG_PTR m_invalid;
 
 		public:
 
@@ -130,55 +130,55 @@ namespace gpos
 			virtual
 			void TearDown()
 			{
-				if (m_fOwnsUnderlying)
+				if (m_owns_underlying_memory_pool)
 				{
-					m_pmpUnderlying->TearDown();
+					m_underlying_memory_pool->TearDown();
 				}
 			}
 
 			// check if memory pool is thread-safe
 			virtual
-			BOOL FThreadSafe() const
+			BOOL IsThreadSafe() const
 			{
-				return m_fThreadSafe;
+				return m_thread_safe;
 			}
 
 			// hash key accessor
 			virtual
-			ULONG_PTR UlpKey() const
+			ULONG_PTR GetHashKey() const
 			{
-				return m_ulpKey;
+				return m_hash_key;
 			}
 
 			// get allocation size
 			static
-			ULONG UlAllocSize
+			ULONG GetAllocSize
 				(
-				ULONG ulRequested
+				ULONG requested
 				)
 			{
-				return GPOS_SIZEOF(SAllocHeader) +
-				       GPOS_MEM_ALIGNED_SIZE(ulRequested + GPOS_MEM_GUARD_SIZE);
+				return GPOS_SIZEOF(AllocHeader) +
+				       GPOS_MEM_ALIGNED_SIZE(requested + GPOS_MEM_GUARD_SIZE);
 			}
 
 			// set allocation header and footer, return pointer to user data
-			void *PvFinalizeAlloc(void *pv, ULONG ulAlloc, EAllocationType eat);
+			void *FinalizeAlloc(void *ptr, ULONG alloc, EAllocationType eat);
 
 			// return allocation to owning memory pool
 			static
-			void FreeAlloc(void *pv, EAllocationType eat);
+			void FreeAlloc(void *ptr, EAllocationType eat);
 
 			// check if the pool stores a pointer to itself at the end of
 			// the header of each allocated object;
 			virtual
-			BOOL FStoresPoolPointer() const
+			BOOL StoresPoolPointer() const
 			{
 				return false;
 			}
 
 			// return total allocated size
 			virtual
-			ULLONG UllTotalAllocatedSize() const
+			ULLONG TotalAllocatedSize() const
 			{
 				GPOS_ASSERT(!"not supported");
 				return 0;
@@ -187,13 +187,13 @@ namespace gpos
 			// determine the size (in bytes) of an allocation that
 			// was made from a CMemoryPool
 			static
-			ULONG UlSizeOfAlloc(const void *pv);
+			ULONG SizeOfAlloc(const void *ptr);
 
 #ifdef GPOS_DEBUG
 
 			// check if the memory pool keeps track of live objects
 			virtual
-			BOOL FSupportsLiveObjectWalk() const
+			BOOL SupportsLiveObjectWalk() const
 			{
 				return false;
 			}
@@ -210,7 +210,7 @@ namespace gpos
 
 			// check if statistics tracking is supported
 			virtual
-			BOOL FSupportsStatistics() const
+			BOOL SupportsStatistics() const
 			{
 				return false;
 			}

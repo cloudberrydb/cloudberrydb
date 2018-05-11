@@ -32,38 +32,38 @@ namespace gpdxl
 		private:
 
 			// partitioning level
-			ULONG m_ulLevel;
+			ULONG m_partitioning_level;
 
 			// private copy ctor
 			CDXLScalarPartDefault(const CDXLScalarPartDefault&);
 
 		public:
 			// ctor
-			CDXLScalarPartDefault(IMemoryPool *pmp, ULONG ulLevel);
+			CDXLScalarPartDefault(IMemoryPool *mp, ULONG partitioning_level);
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// partitioning level
-			ULONG UlLevel() const
+			ULONG GetPartitioningLevel() const
 			{
-				return m_ulLevel;
+				return m_partitioning_level;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor * //pmda
+					CMDAccessor * //md_accessor
 					)
 					const
 			{
@@ -74,20 +74,20 @@ namespace gpdxl
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// conversion function
 			static
-			CDXLScalarPartDefault *PdxlopConvert
+			CDXLScalarPartDefault *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarPartDefault == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarPartDefault == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarPartDefault*>(pdxlop);
+				return dynamic_cast<CDXLScalarPartDefault*>(dxl_op);
 			}
 	};
 }

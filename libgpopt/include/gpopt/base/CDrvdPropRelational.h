@@ -47,7 +47,7 @@ namespace gpopt
 	//		of an expression.
 	//
 	//---------------------------------------------------------------------------
-	class CDrvdPropRelational : public CDrvdProp
+	class CDrvdPropRelational : public DrvdPropArray
 	{
 
 		private:
@@ -68,7 +68,7 @@ namespace gpopt
 			CKeyCollection *m_pkc;
 			
 			// functional dependencies
-			DrgPfd *m_pdrgpfd;
+			CFunctionalDependencyArray *m_pdrgpfd;
 			
 			// max card
 			CMaxCard m_maxcard;
@@ -94,15 +94,15 @@ namespace gpopt
 
 			// helper for getting applicable FDs from child
 			static
-			DrgPfd *PdrgpfdChild(IMemoryPool *pmp, ULONG ulChildIndex, CExpressionHandle &exprhdl);
+			CFunctionalDependencyArray *PdrgpfdChild(IMemoryPool *mp, ULONG child_index, CExpressionHandle &exprhdl);
 
 			// helper for creating local FDs
 			static
-			DrgPfd *PdrgpfdLocal(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CFunctionalDependencyArray *PdrgpfdLocal(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// helper for deriving FD's
 			static
-			DrgPfd *Pdrgpfd(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CFunctionalDependencyArray *Pdrgpfd(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 		public:
 
@@ -121,7 +121,7 @@ namespace gpopt
 			}
 
 			// derivation function
-			void Derive(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
+			void Derive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
 
 			// output columns
 			CColRefSet *PcrsOutput() const
@@ -154,7 +154,7 @@ namespace gpopt
 			}
 		
 			// functional dependencies
-			DrgPfd *Pdrgpfd() const
+			CFunctionalDependencyArray *Pdrgpfd() const
 			{
 				return m_pdrgpfd;
 			}
@@ -172,7 +172,7 @@ namespace gpopt
 			}
 
 			// join depth
-			ULONG UlJoinDepth() const
+			ULONG JoinDepth() const
 			{
 				return m_ulJoinDepth;
 			}
@@ -203,7 +203,7 @@ namespace gpopt
 
 			// shorthand for conversion
 			static
-			CDrvdPropRelational *Pdprel(CDrvdProp *pdp);
+			CDrvdPropRelational *GetRelationalProperties(DrvdPropArray *pdp);
 
 			// check for satisfying required plan properties
 			virtual

@@ -67,7 +67,7 @@ GPOS_RESULT
 CJoinOrderTest::EresUnittest_ExpandMinCard()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// array of relation names
 	CWStringConst rgscRel[] =
@@ -115,41 +115,41 @@ CJoinOrderTest::EresUnittest_ExpandMinCard()
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache());
+	CMDAccessor mda(mp, CMDCache::Pcache());
 	mda.RegisterProvider(CTestUtils::m_sysidDefault, pmdp);
 
 	{
 		// install opt context in TLS
 		CAutoOptCtxt aoc
 				(
-				pmp,
+				mp,
 				&mda,
 				NULL,  /* pceeval */
-				CTestUtils::Pcm(pmp)
+				CTestUtils::GetCostModel(mp)
 				);
 
 		CExpression *pexprNAryJoin =
-				CTestUtils::PexprLogicalNAryJoin(pmp, rgscRel, rgulRel, ulRels, false /*fCrossProduct*/);
+				CTestUtils::PexprLogicalNAryJoin(mp, rgscRel, rgulRel, ulRels, false /*fCrossProduct*/);
 
 		// derive stats on input expression
-		CExpressionHandle exprhdl(pmp);
+		CExpressionHandle exprhdl(mp);
 		exprhdl.Attach(pexprNAryJoin);
-		exprhdl.DeriveStats(pmp, pmp, NULL /*prprel*/, NULL /*pdrgpstatCtxt*/);
+		exprhdl.DeriveStats(mp, mp, NULL /*prprel*/, NULL /*stats_ctxt*/);
 
-		DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 		for (ULONG ul = 0; ul < ulRels; ul++)
 		{
 			CExpression *pexprChild = (*pexprNAryJoin)[ul];
 			pexprChild->AddRef();
 			pdrgpexpr->Append(pexprChild);
 		}
-		DrgPexpr *pdrgpexprPred = CPredicateUtils::PdrgpexprConjuncts(pmp, (*pexprNAryJoin)[ulRels]);
+		CExpressionArray *pdrgpexprPred = CPredicateUtils::PdrgpexprConjuncts(mp, (*pexprNAryJoin)[ulRels]);
 		pdrgpexpr->AddRef();
 		pdrgpexprPred->AddRef();
-		CJoinOrderMinCard jomc(pmp, pdrgpexpr, pdrgpexprPred);
+		CJoinOrderMinCard jomc(mp, pdrgpexpr, pdrgpexprPred);
 		CExpression *pexprResult = jomc.PexprExpand();
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			at.Os() << std::endl << "INPUT:" << std::endl << *pexprNAryJoin << std::endl;
 			at.Os() << std::endl << "OUTPUT:" << std::endl << *pexprResult << std::endl;
 		}

@@ -34,7 +34,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CDistributionSpecHashed::CDistributionSpecHashed
 	(
-	DrgPexpr *pdrgpexpr,
+	CExpressionArray *pdrgpexpr,
 	BOOL fNullsColocated
 	)
 	:
@@ -43,7 +43,7 @@ CDistributionSpecHashed::CDistributionSpecHashed
 	m_pdshashedEquiv(NULL)
 {
 	GPOS_ASSERT(NULL != pdrgpexpr);
-	GPOS_ASSERT(0 < pdrgpexpr->UlLength());
+	GPOS_ASSERT(0 < pdrgpexpr->Size());
 }
 
 
@@ -57,7 +57,7 @@ CDistributionSpecHashed::CDistributionSpecHashed
 //---------------------------------------------------------------------------
 CDistributionSpecHashed::CDistributionSpecHashed
 	(
-	DrgPexpr *pdrgpexpr,
+	CExpressionArray *pdrgpexpr,
 	BOOL fNullsColocated,
 	CDistributionSpecHashed *pdshashedEquiv
 	)
@@ -68,7 +68,7 @@ CDistributionSpecHashed::CDistributionSpecHashed
 {
 	GPOS_ASSERT(NULL != pdrgpexpr);
 	GPOS_ASSERT(NULL != pdshashedEquiv);
-	GPOS_ASSERT(0 < pdrgpexpr->UlLength());
+	GPOS_ASSERT(0 < pdrgpexpr->Size());
 }
 
 //---------------------------------------------------------------------------
@@ -96,28 +96,28 @@ CDistributionSpecHashed::~CDistributionSpecHashed()
 CDistributionSpec *
 CDistributionSpecHashed::PdsCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-	const ULONG ulLen = m_pdrgpexpr->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	const ULONG length = m_pdrgpexpr->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
 		CExpression *pexpr = (*m_pdrgpexpr)[ul];
-		pdrgpexpr->Append(pexpr->PexprCopyWithRemappedColumns(pmp, phmulcr, fMustExist));
+		pdrgpexpr->Append(pexpr->PexprCopyWithRemappedColumns(mp, colref_mapping, must_exist));
 	}
 
 	if (NULL == m_pdshashedEquiv)
 	{
-		return GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexpr, m_fNullsColocated);
+		return GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, m_fNullsColocated);
 	}
 
 	// copy equivalent distribution
-	CDistributionSpec *pds = m_pdshashedEquiv->PdsCopyWithRemappedColumns(pmp, phmulcr, fMustExist);
+	CDistributionSpec *pds = m_pdshashedEquiv->PdsCopyWithRemappedColumns(mp, colref_mapping, must_exist);
 	CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(pds);
-	return GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexpr, m_fNullsColocated, pdshashed);
+	return GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, m_fNullsColocated, pdshashed);
 }
 
 
@@ -141,7 +141,7 @@ CDistributionSpecHashed::FSatisfies
  		return true;
  	}
 
-	if (FMatch(pds))
+	if (Matches(pds))
 	{
 		// exact match implies satisfaction
 		return true;
@@ -183,8 +183,8 @@ CDistributionSpecHashed::FMatchSubset
 	)
 	const
 {
-	const ULONG ulOwnExprs = m_pdrgpexpr->UlLength();
-	const ULONG ulOtherExprs = pdsHashed->m_pdrgpexpr->UlLength();
+	const ULONG ulOwnExprs = m_pdrgpexpr->Size();
+	const ULONG ulOtherExprs = pdsHashed->m_pdrgpexpr->Size();
 
 	if (ulOtherExprs < ulOwnExprs || !FNullsColocated(pdsHashed) || !FDuplicateSensitiveCompatible(pdsHashed))
 	{
@@ -199,7 +199,7 @@ CDistributionSpecHashed::FMatchSubset
 		for (ULONG ulInner = 0; ulInner < ulOtherExprs; ulInner++)
 		{
 			CExpression *pexprOther = CCastUtils::PexprWithoutBinaryCoercibleCasts((*(pdsHashed->m_pdrgpexpr))[ulInner]);
-			if (CUtils::FEqual(pexprOwn, pexprOther))
+			if (CUtils::Equals(pexprOwn, pexprOther))
 			{
 				fFound = true;
 				break;
@@ -228,14 +228,14 @@ CDistributionSpecHashed::FMatchSubset
 CDistributionSpecHashed *
 CDistributionSpecHashed::PdshashedExcludeColumns
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 {
 	GPOS_ASSERT(NULL != pcrs);
 
-	DrgPexpr *pdrgpexprNew = GPOS_NEW(pmp) DrgPexpr(pmp);
-	const ULONG ulExprs = m_pdrgpexpr->UlLength();
+	CExpressionArray *pdrgpexprNew = GPOS_NEW(mp) CExpressionArray(mp);
+	const ULONG ulExprs = m_pdrgpexpr->Size();
 	for (ULONG ul = 0; ul < ulExprs; ul++)
 	{
 		CExpression *pexpr = (*m_pdrgpexpr)[ul];
@@ -244,8 +244,8 @@ CDistributionSpecHashed::PdshashedExcludeColumns
 		{
 			// we only care here about column identifiers,
 			// any more complicated expressions are copied to output
-			const CColRef *pcr = CScalarIdent::PopConvert(pop)->Pcr();
-			if (pcrs->FMember(pcr))
+			const CColRef *colref = CScalarIdent::PopConvert(pop)->Pcr();
+			if (pcrs->FMember(colref))
 			{
 				continue;
 			}
@@ -255,35 +255,35 @@ CDistributionSpecHashed::PdshashedExcludeColumns
 		pdrgpexprNew->Append(pexpr);
 	}
 
-	if (0 == pdrgpexprNew->UlLength())
+	if (0 == pdrgpexprNew->Size())
 	{
 		pdrgpexprNew->Release();
 		return NULL;
 	}
 
-	return GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexprNew, m_fNullsColocated);
+	return GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprNew, m_fNullsColocated);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDistributionSpecHashed::FEqual
+//		CDistributionSpecHashed::Equals
 //
 //	@doc:
 //		Equality function
 //
 //---------------------------------------------------------------------------
 BOOL
-CDistributionSpecHashed::FEqual
+CDistributionSpecHashed::Equals
 	(
 	const CDistributionSpecHashed *pdshashed
 	)
 	const
 {
 	return m_fNullsColocated == pdshashed->FNullsColocated() &&
-			m_fDuplicateSensitive == pdshashed->FDuplicateSensitive() &&
+			m_is_duplicate_sensitive == pdshashed->IsDuplicateSensitive() &&
 			m_fSatisfiedBySingleton == pdshashed->FSatisfiedBySingleton() &&
-			CUtils::FEqual(m_pdrgpexpr, pdshashed->m_pdrgpexpr) &&
+			CUtils::Equals(m_pdrgpexpr, pdshashed->m_pdrgpexpr) &&
 			Edt() == pdshashed->Edt();
 }
 
@@ -299,18 +299,18 @@ CDistributionSpecHashed::FEqual
 void
 CDistributionSpecHashed::AppendEnforcers
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *
 #ifdef GPOS_DEBUG
 	prpp
 #endif // GPOS_DEBUG
 	,
-	DrgPexpr *pdrgpexpr,
+	CExpressionArray *pdrgpexpr,
 	CExpression *pexpr
 	)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != prpp);
 	GPOS_ASSERT(NULL != pdrgpexpr);
 	GPOS_ASSERT(NULL != pexpr);
@@ -327,10 +327,10 @@ CDistributionSpecHashed::AppendEnforcers
 	// add a hashed distribution enforcer
 	AddRef();
 	pexpr->AddRef();
-	CExpression *pexprMotion = GPOS_NEW(pmp) CExpression
+	CExpression *pexprMotion = GPOS_NEW(mp) CExpression
 										(
-										pmp,
-										GPOS_NEW(pmp) CPhysicalMotionHashDistribute(pmp, this),
+										mp,
+										GPOS_NEW(mp) CPhysicalMotionHashDistribute(mp, this),
 										pexpr
 										);
 	pdrgpexpr->Append(pexprMotion);
@@ -339,22 +339,22 @@ CDistributionSpecHashed::AppendEnforcers
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDistributionSpecHashed::UlHash
+//		CDistributionSpecHashed::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG 
-CDistributionSpecHashed::UlHash() const
+CDistributionSpecHashed::HashValue() const
 {
 	ULONG ulHash = (ULONG) Edt();
-	ULONG ulHashedExpressions = std::min(m_pdrgpexpr->UlLength(), GPOPT_DISTR_SPEC_HASHED_EXPRESSIONS);
+	ULONG ulHashedExpressions = std::min(m_pdrgpexpr->Size(), GPOPT_DISTR_SPEC_HASHED_EXPRESSIONS);
 	
 	for (ULONG ul = 0; ul < ulHashedExpressions; ul++)
 	{
 		CExpression *pexpr = (*m_pdrgpexpr)[ul];
-		ulHash = gpos::UlCombineHashes(ulHash, CExpression::UlHash(pexpr));
+		ulHash = gpos::CombineHashes(ulHash, CExpression::HashValue(pexpr));
 	}
 
 	return ulHash;
@@ -372,11 +372,11 @@ CDistributionSpecHashed::UlHash() const
 CColRefSet *
 CDistributionSpecHashed::PcrsUsed
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	return CUtils::PcrsExtractColumns(pmp, m_pdrgpexpr);
+	return CUtils::PcrsExtractColumns(mp, m_pdrgpexpr);
 }
 
 
@@ -397,17 +397,17 @@ CDistributionSpecHashed::FMatchHashedDistribution
 {
 	GPOS_ASSERT(NULL != pdshashed);
 
-	if (m_pdrgpexpr->UlLength() != pdshashed->m_pdrgpexpr->UlLength() ||
+	if (m_pdrgpexpr->Size() != pdshashed->m_pdrgpexpr->Size() ||
 		FNullsColocated() != pdshashed->FNullsColocated() ||
-		FDuplicateSensitive() != pdshashed->FDuplicateSensitive())
+		IsDuplicateSensitive() != pdshashed->IsDuplicateSensitive())
 	{
 		return false;
 	}
 
-	const ULONG ulLen = m_pdrgpexpr->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	const ULONG length = m_pdrgpexpr->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		if (!CUtils::FEqual(CCastUtils::PexprWithoutBinaryCoercibleCasts((*(pdshashed->m_pdrgpexpr))[ul]),
+		if (!CUtils::Equals(CCastUtils::PexprWithoutBinaryCoercibleCasts((*(pdshashed->m_pdrgpexpr))[ul]),
 							CCastUtils::PexprWithoutBinaryCoercibleCasts((*m_pdrgpexpr)[ul])))
 		{
 			return false;
@@ -420,14 +420,14 @@ CDistributionSpecHashed::FMatchHashedDistribution
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDistributionSpecHashed::FMatch
+//		CDistributionSpecHashed::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL 
-CDistributionSpecHashed::FMatch
+CDistributionSpecHashed::Matches
 	(
 	const CDistributionSpec *pds
 	) 
@@ -440,12 +440,12 @@ CDistributionSpecHashed::FMatch
 
 	const CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(pds);
 
-	if (NULL != m_pdshashedEquiv && m_pdshashedEquiv->FMatch(pdshashed))
+	if (NULL != m_pdshashedEquiv && m_pdshashedEquiv->Matches(pdshashed))
 	{
 		return true;
 	 }
 
-	if (NULL != pdshashed->PdshashedEquiv() && pdshashed->PdshashedEquiv()->FMatch(this))
+	if (NULL != pdshashed->PdshashedEquiv() && pdshashed->PdshashedEquiv()->Matches(this))
 	{
 		return true;
 	}
@@ -467,20 +467,20 @@ CDistributionSpecHashed::FMatch
 CDistributionSpecHashed *
 CDistributionSpecHashed::PdshashedMaximal
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr,
+	IMemoryPool *mp,
+	CColRefArray *colref_array,
 	BOOL fNullsColocated
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpcr);
-	GPOS_ASSERT(0 < pdrgpcr->UlLength());
+	GPOS_ASSERT(NULL != colref_array);
+	GPOS_ASSERT(0 < colref_array->Size());
 
-	DrgPcr *pdrgpcrHashable = CUtils::PdrgpcrRedistributableSubset(pmp, pdrgpcr);
+	CColRefArray *pdrgpcrHashable = CUtils::PdrgpcrRedistributableSubset(mp, colref_array);
 	CDistributionSpecHashed *pdshashed = NULL;
-	if (0 < pdrgpcrHashable->UlLength())
+	if (0 < pdrgpcrHashable->Size())
 	{
-		DrgPexpr *pdrgpexpr = CUtils::PdrgpexprScalarIdents(pmp, pdrgpcrHashable);
-		pdshashed = GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexpr, fNullsColocated);
+		CExpressionArray *pdrgpexpr = CUtils::PdrgpexprScalarIdents(mp, pdrgpcrHashable);
+		pdshashed = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, fNullsColocated);
 	}
 	pdrgpcrHashable->Release();
 
@@ -504,8 +504,8 @@ CDistributionSpecHashed::OsPrint
 	const
 {
 	os << this->SzId() << ": [ ";
-	const ULONG ulLen = m_pdrgpexpr->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	const ULONG length = m_pdrgpexpr->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
 		os << *((*m_pdrgpexpr)[ul]) << " ";
 	}
@@ -518,7 +518,7 @@ CDistributionSpecHashed::OsPrint
 		os <<  ", nulls not colocated";
 	}
 
-	if (m_fDuplicateSensitive)
+	if (m_is_duplicate_sensitive)
 	{
 		os <<  ", duplicate sensitive";
 	}

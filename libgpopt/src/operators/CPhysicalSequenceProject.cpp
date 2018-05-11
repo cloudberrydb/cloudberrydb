@@ -35,13 +35,13 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalSequenceProject::CPhysicalSequenceProject
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CDistributionSpec *pds,
-	DrgPos *pdrgpos,
-	DrgPwf *pdrgpwf
+	COrderSpecArray *pdrgpos,
+	CWindowFrameArray *pdrgpwf
 	)
 	:
-	CPhysical(pmp),
+	CPhysical(mp),
 	m_pds(pds),
 	m_pdrgpos(pdrgpos),
 	m_pdrgpwf(pdrgpwf),
@@ -53,8 +53,8 @@ CPhysicalSequenceProject::CPhysicalSequenceProject
 	GPOS_ASSERT(NULL != pdrgpwf);
 	GPOS_ASSERT(CDistributionSpec::EdtHashed == pds->Edt() ||
 			CDistributionSpec::EdtSingleton == pds->Edt());
-	CreateOrderSpec(pmp);
-	ComputeRequiredLocalColumns(pmp);
+	CreateOrderSpec(mp);
+	ComputeRequiredLocalColumns(mp);
 }
 
 
@@ -69,45 +69,45 @@ CPhysicalSequenceProject::CPhysicalSequenceProject
 void
 CPhysicalSequenceProject::CreateOrderSpec
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL == m_pos);
 	GPOS_ASSERT(NULL != m_pds);
 	GPOS_ASSERT(NULL != m_pdrgpos);
 
-	m_pos = GPOS_NEW(pmp) COrderSpec(pmp);
+	m_pos = GPOS_NEW(mp) COrderSpec(mp);
 
 	// add partition by keys to order spec
 	if (CDistributionSpec::EdtHashed == m_pds->Edt())
 	{
 		CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(m_pds);
 
-		const DrgPexpr *pdrgpexpr = pdshashed->Pdrgpexpr();
-		const ULONG ulSize = pdrgpexpr->UlLength();
-		for (ULONG ul = 0; ul < ulSize; ul++)
+		const CExpressionArray *pdrgpexpr = pdshashed->Pdrgpexpr();
+		const ULONG size = pdrgpexpr->Size();
+		for (ULONG ul = 0; ul < size; ul++)
 		{
 			CExpression *pexpr = (*pdrgpexpr)[ul];
 			// we assume partition-by keys are always scalar idents
 			CScalarIdent *popScId = CScalarIdent::PopConvert(pexpr->Pop());
-			const CColRef *pcr = popScId->Pcr();
+			const CColRef *colref = popScId->Pcr();
 
-			gpmd::IMDId *pmdid = pcr->Pmdtype()->PmdidCmp(IMDType::EcmptL);
-			pmdid->AddRef();
+			gpmd::IMDId *mdid = colref->RetrieveType()->GetMdidForCmpType(IMDType::EcmptL);
+			mdid->AddRef();
 
-			m_pos->Append(pmdid, pcr, COrderSpec::EntLast);
+			m_pos->Append(mdid, colref, COrderSpec::EntLast);
 		}
 	}
 
-	if (0 == m_pdrgpos->UlLength())
+	if (0 == m_pdrgpos->Size())
 	{
 		return;
 	}
 
 	COrderSpec *posFirst = (*m_pdrgpos)[0];
 #ifdef GPOS_DEBUG
-	const ULONG ulLength = m_pdrgpos->UlLength();
-	for (ULONG ul = 1; ul < ulLength; ul++)
+	const ULONG length = m_pdrgpos->Size();
+	for (ULONG ul = 1; ul < length; ul++)
 	{
 		COrderSpec *posCurrent = (*m_pdrgpos)[ul];
 		GPOS_ASSERT(posFirst->FSatisfies(posCurrent) &&
@@ -118,14 +118,14 @@ CPhysicalSequenceProject::CreateOrderSpec
 	// we assume here that the first order spec in the children array satisfies all other
 	// order specs in the array, this happens as part of the initial normalization
 	// so we need to add columns only from the first order spec
-	const ULONG ulSize = posFirst->UlSortColumns();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	const ULONG size = posFirst->UlSortColumns();
+	for (ULONG ul = 0; ul < size; ul++)
 	{
-		const CColRef *pcr = posFirst->Pcr(ul);
-		gpmd::IMDId *pmdid = posFirst->PmdidSortOp(ul);
-		pmdid->AddRef();
+		const CColRef *colref = posFirst->Pcr(ul);
+		gpmd::IMDId *mdid = posFirst->GetMdIdSortOp(ul);
+		mdid->AddRef();
 		COrderSpec::ENullTreatment ent = posFirst->Ent(ul);
-		m_pos->Append(pmdid, pcr, ent);
+		m_pos->Append(mdid, colref, ent);
 	}
 }
 
@@ -141,7 +141,7 @@ CPhysicalSequenceProject::CreateOrderSpec
 void
 CPhysicalSequenceProject::ComputeRequiredLocalColumns
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL != m_pos);
@@ -150,26 +150,26 @@ CPhysicalSequenceProject::ComputeRequiredLocalColumns
 	GPOS_ASSERT(NULL != m_pdrgpwf);
 	GPOS_ASSERT(NULL == m_pcrsRequiredLocal);
 
-	m_pcrsRequiredLocal = m_pos->PcrsUsed(pmp);
+	m_pcrsRequiredLocal = m_pos->PcrsUsed(mp);
 	if (CDistributionSpec::EdtHashed == m_pds->Edt())
 	{
-		CColRefSet *pcrsHashed = CDistributionSpecHashed::PdsConvert(m_pds)->PcrsUsed(pmp);
+		CColRefSet *pcrsHashed = CDistributionSpecHashed::PdsConvert(m_pds)->PcrsUsed(mp);
 		m_pcrsRequiredLocal->Include(pcrsHashed);
 		pcrsHashed->Release();
 	}
 
 	// add the columns used in the window frames
-	const ULONG ulSize = m_pdrgpwf->UlLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	const ULONG size = m_pdrgpwf->Size();
+	for (ULONG ul = 0; ul < size; ul++)
 	{
 		CWindowFrame *pwf = (*m_pdrgpwf)[ul];
 		if (NULL != pwf->PexprLeading())
 		{
-			m_pcrsRequiredLocal->Union(CDrvdPropScalar::Pdpscalar(pwf->PexprLeading()->PdpDerive())->PcrsUsed());
+			m_pcrsRequiredLocal->Union(CDrvdPropScalar::GetDrvdScalarProps(pwf->PexprLeading()->PdpDerive())->PcrsUsed());
 		}
 		if (NULL != pwf->PexprTrailing())
 		{
-			m_pcrsRequiredLocal->Union(CDrvdPropScalar::Pdpscalar(pwf->PexprTrailing()->PdpDerive())->PcrsUsed());
+			m_pcrsRequiredLocal->Union(CDrvdPropScalar::GetDrvdScalarProps(pwf->PexprTrailing()->PdpDerive())->PcrsUsed());
 		}
 	}
 }
@@ -193,14 +193,14 @@ CPhysicalSequenceProject::~CPhysicalSequenceProject()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalSequenceProject::FMatch
+//		CPhysicalSequenceProject::Matches
 //
 //	@doc:
 //		Match operators
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalSequenceProject::FMatch
+CPhysicalSequenceProject::Matches
 	(
 	COperator *pop
 	)
@@ -211,9 +211,9 @@ CPhysicalSequenceProject::FMatch
 	{
 		CPhysicalSequenceProject *popPhysicalSequenceProject = CPhysicalSequenceProject::PopConvert(pop);
 		return
-			m_pds->FMatch(popPhysicalSequenceProject->Pds()) &&
-			CWindowFrame::FEqual(m_pdrgpwf, popPhysicalSequenceProject->Pdrgpwf()) &&
-			COrderSpec::FEqual(m_pdrgpos, popPhysicalSequenceProject->Pdrgpos());
+			m_pds->Matches(popPhysicalSequenceProject->Pds()) &&
+			CWindowFrame::Equals(m_pdrgpwf, popPhysicalSequenceProject->Pdrgpwf()) &&
+			COrderSpec::Equals(m_pdrgpos, popPhysicalSequenceProject->Pdrgpos());
 	}
 
 	return false;
@@ -222,19 +222,19 @@ CPhysicalSequenceProject::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalSequenceProject::UlHash
+//		CPhysicalSequenceProject::HashValue
 //
 //	@doc:
 //		Hashing function
 //
 //---------------------------------------------------------------------------
 ULONG
-CPhysicalSequenceProject::UlHash() const
+CPhysicalSequenceProject::HashValue() const
 {
 	ULONG ulHash = 0;
-	ulHash = gpos::UlCombineHashes(ulHash, m_pds->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, CWindowFrame::UlHash(m_pdrgpwf, 3 /*ulMaxSize*/));
-	ulHash = gpos::UlCombineHashes(ulHash, COrderSpec::UlHash(m_pdrgpos, 3 /*ulMaxSize*/));
+	ulHash = gpos::CombineHashes(ulHash, m_pds->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, CWindowFrame::HashValue(m_pdrgpwf, 3 /*ulMaxSize*/));
+	ulHash = gpos::CombineHashes(ulHash, COrderSpec::HashValue(m_pdrgpos, 3 /*ulMaxSize*/));
 
 	return ulHash;
 }
@@ -252,21 +252,21 @@ CPhysicalSequenceProject::UlHash() const
 CColRefSet *
 CPhysicalSequenceProject::PcrsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsRequired,
-	ULONG ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 {
-	GPOS_ASSERT(0 == ulChildIndex &&
+	GPOS_ASSERT(0 == child_index &&
 				"Required properties can only be computed on the relational child");
 
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp, *m_pcrsRequiredLocal);
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, *m_pcrsRequiredLocal);
 	pcrs->Union(pcrsRequired);
 
-	CColRefSet *pcrsOutput = PcrsChildReqd(pmp, exprhdl, pcrs, ulChildIndex, 1 /*ulScalarIndex*/);
+	CColRefSet *pcrsOutput = PcrsChildReqd(mp, exprhdl, pcrs, child_index, 1 /*ulScalarIndex*/);
 	pcrs->Release();
 
 	return pcrsOutput;
@@ -284,20 +284,20 @@ CPhysicalSequenceProject::PcrsRequired
 COrderSpec *
 CPhysicalSequenceProject::PosRequired
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &, // exprhdl
 	COrderSpec *, // posRequired
 	ULONG
 #ifdef GPOS_DEBUG
-	ulChildIndex
+	child_index
 #endif // GPOS_DEBUG
 	,
-	DrgPdp *, // pdrgpdpCtxt
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 
 	m_pos->AddRef();
 
@@ -315,33 +315,33 @@ CPhysicalSequenceProject::PosRequired
 CDistributionSpec *
 CPhysicalSequenceProject::PdsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
-	ULONG ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 
 	// if expression has to execute on master then we need a gather
 	if (exprhdl.FMasterOnly())
 	{
-		return PdsEnforceMaster(pmp, exprhdl, pdsRequired, ulChildIndex);
+		return PdsEnforceMaster(mp, exprhdl, pdsRequired, child_index);
 	}
 
 	// if there are outer references, then we need a broadcast (or a gather)
-	if (exprhdl.FHasOuterRefs())
+	if (exprhdl.HasOuterRefs())
 	{
 		if (CDistributionSpec::EdtSingleton == pdsRequired->Edt() ||
 			CDistributionSpec::EdtReplicated == pdsRequired->Edt())
 		{
-			return PdsPassThru(pmp, exprhdl, pdsRequired, ulChildIndex);
+			return PdsPassThru(mp, exprhdl, pdsRequired, child_index);
 		}
 
-		return GPOS_NEW(pmp) CDistributionSpecReplicated();
+		return GPOS_NEW(mp) CDistributionSpecReplicated();
 	}
 
 	// if the window operator has a partition by clause, then always
@@ -352,7 +352,7 @@ CPhysicalSequenceProject::PdsRequired
 		return m_pds;
 	}
 
-	return GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+	return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 }
 
 
@@ -367,24 +367,24 @@ CPhysicalSequenceProject::PdsRequired
 CRewindabilitySpec *
 CPhysicalSequenceProject::PrsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
-	ULONG ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 
 	// if there are outer references, then we need a materialize
-	if (exprhdl.FHasOuterRefs())
+	if (exprhdl.HasOuterRefs())
 	{
-		return GPOS_NEW(pmp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
 	}
 
-	return PrsPassThru(pmp, exprhdl, prsRequired, ulChildIndex);
+	return PrsPassThru(mp, exprhdl, prsRequired, child_index);
 }
 
 //---------------------------------------------------------------------------
@@ -398,22 +398,22 @@ CPhysicalSequenceProject::PrsRequired
 CPartitionPropagationSpec *
 CPhysicalSequenceProject::PppsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG 
 #ifdef GPOS_DEBUG 
-	ulChildIndex
+	child_index
 #endif
 	,
-	DrgPdp *, //pdrgpdpCtxt,
+	CDrvdProp2dArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 	GPOS_ASSERT(NULL != pppsRequired);
 
-	return CPhysical::PppsRequiredPushThruUnresolvedUnary(pmp, exprhdl, pppsRequired, CPhysical::EppcAllowed);
+	return CPhysical::PppsRequiredPushThruUnresolvedUnary(mp, exprhdl, pppsRequired, CPhysical::EppcAllowed);
 }
 
 //---------------------------------------------------------------------------
@@ -427,20 +427,20 @@ CPhysicalSequenceProject::PppsRequired
 CCTEReq *
 CPhysicalSequenceProject::PcteRequired
 	(
-	IMemoryPool *, //pmp,
+	IMemoryPool *, //mp,
 	CExpressionHandle &, //exprhdl,
 	CCTEReq *pcter,
 	ULONG
 #ifdef GPOS_DEBUG
-	ulChildIndex
+	child_index
 #endif
 	,
-	DrgPdp *, //pdrgpdpCtxt,
+	CDrvdProp2dArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 	return PcterPushThru(pcter);
 }
 
@@ -462,16 +462,16 @@ CPhysicalSequenceProject::FProvidesReqdCols
 	const
 {
 	GPOS_ASSERT(NULL != pcrsRequired);
-	GPOS_ASSERT(2 == exprhdl.UlArity());
+	GPOS_ASSERT(2 == exprhdl.Arity());
 
-	CColRefSet *pcrs = GPOS_NEW(m_pmp) CColRefSet(m_pmp);
+	CColRefSet *pcrs = GPOS_NEW(m_mp) CColRefSet(m_mp);
 	// include defined columns by scalar project list
-	pcrs->Union(exprhdl.Pdpscalar(1 /*ulChildIndex*/)->PcrsDefined());
+	pcrs->Union(exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsDefined());
 
 	// include output columns of the relational child
-	pcrs->Union(exprhdl.Pdprel(0 /*ulChildIndex*/)->PcrsOutput());
+	pcrs->Union(exprhdl.GetRelationalProperties(0 /*child_index*/)->PcrsOutput());
 
-	BOOL fProvidesCols = pcrs->FSubset(pcrsRequired);
+	BOOL fProvidesCols = pcrs->ContainsAll(pcrsRequired);
 	pcrs->Release();
 
 	return fProvidesCols;
@@ -489,7 +489,7 @@ CPhysicalSequenceProject::FProvidesReqdCols
 COrderSpec *
 CPhysicalSequenceProject::PosDerive
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -509,7 +509,7 @@ CPhysicalSequenceProject::PosDerive
 CDistributionSpec *
 CPhysicalSequenceProject::PdsDerive
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -529,7 +529,7 @@ CPhysicalSequenceProject::PdsDerive
 CRewindabilitySpec *
 CPhysicalSequenceProject::PrsDerive
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -555,7 +555,7 @@ CPhysicalSequenceProject::EpetOrder
 	const
 {
 	GPOS_ASSERT(NULL != peo);
-	GPOS_ASSERT(!peo->PosRequired()->FEmpty());
+	GPOS_ASSERT(!peo->PosRequired()->IsEmpty());
 
 	COrderSpec *pos = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pos();
 	if (peo->FCompatible(pos))

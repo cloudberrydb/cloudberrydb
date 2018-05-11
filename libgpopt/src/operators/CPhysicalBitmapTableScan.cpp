@@ -34,48 +34,48 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CPhysicalBitmapTableScan::CPhysicalBitmapTableScan
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
 	const CName *pnameTableAlias,
-	DrgPcr *pdrgpcrOutput
+	CColRefArray *pdrgpcrOutput
 	)
 	:
-	CPhysicalScan(pmp, pnameTableAlias, ptabdesc, pdrgpcrOutput),
+	CPhysicalScan(mp, pnameTableAlias, ptabdesc, pdrgpcrOutput),
 	m_ulOriginOpId(ulOriginOpId)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != ptabdesc);
 	GPOS_ASSERT(NULL != pdrgpcrOutput);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalBitmapTableScan::UlHash
+//		CPhysicalBitmapTableScan::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CPhysicalBitmapTableScan::UlHash() const
+CPhysicalBitmapTableScan::HashValue() const
 {
-	ULONG ulHash = gpos::UlCombineHashes(COperator::UlHash(), m_ptabdesc->Pmdid()->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
+	ULONG ulHash = gpos::CombineHashes(COperator::HashValue(), m_ptabdesc->MDId()->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
 
 	return ulHash;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalBitmapTableScan::UlHash
+//		CPhysicalBitmapTableScan::HashValue
 //
 //	@doc:
 //		Match this operator with the given one.
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalBitmapTableScan::FMatch
+CPhysicalBitmapTableScan::Matches
 	(
 	COperator *pop
 	)

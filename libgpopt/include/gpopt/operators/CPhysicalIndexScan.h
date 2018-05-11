@@ -54,12 +54,12 @@ namespace gpopt
 			// ctors
 			CPhysicalIndexScan
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CIndexDescriptor *pindexdesc,
 				CTableDescriptor *ptabdesc,
 				ULONG ulOriginOpId,
 				const CName *pnameAlias,
-				DrgPcr *pdrgpcr,
+				CColRefArray *colref_array,
 				COrderSpec *pos
 				);
 
@@ -96,10 +96,10 @@ namespace gpopt
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// index descriptor
 			CIndexDescriptor *Pindexdesc() const
@@ -122,7 +122,7 @@ namespace gpopt
 			virtual
 			COrderSpec *PosDerive
 							(
-							IMemoryPool *,//pmp
+							IMemoryPool *,//mp
 							CExpressionHandle &//exprhdl
 							)
 							const
@@ -135,13 +135,13 @@ namespace gpopt
 			virtual
 			CPartIndexMap *PpimDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &, // exprhdl
 				CDrvdPropCtxt * //pdpctxt
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CPartIndexMap(pmp);
+				return GPOS_NEW(mp) CPartIndexMap(mp);
 			}
 			
 			//-------------------------------------------------------------------------------------
@@ -169,10 +169,10 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle &, // exprhdl
 				CReqdPropPlan *, // prpplan
-				DrgPstat * //pdrgpstatCtxt
+				IStatisticsArray * //stats_ctxt
 				)
 				const
 			{

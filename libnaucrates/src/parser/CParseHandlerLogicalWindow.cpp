@@ -31,13 +31,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerLogicalWindow::CParseHandlerLogicalWindow
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerLogicalOp(pmp, pphm, pphRoot),
-	m_pdrgpdxlws(NULL)
+	CParseHandlerLogicalOp(mp, parse_handler_mgr, parse_handler_root),
+	m_window_spec_array(NULL)
 {
 }
 
@@ -52,36 +52,36 @@ CParseHandlerLogicalWindow::CParseHandlerLogicalWindow
 void
 CParseHandlerLogicalWindow::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& //attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalWindow), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalWindow), element_local_name))
 	{
 		// create child node parsers
 		// parse handler for logical operator
-		CParseHandlerBase *pphChild = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenLogical), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphChild);
+		CParseHandlerBase *child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenLogical), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(child_parse_handler);
 
 		// parse handler for the proj list
-		CParseHandlerBase *pphPrL = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphPrL);
+		CParseHandlerBase *proj_list_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(proj_list_parse_handler);
 
 		// parse handler for window specification list
-		CParseHandlerBase *pphWsL = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenWindowSpecList), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphWsL);
+		CParseHandlerBase *window_speclist_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenWindowSpecList), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(window_speclist_parse_handler);
 
 		// store child parse handler in array
-		this->Append(pphWsL);
-		this->Append(pphPrL);
-		this->Append(pphChild);
+		this->Append(window_speclist_parse_handler);
+		this->Append(proj_list_parse_handler);
+		this->Append(child_parse_handler);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -96,37 +96,37 @@ CParseHandlerLogicalWindow::StartElement
 void
 CParseHandlerLogicalWindow::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalWindow), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalWindow), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	CParseHandlerWindowSpecList *pphWsL = dynamic_cast<CParseHandlerWindowSpecList*>((*this)[0]);
-	CParseHandlerProjList *pphPrL = dynamic_cast<CParseHandlerProjList*>((*this)[1]);
-	CParseHandlerLogicalOp *pphLgOp = dynamic_cast<CParseHandlerLogicalOp*>((*this)[2]);
+	CParseHandlerWindowSpecList *window_speclist_parse_handler = dynamic_cast<CParseHandlerWindowSpecList*>((*this)[0]);
+	CParseHandlerProjList *proj_list_parse_handler = dynamic_cast<CParseHandlerProjList*>((*this)[1]);
+	CParseHandlerLogicalOp *lg_op_parse_handler = dynamic_cast<CParseHandlerLogicalOp*>((*this)[2]);
 
-	DrgPdxlws *pdrgpdxlws = pphWsL->Pdrgpdxlws();
-	GPOS_ASSERT(NULL != pdrgpdxlws);
+	CDXLWindowSpecArray *window_spec_array = window_speclist_parse_handler->GetDxlWindowSpecArray();
+	GPOS_ASSERT(NULL != window_spec_array);
 
-	CDXLLogicalWindow *pdxlopWin = GPOS_NEW(m_pmp) CDXLLogicalWindow(m_pmp, pdrgpdxlws);
-	m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopWin);
-	GPOS_ASSERT(NULL != pphPrL->Pdxln());
-	GPOS_ASSERT(NULL != pphLgOp->Pdxln());
+	CDXLLogicalWindow *lg_window = GPOS_NEW(m_mp) CDXLLogicalWindow(m_mp, window_spec_array);
+	m_dxl_node = GPOS_NEW(m_mp) CDXLNode(m_mp, lg_window);
+	GPOS_ASSERT(NULL != proj_list_parse_handler->CreateDXLNode());
+	GPOS_ASSERT(NULL != lg_op_parse_handler->CreateDXLNode());
 
-	AddChildFromParseHandler(pphPrL);
-	AddChildFromParseHandler(pphLgOp);
+	AddChildFromParseHandler(proj_list_parse_handler);
+	AddChildFromParseHandler(lg_op_parse_handler);
 
 #ifdef GPOS_DEBUG
-	m_pdxln->Pdxlop()->AssertValid(m_pdxln, false /* fValidateChildren */);
+	m_dxl_node->GetOperator()->AssertValid(m_dxl_node, false /* validate_children */);
 #endif // GPOS_DEBUG
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 // EOF

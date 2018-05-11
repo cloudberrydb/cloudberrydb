@@ -21,19 +21,19 @@ namespace gpos {
 	namespace syslib {
 
 		// get the date and time
-		void GetTimeOfDay(TIMEVAL *ptv, TIMEZONE *ptz);
+		void GetTimeOfDay(TIMEVAL *tv, TIMEZONE *tz);
 
 		// get system and user time
-		void GetRusage(RUSAGE *prusage);
+		void GetRusage(RUSAGE *usage);
 
 		// yield the processor
 		void SchedYield();
 
 		// open a connection to the system logger for a program
-		void OpenLog(const CHAR *szIdent, INT iOption, INT iFacility);
+		void OpenLog(const CHAR *ident, INT option, INT facility);
 
 		// generate a log message
-		void SysLog(INT iPriority, const CHAR *szMessage);
+		void SysLog(INT priority, const CHAR *format);
 
 		// close the descriptor being used to write to the system logger
 		void CloseLog();

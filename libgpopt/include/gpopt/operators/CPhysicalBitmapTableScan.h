@@ -49,11 +49,11 @@ namespace gpopt
 			// ctor
 			CPhysicalBitmapTableScan
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CTableDescriptor *ptabdesc,
 				ULONG ulOriginOpId,
 				const CName *pnameTableAlias,
-				DrgPcr *pdrgpcrOutput
+				CColRefArray *pdrgpcrOutput
 				);
 
 			// dtor
@@ -90,33 +90,33 @@ namespace gpopt
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// derive partition index map
 			virtual
 			CPartIndexMap *PpimDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &, // exprhdl
 				CDrvdPropCtxt * //pdpctxt
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CPartIndexMap(pmp);
+				return GPOS_NEW(mp) CPartIndexMap(mp);
 			}
 
 			// statistics derivation during costing
 			virtual
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle &, // exprhdl
 				CReqdPropPlan *, // prpplan
-				DrgPstat * //pdrgpstatCtxt
+				IStatisticsArray * //stats_ctxt
 				)
 				const
 			{

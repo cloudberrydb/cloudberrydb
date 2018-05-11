@@ -34,10 +34,10 @@ namespace gpdxl
 	{
 		private:
 	
-			BOOL m_fParamList;
+			BOOL m_has_param_list;
 
 			// array of outer column references
-			DrgPdxlcr *m_pdrgdxlcr;
+		CDXLColRefArray *m_dxl_colref_array;
 
 			// private copy ctor
 			CParseHandlerScalarSubPlanParamList(const CParseHandlerScalarSubPlanParamList &);
@@ -45,27 +45,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 					(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 					);
 	
 			// process the end of an element
 			void EndElement
 					(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 					);
 	
 		public:
 			// ctor
 			CParseHandlerScalarSubPlanParamList
 					(
-					IMemoryPool *pmp,
-					CParseHandlerManager *pphm,
-					CParseHandlerBase *pphRoot
+					IMemoryPool *mp,
+					CParseHandlerManager *parse_handler_mgr,
+					CParseHandlerBase *parse_handler_root
 					);
 
 			// dtor
@@ -73,10 +73,10 @@ namespace gpdxl
 			~CParseHandlerScalarSubPlanParamList();
 
 			// return param column references
-			DrgPdxlcr *Pdrgdxlcr()
+			CDXLColRefArray *GetDXLColRefArray()
 			const
 			{
-				return m_pdrgdxlcr;
+				return m_dxl_colref_array;
 			}
 	};
 

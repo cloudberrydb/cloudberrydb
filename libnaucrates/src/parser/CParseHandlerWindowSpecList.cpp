@@ -30,13 +30,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerWindowSpecList::CParseHandlerWindowSpecList
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pdrgpdxlws(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_window_spec_array(NULL)
 {
 }
 
@@ -51,34 +51,34 @@ CParseHandlerWindowSpecList::CParseHandlerWindowSpecList
 void
 CParseHandlerWindowSpecList::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowSpecList), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowSpecList), element_local_name))
 	{
-		m_pdrgpdxlws = GPOS_NEW(m_pmp) DrgPdxlws(m_pmp);
+		m_window_spec_array = GPOS_NEW(m_mp) CDXLWindowSpecArray(m_mp);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowSpec), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowSpec), element_local_name))
 	{
 		// we must have seen a window specification list already
-		GPOS_ASSERT(NULL != m_pdrgpdxlws);
+		GPOS_ASSERT(NULL != m_window_spec_array);
 		// start new window specification element
-		CParseHandlerBase *pphWs =
-				CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenWindowSpec), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphWs);
+		CParseHandlerBase *window_spec_parse_handler =
+				CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenWindowSpec), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(window_spec_parse_handler);
 
 		// store parse handler
-		this->Append(pphWs);
+		this->Append(window_spec_parse_handler);
 
-		pphWs->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		window_spec_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -93,28 +93,28 @@ CParseHandlerWindowSpecList::StartElement
 void
 CParseHandlerWindowSpecList::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowSpecList), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowSpecList), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
-	GPOS_ASSERT(NULL != m_pdrgpdxlws);
+	GPOS_ASSERT(NULL != m_window_spec_array);
 
-	const ULONG ulSize = this->UlLength();
+	const ULONG size = this->Length();
 	// add the window specifications to the list
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG idx = 0; idx < size; idx++)
 	{
-		CParseHandlerWindowSpec *pphWs = dynamic_cast<CParseHandlerWindowSpec *>((*this)[ul]);
-		m_pdrgpdxlws->Append(pphWs->Pdxlws());
+		CParseHandlerWindowSpec *window_spec_parse_handler = dynamic_cast<CParseHandlerWindowSpec *>((*this)[idx]);
+		m_window_spec_array->Append(window_spec_parse_handler->GetWindowKeyAt());
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

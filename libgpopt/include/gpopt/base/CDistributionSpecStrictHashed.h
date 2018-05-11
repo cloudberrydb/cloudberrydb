@@ -14,7 +14,7 @@ namespace gpopt
 	class CDistributionSpecStrictHashed : public CDistributionSpecHashed
 	{
 		public:
-			CDistributionSpecStrictHashed(DrgPexpr *pdrgpexpr, BOOL fNullsColocated);
+			CDistributionSpecStrictHashed(CExpressionArray *pdrgpexpr, BOOL fNullsColocated);
 
 			virtual EDistributionType Edt() const;
 

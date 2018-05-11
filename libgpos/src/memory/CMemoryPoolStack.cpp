@@ -44,22 +44,22 @@ GPOS_CPL_ASSERT(MAX_ALIGNED(GPOS_MEM_BLOCK_SIZE));
 //---------------------------------------------------------------------------
 CMemoryPoolStack::CMemoryPoolStack
 	(
-	IMemoryPool *pmp,
-	ULLONG ullCapacity,
-	BOOL fThreadSafe,
-	BOOL fOwnsUnderlying
+	IMemoryPool *mp,
+	ULLONG capacity,
+	BOOL thread_safe,
+	BOOL owns_underlying_memory_pool
 	)
 	:
-	CMemoryPool(pmp, fOwnsUnderlying, fThreadSafe),
-	m_pbd(NULL),
-	m_ullReserved(0),
-	m_ullCapacity(ullCapacity),
-	m_ulBlockSize(GPOS_MEM_ALIGNED_SIZE(GPOS_MEM_BLOCK_SIZE))
+	CMemoryPool(mp, owns_underlying_memory_pool, thread_safe),
+	m_block_descriptor(NULL),
+	m_reserved(0),
+	m_capacity(capacity),
+	m_blocksize(GPOS_MEM_ALIGNED_SIZE(GPOS_MEM_BLOCK_SIZE))
 {
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(GPOS_MEM_BLOCK_SIZE < m_ullCapacity);
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(GPOS_MEM_BLOCK_SIZE < m_capacity);
 
-	m_listBlocks.Init(GPOS_OFFSET(SBlockDescriptor, m_link));
+	m_block_list.Init(GPOS_OFFSET(SBlockDescriptor, m_link));
 }
 
 
@@ -73,13 +73,13 @@ CMemoryPoolStack::CMemoryPoolStack
 //---------------------------------------------------------------------------
 CMemoryPoolStack::~CMemoryPoolStack()
 {
-	GPOS_ASSERT(m_listBlocks.FEmpty());
+	GPOS_ASSERT(m_block_list.IsEmpty());
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMemoryPoolStack::PvAllocate
+//		CMemoryPoolStack::Allocate
 //
 //	@doc:
 //		Allocate memory, either from the underlying pool directly (for large
@@ -87,40 +87,40 @@ CMemoryPoolStack::~CMemoryPoolStack()
 //
 //---------------------------------------------------------------------------
 void *
-CMemoryPoolStack::PvAllocate
+CMemoryPoolStack::Allocate
 	(
-	ULONG ulBytes,
+	ULONG bytes,
 	const CHAR *,  // szFile
-	const ULONG    // ulLine
+	const ULONG    // line
 	)
 {
-	GPOS_ASSERT(GPOS_MEM_ALLOC_MAX >= ulBytes);
+	GPOS_ASSERT(GPOS_MEM_ALLOC_MAX >= bytes);
 
-	ULONG ulAlloc = GPOS_MEM_ALIGNED_SIZE(ulBytes);
-	GPOS_ASSERT(MAX_ALIGNED(ulAlloc));
+	ULONG alloc = GPOS_MEM_ALIGNED_SIZE(bytes);
+	GPOS_ASSERT(MAX_ALIGNED(alloc));
 
-	CAutoSpinlock as(m_slock);
+	CAutoSpinlock as(m_lock);
 
 	// check if memory pool has enough capacity
-	if (ulAlloc + m_ullReserved > m_ullCapacity)
+	if (alloc + m_reserved > m_capacity)
 	{
 		return NULL;
 	}
 
 	// find block to allocate memory in it
-	SBlockDescriptor *pbd = PbdProvider(as, ulAlloc);
+	SBlockDescriptor *desc = FindMemoryBlock(as, alloc);
 
-	GPOS_ASSERT_IMP(FThreadSafe(), m_slock.FOwned());
+	GPOS_ASSERT_IMP(IsThreadSafe(), m_lock.IsOwned());
 
-	if (NULL != pbd)
+	if (NULL != desc)
 	{
 		// reserve memory
-		m_ullReserved += ulAlloc;
+		m_reserved += alloc;
 
-		void *pvAlloc = GPOS_MEM_OFFSET_POS(pbd, pbd->m_ulUsed);
-		pbd->m_ulUsed += ulAlloc;
+		void *ptr = GPOS_MEM_OFFSET_POS(desc, desc->m_used_size);
+		desc->m_used_size += alloc;
 
-		return pvAlloc;
+		return ptr;
 	}
 
 	return NULL;
@@ -129,79 +129,79 @@ CMemoryPoolStack::PvAllocate
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMemoryPoolStack::PbdProvider
+//		CMemoryPoolStack::FindMemoryBlock
 //
 //	@doc:
 //		Find block to provide memory for allocation request.
 //
 //---------------------------------------------------------------------------
 CMemoryPoolStack::SBlockDescriptor *
-CMemoryPoolStack::PbdProvider
+CMemoryPoolStack::FindMemoryBlock
 	(
 	CAutoSpinlock &as,
-	ULONG ulAlloc
+	ULONG alloc
 	)
 {
 	SLock(as);
 
-	SBlockDescriptor *pbd = m_pbd;
+	SBlockDescriptor *desc = m_block_descriptor;
 
-	if (NULL == pbd || !pbd->FFit(ulAlloc))
+	if (NULL == desc || !desc->CanFit(alloc))
 	{
 		// release spinlock to allocate memory from underlying pool
 		SUnlock(as);
 
 		// allocate a new block
-		pbd = PbdNew(ulAlloc);
+		desc = New(alloc);
 		SLock(as);
 
-		if (NULL == pbd)
+		if (NULL == desc)
 		{
 			return NULL;
 		}
 
 		// keep track of new block
-		m_listBlocks.Append(pbd);
+		m_block_list.Append(desc);
 
-		if (pbd != NULL && m_ulBlockSize == pbd->m_ulTotal)
+		if (desc != NULL && m_blocksize == desc->m_total_size)
 		{
-			m_pbd = pbd;
+			m_block_descriptor = desc;
 		}
 	}
 
-	return pbd;
+	return desc;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMemoryPoolStack::PbdNew
+//		CMemoryPoolStack::New
 //
 //	@doc:
 //		Allocate block from underlying pool.
 //
 //---------------------------------------------------------------------------
 CMemoryPoolStack::SBlockDescriptor *
-CMemoryPoolStack::PbdNew
+CMemoryPoolStack::New
 	(
-	ULONG ulSize
+	ULONG size
 	)
 {
-	ULONG ulBlockSize = std::max(m_ulBlockSize, ulSize + (ULONG) GPOS_MEM_BLOCK_HEADER_SIZE);
-	GPOS_ASSERT(MAX_ALIGNED(ulBlockSize));
+	ULONG block_size = std::max(m_blocksize, size + (ULONG) GPOS_MEM_BLOCK_HEADER_SIZE);
+	GPOS_ASSERT(MAX_ALIGNED(block_size));
 
 	// allocate memory and put block descriptor to the beginning of it
-	SBlockDescriptor *pbd = static_cast<SBlockDescriptor*>
+	SBlockDescriptor *desc = static_cast<SBlockDescriptor*>
 			(
-			PmpUnderlying()->PvAllocate(ulBlockSize, __FILE__, __LINE__)
+			GetUnderlyingMemoryPool()->Allocate(block_size, __FILE__, __LINE__)
 			);
 
-	if (NULL != pbd)
+	if (NULL != desc)
 	{
-		pbd->Init(ulBlockSize);
+		desc->Init(block_size);
 	}
 
-	return pbd;
+	return desc;
 }
 
 
@@ -216,17 +216,17 @@ CMemoryPoolStack::PbdNew
 void
 CMemoryPoolStack::TearDown()
 {
-	GPOS_ASSERT(!m_slock.FOwned());
+	GPOS_ASSERT(!m_lock.IsOwned());
 
-	while (!m_listBlocks.FEmpty())
+	while (!m_block_list.IsEmpty())
 	{
-		PmpUnderlying()->Free(m_listBlocks.RemoveHead());
+		GetUnderlyingMemoryPool()->Free(m_block_list.RemoveHead());
 	}
 
 	CMemoryPool::TearDown();
 
-	m_ullReserved = 0;
-	m_pbd = NULL;
+	m_reserved = 0;
+	m_block_descriptor = NULL;
 }
 
 #ifdef GPOS_DEBUG
@@ -242,22 +242,22 @@ CMemoryPoolStack::TearDown()
 void
 CMemoryPoolStack::CheckAllocation
 	(
-	void *pv
+	void *ptr
 	)
 	const
 {
-	SBlockDescriptor *pbd = m_listBlocks.PtFirst();
-	while (NULL != pbd)
+	SBlockDescriptor *desc = m_block_list.First();
+	while (NULL != desc)
 	{
-		if (pv >= pbd->m_pvUser)
+		if (ptr >= desc->m_user)
 		{
-			if (pv < GPOS_MEM_OFFSET_POS(pbd, pbd->m_ulUsed))
+			if (ptr < GPOS_MEM_OFFSET_POS(desc, desc->m_used_size))
 			{
 				return;
 			}
 		}
 
-		pbd = m_listBlocks.PtNext(pbd);
+		desc = m_block_list.Next(desc);
 	}
 
 	GPOS_ASSERT(!"object is allocated in one of the blocks");

@@ -32,13 +32,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerStatistics::CParseHandlerStatistics
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pdrgpdxlstatsderrel(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_dxl_stats_derived_rel_array(NULL)
 {
 }
 
@@ -53,12 +53,12 @@ CParseHandlerStatistics::CParseHandlerStatistics
 //---------------------------------------------------------------------------
 CParseHandlerStatistics::~CParseHandlerStatistics()
 {
-	CRefCount::SafeRelease(m_pdrgpdxlstatsderrel);
+	CRefCount::SafeRelease(m_dxl_stats_derived_rel_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerStatistics::Edxlphtype
+//		CParseHandlerStatistics::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler. Currently we overload this method to
@@ -66,23 +66,23 @@ CParseHandlerStatistics::~CParseHandlerStatistics()
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerStatistics::Edxlphtype() const
+CParseHandlerStatistics::GetParseHandlerType() const
 {
 	return EdxlphStatistics;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerStatistics::Pdrgpdxlstatsderrel
+//		CParseHandlerStatistics::GetStatsDerivedRelDXLArray
 //
 //	@doc:
 //		Returns the list of statistics objects constructed by the parser
 //
 //---------------------------------------------------------------------------
-DrgPdxlstatsderrel *
-CParseHandlerStatistics::Pdrgpdxlstatsderrel() const
+CDXLStatsDerivedRelationArray *
+CParseHandlerStatistics::GetStatsDerivedRelDXLArray() const
 {
-	return m_pdrgpdxlstatsderrel;
+	return m_dxl_stats_derived_rel_array;
 }
 
 //---------------------------------------------------------------------------
@@ -96,33 +96,33 @@ CParseHandlerStatistics::Pdrgpdxlstatsderrel() const
 void
 CParseHandlerStatistics::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(xmlszLocalname, CDXLTokens::XmlstrToken(EdxltokenStatistics)))
+	if (0 == XMLString::compareString(element_local_name, CDXLTokens::XmlstrToken(EdxltokenStatistics)))
 	{
 		// start of the statistics section in the DXL document
-		GPOS_ASSERT(NULL == m_pdrgpdxlstatsderrel);
+		GPOS_ASSERT(NULL == m_dxl_stats_derived_rel_array);
 
-		m_pdrgpdxlstatsderrel = GPOS_NEW(m_pmp) DrgPdxlstatsderrel(m_pmp);
+		m_dxl_stats_derived_rel_array = GPOS_NEW(m_mp) CDXLStatsDerivedRelationArray(m_mp);
 	}
 	else
 	{
 		// currently we only have derived relation statistics objects
-		GPOS_ASSERT(NULL != m_pdrgpdxlstatsderrel);
+		GPOS_ASSERT(NULL != m_dxl_stats_derived_rel_array);
 
 		// install a parse handler for the given element
-		CParseHandlerBase *pph = CParseHandlerFactory::Pph(m_pmp, xmlszLocalname, m_pphm, this);
+		CParseHandlerBase *parse_handler_base = CParseHandlerFactory::GetParseHandler(m_mp, element_local_name, m_parse_handler_mgr, this);
 
-		m_pphm->ActivateParseHandler(pph);
+		m_parse_handler_mgr->ActivateParseHandler(parse_handler_base);
 
 		// store parse handler
-		this->Append(pph);
+		this->Append(parse_handler_base);
 
-		pph->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		parse_handler_base->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 }
 
@@ -137,30 +137,30 @@ CParseHandlerStatistics::StartElement
 void
 CParseHandlerStatistics::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(xmlszLocalname, CDXLTokens::XmlstrToken(EdxltokenStatistics)))
+	if (0 != XMLString::compareString(element_local_name, CDXLTokens::XmlstrToken(EdxltokenStatistics)))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(NULL != m_pdrgpdxlstatsderrel);
+	GPOS_ASSERT(NULL != m_dxl_stats_derived_rel_array);
 
-	const ULONG ulStats = this->UlLength();
-	for (ULONG ul = 0; ul < ulStats; ul++)
+	const ULONG num_of_stats = this->Length();
+	for (ULONG idx = 0; idx < num_of_stats; idx++)
 	{
-		CParseHandlerStatsDerivedRelation *pph = dynamic_cast<CParseHandlerStatsDerivedRelation *>((*this)[ul]);
+		CParseHandlerStatsDerivedRelation *stats_derived_rel_parse_handler = dynamic_cast<CParseHandlerStatsDerivedRelation *>((*this)[idx]);
 
-		CDXLStatsDerivedRelation *pdxlstatsderrel = pph->Pdxlstatsderrel();
-		pdxlstatsderrel->AddRef();
-		m_pdrgpdxlstatsderrel->Append(pdxlstatsderrel);
+		CDXLStatsDerivedRelation *dxl_stats_derived_relation = stats_derived_rel_parse_handler->GetDxlStatsDrvdRelation();
+		dxl_stats_derived_relation->AddRef();
+		m_dxl_stats_derived_rel_array->Append(dxl_stats_derived_relation);
 	}
 
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 

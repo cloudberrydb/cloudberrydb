@@ -34,15 +34,15 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerTraceFlags::CParseHandlerTraceFlags
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pbs(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_trace_flags_bitset(NULL)
 {
-	m_pbs = GPOS_NEW(pmp) CBitSet(pmp, EopttraceSentinel);
+	m_trace_flags_bitset = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
 }
 
 //---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ CParseHandlerTraceFlags::CParseHandlerTraceFlags
 //---------------------------------------------------------------------------
 CParseHandlerTraceFlags::~CParseHandlerTraceFlags()
 {
-	m_pbs->Release();
+	m_trace_flags_bitset->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -69,41 +69,41 @@ CParseHandlerTraceFlags::~CParseHandlerTraceFlags()
 void
 CParseHandlerTraceFlags::StartElement
 	(
-	const XMLCh* const , //xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const , //xmlszQname,
+	const XMLCh* const , //element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const , //element_qname,
 	const Attributes& attrs
 	)
 {	
-	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTraceFlags), xmlszLocalname))
+	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTraceFlags), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 	
 	// parse and tokenize traceflags
-	const XMLCh *xmlszTraceFlags = CDXLOperatorFactory::XmlstrFromAttrs
+	const XMLCh *xml_str_trace_flags = CDXLOperatorFactory::ExtractAttrValue
 															(
 															attrs,
 															EdxltokenValue,
 															EdxltokenTraceFlags
 															);
 	
-	DrgPul *pdrgpul = CDXLOperatorFactory::PdrgpulFromXMLCh
+	ULongPtrArray *trace_flag_array = CDXLOperatorFactory::ExtractIntsToUlongArray
 												(
-												m_pphm->Pmm(),
-												xmlszTraceFlags, 
+												m_parse_handler_mgr->GetDXLMemoryManager(),
+												xml_str_trace_flags,
 												EdxltokenDistrColumns,
 												EdxltokenRelation
 												);
 	
-	for (ULONG ul = 0; ul < pdrgpul->UlLength(); ul++)
+	for (ULONG idx = 0; idx < trace_flag_array->Size(); idx++)
 	{
-		ULONG *pul = (*pdrgpul)[ul];
-		m_pbs->FExchangeSet(*pul);
+		ULONG *trace_flag = (*trace_flag_array)[idx];
+		m_trace_flags_bitset->ExchangeSet(*trace_flag);
 	}
 	
-	pdrgpul->Release();
+	trace_flag_array->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -117,31 +117,31 @@ CParseHandlerTraceFlags::StartElement
 void
 CParseHandlerTraceFlags::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTraceFlags), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTraceFlags), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerTraceFlags::Edxlphtype
+//		CParseHandlerTraceFlags::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler.
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerTraceFlags::Edxlphtype() const
+CParseHandlerTraceFlags::GetParseHandlerType() const
 {
 	return EdxlphTraceFlags;
 }
@@ -155,8 +155,8 @@ CParseHandlerTraceFlags::Edxlphtype() const
 //
 //---------------------------------------------------------------------------
 CBitSet *
-CParseHandlerTraceFlags::Pbs()
+CParseHandlerTraceFlags::GetTraceFlagBitSet()
 {
-	return m_pbs;
+	return m_trace_flags_bitset;
 }
 // EOF

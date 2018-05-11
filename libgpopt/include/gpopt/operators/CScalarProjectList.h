@@ -38,7 +38,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CScalarProjectList(IMemoryPool *pmp);
+			CScalarProjectList(IMemoryPool *mp);
 
 			// dtor
 			virtual 
@@ -59,7 +59,7 @@ namespace gpopt
 			}
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const;
@@ -68,9 +68,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -90,9 +90,9 @@ namespace gpopt
 			}
 
 			virtual
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				GPOS_ASSERT(!"Invalid function call: CScalarProjectList::PmdidType()");
+				GPOS_ASSERT(!"Invalid function call: CScalarProjectList::MdidType()");
 				return NULL;
 			}
 

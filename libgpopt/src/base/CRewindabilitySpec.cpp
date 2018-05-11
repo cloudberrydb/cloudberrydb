@@ -46,14 +46,14 @@ CRewindabilitySpec::~CRewindabilitySpec()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CRewindabilitySpec::FMatch
+//		CRewindabilitySpec::Matches
 //
 //	@doc:
 //		Check for equality between rewindability specs
 //
 //---------------------------------------------------------------------------
 BOOL
-CRewindabilitySpec::FMatch
+CRewindabilitySpec::Matches
 	(
 	const CRewindabilitySpec *prs
 	)
@@ -81,7 +81,7 @@ CRewindabilitySpec::FSatisfies
 	const
 {
 	return
-		FMatch(prs) ||
+		Matches(prs) ||
 		ErtNone == prs->Ert() ||
 		(ErtMarkRestore == Ert() && ErtGeneral == prs->Ert());
 }
@@ -89,16 +89,16 @@ CRewindabilitySpec::FSatisfies
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CRewindabilitySpec::UlHash
+//		CRewindabilitySpec::HashValue
 //
 //	@doc:
 //		Hash of components
 //
 //---------------------------------------------------------------------------
 ULONG
-CRewindabilitySpec::UlHash() const
+CRewindabilitySpec::HashValue() const
 {
-	return gpos::UlHash<ERewindabilityType>(&m_ert);
+	return gpos::HashValue<ERewindabilityType>(&m_ert);
 }
 
 
@@ -113,29 +113,29 @@ CRewindabilitySpec::UlHash() const
 void
 CRewindabilitySpec::AppendEnforcers
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *
 #ifdef GPOS_DEBUG
 	prpp
 #endif // GPOS_DEBUG
 	,
-	DrgPexpr *pdrgpexpr, 
+	CExpressionArray *pdrgpexpr, 
 	CExpression *pexpr
 	)
 {
 	GPOS_ASSERT(NULL != prpp);
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pdrgpexpr);
 	GPOS_ASSERT(NULL != pexpr);
 	GPOS_ASSERT(this == prpp->Per()->PrsRequired() &&
 				"required plan properties don't match enforced rewindability spec");
 
 	pexpr->AddRef();
-	CExpression *pexprSpool = GPOS_NEW(pmp) CExpression
+	CExpression *pexprSpool = GPOS_NEW(mp) CExpression
 									(
-									pmp, 
-									GPOS_NEW(pmp) CPhysicalSpool(pmp),
+									mp, 
+									GPOS_NEW(mp) CPhysicalSpool(mp),
 									pexpr
 									);
 	pdrgpexpr->Append(pexprSpool);

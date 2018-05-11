@@ -30,13 +30,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerWindowKeyList::CParseHandlerWindowKeyList
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pdrgpdxlwk(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_dxl_window_key_array(NULL)
 {
 }
 
@@ -51,34 +51,34 @@ CParseHandlerWindowKeyList::CParseHandlerWindowKeyList
 void
 CParseHandlerWindowKeyList::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKeyList), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKeyList), element_local_name))
 	{
-		m_pdrgpdxlwk = GPOS_NEW(m_pmp) DrgPdxlwk(m_pmp);
+		m_dxl_window_key_array = GPOS_NEW(m_mp) CDXLWindowKeyArray(m_mp);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKey), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKey), element_local_name))
 	{
 		// we must have seen a window key list already
-		GPOS_ASSERT(NULL != m_pdrgpdxlwk);
+		GPOS_ASSERT(NULL != m_dxl_window_key_array);
 		// start new window key element
-		CParseHandlerBase *pphWk =
-				CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenWindowKey), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphWk);
+		CParseHandlerBase *window_key_parse_handler =
+				CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenWindowKey), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(window_key_parse_handler);
 
 		// store parse handler
-		this->Append(pphWk);
+		this->Append(window_key_parse_handler);
 
-		pphWk->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		window_key_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -93,28 +93,28 @@ CParseHandlerWindowKeyList::StartElement
 void
 CParseHandlerWindowKeyList::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if ( 0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKeyList), xmlszLocalname))
+	if ( 0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKeyList), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
-	GPOS_ASSERT(NULL != m_pdrgpdxlwk);
+	GPOS_ASSERT(NULL != m_dxl_window_key_array);
 
-	const ULONG ulSize = this->UlLength();
+	const ULONG size = this->Length();
 	// add the window keys to the list
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG idx = 0; idx < size; idx++)
 	{
-		CParseHandlerWindowKey *pphWk = dynamic_cast<CParseHandlerWindowKey *>((*this)[ul]);
-		m_pdrgpdxlwk->Append(pphWk->Pdxlwk());
+		CParseHandlerWindowKey *window_key_parse_handler = dynamic_cast<CParseHandlerWindowKey *>((*this)[idx]);
+		m_dxl_window_key_array->Append(window_key_parse_handler->GetDxlWindowKeyGen());
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

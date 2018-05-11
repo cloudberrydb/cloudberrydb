@@ -33,16 +33,16 @@ namespace gpdxl
 	{
 		private:
 			// catalog id of the function
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 
 			// return type
-			IMDId *m_pmdidRetType;
+			IMDId *m_return_type_mdid;
 
 			// function name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// list of column descriptors		
-			DrgPdxlcd *m_pdrgdxlcd;
+		CDXLColDescrArray *m_dxl_col_descr_array;
 			
 			// private copy ctor
 			CDXLLogicalTVF(const CDXLLogicalTVF &);
@@ -51,77 +51,77 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLLogicalTVF
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidFunc,
-				IMDId *pmdidRetType,
-				CMDName *pmdname,
-				DrgPdxlcd *pdrgdxlcd
+				IMemoryPool *mp,
+				IMDId *mdid_func,
+				IMDId *mdid_return_type,
+				CMDName *mdname,
+				CDXLColDescrArray *pdrgdxlcd
 				);
 						
 			virtual
 			~CDXLLogicalTVF();
 		
 			// get operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// get operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// get function name
-			CMDName *Pmdname() const
+			CMDName *MdName() const
 			{
-				return m_pmdname;
+				return m_mdname;
 			}
 
 			// get function id
-			IMDId *PmdidFunc() const
+			IMDId *FuncMdId() const
 			{
-				return m_pmdidFunc;
+				return m_func_mdid;
 			}
 
 			// get return type
-			IMDId *PmdidRetType() const
+			IMDId *ReturnTypeMdId() const
 			{
-				return m_pmdidRetType;
+				return m_return_type_mdid;
 			}
 
 			// get number of output columns
-			ULONG UlArity() const;
+			ULONG Arity() const;
 			
 			// return the array of column descriptors
-			const DrgPdxlcd *Pdrgpdxlcd() const
+			const CDXLColDescrArray *GetDXLColumnDescrArray() const
 			{
-				return m_pdrgdxlcd;
+			return m_dxl_col_descr_array;
 			}
 
 			// get the column descriptor at the given position
-			const CDXLColDescr *Pdxlcd(ULONG ul) const;
+			const CDXLColDescr *GetColumnDescrAt(ULONG ul) const;
 
 			// check if given column is defined by operator
 			virtual
-			BOOL FDefinesColumn(ULONG ulColId) const;
+			BOOL IsColDefined(ULONG colid) const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLLogicalTVF *PdxlopConvert
+			CDXLLogicalTVF *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalTVF == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalTVF == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLLogicalTVF*>(pdxlop);
+				return dynamic_cast<CDXLLogicalTVF*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 	};

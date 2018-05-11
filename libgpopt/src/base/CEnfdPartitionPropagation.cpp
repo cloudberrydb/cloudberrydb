@@ -63,16 +63,16 @@ CEnfdPartitionPropagation::~CEnfdPartitionPropagation()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CEnfdPartitionPropagation::UlHash
+//		CEnfdPartitionPropagation::HashValue
 //
 //	@doc:
 // 		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CEnfdPartitionPropagation::UlHash() const
+CEnfdPartitionPropagation::HashValue() const
 {
-	return m_ppps->UlHash();
+	return m_ppps->HashValue();
 }
 
 
@@ -113,7 +113,7 @@ CEnfdPartitionPropagation::Epet
 BOOL 
 CEnfdPartitionPropagation::FResolved
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CPartIndexMap *ppim
 	)
 	const
@@ -126,26 +126,26 @@ CEnfdPartitionPropagation::FResolved
 		return true;
 	}
 	
-	DrgPul *pdrgpulPartIndexIds = ppimReqd->PdrgpulScanIds(pmp);
-	const ULONG ulLength = pdrgpulPartIndexIds->UlLength();
+	ULongPtrArray *pdrgpulPartIndexIds = ppimReqd->PdrgpulScanIds(mp);
+	const ULONG length = pdrgpulPartIndexIds->Size();
 			
 	BOOL fResolved = true;
-	for (ULONG ul = 0; ul < ulLength && fResolved; ul++)
+	for (ULONG ul = 0; ul < length && fResolved; ul++)
 	{
-		ULONG ulPartIndexId = *((*pdrgpulPartIndexIds)[ul]);
-		GPOS_ASSERT(CPartIndexMap::EpimConsumer == ppimReqd->Epim(ulPartIndexId));
+		ULONG part_idx_id = *((*pdrgpulPartIndexIds)[ul]);
+		GPOS_ASSERT(CPartIndexMap::EpimConsumer == ppimReqd->Epim(part_idx_id));
 		
 		// check whether part index id has been resolved in the derived map
 		fResolved = false;
-		if (ppim->FContains(ulPartIndexId))
+		if (ppim->Contains(part_idx_id))
 		{
-			CPartIndexMap::EPartIndexManipulator epim = ppim->Epim(ulPartIndexId);
-			ULONG ulExpectedPropagators = ppim->UlExpectedPropagators(ulPartIndexId);
+			CPartIndexMap::EPartIndexManipulator epim = ppim->Epim(part_idx_id);
+			ULONG ulExpectedPropagators = ppim->UlExpectedPropagators(part_idx_id);
 
 			fResolved = CPartIndexMap::EpimResolver == epim ||
 						CPartIndexMap::EpimPropagator == epim ||
 						(CPartIndexMap::EpimConsumer == epim && 0 < ulExpectedPropagators &&
-								ppimReqd->UlExpectedPropagators(ulPartIndexId) == ulExpectedPropagators);
+								ppimReqd->UlExpectedPropagators(part_idx_id) == ulExpectedPropagators);
 		}
 	}
 	
@@ -166,7 +166,7 @@ CEnfdPartitionPropagation::FResolved
 BOOL 
 CEnfdPartitionPropagation::FInScope
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CPartIndexMap *ppim
 	)
 	const
@@ -175,23 +175,23 @@ CEnfdPartitionPropagation::FInScope
 	
 	CPartIndexMap *ppimReqd = m_ppps->Ppim();
 	
-	DrgPul *pdrgpulPartIndexIds = ppimReqd->PdrgpulScanIds(pmp);
-	const ULONG ulLength = pdrgpulPartIndexIds->UlLength();
+	ULongPtrArray *pdrgpulPartIndexIds = ppimReqd->PdrgpulScanIds(mp);
+	const ULONG length = pdrgpulPartIndexIds->Size();
 
-	if (0 == ulLength)
+	if (0 == length)
 	{
 		pdrgpulPartIndexIds->Release();
 		return true;
 	}
 	
 	BOOL fInScope = true;
-	for (ULONG ul = 0; ul < ulLength && fInScope; ul++)
+	for (ULONG ul = 0; ul < length && fInScope; ul++)
 	{
-		ULONG ulPartIndexId = *((*pdrgpulPartIndexIds)[ul]);
-		GPOS_ASSERT(CPartIndexMap::EpimConsumer == ppimReqd->Epim(ulPartIndexId));
+		ULONG part_idx_id = *((*pdrgpulPartIndexIds)[ul]);
+		GPOS_ASSERT(CPartIndexMap::EpimConsumer == ppimReqd->Epim(part_idx_id));
 		
 		// check whether part index id exists in the derived part consumers
-		fInScope = ppim->FContains(ulPartIndexId);
+		fInScope = ppim->Contains(part_idx_id);
 	}
 	
 	// cleanup

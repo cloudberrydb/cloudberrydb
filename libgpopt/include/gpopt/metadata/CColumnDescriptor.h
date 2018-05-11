@@ -40,7 +40,7 @@ namespace gpopt
 			const IMDType *m_pmdtype;
 
 			// type modifier
-			const INT m_iTypeModifier;
+			const INT m_type_modifier;
 
 			// name of column -- owned
 			CName m_name;			
@@ -49,22 +49,22 @@ namespace gpopt
 			INT m_iAttno;
 			
 			// does column allow null values?
-			BOOL m_fNullable;
+			BOOL m_is_nullable;
 
 			// width of the column, for instance  char(10) column has width 10
-			ULONG m_ulWidth;
+			ULONG m_width;
 
 		public:
 
 			// ctor
 			CColumnDescriptor
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				const IMDType *pmdtype,
-				INT iTypeModifier,
+				INT type_modifier,
 				const CName &name,
-				INT iAttno,
-				BOOL fNullable,
+				INT attno,
+				BOOL is_nullable,
 				ULONG ulWidth = gpos::ulong_max
 				);
 
@@ -79,41 +79,41 @@ namespace gpopt
 			}
 			
 			// return metadata type
-			const IMDType *Pmdtype() const
+			const IMDType *RetrieveType() const
 			{
 				return m_pmdtype;
 			}
 
 			// type modifier
-			INT ITypeModifier() const
+			INT TypeModifier() const
 			{
-				return m_iTypeModifier;
+				return m_type_modifier;
 			}
 			
 			// return attribute number
-			INT IAttno() const
+			INT AttrNum() const
 			{
 				return m_iAttno;
 			}
 
 			// does column allow null values?
-			BOOL FNullable() const
+			BOOL IsNullable() const
 			{
-				return m_fNullable;
+				return m_is_nullable;
 			}
 	
 			// is this a system column
 			virtual
-			BOOL FSystemColumn() const
+			BOOL IsSystemColumn() const
 			{
 				return (0 > m_iAttno);
 			}
 
 			// width of the column
 			virtual
-			ULONG UlWidth() const
+			ULONG Width() const
 			{
-				return m_ulWidth;
+				return m_width;
 			}
 
 #ifdef GPOS_DEBUG

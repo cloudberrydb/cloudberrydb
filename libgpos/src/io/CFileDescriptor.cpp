@@ -28,39 +28,39 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CFileDescriptor::CFileDescriptor()
 	:
-	m_iFileDescr(GPOS_FILE_DESCR_INVALID)
+	m_file_descriptor(GPOS_FILE_DESCR_INVALID)
 {}
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CFileDescriptor::OpenInternal
+//		CFileDescriptor::OpenFile
 //
 //	@doc:
 //		Open file descriptor
 //
 //---------------------------------------------------------------------------
 void
-CFileDescriptor::OpenInternal
+CFileDescriptor::OpenFile
 	(
-	const CHAR *szPath,
-	ULONG ulMode,
-	ULONG ulPerms
+	const CHAR *file_path,
+	ULONG mode,
+	ULONG permission_bits
 	)
 {
-	GPOS_ASSERT(!FOpened());
+	GPOS_ASSERT(!IsFileOpen());
 
 	BOOL fOpened = false;
 
 	while (!fOpened)
 	{
-		m_iFileDescr = GPOS_FILE_DESCR_INVALID;
+		m_file_descriptor = GPOS_FILE_DESCR_INVALID;
 
 		// create file with given mode and permissions and check to simulate I/O error
-		GPOS_CHECK_SIM_IO_ERR(&m_iFileDescr, ioutils::IOpen(szPath, ulMode, ulPerms));
+		GPOS_CHECK_SIM_IO_ERR(&m_file_descriptor, ioutils::OpenFile(file_path, mode, permission_bits));
 
 		// check for error
-		if (GPOS_FILE_DESCR_INVALID == m_iFileDescr)
+		if (GPOS_FILE_DESCR_INVALID == m_file_descriptor)
 		{
 			// in case an interrupt was received we retry
 			if (EINTR == errno)
@@ -88,34 +88,34 @@ CFileDescriptor::OpenInternal
 //---------------------------------------------------------------------------
 CFileDescriptor::~CFileDescriptor()
 {
-	if (FOpened())
+	if (IsFileOpen())
 	{
-		CloseInternal();
+		CloseFile();
 	}
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CFile::CloseInternal
+//		CFile::CloseFile
 //
 //	@doc:
 //		Close file
 //
 //---------------------------------------------------------------------------
 void
-CFileDescriptor::CloseInternal()
+CFileDescriptor::CloseFile()
 {
-	GPOS_ASSERT(FOpened());
+	GPOS_ASSERT(IsFileOpen());
 
 	BOOL fClosed = false;
 
 	while (!fClosed)
 	{
-		INT iRes = ioutils::IClose(m_iFileDescr);
+		INT res = ioutils::CloseFile(m_file_descriptor);
 
 		// check for error
-		if (0 != iRes)
+		if (0 != res)
 		{
 			GPOS_ASSERT(EINTR == errno || EIO == errno);
 
@@ -129,7 +129,7 @@ CFileDescriptor::CloseInternal()
 		fClosed = true;
 	}
 
-	m_iFileDescr = GPOS_FILE_DESCR_INVALID;
+	m_file_descriptor = GPOS_FILE_DESCR_INVALID;
 }
 
 // EOF

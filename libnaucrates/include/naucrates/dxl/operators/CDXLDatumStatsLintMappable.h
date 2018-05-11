@@ -42,7 +42,7 @@ namespace gpdxl
 		private:
 
 			// for statistics computation, map to LINT
-			LINT m_lValue;
+			LINT m_val;
 
 			// private copy ctor
 			CDXLDatumStatsLintMappable(const CDXLDatumStatsLintMappable &);
@@ -51,14 +51,14 @@ namespace gpdxl
 			// ctor
 			CDXLDatumStatsLintMappable
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				BOOL fByVal,
-				BOOL fNull,
-				BYTE *pba,
-				ULONG ulLength,
-				LINT lValue
+				IMemoryPool *mp,
+				IMDId *mdid_type,
+				INT type_modifier,
+				BOOL is_passed_by_value,
+				BOOL is_null,
+				BYTE *byte_array,
+				ULONG length,
+				LINT value
 				);
 
 			// dtor
@@ -67,42 +67,42 @@ namespace gpdxl
 
 			// serialize the datum as the given element
 			virtual
-			void Serialize(CXMLSerializer *pxmlser);
+			void Serialize(CXMLSerializer *xml_serializer);
 
 			// datum type
 			virtual
-			EdxldatumType Edxldt() const
+			EdxldatumType GetDatumType() const
 			{
 				return CDXLDatum::EdxldatumStatsLintMappable;
 			}
 
 			// conversion function
 			static
-			CDXLDatumStatsLintMappable *PdxldatumConvert
+			CDXLDatumStatsLintMappable *Cast
 				(
-				CDXLDatum *pdxldatum
+				CDXLDatum *dxl_datum
 				)
 			{
-				GPOS_ASSERT(NULL != pdxldatum);
-				GPOS_ASSERT(CDXLDatum::EdxldatumStatsLintMappable == pdxldatum->Edxldt());
+			GPOS_ASSERT(NULL != dxl_datum);
+			GPOS_ASSERT(CDXLDatum::EdxldatumStatsLintMappable == dxl_datum->GetDatumType());
 
-				return dynamic_cast<CDXLDatumStatsLintMappable*>(pdxldatum);
+				return dynamic_cast<CDXLDatumStatsLintMappable*>(dxl_datum);
 			}
 
 			// statistics related APIs
 
 			// can datum be mapped to LINT
 			virtual
-			BOOL FHasStatsLINTMapping() const
+			BOOL IsDatumMappableToLINT() const
 			{
 				return true;
 			}
 
 			// return the LINT mapping needed for statistics computation
 			virtual
-			LINT LStatsMapping() const
+			LINT GetLINTMapping() const
 			{
-				return m_lValue;
+				return m_val;
 			}
 
 	};

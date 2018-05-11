@@ -27,24 +27,24 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarSortColList::CDXLScalarSortColList
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLScalar(pmp)
+	CDXLScalar(mp)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarSortColList::Edxlop
+//		CDXLScalarSortColList::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarSortColList::Edxlop() const
+CDXLScalarSortColList::GetDXLOperator() const
 {
 	return EdxlopScalarSortColList;
 }
@@ -52,16 +52,16 @@ CDXLScalarSortColList::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarSortColList::PstrOpName
+//		CDXLScalarSortColList::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarSortColList::PstrOpName() const
+CDXLScalarSortColList::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarSortColList);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarSortColList);
 }
 
 //---------------------------------------------------------------------------
@@ -75,15 +75,15 @@ CDXLScalarSortColList::PstrOpName() const
 void
 CDXLScalarSortColList::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	const CWStringConst *element_name = GetOpNameStr();
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -98,20 +98,20 @@ CDXLScalarSortColList::SerializeToDXL
 void
 CDXLScalarSortColList::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) 
 	const
 {
-	const ULONG ulArity = pdxln->UlArity();
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = dxlnode->Arity();
+	for (ULONG idx = 0; idx < arity; idx++)
 	{
-		CDXLNode *pdxlnChild = (*pdxln)[ul];
-		GPOS_ASSERT(EdxlopScalarSortCol == pdxlnChild->Pdxlop()->Edxlop());
+		CDXLNode *child_dxlnode = (*dxlnode)[idx];
+		GPOS_ASSERT(EdxlopScalarSortCol == child_dxlnode->GetOperator()->GetDXLOperator());
 		
-		if (fValidateChildren)
+		if (validate_children)
 		{
-			pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+			child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 		}
 	}
 }

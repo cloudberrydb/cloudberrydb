@@ -41,10 +41,10 @@ namespace gpopt
 			explicit
 			CPatternMultiLeaf
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				: 
-				CPattern(pmp)
+				CPattern(mp)
 			{}
 
 			// dtor

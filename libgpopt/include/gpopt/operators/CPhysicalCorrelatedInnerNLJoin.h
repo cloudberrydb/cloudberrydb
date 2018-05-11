@@ -32,7 +32,7 @@ namespace gpopt
 		private:
 
 			// columns from inner child used in correlated execution
-			DrgPcr *m_pdrgpcrInner;
+			CColRefArray *m_pdrgpcrInner;
 
 			// origin subquery id
 			EOperatorId m_eopidOriginSubq;
@@ -45,12 +45,12 @@ namespace gpopt
 			// ctor
 			CPhysicalCorrelatedInnerNLJoin
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrInner,
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrInner,
 				EOperatorId eopidOriginSubq
 				)
 				:
-				CPhysicalInnerNLJoin(pmp),
+				CPhysicalInnerNLJoin(mp),
 				m_pdrgpcrInner(pdrgpcrInner),
 				m_eopidOriginSubq(eopidOriginSubq)
 			{
@@ -83,7 +83,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch
+			BOOL Matches
 				(
 				COperator *pop
 				)
@@ -91,7 +91,7 @@ namespace gpopt
 			{
 				if (pop->Eopid() == Eopid())
 				{
-					return m_pdrgpcrInner->FEqual(CPhysicalCorrelatedInnerNLJoin::PopConvert(pop)->PdrgPcrInner());
+					return m_pdrgpcrInner->Equals(CPhysicalCorrelatedInnerNLJoin::PopConvert(pop)->PdrgPcrInner());
 				}
 
 				return false;
@@ -102,8 +102,8 @@ namespace gpopt
 			CEnfdDistribution::EDistributionMatching Edm
 				(
 				CReqdPropPlan *, // prppInput
-				ULONG,  // ulChildIndex
-				DrgPdp *, //pdrgpdpCtxt
+				ULONG,  // child_index
+				CDrvdProp2dArray *, //pdrgpdpCtxt
 				ULONG // ulOptReq
 				)
 			{
@@ -114,32 +114,32 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG  ulOptReq
 				)
 				const
 			{
-				return PdsRequiredCorrelatedJoin(pmp, exprhdl, pdsRequired, ulChildIndex, pdrgpdpCtxt, ulOptReq);
+				return PdsRequiredCorrelatedJoin(mp, exprhdl, pdsRequired, child_index, pdrgpdpCtxt, ulOptReq);
 			}
 
 			// compute required rewindability of the n-th child
 			virtual
 			CRewindabilitySpec *PrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const
 			{
-				return PrsRequiredCorrelatedJoin(pmp, exprhdl, prsRequired, ulChildIndex, pdrgpdpCtxt, ulOptReq);
+				return PrsRequiredCorrelatedJoin(mp, exprhdl, prsRequired, child_index, pdrgpdpCtxt, ulOptReq);
 			}
 
 			// conversion function
@@ -164,7 +164,7 @@ namespace gpopt
 
 			// return required inner columns
 			virtual
-			DrgPcr *PdrgPcrInner() const
+			CColRefArray *PdrgPcrInner() const
 			{
 				return m_pdrgpcrInner;
 			}

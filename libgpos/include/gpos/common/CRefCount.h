@@ -44,14 +44,14 @@ namespace gpos
 		private:
 		
 			// reference counter -- first in class to be in sync with Check()
-			volatile ULONG_PTR m_ulpRefs;
+			volatile ULONG_PTR m_refs;
 			
 #ifdef GPOS_DEBUG
 			// sanity check to detect deleted memory
 			void Check() 
 			{
 				// assert that first member of class has not been wiped
-				GPOS_ASSERT(m_ulpRefs != GPOS_WIPED_MEM_PATTERN);
+				GPOS_ASSERT(m_refs != GPOS_WIPED_MEM_PATTERN);
 			}
 #endif // GPOS_DEBUG
 
@@ -63,7 +63,7 @@ namespace gpos
 			// ctor
 			CRefCount() 
 				: 
-				m_ulpRefs(1)
+				m_refs(1)
 			{}
 
 			// dtor
@@ -71,20 +71,20 @@ namespace gpos
 			{
 				// enforce strict ref-counting unless we're in a pending exception,
 				// e.g., a ctor has thrown
-				GPOS_ASSERT(NULL == ITask::PtskSelf() ||
-							ITask::PtskSelf()->FPendingExc() ||
-							0 == m_ulpRefs);
+				GPOS_ASSERT(NULL == ITask::Self() ||
+							ITask::Self()->HasPendingExceptions() ||
+							0 == m_refs);
 			}
 
 			// return ref-count
-			ULONG_PTR UlpRefCount() const
+			ULONG_PTR RefCount() const
 			{
-				return m_ulpRefs;
+				return m_refs;
 			}
 
 			// return true if calling object's destructor is allowed
 			virtual
-			BOOL FDeletable() const
+			BOOL Deletable() const
 			{
 				return true;
 			}
@@ -95,7 +95,7 @@ namespace gpos
 #ifdef GPOS_DEBUG
 				Check();
 #endif // GPOS_DEBUG				
-				(void) UlpExchangeAdd(&m_ulpRefs, 1);
+				(void) ExchangeAddUlongPtrWithInt(&m_refs, 1);
 			}
 
 			// count down
@@ -104,11 +104,11 @@ namespace gpos
 #ifdef GPOS_DEBUG	
 				Check();
 #endif // GPOS_DEBUG
-				if (1 == UlpExchangeAdd(&m_ulpRefs, -1))
+				if (1 == ExchangeAddUlongPtrWithInt(&m_refs, -1))
 				{
 					// the following check is not thread-safe -- we intentionally allow this to capture
 					// the exceptional case where ref-count wrongly reaching zero
-					if (!FDeletable())
+					if (!Deletable())
 					{
 						// restore ref-count
 						AddRef();
@@ -125,12 +125,12 @@ namespace gpos
 			static
 			void SafeRelease
 				(
-				CRefCount *prc
+				CRefCount *rc
 				)
 			{
-				if (NULL != prc)
+				if (NULL != rc)
 				{
-					prc->Release();
+					rc->Release();
 				}
 			}
 	

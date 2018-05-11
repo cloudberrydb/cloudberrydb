@@ -45,18 +45,18 @@ namespace gpopt
 			virtual
 			CDrvdPropCtxt *PdpctxtCopy
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CDrvdPropCtxtRelational(pmp);
+				return GPOS_NEW(mp) CDrvdPropCtxtRelational(mp);
 			}
 
 			// add props to context
 			virtual
 			void AddProps
 				(
-				CDrvdProp* // pdp
+				DrvdPropArray* // pdp
 				)
 			{
 				// derived relational context is currently empty
@@ -67,10 +67,10 @@ namespace gpopt
 			// ctor
 			CDrvdPropCtxtRelational
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CDrvdPropCtxt(pmp)
+				CDrvdPropCtxt(mp)
 			{}
 
 			// dtor

@@ -83,7 +83,7 @@ namespace gpopt
 			}
 
 			// matching function
-			BOOL FMatch
+			BOOL Matches
 				(
 				CEnfdDistribution *ped
 				)
@@ -91,12 +91,12 @@ namespace gpopt
 				GPOS_ASSERT(NULL != ped);
 
 				return m_edm == ped->Edm() &&
-						m_pds->FMatch(ped->PdsRequired());
+						m_pds->Matches(ped->PdsRequired());
 			}
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// check if the given distribution specification is compatible with the
 			// distribution specification of this object for the specified matching type

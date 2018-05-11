@@ -76,28 +76,28 @@ GPOS_RESULT
 CMiniDumperDXLTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWStringDynamic minidumpstr(pmp);
+	CWStringDynamic minidumpstr(mp);
 	COstreamString oss(&minidumpstr);
-	CMiniDumperDXL mdrs(pmp);
+	CMiniDumperDXL mdrs(mp);
 	mdrs.Init(&oss);
 	
-	CHAR szFileName[GPOS_FILE_NAME_BUF_SIZE];
+	CHAR file_name[GPOS_FILE_NAME_BUF_SIZE];
 
 	GPOS_TRY
 	{
 		CSerializableStackTrace serStackTrace;
 		
 		// read the dxl document
-		CHAR *szQueryDXL = CDXLUtils::SzRead(pmp, szQueryFile);
+		CHAR *szQueryDXL = CDXLUtils::Read(mp, szQueryFile);
 
 		// parse the DXL query tree from the given DXL document
 		CQueryToDXLResult *ptroutput = 
-				CDXLUtils::PdxlnParseDXLQuery(pmp, szQueryDXL, NULL);
+				CDXLUtils::ParseQueryToQueryDXLTree(mp, szQueryDXL, NULL);
 		GPOS_CHECK_ABORT;
 
-		CSerializableQuery serQuery(pmp, ptroutput->Pdxln(), ptroutput->PdrgpdxlnOutputCols(), ptroutput->PdrgpdxlnCTE());
+		CSerializableQuery serQuery(mp, ptroutput->CreateDXLNode(), ptroutput->GetOutputColumnsDXLArray(), ptroutput->GetCTEProducerDXLArray());
 		
 		// setup a file-based provider
 		CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -106,7 +106,7 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 		// we need to use an auto pointer for the cache here to ensure
 		// deleting memory of cached objects when we throw
 		CAutoP<CMDAccessor::MDCache> apcache;
-		apcache = CCacheFactory::PCacheCreate<gpopt::IMDCacheObject*, gpopt::CMDKey*>
+		apcache = CCacheFactory::CreateCache<gpopt::IMDCacheObject*, gpopt::CMDKey*>
 					(
 					true, // fUnique
 					0 /* unlimited cache quota */,
@@ -114,9 +114,9 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 					CMDKey::FEqualMDKey
 					);
 
-		CMDAccessor::MDCache *pcache = apcache.Pt();
+		CMDAccessor::MDCache *pcache = apcache.Value();
 
-		CMDAccessor mda(pmp, pcache, CTestUtils::m_sysidDefault, pmdp);
+		CMDAccessor mda(mp, pcache, CTestUtils::m_sysidDefault, pmdp);
 
 		CSerializableMDAccessor serMDA(&mda);
 		
@@ -124,68 +124,68 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 		CAutoTraceFlag atfPrintPlan(EopttracePrintPlan, true);
 		CAutoTraceFlag atfTest(EtraceTest, true);
 
-		COptimizerConfig *poconf = GPOS_NEW(pmp) COptimizerConfig
+		COptimizerConfig *optimizer_config = GPOS_NEW(mp) COptimizerConfig
 												(
-												CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
-												CStatisticsConfig::PstatsconfDefault(pmp),
-												CCTEConfig::PcteconfDefault(pmp),
-												ICostModel::PcmDefault(pmp),
-												CHint::PhintDefault(pmp),
-												CWindowOids::Pwindowoids(pmp)
+												CEnumeratorConfig::GetEnumeratorCfg(mp, 0 /*plan_id*/),
+												CStatisticsConfig::PstatsconfDefault(mp),
+												CCTEConfig::PcteconfDefault(mp),
+												ICostModel::PcmDefault(mp),
+												CHint::PhintDefault(mp),
+												CWindowOids::GetWindowOids(mp)
 												);
 
 		// setup opt ctx
 		CAutoOptCtxt aoc
 						(
-						pmp,
+						mp,
 						&mda,
 						NULL,  /* pceeval */
-						CTestUtils::Pcm(pmp)
+						CTestUtils::GetCostModel(mp)
 						);
 
 		// translate DXL Tree -> Expr Tree
-		CTranslatorDXLToExpr *pdxltr = GPOS_NEW(pmp) CTranslatorDXLToExpr(pmp, &mda);
+		CTranslatorDXLToExpr *pdxltr = GPOS_NEW(mp) CTranslatorDXLToExpr(mp, &mda);
 		CExpression *pexprTranslated =	pdxltr->PexprTranslateQuery
 													(
-													ptroutput->Pdxln(),
-													ptroutput->PdrgpdxlnOutputCols(),
-													ptroutput->PdrgpdxlnCTE()
+													ptroutput->CreateDXLNode(),
+													ptroutput->GetOutputColumnsDXLArray(),
+													ptroutput->GetCTEProducerDXLArray()
 													);
 		
-		gpdxl::DrgPul *pdrgul = pdxltr->PdrgpulOutputColRefs();
-		gpmd::DrgPmdname *pdrgpmdname = pdxltr->Pdrgpmdname();
+		gpdxl::ULongPtrArray *pdrgul = pdxltr->PdrgpulOutputColRefs();
+		gpmd::CMDNameArray *pdrgpmdname = pdxltr->Pdrgpmdname();
 
 		ULONG ulSegments = GPOPT_TEST_SEGMENTS;
-		CQueryContext *pqc = CQueryContext::PqcGenerate(pmp, pexprTranslated, pdrgul, pdrgpmdname, true /*fDeriveStats*/);
+		CQueryContext *pqc = CQueryContext::PqcGenerate(mp, pexprTranslated, pdrgul, pdrgpmdname, true /*fDeriveStats*/);
 
 		// optimize logical expression tree into physical expression tree.
 
-		CEngine eng(pmp);
+		CEngine eng(mp);
 
-		CSerializableOptimizerConfig serOptConfig(pmp, poconf);
+		CSerializableOptimizerConfig serOptConfig(mp, optimizer_config);
 		
-		eng.Init(pqc, NULL /*pdrgpss*/);
+		eng.Init(pqc, NULL /*search_stage_array*/);
 		eng.Optimize();
 		
 		CExpression *pexprPlan = eng.PexprExtractPlan();
-		(void) pexprPlan->PrppCompute(pmp, pqc->Prpp());
+		(void) pexprPlan->PrppCompute(mp, pqc->Prpp());
 
 		// translate plan into DXL
-		DrgPi *pdrgpiSegments = GPOS_NEW(pmp) DrgPi(pmp);
+		IntPtrArray *pdrgpiSegments = GPOS_NEW(mp) IntPtrArray(mp);
 
 
 		GPOS_ASSERT(0 < ulSegments);
 
 		for (ULONG ul = 0; ul < ulSegments; ul++)
 		{
-			pdrgpiSegments->Append(GPOS_NEW(pmp) INT(ul));
+			pdrgpiSegments->Append(GPOS_NEW(mp) INT(ul));
 		}
 
-		CTranslatorExprToDXL ptrexprtodxl(pmp, &mda, pdrgpiSegments);
+		CTranslatorExprToDXL ptrexprtodxl(mp, &mda, pdrgpiSegments);
 		CDXLNode *pdxlnPlan = ptrexprtodxl.PdxlnTranslate(pexprPlan, pqc->PdrgPcr(), pqc->Pdrgpmdname());
 		GPOS_ASSERT(NULL != pdxlnPlan);
 		
-		CSerializablePlan serPlan(pmp, pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize());
+		CSerializablePlan serPlan(mp, pdxlnPlan, optimizer_config->GetEnumeratorCfg()->GetPlanId(), optimizer_config->GetEnumeratorCfg()->GetPlanSpaceSize());
 		GPOS_CHECK_ABORT;
 
 		// simulate an exception 
@@ -196,45 +196,45 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 		// unless we're simulating faults, the exception must be OOM
 		GPOS_ASSERT_IMP
 			(
-			!GPOS_FTRACE(EtraceSimulateAbort) && !GPOS_FTRACE(EtraceSimulateIOError) && !IWorker::m_fEnforceTimeSlices,
-			CException::ExmaSystem == ex.UlMajor() && CException::ExmiOOM == ex.UlMinor()
+			!GPOS_FTRACE(EtraceSimulateAbort) && !GPOS_FTRACE(EtraceSimulateIOError) && !IWorker::m_enforce_time_slices,
+			CException::ExmaSystem == ex.Major() && CException::ExmiOOM == ex.Minor()
 			);
 		
 		mdrs.Finalize();
 
 		GPOS_RESET_EX;
 
-		CWStringDynamic str(pmp);
+		CWStringDynamic str(mp);
 		COstreamString oss(&str);
 		oss << std::endl << "Minidump" << std::endl;
-		oss << minidumpstr.Wsz();
+		oss << minidumpstr.GetBuffer();
 		oss << std::endl;
 		
 		// dump the same to a temp file
 		ULONG ulSessionId = 1;
 		ULONG ulCommandId = 1;
 
-		CMinidumperUtils::GenerateMinidumpFileName(szFileName, GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCommandId, NULL /*szMinidumpFileName*/);
+		CMinidumperUtils::GenerateMinidumpFileName(file_name, GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCommandId, NULL /*szMinidumpFileName*/);
 
-		std::wofstream osMinidump(szFileName);
-		osMinidump << minidumpstr.Wsz();
+		std::wofstream osMinidump(file_name);
+		osMinidump << minidumpstr.GetBuffer();
 
-		oss << "Minidump file: " << szFileName << std::endl;
+		oss << "Minidump file: " << file_name << std::endl;
 
-		GPOS_TRACE(str.Wsz());
+		GPOS_TRACE(str.GetBuffer());
 	}
 	GPOS_CATCH_END;
 	
 	// TODO:  - Feb 11, 2013; enable after fixing problems with serializing
 	// XML special characters (OPT-2996)
 //	// try to load minidump file
-//	CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, szFileName);
+//	CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(mp, file_name);
 //	GPOS_ASSERT(NULL != pdxlmd);
 //	delete pdxlmd;
 
 		
 	// delete temp file
-	ioutils::Unlink(szFileName);
+	ioutils::Unlink(file_name);
 	
 	return GPOS_OK;
 }
@@ -251,7 +251,7 @@ GPOS_RESULT
 CMiniDumperDXLTest::EresUnittest_Load()
 {
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcExc);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 	
 	const CHAR *rgszMinidumps[] =
 	{
@@ -262,7 +262,7 @@ CMiniDumperDXLTest::EresUnittest_Load()
 	GPOS_RESULT eres =
 			CTestUtils::EresRunMinidumps
 						(
-						pmp,
+						mp,
 						rgszMinidumps,
 						1, // ulTests
 						&ulTestCounter,

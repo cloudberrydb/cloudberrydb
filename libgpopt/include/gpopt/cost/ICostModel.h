@@ -37,7 +37,7 @@ namespace gpopt
 	using namespace gpnaucrates;
 
 	// dynamic array of cost model params
-	typedef CDynamicPtrArray<ICostModelParams::SCostParam, CleanupDelete> DrgPcp;
+	typedef CDynamicPtrArray<ICostModelParams::SCostParam, CleanupDelete> ICostModelParamsArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -77,12 +77,12 @@ namespace gpopt
 					// ctor
 					CCostingStats
 						(
-						IStatistics *pstats
+						IStatistics *stats
 						)
 						:
-						m_pstats(pstats)
+						m_pstats(stats)
 					{
-						GPOS_ASSERT(NULL != pstats);
+						GPOS_ASSERT(NULL != stats);
 					}
 
 					// dtor
@@ -92,15 +92,15 @@ namespace gpopt
 					}
 
 					// the risk of errors in cardinality estimation
-					ULONG UlStatsEstimationRisk() const
+					ULONG StatsEstimationRisk() const
 					{
-						return m_pstats->UlStatsEstimationRisk();
+						return m_pstats->StatsEstimationRisk();
 					}
 
 					// look up the number of distinct values of a particular column
-					CDouble DNDV(const CColRef *pcr)
+					CDouble GetNDVs(const CColRef *colref)
 					{
-						return m_pstats->DNDV(pcr);
+						return m_pstats->GetNDVs(colref);
 					}
 			};  // class CCostingStats
 
@@ -124,13 +124,13 @@ namespace gpopt
 					CCostingStats *m_pcstats;
 
 					// row estimate of root
-					DOUBLE m_dRows;
+					DOUBLE m_rows;
 
 					// width estimate of root
-					DOUBLE m_dWidth;
+					DOUBLE m_width;
 
 					// number of rebinds of root
-					DOUBLE m_dRebinds;
+					DOUBLE m_num_rebinds;
 
 					// row estimates of child operators
 					DOUBLE *m_pdRowsChildren;
@@ -151,9 +151,9 @@ namespace gpopt
 						(
 						ULONG ulChildren,
 						CCostingStats *pcstats,
-						DOUBLE dRows,
-						DOUBLE dWidth,
-						DOUBLE dRebinds,
+						DOUBLE rows,
+						DOUBLE width,
+						DOUBLE num_rebinds,
 						DOUBLE *pdRowsChildren,
 						DOUBLE *pdWidthChildren,
 						DOUBLE *pdRebindsChildren,
@@ -162,9 +162,9 @@ namespace gpopt
 						:
 						m_ulChildren(ulChildren),
 						m_pcstats(pcstats),
-						m_dRows(dRows),
-						m_dWidth(dWidth),
-						m_dRebinds(dRebinds),
+						m_rows(rows),
+						m_width(width),
+						m_num_rebinds(num_rebinds),
 						m_pdRowsChildren(pdRowsChildren),
 						m_pdWidthChildren(pdWidthChildren),
 						m_pdRebindsChildren(pdRebindsChildren),
@@ -176,16 +176,16 @@ namespace gpopt
 					// ctor
 					SCostingInfo
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						ULONG ulChildren,
 						CCostingStats *pcstats
 						)
 						:
 						m_ulChildren(ulChildren),
 						m_pcstats(pcstats),
-						m_dRows(0),
-						m_dWidth(0),
-						m_dRebinds(GPOPT_DEFAULT_REBINDS),
+						m_rows(0),
+						m_width(0),
+						m_num_rebinds(GPOPT_DEFAULT_REBINDS),
 						m_pdRowsChildren(NULL),
 						m_pdWidthChildren(NULL),
 						m_pdRebindsChildren(NULL),
@@ -194,10 +194,10 @@ namespace gpopt
 						GPOS_ASSERT(NULL != pcstats);
 						if (0 < ulChildren)
 						{
-							m_pdRowsChildren = GPOS_NEW_ARRAY(pmp, DOUBLE, ulChildren);
-							m_pdWidthChildren = GPOS_NEW_ARRAY(pmp, DOUBLE, ulChildren);
-							m_pdRebindsChildren = GPOS_NEW_ARRAY(pmp, DOUBLE, ulChildren);
-							m_pdCostChildren = GPOS_NEW_ARRAY(pmp, DOUBLE, ulChildren);
+							m_pdRowsChildren = GPOS_NEW_ARRAY(mp, DOUBLE, ulChildren);
+							m_pdWidthChildren = GPOS_NEW_ARRAY(mp, DOUBLE, ulChildren);
+							m_pdRebindsChildren = GPOS_NEW_ARRAY(mp, DOUBLE, ulChildren);
+							m_pdCostChildren = GPOS_NEW_ARRAY(mp, DOUBLE, ulChildren);
 						}
 					}
 
@@ -212,60 +212,60 @@ namespace gpopt
 					}
 
 					// children accessor
-					ULONG UlChildren() const
+					ULONG ChildCount() const
 					{
 						return m_ulChildren;
 					}
 
 					// rows accessor
-					DOUBLE DRows() const
+					DOUBLE Rows() const
 					{
-						return m_dRows;
+						return m_rows;
 					}
 
 					// rows setter
 					void SetRows
 						(
-						DOUBLE dRows
+						DOUBLE rows
 						)
 					{
-						GPOS_ASSERT(0 <= dRows);
+						GPOS_ASSERT(0 <= rows);
 
-						m_dRows = dRows;
+						m_rows = rows;
 					}
 
 					// width accessor
-					DOUBLE DWidth() const
+					DOUBLE Width() const
 					{
-						return m_dWidth;
+						return m_width;
 					}
 
 					// width setter
 					void SetWidth
 						(
-						DOUBLE dWidth
+						DOUBLE width
 						)
 					{
-						GPOS_ASSERT(0 <= dWidth);
+						GPOS_ASSERT(0 <= width);
 
-						m_dWidth = dWidth;
+						m_width = width;
 					}
 
 					// rebinds accessor
-					DOUBLE DRebinds() const
+					DOUBLE NumRebinds() const
 					{
-						return m_dRebinds;
+						return m_num_rebinds;
 					}
 
 					// rebinds setter
 					void SetRebinds
 						(
-						DOUBLE dRebinds
+						DOUBLE num_rebinds
 						)
 					{
-						GPOS_ASSERT(GPOPT_DEFAULT_REBINDS <= dRebinds);
+						GPOS_ASSERT(GPOPT_DEFAULT_REBINDS <= num_rebinds);
 
-						m_dRebinds = dRebinds;
+						m_num_rebinds = num_rebinds;
 					}
 
 					// children rows accessor
@@ -288,7 +288,7 @@ namespace gpopt
 					}
 
 					// children width accessor
-					DOUBLE *PdWidth() const
+					DOUBLE *GetWidth() const
 					{
 						return m_pdWidthChildren;
 					}
@@ -362,7 +362,7 @@ namespace gpopt
 
 			// return cost model parameters
 			virtual
-			ICostModelParams *Pcp() const = 0;
+			ICostModelParams *GetCostModelParams() const = 0;
 
 			// main driver for cost computation
 			virtual
@@ -373,11 +373,11 @@ namespace gpopt
 			ECostModelType Ecmt() const = 0;
 			
 			// set cost model params
-			void SetParams(DrgPcp *pdrgpcp);
+			void SetParams(ICostModelParamsArray *pdrgpcp);
 
 			// create a default cost model instance
 			static
-			ICostModel *PcmDefault(IMemoryPool *pmp);
+			ICostModel *PcmDefault(IMemoryPool *mp);
 	};
 }
 

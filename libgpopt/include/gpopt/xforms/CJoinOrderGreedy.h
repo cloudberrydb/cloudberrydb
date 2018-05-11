@@ -49,8 +49,8 @@ namespace gpopt
 			CJoinOrderGreedy
 				(
 				IMemoryPool *pmp,
-				DrgPexpr *pdrgpexprComponents,
-				DrgPexpr *pdrgpexprConjuncts
+				CExpressionArray *pdrgpexprComponents,
+				CExpressionArray *pdrgpexprConjuncts
 				);
 
 			// dtor

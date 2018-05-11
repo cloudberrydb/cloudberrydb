@@ -33,10 +33,10 @@ namespace gpdxl
 		private:
 
 			// list of column descriptors		
-			DrgPdxlcd *m_pdrgpdxlcd;
+		CDXLColDescrArray *m_col_descr_array;
 
 			// array of datum arrays (const tuples)
-			DrgPdrgPdxldatum *m_pdrgpdrgpdxldatum;
+			CDXLDatum2dArray *m_const_tuples_datum_array;
 
 			// private copy ctor
 			CDXLLogicalConstTable(CDXLLogicalConstTable&);
@@ -45,9 +45,9 @@ namespace gpdxl
 			// ctor
 			CDXLLogicalConstTable
 				(
-				IMemoryPool *pmp,
-				DrgPdxlcd *pdrgpdxlcd,
-				DrgPdrgPdxldatum *pdrgpdrgpdxldatum
+				IMemoryPool *mp,
+				CDXLColDescrArray *dxl_col_descr_array,
+				CDXLDatum2dArray *pdrgpdrgpdxldatum
 				);
 
 			//dtor
@@ -57,60 +57,60 @@ namespace gpdxl
 			// accessors
 
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// column descriptors
-			const DrgPdxlcd *Pdrgpdxlcd() const
+			const CDXLColDescrArray *GetDXLColumnDescrArray() const
 			{
-				return m_pdrgpdxlcd;
+				return m_col_descr_array;
 			}
 
 			// return the column descriptor at a given position
-			CDXLColDescr *Pdxlcd(ULONG ul) const;
+			CDXLColDescr *GetColumnDescrAt(ULONG ul) const;
 
 			// number of columns
-			ULONG UlArity() const;
+			ULONG Arity() const;
 
 			// number of constant tuples
-			ULONG UlTupleCount() const
+			ULONG GetConstTupleCount() const
 			{
-				return m_pdrgpdrgpdxldatum->UlLength();
+				return m_const_tuples_datum_array->Size();
 			}
 
 			// return the const tuple (datum array) at a given position
-			const DrgPdxldatum *PrgPdxldatumConstTuple(ULONG ulTuplePos) const
+			const CDXLDatumArray *GetConstTupleDatumArrayAt(ULONG ulTuplePos) const
 			{
-				return (*m_pdrgpdrgpdxldatum)[ulTuplePos];
+				return (*m_const_tuples_datum_array)[ulTuplePos];
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// check if given column is defined by operator
 			virtual
-			BOOL FDefinesColumn(ULONG ulColId) const;
+			BOOL IsColDefined(ULONG colid) const;
 
 			// conversion function
 			static
-			CDXLLogicalConstTable *PdxlopConvert
+			CDXLLogicalConstTable *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalConstTable == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalConstTable == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLLogicalConstTable*>(pdxlop);
+				return dynamic_cast<CDXLLogicalConstTable*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 	};

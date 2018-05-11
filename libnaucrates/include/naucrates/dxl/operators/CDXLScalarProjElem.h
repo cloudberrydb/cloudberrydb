@@ -35,10 +35,10 @@ namespace gpdxl
 		private:
 			// id of column defined by this project element:
 			// for computed columns this is a new id, for colrefs: id of the original column
-			ULONG m_ulId;
+			ULONG m_id;
 
 			// alias
-			const CMDName *m_pmdname;
+			const CMDName *m_mdname;
 				
 			// private copy ctor
 			CDXLScalarProjElem(CDXLScalarProjElem&);
@@ -47,25 +47,25 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarProjElem
 				(
-				IMemoryPool *pmp,
-				ULONG ulId,
-				const CMDName *pmdname
+				IMemoryPool *mp,
+				ULONG id,
+				const CMDName *mdname
 				);
 			
 			virtual
 			~CDXLScalarProjElem();
 			
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// name of the operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// id of the proj element
-			ULONG UlId() const;
+			ULONG Id() const;
 			
 			// alias of the proj elem
-			const CMDName *PmdnameAlias() const;
+			const CMDName *GetMdNameAlias() const;
 			
 			// serialize operator in DXL format
 			virtual
@@ -73,33 +73,33 @@ namespace gpdxl
 
 			// check if given column is defined by operator
 			virtual
-			BOOL FDefinesColumn
+			BOOL IsColDefined
 				(
-				ULONG ulColId
+				ULONG colid
 				)
 				const
 			{
-				return (UlId() == ulColId);
+			return (Id() == colid);
 			}
 
 			// conversion function
 			static
-			CDXLScalarProjElem *PdxlopConvert
+			CDXLScalarProjElem *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarProjectElem == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarProjectElem == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarProjElem*>(pdxlop);
+				return dynamic_cast<CDXLScalarProjElem*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{
@@ -109,7 +109,7 @@ namespace gpdxl
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 	};
 }

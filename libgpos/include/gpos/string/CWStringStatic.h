@@ -35,7 +35,7 @@ namespace gpos
 		private:
 
 			// buffer capacity
-			ULONG m_ulCapacity;
+			ULONG m_capacity;
 
 			// private copy ctor
 			CWStringStatic(const CWStringStatic&);
@@ -43,24 +43,24 @@ namespace gpos
 		protected:
 
 			// appends the contents of a buffer to the current string
-			void AppendBuffer(const WCHAR *wszBuf);
+			void AppendBuffer(const WCHAR *w_str_buffer);
 			
 		public:
 
 			// ctor
-			CWStringStatic(WCHAR wszBuffer[], ULONG ulCapacity);
+			CWStringStatic(WCHAR w_str_buffer[], ULONG capacity);
 
 			// ctor with string initialization
-			CWStringStatic(WCHAR wszBuffer[], ULONG ulCapacity, const WCHAR wszInit[]);
+			CWStringStatic(WCHAR w_str_buffer[], ULONG capacity, const WCHAR w_str_init[]);
 
 			// appends a string and replaces character with string
-			void AppendEscape(const CWStringBase *pstr, WCHAR wc, const WCHAR *wszReplace);
+			void AppendEscape(const CWStringBase *str, WCHAR wc, const WCHAR *w_str_replace);
 
 			// appends a formatted string
-			void AppendFormat(const WCHAR *wszFormat, ...);
+			void AppendFormat(const WCHAR *format, ...);
 
 			// appends a formatted string based on passed va list
-			void AppendFormatVA(const WCHAR *wszFormat, VA_LIST vaArgs);
+			void AppendFormatVA(const WCHAR *format, VA_LIST va_args);
 
 			// appends a null terminated character array
 			virtual
@@ -68,7 +68,7 @@ namespace gpos
 
 			// appends a null terminated  wide character array
 			virtual
-			void AppendWideCharArray(const WCHAR *wsz);
+			void AppendWideCharArray(const WCHAR *w_str);
 
 			// dtor - owner is responsible for releasing the buffer
 			virtual ~CWStringStatic()

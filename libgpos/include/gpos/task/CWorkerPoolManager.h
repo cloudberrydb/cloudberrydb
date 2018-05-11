@@ -51,7 +51,7 @@ namespace gpos
 
 		private:
 
-			typedef CThreadManager::SThreadDescriptor SThreadDescriptor;
+			typedef CThreadManager::ThreadDescriptor ThreadDescriptor;
 
 			// response to worker scheduling request
 			enum EScheduleResponse
@@ -61,7 +61,7 @@ namespace gpos
 			};
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 		
 			// mutex for task scheduling and changes to WLS
 			CMutexOS m_mutex;
@@ -70,21 +70,21 @@ namespace gpos
 			CEvent m_event;
 
 			// task scheduler
-			CTaskSchedulerFifo m_ts;
+			CTaskSchedulerFifo m_task_scheduler;
 
 			// thread descriptor manager
-			CThreadManager m_tm;
+			CThreadManager m_thread_manager;
 
 			// current, min and max number of active workers
-			volatile ULONG_PTR m_ulpWorkers;
-			volatile ULONG m_ulWorkersMin;
-			volatile ULONG m_ulWorkersMax;
+			volatile ULONG_PTR m_num_workers;
+			volatile ULONG m_min_workers;
+			volatile ULONG m_max_workers;
 
 			// auto task proxy counter
-			ULONG_PTR m_ulAtpCnt;
+			ULONG_PTR m_auto_task_proxy_counter;
 
 			// active flag
-			BOOL m_fActive;
+			BOOL m_active;
 
 			// WLS
 			CSyncHashtable
@@ -99,43 +99,43 @@ namespace gpos
 			//-------------------------------------------------------------------
 
 			// add task to scheduler
-			void Schedule(CTask *ptsk);
+			void Schedule(CTask *task);
 
 			// increment AutoTaskProxy reference counter
-			void AtpAddRef()
+			void AddRef()
 			{
-				UlpExchangeAdd(&m_ulAtpCnt, 1);
+				ExchangeAddUlongPtrWithInt(&m_auto_task_proxy_counter, 1);
 			}
 
 			// decrement AutoTaskProxy reference counter
-			void AtpRemoveRef()
+			void RemoveRef()
 			{
 #ifdef GPOS_DEBUG
-				ULONG_PTR ulAtpCnt =
+				ULONG_PTR auto_task_proxy_counter =
 #endif // GPOS_DEBUG
-				UlpExchangeAdd(&m_ulAtpCnt, -1);
-				GPOS_ASSERT(ulAtpCnt != 0 &&
+				ExchangeAddUlongPtrWithInt(&m_auto_task_proxy_counter, -1);
+				GPOS_ASSERT(auto_task_proxy_counter != 0 &&
 							"AutoTaskProxy counter decremented from 0");
 			}
 
 			// insert task in table
-			void RegisterTask(CTask *ptsk);
+			void RegisterTask(CTask *task);
 
 			// remove task from table
-			CTask *PtskRemoveTask(CTaskId tid);
+			CTask *RemoveTask(CTaskId tid);
 
 			//-------------------------------------------------------------------
 			// Interface for CWorker
 			//-------------------------------------------------------------------
 
 			// insert worker in table
-			void RegisterWorker(CWorker *pwrkr);
+			void RegisterWorker(CWorker *worker);
 
 			// remove worker from table
-			CWorker *PwrkrRemoveWorker(CWorkerId wid);
+			CWorker *RemoveWorker(CWorkerId wid);
 
 			// response to worker's request for next task to execute
-			EScheduleResponse EsrTskNext(CTask **pptsk);
+			EScheduleResponse RespondToNextTaskRequest(CTask **task);
 
 			//-------------------------------------------------------------------
 			// Methods for internal use
@@ -145,16 +145,16 @@ namespace gpos
 			void CreateWorkerThread();
 
 			// lookup given worker
-			CWorker *Pwrkr(CWorkerId wid);
+			CWorker *Worker(CWorkerId wid);
 
 			// set min and max number of workers
-			void SetWorkersLim(ULONG ulWorkersMin, ULONG ulWorkersMax);
+			void SetWorkersLimit(ULONG min_workers, ULONG max_workers);
 
 			// check if worker count needs to increase
-			BOOL FWorkersIncrease();
+			BOOL WorkersIncrease();
 
 			// check if worker count needs to decrease
-			BOOL FWorkersDecrease();
+			BOOL WorkersDecrease();
 
 			// no copy ctor
 			CWorkerPoolManager(const CWorkerPoolManager&);
@@ -162,32 +162,32 @@ namespace gpos
 			// private ctor
 			CWorkerPoolManager
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				);
 
 			// static singleton - global instance of worker pool manager
-			static CWorkerPoolManager *m_pwpm;
+			static CWorkerPoolManager *m_worker_pool_manager;
 
 		public:
 
 			// lookup own worker
 			inline
-			CWorker *PwrkrSelf()
+			CWorker *Self()
 			{
-				CWorkerId widSelf;
-				return Pwrkr(widSelf);
+				CWorkerId self_wid;
+				return Worker(self_wid);
 			}
 
 			// dtor
 			~CWorkerPoolManager()
 			{
-				GPOS_ASSERT(NULL == m_pwpm &&
+				GPOS_ASSERT(NULL == m_worker_pool_manager &&
 						   "Worker pool has not been shut down");
 			}
 
 			// initialize worker pool manager
 			static
-			GPOS_RESULT EresInit(ULONG ulWorkersMin, ULONG ulWorkersMax);
+			GPOS_RESULT Init(ULONG min_workers, ULONG max_workers);
 
 			// de-init global instance
 			static
@@ -195,52 +195,52 @@ namespace gpos
 
 			// global accessor
 			inline
-			static CWorkerPoolManager *Pwpm()
+			static CWorkerPoolManager *WorkerPoolManager()
 			{
-				return m_pwpm;
+				return m_worker_pool_manager;
 			}
 
 			// cancel task by task id
 			void Cancel(CTaskId tid);
 
 			// worker count accessor
-			ULONG UlWorkers() const
+			ULONG GetNumWorkers() const
 			{
-				return (ULONG) m_ulpWorkers;
+				return (ULONG) m_num_workers;
 			}
 
 			// get min allowed number of workers
-			ULONG UlWorkersMin() const
+			ULONG GetMinWorkers() const
 			{
-				return m_ulWorkersMin;
+				return m_min_workers;
 			}
 
 			// get max allowed number of workers
-			ULONG UlWorkersMax() const
+			ULONG GetMaxWorkers() const
 			{
-				return m_ulWorkersMax;
+				return m_max_workers;
 			}
 
 
 			// running worker count 
-			ULONG UlWorkersRunning() const
+			ULONG GetNumWorkersRunning() const
 			{
-				return UlWorkers() - m_event.CWaiters();
+				return GetNumWorkers() - m_event.GetNumWaiters();
 			}
 
 			// set min number of workers
-			void SetWorkersMin(volatile ULONG ulWorkersMin);
+			void SetMinWorkers(volatile ULONG min_workers);
 
 			// set max number of workers
-			void SetWorkersMax(volatile ULONG ulWorkersMax);
+			void SetMaxWorkers(volatile ULONG max_workers);
 
 			// check if given thread is owned by running threads list
-			BOOL FOwnedThread
+			BOOL OwnedThread
 				(
-				PTHREAD_T pthrdt
+				PTHREAD_T thread
 				)
 			{
-				return m_tm.FRunningThread(pthrdt);
+				return m_thread_manager.IsThreadRunning(thread);
 			}
 
 	}; // class CWorkerPoolManager

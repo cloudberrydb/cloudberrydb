@@ -15,7 +15,7 @@ namespace gpopt
 {
 	using namespace gpos;
 
-	template<class TJoin, class TApply, class TGet, BOOL fWithSelect, BOOL fPartial, IMDIndex::EmdindexType eidxtype>
+	template<class TJoin, class TApply, class TGet, BOOL fWithSelect, BOOL is_partial, IMDIndex::EmdindexType eidxtype>
 	class CXformJoin2IndexApplyBase : public CXformJoin2IndexApply
 	{
 		private:
@@ -33,14 +33,14 @@ namespace gpopt
 			BOOL
 			FCanLeftOuterIndexApply
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprInner,
 				CExpression *pexprScalar
 				) const
 			{
 				GPOS_ASSERT(m_fOuterJoin);
 				TGet *popGet = TGet::PopConvert(pexprInner->Pop());
-				IMDRelation::Ereldistrpolicy ereldist = popGet->Ptabdesc()->Ereldistribution();
+				IMDRelation::Ereldistrpolicy ereldist = popGet->Ptabdesc()->GetRelDistribution();
 
 				if (ereldist == IMDRelation::EreldistrRandom)
 					return false;
@@ -48,24 +48,24 @@ namespace gpopt
 					return true;
 
 				// now consider hash distributed table
-				CColRefSet *pcrsInnerOutput = CDrvdPropRelational::Pdprel(pexprInner->PdpDerive())->PcrsOutput();
-				CColRefSet *pcrsScalarExpr = CDrvdPropScalar::Pdpscalar(pexprScalar->PdpDerive())->PcrsUsed();
-				CColRefSet *pcrsInnerRefs = GPOS_NEW(pmp) CColRefSet(pmp, *pcrsScalarExpr);
+				CColRefSet *pcrsInnerOutput = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput();
+				CColRefSet *pcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+				CColRefSet *pcrsInnerRefs = GPOS_NEW(mp) CColRefSet(mp, *pcrsScalarExpr);
 				pcrsInnerRefs->Intersection(pcrsInnerOutput);
 
 				// Distribution key set of inner GET must be subset of inner columns used in
 				// the left outer join condition, but doesn't need to be equal.
-				BOOL fCanOuterIndexApply = pcrsInnerRefs->FSubset(popGet->PcrsDist());
+				BOOL fCanOuterIndexApply = pcrsInnerRefs->ContainsAll(popGet->PcrsDist());
 				pcrsInnerRefs->Release();
 				if (fCanOuterIndexApply)
 				{
-					CColRefSet *pcrsEquivPredInner = GPOS_NEW(pmp) CColRefSet(pmp);
+					CColRefSet *pcrsEquivPredInner = GPOS_NEW(mp) CColRefSet(mp);
 					// extract array of join predicates from join condition expression
-					DrgPexpr *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(pmp, pexprScalar);
-					for (ULONG ul = 0; ul < pdrgpexpr->UlLength(); ul++)
+					CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
+					for (ULONG ul = 0; ul < pdrgpexpr->Size(); ul++)
 					{
 						CExpression *pexprPred = (*pdrgpexpr)[ul];
-						CColRefSet *pcrsPred = CDrvdPropScalar::Pdpscalar(pexprPred->PdpDerive())->PcrsUsed();
+						CColRefSet *pcrsPred = CDrvdPropScalar::GetDrvdScalarProps(pexprPred->PdpDerive())->PcrsUsed();
 
 						// if it doesn't have equi-join predicate on the distribution key,
 						// we can't transform to left outer index apply, because only
@@ -74,13 +74,13 @@ namespace gpopt
 						// consider R LOJ S (both distribute by a and have index on a)
 						// with the predicate S.a = R.a and S.a > R.b, left outer index
 						// apply is still applicable.
-						if (!pcrsPred->FDisjoint(popGet->PcrsDist()) &&
-							CPredicateUtils::FEquality(pexprPred))
+						if (!pcrsPred->IsDisjoint(popGet->PcrsDist()) &&
+							CPredicateUtils::IsEqualityOp(pexprPred))
 						{
 							pcrsEquivPredInner->Include(pcrsPred);
 						}
 					}
-					fCanOuterIndexApply = pcrsEquivPredInner->FSubset(popGet->PcrsDist());
+					fCanOuterIndexApply = pcrsEquivPredInner->ContainsAll(popGet->PcrsDist());
 					pcrsEquivPredInner->Release();
 					pdrgpexpr->Release();
 				}
@@ -95,9 +95,9 @@ namespace gpopt
 			// takes the ownership and responsibility to release
 			// the instance.
 			virtual
-			CLogicalJoin *PopLogicalJoin(IMemoryPool *pmp) const
+			CLogicalJoin *PopLogicalJoin(IMemoryPool *mp) const
 			{
-				return GPOS_NEW(pmp) TJoin(pmp);
+				return GPOS_NEW(mp) TJoin(mp);
 			}
 
 			// return the new instance of logical apply operator
@@ -107,51 +107,51 @@ namespace gpopt
 			virtual
 			CLogicalApply *PopLogicalApply
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcr
+				IMemoryPool *mp,
+				CColRefArray *colref_array
 				) const
 			{
-				return GPOS_NEW(pmp) TApply(pmp, pdrgpcr, m_fOuterJoin);
+				return GPOS_NEW(mp) TApply(mp, colref_array, m_fOuterJoin);
 			}
 
 		public:
 
 			// ctor
 			explicit
-			CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect, fPartial, eidxtype>(IMemoryPool *pmp)
+			CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect, is_partial, eidxtype>(IMemoryPool *mp)
 			:
 			// pattern
 			CXformJoin2IndexApply
 			(
-				GPOS_NEW(pmp) CExpression
+				GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) TJoin(pmp),
-				fPartial // only when fPartial is true, CTE producer is created and is preprocessed,
+				mp,
+				GPOS_NEW(mp) TJoin(mp),
+				is_partial // only when is_partial is true, CTE producer is created and is preprocessed,
 					     // where it needs the entire tree for deriving relational properties.
 				?
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp)) // outer child
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp)) // outer child
 				:
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // outer child
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // outer child
 					fWithSelect
 					?
-					GPOS_NEW(pmp) CExpression  // inner child with Select operator
+					GPOS_NEW(mp) CExpression  // inner child with Select operator
 						(
-						pmp,
-						GPOS_NEW(pmp) CLogicalSelect(pmp),
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) TGet(pmp)), // Get below Select
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))  // predicate
+						mp,
+						GPOS_NEW(mp) CLogicalSelect(mp),
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) TGet(mp)), // Get below Select
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))  // predicate
 						)
 					:
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) TGet(pmp)), // inner child with Get operator,
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))  // predicate tree
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) TGet(mp)), // inner child with Get operator,
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))  // predicate tree
 				)
 			)
 			{}
 
 			// dtor
 			virtual
-			~CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect, fPartial, eidxtype>()
+			~CXformJoin2IndexApplyBase<TJoin, TApply, TGet, fWithSelect, is_partial, eidxtype>()
 			{}
 
 			// actual transform
@@ -162,7 +162,7 @@ namespace gpopt
 				GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 				GPOS_ASSERT(FCheckPattern(pexpr));
 
-				IMemoryPool *pmp = pxfctxt->Pmp();
+				IMemoryPool *mp = pxfctxt->Pmp();
 
 				// extract components
 				CExpression *pexprOuter = (*pexpr)[0];
@@ -175,14 +175,14 @@ namespace gpopt
 				if (fWithSelect)
 				{
 					pexprGet = (*pexprInner)[0];
-					pexprAllPredicates = CPredicateUtils::PexprConjunction(pmp, pexprScalar, (*pexprInner)[1]);
+					pexprAllPredicates = CPredicateUtils::PexprConjunction(mp, pexprScalar, (*pexprInner)[1]);
 				}
 				else
 				{
 					pexprScalar->AddRef();
 				}
 
-				if (m_fOuterJoin && !FCanLeftOuterIndexApply(pmp, pexprGet, pexprScalar))
+				if (m_fOuterJoin && !FCanLeftOuterIndexApply(mp, pexprGet, pexprScalar))
 				{
 					// It is a left outer join, but we can't do outer index apply,
 					// stop transforming and return immediately.
@@ -197,11 +197,11 @@ namespace gpopt
 				}
 
 				CTableDescriptor *ptabdescInner = TGet::PopConvert(pexprGet->Pop())->Ptabdesc();
-				if (fPartial)
+				if (is_partial)
 				{
 					CreatePartialIndexApplyAlternatives
 						(
-						pmp,
+						mp,
 						pexpr->Pop()->UlOpId(),
 						pexprOuter,
 						pexprInner,
@@ -215,7 +215,7 @@ namespace gpopt
 				{
 					CreateHomogeneousIndexApplyAlternatives
 						(
-						pmp,
+						mp,
 						pexpr->Pop()->UlOpId(),
 						pexprOuter,
 						pexprGet,
@@ -230,12 +230,12 @@ namespace gpopt
 			}
 
 			// return true if xform should be applied only once
-			// only when fPartial is true, CTE producer is created and is preprocessed,
+			// only when is_partial is true, CTE producer is created and is preprocessed,
 			// where it needs the entire tree for deriving relational properties.
 			virtual
 			BOOL IsApplyOnce()
 			{
-				return fPartial;
+				return is_partial;
 			}
 
 	}; // class CXformJoin2IndexApplyBase

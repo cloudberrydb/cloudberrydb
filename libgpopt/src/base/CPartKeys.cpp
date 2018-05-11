@@ -26,13 +26,13 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPartKeys::CPartKeys
 	(
-	DrgDrgPcr *pdrgpdrgpcr
+	CColRef2dArray *pdrgpdrgpcr
 	)
 	:
 	m_pdrgpdrgpcr(pdrgpdrgpcr)
 {
 	GPOS_ASSERT(NULL != pdrgpdrgpcr);
-	m_ulLevels = pdrgpdrgpcr->UlLength();
+	m_num_of_part_levels = pdrgpdrgpcr->Size();
 }
 
 //---------------------------------------------------------------------------
@@ -63,9 +63,9 @@ CPartKeys::PcrKey
 	)
 	const
 {
-	GPOS_ASSERT(ulLevel < m_ulLevels);
-	DrgPcr *pdrgpcr = (*m_pdrgpdrgpcr)[ulLevel];
-	return (*pdrgpcr)[0];
+	GPOS_ASSERT(ulLevel < m_num_of_part_levels);
+	CColRefArray *colref_array = (*m_pdrgpdrgpcr)[ulLevel];
+	return (*colref_array)[0];
 }
 
 //---------------------------------------------------------------------------
@@ -83,10 +83,10 @@ CPartKeys::FOverlap
 	)
 	const
 {
-	for (ULONG ul = 0; ul < m_ulLevels; ul++)
+	for (ULONG ul = 0; ul < m_num_of_part_levels; ul++)
 	{
-		CColRef *pcr = PcrKey(ul);
-		if (pcrs->FMember(pcr))
+		CColRef *colref = PcrKey(ul);
+		if (pcrs->FMember(colref))
 		{
 			return true;
 		}
@@ -106,25 +106,25 @@ CPartKeys::FOverlap
 CPartKeys *
 CPartKeys::PpartkeysCopy
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
-	DrgDrgPcr *pdrgpdrgpcrCopy = GPOS_NEW(pmp) DrgDrgPcr(pmp);
+	CColRef2dArray *pdrgpdrgpcrCopy = GPOS_NEW(mp) CColRef2dArray(mp);
 
-	const ULONG ulLength = m_pdrgpdrgpcr->UlLength();
-	for (ULONG ul = 0; ul < ulLength; ul++)
+	const ULONG length = m_pdrgpdrgpcr->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		DrgPcr *pdrgpcr = (*m_pdrgpdrgpcr)[ul];
-		DrgPcr *pdrgpcrCopy = GPOS_NEW(pmp) DrgPcr(pmp);
-		const ULONG ulCols = pdrgpcr->UlLength();
-		for (ULONG ulCol = 0; ulCol < ulCols; ulCol++)
+		CColRefArray *colref_array = (*m_pdrgpdrgpcr)[ul];
+		CColRefArray *pdrgpcrCopy = GPOS_NEW(mp) CColRefArray(mp);
+		const ULONG num_cols = colref_array->Size();
+		for (ULONG ulCol = 0; ulCol < num_cols; ulCol++)
 		{
-			pdrgpcrCopy->Append((*pdrgpcr)[ulCol]);
+			pdrgpcrCopy->Append((*colref_array)[ulCol]);
 		}
 		pdrgpdrgpcrCopy->Append(pdrgpcrCopy);
 	}
 
-	return GPOS_NEW(pmp) CPartKeys(pdrgpdrgpcrCopy);
+	return GPOS_NEW(mp) CPartKeys(pdrgpdrgpcrCopy);
 }
 
 //---------------------------------------------------------------------------
@@ -135,20 +135,20 @@ CPartKeys::PpartkeysCopy
 //		Copy array of part keys into given memory pool
 //
 //---------------------------------------------------------------------------
-DrgPpartkeys *
+CPartKeysArray *
 CPartKeys::PdrgppartkeysCopy
 	(
-	IMemoryPool *pmp,
-	const DrgPpartkeys *pdrgppartkeys
+	IMemoryPool *mp,
+	const CPartKeysArray *pdrgppartkeys
 	)
 {
 	GPOS_ASSERT(NULL != pdrgppartkeys);
 
-	DrgPpartkeys *pdrgppartkeysCopy = GPOS_NEW(pmp) DrgPpartkeys(pmp);
-	const ULONG ulLength = pdrgppartkeys->UlLength();
-	for (ULONG ul = 0; ul < ulLength; ul++)
+	CPartKeysArray *pdrgppartkeysCopy = GPOS_NEW(mp) CPartKeysArray(mp);
+	const ULONG length = pdrgppartkeys->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		pdrgppartkeysCopy->Append((*pdrgppartkeys)[ul]->PpartkeysCopy(pmp));
+		pdrgppartkeysCopy->Append((*pdrgppartkeys)[ul]->PpartkeysCopy(mp));
 	}
 	return pdrgppartkeysCopy;
 }
@@ -166,25 +166,25 @@ CPartKeys::PdrgppartkeysCopy
 CPartKeys *
 CPartKeys::PpartkeysRemap
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping
 	)
 	const
 {
-	GPOS_ASSERT(NULL != phmulcr);
-	DrgDrgPcr *pdrgpdrgpcr = GPOS_NEW(pmp) DrgDrgPcr(pmp);
+	GPOS_ASSERT(NULL != colref_mapping);
+	CColRef2dArray *pdrgpdrgpcr = GPOS_NEW(mp) CColRef2dArray(mp);
 
-	for (ULONG ul = 0; ul < m_ulLevels; ul++)
+	for (ULONG ul = 0; ul < m_num_of_part_levels; ul++)
 	{
-		CColRef *pcr = CUtils::PcrRemap(PcrKey(ul), phmulcr, false /*fMustExist*/);
+		CColRef *colref = CUtils::PcrRemap(PcrKey(ul), colref_mapping, false /*must_exist*/);
 
-		DrgPcr *pdrgpcr = GPOS_NEW(pmp) DrgPcr(pmp);
-		pdrgpcr->Append(pcr);
+		CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
+		colref_array->Append(colref);
 
-		pdrgpdrgpcr->Append(pdrgpcr);
+		pdrgpdrgpcr->Append(colref_array);
 	}
 
-	return GPOS_NEW(pmp) CPartKeys(pdrgpdrgpcr);
+	return GPOS_NEW(mp) CPartKeys(pdrgpdrgpcr);
 }
 
 //---------------------------------------------------------------------------
@@ -203,13 +203,13 @@ CPartKeys::OsPrint
 	const
 {
 	os << "(";
-	for (ULONG ul = 0; ul < m_ulLevels; ul++)
+	for (ULONG ul = 0; ul < m_num_of_part_levels; ul++)
 	{
-		CColRef *pcr = PcrKey(ul);
-		os << *pcr;
+		CColRef *colref = PcrKey(ul);
+		os << *colref;
 
 		// separator
-		os << (ul == m_ulLevels - 1 ? "" : ", ");
+		os << (ul == m_num_of_part_levels - 1 ? "" : ", ");
 	}
 
 	os << ")";
@@ -222,8 +222,8 @@ void
 CPartKeys::DbgPrint() const
 {
 
-	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
-	CAutoTrace at(pmp);
+	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }
 #endif // GPOS_DEBUG

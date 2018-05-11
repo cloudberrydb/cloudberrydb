@@ -30,19 +30,19 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformLeftSemiJoin2InnerJoinUnderGb::CXformLeftSemiJoin2InnerJoinUnderGb
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformExploration
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CLogicalLeftSemiJoin(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // left child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // right child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))  // predicate
+					mp,
+					GPOS_NEW(mp) CLogicalLeftSemiJoin(mp),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // left child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // right child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))  // predicate
 					)
 		)
 {}
@@ -62,12 +62,12 @@ CXformLeftSemiJoin2InnerJoinUnderGb::Exfp
 	)
 	const
 {
-	CColRefSet *pcrsInnerOutput = exprhdl.Pdprel(1)->PcrsOutput();
+	CColRefSet *pcrsInnerOutput = exprhdl.GetRelationalProperties(1)->PcrsOutput();
 	CExpression *pexprScalar = exprhdl.PexprScalarChild(2);
 	CAutoMemoryPool amp;
-	if (exprhdl.FHasOuterRefs() ||
-		NULL == exprhdl.Pdprel(0)->Pkc() ||
-		exprhdl.Pdpscalar(2)->FHasSubquery() ||
+	if (exprhdl.HasOuterRefs() ||
+		NULL == exprhdl.GetRelationalProperties(0)->Pkc() ||
+		exprhdl.GetDrvdScalarProps(2)->FHasSubquery() ||
 		CPredicateUtils::FSimpleEqualityUsingCols(amp.Pmp(), pexprScalar, pcrsInnerOutput))
 	{
 		return ExfpNone;
@@ -97,7 +97,7 @@ CXformLeftSemiJoin2InnerJoinUnderGb::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprOuter = (*pexpr)[0];
@@ -108,20 +108,20 @@ CXformLeftSemiJoin2InnerJoinUnderGb::Transform
 	pexprInner->AddRef();
 	pexprScalar->AddRef();
 
-	DrgPcr *pdrgpcrKeys = NULL;
-	DrgPcr *pdrgpcrGrouping = CUtils::PdrgpcrGroupingKey(pmp, pexprOuter, &pdrgpcrKeys);
+	CColRefArray *pdrgpcrKeys = NULL;
+	CColRefArray *pdrgpcrGrouping = CUtils::PdrgpcrGroupingKey(mp, pexprOuter, &pdrgpcrKeys);
 	GPOS_ASSERT(NULL != pdrgpcrKeys);
 
 	CExpression *pexprInnerJoin =
-		CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, pexprOuter, pexprInner, pexprScalar);
+		CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, pexprOuter, pexprInner, pexprScalar);
 
 	CExpression *pexprGb =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CLogicalGbAggDeduplicate(pmp, pdrgpcrGrouping, COperator::EgbaggtypeGlobal  /*egbaggtype*/, pdrgpcrKeys),
+			mp,
+			GPOS_NEW(mp) CLogicalGbAggDeduplicate(mp, pdrgpcrGrouping, COperator::EgbaggtypeGlobal  /*egbaggtype*/, pdrgpcrKeys),
 			pexprInnerJoin,
-			GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp))
+			GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp))
 			);
 
 	pxfres->Add(pexprGb);

@@ -40,32 +40,32 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CPhysicalDynamicBitmapTableScan::CPhysicalDynamicBitmapTableScan
 	(
-		IMemoryPool *pmp,
-		BOOL fPartial,
+		IMemoryPool *mp,
+		BOOL is_partial,
 		CTableDescriptor *ptabdesc,
 		ULONG ulOriginOpId,
 		const CName *pnameAlias,
-		ULONG ulScanId,
-		DrgPcr *pdrgpcrOutput,
-		DrgDrgPcr *pdrgpdrgpcrParts,
+		ULONG scan_id,
+		CColRefArray *pdrgpcrOutput,
+		CColRef2dArray *pdrgpdrgpcrParts,
 		ULONG ulSecondaryScanId,
 		CPartConstraint *ppartcnstr,
 		CPartConstraint *ppartcnstrRel
 	)
 	:
-	CPhysicalDynamicScan(pmp, fPartial, ptabdesc, ulOriginOpId, pnameAlias, ulScanId, pdrgpcrOutput, pdrgpdrgpcrParts, ulSecondaryScanId, ppartcnstr, ppartcnstrRel)
+	CPhysicalDynamicScan(mp, is_partial, ptabdesc, ulOriginOpId, pnameAlias, scan_id, pdrgpcrOutput, pdrgpdrgpcrParts, ulSecondaryScanId, ppartcnstr, ppartcnstrRel)
 {}
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalDynamicBitmapTableScan::FMatch
+//		CPhysicalDynamicBitmapTableScan::Matches
 //
 //	@doc:
 //		match operator
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalDynamicBitmapTableScan::FMatch
+CPhysicalDynamicBitmapTableScan::Matches
 	(
 	COperator *pop
 	)
@@ -85,47 +85,47 @@ CPhysicalDynamicBitmapTableScan::FMatch
 IStatistics *
 CPhysicalDynamicBitmapTableScan::PstatsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *prpplan,
-	DrgPstat *pdrgpstatCtxt
+	IStatisticsArray *stats_ctxt
 	)
 	const
 {
 	GPOS_ASSERT(NULL != prpplan);
 
-	IStatistics *pstatsBaseTable = CStatisticsUtils::PstatsDynamicScan
+	IStatistics *pstatsBaseTable = CStatisticsUtils::DeriveStatsForDynamicScan
 									(
-									pmp,
+									mp,
 									exprhdl,
-									UlScanId(),
+									ScanId(),
 									prpplan->Pepp()->PpfmDerived()
 									);
 
 	CExpression *pexprCondChild = exprhdl.PexprScalarChild(0 /*ulChidIndex*/);
-	CExpression *pexprLocal = NULL;
-	CExpression *pexprOuterRefs = NULL;
+	CExpression *local_expr = NULL;
+	CExpression *expr_with_outer_refs = NULL;
 
 	// get outer references from expression handle
-	CColRefSet *pcrsOuter = exprhdl.Pdprel()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
 
-	CPredicateUtils::SeparateOuterRefs(pmp, pexprCondChild, pcrsOuter, &pexprLocal, &pexprOuterRefs);
+	CPredicateUtils::SeparateOuterRefs(mp, pexprCondChild, outer_refs, &local_expr, &expr_with_outer_refs);
 
-	IStatistics *pstats = CFilterStatsProcessor::PstatsFilterForScalarExpr
+	IStatistics *stats = CFilterStatsProcessor::MakeStatsFilterForScalarExpr
 							(
-							pmp,
+							mp,
 							exprhdl,
 							pstatsBaseTable,
-							pexprLocal,
-							pexprOuterRefs,
-							pdrgpstatCtxt
+							local_expr,
+							expr_with_outer_refs,
+							stats_ctxt
 							);
 
 	pstatsBaseTable->Release();
-	pexprLocal->Release();
-	pexprOuterRefs->Release();
+	local_expr->Release();
+	expr_with_outer_refs->Release();
 
-	return pstats;
+	return stats;
 }
 
 // EOF

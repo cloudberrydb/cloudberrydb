@@ -28,23 +28,23 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalLimit::CDXLPhysicalLimit
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLPhysical(pmp)
+	CDXLPhysical(mp)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalLimit::Edxlop
+//		CDXLPhysicalLimit::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalLimit::Edxlop() const
+CDXLPhysicalLimit::GetDXLOperator() const
 {
 	return EdxlopPhysicalLimit;
 }
@@ -52,16 +52,16 @@ CDXLPhysicalLimit::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalLimit::PstrOpName
+//		CDXLPhysicalLimit::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalLimit::PstrOpName() const
+CDXLPhysicalLimit::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalLimit);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalLimit);
 }
 
 //---------------------------------------------------------------------------
@@ -75,31 +75,31 @@ CDXLPhysicalLimit::PstrOpName() const
 void
 CDXLPhysicalLimit::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
 	// serialize properties
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	node->SerializePropertiesToDXL(xml_serializer);
 
 	// serialize children nodes
 
-	const DrgPdxln *pdrgpdxln = pdxln->PdrgpdxlnChildren();
+	const CDXLNodeArray *dxl_array = node->GetChildDXLNodeArray();
 
-	GPOS_ASSERT(4 == pdxln->UlArity());
+	GPOS_ASSERT(4 == node->Arity());
 	// serialize the first two children: target-list and plan
 	for (ULONG i = 0; i < 4; i++)
 	{
-		CDXLNode *pdxlnChild = (*pdrgpdxln)[i];
-		pdxlnChild->SerializeToDXL(pxmlser);
+		CDXLNode *child_dxlnode = (*dxl_array)[i];
+		child_dxlnode->SerializeToDXL(xml_serializer);
 	}
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 
@@ -116,35 +116,35 @@ CDXLPhysicalLimit::SerializeToDXL
 void
 CDXLPhysicalLimit::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) const
 {
-	GPOS_ASSERT(4 == pdxln->UlArity());
+	GPOS_ASSERT(4 == node->Arity());
 
 	// Assert proj list is valid
-	CDXLNode *pdxlnProjList = (*pdxln)[EdxllimitIndexProjList];
-	GPOS_ASSERT(EdxlopScalarProjectList == pdxlnProjList->Pdxlop()->Edxlop());
+	CDXLNode *proj_list_dxlnode = (*node)[EdxllimitIndexProjList];
+	GPOS_ASSERT(EdxlopScalarProjectList == proj_list_dxlnode->GetOperator()->GetDXLOperator());
 
 	// assert child plan is a physical plan and is valid
 
-	CDXLNode *pdxlnChild = (*pdxln)[EdxllimitIndexChildPlan];
-	GPOS_ASSERT(EdxloptypePhysical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	CDXLNode *child_dxlnode = (*node)[EdxllimitIndexChildPlan];
+	GPOS_ASSERT(EdxloptypePhysical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
 	// Assert the validity of Count and Offset
 
-	CDXLNode *pdxlnCount = (*pdxln)[EdxllimitIndexLimitCount];
-	GPOS_ASSERT(EdxlopScalarLimitCount == pdxlnCount->Pdxlop()->Edxlop());
+	CDXLNode *count_dxlnode = (*node)[EdxllimitIndexLimitCount];
+	GPOS_ASSERT(EdxlopScalarLimitCount == count_dxlnode->GetOperator()->GetDXLOperator());
 
-	CDXLNode *pdxlnOffset = (*pdxln)[EdxllimitIndexLimitOffset];
-	GPOS_ASSERT(EdxlopScalarLimitOffset == pdxlnOffset->Pdxlop()->Edxlop());
+	CDXLNode *offset_dxlnode = (*node)[EdxllimitIndexLimitOffset];
+	GPOS_ASSERT(EdxlopScalarLimitOffset == offset_dxlnode->GetOperator()->GetDXLOperator());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnProjList->Pdxlop()->AssertValid(pdxlnProjList, fValidateChildren);
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
-		pdxlnCount->Pdxlop()->AssertValid(pdxlnCount, fValidateChildren);
-		pdxlnOffset->Pdxlop()->AssertValid(pdxlnOffset, fValidateChildren);
+		proj_list_dxlnode->GetOperator()->AssertValid(proj_list_dxlnode, validate_children);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
+		count_dxlnode->GetOperator()->AssertValid(count_dxlnode, validate_children);
+		offset_dxlnode->GetOperator()->AssertValid(offset_dxlnode, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

@@ -27,12 +27,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalLeftAntiSemiHashJoinNotIn::CPhysicalLeftAntiSemiHashJoinNotIn
 	(
-	IMemoryPool *pmp,
-	DrgPexpr *pdrgpexprOuterKeys,
-	DrgPexpr *pdrgpexprInnerKeys
+	IMemoryPool *mp,
+	CExpressionArray *pdrgpexprOuterKeys,
+	CExpressionArray *pdrgpexprInnerKeys
 	)
 	:
-	CPhysicalLeftAntiSemiHashJoin(pmp, pdrgpexprOuterKeys, pdrgpexprInnerKeys)
+	CPhysicalLeftAntiSemiHashJoin(mp, pdrgpexprOuterKeys, pdrgpexprInnerKeys)
 {
 }
 
@@ -47,31 +47,31 @@ CPhysicalLeftAntiSemiHashJoinNotIn::CPhysicalLeftAntiSemiHashJoinNotIn
 CDistributionSpec *
 CPhysicalLeftAntiSemiHashJoinNotIn::PdsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
-	ULONG ulChildIndex,
-	DrgPdp *pdrgpdpCtxt,
+	ULONG child_index,
+	CDrvdProp2dArray *pdrgpdpCtxt,
 	ULONG ulOptReq // identifies which optimization request should be created
 	)
 	const
 {
-	GPOS_ASSERT(2 > ulChildIndex);
+	GPOS_ASSERT(2 > child_index);
 	GPOS_ASSERT(ulOptReq < UlDistrRequests());
 
-	if (0 == ulOptReq && 1 == ulChildIndex &&
-			(FNullableHashKeys(exprhdl.Pdprel(0)->PcrsNotNull(), false /*fInner*/) ||
-			FNullableHashKeys(exprhdl.Pdprel(1)->PcrsNotNull(), true /*fInner*/)) )
+	if (0 == ulOptReq && 1 == child_index &&
+			(FNullableHashKeys(exprhdl.GetRelationalProperties(0)->PcrsNotNull(), false /*fInner*/) ||
+			FNullableHashKeys(exprhdl.GetRelationalProperties(1)->PcrsNotNull(), true /*fInner*/)) )
 	{
 		// we need to replicate the inner if any of the following is true:
 		// a. if the outer hash keys are nullable, because the executor needs to detect
 		//	  whether the inner is empty, and this needs to be detected everywhere
 		// b. if the inner hash keys are nullable, because every segment needs to
 		//	  detect nulls coming from the inner child
-		return GPOS_NEW(pmp) CDistributionSpecReplicated();
+		return GPOS_NEW(mp) CDistributionSpecReplicated();
 	}
 
-	return CPhysicalHashJoin::PdsRequired(pmp, exprhdl, pdsInput, ulChildIndex, pdrgpdpCtxt, ulOptReq);
+	return CPhysicalHashJoin::PdsRequired(mp, exprhdl, pdsInput, child_index, pdrgpdpCtxt, ulOptReq);
 }
 
 // EOF

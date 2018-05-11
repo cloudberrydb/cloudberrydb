@@ -34,7 +34,7 @@ namespace gpos
 		private:
 
 			// actual element to point to
-			T *m_rgt;
+			T *m_object_array;
 						
 			// hidden copy ctor
 			CAutoRg<T>(const CAutoRg&);
@@ -45,14 +45,14 @@ namespace gpos
 			explicit
 			CAutoRg<T>()
 				:
-				m_rgt(NULL)
+				m_object_array(NULL)
 			{}
 
 			// ctor
 			explicit
-			CAutoRg<T>(T *rgt)
+			CAutoRg<T>(T *object_array)
 				:
-				m_rgt(rgt)
+				m_object_array(object_array)
 			{}
 
 
@@ -61,9 +61,9 @@ namespace gpos
 
 			// simple assignment
 			inline
-			CAutoRg<T> const & operator = (T* rgt)
+			CAutoRg<T> const & operator = (T* object_array)
 			{
-				m_rgt = rgt;
+				m_object_array = object_array;
 				return *this;
 			}
 
@@ -74,22 +74,22 @@ namespace gpos
 				ULONG ulPos
 				)
 			{
-				return m_rgt[ulPos];
+				return m_object_array[ulPos];
 			}
 			
 			// return basic pointer
 			T* Rgt()
 			{
-				return m_rgt;
+				return m_object_array;
 			}
 
 			// unhook pointer from auto object
 			inline
 			T* RgtReset()
 			{
-				T* rgt = m_rgt;
-				m_rgt = NULL;
-				return rgt;
+				T* object_array = m_object_array;
+				m_object_array = NULL;
+				return object_array;
 			}
 
 	}; // class CAutoRg
@@ -106,7 +106,7 @@ namespace gpos
 	template <class T>
 	CAutoRg<T>::~CAutoRg()
 	{
-		GPOS_DELETE_ARRAY(m_rgt);
+		GPOS_DELETE_ARRAY(m_object_array);
 	}
 }
 

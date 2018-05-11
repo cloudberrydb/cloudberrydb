@@ -33,13 +33,13 @@ class CDatumBoolGPDB : public IDatumBool
 	private:
 
 		// type information
-		IMDId *m_pmdid;
+		IMDId *m_mdid;
 	
 		// boolean value
-		BOOL m_fVal;
+		BOOL m_value;
 
 		// is null
-		BOOL m_fNull;
+		BOOL m_is_null;
 
 		// private copy ctor
 		CDatumBoolGPDB(const CDatumBoolGPDB &);
@@ -47,8 +47,8 @@ class CDatumBoolGPDB : public IDatumBool
 	public:
 
 		// ctors
-		CDatumBoolGPDB(CSystemId sysid, BOOL fVal, BOOL fNull = false);
-		CDatumBoolGPDB(IMDId *pmdid, BOOL fVal, BOOL fNull = false);
+		CDatumBoolGPDB(CSystemId sysid, BOOL value, BOOL is_null = false);
+		CDatumBoolGPDB(IMDId *mdid, BOOL value, BOOL is_null = false);
 		
 		// dtor
 		virtual
@@ -56,35 +56,35 @@ class CDatumBoolGPDB : public IDatumBool
 
 		// accessor of metadata type mdid
 		virtual
-		IMDId *Pmdid() const;
+		IMDId *MDId() const;
 
 		// accessor of boolean value
 		virtual
-		BOOL FValue() const;
+		BOOL GetValue() const;
 
 		// accessor of size
 		virtual
-		ULONG UlSize() const;
+		ULONG Size() const;
 
 		// accessor of is null
 		virtual
-		BOOL FNull() const;
+		BOOL IsNull() const;
 
 		// return string representation
 		virtual
-		const CWStringConst *Pstr(IMemoryPool *pmp) const;
+		const CWStringConst *GetStrRepr(IMemoryPool *mp) const;
 
 		// hash function
 		virtual
-		ULONG UlHash() const;
+		ULONG HashValue() const;
 
 		// match function for datums
 		virtual
-		BOOL FMatch(const IDatum *) const;
+		BOOL Matches(const IDatum *) const;
 
 		// copy datum
 		virtual
-		IDatum *PdatumCopy(IMemoryPool *pmp) const;
+		IDatum *MakeCopy(IMemoryPool *mp) const;
 		
 		// print function
 		virtual

@@ -35,7 +35,7 @@ namespace gpos
 
 		public:
 
-			enum EstreamMod
+			enum EStreamManipulator
 			{
 				EsmDec,
 				EsmHex
@@ -57,7 +57,7 @@ namespace gpos
 			virtual IOstream& operator<< (DOUBLE) = 0;
 			virtual IOstream& operator<< (const void*) = 0;
 			virtual IOstream& operator<< (WOSTREAM& (*)(WOSTREAM&)) = 0;
-			virtual IOstream& operator<< (EstreamMod) = 0;
+			virtual IOstream& operator<< (EStreamManipulator) = 0;
 
 			// needs to be implemented by subclass
 			virtual IOstream& operator<< (const WCHAR *) = 0;

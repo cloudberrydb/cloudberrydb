@@ -32,7 +32,7 @@ const WCHAR CScalarBoolOp::m_rgwszBool[EboolopSentinel][30] =
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBoolOp::UlHash
+//		CScalarBoolOp::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -40,24 +40,24 @@ const WCHAR CScalarBoolOp::m_rgwszBool[EboolopSentinel][30] =
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarBoolOp::UlHash() const
+CScalarBoolOp::HashValue() const
 {
 	ULONG ulBoolop = (ULONG) Eboolop();
-	return gpos::UlCombineHashes(COperator::UlHash(),
-							    gpos::UlHash<ULONG>(&ulBoolop));
+	return gpos::CombineHashes(COperator::HashValue(),
+							    gpos::HashValue<ULONG>(&ulBoolop));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBoolOp::FMatch
+//		CScalarBoolOp::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarBoolOp::FMatch
+CScalarBoolOp::Matches
 	(
 	COperator *pop
 	)
@@ -104,17 +104,17 @@ CScalarBoolOp::FCommutative
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBoolOp::PmdidType
+//		CScalarBoolOp::MdidType
 //
 //	@doc:
 //		Expression type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarBoolOp::PmdidType() const
+CScalarBoolOp::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	return pmda->PtMDType<IMDTypeBool>()->Pmdid();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	return md_accessor->PtMDType<IMDTypeBool>()->MDId();
 }
 
 
@@ -129,7 +129,7 @@ CScalarBoolOp::PmdidType() const
 CScalar::EBoolEvalResult
 CScalarBoolOp::Eber
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 	const
 {
@@ -145,7 +145,7 @@ CScalarBoolOp::Eber
 
 	GPOS_ASSERT(EboolopNot == m_eboolop);
 	GPOS_ASSERT(NULL != pdrgpulChildren);
-	GPOS_ASSERT(1 == pdrgpulChildren->UlLength());
+	GPOS_ASSERT(1 == pdrgpulChildren->Size());
 
 	EBoolEvalResult eber = (EBoolEvalResult) *((*pdrgpulChildren)[0]);
 	switch (eber)

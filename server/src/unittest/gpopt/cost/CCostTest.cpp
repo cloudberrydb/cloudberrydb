@@ -68,7 +68,7 @@ GPOS_RESULT
 CCostTest::EresUnittest_Arithmetic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CCost cost1(2.5);
 	CCost cost2(3.0);
@@ -86,7 +86,7 @@ CCostTest::EresUnittest_Arithmetic()
 	GPOS_ASSERT(costMultiply > cost5);
 	GPOS_ASSERT(costMultiply < cost6);
 
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	IOstream &os(at.Os());
 
 	os << "Arithmetic operations: " << std::endl
@@ -109,7 +109,7 @@ GPOS_RESULT
 CCostTest::EresUnittest_Bool()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CCost cost1(2.5);
 	CCost cost2(3.5);
@@ -117,7 +117,7 @@ CCostTest::EresUnittest_Bool()
 	GPOS_ASSERT(cost1 < cost2);
 	GPOS_ASSERT(cost2 > cost1);
 
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	IOstream &os(at.Os());
 
 	os << "Boolean operations: " << std::endl
@@ -138,11 +138,11 @@ CCostTest::EresUnittest_Bool()
 void
 CCostTest::TestParams
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	BOOL fCalibrated
 	)
 {
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	IOstream &os(at.Os());
 
 	ICostModelParams *pcp =  NULL;
@@ -157,29 +157,29 @@ CCostTest::TestParams
 
 	if (fCalibrated)
 	{
-		pcp = ((CCostModelGPDB *) COptCtxt::PoctxtFromTLS()->Pcm())->Pcp();
+		pcp = ((CCostModelGPDB *) COptCtxt::PoctxtFromTLS()->GetCostModel())->GetCostModelParams();
 
-		dSeqIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpSeqIOBandwidth)->DVal();
-		dRandomIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpRandomIOBandwidth)->DVal();
-		dTupProcBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpTupProcBandwidth)->DVal();
-		dNetBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpNetBandwidth)->DVal();
-		dSegments = pcp->PcpLookup(CCostModelParamsGPDB::EcpSegments)->DVal();
-		dNLJFactor = pcp->PcpLookup(CCostModelParamsGPDB::EcpNLJFactor)->DVal();
-		dHashFactor = pcp->PcpLookup(CCostModelParamsGPDB::EcpHashFactor)->DVal();
-		dDefaultCost = pcp->PcpLookup(CCostModelParamsGPDB::EcpDefaultCost)->DVal();
+		dSeqIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpSeqIOBandwidth)->Get();
+		dRandomIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpRandomIOBandwidth)->Get();
+		dTupProcBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpTupProcBandwidth)->Get();
+		dNetBandwidth = pcp->PcpLookup(CCostModelParamsGPDB::EcpNetBandwidth)->Get();
+		dSegments = pcp->PcpLookup(CCostModelParamsGPDB::EcpSegments)->Get();
+		dNLJFactor = pcp->PcpLookup(CCostModelParamsGPDB::EcpNLJFactor)->Get();
+		dHashFactor = pcp->PcpLookup(CCostModelParamsGPDB::EcpHashFactor)->Get();
+		dDefaultCost = pcp->PcpLookup(CCostModelParamsGPDB::EcpDefaultCost)->Get();
 	}
 	else
 	{
-		pcp = ((CCostModelGPDBLegacy *) COptCtxt::PoctxtFromTLS()->Pcm())->Pcp();
+		pcp = ((CCostModelGPDBLegacy *) COptCtxt::PoctxtFromTLS()->GetCostModel())->GetCostModelParams();
 
-		dSeqIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpSeqIOBandwidth)->DVal();
-		dRandomIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpRandomIOBandwidth)->DVal();
-		dTupProcBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpTupProcBandwidth)->DVal();
-		dNetBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpNetBandwidth)->DVal();
-		dSegments = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpSegments)->DVal();
-		dNLJFactor = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpNLJFactor)->DVal();
-		dHashFactor = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpHashFactor)->DVal();
-		dDefaultCost = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpDefaultCost)->DVal();
+		dSeqIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpSeqIOBandwidth)->Get();
+		dRandomIOBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpRandomIOBandwidth)->Get();
+		dTupProcBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpTupProcBandwidth)->Get();
+		dNetBandwidth = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpNetBandwidth)->Get();
+		dSegments = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpSegments)->Get();
+		dNLJFactor = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpNLJFactor)->Get();
+		dHashFactor = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpHashFactor)->Get();
+		dDefaultCost = pcp->PcpLookup(CCostModelParamsGPDBLegacy::EcpDefaultCost)->Get();
 	}
 
 	os << std::endl << "Lookup cost model params by id: " << std::endl;
@@ -192,14 +192,14 @@ CCostTest::TestParams
 	os << "Hash Factor: " << dHashFactor << std::endl;
 	os << "Default Cost: " << dDefaultCost << std::endl;
 
-	CDouble dSeqIOBandwidth1 = pcp->PcpLookup("SeqIOBandwidth")->DVal();
-	CDouble dRandomIOBandwidth1 = pcp->PcpLookup("RandomIOBandwidth")->DVal();
-	CDouble dTupProcBandwidth1 = pcp->PcpLookup("TupProcBandwidth")->DVal();
-	CDouble dNetBandwidth1 = pcp->PcpLookup("NetworkBandwidth")->DVal();
-	CDouble dSegments1 = pcp->PcpLookup("Segments")->DVal();
-	CDouble dNLJFactor1 = pcp->PcpLookup("NLJFactor")->DVal();
-	CDouble dHashFactor1 = pcp->PcpLookup("HashFactor")->DVal();
-	CDouble dDefaultCost1 = pcp->PcpLookup("DefaultCost")->DVal();
+	CDouble dSeqIOBandwidth1 = pcp->PcpLookup("SeqIOBandwidth")->Get();
+	CDouble dRandomIOBandwidth1 = pcp->PcpLookup("RandomIOBandwidth")->Get();
+	CDouble dTupProcBandwidth1 = pcp->PcpLookup("TupProcBandwidth")->Get();
+	CDouble dNetBandwidth1 = pcp->PcpLookup("NetworkBandwidth")->Get();
+	CDouble dSegments1 = pcp->PcpLookup("Segments")->Get();
+	CDouble dNLJFactor1 = pcp->PcpLookup("NLJFactor")->Get();
+	CDouble dHashFactor1 = pcp->PcpLookup("HashFactor")->Get();
+	CDouble dDefaultCost1 = pcp->PcpLookup("DefaultCost")->Get();
 
 	os << std::endl << "Lookup cost model params by name: " << std::endl;
 	os << "Seq I/O bandwidth: " << dSeqIOBandwidth1 << std::endl;
@@ -234,37 +234,37 @@ GPOS_RESULT
 CCostTest::EresUnittest_Params()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	{
 		// install opt context in TLS
 		CAutoOptCtxt aoc
 						(
-						pmp,
+						mp,
 						&mda,
 						NULL, /* pceeval */
-						CTestUtils::Pcm(pmp)
+						CTestUtils::GetCostModel(mp)
 						);
 
-		TestParams(pmp, false /*fCalibrated*/);
+		TestParams(mp, false /*fCalibrated*/);
 	}
 
 	{
 		// install opt context in TLS
 		CAutoOptCtxt aoc
 						(
-						pmp,
+						mp,
 						&mda,
 						NULL, /* pceeval */
-						GPOS_NEW(pmp) CCostModelGPDB(pmp, GPOPT_TEST_SEGMENTS)
+						GPOS_NEW(mp) CCostModelGPDB(mp, GPOPT_TEST_SEGMENTS)
 						);
 
-		TestParams(pmp, true /*fCalibrated*/);
+		TestParams(mp, true /*fCalibrated*/);
 	}
 
 	return GPOS_OK;
@@ -283,12 +283,12 @@ GPOS_RESULT
 CCostTest::EresUnittest_Parsing()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-	CParseHandlerDXL *pphDXL = CDXLUtils::PphdxlParseDXLFile(pmp,"../data/dxl/cost/cost0.xml", NULL);
-	ICostModelParams *pcp = pphDXL->Pcp();
+	IMemoryPool *mp = amp.Pmp();
+	CParseHandlerDXL *pphDXL = CDXLUtils::GetParseHandlerForDXLFile(mp,"../data/dxl/cost/cost0.xml", NULL);
+	ICostModelParams *pcp = pphDXL->GetCostModelParams();
 
 	{
-		CAutoTrace at(pmp);
+		CAutoTrace at(mp);
 		at.Os() << " Parsed cost params: " << std::endl;
 		pcp->OsPrint(at.Os());
 	}
@@ -311,8 +311,8 @@ CCostTest::EresUnittest_ParsingWithException()
 {
 
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-	CParseHandlerDXL *pphDXL = CDXLUtils::PphdxlParseDXLFile(pmp,"../data/dxl/cost/wrong-cost.xml", NULL);
+	IMemoryPool *mp = amp.Pmp();
+	CParseHandlerDXL *pphDXL = CDXLUtils::GetParseHandlerForDXLFile(mp,"../data/dxl/cost/wrong-cost.xml", NULL);
 	GPOS_DELETE(pphDXL);
 
 	return GPOS_OK;
@@ -331,36 +331,36 @@ GPOS_RESULT
 CCostTest::EresUnittest_SetParams()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
-	ICostModel *pcm = GPOS_NEW(pmp) CCostModelGPDB(pmp, GPOPT_TEST_SEGMENTS);
+	ICostModel *pcm = GPOS_NEW(mp) CCostModelGPDB(mp, GPOPT_TEST_SEGMENTS);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL, /* pceeval */ pcm);
+	CAutoOptCtxt aoc(mp, &mda, NULL, /* pceeval */ pcm);
 
 	// generate in-equality join expression
-	CExpression *pexprOuter = CTestUtils::PexprLogicalGet(pmp);
-	const CColRef *pcrOuter = CDrvdPropRelational::Pdprel(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
-	CExpression *pexprInner = CTestUtils::PexprLogicalGet(pmp);
-	const CColRef *pcrInner = CDrvdPropRelational::Pdprel(pexprInner->PdpDerive())->PcrsOutput()->PcrAny();
-	CExpression *pexprPred = CUtils::PexprScalarCmp(pmp, pcrOuter, pcrInner, IMDType::EcmptNEq);
-	CExpression *pexpr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, pexprOuter, pexprInner, pexprPred);
+	CExpression *pexprOuter = CTestUtils::PexprLogicalGet(mp);
+	const CColRef *pcrOuter = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput()->PcrAny();
+	CExpression *pexprInner = CTestUtils::PexprLogicalGet(mp);
+	const CColRef *pcrInner = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput()->PcrAny();
+	CExpression *pexprPred = CUtils::PexprScalarCmp(mp, pcrOuter, pcrInner, IMDType::EcmptNEq);
+	CExpression *pexpr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, pexprOuter, pexprInner, pexprPred);
 
 	// optimize in-equality join based on default cost model params
 	CExpression *pexprPlan1 = NULL;
 	{
-		CEngine eng(pmp);
+		CEngine eng(mp);
 
 		// generate query context
-		CQueryContext *pqc = CTestUtils::PqcGenerate(pmp, pexpr);
+		CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
 
 		// Initialize engine
-		eng.Init(pqc, NULL /*pdrgpss*/);
+		eng.Init(pqc, NULL /*search_stage_array*/);
 
 		// optimize query
 		eng.Optimize();
@@ -373,21 +373,21 @@ CCostTest::EresUnittest_SetParams()
 	}
 
 	// change NLJ cost factor
-	ICostModelParams::SCostParam *pcp = pcm->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpNLJFactor);
+	ICostModelParams::SCostParam *pcp = pcm->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpNLJFactor);
 	CDouble dNLJFactor = CDouble(2.0);
-	CDouble dVal = pcp->DVal() * dNLJFactor;
-	pcm->Pcp()->SetParam(pcp->UlId(), dVal, dVal - 0.5, dVal + 0.5);
+	CDouble dVal = pcp->Get() * dNLJFactor;
+	pcm->GetCostModelParams()->SetParam(pcp->Id(), dVal, dVal - 0.5, dVal + 0.5);
 
 	// optimize again after updating NLJ cost factor
 	CExpression *pexprPlan2 = NULL;
 	{
-		CEngine eng(pmp);
+		CEngine eng(mp);
 
 		// generate query context
-		CQueryContext *pqc = CTestUtils::PqcGenerate(pmp, pexpr);
+		CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
 
 		// Initialize engine
-		eng.Init(pqc, NULL /*pdrgpss*/);
+		eng.Init(pqc, NULL /*search_stage_array*/);
 
 		// optimize query
 		eng.Optimize();
@@ -400,7 +400,7 @@ CCostTest::EresUnittest_SetParams()
 	}
 
 	{
-		CAutoTrace at(pmp);
+		CAutoTrace at(mp);
 		at.Os() << "\nPLAN1: \n" << *pexprPlan1;
 		at.Os() << "\nNLJ Cost1: " << (*pexprPlan1)[0]->Cost();
 		at.Os() << "\n\nPLAN2: \n" << *pexprPlan2;

@@ -34,15 +34,15 @@ namespace gpdxl
 		private:
 
 			// catalog id of the function
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 
 			// return type
-			IMDId *m_pmdidRetType;
+			IMDId *m_return_type_mdid;
 
-			const INT m_iRetTypeModifier;
+			const INT m_return_type_modifier;
 
 			// does the func return a set
-			BOOL m_fReturnSet;
+			BOOL m_returns_set;
 
 			// private copy ctor
 			CDXLScalarFuncExpr(const CDXLScalarFuncExpr&);
@@ -51,11 +51,11 @@ namespace gpdxl
 			// ctor
 			CDXLScalarFuncExpr
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidFunc,
-				IMDId *pmdidRetType,
-				INT iRetTypeModifier,
-				BOOL fretset
+				IMemoryPool *mp,
+				IMDId *mdid_func,
+				IMDId *mdid_return_type,
+				INT return_type_modifier,
+				BOOL returns_set
 				);
 
 			//dtor
@@ -63,47 +63,47 @@ namespace gpdxl
 			~CDXLScalarFuncExpr();
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// name of the DXL operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// function id
-			IMDId *PmdidFunc() const;
+			IMDId *FuncMdId() const;
 
 			// return type
-			IMDId *PmdidRetType() const;
+			IMDId *ReturnTypeMdId() const;
 
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
 			// does function return a set
-			BOOL FReturnSet() const;
+			BOOL ReturnsSet() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLScalarFuncExpr *PdxlopConvert
+			CDXLScalarFuncExpr *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarFuncExpr == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarFuncExpr == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarFuncExpr*>(pdxlop);
+				return dynamic_cast<CDXLScalarFuncExpr*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 	};
 }

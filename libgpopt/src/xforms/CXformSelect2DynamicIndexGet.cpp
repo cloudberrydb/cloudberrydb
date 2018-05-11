@@ -36,18 +36,18 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CXformSelect2DynamicIndexGet::CXformSelect2DynamicIndexGet
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformExploration
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalSelect(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalDynamicGet(pmp)), // relational child
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))	// predicate tree
+				mp,
+				GPOS_NEW(mp) CLogicalSelect(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalDynamicGet(mp)), // relational child
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))	// predicate tree
 				)
 		)
 {}
@@ -68,7 +68,7 @@ CXformSelect2DynamicIndexGet::Exfp
 	)
 	const
 {
-	if (exprhdl.Pdpscalar(1)->FHasSubquery())
+	if (exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
 	{
 		return CXform::ExfpNone;
 	}
@@ -97,7 +97,7 @@ CXformSelect2DynamicIndexGet::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprRelational = (*pexpr)[0];
@@ -105,50 +105,50 @@ CXformSelect2DynamicIndexGet::Transform
 
 	// get the indexes on this relation
 	CLogicalDynamicGet *popDynamicGet = CLogicalDynamicGet::PopConvert(pexprRelational->Pop());
-	const ULONG ulIndices = popDynamicGet->Ptabdesc()->UlIndices();
+	const ULONG ulIndices = popDynamicGet->Ptabdesc()->IndexCount();
 	if (0 == ulIndices)
 	{
 		return;
 	}
 
 	// array of expressions in the scalar expression
-	DrgPexpr *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(pmp, pexprScalar);
-	GPOS_ASSERT(0 < pdrgpexpr->UlLength());
+	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
+	GPOS_ASSERT(0 < pdrgpexpr->Size());
 
 	// derive the scalar and relational properties to build set of required columns
-	CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel(pexpr->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsScalarExpr = CDrvdPropScalar::Pdpscalar(pexprScalar->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsScalarExpr = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
 
-	CColRefSet *pcrsReqd = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsReqd = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsReqd->Include(pcrsOutput);
 	pcrsReqd->Include(pcrsScalarExpr);
 
 	// find the indexes whose included columns meet the required columns
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	const IMDRelation *pmdrel = pmda->Pmdrel(popDynamicGet->Ptabdesc()->Pmdid());
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDRelation *pmdrel = md_accessor->RetrieveRel(popDynamicGet->Ptabdesc()->MDId());
 
 	for (ULONG ul = 0; ul < ulIndices; ul++)
 	{
-		IMDId *pmdidIndex = pmdrel->PmdidIndex(ul);
-		const IMDIndex *pmdindex = pmda->Pmdindex(pmdidIndex);
+		IMDId *pmdidIndex = pmdrel->IndexMDidAt(ul);
+		const IMDIndex *pmdindex = md_accessor->RetrieveIndex(pmdidIndex);
 		CPartConstraint *ppartcnstrIndex = CUtils::PpartcnstrFromMDPartCnstr
 								(
-								pmp,
+								mp,
 								COptCtxt::PoctxtFromTLS()->Pmda(),
 								popDynamicGet->PdrgpdrgpcrPart(),
-								pmdindex->Pmdpartcnstr(),
+								pmdindex->MDPartConstraint(),
 								popDynamicGet->PdrgpcrOutput()
 								);
 		CExpression *pexprDynamicIndexGet = CXformUtils::PexprLogicalIndexGet
 							(
-							pmp,
-							pmda,
+							mp,
+							md_accessor,
 							pexprRelational,
 							pexpr->Pop()->UlOpId(),
 							pdrgpexpr,
 							pcrsReqd,
 							pcrsScalarExpr,
-							NULL /*pcrsOuterRefs*/,
+							NULL /*outer_refs*/,
 							pmdindex,
 							pmdrel,
 							false /*fAllowPartialIndex*/,
@@ -158,7 +158,7 @@ CXformSelect2DynamicIndexGet::Transform
 		{
 			// create a redundant SELECT on top of DynamicIndexGet to be able to use predicate in partition elimination
 
-			CExpression *pexprRedundantSelect = CXformUtils::PexprRedundantSelectForDynamicIndex(pmp, pexprDynamicIndexGet);
+			CExpression *pexprRedundantSelect = CXformUtils::PexprRedundantSelectForDynamicIndex(mp, pexprDynamicIndexGet);
 			pexprDynamicIndexGet->Release();
 			pxfres->Add(pexprRedundantSelect);
 		}

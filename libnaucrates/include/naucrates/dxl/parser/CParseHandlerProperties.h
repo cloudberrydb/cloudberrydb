@@ -36,10 +36,10 @@ namespace gpdxl
 	{
 		private:
 			// physical properties container
-			CDXLPhysicalProperties *m_pdxlprop;
+			CDXLPhysicalProperties *m_dxl_properties;
 			
 			// statistics of the physical plan
-			CDXLStatsDerivedRelation *m_pdxlstatsderrel;
+			CDXLStatsDerivedRelation *m_dxl_stats_derived_relation;
 
 			// private ctor
 			CParseHandlerProperties(const CParseHandlerProperties &);
@@ -47,27 +47,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor
 			CParseHandlerProperties
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// dtor
@@ -75,12 +75,12 @@ namespace gpdxl
 			~CParseHandlerProperties();
 					
 			// returns the constructed properties container
-			CDXLPhysicalProperties *Pdxlprop() const;
+			CDXLPhysicalProperties *GetProperties() const;
 
 			// return the derived relation statistics
-			CDXLStatsDerivedRelation *Pdxlstatsderrel() const
+			CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation() const
 			{
-				return m_pdxlstatsderrel;
+				return m_dxl_stats_derived_relation;
 			}
 	};
 }

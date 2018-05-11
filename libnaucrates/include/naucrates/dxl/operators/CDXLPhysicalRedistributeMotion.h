@@ -45,7 +45,7 @@ namespace gpdxl
 		private:
 			
 			// is this a duplicate sensitive redistribute motion
-			BOOL m_fDuplicateSensitive;
+			BOOL m_is_duplicate_sensitive;
 			
 			// private copy ctor
 			CDXLPhysicalRedistributeMotion(const CDXLPhysicalRedistributeMotion&);
@@ -53,46 +53,46 @@ namespace gpdxl
 			
 		public:
 			// ctor
-			CDXLPhysicalRedistributeMotion(IMemoryPool *pmp, BOOL fDuplicateSensitive);
+			CDXLPhysicalRedistributeMotion(IMemoryPool *mp, BOOL is_duplicate_sensitive);
 			
 			// accessors
-			Edxlopid Edxlop() const;
-			const CWStringConst *PstrOpName() const;
+			Edxlopid GetDXLOperator() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// does motion remove duplicates
-			BOOL FDuplicateSensitive() const
+			BOOL IsDuplicateSensitive() const
 			{
-				return m_fDuplicateSensitive;
+				return m_is_duplicate_sensitive;
 			}
 			
 			// index of relational child node in the children array
 			virtual 
-			ULONG UlChildIndex() const
+			ULONG GetRelationChildIdx() const
 			{
 				return EdxlrmIndexChild;
 			}
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalRedistributeMotion *PdxlopConvert
+			CDXLPhysicalRedistributeMotion *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalMotionRedistribute == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalMotionRedistribute == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalRedistributeMotion*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalRedistributeMotion*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

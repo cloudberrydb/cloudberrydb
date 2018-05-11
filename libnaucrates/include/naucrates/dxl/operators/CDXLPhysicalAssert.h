@@ -41,14 +41,14 @@ namespace gpdxl
 		private:
 			
 			// error code
-			CHAR m_szSQLState[GPOS_SQLSTATE_LENGTH + 1];
+			CHAR m_sql_state[GPOS_SQLSTATE_LENGTH + 1];
 			
 			// private copy ctor
 			CDXLPhysicalAssert(CDXLPhysicalAssert&);
 
 		public:
 			// ctor
-			CDXLPhysicalAssert(IMemoryPool *pmp, const CHAR *szSQLState);
+			CDXLPhysicalAssert(IMemoryPool *mp, const CHAR *sql_state);
 
 			// dtor
 			virtual
@@ -56,39 +56,39 @@ namespace gpdxl
 			
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// error code
-			const CHAR *SzSQLState() const
+			const CHAR *GetSQLState() const
 			{
-				return m_szSQLState;
+				return m_sql_state;
 			}
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// conversion function
 			static
-			CDXLPhysicalAssert *PdxlopConvert
+			CDXLPhysicalAssert *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalAssert == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalAssert == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalAssert*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalAssert*>(dxl_op);
 			}
 	};
 }

@@ -41,14 +41,14 @@ namespace gpopt
 			// ctor
 			CScalarIsDistinctFrom
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidOp,
+				IMemoryPool *mp,
+				IMDId *mdid_op,
 				const CWStringConst *pstrOp
 				)
 				:
-				CScalarCmp(pmp, pmdidOp, pstrOp, IMDType::EcmptIDF)
+				CScalarCmp(mp, mdid_op, pstrOp, IMDType::EcmptIDF)
 			{
-				GPOS_ASSERT(pmdidOp->FValid());
+				GPOS_ASSERT(mdid_op->IsValid());
 			}
 
 			// dtor
@@ -65,7 +65,7 @@ namespace gpopt
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// return a string for operator name
 			virtual
@@ -75,7 +75,7 @@ namespace gpopt
 			}
 
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// conversion function
 			static
@@ -83,7 +83,7 @@ namespace gpopt
 
 			// get commuted scalar IDF operator
 			virtual
-			CScalarIsDistinctFrom *PopCommutedOp(IMemoryPool *pmp, COperator *pop);
+			CScalarIsDistinctFrom *PopCommutedOp(IMemoryPool *mp, COperator *pop);
 
 	}; // class CScalarIsDistinctFrom
 

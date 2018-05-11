@@ -61,27 +61,27 @@ CStringTest::EresUnittest_Append()
 
 	ss1.Append(&ss2);
 
-	GPOS_ASSERT(ss1.FEquals("123456"));
+	GPOS_ASSERT(ss1.Equals("123456"));
 	
 	// append an empty string
 	ss1.Append(&ss3);
 	
 	// string should be the same as before
-	GPOS_ASSERT(ss1.FEquals("123456"));
+	GPOS_ASSERT(ss1.Equals("123456"));
 
 	// append to an empty string
 	ss3.Append(&ss1);
 
-	GPOS_ASSERT(ss3.FEquals("123456"));
+	GPOS_ASSERT(ss3.Equals("123456"));
 	
 	// check truncation
 	ss3.Append(&ss2);
-	GPOS_ASSERT(ss3.FEquals("1234564"));
+	GPOS_ASSERT(ss3.Equals("1234564"));
 
 	// test wide character string
 	ss1.Reset();
 	ss1.AppendConvert(GPOS_WSZ_LIT("Wide \x1111 character string"));
-	GPOS_ASSERT(ss1.FEquals("Wide . characte"));
+	GPOS_ASSERT(ss1.Equals("Wide . characte"));
 
 	return GPOS_OK;
 }
@@ -107,8 +107,8 @@ CStringTest::EresUnittest_AppendFormat()
 	ss1.AppendFormat(" world %d", 123);
 	ss2.AppendFormat(" world %d", 123);
 
-	GPOS_ASSERT(ss1.FEquals("Hello world 123"));
-	GPOS_ASSERT(ss2.FEquals("Hello world"));
+	GPOS_ASSERT(ss1.Equals("Hello world 123"));
+	GPOS_ASSERT(ss2.Equals("Hello world"));
 
 	return GPOS_OK;
 }
@@ -135,9 +135,9 @@ CStringTest::EresUnittest_Equals()
 	CStringStatic ss2(buffer2, GPOS_ARRAY_SIZE(buffer2), "123");
 	CStringStatic ss3(buffer3, GPOS_ARRAY_SIZE(buffer3), "12");
 
-	GPOS_ASSERT(ss1.FEquals(ss2.Sz()));
-	GPOS_ASSERT(!ss1.FEquals(ss3.Sz()));
-	GPOS_ASSERT(!ss3.FEquals(ss1.Sz()));
+	GPOS_ASSERT(ss1.Equals(ss2.Buffer()));
+	GPOS_ASSERT(!ss1.Equals(ss3.Buffer()));
+	GPOS_ASSERT(!ss3.Equals(ss1.Buffer()));
 #endif // #ifdef GPOS_DEBUG
 	
 	return GPOS_OK;

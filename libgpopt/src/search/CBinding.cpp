@@ -68,7 +68,7 @@ CBinding::PexprExpandPattern
 	(
 	CExpression *pexprPattern,
 	ULONG ulPos,
-	ULONG ulArity
+	ULONG arity
 	)
 {
 	GPOS_ASSERT_IMP
@@ -85,21 +85,21 @@ CBinding::PexprExpandPattern
 	}
 
 	// re-use first child if it is a multi-leaf/tree
-	if (0 < pexprPattern->UlArity() &&
+	if (0 < pexprPattern->Arity() &&
 		CPattern::FMultiNode((*pexprPattern)[0]->Pop()))
 	{
-		GPOS_ASSERT(pexprPattern->UlArity() <= 2);
+		GPOS_ASSERT(pexprPattern->Arity() <= 2);
 
-		if (ulPos == ulArity - 1)
+		if (ulPos == arity - 1)
 		{
 			// special-case last child
-			return (*pexprPattern)[pexprPattern->UlArity() - 1];
+			return (*pexprPattern)[pexprPattern->Arity() - 1];
 		}
 		
 		// otherwise re-use multi-leaf/tree child
 		return (*pexprPattern)[0];
 	}
-	GPOS_ASSERT(pexprPattern->UlArity() > ulPos);
+	GPOS_ASSERT(pexprPattern->Arity() > ulPos);
 
 	return (*pexprPattern)[ulPos];
 }
@@ -116,15 +116,15 @@ CBinding::PexprExpandPattern
 CExpression *
 CBinding::PexprFinalize
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CGroupExpression *pgexpr,
-	DrgPexpr *pdrgpexpr
+	CExpressionArray *pdrgpexpr
 	)
 {
 	COperator *pop = pgexpr->Pop();
 	
 	pop->AddRef();
-	CExpression *pexpr = GPOS_NEW(pmp) CExpression(pmp, pop, pgexpr, pdrgpexpr, NULL /*pstatsInput*/);
+	CExpression *pexpr = GPOS_NEW(mp) CExpression(mp, pop, pgexpr, pdrgpexpr, NULL /*input_stats*/);
 	
 	return pexpr;
 }
@@ -142,7 +142,7 @@ CBinding::PexprFinalize
 CExpression *
 CBinding::PexprExtract
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
 	CExpression *pexprLast
@@ -164,12 +164,12 @@ CBinding::PexprExtract
 	{
 		// return immediately; no deep extraction for leaf patterns
 		pgexpr->Pop()->AddRef();
-		return GPOS_NEW(pmp) CExpression(pmp, pgexpr->Pop(), pgexpr);
+		return GPOS_NEW(mp) CExpression(mp, pgexpr->Pop(), pgexpr);
 	}
 
-	DrgPexpr *pdrgpexpr = NULL;
-	ULONG ulArity = pgexpr->UlArity();
-	if (0 == ulArity && NULL != pexprLast)
+	CExpressionArray *pdrgpexpr = NULL;
+	ULONG arity = pgexpr->Arity();
+	if (0 == arity && NULL != pexprLast)
 	{
 		// no more bindings
 		return NULL;
@@ -177,15 +177,15 @@ CBinding::PexprExtract
 	else
 	{
 		// attempt binding to children
-		pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-		if (!FExtractChildren(pmp, pgexpr, pexprPattern, pexprLast, pdrgpexpr))
+		pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+		if (!FExtractChildren(mp, pgexpr, pexprPattern, pexprLast, pdrgpexpr))
 		{
 			pdrgpexpr->Release();
 			return NULL;
 		}
 	}					
 
-	CExpression *pexpr = PexprFinalize(pmp, pgexpr, pdrgpexpr);
+	CExpression *pexpr = PexprFinalize(mp, pgexpr, pdrgpexpr);
 	GPOS_ASSERT(NULL != pexpr);
 	
 	return pexpr;
@@ -203,24 +203,24 @@ CBinding::PexprExtract
 BOOL
 CBinding::FInitChildCursors
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
-	DrgPexpr *pdrgpexpr
+	CExpressionArray *pdrgpexpr
 	)
 {
 	GPOS_ASSERT(NULL != pexprPattern);
 	GPOS_ASSERT(NULL != pdrgpexpr);
 
-	const ULONG ulArity = pgexpr->UlArity();
+	const ULONG arity = pgexpr->Arity();
 
 	// grab first expression from each cursor
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CGroup *pgroup = (*pgexpr)[ul];
-		CExpression *pexprPatternChild = PexprExpandPattern(pexprPattern, ul, ulArity);
+		CExpression *pexprPatternChild = PexprExpandPattern(pexprPattern, ul, arity);
 		CExpression *pexprNewChild =
-			PexprExtract(pmp, pgroup, pexprPatternChild, NULL /*pexprLastChild*/);
+			PexprExtract(mp, pgroup, pexprPatternChild, NULL /*pexprLastChild*/);
 
 		if (NULL == pexprNewChild)
 		{
@@ -247,21 +247,21 @@ CBinding::FInitChildCursors
 BOOL
 CBinding::FAdvanceChildCursors
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
 	CExpression *pexprLast,
-	DrgPexpr *pdrgpexpr
+	CExpressionArray *pdrgpexpr
 	)
 {
 	GPOS_ASSERT(NULL != pexprPattern);
 	GPOS_ASSERT(NULL != pdrgpexpr);
 
-	const ULONG ulArity = pgexpr->UlArity();
+	const ULONG arity = pgexpr->Arity();
 	if (NULL == pexprLast)
 	{
 		// first call, initialize cursors
-		return FInitChildCursors(pmp, pgexpr, pexprPattern, pdrgpexpr);
+		return FInitChildCursors(mp, pgexpr, pexprPattern, pdrgpexpr);
 	}
 
 	// could we advance a child's cursor?
@@ -270,10 +270,10 @@ CBinding::FAdvanceChildCursors
 	// number of exhausted cursors
 	ULONG ulExhaustedCursors = 0;
 
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CGroup *pgroup = (*pgexpr)[ul];
-		CExpression *pexprPatternChild = PexprExpandPattern(pexprPattern, ul, ulArity);
+		CExpression *pexprPatternChild = PexprExpandPattern(pexprPattern, ul, arity);
 		CExpression *pexprNewChild = NULL;
 
 		if (fCursorAdvanced)
@@ -288,12 +288,12 @@ CBinding::FAdvanceChildCursors
 			GPOS_ASSERT(pgroup == pexprLastChild->Pgexpr()->Pgroup());
 
 			// advance current cursor
-			pexprNewChild = PexprExtract(pmp, pgroup, pexprPatternChild, pexprLastChild);
+			pexprNewChild = PexprExtract(mp, pgroup, pexprPatternChild, pexprLastChild);
 
 			if (NULL == pexprNewChild)
 			{
 				// cursor is exhausted, we need to reset it
-				pexprNewChild = PexprExtract(pmp, pgroup, pexprPatternChild, NULL /*pexprLastChild*/);
+				pexprNewChild = PexprExtract(mp, pgroup, pexprPatternChild, NULL /*pexprLastChild*/);
 				ulExhaustedCursors++;
 			}
 			else
@@ -307,10 +307,10 @@ CBinding::FAdvanceChildCursors
 		pdrgpexpr->Append(pexprNewChild);
 	}
 
-	GPOS_ASSERT(ulExhaustedCursors <= ulArity);
+	GPOS_ASSERT(ulExhaustedCursors <= arity);
 
 
-	return ulExhaustedCursors < ulArity;
+	return ulExhaustedCursors < arity;
 }
 
 
@@ -326,11 +326,11 @@ CBinding::FAdvanceChildCursors
 BOOL
 CBinding::FExtractChildren
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CGroupExpression *pgexpr,
 	CExpression *pexprPattern,
 	CExpression *pexprLast,
-	DrgPexpr *pdrgpexpr
+	CExpressionArray *pdrgpexpr
 	)
 {
 	GPOS_CHECK_STACK_SIZE;
@@ -345,21 +345,21 @@ CBinding::FExtractChildren
 		);
 	GPOS_ASSERT(pexprPattern->FMatchPattern(pgexpr));
 
-	ULONG ulArity = pgexpr->UlArity();
-	if (ulArity < pexprPattern->UlArity())
+	ULONG arity = pgexpr->Arity();
+	if (arity < pexprPattern->Arity())
 	{
 		// does not have enough children
 		return false;
 	}
 
-	if (0 == ulArity)
+	if (0 == arity)
 	{
-		GPOS_ASSERT(0 == pexprPattern->UlArity());
+		GPOS_ASSERT(0 == pexprPattern->Arity());
 		return true;
 	}
 	
 
-	return FAdvanceChildCursors(pmp, pgexpr, pexprPattern, pexprLast, pdrgpexpr);
+	return FAdvanceChildCursors(mp, pgexpr, pexprPattern, pexprLast, pdrgpexpr);
 }
 
 
@@ -376,7 +376,7 @@ CBinding::FExtractChildren
 CExpression *
 CBinding::PexprExtract
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CGroup *pgroup,
 	CExpression *pexprPattern,
 	CExpression *pexprLast
@@ -410,7 +410,7 @@ CBinding::PexprExtract
 			return NULL;
 		}
 
-		return PexprExtract(pmp, pgexpr, pexprPattern, pexprLast);
+		return PexprExtract(mp, pgexpr, pexprPattern, pexprLast);
 	}
 
 	// start position for next binding
@@ -420,7 +420,7 @@ CBinding::PexprExtract
 		if (pexprPattern->FMatchPattern(pgexpr))
 		{
 			CExpression *pexprResult =
-				PexprExtract(pmp, pgexpr, pexprPattern, pexprStart);
+				PexprExtract(mp, pgexpr, pexprPattern, pexprStart);
 			if (NULL != pexprResult)
 			{
 				return pexprResult;

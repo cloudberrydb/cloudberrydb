@@ -42,13 +42,13 @@ namespace gpdxl
 		private:
 		
 			// table descriptor for the scanned table
-			CDXLTableDescr *m_pdxltabdesc;
+		CDXLTableDescr *m_dxl_table_descr;
 			
 			// id of partition index structure
-			ULONG m_ulPartIndexId;
+			ULONG m_part_index_id;
 			
 			// printable partition index id
-			ULONG m_ulPartIndexIdPrintable;
+			ULONG m_part_index_id_printable;
 
 			// private copy ctor
 			CDXLPhysicalDynamicTableScan(CDXLPhysicalDynamicTableScan&);
@@ -57,10 +57,10 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalDynamicTableScan
 				(
-				IMemoryPool *pmp,
-				CDXLTableDescr *pdxltabdesc,
-				ULONG ulPartIndexId,
-				ULONG ulPartIndexIdPrintable
+				IMemoryPool *mp,
+				CDXLTableDescr *table_descr,
+				ULONG part_idx_id,
+				ULONG part_idx_id_printable
 				);
 			
 			// dtor
@@ -68,41 +68,41 @@ namespace gpdxl
 			~CDXLPhysicalDynamicTableScan();
 			
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// table descriptor
-			const CDXLTableDescr *Pdxltabdesc() const;
+			const CDXLTableDescr *GetDXLTableDescr() const;
 
 			// partition index id
-			ULONG UlPartIndexId() const;
+			ULONG GetPartIndexId() const;
 			
 			// printable partition index id
-			ULONG UlPartIndexIdPrintable() const;
+			ULONG GetPartIndexIdPrintable() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLPhysicalDynamicTableScan *PdxlopConvert
+			CDXLPhysicalDynamicTableScan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalDynamicTableScan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalDynamicTableScan == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalDynamicTableScan*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalDynamicTableScan*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

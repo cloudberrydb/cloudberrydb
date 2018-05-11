@@ -42,7 +42,7 @@ namespace gpdxl
 		private:
 			// helper function for using the XML serializer to generate a document
 			// with or without indentation
-			static CWStringDynamic *Pstr(IMemoryPool *pmp, BOOL fIndent);
+			static CWStringDynamic *Pstr(IMemoryPool *mp, BOOL indentation);
 			
 		public:
 

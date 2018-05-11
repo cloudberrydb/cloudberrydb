@@ -39,14 +39,14 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CConstExprEvaluatorDXL::CConstExprEvaluatorDXL
 	(
-	IMemoryPool *pmp,
-	CMDAccessor *pmda,
+	IMemoryPool *mp,
+	CMDAccessor *md_accessor,
 	IConstDXLNodeEvaluator *pconstdxleval
 	)
 	:
 	m_pconstdxleval(pconstdxleval),
-	m_trexpr2dxl(pmp, pmda, NULL /*pdrgpiSegments*/, false /*fInitColumnFactory*/),
-	m_trdxl2expr(pmp, pmda, false /*fInitColumnFactory*/)
+	m_trexpr2dxl(mp, md_accessor, NULL /*pdrgpiSegments*/, false /*fInitColumnFactory*/),
+	m_trdxl2expr(mp, md_accessor, false /*fInitColumnFactory*/)
 {
 }
 
@@ -92,7 +92,7 @@ CConstExprEvaluatorDXL::FValidInput
 		return false;
 	}
 	// if the expression has a subquery, we should not try to evaluate it
-	if (CDrvdPropScalar::Pdpscalar(pexpr->PdpDerive())->FHasSubquery())
+	if (CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->FHasSubquery())
 	{
 		if (NULL != szErrorMsg)
 		{
@@ -101,9 +101,9 @@ CConstExprEvaluatorDXL::FValidInput
 		return false;
 	}
 	// if the expression uses or defines any variables, we should not try to evaluate it
-	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::Pdpscalar(pexpr->PdpDerive());
-	if (0 != pdpScalar->PcrsUsed()->CElements() ||
-		0 != pdpScalar->PcrsDefined()->CElements())
+	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
+	if (0 != pdpScalar->PcrsUsed()->Size() ||
+		0 != pdpScalar->PcrsDefined()->Size())
 	{
 		if (NULL != szErrorMsg)
 		{
@@ -137,11 +137,11 @@ CConstExprEvaluatorDXL::PexprEval
 		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiEvalUnsupportedScalarExpr, szErrorMsg);
 	}
 	CDXLNode *pdxlnExpr = m_trexpr2dxl.PdxlnScalar(pexpr);
-	CDXLNode *pdxlnResult = m_pconstdxleval->PdxlnEvaluateExpr(pdxlnExpr);
+	CDXLNode *pdxlnResult = m_pconstdxleval->EvaluateExpr(pdxlnExpr);
 
-	GPOS_ASSERT(EdxloptypeScalar == pdxlnResult->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(EdxloptypeScalar == pdxlnResult->GetOperator()->GetDXLOperatorType());
 
-	CExpression *pexprResult = m_trdxl2expr.PexprTranslateScalar(pdxlnResult, NULL /*pdrgpcr*/);
+	CExpression *pexprResult = m_trdxl2expr.PexprTranslateScalar(pdxlnResult, NULL /*colref_array*/);
 	pdxlnResult->Release();
 	pdxlnExpr->Release();
 

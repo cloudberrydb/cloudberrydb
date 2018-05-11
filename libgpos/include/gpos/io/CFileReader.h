@@ -32,10 +32,10 @@ namespace gpos
 		private:
 
 			// file size
-			ULLONG m_ullSize;
+			ULLONG m_file_size;
 
 			// read size
-			ULLONG m_ullReadSize;
+			ULLONG m_file_read_size;
 
 			// no copy ctor
 			CFileReader(const CFileReader &);
@@ -50,19 +50,19 @@ namespace gpos
 			~CFileReader();
 
 			// get file size
-			ULLONG UllSize() const;
+			ULLONG FileSize() const;
 
 			// get file read size
-			ULLONG UllReadSize() const;
+			ULLONG FileReadSize() const;
 
 			// open file for reading
-			void Open(const CHAR *szPath, const ULONG ulPerms =  S_IRUSR);
+			void Open(const CHAR *file_path, const ULONG permission_bits =  S_IRUSR);
 
 			// close file
 			void Close();
 
 			// read bytes to buffer
-			ULONG_PTR UlpRead(BYTE *pb, const ULONG_PTR ulpReadSize);
+			ULONG_PTR ReadBytesToBuffer(BYTE *read_buffer, const ULONG_PTR file_read_size);
 
 	};	// class CFileReader
 

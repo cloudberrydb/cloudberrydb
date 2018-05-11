@@ -26,12 +26,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalInnerApply::CLogicalInnerApply
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalApply(pmp)
+	CLogicalApply(mp)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 
 	m_fPattern = true;
 }
@@ -47,14 +47,14 @@ CLogicalInnerApply::CLogicalInnerApply
 //---------------------------------------------------------------------------
 CLogicalInnerApply::CLogicalInnerApply
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcrInner,
+	IMemoryPool *mp,
+	CColRefArray *pdrgpcrInner,
 	EOperatorId eopidOriginSubq
 	)
 	:
-	CLogicalApply(pmp, pdrgpcrInner, eopidOriginSubq)
+	CLogicalApply(mp, pdrgpcrInner, eopidOriginSubq)
 {
-	GPOS_ASSERT(0 < pdrgpcrInner->UlLength());
+	GPOS_ASSERT(0 < pdrgpcrInner->Size());
 }
 
 
@@ -82,7 +82,7 @@ CLogicalInnerApply::~CLogicalInnerApply()
 CMaxCard
 CLogicalInnerApply::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -101,17 +101,17 @@ CLogicalInnerApply::Maxcard
 CXformSet *
 CLogicalInnerApply::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	) 
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 	
-	(void) pxfs->FExchangeSet(CXform::ExfInnerApply2InnerJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfInnerApply2InnerJoinNoCorrelations);
-	(void) pxfs->FExchangeSet(CXform::ExfInnerApplyWithOuterKey2InnerJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfInnerApply2InnerJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfInnerApply2InnerJoinNoCorrelations);
+	(void) xform_set->ExchangeSet(CXform::ExfInnerApplyWithOuterKey2InnerJoin);
 	
-	return pxfs;
+	return xform_set;
 }
 
 
@@ -126,14 +126,14 @@ CLogicalInnerApply::PxfsCandidates
 COperator *
 CLogicalInnerApply::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPcr *pdrgpcrInner = CUtils::PdrgpcrRemap(pmp, m_pdrgpcrInner, phmulcr, fMustExist);
+	CColRefArray *pdrgpcrInner = CUtils::PdrgpcrRemap(mp, m_pdrgpcrInner, colref_mapping, must_exist);
 
-	return GPOS_NEW(pmp) CLogicalInnerApply(pmp, pdrgpcrInner, m_eopidOriginSubq);
+	return GPOS_NEW(mp) CLogicalInnerApply(mp, pdrgpcrInner, m_eopidOriginSubq);
 }
 
 // EOF

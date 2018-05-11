@@ -28,18 +28,18 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformProject2ComputeScalar::CXformProject2ComputeScalar
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformImplementation
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 						(
-						pmp, 
-						GPOS_NEW(pmp) CLogicalProject(pmp),
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // relational child
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))  // scalar child
+						mp, 
+						GPOS_NEW(mp) CLogicalProject(mp),
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // relational child
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))  // scalar child
 						)
 		)
 {}
@@ -66,7 +66,7 @@ CXformProject2ComputeScalar::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 	
 	// extract components
 	CExpression *pexprRelational = (*pexpr)[0];
@@ -78,10 +78,10 @@ CXformProject2ComputeScalar::Transform
 	
 	// assemble physical operator
 	CExpression *pexprComputeScalar = 
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CPhysicalComputeScalar(pmp),
+					mp,
+					GPOS_NEW(mp) CPhysicalComputeScalar(mp),
 					pexprRelational,
 					pexprScalar
 					);

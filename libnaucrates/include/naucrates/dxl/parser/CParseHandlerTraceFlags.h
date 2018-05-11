@@ -41,7 +41,7 @@ namespace gpdxl
 		private:
 			
 			// trace flag bitset
-			CBitSet *m_pbs;
+			CBitSet *m_trace_flags_bitset;
 		
 			// private copy ctor
 			CParseHandlerTraceFlags(const CParseHandlerTraceFlags&); 
@@ -49,36 +49,36 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor/dtor
 			CParseHandlerTraceFlags
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			virtual ~CParseHandlerTraceFlags();
 			
 			// type of the parse handler
-			EDxlParseHandlerType Edxlphtype() const;
+			EDxlParseHandlerType GetParseHandlerType() const;
 			
 			// accessor
-			CBitSet *Pbs();
+			CBitSet *GetTraceFlagBitSet();
 	};
 }
 

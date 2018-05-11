@@ -52,56 +52,56 @@ CHashMapIterTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// test data
 	ULONG rgul[] = {1,2,3,4,5,6,7,8,9};
 	const ULONG ulCnt = GPOS_ARRAY_SIZE(rgul);
 	
 	typedef CHashMap<ULONG, ULONG, 
-		UlHashPtr<ULONG>, gpos::FEqual<ULONG>,
+		HashPtr<ULONG>, gpos::Equals<ULONG>,
 		CleanupNULL<ULONG>, CleanupNULL<ULONG> > Map;
 
 	typedef CHashMapIter<ULONG, ULONG, 
-		UlHashPtr<ULONG>, gpos::FEqual<ULONG>,
+		HashPtr<ULONG>, gpos::Equals<ULONG>,
 		CleanupNULL<ULONG>, CleanupNULL<ULONG> > MapIter;
 
 
 	// using N - 2 slots guarantees collisions
-	Map *pm = GPOS_NEW(pmp) Map(pmp, ulCnt - 2);
+	Map *pm = GPOS_NEW(mp) Map(mp, ulCnt - 2);
 
 #ifdef GPOS_DEBUG
 
 	// iteration over empty map
 	MapIter miEmpty(pm);
-	GPOS_ASSERT(!miEmpty.FAdvance());
+	GPOS_ASSERT(!miEmpty.Advance());
 	
 #endif // GPOS_DEBUG
 
-	typedef CDynamicPtrArray<const ULONG, CleanupNULL> DrgPul;
-	CAutoRef<DrgPul> pdrgpulKeys(GPOS_NEW(pmp) DrgPul(pmp)), pdrgpulValues(GPOS_NEW(pmp) DrgPul(pmp));
+	typedef CDynamicPtrArray<const ULONG, CleanupNULL> ULongPtrArray;
+	CAutoRef<ULongPtrArray> pdrgpulKeys(GPOS_NEW(mp) ULongPtrArray(mp)), pdrgpulValues(GPOS_NEW(mp) ULongPtrArray(mp));
 	// load map and iterate over it after each step
 	for (ULONG ul = 0; ul < ulCnt; ++ul)
 	{
-		(void) pm->FInsert(&rgul[ul], &rgul[ul]);
+		(void) pm->Insert(&rgul[ul], &rgul[ul]);
 		pdrgpulKeys->Append(&rgul[ul]);
 		pdrgpulValues->Append(&rgul[ul]);
 
-		CAutoRef<DrgPul> pdrgpulIterKeys(GPOS_NEW(pmp) DrgPul(pmp)), pdrgpulIterValues(GPOS_NEW(pmp) DrgPul(pmp));
+		CAutoRef<ULongPtrArray> pdrgpulIterKeys(GPOS_NEW(mp) ULongPtrArray(mp)), pdrgpulIterValues(GPOS_NEW(mp) ULongPtrArray(mp));
 
 		// iterate over full map
 		MapIter mi(pm);
-		while (mi.FAdvance())
+		while (mi.Advance())
 		{
-			pdrgpulIterKeys->Append(mi.Pk());
-			pdrgpulIterValues->Append(mi.Pt());
+			pdrgpulIterKeys->Append(mi.Key());
+			pdrgpulIterValues->Append(mi.Value());
 		}
 
 		pdrgpulIterKeys->Sort();
 		pdrgpulIterValues->Sort();
 
-		GPOS_ASSERT(pdrgpulKeys->FEqual(pdrgpulIterKeys.Pt()));
-		GPOS_ASSERT(pdrgpulValues->FEqual(pdrgpulIterValues.Pt()));
+		GPOS_ASSERT(pdrgpulKeys->Equals(pdrgpulIterKeys.Value()));
+		GPOS_ASSERT(pdrgpulValues->Equals(pdrgpulIterValues.Value()));
 	}
 	
 	pm->Release();

@@ -36,42 +36,42 @@ namespace gpmd
 
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtTrigger;
 			}
 
 			// does trigger execute on a row-level
 			virtual
-			BOOL FRow() const = 0;
+			BOOL ExecutesOnRowLevel() const = 0;
 
 			// is this a before trigger
 			virtual
-			BOOL FBefore() const = 0;
+			BOOL IsBefore() const = 0;
 
 			// is this an insert trigger
 			virtual
-			BOOL FInsert() const = 0;
+			BOOL IsInsert() const = 0;
 
 			// is this a delete trigger
 			virtual
-			BOOL FDelete() const = 0;
+			BOOL IsDelete() const = 0;
 
 			// is this an update trigger
 			virtual
-			BOOL FUpdate() const = 0;
+			BOOL IsUpdate() const = 0;
 
 			// relation mdid
 			virtual
-			IMDId *PmdidRel() const = 0;
+			IMDId *GetRelMdId() const = 0;
 
 			// function mdid
 			virtual
-			IMDId *PmdidFunc() const = 0;
+			IMDId *FuncMdId() const = 0;
 
 			// is trigger enabled
 			virtual
-			BOOL FEnabled() const = 0;
+			BOOL IsEnabled() const = 0;
 	};
 }
 

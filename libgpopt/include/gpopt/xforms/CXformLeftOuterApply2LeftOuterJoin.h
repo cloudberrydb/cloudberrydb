@@ -42,10 +42,10 @@ namespace gpopt
 			explicit
 			CXformLeftOuterApply2LeftOuterJoin
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CXformApply2Join<CLogicalLeftOuterApply, CLogicalLeftOuterJoin>(pmp, true /*fDeepTree*/)
+				CXformApply2Join<CLogicalLeftOuterApply, CLogicalLeftOuterJoin>(mp, true /*fDeepTree*/)
 			{}
 
 			// dtor

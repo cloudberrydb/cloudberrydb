@@ -30,12 +30,12 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarConstValue::CDXLScalarConstValue
 	(
-	IMemoryPool *pmp,
-	CDXLDatum *pdxldatum
+	IMemoryPool *mp,
+	CDXLDatum *dxl_datum
 	)
 	:
-	CDXLScalar(pmp),
-	m_pdxldatum(pdxldatum)
+	CDXLScalar(mp),
+	m_dxl_datum(dxl_datum)
 {
 }
 
@@ -49,20 +49,20 @@ CDXLScalarConstValue::CDXLScalarConstValue
 //---------------------------------------------------------------------------
 CDXLScalarConstValue::~CDXLScalarConstValue()
 {
-	m_pdxldatum->Release();
+	m_dxl_datum->Release();
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarConstValue::Edxlop
+//		CDXLScalarConstValue::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarConstValue::Edxlop() const
+CDXLScalarConstValue::GetDXLOperator() const
 {
 	return EdxlopScalarConstValue;
 }
@@ -70,16 +70,16 @@ CDXLScalarConstValue::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarConstValue::PstrOpName
+//		CDXLScalarConstValue::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarConstValue::PstrOpName() const
+CDXLScalarConstValue::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarConstValue);;
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarConstValue);;
 }
 
 //---------------------------------------------------------------------------
@@ -93,31 +93,31 @@ CDXLScalarConstValue::PstrOpName() const
 void
 CDXLScalarConstValue::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *//pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *//node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
-	m_pdxldatum->Serialize(pxmlser, pstrElemName);
+	const CWStringConst *element_name = GetOpNameStr();
+	m_dxl_datum->Serialize(xml_serializer, element_name);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarConstValue::FBoolean
+//		CDXLScalarConstValue::HasBoolResult
 //
 //	@doc:
 //		Does the operator return boolean result
 //
 //---------------------------------------------------------------------------
 BOOL
-CDXLScalarConstValue::FBoolean
+CDXLScalarConstValue::HasBoolResult
 	(
-	CMDAccessor *pmda
+	CMDAccessor *md_accessor
 	)
 	const
 {
-	return (IMDType::EtiBool == pmda->Pmdtype(m_pdxldatum->Pmdid())->Eti());
+	return (IMDType::EtiBool == md_accessor->RetrieveType(m_dxl_datum->MDId())->GetDatumType());
 }
 
 #ifdef GPOS_DEBUG
@@ -132,13 +132,13 @@ CDXLScalarConstValue::FBoolean
 void
 CDXLScalarConstValue::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL // fValidateChildren 
+	const CDXLNode *node,
+	BOOL // validate_children 
 	) 
 	const
 {
-	GPOS_ASSERT(0 == pdxln->UlArity());
-	GPOS_ASSERT(m_pdxldatum->Pmdid()->FValid());
+	GPOS_ASSERT(0 == node->Arity());
+	GPOS_ASSERT(m_dxl_datum->MDId()->IsValid());
 }
 #endif // GPOS_DEBUG
 

@@ -32,7 +32,7 @@ namespace gpos
 		private:
 
 			// file descriptor
-			INT m_iFileDescr;
+			INT m_file_descriptor;
 
 			// no copy ctor
 			CFileDescriptor(const CFileDescriptor&);
@@ -47,23 +47,23 @@ namespace gpos
 			~CFileDescriptor();
 
 			// get file descriptor
-			INT IFileDescr() const
+			INT GetFileDescriptor() const
 			{
-				return m_iFileDescr;
+				return m_file_descriptor;
 			}
 
 			// open file
-			void OpenInternal(const CHAR *szPath, ULONG ulMode, ULONG ulPerms);
+			void OpenFile(const CHAR *file_path, ULONG mode, ULONG permission_bits);
 
 			// close file
-			void CloseInternal();
+			void CloseFile();
 
 		public:
 
 			// check if file is open
-			BOOL FOpened() const
+			BOOL IsFileOpen() const
 			{
-				return (GPOS_FILE_DESCR_INVALID != m_iFileDescr);
+				return (GPOS_FILE_DESCR_INVALID != m_file_descriptor);
 			}
 
 	};	// class CFile

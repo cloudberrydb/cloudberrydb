@@ -41,20 +41,20 @@ namespace gpmd
 		public:
 			// type id
 			static
-			ETypeInfo EtiType()
+			ETypeInfo GetTypeInfo()
 			{
 				return EtiOid;
 			}
 
 			virtual
-			ETypeInfo Eti() const
+			ETypeInfo GetDatumType() const
 			{
-				return IMDTypeOid::EtiType();
+				return IMDTypeOid::GetTypeInfo();
 			}
 
 			// factory function for OID datums
 			virtual
-			IDatumOid *PdatumOid(IMemoryPool *pmp, OID oidValue, BOOL fNull) const = 0;
+			IDatumOid *CreateOidDatum(IMemoryPool *mp, OID oid_value, BOOL is_null) const = 0;
 	};
 }
 

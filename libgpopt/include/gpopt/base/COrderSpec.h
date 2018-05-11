@@ -25,7 +25,7 @@ namespace gpopt
 
 	// type definition of corresponding dynamic pointer array
 	class COrderSpec;
-	typedef CDynamicPtrArray<COrderSpec, CleanupRelease> DrgPos;
+	typedef CDynamicPtrArray<COrderSpec, CleanupRelease> COrderSpecArray;
 
 	using namespace gpos;
 	
@@ -73,7 +73,7 @@ namespace gpopt
 				private:
 				
 					// MD id of sort operator
-					gpmd::IMDId *m_pmdid;
+					gpmd::IMDId *m_mdid;
 					
 					// sort column
 					const CColRef *m_pcr;
@@ -87,16 +87,16 @@ namespace gpopt
 				public:
 					
 					// ctor
-					COrderExpression(gpmd::IMDId *pmdid, const CColRef *pcr, ENullTreatment ent);
+					COrderExpression(gpmd::IMDId *mdid, const CColRef *colref, ENullTreatment ent);
 					
 					// dtor
 					virtual
 					~COrderExpression();
 					
 					// accessor of sort operator midid
-					gpmd::IMDId *PmdidSortOp() const
+					gpmd::IMDId *GetMdIdSortOp() const
 					{
-						return m_pmdid;
+						return m_mdid;
 					}
 					
 					// accessor of sort column
@@ -112,7 +112,7 @@ namespace gpopt
 					}
 					
 					// check if order specs match
-					BOOL FMatch(const COrderExpression *poe) const;
+					BOOL Matches(const COrderExpression *poe) const;
 					
 					// print
 					IOstream &OsPrint(IOstream &os) const;
@@ -125,14 +125,14 @@ namespace gpopt
 			}; // class COrderExpression
 
 			// array of order expressions
-			typedef CDynamicPtrArray<COrderExpression, CleanupDelete> DrgPoe;
+			typedef CDynamicPtrArray<COrderExpression, CleanupDelete> COrderExpressionArray;
 
 		
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 		
 			// components of order spec
-			DrgPoe *m_pdrgpoe;
+			COrderExpressionArray *m_pdrgpoe;
 
 			// private copy ctor
 			COrderSpec(const COrderSpec &);
@@ -144,7 +144,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			COrderSpec(IMemoryPool *pmp);
+			COrderSpec(IMemoryPool *mp);
 			
 			// dtor
 			virtual
@@ -153,14 +153,14 @@ namespace gpopt
 			// number of sort expressions
 			ULONG UlSortColumns() const
 			{
-				return m_pdrgpoe->UlLength();
+				return m_pdrgpoe->Size();
 			}
 			
 			// accessor of sort operator of the n-th component
-			IMDId *PmdidSortOp(ULONG ul) const
+			IMDId *GetMdIdSortOp(ULONG ul) const
 			{				
 				COrderExpression *poe = (*m_pdrgpoe)[ul]; 
-				return poe->PmdidSortOp();
+				return poe->GetMdIdSortOp();
 			}
 			
 			// accessor of sort column of the n-th component
@@ -178,17 +178,17 @@ namespace gpopt
 			}
 
 			// check if order spec has no columns
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
 			{
 				return UlSortColumns() == 0;
 			}
 			
 			// append new component
-			void Append(gpmd::IMDId *pmdid, const CColRef *pcr, ENullTreatment ent);
+			void Append(gpmd::IMDId *mdid, const CColRef *colref, ENullTreatment ent);
 			
 			// extract colref set of order columns
 			virtual
-			CColRefSet *PcrsUsed(IMemoryPool *pmp) const;
+			CColRefSet *PcrsUsed(IMemoryPool *mp) const;
 
 			// property type
 			virtual
@@ -198,26 +198,26 @@ namespace gpopt
 			}
 
 			// check if order specs match
- 			BOOL FMatch(const COrderSpec *pos) const;
+ 			BOOL Matches(const COrderSpec *pos) const;
 			
 			// check if order specs satisfies req'd spec
 			BOOL FSatisfies(const COrderSpec *pos) const;
 			
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *pmp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, DrgPexpr *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// return a copy of the order spec with remapped columns
 			virtual
-			COrderSpec *PosCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COrderSpec *PosCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// return a copy of the order spec after excluding the given columns
 			virtual
-			COrderSpec *PosExcludeColumns(IMemoryPool *pmp, CColRefSet *pcrs);
+			COrderSpec *PosExcludeColumns(IMemoryPool *mp, CColRefSet *pcrs);
 
 			// print
 			virtual
@@ -225,23 +225,23 @@ namespace gpopt
 
 			// matching function over order spec arrays
 			static
-			BOOL FEqual(const DrgPos *pdrgposFirst, const DrgPos *pdrgposSecond);
+			BOOL Equals(const COrderSpecArray *pdrgposFirst, const COrderSpecArray *pdrgposSecond);
 
 			// combine hash values of a maximum number of entries
 			static
-			ULONG UlHash(const DrgPos *pdrgpos, ULONG ulMaxSize);
+			ULONG HashValue(const COrderSpecArray *pdrgpos, ULONG ulMaxSize);
 
 			// print array of order spec objects
 			static
-			IOstream &OsPrint(IOstream &os, const DrgPos *pdrgpos);
+			IOstream &OsPrint(IOstream &os, const COrderSpecArray *pdrgpos);
 
 			// extract colref set of order columns used by elements of order spec array
 			static
-			CColRefSet *Pcrs(IMemoryPool *pmp, DrgPos *pdrgpos);
+			CColRefSet *GetColRefSet(IMemoryPool *mp, COrderSpecArray *pdrgpos);
 
 			// filter out array of order specs from order expressions using the passed columns
 			static
-			DrgPos *PdrgposExclude(IMemoryPool *pmp, DrgPos *pdrgpos, CColRefSet *pcrsToExclude);
+			COrderSpecArray *PdrgposExclude(IMemoryPool *mp, COrderSpecArray *pdrgpos, CColRefSet *pcrsToExclude);
 
 						
 	}; // class COrderSpec

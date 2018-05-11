@@ -30,12 +30,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalLeftOuterJoin::CLogicalLeftOuterJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalJoin(pmp)
+	CLogicalJoin(mp)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 }
 
 
@@ -50,12 +50,12 @@ CLogicalLeftOuterJoin::CLogicalLeftOuterJoin
 CMaxCard
 CLogicalLeftOuterJoin::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.Pdprel(0)->Maxcard());
+	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, exprhdl.GetRelationalProperties(0)->Maxcard());
 }
 
 //---------------------------------------------------------------------------
@@ -69,23 +69,23 @@ CLogicalLeftOuterJoin::Maxcard
 CXformSet *
 CLogicalLeftOuterJoin::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	) 
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 
-	(void) pxfs->FExchangeSet(CXform::ExfPushDownLeftOuterJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfSimplifyLeftOuterJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterJoin2BitmapIndexGetApply);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterJoin2IndexGetApply);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterJoin2NLJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterJoin2HashJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuter2InnerUnionAllLeftAntiSemiJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterJoinWithInnerSelect2BitmapIndexGetApply);
-	(void) pxfs->FExchangeSet(CXform::ExfLeftOuterJoinWithInnerSelect2IndexGetApply);
+	(void) xform_set->ExchangeSet(CXform::ExfPushDownLeftOuterJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfSimplifyLeftOuterJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterJoin2BitmapIndexGetApply);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterJoin2IndexGetApply);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterJoin2NLJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterJoin2HashJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuter2InnerUnionAllLeftAntiSemiJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterJoinWithInnerSelect2BitmapIndexGetApply);
+	(void) xform_set->ExchangeSet(CXform::ExfLeftOuterJoinWithInnerSelect2IndexGetApply);
 
-	return pxfs;
+	return xform_set;
 }
 
 

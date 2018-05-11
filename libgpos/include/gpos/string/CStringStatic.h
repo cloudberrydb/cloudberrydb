@@ -14,7 +14,7 @@
 #include "gpos/base.h"
 #include "gpos/common/clibwrapper.h"
 
-#define GPOS_SZ_LENGTH(x) gpos::clib::UlStrLen(x)
+#define GPOS_SZ_LENGTH(x) gpos::clib::Strlen(x)
 
 // use this character to substitute non-ASCII wide characters
 #define GPOS_WCHAR_UNPRINTABLE	'.'
@@ -43,18 +43,18 @@ namespace gpos
 		private:
 
 			// null-terminated wide character buffer
-			CHAR *m_szBuf;
+			CHAR *m_buffer;
 
 			// size of the string in number of CHAR units,
 			// not counting the terminating '\0'
-			ULONG m_ulLength;
+			ULONG m_length;
 
 			// buffer capacity
-			ULONG m_ulCapacity;
+			ULONG m_capacity;
 
 #ifdef GPOS_DEBUG
 			// checks whether a string is properly null-terminated
-			bool FValid() const;
+			bool IsValid() const;
 #endif // GPOS_DEBUG
 
 			// private copy ctor
@@ -63,50 +63,50 @@ namespace gpos
 		public:
 
 			// ctor
-			CStringStatic(CHAR szBuffer[], ULONG ulCapacity);
+			CStringStatic(CHAR buffer[], ULONG capacity);
 
 			// ctor with string initialization
-			CStringStatic(CHAR szBuffer[], ULONG ulCapacity, const CHAR szInit[]);
+			CStringStatic(CHAR buffer[], ULONG capacity, const CHAR init_str[]);
 
 			// dtor - owner is responsible for releasing the buffer
 			~CStringStatic()
 			{}
 
 			// returns the wide character buffer storing the string
-			const CHAR* Sz() const
+			const CHAR* Buffer() const
 			{
-				return m_szBuf;
+				return m_buffer;
 			}
 
 			// returns the string length
-			ULONG UlLength() const
+			ULONG Length() const
 			{
-				return m_ulLength;
+				return m_length;
 			}
 
 			// checks whether the string contains any characters
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
 			{
-				return (0 == m_ulLength);
+				return (0 == m_length);
 			}
 
 			// checks whether the string is byte-wise equal to a given string literal
-			BOOL FEquals(const CHAR *szBuf) const;
+			BOOL Equals(const CHAR *buf) const;
 
 			// appends a string
-			void Append(const CStringStatic *pstr);
+			void Append(const CStringStatic *str);
 
 			// appends the contents of a buffer to the current string
-			void AppendBuffer(const CHAR *szBuf);
+			void AppendBuffer(const CHAR *buf);
 
 			// appends a formatted string
-			void AppendFormat(const CHAR *szFormat, ...);
+			void AppendFormat(const CHAR *format, ...);
 
 			// appends a formatted string based on passed va list
-			void AppendFormatVA(const CHAR *szFormat, VA_LIST vaArgs);
+			void AppendFormatVA(const CHAR *format, VA_LIST va_args);
 
 			// appends wide character string
-			void AppendConvert(const WCHAR *wsz);
+			void AppendConvert(const WCHAR *wc_str);
 
 			// resets string
 			void Reset();

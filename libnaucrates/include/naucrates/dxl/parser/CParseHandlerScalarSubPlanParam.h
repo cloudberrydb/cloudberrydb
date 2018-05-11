@@ -35,7 +35,7 @@ namespace gpdxl
 		private:
 	
 			// column reference
-			CDXLColRef *m_pdxlcr;
+			CDXLColRef *m_dxl_colref;
 
 			// private copy ctor
 			CParseHandlerScalarSubPlanParam(const CParseHandlerScalarSubPlanParam &);
@@ -43,44 +43,44 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 					(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 					);
 	
 			// process the end of an element
 			void EndElement
 					(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 					);
 	
 		public:
 			// ctor/dtor
 			CParseHandlerScalarSubPlanParam
 					(
-					IMemoryPool *pmp,
-					CParseHandlerManager *pphm,
-					CParseHandlerBase *pphRoot
+					IMemoryPool *mp,
+					CParseHandlerManager *parse_handler_mgr,
+					CParseHandlerBase *parse_handler_root
 					);
 
 			virtual
 			~CParseHandlerScalarSubPlanParam();
 
 			// return column reference
-			CDXLColRef *Pdxlcr(void)
+			CDXLColRef *MakeDXLColRef(void)
 			const
 			{
-				return m_pdxlcr;
+				return m_dxl_colref;
 			}
 
 			// return param type
-			IMDId *Pmdid(void)
+			IMDId *MDId(void)
 			const
 			{
-				return m_pdxlcr->PmdidType();
+				return m_dxl_colref->MdidType();
 			}
 	};
 

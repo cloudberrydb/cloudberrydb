@@ -67,13 +67,13 @@ const CHAR *rgszFileNames[] =
 struct UnSupportedTestCase
 {
 	// file name of minidump
-	const CHAR *szFilename;
+	const CHAR *filename;
 
 	// expected exception major
-	ULONG ulMajor;
+	ULONG major;
 
 	// expected exception minor
-	ULONG ulMinor;
+	ULONG minor;
 };
 
 // unsupported minidump files
@@ -161,36 +161,36 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 {
 
 	// enable (Redistribute, Broadcast) hash join plans
-	CAutoTraceFlag atf1(EopttraceEnableRedistributeBroadcastHashJoin, true /*fVal*/);
+	CAutoTraceFlag atf1(EopttraceEnableRedistributeBroadcastHashJoin, true /*value*/);
 
 	CAutoTraceFlag atf2(EopttraceDisableXformBase + CXform::ExfDynamicGet2DynamicTableScan, true);
 	
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 	
 	GPOS_RESULT eres = GPOS_OK;
 	const ULONG ulTests = GPOS_ARRAY_SIZE(unSupportedTestCases);
 	for (ULONG ul = m_ulUnsupportedTestCounter; ul < ulTests; ul++)
 	{
-		const CHAR *szFilename = unSupportedTestCases[ul].szFilename;
-		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, szFilename);
+		const CHAR *filename = unSupportedTestCases[ul].filename;
+		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(mp, filename);
 		bool unmatchedException = false;
 		ULONG unmatchedExceptionMajor = 0;
 		ULONG unmatchedExceptionMinor = 0;
 
 		GPOS_TRY
 		{
-			ICostModel *pcm = CTestUtils::Pcm(pmp);
+			ICostModel *pcm = CTestUtils::GetCostModel(mp);
 
-			COptimizerConfig *poconf = pdxlmd->Poconf();
+			COptimizerConfig *optimizer_config = pdxlmd->GetOptimizerConfig();
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 									(
-									pmp, 
-									szFilename,
-									poconf->Pcm()->UlHosts() /*ulSegments*/,
+									mp,
+									filename,
+									optimizer_config->GetCostModel()->UlHosts() /*ulSegments*/,
 									1 /*ulSessionId*/, 
 									1, /*ulCmdId*/
-									poconf,
+									optimizer_config,
 									NULL /*pceeval*/
 									);
 
@@ -205,12 +205,12 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 		}
 		GPOS_CATCH_EX(ex)
 		{
-			unmatchedExceptionMajor = ex.UlMajor();
-			unmatchedExceptionMinor = ex.UlMinor();
+			unmatchedExceptionMajor = ex.Major();
+			unmatchedExceptionMinor = ex.Minor();
 
 			// verify expected exception
-			if (unSupportedTestCases[ul].ulMajor == unmatchedExceptionMajor
-					&& unSupportedTestCases[ul].ulMinor == unmatchedExceptionMinor)
+			if (unSupportedTestCases[ul].major == unmatchedExceptionMajor
+					&& unSupportedTestCases[ul].minor == unmatchedExceptionMinor)
 			{
 				eres = GPOS_OK;
 			}
@@ -228,9 +228,9 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 
 		if (GPOS_FAILED == eres && unmatchedException)
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			at.Os() << "Test failed due to unmatched exceptions." << std::endl;
-			at.Os() << " Expected result: " << unSupportedTestCases[ul].ulMajor << "." << unSupportedTestCases[ul].ulMinor << std::endl;
+			at.Os() << " Expected result: " << unSupportedTestCases[ul].major << "." << unSupportedTestCases[ul].minor << std::endl;
 			at.Os() << " Actual result: " << unmatchedExceptionMajor << "." << unmatchedExceptionMinor << std::endl;
 		}
 	}
@@ -257,7 +257,7 @@ GPOS_RESULT
 CICGTest::EresUnittest_NegativeIndexApplyTests()
 {
 	// enable (Redistribute, Broadcast) hash join plans
-	CAutoTraceFlag atf(EopttraceEnableRedistributeBroadcastHashJoin, true /*fVal*/);
+	CAutoTraceFlag atf(EopttraceEnableRedistributeBroadcastHashJoin, true /*value*/);
 
 	// disable physical scans and NLJ to force using index-apply
 	CAutoTraceFlag atfDTS(EopttraceDisableXformBase + CXform::ExfDynamicGet2DynamicTableScan, true);
@@ -265,7 +265,7 @@ CICGTest::EresUnittest_NegativeIndexApplyTests()
 	CAutoTraceFlag atfNLJ(EopttraceDisableXformBase + CXform::ExfInnerJoin2NLJoin, true);
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	GPOS_RESULT eres = GPOS_OK;
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszNegativeIndexApplyFileNames);
@@ -273,29 +273,29 @@ CICGTest::EresUnittest_NegativeIndexApplyTests()
 	{
 		GPOS_TRY
 		{
-			ICostModel *pcm = CTestUtils::Pcm(pmp);
+			ICostModel *pcm = CTestUtils::GetCostModel(mp);
 
-			COptimizerConfig *poconf = GPOS_NEW(pmp) COptimizerConfig
+			COptimizerConfig *optimizer_config = GPOS_NEW(mp) COptimizerConfig
 						(
-						CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
-						CStatisticsConfig::PstatsconfDefault(pmp),
-						CCTEConfig::PcteconfDefault(pmp),
+						CEnumeratorConfig::GetEnumeratorCfg(mp, 0 /*plan_id*/),
+						CStatisticsConfig::PstatsconfDefault(mp),
+						CCTEConfig::PcteconfDefault(mp),
 						pcm,
-						CHint::PhintDefault(pmp),
-						CWindowOids::Pwindowoids(pmp)
+						CHint::PhintDefault(mp),
+						CWindowOids::GetWindowOids(mp)
 						);
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 									(
-									pmp,
+									mp,
 									rgszNegativeIndexApplyFileNames[ul],
 									GPOPT_TEST_SEGMENTS /*ulSegments*/,
 									1 /*ulSessionId*/,
 									1, /*ulCmdId*/
-									poconf,
+									optimizer_config,
 									NULL /*pceeval*/
 									);
 			GPOS_CHECK_ABORT;
-			poconf->Release();
+			optimizer_config->Release();
 			pdxlnPlan->Release();
 			pcm->Release();
 
@@ -343,13 +343,13 @@ CICGTest::FDXLOpSatisfiesPredicate
 {
 	using namespace gpdxl;
 
-	CDXLOperator *pdxlop = pdxl->Pdxlop();
-	if (!fdop(pdxlop))
+	CDXLOperator *dxl_op = pdxl->GetOperator();
+	if (!fdop(dxl_op))
 	{
 		return false;
 	}
 
-	for (ULONG ul = 0; ul < pdxl->UlArity(); ul++)
+	for (ULONG ul = 0; ul < pdxl->Arity(); ul++)
 	{
 		if (!FDXLOpSatisfiesPredicate((*pdxl)[ul], fdop))
 		{
@@ -372,12 +372,12 @@ CICGTest::FDXLOpSatisfiesPredicate
 BOOL
 CICGTest::FIsNotIndexJoin
 	(
-	CDXLOperator *pdxlop
+	CDXLOperator *dxl_op
 	)
 {
-	if (EdxlopPhysicalNLJoin == pdxlop->Edxlop())
+	if (EdxlopPhysicalNLJoin == dxl_op->GetDXLOperator())
 	{
-		if (CDXLPhysicalNLJoin::PdxlConvert(pdxlop)->FIndexNLJ())
+		if (CDXLPhysicalNLJoin::PdxlConvert(dxl_op)->IsIndexNLJ())
 		{
 			return false;
 		}
@@ -416,15 +416,15 @@ GPOS_RESULT
 CICGTest::EresUnittest_PreferHashJoinVersusIndexJoinWhenRiskIsHigh()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// enable (Redistribute, Broadcast) hash join plans
-	CAutoTraceFlag atf(EopttraceEnableRedistributeBroadcastHashJoin, true /*fVal*/);
+	CAutoTraceFlag atf(EopttraceEnableRedistributeBroadcastHashJoin, true /*value*/);
 
 	// When the risk threshold is infinite, we should pick index join
-	DrgPcp *pdrgpcpUnlimited = GPOS_NEW(pmp) DrgPcp(pmp);
+	ICostModelParamsArray *pdrgpcpUnlimited = GPOS_NEW(mp) ICostModelParamsArray(mp);
 	ICostModelParams::SCostParam *pcpUnlimited =
-		GPOS_NEW(pmp) ICostModelParams::SCostParam(
+		GPOS_NEW(mp) ICostModelParams::SCostParam(
 			CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold,
 			gpos::ulong_max,  // dVal
 			0,				  // dLowerBound
@@ -449,8 +449,8 @@ CICGTest::EresUnittest_PreferHashJoinVersusIndexJoinWhenRiskIsHigh()
 	}
 
 	// When the risk threshold is zero, we should not pick index join
-	DrgPcp *pdrgpcpNoIndexJoin = GPOS_NEW(pmp) DrgPcp(pmp);
-	ICostModelParams::SCostParam *pcpNoIndexJoin = GPOS_NEW(pmp) ICostModelParams::SCostParam
+	ICostModelParamsArray *pdrgpcpNoIndexJoin = GPOS_NEW(mp) ICostModelParamsArray(mp);
+	ICostModelParams::SCostParam *pcpNoIndexJoin = GPOS_NEW(mp) ICostModelParams::SCostParam
 								(
 								CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold,
 								0,  // dVal

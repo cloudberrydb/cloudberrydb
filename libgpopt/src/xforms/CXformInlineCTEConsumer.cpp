@@ -28,16 +28,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformInlineCTEConsumer::CXformInlineCTEConsumer
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalCTEConsumer(pmp)
+				mp,
+				GPOS_NEW(mp) CLogicalCTEConsumer(mp)
 				)
 		)
 {}
@@ -57,11 +57,11 @@ CXformInlineCTEConsumer::Exfp
 	)
 	const
 {
-	const ULONG ulId = CLogicalCTEConsumer::PopConvert(exprhdl.Pop())->UlCTEId();
+	const ULONG id = CLogicalCTEConsumer::PopConvert(exprhdl.Pop())->UlCTEId();
 	CCTEInfo *pcteinfo = COptCtxt::PoctxtFromTLS()->Pcteinfo();
 
-	if ((pcteinfo->FEnableInlining() || 1 == pcteinfo->UlConsumers(ulId)) &&
-		CXformUtils::FInlinableCTE(ulId))
+	if ((pcteinfo->FEnableInlining() || 1 == pcteinfo->UlConsumers(id)) &&
+		CXformUtils::FInlinableCTE(id))
 	{
 		return CXform::ExfpHigh;
 	}

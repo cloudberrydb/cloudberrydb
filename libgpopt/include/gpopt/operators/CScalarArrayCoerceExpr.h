@@ -42,7 +42,7 @@ namespace gpopt
 			IMDId *m_pmdidElementFunc;
 
 			// conversion semantics flag to pass to func
-			BOOL m_fIsExplicit;
+			BOOL m_is_explicit;
 
 			// private copy ctor
 			CScalarArrayCoerceExpr(const CScalarArrayCoerceExpr &);
@@ -52,13 +52,13 @@ namespace gpopt
 			// ctor
 			CScalarArrayCoerceExpr
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidElementFunc,
-				IMDId *pmdidResultType,
-				INT iTypeModifier,
-				BOOL fIsExplicit,
-				ECoercionForm edxlcf,
-				INT iLoc
+				IMemoryPool *mp,
+				IMDId *element_func,
+				IMDId *result_type_mdid,
+				INT type_modifier,
+				BOOL is_explicit,
+				ECoercionForm dxl_coerce_format,
+				INT location
 				);
 
 			// dtor
@@ -68,7 +68,7 @@ namespace gpopt
 			// return metadata id of element coerce function
 			IMDId *PmdidElementFunc() const;
 
-			BOOL FIsExplicit() const;
+			BOOL IsExplicit() const;
 
 			virtual
 			EOperatorId Eopid() const;
@@ -79,7 +79,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch
+			BOOL Matches
 				(
 				COperator *pop
 				) const;

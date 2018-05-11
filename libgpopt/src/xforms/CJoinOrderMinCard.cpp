@@ -38,12 +38,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CJoinOrderMinCard::CJoinOrderMinCard
 	(
-	IMemoryPool *pmp,
-	DrgPexpr *pdrgpexprComponents,
-	DrgPexpr *pdrgpexprConjuncts
+	IMemoryPool *mp,
+	CExpressionArray *pdrgpexprComponents,
+	CExpressionArray *pdrgpexprConjuncts
 	)
 	:
-	CJoinOrder(pmp, pdrgpexprComponents, pdrgpexprConjuncts),
+	CJoinOrder(mp, pdrgpexprComponents, pdrgpexprConjuncts),
 	m_pcompResult(NULL)
 {
 #ifdef GPOS_DEBUG
@@ -84,17 +84,17 @@ CJoinOrderMinCard::MarkUsedEdges()
 	GPOS_ASSERT(NULL != m_pcompResult);
 
 	CExpression *pexpr = m_pcompResult->m_pexpr;
-	COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
-	if (0 == pexpr->UlArity() ||
-		(COperator::EopLogicalSelect != eopid && COperator::EopLogicalInnerJoin != eopid))
+	COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
+	if (0 == pexpr->Arity() ||
+		(COperator::EopLogicalSelect != op_id && COperator::EopLogicalInnerJoin != op_id))
 	{
 		// result component does not have a scalar child, e.g. a Get node
 		return;
 	}
 
-	CExpression *pexprScalar = (*pexpr) [pexpr->UlArity() - 1];
-	DrgPexpr *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(m_pmp, pexprScalar);
-	const ULONG ulSize = pdrgpexpr->UlLength();
+	CExpression *pexprScalar = (*pexpr) [pexpr->Arity() - 1];
+	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprScalar);
+	const ULONG size = pdrgpexpr->Size();
 
 	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
 	{
@@ -104,7 +104,7 @@ CJoinOrderMinCard::MarkUsedEdges()
 			continue;
 		}
 
-		for (ULONG ulPred = 0; ulPred < ulSize; ulPred++)
+		for (ULONG ulPred = 0; ulPred < size; ulPred++)
 		{
 			if ((*pdrgpexpr)[ulPred] == pedge->m_pexpr)
 			{
@@ -128,7 +128,7 @@ CJoinOrderMinCard::PexprExpand()
 {
 	GPOS_ASSERT(NULL == m_pcompResult && "join order is already expanded");
 
-	m_pcompResult = GPOS_NEW(m_pmp) SComponent(m_pmp, NULL /*pexpr*/);
+	m_pcompResult = GPOS_NEW(m_mp) SComponent(m_mp, NULL /*pexpr*/);
 	ULONG ulCoveredComps = 0;
 	while (ulCoveredComps < m_ulComps)
 	{
@@ -148,12 +148,12 @@ CJoinOrderMinCard::PexprExpand()
 			// combine component with current result and derive stats
 			CJoinOrder::SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
 			DeriveStats(pcompTemp->m_pexpr);
-			CDouble dRows = pcompTemp->m_pexpr->Pstats()->DRows();
+			CDouble rows = pcompTemp->m_pexpr->Pstats()->Rows();
 
-			if (NULL == pcompBestResult || dRows < dMinRows)
+			if (NULL == pcompBestResult || rows < dMinRows)
 			{
 				pcompBest = pcompCurrent;
-				dMinRows = dRows;
+				dMinRows = rows;
 				pcompTemp->AddRef();
 				CRefCount::SafeRelease(pcompBestResult);
 				pcompBestResult = pcompTemp;

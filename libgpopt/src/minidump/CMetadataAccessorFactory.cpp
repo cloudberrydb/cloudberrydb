@@ -10,32 +10,32 @@ namespace gpopt
 {
 	CMetadataAccessorFactory::CMetadataAccessorFactory
 		(
-			IMemoryPool *pmp,
+			IMemoryPool *mp,
 			CDXLMinidump *pdxlmd,
-			const CHAR *szFileName
+			const CHAR *file_name
 		)
 	{
 
 		// set up MD providers
-		CAutoRef<CMDProviderMemory> apmdp(GPOS_NEW(pmp) CMDProviderMemory(pmp, szFileName));
-		const DrgPsysid *pdrgpsysid = pdxlmd->Pdrgpsysid();
-		CAutoRef<DrgPmdp> apdrgpmdp(GPOS_NEW(pmp) DrgPmdp(pmp));
+		CAutoRef<CMDProviderMemory> apmdp(GPOS_NEW(mp) CMDProviderMemory(mp, file_name));
+		const CSystemIdArray *pdrgpsysid = pdxlmd->GetSysidPtrArray();
+		CAutoRef<CMDProviderArray> apdrgpmdp(GPOS_NEW(mp) CMDProviderArray(mp));
 
 		// ensure there is at least ONE system id
 		apmdp->AddRef();
-		apdrgpmdp->Append(apmdp.Pt());
+		apdrgpmdp->Append(apmdp.Value());
 
-		for (ULONG ul = 1; ul < pdrgpsysid->UlLength(); ul++)
+		for (ULONG ul = 1; ul < pdrgpsysid->Size(); ul++)
 		{
 			apmdp->AddRef();
-			apdrgpmdp->Append(apmdp.Pt());
+			apdrgpmdp->Append(apmdp.Value());
 		}
 
-		m_apmda = GPOS_NEW(pmp) CMDAccessor(pmp, CMDCache::Pcache(), pdxlmd->Pdrgpsysid(), apdrgpmdp.Pt());
+		m_apmda = GPOS_NEW(mp) CMDAccessor(mp, CMDCache::Pcache(), pdxlmd->GetSysidPtrArray(), apdrgpmdp.Value());
 	}
 
 	CMDAccessor *CMetadataAccessorFactory::Pmda()
 	{
-		return m_apmda.Pt();
+		return m_apmda.Value();
 	}
 }

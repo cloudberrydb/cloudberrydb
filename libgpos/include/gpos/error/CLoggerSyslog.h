@@ -31,36 +31,36 @@ namespace gpos
 		private:
 
 			// executable name
-			const CHAR *m_szProcName;
+			const CHAR *m_proc_name;
 
 			// initialization flags
-			ULONG m_ulInitMask;
+			ULONG m_init_mask;
 
 			// message priotity
-			ULONG m_ulMessagePriority;
+			ULONG m_message_priority;
 
 			// no copy ctor
 			CLoggerSyslog(const CLoggerSyslog&);
 
 			// write string to syslog
-			void Write(const WCHAR *wszLogEntry, ULONG ulSev);
+			void Write(const WCHAR *log_entry, ULONG severity);
 
-			static CLoggerSyslog m_loggerAlert;
+			static CLoggerSyslog m_alert_logger;
 
 		public:
 			// ctor
 			CLoggerSyslog
 				(
-				const CHAR *szProcName,
-				ULONG ulInitMask,
-				ULONG ulMessagePriority
+				const CHAR *proc_name,
+				ULONG init_mask,
+				ULONG message_priority
 				);
 
 			// dtor
 			virtual	~CLoggerSyslog();
 
 			// write alert message to syslog - use ASCII characters only
-			static void Alert(const WCHAR *wszMsg);
+			static void Alert(const WCHAR *msg);
 
 	};	// class CLoggerSyslog
 }

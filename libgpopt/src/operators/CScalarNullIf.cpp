@@ -35,23 +35,23 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarNullIf::CScalarNullIf
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidOp,
-	IMDId *pmdidType
+	IMemoryPool *mp,
+	IMDId *mdid_op,
+	IMDId *mdid_type
 	)
 	:
-	CScalar(pmp),
-	m_pmdidOp(pmdidOp),
-	m_pmdidType(pmdidType),
-	m_fReturnsNullOnNullInput(false),
+	CScalar(mp),
+	m_mdid_op(mdid_op),
+	m_mdid_type(mdid_type),
+	m_returns_null_on_null_input(false),
 	m_fBoolReturnType(false)
 {
-	GPOS_ASSERT(pmdidOp->FValid());
-	GPOS_ASSERT(pmdidType->FValid());
+	GPOS_ASSERT(mdid_op->IsValid());
+	GPOS_ASSERT(mdid_type->IsValid());
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_fReturnsNullOnNullInput = CMDAccessorUtils::FScalarOpReturnsNullOnNullInput(pmda, m_pmdidOp);
-	m_fBoolReturnType = CMDAccessorUtils::FBoolType(pmda, m_pmdidType);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	m_returns_null_on_null_input = CMDAccessorUtils::FScalarOpReturnsNullOnNullInput(md_accessor, m_mdid_op);
+	m_fBoolReturnType = CMDAccessorUtils::FBoolType(md_accessor, m_mdid_type);
 }
 
 
@@ -65,13 +65,13 @@ CScalarNullIf::CScalarNullIf
 //---------------------------------------------------------------------------
 CScalarNullIf::~CScalarNullIf()
 {
-	m_pmdidOp->Release();
-	m_pmdidType->Release();
+	m_mdid_op->Release();
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarNullIf::UlHash
+//		CScalarNullIf::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -79,22 +79,22 @@ CScalarNullIf::~CScalarNullIf()
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarNullIf::UlHash() const
+CScalarNullIf::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(),
-			gpos::UlCombineHashes(m_pmdidOp->UlHash(),m_pmdidType->UlHash()));
+	return gpos::CombineHashes(COperator::HashValue(),
+			gpos::CombineHashes(m_mdid_op->HashValue(),m_mdid_type->HashValue()));
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarNullIf::FMatch
+//		CScalarNullIf::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarNullIf::FMatch
+CScalarNullIf::Matches
 	(
 	COperator *pop
 	)
@@ -108,8 +108,8 @@ CScalarNullIf::FMatch
 	CScalarNullIf *popScNullIf = CScalarNullIf::PopConvert(pop);
 
 	// match if operators and return types are identical
-	return m_pmdidOp->FEquals(popScNullIf->PmdidOp()) &&
-			m_pmdidType->FEquals(popScNullIf->PmdidType());
+	return m_mdid_op->Equals(popScNullIf->MdIdOp()) &&
+			m_mdid_type->Equals(popScNullIf->MdidType());
 }
 
 
@@ -124,11 +124,11 @@ CScalarNullIf::FMatch
 CScalar::EBoolEvalResult
 CScalarNullIf::Eber
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 	const
 {
-	if (m_fReturnsNullOnNullInput)
+	if (m_returns_null_on_null_input)
 	{
 		return EberNullOnAnyNullChild(pdrgpulChildren);
 	}

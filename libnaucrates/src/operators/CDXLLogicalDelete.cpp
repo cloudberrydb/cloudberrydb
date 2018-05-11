@@ -30,21 +30,21 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalDelete::CDXLLogicalDelete
 	(
-	IMemoryPool *pmp,
-	CDXLTableDescr *pdxltabdesc,
-	ULONG ulCtid,
-	ULONG ulSegmentId,
-	DrgPul *pdrgpulDelete
+	IMemoryPool *mp,
+	CDXLTableDescr *table_descr,
+	ULONG ctid_colid,
+	ULONG segid_colid,
+	ULongPtrArray *delete_colid_array
 	)
 	:
-	CDXLLogical(pmp),
-	m_pdxltabdesc(pdxltabdesc),
-	m_ulCtid(ulCtid),
-	m_ulSegmentId(ulSegmentId),
-	m_pdrgpulDelete(pdrgpulDelete)
+	CDXLLogical(mp),
+	m_dxl_table_descr(table_descr),
+	m_ctid_colid(ctid_colid),
+	m_segid_colid(segid_colid),
+	m_deletion_colid_array(delete_colid_array)
 {
-	GPOS_ASSERT(NULL != pdxltabdesc);
-	GPOS_ASSERT(NULL != pdrgpulDelete);
+	GPOS_ASSERT(NULL != table_descr);
+	GPOS_ASSERT(NULL != delete_colid_array);
 }
 
 //---------------------------------------------------------------------------
@@ -57,36 +57,36 @@ CDXLLogicalDelete::CDXLLogicalDelete
 //---------------------------------------------------------------------------
 CDXLLogicalDelete::~CDXLLogicalDelete()
 {
-	m_pdxltabdesc->Release();
-	m_pdrgpulDelete->Release();
+	m_dxl_table_descr->Release();
+	m_deletion_colid_array->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalDelete::Edxlop
+//		CDXLLogicalDelete::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLLogicalDelete::Edxlop() const
+CDXLLogicalDelete::GetDXLOperator() const
 {
 	return EdxlopLogicalDelete;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalDelete::PstrOpName
+//		CDXLLogicalDelete::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLLogicalDelete::PstrOpName() const
+CDXLLogicalDelete::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenLogicalDelete);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenLogicalDelete);
 }
 
 //---------------------------------------------------------------------------
@@ -100,25 +100,25 @@ CDXLLogicalDelete::PstrOpName() const
 void
 CDXLLogicalDelete::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	const CWStringConst *element_name = GetOpNameStr();
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
-	CWStringDynamic *pstrColsDel = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulDelete);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenDeleteCols), pstrColsDel);
-	GPOS_DELETE(pstrColsDel);
+	CWStringDynamic *deletion_colids = CDXLUtils::Serialize(m_mp, m_deletion_colid_array);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenDeleteCols), deletion_colids);
+	GPOS_DELETE(deletion_colids);
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCtidColId), m_ulCtid);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGpSegmentIdColId), m_ulSegmentId);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenCtidColId), m_ctid_colid);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGpSegmentIdColId), m_segid_colid);
 
-	m_pdxltabdesc->SerializeToDXL(pxmlser);
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	m_dxl_table_descr->SerializeToDXL(xml_serializer);
+	node->SerializeChildrenToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -133,19 +133,19 @@ CDXLLogicalDelete::SerializeToDXL
 void
 CDXLLogicalDelete::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	)
 	const
 {
-	GPOS_ASSERT(1 == pdxln->UlArity());
+	GPOS_ASSERT(1 == node->Arity());
 
-	CDXLNode *pdxlnChild = (*pdxln)[0];
-	GPOS_ASSERT(EdxloptypeLogical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	CDXLNode *child_dxlnode = (*node)[0];
+	GPOS_ASSERT(EdxloptypeLogical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 

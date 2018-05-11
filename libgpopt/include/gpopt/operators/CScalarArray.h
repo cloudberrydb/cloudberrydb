@@ -23,7 +23,7 @@ namespace gpopt
 	using namespace gpos;
 	using namespace gpmd;
 
-	typedef CDynamicPtrArray<CScalarConst, CleanupRelease> DrgPconst;
+	typedef CDynamicPtrArray<CScalarConst, CleanupRelease> CScalarConstArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -47,7 +47,7 @@ namespace gpopt
 			BOOL m_fMultiDimensional;
 
 			// const values
-			DrgPconst *m_pdrgPconst;
+			CScalarConstArray *m_pdrgPconst;
 
 			// private copy ctor
 			CScalarArray(const CScalarArray &);
@@ -55,10 +55,10 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CScalarArray(IMemoryPool *pmp, IMDId *pmdidElem, IMDId *pmdidArray, BOOL fMultiDimensional);
+			CScalarArray(IMemoryPool *mp, IMDId *elem_type_mdid, IMDId *array_type_mdid, BOOL is_multidimenstional);
 
 			// ctor
-			CScalarArray(IMemoryPool *pmp, IMDId *pmdidElem, IMDId *pmdidArray, BOOL fMultiDimensional, DrgPconst *pdrgPconst);
+			CScalarArray(IMemoryPool *mp, IMDId *elem_type_mdid, IMDId *array_type_mdid, BOOL is_multidimenstional, CScalarConstArray *pdrgPconst);
 
 			// dtor
 			virtual 
@@ -80,10 +80,10 @@ namespace gpopt
 
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -95,9 +95,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -127,10 +127,10 @@ namespace gpopt
 
 			// type of expression's result
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// CScalarConst array
-			DrgPconst *PdrgPconst() const;
+			CScalarConstArray *PdrgPconst() const;
 
 			// print
 			IOstream &OsPrint(IOstream &os) const;

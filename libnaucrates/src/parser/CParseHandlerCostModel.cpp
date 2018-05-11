@@ -40,15 +40,15 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerCostModel::CParseHandlerCostModel
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_ulSegments(0),
-	m_pcm(NULL),
-	m_pphcp(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_num_of_segments(0),
+	m_cost_model(NULL),
+	m_parse_handler_cost_params(NULL)
 {
 }
 
@@ -62,8 +62,8 @@ CParseHandlerCostModel::CParseHandlerCostModel
 //---------------------------------------------------------------------------
 CParseHandlerCostModel::~CParseHandlerCostModel()
 {
-	CRefCount::SafeRelease(m_pcm);
-	GPOS_DELETE(m_pphcp);
+	CRefCount::SafeRelease(m_cost_model);
+	GPOS_DELETE(m_parse_handler_cost_params);
 }
 
 //---------------------------------------------------------------------------
@@ -77,33 +77,33 @@ CParseHandlerCostModel::~CParseHandlerCostModel()
 void
 CParseHandlerCostModel::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), element_local_name))
 	{
-		m_ulSegments = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenSegmentsForCosting,
+		m_num_of_segments = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenSegmentsForCosting,
 															 EdxltokenCostModelConfig);
 
-		m_ecmt = (ICostModel::ECostModelType) CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs,
+		m_cost_model_type = (ICostModel::ECostModelType) CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs,
 																					EdxltokenCostModelType,
 																					EdxltokenCostModelConfig);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParams), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParams), element_local_name))
 	{
-		CParseHandlerBase *pphCostParams = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenCostParams), m_pphm, this);
-		m_pphcp = static_cast<CParseHandlerCostParams *>(pphCostParams);
-		m_pphm->ActivateParseHandler(pphCostParams);
+		CParseHandlerBase *pphCostParams = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenCostParams), m_parse_handler_mgr, this);
+		m_parse_handler_cost_params = static_cast<CParseHandlerCostParams *>(pphCostParams);
+		m_parse_handler_mgr->ActivateParseHandler(pphCostParams);
 
-		pphCostParams->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		pphCostParams->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -118,37 +118,37 @@ CParseHandlerCostModel::StartElement
 void
 CParseHandlerCostModel::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	switch (m_ecmt)
+	switch (m_cost_model_type)
 	{
 		case ICostModel::EcmtGPDBLegacy:
-			m_pcm = GPOS_NEW(m_pmp) CCostModelGPDBLegacy(m_pmp, m_ulSegments);
+			m_cost_model = GPOS_NEW(m_mp) CCostModelGPDBLegacy(m_mp, m_num_of_segments);
 			break;
 		case ICostModel::EcmtGPDBCalibrated:
 			CCostModelParamsGPDB *pcp;
 
-			if (NULL == m_pphcp)
+			if (NULL == m_parse_handler_cost_params)
 			{
 				pcp = NULL;
 				GPOS_ASSERT(false && "CostModelParam handler not set");
 			}
 			else
 			{
-				pcp = dynamic_cast<CCostModelParamsGPDB *>(m_pphcp->Pcp());
+				pcp = dynamic_cast<CCostModelParamsGPDB *>(m_parse_handler_cost_params->GetCostModelParams());
 				GPOS_ASSERT(NULL != pcp);
 				pcp->AddRef();
 			}
-			m_pcm = GPOS_NEW(m_pmp) CCostModelGPDB(m_pmp, m_ulSegments, pcp);
+			m_cost_model = GPOS_NEW(m_mp) CCostModelGPDB(m_mp, m_num_of_segments, pcp);
 			break;
 		case ICostModel::EcmtSentinel:
 			GPOS_ASSERT(false && "Unexpected cost model type");
@@ -156,7 +156,7 @@ CParseHandlerCostModel::EndElement
 	}
 
     // deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //---------------------------------------------------------------------------
@@ -168,9 +168,9 @@ CParseHandlerCostModel::EndElement
 //
 //---------------------------------------------------------------------------
 ICostModel *
-CParseHandlerCostModel::Pcm() const
+CParseHandlerCostModel::GetCostModel() const
 {
-	return m_pcm;
+	return m_cost_model;
 }
 
 // EOF

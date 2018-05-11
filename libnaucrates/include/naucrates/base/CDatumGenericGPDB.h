@@ -35,27 +35,27 @@ class CDatumGenericGPDB : public IDatumGeneric
 	private:
 
 		// memory pool
-		IMemoryPool *m_pmp;
+		IMemoryPool *m_mp;
 
 		// size in bytes
-		ULONG m_ulSize;
+		ULONG m_size;
 
 		// a pointer to datum value
-		BYTE *m_pbVal;
+		BYTE *m_bytearray_value;
 
 		// is null
-		BOOL m_fNull;
+		BOOL m_is_null;
 
 		// type information
-		IMDId *m_pmdid;
+		IMDId *m_mdid;
 
-		INT m_iTypeModifier;
+		INT m_type_modifier;
 
 		// long int value used for statistic computation
-		LINT m_lValue;
+		LINT m_stats_comp_val_int;
 
 		// double value used for statistic computation
-		CDouble m_dValue;
+		CDouble m_stats_comp_val_double;
 
 		// private copy ctor
 		CDatumGenericGPDB(const CDatumGenericGPDB &);
@@ -64,16 +64,16 @@ class CDatumGenericGPDB : public IDatumGeneric
 
 		// ctor
 		CDatumGenericGPDB
-			(
-			IMemoryPool *pmp,
-			IMDId *pmdid,
-			INT iTypeModifier,
-			const void *pv,
-			ULONG ulSize,
-			BOOL fNull,
-			LINT lValue,
-			CDouble dValue
-			);
+				(
+						IMemoryPool *mp,
+						IMDId *mdid,
+						INT type_modifier,
+						const void *src,
+						ULONG size,
+						BOOL is_null,
+						LINT stats_comp_val_int,
+						CDouble stats_comp_val_double
+				);
 
 		// dtor
 		virtual
@@ -81,34 +81,34 @@ class CDatumGenericGPDB : public IDatumGeneric
 
 		// accessor of metadata type id
 		virtual
-		IMDId *Pmdid() const;
+		IMDId *MDId() const;
 
 		virtual
-		INT ITypeModifier() const;
+		INT TypeModifier() const;
 
 		// accessor of size
 		virtual
-		ULONG UlSize() const;
+		ULONG Size() const;
 
 		// accessor of is null
 		virtual
-		BOOL FNull() const;
+		BOOL IsNull() const;
 
 		// return string representation
 		virtual
-		const CWStringConst *Pstr(IMemoryPool *pmp) const;
+		const CWStringConst *GetStrRepr(IMemoryPool *mp) const;
 
 		// hash function
 		virtual
-		ULONG UlHash() const;
+		ULONG HashValue() const;
 
 		// match function for datums
 		virtual
-		BOOL FMatch(const IDatum *pdatum) const;
+		BOOL Matches(const IDatum *datum) const;
 
 		// copy datum
 		virtual
-		IDatum *PdatumCopy(IMemoryPool *pmp) const;
+		IDatum *MakeCopy(IMemoryPool *mp) const;
 		
 		// print function
 		virtual
@@ -116,90 +116,90 @@ class CDatumGenericGPDB : public IDatumGeneric
 
 		// accessor to bytearray, creates a copy
 		virtual
-		BYTE *PbaVal(IMemoryPool *pmp, ULONG *pulLength) const;
+		BYTE *MakeCopyOfValue(IMemoryPool *mp, ULONG *pulLength) const;
 
 		// statistics related APIs
 
 		// can datum be mapped to a double
 		virtual
-		BOOL FHasStatsDoubleMapping() const;
+		BOOL IsDatumMappableToDouble() const;
 
 		// map to double for stats computation
 		virtual
-		CDouble DStatsMapping() const
+		CDouble GetDoubleMapping() const
 		{
-			GPOS_ASSERT(FHasStatsDoubleMapping());
+			GPOS_ASSERT(IsDatumMappableToDouble());
 
-			return m_dValue;
+			return m_stats_comp_val_double;
 		}
 
 		// can datum be mapped to LINT
 		virtual
-		BOOL FHasStatsLINTMapping() const;
+		BOOL IsDatumMappableToLINT() const;
 
 		// map to LINT for statistics computation
 		virtual
-		LINT LStatsMapping() const
+		LINT GetLINTMapping() const
 		{
-			GPOS_ASSERT(FHasStatsLINTMapping());
+			GPOS_ASSERT(IsDatumMappableToLINT());
 
-			return m_lValue;
+			return m_stats_comp_val_int;
 		}
 
 		//  supports statistical comparisons based on the byte array representation of datum
 		virtual
-		BOOL FSupportsBinaryComp(const IDatum *pdatum) const;
+		BOOL SupportsBinaryComp(const IDatum *datum) const;
 
 		// byte array representation of datum
 		virtual
-		const BYTE *PbaVal() const;
+		const BYTE *GetByteArrayValue() const;
 
 		// stats equality
 		virtual
-		BOOL FStatsEqual(const IDatum *pdatum) const;
+		BOOL StatsAreEqual(const IDatum *datum) const;
 
 		// does the datum need to be padded before statistical derivation
 		virtual
-		BOOL FNeedsPadding() const;
+		BOOL NeedsPadding() const;
 
 		// return the padded datum
 		virtual
-		IDatum *PdatumPadded(IMemoryPool *pmp, ULONG ulColLen) const;
+		IDatum *MakePaddedDatum(IMemoryPool *mp, ULONG col_len) const;
 
 		// statistics equality based on byte array representation of datums
 		virtual
-		BOOL FStatsEqualBinary(const IDatum *pdatum) const;
+		BOOL StatsEqualBinary(const IDatum *datum) const;
 
 		// statistics less than based on byte array representation of datums
 		virtual
-		BOOL FStatsLessThanBinary(const IDatum *pdatum) const;
+		BOOL StatsLessThanBinary(const IDatum *datum) const;
 
 		// does datum support like predicate
 		virtual
-		BOOL FSupportLikePredicate() const
+		BOOL SupportsLikePredicate() const
 		{
 			return true;
 		}
 
 		// return the default scale factor of like predicate
 		virtual
-		CDouble DLikePredicateScaleFactor() const;
+		CDouble GetLikePredicateScaleFactor() const;
 
 		// default selectivity of the trailing wildcards
 		virtual
-		CDouble DTrailingWildcardSelectivity(const BYTE *pba, ULONG ulPos) const;
+		CDouble GetTrailingWildcardSelectivity(const BYTE *pba, ULONG ulPos) const;
 
 		// selectivities needed for LIKE predicate statistics evaluation
 		static
-		const CDouble DDefaultFixedCharSelectivity;
+		const CDouble DefaultFixedCharSelectivity;
 		static
-		const CDouble DDefaultCharRangeSelectivity;
+		const CDouble DefaultCharRangeSelectivity;
 		static
-		const CDouble DDefaultAnyCharSelectivity;
+		const CDouble DefaultAnyCharSelectivity;
 		static
-		const CDouble DDefaultCdbRanchorSelectivity;
+		const CDouble DefaultCdbRanchorSelectivity;
 		static
-		const CDouble DDefaultCdbRolloffSelectivity;
+		const CDouble DefaultCdbRolloffSelectivity;
 
 	}; // class CDatumGenericGPDB
 }

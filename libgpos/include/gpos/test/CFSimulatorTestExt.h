@@ -37,7 +37,7 @@ namespace gpos
 			static GPOS_RESULT EresUnittest_NetError();
 
 			// simulate exceptions of given type
-			static GPOS_RESULT EresUnittest_SimulateException(ULONG ulMajor, ULONG ulMinor);
+			static GPOS_RESULT EresUnittest_SimulateException(ULONG major, ULONG minor);
 
 	}; // CFSimulatorTestExt
 }

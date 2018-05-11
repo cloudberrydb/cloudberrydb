@@ -46,39 +46,39 @@ namespace gpdxl
 			CDXLPhysicalSort(const CDXLPhysicalSort&);
 			
 			// whether sort discards duplicates
-			BOOL m_fDiscardDuplicates;
+			BOOL m_discard_duplicates;
 			
 
 		public:
 			// ctor/dtor
-			CDXLPhysicalSort(IMemoryPool *pmp, BOOL fDiscardDuplicates);
+			CDXLPhysicalSort(IMemoryPool *mp, BOOL discard_duplicates);
 			
 			// accessors
-			Edxlopid Edxlop() const;
-			const CWStringConst *PstrOpName() const;
+			Edxlopid GetDXLOperator() const;
+			const CWStringConst *GetOpNameStr() const;
 			BOOL FDiscardDuplicates() const;
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalSort *PdxlopConvert
+			CDXLPhysicalSort *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalSort == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalSort == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalSort*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalSort*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

@@ -31,24 +31,24 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CStatisticsConfig::CStatisticsConfig
 	(
-	IMemoryPool *pmp,
-	CDouble dDampingFactorFilter,
-	CDouble dDampingFactorJoin,
-	CDouble dDampingFactorGroupBy
+	IMemoryPool *mp,
+	CDouble damping_factor_filter,
+	CDouble damping_factor_join,
+	CDouble damping_factor_groupby
 	)
 	:
-	m_pmp(pmp),
-	m_dDampingFactorFilter(dDampingFactorFilter),
-	m_dDampingFactorJoin(dDampingFactorJoin),
-	m_dDampingFactorGroupBy(dDampingFactorGroupBy),
+	m_mp(mp),
+	m_damping_factor_filter(damping_factor_filter),
+	m_damping_factor_join(damping_factor_join),
+	m_damping_factor_groupby(damping_factor_groupby),
 	m_phsmdidcolinfo(NULL)
 {
-	GPOS_ASSERT(CDouble(0.0) < dDampingFactorFilter);
-	GPOS_ASSERT(CDouble(0.0) < dDampingFactorJoin);
-	GPOS_ASSERT(CDouble(0.0) < dDampingFactorGroupBy);
+	GPOS_ASSERT(CDouble(0.0) < damping_factor_filter);
+	GPOS_ASSERT(CDouble(0.0) < damping_factor_join);
+	GPOS_ASSERT(CDouble(0.0) < damping_factor_groupby);
 
-	//m_phmmdidcolinfo = New(m_pmp) HMMDIdMissingstatscol(m_pmp);
-	m_phsmdidcolinfo = GPOS_NEW(m_pmp) HSMDId(m_pmp);
+	//m_phmmdidcolinfo = New(m_mp) HMMDIdMissingstatscol(m_mp);
+	m_phsmdidcolinfo = GPOS_NEW(m_mp) MdidHashSet(m_mp);
 }
 
 
@@ -87,7 +87,7 @@ CStatisticsConfig::AddMissingStatsColumn
 	CAutoMutex am(m_mutexMissingColStats);
 	am.Lock();
 
-	if (m_phsmdidcolinfo->FInsert(pmdidCol))
+	if (m_phsmdidcolinfo->Insert(pmdidCol))
 	{
 		pmdidCol->AddRef();
 	}
@@ -105,7 +105,7 @@ CStatisticsConfig::AddMissingStatsColumn
 void
 CStatisticsConfig::CollectMissingStatsColumns
 	(
-	DrgPmdid *pdrgmdid
+	IMdIdArray *pdrgmdid
     )
 {
 	GPOS_ASSERT(NULL != pdrgmdid);
@@ -113,12 +113,12 @@ CStatisticsConfig::CollectMissingStatsColumns
 	CAutoMutex am(m_mutexMissingColStats);
 	am.Lock();
 
-	HSIterMDId hsiter(m_phsmdidcolinfo);
-	while (hsiter.FAdvance())
+	MdidHashSetIter hsiter(m_phsmdidcolinfo);
+	while (hsiter.Advance())
 	{
-		CMDIdColStats *pmdidColStats = CMDIdColStats::PmdidConvert(const_cast<IMDId *>(hsiter.Pt()));
-		pmdidColStats->AddRef();
-		pdrgmdid->Append(pmdidColStats);
+		CMDIdColStats *mdid_col_stats = CMDIdColStats::CastMdid(const_cast<IMDId *>(hsiter.Get()));
+		mdid_col_stats->AddRef();
+		pdrgmdid->Append(mdid_col_stats);
 	}
 }
 

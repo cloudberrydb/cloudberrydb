@@ -41,7 +41,7 @@ namespace gpos
 
 			// retrieve elapsed wall-clock time in micro-seconds
 			virtual
-			ULONG UlElapsedUS() const;
+			ULONG ElapsedUS() const;
 
 			// restart timer
 			virtual

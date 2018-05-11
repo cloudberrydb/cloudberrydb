@@ -30,21 +30,21 @@ namespace gpos
 		private:
 			
 			// number of arguments
-			ULONG m_ulArgs;
+			ULONG m_argc;
 			
 			// pointer to string array
-			const CHAR **m_rgszArgs;
+			const CHAR **m_argv;
 			
 			// format string
-			const CHAR *m_szFmt;
+			const CHAR *m_fmt;
 
 			// saved option params
-			CHAR *m_szOptarg;
-			INT m_iOptind;
-			INT m_iOptopt;
-			INT m_iOpterr;
+			CHAR *m_optarg;
+			INT m_optind;
+			INT m_optopt;
+			INT m_opterr;
 #ifdef GPOS_Darwin
-			INT m_iOptreset;
+			INT m_optreset;
 #endif // GPOS_Darwin
 
 		public:
@@ -56,7 +56,7 @@ namespace gpos
 			~CMainArgs();
 			
 			// getopt functionality
-			BOOL FGetopt(CHAR *ch);
+			BOOL Getopt(CHAR *ch);
 			
 	}; // class CMainArgs
 }

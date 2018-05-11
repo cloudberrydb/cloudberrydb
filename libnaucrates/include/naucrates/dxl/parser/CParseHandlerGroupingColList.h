@@ -36,7 +36,7 @@ namespace gpdxl
 		private:
 			
 			// array of grouping column ids
-			DrgPul *m_pdrgpulGroupingCols;
+			ULongPtrArray *m_grouping_colids_array;
 		
 			// private copy ctor
 			CParseHandlerGroupingColList(const CParseHandlerGroupingColList&); 
@@ -44,33 +44,33 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor/dtor
 			CParseHandlerGroupingColList
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			virtual ~CParseHandlerGroupingColList();
 			
 			// accessor
-			DrgPul *PdrgpulGroupingCols();
+			ULongPtrArray *GetGroupingColidArray();
 	};
 }
 

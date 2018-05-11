@@ -31,16 +31,16 @@ namespace gpopt
 		private:
 
 			// relation id on which triggers are to be executed
-			IMDId *m_pmdidRel;
+			IMDId *m_rel_mdid;
 
 			// trigger type
-			INT m_iType;
+			INT m_type;
 
 			// old columns
-			DrgPcr *m_pdrgpcrOld;
+			CColRefArray *m_pdrgpcrOld;
 
 			// new columns
-			DrgPcr *m_pdrgpcrNew;
+			CColRefArray *m_pdrgpcrNew;
 
 			// stability
 			IMDFunction::EFuncStbl m_efs;
@@ -61,16 +61,16 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalRowTrigger(IMemoryPool *pmp);
+			CLogicalRowTrigger(IMemoryPool *mp);
 
 			// ctor
 			CLogicalRowTrigger
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidRel,
-				INT iType,
-				DrgPcr *pdrgpcrOld,
-				DrgPcr *pdrgpcrNew
+				IMemoryPool *mp,
+				IMDId *rel_mdid,
+				INT type,
+				CColRefArray *pdrgpcrOld,
+				CColRefArray *pdrgpcrNew
 				);
 
 			// dtor
@@ -92,36 +92,36 @@ namespace gpopt
 			}
 
 			// relation id
-			IMDId *PmdidRel() const
+			IMDId *GetRelMdId() const
 			{
-				return m_pmdidRel;
+				return m_rel_mdid;
 			}
 
 			// trigger type
-			INT IType() const
+			INT GetType() const
 			{
-				return m_iType;
+				return m_type;
 			}
 
 			// old columns
-			DrgPcr *PdrgpcrOld() const
+			CColRefArray *PdrgpcrOld() const
 			{
 				return m_pdrgpcrOld;
 			}
 
 			// new columns
-			DrgPcr *PdrgpcrNew() const
+			CColRefArray *PdrgpcrNew() const
 			{
 				return m_pdrgpcrNew;
 			}
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -132,7 +132,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -140,14 +140,14 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOutput(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -157,13 +157,13 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *, // pmp,
+				IMemoryPool *, // mp,
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -175,10 +175,10 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *,// pmp
+				IMemoryPool *,// mp
 				CExpressionHandle &,// exprhdl
 				CColRefSet *pcrsInput,
-				ULONG // ulChildIndex
+				ULONG // child_index
 				)
 				const
 			{
@@ -187,7 +187,7 @@ namespace gpopt
 
 			// derive function properties
 			virtual
-			CFunctionProp *PfpDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CFunctionProp *PfpDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Transformations
@@ -195,19 +195,19 @@ namespace gpopt
 
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive statistics
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 

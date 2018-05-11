@@ -37,8 +37,8 @@ namespace gpopt
 		
 			// ctors
 			explicit
-			CPhysicalTableScan(IMemoryPool *pmp);
-			CPhysicalTableScan(IMemoryPool *, const CName *, CTableDescriptor *, DrgPcr *);
+			CPhysicalTableScan(IMemoryPool *mp);
+			CPhysicalTableScan(IMemoryPool *, const CName *, CTableDescriptor *, CColRefArray *);
 
 			// ident accessors
 			virtual 
@@ -55,22 +55,22 @@ namespace gpopt
 			}
 			
 			// operator specific hash function
-			virtual ULONG UlHash() const;
+			virtual ULONG HashValue() const;
 			
 			// match function
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 		
 			// derive partition index map
 			virtual
 			CPartIndexMap *PpimDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &, // exprhdl
 				CDrvdPropCtxt * //pdpctxt
 				)
 				const
 			{
-				return GPOS_NEW(pmp) CPartIndexMap(pmp);
+				return GPOS_NEW(mp) CPartIndexMap(mp);
 			}
 
 			//-------------------------------------------------------------------------------------
@@ -100,10 +100,10 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle &, // exprhdl
 				CReqdPropPlan *, // prpplan
-				DrgPstat * //pdrgpstatCtxt
+				IStatisticsArray * //stats_ctxt
 				)
 				const
 			{

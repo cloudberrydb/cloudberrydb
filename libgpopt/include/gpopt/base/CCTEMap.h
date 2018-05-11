@@ -29,12 +29,12 @@ namespace gpopt
 	using namespace gpos;
 
 	// hash map from CTE id to corresponding producer plan properties
-	typedef CHashMap<ULONG, CDrvdPropPlan, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<CDrvdPropPlan> > HMUlPdp;
+	typedef CHashMap<ULONG, CDrvdPropPlan, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<CDrvdPropPlan> > UlongToDrvdPropPlanMap;
 
 	// iterator for plan properties map
-	typedef CHashMapIter<ULONG, CDrvdPropPlan, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<CDrvdPropPlan> > HMUlPdpIter;
+	typedef CHashMapIter<ULONG, CDrvdPropPlan, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<CDrvdPropPlan> > UlongToDrvdPropPlanMapIter;
 
 	// forward declaration
 	class CCTEReq;
@@ -76,7 +76,7 @@ namespace gpopt
 				private:
 
 					// cte id
-					ULONG m_ulId;
+					ULONG m_id;
 
 					// cte type
 					CCTEMap::ECteType m_ect;
@@ -92,12 +92,12 @@ namespace gpopt
 					// ctor
 					CCTEMapEntry
 						(
-						ULONG ulId,
+						ULONG id,
 						CCTEMap::ECteType ect,
 						CDrvdPropPlan *pdpplan
 						)
 						:
-						m_ulId(ulId),
+						m_id(id),
 						m_ect(ect),
 						m_pdpplan(pdpplan)
 					{
@@ -113,9 +113,9 @@ namespace gpopt
 					}
 
 					// cte id
-					ULONG UlId() const
+					ULONG Id() const
 					{
-						return m_ulId;
+						return m_id;
 					}
 
 					// cte type
@@ -131,9 +131,9 @@ namespace gpopt
 					}
 
 					// hash function
-					ULONG UlHash() const
+					ULONG HashValue() const
 					{
-						return gpos::UlCombineHashes(gpos::UlHash<ULONG>(&m_ulId), gpos::UlHash<CCTEMap::ECteType>(&m_ect));
+						return gpos::CombineHashes(gpos::HashValue<ULONG>(&m_id), gpos::HashValue<CCTEMap::ECteType>(&m_ect));
 					}
 
 					// print function
@@ -144,7 +144,7 @@ namespace gpopt
 						)
 						const
 					{
-						os << m_ulId << (EctProducer == m_ect ? "p" : "c");
+						os << m_id << (EctProducer == m_ect ? "p" : "c");
 						if (NULL != m_pdpplan)
 						{
 							os << "(" << *m_pdpplan << ")";
@@ -156,18 +156,18 @@ namespace gpopt
 			}; // class CCTEMapEntry
 
 			// map CTE id to CTE map entry
-			typedef CHashMap<ULONG, CCTEMapEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CCTEMapEntry> > HMCteMap;
+			typedef CHashMap<ULONG, CCTEMapEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CCTEMapEntry> > UlongToCTEMapEntryMap;
 
 			// map iterator
-			typedef CHashMapIter<ULONG, CCTEMapEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-				CleanupDelete<ULONG>, CleanupRelease<CCTEMapEntry> > HMCteMapIter;
+			typedef CHashMapIter<ULONG, CCTEMapEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+				CleanupDelete<ULONG>, CleanupRelease<CCTEMapEntry> > UlongToCTEMapEntryMapIter;
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// cte map
-			HMCteMap *m_phmcm;
+			UlongToCTEMapEntryMap *m_phmcm;
 
 			// private copy ctor
 			CCTEMap(const CCTEMap&);
@@ -183,29 +183,29 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CCTEMap(IMemoryPool *pmp);
+			CCTEMap(IMemoryPool *mp);
 
 			// dtor
 			virtual
 			~CCTEMap();
 
 			// return the CTE type associated with the given ID in the map
-			ECteType Ect(const ULONG ulId) const;
+			ECteType Ect(const ULONG id) const;
 
 			// inserting a new map entry, no entry with the same id can already exist
 			void Insert(ULONG ulCteId, ECteType ect, CDrvdPropPlan *pdpplan);
 
 			// hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// check if two cte maps are equal
-			BOOL FEqual
+			BOOL Equals
 					(
 					const CCTEMap *pcm
 					)
 					const
 			{
-				return (m_phmcm->UlEntries() == pcm->m_phmcm->UlEntries()) &&
+				return (m_phmcm->Size() == pcm->m_phmcm->Size()) &&
 						this->FSubset(pcm);
 			}
 
@@ -219,7 +219,7 @@ namespace gpopt
 			BOOL FSatisfies(const CCTEReq *pcter) const;
 
 			// return producer ids that are in this map but not in the given requirement
-			DrgPul *PdrgpulAdditionalProducers(IMemoryPool *pmp, const CCTEReq *pcter) const;
+			ULongPtrArray *PdrgpulAdditionalProducers(IMemoryPool *mp, const CCTEReq *pcter) const;
 
 			// print function
 			virtual
@@ -227,7 +227,7 @@ namespace gpopt
 
 			// combine the two given maps and return the resulting map
 			static
-			CCTEMap *PcmCombine(IMemoryPool *pmp, const CCTEMap &cmFirst, const CCTEMap &cmSecond);
+			CCTEMap *PcmCombine(IMemoryPool *mp, const CCTEMap &cmFirst, const CCTEMap &cmSecond);
 
 	}; // class CCTEMap
 

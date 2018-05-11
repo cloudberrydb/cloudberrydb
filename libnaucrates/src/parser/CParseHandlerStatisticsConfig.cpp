@@ -35,13 +35,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerStatisticsConfig::CParseHandlerStatisticsConfig
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pstatsconf(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_stats_conf(NULL)
 {
 }
 
@@ -55,7 +55,7 @@ CParseHandlerStatisticsConfig::CParseHandlerStatisticsConfig
 //---------------------------------------------------------------------------
 CParseHandlerStatisticsConfig::~CParseHandlerStatisticsConfig()
 {
-	CRefCount::SafeRelease(m_pstatsconf);
+	CRefCount::SafeRelease(m_stats_conf);
 }
 
 //---------------------------------------------------------------------------
@@ -69,24 +69,24 @@ CParseHandlerStatisticsConfig::~CParseHandlerStatisticsConfig()
 void
 CParseHandlerStatisticsConfig::StartElement
 	(
-	const XMLCh* const , //xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const , //xmlszQname,
+	const XMLCh* const , //element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const , //element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatisticsConfig), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatisticsConfig), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// parse statistics configuration options
-	CDouble dDampingFactorFilter = CDXLOperatorFactory::DValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenDampingFactorFilter, EdxltokenStatisticsConfig);
-	CDouble dDampingFactorJoin = CDXLOperatorFactory::DValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenDampingFactorJoin, EdxltokenStatisticsConfig);
-	CDouble dDampingFactorGroupBy = CDXLOperatorFactory::DValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenDampingFactorGroupBy, EdxltokenStatisticsConfig);
+	CDouble damping_factor_filter = CDXLOperatorFactory::ExtractConvertAttrValueToDouble(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenDampingFactorFilter, EdxltokenStatisticsConfig);
+	CDouble damping_factor_join = CDXLOperatorFactory::ExtractConvertAttrValueToDouble(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenDampingFactorJoin, EdxltokenStatisticsConfig);
+	CDouble damping_factor_groupby = CDXLOperatorFactory::ExtractConvertAttrValueToDouble(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenDampingFactorGroupBy, EdxltokenStatisticsConfig);
 
-	m_pstatsconf = GPOS_NEW(m_pmp) CStatisticsConfig(m_pmp, dDampingFactorFilter, dDampingFactorJoin, dDampingFactorGroupBy);
+	m_stats_conf = GPOS_NEW(m_mp) CStatisticsConfig(m_mp, damping_factor_filter, damping_factor_join, damping_factor_groupby);
 }
 
 //---------------------------------------------------------------------------
@@ -100,50 +100,50 @@ CParseHandlerStatisticsConfig::StartElement
 void
 CParseHandlerStatisticsConfig::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatisticsConfig), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatisticsConfig), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(NULL != m_pstatsconf);
-	GPOS_ASSERT(0 == this->UlLength());
+	GPOS_ASSERT(NULL != m_stats_conf);
+	GPOS_ASSERT(0 == this->Length());
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerStatisticsConfig::Edxlphtype
+//		CParseHandlerStatisticsConfig::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler.
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerStatisticsConfig::Edxlphtype() const
+CParseHandlerStatisticsConfig::GetParseHandlerType() const
 {
 	return EdxlphStatisticsConfig;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerStatisticsConfig::Pstatsconf
+//		CParseHandlerStatisticsConfig::GetStatsConf
 //
 //	@doc:
 //		Returns the statistics configuration
 //
 //---------------------------------------------------------------------------
 CStatisticsConfig *
-CParseHandlerStatisticsConfig::Pstatsconf() const
+CParseHandlerStatisticsConfig::GetStatsConf() const
 {
-	return m_pstatsconf;
+	return m_stats_conf;
 }
 
 // EOF

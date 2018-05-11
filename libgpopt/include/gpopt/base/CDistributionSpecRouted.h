@@ -64,7 +64,7 @@ namespace gpopt
 			
 			// does this distribution satisfy the given one
 			virtual 
-			BOOL FMatch(const CDistributionSpec *pds) const;
+			BOOL Matches(const CDistributionSpec *pds) const;
 
 			// does this distribution satisfy the given one
 			virtual 
@@ -72,19 +72,19 @@ namespace gpopt
 
 			// return a copy of the distribution spec with remapped columns
 			virtual
-			CDistributionSpec *PdsCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			CDistributionSpec *PdsCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *pmp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, DrgPexpr *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// hash function for routed distribution spec
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// extract columns used by the distribution spec
 			virtual
-			CColRefSet *PcrsUsed(IMemoryPool *pmp) const;
+			CColRefSet *PcrsUsed(IMemoryPool *mp) const;
 
 			// return distribution partitioning type
 			virtual

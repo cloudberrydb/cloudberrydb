@@ -14,12 +14,12 @@ namespace gpopt
 		public:
 			CDistributionSpecHashedNoOp
 			(
-			DrgPexpr *pdrgpexr
+			CExpressionArray *pdrgpexr
 			);
 
 			virtual EDistributionType Edt() const;
 
-			virtual BOOL FMatch(const CDistributionSpec *pds) const;
+			virtual BOOL Matches(const CDistributionSpec *pds) const;
 
 			virtual const CHAR *SzId() const
 			{
@@ -29,10 +29,10 @@ namespace gpopt
 			virtual void
 			AppendEnforcers
 			(
-			IMemoryPool *pmp,
+			IMemoryPool *mp,
 			CExpressionHandle &exprhdl,
 			CReqdPropPlan *prpp,
-			DrgPexpr *pdrgpexpr,
+			CExpressionArray *pdrgpexpr,
 			CExpression *pexpr
 			);
 	};

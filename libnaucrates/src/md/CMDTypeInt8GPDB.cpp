@@ -48,32 +48,32 @@ CMDTypeInt8GPDB::m_mdname(&m_str);
 //---------------------------------------------------------------------------
 CMDTypeInt8GPDB::CMDTypeInt8GPDB
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	m_pmp(pmp)
+	m_mp(mp)
 {
-	m_pmdid = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_OID);
-	m_pmdidOpEq = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_EQ_OP);
-	m_pmdidOpNeq = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_NEQ_OP);
-	m_pmdidOpLT = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_LT_OP);
-	m_pmdidOpLEq = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_LEQ_OP);
-	m_pmdidOpGT = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_GT_OP);
-	m_pmdidOpGEq = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_GEQ_OP);
-	m_pmdidOpComp = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_COMP_OP);
-	m_pmdidTypeArray = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_ARRAY_TYPE);
+	m_mdid = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_OID);
+	m_mdid_op_eq = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_EQ_OP);
+	m_mdid_op_neq = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_NEQ_OP);
+	m_mdid_op_lt = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_LT_OP);
+	m_mdid_op_leq = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_LEQ_OP);
+	m_mdid_op_gt = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_GT_OP);
+	m_mdid_op_geq = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_GEQ_OP);
+	m_mdid_op_cmp = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_COMP_OP);
+	m_mdid_type_array = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_ARRAY_TYPE);
 	
-	m_pmdidMin = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_AGG_MIN);
-	m_pmdidMax = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_AGG_MAX);
-	m_pmdidAvg = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_AGG_AVG);
-	m_pmdidSum = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_AGG_SUM);
-	m_pmdidCount = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_AGG_COUNT);
+	m_mdid_min = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_AGG_MIN);
+	m_mdid_max = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_AGG_MAX);
+	m_mdid_avg = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_AGG_AVG);
+	m_mdid_sum = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_AGG_SUM);
+	m_mdid_count = GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8_AGG_COUNT);
 
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 
-	GPOS_ASSERT(GPDB_INT8_OID == CMDIdGPDB::PmdidConvert(m_pmdid)->OidObjectId());
-	m_pmdid->AddRef();
-	m_pdatumNull = GPOS_NEW(pmp) CDatumInt8GPDB(m_pmdid, 1 /* fVal */, true /* fNull */);
+	GPOS_ASSERT(GPDB_INT8_OID == CMDIdGPDB::CastMdid(m_mdid)->Oid());
+	m_mdid->AddRef();
+	m_datum_null = GPOS_NEW(mp) CDatumInt8GPDB(m_mdid, 1 /* value */, true /* is_null */);
 }
 
 //---------------------------------------------------------------------------
@@ -86,58 +86,58 @@ CMDTypeInt8GPDB::CMDTypeInt8GPDB
 //---------------------------------------------------------------------------
 CMDTypeInt8GPDB::~CMDTypeInt8GPDB()
 {
-	m_pmdid->Release();
-	m_pmdidOpEq->Release();
-	m_pmdidOpNeq->Release();
-	m_pmdidOpLT->Release();
-	m_pmdidOpLEq->Release();
-	m_pmdidOpGT->Release();
-	m_pmdidOpGEq->Release();
-	m_pmdidOpComp->Release();
-	m_pmdidTypeArray->Release();
+	m_mdid->Release();
+	m_mdid_op_eq->Release();
+	m_mdid_op_neq->Release();
+	m_mdid_op_lt->Release();
+	m_mdid_op_leq->Release();
+	m_mdid_op_gt->Release();
+	m_mdid_op_geq->Release();
+	m_mdid_op_cmp->Release();
+	m_mdid_type_array->Release();
 	
-	m_pmdidMin->Release();
-	m_pmdidMax->Release();
-	m_pmdidAvg->Release();
-	m_pmdidSum->Release();
-	m_pmdidCount->Release();
-	m_pdatumNull->Release();
+	m_mdid_min->Release();
+	m_mdid_max->Release();
+	m_mdid_avg->Release();
+	m_mdid_sum->Release();
+	m_mdid_count->Release();
+	m_datum_null->Release();
 	
-	GPOS_DELETE(m_pstr);
+	GPOS_DELETE(m_dxl_str);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::Pdatum
+//		CMDTypeInt8GPDB::GetDatum
 //
 //	@doc:
 //		Factory function for creating Int8 datums
 //
 //---------------------------------------------------------------------------
 IDatumInt8 *
-CMDTypeInt8GPDB::PdatumInt8
+CMDTypeInt8GPDB::CreateInt8Datum
 	(
-	IMemoryPool *pmp,
-	LINT lValue,
-	BOOL fNULL
+	IMemoryPool *mp,
+	LINT value,
+	BOOL is_null
 	)
 	const
 {
-	return GPOS_NEW(pmp) CDatumInt8GPDB(m_pmdid->Sysid(), lValue, fNULL);
+	return GPOS_NEW(mp) CDatumInt8GPDB(m_mdid->Sysid(), value, is_null);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::Pmdid
+//		CMDTypeInt8GPDB::MDId
 //
 //	@doc:
 //		Returns the metadata id of this type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDTypeInt8GPDB::Pmdid() const
+CMDTypeInt8GPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -156,33 +156,33 @@ CMDTypeInt8GPDB::Mdname() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::PmdidCmp
+//		CMDTypeInt8GPDB::GetMdidForCmpType
 //
 //	@doc:
 //		Return mdid of specified comparison operator type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDTypeInt8GPDB::PmdidCmp
+CMDTypeInt8GPDB::GetMdidForCmpType
 	(
-	ECmpType ecmpt
+	ECmpType cmp_type
 	) 
 	const
 {
-	switch (ecmpt)
+	switch (cmp_type)
 	{
 		case EcmptEq:
-			return m_pmdidOpEq;
+			return m_mdid_op_eq;
 		case EcmptNEq:
-			return m_pmdidOpNeq;
+			return m_mdid_op_neq;
 		case EcmptL:
-			return m_pmdidOpLT;
+			return m_mdid_op_lt;
 		case EcmptLEq: 
-			return m_pmdidOpLEq;
+			return m_mdid_op_leq;
 		case EcmptG:
-			return m_pmdidOpGT;
+			return m_mdid_op_gt;
 		case EcmptGEq:
-			return m_pmdidOpGEq;
+			return m_mdid_op_geq;
 		default:
 			GPOS_ASSERT(!"Invalid operator type");
 			return NULL;
@@ -191,31 +191,31 @@ CMDTypeInt8GPDB::PmdidCmp
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::PmdidAgg
+//		CMDTypeInt8GPDB::GetMdidForAggType
 //
 //	@doc:
 //		Return mdid of specified aggregate type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDTypeInt8GPDB::PmdidAgg
+CMDTypeInt8GPDB::GetMdidForAggType
 	(
-	EAggType eagg
+	EAggType agg_type
 	) 
 	const
 {
-	switch (eagg)
+	switch (agg_type)
 	{
 		case EaggMin:
-			return m_pmdidMin;
+			return m_mdid_min;
 		case EaggMax:
-			return m_pmdidMax;
+			return m_mdid_max;
 		case EaggAvg:
-			return m_pmdidAvg;
+			return m_mdid_avg;
 		case EaggSum:
-			return m_pmdidSum;
+			return m_mdid_sum;
 		case EaggCount:
-			return m_pmdidCount;
+			return m_mdid_count;
 		default:
 			GPOS_ASSERT(!"Invalid aggregate type");
 			return NULL;
@@ -233,123 +233,123 @@ CMDTypeInt8GPDB::PmdidAgg
 void
 CMDTypeInt8GPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	CGPDBTypeHelper<CMDTypeInt8GPDB>::Serialize(pxmlser, this);
+	CGPDBTypeHelper<CMDTypeInt8GPDB>::Serialize(xml_serializer, this);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::Pdatum
+//		CMDTypeInt8GPDB::GetDatumForDXLConstVal
 //
 //	@doc:
 //		Transformation method for generating Int8 datum from CDXLScalarConstValue
 //
 //---------------------------------------------------------------------------
 IDatum*
-CMDTypeInt8GPDB::Pdatum
+CMDTypeInt8GPDB::GetDatumForDXLConstVal
 	(
-	const CDXLScalarConstValue *pdxlop
+	const CDXLScalarConstValue *dxl_op
 	)
 	const
 {
-	CDXLDatumInt8 *pdxldatum = CDXLDatumInt8::PdxldatumConvert(const_cast<CDXLDatum*>(pdxlop->Pdxldatum()));
-	GPOS_ASSERT(pdxldatum->FByValue());
+	CDXLDatumInt8 *dxl_datum = CDXLDatumInt8::Cast(const_cast<CDXLDatum *>(dxl_op->GetDatumVal()));
+	GPOS_ASSERT(dxl_datum->IsPassedByValue());
 
-	return GPOS_NEW(m_pmp) CDatumInt8GPDB(m_pmdid->Sysid(), pdxldatum->LValue(), pdxldatum->FNull());
+	return GPOS_NEW(m_mp) CDatumInt8GPDB(m_mdid->Sysid(), dxl_datum->Value(), dxl_datum->IsNull());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::Pdatum
+//		CMDTypeInt8GPDB::GetDatumForDXLDatum
 //
 //	@doc:
 //		Construct an int8 datum from a DXL datum
 //
 //---------------------------------------------------------------------------
 IDatum*
-CMDTypeInt8GPDB::Pdatum
+CMDTypeInt8GPDB::GetDatumForDXLDatum
 	(
-	IMemoryPool *pmp,
-	const CDXLDatum *pdxldatum
+	IMemoryPool *mp,
+	const CDXLDatum *dxl_datum
 	)
 	const
 {
-	CDXLDatumInt8 *pdxldatumint8 = CDXLDatumInt8::PdxldatumConvert(const_cast<CDXLDatum *>(pdxldatum));
-	GPOS_ASSERT(pdxldatumint8->FByValue());
+	CDXLDatumInt8 *int8_dxl_datum = CDXLDatumInt8::Cast(const_cast<CDXLDatum *>(dxl_datum));
+	GPOS_ASSERT(int8_dxl_datum->IsPassedByValue());
 
-	LINT lVal = pdxldatumint8->LValue();
-	BOOL fNull = pdxldatumint8->FNull();
+	LINT val = int8_dxl_datum->Value();
+	BOOL is_null = int8_dxl_datum->IsNull();
 
-	return GPOS_NEW(pmp) CDatumInt8GPDB(m_pmdid->Sysid(), lVal, fNull);
+	return GPOS_NEW(mp) CDatumInt8GPDB(m_mdid->Sysid(), val, is_null);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::Pdxldatum
+//		CMDTypeInt8GPDB::GetDatumVal
 //
 //	@doc:
 // 		Generate dxl datum
 //
 //---------------------------------------------------------------------------
 CDXLDatum *
-CMDTypeInt8GPDB::Pdxldatum
+CMDTypeInt8GPDB::GetDatumVal
 	(
-	IMemoryPool *pmp,
-	IDatum *pdatum
+	IMemoryPool *mp,
+	IDatum *datum
 	)
 	const
 {
-	CDatumInt8GPDB *pdatumint8 = dynamic_cast<CDatumInt8GPDB*>(pdatum);
+	CDatumInt8GPDB *int8_datum = dynamic_cast<CDatumInt8GPDB*>(datum);
 
-	m_pmdid->AddRef();
-	return GPOS_NEW(pmp) CDXLDatumInt8(pmp, m_pmdid, pdatumint8->FNull(), pdatumint8->LValue());
+	m_mdid->AddRef();
+	return GPOS_NEW(mp) CDXLDatumInt8(mp, m_mdid, int8_datum->IsNull(), int8_datum->Value());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::PdxlopScConst
+//		CMDTypeInt8GPDB::GetDXLOpScConst
 //
 //	@doc:
 // 		Generate a dxl scalar constant from a datum
 //
 //---------------------------------------------------------------------------
 CDXLScalarConstValue *
-CMDTypeInt8GPDB::PdxlopScConst
+CMDTypeInt8GPDB::GetDXLOpScConst
 	(
-	IMemoryPool *pmp,
-	IDatum *pdatum
+	IMemoryPool *mp,
+	IDatum *datum
 	)
 	const
 {
-	CDatumInt8GPDB *pdatumint8gpdb = dynamic_cast<CDatumInt8GPDB *>(pdatum);
+	CDatumInt8GPDB *int8gpdb_datum = dynamic_cast<CDatumInt8GPDB *>(datum);
 
-	m_pmdid->AddRef();
-	CDXLDatumInt8 *pdxldatum = GPOS_NEW(pmp) CDXLDatumInt8(pmp, m_pmdid, pdatumint8gpdb->FNull(), pdatumint8gpdb->LValue());
+	m_mdid->AddRef();
+	CDXLDatumInt8 *dxl_datum = GPOS_NEW(mp) CDXLDatumInt8(mp, m_mdid, int8gpdb_datum->IsNull(), int8gpdb_datum->Value());
 
-	return GPOS_NEW(pmp) CDXLScalarConstValue(pmp, pdxldatum);
+	return GPOS_NEW(mp) CDXLScalarConstValue(mp, dxl_datum);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTypeInt8GPDB::PdxldatumNull
+//		CMDTypeInt8GPDB::GetDXLDatumNull
 //
 //	@doc:
 // 		Generate dxl null datum
 //
 //---------------------------------------------------------------------------
 CDXLDatum *
-CMDTypeInt8GPDB::PdxldatumNull
+CMDTypeInt8GPDB::GetDXLDatumNull
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	m_pmdid->AddRef();
+	m_mdid->AddRef();
 
-	return GPOS_NEW(pmp) CDXLDatumInt8(pmp, m_pmdid, true /*fNull*/, 1);
+	return GPOS_NEW(mp) CDXLDatumInt8(mp, m_mdid, true /*is_null*/, 1);
 }
 
 #ifdef GPOS_DEBUG

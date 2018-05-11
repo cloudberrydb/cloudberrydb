@@ -34,16 +34,16 @@ namespace gpopt
 		private:
 
 			// return type metadata id in the catalog
-			IMDId *m_pmdidReturnType;
+			IMDId *m_return_type_mdid;
 
 			// function to be used for casting
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 
 			// whether or not this cast is binary coercible
-			BOOL m_fBinaryCoercible;
+			BOOL m_is_binary_coercible;
 			
 			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 
 			// is operator's return type BOOL?
 			BOOL m_fBoolReturnType;
@@ -56,18 +56,18 @@ namespace gpopt
 			// ctor
 			CScalarCast
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidReturnType,
-				IMDId *pmdidFunc,
-				BOOL fBinaryCoercible
+				IMemoryPool *mp,
+				IMDId *return_type_mdid,
+				IMDId *mdid_func,
+				BOOL is_binary_coercible
 				);
 
 			// dtor
 			virtual
 			~CScalarCast() 
 			{
-				m_pmdidFunc->Release();
-				m_pmdidReturnType->Release();
+				m_func_mdid->Release();
+				m_return_type_mdid->Release();
 			}
 
 
@@ -75,15 +75,15 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				return m_pmdidReturnType;
+				return m_return_type_mdid;
 			}
 
 			// func that casts
-			IMDId *PmdidFunc() const
+			IMDId *FuncMdId() const
 			{
-				return m_pmdidFunc;
+				return m_func_mdid;
 			}
 
 			virtual
@@ -101,7 +101,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -114,18 +114,18 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
 			}
 
 			// whether or not this cast is binary coercible
-			BOOL FBinaryCoercible() const
+			BOOL IsBinaryCoercible() const
 			{
-				return m_fBinaryCoercible;
+				return m_is_binary_coercible;
 			}
 			
 
@@ -133,7 +133,7 @@ namespace gpopt
 			virtual
 			EBoolEvalResult Eber
 				(
-				DrgPul *pdrgpulChildren
+				ULongPtrArray *pdrgpulChildren
 				)
 				const
 			{

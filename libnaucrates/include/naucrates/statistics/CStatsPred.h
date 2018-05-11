@@ -70,7 +70,7 @@ namespace gpnaucrates
 		protected:
 
 			// column id
-			ULONG m_ulColId;
+			ULONG m_colid;
 
 		public:
 
@@ -78,10 +78,10 @@ namespace gpnaucrates
 			explicit
 			CStatsPred
 				(
-				ULONG ulColId
+				ULONG colid
 				)
 				:
-				m_ulColId(ulColId)
+				m_colid(colid)
 			{
 			}
 
@@ -93,34 +93,34 @@ namespace gpnaucrates
 
 			// accessors
 			virtual
-			ULONG UlColId() const
+			ULONG GetColId() const
 			{
-				return m_ulColId;
+				return m_colid;
 			}
 
 			// type id
 			virtual
-			EStatsPredType Espt() const = 0;
+			EStatsPredType GetPredStatsType() const = 0;
 
 			// comparison function
 			static
-			inline INT IStatsFilterCmp(const void *pv1, const void *pv2);
+			inline INT StatsPredSortCmpFunc(const void *val1, const void *val2);
 	}; // class CStatsPred
 
 	// array of filters
-	typedef CDynamicPtrArray<CStatsPred, CleanupRelease> DrgPstatspred;
+	typedef CDynamicPtrArray<CStatsPred, CleanupRelease> CStatsPredPtrArry;
 
-	// comparison function for sorting filters
-	INT CStatsPred::IStatsFilterCmp
+	// comparison function for sorting predicates
+	INT CStatsPred::StatsPredSortCmpFunc
 		(
-		const void *pv1,
-		const void *pv2
+		const void *val1,
+		const void *val2
 		)
 	{
-		const CStatsPred *pstatspred1 = *(const CStatsPred **) pv1;
-		const CStatsPred *pstatspred2 = *(const CStatsPred **) pv2;
+		const CStatsPred *stats_pred1 = *(const CStatsPred **) val1;
+		const CStatsPred *stats_pred2 = *(const CStatsPred **) val2;
 
-		return (INT) pstatspred1->UlColId() - (INT) pstatspred2->UlColId();
+		return (INT) stats_pred1->GetColId() - (INT) stats_pred2->GetColId();
 	}
 
 }

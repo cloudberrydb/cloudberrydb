@@ -37,13 +37,13 @@ namespace gpdxl
 
 			
 			// the scalar comparison operator
-			CDXLScalarComp *m_pdxlop;
+			CDXLScalarComp *m_dxl_op;
 			
 			// the left side of the comparison
-			CDXLNode *m_pdxlnLeft;
+			CDXLNode *m_dxl_left;
 			
 			// the right side of the comparison
-			CDXLNode *m_pdxlnRight;
+			CDXLNode *m_dxl_right;
 			
 			// private copy ctor
 			CParseHandlerScalarComp(const CParseHandlerScalarComp &);
@@ -51,27 +51,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor/dtor
 			CParseHandlerScalarComp
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			virtual

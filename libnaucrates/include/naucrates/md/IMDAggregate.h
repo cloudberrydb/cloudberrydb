@@ -37,7 +37,7 @@ namespace gpmd
 
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtAgg;
 			}
@@ -45,23 +45,23 @@ namespace gpmd
 			// type of intermediate results computed by the aggregate's 
 			// transformation function
 			virtual 
-			IMDId *PmdidTypeIntermediate() const = 0;
+			IMDId *GetIntermediateResultTypeMdid() const = 0;
 
 			// result type
 			virtual 
-			IMDId *PmdidTypeResult() const = 0;
+			IMDId *GetResultTypeMdid() const = 0;
 
 			// is aggregate ordered
 			virtual
-			BOOL FOrdered() const = 0;
+			BOOL IsOrdered() const = 0;
 			
 			// is aggregate splittable
 			virtual
-			BOOL FSplittable() const = 0;
+			BOOL IsSplittable() const = 0;
 
 			virtual
 			// is aggregate hash capable
-			BOOL FHashAggCapable() const = 0;
+			BOOL IsHashAggCapable() const = 0;
 	};
 }
 

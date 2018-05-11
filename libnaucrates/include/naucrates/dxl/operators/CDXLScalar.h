@@ -43,20 +43,20 @@ namespace gpdxl
 		public:
 			// ctor/dtor
 			explicit
-			CDXLScalar(IMemoryPool *pmp);
+			CDXLScalar(IMemoryPool *mp);
 			
 			virtual
 			~CDXLScalar(){};
 			
-			Edxloptype Edxloperatortype() const;
+			Edxloptype GetDXLOperatorType() const;
 			
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const = 0;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const = 0;
 
 #ifdef GPOS_DEBUG
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const = 0;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const = 0;
 #endif // GPOS_DEBUG
 	};
 }

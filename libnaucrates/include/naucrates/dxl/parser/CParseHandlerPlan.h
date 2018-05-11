@@ -38,16 +38,16 @@ namespace gpdxl
 		private:
 
 			// plan id
-			ULLONG m_ullId;
+			ULLONG m_plan_id;
 
 			// size of plan space
-			ULLONG m_ullSpaceSize;
+			ULLONG m_plan_space_size;
 
 			// the root of the parsed DXL tree constructed by the parse handler
-			CDXLNode *m_pdxln;
+			CDXLNode *m_dxl_node;
 			
 			// direct dispatch info spec
-			CDXLDirectDispatchInfo *m_pdxlddinfo;
+			CDXLDirectDispatchInfo *m_direct_dispatch_info;
 			
 			// private ctor 
 			CParseHandlerPlan(const CParseHandlerPlan&);
@@ -55,48 +55,48 @@ namespace gpdxl
 			// process the end of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor/dtor
 			CParseHandlerPlan
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			virtual
 			~CParseHandlerPlan();
 			
 			// returns the root of constructed DXL plan
-			CDXLNode *Pdxln();
+			CDXLNode *CreateDXLNode();
 			
 			// return plan id
-			ULLONG UllId() const
+			ULLONG PlanId() const
 			{
-				return m_ullId;
+				return m_plan_id;
 			}
 
 			// return size of plan space
-			ULLONG UllSpaceSize() const
+			ULLONG PlanSpaceSize() const
 			{
-				return m_ullSpaceSize;
+				return m_plan_space_size;
 			}
 
-			EDxlParseHandlerType Edxlphtype() const;
+			EDxlParseHandlerType GetParseHandlerType() const;
 			
 	};
 }

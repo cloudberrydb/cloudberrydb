@@ -80,7 +80,7 @@ namespace gpopt
 				);
 
 			// global memory pool accessor
-			IMemoryPool *PmpGlobal() const
+			IMemoryPool *GetGlobalMemoryPool() const
 			{
 				GPOS_ASSERT(FInit() && "Scheduling context is not initialized");
 				return m_pmpGlobal;

@@ -43,9 +43,9 @@ namespace gpdxl
 			virtual
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
@@ -53,26 +53,26 @@ namespace gpdxl
 			virtual
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		protected:
 
 			// start element helper function
-			void StartElement(const XMLCh* const xmlszLocalname, Edxltoken edxltoken);
+			void StartElement(const XMLCh* const element_local_name, Edxltoken token_type);
 
 			// end element helper function
-			void EndElement(const XMLCh* const xmlszLocalname, Edxltoken edxltoken);
+			void EndElement(const XMLCh* const element_local_name, Edxltoken token_type);
 
 		public:
 			// ctor
 			CParseHandlerLogicalGet
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 	};

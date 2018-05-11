@@ -71,7 +71,7 @@ namespace gpopt
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// check if the given order specification is compatible with the
 			// order specification of this object for the specified matching type
@@ -105,7 +105,7 @@ namespace gpopt
 			}
 
 			// matching function
-			BOOL FMatch
+			BOOL Matches
 				(
 				CEnfdOrder *peo
 				)
@@ -113,7 +113,7 @@ namespace gpopt
 				GPOS_ASSERT(NULL != peo);
 
 				return m_eom == peo->Eom() &&
-						m_pos->FMatch(peo->PosRequired());
+						m_pos->Matches(peo->PosRequired());
 			}
 
 			// print function

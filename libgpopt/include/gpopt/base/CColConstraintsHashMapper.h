@@ -16,15 +16,15 @@ namespace gpopt
 		public:
 			CColConstraintsHashMapper
 				(
-					IMemoryPool *pmp,
-					DrgPcnstr *pdrgPcnstr
+					IMemoryPool *mp,
+					CConstraintArray *pdrgPcnstr
 				);
 
-			virtual DrgPcnstr *PdrgPcnstrLookup(CColRef *pcr);
+			virtual CConstraintArray *PdrgPcnstrLookup(CColRef *colref);
 			virtual ~CColConstraintsHashMapper();
 
 		private:
-			HMColConstr *m_phmColConstr;
+			ColRefToConstraintArrayMap *m_phmColConstr;
 	};
 }
 

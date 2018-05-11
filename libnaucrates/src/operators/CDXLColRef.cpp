@@ -26,20 +26,20 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLColRef::CDXLColRef
 	(
-	IMemoryPool *pmp,
-	CMDName *pmdname,
-	ULONG ulId,
-	IMDId *pmdidType,
-	INT iTypeModifier
+	IMemoryPool *mp,
+	CMDName *mdname,
+	ULONG id,
+	IMDId *mdid_type,
+	INT type_modifier
 	)
 	:
-	m_pmp(pmp),
-	m_pmdname(pmdname),
-	m_ulId(ulId),
-	m_pmdidType(pmdidType),
-	m_iTypeModifer(iTypeModifier)
+	m_mp(mp),
+	m_mdname(mdname),
+	m_id(id),
+	m_mdid_type(mdid_type),
+	m_iTypeModifer(type_modifier)
 {
-	GPOS_ASSERT(m_pmdidType->FValid());
+	GPOS_ASSERT(m_mdid_type->IsValid());
 }
 
 //---------------------------------------------------------------------------
@@ -52,56 +52,56 @@ CDXLColRef::CDXLColRef
 //---------------------------------------------------------------------------
 CDXLColRef::~CDXLColRef()
 {
-	GPOS_DELETE(m_pmdname);
-	m_pmdidType->Release();
+	GPOS_DELETE(m_mdname);
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLColRef::Pmdname
+//		CDXLColRef::MdName
 //
 //	@doc:
 //		Returns column's name
 //
 //---------------------------------------------------------------------------
 const CMDName *
-CDXLColRef::Pmdname() const
+CDXLColRef::MdName() const
 {
-	return m_pmdname;
+	return m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLColRef::PmdidType
+//		CDXLColRef::MdidType
 //
 //	@doc:
 //		Returns column's type md id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CDXLColRef::PmdidType() const
+CDXLColRef::MdidType() const
 {
-	return m_pmdidType;
+	return m_mdid_type;
 }
 
 INT
-CDXLColRef::ITypeModifier() const
+CDXLColRef::TypeModifier() const
 {
 	return m_iTypeModifer;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLColRef::UlID
+//		CDXLColRef::Id
 //
 //	@doc:
 //		Returns column's id
 //
 //---------------------------------------------------------------------------
 ULONG
-CDXLColRef::UlID() const
+CDXLColRef::Id() const
 {
-	return m_ulId;
+	return m_id;
 }
 
 

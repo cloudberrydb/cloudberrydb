@@ -26,15 +26,15 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDIdColStats::CMDIdColStats
 	(
-	CMDIdGPDB *pmdidRel,
-	ULONG ulPos
+	CMDIdGPDB *rel_mdid,
+	ULONG pos
 	)
 	:
-	m_pmdidRel(pmdidRel),
-	m_ulPos(ulPos),
-	m_str(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer))
+	m_rel_mdid(rel_mdid),
+	m_attr_pos(pos),
+	m_str(m_mdid_buffer, GPOS_ARRAY_SIZE(m_mdid_buffer))
 {
-	GPOS_ASSERT(pmdidRel->FValid());
+	GPOS_ASSERT(rel_mdid->IsValid());
 	
 	// serialize mdid into static string 
 	Serialize();
@@ -50,7 +50,7 @@ CMDIdColStats::CMDIdColStats
 //---------------------------------------------------------------------------
 CMDIdColStats::~CMDIdColStats()
 {
-	m_pmdidRel->Release();
+	m_rel_mdid->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -68,80 +68,80 @@ CMDIdColStats::Serialize()
 	m_str.AppendFormat
 			(
 			GPOS_WSZ_LIT("%d.%d.%d.%d.%d"), 
-			Emdidt(), 
-			m_pmdidRel->OidObjectId(),
-			m_pmdidRel->UlVersionMajor(),
-			m_pmdidRel->UlVersionMinor(),
-			m_ulPos
+			MdidType(), 
+					   m_rel_mdid->Oid(),
+			m_rel_mdid->VersionMajor(),
+			m_rel_mdid->VersionMinor(),
+			m_attr_pos
 			);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdColStats::Wsz
+//		CMDIdColStats::GetBuffer
 //
 //	@doc:
 //		Returns the string representation of the mdid
 //
 //---------------------------------------------------------------------------
 const WCHAR *
-CMDIdColStats::Wsz() const
+CMDIdColStats::GetBuffer() const
 {
-	return m_str.Wsz();
+	return m_str.GetBuffer();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdColStats::PmdidRel
+//		CMDIdColStats::GetRelMdId
 //
 //	@doc:
 //		Returns the base relation id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDIdColStats::PmdidRel() const
+CMDIdColStats::GetRelMdId() const
 {
-	return m_pmdidRel;
+	return m_rel_mdid;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdColStats::UlPos
+//		CMDIdColStats::Position
 //
 //	@doc:
 //		Returns the attribute number
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDIdColStats::UlPos() const
+CMDIdColStats::Position() const
 {
-	return m_ulPos;
+	return m_attr_pos;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDIdColStats::FEquals
+//		CMDIdColStats::Equals
 //
 //	@doc:
 //		Checks if the mdids are equal
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDIdColStats::FEquals
+CMDIdColStats::Equals
 	(
-	const IMDId *pmdid
+	const IMDId *mdid
 	) 
 	const
 {
-	if (NULL == pmdid || EmdidColStats != pmdid->Emdidt())
+	if (NULL == mdid || EmdidColStats != mdid->MdidType())
 	{
 		return false;
 	}
 	
-	const CMDIdColStats *pmdidColStats = CMDIdColStats::PmdidConvert(pmdid);
+	const CMDIdColStats *mdid_col_stats = CMDIdColStats::CastMdid(mdid);
 	
-	return m_pmdidRel->FEquals(pmdidColStats->PmdidRel()) && 
-			m_ulPos == pmdidColStats->UlPos(); 
+	return m_rel_mdid->Equals(mdid_col_stats->GetRelMdId()) && 
+			m_attr_pos == mdid_col_stats->Position();
 }
 
 //---------------------------------------------------------------------------
@@ -155,12 +155,12 @@ CMDIdColStats::FEquals
 void
 CMDIdColStats::Serialize
 	(
-	CXMLSerializer * pxmlser,
-	const CWStringConst *pstrAttribute
+	CXMLSerializer * xml_serializer,
+	const CWStringConst *attribute_str
 	)
 	const
 {
-	pxmlser->AddAttribute(pstrAttribute, &m_str);
+	xml_serializer->AddAttribute(attribute_str, &m_str);
 }
 
 //---------------------------------------------------------------------------
@@ -178,7 +178,7 @@ CMDIdColStats::OsPrint
 	) 
 	const
 {
-	os << "(" << m_str.Wsz() << ")";
+	os << "(" << m_str.GetBuffer() << ")";
 	return os;
 }
 

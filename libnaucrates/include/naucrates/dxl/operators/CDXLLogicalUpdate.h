@@ -35,25 +35,25 @@ namespace gpdxl
 		private:
 
 			// target table descriptor
-			CDXLTableDescr *m_pdxltabdesc;
+		CDXLTableDescr *m_dxl_table_descr;
 
 			// ctid column id
-			ULONG m_ulCtid;
+			ULONG m_ctid_colid;
 
 			// segmentId column id
-			ULONG m_ulSegmentId;
+			ULONG m_segid_colid;
 
 			// list of deletion column ids
-			DrgPul *m_pdrgpulDelete;
+			ULongPtrArray *m_deletion_colid_array;
 
 			// list of insertion column ids
-			DrgPul *m_pdrgpulInsert;
+			ULongPtrArray *m_insert_colid_array;
 			
 			// should update preserve tuple oids
-			BOOL m_fPreserveOids;	
+			BOOL m_preserve_oids;	
 
 			// tuple oid column id
-			ULONG m_ulTupleOid;
+			ULONG m_tuple_oid;
 			
 			// private copy ctor
 			CDXLLogicalUpdate(const CDXLLogicalUpdate &);
@@ -63,14 +63,14 @@ namespace gpdxl
 			// ctor
 			CDXLLogicalUpdate
 				(
-				IMemoryPool *pmp,
-				CDXLTableDescr *pdxltabdesc,
-				ULONG ulCtid,
-				ULONG ulSegmentId,
-				DrgPul *pdrgpulDelete,
-				DrgPul *pdrgpulInsert,
-				BOOL fPreserveOids,
-				ULONG ulTupleOid
+				IMemoryPool *mp,
+				CDXLTableDescr *table_descr,
+				ULONG ctid_colid,
+				ULONG segid_colid,
+				ULongPtrArray *delete_colid_array,
+				ULongPtrArray *insert_colid_array,
+				BOOL preserve_oids,
+				ULONG tuple_oid
 				);
 
 			// dtor
@@ -78,74 +78,74 @@ namespace gpdxl
 			~CDXLLogicalUpdate();
 
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// target table descriptor
-			CDXLTableDescr *Pdxltabdesc() const
+			CDXLTableDescr *GetDXLTableDescr() const
 			{
-				return m_pdxltabdesc;
+			return m_dxl_table_descr;
 			}
 
 			// ctid column id
-			ULONG UlCtid() const
+			ULONG GetCtIdColId() const
 			{
-				return m_ulCtid;
+				return m_ctid_colid;
 			}
 
 			// segmentid column id
-			ULONG UlSegmentId() const
+			ULONG GetSegmentIdColId() const
 			{
-				return m_ulSegmentId;
+				return m_segid_colid;
 			}
 
 			// deletion column ids
-			DrgPul *PdrgpulDelete() const
+			ULongPtrArray *GetDeletionColIdArray() const
 			{
-				return m_pdrgpulDelete;
+				return m_deletion_colid_array;
 			}
 
 			// insertion column ids
-			DrgPul *PdrgpulInsert() const
+			ULongPtrArray *GetInsertionColIdArray() const
 			{
-				return m_pdrgpulInsert;
+				return m_insert_colid_array;
 			}
 			
 			// does update preserve oids
-			BOOL FPreserveOids() const
+			BOOL IsOidsPreserved() const
 			{
-				return m_fPreserveOids;
+				return m_preserve_oids;
 			}
 
 			// tuple oid column id
-			ULONG UlTupleOid() const
+			ULONG GetTupleOid() const
 			{
-				return m_ulTupleOid;
+				return m_tuple_oid;
 			}
 			
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLLogicalUpdate *PdxlopConvert
+			CDXLLogicalUpdate *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalUpdate == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalUpdate == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLLogicalUpdate*>(pdxlop);
+				return dynamic_cast<CDXLLogicalUpdate*>(dxl_op);
 			}
 	};
 }

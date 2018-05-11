@@ -28,12 +28,12 @@ namespace gpopt
 	class CPartConstraint;
 
 	// hash maps of part constraints indexed by part index id
-	typedef CHashMap<ULONG, CPartConstraint, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<CPartConstraint> > PartCnstrMap;
+	typedef CHashMap<ULONG, CPartConstraint, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<CPartConstraint> > UlongToPartConstraintMap;
 	
 	// map iterator
-	typedef CHashMapIter<ULONG, CPartConstraint, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-		CleanupDelete<ULONG>, CleanupRelease<CPartConstraint> > PartCnstrMapIter;
+	typedef CHashMapIter<ULONG, CPartConstraint, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+		CleanupDelete<ULONG>, CleanupRelease<CPartConstraint> > UlongToPartConstraintMapIter;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -48,22 +48,22 @@ namespace gpopt
 		private:
 			
 			// constraints for different levels
-			HMUlCnstr *m_phmulcnstr;
+			UlongToConstraintMap *m_phmulcnstr;
 			
 			// levels at which the default partitions are included
 			CBitSet *m_pbsDefaultParts;
 			
 			// number of levels;
-			ULONG m_ulLevels;
+			ULONG m_num_of_part_levels;
 
 			// is constraint unbounded
-			BOOL m_fUnbounded;
+			BOOL m_is_unbounded;
 			
 			// is a dummy (not to be used) constraint
 			BOOL m_fUninterpreted;
 
 			// partition keys
-			DrgDrgPcr *m_pdrgpdrgpcr;
+			CColRef2dArray *m_pdrgpdrgpcr;
 
 			// combined constraint
 			CConstraint *m_pcnstrCombined;
@@ -77,7 +77,7 @@ namespace gpopt
 #endif //GPOS_DEBUG
 
 			// does the current constraint overlap with given one at the given level
-			BOOL FOverlapLevel(IMemoryPool *pmp, const CPartConstraint *ppartcnstr, ULONG ulLevel) const;
+			BOOL FOverlapLevel(IMemoryPool *mp, const CPartConstraint *ppartcnstr, ULONG ulLevel) const;
 
 			// check whether or not the current part constraint can be negated. A part
 			// constraint can be negated only if it has constraints on the first level
@@ -85,15 +85,15 @@ namespace gpopt
 			BOOL FCanNegate() const;
 
 			// construct the combined constraint
-			CConstraint *PcnstrBuildCombined(IMemoryPool *pmp);
+			CConstraint *PcnstrBuildCombined(IMemoryPool *mp);
 
 			// return the remaining part of the first constraint that is not covered by
 			// the second constraint
-			CConstraint *PcnstrRemaining(IMemoryPool *pmp, CConstraint *pcnstrFst, CConstraint *pcnstrSnd);
+			CConstraint *PcnstrRemaining(IMemoryPool *mp, CConstraint *pcnstrFst, CConstraint *pcnstrSnd);
 
 			// check if two constaint maps have the same constraints
 			static
-			BOOL FEqualConstrMaps(HMUlCnstr *phmulcnstrFst, HMUlCnstr *phmulcnstrSnd, ULONG ulLevels);
+			BOOL FEqualConstrMaps(UlongToConstraintMap *phmulcnstrFst, UlongToConstraintMap *phmulcnstrSnd, ULONG ulLevels);
 
 			// check if it is possible to produce a disjunction of the two given part
 			// constraints. This is possible if the first ulLevels-1 have the same
@@ -104,8 +104,8 @@ namespace gpopt
 		public:
 
 			// ctors
-			CPartConstraint(IMemoryPool *pmp, HMUlCnstr *phmulcnstr, CBitSet *pbsDefaultParts, BOOL fUnbounded, DrgDrgPcr *pdrgpdrgpcr);
-			CPartConstraint(IMemoryPool *pmp, CConstraint *pcnstr, BOOL fDefaultPartition, BOOL fUnbounded);
+			CPartConstraint(IMemoryPool *mp, UlongToConstraintMap *phmulcnstr, CBitSet *pbsDefaultParts, BOOL is_unbounded, CColRef2dArray *pdrgpdrgpcr);
+			CPartConstraint(IMemoryPool *mp, CConstraint *pcnstr, BOOL fDefaultPartition, BOOL is_unbounded);
 				
 			CPartConstraint(BOOL fUninterpreted);
 
@@ -123,19 +123,19 @@ namespace gpopt
 			}
 
 			// is default partition included on the given level
-			BOOL FDefaultPartition(ULONG ulLevel) const
+			BOOL IsDefaultPartition(ULONG ulLevel) const
 			{
-				return m_pbsDefaultParts->FBit(ulLevel);
+				return m_pbsDefaultParts->Get(ulLevel);
 			}
 
 			// partition keys
-			DrgDrgPcr *Pdrgpdrgpcr() const
+			CColRef2dArray *Pdrgpdrgpcr() const
 			{
 				return m_pdrgpdrgpcr;
 			}
 
 			// is constraint unbounded
-			BOOL FUnbounded() const;
+			BOOL IsConstraintUnbounded() const;
 
 			// is constraint uninterpreted
 			BOOL FUninterpreted() const
@@ -147,7 +147,7 @@ namespace gpopt
 			BOOL FEquivalent(const CPartConstraint *ppartcnstr) const;
 			
 			// does constraint overlap with given constraint
-			BOOL FOverlap(IMemoryPool *pmp, const CPartConstraint *ppartcnstr) const;
+			BOOL FOverlap(IMemoryPool *mp, const CPartConstraint *ppartcnstr) const;
 			
 			// does constraint subsume given one
 			BOOL FSubsume(const CPartConstraint *ppartcnstr) const;
@@ -155,30 +155,30 @@ namespace gpopt
 			// return what remains of the current part constraint after taking out
 			// the given part constraint. Returns NULL is the difference cannot be
 			// performed
-			CPartConstraint *PpartcnstrRemaining(IMemoryPool *pmp, CPartConstraint *ppartcnstr);
+			CPartConstraint *PpartcnstrRemaining(IMemoryPool *mp, CPartConstraint *ppartcnstr);
 
 			// return a copy of the part constraint with remapped columns
-			CPartConstraint *PpartcnstrCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			CPartConstraint *PpartcnstrCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// print
 			IOstream &OsPrint(IOstream &) const;
 			
 			// construct a disjunction of the two constraints
 			static
-			CPartConstraint *PpartcnstrDisjunction(IMemoryPool *pmp, CPartConstraint *ppartcnstrFst, CPartConstraint *ppartcnstrSnd);
+			CPartConstraint *PpartcnstrDisjunction(IMemoryPool *mp, CPartConstraint *ppartcnstrFst, CPartConstraint *ppartcnstrSnd);
 
 			// combine the two given part constraint maps and return the result
 			static
-			PartCnstrMap *PpartcnstrmapCombine
+			UlongToPartConstraintMap *PpartcnstrmapCombine
 				(
-				IMemoryPool *pmp,
-				PartCnstrMap *ppartcnstrmapFst,
-				PartCnstrMap *ppartcnstrmapSnd
+				IMemoryPool *mp,
+				UlongToPartConstraintMap *ppartcnstrmapFst,
+				UlongToPartConstraintMap *ppartcnstrmapSnd
 				);
 
 			// copy the part constraints from the source map into the destination map
 			static
-			void CopyPartConstraints(IMemoryPool *pmp, PartCnstrMap *ppartcnstrmapDest, PartCnstrMap *ppartcnstrmapSource);
+			void CopyPartConstraints(IMemoryPool *mp, UlongToPartConstraintMap *ppartcnstrmapDest, UlongToPartConstraintMap *ppartcnstrmapSource);
 
 	}; // class CPartConstraint
 

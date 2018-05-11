@@ -35,11 +35,11 @@ namespace gpos
 			// write string to stream
 			void Write
 				(
-				const WCHAR *wszLogEntry,
-				ULONG // ulSev
+				const WCHAR *log_entry,
+				ULONG // severity
 				)
 			{
-				 m_os = m_os << wszLogEntry;
+				 m_os = m_os << log_entry;
 			}
 
 			// no copy ctor
@@ -59,11 +59,11 @@ namespace gpos
 
 			// wrapper for stdout
 			static
-			CLoggerStream m_plogStdOut;
+			CLoggerStream m_stdout_stream_logger;
 
 			// wrapper for stderr
 			static
-			CLoggerStream m_plogStdErr;
+			CLoggerStream m_stderr_stream_logger;
 
 	};	// class CLoggerStream
 }

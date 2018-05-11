@@ -42,7 +42,7 @@ namespace gpdxl
 		private:
 
 			// for statistics computation, map to double
-			CDouble m_dValue;
+			CDouble m_val;
 
 			// private copy ctor
 			CDXLDatumStatsDoubleMappable(const CDXLDatumStatsDoubleMappable &);
@@ -51,14 +51,14 @@ namespace gpdxl
 			// ctor
 			CDXLDatumStatsDoubleMappable
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				BOOL fByVal,
-				BOOL fNull,
-				BYTE *pba,
-				ULONG ulLength,
-				CDouble dValue
+				IMemoryPool *mp,
+				IMDId *mdid_type,
+				INT type_modifier,
+				BOOL is_passed_by_value,
+				BOOL is_null,
+				BYTE *data,
+				ULONG length,
+				CDouble val
 				);
 
 			// dtor
@@ -67,11 +67,11 @@ namespace gpdxl
 
 			// serialize the datum as the given element
 			virtual
-			void Serialize(CXMLSerializer *pxmlser);
+			void Serialize(CXMLSerializer *xml_serializer);
 
 			// datum type
 			virtual
-			EdxldatumType Edxldt() const
+			EdxldatumType GetDatumType() const
 			{
 				return CDXLDatum::EdxldatumStatsDoubleMappable;
 			}
@@ -80,29 +80,29 @@ namespace gpdxl
 
 			// can datum be mapped to double
 			virtual
-			BOOL FHasStatsDoubleMapping() const
+			BOOL IsDatumMappableToDouble() const
 			{
 				return true;
 			}
 
 			// return the double mapping needed for statistics computation
 			virtual
-			CDouble DStatsMapping() const
+			CDouble GetDoubleMapping() const
 			{
-				return m_dValue;
+				return m_val;
 			}
 
 			// conversion function
 			static
-			CDXLDatumStatsDoubleMappable *PdxldatumConvert
+			CDXLDatumStatsDoubleMappable *Cast
 				(
-				CDXLDatum *pdxldatum
+				CDXLDatum *dxl_datum
 				)
 			{
-				GPOS_ASSERT(NULL != pdxldatum);
-				GPOS_ASSERT(CDXLDatum::EdxldatumStatsDoubleMappable == pdxldatum->Edxldt());
+			GPOS_ASSERT(NULL != dxl_datum);
+			GPOS_ASSERT(CDXLDatum::EdxldatumStatsDoubleMappable == dxl_datum->GetDatumType());
 
-				return dynamic_cast<CDXLDatumStatsDoubleMappable*>(pdxldatum);
+				return dynamic_cast<CDXLDatumStatsDoubleMappable*>(dxl_datum);
 			}
 	};
 }

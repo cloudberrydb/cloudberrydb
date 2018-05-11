@@ -56,68 +56,68 @@ CDefaultComparator::CDefaultComparator
 //		CDefaultComparator::PexprEvalComparison
 //
 //	@doc:
-//		Constructs a comparison expression of type ecmpt between the two given
+//		Constructs a comparison expression of type cmp_type between the two given
 //		data and evaluates it.
 //
 //---------------------------------------------------------------------------
 BOOL
 CDefaultComparator::FEvalComparison
 	(
-	IMemoryPool *pmp,
-	const IDatum *pdatum1,
-	const IDatum *pdatum2,
-	IMDType::ECmpType ecmpt
+	IMemoryPool *mp,
+	const IDatum *datum1,
+	const IDatum *datum2,
+	IMDType::ECmpType cmp_type
 	)
 	const
 {
 	GPOS_ASSERT(m_pceeval->FCanEvalExpressions());
 
-	IDatum *pdatum1Copy = pdatum1->PdatumCopy(pmp);
-	CExpression *pexpr1 = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarConst(pmp, pdatum1Copy));
-	IDatum *pdatum2Copy = pdatum2->PdatumCopy(pmp);
-	CExpression *pexpr2 = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarConst(pmp, pdatum2Copy));
-	CExpression *pexprComp = CUtils::PexprScalarCmp(pmp, pexpr1, pexpr2, ecmpt);
+	IDatum *pdatum1Copy = datum1->MakeCopy(mp);
+	CExpression *pexpr1 = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, pdatum1Copy));
+	IDatum *pdatum2Copy = datum2->MakeCopy(mp);
+	CExpression *pexpr2 = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, pdatum2Copy));
+	CExpression *pexprComp = CUtils::PexprScalarCmp(mp, pexpr1, pexpr2, cmp_type);
 
 	CExpression *pexprResult = m_pceeval->PexprEval(pexprComp);
 	pexprComp->Release();
 	CScalarConst *popScalarConst = CScalarConst::PopConvert(pexprResult->Pop());
-	IDatum *pdatum = popScalarConst->Pdatum();
+	IDatum *datum = popScalarConst->GetDatum();
 
-	GPOS_ASSERT(IMDType::EtiBool == pdatum->Eti());
-	IDatumBool *pdatumBool = dynamic_cast<IDatumBool *>(pdatum);
-	BOOL fResult = pdatumBool->FValue();
+	GPOS_ASSERT(IMDType::EtiBool == datum->GetDatumType());
+	IDatumBool *pdatumBool = dynamic_cast<IDatumBool *>(datum);
+	BOOL result = pdatumBool->GetValue();
 	pexprResult->Release();
 
-	return fResult;
+	return result;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDefaultComparator::FEqual
+//		CDefaultComparator::Equals
 //
 //	@doc:
 //		Tests if the two arguments are equal.
 //
 //---------------------------------------------------------------------------
 BOOL
-CDefaultComparator::FEqual
+CDefaultComparator::Equals
 	(
-	const IDatum *pdatum1,
-	const IDatum *pdatum2
+	const IDatum *datum1,
+	const IDatum *datum2
 	)
 	const
 {
-	if (!CUtils::FConstrainableType(pdatum1->Pmdid()) ||
-			!CUtils::FConstrainableType(pdatum2->Pmdid()))
+	if (!CUtils::FConstrainableType(datum1->MDId()) ||
+			!CUtils::FConstrainableType(datum2->MDId()))
 	{
 
 		return false;
 	}
-	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(pdatum1->Pmdid()) &&
-			CUtils::FIntType(pdatum2->Pmdid()))
+	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(datum1->MDId()) &&
+			CUtils::FIntType(datum2->MDId()))
 	{
 
-		return pdatum1->FStatsEqual(pdatum2);
+		return datum1->StatsAreEqual(datum2);
 	}
 	CAutoMemoryPool amp;
 
@@ -125,41 +125,41 @@ CDefaultComparator::FEqual
 	// NULL is less than everything else. NULL = NULL.
 	// Note : NULL is considered equal to NULL because we are using the comparator for
 	//        interval calculation.
-	if (pdatum1->FNull() && pdatum2->FNull())
+	if (datum1->IsNull() && datum2->IsNull())
 	{
 		return true;
 	}
 
-	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptEq);
+	return FEvalComparison(amp.Pmp(), datum1, datum2, IMDType::EcmptEq);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDefaultComparator::FLessThan
+//		CDefaultComparator::IsLessThan
 //
 //	@doc:
 //		Tests if the first argument is less than the second.
 //
 //---------------------------------------------------------------------------
 BOOL
-CDefaultComparator::FLessThan
+CDefaultComparator::IsLessThan
 	(
-	const IDatum *pdatum1,
-	const IDatum *pdatum2
+	const IDatum *datum1,
+	const IDatum *datum2
 	)
 	const
 {
-	if (!CUtils::FConstrainableType(pdatum1->Pmdid()) ||
-			!CUtils::FConstrainableType(pdatum2->Pmdid()))
+	if (!CUtils::FConstrainableType(datum1->MDId()) ||
+			!CUtils::FConstrainableType(datum2->MDId()))
 	{
 
 		return false;
 	}
-	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(pdatum1->Pmdid()) &&
-			CUtils::FIntType(pdatum2->Pmdid()))
+	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(datum1->MDId()) &&
+			CUtils::FIntType(datum2->MDId()))
 	{
 
-		return pdatum1->FStatsLessThan(pdatum2);
+		return datum1->StatsAreLessThan(datum2);
 	}
 	CAutoMemoryPool amp;
 
@@ -167,41 +167,41 @@ CDefaultComparator::FLessThan
 	// NULL is less than everything else. NULL = NULL.
 	// Note : NULL is considered equal to NULL because we are using the comparator for
 	//        interval calculation.
-	if (pdatum1->FNull() && !pdatum2->FNull())
+	if (datum1->IsNull() && !datum2->IsNull())
 	{
 		return true;
 	}
 	
-	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptL);
+	return FEvalComparison(amp.Pmp(), datum1, datum2, IMDType::EcmptL);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDefaultComparator::FLessThanOrEqual
+//		CDefaultComparator::IsLessThanOrEqual
 //
 //	@doc:
 //		Tests if the first argument is less than or equal to the second.
 //
 //---------------------------------------------------------------------------
 BOOL
-CDefaultComparator::FLessThanOrEqual
+CDefaultComparator::IsLessThanOrEqual
 	(
-	const IDatum *pdatum1,
-	const IDatum *pdatum2
+	const IDatum *datum1,
+	const IDatum *datum2
 	)
 	const
 {
-	if (!CUtils::FConstrainableType(pdatum1->Pmdid()) ||
-			!CUtils::FConstrainableType(pdatum2->Pmdid()))
+	if (!CUtils::FConstrainableType(datum1->MDId()) ||
+			!CUtils::FConstrainableType(datum2->MDId()))
 	{
 
 		return false;
 	}
-	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(pdatum1->Pmdid()) &&
-			CUtils::FIntType(pdatum2->Pmdid()))
+	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(datum1->MDId()) &&
+			CUtils::FIntType(datum2->MDId()))
 	{
 
-		return pdatum1->FStatsLessThan(pdatum2) || pdatum1->FStatsEqual(pdatum2);
+		return datum1->StatsAreLessThan(datum2) || datum1->StatsAreEqual(datum2);
 	}
 	CAutoMemoryPool amp;
 
@@ -209,48 +209,48 @@ CDefaultComparator::FLessThanOrEqual
 	// NULL is less than everything else. NULL = NULL.
 	// Note : NULL is considered equal to NULL because we are using the comparator for
 	//        interval calculation.
-	if (pdatum1->FNull())
+	if (datum1->IsNull())
 	{
 		// return true since either:
-		// 1. pdatum1 is NULL and pdatum2 is not NULL. Since NULL is considered
+		// 1. datum1 is NULL and datum2 is not NULL. Since NULL is considered
 		// less that not null values for interval computations we return true
-		// 2. when pdatum1 and pdatum2 are both NULL so they are equal
+		// 2. when datum1 and datum2 are both NULL so they are equal
 		// for interval computation
 
 		return true;
 	}
 
 
-	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptLEq);
+	return FEvalComparison(amp.Pmp(), datum1, datum2, IMDType::EcmptLEq);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDefaultComparator::FGreaterThan
+//		CDefaultComparator::IsGreaterThan
 //
 //	@doc:
 //		Tests if the first argument is greater than the second.
 //
 //---------------------------------------------------------------------------
 BOOL
-CDefaultComparator::FGreaterThan
+CDefaultComparator::IsGreaterThan
 	(
-	const IDatum *pdatum1,
-	const IDatum *pdatum2
+	const IDatum *datum1,
+	const IDatum *datum2
 	)
 	const
 {
-	if (!CUtils::FConstrainableType(pdatum1->Pmdid()) ||
-			!CUtils::FConstrainableType(pdatum2->Pmdid()))
+	if (!CUtils::FConstrainableType(datum1->MDId()) ||
+			!CUtils::FConstrainableType(datum2->MDId()))
 	{
 
 		return false;
 	}
-	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(pdatum1->Pmdid()) &&
-			CUtils::FIntType(pdatum2->Pmdid()))
+	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(datum1->MDId()) &&
+			CUtils::FIntType(datum2->MDId()))
 	{
 
-		return pdatum1->FStatsGreaterThan(pdatum2);
+		return datum1->StatsAreGreaterThan(datum2);
 	}
 	CAutoMemoryPool amp;
 
@@ -258,41 +258,41 @@ CDefaultComparator::FGreaterThan
 	// NULL is less than everything else. NULL = NULL.
 	// Note : NULL is considered equal to NULL because we are using the comparator for
 	//        interval calculation.
-	if (!pdatum1->FNull() && pdatum2->FNull())
+	if (!datum1->IsNull() && datum2->IsNull())
 	{
 		return true;
 	}
 
-	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptG);
+	return FEvalComparison(amp.Pmp(), datum1, datum2, IMDType::EcmptG);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDefaultComparator::FLessThanOrEqual
+//		CDefaultComparator::IsLessThanOrEqual
 //
 //	@doc:
 //		Tests if the first argument is greater than or equal to the second.
 //
 //---------------------------------------------------------------------------
 BOOL
-CDefaultComparator::FGreaterThanOrEqual
+CDefaultComparator::IsGreaterThanOrEqual
 	(
-	const IDatum *pdatum1,
-	const IDatum *pdatum2
+	const IDatum *datum1,
+	const IDatum *datum2
 	)
 	const
 {
-	if (!CUtils::FConstrainableType(pdatum1->Pmdid()) ||
-			!CUtils::FConstrainableType(pdatum2->Pmdid()))
+	if (!CUtils::FConstrainableType(datum1->MDId()) ||
+			!CUtils::FConstrainableType(datum2->MDId()))
 	{
 
 		return false;
 	}
-	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(pdatum1->Pmdid()) &&
-			CUtils::FIntType(pdatum2->Pmdid()))
+	if (FUseBuiltinIntEvaluators() && CUtils::FIntType(datum1->MDId()) &&
+			CUtils::FIntType(datum2->MDId()))
 	{
 
-		return pdatum1->FStatsGreaterThan(pdatum2) || pdatum1->FStatsEqual(pdatum2);
+		return datum1->StatsAreGreaterThan(datum2) || datum1->StatsAreEqual(datum2);
 	}
 	CAutoMemoryPool amp;
 
@@ -300,17 +300,17 @@ CDefaultComparator::FGreaterThanOrEqual
 	// NULL is less than everything else. NULL = NULL.
 	// Note : NULL is considered equal to NULL because we are using the comparator for
 	//        interval calculation.
-	if (pdatum2->FNull())
+	if (datum2->IsNull())
 	{
 		// return true since either:
-		// 1. pdatum2 is NULL and pdatum1 is not NULL. Since NULL is considered
+		// 1. datum2 is NULL and datum1 is not NULL. Since NULL is considered
 		// less that not null values for interval computations we return true
-		// 2. when pdatum1 and pdatum2 are both NULL so they are equal
+		// 2. when datum1 and datum2 are both NULL so they are equal
 		// for interval computation
 		return true;
 	}
 
-	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptGEq);
+	return FEvalComparison(amp.Pmp(), datum1, datum2, IMDType::EcmptGEq);
 }
 
 // EOF

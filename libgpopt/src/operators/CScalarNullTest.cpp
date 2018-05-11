@@ -25,14 +25,14 @@ using namespace gpmd;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarNullTest::FMatch
+//		CScalarNullTest::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarNullTest::FMatch
+CScalarNullTest::Matches
 	(
 	COperator *pop
 	)
@@ -44,18 +44,18 @@ CScalarNullTest::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarNullTest::PmdidType
+//		CScalarNullTest::MdidType
 //
 //	@doc:
 //		Expression type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarNullTest::PmdidType() const
+CScalarNullTest::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	
-	return pmda->PtMDType<IMDTypeBool>()->Pmdid();
+	return md_accessor->PtMDType<IMDTypeBool>()->MDId();
 }
 
 
@@ -70,12 +70,12 @@ CScalarNullTest::PmdidType() const
 CScalar::EBoolEvalResult
 CScalarNullTest::Eber
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 	const
 {
 	GPOS_ASSERT(NULL != pdrgpulChildren);
-	GPOS_ASSERT(1 == pdrgpulChildren->UlLength());
+	GPOS_ASSERT(1 == pdrgpulChildren->Size());
 
 	EBoolEvalResult eber = (EBoolEvalResult) *((*pdrgpulChildren)[0]);
 	switch (eber)

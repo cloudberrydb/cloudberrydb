@@ -28,41 +28,41 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalCTEAnchor::CDXLLogicalCTEAnchor
 	(
-	IMemoryPool *pmp,
-	ULONG ulId
+	IMemoryPool *mp,
+	ULONG id
 	)
 	:
-	CDXLLogical(pmp),
-	m_ulId(ulId)
+	CDXLLogical(mp),
+	m_id(id)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalCTEAnchor::Edxlop
+//		CDXLLogicalCTEAnchor::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLLogicalCTEAnchor::Edxlop() const
+CDXLLogicalCTEAnchor::GetDXLOperator() const
 {
 	return EdxlopLogicalCTEAnchor;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalCTEAnchor::PstrOpName
+//		CDXLLogicalCTEAnchor::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLLogicalCTEAnchor::PstrOpName() const
+CDXLLogicalCTEAnchor::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenLogicalCTEAnchor);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenLogicalCTEAnchor);
 }
 
 //---------------------------------------------------------------------------
@@ -76,18 +76,18 @@ CDXLLogicalCTEAnchor::PstrOpName() const
 void
 CDXLLogicalCTEAnchor::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCTEId), UlId());
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenCTEId), Id());
 	
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -102,18 +102,18 @@ CDXLLogicalCTEAnchor::SerializeToDXL
 void
 CDXLLogicalCTEAnchor::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) const
 {
-	GPOS_ASSERT(1 == pdxln->UlArity());
+	GPOS_ASSERT(1 == dxlnode->Arity());
 
-	CDXLNode *pdxlnChild = (*pdxln)[0];
-	GPOS_ASSERT(EdxloptypeLogical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	CDXLNode *child_dxlnode = (*dxlnode)[0];
+	GPOS_ASSERT(EdxloptypeLogical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

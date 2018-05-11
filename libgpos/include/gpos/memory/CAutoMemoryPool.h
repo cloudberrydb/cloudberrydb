@@ -55,20 +55,20 @@ namespace gpos
 			CAutoMemoryPool(const CAutoMemoryPool &);
 
 			// memory pool to protect
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// type of leak check to perform
-			ELeakCheck m_elc;
+			ELeakCheck m_leak_check_type;
 
 		public:
 
 			// ctor
 			CAutoMemoryPool
 				(
-				ELeakCheck elc = ElcExc,
-				CMemoryPoolManager::EAllocType ept = CMemoryPoolManager::EatTracker,
-				BOOL fThreadSafe = true,
-				ULLONG ullCapacity = gpos::ullong_max
+				ELeakCheck leak_check_type = ElcExc,
+				CMemoryPoolManager::AllocType ept = CMemoryPoolManager::EatTracker,
+				BOOL thread_safe = true,
+				ULLONG capacity = gpos::ullong_max
 				);
 
 			// dtor
@@ -77,11 +77,11 @@ namespace gpos
 			// accessor
 			IMemoryPool *Pmp() const
 			{
-				return m_pmp;
+				return m_mp;
 			}
 			
 			// detach from pool
-			IMemoryPool *PmpDetach();
+			IMemoryPool *Detach();
 
 	}; // CAutoMemoryPool
 }

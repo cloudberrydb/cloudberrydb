@@ -31,7 +31,7 @@ namespace gpos
 		private:
 
 			// counter
-			volatile ULONG_PTR m_ulp;
+			volatile ULONG_PTR m_counter;
 
 			// private copy ctor
 			CAtomicCounter(const CAtomicCounter &);
@@ -42,22 +42,22 @@ namespace gpos
 			explicit
 			CAtomicCounter
 				(
-				T tSeed = 0
+				T seed = 0
 				)
 				: 
-				m_ulp(tSeed)
+				m_counter(seed)
 			{
-				GPOS_ASSERT(sizeof(T) <= sizeof(m_ulp) && "Type too large for wrapper");
+				GPOS_ASSERT(sizeof(T) <= sizeof(m_counter) && "Type too large for wrapper");
 			}
 
 			// incr
-			T TIncr()
+			T Incr()
 			{
 #ifdef GPOS_DEBUG
 				T t = (T)-1;
-				GPOS_ASSERT(m_ulp < t - 1 && "Counter overflow");
+				GPOS_ASSERT(m_counter < t - 1 && "Counter overflow");
 #endif // GPOS_DEBUG
-				return (T) UlpExchangeAdd(&m_ulp, 1);
+				return (T) ExchangeAddUlongPtrWithInt(&m_counter, 1);
 			}			
 			
 	}; // class CAtomicCounter

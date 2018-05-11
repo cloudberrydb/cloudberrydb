@@ -14,7 +14,7 @@
 #include "gpos/types.h"
 #include "gpos/common/clibwrapper.h"
 
-#define GPOS_WSZ_LENGTH(x) gpos::clib::UlWcsLen(x)
+#define GPOS_WSZ_LENGTH(x) gpos::clib::Wcslen(x)
 #define GPOS_WSZ_STR_LENGTH(x) GPOS_WSZ_LIT(x), GPOS_WSZ_LENGTH(GPOS_WSZ_LIT(x))
 
 #define WCHAR_EOS GPOS_WSZ_LIT('\0')
@@ -48,58 +48,58 @@ namespace gpos
 			
 		protected:
 			// represents end-of-wide-string character
-			static const WCHAR m_wcEmpty;
+			static const WCHAR m_empty_wcstr;
 			
 			// size of the string in number of WCHAR units (not counting the terminating '\0')
-			ULONG m_ulLength;
+			ULONG m_length;
 			
 			// whether string owns its memory and should take care of deallocating it at destruction time
-			BOOL m_fOwnsMemory;
+			BOOL m_owns_memory;
 			
 			// checks whether the string is byte-wise equal to a given string literal
-			virtual BOOL FEquals(const WCHAR *wszBuf) const;
+			virtual BOOL Equals(const WCHAR *w_str_buffer) const;
 			
 		public:
 			
 			// ctor
-			CWStringBase(ULONG ulLength, BOOL fOwnsMemory)
+			CWStringBase(ULONG length, BOOL owns_memory)
 				:
-				m_ulLength(ulLength),
-				m_fOwnsMemory(fOwnsMemory)
+				m_length(length),
+				m_owns_memory(owns_memory)
 			{}
 			
 			// dtor
 			virtual ~CWStringBase(){}
 			
 			// deep copy of the string
-			virtual CWStringConst *PStrCopy(IMemoryPool *pmp) const;
+			virtual CWStringConst *Copy(IMemoryPool *mp) const;
 
 			// accessors
-			virtual ULONG UlLength() const;
+			virtual ULONG Length() const;
 			
 			// checks whether the string is byte-wise equal to another string
-			virtual BOOL FEquals(const CWStringBase *pStr) const;			
+			virtual BOOL Equals(const CWStringBase *str) const;			
 			
 			// checks whether the string contains any characters
-			virtual BOOL FEmpty() const;
+			virtual BOOL IsEmpty() const;
 			
 			// checks whether a string is properly null-terminated
-			bool FValid() const;
+			bool IsValid() const;
 			
 			// equality operator 
 			BOOL operator == (const CWStringBase &str) const;
 
 			// returns the wide character buffer storing the string
-			virtual const WCHAR* Wsz() const = 0;
+			virtual const WCHAR* GetBuffer() const = 0;
 
 			// returns the index of the first occurrence of a character, -1 if not found
-			INT IFind(WCHAR wc) const;
+			INT Find(WCHAR wc) const;
 
 			// checks if a character is escaped
-			BOOL FEscaped(ULONG ulOfst) const;
+			BOOL HasEscapedCharAt(ULONG offset) const;
 
 			// count how many times the character appears in string
-			ULONG UlOccurences(const WCHAR wc) const;
+			ULONG CountOccurrencesOf(const WCHAR wc) const;
 	};
 	
 }

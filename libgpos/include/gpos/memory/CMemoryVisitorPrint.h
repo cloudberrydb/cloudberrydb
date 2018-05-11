@@ -32,7 +32,7 @@ namespace gpos
         private:
 
             // call counter for the visit function
-            ULLONG m_ullVisits;
+            ULLONG m_visits;
 
             // stream used for writing debug information
             IOstream &m_os;
@@ -53,20 +53,20 @@ namespace gpos
             virtual
             void Visit
 				(
-				void *pvUserAddr,
-				SIZE_T ulUserSize,
-				void *pvTotalAddr,
-				SIZE_T ulTotalSize,
-				const CHAR * szAllocFilename,
-				const ULONG ulAllocLine,
-				ULLONG cAllocSeqNumber,
-				CStackDescriptor *psd
+				void *user_addr,
+				SIZE_T user_size,
+				void *total_addr,
+				SIZE_T total_size,
+				const CHAR * alloc_filename,
+				const ULONG alloc_line,
+				ULLONG alloc_seq_number,
+				CStackDescriptor *stack_desc
 				);
 
             // visit counter accessor
-            ULLONG UllVisits() const
+            ULLONG GetNumVisits() const
             {
-            	return m_ullVisits;
+            	return m_visits;
             }
     };
 }

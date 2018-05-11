@@ -29,15 +29,15 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerWindowFrame::CParseHandlerWindowFrame
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_edxlfs(EdxlfsSentinel),
-	m_edxlfes(EdxlfesSentinel),
-	m_pdxlwf(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_dxl_win_frame_spec(EdxlfsSentinel),
+	m_dxl_frame_exclusion_strategy(EdxlfesSentinel),
+	m_window_frame(NULL)
 {
 }
 
@@ -52,34 +52,34 @@ CParseHandlerWindowFrame::CParseHandlerWindowFrame
 void
 CParseHandlerWindowFrame::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname,
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowFrame), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowFrame), element_local_name))
 	{
-		m_edxlfs = CDXLOperatorFactory::Edxlfs(attrs);
-		m_edxlfes = CDXLOperatorFactory::Edxlfes(attrs);
+		m_dxl_win_frame_spec = CDXLOperatorFactory::ParseDXLFrameSpec(attrs);
+		m_dxl_frame_exclusion_strategy = CDXLOperatorFactory::ParseFrameExclusionStrategy(attrs);
 
 		// parse handler for the trailing window frame edge
-		CParseHandlerBase *pphTrailingVal =
-				CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarWindowFrameTrailingEdge), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphTrailingVal);
+		CParseHandlerBase *trailing_val_parse_handler_base =
+				CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarWindowFrameTrailingEdge), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(trailing_val_parse_handler_base);
 
 		// parse handler for the leading scalar values
-		CParseHandlerBase *pphLeadingVal =
-				CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarWindowFrameLeadingEdge), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphLeadingVal);
+		CParseHandlerBase *leading_val_parse_handler_base =
+				CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarWindowFrameLeadingEdge), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(leading_val_parse_handler_base);
 
-		this->Append(pphLeadingVal);
-		this->Append(pphTrailingVal);
+		this->Append(leading_val_parse_handler_base);
+		this->Append(trailing_val_parse_handler_base);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -94,33 +94,33 @@ CParseHandlerWindowFrame::StartElement
 void
 CParseHandlerWindowFrame::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowFrame), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowFrame), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
-	GPOS_ASSERT(NULL == m_pdxlwf);
-	GPOS_ASSERT(2 == this->UlLength());
+	GPOS_ASSERT(NULL == m_window_frame);
+	GPOS_ASSERT(2 == this->Length());
 
-	CParseHandlerScalarOp *pphTrailingVal = dynamic_cast<CParseHandlerScalarOp *>((*this)[0]);
-	GPOS_ASSERT(NULL != pphTrailingVal);
-	CDXLNode *pdxlnTrailing = pphTrailingVal->Pdxln();
-	pdxlnTrailing->AddRef();
+	CParseHandlerScalarOp *trailing_val_parse_handler_base = dynamic_cast<CParseHandlerScalarOp *>((*this)[0]);
+	GPOS_ASSERT(NULL != trailing_val_parse_handler_base);
+	CDXLNode *dxlnode_trailing = trailing_val_parse_handler_base->CreateDXLNode();
+	dxlnode_trailing->AddRef();
 
-	CParseHandlerScalarOp *pphLeadingVal = dynamic_cast<CParseHandlerScalarOp *>((*this)[1]);
-	GPOS_ASSERT(NULL != pphLeadingVal);
-	CDXLNode *pdxlnLeading = pphLeadingVal->Pdxln();
-	pdxlnLeading->AddRef();
+	CParseHandlerScalarOp *leading_val_parse_handler_base = dynamic_cast<CParseHandlerScalarOp *>((*this)[1]);
+	GPOS_ASSERT(NULL != leading_val_parse_handler_base);
+	CDXLNode *dxlnode_leading = leading_val_parse_handler_base->CreateDXLNode();
+	dxlnode_leading->AddRef();
 
-	m_pdxlwf = GPOS_NEW(m_pmp) CDXLWindowFrame(m_pmp, m_edxlfs, m_edxlfes, pdxlnLeading, pdxlnTrailing);
+	m_window_frame = GPOS_NEW(m_mp) CDXLWindowFrame(m_mp, m_dxl_win_frame_spec, m_dxl_frame_exclusion_strategy, dxlnode_leading, dxlnode_trailing);
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

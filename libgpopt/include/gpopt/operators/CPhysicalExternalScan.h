@@ -36,7 +36,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CPhysicalExternalScan(IMemoryPool *, const CName *, CTableDescriptor *, DrgPcr *);
+			CPhysicalExternalScan(IMemoryPool *, const CName *, CTableDescriptor *, CColRefArray *);
 
 			// ident accessors
 			virtual
@@ -54,7 +54,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			//-------------------------------------------------------------------------------------
 			// Derived Plan Properties
@@ -64,13 +64,13 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 				const
 			{
 				// external tables are not rewindable
-				return GPOS_NEW(pmp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+				return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
 			}
 
 			//-------------------------------------------------------------------------------------

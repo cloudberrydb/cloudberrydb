@@ -69,7 +69,7 @@ GPOS_RESULT
 CEngineTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CAutoTraceFlag atf1(EopttracePrintOptimizationStatistics, true);
 	CAutoTraceFlag atf2(EopttracePrintMemoAfterExploration, true);
@@ -84,27 +84,27 @@ CEngineTest::EresUnittest_Basic()
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
 	CAutoOptCtxt aoc
 					(
-					pmp,
+					mp,
 					&mda,
 					NULL, /* pceeval */
-					CTestUtils::Pcm(pmp)
+					CTestUtils::GetCostModel(mp)
 					);
 
-	CEngine eng(pmp);
+	CEngine eng(mp);
 
 	// generate  join expression
-	CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp);
+	CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp);
 
 	// generate query context
-	CQueryContext *pqc = CTestUtils::PqcGenerate(pmp, pexpr);
+	CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
 
 	// Initialize engine
-	eng.Init(pqc, NULL /*pdrgpss*/);
+	eng.Init(pqc, NULL /*search_stage_array*/);
 
 	// optimize query
 	eng.Optimize();
@@ -137,50 +137,50 @@ GPOS_RESULT
 CEngineTest::EresOptimize
 	(
 	FnOptimize *pfopt,
-	CWStringConst *pstr, // array of relation names
+	CWStringConst *str, // array of relation names
 	ULONG *pul,// array of relation OIDs
 	ULONG ulRels, // number of array entries
 	CBitSet *pbs // if a bit is set, the corresponding join expression will be optimized
 	)
 {
 	GPOS_ASSERT(NULL != pfopt);
-	GPOS_ASSERT(NULL != pstr);
+	GPOS_ASSERT(NULL != str);
 	GPOS_ASSERT(NULL != pul);
 	GPOS_ASSERT(NULL != pbs);
 
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache());
+	CMDAccessor mda(mp, CMDCache::Pcache());
 	mda.RegisterProvider(CTestUtils::m_sysidDefault, pmdp);
 	// scope for optimization context
 	{
 		CAutoOptCtxt aoc
 					(
-					pmp,
+					mp,
 					&mda,
 					NULL, /* pceeval */
-					CTestUtils::Pcm(pmp)
+					CTestUtils::GetCostModel(mp)
 					);
 
 		// generate cross product expressions
-		DrgPexprJoins *pdrgpexprCrossProducts = CTestUtils::PdrgpexprJoins(pmp, pstr, pul, ulRels, true /*fCrossProduct*/);
+		CExpressionJoinsArray *pdrgpexprCrossProducts = CTestUtils::PdrgpexprJoins(mp, str, pul, ulRels, true /*fCrossProduct*/);
 
 		// generate join expressions
-		DrgPexprJoins *pdrgpexpr = CTestUtils::PdrgpexprJoins(pmp, pstr, pul, ulRels, false  /*fCrossProduct*/);
+		CExpressionJoinsArray *pdrgpexpr = CTestUtils::PdrgpexprJoins(mp, str, pul, ulRels, false  /*fCrossProduct*/);
 
 		// build memo for each expression
 		for (ULONG ul = m_ulTestCounter; ul < ulRels; ul++)
 		{
-			if (pbs->FBit(ul))
+			if (pbs->Get(ul))
 			{
-				pfopt(pmp, (*pdrgpexprCrossProducts)[ul], NULL /*pdrgpss*/);
+				pfopt(mp, (*pdrgpexprCrossProducts)[ul], NULL /*search_stage_array*/);
 				GPOS_CHECK_ABORT;
 
-				pfopt(pmp, (*pdrgpexpr)[ul], NULL /*pdrgpss*/);
+				pfopt(mp, (*pdrgpexpr)[ul], NULL /*search_stage_array*/);
 				GPOS_CHECK_ABORT;
 
 				m_ulTestCounter++;
@@ -214,7 +214,7 @@ GPOS_RESULT
 CEngineTest::EresUnittest_BuildMemo()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// array of relation names
 	CWStringConst rgscRel[] =
@@ -236,11 +236,11 @@ CEngineTest::EresUnittest_BuildMemo()
 		GPOPT_TEST_REL_OID5,
 	};
 
-	CBitSet *pbs = GPOS_NEW(pmp) CBitSet(pmp);
+	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp);
 	const ULONG ulRels = GPOS_ARRAY_SIZE(rgscRel);
 	for (ULONG ul = 0; ul < ulRels; ul++)
 	{
-		(void) pbs->FExchangeSet(ul);
+		(void) pbs->ExchangeSet(ul);
 	}
 
 	GPOS_RESULT eres = EresOptimize(BuildMemoRecursive, rgscRel, rgulRel, ulRels, pbs);
@@ -262,34 +262,34 @@ GPOS_RESULT
 CEngineTest::EresUnittest_AppendStats()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CAutoTraceFlag atf(EopttracePrintGroupProperties, true);
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
 	CAutoOptCtxt aoc
 					(
-					pmp,
+					mp,
 					&mda,
 					NULL,  /* pceeval */
-					CTestUtils::Pcm(pmp)
+					CTestUtils::GetCostModel(mp)
 					);
 
-	CEngine eng(pmp);
+	CEngine eng(mp);
 
 	// generate  join expression
-	CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp);
+	CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp);
 
 	// generate query context
-	CQueryContext *pqc = CTestUtils::PqcGenerate(pmp, pexpr);
+	CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
 
 	// Initialize engine
-	eng.Init(pqc, NULL /*pdrgpss*/);
+	eng.Init(pqc, NULL /*search_stage_array*/);
 
 	CGroupExpression *pgexpr = NULL;
 	{
@@ -299,39 +299,39 @@ CEngineTest::EresUnittest_AppendStats()
 
 	// derive stats with empty requirements
 	{
-		CAutoTrace at(pmp);
+		CAutoTrace at(mp);
 
-		CExpressionHandle exprhdl(pmp);
+		CExpressionHandle exprhdl(mp);
 		exprhdl.Attach(pgexpr);
-		exprhdl.DeriveStats(pmp, pmp, NULL /*prprel*/, NULL /*pdrgpstatCtxt*/);
+		exprhdl.DeriveStats(mp, mp, NULL /*prprel*/, NULL /*stats_ctxt*/);
 		at.Os() << std::endl << "MEMO AFTER FIRST STATS DERIVATION:" << std::endl;
 	}
 	eng.Trace();
 
 	// create a non-empty set of output columns as requirements for stats derivation
 	ULONG ulIndex = 0;
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	CColRefSetIter crsi(*CDrvdPropRelational::Pdprel(pexpr->PdpDerive())->PcrsOutput());
-	while (crsi.FAdvance() && ulIndex < 3)
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+	CColRefSetIter crsi(*CDrvdPropRelational::GetRelationalProperties(pexpr->PdpDerive())->PcrsOutput());
+	while (crsi.Advance() && ulIndex < 3)
 	{
-		CColRef *pcr = crsi.Pcr();
+		CColRef *colref = crsi.Pcr();
 		if (ulIndex == 1 || ulIndex == 2)
 		{
-			pcrs->Include(pcr);
+			pcrs->Include(colref);
 		}
 		ulIndex++;
 	}
 
-	CReqdPropRelational *prprel = GPOS_NEW(pmp) CReqdPropRelational(pcrs);
+	CReqdPropRelational *prprel = GPOS_NEW(mp) CReqdPropRelational(pcrs);
 
 	// derive stats with non-empty requirements
 	// missing stats should be appended to the already derived ones
 	{
-		CAutoTrace at(pmp);
+		CAutoTrace at(mp);
 
-		CExpressionHandle exprhdl(pmp);
+		CExpressionHandle exprhdl(mp);
 		exprhdl.Attach(pgexpr);
-		exprhdl.DeriveStats(pmp, pmp, prprel, NULL /*pdrgpstatCtxt*/);
+		exprhdl.DeriveStats(mp, mp, prprel, NULL /*stats_ctxt*/);
 		at.Os() << std::endl << "MEMO AFTER SECOND STATS DERIVATION:" << std::endl;
 	}
 	eng.Trace();
@@ -356,7 +356,7 @@ GPOS_RESULT
 CEngineTest::EresUnittest_BuildMemoLargeJoins()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// array of relation names
 	CWStringConst rgscRel[] =
@@ -379,9 +379,9 @@ CEngineTest::EresUnittest_BuildMemoLargeJoins()
 	};
 
 	// only optimize the last join expression
-	CBitSet *pbs = GPOS_NEW(pmp) CBitSet(pmp);
+	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp);
 	const ULONG ulRels = GPOS_ARRAY_SIZE(rgscRel);
-	(void) pbs->FExchangeSet(ulRels - 1);
+	(void) pbs->ExchangeSet(ulRels - 1);
 
 	GPOS_RESULT eres = EresOptimize(BuildMemoRecursive, rgscRel, rgulRel, ulRels, pbs);
 	pbs->Release();
@@ -401,14 +401,14 @@ CEngineTest::EresUnittest_BuildMemoLargeJoins()
 void
 CEngineTest::BuildMemoRecursive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprInput,
-	DrgPss *pdrgpss
+	CSearchStageArray *search_stage_array
 	)
 {
-	CQueryContext *pqc = CTestUtils::PqcGenerate(pmp, pexprInput);
+	CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexprInput);
 
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	IOstream &os(at.Os());
 
 	os << std::endl << std::endl;
@@ -416,10 +416,10 @@ CEngineTest::BuildMemoRecursive
 	(void) pqc->OsPrint(os);
 
 	// enable space pruning
-	CAutoTraceFlag atf(EopttraceEnableSpacePruning, true /*fVal*/);
+	CAutoTraceFlag atf(EopttraceEnableSpacePruning, true /*value*/);
 
-	CEngine eng(pmp);
-	eng.Init(pqc, pdrgpss);
+	CEngine eng(mp);
+	eng.Init(pqc, search_stage_array);
 	eng.PrintRoot();
 	GPOS_CHECK_ABORT;
 
@@ -429,7 +429,7 @@ CEngineTest::BuildMemoRecursive
 	CExpression *pexprPlan = eng.PexprExtractPlan();
 	GPOS_ASSERT(NULL != pexprPlan);
 	
-	(void) pexprPlan->PrppCompute(pmp, pqc->Prpp());
+	(void) pexprPlan->PrppCompute(mp, pqc->Prpp());
 
 	os << std::endl << std::endl;
 	os << "OUTPUT PLAN:" <<std::endl;
@@ -456,31 +456,31 @@ GPOS_RESULT
 CEngineTest::EresTestEngine
 	(
 	Pfpexpr rgpf[],
-	ULONG ulSize
+	ULONG size
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache());
+	CMDAccessor mda(mp, CMDCache::Pcache());
 	mda.RegisterProvider(CTestUtils::m_sysidDefault, pmdp);
 
-	for (ULONG ul = m_ulTestCounter; ul < ulSize; ul++)
+	for (ULONG ul = m_ulTestCounter; ul < size; ul++)
 	{
 		// install opt context in TLS
 		CAutoOptCtxt aoc
 					(
-					pmp,
+					mp,
 					&mda,
 					NULL,  /* pceeval */
-					CTestUtils::Pcm(pmp)
+					CTestUtils::GetCostModel(mp)
 					);
 
-		CExpression *pexpr = rgpf[ul](pmp);
-		BuildMemoRecursive(pmp, pexpr, NULL /*pdrgpss*/);
+		CExpression *pexpr = rgpf[ul](mp);
+		BuildMemoRecursive(mp, pexpr, NULL /*search_stage_array*/);
 		pexpr->Release();
 
 		m_ulTestCounter++;
@@ -545,31 +545,31 @@ CEngineTest::EresUnittest_BuildMemoWithSubqueries()
 		BOOL fCorrelated = true;
 
 		// we get two expressions using each generator
-		const ULONG ulSize = 2 * GPOS_ARRAY_SIZE(rgpf);
-		for (ULONG ul = m_ulTestCounterSubq; ul < ulSize; ul++)
+		const ULONG size = 2 * GPOS_ARRAY_SIZE(rgpf);
+		for (ULONG ul = m_ulTestCounterSubq; ul < size; ul++)
 		{
 			CAutoMemoryPool amp;
-			IMemoryPool *pmp = amp.Pmp();
+			IMemoryPool *mp = amp.Pmp();
 
 			// setup a file-based provider
 			CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 			pmdp->AddRef();
-			CMDAccessor mda(pmp, CMDCache::Pcache());
+			CMDAccessor mda(mp, CMDCache::Pcache());
 			mda.RegisterProvider(CTestUtils::m_sysidDefault, pmdp);
 
 			{
 				// install opt context in TLS
 				CAutoOptCtxt aoc
 					(
-					pmp,
+					mp,
 					&mda,
 					NULL,  /* pceeval */
-					CTestUtils::Pcm(pmp)
+					CTestUtils::GetCostModel(mp)
 					);
 
 				ULONG ulIndex = ul / 2;
-				CExpression *pexpr = rgpf[ulIndex](pmp, fCorrelated);
-				BuildMemoRecursive(pmp, pexpr, NULL /*pdrgpss*/);
+				CExpression *pexpr = rgpf[ulIndex](mp, fCorrelated);
+				BuildMemoRecursive(mp, pexpr, NULL /*search_stage_array*/);
 				pexpr->Release();
 			}
 
@@ -684,44 +684,44 @@ GPOS_RESULT
 CEngineTest::EresUnittest_BuildMemoWithCTE()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache());
+	CMDAccessor mda(mp, CMDCache::Pcache());
 	mda.RegisterProvider(CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
 	CAutoOptCtxt aoc
 					(
-					pmp,
+					mp,
 					&mda,
 					NULL,  /* pceeval */
-					CTestUtils::Pcm(pmp)
+					CTestUtils::GetCostModel(mp)
 					);
 
-	CExpression *pexprCTE = CTestUtils::PexprCTETree(pmp);
-	CExpression *pexprGet = CTestUtils::PexprLogicalGet(pmp);
+	CExpression *pexprCTE = CTestUtils::PexprCTETree(mp);
+	CExpression *pexprGet = CTestUtils::PexprLogicalGet(mp);
 
-	CColRefSet *pcrsLeft = CDrvdPropRelational::Pdprel(pexprCTE->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsLeft = CDrvdPropRelational::GetRelationalProperties(pexprCTE->PdpDerive())->PcrsOutput();
 	CColRef *pcrLeft =  pcrsLeft->PcrAny();
 
-	CColRefSet *pcrsRight = CDrvdPropRelational::Pdprel(pexprGet->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsRight = CDrvdPropRelational::GetRelationalProperties(pexprGet->PdpDerive())->PcrsOutput();
 	CColRef *pcrRight =  pcrsRight->PcrAny();
 
-	CExpression *pexprScalar = CUtils::PexprScalarEqCmp(pmp, pcrLeft, pcrRight);
+	CExpression *pexprScalar = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
 
-	CExpression *pexpr = GPOS_NEW(pmp) CExpression
+	CExpression *pexpr = GPOS_NEW(mp) CExpression
 									(
-									pmp,
-									GPOS_NEW(pmp) CLogicalInnerJoin(pmp),
+									mp,
+									GPOS_NEW(mp) CLogicalInnerJoin(mp),
 									pexprCTE,
 									pexprGet,
 									pexprScalar
 									);
 
-	BuildMemoRecursive(pmp, pexpr, NULL /*pdrgpss*/);
+	BuildMemoRecursive(mp, pexpr, NULL /*search_stage_array*/);
 	pexpr->Release();
 
 	return GPOS_OK;

@@ -40,10 +40,10 @@ namespace gpopt
 			explicit
 			CPatternLeaf
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				: 
-				CPattern(pmp)
+				CPattern(mp)
 			{
 			}
 

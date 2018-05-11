@@ -16,233 +16,233 @@ using namespace gpmd;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IDatumStatisticsMappable::FStatsEqual
+//		IDatumStatisticsMappable::StatsAreEqual
 //
 //	@doc:
 //		Equality based on mapping to LINT or CDouble
 //
 //---------------------------------------------------------------------------
 BOOL 
-IDatumStatisticsMappable::FStatsEqual
-	(
-	const IDatum *pdatum
-	)
+IDatumStatisticsMappable::StatsAreEqual
+		(
+				const IDatum *datum
+		)
 	const
 {
-	GPOS_ASSERT(NULL != pdatum);
+	GPOS_ASSERT(NULL != datum);
 	
-	const IDatumStatisticsMappable *pdatumsm = dynamic_cast<const IDatumStatisticsMappable*>(pdatum);
+	const IDatumStatisticsMappable *datum_cast = dynamic_cast<const IDatumStatisticsMappable*>(datum);
 
 	// datums can be compared based on either LINT or Doubles or BYTEA values
 #ifdef GPOS_DEBUG
-	BOOL fDoubleComparison = this->FHasStatsDoubleMapping() && pdatumsm->FHasStatsDoubleMapping();
+	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 #endif // GPOS_DEBUG
-	BOOL fLintComparison = this->FHasStatsLINTMapping() && pdatumsm->FHasStatsLINTMapping();
-	BOOL fBinaryComparison = this->FSupportsBinaryComp(pdatum) && pdatumsm->FSupportsBinaryComp(this);
+	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
+	BOOL is_binary_comparison = this->SupportsBinaryComp(datum) && datum_cast->SupportsBinaryComp(this);
 
-	GPOS_ASSERT(fDoubleComparison || fLintComparison || fBinaryComparison);
+	GPOS_ASSERT(is_double_comparison || is_lint_comparison || is_binary_comparison);
 
-	if (this->FNull())
+	if (this->IsNull())
 	{
 		// nulls are equal from stats point of view
-		return pdatumsm->FNull();
+		return datum_cast->IsNull();
 	}
 
-	if (pdatumsm->FNull())
+	if (datum_cast->IsNull())
 	{
 		return false;
 	}
 
-	if (fBinaryComparison)
+	if (is_binary_comparison)
 	{
-		return FStatsEqualBinary(pdatum);
+		return StatsEqualBinary(datum);
 	}
 
-	if (fLintComparison)
+	if (is_lint_comparison)
 	{
-		LINT l1 = this->LStatsMapping();
-		LINT l2 = pdatumsm->LStatsMapping();
+		LINT l1 = this->GetLINTMapping();
+		LINT l2 = datum_cast->GetLINTMapping();
 		return l1 == l2;
 	}
 
-	GPOS_ASSERT(fDoubleComparison);
+	GPOS_ASSERT(is_double_comparison);
 
-	CDouble d1 = this->DStatsMapping();
-	CDouble d2 = pdatumsm->DStatsMapping();
+	CDouble d1 = this->GetDoubleMapping();
+	CDouble d2 = datum_cast->GetDoubleMapping();
 	return d1 == d2;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IDatumStatisticsMappable::FStatsLessThan
+//		IDatumStatisticsMappable::StatsAreLessThan
 //
 //	@doc:
 //		Less-than based on mapping to LINT or CDouble
 //
 //---------------------------------------------------------------------------
 BOOL 
-IDatumStatisticsMappable::FStatsLessThan
+IDatumStatisticsMappable::StatsAreLessThan
 	(
-	const IDatum *pdatum
+	const IDatum *datum
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdatum);
+	GPOS_ASSERT(NULL != datum);
 	
-	const IDatumStatisticsMappable *pdatumsm = dynamic_cast<const IDatumStatisticsMappable*>(pdatum);
+	const IDatumStatisticsMappable *datum_cast = dynamic_cast<const IDatumStatisticsMappable*>(datum);
 
 	// datums can be compared based on either LINT or Doubles or BYTEA values
 #ifdef GPOS_DEBUG
-	BOOL fDoubleComparison = this->FHasStatsDoubleMapping() && pdatumsm->FHasStatsDoubleMapping();
+	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 #endif // GPOS_DEBUG
-	BOOL fLintComparison = this->FHasStatsLINTMapping() && pdatumsm->FHasStatsLINTMapping();
-	BOOL fBinaryComparison = this->FSupportsBinaryComp(pdatum) && pdatumsm->FSupportsBinaryComp(this);
+	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
+	BOOL is_binary_comparison = this->SupportsBinaryComp(datum) && datum_cast->SupportsBinaryComp(this);
 
-	GPOS_ASSERT(fDoubleComparison || fLintComparison || fBinaryComparison);
+	GPOS_ASSERT(is_double_comparison || is_lint_comparison || is_binary_comparison);
 
-	if (this->FNull())
+	if (this->IsNull())
 	{
 		// nulls are less than everything else except nulls
-		return !(pdatumsm->FNull());
+		return !(datum_cast->IsNull());
 	}
 
-	if (pdatumsm->FNull())
+	if (datum_cast->IsNull())
 	{
 		return false;
 	}
 
-	if (fBinaryComparison)
+	if (is_binary_comparison)
 	{
-		return FStatsLessThanBinary(pdatum);
+		return StatsLessThanBinary(datum);
 	}
 
-	if (fLintComparison)
+	if (is_lint_comparison)
 	{
-		LINT l1 = this->LStatsMapping();
-		LINT l2 = pdatumsm->LStatsMapping();
+		LINT l1 = this->GetLINTMapping();
+		LINT l2 = datum_cast->GetLINTMapping();
 		return l1 < l2;
 	}
 
-	GPOS_ASSERT(fDoubleComparison);
+	GPOS_ASSERT(is_double_comparison);
 
-	CDouble d1 = this->DStatsMapping();
-	CDouble d2 = pdatumsm->DStatsMapping();
+	CDouble d1 = this->GetDoubleMapping();
+	CDouble d2 = datum_cast->GetDoubleMapping();
 	return d1 < d2;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IDatumStatisticsMappable::DStatsDistance
+//		IDatumStatisticsMappable::GetStatsDistanceFrom
 //
 //	@doc:
 //		Distance function based on mapping to LINT or CDouble
 //
 //---------------------------------------------------------------------------
 CDouble 
-IDatumStatisticsMappable::DStatsDistance
+IDatumStatisticsMappable::GetStatsDistanceFrom
 	(
-	const IDatum *pdatum
+	const IDatum *datum
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdatum);
+	GPOS_ASSERT(NULL != datum);
 
-	const IDatumStatisticsMappable *pdatumsm = dynamic_cast<const IDatumStatisticsMappable*>(pdatum);
+	const IDatumStatisticsMappable *datum_cast = dynamic_cast<const IDatumStatisticsMappable*>(datum);
 
 	// datums can be compared based on either LINT or Doubles or BYTEA values
 #ifdef GPOS_DEBUG
-	BOOL fDoubleComparison = this->FHasStatsDoubleMapping() && pdatumsm->FHasStatsDoubleMapping();
+	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 #endif // GPOS_DEBUG
-	BOOL fLintComparison = this->FHasStatsLINTMapping() && pdatumsm->FHasStatsLINTMapping();
-	BOOL fBinaryComparison = this->FSupportsBinaryComp(pdatum) && pdatumsm->FSupportsBinaryComp(this);
+	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
+	BOOL is_binary_comparison = this->SupportsBinaryComp(datum) && datum_cast->SupportsBinaryComp(this);
 
-	GPOS_ASSERT(fDoubleComparison || fLintComparison || fBinaryComparison);
+	GPOS_ASSERT(is_double_comparison || is_lint_comparison || is_binary_comparison);
 
-	if (this->FNull())
+	if (this->IsNull())
 	{
 		// nulls are equal from stats point of view
-		return pdatumsm->FNull();
+		return datum_cast->IsNull();
 	}
 
-	if (pdatumsm->FNull())
+	if (datum_cast->IsNull())
 	{
 		return false;
 	}
 
-	if (fBinaryComparison)
+	if (is_binary_comparison)
 	{
 		// TODO: , May 1 2013, distance function for data types such as bpchar/varchar
 		// that require binary comparison
-		LINT l1 = this->LStatsMapping();
-		LINT l2 = pdatumsm->LStatsMapping();
+		LINT l1 = this->GetLINTMapping();
+		LINT l2 = datum_cast->GetLINTMapping();
 
-		return fabs(CDouble(l1 - l2).DVal());
+		return fabs(CDouble(l1 - l2).Get());
 	}
 
-	if (fLintComparison)
+	if (is_lint_comparison)
 	{
-		LINT l1 = this->LStatsMapping();
-		LINT l2 = pdatumsm->LStatsMapping();
+		LINT l1 = this->GetLINTMapping();
+		LINT l2 = datum_cast->GetLINTMapping();
 		return l1 - l2;
 	}
 
-	GPOS_ASSERT(fDoubleComparison);
+	GPOS_ASSERT(is_double_comparison);
 
-	CDouble d1 = this->DStatsMapping();
-	CDouble d2 = pdatumsm->DStatsMapping();
+	CDouble d1 = this->GetDoubleMapping();
+	CDouble d2 = datum_cast->GetDoubleMapping();
 	return d1 - d2;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IDatumStatisticsMappable::DMappingVal
+//		IDatumStatisticsMappable::GetValAsDouble
 //
 //	@doc:
 //		 Return double representation of mapping value
 //
 //---------------------------------------------------------------------------
 CDouble
-IDatumStatisticsMappable::DMappingVal() const
+IDatumStatisticsMappable::GetValAsDouble() const
 {
-	if (FNull())
+	if (IsNull())
 	{
 		return CDouble(0.0);
 	}
 
-	if (FHasStatsLINTMapping())
+	if (IsDatumMappableToLINT())
 	{
-		return CDouble(LStatsMapping());
+		return CDouble(GetLINTMapping());
 	}
 
-	return CDouble(DStatsMapping());
+	return CDouble(GetDoubleMapping());
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IDatumStatisticsMappable::FStatsComparable
+//		IDatumStatisticsMappable::StatsAreComparable
 //
 //	@doc:
 //		Check if the given pair of datums are stats comparable
 //
 //---------------------------------------------------------------------------
 BOOL
-IDatumStatisticsMappable::FStatsComparable
+IDatumStatisticsMappable::StatsAreComparable
 	(
-	const IDatum *pdatum
+	const IDatum *datum
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdatum);
+	GPOS_ASSERT(NULL != datum);
 
-	const IDatumStatisticsMappable *pdatumsm = dynamic_cast<const IDatumStatisticsMappable*>(pdatum);
+	const IDatumStatisticsMappable *datum_cast = dynamic_cast<const IDatumStatisticsMappable*>(datum);
 
 	// datums can be compared based on either LINT or Doubles or BYTEA values
-	BOOL fDoubleComparison = this->FHasStatsDoubleMapping() && pdatumsm->FHasStatsDoubleMapping();
-	BOOL fLintComparison = this->FHasStatsLINTMapping() && pdatumsm->FHasStatsLINTMapping();
-	BOOL fBinaryComparison = this->FSupportsBinaryComp(pdatumsm) && pdatumsm->FSupportsBinaryComp(this);
+	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
+	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
+	BOOL is_binary_comparison = this->SupportsBinaryComp(datum_cast) && datum_cast->SupportsBinaryComp(this);
 
-	return fDoubleComparison || fLintComparison || fBinaryComparison;
+	return is_double_comparison || is_lint_comparison || is_binary_comparison;
 }
 
 //EOF

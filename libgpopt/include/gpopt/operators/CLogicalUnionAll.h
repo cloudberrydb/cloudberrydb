@@ -41,13 +41,13 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CLogicalUnionAll(IMemoryPool *pmp);
+			CLogicalUnionAll(IMemoryPool *mp);
 
 			CLogicalUnionAll
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrOutput,
-				DrgDrgPcr *pdrgpdrgpcrInput,
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrOutput,
+				CColRef2dArray *pdrgpdrgpcrInput,
 				ULONG ulScanIdPartialIndex = gpos::ulong_max
 				);
 
@@ -77,7 +77,7 @@ namespace gpopt
 			}
 
 			// is this unionall needed for a partial index
-			BOOL FPartialIndex() const
+			BOOL IsPartialIndex() const
 			{
 				return (gpos::ulong_max > m_ulScanIdPartialIndex);
 			}
@@ -90,7 +90,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -98,18 +98,18 @@ namespace gpopt
 
 			// derive max card
 			virtual
-			CMaxCard Maxcard(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CMaxCard Maxcard(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Transformations
 			//-------------------------------------------------------------------------------------
 
 			// candidate set of xforms
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			// stat promise
 			virtual
@@ -122,9 +122,9 @@ namespace gpopt
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 
@@ -144,7 +144,7 @@ namespace gpopt
 
 			// derive statistics based on union all semantics
 			static
-			IStatistics *PstatsDeriveUnionAll(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			IStatistics *PstatsDeriveUnionAll(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 	}; // class CLogicalUnionAll
 

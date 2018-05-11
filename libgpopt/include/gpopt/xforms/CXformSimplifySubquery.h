@@ -34,7 +34,7 @@ namespace gpopt
 		private:
 
 			// definition of simplification function
-			typedef BOOL(FnSimplify) (IMemoryPool *pmp, CExpression *, CExpression **);
+			typedef BOOL(FnSimplify) (IMemoryPool *mp, CExpression *, CExpression **);
 
 			// definition of matching function
 			typedef BOOL(FnMatch) (COperator *);
@@ -65,7 +65,7 @@ namespace gpopt
 			static
 			BOOL FSimplifyExistential
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprScalar,
 				CExpression **ppexprNewScalar
 				);
@@ -74,7 +74,7 @@ namespace gpopt
 			static
 			BOOL FSimplifyQuantified
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprScalar,
 				CExpression **ppexprNewScalar
 				);
@@ -83,7 +83,7 @@ namespace gpopt
 			static
 			BOOL FSimplify
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprScalar,
 				CExpression **ppexprNewScalar,
 				FnSimplify *pfnsimplify,

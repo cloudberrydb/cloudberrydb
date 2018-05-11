@@ -50,17 +50,17 @@ namespace gpopt
 			// ctor
 			CAutoOptCtxt
 				(
-				IMemoryPool *pmp,
-				CMDAccessor *pmda,
+				IMemoryPool *mp,
+				CMDAccessor *md_accessor,
 				IConstExprEvaluator *pceeval,
-				COptimizerConfig *poconf
+				COptimizerConfig *optimizer_config
 				);
 			
 			// ctor
 			CAutoOptCtxt
 				(
-				IMemoryPool *pmp,
-				CMDAccessor *pmda,
+				IMemoryPool *mp,
+				CMDAccessor *md_accessor,
 				IConstExprEvaluator *pceeval,
 				ICostModel *pcm
 				);

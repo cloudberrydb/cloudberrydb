@@ -28,24 +28,24 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalResult::CDXLPhysicalResult
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLPhysical(pmp)
+	CDXLPhysical(mp)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalResult::Edxlop
+//		CDXLPhysicalResult::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalResult::Edxlop() const
+CDXLPhysicalResult::GetDXLOperator() const
 {
 	return EdxlopPhysicalResult;
 }
@@ -53,16 +53,16 @@ CDXLPhysicalResult::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalResult::PstrOpName
+//		CDXLPhysicalResult::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalResult::PstrOpName() const
+CDXLPhysicalResult::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalResult);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalResult);
 }
 
 
@@ -77,22 +77,22 @@ CDXLPhysicalResult::PstrOpName() const
 void
 CDXLPhysicalResult::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
 	// serialize properties
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	dxlnode->SerializePropertiesToDXL(xml_serializer);
 
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -107,31 +107,31 @@ CDXLPhysicalResult::SerializeToDXL
 void
 CDXLPhysicalResult::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) 
 	const
 {
 
-	GPOS_ASSERT(EdxlresultIndexSentinel >= pdxln->UlArity());
+	GPOS_ASSERT(EdxlresultIndexSentinel >= dxlnode->Arity());
 	
 	// check that one time filter is valid
-	CDXLNode *pdxlnOneTimeFilter = (*pdxln)[EdxlresultIndexOneTimeFilter];
-	GPOS_ASSERT(EdxlopScalarOneTimeFilter == pdxlnOneTimeFilter->Pdxlop()->Edxlop());
+	CDXLNode *one_time_filter = (*dxlnode)[EdxlresultIndexOneTimeFilter];
+	GPOS_ASSERT(EdxlopScalarOneTimeFilter == one_time_filter->GetOperator()->GetDXLOperator());
 	
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnOneTimeFilter->Pdxlop()->AssertValid(pdxlnOneTimeFilter, fValidateChildren);
+		one_time_filter->GetOperator()->AssertValid(one_time_filter, validate_children);
 	}
 	
-	if (EdxlresultIndexSentinel == pdxln->UlArity())
+	if (EdxlresultIndexSentinel == dxlnode->Arity())
 	{
-		CDXLNode *pdxlnChild = (*pdxln)[EdxlresultIndexChild];
-		GPOS_ASSERT(EdxloptypePhysical == pdxlnChild->Pdxlop()->Edxloperatortype());
+		CDXLNode *child_dxlnode = (*dxlnode)[EdxlresultIndexChild];
+		GPOS_ASSERT(EdxloptypePhysical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-		if (fValidateChildren)
+		if (validate_children)
 		{
-			pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+			child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 		}
 	}
 

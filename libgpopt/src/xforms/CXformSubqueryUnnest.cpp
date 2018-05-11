@@ -39,7 +39,7 @@ CXformSubqueryUnnest::Exfp
 	)
 	const
 {
-	if (exprhdl.Pdpscalar(1)->FHasSubquery())
+	if (exprhdl.GetDrvdScalarProps(1)->FHasSubquery())
 	{
 		return CXform::ExfpHigh;
 	}
@@ -59,7 +59,7 @@ CXformSubqueryUnnest::Exfp
 CExpression *
 CXformSubqueryUnnest::PexprSubqueryUnnest
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	BOOL fEnforceCorrelatedApply
 	)
@@ -86,7 +86,7 @@ CXformSubqueryUnnest::PexprSubqueryUnnest
 	CSubqueryHandler::ESubqueryCtxt esqctxt = CSubqueryHandler::EsqctxtFilter;
 
 	// calling the handler removes subqueries and sets new logical and scalar expressions
-	CSubqueryHandler sh(pmp, fEnforceCorrelatedApply);
+	CSubqueryHandler sh(mp, fEnforceCorrelatedApply);
 	if (!sh.FProcess(pexprOuter, pexprScalar, esqctxt, &pexprNewOuter, &pexprResidualScalar))
 	{
 		CRefCount::SafeRelease(pexprNewOuter);
@@ -101,18 +101,18 @@ CXformSubqueryUnnest::PexprSubqueryUnnest
 	{
 		CLogicalSequenceProject *popSeqPrj = NULL;
 		CLogicalGbAgg *popGbAgg = NULL;
-		COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
+		COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
 
-		switch (eopid)
+		switch (op_id)
 		{
 			case COperator::EopLogicalProject:
-				pexprResult = CUtils::PexprLogicalProject(pmp, pexprNewOuter, pexprResidualScalar, false /*fNewComputedCol*/);
+				pexprResult = CUtils::PexprLogicalProject(mp, pexprNewOuter, pexprResidualScalar, false /*fNewComputedCol*/);
 				break;
 
 			case COperator::EopLogicalGbAgg:
 				popGbAgg = CLogicalGbAgg::PopConvert(pexpr->Pop());
 				popGbAgg->Pdrgpcr()->AddRef();
-				pexprResult = CUtils::PexprLogicalGbAgg(pmp, popGbAgg->Pdrgpcr(), pexprNewOuter, pexprResidualScalar, popGbAgg->Egbaggtype());
+				pexprResult = CUtils::PexprLogicalGbAgg(mp, popGbAgg->Pdrgpcr(), pexprNewOuter, pexprResidualScalar, popGbAgg->Egbaggtype());
 				break;
 
 			case COperator::EopLogicalSequenceProject:
@@ -121,7 +121,7 @@ CXformSubqueryUnnest::PexprSubqueryUnnest
 				popSeqPrj->Pdrgpos()->AddRef();
 				popSeqPrj->Pdrgpwf()->AddRef();
 				pexprResult =
-					CUtils::PexprLogicalSequenceProject(pmp, popSeqPrj->Pds(), popSeqPrj->Pdrgpos(), popSeqPrj->Pdrgpwf(), pexprNewOuter, pexprResidualScalar);
+					CUtils::PexprLogicalSequenceProject(mp, popSeqPrj->Pds(), popSeqPrj->Pdrgpos(), popSeqPrj->Pdrgpwf(), pexprNewOuter, pexprResidualScalar);
 				break;
 
 			default:
@@ -131,15 +131,15 @@ CXformSubqueryUnnest::PexprSubqueryUnnest
 	}
 	else
 	{
-		pexprResult = CUtils::PexprLogicalSelect(pmp, pexprNewOuter, pexprResidualScalar);
+		pexprResult = CUtils::PexprLogicalSelect(mp, pexprNewOuter, pexprResidualScalar);
 	}
 
 	// normalize resulting expression
-	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprResult);
+	CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexprResult);
 	pexprResult->Release();
 
 	// pull up projections
-	CExpression *pexprPullUpProjections = CNormalizer::PexprPullUpProjections(pmp, pexprNormalized);
+	CExpression *pexprPullUpProjections = CNormalizer::PexprPullUpProjections(mp, pexprNormalized);
 	pexprNormalized->Release();
 
 	return pexprPullUpProjections;

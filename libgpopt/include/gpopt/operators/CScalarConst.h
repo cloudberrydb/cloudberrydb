@@ -49,8 +49,8 @@ namespace gpopt
 			// ctor
 			CScalarConst
 				(
-				IMemoryPool *pmp,
-				IDatum *pdatum
+				IMemoryPool *mp,
+				IDatum *datum
 				);
 
 			// dtor
@@ -72,18 +72,18 @@ namespace gpopt
 			}
 
 			// accessor of contained constant
-			IDatum *Pdatum() const
+			IDatum *GetDatum() const
 			{
 				return m_pdatum;
 			}
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -96,9 +96,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -119,14 +119,14 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			virtual
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// print
 			virtual

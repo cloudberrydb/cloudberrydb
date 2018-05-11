@@ -23,7 +23,7 @@
 using namespace gpos;
 using namespace gpopt;
 
-static IMemoryPool *pmp = NULL;
+static IMemoryPool *mp = NULL;
 
 
 //---------------------------------------------------------------------------
@@ -41,16 +41,16 @@ void gpopt_init()
 {
 	{
 		CAutoMemoryPool amp;
-		pmp = amp.Pmp();
+		mp = amp.Pmp();
 
 		// add standard exception messages
-		(void) gpopt::EresExceptionInit(pmp);
+		(void) gpopt::EresExceptionInit(mp);
 	
 		// detach safety
-		(void) amp.PmpDetach();
+		(void) amp.Detach();
 	}
 
-	if (GPOS_OK != gpopt::CXformFactory::EresInit())
+	if (GPOS_OK != gpopt::CXformFactory::Init())
 	{
 		return;
 	}
@@ -69,7 +69,7 @@ void gpopt_terminate()
 #ifdef GPOS_DEBUG
 	CMDCache::Shutdown();
 
-	CMemoryPoolManager::Pmpm()->Destroy(pmp);
+	CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(mp);
 
 	CXformFactory::Pxff()->Shutdown();
 #endif // GPOS_DEBUG

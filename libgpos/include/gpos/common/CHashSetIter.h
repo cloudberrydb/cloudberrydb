@@ -16,65 +16,55 @@ namespace gpos
 
 	// Hash set iterator
 	template <class T,
-				ULONG (*pfnHash)(const T*), 
-				BOOL (*pfnEq)(const T*, const T*),
-				void (*pfnDestroy)(T*)>
+				ULONG (*HashFn)(const T*), 
+				BOOL (*EqFn)(const T*, const T*),
+				void (*CleanupFn)(T*)>
 	class CHashSetIter : public CStackObject
 	{
 	
 		// short hand for hashset type
-		typedef CHashSet<T, pfnHash, pfnEq, pfnDestroy> TSet;
+		typedef CHashSet<T, HashFn, EqFn, CleanupFn> TSet;
 	
 		private:
 
 			// set to iterate
-			const TSet *m_pts;
+			const TSet *m_set;
 
 			// current hashchain
-			ULONG m_ulChain;
+			ULONG m_chain_idx;
 
 			// current element
-			ULONG m_ulElement;
+			ULONG m_elem_idx;
 
 			// is initialized?
-			BOOL m_fInit;
+			BOOL m_is_initialized;
 
 			// private copy ctor
-			CHashSetIter(const CHashSetIter<T, pfnHash, pfnEq, pfnDestroy> &);
-			
-			// method to return the current element
-			const typename TSet::CHashSetElem *Phse() const
-            {
-                typename TSet::CHashSetElem *phse = NULL;
-                T *t = (*(m_pts->m_pdrgElements))[m_ulElement-1];
-                m_pts->Lookup(t, &phse);
-
-                return phse;
-            }
+			CHashSetIter(const CHashSetIter<T, HashFn, EqFn, CleanupFn> &);
 
 		public:
 		
 			// ctor
-			CHashSetIter<T, pfnHash, pfnEq, pfnDestroy> (TSet *pts)
+			CHashSetIter<T, HashFn, EqFn, CleanupFn> (TSet *set)
             :
-            m_pts(pts),
-            m_ulChain(0),
-            m_ulElement(0)
+            m_set(set),
+            m_chain_idx(0),
+            m_elem_idx(0)
             {
-                GPOS_ASSERT(NULL != pts);
+                GPOS_ASSERT(NULL != set);
             }
 
 			// dtor
 			virtual
-			~CHashSetIter<T, pfnHash, pfnEq, pfnDestroy> ()
+			~CHashSetIter<T, HashFn, EqFn, CleanupFn> ()
 			{}
 
 			// advance iterator to next element
-			BOOL FAdvance()
+			BOOL Advance()
             {
-                if (m_ulElement < m_pts->m_pdrgElements->UlLength())
+                if (m_elem_idx < m_set->m_elements->Size())
                 {
-                    m_ulElement++;
+                    m_elem_idx++;
                     return true;
                 }
 
@@ -82,12 +72,14 @@ namespace gpos
             }
 
 			// current element
-			const T *Pt() const
+			const T *Get() const
             {
-                const typename TSet::CHashSetElem *phse = Phse();
-                if (NULL != phse)
+				const typename TSet::CHashSetElem *elem = NULL;
+				T *t = (*(m_set->m_elements))[m_elem_idx-1];
+				elem = m_set->Lookup(t);
+                if (NULL != elem)
                 {
-                    return phse->Pt();
+                    return elem->Value();
                 }
                 return NULL;
             }

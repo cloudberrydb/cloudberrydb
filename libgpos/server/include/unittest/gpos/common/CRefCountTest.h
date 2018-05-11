@@ -54,7 +54,7 @@ namespace gpos
 
 				// return true if calling object's destructor is allowed
 				virtual
-				BOOL FDeletable() const
+				BOOL Deletable() const
 				{
 					return m_fDeletable;
 				}

@@ -79,11 +79,11 @@ CJob::OsPrint
 	IOstream &os
 	)
 {
-	os << "ID=" << UlId();
+	os << "ID=" << Id();
 
 	if (NULL != PjParent())
 	{
-		os << " parent=" << PjParent()->UlId() << std::endl;
+		os << " parent=" << PjParent()->Id() << std::endl;
 	}
 	else
 	{

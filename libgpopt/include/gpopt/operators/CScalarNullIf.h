@@ -33,13 +33,13 @@ namespace gpopt
 		private:
 
 			// operator id
-			IMDId *m_pmdidOp;
+			IMDId *m_mdid_op;
 
 			// return type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 
 			// is operator return type BOOL?
 			BOOL m_fBoolReturnType;
@@ -50,7 +50,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarNullIf(IMemoryPool *pmp, IMDId *pmdidOp, IMDId *pmdidType);
+			CScalarNullIf(IMemoryPool *mp, IMDId *mdid_op, IMDId *mdid_type);
 
 			// dtor
 			virtual
@@ -65,16 +65,16 @@ namespace gpopt
 
 			// operator id
 			virtual
-			IMDId *PmdidOp() const
+			IMDId *MdIdOp() const
 			{
-				return m_pmdidOp;
+				return m_mdid_op;
 			}
 
 			// return type
 			virtual
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				return m_pmdidType;
+				return m_mdid_type;
 			}
 
 			// return a string for operator name
@@ -86,11 +86,11 @@ namespace gpopt
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -103,9 +103,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -113,7 +113,7 @@ namespace gpopt
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// conversion function
 			static

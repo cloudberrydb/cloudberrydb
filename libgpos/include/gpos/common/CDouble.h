@@ -31,7 +31,6 @@ namespace gpos
 	class CDouble
 	{
 		private:
-
 			// double-precision value
 			DOUBLE m_d;
 
@@ -41,29 +40,29 @@ namespace gpos
                 GPOS_ASSERT(0.0 < GPOS_FP_ABS_MIN);
                 GPOS_ASSERT(GPOS_FP_ABS_MIN < GPOS_FP_ABS_MAX);
 
-                double dAbs = fabs(m_d);
+                double abs_value = fabs(m_d);
 
-                if (GPOS_FP_ABS_MAX < dAbs)
+                if (GPOS_FP_ABS_MAX < abs_value)
                 {
                     SetSignedVal(GPOS_FP_ABS_MAX);
                 }
 
-                if (GPOS_FP_ABS_MIN > dAbs)
+                if (GPOS_FP_ABS_MIN > abs_value)
                 {
                     SetSignedVal(GPOS_FP_ABS_MIN);
                 }
             }
 
 			// assign value while maintaining current sign
-			inline void SetSignedVal(DOUBLE dVal)
+			inline void SetSignedVal(DOUBLE val)
             {
                 if (0.0 <= m_d)
                 {
-                    m_d = dVal;
+                    m_d = val;
                 }
                 else
                 {
-                    m_d = -dVal;
+                    m_d = -val;
                 }
             }
 
@@ -107,92 +106,92 @@ namespace gpos
             }
 
 			// value accessor
-			inline DOUBLE DVal() const
+			inline DOUBLE Get() const
 			{
 				return m_d;
 			}
 
 			// assignment
-			inline CDouble& operator=(const CDouble &fpRight)
+			inline CDouble& operator=(const CDouble &right)
             {
-                this->m_d = fpRight.m_d;
+                this->m_d = right.m_d;
 
                 return (*this);
             }
 
 			// arithmetic operators
-			friend CDouble operator + (const CDouble &fpLeft, const CDouble &fpRight)
+			friend CDouble operator + (const CDouble &left, const CDouble &right)
             {
-                return CDouble(fpLeft.m_d + fpRight.m_d);
+                return CDouble(left.m_d + right.m_d);
             }
 
-			friend CDouble operator - (const CDouble &fpLeft, const CDouble &fpRight)
+			friend CDouble operator - (const CDouble &left, const CDouble &right)
             {
-                return CDouble(fpLeft.m_d - fpRight.m_d);
+                return CDouble(left.m_d - right.m_d);
             }
 
-			friend CDouble operator * (const CDouble &fpLeft, const CDouble &fpRight)
+			friend CDouble operator * (const CDouble &left, const CDouble &right)
             {
-                return CDouble(fpLeft.m_d * fpRight.m_d);
+                return CDouble(left.m_d * right.m_d);
             }
 
-			friend CDouble operator / (const CDouble &fpLeft, const CDouble &fpRight)
+			friend CDouble operator / (const CDouble &left, const CDouble &right)
             {
-                return CDouble(fpLeft.m_d / fpRight.m_d);
+                return CDouble(left.m_d / right.m_d);
             }
 
 			// negation
-			friend CDouble operator - (const CDouble &fp)
+			friend CDouble operator - (const CDouble &d)
             {
-                return CDouble(-fp.m_d);
+                return CDouble(-d.m_d);
             }
 
 			// logical operators
-			friend BOOL operator == (const CDouble &fpLeft, const CDouble &fpRight)
+			friend BOOL operator == (const CDouble &left, const CDouble &right)
             {
-                CDouble fpCompare(fpLeft.m_d - fpRight.m_d);
+                CDouble fpCompare(left.m_d - right.m_d);
 
                 return (fabs(fpCompare.m_d) == GPOS_FP_ABS_MIN);
             }
 
-			friend BOOL operator != (const CDouble &fpLeft, const CDouble &fpRight);
-			friend BOOL operator < (const CDouble &fpLeft, const CDouble &fpRight);
-			friend BOOL operator <= (const CDouble &fpLeft, const CDouble &fpRight);
-			friend BOOL operator > (const CDouble &fpLeft, const CDouble &fpRight)
+			friend BOOL operator != (const CDouble &left, const CDouble &right);
+			friend BOOL operator < (const CDouble &left, const CDouble &right);
+			friend BOOL operator <= (const CDouble &left, const CDouble &right);
+			friend BOOL operator > (const CDouble &left, const CDouble &right)
             {
-                CDouble fpCompare(fpLeft.m_d - fpRight.m_d);
+                CDouble fpCompare(left.m_d - right.m_d);
 
                 return (fpCompare.m_d > GPOS_FP_ABS_MIN);
             }
 
-			friend BOOL operator >= (const CDouble &fpLeft, const CDouble &fpRight);
+			friend BOOL operator >= (const CDouble &left, const CDouble &right);
 
 			// absolute
-			inline CDouble FpAbs() const
+			inline CDouble Absolute() const
             {
                 return CDouble(fabs(m_d));
             }
 
 			// floor
-			inline CDouble FpFloor() const
+			inline CDouble Floor() const
             {
                 return CDouble(floor(m_d));
             }
 
 			// ceiling
-			inline CDouble FpCeil() const
+			inline CDouble Ceil() const
             {
                 return CDouble(ceil(m_d));
             }
 
 			// power
-			inline CDouble FpPow(const CDouble &fp) const
+			inline CDouble Pow(const CDouble &d) const
             {
-                return CDouble(pow(m_d, fp.m_d));
+                return CDouble(pow(m_d, d.m_d));
             }
 
 			// log to the base 2
-			inline CDouble FpLog2() const
+			inline CDouble Log2() const
             {
                 return CDouble(log2(m_d));
             }
@@ -209,7 +208,7 @@ namespace gpos
 
 			// compare two double values using given precision
 			inline static
-			BOOL FEqual(DOUBLE dLeft, DOUBLE dRight, DOUBLE dPrecision = GPOS_FP_ABS_MIN)
+			BOOL Equals(DOUBLE dLeft, DOUBLE dRight, DOUBLE dPrecision = GPOS_FP_ABS_MIN)
             {
                 return fabs(dRight - dLeft) <= dPrecision;
             }
@@ -217,63 +216,63 @@ namespace gpos
 	}; // class CDouble
 
 	// arithmetic operators
-	inline CDouble operator + (const CDouble &fpLeft, const CDouble &fpRight);
-	inline CDouble operator - (const CDouble &fpLeft, const CDouble &fpRight);
-	inline CDouble operator * (const CDouble &fpLeft, const CDouble &fpRight);
-	inline CDouble operator / (const CDouble &fpLeft, const CDouble &fpRight);
+	inline CDouble operator + (const CDouble &left, const CDouble &right);
+	inline CDouble operator - (const CDouble &left, const CDouble &right);
+	inline CDouble operator * (const CDouble &left, const CDouble &right);
+	inline CDouble operator / (const CDouble &left, const CDouble &right);
 
 	// logical operators
-	inline BOOL operator == (const CDouble &fpLeft, const CDouble &fpRight);
-	inline BOOL operator > (const CDouble &fpLeft, const CDouble &fpRight);
+	inline BOOL operator == (const CDouble &left, const CDouble &right);
+	inline BOOL operator > (const CDouble &left, const CDouble &right);
 
 	// negation
-	inline CDouble operator - (const CDouble &fp);
+	inline CDouble operator - (const CDouble &d);
 
 	// '!=' operator
 	inline BOOL operator !=
 		(
-		const CDouble &fpLeft,
-		const CDouble &fpRight
+		const CDouble &left,
+		const CDouble &right
 		)
 	{
-		return (!(fpLeft == fpRight));
+		return (!(left == right));
 	}
 
 	// '<=' operator
 	inline BOOL operator >=
 		(
-		const CDouble &fpLeft,
-		const CDouble &fpRight
+		const CDouble &left,
+		const CDouble &right
 		)
 	{
-		return (fpLeft == fpRight || fpLeft > fpRight);
+		return (left == right || left > right);
 	}
 
 	// '>' operator
 	inline BOOL operator <
 		(
-		const CDouble &fpLeft,
-		const CDouble &fpRight
+		const CDouble &left,
+		const CDouble &right
 		)
 	{
-		return (fpRight > fpLeft);
+		return (right > left);
 	}
 
 	// '>=' operator
 	inline BOOL operator <=
 		(
-		const CDouble &fpLeft,
-		const CDouble &fpRight
+		const CDouble &left,
+		const CDouble &right
 		)
 	{
-		return (fpRight == fpLeft || fpRight > fpLeft);
+		return (right == left || right > left);
 	}
 
 	// print shorthand
 	inline
-	IOstream & operator << (IOstream &os, CDouble fp)
+	IOstream & operator << (IOstream &os, CDouble d)
 	{
-		return fp.OsPrint(os);
+		return d.OsPrint(os);
 	}
 }
 

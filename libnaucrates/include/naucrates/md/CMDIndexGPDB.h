@@ -38,37 +38,37 @@ namespace gpmd
 		private:
 			
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// index mdid
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 						
 			// table name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// is the index clustered
-			BOOL m_fClustered;
+			BOOL m_clustered;
 
 			// index type
-			EmdindexType m_emdindt;
+			EmdindexType m_index_type;
 			
 			// type of items returned by index
-			IMDId *m_pmdidItemType;
+			IMDId *m_mdid_item_type;
 
 			// index key columns
-			DrgPul *m_pdrgpulKeyCols;
+			ULongPtrArray *m_index_key_cols_array;
 
 			// included columns 
-			DrgPul *m_pdrgpulIncludedCols;
+			ULongPtrArray *m_included_cols_array;
 
 			// operator classes for each index key
-			DrgPmdid *m_pdrgpmdidOpClasses;
+		IMdIdArray *m_mdid_op_classes_array;
 			
 			// partition constraint
-			IMDPartConstraint *m_pmdpartcnstr;
+			IMDPartConstraint *m_mdpart_constraint;
 			
 			// DXL for object
-			const CWStringDynamic *m_pstr;
+			const CWStringDynamic *m_dxl_str;
 		
 			// private copy ctor
 			CMDIndexGPDB(const CMDIndexGPDB &);
@@ -78,16 +78,16 @@ namespace gpmd
 			// ctor
 			CMDIndexGPDB
 				(
-				IMemoryPool *pmp, 
-				IMDId *pmdid, 
-				CMDName *pmdname,
-				BOOL fClustered, 
-				EmdindexType emdindt,
-				IMDId *pmdidItemType,
-				DrgPul *pdrgpulKeyCols,
-				DrgPul *pdrgpulIncludedCols,
-				DrgPmdid *pdrgpmdidOpClasses,
-				IMDPartConstraint *pmdpartcnstr
+				IMemoryPool *mp, 
+				IMDId *mdid, 
+				CMDName *mdname,
+				BOOL is_clustered, 
+				EmdindexType index_type,
+				IMDId *mdid_item_type,
+				ULongPtrArray *index_key_cols_array,
+				ULongPtrArray *included_cols_array,
+				IMdIdArray *mdid_op_classes_array,
+				IMDPartConstraint *mdpart_constraint
 				);
 			
 			// dtor
@@ -96,7 +96,7 @@ namespace gpmd
 			
 			// index mdid
 			virtual 
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// index name
 			virtual 
@@ -104,45 +104,45 @@ namespace gpmd
 
 			// is the index clustered
 			virtual
-			BOOL FClustered() const;
+			BOOL IsClustered() const;
 			
 			// index type
 			virtual
-			EmdindexType Emdindt() const;
+			EmdindexType IndexType() const;
 			
 			// number of keys
 			virtual
-			ULONG UlKeys() const;
+			ULONG Keys() const;
 			
 			// return the n-th key column
 			virtual
-			ULONG UlKey(ULONG ulPos) const;
+			ULONG KeyAt(ULONG pos) const;
 			
 			// return the position of the key column
 			virtual
-			ULONG UlPosInKey(ULONG ulCol) const;
+			ULONG GetKeyPos(ULONG column) const;
 
 			// number of included columns
 			virtual
-			ULONG UlIncludedCols() const;
+			ULONG IncludedCols() const;
 
 			// return the n-th included column
 			virtual
-			ULONG UlIncludedCol(ULONG ulPos) const;
+			ULONG IncludedColAt(ULONG pos) const;
 
 			// return the position of the included column
 			virtual
-			ULONG UlPosInIncludedCol(ULONG ulCol) const;
+			ULONG GetIncludedColPos(ULONG column) const;
 
 			// part constraint
 			virtual
-			IMDPartConstraint *Pmdpartcnstr() const;
+			IMDPartConstraint *MDPartConstraint() const;
 
 			// DXL string for index
 			virtual 
-			const CWStringDynamic *Pstr() const
+			const CWStringDynamic *GetStrRepr() const
 			{
-				return m_pstr;
+				return m_dxl_str;
 			}	
 			
 			// serialize MD index in DXL format given a serializer object
@@ -151,12 +151,12 @@ namespace gpmd
 
 			// type id of items returned by the index
 			virtual
-			IMDId *PmdidItemType() const;
+			IMDId *GetIndexRetItemTypeMdid() const;
 			
 			// check if given scalar comparison can be used with the index key 
 			// at the specified position
 			virtual 
-			BOOL FCompatible(const IMDScalarOp *pmdscop, ULONG ulKEyPos) const;
+			BOOL IsCompatible(const IMDScalarOp *md_scalar_op, ULONG key_pos) const;
 
 #ifdef GPOS_DEBUG
 			// debug print of the MD index

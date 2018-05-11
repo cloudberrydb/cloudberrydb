@@ -21,8 +21,8 @@
 
 namespace gpos
 {
-    typedef ULONG (*PFnHashCacheKey)(void *pvKey);
-    typedef BOOL (*PFnEqualsCacheKey)(void *pvLeftKey, void *pvRightKey);
+    typedef ULONG (*HashCacheKey)(void *key);
+    typedef BOOL (*EqualsCacheKey)(void *left_key, void *right_key);
 
     class ICacheEntry
     {
@@ -37,7 +37,7 @@ namespace gpos
              * Get the assigned value
              */
             virtual
-            void *PvValue() = 0;
+            void *GetValue() = 0;
 
             /**
              * Get the memory pool for this cache value.
@@ -56,41 +56,41 @@ namespace gpos
 			~ICache() {}
 
             //
-            // Get a handle to the value for the given key, incrementing the pin count on the value.
+		// Get a handle to the value for the given key, incrementing the pin count on the value.
             //
             // Returns NULL if the key is not in the cache
             //
 	        virtual
-	        ICacheEntry *PceLookup(void *pvKey) = 0;
+	        ICacheEntry *Get(void *key) = 0;
 
             //
-            // Insert the given cache value.
+		// Insert the given cache value.
             //
-            // pvKey and pvValue should be allocated in the memory pool of the pcv object
+		// key and value should be allocated in the memory pool of the cache_entry object
             //
             // Return true if the object was successfully inserted, false otherwise.
             //
             virtual
-            BOOL FInsert( ICacheEntry *pcv, void *pvKey, void *pvValue) = 0;
+            BOOL Insert( ICacheEntry *cache_entry, void *key, void *value) = 0;
 
             //
-            // Create a new cache value that can be later passed to FInsert
+		// Create a new cache value that can be later passed to Insert
             //
-            // Note that even if FInsert fails, or FInsert is never called, the returned value
-            //  must be released with a call to Release.  Calling PceCreateEntry returns a value
+		// Note that even if Insert fails, or Insert is never called, the returned value
+		//  must be released with a call to Release.  Calling CreateEntry returns a value
             //  with a read lock of 1.
             //
-            // Returns NULL if the cache value cannot be created because the cache is full or
+		// Returns NULL if the cache value cannot be created because the cache is full or
             //   no memory is available
             //
             virtual
-            ICacheEntry *PceCreateEntry() = 0;
+            ICacheEntry *CreateEntry() = 0;
 
             //
-            // Decrement the pin counter, potentially triggering the delete of this cache value
+		// Decrement the pin counter, potentially triggering the delete of this cache value
             //
             virtual
-            void Release(ICacheEntry *pcv) = 0;
+            void Release(ICacheEntry *cache_entry) = 0;
 
             //
             // Remove the given key from the cache.
@@ -98,7 +98,7 @@ namespace gpos
             // Callers who still hold valid ICacheEntry handles will not be affected.
             //
             virtual
-            void Delete(void *pvKey) = 0;
+            void Delete(void *key) = 0;
 	};
 }
 

@@ -38,7 +38,7 @@ namespace gpopt
 		private:
 
 			// map of CTE id to producer plan properties
-			HMUlPdp *m_phmulpdpCTEs;
+			UlongToDrvdPropPlanMap *m_phmulpdpCTEs;
 
 			// the number of expected partition selectors
 			ULONG m_ulExpectedPartitionSelectors;
@@ -53,16 +53,16 @@ namespace gpopt
 
 			// copy function
 			virtual
-			CDrvdPropCtxt *PdpctxtCopy(IMemoryPool *pmp) const;
+			CDrvdPropCtxt *PdpctxtCopy(IMemoryPool *mp) const;
 
 			// add props to context
 			virtual
-			void AddProps(CDrvdProp *pdp);
+			void AddProps(DrvdPropArray *pdp);
 
 		public:
 
 			// ctor
-			CDrvdPropCtxtPlan(IMemoryPool *pmp, BOOL fUpdateCTEMap = true);
+			CDrvdPropCtxtPlan(IMemoryPool *mp, BOOL fUpdateCTEMap = true);
 
 			// dtor
 			virtual

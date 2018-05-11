@@ -38,14 +38,14 @@ namespace gpmd
 	{
 		private:
 			// mdid of source type
-			CMDIdGPDB *m_pmdidSrc;
+			CMDIdGPDB *m_mdid_src;
 			
 			// mdid of destinatin type
-			CMDIdGPDB *m_pmdidDest;
+			CMDIdGPDB *m_mdid_dest;
 
 			
 			// buffer for the serialized mdid
-			WCHAR m_wszBuffer[GPDXL_MDID_LENGTH];
+			WCHAR m_mdid_buffer[GPDXL_MDID_LENGTH];
 			
 			// string representation of the mdid
 			CWStringStatic m_str;
@@ -58,60 +58,60 @@ namespace gpmd
 			
 		public:
 			// ctor
-			CMDIdCast(CMDIdGPDB *pmdidSrc, CMDIdGPDB *pmdidDest);
+			CMDIdCast(CMDIdGPDB *mdid_src, CMDIdGPDB *mdid_dest);
 			
 			// dtor
 			virtual
 			~CMDIdCast();
 			
 			virtual
-			EMDIdType Emdidt() const
+			EMDIdType MdidType() const
 			{
 				return EmdidCastFunc;
 			}
 			
 			// string representation of mdid
 			virtual
-			const WCHAR *Wsz() const;
+			const WCHAR *GetBuffer() const;
 			
 			// source system id
 			virtual
 			CSystemId Sysid() const
 			{
-				return m_pmdidSrc->Sysid();
+				return m_mdid_src->Sysid();
 			}
 			
 			// source type id
-			IMDId *PmdidSrc() const;
+			IMDId *MdidSrc() const;
 
 			// destination type id
-			IMDId *PmdidDest() const;
+			IMDId *MdidDest() const;
 			
 			// equality check
 			virtual
-			BOOL FEquals(const IMDId *pmdid) const;
+			BOOL Equals(const IMDId *mdid) const;
 			
 			// computes the hash value for the metadata id
 			virtual
-			ULONG UlHash() const
+			ULONG HashValue() const
 			{
-				return gpos::UlCombineHashes
+				return gpos::CombineHashes
 							(
-							Emdidt(), 
-							gpos::UlCombineHashes(m_pmdidSrc->UlHash(), m_pmdidDest->UlHash())
+							MdidType(), 
+							gpos::CombineHashes(m_mdid_src->HashValue(), m_mdid_dest->HashValue())
 							);							
 			}
 			
 			// is the mdid valid
 			virtual
-			BOOL FValid() const
+			BOOL IsValid() const
 			{
-				return IMDId::FValid(m_pmdidSrc) && IMDId::FValid(m_pmdidDest);
+				return IMDId::IsValid(m_mdid_src) && IMDId::IsValid(m_mdid_dest);
 			}
 
-			// serialize mdid in DXL as the value of the specified attribute 
+			// serialize mdid in DXL as the value of the specified attribute
 			virtual
-			void Serialize(CXMLSerializer *pxmlser, const CWStringConst *pstrAttribute) const;
+			void Serialize(CXMLSerializer *xml_serializer, const CWStringConst *pstrAttribute) const;
 						
 			// debug print of the metadata id
 			virtual
@@ -119,20 +119,20 @@ namespace gpmd
 			
 			// const converter
 			static
-			const CMDIdCast *PmdidConvert(const IMDId *pmdid)
+			const CMDIdCast *CastMdid(const IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && EmdidCastFunc == pmdid->Emdidt());
+				GPOS_ASSERT(NULL != mdid && EmdidCastFunc == mdid->MdidType());
 
-				return dynamic_cast<const CMDIdCast *>(pmdid);
+				return dynamic_cast<const CMDIdCast *>(mdid);
 			}
 			
 			// non-const converter
 			static
-			CMDIdCast *PmdidConvert(IMDId *pmdid)
+			CMDIdCast *CastMdid(IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && EmdidCastFunc == pmdid->Emdidt());
+				GPOS_ASSERT(NULL != mdid && EmdidCastFunc == mdid->MdidType());
 
-				return dynamic_cast<CMDIdCast *>(pmdid);
+				return dynamic_cast<CMDIdCast *>(mdid);
 			}
 	};
 }

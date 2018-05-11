@@ -52,8 +52,8 @@ namespace
 	public:
 			Fixture():
 					m_apmm(GPOS_NEW(Pmp()) CDXLMemoryManager(Pmp())),
-					m_apxmlreader(XMLReaderFactory::createXMLReader(Pmm())),
-					m_apphm(GPOS_NEW(Pmp()) CParseHandlerManager(Pmm(), Pxmlreader())),
+					m_apxmlreader(XMLReaderFactory::createXMLReader(GetDXLMemoryManager())),
+					m_apphm(GPOS_NEW(Pmp()) CParseHandlerManager(GetDXLMemoryManager(), Pxmlreader())),
 					m_apphCostModel(GPOS_NEW(Pmp()) CParseHandlerCostModel(Pmp(), Pphm(), NULL))
 			{
 				m_apphm->ActivateParseHandler(PphCostModel());
@@ -64,9 +64,9 @@ namespace
 				return m_amp.Pmp();
 			}
 
-			CDXLMemoryManager *Pmm()
+			CDXLMemoryManager *GetDXLMemoryManager()
 			{
-				return m_apmm.Pt();
+				return m_apmm.Value();
 			}
 
 			SAX2XMLReader *Pxmlreader()
@@ -76,22 +76,22 @@ namespace
 
 			CParseHandlerManager *Pphm()
 			{
-				return m_apphm.Pt();
+				return m_apphm.Value();
 			}
 
 			CParseHandlerCostModel *PphCostModel()
 			{
-				return m_apphCostModel.Pt();
+				return m_apphCostModel.Value();
 			}
 
-			void Parse(const XMLByte szDXL[], size_t size)
+			void Parse(const XMLByte dxl_string[], size_t size)
 			{
 				MemBufInputSource mbis(
-					szDXL,
+					dxl_string,
 					size,
 					"dxl test",
 					false,
-					Pmm()
+					GetDXLMemoryManager()
 				);
 				Pxmlreader()->parse(mbis);
 			}
@@ -100,25 +100,25 @@ namespace
 
 static gpos::GPOS_RESULT Eres_ParseCalibratedCostModel()
 {
-	const CHAR szDXLFileName[] = "../data/dxl/parse_tests/CostModelConfigCalibrated.xml";
+	const CHAR dxl_filename[] = "../data/dxl/parse_tests/CostModelConfigCalibrated.xml";
 	Fixture fixture;
 
-	IMemoryPool *pmp = fixture.Pmp();
+	IMemoryPool *mp = fixture.Pmp();
 
-	gpos::CAutoRg<CHAR> a_szDXL(CDXLUtils::SzRead(pmp, szDXLFileName));
+	gpos::CAutoRg<CHAR> a_szDXL(CDXLUtils::Read(mp, dxl_filename));
 
 	CParseHandlerCostModel *pphcm = fixture.PphCostModel();
 
 	fixture.Parse((const XMLByte *)a_szDXL.Rgt(), strlen(a_szDXL.Rgt()));
 
-	ICostModel *pcm = pphcm->Pcm();
+	ICostModel *pcm = pphcm->GetCostModel();
 
 	GPOS_RTL_ASSERT(ICostModel::EcmtGPDBCalibrated == pcm->Ecmt());
 	GPOS_RTL_ASSERT(3 == pcm->UlHosts());
 
-	CAutoRef<CCostModelParamsGPDB> pcpExpected(GPOS_NEW(pmp) CCostModelParamsGPDB(pmp));
+	CAutoRef<CCostModelParamsGPDB> pcpExpected(GPOS_NEW(mp) CCostModelParamsGPDB(mp));
 	pcpExpected->SetParam(CCostModelParamsGPDB::EcpNLJFactor, 1024.0, 1023.0, 1025.0);
-	GPOS_RTL_ASSERT(pcpExpected->FEquals(pcm->Pcp()));
+	GPOS_RTL_ASSERT(pcpExpected->Equals(pcm->GetCostModelParams()));
 
 
 	return gpos::GPOS_OK;
@@ -127,51 +127,51 @@ static gpos::GPOS_RESULT Eres_ParseCalibratedCostModel()
 static gpos::GPOS_RESULT Eres_SerializeCalibratedCostModel()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	const WCHAR *const wszExpectedString = L"<dxl:CostModelConfig CostModelType=\"1\" SegmentsForCosting=\"3\">"
 								   "<dxl:CostParams>"
 								   "<dxl:CostParam Name=\"NLJFactor\" Value=\"1024.000000\" LowerBound=\"1023.000000\" UpperBound=\"1025.000000\"/>"
 								   "</dxl:CostParams>"
 								   "</dxl:CostModelConfig>";
-	gpos::CAutoP<CWStringDynamic> apwsExpected(GPOS_NEW(pmp) CWStringDynamic(pmp, wszExpectedString));
+	gpos::CAutoP<CWStringDynamic> apwsExpected(GPOS_NEW(mp) CWStringDynamic(mp, wszExpectedString));
 
 	const ULONG ulSegments = 3;
-	CCostModelParamsGPDB *pcp = GPOS_NEW(pmp) CCostModelParamsGPDB(pmp);
+	CCostModelParamsGPDB *pcp = GPOS_NEW(mp) CCostModelParamsGPDB(mp);
 	pcp->SetParam(CCostModelParamsGPDB::EcpNLJFactor, 1024.0, 1023.0, 1025.0);
-	gpos::CAutoRef<CCostModelGPDB> apcm(GPOS_NEW(pmp) CCostModelGPDB(pmp, ulSegments, pcp));
+	gpos::CAutoRef<CCostModelGPDB> apcm(GPOS_NEW(mp) CCostModelGPDB(mp, ulSegments, pcp));
 
-	CWStringDynamic wsActual(pmp);
+	CWStringDynamic wsActual(mp);
 	COstreamString os(&wsActual);
-	CXMLSerializer xmlser(pmp, os, false);
-	CCostModelConfigSerializer cmcSerializer(apcm.Pt());
-	cmcSerializer.Serialize(xmlser);
+	CXMLSerializer xml_serializer(mp, os, false);
+	CCostModelConfigSerializer cmcSerializer(apcm.Value());
+	cmcSerializer.Serialize(xml_serializer);
 
-	GPOS_RTL_ASSERT(apwsExpected->FEquals(&wsActual));
+	GPOS_RTL_ASSERT(apwsExpected->Equals(&wsActual));
 
 	return gpos::GPOS_OK;
 }
 
 static gpos::GPOS_RESULT Eres_ParseLegacyCostModel()
 {
-	const CHAR szDXLFileName[] = "../data/dxl/parse_tests/CostModelConfigLegacy.xml";
+	const CHAR dxl_filename[] = "../data/dxl/parse_tests/CostModelConfigLegacy.xml";
 	Fixture fixture;
 
-	IMemoryPool *pmp = fixture.Pmp();
+	IMemoryPool *mp = fixture.Pmp();
 
-	gpos::CAutoRg<CHAR> a_szDXL(CDXLUtils::SzRead(pmp, szDXLFileName));
+	gpos::CAutoRg<CHAR> a_szDXL(CDXLUtils::Read(mp, dxl_filename));
 
 	CParseHandlerCostModel *pphcm = fixture.PphCostModel();
 
 	fixture.Parse((const XMLByte *)a_szDXL.Rgt(), strlen(a_szDXL.Rgt()));
 
-	ICostModel *pcm = pphcm->Pcm();
+	ICostModel *pcm = pphcm->GetCostModel();
 
 	GPOS_RTL_ASSERT(ICostModel::EcmtGPDBLegacy == pcm->Ecmt());
 	GPOS_RTL_ASSERT(3 == pcm->UlHosts());
 
-	CAutoRef<CCostModelParamsGPDBLegacy> pcpExpected(GPOS_NEW(pmp) CCostModelParamsGPDBLegacy(pmp));
-	GPOS_RTL_ASSERT(pcpExpected->FEquals(pcm->Pcp()));
+	CAutoRef<CCostModelParamsGPDBLegacy> pcpExpected(GPOS_NEW(mp) CCostModelParamsGPDBLegacy(mp));
+	GPOS_RTL_ASSERT(pcpExpected->Equals(pcm->GetCostModelParams()));
 
 	return gpos::GPOS_OK;
 }

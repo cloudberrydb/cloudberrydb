@@ -19,30 +19,30 @@ using namespace gpopt;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarProjectElement::UlHash
+//		CScalarProjectElement::HashValue
 //
 //	@doc:
 //		Hash value built from colref and Eop
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarProjectElement::UlHash() const
+CScalarProjectElement::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(),
-							   gpos::UlHashPtr<CColRef>(m_pcr));
+	return gpos::CombineHashes(COperator::HashValue(),
+							   gpos::HashPtr<CColRef>(m_pcr));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarProjectElement::FMatch
+//		CScalarProjectElement::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarProjectElement::FMatch
+CScalarProjectElement::Matches
 	(
 	COperator *pop
 	)
@@ -84,36 +84,36 @@ CScalarProjectElement::FInputOrderSensitive() const
 COperator *
 CScalarProjectElement::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	ULONG ulId = m_pcr->UlId();
-	CColRef *pcr = phmulcr->PtLookup(&ulId);
-	if (NULL == pcr)
+	ULONG id = m_pcr->Id();
+	CColRef *colref = colref_mapping->Find(&id);
+	if (NULL == colref)
 	{
-		if (fMustExist)
+		if (must_exist)
 		{
 			// not found in hashmap, so create a new colref and add to hashmap
-			CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+			CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 			CName name(m_pcr->Name());
-			pcr = pcf->PcrCreate(m_pcr->Pmdtype(), m_pcr->ITypeModifier(), name);
+			colref = col_factory->PcrCreate(m_pcr->RetrieveType(), m_pcr->TypeModifier(), name);
 
 #ifdef GPOS_DEBUG
-			BOOL fResult =
+			BOOL result =
 #endif // GPOS_DEBUG
-			phmulcr->FInsert(GPOS_NEW(pmp) ULONG(ulId), pcr);
-			GPOS_ASSERT(fResult);
+			colref_mapping->Insert(GPOS_NEW(mp) ULONG(id), colref);
+			GPOS_ASSERT(result);
 		}
 		else
 		{
-			pcr = m_pcr;
+			colref = m_pcr;
 		}
 	}
 
-	return GPOS_NEW(pmp) CScalarProjectElement(pmp, pcr);
+	return GPOS_NEW(mp) CScalarProjectElement(mp, colref);
 }
 
 //---------------------------------------------------------------------------

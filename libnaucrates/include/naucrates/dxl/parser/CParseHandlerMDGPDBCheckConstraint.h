@@ -36,13 +36,13 @@ namespace gpdxl
 		private:
 
 			// mdid of the check constraint
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 
 			// name of the check constraint
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// mdid of the relation
-			IMDId *m_pmdidRel;
+			IMDId *m_rel_mdid;
 
 			// private copy ctor
 			CParseHandlerMDGPDBCheckConstraint(const CParseHandlerMDGPDBCheckConstraint&);
@@ -50,18 +50,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
- 				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+ 				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
@@ -69,9 +69,9 @@ namespace gpdxl
 			// ctor
 			CParseHandlerMDGPDBCheckConstraint
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

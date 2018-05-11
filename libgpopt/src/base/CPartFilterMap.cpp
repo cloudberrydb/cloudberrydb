@@ -32,14 +32,14 @@ using namespace gpnaucrates;
 //---------------------------------------------------------------------------
 CPartFilterMap::CPartFilter::CPartFilter
 	(
-	ULONG ulScanId,
+	ULONG scan_id,
 	CExpression *pexpr,
-	IStatistics *pstats
+	IStatistics *stats
 	)
 	:
-	m_ulScanId(ulScanId),
+	m_scan_id(scan_id),
 	m_pexpr(pexpr),
-	m_pstats(pstats)
+	m_pstats(stats)
 {
 	GPOS_ASSERT(NULL != pexpr);
 }
@@ -60,22 +60,22 @@ CPartFilterMap::CPartFilter::~CPartFilter()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPartFilterMap::CPartFilter::FMatch
+//		CPartFilterMap::CPartFilter::Matches
 //
 //	@doc:
 //		Hash of components
 //
 //---------------------------------------------------------------------------
 BOOL
-CPartFilterMap::CPartFilter::FMatch
+CPartFilterMap::CPartFilter::Matches
 	(
 	const CPartFilter *ppf
 	)
 	const
 {
 	return NULL != ppf &&
-			m_ulScanId == ppf->m_ulScanId &&
-			m_pexpr->FMatch(ppf->m_pexpr);
+			m_scan_id == ppf->m_scan_id &&
+			m_pexpr->Matches(ppf->m_pexpr);
 }
 
 //---------------------------------------------------------------------------
@@ -93,7 +93,7 @@ CPartFilterMap::CPartFilter::OsPrint
 	)
 	const
 {
-	os << "[ " << m_ulScanId << " : "
+	os << "[ " << m_scan_id << " : "
 		<< *m_pexpr << std::endl;
 	if (NULL != m_pstats)
 	{
@@ -118,10 +118,10 @@ CPartFilterMap::CPartFilter::OsPrint
 //---------------------------------------------------------------------------
 CPartFilterMap::CPartFilterMap
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
-	m_phmulpf = GPOS_NEW(pmp) HMULPartFilter(pmp);
+	m_phmulpf = GPOS_NEW(mp) UlongToPartFilterMap(mp);
 }
 
 //---------------------------------------------------------------------------
@@ -134,13 +134,13 @@ CPartFilterMap::CPartFilterMap
 //---------------------------------------------------------------------------
 CPartFilterMap::CPartFilterMap
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CPartFilterMap *ppfm
 	)
 {
 	GPOS_ASSERT(NULL != ppfm);
-	m_phmulpf = GPOS_NEW(pmp) HMULPartFilter(pmp);
-	CopyPartFilterMap(pmp, ppfm);
+	m_phmulpf = GPOS_NEW(mp) UlongToPartFilterMap(mp);
+	CopyPartFilterMap(mp, ppfm);
 }
 
 //---------------------------------------------------------------------------
@@ -172,13 +172,13 @@ CPartFilterMap::FSubset
 {
 	GPOS_ASSERT(NULL != ppfm);
 
-	HMULPartFilterIter hmulpfi(m_phmulpf);
-	while (hmulpfi.FAdvance())
+	UlongToPartFilterMapIter hmulpfi(m_phmulpf);
+	while (hmulpfi.Advance())
 	{
-		const CPartFilter *ppfCurrent = hmulpfi.Pt();
-		ULONG ulScanId = ppfCurrent->UlScanId();
-		CPartFilter *ppfOther = ppfm->m_phmulpf->PtLookup(&ulScanId);
-		if (!ppfCurrent->FMatch(ppfOther))
+		const CPartFilter *ppfCurrent = hmulpfi.Value();
+		ULONG scan_id = ppfCurrent->ScanId();
+		CPartFilter *ppfOther = ppfm->m_phmulpf->Find(&scan_id);
+		if (!ppfCurrent->Matches(ppfOther))
 		{
 			return false;
 		}
@@ -197,11 +197,11 @@ CPartFilterMap::FSubset
 CExpression *
 CPartFilterMap::Pexpr
 	(
-	ULONG ulScanId
+	ULONG scan_id
 	)
 	const
 {
-	CPartFilter *ppf = m_phmulpf->PtLookup(&ulScanId);
+	CPartFilter *ppf = m_phmulpf->Find(&scan_id);
 	GPOS_ASSERT(NULL != ppf);
 
 	return ppf->Pexpr();
@@ -218,11 +218,11 @@ CPartFilterMap::Pexpr
 IStatistics *
 CPartFilterMap::Pstats
 	(
-	ULONG ulScanId
+	ULONG scan_id
 	)
 	const
 {
-	CPartFilter *ppf = m_phmulpf->PtLookup(&ulScanId);
+	CPartFilter *ppf = m_phmulpf->Find(&scan_id);
 	GPOS_ASSERT(NULL != ppf);
 
 	return ppf->Pstats();
@@ -236,20 +236,20 @@ CPartFilterMap::Pstats
 //		 Extract Scan ids
 //
 //---------------------------------------------------------------------------
-DrgPul *
+ULongPtrArray *
 CPartFilterMap::PdrgpulScanIds
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	DrgPul *pdrgpul = GPOS_NEW(pmp) DrgPul(pmp);
-	HMULPartFilterIter hmulpfi(m_phmulpf);
-	while (hmulpfi.FAdvance())
+	ULongPtrArray *pdrgpul = GPOS_NEW(mp) ULongPtrArray(mp);
+	UlongToPartFilterMapIter hmulpfi(m_phmulpf);
+	while (hmulpfi.Advance())
 	{
-		CPartFilter *ppf = const_cast<CPartFilter *>(hmulpfi.Pt());
+		CPartFilter *ppf = const_cast<CPartFilter *>(hmulpfi.Value());
 
-		pdrgpul->Append(GPOS_NEW(pmp) ULONG(ppf->UlScanId()));
+		pdrgpul->Append(GPOS_NEW(mp) ULONG(ppf->ScanId()));
 	}
 
 	return pdrgpul;
@@ -266,25 +266,25 @@ CPartFilterMap::PdrgpulScanIds
 void
 CPartFilterMap::AddPartFilter
 	(
-	IMemoryPool *pmp,
-	ULONG ulScanId,
+	IMemoryPool *mp,
+	ULONG scan_id,
 	CExpression *pexpr,
-	IStatistics *pstats
+	IStatistics *stats
 	)
 {
 	GPOS_ASSERT(NULL != pexpr);
-	CPartFilter *ppf = m_phmulpf->PtLookup(&ulScanId);
+	CPartFilter *ppf = m_phmulpf->Find(&scan_id);
 	if (NULL != ppf)
 	{
 		return;
 	}
 
-	ppf = GPOS_NEW(pmp) CPartFilter(ulScanId, pexpr, pstats);
+	ppf = GPOS_NEW(mp) CPartFilter(scan_id, pexpr, stats);
 
 #ifdef GPOS_DEBUG
 	BOOL fSuccess =
 #endif // GPOS_DEBUG
-	m_phmulpf->FInsert(GPOS_NEW(pmp) ULONG(ulScanId), ppf);
+	m_phmulpf->Insert(GPOS_NEW(mp) ULONG(scan_id), ppf);
 
 	GPOS_ASSERT(fSuccess);
 }
@@ -302,20 +302,20 @@ CPartFilterMap::AddPartFilter
 BOOL
 CPartFilterMap::FCopyPartFilter
 	(
-	IMemoryPool *pmp,
-	ULONG ulScanId,
+	IMemoryPool *mp,
+	ULONG scan_id,
 	CPartFilterMap *ppfmSource
 	)
 {
 	GPOS_ASSERT(NULL != ppfmSource);
 	GPOS_ASSERT(this != ppfmSource);
 
-	CPartFilter *ppf = ppfmSource->m_phmulpf->PtLookup(&ulScanId);
+	CPartFilter *ppf = ppfmSource->m_phmulpf->Find(&scan_id);
 	if (NULL != ppf)
 	{
 		ppf->AddRef();
-		ULONG *pulScanId = GPOS_NEW(pmp) ULONG(ulScanId);
-		BOOL fSuccess = m_phmulpf->FInsert(pulScanId, ppf);
+		ULONG *pulScanId = GPOS_NEW(mp) ULONG(scan_id);
+		BOOL fSuccess = m_phmulpf->Insert(pulScanId, ppf);
 		GPOS_ASSERT(fSuccess);
 
 		if (!fSuccess)
@@ -341,21 +341,21 @@ CPartFilterMap::FCopyPartFilter
 void
 CPartFilterMap::CopyPartFilterMap
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CPartFilterMap *ppfmSource
 	)
 {
 	GPOS_ASSERT(NULL != ppfmSource);
 	GPOS_ASSERT(this != ppfmSource);
 
-	HMULPartFilterIter hmulpfi(ppfmSource->m_phmulpf);
-	while (hmulpfi.FAdvance())
+	UlongToPartFilterMapIter hmulpfi(ppfmSource->m_phmulpf);
+	while (hmulpfi.Advance())
 	{
-		CPartFilter *ppf = const_cast<CPartFilter *>(hmulpfi.Pt());
-		ULONG ulScanId = ppf->UlScanId();
+		CPartFilter *ppf = const_cast<CPartFilter *>(hmulpfi.Value());
+		ULONG scan_id = ppf->ScanId();
 
 		// check if part filter with same scan id already exists
-		if (NULL != m_phmulpf->PtLookup(&ulScanId))
+		if (NULL != m_phmulpf->Find(&scan_id))
 		{
 			continue;
 		}
@@ -365,7 +365,7 @@ CPartFilterMap::CopyPartFilterMap
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =
 #endif // GPOS_DEBUG
-		m_phmulpf->FInsert(GPOS_NEW(pmp) ULONG(ulScanId), ppf);
+		m_phmulpf->Insert(GPOS_NEW(mp) ULONG(scan_id), ppf);
 
 		GPOS_ASSERT(fSuccess);
 	}
@@ -386,10 +386,10 @@ CPartFilterMap::OsPrint
 	)
 	const
 {
-	HMULPartFilterIter hmulpfi(m_phmulpf);
-	while (hmulpfi.FAdvance())
+	UlongToPartFilterMapIter hmulpfi(m_phmulpf);
+	while (hmulpfi.Advance())
 	{
-		const CPartFilter *ppf = hmulpfi.Pt();
+		const CPartFilter *ppf = hmulpfi.Value();
 		ppf->OsPrint(os);
 	}
 
@@ -401,8 +401,8 @@ CPartFilterMap::OsPrint
 void
 CPartFilterMap::DbgPrint() const
 {
-	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
-	CAutoTrace at(pmp);
+	IMemoryPool *mp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(mp);
 	(void) this->OsPrint(at.Os());
 }
 #endif // GPOS_DEBUG

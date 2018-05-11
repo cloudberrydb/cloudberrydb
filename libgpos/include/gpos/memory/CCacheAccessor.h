@@ -45,112 +45,112 @@ namespace gpos
 		private:
 
 			// the underlying cache
-			CCache<T, K> *m_pcache;
+			CCache<T, K> *m_cache;
 
 			// memory pool of a cached object inserted by the accessor
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// cached object currently held by the accessor
-			typename CCache<T, K>::CCacheHashTableEntry *m_pce;
+			typename CCache<T, K>::CCacheHashTableEntry *m_entry;
 
 			// true if insertion of a new object into the cache was successful
-			BOOL m_fInserted;
+			BOOL m_inserted;
 
 		public:
 
 			// ctor; protected to disable instantiation unless from child class
-			CCacheAccessor(CCache<T, K> *pcache)
+			CCacheAccessor(CCache<T, K> *cache)
 			:
-			m_pcache(pcache),
-			m_pmp(NULL),
-			m_pce(NULL),
-			m_fInserted(false)
+			m_cache(cache),
+			m_mp(NULL),
+			m_entry(NULL),
+			m_inserted(false)
 
 			{
-				GPOS_ASSERT(NULL != pcache);
+				GPOS_ASSERT(NULL != cache);
 			}
 
 			// dtor
 			~CCacheAccessor()
 			{
 				// check if a memory pool was created but insertion failed
-				if (NULL != m_pmp && !m_fInserted)
+				if (NULL != m_mp && !m_inserted)
 				{
-					CMemoryPoolManager::Pmpm()->Destroy(m_pmp);
+					CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(m_mp);
 				}
 
 				// release entry if one was created
-				if (NULL != m_pce)
+				if (NULL != m_entry)
 				{
-					m_pcache->ReleaseEntry(m_pce);
+					m_cache->ReleaseEntry(m_entry);
 				}
 			}
 
 			// the following functions are hidden since they involve
-			// (void *) key/value data types; the actual types are defined
+		// (void *) key/value data types; the actual types are defined
 			// as template parameters in the child class CCacheAccessor
 
 			// inserts a new object into the cache
-			T PtInsert
+			T Insert
 				(
-				K pKey,
-				T pVal
+				K key,
+				T val
 				)
 			{
-				GPOS_ASSERT(NULL != m_pmp);
+				GPOS_ASSERT(NULL != m_mp);
 
-				GPOS_ASSERT(!m_fInserted &&
+				GPOS_ASSERT(!m_inserted &&
 						    "Accessor was already used for insertion");
 
-				GPOS_ASSERT(NULL == m_pce &&
+				GPOS_ASSERT(NULL == m_entry &&
 						    "Accessor already holds an entry");
 
-				CCacheEntry<T, K> *pce =
-						GPOS_NEW(m_pcache->m_pmp) CCacheEntry<T, K>(m_pmp, pKey, pVal, m_pcache->m_ulGClockInitCounter);
+				CCacheEntry<T, K> *entry =
+						GPOS_NEW(m_cache->m_mp) CCacheEntry<T, K>(m_mp, key, val, m_cache->m_gclock_init_counter);
 
-				CCacheEntry<T, K> *pceReturn = m_pcache->PceInsert(pce);
+				CCacheEntry<T, K> *ret = m_cache->InsertEntry(entry);
 
 				// check if insertion completed successfully
-				if (pce == pceReturn)
+				if (entry == ret)
 				{
-					m_fInserted = true;
+					m_inserted = true;
 				}
 				else
 				{
-					GPOS_DELETE(pce);
+					GPOS_DELETE(entry);
 				}
 
 				// accessor holds the returned entry in all cases
-				m_pce = pceReturn;
+				m_entry = ret;
 
-				return pceReturn->PVal();
+				return ret->Val();
 
 			}
 
 			// returns the object currently held by the accessor
-			T PtVal() const
+			T Val() const
 			{
-				T pReturn = NULL;
-				if (NULL != m_pce)
+				T ret = NULL;
+				if (NULL != m_entry)
 				{
-					pReturn = m_pce->PVal();
+					ret = m_entry->Val();
 				}
 
-				return pReturn;
+				return ret;
 			}
 
 			// gets the next undeleted object with the same key
-			T PtNext()
+			T Next()
 			{
-				GPOS_ASSERT(NULL != m_pce);
+				GPOS_ASSERT(NULL != m_entry);
 
-				typename CCache<T, K>::CCacheHashTableEntry *pce = m_pce;
-				m_pce = m_pcache->PceNext(m_pce);
+				typename CCache<T, K>::CCacheHashTableEntry *entry = m_entry;
+				m_entry = m_cache->Next(m_entry);
 
 				// release previous entry
-				m_pcache->ReleaseEntry(pce);
+				m_cache->ReleaseEntry(entry);
 
-				return PtVal();
+				return Val();
 			}
 
 		public:
@@ -158,37 +158,40 @@ namespace gpos
 			// creates a new memory pool for allocating a new object
 			IMemoryPool *Pmp()
 			{
-				GPOS_ASSERT(NULL == m_pmp);
+				GPOS_ASSERT(NULL == m_mp);
 
 				// construct a memory pool for cache entry
-                m_pmp = CMemoryPoolManager::Pmpm()->PmpCreate(
-                    CMemoryPoolManager::EatTracker, true /*fThreadSafe*/,
-                    gpos::ullong_max);
+				m_mp = CMemoryPoolManager::GetMemoryPoolMgr()->Create
+						(
+						CMemoryPoolManager::EatTracker,
+						true /*fThreadSafe*/,
+						gpos::ullong_max
+						);
 
-				return m_pmp;
+				return m_mp;
 			}
 
 			// finds the first object matching the given key
-			void Lookup(K pKey)
+			void Lookup(K key)
 			{
-				GPOS_ASSERT(NULL == m_pce && "Accessor already holds an entry");
+				GPOS_ASSERT(NULL == m_entry && "Accessor already holds an entry");
 
-				m_pce = m_pcache->PceLookup(pKey);
+				m_entry = m_cache->Get(key);
 
-				if(NULL != m_pce)
+				if(NULL != m_entry)
 				{
 					// increase ref count before return the object to the customer
 					// customer is responsible for decreasing the ref count after use
-					m_pce->IncRefCount();
+					m_entry->IncRefCount();
 				}
 			}
 
 			// marks currently held object as deleted
 			void MarkForDeletion()
 			{
-				GPOS_ASSERT(NULL != m_pce);
+				GPOS_ASSERT(NULL != m_entry);
 
-				m_pce->MarkForDeletion();
+				m_entry->MarkForDeletion();
 			}
 
 	};  // CCacheAccessor

@@ -44,29 +44,29 @@ namespace gpdxl
 			explicit
 			CDXLScalarRecheckCondFilter
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CDXLScalarFilter(pmp)
+				CDXLScalarFilter(mp)
 			{
 			}
 
 			// operator identity
 			virtual
-			Edxlopid Edxlop() const
+			Edxlopid GetDXLOperator() const
 			{
 				return EdxlopScalarRecheckCondFilter;
 			}
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{
@@ -76,15 +76,15 @@ namespace gpdxl
 
 			// conversion function
 			static
-			CDXLScalarRecheckCondFilter *PdxlopConvert
+			CDXLScalarRecheckCondFilter *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarRecheckCondFilter == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarRecheckCondFilter == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarRecheckCondFilter*>(pdxlop);
+				return dynamic_cast<CDXLScalarRecheckCondFilter*>(dxl_op);
 			}
 	};
 }

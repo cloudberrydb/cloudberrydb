@@ -32,7 +32,7 @@ namespace gpos
 		private:
 
 			// pointer to task in current execution context
-			CTask *m_ptsk;
+			CTask *m_task;
 
 		public:
 

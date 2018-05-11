@@ -31,7 +31,7 @@ using namespace gpopt;
 void
 CIOUtils::Dump
 	(
-	CHAR *szFileName,
+	CHAR *file_name,
 	CHAR *sz
 	)
 {
@@ -42,9 +42,9 @@ CIOUtils::Dump
 	GPOS_TRY
 	{
 		CFileWriter fw;
-		fw.Open(szFileName, ulWrPerms);
+		fw.Open(file_name, ulWrPerms);
 		const BYTE *pb = reinterpret_cast<const BYTE*>(sz);
-		ULONG_PTR ulpLength = (ULONG_PTR) clib::UlStrLen(sz);
+		ULONG_PTR ulpLength = (ULONG_PTR) clib::Strlen(sz);
 		fw.Write(pb, ulpLength);
 		fw.Close();
 	}
@@ -57,7 +57,7 @@ CIOUtils::Dump
 
 	// reset time slice
 #ifdef GPOS_DEBUG
-    CWorker::PwrkrSelf()->ResetTimeSlice();
+    CWorker::Self()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 }
 

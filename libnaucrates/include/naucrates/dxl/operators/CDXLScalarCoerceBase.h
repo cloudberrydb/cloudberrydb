@@ -40,16 +40,16 @@ namespace gpdxl
 		private:
 
 			// catalog MDId of the result type
-			IMDId *m_pmdidResultType;
+			IMDId *m_result_type_mdid;
 
 			// output type modifier
-			INT m_iTypeModifier;
+			INT m_type_modifier;
 
 			// coercion form
-			EdxlCoercionForm m_edxlcf;
+			EdxlCoercionForm m_dxl_coerce_format;
 
 			// location of token to be coerced
-			INT m_iLoc;
+			INT m_location;
 
 			// private copy ctor
 			CDXLScalarCoerceBase(const CDXLScalarCoerceBase&);
@@ -58,54 +58,54 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarCoerceBase
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				EdxlCoercionForm edxlcf,
-				INT iLoc
+				IMemoryPool *mp,
+				IMDId *mdid_type,
+				INT type_modifier,
+				EdxlCoercionForm dxl_coerce_format,
+				INT location
 				);
 
 			virtual
 			~CDXLScalarCoerceBase();
 
 			// return result type
-			IMDId *PmdidResultType() const
+			IMDId *GetResultTypeMdId() const
 			{
-				return m_pmdidResultType;
+				return m_result_type_mdid;
 			}
 
 			// return type modifier
-			INT ITypeModifier() const
+			INT TypeModifier() const
 			{
-				return m_iTypeModifier;
+				return m_type_modifier;
 			}
 
 			// return coercion form
-			EdxlCoercionForm Edxlcf() const
+			EdxlCoercionForm GetDXLCoercionForm() const
 			{
-				return m_edxlcf;
+				return m_dxl_coerce_format;
 			}
 
 			// return token location
-			INT ILoc() const
+			INT GetLocation() const
 			{
-				return m_iLoc;
+				return m_location;
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 	};
 }
 

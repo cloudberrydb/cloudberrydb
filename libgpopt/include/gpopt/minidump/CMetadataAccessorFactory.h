@@ -16,9 +16,9 @@ namespace gpopt
 		public:
 			CMetadataAccessorFactory
 				(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CDXLMinidump *pdxlmd,
-					const CHAR *szFileName
+					const CHAR *file_name
 				);
 
 			CMDAccessor *Pmda();

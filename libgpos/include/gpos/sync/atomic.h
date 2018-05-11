@@ -27,32 +27,32 @@
 namespace gpos
 {
 	// inter-locked add function; returns original value;
-	ULONG_PTR UlpExchangeAdd(volatile ULONG_PTR *pul, INT i);
+	ULONG_PTR ExchangeAddUlongPtrWithInt(volatile ULONG_PTR *ul, INT i);
 
 	// inter-locked add function; returns original value;
-	ULLONG UllExchangeAdd(volatile ULLONG *pullValue, ULLONG ullInc);
+	ULLONG ExchangeAddUllongWithUllong(volatile ULLONG *value, ULLONG inc);
 
 	// compare-and-swap function for integers
-	BOOL FCompareSwap(volatile ULONG *pulDest, ULONG ulOld, ULONG ulNew);
+	BOOL CompareSwap(volatile ULONG *dest_val, ULONG old_val, ULONG new_val);
 
 	// compare-and-swap function for long integers
-	BOOL FCompareSwap(volatile ULLONG *pullDest, ULLONG ullOld, ULLONG ullNew);
+	BOOL CompareSwap(volatile ULLONG *dest_val, ULLONG old_val, ULLONG new_val);
 
 #ifdef GPOS_Darwin
 	// compare-and-swap function for integers holding addresses
-	BOOL FCompareSwap(volatile ULONG_PTR *pulpDest, ULONG_PTR ulpOld, ULONG_PTR ulpNew);
+	BOOL CompareSwap(volatile ULONG_PTR *dest_val, ULONG_PTR old_val, ULONG_PTR new_val);
 #endif // GPOS_Darwin
 
 	// compare-and-swap function for generic pointers
 	template<class T>
-	BOOL FCompareSwap
+	BOOL CompareSwap
 		(
-		volatile T **pptDest,
-		T *ptOld,
-		T *ptNew
+		volatile T **dest_val,
+		T *old_val,
+		T *new_val
 		)
 	{
-		return FCompareSwap((ULONG_PTR*) pptDest, (ULONG_PTR) ptOld, (ULONG_PTR) ptNew);
+		return CompareSwap((ULONG_PTR*) dest_val, (ULONG_PTR) old_val, (ULONG_PTR) new_val);
 	}
 }
 

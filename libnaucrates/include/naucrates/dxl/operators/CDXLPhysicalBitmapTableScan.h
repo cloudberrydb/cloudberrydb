@@ -42,11 +42,11 @@ namespace gpdxl
 			// ctors
 			CDXLPhysicalBitmapTableScan
 				(
-				IMemoryPool *pmp,
-				CDXLTableDescr *pdxltabdesc
+				IMemoryPool *mp,
+				CDXLTableDescr *table_descr
 				)
 				:
-				CDXLPhysicalAbstractBitmapScan(pmp, pdxltabdesc)
+				CDXLPhysicalAbstractBitmapScan(mp, table_descr)
 			{
 			}
 
@@ -57,30 +57,30 @@ namespace gpdxl
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const
+			Edxlopid GetDXLOperator() const
 			{
 				return EdxlopPhysicalBitmapTableScan;
 			}
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalBitmapTableScan *PdxlopConvert
+			CDXLPhysicalBitmapTableScan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalBitmapTableScan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalBitmapTableScan == dxl_op->GetDXLOperator());
 
- 	 	 		return dynamic_cast<CDXLPhysicalBitmapTableScan *>(pdxlop);
+ 	 	 		return dynamic_cast<CDXLPhysicalBitmapTableScan *>(dxl_op);
 			}
 
 	};  // class CDXLPhysicalBitmapTableScan

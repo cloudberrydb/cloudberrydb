@@ -24,11 +24,11 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalProperties::CDXLPhysicalProperties
 	(
-	CDXLOperatorCost *pdxlopcost
+	CDXLOperatorCost *cost
 	)
 	:
 	CDXLProperties(),
-	m_pdxlopcost(pdxlopcost)
+	m_operator_cost_dxl(cost)
 {}
 
 //---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ CDXLPhysicalProperties::CDXLPhysicalProperties
 //---------------------------------------------------------------------------
 CDXLPhysicalProperties::~CDXLPhysicalProperties()
 {
-	CRefCount::SafeRelease(m_pdxlopcost);
+	CRefCount::SafeRelease(m_operator_cost_dxl);
 }
 
 //---------------------------------------------------------------------------
@@ -55,30 +55,30 @@ CDXLPhysicalProperties::~CDXLPhysicalProperties()
 void
 CDXLPhysicalProperties::SerializePropertiesToDXL
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenProperties));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenProperties));
 
-	m_pdxlopcost->SerializeToDXL(pxmlser);
-	SerializeStatsToDXL(pxmlser);
+	m_operator_cost_dxl->SerializeToDXL(xml_serializer);
+	SerializeStatsToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenProperties));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenProperties));
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalProperties::Pdxlopcost
+//		CDXLPhysicalProperties::MakeDXLOperatorCost
 //
 //	@doc:
 //		Return cost of operator
 //
 //---------------------------------------------------------------------------
 CDXLOperatorCost *
-CDXLPhysicalProperties::Pdxlopcost() const
+CDXLPhysicalProperties::GetDXLOperatorCost() const
 {
-	return m_pdxlopcost;
+	return m_operator_cost_dxl;
 }			
 
 // EOF

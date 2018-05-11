@@ -31,19 +31,19 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerMDGPDBAgg::CParseHandlerMDGPDBAgg
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerMetadataObject(pmp, pphm, pphRoot),
-	m_pmdid(NULL),
-	m_pmdname(NULL),
-	m_pmdidTypeResult(NULL),
-	m_pmdidTypeIntermediate(NULL),
-	m_fOrdered(false),
-	m_fSplittable(true),
-	m_fHashAggCapable(true)
+	CParseHandlerMetadataObject(mp, parse_handler_mgr, parse_handler_root),
+	m_mdid(NULL),
+	m_mdname(NULL),
+	m_mdid_type_result(NULL),
+	m_mdid_type_intermediate(NULL),
+	m_is_ordered(false),
+	m_is_splittable(true),
+	m_hash_agg_capable(true)
 {
 }
 
@@ -58,98 +58,98 @@ CParseHandlerMDGPDBAgg::CParseHandlerMDGPDBAgg
 void
 CParseHandlerMDGPDBAgg::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAgg), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAgg), element_local_name))
 	{
 		// parse agg name
-		const XMLCh *xmlszAggName = CDXLOperatorFactory::XmlstrFromAttrs
+		const XMLCh *xml_str_agg_name = CDXLOperatorFactory::ExtractAttrValue
 										(
 										attrs,
 										EdxltokenName,
 										EdxltokenGPDBAgg
 										);
 
-		CWStringDynamic *pstrAggName = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszAggName);
+		CWStringDynamic *str_agg_name = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), xml_str_agg_name);
 		
 		// create a copy of the string in the CMDName constructor
-		m_pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAggName);
+		m_mdname = GPOS_NEW(m_mp) CMDName(m_mp, str_agg_name);
 		
-		GPOS_DELETE(pstrAggName);
+		GPOS_DELETE(str_agg_name);
 
 		// parse metadata id info
-		m_pmdid = CDXLOperatorFactory::PmdidFromAttrs
+		m_mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 											(
-											m_pphm->Pmm(),
+											m_parse_handler_mgr->GetDXLMemoryManager(),
 											attrs,
 											EdxltokenMdid,
 											EdxltokenGPDBAgg
 											);
 					
 		// parse ordered aggregate info
-		const XMLCh *xmlszOrderedAgg = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenGPDBIsAggOrdered));
-		if (NULL != xmlszOrderedAgg)
+		const XMLCh *xml_str_ordered_agg = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenGPDBIsAggOrdered));
+		if (NULL != xml_str_ordered_agg)
 		{
-			m_fOrdered = CDXLOperatorFactory::FValueFromXmlstr
+			m_is_ordered = CDXLOperatorFactory::ConvertAttrValueToBool
 												(
-												m_pphm->Pmm(),
-												xmlszOrderedAgg,
+												m_parse_handler_mgr->GetDXLMemoryManager(),
+												xml_str_ordered_agg,
 												EdxltokenGPDBIsAggOrdered,
 												EdxltokenGPDBAgg
 												);
 		}
 		
 		// parse splittable aggregate info
-		const XMLCh *xmlszSplittableAgg = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenGPDBAggSplittable));
-		if (NULL != xmlszSplittableAgg)
+		const XMLCh *xml_str_splittable_agg = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenGPDBAggSplittable));
+		if (NULL != xml_str_splittable_agg)
 		{
-			m_fSplittable = CDXLOperatorFactory::FValueFromXmlstr
+			m_is_splittable = CDXLOperatorFactory::ConvertAttrValueToBool
 												(
-												m_pphm->Pmm(),
-												xmlszSplittableAgg,
+												m_parse_handler_mgr->GetDXLMemoryManager(),
+												xml_str_splittable_agg,
 												EdxltokenGPDBAggSplittable,
 												EdxltokenGPDBAgg
 												);
 		}
 
 		// parse hash capable aggragate info
-		const XMLCh *xmlszHashAggCapableAgg = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenGPDBAggHashAggCapable));
-		if (NULL != xmlszHashAggCapableAgg)
+		const XMLCh *xml_str_hash_agg_capable = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenGPDBAggHashAggCapable));
+		if (NULL != xml_str_hash_agg_capable)
 		{
-			m_fHashAggCapable = CDXLOperatorFactory::FValueFromXmlstr
+			m_hash_agg_capable = CDXLOperatorFactory::ConvertAttrValueToBool
 												(
-												m_pphm->Pmm(),
-												xmlszHashAggCapableAgg,
+												m_parse_handler_mgr->GetDXLMemoryManager(),
+												xml_str_hash_agg_capable,
 												EdxltokenGPDBAggHashAggCapable,
 												EdxltokenGPDBAgg
 												);
 		}
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggResultTypeId), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggResultTypeId), element_local_name))
 	{
 		// parse result type
-		GPOS_ASSERT(NULL != m_pmdname);
+		GPOS_ASSERT(NULL != m_mdname);
 
-		m_pmdidTypeResult = CDXLOperatorFactory::PmdidFromAttrs
+		m_mdid_type_result = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 													(
-													m_pphm->Pmm(),
+													m_parse_handler_mgr->GetDXLMemoryManager(),
 													attrs,
 													EdxltokenMdid,
 													EdxltokenGPDBAggResultTypeId
 													);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggIntermediateResultTypeId), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggIntermediateResultTypeId), element_local_name))
 	{
 		// parse intermediate result type
-		GPOS_ASSERT(NULL != m_pmdname);
+		GPOS_ASSERT(NULL != m_mdname);
 
-		m_pmdidTypeIntermediate = CDXLOperatorFactory::PmdidFromAttrs
+		m_mdid_type_intermediate = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 														(
-														m_pphm->Pmm(),
+														m_parse_handler_mgr->GetDXLMemoryManager(),
 														attrs,
 														EdxltokenMdid,
 														EdxltokenGPDBAggIntermediateResultTypeId
@@ -157,8 +157,8 @@ CParseHandlerMDGPDBAgg::StartElement
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -173,35 +173,35 @@ CParseHandlerMDGPDBAgg::StartElement
 void
 CParseHandlerMDGPDBAgg::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAgg), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAgg), element_local_name))
 	{
 		// construct the MD agg object from its part
-		GPOS_ASSERT(m_pmdid->FValid() && NULL != m_pmdname);
+		GPOS_ASSERT(m_mdid->IsValid() && NULL != m_mdname);
 		
-		m_pimdobj = GPOS_NEW(m_pmp) CMDAggregateGPDB(m_pmp,
-												m_pmdid,
-												m_pmdname,
-												m_pmdidTypeResult,
-												m_pmdidTypeIntermediate,
-												m_fOrdered,
-												m_fSplittable,
-												m_fHashAggCapable
+		m_imd_obj = GPOS_NEW(m_mp) CMDAggregateGPDB(m_mp,
+												m_mdid,
+												m_mdname,
+												m_mdid_type_result,
+												m_mdid_type_intermediate,
+												m_is_ordered,
+												m_is_splittable,
+												m_hash_agg_capable
 												);
 		
 		// deactivate handler
-		m_pphm->DeactivateHandler();
+		m_parse_handler_mgr->DeactivateHandler();
 
 	}
-	else if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggResultTypeId), xmlszLocalname) && 
-			 0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggIntermediateResultTypeId), xmlszLocalname))
+	else if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggResultTypeId), element_local_name) && 
+			 0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBAggIntermediateResultTypeId), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 

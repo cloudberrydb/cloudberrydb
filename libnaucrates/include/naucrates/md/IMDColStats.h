@@ -38,38 +38,38 @@ namespace gpmd
 			
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtColStats;
 			}
 		
 			// number of buckets
 			virtual
-			ULONG UlBuckets() const = 0;
+			ULONG Buckets() const = 0;
 			
 			// width
 			virtual
-			CDouble DWidth() const = 0;
+			CDouble Width() const = 0;
 
 			// null fraction
 			virtual
-			CDouble DNullFreq() const = 0;
+			CDouble GetNullFreq() const = 0;
 
 			// ndistinct of remaining tuples
 			virtual
-			CDouble DDistinctRemain() const = 0;
+			CDouble GetDistinctRemain() const = 0;
 
 			// frequency of remaining tuples
 			virtual
-			CDouble DFreqRemain() const = 0;
+			CDouble GetFreqRemain() const = 0;
 
 			// is the columns statistics missing in the database
 			virtual
-			BOOL FColStatsMissing() const = 0;
+			BOOL IsColStatsMissing() const = 0;
 
 			// get the bucket at the given position
 			virtual
-			const CDXLBucket *Pdxlbucket(ULONG ul) const = 0;
+			const CDXLBucket *GetDXLBucketAt(ULONG ul) const = 0;
 	};
 }
 

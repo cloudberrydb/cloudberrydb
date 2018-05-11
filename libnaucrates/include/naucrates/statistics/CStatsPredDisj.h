@@ -37,65 +37,65 @@ namespace gpnaucrates
 			CStatsPredDisj& operator=(CStatsPredDisj &);
 
 			// array of filters
-			DrgPstatspred *m_pdrgpstatspred;
+		CStatsPredPtrArry *m_disj_pred_stats_array;
 
 		public:
 
 			// ctor
 			explicit
-			CStatsPredDisj(DrgPstatspred *pdrgpstatspred);
+			CStatsPredDisj(CStatsPredPtrArry *disj_pred_stats_array);
 
 			// dtor
 			virtual
 			~CStatsPredDisj()
 			{
-				m_pdrgpstatspred->Release();
+				m_disj_pred_stats_array->Release();
 			}
 
 			// the column identifier on which the predicates are on
 			virtual
-			ULONG UlColId() const;
+			ULONG GetColId() const;
 
 			// total number of predicates in the disjunction
-			ULONG UlFilters() const
+			ULONG GetNumPreds() const
 			{
-				return m_pdrgpstatspred->UlLength();
+				return m_disj_pred_stats_array->Size();
 			}
 
 			// return the array of predicate filters
-			DrgPstatspred *Pdrgpstatspred() const
+			CStatsPredPtrArry *GetDisjPredStatsArray() const
 			{
-				return m_pdrgpstatspred;
+				return m_disj_pred_stats_array;
 			}
 
 			// sort the components of the disjunction
 			void Sort() const;
 
 			// return the point filter at a particular position
-			CStatsPred *Pstatspred(ULONG ulPos) const;
+			CStatsPred *GetPredStats(ULONG pos) const;
 
 			// filter type id
 			virtual
-			EStatsPredType Espt() const
+			EStatsPredType GetPredStatsType() const
 			{
 				return CStatsPred::EsptDisj;
 			}
 
 			// return the column id of the filter based on the column ids of its child filters
 			static
-			ULONG UlColId(const DrgPstatspred *pdrgpstatspred);
+			ULONG GetColId(const CStatsPredPtrArry *pdrgpstatspred);
 
 			// conversion function
 			static
-			CStatsPredDisj *PstatspredConvert
+			CStatsPredDisj *ConvertPredStats
 				(
-				CStatsPred *pstatspred
+				CStatsPred *pred_stats
 				)
 			{
-				GPOS_ASSERT(NULL != pstatspred);
-				GPOS_ASSERT(CStatsPred::EsptDisj == pstatspred->Espt());
+				GPOS_ASSERT(NULL != pred_stats);
+				GPOS_ASSERT(CStatsPred::EsptDisj == pred_stats->GetPredStatsType());
 
-				return dynamic_cast<CStatsPredDisj*>(pstatspred);
+				return dynamic_cast<CStatsPredDisj*>(pred_stats);
 			}
 
 	}; // class CStatsPredDisj

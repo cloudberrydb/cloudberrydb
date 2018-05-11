@@ -29,12 +29,12 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerLogicalJoin::CParseHandlerLogicalJoin
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerLogicalOp(pmp, pphm, pphRoot)
+	CParseHandlerLogicalOp(mp, parse_handler_mgr, parse_handler_root)
 {
 }
 
@@ -61,51 +61,51 @@ CParseHandlerLogicalJoin::~CParseHandlerLogicalJoin()
 void
 CParseHandlerLogicalJoin::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalJoin), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalJoin), element_local_name))
 	{
-		if(NULL == m_pdxln)
+		if(NULL == m_dxl_node)
 		{
 			// parse and create logical join operator
-			CDXLLogicalJoin *pdxlopJoin = (CDXLLogicalJoin*) CDXLOperatorFactory::PdxlopLogicalJoin(m_pphm->Pmm(), attrs);
+			CDXLLogicalJoin *pdxlopJoin = (CDXLLogicalJoin*) CDXLOperatorFactory::MakeLogicalJoin(m_parse_handler_mgr->GetDXLMemoryManager(), attrs);
 
 			// construct node from the created child nodes
-			m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopJoin);
+			m_dxl_node = GPOS_NEW(m_mp) CDXLNode(m_mp, pdxlopJoin);
 		}
 		else
 		{
 			// This is to support nested join.
-			CParseHandlerBase *pphLgJoin = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenLogicalJoin), m_pphm, this);
-			m_pphm->ActivateParseHandler(pphLgJoin);
+			CParseHandlerBase *lg_join_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenLogicalJoin), m_parse_handler_mgr, this);
+			m_parse_handler_mgr->ActivateParseHandler(lg_join_parse_handler);
 
 			// store parse handlers
-			this->Append(pphLgJoin);
+			this->Append(lg_join_parse_handler);
 
-			pphLgJoin->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+			lg_join_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 		}
 	}
 	else
 	{
-		if(NULL == m_pdxln)
+		if(NULL == m_dxl_node)
 		{
-			CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+			CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 		}
 
 		// The child can either be a CDXLLogicalOp or CDXLScalar
-		CParseHandlerBase *pphChild = CParseHandlerFactory::Pph(m_pmp, xmlszLocalname, m_pphm, this);
+		CParseHandlerBase *child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, element_local_name, m_parse_handler_mgr, this);
 
-		m_pphm->ActivateParseHandler(pphChild);
+		m_parse_handler_mgr->ActivateParseHandler(child_parse_handler);
 
 		// store parse handlers
-		this->Append(pphChild);
+		this->Append(child_parse_handler);
 
-		pphChild->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		child_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 }
 
@@ -120,38 +120,38 @@ CParseHandlerLogicalJoin::StartElement
 void
 CParseHandlerLogicalJoin::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalJoin), xmlszLocalname))
+	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenLogicalJoin), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(NULL != m_pdxln );
-	ULONG ulChildrenCount = this->UlLength();
+	GPOS_ASSERT(NULL != m_dxl_node );
+	ULONG num_of_child = this->Length();
 
 	// Joins must atleast have 3 children (2 logical operators and 1 scalar operator)
-	GPOS_ASSERT(2 < ulChildrenCount);
+	GPOS_ASSERT(2 < num_of_child);
 
 	// add constructed children from child parse handlers
 
 	// Add the first n-1 logical operator from the first n-1 child parse handler
-	for (ULONG ul = 0; ul < ulChildrenCount; ul++)
+	for (ULONG idx = 0; idx < num_of_child; idx++)
 	{
-		CParseHandlerOp *pphOp = dynamic_cast<CParseHandlerOp*>((*this)[ul]);
-		GPOS_ASSERT(NULL != pphOp->Pdxln());
-		AddChildFromParseHandler(pphOp);
+		CParseHandlerOp *op_parse_handler = dynamic_cast<CParseHandlerOp*>((*this)[idx]);
+		GPOS_ASSERT(NULL != op_parse_handler->CreateDXLNode());
+		AddChildFromParseHandler(op_parse_handler);
 	}
 
 #ifdef GPOS_DEBUG
-	m_pdxln->Pdxlop()->AssertValid(m_pdxln, false /* fValidateChildren */);
+	m_dxl_node->GetOperator()->AssertValid(m_dxl_node, false /* validate_children */);
 #endif // GPOS_DEBUG
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 // EOF

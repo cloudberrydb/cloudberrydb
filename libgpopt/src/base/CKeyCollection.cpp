@@ -25,15 +25,15 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CKeyCollection::CKeyCollection
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_pdrgpcrs(NULL)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	
-	m_pdrgpcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
+	m_pdrgpcrs = GPOS_NEW(mp) CColRefSetArray(mp);
 }
 
 
@@ -47,16 +47,16 @@ CKeyCollection::CKeyCollection
 //---------------------------------------------------------------------------
 CKeyCollection::CKeyCollection
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CColRefSet *pcrs
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_pdrgpcrs(NULL)
 {
-	GPOS_ASSERT(NULL != pcrs && 0 < pcrs->CElements());
+	GPOS_ASSERT(NULL != pcrs && 0 < pcrs->Size());
 	
-	m_pdrgpcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
+	m_pdrgpcrs = GPOS_NEW(mp) CColRefSetArray(mp);
 
 	// we own the set
 	Add(pcrs);
@@ -73,24 +73,24 @@ CKeyCollection::CKeyCollection
 //---------------------------------------------------------------------------
 CKeyCollection::CKeyCollection
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr
+	IMemoryPool *mp,
+	CColRefArray *colref_array
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_pdrgpcrs(NULL)
 {
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(NULL != pdrgpcr && 0 < pdrgpcr->UlLength());
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(NULL != colref_array && 0 < colref_array->Size());
 	
-	m_pdrgpcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
+	m_pdrgpcrs = GPOS_NEW(mp) CColRefSetArray(mp);
 	
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	pcrs->Include(pdrgpcr);
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+	pcrs->Include(colref_array);
 	Add(pcrs);
 
 	// we own the array
-	pdrgpcr->Release();
+	colref_array->Release();
 }
 
 
@@ -145,13 +145,13 @@ CKeyCollection::FKey
 	)
 	const
 {
-	const ULONG ulSets = m_pdrgpcrs->UlLength();
+	const ULONG ulSets = m_pdrgpcrs->Size();
 	for (ULONG ul = 0; ul < ulSets; ul++)
 	{
 		if (fExactMatch)
 		{
 			// accept only exact matches
-			if (pcrs->FEqual((*m_pdrgpcrs)[ul]))
+			if (pcrs->Equals((*m_pdrgpcrs)[ul]))
 			{
 				return true;
 			}
@@ -159,7 +159,7 @@ CKeyCollection::FKey
 		else
 		{
 			// if given column set includes a key, then it is also a key
-			if (pcrs->FSubset((*m_pdrgpcrs)[ul]))
+			if (pcrs->ContainsAll((*m_pdrgpcrs)[ul]))
 			{
 				return true;
 			}
@@ -182,13 +182,13 @@ CKeyCollection::FKey
 BOOL
 CKeyCollection::FKey
 	(
-	IMemoryPool *pmp,
-	const DrgPcr *pdrgpcr
+	IMemoryPool *mp,
+	const CColRefArray *colref_array
 	)
 	const
 {
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	pcrs->Include(pdrgpcr);
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+	pcrs->Include(colref_array);
 	
 	BOOL fKey = FKey(pcrs);
 	pcrs->Release();
@@ -205,25 +205,25 @@ CKeyCollection::FKey
 //		Return first subsumed key as column array
 //
 //---------------------------------------------------------------------------
-DrgPcr *
+CColRefArray *
 CKeyCollection::PdrgpcrTrim
 	(
-	IMemoryPool *pmp,
-	const DrgPcr *pdrgpcr
+	IMemoryPool *mp,
+	const CColRefArray *colref_array
 	)
 	const
 {
-	DrgPcr *pdrgpcrTrim = NULL;
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	pcrs->Include(pdrgpcr);
+	CColRefArray *pdrgpcrTrim = NULL;
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+	pcrs->Include(colref_array);
 
-	const ULONG ulSets = m_pdrgpcrs->UlLength();
+	const ULONG ulSets = m_pdrgpcrs->Size();
 	for(ULONG ul = 0; ul < ulSets; ul++)
 	{
 		CColRefSet *pcrsKey = (*m_pdrgpcrs)[ul];
-		if (pcrs->FSubset(pcrsKey))
+		if (pcrs->ContainsAll(pcrsKey))
 		{
-			pdrgpcrTrim = pcrsKey->Pdrgpcr(pmp);
+			pdrgpcrTrim = pcrsKey->Pdrgpcr(mp);
 			break;
 		}
 	}
@@ -240,22 +240,22 @@ CKeyCollection::PdrgpcrTrim
 //		Extract a key
 //
 //---------------------------------------------------------------------------
-DrgPcr *
+CColRefArray *
 CKeyCollection::PdrgpcrKey
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	if (0 == m_pdrgpcrs->UlLength())
+	if (0 == m_pdrgpcrs->Size())
 	{
 		return NULL;
 	}
 
 	GPOS_ASSERT(NULL != (*m_pdrgpcrs)[0]);
 
-	DrgPcr *pdrgpcr = (*m_pdrgpcrs)[0]->Pdrgpcr(pmp);
-	return pdrgpcr;
+	CColRefArray *colref_array = (*m_pdrgpcrs)[0]->Pdrgpcr(mp);
+	return colref_array;
 }
 
 
@@ -267,18 +267,18 @@ CKeyCollection::PdrgpcrKey
 //		Extract a hashable key
 //
 //---------------------------------------------------------------------------
-DrgPcr *
+CColRefArray *
 CKeyCollection::PdrgpcrHashableKey
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	const ULONG ulSets = m_pdrgpcrs->UlLength();
+	const ULONG ulSets = m_pdrgpcrs->Size();
 	for(ULONG ul = 0; ul < ulSets; ul++)
 	{
-		DrgPcr *pdrgpcrKey = (*m_pdrgpcrs)[ul]->Pdrgpcr(pmp);
-		if (CUtils::FHashable(pdrgpcrKey))
+		CColRefArray *pdrgpcrKey = (*m_pdrgpcrs)[ul]->Pdrgpcr(mp);
+		if (CUtils::IsHashable(pdrgpcrKey))
 		{
 			return pdrgpcrKey;
 		}
@@ -298,23 +298,23 @@ CKeyCollection::PdrgpcrHashableKey
 //		Extract the key at a position
 //
 //---------------------------------------------------------------------------
-DrgPcr *
+CColRefArray *
 CKeyCollection::PdrgpcrKey
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ULONG ulIndex
 	)
 	const
 {
-	if (0 == m_pdrgpcrs->UlLength())
+	if (0 == m_pdrgpcrs->Size())
 	{
 		return NULL;
 	}
 	
 	GPOS_ASSERT(NULL != (*m_pdrgpcrs)[ulIndex]);
 	
-	DrgPcr *pdrgpcr = (*m_pdrgpcrs)[ulIndex]->Pdrgpcr(pmp);
-	return pdrgpcr;
+	CColRefArray *colref_array = (*m_pdrgpcrs)[ulIndex]->Pdrgpcr(mp);
+	return colref_array;
 }
 
 
@@ -329,12 +329,12 @@ CKeyCollection::PdrgpcrKey
 CColRefSet *
 CKeyCollection::PcrsKey
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ULONG ulIndex
 	)
 	const
 {
-	if (0 == m_pdrgpcrs->UlLength())
+	if (0 == m_pdrgpcrs->Size())
 	{
 		return NULL;
 	}
@@ -342,7 +342,7 @@ CKeyCollection::PcrsKey
 	GPOS_ASSERT(NULL != (*m_pdrgpcrs)[ulIndex]);
 
 	CColRefSet *pcrsKey = (*m_pdrgpcrs)[ulIndex];
-	return GPOS_NEW(pmp) CColRefSet(pmp, *pcrsKey);
+	return GPOS_NEW(mp) CColRefSet(mp, *pcrsKey);
 }
 
 
@@ -363,7 +363,7 @@ CKeyCollection::OsPrint
 {
 	os << " Keys: (";
 
-	const ULONG ulSets = m_pdrgpcrs->UlLength();
+	const ULONG ulSets = m_pdrgpcrs->Size();
 	for(ULONG ul = 0; ul < ulSets; ul++)
 	{
 		if (0 < ul)

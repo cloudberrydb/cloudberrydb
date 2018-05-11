@@ -28,14 +28,14 @@ using namespace gpopt;
 //		Create base container of derived properties
 //
 //---------------------------------------------------------------------------
-CDrvdProp *
+DrvdPropArray *
 CScalar::PdpCreate
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	return GPOS_NEW(pmp) CDrvdPropScalar();
+	return GPOS_NEW(mp) CDrvdPropScalar();
 }
 
 
@@ -50,7 +50,7 @@ CScalar::PdpCreate
 CReqdProp *
 CScalar::PrpCreate
 	(
-	IMemoryPool * // pmp
+	IMemoryPool * // mp
 	)
 	const
 {
@@ -80,12 +80,12 @@ CScalar::FHasSubquery
 	}
 
 	// otherwise, iterate over scalar children
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG i = 0; i < ulArity; i++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG i = 0; i < arity; i++)
 	{
 		if (exprhdl.FScalarChild(i))
 		{
-			CDrvdPropScalar *pdpscalar = exprhdl.Pdpscalar(i);
+			CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(i);
 			if (pdpscalar->FHasSubquery())
 			{
 				return true;
@@ -108,17 +108,17 @@ CScalar::FHasSubquery
 CScalar::EBoolEvalResult
 CScalar::EberConjunction
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpulChildren);
-	GPOS_ASSERT(1 < pdrgpulChildren->UlLength());
+	GPOS_ASSERT(1 < pdrgpulChildren->Size());
 
 	BOOL fAllChildrenTrue = true;
 	BOOL fNullChild = false;
 	BOOL fUnknownChild = false;
 
-	const ULONG ulChildren = pdrgpulChildren->UlLength();
+	const ULONG ulChildren = pdrgpulChildren->Size();
 	for (ULONG ul = 0; ul < ulChildren; ul++)
 	{
 		EBoolEvalResult eber = (EBoolEvalResult) *((*pdrgpulChildren)[ul]);
@@ -181,17 +181,17 @@ CScalar::EberConjunction
 CScalar::EBoolEvalResult
 CScalar::EberDisjunction
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpulChildren);
-	GPOS_ASSERT(1 < pdrgpulChildren->UlLength());
+	GPOS_ASSERT(1 < pdrgpulChildren->Size());
 
 	BOOL fAllChildrenFalse = true;
 	BOOL fNullChild = false;
 	BOOL fUnknownChild = false;
 
-	const ULONG ulChildren = pdrgpulChildren->UlLength();
+	const ULONG ulChildren = pdrgpulChildren->Size();
 	for (ULONG ul = 0; ul < ulChildren; ul++)
 	{
 		EBoolEvalResult eber = (EBoolEvalResult) *((*pdrgpulChildren)[ul]);
@@ -255,12 +255,12 @@ CScalar::EberDisjunction
 CScalar::EBoolEvalResult
 CScalar::EberNullOnAnyNullChild
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpulChildren);
 
-	const ULONG ulChildren = pdrgpulChildren->UlLength();
+	const ULONG ulChildren = pdrgpulChildren->Size();
 	for (ULONG ul = 0; ul < ulChildren; ul++)
 	{
 		EBoolEvalResult eber = (EBoolEvalResult) *((*pdrgpulChildren)[ul]);
@@ -285,12 +285,12 @@ CScalar::EberNullOnAnyNullChild
 CScalar::EBoolEvalResult
 CScalar::EberNullOnAllNullChildren
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 {
 	GPOS_ASSERT(NULL != pdrgpulChildren);
 
-	const ULONG ulChildren = pdrgpulChildren->UlLength();
+	const ULONG ulChildren = pdrgpulChildren->Size();
 	for (ULONG ul = 0; ul < ulChildren; ul++)
 	{
 		EBoolEvalResult eber = (EBoolEvalResult) *((*pdrgpulChildren)[ul]);
@@ -315,7 +315,7 @@ CScalar::EberNullOnAllNullChildren
 CScalar::EBoolEvalResult
 CScalar::EberEvaluate
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprScalar
 	)
 {
@@ -325,21 +325,21 @@ CScalar::EberEvaluate
 	COperator *pop = pexprScalar->Pop();
 	GPOS_ASSERT(pop->FScalar());
 
-	const ULONG ulArity = pexprScalar->UlArity();
-	DrgPul *pdrgpulChildren = NULL;
+	const ULONG arity = pexprScalar->Arity();
+	ULongPtrArray *pdrgpulChildren = NULL;
 
 	if (!CUtils::FSubquery(pop))
 	{
 		// do not recurse into subqueries
-		if (0 < ulArity)
+		if (0 < arity)
 		{
-			pdrgpulChildren = GPOS_NEW(pmp) DrgPul(pmp);
+			pdrgpulChildren = GPOS_NEW(mp) ULongPtrArray(mp);
 		}
-		for (ULONG ul = 0; ul < ulArity; ul++)
+		for (ULONG ul = 0; ul < arity; ul++)
 		{
 			CExpression *pexprChild = (*pexprScalar)[ul];
-			EBoolEvalResult eberChild = EberEvaluate(pmp, pexprChild);
-			pdrgpulChildren->Append(GPOS_NEW(pmp) ULONG(eberChild));
+			EBoolEvalResult eberChild = EberEvaluate(mp, pexprChild);
+			pdrgpulChildren->Append(GPOS_NEW(mp) ULONG(eberChild));
 		}
 	}
 
@@ -371,12 +371,12 @@ CScalar::FHasNonScalarFunction
 	}
 
 	// otherwise, iterate over scalar children
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG i = 0; i < ulArity; i++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG i = 0; i < arity; i++)
 	{
 		if (exprhdl.FScalarChild(i))
 		{
-			CDrvdPropScalar *pdpscalar = exprhdl.Pdpscalar(i);
+			CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(i);
 			if (pdpscalar->FHasNonScalarFunction())
 			{
 				return true;
@@ -399,22 +399,22 @@ CScalar::FHasNonScalarFunction
 CPartInfo *
 CScalar::PpartinfoDeriveCombineScalar
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 {
-	const ULONG ulArity = exprhdl.UlArity();
-	GPOS_ASSERT(0 < ulArity);
+	const ULONG arity = exprhdl.Arity();
+	GPOS_ASSERT(0 < arity);
 
-	CPartInfo *ppartinfo = GPOS_NEW(pmp) CPartInfo(pmp);
+	CPartInfo *ppartinfo = GPOS_NEW(mp) CPartInfo(mp);
 	
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		if (exprhdl.FScalarChild(ul))
 		{
-			CPartInfo *ppartinfoChild = exprhdl.Pdpscalar(ul)->Ppartinfo();
+			CPartInfo *ppartinfoChild = exprhdl.GetDrvdScalarProps(ul)->Ppartinfo();
 			GPOS_ASSERT(NULL != ppartinfoChild);
-			CPartInfo *ppartinfoCombined = CPartInfo::PpartinfoCombine(pmp, ppartinfo, ppartinfoChild);
+			CPartInfo *ppartinfoCombined = CPartInfo::PpartinfoCombine(mp, ppartinfo, ppartinfoChild);
 			ppartinfo->Release();
 			ppartinfo = ppartinfoCombined;
 		}
@@ -436,12 +436,12 @@ CScalar::FHasScalarArrayCmp
 	}
 
 	// otherwise, iterate over scalar children
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG i = 0; i < ulArity; i++)
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG i = 0; i < arity; i++)
 	{
 		if (exprhdl.FScalarChild(i))
 		{
-			CDrvdPropScalar *pdpscalar = exprhdl.Pdpscalar(i);
+			CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(i);
 			if (pdpscalar->FHasScalarArrayCmp())
 			{
 				return true;

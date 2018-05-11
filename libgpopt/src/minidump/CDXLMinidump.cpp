@@ -32,27 +32,27 @@ using namespace gpopt;
 CDXLMinidump::CDXLMinidump
 	(
 	CBitSet *pbs,
-	COptimizerConfig *poconf,
-	CDXLNode *pdxlnQuery, 
-	DrgPdxln *pdrgpdxlnQueryOutput,
-	DrgPdxln *pdrgpdxlnCTE,
+	COptimizerConfig *optimizer_config,
+	CDXLNode *query, 
+	CDXLNodeArray *query_output_dxlnode_array,
+	CDXLNodeArray *cte_producers,
 	CDXLNode *pdxlnPlan, 
-	DrgPimdobj *pdrgpmdobj,
-	DrgPsysid *pdrgpsysid,
-	ULLONG ullPlanId,
-	ULLONG ullPlanSpaceSize
+	IMDCacheObjectArray *mdcache_obj_array,
+	CSystemIdArray *pdrgpsysid,
+	ULLONG plan_id,
+	ULLONG plan_space_size
 	)
 	:
 	m_pbs(pbs),
-	m_poconf(poconf),
-	m_pdxlnQuery(pdxlnQuery),
-	m_pdrgpdxlnQueryOutput(pdrgpdxlnQueryOutput),
-	m_pdrgpdxlnCTE(pdrgpdxlnCTE),
-	m_pdxlnPlan(pdxlnPlan),
-	m_pdrgpmdobj(pdrgpmdobj),
-	m_pdrgpsysid(pdrgpsysid),
-	m_ullPlanId(ullPlanId),
-	m_ullPlanSpaceSize(ullPlanSpaceSize)
+	m_optimizer_config(optimizer_config),
+	m_query_dxl_root(query),
+	m_query_output(query_output_dxlnode_array),
+	m_cte_producers(cte_producers),
+	m_plan_dxl_root(pdxlnPlan),
+	m_mdid_cached_obj_array(mdcache_obj_array),
+	m_system_id_array(pdrgpsysid),
+	m_plan_id(plan_id),
+	m_plan_space_size(plan_space_size)
 {}
 
 
@@ -68,13 +68,13 @@ CDXLMinidump::~CDXLMinidump()
 {
 	// some of the structures may be NULL as they are not included in the minidump
 	CRefCount::SafeRelease(m_pbs);
-	CRefCount::SafeRelease(m_poconf);
-	CRefCount::SafeRelease(m_pdxlnQuery);
-	CRefCount::SafeRelease(m_pdrgpdxlnQueryOutput);
-	CRefCount::SafeRelease(m_pdrgpdxlnCTE);
-	CRefCount::SafeRelease(m_pdxlnPlan);
-	CRefCount::SafeRelease(m_pdrgpmdobj);
-	CRefCount::SafeRelease(m_pdrgpsysid);
+	CRefCount::SafeRelease(m_optimizer_config);
+	CRefCount::SafeRelease(m_query_dxl_root);
+	CRefCount::SafeRelease(m_query_output);
+	CRefCount::SafeRelease(m_cte_producers);
+	CRefCount::SafeRelease(m_plan_dxl_root);
+	CRefCount::SafeRelease(m_mdid_cached_obj_array);
+	CRefCount::SafeRelease(m_system_id_array);
 }
 
 //---------------------------------------------------------------------------
@@ -93,16 +93,16 @@ CDXLMinidump::Pbs() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLMinidump::PdxlnQuery
+//		CDXLMinidump::GetQueryDXLRoot
 //
 //	@doc:
 //		Query object
 //
 //---------------------------------------------------------------------------
 const CDXLNode *
-CDXLMinidump::PdxlnQuery() const
+CDXLMinidump::GetQueryDXLRoot() const
 {
-	return m_pdxlnQuery;
+	return m_query_dxl_root;
 }
 
 //---------------------------------------------------------------------------
@@ -113,24 +113,24 @@ CDXLMinidump::PdxlnQuery() const
 //		Query output columns
 //
 //---------------------------------------------------------------------------
-const DrgPdxln *
+const CDXLNodeArray *
 CDXLMinidump::PdrgpdxlnQueryOutput() const
 {
-	return m_pdrgpdxlnQueryOutput;
+	return m_query_output;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLMinidump::PdrgpdxlnCTE
+//		CDXLMinidump::GetCTEProducerDXLArray
 //
 //	@doc:
 //		CTE list
 //
 //---------------------------------------------------------------------------
-const DrgPdxln *
-CDXLMinidump::PdrgpdxlnCTE() const
+const CDXLNodeArray *
+CDXLMinidump::GetCTEProducerDXLArray() const
 {
-	return m_pdrgpdxlnCTE;
+	return m_cte_producers;
 }
 
 //---------------------------------------------------------------------------
@@ -144,65 +144,65 @@ CDXLMinidump::PdrgpdxlnCTE() const
 const CDXLNode *
 CDXLMinidump::PdxlnPlan() const
 {
-	return m_pdxlnPlan;
+	return m_plan_dxl_root;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLMinidump::Pdrgpmdobj
+//		CDXLMinidump::GetMdIdCachedObjArray
 //
 //	@doc:
 //		Metadata objects
 //
 //---------------------------------------------------------------------------
-const DrgPimdobj *
-CDXLMinidump::Pdrgpmdobj() const
+const IMDCacheObjectArray *
+CDXLMinidump::GetMdIdCachedObjArray() const
 {
-	return m_pdrgpmdobj;
+	return m_mdid_cached_obj_array;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLMinidump::Pdrgpsysid
+//		CDXLMinidump::GetSysidPtrArray
 //
 //	@doc:
 //		Metadata source system ids
 //
 //---------------------------------------------------------------------------
-const DrgPsysid *
-CDXLMinidump::Pdrgpsysid() const
+const CSystemIdArray *
+CDXLMinidump::GetSysidPtrArray() const
 {
-	return m_pdrgpsysid;
+	return m_system_id_array;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLMinidump::UllPlanId
+//		CDXLMinidump::GetPlanId
 //
 //	@doc:
 //		Returns plan id
 //
 //---------------------------------------------------------------------------
 ULLONG
-CDXLMinidump::UllPlanId() const
+CDXLMinidump::GetPlanId() const
 {
-	return m_ullPlanId;
+	return m_plan_id;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLMinidump::UllPlanId
+//		CDXLMinidump::GetPlanId
 //
 //	@doc:
 //		Returns plan space size
 //
 //---------------------------------------------------------------------------
 ULLONG
-CDXLMinidump::UllPlanSpaceSize() const
+CDXLMinidump::GetPlanSpaceSize() const
 {
-	return m_ullPlanSpaceSize;
+	return m_plan_space_size;
 }
 
 

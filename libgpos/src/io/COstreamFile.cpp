@@ -25,11 +25,11 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 COstreamFile::COstreamFile
 	(
-	const CHAR *szPath,
-	ULONG ulPerms
+	const CHAR *file_path,
+	ULONG permission_bits
 	)
 {
-	m_fw.Open(szPath, ulPerms);
+	m_file_writer.Open(file_path, permission_bits);
 }
 
 
@@ -43,7 +43,7 @@ COstreamFile::COstreamFile
 //---------------------------------------------------------------------------
 COstreamFile::~COstreamFile()
 {
-	m_fw.Close();
+	m_file_writer.Close();
 }
 
 
@@ -62,7 +62,7 @@ COstreamFile::operator <<
     )
 {
 	ULONG_PTR ulpSize = GPOS_WSZ_LENGTH(wsz) * GPOS_SIZEOF(WCHAR);
-	m_fw.Write((const BYTE*) wsz, ulpSize);
+	m_file_writer.Write((const BYTE*) wsz, ulpSize);
 
 	return *this;
 }

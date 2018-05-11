@@ -27,8 +27,8 @@ namespace gpnaucrates
 	class IDatum;
 
 	// hash map mapping ULONG -> Datum
-	typedef CHashMap<ULONG, IDatum, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<IDatum> > HMUlDatum;
+	typedef CHashMap<ULONG, IDatum, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<IDatum> > UlongToIDatumMap;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -57,41 +57,41 @@ namespace gpnaucrates
 			{};
 
 			// accessor for datum type
-			virtual IMDType::ETypeInfo Eti() = 0;
+			virtual IMDType::ETypeInfo GetDatumType() = 0;
 
 			// accessor of metadata id
 			virtual
-			IMDId *Pmdid() const = 0;
+			IMDId *MDId() const = 0;
 
 			virtual
-			INT ITypeModifier() const
+			INT TypeModifier() const
 			{
-				return IDefaultTypeModifier;
+				return default_type_modifier;
 			}
 
 			// accessor of size
 			virtual
-			ULONG UlSize() const = 0;
+			ULONG Size() const = 0;
 
 			// is datum null?
 			virtual
-			BOOL FNull() const = 0;
+			BOOL IsNull() const = 0;
 
 			// return string representation
 			virtual
-			const CWStringConst *Pstr(IMemoryPool *pmp) const = 0;
+			const CWStringConst *GetStrRepr(IMemoryPool *mp) const = 0;
 
 			// hash function
 			virtual
-			ULONG UlHash() const = 0;
+			ULONG HashValue() const = 0;
 
 			// Match function on datums
 			virtual
-			BOOL FMatch(const IDatum *) const = 0;
+			BOOL Matches(const IDatum *) const = 0;
 			
 			// create a copy of the datum
 			virtual
-			IDatum *PdatumCopy(IMemoryPool *pmp) const = 0;
+			IDatum *MakeCopy(IMemoryPool *mp) const = 0;
 
 			// print function
 			virtual
@@ -101,94 +101,94 @@ namespace gpnaucrates
 
 			// is datum mappable to a base type for stats purposes
 			virtual 
-			BOOL FStatsMappable() 
+			BOOL StatsMappable() 
 			{
 				// not mappable by default
 				return false;
 			}
 			
 			virtual
-			BOOL FStatsEqual(const IDatum *pdatum) const = 0;
+			BOOL StatsAreEqual(const IDatum *datum) const = 0;
 
 			// stats less than
 			virtual
-			BOOL FStatsLessThan(const IDatum *pdatum) const = 0;
+			BOOL StatsAreLessThan(const IDatum *datum) const = 0;
 
 			// check if the given pair of datums are stats comparable
 			virtual
-			BOOL FStatsComparable(const IDatum *pdatum) const = 0;
+			BOOL StatsAreComparable(const IDatum *datum) const = 0;
 
 			// stats greater than
 			virtual
-			BOOL FStatsGreaterThan
-				(
-				const IDatum *pdatum
-				)
+			BOOL StatsAreGreaterThan
+					(
+							const IDatum *datum
+					)
 				const
 			{
-				BOOL fStatsComparable = pdatum->FStatsComparable(this);
-				GPOS_ASSERT(fStatsComparable && "Invalid invocation of FStatsGreaterThan");
-				return fStatsComparable && pdatum->FStatsLessThan(this);
+				BOOL stats_are_comparable = datum->StatsAreComparable(this);
+				GPOS_ASSERT(stats_are_comparable && "Invalid invocation of StatsAreGreaterThan");
+				return stats_are_comparable && datum->StatsAreLessThan(this);
 			}
 
 			// distance function
 			virtual
-			CDouble DStatsDistance(const IDatum *) const = 0;
+			CDouble GetStatsDistanceFrom(const IDatum *) const = 0;
 
 			// does the datum need to be padded before statistical derivation
 			virtual
-			BOOL FNeedsPadding() const = 0;
+			BOOL NeedsPadding() const = 0;
 
 			// return the padded datum
 			virtual
-			IDatum *PdatumPadded(IMemoryPool *pmp, ULONG ulColLen) const = 0;
+			IDatum *MakePaddedDatum(IMemoryPool *mp, ULONG col_len) const = 0;
 
 			// does datum support like predicate
 			virtual
-			BOOL FSupportLikePredicate() const = 0;
+			BOOL SupportsLikePredicate() const = 0;
 
 			// return the default scale factor of like predicate
 			virtual
-			CDouble DLikePredicateScaleFactor() const = 0;
+			CDouble GetLikePredicateScaleFactor() const = 0;
 
 			// supports statistical comparisons based on the byte array representation of datum
 			virtual
-			BOOL FSupportsBinaryComp(const IDatum *pdatum) const = 0;
+			BOOL SupportsBinaryComp(const IDatum *datum) const = 0;
 
 			// byte array for char/varchar columns
 			virtual
-			const BYTE *PbaVal() const = 0;
+			const BYTE *GetByteArrayValue() const = 0;
 
 			// statistics equality based on byte array representation of datums
 			virtual
-			BOOL FStatsEqualBinary(const IDatum *pdatum) const = 0;
+			BOOL StatsEqualBinary(const IDatum *datum) const = 0;
 
 			// statistics less than based on byte array representation of datums
 			virtual
-			BOOL FStatsLessThanBinary(const IDatum *pdatum) const = 0;
+			BOOL StatsLessThanBinary(const IDatum *datum) const = 0;
 
 			// comparison function sorting idatums
 			static
-			inline INT IStatsCmp(const void *pv1, const void *pv2);
+			inline INT StatsCmp(const void *val1, const void *val2);
 
 	}; // class IDatum
 
 	// comparison function for statistics operations
-	INT IDatum::IStatsCmp
+	INT IDatum::StatsCmp
 		(
-		const void *pv1,
-		const void *pv2
+		const void *val1,
+		const void *val2
 		)
 	{
-		const IDatum *pdatum1 = *(const IDatum **) (pv1);
-		const IDatum *pdatum2 = *(const IDatum **) (pv2);
+		const IDatum *datum1 = *(const IDatum **) (val1);
+		const IDatum *datum2 = *(const IDatum **) (val2);
 
-		if (pdatum1->FStatsEqual(pdatum2))
+		if (datum1->StatsAreEqual(datum2))
 		{
 			return 0;
 		}
 		
-		if (pdatum1->FStatsComparable(pdatum2) && pdatum1->FStatsLessThan(pdatum2))
+		if (datum1->StatsAreComparable(datum2) && datum1->StatsAreLessThan(datum2))
 		{
 			return -1;
 		}
@@ -196,8 +196,8 @@ namespace gpnaucrates
 	}
 
 	// array of idatums
-	typedef CDynamicPtrArray<IDatum, CleanupRelease> DrgPdatum;
-}
+	typedef CDynamicPtrArray<IDatum, CleanupRelease> IDatumArray;
+}  // namespace gpnaucrates
 
 
 #endif // !GPNAUCRATES_IDatum_H

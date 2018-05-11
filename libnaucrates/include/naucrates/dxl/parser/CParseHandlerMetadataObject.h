@@ -42,22 +42,22 @@ namespace gpdxl
 			
 		protected:
 			// the metadata object constructed by the parse handler
-			IMDCacheObject *m_pimdobj;
+			IMDCacheObject *m_imd_obj;
 						
 		public:
 			// ctor/dtor
 			CParseHandlerMetadataObject
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			virtual
 			~CParseHandlerMetadataObject();
 			
 			// returns constructed metadata object
-			IMDCacheObject *Pimdobj() const;	
+			IMDCacheObject *GetImdObj() const;	
 	};
 }
 

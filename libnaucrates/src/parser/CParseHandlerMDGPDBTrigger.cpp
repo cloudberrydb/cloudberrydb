@@ -38,18 +38,18 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerMDGPDBTrigger::CParseHandlerMDGPDBTrigger
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerMetadataObject(pmp, pphm, pphRoot),
-	m_pmdid(NULL),
-	m_pmdname(NULL),
-	m_pmdidRel(NULL),
-	m_pmdidFunc(NULL),
-	m_iType(0),
-	m_fEnabled(false)
+	CParseHandlerMetadataObject(mp, parse_handler_mgr, parse_handler_root),
+	m_mdid(NULL),
+	m_mdname(NULL),
+	m_rel_mdid(NULL),
+	m_func_mdid(NULL),
+	m_type(0),
+	m_is_enabled(false)
 {}
 
 //---------------------------------------------------------------------------
@@ -63,51 +63,51 @@ CParseHandlerMDGPDBTrigger::CParseHandlerMDGPDBTrigger
 void
 CParseHandlerMDGPDBTrigger::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBTrigger), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBTrigger), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	m_pmdid = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenMdid, EdxltokenGPDBTrigger);
+	m_mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenMdid, EdxltokenGPDBTrigger);
 
-	const XMLCh *xmlszName = CDXLOperatorFactory::XmlstrFromAttrs(attrs, EdxltokenName, EdxltokenGPDBTrigger);
-	CWStringDynamic *pstrName = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszName);
-	m_pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrName);
-	GPOS_DELETE(pstrName);
-	GPOS_ASSERT(m_pmdid->FValid() && NULL != m_pmdname);
+	const XMLCh *xml_str_name = CDXLOperatorFactory::ExtractAttrValue(attrs, EdxltokenName, EdxltokenGPDBTrigger);
+	CWStringDynamic *str_name = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), xml_str_name);
+	m_mdname = GPOS_NEW(m_mp) CMDName(m_mp, str_name);
+	GPOS_DELETE(str_name);
+	GPOS_ASSERT(m_mdid->IsValid() && NULL != m_mdname);
 
-	m_pmdidRel = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenRelationMdid, EdxltokenGPDBTrigger);
-	m_pmdidFunc = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenFuncId, EdxltokenGPDBTrigger);
+	m_rel_mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenRelationMdid, EdxltokenGPDBTrigger);
+	m_func_mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenFuncId, EdxltokenGPDBTrigger);
 
-	BOOL rgfProperties[GPMD_TRIGGER_BITMAP_LEN];
-	rgfProperties[GPMD_TRIGGER_ROW_BIT] =
-			CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGPDBTriggerRow, EdxltokenGPDBTrigger);
-	rgfProperties[GPMD_TRIGGER_BEFORE_BIT] =
-			CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGPDBTriggerBefore, EdxltokenGPDBTrigger);
-	rgfProperties[GPMD_TRIGGER_INSERT_BIT] =
-			CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGPDBTriggerInsert, EdxltokenGPDBTrigger);
-	rgfProperties[GPMD_TRIGGER_DELETE_BIT] =
-			CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGPDBTriggerDelete, EdxltokenGPDBTrigger);
-	rgfProperties[GPMD_TRIGGER_UPDATE_BIT] =
-			CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGPDBTriggerUpdate, EdxltokenGPDBTrigger);
+	BOOL gpmd_trigger_properties[GPMD_TRIGGER_BITMAP_LEN];
+	gpmd_trigger_properties[GPMD_TRIGGER_ROW_BIT] =
+			CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGPDBTriggerRow, EdxltokenGPDBTrigger);
+	gpmd_trigger_properties[GPMD_TRIGGER_BEFORE_BIT] =
+			CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGPDBTriggerBefore, EdxltokenGPDBTrigger);
+	gpmd_trigger_properties[GPMD_TRIGGER_INSERT_BIT] =
+			CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGPDBTriggerInsert, EdxltokenGPDBTrigger);
+	gpmd_trigger_properties[GPMD_TRIGGER_DELETE_BIT] =
+			CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGPDBTriggerDelete, EdxltokenGPDBTrigger);
+	gpmd_trigger_properties[GPMD_TRIGGER_UPDATE_BIT] =
+			CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGPDBTriggerUpdate, EdxltokenGPDBTrigger);
 
-	for (ULONG ul = 0; ul < GPMD_TRIGGER_BITMAP_LEN; ul++)
+	for (ULONG idx = 0; idx < GPMD_TRIGGER_BITMAP_LEN; idx++)
 	{
 		// if the current property flag is true then set the corresponding bit
-		if (rgfProperties[ul])
+		if (gpmd_trigger_properties[idx])
 		{
-			m_iType |= (1 << ul);
+			m_type |= (1 << idx);
 		}
 	}
 
-	m_fEnabled = CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGPDBTriggerEnabled, EdxltokenGPDBTrigger);
+	m_is_enabled = CDXLOperatorFactory::ExtractConvertAttrValueToBool(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGPDBTriggerEnabled, EdxltokenGPDBTrigger);
 }
 
 //---------------------------------------------------------------------------
@@ -121,31 +121,31 @@ CParseHandlerMDGPDBTrigger::StartElement
 void
 CParseHandlerMDGPDBTrigger::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBTrigger), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBTrigger), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// construct the MD trigger object
-	m_pimdobj = GPOS_NEW(m_pmp) CMDTriggerGPDB
+	m_imd_obj = GPOS_NEW(m_mp) CMDTriggerGPDB
 								(
-								m_pmp,
-								m_pmdid,
-								m_pmdname,
-								m_pmdidRel,
-								m_pmdidFunc,
-								m_iType,
-								m_fEnabled
+								m_mp,
+								m_mdid,
+								m_mdname,
+								m_rel_mdid,
+								m_func_mdid,
+								m_type,
+								m_is_enabled
 								);
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

@@ -45,9 +45,9 @@ namespace gpopt
 			// derive statistics for projection operators
 			IStatistics *PstatsDeriveProject
 							(
-							IMemoryPool *pmp,
+							IMemoryPool *mp,
 							CExpressionHandle &exprhdl,
-							HMUlDatum *phmuldatum = NULL
+							UlongToIDatumMap *phmuldatum = NULL
 							)
 							const;
 
@@ -57,10 +57,10 @@ namespace gpopt
 			explicit
 			CLogicalUnary
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CLogical(pmp)
+				CLogical(mp)
 			{}
 
 			// dtor
@@ -70,7 +70,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -83,9 +83,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -99,7 +99,7 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsDeriveNotNull
 				(
-				IMemoryPool *,// pmp
+				IMemoryPool *,// mp
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -112,24 +112,24 @@ namespace gpopt
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
 			{
-				return PpartinfoDeriveCombine(pmp, exprhdl);
+				return PpartinfoDeriveCombine(mp, exprhdl);
 			}
 			
 			// derive function properties
 			virtual
 			CFunctionProp *PfpDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
 			{
-				return PfpDeriveFromScalar(pmp, exprhdl, 1 /*ulScalarIndex*/);
+				return PfpDeriveFromScalar(mp, exprhdl, 1 /*ulScalarIndex*/);
 			}
 
 			//-------------------------------------------------------------------------------------
@@ -148,14 +148,14 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
-				ULONG ulChildIndex
+				ULONG child_index
 				)
 				const
 			{
-				return PcrsReqdChildStats(pmp, exprhdl, pcrsInput, exprhdl.Pdpscalar(1)->PcrsUsed(), ulChildIndex);
+				return PcrsReqdChildStats(mp, exprhdl, pcrsInput, exprhdl.GetDrvdScalarProps(1)->PcrsUsed(), child_index);
 			}
 
 	}; // class CLogicalUnary

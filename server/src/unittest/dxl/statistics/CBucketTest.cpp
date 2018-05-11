@@ -53,15 +53,15 @@ CBucketTest::EresUnittest()
 		};
 
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL /* pceeval */, CTestUtils::Pcm(pmp));
+	CAutoOptCtxt aoc(mp, &mda, NULL /* pceeval */, CTestUtils::GetCostModel(mp));
 
 	return CUnittest::EresExecute(rgutSharedOptCtxt, GPOS_ARRAY_SIZE(rgutSharedOptCtxt));
 }
@@ -72,54 +72,54 @@ CBucketTest::EresUnittest_CBucketInt4()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// generate integer points
-	CPoint *ppoint1 = CTestUtils::PpointInt4(pmp, 1);
-	CPoint *ppoint2 = CTestUtils::PpointInt4(pmp, 2);
-	CPoint *ppoint3 = CTestUtils::PpointInt4(pmp, 3);
+	CPoint *point1 = CTestUtils::PpointInt4(mp, 1);
+	CPoint *point2 = CTestUtils::PpointInt4(mp, 2);
+	CPoint *point3 = CTestUtils::PpointInt4(mp, 3);
 
 	// bucket [1,1]
-	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 1, CDouble(1.0), CDouble(1.0));
-	CCardinalityTestUtils::PrintBucket(pmp, "b1", pbucket1);
+	CBucket *bucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 1, 1, CDouble(1.0), CDouble(1.0));
+	CCardinalityTestUtils::PrintBucket(mp, "b1", bucket1);
 
-	GPOS_RTL_ASSERT_MSG(pbucket1->FContains(ppoint1), "[1,1] must contain 1");
-	GPOS_RTL_ASSERT_MSG(CDouble(1.0) == pbucket1->DOverlap(ppoint1),
+	GPOS_RTL_ASSERT_MSG(bucket1->Contains(point1), "[1,1] must contain 1");
+	GPOS_RTL_ASSERT_MSG(CDouble(1.0) == bucket1->GetOverlapPercentage(point1),
 						"overlap of 1 in [1,1] must 1.0");
 
-	GPOS_RTL_ASSERT_MSG(!pbucket1->FContains(ppoint2), "[1,1] must not contain 2");
+	GPOS_RTL_ASSERT_MSG(!bucket1->Contains(point2), "[1,1] must not contain 2");
 
 	// bucket [1,3)
-	CBucket *pbucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 3, CDouble(1.0), CDouble(10.0));
-	CCardinalityTestUtils::PrintBucket(pmp, "b2", pbucket2);
+	CBucket *bucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 1, 3, CDouble(1.0), CDouble(10.0));
+	CCardinalityTestUtils::PrintBucket(mp, "b2", bucket2);
 
 	// overlap of [1,2) w.r.t [1,3) should be about 50%
-	CDouble dOverlap = pbucket2->DOverlap(ppoint2);
-	GPOS_RTL_ASSERT(0.49 <= dOverlap && dOverlap <= 0.51);
+	CDouble overlap = bucket2->GetOverlapPercentage(point2);
+	GPOS_RTL_ASSERT(0.49 <= overlap && overlap <= 0.51);
 
 	// subsumption
-	GPOS_RTL_ASSERT(pbucket1->FSubsumes(pbucket1));
-	GPOS_RTL_ASSERT(pbucket2->FSubsumes(pbucket1));
+	GPOS_RTL_ASSERT(bucket1->Subsumes(bucket1));
+	GPOS_RTL_ASSERT(bucket2->Subsumes(bucket1));
 
 	// width
-	CDouble dWidth = pbucket1->DWidth();
-	GPOS_RTL_ASSERT(0.99 <= dWidth && dWidth <= 1.01);
+	CDouble width = bucket1->Width();
+	GPOS_RTL_ASSERT(0.99 <= width && width <= 1.01);
 
 	// bucket [1,2] and (2,4)
-	CBucket *pbucket3 = CCardinalityTestUtils::PbucketInteger(pmp, 1, 2, true, true, CDouble(1.0), CDouble(1.0));
-	CBucket *pbucket4 = CCardinalityTestUtils::PbucketInteger(pmp, 2, 4, false, false, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket3 = CCardinalityTestUtils::PbucketInteger(mp, 1, 2, true, true, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket4 = CCardinalityTestUtils::PbucketInteger(mp, 2, 4, false, false, CDouble(1.0), CDouble(1.0));
 
-	// point FBefore
-	GPOS_RTL_ASSERT_MSG(pbucket4->FBefore(ppoint2), "2 must be before (2,4)");
+	// point IsBefore
+	GPOS_RTL_ASSERT_MSG(pbucket4->IsBefore(point2), "2 must be before (2,4)");
 
-	// bucket FBefore
-	GPOS_RTL_ASSERT_MSG(pbucket3->FBefore(pbucket4), "[1,2] must be before (2,4)");
+	// bucket IsBefore
+	GPOS_RTL_ASSERT_MSG(pbucket3->IsBefore(pbucket4), "[1,2] must be before (2,4)");
 
-	ppoint1->Release();
-	ppoint2->Release();
-	ppoint3->Release();
-	GPOS_DELETE(pbucket1);
-	GPOS_DELETE(pbucket2);
+	point1->Release();
+	point2->Release();
+	point3->Release();
+	GPOS_DELETE(bucket1);
+	GPOS_DELETE(bucket2);
 	GPOS_DELETE(pbucket3);
 	GPOS_DELETE(pbucket4);
 
@@ -132,25 +132,25 @@ CBucketTest::EresUnittest_CBucketBool()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// generate boolean points
-	CPoint *p1 = CTestUtils::PpointBool(pmp, true);
-	CPoint *p2 = CTestUtils::PpointBool(pmp, false);
+	CPoint *p1 = CTestUtils::PpointBool(mp, true);
+	CPoint *p2 = CTestUtils::PpointBool(mp, false);
 
 	// bucket for true
-	CBucket *pbucket = CCardinalityTestUtils::PbucketSingletonBoolVal(pmp, true, CDouble(1.0));
+	CBucket *bucket = CCardinalityTestUtils::PbucketSingletonBoolVal(mp, true, CDouble(1.0));
 
-	GPOS_RTL_ASSERT_MSG(pbucket->FContains(p1), "true bucket must contain true");
-	GPOS_RTL_ASSERT_MSG(CDouble(1.0) == pbucket->DOverlap(p1), "overlap must 1.0");
+	GPOS_RTL_ASSERT_MSG(bucket->Contains(p1), "true bucket must contain true");
+	GPOS_RTL_ASSERT_MSG(CDouble(1.0) == bucket->GetOverlapPercentage(p1), "overlap must 1.0");
 
-	GPOS_RTL_ASSERT_MSG(!pbucket->FContains(p2), "true bucket must not contain false");
-	GPOS_RTL_ASSERT_MSG(CDouble(0.0) == pbucket->DOverlap(p2), "overlap must 0.0");
+	GPOS_RTL_ASSERT_MSG(!bucket->Contains(p2), "true bucket must not contain false");
+	GPOS_RTL_ASSERT_MSG(CDouble(0.0) == bucket->GetOverlapPercentage(p2), "overlap must 0.0");
 
 	p1->Release();
 	p2->Release();
 
-	GPOS_DELETE(pbucket);
+	GPOS_DELETE(bucket);
 
 	return GPOS_OK;
 }
@@ -161,40 +161,40 @@ CBucketTest::EresUnittest_CBucketScale()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// generate integer point
-	CPoint *ppoint1 = CTestUtils::PpointInt4(pmp, 10);
+	CPoint *point1 = CTestUtils::PpointInt4(mp, 10);
 
 	// bucket [1,100)
-	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 100, CDouble(0.5), CDouble(20.0));
+	CBucket *bucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 1, 100, CDouble(0.5), CDouble(20.0));
 
-	CBucket *pbucket2 = pbucket1->PbucketScaleUpper(pmp, ppoint1, false /* fIncludeUpper */);
+	CBucket *bucket2 = bucket1->MakeBucketScaleUpper(mp, point1, false /* include_upper */);
 
 	// new bucket [1, 10) must not contain 10
-	GPOS_RTL_ASSERT(!pbucket2->FContains(ppoint1));
+	GPOS_RTL_ASSERT(!bucket2->Contains(point1));
 
 	// new bucket [1, 10) must contain 9
-	CPoint *ppoint2 = CTestUtils::PpointInt4(pmp, 9);
-	GPOS_RTL_ASSERT(pbucket2->FContains(ppoint2));
-	ppoint2->Release();
+	CPoint *point2 = CTestUtils::PpointInt4(mp, 9);
+	GPOS_RTL_ASSERT(bucket2->Contains(point2));
+	point2->Release();
 
 	// new bucket's frequency and distinct values must be lesser than original
-	GPOS_RTL_ASSERT(pbucket2->DFrequency() < pbucket1->DFrequency());
-	GPOS_RTL_ASSERT(pbucket2->DDistinct() < pbucket1->DDistinct());
+	GPOS_RTL_ASSERT(bucket2->GetFrequency() < bucket1->GetFrequency());
+	GPOS_RTL_ASSERT(bucket2->GetNumDistinct() < bucket1->GetNumDistinct());
 
 	// scale lower
-	CBucket *pbucket3 = pbucket1->PbucketScaleLower(pmp, ppoint1, true /* fIncludeLower */);
-	GPOS_RTL_ASSERT(pbucket3->FContains(ppoint1));
+	CBucket *pbucket3 = bucket1->MakeBucketScaleLower(mp, point1, true /* include_lower */);
+	GPOS_RTL_ASSERT(pbucket3->Contains(point1));
 
 	// scale to a singleton
-	CBucket *pbucket4 = pbucket1->PbucketSingleton(pmp, ppoint1);
-	GPOS_RTL_ASSERT(pbucket4->DDistinct() < 2.0);
+	CBucket *pbucket4 = bucket1->MakeBucketSingleton(mp, point1);
+	GPOS_RTL_ASSERT(pbucket4->GetNumDistinct() < 2.0);
 
 	// clean up
-	ppoint1->Release();
-	GPOS_DELETE(pbucket1);
-	GPOS_DELETE(pbucket2);
+	point1->Release();
+	GPOS_DELETE(bucket1);
+	GPOS_DELETE(bucket2);
 	GPOS_DELETE(pbucket3);
 	GPOS_DELETE(pbucket4);
 
@@ -207,34 +207,34 @@ CBucketTest::EresUnittest_CBucketDifference()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// bucket [1,100)
-	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 100, CDouble(1.0), CDouble(1.0));
+	CBucket *bucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 1, 100, CDouble(1.0), CDouble(1.0));
 
 	// bucket [50,75)
-	CBucket *pbucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 50, 60, CDouble(1.0), CDouble(1.0));
+	CBucket *bucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 50, 60, CDouble(1.0), CDouble(1.0));
 
 	// bucket [200, 300)
-	CBucket *pbucket3 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 200, 300, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket3 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(mp, 200, 300, CDouble(1.0), CDouble(1.0));
 
 	CBucket *pbucket4 = NULL;
 	CBucket *pbucket5 = NULL;
-	pbucket1->Difference(pmp, pbucket2, &pbucket4, &pbucket5);
+	bucket1->Difference(mp, bucket2, &pbucket4, &pbucket5);
 	GPOS_RTL_ASSERT(NULL != pbucket4);
 	GPOS_RTL_ASSERT(NULL != pbucket5);
-	CCardinalityTestUtils::PrintBucket(pmp, "pbucket4", pbucket4);
-	CCardinalityTestUtils::PrintBucket(pmp, "pbucket5", pbucket4);
+	CCardinalityTestUtils::PrintBucket(mp, "pbucket4", pbucket4);
+	CCardinalityTestUtils::PrintBucket(mp, "pbucket5", pbucket4);
 
 	CBucket *pbucket6 = NULL;
 	CBucket *pbucket7 = NULL;
-	pbucket1->Difference(pmp, pbucket3, &pbucket6, &pbucket7);
+	bucket1->Difference(mp, pbucket3, &pbucket6, &pbucket7);
 	GPOS_RTL_ASSERT(NULL != pbucket6);
 	GPOS_RTL_ASSERT(NULL == pbucket7);
-	CCardinalityTestUtils::PrintBucket(pmp, "pbucket6", pbucket6);
+	CCardinalityTestUtils::PrintBucket(mp, "pbucket6", pbucket6);
 
-	GPOS_DELETE(pbucket1);
-	GPOS_DELETE(pbucket2);
+	GPOS_DELETE(bucket1);
+	GPOS_DELETE(bucket2);
 	GPOS_DELETE(pbucket3);
 	GPOS_DELETE(pbucket4);
 	GPOS_DELETE(pbucket5);
@@ -249,7 +249,7 @@ CBucketTest::EresUnittest_CBucketIntersect()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	SBucketsIntersectTestElem rgBucketsIntersectTestElem[] =
 		{
@@ -270,12 +270,12 @@ CBucketTest::EresUnittest_CBucketIntersect()
 			{0, 5, true, true, 0, 5, true, false, true, 0, 5, true, false}, // exact match with ubs differ in closure
 		};
 
-	const ULONG ulLen = GPOS_ARRAY_SIZE(rgBucketsIntersectTestElem);
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	const ULONG length = GPOS_ARRAY_SIZE(rgBucketsIntersectTestElem);
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		CBucket *pbucket1 = CCardinalityTestUtils::PbucketInteger
+		CBucket *bucket1 = CCardinalityTestUtils::PbucketInteger
 								(
-								pmp,
+								mp,
 								rgBucketsIntersectTestElem[ul].m_iLb1,
 								rgBucketsIntersectTestElem[ul].m_iUb1,
 								rgBucketsIntersectTestElem[ul].m_fLb1Closed,
@@ -284,9 +284,9 @@ CBucketTest::EresUnittest_CBucketIntersect()
 								CDouble(100.0)
 								);
 
-		CBucket *pbucket2 = CCardinalityTestUtils::PbucketInteger
+		CBucket *bucket2 = CCardinalityTestUtils::PbucketInteger
 								(
-								pmp,
+								mp,
 								rgBucketsIntersectTestElem[ul].m_iLb2,
 								rgBucketsIntersectTestElem[ul].m_iUb2,
 								rgBucketsIntersectTestElem[ul].m_fLb2Closed,
@@ -295,22 +295,22 @@ CBucketTest::EresUnittest_CBucketIntersect()
 								CDouble(100.0)
 								);
 
-		BOOL fResult = pbucket1->FIntersects(pbucket2);
+		BOOL result = bucket1->Intersects(bucket2);
 
 		GPOS_RESULT eres = GPOS_FAILED;
-		if (rgBucketsIntersectTestElem[ul].fIntersect == fResult)
+		if (rgBucketsIntersectTestElem[ul].fIntersect == result)
 		{
 			eres = GPOS_OK;
 		}
 
-		if (true == fResult)
+		if (true == result)
 		{
 			CDouble dDummy1(0.0);
 			CDouble dDummy2(0.0);
-			CBucket *pbucketOuput = pbucket1->PbucketIntersect(pmp, pbucket2, &dDummy1, &dDummy2);
+			CBucket *pbucketOuput = bucket1->MakeBucketIntersect(mp, bucket2, &dDummy1, &dDummy2);
 			CBucket *pbucketExpected = CCardinalityTestUtils::PbucketInteger
 											(
-											pmp,
+											mp,
 											rgBucketsIntersectTestElem[ul].m_iLbOutput,
 											rgBucketsIntersectTestElem[ul].m_iUbOutput,
 											rgBucketsIntersectTestElem[ul].m_fLbOutputClosed,
@@ -325,14 +325,14 @@ CBucketTest::EresUnittest_CBucketIntersect()
 			{
 				eres = GPOS_FAILED;
 
-				CWStringDynamic str(pmp);
+				CWStringDynamic str(mp);
 				COstreamString oss(&str);
 
 				pbucketOuput->OsPrint(oss);
 				oss << std::endl;
 				pbucketExpected->OsPrint(oss);
 				oss << std::endl;
-				GPOS_TRACE(str.Wsz());
+				GPOS_TRACE(str.GetBuffer());
 
 			}
 
@@ -340,8 +340,8 @@ CBucketTest::EresUnittest_CBucketIntersect()
 			GPOS_DELETE(pbucketOuput);
 		}
 		// clean up
-		GPOS_DELETE(pbucket1);
-		GPOS_DELETE(pbucket2);
+		GPOS_DELETE(bucket1);
+		GPOS_DELETE(bucket2);
 
 		if (GPOS_OK != eres)
 		{
@@ -357,24 +357,24 @@ CBucketTest::EresUnittest_CBucketIntersect()
 BOOL
 CBucketTest::FMatchBucketBoundary
 	(
-	CBucket *pbucket1,
-	CBucket *pbucket2
+	CBucket *bucket1,
+	CBucket *bucket2
 	)
 {
-	GPOS_ASSERT(NULL != pbucket1);
-	GPOS_ASSERT(NULL != pbucket2);
+	GPOS_ASSERT(NULL != bucket1);
+	GPOS_ASSERT(NULL != bucket2);
 
-	if (pbucket1->FLowerClosed() != pbucket2->FLowerClosed())
+	if (bucket1->IsLowerClosed() != bucket2->IsLowerClosed())
 	{
 		return false;
 	}
 
-	if (pbucket1->FUpperClosed() != pbucket2->FUpperClosed())
+	if (bucket1->IsUpperClosed() != bucket2->IsUpperClosed())
 	{
 		return false;
 	}
 
-	if (pbucket1->PpLower()->FEqual(pbucket2->PpLower()) && pbucket1->PpUpper()->FEqual(pbucket2->PpUpper()))
+	if (bucket1->GetLowerBound()->Equals(bucket2->GetLowerBound()) && bucket1->GetUpperBound()->Equals(bucket2->GetUpperBound()))
 	{
 		return true;
 	}

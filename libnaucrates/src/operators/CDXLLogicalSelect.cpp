@@ -29,38 +29,38 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalSelect::CDXLLogicalSelect
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
-	:CDXLLogical(pmp)
+	:CDXLLogical(mp)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalSelect::Edxlop
+//		CDXLLogicalSelect::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLLogicalSelect::Edxlop() const
+CDXLLogicalSelect::GetDXLOperator() const
 {
 	return EdxlopLogicalSelect;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalSelect::PstrOpName
+//		CDXLLogicalSelect::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLLogicalSelect::PstrOpName() const
+CDXLLogicalSelect::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenLogicalSelect);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenLogicalSelect);
 }
 
 //---------------------------------------------------------------------------
@@ -74,19 +74,19 @@ CDXLLogicalSelect::PstrOpName() const
 void
 CDXLLogicalSelect::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	node->SerializeChildrenToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -101,22 +101,22 @@ CDXLLogicalSelect::SerializeToDXL
 void
 CDXLLogicalSelect::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) const
 {
-	GPOS_ASSERT(2 == pdxln->UlArity());
+	GPOS_ASSERT(2 == node->Arity());
 
-	CDXLNode *pdxlnCond = (*pdxln)[0];
-	CDXLNode *pdxlnChild = (*pdxln)[1];
+	CDXLNode *condition_dxl = (*node)[0];
+	CDXLNode *child_dxlnode = (*node)[1];
 
-	GPOS_ASSERT(EdxloptypeScalar ==  pdxlnCond->Pdxlop()->Edxloperatortype());
-	GPOS_ASSERT(EdxloptypeLogical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(EdxloptypeScalar ==  condition_dxl->GetOperator()->GetDXLOperatorType());
+	GPOS_ASSERT(EdxloptypeLogical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 	
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnCond->Pdxlop()->AssertValid(pdxlnCond, fValidateChildren);
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		condition_dxl->GetOperator()->AssertValid(condition_dxl, validate_children);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

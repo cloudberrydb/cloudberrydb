@@ -29,18 +29,18 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalDynamicTableScan::CDXLPhysicalDynamicTableScan
 	(
-	IMemoryPool *pmp,
-	CDXLTableDescr *pdxltabdesc,
-	ULONG ulPartIndexId,
-	ULONG ulPartIndexIdPrintable
+	IMemoryPool *mp,
+	CDXLTableDescr *table_descr,
+	ULONG part_idx_id,
+	ULONG part_idx_id_printable
 	)
 	:
-	CDXLPhysical(pmp),
-	m_pdxltabdesc(pdxltabdesc),
-	m_ulPartIndexId(ulPartIndexId),
-	m_ulPartIndexIdPrintable(ulPartIndexIdPrintable)
+	CDXLPhysical(mp),
+	m_dxl_table_descr(table_descr),
+	m_part_index_id(part_idx_id),
+	m_part_index_id_printable(part_idx_id_printable)
 {
-	GPOS_ASSERT(NULL != pdxltabdesc);
+	GPOS_ASSERT(NULL != table_descr);
 }
 
 
@@ -54,19 +54,19 @@ CDXLPhysicalDynamicTableScan::CDXLPhysicalDynamicTableScan
 //---------------------------------------------------------------------------
 CDXLPhysicalDynamicTableScan::~CDXLPhysicalDynamicTableScan()
 {
-	m_pdxltabdesc->Release();
+	m_dxl_table_descr->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalDynamicTableScan::Edxlop
+//		CDXLPhysicalDynamicTableScan::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalDynamicTableScan::Edxlop() const
+CDXLPhysicalDynamicTableScan::GetDXLOperator() const
 {
 	return EdxlopPhysicalDynamicTableScan;
 }
@@ -74,58 +74,58 @@ CDXLPhysicalDynamicTableScan::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalDynamicTableScan::PstrOpName
+//		CDXLPhysicalDynamicTableScan::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalDynamicTableScan::PstrOpName() const
+CDXLPhysicalDynamicTableScan::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalDynamicTableScan);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalDynamicTableScan);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalDynamicTableScan::Pdxltabdesc
+//		CDXLPhysicalDynamicTableScan::GetDXLTableDescr
 //
 //	@doc:
 //		Table descriptor for the table scan
 //
 //---------------------------------------------------------------------------
 const CDXLTableDescr *
-CDXLPhysicalDynamicTableScan::Pdxltabdesc() const
+CDXLPhysicalDynamicTableScan::GetDXLTableDescr() const
 {
-	return m_pdxltabdesc;
+	return m_dxl_table_descr;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalDynamicTableScan::UlPartIndexId
+//		CDXLPhysicalDynamicTableScan::GetPartIndexId
 //
 //	@doc:
 //		Id of partition index
 //
 //---------------------------------------------------------------------------
 ULONG
-CDXLPhysicalDynamicTableScan::UlPartIndexId() const
+CDXLPhysicalDynamicTableScan::GetPartIndexId() const
 {
-	return m_ulPartIndexId;
+	return m_part_index_id;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalDynamicTableScan::UlPartIndexIdPrintable
+//		CDXLPhysicalDynamicTableScan::GetPartIndexIdPrintable
 //
 //	@doc:
 //		Printable partition index id
 //
 //---------------------------------------------------------------------------
 ULONG
-CDXLPhysicalDynamicTableScan::UlPartIndexIdPrintable() const
+CDXLPhysicalDynamicTableScan::GetPartIndexIdPrintable() const
 {
-	return m_ulPartIndexIdPrintable;
+	return m_part_index_id_printable;
 }
 
 //---------------------------------------------------------------------------
@@ -139,23 +139,23 @@ CDXLPhysicalDynamicTableScan::UlPartIndexIdPrintable() const
 void
 CDXLPhysicalDynamicTableScan::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 	
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartIndexId), m_ulPartIndexId);
-	if (m_ulPartIndexIdPrintable != m_ulPartIndexId)
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);	
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartIndexId), m_part_index_id);
+	if (m_part_index_id_printable != m_part_index_id)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartIndexIdPrintable), m_ulPartIndexIdPrintable);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartIndexIdPrintable), m_part_index_id_printable);
 	}
-	pdxln->SerializePropertiesToDXL(pxmlser);
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	m_pdxltabdesc->SerializeToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);		
+	node->SerializePropertiesToDXL(xml_serializer);
+	node->SerializeChildrenToDXL(xml_serializer);
+	m_dxl_table_descr->SerializeToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -170,17 +170,17 @@ CDXLPhysicalDynamicTableScan::SerializeToDXL
 void
 CDXLPhysicalDynamicTableScan::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL // fValidateChildren
+	const CDXLNode *node,
+	BOOL // validate_children
 	) 
 	const
 {
-	GPOS_ASSERT(2 == pdxln->UlArity());
+	GPOS_ASSERT(2 == node->Arity());
 	
 	// assert validity of table descriptor
-	GPOS_ASSERT(NULL != m_pdxltabdesc);
-	GPOS_ASSERT(NULL != m_pdxltabdesc->Pmdname());
-	GPOS_ASSERT(m_pdxltabdesc->Pmdname()->Pstr()->FValid());
+	GPOS_ASSERT(NULL != m_dxl_table_descr);
+	GPOS_ASSERT(NULL != m_dxl_table_descr->MdName());
+	GPOS_ASSERT(m_dxl_table_descr->MdName()->GetMDName()->IsValid());
 }
 #endif // GPOS_DEBUG
 

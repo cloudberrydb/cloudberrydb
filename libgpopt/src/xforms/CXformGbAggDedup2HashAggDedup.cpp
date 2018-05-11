@@ -29,15 +29,15 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformGbAggDedup2HashAggDedup::CXformGbAggDedup2HashAggDedup
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformGbAgg2HashAgg
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalGbAggDeduplicate(pmp),
-							 GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)),
-							 GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)))
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalGbAggDeduplicate(mp),
+							 GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),
+							 GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)))
 		)
 {}
 
@@ -62,18 +62,18 @@ CXformGbAggDedup2HashAggDedup::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 	CLogicalGbAggDeduplicate *popAggDedup = CLogicalGbAggDeduplicate::PopConvert(pexpr->Pop());
-	DrgPcr *pdrgpcr = popAggDedup->Pdrgpcr();
-	pdrgpcr->AddRef();
+	CColRefArray *colref_array = popAggDedup->Pdrgpcr();
+	colref_array->AddRef();
 
-	DrgPcr *pdrgpcrKeys = popAggDedup->PdrgpcrKeys();
+	CColRefArray *pdrgpcrKeys = popAggDedup->PdrgpcrKeys();
 	pdrgpcrKeys->AddRef();
 
 	// extract components
 	CExpression *pexprRel = (*pexpr)[0];
 	CExpression *pexprScalar = (*pexpr)[1];
-	GPOS_ASSERT(0 == pexprScalar->UlArity());
+	GPOS_ASSERT(0 == pexprScalar->Arity());
 
 	// addref children
 	pexprRel->AddRef();
@@ -81,13 +81,13 @@ CXformGbAggDedup2HashAggDedup::Transform
 
 	// create alternative expression
 	CExpression *pexprAlt =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalHashAggDeduplicate
+			mp,
+			GPOS_NEW(mp) CPhysicalHashAggDeduplicate
 						(
-						pmp,
-						pdrgpcr,
+						mp,
+						colref_array,
 						popAggDedup->PdrgpcrMinimal(),
 						popAggDedup->Egbaggtype(),
 						pdrgpcrKeys,

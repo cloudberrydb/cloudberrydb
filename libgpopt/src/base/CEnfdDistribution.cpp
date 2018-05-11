@@ -94,7 +94,7 @@ CEnfdDistribution::FCompatible
 	switch (m_edm)
 	{
 		case EdmExact:
-			return pds->FMatch(m_pds);
+			return pds->Matches(m_pds);
 
 		case EdmSatisfy:
 			return pds->FSatisfies(m_pds);
@@ -118,16 +118,16 @@ CEnfdDistribution::FCompatible
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CEnfdDistribution::UlHash
+//		CEnfdDistribution::HashValue
 //
 //	@doc:
 // 		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CEnfdDistribution::UlHash() const
+CEnfdDistribution::HashValue() const
 {
-	return gpos::UlCombineHashes(m_edm + 1, m_pds->UlHash());
+	return gpos::CombineHashes(m_edm + 1, m_pds->HashValue());
 }
 
 //---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ CEnfdDistribution::Epet
 		// 3. The following logic ensures that *none* of the group expressions
 		// will add a motion into this group.
 		EPropEnforcingType epet = popPhysical->EpetDistribution(exprhdl, this);
-		if (FEnforce(epet) && exprhdl.FHasOuterRefs())
+		if (FEnforce(epet) && exprhdl.HasOuterRefs())
 		{
 			// disallow plans with outer references below motion operator
 			return EpetProhibited;

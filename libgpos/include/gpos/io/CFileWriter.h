@@ -31,7 +31,7 @@ namespace gpos
 		private:
 
 			// file size
-			ULLONG m_ullSize;
+			ULLONG m_file_size;
 
 			// no copy ctor
 			CFileWriter(const CFileWriter &);
@@ -46,19 +46,19 @@ namespace gpos
 			~CFileWriter()
 			{}
 
-			ULLONG UllSize() const
+			ULLONG FileSize() const
 			{
-				return m_ullSize;
+				return m_file_size;
 			}
 
 			// open file for writing
-			void Open(const CHAR *szPath, ULONG ulPerms);
+			void Open(const CHAR *file_path, ULONG permission_bits);
 
 			// close file
 			void Close();
 
 			// write bytes to file
-			void Write(const BYTE *pb, const ULONG_PTR ullWriteSize);
+			void Write(const BYTE *read_buffer, const ULONG_PTR write_size);
 
 	};	// class CFileWriter
 

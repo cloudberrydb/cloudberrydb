@@ -45,32 +45,32 @@ namespace gpdxl
 			
 		public:
 			// ctor
-			CDXLScalarSubqueryAll(IMemoryPool *pmp, IMDId *pmdidScalarOp, CMDName *pmdname, ULONG ulColId);
+			CDXLScalarSubqueryAll(IMemoryPool *mp, IMDId *scalar_op_mdid, CMDName *mdname, ULONG colid);
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// name of the operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// conversion function
 			static
-			CDXLScalarSubqueryAll *PdxlopConvert
+			CDXLScalarSubqueryAll *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarSubqueryAll == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarSubqueryAll == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarSubqueryAll*>(pdxlop);
+				return dynamic_cast<CDXLScalarSubqueryAll*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{

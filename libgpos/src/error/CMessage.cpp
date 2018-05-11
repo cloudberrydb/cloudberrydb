@@ -25,19 +25,19 @@ using namespace gpos;
 CMessage::CMessage
 	(
 	CException exc, 
-	ULONG ulSev,
+	ULONG severity,
 	const WCHAR *wszFmt, ULONG ulLenFmt, 
 	ULONG ulParams,
 	const WCHAR *wszComment, ULONG ulLenComment
 	)
 	:
-	m_ulSev(ulSev),
-	m_wszFmt(wszFmt),
-	m_ulLenFmt(ulLenFmt),
-	m_ulParams(ulParams),
-	m_wszComment(wszComment),
-	m_ulLenComment(ulLenComment),
-	m_exc(exc)
+	m_severity(severity),
+	m_fmt(wszFmt),
+	m_fmt_len(ulLenFmt),
+	m_num_params(ulParams),
+	m_comment(wszComment),
+	m_comment_len(ulLenComment),
+	m_exception(exc)
 {
 	// TODO: 6/29/2010; incorporate string class
 }
@@ -56,13 +56,13 @@ CMessage::CMessage
 	const CMessage &msg
 	)
 	:
-	m_ulSev(msg.m_ulSev),
-	m_wszFmt(msg.m_wszFmt),
-	m_ulLenFmt(msg.m_ulLenFmt),
-	m_ulParams(msg.m_ulParams),
-	m_wszComment(msg.m_wszComment),
-	m_ulLenComment(msg.m_ulLenComment),
-	m_exc(msg.m_exc)
+	m_severity(msg.m_severity),
+	m_fmt(msg.m_fmt),
+	m_fmt_len(msg.m_fmt_len),
+	m_num_params(msg.m_num_params),
+	m_comment(msg.m_comment),
+	m_comment_len(msg.m_comment_len),
+	m_exception(msg.m_exception)
 {
 }
 
@@ -83,7 +83,7 @@ CMessage::Format
 	)
 	const
 {
-	pwss->AppendFormatVA(m_wszFmt, vl);
+	pwss->AppendFormatVA(m_fmt, vl);
 }
 
 //---------------------------------------------------------------------------
@@ -97,25 +97,25 @@ CMessage::Format
 void
 CMessage::FormatMessage
 	(
-	CWStringStatic *pstr,
-	ULONG ulMajor,
-	ULONG ulMinor,
+	CWStringStatic *str,
+	ULONG major,
+	ULONG minor,
 	...
 	)
 {
 	// manufacture actual exception object
-	CException exc(ulMajor, ulMinor);
+	CException exc(major, minor);
 	
 	// during bootstrap there's no context object otherwise, record
 	// all details in the context object
-	if (NULL != ITask::PtskSelf())
+	if (NULL != ITask::Self())
 	{
 		VA_LIST valist;
-		VA_START(valist, ulMinor);
+		VA_START(valist, minor);
 
-		ELocale eloc = ITask::PtskSelf()->Eloc();
-		CMessage *pmsg = CMessageRepository::Pmr()->PmsgLookup(exc, eloc);
-		pmsg->Format(pstr, valist);
+		ELocale locale = ITask::Self()->Locale();
+		CMessage *msg = CMessageRepository::GetMessageRepository()->LookupMessage(exc, locale);
+		msg->Format(str, valist);
 
 		VA_END(valist);
 	}
@@ -138,10 +138,10 @@ CMessage::OsPrint
 	)
 {
 	os 
-		<< "Message No: " << m_exc.UlMajor() << "-" << m_exc.UlMinor() << std::endl
-		<< "Message:   \"" << m_wszFmt << "\" [" << m_ulLenFmt << "]" << std::endl
-		<< "Parameters: " << m_ulParams << std::endl
-		<< "Comments:  \"" << m_wszComment << "\" [" << m_ulLenComment << "]" << std::endl;
+		<< "Message No: " << m_exception.Major() << "-" << m_exception.Minor() << std::endl
+		<< "Message:   \"" << m_fmt << "\" [" << m_fmt_len << "]" << std::endl
+		<< "Parameters: " << m_num_params << std::endl
+		<< "Comments:  \"" << m_comment << "\" [" << m_comment_len << "]" << std::endl;
 	
 	return os;
 }
@@ -150,22 +150,22 @@ CMessage::OsPrint
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMessage::Pmsg
+//		CMessage::GetMessage
 //
 //	@doc:
 //		Access a message by its index
 //
 //---------------------------------------------------------------------------
 CMessage *
-CMessage::Pmsg
+CMessage::GetMessage
 	(
-	ULONG ulIndex
+	ULONG index
 	)
 {
-	GPOS_ASSERT(ulIndex < CException::ExmiSentinel);
+	GPOS_ASSERT(index < CException::ExmiSentinel);
 
 	// Basic system-side messages in English
-	static CMessage rgmsg[CException::ExmiSentinel] =
+	static CMessage msg[CException::ExmiSentinel] =
 	{
 		CMessage(CException(CException::ExmaInvalid, CException::ExmiInvalid),
 				 CException::ExsevError,
@@ -287,7 +287,7 @@ CMessage::Pmsg
 				 GPOS_WSZ_WSZLEN("Invalid multibyte character for locale encountered in metadata name")),
 	};
 
-	return &rgmsg[ulIndex];
+	return &msg[index];
 }
 
 

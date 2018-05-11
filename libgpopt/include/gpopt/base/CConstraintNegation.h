@@ -41,7 +41,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CConstraintNegation(IMemoryPool *pmp, CConstraint *pcnstr);
+			CConstraintNegation(IMemoryPool *mp, CConstraint *pcnstr);
 
 			// dtor
 			virtual
@@ -64,46 +64,46 @@ namespace gpopt
 			virtual
 			BOOL FContradiction() const
 			{
-				return m_pcnstr->FUnbounded();
+				return m_pcnstr->IsConstraintUnbounded();
 			}
 
 			// is this constraint unbounded
 			virtual
-			BOOL FUnbounded() const
+			BOOL IsConstraintUnbounded() const
 			{
 				return m_pcnstr->FContradiction();
 			}
 
 			// scalar expression
 			virtual
-			CExpression *PexprScalar(IMemoryPool *pmp);
+			CExpression *PexprScalar(IMemoryPool *mp);
 
 			// check if there is a constraint on the given column
 			virtual
 			BOOL FConstraint
 					(
-					const CColRef *pcr
+					const CColRef *colref
 					)
 					const
 			{
-				return m_pcnstr->FConstraint(pcr);
+				return m_pcnstr->FConstraint(colref);
 			}
 
 			// return a copy of the constraint with remapped columns
 			virtual
-			CConstraint *PcnstrCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			CConstraint *PcnstrCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// return constraint on a given column
 			virtual
-			CConstraint *Pcnstr(IMemoryPool *pmp, const CColRef *pcr);
+			CConstraint *Pcnstr(IMemoryPool *mp, const CColRef *colref);
 
 			// return constraint on a given column set
 			virtual
-			CConstraint *Pcnstr(IMemoryPool *pmp, CColRefSet *pcrs);
+			CConstraint *Pcnstr(IMemoryPool *mp, CColRefSet *pcrs);
 
 			// return a clone of the constraint for a different column
 			virtual
-			CConstraint *PcnstrRemapForColumn(IMemoryPool *pmp, CColRef *pcr) const;
+			CConstraint *PcnstrRemapForColumn(IMemoryPool *mp, CColRef *colref) const;
 
 			// print
 			virtual

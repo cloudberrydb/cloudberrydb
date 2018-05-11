@@ -29,17 +29,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformIndexGet2IndexScan::CXformIndexGet2IndexScan
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformImplementation
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalIndexGet(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))	// index lookup predicate
+				mp,
+				GPOS_NEW(mp) CLogicalIndexGet(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))	// index lookup predicate
 				)
 		)
 {}
@@ -66,7 +66,7 @@ CXformIndexGet2IndexScan::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalIndexGet *pop = CLogicalIndexGet::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	CIndexDescriptor *pindexdesc = pop->Pindexdesc();
 	pindexdesc->AddRef();
@@ -74,7 +74,7 @@ CXformIndexGet2IndexScan::Transform
 	CTableDescriptor *ptabdesc = pop->Ptabdesc();
 	ptabdesc->AddRef();
 
-	DrgPcr *pdrgpcrOutput = pop->PdrgpcrOutput();
+	CColRefArray *pdrgpcrOutput = pop->PdrgpcrOutput();
 	GPOS_ASSERT(NULL != pdrgpcrOutput);
 	pdrgpcrOutput->AddRef();
 
@@ -89,16 +89,16 @@ CXformIndexGet2IndexScan::Transform
 	pexprIndexCond->AddRef();
 
 	CExpression *pexprAlt =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalIndexScan
+			mp,
+			GPOS_NEW(mp) CPhysicalIndexScan
 				(
-				pmp,
+				mp,
 				pindexdesc,
 				ptabdesc,
 				pexpr->Pop()->UlOpId(),
-				GPOS_NEW(pmp) CName (pmp, pop->NameAlias()),
+				GPOS_NEW(mp) CName (mp, pop->NameAlias()),
 				pdrgpcrOutput,
 				pos
 				),

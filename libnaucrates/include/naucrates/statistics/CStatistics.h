@@ -39,12 +39,12 @@ namespace gpnaucrates
 	using namespace gpopt;
 
 	// hash maps ULONG -> array of ULONGs
-	typedef CHashMap<ULONG, DrgPul, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupRelease<DrgPul> > HMUlPdrgpul;
+	typedef CHashMap<ULONG, ULongPtrArray, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupRelease<ULongPtrArray> > UlongToUlongPtrArrayMap;
 
 	// iterator
-	typedef CHashMapIter<ULONG, DrgPul, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-		CleanupDelete<ULONG>, CleanupRelease<DrgPul> > HMIterUlPdrgpul;
+	typedef CHashMapIter<ULONG, ULongPtrArray, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+		CleanupDelete<ULONG>, CleanupRelease<ULongPtrArray> > UlongToUlongPtrArrayMapIter;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -67,8 +67,8 @@ namespace gpnaucrates
 					EcbmSentinel
 				};
 
-		// helper method to copy stats on columns that are not excluded by bitset
-		void AddNotExcludedHistograms(IMemoryPool *pmp, CBitSet *pbsExcludedColIds, HMUlHist *phmulhist) const;
+      // helper method to copy stats on columns that are not excluded by bitset
+      void AddNotExcludedHistograms(IMemoryPool *mp, CBitSet *excluded_cols, UlongToHistogramMap *col_histogram_mapping) const;
 
 		private:
 
@@ -78,211 +78,211 @@ namespace gpnaucrates
 			// private assignment operator
 			CStatistics& operator=(CStatistics &);
 
-			// hashmap from column ids to histograms
-			HMUlHist *m_phmulhist;
+        // hashmap from column ids to histograms
+      UlongToHistogramMap *m_colid_histogram_mapping;
 
-			// hashmap from column id to width
-			HMUlDouble *m_phmuldoubleWidth;
+        // hashmap from column id to width
+      UlongToDoubleMap *m_colid_width_mapping;
 
 			// number of rows
-			CDouble m_dRows;
+			CDouble m_rows;
 
 			// the risk to have errors in cardinality estimation; it goes from 1 to infinity,
 			// where 1 is no risk
 			// when going from the leaves to the root of the plan, operators that generate joins,
 			// selections and groups increment the risk
-			ULONG m_ulStatsEstimationRisk;
+			ULONG m_stats_estimation_risk;
 
 			// flag to indicate if input relation is empty
-			BOOL m_fEmpty;
+			BOOL m_empty;
 
 			// statistics could be computed using predicates with external parameters (outer references),
 			// this is the total number of external parameters' values
-			CDouble m_dRebinds;
+			CDouble m_num_rebinds;
 
 			// number of predicates applied
-			ULONG m_ulNumPredicates;
+			ULONG m_num_predicates;
 
 			// statistics configuration
-			CStatisticsConfig *m_pstatsconf;
+			CStatisticsConfig *m_stats_conf;
 
 			// array of upper bound of ndv per source;
 			// source can be one of the following operators: like Get, Group By, and Project
-			DrgPubndvs *m_pdrgpubndvs;
+      CUpperBoundNDVPtrArray *m_src_upper_bound_NDVs;
 
 			// mutex for locking entry when accessing hashmap from source id -> upper bound of source cardinality
-			CMutex m_mutexCardUpperBoundAccess;
+			CMutex m_src_upper_bound_mapping_mutex;
 
-			// the default value for operators that have no cardinality estimation risk
-			static
-			const ULONG ulStatsEstimationNoRisk;
+      // the default value for operators that have no cardinality estimation risk
+      static
+      const ULONG no_card_est_risk_default_val;
 
-			// helper method to add histograms where the column ids have been remapped
-			static
-			void AddHistogramsWithRemap(IMemoryPool *pmp, HMUlHist *phmulhistSrc, HMUlHist *phmulhistDest, HMUlCr *phmulcr, BOOL fMustExist);
+      // helper method to add histograms where the column ids have been remapped
+      static
+      void AddHistogramsWithRemap(IMemoryPool *mp, UlongToHistogramMap *src_histograms, UlongToHistogramMap *dest_histograms, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
-			// helper method to add width information where the column ids have been remapped
-			static
-			void AddWidthInfoWithRemap(IMemoryPool *pmp, HMUlDouble *phmuldoubleSrc, HMUlDouble *phmuldoubleDest, HMUlCr *phmulcr, BOOL fMustExist);
+      // helper method to add width information where the column ids have been remapped
+      static
+      void AddWidthInfoWithRemap(IMemoryPool *mp, UlongToDoubleMap *src_width, UlongToDoubleMap *dest_width, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 		public:
 
 			// ctor
-			CStatistics
-				(
-				IMemoryPool *pmp,
-				HMUlHist *phmulhist,
-				HMUlDouble *phmuldoubleWidth,
-				CDouble dRows,
-				BOOL fEmpty,
-				ULONG ulNumPredicates = 0
+		CStatistics
+        (
+        IMemoryPool *mp,
+				UlongToHistogramMap *col_histogram_mapping,
+				UlongToDoubleMap *colid_width_mapping,
+				CDouble rows,
+				BOOL is_empty,
+				ULONG num_predicates = 0
 				);
 
 			// dtor
 			virtual
 			~CStatistics();
 
-			virtual
-			HMUlDouble *CopyWidths(IMemoryPool *pmp) const;
+      virtual
+      UlongToDoubleMap *CopyWidths(IMemoryPool *mp) const;
 
-			virtual
-			void CopyWidthsInto(IMemoryPool *pmp, HMUlDouble *phmuldouble) const;
+      virtual
+      void CopyWidthsInto(IMemoryPool *mp, UlongToDoubleMap *colid_width_mapping) const;
 
-			virtual
-			HMUlHist *CopyHistograms(IMemoryPool *pmp) const;
+      virtual
+      UlongToHistogramMap *CopyHistograms(IMemoryPool *mp) const;
 
 			// actual number of rows
 			virtual
-			CDouble DRows() const;
+			CDouble Rows() const;
 
 			// number of rebinds
 			virtual
-			CDouble DRebinds() const
+			CDouble NumRebinds() const
 			{
-				return m_dRebinds;
+				return m_num_rebinds;
 			}
 
 			// skew estimate for given column
 			virtual
-			CDouble DSkew(ULONG ulColId) const;
+			CDouble GetSkew(ULONG colid) const;
 
 			// what is the width in bytes of set of column id's
 			virtual
-			CDouble DWidth(DrgPul *pdrgpulColIds) const;
+			CDouble Width(ULongPtrArray *colids) const;
 
 			// what is the width in bytes of set of column references
 			virtual
-			CDouble DWidth(IMemoryPool *pmp, CColRefSet *pcrs) const;
+			CDouble Width(IMemoryPool *mp, CColRefSet *colrefs) const;
 
 			// what is the width in bytes
 			virtual
-			CDouble DWidth() const;
+			CDouble Width() const;
 
 			// is statistics on an empty input
 			virtual
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
 			{
-				return m_fEmpty;
+				return m_empty;
 			}
 
 			// look up the histogram of a particular column
 			virtual
-			const CHistogram *Phist
+			const CHistogram *GetHistogram
 								(
-								ULONG ulColId
+								ULONG colid
 								)
 								const
 			{
-				return m_phmulhist->PtLookup(&ulColId);
+			return m_colid_histogram_mapping->Find(&colid);
 			}
 
 			// look up the number of distinct values of a particular column
 			virtual
-			CDouble DNDV(const CColRef *pcr);
+			CDouble GetNDVs(const CColRef *colref);
 
 			// look up the width of a particular column
 			virtual
-			const CDouble *PdWidth(ULONG ulColId) const;
+			const CDouble *GetWidth(ULONG colid) const;
 
 			// the risk of errors in cardinality estimation
 			virtual
-			ULONG UlStatsEstimationRisk() const
+			ULONG StatsEstimationRisk() const
 			{
-				return m_ulStatsEstimationRisk;
+				return m_stats_estimation_risk;
 			}
 
 			// update the risk of errors in cardinality estimation
 			virtual
 			void SetStatsEstimationRisk
 				(
-				ULONG ulRisk
+				ULONG risk
 				)
 			{
-				m_ulStatsEstimationRisk = ulRisk;
+				m_stats_estimation_risk = risk;
 			}
 
 			// inner join with another stats structure
-			virtual
-			CStatistics *PstatsInnerJoin(IMemoryPool *pmp, const IStatistics *pistatsOther, DrgPstatspredjoin *pdrgpstatspredjoin) const;
+		virtual
+    CStatistics *CalcInnerJoinStats(IMemoryPool *mp, const IStatistics *other_stats, CStatsPredJoinArray *join_preds_stats) const;
 
-			// LOJ with another stats structure
-			virtual
-			CStatistics *PstatsLOJ(IMemoryPool *pmp, const IStatistics *pistatsOther, DrgPstatspredjoin *pdrgpstatspredjoin) const;
+		// LOJ with another stats structure
+		virtual
+    CStatistics *CalcLOJoinStats(IMemoryPool *mp, const IStatistics *other_stats, CStatsPredJoinArray *join_preds_stats) const;
 
 			// left anti semi join with another stats structure
 			virtual
-			CStatistics *PstatsLASJoin
+			CStatistics *CalcLASJoinStats
 							(
-							IMemoryPool *pmp,
-							const IStatistics *pstatsOther,
-							DrgPstatspredjoin *pdrgpstatspredjoin,
-							BOOL fIgnoreLasjHistComputation // except for the case of LOJ cardinality estimation this flag is always
+							IMemoryPool *mp,
+							const IStatistics *other_stats,
+							CStatsPredJoinArray *join_preds_stats,
+							BOOL DoIgnoreLASJHistComputation // except for the case of LOJ cardinality estimation this flag is always
                                                             // "true" since LASJ stats computation is very aggressive
 							) const;
 
 			// semi join stats computation
 			virtual
-			CStatistics *PstatsLSJoin(IMemoryPool *pmp, const IStatistics *pstatsInner, DrgPstatspredjoin *pdrgpstatspredjoin) const;
+			CStatistics *CalcLSJoinStats(IMemoryPool *mp, const IStatistics *inner_side_stats, CStatsPredJoinArray *join_preds_stats) const;
 
 			// return required props associated with stats object
 			virtual
-			CReqdPropRelational *Prprel(IMemoryPool *pmp) const;
+			CReqdPropRelational *GetReqdRelationalProps(IMemoryPool *mp) const;
 
 			// append given stats to current object
 			virtual
-			void AppendStats(IMemoryPool *pmp, IStatistics *pstats);
+			void AppendStats(IMemoryPool *mp, IStatistics *stats);
 
 			// set number of rebinds
 			virtual
 			void SetRebinds
 				(
-				CDouble dRebinds
+				CDouble num_rebinds
 				)
 			{
-				GPOS_ASSERT(0.0 < dRebinds);
+				GPOS_ASSERT(0.0 < num_rebinds);
 
-				m_dRebinds = dRebinds;
+				m_num_rebinds = num_rebinds;
 			}
 
 			// copy stats
 			virtual
-			IStatistics *PstatsCopy(IMemoryPool *pmp) const;
+			IStatistics *CopyStats(IMemoryPool *mp) const;
 
 			// return a copy of this stats object scaled by a given factor
 			virtual
-			IStatistics *PstatsScale(IMemoryPool *pmp, CDouble dFactor) const;
+			IStatistics *ScaleStats(IMemoryPool *mp, CDouble factor) const;
 
 			// copy stats with remapped column id
-			virtual
-			IStatistics *PstatsCopyWithRemap(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist) const;
+      virtual
+      IStatistics *CopyStatsWithRemap(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist) const;
 
 			// return the set of column references we have stats for
 			virtual
-			CColRefSet *Pcrs(IMemoryPool *pmp) const;
+			CColRefSet *GetColRefSet(IMemoryPool *mp) const;
 
 			// generate the DXL representation of the statistics object
 			virtual
-			CDXLStatsDerivedRelation *Pdxlstatsderrel(IMemoryPool *pmp, CMDAccessor *pmda) const;
+			CDXLStatsDerivedRelation *GetDxlStatsDrvdRelation(IMemoryPool *mp, CMDAccessor *md_accessor) const;
 
 			// print function
 			virtual
@@ -290,108 +290,108 @@ namespace gpnaucrates
 
 			// add upper bound of source cardinality
 			virtual
-			void AddCardUpperBound(CUpperBoundNDVs *pubndv);
+			void AddCardUpperBound(CUpperBoundNDVs *upper_bound_NDVs);
 
 			// return the upper bound of the number of distinct values for a given column
 			virtual
-			CDouble DUpperBoundNDVs(const CColRef *pcr);
+			CDouble GetColUpperBoundNDVs(const CColRef *colref);
 
 			// return the index of the array of upper bound ndvs to which column reference belongs
 			virtual
-			ULONG UlIndexUpperBoundNDVs(const CColRef *pcr);
+			ULONG GetIndexUpperBoundNDVs(const CColRef *colref);
 
 			// return the column identifiers of all columns statistics maintained
 			virtual
-			DrgPul *PdrgulColIds(IMemoryPool *pmp) const;
+			ULongPtrArray *GetColIdsWithStats(IMemoryPool *mp) const;
 
 			virtual
 			ULONG
-			UlNumberOfPredicates() const
+			GetNumberOfPredicates() const
 			{
-				return m_ulNumPredicates;
+				return m_num_predicates;
 			}
 
-			CStatisticsConfig *PStatsConf() const
+			CStatisticsConfig *GetStatsConfig() const
 			{
-				return	m_pstatsconf;
+				return	m_stats_conf;
 			}
 
-			DrgPubndvs *Pdrgundv() const
+      CUpperBoundNDVPtrArray * GetUpperBoundNDVs() const
 			{
-				return m_pdrgpubndvs;
+				return m_src_upper_bound_NDVs;
 			}
 			// create an empty statistics object
 			static
-			CStatistics *PstatsEmpty
+			CStatistics *MakeEmptyStats
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 			{
-				DrgPul *pdrgpul = GPOS_NEW(pmp) DrgPul(pmp);
-				CStatistics *pstats = PstatsDummy(pmp, pdrgpul, DDefaultRelationRows);
+			ULongPtrArray *colids = GPOS_NEW(mp) ULongPtrArray(mp);
+			CStatistics *stats = MakeDummyStats(mp, colids, DefaultRelationRows);
 
 				// clean up
-				pdrgpul->Release();
+			colids->Release();
 
-				return pstats;
+				return stats;
 			}
 
 			// conversion function
 			static
-			CStatistics *PstatsConvert
+			CStatistics *CastStats
 				(
-				IStatistics *pistats
+				IStatistics *pstats
 				)
 			{
-				GPOS_ASSERT(NULL != pistats);
-				return dynamic_cast<CStatistics *> (pistats);
+				GPOS_ASSERT(NULL != pstats);
+				return dynamic_cast<CStatistics *> (pstats);
 			}
 
 			// create a dummy statistics object
 			static
-			CStatistics *PstatsDummy(IMemoryPool *pmp, DrgPul *pdrgpulColIds, CDouble dRows);
+			CStatistics *MakeDummyStats(IMemoryPool *mp, ULongPtrArray *colids, CDouble rows);
 
 			// create a dummy statistics object
 			static
-			CStatistics *PstatsDummy
+			CStatistics *MakeDummyStats
 				(
-				IMemoryPool *pmp,
-				DrgPul *pdrgpulHistColIds,
-				DrgPul *pdrgpulWidthColIds,
-				CDouble dRows
+				IMemoryPool *mp,
+				ULongPtrArray *col_histogram_mapping,
+				ULongPtrArray *colid_width_mapping,
+				CDouble rows
 				);
 
 			// default column width
 			static
-			const CDouble DDefaultColumnWidth;
+			const CDouble DefaultColumnWidth;
 
 			// default number of rows in relation
 			static
-			const CDouble DDefaultRelationRows;
+			const CDouble DefaultRelationRows;
 
 			// minimum number of rows in relation
 			static
-			const CDouble DMinRows;
+			const CDouble MinRows;
 
 			// epsilon
 			static
-			const CDouble DEpsilon;
+			const CDouble Epsilon;
 
 			// default number of distinct values
 			static
-			const CDouble DDefaultDistinctValues;
+			const CDouble DefaultDistinctValues;
 
 			// check if the input statistics from join statistics computation empty
 			static
-			BOOL FEmptyJoinInput(const CStatistics *pstatsOuter, const CStatistics *pstatsInner, BOOL fLASJ);
+			BOOL IsEmptyJoin(const CStatistics *outer_stats, const CStatistics *inner_side_stats, BOOL IsLASJ);
 
 			// add upper bound ndvs information for a given set of columns
 			static
-			void CreateAndInsertUpperBoundNDVs(IMemoryPool *pmp, CStatistics *pstats, DrgPul *pdrgpulColIds, CDouble dRows);
+			void CreateAndInsertUpperBoundNDVs(IMemoryPool *mp, CStatistics *stats, ULongPtrArray *colids, CDouble rows);
 
 			// cap the total number of distinct values (NDV) in buckets to the number of rows
-			static
-			void CapNDVs(CDouble dRows, HMUlHist *phmulhist);
+      static
+      void CapNDVs(CDouble rows, UlongToHistogramMap *col_histogram_mapping);
 	}; // class CStatistics
 
 }

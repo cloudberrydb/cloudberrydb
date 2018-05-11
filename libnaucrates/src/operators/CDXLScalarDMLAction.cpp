@@ -30,24 +30,24 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarDMLAction::CDXLScalarDMLAction
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLScalar(pmp)
+	CDXLScalar(mp)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarDMLAction::Edxlop
+//		CDXLScalarDMLAction::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarDMLAction::Edxlop() const
+CDXLScalarDMLAction::GetDXLOperator() const
 {
 	return EdxlopScalarDMLAction;
 }
@@ -55,16 +55,16 @@ CDXLScalarDMLAction::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarDMLAction::PstrOpName
+//		CDXLScalarDMLAction::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarDMLAction::PstrOpName() const
+CDXLScalarDMLAction::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarDMLAction);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarDMLAction);
 }
 
 
@@ -79,29 +79,29 @@ CDXLScalarDMLAction::PstrOpName() const
 void
 CDXLScalarDMLAction::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode * // pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode * // node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarDMLAction::FBoolean
+//		CDXLScalarDMLAction::HasBoolResult
 //
 //	@doc:
 //		Does the operator return a boolean result
 //
 //---------------------------------------------------------------------------
 BOOL
-CDXLScalarDMLAction::FBoolean
+CDXLScalarDMLAction::HasBoolResult
 	(
-	CMDAccessor * // pmda
+	CMDAccessor * // md_accessor
 	)
 	const
 {
@@ -120,12 +120,12 @@ CDXLScalarDMLAction::FBoolean
 void
 CDXLScalarDMLAction::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL // fValidateChildren
+	const CDXLNode *node,
+	BOOL // validate_children
 	) 
 	const
 {
-	GPOS_ASSERT(0 == pdxln->UlArity());
+	GPOS_ASSERT(0 == node->Arity());
 }
 #endif // GPOS_DEBUG
 

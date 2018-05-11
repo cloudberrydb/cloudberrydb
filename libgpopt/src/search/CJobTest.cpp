@@ -104,17 +104,17 @@ CJobTest::FSpawn
 	CSchedulerContext *psc
 	)
 {
-	ULONG_PTR ulpOffset = UlpExchangeAdd(&m_ulpCnt, 1);
+	ULONG_PTR ulpOffset = ExchangeAddUlongPtrWithInt(&m_ulpCnt, 1);
 
 #ifdef GPOS_DEBUG
 	if (10 == ulpOffset && psc->Psched()->FTrackingJobs())
 	{
-		CWStringDynamic str(psc->PmpGlobal());
+		CWStringDynamic str(psc->GetGlobalMemoryPool());
 		COstreamString oss(&str);
 
 		psc->Psched()->OsPrintActiveJobs(oss);
 
-		GPOS_TRACE(str.Wsz());
+		GPOS_TRACE(str.GetBuffer());
 	}
 #endif // GPOS_DEBUG
 
@@ -160,7 +160,7 @@ CJobTest::FStartQueue
 	CSchedulerContext *psc
 	)
 {
-	ULONG_PTR ulpOffset = UlpExchangeAdd(&m_ulpCnt, 1);
+	ULONG_PTR ulpOffset = ExchangeAddUlongPtrWithInt(&m_ulpCnt, 1);
 
 	if (0 == ulpOffset)
 	{
@@ -213,11 +213,11 @@ CJobTest::FQueue
 #ifdef GPOS_DEBUG
 			if (10 > m_ulFanout)
 			{
-				CWStringDynamic str(psc->PmpGlobal());
+				CWStringDynamic str(psc->GetGlobalMemoryPool());
 				COstreamString oss(&str);
 				m_pjq->OsPrintQueuedJobs(oss);
 
-				GPOS_TRACE(str.Wsz());
+				GPOS_TRACE(str.GetBuffer());
 			}
 #endif // GPOS_DEBUG
 			m_pjq->NotifyCompleted(psc);

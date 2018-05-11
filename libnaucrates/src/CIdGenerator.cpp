@@ -15,37 +15,37 @@
 using namespace gpdxl;
 using namespace gpos;
 
-CIdGenerator::CIdGenerator(ULONG ulStartId)
-	:m_ulId(ulStartId)
+CIdGenerator::CIdGenerator(ULONG start_id)
+	:id(start_id)
 	{
 	}
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CIdGenerator::UlNextId
+//		CIdGenerator::next_id
 //
 //	@doc:
 //		Returns the next unique id
 //
 //---------------------------------------------------------------------------
 ULONG
-CIdGenerator::UlNextId()
+CIdGenerator::next_id()
 {
-	return m_ulId++;
+	return id++;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CIdGenerator::UlCurrentId
+//		CIdGenerator::current_id
 //
 //	@doc:
 //		Returns the current unique id used
 //
 //---------------------------------------------------------------------------
 ULONG
-CIdGenerator::UlCurrentId()
+CIdGenerator::current_id()
 {
-	return m_ulId;
+	return id;
 }
 
 

@@ -87,23 +87,23 @@ namespace gpopt
 			virtual
 			void Compute
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CReqdProp *prpInput,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 
 			// return difference from given properties
-			CReqdPropRelational *PrprelDifference(IMemoryPool *pmp, CReqdPropRelational *prprel);
+			CReqdPropRelational *PrprelDifference(IMemoryPool *mp, CReqdPropRelational *prprel);
 
 			// return true if property container is empty
-			BOOL FEmpty() const;
+			BOOL IsEmpty() const;
 
 			// shorthand for conversion
 			static
-			CReqdPropRelational *Prprel(CReqdProp *prp);
+			CReqdPropRelational *GetReqdRelationalProps(CReqdProp *prp);
 
 			// print function
 			virtual

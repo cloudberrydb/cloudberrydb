@@ -29,16 +29,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalIndexScan::CPhysicalIndexScan
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CIndexDescriptor *pindexdesc,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
 	const CName *pnameAlias,
-	DrgPcr *pdrgpcrOutput,
+	CColRefArray *pdrgpcrOutput,
 	COrderSpec *pos
 	)
 	:
-	CPhysicalScan(pmp, pnameAlias, ptabdesc, pdrgpcrOutput),
+	CPhysicalScan(mp, pnameAlias, ptabdesc, pdrgpcrOutput),
 	m_pindexdesc(pindexdesc),
 	m_ulOriginOpId(ulOriginOpId),
 	m_pos(pos)
@@ -79,7 +79,7 @@ CPhysicalIndexScan::EpetOrder
 	const
 {
 	GPOS_ASSERT(NULL != peo);
-	GPOS_ASSERT(!peo->PosRequired()->FEmpty());
+	GPOS_ASSERT(!peo->PosRequired()->IsEmpty());
 
 	if (peo->FCompatible(m_pos))
 	{
@@ -92,25 +92,25 @@ CPhysicalIndexScan::EpetOrder
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalIndexScan::UlHash
+//		CPhysicalIndexScan::HashValue
 //
 //	@doc:
 //		Combine pointers for table descriptor, index descriptor and Eop
 //
 //---------------------------------------------------------------------------
 ULONG
-CPhysicalIndexScan::UlHash() const
+CPhysicalIndexScan::HashValue() const
 {
-	ULONG ulHash = gpos::UlCombineHashes
+	ULONG ulHash = gpos::CombineHashes
 					(
-					COperator::UlHash(),
-					gpos::UlCombineHashes
+					COperator::HashValue(),
+					gpos::CombineHashes
 							(
-							m_pindexdesc->Pmdid()->UlHash(),
-							gpos::UlHashPtr<CTableDescriptor>(m_ptabdesc)
+							m_pindexdesc->MDId()->HashValue(),
+							gpos::HashPtr<CTableDescriptor>(m_ptabdesc)
 							)
 					);
-	ulHash = gpos::UlCombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
+	ulHash = gpos::CombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
 
 	return ulHash;
 }
@@ -118,14 +118,14 @@ CPhysicalIndexScan::UlHash() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalIndexScan::FMatch
+//		CPhysicalIndexScan::Matches
 //
 //	@doc:
 //		match operator
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalIndexScan::FMatch
+CPhysicalIndexScan::Matches
 	(
 	COperator *pop
 	)

@@ -49,7 +49,7 @@ CJobQueue::EjqrAdd
 	// check if job has completed before getting the lock
 	if (!m_fCompleted)
 	{
-		CAutoSpinlock as(m_slock);
+		CAutoSpinlock as(m_lock);
 		as.Lock();
 
 		// check if this is the main job
@@ -65,7 +65,7 @@ CJobQueue::EjqrAdd
 			if (!m_fCompleted)
 			{
 				m_listjQueued.Append(pj);
-				BOOL fOwner = (pj == m_listjQueued.PtFirst());
+				BOOL fOwner = (pj == m_listjQueued.First());
 
 				// first caller becomes the owner
 				if (fOwner)
@@ -105,15 +105,15 @@ CJobQueue::NotifyCompleted
 {
 	// scope for auto spinlock
 	{
-		CAutoSpinlock as(m_slock);
+		CAutoSpinlock as(m_lock);
 		as.Lock();
 
 		GPOS_ASSERT(!m_fCompleted);
 		m_fCompleted = true;
 	}
 
-	GPOS_ASSERT(!m_listjQueued.FEmpty());
-	while (!m_listjQueued.FEmpty())
+	GPOS_ASSERT(!m_listjQueued.IsEmpty());
+	while (!m_listjQueued.IsEmpty())
 	{
 		CJob *pj = m_listjQueued.RemoveHead();
 
@@ -147,11 +147,11 @@ CJobQueue::OsPrintQueuedJobs
 {
 	os << "Job queue: " << std::endl;
 
-	CJob *pj = m_listjQueued.PtFirst();
+	CJob *pj = m_listjQueued.First();
 	while (NULL != pj)
 	{
 		pj->OsPrint(os);
-		pj = m_listjQueued.PtNext(pj);
+		pj = m_listjQueued.Next(pj);
 	}
 
 	return os;

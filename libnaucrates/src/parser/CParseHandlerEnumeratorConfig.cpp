@@ -33,13 +33,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerEnumeratorConfig::CParseHandlerEnumeratorConfig
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pec(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_enumerator_cfg(NULL)
 {
 }
 
@@ -53,7 +53,7 @@ CParseHandlerEnumeratorConfig::CParseHandlerEnumeratorConfig
 //---------------------------------------------------------------------------
 CParseHandlerEnumeratorConfig::~CParseHandlerEnumeratorConfig()
 {
-	CRefCount::SafeRelease(m_pec);
+	CRefCount::SafeRelease(m_enumerator_cfg);
 }
 
 //---------------------------------------------------------------------------
@@ -67,24 +67,24 @@ CParseHandlerEnumeratorConfig::~CParseHandlerEnumeratorConfig()
 void
 CParseHandlerEnumeratorConfig::StartElement
 	(
-	const XMLCh* const , //xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const , //xmlszQname,
+	const XMLCh* const , //element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const , //element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenEnumeratorConfig), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenEnumeratorConfig), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// parse enumerator config options
-	ULLONG ullPlanId = CDXLOperatorFactory::UllValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPlanId, EdxltokenOptimizerConfig);
-	ULLONG ullPlanSamples = CDXLOperatorFactory::UllValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPlanSamples, EdxltokenOptimizerConfig);
-	CDouble dCostThreshold = CDXLOperatorFactory::DValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenCostThreshold, EdxltokenOptimizerConfig);
+	ULLONG plan_id = CDXLOperatorFactory::ExtractConvertAttrValueToUllong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenPlanId, EdxltokenOptimizerConfig);
+	ULLONG num_of_plan_samples = CDXLOperatorFactory::ExtractConvertAttrValueToUllong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenPlanSamples, EdxltokenOptimizerConfig);
+	CDouble cost_threshold = CDXLOperatorFactory::ExtractConvertAttrValueToDouble(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenCostThreshold, EdxltokenOptimizerConfig);
 
-	m_pec = GPOS_NEW(m_pmp) CEnumeratorConfig(m_pmp, ullPlanId, ullPlanSamples, dCostThreshold);
+	m_enumerator_cfg = GPOS_NEW(m_mp) CEnumeratorConfig(m_mp, plan_id, num_of_plan_samples, cost_threshold);
 }
 
 //---------------------------------------------------------------------------
@@ -98,50 +98,50 @@ CParseHandlerEnumeratorConfig::StartElement
 void
 CParseHandlerEnumeratorConfig::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenEnumeratorConfig), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenEnumeratorConfig), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(NULL != m_pec);
-	GPOS_ASSERT(0 == this->UlLength());
+	GPOS_ASSERT(NULL != m_enumerator_cfg);
+	GPOS_ASSERT(0 == this->Length());
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerEnumeratorConfig::Edxlphtype
+//		CParseHandlerEnumeratorConfig::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler.
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerEnumeratorConfig::Edxlphtype() const
+CParseHandlerEnumeratorConfig::GetParseHandlerType() const
 {
 	return EdxlphEnumeratorConfig;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerEnumeratorConfig::Pec
+//		CParseHandlerEnumeratorConfig::GetEnumeratorCfg
 //
 //	@doc:
 //		Returns the enumerator configuration
 //
 //---------------------------------------------------------------------------
 CEnumeratorConfig *
-CParseHandlerEnumeratorConfig::Pec() const
+CParseHandlerEnumeratorConfig::GetEnumeratorCfg() const
 {
-	return m_pec;
+	return m_enumerator_cfg;
 }
 
 // EOF

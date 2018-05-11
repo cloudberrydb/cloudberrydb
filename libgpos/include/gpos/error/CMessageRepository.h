@@ -30,10 +30,10 @@ namespace gpos
 		
 			// global singleton
 			static
-			CMessageRepository *m_pmr;
+			CMessageRepository *m_repository;
 			
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// short hand for Table of Message Tables (TMT)
 			typedef CSyncHashtable<
@@ -48,13 +48,13 @@ namespace gpos
 						CSpinlockOS> TMTAccessor;
 		
 			// basic hash table
-			TMT m_tmt;
+			TMT m_hash_table;
 			
 			// init basic directory
-			void InitDirectory(IMemoryPool *pmp);
+			void InitDirectory(IMemoryPool *mp);
 			
 			// install message table for a given locale
-			void AddMessageTable(ELocale eloc);
+			void AddMessageTable(ELocale locale);
 		
 			// pre-load standard messages
 			void LoadStandardMessages();
@@ -62,24 +62,24 @@ namespace gpos
 		public:
 
 			// ctor
-			CMessageRepository(IMemoryPool *pmp);
+			CMessageRepository(IMemoryPool *mp);
 
 			// dtor
 			~CMessageRepository();
 
 			// lookup message by error/local
-			CMessage *PmsgLookup(CException exc, ELocale eloc);
+			CMessage *LookupMessage(CException exc, ELocale locale);
 
 			// add individual message
-			void AddMessage(ELocale eloc, CMessage *pmsg);
+			void AddMessage(ELocale locale, CMessage *msg);
 
 			// initializer for global singleton
 			static
-			GPOS_RESULT EresInit();
+			GPOS_RESULT Init();
 
 			// accessor for global singleton
 			static 
-			CMessageRepository* Pmr();
+			CMessageRepository* GetMessageRepository();
 
 			void Shutdown();
 

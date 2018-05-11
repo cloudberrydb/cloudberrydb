@@ -40,7 +40,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformExpandNAryJoinMinCard(IMemoryPool *pmp);
+			CXformExpandNAryJoinMinCard(IMemoryPool *mp);
 
 			// dtor
 			virtual

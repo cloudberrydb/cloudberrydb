@@ -35,30 +35,30 @@ namespace gpdxl
 	{
 		private:
 			// the metadata column
-			CMDColumn *m_pmdcol;
+			CMDColumn *m_mdcol;
 			
 			// column name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// attribute number
-			INT m_iAttNo;
+			INT m_attno;
 			
 			// attribute type oid
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
-			INT m_iTypeModifier;
+			INT m_type_modifier;
 
 			// are nulls allowed for this column
-			BOOL m_fNullable;
+			BOOL m_is_nullable;
 			
 			// is column dropped
-			BOOL m_fDropped;
+			BOOL m_is_dropped;
 			
-			// default value expression if one exists
-			CDXLNode *m_pdxlnDefaultValue;
+		// default value expression if one exists
+			CDXLNode *m_dxl_default_val;
 
 			// width of the column
-			ULONG m_ulWidth;
+			ULONG m_width;
 			
 			// private copy ctor
 			CParseHandlerMetadataColumn(const CParseHandlerMetadataColumn &);
@@ -66,32 +66,32 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor/dtor
 			CParseHandlerMetadataColumn
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			~CParseHandlerMetadataColumn();
 			
-			CMDColumn *Pmdcol();
+			CMDColumn *GetMdCol();
 			
 	};
 }

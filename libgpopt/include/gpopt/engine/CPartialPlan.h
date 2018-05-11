@@ -62,14 +62,14 @@ namespace gpopt
 			// extract costing info from children
 			void ExtractChildrenCostingInfo
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ICostModel *pcm,
 				CExpressionHandle &exprhdl,
 				ICostModel::SCostingInfo *pci
 				);
 
 			// raise exception if the stats object is NULL
-			void RaiseExceptionIfStatsNull(IStatistics *pstats);
+			void RaiseExceptionIfStatsNull(IStatistics *stats);
 
 		public:
 
@@ -79,7 +79,7 @@ namespace gpopt
 				CGroupExpression *pgexpr,
 				CReqdPropPlan *prpp,
 				CCostContext *pccChild,
-				ULONG ulChildIndex
+				ULONG child_index
 				);
 
 			// dtor
@@ -111,15 +111,15 @@ namespace gpopt
 			}
 
 			// compute partial plan cost
-			CCost CostCompute(IMemoryPool *pmp);
+			CCost CostCompute(IMemoryPool *mp);
 
 			// hash function used for cost bounding
 			static
-			ULONG UlHash(const CPartialPlan *ppp);
+			ULONG HashValue(const CPartialPlan *ppp);
 
 			// equality function used for for cost bounding
 			static
-			BOOL FEqual(const CPartialPlan *pppFst, const CPartialPlan *pppSnd);
+			BOOL Equals(const CPartialPlan *pppFst, const CPartialPlan *pppSnd);
 
 		}; // class CPartialPlan
 }

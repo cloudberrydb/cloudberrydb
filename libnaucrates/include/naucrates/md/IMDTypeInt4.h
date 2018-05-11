@@ -40,18 +40,18 @@ namespace gpmd
 	{
 		public:
 			// type id
-			static ETypeInfo EtiType()
+			static ETypeInfo GetTypeInfo()
 			{
 				return EtiInt4;
 			}
 			
-			virtual ETypeInfo Eti() const
+			virtual ETypeInfo GetDatumType() const
 			{
-				return IMDTypeInt4::EtiType();
+				return IMDTypeInt4::GetTypeInfo();
 			} 
 			
 			// factory function for INT4 datums
-			virtual IDatumInt4 *PdatumInt4(IMemoryPool *pmp, INT iValue, BOOL fNULL) const = 0;
+			virtual IDatumInt4 *CreateInt4Datum(IMemoryPool *mp, INT value, BOOL is_null) const = 0;
 		
 	};
 

@@ -47,10 +47,10 @@ INT ICmpEdgesByLength
 	CJoinOrder::SEdge *pedgeTwo = *(CJoinOrder::SEdge**)pvTwo;
 
 	
-	INT iDiff = (pedgeOne->m_pbs->CElements() - pedgeTwo->m_pbs->CElements());
+	INT iDiff = (pedgeOne->m_pbs->Size() - pedgeTwo->m_pbs->Size());
 	if (0 == iDiff)
 	{
-		return (INT)pedgeOne->m_pbs->UlHash() - (INT)pedgeTwo->m_pbs->UlHash();
+		return (INT)pedgeOne->m_pbs->HashValue() - (INT)pedgeTwo->m_pbs->HashValue();
 	}
 		
 	return iDiff;
@@ -67,7 +67,7 @@ INT ICmpEdgesByLength
 //---------------------------------------------------------------------------
 CJoinOrder::SComponent::SComponent
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr
 	)
 	:
@@ -75,7 +75,7 @@ CJoinOrder::SComponent::SComponent
 	m_pexpr(pexpr),
 	m_fUsed(false)
 {	
-	m_pbs = GPOS_NEW(pmp) CBitSet(pmp);
+	m_pbs = GPOS_NEW(mp) CBitSet(mp);
 }
 
 
@@ -153,7 +153,7 @@ const
 //---------------------------------------------------------------------------
 CJoinOrder::SEdge::SEdge
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr
 	)
 	:
@@ -161,7 +161,7 @@ CJoinOrder::SEdge::SEdge
 	m_pexpr(pexpr),
 	m_fUsed(false)
 {	
-	m_pbs = GPOS_NEW(pmp) CBitSet(pmp);
+	m_pbs = GPOS_NEW(mp) CBitSet(mp);
 }
 
 
@@ -212,12 +212,12 @@ CJoinOrder::SEdge::OsPrint
 //---------------------------------------------------------------------------
 CJoinOrder::CJoinOrder
 	(
-	IMemoryPool *pmp,
-	DrgPexpr *pdrgpexpr,
-	DrgPexpr *pdrgpexprConj
+	IMemoryPool *mp,
+	CExpressionArray *pdrgpexpr,
+	CExpressionArray *pdrgpexprConj
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_rgpedge(NULL),
 	m_ulEdges(0),
 	m_rgpcomp(NULL),
@@ -226,27 +226,27 @@ CJoinOrder::CJoinOrder
 	typedef SComponent* Pcomp;
 	typedef SEdge* Pedge;
 	
-	m_ulComps = pdrgpexpr->UlLength();
-	m_rgpcomp = GPOS_NEW_ARRAY(pmp, Pcomp, m_ulComps);
+	m_ulComps = pdrgpexpr->Size();
+	m_rgpcomp = GPOS_NEW_ARRAY(mp, Pcomp, m_ulComps);
 	
 	for (ULONG ul = 0; ul < m_ulComps; ul++)
 	{
 		CExpression *pexprComp = (*pdrgpexpr)[ul];
 		pexprComp->AddRef();
-		m_rgpcomp[ul] = GPOS_NEW(pmp) SComponent(pmp, pexprComp);
+		m_rgpcomp[ul] = GPOS_NEW(mp) SComponent(mp, pexprComp);
 		
 		// component always covers itself
-		(void) m_rgpcomp[ul]->m_pbs->FExchangeSet(ul);
+		(void) m_rgpcomp[ul]->m_pbs->ExchangeSet(ul);
 	}
 
-	m_ulEdges = pdrgpexprConj->UlLength();
-	m_rgpedge = GPOS_NEW_ARRAY(pmp, Pedge, m_ulEdges);
+	m_ulEdges = pdrgpexprConj->Size();
+	m_rgpedge = GPOS_NEW_ARRAY(mp, Pedge, m_ulEdges);
 	
 	for (ULONG ul = 0; ul < m_ulEdges; ul++)
 	{
 		CExpression *pexprEdge = (*pdrgpexprConj)[ul];
 		pexprEdge->AddRef();
-		m_rgpedge[ul] = GPOS_NEW(pmp) SEdge(pmp, pexprEdge);
+		m_rgpedge[ul] = GPOS_NEW(mp) SEdge(mp, pexprEdge);
 	}
 	
 	pdrgpexpr->Release();
@@ -294,16 +294,16 @@ CJoinOrder::ComputeEdgeCover()
 	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
 	{
 		CExpression *pexpr = m_rgpedge[ulEdge]->m_pexpr;
-		CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexpr->PdpDerive())->PcrsUsed();
+		CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive())->PcrsUsed();
 
 		for (ULONG ulComp = 0; ulComp < m_ulComps; ulComp++)
 		{
 			CExpression *pexprComp = m_rgpcomp[ulComp]->m_pexpr;
-			CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel(pexprComp->PdpDerive())->PcrsOutput();
+			CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(pexprComp->PdpDerive())->PcrsOutput();
 
-			if (!pcrsUsed->FDisjoint(pcrsOutput))
+			if (!pcrsUsed->IsDisjoint(pcrsOutput))
 			{
-				(void) m_rgpedge[ulEdge]->m_pbs->FExchangeSet(ulComp);
+				(void) m_rgpedge[ulEdge]->m_pbs->ExchangeSet(ulComp);
 			}
 		}
 	}
@@ -325,10 +325,10 @@ CJoinOrder::PcompCombine
 	SComponent *pcompInner
 	)
 {
-	CBitSet *pbs = GPOS_NEW(m_pmp) CBitSet(m_pmp);
+	CBitSet *pbs = GPOS_NEW(m_mp) CBitSet(m_mp);
 	pbs->Union(pcompOuter->m_pbs);
 	pbs->Union(pcompInner->m_pbs);
-	DrgPexpr *pdrgpexpr = GPOS_NEW(m_pmp) DrgPexpr(m_pmp);
+	CExpressionArray *pdrgpexpr = GPOS_NEW(m_mp) CExpressionArray(m_mp);
 	for (ULONG ul = 0; ul < m_ulEdges; ul++)
 	{
 		SEdge *pedge = m_rgpedge[ul];
@@ -338,7 +338,7 @@ CJoinOrder::PcompCombine
 			continue;
 		}
 
-		if (pbs->FSubset(pedge->m_pbs))
+		if (pbs->ContainsAll(pedge->m_pbs))
 		{
 			// edge is subsumed by the cover of the combined component
 			CExpression *pexpr = pedge->m_pexpr;
@@ -349,13 +349,13 @@ CJoinOrder::PcompCombine
 
 	CExpression *pexprOuter = pcompOuter->m_pexpr;
 	CExpression *pexprInner = pcompInner->m_pexpr;
-	CExpression *pexprScalar = CPredicateUtils::PexprConjunction(m_pmp, pdrgpexpr);
+	CExpression *pexprScalar = CPredicateUtils::PexprConjunction(m_mp, pdrgpexpr);
 
 	CExpression *pexpr = NULL;
 	if (NULL == pexprOuter)
 	{
 		// first call to this function, we create a Select node
-		pexpr = CUtils::PexprCollapseSelect(m_pmp, pexprInner, pexprScalar);
+		pexpr = CUtils::PexprCollapseSelect(m_mp, pexprInner, pexprScalar);
 		pexprScalar->Release();
 	}
 	else
@@ -363,10 +363,10 @@ CJoinOrder::PcompCombine
 		// not first call, we create an Inner Join
 		pexprInner->AddRef();
 		pexprOuter->AddRef();
-		pexpr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(m_pmp, pexprOuter, pexprInner, pexprScalar);
+		pexpr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(m_mp, pexprOuter, pexprInner, pexprScalar);
 	}
 
-	return GPOS_NEW(m_pmp) SComponent(pexpr, pbs);
+	return GPOS_NEW(m_mp) SComponent(pexpr, pbs);
 }
 
 
@@ -392,9 +392,9 @@ CJoinOrder::DeriveStats
 		return;
 	}
 
-	CExpressionHandle exprhdl(m_pmp);
+	CExpressionHandle exprhdl(m_mp);
 	exprhdl.Attach(pexpr);
-	exprhdl.DeriveStats(m_pmp, m_pmp, NULL /*prprel*/, NULL /*pdrgpstatCtxt*/);
+	exprhdl.DeriveStats(m_mp, m_mp, NULL /*prprel*/, NULL /*pdrgpstatCtxt*/);
 }
 
 

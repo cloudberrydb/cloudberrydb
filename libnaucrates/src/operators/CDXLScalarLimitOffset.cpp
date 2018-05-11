@@ -29,24 +29,24 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarLimitOffset::CDXLScalarLimitOffset
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLScalar(pmp)
+	CDXLScalar(mp)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarLimitOffset::Edxlop
+//		CDXLScalarLimitOffset::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarLimitOffset::Edxlop() const
+CDXLScalarLimitOffset::GetDXLOperator() const
 {
 	return EdxlopScalarLimitOffset;
 }
@@ -54,16 +54,16 @@ CDXLScalarLimitOffset::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarLimitOffset::PstrOpName
+//		CDXLScalarLimitOffset::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarLimitOffset::PstrOpName() const
+CDXLScalarLimitOffset::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarLimitOffset);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarLimitOffset);
 }
 
 //---------------------------------------------------------------------------
@@ -77,16 +77,16 @@ CDXLScalarLimitOffset::PstrOpName() const
 void
 CDXLScalarLimitOffset::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	node->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -102,22 +102,22 @@ CDXLScalarLimitOffset::SerializeToDXL
 void
 CDXLScalarLimitOffset::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) 
 	const
 {
-	const ULONG ulArity = pdxln->UlArity();
-	GPOS_ASSERT(1 >= ulArity);
+	const ULONG arity = node->Arity();
+	GPOS_ASSERT(1 >= arity);
 
-	for (ULONG ul = 0; ul < ulArity; ++ul)
+	for (ULONG ul = 0; ul < arity; ++ul)
 	{
-		CDXLNode *pdxlnArg = (*pdxln)[ul];
-		GPOS_ASSERT(EdxloptypeScalar == pdxlnArg->Pdxlop()->Edxloperatortype());
+		CDXLNode *dxlnode_arg = (*node)[ul];
+		GPOS_ASSERT(EdxloptypeScalar == dxlnode_arg->GetOperator()->GetDXLOperatorType());
 		
-		if (fValidateChildren)
+		if (validate_children)
 		{
-			pdxlnArg->Pdxlop()->AssertValid(pdxlnArg, fValidateChildren);
+			dxlnode_arg->GetOperator()->AssertValid(dxlnode_arg, validate_children);
 		}
 	}
 }

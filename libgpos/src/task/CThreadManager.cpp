@@ -26,21 +26,21 @@ using namespace gpos;
 CThreadManager::CThreadManager()
 {
 	// initialize lists
-	m_tdlUnused.Init(GPOS_OFFSET(SThreadDescriptor, m_link));
-	m_tdlRunning.Init(GPOS_OFFSET(SThreadDescriptor, m_link));
-	m_tdlFinished.Init(GPOS_OFFSET(SThreadDescriptor, m_link));
+	m_unused_descriptors.Init(GPOS_OFFSET(ThreadDescriptor, m_link));
+	m_running_descriptors.Init(GPOS_OFFSET(ThreadDescriptor, m_link));
+	m_finished_descriptors.Init(GPOS_OFFSET(ThreadDescriptor, m_link));
 
 	// initialize pthread attribute
-	if (0 != pthread::IPthreadAttrInit(&m_pthrAttr))
+	if (0 != pthread::AttrInit(&m_pthread_attr))
 	{
 		// raise OOM exception
 		GPOS_OOM_CHECK(NULL);
 	}
 
-	if (0 != pthread::IPthreadAttrSetDetachState(&m_pthrAttr, PTHREAD_CREATE_JOINABLE))
+	if (0 != pthread::AttrSetDetachState(&m_pthread_attr, PTHREAD_CREATE_JOINABLE))
 	{
 		// release pthread attribute
-		pthread::PthreadAttrDestroy(&m_pthrAttr);
+		pthread::AttrDestroy(&m_pthread_attr);
 
 		// raise OOM exception
 		GPOS_OOM_CHECK(NULL);
@@ -49,8 +49,8 @@ CThreadManager::CThreadManager()
 	// add thread descriptors to unused list
 	for (ULONG i = 0; i < GPOS_THREAD_MAX; i++)
 	{
-		m_rgTd[i].ulId = i + 1;
-		m_tdlUnused.Append(&m_rgTd[i]);
+		m_thread_descriptors[i].id = i + 1;
+		m_unused_descriptors.Append(&m_thread_descriptors[i]);
 	}
 }
 
@@ -65,7 +65,7 @@ CThreadManager::CThreadManager()
 //---------------------------------------------------------------------------
 CThreadManager::~CThreadManager()
 {
-	pthread::PthreadAttrDestroy(&m_pthrAttr);
+	pthread::AttrDestroy(&m_pthread_attr);
 }
 
 //---------------------------------------------------------------------------
@@ -77,9 +77,9 @@ CThreadManager::~CThreadManager()
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CThreadManager::EresCreate()
+CThreadManager::Create()
 {
-	SThreadDescriptor *ptd = NULL;
+	ThreadDescriptor *descriptor = NULL;
 
 	// scope for lock
 	{
@@ -87,24 +87,24 @@ CThreadManager::EresCreate()
 		am.Lock();
 
 		// if all thread descriptors are used, try to claim some back
-		if (m_tdlUnused.FEmpty())
+		if (m_unused_descriptors.IsEmpty())
 		{
 			GC();
 		}
 
-		GPOS_ASSERT(!m_tdlUnused.FEmpty() && "No unused thread descriptor");
+		GPOS_ASSERT(!m_unused_descriptors.IsEmpty() && "No unused thread descriptor");
 
 		// get thread descriptor for new thread
-		ptd = m_tdlUnused.RemoveHead();
+		descriptor = m_unused_descriptors.RemoveHead();
 
 		// attempt to create thread
-		INT res = pthread::IPthreadCreate(&ptd->m_pthrdt, NULL /*pthrAttr*/, RunWorker, ptd);
+		INT res = pthread::Create(&descriptor->m_pthrdt, NULL /*pthrAttr*/, RunWorker, descriptor);
 
 		// check for error
 		if (0 != res)
 		{
 			// return thread descriptor to unused list
-			m_tdlUnused.Prepend(ptd);
+			m_unused_descriptors.Prepend(descriptor);
 
 			return GPOS_FAILED;
 		}
@@ -112,7 +112,7 @@ CThreadManager::EresCreate()
 		SetSignalMask();
 
 		// add thread descriptor to running list
-		m_tdlRunning.Append(ptd);
+		m_running_descriptors.Append(descriptor);
 
 		return GPOS_OK;
 	}
@@ -131,33 +131,33 @@ CThreadManager::EresCreate()
 void *
 CThreadManager::RunWorker
 	(
-	void *pv
+	void *worker
 	)
 {
-	SThreadDescriptor *ptd = reinterpret_cast<SThreadDescriptor *>(pv);
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	ThreadDescriptor *descriptor = reinterpret_cast<ThreadDescriptor *>(worker);
+	CWorkerPoolManager *worker_pool_mgr = CWorkerPoolManager::WorkerPoolManager();
 
 	// use try/catch block instead of GPOS_TRY/GPOS_CATCH
 	// to catch any possible exception (not only GPOS-defined)
 	try
 	{
 		// assign worker to thread
-		CWorker wrkr(ptd->ulId, GPOS_WORKER_STACK_SIZE, (ULONG_PTR) &ptd);
+		CWorker new_worker(descriptor->id, GPOS_WORKER_STACK_SIZE, (ULONG_PTR) &descriptor);
 
 		// run task execution loop
-		wrkr.Run();
+		new_worker.Run();
 
 		// mark thread as finished
-		pwpm->m_tm.SetFinished(ptd);
+		worker_pool_mgr->m_thread_manager.SetFinished(descriptor);
 	}
 	catch(CException ex)
 	{
 		std::cerr
 			<< "Unexpected exception reached top of execution stack:"
-			<< " major=" << ex.UlMajor()
-			<< " minor=" << ex.UlMinor()
-			<< " file=" << ex.SzFilename()
-			<< " line=" << ex.UlLine()
+			<< " major=" << ex.Major()
+			<< " minor=" << ex.Minor()
+			<< " file=" << ex.Filename()
+			<< " line=" << ex.Line()
 			<< std::endl;
 
 		GPOS_ASSERT(!"Unexpected exception reached top of execution stack");
@@ -184,7 +184,7 @@ CThreadManager::RunWorker
 void
 CThreadManager::SetFinished
 	(
-	SThreadDescriptor *ptd
+	ThreadDescriptor *descriptor
 	)
 {
 	CAutoMutex am(m_mutex);
@@ -194,8 +194,8 @@ CThreadManager::SetFinished
 	GC();
 
 	// move thread descriptor from running list to completed list
-	m_tdlRunning.Remove(ptd);
-	m_tdlFinished.Append(ptd);
+	m_running_descriptors.Remove(descriptor);
+	m_finished_descriptors.Append(descriptor);
 }
 
 
@@ -212,16 +212,16 @@ CThreadManager::SetFinished
 void
 CThreadManager::GC()
 {
-	while (!m_tdlFinished.FEmpty())
+	while (!m_finished_descriptors.IsEmpty())
 	{
 		// get descriptor of finished thread
-		SThreadDescriptor *ptd = m_tdlFinished.RemoveHead();
+		ThreadDescriptor *descriptor = m_finished_descriptors.RemoveHead();
 
 		// join thread
-		pthread::IPthreadJoin(ptd->m_pthrdt, NULL);
+		pthread::Join(descriptor->m_pthrdt, NULL);
 
 		// add thread descriptor to unused list
-		m_tdlUnused.Prepend(ptd);
+		m_unused_descriptors.Prepend(descriptor);
 	}
 }
 
@@ -249,14 +249,14 @@ CThreadManager::ShutDown()
 		GC();
 
 		// check if all threads have exited
-		if (GPOS_THREAD_MAX == m_tdlUnused.UlSize())
+		if (GPOS_THREAD_MAX == m_unused_descriptors.Size())
 		{
 			break;
 		}
 	}
 
-	GPOS_ASSERT(m_tdlRunning.FEmpty());
-	GPOS_ASSERT(m_tdlFinished.FEmpty());
+	GPOS_ASSERT(m_running_descriptors.IsEmpty());
+	GPOS_ASSERT(m_finished_descriptors.IsEmpty());
 }
 
 
@@ -285,33 +285,33 @@ CThreadManager::SetSignalMask()
 	pthread::SigAddSet(&sigset, SIGTERM);
 	pthread::SigAddSet(&sigset, SIGQUIT);
 
-	pthread::PthreadSigMask(SIG_BLOCK, &sigset, NULL /*psetOld*/);
+	pthread::SigMask(SIG_BLOCK, &sigset, NULL /*psetOld*/);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CThreadManager::FRunningThread
+//		CThreadManager::IsThreadRunning
 //
 //	@doc:
 //		Check if given thread is in the running threads list
 //
 //---------------------------------------------------------------------------
 BOOL
-CThreadManager::FRunningThread
+CThreadManager::IsThreadRunning
 	(
-	PTHREAD_T pthrdt
+	PTHREAD_T thread
 	)
 {
-	SThreadDescriptor *ptd = m_tdlRunning.PtFirst();
-	while (NULL != ptd)
+	ThreadDescriptor *descriptor = m_running_descriptors.First();
+	while (NULL != descriptor)
 	{
-		if (pthrdt == ptd->m_pthrdt)
+		if (thread == descriptor->m_pthrdt)
 		{
 			return true;
 		}
 
-		ptd = m_tdlRunning.PtNext(ptd);
+		descriptor = m_running_descriptors.Next(descriptor);
 	}
 
 	return false;

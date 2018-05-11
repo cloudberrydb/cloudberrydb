@@ -6,7 +6,7 @@
 //		ITimer.h
 //
 //	@doc:
-//		A timer which records time between construction and the UlElapsedMS call;
+//		A timer which records time between construction and the ElapsedMS call;
 //---------------------------------------------------------------------------
 #ifndef GPOS_ITimer_H
 #define GPOS_ITimer_H
@@ -44,12 +44,12 @@ namespace gpos
 
 			// retrieve elapsed time in micro-seconds
 			virtual
-			ULONG UlElapsedUS() const = 0;
+			ULONG ElapsedUS() const = 0;
 
 			// retrieve elapsed time in milli-seconds
-			ULONG UlElapsedMS() const
+			ULONG ElapsedMS() const
 			{
-				return UlElapsedUS() / GPOS_USEC_IN_MSEC;
+				return ElapsedUS() / GPOS_USEC_IN_MSEC;
 			}
 
 			// restart timer

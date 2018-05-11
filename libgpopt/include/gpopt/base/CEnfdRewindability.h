@@ -72,7 +72,7 @@ namespace gpopt
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// check if the given rewindability specification is compatible with the
 			// rewindability specification of this object for the specified matching type
@@ -107,7 +107,7 @@ namespace gpopt
 			}
 
 			// matching function
-			BOOL FMatch
+			BOOL Matches
 				(
 				CEnfdRewindability *per
 				)
@@ -115,7 +115,7 @@ namespace gpopt
 				GPOS_ASSERT(NULL != per);
 
 				return m_erm == per->Erm() &&
-						m_prs->FMatch(per->PrsRequired());
+						m_prs->Matches(per->PrsRequired());
 			}
 
 

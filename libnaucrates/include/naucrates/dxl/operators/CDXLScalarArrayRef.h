@@ -33,16 +33,16 @@ namespace gpdxl
 		private:
 
 			// base element type id
-			IMDId *m_pmdidElem;
+			IMDId *m_elem_type_mdid;
 
 			// element type modifier
-			INT m_iTypeModifier;
+			INT m_type_modifier;
 
 			// array type id
-			IMDId *m_pmdidArray;
+			IMDId *m_array_type_mdid;
 
 			// return type id
-			IMDId *m_pmdidReturn;
+			IMDId *m_return_type_mdid;
 
 			// private copy ctor
 			CDXLScalarArrayRef(const CDXLScalarArrayRef&);
@@ -51,11 +51,11 @@ namespace gpdxl
 			// ctor
 			CDXLScalarArrayRef
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidElem,
-				INT iTypeModifier,
-				IMDId *pmdidArray,
-				IMDId *pmdidReturn
+				IMemoryPool *mp,
+				IMDId *elem_type_mdid,
+				INT type_modifier,
+				IMDId *array_type_mdid,
+				IMDId *return_type_mdid
 				);
 
 			// dtor
@@ -64,60 +64,60 @@ namespace gpdxl
 
 			// ident accessors
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// element type id
-			IMDId *PmdidElem() const
+			IMDId *ElementTypeMDid() const
 			{
-				return m_pmdidElem;
+				return m_elem_type_mdid;
 			}
 
 			// element type modifier
 			INT
-			ITypeModifier() const;
+			TypeModifier() const;
 
 			// array type id
-			IMDId *PmdidArray() const
+			IMDId *ArrayTypeMDid() const
 			{
-				return m_pmdidArray;
+				return m_array_type_mdid;
 			}
 
 			// return type id
-			IMDId *PmdidReturn() const
+			IMDId *ReturnTypeMDid() const
 			{
-				return m_pmdidReturn;
+				return m_return_type_mdid;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
 			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// conversion function
 			static
-			CDXLScalarArrayRef *PdxlopConvert
+			CDXLScalarArrayRef *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarArrayRef == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarArrayRef == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarArrayRef*>(pdxlop);
+				return dynamic_cast<CDXLScalarArrayRef*>(dxl_op);
 			}
 	};
 }

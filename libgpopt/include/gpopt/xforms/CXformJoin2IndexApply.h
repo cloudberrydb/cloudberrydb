@@ -30,7 +30,7 @@ namespace gpopt
 			// for homogeneous b-tree indexes
 			void CreateHomogeneousBtreeIndexApplyAlternatives
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
@@ -38,7 +38,7 @@ namespace gpopt
 				CTableDescriptor *ptabdescInner,
 				CLogicalDynamicGet *popDynamicGet,
 				CColRefSet *pcrsScalarExpr,
-				CColRefSet *pcrsOuterRefs,
+				CColRefSet *outer_refs,
 				CColRefSet *pcrsReqd,
 				ULONG ulIndices,
 				CXformResult *pxfres
@@ -48,14 +48,14 @@ namespace gpopt
 			// for homogeneous b-tree indexes
 			void CreateAlternativesForBtreeIndex
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
-				CMDAccessor *pmda,
-				DrgPexpr *pdrgpexprConjuncts,
+				CMDAccessor *md_accessor,
+				CExpressionArray *pdrgpexprConjuncts,
 				CColRefSet *pcrsScalarExpr,
-				CColRefSet *pcrsOuterRefs,
+				CColRefSet *outer_refs,
 				CColRefSet *pcrsReqd,
 				const IMDRelation *pmdrel,
 				const IMDIndex *pmdindex,
@@ -67,13 +67,13 @@ namespace gpopt
 			// for homogeneous bitmap indexes
 			void CreateHomogeneousBitmapIndexApplyAlternatives
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression *pexprScalar,
 				CTableDescriptor *ptabdescInner,
-				CColRefSet *pcrsOuterRefs,
+				CColRefSet *outer_refs,
 				CColRefSet *pcrsReqd,
 				CXformResult *pxfres
 				) const;
@@ -82,7 +82,7 @@ namespace gpopt
 			// columns, outer references and required columns
 			void ComputeColumnSets
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprInner,
 				CExpression *pexprScalar,
 				CColRefSet **ppcrsScalarExpr,
@@ -93,13 +93,13 @@ namespace gpopt
 			// create an index apply plan when applicable
 			void CreatePartialIndexApplyPlan
 					(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					ULONG ulOriginOpId,
 					CExpression *pexprOuter,
 					CExpression *pexprScalar,
-					CColRefSet *pcrsOuterRefs,
+					CColRefSet *outer_refs,
 					CLogicalDynamicGet *popDynamicGet,
-					DrgPpartdig *pdrgppartdig,
+					SPartDynamicIndexGetInfoArray *pdrgppartdig,
 					const IMDRelation *pmdrel,
 					CXformResult *pxfres
 					) const;
@@ -108,55 +108,55 @@ namespace gpopt
 			// partition constraint
 			CExpression *PexprJoinOverCTEConsumer
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulOriginOpId,
 				CLogicalDynamicGet *popDynamicGet,
 				ULONG ulCTEId,
 				CExpression *pexprScalar,
-				DrgPcr *pdrgpcrDynamicGet,
+				CColRefArray *pdrgpcrDynamicGet,
 				CPartConstraint *ppartcnstr,
-				DrgPcr *pdrgpcrOuter,
-				DrgPcr *pdrgpcrOuterNew
+				CColRefArray *pdrgpcrOuter,
+				CColRefArray *pdrgpcrOuterNew
 				) const;
 
 			// create an index apply with a CTE consumer on the outer branch
 			// and a dynamic get on the inner one
 			CExpression *PexprIndexApplyOverCTEConsumer
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulOriginOpId,
 				CLogicalDynamicGet *popDynamicGet,
-				DrgPexpr *pdrgpexprIndex,
-				DrgPexpr *pdrgpexprResidual,
-				DrgPcr *pdrgpcrIndexGet,
+				CExpressionArray *pdrgpexprIndex,
+				CExpressionArray *pdrgpexprResidual,
+				CColRefArray *pdrgpcrIndexGet,
 				const IMDIndex *pmdindex,
 				const IMDRelation *pmdrel,
 				BOOL fFirst,
 				ULONG ulCTEId,
 				CPartConstraint *ppartcnstr,
-				CColRefSet *pcrsOuterRefs,
-				DrgPcr *pdrgpcrOuter,
-				DrgPcr *pdrgpcrOuterNew,
-				DrgPcr *pdrgpcrOuterRefsInScan,
-				DrgPul *pdrgpulIndexesOfRefsInScan
+				CColRefSet *outer_refs,
+				CColRefArray *pdrgpcrOuter,
+				CColRefArray *pdrgpcrOuterNew,
+				CColRefArray *pdrgpcrOuterRefsInScan,
+				ULongPtrArray *pdrgpulIndexesOfRefsInScan
 				) const;
 
 			// create a union-all with the given children
 			CExpression *PexprConstructUnionAll
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrLeftSchema,
-				DrgPcr *pdrgpcrRightSchema,
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrLeftSchema,
+				CColRefArray *pdrgpcrRightSchema,
 				CExpression *pexprLeftChild,
 				CExpression *pexprRightChild,
-				ULONG ulScanId
+				ULONG scan_id
 				) const;
 
 			//	construct a CTE Anchor over the given UnionAll and adds it to the given
 			//	Xform result
 			void AddUnionPlanForPartialIndexes
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CLogicalDynamicGet *popDynamicGet,
 				ULONG ulCTEId,
 				CExpression *pexprUnion,
@@ -182,7 +182,7 @@ namespace gpopt
 			virtual
 			void CreateHomogeneousIndexApplyAlternatives
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
@@ -198,7 +198,7 @@ namespace gpopt
 			virtual
 			void CreatePartialIndexApplyAlternatives
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG ulOriginOpId,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
@@ -213,7 +213,7 @@ namespace gpopt
 			// takes the ownership and responsibility to release
 			// the instance.
 			virtual
-			CLogicalJoin *PopLogicalJoin(IMemoryPool *pmp) const = 0;
+			CLogicalJoin *PopLogicalJoin(IMemoryPool *mp) const = 0;
 
 			// return the new instance of logical apply operator
 			// that it is trying to transform to in the current
@@ -222,8 +222,8 @@ namespace gpopt
 			virtual
 			CLogicalApply *PopLogicalApply
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrOuterRefs
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrOuterRefs
 				) const = 0;
 
 		public:

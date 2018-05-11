@@ -23,7 +23,7 @@ namespace gpopt
 	class CPartKeys;
 
 	// array of part keys
-	typedef CDynamicPtrArray<CPartKeys, CleanupRelease> DrgPpartkeys;
+	typedef CDynamicPtrArray<CPartKeys, CleanupRelease> CPartKeysArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -38,10 +38,10 @@ namespace gpopt
 		private:
 
 			// partitioning keys
-			DrgDrgPcr *m_pdrgpdrgpcr;
+			CColRef2dArray *m_pdrgpdrgpcr;
 
 			// number of levels
-			ULONG m_ulLevels;
+			ULONG m_num_of_part_levels;
 
 			// private copy ctor
 			CPartKeys(const CPartKeys &);
@@ -50,7 +50,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CPartKeys(DrgDrgPcr *pdrgpdrgpcr);
+			CPartKeys(CColRef2dArray *pdrgpdrgpcr);
 
 			// dtor
 			~CPartKeys();
@@ -59,33 +59,33 @@ namespace gpopt
 			CColRef *PcrKey(ULONG ulLevel) const;
 
 			// return array of keys
-			DrgDrgPcr *Pdrgpdrgpcr() const
+			CColRef2dArray *Pdrgpdrgpcr() const
 			{
 				return m_pdrgpdrgpcr;
 			}
 
 			// number of levels
-			ULONG UlLevels() const
+			ULONG GetPartitioningLevel() const
 			{
-				return m_ulLevels;
+				return m_num_of_part_levels;
 			}
 
 			// copy part key into the given memory pool
-			CPartKeys *PpartkeysCopy(IMemoryPool *pmp);
+			CPartKeys *PpartkeysCopy(IMemoryPool *mp);
 
 			// check whether the key columns overlap the given column
 			BOOL FOverlap(CColRefSet *pcrs) const;
 
 			// create a new PartKeys object from the current one by remapping the
 			// keys using the given hashmap
-			CPartKeys *PpartkeysRemap(IMemoryPool *pmp, HMUlCr *phmulcr) const;
+			CPartKeys *PpartkeysRemap(IMemoryPool *mp, UlongToColRefMap *colref_mapping) const;
 
 			// print
 			IOstream &OsPrint(IOstream &) const;
 
 			// copy array of part keys into given memory pool
 			static
-			DrgPpartkeys *PdrgppartkeysCopy(IMemoryPool *pmp, const DrgPpartkeys *pdrgppartkeys);
+			CPartKeysArray *PdrgppartkeysCopy(IMemoryPool *mp, const CPartKeysArray *pdrgppartkeys);
 
 #ifdef GPOS_DEBUG
 			// debug print for interactive debugging sessions only

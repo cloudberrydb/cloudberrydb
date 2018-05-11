@@ -37,35 +37,35 @@ namespace gpopt
 
 			// the array of expressions from the outer relation
 			// that are extracted from the hashing condition
-			DrgPexpr *m_pdrgpexprOuterKeys;
+			CExpressionArray *m_pdrgpexprOuterKeys;
 
 			// the array of expressions from the inner relation
 			// that are extracted from the hashing condition
-			DrgPexpr *m_pdrgpexprInnerKeys;
+			CExpressionArray *m_pdrgpexprInnerKeys;
 
 			// array redistribute request sent to the first hash join child
-			DrgPds *m_pdrgpdsRedistributeRequests;
+			CDistributionSpecArray *m_pdrgpdsRedistributeRequests;
 
 			// private copy ctor
 			CPhysicalHashJoin(const CPhysicalHashJoin &);
 
 			// create the set of redistribute requests to send to first hash join child
-			void CreateHashRedistributeRequests(IMemoryPool *pmp);
+			void CreateHashRedistributeRequests(IMemoryPool *mp);
 
 			// compute a distribution matching the distribution delivered by given child
-			CDistributionSpec *PdsMatch(IMemoryPool *pmp, CDistributionSpec *pds, ULONG ulSourceChildIndex) const;
+			CDistributionSpec *PdsMatch(IMemoryPool *mp, CDistributionSpec *pds, ULONG ulSourceChildIndex) const;
 
 			// compute required hashed distribution from the n-th child
-			CDistributionSpecHashed *PdshashedRequired(IMemoryPool *pmp, ULONG ulChildIndex, ULONG ulReqIndex) const;
+			CDistributionSpecHashed *PdshashedRequired(IMemoryPool *mp, ULONG child_index, ULONG ulReqIndex) const;
 
 			// create (redistribute, redistribute) optimization request
 			CDistributionSpec *PdsRequiredRedistribute
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsInput,
-				ULONG  ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG  child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -73,11 +73,11 @@ namespace gpopt
 			// create (non-singleton, replicate) optimization request
 			CDistributionSpec *PdsRequiredReplicate
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsInput,
-				ULONG  ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG  child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -85,11 +85,11 @@ namespace gpopt
 			// create (singleton, singleton) optimization request
 			CDistributionSpec *PdsRequiredSingleton
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsInput,
-				ULONG  ulChildIndex,
-				DrgPdp *pdrgpdpCtxt
+				ULONG  child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt
 				)
 				const;
 
@@ -97,11 +97,11 @@ namespace gpopt
 			// return NULL if no such request can be created
 			CDistributionSpecHashed *PdshashedPassThru
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle  &exprhdl,
 				CDistributionSpecHashed *pdshashedInput,
-				ULONG  ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG  child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -112,7 +112,7 @@ namespace gpopt
 		protected:
 			
 			// helper for computing a hashed distribution matching the given distribution
-                        CDistributionSpecHashed *PdshashedMatching(IMemoryPool *pmp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
+                        CDistributionSpecHashed *PdshashedMatching(IMemoryPool *mp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
 
 			// check whether the hash keys from one child are nullable
 			BOOL FNullableHashKeys(CColRefSet *pcrsNotNullInner, BOOL fInner) const;
@@ -122,9 +122,9 @@ namespace gpopt
 			// ctor
 			CPhysicalHashJoin
 				(
-				IMemoryPool *pmp,
-				DrgPexpr *pdrgpexprOuterKeys,
-				DrgPexpr *pdrgpexprInnerKeys
+				IMemoryPool *mp,
+				CExpressionArray *pdrgpexprOuterKeys,
+				CExpressionArray *pdrgpexprInnerKeys
 				);
 
 			// dtor
@@ -132,13 +132,13 @@ namespace gpopt
 			~CPhysicalHashJoin();
 
 			// inner keys
-			const DrgPexpr *PdrgpexprInnerKeys() const
+			const CExpressionArray *PdrgpexprInnerKeys() const
 			{
 				return m_pdrgpexprInnerKeys;
 			}
 
 			// outer keys
-			const DrgPexpr *PdrgpexprOuterKeys() const
+			const CExpressionArray *PdrgpexprOuterKeys() const
 			{
 				return m_pdrgpexprOuterKeys;
 			}
@@ -151,11 +151,11 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posInput,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -164,11 +164,11 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -177,11 +177,11 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -194,13 +194,13 @@ namespace gpopt
 			virtual
 			COrderSpec *PosDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 				const
 			{
 				// hash join is not order-preserving
-				return GPOS_NEW(pmp) COrderSpec(pmp);
+				return GPOS_NEW(mp) COrderSpec(mp);
 			}
 
 			//-------------------------------------------------------------------------------------

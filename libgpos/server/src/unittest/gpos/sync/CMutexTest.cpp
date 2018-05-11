@@ -62,15 +62,15 @@ CMutexTest::EresUnittest_LockRelease()
 	CMutex mutex;
 	mutex.Lock();
 
-	GPOS_ASSERT(mutex.FOwned());
+	GPOS_ASSERT(mutex.IsOwned());
 
 	mutex.Unlock();
 	
-	GPOS_ASSERT(!mutex.FOwned());
+	GPOS_ASSERT(!mutex.IsOwned());
 	
-	(void)mutex.FTryLock();
+	(void)mutex.TryLock();
 	
-	GPOS_ASSERT(mutex.FOwned());
+	GPOS_ASSERT(mutex.IsOwned());
 	
 	mutex.Unlock();
 
@@ -99,11 +99,11 @@ CMutexTest::EresUnittest_Recursion()
 
 	for(ULONG i = 0; i < c; i++)
 	{
-		GPOS_ASSERT(mutex.FOwned());
+		GPOS_ASSERT(mutex.IsOwned());
 		mutex.Unlock();
 	}
 
-	GPOS_ASSERT(!mutex.FOwned());
+	GPOS_ASSERT(!mutex.IsOwned());
 
 	return GPOS_OK;
 
@@ -125,18 +125,18 @@ CMutexTest::EresUnittest_Concurrency()
 	CMutexOS mutex;
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for tasks
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CTask *rgPtsk[GPOS_MUTEX_THREADS];
 
 		for (ULONG i = 0; i < GPOS_MUTEX_THREADS; i++)
 		{
-			rgPtsk[i] = atp.PtskCreate(CMutexTest::PvUnittest_ConcurrencyRun, &mutex);
+			rgPtsk[i] = atp.Create(CMutexTest::PvUnittest_ConcurrencyRun, &mutex);
 		}
 
 		for (ULONG i = 0; i < GPOS_MUTEX_THREADS; i++)
@@ -182,7 +182,7 @@ CMutexTest::PvUnittest_ConcurrencyRun
 		am.Lock();
 		am.Unlock();
 		
-		if (am.FTryLock())
+		if (am.TryLock())
 		{
 			am.Unlock();
 		}

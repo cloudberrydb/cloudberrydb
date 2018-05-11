@@ -28,17 +28,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementDML::CXformImplementDML
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementation
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalDML(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))
+				mp,
+				GPOS_NEW(mp) CLogicalDML(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))
 				)
 		)
 {}
@@ -84,7 +84,7 @@ CXformImplementDML::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalDML *popDML = CLogicalDML::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 
@@ -93,7 +93,7 @@ CXformImplementDML::Transform
 	CTableDescriptor *ptabdesc = popDML->Ptabdesc();
 	ptabdesc->AddRef();
 	
-	DrgPcr *pdrgpcrSource = popDML->PdrgpcrSource();
+	CColRefArray *pdrgpcrSource = popDML->PdrgpcrSource();
 	pdrgpcrSource->AddRef();
 	CBitSet *pbsModified = popDML->PbsModified();
 	pbsModified->AddRef();
@@ -110,10 +110,10 @@ CXformImplementDML::Transform
 
 	// create physical DML
 	CExpression *pexprAlt = 
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalDML(pmp, edmlop, ptabdesc, pdrgpcrSource, pbsModified, pcrAction, pcrTableOid, pcrCtid, pcrSegmentId, pcrTupleOid),
+			mp,
+			GPOS_NEW(mp) CPhysicalDML(mp, edmlop, ptabdesc, pdrgpcrSource, pbsModified, pcrAction, pcrTableOid, pcrCtid, pcrSegmentId, pcrTupleOid),
 			pexprChild
 			);
 	// add alternative to transformation result

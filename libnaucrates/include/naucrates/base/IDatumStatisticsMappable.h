@@ -47,45 +47,45 @@ namespace gpnaucrates
 			
 			// is datum mappable to a base type for statistics purposes
 			virtual 
-			BOOL FStatsMappable()
+			BOOL StatsMappable()
 			{
-				return this->FStatsComparable(this);
+				return this->StatsAreComparable(this);
 			}
 
 			// can datum be mapped to a double
 			virtual
-			BOOL FHasStatsDoubleMapping() const = 0;
+			BOOL IsDatumMappableToDouble() const = 0;
 
 			// map to double for statistics computation
 			virtual
-			CDouble DStatsMapping() const = 0;
+			CDouble GetDoubleMapping() const = 0;
 
 			// can datum be mapped to LINT
 			virtual
-			BOOL FHasStatsLINTMapping() const = 0;
+			BOOL IsDatumMappableToLINT() const = 0;
 
 			// map to LINT for statistics computation
 			virtual
-			LINT LStatsMapping() const = 0;
+			LINT GetLINTMapping() const = 0;
 
 			// statistics equality
 			virtual
-			BOOL FStatsEqual(const IDatum *pdatum) const;
+			BOOL StatsAreEqual(const IDatum *datum) const;
 
 			// statistics less than
 			virtual
-			BOOL FStatsLessThan(const IDatum *pdatum) const;
+			BOOL StatsAreLessThan(const IDatum *datum) const;
 
 			// check if the given pair of datums are stats comparable
 			virtual
-			BOOL FStatsComparable(const IDatum *pdatum) const;
+			BOOL StatsAreComparable(const IDatum *datum) const;
 
 			// distance function
 			virtual
-			CDouble DStatsDistance(const IDatum *pdatum) const;
+			CDouble GetStatsDistanceFrom(const IDatum *datum) const;
 
-			// return double representation of mapping value
-			CDouble DMappingVal() const;
+		// return double representation of mapping value
+			CDouble GetValAsDouble() const;
 
 	}; // class IDatumStatisticsMappable
 

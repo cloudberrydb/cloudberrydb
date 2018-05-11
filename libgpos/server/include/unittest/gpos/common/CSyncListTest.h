@@ -36,7 +36,7 @@ namespace gpos
 			struct SElem
 			{
 				// object id
-				ULONG m_ulId;
+				ULONG m_id;
 
 				// generic link for list
 				SLink m_link;
@@ -44,7 +44,7 @@ namespace gpos
 				// ctor
 				SElem()
 					:
-					m_ulId(0)
+					m_id(0)
 				{}
 			};
 
@@ -65,12 +65,12 @@ namespace gpos
 					(
 					CSyncList<SElem> *pstack,
 					CSyncPool<SElem> *psp,
-					ULONG ulCount
+					ULONG count
 					)
 					:
 					m_plist(pstack),
 					m_psp(psp),
-					m_ulCount(ulCount)
+					m_ulCount(count)
 				{}
 
 				// ctor
@@ -87,9 +87,9 @@ namespace gpos
 			static void *RunPop(void *pv);
 
 			// task management functions
-			static void ConcurrentPush(IMemoryPool *pmp, SArg *parg);
-			static void ConcurrentPushPop(IMemoryPool *pmp, SArg *parg);
-			static void ConcurrentPop(IMemoryPool *pmp, SArg *parg);
+			static void ConcurrentPush(IMemoryPool *mp, SArg *parg);
+			static void ConcurrentPushPop(IMemoryPool *mp, SArg *parg);
+			static void ConcurrentPop(IMemoryPool *mp, SArg *parg);
 			static void RunTasks(CAutoTaskProxy *patp, CTask **rgptsk, ULONG ulTasks);
 
 		public:

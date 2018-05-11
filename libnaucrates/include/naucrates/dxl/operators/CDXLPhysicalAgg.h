@@ -53,23 +53,23 @@ namespace gpdxl
 			CDXLPhysicalAgg(const CDXLPhysicalAgg&);
 			
 			// grouping column ids
-			DrgPul *m_pdrgpulGroupingCols;
+			ULongPtrArray *m_grouping_colids_array;
 			
-			EdxlAggStrategy m_edxlaggstr;
+		EdxlAggStrategy m_dxl_agg_strategy;
 			
 			// is it safe to stream the local hash aggregate
-			BOOL m_fStreamSafe;
+			BOOL m_stream_safe;
 			
 			// serialize output grouping columns indices in DXL
-			void SerializeGroupingColsToDXL(CXMLSerializer *pxmlser) const;
+			void SerializeGroupingColsToDXL(CXMLSerializer *xml_serializer) const;
 			
 		public:
 			// ctor
 			CDXLPhysicalAgg
 				(
-				IMemoryPool *pmp,
-				EdxlAggStrategy edxlaggstr,
-				BOOL fStreamSafe
+				IMemoryPool *mp,
+				EdxlAggStrategy dxl_agg_strategy,
+				BOOL stream_safe
 				);
 			
 			// dtor
@@ -77,44 +77,44 @@ namespace gpdxl
 			~CDXLPhysicalAgg();
 
 			// accessors
-			Edxlopid Edxlop() const;
-			EdxlAggStrategy Edxlaggstr() const;
+			Edxlopid GetDXLOperator() const;
+			EdxlAggStrategy GetAggStrategy() const;
 			
-			const CWStringConst *PstrOpName() const;
-			const CWStringConst *PstrAggStrategy() const;
+			const CWStringConst *GetOpNameStr() const;
+			const CWStringConst *GetAggStrategyNameStr() const;
 			const CWStringConst *PstrAggLevel() const;
-			const DrgPul *PdrgpulGroupingCols() const;
+			const ULongPtrArray *GetGroupingColidArray() const;
 			
 			// set grouping column indices
-			void SetGroupingCols(DrgPul *);
+			void SetGroupingCols(ULongPtrArray *);
 			
 			// is aggregate a hash aggregate that it safe to stream
-			BOOL FStreamSafe() const
+			BOOL IsStreamSafe() const
 			{
-				return (EdxlaggstrategyHashed == m_edxlaggstr) && m_fStreamSafe;
+			return (EdxlaggstrategyHashed == m_dxl_agg_strategy) && m_stream_safe;
 			}
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLPhysicalAgg *PdxlopConvert
+			CDXLPhysicalAgg *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalAgg == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalAgg == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalAgg*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalAgg*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

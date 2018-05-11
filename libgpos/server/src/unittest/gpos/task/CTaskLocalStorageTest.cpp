@@ -57,13 +57,13 @@ CTaskLocalStorageTest::EresUnittest_Basics()
 	CTestObject tobj;
 
 	// store object in TLS
-	ITask::PtskSelf()->Tls().Store(&tobj);
+	ITask::Self()->GetTls().Store(&tobj);
 
 	// assert identiy when looking it up
-	GPOS_ASSERT(&tobj == ITask::PtskSelf()->Tls().Ptlsobj(CTaskLocalStorage::EtlsidxTest));
+	GPOS_ASSERT(&tobj == ITask::Self()->GetTls().Get(CTaskLocalStorage::EtlsidxTest));
 
 	// clean out TLS
-	ITask::PtskSelf()->Tls().Remove(&tobj);
+	ITask::Self()->GetTls().Remove(&tobj);
 
 	return GPOS_OK;
 }
@@ -88,7 +88,7 @@ CTaskLocalStorageTest::EresUnittest_TraceFlags()
 
 	// test auto trace flag
 	{
-		CAutoTraceFlag atf(EtraceTest, false /*fVal*/);
+		CAutoTraceFlag atf(EtraceTest, false /*value*/);
 
 		GPOS_ASSERT(!GPOS_FTRACE(EtraceTest));
 	}
@@ -98,9 +98,9 @@ CTaskLocalStorageTest::EresUnittest_TraceFlags()
 	// test trace flag iterator
 	CTraceFlagIter tfi;
 	BOOL fFound = false;
-	while (tfi.FAdvance())
+	while (tfi.Advance())
 	{
-		GPOS_ASSERT_IMP(!fFound, EtraceTest == tfi.UlBit());
+		GPOS_ASSERT_IMP(!fFound, EtraceTest == tfi.Bit());
 		fFound = true;
 	}
 #endif // GPOS_DEBUG

@@ -47,23 +47,23 @@ namespace gpopt
 
 			// tests if the two arguments are equal
 			virtual
-			gpos::BOOL FEqual(const IDatum *pdatum1, const IDatum *pdatum2) const = 0;
+			gpos::BOOL Equals(const IDatum *datum1, const IDatum *datum2) const = 0;
 
 			// tests if the first argument is less than the second
 			virtual
-			gpos::BOOL FLessThan(const IDatum *pdatum1, const IDatum *pdatum2) const = 0;
+			gpos::BOOL IsLessThan(const IDatum *datum1, const IDatum *datum2) const = 0;
 
 			// tests if the first argument is less or equal to the second
 			virtual
-			gpos::BOOL FLessThanOrEqual(const IDatum *pdatum1, const IDatum *pdatum2) const = 0;
+			gpos::BOOL IsLessThanOrEqual(const IDatum *datum1, const IDatum *datum2) const = 0;
 
 			// tests if the first argument is greater than the second
 			virtual
-			gpos::BOOL FGreaterThan(const IDatum *pdatum1, const IDatum *pdatum2) const = 0;
+			gpos::BOOL IsGreaterThan(const IDatum *datum1, const IDatum *datum2) const = 0;
 
 			// tests if the first argument is greater or equal to the second
 			virtual
-			gpos::BOOL FGreaterThanOrEqual(const IDatum *pdatum1, const IDatum *pdatum2) const = 0;
+			gpos::BOOL IsGreaterThanOrEqual(const IDatum *datum1, const IDatum *datum2) const = 0;
 	};
 }
 

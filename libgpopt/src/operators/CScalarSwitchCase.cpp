@@ -26,23 +26,23 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarSwitchCase::CScalarSwitchCase
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CScalar(pmp)
+	CScalar(mp)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarSwitchCase::FMatch
+//		CScalarSwitchCase::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarSwitchCase::FMatch
+CScalarSwitchCase::Matches
 	(
 	COperator *pop
 	)

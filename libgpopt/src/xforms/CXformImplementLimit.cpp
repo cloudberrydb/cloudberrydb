@@ -27,19 +27,19 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementLimit::CXformImplementLimit
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformImplementation
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 						(
-						pmp, 
-						GPOS_NEW(pmp) CLogicalLimit(pmp),
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // relational child
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)),  // scalar child for offset
-						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))  // scalar child for number of rows
+						mp, 
+						GPOS_NEW(mp) CLogicalLimit(mp),
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // relational child
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),  // scalar child for offset
+						GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))  // scalar child for number of rows
 
 						)
 		)
@@ -67,7 +67,7 @@ CXformImplementLimit::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 		
 	// extract components
 	CLogicalLimit *popLimit = CLogicalLimit::PopConvert(pexpr->Pop());
@@ -84,16 +84,16 @@ CXformImplementLimit::Transform
 	
 	// assemble physical operator
 	CExpression *pexprLimit = 
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp, 
-					GPOS_NEW(pmp) CPhysicalLimit
+					mp, 
+					GPOS_NEW(mp) CPhysicalLimit
 						(
-						pmp,
+						mp,
 						pos,
 						popLimit->FGlobal(),
 						popLimit->FHasCount(),
-						popLimit->FTopLimitUnderDML()
+						popLimit->IsTopLimitUnderDMLorCTAS()
 						),
 					pexprRelational,
 					pexprScalarStart,

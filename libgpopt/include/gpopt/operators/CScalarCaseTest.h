@@ -33,7 +33,7 @@ namespace gpopt
 		private:
 
 			// type id
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// private copy ctor
 			CScalarCaseTest(const CScalarCaseTest &);
@@ -41,7 +41,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarCaseTest(IMemoryPool *pmp, IMDId *pmdidType);
+			CScalarCaseTest(IMemoryPool *mp, IMDId *mdid_type);
 
 			// dtor
 			virtual
@@ -63,18 +63,18 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				return m_pmdidType;
+				return m_mdid_type;
 			}
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
 			virtual BOOL
-			FMatch(COperator *pop) const;
+			Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -84,9 +84,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();

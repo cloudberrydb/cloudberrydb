@@ -33,19 +33,19 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerPhysicalSplit::CParseHandlerPhysicalSplit
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerPhysicalOp(pmp, pphm, pphRoot),
-	m_pdrgpulDelete(NULL),
-	m_pdrgpulInsert(NULL),
-	m_ulAction(0),
-	m_ulCtid(0),
-	m_ulSegmentId(0),	
-	m_fPreserveOids(false),
-	m_ulTupleOidColId(0)
+	CParseHandlerPhysicalOp(mp, parse_handler_mgr, parse_handler_root),
+	m_deletion_colid_array(NULL),
+	m_insert_colid_array(NULL),
+	m_action_colid(0),
+	m_ctid_colid(0),
+	m_segid_colid(0),	
+	m_preserve_oids(false),
+	m_tuple_oid_col_oid(0)
 {
 }
 
@@ -60,60 +60,60 @@ CParseHandlerPhysicalSplit::CParseHandlerPhysicalSplit
 void
 CParseHandlerPhysicalSplit::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes &attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalSplit), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalSplit), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	const XMLCh *xmlszDeleteColIds = CDXLOperatorFactory::XmlstrFromAttrs(attrs, EdxltokenDeleteCols, EdxltokenPhysicalSplit);
-	m_pdrgpulDelete = CDXLOperatorFactory::PdrgpulFromXMLCh(m_pphm->Pmm(), xmlszDeleteColIds, EdxltokenDeleteCols, EdxltokenPhysicalSplit);
+	const XMLCh *delete_colids = CDXLOperatorFactory::ExtractAttrValue(attrs, EdxltokenDeleteCols, EdxltokenPhysicalSplit);
+	m_deletion_colid_array = CDXLOperatorFactory::ExtractIntsToUlongArray(m_parse_handler_mgr->GetDXLMemoryManager(), delete_colids, EdxltokenDeleteCols, EdxltokenPhysicalSplit);
 
-	const XMLCh *xmlszInsertColIds = CDXLOperatorFactory::XmlstrFromAttrs(attrs, EdxltokenInsertCols, EdxltokenPhysicalSplit);
-	m_pdrgpulInsert = CDXLOperatorFactory::PdrgpulFromXMLCh(m_pphm->Pmm(), xmlszInsertColIds, EdxltokenInsertCols, EdxltokenPhysicalSplit);
+	const XMLCh *insert_colids = CDXLOperatorFactory::ExtractAttrValue(attrs, EdxltokenInsertCols, EdxltokenPhysicalSplit);
+	m_insert_colid_array = CDXLOperatorFactory::ExtractIntsToUlongArray(m_parse_handler_mgr->GetDXLMemoryManager(), insert_colids, EdxltokenInsertCols, EdxltokenPhysicalSplit);
 
-	m_ulAction = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenActionColId, EdxltokenPhysicalSplit);
-	m_ulCtid = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenCtidColId, EdxltokenPhysicalSplit);
-	m_ulSegmentId = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGpSegmentIdColId, EdxltokenPhysicalSplit);
+	m_action_colid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong( m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenActionColId, EdxltokenPhysicalSplit);
+	m_ctid_colid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong( m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenCtidColId, EdxltokenPhysicalSplit);
+	m_segid_colid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong( m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGpSegmentIdColId, EdxltokenPhysicalSplit);
 
-	const XMLCh *xmlszPreserveOids = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenUpdatePreservesOids));
-	if (NULL != xmlszPreserveOids)
+	const XMLCh *update_with_preserved_oids = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenUpdatePreservesOids));
+	if (NULL != update_with_preserved_oids)
 	{
-		m_fPreserveOids = CDXLOperatorFactory::FValueFromXmlstr
+		m_preserve_oids = CDXLOperatorFactory::ConvertAttrValueToBool
 											(
-											m_pphm->Pmm(),
-											xmlszPreserveOids,
+											m_parse_handler_mgr->GetDXLMemoryManager(),
+											update_with_preserved_oids,
 											EdxltokenUpdatePreservesOids,
 											EdxltokenPhysicalSplit
 											);
 	}	
-	if (m_fPreserveOids)
+	if (m_preserve_oids)
 	{
-		m_ulTupleOidColId = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTupleOidColId, EdxltokenPhysicalSplit);
+		m_tuple_oid_col_oid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenTupleOidColId, EdxltokenPhysicalSplit);
 	}
 
 	// parse handler for physical operator
-	CParseHandlerBase *pphChild = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenPhysical), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphChild);
+	CParseHandlerBase *child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenPhysical), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(child_parse_handler);
 
 	// parse handler for the proj list
-	CParseHandlerBase *pphPrL = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphPrL);
+	CParseHandlerBase *proj_list_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(proj_list_parse_handler);
 
 	//parse handler for the properties of the operator
-	CParseHandlerBase *pphProp = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenProperties), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphProp);
+	CParseHandlerBase *prop_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenProperties), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(prop_parse_handler);
 
 	// store child parse handlers in array
-	this->Append(pphProp);
-	this->Append(pphPrL);
-	this->Append(pphChild);
+	this->Append(prop_parse_handler);
+	this->Append(proj_list_parse_handler);
+	this->Append(child_parse_handler);
 }
 
 //---------------------------------------------------------------------------
@@ -127,52 +127,52 @@ CParseHandlerPhysicalSplit::StartElement
 void
 CParseHandlerPhysicalSplit::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalSplit), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalSplit), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(3 == this->UlLength());
+	GPOS_ASSERT(3 == this->Length());
 
-	CParseHandlerProperties *pphProp = dynamic_cast<CParseHandlerProperties *>((*this)[0]);
-	CParseHandlerProjList *pphPrL = dynamic_cast<CParseHandlerProjList*>((*this)[1]);
-	GPOS_ASSERT(NULL != pphPrL->Pdxln());
+	CParseHandlerProperties *prop_parse_handler = dynamic_cast<CParseHandlerProperties *>((*this)[0]);
+	CParseHandlerProjList *proj_list_parse_handler = dynamic_cast<CParseHandlerProjList*>((*this)[1]);
+	GPOS_ASSERT(NULL != proj_list_parse_handler->CreateDXLNode());
 
-	CParseHandlerPhysicalOp *pphChild = dynamic_cast<CParseHandlerPhysicalOp*>((*this)[2]);
-	GPOS_ASSERT(NULL != pphChild->Pdxln());
+	CParseHandlerPhysicalOp *child_parse_handler = dynamic_cast<CParseHandlerPhysicalOp*>((*this)[2]);
+	GPOS_ASSERT(NULL != child_parse_handler->CreateDXLNode());
 
-	CDXLPhysicalSplit *pdxlop = GPOS_NEW(m_pmp) CDXLPhysicalSplit
+	CDXLPhysicalSplit *dxl_op = GPOS_NEW(m_mp) CDXLPhysicalSplit
 												(
-												m_pmp,
-												m_pdrgpulDelete,
-												m_pdrgpulInsert,
-												m_ulAction,
-												m_ulCtid,
-												m_ulSegmentId,
-												m_fPreserveOids,
-												m_ulTupleOidColId
+												m_mp,
+												m_deletion_colid_array,
+												m_insert_colid_array,
+												m_action_colid,
+												m_ctid_colid,
+												m_segid_colid,
+												m_preserve_oids,
+												m_tuple_oid_col_oid
 												);
 
-	m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlop);
+	m_dxl_node = GPOS_NEW(m_mp) CDXLNode(m_mp, dxl_op);
 
 	// set statistics and physical properties
-	CParseHandlerUtils::SetProperties(m_pdxln, pphProp);
+	CParseHandlerUtils::SetProperties(m_dxl_node, prop_parse_handler);
 
-	AddChildFromParseHandler(pphPrL);
-	AddChildFromParseHandler(pphChild);
+	AddChildFromParseHandler(proj_list_parse_handler);
+	AddChildFromParseHandler(child_parse_handler);
 
 #ifdef GPOS_DEBUG
-	m_pdxln->Pdxlop()->AssertValid(m_pdxln, false /* fValidateChildren */);
+	m_dxl_node->GetOperator()->AssertValid(m_dxl_node, false /* validate_children */);
 #endif // GPOS_DEBUG
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

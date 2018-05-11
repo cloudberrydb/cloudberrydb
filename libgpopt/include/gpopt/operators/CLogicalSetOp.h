@@ -32,33 +32,33 @@ namespace gpopt
 		protected:
 
 			// output column array
-			DrgPcr *m_pdrgpcrOutput;
+			CColRefArray *m_pdrgpcrOutput;
 			
 			// input column array
-			DrgDrgPcr *m_pdrgpdrgpcrInput;
+			CColRef2dArray *m_pdrgpdrgpcrInput;
 
 			// set representation of output columns
 			CColRefSet *m_pcrsOutput;
 
 			// set representation of input columns
-			DrgPcrs *m_pdrgpcrsInput;
+			CColRefSetArray *m_pdrgpcrsInput;
 
 			// private copy ctor
 			CLogicalSetOp(const CLogicalSetOp &);
 
 			// build set representation of input/output columns for faster set operations
-			void BuildColumnSets(IMemoryPool *pmp);
+			void BuildColumnSets(IMemoryPool *mp);
 
 			// output equivalence classes
-			DrgPcrs *PdrgpcrsOutputEquivClasses(IMemoryPool *pmp, CExpressionHandle &exprhdl, BOOL fIntersect) const;
+			CColRefSetArray *PdrgpcrsOutputEquivClasses(IMemoryPool *mp, CExpressionHandle &exprhdl, BOOL fIntersect) const;
 
 			// equivalence classes from one input child, mapped to output columns
-			DrgPcrs *PdrgpcrsInputMapped(IMemoryPool *pmp, CExpressionHandle &exprhdl, ULONG ulChild) const;
+			CColRefSetArray *PdrgpcrsInputMapped(IMemoryPool *mp, CExpressionHandle &exprhdl, ULONG ulChild) const;
 
 			// constraints for a given output column from all children
-			DrgPcnstr *PdrgpcnstrColumn
+			CConstraintArray *PdrgpcnstrColumn
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
 						ULONG ulColIndex,
 						ULONG ulStart
@@ -68,7 +68,7 @@ namespace gpopt
 			// get constraint for a given output column from a given children
 			CConstraint *PcnstrColumn
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
 						ULONG ulColIndex,
 						ULONG ulChild
@@ -78,7 +78,7 @@ namespace gpopt
 			// derive constraint property for intersect and union operators
 			CPropConstraint *PpcDeriveConstraintIntersectUnion
 							(
-							IMemoryPool *pmp,
+							IMemoryPool *mp,
 							CExpressionHandle &exprhdl,
 							BOOL fIntersect
 							)
@@ -88,21 +88,21 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CLogicalSetOp(IMemoryPool *pmp);
+			CLogicalSetOp(IMemoryPool *mp);
 
 			CLogicalSetOp
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgOutput,
-				DrgPcr *pdrgpcrLeft,
-				DrgPcr *pdrgpcrRight
+				IMemoryPool *mp,
+				CColRefArray *pdrgOutput,
+				CColRefArray *pdrgpcrLeft,
+				CColRefArray *pdrgpcrRight
 				);
 
 			CLogicalSetOp
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrOutput,
-				DrgDrgPcr *pdrgpdrgpcrInput
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrOutput,
+				CColRef2dArray *pdrgpdrgpcrInput
 				);
 
 			// dtor
@@ -117,14 +117,14 @@ namespace gpopt
 			const CHAR *SzId() const = 0;
 
 			// accessor of output column array
-			DrgPcr *PdrgpcrOutput() const
+			CColRefArray *PdrgpcrOutput() const
 			{
 				GPOS_ASSERT(NULL != m_pdrgpcrOutput);
 				return m_pdrgpcrOutput;
 			}
 			
 			// accessor of input column array
-			DrgDrgPcr *PdrgpdrgpcrInput() const
+			CColRef2dArray *PdrgpdrgpcrInput() const
 			{
 				GPOS_ASSERT(NULL != m_pdrgpdrgpcrInput);
 				return m_pdrgpdrgpcrInput;
@@ -134,14 +134,14 @@ namespace gpopt
 			virtual
 			BOOL FCanPullProjectionsUp
 				(
-				ULONG //ulChildIndex
+				ULONG //child_index
 				) const
 			{
 				return false;
 			}
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			virtual
 			IOstream& OsPrint(IOstream &os) const;
@@ -156,11 +156,11 @@ namespace gpopt
 			
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;		
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;		
 
 			// derive partition consumer info
 			virtual
-			CPartInfo *PpartinfoDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CPartInfo *PpartinfoDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Required Relational Properties
@@ -170,10 +170,10 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *,// pmp
+				IMemoryPool *,// mp
 				CExpressionHandle &,// exprhdl
 				CColRefSet *pcrsInput,
-				ULONG // ulChildIndex
+				ULONG // child_index
 				)
 				const;
 

@@ -29,14 +29,14 @@ CDistributionSpecExternal::CDistributionSpecExternal()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDistributionSpecExternal::FMatch
+//		CDistributionSpecExternal::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL
-CDistributionSpecExternal::FMatch
+CDistributionSpecExternal::Matches
 	(
 	const CDistributionSpec *pds
 	)
@@ -60,7 +60,7 @@ CDistributionSpecExternal::FSatisfies
 	)
 	const
 {
-	if (FMatch(pds))
+	if (Matches(pds))
 	{
 		return true;
 	}
@@ -74,7 +74,7 @@ CDistributionSpecExternal::AppendEnforcers
 	IMemoryPool *,
 	CExpressionHandle &,
 	CReqdPropPlan *,
-	DrgPexpr *,
+	CExpressionArray *,
 	CExpression *
 	)
 {

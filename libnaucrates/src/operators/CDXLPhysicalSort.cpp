@@ -28,25 +28,25 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalSort::CDXLPhysicalSort
 	(
-	IMemoryPool *pmp,
-	BOOL fDiscardDuplicates
+	IMemoryPool *mp,
+	BOOL discard_duplicates
 	)
 	:
-	CDXLPhysical(pmp),
-	m_fDiscardDuplicates(fDiscardDuplicates)
+	CDXLPhysical(mp),
+	m_discard_duplicates(discard_duplicates)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalSort::Edxlop
+//		CDXLPhysicalSort::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalSort::Edxlop() const
+CDXLPhysicalSort::GetDXLOperator() const
 {
 	return EdxlopPhysicalSort;
 }
@@ -54,16 +54,16 @@ CDXLPhysicalSort::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalSort::PstrOpName
+//		CDXLPhysicalSort::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalSort::PstrOpName() const
+CDXLPhysicalSort::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalSort);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalSort);
 }
 
 //---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ CDXLPhysicalSort::PstrOpName() const
 BOOL
 CDXLPhysicalSort::FDiscardDuplicates() const
 {
-	return m_fDiscardDuplicates;
+	return m_discard_duplicates;
 }
 
 
@@ -92,24 +92,24 @@ CDXLPhysicalSort::FDiscardDuplicates() const
 void
 CDXLPhysicalSort::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 	
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);		
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);		
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenSortDiscardDuplicates), m_fDiscardDuplicates);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenSortDiscardDuplicates), m_discard_duplicates);
 	
 	// serialize properties
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	dxlnode->SerializePropertiesToDXL(xml_serializer);
 	
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -124,33 +124,33 @@ CDXLPhysicalSort::SerializeToDXL
 void
 CDXLPhysicalSort::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) const
 {
 	// assert proj list and filter are valid
-	CDXLPhysical::AssertValid(pdxln, fValidateChildren);
+	CDXLPhysical::AssertValid(dxlnode, validate_children);
 	
-	GPOS_ASSERT(EdxlsortIndexSentinel == pdxln->UlArity());
+	GPOS_ASSERT(EdxlsortIndexSentinel == dxlnode->Arity());
 	
-	CDXLNode *pdxlnSortColList = (*pdxln)[EdxlsortIndexSortColList];
-	CDXLNode *pdxlnChild = (*pdxln)[EdxlsortIndexChild];
-	CDXLNode *pdxlnLimitCount = (*pdxln)[EdxlsortIndexLimitCount];
-	CDXLNode *pdxlnLimitOffset = (*pdxln)[EdxlsortIndexLimitOffset];
+	CDXLNode *sort_col_list_dxlnode = (*dxlnode)[EdxlsortIndexSortColList];
+	CDXLNode *child_dxlnode = (*dxlnode)[EdxlsortIndexChild];
+	CDXLNode *limit_count_dxlnode = (*dxlnode)[EdxlsortIndexLimitCount];
+	CDXLNode *limit_offset_dxlnode = (*dxlnode)[EdxlsortIndexLimitOffset];
 	
 	// assert children are of right type (physical/scalar)
-	GPOS_ASSERT(EdxloptypeScalar == pdxlnSortColList->Pdxlop()->Edxloperatortype());
-	GPOS_ASSERT(EdxloptypePhysical == pdxlnChild->Pdxlop()->Edxloperatortype());
-	GPOS_ASSERT(EdxlopScalarLimitCount == pdxlnLimitCount->Pdxlop()->Edxlop());
-	GPOS_ASSERT(EdxlopScalarLimitOffset == pdxlnLimitOffset->Pdxlop()->Edxlop());
+	GPOS_ASSERT(EdxloptypeScalar == sort_col_list_dxlnode->GetOperator()->GetDXLOperatorType());
+	GPOS_ASSERT(EdxloptypePhysical == child_dxlnode->GetOperator()->GetDXLOperatorType());
+	GPOS_ASSERT(EdxlopScalarLimitCount == limit_count_dxlnode->GetOperator()->GetDXLOperator());
+	GPOS_ASSERT(EdxlopScalarLimitOffset == limit_offset_dxlnode->GetOperator()->GetDXLOperator());
 	
 	// there must be at least one sorting column
-	GPOS_ASSERT(pdxlnSortColList->UlArity() > 0);
+	GPOS_ASSERT(sort_col_list_dxlnode->Arity() > 0);
 	
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnSortColList->Pdxlop()->AssertValid(pdxlnSortColList, fValidateChildren);
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		sort_col_list_dxlnode->GetOperator()->AssertValid(sort_col_list_dxlnode, validate_children);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

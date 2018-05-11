@@ -30,18 +30,18 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarPartBound::CDXLScalarPartBound
 	(
-	IMemoryPool *pmp,
-	ULONG ulLevel,
-	IMDId *pmdidType,
-	BOOL fLower
+	IMemoryPool *mp,
+	ULONG partitioning_level,
+	IMDId *mdid_type,
+	BOOL is_lower_bound
 	)
 	:
-	CDXLScalar(pmp),
-	m_ulLevel(ulLevel),
-	m_pmdidType(pmdidType),
-	m_fLower(fLower)
+	CDXLScalar(mp),
+	m_partitioning_level(partitioning_level),
+	m_mdid_type(mdid_type),
+	m_is_lower_bound(is_lower_bound)
 {
-	GPOS_ASSERT(pmdidType->FValid());
+	GPOS_ASSERT(mdid_type->IsValid());
 }
 
 //---------------------------------------------------------------------------
@@ -54,49 +54,49 @@ CDXLScalarPartBound::CDXLScalarPartBound
 //---------------------------------------------------------------------------
 CDXLScalarPartBound::~CDXLScalarPartBound()
 {
-	m_pmdidType->Release();
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarPartBound::Edxlop
+//		CDXLScalarPartBound::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarPartBound::Edxlop() const
+CDXLScalarPartBound::GetDXLOperator() const
 {
 	return EdxlopScalarPartBound;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarPartBound::PstrOpName
+//		CDXLScalarPartBound::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarPartBound::PstrOpName() const
+CDXLScalarPartBound::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarPartBound);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarPartBound);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarPartBound::FBoolean
+//		CDXLScalarPartBound::HasBoolResult
 //
 //	@doc:
 //		Does the operator return a boolean result
 //
 //---------------------------------------------------------------------------
 BOOL
-CDXLScalarPartBound::FBoolean(CMDAccessor *pmda) const
+CDXLScalarPartBound::HasBoolResult(CMDAccessor *md_accessor) const
 {
-	return (IMDType::EtiBool == pmda->Pmdtype(m_pmdidType)->Eti());
+	return (IMDType::EtiBool == md_accessor->RetrieveType(m_mdid_type)->GetDatumType());
 }
 
 //---------------------------------------------------------------------------
@@ -110,18 +110,18 @@ CDXLScalarPartBound::FBoolean(CMDAccessor *pmda) const
 void
 CDXLScalarPartBound::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode * // pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode * // dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartLevel), m_ulLevel);
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMDType));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenScalarPartBoundLower), m_fLower);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartLevel), m_partitioning_level);
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMDType));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenScalarPartBoundLower), m_is_lower_bound);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -136,12 +136,12 @@ CDXLScalarPartBound::SerializeToDXL
 void
 CDXLScalarPartBound::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL // fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL // validate_children
 	)
 	const
 {
-	GPOS_ASSERT(0 == pdxln->UlArity());
+	GPOS_ASSERT(0 == dxlnode->Arity());
 }
 #endif // GPOS_DEBUG
 

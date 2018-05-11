@@ -38,45 +38,45 @@ namespace gpmd
 			
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtOp;
 			}
 		
 			// type of left operand
 			virtual 
-			IMDId *PmdidTypeLeft() const = 0;
+			IMDId *GetLeftMdid() const = 0;
 			
 			// type of right operand
 			virtual 
-			IMDId *PmdidTypeRight() const = 0;
+			IMDId *GetRightMdid() const = 0;
 
 			// type of result operand
 			virtual 
-			IMDId *PmdidTypeResult() const = 0;
+			IMDId *GetResultTypeMdid() const = 0;
 			
 			// id of function which implements the operator
 			virtual 
-			IMDId *PmdidFunc() const = 0;
+			IMDId *FuncMdId() const = 0;
 						
 			// id of commute operator
 			virtual 
-			IMDId *PmdidOpCommute() const = 0;
+			IMDId *GetCommuteOpMdid() const = 0;
 			
 			// id of inverse operator
 			virtual 
-			IMDId *PmdidOpInverse() const = 0;
+			IMDId *GetInverseOpMdid() const = 0;
 			
 			// is this an equality operator
 			virtual 
-			BOOL FEquality() const = 0;
+			BOOL IsEqualityOp() const = 0;
 			
 			// does operator return NULL when all inputs are NULL?
 			virtual
-			BOOL FReturnsNullOnNullInput() const = 0;
+			BOOL ReturnsNullOnNullInput() const = 0;
 
 			virtual
-			IMDType::ECmpType Ecmpt() const = 0;
+			IMDType::ECmpType ParseCmpType() const = 0;
 
 			// operator name
 			virtual
@@ -84,11 +84,11 @@ namespace gpmd
 			
 			// number of classes this operator belongs to
 			virtual
-			ULONG UlOpCLasses() const = 0;
+			ULONG OpClassesCount() const = 0;
 			
 			// operator class at given position
 			virtual
-			IMDId *PmdidOpClass(ULONG ulPos) const = 0;
+			IMDId *OpClassMdidAt(ULONG pos) const = 0;
 	};
 }
 

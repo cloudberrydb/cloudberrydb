@@ -35,34 +35,34 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarAggFunc::CScalarAggFunc
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	IMDId *pmdidAggFunc,
-	IMDId *pmdidResolvedRetType,
+	IMDId *resolved_rettype,
 	const CWStringConst *pstrAggFunc,
-	BOOL fDistinct,
+	BOOL is_distinct,
 	EAggfuncStage eaggfuncstage,
 	BOOL fSplit
 	)
 	:
-	CScalar(pmp),
+	CScalar(mp),
 	m_pmdidAggFunc(pmdidAggFunc),
-	m_pmdidResolvedRetType(pmdidResolvedRetType),
-	m_pmdidRetType(NULL),
+	m_pmdidResolvedRetType(resolved_rettype),
+	m_return_type_mdid(NULL),
 	m_pstrAggFunc(pstrAggFunc),
-	m_fDistinct(fDistinct),
+	m_is_distinct(is_distinct),
 	m_eaggfuncstage(eaggfuncstage),
 	m_fSplit(fSplit)
 {
 	GPOS_ASSERT(NULL != pmdidAggFunc);
 	GPOS_ASSERT(NULL != pstrAggFunc);
-	GPOS_ASSERT(pmdidAggFunc->FValid());
-	GPOS_ASSERT_IMP(NULL != pmdidResolvedRetType, pmdidResolvedRetType->FValid());
+	GPOS_ASSERT(pmdidAggFunc->IsValid());
+	GPOS_ASSERT_IMP(NULL != resolved_rettype, resolved_rettype->IsValid());
 	GPOS_ASSERT(EaggfuncstageSentinel > eaggfuncstage);
 
 	// store id of type obtained by looking up MD cache
-	IMDId *pmdid = PmdidLookupReturnType(m_pmdidAggFunc, (EaggfuncstageGlobal == m_eaggfuncstage));
-	pmdid->AddRef();
-	m_pmdidRetType = pmdid;
+	IMDId *mdid = PmdidLookupReturnType(m_pmdidAggFunc, (EaggfuncstageGlobal == m_eaggfuncstage));
+	mdid->AddRef();
+	m_return_type_mdid = mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -81,14 +81,14 @@ CScalarAggFunc::PstrAggFunc() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarAggFunc::Pmdid
+//		CScalarAggFunc::MDId
 //
 //	@doc:
 //		Aggregate function id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarAggFunc::Pmdid() const
+CScalarAggFunc::MDId() const
 {
 	return m_pmdidAggFunc;
 }
@@ -107,7 +107,7 @@ CScalarAggFunc::FCountStar() const
 {
 	// TODO,  04/26/2012, make this function system-independent
 	// using MDAccessor
-	return m_pmdidAggFunc->FEquals(&CMDIdGPDB::m_mdidCountStar);
+	return m_pmdidAggFunc->Equals(&CMDIdGPDB::m_mdid_count_star);
 }
 
 
@@ -124,29 +124,29 @@ CScalarAggFunc::FCountAny() const
 {
 	// TODO,  04/26/2012, make this function system-independent
 	// using MDAccessor
-	return m_pmdidAggFunc->FEquals(&CMDIdGPDB::m_mdidCountAny);
+	return m_pmdidAggFunc->Equals(&CMDIdGPDB::m_mdid_count_any);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarAggFunc::UlHash
+//		CScalarAggFunc::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarAggFunc::UlHash() const
+CScalarAggFunc::HashValue() const
 {
 	ULONG ulAggfuncstage = (ULONG) m_eaggfuncstage;
-	return gpos::UlCombineHashes
+	return gpos::CombineHashes
 					(
-					UlCombineHashes(COperator::UlHash(), m_pmdidAggFunc->UlHash()),
-					UlCombineHashes
+					CombineHashes(COperator::HashValue(), m_pmdidAggFunc->HashValue()),
+					CombineHashes
 						(
-						gpos::UlHash<ULONG>(&ulAggfuncstage),
-						UlCombineHashes(gpos::UlHash<BOOL>(&m_fDistinct),gpos::UlHash<BOOL>(&m_fSplit))
+						gpos::HashValue<ULONG>(&ulAggfuncstage),
+						CombineHashes(gpos::HashValue<BOOL>(&m_is_distinct),gpos::HashValue<BOOL>(&m_fSplit))
 						)
 					);
 }
@@ -154,14 +154,14 @@ CScalarAggFunc::UlHash() const
 	
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarAggFunc::FMatch
+//		CScalarAggFunc::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarAggFunc::FMatch
+CScalarAggFunc::Matches
 	(
 	COperator *pop
 	)
@@ -174,10 +174,10 @@ CScalarAggFunc::FMatch
 		// match if func ids are identical
 		return
 				(
-				(popScAggFunc->FDistinct() ==  m_fDistinct)
+				(popScAggFunc->IsDistinct() ==  m_is_distinct)
 				&& (popScAggFunc->Eaggfuncstage() ==  Eaggfuncstage())
 				&& (popScAggFunc->FSplit() ==  m_fSplit)
-				&& m_pmdidAggFunc->FEquals(popScAggFunc->Pmdid())
+				&& m_pmdidAggFunc->Equals(popScAggFunc->MDId())
 				);
 	}
 	
@@ -202,22 +202,22 @@ CScalarAggFunc::PmdidLookupReturnType
 	)
 {
 	GPOS_ASSERT(NULL != pmdidAggFunc);
-	CMDAccessor *pmda = pmdaInput;
+	CMDAccessor *md_accessor = pmdaInput;
 
-	if (NULL == pmda)
+	if (NULL == md_accessor)
 	{
-		pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+		md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	}
-	GPOS_ASSERT(NULL != pmda);
+	GPOS_ASSERT(NULL != md_accessor);
 
 	// get aggregate function return type from the MD cache
-	const IMDAggregate *pmdagg = pmda->Pmdagg(pmdidAggFunc);
+	const IMDAggregate *pmdagg = md_accessor->RetrieveAgg(pmdidAggFunc);
 	if (fGlobal)
 	{
-		return pmdagg->PmdidTypeResult();
+		return pmdagg->GetResultTypeMdid();
 	}
 
-	return pmdagg->PmdidTypeIntermediate();
+	return pmdagg->GetIntermediateResultTypeMdid();
 }
 
 
@@ -237,9 +237,9 @@ CScalarAggFunc::OsPrint
 	const
 {
 	os << SzId() << " (";
-	os << PstrAggFunc()->Wsz();
+	os << PstrAggFunc()->GetBuffer();
 	os << " , Distinct: ";
-	os << (m_fDistinct ? "true" : "false");
+	os << (m_is_distinct ? "true" : "false");
 	os << " , Aggregate Stage: ";
 
 	switch (m_eaggfuncstage)

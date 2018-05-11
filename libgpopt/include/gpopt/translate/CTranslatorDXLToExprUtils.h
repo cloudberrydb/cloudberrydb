@@ -49,8 +49,8 @@ namespace gpopt
 			static
 			CExpression *PexprConstInt8
 							(
-							IMemoryPool *pmp,
-							CMDAccessor *pmda,
+							IMemoryPool *mp,
+							CMDAccessor *md_accessor,
 							CSystemId sysid,
 							LINT liValue
 							);
@@ -59,32 +59,32 @@ namespace gpopt
 			static
 			CScalarConst *PopConst
 							(
-							IMemoryPool *pmp,
-							CMDAccessor *pmda,
-							const CDXLScalarConstValue *pdxlop
+							IMemoryPool *mp,
+							CMDAccessor *md_accessor,
+							const CDXLScalarConstValue *dxl_op
 							);
 
 			// create a datum from a DXL scalar const operator
 			static
-			IDatum *Pdatum(CMDAccessor *pmda, const CDXLScalarConstValue *pdxlop);
+			IDatum *GetDatum(CMDAccessor *md_accessor, const CDXLScalarConstValue *dxl_op);
 
 			// create a datum array from a dxl datum array
 			static
-			DrgPdatum *Pdrgpdatum(IMemoryPool *pmp, CMDAccessor *pmda, const DrgPdxldatum *pdrgpdatum);
+			IDatumArray *Pdrgpdatum(IMemoryPool *mp, CMDAccessor *md_accessor, const CDXLDatumArray *pdrgpdatum);
 
 			// update table descriptor's key sets info from the MD cache object
 			static
 			void AddKeySets
 					(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CTableDescriptor *ptabdesc,
 					const IMDRelation *pmdrel,
-					HMUlUl *phmululColMapping
+					UlongToUlongMap *phmululColMapping
 					);
 
 			// check if a dxl node is a boolean expression of the given type
 			static
-			BOOL FScalarBool(const CDXLNode *pdxln, EdxlBoolExprType edxlboolexprtype);
+			BOOL FScalarBool(const CDXLNode *dxlnode, EdxlBoolExprType edxlboolexprtype);
 
 			// returns the equivalent bool expression type in the optimizer for
 			// a given DXL bool expression type
@@ -93,11 +93,11 @@ namespace gpopt
 
 			// construct a dynamic array of col refs corresponding to the given col ids
 			static
-			DrgPcr *Pdrgpcr(IMemoryPool *pmp, HMUlCr *phmulcr, const DrgPul *pdrgpulColIds);
+			CColRefArray *Pdrgpcr(IMemoryPool *mp, UlongToColRefMap *colref_mapping, const ULongPtrArray *colids);
 
 			// is the given expression is a scalar function that casts
 			static
-			BOOL FCastFunc(CMDAccessor *pmda, const CDXLNode *pdxln, IMDId *pmdidInput);
+			BOOL FCastFunc(CMDAccessor *md_accessor, const CDXLNode *dxlnode, IMDId *pmdidInput);
 	};
 }
 

@@ -58,13 +58,13 @@ CStackTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// test with CHAR array
 
 	CHAR rgsz[][9] = {"abc", "def", "ghi", "qwe", "wer", "wert", "dfg", "xcv", "zxc"};
 	CStack<CHAR> *pstk =
-		GPOS_NEW(pmp) CStack<CHAR> (pmp, 4);
+		GPOS_NEW(mp) CStack<CHAR> (mp, 4);
 
 	// add elements incl trigger resize of array
 	for (ULONG i = 0; i < 9; i++)
@@ -73,9 +73,9 @@ CStackTest::EresUnittest_Basic()
 	}
 
 	ULONG idx = 0;
-	while (!pstk->FEmpty())
+	while (!pstk->IsEmpty())
 	{
-		GPOS_ASSERT(idx <= 8 && "Index out of range. Problem with FEmpty.");
+		GPOS_ASSERT(idx <= 8 && "Index out of range. Problem with IsEmpty.");
 #ifdef GPOS_DEBUG
 		GPOS_ASSERT(pstk->Pop() == rgsz[8 - idx] && "Incorrect pop value");
 #else
@@ -105,14 +105,14 @@ CStackTest::EresUnittest_PushPop()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	ULONG rgul[4] = {1,2,3,4};
-	CStack<ULONG> *pstk = GPOS_NEW(pmp) CStack<ULONG> (pmp, 4);
+	CStack<ULONG> *pstk = GPOS_NEW(mp) CStack<ULONG> (mp, 4);
 	
 	// scope for auto trace
 	{
-		CAutoTrace trace(pmp);
+		CAutoTrace trace(mp);
 		IOstream &oss(trace.Os());
 		oss << "Pushing " << rgul[0] << " and " << rgul[1] << std::endl;
 		pstk->Push(&rgul[0]); // stack is 1
@@ -166,12 +166,12 @@ CStackTest::EresUnittest_Pop()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	ULONG rgsz[] = {1, 2, 3, 4};
 
 	CStack<ULONG> *pstk =
-		GPOS_NEW(pmp) CStack<ULONG> (pmp, 4);
+		GPOS_NEW(mp) CStack<ULONG> (mp, 4);
 
 	CAutoP<CStack<ULONG> > cAP;
 	cAP = pstk;

@@ -30,17 +30,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformGbAgg2HashAgg::CXformGbAgg2HashAgg
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementation
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalGbAgg(pmp),
-							 GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)),
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalGbAgg(mp),
+							 GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),
 							 // we need to extract deep tree in the project list to check
 							 // for existence of distinct agg functions
-							 GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp)))
+							 GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp)))
 		)
 {}
 
@@ -77,11 +77,11 @@ CXformGbAgg2HashAgg::Exfp
 	const
 {
 	CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(exprhdl.Pop());
-	DrgPcr *pdrgpcr = popAgg->Pdrgpcr();
-	if (0 == pdrgpcr->UlLength() ||
-		exprhdl.Pdpscalar(1 /*ulChildIndex*/)->FHasSubquery() ||
-		!CUtils::FComparisonPossible(pdrgpcr, IMDType::EcmptEq) ||
-		!CUtils::FHashable(pdrgpcr))
+	CColRefArray *colref_array = popAgg->Pdrgpcr();
+	if (0 == colref_array->Size() ||
+		exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery() ||
+		!CUtils::FComparisonPossible(colref_array, IMDType::EcmptEq) ||
+		!CUtils::IsHashable(colref_array))
 	{
 		// no grouping columns, no equality or hash operators  are available for grouping columns, or
 		// agg functions use subquery arguments
@@ -121,10 +121,10 @@ CXformGbAgg2HashAgg::Transform
 		return;
 	}
 
-	IMemoryPool *pmp = pxfctxt->Pmp();	
+	IMemoryPool *mp = pxfctxt->Pmp();	
 	CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(pexpr->Pop());
-	DrgPcr *pdrgpcr = popAgg->Pdrgpcr();
-	pdrgpcr->AddRef();
+	CColRefArray *colref_array = popAgg->Pdrgpcr();
+	colref_array->AddRef();
 	
 	// extract components
 	CExpression *pexprRel = (*pexpr)[0];
@@ -134,8 +134,8 @@ CXformGbAgg2HashAgg::Transform
 	pexprRel->AddRef();
 	pexprScalar->AddRef();
 
-	DrgPcr *pdrgpcrArgDQA = popAgg->PdrgpcrArgDQA();
-	if (pdrgpcrArgDQA != NULL && 0 != pdrgpcrArgDQA->UlLength())
+	CColRefArray *pdrgpcrArgDQA = popAgg->PdrgpcrArgDQA();
+	if (pdrgpcrArgDQA != NULL && 0 != pdrgpcrArgDQA->Size())
 	{
 		GPOS_ASSERT(NULL != pdrgpcrArgDQA);
 		pdrgpcrArgDQA->AddRef();
@@ -143,13 +143,13 @@ CXformGbAgg2HashAgg::Transform
 
 	// create alternative expression
 	CExpression *pexprAlt = 
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalHashAgg
+			mp,
+			GPOS_NEW(mp) CPhysicalHashAgg
 						(
-						pmp,
-						pdrgpcr,
+						mp,
+						colref_array,
 						popAgg->PdrgpcrMinimal(),
 						popAgg->Egbaggtype(),
 						popAgg->FGeneratesDuplicates(),
@@ -180,16 +180,16 @@ CXformGbAgg2HashAgg::FApplicable
 	const
 {
 	CExpression *pexprPrjList = (*pexpr)[1];
-	ULONG ulArity = pexprPrjList->UlArity();
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	ULONG arity = pexprPrjList->Arity();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
 		CExpression *pexprPrjEl = (*pexprPrjList)[ul];
 		CExpression *pexprAggFunc = (*pexprPrjEl)[0];
 		CScalarAggFunc *popScAggFunc = CScalarAggFunc::PopConvert(pexprAggFunc->Pop());
 
-		if (popScAggFunc->FDistinct() || !pmda->Pmdagg(popScAggFunc->Pmdid())->FHashAggCapable() )
+		if (popScAggFunc->IsDistinct() || !md_accessor->RetrieveAgg(popScAggFunc->MDId())->IsHashAggCapable() )
 		{
 			return false;
 		}

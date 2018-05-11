@@ -36,32 +36,32 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalDynamicTableScan::CPhysicalDynamicTableScan
 	(
-	IMemoryPool *pmp,
-	BOOL fPartial,
+	IMemoryPool *mp,
+	BOOL is_partial,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
 	ULONG ulOriginOpId,
-	ULONG ulScanId,
-	DrgPcr *pdrgpcrOutput,
-	DrgDrgPcr *pdrgpdrgpcrParts,
+	ULONG scan_id,
+	CColRefArray *pdrgpcrOutput,
+	CColRef2dArray *pdrgpdrgpcrParts,
 	ULONG ulSecondaryScanId,
 	CPartConstraint *ppartcnstr,
 	CPartConstraint *ppartcnstrRel
 	)
 	:
-	CPhysicalDynamicScan(pmp, fPartial, ptabdesc, ulOriginOpId, pnameAlias, ulScanId, pdrgpcrOutput, pdrgpdrgpcrParts, ulSecondaryScanId, ppartcnstr, ppartcnstrRel)
+	CPhysicalDynamicScan(mp, is_partial, ptabdesc, ulOriginOpId, pnameAlias, scan_id, pdrgpcrOutput, pdrgpdrgpcrParts, ulSecondaryScanId, ppartcnstr, ppartcnstrRel)
 {}
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalDynamicTableScan::FMatch
+//		CPhysicalDynamicTableScan::Matches
 //
 //	@doc:
 //		match operator
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalDynamicTableScan::FMatch
+CPhysicalDynamicTableScan::Matches
 	(
 	COperator *pop
 	)
@@ -81,16 +81,16 @@ CPhysicalDynamicTableScan::FMatch
 IStatistics *
 CPhysicalDynamicTableScan::PstatsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CReqdPropPlan *prpplan,
-	DrgPstat * // pdrgpstatCtxt
+	IStatisticsArray * // stats_ctxt
 	)
 	const
 {
 	GPOS_ASSERT(NULL != prpplan);
 
-	return CStatisticsUtils::PstatsDynamicScan(pmp, exprhdl, UlScanId(), prpplan->Pepp()->PpfmDerived());
+	return CStatisticsUtils::DeriveStatsForDynamicScan(mp, exprhdl, ScanId(), prpplan->Pepp()->PpfmDerived());
 }
 
 // EOF

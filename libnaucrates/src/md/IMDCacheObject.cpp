@@ -29,24 +29,24 @@ using namespace gpmd;
 void
 IMDCacheObject::SerializeMDIdAsElem
 	(
-	CXMLSerializer *pxmlser,
-	const CWStringConst *pstrElem,
-	const IMDId *pmdid
+	CXMLSerializer *xml_serializer,
+	const CWStringConst *element_name,
+	const IMDId *mdid
 	)
 	const
 {
-	if (NULL == pmdid)
+	if (NULL == mdid)
 	{
 		return;
 	}
 	
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						pstrElem);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						element_name);
 	
-	pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
+	mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-							pstrElem);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+							element_name);
 }
 
 
@@ -61,27 +61,27 @@ IMDCacheObject::SerializeMDIdAsElem
 void
 IMDCacheObject::SerializeMDIdList
 	(
-	CXMLSerializer *pxmlser,
-	const DrgPmdid *pdrgpmdid,
-	const CWStringConst *pstrTokenList,
-	const CWStringConst *pstrTokenListItem
+	CXMLSerializer *xml_serializer,
+	const IMdIdArray *mdid_array,
+	const CWStringConst *strTokenList,
+	const CWStringConst *strTokenListItem
 	)
 {
 	// serialize list of metadata ids
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenList);
-	const ULONG ulLen = pdrgpmdid->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), strTokenList);
+	const ULONG length = mdid_array->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenListItem);
+		xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), strTokenListItem);
 
-		IMDId *pmdid = (*pdrgpmdid)[ul];
-		pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-		pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenListItem);
+		IMDId *mdid = (*mdid_array)[ul];
+		mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+		xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), strTokenListItem);
 
 		GPOS_CHECK_ABORT;
 	}
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrTokenList);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), strTokenList);
 }
 
 // EOF

@@ -38,7 +38,7 @@ namespace gpos
 		protected:
 
 			// actual element to point to
-			T *m_pt;
+			T *m_object;
 						
 			// hidden copy ctor
 			CAutoP<T>
@@ -52,50 +52,50 @@ namespace gpos
 			explicit
 			CAutoP<T>()
 				:
-				m_pt(NULL)
+				m_object(NULL)
 			{}
 
 			explicit
-			CAutoP<T>(T *pt)
+			CAutoP<T>(T *object)
 				:
-				m_pt(pt)
+				m_object(object)
 			{}
 
 			// dtor
 			virtual ~CAutoP();
 
 			// simple assignment
-			CAutoP<T> const & operator = (T* pt)
+			CAutoP<T> const & operator = (T* object)
 			{
-				m_pt = pt;
+				m_object = object;
 				return *this;
 			}
 
 			// deref operator
 			T &operator * ()
 			{
-				GPOS_ASSERT(NULL != m_pt);
-				return *m_pt;
+				GPOS_ASSERT(NULL != m_object);
+				return *m_object;
 			}
 			
 			// returns only base pointer, compiler does appropriate deref'ing
 			T* operator -> ()
 			{
-				return m_pt;
+				return m_object;
 			}
 
 			// return basic pointer
-			T* Pt() 
+			T* Value() 
 			{
-				return m_pt;
+				return m_object;
 			}
 			
 			// unhook pointer from auto object
-			T* PtReset()
+			T* Reset()
 			{
-				T* pt = m_pt;
-				m_pt = NULL;
-				return pt;
+				T* object = m_object;
+				m_object = NULL;
+				return object;
 			}
 
 	}; // class CAutoP
@@ -111,7 +111,7 @@ namespace gpos
 	template <class T>
 	CAutoP<T>::~CAutoP()
 	{
-		GPOS_DELETE(m_pt);
+		GPOS_DELETE(m_object);
 	}
 }
 

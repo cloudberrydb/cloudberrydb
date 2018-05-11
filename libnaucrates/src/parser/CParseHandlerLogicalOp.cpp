@@ -27,12 +27,12 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerLogicalOp::CParseHandlerLogicalOp
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerOp(pmp, pphm, pphRoot)
+	CParseHandlerOp(mp, parse_handler_mgr, parse_handler_root)
 {
 }
 
@@ -49,22 +49,22 @@ CParseHandlerLogicalOp::CParseHandlerLogicalOp
 void
 CParseHandlerLogicalOp::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
 	// instantiate the parse handler
-	CParseHandlerBase *pph = CParseHandlerFactory::Pph(m_pmp, xmlszLocalname, m_pphm, this);
+	CParseHandlerBase *logical_op_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, element_local_name, m_parse_handler_mgr, this);
 
-	GPOS_ASSERT(NULL != pph);
+	GPOS_ASSERT(NULL != logical_op_parse_handler);
 
 	// activate the parse handler
-	m_pphm->ReplaceHandler(pph, m_pphRoot);
+	m_parse_handler_mgr->ReplaceHandler(logical_op_parse_handler, m_parse_handler_root);
 
 	// pass the startElement message for the specialized parse handler to process
-	pph->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+	logical_op_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 }
 
 //---------------------------------------------------------------------------
@@ -80,9 +80,9 @@ CParseHandlerLogicalOp::StartElement
 void
 CParseHandlerLogicalOp::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const, // xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const, // element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
 	GPOS_ASSERT(!"Invalid call of endElement inside CParseHandlerLogicalOp");

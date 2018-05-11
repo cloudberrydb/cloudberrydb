@@ -12,7 +12,7 @@ namespace gpopt
 	class IColConstraintsMapper : public CRefCount
 	{
 		public:
-			virtual DrgPcnstr* PdrgPcnstrLookup(CColRef *pcr) = 0;
+			virtual CConstraintArray* PdrgPcnstrLookup(CColRef *colref) = 0;
 
 			virtual ~IColConstraintsMapper() = 0;
 	};

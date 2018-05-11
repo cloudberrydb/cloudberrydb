@@ -28,26 +28,26 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalRedistributeMotion::CDXLPhysicalRedistributeMotion
 	(
-	IMemoryPool *pmp,
-	BOOL fDuplicateSensitive
+	IMemoryPool *mp,
+	BOOL is_duplicate_sensitive
 	)
 	:
-	CDXLPhysicalMotion(pmp),
-	m_fDuplicateSensitive(fDuplicateSensitive)
+	CDXLPhysicalMotion(mp),
+	m_is_duplicate_sensitive(is_duplicate_sensitive)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalRedistributeMotion::Edxlop
+//		CDXLPhysicalRedistributeMotion::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalRedistributeMotion::Edxlop() const
+CDXLPhysicalRedistributeMotion::GetDXLOperator() const
 {
 	return EdxlopPhysicalMotionRedistribute;
 }
@@ -55,16 +55,16 @@ CDXLPhysicalRedistributeMotion::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalRedistributeMotion::PstrOpName
+//		CDXLPhysicalRedistributeMotion::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalRedistributeMotion::PstrOpName() const
+CDXLPhysicalRedistributeMotion::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalRedistributeMotion);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalRedistributeMotion);
 }
 
 //---------------------------------------------------------------------------
@@ -78,29 +78,29 @@ CDXLPhysicalRedistributeMotion::PstrOpName() const
 void
 CDXLPhysicalRedistributeMotion::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 	
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 	
-	SerializeSegmentInfoToDXL(pxmlser);
+	SerializeSegmentInfoToDXL(xml_serializer);
 	
-	if (m_fDuplicateSensitive)
+	if (m_is_duplicate_sensitive)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenDuplicateSensitive), true);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenDuplicateSensitive), true);
 	}	
 	
 	// serialize properties
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	dxlnode->SerializePropertiesToDXL(xml_serializer);
 	
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 
@@ -116,30 +116,30 @@ CDXLPhysicalRedistributeMotion::SerializeToDXL
 void
 CDXLPhysicalRedistributeMotion::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) 
 	const
 {
 	// assert proj list and filter are valid
-	CDXLPhysical::AssertValid(pdxln, fValidateChildren);
+	CDXLPhysical::AssertValid(dxlnode, validate_children);
 	
-	GPOS_ASSERT(m_pdrgpiInputSegIds != NULL);
-	GPOS_ASSERT(0 < m_pdrgpiInputSegIds->UlLength());
-	GPOS_ASSERT(m_pdrgpiOutputSegIds != NULL);
-	GPOS_ASSERT(0 < m_pdrgpiOutputSegIds->UlLength());
+	GPOS_ASSERT(m_input_segids_array != NULL);
+	GPOS_ASSERT(0 < m_input_segids_array->Size());
+	GPOS_ASSERT(m_output_segids_array != NULL);
+	GPOS_ASSERT(0 < m_output_segids_array->Size());
 	
-	GPOS_ASSERT(EdxlrmIndexSentinel == pdxln->UlArity());
+	GPOS_ASSERT(EdxlrmIndexSentinel == dxlnode->Arity());
 	
-	CDXLNode *pdxlnChild = (*pdxln)[EdxlrmIndexChild];
-	CDXLNode *pdxlnHashExprList = (*pdxln)[EdxlrmIndexHashExprList];
+	CDXLNode *child_dxlnode = (*dxlnode)[EdxlrmIndexChild];
+	CDXLNode *hash_expr_list = (*dxlnode)[EdxlrmIndexHashExprList];
 
-	GPOS_ASSERT(EdxloptypePhysical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(EdxloptypePhysical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 	
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
-		pdxlnHashExprList->Pdxlop()->AssertValid(pdxlnHashExprList, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
+		hash_expr_list->GetOperator()->AssertValid(hash_expr_list, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

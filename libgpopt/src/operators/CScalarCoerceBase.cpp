@@ -32,21 +32,21 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCoerceBase::CScalarCoerceBase
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	INT iTypeModifier,
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	INT type_modifier,
 	ECoercionForm ecf,
-	INT iLoc
+	INT location
 	)
 	:
-	CScalar(pmp),
-	m_pmdidResultType(pmdidType),
-	m_iTypeModifier(iTypeModifier),
+	CScalar(mp),
+	m_result_type_mdid(mdid_type),
+	m_type_modifier(type_modifier),
 	m_ecf(ecf),
-	m_iLoc(iLoc)
+	m_location(location)
 {
-	GPOS_ASSERT(NULL != pmdidType);
-	GPOS_ASSERT(pmdidType->FValid());
+	GPOS_ASSERT(NULL != mdid_type);
+	GPOS_ASSERT(mdid_type->IsValid());
 }
 
 
@@ -60,37 +60,37 @@ CScalarCoerceBase::CScalarCoerceBase
 //---------------------------------------------------------------------------
 CScalarCoerceBase::~CScalarCoerceBase()
 {
-	m_pmdidResultType->Release();
+	m_result_type_mdid->Release();
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCoerceBase::PmdidType
+//		CScalarCoerceBase::MdidType
 //
 //	@doc:
 //		Return type of the scalar expression
 //
 //---------------------------------------------------------------------------
 IMDId*
-CScalarCoerceBase::PmdidType() const
+CScalarCoerceBase::MdidType() const
 {
-	return m_pmdidResultType;
+	return m_result_type_mdid;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCoerceBase::ITypeModifier
+//		CScalarCoerceBase::TypeModifier
 //
 //	@doc:
 //		Return type modifier
 //
 //---------------------------------------------------------------------------
 INT
-CScalarCoerceBase::ITypeModifier() const
+CScalarCoerceBase::TypeModifier() const
 {
-	return m_iTypeModifier;
+	return m_type_modifier;
 }
 
 
@@ -111,16 +111,16 @@ CScalarCoerceBase::Ecf() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCoerceBase::ILoc
+//		CScalarCoerceBase::Location
 //
 //	@doc:
 //		Return token location
 //
 //---------------------------------------------------------------------------
 INT
-CScalarCoerceBase::ILoc() const
+CScalarCoerceBase::Location() const
 {
-	return m_iLoc;
+	return m_location;
 }
 
 
@@ -135,9 +135,9 @@ CScalarCoerceBase::ILoc() const
 COperator*
 CScalarCoerceBase::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *, //pmp,
-	HMUlCr *, //phmulcr,
-	BOOL //fMustExist
+	IMemoryPool *, //mp,
+	UlongToColRefMap *, //colref_mapping,
+	BOOL //must_exist
 	)
 {
 	return PopCopyDefault();

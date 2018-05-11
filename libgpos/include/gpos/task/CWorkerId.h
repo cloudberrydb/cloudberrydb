@@ -34,20 +34,20 @@ namespace gpos
 		public:
 		
 			// ctor
-			CWorkerId(BOOL fValid = true);
+			CWorkerId(BOOL valid = true);
 			
 			// simple comparison
-			BOOL FEqual(const CWorkerId &wid) const;
+			BOOL Equals(const CWorkerId &wid) const;
 
 			// set worker id to current thread
-			void Current();
+			void SetThreadToCurrent();
 
 			// reset to invalid id
-			void Invalid();
+			void SetThreadToInvalid();
 
 #ifdef GPOS_DEBUG
 			// check if worker id is valid
-			BOOL FValid() const;
+			BOOL IsValid() const;
 #endif // GPOS_DEBUG
 
 			// comparison operator
@@ -58,27 +58,27 @@ namespace gpos
 				)
 				const
 			{
-				return this->FEqual(wid);
+				return this->Equals(wid);
 			}
 
 			// comparison function; used in hashtables
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
 				const CWorkerId &wid,
-				const CWorkerId &widOther
+				const CWorkerId &wid_other
 				)
 			{
-				return wid == widOther;
+				return wid == wid_other;
 			}
 
 			// primitive hash function
 			static 
-			ULONG UlHash(const CWorkerId &wid);
+			ULONG HashValue(const CWorkerId &wid);
 
 			// invalid worker id
 			static
-			const CWorkerId m_widInvalid;
+			const CWorkerId m_wid_invalid;
 
 	}; // class CWorkerId
 }

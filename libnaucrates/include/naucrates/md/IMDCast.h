@@ -46,30 +46,30 @@ namespace gpmd
 
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtCastFunc;
 			}
 
 			// source type
 			virtual 
-			IMDId *PmdidSrc() const = 0;
+			IMDId *MdidSrc() const = 0;
 
 			// destination type
 			virtual
-			IMDId *PmdidDest() const = 0;
+			IMDId *MdidDest() const = 0;
 			
 			// is the cast between binary coercible types, i.e. the types are binary compatible
 			virtual 
-			BOOL FBinaryCoercible() const = 0;
+			BOOL IsBinaryCoercible() const = 0;
 
 			// cast function id
 			virtual 
-			IMDId *PmdidCastFunc() const = 0;
+			IMDId *GetCastFuncMdId() const = 0;
 
 			// return the coercion path type
 			virtual
-			EmdCoercepathType EmdPathType() const = 0;
+			EmdCoercepathType GetMDPathType() const = 0;
 	};
 		
 }

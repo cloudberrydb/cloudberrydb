@@ -30,16 +30,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalHashAggDeduplicate::CPhysicalHashAggDeduplicate
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr,
-	DrgPcr *pdrgpcrMinimal,
+	IMemoryPool *mp,
+	CColRefArray *colref_array,
+	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,
-	DrgPcr *pdrgpcrKeys,
+	CColRefArray *pdrgpcrKeys,
 	BOOL fGeneratesDuplicates,
 	BOOL fMultiStage
 	)
 	:
-	CPhysicalHashAgg(pmp, pdrgpcr, pdrgpcrMinimal, egbaggtype, fGeneratesDuplicates, NULL /*pdrgpcrGbMinusDistinct*/, fMultiStage),
+	CPhysicalHashAgg(mp, colref_array, pdrgpcrMinimal, egbaggtype, fGeneratesDuplicates, NULL /*pdrgpcrGbMinusDistinct*/, fMultiStage),
 	m_pdrgpcrKeys(pdrgpcrKeys)
 {
 	GPOS_ASSERT(NULL != pdrgpcrKeys);

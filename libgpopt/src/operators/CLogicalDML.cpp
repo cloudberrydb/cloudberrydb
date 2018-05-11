@@ -39,10 +39,10 @@ const WCHAR CLogicalDML::m_rgwszDml[EdmlSentinel][10] =
 //---------------------------------------------------------------------------
 CLogicalDML::CLogicalDML
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogical(pmp),
+	CLogical(mp),
 	m_ptabdesc(NULL),
 	m_pdrgpcrSource(NULL),
 	m_pbsModified(NULL),
@@ -65,10 +65,10 @@ CLogicalDML::CLogicalDML
 //---------------------------------------------------------------------------
 CLogicalDML::CLogicalDML
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	EDMLOperator edmlop,
 	CTableDescriptor *ptabdesc,
-	DrgPcr *pdrgpcrSource,
+	CColRefArray *pdrgpcrSource,
 	CBitSet *pbsModified,
 	CColRef *pcrAction,
 	CColRef *pcrTableOid,
@@ -77,7 +77,7 @@ CLogicalDML::CLogicalDML
 	CColRef *pcrTupleOid
 	)
 	:
-	CLogical(pmp),
+	CLogical(mp),
 	m_edmlop(edmlop),
 	m_ptabdesc(ptabdesc),
 	m_pdrgpcrSource(pdrgpcrSource),
@@ -137,14 +137,14 @@ CLogicalDML::~CLogicalDML()
 			
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDML::FMatch
+//		CLogicalDML::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL
-CLogicalDML::FMatch
+CLogicalDML::Matches
 	(
 	COperator *pop
 	)
@@ -162,30 +162,30 @@ CLogicalDML::FMatch
 			m_pcrCtid == popDML->PcrCtid() &&
 			m_pcrSegmentId == popDML->PcrSegmentId() &&
 			m_pcrTupleOid == popDML->PcrTupleOid() &&
-			m_ptabdesc->Pmdid()->FEquals(popDML->Ptabdesc()->Pmdid()) &&
-			m_pdrgpcrSource->FEqual(popDML->PdrgpcrSource());
+			m_ptabdesc->MDId()->Equals(popDML->Ptabdesc()->MDId()) &&
+			m_pdrgpcrSource->Equals(popDML->PdrgpcrSource());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalDML::UlHash
+//		CLogicalDML::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CLogicalDML::UlHash() const
+CLogicalDML::HashValue() const
 {
-	ULONG ulHash = gpos::UlCombineHashes(COperator::UlHash(), m_ptabdesc->Pmdid()->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, gpos::UlHashPtr<CColRef>(m_pcrAction));
-	ulHash = gpos::UlCombineHashes(ulHash, gpos::UlHashPtr<CColRef>(m_pcrTableOid));
-	ulHash = gpos::UlCombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrSource));
+	ULONG ulHash = gpos::CombineHashes(COperator::HashValue(), m_ptabdesc->MDId()->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, gpos::HashPtr<CColRef>(m_pcrAction));
+	ulHash = gpos::CombineHashes(ulHash, gpos::HashPtr<CColRef>(m_pcrTableOid));
+	ulHash = gpos::CombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrSource));
 
 	if (EdmlDelete == m_edmlop || EdmlUpdate == m_edmlop)
 	{
-		ulHash = gpos::UlCombineHashes(ulHash, gpos::UlHashPtr<CColRef>(m_pcrCtid));
-		ulHash = gpos::UlCombineHashes(ulHash, gpos::UlHashPtr<CColRef>(m_pcrSegmentId));
+		ulHash = gpos::CombineHashes(ulHash, gpos::HashPtr<CColRef>(m_pcrCtid));
+		ulHash = gpos::CombineHashes(ulHash, gpos::HashPtr<CColRef>(m_pcrSegmentId));
 	}
 
 	return ulHash;
@@ -202,14 +202,14 @@ CLogicalDML::UlHash() const
 COperator *
 CLogicalDML::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPcr *pdrgpcr = CUtils::PdrgpcrRemap(pmp, m_pdrgpcrSource, phmulcr, fMustExist);
-	CColRef *pcrAction = CUtils::PcrRemap(m_pcrAction, phmulcr, fMustExist);
-	CColRef *pcrTableOid = CUtils::PcrRemap(m_pcrTableOid, phmulcr, fMustExist);
+	CColRefArray *colref_array = CUtils::PdrgpcrRemap(mp, m_pdrgpcrSource, colref_mapping, must_exist);
+	CColRef *pcrAction = CUtils::PcrRemap(m_pcrAction, colref_mapping, must_exist);
+	CColRef *pcrTableOid = CUtils::PcrRemap(m_pcrTableOid, colref_mapping, must_exist);
 	
 	// no need to remap modified columns bitset as it represent column indexes
 	// and not actual columns
@@ -218,24 +218,24 @@ CLogicalDML::PopCopyWithRemappedColumns
 	CColRef *pcrCtid = NULL;
 	if (NULL != m_pcrCtid)
 	{
-		pcrCtid = CUtils::PcrRemap(m_pcrCtid, phmulcr, fMustExist);
+		pcrCtid = CUtils::PcrRemap(m_pcrCtid, colref_mapping, must_exist);
 	}
 
 	CColRef *pcrSegmentId = NULL;
 	if (NULL != m_pcrSegmentId)
 	{
-		pcrSegmentId = CUtils::PcrRemap(m_pcrSegmentId, phmulcr, fMustExist);
+		pcrSegmentId = CUtils::PcrRemap(m_pcrSegmentId, colref_mapping, must_exist);
 	}
 
 	CColRef *pcrTupleOid = NULL;
 	if (NULL != m_pcrTupleOid)
 	{
-		pcrTupleOid = CUtils::PcrRemap(m_pcrTupleOid, phmulcr, fMustExist);
+		pcrTupleOid = CUtils::PcrRemap(m_pcrTupleOid, colref_mapping, must_exist);
 	}
 	
 	m_ptabdesc->AddRef();
 
-	return GPOS_NEW(pmp) CLogicalDML(pmp, m_edmlop, m_ptabdesc, pdrgpcr, m_pbsModified, pcrAction, pcrTableOid, pcrCtid, pcrSegmentId, pcrTupleOid);
+	return GPOS_NEW(mp) CLogicalDML(mp, m_edmlop, m_ptabdesc, colref_array, m_pbsModified, pcrAction, pcrTableOid, pcrCtid, pcrSegmentId, pcrTupleOid);
 }
 
 //---------------------------------------------------------------------------
@@ -249,11 +249,11 @@ CLogicalDML::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalDML::PcrsDeriveOutput
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 {
-	CColRefSet *pcrsOutput = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsOutput->Include(m_pdrgpcrSource);
 	if (NULL != m_pcrCtid)
 	{
@@ -283,14 +283,14 @@ CLogicalDML::PcrsDeriveOutput
 CPropConstraint *
 CLogicalDML::PpcDeriveConstraint
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	CColRefSet *pcrsOutput = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsOutput->Include(m_pdrgpcrSource);
-	CPropConstraint *ppc = PpcDeriveConstraintRestrict(pmp, exprhdl, pcrsOutput);
+	CPropConstraint *ppc = PpcDeriveConstraintRestrict(mp, exprhdl, pcrsOutput);
 	pcrsOutput->Release();
 
 	return ppc;
@@ -307,7 +307,7 @@ CLogicalDML::PpcDeriveConstraint
 CKeyCollection *
 CLogicalDML::PkcDeriveKeys
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -326,13 +326,13 @@ CLogicalDML::PkcDeriveKeys
 CMaxCard
 CLogicalDML::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
 	// pass on max card of first child
-	return exprhdl.Pdprel(0)->Maxcard();
+	return exprhdl.GetRelationalProperties(0)->Maxcard();
 }
 
 //---------------------------------------------------------------------------
@@ -346,13 +346,13 @@ CLogicalDML::Maxcard
 CXformSet *
 CLogicalDML::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	) 
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
-	(void) pxfs->FExchangeSet(CXform::ExfImplementDML);
-	return pxfs;
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfImplementDML);
+	return xform_set;
 }
 
 //---------------------------------------------------------------------------
@@ -366,9 +366,9 @@ CLogicalDML::PxfsCandidates
 IStatistics *
 CLogicalDML::PstatsDerive
 	(
-	IMemoryPool *, // pmp,
+	IMemoryPool *, // mp,
 	CExpressionHandle &exprhdl,
-	DrgPstat * // not used
+	IStatisticsArray * // not used
 	)
 	const
 {

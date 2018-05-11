@@ -33,34 +33,34 @@ namespace gpdxl
 	{
 		private:
 			// id and version 
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// type of left operand
-			IMDId *m_pmdidTypeLeft;
+			IMDId *m_mdid_type_left;
 			
 			// type of right operand
-			IMDId *m_pmdidTypeRight;
+			IMDId *m_mdid_type_right;
 
 			// type of result operand
-			IMDId *m_pmdidTypeResult;
+			IMDId *m_mdid_type_result;
 			
 			// id of function which implements the operator
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 			
 			// id of commute operator
-			IMDId *m_pmdidOpCommute;
+			IMDId *m_mdid_commute_opr;
 			
 			// id of inverse operator
-			IMDId *m_pmdidOpInverse;
+			IMDId *m_mdid_inverse_opr;
 			
 			// comparison type
-			IMDType::ECmpType m_ecmpt;
+			IMDType::ECmpType m_comparision_type;
 			
 			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 
 			// private copy ctor
 			CParseHandlerMDGPDBScalarOp(const CParseHandlerMDGPDBScalarOp &);
@@ -68,30 +68,30 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 			// is this a supported child elem of the scalar op
-			BOOL FSupportedChildElem(const XMLCh* const xmlsz);
+			BOOL IsSupportedChildElem(const XMLCh* const xml_str);
 						
 		public:
 			// ctor
 			CParseHandlerMDGPDBScalarOp
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);			
 	};
 }

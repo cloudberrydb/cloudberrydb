@@ -23,23 +23,23 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalar::CDXLScalar
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLOperator(pmp)
+	CDXLOperator(mp)
 {
 }
 
 //---------------------------------------------------------------------------
 //      @function:
-//              CDXLScalar::Edxloperatortype
+//              CDXLScalar::GetDXLOperatorType
 //
 //      @doc:
 //              Operator Type
 //
 //---------------------------------------------------------------------------
 Edxloptype
-CDXLScalar::Edxloperatortype() const
+CDXLScalar::GetDXLOperatorType() const
 {
 	return EdxloptypeScalar;
 }

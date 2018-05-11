@@ -40,22 +40,22 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CAutoMemoryPool::CAutoMemoryPool
 	(
-	ELeakCheck elc,
-	CMemoryPoolManager::EAllocType ept,
-	BOOL fThreadSafe,
-	ULLONG ullCapacity
+	ELeakCheck leak_check_type,
+	CMemoryPoolManager::AllocType ept,
+	BOOL thread_safe,
+	ULLONG capacity
 	)
 	:
-	m_elc(elc)
+	m_leak_check_type(leak_check_type)
 {
-	m_pmp = CMemoryPoolManager::Pmpm()->PmpCreate(ept, fThreadSafe, ullCapacity);
+	m_mp = CMemoryPoolManager::GetMemoryPoolMgr()->Create(ept, thread_safe, capacity);
 }
 
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CAutoMemoryPool::PmpDetach
+//		CAutoMemoryPool::Detach
 //
 //	@doc:
 //		Detach function used when CAutoMemoryPool is used to guard a newly
@@ -63,12 +63,12 @@ CAutoMemoryPool::CAutoMemoryPool
 //
 //---------------------------------------------------------------------------
 IMemoryPool *
-CAutoMemoryPool::PmpDetach()
+CAutoMemoryPool::Detach()
 {
-	IMemoryPool *pmp = m_pmp;
-	m_pmp = NULL;
+	IMemoryPool *mp = m_mp;
+	m_mp = NULL;
 	
-	return pmp;
+	return mp;
 }
 
 
@@ -84,7 +84,7 @@ CAutoMemoryPool::PmpDetach()
 //---------------------------------------------------------------------------
 CAutoMemoryPool::~CAutoMemoryPool()
 {
-	if (NULL == m_pmp)
+	if (NULL == m_mp)
 	{
 		return;
 	}
@@ -94,30 +94,30 @@ CAutoMemoryPool::~CAutoMemoryPool()
 
 #ifdef GPOS_DEBUG
 
-	ITask *ptsk = ITask::PtskSelf();
+	ITask *task = ITask::Self();
 	
 	// ElcExc must be used inside tasks only
-	GPOS_ASSERT_IMP(ElcExc == m_elc, NULL != ptsk);
+	GPOS_ASSERT_IMP(ElcExc == m_leak_check_type, NULL != task);
 	
 	GPOS_TRY
 	{
-		if (ElcStrict == m_elc || (ElcExc == m_elc && !ptsk->Perrctxt()->FPending()))
+		if (ElcStrict == m_leak_check_type || (ElcExc == m_leak_check_type && !task->GetErrCtxt()->IsPending()))
 		{
 			gpos::IOstream &os = gpos::oswcerr;
 
 			// check for leaks, use this to trigger standard Assert handling
-			m_pmp->AssertEmpty(os);
+			m_mp->AssertEmpty(os);
 		}
 
 		// release pool
-		CMemoryPoolManager::Pmpm()->Destroy(m_pmp);
+		CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(m_mp);
 	}
 	GPOS_CATCH_EX(ex)
 	{
 		GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiAssert));
 
 		// release pool
-		CMemoryPoolManager::Pmpm()->Destroy(m_pmp);	
+		CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(m_mp);	
 		
 		GPOS_RETHROW(ex);
 	}
@@ -126,7 +126,7 @@ CAutoMemoryPool::~CAutoMemoryPool()
 #else // GPOS_DEBUG
 	
 	// hand in pool and return
-	CMemoryPoolManager::Pmpm()->Destroy(m_pmp);
+	CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(m_mp);
 
 #endif // GPOS_DEBUG
 }

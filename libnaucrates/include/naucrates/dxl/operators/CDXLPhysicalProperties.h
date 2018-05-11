@@ -32,7 +32,7 @@ namespace gpdxl
 	{
 		private:
 			// cost estimate
-			CDXLOperatorCost *m_pdxlopcost;
+			CDXLOperatorCost *m_operator_cost_dxl;
 
 			// private copy ctor
 			CDXLPhysicalProperties(const CDXLPhysicalProperties&);
@@ -41,35 +41,35 @@ namespace gpdxl
 
 			// ctor
 			explicit
-			CDXLPhysicalProperties(CDXLOperatorCost *pdxlopcost);
+			CDXLPhysicalProperties(CDXLOperatorCost *cost);
 			
 			// dtor
 			virtual
 			~CDXLPhysicalProperties();
 
 			// serialize properties in DXL format
-			void SerializePropertiesToDXL(CXMLSerializer *pxmlser) const;
+			void SerializePropertiesToDXL(CXMLSerializer *xml_serializer) const;
 
 			// accessors
 			// the cost estimates for the operator node
-			CDXLOperatorCost *Pdxlopcost() const;
+			CDXLOperatorCost *GetDXLOperatorCost() const;
 
 			virtual
-			Edxlprop Edxlproptype() const
+			Edxlproperty GetDXLPropertyType() const
 			{
-				return EdxlpropPhysical;
+				return EdxlpropertyPhysical;
 			}
 
 			// conversion function
 			static
 			CDXLPhysicalProperties *PdxlpropConvert
 				(
-				CDXLProperties *pdxlprop
+				CDXLProperties *dxl_properties
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlprop);
-				GPOS_ASSERT(EdxlpropPhysical == pdxlprop->Edxlproptype());
-				return dynamic_cast<CDXLPhysicalProperties *>(pdxlprop);
+				GPOS_ASSERT(NULL != dxl_properties);
+				GPOS_ASSERT(EdxlpropertyPhysical == dxl_properties->GetDXLPropertyType());
+				return dynamic_cast<CDXLPhysicalProperties *>(dxl_properties);
 			}
 	};
 

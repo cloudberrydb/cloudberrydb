@@ -35,7 +35,7 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalValuesScan
 				(
-					IMemoryPool *pmp
+					IMemoryPool *mp
 				);
 
 			// dtor
@@ -43,23 +43,23 @@ namespace gpdxl
 			~CDXLPhysicalValuesScan();
 
 			// get operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// get operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalValuesScan *PdxlopConvert(CDXLOperator *pdxlop);
+			CDXLPhysicalValuesScan *Cast(CDXLOperator *dxl_op);
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 	};

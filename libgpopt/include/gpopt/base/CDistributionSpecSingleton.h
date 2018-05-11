@@ -92,18 +92,18 @@ namespace gpopt
 			
 			// hash function for singleton distribution spec
 			virtual
-			ULONG UlHash() const
+			ULONG HashValue() const
 			{
 				ULONG ulEdt = (ULONG) Edt();
 				BOOL fOnMaster = FOnMaster();
 				
-				return gpos::UlCombineHashes(gpos::UlHash<ULONG>(&ulEdt),
-												gpos::UlHash<BOOL>(&fOnMaster));
+				return gpos::CombineHashes(gpos::HashValue<ULONG>(&ulEdt),
+												gpos::HashValue<BOOL>(&fOnMaster));
 			}
 			
 			// match function for singleton distribution specs
 			virtual
-			BOOL FMatch(const CDistributionSpec *pds) const
+			BOOL Matches(const CDistributionSpec *pds) const
 			{
 				return Edt() == pds->Edt() && 
 						FOnMaster() == dynamic_cast<const CDistributionSpecSingleton *>(pds)->FOnMaster();
@@ -111,7 +111,7 @@ namespace gpopt
 			
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *pmp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, DrgPexpr *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// print
 			virtual

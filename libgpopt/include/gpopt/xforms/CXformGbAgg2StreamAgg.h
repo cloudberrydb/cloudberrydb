@@ -37,7 +37,7 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CXformGbAgg2StreamAgg(IMemoryPool *pmp);
+			CXformGbAgg2StreamAgg(IMemoryPool *mp);
 
 			// ctor
 			explicit

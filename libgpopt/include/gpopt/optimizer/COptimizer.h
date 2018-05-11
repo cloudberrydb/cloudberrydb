@@ -60,59 +60,59 @@ namespace gpopt
 			static
 			CExpression *PexprOptimize
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CQueryContext *pqc,
-				DrgPss *pdrgpss
+				CSearchStageArray *search_stage_array
 				);
 
 			// translate an optimizer expression into a DXL tree 
 			static
-			CDXLNode *Pdxln
+			CDXLNode *CreateDXLNode
 						(
-						IMemoryPool *pmp,
-						CMDAccessor *pmda,
+						IMemoryPool *mp,
+						CMDAccessor *md_accessor,
 						CExpression *pexpr,
-						DrgPcr *pdrgpcr,
-						DrgPmdname *pdrgpmdname,
+						CColRefArray *colref_array,
+						CMDNameArray *pdrgpmdname,
 						ULONG ulHosts
 						);
 
 			// helper function to print query expression
 			static
-			void PrintQuery(IMemoryPool *pmp, CExpression *pexprTranslated, CQueryContext *pqc);
+			void PrintQuery(IMemoryPool *mp, CExpression *pexprTranslated, CQueryContext *pqc);
 
 			// helper function to print query plan
 			static
-			void PrintPlan(IMemoryPool *pmp, CExpression *pexprPlan);
+			void PrintPlan(IMemoryPool *mp, CExpression *pexprPlan);
 
 			// helper function to dump plan samples
 			static
-			void DumpSamples(IMemoryPool *pmp, CEnumeratorConfig *pec, ULONG ulSessionId, ULONG ulCmdId);
+			void DumpSamples(IMemoryPool *mp, CEnumeratorConfig *pec, ULONG ulSessionId, ULONG ulCmdId);
 
 			// print query or plan tree
 			static
-			void PrintQueryOrPlan(IMemoryPool *pmp, CExpression *pexpr, CQueryContext *pqc = NULL);
+			void PrintQueryOrPlan(IMemoryPool *mp, CExpression *pexpr, CQueryContext *pqc = NULL);
 
 			// Check for a plan with CTE, if both CTEProducer and CTEConsumer are executed on the same locality.
 			static
-			void CheckCTEConsistency(IMemoryPool *pmp, CExpression *pexpr);
+			void CheckCTEConsistency(IMemoryPool *mp, CExpression *pexpr);
 		public:
 			
 			// main optimizer function 
 			static
 			CDXLNode *PdxlnOptimize
 						(
-						IMemoryPool *pmp, 
-						CMDAccessor *pmda,						// MD accessor
-						const CDXLNode *pdxlnQuery,
-						const DrgPdxln *pdrgpdxlnQueryOutput, 	// required output columns
-						const DrgPdxln *pdrgpdxlnCTE,
+						IMemoryPool *mp, 
+						CMDAccessor *md_accessor,						// MD accessor
+						const CDXLNode *query,
+						const CDXLNodeArray *query_output_dxlnode_array, 	// required output columns
+						const CDXLNodeArray *cte_producers,
 						IConstExprEvaluator *pceeval,			// constant expression evaluator
 						ULONG ulHosts,							// number of hosts (data nodes) in the system
 						ULONG ulSessionId,						// session id used for logging and minidumps
 						ULONG ulCmdId,							// command id used for logging and minidumps
-						DrgPss *pdrgpss,						// search strategy
-						COptimizerConfig *poconf,				// optimizer configurations
+						CSearchStageArray *search_stage_array,						// search strategy
+						COptimizerConfig *optimizer_config,				// optimizer configurations
 						const CHAR *szMinidumpFileName = NULL	// name of minidump file to be created
 						);
 	}; // class COptimizer

@@ -31,7 +31,7 @@ namespace gpdxl
 	class CDXLColRef;
 	
 	// arrays of column references
-	typedef CDynamicPtrArray<CDXLColRef, CleanupRelease> DrgPdxlcr;
+	typedef CDynamicPtrArray<CDXLColRef, CleanupRelease> CDXLColRefArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -45,16 +45,16 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 	
 			// id
-			const ULONG m_ulId;
+			const ULONG m_id;
 
 			// column type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// column type modifier
 			INT m_iTypeModifer;
@@ -66,23 +66,23 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLColRef
 				(
-				IMemoryPool *pmp,
-				CMDName *pmdname,
-				ULONG ulId,
-				IMDId *pmdidType,
-				INT iTypeModifier
+				IMemoryPool *mp,
+				CMDName *mdname,
+				ULONG id,
+				IMDId *mdid_type,
+				INT type_modifier
 				);
 
 			~CDXLColRef();
 			
 			// accessors
-			const CMDName *Pmdname() const;
+			const CMDName *MdName() const;
 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
-			ULONG UlID() const;
+			ULONG Id() const;
 
 	};
 }

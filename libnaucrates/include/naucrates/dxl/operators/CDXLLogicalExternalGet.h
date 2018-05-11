@@ -35,27 +35,27 @@ namespace gpdxl
 
 		public:
 			// ctor
-			CDXLLogicalExternalGet(IMemoryPool *pmp, CDXLTableDescr *pdxltabdesc);
+			CDXLLogicalExternalGet(IMemoryPool *mp, CDXLTableDescr *table_descr);
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// conversion function
 			static
-			CDXLLogicalExternalGet *PdxlopConvert
+			CDXLLogicalExternalGet *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalExternalGet == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalExternalGet == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLLogicalExternalGet*>(pdxlop);
+				return dynamic_cast<CDXLLogicalExternalGet*>(dxl_op);
 			}
 
 	};

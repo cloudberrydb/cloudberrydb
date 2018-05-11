@@ -44,23 +44,23 @@ namespace gpnaucrates
 			CStatsPredLike& operator=(CStatsPredLike &);
 
 			// left hand side of the LIKE expression
-			CExpression *m_pexprLeft;
+			CExpression *m_expr_left;
 
 			// right hand side of the LIKE expression
-			CExpression *m_pexprRight;
+			CExpression *m_expr_right;
 
 			// default scale factor
-			CDouble m_dDefaultScaleFactor;
+			CDouble m_default_scale_factor;
 
 		public:
 
 			// ctor
 			CStatsPredLike
 				(
-				ULONG ulColId,
-				CExpression *pexprLeft,
-				CExpression *pexprRight,
-				CDouble dDefaultScaleFactor
+				ULONG colid,
+				CExpression *expr_left,
+				CExpression *expr_right,
+				CDouble default_scale_factor
 				);
 
 			// dtor
@@ -69,44 +69,44 @@ namespace gpnaucrates
 
 			// the column identifier on which the predicates are on
 			virtual
-			ULONG UlColId() const;
+			ULONG GetColId() const;
 
 			// filter type id
 			virtual
-			EStatsPredType Espt() const
+			EStatsPredType GetPredStatsType() const
 			{
 				return CStatsPred::EsptLike;
 			}
 
 			// left hand side of the LIKE expression
 			virtual
-			CExpression *PexprLeft() const
+			CExpression *GetExprOnLeft() const
 			{
-				return m_pexprLeft;
+				return m_expr_left;
 			}
 
 			// right hand side of the LIKE expression
 			virtual
-			CExpression *PexprRight() const
+			CExpression *GetExprOnRight() const
 			{
-				return m_pexprRight;
+				return m_expr_right;
 			}
 
 			// default scale factor
 			virtual
-			CDouble DDefaultScaleFactor() const;
+			CDouble DefaultScaleFactor() const;
 
 			// conversion function
 			static
-			CStatsPredLike *PstatspredConvert
+			CStatsPredLike *ConvertPredStats
 				(
-				CStatsPred *pstatspred
+				CStatsPred *pred_stats
 				)
 			{
-				GPOS_ASSERT(NULL != pstatspred);
-				GPOS_ASSERT(CStatsPred::EsptLike == pstatspred->Espt());
+				GPOS_ASSERT(NULL != pred_stats);
+				GPOS_ASSERT(CStatsPred::EsptLike == pred_stats->GetPredStatsType());
 
-				return dynamic_cast<CStatsPredLike*>(pstatspred);
+				return dynamic_cast<CStatsPredLike*>(pred_stats);
 			}
 
 	}; // class CStatsPredLike

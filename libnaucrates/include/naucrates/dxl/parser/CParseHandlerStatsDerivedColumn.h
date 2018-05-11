@@ -36,22 +36,22 @@ namespace gpdxl
 		private:
 
 			// column id
-			ULONG m_ulColId;
+			ULONG m_colid;
 
 			// width
-			CDouble m_dWidth;
+			CDouble m_width;
 
 			// null fraction
-			CDouble m_dNullFreq;
+			CDouble m_null_freq;
 
 			// ndistinct of remaining tuples
-			CDouble m_dDistinctRemain;
+			CDouble m_distinct_remaining;
 
 			// frequency of remaining tuples
-			CDouble m_dFreqRemain;
+			CDouble m_freq_remaining;
 
 			// derived column stats
-			CDXLStatsDerivedColumn *m_pstatsdercol;
+			CDXLStatsDerivedColumn *m_dxl_stats_derived_col;
 
 			// private copy ctor
 			CParseHandlerStatsDerivedColumn(const CParseHandlerStatsDerivedColumn &);
@@ -59,18 +59,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
@@ -78,18 +78,18 @@ namespace gpdxl
 			// ctor
 			CParseHandlerStatsDerivedColumn
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			//dtor
 			~CParseHandlerStatsDerivedColumn();
 
 			// derived column stats
-			CDXLStatsDerivedColumn *Pstatsdercol() const
+			CDXLStatsDerivedColumn *GetDxlStatsDerivedCol() const
 			{
-				return m_pstatsdercol;
+				return m_dxl_stats_derived_col;
 			}
 	};
 }

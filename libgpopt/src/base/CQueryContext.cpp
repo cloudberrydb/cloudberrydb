@@ -31,59 +31,59 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CQueryContext::CQueryContext
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexpr,
 	CReqdPropPlan *prpp,
-	DrgPcr *pdrgpcr,
-	DrgPmdname *pdrgpmdname,
+	CColRefArray *colref_array,
+	CMDNameArray *pdrgpmdname,
 	BOOL fDeriveStats
 	)
 	:
-	m_pmp(pmp),
+	m_mp(mp),
 	m_prpp(prpp),
-	m_pdrgpcr(pdrgpcr),
+	m_pdrgpcr(colref_array),
 	m_pdrgpcrSystemCols(NULL),
 	m_pdrgpmdname(pdrgpmdname),
 	m_fDeriveStats(fDeriveStats)
 {
 	GPOS_ASSERT(NULL != pexpr);
 	GPOS_ASSERT(NULL != prpp);
-	GPOS_ASSERT(NULL != pdrgpcr);
+	GPOS_ASSERT(NULL != colref_array);
 	GPOS_ASSERT(NULL != pdrgpmdname);
-	GPOS_ASSERT(pdrgpcr->UlLength() == pdrgpmdname->UlLength());
+	GPOS_ASSERT(colref_array->Size() == pdrgpmdname->Size());
 
 #ifdef GPOS_DEBUG
-	const ULONG ulReqdColumns = m_pdrgpcr->UlLength();
+	const ULONG ulReqdColumns = m_pdrgpcr->Size();
 #endif //GPOS_DEBUG
 
 	// mark unused CTEs
 	CCTEInfo *pcteinfo = COptCtxt::PoctxtFromTLS()->Pcteinfo();
 	pcteinfo->MarkUnusedCTEs();
 
-	CColRefSet *pcrsOutputAndOrderingCols = GPOS_NEW(pmp) CColRefSet(pmp);
-	CColRefSet *pcrsOrderSpec = prpp->Peo()->PosRequired()->PcrsUsed(pmp);
+	CColRefSet *pcrsOutputAndOrderingCols = GPOS_NEW(mp) CColRefSet(mp);
+	CColRefSet *pcrsOrderSpec = prpp->Peo()->PosRequired()->PcrsUsed(mp);
 
-	pcrsOutputAndOrderingCols->Include(pdrgpcr);
+	pcrsOutputAndOrderingCols->Include(colref_array);
 	pcrsOutputAndOrderingCols->Include(pcrsOrderSpec);
 	pcrsOrderSpec->Release();
 
-	m_pexpr = CExpressionPreprocessor::PexprPreprocess(pmp, pexpr, pcrsOutputAndOrderingCols);
+	m_pexpr = CExpressionPreprocessor::PexprPreprocess(mp, pexpr, pcrsOutputAndOrderingCols);
 
 	pcrsOutputAndOrderingCols->Release();
-	GPOS_ASSERT(m_pdrgpcr->UlLength() == ulReqdColumns);
+	GPOS_ASSERT(m_pdrgpcr->Size() == ulReqdColumns);
 
 	// collect required system columns
-	SetSystemCols(pmp);
+	SetSystemCols(mp);
 
 	// collect CTE predicates and add them to CTE producer expressions
-	CExpressionPreprocessor::AddPredsToCTEProducers(pmp, m_pexpr);
+	CExpressionPreprocessor::AddPredsToCTEProducers(mp, m_pexpr);
 
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	// create the mapping between the computed column, defined in the expression
 	// and all CTEs, and its corresponding used columns
-	MapComputedToUsedCols(pcf, m_pexpr);
-	pcteinfo->MapComputedToUsedCols(pcf);
+	MapComputedToUsedCols(col_factory, m_pexpr);
+	pcteinfo->MapComputedToUsedCols(col_factory);
 }
 
 
@@ -143,20 +143,20 @@ CQueryContext::PopTop
 void
 CQueryContext::SetSystemCols
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
 	GPOS_ASSERT(NULL == m_pdrgpcrSystemCols);
 	GPOS_ASSERT(NULL != m_pdrgpcr);
 
-	m_pdrgpcrSystemCols = GPOS_NEW(pmp) DrgPcr(pmp);
-	const ULONG ulReqdCols = m_pdrgpcr->UlLength();
+	m_pdrgpcrSystemCols = GPOS_NEW(mp) CColRefArray(mp);
+	const ULONG ulReqdCols = m_pdrgpcr->Size();
 	for (ULONG ul = 0; ul < ulReqdCols; ul++)
 	{
-		CColRef *pcr = (*m_pdrgpcr)[ul];
-		if (pcr->FSystemCol())
+		CColRef *colref = (*m_pdrgpcr)[ul];
+		if (colref->FSystemCol())
 		{
-			m_pdrgpcrSystemCols->Append(pcr);
+			m_pdrgpcrSystemCols->Append(colref);
 		}
 	}
 }
@@ -174,34 +174,34 @@ CQueryContext::SetSystemCols
 CQueryContext *
 CQueryContext::PqcGenerate
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression * pexpr,
-	DrgPul *pdrgpulQueryOutputColRefId,
-	DrgPmdname *pdrgpmdname,
+	ULongPtrArray *pdrgpulQueryOutputColRefId,
+	CMDNameArray *pdrgpmdname,
 	BOOL fDeriveStats
 	)
 {
 	GPOS_ASSERT(NULL != pexpr && NULL != pdrgpulQueryOutputColRefId);
 
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	DrgPcr *pdrgpcr = GPOS_NEW(pmp) DrgPcr(pmp);
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+	CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
 
 	COptCtxt *poptctxt = COptCtxt::PoctxtFromTLS();
-	CColumnFactory *pcf = poptctxt->Pcf();
-	GPOS_ASSERT(NULL != pcf);
+	CColumnFactory *col_factory = poptctxt->Pcf();
+	GPOS_ASSERT(NULL != col_factory);
 
-	// Collect required column references (pdrgpcr)
-	const ULONG ulLen = pdrgpulQueryOutputColRefId->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	// Collect required column references (colref_array)
+	const ULONG length = pdrgpulQueryOutputColRefId->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
 		ULONG *pul = (*pdrgpulQueryOutputColRefId)[ul];
 		GPOS_ASSERT(NULL != pul);
 
-		CColRef *pcr = pcf->PcrLookup(*pul);
-		GPOS_ASSERT(NULL != pcr);
+		CColRef *colref = col_factory->LookupColRef(*pul);
+		GPOS_ASSERT(NULL != colref);
 
-		pcrs->Include(pcr);
-		pdrgpcr->Append(pcr);
+		pcrs->Include(colref);
+		colref_array->Append(colref);
 	}
 
 	// Collect required properties (prpp) at the top level:
@@ -221,7 +221,7 @@ CQueryContext::PqcGenerate
 	else
 	{
 		// no order required
-		pos = GPOS_NEW(pmp) COrderSpec(pmp);
+		pos = GPOS_NEW(mp) COrderSpec(mp);
 	}
 
 	CDistributionSpec *pds = NULL;
@@ -233,33 +233,33 @@ CQueryContext::PqcGenerate
 	// distribution requirement is Singleton.
 	if (fDML)
 	{
-		pds = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
+		pds = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
 	}
 	else
 	{
-		pds = GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		pds = GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 	}
 
 	// By default, no rewindability requirement needs to be satisfied at the top level
-	CRewindabilitySpec *prs = GPOS_NEW(pmp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+	CRewindabilitySpec *prs = GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
 
 	// Ensure order, distribution and rewindability meet 'satisfy' matching at the top level
-	CEnfdOrder *peo = GPOS_NEW(pmp) CEnfdOrder(pos, CEnfdOrder::EomSatisfy);
-	CEnfdDistribution *ped = GPOS_NEW(pmp) CEnfdDistribution(pds, CEnfdDistribution::EdmSatisfy);
-	CEnfdRewindability *per = GPOS_NEW(pmp) CEnfdRewindability(prs, CEnfdRewindability::ErmSatisfy);
+	CEnfdOrder *peo = GPOS_NEW(mp) CEnfdOrder(pos, CEnfdOrder::EomSatisfy);
+	CEnfdDistribution *ped = GPOS_NEW(mp) CEnfdDistribution(pds, CEnfdDistribution::EdmSatisfy);
+	CEnfdRewindability *per = GPOS_NEW(mp) CEnfdRewindability(prs, CEnfdRewindability::ErmSatisfy);
 
 	// Required CTEs are obtained from the CTEInfo global information in the optimizer context
-	CCTEReq *pcter = poptctxt->Pcteinfo()->PcterProducers(pmp);
+	CCTEReq *pcter = poptctxt->Pcteinfo()->PcterProducers(mp);
 
 	// NB: Partition propagation requirements are not initialized here.  They are
 	// constructed later based on derived relation properties (CPartInfo) by
 	// CReqdPropPlan::InitReqdPartitionPropagation().
 
-	CReqdPropPlan *prpp = GPOS_NEW(pmp) CReqdPropPlan(pcrs, peo, ped, per, pcter);
+	CReqdPropPlan *prpp = GPOS_NEW(mp) CReqdPropPlan(pcrs, peo, ped, per, pcter);
 
 	// Finally, create the CQueryContext
 	pdrgpmdname->AddRef();
-	return GPOS_NEW(pmp) CQueryContext(pmp, pexprResult, prpp, pdrgpcr, pdrgpmdname, fDeriveStats);
+	return GPOS_NEW(mp) CQueryContext(mp, pexprResult, prpp, colref_array, pdrgpmdname, fDeriveStats);
 }
 
 #ifdef GPOS_DEBUG
@@ -285,7 +285,7 @@ CQueryContext::OsPrint
 void
 CQueryContext::DbgPrint() const
 {
-	CAutoTrace at(m_pmp);
+	CAutoTrace at(m_mp);
 	(void) this->OsPrint(at.Os());
 }
 #endif // GPOS_DEBUG
@@ -303,7 +303,7 @@ CQueryContext::DbgPrint() const
 void
 CQueryContext::MapComputedToUsedCols
 	(
-	CColumnFactory *pcf,
+	CColumnFactory *col_factory,
 	CExpression *pexpr
 	)
 {
@@ -313,19 +313,19 @@ CQueryContext::MapComputedToUsedCols
 	{
 		CExpression *pexprPrL = (*pexpr)[1];
 
-		const ULONG ulArity = pexprPrL->UlArity();
-		for (ULONG ul = 0; ul < ulArity; ul++)
+		const ULONG arity = pexprPrL->Arity();
+		for (ULONG ul = 0; ul < arity; ul++)
 		{
 			CExpression *pexprPrEl = (*pexprPrL)[ul];
-			pcf->AddComputedToUsedColsMap(pexprPrEl);
+			col_factory->AddComputedToUsedColsMap(pexprPrEl);
 		}
 	}
 
 	// process children
-	const ULONG ulChildren = pexpr->UlArity();
+	const ULONG ulChildren = pexpr->Arity();
 	for (ULONG ul = 0; ul < ulChildren; ul++)
 	{
-		MapComputedToUsedCols(pcf, (*pexpr)[ul]);
+		MapComputedToUsedCols(col_factory, (*pexpr)[ul]);
 	}
 }
 

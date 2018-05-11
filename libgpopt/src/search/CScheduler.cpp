@@ -33,7 +33,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScheduler::CScheduler
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ULONG ulJobs,
 	ULONG_PTR ulpTasks
 #ifdef GPOS_DEBUG
@@ -42,7 +42,7 @@ CScheduler::CScheduler
 #endif // GPOS_DEBUG
 	)
 	:
-	m_spjl(pmp, ulJobs),
+	m_spjl(mp, ulJobs),
 	m_ulpTasksMax(ulpTasks),
 	m_ulpTasksActive(0),
 	m_ulpTotal(0),
@@ -60,7 +60,7 @@ CScheduler::CScheduler
 #endif // GPOS_DEBUG
 {
 	// initialize pool of job links
-	m_spjl.Init(GPOS_OFFSET(SJobLink, m_ulId));
+	m_spjl.Init(GPOS_OFFSET(SJobLink, m_id));
 
 	// initialize list of waiting new jobs
 	m_listjlWaiting.Init(GPOS_OFFSET(SJobLink, m_link));
@@ -90,11 +90,11 @@ CScheduler::~CScheduler()
 {
 	GPOS_ASSERT_IMP
 		(
-		!ITask::PtskSelf()->FPendingExc(),
+		!ITask::Self()->HasPendingExceptions(),
 		0 == m_ulpTotal
 		);
 
-	GPOS_ASSERT(0 == m_event.CWaiters());
+	GPOS_ASSERT(0 == m_event.GetNumWaiters());
 }
 
 
@@ -146,7 +146,7 @@ CScheduler::ProcessJobs
 		am.Lock();
 
 		// stop when all jobs have completed
-		if (FEmpty())
+		if (IsEmpty())
 		{
 			m_event.Broadcast();
 			break;
@@ -176,7 +176,7 @@ CScheduler::ExecuteJobs
 	)
 {
 	CJob *pj = NULL;
-	ULONG ulCount = 0;
+	ULONG count = 0;
 
 	// keep retrieving jobs
 	while (NULL != (pj = PjRetrieve()))
@@ -207,7 +207,7 @@ CScheduler::ExecuteJobs
 #ifdef GPOS_DEBUG
 				if (GPOS_FTRACE(EopttracePrintJobScheduler))
 				{
-					CAutoTrace at(psc->PmpGlobal());
+					CAutoTrace at(psc->GetGlobalMemoryPool());
 
 					at.Os()
 						<< "Print scheduler:" << std::endl
@@ -232,10 +232,10 @@ CScheduler::ExecuteJobs
 				GPOS_ASSERT(!"Invalid job execution result");
 		}
 
-		if (++ulCount == OPT_SCHED_CFA)
+		if (++count == OPT_SCHED_CFA)
 		{
 			GPOS_CHECK_ABORT;
-			ulCount = 0;
+			count = 0;
 		}
 	}
 }
@@ -278,7 +278,7 @@ CScheduler::Add
 	pj->SetParent(pjParent);
 
 	// increment total number of jobs
-	(void) UlpExchangeAdd(&m_ulpTotal, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpTotal, 1);
 
 	Schedule(pj);
 }
@@ -320,7 +320,7 @@ CScheduler::Schedule
 	)
 {
 	GPOS_ASSERT(NULL != pj);
-	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.FOwned());
+	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.IsOwned());
 
 	// get job link
 	SJobLink *pjl = m_spjl.PtRetrieve();
@@ -349,10 +349,10 @@ CScheduler::Schedule
 	m_listjlWaiting.Push(pjl);
 
 	// increment number of queued jobs
-	(void) UlpExchangeAdd(&m_ulpQueued, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpQueued, 1);
 
 	// update statistics
-	(void) UlpExchangeAdd(&m_ulpStatsQueued, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpStatsQueued, 1);
 
 	// check if there is enough work for another worker
 	if (FIncreaseWorkers())
@@ -392,7 +392,7 @@ CScheduler::PreExecute
 				"Runnable job cannot have pending children");
 
 	// increment number of running jobs
-	(void) UlpExchangeAdd(&m_ulpRunning, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpRunning, 1);
 
 	// increment job ref counter
 	pj->IncRefs();
@@ -471,13 +471,13 @@ CScheduler::EjrPostExecute
 	)
 {
 	GPOS_ASSERT(NULL != pj);
-	GPOS_ASSERT(0 < pj->UlpRefs() && "Running job is marked as completed");
+	GPOS_ASSERT(0 < pj->UlpRefs() && "IsRunning job is marked as completed");
 
 	// decrement job ref counter
 	ULONG_PTR ulRefs = pj->UlpDecrRefs();
 
 	// decrement number of running jobs
-	(void) UlpExchangeAdd(&m_ulpRunning, -1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpRunning, -1);
 
 	// check if job completed
 	if (fCompleted)
@@ -529,10 +529,10 @@ CScheduler::PjRetrieve()
 		GPOS_ASSERT(0 == pj->UlpRefs());
 
 		// decrement number of queued jobs
-		(void) UlpExchangeAdd(&m_ulpQueued, -1);
+		(void) ExchangeAddUlongPtrWithInt(&m_ulpQueued, -1);
 
 		// update statistics
-		(void) UlpExchangeAdd(&m_ulpStatsDequeued, 1);
+		(void) ExchangeAddUlongPtrWithInt(&m_ulpStatsDequeued, 1);
 
 		// recycle job link
 		m_spjl.Recycle(pjl);
@@ -571,7 +571,7 @@ CScheduler::Suspend
 	)
 {
 	GPOS_ASSERT(NULL != pj);
-	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.FOwned());
+	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.IsOwned());
 
 #ifdef GPOS_DEBUG
 	if (FTrackingJobs())
@@ -583,7 +583,7 @@ CScheduler::Suspend
 	}
 #endif // GPOS_DEBUG)
 
-	(void) UlpExchangeAdd(&m_ulpStatsSuspended, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpStatsSuspended, 1);
 }
 
 
@@ -602,7 +602,7 @@ CScheduler::Complete
 	)
 {
 	GPOS_ASSERT(0 == pj->UlpRefs());
-	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.FOwned());
+	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.IsOwned());
 
 #ifdef GPOS_DEBUG
 	if (FTrackingJobs())
@@ -616,8 +616,8 @@ CScheduler::Complete
 	ResumeParent(pj);
 
 	// update statistics
-	(void) UlpExchangeAdd(&m_ulpTotal, -1);
-	(void) UlpExchangeAdd(&m_ulpStatsCompleted, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpTotal, -1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpStatsCompleted, 1);
 }
 
 
@@ -654,9 +654,9 @@ CScheduler::CompleteQueued
 	ResumeParent(pj);
 
 	// update statistics
-	(void) UlpExchangeAdd(&m_ulpTotal, -1);
-	(void) UlpExchangeAdd(&m_ulpStatsCompleted, 1);
-	(void) UlpExchangeAdd(&m_ulpStatsCompletedQueued, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpTotal, -1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpStatsCompleted, 1);
+	(void) ExchangeAddUlongPtrWithInt(&m_ulpStatsCompletedQueued, 1);
 }
 
 
@@ -675,7 +675,7 @@ CScheduler::ResumeParent
 	)
 {
 	GPOS_ASSERT(0 == pj->UlpRefs());
-	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.FOwned());
+	GPOS_ASSERT_IMP(FTrackingJobs(), m_mutex.IsOwned());
 
 	CJob *pjParent = pj->PjParent();
 
@@ -695,7 +695,7 @@ CScheduler::ResumeParent
 			Resume(pjParent);
 
 			// update statistics
-			(void) UlpExchangeAdd(&m_ulpStatsResumed, 1);
+			(void) ExchangeAddUlongPtrWithInt(&m_ulpStatsResumed, 1);
 		}
 	}
 }
@@ -748,11 +748,11 @@ CScheduler::OsPrintActiveJobs
 	os << "Scheduler - active jobs: " << std::endl << std::endl;
 
 	os << "List of running jobs: " << std::endl;
-	CJob *pj = m_listjRunning.PtFirst();
+	CJob *pj = m_listjRunning.First();
 	while(NULL != pj)
 	{
 		pj->OsPrint(os);
-		pj = m_listjRunning.PtNext(pj);
+		pj = m_listjRunning.Next(pj);
 	}
 
 	os << std::endl << "List of waiting jobs: " << std::endl;
@@ -761,15 +761,15 @@ CScheduler::OsPrintActiveJobs
 	while(NULL != pjl)
 	{
 		pjl->m_pj->OsPrint(os);
-		pjl = m_listjlWaiting.PtNext(pjl);
+		pjl = m_listjlWaiting.Next(pjl);
 	}
 
 	os << std::endl << "List of suspended jobs: " << std::endl;
-	pj = m_listjSuspended.PtFirst();
+	pj = m_listjSuspended.First();
 	while(NULL != pj)
 	{
 		pj->OsPrint(os);
-		pj = m_listjSuspended.PtNext(pj);
+		pj = m_listjSuspended.Next(pj);
 	}
 
 	return os;

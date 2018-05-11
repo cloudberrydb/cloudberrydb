@@ -28,7 +28,7 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CXformInnerJoin2IndexGetApply : public CXformJoin2IndexApplyBase
 		<CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
-		false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
+		false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
 	{
 
 		private:
@@ -40,11 +40,11 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformInnerJoin2IndexGetApply(IMemoryPool *pmp)
+			CXformInnerJoin2IndexGetApply(IMemoryPool *mp)
 				: CXformJoin2IndexApplyBase
 				 <CLogicalInnerJoin, CLogicalIndexApply, CLogicalGet,
-				 false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
-				(pmp)
+				 false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBtree>
+				(mp)
 			{}
 
 			// dtor

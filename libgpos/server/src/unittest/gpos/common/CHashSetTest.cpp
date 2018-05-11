@@ -59,29 +59,29 @@ CHashSetTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// test with ULONG array
 	ULONG_PTR rgul[] = {0,1,2,3,4,5,6,7,8,9};
 
 	const ULONG ulCnt = GPOS_ARRAY_SIZE(rgul);
 
-	typedef CHashSet< ULONG_PTR, UlHashPtr<ULONG_PTR>, FEqual<ULONG_PTR>, CleanupNULL<ULONG_PTR> > HSUl;
+	typedef CHashSet<ULONG_PTR, HashPtr<ULONG_PTR>, Equals<ULONG_PTR>, CleanupNULL<ULONG_PTR> > UlongPtrHashSet;
 
-	HSUl *phs = GPOS_NEW(pmp) HSUl(pmp, 128);
+	UlongPtrHashSet *phs = GPOS_NEW(mp) UlongPtrHashSet(mp, 128);
 	for (ULONG ul = 0; ul < ulCnt; ul++)
 	{
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =
 #endif // GPOS_DEBUG
-			phs->FInsert(&rgul[ul]);
+			phs->Insert(&rgul[ul]);
 		GPOS_ASSERT(fSuccess);
 	}
-	GPOS_ASSERT(ulCnt == phs->UlEntries());
+	GPOS_ASSERT(ulCnt == phs->Size());
 
 	for (ULONG ul = 0; ul < ulCnt; ul++)
 	{
-		GPOS_ASSERT(phs->FExists(&rgul[ul]));
+		GPOS_ASSERT(phs->Contains(&rgul[ul]));
 	}
 
 	phs->Release();
@@ -103,27 +103,27 @@ CHashSetTest::EresUnittest_Ownership()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	ULONG ulCnt = 256;
 
-	typedef CHashSet< ULONG_PTR, UlHashPtr<ULONG_PTR>, FEqual<ULONG_PTR>, CleanupDelete<ULONG_PTR> > HSUl;
+	typedef CHashSet<ULONG_PTR, HashPtr<ULONG_PTR>, Equals<ULONG_PTR>, CleanupDelete<ULONG_PTR> > UlongPtrHashSet;
 
-	HSUl *phs = GPOS_NEW(pmp) HSUl(pmp, 32);
+	UlongPtrHashSet *phs = GPOS_NEW(mp) UlongPtrHashSet(mp, 32);
 	for (ULONG ul = 0; ul < ulCnt; ul++)
 	{
-		ULONG_PTR *pulp = GPOS_NEW(pmp) ULONG_PTR(ul);
+		ULONG_PTR *pulp = GPOS_NEW(mp) ULONG_PTR(ul);
 
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =
 #endif // GPOS_DEBUG
-			phs->FInsert(pulp);
+			phs->Insert(pulp);
 
 		GPOS_ASSERT(fSuccess);
-		GPOS_ASSERT(phs->FExists(pulp));
+		GPOS_ASSERT(phs->Contains(pulp));
 
 		// can't insert existing keys
-		GPOS_ASSERT(!phs->FInsert(pulp));
+		GPOS_ASSERT(!phs->Insert(pulp));
 	}
 
 	phs->Release();

@@ -18,7 +18,7 @@ namespace gpopt
 
 	class CXformLeftOuterJoin2BitmapIndexGetApply : public CXformJoin2IndexApplyBase
 		<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalGet,
-		false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBitmap>
+		false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
 	{
 		private:
 			// private copy ctor
@@ -27,11 +27,11 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CXformLeftOuterJoin2BitmapIndexGetApply(IMemoryPool *pmp)
+			CXformLeftOuterJoin2BitmapIndexGetApply(IMemoryPool *mp)
 				: CXformJoin2IndexApplyBase
 				<CLogicalLeftOuterJoin, CLogicalIndexApply, CLogicalGet,
-				false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBitmap>
-				(pmp)
+				false /*fWithSelect*/, false /*is_partial*/, IMDIndex::EmdindBitmap>
+				(mp)
 			{}
 
 			// dtor

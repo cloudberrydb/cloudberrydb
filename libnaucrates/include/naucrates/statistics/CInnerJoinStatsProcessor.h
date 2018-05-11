@@ -21,12 +21,12 @@ namespace gpnaucrates
 		public:
 			// inner join with another stats structure
 			static
-			CStatistics *PstatsInnerJoinStatic
+			CStatistics *CalcInnerJoinStatsStatic
 					(
-					IMemoryPool *pmp,
-					const IStatistics *pistatsOuter,
-					const IStatistics *pistatsInner,
-					DrgPstatspredjoin *pdrgpstatspredjoin
+					IMemoryPool *mp,
+					const IStatistics *outer_stats_input,
+					const IStatistics *inner_stats_input,
+					CStatsPredJoinArray *join_preds_stats
 					);
 	};
 }

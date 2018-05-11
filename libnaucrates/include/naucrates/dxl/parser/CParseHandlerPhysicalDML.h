@@ -35,31 +35,31 @@ namespace gpdxl
 		private:
 			
 			// operator type
-			EdxlDmlType m_edxldmltype;
+		EdxlDmlType m_dxl_dml_type;
 
 			// source col ids
-			DrgPul *m_pdrgpul;
+			ULongPtrArray *m_src_colids_array;
 		
 			// action column id
-			ULONG m_ulAction;
+			ULONG m_action_colid;
 
 			// oid column id
-			ULONG m_ulOid;
+			ULONG m_oid_colid;
 
 			// ctid column id
-			ULONG m_ulCtid;
+			ULONG m_ctid_colid;
 
 			// segmentId column id
-			ULONG m_ulSegmentId;
+			ULONG m_segid_colid;
 			
 			// does update preserve oids
-			BOOL m_fPreserveOids;
+			BOOL m_preserve_oids;
 			
 			// tuple oid column id
-			ULONG m_ulTupleOidColId;
+			ULONG m_tuple_oid_col_oid;
 
 			// needs data to be sorted
-			BOOL m_fInputSorted;
+			BOOL m_input_sort_req;
 
 			// private copy ctor
 			CParseHandlerPhysicalDML(const CParseHandlerPhysicalDML &);
@@ -67,31 +67,31 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 			// parse the dml type from the attribute value
 			static
-			EdxlDmlType EdxlDmlOpType(const XMLCh *xmlszDmlType);
+			EdxlDmlType GetDmlOpType(const XMLCh *xmlszDmlType);
 
 		public:
 			// ctor
 			CParseHandlerPhysicalDML
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

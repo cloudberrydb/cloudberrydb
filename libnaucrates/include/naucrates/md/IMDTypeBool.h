@@ -43,18 +43,18 @@ namespace gpmd
 		public:
 		
 			// type id
-			static ETypeInfo EtiType()
+			static ETypeInfo GetTypeInfo()
 			{
 				return EtiBool;
 			}
 
-			virtual ETypeInfo Eti() const
+			virtual ETypeInfo GetDatumType() const
 			{
-				return IMDTypeBool::EtiType();
+				return IMDTypeBool::GetTypeInfo();
 			}
 			
 			// factory function for BOOL datums
-			virtual IDatumBool *PdatumBool(IMemoryPool *pmp, BOOL fValue, BOOL fNULL) const = 0;
+			virtual IDatumBool *CreateBoolDatum(IMemoryPool *mp, BOOL value, BOOL is_null) const = 0;
 		
 	};
 

@@ -32,27 +32,27 @@ namespace gpopt
 		protected:
 
 			// Scan id
-			ULONG m_ulScanId;
+			ULONG m_scan_id;
 
 			// mdid of partitioned table
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 
 			// partition keys
-			DrgDrgPcr *m_pdrgpdrgpcr;
+			CColRef2dArray *m_pdrgpdrgpcr;
 
 			// part constraint map
-			PartCnstrMap *m_ppartcnstrmap;
+			UlongToPartConstraintMap *m_ppartcnstrmap;
 
 			// relation part constraint
-			CPartConstraint *m_ppartcnstr;
+			CPartConstraint *m_part_constraint;
 
 			// expressions used in equality filters; for a filter of the form
 			// pk1 = expr, we only store the expr
-			HMUlExpr *m_phmulexprEqPredicates;
+			UlongToExprMap *m_phmulexprEqPredicates;
 
 			// expressions used in general predicates; we store the whole predicate
 			// in this case (e.g. pk1 > 50)
-			HMUlExpr *m_phmulexprPredicates;
+			UlongToExprMap *m_phmulexprPredicates;
 
 			// residual partition selection expression that cannot be split to
 			// individual levels (e.g. pk1 < 5 OR pk2 = 6)
@@ -62,14 +62,14 @@ namespace gpopt
 			CExpression *m_pexprCombinedPredicate;
 
 			// ctor
-			CPhysicalPartitionSelector(IMemoryPool *pmp, IMDId *pmdid, HMUlExpr *phmulexprEqPredicates);
+			CPhysicalPartitionSelector(IMemoryPool *mp, IMDId *mdid, UlongToExprMap *phmulexprEqPredicates);
 
 			// return a single combined partition selection predicate
-			CExpression *PexprCombinedPartPred(IMemoryPool *pmp) const;
+			CExpression *PexprCombinedPartPred(IMemoryPool *mp) const;
 
 			// check whether two expression maps match
 			static
-			BOOL FMatchExprMaps(HMUlExpr *phmulexprFst, HMUlExpr *phmulexprSnd);
+			BOOL FMatchExprMaps(UlongToExprMap *phmulexprFst, UlongToExprMap *phmulexprSnd);
 
 		private:
 
@@ -77,28 +77,28 @@ namespace gpopt
 			CPhysicalPartitionSelector(const CPhysicalPartitionSelector &);
 
 			// check whether part constraint maps match
-			BOOL FMatchPartCnstr(PartCnstrMap *ppartcnstrmap) const;
+			BOOL FMatchPartCnstr(UlongToPartConstraintMap *ppartcnstrmap) const;
 
 			// check whether this operator has a partition selection filter
 			BOOL FHasFilter() const;
 
 			// check whether first part constraint map is contained in the second one
 			static
-			BOOL FSubsetPartCnstr(PartCnstrMap *ppartcnstrmapFst, PartCnstrMap *ppartcnstrmapSnd);
+			BOOL FSubsetPartCnstr(UlongToPartConstraintMap *ppartcnstrmapFst, UlongToPartConstraintMap *ppartcnstrmapSnd);
 
 		public:
 
 			// ctor
 			CPhysicalPartitionSelector
 				(
-				IMemoryPool *pmp,
-				ULONG ulScanId,
-				IMDId *pmdid,
-				DrgDrgPcr *pdrgpdrgpcr,
-				PartCnstrMap *ppartcnstrmap,
+				IMemoryPool *mp,
+				ULONG scan_id,
+				IMDId *mdid,
+				CColRef2dArray *pdrgpdrgpcr,
+				UlongToPartConstraintMap *ppartcnstrmap,
 				CPartConstraint *ppartcnstr,
-				HMUlExpr *phmulexprEqPredicates,
-				HMUlExpr *phmulexprPredicates,
+				UlongToExprMap *phmulexprEqPredicates,
+				UlongToExprMap *phmulexprPredicates,
 				CExpression *pexprResidual
 				);
 
@@ -121,19 +121,19 @@ namespace gpopt
 			}
 
 			// scan id
-			ULONG UlScanId() const
+			ULONG ScanId() const
 			{
-				return m_ulScanId;
+				return m_scan_id;
 			}
 
 			// partitioned table mdid
-			IMDId *Pmdid() const
+			IMDId *MDId() const
 			{
-				return m_pmdid;
+				return m_mdid;
 			}
 
 			// partition keys
-			DrgDrgPcr *Pdrgpdrgpcr() const
+			CColRef2dArray *Pdrgpdrgpcr() const
 			{
 				return m_pdrgpdrgpcr;
 			}
@@ -155,7 +155,7 @@ namespace gpopt
 			CExpression *PexprFilter(ULONG ulPartLevel) const;
 
 			// return the partition selection predicate for the given level
-			CExpression *PexprPartPred(IMemoryPool *pmp, ULONG ulPartLevel) const;
+			CExpression *PexprPartPred(IMemoryPool *mp, ULONG ulPartLevel) const;
 
 			// return the residual predicate
 			CExpression *PexprResidualPred() const
@@ -165,11 +165,11 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -187,11 +187,11 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 
@@ -199,11 +199,11 @@ namespace gpopt
 			virtual
 			CCTEReq *PcteRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CCTEReq *pcter,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -212,11 +212,11 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -225,11 +225,11 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -238,11 +238,11 @@ namespace gpopt
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 
@@ -250,11 +250,11 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -269,23 +269,23 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive distribution
 			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive rewindability
 			virtual
-			CRewindabilitySpec *PrsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CRewindabilitySpec *PrsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition index map
 			virtual
-			CPartIndexMap *PpimDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt) const;
+			CPartIndexMap *PpimDerive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt) const;
 
 			// derive partition filter map
 			virtual
-			CPartFilterMap *PpfmDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CPartFilterMap *PpfmDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties

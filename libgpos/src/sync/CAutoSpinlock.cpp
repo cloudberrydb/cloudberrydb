@@ -26,9 +26,9 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CAutoSpinlock::~CAutoSpinlock()
 {
-	if (m_fLocked)
+	if (m_locked)
 	{
-		m_slock.Unlock();
+		m_lock.Unlock();
 	}
 }
 

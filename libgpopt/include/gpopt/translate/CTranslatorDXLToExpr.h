@@ -51,12 +51,12 @@ namespace gpopt
 	using namespace gpdxl;
 
 	// hash maps
-	typedef CHashMap<ULONG, DrgPexpr, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupNULL > HMUlPdrgpexpr;
+	typedef CHashMap<ULONG, CExpressionArray, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+					CleanupDelete<ULONG>, CleanupNULL > UlongToExprArrayMap;
 
 	// iterator
-	typedef CHashMapIter<ULONG, DrgPexpr, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-		CleanupDelete<ULONG>, CleanupNULL > HMIterUlPdrgpexpr;
+	typedef CHashMapIter<ULONG, CExpressionArray, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+		CleanupDelete<ULONG>, CleanupNULL > UlongToExprArrayMapIter;
 
 	
 	//---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ namespace gpopt
 	{
 		
 		// shorthand for functions for translating DXL operator nodes into expression trees
-		typedef CExpression * (CTranslatorDXLToExpr::*PfPexpr)(const CDXLNode *pdxln);
+		typedef CExpression * (CTranslatorDXLToExpr::*PfPexpr)(const CDXLNode *dxlnode);
 
 		// pair of DXL operator type and the corresponding translator
 		struct STranslatorMapping
@@ -86,7 +86,7 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// source system id
 			CSystemId m_sysid;
@@ -94,19 +94,19 @@ namespace gpopt
 			CMDAccessor *m_pmda;
 
 			// mappings DXL ColId -> CColRef used to process scalar expressions
-			HMUlCr *m_phmulcr;
+			UlongToColRefMap *m_phmulcr;
 
 			// mappings CTE Id (in DXL) -> CTE Id (in expr)
-			HMUlUl *m_phmululCTE;
+			UlongToUlongMap *m_phmululCTE;
 
 			// array of output ColRefId
-			DrgPul *m_pdrgpulOutputColRefs;
+			ULongPtrArray *m_pdrgpulOutputColRefs;
 
 			// array of output column names
-			DrgPmdname *m_pdrgpmdname;
+			CMDNameArray *m_pdrgpmdname;
 
 			// maintains the mapping between CTE identifier and DXL representation of the corresponding CTE producer
-			HMUlPdxln *m_phmulpdxlnCTEProducer;
+			IdToCDXLNodeMap *m_phmulpdxlnCTEProducer;
 
 			// id of CTE that we are currently processing (gpos::ulong_max for main query)
 			ULONG m_ulCTEId;
@@ -127,15 +127,15 @@ namespace gpopt
 			CExpression *PexprScalarSubqueryQuantified
 				(
 				Edxlopid edxlopid,
-				IMDId *pmdidScalarOp,
-				const CWStringConst *pstr,
-				ULONG ulColId,
+				IMDId *scalar_op_mdid,
+				const CWStringConst *str,
+				ULONG colid,
 				CDXLNode *pdxlnLogicalChild,
 				CDXLNode *pdxlnScalarChild
 				);
 
 			// translate a logical DXL operator into an optimizer expression
-			CExpression *PexprLogical(const CDXLNode *pdxln);
+			CExpression *PexprLogical(const CDXLNode *dxlnode);
 
 			// translate a DXL logical select into an expr logical select
 			CExpression *PexprLogicalSelect(const CDXLNode *pdxlnLgSelect);
@@ -148,7 +148,7 @@ namespace gpopt
 
 			// create the array of column reference used in the partition by column
 			// list of a window specification
-			DrgPcr *PdrgpcrPartitionByCol(const DrgPul *pdrgpulPartCol);
+			CColRefArray *PdrgpcrPartitionByCol(const ULongPtrArray *partition_by_colid_array);
 
 			// translate a DXL logical window into an expr logical project
 			CExpression *PexprCreateWindow(const CDXLNode *pdxlnLgProject);
@@ -160,7 +160,7 @@ namespace gpopt
 			CExpression *PexprCastPrjElem
 				(
 				IMDId *pmdidSource,
-				IMDId *pmdidDest,
+				IMDId *mdid_dest,
 				const CColRef *pcrToCast,
 				CColRef *pcrToReturn
 				);
@@ -169,28 +169,28 @@ namespace gpopt
 			void BuildSetOpChild
 				(
 				const CDXLNode *pdxlnSetOp,
-				ULONG ulChildIndex,
+				ULONG child_index,
 				CExpression **ppexprChild, // output: generated child expression
-				DrgPcr **ppdrgpcrChild, // output: generated child input columns
-				DrgPexpr **ppdrgpexprChildProjElems // output: project elements to remap child input columns
+				CColRefArray **ppdrgpcrChild, // output: generated child input columns
+				CExpressionArray **ppdrgpexprChildProjElems // output: project elements to remap child input columns
 				);
 
 			// preprocess inputs to the set operator (adding casts to columns  when needed)
-			DrgPexpr *PdrgpexprPreprocessSetOpInputs(const CDXLNode *pdxln, DrgDrgPcr *pdrgdrgpcrInput, DrgPul *pdrgpulOutput);
+			CExpressionArray *PdrgpexprPreprocessSetOpInputs(const CDXLNode *dxlnode, CColRef2dArray *pdrgdrgpcrInput, ULongPtrArray *pdrgpulOutput);
 
 			// create new column reference and add to the hashmap maintaining
 			// the mapping between DXL ColIds and column reference.
 			CColRef *PcrCreate
 						(
-						const CColRef *pcr,
+						const CColRef *colref,
 						const IMDType *pmdtype,
-						INT iTypeModifier,
+						INT type_modifier,
 						BOOL fStoreMapping,
-						ULONG ulColId
+						ULONG colid
 						);
 
 			// check if we currently support the casting of such column types
-			BOOL FCastingUnknownType(IMDId *pmdidSource, IMDId *pmdidDest);
+			BOOL FCastingUnknownType(IMDId *pmdidSource, IMDId *mdid_dest);
 
 			// translate a DXL logical get into an expr logical get
 			CExpression *PexprLogicalGet(const CDXLNode *pdxlnLgGet);
@@ -208,7 +208,7 @@ namespace gpopt
 			CExpression *PexprLogicalJoin(const CDXLNode *pdxlnLgJoin);
 
 			// translate a DXL right outer join
-			CExpression *PexprRightOuterJoin(const CDXLNode *pdxln);
+			CExpression *PexprRightOuterJoin(const CDXLNode *dxlnode);
 
 			// translate a DXL logical CTE anchor into an expr logical CTE anchor
 			CExpression *PexprLogicalCTEAnchor(const CDXLNode *pdxlnLgCTEAnchor);
@@ -223,16 +223,16 @@ namespace gpopt
 			ULONG UlMapCTEId(const ULONG ulIdOld);
 
 			// translate a DXL logical insert into expression
-			CExpression *PexprLogicalInsert(const CDXLNode *pdxln);
+			CExpression *PexprLogicalInsert(const CDXLNode *dxlnode);
 
 			// translate a DXL logical delete into expression
-			CExpression *PexprLogicalDelete(const CDXLNode *pdxln);
+			CExpression *PexprLogicalDelete(const CDXLNode *dxlnode);
 
 			// translate a DXL logical update into expression
-			CExpression *PexprLogicalUpdate(const CDXLNode *pdxln);
+			CExpression *PexprLogicalUpdate(const CDXLNode *dxlnode);
 			
 			// translate a DXL logical CTAS into an INSERT expression
-			CExpression *PexprLogicalCTAS(const CDXLNode *pdxln);
+			CExpression *PexprLogicalCTAS(const CDXLNode *dxlnode);
 
 			// translate existential subquery
 			CExpression *PexprScalarSubqueryExistential(Edxlopid edxlopid, CDXLNode *pdxlnLogicalChild);
@@ -289,28 +289,28 @@ namespace gpopt
 			CScalarWindowFunc::EWinStage Ews(EdxlWinStage edxlws) const;
 
 			// translate the DXL representation of window frame into its respective representation in the optimizer
-			CWindowFrame *Pwf(const CDXLWindowFrame *pdxlwf);
+			CWindowFrame *Pwf(const CDXLWindowFrame *window_frame);
 
 			// translate the DXL representation of window frame boundary into its respective representation in the optimizer
-			CWindowFrame::EFrameBoundary Efb(EdxlFrameBoundary edxlfb) const;
+			CWindowFrame::EFrameBoundary Efb(EdxlFrameBoundary frame_boundary) const;
 
 			// translate the DXL representation of window frame exclusion strategy into its respective representation in the optimizer
 			CWindowFrame::EFrameExclusionStrategy Efes(EdxlFrameExclusionStrategy edxlfeb) const;
 
 			// translate a DXL scalar array 
-			CExpression *PexprArray(const CDXLNode *pdxln);
+			CExpression *PexprArray(const CDXLNode *dxlnode);
 			
 			// translate a DXL scalar arrayref
-			CExpression *PexprArrayRef(const CDXLNode *pdxln);
+			CExpression *PexprArrayRef(const CDXLNode *dxlnode);
 
 			// translate a DXL scalar arrayref index list
-			CExpression *PexprArrayRefIndexList(const CDXLNode *pdxln);
+			CExpression *PexprArrayRefIndexList(const CDXLNode *dxlnode);
 
 			// translate the arrayref index list type
 			CScalarArrayRefIndexList::EIndexListType Eilt(const CDXLScalarArrayRefIndexList::EIndexListBound eilb);
 
 			// translate a DXL scalar array compare
-			CExpression *PexprArrayCmp(const CDXLNode *pdxln);
+			CExpression *PexprArrayCmp(const CDXLNode *dxlnode);
 			
 			// translate a DXL scalar ident into an expr scalar ident
 			CExpression *PexprScalarIdent(const CDXLNode *pdxlnIdent);
@@ -344,23 +344,23 @@ namespace gpopt
 			CExpression *PexprScalarConst(const CDXLNode *pdxlnConst);
 			
 			// translate a DXL project list node into a project list expression
-			CExpression *PexprScalarProjList(const CDXLNode *pdxlnProjList);
+			CExpression *PexprScalarProjList(const CDXLNode *proj_list_dxlnode);
 
 			// translate a DXL project elem node into a project elem expression
 			CExpression *PexprScalarProjElem(const CDXLNode *pdxlnProjElem);
 			
 			// construct an order spec from a dxl sort col list node
-			COrderSpec *Pos(const CDXLNode *pdxlnSortColList);
+			COrderSpec *Pos(const CDXLNode *sort_col_list_dxlnode);
 			
 			// translate a dxl node into an expression tree
-			CExpression *Pexpr(const CDXLNode *pdxln);
+			CExpression *Pexpr(const CDXLNode *dxlnode);
 			
 			// update table descriptor's distribution columns from the MD cache object 
 			void AddDistributionColumns
 				(
 				CTableDescriptor *ptabdesc, 
 				const IMDRelation *pmdrel, 
-				HMIUl *phmiulAttnoColMapping
+				IntToUlongMap *phmiulAttnoColMapping
 				);
 
 			// initialize index of operator translators
@@ -369,16 +369,16 @@ namespace gpopt
 			// main translation routine for DXL tree -> Expr tree
 			CExpression *Pexpr
 				(
-				const CDXLNode *pdxln,
-				const DrgPdxln *pdrgpdxlnQueryOutput,
-				const DrgPdxln *pdrgpdxlnCTE
+				const CDXLNode *dxlnode,
+				const CDXLNodeArray *query_output_dxlnode_array,
+				const CDXLNodeArray *cte_producers
 				);
 
 			// translate children of a DXL node
-			DrgPexpr *PdrgpexprChildren(const CDXLNode *pdxln);
+			CExpressionArray *PdrgpexprChildren(const CDXLNode *dxlnode);
 
 			// construct a table descriptor from DXL
-			CTableDescriptor *Ptabdesc(CDXLTableDescr *pdxltabdesc);
+			CTableDescriptor *Ptabdesc(CDXLTableDescr *table_descr);
 			
 			// construct a table descriptor for a CTAS operator
 			CTableDescriptor *PtabdescFromCTAS(CDXLLogicalCTAS *pdxlopCTAS);
@@ -387,19 +387,19 @@ namespace gpopt
 			void RegisterMDRelationCtas(CDXLLogicalCTAS *pdxlopCTAS);
 
 			// create an array of column references from an array of dxl column references
-			DrgPcr *Pdrgpcr(const DrgPdxlcd *pdrgpdxlcd);
+			CColRefArray *Pdrgpcr(const CDXLColDescrArray *dxl_col_descr_array);
 
 			// construct the mapping between the DXL ColId and CColRef
-			void ConstructDXLColId2ColRefMapping(const DrgPdxlcd *pdrgpdxlcd, const DrgPcr *pdrgpcr);
+			void ConstructDXLColId2ColRefMapping(const CDXLColDescrArray *dxl_col_descr_array, const CColRefArray *colref_array);
 
 			// look up the column reference in the hash map. We raise an exception if
 			// the column is not found
 			static
-			CColRef *PcrLookup(HMUlCr *phmulcr, ULONG ulColId);
+			CColRef *LookupColRef(UlongToColRefMap *colref_mapping, ULONG colid);
 
 		public:
 			// ctor
-			CTranslatorDXLToExpr(IMemoryPool *pmp, CMDAccessor *pmda, BOOL fInitColumnFactory = true);
+			CTranslatorDXLToExpr(IMemoryPool *mp, CMDAccessor *md_accessor, BOOL fInitColumnFactory = true);
 
 			// dtor
 			~CTranslatorDXLToExpr();
@@ -407,23 +407,23 @@ namespace gpopt
 			// translate the dxl query with its associated output column and CTEs
 			CExpression *PexprTranslateQuery
 				(
-				const CDXLNode *pdxln,
-				const DrgPdxln *pdrgpdxlnQueryOutput,
-				const DrgPdxln *pdrgpdxlnCTE
+				const CDXLNode *dxlnode,
+				const CDXLNodeArray *query_output_dxlnode_array,
+				const CDXLNodeArray *cte_producers
 				);
 
 			// translate a dxl scalar expression
 			CExpression *PexprTranslateScalar
 				(
-				const CDXLNode *pdxln,
-				DrgPcr *pdrgpcr,
-				DrgPul *pdrgpulColIds = NULL);
+				const CDXLNode *dxlnode,
+				CColRefArray *colref_array,
+				ULongPtrArray *colids = NULL);
 
 			// return the array of query output column reference id
-			DrgPul *PdrgpulOutputColRefs();
+			ULongPtrArray *PdrgpulOutputColRefs();
 
 			// return the array of output column names
-			DrgPmdname *Pdrgpmdname()
+			CMDNameArray *Pdrgpmdname()
 			{
 				GPOS_ASSERT(NULL != m_pdrgpmdname);
 				return m_pdrgpmdname;

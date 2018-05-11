@@ -226,7 +226,7 @@ CJobGroupExpressionOptimization::Init
 	m_pexprhdlPlan = NULL;
 	m_pexprhdlRel = NULL;
 	m_eceo = CPhysical::PopConvert(pgexpr->Pop())->Eceo();
-	m_ulArity = pgexpr->UlArity();
+	m_ulArity = pgexpr->Arity();
 	m_ulChildIndex = gpos::ulong_max;
 
 	m_poc = poc;
@@ -285,7 +285,7 @@ CJobGroupExpressionOptimization::InitChildGroupsOptimization
 	GPOS_ASSERT(NULL == m_pexprhdlRel);
 
 	// initialize required plan properties computation
-	m_pexprhdlPlan = GPOS_NEW(psc->PmpGlobal()) CExpressionHandle(psc->PmpGlobal());
+	m_pexprhdlPlan = GPOS_NEW(psc->GetGlobalMemoryPool()) CExpressionHandle(psc->GetGlobalMemoryPool());
 	m_pexprhdlPlan->Attach(m_pgexpr);
 	if (0 < m_ulArity)
 	{
@@ -295,20 +295,20 @@ CJobGroupExpressionOptimization::InitChildGroupsOptimization
 	m_pexprhdlPlan->InitReqdProps(m_poc->Prpp());
 
 	// initialize required relational properties computation
-	m_pexprhdlRel = GPOS_NEW(psc->PmpGlobal()) CExpressionHandle(psc->PmpGlobal());
-	CGroupExpression *pgexprForStats = m_pgexpr->Pgroup()->PgexprBestPromise(psc->PmpGlobal(), m_pgexpr);
+	m_pexprhdlRel = GPOS_NEW(psc->GetGlobalMemoryPool()) CExpressionHandle(psc->GetGlobalMemoryPool());
+	CGroupExpression *pgexprForStats = m_pgexpr->Pgroup()->PgexprBestPromise(psc->GetGlobalMemoryPool(), m_pgexpr);
 	if (NULL != pgexprForStats)
 	{
 		m_pexprhdlRel->Attach(pgexprForStats);
 		m_pexprhdlRel->DeriveProps(NULL /*pdpctxt*/);
-		m_pexprhdlRel->ComputeReqdProps(m_poc->Prprel(), 0 /*ulOptReq*/);
+		m_pexprhdlRel->ComputeReqdProps(m_poc->GetReqdRelationalProps(), 0 /*ulOptReq*/);
 	}
 
 	// create child groups derived properties
-	m_pdrgpdp = GPOS_NEW(psc->PmpGlobal()) DrgPdp(psc->PmpGlobal());
+	m_pdrgpdp = GPOS_NEW(psc->GetGlobalMemoryPool()) CDrvdProp2dArray(psc->GetGlobalMemoryPool());
 
 	// initialize stats context with input stats context
-	m_pdrgpstatCurrentCtxt = GPOS_NEW(psc->PmpGlobal()) DrgPstat(psc->PmpGlobal());
+	m_pdrgpstatCurrentCtxt = GPOS_NEW(psc->GetGlobalMemoryPool()) IStatisticsArray(psc->GetGlobalMemoryPool());
 	CUtils::AddRefAppend<IStatistics, CleanupStats>(m_pdrgpstatCurrentCtxt, m_poc->Pdrgpstat());
 }
 
@@ -331,7 +331,7 @@ CJobGroupExpressionOptimization::EevtInitialize
 	// get a job pointer
 	CJobGroupExpressionOptimization *pjgeo = PjConvert(pjOwner);
 
-	CExpressionHandle exprhdl(psc->PmpGlobal());
+	CExpressionHandle exprhdl(psc->GetGlobalMemoryPool());
 	exprhdl.Attach(pjgeo->m_pgexpr);
 	exprhdl.DeriveProps(NULL /*pdpctxt*/);
 	if (!psc->Peng()->FCheckReqdProps(exprhdl, pjgeo->m_poc->Prpp(), pjgeo->m_ulOptReq))
@@ -343,9 +343,9 @@ CJobGroupExpressionOptimization::EevtInitialize
 	CCost costLowerBound(GPOPT_INVALID_COST);
 	if (psc->Peng()->FSafeToPrune(
 			pjgeo->m_pgexpr, pjgeo->m_poc->Prpp(), NULL /*pccChild*/,
-			gpos::ulong_max /*ulChildIndex*/, &costLowerBound))
+			gpos::ulong_max /*child_index*/, &costLowerBound))
 	{
-		(void) pjgeo->m_pgexpr->PccComputeCost(psc->PmpGlobal(), pjgeo->m_poc, pjgeo->m_ulOptReq, NULL /*pdrgpoc*/, true /*fPruned*/, costLowerBound);
+		(void) pjgeo->m_pgexpr->PccComputeCost(psc->GetGlobalMemoryPool(), pjgeo->m_poc, pjgeo->m_ulOptReq, NULL /*pdrgpoc*/, true /*fPruned*/, costLowerBound);
 		return eevFinalized;
 	}
 
@@ -381,7 +381,7 @@ CJobGroupExpressionOptimization::DerivePrevChildProps
 	}
 
 	COptimizationContext *pocChild =
-		pgroupChild->PocLookupBest(psc->PmpGlobal(), psc->Peng()->UlSearchStages(), m_pexprhdlPlan->Prpp(ulPrevChildIndex));
+		pgroupChild->PocLookupBest(psc->GetGlobalMemoryPool(), psc->Peng()->UlSearchStages(), m_pexprhdlPlan->Prpp(ulPrevChildIndex));
 	GPOS_ASSERT(NULL != pocChild);
 
 	CCostContext *pccChildBest = pocChild->PccBest();
@@ -397,12 +397,12 @@ CJobGroupExpressionOptimization::DerivePrevChildProps
 	if (psc->Peng()->FSafeToPrune(m_pgexpr, m_poc->Prpp(), pccChildBest, ulPrevChildIndex, &costLowerBound))
 	{
 		// failed to optimize child due to cost bounding
-		(void) m_pgexpr->PccComputeCost(psc->PmpGlobal(), m_poc, m_ulOptReq, NULL /*pdrgpoc*/, true /*fPruned*/, costLowerBound);
+		(void) m_pgexpr->PccComputeCost(psc->GetGlobalMemoryPool(), m_poc, m_ulOptReq, NULL /*pdrgpoc*/, true /*fPruned*/, costLowerBound);
 		m_fChildOptimizationFailed = true;
 		return;
 	}
 
-	CExpressionHandle exprhdl(psc->PmpGlobal());
+	CExpressionHandle exprhdl(psc->GetGlobalMemoryPool());
 	exprhdl.Attach(pccChildBest);
 	exprhdl.DerivePlanProps();
 	exprhdl.Pdp()->AddRef();
@@ -492,36 +492,36 @@ CJobGroupExpressionOptimization::ScheduleChildGroupsJobs
 	m_pexprhdlPlan->Prpp(m_ulChildIndex)->AddRef();
 
 	// use current stats for optimizing current child
-	DrgPstat *pdrgpstatCtxt = GPOS_NEW(psc->PmpGlobal()) DrgPstat(psc->PmpGlobal());
-	CUtils::AddRefAppend<IStatistics, CleanupStats>(pdrgpstatCtxt, m_pdrgpstatCurrentCtxt);
+	IStatisticsArray *stats_ctxt = GPOS_NEW(psc->GetGlobalMemoryPool()) IStatisticsArray(psc->GetGlobalMemoryPool());
+	CUtils::AddRefAppend<IStatistics, CleanupStats>(stats_ctxt, m_pdrgpstatCurrentCtxt);
 
 	// compute required relational properties
 	CReqdPropRelational *prprel = NULL;
 	if (CPhysical::PopConvert(m_pgexpr->Pop())->FPassThruStats())
 	{
 		// copy requirements from origin context
-		prprel = m_poc->Prprel();
+		prprel = m_poc->GetReqdRelationalProps();
 	}
 	else
 	{
 		// retrieve requirements from handle
-		prprel = m_pexprhdlRel->Prprel(m_ulChildIndex);
+		prprel = m_pexprhdlRel->GetReqdRelationalProps(m_ulChildIndex);
 	}
 	GPOS_ASSERT(NULL != prprel);
 	prprel->AddRef();
 
 	// schedule optimization job for current child group
-	COptimizationContext *pocChild = GPOS_NEW(psc->PmpGlobal()) COptimizationContext
+	COptimizationContext *pocChild = GPOS_NEW(psc->GetGlobalMemoryPool()) COptimizationContext
 									(
-									psc->PmpGlobal(),
+									psc->GetGlobalMemoryPool(),
 									pgroupChild,
 									m_pexprhdlPlan->Prpp(m_ulChildIndex),
 									prprel,
-									pdrgpstatCtxt,
+									stats_ctxt,
 									psc->Peng()->UlCurrSearchStage()
 									);
 
-	if (pgroupChild == m_pgexpr->Pgroup() && pocChild->FMatch(m_poc))
+	if (pgroupChild == m_pgexpr->Pgroup() && pocChild->Matches(m_poc))
 	{
 		// this is to prevent deadlocks, child context cannot be the same as parent context
 		m_fChildOptimizationFailed = true;
@@ -596,11 +596,11 @@ CJobGroupExpressionOptimization::EevtAddEnforcers
 
 	// build child contexts array
 	GPOS_ASSERT(NULL == pjgeo->m_pdrgpoc);
-	pjgeo->m_pdrgpoc = psc->Peng()->PdrgpocChildren(psc->PmpGlobal(), *pjgeo->m_pexprhdlPlan);
+	pjgeo->m_pdrgpoc = psc->Peng()->PdrgpocChildren(psc->GetGlobalMemoryPool(), *pjgeo->m_pexprhdlPlan);
 
 	// enforce physical properties
 	BOOL fCheckEnfdProps =
-		psc->Peng()->FCheckEnfdProps(psc->PmpGlobal(), pjgeo->m_pgexpr, pjgeo->m_poc, pjgeo->m_ulOptReq, pjgeo->m_pdrgpoc);
+		psc->Peng()->FCheckEnfdProps(psc->GetGlobalMemoryPool(), pjgeo->m_pgexpr, pjgeo->m_poc, pjgeo->m_ulOptReq, pjgeo->m_pdrgpoc);
 	if (fCheckEnfdProps)
 	{
 		// No new enforcers group expressions were added because they were either
@@ -648,10 +648,10 @@ CJobGroupExpressionOptimization::EevtOptimizeSelf
 	// compute group expression cost under current context
 	COptimizationContext *poc = pjgeo->m_poc;
 	CGroupExpression *pgexpr = pjgeo->m_pgexpr;
-	DrgPoc *pdrgpoc = pjgeo->m_pdrgpoc;
+	COptimizationContextArray *pdrgpoc = pjgeo->m_pdrgpoc;
 	ULONG ulOptReq = pjgeo->m_ulOptReq;
 
-	CCostContext *pcc = pgexpr->PccComputeCost(psc->PmpGlobal(), poc, ulOptReq, pdrgpoc, false /*fPruned*/, CCost(0.0));
+	CCostContext *pcc = pgexpr->PccComputeCost(psc->GetGlobalMemoryPool(), poc, ulOptReq, pdrgpoc, false /*fPruned*/, CCost(0.0));
 	
 	if (NULL == pcc)
 	{
@@ -797,7 +797,7 @@ CJobGroupExpressionOptimization::FScheduleCTEOptimization
 	}
 
 	// compute new requirements for CTE producer based on delivered properties of consumers plan
-	CReqdPropPlan *prppCTEProducer = COptimizationContext::PrppCTEProducer(psc->PmpGlobal(), poc, psc->Peng()->UlSearchStages());
+	CReqdPropPlan *prppCTEProducer = COptimizationContext::PrppCTEProducer(psc->GetGlobalMemoryPool(), poc, psc->Peng()->UlSearchStages());
 	if (NULL == prppCTEProducer)
 	{
 		// failed to create CTE producer requirements

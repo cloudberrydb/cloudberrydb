@@ -39,13 +39,13 @@ namespace gpopt
 		private:
 			
 			// actual name
-			const CWStringConst *m_pstrName;
+			const CWStringConst *m_str_name;
 
 			// keep track of copy status
 			BOOL m_fDeepCopy;
 			
 			// deep copy function
-			void DeepCopy(IMemoryPool *pmp, const CWStringConst *pstr);
+			void DeepCopy(IMemoryPool *mp, const CWStringConst *str);
 			
 		public:
 		
@@ -54,8 +54,8 @@ namespace gpopt
 			CName(const CWStringConst *, BOOL fOwnsMemory = false);
 			CName(const CName &);
 
-			CName(IMemoryPool *pmp, const CName &);
-			CName(IMemoryPool *pmp, const CName &, const CName &);
+			CName(IMemoryPool *mp, const CName &);
+			CName(IMemoryPool *mp, const CName &, const CName &);
 
 			// dtor
 			~CName();
@@ -63,17 +63,17 @@ namespace gpopt
 			// accessors
 			const CWStringConst *Pstr() const
 			{
-				return m_pstrName;
+				return m_str_name;
 			}
 			
-			ULONG UlLength() const
+			ULONG Length() const
 			{
-				return m_pstrName->UlLength();
+				return m_str_name->Length();
 			}
 
 #ifdef GPOS_DEBUG
 			// comparison
-			BOOL FEquals(const CName &) const;
+			BOOL Equals(const CName &) const;
 #endif // GPOS_DEBUG
 			
 			// debug print

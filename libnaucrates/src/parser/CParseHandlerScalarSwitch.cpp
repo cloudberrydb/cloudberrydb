@@ -32,15 +32,15 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerScalarSwitch::CParseHandlerScalarSwitch
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerScalarOp(pmp, pphm, pphRoot),
-	m_pmdidType(NULL),
-	m_fArgProcessed(false),
-	m_fDefaultProcessed(false)
+	CParseHandlerScalarOp(mp, parse_handler_mgr, parse_handler_root),
+	m_mdid_type(NULL),
+	m_arg_processed(false),
+	m_default_val_processed(false)
 {
 }
 
@@ -55,57 +55,57 @@ CParseHandlerScalarSwitch::CParseHandlerScalarSwitch
 void
 CParseHandlerScalarSwitch::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSwitch), xmlszLocalname) && NULL == m_pmdidType)
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSwitch), element_local_name) && NULL == m_mdid_type)
 	{
 		// parse type id
-		m_pmdidType = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTypeId, EdxltokenScalarSwitch);
+		m_mdid_type = CDXLOperatorFactory::ExtractConvertAttrValueToMdId(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenTypeId, EdxltokenScalarSwitch);
 
 		// construct node
-		CDXLScalarSwitch *pdxlop =  GPOS_NEW(m_pmp) CDXLScalarSwitch(m_pmp, m_pmdidType);
-		m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlop);
+		CDXLScalarSwitch *dxl_op =  GPOS_NEW(m_mp) CDXLScalarSwitch(m_mp, m_mdid_type);
+		m_dxl_node = GPOS_NEW(m_mp) CDXLNode(m_mp, dxl_op);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSwitchCase), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSwitchCase), element_local_name))
 	{
 		// we must have already seen the arg child, but have not seen the DEFAULT child
-		GPOS_ASSERT(NULL != m_pdxln && m_fArgProcessed && !m_fDefaultProcessed);
+		GPOS_ASSERT(NULL != m_dxl_node && m_arg_processed && !m_default_val_processed);
 
 		// parse case
-		CParseHandlerBase *pphCase = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarSwitchCase), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphCase);
+		CParseHandlerBase *parse_handler_case = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarSwitchCase), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(parse_handler_case);
 
 		// store parse handlers
-		this->Append(pphCase);
+		this->Append(parse_handler_case);
 
-		pphCase->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		parse_handler_case->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		GPOS_ASSERT(NULL != m_pdxln && !m_fDefaultProcessed);
+		GPOS_ASSERT(NULL != m_dxl_node && !m_default_val_processed);
 
 		// parse scalar child
-		CParseHandlerBase *pphChild = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphChild);
+		CParseHandlerBase *child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(child_parse_handler);
 
 		// store parse handlers
-		this->Append(pphChild);
+		this->Append(child_parse_handler);
 
-		pphChild->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		child_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 
-		if (!m_fArgProcessed)
+		if (!m_arg_processed)
 		{
 			// this child was the arg child
-			m_fArgProcessed = true;
+			m_arg_processed = true;
 		}
 		else
 		{
 			// that was the default expr child
-			m_fDefaultProcessed = true;
+			m_default_val_processed = true;
 		}
 	}
 }
@@ -121,28 +121,28 @@ CParseHandlerScalarSwitch::StartElement
 void
 CParseHandlerScalarSwitch::EndElement
 	(
-	const XMLCh* const ,// xmlszUri
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const ,// element_uri
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSwitch), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarSwitch), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	const ULONG ulChildren = this->UlLength();
-	GPOS_ASSERT(1 < ulChildren);
+	const ULONG arity = this->Length();
+	GPOS_ASSERT(1 < arity);
 
-	for (ULONG ul = 0; ul < ulChildren ; ul++)
+	for (ULONG ul = 0; ul < arity ; ul++)
 	{
-		CParseHandlerScalarOp *pphChild = dynamic_cast<CParseHandlerScalarOp *>((*this)[ul]);
-		AddChildFromParseHandler(pphChild);
+		CParseHandlerScalarOp *child_parse_handler = dynamic_cast<CParseHandlerScalarOp *>((*this)[ul]);
+		AddChildFromParseHandler(child_parse_handler);
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //EOF

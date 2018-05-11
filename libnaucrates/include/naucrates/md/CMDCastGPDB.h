@@ -38,44 +38,44 @@ namespace gpmd
 
 		protected:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// DXL for object
-			const CWStringDynamic *m_pstr;
+			const CWStringDynamic *m_dxl_str;
 			
 			// func id
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// func name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// source type
-			IMDId *m_pmdidSrc;
+			IMDId *m_mdid_src;
 			
 			// destination type
-			IMDId *m_pmdidDest;
+			IMDId *m_mdid_dest;
 			
 			// is cast between binary coercible types, i.e. the types are binary compatible
-			BOOL m_fBinaryCoercible;
+			BOOL m_is_binary_coercible;
 			
 			// cast func id
-			IMDId *m_pmdidCastFunc;
+			IMDId *m_mdid_cast_func;
 
 			// coercion path type
-			EmdCoercepathType m_emdPathType;
+			EmdCoercepathType m_path_type;
 			
 		public:
 			// ctor
 			CMDCastGPDB
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdid,
-				CMDName *pmdname,
-				IMDId *pmdidSrc,
-				IMDId *pmdidDest,
-				BOOL fBinaryCoercible,
-				IMDId *pmdidCastFunc,
-				EmdCoercepathType emdPathType = EmdtNone
+				IMemoryPool *mp,
+				IMDId *mdid,
+				CMDName *mdname,
+				IMDId *mdid_src,
+				IMDId *mdid_dest,
+				BOOL is_binary_coercible,
+				IMDId *mdid_cast_func,
+				EmdCoercepathType path_type = EmdtNone
 				);
 			
 			// dtor
@@ -84,14 +84,14 @@ namespace gpmd
 			
 			// accessors
 			virtual 
-			const CWStringDynamic *Pstr() const
+			const CWStringDynamic *GetStrRepr() const
 			{
-				return m_pstr;
+				return m_dxl_str;
 			}
 			
 			// cast object id
 			virtual 
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// cast object name
 			virtual 
@@ -99,27 +99,27 @@ namespace gpmd
 			
 			// source type
 			virtual 
-			IMDId *PmdidSrc() const;
+			IMDId *MdidSrc() const;
 
 			// destination type
 			virtual 
-			IMDId *PmdidDest() const;
+			IMDId *MdidDest() const;
 			
 			// is this a cast between binary coeercible types, i.e. the types are binary compatible
 			virtual 
-			BOOL FBinaryCoercible() const;
+			BOOL IsBinaryCoercible() const;
 
 			// return the coercion path type
 			virtual
-			EmdCoercepathType EmdPathType() const;
+			EmdCoercepathType GetMDPathType() const;
 
 			// cast function id
 			virtual 
-			IMDId *PmdidCastFunc() const;
+			IMDId *GetCastFuncMdId() const;
 		
 			// serialize object in DXL format
 			virtual 
-			void Serialize(gpdxl::CXMLSerializer *pxmlser) const;
+			void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
 			
 #ifdef GPOS_DEBUG
 			// debug print of the type in the provided stream

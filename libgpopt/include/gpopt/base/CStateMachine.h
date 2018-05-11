@@ -126,7 +126,7 @@ namespace gpopt
             {
                 for(ULONG ul = 0; ul < tenumstateSentinel; ul++)
                 {
-                    (void) peset->FExchangeSet((TEnumState) ul);
+                    (void) peset->ExchangeSet((TEnumState) ul);
                 }
             }
 			
@@ -136,7 +136,7 @@ namespace gpopt
                 TEnumEvent tenumevent = m_rgrgtenumeventTransitions[tenumstateOld][tenumstateNew];
                 if (tenumeventSentinel != tenumevent)
                 {
-                    (void) peset->FExchangeSet(tenumevent);
+                    (void) peset->ExchangeSet(tenumevent);
                 }
             }
 
@@ -151,32 +151,32 @@ namespace gpopt
 					);
 
 			// generic walker function, called for every edge in the graph
-			void Walk(IMemoryPool *pmp, PfWalker Pfpv, void *pvContext) const
+			void Walk(IMemoryPool *mp, PfWalker Pfpv, void *pvContext) const
             {
                 // retrieve all states
-                EsetStates *pesetStates = GPOS_NEW(pmp) EsetStates(pmp);
+                EsetStates *pesetStates = GPOS_NEW(mp) EsetStates(mp);
                 States(pesetStates);
 
                 // loop through all sink states
                 EsetStatesIter esetIterSink(*pesetStates);
-                while(esetIterSink.FAdvance())
+                while(esetIterSink.Advance())
                 {
                     TEnumState tenumstateSink = esetIterSink.TBit();
 
                     // loop through all source states
                     EsetStatesIter esetIterSource(*pesetStates);
-                    while(esetIterSource.FAdvance())
+                    while(esetIterSource.Advance())
                     {
                         TEnumState tenumstateSource = esetIterSource.TBit();
 
                         // for all pairs of states (source, sink)
                         // compute possible transitions
-                        EsetEvents *pesetEvents = GPOS_NEW(pmp) EsetEvents(pmp);
+                        EsetEvents *pesetEvents = GPOS_NEW(mp) EsetEvents(mp);
                         Transitions(tenumstateSource, tenumstateSink, pesetEvents);
 
                         // loop through all connecting edges
                         EsetEventsIter esetIterTrans(*pesetEvents);
-                        while(esetIterTrans.FAdvance())
+                        while(esetIterTrans.Advance())
                         {
                             // apply walker function
                             Pfpv(this, tenumstateSource, tenumstateSink, esetIterTrans.TBit(), pvContext);
@@ -230,7 +230,7 @@ namespace gpopt
                 if (tenumstateSource != tenumstateSink)
                 {
                     // reachable -- remove from set of unreachables
-                    (void) eset.FExchangeClear(tenumstateSink);
+                    (void) eset.ExchangeClear(tenumstateSink);
                 }
             }
 #endif // GPOS_DEBUG
@@ -419,39 +419,39 @@ namespace gpopt
             }
 			
 			// check for unreachable states
-			BOOL FReachable(IMemoryPool *pmp) const
+			BOOL FReachable(IMemoryPool *mp) const
             {
                 TEnumState *pestate = NULL;
-                ULONG ulSize = 0;
-                Unreachable(pmp, &pestate, &ulSize);
+                ULONG size = 0;
+                Unreachable(mp, &pestate, &size);
                 GPOS_DELETE_ARRAY(pestate);
 
-                return  (ulSize == 0);
+                return  (size == 0);
             }
 			
 			// compute array of unreachable states
-			void Unreachable(IMemoryPool *pmp, TEnumState **ppestate, ULONG *pulSize) const
+			void Unreachable(IMemoryPool *mp, TEnumState **ppestate, ULONG *pulSize) const
             {
                 GPOS_ASSERT(NULL != ppestate);
                 GPOS_ASSERT(NULL != pulSize);
 
                 // initialize output array
-                *ppestate = GPOS_NEW_ARRAY(pmp, TEnumState, tenumstateSentinel);
+                *ppestate = GPOS_NEW_ARRAY(mp, TEnumState, tenumstateSentinel);
                 for (ULONG ul = 0; ul < tenumstateSentinel; ul++)
                 {
                     (*ppestate)[ul] = tenumstateSentinel;
                 }
 
                 // mark all states unreachable at first
-                EsetStates *peset = GPOS_NEW(pmp) EsetStates(pmp);
+                EsetStates *peset = GPOS_NEW(mp) EsetStates(mp);
                 States(peset);
 
-                Walk(pmp, Unreachable, peset);
+                Walk(mp, Unreachable, peset);
 
                 // store remaining states in output array
                 EsetStatesIter esetIter(*peset);
                 ULONG ul = 0;
-                while (esetIter.FAdvance())
+                while (esetIter.Advance())
                 {
                     (*ppestate)[ul++] = esetIter.TBit();
                 }
@@ -462,7 +462,7 @@ namespace gpopt
 			// dump Moore diagram in graphviz format
 			IOstream &OsDiagramToGraphviz
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				IOstream &os,
 				const WCHAR *wszTitle
 				)
@@ -475,14 +475,14 @@ namespace gpopt
                 << std::endl;
 
                 // get unreachable states
-                EsetStates *peset = GPOS_NEW(pmp) EsetStates(pmp);
+                EsetStates *peset = GPOS_NEW(mp) EsetStates(mp);
                 States(peset);
 
-                Walk(pmp, Unreachable, peset);
+                Walk(mp, Unreachable, peset);
 
                 // print all unreachable nodes using BOXes
                 EsetStatesIter esetIter(*peset);
-                while(esetIter.FAdvance())
+                while(esetIter.Advance())
                 {
                     os
                     << GRAPHVIZ_BOX(WszState(esetIter.TBit()))
@@ -492,7 +492,7 @@ namespace gpopt
 
                 // print the remainder of the diagram by writing all edges only;
                 // nodes are implicit;
-                Walk(pmp, Diagram, &os);
+                Walk(mp, Diagram, &os);
 
                 os << "} " << std::endl;
                 return os;

@@ -29,17 +29,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformInlineCTEConsumerUnderSelect::CXformInlineCTEConsumerUnderSelect
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalSelect(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalCTEConsumer(pmp)),  // relational child
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))	// predicate tree
+				mp,
+				GPOS_NEW(mp) CLogicalSelect(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalCTEConsumer(mp)),  // relational child
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))	// predicate tree
 				)
 		)
 {}
@@ -87,10 +87,10 @@ CXformInlineCTEConsumerUnderSelect::Transform
 	CExpression *pexprScalar = (*pexpr)[1];
 
 	CLogicalCTEConsumer *popConsumer = CLogicalCTEConsumer::PopConvert(pexprConsumer->Pop());
-	ULONG ulId = popConsumer->UlCTEId();
+	ULONG id = popConsumer->UlCTEId();
 	CCTEInfo *pcteinfo = COptCtxt::PoctxtFromTLS()->Pcteinfo();
 	// only continue if inlining is enabled or if this CTE has only 1 consumer
-	if (!pcteinfo->FEnableInlining() && 1 < pcteinfo->UlConsumers(ulId))
+	if (!pcteinfo->FEnableInlining() && 1 < pcteinfo->UlConsumers(id))
 	{
 		return;
 	}
@@ -98,12 +98,12 @@ CXformInlineCTEConsumerUnderSelect::Transform
 	// don't push down selects with a const true or false, in case we end up
 	// with a select(1) (coming from the anchor) right on top of the consumer
 	if (CUtils::FScalarConstTrue(pexprScalar) || CUtils::FScalarConstFalse(pexprScalar) ||
-		!CXformUtils::FInlinableCTE(ulId))
+		!CXformUtils::FInlinableCTE(id))
 	{
 		return;
 	}
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// inline consumer
 	GPOS_ASSERT(NULL != popConsumer->Phmulcr());
@@ -111,9 +111,9 @@ CXformInlineCTEConsumerUnderSelect::Transform
 	pexprInlinedConsumer->AddRef();
 	pexprScalar->AddRef();
 
-	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprInlinedConsumer, pexprScalar);
+	CExpression *pexprSelect = CUtils::PexprLogicalSelect(mp, pexprInlinedConsumer, pexprScalar);
 
-	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprSelect);
+	CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexprSelect);
 	pexprSelect->Release();
 
 	// add alternative to xform result

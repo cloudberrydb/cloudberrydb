@@ -28,19 +28,19 @@ namespace gpmd
 	{
 		private:
 			// DXL for object
-			const CWStringDynamic *m_pstr;
+			const CWStringDynamic *m_dxl_str;
 
 			// type mod
-			INT m_iTypeModifier;
+			INT m_type_modifier;
 
 			// is explicit
-			BOOL m_fIsExplicit;
+			BOOL m_is_explicit;
 
 			// CoercionForm
-			EdxlCoercionForm m_edxlcf;
+			EdxlCoercionForm m_dxl_coerce_format;
 
-			// iLoc
-			INT m_iLoc;
+			// location
+			INT m_location;
 
 			// private copy ctor
 			CMDArrayCoerceCastGPDB(const CMDArrayCoerceCastGPDB &);
@@ -49,18 +49,18 @@ namespace gpmd
 			// ctor
 			CMDArrayCoerceCastGPDB
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdid,
-				CMDName *pmdname,
-				IMDId *pmdidSrc,
-				IMDId *pmdidDest,
-				BOOL fBinaryCoercible,
-				IMDId *pmdidCastFunc,
-				EmdCoercepathType emdPathType,
-				INT iTypeModifier,
-				BOOL fIsExplicit,
-				EdxlCoercionForm edxlcf,
-				INT iLoc
+				IMemoryPool *mp,
+				IMDId *mdid,
+				CMDName *mdname,
+				IMDId *mdid_src,
+				IMDId *mdid_dest,
+				BOOL is_binary_coercible,
+				IMDId *mdid_cast_func,
+				EmdCoercepathType path_type,
+				INT type_modifier,
+				BOOL is_explicit,
+				EdxlCoercionForm dxl_coerce_format,
+				INT location
 				);
 
 			// dtor
@@ -71,27 +71,27 @@ namespace gpmd
 			virtual
 			const CWStringDynamic *Pstr() const
 			{
-				return m_pstr;
+				return m_dxl_str;
 			}
 
 			// return type modifier
 			virtual
-			INT ITypeModifier() const;
+			INT TypeModifier() const;
 
 			virtual
-			BOOL FIsExplicit() const;
+			BOOL IsExplicit() const;
 
 			// return coercion form
 			virtual
-			EdxlCoercionForm Ecf() const;
+			EdxlCoercionForm GetCoercionForm() const;
 
 			// return token location
 			virtual
-			INT ILoc() const;
+			INT Location() const;
 
 			// serialize object in DXL format
 			virtual
-			void Serialize(gpdxl::CXMLSerializer *pxmlser) const;
+			void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
 
 #ifdef GPOS_DEBUG
 			// debug print of the type in the provided stream

@@ -27,18 +27,18 @@ namespace gpmd
 		private:
 
 			// index mdid
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 
 			// is the index partial
-			BOOL m_fPartial;
+			BOOL m_is_partial;
 
 		public:
 
 			// ctor
 			CMDIndexInfo
 				(
-				IMDId *pmdid,
-				BOOL fIsPartial
+				IMDId *mdid,
+				BOOL is_partial
 				);
 
 			// dtor
@@ -46,10 +46,10 @@ namespace gpmd
 			~CMDIndexInfo();
 
 			// index mdid
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 
 			// is the index partial
-			BOOL FPartial() const;
+			BOOL IsPartial() const;
 
 			// serialize indexinfo in DXL format given a serializer object
 			virtual

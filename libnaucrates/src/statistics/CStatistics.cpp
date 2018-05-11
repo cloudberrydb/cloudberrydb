@@ -40,70 +40,70 @@ using namespace gpdxl;
 using namespace gpopt;
 
 // default number of rows in relation
-const CDouble CStatistics::DDefaultRelationRows(1000.0);
+const CDouble CStatistics::DefaultRelationRows(1000.0);
 
 // epsilon to be used for various computations
-const CDouble CStatistics::DEpsilon(0.001);
+const CDouble CStatistics::Epsilon(0.001);
 
 // minimum number of rows in relation
-const CDouble CStatistics::DMinRows(1.0);
+const CDouble CStatistics::MinRows(1.0);
 
 // default column width
-const CDouble CStatistics::DDefaultColumnWidth(8.0);
+const CDouble CStatistics::DefaultColumnWidth(8.0);
 
 // default number of distinct values
-const CDouble CStatistics::DDefaultDistinctValues(1000.0);
+const CDouble CStatistics::DefaultDistinctValues(1000.0);
 
 // the default value for operators that have no cardinality estimation risk
-const ULONG CStatistics::ulStatsEstimationNoRisk = 1;
+const ULONG CStatistics::no_card_est_risk_default_val = 1;
 
 // ctor
 CStatistics::CStatistics
 	(
-	IMemoryPool *pmp,
-	HMUlHist *phmulhist,
-	HMUlDouble *phmuldoubleWidth,
-	CDouble dRows,
-	BOOL fEmpty,
-	ULONG ulNumPredicates
+	IMemoryPool *mp,
+	UlongToHistogramMap *col_histogram_mapping,
+	UlongToDoubleMap *colid_width_mapping,
+	CDouble rows,
+	BOOL is_empty,
+	ULONG num_predicates
 	)
 	:
-	m_phmulhist(phmulhist),
-	m_phmuldoubleWidth(phmuldoubleWidth),
-	m_dRows(dRows),
-	m_ulStatsEstimationRisk(ulStatsEstimationNoRisk),
-	m_fEmpty(fEmpty),
-	m_dRebinds(1.0), // by default, a stats object is rebound to parameters only once
-	m_ulNumPredicates(ulNumPredicates),
-	m_pdrgpubndvs(NULL)
+	m_colid_histogram_mapping(col_histogram_mapping),
+	m_colid_width_mapping(colid_width_mapping),
+	m_rows(rows),
+	m_stats_estimation_risk(no_card_est_risk_default_val),
+	m_empty(is_empty),
+	m_num_rebinds(1.0), // by default, a stats object is rebound to parameters only once
+	m_num_predicates(num_predicates),
+	m_src_upper_bound_NDVs(NULL)
 {
-	GPOS_ASSERT(NULL != m_phmulhist);
-	GPOS_ASSERT(NULL != m_phmuldoubleWidth);
-	GPOS_ASSERT(CDouble(0.0) <= m_dRows);
+	GPOS_ASSERT(NULL != m_colid_histogram_mapping);
+	GPOS_ASSERT(NULL != m_colid_width_mapping);
+	GPOS_ASSERT(CDouble(0.0) <= m_rows);
 
 	// hash map for source id -> max source cardinality mapping
-	m_pdrgpubndvs = GPOS_NEW(pmp) DrgPubndvs(pmp);
+	m_src_upper_bound_NDVs = GPOS_NEW(mp) CUpperBoundNDVPtrArray(mp);
 
-	m_pstatsconf = COptCtxt::PoctxtFromTLS()->Poconf()->Pstatsconf();
+	m_stats_conf = COptCtxt::PoctxtFromTLS()->GetOptimizerConfig()->GetStatsConf();
 }
 
 // Dtor
 CStatistics::~CStatistics()
 {
-	m_phmulhist->Release();
-	m_phmuldoubleWidth->Release();
-	m_pdrgpubndvs->Release();
+	m_colid_histogram_mapping->Release();
+	m_colid_width_mapping->Release();
+	m_src_upper_bound_NDVs->Release();
 }
 
 // look up the width of a particular column
 const CDouble *
-CStatistics::PdWidth
+CStatistics::GetWidth
 	(
-	ULONG ulColId
+	ULONG colid
 	)
 	const
 {
-	return m_phmuldoubleWidth->PtLookup(&ulColId);
+	return m_colid_width_mapping->Find(&colid);
 }
 
 
@@ -111,16 +111,16 @@ CStatistics::PdWidth
 void
 CStatistics::CapNDVs
 	(
-	CDouble dRows,
-	HMUlHist *phmulhist
+	CDouble rows,
+	UlongToHistogramMap *col_histogram_mapping
 	)
 {
-	GPOS_ASSERT(NULL != phmulhist);
-	HMIterUlHist hmiterulhist(phmulhist);
-	while (hmiterulhist.FAdvance())
+	GPOS_ASSERT(NULL != col_histogram_mapping);
+	UlongToHistogramMapIter col_hist_mapping(col_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		CHistogram *phist = const_cast<CHistogram *>(hmiterulhist.Pt());
-		phist->CapNDVs(dRows);
+		CHistogram *histogram = const_cast<CHistogram *>(col_hist_mapping.Value());
+		histogram->CapNDVs(rows);
 	}
 }
 
@@ -133,35 +133,35 @@ CStatistics::OsPrint
 	const
 {
 	os << "{" << std::endl;
-	os << "Rows = " << DRows() << std::endl;
-	os << "Rebinds = " << DRebinds() << std::endl;
+	os << "Rows = " << Rows() << std::endl;
+	os << "Rebinds = " << NumRebinds() << std::endl;
 
-	HMIterUlHist hmiterulhist(m_phmulhist);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(m_colid_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		os << "Col" << ulColId << ":" << std::endl;
-		const CHistogram *phist = hmiterulhist.Pt();
-		phist->OsPrint(os);
+		ULONG colid = *(col_hist_mapping.Key());
+		os << "Col" << colid << ":" << std::endl;
+		const CHistogram *histogram = col_hist_mapping.Value();
+		histogram->OsPrint(os);
 		os << std::endl;
 	}
 
-	HMIterUlDouble hmiteruldouble(m_phmuldoubleWidth);
-	while (hmiteruldouble.FAdvance())
+	UlongToDoubleMapIter col_width_map_iterator(m_colid_width_mapping);
+	while (col_width_map_iterator.Advance())
 	{
-		ULONG ulColId = *(hmiteruldouble.Pk());
-		os << "Col" << ulColId << ":" << std::endl;
-		const CDouble *pdWidth = hmiteruldouble.Pt();
-		os << " width " << (*pdWidth) << std::endl;
+		ULONG colid = *(col_width_map_iterator.Key());
+		os << "Col" << colid << ":" << std::endl;
+		const CDouble *width = col_width_map_iterator.Value();
+		os << " width " << (*width) << std::endl;
 	}
 
-	const ULONG ulLen = m_pdrgpubndvs->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	const ULONG length = m_src_upper_bound_NDVs->Size();
+	for (ULONG i = 0; i < length; i++)
 	{
-		const CUpperBoundNDVs *pubndv = (*m_pdrgpubndvs)[ul];
-		pubndv->OsPrint(os);
+		const CUpperBoundNDVs *upper_bound_NDVs = (*m_src_upper_bound_NDVs)[i];
+		upper_bound_NDVs->OsPrint(os);
 	}
-	os << "StatsEstimationRisk = " << UlStatsEstimationRisk() << std::endl;
+	os << "StatsEstimationRisk = " << StatsEstimationRisk() << std::endl;
 	os << "}" << std::endl;
 
 	return os;
@@ -169,230 +169,230 @@ CStatistics::OsPrint
 
 //	return the total number of rows for this statistics object
 CDouble
-CStatistics::DRows() const
+CStatistics::Rows() const
 {
-	return m_dRows;
+	return m_rows;
 }
 
 // return the estimated skew of the given column
 CDouble
-CStatistics::DSkew
+CStatistics::GetSkew
 	(
-	ULONG ulColId
+	ULONG colid
 	)
 	const
 {
-	CHistogram *phist = m_phmulhist->PtLookup(&ulColId);
-	if (NULL == phist)
+	CHistogram *histogram = m_colid_histogram_mapping->Find(&colid);
+	if (NULL == histogram)
 	{
 		return CDouble(1.0);
 	}
 
-	return phist->DSkew();
+	return histogram->GetSkew();
 }
 
 // return total width in bytes
 CDouble
-CStatistics::DWidth() const
+CStatistics::Width() const
 {
-	CDouble dWidth(0.0);
-	HMIterUlDouble hmiteruldouble(m_phmuldoubleWidth);
-	while (hmiteruldouble.FAdvance())
+	CDouble total_width(0.0);
+	UlongToDoubleMapIter col_width_map_iterator(m_colid_width_mapping);
+	while (col_width_map_iterator.Advance())
 	{
-		const CDouble *pdWidth = hmiteruldouble.Pt();
-		dWidth = dWidth + (*pdWidth);
+		const CDouble *width = col_width_map_iterator.Value();
+		total_width = total_width + (*width);
 	}
-	return dWidth.FpCeil();
+	return total_width.Ceil();
 }
 
 // return the width in bytes of a set of columns
 CDouble
-CStatistics::DWidth
+CStatistics::Width
 	(
-	DrgPul *pdrgpulColIds
+	ULongPtrArray *colids
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdrgpulColIds);
+	GPOS_ASSERT(NULL != colids);
 
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-	CDouble dWidth(0.0);
-	const ULONG ulSize = pdrgpulColIds->UlLength();
-	for (ULONG ulIdx = 0; ulIdx < ulSize; ulIdx++)
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CDouble total_width(0.0);
+	const ULONG size = colids->Size();
+	for (ULONG idx = 0; idx < size; idx++)
 	{
-		ULONG ulColId = *((*pdrgpulColIds)[ulIdx]);
-		CDouble *pdWidth = m_phmuldoubleWidth->PtLookup(&ulColId);
-		if (NULL != pdWidth)
+		ULONG colid = *((*colids)[idx]);
+		CDouble *width = m_colid_width_mapping->Find(&colid);
+		if (NULL != width)
 		{
-			dWidth = dWidth + (*pdWidth);
+			total_width = total_width + (*width);
 		}
 		else
 		{
-			CColRef *pcr = pcf->PcrLookup(ulColId);
-			GPOS_ASSERT(NULL != pcr);
+			CColRef *colref = col_factory->LookupColRef(colid);
+			GPOS_ASSERT(NULL != colref);
 
-			dWidth = dWidth + CStatisticsUtils::DDefaultColumnWidth(pcr->Pmdtype());
+			total_width = total_width + CStatisticsUtils::DefaultColumnWidth(colref->RetrieveType());
 		}
 	}
-	return dWidth.FpCeil();
+	return total_width.Ceil();
 }
 
 // return width in bytes of a set of columns
 CDouble
-CStatistics::DWidth
+CStatistics::Width
 	(
-	IMemoryPool *pmp,
-	CColRefSet *pcrs
+	IMemoryPool *mp,
+	CColRefSet *colrefs
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pcrs);
+	GPOS_ASSERT(NULL != colrefs);
 
-	DrgPul *pdrgpulColIds = GPOS_NEW(pmp) DrgPul(pmp);
-	pcrs->ExtractColIds(pmp, pdrgpulColIds);
+	ULongPtrArray *colids = GPOS_NEW(mp) ULongPtrArray(mp);
+	colrefs->ExtractColIds(mp, colids);
 
-	CDouble dWidth = DWidth(pdrgpulColIds);
-	pdrgpulColIds->Release();
+	CDouble width = Width(colids);
+	colids->Release();
 
-	return dWidth;
+	return width;
 }
 
 // return dummy statistics object
 CStatistics *
-CStatistics::PstatsDummy
+CStatistics::MakeDummyStats
 	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpulColIds,
-	CDouble dRows
+	IMemoryPool *mp,
+	ULongPtrArray *colids,
+	CDouble rows
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpulColIds);
+	GPOS_ASSERT(NULL != colids);
 
 	// hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhist = GPOS_NEW(pmp) HMUlHist(pmp);
+	UlongToHistogramMap *col_histogram_mapping = GPOS_NEW(mp) UlongToHistogramMap(mp);
 
 	// hashmap from colid -> width (double)
-	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
+	UlongToDoubleMap *colid_width_mapping = GPOS_NEW(mp) UlongToDoubleMap(mp);
 
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
-	BOOL fEmpty = (CStatistics::DEpsilon >= dRows);
-	CHistogram::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulColIds, fEmpty);
+	BOOL is_empty = (CStatistics::Epsilon >= rows);
+	CHistogram::AddDummyHistogramAndWidthInfo(mp, col_factory, col_histogram_mapping, colid_width_mapping, colids, is_empty);
 
-	CStatistics *pstats = GPOS_NEW(pmp) CStatistics(pmp, phmulhist, phmuldoubleWidth, dRows, fEmpty);
-	CreateAndInsertUpperBoundNDVs(pmp, pstats, pdrgpulColIds, dRows);
+	CStatistics *stats = GPOS_NEW(mp) CStatistics(mp, col_histogram_mapping, colid_width_mapping, rows, is_empty);
+	CreateAndInsertUpperBoundNDVs(mp, stats, colids, rows);
 
-	return pstats;
+	return stats;
 }
 
 // add upper bound ndvs information for a given set of columns
 void
 CStatistics::CreateAndInsertUpperBoundNDVs
 	(
-	IMemoryPool *pmp,
-	CStatistics *pstats,
-	DrgPul *pdrgpulColIds,
-	CDouble dRows
+	IMemoryPool *mp,
+	CStatistics *stats,
+	ULongPtrArray *colids,
+	CDouble rows
 )
 {
-	GPOS_ASSERT(NULL != pstats);
-	GPOS_ASSERT(NULL != pdrgpulColIds);
+	GPOS_ASSERT(NULL != stats);
+	GPOS_ASSERT(NULL != colids);
 
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	const ULONG ulCols = pdrgpulColIds->UlLength();
-	for (ULONG ul = 0; ul < ulCols; ul++)
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColRefSet *colrefs = GPOS_NEW(mp) CColRefSet(mp);
+	const ULONG num_cols = colids->Size();
+	for (ULONG i = 0; i < num_cols; i++)
 	{
-		ULONG ulColId = *(*pdrgpulColIds)[ul];
-		const CColRef *pcr = pcf->PcrLookup(ulColId);
-		if (NULL != pcr)
+		ULONG colid = *(*colids)[i];
+		const CColRef *colref = col_factory->LookupColRef(colid);
+		if (NULL != colref)
 		{
-			pcrs->Include(pcr);
+			colrefs->Include(colref);
 		}
 	}
 
-	if (0 < pcrs->CElements())
+	if (0 < colrefs->Size())
 	{
-		pstats->AddCardUpperBound(GPOS_NEW(pmp) CUpperBoundNDVs(pcrs, dRows));
+		stats->AddCardUpperBound(GPOS_NEW(mp) CUpperBoundNDVs(colrefs, rows));
 	}
 	else
 	{
-		pcrs->Release();
+		colrefs->Release();
 	}
 }
 
 //	return dummy statistics object
 CStatistics *
-CStatistics::PstatsDummy
+CStatistics::MakeDummyStats
 	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpulHistColIds,
-	DrgPul *pdrgpulWidthColIds,
-	CDouble dRows
+	IMemoryPool *mp,
+	ULongPtrArray *col_histogram_mapping,
+	ULongPtrArray *col_width_mapping,
+	CDouble rows
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpulHistColIds);
-	GPOS_ASSERT(NULL != pdrgpulWidthColIds);
+	GPOS_ASSERT(NULL != col_histogram_mapping);
+	GPOS_ASSERT(NULL != col_width_mapping);
 
-	BOOL fEmpty = (CStatistics::DEpsilon >= dRows);
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+	BOOL is_empty = (CStatistics::Epsilon >= rows);
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	// hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhist = GPOS_NEW(pmp) HMUlHist(pmp);
+	UlongToHistogramMap *result_col_histogram_mapping = GPOS_NEW(mp) UlongToHistogramMap(mp);
 
-	const ULONG ulHistCol = pdrgpulHistColIds->UlLength();
-	for (ULONG ul = 0; ul < ulHistCol; ul++)
+	const ULONG num_col_hist = col_histogram_mapping->Size();
+	for (ULONG ul = 0; ul < num_col_hist; ul++)
 	{
-		ULONG ulColId = *(*pdrgpulHistColIds)[ul];
+		ULONG colid = *(*col_histogram_mapping)[ul];
 
-		CColRef *pcr = pcf->PcrLookup(ulColId);
-		GPOS_ASSERT(NULL != pcr);
+		CColRef *colref = col_factory->LookupColRef(colid);
+		GPOS_ASSERT(NULL != colref);
 
 		// empty histogram
-		CHistogram *phist = CHistogram::PhistDefault(pmp, pcr, fEmpty);
-		phmulhist->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
+		CHistogram *histogram = CHistogram::MakeDefaultHistogram(mp, colref, is_empty);
+		result_col_histogram_mapping->Insert(GPOS_NEW(mp) ULONG(colid), histogram);
 	}
 
 	// hashmap from colid -> width (double)
-	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
+	UlongToDoubleMap *colid_width_mapping = GPOS_NEW(mp) UlongToDoubleMap(mp);
 
-	const ULONG ulWidthCol = pdrgpulWidthColIds->UlLength();
-	for (ULONG ul = 0; ul < ulWidthCol; ul++)
+	const ULONG num_col_width = col_width_mapping->Size();
+	for (ULONG ul = 0; ul < num_col_width; ul++)
 	{
-		ULONG ulColId = *(*pdrgpulWidthColIds)[ul];
+		ULONG colid = *(*col_width_mapping)[ul];
 
-		CColRef *pcr = pcf->PcrLookup(ulColId);
-		GPOS_ASSERT(NULL != pcr);
+		CColRef *colref = col_factory->LookupColRef(colid);
+		GPOS_ASSERT(NULL != colref);
 
-		CDouble dWidth = CStatisticsUtils::DDefaultColumnWidth(pcr->Pmdtype());
-		phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(dWidth));
+		CDouble width = CStatisticsUtils::DefaultColumnWidth(colref->RetrieveType());
+		colid_width_mapping->Insert(GPOS_NEW(mp) ULONG(colid), GPOS_NEW(mp) CDouble(width));
 	}
 
-	CStatistics *pstats = GPOS_NEW(pmp) CStatistics(pmp, phmulhist, phmuldoubleWidth, dRows, false /* fEmpty */);
-	CreateAndInsertUpperBoundNDVs(pmp, pstats, pdrgpulHistColIds, dRows);
+	CStatistics *stats = GPOS_NEW(mp) CStatistics(mp, result_col_histogram_mapping, colid_width_mapping, rows, false /* is_empty */);
+	CreateAndInsertUpperBoundNDVs(mp, stats, col_histogram_mapping, rows);
 
-	return pstats;
+	return stats;
 }
 
 
 //	check if the input statistics from join statistics computation empty
 BOOL
-CStatistics::FEmptyJoinInput
+CStatistics::IsEmptyJoin
 	(
-	const CStatistics *pstatsOuter,
-	const CStatistics *pstatsInner,
-	BOOL fLASJ
+	const CStatistics *outer_stats,
+	const CStatistics *inner_side_stats,
+	BOOL IsLASJ
 	)
 {
-	GPOS_ASSERT(NULL != pstatsOuter);
-	GPOS_ASSERT(NULL != pstatsInner);
+	GPOS_ASSERT(NULL != outer_stats);
+	GPOS_ASSERT(NULL != inner_side_stats);
 
-	if (fLASJ)
+	if (IsLASJ)
 	{
-		return pstatsOuter->FEmpty();
+		return outer_stats->IsEmpty();
 	}
 
-	return pstatsOuter->FEmpty() || pstatsInner->FEmpty();
+	return outer_stats->IsEmpty() || inner_side_stats->IsEmpty();
 }
 
 // Currently, Pstats[Join type] are thin wrappers the C[Join type]StatsProcessor class's method
@@ -400,231 +400,231 @@ CStatistics::FEmptyJoinInput
 
 //	return statistics object after performing LOJ operation with another statistics structure
 CStatistics *
-CStatistics::PstatsLOJ
+CStatistics::CalcLOJoinStats
 	(
-	IMemoryPool *pmp,
-	const IStatistics *pstatsOther,
-	DrgPstatspredjoin *pdrgpstatspredjoin
+	IMemoryPool *mp,
+	const IStatistics *other_stats,
+	CStatsPredJoinArray *join_preds_stats
 	)
 	const
 {
-	return CLeftOuterJoinStatsProcessor::PstatsLOJStatic(pmp, this, pstatsOther, pdrgpstatspredjoin);
+	return CLeftOuterJoinStatsProcessor::CalcLOJoinStatsStatic(mp, this, other_stats, join_preds_stats);
 }
 
 
 
 //	return statistics object after performing semi-join with another statistics structure
 CStatistics *
-CStatistics::PstatsLSJoin
+CStatistics::CalcLSJoinStats
 	(
-	IMemoryPool *pmp,
-	const IStatistics *pstatsInner,
-	DrgPstatspredjoin *pdrgpstatspredjoin
+	IMemoryPool *mp,
+	const IStatistics *inner_side_stats,
+	CStatsPredJoinArray *join_preds_stats
 	)
 	const
 {
-	return CLeftSemiJoinStatsProcessor::PstatsLSJoinStatic(pmp, this, pstatsInner, pdrgpstatspredjoin);
+	return CLeftSemiJoinStatsProcessor::CalcLSJoinStatsStatic(mp, this, inner_side_stats, join_preds_stats);
 }
 
 
 
 // return statistics object after performing inner join
 CStatistics *
-CStatistics::PstatsInnerJoin
+CStatistics::CalcInnerJoinStats
 	(
-	IMemoryPool *pmp,
-	const IStatistics *pistatsOther,
-	DrgPstatspredjoin *pdrgpstatspredjoin
+	IMemoryPool *mp,
+	const IStatistics *other_stats,
+	CStatsPredJoinArray *join_preds_stats
 	)
 	const
 {
-	return CInnerJoinStatsProcessor::PstatsInnerJoinStatic(pmp, this, pistatsOther, pdrgpstatspredjoin);
+	return CInnerJoinStatsProcessor::CalcInnerJoinStatsStatic(mp, this, other_stats, join_preds_stats);
 }
 
 // return statistics object after performing LASJ
 CStatistics *
-CStatistics::PstatsLASJoin
+CStatistics::CalcLASJoinStats
 	(
-	IMemoryPool *pmp,
-	const IStatistics *pistatsOther,
-	DrgPstatspredjoin *pdrgpstatspredjoin,
-	BOOL fIgnoreLasjHistComputation
+	IMemoryPool *mp,
+	const IStatistics *other_stats,
+	CStatsPredJoinArray *join_preds_stats,
+	BOOL DoIgnoreLASJHistComputation
 	)
 	const
 {
-	return CLeftAntiSemiJoinStatsProcessor::PstatsLASJoinStatic(pmp, this, pistatsOther, pdrgpstatspredjoin, fIgnoreLasjHistComputation);
+	return CLeftAntiSemiJoinStatsProcessor::CalcLASJoinStatsStatic(mp, this, other_stats, join_preds_stats, DoIgnoreLASJHistComputation);
 }
 
 //	helper method to copy statistics on columns that are not excluded by bitset
 void
 CStatistics::AddNotExcludedHistograms
 	(
-	IMemoryPool *pmp,
-	CBitSet *pbsExcludedColIds,
-	HMUlHist *phmulhist
+	IMemoryPool *mp,
+	CBitSet *excluded_cols,
+	UlongToHistogramMap *col_histogram_mapping
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pbsExcludedColIds);
-	GPOS_ASSERT(NULL != phmulhist);
+	GPOS_ASSERT(NULL != excluded_cols);
+	GPOS_ASSERT(NULL != col_histogram_mapping);
 
-	HMIterUlHist hmiterulhist(m_phmulhist);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(m_colid_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		if (!pbsExcludedColIds->FBit(ulColId))
+		ULONG colid = *(col_hist_mapping.Key());
+		if (!excluded_cols->Get(colid))
 		{
-			const CHistogram *phist = hmiterulhist.Pt();
-			CStatisticsUtils::AddHistogram(pmp, ulColId, phist, phmulhist);
+			const CHistogram *histogram = col_hist_mapping.Value();
+			CStatisticsUtils::AddHistogram(mp, colid, histogram, col_histogram_mapping);
 		}
 
 		GPOS_CHECK_ABORT;
 	}
 }
 
-HMUlDouble *
+UlongToDoubleMap *
 CStatistics::CopyWidths
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	HMUlDouble *phmuldoubleCoopy = GPOS_NEW(pmp) HMUlDouble(pmp);
-	CStatisticsUtils::AddWidthInfo(pmp, m_phmuldoubleWidth, phmuldoubleCoopy);
+	UlongToDoubleMap *widths_copy = GPOS_NEW(mp) UlongToDoubleMap(mp);
+	CStatisticsUtils::AddWidthInfo(mp, m_colid_width_mapping, widths_copy);
 
-	return phmuldoubleCoopy;
+	return widths_copy;
 }
 
 void
 CStatistics::CopyWidthsInto
-	(
-	IMemoryPool *pmp,
-	HMUlDouble *phmuldouble
-	)
+		(
+				IMemoryPool *mp,
+				UlongToDoubleMap *colid_width_mapping
+		)
 	const
 {
-	CStatisticsUtils::AddWidthInfo(pmp, m_phmuldoubleWidth, phmuldouble);
+	CStatisticsUtils::AddWidthInfo(mp, m_colid_width_mapping, colid_width_mapping);
 }
 
-HMUlHist *
+UlongToHistogramMap *
 CStatistics::CopyHistograms
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
 	// create hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhistCopy = GPOS_NEW(pmp) HMUlHist(pmp);
+	UlongToHistogramMap *histograms_copy = GPOS_NEW(mp) UlongToHistogramMap(mp);
 
-	BOOL fEmpty = FEmpty();
+	BOOL is_empty = IsEmpty();
 
-	HMIterUlHist hmiterulhist(m_phmulhist);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(m_colid_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		const CHistogram *phist = hmiterulhist.Pt();
-		CHistogram *phistCopy = NULL;
-		if (fEmpty)
+		ULONG colid = *(col_hist_mapping.Key());
+		const CHistogram *histogram = col_hist_mapping.Value();
+		CHistogram *histogram_copy = NULL;
+		if (is_empty)
 		{
-			phistCopy =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
+			histogram_copy = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
 		}
 		else
 		{
-			phistCopy = phist->PhistCopy(pmp);
+			histogram_copy = histogram->CopyHistogram(mp);
 		}
 
-		phmulhistCopy->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phistCopy);
+		histograms_copy->Insert(GPOS_NEW(mp) ULONG(colid), histogram_copy);
 	}
 
-	return phmulhistCopy;
+	return histograms_copy;
 }
 
 
 
 //	return required props associated with statistics object
 CReqdPropRelational *
-CStatistics::Prprel
+CStatistics::GetReqdRelationalProps
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-	GPOS_ASSERT(NULL != pcf);
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	GPOS_ASSERT(NULL != col_factory);
 
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *colrefs = GPOS_NEW(mp) CColRefSet(mp);
 
 	// add columns from histogram map
-	HMIterUlHist hmiterulhist(m_phmulhist);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(m_colid_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		CColRef *pcr = pcf->PcrLookup(ulColId);
-		GPOS_ASSERT(NULL != pcr);
+		ULONG colid = *(col_hist_mapping.Key());
+		CColRef *colref = col_factory->LookupColRef(colid);
+		GPOS_ASSERT(NULL != colref);
 
-		pcrs->Include(pcr);
+		colrefs->Include(colref);
 	}
 
-	return GPOS_NEW(pmp) CReqdPropRelational(pcrs);
+	return GPOS_NEW(mp) CReqdPropRelational(colrefs);
 }
 
 // append given statistics to current object
 void
 CStatistics::AppendStats
 	(
-	IMemoryPool *pmp,
-	IStatistics *pstatsInput
+	IMemoryPool *mp,
+	IStatistics *input_stats
 	)
 {
-	CStatistics *pstats = CStatistics::PstatsConvert(pstatsInput);
+	CStatistics *stats = CStatistics::CastStats(input_stats);
 
-	CHistogram::AddHistograms(pmp, pstats->m_phmulhist, m_phmulhist);
+	CHistogram::AddHistograms(mp, stats->m_colid_histogram_mapping, m_colid_histogram_mapping);
 	GPOS_CHECK_ABORT;
 
-	CStatisticsUtils::AddWidthInfo(pmp, pstats->m_phmuldoubleWidth, m_phmuldoubleWidth);
+	CStatisticsUtils::AddWidthInfo(mp, stats->m_colid_width_mapping, m_colid_width_mapping);
 	GPOS_CHECK_ABORT;
 }
 
 // copy statistics object
 IStatistics *
-CStatistics::PstatsCopy
+CStatistics::CopyStats
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	return PstatsScale(pmp, CDouble(1.0) /*dFactor*/);
+	return ScaleStats(mp, CDouble(1.0) /*factor*/);
 }
 
 // return a copy of this statistics object scaled by a given factor
 IStatistics *
-CStatistics::PstatsScale
+CStatistics::ScaleStats
 	(
-	IMemoryPool *pmp,
-	CDouble dFactor
+	IMemoryPool *mp,
+	CDouble factor
 	)
 	const
 {
-	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
-	HMUlDouble *phmuldoubleNew = GPOS_NEW(pmp) HMUlDouble(pmp);
+	UlongToHistogramMap *histograms_new = GPOS_NEW(mp) UlongToHistogramMap(mp);
+	UlongToDoubleMap *widths_new = GPOS_NEW(mp) UlongToDoubleMap(mp);
 
-	CHistogram::AddHistograms(pmp, m_phmulhist, phmulhistNew);
+	CHistogram::AddHistograms(mp, m_colid_histogram_mapping, histograms_new);
 	GPOS_CHECK_ABORT;
 
-	CStatisticsUtils::AddWidthInfo(pmp, m_phmuldoubleWidth, phmuldoubleNew);
+	CStatisticsUtils::AddWidthInfo(mp, m_colid_width_mapping, widths_new);
 	GPOS_CHECK_ABORT;
 
-	CDouble dRowsScaled = m_dRows * dFactor;
+	CDouble scaled_num_rows = m_rows * factor;
 
 	// create a scaled stats object
-	CStatistics *pstatsScaled = GPOS_NEW(pmp) CStatistics
+	CStatistics *scaled_stats = GPOS_NEW(mp) CStatistics
 												(
-												pmp,
-												phmulhistNew,
-												phmuldoubleNew,
-												dRowsScaled,
-												FEmpty(),
-												m_ulNumPredicates
+												mp,
+												histograms_new,
+												widths_new,
+												scaled_num_rows,
+												IsEmpty(),
+												m_num_predicates
 												);
 
 	// In the output statistics object, the upper bound source cardinality of the scaled column
@@ -634,37 +634,37 @@ CStatistics::PstatsScale
 	// and estimated output cardinality.
 
 	// modify source id to upper bound card information
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, this, pstatsScaled, dRowsScaled, CStatistics::EcbmMin /* ecbm */);
+	CStatisticsUtils::ComputeCardUpperBounds(mp, this, scaled_stats, scaled_num_rows, CStatistics::EcbmMin /* card_bounding_method */);
 
-	return pstatsScaled;
+	return scaled_stats;
 }
 
 //	copy statistics object with re-mapped column ids
 IStatistics *
-CStatistics::PstatsCopyWithRemap
+CStatistics::CopyStatsWithRemap
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 	const
 {
-	GPOS_ASSERT(NULL != phmulcr);
-	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
-	HMUlDouble *phmuldoubleNew = GPOS_NEW(pmp) HMUlDouble(pmp);
+	GPOS_ASSERT(NULL != colref_mapping);
+	UlongToHistogramMap *histograms_new = GPOS_NEW(mp) UlongToHistogramMap(mp);
+	UlongToDoubleMap *widths_new = GPOS_NEW(mp) UlongToDoubleMap(mp);
 
-	AddHistogramsWithRemap(pmp, m_phmulhist, phmulhistNew, phmulcr, fMustExist);
-	AddWidthInfoWithRemap(pmp, m_phmuldoubleWidth, phmuldoubleNew, phmulcr, fMustExist);
+	AddHistogramsWithRemap(mp, m_colid_histogram_mapping, histograms_new, colref_mapping, must_exist);
+	AddWidthInfoWithRemap(mp, m_colid_width_mapping, widths_new, colref_mapping, must_exist);
 
 	// create a copy of the stats object
-	CStatistics *pstatsCopy = GPOS_NEW(pmp) CStatistics
+	CStatistics *stats_copy = GPOS_NEW(mp) CStatistics
 											(
-											pmp,
-											phmulhistNew,
-											phmuldoubleNew,
-											m_dRows,
-											FEmpty(),
-											m_ulNumPredicates
+											mp,
+											histograms_new,
+											widths_new,
+											m_rows,
+											IsEmpty(),
+											m_num_predicates
 											);
 
 	// In the output statistics object, the upper bound source cardinality of the join column
@@ -672,93 +672,93 @@ CStatistics::PstatsCopyWithRemap
 	// statistics object.
 
 	// copy the upper bound ndv information
-	const ULONG ulLen = m_pdrgpubndvs->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	const ULONG length = m_src_upper_bound_NDVs->Size();
+	for (ULONG i = 0; i < length; i++)
 	{
-		const CUpperBoundNDVs *pubndv = (*m_pdrgpubndvs)[ul];
- 	 	CUpperBoundNDVs *pubndvCopy = pubndv->PubndvCopyWithRemap(pmp, phmulcr);
+		const CUpperBoundNDVs *upper_bound_NDVs = (*m_src_upper_bound_NDVs)[i];
+		CUpperBoundNDVs *upper_bound_NDVs_copy = upper_bound_NDVs->CopyUpperBoundNDVWithRemap(mp, colref_mapping);
 
-		if (NULL != pubndvCopy)
+		if (NULL != upper_bound_NDVs_copy)
 	 	{
-			pstatsCopy->AddCardUpperBound(pubndvCopy);
+			stats_copy->AddCardUpperBound(upper_bound_NDVs_copy);
 	 	}
 	}
 
-	return pstatsCopy;
+	return stats_copy;
 }
 
 //	return the column identifiers of all columns whose statistics are
 //	maintained by the statistics object
-DrgPul *
-CStatistics::PdrgulColIds
+ULongPtrArray *
+CStatistics::GetColIdsWithStats
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	DrgPul *pdrgpul = GPOS_NEW(pmp) DrgPul(pmp);
+	ULongPtrArray *colids = GPOS_NEW(mp) ULongPtrArray(mp);
 
-	HMIterUlHist hmiterulhist(m_phmulhist);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(m_colid_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		pdrgpul->Append(GPOS_NEW(pmp) ULONG(ulColId));
+		ULONG colid = *(col_hist_mapping.Key());
+		colids->Append(GPOS_NEW(mp) ULONG(colid));
 	}
 
-	return pdrgpul;
+	return colids;
 }
 
 // return the set of column references we have statistics for
 CColRefSet *
-CStatistics::Pcrs
+CStatistics::GetColRefSet
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColRefSet *colrefs = GPOS_NEW(mp) CColRefSet(mp);
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
-	HMIterUlHist hmiterulhist(m_phmulhist);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(m_colid_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		CColRef *pcr = pcf->PcrLookup(ulColId);
-		GPOS_ASSERT(NULL != pcr);
+		ULONG colid = *(col_hist_mapping.Key());
+		CColRef *colref = col_factory->LookupColRef(colid);
+		GPOS_ASSERT(NULL != colref);
 
-		pcrs->Include(pcr);
+		colrefs->Include(colref);
 	}
 
-	return pcrs;
+	return colrefs;
 }
 
 //	append given histograms to current object where the column ids have been re-mapped
 void
 CStatistics::AddHistogramsWithRemap
 	(
-	IMemoryPool *pmp,
-	HMUlHist *phmulhistSrc,
-	HMUlHist *phmulhistDest,
-	HMUlCr *phmulcr,
+	IMemoryPool *mp,
+	UlongToHistogramMap *src_histograms,
+	UlongToHistogramMap *dest_histograms,
+	UlongToColRefMap *colref_mapping,
 	BOOL
 #ifdef GPOS_DEBUG
-	fMustExist
+	must_exist
 #endif //GPOS_DEBUG
 	)
 {
-	HMIterUlCr hmiterulcr(phmulcr);
-	while (hmiterulcr.FAdvance())
+	UlongToColRefMapIter colref_iterator(colref_mapping);
+	while (colref_iterator.Advance())
 	{
-		ULONG ulColIdSrc = *(hmiterulcr.Pk());
-		const CColRef *pcrDest = hmiterulcr.Pt();
-		GPOS_ASSERT_IMP(fMustExist, NULL != pcrDest);
+		ULONG src_colid = *(colref_iterator.Key());
+		const CColRef *dest_colref = colref_iterator.Value();
+		GPOS_ASSERT_IMP(must_exist, NULL != dest_colref);
 
-		ULONG ulColIdDest = pcrDest->UlId();
+		ULONG dest_colid = dest_colref->Id();
 
-		const CHistogram *phistSrc = phmulhistSrc->PtLookup(&ulColIdSrc);
-		if (NULL != phistSrc)
+		const CHistogram *src_histogram = src_histograms->Find(&src_colid);
+		if (NULL != src_histogram)
 		{
-			CStatisticsUtils::AddHistogram(pmp, ulColIdDest, phistSrc, phmulhistDest);
+			CStatisticsUtils::AddHistogram(mp, dest_colid, src_histogram, dest_histograms);
 		}
 	}
 }
@@ -767,59 +767,59 @@ CStatistics::AddHistogramsWithRemap
 void
 CStatistics::AddWidthInfoWithRemap
 		(
-		IMemoryPool *pmp,
-		HMUlDouble *phmuldoubleSrc,
-		HMUlDouble *phmuldoubleDest,
-		HMUlCr *phmulcr,
-		BOOL fMustExist
+		IMemoryPool *mp,
+		UlongToDoubleMap *src_width,
+		UlongToDoubleMap *dest_width,
+		UlongToColRefMap *colref_mapping,
+		BOOL must_exist
 		)
 {
-	HMIterUlDouble hmiteruldouble(phmuldoubleSrc);
-	while (hmiteruldouble.FAdvance())
+	UlongToDoubleMapIter col_width_map_iterator(src_width);
+	while (col_width_map_iterator.Advance())
 	{
-		ULONG ulColId = *(hmiteruldouble.Pk());
-		CColRef *pcrNew = phmulcr->PtLookup(&ulColId);
-		if (fMustExist && NULL == pcrNew)
+		ULONG colid = *(col_width_map_iterator.Key());
+		CColRef *new_colref = colref_mapping->Find(&colid);
+		if (must_exist && NULL == new_colref)
 		{
 			continue;
 		}
 
-		if (NULL != pcrNew)
+		if (NULL != new_colref)
 		{
-			ulColId = pcrNew->UlId();
+			colid = new_colref->Id();
 		}
 
-		if (NULL == phmuldoubleDest->PtLookup(&ulColId))
+		if (NULL == dest_width->Find(&colid))
 		{
-			const CDouble *pdWidth = hmiteruldouble.Pt();
-			CDouble *pdWidthCopy = GPOS_NEW(pmp) CDouble(*pdWidth);
+			const CDouble *width = col_width_map_iterator.Value();
+			CDouble *width_copy = GPOS_NEW(mp) CDouble(*width);
 #ifdef GPOS_DEBUG
-			BOOL fResult =
+			BOOL result =
 #endif // GPOS_DEBUG
-					phmuldoubleDest->FInsert(GPOS_NEW(pmp) ULONG(ulColId), pdWidthCopy);
-			GPOS_ASSERT(fResult);
+					dest_width->Insert(GPOS_NEW(mp) ULONG(colid), width_copy);
+			GPOS_ASSERT(result);
 		}
 	}
 }
 
 // return the index of the array of upper bound ndvs to which column reference belongs
 ULONG
-CStatistics::UlIndexUpperBoundNDVs
+CStatistics::GetIndexUpperBoundNDVs
 	(
-	const CColRef *pcr
+	const CColRef *colref
 	)
 {
-	GPOS_ASSERT(NULL != pcr);
- 	CAutoMutex am(m_mutexCardUpperBoundAccess);
+	GPOS_ASSERT(NULL != colref);
+ 	CAutoMutex am(m_src_upper_bound_mapping_mutex);
  	am.Lock();
 
- 	const ULONG ulLen = m_pdrgpubndvs->UlLength();
- 	for (ULONG ul = 0; ul < ulLen; ul++)
+ 	const ULONG length = m_src_upper_bound_NDVs->Size();
+ 	for (ULONG i = 0; i < length; i++)
  	{
- 		const CUpperBoundNDVs *pubndv = (*m_pdrgpubndvs)[ul];
- 	 	if (pubndv->FPresent(pcr))
+ 		const CUpperBoundNDVs *upper_bound_NDVs = (*m_src_upper_bound_NDVs)[i];
+		if (upper_bound_NDVs->IsPresent(colref))
  	 	{
- 	 		return ul;
+ 	 		return i;
  	 	}
 	}
 
@@ -830,82 +830,82 @@ CStatistics::UlIndexUpperBoundNDVs
 void
 CStatistics::AddCardUpperBound
 	(
-	CUpperBoundNDVs *pubndv
+	CUpperBoundNDVs *upper_bound_NDVs
 	)
 {
-	GPOS_ASSERT(NULL != pubndv);
+	GPOS_ASSERT(NULL != upper_bound_NDVs);
 
-	CAutoMutex am(m_mutexCardUpperBoundAccess);
+	CAutoMutex am(m_src_upper_bound_mapping_mutex);
 	am.Lock();
 
-	m_pdrgpubndvs->Append(pubndv);
+	m_src_upper_bound_NDVs->Append(upper_bound_NDVs);
 }
 
 // return the dxl representation of the statistics object
 CDXLStatsDerivedRelation *
-CStatistics::Pdxlstatsderrel
+CStatistics::GetDxlStatsDrvdRelation
 	(
-	IMemoryPool *pmp,
-	CMDAccessor *pmda
+	IMemoryPool *mp,
+	CMDAccessor *md_accessor
 	)
 	const
 {
-	DrgPdxlstatsdercol *pdrgpdxlstatsdercol = GPOS_NEW(pmp) DrgPdxlstatsdercol(pmp);
+	CDXLStatsDerivedColumnArray *dxl_stats_derived_col_array = GPOS_NEW(mp) CDXLStatsDerivedColumnArray(mp);
 
-	HMIterUlHist hmiterulhist(m_phmulhist);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(m_colid_histogram_mapping);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		const CHistogram *phist = hmiterulhist.Pt();
+		ULONG colid = *(col_hist_mapping.Key());
+		const CHistogram *histogram = col_hist_mapping.Value();
 
-		CDouble *pdWidth = m_phmuldoubleWidth->PtLookup(&ulColId);
-		GPOS_ASSERT(pdWidth);
+		CDouble *width = m_colid_width_mapping->Find(&colid);
+		GPOS_ASSERT(width);
 
-		CDXLStatsDerivedColumn *pdxlstatsdercol = phist->Pdxlstatsdercol(pmp, pmda, ulColId, *pdWidth);
-		pdrgpdxlstatsdercol->Append(pdxlstatsdercol);
+		CDXLStatsDerivedColumn *dxl_derived_col_stats = histogram->TranslateToDXLDerivedColumnStats(mp, md_accessor, colid, *width);
+		dxl_stats_derived_col_array->Append(dxl_derived_col_stats);
 	}
 
-	return GPOS_NEW(pmp) CDXLStatsDerivedRelation(m_dRows, FEmpty(), pdrgpdxlstatsdercol);
+	return GPOS_NEW(mp) CDXLStatsDerivedRelation(m_rows, IsEmpty(), dxl_stats_derived_col_array);
 }
 
 // return the upper bound of ndvs for a column reference
 CDouble
-CStatistics::DUpperBoundNDVs
+CStatistics::GetColUpperBoundNDVs
 	(
-	const CColRef *pcr
+	const CColRef *colref
 	)
 {
-	GPOS_ASSERT(NULL != pcr);
+	GPOS_ASSERT(NULL != colref);
 
-	CAutoMutex am(m_mutexCardUpperBoundAccess);
+	CAutoMutex am(m_src_upper_bound_mapping_mutex);
 	am.Lock();
 
-	const ULONG ulLen = m_pdrgpubndvs->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	const ULONG length = m_src_upper_bound_NDVs->Size();
+	for (ULONG i = 0; i < length; i++)
 	{
-		const CUpperBoundNDVs *pubndv = (*m_pdrgpubndvs)[ul];
-		if (pubndv->FPresent(pcr))
+		const CUpperBoundNDVs *upper_bound_NDVs = (*m_src_upper_bound_NDVs)[i];
+		if (upper_bound_NDVs->IsPresent(colref))
 		{
-			return pubndv->DUpperBoundNDVs();
+			return upper_bound_NDVs->UpperBoundNDVs();
 		}
 	}
 
-	return DDefaultDistinctValues;
+	return DefaultDistinctValues;
 }
 
 
 // look up the number of distinct values of a particular column
 CDouble
-CStatistics::DNDV
+CStatistics::GetNDVs
 	(
-	const CColRef *pcr
+	const CColRef *colref
 	)
 {
-	ULONG ulColId = pcr->UlId();
-	CHistogram *phistCol = m_phmulhist->PtLookup(&ulColId);
-	if (NULL != phistCol)
+	ULONG colid = colref->Id();
+	CHistogram *col_histogram = m_colid_histogram_mapping->Find(&colid);
+	if (NULL != col_histogram)
 	{
-		return std::min(phistCol->DDistinct(), DUpperBoundNDVs(pcr));
+		return std::min(col_histogram->GetNumDistinct(), GetColUpperBoundNDVs(colref));
 	}
 
 #ifdef GPOS_DEBUG
@@ -917,13 +917,13 @@ CStatistics::DNDV
 		CAutoMemoryPool amp;
 		CAutoTrace at(amp.Pmp());
 
-		at.Os() << "\nREQUESTED NDVs FOR COL (" << pcr->UlId()  << ") WITH A MISSING HISTOGRAM";
+		at.Os() << "\nREQUESTED NDVs FOR COL (" << colref->Id()  << ") WITH A MISSING HISTOGRAM";
 	}
 #endif //GPOS_DEBUG
 
 	// if no histogram is available for required column, we use
 	// the number of rows as NDVs estimate
-	return std::min(m_dRows, DUpperBoundNDVs(pcr));
+	return std::min(m_rows, GetColUpperBoundNDVs(colref));
 }
 
 

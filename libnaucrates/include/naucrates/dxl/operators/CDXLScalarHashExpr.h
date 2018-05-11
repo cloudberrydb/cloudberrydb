@@ -36,48 +36,48 @@ namespace gpdxl
 		private:
 		
 			// catalog Oid of the expressions's data type 
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 			
 			// private copy ctor
 			CDXLScalarHashExpr(CDXLScalarHashExpr&);
 			
 		public:
 			// ctor/dtor
-			CDXLScalarHashExpr(IMemoryPool *pmp, IMDId *pmdidType);
+			CDXLScalarHashExpr(IMemoryPool *mp, IMDId *mdid_type);
 			
 			virtual
 			~CDXLScalarHashExpr();
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// name of the operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 			
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLScalarHashExpr *PdxlopConvert
+			CDXLScalarHashExpr *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarHashExpr == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarHashExpr == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarHashExpr*>(pdxlop);
+				return dynamic_cast<CDXLScalarHashExpr*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{
@@ -86,7 +86,7 @@ namespace gpdxl
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 	};
 }

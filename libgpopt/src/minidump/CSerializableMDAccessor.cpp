@@ -32,13 +32,13 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializableMDAccessor::CSerializableMDAccessor
 	(
-	CMDAccessor *pmda
+	CMDAccessor *md_accessor
 	)
 	:
 	CSerializable(),
-	m_pmda(pmda)
+	m_pmda(md_accessor)
 {
-	GPOS_ASSERT(NULL != pmda);
+	GPOS_ASSERT(NULL != md_accessor);
 }
 
 //---------------------------------------------------------------------------

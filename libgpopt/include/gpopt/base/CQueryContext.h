@@ -53,19 +53,19 @@ namespace gpopt
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// required plan properties in optimizer's produced plan
 			CReqdPropPlan *m_prpp;
 
 			// required array of output columns
-			DrgPcr *m_pdrgpcr;
+			CColRefArray *m_pdrgpcr;
 
 			// required system columns, collected from of output columns
-			DrgPcr *m_pdrgpcrSystemCols;
+			CColRefArray *m_pdrgpcrSystemCols;
 
 			// array of output column names
-			DrgPmdname *m_pdrgpmdname;
+			CMDNameArray *m_pdrgpmdname;
 
 			// logical expression tree to be optimized
 			CExpression *m_pexpr;
@@ -74,7 +74,7 @@ namespace gpopt
 			BOOL m_fDeriveStats;
 
 			// collect system columns from output columns
-			void SetSystemCols(IMemoryPool *pmp);
+			void SetSystemCols(IMemoryPool *mp);
 
 			// return top level operator in the given expression
 			static
@@ -88,11 +88,11 @@ namespace gpopt
 			// ctor
 			CQueryContext
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
 				CReqdPropPlan *prpp,
-				DrgPcr *pdrgpcr,
-				DrgPmdname *pdrgpmdname,
+				CColRefArray *colref_array,
+				CMDNameArray *pdrgpmdname,
 				BOOL fDeriveStats
 				);
 
@@ -118,19 +118,19 @@ namespace gpopt
 			}
 			
 			// return the array of output column references
-			DrgPcr *PdrgPcr() const
+			CColRefArray *PdrgPcr() const
 			{
 				return m_pdrgpcr;
 			}
 
 			// system columns
-			DrgPcr *PdrgpcrSystemCols() const
+			CColRefArray *PdrgpcrSystemCols() const
 			{
 				return m_pdrgpcrSystemCols;
 			}
 
 			// return the array of output column names
-			DrgPmdname *Pdrgpmdname() const
+			CMDNameArray *Pdrgpmdname() const
 			{
 				return m_pdrgpmdname;
 			}
@@ -139,10 +139,10 @@ namespace gpopt
 			static
 			CQueryContext *PqcGenerate
 							(
-							IMemoryPool *pmp, // memory pool
+							IMemoryPool *mp, // memory pool
 							CExpression *pexpr, // expression representing the query
-							DrgPul *pdrgpulQueryOutputColRefId, // array of output column reference id
-							DrgPmdname *pdrgpmdname, // array of output column names
+							ULongPtrArray *pdrgpulQueryOutputColRefId, // array of output column reference id
+							CMDNameArray *pdrgpmdname, // array of output column names
 							BOOL fDeriveStats
 							);
 
@@ -157,7 +157,7 @@ namespace gpopt
 			// walk the expression and add the mapping between computed column
 			// and their corresponding used column(s)
 			static
-			void MapComputedToUsedCols(CColumnFactory *pcf, CExpression *pexpr);
+			void MapComputedToUsedCols(CColumnFactory *col_factory, CExpression *pexpr);
 
 	}; // class CQueryContext
 }

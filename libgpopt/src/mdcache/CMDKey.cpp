@@ -29,30 +29,30 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CMDKey::CMDKey
 	(
-	const IMDId *pmdid
+	const IMDId *mdid
 	)
 	:
-	m_pmdid(pmdid)
+	m_mdid(mdid)
 {
-	GPOS_ASSERT(pmdid->FValid());
+	GPOS_ASSERT(mdid->IsValid());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDKey::FEquals
+//		CMDKey::Equals
 //
 //	@doc:
 //		Equality function
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDKey::FEquals
+CMDKey::Equals
 	(
 	const CMDKey &mdkey
 	)
 	const
 {	
-	return mdkey.Pmdid()->FEquals(m_pmdid);
+	return mdkey.MDId()->Equals(m_mdid);
 }
 
 //---------------------------------------------------------------------------
@@ -82,21 +82,21 @@ CMDKey::FEqualMDKey
 	
 	GPOS_ASSERT(NULL != pvLeft && NULL != pvRight);
 	
-	return pvLeft->Pmdid()->FEquals(pvRight->Pmdid());
+	return pvLeft->MDId()->Equals(pvRight->MDId());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDKey::UlHash
+//		CMDKey::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG 
-CMDKey::UlHash() const
+CMDKey::HashValue() const
 {
-	return m_pmdid->UlHash();
+	return m_mdid->HashValue();
 }
 
 //---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ CMDKey::UlHashMDKey
 	CMDKey* const & pv
 	)
 {
-	return pv->Pmdid()->UlHash();
+	return pv->MDId()->HashValue();
 }
 
 // EOF

@@ -28,16 +28,16 @@ namespace gpos
 
 			// private copy ctor
 			CMemoryPoolAlloc(CMemoryPoolAlloc &);
-			void* (*m_pfnAlloc) (SIZE_T);
-			void (*m_pfnFree) (void*);
+			void* (*m_alloc) (SIZE_T);
+			void (*m_free) (void*);
 
 		public:
 
 			// ctor
 			CMemoryPoolAlloc
 				(
-					void* (*pfnAlloc)(SIZE_T),
-					void (*pfnFree)(void*)
+					void* (*alloc)(SIZE_T),
+					void (*free_func)(void*)
 				)
 				:
 				CMemoryPool
@@ -46,8 +46,8 @@ namespace gpos
 					false /*fOwnsUnderlying*/,
 					true /*fThreadSafe*/
 					),
-				m_pfnAlloc(pfnAlloc),
-				m_pfnFree(pfnFree)
+				m_alloc(alloc),
+				m_free(free_func)
 			{}
 
 			// dtor
@@ -57,33 +57,33 @@ namespace gpos
 
 			// allocate memory
 			virtual
-			void *PvAllocate
+			void *Allocate
 				(
-				ULONG ulNumBytes,
-				const CHAR *, // szFilename
-				const ULONG   // ulLine
+				ULONG num_bytes,
+				const CHAR *, // filename
+				const ULONG   // line
 				)
 			{
 
-				void* pv = m_pfnAlloc(ulNumBytes);
+				void* ptr = m_alloc(num_bytes);
 
 #ifdef GPOS_DEBUG
-				if (NULL != ITask::PtskSelf() && GPOS_FTRACE(EtraceSimulateOOM) && NULL == pv)
+				if (NULL != ITask::Self() && GPOS_FTRACE(EtraceSimulateOOM) && NULL == ptr)
 				{
 					GPOS_RAISE(CException::ExmaSystem, CException::ExmiUnexpectedOOMDuringFaultSimulation);
 				}
 #endif // GPOS_DEBUG
-				return pv;
+				return ptr;
 			}
 
 			// free memory
 			virtual
 			void Free
 				(
-				void *pv
+				void *ptr
 				)
 			{
-				m_pfnFree(pv);
+				m_free(ptr);
 			}
 
 	};

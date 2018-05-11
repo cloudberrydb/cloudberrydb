@@ -37,7 +37,7 @@ namespace gpos
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// worker pool
 			CWorkerPoolManager *m_pwpm;
@@ -52,80 +52,80 @@ namespace gpos
 			CEvent m_event;
 
 			// propagate error of sub-task or not
-			BOOL m_fPropagateError;
+			BOOL m_propagate_error;
 
-			// find finished task;
+			// find finished task
 			GPOS_RESULT
-			EresFindFinished(CTask **pptsk);
+			FindFinished(CTask **task);
 
 			// no copy ctor
 			CAutoTaskProxy(const CAutoTaskProxy&);
 
 #ifdef GPOS_DEBUG
 			// id of worker hosting ATP
-			CWorkerId m_widParent;
+			CWorkerId m_wid_parent;
 
 			// check task owner
-			BOOL FOwnerOf(CTask *ptsk);
+			BOOL OwnerOf(CTask *task);
 #endif // GPOS_DEBUG
 
 			// propagate the error from sub-task to current task
-			void PropagateError(CTask *ptskSub);
+			void PropagateError(CTask *sub_task);
 
 			// check error from sub-task
-			void CheckError(CTask *ptskSub);
+			void CheckError(CTask *sub_task);
 
 		public:
 
 			// ctor
 			CAutoTaskProxy
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CWorkerPoolManager *m_pwpm,
-				BOOL fPropagateError = true
+				BOOL propagate_error = true
 				);
 
 			// dtor
 			~CAutoTaskProxy();
 
 			// task count
-			ULONG UlTasks()
+			ULONG TaskCount()
 			{
-				return m_list.UlSize();
+				return m_list.Size();
 			}
 
 			// disable/enable error propagation
-			void SetPropagateError(BOOL fPropagateError)
+			void SetPropagateError(BOOL propagate_error)
 			{
-				m_fPropagateError = fPropagateError;
+				m_propagate_error = propagate_error;
 			}
 
 			// create new task
-			CTask *PtskCreate(void *(*pfunc)(void*), void *pvArg, volatile BOOL *pfCancel = NULL);
+			CTask *Create(void *(*pfunc)(void*), void *argv, volatile BOOL *cancel = NULL);
 
 			// schedule task for execution
-			void Schedule(CTask *ptsk);
+			void Schedule(CTask *task);
 
 			// wait for task to complete
-			void Wait(CTask *ptsk);
+			void Wait(CTask *task);
 
-			// wait for task to complete - with timeout
-			GPOS_RESULT EresTimedWait(CTask *ptsk, ULONG ulTimeoutMs);
+			// wait for task to complete - with timeout_ms
+			GPOS_RESULT TimedWait(CTask *task, ULONG timeout_ms);
 
 			// wait until at least one task completes
-			void WaitAny(CTask **pptsk);
+			void WaitAny(CTask **ptask);
 
-			// wait until at least one task completes - with timeout
-			GPOS_RESULT EresTimedWaitAny(CTask **pptsk, ULONG ulTimeoutMs);
+			// wait until at least one task completes - with timeout_ms
+			GPOS_RESULT TimedWaitAny(CTask **ptask, ULONG timeout_ms);
 
 			// execute task in thread owning ATP (synchronous execution)
-			void Execute(CTask *ptsk);
+			void Execute(CTask *task);
 
 			// cancel task
-			void Cancel(CTask *ptsk);
+			void Cancel(CTask *task);
 
 			// unregister and release task
-			void Destroy(CTask *ptsk);
+			void Destroy(CTask *task);
 
 			// unregister and release all tasks
 			void DestroyAll();

@@ -42,40 +42,40 @@ namespace gpmd
 		private:
 		
 			// lower bound value for the bucket
-			CDXLDatum *m_pdxldatumLower;
+			CDXLDatum *m_lower_bound_dxl_datum;
 			
-			// max value for the bucket
-			CDXLDatum *m_pdxldatumUpper;
+		// max value for the bucket
+			CDXLDatum *m_upper_bound_dxl_datum;
 
 			// is lower bound closed (i.e., the boundary point is included in the bucket)
-			BOOL m_fLowerClosed;
+			BOOL m_is_lower_closed;
 
 			// is upper bound closed (i.e., the boundary point is included in the bucket)
-			BOOL m_fUpperClosed;
+			BOOL m_is_upper_closed;
 
 			// frequency
-			CDouble m_dFrequency;
+			CDouble m_frequency;
 			
 			// distinct values
-			CDouble m_dDistinct;
+			CDouble m_distinct;
 
 			// private copy ctor
 			CDXLBucket(const CDXLBucket &);
 		
 			// serialize the bucket boundary
-			void SerializeBoundaryValue(CXMLSerializer *pxmlser, const CWStringConst *pstrElem, CDXLDatum *pdxldatum, BOOL fBoundClosed) const;
+			void SerializeBoundaryValue(CXMLSerializer *xml_serializer, const CWStringConst *elem_str, CDXLDatum *dxl_datum, BOOL is_bound_closed) const;
 
 		public:
 			
 			// ctor
 			CDXLBucket
 				(
-				CDXLDatum *pdatumLower,
-				CDXLDatum *pdatumUpper,
-				BOOL fLowerClosed,
-				BOOL fUpperClosed,
-				CDouble dFrequency,
-				CDouble dDistinct
+				CDXLDatum *dxl_datum_lower,
+				CDXLDatum *dxl_datum_upper,
+				BOOL is_lower_closed,
+				BOOL is_upper_closed,
+				CDouble frequency,
+				CDouble distinct
 				);
 			
 			// dtor
@@ -83,28 +83,28 @@ namespace gpmd
 			~CDXLBucket();
 			
 			// is lower bound closed
-			BOOL FLowerClosed() const
+			BOOL IsLowerClosed() const
 			{
-				return m_fLowerClosed;
+				return m_is_lower_closed;
 			}
 
 			// is upper bound closed
-			BOOL FUpperClosed() const
+			BOOL IsUpperClosed() const
 			{
-				return m_fUpperClosed;
+				return m_is_upper_closed;
 			}
 
-			// min value for the bucket
-			const CDXLDatum *PdxldatumLower() const;
+		// min value for the bucket
+			const CDXLDatum *GetDXLDatumLower() const;
 			
-			// max value for the bucket
-			const CDXLDatum *PdxldatumUpper() const;
+		// max value for the bucket
+			const CDXLDatum *GetDXLDatumUpper() const;
 						
 			// frequency
-			CDouble DFrequency() const;
+			CDouble GetFrequency() const;
 			
 			// distinct values
-			CDouble DDistinct() const;
+			CDouble GetNumDistinct() const;
 
 			// serialize bucket in DXL format
 			void Serialize(gpdxl::CXMLSerializer *) const;
@@ -117,7 +117,7 @@ namespace gpmd
 	};
 
 	// array of dxl buckets
-	typedef CDynamicPtrArray<CDXLBucket, CleanupRelease> DrgPdxlbucket;
+	typedef CDynamicPtrArray<CDXLBucket, CleanupRelease> CDXLBucketArray;
 }
 
 #endif // !GPMD_CDXLBucket_H

@@ -53,21 +53,21 @@ CMessageTableTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CMessageTable *pmt = GPOS_NEW(pmp)
-		CMessageTable(pmp, GPOS_MSGTAB_SIZE, ElocEnUS_Utf8);
+	CMessageTable *pmt = GPOS_NEW(mp)
+		CMessageTable(mp, GPOS_MSGTAB_SIZE, ElocEnUS_Utf8);
 	
 	// insert all system messages
 	for (ULONG ul = 0; ul < CException::ExmiSentinel; ul++)
 	{
-		CMessage *pmsg = CMessage::Pmsg(ul);
-		if (CException::m_excInvalid != pmsg->m_exc)
+		CMessage *pmsg = CMessage::GetMessage(ul);
+		if (CException::m_invalid_exception != pmsg->m_exception)
 		{
 			pmt->AddMessage(pmsg);
 
 #ifdef GPOS_DEBUG
-			CMessage *pmsgLookedup = pmt->PmsgLookup(pmsg->m_exc);
+			CMessage *pmsgLookedup = pmt->LookupMessage(pmsg->m_exception);
 			GPOS_ASSERT(pmsg == pmsgLookedup && "Lookup failed");
 #endif // GPOS_DEBUG
 		}

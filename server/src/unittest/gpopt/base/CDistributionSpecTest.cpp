@@ -77,15 +77,15 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Any()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// any distribution
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
+	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(pdsany->FSatisfies(pdsany));
-	GPOS_ASSERT(pdsany->FMatch(pdsany));
+	GPOS_ASSERT(pdsany->Matches(pdsany));
 
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	at.Os() << std::endl;
 	at.Os() << *pdsany << std::endl;
 	
@@ -106,41 +106,41 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Random()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL /*pceeval*/, CTestUtils::Pcm(pmp));
+	CAutoOptCtxt aoc(mp, &mda, NULL /*pceeval*/, CTestUtils::GetCostModel(mp));
 	COptCtxt *poptctxt = COptCtxt::PoctxtFromTLS();
 
 	// basic tests with random distribution
 	poptctxt->MarkDMLQuery(true /*fDMLQuery*/);
-	CDistributionSpecRandom *pdsRandomDuplicateSensitive = GPOS_NEW(pmp) CDistributionSpecRandom();
+	CDistributionSpecRandom *pdsRandomDuplicateSensitive = GPOS_NEW(mp) CDistributionSpecRandom();
 
 	poptctxt->MarkDMLQuery(false /*fDMLQuery*/);
-	CDistributionSpecRandom *pdsRandomNonDuplicateSensitive = GPOS_NEW(pmp) CDistributionSpecRandom();
+	CDistributionSpecRandom *pdsRandomNonDuplicateSensitive = GPOS_NEW(mp) CDistributionSpecRandom();
 	
 	GPOS_ASSERT(pdsRandomDuplicateSensitive->FSatisfies(pdsRandomDuplicateSensitive));
-	GPOS_ASSERT(pdsRandomDuplicateSensitive->FMatch(pdsRandomDuplicateSensitive));
+	GPOS_ASSERT(pdsRandomDuplicateSensitive->Matches(pdsRandomDuplicateSensitive));
 	GPOS_ASSERT(pdsRandomDuplicateSensitive->FSatisfies(pdsRandomNonDuplicateSensitive));
 	GPOS_ASSERT(!pdsRandomNonDuplicateSensitive->FSatisfies(pdsRandomDuplicateSensitive));
 
 	// random and universal
-	CDistributionSpecUniversal *pdsUniversal =	GPOS_NEW(pmp) CDistributionSpecUniversal();
+	CDistributionSpecUniversal *pdsUniversal =	GPOS_NEW(mp) CDistributionSpecUniversal();
 	GPOS_ASSERT(pdsUniversal->FSatisfies(pdsRandomNonDuplicateSensitive));
 	GPOS_ASSERT(!pdsUniversal->FSatisfies(pdsRandomDuplicateSensitive));
 	
 	// random and any
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
+	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdsRandomDuplicateSensitive));
 	GPOS_ASSERT(pdsRandomDuplicateSensitive->FSatisfies(pdsany));	
 	
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	at.Os() << std::endl;
 	at.Os() << *pdsRandomDuplicateSensitive << std::endl;
 
@@ -164,35 +164,35 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Replicated()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL /*pceeval*/, CTestUtils::Pcm(pmp));
+	CAutoOptCtxt aoc(mp, &mda, NULL /*pceeval*/, CTestUtils::GetCostModel(mp));
 
 	// basic tests with replicated distributions
-	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(pmp) CDistributionSpecReplicated();
+	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(mp) CDistributionSpecReplicated();
 	
 	GPOS_ASSERT(pdsreplicated->FSatisfies(pdsreplicated));
-	GPOS_ASSERT(pdsreplicated->FMatch(pdsreplicated));
+	GPOS_ASSERT(pdsreplicated->Matches(pdsreplicated));
 	
 	// replicated and random
-	CDistributionSpecRandom *pdsrandom = GPOS_NEW(pmp) CDistributionSpecRandom();
+	CDistributionSpecRandom *pdsrandom = GPOS_NEW(mp) CDistributionSpecRandom();
 	
 	GPOS_ASSERT(!pdsrandom->FSatisfies(pdsreplicated));
 	GPOS_ASSERT(pdsreplicated->FSatisfies(pdsrandom));
 	
 	// replicated and any 
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
+	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdsreplicated));
 	GPOS_ASSERT(pdsreplicated->FSatisfies(pdsany));	
 	
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	at.Os() << std::endl;
 	at.Os() << *pdsreplicated << std::endl;
 
@@ -215,33 +215,33 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Singleton()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL /*pceeval*/, CTestUtils::Pcm(pmp));
+	CAutoOptCtxt aoc(mp, &mda, NULL /*pceeval*/, CTestUtils::GetCostModel(mp));
 
 	// basic tests with singleton distributions
 	CDistributionSpecSingleton *pdssSegment =
-			GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstSegment);
+			GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstSegment);
 	CDistributionSpecSingleton *pdssMaster =
-			GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+			GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 	
 	GPOS_ASSERT(pdssMaster->FSatisfies(pdssMaster));
-	GPOS_ASSERT(pdssMaster->FMatch(pdssMaster));
+	GPOS_ASSERT(pdssMaster->Matches(pdssMaster));
 	
 	GPOS_ASSERT(pdssSegment->FSatisfies(pdssSegment));
-	GPOS_ASSERT(pdssSegment->FMatch(pdssSegment));
+	GPOS_ASSERT(pdssSegment->Matches(pdssSegment));
 
 	GPOS_ASSERT(!pdssMaster->FSatisfies(pdssSegment) &&
 				!pdssSegment->FSatisfies(pdssMaster));
 
 	// singleton and replicated
-	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(pmp) CDistributionSpecReplicated();
+	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(mp) CDistributionSpecReplicated();
 	
 	GPOS_ASSERT(pdsreplicated->FSatisfies(pdssSegment));
 	GPOS_ASSERT(!pdsreplicated->FSatisfies(pdssMaster));
@@ -249,7 +249,7 @@ CDistributionSpecTest::EresUnittest_Singleton()
 	GPOS_ASSERT(!pdssSegment->FSatisfies(pdsreplicated));
 	
 	// singleton and random
-	CDistributionSpecRandom *pdsrandom = GPOS_NEW(pmp) CDistributionSpecRandom();
+	CDistributionSpecRandom *pdsrandom = GPOS_NEW(mp) CDistributionSpecRandom();
 	
 	GPOS_ASSERT(!pdsrandom->FSatisfies(pdssSegment));
 	GPOS_ASSERT(!pdsrandom->FSatisfies(pdssMaster));
@@ -257,12 +257,12 @@ CDistributionSpecTest::EresUnittest_Singleton()
 	GPOS_ASSERT(!pdssMaster->FSatisfies(pdsrandom));
 	
 	// singleton and any 
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
+	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdssSegment));
 	GPOS_ASSERT(pdssSegment->FSatisfies(pdsany));
 
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	at.Os() << std::endl;
 	at.Os() << *pdssMaster << std::endl;
 	at.Os() << *pdssSegment << std::endl;
@@ -288,44 +288,44 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Universal()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL /*pceeval*/, CTestUtils::Pcm(pmp));
+	CAutoOptCtxt aoc(mp, &mda, NULL /*pceeval*/, CTestUtils::GetCostModel(mp));
 
 	// basic tests with universal distributions
-	CDistributionSpecUniversal *pdsuniversal = GPOS_NEW(pmp) CDistributionSpecUniversal();
+	CDistributionSpecUniversal *pdsuniversal = GPOS_NEW(mp) CDistributionSpecUniversal();
 
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdsuniversal));
-	GPOS_ASSERT(pdsuniversal->FMatch(pdsuniversal));
+	GPOS_ASSERT(pdsuniversal->Matches(pdsuniversal));
 
 	// universal and singleton
 	CDistributionSpecSingleton *pdssSegment =
-			GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstSegment);
+			GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstSegment);
 
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdssSegment));
 
 	// universal and replicated
-	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(pmp) CDistributionSpecReplicated();
+	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(mp) CDistributionSpecReplicated();
 
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdsreplicated));
 
 	// universal and random
-	CDistributionSpecRandom *pdsrandom = GPOS_NEW(pmp) CDistributionSpecRandom();
+	CDistributionSpecRandom *pdsrandom = GPOS_NEW(mp) CDistributionSpecRandom();
 
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdsrandom));
 
 	// universal and any
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
+	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
 
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdsany));
 
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	at.Os() << std::endl;
 	at.Os() << *pdsuniversal << std::endl;
 
@@ -350,24 +350,24 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_Hashed()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 	
 	// install opt context
 	CAutoOptCtxt aoc
 				(
-				pmp,
+				mp,
 				&mda,
 				NULL,  /* pceeval */
-				CTestUtils::Pcm(pmp)				
+				CTestUtils::GetCostModel(mp)				
 				);
 
 	// get column factory from optimizer context object
 	COptCtxt *poptctxt = COptCtxt::PoctxtFromTLS();
-	CColumnFactory *pcf = poptctxt->Pcf();
+	CColumnFactory *col_factory = poptctxt->Pcf();
 		
 	CWStringConst strA(GPOS_WSZ_LIT("A"));
 	CWStringConst strB(GPOS_WSZ_LIT("B"));
@@ -377,17 +377,17 @@ CDistributionSpecTest::EresUnittest_Hashed()
 		
 	const IMDTypeInt4 *pmdtypeint4 = mda.PtMDType<IMDTypeInt4>(CTestUtils::m_sysidDefault);
 
-	CColRef *pcrA = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, nameA);
-	CColRef *pcrB = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, nameB);
+	CColRef *pcrA = col_factory->PcrCreate(pmdtypeint4, default_type_modifier, nameA);
+	CColRef *pcrB = col_factory->PcrCreate(pmdtypeint4, default_type_modifier, nameB);
 	
-	CExpression *pexprScalarA = CUtils::PexprScalarIdent(pmp, pcrA);
-	CExpression *pexprScalarB = CUtils::PexprScalarIdent(pmp, pcrB);
+	CExpression *pexprScalarA = CUtils::PexprScalarIdent(mp, pcrA);
+	CExpression *pexprScalarB = CUtils::PexprScalarIdent(mp, pcrB);
 
-	DrgPexpr *prgpexpr1 = GPOS_NEW(pmp) DrgPexpr(pmp);
+	CExpressionArray *prgpexpr1 = GPOS_NEW(mp) CExpressionArray(mp);
 	prgpexpr1->Append(pexprScalarA);
 	prgpexpr1->Append(pexprScalarB);
 	
-	DrgPexpr *prgpexpr2 = GPOS_NEW(pmp) DrgPexpr(pmp);
+	CExpressionArray *prgpexpr2 = GPOS_NEW(mp) CExpressionArray(mp);
 	pexprScalarA->AddRef();
 	prgpexpr2->Append(pexprScalarA);
 
@@ -395,21 +395,21 @@ CDistributionSpecTest::EresUnittest_Hashed()
 
 	// HD{A,B}, nulls colocated, duplicate insensitive
 	poptctxt->MarkDMLQuery(false /*fDMLQuery*/);
-	CDistributionSpecHashed *pdshashed1 = GPOS_NEW(pmp) CDistributionSpecHashed(prgpexpr1, true /* fNullsCollocated */);
+	CDistributionSpecHashed *pdshashed1 = GPOS_NEW(mp) CDistributionSpecHashed(prgpexpr1, true /* fNullsCollocated */);
 	GPOS_ASSERT(pdshashed1->FSatisfies(pdshashed1));
-	GPOS_ASSERT(pdshashed1->FMatch(pdshashed1));
+	GPOS_ASSERT(pdshashed1->Matches(pdshashed1));
 	
 	// HD{A}, nulls colocated, duplicate sensitive
 	poptctxt->MarkDMLQuery(true /*fDMLQuery*/);
-	CDistributionSpecHashed *pdshashed2 = GPOS_NEW(pmp) CDistributionSpecHashed(prgpexpr2, true /* fNullsCollocated */);
+	CDistributionSpecHashed *pdshashed2 = GPOS_NEW(mp) CDistributionSpecHashed(prgpexpr2, true /* fNullsCollocated */);
 	GPOS_ASSERT(pdshashed2->FSatisfies(pdshashed2));
-	GPOS_ASSERT(pdshashed2->FMatch(pdshashed2));
+	GPOS_ASSERT(pdshashed2->Matches(pdshashed2));
 		
 	// HD{A}, nulls not colocated, duplicate sensitive
 	prgpexpr2->AddRef();
-	CDistributionSpecHashed *pdshashed3 = GPOS_NEW(pmp) CDistributionSpecHashed(prgpexpr2, false /* fNullsCollocated */);
+	CDistributionSpecHashed *pdshashed3 = GPOS_NEW(mp) CDistributionSpecHashed(prgpexpr2, false /* fNullsCollocated */);
 	GPOS_ASSERT(pdshashed3->FSatisfies(pdshashed3));
-	GPOS_ASSERT(pdshashed3->FMatch(pdshashed3));
+	GPOS_ASSERT(pdshashed3->Matches(pdshashed3));
 
 	// ({A,B}, true, true) does not satisfy ({A}, true, false)
 	GPOS_ASSERT(!pdshashed1->FMatchSubset(pdshashed2));
@@ -429,36 +429,36 @@ CDistributionSpecTest::EresUnittest_Hashed()
 	
 	// hashed and universal
 	CDistributionSpecUniversal *pdsuniversal =
-			GPOS_NEW(pmp) CDistributionSpecUniversal();
+			GPOS_NEW(mp) CDistributionSpecUniversal();
 
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdshashed1));
 
 	// hashed and singleton
 	CDistributionSpecSingleton *pdssSegment =
-			GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstSegment);
+			GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstSegment);
 	
 	GPOS_ASSERT(!pdshashed1->FSatisfies(pdssSegment));
-	GPOS_ASSERT(!pdssSegment->FMatch(pdshashed1));
+	GPOS_ASSERT(!pdssSegment->Matches(pdshashed1));
 
 	// hashed and replicated
-	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(pmp) CDistributionSpecReplicated();
+	CDistributionSpecReplicated *pdsreplicated = GPOS_NEW(mp) CDistributionSpecReplicated();
 	
 	GPOS_ASSERT(pdsreplicated->FSatisfies(pdshashed1));
 	GPOS_ASSERT(!pdshashed1->FSatisfies(pdsreplicated));
 		
 	// hashed and random
-	CDistributionSpecRandom *pdsrandom = GPOS_NEW(pmp) CDistributionSpecRandom();
+	CDistributionSpecRandom *pdsrandom = GPOS_NEW(mp) CDistributionSpecRandom();
 	
 	GPOS_ASSERT(!pdsrandom->FSatisfies(pdshashed1));
 	GPOS_ASSERT(!pdshashed1->FSatisfies(pdsrandom));
 	
 	// hashed and any 
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
+	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdshashed1));
 	GPOS_ASSERT(pdshashed1->FSatisfies(pdsany));
 	
-	CAutoTrace at(pmp);
+	CAutoTrace at(mp);
 	at.Os() << std::endl;
 	at.Os() << *pdshashed1 << std::endl;
 	at.Os() << *pdshashed2 << std::endl;
@@ -490,12 +490,12 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_NegativeAny()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// cannot add enforcers for ANY distribution
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
-	CExpressionHandle *pexprhdl = GPOS_NEW(pmp) CExpressionHandle(pmp);
-	pdsany->AppendEnforcers(NULL /*pmp*/, *pexprhdl, NULL /*prpp*/, NULL /*pdrgpexpr*/, NULL /*pexpr*/);
+	CDistributionSpecAny *pdsany = GPOS_NEW(mp) CDistributionSpecAny(COperator::EopSentinel);
+	CExpressionHandle *pexprhdl = GPOS_NEW(mp) CExpressionHandle(mp);
+	pdsany->AppendEnforcers(NULL /*mp*/, *pexprhdl, NULL /*prpp*/, NULL /*pdrgpexpr*/, NULL /*pexpr*/);
 	pdsany->Release();
 	GPOS_DELETE(pexprhdl);
 
@@ -515,13 +515,13 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_NegativeUniversal()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// cannot add enforcers for Universal distribution
-	CDistributionSpecUniversal *pdsuniversal = GPOS_NEW(pmp) CDistributionSpecUniversal();
-	CExpressionHandle *pexprhdl = GPOS_NEW(pmp) CExpressionHandle(pmp);
+	CDistributionSpecUniversal *pdsuniversal = GPOS_NEW(mp) CDistributionSpecUniversal();
+	CExpressionHandle *pexprhdl = GPOS_NEW(mp) CExpressionHandle(mp);
 
-	pdsuniversal->AppendEnforcers(NULL /*pmp*/, *pexprhdl, NULL /*prpp*/, NULL /*pdrgpexpr*/, NULL /*pexpr*/);
+	pdsuniversal->AppendEnforcers(NULL /*mp*/, *pexprhdl, NULL /*prpp*/, NULL /*pdrgpexpr*/, NULL /*pexpr*/);
 	pdsuniversal->Release();
 	GPOS_DELETE(pexprhdl);
 
@@ -540,21 +540,21 @@ GPOS_RESULT
 CDistributionSpecTest::EresUnittest_NegativeRandom()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
-	CAutoOptCtxt aoc(pmp, &mda, NULL /*pceeval*/, CTestUtils::Pcm(pmp));
+	CAutoOptCtxt aoc(mp, &mda, NULL /*pceeval*/, CTestUtils::GetCostModel(mp));
 
 	// cannot add enforcers for Random distribution
-	CDistributionSpecRandom *pdsrandom = GPOS_NEW(pmp) CDistributionSpecRandom();
-	CExpressionHandle *pexprhdl = GPOS_NEW(pmp) CExpressionHandle(pmp);
+	CDistributionSpecRandom *pdsrandom = GPOS_NEW(mp) CDistributionSpecRandom();
+	CExpressionHandle *pexprhdl = GPOS_NEW(mp) CExpressionHandle(mp);
 
-	pdsrandom->AppendEnforcers(NULL /*pmp*/, *pexprhdl, NULL /*prpp*/, NULL /*pdrgpexpr*/, NULL /*pexpr*/);
+	pdsrandom->AppendEnforcers(NULL /*mp*/, *pexprhdl, NULL /*prpp*/, NULL /*pdrgpexpr*/, NULL /*pexpr*/);
 	pdsrandom->Release();
 	GPOS_DELETE(pexprhdl);
 	

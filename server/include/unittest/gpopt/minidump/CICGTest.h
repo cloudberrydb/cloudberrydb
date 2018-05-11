@@ -57,7 +57,7 @@ namespace gpopt
 
 			// check if the given dxl fragment does not contains Index Join
 			static
-			BOOL FIsNotIndexJoin(CDXLOperator *pdxlop);
+			BOOL FIsNotIndexJoin(CDXLOperator *dxl_op);
 
 			// check that the given dxl fragment does not contain an Index Join
 			static

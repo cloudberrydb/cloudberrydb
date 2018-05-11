@@ -54,7 +54,7 @@ namespace gpopt
 		private:
 					
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// attached expression
 			CExpression *m_pexpr;
@@ -67,7 +67,7 @@ namespace gpopt
 
 			// derived properties of attached expr/gexpr;
 			// set during derived property computation
-			CDrvdProp *m_pdp;
+			DrvdPropArray *m_pdp;
 
 			// statistics of attached expr/gexpr;
 			// set during derived stats computation
@@ -78,13 +78,13 @@ namespace gpopt
 			CReqdProp *m_prp;
 
 			// array of children's derived properties
-			DrgPdp *m_pdrgpdp;
+			CDrvdProp2dArray *m_pdrgpdp;
 
 			// array of children's derived stats
-			DrgPstat *m_pdrgpstat;
+			IStatisticsArray *m_pdrgpstat;
 
 			// array of children's required properties
-			DrgPrp *m_pdrgprp;
+			CReqdPropArray *m_pdrgprp;
 
 			// private copy ctor
 			CExpressionHandle(const CExpressionHandle &);
@@ -103,7 +103,7 @@ namespace gpopt
 			void DerivePlanProps(CDrvdPropCtxtPlan *pdpctxtplan);
 
 			// return an array of stats objects starting from the first stats object referenced by child
-			DrgPstat *PdrgpstatOuterRefs(DrgPstat *pdrgpstat, ULONG ulChildIndex) const;
+			IStatisticsArray *PdrgpstatOuterRefs(IStatisticsArray *statistics_array, ULONG child_index) const;
 
 			// check if stats are derived for attached expression and its children
 			BOOL FStatsDerived() const;
@@ -115,13 +115,13 @@ namespace gpopt
 			BOOL FAttachedToLeafPattern() const;
 
 			// stat derivation at root operator where handle is attached
-			void DeriveRootStats(DrgPstat *pdrgpstatCtxt);
+			void DeriveRootStats(IStatisticsArray *stats_ctxt);
 
 		public:
 		
 			// ctor
 			explicit
-			CExpressionHandle(IMemoryPool *pmp);
+			CExpressionHandle(IMemoryPool *mp);
 
 			// dtor
 			~CExpressionHandle();
@@ -139,13 +139,13 @@ namespace gpopt
 			void DeriveProps(CDrvdPropCtxt *pdpctxt);
 
 			// recursive stats derivation
-			void DeriveStats(DrgPstat *pdrgpstatCtxt, BOOL fComputeRootStats = true);
+			void DeriveStats(IStatisticsArray *stats_ctxt, BOOL fComputeRootStats = true);
 
 			// stats derivation for attached cost context
 			void DeriveCostContextStats();
 
 			// stats derivation using given properties and context
-			void DeriveStats(IMemoryPool *pmpLocal, IMemoryPool *pmpGlobal, CReqdPropRelational *prprel, DrgPstat *pdrgpstatCtxt);
+			void DeriveStats(IMemoryPool *pmpLocal, IMemoryPool *pmpGlobal, CReqdPropRelational *prprel, IStatisticsArray *stats_ctxt);
 
 			// derive the properties of the plan carried by attached cost context
 			void DerivePlanProps();
@@ -154,37 +154,37 @@ namespace gpopt
 			void InitReqdProps(CReqdProp *prpInput);
 
 			// compute required properties of the n-th child
-			void ComputeChildReqdProps(ULONG ulChildIndex, DrgPdp *pdrgpdpCtxt, ULONG ulOptReq);
+			void ComputeChildReqdProps(ULONG child_index, CDrvdProp2dArray *pdrgpdpCtxt, ULONG ulOptReq);
 
 			// copy required properties of the n-th child
-			void CopyChildReqdProps(ULONG ulChildIndex, CReqdProp *prp);
+			void CopyChildReqdProps(ULONG child_index, CReqdProp *prp);
 
 			// compute required columns of the n-th child
-			void ComputeChildReqdCols(ULONG ulChildIndex, DrgPdp *pdrgpdpCtxt);
+			void ComputeChildReqdCols(ULONG child_index, CDrvdProp2dArray *pdrgpdpCtxt);
 
 			// required properties computation of all children
 			void ComputeReqdProps(CReqdProp *prpInput, ULONG ulOptReq);
 
 			// derived relational props of n-th child
-			CDrvdPropRelational *Pdprel(ULONG ulChildIndex) const;
+			CDrvdPropRelational *GetRelationalProperties(ULONG child_index) const;
 
 			// derived stats of n-th child
-			IStatistics *Pstats(ULONG ulChildIndex) const;
+			IStatistics *Pstats(ULONG child_index) const;
 
 			// derived plan props of n-th child
-			CDrvdPropPlan *Pdpplan(ULONG ulChildIndex) const;
+			CDrvdPropPlan *Pdpplan(ULONG child_index) const;
 
 			// derived scalar props of n-th child
-			CDrvdPropScalar *Pdpscalar(ULONG ulChildIndex) const;
+			CDrvdPropScalar *GetDrvdScalarProps(ULONG child_index) const;
 
 			// derived properties of attached expr/gexpr
-			CDrvdProp *Pdp() const
+			DrvdPropArray *Pdp() const
 			{
 				return m_pdp;
 			}
 
 			// derived relational properties of attached expr/gexpr
-			CDrvdPropRelational *Pdprel() const;
+			CDrvdPropRelational *GetRelationalProperties() const;
 
 			// stats of attached expr/gexpr
 			IStatistics *Pstats() const
@@ -199,16 +199,16 @@ namespace gpopt
 			}
 
 			// check if given child is a scalar
-			BOOL FScalarChild(ULONG ulChildIndex) const;
+			BOOL FScalarChild(ULONG child_index) const;
 
 			// required relational props of n-th child
-			CReqdPropRelational *Prprel(ULONG ulChildIndex) const;
+			CReqdPropRelational *GetReqdRelationalProps(ULONG child_index) const;
 
 			// required plan props of n-th child
-			CReqdPropPlan *Prpp(ULONG ulChildIndex) const;
+			CReqdPropPlan *Prpp(ULONG child_index) const;
 	
 			// arity function
-			ULONG UlArity() const;
+			ULONG Arity() const;
 
 			// index of the last non-scalar child
 			ULONG UlLastNonScalarChild() const;
@@ -223,7 +223,7 @@ namespace gpopt
 			COperator *Pop() const;
 
 			// accessor for child operator
-			COperator *Pop(ULONG ulChildIndex) const;
+			COperator *Pop(ULONG child_index) const;
 
 			// accessor for expression
 			CExpression *Pexpr() const
@@ -238,25 +238,25 @@ namespace gpopt
 			}
 
 			// check for outer references
-			BOOL FHasOuterRefs() const
+			BOOL HasOuterRefs() const
 			{
-				return (0 < Pdprel()->PcrsOuter()->CElements());
+				return (0 < GetRelationalProperties()->PcrsOuter()->Size());
 			}
 
 			// check if attached expression must execute on the master
 			BOOL FMasterOnly() const
 			{
-				return Pdprel()->Pfp()->FMasterOnly();
+				return GetRelationalProperties()->Pfp()->FMasterOnly();
 			}
 
 			// check for outer references in the given child
-			BOOL FHasOuterRefs
+			BOOL HasOuterRefs
 				(
-				ULONG ulChildIndex
+				ULONG child_index
 				)
 				const
 			{
-				return (0 < Pdprel(ulChildIndex)->PcrsOuter()->CElements());
+				return (0 < GetRelationalProperties(child_index)->PcrsOuter()->Size());
 			}
 
 			// get next child index based on child optimization order, return true if such index could be found
@@ -273,28 +273,28 @@ namespace gpopt
 			ULONG UlLastOptimizedChildIndex() const;
 
 			// return the index of child to be optimized next to the given child
-			ULONG UlNextOptimizedChildIndex(ULONG ulChildIndex) const;
+			ULONG UlNextOptimizedChildIndex(ULONG child_index) const;
 
 			// return the index of child optimized before the given child
-			ULONG UlPreviousOptimizedChildIndex(ULONG ulChildIndex) const;
+			ULONG UlPreviousOptimizedChildIndex(ULONG child_index) const;
 
 			// get the function properties of a child
-			CFunctionProp *PfpChild(ULONG ulChildIndex) const;
+			CFunctionProp *PfpChild(ULONG child_index) const;
 
 			// check whether an expression's children have a volatile function
 			BOOL FChildrenHaveVolatileFuncScan() const;
 
 			// return the scalar child at given index
-			CExpression *PexprScalarChild(ULONG ulChildIndex) const;
+			CExpression *PexprScalarChild(ULONG child_index) const;
 
 			// return the scalar expression attached to handle
 			CExpression *PexprScalar() const;
 
-			void DeriveProducerStats(ULONG ulChildIndex, CColRefSet *pcrsStat);
+			void DeriveProducerStats(ULONG child_index, CColRefSet *pcrsStat);
 
 			// return the columns used by a logical operator internally as well
 			// as columns used by all its scalar children
-			CColRefSet *PcrsUsedColumns(IMemoryPool *pmp);
+			CColRefSet *PcrsUsedColumns(IMemoryPool *mp);
 
 	}; // class CExpressionHandle
 	

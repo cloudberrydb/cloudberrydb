@@ -44,34 +44,34 @@ namespace gpopt
 	{
 		private:
 			// map expression to a count, used in factorization
-			typedef CHashMap<CExpression, ULONG, CExpression::UlHash, CUtils::FEqual,
+			typedef CHashMap<CExpression, ULONG, CExpression::HashValue, CUtils::Equals,
 						CleanupRelease<CExpression>, CleanupDelete<ULONG> > ExprMap;
 
 			// map operators to an array of expression arrays, corresponding to
 			// a disjunction of expressions on columns created by that operator
-			typedef CHashMap<ULONG, DrgPdrgPexpr, gpos::UlHash<ULONG>,
-					gpos::FEqual<ULONG>, CleanupDelete<ULONG>,
-					CleanupRelease<DrgPdrgPexpr> > SourceToArrayPosMap;
+			typedef CHashMap<ULONG, CExpressionArrays, gpos::HashValue<ULONG>,
+					gpos::Equals<ULONG>, CleanupDelete<ULONG>,
+					CleanupRelease<CExpressionArrays> > SourceToArrayPosMap;
 
 			// iterator for map of operator to disjunctive form representation
-			typedef CHashMapIter<ULONG, DrgPdrgPexpr, gpos::UlHash<ULONG>,
-					gpos::FEqual<ULONG>, CleanupDelete<ULONG>,
-					CleanupRelease<DrgPdrgPexpr> > SourceToArrayPosMapIter;
+			typedef CHashMapIter<ULONG, CExpressionArrays, gpos::HashValue<ULONG>,
+					gpos::Equals<ULONG>, CleanupDelete<ULONG>,
+					CleanupRelease<CExpressionArrays> > SourceToArrayPosMapIter;
 
 			// map columns to an array of expression arrays, corresponding to
 			// a disjunction of expressions using that column
-			typedef CHashMap<CColRef, DrgPdrgPexpr, gpos::UlHashPtr<CColRef>,
-					gpos::FEqualPtr<CColRef>, CleanupNULL<CColRef>,
-					CleanupRelease<DrgPdrgPexpr> > ColumnToArrayPosMap;
+			typedef CHashMap<CColRef, CExpressionArrays, gpos::HashPtr<CColRef>,
+					gpos::EqualPtr<CColRef>, CleanupNULL<CColRef>,
+					CleanupRelease<CExpressionArrays> > ColumnToArrayPosMap;
 
 			// iterator for map of column to disjunctive form representation
-			typedef CHashMapIter<CColRef, DrgPdrgPexpr, gpos::UlHashPtr<CColRef>,
-					gpos::FEqualPtr<CColRef>, CleanupNULL<CColRef>,
-					CleanupRelease<DrgPdrgPexpr> > ColumnToArrayPosMapIter;
+			typedef CHashMapIter<CColRef, CExpressionArrays, gpos::HashPtr<CColRef>,
+					gpos::EqualPtr<CColRef>, CleanupNULL<CColRef>,
+					CleanupRelease<CExpressionArrays> > ColumnToArrayPosMapIter;
 
 			typedef CExpression *(*PexprProcessDisj)
 					(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CExpression *pexpr,
 					CExpression *pexprLowestLogicalAncestor
 					);
@@ -80,23 +80,23 @@ namespace gpopt
 			static
 			void AddFactor
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
-				DrgPexpr *pdrgpexprFactors,
-				DrgPexpr *pdrgpexprResidual,
+				CExpressionArray *pdrgpexprFactors,
+				CExpressionArray *pdrgpexprResidual,
 				ExprMap *pexprmap,
 				ULONG ulDisjuncts
 				);
 
 			// helper for building a factors map
 			static
-			ExprMap *PexprmapFactors(IMemoryPool *pmp, CExpression *pexpr);
+			ExprMap *PexprmapFactors(IMemoryPool *mp, CExpression *pexpr);
 
 			// factorize common expressions in Or tree
 			static
 			CExpression *PexprFactorizeDisj
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
 				CExpression *  // pexprLowestLogicalAncestor
 				);
@@ -105,7 +105,7 @@ namespace gpopt
 			static
 			CExpression *PexprProcessDisjDescendents
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
 				CExpression *pexprLowestLogicalAncestor,
 				PexprProcessDisj pexprorfun
@@ -113,7 +113,7 @@ namespace gpopt
 
 			// discover common factors in scalar expression
 			static
-			CExpression *PexprDiscoverFactors(IMemoryPool *pmp, CExpression *pexpr);
+			CExpression *PexprDiscoverFactors(IMemoryPool *mp, CExpression *pexpr);
 
 			// if the given expression is a non volatile scalar expression using table
 			// columns created by the same operator
@@ -140,9 +140,9 @@ namespace gpopt
 			// operator source id in the given source to array position map
 			// or construct a new array and add it to the map
 			static
-			DrgPdrgPexpr *PdrgPdrgpexprDisjunctArrayForSourceId
+			CExpressionArrays *PdrgPdrgpexprDisjunctArrayForSourceId
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				SourceToArrayPosMap *psrc2array,
 				BOOL fAllowNewSources,
 				ULONG ulOpSourceId
@@ -152,12 +152,12 @@ namespace gpopt
 			// column in the given column to array position map
 			// or construct a new array and add it to the map
 			static
-			DrgPdrgPexpr *PdrgPdrgpexprDisjunctArrayForColumn
+			CExpressionArrays *PdrgPdrgpexprDisjunctArrayForColumn
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ColumnToArrayPosMap *pcol2array,
 				BOOL fAllowNewSources,
-				CColRef *pcr
+				CColRef *colref
 				);
 
 			// if the given expression is a table column to constant comparison,
@@ -165,7 +165,7 @@ namespace gpopt
 			static
 			void StoreBaseOpToColumnExpr
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
 				SourceToArrayPosMap *psrc2array,
 				ColumnToArrayPosMap *pcol2array,
@@ -179,10 +179,10 @@ namespace gpopt
 			static
 			void AddInferredFiltersFromArray
 				(
-				IMemoryPool *pmp,
-				const DrgPdrgPexpr *pdrgpdrgpexpr,
+				IMemoryPool *mp,
+				const CExpressionArrays *pdrgpdrgpexpr,
 				ULONG ulDisjChildrenLength,
-				DrgPexpr *pdrgpexprPrefilters
+				CExpressionArray *pdrgpexprPrefilters
 				);
 
 			// create a conjunction of the given expression and inferred filters constructed out
@@ -190,7 +190,7 @@ namespace gpopt
 			static
 			CExpression * PexprAddInferredFilters
 							(
-							IMemoryPool *pmp,
+							IMemoryPool *mp,
 							CExpression *pexpr,
 							SourceToArrayPosMap *psrc2array,
 							ColumnToArrayPosMap *pcol2array
@@ -199,13 +199,13 @@ namespace gpopt
 			//	returns the set of columns produced by the scalar children of the given
 			//	expression
 			static
-			CColRefSet *PcrsColumnsProducedByChildren(IMemoryPool *pmp, CExpression *pexpr);
+			CColRefSet *PcrsColumnsProducedByChildren(IMemoryPool *mp, CExpression *pexpr);
 
 			// compute disjunctive pre-filters that can be pushed to the column creators
 			static
 			CExpression *PexprExtractInferredFiltersFromDisj
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
 				CExpression *pexprLowestLogicalAncestor
 				);
@@ -213,11 +213,11 @@ namespace gpopt
 		public:
 			// factorize common expressions
 			static
-			CExpression *PexprFactorize(IMemoryPool *pmp, CExpression *pexpr);
+			CExpression *PexprFactorize(IMemoryPool *mp, CExpression *pexpr);
 
 			// compute disjunctive pre-filters that can be pushed to the column creators
 			static
-			CExpression *PexprExtractInferredFilters(IMemoryPool *pmp, CExpression *pexpr);
+			CExpression *PexprExtractInferredFilters(IMemoryPool *mp, CExpression *pexpr);
 	};
 }
 

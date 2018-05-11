@@ -30,30 +30,30 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CMDScCmpGPDB::CMDScCmpGPDB
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid,
-	CMDName *pmdname,
-	IMDId *pmdidLeft,
-	IMDId *pmdidRight,
-	IMDType::ECmpType ecmpt,
-	IMDId *pmdidOp
+	IMemoryPool *mp,
+	IMDId *mdid,
+	CMDName *mdname,
+	IMDId *left_mdid,
+	IMDId *right_mdid,
+	IMDType::ECmpType cmp_type,
+	IMDId *mdid_op
 	)
 	:
-	m_pmp(pmp),
-	m_pmdid(pmdid),
-	m_pmdname(pmdname),
-	m_pmdidLeft(pmdidLeft),
-	m_pmdidRight(pmdidRight),
-	m_ecmpt(ecmpt),
-	m_pmdidOp(pmdidOp)
+	m_mp(mp),
+	m_mdid(mdid),
+	m_mdname(mdname),
+	m_mdid_left(left_mdid),
+	m_mdid_right(right_mdid),
+	m_comparision_type(cmp_type),
+	m_mdid_op(mdid_op)
 {
-	GPOS_ASSERT(m_pmdid->FValid());
-	GPOS_ASSERT(m_pmdidLeft->FValid());
-	GPOS_ASSERT(m_pmdidRight->FValid());
-	GPOS_ASSERT(m_pmdidOp->FValid());
-	GPOS_ASSERT(IMDType::EcmptOther != m_ecmpt);
+	GPOS_ASSERT(m_mdid->IsValid());
+	GPOS_ASSERT(m_mdid_left->IsValid());
+	GPOS_ASSERT(m_mdid_right->IsValid());
+	GPOS_ASSERT(m_mdid_op->IsValid());
+	GPOS_ASSERT(IMDType::EcmptOther != m_comparision_type);
 
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
 //---------------------------------------------------------------------------
@@ -66,27 +66,27 @@ CMDScCmpGPDB::CMDScCmpGPDB
 //---------------------------------------------------------------------------
 CMDScCmpGPDB::~CMDScCmpGPDB()
 {
-	m_pmdid->Release();
-	m_pmdidLeft->Release();
-	m_pmdidRight->Release();
-	m_pmdidOp->Release();
-	GPOS_DELETE(m_pmdname);
-	GPOS_DELETE(m_pstr);
+	m_mdid->Release();
+	m_mdid_left->Release();
+	m_mdid_right->Release();
+	m_mdid_op->Release();
+	GPOS_DELETE(m_mdname);
+	GPOS_DELETE(m_dxl_str);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScCmpGPDB::Pmdid
+//		CMDScCmpGPDB::MDId
 //
 //	@doc:
 //		Mdid of comparison object
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScCmpGPDB::Pmdid() const
+CMDScCmpGPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -100,54 +100,54 @@ CMDScCmpGPDB::Pmdid() const
 CMDName
 CMDScCmpGPDB::Mdname() const
 {
-	return *m_pmdname;
+	return *m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScCmpGPDB::PmdidLeft
+//		CMDScCmpGPDB::GetLeftMdid
 //
 //	@doc:
 //		Left type id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScCmpGPDB::PmdidLeft() const
+CMDScCmpGPDB::GetLeftMdid() const
 {
-	return m_pmdidLeft;
+	return m_mdid_left;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScCmpGPDB::PmdidRight
+//		CMDScCmpGPDB::GetRightMdid
 //
 //	@doc:
 //		Destination type id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScCmpGPDB::PmdidRight() const
+CMDScCmpGPDB::GetRightMdid() const
 {
-	return m_pmdidRight;
+	return m_mdid_right;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScCmpGPDB::PmdidOp
+//		CMDScCmpGPDB::MdIdOp
 //
 //	@doc:
 //		Cast function id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScCmpGPDB::PmdidOp() const
+CMDScCmpGPDB::MdIdOp() const
 {
-	return m_pmdidOp;
+	return m_mdid_op;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScCmpGPDB::FBinaryCoercible
+//		CMDScCmpGPDB::IsBinaryCoercible
 //
 //	@doc:
 //		Returns whether this is a cast between binary coercible types, i.e. the 
@@ -155,9 +155,9 @@ CMDScCmpGPDB::PmdidOp() const
 //
 //---------------------------------------------------------------------------
 IMDType::ECmpType
-CMDScCmpGPDB::Ecmpt() const
+CMDScCmpGPDB::ParseCmpType() const
 {
-	return m_ecmpt;
+	return m_comparision_type;
 }
 
 //---------------------------------------------------------------------------
@@ -171,25 +171,25 @@ CMDScCmpGPDB::Ecmpt() const
 void
 CMDScCmpGPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) 
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenGPDBMDScCmp));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenGPDBMDScCmp));
 	
-	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
+	m_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBScalarOpCmpType), IMDType::PstrCmpType(m_ecmpt));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBScalarOpCmpType), IMDType::GetCmpTypeStr(m_comparision_type));
 
-	m_pmdidLeft->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenGPDBScalarOpLeftTypeId));
-	m_pmdidRight->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenGPDBScalarOpRightTypeId));
-	m_pmdidOp->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenOpNo));
+	m_mdid_left->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenGPDBScalarOpLeftTypeId));
+	m_mdid_right->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenGPDBScalarOpRightTypeId));
+	m_mdid_op->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenOpNo));
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenGPDBMDScCmp));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenGPDBMDScCmp));
 
 	GPOS_CHECK_ABORT;
 }
@@ -213,14 +213,14 @@ CMDScCmpGPDB::DebugPrint
 	const
 {
 	os << "ComparisonOp ";
-	PmdidLeft()->OsPrint(os);
-	os << (Mdname()).Pstr()->Wsz() << "(";
-	PmdidOp()->OsPrint(os);
+	GetLeftMdid()->OsPrint(os);
+	os << (Mdname()).GetMDName()->GetBuffer() << "(";
+	MdIdOp()->OsPrint(os);
 	os << ") ";
-	PmdidLeft()->OsPrint(os);
+	GetLeftMdid()->OsPrint(os);
 
 
-	os << ", type: " << IMDType::PstrCmpType(m_ecmpt);
+	os << ", type: " << IMDType::GetCmpTypeStr(m_comparision_type);
 
 	os << std::endl;	
 }

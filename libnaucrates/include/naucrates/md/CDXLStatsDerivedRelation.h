@@ -40,13 +40,13 @@ namespace gpmd
 		private:
 
 			// number of rows
-			CDouble m_dRows;
+			CDouble m_rows;
 
 			// flag to indicate if input relation is empty
-			BOOL m_fEmpty;
+			BOOL m_empty;
 
 			// array of derived column statistics
-			DrgPdxlstatsdercol *m_pdrgpdxlstatsdercol;
+		CDXLStatsDerivedColumnArray *m_dxl_stats_derived_col_array;
 
 			// private copy ctor
 			CDXLStatsDerivedRelation(const CDXLStatsDerivedRelation &);
@@ -56,9 +56,9 @@ namespace gpmd
 			// ctor
 			CDXLStatsDerivedRelation
 				(
-				CDouble dRows,
-				BOOL fEmpty,
-				DrgPdxlstatsdercol *pdrgpdxldercolstat
+				CDouble rows,
+				BOOL is_empty,
+				CDXLStatsDerivedColumnArray *dxl_stats_derived_col_array
 				);
 
 			// dtor
@@ -66,20 +66,20 @@ namespace gpmd
 			~CDXLStatsDerivedRelation();
 
 			// number of rows
-			CDouble DRows() const
+			CDouble Rows() const
 			{
-				return m_dRows;
+				return m_rows;
 			}
 
 			// is statistics on an empty input
 			virtual
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
 			{
-				return m_fEmpty;
+				return m_empty;
 			}
 
 			// derived column statistics
-			const DrgPdxlstatsdercol *Pdrgpdxlstatsdercol() const;
+		const CDXLStatsDerivedColumnArray *GetDXLStatsDerivedColArray() const;
 
 			// serialize bucket in DXL format
 			void Serialize(gpdxl::CXMLSerializer *) const;
@@ -92,7 +92,7 @@ namespace gpmd
 	};
 
 	// array of dxl buckets
-	typedef CDynamicPtrArray<CDXLStatsDerivedRelation, CleanupRelease> DrgPdxlstatsderrel;
+	typedef CDynamicPtrArray<CDXLStatsDerivedRelation, CleanupRelease> CDXLStatsDerivedRelationArray;
 }
 
 #endif // !GPMD_CDXLStatsDerivedRelation_H

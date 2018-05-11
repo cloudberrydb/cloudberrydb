@@ -45,13 +45,13 @@ namespace gpos
 		private:
 
 			// global instance
-			static CCacheFactory *m_pcf;
+			static CCacheFactory *m_factory;
 
 			// memory pool allocated to caches
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// private ctor
-			CCacheFactory(IMemoryPool *pmp);
+			CCacheFactory(IMemoryPool *mp);
 
 			// no copy ctor
 			CCacheFactory(const CCacheFactory&);
@@ -63,50 +63,50 @@ namespace gpos
 			// private dtor
 			~CCacheFactory()
 			{
-				GPOS_ASSERT(NULL == m_pcf &&
+				GPOS_ASSERT(NULL == m_factory &&
 							"Cache factory has not been shut down");
 			}
 
 			// initialize global memory pool
 			static
-			GPOS_RESULT EresInit();
+			GPOS_RESULT Init();
 
 			// destroy global instance
 			void Shutdown();
 
 			// global accessor
 			inline
-			static CCacheFactory *Pcf()
+			static CCacheFactory *GetFactory()
 			{
-				return m_pcf;
+				return m_factory;
 			}
 
 			// create a cache instance
 			template <class T, class K>
 			static
-			CCache<T, K> *PCacheCreate
+			CCache<T, K> *CreateCache
 				(
-				BOOL fUnique,
-				ULLONG ullCacheQuota,
-				typename CCache<T, K>::HashFuncPtr pfuncHash,
-				typename CCache<T, K>::EqualFuncPtr pfuncEqual
+				BOOL unique,
+				ULLONG cache_quota,
+				typename CCache<T, K>::HashFuncPtr hash_func,
+				typename CCache<T, K>::EqualFuncPtr equal_func
 				)
 			{
-				GPOS_ASSERT(NULL != Pcf() &&
+				GPOS_ASSERT(NULL != GetFactory() &&
 						    "Cache factory has not been initialized");
 
-				IMemoryPool *pmp = Pcf()->Pmp();
-				CCache<T, K> *pcache = GPOS_NEW(pmp) CCache<T, K>
+				IMemoryPool *mp = GetFactory()->Pmp();
+				CCache<T, K> *cache = GPOS_NEW(mp) CCache<T, K>
 							(
-							pmp,
-							fUnique,
-							ullCacheQuota,
+							mp,
+							unique,
+							cache_quota,
 							CCACHE_GCLOCK_INIT_COUNTER,
-							pfuncHash,
-							pfuncEqual
+							hash_func,
+							equal_func
 							);
 
-				return pcache;
+				return cache;
 
 			}
 

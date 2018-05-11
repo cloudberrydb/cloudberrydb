@@ -30,98 +30,98 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDRelationGPDB::CMDRelationGPDB
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid,
-	CMDName *pmdname,
+	IMemoryPool *mp,
+	IMDId *mdid,
+	CMDName *mdname,
 	BOOL fTemporary,
-	Erelstoragetype erelstorage,
-	Ereldistrpolicy ereldistrpolicy,
-	DrgPmdcol *pdrgpmdcol,
-	DrgPul *pdrgpulDistrColumns,
-	DrgPul *pdrgpulPartColumns,
-	DrgPsz *pdrgpszPartTypes,
-	ULONG ulPartitions,
-	BOOL fConvertHashToRandom,
-	DrgPdrgPul *pdrgpdrgpulKeys,
-	DrgPmdIndexInfo *pdrgpmdIndexInfo,
-	DrgPmdid *pdrgpmdidTriggers,
- 	DrgPmdid *pdrgpmdidCheckConstraint,
- 	IMDPartConstraint *pmdpartcnstr,
- 	BOOL fHasOids
+	Erelstoragetype rel_storage_type,
+	Ereldistrpolicy rel_distr_policy,
+								 CMDColumnArray *mdcol_array,
+	ULongPtrArray *distr_col_array,
+	ULongPtrArray *partition_cols_array,
+	CharPtrArray *str_part_types_array,
+	ULONG num_of_partitions,
+	BOOL convert_hash_to_random,
+	ULongPtr2dArray *keyset_array,
+								 CMDIndexInfoArray *md_index_info_array,
+								 IMdIdArray *mdid_triggers_array,
+								 IMdIdArray *mdid_check_constraint_array,
+ 	IMDPartConstraint *mdpart_constraint,
+ 	BOOL has_oids
 	)
 	:
-	m_pmp(pmp),
-	m_pmdid(pmdid),
-	m_pmdname(pmdname),
-	m_fTemporary(fTemporary),
-	m_erelstorage(erelstorage),
-	m_ereldistrpolicy(ereldistrpolicy),
-	m_pdrgpmdcol(pdrgpmdcol),
-	m_ulDroppedCols(0),
-	m_pdrgpulDistrColumns(pdrgpulDistrColumns),
-	m_fConvertHashToRandom(fConvertHashToRandom),
-	m_pdrgpulPartColumns(pdrgpulPartColumns),
-	m_pdrgpszPartTypes(pdrgpszPartTypes),
-	m_ulPartitions(ulPartitions),
-	m_pdrgpdrgpulKeys(pdrgpdrgpulKeys),
-	m_pdrgpmdIndexInfo(pdrgpmdIndexInfo),
-	m_pdrgpmdidTriggers(pdrgpmdidTriggers),
-	m_pdrgpmdidCheckConstraint(pdrgpmdidCheckConstraint),
-	m_pmdpartcnstr(pmdpartcnstr),
-	m_fHasOids(fHasOids),
-	m_ulSystemColumns(0),
-	m_phmululNonDroppedCols(NULL),
-	m_phmiulAttno2Pos(NULL),
-	m_pdrgpulNonDroppedCols(NULL)
+	m_mp(mp),
+	m_mdid(mdid),
+	m_mdname(mdname),
+	m_is_temp_table(fTemporary),
+	m_rel_storage_type(rel_storage_type),
+	m_rel_distr_policy(rel_distr_policy),
+	m_md_col_array(mdcol_array),
+	m_dropped_cols(0),
+	m_distr_col_array(distr_col_array),
+	m_convert_hash_to_random(convert_hash_to_random),
+	m_partition_cols_array(partition_cols_array),
+	m_str_part_types_array(str_part_types_array),
+	m_num_of_partitions(num_of_partitions),
+	m_keyset_array(keyset_array),
+	m_mdindex_info_array(md_index_info_array),
+	m_mdid_trigger_array(mdid_triggers_array),
+	m_mdid_check_constraint_array(mdid_check_constraint_array),
+	m_mdpart_constraint(mdpart_constraint),
+	m_has_oids(has_oids),
+	m_system_columns(0),
+	m_colpos_nondrop_colpos_map(NULL),
+	m_attrno_nondrop_col_pos_map(NULL),
+	m_nondrop_col_pos_array(NULL)
 {
-	GPOS_ASSERT(pmdid->FValid());
-	GPOS_ASSERT(NULL != pdrgpmdcol);
-	GPOS_ASSERT(NULL != pdrgpmdIndexInfo);
-	GPOS_ASSERT(NULL != pdrgpmdidTriggers);
-	GPOS_ASSERT(NULL != pdrgpmdidCheckConstraint);
-	GPOS_ASSERT_IMP(fConvertHashToRandom,
-			IMDRelation::EreldistrHash == ereldistrpolicy &&
+	GPOS_ASSERT(mdid->IsValid());
+	GPOS_ASSERT(NULL != mdcol_array);
+	GPOS_ASSERT(NULL != md_index_info_array);
+	GPOS_ASSERT(NULL != mdid_triggers_array);
+	GPOS_ASSERT(NULL != mdid_check_constraint_array);
+	GPOS_ASSERT_IMP(convert_hash_to_random,
+			IMDRelation::EreldistrHash == rel_distr_policy &&
 			"Converting hash distributed table to random only possible for hash distributed tables");
 	
-	m_phmululNonDroppedCols = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
-	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
-	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
-	m_pdrgpdoubleColWidths = GPOS_NEW(pmp) DrgPdouble(pmp);
+	m_colpos_nondrop_colpos_map = GPOS_NEW(m_mp) UlongToUlongMap(m_mp);
+	m_attrno_nondrop_col_pos_map = GPOS_NEW(m_mp) IntToUlongMap(m_mp);
+	m_nondrop_col_pos_array = GPOS_NEW(m_mp) ULongPtrArray(m_mp);
+	m_col_width_array = GPOS_NEW(mp) CDoubleArray(mp);
 
-	const ULONG ulArity = pdrgpmdcol->UlLength();
-	ULONG ulPosNonDropped = 0;
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	const ULONG arity = mdcol_array->Size();
+	ULONG non_dropped_col_pos = 0;
+	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		IMDColumn *pmdcol = (*pdrgpmdcol)[ul];
-		BOOL fSystemCol = pmdcol->FSystemColumn();
-		if (fSystemCol)
+		IMDColumn *mdcol = (*mdcol_array)[ul];
+		BOOL is_system_col = mdcol->IsSystemColumn();
+		if (is_system_col)
 		{
-			m_ulSystemColumns++;
+			m_system_columns++;
 		}
 
-		(void) m_phmiulAttno2Pos->FInsert
+		(void) m_attrno_nondrop_col_pos_map->Insert
 									(
-									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
-									GPOS_NEW(m_pmp) ULONG(ul)
+									GPOS_NEW(m_mp) INT(mdcol->AttrNum()),
+									GPOS_NEW(m_mp) ULONG(ul)
 									);
 
-		if (pmdcol->FDropped())
+		if (mdcol->IsDropped())
 		{
-			m_ulDroppedCols++;
+			m_dropped_cols++;
 		}
 		else	
 		{
-			if (!fSystemCol)
+			if (!is_system_col)
 			{
-				m_pdrgpulNonDroppedCols->Append(GPOS_NEW(m_pmp) ULONG(ul));
+				m_nondrop_col_pos_array->Append(GPOS_NEW(m_mp) ULONG(ul));
 			}
-			(void) m_phmululNonDroppedCols->FInsert(GPOS_NEW(m_pmp) ULONG(ul), GPOS_NEW(m_pmp) ULONG(ulPosNonDropped));
-			ulPosNonDropped++;
+			(void) m_colpos_nondrop_colpos_map->Insert(GPOS_NEW(m_mp) ULONG(ul), GPOS_NEW(m_mp) ULONG(non_dropped_col_pos));
+			non_dropped_col_pos++;
 		}
 
-		m_pdrgpdoubleColWidths->Append(GPOS_NEW(pmp) CDouble(pmdcol->UlLength()));
+		m_col_width_array->Append(GPOS_NEW(mp) CDouble(mdcol->Length()));
 	}
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
 //---------------------------------------------------------------------------
@@ -134,36 +134,36 @@ CMDRelationGPDB::CMDRelationGPDB
 //---------------------------------------------------------------------------
 CMDRelationGPDB::~CMDRelationGPDB()
 {
-	GPOS_DELETE(m_pmdname);
-	GPOS_DELETE(m_pstr);
-	m_pmdid->Release();
-	m_pdrgpmdcol->Release();
-	CRefCount::SafeRelease(m_pdrgpulDistrColumns);
-	CRefCount::SafeRelease(m_pdrgpulPartColumns);
-	CRefCount::SafeRelease(m_pdrgpszPartTypes);
-	CRefCount::SafeRelease(m_pdrgpdrgpulKeys);
-	m_pdrgpmdIndexInfo->Release();
-	m_pdrgpmdidTriggers->Release();
-	m_pdrgpmdidCheckConstraint->Release();
-	m_pdrgpdoubleColWidths->Release();
-	CRefCount::SafeRelease(m_pmdpartcnstr);
-	CRefCount::SafeRelease(m_phmululNonDroppedCols);
-	CRefCount::SafeRelease(m_phmiulAttno2Pos);
-	CRefCount::SafeRelease(m_pdrgpulNonDroppedCols);
+	GPOS_DELETE(m_mdname);
+	GPOS_DELETE(m_dxl_str);
+	m_mdid->Release();
+	m_md_col_array->Release();
+	CRefCount::SafeRelease(m_distr_col_array);
+	CRefCount::SafeRelease(m_partition_cols_array);
+	CRefCount::SafeRelease(m_str_part_types_array);
+	CRefCount::SafeRelease(m_keyset_array);
+	m_mdindex_info_array->Release();
+	m_mdid_trigger_array->Release();
+	m_mdid_check_constraint_array->Release();
+	m_col_width_array->Release();
+	CRefCount::SafeRelease(m_mdpart_constraint);
+	CRefCount::SafeRelease(m_colpos_nondrop_colpos_map);
+	CRefCount::SafeRelease(m_attrno_nondrop_col_pos_map);
+	CRefCount::SafeRelease(m_nondrop_col_pos_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::Pmdid
+//		CMDRelationGPDB::MDId
 //
 //	@doc:
 //		Returns the metadata id of this relation
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDRelationGPDB::Pmdid() const
+CMDRelationGPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -177,109 +177,109 @@ CMDRelationGPDB::Pmdid() const
 CMDName
 CMDRelationGPDB::Mdname() const
 {
-	return *m_pmdname;
+	return *m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::FTemporary
+//		CMDRelationGPDB::IsTemporary
 //
 //	@doc:
 //		Is the relation temporary
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDRelationGPDB::FTemporary() const
+CMDRelationGPDB::IsTemporary() const
 {
-	return m_fTemporary;
+	return m_is_temp_table;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::Erelstorage
+//		CMDRelationGPDB::RetrieveRelStorageType
 //
 //	@doc:
 //		Returns the storage type for this relation
 //
 //---------------------------------------------------------------------------
 IMDRelation::Erelstoragetype
-CMDRelationGPDB::Erelstorage() const
+CMDRelationGPDB::RetrieveRelStorageType() const
 {
-	return m_erelstorage;
+	return m_rel_storage_type;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::Ereldistribution
+//		CMDRelationGPDB::GetRelDistribution
 //
 //	@doc:
 //		Returns the distribution policy for this relation
 //
 //---------------------------------------------------------------------------
 IMDRelation::Ereldistrpolicy
-CMDRelationGPDB::Ereldistribution() const
+CMDRelationGPDB::GetRelDistribution() const
 {
-	return m_ereldistrpolicy;
+	return m_rel_distr_policy;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlColumns
+//		CMDRelationGPDB::ColumnCount
 //
 //	@doc:
 //		Returns the number of columns of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlColumns() const
+CMDRelationGPDB::ColumnCount() const
 {
-	GPOS_ASSERT(NULL != m_pdrgpmdcol);
+	GPOS_ASSERT(NULL != m_md_col_array);
 	
-	return m_pdrgpmdcol->UlLength();
+	return m_md_col_array->Size();
 }
 
 // Return the width of a column with regards to the position
 DOUBLE
-CMDRelationGPDB::DColWidth
+CMDRelationGPDB::ColWidth
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	return (*m_pdrgpdoubleColWidths)[ulPos]->DVal();
+	return (*m_col_width_array)[pos]->Get();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::FHasDroppedColumns
+//		CMDRelationGPDB::HasDroppedColumns
 //
 //	@doc:
 //		Does relation have dropped columns
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDRelationGPDB::FHasDroppedColumns() const
+CMDRelationGPDB::HasDroppedColumns() const
 {	
-	return 0 < m_ulDroppedCols;
+	return 0 < m_dropped_cols;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlNonDroppedCols
+//		CMDRelationGPDB::NonDroppedColsCount
 //
 //	@doc:
 //		Number of non-dropped columns
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlNonDroppedCols() const
+CMDRelationGPDB::NonDroppedColsCount() const
 {	
-	return UlColumns() - m_ulDroppedCols;
+	return ColumnCount() - m_dropped_cols;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlPosNonDropped
+//		CMDRelationGPDB::NonDroppedColAt
 //
 //	@doc:
 //		Return the absolute position of the given attribute position excluding 
@@ -287,196 +287,196 @@ CMDRelationGPDB::UlNonDroppedCols() const
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlPosNonDropped
+CMDRelationGPDB::NonDroppedColAt
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {	
-	GPOS_ASSERT(ulPos <= UlColumns());
+	GPOS_ASSERT(pos <= ColumnCount());
 	
-	if (!FHasDroppedColumns())
+	if (!HasDroppedColumns())
 	{
-		return ulPos;
+		return pos;
 	}
 	
-	ULONG *pul = m_phmululNonDroppedCols->PtLookup(&ulPos);
+	ULONG *colid = m_colpos_nondrop_colpos_map->Find(&pos);
 	
-	GPOS_ASSERT(NULL != pul);
-	return *pul;
+	GPOS_ASSERT(NULL != colid);
+	return *colid;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlPosFromAttno
+//		CMDRelationGPDB::GetPosFromAttno
 //
 //	@doc:
 //		Return the position of a column in the metadata object given the
 //      attribute number in the system catalog
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlPosFromAttno
+CMDRelationGPDB::GetPosFromAttno
 	(
-	INT iAttno
+	INT attno
 	)
 	const
 {
-	ULONG *pul = m_phmiulAttno2Pos->PtLookup(&iAttno);
-	GPOS_ASSERT(NULL != pul);
+	ULONG *att_pos = m_attrno_nondrop_col_pos_map->Find(&attno);
+	GPOS_ASSERT(NULL != att_pos);
 
-	return *pul;
+	return *att_pos;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::PdrgpulNonDroppedCols
+//		CMDRelationGPDB::NonDroppedColsArray
 //
 //	@doc:
 //		Returns the original positions of all the non-dropped columns
 //
 //---------------------------------------------------------------------------
-DrgPul *
-CMDRelationGPDB::PdrgpulNonDroppedCols() const
+ULongPtrArray *
+CMDRelationGPDB::NonDroppedColsArray() const
 {
-	return m_pdrgpulNonDroppedCols;
+	return m_nondrop_col_pos_array;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlSystemColumns
+//		CMDRelationGPDB::SystemColumnsCount
 //
 //	@doc:
 //		Returns the number of system columns of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlSystemColumns() const
+CMDRelationGPDB::SystemColumnsCount() const
 {
-	return m_ulSystemColumns;
+	return m_system_columns;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlKeySets
+//		CMDRelationGPDB::KeySetCount
 //
 //	@doc:
 //		Returns the number of key sets
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlKeySets() const
+CMDRelationGPDB::KeySetCount() const
 {	
-	return (m_pdrgpdrgpulKeys == NULL) ? 0 : m_pdrgpdrgpulKeys->UlLength();
+	return (m_keyset_array == NULL) ? 0 : m_keyset_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::PdrgpulKeyset
+//		CMDRelationGPDB::KeySetAt
 //
 //	@doc:
 //		Returns the key set at the specified position
 //
 //---------------------------------------------------------------------------
-const DrgPul *
-CMDRelationGPDB::PdrgpulKeyset
+const ULongPtrArray *
+CMDRelationGPDB::KeySetAt
 	(
-	ULONG ulPos
+	ULONG pos
 	) 
 	const
 {	
-	GPOS_ASSERT(NULL != m_pdrgpdrgpulKeys);
+	GPOS_ASSERT(NULL != m_keyset_array);
 	
-	return (*m_pdrgpdrgpulKeys)[ulPos];
+	return (*m_keyset_array)[pos];
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlDistrColumns
+//		CMDRelationGPDB::DistrColumnCount
 //
 //	@doc:
 //		Returns the number of columns in the distribution column list of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlDistrColumns() const
+CMDRelationGPDB::DistrColumnCount() const
 {	
-	return (m_pdrgpulDistrColumns == NULL) ? 0 : m_pdrgpulDistrColumns->UlLength();
+	return (m_distr_col_array == NULL) ? 0 : m_distr_col_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::FHasOids
+//		CMDRelationGPDB::HasOids
 //
 //	@doc:
 //		Does this table have oids
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDRelationGPDB::FHasOids() const
+CMDRelationGPDB::HasOids() const
 {
-	return m_fHasOids;
+	return m_has_oids;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::FPartitioned
+//		CMDRelationGPDB::IsPartitioned
 //
 //	@doc:
 //		Is the table partitioned
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDRelationGPDB::FPartitioned() const
+CMDRelationGPDB::IsPartitioned() const
 {	
-	return (0 < UlPartColumns());
+	return (0 < PartColumnCount());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlPartitions
+//		CMDRelationGPDB::PartitionCount
 //
 //	@doc:
 //		number of partitions
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlPartitions() const
+CMDRelationGPDB::PartitionCount() const
 {
-	return m_ulPartitions;
+	return m_num_of_partitions;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlPartColumns
+//		CMDRelationGPDB::PartColumnCount
 //
 //	@doc:
 //		Returns the number of partition keys
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlPartColumns() const
+CMDRelationGPDB::PartColumnCount() const
 {	
-	return (m_pdrgpulPartColumns == NULL) ? 0 : m_pdrgpulPartColumns->UlLength();
+	return (m_partition_cols_array == NULL) ? 0 : m_partition_cols_array->Size();
 }
 
 // Retrieve list of partition types
-DrgPsz *
-CMDRelationGPDB::PdrgpszPartTypes() const
+CharPtrArray *
+CMDRelationGPDB::GetPartitionTypes() const
 {
-	return m_pdrgpszPartTypes;
+	return m_str_part_types_array;
 }
 
 // Returns the partition type of the given level
 CHAR
-CMDRelationGPDB::SzPartType(ULONG ulLevel) const
+CMDRelationGPDB::PartTypeAtLevel(ULONG ulLevel) const
 {
-	return *(*m_pdrgpszPartTypes)[ulLevel];
+	return *(*m_str_part_types_array)[ulLevel];
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::PmdcolPartColumn
+//		CMDRelationGPDB::PartColAt
 //
 //	@doc:
 //		Returns the partition column at the specified position in the
@@ -484,136 +484,136 @@ CMDRelationGPDB::SzPartType(ULONG ulLevel) const
 //
 //---------------------------------------------------------------------------
 const IMDColumn *
-CMDRelationGPDB::PmdcolPartColumn
+CMDRelationGPDB::PartColAt
 	(
-	ULONG ulPos
+	ULONG pos
 	) 
 	const
 {
-	ULONG ulPartKeyPos = (*(*m_pdrgpulPartColumns)[ulPos]);
-	return Pmdcol(ulPartKeyPos);
+	ULONG partition_key_pos = (*(*m_partition_cols_array)[pos]);
+	return GetMdCol(partition_key_pos);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlIndices
+//		CMDRelationGPDB::IndexCount
 //
 //	@doc:
 //		Returns the number of indices of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlIndices() const
+CMDRelationGPDB::IndexCount() const
 {
-	return m_pdrgpmdIndexInfo->UlLength();
+	return m_mdindex_info_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlTriggers
+//		CMDRelationGPDB::TriggerCount
 //
 //	@doc:
 //		Returns the number of triggers of this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlTriggers() const
+CMDRelationGPDB::TriggerCount() const
 {
-	return m_pdrgpmdidTriggers->UlLength();
+	return m_mdid_trigger_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::Pmdcol
+//		CMDRelationGPDB::GetMdCol
 //
 //	@doc:
 //		Returns the column at the specified position
 //
 //---------------------------------------------------------------------------
 const IMDColumn *
-CMDRelationGPDB::Pmdcol
+CMDRelationGPDB::GetMdCol
 	(
-	ULONG ulPos
+	ULONG pos
 	) 
 	const
 {
-	GPOS_ASSERT(ulPos < m_pdrgpmdcol->UlLength());
+	GPOS_ASSERT(pos < m_md_col_array->Size());
 
-	return (*m_pdrgpmdcol)[ulPos];
+	return (*m_md_col_array)[pos];
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::PmdcolDistrColumn
+//		CMDRelationGPDB::GetDistrColAt
 //
 //	@doc:
 //		Returns the distribution column at the specified position in the distribution column list
 //
 //---------------------------------------------------------------------------
 const IMDColumn *
-CMDRelationGPDB::PmdcolDistrColumn
+CMDRelationGPDB::GetDistrColAt
 	(
-	ULONG ulPos
+	ULONG pos
 	) 
 	const
 {
-	GPOS_ASSERT(ulPos < m_pdrgpulDistrColumns->UlLength());
+	GPOS_ASSERT(pos < m_distr_col_array->Size());
 	
-	ULONG ulDistrKeyPos = (*(*m_pdrgpulDistrColumns)[ulPos]);
-	return Pmdcol(ulDistrKeyPos);
+	ULONG distr_key_pos = (*(*m_distr_col_array)[pos]);
+	return GetMdCol(distr_key_pos);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::FConvertHashToRandom
+//		CMDRelationGPDB::ConvertHashToRandom
 //
 //	@doc:
 //		Return true if a hash distributed table needs to be considered as random during planning
 //---------------------------------------------------------------------------
 BOOL
-CMDRelationGPDB::FConvertHashToRandom() const
+CMDRelationGPDB::ConvertHashToRandom() const
 {
-	return m_fConvertHashToRandom;
+	return m_convert_hash_to_random;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::PmdidIndex
+//		CMDRelationGPDB::IndexMDidAt
 //
 //	@doc:
 //		Returns the id of the index at the specified position of the index array
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDRelationGPDB::PmdidIndex
+CMDRelationGPDB::IndexMDidAt
 	(
-	ULONG ulPos
+	ULONG pos
 	) 
 	const
 {
-	return (*m_pdrgpmdIndexInfo)[ulPos]->Pmdid();
+	return (*m_mdindex_info_array)[pos]->MDId();
 }
 
 // check if index is partial given its mdid
 BOOL
-CMDRelationGPDB::FPartialIndex
+CMDRelationGPDB::IsPartialIndex
 	(
-	IMDId *pmdid
+	IMDId *mdid
 	)
 	const
 {
-	const ULONG ulIndexes = UlIndices();
+	const ULONG indexes = IndexCount();
 
-	for (ULONG ul = 0; ul < ulIndexes; ++ul)
+	for (ULONG ul = 0; ul < indexes; ++ul)
 	{
-		if (CMDIdGPDB::FEqualMDId(PmdidIndex(ul), pmdid))
+		if (CMDIdGPDB::MDIdCompare(IndexMDidAt(ul), mdid))
 		{
-			return (*m_pdrgpmdIndexInfo)[ul]->FPartial();
+			return (*m_mdindex_info_array)[ul]->IsPartial();
 		}
 	}
 
 	// Not found
-	GPOS_RAISE(ExmaMD, ExmiMDCacheEntryNotFound, pmdid->Wsz());
+	GPOS_RAISE(ExmaMD, ExmiMDCacheEntryNotFound, mdid->GetBuffer());
 
 	return false;
 }
@@ -621,39 +621,39 @@ CMDRelationGPDB::FPartialIndex
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::PmdidTrigger
+//		CMDRelationGPDB::TriggerMDidAt
 //
 //	@doc:
 //		Returns the id of the trigger at the specified position of the trigger array
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDRelationGPDB::PmdidTrigger
+CMDRelationGPDB::TriggerMDidAt
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	return (*m_pdrgpmdidTriggers)[ulPos];
+	return (*m_mdid_trigger_array)[pos];
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::UlCheckConstraints
+//		CMDRelationGPDB::CheckConstraintCount
 //
 //	@doc:
 //		Returns the number of check constraints on this relation
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDRelationGPDB::UlCheckConstraints() const
+CMDRelationGPDB::CheckConstraintCount() const
 {
-	return m_pdrgpmdidCheckConstraint->UlLength();
+	return m_mdid_check_constraint_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::PmdidCheckConstraint
+//		CMDRelationGPDB::CheckConstraintMDidAt
 //
 //	@doc:
 //		Returns the id of the check constraint at the specified position of
@@ -661,27 +661,27 @@ CMDRelationGPDB::UlCheckConstraints() const
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDRelationGPDB::PmdidCheckConstraint
+CMDRelationGPDB::CheckConstraintMDidAt
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	return (*m_pdrgpmdidCheckConstraint)[ulPos];
+	return (*m_mdid_check_constraint_array)[pos];
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDRelationGPDB::Pmdpartcnstr
+//		CMDRelationGPDB::MDPartConstraint
 //
 //	@doc:
 //		Return the part constraint
 //
 //---------------------------------------------------------------------------
 IMDPartConstraint *
-CMDRelationGPDB::Pmdpartcnstr() const
+CMDRelationGPDB::MDPartConstraint() const
 {
-	return m_pmdpartcnstr;
+	return m_mdpart_constraint;
 }
 
 
@@ -696,111 +696,111 @@ CMDRelationGPDB::Pmdpartcnstr() const
 void
 CMDRelationGPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) 
 	const
 {
 	GPOS_CHECK_ABORT;
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenRelation));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenRelation));
 	
-	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelTemporary), m_fTemporary);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelHasOids), m_fHasOids);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelStorageType), IMDRelation::PstrStorageType(m_erelstorage));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRelDistrPolicy), PstrDistrPolicy(m_ereldistrpolicy));
+	m_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelTemporary), m_is_temp_table);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelHasOids), m_has_oids);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageType), IMDRelation::GetStorageTypeStr(m_rel_storage_type));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrPolicy), GetDistrPolicyStr(m_rel_distr_policy));
 	
-	if (EreldistrHash == m_ereldistrpolicy)
+	if (EreldistrHash == m_rel_distr_policy)
 	{
-		GPOS_ASSERT(NULL != m_pdrgpulDistrColumns);
+		GPOS_ASSERT(NULL != m_distr_col_array);
 		
 		// serialize distribution columns
-		CWStringDynamic *pstrDistrColumns = PstrColumns(m_pmp, m_pdrgpulDistrColumns);
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenDistrColumns), pstrDistrColumns);
-		GPOS_DELETE(pstrDistrColumns);
+		CWStringDynamic *distr_col_str_array = ColumnsToStr(m_mp, m_distr_col_array);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenDistrColumns), distr_col_str_array);
+		GPOS_DELETE(distr_col_str_array);
 	}
 	
 	// serialize key sets
-	if (m_pdrgpdrgpulKeys != NULL && m_pdrgpdrgpulKeys->UlLength() > 0)
+	if (m_keyset_array != NULL && m_keyset_array->Size() > 0)
 	{
-		CWStringDynamic *pstrKeys = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpdrgpulKeys);
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenKeys), pstrKeys);
-		GPOS_DELETE(pstrKeys);
+		CWStringDynamic *keyset_str_array = CDXLUtils::Serialize(m_mp, m_keyset_array);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenKeys), keyset_str_array);
+		GPOS_DELETE(keyset_str_array);
 	}
 	
-	if (FPartitioned())
+	if (IsPartitioned())
 	{
 		// serialize partition keys
-		CWStringDynamic *pstrPartKeys = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulPartColumns);
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartKeys), pstrPartKeys);
-		GPOS_DELETE(pstrPartKeys);
+		CWStringDynamic *part_keys_str_array = CDXLUtils::Serialize(m_mp, m_partition_cols_array);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartKeys), part_keys_str_array);
+		GPOS_DELETE(part_keys_str_array);
 	}
 
-	if (m_pdrgpszPartTypes)
+	if (m_str_part_types_array)
 	{
 		// serialize partition types
-		CWStringDynamic *pstrPartTypes = CDXLUtils::PstrSerializeSz(m_pmp, m_pdrgpszPartTypes);
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartTypes), pstrPartTypes);
-		GPOS_DELETE(pstrPartTypes);
+		CWStringDynamic *part_types_str_array = CDXLUtils::SerializeToCommaSeparatedString(m_mp, m_str_part_types_array);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartTypes), part_types_str_array);
+		GPOS_DELETE(part_types_str_array);
 	}
 	
-	if (m_fConvertHashToRandom)
+	if (m_convert_hash_to_random)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenConvertHashToRandom), m_fConvertHashToRandom);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenConvertHashToRandom), m_convert_hash_to_random);
 	}
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenNumLeafPartitions), m_ulPartitions);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenNumLeafPartitions), m_num_of_partitions);
 
 	// serialize columns
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumns));
-	for (ULONG ul = 0; ul < m_pdrgpmdcol->UlLength(); ul++)
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumns));
+	for (ULONG ul = 0; ul < m_md_col_array->Size(); ul++)
 	{
-		CMDColumn *pmdcol = (*m_pdrgpmdcol)[ul];
-		pmdcol->Serialize(pxmlser);
+		CMDColumn *mdcol = (*m_md_col_array)[ul];
+		mdcol->Serialize(xml_serializer);
 
 		GPOS_CHECK_ABORT;
 	}
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenColumns));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenColumns));
 	
 	// serialize index infos
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenIndexInfoList));
-	const ULONG ulIndexes = m_pdrgpmdIndexInfo->UlLength();
-	for (ULONG ul = 0; ul < ulIndexes; ul++)
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenIndexInfoList));
+	const ULONG indexes = m_mdindex_info_array->Size();
+	for (ULONG ul = 0; ul < indexes; ul++)
 	{
-		CMDIndexInfo *pmdIndexInfo = (*m_pdrgpmdIndexInfo)[ul];
-		pmdIndexInfo->Serialize(pxmlser);
+		CMDIndexInfo *index_info = (*m_mdindex_info_array)[ul];
+		index_info->Serialize(xml_serializer);
 
 		GPOS_CHECK_ABORT;
 	}
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenIndexInfoList));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenIndexInfoList));
 
 
 	// serialize trigger information
-	SerializeMDIdList(pxmlser, m_pdrgpmdidTriggers,
-						CDXLTokens::PstrToken(EdxltokenTriggers),
-						CDXLTokens::PstrToken(EdxltokenTrigger)); 
+	SerializeMDIdList(xml_serializer, m_mdid_trigger_array,
+						CDXLTokens::GetDXLTokenStr(EdxltokenTriggers),
+						CDXLTokens::GetDXLTokenStr(EdxltokenTrigger)); 
 
 	// serialize check constraint information
-	SerializeMDIdList(pxmlser, m_pdrgpmdidCheckConstraint,
-						CDXLTokens::PstrToken(EdxltokenCheckConstraints),
-						CDXLTokens::PstrToken(EdxltokenCheckConstraint));
+	SerializeMDIdList(xml_serializer, m_mdid_check_constraint_array,
+						CDXLTokens::GetDXLTokenStr(EdxltokenCheckConstraints),
+						CDXLTokens::GetDXLTokenStr(EdxltokenCheckConstraint));
 
 	// serialize part constraint
-	if (NULL != m_pmdpartcnstr)
+	if (NULL != m_mdpart_constraint)
 	{
-		m_pmdpartcnstr->Serialize(pxmlser);
+		m_mdpart_constraint->Serialize(xml_serializer);
 	}
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenRelation));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenRelation));
 
 	GPOS_CHECK_ABORT;
 }
@@ -822,67 +822,67 @@ CMDRelationGPDB::DebugPrint
 	const
 {
 	os << "Relation id: ";
-	Pmdid()->OsPrint(os);
+	MDId()->OsPrint(os);
 	os << std::endl;
 	
-	os << "Relation name: " << (Mdname()).Pstr()->Wsz() << std::endl;
+	os << "Relation name: " << (Mdname()).GetMDName()->GetBuffer() << std::endl;
 	
-	os << "Storage type: " << IMDRelation::PstrStorageType(m_erelstorage)->Wsz() << std::endl;
+	os << "Storage type: " << IMDRelation::GetStorageTypeStr(m_rel_storage_type)->GetBuffer() << std::endl;
 	
-	os << "Distribution policy: " << PstrDistrPolicy(m_ereldistrpolicy)->Wsz() << std::endl;
+	os << "Distribution policy: " << GetDistrPolicyStr(m_rel_distr_policy)->GetBuffer() << std::endl;
 	
 	os << "Relation columns: " << std::endl;
-	const ULONG ulColumns = UlColumns(); 
-	for (ULONG ul = 0; ul < ulColumns; ul++)
+	const ULONG num_of_columns = ColumnCount();
+	for (ULONG ul = 0; ul < num_of_columns; ul++)
 	{
-		const IMDColumn *pimdcol = Pmdcol(ul);
-		pimdcol->DebugPrint(os);
+		const IMDColumn *mdcol = GetMdCol(ul);
+		mdcol->DebugPrint(os);
 	}
 	os << std::endl;
 	
 	os << "Distributed by: ";
-	const ULONG ulDistrColumns = UlDistrColumns(); 
-	for (ULONG ul = 0; ul < ulDistrColumns; ul++)
+	const ULONG distr_columns = DistrColumnCount();
+	for (ULONG ul = 0; ul < distr_columns; ul++)
 	{
 		if (0 < ul)
 		{
 			os << ", ";
 		}
 		
-		const IMDColumn *pimdcolDistrKey = PmdcolDistrColumn(ul);
-		os << (pimdcolDistrKey->Mdname()).Pstr()->Wsz();		
+		const IMDColumn *mdcol_distr_key = GetDistrColAt(ul);
+		os << (mdcol_distr_key->Mdname()).GetMDName()->GetBuffer();
 	}
 	
 	os << std::endl;
 
 	os << "Partition keys: ";
-	const ULONG ulPartColumns = UlPartColumns(); 
-	for (ULONG ul = 0; ul < ulPartColumns; ul++)
+	const ULONG part_columns = PartColumnCount();
+	for (ULONG ul = 0; ul < part_columns; ul++)
 	{
 		if (0 < ul)
 		{
 			os << ", ";
 		}
 		
-		const IMDColumn *pmdcolPartKey = PmdcolPartColumn(ul);
-		os << (pmdcolPartKey->Mdname()).Pstr()->Wsz();		
+		const IMDColumn *mdcol_part_key = PartColAt(ul);
+		os << (mdcol_part_key->Mdname()).GetMDName()->GetBuffer();
 	}
 		
 	os << std::endl;
 		
 	os << "Index Info: ";
-	const ULONG ulIndexes = m_pdrgpmdIndexInfo->UlLength();
-	for (ULONG ul = 0; ul < ulIndexes; ul++)
+	const ULONG indexes = m_mdindex_info_array->Size();
+	for (ULONG ul = 0; ul < indexes; ul++)
 	{
-		CMDIndexInfo *pmdIndexInfo = (*m_pdrgpmdIndexInfo)[ul];
-		pmdIndexInfo->DebugPrint(os);
+		CMDIndexInfo *mdindex_info = (*m_mdindex_info_array)[ul];
+		mdindex_info->DebugPrint(os);
 	}
 
 	os << "Triggers: ";
-	CDXLUtils::DebugPrintDrgpmdid(os, m_pdrgpmdidTriggers);
+	CDXLUtils::DebugPrintMDIdArray(os, m_mdid_trigger_array);
 
 	os << "Check Constraint: ";
-	CDXLUtils::DebugPrintDrgpmdid(os, m_pdrgpmdidCheckConstraint);
+	CDXLUtils::DebugPrintMDIdArray(os, m_mdid_check_constraint_array);
 }
 
 #endif // GPOS_DEBUG

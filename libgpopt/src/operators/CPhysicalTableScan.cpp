@@ -33,29 +33,29 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalTableScan::CPhysicalTableScan
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
-	DrgPcr *pdrgpcrOutput
+	CColRefArray *pdrgpcrOutput
 	)
 	:
-	CPhysicalScan(pmp, pnameAlias, ptabdesc, pdrgpcrOutput)
+	CPhysicalScan(mp, pnameAlias, ptabdesc, pdrgpcrOutput)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalTableScan::UlHash
+//		CPhysicalTableScan::HashValue
 //
 //	@doc:
 //		Combine pointer for table descriptor and Eop
 //
 //---------------------------------------------------------------------------
 ULONG
-CPhysicalTableScan::UlHash() const
+CPhysicalTableScan::HashValue() const
 {
-	ULONG ulHash = gpos::UlCombineHashes(COperator::UlHash(), m_ptabdesc->Pmdid()->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
+	ULONG ulHash = gpos::CombineHashes(COperator::HashValue(), m_ptabdesc->MDId()->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrOutput));
 
 	return ulHash;
 }
@@ -63,14 +63,14 @@ CPhysicalTableScan::UlHash() const
 	
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalTableScan::FMatch
+//		CPhysicalTableScan::Matches
 //
 //	@doc:
 //		match operator
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalTableScan::FMatch
+CPhysicalTableScan::Matches
 	(
 	COperator *pop
 	)
@@ -82,8 +82,8 @@ CPhysicalTableScan::FMatch
 	}
 
 	CPhysicalTableScan *popTableScan = CPhysicalTableScan::PopConvert(pop);
-	return m_ptabdesc->Pmdid()->FEquals(popTableScan->Ptabdesc()->Pmdid()) &&
-			m_pdrgpcrOutput->FEqual(popTableScan->PdrgpcrOutput());
+	return m_ptabdesc->MDId()->Equals(popTableScan->Ptabdesc()->MDId()) &&
+			m_pdrgpcrOutput->Equals(popTableScan->PdrgpcrOutput());
 }
 
 

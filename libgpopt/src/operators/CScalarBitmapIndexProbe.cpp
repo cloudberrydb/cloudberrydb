@@ -38,16 +38,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CScalarBitmapIndexProbe::CScalarBitmapIndexProbe
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CIndexDescriptor *pindexdesc,
 	IMDId *pmdidBitmapType
 	)
 	:
-	CScalar(pmp),
+	CScalar(mp),
 	m_pindexdesc(pindexdesc),
 	m_pmdidBitmapType(pmdidBitmapType)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pindexdesc);
 	GPOS_ASSERT(NULL != pmdidBitmapType);
 }
@@ -68,29 +68,29 @@ CScalarBitmapIndexProbe::~CScalarBitmapIndexProbe()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBitmapIndexProbe::UlHash
+//		CScalarBitmapIndexProbe::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarBitmapIndexProbe::UlHash() const
+CScalarBitmapIndexProbe::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(), m_pindexdesc->Pmdid()->UlHash());
+	return gpos::CombineHashes(COperator::HashValue(), m_pindexdesc->MDId()->HashValue());
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBitmapIndexProbe::FMatch
+//		CScalarBitmapIndexProbe::Matches
 //
 //	@doc:
 //		Match this operator with the given one.
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarBitmapIndexProbe::FMatch
+CScalarBitmapIndexProbe::Matches
 	(
 	COperator *pop
 	)
@@ -102,7 +102,7 @@ CScalarBitmapIndexProbe::FMatch
 	}
 	CScalarBitmapIndexProbe *popIndexProbe = PopConvert(pop);
 
-	return m_pindexdesc->Pmdid()->FEquals(popIndexProbe->Pindexdesc()->Pmdid());
+	return m_pindexdesc->MDId()->Equals(popIndexProbe->Pindexdesc()->MDId());
 }
 
 //---------------------------------------------------------------------------

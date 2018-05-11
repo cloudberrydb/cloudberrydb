@@ -45,7 +45,7 @@ namespace gpopt
 		private:
 
 			// id of comparison operator
-			IMDId *m_pmdidScalarOp;
+			IMDId *m_scalar_op_mdid;
 
 			// name of comparison operator
 			const CWStringConst *m_pstrScalarOp;
@@ -61,10 +61,10 @@ namespace gpopt
 			// ctor
 			CScalarSubqueryQuantified
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidScalarOp,
+				IMemoryPool *mp,
+				IMDId *scalar_op_mdid,
 				const CWStringConst *pstrScalarOp,
-				const CColRef *pcr
+				const CColRef *colref
 				);
 
 			// dtor
@@ -74,7 +74,7 @@ namespace gpopt
 		public:
 
 			// operator mdid accessor
-			IMDId *PmdidOp() const;
+			IMDId *MdIdOp() const;
 
 			// operator name accessor
 			const CWStringConst *PstrOp() const;
@@ -87,13 +87,13 @@ namespace gpopt
 
 			// return the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -103,13 +103,13 @@ namespace gpopt
 
 			// return locally used columns
 			virtual
-			CColRefSet *PcrsUsed(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsUsed(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive partition consumer info
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *pmp, 
+				IMemoryPool *mp, 
 				CExpressionHandle &exprhdl
 				) 
 				const;

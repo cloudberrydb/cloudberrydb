@@ -24,11 +24,11 @@ using namespace gpnaucrates;
 using namespace gpmd;
 
 // selectivities needed for LIKE predicate statistics evaluation
-const CDouble CDatumGenericGPDB::DDefaultFixedCharSelectivity(0.20);
-const CDouble CDatumGenericGPDB::DDefaultCharRangeSelectivity(0.25);
-const CDouble CDatumGenericGPDB::DDefaultAnyCharSelectivity(0.99);
-const CDouble CDatumGenericGPDB::DDefaultCdbRanchorSelectivity(0.95);
-const CDouble CDatumGenericGPDB::DDefaultCdbRolloffSelectivity(0.14);
+const CDouble CDatumGenericGPDB::DefaultFixedCharSelectivity(0.20);
+const CDouble CDatumGenericGPDB::DefaultCharRangeSelectivity(0.25);
+const CDouble CDatumGenericGPDB::DefaultAnyCharSelectivity(0.99);
+const CDouble CDatumGenericGPDB::DefaultCdbRanchorSelectivity(0.95);
+const CDouble CDatumGenericGPDB::DefaultCdbRolloffSelectivity(0.14);
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -39,35 +39,35 @@ const CDouble CDatumGenericGPDB::DDefaultCdbRolloffSelectivity(0.14);
 //
 //---------------------------------------------------------------------------
 CDatumGenericGPDB::CDatumGenericGPDB
-	(
-	IMemoryPool *pmp,
-	IMDId *pmdid,
-	INT iTypeModifier,
-	const void *pv,
-	ULONG ulSize,
-	BOOL fNull,
-	LINT lValue,
-	CDouble dValue
-	)
+		(
+				IMemoryPool *mp,
+				IMDId *mdid,
+				INT type_modifier,
+				const void *src,
+				ULONG size,
+				BOOL is_null,
+				LINT stats_comp_val_int,
+				CDouble stats_comp_val_double
+		)
 	:
-	m_pmp(pmp),
-	m_ulSize(ulSize),
-	m_pbVal(NULL),
-	m_fNull(fNull),
-	m_pmdid(pmdid),
-	m_iTypeModifier(iTypeModifier),
-	m_lValue(lValue),
-	m_dValue(dValue)
+	m_mp(mp),
+	m_size(size),
+	m_bytearray_value(NULL),
+	m_is_null(is_null),
+	m_mdid(mdid),
+	m_type_modifier(type_modifier),
+	m_stats_comp_val_int(stats_comp_val_int),
+	m_stats_comp_val_double(stats_comp_val_double)
 {
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(pmdid->FValid());
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(mdid->IsValid());
 	
-	if (!FNull())
+	if (!IsNull())
 	{
-		GPOS_ASSERT(0 < ulSize);
+		GPOS_ASSERT(0 < size);
 
-		m_pbVal = GPOS_NEW_ARRAY(m_pmp, BYTE, ulSize);
-		(void) clib::PvMemCpy(m_pbVal, pv, ulSize);
+		m_bytearray_value = GPOS_NEW_ARRAY(m_mp, BYTE, size);
+		(void) clib::Memcpy(m_bytearray_value, src, size);
 	}
 }
 
@@ -82,166 +82,166 @@ CDatumGenericGPDB::CDatumGenericGPDB
 //---------------------------------------------------------------------------
 CDatumGenericGPDB::~CDatumGenericGPDB()
 {
-	GPOS_DELETE_ARRAY(m_pbVal);
-	m_pmdid->Release();
+	GPOS_DELETE_ARRAY(m_bytearray_value);
+	m_mdid->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FNull
+//		CDatumGenericGPDB::IsNull
 //
 //	@doc:
 //		Accessor of is null
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FNull() const
+CDatumGenericGPDB::IsNull() const
 {
-	return m_fNull;
+	return m_is_null;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::UlSize
+//		CDatumGenericGPDB::Size
 //
 //	@doc:
 //		Accessor of size
 //
 //---------------------------------------------------------------------------
 ULONG
-CDatumGenericGPDB::UlSize() const
+CDatumGenericGPDB::Size() const
 {
-	return m_ulSize;
+	return m_size;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::Pmdid
+//		CDatumGenericGPDB::MDId
 //
 //	@doc:
 //		Accessor of the type information
 //
 //---------------------------------------------------------------------------
 IMDId *
-CDatumGenericGPDB::Pmdid() const
+CDatumGenericGPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 
 INT
-CDatumGenericGPDB::ITypeModifier() const
+CDatumGenericGPDB::TypeModifier() const
 {
-	return m_iTypeModifier;
+	return m_type_modifier;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::UlHash
+//		CDatumGenericGPDB::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CDatumGenericGPDB::UlHash() const
+CDatumGenericGPDB::HashValue() const
 {
-	ULONG ulHash = 0;
-	if (FNull())
+	ULONG hash = 0;
+	if (IsNull())
 	{
-		ulHash = gpos::UlHash<ULONG>(&ulHash);
+		hash = gpos::HashValue<ULONG>(&hash);
 	}
 	else
 	{
-		ulHash = gpos::UlHash<BYTE>(&m_pbVal[0]);
-		ULONG ulSize = UlSize();
-		for (ULONG i = 1; i < ulSize; i++)
+		hash = gpos::HashValue<BYTE>(&m_bytearray_value[0]);
+		ULONG size = Size();
+		for (ULONG i = 1; i < size; i++)
 		{
-			ulHash = gpos::UlCombineHashes(ulHash, gpos::UlHash<BYTE>(&m_pbVal[i]));
+			hash = gpos::CombineHashes(hash, gpos::HashValue<BYTE>(&m_bytearray_value[i]));
 		}
 	}
 
-	return gpos::UlCombineHashes (m_pmdid->UlHash(), ulHash);
+	return gpos::CombineHashes (m_mdid->HashValue(), hash);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::Pstr
+//		CDatumGenericGPDB::GetMDName
 //
 //	@doc:
 //		Return string representation
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDatumGenericGPDB::Pstr
+CDatumGenericGPDB::GetStrRepr
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CWStringDynamic str(pmp);
+	CWStringDynamic str(mp);
 
-	if (FNull())
+	if (IsNull())
 	{
 		str.AppendFormat(GPOS_WSZ_LIT("null"));
-		return GPOS_NEW(pmp) CWStringConst(pmp, str.Wsz());
+		return GPOS_NEW(mp) CWStringConst(mp, str.GetBuffer());
 	}
 
 	// pretty print datums that can be mapped to LINTs or CDoubles
-	if (FHasStatsLINTMapping())
+	if (IsDatumMappableToLINT())
 	{
-		str.AppendFormat(GPOS_WSZ_LIT("%0.3f"), (double) LStatsMapping());
-		return GPOS_NEW(pmp) CWStringConst(pmp, str.Wsz());
+		str.AppendFormat(GPOS_WSZ_LIT("%0.3f"), (double) GetLINTMapping());
+		return GPOS_NEW(mp) CWStringConst(mp, str.GetBuffer());
 	}
-	else if (FHasStatsDoubleMapping())
+	else if (IsDatumMappableToDouble())
 	{
-		str.AppendFormat(GPOS_WSZ_LIT("%0.3f"), DStatsMapping().DVal());
-		return GPOS_NEW(pmp) CWStringConst(pmp, str.Wsz());
+		str.AppendFormat(GPOS_WSZ_LIT("%0.3f"), GetDoubleMapping().Get());
+		return GPOS_NEW(mp) CWStringConst(mp, str.GetBuffer());
 	}
 
 	// print hex representation of bytes
-	ULONG ulSize = UlSize();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	ULONG size = Size();
+	for (ULONG i = 0; i < size; i++)
 	{
-		str.AppendFormat(GPOS_WSZ_LIT("%02X"), m_pbVal[ul]);
+		str.AppendFormat(GPOS_WSZ_LIT("%02X"), m_bytearray_value[i]);
 	}
 
-	return GPOS_NEW(pmp) CWStringConst(pmp, str.Wsz());
+	return GPOS_NEW(mp) CWStringConst(mp, str.GetBuffer());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FMatch
+//		CDatumGenericGPDB::Matches
 //
 //	@doc:
 //		Matches the values of datums
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FMatch
+CDatumGenericGPDB::Matches
 	(
-	const IDatum *pdatum
+	const IDatum *datum
 	)
 	const
 {
-	if(!pdatum->Pmdid()->FEquals(m_pmdid) || (pdatum->UlSize() != UlSize()))
+	if(!datum->MDId()->Equals(m_mdid) || (datum->Size() != Size()))
 	{
 		return false;
 	}
 
-	const CDatumGenericGPDB *pdatumgeneric = dynamic_cast<const CDatumGenericGPDB *>(pdatum);
+	const CDatumGenericGPDB *datum_generic = dynamic_cast<const CDatumGenericGPDB *>(datum);
 
-	if (pdatumgeneric->FNull() && FNull())
+	if (datum_generic->IsNull() && IsNull())
 	{
 		return true;
 	}
 
-	if (!pdatumgeneric->FNull() && !FNull())
+	if (!datum_generic->IsNull() && !IsNull())
 	{
-		if (0 == clib::IMemCmp(pdatumgeneric->m_pbVal, m_pbVal, UlSize()))
+		if (0 == clib::Memcmp(datum_generic->m_bytearray_value, m_bytearray_value, Size()))
 		{
 			return true;
 		}
@@ -252,23 +252,23 @@ CDatumGenericGPDB::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::PdatumCopy
+//		CDatumGenericGPDB::MakeCopy
 //
 //	@doc:
 //		Returns a copy of the datum
 //
 //---------------------------------------------------------------------------
 IDatum *
-CDatumGenericGPDB::PdatumCopy
+CDatumGenericGPDB::MakeCopy
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	m_pmdid->AddRef();
+	m_mdid->AddRef();
 	
 	// CDatumGenericGPDB makes a copy of the buffer
-	return GPOS_NEW(pmp) CDatumGenericGPDB(pmp, m_pmdid, m_iTypeModifier, m_pbVal, m_ulSize, m_fNull, m_lValue, m_dValue);
+	return GPOS_NEW(mp) CDatumGenericGPDB(mp, m_mdid, m_type_modifier, m_bytearray_value, m_size, m_is_null, m_stats_comp_val_int, m_stats_comp_val_double);
 }
 
 
@@ -287,117 +287,117 @@ CDatumGenericGPDB::OsPrint
 	)
 	const
 {
-	const CWStringConst *pstr = Pstr(m_pmp);
-	os << pstr->Wsz();
-	GPOS_DELETE(pstr);
+	const CWStringConst *str = GetStrRepr(m_mp);
+	os << str->GetBuffer();
+	GPOS_DELETE(str);
 
 	return os;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FHasStatsDoubleMapping
+//		CDatumGenericGPDB::IsDatumMappableToDouble
 //
 //	@doc:
 //		For statistics computation, can this datum be mapped to a CDouble
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FHasStatsDoubleMapping() const
+CDatumGenericGPDB::IsDatumMappableToDouble() const
 {
-	return CMDTypeGenericGPDB::FHasByteDoubleMapping(this->Pmdid());
+	return CMDTypeGenericGPDB::HasByte2DoubleMapping(this->MDId());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FHasStatsLINTMapping
+//		CDatumGenericGPDB::IsDatumMappableToLINT
 //
 //	@doc:
 //		For statistics computation, can this datum be mapped to a LINT
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FHasStatsLINTMapping() const
+CDatumGenericGPDB::IsDatumMappableToLINT() const
 {
-	return CMDTypeGenericGPDB::FHasByteLintMapping(this->Pmdid());
+	return CMDTypeGenericGPDB::HasByte2IntMapping(this->MDId());
 
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FSupportsBinaryComp
+//		CDatumGenericGPDB::SupportsBinaryComp
 //
 //	@doc:
 //		For statistics computation, can we compare byte array
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FSupportsBinaryComp
-	(
-	const IDatum *pdatumOther
-	)
+CDatumGenericGPDB::SupportsBinaryComp
+		(
+				const IDatum *datum_other
+		)
 	const
 {
-	return ((Pmdid()->FEquals(&CMDIdGPDB::m_mdidBPChar)
-			|| Pmdid()->FEquals(&CMDIdGPDB::m_mdidVarChar)
-			|| Pmdid()->FEquals(&CMDIdGPDB::m_mdidText))
-			&& (this->Pmdid()->Sysid().FEquals(pdatumOther->Pmdid()->Sysid())));
+	return ((MDId()->Equals(&CMDIdGPDB::m_mdid_bpchar)
+			|| MDId()->Equals(&CMDIdGPDB::m_mdid_varchar)
+			|| MDId()->Equals(&CMDIdGPDB::m_mdid_text))
+			&& (this->MDId()->Sysid().Equals(datum_other->MDId()->Sysid())));
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::PbaVal
+//		CDatumGenericGPDB::MakeCopyOfValue
 //
 //	@doc:
 //		For statistics computation, return the byte array representation of
 //		the datum
 //---------------------------------------------------------------------------
 const BYTE*
-CDatumGenericGPDB::PbaVal
-	()
+CDatumGenericGPDB::GetByteArrayValue
+		()
 	const
 {
-	return m_pbVal;
+	return m_bytearray_value;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FStatsEqual
+//		CDatumGenericGPDB::StatsAreEqual
 //
 //	@doc:
 //		Are datums statistically equal?
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FStatsEqual
-	(
-	const IDatum *pdatum
-	)
+CDatumGenericGPDB::StatsAreEqual
+		(
+				const IDatum *datum
+		)
 	const
 {
 	// if mapping exists, use that to compute equality
-	if (FHasStatsLINTMapping()
-			|| FHasStatsDoubleMapping())
+	if (IsDatumMappableToLINT()
+			|| IsDatumMappableToDouble())
 	{
-		return IDatumStatisticsMappable::FStatsEqual(pdatum);
+		return IDatumStatisticsMappable::StatsAreEqual(datum);
 	}
 
 	// take special care of nulls
-	if (FNull() || pdatum->FNull())
+	if (IsNull() || datum->IsNull())
 	{
-		return FNull() && pdatum->FNull();
+		return IsNull() && datum->IsNull();
 	}
 
 	// fall back to memcmp
-	const CDatumGenericGPDB *pdatumgenericgpdb
-				= dynamic_cast<const CDatumGenericGPDB *> (pdatum);
+	const CDatumGenericGPDB *datum_generic_gpdb
+				= dynamic_cast<const CDatumGenericGPDB *> (datum);
 
-	ULONG ulSize = this->UlSize();
-	if (ulSize == pdatumgenericgpdb->UlSize())
+	ULONG size = this->Size();
+	if (size == datum_generic_gpdb->Size())
 	{
-		const BYTE *pb1 = m_pbVal;
-		const BYTE *pb2 = pdatumgenericgpdb->m_pbVal;
-		return (clib::IMemCmp(pb1, pb2, ulSize) == 0);
+		const BYTE *s1 = m_bytearray_value;
+		const BYTE *s2 = datum_generic_gpdb->m_bytearray_value;
+		return (clib::Memcmp(s1, s2, size) == 0);
 	}
 
 	return false;
@@ -405,198 +405,198 @@ CDatumGenericGPDB::FStatsEqual
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::PbaVal
+//		CDatumGenericGPDB::MakeCopyOfValue
 //
 //	@doc:
 //		Accessor of byte array
 //
 //---------------------------------------------------------------------------
 BYTE *
-CDatumGenericGPDB::PbaVal
-	(
-	IMemoryPool *pmp,
-	ULONG *pulLength
-	)
+CDatumGenericGPDB::MakeCopyOfValue
+		(
+				IMemoryPool *mp,
+				ULONG *dest_length
+		)
 	const
 {
-	ULONG ulLength = 0;
-	BYTE *pba = NULL;
+	ULONG length = 0;
+	BYTE *dest = NULL;
 
-	if (!FNull())
+	if (!IsNull())
 	{
-		ulLength = this->UlSize();;
-		GPOS_ASSERT(ulLength > 0);
-		pba = GPOS_NEW_ARRAY(pmp, BYTE, ulLength);
-		(void) clib::PvMemCpy(pba, this->m_pbVal, ulLength);
+		length = this->Size();;
+		GPOS_ASSERT(length > 0);
+		dest = GPOS_NEW_ARRAY(mp, BYTE, length);
+		(void) clib::Memcpy(dest, this->m_bytearray_value, length);
 	}
 
-	*pulLength = ulLength;
-	return pba;
+	*dest_length = length;
+	return dest;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FNeedsPadding
+//		CDatumGenericGPDB::NeedsPadding
 //
 //	@doc:
 //		Does the datum need to be padded before statistical derivation
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FNeedsPadding() const
+CDatumGenericGPDB::NeedsPadding() const
 {
-	return Pmdid()->FEquals(&CMDIdGPDB::m_mdidBPChar);
+	return MDId()->Equals(&CMDIdGPDB::m_mdid_bpchar);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::PdatumPadded
+//		CDatumGenericGPDB::MakePaddedDatum
 //
 //	@doc:
 //		Return the padded datum
 //
 //---------------------------------------------------------------------------
 IDatum *
-CDatumGenericGPDB::PdatumPadded
-	(
-	IMemoryPool *pmp,
-	ULONG ulColLen
-	)
+CDatumGenericGPDB::MakePaddedDatum
+		(
+				IMemoryPool *mp,
+				ULONG col_len
+		)
 	const
 {
 	// in GPDB the first four bytes of the datum are used for the header
-	const ULONG ulAdjustedColWidth = ulColLen + GPDB_DATUM_HDRSZ;
+	const ULONG adjusted_col_width = col_len + GPDB_DATUM_HDRSZ;
 
-	if (this->FNull() || (gpos::ulong_max == ulColLen))
+	if (this->IsNull() || (gpos::ulong_max == col_len))
 	{
-		return this->PdatumCopy(pmp);
+		return this->MakeCopy(mp);
 	}
 
-	const ULONG ulDatumLen = this->UlSize();
-	if (gpos::ulong_max != ulAdjustedColWidth &&
-		ulDatumLen < ulAdjustedColWidth)
+	const ULONG datum_len = this->Size();
+	if (gpos::ulong_max != adjusted_col_width &&
+		datum_len < adjusted_col_width)
 	{
-		const BYTE *pbaOriginal = this->PbaVal();
-		BYTE *pba = NULL;
+		const BYTE *original = this->GetByteArrayValue();
+		BYTE *dest = NULL;
 
-		pba = GPOS_NEW_ARRAY(m_pmp, BYTE, ulAdjustedColWidth);
-		(void) clib::PvMemCpy(pba, pbaOriginal, ulDatumLen);
+		dest = GPOS_NEW_ARRAY(m_mp, BYTE, adjusted_col_width);
+		(void) clib::Memcpy(dest, original, datum_len);
 
 		// datum's length smaller than column's size, therefore pad the input datum
-		(void) clib::PvMemSet(pba + ulDatumLen, ' ', ulAdjustedColWidth - ulDatumLen);
+		(void) clib::Memset(dest + datum_len, ' ', adjusted_col_width - datum_len);
 
 		// create a new datum
-		this->Pmdid()->AddRef();
-		CDatumGenericGPDB *pdatumNew = GPOS_NEW(m_pmp) CDatumGenericGPDB
+		this->MDId()->AddRef();
+		CDatumGenericGPDB *datum_new = GPOS_NEW(m_mp) CDatumGenericGPDB
 													(
-													pmp,
-													this->Pmdid(),
-													this->ITypeModifier(),
-													pba,
-													ulAdjustedColWidth,
-													this->FNull(),
-													this->LStatsMapping(),
+													mp,
+													this->MDId(),
+													this->TypeModifier(),
+													dest,
+													adjusted_col_width,
+													this->IsNull(),
+													this->GetLINTMapping(),
 													0 /* dValue */
 													);
 
 		// clean up the input byte array as the constructor creates a copy
-		GPOS_DELETE_ARRAY(pba);
+		GPOS_DELETE_ARRAY(dest);
 
-		return pdatumNew;
+		return datum_new;
 	}
 
-	return this->PdatumCopy(pmp);
+	return this->MakeCopy(mp);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::DLikePredicateScaleFactor
+//		CDatumGenericGPDB::GetLikePredicateScaleFactor
 //
 //	@doc:
 //		Return the scale factor of the like predicate by checking the pattern
 //		that is being matched in the LIKE predicate
 //---------------------------------------------------------------------------
 CDouble
-CDatumGenericGPDB::DLikePredicateScaleFactor() const
+CDatumGenericGPDB::GetLikePredicateScaleFactor() const
 {
-	if (this->FNull())
+	if (this->IsNull())
 	{
 		return CDouble(1.0);
 	}
 
-	const ULONG ulDatumLen = this->UlSize();
-	const BYTE *pba = this->PbaVal();
+	const ULONG datum_len = this->Size();
+	const BYTE *dest = this->GetByteArrayValue();
 
-	ULONG ulPos = 0;
+	ULONG pos = 0;
 
 	// skip any leading %; it's already factored into initial selectivity (DDefaultScaleFactorLike).
 	// In GPDB the first four bytes of the datum are used for the header
-	for (ulPos = GPDB_DATUM_HDRSZ; ulPos < ulDatumLen; ulPos++)
+	for (pos = GPDB_DATUM_HDRSZ; pos < datum_len; pos++)
 	{
-		if ('%' != pba[ulPos]  && '_' != pba[ulPos])
+		if ('%' != dest[pos]  && '_' != dest[pos])
 		{
 			break;
 		}
 	}
 
-	CDouble dSelectivity(1.0);
-	CDouble dFixedCharSelectivity = CDatumGenericGPDB::DDefaultFixedCharSelectivity;
-	while (ulPos < ulDatumLen)
+	CDouble selectivity(1.0);
+	CDouble fixed_char_selectivity = CDatumGenericGPDB::DefaultFixedCharSelectivity;
+	while (pos < datum_len)
 	{
 		// % and _ are wildcard characters in LIKE
-		if ('_' == pba[ulPos])
+		if ('_' == dest[pos])
 		{
-			dSelectivity = dSelectivity * CDatumGenericGPDB::DDefaultAnyCharSelectivity;
+			selectivity = selectivity * CDatumGenericGPDB::DefaultAnyCharSelectivity;
 		}
-		else if ('%' != pba[ulPos])
+		else if ('%' != dest[pos])
 	    {
-			if ('\\' == pba[ulPos])
+			if ('\\' == dest[pos])
 			{
 				// backslash quotes the next character
-				ulPos++;
-				if (ulPos >= ulDatumLen)
+				pos++;
+				if (pos >= datum_len)
 				{
 					break;
 			    }
 			}
 
-			dSelectivity = dSelectivity * dFixedCharSelectivity;
-			dFixedCharSelectivity = dFixedCharSelectivity +
-									(1.0 - dFixedCharSelectivity) * CDatumGenericGPDB::DDefaultCdbRolloffSelectivity;
+			selectivity = selectivity * fixed_char_selectivity;
+			fixed_char_selectivity = fixed_char_selectivity +
+									(1.0 - fixed_char_selectivity) * CDatumGenericGPDB::DefaultCdbRolloffSelectivity;
 		}
 
-		ulPos++;
+		pos++;
 	}
 
-	dSelectivity = dSelectivity * DTrailingWildcardSelectivity(pba, ulPos);
+	selectivity = selectivity * GetTrailingWildcardSelectivity(dest, pos);
 
-	return 1 / std::max(dSelectivity, 1/CScaleFactorUtils::DDefaultScaleFactorLike);
+	return 1 / std::max(selectivity, 1/CScaleFactorUtils::DDefaultScaleFactorLike);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::DTrailingWildcardSelectivity
+//		CDatumGenericGPDB::GetTrailingWildcardSelectivity
 //
 //	@doc:
 //		Return the selectivity of the trailing wildcards
 //
 //---------------------------------------------------------------------------
 CDouble
-CDatumGenericGPDB::DTrailingWildcardSelectivity
+CDatumGenericGPDB::GetTrailingWildcardSelectivity
 	(
-	const BYTE *pba,
-	ULONG ulPos
+	const BYTE *dest,
+	ULONG pos
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pba);
+	GPOS_ASSERT(NULL != dest);
 
 	// If no trailing wildcard, reduce selectivity
-	BOOL fWildcard = (0 < ulPos) && ('%' != pba[ulPos-1]);
-	BOOL fBackslash = (2 <= ulPos) && ('\\' == pba[ulPos-2]);
-	if (fWildcard || fBackslash)
+	BOOL wildcard = (0 < pos) && ('%' != dest[pos-1]);
+	BOOL backslash = (2 <= pos) && ('\\' == dest[pos-2]);
+	if (wildcard || backslash)
 	{
-		return CDatumGenericGPDB::DDefaultCdbRanchorSelectivity;
+		return CDatumGenericGPDB::DefaultCdbRanchorSelectivity;
 	}
 
 	return CDouble(1.0);
@@ -604,104 +604,104 @@ CDatumGenericGPDB::DTrailingWildcardSelectivity
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FStatsEqualBinary
+//		CDatumGenericGPDB::StatsEqualBinary
 //
 //	@doc:
 //		Equality based on byte array
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FStatsEqualBinary
+CDatumGenericGPDB::StatsEqualBinary
 	(
-	const IDatum *pdatumOther
+	const IDatum *datum_other
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdatumOther);
-	GPOS_ASSERT(this->FSupportsBinaryComp(pdatumOther) && pdatumOther->FSupportsBinaryComp(this));
+	GPOS_ASSERT(NULL != datum_other);
+	GPOS_ASSERT(this->SupportsBinaryComp(datum_other) && datum_other->SupportsBinaryComp(this));
 
 	// ensure that both datums are from the same system
 	// for instance, disallow comparison between GPDB char and HD char
-	GPOS_ASSERT(this->Pmdid()->Sysid().FEquals(pdatumOther->Pmdid()->Sysid()));
+	GPOS_ASSERT(this->MDId()->Sysid().Equals(datum_other->MDId()->Sysid()));
 
-	if (FNull() || pdatumOther->FNull())
+	if (IsNull() || datum_other->IsNull())
 	{
 		return false;
 	}
 
-	const ULONG ulLen = this->UlSize();
-	const ULONG ulLenOther = pdatumOther->UlSize();
+	const ULONG length = this->Size();
+	const ULONG length_other = datum_other->Size();
 
-	if (ulLen != ulLenOther)
+	if (length != length_other)
 	{
 		return false;
 	}
 
 	// compare the two BYTEA after offsetting used by the GPDB datum header length
-	const BYTE *pba = this->PbaVal();
-	const BYTE *pbaOther = pdatumOther->PbaVal();
-	INT iResult = gpos::clib::IMemCmp
+	const BYTE *byte_array_value = this->GetByteArrayValue();
+	const BYTE *other_byte_array_value = datum_other->GetByteArrayValue();
+	INT result = gpos::clib::Memcmp
 								(
-								pba + GPDB_DATUM_HDRSZ,
-								pbaOther + GPDB_DATUM_HDRSZ,
-								ulLen - GPDB_DATUM_HDRSZ
+										byte_array_value + GPDB_DATUM_HDRSZ, 
+										other_byte_array_value + GPDB_DATUM_HDRSZ,
+								length - GPDB_DATUM_HDRSZ
 								);
 
-	return (0 == iResult);
+	return (0 == result);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::FStatsLessThanBinary
+//		CDatumGenericGPDB::StatsLessThanBinary
 //
 //	@doc:
 //		Less-than comparison based on byte array
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumGenericGPDB::FStatsLessThanBinary
+CDatumGenericGPDB::StatsLessThanBinary
 	(
-	const IDatum *pdatumOther
+	const IDatum *datum_other
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdatumOther);
-	GPOS_ASSERT(this->FSupportsBinaryComp(pdatumOther) && pdatumOther->FSupportsBinaryComp(this));
+	GPOS_ASSERT(NULL != datum_other);
+	GPOS_ASSERT(this->SupportsBinaryComp(datum_other) && datum_other->SupportsBinaryComp(this));
 
 	// ensure that both datums are from the same system
 	// for instance, disallow comparison between GPDB char and HD char
-	GPOS_ASSERT(this->Pmdid()->Sysid().FEquals(pdatumOther->Pmdid()->Sysid()));
+	GPOS_ASSERT(this->MDId()->Sysid().Equals(datum_other->MDId()->Sysid()));
 
-	if (FNull() || pdatumOther->FNull())
+	if (IsNull() || datum_other->IsNull())
 	{
 		return false;
 	}
 
-	const ULONG ulLenOther = pdatumOther->UlSize();
+	const ULONG length_other = datum_other->Size();
 
-	ULONG ulLenComparison = this->UlSize();
-	if (this->UlSize() > ulLenOther)
+	ULONG length_self = this->Size();
+	if (this->Size() > length_other)
 	{
-		ulLenComparison = ulLenOther;
+		length_self = length_other;
 	}
 
-	const BYTE *pba = this->PbaVal();
-	const BYTE *pbaOther = pdatumOther->PbaVal();
+	const BYTE *byte_array_value = this->GetByteArrayValue();
+	const BYTE *byte_array_value_other = datum_other->GetByteArrayValue();
 
 	// compare the two BYTEA after offset-ing used by the GPDB datum header length
-	INT iResult = gpos::clib::IMemCmp
+	INT result = gpos::clib::Memcmp
 								(
-								pba + GPDB_DATUM_HDRSZ,
-								pbaOther + GPDB_DATUM_HDRSZ,
-								ulLenComparison - GPDB_DATUM_HDRSZ
+										byte_array_value + GPDB_DATUM_HDRSZ,
+								byte_array_value_other + GPDB_DATUM_HDRSZ,
+								length_self - GPDB_DATUM_HDRSZ
 								);
 
-	if (0 > iResult)
+	if (0 > result)
 	{
 		return true;
 	}
 
-	return (0 == iResult && this->UlSize() < ulLenOther);
+	return (0 == result && this->Size() < length_other);
 }
 
 // EOF

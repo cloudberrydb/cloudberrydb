@@ -80,7 +80,7 @@ namespace gpdxl
 	};
 
 	// message initialization for GPOS exceptions
-	gpos::GPOS_RESULT EresExceptionInit(gpos::IMemoryPool *pmp);
+	gpos::GPOS_RESULT EresExceptionInit(gpos::IMemoryPool *mp);
 
 }
 

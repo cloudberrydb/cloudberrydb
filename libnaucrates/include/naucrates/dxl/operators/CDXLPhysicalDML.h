@@ -44,37 +44,37 @@ namespace gpdxl
 		private:
 
 			// operator type
-			const EdxlDmlType m_edxldmltype;
+		const EdxlDmlType m_dxl_dml_type;
 
 			// target table descriptor
-			CDXLTableDescr *m_pdxltabdesc;
+		CDXLTableDescr *m_dxl_table_descr;
 
 			// list of source column ids		
-			DrgPul *m_pdrgpul;
+			ULongPtrArray *m_src_colids_array;
 			
 			// action column id
-			ULONG m_ulAction;
+			ULONG m_action_colid;
 
 			// oid column id
-			ULONG m_ulOid;
+			ULONG m_oid_colid;
 
 			// ctid column id
-			ULONG m_ulCtid;
+			ULONG m_ctid_colid;
 
 			// segmentid column id
-			ULONG m_ulSegmentId;
+			ULONG m_segid_colid;
 
 			// should update preserve tuple oids
-			BOOL m_fPreserveOids;	
+			BOOL m_preserve_oids;	
 
 			// tuple oid column id
-			ULONG m_ulTupleOid;
+			ULONG m_tuple_oid;
 			
 			// direct dispatch info for insert statements 
-			CDXLDirectDispatchInfo *m_pdxlddinfo;
+			CDXLDirectDispatchInfo *m_direct_dispatch_info;
 			
 			// needs the data to be sorted or not
-			BOOL m_fInputSorted;
+			BOOL m_input_sort_req;
 
 			// private copy ctor
 			CDXLPhysicalDML(const CDXLPhysicalDML &);
@@ -84,18 +84,18 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalDML
 				(
-				IMemoryPool *pmp,
-				const EdxlDmlType edxldmltype,
-				CDXLTableDescr *pdxltabdesc,
-				DrgPul *pdrgpul,
-				ULONG ulAction,
-				ULONG ulOid,
-				ULONG ulCtid,
-				ULONG ulSegmentId,
-				BOOL fPreserveOids,
-				ULONG ulTupleOid,
-				CDXLDirectDispatchInfo *pdxlddinfo,
-				BOOL fInputSorted
+				IMemoryPool *mp,
+				const EdxlDmlType dxl_dml_type,
+				CDXLTableDescr *table_descr,
+				ULongPtrArray *src_colids_array,
+				ULONG action_colid,
+				ULONG oid_colid,
+				ULONG ctid_colid,
+				ULONG segid_colid,
+				BOOL preserve_oids,
+				ULONG tuple_oid,
+				CDXLDirectDispatchInfo *dxl_direct_dispatch_info,
+				BOOL input_sort_req
 				);
 
 			// dtor
@@ -103,98 +103,98 @@ namespace gpdxl
 			~CDXLPhysicalDML();
 		
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// DML operator type
-			EdxlDmlType EdxlDmlOpType() const
+			EdxlDmlType GetDmlOpType() const
 			{
-				return m_edxldmltype;
+			return m_dxl_dml_type;
 			}
 
 			// target table descriptor 
-			CDXLTableDescr *Pdxltabdesc() const
+			CDXLTableDescr *GetDXLTableDescr() const
 			{
-				return m_pdxltabdesc;
+			return m_dxl_table_descr;
 			}
 			
 			// source column ids
-			DrgPul *Pdrgpul() const
+			ULongPtrArray *GetSrcColIdsArray() const
 			{
-				return m_pdrgpul;
+				return m_src_colids_array;
 			}
 
 			// action column id
-			ULONG UlAction() const
+			ULONG ActionColId() const
 			{
-				return m_ulAction;
+				return m_action_colid;
 			}
 
 			// oid column id
-			ULONG UlOid() const
+			ULONG OidColId() const
 			{
-				return m_ulOid;
+				return m_oid_colid;
 			}
 
 			// ctid column id
-			ULONG UlCtid() const
+			ULONG GetCtIdColId() const
 			{
-				return m_ulCtid;
+				return m_ctid_colid;
 			}
 
 			// segmentid column id
-			ULONG UlSegmentId() const
+			ULONG GetSegmentIdColId() const
 			{
-				return m_ulSegmentId;
+				return m_segid_colid;
 			}
 			
 			// does update preserve oids
-			BOOL FPreserveOids() const
+			BOOL IsOidsPreserved() const
 			{
-				return m_fPreserveOids;
+				return m_preserve_oids;
 			}
 
 			// tuple oid column id
-			ULONG UlTupleOid() const
+			ULONG GetTupleOid() const
 			{
-				return m_ulTupleOid;
+				return m_tuple_oid;
 			}
 			
 			// direct dispatch info
-			CDXLDirectDispatchInfo *Pdxlddinfo() const
+			CDXLDirectDispatchInfo *GetDXLDirectDispatchInfo() const
 			{
-				return m_pdxlddinfo;
+				return m_direct_dispatch_info;
 			}
 			
 			// needs the data to be sorted or not
-			BOOL FInputSorted() const
+			BOOL IsInputSortReq() const
 			{
-				return m_fInputSorted;
+				return m_input_sort_req;
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLPhysicalDML *PdxlopConvert
+			CDXLPhysicalDML *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalDML == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalDML == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalDML*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalDML*>(dxl_op);
 			}
 	};
 }

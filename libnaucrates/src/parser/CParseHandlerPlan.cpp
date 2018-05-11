@@ -32,16 +32,16 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerPlan::CParseHandlerPlan
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_ullId(0),
-	m_ullSpaceSize(0),
-	m_pdxln(NULL),
-	m_pdxlddinfo(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_plan_id(0),
+	m_plan_space_size(0),
+	m_dxl_node(NULL),
+	m_direct_dispatch_info(NULL)
 {}
 
 //---------------------------------------------------------------------------
@@ -54,33 +54,33 @@ CParseHandlerPlan::CParseHandlerPlan
 //---------------------------------------------------------------------------
 CParseHandlerPlan::~CParseHandlerPlan()
 {
-	CRefCount::SafeRelease(m_pdxln);
+	CRefCount::SafeRelease(m_dxl_node);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerPlan::Pdxln
+//		CParseHandlerPlan::CreateDXLNode
 //
 //	@doc:
 //		Root of constructed DXL plan
 //
 //---------------------------------------------------------------------------
 CDXLNode *
-CParseHandlerPlan::Pdxln()
+CParseHandlerPlan::CreateDXLNode()
 {
-	return m_pdxln;
+	return m_dxl_node;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerPlan::Edxlphtype
+//		CParseHandlerPlan::GetParseHandlerType
 //
 //	@doc:
 //		Parse handler type
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerPlan::Edxlphtype() const
+CParseHandlerPlan::GetParseHandlerType() const
 {
 	return EdxlphPlan;
 }
@@ -96,45 +96,45 @@ CParseHandlerPlan::Edxlphtype() const
 void
 CParseHandlerPlan::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes &attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenDirectDispatchInfo), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenDirectDispatchInfo), element_local_name))
 	{
-		GPOS_ASSERT(0 < this->UlLength());
-		CParseHandlerBase *pphDirectDispatch = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenDirectDispatchInfo), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphDirectDispatch);
+		GPOS_ASSERT(0 < this->Length());
+		CParseHandlerBase *direct_dispatch_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenDirectDispatchInfo), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(direct_dispatch_parse_handler);
 		
 		// store parse handler
-		this->Append(pphDirectDispatch);
-		pphDirectDispatch->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		this->Append(direct_dispatch_parse_handler);
+		direct_dispatch_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 		return;
 	}
 	
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPlan), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPlan), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 	
 	// parse plan id
-	const XMLCh *xmlszPlanId = CDXLOperatorFactory::XmlstrFromAttrs(attrs, EdxltokenPlanId, EdxltokenPlan);
-	m_ullId = CDXLOperatorFactory::UllValueFromXmlstr(m_pphm->Pmm(), xmlszPlanId, EdxltokenPlanId, EdxltokenPlan);
+	const XMLCh *xml_str_plan_id = CDXLOperatorFactory::ExtractAttrValue(attrs, EdxltokenPlanId, EdxltokenPlan);
+	m_plan_id = CDXLOperatorFactory::ConvertAttrValueToUllong(m_parse_handler_mgr->GetDXLMemoryManager(), xml_str_plan_id, EdxltokenPlanId, EdxltokenPlan);
 
 	// parse plan space size
-	const XMLCh *xmlszPlanSpaceSize = CDXLOperatorFactory::XmlstrFromAttrs(attrs, EdxltokenPlanSpaceSize, EdxltokenPlan);
-	m_ullSpaceSize = CDXLOperatorFactory::UllValueFromXmlstr(m_pphm->Pmm(), xmlszPlanSpaceSize, EdxltokenPlanSpaceSize, EdxltokenPlan);
+	const XMLCh *xmlszPlanSpaceSize = CDXLOperatorFactory::ExtractAttrValue(attrs, EdxltokenPlanSpaceSize, EdxltokenPlan);
+	m_plan_space_size = CDXLOperatorFactory::ConvertAttrValueToUllong(m_parse_handler_mgr->GetDXLMemoryManager(), xmlszPlanSpaceSize, EdxltokenPlanSpaceSize, EdxltokenPlan);
 
 	// create a parse handler for physical nodes and activate it
-	GPOS_ASSERT(NULL != m_pmp);
-	CParseHandlerBase *pph = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenPhysical), m_pphm, this);
-	m_pphm->ActivateParseHandler(pph);
+	GPOS_ASSERT(NULL != m_mp);
+	CParseHandlerBase *base_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenPhysical), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(base_parse_handler);
 	
 	// store parse handler
-	this->Append(pph);
+	this->Append(base_parse_handler);
 }
 
 //---------------------------------------------------------------------------
@@ -148,37 +148,37 @@ CParseHandlerPlan::StartElement
 void
 CParseHandlerPlan::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPlan), xmlszLocalname))
+	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPlan), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	CParseHandlerPhysicalOp *pph = dynamic_cast<CParseHandlerPhysicalOp *>((*this)[0]);
+	CParseHandlerPhysicalOp *operator_parse_handler = dynamic_cast<CParseHandlerPhysicalOp *>((*this)[0]);
 	
-	GPOS_ASSERT(NULL != pph->Pdxln());
+	GPOS_ASSERT(NULL != operator_parse_handler->CreateDXLNode());
 
 	// store constructed child
-	m_pdxln = pph->Pdxln();
-	m_pdxln->AddRef();
+	m_dxl_node = operator_parse_handler->CreateDXLNode();
+	m_dxl_node->AddRef();
 	
-	if (2 == this->UlLength())
+	if (2 == this->Length())
 	{
-		CParseHandlerDirectDispatchInfo *pphDirectDispatchInfo = dynamic_cast<CParseHandlerDirectDispatchInfo *>((*this)[1]);
-		CDXLDirectDispatchInfo *pdxlddinfo = pphDirectDispatchInfo->Pdxlddinfo();
-		GPOS_ASSERT(NULL != pdxlddinfo);
+		CParseHandlerDirectDispatchInfo *direct_dispatch_info_parse_handler = dynamic_cast<CParseHandlerDirectDispatchInfo *>((*this)[1]);
+		CDXLDirectDispatchInfo *dxl_direct_dispatch_info = direct_dispatch_info_parse_handler->GetDXLDirectDispatchInfo();
+		GPOS_ASSERT(NULL != dxl_direct_dispatch_info);
 		
-		pdxlddinfo->AddRef();
-		m_pdxln->SetDirectDispatchInfo(pdxlddinfo);
+		dxl_direct_dispatch_info->AddRef();
+		m_dxl_node->SetDirectDispatchInfo(dxl_direct_dispatch_info);
 	}
 	// deactivate handler
 
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

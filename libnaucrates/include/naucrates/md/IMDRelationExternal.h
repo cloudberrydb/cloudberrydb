@@ -34,53 +34,53 @@ namespace gpmd
 
 			// storage type
 			virtual
-			Erelstoragetype Erelstorage() const
+			Erelstoragetype RetrieveRelStorageType() const
 			{
 				return ErelstorageExternal;
 			}
 
 			// is this a temp relation
 			virtual
-			BOOL FTemporary() const
+			BOOL IsTemporary() const
 			{
 				return false;
 			}
 
 			// is this a partitioned table
 			virtual
-			BOOL FPartitioned() const
+			BOOL IsPartitioned() const
 			{
 				return false;
 			}
 			
 			// return true if a hash distributed table needs to be considered as random
 			virtual
-			BOOL FConvertHashToRandom() const = 0;
+			BOOL ConvertHashToRandom() const = 0;
 			
 			// does this table have oids
 			virtual
-			BOOL FHasOids() const
+			BOOL HasOids() const
 			{
 				return false;
 			}
 
 			// number of partition columns
 			virtual
-			ULONG UlPartColumns() const
+			ULONG PartColumnCount() const
 			{
 				return 0;
 			}
 
 			// number of partitions
 			virtual
-			ULONG UlPartitions() const
+			ULONG PartitionCount() const
 			{
 				return 0;
 			}
 
 			// retrieve the partition column at the given position
 			virtual
-			const IMDColumn *PmdcolPartColumn(ULONG /*ulPos*/) const
+			const IMDColumn *PartColAt(ULONG /*pos*/) const
 			{
 				GPOS_ASSERT(!"External tables have no partition columns");
 				return NULL;
@@ -88,7 +88,7 @@ namespace gpmd
 
 			// retrieve list of partition types
 			virtual
-			DrgPsz *PdrgpszPartTypes() const
+			CharPtrArray *GetPartitionTypes() const
 			{
 				GPOS_ASSERT(!"External tables have no partition types");
 				return NULL;
@@ -96,7 +96,7 @@ namespace gpmd
 
 			// retrieve the partition type at the given position
 			virtual
-			CHAR SzPartType(ULONG /*ulPos*/) const
+			CHAR PartTypeAtLevel(ULONG /*pos*/) const
 			{
 				GPOS_ASSERT(!"External tables have no partition types");
 				return (CHAR) 0;
@@ -104,22 +104,22 @@ namespace gpmd
 
 			// part constraint
 			virtual
-			IMDPartConstraint *Pmdpartcnstr() const
+			IMDPartConstraint *MDPartConstraint() const
 			{
 				return NULL;
 			}
 
 			// reject limit
 			virtual
-			INT IRejectLimit() const = 0;
+			INT RejectLimit() const = 0;
 
 			// reject limit in rows?
 			virtual
-			BOOL FRejLimitInRows() const = 0;
+			BOOL IsRejectLimitInRows() const = 0;
 
 			// format error table mdid
 			virtual
-			IMDId *PmdidFmtErrRel() const = 0;
+			IMDId *GetFormatErrTableMdid() const = 0;
 
 	};
 }

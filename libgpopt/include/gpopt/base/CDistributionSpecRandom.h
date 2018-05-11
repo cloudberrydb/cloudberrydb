@@ -33,7 +33,7 @@ namespace gpopt
 		protected:
 
 			// is the random distribution sensitive to duplicates
-			BOOL m_fDuplicateSensitive;
+			BOOL m_is_duplicate_sensitive;
 			
 			// does Singleton spec satisfy current distribution?
 			// by default, Singleton satisfies hashed/random since all tuples with the same hash value
@@ -64,17 +64,17 @@ namespace gpopt
 			}
 
 			// is distribution duplicate sensitive
-			BOOL FDuplicateSensitive() const
+			BOOL IsDuplicateSensitive() const
 			{
-				return m_fDuplicateSensitive;
+				return m_is_duplicate_sensitive;
 			}
 			
 			// mark distribution as unsatisfiable by Singleton
 			void MarkDuplicateSensitive()
 			{
-				GPOS_ASSERT(!m_fDuplicateSensitive);
+				GPOS_ASSERT(!m_is_duplicate_sensitive);
 
-				m_fDuplicateSensitive = true;
+				m_is_duplicate_sensitive = true;
 			}
 
 			// does Singleton spec satisfy current distribution?
@@ -93,7 +93,7 @@ namespace gpopt
 
 			// does this distribution match the given one
 			virtual 
-			BOOL FMatch(const CDistributionSpec *pds) const;
+			BOOL Matches(const CDistributionSpec *pds) const;
 			
 			// does current distribution satisfy the given one
 			virtual 
@@ -101,7 +101,7 @@ namespace gpopt
 			
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *pmp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, DrgPexpr *pdrgpexpr, CExpression *pexpr);				
+			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);				
 
 			// return distribution partitioning type
 			virtual

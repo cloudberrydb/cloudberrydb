@@ -34,16 +34,16 @@ namespace gpmd
 	{
 		private:
 			// mdid of source type
-			CMDIdGPDB *m_pmdidLeft;
+			CMDIdGPDB *m_mdid_left;
 			
 			// mdid of destinatin type
-			CMDIdGPDB *m_pmdidRight;
+			CMDIdGPDB *m_mdid_right;
 	
 			// comparison type
-			IMDType::ECmpType m_ecmpt;
+			IMDType::ECmpType m_comparision_type;
 			
 			// buffer for the serialized mdid
-			WCHAR m_wszBuffer[GPDXL_MDID_LENGTH];
+			WCHAR m_mdid_array[GPDXL_MDID_LENGTH];
 			
 			// string representation of the mdid
 			CWStringStatic m_str;
@@ -56,58 +56,58 @@ namespace gpmd
 			
 		public:
 			// ctor
-			CMDIdScCmp(CMDIdGPDB *pmdidLeft, CMDIdGPDB *pmdidRight, IMDType::ECmpType ecmpt);
+			CMDIdScCmp(CMDIdGPDB *left_mdid, CMDIdGPDB *right_mdid, IMDType::ECmpType cmp_type);
 			
 			// dtor
 			virtual
 			~CMDIdScCmp();
 			
 			virtual
-			EMDIdType Emdidt() const
+			EMDIdType MdidType() const
 			{
 				return EmdidScCmp;
 			}
 			
 			// string representation of mdid
 			virtual
-			const WCHAR *Wsz() const;
+			const WCHAR *GetBuffer() const;
 			
 			// source system id
 			virtual
 			CSystemId Sysid() const
 			{
-				return m_pmdidLeft->Sysid();
+				return m_mdid_left->Sysid();
 			}
 			
 			// left type id
-			IMDId *PmdidLeft() const;
+			IMDId *GetLeftMdid() const;
 
 			// right type id
-			IMDId *PmdidRight() const;
+			IMDId *GetRightMdid() const;
 			
-			IMDType::ECmpType Ecmpt() const
+			IMDType::ECmpType ParseCmpType() const
 			{ 
-				return m_ecmpt;
+				return m_comparision_type;
 			}
 			
 			// equality check
 			virtual
-			BOOL FEquals(const IMDId *pmdid) const;
+			BOOL Equals(const IMDId *mdid) const;
 			
 			// computes the hash value for the metadata id
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// is the mdid valid
 			virtual
-			BOOL FValid() const
+			BOOL IsValid() const
 			{
-				return IMDId::FValid(m_pmdidLeft) && IMDId::FValid(m_pmdidRight) && IMDType::EcmptOther != m_ecmpt;
+				return IMDId::IsValid(m_mdid_left) && IMDId::IsValid(m_mdid_right) && IMDType::EcmptOther != m_comparision_type;
 			}
 
-			// serialize mdid in DXL as the value of the specified attribute 
+			// serialize mdid in DXL as the value of the specified attribute
 			virtual
-			void Serialize(CXMLSerializer *pxmlser, const CWStringConst *pstrAttribute) const;
+			void Serialize(CXMLSerializer *xml_serializer, const CWStringConst *attribute_str) const;
 						
 			// debug print of the metadata id
 			virtual
@@ -115,20 +115,20 @@ namespace gpmd
 			
 			// const converter
 			static
-			const CMDIdScCmp *PmdidConvert(const IMDId *pmdid)
+			const CMDIdScCmp *CastMdid(const IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && EmdidScCmp == pmdid->Emdidt());
+				GPOS_ASSERT(NULL != mdid && EmdidScCmp == mdid->MdidType());
 
-				return dynamic_cast<const CMDIdScCmp *>(pmdid);
+				return dynamic_cast<const CMDIdScCmp *>(mdid);
 			}
 			
 			// non-const converter
 			static
-			CMDIdScCmp *PmdidConvert(IMDId *pmdid)
+			CMDIdScCmp *CastMdid(IMDId *mdid)
 			{
-				GPOS_ASSERT(NULL != pmdid && EmdidScCmp == pmdid->Emdidt());
+				GPOS_ASSERT(NULL != mdid && EmdidScCmp == mdid->MdidType());
 
-				return dynamic_cast<CMDIdScCmp *>(pmdid);
+				return dynamic_cast<CMDIdScCmp *>(mdid);
 			}
 	};
 }

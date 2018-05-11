@@ -29,17 +29,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformDelete2DML::CXformDelete2DML
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalDelete(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))
+				mp,
+				GPOS_NEW(mp) CLogicalDelete(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))
 				)
 		)
 {}
@@ -84,15 +84,15 @@ CXformDelete2DML::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalDelete *popDelete = CLogicalDelete::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components for alternative
 
 	CTableDescriptor *ptabdesc = popDelete->Ptabdesc();
 	ptabdesc->AddRef();
 
-	DrgPcr *pdrgpcr = popDelete->Pdrgpcr();
-	pdrgpcr->AddRef();
+	CColRefArray *colref_array = popDelete->Pdrgpcr();
+	colref_array->AddRef();
 
 	CColRef *pcrCtid = popDelete->PcrCtid();
 
@@ -106,11 +106,11 @@ CXformDelete2DML::Transform
 	CExpression *pexprAlt =
 		CXformUtils::PexprLogicalDMLOverProject
 						(
-						pmp,
+						mp,
 						pexprChild,
 						CLogicalDML::EdmlDelete,
 						ptabdesc,
-						pdrgpcr,
+						colref_array,
 						pcrCtid,
 						pcrSegmentId
 						);

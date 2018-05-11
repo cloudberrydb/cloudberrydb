@@ -24,33 +24,33 @@ namespace gpnaucrates
 			static
 			void JoinHistogramsLASJ
 					(
-					IMemoryPool *pmp,
-					const CHistogram *phist1,
-					const CHistogram *phist2,
-					CStatsPredJoin *pstatsjoin,
-					CDouble dRows1,
-					CDouble dRows2,
-					CHistogram **pphist1, // output: histogram 1 after join
-					CHistogram **pphist2, // output: histogram 2 after join
-					CDouble *pdScaleFactor, // output: scale factor based on the join
-					BOOL fEmptyInput, // if true, one of the inputs is empty
-					IStatistics::EStatsJoinType eStatsJoinType,
-					BOOL fIgnoreLasjHistComputation
+					IMemoryPool *mp,
+					const CHistogram *histogram1,
+					const CHistogram *histogram2,
+					CStatsPredJoin *join_stats,
+					CDouble num_rows1,
+					CDouble num_rows2,
+					CHistogram **result_hist1, // output: histogram 1 after join
+					CHistogram **result_hist2, // output: histogram 2 after join
+					CDouble *scale_factor, // output: scale factor based on the join
+					BOOL is_input_empty, // if true, one of the inputs is empty
+					IStatistics::EStatsJoinType join_type,
+					BOOL DoIgnoreLASJHistComputation
 					);
 			// left anti semi join with another stats structure
 			static
-			CStatistics *PstatsLASJoinStatic
+			CStatistics *CalcLASJoinStatsStatic
 					(
-					IMemoryPool *pmp,
-					const IStatistics *pistatsOuter,
-					const IStatistics *pistatsInner,
-					DrgPstatspredjoin *pdrgpstatspredjoin,
-					BOOL fIgnoreLasjHistComputation // except for the case of LOJ cardinality estimation this flag is always
+					IMemoryPool *mp,
+					const IStatistics *outer_stats_input,
+					const IStatistics *inner_stats_input,
+					CStatsPredJoinArray *join_preds_stats,
+					BOOL DoIgnoreLASJHistComputation // except for the case of LOJ cardinality estimation this flag is always
 					// "true" since LASJ stats computation is very aggressive
 					);
 			// compute the null frequency for LASJ
 			static
-			CDouble DNullFreqLASJ(CStatsPred::EStatsCmpType escmpt, const CHistogram *phistOuter, const CHistogram *phistInner);
+			CDouble NullFreqLASJ(CStatsPred::EStatsCmpType stats_cmp_type, const CHistogram *outer_histogram, const CHistogram *inner_histogram);
 	};
 }
 

@@ -32,13 +32,13 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalPartitionSelectorDML::CPhysicalPartitionSelectorDML
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid,
-	HMUlExpr *phmulexprEqPredicates,
+	IMemoryPool *mp,
+	IMDId *mdid,
+	UlongToExprMap *phmulexprEqPredicates,
 	CColRef *pcrOid
 	)
 	:
-	CPhysicalPartitionSelector(pmp, pmdid, phmulexprEqPredicates),
+	CPhysicalPartitionSelector(mp, mdid, phmulexprEqPredicates),
 	m_pcrOid(pcrOid)
 {
 	GPOS_ASSERT(NULL != pcrOid);
@@ -46,14 +46,14 @@ CPhysicalPartitionSelectorDML::CPhysicalPartitionSelectorDML
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalPartitionSelectorDML::FMatch
+//		CPhysicalPartitionSelectorDML::Matches
 //
 //	@doc:
 //		Match operators
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalPartitionSelectorDML::FMatch
+CPhysicalPartitionSelectorDML::Matches
 	(
 	COperator *pop
 	)
@@ -66,23 +66,23 @@ CPhysicalPartitionSelectorDML::FMatch
 
 	CPhysicalPartitionSelectorDML *popPartSelector = CPhysicalPartitionSelectorDML::PopConvert(pop);
 
-	return popPartSelector->Pmdid()->FEquals(m_pmdid) &&
+	return popPartSelector->MDId()->Equals(m_mdid) &&
 			popPartSelector->PcrOid() == m_pcrOid &&
 			FMatchExprMaps(popPartSelector->m_phmulexprEqPredicates, m_phmulexprEqPredicates);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalPartitionSelectorDML::UlHash
+//		CPhysicalPartitionSelectorDML::HashValue
 //
 //	@doc:
 //		Hash operator
 //
 //---------------------------------------------------------------------------
 ULONG
-CPhysicalPartitionSelectorDML::UlHash() const
+CPhysicalPartitionSelectorDML::HashValue() const
 {
-	return gpos::UlCombineHashes(Eopid(), m_pmdid->UlHash());
+	return gpos::CombineHashes(Eopid(), m_mdid->HashValue());
 }
 
 //---------------------------------------------------------------------------
@@ -96,7 +96,7 @@ CPhysicalPartitionSelectorDML::UlHash() const
 CPartFilterMap *
 CPhysicalPartitionSelectorDML::PpfmDerive
 	(
-	IMemoryPool *, //pmp,
+	IMemoryPool *, //mp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -115,16 +115,16 @@ CPhysicalPartitionSelectorDML::PpfmDerive
 CDistributionSpec *
 CPhysicalPartitionSelectorDML::PdsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsInput,
-	ULONG ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 
 	// if required distribution uses any defined column, it has to be enforced on top,
 	// in this case, we request Any distribution from the child
@@ -133,13 +133,13 @@ CPhysicalPartitionSelectorDML::PdsRequired
 	if (CDistributionSpec::EdtHashed == edtRequired)
 	{
 		CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(pdsInput);
-		pcrs = pdshashed->PcrsUsed(m_pmp);
+		pcrs = pdshashed->PcrsUsed(m_mp);
 	}
 
 	if (CDistributionSpec::EdtRouted == edtRequired)
 	{
 		CDistributionSpecRouted *pdsrouted = CDistributionSpecRouted::PdsConvert(pdsInput);
-		pcrs = GPOS_NEW(m_pmp) CColRefSet(m_pmp);
+		pcrs = GPOS_NEW(m_mp) CColRefSet(m_mp);
 		pcrs->Include(pdsrouted->Pcr());
 	}
 
@@ -147,10 +147,10 @@ CPhysicalPartitionSelectorDML::PdsRequired
 	CRefCount::SafeRelease(pcrs);
 	if (fUsesDefinedCols)
 	{
-		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
+		return GPOS_NEW(mp) CDistributionSpecAny(this->Eopid());
 	}
 
-	return PdsPassThru(pmp, exprhdl, pdsInput, ulChildIndex);
+	return PdsPassThru(mp, exprhdl, pdsInput, child_index);
 }
 
 //---------------------------------------------------------------------------
@@ -164,18 +164,18 @@ CPhysicalPartitionSelectorDML::PdsRequired
 COrderSpec *
 CPhysicalPartitionSelectorDML::PosRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	COrderSpec *posRequired,
-	ULONG ulChildIndex,
-	DrgPdp *, // pdrgpdpCtxt
+	ULONG child_index,
+	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 
-	CColRefSet *pcrsSort = posRequired->PcrsUsed(m_pmp);
+	CColRefSet *pcrsSort = posRequired->PcrsUsed(m_mp);
 	BOOL fUsesDefinedCols = pcrsSort->FMember(m_pcrOid);
 	pcrsSort->Release();
 
@@ -185,11 +185,11 @@ CPhysicalPartitionSelectorDML::PosRequired
 		// request it from child, and we pass an empty order spec;
 		// order enforcer function takes care of enforcing this order on top of
 		// this operator
-		return GPOS_NEW(pmp) COrderSpec(pmp);
+		return GPOS_NEW(mp) COrderSpec(mp);
 	}
 
 	// otherwise, we pass through required order
-	return PosPassThru(pmp, exprhdl, posRequired, ulChildIndex);
+	return PosPassThru(mp, exprhdl, posRequired, child_index);
 }
 
 //---------------------------------------------------------------------------
@@ -210,16 +210,16 @@ CPhysicalPartitionSelectorDML::FProvidesReqdCols
 	const
 {
 	GPOS_ASSERT(NULL != pcrsRequired);
-	GPOS_ASSERT(1 == exprhdl.UlArity());
+	GPOS_ASSERT(1 == exprhdl.Arity());
 
-	CColRefSet *pcrs = GPOS_NEW(m_pmp) CColRefSet(m_pmp);
+	CColRefSet *pcrs = GPOS_NEW(m_mp) CColRefSet(m_mp);
 	// include the defined oid column
 	pcrs->Include(m_pcrOid);
 
 	// include output columns of the relational child
-	pcrs->Union(exprhdl.Pdprel(0 /*ulChildIndex*/)->PcrsOutput());
+	pcrs->Union(exprhdl.GetRelationalProperties(0 /*child_index*/)->PcrsOutput());
 
-	BOOL fProvidesCols = pcrs->FSubset(pcrsRequired);
+	BOOL fProvidesCols = pcrs->ContainsAll(pcrsRequired);
 	pcrs->Release();
 
 	return fProvidesCols;
@@ -236,18 +236,18 @@ CPhysicalPartitionSelectorDML::FProvidesReqdCols
 CPartitionPropagationSpec *
 CPhysicalPartitionSelectorDML::PppsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
-	ULONG ulChildIndex,
-	DrgPdp *, //pdrgpdpCtxt,
+	ULONG child_index,
+	CDrvdProp2dArray *, //pdrgpdpCtxt,
 	ULONG //ulOptReq
 	)
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 	GPOS_ASSERT(NULL != pppsRequired);
 
-	return CPhysical::PppsRequiredPushThru(pmp, exprhdl, pppsRequired, ulChildIndex);
+	return CPhysical::PppsRequiredPushThru(mp, exprhdl, pppsRequired, child_index);
 }
 
 //---------------------------------------------------------------------------
@@ -261,7 +261,7 @@ CPhysicalPartitionSelectorDML::PppsRequired
 CPartIndexMap *
 CPhysicalPartitionSelectorDML::PpimDerive
 	(
-	IMemoryPool *, //pmp,
+	IMemoryPool *, //mp,
 	CExpressionHandle &exprhdl,
 	CDrvdPropCtxt * //pdpctxt
 	)
@@ -287,7 +287,7 @@ CPhysicalPartitionSelectorDML::EpetOrder
 	const
 {
 	GPOS_ASSERT(NULL != peo);
-	GPOS_ASSERT(!peo->PosRequired()->FEmpty());
+	GPOS_ASSERT(!peo->PosRequired()->IsEmpty());
 
 	COrderSpec *pos = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pos();
 	if (peo->FCompatible(pos))
@@ -297,7 +297,7 @@ CPhysicalPartitionSelectorDML::EpetOrder
 
 	// Sort has to go above if sort columns use any column
 	// defined here, otherwise, Sort can either go above or below
-	CColRefSet *pcrsSort = peo->PosRequired()->PcrsUsed(m_pmp);
+	CColRefSet *pcrsSort = peo->PosRequired()->PcrsUsed(m_mp);
 	BOOL fUsesDefinedCols = pcrsSort->FMember(m_pcrOid);
 	pcrsSort->Release();
 	if (fUsesDefinedCols)
@@ -334,7 +334,7 @@ CPhysicalPartitionSelectorDML::EpetDistribution
 		 return CEnfdProp::EpetUnnecessary;
 	}
 
-	if (exprhdl.FHasOuterRefs())
+	if (exprhdl.HasOuterRefs())
 	{
 		return CEnfdProp::EpetProhibited;
 	}
@@ -360,7 +360,7 @@ CPhysicalPartitionSelectorDML::OsPrint
 
 	os	<< SzId()
 		<< ", Part Table: ";
-	m_pmdid->OsPrint(os);
+	m_mdid->OsPrint(os);
 
 	return os;
 }

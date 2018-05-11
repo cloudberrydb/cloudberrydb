@@ -40,7 +40,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CScalarSwitchCase(IMemoryPool *pmp);
+			CScalarSwitchCase(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -63,7 +63,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -76,18 +76,18 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
 			}
 
 			virtual
-			IMDId *PmdidType() const
+			IMDId *MdidType() const
 			{
-				GPOS_ASSERT(!"Invalid function call: CScalarSwitchCase::PmdidType()");
+				GPOS_ASSERT(!"Invalid function call: CScalarSwitchCase::MdidType()");
 				return NULL;
 			}
 
@@ -95,7 +95,7 @@ namespace gpopt
 			virtual
 			EBoolEvalResult Eber
 				(
-				DrgPul *pdrgpulChildren
+				ULongPtrArray *pdrgpulChildren
 				)
 				const
 			{

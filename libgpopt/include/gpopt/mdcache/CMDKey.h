@@ -38,28 +38,28 @@ namespace gpopt
 	{
 		private:
 			// id of the object in the underlying source
-			const IMDId *m_pmdid;
+			const IMDId *m_mdid;
 			
 		public:
 			// ctors
 			explicit
-			CMDKey(const IMDId *pmdid);
+			CMDKey(const IMDId *mdid);
 			
 			// dtor
 			~CMDKey()
 			{}
 
 			
-			const IMDId *Pmdid() const
+			const IMDId *MDId() const
 			{
-				return m_pmdid;
+				return m_mdid;
 			}
 					
 			// equality function
-			BOOL FEquals(const CMDKey &mdkey) const;
+			BOOL Equals(const CMDKey &mdkey) const;
 			
 			// hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			
 			// equality function for using MD keys in a cache

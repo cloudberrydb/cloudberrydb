@@ -40,8 +40,8 @@ using namespace gpopt;
 CJoinOrderGreedy::CJoinOrderGreedy
 	(
 	IMemoryPool *pmp,
-	DrgPexpr *pdrgpexprComponents,
-	DrgPexpr *pdrgpexprConjuncts
+	CExpressionArray *pdrgpexprComponents,
+	CExpressionArray *pdrgpexprConjuncts
 	)
 	:
 	CJoinOrder(pmp, pdrgpexprComponents, pdrgpexprConjuncts),
@@ -87,16 +87,16 @@ CJoinOrderGreedy::MarkUsedEdges()
 
 	CExpression *pexpr = m_pcompResult->m_pexpr;
 	COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
-	if (0 == pexpr->UlArity() ||
+	if (0 == pexpr->Arity() ||
 		(COperator::EopLogicalSelect != eopid && COperator::EopLogicalInnerJoin != eopid))
 	{
 		// result component does not have a scalar child, e.g. a Get node
 		return;
 	}
 
-	CExpression *pexprScalar = (*pexpr) [pexpr->UlArity() - 1];
-	DrgPexpr *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(m_pmp, pexprScalar);
-	const ULONG ulSize = pdrgpexpr->UlLength();
+	CExpression *pexprScalar = (*pexpr) [pexpr->Arity() - 1];
+	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprScalar);
+	const ULONG ulSize = pdrgpexpr->Size();
 
 	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
 	{
@@ -127,7 +127,7 @@ CJoinOrderGreedy::GetStartingJoins()
 	CDouble dMinRows(0.0);
 	ULONG ul1Counter = 0;
 	ULONG ul2Counter = 0;
-	CJoinOrder::SComponent *pcompBest = GPOS_NEW(m_pmp) SComponent(m_pmp, NULL /*pexpr*/);
+	CJoinOrder::SComponent *pcompBest = GPOS_NEW(m_mp) SComponent(m_mp, NULL /*pexpr*/);
 
 	for (ULONG ul1 = 0; ul1 < m_ulComps; ul1++)
 	{
@@ -141,7 +141,7 @@ CJoinOrderGreedy::GetStartingJoins()
 				continue;
 			}
 			DeriveStats(pcompTemp->m_pexpr);
-			CDouble dRows = pcompTemp->m_pexpr->Pstats()->DRows();
+			CDouble dRows = pcompTemp->m_pexpr->Pstats()->Rows();
 			if (dMinRows <= 0 || dRows < dMinRows)
 			{
 				ul1Counter = ul1;
@@ -195,7 +195,7 @@ CJoinOrderGreedy::PexprExpand()
 	}
 	else
 	{
-		m_pcompResult = GPOS_NEW(m_pmp) SComponent(m_pmp, NULL /*pexpr*/);
+		m_pcompResult = GPOS_NEW(m_mp) SComponent(m_mp, NULL /*pexpr*/);
 	}
 
 	while (ulCoveredComps < m_ulComps)
@@ -221,7 +221,7 @@ CJoinOrderGreedy::PexprExpand()
 				continue;
 			}
 			DeriveStats(pcompTemp->m_pexpr);
-			CDouble dRows = pcompTemp->m_pexpr->Pstats()->DRows();
+			CDouble dRows = pcompTemp->m_pexpr->Pstats()->Rows();
 
 			if (NULL == pcompBestResult || dRows < dMinRows)
 			{

@@ -29,31 +29,31 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformPushGbWithHavingBelowJoin::CXformPushGbWithHavingBelowJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformExploration
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CLogicalSelect(pmp),
-			GPOS_NEW(pmp) CExpression
+			mp,
+			GPOS_NEW(mp) CLogicalSelect(mp),
+			GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalGbAgg(pmp),
-				GPOS_NEW(pmp) CExpression
+				mp,
+				GPOS_NEW(mp) CLogicalGbAgg(mp),
+				GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CLogicalInnerJoin(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)),  // join outer child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // join inner child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp)) // join predicate
+					mp,
+					GPOS_NEW(mp) CLogicalInnerJoin(mp),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),  // join outer child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // join inner child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp)) // join predicate
 					),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))	// scalar project list
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))	// scalar project list
 				),
-			GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))	// Having clause
+			GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))	// Having clause
 			)
 		)
 {}
@@ -100,7 +100,7 @@ CXformPushGbWithHavingBelowJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	CExpression *pexprGb = (*pexpr)[0];
 	CLogicalGbAgg *popGbAgg = CLogicalGbAgg::PopConvert(pexprGb->Pop());
@@ -110,7 +110,7 @@ CXformPushGbWithHavingBelowJoin::Transform
 		return;
 	}
 
-	CExpression *pexprResult = CXformUtils::PexprPushGbBelowJoin(pmp, pexpr);
+	CExpression *pexprResult = CXformUtils::PexprPushGbBelowJoin(mp, pexpr);
 
 	if (NULL != pexprResult)
 	{

@@ -25,7 +25,7 @@ namespace gpnaucrates
 
 		// project
 		static
-		CStatistics *PstatsProject(IMemoryPool *pmp, const CStatistics *pstatsInput, DrgPul *pdrgpulProjColIds, HMUlDatum *phmuldatum);
+    CStatistics *CalcProjStats(IMemoryPool *mp, const CStatistics *input_stats, ULongPtrArray *projection_colids, UlongToIDatumMap *datum_map);
 	};
 }
 

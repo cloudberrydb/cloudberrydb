@@ -36,15 +36,15 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalWindow::CDXLLogicalWindow
 	(
-	IMemoryPool *pmp,
-	DrgPdxlws *pdrgpdxlws
+	IMemoryPool *mp,
+	CDXLWindowSpecArray *window_spec_array
 	)
 	:
-	CDXLLogical(pmp),
-	m_pdrgpdxlws(pdrgpdxlws)
+	CDXLLogical(mp),
+	m_window_spec_array(window_spec_array)
 {
-	GPOS_ASSERT(NULL != m_pdrgpdxlws);
-	GPOS_ASSERT(0 < m_pdrgpdxlws->UlLength());
+	GPOS_ASSERT(NULL != m_window_spec_array);
+	GPOS_ASSERT(0 < m_window_spec_array->Size());
 }
 
 //---------------------------------------------------------------------------
@@ -57,54 +57,54 @@ CDXLLogicalWindow::CDXLLogicalWindow
 //---------------------------------------------------------------------------
 CDXLLogicalWindow::~CDXLLogicalWindow()
 {
-	m_pdrgpdxlws->Release();
+	m_window_spec_array->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalWindow::Edxlop
+//		CDXLLogicalWindow::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLLogicalWindow::Edxlop() const
+CDXLLogicalWindow::GetDXLOperator() const
 {
 	return EdxlopLogicalWindow;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalWindow::PstrOpName
+//		CDXLLogicalWindow::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLLogicalWindow::PstrOpName() const
+CDXLLogicalWindow::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenLogicalWindow);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenLogicalWindow);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalWindow::Pdxlws
+//		CDXLLogicalWindow::GetWindowKeyAt
 //
 //	@doc:
 //		Return the window specification at a given position
 //
 //---------------------------------------------------------------------------
 CDXLWindowSpec *
-CDXLLogicalWindow::Pdxlws
+CDXLLogicalWindow::GetWindowKeyAt
 	(
-	ULONG ulPos
+	ULONG idx
 	)
 	const
 {
-	GPOS_ASSERT(ulPos <= m_pdrgpdxlws->UlLength());
-	return (*m_pdrgpdxlws)[ulPos];
+	GPOS_ASSERT(idx <= m_window_spec_array->Size());
+	return (*m_window_spec_array)[idx];
 }
 
 //---------------------------------------------------------------------------
@@ -118,30 +118,30 @@ CDXLLogicalWindow::Pdxlws
 void
 CDXLLogicalWindow::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
 	// serialize the list of window specifications
-	const CWStringConst *pstrWindowSpecList = CDXLTokens::PstrToken(EdxltokenWindowSpecList);
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrWindowSpecList);
-	const ULONG ulSize = m_pdrgpdxlws->UlLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	const CWStringConst *window_spec_list_str = CDXLTokens::GetDXLTokenStr(EdxltokenWindowSpecList);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), window_spec_list_str);
+	const ULONG size = m_window_spec_array->Size();
+	for (ULONG idx = 0; idx < size; idx++)
 	{
-		CDXLWindowSpec *pdxlwinspec = (*m_pdrgpdxlws)[ul];
-		pdxlwinspec->SerializeToDXL(pxmlser);
+		CDXLWindowSpec *window_spec = (*m_window_spec_array)[idx];
+		window_spec->SerializeToDXL(xml_serializer);
 	}
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrWindowSpecList);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), window_spec_list_str);
 
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	node->SerializeChildrenToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 #ifdef GPOS_DEBUG
@@ -156,33 +156,33 @@ CDXLLogicalWindow::SerializeToDXL
 void
 CDXLLogicalWindow::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) const
 {
-	GPOS_ASSERT(2 == pdxln->UlArity());
+	GPOS_ASSERT(2 == node->Arity());
 
-	CDXLNode *pdxlnProjList = (*pdxln)[0];
-	CDXLNode *pdxlnChild = (*pdxln)[1];
+	CDXLNode *proj_list_dxlnode = (*node)[0];
+	CDXLNode *child_dxlnode = (*node)[1];
 
-	GPOS_ASSERT(EdxlopScalarProjectList == pdxlnProjList->Pdxlop()->Edxlop());
-	GPOS_ASSERT(EdxloptypeLogical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(EdxlopScalarProjectList == proj_list_dxlnode->GetOperator()->GetDXLOperator());
+	GPOS_ASSERT(EdxloptypeLogical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnProjList->Pdxlop()->AssertValid(pdxlnProjList, fValidateChildren);
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		proj_list_dxlnode->GetOperator()->AssertValid(proj_list_dxlnode, validate_children);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 
-	const ULONG ulArity = pdxlnProjList->UlArity();
-	for (ULONG ul = 0; ul < ulArity; ++ul)
+	const ULONG arity = proj_list_dxlnode->Arity();
+	for (ULONG idx = 0; idx < arity; ++idx)
 	{
-		CDXLNode *pdxlnPrEl = (*pdxlnProjList)[ul];
-		GPOS_ASSERT(EdxlopScalarIdent != pdxlnPrEl->Pdxlop()->Edxlop());
+		CDXLNode *proj_elem = (*proj_list_dxlnode)[idx];
+		GPOS_ASSERT(EdxlopScalarIdent != proj_elem->GetOperator()->GetDXLOperator());
 	}
 
-	GPOS_ASSERT(NULL != m_pdrgpdxlws);
-	GPOS_ASSERT(0 < m_pdrgpdxlws->UlLength());
+	GPOS_ASSERT(NULL != m_window_spec_array);
+	GPOS_ASSERT(0 < m_window_spec_array->Size());
 }
 
 #endif // GPOS_DEBUG

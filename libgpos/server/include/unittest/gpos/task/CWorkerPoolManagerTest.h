@@ -43,7 +43,7 @@ namespace gpos
 
 			static void Unittest_TestSingleTaskPerformance
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG culWrkrCnt,
 				ULONG culIterCnt,
 				void *funcRepeated(void *)
@@ -51,7 +51,7 @@ namespace gpos
 
 			static void Unittest_TestMultiTaskPerformance
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				ULONG culWrkrCnt,
 				ULONG culIterCnt,
 				void *funcSingle(void *)

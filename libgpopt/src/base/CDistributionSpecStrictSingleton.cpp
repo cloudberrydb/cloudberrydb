@@ -47,7 +47,7 @@ CDistributionSpecStrictSingleton::FSatisfies
 	)
 	const
 {	
-	if (FMatch(pdss))
+	if (Matches(pdss))
 	{
 		// exact match implies satisfaction
 		return true;

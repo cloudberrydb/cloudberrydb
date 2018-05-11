@@ -34,7 +34,7 @@ CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotInNoCorrelations::Exfp
 {
 	// if there are no outer references, or if all outer refs do not reference outer
 	// child, the transformation is applicable
-	if (!exprhdl.FHasOuterRefs(1 /*ulChildIndex*/) || CUtils::FInnerUsesExternalColsOnly(exprhdl))
+	if (!exprhdl.HasOuterRefs(1 /*child_index*/) || CUtils::FInnerUsesExternalColsOnly(exprhdl))
 	{
 		return CXform::ExfpHigh;
 	}

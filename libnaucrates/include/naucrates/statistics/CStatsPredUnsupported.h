@@ -31,13 +31,13 @@ namespace gpnaucrates
 		private:
 
 			// predicate comparison type
-			CStatsPred::EStatsCmpType m_estatscmptype;
+			CStatsPred::EStatsCmpType m_stats_cmp_type;
 
 			// scale factor of the predicate
-			CDouble m_dDefaultScaleFactor;
+			CDouble m_default_scale_factor;
 
 			// initialize the scale factor of the predicate
-			CDouble DScaleFactorInit();
+			CDouble InitScaleFactor();
 
 			// private copy ctor
 			CStatsPredUnsupported(const CStatsPredUnsupported &);
@@ -45,39 +45,39 @@ namespace gpnaucrates
 		public:
 
 			// ctors
-			CStatsPredUnsupported(ULONG ulColId, CStatsPred::EStatsCmpType espt);
-			CStatsPredUnsupported(ULONG ulColId, CStatsPred::EStatsCmpType espt, CDouble dDefaultScaleFactor);
+			CStatsPredUnsupported(ULONG colid, CStatsPred::EStatsCmpType stats_pred_type);
+			CStatsPredUnsupported(ULONG colid, CStatsPred::EStatsCmpType stats_pred_type, CDouble default_scale_factor);
 
 			// filter type id
 			virtual
-			CStatsPred::EStatsPredType Espt() const
+			CStatsPred::EStatsPredType GetPredStatsType() const
 			{
 				return CStatsPred::EsptUnsupported;
 			}
 
 			// comparison types for stats computation
 			virtual
-			CStatsPred::EStatsCmpType Estatscmptype() const
+			CStatsPred::EStatsCmpType GetStatsCmpType() const
 			{
-				return m_estatscmptype;
+				return m_stats_cmp_type;
 			}
 
-			CDouble DScaleFactor() const
+			CDouble ScaleFactor() const
 			{
-				return m_dDefaultScaleFactor;
+				return m_default_scale_factor;
 			}
 
 			// conversion function
 			static
-			CStatsPredUnsupported *PstatspredConvert
+			CStatsPredUnsupported *ConvertPredStats
 				(
-				CStatsPred *pstatspred
+				CStatsPred *pred_stats
 				)
 			{
-				GPOS_ASSERT(NULL != pstatspred);
-				GPOS_ASSERT(CStatsPred::EsptUnsupported == pstatspred->Espt());
+				GPOS_ASSERT(NULL != pred_stats);
+				GPOS_ASSERT(CStatsPred::EsptUnsupported == pred_stats->GetPredStatsType());
 
-				return dynamic_cast<CStatsPredUnsupported*>(pstatspred);
+				return dynamic_cast<CStatsPredUnsupported*>(pred_stats);
 			}
 
 	}; // class CStatsPredUnsupported

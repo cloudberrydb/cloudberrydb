@@ -43,7 +43,7 @@ namespace gpopt
 	//		rewindability, partition propagation spec and CTE map.
 	//
 	//---------------------------------------------------------------------------
-	class CDrvdPropPlan : public CDrvdProp
+	class CDrvdPropPlan : public DrvdPropArray
 	{
 
 		private:
@@ -67,7 +67,7 @@ namespace gpopt
 			CCTEMap *m_pcm;
 
 			 // copy CTE producer plan properties from given context to current object
-			void CopyCTEProducerPlanProps(IMemoryPool *pmp, CDrvdPropCtxt *pdpctxt, COperator *pop);
+			void CopyCTEProducerPlanProps(IMemoryPool *mp, CDrvdPropCtxt *pdpctxt, COperator *pop);
 
 			// private copy ctor
 			CDrvdPropPlan(const CDrvdPropPlan &);
@@ -89,11 +89,11 @@ namespace gpopt
 			}
 
 			// derivation function
-			void Derive(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
+			void Derive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
 
 			// short hand for conversion
 			static
-			CDrvdPropPlan *Pdpplan(CDrvdProp *pdp);
+			CDrvdPropPlan *Pdpplan(DrvdPropArray *pdp);
 
 			// sort order accessor
 			COrderSpec *Pos() const
@@ -126,18 +126,18 @@ namespace gpopt
 			}
 
 			// cte map
-			CCTEMap *Pcm() const
+			CCTEMap *GetCostModel() const
 			{
 				return m_pcm;
 			}
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// equality function
 			virtual
-			ULONG FEqual(const CDrvdPropPlan *pdpplan) const;
+			ULONG Equals(const CDrvdPropPlan *pdpplan) const;
 
 			// check for satisfying required plan properties
 			virtual

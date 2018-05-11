@@ -25,7 +25,7 @@ using namespace gpos;
 using namespace gpdxl;
 
 static
-CDXLMemoryManager *pmm = NULL;
+CDXLMemoryManager *dxl_memory_manager = NULL;
 
 static
 IMemoryPool *pmpXerces = NULL;
@@ -54,10 +54,10 @@ volatile ULONG_PTR m_ulpShutdownDXL = 0;
 //---------------------------------------------------------------------------
 void InitDXL()
 {
-	if (0 < UlpExchangeAdd(&m_ulpInitDXL, 1))
+	if (0 < ExchangeAddUlongPtrWithInt(&m_ulpInitDXL, 1))
 	{
 		// DXL support is already initialized by a previous call
-		(void) UlpExchangeAdd(&m_ulpInitDXL, -1);
+		(void) ExchangeAddUlongPtrWithInt(&m_ulpInitDXL, -1);
 
 		return;
 	}
@@ -66,14 +66,14 @@ void InitDXL()
 	GPOS_ASSERT(NULL != pmpDXL);
 
 	// setup own memory manager
-	pmm = GPOS_NEW(pmpXerces) CDXLMemoryManager(pmpXerces);
+	dxl_memory_manager = GPOS_NEW(pmpXerces) CDXLMemoryManager(pmpXerces);
 
 	// initialize Xerces, if this fails library initialization should crash here
 	XMLPlatformUtils::Initialize(
 			XMLUni::fgXercescDefaultLocale, // locale
 			NULL, // nlsHome: location for message files
 			NULL, // panicHandler
-			pmm // memoryManager
+								 dxl_memory_manager  // memoryManager
 			);
 
 	// initialize DXL tokens
@@ -94,10 +94,10 @@ void InitDXL()
 //---------------------------------------------------------------------------
 void ShutdownDXL()
 {
-	if (0 < UlpExchangeAdd(&m_ulpShutdownDXL, 1))
+	if (0 < ExchangeAddUlongPtrWithInt(&m_ulpShutdownDXL, 1))
 	{
 		// DXL support is already shut-down by a previous call
-		(void) UlpExchangeAdd(&m_ulpShutdownDXL, -1);
+		(void) ExchangeAddUlongPtrWithInt(&m_ulpShutdownDXL, -1);
 
 		return;
 	}
@@ -108,8 +108,8 @@ void ShutdownDXL()
 
 	CDXLTokens::Terminate();
 
-	GPOS_DELETE(pmm);
-	pmm = NULL;
+	GPOS_DELETE(dxl_memory_manager);
+	dxl_memory_manager = NULL;
 }
 
 
@@ -128,7 +128,7 @@ void gpdxl_init()
 		CAutoMemoryPool amp;
 
 		// detach safety
-		pmpXerces = amp.PmpDetach();
+		pmpXerces = amp.Detach();
 	}
 	
 	// create memory pool for DXL global allocations
@@ -136,7 +136,7 @@ void gpdxl_init()
 		CAutoMemoryPool amp;
 
 		// detach safety
-		pmpDXL = amp.PmpDetach();
+		pmpDXL = amp.Detach();
 	}
 
 	// add standard exception messages
@@ -159,13 +159,13 @@ void gpdxl_terminate()
 
 	if (NULL != pmpDXL)
 	{
-		(CMemoryPoolManager::Pmpm())->Destroy(pmpDXL);
+		(CMemoryPoolManager::GetMemoryPoolMgr())->Destroy(pmpDXL);
 		pmpDXL = NULL;
 	}
 
 	if (NULL != pmpXerces)
 	{
-		(CMemoryPoolManager::Pmpm())->Destroy(pmpXerces);
+		(CMemoryPoolManager::GetMemoryPoolMgr())->Destroy(pmpXerces);
 		pmpXerces = NULL;
 	}
 #endif // GPOS_DEBUG

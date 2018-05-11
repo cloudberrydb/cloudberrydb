@@ -35,16 +35,16 @@ namespace gpdxl
 		private:
 			
 			// cost expended before fetching any tuples
-			CWStringDynamic *m_pstrStartupCost;
+			CWStringDynamic *m_startup_cost_str;
 			
 			// total cost (assuming all tuples fetched)
-			CWStringDynamic *m_pstrTotalCost;
+			CWStringDynamic *m_total_cost_str;
 			
 			// number of rows plan is expected to emit
-			CWStringDynamic *m_pstrRows;
+			CWStringDynamic *m_rows_out_str;
 			
 			// average row width in bytes
-			CWStringDynamic *m_pstrWidth;
+			CWStringDynamic *m_width_str;
 			
 			// private copy ctor
 			CDXLOperatorCost(const CDXLOperatorCost &);
@@ -53,29 +53,29 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLOperatorCost
 				(
-				CWStringDynamic *pstrStartupCost,
-				CWStringDynamic *pstrTotalCost,
-				CWStringDynamic *pstrRows,
-				CWStringDynamic *pstrWidth
+				CWStringDynamic *startup_cost_str,
+				CWStringDynamic *total_cost_str,
+				CWStringDynamic *rows_out_str,
+				CWStringDynamic *width_str
 				);
 			
 			virtual
 			~CDXLOperatorCost();
 			
 			// serialize operator in DXL format
-			void SerializeToDXL(CXMLSerializer *pxmlser) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer) const;
 			
 			// accessors
-			const CWStringDynamic *PstrStartupCost() const;
-			const CWStringDynamic *PstrTotalCost() const;
-			const CWStringDynamic *PstrRows() const;
-			const CWStringDynamic *PstrWidth() const;
+			const CWStringDynamic *GetStartUpCostStr() const;
+			const CWStringDynamic *GetTotalCostStr() const;
+			const CWStringDynamic *GetRowsOutStr() const;
+			const CWStringDynamic *GetWidthStr() const;
 			
 			// set the number of rows
-			void SetRows(CWStringDynamic *pstr);
+			void SetRows(CWStringDynamic *str);
 			
 			// set the total cost
-			void SetCost(CWStringDynamic *pstr);
+			void SetCost(CWStringDynamic *str);
 	};
 }
 

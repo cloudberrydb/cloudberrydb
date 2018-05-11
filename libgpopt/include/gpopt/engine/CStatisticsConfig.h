@@ -39,19 +39,19 @@ namespace gpopt
 		private:
 
 			// shared memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// damping factor for filter
-			CDouble m_dDampingFactorFilter;
+			CDouble m_damping_factor_filter;
 
 			// damping factor for join
-			CDouble m_dDampingFactorJoin;
+			CDouble m_damping_factor_join;
 
 			// damping factor for group by
-			CDouble m_dDampingFactorGroupBy;
+			CDouble m_damping_factor_groupby;
 
 			// hash set of md ids for columns with missing statistics
-			HSMDId *m_phsmdidcolinfo;
+			MdidHashSet *m_phsmdidcolinfo;
 
 			// mutex for locking entry when accessing / changing missing statistics column info
 			CMutex m_mutexMissingColStats;
@@ -61,10 +61,10 @@ namespace gpopt
 			// ctor
 			CStatisticsConfig
 				(
-				IMemoryPool *pmp,
-				CDouble dDampingFactorFilter,
-				CDouble dDampingFactorJoin,
-				CDouble dDampingFactorGroupBy
+				IMemoryPool *mp,
+				CDouble damping_factor_filter,
+				CDouble damping_factor_join,
+				CDouble damping_factor_groupby
 				);
 
 			// dtor
@@ -73,37 +73,37 @@ namespace gpopt
 			// damping factor for filter
 			CDouble DDampingFactorFilter() const
 			{
-				return m_dDampingFactorFilter;
+				return m_damping_factor_filter;
 			}
 
 			// damping factor for join
 			CDouble DDampingFactorJoin() const
 			{
-				return m_dDampingFactorJoin;
+				return m_damping_factor_join;
 			}
 
 			// damping factor for group by
 			CDouble DDampingFactorGroupBy() const
 			{
-				return m_dDampingFactorGroupBy;
+				return m_damping_factor_groupby;
 			}
 
 			// add the information about the column with the missing statistics
 			void AddMissingStatsColumn(CMDIdColStats *pmdidCol);
 
 			// collect the missing statistics columns
-			void CollectMissingStatsColumns(DrgPmdid *pdrgmdid);
+			void CollectMissingStatsColumns(IMdIdArray *pdrgmdid);
 
 			// generate default optimizer configurations
 			static
-			CStatisticsConfig *PstatsconfDefault(IMemoryPool *pmp)
+			CStatisticsConfig *PstatsconfDefault(IMemoryPool *mp)
 			{
-				return GPOS_NEW(pmp) CStatisticsConfig
+				return GPOS_NEW(mp) CStatisticsConfig
 									(
-									pmp,
-									0.75 /* dDampingFactorFilter */,
-									0.01 /* dDampingFactorJoin */,
-									0.75 /* dDampingFactorGroupBy */
+									mp,
+									0.75 /* damping_factor_filter */,
+									0.01 /* damping_factor_join */,
+									0.75 /* damping_factor_groupby */
 									);
 			}
 

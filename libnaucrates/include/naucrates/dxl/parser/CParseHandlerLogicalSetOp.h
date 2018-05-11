@@ -40,44 +40,44 @@ namespace gpdxl
 		private:
 
 			// set operation type
-			EdxlSetOpType m_edxlsetop;
+			EdxlSetOpType m_setop_type;
 
 			// array of input column id arrays
-			DrgPdrgPul *m_pdrgpdrgpulInputColIds;
+			ULongPtr2dArray *m_input_colids_arrays;
 
 			// do the columns across inputs need to be casted
-			BOOL m_fCastAcrossInputs;
+			BOOL m_cast_across_input_req;
 
 			// private copy ctor
 			CParseHandlerLogicalSetOp(const CParseHandlerLogicalSetOp &);
 
 			// return the set operation type
-			EdxlSetOpType Edxlsetop(const XMLCh* const xmlszLocalname);
+			EdxlSetOpType GetSetOpType(const XMLCh* const element_local_name);
 
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor
 			CParseHandlerLogicalSetOp
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// dtor

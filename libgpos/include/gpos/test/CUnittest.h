@@ -24,9 +24,9 @@
 #define GPOS_UNITTEST_STD_SUBTEST(x, i)		gpos::CUnittest(#x "_" #i, CUnittest::EttStandard, x::EresSubtest, i)
 
 // helpers for test that are expected to fail
-#define GPOS_UNITTEST_FUNC_THROW(x, ulMajor, ulMinor)	\
+#define GPOS_UNITTEST_FUNC_THROW(x, major, minor)	\
 										gpos::CUnittest(#x, CUnittest::EttStandard, \
-											x, ulMajor, ulMinor)
+											x, major, minor)
 #define GPOS_UNITTEST_FUNC_ASSERT(x)	GPOS_UNITTEST_FUNC_THROW(x, CException::ExmaSystem, CException::ExmiAssert)
 
 #define TEST_ASSERT(x) GPOS_RTL_ASSERT(x)
@@ -160,7 +160,7 @@ namespace gpos
 					  GPOS_RESULT (*pfunc)(void));
 					  
 			CUnittest(const CHAR *szTitle, ETestType ett,
-					  GPOS_RESULT (*pfunc)(void), ULONG ulMajor, ULONG ulMinor);
+					  GPOS_RESULT (*pfunc)(void), ULONG major, ULONG minor);
 
 			CUnittest(const CHAR *szTitle, ETestType ett,
 					  GPOS_RESULT (*pfuncSubtest)(ULONG), ULONG ulSubtest);
@@ -170,7 +170,7 @@ namespace gpos
 			
 			// determine whether this is expected to throw and if so whether the given exception is the right one
 			BOOL FThrows() const;
-			BOOL FThrows(ULONG ulMajor, ULONG ulMinor) const;
+			BOOL FThrows(ULONG major, ULONG minor) const;
 			
 			// test type
 			ETestType Ett() const
@@ -179,7 +179,7 @@ namespace gpos
 			}
 			
 			// check if title equals given string
-			BOOL FEquals(CHAR *sz) const;
+			BOOL Equals(CHAR *sz) const;
 			
 			// find test with given attributes and add to list
 			static

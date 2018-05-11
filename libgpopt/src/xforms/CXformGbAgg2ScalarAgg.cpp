@@ -30,15 +30,15 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformGbAgg2ScalarAgg::CXformGbAgg2ScalarAgg
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementation
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalGbAgg(pmp),
-							 GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)),
-							 GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)))
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalGbAgg(mp),
+							 GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),
+							 GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)))
 		)
 {}
 
@@ -59,8 +59,8 @@ CXformGbAgg2ScalarAgg::Exfp
 	)
 	const
 {
-	if (0 < CLogicalGbAgg::PopConvert(exprhdl.Pop())->Pdrgpcr()->UlLength() ||
-		exprhdl.Pdpscalar(1 /*ulChildIndex*/)->FHasSubquery())
+	if (0 < CLogicalGbAgg::PopConvert(exprhdl.Pop())->Pdrgpcr()->Size() ||
+		exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery())
 	{
 		// GbAgg has grouping columns, or agg functions use subquery arguments
 		return CXform::ExfpNone;
@@ -92,9 +92,9 @@ CXformGbAgg2ScalarAgg::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
-	DrgPcr *pdrgpcr = popAgg->Pdrgpcr();
-	pdrgpcr->AddRef();
+	IMemoryPool *mp = pxfctxt->Pmp();
+	CColRefArray *colref_array = popAgg->Pdrgpcr();
+	colref_array->AddRef();
 	
 	// extract components
 	CExpression *pexprRel = (*pexpr)[0];
@@ -104,21 +104,21 @@ CXformGbAgg2ScalarAgg::Transform
 	pexprRel->AddRef();
 	pexprScalar->AddRef();
 
-	DrgPcr *pdrgpcrArgDQA = popAgg->PdrgpcrArgDQA();
-	if (pdrgpcrArgDQA != NULL && 0 != pdrgpcrArgDQA->UlLength())
+	CColRefArray *pdrgpcrArgDQA = popAgg->PdrgpcrArgDQA();
+	if (pdrgpcrArgDQA != NULL && 0 != pdrgpcrArgDQA->Size())
 	{
 		pdrgpcrArgDQA->AddRef();
 	}
 
 	// create alternative expression
 	CExpression *pexprAlt = 
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalScalarAgg
+			mp,
+			GPOS_NEW(mp) CPhysicalScalarAgg
 						(
-						pmp,
-						pdrgpcr,
+						mp,
+						colref_array,
 						popAgg->PdrgpcrMinimal(),
 						popAgg->Egbaggtype(),
 						popAgg->FGeneratesDuplicates(),

@@ -37,7 +37,7 @@ CCustomAllocator::fnAlloc
   m_ulTotalMemoryAllocation += ulAlloc;
   m_ulLastMemoryAllocation = ulAlloc;
 
-  return clib::PvMalloc(ulAlloc);
+  return clib::Malloc(ulAlloc);
 }
 
 void
@@ -59,7 +59,7 @@ gpos::FUseCustomAllocator
 {
   CHAR ch = '\0';
   bool fUseCustom  = false;
-  while (pma->FGetopt(&ch))
+  while (pma->Getopt(&ch))
   {
     switch(ch)
     {
@@ -109,7 +109,7 @@ CMemoryPoolAllocTest::EresUnittest_AllocFree() {
   CMemoryPoolAlloc customAlloc(CCustomAllocator::fnAlloc, CCustomAllocator::fnFree);
 
   SIZE_T ulTotalMemoryAllocated = CCustomAllocator::UlGetTotalMemoryAllocation();
-  void * pMem = customAlloc.PvAllocate(100, __FILE__, __LINE__);
+  void * pMem = customAlloc.Allocate(100, __FILE__, __LINE__);
   GPOS_RTL_ASSERT
     (
       (ulTotalMemoryAllocated + 100) ==

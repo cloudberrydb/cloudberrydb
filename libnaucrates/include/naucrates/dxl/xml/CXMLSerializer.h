@@ -39,13 +39,13 @@ namespace gpdxl
 		
 		private:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// output stream for writing out the xml document
 			IOstream &m_os;
 						
 			// should XML document be indented
-			BOOL m_fIndent;
+			BOOL m_indentation;
 			
 			// stack of open elements
 			StrStack *m_strstackElems;
@@ -57,7 +57,7 @@ namespace gpdxl
 			ULONG m_ulLevel;
 			
 			// steps since last check for aborts
-			ULONG m_ulIterLastCFA;
+			ULONG m_iteration_since_last_abortcheck;
 			
 			// private copy ctor
 			CXMLSerializer(const CXMLSerializer&);
@@ -67,26 +67,26 @@ namespace gpdxl
 			
 			// escape the given string and write it to the given stream
 			static
-			void WriteEscaped(IOstream &os, const CWStringBase *pstr);
+			void WriteEscaped(IOstream &os, const CWStringBase *str);
 			
 		public:
 			// ctor/dtor
 			CXMLSerializer
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				IOstream &os,
-				BOOL fIndent = true
+				BOOL indentation = true
 				)
 				:
-				m_pmp(pmp),
+				m_mp(mp),
 				m_os(os),
-				m_fIndent(fIndent),
+				m_indentation(indentation),
 				m_strstackElems(NULL),
 				m_fOpenTag(false),
 				m_ulLevel(0),
-				m_ulIterLastCFA(0)
+				m_iteration_since_last_abortcheck(0)
 			{
-				m_strstackElems = GPOS_NEW(m_pmp) StrStack(m_pmp);
+				m_strstackElems = GPOS_NEW(m_mp) StrStack(m_mp);
 			}
 			
 			~CXMLSerializer();
@@ -94,20 +94,20 @@ namespace gpdxl
 			// get underlying memory pool
 			IMemoryPool *Pmp() const
 			{
-				return m_pmp;
+				return m_mp;
 			}
 
 			// starts an XML document
 			void StartDocument();
 			
 			// opens a new element with the given name
-			void OpenElement(const CWStringBase *pstrNamespace, const CWStringBase *pstrElem);
+			void OpenElement(const CWStringBase *pstrNamespace, const CWStringBase *elem_str);
 			
 			// closes the element with the given name
-			void CloseElement(const CWStringBase *pstrNamespace, const CWStringBase *pstrElem);
+			void CloseElement(const CWStringBase *pstrNamespace, const CWStringBase *elem_str);
 			
 			// adds a string-valued attribute
-			void AddAttribute(const CWStringBase *pstrAttr, const CWStringBase *pstrValue);
+			void AddAttribute(const CWStringBase *pstrAttr, const CWStringBase *str_value);
 			
 			// adds a character string attribute
 			void AddAttribute(const CWStringBase *pstrAttr, const CHAR *szValue);
@@ -122,16 +122,16 @@ namespace gpdxl
 			void AddAttribute(const CWStringBase *pstrAttr, INT iValue);
 			
 			// adds an integer-valued attribute
-			void AddAttribute(const CWStringBase *pstrAttr, LINT lValue);
+			void AddAttribute(const CWStringBase *pstrAttr, LINT value);
 
 			// adds a boolean attribute
 			void AddAttribute(const CWStringBase *pstrAttr, BOOL fValue);
 			
 			// add a double-valued attribute
-			void AddAttribute(const CWStringBase *pstrAttr, CDouble dValue);
+			void AddAttribute(const CWStringBase *pstrAttr, CDouble value);
 
 			// add a byte array attribute
-			void AddAttribute(const CWStringBase *pstrAttr, BOOL fNull, const BYTE *pba, ULONG ulLen);
+			void AddAttribute(const CWStringBase *pstrAttr, BOOL is_null, const BYTE *data, ULONG length);
 	};
 	
 }

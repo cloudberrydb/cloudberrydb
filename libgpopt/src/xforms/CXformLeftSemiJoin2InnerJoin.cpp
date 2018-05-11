@@ -33,19 +33,19 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformLeftSemiJoin2InnerJoin::CXformLeftSemiJoin2InnerJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	// pattern
 	CXformExploration
 		(
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CLogicalLeftSemiJoin(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // left child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // right child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))  // predicate
+					mp,
+					GPOS_NEW(mp) CLogicalLeftSemiJoin(mp),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // left child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // right child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))  // predicate
 					)
 		)
 {}
@@ -66,13 +66,13 @@ CXformLeftSemiJoin2InnerJoin::Exfp
 	)
 	const
 {
-	if (exprhdl.FHasOuterRefs() || exprhdl.Pdpscalar(2)->FHasSubquery())
+	if (exprhdl.HasOuterRefs() || exprhdl.GetDrvdScalarProps(2)->FHasSubquery())
 	{
 		return ExfpNone;
 	}
 
-	CColRefSet *pcrsInnerOutput = exprhdl.Pdprel(1 /*ulChildIndex*/)->PcrsOutput();
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*ulChildIndex*/);
+	CColRefSet *pcrsInnerOutput = exprhdl.GetRelationalProperties(1 /*child_index*/)->PcrsOutput();
+	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
 	CAutoMemoryPool amp;
 
 	// examine join predicate to determine xform applicability
@@ -106,7 +106,7 @@ CXformLeftSemiJoin2InnerJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprOuter = (*pexpr)[0];
@@ -119,33 +119,33 @@ CXformLeftSemiJoin2InnerJoin::Transform
 
 	// construct grouping columns by collecting used columns in the join predicate
 	// that come from join's inner child
-	CColRefSet *pcrsOuterOutput = CDrvdPropRelational::Pdprel(pexprOuter->PdpDerive())->PcrsOutput();
-	CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprScalar->PdpDerive())->PcrsUsed();
-	CColRefSet *pcrsGb = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsOuterOutput = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprScalar->PdpDerive())->PcrsUsed();
+	CColRefSet *pcrsGb = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsGb->Include(pcrsUsed);
 	pcrsGb->Difference(pcrsOuterOutput);
-	GPOS_ASSERT(0 < pcrsGb->CElements());
+	GPOS_ASSERT(0 < pcrsGb->Size());
 
-	CKeyCollection *pkc = CDrvdPropRelational::Pdprel(pexprInner->PdpDerive())->Pkc();
+	CKeyCollection *pkc = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->Pkc();
 	if (NULL == pkc ||
 		(NULL != pkc && !pkc->FKey(pcrsGb, false /*fExactMatch*/)))
 	{
 		// grouping columns do not cover a key on the inner side,
 		// we need to create a group by on inner side
-		DrgPcr *pdrgpcr = pcrsGb->Pdrgpcr(pmp);
+		CColRefArray *colref_array = pcrsGb->Pdrgpcr(mp);
 		CExpression *pexprGb =
-			GPOS_NEW(pmp) CExpression
+			GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalGbAgg(pmp, pdrgpcr, COperator::EgbaggtypeGlobal /*egbaggtype*/),
+				mp,
+				GPOS_NEW(mp) CLogicalGbAgg(mp, colref_array, COperator::EgbaggtypeGlobal /*egbaggtype*/),
 				pexprInner,
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp))
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp))
 				);
 		pexprInner = pexprGb;
 	}
 
 	CExpression *pexprInnerJoin =
-		CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, pexprOuter, pexprInner, pexprScalar);
+		CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, pexprOuter, pexprInner, pexprScalar);
 
 	pcrsGb->Release();
 	pxfres->Add(pexprInnerJoin);

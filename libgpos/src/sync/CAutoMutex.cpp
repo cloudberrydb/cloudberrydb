@@ -27,7 +27,7 @@ using namespace gpos;
 CAutoMutex::~CAutoMutex()
 {
 	// release all locks
-	while(m_cLock--)
+	while(m_lock_count--)
 	{
 		m_mutex.Unlock();
 	}

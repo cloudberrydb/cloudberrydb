@@ -31,16 +31,16 @@ namespace gpopt
 		private:
 
 			// helper for computing a hashed distribution matching the given distribution
-			CDistributionSpecHashed *PdshashedCreateMatching(IMemoryPool *pmp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
+			CDistributionSpecHashed *PdshashedCreateMatching(IMemoryPool *mp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
 
 			// helper for deriving hash join distribution from hashed children
-			CDistributionSpec *PdsDeriveFromHashedChildren(IMemoryPool *pmp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
+			CDistributionSpec *PdsDeriveFromHashedChildren(IMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
 
 			// helper for deriving hash join distribution from replicated outer child
-			CDistributionSpec *PdsDeriveFromReplicatedOuter(IMemoryPool *pmp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
+			CDistributionSpec *PdsDeriveFromReplicatedOuter(IMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
 
 			// helper for deriving hash join distribution from hashed outer child
-			CDistributionSpec *PdsDeriveFromHashedOuter(IMemoryPool *pmp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
+			CDistributionSpec *PdsDeriveFromHashedOuter(IMemoryPool *mp, CDistributionSpec *pdsOuter, CDistributionSpec *pdsInner) const;
 
 			// private copy ctor
 			CPhysicalInnerHashJoin(const CPhysicalInnerHashJoin &);
@@ -50,9 +50,9 @@ namespace gpopt
 			// ctor
 			CPhysicalInnerHashJoin
 				(
-				IMemoryPool *pmp,
-				DrgPexpr *pdrgpexprOuterKeys,
-				DrgPexpr *pdrgpexprInnerKeys
+				IMemoryPool *mp,
+				CExpressionArray *pdrgpexprOuterKeys,
+				CExpressionArray *pdrgpexprInnerKeys
 				);
 
 			// dtor
@@ -88,17 +88,17 @@ namespace gpopt
 
 			// derive distribution
 			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute required partition propagation of the n-th child
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 			

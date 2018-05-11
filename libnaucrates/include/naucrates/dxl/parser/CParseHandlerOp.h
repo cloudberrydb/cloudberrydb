@@ -43,7 +43,7 @@ namespace gpdxl
 		protected:
 
 			// the root of the parsed DXL tree constructed by the parse handler
-			CDXLNode *m_pdxln;
+			CDXLNode *m_dxl_node;
 			
 			
 			void AddChildFromParseHandler(const CParseHandlerOp *);
@@ -52,16 +52,16 @@ namespace gpdxl
 			// ctor/dtor
 			CParseHandlerOp
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 			
 			virtual
 			~CParseHandlerOp();
 
 			// returns constructed DXL node
-			CDXLNode *Pdxln() const;	
+			CDXLNode *CreateDXLNode() const;	
 	};
 }
 

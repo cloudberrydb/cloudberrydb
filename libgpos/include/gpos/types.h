@@ -160,7 +160,6 @@ namespace gpos
 		
 		ElocSentinel
 	};
-
 }
 
 #endif // !GPOS_types_H

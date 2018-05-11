@@ -30,7 +30,7 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CDistributionSpecRandom::CDistributionSpecRandom()
 	:
-	m_fDuplicateSensitive(false),
+	m_is_duplicate_sensitive(false),
 	m_fSatisfiedBySingleton(true)
 {
 	if (COptCtxt::PoctxtFromTLS()->FDMLQuery())
@@ -43,14 +43,14 @@ CDistributionSpecRandom::CDistributionSpecRandom()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDistributionSpecRandom::FMatch
+//		CDistributionSpecRandom::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL 
-CDistributionSpecRandom::FMatch
+CDistributionSpecRandom::Matches
 	(
 	const CDistributionSpec *pds
 	) 
@@ -64,7 +64,7 @@ CDistributionSpecRandom::FMatch
 	const CDistributionSpecRandom *pdsRandom =
 			dynamic_cast<const CDistributionSpecRandom*>(pds);
 
-	return pdsRandom->FDuplicateSensitive() == m_fDuplicateSensitive;
+	return pdsRandom->IsDuplicateSensitive() == m_is_duplicate_sensitive;
 }
 
 //---------------------------------------------------------------------------
@@ -82,13 +82,13 @@ CDistributionSpecRandom::FSatisfies
 	)
 	const
 {
-	if (FMatch(pds))
+	if (Matches(pds))
 	{
 		return true;
 	}
 	
 	if (EdtRandom == pds->Edt() && 
-			(FDuplicateSensitive() || !CDistributionSpecRandom::PdsConvert(pds)->FDuplicateSensitive()))
+			(IsDuplicateSensitive() || !CDistributionSpecRandom::PdsConvert(pds)->IsDuplicateSensitive()))
 	{
 		return true;
 	}
@@ -107,18 +107,18 @@ CDistributionSpecRandom::FSatisfies
 void
 CDistributionSpecRandom::AppendEnforcers
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
 	CReqdPropPlan *
 #ifdef GPOS_DEBUG
 	prpp
 #endif // GPOS_DEBUG
 	,
-	DrgPexpr *pdrgpexpr,
+	CExpressionArray *pdrgpexpr,
 	CExpression *pexpr
 	)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != prpp);
 	GPOS_ASSERT(NULL != pdrgpexpr);
 	GPOS_ASSERT(NULL != pexpr);
@@ -136,10 +136,10 @@ CDistributionSpecRandom::AppendEnforcers
 	// add a hashed distribution enforcer
 	AddRef();
 	pexpr->AddRef();
-	CExpression *pexprMotion = GPOS_NEW(pmp) CExpression
+	CExpression *pexprMotion = GPOS_NEW(mp) CExpression
 										(
-										pmp,
-										GPOS_NEW(pmp) CPhysicalMotionRandom(pmp, this),
+										mp,
+										GPOS_NEW(mp) CPhysicalMotionRandom(mp, this),
 										pexpr
 										);
 	pdrgpexpr->Append(pexprMotion);		

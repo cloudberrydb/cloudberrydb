@@ -48,22 +48,22 @@ namespace gpdxl
 		private:
 		
 			// id of the spooling operator
-			ULONG m_ulSpoolId;
+			ULONG m_spool_id;
 
 			// type of the underlying spool
-			Edxlspooltype m_edxlsptype;
+			Edxlspooltype m_spool_type;
 			
 			// is the spool shared across multiple slices
-			BOOL m_fMultiSlice;
+			BOOL m_is_multi_slice_shared;
 			
 			// slice executing the underlying sort or materialize
-			INT m_iExecutorSlice;
+			INT m_executor_slice_id;
 						
 			// private copy ctor
 			CDXLSpoolInfo(CDXLSpoolInfo&);
 			
 			// spool type name
-			const CWStringConst *PstrSpoolType() const;
+			const CWStringConst *GetSpoolTypeName() const;
 			
 		public:
 			// ctor/dtor
@@ -78,16 +78,16 @@ namespace gpdxl
 			// accessors
 			
 			// spool id
-			ULONG UlSpoolId() const;
+			ULONG GetSpoolId() const;
 			
 			// spool type (sort or materialize)
-			Edxlspooltype Edxlsptype() const;
+			Edxlspooltype GetSpoolType() const;
 			
 			// is spool shared across multiple slices
-			BOOL FMultiSlice() const;
+			BOOL IsMultiSlice() const;
 			
 			// id of slice executing the underlying operation
-			INT IExecutorSlice() const;
+			INT GetExecutorSliceId() const;
 			
 			// serialize operator in DXL format
 			void SerializeToDXL(CXMLSerializer *) const;

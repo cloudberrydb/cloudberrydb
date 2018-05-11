@@ -58,11 +58,11 @@ namespace gpopt
 			// ctor
 			CScalarBoolOp
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				EBoolOperator eboolop
 				)
 				:
-				CScalar(pmp),
+				CScalar(mp),
 				m_eboolop(eboolop)
 			{
 				GPOS_ASSERT(0 <= eboolop && EboolopSentinel > eboolop);
@@ -94,10 +94,10 @@ namespace gpopt
 			}
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -109,9 +109,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -132,14 +132,14 @@ namespace gpopt
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// decide boolean operator commutativity
 			static BOOL FCommutative(EBoolOperator eboolop);
 			
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// print
 			virtual

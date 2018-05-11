@@ -28,20 +28,20 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalStreamAggDeduplicate::CPhysicalStreamAggDeduplicate
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr,
-	DrgPcr *pdrgpcrMinimal,
+	IMemoryPool *mp,
+	CColRefArray *colref_array,
+	CColRefArray *pdrgpcrMinimal,
 	COperator::EGbAggType egbaggtype,
-	DrgPcr *pdrgpcrKeys,
+	CColRefArray *pdrgpcrKeys,
 	BOOL fGeneratesDuplicates,
 	BOOL fMultiStage
 	)
 	:
-	CPhysicalStreamAgg(pmp, pdrgpcr, pdrgpcrMinimal, egbaggtype, fGeneratesDuplicates, NULL /*pdrgpcrGbMinusDistinct*/, fMultiStage),
+	CPhysicalStreamAgg(mp, colref_array, pdrgpcrMinimal, egbaggtype, fGeneratesDuplicates, NULL /*pdrgpcrGbMinusDistinct*/, fMultiStage),
 	m_pdrgpcrKeys(pdrgpcrKeys)
 {
 	GPOS_ASSERT(NULL != pdrgpcrKeys);
-	InitOrderSpec(pmp, m_pdrgpcrKeys);
+	InitOrderSpec(mp, m_pdrgpcrKeys);
 }
 
 //---------------------------------------------------------------------------

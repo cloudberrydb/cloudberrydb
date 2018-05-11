@@ -68,24 +68,24 @@ namespace gpos
 			virtual IOstream& operator<<(WOSTREAM& (*)(WOSTREAM&));
 						
 			// set the stream modifier
-			virtual IOstream& operator<< (EstreamMod);
+			virtual IOstream& operator<< (EStreamManipulator);
 
 		private:
 
 			// formatting buffer
-			WCHAR m_wsz[GPOS_OSTREAM_CONVBUF_SIZE];
+			WCHAR m_string_format_buffer[GPOS_OSTREAM_CONVBUF_SIZE];
 
 			// wrapper string for formatting buffer
-			CWStringStatic m_wss;
+			CWStringStatic m_static_string_buffer;
 
 			// current mode
-			EstreamMod m_esm;
+			EStreamManipulator m_stream_manipulator;
 
 			// append formatted string
-			IOstream &AppendFormat(const WCHAR *wcFormat, ...);
+			IOstream &AppendFormat(const WCHAR *format, ...);
 
 			// what is the stream modifier?
-			EstreamMod FstreamMod() const;
+			EStreamManipulator GetStreamManipulator() const;
 
 			// no copy constructor
 			COstream(COstream &);

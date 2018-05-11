@@ -17,49 +17,49 @@ using namespace gpdxl;
 
 CDXLOperatorCost::CDXLOperatorCost
 	(
-	CWStringDynamic *pstrStartupCost,
-	CWStringDynamic *pstrTotalCost,
-	CWStringDynamic *pstrRows,
-	CWStringDynamic *pstrWidth
+	CWStringDynamic *startup_cost_str,
+	CWStringDynamic *total_cost_str,
+	CWStringDynamic *rows_out_str,
+	CWStringDynamic *width_str
 	)
 	:
-	m_pstrStartupCost(pstrStartupCost),
-	m_pstrTotalCost(pstrTotalCost),
-	m_pstrRows(pstrRows),
-	m_pstrWidth(pstrWidth)
+	m_startup_cost_str(startup_cost_str),
+	m_total_cost_str(total_cost_str),
+	m_rows_out_str(rows_out_str),
+	m_width_str(width_str)
 {
 }
 
 CDXLOperatorCost::~CDXLOperatorCost()
 {
-	GPOS_DELETE(m_pstrStartupCost);
-	GPOS_DELETE(m_pstrTotalCost);
-	GPOS_DELETE(m_pstrRows);
-	GPOS_DELETE(m_pstrWidth);
+	GPOS_DELETE(m_startup_cost_str);
+	GPOS_DELETE(m_total_cost_str);
+	GPOS_DELETE(m_rows_out_str);
+	GPOS_DELETE(m_width_str);
 }
 
 const CWStringDynamic *
-CDXLOperatorCost::PstrStartupCost() const
+CDXLOperatorCost::GetStartUpCostStr() const
 {
-	return m_pstrStartupCost;
+	return m_startup_cost_str;
 }
 
 const CWStringDynamic *
-CDXLOperatorCost::PstrTotalCost() const
+CDXLOperatorCost::GetTotalCostStr() const
 {
-	return m_pstrTotalCost;
+	return m_total_cost_str;
 }
 
 const CWStringDynamic *
-CDXLOperatorCost::PstrRows() const
+CDXLOperatorCost::GetRowsOutStr() const
 {
-	return m_pstrRows;
+	return m_rows_out_str;
 }
 
 const CWStringDynamic *
-CDXLOperatorCost::PstrWidth() const
+CDXLOperatorCost::GetWidthStr() const
 {
-	return m_pstrWidth;
+	return m_width_str;
 }
 
 //---------------------------------------------------------------------------
@@ -73,12 +73,12 @@ CDXLOperatorCost::PstrWidth() const
 void
 CDXLOperatorCost::SetRows
 	(
-	CWStringDynamic *pstr
+	CWStringDynamic *rows_str
 	)
 {
-	GPOS_ASSERT(NULL != pstr);
-	GPOS_DELETE(m_pstrRows);
-	m_pstrRows = pstr;
+	GPOS_ASSERT(NULL != rows_str);
+	GPOS_DELETE(m_rows_out_str);
+	m_rows_out_str = rows_str;
 }
 
 //---------------------------------------------------------------------------
@@ -92,29 +92,29 @@ CDXLOperatorCost::SetRows
 void
 CDXLOperatorCost::SetCost
 	(
-	CWStringDynamic *pstr
+	CWStringDynamic *cost_str
 	)
 {
-	GPOS_ASSERT(NULL != pstr);
-	GPOS_DELETE(m_pstrTotalCost);
-	m_pstrTotalCost = pstr;
+	GPOS_ASSERT(NULL != cost_str);
+	GPOS_DELETE(m_total_cost_str);
+	m_total_cost_str = cost_str;
 }
 
 void
 CDXLOperatorCost::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCost));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenCost));
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenStartupCost), m_pstrStartupCost);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTotalCost), m_pstrTotalCost);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenRows), m_pstrRows);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenWidth), m_pstrWidth);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenStartupCost), m_startup_cost_str);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTotalCost), m_total_cost_str);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenRows), m_rows_out_str);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenWidth), m_width_str);
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCost));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenCost));
 }
 
 // EOF

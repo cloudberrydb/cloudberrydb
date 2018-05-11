@@ -29,17 +29,17 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformDynamicIndexGet2DynamicIndexScan::CXformDynamicIndexGet2DynamicIndexScan
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementation
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalDynamicIndexGet(pmp),
-				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))	// index lookup predicate
+				mp,
+				GPOS_NEW(mp) CLogicalDynamicIndexGet(mp),
+				GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))	// index lookup predicate
 				)
 		)
 {}
@@ -67,10 +67,10 @@ CXformDynamicIndexGet2DynamicIndexScan::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalDynamicIndexGet *popIndexGet = CLogicalDynamicIndexGet::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// create/extract components for alternative
-	CName *pname = GPOS_NEW(pmp) CName(pmp, popIndexGet->Name());
+	CName *pname = GPOS_NEW(mp) CName(mp, popIndexGet->Name());
 	
 	CTableDescriptor *ptabdesc = popIndexGet->Ptabdesc();
 	ptabdesc->AddRef();
@@ -78,11 +78,11 @@ CXformDynamicIndexGet2DynamicIndexScan::Transform
 	CIndexDescriptor *pindexdesc = popIndexGet->Pindexdesc();
 	pindexdesc->AddRef();
 	
-	DrgPcr *pdrgpcrOutput = popIndexGet->PdrgpcrOutput();
+	CColRefArray *pdrgpcrOutput = popIndexGet->PdrgpcrOutput();
 	GPOS_ASSERT(NULL != pdrgpcrOutput);
 	pdrgpcrOutput->AddRef();
 	
-	DrgDrgPcr *pdrgpdrgpcrPart = popIndexGet->PdrgpdrgpcrPart();
+	CColRef2dArray *pdrgpdrgpcrPart = popIndexGet->PdrgpdrgpcrPart();
 	pdrgpdrgpcrPart->AddRef();
 	
 	CPartConstraint *ppartcnstr = popIndexGet->Ppartcnstr();
@@ -100,19 +100,19 @@ CXformDynamicIndexGet2DynamicIndexScan::Transform
 	
 	// create alternative expression
 	CExpression *pexprAlt = 
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalDynamicIndexScan
+			mp,
+			GPOS_NEW(mp) CPhysicalDynamicIndexScan
 						(
-						pmp,
-						popIndexGet->FPartial(),
+						mp,
+						popIndexGet->IsPartial(),
 						pindexdesc,
 						ptabdesc,
 						pexpr->Pop()->UlOpId(),
 						pname,  
 						pdrgpcrOutput,
-						popIndexGet->UlScanId(),
+						popIndexGet->ScanId(),
 						pdrgpdrgpcrPart,
 						popIndexGet->UlSecondaryScanId(),
 						ppartcnstr,

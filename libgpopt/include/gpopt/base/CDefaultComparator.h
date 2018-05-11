@@ -68,10 +68,10 @@ namespace gpopt
 			// construct a comparison expression from the given components and evaluate it
 			BOOL FEvalComparison
 				(
-				IMemoryPool *pmp,
-				const IDatum *pdatum1,
-				const IDatum *pdatum2,
-				IMDType::ECmpType ecmpt
+				IMemoryPool *mp,
+				const IDatum *datum1,
+				const IDatum *datum2,
+				IMDType::ECmpType cmp_type
 				)
 				const;
 
@@ -95,23 +95,23 @@ namespace gpopt
 
 			// tests if the two arguments are equal
 			virtual
-			BOOL FEqual(const IDatum *pdatum1, const IDatum *pdatum2) const;
+			BOOL Equals(const IDatum *datum1, const IDatum *datum2) const;
 
 			// tests if the first argument is less than the second
 			virtual
-			BOOL FLessThan(const IDatum *pdatum1, const IDatum *pdatum2) const;
+			BOOL IsLessThan(const IDatum *datum1, const IDatum *datum2) const;
 
 			// tests if the first argument is less or equal to the second
 			virtual
-			BOOL FLessThanOrEqual(const IDatum *pdatum1, const IDatum *pdatum2) const;
+			BOOL IsLessThanOrEqual(const IDatum *datum1, const IDatum *datum2) const;
 
 			// tests if the first argument is greater than the second
 			virtual
-			BOOL FGreaterThan(const IDatum *pdatum1, const IDatum *pdatum2) const;
+			BOOL IsGreaterThan(const IDatum *datum1, const IDatum *datum2) const;
 
 			// tests if the first argument is greater or equal to the second
 			virtual
-			BOOL FGreaterThanOrEqual(const IDatum *pdatum1, const IDatum *pdatum2) const;
+			BOOL IsGreaterThanOrEqual(const IDatum *datum1, const IDatum *datum2) const;
 
 	};  // CDefaultComparator
 }

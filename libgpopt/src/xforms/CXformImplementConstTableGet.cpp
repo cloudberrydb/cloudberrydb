@@ -27,16 +27,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementConstTableGet::CXformImplementConstTableGet
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementation
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalConstTableGet(pmp)
+				mp,
+				GPOS_NEW(mp) CLogicalConstTableGet(mp)
 				)
 		)
 {}
@@ -64,24 +64,24 @@ CXformImplementConstTableGet::Transform
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
 	CLogicalConstTableGet *popConstTableGet = CLogicalConstTableGet::PopConvert(pexpr->Pop());
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// create/extract components for alternative
-	DrgPcoldesc *pdrgpcoldesc = popConstTableGet->Pdrgpcoldesc();
+	CColumnDescriptorArray *pdrgpcoldesc = popConstTableGet->Pdrgpcoldesc();
 	pdrgpcoldesc->AddRef();
 	
-	DrgPdrgPdatum *pdrgpdrgpdatum = popConstTableGet->Pdrgpdrgpdatum();
+	IDatum2dArray *pdrgpdrgpdatum = popConstTableGet->Pdrgpdrgpdatum();
 	pdrgpdrgpdatum->AddRef();
 	
-	DrgPcr *pdrgpcrOutput = popConstTableGet->PdrgpcrOutput();
+	CColRefArray *pdrgpcrOutput = popConstTableGet->PdrgpcrOutput();
 	pdrgpcrOutput->AddRef();
 		
 	// create alternative expression
 	CExpression *pexprAlt = 
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CPhysicalConstTableGet(pmp, pdrgpcoldesc, pdrgpdrgpdatum, pdrgpcrOutput)
+			mp,
+			GPOS_NEW(mp) CPhysicalConstTableGet(mp, pdrgpcoldesc, pdrgpdrgpdatum, pdrgpcrOutput)
 			);
 	
 	// add alternative to transformation result

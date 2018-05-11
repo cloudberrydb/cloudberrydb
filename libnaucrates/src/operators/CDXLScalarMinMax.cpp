@@ -29,17 +29,17 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarMinMax::CDXLScalarMinMax
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	EdxlMinMaxType emmt
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	EdxlMinMaxType min_max_type
 	)
 	:
-	CDXLScalar(pmp),
-	m_pmdidType(pmdidType),
-	m_emmt(emmt)
+	CDXLScalar(mp),
+	m_mdid_type(mdid_type),
+	m_min_max_type(min_max_type)
 {
-	GPOS_ASSERT(m_pmdidType->FValid());
-	GPOS_ASSERT(EmmtSentinel > emmt);
+	GPOS_ASSERT(m_mdid_type->IsValid());
+	GPOS_ASSERT(EmmtSentinel > min_max_type);
 }
 
 //---------------------------------------------------------------------------
@@ -52,40 +52,40 @@ CDXLScalarMinMax::CDXLScalarMinMax
 //---------------------------------------------------------------------------
 CDXLScalarMinMax::~CDXLScalarMinMax()
 {
-	m_pmdidType->Release();
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarMinMax::Edxlop
+//		CDXLScalarMinMax::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarMinMax::Edxlop() const
+CDXLScalarMinMax::GetDXLOperator() const
 {
 	return EdxlopScalarMinMax;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarMinMax::PstrOpName
+//		CDXLScalarMinMax::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarMinMax::PstrOpName() const
+CDXLScalarMinMax::GetOpNameStr() const
 {
-	switch (m_emmt)
+	switch (m_min_max_type)
 	{
 		case EmmtMin:
-				return CDXLTokens::PstrToken(EdxltokenScalarMin);
+				return CDXLTokens::GetDXLTokenStr(EdxltokenScalarMin);
 		case EmmtMax:
-				return CDXLTokens::PstrToken(EdxltokenScalarMax);
+				return CDXLTokens::GetDXLTokenStr(EdxltokenScalarMax);
 		default:
 			return NULL;
 	}
@@ -102,35 +102,35 @@ CDXLScalarMinMax::PstrOpName() const
 void
 CDXLScalarMinMax::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarMinMax::FBoolean
+//		CDXLScalarMinMax::HasBoolResult
 //
 //	@doc:
 //		Does the operator return a boolean result
 //
 //---------------------------------------------------------------------------
 BOOL
-CDXLScalarMinMax::FBoolean
+CDXLScalarMinMax::HasBoolResult
 	(
-	CMDAccessor *pmda
+	CMDAccessor *md_accessor
 	)
 	const
 {
-	return (IMDType::EtiBool == pmda->Pmdtype(m_pmdidType)->Eti());
+	return (IMDType::EtiBool == md_accessor->RetrieveType(m_mdid_type)->GetDatumType());
 }
 
 #ifdef GPOS_DEBUG
@@ -145,22 +145,22 @@ CDXLScalarMinMax::FBoolean
 void
 CDXLScalarMinMax::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	)
 	const
 {
-	GPOS_ASSERT(0 < pdxln->UlArity());
+	GPOS_ASSERT(0 < dxlnode->Arity());
 
-	const ULONG ulArity = pdxln->UlArity();
-	for (ULONG ul = 0; ul < ulArity; ++ul)
+	const ULONG arity = dxlnode->Arity();
+	for (ULONG idx = 0; idx < arity; ++idx)
 	{
-		CDXLNode *pdxlnArg = (*pdxln)[ul];
-		GPOS_ASSERT(EdxloptypeScalar == pdxlnArg->Pdxlop()->Edxloperatortype());
+		CDXLNode *dxlnode_arg = (*dxlnode)[idx];
+		GPOS_ASSERT(EdxloptypeScalar == dxlnode_arg->GetOperator()->GetDXLOperatorType());
 
-		if (fValidateChildren)
+		if (validate_children)
 		{
-			pdxlnArg->Pdxlop()->AssertValid(pdxlnArg, fValidateChildren);
+			dxlnode_arg->GetOperator()->AssertValid(dxlnode_arg, validate_children);
 		}
 	}
 }

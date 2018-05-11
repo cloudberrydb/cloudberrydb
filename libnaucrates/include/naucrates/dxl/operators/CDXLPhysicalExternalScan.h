@@ -36,29 +36,29 @@ namespace gpdxl
 		public:
 			// ctors
 			explicit
-			CDXLPhysicalExternalScan(IMemoryPool *pmp);
+			CDXLPhysicalExternalScan(IMemoryPool *mp);
 
-			CDXLPhysicalExternalScan(IMemoryPool *pmp, CDXLTableDescr *pdxltabdesc);
+			CDXLPhysicalExternalScan(IMemoryPool *mp, CDXLTableDescr *table_descr);
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// conversion function
 			static
-			CDXLPhysicalExternalScan *PdxlopConvert
+			CDXLPhysicalExternalScan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalExternalScan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalExternalScan == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalExternalScan*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalExternalScan*>(dxl_op);
 			}
 
 	};

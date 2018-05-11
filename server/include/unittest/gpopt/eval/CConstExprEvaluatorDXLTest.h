@@ -50,13 +50,13 @@ namespace gpopt
 			{
 				private:
 					// memory pool
-					IMemoryPool *m_pmp;
+					IMemoryPool *m_mp;
 
 					// metadata accessor
 					CMDAccessor *m_pmda;
 
 					// dummy value to return
-					INT m_iVal;
+					INT m_val;
 
 					// private copy ctor
 					CDummyConstDXLNodeEvaluator(const CDummyConstDXLNodeEvaluator&);
@@ -65,14 +65,14 @@ namespace gpopt
 					// ctor
 					CDummyConstDXLNodeEvaluator
 						(
-						IMemoryPool *pmp,
-						CMDAccessor *pmda,
-						INT iVal
+						IMemoryPool *mp,
+						CMDAccessor *md_accessor,
+						INT val
 						)
 						:
-						m_pmp(pmp),
-						m_pmda(pmda),
-						m_iVal(iVal)
+						m_mp(mp),
+						m_pmda(md_accessor),
+						m_val(val)
 					{}
 
 					// dtor
@@ -82,7 +82,7 @@ namespace gpopt
 
 					// evaluate the given DXL node representing an expression and returns a dummy value as DXL
 					virtual
-					gpdxl::CDXLNode *PdxlnEvaluateExpr(const gpdxl::CDXLNode *pdxlnExpr);
+					gpdxl::CDXLNode *EvaluateExpr(const gpdxl::CDXLNode *pdxlnExpr);
 
 					// can evaluate expressions
 					virtual

@@ -26,115 +26,115 @@ namespace gpos
 	namespace clib
 	{
 
-		typedef INT (*PFnComparator)(const void *, const void *);
+		typedef INT (*Comparator)(const void *, const void *);
 
 #ifdef GPOS_sparc
 
 #include <ucontext.h>
 
-		typedef INT (*PFnCallback)(ULONG_PTR, INT, void *);
+		typedef INT (*Callback)(ULONG_PTR, INT, void *);
 
 		// get current user context
-		INT IGetContext(ucontext_t *puc);
+		INT GetContext(ucontext_t *user_ctxt);
 
-		// call the user-supplied function fnCallback for each routine found on
+		// call the user-supplied function callback for each routine found on
 		// the call stack and each signal handler invoked
-		INT IWalkContext(const ucontext_t *puc, PFnCallback fnCallback, void *pvArg);
+		INT WalkContext(const ucontext_t *user_ctxt, Callback callback, void *arg);
 
 #endif
 
 		// get an environment variable
-		CHAR *SzGetEnv(const CHAR *szName);
+		CHAR *GetEnv(const CHAR *name);
 
 		// compare a specified number of bytes of two regions of memory
-		INT IMemCmp(const void *pvLhs, const void *pvRhs, SIZE_T ulNum);
+		INT Memcmp(const void *left, const void *right, SIZE_T num_bytes);
 
 		 // sleep given number of microseconds
-		void USleep(ULONG ulUs);
+		void USleep(ULONG usecs);
 
 		// compare two strings
-		INT IStrCmp(const CHAR *szLhs, const CHAR *szRhs);
+		INT Strcmp(const CHAR *left, const CHAR *right);
 
 		// compare two strings up to a specified number of characters
-		INT IStrNCmp(const CHAR *szLhs, const CHAR *szRhs, SIZE_T ulNum);
+		INT Strncmp(const CHAR *left, const CHAR *right, SIZE_T num_bytes);
 
 		// compare two strings up to a specified number of wide characters
-		INT IWcsNCmp(const WCHAR *wszLhs, const WCHAR *wszRhs, SIZE_T ulNum);
+		INT Wcsncmp(const WCHAR *left, const WCHAR *right, SIZE_T num_bytes);
 
 		// copy two strings up to a specified number of wide characters
-		WCHAR *WszWcsNCpy(WCHAR *wszDest, const WCHAR *wszSrc, SIZE_T ulNum);
+		WCHAR *WcStrNCpy(WCHAR *dest, const WCHAR *src, SIZE_T num_bytes);
 
 		// copy a specified number of bytes between two memory areas
-		void* PvMemCpy(void *pvDest, const void* pvSrc, SIZE_T ulNum);
+		void* Memcpy(void *dest, const void* src, SIZE_T num_bytes);
 
 		// copy a specified number of wide characters
-		WCHAR *WszWMemCpy(WCHAR *wszDest, const WCHAR *wszSrc, SIZE_T ulNum);
+		WCHAR *Wmemcpy(WCHAR *dest, const WCHAR *src, SIZE_T num_bytes);
 
 		// copy a specified number of characters
-		CHAR *SzStrNCpy(CHAR *szDest, const CHAR *szSrc, SIZE_T ulNum);
+		CHAR *Strncpy(CHAR *dest, const CHAR *src, SIZE_T num_bytes);
 
-		// find the first occurrence of the character c in szSrc
-		CHAR *SzStrChr(const CHAR *szSrc, INT c);
+		// find the first occurrence of the character c in src
+		CHAR *Strchr(const CHAR *src, INT c);
 
-		// set a specified number of bytes to a specified value
-		void* PvMemSet(void *pvDest, INT iValue, SIZE_T ulNum);
+		// set a specified number of bytes to a specified m_bytearray_value
+		void* Memset(void *dest, INT value, SIZE_T num_bytes);
 
 		// calculate the length of a wide-character string
-		ULONG UlWcsLen(const WCHAR *wszDest);
+		ULONG Wcslen(const WCHAR *dest);
 
 		// calculate the length of a string
-		ULONG UlStrLen(const CHAR *szBuf);
+		ULONG Strlen(const CHAR *buf);
 
 		// sort a specified number of elements
-		void QSort(void *pvDest, SIZE_T ulNum, SIZE_T ulSize,  PFnComparator fnComparator);
+		void Qsort(void *dest, SIZE_T num_bytes, SIZE_T size,  Comparator fnComparator);
 
 		// parse command-line options
-		INT IGetOpt(INT iArgc, CHAR * const rgszArgv[], const CHAR *szOptstring);
+		INT Getopt(INT argc, CHAR * const argv[], const CHAR *opt_string);
 
 		// convert string to long integer
-		LINT LStrToL(const CHAR *szVal, CHAR **ppcEnd, ULONG ulBase);
+		LINT Strtol(const CHAR *val, CHAR **end, ULONG base);
 
 		// convert string to long long integer
-		LINT LStrToLL(const CHAR *szVal, CHAR **ppcEnd, ULONG ulBase);
+		LINT Strtoll(const CHAR *val, CHAR **end, ULONG base);
 
 		// convert string to double
-		DOUBLE DStrToD(const CHAR *sz);
+		DOUBLE Strtod(const CHAR *str);
 
 		// return a pseudo-random integer between 0 and RAND_MAX
-		ULONG UlRandR(ULONG *pulSeed);
+		ULONG Rand(ULONG *seed);
 
 		// format wide character output conversion
-		INT IVswPrintf(WCHAR *wszStr, SIZE_T ulMaxLen, const WCHAR * wszFormat, VA_LIST vaArgs);
+		INT Vswprintf(WCHAR *wcstr, SIZE_T max_len, const WCHAR * format, VA_LIST vaArgs);
 
 		// format string
-		INT IVsnPrintf(CHAR *szSrc, SIZE_T ulSize, const CHAR *szFormat, VA_LIST vaArgs);
+		INT Vsnprintf(CHAR *src, SIZE_T size, const CHAR *format, VA_LIST vaArgs);
 
 		// return string describing error number
-		void StrErrorR(INT iErrnum, CHAR *szbuf, SIZE_T ulBufLen);
+		void Strerror_r(INT errnum, CHAR *buf, SIZE_T buf_len);
 
-		// convert the calendar time ptTime to broken-time representation
-		TIME *PtmLocalTimeR(const TIME_T *ptTime, TIME *ptmResult);
+		// convert the calendar time time to broken-time representation
+		TIME *Localtime_r(const TIME_T *time, TIME *result);
 
 		// allocate dynamic memory
-		void *PvMalloc(SIZE_T ulSize);
+		void *Malloc(SIZE_T size);
 
 		// free dynamic memory
-		void Free(void *pvSrc);
+		void Free(void *src);
 
 		// convert a wide character to a multibyte sequence
-		INT IWcToMb(CHAR *szDest, WCHAR wcSrc);
+		INT Wctomb(CHAR *dest, WCHAR src);
 
 		// convert a wide-character string to a multi-byte string
-		LINT LWcsToMbs(CHAR *szDest, WCHAR *wszSrc, ULONG_PTR ulpDestSize);
+		LINT Wcstombs(CHAR *dest, WCHAR *src, ULONG_PTR dest_size);
 
 		// convert a multibyte sequence to wide character array
-		ULONG UlMbToWcs(WCHAR *wszDest, const CHAR *szSrc, SIZE_T ulLen);
+		ULONG Mbstowcs(WCHAR *dest, const CHAR *src, SIZE_T len);
 
 		// return a pointer to the start of the NULL-terminated symbol
-		CHAR *SzDemangle(const CHAR *szSymbol, CHAR *szBuffer, SIZE_T *pulLen, INT *piStatus);
+		CHAR *Demangle(const CHAR *symbol, CHAR *buf, SIZE_T *len, INT *status);
 
 		// resolve symbol information from its address
-		void DlAddr(void *pvAddr, DL_INFO *pdlInfo);
+		void Dladdr(void *addr, DL_INFO *info);
 
 	} //namespace clib
 }

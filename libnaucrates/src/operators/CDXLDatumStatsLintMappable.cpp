@@ -32,18 +32,18 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLDatumStatsLintMappable::CDXLDatumStatsLintMappable
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	INT iTypeModifier,
-	BOOL fByVal,
-	BOOL fNull,
-	BYTE *pba,
-	ULONG ulLength,
-	LINT lValue
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	INT type_modifier,
+	BOOL is_passed_by_value,
+	BOOL is_null,
+	BYTE *byte_array,
+	ULONG length,
+	LINT value
 	)
 	:
-	CDXLDatumGeneric(pmp, pmdidType, iTypeModifier, fByVal, fNull, pba, ulLength),
-	m_lValue(lValue)
+	CDXLDatumGeneric(mp, mdid_type, type_modifier, is_passed_by_value, is_null, byte_array, length),
+	m_val(value)
 {
 }
 
@@ -59,18 +59,18 @@ CDXLDatumStatsLintMappable::CDXLDatumStatsLintMappable
 void
 CDXLDatumStatsLintMappable::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 {
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
-	if (IDefaultTypeModifier != ITypeModifier())
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
+	if (default_type_modifier != TypeModifier())
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTypeMod), TypeModifier());
 	}
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsNull), m_fNull);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsByValue), m_fByVal);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenValue), m_fNull, Pba(), UlLength());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenLintValue), LStatsMapping());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsNull), m_is_null);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsByValue), m_is_passed_by_value);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenValue), m_is_null, GetByteArray(), Length());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenLintValue), GetLINTMapping());
 }
 
 

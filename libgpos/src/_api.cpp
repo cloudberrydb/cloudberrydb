@@ -36,45 +36,45 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 void gpos_init(struct gpos_init_params* params) {
 
-	void* (*pfnAlloc) (SIZE_T) = params->alloc;
-	void (*pfnFree) (void*) = params->free;
+	void* (*func_ptr_alloc) (SIZE_T) = params->alloc;
+	void (*func_ptr_free) (void*) = params->free;
 
-	if (NULL == pfnAlloc || NULL == pfnFree) {
-	  pfnAlloc = clib::PvMalloc;
-	  pfnFree = clib::Free;
+	if (NULL == func_ptr_alloc || NULL == func_ptr_free) {
+	  func_ptr_alloc = clib::Malloc;
+	  func_ptr_free = clib::Free;
 	}
 
-	CWorker::pfnAbortRequestedBySystem = params->abort_requested;
+	CWorker::abort_requested_by_system = params->abort_requested;
 
-	if (GPOS_OK != gpos::CMemoryPoolManager::EresInit(pfnAlloc, pfnFree))
+	if (GPOS_OK != gpos::CMemoryPoolManager::Init(func_ptr_alloc, func_ptr_free))
 	{
 		return;
 	}
 
-	if (GPOS_OK != gpos::CWorkerPoolManager::EresInit(0,0))
+	if (GPOS_OK != gpos::CWorkerPoolManager::Init(0,0))
 	{
-		CMemoryPoolManager::Pmpm()->Shutdown();
+		CMemoryPoolManager::GetMemoryPoolMgr()->Shutdown();
 		return;
 	}
 
-	if (GPOS_OK != gpos::CMessageRepository::EresInit())
+	if (GPOS_OK != gpos::CMessageRepository::Init())
 	{
-		CWorkerPoolManager::Pwpm()->Shutdown();
-		CMemoryPoolManager::Pmpm()->Shutdown();
+		CWorkerPoolManager::WorkerPoolManager()->Shutdown();
+		CMemoryPoolManager::GetMemoryPoolMgr()->Shutdown();
 		return;
 	}
 
-	if (GPOS_OK != gpos::CCacheFactory::EresInit())
+	if (GPOS_OK != gpos::CCacheFactory::Init())
 	{
 		return;
 	}
 
 #ifdef GPOS_FPSIMULATOR
-	if (GPOS_OK != gpos::CFSimulator::EresInit())
+	if (GPOS_OK != gpos::CFSimulator::Init())
 	{
-		CMessageRepository::Pmr()->Shutdown();
-		CWorkerPoolManager::Pwpm()->Shutdown();
-		CMemoryPoolManager::Pmpm()->Shutdown();
+		CMessageRepository::GetMessageRepository()->Shutdown();
+		CWorkerPoolManager::WorkerPoolManager()->Shutdown();
+		CMemoryPoolManager::GetMemoryPoolMgr()->Shutdown();
 	}
 #endif // GPOS_FPSIMULATOR
 }
@@ -93,7 +93,7 @@ int gpos_set_threads(int min, int max)
 {
 	try
 	{
-		CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+		CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 		// check if worker pool is initialized
 		if (NULL == pwpm)
@@ -101,8 +101,8 @@ int gpos_set_threads(int min, int max)
 			return 1;
 		}
 
-		pwpm->SetWorkersMin(min);
-		pwpm->SetWorkersMax(max);
+		pwpm->SetMinWorkers(min);
+		pwpm->SetMaxWorkers(max);
 	}
 	catch (...)
 	{
@@ -136,7 +136,7 @@ int gpos_exec
 
 	try
 	{
-		CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+		CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 		// check if worker pool is initialized
 		if (NULL == pwpm)
@@ -158,17 +158,17 @@ int gpos_exec
 		{
 			// setup task memory
 			CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-			IMemoryPool *pmp = amp.Pmp();
+			IMemoryPool *mp = amp.Pmp();
 
 			// scope for ATP
 			{
 				// task handler for this process
-				CAutoTaskProxy atp(pmp, pwpm, true /*fPropagateError*/);
+				CAutoTaskProxy atp(mp, pwpm, true /*fPropagateError*/);
 
-				CTask *ptsk = atp.PtskCreate(params->func, params->arg, params->abort_requested);
+				CTask *ptsk = atp.Create(params->func, params->arg, params->abort_requested);
 
 				// init TLS
-				ptsk->Tls().Reset(pmp);
+				ptsk->GetTls().Reset(mp);
 
 				CAutoP<CWStringStatic> apwstr;
 				CAutoP<COstreamString> aposs;
@@ -179,27 +179,27 @@ int gpos_exec
 				{
 					GPOS_ASSERT(0 < params->error_buffer_size);
 
-					apwstr = GPOS_NEW(pmp) CWStringStatic
+					apwstr = GPOS_NEW(mp) CWStringStatic
 						(
 						(WCHAR *) params->error_buffer,
 						params->error_buffer_size / GPOS_SIZEOF(WCHAR)
 						);
-					aposs = GPOS_NEW(pmp) COstreamString(apwstr.Pt());
-					aplogger = GPOS_NEW(pmp) CLoggerStream(*aposs.Pt());
+					aposs = GPOS_NEW(mp) COstreamString(apwstr.Value());
+					aplogger = GPOS_NEW(mp) CLoggerStream(*aposs.Value());
 
-					CTaskContext *ptskctxt = ptsk->Ptskctxt();
-					ptskctxt->SetLogOut(aplogger.Pt());
-					ptskctxt->SetLogErr(aplogger.Pt());
+					CTaskContext *ptskctxt = ptsk->GetTaskCtxt();
+					ptskctxt->SetLogOut(aplogger.Value());
+					ptskctxt->SetLogErr(aplogger.Value());
 				}
 
 				// execute function
 				atp.Execute(ptsk);
 
 				// export task result
-				params->result = ptsk->PvRes();
+				params->result = ptsk->GetRes();
 
 				// check for errors during execution
-				if (CTask::EtsError == ptsk->Ets())
+				if (CTask::EtsError == ptsk->GetStatus())
 				{
 					return 1;
 				}
@@ -211,10 +211,10 @@ int gpos_exec
 	{
 		std::cerr
 			<< "Unexpected exception reached top of execution stack:"
-			<< " major=" << ex.UlMajor()
-			<< " minor=" << ex.UlMinor()
-			<< " file=" << ex.SzFilename()
-			<< " line=" << ex.UlLine()
+			<< " major=" << ex.Major()
+			<< " minor=" << ex.Minor()
+			<< " file=" << ex.Filename()
+			<< " line=" << ex.Line()
 			<< std::endl;
 
 		// unexpected failure
@@ -242,12 +242,12 @@ void gpos_terminate()
 {
 #ifdef GPOS_DEBUG
 #ifdef GPOS_FPSIMULATOR
-	CFSimulator::Pfsim()->Shutdown();
+	CFSimulator::FSim()->Shutdown();
 #endif // GPOS_FPSIMULATOR
-	CMessageRepository::Pmr()->Shutdown();
-	CWorkerPoolManager::Pwpm()->Shutdown();
-	CCacheFactory::Pcf()->Shutdown();
-	CMemoryPoolManager::Pmpm()->Shutdown();
+	CMessageRepository::GetMessageRepository()->Shutdown();
+	CWorkerPoolManager::WorkerPoolManager()->Shutdown();
+	CCacheFactory::GetFactory()->Shutdown();
+	CMemoryPoolManager::GetMemoryPoolMgr()->Shutdown();
 #endif // GPOS_DEBUG
 }
 

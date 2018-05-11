@@ -47,31 +47,31 @@ namespace gpopt
 			CBitSet *m_pbs;
 			
 			// optimizer configuration
-			COptimizerConfig *m_poconf;
+			COptimizerConfig *m_optimizer_config;
 			
 			// DXL query tree
-			CDXLNode *m_pdxlnQuery;
+			CDXLNode *m_query_dxl_root;
 			
 			// Array of DXL nodes that represent the query output
-			DrgPdxln *m_pdrgpdxlnQueryOutput;
+			CDXLNodeArray *m_query_output;
 			
 			// Array of DXL nodes that represent the CTE producers
-			DrgPdxln *m_pdrgpdxlnCTE;
+			CDXLNodeArray *m_cte_producers;
 
 			// DXL plan
-			CDXLNode *m_pdxlnPlan;
+			CDXLNode *m_plan_dxl_root;
 
 			// metadata objects
-			DrgPimdobj *m_pdrgpmdobj;
+			IMDCacheObjectArray *m_mdid_cached_obj_array;
 			
 			// source system ids
-			DrgPsysid *m_pdrgpsysid;
+			CSystemIdArray *m_system_id_array;
 			
 			// plan Id
-			ULLONG m_ullPlanId;
+			ULLONG m_plan_id;
 
 			// plan space size
-			ULLONG m_ullPlanSpaceSize;
+			ULLONG m_plan_space_size;
 
 			// private copy ctor
 			CDXLMinidump(const CDXLMinidump&);
@@ -82,15 +82,15 @@ namespace gpopt
 			CDXLMinidump
 				(
 				CBitSet *pbs, 
-				COptimizerConfig *poconf,
-				CDXLNode *pdxlnQuery, 
-				DrgPdxln *pdrgpdxlnQueryOutput,
-				DrgPdxln *pdrgpdxlnCTE,
+				COptimizerConfig *optimizer_config,
+				CDXLNode *query, 
+				CDXLNodeArray *query_output_dxlnode_array,
+				CDXLNodeArray *cte_producers,
 				CDXLNode *pdxlnPlan, 
-				DrgPimdobj *pdrgpmdobj, 
-				DrgPsysid *pdrgpsysid,
-				ULLONG ullPlanId,
-				ULLONG ullPlanSpaceSize
+				IMDCacheObjectArray *mdcache_obj_array,
+				CSystemIdArray *pdrgpsysid,
+				ULLONG plan_id,
+				ULLONG plan_space_size
 				);
 
 			// dtor
@@ -100,34 +100,34 @@ namespace gpopt
 			const CBitSet *Pbs() const;
 			
 			// optimizer configuration
-			COptimizerConfig *Poconf() const
+			COptimizerConfig *GetOptimizerConfig() const
 			{
-				return m_poconf;
+				return m_optimizer_config;
 			}
 
 			// query object
-			const CDXLNode *PdxlnQuery() const;
+			const CDXLNode *GetQueryDXLRoot() const;
 			
 			// query output columns
-			const DrgPdxln *PdrgpdxlnQueryOutput() const;
+			const CDXLNodeArray *PdrgpdxlnQueryOutput() const;
 			
 			// CTE list
-			const DrgPdxln *PdrgpdxlnCTE() const;
+			const CDXLNodeArray *GetCTEProducerDXLArray() const;
 
 			// plan
 			const CDXLNode *PdxlnPlan() const;
 
 			// metadata objects
-			const DrgPimdobj *Pdrgpmdobj() const;
+			const IMDCacheObjectArray *GetMdIdCachedObjArray() const;
 			
 			// source system ids
-			const DrgPsysid *Pdrgpsysid() const;
+			const CSystemIdArray *GetSysidPtrArray() const;
 			
 			// return plan id
-			ULLONG UllPlanId() const;
+			ULLONG GetPlanId() const;
 
 			// return plan space size
-			ULLONG UllPlanSpaceSize() const;
+			ULLONG GetPlanSpaceSize() const;
 
 	}; // class CDXLMinidump
 }

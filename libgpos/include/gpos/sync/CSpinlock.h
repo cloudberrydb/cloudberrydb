@@ -49,17 +49,17 @@ namespace gpos
 		private:
 		
 			// rank of spinlock
-			ULONG m_ulRank;
+			ULONG m_rank;
 		
 		public:
 
 			// ctor
 			CSpinlockBase
 				(
-				ULONG ulRank
+				ULONG rank
 				)
 				:
-				m_ulRank(ulRank)
+				m_rank(rank)
 			{}
 		
 			// dtor
@@ -77,21 +77,21 @@ namespace gpos
 			
 
 			// decide trackability of spinlock
-			BOOL FTrackable()
+			BOOL IsTrackable()
 			{
 				// do not track lock of rank 0
-				return 0 < m_ulRank;
+				return 0 < m_rank;
 			}
 
-			ULONG UlRank() const
+			ULONG Rank() const
 			{
-				return m_ulRank;
+				return m_rank;
 			}
 			
 #ifdef GPOS_DEBUG
 			// test whether we own the spinlock
 			virtual
-			BOOL FOwned() const = 0;
+			BOOL IsOwned() const = 0;
 #endif // GPOS_ASSERT
 
 			// link for accounting list
@@ -110,7 +110,7 @@ namespace gpos
 	//		to the constructor.
 	//
 	//---------------------------------------------------------------------------
-	template<ULONG ulRank>
+	template<ULONG rank>
 	class CSpinlockRanked : public CSpinlockBase
 	{
 #ifdef GPOS_DEBUG
@@ -119,34 +119,34 @@ namespace gpos
 #endif // GPOS_DEBUG
 
 		// lock indicator -- lock counter is not usable in asserts
-		BOOL m_fLocked;
+		BOOL m_locked;
 
 		// actual lock counter
-		ULONG_PTR m_ulpLock;
+		ULONG_PTR m_lock_counter;
 		
 		// counter for collisions
-		ULONG_PTR m_ulpCollisions;
+		ULONG_PTR m_collisions_counter;
 		
 	public:
 
 		// ctor
-		CSpinlockRanked<ulRank>()
+		CSpinlockRanked<rank>()
 			:
-			CSpinlockBase(ulRank),
+			CSpinlockBase(rank),
 #ifdef GPOS_DEBUG
 			m_wid(false),
 #endif // GPOS_DEBUG
-			m_fLocked(false),
-			m_ulpLock(0), 
-			m_ulpCollisions(0)
+			m_locked(false),
+			m_lock_counter(0), 
+			m_collisions_counter(0)
 		{}
 		
 		
 		// dtor
-		~CSpinlockRanked<ulRank>()
+		~CSpinlockRanked<rank>()
         {
             // since this might burn up the CPU be defensive
-            if (m_fLocked)
+            if (m_locked)
             {
                 Unlock();
                 GPOS_ASSERT(!"Tried to destruct locked spinlock.");
@@ -157,38 +157,38 @@ namespace gpos
 		void Lock()
         {
 #ifdef GPOS_DEBUG
-            GPOS_ASSERT_IMP(0 < ulRank && IWorker::PwrkrSelf(),
-                            IWorker::PwrkrSelf()->FCanAcquireSpinlock(this) &&
+            GPOS_ASSERT_IMP(0 < rank && IWorker::Self(),
+                            IWorker::Self()->CanAcquireSpinlock(this) &&
                             "Tried to acquire spinlock in incorrect order or detected deadlock.");
 #endif // GPOS_DEBUG
 
-            ULONG ulAttempts = 0;
+            ULONG attempts = 0;
 
             // attempt getting the lock
             while(1)
             {
                 // do not attempt a sync'd increment unless the counter is likely to be 0
-                if (0 == m_ulpLock)
+                if (0 == m_lock_counter)
                 {
                     // attempt sync'd increment
-                    if (0 == gpos::UlpExchangeAdd(&m_ulpLock, 1))
+                    if (0 == gpos::ExchangeAddUlongPtrWithInt(&m_lock_counter, 1))
                     {
                         break;
                     }
 
                     // count back down
-                    gpos::UlpExchangeAdd(&m_ulpLock, -1);
+                    gpos::ExchangeAddUlongPtrWithInt(&m_lock_counter, -1);
                 }
 
                 // assert it is not us who holds the lock
-                GPOS_ASSERT(!FOwned() && "self-deadlock detected");
+                GPOS_ASSERT(!IsOwned() && "self-deadlock detected");
 
                 // trigger a back-off after a certain number of attempts
-                if (ulAttempts++ > GPOS_SPIN_ATTEMPTS)
+                if (attempts++ > GPOS_SPIN_ATTEMPTS)
                 {
                     // up stats
-                    gpos::UlpExchangeAdd(&m_ulpCollisions, ulAttempts);
-                    ulAttempts = 0;
+                    gpos::ExchangeAddUlongPtrWithInt(&m_collisions_counter, attempts);
+                    attempts = 0;
 
                     clib::USleep(GPOS_SPIN_BACKOFF);
 
@@ -196,7 +196,7 @@ namespace gpos
                     // a non-trackable lock; dependent on OPT-87, OPT-86
 
                     // non-trackable locks don't know about aborts
-                    if (FTrackable())
+                    if (IsTrackable())
                     {
                         // TODO: 03/09/2008; log that we're burning CPU
 
@@ -206,45 +206,45 @@ namespace gpos
             }
 
             // got the lock
-            GPOS_ASSERT(m_ulpLock > 0);
+            GPOS_ASSERT(m_lock_counter > 0);
 
             // final update of collision stats
-            gpos::UlpExchangeAdd(&m_ulpCollisions, ulAttempts);
+            gpos::ExchangeAddUlongPtrWithInt(&m_collisions_counter, attempts);
 
 #ifdef GPOS_DEBUG
-            if (0 < ulRank && NULL != IWorker::PwrkrSelf())
+            if (0 < rank && NULL != IWorker::Self())
             {
-                IWorker::PwrkrSelf()->RegisterSpinlock(this);
+                IWorker::Self()->RegisterSpinlock(this);
             }
 
-            m_wid.Current();
+            m_wid.SetThreadToCurrent();
 #endif // GPOS_DEBUG
-            m_fLocked = true;
+            m_locked = true;
         }
 		
 		// release
 		void Unlock()
         {
 #ifdef GPOS_DEBUG
-            if (0 < ulRank && NULL != IWorker::PwrkrSelf())
+            if (0 < rank && NULL != IWorker::Self())
             {
-                IWorker::PwrkrSelf()->UnregisterSpinlock(this);
+                IWorker::Self()->UnregisterSpinlock(this);
             }
 
-            m_wid.Invalid();
-            m_fLocked = false;
+            m_wid.SetThreadToInvalid();
+            m_locked = false;
 #endif // GPOS_DEBUG
 
-            GPOS_ASSERT(m_ulpLock > 0);
-            gpos::UlpExchangeAdd(&m_ulpLock, -1);
+            GPOS_ASSERT(m_lock_counter > 0);
+            gpos::ExchangeAddUlongPtrWithInt(&m_lock_counter, -1);
         }
 		
 #ifdef GPOS_DEBUG
 		// test whether we own the spinlock
-		BOOL FOwned() const
+		BOOL IsOwned() const
         {
             CWorkerId wid;
-            return m_fLocked && m_wid.FEqual(wid);
+            return m_locked && m_wid.Equals(wid);
         }
 #endif // GPOS_ASSERT
 

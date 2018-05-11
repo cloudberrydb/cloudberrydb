@@ -17,14 +17,14 @@ namespace gpopt
 	// distribution on input column of each child, and an output hashed
 	// distribution on UnionAll output columns
 
-	class CHashedDistributions : public DrgPds
+	class CHashedDistributions : public CDistributionSpecArray
 	{
 		public:
 			CHashedDistributions
 			(
-			IMemoryPool *pmp,
-			DrgPcr *pdrgpcrOutput,
-			DrgDrgPcr *pdrgpdrgpcrInput
+			IMemoryPool *mp,
+			CColRefArray *pdrgpcrOutput,
+			CColRef2dArray *pdrgpdrgpcrInput
 			);
 	};
 }

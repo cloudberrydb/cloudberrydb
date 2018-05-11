@@ -55,20 +55,20 @@ namespace gpopt
 			// ctor
 			CHint
 				(
-				ULONG ulMinNumOfPartsToRequireSortOnInsert,
-				ULONG ulJoinArityForAssociativityCommutativity,
-				ULONG ulArrayExpansionThreshold,
+				ULONG min_num_of_parts_to_require_sort_on_insert,
+				ULONG join_arity_for_associativity_commutativity,
+				ULONG array_expansion_threshold,
 				ULONG ulJoinOrderDPLimit,
-				ULONG ulBroadcastThreshold,
-				BOOL fEnforceConstraintsOnDML
+				ULONG broadcast_threshold,
+				BOOL enforce_constraint_on_dml
 				)
 				:
-				m_ulMinNumOfPartsToRequireSortOnInsert(ulMinNumOfPartsToRequireSortOnInsert),
-				m_ulJoinArityForAssociativityCommutativity(ulJoinArityForAssociativityCommutativity),
-				m_ulArrayExpansionThreshold(ulArrayExpansionThreshold),
+				m_ulMinNumOfPartsToRequireSortOnInsert(min_num_of_parts_to_require_sort_on_insert),
+				m_ulJoinArityForAssociativityCommutativity(join_arity_for_associativity_commutativity),
+				m_ulArrayExpansionThreshold(array_expansion_threshold),
 				m_ulJoinOrderDPLimit(ulJoinOrderDPLimit),
-				m_ulBroadcastThreshold(ulBroadcastThreshold),
-				m_fEnforceConstraintsOnDML(fEnforceConstraintsOnDML)
+				m_ulBroadcastThreshold(broadcast_threshold),
+				m_fEnforceConstraintsOnDML(enforce_constraint_on_dml)
 			{
 			}
 
@@ -124,15 +124,15 @@ namespace gpopt
 			// generate default hint configurations, which disables sort during insert on
 			// append only row-oriented partitioned tables by default
 			static
-			CHint *PhintDefault(IMemoryPool *pmp)
+			CHint *PhintDefault(IMemoryPool *mp)
 			{
-				return GPOS_NEW(pmp) CHint(
-					gpos::int_max, /* ulMinNumOfPartsToRequireSortOnInsert */
-					gpos::int_max, /* ulJoinArityForAssociativityCommutativity */
-					gpos::int_max,			 /* ulArrayExpansionThreshold */
+				return GPOS_NEW(mp) CHint(
+					gpos::int_max, /* min_num_of_parts_to_require_sort_on_insert */
+					gpos::int_max, /* join_arity_for_associativity_commutativity */
+					gpos::int_max,			 /* array_expansion_threshold */
 					JOIN_ORDER_DP_THRESHOLD, /*ulJoinOrderDPLimit*/
-					BROADCAST_THRESHOLD,	 /*ulBroadcastThreshold*/
-					true					 /* fEnforceConstraintsOnDML */
+					BROADCAST_THRESHOLD,	 /*broadcast_threshold*/
+					true					 /* enforce_constraint_on_dml */
 				);
 			}
 

@@ -18,11 +18,11 @@ namespace gpopt
 		)
 		: m_popLogicalUnionAll(popLogicalUnionAll) { }
 
-	CPhysicalUnionAll *CPhysicalUnionAllFactory::PopPhysicalUnionAll(IMemoryPool *pmp, BOOL fParallel)
+	CPhysicalUnionAll *CPhysicalUnionAllFactory::PopPhysicalUnionAll(IMemoryPool *mp, BOOL fParallel)
 	{
 
-		DrgPcr *pdrgpcrOutput = m_popLogicalUnionAll->PdrgpcrOutput();
-		DrgDrgPcr *pdrgpdrgpcrInput = m_popLogicalUnionAll->PdrgpdrgpcrInput();
+		CColRefArray *pdrgpcrOutput = m_popLogicalUnionAll->PdrgpcrOutput();
+		CColRef2dArray *pdrgpdrgpcrInput = m_popLogicalUnionAll->PdrgpdrgpcrInput();
 
 		// TODO:  May 2nd 2012; support compatible types
 		if (!CXformUtils::FSameDatatype(pdrgpdrgpcrInput))
@@ -35,9 +35,9 @@ namespace gpopt
 
 		if (fParallel)
 		{
-			return GPOS_NEW(pmp) CPhysicalParallelUnionAll
+			return GPOS_NEW(mp) CPhysicalParallelUnionAll
 				(
-					pmp,
+					mp,
 					pdrgpcrOutput,
 					pdrgpdrgpcrInput,
 					m_popLogicalUnionAll->UlScanIdPartialIndex()
@@ -45,9 +45,9 @@ namespace gpopt
 		}
 		else
 		{
-			return GPOS_NEW(pmp) CPhysicalSerialUnionAll
+			return GPOS_NEW(mp) CPhysicalSerialUnionAll
 				(
-					pmp,
+					mp,
 					pdrgpcrOutput,
 					pdrgpdrgpcrInput,
 					m_popLogicalUnionAll->UlScanIdPartialIndex()

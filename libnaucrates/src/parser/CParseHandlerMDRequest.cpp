@@ -28,13 +28,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerMDRequest::CParseHandlerMDRequest
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pdrgpmdid(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_mdid_array(NULL)
 {
 }
 
@@ -48,8 +48,8 @@ CParseHandlerMDRequest::CParseHandlerMDRequest
 //---------------------------------------------------------------------------
 CParseHandlerMDRequest::~CParseHandlerMDRequest()
 {
-	CRefCount::SafeRelease(m_pdrgpmdid);
-	CRefCount::SafeRelease(m_pdrgptr);
+	CRefCount::SafeRelease(m_mdid_array);
+	CRefCount::SafeRelease(m_mdtype_request_array);
 }
 
 
@@ -64,43 +64,43 @@ CParseHandlerMDRequest::~CParseHandlerMDRequest()
 void
 CParseHandlerMDRequest::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDRequest), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDRequest), element_local_name))
 	{
 		// start of MD request section
-		GPOS_ASSERT(NULL == m_pdrgpmdid);
-		m_pdrgpmdid = GPOS_NEW(m_pmp) DrgPmdid(m_pmp);
-		m_pdrgptr = GPOS_NEW(m_pmp) CMDRequest::DrgPtr(m_pmp);
+		GPOS_ASSERT(NULL == m_mdid_array);
+		m_mdid_array = GPOS_NEW(m_mp) IMdIdArray(m_mp);
+		m_mdtype_request_array = GPOS_NEW(m_mp) CMDRequest::SMDTypeRequestArray(m_mp);
 		
 		return;
 	}
 	
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMdid), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMdid), element_local_name))
 	{
-		GPOS_ASSERT(NULL != m_pdrgpmdid);
+		GPOS_ASSERT(NULL != m_mdid_array);
 		
 		// parse mdid
-		IMDId *pmdid = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenValue, EdxltokenMdid);
-		m_pdrgpmdid->Append(pmdid);
+		IMDId *mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenValue, EdxltokenMdid);
+		m_mdid_array->Append(mdid);
 		
 		return;
 	}
 	
-	GPOS_ASSERT(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDTypeRequest), xmlszLocalname));
-	GPOS_ASSERT(NULL != m_pdrgptr);
+	GPOS_ASSERT(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDTypeRequest), element_local_name));
+	GPOS_ASSERT(NULL != m_mdtype_request_array);
 
-	CSystemId sysid = CDXLOperatorFactory::Sysid(m_pphm->Pmm(), attrs, EdxltokenSysid, EdxltokenMDTypeRequest);
+	CSystemId sysid = CDXLOperatorFactory::Sysid(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenSysid, EdxltokenMDTypeRequest);
 
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDTypeRequest), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDTypeRequest), element_local_name))
 	{		
 		// parse type request
-		IMDType::ETypeInfo eti = (IMDType::ETypeInfo) CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTypeInfo, EdxltokenMDTypeRequest);
-		m_pdrgptr->Append(GPOS_NEW(m_pmp) CMDRequest::SMDTypeRequest(sysid, eti));
+		IMDType::ETypeInfo type_info = (IMDType::ETypeInfo) CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenTypeInfo, EdxltokenMDTypeRequest);
+		m_mdtype_request_array->Append(GPOS_NEW(m_mp) CMDRequest::SMDTypeRequest(sysid, type_info));
 	}
 }
 
@@ -115,58 +115,58 @@ CParseHandlerMDRequest::StartElement
 void
 CParseHandlerMDRequest::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDRequest), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenMDRequest), element_local_name))
 	{
 		// deactivate handler
-		m_pphm->DeactivateHandler();
+		m_parse_handler_mgr->DeactivateHandler();
 	}
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerMDRequest::Edxlphtype
+//		CParseHandlerMDRequest::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerMDRequest::Edxlphtype() const
+CParseHandlerMDRequest::GetParseHandlerType() const
 {
 	return EdxlphMetadataRequest;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerMDRequest::Pdrgpmdid
+//		CParseHandlerMDRequest::GetMdIdArray
 //
 //	@doc:
 //		Parsed array of mdids
 //
 //---------------------------------------------------------------------------
-DrgPmdid *
-CParseHandlerMDRequest::Pdrgpmdid() const
+IMdIdArray *
+CParseHandlerMDRequest::GetMdIdArray() const
 {
-	return m_pdrgpmdid;
+	return m_mdid_array;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerMDRequest::Pdrgptr
+//		CParseHandlerMDRequest::GetMDTypeRequestArray
 //
 //	@doc:
 //		Parsed array of type requests
 //
 //---------------------------------------------------------------------------
-CMDRequest::DrgPtr *
-CParseHandlerMDRequest::Pdrgptr() const
+CMDRequest::SMDTypeRequestArray *
+CParseHandlerMDRequest::GetMDTypeRequestArray() const
 {
-	return m_pdrgptr;
+	return m_mdtype_request_array;
 }
 
 // EOF

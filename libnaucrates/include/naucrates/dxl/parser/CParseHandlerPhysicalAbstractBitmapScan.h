@@ -41,29 +41,29 @@ namespace gpdxl
 			// common StartElement functionality for child classes
 			void StartElementHelper
 				(
-				const XMLCh* const xmlszLocalname,
-				Edxltoken edxltoken
+				const XMLCh* const element_local_name,
+				Edxltoken token_type
 				);
 
 			// common EndElement functionality for child classes
 			void EndElementHelper
 				(
-				const XMLCh* const xmlszLocalname,
-				Edxltoken edxltoken,
-				ULONG ulPartIndexId = 0,
-				ULONG ulPartIndexIdPrintable = 0
+				const XMLCh* const element_local_name,
+				Edxltoken token_type,
+				ULONG part_idx_id = 0,
+				ULONG part_idx_id_printable = 0
 				);
 
 		public:
 			// ctor
 			CParseHandlerPhysicalAbstractBitmapScan
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				)
 				:
-				CParseHandlerPhysicalOp(pmp, pphm, pphRoot)
+				CParseHandlerPhysicalOp(mp, parse_handler_mgr, parse_handler_root)
 			{}
 	};
 }

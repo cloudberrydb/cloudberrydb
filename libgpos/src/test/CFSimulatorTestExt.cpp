@@ -136,8 +136,8 @@ CFSimulatorTestExt::EresUnittest_NetError()
 GPOS_RESULT
 CFSimulatorTestExt::EresUnittest_SimulateException
 	(
-	ULONG ulMajor,
-	ULONG ulMinor
+	ULONG major,
+	ULONG minor
 	)
 {
 	// assemble -u option
@@ -158,7 +158,7 @@ CFSimulatorTestExt::EresUnittest_SimulateException
 			GPOS_RESET_EX;
 
 			// retry every time we hit an OOM, else bail
-			if(!GPOS_MATCH_EX(ex, ulMajor, ulMinor))
+			if(!GPOS_MATCH_EX(ex, major, minor))
 			{
 				return GPOS_FAILED;
 			}

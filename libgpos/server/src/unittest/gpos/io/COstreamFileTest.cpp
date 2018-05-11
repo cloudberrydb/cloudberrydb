@@ -57,35 +57,35 @@ GPOS_RESULT
 COstreamFileTest::EresUnittest_Basic()
 {
 	// create temporary file in new directory under /tmp
-	CHAR szPath[GPOS_FILE_NAME_BUF_SIZE];
+	CHAR file_path[GPOS_FILE_NAME_BUF_SIZE];
 	CHAR szFile[GPOS_FILE_NAME_BUF_SIZE];
 
-	CStringStatic strPath(szPath, GPOS_ARRAY_SIZE(szPath));
+	CStringStatic strPath(file_path, GPOS_ARRAY_SIZE(file_path));
 	CStringStatic strFile(szFile, GPOS_ARRAY_SIZE(szFile));
 
 	strPath.AppendBuffer("/tmp/gpos_test_stream.XXXXXX");
 
 	// create dir
-	(void) ioutils::SzMkDTemp(szPath);
+	(void) ioutils::CreateTempDir(file_path);
 
 	strFile.Append(&strPath);
 	strFile.AppendBuffer("/COstreamFileTest");
 
 	GPOS_TRY
 	{
-		Unittest_WriteFileStream(strFile.Sz());
+		Unittest_WriteFileStream(strFile.Buffer());
 
-		Unittest_CheckOutputFile(strFile.Sz());
+		Unittest_CheckOutputFile(strFile.Buffer());
 	}
 	GPOS_CATCH_EX(ex)
 	{
-		Unittest_DeleteTmpFile(strPath.Sz(), strFile.Sz());
+		Unittest_DeleteTmpFile(strPath.Buffer(), strFile.Buffer());
 
 		GPOS_RETHROW(ex);
 	}
 	GPOS_CATCH_END;
 
-	Unittest_DeleteTmpFile(strPath.Sz(), strFile.Sz());
+	Unittest_DeleteTmpFile(strPath.Buffer(), strFile.Buffer());
 
 	return GPOS_OK;
 }
@@ -153,12 +153,12 @@ COstreamFileTest::Unittest_CheckOutputFile
 #ifdef GPOS_DEBUG
 	ULONG_PTR ulpRead =
 #endif // GPOS_DEBUG
-	fr.UlpRead((BYTE *) wszReadBuffer, GPOS_ARRAY_SIZE(wszReadBuffer));
+	fr.ReadBytesToBuffer((BYTE *) wszReadBuffer, GPOS_ARRAY_SIZE(wszReadBuffer));
 
 	CWStringConst strExpected(GPOS_WSZ_LIT("WC102-10some regular stringdeadbeef"));
 
-	GPOS_ASSERT(ulpRead == (ULONG_PTR) strExpected.UlLength() * GPOS_SIZEOF(WCHAR));
-	GPOS_ASSERT(strExpected.FEquals(&strExpected));
+	GPOS_ASSERT(ulpRead == (ULONG_PTR) strExpected.Length() * GPOS_SIZEOF(WCHAR));
+	GPOS_ASSERT(strExpected.Equals(&strExpected));
 }
 
 
@@ -182,16 +182,16 @@ COstreamFileTest::Unittest_DeleteTmpFile
 
 	CAutoTraceFlag atf(EtraceSimulateIOError, false);
 
-	if (ioutils::FPathExist(szFile))
+	if (ioutils::PathExists(szFile))
 	{
 		// delete temporary file
 		ioutils::Unlink(szFile);
 	}
 
-	if (ioutils::FPathExist(szDir))
+	if (ioutils::PathExists(szDir))
 	{
 		// delete temporary dir
-		ioutils::RmDir(szDir);
+		ioutils::RemoveDir(szDir);
 	}
 }
 

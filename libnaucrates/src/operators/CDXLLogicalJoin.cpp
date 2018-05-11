@@ -28,54 +28,54 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLLogicalJoin::CDXLLogicalJoin
 	(
-	IMemoryPool *pmp,
-	EdxlJoinType edxljt
+	IMemoryPool *mp,
+	EdxlJoinType join_type
 	)
-	:CDXLLogical(pmp),
-	 m_edxljt(edxljt)
+	:CDXLLogical(mp),
+	 m_join_type(join_type)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalJoin::Edxlop
+//		CDXLLogicalJoin::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLLogicalJoin::Edxlop() const
+CDXLLogicalJoin::GetDXLOperator() const
 {
 	return EdxlopLogicalJoin;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalJoin::Edxltype
+//		CDXLLogicalJoin::GetJoinType
 //
 //	@doc:
 //		Join type
 //
 //---------------------------------------------------------------------------
 EdxlJoinType
-CDXLLogicalJoin::Edxltype() const
+CDXLLogicalJoin::GetJoinType() const
 {
-	return m_edxljt;
+	return m_join_type;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalJoin::PstrOpName
+//		CDXLLogicalJoin::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLLogicalJoin::PstrOpName() const
+CDXLLogicalJoin::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenLogicalJoin);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenLogicalJoin);
 }
 
 //---------------------------------------------------------------------------
@@ -89,35 +89,35 @@ CDXLLogicalJoin::PstrOpName() const
 void
 CDXLLogicalJoin::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenJoinType), PstrJoinTypeName());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenJoinType), GetJoinTypeNameStr());
 
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	node->SerializeChildrenToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLLogicalJoin::PstrJoinTypeName
+//		CDXLLogicalJoin::GetJoinTypeNameStr
 //
 //	@doc:
 //		Join type name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLLogicalJoin::PstrJoinTypeName() const
+CDXLLogicalJoin::GetJoinTypeNameStr() const
 {
-	return CDXLOperator::PstrJoinTypeName(m_edxljt);
+	return CDXLOperator::GetJoinTypeNameStr(m_join_type);
 }
 
 #ifdef GPOS_DEBUG
@@ -132,33 +132,33 @@ CDXLLogicalJoin::PstrJoinTypeName() const
 void
 CDXLLogicalJoin::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) const
 {
-	const ULONG ulChildren = pdxln->UlArity();
-	GPOS_ASSERT(2 < ulChildren);
+	const ULONG num_of_child = node->Arity();
+	GPOS_ASSERT(2 < num_of_child);
 
-	for (ULONG ul = 0; ul < ulChildren - 1; ++ul)
+	for (ULONG idx = 0; idx < num_of_child - 1; ++idx)
 	{
-		CDXLNode *pdxlnChild = (*pdxln)[ul];
-		GPOS_ASSERT(EdxloptypeLogical == pdxlnChild->Pdxlop()->Edxloperatortype());
+		CDXLNode *child_dxlnode = (*node)[idx];
+		GPOS_ASSERT(EdxloptypeLogical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 		
-		if (fValidateChildren)
+		if (validate_children)
 		{
-			pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+			child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 		}
 	}
 
-	CDXLNode *pdxlnLastChild = (*pdxln)[ulChildren - 1];
-	GPOS_ASSERT(NULL != pdxlnLastChild);
+	CDXLNode *node_last_child = (*node)[num_of_child - 1];
+	GPOS_ASSERT(NULL != node_last_child);
 
 	//The last child is a CDXLScalar operator representing the join qual
-	GPOS_ASSERT(EdxloptypeScalar == pdxlnLastChild->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(EdxloptypeScalar == node_last_child->GetOperator()->GetDXLOperatorType());
 	
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnLastChild->Pdxlop()->AssertValid(pdxlnLastChild, fValidateChildren);
+		node_last_child->GetOperator()->AssertValid(node_last_child, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

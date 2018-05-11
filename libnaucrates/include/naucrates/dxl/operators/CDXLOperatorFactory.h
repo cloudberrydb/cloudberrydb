@@ -29,7 +29,7 @@
 #include "gpos/common/CDouble.h"
 
 // dynamic array of XML strings
-typedef CDynamicPtrArray<XMLCh, CleanupNULL> DrgPxmlsz;
+typedef CDynamicPtrArray<XMLCh, CleanupNULL> XMLChArray;
 
 // fwd decl
 namespace gpmd
@@ -72,22 +72,22 @@ namespace gpdxl
 
 			// return the LINT value of byte array
 			static
-			LINT LValue
+			LINT Value
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attrs,
-				Edxltoken edxltokenElement,
-				BYTE *pba
+				Edxltoken target_elem,
+				BYTE *data
 				);
 
 			// parses a byte array representation of the datum
 			static
-			BYTE *Pba
+			BYTE *GetByteArray
 					(
-					CDXLMemoryManager *pmm,
+					CDXLMemoryManager *dxl_memory_manager,
 					const Attributes &attrs,
-					Edxltoken edxltokenElement,
-					ULONG *pulLength
+					Edxltoken target_elem,
+					ULONG *length
 					);
 
 		public:
@@ -100,739 +100,739 @@ namespace gpdxl
 			};
 
 			static
-			CDXLDatum *PdxldatumOid
+			CDXLDatum *GetDatumOid
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			static
-			CDXLDatum *PdxldatumInt2
+			CDXLDatum *GetDatumInt2
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			static
-			CDXLDatum *PdxldatumInt4
+			CDXLDatum *GetDatumInt4
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			static
-			CDXLDatum *PdxldatumInt8
+			CDXLDatum *GetDatumInt8
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			static
-			CDXLDatum *PdxldatumBool
+			CDXLDatum *GetDatumBool
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			// parse a dxl datum of type generic
 			static
-			CDXLDatum *PdxldatumGeneric
+			CDXLDatum *GetDatumGeneric
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			// parse a dxl datum of types that need double mapping
 			static
-			CDXLDatum *PdxldatumStatsDoubleMappable
+			CDXLDatum *GetDatumStatsDoubleMappable
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			// parse a dxl datum of types that need lint mapping
 			static
-			CDXLDatum *PdxldatumStatsLintMappable
+			CDXLDatum *GetDatumStatsLintMappable
 								(
-								CDXLMemoryManager *pmm,
+								CDXLMemoryManager *dxl_memory_manager,
 								const Attributes &attrs,
-								Edxltoken edxltokenElement,
-								IMDId *pmdid,
-								BOOL fConstNull ,
-								BOOL fConstByVal
+								Edxltoken target_elem,
+								IMDId *mdid,
+								BOOL is_const_null ,
+								BOOL is_const_by_val
 								);
 
 			// create a table scan operator
 			static
-			CDXLPhysical *PdxlopTblScan(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLTblScan(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a subquery scan operator
 			static
-			CDXLPhysical *PdxlopSubqScan(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLSubqScan(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a result operator
 			static
-			CDXLPhysical *PdxlopResult(CDXLMemoryManager *pmm);
+			CDXLPhysical *MakeDXLResult(CDXLMemoryManager *dxl_memory_manager);
 
 			// create a hashjoin operator
 			static
-			CDXLPhysical *PdxlopHashJoin(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLHashJoin(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a nested loop join operator
 			static
-			CDXLPhysical *PdxlopNLJoin(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLNLJoin(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a merge join operator
 			static
-			CDXLPhysical *PdxlopMergeJoin(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLMergeJoin(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a gather motion operator
 			static
-			CDXLPhysical *PdxlopGatherMotion(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLGatherMotion(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a broadcast motion operator
 			static
-			CDXLPhysical *PdxlopBroadcastMotion(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLBroadcastMotion(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a redistribute motion operator
 			static
-			CDXLPhysical *PdxlopRedistributeMotion(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLRedistributeMotion(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a routed motion operator
 			static
-			CDXLPhysical *PdxlopRoutedMotion(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLRoutedMotion(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a random motion operator
 			static
-			CDXLPhysical *PdxlopRandomMotion(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLRandomMotion(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create an append operator
 			static
-			CDXLPhysical *PdxlopAppend(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLAppend(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a limit operator
 			static
-			CDXLPhysical *PdxlopLimit(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLLimit(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create an aggregation operator
 			static
-			CDXLPhysical *PdxlopAgg(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLAgg(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a sort operator
 			static
-			CDXLPhysical *PdxlopSort(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLSort(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a materialize operator
 			static
-			CDXLPhysical *PdxlopMaterialize(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLPhysical *MakeDXLMaterialize(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a limit count operator
 			static
-			CDXLScalar *PdxlopLimitCount(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLLimitCount(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a limit offset operator
 			static
-			CDXLScalar *PdxlopLimitOffset(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLLimitOffset(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a scalar comparison operator
 			static
-			CDXLScalar *PdxlopScalarCmp(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLScalarCmp(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a distinct comparison operator
 			static
-			CDXLScalar *PdxlopDistinctCmp(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLDistinctCmp(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a scalar OpExpr
 			static
-			CDXLScalar *PdxlopOpExpr(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLOpExpr(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a scalar ArrayComp
 			static
-			CDXLScalar *PdxlopArrayComp(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLArrayComp(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a BoolExpr
 			static
-			CDXLScalar *PdxlopBoolExpr(CDXLMemoryManager *pmm, const EdxlBoolExprType);
+			CDXLScalar *MakeDXLBoolExpr(CDXLMemoryManager *dxl_memory_manager, const EdxlBoolExprType);
 
 			// create a boolean test
 			static
-			CDXLScalar *PdxlopBooleanTest(CDXLMemoryManager *pmm, const EdxlBooleanTestType);
+			CDXLScalar *MakeDXLBooleanTest(CDXLMemoryManager *dxl_memory_manager, const EdxlBooleanTestType);
 
 			// create a subplan operator
 			static
-			CDXLScalar *PdxlopSubPlan
+			CDXLScalar *MakeDXLSubPlan
 				(
-				CDXLMemoryManager *pmm,
-				IMDId *pmdid,
-				DrgPdxlcr *pdrgdxlcr,
-				EdxlSubPlanType edxlsubplantype,
-				CDXLNode *pdxlnTestExpr
+				CDXLMemoryManager *dxl_memory_manager,
+				IMDId *mdid,
+										  CDXLColRefArray *dxl_colref_array,
+				EdxlSubPlanType dxl_subplan_type,
+				CDXLNode *dxlnode_test_expr
 				);
 
 			// create a NullTest
 			static
-			CDXLScalar *PdxlopNullTest(CDXLMemoryManager *pmm, const BOOL );
+			CDXLScalar *MakeDXLNullTest(CDXLMemoryManager *dxl_memory_manager, const BOOL );
 
 			// create a cast
 			static
-			CDXLScalar *PdxlopCast(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLCast(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a coerce
 			static
-			CDXLScalar *PdxlopCoerceToDomain(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLCoerceToDomain(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a CoerceViaIo
 			static
-			CDXLScalar *PdxlopCoerceViaIO(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLCoerceViaIO(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a ArrayCoerceExpr
 			static
-			CDXLScalar *PdxlopArrayCoerceExpr(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLArrayCoerceExpr(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a scalar identifier operator
 			static
-			CDXLScalar *PdxlopScalarIdent(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLScalarIdent(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a scalar Const
 			static
-			CDXLScalar *PdxlopConstValue(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLConstValue(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a CaseStmt
 			static
-			CDXLScalar *PdxlopIfStmt(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLIfStmt(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a FuncExpr
 			static
-			CDXLScalar *PdxlopFuncExpr(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLFuncExpr(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a AggRef
 			static
-			CDXLScalar *PdxlopAggFunc(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLAggFunc(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a scalar window function (WindowRef)
 			static
-			CDXLScalar *PdxlopWindowRef(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeWindowRef(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create an array
 			static
-			CDXLScalar *PdxlopArray(CDXLMemoryManager *pmm, const Attributes &attr);
+			CDXLScalar *MakeDXLArray(CDXLMemoryManager *dxl_memory_manager, const Attributes &attr);
 
 			// create a proj elem
 			static
-			CDXLScalar *PdxlopProjElem(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLProjElem(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a hash expr 
 			static
-			CDXLScalar *PdxlopHashExpr(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLHashExpr(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a sort col
 			static
-			CDXLScalar *PdxlopSortCol(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *MakeDXLSortCol(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create an object representing cost estimates of a physical operator
 			// from the parsed XML attributes
 			static
-			CDXLOperatorCost *Pdxlopcost(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLOperatorCost *MakeDXLOperatorCost(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a table descriptor element
 			static
-			CDXLTableDescr *Pdxltabdesc(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLTableDescr *MakeDXLTableDescr(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create an index descriptor
 			static
-			CDXLIndexDescr *Pdxlid(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLIndexDescr *MakeDXLIndexDescr(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// create a column descriptor object
 			static
-			CDXLColDescr *Pdxlcd(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLColDescr *MakeColumnDescr(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 			
 			// create a column reference object
 			static
-			CDXLColRef *Pdxlcr(CDXLMemoryManager *pmm, const Attributes &, Edxltoken);
+			CDXLColRef *MakeDXLColRef(CDXLMemoryManager *dxl_memory_manager, const Attributes &, Edxltoken);
 			
 			// create a logical join 
 			static
-			CDXLLogical *PdxlopLogicalJoin(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLLogical *MakeLogicalJoin(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// parse an output segment index
 			static
-			INT IOutputSegId(CDXLMemoryManager *pmm, const Attributes &attrs);
+			INT ParseOutputSegId(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
 			// parse a grouping column id
 			static
-			ULONG UlGroupingColId(CDXLMemoryManager *pmm, const Attributes &attrs);
+			ULONG ParseGroupingColId(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs);
 
-			// extracts the value for the given attribute.
+		// extracts the value for the given attribute.
 			// if there is no such attribute defined, and the given optional
 			// flag is set to false then it will raise an exception
 			static
-			const XMLCh *XmlstrFromAttrs
+			const XMLCh *ExtractAttrValue
 				(
 				const Attributes &,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false
 				);
 
 			// extracts the boolean value for the given attribute
 			// will raise an exception if value cannot be converted to a boolean
 			static
-			BOOL FValueFromXmlstr
+			BOOL ConvertAttrValueToBool
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// converts the XMLCh into LINT
 			static
-			LINT LValueFromXmlstr
+			LINT ConvertAttrValueToLint
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// extracts the LINT value for the given attribute
 			static
-			LINT LValueFromAttrs
+			LINT ExtractConvertAttrValueToLint
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				LINT lDefaultValue = 0
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				LINT default_value = 0
 				);
 
 			// converts the XMLCh into CDouble
 			static
-			CDouble DValueFromXmlstr
+			CDouble ConvertAttrValueToDouble
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// cxtracts the double value for the given attribute
 			static
-			CDouble DValueFromAttrs
+			CDouble ExtractConvertAttrValueToDouble
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// converts the XMLCh into ULONG. Will raise an exception if the 
 			// argument cannot be converted to ULONG
 			static
-			ULONG UlValueFromXmlstr
+			ULONG ConvertAttrValueToUlong
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// converts the XMLCh into ULLONG. Will raise an exception if the
 			// argument cannot be converted to ULLONG
 			static
-			ULLONG UllValueFromXmlstr
+			ULLONG ConvertAttrValueToUllong
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// converts the XMLCh into INT. Will raise an exception if the 
 			// argument cannot be converted to INT
 			static
-			INT IValueFromXmlstr
+			INT ConvertAttrValueToInt
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
-			// parse a INT value from the value for a given attribute
+		// parse a INT value from the value for a given attribute
 			// will raise an exception if the argument cannot be converted to INT
 			static
-			INT IValueFromAttrs
+			INT ExtractConvertAttrValueToInt
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				INT iDefaultValue = 0
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				INT default_val = 0
 				);
 
 			// converts the XMLCh into short int. Will raise an exception if the
 			// argument cannot be converted to short int
 			static
-			SINT SValueFromXmlstr
+			SINT ConvertAttrValueToShortInt
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
-			// parse a short int value from the value for a given attribute
+		// parse a short int value from the value for a given attribute
 			// will raise an exception if the argument cannot be converted to short int
 			static
-			SINT SValueFromAttrs
+			SINT ExtractConvertAttrValueToShortInt
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				SINT sDefaultValue = 0
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				SINT default_val = 0
 				);
 
 			// converts the XMLCh into char. Will raise an exception if the
 			// argument cannot be converted to char
 			static
-			CHAR CValueFromXmlstr
+			CHAR ConvertAttrValueToChar
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// converts the XMLCh into oid. Will raise an exception if the
 			// argument cannot be converted to OID
 			static
-			OID OidValueFromXmlstr
+			OID ConvertAttrValueToOid
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
-			// parse an oid value from the value for a given attribute
+		// parse an oid value from the value for a given attribute
 			// will raise an exception if the argument cannot be converted to OID
 			static
-			OID OidValueFromAttrs
+			OID ExtractConvertAttrValueToOid
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
 				OID OidDefaultValue = 0
 				);
 
 			// parse a bool value from the value for a given attribute
 			static
-			BOOL FValueFromAttrs
+			BOOL ExtractConvertAttrValueToBool
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				BOOL fDefaultValue = false
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				BOOL default_value = false
 				);
 			
 			// parse a string value from the value for a given attribute
 			static
-			CHAR *SzValueFromAttrs
+			CHAR *ExtractConvertAttrValueToSz
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				CHAR *szDefaultValue = NULL
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				CHAR *default_value = NULL
 				);
 
 			// parse a string value from the value for a given attribute
 			static
-			CHAR* SzValueFromXmlstr
+			CHAR* ConvertAttrValueToSz
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			// parse a string value from the value for a given attribute
 			static
-			CWStringDynamic *PstrValueFromAttrs
+			CWStringDynamic *ExtractConvertAttrValueToStr
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
-			// parse a ULONG value from the value for a given attribute
+		// parse a ULONG value from the value for a given attribute
 			// will raise an exception if the argument cannot be converted to ULONG
 			static
-			ULONG UlValueFromAttrs
+			ULONG ExtractConvertAttrValueToUlong
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				ULONG ulDefaultValue = 0
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				ULONG default_value = 0
 				);
 			
-			// parse a ULLONG value from the value for a given attribute
+		// parse a ULLONG value from the value for a given attribute
 			// will raise an exception if the argument cannot be converted to ULLONG
 			static
-			ULLONG UllValueFromAttrs
+			ULLONG ExtractConvertAttrValueToUllong
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				ULLONG ullDefaultValue = 0
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				ULLONG default_value = 0
 				);
 
 			// parse an mdid object from the given attributes
 			static
-			IMDId *PmdidFromAttrs
+			IMDId *ExtractConvertAttrValueToMdId
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement,
-				BOOL fOptional = false,
-				IMDId *pmdidDefault = NULL
+				Edxltoken target_attr,
+				Edxltoken target_elem,
+				BOOL is_optional = false,
+				IMDId *default_val = NULL
 				);
 			
 			// parse an mdid object from an XMLCh
 			static
-			IMDId *PmdidFromXMLCh
+			IMDId *MakeMdIdFromStr
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlszMdid,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *mdid_xml,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			// parse a GPDB mdid object from an array of its components
 			static
-			CMDIdGPDB *PmdidGPDB
+			CMDIdGPDB *GetGPDBMdId
 				(
-				CDXLMemoryManager *pmm,
-				DrgPxmlsz *pdrgpxmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				XMLChArray *remaining_tokens,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			// parse a GPDB CTAS mdid object from an array of its components
 			static
-			CMDIdGPDB *PmdidGPDBCTAS
+			CMDIdGPDB *GetGPDBCTASMdId
 				(
-				CDXLMemoryManager *pmm,
-				DrgPxmlsz *pdrgpxmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				XMLChArray *remaining_tokens,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// parse a column stats mdid object from an array of its components
 			static
-			CMDIdColStats *PmdidColStats
+			CMDIdColStats *GetColStatsMdId
 				(
-				CDXLMemoryManager *pmm,
-				DrgPxmlsz *pdrgpxmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				XMLChArray *remaining_tokens,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// parse a relation stats mdid object from an array of its components
 			static
-			CMDIdRelStats *PmdidRelStats
+			CMDIdRelStats *GetRelStatsMdId
 				(
-				CDXLMemoryManager *pmm,
-				DrgPxmlsz *pdrgpxmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				XMLChArray *remaining_tokens,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			// parse a cast func mdid from the array of its components
 			static
-			CMDIdCast *PmdidCastFunc
+			CMDIdCast *GetCastFuncMdId
 				(
-				CDXLMemoryManager *pmm,
-				DrgPxmlsz *pdrgpxmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				XMLChArray *remaining_tokens,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				); 
 			
 			// parse a comparison operator mdid from the array of its components
 			static
-			CMDIdScCmp *PmdidScCmp
+			CMDIdScCmp *GetScCmpMdId
 				(
-				CDXLMemoryManager *pmm,
-				DrgPxmlsz *pdrgpxmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				XMLChArray *remaining_tokens,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			// parse a dxl datum object
 			static
-			CDXLDatum *Pdxldatum
+			CDXLDatum *GetDatumVal
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attrs,
-				Edxltoken edxltokenElement
+				Edxltoken target_elem
 				);
 			
 			// parse a comma-separated list of MDids into a dynamic array
 			// will raise an exception if list is not well-formed
 			static
-			DrgPmdid *PdrgpmdidFromXMLCh
+			IMdIdArray *ExtractConvertMdIdsToArray
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlszUlList,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *mdid_list_xml,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// parse a comma-separated list of unsigned long numbers into a dynamic array
 			// will raise an exception if list is not well-formed
 			static
-			DrgPul *PdrgpulFromAttrs
+			ULongPtrArray *ExtractConvertValuesToArray
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const Attributes &attr,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// parse a comma-separated list of integers numbers into a dynamic array
 			// will raise an exception if list is not well-formed
-			template <typename T, void (*pfnDestroy)(T*),
+			template <typename T, void (*CleanupFn)(T*),
 					T ValueFromXmlstr(CDXLMemoryManager *, const XMLCh *, Edxltoken, Edxltoken)>
 			static
-			CDynamicPtrArray<T, pfnDestroy> *PdrgptFromXMLCh
+			CDynamicPtrArray<T, CleanupFn> *ExtractIntsToArray
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const XMLCh *xmlszUl,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			static
-			DrgPul *PdrgpulFromXMLCh
+			ULongPtrArray *ExtractIntsToUlongArray
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const XMLCh *xmlszUl,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				)
 			{
-				return PdrgptFromXMLCh<ULONG, CleanupDelete, UlValueFromXmlstr>
+				return ExtractIntsToArray<ULONG, CleanupDelete, ConvertAttrValueToUlong>
 						(
-						pmm,
+						dxl_memory_manager,
 						xmlszUl,
-						edxltokenAttr,
-						edxltokenElement
+						target_attr,
+						target_elem
 						);
 			}
 
 			static
-			DrgPi *PdrgpiFromXMLCh
+			IntPtrArray *ExtractIntsToIntArray
 				(
-				CDXLMemoryManager *pmm,
+				CDXLMemoryManager *dxl_memory_manager,
 				const XMLCh *xmlszUl,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				)
 			{
-				return PdrgptFromXMLCh<INT, CleanupDelete, IValueFromXmlstr>
+				return ExtractIntsToArray<INT, CleanupDelete, ConvertAttrValueToInt>
 						(
-						pmm,
+						dxl_memory_manager,
 						xmlszUl,
-						edxltokenAttr,
-						edxltokenElement
+						target_attr,
+						target_elem
 						);
 			}
 
 			// parse a comma-separated list of CHAR partition types into a dynamic array.
 			// will raise an exception if list is not well-formed
 			static
-			DrgPsz *PdrgpszFromXMLCh
+			CharPtrArray *ExtractConvertPartitionTypeToArray
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 
 			// parse a semicolon-separated list of comma-separated unsigned 
 			// long numbers into a dynamc array of unsigned integer arrays
 			// will raise an exception if list is not well-formed
 			static
-			DrgPdrgPul *PdrgpdrgpulFromXMLCh
+			ULongPtr2dArray *ExtractConvertUlongTo2DArray
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			// parse a comma-separated list of segment ids into a dynamic array
 			// will raise an exception if list is not well-formed
 			static
-			DrgPi *PdrgpiParseSegmentIdList
+			IntPtrArray *ExtractConvertSegmentIdsToArray
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlszSegIdList,
-				Edxltoken edxltokenAttr,
-				Edxltoken edxltokenElement
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *seg_id_list_xml,
+				Edxltoken target_attr,
+				Edxltoken target_elem
 				);
 			
 			// parse a comma-separated list of strings into a dynamic array
 			// will raise an exception if list is not well-formed
 			static
-			DrgPstr *PdrgPstrFromXMLCh
+			StringPtrArray *ExtractConvertStrsToArray
 				(
-				CDXLMemoryManager *pmm,
-				const XMLCh *xmlsz
+				CDXLMemoryManager *dxl_memory_manager,
+				const XMLCh *xml_val
 				);
 			
 			// parses the input and output segment ids from Xerces attributes and
@@ -841,88 +841,88 @@ namespace gpdxl
 			static
 			void SetSegmentInfo
 				(
-				CDXLMemoryManager *pmp,
-				CDXLPhysicalMotion *pdxlopMotion,
+				CDXLMemoryManager *mp,
+				CDXLPhysicalMotion *motion,
 				const Attributes &attrs,
-				Edxltoken edxltokenElement
+				Edxltoken target_elem
 				);
 			
 			static
-			EdxlJoinType EdxljtParseJoinType(const XMLCh *xmlszJoinType, const CWStringConst *pstrJoinName);
+			EdxlJoinType ParseJoinType(const XMLCh *xmlszJoinType, const CWStringConst *join_name);
 			
 			static
-			EdxlIndexScanDirection EdxljtParseIndexScanDirection
+			EdxlIndexScanDirection ParseIndexScanDirection
 				(
-				const XMLCh *xmlszIndexScanDirection,
+				const XMLCh *direction_xml,
 				const CWStringConst *pstrIndexScanDirection
 				);
 
 			// parse system id
 			static
-			CSystemId Sysid(CDXLMemoryManager *pmm, const Attributes &attrs, Edxltoken edxltokenAttr, Edxltoken edxltokenElement);
+			CSystemId Sysid(CDXLMemoryManager *dxl_memory_manager, const Attributes &attrs, Edxltoken target_attr, Edxltoken target_elem);
 			
 			// parse the frame boundary
 			static
-			EdxlFrameBoundary Edxlfb(const Attributes& attrs, Edxltoken edxltoken);
+			EdxlFrameBoundary ParseDXLFrameBoundary(const Attributes& attrs, Edxltoken token_type);
 
 			// parse the frame specification
 			static
-			EdxlFrameSpec Edxlfs(const Attributes& attrs);
+			EdxlFrameSpec ParseDXLFrameSpec(const Attributes& attrs);
 
 			// parse the frame exclusion strategy
 			static
-			EdxlFrameExclusionStrategy Edxlfes(const Attributes& attrs);
+			EdxlFrameExclusionStrategy ParseFrameExclusionStrategy(const Attributes& attrs);
 			
 			// parse comparison operator type
 			static
-			IMDType::ECmpType Ecmpt(const XMLCh* xmlszCmpType);
+			IMDType::ECmpType ParseCmpType(const XMLCh* xml_str_comp_type);
 			
 			// parse the distribution policy from the given XML string
 			static
-			IMDRelation::Ereldistrpolicy EreldistrpolicyFromXmlstr(const XMLCh *xmlsz);
+			IMDRelation::Ereldistrpolicy ParseRelationDistPolicy(const XMLCh *xml_val);
 			
 			// parse the storage type from the given XML string
 			static
-			IMDRelation::Erelstoragetype ErelstoragetypeFromXmlstr(const XMLCh *xmlsz);
+			IMDRelation::Erelstoragetype ParseRelationStorageType(const XMLCh *xml_val);
 			
 			// parse the OnCommit action spec for CTAS
 			static
-			CDXLCtasStorageOptions::ECtasOnCommitAction EctascommitFromAttr(const Attributes &attr);
+			CDXLCtasStorageOptions::ECtasOnCommitAction ParseOnCommitActionSpec(const Attributes &attr);
 			
 			// parse index type
 			static
-			IMDIndex::EmdindexType EmdindtFromAttr(const Attributes &attrs);
+			IMDIndex::EmdindexType ParseIndexType(const Attributes &attrs);
 
 	};
 
 	// parse a comma-separated list of integers numbers into a dynamic array
 	// will raise an exception if list is not well-formed
-	template <typename T, void (*pfnDestroy)(T*),
+	template <typename T, void (*CleanupFn)(T*),
 			T ValueFromXmlstr(CDXLMemoryManager *, const XMLCh *, Edxltoken, Edxltoken)>
-	CDynamicPtrArray<T, pfnDestroy> *
-	CDXLOperatorFactory::PdrgptFromXMLCh
+	CDynamicPtrArray<T, CleanupFn> *
+	CDXLOperatorFactory::ExtractIntsToArray
 		(
-		CDXLMemoryManager *pmm,
-		const XMLCh *xmlszUlList,
-		Edxltoken edxltokenAttr,
-		Edxltoken edxltokenElement
+		CDXLMemoryManager *dxl_memory_manager,
+		const XMLCh *mdid_list_xml,
+		Edxltoken target_attr,
+		Edxltoken target_elem
 		)
 	{
 		// get the memory pool from the memory manager
-		IMemoryPool *pmp = pmm->Pmp();
+		IMemoryPool *mp = dxl_memory_manager->Pmp();
 
-		CDynamicPtrArray<T, pfnDestroy> *pdrgpt = GPOS_NEW(pmp) CDynamicPtrArray<T, pfnDestroy>(pmp);
+		CDynamicPtrArray<T, CleanupFn> *pdrgpt = GPOS_NEW(mp) CDynamicPtrArray<T, CleanupFn>(mp);
 
-		XMLStringTokenizer xmlsztok(xmlszUlList, CDXLTokens::XmlstrToken(EdxltokenComma));
-		const ULONG ulNumTokens = xmlsztok.countTokens();
+		XMLStringTokenizer mdid_components(mdid_list_xml, CDXLTokens::XmlstrToken(EdxltokenComma));
+		const ULONG num_tokens = mdid_components.countTokens();
 
-		for (ULONG ul = 0; ul < ulNumTokens; ul++)
+		for (ULONG ul = 0; ul < num_tokens; ul++)
 		{
-			XMLCh *xmlszNext = xmlsztok.nextToken();
+			XMLCh *xmlszNext = mdid_components.nextToken();
 
 			GPOS_ASSERT(NULL != xmlszNext);
 
-			T *pt = GPOS_NEW(pmp) T(ValueFromXmlstr(pmm, xmlszNext, edxltokenAttr, edxltokenElement));
+			T *pt = GPOS_NEW(mp) T(ValueFromXmlstr(dxl_memory_manager, xmlszNext, target_attr, target_elem));
 			pdrgpt->Append(pt);
 		}
 

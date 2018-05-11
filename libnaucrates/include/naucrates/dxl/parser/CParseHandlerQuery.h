@@ -35,13 +35,13 @@ namespace gpdxl
 		private:
 
 			// the root of the parsed DXL tree constructed by the parse handler
-			CDXLNode *m_pdxln;
+			CDXLNode *m_dxl_node;
 
 			// list of output columns (represented as scalar ident nodes)
-			DrgPdxln *m_pdrgpdxlnOutputCols;
+		CDXLNodeArray *m_output_colums_dxl_array;
 
 			// list of CTE priducers
-			DrgPdxln *m_pdrgpdxlnCTE;
+		CDXLNodeArray *m_cte_producers;
 
 			// private ctor
 			CParseHandlerQuery(const CParseHandlerQuery&);
@@ -49,42 +49,42 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor/dtor
 			CParseHandlerQuery
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			virtual
 			~CParseHandlerQuery();
 
 			// returns the root of constructed DXL plan
-			CDXLNode *Pdxln() const;
+			CDXLNode *CreateDXLNode() const;
 
 			// returns the dxl representation of the query output
-			DrgPdxln *PdrgpdxlnOutputCols() const;
+		CDXLNodeArray *GetOutputColumnsDXLArray() const;
 
 			// returns the CTEs
-			DrgPdxln *PdrgpdxlnCTE() const;
+		CDXLNodeArray *GetCTEProducerDXLArray() const;
 
-			EDxlParseHandlerType Edxlphtype() const;
+			EDxlParseHandlerType GetParseHandlerType() const;
 
 	};
 }

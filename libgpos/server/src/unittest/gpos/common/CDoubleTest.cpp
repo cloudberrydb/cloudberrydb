@@ -55,7 +55,7 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Arithmetic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CDouble fp1(2.5);
 	CDouble fp2(3.5);
@@ -64,26 +64,26 @@ CDoubleTest::EresUnittest_Arithmetic()
 	CDouble fpSubtract(fpAdd - fp2);
 	CDouble fpMultiply(fp1 * fp2);
 	CDouble fpDivide(fpMultiply / fp2);
-	CDouble fpAbs(fp1.FpAbs());
-	CDouble fpFloor(fp1.FpFloor());
-	CDouble fpCeil(fp1.FpCeil());
-	CDouble fpPow(fp1.FpPow(fp2));
-	CDouble fpLog2(fp2.FpLog2());
+	CDouble fpAbs(fp1.Absolute());
+	CDouble fpFloor(fp1.Floor());
+	CDouble fpCeil(fp1.Ceil());
+	CDouble fpPow(fp1.Pow(fp2));
+	CDouble fpLog2(fp2.Log2());
 
-	GPOS_RTL_ASSERT(fp1.DVal() + fp2.DVal() == fpAdd.DVal());
-	GPOS_RTL_ASSERT(fpAdd.DVal() - fp2.DVal() == fpSubtract.DVal());
-	GPOS_RTL_ASSERT(fp1.DVal() == fpSubtract.DVal());
-	GPOS_RTL_ASSERT(fp1.DVal() * fp2.DVal() == fpMultiply.DVal());
-	GPOS_RTL_ASSERT(fpMultiply.DVal() / fp2.DVal() == fpDivide.DVal());
-	GPOS_RTL_ASSERT(fp1.DVal() == fpDivide.DVal());
-	GPOS_RTL_ASSERT(fp1.DVal() == fpAbs);
+	GPOS_RTL_ASSERT(fp1.Get() + fp2.Get() == fpAdd.Get());
+	GPOS_RTL_ASSERT(fpAdd.Get() - fp2.Get() == fpSubtract.Get());
+	GPOS_RTL_ASSERT(fp1.Get() == fpSubtract.Get());
+	GPOS_RTL_ASSERT(fp1.Get() * fp2.Get() == fpMultiply.Get());
+	GPOS_RTL_ASSERT(fpMultiply.Get() / fp2.Get() == fpDivide.Get());
+	GPOS_RTL_ASSERT(fp1.Get() == fpDivide.Get());
+	GPOS_RTL_ASSERT(fp1.Get() == fpAbs);
 	GPOS_RTL_ASSERT(1.0 == fpCeil - fpFloor);
 	GPOS_RTL_ASSERT(fpLog2 > 1.0 && fpLog2 < 2.0);
 
 	CDouble fp3(10.0);
 	fp3 = fp1 + fp2;
 
-	CAutoTrace trace(pmp);
+	CAutoTrace trace(mp);
 	IOstream &os(trace.Os());
 
 	os << "Arithmetic operations: " << std::endl
@@ -91,7 +91,7 @@ CDoubleTest::EresUnittest_Arithmetic()
 	   << fpAdd << " - " << fp2 << " = " << fpSubtract << std::endl
 	   << fp1 << " * " << fp2 << " = " << fpMultiply << std::endl
 	   << fpMultiply << " / " << fp2 << " = " << fpDivide << std::endl
-	   << "Abs(" << fp1 << ") = " << fpAbs << std::endl
+	   << "Absolute(" << fp1 << ") = " << fpAbs << std::endl
 	   << "Floor(" << fp1 << ") = " << fpCeil << std::endl
 	   << "Ceil(" << fp1 << ") = " << fpCeil << std::endl
 	   << "Pow(" << fp1 << "," << fp2 << ") = " << fpPow << std::endl
@@ -114,7 +114,7 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Bool()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CDouble fp1(2.5);
 	CDouble fp2(3.5);
@@ -129,7 +129,7 @@ CDoubleTest::EresUnittest_Bool()
 	GPOS_ASSERT(fp2 >= fp3);
 	GPOS_ASSERT(fp2 <= fp3);
 
-	CAutoTrace trace(pmp);
+	CAutoTrace trace(mp);
 	IOstream &os(trace.Os());
 
 	os << "Boolean operations: " << std::endl
@@ -158,11 +158,11 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Convert()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CDouble fp(3.5);
 
-	CAutoTrace trace(pmp);
+	CAutoTrace trace(mp);
 	IOstream &os(trace.Os());
 
 	os << "Conversions:" << std::endl
@@ -170,8 +170,8 @@ CDoubleTest::EresUnittest_Convert()
 	   << ULLONG(10) << "ul - " << fp << " = " << (ULLONG(10) - fp) << std::endl
 	   << INT(10) << " * " << fp << " = " << (INT(10) * fp) << std::endl
 	   << LINT(10) << "l / " << fp << " = " << (LINT(10) / fp) << std::endl
-	   << "-'10.0' = " << (-CDouble(clib::DStrToD("10.0"))) << std::endl
-	   << "Pow(" << ULONG(3)  << ") = " << fp.FpPow(ULONG(3)) << std::endl;
+	   << "-'10.0' = " << (-CDouble(clib::Strtod("10.0"))) << std::endl
+	   << "Pow(" << ULONG(3)  << ") = " << fp.Pow(ULONG(3)) << std::endl;
 
 	return GPOS_OK;
 }
@@ -189,12 +189,12 @@ GPOS_RESULT
 CDoubleTest::EresUnittest_Limits()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CDouble fpZero(0);
 	CDouble fpInf(1e10 / fpZero);
 
-	CAutoTrace trace(pmp);
+	CAutoTrace trace(mp);
 	IOstream &os(trace.Os());
 
 	GPOS_ASSERT(fpZero == fpZero / fpInf);

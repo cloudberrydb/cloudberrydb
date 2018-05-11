@@ -37,19 +37,19 @@ namespace gpdxl
 		private:
 
 			// memory pool;
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// partition-by column identifiers
-			DrgPul *m_pdrgpulPartCol;
+		ULongPtrArray *m_partition_by_colid_array;
 
 			// name of window specification
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// sorting columns
-			CDXLNode *m_pdxlnSortColList;
+		CDXLNode *m_sort_col_list_dxlnode;
 
 			// window frame associated with the window key
-			CDXLWindowFrame *m_pdxlwf;
+			CDXLWindowFrame *m_window_frame;
 
 			// private copy ctor
 			CDXLWindowSpec(const CDXLWindowSpec&);
@@ -59,11 +59,11 @@ namespace gpdxl
 			// ctor
 			CDXLWindowSpec
 				(
-				IMemoryPool *pmp,
-				DrgPul *pdrgpulPartCol,
-				CMDName *pmdname,
-				CDXLNode *pdxlnSortColList,
-				CDXLWindowFrame *pdxlwf
+				IMemoryPool *mp,
+				ULongPtrArray *partition_by_colid_array,
+				CMDName *mdname,
+				CDXLNode *sort_col_list_dxlnode,
+				CDXLWindowFrame *window_frame
 				);
 
 			// dtor
@@ -75,34 +75,34 @@ namespace gpdxl
 			void SerializeToDXL(CXMLSerializer *) const;
 
 			// set window frame definition
-			void SetWindowFrame(CDXLWindowFrame *pdxlwf);
+			void SetWindowFrame(CDXLWindowFrame *window_frame);
 
 			// return window frame
-			CDXLWindowFrame *Pdxlwf() const
+			CDXLWindowFrame *GetWindowFrame() const
 			{
-				return m_pdxlwf;
+				return m_window_frame;
 			}
 
 			// partition-by column identifiers
-			DrgPul *PdrgulPartColList() const
+			ULongPtrArray *GetPartitionByColIdArray() const
 			{
-				return m_pdrgpulPartCol;
+			return m_partition_by_colid_array;
 			}
 
 			// sort columns
-			CDXLNode *PdxlnSortColList() const
+			CDXLNode *GetSortColListDXL() const
 			{
-				return m_pdxlnSortColList;
+			return m_sort_col_list_dxlnode;
 			}
 
 			// window specification name
-			CMDName *Pmdname() const
+			CMDName *MdName() const
 			{
-				return m_pmdname;
+				return m_mdname;
 			}
 	};
 
-	typedef CDynamicPtrArray<CDXLWindowSpec, CleanupRelease> DrgPdxlws;
+	typedef CDynamicPtrArray<CDXLWindowSpec, CleanupRelease> CDXLWindowSpecArray;
 }
 #endif // !GPDXL_CDXLWindowSpec_H
 

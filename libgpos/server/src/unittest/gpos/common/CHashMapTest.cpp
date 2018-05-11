@@ -52,7 +52,7 @@ CHashMapTest::EresUnittest_Basic()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// test with CHAR array
 	ULONG_PTR rgul[] = {1,2,3,4,5,6,7,8,9};
@@ -61,24 +61,24 @@ CHashMapTest::EresUnittest_Basic()
 	GPOS_ASSERT(GPOS_ARRAY_SIZE(rgul) == GPOS_ARRAY_SIZE(rgsz));
 	const ULONG ulCnt = GPOS_ARRAY_SIZE(rgul);
 	
-	typedef CHashMap<ULONG_PTR, CHAR, UlHashPtr<ULONG_PTR>, gpos::FEqual<ULONG_PTR>,
-		CleanupNULL<ULONG_PTR>, CleanupNULL<CHAR> > HMUlChar;
+	typedef CHashMap<ULONG_PTR, CHAR, HashPtr<ULONG_PTR>, gpos::Equals<ULONG_PTR>,
+		CleanupNULL<ULONG_PTR>, CleanupNULL<CHAR> > UlongPtrToCharMap;
 
-	HMUlChar *phm = GPOS_NEW(pmp) HMUlChar(pmp, 128);
+	UlongPtrToCharMap *phm = GPOS_NEW(mp) UlongPtrToCharMap(mp, 128);
 	for (ULONG i = 0; i < ulCnt; ++i)
 	{
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =
 #endif // GPOS_DEBUG
-			phm->FInsert(&rgul[i], (CHAR*)rgsz[i]);
+			phm->Insert(&rgul[i], (CHAR*)rgsz[i]);
 		GPOS_ASSERT(fSuccess);
 		
 		for (ULONG j = 0; j <= i; ++j)
 		{
-			GPOS_ASSERT(rgsz[j] == phm->PtLookup(&rgul[j]));
+			GPOS_ASSERT(rgsz[j] == phm->Find(&rgul[j]));
 		}
 	}
-	GPOS_ASSERT(ulCnt == phm->UlEntries());
+	GPOS_ASSERT(ulCnt == phm->Size());
 	
 	// test replacing entry values of existing keys
 	CHAR rgszNew[][10] = {"abc_", "def_", "ghi_", "qwe_", "wer_", "wert_", "dfg_", "xcv_", "zxc_"};
@@ -87,53 +87,53 @@ CHashMapTest::EresUnittest_Basic()
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =
 #endif // GPOS_DEBUG
-			phm->FReplace(&rgul[i], rgszNew[i]);
+			phm->Replace(&rgul[i], rgszNew[i]);
 		GPOS_ASSERT(fSuccess);
 
 #ifdef GPOS_DEBUG
 		fSuccess =
 #endif // GPOS_DEBUG
-			phm->FReplace(&rgul[i], rgsz[i]);
+			phm->Replace(&rgul[i], rgsz[i]);
 		GPOS_ASSERT(fSuccess);
 	}
-	GPOS_ASSERT(ulCnt == phm->UlEntries());
+	GPOS_ASSERT(ulCnt == phm->Size());
 
 	// test replacing entry value of a non-existing key
 	ULONG_PTR ulp = 0;
 #ifdef GPOS_DEBUG
 	BOOL fSuccess =
 #endif // GPOS_DEBUG
-		phm->FReplace(&ulp, rgsz[0]);
+		phm->Replace(&ulp, rgsz[0]);
 	GPOS_ASSERT(!fSuccess);
 
 	phm->Release();
 
 	// test replacing values and triggering their release
-	typedef CHashMap<ULONG, ULONG, UlHash<ULONG>, gpos::FEqual<ULONG>,
-			CleanupDelete<ULONG>, CleanupDelete<ULONG> > HMUlUl;
-	HMUlUl *phm2 = GPOS_NEW(pmp) HMUlUl(pmp, 128);
+	typedef CHashMap<ULONG, ULONG, HashValue<ULONG>, gpos::Equals<ULONG>,
+			CleanupDelete<ULONG>, CleanupDelete<ULONG> > UlongToUlongMap;
+	UlongToUlongMap *phm2 = GPOS_NEW(mp) UlongToUlongMap(mp, 128);
 
-	ULONG *pulKey = GPOS_NEW(pmp) ULONG(1);
-	ULONG *pulVal1 = GPOS_NEW(pmp) ULONG(2);
-	ULONG *pulVal2 = GPOS_NEW(pmp) ULONG(3);
+	ULONG *pulKey = GPOS_NEW(mp) ULONG(1);
+	ULONG *pulVal1 = GPOS_NEW(mp) ULONG(2);
+	ULONG *pulVal2 = GPOS_NEW(mp) ULONG(3);
 
 #ifdef GPOS_DEBUG
 	fSuccess =
 #endif // GPOS_DEBUG
-		phm2->FInsert(pulKey, pulVal1);
+		phm2->Insert(pulKey, pulVal1);
 	GPOS_ASSERT(fSuccess);
 
 #ifdef GPOS_DEBUG
-	ULONG *pulVal = phm2->PtLookup(pulKey);
+	ULONG *pulVal = phm2->Find(pulKey);
 	GPOS_ASSERT(*pulVal == 2);
 
 	fSuccess =
 #endif // GPOS_DEBUG
-		phm2->FReplace(pulKey, pulVal2);
+		phm2->Replace(pulKey, pulVal2);
 	GPOS_ASSERT(fSuccess);
 
 #ifdef GPOS_DEBUG
-	pulVal = phm2->PtLookup(pulKey);
+	pulVal = phm2->Find(pulKey);
 	GPOS_ASSERT(*pulVal == 3);
 #endif // GPOS_DEBUG
 
@@ -156,29 +156,29 @@ CHashMapTest::EresUnittest_Ownership()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	ULONG ulCnt = 256;
 
-	typedef CHashMap<ULONG_PTR, CHAR, UlHashPtr<ULONG_PTR>, gpos::FEqual<ULONG_PTR>,
-		CleanupDelete<ULONG_PTR>, CleanupDeleteRg<CHAR> > HMUlChar;
+	typedef CHashMap<ULONG_PTR, CHAR, HashPtr<ULONG_PTR>, gpos::Equals<ULONG_PTR>,
+		CleanupDelete<ULONG_PTR>, CleanupDeleteArray<CHAR> > UlongPtrToCharMap;
 	
-	HMUlChar *phm = GPOS_NEW(pmp) HMUlChar(pmp, 32);
+	UlongPtrToCharMap *phm = GPOS_NEW(mp) UlongPtrToCharMap(mp, 32);
 	for (ULONG i = 0; i < ulCnt; ++i)
 	{
-		ULONG_PTR *pulp = GPOS_NEW(pmp) ULONG_PTR(i);
-		CHAR *sz = GPOS_NEW_ARRAY(pmp, CHAR, 3);
+		ULONG_PTR *pulp = GPOS_NEW(mp) ULONG_PTR(i);
+		CHAR *sz = GPOS_NEW_ARRAY(mp, CHAR, 3);
 	
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =
 #endif // GPOS_DEBUG
-			phm->FInsert(pulp, sz);
+			phm->Insert(pulp, sz);
 
 		GPOS_ASSERT(fSuccess);
-		GPOS_ASSERT(sz == phm->PtLookup(pulp));
+		GPOS_ASSERT(sz == phm->Find(pulp));
 		
 		// can't insert existing keys
-		GPOS_ASSERT(!phm->FInsert(pulp, sz));
+		GPOS_ASSERT(!phm->Insert(pulp, sz));
 	}
 
 	phm->Release();

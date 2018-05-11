@@ -38,22 +38,22 @@ namespace gpdxl
 	{
 		private:
 			// trigger id
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 
 			// trigger name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// relation id
-			IMDId *m_pmdidRel;
+			IMDId *m_rel_mdid;
 
 			// function id
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 
 			// trigger type
-			INT m_iType;
+			INT m_type;
 
 			// is trigger enabled
-			BOOL m_fEnabled;
+			BOOL m_is_enabled;
 
 			// private copy ctor
 			CParseHandlerMDGPDBTrigger(const CParseHandlerMDGPDBTrigger &);
@@ -61,27 +61,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor
 			CParseHandlerMDGPDBTrigger
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

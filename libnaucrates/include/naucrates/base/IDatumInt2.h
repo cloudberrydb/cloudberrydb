@@ -44,44 +44,44 @@ namespace gpnaucrates
 			{};
 
 			// accessor for datum type
-			virtual  IMDType::ETypeInfo Eti()
+			virtual  IMDType::ETypeInfo GetDatumType()
 			{
 				return IMDType::EtiInt2;
 			}
 
 			// accessor of integer value
 			virtual
-			SINT SValue() const = 0;
+			SINT Value() const = 0;
 
 			// can datum be mapped to a double
-			BOOL FHasStatsDoubleMapping() const
+			BOOL IsDatumMappableToDouble() const
 			{
 				return true;
 			}
 
 			// map to double for stats computation
-			CDouble DStatsMapping() const
+			CDouble GetDoubleMapping() const
 			{
-				return CDouble(SValue());
+				return CDouble(Value());
 			}
 
 			// can datum be mapped to LINT
-			BOOL FHasStatsLINTMapping() const
+			BOOL IsDatumMappableToLINT() const
 			{
 				return true;
 			}
 
 			// map to LINT for statistics computation
-			LINT LStatsMapping() const
+			LINT GetLINTMapping() const
 			{
-				return LINT(SValue());
+				return LINT(Value());
 			}
 
 			//  supports statistical comparisons based on the byte array representation of datum
 			virtual
-			BOOL FSupportsBinaryComp
+			BOOL SupportsBinaryComp
 				(
-				const IDatum * //pdatum
+				const IDatum * //datum
 				) 
 				const
 			{
@@ -90,66 +90,66 @@ namespace gpnaucrates
 
 			// byte array representation of datum
 			virtual
-			const BYTE *PbaVal() const
+			const BYTE *GetByteArrayValue() const
 			{
-				GPOS_ASSERT(!"Invalid invocation of PbaVal");
+				GPOS_ASSERT(!"Invalid invocation of MakeCopyOfValue");
 				return NULL;
 			}
 
 			// does the datum need to be padded before statistical derivation
 			virtual
-			BOOL FNeedsPadding() const
+			BOOL NeedsPadding() const
 			{
 				return false;
 			}
 
 			// return the padded datum
 			virtual
-			IDatum *PdatumPadded
+			IDatum *MakePaddedDatum
 				(
-				IMemoryPool *, // pmp,
-				ULONG    // ulColLen
+				IMemoryPool *, // mp,
+				ULONG    // col_len
 				)
 				const
 			{
-				GPOS_ASSERT(!"Invalid invocation of PdatumPadded");
+				GPOS_ASSERT(!"Invalid invocation of MakePaddedDatum");
 				return NULL;
 			}
 
 			// statistics equality based on byte array representation of datums
 			virtual
-			BOOL FStatsEqualBinary
+			BOOL StatsEqualBinary
 				(
-				const IDatum * //pdatum
+				const IDatum * //datum
 				)
 				const
 			{
-				GPOS_ASSERT(!"Invalid invocation of FStatsEqualBinary");
+				GPOS_ASSERT(!"Invalid invocation of StatsEqualBinary");
 				return false;
 			}
 
 			// statistics less than based on byte array representation of datums
 			virtual
-			BOOL FStatsLessThanBinary
+			BOOL StatsLessThanBinary
 				(
-				const IDatum * //pdatum
+				const IDatum * //datum
 				)
 				const
 			{
-				GPOS_ASSERT(!"Invalid invocation of FStatsLessThanBinary");
+				GPOS_ASSERT(!"Invalid invocation of StatsLessThanBinary");
 				return false;
 			}
 
 			// does datum support like predicate
 			virtual
-			BOOL FSupportLikePredicate() const
+			BOOL SupportsLikePredicate() const
 			{
 				return false;
 			}
 
 			// return the default scale factor of like predicate
 			virtual
-			CDouble DLikePredicateScaleFactor() const
+			CDouble GetLikePredicateScaleFactor() const
 			{
 				GPOS_ASSERT(!"Invalid invocation of DLikeSelectivity");
 				return false;

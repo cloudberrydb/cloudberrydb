@@ -30,10 +30,10 @@ using namespace gpdbcost;
 ICostModel *
 ICostModel::PcmDefault
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
-	return GPOS_NEW(pmp) CCostModelGPDBLegacy(pmp, GPOPT_DEFAULT_SEGMENT_COUNT);
+	return GPOS_NEW(mp) CCostModelGPDBLegacy(mp, GPOPT_DEFAULT_SEGMENT_COUNT);
 }
 
 
@@ -48,7 +48,7 @@ ICostModel::PcmDefault
 void
 ICostModel::SetParams
 	(
-	DrgPcp *pdrgpcp
+	ICostModelParamsArray *pdrgpcp
 	)
 {
 	if (NULL == pdrgpcp)
@@ -57,11 +57,11 @@ ICostModel::SetParams
 	}
 
 	// overwrite default values of cost model parameters
-	const ULONG ulSize = pdrgpcp->UlLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	const ULONG size = pdrgpcp->Size();
+	for (ULONG ul = 0; ul < size; ul++)
 	{
 		ICostModelParams::SCostParam *pcp = (*pdrgpcp)[ul];
-		Pcp()->SetParam(pcp->UlId(), pcp->DVal(), pcp->DLowerBound(), pcp->DUpperBound());
+		GetCostModelParams()->SetParam(pcp->Id(), pcp->Get(), pcp->GetLowerBoundVal(), pcp->GetUpperBoundVal());
 	}
 }
 

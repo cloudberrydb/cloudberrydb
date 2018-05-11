@@ -25,14 +25,14 @@ using namespace gpmd;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarDMLAction::FMatch
+//		CScalarDMLAction::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarDMLAction::FMatch
+CScalarDMLAction::Matches
 	(
 	COperator *pop
 	)
@@ -43,17 +43,17 @@ CScalarDMLAction::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarDMLAction::PmdidType
+//		CScalarDMLAction::MdidType
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarDMLAction::PmdidType() const
+CScalarDMLAction::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	return pmda->PtMDType<IMDTypeInt4>()->Pmdid();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	return md_accessor->PtMDType<IMDTypeInt4>()->MDId();
 }
 // EOF
 

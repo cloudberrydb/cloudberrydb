@@ -38,38 +38,38 @@ namespace gpdxl
 		private:
 		
 			// mdid of the index
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// name of the index
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// mdid of the indexed relation
-			IMDId *m_pmdidRel;
+			IMDId *m_rel_mdid;
 			
 			// is the index clustered
-			BOOL m_fClustered;
+			BOOL m_clustered;
 
 			// index type
-			IMDIndex::EmdindexType m_emdindt;
+			IMDIndex::EmdindexType m_index_type;
 			
 			// type id of index items
 			// for instance, for bitmap indexes, this is the type id of the bitmap
-			IMDId *m_pmdidItemType;
+			IMDId *m_mdid_item_type;
 
 			// index keys
-			DrgPul *m_pdrgpulKeyCols;
+			ULongPtrArray *m_index_key_cols_array;
 
 			// included columns
-			DrgPul *m_pdrgpulIncludedCols;
+			ULongPtrArray *m_included_cols_array;
 			
 			// index part constraint
-			CMDPartConstraintGPDB *m_ppartcnstr;
+			CMDPartConstraintGPDB *m_part_constraint;
 			
 			// levels that include default partitions
-			DrgPul *m_pdrgpulDefaultParts;
+			ULongPtrArray *m_level_with_default_part_array;
 			
 			// is constraint unbounded
-			BOOL m_fPartConstraintUnbounded; 
+			BOOL m_part_constraint_unbounded; 
 			
 			// private copy ctor
 			CParseHandlerMDIndex(const CParseHandlerMDIndex&);
@@ -77,18 +77,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
- 				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+ 				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
@@ -96,9 +96,9 @@ namespace gpdxl
 			// ctor
 			CParseHandlerMDIndex
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

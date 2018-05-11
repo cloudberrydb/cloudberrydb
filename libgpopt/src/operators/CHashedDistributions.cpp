@@ -6,29 +6,29 @@
 using namespace gpopt;
 CHashedDistributions::CHashedDistributions
 		(
-		IMemoryPool *pmp,
-		DrgPcr *pdrgpcrOutput,
-		DrgDrgPcr *pdrgpdrgpcrInput
+		IMemoryPool *mp,
+		CColRefArray *pdrgpcrOutput,
+		CColRef2dArray *pdrgpdrgpcrInput
 		)
 		:
-		DrgPds(pmp)
+		CDistributionSpecArray(mp)
 {
-	const ULONG ulCols = pdrgpcrOutput->UlLength();
-	const ULONG ulArity = pdrgpdrgpcrInput->UlLength();
-	for (ULONG ulChild = 0; ulChild < ulArity; ulChild++)
+	const ULONG num_cols = pdrgpcrOutput->Size();
+	const ULONG arity = pdrgpdrgpcrInput->Size();
+	for (ULONG ulChild = 0; ulChild < arity; ulChild++)
 	{
-		DrgPcr *pdrgpcr = (*pdrgpdrgpcrInput)[ulChild];
-		DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-		for (ULONG ulCol = 0; ulCol < ulCols; ulCol++)
+		CColRefArray *colref_array = (*pdrgpdrgpcrInput)[ulChild];
+		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+		for (ULONG ulCol = 0; ulCol < num_cols; ulCol++)
 		{
-			CColRef *pcr = (*pdrgpcr)[ulCol];
-			CExpression *pexpr = CUtils::PexprScalarIdent(pmp, pcr);
+			CColRef *colref = (*colref_array)[ulCol];
+			CExpression *pexpr = CUtils::PexprScalarIdent(mp, colref);
 			pdrgpexpr->Append(pexpr);
 		}
 
 		// create a hashed distribution on input columns of the current child
 		BOOL fNullsColocated = true;
-		CDistributionSpec *pdshashed = GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexpr, fNullsColocated);
+		CDistributionSpec *pdshashed = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexpr, fNullsColocated);
 		Append(pdshashed);
 	}
 }

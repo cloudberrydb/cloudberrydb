@@ -21,17 +21,17 @@
 #define GPOS_WARNING(...)   \
 	ILogger::Warning(__FILE__, __LINE__, __VA_ARGS__)
 
-#define GPOS_TRACE(wszMsg)   \
-	ILogger::Trace(__FILE__, __LINE__, false /*fErr*/, wszMsg)
+#define GPOS_TRACE(msg)   \
+	ILogger::Trace(__FILE__, __LINE__, false /*is_err*/, msg)
 
-#define GPOS_TRACE_ERR(wszMsg)   \
-	ILogger::Trace(__FILE__, __LINE__, true /*fErr*/, wszMsg)
+#define GPOS_TRACE_ERR(msg)   \
+	ILogger::Trace(__FILE__, __LINE__, true /*is_err*/, msg)
 
-#define GPOS_TRACE_FORMAT(szFormat, ...)   \
-	ILogger::TraceFormat(__FILE__, __LINE__, false /*fErr*/, GPOS_WSZ_LIT(szFormat), __VA_ARGS__)
+#define GPOS_TRACE_FORMAT(format, ...)   \
+	ILogger::TraceFormat(__FILE__, __LINE__, false /*is_err*/, GPOS_WSZ_LIT(format), __VA_ARGS__)
 
-#define GPOS_TRACE_FORMAT_ERR(szFormat, ...)   \
-	ILogger::TraceFormat(__FILE__, __LINE__, true /*fErr*/, GPOS_WSZ_LIT(szFormat), __VA_ARGS__)
+#define GPOS_TRACE_FORMAT_ERR(format, ...)   \
+	ILogger::TraceFormat(__FILE__, __LINE__, true /*is_err*/, GPOS_WSZ_LIT(format), __VA_ARGS__)
 
 namespace gpos
 {
@@ -51,7 +51,7 @@ namespace gpos
 		public:
 
 			// enum indicating error logging information
-			enum EErrorInfoLevel
+			enum ErrorInfoLevel
 			{
 				EeilMsg,			// log error message only
 				EeilMsgHeader,		// log error header and message
@@ -65,11 +65,11 @@ namespace gpos
 			static
 			void LogTask
 				(
-				const WCHAR *wszMsg,
-				ULONG ulSeverity,
-				BOOL fErr,
-				const CHAR *szFilename,
-				ULONG ulLine
+				const WCHAR *msg,
+				ULONG severity,
+				BOOL is_err,
+				const CHAR *filename,
+				ULONG line
 				);
 
 			// no copy ctor
@@ -79,7 +79,7 @@ namespace gpos
 
 			// write log message
 			virtual
-			void Write(const WCHAR *wszLogEntry, ULONG ulSev) = 0;
+			void Write(const WCHAR *log_entry, ULONG severity) = 0;
 
 		public:
 
@@ -92,38 +92,38 @@ namespace gpos
 
 			// error info level accessor
 			virtual
-			EErrorInfoLevel Eil() const = 0;
+			ErrorInfoLevel InfoLevel() const = 0;
 
 			// set error info level
 			virtual
-			void SetErrorInfoLevel(EErrorInfoLevel eil) = 0;
+			void SetErrorInfoLevel(ErrorInfoLevel info_level) = 0;
 
 			// retrieve warning message from repository and log it to error log
 			static void Warning
 				(
-				const CHAR *szFilename,
-				ULONG ulLine,
-				ULONG ulMajor,
-				ULONG ulMinor,
+				const CHAR *filename,
+				ULONG line,
+				ULONG major,
+				ULONG minor,
 				...
 				);
 
 			// log trace message to current task's output or error log
 			static void Trace
 				(
-				const CHAR *szFilename,
-				ULONG ulLine,
-				BOOL fErr,
-				const WCHAR *wszMsg
+				const CHAR *filename,
+				ULONG line,
+				BOOL is_err,
+				const WCHAR *msg
 				);
 
 			// format and log trace message to current task's output or error log
 			static void TraceFormat
 				(
-				const CHAR *szFilename,
-				ULONG ulLine,
-				BOOL fErr,
-				const WCHAR *wszFormat,
+				const CHAR *filename,
+				ULONG line,
+				BOOL is_err,
+				const WCHAR *format,
 				...
 				);
 

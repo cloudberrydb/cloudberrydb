@@ -53,26 +53,26 @@ namespace gpos
 		
 			// finds the first element matching target key starting from
 			// the given element
-			T *PtNextMatch(T *pt) const
+			T *NextMatch(T *value) const
             {
-                T *ptCurrent = pt;
+                T *curr = value;
 
-                while (NULL != ptCurrent &&
-                       !Base::Sht().m_pfuncEqual(Base::Sht().Key(ptCurrent), m_key))
+                while (NULL != curr &&
+                       !Base::GetHashTable().m_eqfn(Base::GetHashTable().Key(curr), m_key))
                 {
-                    ptCurrent = Base::PtNext(ptCurrent);
+                    curr = Base::Next(curr);
                 }
 
-                return ptCurrent;
+                return curr;
             }
 
 #ifdef GPOS_DEBUG
 			// returns true if current bucket matches key
-			BOOL FMatchingBucket(const K &key) const
+			BOOL CurrentBucketMatchesKey(const K &key) const
             {
-                ULONG ulBucketIndex = Base::Sht().UlBucketIndex(key);
+                ULONG bucket_idx = Base::GetHashTable().GetBucketIndex(key);
 
-                return &(Base::Sht().Bucket(ulBucketIndex)) == &(Base::Bucket());
+                return &(Base::GetHashTable().GetBucket(bucket_idx)) == &(Base::GetBucket());
             }
 #endif // GPOS_DEBUG
 
@@ -82,7 +82,7 @@ namespace gpos
 			CSyncHashtableAccessByKey<T, K, S>
 				(CSyncHashtable<T, K, S> &ht, const K &key)
             :
-            Base(ht, ht.UlBucketIndex(key)),
+            Base(ht, ht.GetBucketIndex(key)),
             m_key(key)
             {
             }
@@ -93,36 +93,36 @@ namespace gpos
 			{}
 
 			// finds the first bucket's element with a matching key
-			T *PtLookup() const
+			T *Find() const
             {
-                return PtNextMatch(Base::PtFirst());
+                return NextMatch(Base::First());
             }
 
 			// finds the next element with a matching key
-			T *PtNext(T *pt) const
+			T *Next(T *value) const
             {
-                GPOS_ASSERT(NULL != pt);
+                GPOS_ASSERT(NULL != value);
 
-                return PtNextMatch(Base::PtNext(pt));
+                return NextMatch(Base::Next(value));
             }
 
 			// insert at head of target bucket's hash chain
-			void Insert(T *pt)
+			void Insert(T *value)
             {
-                GPOS_ASSERT(NULL != pt);
+                GPOS_ASSERT(NULL != value);
 
     #ifdef GPOS_DEBUG
-                K &key = Base::Sht().Key(pt);
+                K &key = Base::GetHashTable().Key(value);
     #endif // GPOS_DEBUG
 
                 // make sure this is a valid key
-                GPOS_ASSERT(Base::Sht().FValid(key));
+                GPOS_ASSERT(Base::GetHashTable().IsValid(key));
 
                 // make sure this is the right bucket
-                GPOS_ASSERT(FMatchingBucket(key));
+                GPOS_ASSERT(CurrentBucketMatchesKey(key));
 
                 // inserting at bucket's head is required by hashtable iteration
-                Base::Prepend(pt);
+                Base::Prepend(value);
             }
 		
 	}; // class CSyncHashtableAccessByKey

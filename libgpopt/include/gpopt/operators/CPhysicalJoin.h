@@ -45,7 +45,7 @@ namespace gpopt
 				BOOL fOuterPartConsumerTest,
 				ULONG ulChildIndexToTestFirst,
 				ULONG ulChildIndexToTestSecond,
-				ULONG ulChildIndex
+				ULONG child_index
 				);
 
 		protected:
@@ -79,14 +79,14 @@ namespace gpopt
 					CPartPropReq
 						(
 						CPartitionPropagationSpec *pppsRequired,
-						ULONG ulChildIndex,
+						ULONG child_index,
 						ULONG ulOuterChild,
 						ULONG ulInnerChild,
 						ULONG ulScalarChild
 						)
 						:
 						m_pppsRequired(pppsRequired),
-						m_ulChildIndex(ulChildIndex),
+						m_ulChildIndex(child_index),
 						m_ulOuterChild(ulOuterChild),
 						m_ulInnerChild(ulInnerChild),
 						m_ulScalarChild(ulScalarChild)
@@ -133,43 +133,43 @@ namespace gpopt
 
 					// hash function
 					static
-					ULONG UlHash(const CPartPropReq *pppr);
+					ULONG HashValue(const CPartPropReq *pppr);
 
 					// equality function
 					static
-					BOOL FEqual(const CPartPropReq *ppprFst, const CPartPropReq *ppprSnd);
+					BOOL Equals(const CPartPropReq *ppprFst, const CPartPropReq *ppprSnd);
 
 			}; // class CPartPropReq
 
 			// map partition propagation request to partition propagation spec
-			typedef CHashMap<CPartPropReq, CPartitionPropagationSpec, CPartPropReq::UlHash, CPartPropReq::FEqual,
-						CleanupRelease<CPartPropReq>, CleanupRelease<CPartitionPropagationSpec> > HMPartPropagation;
+			typedef CHashMap<CPartPropReq, CPartitionPropagationSpec, CPartPropReq::HashValue, CPartPropReq::Equals,
+						CleanupRelease<CPartPropReq>, CleanupRelease<CPartitionPropagationSpec> > PartPropReqToPartPropSpecMap;
 
 			// mutex for locking map of child columns requests during lookup/insertion
 			CMutex m_mutexJoin;
 
 			// partition propagation request map
-			HMPartPropagation *m_phmpp;
+			PartPropReqToPartPropSpecMap *m_phmpp;
 
 			// ctor
 			explicit
-			CPhysicalJoin(IMemoryPool *pmp);
+			CPhysicalJoin(IMemoryPool *mp);
 
 			// dtor
 			virtual 
 			~CPhysicalJoin();
 
 			// helper to check if given child index correspond to first child to be optimized
-			BOOL FFirstChildToOptimize(ULONG ulChildIndex) const;
+			BOOL FFirstChildToOptimize(ULONG child_index) const;
 
 			// helper to compute required distribution of correlated join's children
 			CDistributionSpec *PdsRequiredCorrelatedJoin
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG  ulOptReq
 				)
 				const;
@@ -177,11 +177,11 @@ namespace gpopt
 			// helper to compute required rewindability of correlated join's children
 			CRewindabilitySpec *PrsRequiredCorrelatedJoin
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CRewindabilitySpec *prsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -189,19 +189,19 @@ namespace gpopt
 			// create partition propagation request
 			CPartPropReq *PpprCreate
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex
+				ULONG child_index
 				);
 
 			// compute required partition propagation of the n-th child
 			CPartitionPropagationSpec *PppsRequiredCompute
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
+				ULONG child_index,
 				BOOL fNLJoin
 				);
 
@@ -209,21 +209,21 @@ namespace gpopt
 			// spec for the children of a join
 			CPartitionPropagationSpec *PppsRequiredJoinChild
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				BOOL fNLJoin
 				);
 
 			// helper for propagating required sort order to outer child
 			static
-			COrderSpec *PosPropagateToOuter(IMemoryPool *pmp, CExpressionHandle &exprhdl, COrderSpec *posRequired);
+			COrderSpec *PosPropagateToOuter(IMemoryPool *mp, CExpressionHandle &exprhdl, COrderSpec *posRequired);
 
 			// helper for checking if required sort columns come from outer child
 			static
-			BOOL FSortColsInOuterChild(IMemoryPool *pmp, CExpressionHandle &exprhdl, COrderSpec *pos);
+			BOOL FSortColsInOuterChild(IMemoryPool *mp, CExpressionHandle &exprhdl, COrderSpec *pos);
 
 			// helper for checking if the outer input of a binary join operator
 			// includes the required columns
@@ -237,21 +237,21 @@ namespace gpopt
 				CExpression *pexprPred,
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
-				DrgPexpr *pdrgpexprOuter,
-				DrgPexpr *pdrgpexprInner
+				CExpressionArray *pdrgpexprOuter,
+				CExpressionArray *pdrgpexprInner
 				);
 			
 			// helper to add filter on part key
 			static
 			void AddFilterOnPartKey
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				BOOL fNLJoin,
 				CExpression *pexprScalar,
 				CPartIndexMap *ppimSource,
 				CPartFilterMap *ppfmSource,
-				ULONG ulChildIndex,
-				ULONG ulPartIndexId,
+				ULONG child_index,
+				ULONG part_idx_id,
 				BOOL fOuterPartConsumer,
 				CPartIndexMap *ppimResult,
 				CPartFilterMap *ppfmResult,
@@ -262,10 +262,10 @@ namespace gpopt
 			static
 			CExpression *PexprJoinPredOnPartKeys
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprScalar,
 				CPartIndexMap *ppimSource,
-				ULONG ulPartIndexId,
+				ULONG part_idx_id,
 				CColRefSet *pcrsAllowedRefs
 				);
 
@@ -276,7 +276,7 @@ namespace gpopt
 		public:
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -292,11 +292,11 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 
@@ -304,11 +304,11 @@ namespace gpopt
 			virtual
 			CCTEReq *PcteRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CCTEReq *pcter,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -317,11 +317,11 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDistributionSpec *pdsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -330,11 +330,11 @@ namespace gpopt
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 
@@ -347,8 +347,8 @@ namespace gpopt
 			CEnfdDistribution::EDistributionMatching Edm
 				(
 				CReqdPropPlan *prppInput,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 			
@@ -360,7 +360,7 @@ namespace gpopt
 			virtual
 			COrderSpec *PosDerive
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle &exprhdl
 				)
 				const
@@ -370,36 +370,36 @@ namespace gpopt
 
 			// derive distribution
 			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive rewindability
 			virtual
-			CRewindabilitySpec *PrsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CRewindabilitySpec *PrsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition index map
 			virtual
 			CPartIndexMap *PpimDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CDrvdPropCtxt * //pdpctxt
 				)
 				const
 			{
-				return PpimDeriveCombineRelational(pmp, exprhdl);
+				return PpimDeriveCombineRelational(mp, exprhdl);
 			}
 			
 			// derive partition filter map
 			virtual
 			CPartFilterMap *PpfmDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl
 				)
 				const
 			{
 				// combine part filter maps from relational children
-				return PpfmDeriveCombineRelational(pmp, exprhdl);
+				return PpfmDeriveCombineRelational(mp, exprhdl);
 			}
 
 
@@ -440,10 +440,10 @@ namespace gpopt
 			static
 			BOOL FHashJoinPossible
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
-				DrgPexpr *pdrgpexprOuter,
-				DrgPexpr *pdrgpexprInner,
+				CExpressionArray *pdrgpexprOuter,
+				CExpressionArray *pdrgpexprInner,
 				CExpression **ppexprResult // output: join expression to be tarnsformed to hash join
 				);
 

@@ -28,14 +28,14 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarAssertConstraint::CDXLScalarAssertConstraint
 	(
-	IMemoryPool *pmp,
-	CWStringBase *pstrErrorMsg
+	IMemoryPool *mp,
+	CWStringBase *error_msg
 	)
 	:
-	CDXLScalar(pmp),
-	m_pstrErrorMsg(pstrErrorMsg)
+	CDXLScalar(mp),
+	m_error_msg(error_msg)
 {
-	GPOS_ASSERT(NULL != pstrErrorMsg);
+	GPOS_ASSERT(NULL != error_msg);
 }
 
 //---------------------------------------------------------------------------
@@ -48,35 +48,35 @@ CDXLScalarAssertConstraint::CDXLScalarAssertConstraint
 //---------------------------------------------------------------------------
 CDXLScalarAssertConstraint::~CDXLScalarAssertConstraint()
 {
-	GPOS_DELETE(m_pstrErrorMsg);
+	GPOS_DELETE(m_error_msg);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarAssertConstraint::Edxlop
+//		CDXLScalarAssertConstraint::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLScalarAssertConstraint::Edxlop() const
+CDXLScalarAssertConstraint::GetDXLOperator() const
 {
 	return EdxlopScalarAssertConstraint;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLScalarAssertConstraint::PstrOpName
+//		CDXLScalarAssertConstraint::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLScalarAssertConstraint::PstrOpName() const
+CDXLScalarAssertConstraint::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenScalarAssertConstraint);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarAssertConstraint);
 }
 
 //---------------------------------------------------------------------------
@@ -88,9 +88,9 @@ CDXLScalarAssertConstraint::PstrOpName() const
 //
 //---------------------------------------------------------------------------
 CWStringBase *
-CDXLScalarAssertConstraint::PstrErrorMsg() const
+CDXLScalarAssertConstraint::GetErrorMsgStr() const
 {
-	return m_pstrErrorMsg;
+	return m_error_msg;
 }
 
 //---------------------------------------------------------------------------
@@ -104,18 +104,18 @@ CDXLScalarAssertConstraint::PstrErrorMsg() const
 void
 CDXLScalarAssertConstraint::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenErrorMessage), m_pstrErrorMsg);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenErrorMessage), m_error_msg);
 		
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 
@@ -131,19 +131,19 @@ CDXLScalarAssertConstraint::SerializeToDXL
 void
 CDXLScalarAssertConstraint::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	)
 	const
 {
-	GPOS_ASSERT(1 == pdxln->UlArity());
+	GPOS_ASSERT(1 == dxlnode->Arity());
 	
-	CDXLNode *pdxlnChild = (*pdxln)[0];
-	GPOS_ASSERT(EdxloptypeScalar == pdxlnChild->Pdxlop()->Edxloperatortype());
+	CDXLNode *child_dxlnode = (*dxlnode)[0];
+	GPOS_ASSERT(EdxloptypeScalar == child_dxlnode->GetOperator()->GetDXLOperatorType());
 
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 

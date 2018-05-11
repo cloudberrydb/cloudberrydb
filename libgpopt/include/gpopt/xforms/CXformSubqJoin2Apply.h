@@ -32,8 +32,8 @@ namespace gpopt
 		private:
 
 			// hash map between expression and a column reference
-			typedef CHashMap<CExpression, CColRef, UlHashPtr<CExpression>, FEqualPtr<CExpression>,
-					CleanupRelease<CExpression>, CleanupNULL<CColRef> > HMExprCr;
+			typedef CHashMap<CExpression, CColRef, HashPtr<CExpression>, EqualPtr<CExpression>,
+					CleanupRelease<CExpression>, CleanupNULL<CColRef> > ExprToColRefMap;
 
 			// private copy ctor
 			CXformSubqJoin2Apply(const CXformSubqJoin2Apply &);
@@ -45,25 +45,25 @@ namespace gpopt
 			static
 			void CollectSubqueries
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexpr,
-				DrgPcrs *pdrgpcrs,
-				DrgPdrgPexpr *pdrgpdrgpexprSubqs
+				CColRefSetArray *pdrgpcrs,
+				CExpressionArrays *pdrgpdrgpexprSubqs
 				);
 
 			// replace subqueries with scalar identifier based on given map
 			static
-			CExpression *PexprReplaceSubqueries(IMemoryPool *pmp, CExpression *pexprScalar, HMExprCr *phmexprcr);
+			CExpression *PexprReplaceSubqueries(IMemoryPool *mp, CExpression *pexprScalar, ExprToColRefMap *phmexprcr);
 
 			// push down subquery below join
 			static
-			CExpression *PexprSubqueryPushDown(IMemoryPool *pmp, CExpression *pexpr, BOOL fEnforceCorrelatedApply);
+			CExpression *PexprSubqueryPushDown(IMemoryPool *mp, CExpression *pexpr, BOOL fEnforceCorrelatedApply);
 
 		public:
 
 			// ctor
 			explicit
-			CXformSubqJoin2Apply(IMemoryPool *pmp);
+			CXformSubqJoin2Apply(IMemoryPool *mp);
 
 			// ctor
 			explicit

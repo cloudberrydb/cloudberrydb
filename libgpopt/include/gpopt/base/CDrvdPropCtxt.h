@@ -23,10 +23,10 @@ namespace gpopt
 
 	// fwd declarations
 	class CDrvdPropCtxt;
-	class CDrvdProp;
+	class DrvdPropArray;
 
 	// dynamic array for properties
-	typedef CDynamicPtrArray<CDrvdPropCtxt, CleanupRelease> DrgPdpctxt;
+	typedef CDynamicPtrArray<CDrvdPropCtxt, CleanupRelease> CDrvdPropCtxtArray;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -48,25 +48,25 @@ namespace gpopt
 		protected:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// copy function
 			virtual
-			CDrvdPropCtxt *PdpctxtCopy(IMemoryPool *pmp) const = 0;
+			CDrvdPropCtxt *PdpctxtCopy(IMemoryPool *mp) const = 0;
 
 			// add props to context
 			virtual
-			void AddProps(CDrvdProp *pdp) = 0;
+			void AddProps(DrvdPropArray *pdp) = 0;
 
 		public:
 
 			// ctor
 			CDrvdPropCtxt
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				m_pmp(pmp)
+				m_mp(mp)
 			{}
 
 			// dtor
@@ -109,7 +109,7 @@ namespace gpopt
 			static
 			CDrvdPropCtxt *PdpctxtCopy
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CDrvdPropCtxt *pdpctxt
 				)
 			{
@@ -118,14 +118,14 @@ namespace gpopt
 					return NULL;
 				}
 
-				return pdpctxt->PdpctxtCopy(pmp);
+				return pdpctxt->PdpctxtCopy(mp);
 			}
 
 			// add derived props to context
 			static
 			void AddDerivedProps
 				(
-				CDrvdProp *pdp,
+				DrvdPropArray *pdp,
 				CDrvdPropCtxt *pdpctxt
 				)
 			{

@@ -30,10 +30,10 @@ namespace gpos
 	{
 		private:	
 			// backing dynamic array store
-			CDynamicPtrArray<T, CleanupNULL> *m_dpa; 
+			CDynamicPtrArray<T, CleanupNULL> *m_dynamic_ptr_array; 
 			
 			// top of stack index
-			ULONG m_ulSize;
+			ULONG m_size;
 			
 			// copy c'tor - not defined
 			CStack(CStack &);
@@ -41,61 +41,61 @@ namespace gpos
 		public:
 			
 			// c'tor
-			CStack<T> (IMemoryPool *pmp, ULONG ulMinSize = 4)
-            : m_ulSize(0)
+			CStack<T> (IMemoryPool *mp, ULONG min_size = 4)
+            : m_size(0)
             {
-                m_dpa = GPOS_NEW(pmp) CDynamicPtrArray<T, CleanupNULL>(pmp, ulMinSize, 10);
+                m_dynamic_ptr_array = GPOS_NEW(mp) CDynamicPtrArray<T, CleanupNULL>(mp, min_size, 10);
             }
 			
 			// destructor 
 			virtual ~CStack()
             {
-                m_dpa->Release();
+                m_dynamic_ptr_array->Release();
             }
 						
 			// push element onto stack
-			void Push(T *pt)
+			void Push(T *obj)
             {
-                GPOS_ASSERT(m_dpa != NULL && "Dynamic array missing");
-                GPOS_ASSERT(m_ulSize <= m_dpa->UlLength() && "The top of stack cannot be beyond the underlying array");
+                GPOS_ASSERT(m_dynamic_ptr_array != NULL && "Dynamic array missing");
+                GPOS_ASSERT(m_size <= m_dynamic_ptr_array->Size() && "The top of stack cannot be beyond the underlying array");
 
                 // if the stack was Popped before, reuse that space by replacing the element
-                if (m_ulSize < m_dpa->UlLength())
+                if (m_size < m_dynamic_ptr_array->Size())
                 {
-                    m_dpa->Replace(m_ulSize, pt);
+                    m_dynamic_ptr_array->Replace(m_size, obj);
                 }
                 else
                 {
-                    m_dpa->Append(pt);
+                    m_dynamic_ptr_array->Append(obj);
                 }
 
-                m_ulSize++;
+                m_size++;
             }
 						
 			// pop top element
 			T*	Pop()
             {
-                GPOS_ASSERT(!this->FEmpty() && "Cannot pop from empty stack");
+                GPOS_ASSERT(!this->IsEmpty() && "Cannot pop from empty stack");
 
-                T *pt = (*m_dpa)[m_ulSize - 1];
-                m_ulSize--;
-                return pt;
+                T *obj = (*m_dynamic_ptr_array)[m_size - 1];
+                m_size--;
+                return obj;
             }
 			
 			// peek at top element
 			const T* Peek() const
             {
-                GPOS_ASSERT(!this->FEmpty() && "Cannot peek into empty stack");
+                GPOS_ASSERT(!this->IsEmpty() && "Cannot peek into empty stack");
 
-                const T *pt = (*m_dpa)[m_ulSize - 1];
+                const T *obj = (*m_dynamic_ptr_array)[m_size - 1];
 
-                return pt;
+                return obj;
             }
 			
 			// is stack empty?
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
             {
-                return (m_ulSize == 0);
+                return (m_size == 0);
             }
 	};
 	

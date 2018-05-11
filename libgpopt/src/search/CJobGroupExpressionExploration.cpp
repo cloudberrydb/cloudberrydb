@@ -184,13 +184,13 @@ CJobGroupExpressionExploration::ScheduleApplicableTransformations
 
 	// get all applicable xforms
 	COperator *pop = m_pgexpr->Pop();
-	CXformSet *pxfs = CLogical::PopConvert(pop)->PxfsCandidates(psc->PmpGlobal());
+	CXformSet *xform_set = CLogical::PopConvert(pop)->PxfsCandidates(psc->GetGlobalMemoryPool());
 
 	// intersect them with required xforms and schedule jobs
-	pxfs->Intersection(CXformFactory::Pxff()->PxfsExploration());
-	pxfs->Intersection(psc->Peng()->PxfsCurrentStage());
-	ScheduleTransformations(psc, pxfs);
-	pxfs->Release();
+	xform_set->Intersection(CXformFactory::Pxff()->PxfsExploration());
+	xform_set->Intersection(psc->Peng()->PxfsCurrentStage());
+	ScheduleTransformations(psc, xform_set);
+	xform_set->Release();
 
 	SetXformsScheduled();
 }
@@ -212,9 +212,9 @@ CJobGroupExpressionExploration::ScheduleChildGroupsJobs
 {
 	GPOS_ASSERT(!FChildrenScheduled());
 
-	ULONG ulArity = m_pgexpr->UlArity();
+	ULONG arity = m_pgexpr->Arity();
 
-	for (ULONG i = 0; i < ulArity; i++)
+	for (ULONG i = 0; i < arity; i++)
 	{
 		CJobGroupExploration::ScheduleJob(psc, (*(m_pgexpr))[i], this);
 	}

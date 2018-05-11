@@ -19,26 +19,26 @@ using namespace gpmd;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMDRelation::PstrDistrPolicy
+//		IMDRelation::GetDistrPolicyStr
 //
 //	@doc:
 //		Return relation distribution policy as a string value
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-IMDRelation::PstrDistrPolicy
+IMDRelation::GetDistrPolicyStr
 	(
-	Ereldistrpolicy ereldistrpolicy
+	Ereldistrpolicy rel_distr_policy
 	)
 {
-	switch (ereldistrpolicy)
+	switch (rel_distr_policy)
 	{
 		case EreldistrMasterOnly:
-			return CDXLTokens::PstrToken(EdxltokenRelDistrMasterOnly);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrMasterOnly);
 		case EreldistrHash:
-			return CDXLTokens::PstrToken(EdxltokenRelDistrHash);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrHash);
 		case EreldistrRandom:
-			return CDXLTokens::PstrToken(EdxltokenRelDistrRandom);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrRandom);
 		default:
 			return NULL;
 	}
@@ -46,32 +46,32 @@ IMDRelation::PstrDistrPolicy
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMDRelation::PstrStorageType
+//		IMDRelation::GetStorageTypeStr
 //
 //	@doc:
 //		Return name of storage type
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-IMDRelation::PstrStorageType
+IMDRelation::GetStorageTypeStr
 	(
-	IMDRelation::Erelstoragetype erelstorage
+	IMDRelation::Erelstoragetype rel_storage_type
 	)
 {
-	switch (erelstorage)
+	switch (rel_storage_type)
 	{
 		case ErelstorageHeap:
-			return CDXLTokens::PstrToken(EdxltokenRelStorageHeap);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageHeap);
 		case ErelstorageAppendOnlyCols:
-			return CDXLTokens::PstrToken(EdxltokenRelStorageAppendOnlyCols);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageAppendOnlyCols);
 		case ErelstorageAppendOnlyRows:
-			return CDXLTokens::PstrToken(EdxltokenRelStorageAppendOnlyRows);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageAppendOnlyRows);
 		case ErelstorageAppendOnlyParquet:
-			return CDXLTokens::PstrToken(EdxltokenRelStorageAppendOnlyParquet);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageAppendOnlyParquet);
 		case ErelstorageExternal:
-			return CDXLTokens::PstrToken(EdxltokenRelStorageExternal);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageExternal);
 		case ErelstorageVirtual:
-			return CDXLTokens::PstrToken(EdxltokenRelStorageVirtual);
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelStorageVirtual);
 		default:
 			return NULL;
 	}
@@ -79,42 +79,42 @@ IMDRelation::PstrStorageType
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMDRelation::PstrColumns
+//		IMDRelation::ColumnsToStr
 //
 //	@doc:
 //		Serialize an array of column ids into a comma-separated string
 //
 //---------------------------------------------------------------------------
 CWStringDynamic *
-IMDRelation::PstrColumns
+IMDRelation::ColumnsToStr
 	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpul
+	IMemoryPool *mp,
+	ULongPtrArray *colid_array
 	)
 {
-	CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
+	CWStringDynamic *str = GPOS_NEW(mp) CWStringDynamic(mp);
 
-	ULONG ulLen = pdrgpul->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	ULONG length = colid_array->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		ULONG ulId = *((*pdrgpul)[ul]);
-		if (ul == ulLen - 1)
+		ULONG id = *((*colid_array)[ul]);
+		if (ul == length - 1)
 		{
 			// last element: do not print a comma
-			pstr->AppendFormat(GPOS_WSZ_LIT("%d"), ulId);
+			str->AppendFormat(GPOS_WSZ_LIT("%d"), id);
 		}
 		else
 		{
-			pstr->AppendFormat(GPOS_WSZ_LIT("%d%ls"), ulId, CDXLTokens::PstrToken(EdxltokenComma)->Wsz());
+			str->AppendFormat(GPOS_WSZ_LIT("%d%ls"), id, CDXLTokens::GetDXLTokenStr(EdxltokenComma)->GetBuffer());
 		}
 	}
 
-	return pstr;
+	return str;
 }
 
 // check if index is partial given its mdid
 BOOL
-IMDRelation::FPartialIndex
+IMDRelation::IsPartialIndex
 	(
 	IMDId * // mdid
 	) const

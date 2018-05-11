@@ -42,33 +42,33 @@ namespace gpmd
 		private:
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// check constraint mdid
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 
 			// check constraint name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// relation mdid
-			IMDId *m_pmdidRel;
+			IMDId *m_rel_mdid;
 
 			// the DXL representation of the check constraint
-			CDXLNode *m_pdxln;
+			CDXLNode *m_dxl_node;
 
 			// DXL for object
-			const CWStringDynamic *m_pstr;
+			const CWStringDynamic *m_dxl_str;
 
 		public:
 
 			// ctor
 			CMDCheckConstraintGPDB
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdid,
-				CMDName *pmdname,
-				IMDId *pmdidRel,
-				CDXLNode *pdxln
+				IMemoryPool *mp,
+				IMDId *mdid,
+				CMDName *mdname,
+				IMDId *rel_mdid,
+				CDXLNode *dxlnode
 				);
 
 			// dtor
@@ -77,35 +77,35 @@ namespace gpmd
 
 			// check constraint mdid
 			virtual
-			IMDId *Pmdid() const
+			IMDId *MDId() const
 			{
-				return m_pmdid;
+				return m_mdid;
 			}
 
 			// check constraint name
 			virtual
 			CMDName Mdname() const
 			{
-				return *m_pmdname;
+				return *m_mdname;
 			}
 
 			// mdid of the relation
 			virtual
-			IMDId *PmdidRel() const
+			IMDId *GetRelMdId() const
 			{
-				return m_pmdidRel;
+				return m_rel_mdid;
 			}
 
 			// DXL string for check constraint
 			virtual
-			const CWStringDynamic *Pstr() const
+			const CWStringDynamic *GetStrRepr() const
 			{
-				return m_pstr;
+				return m_dxl_str;
 			}
 
 			// the scalar expression of the check constraint
 			virtual
-			CExpression *Pexpr(IMemoryPool *pmp, CMDAccessor *pmda, DrgPcr *pdrgpcr) const;
+			CExpression *GetCheckConstraintExpr(IMemoryPool *mp, CMDAccessor *md_accessor, CColRefArray *colref_array) const;
 
 			// serialize MD check constraint in DXL format given a serializer object
 			virtual

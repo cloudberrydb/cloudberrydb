@@ -17,19 +17,19 @@ using namespace gpos;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		ITask::PtskSelf
+//		ITask::Self
 //
 //	@doc:
 //		Static function to lookup ones own worker in the pool manager
 //
 //---------------------------------------------------------------------------
 ITask *
-ITask::PtskSelf()
+ITask::Self()
 {
-	IWorker *pwrk = IWorker::PwrkrSelf();
-	if (NULL != pwrk)
+	IWorker *worker = IWorker::Self();
+	if (NULL != worker)
 	{
-		return pwrk->Ptsk();
+		return worker->GetTask();
 	}
 	return NULL;
 }

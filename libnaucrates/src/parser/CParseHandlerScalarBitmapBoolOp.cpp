@@ -34,12 +34,12 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerScalarBitmapBoolOp::CParseHandlerScalarBitmapBoolOp
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerScalarOp(pmp, pphm, pphRoot)
+	CParseHandlerScalarOp(mp, parse_handler_mgr, parse_handler_root)
 {
 }
 
@@ -54,37 +54,37 @@ CParseHandlerScalarBitmapBoolOp::CParseHandlerScalarBitmapBoolOp
 void
 CParseHandlerScalarBitmapBoolOp::StartElement
 	(
-	const XMLCh* const , // xmlszUri
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const , // element_uri
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& attrs
 	)
 {
-	CDXLScalarBitmapBoolOp::EdxlBitmapBoolOp edxlbitmapboolop = CDXLScalarBitmapBoolOp::EdxlbitmapAnd;
-	Edxltoken edxltoken = EdxltokenScalarBitmapAnd;
+	CDXLScalarBitmapBoolOp::EdxlBitmapBoolOp bitmap_bool_dxlop = CDXLScalarBitmapBoolOp::EdxlbitmapAnd;
+	Edxltoken token_type = EdxltokenScalarBitmapAnd;
 	
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapOr), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapOr), element_local_name))
 	{
-		edxlbitmapboolop = CDXLScalarBitmapBoolOp::EdxlbitmapOr;
-		edxltoken = EdxltokenScalarBitmapOr;
+		bitmap_bool_dxlop = CDXLScalarBitmapBoolOp::EdxlbitmapOr;
+		token_type = EdxltokenScalarBitmapOr;
 	}
-	else if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapAnd), xmlszLocalname))
+	else if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapAnd), element_local_name))
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname)->Wsz());
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name)->GetBuffer());
 	}
-	
-	IMDId *pmdid = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTypeId, edxltoken);
-	m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarBitmapBoolOp(m_pmp, pmdid, edxlbitmapboolop));
-	
-	// install parse handlers for children
-	CParseHandlerBase *pphRight = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphRight);
-	
-	CParseHandlerBase *pphLeft = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphLeft);
 
-	this->Append(pphLeft);
-	this->Append(pphRight);
+	IMDId *mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId( m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenTypeId, token_type);
+	m_dxl_node = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarBitmapBoolOp(m_mp, mdid, bitmap_bool_dxlop));
+
+	// install parse handlers for children
+	CParseHandlerBase *right_child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(right_child_parse_handler);
+	
+	CParseHandlerBase *left_child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(left_child_parse_handler);
+
+	this->Append(left_child_parse_handler);
+	this->Append(right_child_parse_handler);
 }
 
 //---------------------------------------------------------------------------
@@ -98,29 +98,29 @@ CParseHandlerScalarBitmapBoolOp::StartElement
 void
 CParseHandlerScalarBitmapBoolOp::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapOr), xmlszLocalname) &&
-		0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapAnd), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapOr), element_local_name) &&
+		0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarBitmapAnd), element_local_name))
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname)->Wsz());
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name)->GetBuffer());
 	}
 
-	const ULONG ulSize = this->UlLength();
-	GPOS_ASSERT(2 == ulSize);
+	const ULONG size = this->Length();
+	GPOS_ASSERT(2 == size);
 
 	// add constructed children from child parse handlers
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	for (ULONG idx = 0; idx < size; idx++)
 	{
-		CParseHandlerOp *pph = dynamic_cast<CParseHandlerOp*>((*this)[ul]);
-		AddChildFromParseHandler(pph);
+		CParseHandlerOp *op_parse_handler = dynamic_cast<CParseHandlerOp*>((*this)[idx]);
+		AddChildFromParseHandler(op_parse_handler);
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

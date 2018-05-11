@@ -53,8 +53,8 @@ namespace gpopt
 			// ctor
 			CFunctionProp
 				(
-				IMDFunction::EFuncStbl efsStability,
-				IMDFunction::EFuncDataAcc efdaDataAccess,
+				IMDFunction::EFuncStbl func_stability,
+				IMDFunction::EFuncDataAcc func_data_access,
 				BOOL fHasVolatileFunctionScan,
 				BOOL fScan
 				);

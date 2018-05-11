@@ -30,29 +30,29 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CMDTriggerGPDB::CMDTriggerGPDB
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid,
-	CMDName *pmdname,
-	IMDId *pmdidRel,
-	IMDId *pmdidFunc,
-	INT iType,
-	BOOL fEnabled
+	IMemoryPool *mp,
+	IMDId *mdid,
+	CMDName *mdname,
+	IMDId *rel_mdid,
+	IMDId *mdid_func,
+	INT type,
+	BOOL is_enabled
 	)
 	:
-	m_pmp(pmp),
-	m_pmdid(pmdid),
-	m_pmdname(pmdname),
-	m_pmdidRel(pmdidRel),
-	m_pmdidFunc(pmdidFunc),
-	m_iType(iType),
-	m_fEnabled(fEnabled)
+	m_mp(mp),
+	m_mdid(mdid),
+	m_mdname(mdname),
+	m_rel_mdid(rel_mdid),
+	m_func_mdid(mdid_func),
+	m_type(type),
+	m_is_enabled(is_enabled)
 {
-	GPOS_ASSERT(m_pmdid->FValid());
-	GPOS_ASSERT(m_pmdidRel->FValid());
-	GPOS_ASSERT(m_pmdidFunc->FValid());
-	GPOS_ASSERT(0 <= iType);
+	GPOS_ASSERT(m_mdid->IsValid());
+	GPOS_ASSERT(m_rel_mdid->IsValid());
+	GPOS_ASSERT(m_func_mdid->IsValid());
+	GPOS_ASSERT(0 <= type);
 
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
 //---------------------------------------------------------------------------
@@ -65,11 +65,11 @@ CMDTriggerGPDB::CMDTriggerGPDB
 //---------------------------------------------------------------------------
 CMDTriggerGPDB::~CMDTriggerGPDB()
 {
-	m_pmdid->Release();
-	m_pmdidRel->Release();
-	m_pmdidFunc->Release();
-	GPOS_DELETE(m_pmdname);
-	GPOS_DELETE(m_pstr);
+	m_mdid->Release();
+	m_rel_mdid->Release();
+	m_func_mdid->Release();
+	GPOS_DELETE(m_mdname);
+	GPOS_DELETE(m_dxl_str);
 }
 
 //---------------------------------------------------------------------------
@@ -81,37 +81,37 @@ CMDTriggerGPDB::~CMDTriggerGPDB()
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDTriggerGPDB::FRow() const
+CMDTriggerGPDB::ExecutesOnRowLevel() const
 {
-	return (m_iType & GPMD_TRIGGER_ROW);
+	return (m_type & GPMD_TRIGGER_ROW);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTriggerGPDB::FBefore
+//		CMDTriggerGPDB::IsBefore
 //
 //	@doc:
 //		Is this a before trigger
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDTriggerGPDB::FBefore() const
+CMDTriggerGPDB::IsBefore() const
 {
-	return (m_iType & GPMD_TRIGGER_BEFORE);
+	return (m_type & GPMD_TRIGGER_BEFORE);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDTriggerGPDB::FInsert
+//		CMDTriggerGPDB::Insert
 //
 //	@doc:
 //		Is this an insert trigger
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDTriggerGPDB::FInsert() const
+CMDTriggerGPDB::IsInsert() const
 {
-	return (m_iType & GPMD_TRIGGER_INSERT);
+	return (m_type & GPMD_TRIGGER_INSERT);
 }
 
 //---------------------------------------------------------------------------
@@ -123,9 +123,9 @@ CMDTriggerGPDB::FInsert() const
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDTriggerGPDB::FDelete() const
+CMDTriggerGPDB::IsDelete() const
 {
-	return (m_iType & GPMD_TRIGGER_DELETE);
+	return (m_type & GPMD_TRIGGER_DELETE);
 }
 
 //---------------------------------------------------------------------------
@@ -137,9 +137,9 @@ CMDTriggerGPDB::FDelete() const
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDTriggerGPDB::FUpdate() const
+CMDTriggerGPDB::IsUpdate() const
 {
-	return (m_iType & GPMD_TRIGGER_UPDATE);
+	return (m_type & GPMD_TRIGGER_UPDATE);
 }
 
 //---------------------------------------------------------------------------
@@ -153,27 +153,27 @@ CMDTriggerGPDB::FUpdate() const
 void
 CMDTriggerGPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenGPDBTrigger));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTrigger));
 
-	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	m_pmdidRel->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenRelationMdid));
-	m_pmdidFunc->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenFuncId));
+	m_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
+	m_rel_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenRelationMdid));
+	m_func_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenFuncId));
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBTriggerRow), FRow());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBTriggerBefore), FBefore());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBTriggerInsert), FInsert());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBTriggerDelete), FDelete());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBTriggerUpdate), FUpdate());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBTriggerEnabled), m_fEnabled);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTriggerRow), ExecutesOnRowLevel());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTriggerBefore), IsBefore());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTriggerInsert), IsInsert());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTriggerDelete), IsDelete());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTriggerUpdate), IsUpdate());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTriggerEnabled), m_is_enabled);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-						CDXLTokens::PstrToken(EdxltokenGPDBTrigger));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+						CDXLTokens::GetDXLTokenStr(EdxltokenGPDBTrigger));
 }
 
 #ifdef GPOS_DEBUG
@@ -194,20 +194,20 @@ CMDTriggerGPDB::DebugPrint
 	const
 {
 	os << "Trigger id: ";
-	m_pmdid->OsPrint(os);
+	m_mdid->OsPrint(os);
 	os << std::endl;
 
-	os << "Trigger name: " << (Mdname()).Pstr()->Wsz() << std::endl;
+	os << "Trigger name: " << (Mdname()).GetMDName()->GetBuffer() << std::endl;
 
 	os << "Trigger relation id: ";
-	m_pmdidRel->OsPrint(os);
+	m_rel_mdid->OsPrint(os);
 	os << std::endl;
 
 	os << "Trigger function id: ";
-	m_pmdidFunc->OsPrint(os);
+	m_func_mdid->OsPrint(os);
 	os << std::endl;
 
-	if (FRow())
+	if (ExecutesOnRowLevel())
 	{
 		os << "Trigger level: Row" << std::endl;
 	}
@@ -216,7 +216,7 @@ CMDTriggerGPDB::DebugPrint
 		os << "Trigger level: Table" << std::endl;
 	}
 
-	if (FBefore())
+	if (IsBefore())
 	{
 		os << "Trigger timing: Before" << std::endl;
 	}
@@ -226,23 +226,23 @@ CMDTriggerGPDB::DebugPrint
 	}
 
 	os << "Trigger statement type(s): [ ";
-	if (FInsert())
+	if (IsInsert())
 	{
 		os << "Insert ";
 	}
 
-	if (FDelete())
+	if (IsDelete())
 	{
 		os << "Delete ";
 	}
 
-	if (FUpdate())
+	if (IsUpdate())
 	{
 		os << "Update ";
 	}
 	os << "]" << std::endl;
 
-	if (m_fEnabled)
+	if (m_is_enabled)
 	{
 		os << "Trigger enabled: Yes" << std::endl;
 	}

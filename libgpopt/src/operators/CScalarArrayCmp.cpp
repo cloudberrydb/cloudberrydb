@@ -42,29 +42,29 @@ const CHAR CScalarArrayCmp::m_rgszCmpType[EarrcmpSentinel][10] =
 //---------------------------------------------------------------------------
 CScalarArrayCmp::CScalarArrayCmp
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidOp,
+	IMemoryPool *mp,
+	IMDId *mdid_op,
 	const CWStringConst *pstrOp,
 	EArrCmpType earrcmpt
 	)
 	:
-	CScalar(pmp),
-	m_pmdidOp(pmdidOp),
+	CScalar(mp),
+	m_mdid_op(mdid_op),
 	m_pscOp(pstrOp),
 	m_earrccmpt(earrcmpt),
-	m_fReturnsNullOnNullInput(false)
+	m_returns_null_on_null_input(false)
 {
-	GPOS_ASSERT(pmdidOp->FValid());
+	GPOS_ASSERT(mdid_op->IsValid());
 	GPOS_ASSERT(EarrcmpSentinel > earrcmpt);
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_fReturnsNullOnNullInput = CMDAccessorUtils::FScalarOpReturnsNullOnNullInput(pmda, m_pmdidOp);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	m_returns_null_on_null_input = CMDAccessorUtils::FScalarOpReturnsNullOnNullInput(md_accessor, m_mdid_op);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayCmp::Pstr
+//		CScalarArrayCmp::GetMDName
 //
 //	@doc:
 //		Comparison operator name
@@ -78,21 +78,21 @@ CScalarArrayCmp::Pstr() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayCmp::PmdidOp
+//		CScalarArrayCmp::MdIdOp
 //
 //	@doc:
 //		Comparison operator mdid
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarArrayCmp::PmdidOp() const
+CScalarArrayCmp::MdIdOp() const
 {
-	return m_pmdidOp;
+	return m_mdid_op;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayCmp::UlHash
+//		CScalarArrayCmp::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -100,11 +100,11 @@ CScalarArrayCmp::PmdidOp() const
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarArrayCmp::UlHash() const
+CScalarArrayCmp::HashValue() const
 {
-	return gpos::UlCombineHashes
+	return gpos::CombineHashes
 					(
-					gpos::UlCombineHashes(COperator::UlHash(), m_pmdidOp->UlHash()),
+					gpos::CombineHashes(COperator::HashValue(), m_mdid_op->HashValue()),
 					m_earrccmpt
 					);
 }
@@ -112,14 +112,14 @@ CScalarArrayCmp::UlHash() const
 	
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayCmp::FMatch
+//		CScalarArrayCmp::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarArrayCmp::FMatch
+CScalarArrayCmp::Matches
 	(
 	COperator *pop
 	)
@@ -130,7 +130,7 @@ CScalarArrayCmp::FMatch
 		CScalarArrayCmp *popCmp = CScalarArrayCmp::PopConvert(pop);
 		
 		// match if operator oid are identical
-		return m_earrccmpt == popCmp->Earrcmpt() && m_pmdidOp->FEquals(popCmp->PmdidOp());
+		return m_earrccmpt == popCmp->Earrcmpt() && m_mdid_op->Equals(popCmp->MdIdOp());
 	}
 	
 	return false;
@@ -138,17 +138,17 @@ CScalarArrayCmp::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayCmp::PmdidType
+//		CScalarArrayCmp::MdidType
 //
 //	@doc:
 //		Expression type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarArrayCmp::PmdidType() const
+CScalarArrayCmp::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	return pmda->PtMDType<IMDTypeBool>()->Pmdid();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	return md_accessor->PtMDType<IMDTypeBool>()->MDId();
 }
 
 
@@ -163,11 +163,11 @@ CScalarArrayCmp::PmdidType() const
 CScalar::EBoolEvalResult
 CScalarArrayCmp::Eber
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 	const
 {
-	if (m_fReturnsNullOnNullInput)
+	if (m_returns_null_on_null_input)
 	{
 		return EberNullOnAnyNullChild(pdrgpulChildren);
 	}
@@ -192,7 +192,7 @@ CScalarArrayCmp::OsPrint
 	const
 {
 	os << SzId() << " " <<  m_rgszCmpType[m_earrccmpt] << " (";
-	os << Pstr()->Wsz();
+	os << Pstr()->GetBuffer();
 	os << ")";
 	
 	return os;
@@ -210,7 +210,7 @@ CScalarArrayCmp::OsPrint
 CExpression *
 CScalarArrayCmp::PexprExpand
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpression *pexprArrayCmp
 	)
 {
@@ -236,34 +236,34 @@ CScalarArrayCmp::PexprExpand
 		return pexprArrayCmp;
 	}
 
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 	for (ULONG ul = 0; ul < ulArrayElems; ul++)
 	{
-		CExpression *pexprArrayElem = CUtils::PScalarArrayExprChildAt(pmp, pexprArray, ul);
+		CExpression *pexprArrayElem = CUtils::PScalarArrayExprChildAt(mp, pexprArray, ul);
 		pexprIdent->AddRef();
-		const CWStringConst *pstrOpName = popArrayCmp->Pstr();
-		IMDId *pmdidOp = popArrayCmp->PmdidOp();
-		GPOS_ASSERT(IMDId::FValid(pmdidOp));
+		const CWStringConst *str_opname = popArrayCmp->Pstr();
+		IMDId *mdid_op = popArrayCmp->MdIdOp();
+		GPOS_ASSERT(IMDId::IsValid(mdid_op));
 
-		pmdidOp->AddRef();
+		mdid_op->AddRef();
 
-		CExpression *pexprCmp = CUtils::PexprScalarCmp(pmp, pexprIdent, pexprArrayElem, *pstrOpName, pmdidOp);
+		CExpression *pexprCmp = CUtils::PexprScalarCmp(mp, pexprIdent, pexprArrayElem, *str_opname, mdid_op);
 		pdrgpexpr->Append(pexprCmp);
 	}
-	GPOS_ASSERT(0 < pdrgpexpr->UlLength());
+	GPOS_ASSERT(0 < pdrgpexpr->Size());
 
 	// deduplicate resulting array
-	DrgPexpr *pdrgpexprDeduped = CUtils::PdrgpexprDedup(pmp, pdrgpexpr);
+	CExpressionArray *pdrgpexprDeduped = CUtils::PdrgpexprDedup(mp, pdrgpexpr);
 	pdrgpexpr->Release();
 
 	EArrCmpType earrcmpt = popArrayCmp->Earrcmpt();
 	if (EarrcmpAny == earrcmpt)
 	{
-		return CPredicateUtils::PexprDisjunction(pmp, pdrgpexprDeduped);
+		return CPredicateUtils::PexprDisjunction(mp, pdrgpexprDeduped);
 	}
 	GPOS_ASSERT(EarrcmpAll == earrcmpt);
 
-	return CPredicateUtils::PexprConjunction(pmp, pdrgpexprDeduped);
+	return CPredicateUtils::PexprConjunction(mp, pdrgpexprDeduped);
 }
 
 

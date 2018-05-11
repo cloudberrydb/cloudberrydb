@@ -40,7 +40,7 @@ namespace gpos
 		private:
 
 			// task queue
-			CList<CTask> m_qtsk;
+			CList<CTask> m_task_queue;
 
 			// private copy ctor
 			CTaskSchedulerFifo(const CTaskSchedulerFifo&);
@@ -50,7 +50,7 @@ namespace gpos
 			// ctor
 			CTaskSchedulerFifo()
 			{
-				m_qtsk.Init(GPOS_OFFSET(CTask, m_linkTs));
+				m_task_queue.Init(GPOS_OFFSET(CTask, m_task_scheduler_link));
 			}
 
 			// dtor
@@ -58,25 +58,25 @@ namespace gpos
 			{}
 
 			// add task to waiting queue
-			void Enqueue(CTask *ptsk);
+			void Enqueue(CTask *task);
 
 			// get next task to execute
-			CTask *PtskDequeue();
+			CTask *Dequeue();
 
 			// check if task is waiting to be scheduled and remove it
-			GPOS_RESULT EresCancel(CTask *ptsk);
+			GPOS_RESULT Cancel(CTask *task);
 
 			// get number of waiting tasks
-			ULONG UlQueueSize()
+			ULONG GetQueueSize()
 			{
-				return m_qtsk.UlSize();
+				return m_task_queue.Size();
 			}
 
 			// check if task queue is empty
 			BOOL
-			FEmpty() const
+			IsEmpty() const
 			{
-				return m_qtsk.FEmpty();
+				return m_task_queue.IsEmpty();
 			}
 
 	};	// class CTaskSchedulerFifo

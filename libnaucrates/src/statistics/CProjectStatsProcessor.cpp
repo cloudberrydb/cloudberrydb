@@ -17,119 +17,119 @@ using namespace gpopt;
 
 //  return a statistics object for a project operation
 CStatistics *
-CProjectStatsProcessor::PstatsProject
+CProjectStatsProcessor::CalcProjStats
 	(
-	IMemoryPool *pmp,
-	const CStatistics *pstatsInput,
-	DrgPul *pdrgpulProjColIds,
-	HMUlDatum *phmuldatum
+	IMemoryPool *mp,
+	const CStatistics *input_stats,
+	ULongPtrArray *projection_colids,
+	UlongToIDatumMap *datum_map
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpulProjColIds);
+	GPOS_ASSERT(NULL != projection_colids);
 
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	// create hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
+	UlongToHistogramMap *histograms_new = GPOS_NEW(mp) UlongToHistogramMap(mp);
 
 	// column ids on which widths are to be computed
-	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
+	UlongToDoubleMap *colid_width_mapping = GPOS_NEW(mp) UlongToDoubleMap(mp);
 
-	const ULONG ulLen = pdrgpulProjColIds->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	const ULONG length = projection_colids->Size();
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		ULONG ulColId = *(*pdrgpulProjColIds)[ul];
-		const CHistogram *phist = pstatsInput->Phist(ulColId);
+		ULONG colid = *(*projection_colids)[ul];
+		const CHistogram *histogram = input_stats->GetHistogram(colid);
 
-		if (NULL == phist)
+		if (NULL == histogram)
 		{
 
 			// create histogram for the new project column
-			DrgPbucket *pdrgbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
-			CDouble dNullFreq = 0.0;
+			CBucketArray *proj_col_bucket = GPOS_NEW(mp) CBucketArray(mp);
+			CDouble null_freq = 0.0;
 
-			BOOL fWellDefined = false;
-			if (NULL != phmuldatum)
+			BOOL is_well_defined = false;
+			if (NULL != datum_map)
 			{
-				IDatum *pdatum = phmuldatum->PtLookup(&ulColId);
-				if (NULL != pdatum)
+				IDatum *datum = datum_map->Find(&colid);
+				if (NULL != datum)
 				{
-					fWellDefined = true;
-					if (!pdatum->FNull())
+					is_well_defined = true;
+					if (!datum->IsNull())
 					{
-						pdrgbucket->Append(CBucket::PbucketSingleton(pmp, pdatum));
+						proj_col_bucket->Append(CBucket::MakeBucketSingleton(mp, datum));
 					}
 					else
 					{
-						dNullFreq = 1.0;
+						null_freq = 1.0;
 					}
 				}
 			}
 
-			CHistogram *phistPrCol = NULL;
-			CColRef *pcr = pcf->PcrLookup(ulColId);
-			GPOS_ASSERT(NULL != pcr);
+			CHistogram *proj_col_histogram = NULL;
+			CColRef *colref = col_factory->LookupColRef(colid);
+			GPOS_ASSERT(NULL != colref);
 
-			if (0 == pdrgbucket->UlLength() && IMDType::EtiBool == pcr->Pmdtype()->Eti())
+			if (0 == proj_col_bucket->Size() && IMDType::EtiBool == colref->RetrieveType()->GetDatumType())
 			{
-				pdrgbucket->Release();
-			 	phistPrCol = CHistogram::PhistDefaultBoolColStats(pmp);
+				proj_col_bucket->Release();
+				proj_col_histogram = CHistogram::MakeDefaultBoolHistogram(mp);
 			}
 			else
 			{
-				phistPrCol = GPOS_NEW(pmp) CHistogram
+				proj_col_histogram = GPOS_NEW(mp) CHistogram
 										(
-										pdrgbucket,
-										fWellDefined,
-										dNullFreq,
-										CHistogram::DDefaultNDVRemain,
-										CHistogram::DDefaultNDVFreqRemain
+										proj_col_bucket,
+										is_well_defined,
+										null_freq,
+										CHistogram::DefaultNDVRemain,
+										CHistogram::DefaultNDVFreqRemain
 										);
 			}
 
-			phmulhistNew->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phistPrCol);
+			histograms_new->Insert(GPOS_NEW(mp) ULONG(colid), proj_col_histogram);
 		}
 		else
 		{
-			phmulhistNew->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist->PhistCopy(pmp));
+			histograms_new->Insert(GPOS_NEW(mp) ULONG(colid), histogram->CopyHistogram(mp));
 		}
 
 		// look up width
-		const CDouble *pdWidth = pstatsInput->PdWidth(ulColId);
-		if (NULL == pdWidth)
+		const CDouble *width = input_stats->GetWidth(colid);
+		if (NULL == width)
 		{
-			CColRef *pcr = pcf->PcrLookup(ulColId);
-			GPOS_ASSERT(NULL != pcr);
+			CColRef *colref = col_factory->LookupColRef(colid);
+			GPOS_ASSERT(NULL != colref);
 
-			CDouble dWidth = CStatisticsUtils::DDefaultColumnWidth(pcr->Pmdtype());
-			phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(dWidth));
+			CDouble width = CStatisticsUtils::DefaultColumnWidth(colref->RetrieveType());
+			colid_width_mapping->Insert(GPOS_NEW(mp) ULONG(colid), GPOS_NEW(mp) CDouble(width));
 		}
 		else
 		{
-			phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(*pdWidth));
+			colid_width_mapping->Insert(GPOS_NEW(mp) ULONG(colid), GPOS_NEW(mp) CDouble(*width));
 		}
 	}
 
-	CDouble dRowsInput = pstatsInput->DRows();
+	CDouble input_rows = input_stats->Rows();
 	// create an output stats object
-	CStatistics *pstatsProject = GPOS_NEW(pmp) CStatistics
+	CStatistics *projection_stats = GPOS_NEW(mp) CStatistics
 											(
-											pmp,
-											phmulhistNew,
-											phmuldoubleWidth,
-											dRowsInput,
-											pstatsInput->FEmpty(),
-											pstatsInput->UlNumberOfPredicates()
+											mp,
+											histograms_new,
+											colid_width_mapping,
+											input_rows,
+											input_stats->IsEmpty(),
+											input_stats->GetNumberOfPredicates()
 											);
 
 	// In the output statistics object, the upper bound source cardinality of the project column
 	// is equivalent the estimate project cardinality.
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, pstatsInput, pstatsProject, dRowsInput, CStatistics::EcbmInputSourceMaxCard /* ecbm */);
+	CStatisticsUtils::ComputeCardUpperBounds(mp, input_stats, projection_stats, input_rows, CStatistics::EcbmInputSourceMaxCard /* card_bounding_method */);
 
 	// add upper bound card information for the project columns
-	CStatistics::CreateAndInsertUpperBoundNDVs(pmp, pstatsProject, pdrgpulProjColIds, dRowsInput);
+	CStatistics::CreateAndInsertUpperBoundNDVs(mp, projection_stats, projection_colids, input_rows);
 
-	return pstatsProject;
+	return projection_stats;
 }
 
 // EOF

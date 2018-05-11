@@ -50,22 +50,22 @@ namespace gpopt
 		private:
 			
 			// plan enumeration configuration
-			CEnumeratorConfig *m_pec;
+			CEnumeratorConfig *m_enumerator_cfg;
 
 			// statistics configuration
-			CStatisticsConfig *m_pstatsconf;
+			CStatisticsConfig *m_stats_conf;
 
 			// CTE configuration
-			CCTEConfig *m_pcteconf;
+			CCTEConfig *m_cte_conf;
 			
 			// cost model configuration
-			ICostModel *m_pcm;
+			ICostModel *m_cost_model;
 
 			// hint configuration
-			CHint *m_phint;
+			CHint *m_hint;
 
 			// default window oids
-			CWindowOids *m_pwindowoids;
+			CWindowOids *m_window_oids;
 
 		public:
 
@@ -73,7 +73,7 @@ namespace gpopt
 			COptimizerConfig
 				(
 				CEnumeratorConfig *pec,
-				CStatisticsConfig *pstatsconf,
+				CStatisticsConfig *stats_config,
 				CCTEConfig *pcteconf,
 				ICostModel *pcm,
 				CHint *phint,
@@ -86,50 +86,50 @@ namespace gpopt
 
 			
 			// plan enumeration configuration
-			CEnumeratorConfig *Pec() const
+			CEnumeratorConfig *GetEnumeratorCfg() const
 			{
-				return m_pec;
+				return m_enumerator_cfg;
 			}
 
 			// statistics configuration
-			CStatisticsConfig *Pstatsconf() const
+			CStatisticsConfig *GetStatsConf() const
 			{
-				return m_pstatsconf;
+				return m_stats_conf;
 			}
 
 			// CTE configuration
-			CCTEConfig *Pcteconf() const
+			CCTEConfig *GetCteConf() const
 			{
-				return m_pcteconf;
+				return m_cte_conf;
 			}
 
 			// cost model configuration
-			ICostModel *Pcm() const
+			ICostModel *GetCostModel() const
 			{
-				return m_pcm;
+				return m_cost_model;
 			}
 			
 			// default window oids
-			CWindowOids *Pwindowoids() const
+			CWindowOids *GetWindowOids() const
 			{
-				return m_pwindowoids;
+				return m_window_oids;
 			}
 
 			// hint configuration
-			CHint *Phint() const
+			CHint *GetHint() const
 			{
-				return m_phint;
+				return m_hint;
 			}
 
 			// generate default optimizer configurations
 			static
-			COptimizerConfig *PoconfDefault(IMemoryPool *pmp);
+			COptimizerConfig *PoconfDefault(IMemoryPool *mp);
 			
 			// generate default optimizer configurations with the given cost model
 			static
-			COptimizerConfig *PoconfDefault(IMemoryPool *pmp, ICostModel *pcm);
+			COptimizerConfig *PoconfDefault(IMemoryPool *mp, ICostModel *pcm);
 
-			void Serialize(IMemoryPool *pmp, CXMLSerializer *pxmlser, CBitSet *pbsTrace) const;
+			void Serialize(IMemoryPool *mp, CXMLSerializer *xml_serializer, CBitSet *pbsTrace) const;
 
 	}; // class COptimizerConfig
 

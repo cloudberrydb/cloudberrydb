@@ -21,30 +21,30 @@ using namespace gpmd;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMDType::PstrCmpType
+//		IMDType::GetCmpTypeStr
 //
 //	@doc:
 //		Return the comparison type as a string value
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-IMDType::PstrCmpType
+IMDType::GetCmpTypeStr
 	(
-	IMDType::ECmpType ecmpt
+	IMDType::ECmpType cmp_type
 	)
 {
-	GPOS_ASSERT(IMDType::EcmptOther >= ecmpt);
+	GPOS_ASSERT(IMDType::EcmptOther >= cmp_type);
 	
-	Edxltoken rgdxltoken[] = {EdxltokenCmpEq, EdxltokenCmpNeq, EdxltokenCmpLt, EdxltokenCmpLeq, EdxltokenCmpGt, EdxltokenCmpGeq, EdxltokenCmpIDF, EdxltokenCmpOther};
+	Edxltoken dxl_token_array[] = {EdxltokenCmpEq, EdxltokenCmpNeq, EdxltokenCmpLt, EdxltokenCmpLeq, EdxltokenCmpGt, EdxltokenCmpGeq, EdxltokenCmpIDF, EdxltokenCmpOther};
 	
-	GPOS_ASSERT(IMDType::EcmptOther + 1 == GPOS_ARRAY_SIZE(rgdxltoken));
-	return CDXLTokens::PstrToken(rgdxltoken[ecmpt]);
+	GPOS_ASSERT(IMDType::EcmptOther + 1 == GPOS_ARRAY_SIZE(dxl_token_array));
+	return CDXLTokens::GetDXLTokenStr(dxl_token_array[cmp_type]);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMDType::FStatsComparable
+//		IMDType::StatsAreComparable
 //
 //	@doc:
 //		Return true if we can perform statistical comparison between
@@ -52,25 +52,25 @@ IMDType::PstrCmpType
 //
 //---------------------------------------------------------------------------
 BOOL
-IMDType::FStatsComparable
+IMDType::StatsAreComparable
 	(
-	const IMDType *pmdtypeFst,
-	const IMDType *pmdtypeSnd
+	const IMDType *mdtype_first,
+	const IMDType *mdtype_second
 	)
 {
-	GPOS_ASSERT(NULL != pmdtypeFst);
-	GPOS_ASSERT(NULL != pmdtypeSnd);
+	GPOS_ASSERT(NULL != mdtype_first);
+	GPOS_ASSERT(NULL != mdtype_second);
 
-	const IDatum *pdatumFst = pmdtypeFst->PdatumNull();
-	const IDatum *pdatumSnd = pmdtypeSnd->PdatumNull();
+	const IDatum *datum_first = mdtype_first->DatumNull();
+	const IDatum *datum_second = mdtype_second->DatumNull();
 
-	return pdatumFst->FStatsComparable(pdatumSnd);
+	return datum_first->StatsAreComparable(datum_second);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMDType::FStatsComparable
+//		IMDType::StatsAreComparable
 //
 //	@doc:
 //		Return true if we can perform statistical comparison between
@@ -78,18 +78,18 @@ IMDType::FStatsComparable
 //
 //---------------------------------------------------------------------------
 BOOL
-IMDType::FStatsComparable
+IMDType::StatsAreComparable
 	(
-	const IMDType *pmdtypeFst,
-	const IDatum *pdatumSnd
+	const IMDType *mdtype_first,
+	const IDatum *datum_second
 	)
 {
-	GPOS_ASSERT(NULL != pmdtypeFst);
-	GPOS_ASSERT(NULL != pdatumSnd);
+	GPOS_ASSERT(NULL != mdtype_first);
+	GPOS_ASSERT(NULL != datum_second);
 
-	const IDatum *pdatumFst = pmdtypeFst->PdatumNull();
+	const IDatum *datum_first = mdtype_first->DatumNull();
 
-	return pdatumFst->FStatsComparable(pdatumSnd);
+	return datum_first->StatsAreComparable(datum_second);
 }
 
 

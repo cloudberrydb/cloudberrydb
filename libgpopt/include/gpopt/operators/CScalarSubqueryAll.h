@@ -42,10 +42,10 @@ namespace gpopt
 			// ctor
 			CScalarSubqueryAll
 				(
-				IMemoryPool *pmp, 
-				IMDId *pmdidScalarOp, 
+				IMemoryPool *mp, 
+				IMDId *scalar_op_mdid, 
 				const CWStringConst *pstrScalarOp,
-				const CColRef *pcr
+				const CColRef *colref
 				);
 
 			// dtor
@@ -69,7 +69,7 @@ namespace gpopt
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// conversion function
 			static

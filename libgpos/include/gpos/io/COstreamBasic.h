@@ -29,7 +29,7 @@ namespace gpos
 		private:
 			
 			// underlying stream
-			WOSTREAM *m_pos;
+			WOSTREAM *m_ostream;
 
 			// private copy ctor
 			COstreamBasic(const COstreamBasic &);
@@ -41,7 +41,7 @@ namespace gpos
 			
 			// ctor
 			explicit
-			COstreamBasic(WOSTREAM *os);
+			COstreamBasic(WOSTREAM *ostream);
 
 			virtual ~COstreamBasic() {}
 						

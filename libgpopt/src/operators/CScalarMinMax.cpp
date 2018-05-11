@@ -35,21 +35,21 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarMinMax::CScalarMinMax
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
+	IMemoryPool *mp,
+	IMDId *mdid_type,
 	EScalarMinMaxType esmmt
 	)
 	:
-	CScalar(pmp),
-	m_pmdidType(pmdidType),
+	CScalar(mp),
+	m_mdid_type(mdid_type),
 	m_esmmt(esmmt),
 	m_fBoolReturnType(false)
 {
-	GPOS_ASSERT(pmdidType->FValid());
+	GPOS_ASSERT(mdid_type->IsValid());
 	GPOS_ASSERT(EsmmtSentinel > esmmt);
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_fBoolReturnType = CMDAccessorUtils::FBoolType(pmda, m_pmdidType);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	m_fBoolReturnType = CMDAccessorUtils::FBoolType(md_accessor, m_mdid_type);
 }
 
 //---------------------------------------------------------------------------
@@ -62,12 +62,12 @@ CScalarMinMax::CScalarMinMax
 //---------------------------------------------------------------------------
 CScalarMinMax::~CScalarMinMax()
 {
-	m_pmdidType->Release();
+	m_mdid_type->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarMinMax::UlHash
+//		CScalarMinMax::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -75,27 +75,27 @@ CScalarMinMax::~CScalarMinMax()
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarMinMax::UlHash() const
+CScalarMinMax::HashValue() const
 {
 	ULONG ulminmax = (ULONG) this->Esmmt();
 
-	return gpos::UlCombineHashes
+	return gpos::CombineHashes
 					(
-						m_pmdidType->UlHash(),
-						gpos::UlCombineHashes(COperator::UlHash(), gpos::UlHash<ULONG>(&ulminmax))
+						m_mdid_type->HashValue(),
+						gpos::CombineHashes(COperator::HashValue(), gpos::HashValue<ULONG>(&ulminmax))
 					);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarMinMax::FMatch
+//		CScalarMinMax::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarMinMax::FMatch
+CScalarMinMax::Matches
 	(
 	COperator *pop
 	)
@@ -110,7 +110,7 @@ CScalarMinMax::FMatch
 
 	// match if return types are identical
 	return popScMinMax->Esmmt() == m_esmmt &&
-			popScMinMax->PmdidType()->FEquals(m_pmdidType);
+			popScMinMax->MdidType()->Equals(m_mdid_type);
 }
 
 //---------------------------------------------------------------------------

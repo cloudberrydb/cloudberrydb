@@ -25,13 +25,13 @@
 
 using namespace gpos;
 
-// make sure we can cast the target address in UlpExchangeAdd
+// make sure we can cast the target address in ExchangeAddUlongPtrWithInt
 GPOS_CPL_ASSERT(sizeof(ULONG_PTR) == sizeof(void*));
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		UlpExchangeAdd
+//		ExchangeAddUlongPtrWithInt
 //
 //	@doc:
 //		Atomic add function; returns original value;
@@ -43,17 +43,17 @@ GPOS_CPL_ASSERT(sizeof(ULONG_PTR) == sizeof(void*));
 //
 //---------------------------------------------------------------------------
 ULONG_PTR
-gpos::UlpExchangeAdd
+gpos::ExchangeAddUlongPtrWithInt
 	(
-	volatile ULONG_PTR *pul,
+	volatile ULONG_PTR *ul,
 	INT i
 	)
 {
 	// check for alignment of the address
-	GPOS_ASSERT(ALIGNED_32(pul));
+	GPOS_ASSERT(ALIGNED_32(ul));
 
 #ifdef GPOS_GCC_FETCH_ADD_32
-	return __sync_fetch_and_add(pul, i);
+	return __sync_fetch_and_add(ul, i);
 #else
 	// unknown primitive
 	GPOS_CPL_ASSERT(!"no atomic add primitive defined");
@@ -62,7 +62,7 @@ gpos::UlpExchangeAdd
 
 //---------------------------------------------------------------------------
 //	@function:
-//		UlpExchangeAdd
+//		ExchangeAddUllongWithUllong
 //
 //	@doc:
 //		Atomic add function; returns original value;
@@ -74,26 +74,26 @@ gpos::UlpExchangeAdd
 //
 //---------------------------------------------------------------------------
 ULLONG
-gpos::UllExchangeAdd
+gpos::ExchangeAddUllongWithUllong
 	(
-	volatile ULLONG *pullValue,
-	ULLONG ullInc
+	volatile ULLONG *value,
+	ULLONG inc
 	)
 {
 	// check for alignment of the address
-	GPOS_ASSERT(ALIGNED_64(pullValue));
+	GPOS_ASSERT(ALIGNED_64(value));
 
 #ifdef GPOS_GCC_FETCH_ADD_64
-	return __sync_fetch_and_add(pullValue, ullInc);
+	return __sync_fetch_and_add(value, inc);
 #else
 	// for 32 bit platform we make this function single threaded using a static spin lock
 	static CSpinlockOS sLock;
 
 	sLock.Lock();
-	ULLONG ullOriginal = *pullValue;
-	*pullValue += ullInc;
+	ULLONG original = *value;
+	*value += inc;
 	sLock.Unlock();
-	return ullOriginal;
+	return original;
 #endif
 
 	return 0;
@@ -101,7 +101,7 @@ gpos::UllExchangeAdd
 
 //---------------------------------------------------------------------------
 //	@function:
-//		FCompareSwap
+//		CompareSwap
 //
 //	@doc:
 //		Atomic exchange function for integers;
@@ -114,23 +114,23 @@ gpos::UllExchangeAdd
 //
 //---------------------------------------------------------------------------
 BOOL
-gpos::FCompareSwap
+gpos::CompareSwap
 	(
-	volatile ULONG *pulDest,
-	ULONG ulOld,
-	ULONG ulNew
+	volatile ULONG *dest_val,
+	ULONG old_val,
+	ULONG new_val
 	)
 {
-	GPOS_ASSERT(NULL != pulDest);
-	GPOS_ASSERT(ulOld != ulNew);
-	GPOS_ASSERT(ALIGNED_32(pulDest));
-	GPOS_ASSERT(ALIGNED_32(&ulOld));
-	GPOS_ASSERT(ALIGNED_32(&ulNew));
+	GPOS_ASSERT(NULL != dest_val);
+	GPOS_ASSERT(old_val != new_val);
+	GPOS_ASSERT(ALIGNED_32(dest_val));
+	GPOS_ASSERT(ALIGNED_32(&old_val));
+	GPOS_ASSERT(ALIGNED_32(&new_val));
 
 #ifdef GPOS_GCC_CAS_32
-	return __sync_bool_compare_and_swap(pulDest, ulOld, ulNew);
+	return __sync_bool_compare_and_swap(dest_val, old_val, new_val);
 #elif defined(GPOS_SunOS)
-	return (ulOld == atomic_cas_32(pulDest, ulOld, ulNew));
+	return (old_val == atomic_cas_32(dest_val, old_val, new_val));
 #else
 	GPOS_CPL_ASSERT(!"no atomic compare-and-swap defined");
 #endif
@@ -139,7 +139,7 @@ gpos::FCompareSwap
 
 //---------------------------------------------------------------------------
 //	@function:
-//		FCompareSwap
+//		CompareSwap
 //
 //	@doc:
 //		Atomic exchange function for long integers;
@@ -152,23 +152,23 @@ gpos::FCompareSwap
 //
 //---------------------------------------------------------------------------
 BOOL
-gpos::FCompareSwap
+gpos::CompareSwap
 	(
-	volatile ULLONG *pullDest,
-	ULLONG ullOld,
-	ULLONG ullNew
+	volatile ULLONG *dest_val,
+	ULLONG old_val,
+	ULLONG new_val
 	)
 {
-	GPOS_ASSERT(NULL != pullDest);
-	GPOS_ASSERT(ullOld != ullNew);
-	GPOS_ASSERT(ALIGNED_64(pullDest));
-	GPOS_ASSERT(ALIGNED_64(&ullOld));
-	GPOS_ASSERT(ALIGNED_64(&ullNew));
+	GPOS_ASSERT(NULL != dest_val);
+	GPOS_ASSERT(old_val != new_val);
+	GPOS_ASSERT(ALIGNED_64(dest_val));
+	GPOS_ASSERT(ALIGNED_64(&old_val));
+	GPOS_ASSERT(ALIGNED_64(&new_val));
 
 #ifdef GPOS_GCC_CAS_64
-	return __sync_bool_compare_and_swap(pullDest, ullOld, ullNew);
+	return __sync_bool_compare_and_swap(dest_val, old_val, new_val);
 #elif defined(GPOS_SunOS)
-	return (ullOld == atomic_cas_64(pullDest, ullOld, ullNew));
+	return (old_val == atomic_cas_64(dest_val, old_val, new_val));
 #else
 	// unknown primitive
 	GPOS_CPL_ASSERT(!"no atomic add primitive defined");
@@ -180,7 +180,7 @@ gpos::FCompareSwap
 
 //---------------------------------------------------------------------------
 //	@function:
-//		FCompareSwap
+//		CompareSwap
 //
 //	@doc:
 //		Atomic exchange function for integers holding addresses;
@@ -189,17 +189,17 @@ gpos::FCompareSwap
 //
 //---------------------------------------------------------------------------
 BOOL
-gpos::FCompareSwap
+gpos::CompareSwap
 	(
-	volatile ULONG_PTR *pulpDest,
-	ULONG_PTR ulpOld,
-	ULONG_PTR ulpNew
+	volatile ULONG_PTR *dest_val,
+	ULONG_PTR old_val,
+	ULONG_PTR new_val
 	)
 {
 #ifdef GPOS_32BIT
-	return FCompareSwap((ULONG*) pulpDest, (ULONG) ulpOld, (ULONG) ulpNew);
+	return CompareSwap((ULONG*) dest_val, (ULONG) old_val, (ULONG) new_val);
 #else
-	return FCompareSwap((ULLONG*) pulpDest, (ULLONG) ulpOld, (ULLONG) ulpNew);
+	return CompareSwap((ULLONG*) dest_val, (ULLONG) old_val, (ULLONG) new_val);
 #endif // GPOS_32BIT
 }
 

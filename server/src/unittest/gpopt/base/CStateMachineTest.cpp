@@ -111,9 +111,9 @@ GPOS_RESULT
 CStateMachineTest::EresUnittest_Basics()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CTestMachine *ptm = GPOS_NEW(pmp) CTestMachine;
+	CTestMachine *ptm = GPOS_NEW(mp) CTestMachine;
 	CRandom rand;
 	EEvents rgev[] = { eeOne, eeTwo, eeThree };
 #ifdef GPOS_DEBUG
@@ -129,7 +129,7 @@ CStateMachineTest::EresUnittest_Basics()
 	for (ULONG i = 0; i < 100; i++)
 	{
 		// choose random event
-		ULONG ul = rand.ULNext() % GPOS_ARRAY_SIZE(rgev);
+		ULONG ul = rand.Next() % GPOS_ARRAY_SIZE(rgev);
 
 #ifdef GPOS_DEBUG
 		BOOL fCheck =
@@ -141,16 +141,16 @@ CStateMachineTest::EresUnittest_Basics()
 	}
 
 #ifdef GPOS_DEBUG
-	CWStringDynamic str(pmp);
+	CWStringDynamic str(mp);
 	COstreamString oss(&str);
 	(void) ptm->Psm()->OsHistory(oss);
 
 	// dumping state graph
-	(void) ptm->Psm()->OsDiagramToGraphviz(pmp, oss, GPOS_WSZ_LIT("CTestMachine"));
+	(void) ptm->Psm()->OsDiagramToGraphviz(mp, oss, GPOS_WSZ_LIT("CTestMachine"));
 	
-	GPOS_TRACE(str.Wsz());
+	GPOS_TRACE(str.GetBuffer());
 
-	GPOS_ASSERT(!ptm->Psm()->FReachable(pmp));
+	GPOS_ASSERT(!ptm->Psm()->FReachable(mp));
 #endif // GPOS_DEBUG
 	GPOS_DELETE(ptm);
 	

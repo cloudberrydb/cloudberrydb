@@ -29,22 +29,22 @@ using namespace gpnaucrates;
 void
 CParseHandlerUtils::SetProperties
 	(
-	CDXLNode *pdxln,
-	CParseHandlerProperties *pphProp
+	CDXLNode *dxlnode,
+	CParseHandlerProperties *prop_parse_handler
 	)
 {
-	GPOS_ASSERT(NULL != pphProp->Pdxlprop());
+	GPOS_ASSERT(NULL != prop_parse_handler->GetProperties());
 	// set physical properties
-	CDXLPhysicalProperties *pdxlprop = pphProp->Pdxlprop();
-	pdxlprop->AddRef();
-	pdxln->SetProperties(pdxlprop);
+	CDXLPhysicalProperties *dxl_properties = prop_parse_handler->GetProperties();
+	dxl_properties->AddRef();
+	dxlnode->SetProperties(dxl_properties);
 
 	// set the statistical information
-	CDXLStatsDerivedRelation *pdxlstatsderrel = pphProp->Pdxlstatsderrel();
-	if (NULL != pdxlstatsderrel)
+	CDXLStatsDerivedRelation *dxl_stats_derived_relation = prop_parse_handler->GetDxlStatsDrvdRelation();
+	if (NULL != dxl_stats_derived_relation)
 	{
-		pdxlstatsderrel->AddRef();
-		pdxlprop->SetStats(pdxlstatsderrel);
+		dxl_stats_derived_relation->AddRef();
+		dxl_properties->SetStats(dxl_stats_derived_relation);
 	}
 }
 

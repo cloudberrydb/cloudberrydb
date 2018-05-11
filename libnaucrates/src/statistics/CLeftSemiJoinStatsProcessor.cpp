@@ -17,57 +17,57 @@ using namespace gpopt;
 
 // return statistics object after performing LSJ operation
 CStatistics *
-CLeftSemiJoinStatsProcessor::PstatsLSJoinStatic
+CLeftSemiJoinStatsProcessor::CalcLSJoinStatsStatic
 		(
-		IMemoryPool *pmp,
-		const IStatistics *pistatsOuter,
-		const IStatistics *pistatsInner,
-		DrgPstatspredjoin *pdrgpstatspredjoin
+		IMemoryPool *mp,
+		const IStatistics *outer_stats_input,
+		const IStatistics *inner_stats_input,
+		CStatsPredJoinArray *join_preds_stats
 		)
 {
-	GPOS_ASSERT(NULL != pistatsOuter);
-	GPOS_ASSERT(NULL != pistatsInner);
-	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
+	GPOS_ASSERT(NULL != outer_stats_input);
+	GPOS_ASSERT(NULL != inner_stats_input);
+	GPOS_ASSERT(NULL != join_preds_stats);
 
-	const ULONG ulLen = pdrgpstatspredjoin->UlLength();
+	const ULONG length = join_preds_stats->Size();
 
 	// iterate over all inner columns and perform a group by to remove duplicates
-	DrgPul *pdrgpulInnerColumnIds = GPOS_NEW(pmp) DrgPul(pmp);
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	ULongPtrArray *inner_colids = GPOS_NEW(mp) ULongPtrArray(mp);
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		ULONG ulInnerColId = ((*pdrgpstatspredjoin)[ul])->UlColId2();
-		pdrgpulInnerColumnIds->Append(GPOS_NEW(pmp) ULONG(ulInnerColId));
+		ULONG colid = ((*join_preds_stats)[ul])->ColIdInner();
+		inner_colids->Append(GPOS_NEW(mp) ULONG(colid));
 	}
 
 	// dummy agg columns required for group by derivation
-	DrgPul *pdrgpulAgg = GPOS_NEW(pmp) DrgPul(pmp);
-	IStatistics *pstatsInnerNoDups = CGroupByStatsProcessor::PstatsGroupBy
+	ULongPtrArray *aggs = GPOS_NEW(mp) ULongPtrArray(mp);
+	IStatistics *inner_stats = CGroupByStatsProcessor::CalcGroupByStats
 			(
-			pmp,
-			dynamic_cast<const CStatistics *>(pistatsInner),
-			pdrgpulInnerColumnIds,
-			pdrgpulAgg,
-			NULL // pbsKeys: no keys, use all grouping cols
+			mp,
+			dynamic_cast<const CStatistics *>(inner_stats_input),
+			inner_colids,
+			aggs,
+			NULL // keys: no keys, use all grouping cols
 			);
 
-	const CStatistics *pstatsOuter = dynamic_cast<const CStatistics *> (pistatsOuter);
-	CStatistics *pstatsSemiJoin = CJoinStatsProcessor::PstatsJoinDriver
+	const CStatistics *outer_stats = dynamic_cast<const CStatistics *> (outer_stats_input);
+	CStatistics *semi_join_stats = CJoinStatsProcessor::SetResultingJoinStats
 			(
-			pmp,
-			pstatsOuter->PStatsConf(),
-			pstatsOuter,
-			pstatsInnerNoDups,
-			pdrgpstatspredjoin,
+			mp,
+			outer_stats->GetStatsConfig(),
+			outer_stats,
+			inner_stats,
+			join_preds_stats,
 			IStatistics::EsjtLeftSemiJoin /* esjt */,
-			true /* fIgnoreLasjHistComputation */
+			true /* DoIgnoreLASJHistComputation */
 			);
 
 	// clean up
-	pdrgpulInnerColumnIds->Release();
-	pdrgpulAgg->Release();
-	pstatsInnerNoDups->Release();
+	inner_colids->Release();
+	aggs->Release();
+	inner_stats->Release();
 
-	return pstatsSemiJoin;
+	return semi_join_stats;
 
 }
 

@@ -28,11 +28,11 @@ namespace gpdxl
 
 	class CIdGenerator {
 		private:
-			ULONG m_ulId;
+			ULONG id;
 		public:
 			explicit CIdGenerator(ULONG);
-			ULONG UlNextId();
-			ULONG UlCurrentId();
+			ULONG next_id();
+			ULONG current_id();
 	};
 }
 #endif // GPDXL_CIdGenerator_H

@@ -41,10 +41,10 @@ namespace gpdxl
 		private:
 
 			// catalog MDId of the column's type
-			IMDId *m_pmdidType;
+			IMDId *m_mdid_type;
 
 			// catalog MDId of the function implementing the casting
-			IMDId *m_pmdidFunc;
+			IMDId *m_func_mdid;
 
 			// private copy ctor
 			CDXLScalarCast(const CDXLScalarCast&);
@@ -53,49 +53,49 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarCast
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidType,
-				IMDId *pmdidOpFunc
+				IMemoryPool *mp,
+				IMDId *mdid_type,
+				IMDId *func_mdid
 				);
 
 			virtual
 			~CDXLScalarCast();
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
-			IMDId *PmdidType() const;
-			IMDId *PmdidFunc() const;
+			IMDId *MdidType() const;
+			IMDId *FuncMdId() const;
 
 			// name of the DXL operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// conversion function
 			static
-			CDXLScalarCast *PdxlopConvert
+			CDXLScalarCast *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarCast == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarCast == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarCast*>(pdxlop);
+				return dynamic_cast<CDXLScalarCast*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 	};
 }
 

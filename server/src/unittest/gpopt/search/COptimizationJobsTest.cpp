@@ -61,50 +61,50 @@ GPOS_RESULT
 COptimizationJobsTest::EresUnittest_StateMachine()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
 	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+	CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
 	// install opt context in TLS
 	{
 		CAutoOptCtxt aoc
 						(
-						pmp,
+						mp,
 						&mda,
 						NULL,  /* pceeval */
-						CTestUtils::Pcm(pmp)
+						CTestUtils::GetCostModel(mp)
 						);
-		CEngine eng(pmp);
+		CEngine eng(mp);
 
 		// generate  join expression
-		CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp);
+		CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp);
 
 		// generate query context
-		CQueryContext *pqc = CTestUtils::PqcGenerate(pmp, pexpr);
+		CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
 
 		// Initialize engine
-		eng.Init(pqc, NULL /*pdrgpss*/);
+		eng.Init(pqc, NULL /*search_stage_array*/);
 
 		CGroup *pgroup = eng.PgroupRoot();
 		pqc->Prpp()->AddRef();
-		COptimizationContext *poc = GPOS_NEW(pmp) COptimizationContext
+		COptimizationContext *poc = GPOS_NEW(mp) COptimizationContext
 							(
-							pmp,
+							mp,
 							pgroup,
 							pqc->Prpp(),
-							GPOS_NEW(pmp) CReqdPropRelational(GPOS_NEW(pmp) CColRefSet(pmp)),
-							GPOS_NEW(pmp) DrgPstat(pmp),
+							GPOS_NEW(mp) CReqdPropRelational(GPOS_NEW(mp) CColRefSet(mp)),
+							GPOS_NEW(mp) IStatisticsArray(mp),
 							0 // ulSearchStageIndex
 							);
 
 		// optimize query
-		CJobFactory jf(pmp, 1000 /*ulJobs*/);
-		CScheduler sched(pmp, 1000 /*ulJobs*/, 1 /*ulWorkers*/);
+		CJobFactory jf(mp, 1000 /*ulJobs*/);
+		CScheduler sched(mp, 1000 /*ulJobs*/, 1 /*ulWorkers*/);
 		CSchedulerContext sc;
-		sc.Init(pmp, &jf, &sched, &eng);
+		sc.Init(mp, &jf, &sched, &eng);
 		CJob *pj = jf.PjCreate(CJob::EjtGroupOptimization);
 		CJobGroupOptimization *pjgo = CJobGroupOptimization::PjConvert(pj);
 		pjgo->Init(pgroup, NULL /*pgexprOrigin*/, poc);
@@ -113,18 +113,18 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 #ifdef GPOS_DEBUG
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			at.Os() << std::endl << "GROUP OPTIMIZATION:" << std::endl;
 			(void) pjgo->OsPrint(at.Os());
 
 			// dumping state graph
 			at.Os() << std::endl;
-			(void) pjgo->OsDiagramToGraphviz(pmp, at.Os(), GPOS_WSZ_LIT("GroupOptimizationJob"));
+			(void) pjgo->OsDiagramToGraphviz(mp, at.Os(), GPOS_WSZ_LIT("GroupOptimizationJob"));
 
 			CJobGroupOptimization::EState *pestate = NULL;
-			ULONG ulSize = 0;
-			pjgo->Unreachable(pmp, &pestate, &ulSize);
-			GPOS_ASSERT(ulSize == 1 && pestate[0] == CJobGroupOptimization::estInitialized);
+			ULONG size = 0;
+			pjgo->Unreachable(mp, &pestate, &size);
+			GPOS_ASSERT(size == 1 && pestate[0] == CJobGroupOptimization::estInitialized);
 
 			GPOS_DELETE_ARRAY(pestate);
 		}
@@ -141,7 +141,7 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 		}
 
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			CJobGroupImplementation jgi;
 			jgi.Init(pgroup);
 			at.Os() << std::endl << "GROUP IMPLEMENTATION:" << std::endl;
@@ -149,18 +149,18 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 			// dumping state graph
 			at.Os() << std::endl;
-			(void) jgi.OsDiagramToGraphviz(pmp, at.Os(), GPOS_WSZ_LIT("GroupImplementationJob"));
+			(void) jgi.OsDiagramToGraphviz(mp, at.Os(), GPOS_WSZ_LIT("GroupImplementationJob"));
 
 			CJobGroupImplementation::EState *pestate = NULL;
-			ULONG ulSize = 0;
-			jgi.Unreachable(pmp, &pestate, &ulSize);
-			GPOS_ASSERT(ulSize == 1 && pestate[0] == CJobGroupImplementation::estInitialized);
+			ULONG size = 0;
+			jgi.Unreachable(mp, &pestate, &size);
+			GPOS_ASSERT(size == 1 && pestate[0] == CJobGroupImplementation::estInitialized);
 
 			GPOS_DELETE_ARRAY(pestate);
 		}
 
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			CJobGroupExploration jge;
 			jge.Init(pgroup);
 			at.Os() << std::endl << "GROUP EXPLORATION:" << std::endl;
@@ -168,18 +168,18 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 			// dumping state graph
 			at.Os() << std::endl;
-			(void) jge.OsDiagramToGraphviz(pmp, at.Os(), GPOS_WSZ_LIT("GroupExplorationJob"));
+			(void) jge.OsDiagramToGraphviz(mp, at.Os(), GPOS_WSZ_LIT("GroupExplorationJob"));
 
 			CJobGroupExploration::EState *pestate = NULL;
-			ULONG ulSize = 0;
-			jge.Unreachable(pmp, &pestate, &ulSize);
-			GPOS_ASSERT(ulSize == 1 && pestate[0] == CJobGroupExploration::estInitialized);
+			ULONG size = 0;
+			jge.Unreachable(mp, &pestate, &size);
+			GPOS_ASSERT(size == 1 && pestate[0] == CJobGroupExploration::estInitialized);
 
 			GPOS_DELETE_ARRAY(pestate);
 		}
 
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			CJobGroupExpressionOptimization jgeo;
 			jgeo.Init(pgexprPhysical, poc, 0 /*ulOptReq*/);
 			at.Os() << std::endl << "GROUP EXPRESSION OPTIMIZATION:" << std::endl;
@@ -187,18 +187,18 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 			// dumping state graph
 			at.Os() << std::endl;
-			(void) jgeo.OsDiagramToGraphviz(pmp, at.Os(), GPOS_WSZ_LIT("GroupExpressionOptimizationJob"));
+			(void) jgeo.OsDiagramToGraphviz(mp, at.Os(), GPOS_WSZ_LIT("GroupExpressionOptimizationJob"));
 
 			CJobGroupExpressionOptimization::EState *pestate = NULL;
-			ULONG ulSize = 0;
-			jgeo.Unreachable(pmp, &pestate, &ulSize);
-			GPOS_ASSERT(ulSize == 1 && pestate[0] == CJobGroupExpressionOptimization::estInitialized);
+			ULONG size = 0;
+			jgeo.Unreachable(mp, &pestate, &size);
+			GPOS_ASSERT(size == 1 && pestate[0] == CJobGroupExpressionOptimization::estInitialized);
 
 			GPOS_DELETE_ARRAY(pestate);
 		}
 
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			CJobGroupExpressionImplementation jgei;
 			jgei.Init(pgexprLogical);
 			at.Os() << std::endl << "GROUP EXPRESSION IMPLEMENTATION:" << std::endl;
@@ -206,18 +206,18 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 			// dumping state graph
 			at.Os() << std::endl;
-			(void) jgei.OsDiagramToGraphviz(pmp, at.Os(), GPOS_WSZ_LIT("GroupExpressionImplementationJob"));
+			(void) jgei.OsDiagramToGraphviz(mp, at.Os(), GPOS_WSZ_LIT("GroupExpressionImplementationJob"));
 
 			CJobGroupExpressionImplementation::EState *pestate = NULL;
-			ULONG ulSize = 0;
-			jgei.Unreachable(pmp, &pestate, &ulSize);
-			GPOS_ASSERT(ulSize == 1 && pestate[0] == CJobGroupExpressionImplementation::estInitialized);
+			ULONG size = 0;
+			jgei.Unreachable(mp, &pestate, &size);
+			GPOS_ASSERT(size == 1 && pestate[0] == CJobGroupExpressionImplementation::estInitialized);
 
 			GPOS_DELETE_ARRAY(pestate);
 		}
 
 		{
-			CAutoTrace at(pmp);
+			CAutoTrace at(mp);
 			CJobGroupExpressionExploration jgee;
 			jgee.Init(pgexprLogical);
 			at.Os() << std::endl << "GROUP EXPRESSION EXPLORATION:" << std::endl;
@@ -225,22 +225,22 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 			// dumping state graph
 			at.Os() << std::endl;
-			(void) jgee.OsDiagramToGraphviz(pmp, at.Os(), GPOS_WSZ_LIT("GroupExpressionExplorationJob"));
+			(void) jgee.OsDiagramToGraphviz(mp, at.Os(), GPOS_WSZ_LIT("GroupExpressionExplorationJob"));
 
 			CJobGroupExpressionExploration::EState *pestate = NULL;
-			ULONG ulSize = 0;
-			jgee.Unreachable(pmp, &pestate, &ulSize);
-			GPOS_ASSERT(ulSize == 1 && pestate[0] == CJobGroupExpressionExploration::estInitialized);
+			ULONG size = 0;
+			jgee.Unreachable(mp, &pestate, &size);
+			GPOS_ASSERT(size == 1 && pestate[0] == CJobGroupExpressionExploration::estInitialized);
 
 			GPOS_DELETE_ARRAY(pestate);
 		}
 
 		{
-			CAutoTrace at(pmp);
-			CXformSet *pxfs = CLogical::PopConvert(pgexprLogical->Pop())->PxfsCandidates(pmp);
+			CAutoTrace at(mp);
+			CXformSet *xform_set = CLogical::PopConvert(pgexprLogical->Pop())->PxfsCandidates(mp);
 
-			CXformSetIter xsi(*(pxfs));
-			while (xsi.FAdvance())
+			CXformSetIter xsi(*(xform_set));
+			while (xsi.Advance())
 			{
 				CXform *pxform = CXformFactory::Pxff()->Pxf(xsi.TBit());
 				CJobTransformation jt;
@@ -250,17 +250,17 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 
 				// dumping state graph
 				at.Os() << std::endl;
-				(void) jt.OsDiagramToGraphviz(pmp, at.Os(), GPOS_WSZ_LIT("TransformationJob"));
+				(void) jt.OsDiagramToGraphviz(mp, at.Os(), GPOS_WSZ_LIT("TransformationJob"));
 
 				CJobTransformation::EState *pestate = NULL;
-				ULONG ulSize = 0;
-				jt.Unreachable(pmp, &pestate, &ulSize);
-				GPOS_ASSERT(ulSize == 1 && pestate[0] == CJobTransformation::estInitialized);
+				ULONG size = 0;
+				jt.Unreachable(mp, &pestate, &size);
+				GPOS_ASSERT(size == 1 && pestate[0] == CJobTransformation::estInitialized);
 
 				GPOS_DELETE_ARRAY(pestate);
 			}
 
-			pxfs->Release();
+			xform_set->Release();
 		}
 #endif // GPOS_DEBUG
 

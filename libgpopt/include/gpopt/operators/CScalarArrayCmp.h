@@ -48,7 +48,7 @@ namespace gpopt
 		private:
 
 			// compare operator mdid
-			IMDId *m_pmdidOp;
+			IMDId *m_mdid_op;
 
 			// comparison operator name
 			const CWStringConst *m_pscOp;
@@ -57,7 +57,7 @@ namespace gpopt
 			EArrCmpType m_earrccmpt;
 			
 			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
+			BOOL m_returns_null_on_null_input;
 
 			// private copy ctor
 			CScalarArrayCmp(const CScalarArrayCmp &);
@@ -71,8 +71,8 @@ namespace gpopt
 			// ctor
 			CScalarArrayCmp
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidOp,
+				IMemoryPool *mp,
+				IMDId *mdid_op,
 				const CWStringConst *pstrOp,
 				EArrCmpType earrcmpt
 				);
@@ -81,7 +81,7 @@ namespace gpopt
 			virtual 
 			~CScalarArrayCmp()
 			{
-				m_pmdidOp->Release();
+				m_mdid_op->Release();
 				GPOS_DELETE(m_pscOp);
 			}
 
@@ -108,10 +108,10 @@ namespace gpopt
 
 
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -123,9 +123,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -148,15 +148,15 @@ namespace gpopt
 			const CWStringConst *Pstr() const;
 
 			// operator mdid
-			IMDId *PmdidOp() const;
+			IMDId *MdIdOp() const;
 			
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// print
 			virtual 
@@ -164,7 +164,7 @@ namespace gpopt
 
 			// expand array comparison expression into a conjunctive/disjunctive expression
 			static
-			CExpression *PexprExpand(IMemoryPool *pmp, CExpression *pexprArrayCmp);
+			CExpression *PexprExpand(IMemoryPool *mp, CExpression *pexprArrayCmp);
 
 	}; // class CScalarArrayCmp
 

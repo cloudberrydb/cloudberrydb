@@ -31,14 +31,14 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarConst::CScalarConst
 	(
-	IMemoryPool *pmp,
-	IDatum *pdatum
+	IMemoryPool *mp,
+	IDatum *datum
 	)
 	:
-	CScalar(pmp),
-	m_pdatum(pdatum)
+	CScalar(mp),
+	m_pdatum(datum)
 {
-	GPOS_ASSERT(NULL != pdatum);
+	GPOS_ASSERT(NULL != datum);
 }
 
 
@@ -58,7 +58,7 @@ CScalarConst::~CScalarConst()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarConst::UlHash
+//		CScalarConst::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -66,25 +66,25 @@ CScalarConst::~CScalarConst()
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarConst::UlHash() const
+CScalarConst::HashValue() const
 {
-	return gpos::UlCombineHashes
+	return gpos::CombineHashes
 			(
-			COperator::UlHash(),
-			m_pdatum->UlHash()
+			COperator::HashValue(),
+			m_pdatum->HashValue()
 			);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarConst::FMatch
+//		CScalarConst::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarConst::FMatch
+CScalarConst::Matches
 	(
 	COperator *pop
 	)
@@ -95,7 +95,7 @@ CScalarConst::FMatch
 		CScalarConst *psconst = CScalarConst::PopConvert(pop);
 
 		// match if constant values are the same
-		return Pdatum()->FMatch(psconst->Pdatum());
+		return GetDatum()->Matches(psconst->GetDatum());
 	}
 
 	return false;
@@ -103,16 +103,16 @@ CScalarConst::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarConst::PmdidType
+//		CScalarConst::MdidType
 //
 //	@doc:
 //		Expression type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarConst::PmdidType() const
+CScalarConst::MdidType() const
 {
-	return m_pdatum->Pmdid();
+	return m_pdatum->MDId();
 }
 
 
@@ -214,19 +214,19 @@ CScalarConst::PopExtractFromConstOrCastConst
 CScalar::EBoolEvalResult
 CScalarConst::Eber
 	(
-	DrgPul * //pdrgpulChildren
+	ULongPtrArray * //pdrgpulChildren
 	)
 	const
 {
-	if (m_pdatum->FNull())
+	if (m_pdatum->IsNull())
 	{
 		return EberNull;
 	}
 
-	if (IMDType::EtiBool == m_pdatum->Eti())
+	if (IMDType::EtiBool == m_pdatum->GetDatumType())
 	{
 		IDatumBool *pdatumBool = dynamic_cast<IDatumBool *>(m_pdatum);
-		if (pdatumBool->FValue())
+		if (pdatumBool->GetValue())
 		{
 			return EberTrue;
 		}
@@ -238,9 +238,9 @@ CScalarConst::Eber
 }
 
 INT
-CScalarConst::ITypeModifier() const
+CScalarConst::TypeModifier() const
 {
-	return m_pdatum->ITypeModifier();
+	return m_pdatum->TypeModifier();
 }
 
 

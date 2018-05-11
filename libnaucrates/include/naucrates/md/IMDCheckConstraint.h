@@ -49,18 +49,18 @@ namespace gpmd
 
 	 		// object type
 	 	 	virtual
-	 	 	Emdtype Emdt() const
+	 	 	Emdtype MDType() const
 	 	 	{
 	 	 		return EmdtCheckConstraint;
 	 	 	}
 
 			// mdid of the relation
 			virtual
-			IMDId *PmdidRel() const = 0;
+			IMDId *GetRelMdId() const = 0;
 
 			// the scalar expression of the check constraint
 			virtual
-			CExpression *Pexpr(IMemoryPool *pmp, CMDAccessor *pmda, DrgPcr *pdrgpcr) const = 0;
+			CExpression *GetCheckConstraintExpr(IMemoryPool *mp, CMDAccessor *md_accessor, CColRefArray *colref_array) const = 0;
 	};
 }
 

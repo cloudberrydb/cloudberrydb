@@ -44,7 +44,7 @@ CXMLSerializerTest::EresUnittest()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXMLSerializerTest::Pstr
+//		CXMLSerializerTest::GetMDName
 //
 //	@doc:
 //		Generate an XML string with or without identation using the XML serializer
@@ -53,28 +53,28 @@ CXMLSerializerTest::EresUnittest()
 CWStringDynamic *
 CXMLSerializerTest::Pstr
 	(
-	IMemoryPool *pmp,
-	BOOL fIndent
+	IMemoryPool *mp,
+	BOOL indentation
 	)
 {
-	CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
+	CWStringDynamic *str = GPOS_NEW(mp) CWStringDynamic(mp);
 	
 	// create a string stream to hold the result of serialization
-	COstreamString oss(pstr);
+	COstreamString oss(str);
 	
-	CXMLSerializer xmlser(pmp, oss, fIndent);
+	CXMLSerializer xml_serializer(mp, oss, indentation);
 	
-	xmlser.StartDocument();
+	xml_serializer.StartDocument();
 	
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenPlan));
+	xml_serializer.OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenPlan));
 	
 	CWStringConst strSubplan(GPOS_WSZ_LIT("Subplan"));
-	xmlser.OpenElement(NULL, &strSubplan);
-	xmlser.CloseElement(NULL, &strSubplan);
+	xml_serializer.OpenElement(NULL, &strSubplan);
+	xml_serializer.CloseElement(NULL, &strSubplan);
 	
-	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenPlan));
+	xml_serializer.CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenPlan));
 
-	return pstr;
+	return str;
 }
 //---------------------------------------------------------------------------
 //	@function:
@@ -88,28 +88,28 @@ GPOS_RESULT
 CXMLSerializerTest::EresUnittest_Basic()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 	
 	// test XML serializer with indentation
-	CWStringDynamic *pstrIndented = Pstr(pmp, true /* fIndent */);
+	CWStringDynamic *pstrIndented = Pstr(mp, true /* indentation */);
 	
 	CWStringConst strExpectedIndented(GPOS_WSZ_LIT("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<dxl:Plan>\n  <Subplan/>\n</dxl:Plan>\n"));
 	
 	GPOS_RESULT eresIndented = GPOS_FAILED;
 		
-	if (pstrIndented->FEquals(&strExpectedIndented))
+	if (pstrIndented->Equals(&strExpectedIndented))
 	{
 		eresIndented = GPOS_OK;
 	}
 	
 	// test XML serializer without indentation
-	CWStringDynamic *pstrNotIndented = Pstr(pmp, false /* fIndent */);
+	CWStringDynamic *pstrNotIndented = Pstr(mp, false /* indentation */);
 	
 	CWStringConst strExpectedNotIndented(GPOS_WSZ_LIT("<?xml version=\"1.0\" encoding=\"UTF-8\"?><dxl:Plan><Subplan/></dxl:Plan>"));
 	
 	GPOS_RESULT eresNotIndented = GPOS_FAILED;
 		
-	if (pstrNotIndented->FEquals(&strExpectedNotIndented))
+	if (pstrNotIndented->Equals(&strExpectedNotIndented))
 	{
 		eresNotIndented = GPOS_OK;
 	}
@@ -136,7 +136,7 @@ GPOS_RESULT
 CXMLSerializerTest::EresUnittest_Base64()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	const ULONG ulraSize=5;
 	ULONG rgulRandArr[ulraSize];
@@ -144,14 +144,14 @@ CXMLSerializerTest::EresUnittest_Base64()
 	CRandom cr;
 	for (ULONG i=0;i<ulraSize;i++)
 	{
-		rgulRandArr[i] = cr.ULNext();
+		rgulRandArr[i] = cr.Next();
 	}
 	
-	CWStringDynamic *pstr = CDXLUtils::PstrFromByteArray(pmp, (BYTE *) rgulRandArr, sizeof(rgulRandArr));
+	CWStringDynamic *str = CDXLUtils::EncodeByteArrayToString(mp, (BYTE *) rgulRandArr, sizeof(rgulRandArr));
 
 	ULONG len;
 	
-	ULONG *pulRandArrCopy = (ULONG *) CDXLUtils::PByteArrayFromStr(pmp, pstr, &len);
+	ULONG *pulRandArrCopy = (ULONG *) CDXLUtils::DecodeByteArrayFromString(mp, str, &len);
 	
 	GPOS_ASSERT(len == sizeof(rgulRandArr));
 
@@ -163,15 +163,15 @@ CXMLSerializerTest::EresUnittest_Base64()
 		}
 	}
 
-	GPOS_DELETE(pstr);
+	GPOS_DELETE(str);
 	GPOS_DELETE_ARRAY(pulRandArrCopy);
 
 	INT i = 1000;
-	pstr = CDXLUtils::PstrFromByteArray(pmp, (BYTE *) &i, sizeof(i));
+	str = CDXLUtils::EncodeByteArrayToString(mp, (BYTE *) &i, sizeof(i));
 	
-	gpos::oswcout << "Base64 encoding of " << i << " is " << pstr->Wsz() << std::endl;
+	gpos::oswcout << "Base64 encoding of " << i << " is " << str->GetBuffer() << std::endl;
 	
-	GPOS_DELETE(pstr);
+	GPOS_DELETE(str);
 	
 	return GPOS_OK;
 }

@@ -261,17 +261,17 @@ void ConfigureTests()
 	// load metadata objects into provider file
 	{
 		CAutoMemoryPool amp;
-		IMemoryPool *pmp = amp.Pmp();
-		CTestUtils::InitProviderFile(pmp);
+		IMemoryPool *mp = amp.Pmp();
+		CTestUtils::InitProviderFile(mp);
 
 		// detach safety
-		(void) amp.PmpDetach();
+		(void) amp.Detach();
 	}
 
 #ifdef GPOS_DEBUG
 	// reset xforms factory to exercise xforms ctors and dtors
 	CXformFactory::Pxff()->Shutdown();
-	GPOS_RESULT eres = CXformFactory::EresInit();
+	GPOS_RESULT eres = CXformFactory::Init();
 
 	GPOS_ASSERT(GPOS_OK == eres);
 #endif // GPOS_DEBUG
@@ -311,16 +311,16 @@ PvExec
 	)
 {
 	CMainArgs *pma = (CMainArgs*) pv;
-	CBitVector bv(ITask::PtskSelf()->Pmp(), CUnittest::UlTests());
+	CBitVector bv(ITask::Self()->Pmp(), CUnittest::UlTests());
 
 	CHAR ch = '\0';
 
-	CHAR *szFileName = NULL;
+	CHAR *file_name = NULL;
 	BOOL fMinidump = false;
 	BOOL fUnittest = false;
 	ULLONG ullPlanId = 0;
 	
-	while (pma->FGetopt(&ch))
+	while (pma->Getopt(&ch))
 	{
 		CHAR *szTestName = NULL;
 		
@@ -350,7 +350,7 @@ PvExec
 
 			case 'd':
 				fMinidump = true;
-				szFileName = optarg;
+				file_name = optarg;
 				break;
 
 			default:
@@ -373,43 +373,43 @@ PvExec
 		CMDCache::Init();
 		
 		CAutoMemoryPool amp;
-		IMemoryPool *pmp = amp.Pmp();
+		IMemoryPool *mp = amp.Pmp();
 
 		// load dump file
-		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, szFileName);
+		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(mp, file_name);
 		GPOS_CHECK_ABORT;
 
-		COptimizerConfig *poconf = pdxlmd->Poconf();
+		COptimizerConfig *optimizer_config = pdxlmd->GetOptimizerConfig();
 
-		if (NULL == poconf)
+		if (NULL == optimizer_config)
 		{
-			poconf = COptimizerConfig::PoconfDefault(pmp);
+			optimizer_config = COptimizerConfig::PoconfDefault(mp);
 		}
 		else
 		{
-			poconf -> AddRef();
+			optimizer_config -> AddRef();
 		}
 
 		if (ullPlanId != 0)
 		{
-			poconf->Pec()->SetPlanId(ullPlanId);
+			optimizer_config->GetEnumeratorCfg()->SetPlanId(ullPlanId);
 		}
 
-		ULONG ulSegments = CTestUtils::UlSegments(poconf);
+		ULONG ulSegments = CTestUtils::UlSegments(optimizer_config);
 
 		CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 								(
-								pmp,
-								szFileName,
+								mp,
+								file_name,
 								ulSegments,
 								1 /*ulSessionId*/,
 								1 /*ulCmdId*/,
-								poconf,
+								optimizer_config,
 								NULL /*pceeval*/
 								);
 
 		GPOS_DELETE(pdxlmd);
-		poconf->Release();
+		optimizer_config->Release();
 		pdxlnPlan->Release();
 		CMDCache::Shutdown();
 	}

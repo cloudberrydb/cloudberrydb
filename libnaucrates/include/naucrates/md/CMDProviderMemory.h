@@ -40,14 +40,14 @@ namespace gpmd
 	
 			// hash map of serialized MD objects indexed by their MD id 
 			typedef CHashMap<IMDId, CWStringDynamic, 
-							IMDId::UlHashMDId, IMDId::FEqualMDId,
-							CleanupRelease, CleanupDelete> MDMap;
+							IMDId::MDIdHash, IMDId::MDIdCompare,
+							CleanupRelease, CleanupDelete> MDIdToSerializedMDIdMap;
 			
 			// metadata objects indexed by their metadata id
-			MDMap *m_pmdmap;
+		MDIdToSerializedMDIdMap *m_mdmap;
 			
 			// load MD objects in the hash map
-			void LoadMetadataObjectsFromArray(IMemoryPool *pmp, DrgPimdobj *pdrgpmdobj);
+      void LoadMetadataObjectsFromArray(IMemoryPool *mp, IMDCacheObjectArray *mdcache_obj_array);
 			
 			// private copy ctor
 			CMDProviderMemory(const CMDProviderMemory&);
@@ -55,10 +55,10 @@ namespace gpmd
 		public:
 			
 			// ctor
-			CMDProviderMemory(IMemoryPool *pmp, DrgPimdobj *pdrgpmdobj);
+		CMDProviderMemory(IMemoryPool *mp, IMDCacheObjectArray *mdcache_obj_array);
 			
 			// ctor
-			CMDProviderMemory(IMemoryPool *pmp, const CHAR *szFileName);
+			CMDProviderMemory(IMemoryPool *mp, const CHAR *file_name);
 			
 			//dtor
 			virtual 
@@ -66,11 +66,11 @@ namespace gpmd
 
 			// returns the DXL string of the requested metadata object
 			virtual 
-			CWStringBase *PstrObject(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid) const;
+			CWStringBase *GetMDObjDXLStr(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid) const;
 			
 			// return the mdid for the specified system id and type
 			virtual
-			IMDId *Pmdid(IMemoryPool *pmp, CSystemId sysid, IMDType::ETypeInfo eti) const;
+			IMDId *MDId(IMemoryPool *mp, CSystemId sysid, IMDType::ETypeInfo type_info) const;
 	};
 }
 

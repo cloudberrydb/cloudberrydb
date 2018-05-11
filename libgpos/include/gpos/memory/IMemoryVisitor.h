@@ -54,14 +54,14 @@ namespace gpos
             virtual
             void Visit
             	(
-            	void *pvUserAddr,
-            	SIZE_T ulUserSize,
-            	void *pvTotalAddr,
-            	SIZE_T ulTotalSize,
-                const CHAR * szAllocFilename,
-                const ULONG ulAllocLine,
-                ULLONG cAllocSeqNumber,
-                CStackDescriptor *psd
+            	void *user_addr,
+            	SIZE_T user_size,
+            	void *total_addr,
+            	SIZE_T total_size,
+                const CHAR * alloc_filename,
+                const ULONG alloc_line,
+                ULLONG alloc_seq_number,
+                CStackDescriptor *desc
                 ) = 0;
     };
 }

@@ -30,22 +30,22 @@ using namespace gpopt;
 using namespace gpmd;
 
 // default histogram selectivity
-const CDouble CHistogram::DDefaultSelectivity(0.4);
+const CDouble CHistogram::DefaultSelectivity(0.4);
 
 // default scale factor when there is no filtering of input
-const CDouble CHistogram::DNeutralScaleFactor(1.0);
+const CDouble CHistogram::NeutralScaleFactor(1.0);
 
 // the minimum number of distinct values in a column
-const CDouble CHistogram::DMinDistinct(1.0);
+const CDouble CHistogram::MinDistinct(1.0);
 
 // default Null frequency
-const CDouble CHistogram::DDefaultNullFreq(0.0);
+const CDouble CHistogram::DefaultNullFreq(0.0);
 
 // default NDV remain
-const CDouble CHistogram::DDefaultNDVRemain(0.0);
+const CDouble CHistogram::DefaultNDVRemain(0.0);
 
 // default frequency of NDV remain
-const CDouble CHistogram::DDefaultNDVFreqRemain(0.0);
+const CDouble CHistogram::DefaultNDVFreqRemain(0.0);
 
 // sample size used to estimate skew
 #define GPOPT_SKEW_SAMPLE_SIZE 1000
@@ -53,63 +53,63 @@ const CDouble CHistogram::DDefaultNDVFreqRemain(0.0);
 // ctor
 CHistogram::CHistogram
 	(
-	DrgPbucket *pdrgppbucket,
-	BOOL fWellDefined
+	CBucketArray *histogram_buckets,
+	BOOL is_well_defined
 	)
 	:
-	m_pdrgppbucket(pdrgppbucket),
-	m_fWellDefined(fWellDefined),
-	m_dNullFreq(CHistogram::DDefaultNullFreq),
-	m_dDistinctRemain(DDefaultNDVRemain),
-	m_dFreqRemain(DDefaultNDVFreqRemain),
-	m_fSkewMeasured(false),
-	m_dSkew(1.0),
-	m_fNDVScaled(false),
-	m_fColStatsMissing(false)
+	m_histogram_buckets(histogram_buckets),
+	m_is_well_defined(is_well_defined),
+	m_null_freq(CHistogram::DefaultNullFreq),
+	m_distinct_remaining(DefaultNDVRemain),
+	m_freq_remaining(DefaultNDVFreqRemain),
+	m_skew_was_measured(false),
+	m_skew(1.0),
+	m_NDVs_were_scaled(false),
+	m_is_col_stats_missing(false)
 {
-	GPOS_ASSERT(NULL != pdrgppbucket);
+	GPOS_ASSERT(NULL != histogram_buckets);
 }
 
 // ctor
 CHistogram::CHistogram
 	(
-	DrgPbucket *pdrgppbucket,
-	BOOL fWellDefined,
-	CDouble dNullFreq,
-	CDouble dDistinctRemain,
-	CDouble dFreqRemain,
-	BOOL fColStatsMissing
+	CBucketArray *histogram_buckets,
+	BOOL is_well_defined,
+	CDouble null_freq,
+	CDouble distinct_remaining,
+	CDouble freq_remaining,
+	BOOL is_col_stats_missing
 	)
 	:
-	m_pdrgppbucket(pdrgppbucket),
-	m_fWellDefined(fWellDefined),
-	m_dNullFreq(dNullFreq),
-	m_dDistinctRemain(dDistinctRemain),
-	m_dFreqRemain(dFreqRemain),
-	m_fSkewMeasured(false),
-	m_dSkew(1.0),
-	m_fNDVScaled(false),
-	m_fColStatsMissing(fColStatsMissing)
+	m_histogram_buckets(histogram_buckets),
+	m_is_well_defined(is_well_defined),
+	m_null_freq(null_freq),
+	m_distinct_remaining(distinct_remaining),
+	m_freq_remaining(freq_remaining),
+	m_skew_was_measured(false),
+	m_skew(1.0),
+	m_NDVs_were_scaled(false),
+	m_is_col_stats_missing(is_col_stats_missing)
 {
-	GPOS_ASSERT(m_pdrgppbucket);
-	GPOS_ASSERT(CDouble(0.0) <= dNullFreq);
-	GPOS_ASSERT(CDouble(1.0) >= dNullFreq);
-	GPOS_ASSERT(CDouble(0.0) <= dDistinctRemain);
-	GPOS_ASSERT(CDouble(0.0) <= dFreqRemain);
-	GPOS_ASSERT(CDouble(1.0) >= dFreqRemain);
-	// if dDistinctRemain is 0, dFreqRemain must be 0 too
-	GPOS_ASSERT_IMP(dDistinctRemain < CStatistics::DEpsilon, dFreqRemain < CStatistics::DEpsilon);
+	GPOS_ASSERT(m_histogram_buckets);
+	GPOS_ASSERT(CDouble(0.0) <= null_freq);
+	GPOS_ASSERT(CDouble(1.0) >= null_freq);
+	GPOS_ASSERT(CDouble(0.0) <= distinct_remaining);
+	GPOS_ASSERT(CDouble(0.0) <= freq_remaining);
+	GPOS_ASSERT(CDouble(1.0) >= freq_remaining);
+	// if distinct_remaining is 0, freq_remaining must be 0 too
+	GPOS_ASSERT_IMP(distinct_remaining < CStatistics::Epsilon, freq_remaining < CStatistics::Epsilon);
 }
 
 // set histograms null frequency
 void
 CHistogram::SetNullFrequency
 	(
-	CDouble dNullFreq
+	CDouble null_freq
 	)
 {
-	GPOS_ASSERT(CDouble(0.0) <= dNullFreq && CDouble(1.0) >= dNullFreq);
-	m_dNullFreq = dNullFreq;
+	GPOS_ASSERT(CDouble(0.0) <= null_freq && CDouble(1.0) >= null_freq);
+	m_null_freq = null_freq;
 }
 
 //	print function
@@ -122,459 +122,459 @@ CHistogram::OsPrint
 {
 	os << std::endl << "[" << std::endl;
 
-	ULONG ulNumBuckets = m_pdrgppbucket->UlLength();
-	for (ULONG ulBucketIdx = 0; ulBucketIdx < ulNumBuckets; ulBucketIdx++)
+	ULONG num_buckets = m_histogram_buckets->Size();
+	for (ULONG bucket_index = 0; bucket_index < num_buckets; bucket_index++)
 	{
-		os << "b" << ulBucketIdx << " = ";
-		(*m_pdrgppbucket)[ulBucketIdx]->OsPrint(os);
+		os << "b" << bucket_index << " = ";
+		(*m_histogram_buckets)[bucket_index]->OsPrint(os);
 		os << std::endl;
 	}
 	os << "]" << std::endl;
 
-	os << "Null fraction: " << m_dNullFreq << std::endl;
+	os << "Null fraction: " << m_null_freq << std::endl;
 
-	os << "Remaining NDV: " << m_dDistinctRemain << std::endl;
+	os << "Remaining NDV: " << m_distinct_remaining << std::endl;
 
-	os << "Remaining frequency: " << m_dFreqRemain << std::endl;
+	os << "Remaining frequency: " << m_freq_remaining << std::endl;
 
-	if (m_fSkewMeasured)
+	if (m_skew_was_measured)
 	{
-		os << "Skew: " << m_dSkew << std::endl;
+		os << "Skew: " << m_skew << std::endl;
 	}
 	else
 	{
 		os << "Skew: not measured" << std::endl;
 	}
 
-	os << "Was NDVs re-scaled Based on Row Estimate: " << m_fNDVScaled << std::endl;
+	os << "Was NDVs re-scaled Based on Row Estimate: " << m_NDVs_were_scaled << std::endl;
 
 	return os;
 }
 
 // check if histogram is empty
 BOOL
-CHistogram::FEmpty
+CHistogram::IsEmpty
 	()
 	const
 {
-	return (0 == m_pdrgppbucket->UlLength() && CStatistics::DEpsilon > m_dNullFreq && CStatistics::DEpsilon > m_dDistinctRemain);
+	return (0 == m_histogram_buckets->Size() && CStatistics::Epsilon > m_null_freq && CStatistics::Epsilon > m_distinct_remaining);
 }
 
 // construct new histogram with less than or less than equal to filter
 CHistogram *
-CHistogram::PhistLessThanOrLessThanEqual
+CHistogram::MakeHistogramLessThanOrLessThanEqualFilter
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(CStatsPred::EstatscmptL == escmpt || CStatsPred::EstatscmptLEq == escmpt);
+	GPOS_ASSERT(CStatsPred::EstatscmptL == stats_cmp_type || CStatsPred::EstatscmptLEq == stats_cmp_type);
 
-	DrgPbucket *pdrgppbucketNew = GPOS_NEW(pmp) DrgPbucket(pmp);
-	const ULONG ulNumBuckets = m_pdrgppbucket->UlLength();
+	CBucketArray *new_buckets = GPOS_NEW(mp) CBucketArray(mp);
+	const ULONG num_buckets = m_histogram_buckets->Size();
 
-	for (ULONG ulBucketIdx = 0; ulBucketIdx < ulNumBuckets; ulBucketIdx++)
+	for (ULONG bucket_index = 0; bucket_index < num_buckets; bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
-		if (pbucket->FBefore(ppoint))
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+		if (bucket->IsBefore(point))
 		{
 			break;
 		}
-		else if (pbucket->FAfter(ppoint))
+		else if (bucket->IsAfter(point))
 		{
-			pdrgppbucketNew->Append(pbucket->PbucketCopy(pmp));
+			new_buckets->Append(bucket->MakeBucketCopy(mp));
 		}
 		else
 		{
-			GPOS_ASSERT(pbucket->FContains(ppoint));
-			CBucket *pbucketLast = pbucket->PbucketScaleUpper(pmp, ppoint, CStatsPred::EstatscmptLEq == escmpt /*fIncludeUpper*/);
-			if (NULL != pbucketLast)
+			GPOS_ASSERT(bucket->Contains(point));
+			CBucket *last_bucket = bucket->MakeBucketScaleUpper(mp, point, CStatsPred::EstatscmptLEq == stats_cmp_type /*include_upper*/);
+			if (NULL != last_bucket)
 			{
-				pdrgppbucketNew->Append(pbucketLast);
+				new_buckets->Append(last_bucket);
 			}
 			break;
 		}
 	}
 
-	CDouble dDistinctRemain = 0.0;
-	CDouble dFreqRemain = 0.0;
-	if (CStatistics::DEpsilon < m_dDistinctRemain * DDefaultSelectivity)
+	CDouble distinct_remaining = 0.0;
+	CDouble freq_remaining = 0.0;
+	if (CStatistics::Epsilon < m_distinct_remaining * DefaultSelectivity)
 	{
-		dDistinctRemain = m_dDistinctRemain * DDefaultSelectivity;
-		dFreqRemain = m_dFreqRemain * DDefaultSelectivity;
+		distinct_remaining = m_distinct_remaining * DefaultSelectivity;
+		freq_remaining = m_freq_remaining * DefaultSelectivity;
 	}
 
-	return GPOS_NEW(pmp) CHistogram
+	return GPOS_NEW(mp) CHistogram
 					(
-					pdrgppbucketNew,
-					true, // fWellDefined
+					new_buckets,
+					true, // is_well_defined
 					CDouble(0.0), // fNullFreq
-					dDistinctRemain,
-					dFreqRemain
+					distinct_remaining,
+					freq_remaining
 					);
 }
 
 // return an array buckets after applying non equality filter on the histogram buckets
-DrgPbucket *
-CHistogram::PdrgppbucketNEqual
+CBucketArray *
+CHistogram::MakeBucketsWithInequalityFilter
 	(
-	IMemoryPool *pmp,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
-	DrgPbucket *pdrgppbucketNew = GPOS_NEW(pmp) DrgPbucket(pmp);
-	const ULONG ulNumBuckets = m_pdrgppbucket->UlLength();
-	bool fPointNull = ppoint->Pdatum()->FNull();
+	GPOS_ASSERT(NULL != point);
+	CBucketArray *new_buckets = GPOS_NEW(mp) CBucketArray(mp);
+	const ULONG num_buckets = m_histogram_buckets->Size();
+	bool point_is_null = point->GetDatum()->IsNull();
 
-	for (ULONG ulBucketIdx = 0; ulBucketIdx < ulNumBuckets; ulBucketIdx++)
+	for (ULONG bucket_index = 0; bucket_index < num_buckets; bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
 
-		if (pbucket->FContains(ppoint) && !fPointNull)
+		if (bucket->Contains(point) && !point_is_null)
 		{
-			CBucket *pbucketLT = pbucket->PbucketScaleUpper(pmp, ppoint, false /*fIncludeUpper */);
-			if (NULL != pbucketLT)
+			CBucket *less_than_bucket = bucket->MakeBucketScaleUpper(mp, point, false /*include_upper */);
+			if (NULL != less_than_bucket)
 			{
-				pdrgppbucketNew->Append(pbucketLT);
+				new_buckets->Append(less_than_bucket);
 			}
-			CBucket *pbucketGT = pbucket->PbucketGreaterThan(pmp, ppoint);
-			if (NULL != pbucketGT)
+			CBucket *greater_than_bucket = bucket->MakeBucketGreaterThan(mp, point);
+			if (NULL != greater_than_bucket)
 			{
-				pdrgppbucketNew->Append(pbucketGT);
+				new_buckets->Append(greater_than_bucket);
 			}
 		}
 		else
 		{
-			pdrgppbucketNew->Append(pbucket->PbucketCopy(pmp));
+			new_buckets->Append(bucket->MakeBucketCopy(mp));
 		}
 	}
 
-	return pdrgppbucketNew;
+	return new_buckets;
 }
 
 // construct new histogram with not equal filter
 CHistogram *
-CHistogram::PhistNEqual
+CHistogram::MakeHistogramInequalityFilter
 	(
-	IMemoryPool *pmp,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
+	GPOS_ASSERT(NULL != point);
 
-	DrgPbucket *pdrgppbucket = PdrgppbucketNEqual(pmp, ppoint);
-	CDouble dNullFreq(0.0);
+	CBucketArray *histogram_buckets = MakeBucketsWithInequalityFilter(mp, point);
+	CDouble null_freq(0.0);
 
-	return GPOS_NEW(pmp) CHistogram(pdrgppbucket, true /*fWellDefined*/, dNullFreq, m_dDistinctRemain, m_dFreqRemain);
+	return GPOS_NEW(mp) CHistogram(histogram_buckets, true /*is_well_defined*/, null_freq, m_distinct_remaining, m_freq_remaining);
 }
 
 // construct new histogram with IDF filter
 CHistogram *
-CHistogram::PhistIDF
+CHistogram::MakeHistogramIDFFilter
 	(
-	IMemoryPool *pmp,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
+	GPOS_ASSERT(NULL != point);
 
-	DrgPbucket *pdrgppbucket =  PdrgppbucketNEqual(pmp, ppoint);
-	CDouble dNullFreq(0.0);
-	if (!ppoint->Pdatum()->FNull())
+	CBucketArray *histogram_buckets = MakeBucketsWithInequalityFilter(mp, point);
+	CDouble null_freq(0.0);
+	if (!point->GetDatum()->IsNull())
 	{
 		// (col IDF NOT-NULL-CONSTANT) means that null values will also be returned
-		dNullFreq = m_dNullFreq;
+		null_freq = m_null_freq;
 	}
 
-	return GPOS_NEW(pmp) CHistogram(pdrgppbucket, true /*fWellDefined*/, dNullFreq, m_dDistinctRemain, m_dFreqRemain);
+	return GPOS_NEW(mp) CHistogram(histogram_buckets, true /*is_well_defined*/, null_freq, m_distinct_remaining, m_freq_remaining);
 }
 
 // return an array buckets after applying equality filter on the histogram buckets
-DrgPbucket *
-CHistogram::PdrgppbucketEqual
+CBucketArray *
+CHistogram::MakeBucketsWithEqualityFilter
 	(
-	IMemoryPool *pmp,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
+	GPOS_ASSERT(NULL != point);
 
-	DrgPbucket *pdrgppbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
+	CBucketArray *histogram_buckets = GPOS_NEW(mp) CBucketArray(mp);
 
-	if (ppoint->Pdatum()->FNull())
+	if (point->GetDatum()->IsNull())
 	{
-		return pdrgppbucket;
+		return histogram_buckets;
 	}
 
-	const ULONG ulNumBuckets = m_pdrgppbucket->UlLength();
-	ULONG ulBucketIdx = 0;
+	const ULONG num_buckets = m_histogram_buckets->Size();
+	ULONG bucket_index = 0;
 
-	for (ulBucketIdx = 0; ulBucketIdx < ulNumBuckets; ulBucketIdx++)
+	for (bucket_index = 0; bucket_index < num_buckets; bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
 
-		if (pbucket->FContains(ppoint))
+		if (bucket->Contains(point))
 		{
-			if (pbucket->FSingleton())
+			if (bucket->IsSingleton())
 			{
 				// reuse existing bucket
-				pdrgppbucket->Append(pbucket->PbucketCopy(pmp));
+				histogram_buckets->Append(bucket->MakeBucketCopy(mp));
 			}
 			else
 			{
 				// scale containing bucket
-				CBucket *pbucketLast = pbucket->PbucketSingleton(pmp, ppoint);
-				pdrgppbucket->Append(pbucketLast);
+				CBucket *last_bucket = bucket->MakeBucketSingleton(mp, point);
+				histogram_buckets->Append(last_bucket);
 			}
 			break; // only one bucket can contain point
 		}
 	}
 
-	return pdrgppbucket;
+	return histogram_buckets;
 }
 
 // construct new histogram with equality filter
 CHistogram *
-CHistogram::PhistEqual
+CHistogram::MakeHistogramEqualFilter
 	(
-	IMemoryPool *pmp,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
+	GPOS_ASSERT(NULL != point);
 
-	if (ppoint->Pdatum()->FNull())
+	if (point->GetDatum()->IsNull())
 	{
-		return GPOS_NEW(pmp) CHistogram
+		return GPOS_NEW(mp) CHistogram
 							(
-							GPOS_NEW(pmp) DrgPbucket(pmp),
-							true /* fWellDefined */,
-							m_dNullFreq,
-							DDefaultNDVRemain,
-							DDefaultNDVFreqRemain
+							GPOS_NEW(mp) CBucketArray(mp),
+							true /* is_well_defined */,
+							m_null_freq,
+							DefaultNDVRemain,
+							DefaultNDVFreqRemain
 							);
 	}
 	
-	DrgPbucket *pdrgppbucket =  PdrgppbucketEqual(pmp, ppoint);
+	CBucketArray *histogram_buckets = MakeBucketsWithEqualityFilter(mp, point);
 
-	if (CStatistics::DEpsilon < m_dDistinctRemain && 0 == pdrgppbucket->UlLength()) // no match is found in the buckets
+	if (CStatistics::Epsilon < m_distinct_remaining && 0 == histogram_buckets->Size()) // no match is found in the buckets
 	{
-		return GPOS_NEW(pmp) CHistogram
+		return GPOS_NEW(mp) CHistogram
 						(
-						pdrgppbucket,
-						true, // fWellDefined
-						0.0, // dNullFreq
-						1.0, // dDistinctRemain
-						std::min(CDouble(1.0), m_dFreqRemain / m_dDistinctRemain) // dFreqRemain
+						histogram_buckets,
+						true, // is_well_defined
+						0.0, // null_freq
+						1.0, // distinct_remaining
+						std::min(CDouble(1.0), m_freq_remaining / m_distinct_remaining) // freq_remaining
 						);
 	}
 
-	return GPOS_NEW(pmp) CHistogram(pdrgppbucket);
+	return GPOS_NEW(mp) CHistogram(histogram_buckets);
 }
 
 // construct new histogram with INDF filter
 CHistogram *
-CHistogram::PhistINDF
+CHistogram::MakeHistogramINDFFilter
 	(
-	IMemoryPool *pmp,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(NULL != ppoint);
+	GPOS_ASSERT(NULL != point);
 
-	DrgPbucket *pdrgppbucket =  PdrgppbucketEqual(pmp, ppoint);
-	const ULONG ulBuckets = pdrgppbucket->UlLength();
-	CDouble dNullFreq(0.0);
-	if (ppoint->Pdatum()->FNull())
+	CBucketArray *histogram_buckets = MakeBucketsWithEqualityFilter(mp, point);
+	const ULONG num_of_buckets = histogram_buckets->Size();
+	CDouble null_freq(0.0);
+	if (point->GetDatum()->IsNull())
 	{
-		GPOS_ASSERT(0 == ulBuckets);
+		GPOS_ASSERT(0 == num_of_buckets);
 		// (col INDF NULL) means that only the null values will be returned
-		dNullFreq = m_dNullFreq;
+		null_freq = m_null_freq;
 	}
 
-	if (CStatistics::DEpsilon < m_dDistinctRemain && 0 == ulBuckets) // no match is found in the buckets
+	if (CStatistics::Epsilon < m_distinct_remaining && 0 == num_of_buckets) // no match is found in the buckets
 	{
-		return GPOS_NEW(pmp) CHistogram
+		return GPOS_NEW(mp) CHistogram
 						(
-						pdrgppbucket,
-						true, // fWellDefined
-						dNullFreq,
-						1.0, // dDistinctRemain
-						std::min(CDouble(1.0), m_dFreqRemain / m_dDistinctRemain) // dFreqRemain
+						histogram_buckets,
+						true, // is_well_defined
+						null_freq,
+						1.0, // distinct_remaining
+						std::min(CDouble(1.0), m_freq_remaining / m_distinct_remaining) // freq_remaining
 						);
 	}
 
-	return GPOS_NEW(pmp) CHistogram
+	return GPOS_NEW(mp) CHistogram
 					(
-					pdrgppbucket,
-					true /* fWellDefined */,
-					dNullFreq,
-					CHistogram::DDefaultNDVRemain,
-					CHistogram::DDefaultNDVFreqRemain
+					histogram_buckets,
+					true /* is_well_defined */,
+					null_freq,
+					CHistogram::DefaultNDVRemain,
+					CHistogram::DefaultNDVFreqRemain
 					);
 }
 
 // construct new histogram with greater than or greater than equal filter
 CHistogram *
-CHistogram::PhistGreaterThanOrGreaterThanEqual
+CHistogram::MakeHistogramGreaterThanOrGreaterThanEqualFilter
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	CPoint *point
 	)
 	const
 {
-	GPOS_ASSERT(CStatsPred::EstatscmptGEq == escmpt || CStatsPred::EstatscmptG == escmpt);
+	GPOS_ASSERT(CStatsPred::EstatscmptGEq == stats_cmp_type || CStatsPred::EstatscmptG == stats_cmp_type);
 
-	DrgPbucket *pdrgppbucketNew = GPOS_NEW(pmp) DrgPbucket(pmp);
-	const ULONG ulNumBuckets = m_pdrgppbucket->UlLength();
+	CBucketArray *new_buckets = GPOS_NEW(mp) CBucketArray(mp);
+	const ULONG num_buckets = m_histogram_buckets->Size();
 
-	// find first bucket that contains ppoint
-	ULONG ulBucketIdx = 0;
-	for (ulBucketIdx = 0; ulBucketIdx < ulNumBuckets; ulBucketIdx++)
+	// find first bucket that contains point
+	ULONG bucket_index = 0;
+	for (bucket_index = 0; bucket_index < num_buckets; bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
-		if (pbucket->FBefore(ppoint))
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+		if (bucket->IsBefore(point))
 		{
 			break;
 		}
-		if (pbucket->FContains(ppoint))
+		if (bucket->Contains(point))
 		{
-			if (CStatsPred::EstatscmptGEq == escmpt)
+			if (CStatsPred::EstatscmptGEq == stats_cmp_type)
 			{
 				// first bucket needs to be scaled down
-				CBucket *pbucketFirst = pbucket->PbucketScaleLower(pmp, ppoint,  true /* fIncludeLower */);
-				pdrgppbucketNew->Append(pbucketFirst);
+				CBucket *first_bucket = bucket->MakeBucketScaleLower(mp, point,  true /* include_lower */);
+				new_buckets->Append(first_bucket);
 			}
 			else
 			{
-				CBucket *pbucketGT = pbucket->PbucketGreaterThan(pmp, ppoint);
-				if (NULL != pbucketGT)
+				CBucket *greater_than_bucket = bucket->MakeBucketGreaterThan(mp, point);
+				if (NULL != greater_than_bucket)
 				{
-					pdrgppbucketNew->Append(pbucketGT);
+					new_buckets->Append(greater_than_bucket);
 				}
 			}
-			ulBucketIdx++;
+			bucket_index++;
 			break;
 		}
 	}
 
 	// add rest of the buckets
-	for (; ulBucketIdx < ulNumBuckets; ulBucketIdx++)
+	for (; bucket_index < num_buckets; bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
-		pdrgppbucketNew->Append(pbucket->PbucketCopy(pmp));
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+		new_buckets->Append(bucket->MakeBucketCopy(mp));
 	}
 
-	CDouble dDistinctRemain = 0.0;
-	CDouble dFreqRemain = 0.0;
-	if (CStatistics::DEpsilon < m_dDistinctRemain * DDefaultSelectivity)
+	CDouble distinct_remaining = 0.0;
+	CDouble freq_remaining = 0.0;
+	if (CStatistics::Epsilon < m_distinct_remaining * DefaultSelectivity)
 	{
-		dDistinctRemain = m_dDistinctRemain * DDefaultSelectivity;
-		dFreqRemain = m_dFreqRemain * DDefaultSelectivity;
+		distinct_remaining = m_distinct_remaining * DefaultSelectivity;
+		freq_remaining = m_freq_remaining * DefaultSelectivity;
 	}
 
-	return GPOS_NEW(pmp) CHistogram
+	return GPOS_NEW(mp) CHistogram
 					(
-					pdrgppbucketNew,
-					true, // fWellDefined
+					new_buckets,
+					true, // is_well_defined
 					CDouble(0.0), // fNullFreq
-					dDistinctRemain,
-					dFreqRemain
+					distinct_remaining,
+					freq_remaining
 					);
 }
 
 // sum of frequencies from buckets.
 CDouble
-CHistogram::DFrequency
+CHistogram::GetFrequency
 	()
 	const
 {
-	CDouble dFrequency(0.0);
-	const ULONG ulBuckets = m_pdrgppbucket->UlLength();
-	for (ULONG ulBucketIdx = 0; ulBucketIdx < ulBuckets; ulBucketIdx++)
+	CDouble frequency(0.0);
+	const ULONG num_of_buckets = m_histogram_buckets->Size();
+	for (ULONG bucket_index = 0; bucket_index < num_of_buckets; bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
-		dFrequency = dFrequency + pbucket->DFrequency();
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+		frequency = frequency + bucket->GetFrequency();
 	}
 
-	if (CStatistics::DEpsilon < m_dNullFreq)
+	if (CStatistics::Epsilon < m_null_freq)
 	{
-		dFrequency = dFrequency + m_dNullFreq;
+		frequency = frequency + m_null_freq;
 	}
 
-	return dFrequency + m_dFreqRemain;
+	return frequency + m_freq_remaining;
 }
 
 // sum of number of distinct values from buckets
 CDouble
-CHistogram::DDistinct
+CHistogram::GetNumDistinct
 	()
 	const
 {
-	CDouble dDistinct(0.0);
-	const ULONG ulBuckets = m_pdrgppbucket->UlLength();
-	for (ULONG ulBucketIdx = 0; ulBucketIdx < ulBuckets; ulBucketIdx++)
+	CDouble distinct(0.0);
+	const ULONG num_of_buckets = m_histogram_buckets->Size();
+	for (ULONG bucket_index = 0; bucket_index < num_of_buckets; bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
-		dDistinct = dDistinct + pbucket->DDistinct();
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+		distinct = distinct + bucket->GetNumDistinct();
 	}
-	CDouble dDistinctNull(0.0);
-	if (CStatistics::DEpsilon < m_dNullFreq)
+	CDouble distinct_null(0.0);
+	if (CStatistics::Epsilon < m_null_freq)
 	{
-		dDistinctNull = 1.0;
+		distinct_null = 1.0;
 	}
 
-	return dDistinct + dDistinctNull + m_dDistinctRemain;
+	return distinct + distinct_null + m_distinct_remaining;
 }
 
 // cap the total number of distinct values (NDVs) in buckets to the number of rows
 void
 CHistogram::CapNDVs
 	(
-	CDouble dRows
+	CDouble rows
 	)
 {
-	const ULONG ulBuckets = m_pdrgppbucket->UlLength();
-	CDouble dDistinct = DDistinct();
-	if (dRows >= dDistinct)
+	const ULONG num_of_buckets = m_histogram_buckets->Size();
+	CDouble distinct = GetNumDistinct();
+	if (rows >= distinct)
 	{
 		// no need for capping
 		return;
 	}
 
-	m_fNDVScaled = true;
+	m_NDVs_were_scaled = true;
 
-	CDouble dScaleRatio = (dRows / dDistinct).DVal();
-	for (ULONG ul = 0; ul < ulBuckets; ul++)
+	CDouble scale_ratio = (rows / distinct).Get();
+	for (ULONG ul = 0; ul < num_of_buckets; ul++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ul];
-		CDouble dDistinctBucket = pbucket->DDistinct();
-		pbucket->SetDistinct(std::max(CHistogram::DMinDistinct.DVal(), (dDistinctBucket * dScaleRatio).DVal()));
+		CBucket *bucket = (*m_histogram_buckets)[ul];
+		CDouble distinct_bucket = bucket->GetNumDistinct();
+		bucket->SetDistinct(std::max(CHistogram::MinDistinct.Get(), (distinct_bucket * scale_ratio).Get()));
 	}
 
-	m_dDistinctRemain = m_dDistinctRemain * dScaleRatio;
+	m_distinct_remaining = m_distinct_remaining * scale_ratio;
 }
 
 // sum of frequencies is approx 1.0
 BOOL
-CHistogram::FNormalized
+CHistogram::IsNormalized
 	()
 	const
 {
-	CDouble dFrequency = DFrequency();
+	CDouble frequency = GetFrequency();
 
-	return (dFrequency > CDouble(1.0) - CStatistics::DEpsilon
-			&& dFrequency < CDouble(1.0) + CStatistics::DEpsilon);
+	return (frequency > CDouble(1.0) - CStatistics::Epsilon
+			&& frequency < CDouble(1.0) + CStatistics::Epsilon);
 }
 
 //	check if histogram is well formed? Checks are:
@@ -582,25 +582,25 @@ CHistogram::FNormalized
 //		2. Buckets should not overlap
 //		3. Frequencies should add up to less than 1.0
 BOOL
-CHistogram::FValid
+CHistogram::IsValid
 	()
 	const
 {
 	// frequencies should not add up to more than 1.0
-	if (DFrequency() > CDouble(1.0) + CStatistics::DEpsilon)
+	if (GetFrequency() > CDouble(1.0) + CStatistics::Epsilon)
 	{
 		return false;
 	}
 
-	for (ULONG ulBucketIdx = 1; ulBucketIdx < m_pdrgppbucket->UlLength(); ulBucketIdx++)
+	for (ULONG bucket_index = 1; bucket_index < m_histogram_buckets->Size(); bucket_index++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIdx];
-		CBucket *pbucketPrev = (*m_pdrgppbucket)[ulBucketIdx - 1];
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+		CBucket *previous_bucket = (*m_histogram_buckets)[bucket_index - 1];
 
 		// the later bucket's lower point must be greater than or equal to
 		// earlier bucket's upper point. Even if the underlying datum does not
 		// support ordering, the check is safe.
-		if (pbucket->PpLower()->FLessThan(pbucketPrev->PpUpper()))
+		if (bucket->GetLowerBound()->IsLessThan(previous_bucket->GetUpperBound()))
 		{
 			return false;
 		}
@@ -610,256 +610,256 @@ CHistogram::FValid
 
 // construct new histogram with filter and normalize output histogram
 CHistogram *
-CHistogram::PhistFilterNormalized
+CHistogram::MakeHistogramFilterNormalize
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	CPoint *ppoint,
-	CDouble *pdScaleFactor
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	CPoint *point,
+	CDouble *scale_factor
 	)
 	const
 {
 	// if histogram is not well-defined, then result is not well defined
-	if (!FWellDefined())
+	if (!IsWellDefined())
 	{
-		CHistogram *phistAfter =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
-		*pdScaleFactor = CDouble(1.0) / CHistogram::DDefaultSelectivity;
-		return phistAfter;
+		CHistogram *result_histogram = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
+		*scale_factor = CDouble(1.0) / CHistogram::DefaultSelectivity;
+		return result_histogram;
 	}
 
-	CHistogram *phistAfter = PhistFilter(pmp, escmpt, ppoint);
-	*pdScaleFactor = phistAfter->DNormalize();
-	GPOS_ASSERT(phistAfter->FValid());
+	CHistogram *result_histogram = MakeHistogramFilter(mp, stats_cmp_type, point);
+	*scale_factor = result_histogram->NormalizeHistogram();
+	GPOS_ASSERT(result_histogram->IsValid());
 
-	return phistAfter;
+	return result_histogram;
 }
 
 // construct new histogram by joining with another and normalize
 // output histogram. If the join is not an equality join the function
 // returns an empty histogram
 CHistogram *
-CHistogram::PhistJoinNormalized
+CHistogram::MakeJoinHistogramNormalize
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	CDouble dRows,
-	const CHistogram *phistOther,
-	CDouble dRowsOther,
-	CDouble *pdScaleFactor
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	CDouble rows,
+	const CHistogram *other_histogram,
+	CDouble rows_other,
+	CDouble *scale_factor
 	)
 	const
 {
-	GPOS_ASSERT(NULL != phistOther);
+	GPOS_ASSERT(NULL != other_histogram);
 
-	if (CStatsPred::EstatscmptEqNDV == escmpt)
+	if (CStatsPred::EstatscmptEqNDV == stats_cmp_type)
 	{
-		*pdScaleFactor = std::max
+		*scale_factor = std::max
 								 (
-								  std::max(CHistogram::DMinDistinct.DVal(), DDistinct().DVal()),
-								  std::max(CHistogram::DMinDistinct.DVal(), phistOther->DDistinct().DVal())
+								  std::max(CHistogram::MinDistinct.Get(), GetNumDistinct().Get()),
+								  std::max(CHistogram::MinDistinct.Get(), other_histogram->GetNumDistinct().Get())
 								  );
-		return PhistJoinEqualityNDV(pmp, phistOther);
+		return MakeNDVBasedJoinHistogramEqualityFilter(mp, other_histogram);
 	}
 
-	BOOL fEqOrINDF = (CStatsPred::EstatscmptEq == escmpt || CStatsPred::EstatscmptINDF == escmpt);
+	BOOL fEqOrINDF = (CStatsPred::EstatscmptEq == stats_cmp_type || CStatsPred::EstatscmptINDF == stats_cmp_type);
 	if (!fEqOrINDF)
 	{
-		*pdScaleFactor = CScaleFactorUtils::DDefaultScaleFactorNonEqualityJoin;
+		*scale_factor = CScaleFactorUtils::DefaultInequalityJoinPredScaleFactor;
 
-		if (CStatsPred::EstatscmptNEq == escmpt || CStatsPred::EstatscmptIDF == escmpt)
+		if (CStatsPred::EstatscmptNEq == stats_cmp_type || CStatsPred::EstatscmptIDF == stats_cmp_type)
 		{
-			*pdScaleFactor = DInEqualityJoinScaleFactor(pmp, dRows, phistOther, dRowsOther);
+			*scale_factor = GetInequalityJoinScaleFactor(mp, rows, other_histogram, rows_other);
 		}
 
-		return PhistJoin(pmp, escmpt, phistOther);
+		return MakeJoinHistogram(mp, stats_cmp_type, other_histogram);
 	}
 
 	// if either histogram is not well-defined, the result is not well defined
-	if (!FWellDefined() || !phistOther->FWellDefined())
+	if (!IsWellDefined() || !other_histogram->IsWellDefined())
 	{
-		CHistogram *phistAfter =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
-		(*pdScaleFactor) = CDouble(std::min(dRows.DVal(), dRowsOther.DVal()));
+		CHistogram *result_histogram = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
+		(*scale_factor) = CDouble(std::min(rows.Get(), rows_other.Get()));
 
-		return phistAfter;
+		return result_histogram;
 	}
 	
-	CHistogram *phistAfter = PhistJoin(pmp, escmpt, phistOther);
-	*pdScaleFactor = phistAfter->DNormalize();
+	CHistogram *result_histogram = MakeJoinHistogram(mp, stats_cmp_type, other_histogram);
+	*scale_factor = result_histogram->NormalizeHistogram();
 
 	// based on Ramakrishnan and Gehrke, "Database Management Systems, Third Ed", page 484
 	// the scaling factor of equality join is the MAX of the number of distinct
 	// values in each of the inputs
 
-	*pdScaleFactor = std::max
+	*scale_factor = std::max
 						(
-						std::max(DMinDistinct.DVal(), DDistinct().DVal()),
-						std::max(DMinDistinct.DVal(), phistOther->DDistinct().DVal())
+						std::max(MinDistinct.Get(), GetNumDistinct().Get()),
+						std::max(MinDistinct.Get(), other_histogram->GetNumDistinct().Get())
 						);
 
-	CDouble dCartesianProduct = dRows * dRowsOther;
-	if (phistAfter->FEmpty())
+	CDouble cartesian_product_num_rows = rows * rows_other;
+	if (result_histogram->IsEmpty())
 	{
 		// if join histogram is empty for equality join condition
 		// use Cartesian product size as scale factor
-		*pdScaleFactor = dCartesianProduct;
+		*scale_factor = cartesian_product_num_rows;
 	}
 
-	if (CStatsPred::EstatscmptINDF == escmpt)
+	if (CStatsPred::EstatscmptINDF == stats_cmp_type)
 	{
 		// if the predicate is INDF then we must count for the cartesian
 		// product of NULL values in both the histograms
-		CDouble dExpectedEqJoin = dCartesianProduct / *pdScaleFactor;
-		CDouble dNulls = dRows * m_dNullFreq;
-		CDouble dNullsOther = dRowsOther * phistOther->DNullFreq();
-		CDouble dExpectedINDF = dExpectedEqJoin + (dNulls * dNullsOther);
-		*pdScaleFactor = dCartesianProduct / dExpectedINDF;
+		CDouble expected_num_rows_eq_join = cartesian_product_num_rows / *scale_factor;
+		CDouble num_null_rows = rows * m_null_freq;
+		CDouble num_null_rows_other = rows_other * other_histogram->GetNullFreq();
+		CDouble expected_num_rows_INDF = expected_num_rows_eq_join + (num_null_rows * num_null_rows_other);
+		*scale_factor = cartesian_product_num_rows / expected_num_rows_INDF;
 	}
 
 	// bound scale factor by cross product
-	*pdScaleFactor = std::min((*pdScaleFactor).DVal(), dCartesianProduct.DVal());
+	*scale_factor = std::min((*scale_factor).Get(), cartesian_product_num_rows.Get());
 
-	GPOS_ASSERT(phistAfter->FValid());
-	return phistAfter;
+	GPOS_ASSERT(result_histogram->IsValid());
+	return result_histogram;
 }
 
 // scalar factor of inequality (!=) join condition
 CDouble
-CHistogram::DInEqualityJoinScaleFactor
+CHistogram::GetInequalityJoinScaleFactor
 	(
-	IMemoryPool *pmp,
-	CDouble dRows,
-	const CHistogram *phistOther,
-	CDouble dRowsOther
+	IMemoryPool *mp,
+	CDouble rows,
+	const CHistogram *other_histogram,
+	CDouble rows_other
 	)
 	const
 {
-	GPOS_ASSERT(NULL != phistOther);
+	GPOS_ASSERT(NULL != other_histogram);
 
-	CDouble dScaleFactor(1.0);
+	CDouble scale_factor(1.0);
 
 	// we compute the scale factor of the inequality join (!= aka <>)
 	// from the scale factor of equi-join
-	CHistogram *phistJoin = PhistJoinNormalized
+	CHistogram *equijoin_histogram = MakeJoinHistogramNormalize
 								(
-								pmp,
+								mp,
 								CStatsPred::EstatscmptEq,
-								dRows,
-								phistOther,
-								dRowsOther,
-								&dScaleFactor
+								rows,
+								other_histogram,
+								rows_other,
+								&scale_factor
 								);
-	GPOS_DELETE(phistJoin);
+	GPOS_DELETE(equijoin_histogram);
 
-	CDouble dCartesianProduct = dRows * dRowsOther;
+	CDouble cartesian_product_num_rows = rows * rows_other;
 
-	GPOS_ASSERT(CDouble(1.0) <= dScaleFactor);
-	CDouble dSelectivityEq = 1 / dScaleFactor;
-	CDouble dSelectivityNEq = (1 - dSelectivityEq);
+	GPOS_ASSERT(CDouble(1.0) <= scale_factor);
+	CDouble equality_selectivity = 1 / scale_factor;
+	CDouble inequality_selectivity = (1 - equality_selectivity);
 
-	dScaleFactor = dCartesianProduct;
-	if (CStatistics::DEpsilon < dSelectivityNEq)
+	scale_factor = cartesian_product_num_rows;
+	if (CStatistics::Epsilon < inequality_selectivity)
 	{
-		dScaleFactor = 1 / dSelectivityNEq;
+		scale_factor = 1 / inequality_selectivity;
 	}
 
-	return dScaleFactor;
+	return scale_factor;
 }
 
 // construct new histogram by left anti semi join with another and normalize
 // output histogram
 CHistogram *
-CHistogram::PhistLASJoinNormalized
+CHistogram::MakeLASJHistogramNormalize
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	CDouble dRows,
-	const CHistogram *phistOther,
-	CDouble *pdScaleFactor,
-	BOOL fIgnoreLasjHistComputation
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	CDouble rows,
+	const CHistogram *other_histogram,
+	CDouble *scale_factor,
+	BOOL DoIgnoreLASJHistComputation
 	)
 	const
 {
 	// if either histogram is not well-defined, the result is not well defined
-	if (!FWellDefined() || !phistOther->FWellDefined())
+	if (!IsWellDefined() || !other_histogram->IsWellDefined())
 	{
-		CHistogram *phistAfter =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
-		(*pdScaleFactor) = CDouble(1.0);
+		CHistogram *result_histogram = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
+		(*scale_factor) = CDouble(1.0);
 
-		return phistAfter;
+		return result_histogram;
 	}
 
-	if (fIgnoreLasjHistComputation)
+	if (DoIgnoreLASJHistComputation)
 	{
 		// TODO:  04/14/2012 : LASJ derivation is pretty aggressive.
 		// simply return a copy of the histogram with a scale factor corresponding to default selectivity.
-		CHistogram *phistAfter = PhistCopy(pmp);
-		*pdScaleFactor = CDouble(1.0) / CHistogram::DDefaultSelectivity;
-		GPOS_ASSERT(phistAfter->FValid());
+		CHistogram *result_histogram = CopyHistogram(mp);
+		*scale_factor = CDouble(1.0) / CHistogram::DefaultSelectivity;
+		GPOS_ASSERT(result_histogram->IsValid());
 
-		return phistAfter;
+		return result_histogram;
 	}
 
-	CHistogram *phistAfter = PhistLASJ(pmp, escmpt, phistOther);
-	*pdScaleFactor = phistAfter->DNormalize();
+	CHistogram *result_histogram = MakeLASJHistogram(mp, stats_cmp_type, other_histogram);
+	*scale_factor = result_histogram->NormalizeHistogram();
 
-	if (CStatsPred::EstatscmptEq != escmpt && CStatsPred::EstatscmptINDF != escmpt)
+	if (CStatsPred::EstatscmptEq != stats_cmp_type && CStatsPred::EstatscmptINDF != stats_cmp_type)
 	{
 		// TODO: , June 6 2014, we currently only support join histogram computation
 		// for equality and INDF predicates, we cannot accurately estimate
 		// the scale factor of the other predicates
-		*pdScaleFactor = CDouble(1.0) / CHistogram::DDefaultSelectivity;
+		*scale_factor = CDouble(1.0) / CHistogram::DefaultSelectivity;
 	}
-	*pdScaleFactor = std::min((*pdScaleFactor).DVal(), dRows.DVal());
-	GPOS_ASSERT(phistAfter->FValid());
+	*scale_factor = std::min((*scale_factor).Get(), rows.Get());
+	GPOS_ASSERT(result_histogram->IsValid());
 
-	return phistAfter;
+	return result_histogram;
 }
 
 // construct new histogram after applying the filter (no normalization)
 CHistogram *
-CHistogram::PhistFilter
+CHistogram::MakeHistogramFilter
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	CPoint *ppoint
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	CPoint *point
 	)
 	const
 {
-	CHistogram *phistAfter = NULL;
-	GPOS_ASSERT(FSupportsFilter(escmpt));
+	CHistogram *result_histogram = NULL;
+	GPOS_ASSERT(SupportsFilter(stats_cmp_type));
 
-	switch(escmpt)
+	switch(stats_cmp_type)
 	{
 		case CStatsPred::EstatscmptEq:
 		{
-			phistAfter = PhistEqual(pmp, ppoint);
+			result_histogram = MakeHistogramEqualFilter(mp, point);
 			break;
 		}
 		case CStatsPred::EstatscmptINDF:
 		{
-			phistAfter = PhistINDF(pmp, ppoint);
+			result_histogram = MakeHistogramINDFFilter(mp, point);
 			break;
 		}
 		case CStatsPred::EstatscmptL:
 		case CStatsPred::EstatscmptLEq:
 		{
-			phistAfter = PhistLessThanOrLessThanEqual(pmp, escmpt, ppoint);
+			result_histogram = MakeHistogramLessThanOrLessThanEqualFilter(mp, stats_cmp_type, point);
 			break;
 		}
 		case CStatsPred::EstatscmptG:
 		case CStatsPred::EstatscmptGEq:
 		{
-			phistAfter = PhistGreaterThanOrGreaterThanEqual(pmp, escmpt, ppoint);
+			result_histogram = MakeHistogramGreaterThanOrGreaterThanEqualFilter(mp, stats_cmp_type, point);
 			break;
 		}
 		case CStatsPred::EstatscmptNEq:
 		{
-			phistAfter = PhistNEqual(pmp, ppoint);
+			result_histogram = MakeHistogramInequalityFilter(mp, point);
 			break;
 		}
 		case CStatsPred::EstatscmptIDF:
 		{
-			phistAfter = PhistIDF(pmp, ppoint);
+			result_histogram = MakeHistogramIDFFilter(mp, point);
 			break;
 		}
 		default:
@@ -868,190 +868,190 @@ CHistogram::PhistFilter
 			break;
 		}
 	}
-	return phistAfter;
+	return result_histogram;
 }
 
 // construct new histogram by joining with another histogram, no normalization
 CHistogram *
-CHistogram::PhistJoin
+CHistogram::MakeJoinHistogram
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	const CHistogram *phist
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	const CHistogram *histogram
 	)
 	const
 {
-	GPOS_ASSERT(FSupportsJoinPred(escmpt));
+	GPOS_ASSERT(JoinPredCmpTypeIsSupported(stats_cmp_type));
 
-	if (CStatsPred::EstatscmptEq == escmpt)
+	if (CStatsPred::EstatscmptEq == stats_cmp_type)
 	{
-		return PhistJoinEquality(pmp, phist);
+		return MakeJoinHistogramEqualityFilter(mp, histogram);
 	}
 
-	if (CStatsPred::EstatscmptINDF == escmpt)
+	if (CStatsPred::EstatscmptINDF == stats_cmp_type)
 	{
-		return PhistJoinINDF(pmp, phist);
+		return MakeJoinHistogramINDFFilter(mp, histogram);
 	}
 
 	// TODO:  Feb 24 2014, We currently only support creation of histogram for equi join
-	return  GPOS_NEW(pmp) CHistogram( GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
+	return GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
 }
 
 // construct new histogram by LASJ with another histogram, no normalization
 CHistogram *
-CHistogram::PhistLASJ
+CHistogram::MakeLASJHistogram
 	(
-	IMemoryPool *pmp,
-	CStatsPred::EStatsCmpType escmpt,
-	const CHistogram *phist
+	IMemoryPool *mp,
+	CStatsPred::EStatsCmpType stats_cmp_type,
+	const CHistogram *histogram
 	)
 	const
 {
-	GPOS_ASSERT(NULL != phist);
+	GPOS_ASSERT(NULL != histogram);
 
-	if (CStatsPred::EstatscmptEq != escmpt && CStatsPred::EstatscmptINDF != escmpt)
+	if (CStatsPred::EstatscmptEq != stats_cmp_type && CStatsPred::EstatscmptINDF != stats_cmp_type)
 	{
 		// TODO: , June 6 2014, we currently only support join histogram computation
 		// for equality and INDF predicates, we return the original histogram
-		return PhistCopy(pmp);
+		return CopyHistogram(mp);
 	}
 
-	DrgPbucket *pdrgppbucketNew = GPOS_NEW(pmp) DrgPbucket(pmp);
+	CBucketArray *new_buckets = GPOS_NEW(mp) CBucketArray(mp);
 
-	CBucket *pbucketLowerSplit = NULL;
-	CBucket *pbucketUpperSplit = NULL;
+	CBucket *lower_split_bucket = NULL;
+	CBucket *upper_split_bucket = NULL;
 
-	ULONG ul1 = 0; // index into this histogram
-	ULONG ul2 = 0; // index into other histogram
+	ULONG idx1 = 0; // index into this histogram
+	ULONG idx2 = 0; // index into other histogram
 
-	CBucket *pbucketCandidate = NULL;
+	CBucket *candidate_bucket = NULL;
 
-	const ULONG ulBuckets1 = UlBuckets();
-	const ULONG ulBuckets2 = phist->UlBuckets();
+	const ULONG buckets1 = Buckets();
+	const ULONG buckets2 = histogram->Buckets();
 
-	while (ul1 < ulBuckets1 && ul2 < ulBuckets2)
+	while (idx1 < buckets1 && idx2 < buckets2)
 	{
 		// bucket from other histogram
-		CBucket *pbucket2 = (*phist->m_pdrgppbucket) [ul2];
+		CBucket *bucket2 = (*histogram->m_histogram_buckets) [idx2];
 
 		// yet to choose a candidate
-		GPOS_ASSERT(NULL == pbucketCandidate);
+		GPOS_ASSERT(NULL == candidate_bucket);
 
-		if (NULL != pbucketUpperSplit)
+		if (NULL != upper_split_bucket)
 		{
-			pbucketCandidate = pbucketUpperSplit;
+			candidate_bucket = upper_split_bucket;
 		}
 		else
 		{
-			pbucketCandidate = (*m_pdrgppbucket)[ul1]->PbucketCopy(pmp); // candidate bucket in result histogram
-			ul1++;
+			candidate_bucket = (*m_histogram_buckets)[idx1]->MakeBucketCopy(mp); // candidate bucket in result histogram
+			idx1++;
 		}
 
-		pbucketLowerSplit = NULL;
-		pbucketUpperSplit = NULL;
+		lower_split_bucket = NULL;
+		upper_split_bucket = NULL;
 
-		pbucketCandidate->Difference(pmp, pbucket2, &pbucketLowerSplit, &pbucketUpperSplit);
+		candidate_bucket->Difference(mp, bucket2, &lower_split_bucket, &upper_split_bucket);
 
-		if (NULL != pbucketLowerSplit)
+		if (NULL != lower_split_bucket)
 		{
-			pdrgppbucketNew->Append(pbucketLowerSplit);
+			new_buckets->Append(lower_split_bucket);
 		}
 
 		// need to find a new candidate
-		GPOS_DELETE(pbucketCandidate);
-		pbucketCandidate = NULL;
+		GPOS_DELETE(candidate_bucket);
+		candidate_bucket = NULL;
 
-		ul2++;
+		idx2++;
 	}
 
-	pbucketCandidate = pbucketUpperSplit;
+	candidate_bucket = upper_split_bucket;
 
 	// if we looked at all the buckets from the other histogram, then add remaining buckets from
 	// this histogram
-	if (ul2 == ulBuckets2)
+	if (idx2 == buckets2)
 	{
 		// candidate is part of the result
-		if (NULL != pbucketCandidate)
+		if (NULL != candidate_bucket)
 		{
-			pdrgppbucketNew->Append(pbucketCandidate);
+			new_buckets->Append(candidate_bucket);
 		}
 
-		CStatisticsUtils::AddRemainingBuckets(pmp, m_pdrgppbucket, pdrgppbucketNew, &ul1);
+		CStatisticsUtils::AddRemainingBuckets(mp, m_histogram_buckets, new_buckets, &idx1);
 	}
 	else
 	{
-		GPOS_DELETE(pbucketCandidate);
+		GPOS_DELETE(candidate_bucket);
 	}
 
-	CDouble dNullFreq = CLeftAntiSemiJoinStatsProcessor::DNullFreqLASJ(escmpt, this, phist);
+	CDouble null_freq = CLeftAntiSemiJoinStatsProcessor::NullFreqLASJ(stats_cmp_type, this, histogram);
 
-	return GPOS_NEW(pmp) CHistogram(pdrgppbucketNew, true /*fWellDefined*/, dNullFreq, m_dDistinctRemain, m_dFreqRemain);
+	return GPOS_NEW(mp) CHistogram(new_buckets, true /*is_well_defined*/, null_freq, m_distinct_remaining, m_freq_remaining);
 }
 
 // scales frequencies on histogram so that they add up to 1.0.
 // Returns the scaling factor that was employed. Should not be called on empty histogram.
 CDouble
-CHistogram::DNormalize()
+CHistogram::NormalizeHistogram()
 {
 	// trivially normalized
-	if (UlBuckets() == 0 && CStatistics::DEpsilon > m_dNullFreq && CStatistics::DEpsilon > m_dDistinctRemain)
+	if (Buckets() == 0 && CStatistics::Epsilon > m_null_freq && CStatistics::Epsilon > m_distinct_remaining)
 	{
 		return CDouble(GPOS_FP_ABS_MAX);
 	}
 
-	CDouble dScaleFactor = std::max(DOUBLE(1.0), (CDouble(1.0) / DFrequency()).DVal());
+	CDouble scale_factor = std::max(DOUBLE(1.0), (CDouble(1.0) / GetFrequency()).Get());
 
-	for (ULONG ul = 0; ul < m_pdrgppbucket->UlLength(); ul++)
+	for (ULONG ul = 0; ul < m_histogram_buckets->Size(); ul++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ul];
-		pbucket->SetFrequency(pbucket->DFrequency() * dScaleFactor);
+		CBucket *bucket = (*m_histogram_buckets)[ul];
+		bucket->SetFrequency(bucket->GetFrequency() * scale_factor);
 	}
 
-	m_dNullFreq = m_dNullFreq * dScaleFactor;
+	m_null_freq = m_null_freq * scale_factor;
 
-	CDouble dFreqRemain = std::min((m_dFreqRemain * dScaleFactor).DVal(), DOUBLE(1.0));
-	if (CStatistics::DEpsilon > m_dDistinctRemain)
+	CDouble freq_remaining = std::min((m_freq_remaining * scale_factor).Get(), DOUBLE(1.0));
+	if (CStatistics::Epsilon > m_distinct_remaining)
 	{
-		dFreqRemain = 0.0;
+		freq_remaining = 0.0;
 	}
-	m_dFreqRemain = dFreqRemain;
+	m_freq_remaining = freq_remaining;
 
-	return dScaleFactor;
+	return scale_factor;
 }
 
 // deep copy of histogram
 CHistogram *
-CHistogram::PhistCopy
+CHistogram::CopyHistogram
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	DrgPbucket *pdrgpbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
-	for (ULONG ul = 0; ul < m_pdrgppbucket->UlLength(); ul++)
+	CBucketArray *buckets = GPOS_NEW(mp) CBucketArray(mp);
+	for (ULONG ul = 0; ul < m_histogram_buckets->Size(); ul++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ul];
-		pdrgpbucket->Append(pbucket->PbucketCopy(pmp));
+		CBucket *bucket = (*m_histogram_buckets)[ul];
+		buckets->Append(bucket->MakeBucketCopy(mp));
 	}
 
-	CHistogram *phistCopy = GPOS_NEW(pmp) CHistogram(pdrgpbucket, m_fWellDefined, m_dNullFreq, m_dDistinctRemain, m_dFreqRemain);
-	if (FScaledNDV())
+	CHistogram *histogram_copy = GPOS_NEW(mp) CHistogram(buckets, m_is_well_defined, m_null_freq, m_distinct_remaining, m_freq_remaining);
+	if (WereNDVsScaled())
 	{
-		phistCopy->SetNDVScaled();
+		histogram_copy->SetNDVScaled();
 	}
 
-	return phistCopy;
+	return histogram_copy;
 }
 
 // is statistics comparison type supported for filter?
 BOOL
-CHistogram::FSupportsFilter
+CHistogram::SupportsFilter
 	(
-	CStatsPred::EStatsCmpType escmpt
+	CStatsPred::EStatsCmpType stats_cmp_type
 	)
 {
 	// is the scalar comparison type one of <, <=, =, >=, >, <>, IDF, INDF
-	switch (escmpt)
+	switch (stats_cmp_type)
 	{
 		case CStatsPred::EstatscmptL:
 		case CStatsPred::EstatscmptLEq:
@@ -1069,206 +1069,206 @@ CHistogram::FSupportsFilter
 
 // is comparison type supported for join?
 BOOL
-CHistogram::FSupportsJoinPred
+CHistogram::JoinPredCmpTypeIsSupported
 	(
-	CStatsPred::EStatsCmpType escmpt
+	CStatsPred::EStatsCmpType stats_cmp_type
 	)
 {
-	return (CStatsPred::EstatscmptOther != escmpt);
+	return (CStatsPred::EstatscmptOther != stats_cmp_type);
 }
 
 // construct a new histogram with equality join
 CHistogram *
-CHistogram::PhistJoinEquality
+CHistogram::MakeJoinHistogramEqualityFilter
 	(
-	IMemoryPool *pmp,
-	const CHistogram *phist
+	IMemoryPool *mp,
+	const CHistogram *histogram
 	)
 	const
 {
-	ULONG ul1 = 0; // index on buckets from this histogram
-	ULONG ul2 = 0; // index on buckets from other histogram
+	ULONG idx1 = 0; // index on buckets from this histogram
+	ULONG idx2 = 0; // index on buckets from other histogram
 
-	const ULONG ulBuckets1 = UlBuckets();
-	const ULONG ulBuckets2 = phist->UlBuckets();
+	const ULONG buckets1 = Buckets();
+	const ULONG buckets2 = histogram->Buckets();
 
-	CDouble dFreqJoinBuckets1(0.0);
-	CDouble dFreqJoinBuckets2(0.0);
+	CDouble hist1_buckets_freq(0.0);
+	CDouble hist2_buckets_freq(0.0);
 
-	CDouble dDistinctRemain(0.0);
-	CDouble dFreqRemain(0.0);
+	CDouble distinct_remaining(0.0);
+	CDouble freq_remaining(0.0);
 
-	BOOL fNDVBasedJoinCardEstimation1 = FNDVBasedCardEstimation(this);
-	BOOL fNDVBasedJoinCardEstimation2 = FNDVBasedCardEstimation(phist);
+	BOOL NDVBasedJoinCardEstimation1 = DoNDVBasedCardEstimation(this);
+	BOOL NDVBasedJoinCardEstimation2 = DoNDVBasedCardEstimation(histogram);
 
-	if (fNDVBasedJoinCardEstimation1 || fNDVBasedJoinCardEstimation2)
+	if (NDVBasedJoinCardEstimation1 || NDVBasedJoinCardEstimation2)
 	{
-		return PhistJoinEqualityNDV(pmp, phist);
+		return MakeNDVBasedJoinHistogramEqualityFilter(mp, histogram);
 	}
 
-	DrgPbucket *pdrgppbucketJoin = GPOS_NEW(pmp) DrgPbucket(pmp);
-	while (ul1 < ulBuckets1 && ul2 < ulBuckets2)
+	CBucketArray *join_buckets = GPOS_NEW(mp) CBucketArray(mp);
+	while (idx1 < buckets1 && idx2 < buckets2)
 	{
-		CBucket *pbucket1 = (*m_pdrgppbucket)[ul1];
-		CBucket *pbucket2 = (*phist->m_pdrgppbucket)[ul2];
+		CBucket *bucket1 = (*m_histogram_buckets)[idx1];
+		CBucket *bucket2 = (*histogram->m_histogram_buckets)[idx2];
 
-		if (pbucket1->FIntersects(pbucket2))
+		if (bucket1->Intersects(bucket2))
 		{
-			CDouble dFreqIntersect1(0.0);
-			CDouble dFreqIntersect2(0.0);
+			CDouble freq_intersect1(0.0);
+			CDouble freq_intersect2(0.0);
 
-			CBucket *pbucketNew = pbucket1->PbucketIntersect(pmp, pbucket2, &dFreqIntersect1, &dFreqIntersect2);
-			pdrgppbucketJoin->Append(pbucketNew);
+			CBucket *new_bucket = bucket1->MakeBucketIntersect(mp, bucket2, &freq_intersect1, &freq_intersect2);
+			join_buckets->Append(new_bucket);
 
-			dFreqJoinBuckets1 = dFreqJoinBuckets1 + dFreqIntersect1;
-			dFreqJoinBuckets2 = dFreqJoinBuckets2 + dFreqIntersect2;
+			hist1_buckets_freq = hist1_buckets_freq + freq_intersect1;
+			hist2_buckets_freq = hist2_buckets_freq + freq_intersect2;
 
-			INT iRes = CBucket::ICompareUpperBounds(pbucket1, pbucket2);
-			if (0 == iRes)
+			INT res = CBucket::CompareUpperBounds(bucket1, bucket2);
+			if (0 == res)
 			{
 				// both ubs are equal
-				ul1++;
-				ul2++;
+				idx1++;
+				idx2++;
 			}
-			else if (1 > iRes)
+			else if (1 > res)
 			{
-				// pbucket1's ub is smaller than that of the ub of pbucket2
-				ul1++;
+				// bucket1's ub is smaller than that of the ub of bucket2
+				idx1++;
 			}
 			else
 			{
-				ul2++;
+				idx2++;
 			}
 		}
-		else if (pbucket1->FBefore(pbucket2))
+		else if (bucket1->IsBefore(bucket2))
 		{
 			// buckets do not intersect there one bucket is before the other
-			ul1++;
+			idx1++;
 		}
 		else
 		{
-			GPOS_ASSERT(pbucket2->FBefore(pbucket1));
-			ul2++;
+			GPOS_ASSERT(bucket2->IsBefore(bucket1));
+			idx2++;
 		}
 	}
 
 	ComputeJoinNDVRemainInfo
 		(
 		this,
-		phist,
-		pdrgppbucketJoin,
-		dFreqJoinBuckets1,
-		dFreqJoinBuckets2,
-		&dDistinctRemain,
-		&dFreqRemain
+		histogram,
+		join_buckets,
+		hist1_buckets_freq,
+		hist2_buckets_freq,
+		&distinct_remaining,
+		&freq_remaining
 		);
 
-	return GPOS_NEW(pmp) CHistogram(pdrgppbucketJoin, true /*fWellDefined*/, 0.0 /*dNullFreq*/, dDistinctRemain, dFreqRemain);
+	return GPOS_NEW(mp) CHistogram(join_buckets, true /*is_well_defined*/, 0.0 /*null_freq*/, distinct_remaining, freq_remaining);
 }
 
 // construct a new histogram for NDV based cardinality estimation
 CHistogram *
-CHistogram::PhistJoinEqualityNDV
+CHistogram::MakeNDVBasedJoinHistogramEqualityFilter
 (
- IMemoryPool *pmp,
- const CHistogram *phist
+ IMemoryPool *mp,
+ const CHistogram *histogram
  )
 const
 {
-	CDouble dDistinctRemain(0.0);
-	CDouble dFreqRemain(0.0);
-	DrgPbucket *pdrgppbucketJoin = GPOS_NEW(pmp) DrgPbucket(pmp);
+	CDouble distinct_remaining(0.0);
+	CDouble freq_remaining(0.0);
+	CBucketArray *join_buckets = GPOS_NEW(mp) CBucketArray(mp);
 	
 	// compute the number of non-null distinct values in the input histograms
-	CDouble dNDV1 = this->DDistinct();
-	CDouble dFreqRemain1 = this->DFrequency();
-	CDouble dNullFreq1 = this->DNullFreq();
-	if (CStatistics::DEpsilon < dNullFreq1)
+	CDouble NDVs1 = this->GetNumDistinct();
+	CDouble freq_remain1 = this->GetFrequency();
+	CDouble null_freq1 = this->GetNullFreq();
+	if (CStatistics::Epsilon < null_freq1)
 	{
-		dNDV1 = std::max(CDouble(0.0), (dNDV1 - 1.0));
-		dFreqRemain1 = dFreqRemain1 - dNullFreq1;
+		NDVs1 = std::max(CDouble(0.0), (NDVs1 - 1.0));
+		freq_remain1 = freq_remain1 - null_freq1;
 	}
 	
-	CDouble dNDV2 = phist->DDistinct();
-	CDouble dFreqRemain2 = phist->DFrequency();
-	CDouble dNullFreq2 = phist->DNullFreq();
-	if (CStatistics::DEpsilon < phist->DNullFreq())
+	CDouble NDVs2 = histogram->GetNumDistinct();
+	CDouble freq_remain2 = histogram->GetFrequency();
+	CDouble null_freq2 = histogram->GetNullFreq();
+	if (CStatistics::Epsilon < histogram->GetNullFreq())
 	{
-		dNDV2 = std::max(CDouble(0.0), (dNDV2 - 1.0));
-		dFreqRemain2 = dFreqRemain2 - dNullFreq2;
+		NDVs2 = std::max(CDouble(0.0), (NDVs2 - 1.0));
+		freq_remain2 = freq_remain2 - null_freq2;
 	}
 	
 	// the estimated number of distinct value is the minimum of the non-null
 	// distinct values of the two inputs.
-	dDistinctRemain = std::min(dNDV1, dNDV2);
+	distinct_remaining = std::min(NDVs1, NDVs2);
 	
-	// the frequency of a tuple in this histogram (with frequency dFreqRemain1) joining with
-	// a tuple in another relation (with frequency dFreqRemain2) is a product of the two frequencies divided by
+	// the frequency of a tuple in this histogram (with frequency freq_remain1) joining with
+	// a tuple in another relation (with frequency freq_remain2) is a product of the two frequencies divided by
 	// the maximum NDV of the two inputs
 	
 	// Example: consider two relations A and B with 10 tuples each. Let both relations have no nulls.
 	// Let A have 2 distinct values, while B have 5 distinct values. Under uniform distribution of NDVs
 	// for statistics purposes we can view A = (1,2,1,2,1,2,1,2,1,2) and B = (1,2,3,4,5,1,2,3,4,5)
 	// Join Cardinality is 20, with frequency of the join tuple being 0.2 (since cartesian product is 100).
-	// dFreqRemain1 = dFreqRemain2 = 1, and std::max(dNDV1, dNDV2) = 5. Therefore dFreqRemain = 1/5 = 0.2
-	if (CStatistics::DEpsilon < dDistinctRemain)
+	// freq_remain1 = freq_remain2 = 1, and std::max(NDVs1, NDVs2) = 5. Therefore freq_remaining = 1/5 = 0.2
+	if (CStatistics::Epsilon < distinct_remaining)
 	{
-		dFreqRemain = dFreqRemain1 * dFreqRemain2 / std::max(dNDV1, dNDV2);
+		freq_remaining = freq_remain1 * freq_remain2 / std::max(NDVs1, NDVs2);
 	}
 
-	return GPOS_NEW(pmp) CHistogram
+	return GPOS_NEW(mp) CHistogram
 	(
-	 pdrgppbucketJoin,
-	 true /*fWellDefined*/,
-	 0.0 /*dNullFreq*/,
-	 dDistinctRemain,
-	 dFreqRemain
+	 join_buckets,
+	 true /*is_well_defined*/,
+	 0.0 /*null_freq*/,
+	 distinct_remaining,
+	 freq_remaining
 	 );
 }
 
 // construct a new histogram for an INDF join predicate
 CHistogram *
-CHistogram::PhistJoinINDF
+CHistogram::MakeJoinHistogramINDFFilter
 	(
-	IMemoryPool *pmp,
-	const CHistogram *phist
+	IMemoryPool *mp,
+	const CHistogram *histogram
 	)
 	const
 {
-	CHistogram *phistJoin = PhistJoinEquality(pmp, phist);
+	CHistogram *join_histogram = MakeJoinHistogramEqualityFilter(mp, histogram);
 
 	// compute the null frequency is the same means as how we perform equi-join
-	// see CBuckets::PbucketIntersect for details
-	CDouble dNullFreq = DNullFreq() * phist->DNullFreq() *
-			DOUBLE(1.0) / std::max(DDistinct(), phist->DDistinct());
-	phistJoin->SetNullFrequency(dNullFreq);
+	// see CBuckets::MakeBucketIntersect for details
+	CDouble null_freq = GetNullFreq() * histogram->GetNullFreq() *
+			DOUBLE(1.0) / std::max(GetNumDistinct(), histogram->GetNumDistinct());
+	join_histogram->SetNullFrequency(null_freq);
 
-	return phistJoin;
+	return join_histogram;
 }
 
 // check if we can compute NDVRemain for JOIN histogram for the given input histograms
 BOOL
-CHistogram::FCanComputeJoinNDVRemain
+CHistogram::CanComputeJoinNDVRemain
 	(
-	const CHistogram *phist1,
-	const CHistogram *phist2
+	const CHistogram *histogram1,
+	const CHistogram *histogram2
 	)
 {
-	GPOS_ASSERT(NULL != phist1);
-	GPOS_ASSERT(NULL != phist2);
+	GPOS_ASSERT(NULL != histogram1);
+	GPOS_ASSERT(NULL != histogram2);
 
-	BOOL fHasBuckets1 = (0 != phist1->UlBuckets());
-	BOOL fHasBuckets2 = (0 != phist2->UlBuckets());
-	BOOL fHasDistinctRemain1 = CStatistics::DEpsilon < phist1->DDistinctRemain();
-	BOOL fHasDistinctRemain2 = CStatistics::DEpsilon < phist2->DDistinctRemain();
+	BOOL has_buckets1 = (0 != histogram1->Buckets());
+	BOOL has_buckets2 = (0 != histogram2->Buckets());
+	BOOL has_distinct_remain1 = CStatistics::Epsilon < histogram1->GetDistinctRemain();
+	BOOL has_distinct_remain2 = CStatistics::Epsilon < histogram2->GetDistinctRemain();
 
-	if (!fHasDistinctRemain1 && !fHasDistinctRemain2)
+	if (!has_distinct_remain1 && !has_distinct_remain2)
 	{
 		// no remaining tuples information hence no need compute NDVRemain for join histogram
 		return false;
 	}
 
-	if ((fHasDistinctRemain1 || fHasBuckets1) && (fHasDistinctRemain2 || fHasBuckets2))
+	if ((has_distinct_remain1 || has_buckets1) && (has_distinct_remain2 || has_buckets2))
 	{
 		//
 		return true;
@@ -1284,31 +1284,31 @@ CHistogram::FCanComputeJoinNDVRemain
 void
 CHistogram::ComputeJoinNDVRemainInfo
 	(
-	const CHistogram *phist1,
-	const CHistogram *phist2,
-	DrgPbucket *pdrgppbucketJoin,
-	CDouble dFreqJoinBuckets1,
-	CDouble dFreqJoinBuckets2,
-	CDouble *pdDistinctRemain,
-	CDouble *pdFreqRemain
+	const CHistogram *histogram1,
+	const CHistogram *histogram2,
+									 CBucketArray *join_buckets,
+	CDouble hist1_buckets_freq,
+	CDouble hist2_buckets_freq,
+	CDouble *result_distinct_remain,
+	CDouble *result_freq_remain
 	)
 {
-	GPOS_ASSERT(NULL != phist1);
-	GPOS_ASSERT(NULL != phist2);
-	GPOS_ASSERT(NULL != pdrgppbucketJoin);
+	GPOS_ASSERT(NULL != histogram1);
+	GPOS_ASSERT(NULL != histogram2);
+	GPOS_ASSERT(NULL != join_buckets);
 
-	CDouble dNDVJoin = CStatisticsUtils::DDistinct(pdrgppbucketJoin);
-	CDouble dFreqJoin = CStatisticsUtils::DFrequency(pdrgppbucketJoin);
+	CDouble join_NDVs = CStatisticsUtils::GetNumDistinct(join_buckets);
+	CDouble join_freq = CStatisticsUtils::GetFrequency(join_buckets);
 
-	*pdDistinctRemain = 0.0;
-	*pdFreqRemain = 0.0;
+	*result_distinct_remain = 0.0;
+	*result_freq_remain = 0.0;
 
-	if (!FCanComputeJoinNDVRemain(phist1, phist2))
+	if (!CanComputeJoinNDVRemain(histogram1, histogram2))
 	{
 		return;
 	}
 
-	if (CStatistics::DEpsilon >= (1 - dFreqJoin))
+	if (CStatistics::Epsilon >= (1 - join_freq))
 	{
 		return;
 	}
@@ -1317,254 +1317,254 @@ CHistogram::ComputeJoinNDVRemainInfo
 	// 1. NDVRemain and 2. Frequency of the NDVRemain
 
 	// compute the number of non-null distinct values in each input histogram
-	CDouble dDistinct1 = phist1->DDistinct();
-	CDouble dDistinctNonNull1 = dDistinct1;
-	if (CStatistics::DEpsilon < phist1->DNullFreq())
+	CDouble num_distinct1 = histogram1->GetNumDistinct();
+	CDouble num_distinct_non_null1 = num_distinct1;
+	if (CStatistics::Epsilon < histogram1->GetNullFreq())
 	{
-		dDistinctNonNull1 = dDistinctNonNull1 - 1.0;
+		num_distinct_non_null1 = num_distinct_non_null1 - 1.0;
 	}
 
-	CDouble dDistinct2 = phist2->DDistinct();
-	CDouble dDistinctNonNull2 = dDistinct2;
-	if (CStatistics::DEpsilon < phist2->DNullFreq())
+	CDouble num_distinct2 = histogram2->GetNumDistinct();
+	CDouble num_distinct_non_null2 = num_distinct2;
+	if (CStatistics::Epsilon < histogram2->GetNullFreq())
 	{
-		dDistinctNonNull2 = dDistinctNonNull2 - 1.0;
+		num_distinct_non_null2 = num_distinct_non_null2 - 1.0;
 	}
 
 	// the estimated final number of distinct value for the join is the minimum of the non-null
 	// distinct values of the two inputs. This follows the principle of used to estimate join
 	// scaling factor -- defined as the maximum NDV of the two inputs
-	CDouble dNDVJoinFinal = std::min(dDistinctNonNull1, dDistinctNonNull2);
-	CDouble dNDVJoinRemain = dNDVJoinFinal - dNDVJoin;
+	CDouble final_join_NDVs = std::min(num_distinct_non_null1, num_distinct_non_null2);
+	CDouble remaining_join_NDVs = final_join_NDVs - join_NDVs;
 
 	// compute the frequency of the non-joining buckets in each input histogram
-	CDouble dFreqBuckets1 =  CStatisticsUtils::DFrequency(phist1->Pdrgpbucket());
-	CDouble dFreqBuckets2 =  CStatisticsUtils::DFrequency(phist2->Pdrgpbucket());
-	CDouble dFreqNonJoinBuckets1 = std::max(CDouble(0), (dFreqBuckets1 - dFreqJoinBuckets1));
-	CDouble dFreqNonJoinBuckets2 = std::max(CDouble(0), (dFreqBuckets2 - dFreqJoinBuckets2));
+	CDouble freq_buckets1 =  CStatisticsUtils::GetFrequency(histogram1->ParseDXLToBucketsArray());
+	CDouble freq_buckets2 =  CStatisticsUtils::GetFrequency(histogram2->ParseDXLToBucketsArray());
+	CDouble freq_non_join_buckets1 = std::max(CDouble(0), (freq_buckets1 - hist1_buckets_freq));
+	CDouble freq_non_join_buckets2 = std::max(CDouble(0), (freq_buckets2 - hist2_buckets_freq));
 
 	// compute the NDV of the non-joining buckets
-	CDouble dNDVNonJoinBuckets1 = CStatisticsUtils::DDistinct(phist1->Pdrgpbucket()) - dNDVJoin;
-	CDouble dNDVNonJoinBuckets2 = CStatisticsUtils::DDistinct(phist2->Pdrgpbucket()) - dNDVJoin;
+	CDouble NDVs_non_join_buckets1 = CStatisticsUtils::GetNumDistinct(histogram1->ParseDXLToBucketsArray()) - join_NDVs;
+	CDouble NDVs_non_join_buckets2 = CStatisticsUtils::GetNumDistinct(histogram2->ParseDXLToBucketsArray()) - join_NDVs;
 
-	CDouble dFreqRemain1 = phist1->DFreqRemain();
-	CDouble dFreqRemain2 = phist2->DFreqRemain();
+	CDouble freq_remain1 = histogram1->GetFreqRemain();
+	CDouble freq_remain2 = histogram2->GetFreqRemain();
 
 	// the frequency of the NDVRemain of the join is made of:
 	// 1. frequency of the NDV as a result of joining NDVRemain1 and NDVRemain2
-	// 2. frequency of the NDV as a results of joining NDVRemain1 and dNDVNonJoinBuckets2
-	// 3. frequency of the NDV as a results of joining NDVRemain2 and dNDVNonJoinBuckets1
+	// 2. frequency of the NDV as a results of joining NDVRemain1 and NDVs_non_join_buckets2
+	// 3. frequency of the NDV as a results of joining NDVRemain2 and NDVs_non_join_buckets1
 
-	CDouble dFreqJoinRemain = dFreqRemain1 * dFreqRemain2 / std::max(phist1->DDistinctRemain(), phist2->DDistinctRemain());
-	dFreqJoinRemain = dFreqJoinRemain + dFreqRemain1 * dFreqNonJoinBuckets2 / std::max(dDistinctNonNull1, dNDVNonJoinBuckets2);
-	dFreqJoinRemain = dFreqJoinRemain + dFreqRemain2 * dFreqNonJoinBuckets1 / std::max(dDistinctNonNull2, dNDVNonJoinBuckets1);
+	CDouble freq_remain_join = freq_remain1 * freq_remain2 / std::max(histogram1->GetDistinctRemain(), histogram2->GetDistinctRemain());
+	freq_remain_join = freq_remain_join + freq_remain1 * freq_non_join_buckets2 / std::max(num_distinct_non_null1, NDVs_non_join_buckets2);
+	freq_remain_join = freq_remain_join + freq_remain2 * freq_non_join_buckets1 / std::max(num_distinct_non_null2, NDVs_non_join_buckets1);
 
-	*pdDistinctRemain = dNDVJoinRemain;
-	*pdFreqRemain = dFreqJoinRemain;
+	*result_distinct_remain = remaining_join_NDVs;
+	*result_freq_remain = freq_remain_join;
 }
 
 // construct new histogram by removing duplicates and normalize output histogram
 CHistogram *
-CHistogram::PhistGroupByNormalized
+CHistogram::MakeGroupByHistogramNormalize
 	(
-	IMemoryPool *pmp,
-	CDouble, // dRows,
-	CDouble *pdDistinctValues
+	IMemoryPool *mp,
+	CDouble, // rows,
+	CDouble *result_distinct_values
 	)
 	const
 {
 	// if either histogram is not well-defined, the result is not well defined
-	if (!FWellDefined())
+	if (!IsWellDefined())
 	{
-		CHistogram *phistAfter =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
-		*pdDistinctValues = DMinDistinct / CHistogram::DDefaultSelectivity;
-		return phistAfter;
+		CHistogram *result_histogram = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
+		*result_distinct_values = MinDistinct / CHistogram::DefaultSelectivity;
+		return result_histogram;
 	}
 
 	// total number of distinct values
-	CDouble dDistinct = DDistinct();
+	CDouble distinct = GetNumDistinct();
 
-	DrgPbucket *pdrgppbucketNew = GPOS_NEW(pmp) DrgPbucket(pmp);
+	CBucketArray *new_buckets = GPOS_NEW(mp) CBucketArray(mp);
 
-	const ULONG ulBuckets = m_pdrgppbucket->UlLength();
-	for (ULONG ul = 0; ul < ulBuckets; ul++)
+	const ULONG num_of_buckets = m_histogram_buckets->Size();
+	for (ULONG ul = 0; ul < num_of_buckets; ul++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ul];
-		CPoint *ppLower = pbucket->PpLower();
-		CPoint *ppUpper = pbucket->PpUpper();
-		ppLower->AddRef();
-		ppUpper->AddRef();
+		CBucket *bucket = (*m_histogram_buckets)[ul];
+		CPoint *lower_bound = bucket->GetLowerBound();
+		CPoint *upper_bound = bucket->GetUpperBound();
+		lower_bound->AddRef();
+		upper_bound->AddRef();
 
-		BOOL fUpperClosed = false;
-		if (ppLower->FEqual(ppUpper))
+		BOOL is_upper_closed = false;
+		if (lower_bound->Equals(upper_bound))
 		{
-			fUpperClosed = true;
+			is_upper_closed = true;
 		}
-		CBucket *pbucketNew = GPOS_NEW(pmp) CBucket
+		CBucket *new_bucket = GPOS_NEW(mp) CBucket
 										(
-										ppLower,
-										ppUpper, 
+												lower_bound,
+												upper_bound,
 										true /* fClosedLower */, 
-										fUpperClosed,
-										pbucket->DDistinct() / dDistinct,
-										pbucket->DDistinct()
+										is_upper_closed,
+										bucket->GetNumDistinct() / distinct,
+										bucket->GetNumDistinct()
 										);
-		pdrgppbucketNew->Append(pbucketNew);
+		new_buckets->Append(new_bucket);
 	}
 
-	CDouble dNullFreqNew = CDouble(0.0);
-	if (CStatistics::DEpsilon < m_dNullFreq)
+	CDouble new_null_freq = CDouble(0.0);
+	if (CStatistics::Epsilon < m_null_freq)
 	{
-		dNullFreqNew = std::min(CDouble(1.0), CDouble(1.0)/dDistinct);
+		new_null_freq = std::min(CDouble(1.0), CDouble(1.0)/distinct);
 	}
 
 
-	CDouble dFreqRemain = 0.0;
-	if (CStatistics::DEpsilon < m_dDistinctRemain)
+	CDouble freq_remaining = 0.0;
+	if (CStatistics::Epsilon < m_distinct_remaining)
 	{
 		// TODO:  11/22/2013 - currently the NDV of a histogram could be 0 or a decimal number.
-		// We may not need the capping if later dDistinct is lower bounded at 1.0 for non-empty histogram
-		dFreqRemain = std::min(CDouble(1.0), m_dDistinctRemain/dDistinct);
+		// We may not need the capping if later distinct is lower bounded at 1.0 for non-empty histogram
+		freq_remaining = std::min(CDouble(1.0), m_distinct_remaining/distinct);
 	}
 
-	CHistogram *phistAfter = GPOS_NEW(pmp) CHistogram(pdrgppbucketNew, true /*fWellDefined*/, dNullFreqNew, m_dDistinctRemain, dFreqRemain);
-	*pdDistinctValues = phistAfter->DDistinct();
+	CHistogram *result_histogram = GPOS_NEW(mp) CHistogram(new_buckets, true /*is_well_defined*/, new_null_freq, m_distinct_remaining, freq_remaining);
+	*result_distinct_values = result_histogram->GetNumDistinct();
 
-	return phistAfter;
+	return result_histogram;
 }
 
 // construct new histogram based on union all operation
 CHistogram *
-CHistogram::PhistUnionAllNormalized
+CHistogram::MakeUnionAllHistogramNormalize
 	(
-	IMemoryPool *pmp,
-	CDouble dRows,
-	const CHistogram *phist,
-	CDouble dRowsOther
+	IMemoryPool *mp,
+	CDouble rows,
+	const CHistogram *histogram,
+	CDouble rows_other
 	)
 	const
 {
-	DrgPbucket *pdrgppbucketNew = GPOS_NEW(pmp) DrgPbucket(pmp);
-	ULONG ul1 = 0; // index on buckets from this histogram
-	ULONG ul2 = 0; // index on buckets from other histogram
-	CBucket *pbucket1 = (*this) [ul1];
-	CBucket *pbucket2 = (*phist) [ul2];
-	CDouble dRowsNew = (dRowsOther + dRows);
+	CBucketArray *new_buckets = GPOS_NEW(mp) CBucketArray(mp);
+	ULONG idx1 = 0; // index on buckets from this histogram
+	ULONG idx2 = 0; // index on buckets from other histogram
+	CBucket *bucket1 = (*this) [idx1];
+	CBucket *bucket2 = (*histogram) [idx2];
+	CDouble rows_new = (rows_other + rows);
 
 	// flags to determine if the buckets where residue of the bucket-merge operation
-	BOOL fbucket1Residual = false;
-	BOOL fbucket2Residual = false;
+	BOOL bucket1_is_residual = false;
+	BOOL bucket2_is_residual = false;
 
-	while (NULL != pbucket1 && NULL != pbucket2)
+	while (NULL != bucket1 && NULL != bucket2)
 	{
-		if (pbucket1->FBefore(pbucket2))
+		if (bucket1->IsBefore(bucket2))
 		{
-			pdrgppbucketNew->Append(pbucket1->PbucketUpdateFrequency(pmp, dRows, dRowsNew));
-			CleanupResidualBucket(pbucket1, fbucket1Residual);
-			ul1++;
-			pbucket1 = (*this) [ul1];
-			fbucket1Residual = false;
+			new_buckets->Append(bucket1->MakeBucketUpdateFrequency(mp, rows, rows_new));
+			CleanupResidualBucket(bucket1, bucket1_is_residual);
+			idx1++;
+			bucket1 = (*this) [idx1];
+			bucket1_is_residual = false;
 		}
-		else if (pbucket2->FBefore(pbucket1))
+		else if (bucket2->IsBefore(bucket1))
 		{
-			pdrgppbucketNew->Append(pbucket2->PbucketUpdateFrequency(pmp, dRowsOther, dRowsNew));
-			CleanupResidualBucket(pbucket2, fbucket2Residual);
-			ul2++;
-			pbucket2 = (*phist) [ul2];
-			fbucket2Residual = false;
+			new_buckets->Append(bucket2->MakeBucketUpdateFrequency(mp, rows_other, rows_new));
+			CleanupResidualBucket(bucket2, bucket2_is_residual);
+			idx2++;
+			bucket2 = (*histogram)[idx2];
+			bucket2_is_residual = false;
 		}
 		else
 		{
-			GPOS_ASSERT(pbucket1->FIntersects(pbucket2));
-			CBucket *pbucket1New = NULL;
-			CBucket *pbucket2New = NULL;
-			CBucket *pbucketMerge = pbucket1->PbucketMerge(pmp, pbucket2, dRows, dRowsOther, &pbucket1New, &pbucket2New);
-			pdrgppbucketNew->Append(pbucketMerge);
+			GPOS_ASSERT(bucket1->Intersects(bucket2));
+			CBucket *bucket1_new = NULL;
+			CBucket *bucket2_new = NULL;
+			CBucket *merge_bucket = bucket1->MakeBucketMerged(mp, bucket2, rows, rows_other, &bucket1_new, &bucket2_new);
+			new_buckets->Append(merge_bucket);
 
-			GPOS_ASSERT(NULL == pbucket1New || NULL == pbucket2New);
-			CleanupResidualBucket(pbucket1, fbucket1Residual);
-			CleanupResidualBucket(pbucket2, fbucket2Residual);
+			GPOS_ASSERT(NULL == bucket1_new || NULL == bucket2_new);
+			CleanupResidualBucket(bucket1, bucket1_is_residual);
+			CleanupResidualBucket(bucket2, bucket2_is_residual);
 
-			pbucket1 = PbucketNext(this, pbucket1New, &fbucket1Residual, &ul1);
-			pbucket2 = PbucketNext(phist, pbucket2New, &fbucket2Residual, &ul2);
+			bucket1 = GetNextBucket(this, bucket1_new, &bucket1_is_residual, &idx1);
+			bucket2 = GetNextBucket(histogram, bucket2_new, &bucket2_is_residual, &idx2);
 		}
 	}
 
-	const ULONG ulBuckets1 = UlBuckets();
-	const ULONG ulBuckets2 = phist->UlBuckets();
+	const ULONG buckets1 = Buckets();
+	const ULONG buckets2 = histogram->Buckets();
 
-	GPOS_ASSERT_IFF(NULL == pbucket1, ul1 == ulBuckets1);
-	GPOS_ASSERT_IFF(NULL == pbucket2, ul2 == ulBuckets2);
+	GPOS_ASSERT_IFF(NULL == bucket1, idx1 == buckets1);
+	GPOS_ASSERT_IFF(NULL == bucket2, idx2 == buckets2);
 
-	ul1 = UlAddResidualUnionAllBucket(pmp, pdrgppbucketNew, pbucket1, dRowsOther, dRowsNew, fbucket1Residual, ul1);
-	ul2 = UlAddResidualUnionAllBucket(pmp, pdrgppbucketNew, pbucket2, dRows, dRowsNew, fbucket2Residual, ul2);
+	idx1 = AddResidualUnionAllBucket(mp, new_buckets, bucket1, rows_other, rows_new, bucket1_is_residual, idx1);
+	idx2 = AddResidualUnionAllBucket(mp, new_buckets, bucket2, rows, rows_new, bucket2_is_residual, idx2);
 
-	CleanupResidualBucket(pbucket1, fbucket1Residual);
-	CleanupResidualBucket(pbucket2, fbucket2Residual);
+	CleanupResidualBucket(bucket1, bucket1_is_residual);
+	CleanupResidualBucket(bucket2, bucket2_is_residual);
 
 	// add any leftover buckets from other histogram
-	AddBuckets(pmp, phist->m_pdrgppbucket, pdrgppbucketNew, dRowsOther, dRowsNew, ul2, ulBuckets2);
+	AddBuckets(mp, histogram->m_histogram_buckets, new_buckets, rows_other, rows_new, idx2, buckets2);
 
 	// add any leftover buckets from this histogram
-	AddBuckets(pmp, m_pdrgppbucket, pdrgppbucketNew, dRows, dRowsNew, ul1, ulBuckets1);
+	AddBuckets(mp, m_histogram_buckets, new_buckets, rows, rows_new, idx1, buckets1);
 
-	CDouble dNullFreqNew = (m_dNullFreq * dRows + phist->m_dNullFreq * dRowsOther) / dRowsNew;
+	CDouble new_null_freq = (m_null_freq * rows + histogram->m_null_freq * rows_other) / rows_new;
 
-	CDouble dDistinctRemain = std::max(m_dDistinctRemain, phist->m_dDistinctRemain);
-	CDouble dFreqRemain = (m_dFreqRemain * dRows + phist->m_dFreqRemain * dRowsOther) / dRowsNew;
+	CDouble distinct_remaining = std::max(m_distinct_remaining, histogram->m_distinct_remaining);
+	CDouble freq_remaining = (m_freq_remaining * rows + histogram->m_freq_remaining * rows_other) / rows_new;
 
-	CHistogram *phistResult = GPOS_NEW(pmp) CHistogram(pdrgppbucketNew, true /*fWellDefined*/, dNullFreqNew, dDistinctRemain, dFreqRemain);
-	(void) phistResult->DNormalize();
+	CHistogram *result_histogram = GPOS_NEW(mp) CHistogram(new_buckets, true /*is_well_defined*/, new_null_freq, distinct_remaining, freq_remaining);
+	(void) result_histogram->NormalizeHistogram();
 
-	return phistResult;
+	return result_histogram;
 }
 
 // add residual bucket in the union all operation to the array of buckets in the histogram
 ULONG
-CHistogram::UlAddResidualUnionAllBucket
+CHistogram::AddResidualUnionAllBucket
 	(
-	IMemoryPool *pmp,
-	DrgPbucket *pdrgppbucket,
-	CBucket *pbucket,
-	CDouble dRowsOld,
-	CDouble dRowsNew,
-	BOOL fbucketResidual,
-	ULONG ulIndex
+	IMemoryPool *mp,
+	CBucketArray *histogram_buckets,
+	CBucket *bucket,
+	CDouble rows_old,
+	CDouble rows_new,
+	BOOL bucket_is_residual,
+	ULONG index
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdrgppbucket);
+	GPOS_ASSERT(NULL != histogram_buckets);
 
-	if (fbucketResidual)
+	if (bucket_is_residual)
 	{
-		pdrgppbucket->Append(pbucket->PbucketUpdateFrequency(pmp, dRowsOld, dRowsNew));
-		return ulIndex + 1;
+		histogram_buckets->Append(bucket->MakeBucketUpdateFrequency(mp, rows_old, rows_new));
+		return index + 1;
 	}
 
-	return ulIndex;
+	return index;
 }
 
 // add buckets from one array to another
 void
 CHistogram::AddBuckets
 	(
-	IMemoryPool *pmp,
-	DrgPbucket *pdrgppbucketSrc,
-	DrgPbucket *pdrgppbucketDest,
-	CDouble dRowsOld,
-	CDouble dRowsNew,
-	ULONG ulBegin,
-	ULONG ulEnd
+	IMemoryPool *mp,
+	CBucketArray *src_buckets,
+	CBucketArray *dest_buckets,
+	CDouble rows_old,
+	CDouble rows_new,
+	ULONG begin,
+	ULONG end
 	)
 {
-	GPOS_ASSERT(NULL != pdrgppbucketSrc);
-	GPOS_ASSERT(NULL != pdrgppbucketDest);
-	GPOS_ASSERT(ulBegin <= ulEnd);
-	GPOS_ASSERT(ulEnd <= pdrgppbucketSrc->UlLength());
+	GPOS_ASSERT(NULL != src_buckets);
+	GPOS_ASSERT(NULL != dest_buckets);
+	GPOS_ASSERT(begin <= end);
+	GPOS_ASSERT(end <= src_buckets->Size());
 
-	for (ULONG ul = ulBegin; ul < ulEnd; ul++)
+	for (ULONG ul = begin; ul < end; ul++)
 	{
-		pdrgppbucketDest->Append(((*pdrgppbucketSrc)[ul])->PbucketUpdateFrequency(pmp, dRowsOld, dRowsNew));
+		dest_buckets->Append(((*src_buckets)[ul])->MakeBucketUpdateFrequency(mp, rows_old, rows_new));
 	}
 }
 
@@ -1572,287 +1572,287 @@ CHistogram::AddBuckets
 void
 CHistogram::CleanupResidualBucket
 	(
-	CBucket *pbucket,
-	BOOL fbucketResidual
+	CBucket *bucket,
+	BOOL bucket_is_residual
 	)
 	const
 {
-	if (NULL != pbucket && fbucketResidual)
+	if (NULL != bucket && bucket_is_residual)
 	{
-		GPOS_DELETE(pbucket);
-		pbucket = NULL;
+		GPOS_DELETE(bucket);
+		bucket = NULL;
 	}
 }
 
 // get the next bucket for union / union all
 CBucket *
-CHistogram::PbucketNext
+CHistogram::GetNextBucket
 	(
-	const CHistogram *phist,
-	CBucket *pbucketNew,
-	BOOL *pfbucketResidual,
-	ULONG *pulBucketIndex
+	const CHistogram *histogram,
+	CBucket *new_bucket,
+	BOOL *result_bucket_is_residual,
+	ULONG *current_bucket_index
 	)
 	const
 {
-	GPOS_ASSERT(NULL != phist);
-	if (NULL != pbucketNew)
+	GPOS_ASSERT(NULL != histogram);
+	if (NULL != new_bucket)
 	{
-		*pfbucketResidual = true;
-		return pbucketNew;
+		*result_bucket_is_residual = true;
+		return new_bucket;
 	}
 
-	*pulBucketIndex = *pulBucketIndex  + 1;
-	*pfbucketResidual = false;
+	*current_bucket_index = *current_bucket_index  + 1;
+	*result_bucket_is_residual = false;
 
-	return (*phist) [*pulBucketIndex];
+	return (*histogram) [*current_bucket_index];
 }
 
 //	construct new histogram based on union operation
 CHistogram *
-CHistogram::PhistUnionNormalized
+CHistogram::MakeUnionHistogramNormalize
 	(
-	IMemoryPool *pmp,
-	CDouble dRows,
-	const CHistogram *phistOther,
-	CDouble dRowsOther,
-	CDouble *pdRowsOutput
+	IMemoryPool *mp,
+	CDouble rows,
+	const CHistogram *other_histogram,
+	CDouble rows_other,
+	CDouble *num_output_rows
 	)
 	const
 {
-	GPOS_ASSERT(NULL != phistOther);
+	GPOS_ASSERT(NULL != other_histogram);
 
-	ULONG ul1 = 0; // index on buckets from this histogram
-	ULONG ul2 = 0; // index on buckets from other histogram
-	CBucket *pbucket1 = (*this) [ul1];
-	CBucket *pbucket2 = (*phistOther) [ul2];
+	ULONG idx1 = 0; // index on buckets from this histogram
+	ULONG idx2 = 0; // index on buckets from other histogram
+	CBucket *bucket1 = (*this) [idx1];
+	CBucket *bucket2 = (*other_histogram) [idx2];
 
 	// flags to determine if the buckets where residue of the bucket-merge operation
-	BOOL fbucket1Residual = false;
-	BOOL fbucket2Residual = false;
+	BOOL bucket1_is_residual = false;
+	BOOL bucket2_is_residual = false;
 
 	// array of buckets in the resulting histogram
-	DrgPbucket *pdrgppbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
+	CBucketArray *histogram_buckets = GPOS_NEW(mp) CBucketArray(mp);
 
 	// number of tuples in each bucket of the resulting histogram
-	DrgPdouble *pdrgpdoubleRows = GPOS_NEW(pmp) DrgPdouble(pmp);
+	CDoubleArray *num_tuples_per_bucket = GPOS_NEW(mp) CDoubleArray(mp);
 
-	CDouble dRowCummulative(0.0);
-	while (NULL != pbucket1 && NULL != pbucket2)
+	CDouble cumulative_num_rows(0.0);
+	while (NULL != bucket1 && NULL != bucket2)
 	{
-		if (pbucket1->FBefore(pbucket2))
+		if (bucket1->IsBefore(bucket2))
 		{
-			pdrgppbucket->Append(pbucket1->PbucketCopy(pmp));
-			pdrgpdoubleRows->Append(GPOS_NEW(pmp) CDouble(pbucket1->DFrequency() * dRows));
-			CleanupResidualBucket(pbucket1, fbucket1Residual);
-			ul1++;
-			pbucket1 = (*this) [ul1];
-			fbucket1Residual = false;
+			histogram_buckets->Append(bucket1->MakeBucketCopy(mp));
+			num_tuples_per_bucket->Append(GPOS_NEW(mp) CDouble(bucket1->GetFrequency() * rows));
+			CleanupResidualBucket(bucket1, bucket1_is_residual);
+			idx1++;
+			bucket1 = (*this) [idx1];
+			bucket1_is_residual = false;
 		}
-		else if (pbucket2->FBefore(pbucket1))
+		else if (bucket2->IsBefore(bucket1))
 		{
-			pdrgppbucket->Append(pbucket2->PbucketCopy(pmp));
-			pdrgpdoubleRows->Append(GPOS_NEW(pmp) CDouble(pbucket2->DFrequency() * dRowsOther));
-			CleanupResidualBucket(pbucket2, fbucket2Residual);
-			ul2++;
-			pbucket2 = (*phistOther) [ul2];
-			fbucket2Residual = false;
+			histogram_buckets->Append(bucket2->MakeBucketCopy(mp));
+			num_tuples_per_bucket->Append(GPOS_NEW(mp) CDouble(bucket2->GetFrequency() * rows_other));
+			CleanupResidualBucket(bucket2, bucket2_is_residual);
+			idx2++;
+			bucket2 = (*other_histogram) [idx2];
+			bucket2_is_residual = false;
 		}
 		else
 		{
-			GPOS_ASSERT(pbucket1->FIntersects(pbucket2));
-			CBucket *pbucket1New = NULL;
-			CBucket *pbucket2New = NULL;
-			CBucket *pbucketMerge = NULL;
+			GPOS_ASSERT(bucket1->Intersects(bucket2));
+			CBucket *bucket1_new = NULL;
+			CBucket *bucket2_new = NULL;
+			CBucket *merge_bucket = NULL;
 
-			pbucketMerge = pbucket1->PbucketMerge
+			merge_bucket = bucket1->MakeBucketMerged
 									(
-									pmp,
-									pbucket2,
-									dRows,
-									dRowsOther,
-									&pbucket1New,
-									&pbucket2New,
-									false /* fUnionAll */
+									mp,
+									bucket2,
+									rows,
+									rows_other,
+									&bucket1_new,
+									&bucket2_new,
+									false /* is_union_all */
 									);
 
 			// add the estimated number of rows in the merged bucket
-			pdrgpdoubleRows->Append(GPOS_NEW(pmp) CDouble(pbucketMerge->DFrequency() * dRows));
-			pdrgppbucket->Append(pbucketMerge);
+			num_tuples_per_bucket->Append(GPOS_NEW(mp) CDouble(merge_bucket->GetFrequency() * rows));
+			histogram_buckets->Append(merge_bucket);
 
-			GPOS_ASSERT(NULL == pbucket1New || NULL == pbucket2New);
-			CleanupResidualBucket(pbucket1, fbucket1Residual);
-			CleanupResidualBucket(pbucket2, fbucket2Residual);
+			GPOS_ASSERT(NULL == bucket1_new || NULL == bucket2_new);
+			CleanupResidualBucket(bucket1, bucket1_is_residual);
+			CleanupResidualBucket(bucket2, bucket2_is_residual);
 
-			pbucket1 = PbucketNext(this, pbucket1New, &fbucket1Residual, &ul1);
-			pbucket2 = PbucketNext(phistOther, pbucket2New, &fbucket2Residual, &ul2);
+			bucket1 = GetNextBucket(this, bucket1_new, &bucket1_is_residual, &idx1);
+			bucket2 = GetNextBucket(other_histogram, bucket2_new, &bucket2_is_residual, &idx2);
 		}
 	}
 
-	const ULONG ulBuckets1 = UlBuckets();
-	const ULONG ulBuckets2 = phistOther->UlBuckets();
+	const ULONG buckets1 = Buckets();
+	const ULONG buckets2 = other_histogram->Buckets();
 
-	GPOS_ASSERT_IFF(NULL == pbucket1, ul1 == ulBuckets1);
-	GPOS_ASSERT_IFF(NULL == pbucket2, ul2 == ulBuckets2);
+	GPOS_ASSERT_IFF(NULL == bucket1, idx1 == buckets1);
+	GPOS_ASSERT_IFF(NULL == bucket2, idx2 == buckets2);
 
-	ul1 = UlAddResidualUnionBucket(pmp, pdrgppbucket, pbucket1, dRowsOther, fbucket1Residual, ul1, pdrgpdoubleRows);
-	ul2 = UlAddResidualUnionBucket(pmp, pdrgppbucket, pbucket2, dRows, fbucket2Residual, ul2, pdrgpdoubleRows);
+	idx1 = AddResidualUnionBucket(mp, histogram_buckets, bucket1, rows_other, bucket1_is_residual, idx1, num_tuples_per_bucket);
+	idx2 = AddResidualUnionBucket(mp, histogram_buckets, bucket2, rows, bucket2_is_residual, idx2, num_tuples_per_bucket);
 
-	CleanupResidualBucket(pbucket1, fbucket1Residual);
-	CleanupResidualBucket(pbucket2, fbucket2Residual);
+	CleanupResidualBucket(bucket1, bucket1_is_residual);
+	CleanupResidualBucket(bucket2, bucket2_is_residual);
 
 	// add any leftover buckets from other histogram
-	AddBuckets(pmp, phistOther->m_pdrgppbucket, pdrgppbucket, dRowsOther, pdrgpdoubleRows, ul2, ulBuckets2);
+	AddBuckets(mp, other_histogram->m_histogram_buckets, histogram_buckets, rows_other, num_tuples_per_bucket, idx2, buckets2);
 
 	// add any leftover buckets from this histogram
-	AddBuckets(pmp, m_pdrgppbucket, pdrgppbucket, dRows, pdrgpdoubleRows, ul1, ulBuckets1);
+	AddBuckets(mp, m_histogram_buckets, histogram_buckets, rows, num_tuples_per_bucket, idx1, buckets1);
 
 	// compute the total number of null values from both histograms
-	CDouble dNullRows= std::max( (this->DNullFreq() * dRows), (phistOther->DNullFreq() * dRowsOther));
+	CDouble num_null_rows = std::max( (this->GetNullFreq() * rows), (other_histogram->GetNullFreq() * rows_other));
 
 	// compute the total number of distinct values (NDV) that are not captured by the buckets in both the histograms
-	CDouble dNDVRemain = std::max(m_dDistinctRemain, phistOther->DDistinctRemain());
+	CDouble num_NDV_remain = std::max(m_distinct_remaining, other_histogram->GetDistinctRemain());
 
 	// compute the total number of rows having distinct values not captured by the buckets in both the histograms
-	CDouble dNDVRemainRows = std::max( (this->DFreqRemain() * dRows), (phistOther->DFreqRemain() * dRowsOther));
+	CDouble NDV_remain_num_rows = std::max( (this->GetFreqRemain() * rows), (other_histogram->GetFreqRemain() * rows_other));
 
-	CHistogram *phistResult = PhistUpdatedFrequency
+	CHistogram *result_histogram = MakeHistogramUpdateFreq
 									(
-									pmp,
-									pdrgppbucket,
-									pdrgpdoubleRows,
-									pdRowsOutput,
-									dNullRows,
-									dNDVRemain,
-									dNDVRemainRows
+									mp,
+									histogram_buckets,
+									num_tuples_per_bucket,
+									num_output_rows,
+									num_null_rows,
+									num_NDV_remain,
+									NDV_remain_num_rows
 									);
 	// clean up
-	pdrgppbucket->Release();
-	pdrgpdoubleRows->Release();
+	histogram_buckets->Release();
+	num_tuples_per_bucket->Release();
 
-	return phistResult;
+	return result_histogram;
 }
 
 // create a new histogram with updated bucket frequency
 CHistogram *
-CHistogram::PhistUpdatedFrequency
+CHistogram::MakeHistogramUpdateFreq
 	(
-	IMemoryPool *pmp,
-	DrgPbucket *pdrgppbucket,
-	DrgPdouble *pdrgpdouble,
-	CDouble *pdRowOutput,
-	CDouble dNullRows,
-	CDouble dNDVRemain,
-	CDouble dNDVRemainRows
+	IMemoryPool *mp,
+	CBucketArray *histogram_buckets,
+	CDoubleArray *dest_bucket_freqs,
+	CDouble *result_num_rows_output,
+	CDouble num_null_rows,
+	CDouble num_NDV_remain,
+	CDouble NDV_remain_num_rows
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdrgppbucket);
-	GPOS_ASSERT(NULL != pdrgpdouble);
+	GPOS_ASSERT(NULL != histogram_buckets);
+	GPOS_ASSERT(NULL != dest_bucket_freqs);
 
-	const ULONG ulLen = pdrgpdouble->UlLength();
-	GPOS_ASSERT(ulLen == pdrgppbucket->UlLength());
+	const ULONG length = dest_bucket_freqs->Size();
+	GPOS_ASSERT(length == histogram_buckets->Size());
 
-	CDouble dRowCummulative = dNullRows + dNDVRemainRows;
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	CDouble cumulative_num_rows = num_null_rows + NDV_remain_num_rows;
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		CDouble dRows = *(*pdrgpdouble)[ul];
-		dRowCummulative = dRowCummulative + dRows;
+		CDouble rows = *(*dest_bucket_freqs)[ul];
+		cumulative_num_rows = cumulative_num_rows + rows;
 	}
 
-	*pdRowOutput = std::max(CStatistics::DMinRows, dRowCummulative);
+	*result_num_rows_output = std::max(CStatistics::MinRows, cumulative_num_rows);
 
-	DrgPbucket *pdrgppbucketNew = GPOS_NEW(pmp) DrgPbucket(pmp);
-	for (ULONG ul = 0; ul < ulLen; ul++)
+	CBucketArray *new_buckets = GPOS_NEW(mp) CBucketArray(mp);
+	for (ULONG ul = 0; ul < length; ul++)
 	{
-		CDouble dRows = *(*pdrgpdouble)[ul];
-		CBucket *pbucket = (*pdrgppbucket)[ul];
+		CDouble rows = *(*dest_bucket_freqs)[ul];
+		CBucket *bucket = (*histogram_buckets)[ul];
 
 		// reuse the points
-		pbucket->PpLower()->AddRef();
-		pbucket->PpUpper()->AddRef();
+		bucket->GetLowerBound()->AddRef();
+		bucket->GetUpperBound()->AddRef();
 
-		CDouble dFrequency = dRows / *pdRowOutput;
+		CDouble frequency = rows / *result_num_rows_output;
 
-		CBucket *pbucketNew = GPOS_NEW(pmp) CBucket
+		CBucket *new_bucket = GPOS_NEW(mp) CBucket
 										(
-										pbucket->PpLower(),
-										pbucket->PpUpper(),
-										pbucket->FLowerClosed(),
-										pbucket->FUpperClosed(),
-										dFrequency,
-										pbucket->DDistinct()
+										bucket->GetLowerBound(),
+										bucket->GetUpperBound(),
+										bucket->IsLowerClosed(),
+										bucket->IsUpperClosed(),
+										frequency,
+										bucket->GetNumDistinct()
 										);
 
-		pdrgppbucketNew->Append(pbucketNew);
+		new_buckets->Append(new_bucket);
 	}
 
-	CDouble dNullFreq = dNullRows / *pdRowOutput ;
-	CDouble dNDVRemainFreq =  dNDVRemainRows / *pdRowOutput ;
+	CDouble null_freq = num_null_rows / *result_num_rows_output ;
+	CDouble NDV_remain_freq =  NDV_remain_num_rows / *result_num_rows_output ;
 
-	return GPOS_NEW(pmp) CHistogram
+	return GPOS_NEW(mp) CHistogram
 							(
-							pdrgppbucketNew,
-							true /* fWellDefined */,
-							dNullFreq,
-							dNDVRemain,
-							dNDVRemainFreq,
-							false /* fColStatsMissing */
+							new_buckets,
+							true /* is_well_defined */,
+							null_freq,
+							num_NDV_remain,
+							NDV_remain_freq,
+							false /* is_col_stats_missing */
 							);
 }
 
 // add residual bucket in an union operation to the array of buckets in the histogram
 ULONG
-CHistogram::UlAddResidualUnionBucket
+CHistogram::AddResidualUnionBucket
 	(
-	IMemoryPool *pmp,
-	DrgPbucket *pdrgppbucket,
-	CBucket *pbucket,
-	CDouble dRows,
-	BOOL fbucketResidual,
-	ULONG ulIndex,
-	DrgPdouble *pdrgpdouble
+	IMemoryPool *mp,
+	CBucketArray *histogram_buckets,
+	CBucket *bucket,
+	CDouble rows,
+	BOOL bucket_is_residual,
+	ULONG index,
+	CDoubleArray *dest_bucket_freqs
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pdrgppbucket);
-	GPOS_ASSERT(NULL != pdrgpdouble);
+	GPOS_ASSERT(NULL != histogram_buckets);
+	GPOS_ASSERT(NULL != dest_bucket_freqs);
 
-	if (!fbucketResidual)
+	if (!bucket_is_residual)
 	{
-		return ulIndex;
+		return index;
 	}
 
-	CBucket *pbucketNew = pbucket->PbucketCopy(pmp);
-	pdrgppbucket->Append(pbucketNew);
-	pdrgpdouble->Append(GPOS_NEW(pmp) CDouble(pbucketNew->DFrequency() * dRows));
+	CBucket *new_bucket = bucket->MakeBucketCopy(mp);
+	histogram_buckets->Append(new_bucket);
+	dest_bucket_freqs->Append(GPOS_NEW(mp) CDouble(new_bucket->GetFrequency() * rows));
 
-	return ulIndex + 1;
+	return index + 1;
 }
 
 // add buckets from one array to another
 void
 CHistogram::AddBuckets
 	(
-	IMemoryPool *pmp,
-	DrgPbucket *pdrgppbucketSrc,
-	DrgPbucket *pdrgppbucketDest,
-	CDouble dRows,
-	DrgPdouble *pdrgpdouble,
-	ULONG ulBegin,
-	ULONG ulEnd
+	IMemoryPool *mp,
+	CBucketArray *src_buckets,
+	CBucketArray *dest_buckets,
+	CDouble rows,
+	CDoubleArray *dest_bucket_freqs,
+	ULONG begin,
+	ULONG end
 	)
 {
-	GPOS_ASSERT(NULL != pdrgppbucketSrc);
-	GPOS_ASSERT(NULL != pdrgppbucketDest);
-	GPOS_ASSERT(ulBegin <= ulEnd);
-	GPOS_ASSERT(ulEnd <= pdrgppbucketSrc->UlLength());
+	GPOS_ASSERT(NULL != src_buckets);
+	GPOS_ASSERT(NULL != dest_buckets);
+	GPOS_ASSERT(begin <= end);
+	GPOS_ASSERT(end <= src_buckets->Size());
 
-	for (ULONG ul = ulBegin; ul < ulEnd; ul++)
+	for (ULONG ul = begin; ul < end; ul++)
 	{
-		CBucket *pbucketNew = ((*pdrgppbucketSrc)[ul])->PbucketCopy(pmp);
-		pdrgppbucketDest->Append(pbucketNew);
-		pdrgpdouble->Append(GPOS_NEW(pmp) CDouble(pbucketNew->DFrequency() * dRows));
+		CBucket *new_bucket = ((*src_buckets)[ul])->MakeBucketCopy(mp);
+		dest_buckets->Append(new_bucket);
+		dest_bucket_freqs->Append(GPOS_NEW(mp) CDouble(new_bucket->GetFrequency() * rows));
 	}
 }
 
@@ -1860,74 +1860,74 @@ CHistogram::AddBuckets
 CBucket *
 CHistogram::operator []
 	(
-	ULONG ulPos
+	ULONG pos
 	)
 	const
 {
-	if (ulPos < UlBuckets())
+	if (pos < Buckets())
 	{
-		return (*m_pdrgppbucket) [ulPos];
+		return (*m_histogram_buckets) [pos];
 	}
 	return NULL;
 }
 
 // translate the histogram into a the dxl derived column statistics
 CDXLStatsDerivedColumn *
-CHistogram::Pdxlstatsdercol
+CHistogram::TranslateToDXLDerivedColumnStats
 	(
-	IMemoryPool *pmp,
-	CMDAccessor *pmda,
-	ULONG ulColId,
-	CDouble dWidth
+	IMemoryPool *mp,
+	CMDAccessor *md_accessor,
+	ULONG colid,
+	CDouble width
 	)
 	const
 {
-	DrgPdxlbucket *pdrgpdxlbucket = GPOS_NEW(pmp) DrgPdxlbucket(pmp);
+	CDXLBucketArray *dxl_stats_bucket_array = GPOS_NEW(mp) CDXLBucketArray(mp);
 
-	const ULONG ulBuckets = m_pdrgppbucket->UlLength();
-	for (ULONG ul = 0; ul < ulBuckets; ul++)
+	const ULONG num_of_buckets = m_histogram_buckets->Size();
+	for (ULONG ul = 0; ul < num_of_buckets; ul++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ul];
+		CBucket *bucket = (*m_histogram_buckets)[ul];
 
-		CDouble dFreq = pbucket->DFrequency();
-		CDouble dDistinct = pbucket->DDistinct();
+		CDouble freq = bucket->GetFrequency();
+		CDouble distinct = bucket->GetNumDistinct();
 
-		CDXLDatum *pdxldatumLower = pbucket->PpLower()->Pdxldatum(pmp, pmda);
-		CDXLDatum *pdxldatumUpper = pbucket->PpUpper()->Pdxldatum(pmp, pmda);
+		CDXLDatum *dxl_datum_lower = bucket->GetLowerBound()->GetDatumVal(mp, md_accessor);
+		CDXLDatum *dxl_datum_upper = bucket->GetUpperBound()->GetDatumVal(mp, md_accessor);
 
-		CDXLBucket *pdxlbucket = GPOS_NEW(pmp) CDXLBucket
+		CDXLBucket *dxl_bucket = GPOS_NEW(mp) CDXLBucket
 											(
-											pdxldatumLower,
-											pdxldatumUpper,
-											pbucket->FLowerClosed(),
-											pbucket->FUpperClosed(),
-											dFreq,
-											dDistinct
+											dxl_datum_lower,
+											dxl_datum_upper,
+											bucket->IsLowerClosed(),
+											bucket->IsUpperClosed(),
+											freq,
+											distinct
 											);
 
-		pdrgpdxlbucket->Append(pdxlbucket);
+		dxl_stats_bucket_array->Append(dxl_bucket);
 	}
 
-	return GPOS_NEW(pmp) CDXLStatsDerivedColumn(ulColId, dWidth, m_dNullFreq, m_dDistinctRemain, m_dFreqRemain, pdrgpdxlbucket);
+	return GPOS_NEW(mp) CDXLStatsDerivedColumn(colid, width, m_null_freq, m_distinct_remaining, m_freq_remaining, dxl_stats_bucket_array);
 }
 
 // randomly pick a bucket index based on bucket frequency values
 ULONG
-CHistogram::UlRandomBucketIndex
+CHistogram::GetRandomBucketIndex
 	(
-	ULONG *pulSeed
+	ULONG *seed
 	)
 	const
 {
-	const ULONG ulSize = m_pdrgppbucket->UlLength();
-	GPOS_ASSERT(0 < ulSize);
+	const ULONG size = m_histogram_buckets->Size();
+	GPOS_ASSERT(0 < size);
 
-	DOUBLE dRandVal = ((DOUBLE) clib::UlRandR(pulSeed)) / RAND_MAX;
-	CDouble dAccFreq = 0;
-	for (ULONG ul = 0; ul < ulSize - 1; ul++)
+	DOUBLE rand_val = ((DOUBLE) clib::Rand(seed)) / RAND_MAX;
+	CDouble accumulated_freq = 0;
+	for (ULONG ul = 0; ul < size - 1; ul++)
 	{
-		CBucket *pbucket = (*m_pdrgppbucket)[ul];
-		dAccFreq = dAccFreq + pbucket->DFrequency();
+		CBucket *bucket = (*m_histogram_buckets)[ul];
+		accumulated_freq = accumulated_freq + bucket->GetFrequency();
 
 		// we compare generated random value with accumulated frequency,
 		// this will result in picking a bucket based on its frequency,
@@ -1936,13 +1936,13 @@ CHistogram::UlRandomBucketIndex
 		//			random value in [0.1,0.4] --> pick bucket 2
 		//			random value in [0.4,1.0] --> pick bucket 3
 
-		if (dRandVal <= dAccFreq)
+		if (rand_val <= accumulated_freq)
 		{
 			return ul;
 		}
 	}
 
-	return ulSize - 1;
+	return size - 1;
 }
 
 // estimate data skew by sampling histogram buckets,
@@ -1958,9 +1958,9 @@ CHistogram::UlRandomBucketIndex
 void
 CHistogram::ComputeSkew()
 {
-	m_fSkewMeasured = true;
+	m_skew_was_measured = true;
 
-	if (!FNormalized() || 0 == m_pdrgppbucket->UlLength() || !(*m_pdrgppbucket)[0]->FCanSample())
+	if (!IsNormalized() || 0 == m_histogram_buckets->Size() || !(*m_histogram_buckets)[0]->CanSample())
 	{
 		return;
 	}
@@ -1968,138 +1968,138 @@ CHistogram::ComputeSkew()
 	// generate randomization seed from system time
 	TIMEVAL tv;
 	syslib::GetTimeOfDay(&tv, NULL/*timezone*/);
-	ULONG ulSeed = UlCombineHashes((ULONG) tv.tv_sec, (ULONG)tv.tv_usec);
+	ULONG seed = CombineHashes((ULONG) tv.tv_sec, (ULONG)tv.tv_usec);
 
 	// generate a sample from histogram data, and compute sample mean
-	DOUBLE dSampleMean = 0;
-	DOUBLE rgdSamples[GPOPT_SKEW_SAMPLE_SIZE];
+	DOUBLE sample_mean = 0;
+	DOUBLE samples[GPOPT_SKEW_SAMPLE_SIZE];
 	for (ULONG ul = 0; ul < GPOPT_SKEW_SAMPLE_SIZE; ul++)
 	{
-		ULONG ulBucketIndex = UlRandomBucketIndex(&ulSeed);
-		CBucket *pbucket = (*m_pdrgppbucket)[ulBucketIndex];
-		rgdSamples[ul] = pbucket->DSample(&ulSeed).DVal();
-		dSampleMean = dSampleMean + rgdSamples[ul];
+		ULONG bucket_index = GetRandomBucketIndex(&seed);
+		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+		samples[ul] = bucket->GetSample(&seed).Get();
+		sample_mean = sample_mean + samples[ul];
 	}
-	dSampleMean = (DOUBLE) dSampleMean / GPOPT_SKEW_SAMPLE_SIZE;
+	sample_mean = (DOUBLE) sample_mean / GPOPT_SKEW_SAMPLE_SIZE;
 
 	// compute second and third moments of sample distribution
-	DOUBLE d2 = 0;
-	DOUBLE d3 = 0;
+	DOUBLE num2 = 0;
+	DOUBLE num3 = 0;
 	for (ULONG ul = 0; ul < GPOPT_SKEW_SAMPLE_SIZE; ul++)
 	{
-		d2 = d2 + pow((rgdSamples[ul] - dSampleMean) , 2.0);
-		d3 = d3 + pow((rgdSamples[ul] - dSampleMean) , 3.0);
+		num2 = num2 + pow((samples[ul] - sample_mean) , 2.0);
+		num3 = num3 + pow((samples[ul] - sample_mean) , 3.0);
 	}
-	DOUBLE dm2 = (DOUBLE)(d2 / GPOPT_SKEW_SAMPLE_SIZE);
-	DOUBLE dm3 = (DOUBLE)(d3 / GPOPT_SKEW_SAMPLE_SIZE);
+	DOUBLE moment2 = (DOUBLE)(num2 / GPOPT_SKEW_SAMPLE_SIZE);
+	DOUBLE moment3 = (DOUBLE)(num3 / GPOPT_SKEW_SAMPLE_SIZE);
 
 	// set skew measure
-	m_dSkew =  CDouble(1.0 + fabs(dm3 / pow(dm2, 1.5)));
+	m_skew =  CDouble(1.0 + fabs(moment3 / pow(moment2, 1.5)));
 }
 
 // create the default histogram for a given column reference
 CHistogram *
-CHistogram::PhistDefault
+CHistogram::MakeDefaultHistogram
 	(
-	IMemoryPool *pmp,
-	CColRef *pcr,
-	BOOL fEmpty
+	IMemoryPool *mp,
+	CColRef *col_ref,
+	BOOL is_empty
 	)
 {
-	GPOS_ASSERT(NULL != pcr);
+	GPOS_ASSERT(NULL != col_ref);
 
-	if (IMDType::EtiBool == pcr->Pmdtype()->Eti() && !fEmpty)
+	if (IMDType::EtiBool == col_ref->RetrieveType()->GetDatumType() && !is_empty)
 	{
-		return CHistogram::PhistDefaultBoolColStats(pmp);
+		return CHistogram::MakeDefaultBoolHistogram(mp);
 	}
 
-	return GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
+	return GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
 }
 
 
 // create the default non-empty histogram for a boolean column
 CHistogram *
-CHistogram::PhistDefaultBoolColStats
+CHistogram::MakeDefaultBoolHistogram
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
-	DrgPbucket *pdrgpbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
+	CBucketArray *buckets = GPOS_NEW(mp) CBucketArray(mp);
 
 	// a boolean column can at most have 3 values (true, false, and NULL).
-	CDouble dDistinctRemain = CDouble(3.0);
-	CDouble dFreqRemain = CDouble(1.0);
-	CDouble dNullFreq = CDouble(0.0);
+	CDouble distinct_remaining = CDouble(3.0);
+	CDouble freq_remaining = CDouble(1.0);
+	CDouble null_freq = CDouble(0.0);
 
-	return GPOS_NEW(pmp) CHistogram
+	return GPOS_NEW(mp) CHistogram
 						(
-						pdrgpbucket,
-						true /* fWellDefined */,
-						dNullFreq,
-						dDistinctRemain,
-						dFreqRemain,
-						true /*fColStatsMissing */
+						buckets,
+						true /* is_well_defined */,
+						null_freq,
+						distinct_remaining,
+						freq_remaining,
+						true /*is_col_stats_missing */
 						);
 }
 
 // check if the join cardinality estimation can be done based on NDV alone
 BOOL
-CHistogram::FNDVBasedCardEstimation
+CHistogram::DoNDVBasedCardEstimation
 	(
-	const CHistogram *phist
+	const CHistogram *histogram
 	)
 {
-	GPOS_ASSERT(NULL != phist);
+	GPOS_ASSERT(NULL != histogram);
 
-	if (0 == phist->UlBuckets())
+	if (0 == histogram->Buckets())
 	{
 		// no buckets, so join cardinality estimation is based solely on NDV remain
 		return true;
 	}
 
-	const IBucket *pbucket = (*phist->Pdrgpbucket())[0];
+	const IBucket *bucket = (*histogram->ParseDXLToBucketsArray())[0];
 
-	IDatum *pdatum = pbucket->PpLower()->Pdatum();
+	IDatum *datum = bucket->GetLowerBound()->GetDatum();
 
-	IMDType::ETypeInfo eti = pdatum->Eti();
-	if (IMDType::EtiInt2 == eti ||
-		IMDType::EtiInt4 == eti ||
-		IMDType::EtiInt8 == eti ||
-		IMDType::EtiBool == eti ||
-		IMDType::EtiOid == eti )
+	IMDType::ETypeInfo type_info = datum->GetDatumType();
+	if (IMDType::EtiInt2 == type_info ||
+		IMDType::EtiInt4 == type_info ||
+		IMDType::EtiInt8 == type_info ||
+		IMDType::EtiBool == type_info ||
+		IMDType::EtiOid == type_info )
 	{
 		return false;
 	}
 
-	BOOL fRes = true;
-	if (pdatum->FStatsMappable())
+	BOOL result = true;
+	if (datum->StatsMappable())
 	{
-		IDatumStatisticsMappable *pdatumMappable = (IDatumStatisticsMappable *) pdatum;
+		IDatumStatisticsMappable *mappable_datum = (IDatumStatisticsMappable *) datum;
 
-		if (pdatumMappable->FHasStatsDoubleMapping())
+		if (mappable_datum->IsDatumMappableToDouble())
 		{
-			fRes = false;
+			result = false;
 		}
 	}
 
-	return fRes;
+	return result;
 }
 
 // append given histograms to current object
 void
 CHistogram::AddHistograms
 	(
-	IMemoryPool *pmp,
-	HMUlHist *phmulhistSrc,
-	HMUlHist *phmulhistDest
+	IMemoryPool *mp,
+	UlongToHistogramMap *src_histograms,
+	UlongToHistogramMap *dest_histograms
 	)
 {
-	HMIterUlHist hmiterulhist(phmulhistSrc);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(src_histograms);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		const CHistogram *phist = hmiterulhist.Pt();
-		CStatisticsUtils::AddHistogram(pmp, ulColId, phist, phmulhistDest);
+		ULONG colid = *(col_hist_mapping.Key());
+		const CHistogram *histogram = col_hist_mapping.Value();
+		CStatisticsUtils::AddHistogram(mp, colid, histogram, dest_histograms);
 	}
 }
 
@@ -2107,33 +2107,33 @@ CHistogram::AddHistograms
 void
 CHistogram::AddDummyHistogramAndWidthInfo
 	(
-	IMemoryPool *pmp,
-	CColumnFactory *pcf,
-	HMUlHist *phmulhistOutput,
-	HMUlDouble *phmuldoubleWidthOutput,
-	const DrgPul *pdrgpul,
-	BOOL fEmpty
+	IMemoryPool *mp,
+	CColumnFactory *col_factory,
+										  UlongToHistogramMap *output_histograms,
+										  UlongToDoubleMap *output_col_widths,
+	const ULongPtrArray *columns,
+	BOOL is_empty
 	)
 {
-	GPOS_ASSERT(NULL != pcf);
-	GPOS_ASSERT(NULL != phmulhistOutput);
-	GPOS_ASSERT(NULL != phmuldoubleWidthOutput);
-	GPOS_ASSERT(NULL != pdrgpul);
+	GPOS_ASSERT(NULL != col_factory);
+	GPOS_ASSERT(NULL != output_histograms);
+	GPOS_ASSERT(NULL != output_col_widths);
+	GPOS_ASSERT(NULL != columns);
 
-	const ULONG ulCount = pdrgpul->UlLength();
+	const ULONG count = columns->Size();
 	// for computed aggregates, we're not going to be very smart right now
-	for (ULONG ul = 0; ul < ulCount; ul++)
+	for (ULONG ul = 0; ul < count; ul++)
 	{
-		ULONG ulColId = *(*pdrgpul)[ul];
+		ULONG colid = *(*columns)[ul];
 
-		CColRef *pcr = pcf->PcrLookup(ulColId);
-		GPOS_ASSERT(NULL != pcr);
+		CColRef *col_ref = col_factory->LookupColRef(colid);
+		GPOS_ASSERT(NULL != col_ref);
 
-		CHistogram *phist = CHistogram::PhistDefault(pmp, pcr, fEmpty);
-		phmulhistOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
+		CHistogram *histogram = CHistogram::MakeDefaultHistogram(mp, col_ref, is_empty);
+		output_histograms->Insert(GPOS_NEW(mp) ULONG(colid), histogram);
 
-		CDouble dWidth = CStatisticsUtils::DDefaultColumnWidth(pcr->Pmdtype());
-		phmuldoubleWidthOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(dWidth));
+		CDouble width = CStatisticsUtils::DefaultColumnWidth(col_ref->RetrieveType());
+		output_col_widths->Insert(GPOS_NEW(mp) ULONG(colid), GPOS_NEW(mp) CDouble(width));
 	}
 }
 
@@ -2141,22 +2141,22 @@ CHistogram::AddDummyHistogramAndWidthInfo
 void
 CHistogram::AddEmptyHistogram
 	(
-	IMemoryPool *pmp,
-	HMUlHist *phmulhistOutput,
-	HMUlHist *phmulhistInput
+	IMemoryPool *mp,
+	UlongToHistogramMap *output_histograms,
+	UlongToHistogramMap *input_histograms
 	)
 {
-	GPOS_ASSERT(NULL != phmulhistOutput);
-	GPOS_ASSERT(NULL != phmulhistInput);
+	GPOS_ASSERT(NULL != output_histograms);
+	GPOS_ASSERT(NULL != input_histograms);
 
-	HMIterUlHist hmiterulhist(phmulhistInput);
-	while (hmiterulhist.FAdvance())
+	UlongToHistogramMapIter col_hist_mapping(input_histograms);
+	while (col_hist_mapping.Advance())
 	{
-		ULONG ulColId = *(hmiterulhist.Pk());
+		ULONG colid = *(col_hist_mapping.Key());
 
 		// empty histogram
-		CHistogram *phist =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
-		phmulhistOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
+		CHistogram *histogram = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp), false /* is_well_defined */);
+		output_histograms->Insert(GPOS_NEW(mp) ULONG(colid), histogram);
 	}
 }
 

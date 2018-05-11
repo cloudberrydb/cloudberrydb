@@ -32,28 +32,28 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// id and version information for the table
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 
 			// index name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 
 			// private copy ctor
 			CDXLIndexDescr(const CDXLIndexDescr &);
 
 		public:
 			// ctor
-			CDXLIndexDescr(IMemoryPool *pmp, IMDId *pmdid, CMDName *pmdname);
+			CDXLIndexDescr(IMemoryPool *mp, IMDId *mdid, CMDName *mdname);
 
 			// dtor
 			virtual
 			~CDXLIndexDescr();
 
 			// accessors
-			const CMDName *Pmdname() const;
-			IMDId *Pmdid() const;
+			const CMDName *MdName() const;
+			IMDId *MDId() const;
 
 			// serialize the operator to a DXL document
 			void SerializeToDXL(CXMLSerializer *) const;

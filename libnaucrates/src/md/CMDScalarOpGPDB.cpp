@@ -30,35 +30,35 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDScalarOpGPDB::CMDScalarOpGPDB
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid,
-	CMDName *pmdname,
-	IMDId *pmdidTypeLeft,
-	IMDId *pmdidTypeRight,
-	IMDId *pmdidTypeResult,
-	IMDId *pmdidFunc,
-	IMDId *pmdidOpCommute,
-	IMDId *pmdidOpInverse,
-	IMDType::ECmpType ecmpt,
-	BOOL fReturnsNullOnNullInput,
-	DrgPmdid *pdrgpmdidOpClasses
+	IMemoryPool *mp,
+	IMDId *mdid,
+	CMDName *mdname,
+	IMDId *mdid_type_left,
+	IMDId *mdid_type_right,
+	IMDId *result_type_mdid,
+	IMDId *mdid_func,
+	IMDId *mdid_commute_opr,
+	IMDId *m_mdid_inverse_opr,
+	IMDType::ECmpType cmp_type,
+	BOOL returns_null_on_null_input,
+	IMdIdArray *mdid_op_classes_array
 	)
 	:
-	m_pmp(pmp),
-	m_pmdid(pmdid),
-	m_pmdname(pmdname),
-	m_pmdidTypeLeft(pmdidTypeLeft),
-	m_pmdidTypeRight(pmdidTypeRight),
-	m_pmdidTypeResult(pmdidTypeResult),
-	m_pmdidFunc(pmdidFunc),
-	m_pmdidOpCommute(pmdidOpCommute),
-	m_pmdidOpInverse(pmdidOpInverse),
-	m_ecmpt(ecmpt),
-	m_fReturnsNullOnNullInput(fReturnsNullOnNullInput),
-	m_pdrgpmdidOpClasses(pdrgpmdidOpClasses)
+	m_mp(mp),
+	m_mdid(mdid),
+	m_mdname(mdname),
+	m_mdid_type_left(mdid_type_left),
+	m_mdid_type_right(mdid_type_right),
+	m_mdid_type_result(result_type_mdid),
+	m_func_mdid(mdid_func),
+	m_mdid_commute_opr(mdid_commute_opr),
+	m_mdid_inverse_opr(m_mdid_inverse_opr),
+	m_comparision_type(cmp_type),
+	m_returns_null_on_null_input(returns_null_on_null_input),
+	m_mdid_op_classes_array(mdid_op_classes_array)
 {
-	GPOS_ASSERT(NULL != pdrgpmdidOpClasses);
-	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
+	GPOS_ASSERT(NULL != mdid_op_classes_array);
+	m_dxl_str = CDXLUtils::SerializeMDObj(m_mp, this, false /*fSerializeHeader*/, false /*indentation*/);
 }
 
 
@@ -72,32 +72,32 @@ CMDScalarOpGPDB::CMDScalarOpGPDB
 //---------------------------------------------------------------------------
 CMDScalarOpGPDB::~CMDScalarOpGPDB()
 {
-	m_pmdid->Release();
-	m_pmdidTypeResult->Release();
-	m_pmdidFunc->Release();	
+	m_mdid->Release();
+	m_mdid_type_result->Release();
+	m_func_mdid->Release();	
 
-	CRefCount::SafeRelease(m_pmdidTypeLeft);
-	CRefCount::SafeRelease(m_pmdidTypeRight);
-	CRefCount::SafeRelease(m_pmdidOpCommute);
-	CRefCount::SafeRelease(m_pmdidOpInverse);
+	CRefCount::SafeRelease(m_mdid_type_left);
+	CRefCount::SafeRelease(m_mdid_type_right);
+	CRefCount::SafeRelease(m_mdid_commute_opr);
+	CRefCount::SafeRelease(m_mdid_inverse_opr);
 	
-	GPOS_DELETE(m_pmdname);
-	GPOS_DELETE(m_pstr);
-	m_pdrgpmdidOpClasses->Release();
+	GPOS_DELETE(m_mdname);
+	GPOS_DELETE(m_dxl_str);
+	m_mdid_op_classes_array->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::Pmdid
+//		CMDScalarOpGPDB::MDId
 //
 //	@doc:
 //		Operator id
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::Pmdid() const
+CMDScalarOpGPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 //---------------------------------------------------------------------------
@@ -111,111 +111,111 @@ CMDScalarOpGPDB::Pmdid() const
 CMDName
 CMDScalarOpGPDB::Mdname() const
 {
-	return *m_pmdname;
+	return *m_mdname;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::PmdidTypeLeft
+//		CMDScalarOpGPDB::GetLeftMdid
 //
 //	@doc:
 //		Type id of left operand
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::PmdidTypeLeft() const
+CMDScalarOpGPDB::GetLeftMdid() const
 {
-	return m_pmdidTypeLeft;
+	return m_mdid_type_left;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::PmdidTypeRight
+//		CMDScalarOpGPDB::GetRightMdid
 //
 //	@doc:
 //		Type id of right operand
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::PmdidTypeRight() const
+CMDScalarOpGPDB::GetRightMdid() const
 {
-	return m_pmdidTypeRight;
+	return m_mdid_type_right;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::PmdidTypeResult
+//		CMDScalarOpGPDB::GetResultTypeMdid
 //
 //	@doc:
 //		Type id of result
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::PmdidTypeResult() const
+CMDScalarOpGPDB::GetResultTypeMdid() const
 {
-	return m_pmdidTypeResult;
+	return m_mdid_type_result;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::PmdidFunc
+//		CMDScalarOpGPDB::FuncMdId
 //
 //	@doc:
 //		Id of function which implements the operator
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::PmdidFunc() const
+CMDScalarOpGPDB::FuncMdId() const
 {
-	return m_pmdidFunc;
+	return m_func_mdid;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::PmdidOpCommute
+//		CMDScalarOpGPDB::GetCommuteOpMdid
 //
 //	@doc:
 //		Id of commute operator
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::PmdidOpCommute() const
+CMDScalarOpGPDB::GetCommuteOpMdid() const
 {
-	return m_pmdidOpCommute;
+	return m_mdid_commute_opr;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::PmdidOpInverse
+//		CMDScalarOpGPDB::GetInverseOpMdid
 //
 //	@doc:
 //		Id of inverse operator
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::PmdidOpInverse() const
+CMDScalarOpGPDB::GetInverseOpMdid() const
 {
-	return m_pmdidOpInverse;
+	return m_mdid_inverse_opr;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::FEquality
+//		CMDScalarOpGPDB::IsEqualityOp
 //
 //	@doc:
 //		Is this an equality operator
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDScalarOpGPDB::FEquality() const
+CMDScalarOpGPDB::IsEqualityOp() const
 {
-	return IMDType::EcmptEq == m_ecmpt;
+	return IMDType::EcmptEq == m_comparision_type;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::FReturnsNullOnNullInput
+//		CMDScalarOpGPDB::ReturnsNullOnNullInput
 //
 //	@doc:
 //		Does operator return NULL when all inputs are NULL?
@@ -224,24 +224,24 @@ CMDScalarOpGPDB::FEquality() const
 //
 //---------------------------------------------------------------------------
 BOOL
-CMDScalarOpGPDB::FReturnsNullOnNullInput() const
+CMDScalarOpGPDB::ReturnsNullOnNullInput() const
 {
-	return m_fReturnsNullOnNullInput;
+	return m_returns_null_on_null_input;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::Ecmpt
+//		CMDScalarOpGPDB::ParseCmpType
 //
 //	@doc:
 //		Comparison type
 //
 //---------------------------------------------------------------------------
 IMDType::ECmpType
-CMDScalarOpGPDB::Ecmpt() const
+CMDScalarOpGPDB::ParseCmpType() const
 {
-	return m_ecmpt;
+	return m_comparision_type;
 }
 
 //---------------------------------------------------------------------------
@@ -255,78 +255,78 @@ CMDScalarOpGPDB::Ecmpt() const
 void
 CMDScalarOpGPDB::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	) 
 	const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenGPDBScalarOp));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenGPDBScalarOp));
 	
-	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGPDBScalarOpCmpType), IMDType::PstrCmpType(m_ecmpt));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenReturnsNullOnNullInput), m_fReturnsNullOnNullInput);
+	m_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), m_mdname->GetMDName());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenGPDBScalarOpCmpType), IMDType::GetCmpTypeStr(m_comparision_type));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenReturnsNullOnNullInput), m_returns_null_on_null_input);
 
-	Edxltoken rgEdxltoken[6] = {
+	Edxltoken dxl_token_array[6] = {
 							EdxltokenGPDBScalarOpLeftTypeId, EdxltokenGPDBScalarOpRightTypeId, 
 							EdxltokenGPDBScalarOpResultTypeId, EdxltokenGPDBScalarOpFuncId, 
 							EdxltokenGPDBScalarOpCommOpId, EdxltokenGPDBScalarOpInverseOpId
 							};
 	
-	IMDId *rgMdid[6] = {m_pmdidTypeLeft, m_pmdidTypeRight, m_pmdidTypeResult, 
-						m_pmdidFunc, m_pmdidOpCommute, m_pmdidOpInverse};
+	IMDId *mdid_array[6] = {m_mdid_type_left, m_mdid_type_right, m_mdid_type_result,
+						m_func_mdid, m_mdid_commute_opr, m_mdid_inverse_opr};
 	
-	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(rgEdxltoken); ul++)
+	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(dxl_token_array); ul++)
 	{
-		SerializeMDIdAsElem(pxmlser, CDXLTokens::PstrToken(rgEdxltoken[ul]), rgMdid[ul]);
+		SerializeMDIdAsElem(xml_serializer, CDXLTokens::GetDXLTokenStr(dxl_token_array[ul]), mdid_array[ul]);
 
 		GPOS_CHECK_ABORT;
 	}	
 	
 	// serialize operator class information
-	if (0 < m_pdrgpmdidOpClasses->UlLength())
+	if (0 < m_mdid_op_classes_array->Size())
 	{
-		SerializeMDIdList(pxmlser, m_pdrgpmdidOpClasses, 
-						CDXLTokens::PstrToken(EdxltokenOpClasses), 
-						CDXLTokens::PstrToken(EdxltokenOpClass));
+		SerializeMDIdList(xml_serializer, m_mdid_op_classes_array, 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpClasses), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenOpClass));
 	}
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), 
-						CDXLTokens::PstrToken(EdxltokenGPDBScalarOp));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), 
+						CDXLTokens::GetDXLTokenStr(EdxltokenGPDBScalarOp));
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::UlOpCLasses
+//		CMDScalarOpGPDB::OpClassesCount
 //
 //	@doc:
 //		Number of classes this operator belongs to
 //
 //---------------------------------------------------------------------------
 ULONG
-CMDScalarOpGPDB::UlOpCLasses() const
+CMDScalarOpGPDB::OpClassesCount() const
 {
-	return m_pdrgpmdidOpClasses->UlLength();
+	return m_mdid_op_classes_array->Size();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDScalarOpGPDB::PmdidOpClass
+//		CMDScalarOpGPDB::OpClassMdidAt
 //
 //	@doc:
 //		Operator class at given position
 //
 //---------------------------------------------------------------------------
 IMDId *
-CMDScalarOpGPDB::PmdidOpClass
+CMDScalarOpGPDB::OpClassMdidAt
 	(
-	ULONG ulPos
+	ULONG pos
 	) 
 	const
 {
-	GPOS_ASSERT(ulPos < m_pdrgpmdidOpClasses->UlLength());
+	GPOS_ASSERT(pos < m_mdid_op_classes_array->Size());
 	
-	return (*m_pdrgpmdidOpClasses)[ulPos];
+	return (*m_mdid_op_classes_array)[pos];
 }
 
 
@@ -347,33 +347,33 @@ CMDScalarOpGPDB::DebugPrint
 	const
 {
 	os << "Operator id: ";
-	Pmdid()->OsPrint(os);
+	MDId()->OsPrint(os);
 	os << std::endl;
 	
-	os << "Operator name: " << (Mdname()).Pstr()->Wsz() << std::endl;
+	os << "Operator name: " << (Mdname()).GetMDName()->GetBuffer() << std::endl;
 	
 	os << "Left operand type id: ";
-	PmdidTypeLeft()->OsPrint(os);
+	GetLeftMdid()->OsPrint(os);
 	os << std::endl;
 		
 	os << "Right operand type id: ";
-	PmdidTypeRight()->OsPrint(os);
+	GetRightMdid()->OsPrint(os);
 	os << std::endl;
 
 	os << "Result type id: ";
-	PmdidTypeResult()->OsPrint(os);
+	GetResultTypeMdid()->OsPrint(os);
 	os << std::endl;
 
 	os << "Operator func id: ";
-	PmdidFunc()->OsPrint(os);
+	FuncMdId()->OsPrint(os);
 	os << std::endl;
 
 	os << "Commute operator id: ";
-	PmdidOpCommute()->OsPrint(os);
+	GetCommuteOpMdid()->OsPrint(os);
 	os << std::endl;
 
 	os << "Inverse operator id: ";
-	PmdidOpInverse()->OsPrint(os);
+	GetInverseOpMdid()->OsPrint(os);
 	os << std::endl;
 
 	os << std::endl;	

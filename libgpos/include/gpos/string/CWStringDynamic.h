@@ -35,17 +35,17 @@ namespace gpos
 		private:
 
 			// string memory pool used for allocating new memory for the string
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// string capacity
-			ULONG m_ulCapacity;
+			ULONG m_capacity;
 
 			// increase string capacity
-			void IncreaseCapacity(ULONG ulRequested);
+			void IncreaseCapacity(ULONG requested);
 
 			// find capacity that fits requested string size
 			static
-			ULONG UlCapacity(ULONG ulRequested);
+			ULONG Capacity(ULONG requested);
 
 			// private copy ctor
 			CWStringDynamic(const CWStringDynamic&);
@@ -53,21 +53,21 @@ namespace gpos
 		protected:
 
 			// appends the contents of a buffer to the current string
-			void AppendBuffer(const WCHAR *wszBuf);
+			void AppendBuffer(const WCHAR *w_str_buffer);
 
 		public:
 
 			// ctor
-			CWStringDynamic(IMemoryPool *pmp);
+			CWStringDynamic(IMemoryPool *mp);
 
 			// ctor - copies passed string
-			CWStringDynamic(IMemoryPool *pmp, const WCHAR *wszBuf);
+			CWStringDynamic(IMemoryPool *mp, const WCHAR *w_str_buffer);
 
 			// appends a string and replaces character with string
-			void AppendEscape(const CWStringBase *pstr, WCHAR wc, const WCHAR *wszReplace);
+			void AppendEscape(const CWStringBase *str, WCHAR wc, const WCHAR *w_str_replace);
 
 			// appends a formatted string
-			void AppendFormat(const WCHAR *wszFormat, ...);
+			void AppendFormat(const WCHAR *format, ...);
 
 			// appends a null terminated character array
 			virtual
@@ -75,7 +75,7 @@ namespace gpos
 
 			// appends a null terminated wide character array
 			virtual
-			void AppendWideCharArray(const WCHAR *wsz);
+			void AppendWideCharArray(const WCHAR *w_str);
 
 			// dtor
 			virtual ~CWStringDynamic();

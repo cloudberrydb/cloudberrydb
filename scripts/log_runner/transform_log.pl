@@ -24,7 +24,7 @@ sub runSystem
 {
     my $cmd = shift;
     my $ret = system($cmd);
-    print STDOUT "return value of $cmd is $ret\n";
+    print STDOUT "return m_bytearray_value of $cmd is $ret\n";
     die "system command $cmd failed" unless $ret == 0;
 }
 

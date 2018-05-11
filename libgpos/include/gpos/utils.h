@@ -69,65 +69,65 @@ namespace gpos
 	void Print(WCHAR *wsz);
 
 	// generic memory dumper routine
-	IOstream& HexDump(IOstream &os, const void *pv, ULLONG ullSize);
+	IOstream& HexDump(IOstream &os, const void *pv, ULLONG size);
 	
 	// generic hash function for byte strings
-	ULONG UlHashByteArray(const BYTE *, const ULONG);
+	ULONG HashByteArray(const BYTE *, const ULONG);
 	
 	// generic hash function; by address
 	template<class T>
 	inline
-	ULONG UlHash(const T *pt)
+	ULONG HashValue(const T *pt)
 	{
-		return UlHashByteArray((BYTE*) pt, GPOS_SIZEOF(T));
+		return HashByteArray((BYTE*) pt, GPOS_SIZEOF(T));
 	}
 
 	// generic hash function for pointer types -- use e.g. when address is ID of object
 	template<class T>
 	inline
-	ULONG UlHashPtr(const T *pt)
+	ULONG HashPtr(const T *pt)
 	{
-		return UlHashByteArray((BYTE*)&pt, GPOS_SIZEOF(void *));
+		return HashByteArray((BYTE*)&pt, GPOS_SIZEOF(void *));
 	}
 
 	// equality function on pointers
 	template<class T>
 	inline
-	BOOL FEqualPtr(const T* pt1, const T*pt2)
+	BOOL EqualPtr(const T* pt1, const T*pt2)
 	{
 		return pt1 == pt2;
 	}
 
 	// hash function for ULONG_PTR
 	inline
-	ULONG UlHashUlp
+	ULONG HashULongPtr
 		(
-		const ULONG_PTR &ulpKey
+		const ULONG_PTR &key
 		)
 	{
-		return (ULONG) ulpKey;
+		return (ULONG) key;
 	}
 
 	// combine ULONG hashes
-	ULONG UlCombineHashes(ULONG, ULONG);
+	ULONG CombineHashes(ULONG, ULONG);
 
 	// equality function, which uses the equality operator of the arguments type
 	template<class T>
 	inline
-	BOOL FEqual(const T* pt1, const T*pt2)
+	BOOL Equals(const T* pt1, const T*pt2)
 	{
 		return *pt1 == *pt2;
 	}
 
 	// equality function for ULONG_PTR
 	inline
-	BOOL FEqualUlp
+	BOOL EqualULongPtr
 		(
-		const ULONG_PTR &ulpKeyLeft,
-		const ULONG_PTR &ulpKeyRight
+		const ULONG_PTR &key_left,
+		const ULONG_PTR &key_right
 		)
 	{
-		return ulpKeyLeft == ulpKeyRight;
+		return key_left == key_right;
 	}
 	
 	// yield and sleep (time in muSec)
@@ -135,10 +135,10 @@ namespace gpos
 	void USleep(ULONG);
 
 	// add two unsigned long long values, throw an exception if overflow occurs
-	ULLONG UllAdd(ULLONG ullFst, ULLONG ullSnd);
+	ULLONG Add(ULLONG first, ULLONG second);
 
 	// multiply two unsigned long long values, throw an exception if overflow occurs
-	ULLONG UllMultiply(ULLONG ullFst, ULLONG ullSnd);
+	ULLONG Multiply(ULLONG first, ULLONG second);
 
 	// extern definitions for standard streams; to be used during
 	// startup/shutdown when outside of task framework

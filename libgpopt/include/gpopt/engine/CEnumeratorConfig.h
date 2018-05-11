@@ -62,7 +62,7 @@ namespace gpopt
 				private:
 
 					// plan id
-					ULLONG m_ullPlanId;
+					ULLONG m_plan_id;
 
 					// plan cost
 					CCost m_cost;
@@ -72,11 +72,11 @@ namespace gpopt
 					// ctor
 					SSamplePlan
 						(
-						ULLONG ullPlanId,
+						ULLONG plan_id,
 						CCost cost
 						)
 						:
-						m_ullPlanId(ullPlanId),
+						m_plan_id(plan_id),
 						m_cost(cost)
 					{}
 
@@ -86,9 +86,9 @@ namespace gpopt
 					{};
 
 					// return plan id
-					ULLONG UllPlanId() const
+					ULLONG GetPlanId() const
 					{
-						return m_ullPlanId;
+						return m_plan_id;
 					}
 
 					// return plan cost
@@ -100,13 +100,13 @@ namespace gpopt
 			}; // struct SSamplePlan
 
 			// array og unsigned long long int
-			typedef CDynamicPtrArray<SSamplePlan, CleanupDelete> DrgPsp;
+			typedef CDynamicPtrArray<SSamplePlan, CleanupDelete> SSamplePlanArray;
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// identifier of chosen plan
-			ULLONG m_ullPlanId;
+			ULLONG m_plan_id;
 
 			// size of plan space
 			ULLONG m_ullSpaceSize;
@@ -124,7 +124,7 @@ namespace gpopt
 			CDouble m_dCostThreshold;
 
 			// sampled plans
-			DrgPsp *m_pdrgpsp;
+			SSamplePlanArray *m_pdrgpsp;
 
 			// step value used in fitting cost distribution
 			CDouble m_dStep;
@@ -159,10 +159,10 @@ namespace gpopt
 			// ctor
 			CEnumeratorConfig
 				(
-				IMemoryPool *pmp,
-				ULLONG ullPlanId,
+				IMemoryPool *mp,
+				ULLONG plan_id,
 				ULLONG ullSamples,
-				CDouble dCostThreshold = GPOPT_UNBOUNDED_COST_THRESHOLD
+				CDouble cost_threshold = GPOPT_UNBOUNDED_COST_THRESHOLD
 				);
 
 			// dtor
@@ -170,13 +170,13 @@ namespace gpopt
 			~CEnumeratorConfig();
 
 			// return plan id
-			ULLONG UllPlanId() const
+			ULLONG GetPlanId() const
 			{
-				return m_ullPlanId;
+				return m_plan_id;
 			}
 
 			// return enumerated space size
-			ULLONG UllPlanSpaceSize() const
+			ULLONG GetPlanSpaceSize() const
 			{
 				return m_ullSpaceSize;
 			}
@@ -199,16 +199,16 @@ namespace gpopt
 			// return number of created samples
 			ULONG UlCreatedSamples() const
 			{
-				return m_pdrgpsp->UlLength();
+				return m_pdrgpsp->Size();
 			}
 
 			// set plan id
 			void SetPlanId
 				(
-				ULLONG ullPlanId
+				ULLONG plan_id
 				)
 			{
-				m_ullPlanId = ullPlanId;
+				m_plan_id = plan_id;
 			}
 
 			// return cost threshold
@@ -224,7 +224,7 @@ namespace gpopt
 				)
 				const
 			{
-				return (*m_pdrgpsp)[ulPos]->UllPlanId();
+				return (*m_pdrgpsp)[ulPos]->GetPlanId();
 			}
 
 			// set cost of best plan found
@@ -253,7 +253,7 @@ namespace gpopt
 			}
 
 			// add a new plan to sample
-			BOOL FAddSample(ULLONG ullPlanId, CCost cost);
+			BOOL FAddSample(ULLONG plan_id, CCost cost);
 
 			// clear samples
 			void ClearSamples();
@@ -336,37 +336,37 @@ namespace gpopt
 			}
 
 			// dump samples to an output file
-			void DumpSamples(CWStringDynamic *pstr, ULONG ulSessionId, ULONG ulCommandId);
+			void DumpSamples(CWStringDynamic *str, ULONG ulSessionId, ULONG ulCommandId);
 
 			// dump fitted cost distribution to an output file
-			void DumpCostDistr(CWStringDynamic *pstr, ULONG ulSessionId, ULONG ulCommandId);
+			void DumpCostDistr(CWStringDynamic *str, ULONG ulSessionId, ULONG ulCommandId);
 
 			// print ids of plans in the generated sample
 			void PrintPlanSample() const;
 
 			// compute Gaussian kernel density
 			static
-			void GussianKernelDensity(DOUBLE *pdObervationX, DOUBLE *pdObervationY, ULONG ulObservations, DOUBLE *pdX, DOUBLE *pdY, ULONG ulSize);
+			void GussianKernelDensity(DOUBLE *pdObervationX, DOUBLE *pdObervationY, ULONG ulObservations, DOUBLE *pdX, DOUBLE *pdY, ULONG size);
 
 			// generate default enumerator configurations
 			static
 			CEnumeratorConfig *PecDefault
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 			{
-				return GPOS_NEW(pmp) CEnumeratorConfig(pmp, 0 /*ullPlanId*/, 0 /*ullSamples*/);
+				return GPOS_NEW(mp) CEnumeratorConfig(mp, 0 /*plan_id*/, 0 /*ullSamples*/);
 			}
 
 			// generate enumerator configuration for a given plan id
 			static
-			CEnumeratorConfig *Pec
+			CEnumeratorConfig *GetEnumeratorCfg
 				(
-				IMemoryPool *pmp,
-				ULLONG ullPlanId
+				IMemoryPool *mp,
+				ULLONG plan_id
 				)
 			{
-				return GPOS_NEW(pmp) CEnumeratorConfig(pmp, ullPlanId, 0/*ullSamples*/);
+				return GPOS_NEW(mp) CEnumeratorConfig(mp, plan_id, 0/*ullSamples*/);
 			}
 
 

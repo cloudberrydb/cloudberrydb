@@ -40,44 +40,44 @@ namespace gpnaucrates
 			CStatsPredJoin& operator=(CStatsPredJoin &);
 
 			// column id
-			ULONG m_ulColId1;
+			ULONG m_colidOuter;
 
 			// comparison type
-			CStatsPred::EStatsCmpType m_escmpt;
+			CStatsPred::EStatsCmpType m_stats_cmp_type;
 
 			// column id
-			ULONG m_ulColId2;
+			ULONG m_colidInner;
 
 		public:
 
 			// c'tor
 			CStatsPredJoin
 				(
-				ULONG ulColId1,
-				CStatsPred::EStatsCmpType escmpt,
-				ULONG ulColId2
+				ULONG colid1,
+				CStatsPred::EStatsCmpType stats_cmp_type,
+				ULONG colid2
 				)
 				:
-				m_ulColId1(ulColId1),
-				m_escmpt(escmpt),
-				m_ulColId2(ulColId2)
+				m_colidOuter(colid1),
+				m_stats_cmp_type(stats_cmp_type),
+				m_colidInner(colid2)
 			{}
 
 			// accessors
-			ULONG UlColId1() const
+			ULONG ColIdOuter() const
 			{
-				return m_ulColId1;
+				return m_colidOuter;
 			}
 
 			// comparison type
-			CStatsPred::EStatsCmpType Escmpt() const
+			CStatsPred::EStatsCmpType GetCmpType() const
 			{
-				return m_escmpt;
+				return m_stats_cmp_type;
 			}
 
-			ULONG UlColId2() const
+			ULONG ColIdInner() const
 			{
-				return m_ulColId2;
+				return m_colidInner;
 			}
 
 			// d'tor
@@ -88,8 +88,8 @@ namespace gpnaucrates
 	}; // class CStatsPredJoin
 
 	// array of filters
-	typedef CDynamicPtrArray<CStatsPredJoin, CleanupRelease> DrgPstatspredjoin;
-}
+	typedef CDynamicPtrArray<CStatsPredJoin, CleanupRelease> CStatsPredJoinArray;
+}  // namespace gpnaucrates
 
 #endif // !GPNAUCRATES_CStatsPredJoin_H
 

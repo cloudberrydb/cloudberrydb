@@ -43,7 +43,7 @@ namespace gpopt
 	//		information contained in it can be accessed by calling
 	//		COptCtxt::PoctxtFromTLS(), instead of passing a pointer to it all
 	//		around. For example to get the global CMDAccessor:
-	//			CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	//			CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	//
 	//---------------------------------------------------------------------------
 	class COptCtxt : public CTaskLocalStorageObject
@@ -55,7 +55,7 @@ namespace gpopt
 			COptCtxt(COptCtxt &);
 
 			// shared memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 		
 			// column factory
 			CColumnFactory *m_pcf;
@@ -64,7 +64,7 @@ namespace gpopt
 			CMDAccessor *m_pmda;
 
 			// cost model
-			ICostModel *m_pcm;
+			ICostModel *m_cost_model;
 
 			// constant expression evaluator
 			IConstExprEvaluator *m_pceeval;
@@ -79,10 +79,10 @@ namespace gpopt
 			CCTEInfo *m_pcteinfo;
 
 			// system columns required in query output
-			DrgPcr *m_pdrgpcrSystemCols;
+			CColRefArray *m_pdrgpcrSystemCols;
 
 			// optimizer configurations
-			COptimizerConfig *m_poconf;
+			COptimizerConfig *m_optimizer_config;
 
 			// whether or not we are optimizing a DML query
 			BOOL m_fDMLQuery;
@@ -96,11 +96,11 @@ namespace gpopt
 			// ctor
 			COptCtxt
 				(
-				IMemoryPool *pmp,
-				CColumnFactory *pcf,
-				CMDAccessor *pmda,
+				IMemoryPool *mp,
+				CColumnFactory *col_factory,
+				CMDAccessor *md_accessor,
 				IConstExprEvaluator *pceeval,
-				COptimizerConfig *poconf
+				COptimizerConfig *optimizer_config
 				);
 
 			// dtor
@@ -110,13 +110,13 @@ namespace gpopt
 			// memory pool accessor
 			IMemoryPool *Pmp() const
 			{
-				return m_pmp;
+				return m_mp;
 			}
 			
 			// optimizer configurations
-			COptimizerConfig *Poconf() const
+			COptimizerConfig *GetOptimizerConfig() const
 			{
-				return m_poconf;
+				return m_optimizer_config;
 			}
 
 			// are we optimizing a DML query
@@ -147,9 +147,9 @@ namespace gpopt
 			}
 
 			// cost model accessor
-			ICostModel *Pcm() const
+			ICostModel *GetCostModel() const
 			{
-				return m_pcm;
+				return m_cost_model;
 			}
 
 			// constant expression evaluator
@@ -173,11 +173,11 @@ namespace gpopt
 			// return a new part index id
 			ULONG UlPartIndexNextVal()
 			{
-				return m_auPartId.TIncr();
+				return m_auPartId.Incr();
 			}
 			
 			// required system columns
-			DrgPcr *PdrgpcrSystemCols() const
+			CColRefArray *PdrgpcrSystemCols() const
 			{
 				return m_pdrgpcrSystemCols;
 			}
@@ -185,7 +185,7 @@ namespace gpopt
 			// set required system columns
 			void SetReqdSystemCols
 				(
-				DrgPcr *pdrgpcrSystemCols
+				CColRefArray *pdrgpcrSystemCols
 				)
 			{
 				GPOS_ASSERT(NULL != pdrgpcrSystemCols);
@@ -198,10 +198,10 @@ namespace gpopt
 			static
 			COptCtxt *PoctxtCreate
 						(
-						IMemoryPool *pmp,
-						CMDAccessor *pmda,
+						IMemoryPool *mp,
+						CMDAccessor *md_accessor,
 						IConstExprEvaluator *pceeval,
-						COptimizerConfig *poconf
+						COptimizerConfig *optimizer_config
 						);
 			
 			// shorthand to retrieve opt context from TLS
@@ -209,7 +209,7 @@ namespace gpopt
 			static
 			COptCtxt *PoctxtFromTLS()
 			{
-				return reinterpret_cast<COptCtxt*>(ITask::PtskSelf()->Tls().Ptlsobj(CTaskLocalStorage::EtlsidxOptCtxt));
+				return reinterpret_cast<COptCtxt*>(ITask::Self()->GetTls().Get(CTaskLocalStorage::EtlsidxOptCtxt));
 			}
 			
 			// return true if all enforcers are enabled

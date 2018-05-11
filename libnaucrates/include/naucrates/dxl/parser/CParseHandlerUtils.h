@@ -36,7 +36,7 @@ namespace gpdxl
 
 			// parse and the set operator's costing and statistical properties
 			static
-			void SetProperties(CDXLNode *pdxln, CParseHandlerProperties *pphProp);
+			void SetProperties(CDXLNode *dxlnode, CParseHandlerProperties *prop_parse_handler);
 	};
 }
 

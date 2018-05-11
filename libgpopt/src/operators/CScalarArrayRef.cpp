@@ -26,23 +26,23 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarArrayRef::CScalarArrayRef
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidElem,
-	INT iTypeModifier,
-	IMDId *pmdidArray,
-	IMDId *pmdidReturn
+	IMemoryPool *mp,
+	IMDId *elem_type_mdid,
+	INT type_modifier,
+	IMDId *array_type_mdid,
+	IMDId *return_type_mdid
 	)
 	:
-	CScalar(pmp),
-	m_pmdidElem(pmdidElem),
-	m_iTypeModifier(iTypeModifier),
-	m_pmdidArray(pmdidArray),
-	m_pmdidType(pmdidReturn)
+	CScalar(mp),
+	m_pmdidElem(elem_type_mdid),
+	m_type_modifier(type_modifier),
+	m_pmdidArray(array_type_mdid),
+	m_mdid_type(return_type_mdid)
 {
-	GPOS_ASSERT(pmdidElem->FValid());
-	GPOS_ASSERT(pmdidArray->FValid());
-	GPOS_ASSERT(pmdidReturn->FValid());
-	GPOS_ASSERT(pmdidReturn->FEquals(pmdidElem) || pmdidReturn->FEquals(pmdidArray));
+	GPOS_ASSERT(elem_type_mdid->IsValid());
+	GPOS_ASSERT(array_type_mdid->IsValid());
+	GPOS_ASSERT(return_type_mdid->IsValid());
+	GPOS_ASSERT(return_type_mdid->Equals(elem_type_mdid) || return_type_mdid->Equals(array_type_mdid));
 }
 
 //---------------------------------------------------------------------------
@@ -57,44 +57,44 @@ CScalarArrayRef::~CScalarArrayRef()
 {
 	m_pmdidElem->Release();
 	m_pmdidArray->Release();
-	m_pmdidType->Release();
+	m_mdid_type->Release();
 }
 
 
 INT
-CScalarArrayRef::ITypeModifier() const
+CScalarArrayRef::TypeModifier() const
 {
-	return m_iTypeModifier;
+	return m_type_modifier;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayRef::UlHash
+//		CScalarArrayRef::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarArrayRef::UlHash() const
+CScalarArrayRef::HashValue() const
 {
-	return gpos::UlCombineHashes
+	return gpos::CombineHashes
 					(
-					UlCombineHashes(m_pmdidElem->UlHash(), m_pmdidArray->UlHash()),
-					m_pmdidType->UlHash()
+					CombineHashes(m_pmdidElem->HashValue(), m_pmdidArray->HashValue()),
+					m_mdid_type->HashValue()
 					);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayRef::FMatch
+//		CScalarArrayRef::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarArrayRef::FMatch
+CScalarArrayRef::Matches
 	(
 	COperator *pop
 	)
@@ -107,9 +107,9 @@ CScalarArrayRef::FMatch
 
 	CScalarArrayRef *popArrayRef = CScalarArrayRef::PopConvert(pop);
 
-	return m_pmdidType->FEquals(popArrayRef->PmdidType()) &&
-			m_pmdidElem->FEquals(popArrayRef->PmdidElem()) &&
-			m_pmdidArray->FEquals(popArrayRef->PmdidArray());
+	return m_mdid_type->Equals(popArrayRef->MdidType()) &&
+			m_pmdidElem->Equals(popArrayRef->PmdidElem()) &&
+			m_pmdidArray->Equals(popArrayRef->PmdidArray());
 }
 
 // EOF

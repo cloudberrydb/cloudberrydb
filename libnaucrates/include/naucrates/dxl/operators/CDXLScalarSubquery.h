@@ -31,29 +31,29 @@ namespace gpdxl
 	{
 		private:
 			// id of column computed by the subquery
-			ULONG m_ulColId;
+			ULONG m_colid;
 			
 			// private copy ctor
 			CDXLScalarSubquery(CDXLScalarSubquery&);
 			
 		public:
 			// ctor/dtor
-			CDXLScalarSubquery(IMemoryPool *pmp, ULONG ulColId);
+		CDXLScalarSubquery(IMemoryPool *mp, ULONG colid);
 			
 			virtual
 			~CDXLScalarSubquery();
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// colid of subquery column
-			ULONG UlColId() const
+			ULONG GetColId() const
 			{
-				return m_ulColId;
+				return m_colid;
 			}
 			
 			// name of the operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// serialize operator in DXL format
 			virtual
@@ -61,22 +61,22 @@ namespace gpdxl
 
 			// conversion function
 			static
-			CDXLScalarSubquery *PdxlopConvert
+			CDXLScalarSubquery *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarSubquery == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarSubquery == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarSubquery*>(pdxlop);
+				return dynamic_cast<CDXLScalarSubquery*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{
@@ -86,7 +86,7 @@ namespace gpdxl
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

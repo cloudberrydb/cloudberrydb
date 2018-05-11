@@ -39,7 +39,7 @@ namespace gpopt
 	//		Singleton factory class used to generate and manage CColRefs in ORCA.
 	//		The created CColRef objects are maintained in a hash table keyed by
 	//		Column ID.  CColumnFactory provides various overloaded PcrCreate()
-	//		methods to create CColRef and a PcrLookup() method to probe the hash
+	//		methods to create CColRef and a LookupColRef() method to probe the hash
 	//		table.
 	//		NB: The class also owns the memory pool in which CColRefs are
 	//		allocated.
@@ -50,10 +50,10 @@ namespace gpopt
 		private:
 
 			// MTS memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// mapping between column id of computed column and a set of used column references
-			HMCrCrs *m_phmcrcrs;
+			ColRefToColRefSetMap *m_phmcrcrs;
 
 			// id counter
 			CAtomicULONG m_aul;
@@ -68,11 +68,11 @@ namespace gpopt
 			CColumnFactory(const CColumnFactory &);
 
 			// implementation of factory methods
-			CColRef *PcrCreate(const IMDType *pmdtype, INT iTypeModifier, ULONG ulId, const CName &name);
+			CColRef *PcrCreate(const IMDType *pmdtype, INT type_modifier, ULONG id, const CName &name);
 			CColRef *PcrCreate
 					(
 					const CColumnDescriptor *pcoldesc,
-					ULONG ulId,
+					ULONG id,
 					const CName &name,
 					ULONG ulOpSource
 					);
@@ -89,10 +89,10 @@ namespace gpopt
 			void Initialize();
 
 			// create a column reference given only its type and type modifier, used for computed columns
-			CColRef *PcrCreate(const IMDType *pmdtype, INT iTypeModifier);
+			CColRef *PcrCreate(const IMDType *pmdtype, INT type_modifier);
 
 			// create column reference given its type, type modifier, and name
-			CColRef *PcrCreate(const IMDType *pmdtype, INT iTypeModifier, const CName &name);
+			CColRef *PcrCreate(const IMDType *pmdtype, INT type_modifier, const CName &name);
 
 			// create a column reference given its descriptor and name
 			CColRef *PcrCreate
@@ -106,10 +106,10 @@ namespace gpopt
 			CColRef *PcrCreate
 				(
 				const IMDType *pmdtype,
-				INT iTypeModifier,
-				INT iAttno,
-				BOOL fNullable,
-				ULONG ulId,
+				INT type_modifier,
+				INT attno,
+				BOOL is_nullable,
+				ULONG id,
 				const CName &name,
 				ULONG ulOpSource,
 				ULONG ulWidth = gpos::ulong_max
@@ -118,10 +118,10 @@ namespace gpopt
 			// create a column reference with the same type as passed column reference
 			CColRef *PcrCreate
 				(
-				const CColRef *pcr
+				const CColRef *colref
 				)
 			{
-				return PcrCreate(pcr->Pmdtype(), pcr->ITypeModifier());
+				return PcrCreate(colref->RetrieveType(), colref->TypeModifier());
 			}
 
 			// add mapping between computed column to its used columns
@@ -131,10 +131,10 @@ namespace gpopt
 			const CColRefSet *PcrsUsedInComputedCol(const CColRef *pcrComputedCol);
 
 			// create a copy of the given colref
-			CColRef *PcrCopy(const CColRef* pcr);
+			CColRef *PcrCopy(const CColRef* colref);
 
 			// lookup by id
-			CColRef *PcrLookup(ULONG ulId);
+			CColRef *LookupColRef(ULONG id);
 			
 			// destructor
 			void Destroy(CColRef *);

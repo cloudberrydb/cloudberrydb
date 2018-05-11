@@ -26,16 +26,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementTVFNoArgs::CXformImplementTVFNoArgs
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformImplementTVF
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 				(
-				pmp,
-				GPOS_NEW(pmp) CLogicalTVF(pmp)
+				mp,
+				GPOS_NEW(mp) CLogicalTVF(mp)
 				)
 		)
 {}

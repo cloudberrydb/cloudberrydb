@@ -29,14 +29,14 @@
 	gpos::CException::Raise(__FILE__, __LINE__, __VA_ARGS__)
 
 // helper to match a caught exception
-#define GPOS_MATCH_EX(ex, ulMajor, ulMinor) \
-									(ulMajor == ex.UlMajor() && ulMinor == ex.UlMinor())
+#define GPOS_MATCH_EX(ex, major, minor) \
+									(major == ex.Major() && minor == ex.Minor())
 
 // being of a try block w/o explicit handler
 #define GPOS_TRY \
 									do \
 									{ \
-										CErrorHandler *perrhdl__ = NULL; \
+										CErrorHandler *err_hdl__ = NULL; \
 										try \
 										{
 
@@ -44,7 +44,7 @@
 #define GPOS_TRY_HDL(perrhdl) \
 									do \
 									{ \
-										CErrorHandler *perrhdl__ = perrhdl; \
+										CErrorHandler *err_hdl__ = perrhdl; \
 										try \
 										{
 
@@ -53,7 +53,7 @@
 										} \
 										catch(gpos::CException &exc) \
 										{ \
-											{ if (NULL != perrhdl__) perrhdl__->Process(exc); }
+											{ if (NULL != err_hdl__) err_hdl__->Process(exc); }
 											
 
 // end of a catch block
@@ -62,7 +62,7 @@
 									} while (0)
 
 // to be used inside a catch block
-#define GPOS_RESET_EX				ITask::PtskSelf()->Perrctxt()->Reset()
+#define GPOS_RESET_EX				ITask::Self()->GetErrCtxt()->Reset()
 #define GPOS_RETHROW(exc)			gpos::CException::Reraise(exc)
 	
 // short hands for frequently used exceptions
@@ -143,36 +143,36 @@ namespace gpos
 		
 		// structure for mapping exceptions to SQLerror codes
 		private:
-			struct SErrCodeElem
+			struct ErrCodeElem
 			{
 				// exception number
-				ULONG m_ul;
+				ULONG m_exception_num;
 				
 				// SQL standard error code
-				const CHAR *m_szSQLState;
+				const CHAR *m_sql_state;
 			};
 			
 			// error range
-			ULONG m_ulMajor;
+			ULONG m_major;
 			
 			// error number
-			ULONG m_ulMinor;
+			ULONG m_minor;
 			
 			// SQL state error code
-			const CHAR *m_szSQLState;
+			const CHAR *m_sql_state;
 			
 			// filename
-			CHAR *m_szFilename;
+			CHAR *m_filename;
 			
 			// line in file
-			ULONG m_ulLine;
+			ULONG m_line;
 
 			// severity level mapped to GPDB log severity level
-			ULONG m_ulSeverityLevel;
+			ULONG m_severity_level;
 
 			// sql state error codes
 			static
-			const SErrCodeElem m_rgerrcode[ExmiSQLTest - ExmiSQLDefault + 1];
+			const ErrCodeElem m_errcode[ExmiSQLTest - ExmiSQLDefault + 1];
 
 
 			// internal raise API
@@ -181,7 +181,7 @@ namespace gpos
 
 			// get sql error code for given exception
 			static
-			const CHAR *SzSQLState(ULONG ulMajor, ULONG ulMinor);
+			const CHAR *GetSQLState(ULONG major, ULONG minor);
 			
 		public:
 
@@ -202,42 +202,42 @@ namespace gpos
 
 			// severity levels
 			static
-			const CHAR *m_rgszSeverity[ExsevSentinel];
+			const CHAR *m_severity[ExsevSentinel];
 
 			// ctor
-			CException(ULONG ulMajor, ULONG ulMinor);
-			CException(ULONG ulMajor, ULONG ulMinor, const CHAR *szFilename, ULONG ulLine);
-			CException(ULONG ulMajor, ULONG ulMinor, const CHAR *szFilename, ULONG ulLine, ULONG ulSeverityLevel);
+			CException(ULONG major, ULONG minor);
+			CException(ULONG major, ULONG minor, const CHAR *filename, ULONG line);
+			CException(ULONG major, ULONG minor, const CHAR *filename, ULONG line, ULONG severity_level);
 
 			// accessors
-			ULONG UlMajor() const
+			ULONG Major() const
 			{
-				return m_ulMajor;
+				return m_major;
 			}
 		
-			ULONG UlMinor() const
+			ULONG Minor() const
 			{
-				return m_ulMinor;
+				return m_minor;
 			}
 
-			const CHAR *SzFilename() const
+			const CHAR *Filename() const
 			{
-				return m_szFilename;
+				return m_filename;
 			}
 			
-			ULONG UlLine() const
+			ULONG Line() const
 			{
-				return m_ulLine;
+				return m_line;
 			}
 
-			ULONG UlSeverityLevel() const
+			ULONG SeverityLevel() const
 			{
-				return m_ulSeverityLevel;
+				return m_severity_level;
 			}
 
-			const CHAR *SzSQLState() const
+			const CHAR *GetSQLState() const
 			{
-				return m_szSQLState;
+				return m_sql_state;
 			}
 			
 			// simple equality
@@ -247,7 +247,7 @@ namespace gpos
 				)
 				const
 			{
-				return m_ulMajor == exc.m_ulMajor && m_ulMinor == exc.m_ulMinor;
+				return m_major == exc.m_major && m_minor == exc.m_minor;
 			}
 
 			
@@ -263,7 +263,7 @@ namespace gpos
 
 			// equality function -- needed for hashtable
 			static
-			BOOL FEqual
+			BOOL Equals
 				(
 				const CException &exc,
 				const CException &excOther
@@ -274,29 +274,29 @@ namespace gpos
 
 			// basic hash function
 			static
-			ULONG UlHash
+			ULONG HashValue
 				(
 				const CException &exc
 				)
 			{
-				return exc.m_ulMajor ^ exc.m_ulMinor;
+				return exc.m_major ^ exc.m_minor;
 			}
 
 			// wrapper around throw
 			static 
-			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor,...) __attribute__((__noreturn__));
+			void Raise(const CHAR *filename, ULONG line, ULONG major, ULONG minor,...) __attribute__((__noreturn__));
 
 			// wrapper around throw with severity level
 			static
-			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor, ULONG ulSeverityLevel, ...) __attribute__((__noreturn__));
+			void Raise(const CHAR *filename, ULONG line, ULONG major, ULONG minor, ULONG severity_level, ...) __attribute__((__noreturn__));
 
 			// rethrow wrapper
 			static
-			void Reraise(CException exc, BOOL fPropagate = false) __attribute__((__noreturn__));
+			void Reraise(CException exc, BOOL propagate = false) __attribute__((__noreturn__));
 
 			// invalid exception
 			static
-			const CException m_excInvalid;
+			const CException m_invalid_exception;
 			
 	}; // class CException
 }

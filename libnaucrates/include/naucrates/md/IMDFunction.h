@@ -56,34 +56,34 @@ namespace gpmd
 
 			// object type
 			virtual
-			Emdtype Emdt() const
+			Emdtype MDType() const
 			{
 				return EmdtFunc;
 			}
 
 			// does function return NULL on NULL input
 			virtual 
-			BOOL FStrict() const = 0;
+			BOOL IsStrict() const = 0;
 			
 			// does function return a set of values
 			virtual 
-			BOOL FReturnsSet() const = 0;
+			BOOL ReturnsSet() const = 0;
 
 			// function stability
 			virtual
-			EFuncStbl EfsStability() const = 0;
+			EFuncStbl GetFuncStability() const = 0;
 
 			// function data access
 			virtual
-			EFuncDataAcc EfdaDataAccess() const = 0;
+			EFuncDataAcc GetFuncDataAccess() const = 0;
 
 			// result type
 			virtual 
-			IMDId *PmdidTypeResult() const = 0;
+			IMDId *GetResultTypeMdid() const = 0;
 			
 			// output argument types
 			virtual
-			DrgPmdid *PdrgpmdidOutputArgTypes() const = 0;
+			IMdIdArray *OutputArgTypesMdidArray() const = 0;
 	};
 		
 }

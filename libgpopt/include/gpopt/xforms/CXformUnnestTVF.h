@@ -36,22 +36,22 @@ namespace gpopt
 
 			// helper for mapping subquery function arguments into columns
 			static
-			DrgPcr *PdrgpcrSubqueries
+			CColRefArray *PdrgpcrSubqueries
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprCTEProducer,
 				CExpression *pexprCTEConsumer
 				);
 
 			//	collect subquery arguments and return a Project expression
 			static
-			CExpression *PexprProjectSubqueries(IMemoryPool *pmp, CExpression *pexprTVF);
+			CExpression *PexprProjectSubqueries(IMemoryPool *mp, CExpression *pexprTVF);
 
 		public:
 
 			// ctor
 			explicit
-			CXformUnnestTVF(IMemoryPool *pmp);
+			CXformUnnestTVF(IMemoryPool *mp);
 
 			// dtor
 			virtual

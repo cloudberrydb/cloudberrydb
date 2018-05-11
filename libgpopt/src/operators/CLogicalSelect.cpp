@@ -36,12 +36,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalSelect::CLogicalSelect
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogicalUnary(pmp)
+	CLogicalUnary(mp)
 {
-	m_phmPexprPartPred = GPOS_NEW(pmp) HMPexprPartPred(pmp);
+	m_phmPexprPartPred = GPOS_NEW(mp) ExprPredToExprPredPartMap(mp);
 }
 
 CLogicalSelect::~CLogicalSelect()
@@ -59,7 +59,7 @@ CLogicalSelect::~CLogicalSelect()
 CColRefSet *
 CLogicalSelect::PcrsDeriveOutput
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 {
@@ -78,7 +78,7 @@ CLogicalSelect::PcrsDeriveOutput
 CKeyCollection *
 CLogicalSelect::PkcDeriveKeys
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -98,25 +98,25 @@ CLogicalSelect::PkcDeriveKeys
 CXformSet *
 CLogicalSelect::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	) 
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 
-	(void) pxfs->FExchangeSet(CXform::ExfSelect2Apply);
-	(void) pxfs->FExchangeSet(CXform::ExfRemoveSubqDistinct);
-	(void) pxfs->FExchangeSet(CXform::ExfInlineCTEConsumerUnderSelect);
-	(void) pxfs->FExchangeSet(CXform::ExfPushGbWithHavingBelowJoin);
-	(void) pxfs->FExchangeSet(CXform::ExfSelect2IndexGet);
-	(void) pxfs->FExchangeSet(CXform::ExfSelect2DynamicIndexGet);
-	(void) pxfs->FExchangeSet(CXform::ExfSelect2PartialDynamicIndexGet);
-	(void) pxfs->FExchangeSet(CXform::ExfSelect2BitmapBoolOp);
-	(void) pxfs->FExchangeSet(CXform::ExfSelect2DynamicBitmapBoolOp);
-	(void) pxfs->FExchangeSet(CXform::ExfSimplifySelectWithSubquery);
-	(void) pxfs->FExchangeSet(CXform::ExfSelect2Filter);
+	(void) xform_set->ExchangeSet(CXform::ExfSelect2Apply);
+	(void) xform_set->ExchangeSet(CXform::ExfRemoveSubqDistinct);
+	(void) xform_set->ExchangeSet(CXform::ExfInlineCTEConsumerUnderSelect);
+	(void) xform_set->ExchangeSet(CXform::ExfPushGbWithHavingBelowJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfSelect2IndexGet);
+	(void) xform_set->ExchangeSet(CXform::ExfSelect2DynamicIndexGet);
+	(void) xform_set->ExchangeSet(CXform::ExfSelect2PartialDynamicIndexGet);
+	(void) xform_set->ExchangeSet(CXform::ExfSelect2BitmapBoolOp);
+	(void) xform_set->ExchangeSet(CXform::ExfSelect2DynamicBitmapBoolOp);
+	(void) xform_set->ExchangeSet(CXform::ExfSimplifySelectWithSubquery);
+	(void) xform_set->ExchangeSet(CXform::ExfSelect2Filter);
 
-	return pxfs;
+	return xform_set;
 }
 
 //---------------------------------------------------------------------------
@@ -130,7 +130,7 @@ CLogicalSelect::PxfsCandidates
 CMaxCard
 CLogicalSelect::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -138,13 +138,13 @@ CLogicalSelect::Maxcard
 	// in case of a false condition or a contradiction, maxcard should be zero
 	CExpression *pexprScalar = exprhdl.PexprScalarChild(1);
 	if ((NULL != pexprScalar && CUtils::FScalarConstFalse(pexprScalar)) ||
-		CDrvdPropRelational::Pdprel(exprhdl.Pdp())->Ppc()->FContradiction())
+		CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
 	{
 		return CMaxCard(0 /*ull*/);
 	}
 
 	// pass on max card of first child
-	return exprhdl.Pdprel(0)->Maxcard();
+	return exprhdl.GetRelationalProperties(0)->Maxcard();
 }
 
 
@@ -159,42 +159,42 @@ CLogicalSelect::Maxcard
 IStatistics *
 CLogicalSelect::PstatsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
-	DrgPstat *pdrgpstatCtxt
+	IStatisticsArray *stats_ctxt
 	)
 	const
 {
 	GPOS_ASSERT(Esp(exprhdl) > EspNone);
-	IStatistics *pstatsChild = exprhdl.Pstats(0);
+	IStatistics *child_stats = exprhdl.Pstats(0);
 
-	if (exprhdl.Pdpscalar(1 /*ulChildIndex*/)->FHasSubquery())
+	if (exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery())
 	{
 		// in case of subquery in select predicate, we return child stats
-		pstatsChild->AddRef();
-		return pstatsChild;
+		child_stats->AddRef();
+		return child_stats;
 	}
 
 	// remove implied predicates from selection condition to avoid cardinality under-estimation
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(1 /*ulChildIndex*/);
-	CExpression *pexprPredicate = CPredicateUtils::PexprRemoveImpliedConjuncts(pmp, pexprScalar, exprhdl);
+	CExpression *pexprScalar = exprhdl.PexprScalarChild(1 /*child_index*/);
+	CExpression *pexprPredicate = CPredicateUtils::PexprRemoveImpliedConjuncts(mp, pexprScalar, exprhdl);
 
 
 	// split selection predicate into local predicate and predicate involving outer references
-	CExpression *pexprLocal = NULL;
-	CExpression *pexprOuterRefs = NULL;
+	CExpression *local_expr = NULL;
+	CExpression *expr_with_outer_refs = NULL;
 
 	// get outer references from expression handle
-	CColRefSet *pcrsOuter = exprhdl.Pdprel()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
 
-	CPredicateUtils::SeparateOuterRefs(pmp, pexprPredicate, pcrsOuter, &pexprLocal, &pexprOuterRefs);
+	CPredicateUtils::SeparateOuterRefs(mp, pexprPredicate, outer_refs, &local_expr, &expr_with_outer_refs);
 	pexprPredicate->Release();
 
-	IStatistics *pstats = CFilterStatsProcessor::PstatsFilterForScalarExpr(pmp, exprhdl, pstatsChild, pexprLocal, pexprOuterRefs, pdrgpstatCtxt);
-	pexprLocal->Release();
-	pexprOuterRefs->Release();
+	IStatistics *stats = CFilterStatsProcessor::MakeStatsFilterForScalarExpr(mp, exprhdl, child_stats, local_expr, expr_with_outer_refs, stats_ctxt);
+	local_expr->Release();
+	expr_with_outer_refs->Release();
 
-	return pstats;
+	return stats;
 }
 
 // compute partition predicate to pass down to n-th child.
@@ -219,30 +219,30 @@ CLogicalSelect::PstatsDerive
 CExpression *
 CLogicalSelect::PexprPartPred
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CExpression *, //pexprInput
 	ULONG
 #ifdef GPOS_DEBUG
-	ulChildIndex
+	child_index
 #endif //GPOS_DEBUG
 	)
 	const
 {
-	GPOS_ASSERT(0 == ulChildIndex);
+	GPOS_ASSERT(0 == child_index);
 
 	// in case of subquery in select predicate, we cannot extract the whole
 	// predicate, and it would not be helpful anyway, so return NULL
-	if (exprhdl.Pdpscalar(1 /*ulChildIndex*/)->FHasSubquery())
+	if (exprhdl.GetDrvdScalarProps(1 /*child_index*/)->FHasSubquery())
 	{
 		return NULL;
 	}
 
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(1 /*ulChildIndex*/);
+	CExpression *pexprScalar = exprhdl.PexprScalarChild(1 /*child_index*/);
 	GPOS_ASSERT(NULL != pexprScalar);
 
 	// get partition keys
-	CPartInfo *ppartinfo = exprhdl.Pdprel()->Ppartinfo();
+	CPartInfo *ppartinfo = exprhdl.GetRelationalProperties()->Ppartinfo();
 	GPOS_ASSERT(NULL != ppartinfo);
 
 	// we assume that the select is right on top of the dynamic get, so there
@@ -254,7 +254,7 @@ CLogicalSelect::PexprPartPred
 	}
 
 	// check if a corresponding predicate has already been cached
-	CExpression *pexprPredOnPartKey = m_phmPexprPartPred->PtLookup(pexprScalar);
+	CExpression *pexprPredOnPartKey = m_phmPexprPartPred->Find(pexprScalar);
 	if (pexprPredOnPartKey != NULL)
 	{
 		// predicate on partition key found in cache
@@ -262,13 +262,13 @@ CLogicalSelect::PexprPartPred
 		return pexprPredOnPartKey;
 	}
 
-	DrgPpartkeys *pdrgppartkeys = ppartinfo->Pdrgppartkeys(0 /*ulPos*/);
-	const ULONG ulKeySets = pdrgppartkeys->UlLength();
+	CPartKeysArray *pdrgppartkeys = ppartinfo->Pdrgppartkeys(0 /*ulPos*/);
+	const ULONG ulKeySets = pdrgppartkeys->Size();
 	for (ULONG ul = 0; NULL == pexprPredOnPartKey && ul < ulKeySets; ul++)
 	{
 		pexprPredOnPartKey = CPredicateUtils::PexprExtractPredicatesOnPartKeys
 												(
-												pmp,
+												mp,
 												pexprScalar,
 												(*pdrgppartkeys)[ul]->Pdrgpdrgpcr(),
 												NULL, //pcrsAllowedRefs
@@ -282,7 +282,7 @@ CLogicalSelect::PexprPartPred
 		// in the hashmap
 		pexprPredOnPartKey->AddRef();
 		pexprScalar->AddRef();
-		m_phmPexprPartPred->FInsert(pexprScalar, pexprPredOnPartKey);
+		m_phmPexprPartPred->Insert(pexprScalar, pexprPredOnPartKey);
 	}
 
 	return pexprPredOnPartKey;

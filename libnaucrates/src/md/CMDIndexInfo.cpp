@@ -18,49 +18,49 @@ using namespace gpmd;
 // ctor
 CMDIndexInfo::CMDIndexInfo
 	(
-	IMDId *pmdid,
-	BOOL fPartial
+	IMDId *mdid,
+	BOOL is_partial
 	)
 	:
-	m_pmdid(pmdid),
-	m_fPartial(fPartial)
+	m_mdid(mdid),
+	m_is_partial(is_partial)
 {
-	GPOS_ASSERT(pmdid->FValid());
+	GPOS_ASSERT(mdid->IsValid());
 }
 
 // dtor
 CMDIndexInfo::~CMDIndexInfo()
 {
-	m_pmdid->Release();
+	m_mdid->Release();
 }
 
 // returns the metadata id of this index
 IMDId *
-CMDIndexInfo::Pmdid() const
+CMDIndexInfo::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 // is the index partial
 BOOL
-CMDIndexInfo::FPartial() const
+CMDIndexInfo::IsPartial() const
 {
-	return m_fPartial;
+	return m_is_partial;
 }
 
 // serialize indexinfo in DXL format
 void
 CMDIndexInfo::Serialize
 	(
-	gpdxl::CXMLSerializer *pxmlser
+	gpdxl::CXMLSerializer *xml_serializer
 	) const
 {
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenIndexInfo));
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenIndexInfo));
 
-	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexPartial), m_fPartial);
+	m_mdid->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIndexPartial), m_is_partial);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenIndexInfo));
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenIndexInfo));
 }
 
 #ifdef GPOS_DEBUG
@@ -73,9 +73,9 @@ CMDIndexInfo::DebugPrint
 	const
 {
 	os << "Index id: ";
-	Pmdid()->OsPrint(os);
+	MDId()->OsPrint(os);
 	os << std::endl;
-	os << "Is partial index: " << m_fPartial << std::endl;
+	os << "Is partial index: " << m_is_partial << std::endl;
 }
 
 #endif // GPOS_DEBUG

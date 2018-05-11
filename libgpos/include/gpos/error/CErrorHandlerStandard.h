@@ -43,7 +43,7 @@ namespace gpos
 
 			// process error
 			virtual
-			void Process(CException exc);
+			void Process(CException exception);
 
 	}; // class CErrorHandlerStandard
 }

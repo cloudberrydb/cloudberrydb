@@ -28,10 +28,10 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalApply::CLogicalApply
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogical(pmp),
+	CLogical(mp),
 	m_pdrgpcrInner(NULL),
 	m_eopidOriginSubq(COperator::EopSentinel)
 {}
@@ -47,12 +47,12 @@ CLogicalApply::CLogicalApply
 //---------------------------------------------------------------------------
 CLogicalApply::CLogicalApply
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcrInner,
+	IMemoryPool *mp,
+	CColRefArray *pdrgpcrInner,
 	EOperatorId eopidOriginSubq
 	)
 	:
-	CLogical(pmp),
+	CLogical(mp),
 	m_pdrgpcrInner(pdrgpcrInner),
 	m_eopidOriginSubq(eopidOriginSubq)
 {
@@ -84,26 +84,26 @@ CLogicalApply::~CLogicalApply()
 CColRefSet *
 CLogicalApply::PcrsStat
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CColRefSet *pcrsInput,
-	ULONG ulChildIndex
+	ULONG child_index
 	)
 	const
 {
-	GPOS_ASSERT(3 == exprhdl.UlArity());
+	GPOS_ASSERT(3 == exprhdl.Arity());
 
-	CColRefSet *pcrsUsed = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsUsed = GPOS_NEW(mp) CColRefSet(mp);
 	// add columns used by scalar child
-	pcrsUsed->Union(exprhdl.Pdpscalar(2)->PcrsUsed());
+	pcrsUsed->Union(exprhdl.GetDrvdScalarProps(2)->PcrsUsed());
 
-	if (0 == ulChildIndex)
+	if (0 == child_index)
 	{
 		// add outer references coming from inner child
-		pcrsUsed->Union(exprhdl.Pdprel(1)->PcrsOuter());
+		pcrsUsed->Union(exprhdl.GetRelationalProperties(1)->PcrsOuter());
 	}
 
-	CColRefSet *pcrsStat = PcrsReqdChildStats(pmp, exprhdl, pcrsInput, pcrsUsed, ulChildIndex);
+	CColRefSet *pcrsStat = PcrsReqdChildStats(mp, exprhdl, pcrsInput, pcrsUsed, child_index);
 	pcrsUsed->Release();
 
 	return pcrsStat;
@@ -111,14 +111,14 @@ CLogicalApply::PcrsStat
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalApply::FMatch
+//		CLogicalApply::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL
-CLogicalApply::FMatch
+CLogicalApply::Matches
 	(
 	COperator *pop
 	)
@@ -126,13 +126,13 @@ CLogicalApply::FMatch
 {
 	if (pop->Eopid() == Eopid())
 	{
-		DrgPcr *pdrgpcrInner = CLogicalApply::PopConvert(pop)->PdrgPcrInner();
+		CColRefArray *pdrgpcrInner = CLogicalApply::PopConvert(pop)->PdrgPcrInner();
 		if (NULL == m_pdrgpcrInner || NULL == pdrgpcrInner)
 		{
 			return 	 (NULL == m_pdrgpcrInner && NULL == pdrgpcrInner);
 		}
 
-		return m_pdrgpcrInner->FEqual(pdrgpcrInner);
+		return m_pdrgpcrInner->Equals(pdrgpcrInner);
 	}
 
 	return false;

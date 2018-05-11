@@ -57,14 +57,14 @@ namespace gpos
 			CSyncHashtable<T, K, S> &m_ht;
 
 			// index of bucket to operate on
-			ULONG m_ulBucketIndex;
+			ULONG m_bucket_idx;
 
 			// a slab of memory to manufacture an invalid element; we enforce
 			// memory alignment here to mimic allocation of a class object
-			ALIGN_STORAGE BYTE m_rgInvalid[sizeof(T)];
+			ALIGN_STORAGE BYTE m_invalid_elem_data[sizeof(T)];
 
 			// a pointer to memory slab to interpret it as invalid element
-			T *m_ptInvalid;
+			T *m_invalid_elem;
 
 			// no copy ctor
 			CSyncHashtableIter<T, K, S>(const CSyncHashtableIter<T, K, S>&);
@@ -72,25 +72,25 @@ namespace gpos
 			// inserts invalid element at the head of current bucket
 			void InsertInvalidElement()
             {
-                m_fInvalidInserted = false;
-                while (m_ulBucketIndex < m_ht.m_cSize)
+                m_invalid_elem_inserted = false;
+                while (m_bucket_idx < m_ht.m_nbuckets)
                 {
-                    CSyncHashtableAccessByIter<T, K, S> shtitacc(*this);
+                    CSyncHashtableAccessByIter<T, K, S> acc(*this);
 
-                    T *ptFirst = shtitacc.PtFirst();
-                    T *ptFirstValid = NULL;
+                    T *first = acc.First();
+                    T *first_valid = NULL;
 
-                    if (NULL != ptFirst &&
-                        (NULL != (ptFirstValid = shtitacc.PtFirstValid(ptFirst))))
+                    if (NULL != first &&
+                        (NULL != (first_valid = acc.FirstValid(first))))
                     {
                         // insert invalid element before the found element
-                        shtitacc.Prepend(m_ptInvalid, ptFirstValid);
-                        m_fInvalidInserted = true;
+                        acc.Prepend(m_invalid_elem, first_valid);
+                        m_invalid_elem_inserted = true;
                         break;
                     }
                     else
                     {
-                        m_ulBucketIndex++;
+                        m_bucket_idx++;
                     }
                 }
             }
@@ -98,24 +98,24 @@ namespace gpos
 			// advances invalid element in current bucket
 			void AdvanceInvalidElement()
             {
-                CSyncHashtableAccessByIter<T, K, S> shtitacc(*this);
+                CSyncHashtableAccessByIter<T, K, S> acc(*this);
 
-                T *pt = shtitacc.PtFirstValid(m_ptInvalid);
+                T *value = acc.FirstValid(m_invalid_elem);
 
-                shtitacc.Remove(m_ptInvalid);
-                m_fInvalidInserted = false;
+                acc.Remove(m_invalid_elem);
+                m_invalid_elem_inserted = false;
 
                 // check that we did not find the last element in bucket
-                if (NULL != pt && NULL != shtitacc.PtNext(pt))
+                if (NULL != value && NULL != acc.Next(value))
                 {
                     // insert invalid element after the found element
-                    shtitacc.Append(m_ptInvalid, pt);
-                    m_fInvalidInserted = true;
+                    acc.Append(m_invalid_elem, value);
+                    m_invalid_elem_inserted = true;
                 }
             }
 
 			// a flag indicating if invalid element is currently in the hash table
-			BOOL m_fInvalidInserted;
+			BOOL m_invalid_elem_inserted;
 
 		public:
 
@@ -124,42 +124,42 @@ namespace gpos
 			CSyncHashtableIter<T, K, S>(CSyncHashtable<T, K, S> &ht)
             :
             m_ht(ht),
-            m_ulBucketIndex(0),
-            m_ptInvalid(NULL),
-            m_fInvalidInserted(false)
+            m_bucket_idx(0),
+            m_invalid_elem(NULL),
+            m_invalid_elem_inserted(false)
             {
-                m_ptInvalid = (T*)m_rgInvalid;
+                m_invalid_elem = (T*)m_invalid_elem_data;
 
                 // get a reference to invalid element's key
-                K &key = m_ht.Key(m_ptInvalid);
+                K &key = m_ht.Key(m_invalid_elem);
 
                 // copy invalid key to invalid element's memory
-                (void) clib::PvMemCpy
+                (void) clib::Memcpy
                 (
                  &key,
-                 m_ht.m_pkeyInvalid,
-                 sizeof(*(m_ht.m_pkeyInvalid))
+                 m_ht.m_invalid_key,
+                 sizeof(*(m_ht.m_invalid_key))
                  );
             }
 
 			// dtor
 			~CSyncHashtableIter<T, K, S>()
             {
-                if (m_fInvalidInserted)
+                if (m_invalid_elem_inserted)
                 {
                     // remove invalid element
-                    CSyncHashtableAccessByIter<T, K, S> shtitacc(*this);
-                    shtitacc.Remove(m_ptInvalid);
+                    CSyncHashtableAccessByIter<T, K, S> acc(*this);
+                    acc.Remove(m_invalid_elem);
                 }
             }
 
 			// advances iterator
-			BOOL FAdvance()
+			BOOL Advance()
             {
-                GPOS_ASSERT(m_ulBucketIndex < m_ht.m_cSize &&
+                GPOS_ASSERT(m_bucket_idx < m_ht.m_nbuckets &&
                             "Advancing an exhausted iterator");
 
-                if (!m_fInvalidInserted)
+                if (!m_invalid_elem_inserted)
                 {
                     // first time to call iterator's advance, insert invalid
                     // element into the first non-empty bucket
@@ -169,26 +169,26 @@ namespace gpos
                 {
                     AdvanceInvalidElement();
 
-                    if (!m_fInvalidInserted)
+                    if (!m_invalid_elem_inserted)
                     {
                         // current bucket is exhausted, insert invalid element
                         // in the next unvisited non-empty bucket
-                        m_ulBucketIndex++;
+                        m_bucket_idx++;
                         InsertInvalidElement();
                     }
                 }
 
-                return (m_ulBucketIndex < m_ht.m_cSize);
+                return (m_bucket_idx < m_ht.m_nbuckets);
             }
 
 			// rewinds the iterator to the beginning
-			void RewindIterator()
+			void Rewind()
             {
-                GPOS_ASSERT(m_ulBucketIndex >= m_ht.m_cSize &&
+                GPOS_ASSERT(m_bucket_idx >= m_ht.m_nbuckets &&
                             "Rewinding an un-exhausted iterator");
-                GPOS_ASSERT(!m_fInvalidInserted && "Invalid element from previous iteration exists, cannot rewind");
+                GPOS_ASSERT(!m_invalid_elem_inserted && "Invalid element from previous iteration exists, cannot rewind");
 
-                m_ulBucketIndex = 0;
+                m_bucket_idx = 0;
             }
 
 	}; // class CSyncHashtableIter

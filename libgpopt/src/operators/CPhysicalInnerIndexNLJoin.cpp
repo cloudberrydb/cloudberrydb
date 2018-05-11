@@ -36,14 +36,14 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalInnerIndexNLJoin::CPhysicalInnerIndexNLJoin
 	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr
+	IMemoryPool *mp,
+	CColRefArray *colref_array
 	)
 	:
-	CPhysicalInnerNLJoin(pmp),
-	m_pdrgpcrOuterRefs(pdrgpcr)
+	CPhysicalInnerNLJoin(mp),
+	m_pdrgpcrOuterRefs(colref_array)
 {
-	GPOS_ASSERT(NULL != pdrgpcr);
+	GPOS_ASSERT(NULL != colref_array);
 }
 
 
@@ -63,14 +63,14 @@ CPhysicalInnerIndexNLJoin::~CPhysicalInnerIndexNLJoin()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalInnerIndexNLJoin::FMatch
+//		CPhysicalInnerIndexNLJoin::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalInnerIndexNLJoin::FMatch
+CPhysicalInnerIndexNLJoin::Matches
 	(
 	COperator *pop
 	)
@@ -78,7 +78,7 @@ CPhysicalInnerIndexNLJoin::FMatch
 {
 	if (pop->Eopid() == Eopid())
 	{
-		return m_pdrgpcrOuterRefs->FEqual(CPhysicalInnerIndexNLJoin::PopConvert(pop)->PdrgPcrOuterRefs());
+		return m_pdrgpcrOuterRefs->Equals(CPhysicalInnerIndexNLJoin::PopConvert(pop)->PdrgPcrOuterRefs());
 	}
 
 	return false;
@@ -96,23 +96,23 @@ CPhysicalInnerIndexNLJoin::FMatch
 CDistributionSpec *
 CPhysicalInnerIndexNLJoin::PdsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &,//exprhdl,
 	CDistributionSpec *,//pdsRequired,
-	ULONG ulChildIndex,
-	DrgPdp *pdrgpdpCtxt,
+	ULONG child_index,
+	CDrvdProp2dArray *pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(2 > ulChildIndex);
+	GPOS_ASSERT(2 > child_index);
 
-	if (1 == ulChildIndex)
+	if (1 == child_index)
 	{
 		// inner (index-scan side) is requested for Any distribution,
 		// we allow outer references on the inner child of the join since it needs
 		// to refer to columns in join's outer child
-		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid(), true /*fAllowOuterRefs*/);
+		return GPOS_NEW(mp) CDistributionSpecAny(this->Eopid(), true /*fAllowOuterRefs*/);
 	}
 
 	// we need to match distribution of inner
@@ -123,7 +123,7 @@ CPhysicalInnerIndexNLJoin::PdsRequired
 		CDistributionSpec::EdtUniversal == edtInner)
 	{
 		// enforce executing on the master
-		return GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 	}
 
 	if (CDistributionSpec::EdtHashed == edtInner)
@@ -135,12 +135,12 @@ CPhysicalInnerIndexNLJoin::PdsRequired
 		{
 			// request hashed distribution from outer
 			pdshashedEquiv->Pdrgpexpr()->AddRef();
-			return GPOS_NEW(pmp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
+			return GPOS_NEW(mp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
 		}
 	}
 
 	// otherwise, require outer child to be replicated
-	return GPOS_NEW(pmp) CDistributionSpecReplicated();
+	return GPOS_NEW(mp) CDistributionSpecReplicated();
 }
 
 

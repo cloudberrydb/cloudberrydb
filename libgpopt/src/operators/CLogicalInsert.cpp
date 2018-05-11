@@ -31,10 +31,10 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CLogicalInsert::CLogicalInsert
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CLogical(pmp),
+	CLogical(mp),
 	m_ptabdesc(NULL),
 	m_pdrgpcrSource(NULL)
 {
@@ -51,12 +51,12 @@ CLogicalInsert::CLogicalInsert
 //---------------------------------------------------------------------------
 CLogicalInsert::CLogicalInsert
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CTableDescriptor *ptabdesc,
-	DrgPcr *pdrgpcrSource
+	CColRefArray *pdrgpcrSource
 	)
 	:
-	CLogical(pmp),
+	CLogical(mp),
 	m_ptabdesc(ptabdesc),
 	m_pdrgpcrSource(pdrgpcrSource)
 
@@ -83,14 +83,14 @@ CLogicalInsert::~CLogicalInsert()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalInsert::FMatch
+//		CLogicalInsert::Matches
 //
 //	@doc:
 //		Match function
 //
 //---------------------------------------------------------------------------
 BOOL
-CLogicalInsert::FMatch
+CLogicalInsert::Matches
 	(
 	COperator *pop
 	)
@@ -103,23 +103,23 @@ CLogicalInsert::FMatch
 
 	CLogicalInsert *popInsert = CLogicalInsert::PopConvert(pop);
 
-	return m_ptabdesc->Pmdid()->FEquals(popInsert->Ptabdesc()->Pmdid()) &&
-			m_pdrgpcrSource->FEqual(popInsert->PdrgpcrSource());
+	return m_ptabdesc->MDId()->Equals(popInsert->Ptabdesc()->MDId()) &&
+			m_pdrgpcrSource->Equals(popInsert->PdrgpcrSource());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CLogicalInsert::UlHash
+//		CLogicalInsert::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CLogicalInsert::UlHash() const
+CLogicalInsert::HashValue() const
 {
-	ULONG ulHash = gpos::UlCombineHashes(COperator::UlHash(), m_ptabdesc->Pmdid()->UlHash());
-	ulHash = gpos::UlCombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrSource));
+	ULONG ulHash = gpos::CombineHashes(COperator::HashValue(), m_ptabdesc->MDId()->HashValue());
+	ulHash = gpos::CombineHashes(ulHash, CUtils::UlHashColArray(m_pdrgpcrSource));
 
 	return ulHash;
 }
@@ -135,15 +135,15 @@ CLogicalInsert::UlHash() const
 COperator *
 CLogicalInsert::PopCopyWithRemappedColumns
 	(
-	IMemoryPool *pmp,
-	HMUlCr *phmulcr,
-	BOOL fMustExist
+	IMemoryPool *mp,
+	UlongToColRefMap *colref_mapping,
+	BOOL must_exist
 	)
 {
-	DrgPcr *pdrgpcr = CUtils::PdrgpcrRemap(pmp, m_pdrgpcrSource, phmulcr, fMustExist);
+	CColRefArray *colref_array = CUtils::PdrgpcrRemap(mp, m_pdrgpcrSource, colref_mapping, must_exist);
 	m_ptabdesc->AddRef();
 
-	return GPOS_NEW(pmp) CLogicalInsert(pmp, m_ptabdesc, pdrgpcr);
+	return GPOS_NEW(mp) CLogicalInsert(mp, m_ptabdesc, colref_array);
 }
 
 //---------------------------------------------------------------------------
@@ -157,11 +157,11 @@ CLogicalInsert::PopCopyWithRemappedColumns
 CColRefSet *
 CLogicalInsert::PcrsDeriveOutput
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle & //exprhdl
 	)
 {
-	CColRefSet *pcrsOutput = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
 	pcrsOutput->Include(m_pdrgpcrSource);
 	return pcrsOutput;
 }
@@ -177,7 +177,7 @@ CLogicalInsert::PcrsDeriveOutput
 CKeyCollection *
 CLogicalInsert::PkcDeriveKeys
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -196,13 +196,13 @@ CLogicalInsert::PkcDeriveKeys
 CMaxCard
 CLogicalInsert::Maxcard
 	(
-	IMemoryPool *, // pmp
+	IMemoryPool *, // mp
 	CExpressionHandle &exprhdl
 	)
 	const
 {
 	// pass on max card of first child
-	return exprhdl.Pdprel(0)->Maxcard();
+	return exprhdl.GetRelationalProperties(0)->Maxcard();
 }
 
 //---------------------------------------------------------------------------
@@ -216,13 +216,13 @@ CLogicalInsert::Maxcard
 CXformSet *
 CLogicalInsert::PxfsCandidates
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CXformSet *pxfs = GPOS_NEW(pmp) CXformSet(pmp);
-	(void) pxfs->FExchangeSet(CXform::ExfInsert2DML);
-	return pxfs;
+	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfInsert2DML);
+	return xform_set;
 }
 
 //---------------------------------------------------------------------------
@@ -236,9 +236,9 @@ CLogicalInsert::PxfsCandidates
 IStatistics *
 CLogicalInsert::PstatsDerive
 	(
-	IMemoryPool *, // pmp,
+	IMemoryPool *, // mp,
 	CExpressionHandle &exprhdl,
-	DrgPstat * // not used
+	IStatisticsArray * // not used
 	)
 	const
 {

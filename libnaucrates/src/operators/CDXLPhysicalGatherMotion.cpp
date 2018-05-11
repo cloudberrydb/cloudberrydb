@@ -28,23 +28,23 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalGatherMotion::CDXLPhysicalGatherMotion
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CDXLPhysicalMotion(pmp)
+	CDXLPhysicalMotion(mp)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalGatherMotion::Edxlop
+//		CDXLPhysicalGatherMotion::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalGatherMotion::Edxlop() const
+CDXLPhysicalGatherMotion::GetDXLOperator() const
 {
 	return EdxlopPhysicalMotionGather;
 }
@@ -60,24 +60,24 @@ CDXLPhysicalGatherMotion::Edxlop() const
 INT
 CDXLPhysicalGatherMotion::IOutputSegIdx() const
 {
-	GPOS_ASSERT(NULL != m_pdrgpiOutputSegIds);
-	GPOS_ASSERT(1 == m_pdrgpiOutputSegIds->UlLength());
-	return *((*m_pdrgpiOutputSegIds)[0]);
+	GPOS_ASSERT(NULL != m_output_segids_array);
+	GPOS_ASSERT(1 == m_output_segids_array->Size());
+	return *((*m_output_segids_array)[0]);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalGatherMotion::PstrOpName
+//		CDXLPhysicalGatherMotion::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalGatherMotion::PstrOpName() const
+CDXLPhysicalGatherMotion::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalGatherMotion);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalGatherMotion);
 }
 
 //---------------------------------------------------------------------------
@@ -91,24 +91,24 @@ CDXLPhysicalGatherMotion::PstrOpName() const
 void
 CDXLPhysicalGatherMotion::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 	
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 	
-	SerializeSegmentInfoToDXL(pxmlser);
+	SerializeSegmentInfoToDXL(xml_serializer);
 	
 	// serialize properties
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	node->SerializePropertiesToDXL(xml_serializer);
 	
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	node->SerializeChildrenToDXL(xml_serializer);
 	
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);		
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);		
 }
 
 #ifdef GPOS_DEBUG
@@ -123,25 +123,25 @@ CDXLPhysicalGatherMotion::SerializeToDXL
 void
 CDXLPhysicalGatherMotion::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *node,
+	BOOL validate_children
 	) const
 {
 	// assert proj list and filter are valid
-	CDXLPhysical::AssertValid(pdxln, fValidateChildren);
-	GPOS_ASSERT(m_pdrgpiInputSegIds != NULL);
-	GPOS_ASSERT(0 < m_pdrgpiInputSegIds->UlLength());
-	GPOS_ASSERT(m_pdrgpiOutputSegIds != NULL);
-	GPOS_ASSERT(1 == m_pdrgpiOutputSegIds->UlLength());
+	CDXLPhysical::AssertValid(node, validate_children);
+	GPOS_ASSERT(m_input_segids_array != NULL);
+	GPOS_ASSERT(0 < m_input_segids_array->Size());
+	GPOS_ASSERT(m_output_segids_array != NULL);
+	GPOS_ASSERT(1 == m_output_segids_array->Size());
 
-	GPOS_ASSERT(EdxlgmIndexSentinel == pdxln->UlArity());
+	GPOS_ASSERT(EdxlgmIndexSentinel == node->Arity());
 	
-	CDXLNode *pdxlnChild = (*pdxln)[EdxlgmIndexChild];
-	GPOS_ASSERT(EdxloptypePhysical == pdxlnChild->Pdxlop()->Edxloperatortype());
+	CDXLNode *child_dxlnode = (*node)[EdxlgmIndexChild];
+	GPOS_ASSERT(EdxloptypePhysical == child_dxlnode->GetOperator()->GetDXLOperatorType());
 	
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnChild->Pdxlop()->AssertValid(pdxlnChild, fValidateChildren);
+		child_dxlnode->GetOperator()->AssertValid(child_dxlnode, validate_children);
 	}
 }
 #endif // GPOS_DEBUG

@@ -34,16 +34,16 @@ namespace gpdxl
 		private:
 
 			// param name
-			CHAR *m_szName;
+			CHAR *m_param_name;
 
-			// param value
-			CDouble m_dVal;
+		// param value
+			CDouble m_value;
 
-			// lower bound value
-			CDouble m_dLowerBound;
+		// lower bound value
+			CDouble m_lower_bound_val;
 
-			// upper bound value
-			CDouble m_dUpperBound;
+		// upper bound value
+			CDouble m_upper_bound_val;
 
 			// private copy ctor
 			CParseHandlerCostParam(const CParseHandlerCostParam&);
@@ -51,18 +51,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
- 				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+ 				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
@@ -70,9 +70,9 @@ namespace gpdxl
 			// ctor
 			CParseHandlerCostParam
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 
 			// dtor
@@ -80,30 +80,30 @@ namespace gpdxl
 			~CParseHandlerCostParam();
 
 			// return parsed param name
-			CHAR *SzName() const
+			CHAR *GetName() const
 			{
-				return m_szName;
+				return m_param_name;
 			}
 
 			// return parsed param value
-			CDouble DVal() const
+			CDouble Get() const
 			{
-				return m_dVal;
+				return m_value;
 			}
 
 			// return parsed param lower bound value
-			CDouble DLowerBound() const
+			CDouble GetLowerBoundVal() const
 			{
-				return m_dLowerBound;
+				return m_lower_bound_val;
 			}
 
 			// return parsed param upper bound value
-			CDouble DUpperBound() const
+			CDouble GetUpperBoundVal() const
 			{
-				return m_dUpperBound;
+				return m_upper_bound_val;
 			}
 
-			EDxlParseHandlerType Edxlphtype() const
+			EDxlParseHandlerType GetParseHandlerType() const
 			{
 				return EdxlphCostParam;
 			}

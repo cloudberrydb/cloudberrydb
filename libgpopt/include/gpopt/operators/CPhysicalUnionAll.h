@@ -18,48 +18,48 @@ namespace gpopt
 		private:
 
 			// output column array
-			DrgPcr *const m_pdrgpcrOutput;
+			CColRefArray *const m_pdrgpcrOutput;
 
 			// input column array
-			DrgDrgPcr *const m_pdrgpdrgpcrInput;
+			CColRef2dArray *const m_pdrgpdrgpcrInput;
 
 			// if this union is needed for partial indexes then store the scan
 			// id, otherwise this will be gpos::ulong_max
 			const ULONG m_ulScanIdPartialIndex;
 
 			// set representation of input columns
-			DrgPcrs *m_pdrgpcrsInput;
+			CColRefSetArray *m_pdrgpcrsInput;
 
 			// array of child hashed distributions -- used locally for distribution derivation
-			DrgPds *const m_pdrgpds;
+			CDistributionSpecArray *const m_pdrgpds;
 
 			// map given array of scalar ident expressions to positions of UnionAll input columns in the given child;
-			DrgPul *PdrgpulMap(IMemoryPool *pmp, DrgPexpr *pdrgpexpr, ULONG ulChildIndex) const;
+			ULongPtrArray *PdrgpulMap(IMemoryPool *mp, CExpressionArray *pdrgpexpr, ULONG child_index) const;
 
 			// derive hashed distribution from child operators
-			CDistributionSpecHashed *PdshashedDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CDistributionSpecHashed *PdshashedDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// compute output hashed distribution matching the outer child's hashed distribution
-			CDistributionSpecHashed *PdsMatching(IMemoryPool *pmp, const DrgPul *pdrgpulOuter) const;
+			CDistributionSpecHashed *PdsMatching(IMemoryPool *mp, const ULongPtrArray *pdrgpulOuter) const;
 
 			// derive output distribution based on child distribution
-			CDistributionSpec *PdsDeriveFromChildren(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDeriveFromChildren(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 		protected:
 
-			CColRefSet *PcrsInput(ULONG ulChildIndex);
+			CColRefSet *PcrsInput(ULONG child_index);
 
 			// compute required hashed distribution of the n-th child
 			CDistributionSpecHashed *
-			PdshashedPassThru(IMemoryPool *pmp, CDistributionSpecHashed *pdshashedRequired, ULONG ulChildIndex) const;
+			PdshashedPassThru(IMemoryPool *mp, CDistributionSpecHashed *pdshashedRequired, ULONG child_index) const;
 
 		public:
 
 			CPhysicalUnionAll
 				(
-					IMemoryPool *pmp,
-					DrgPcr *pdrgpcrOutput,
-					DrgDrgPcr *pdrgpdrgpcrInput,
+					IMemoryPool *mp,
+					CColRefArray *pdrgpcrOutput,
+					CColRef2dArray *pdrgpdrgpcrInput,
 					ULONG ulScanIdPartialIndex
 				);
 
@@ -68,7 +68,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			// ident accessors
 			virtual
@@ -82,17 +82,17 @@ namespace gpopt
 			BOOL FInputOrderSensitive() const;
 
 			// accessor of output column array
-			DrgPcr *PdrgpcrOutput() const;
+			CColRefArray *PdrgpcrOutput() const;
 
 			// accessor of input column array
-			DrgDrgPcr *PdrgpdrgpcrInput() const;
+			CColRef2dArray *PdrgpdrgpcrInput() const;
 
 			// if this unionall is needed for partial indexes then return the scan
 			// id, otherwise return gpos::ulong_max
 			ULONG UlScanIdPartialIndex() const;
 
 			// is this unionall needed for a partial index
-			BOOL FPartialIndex() const;
+			BOOL IsPartialIndex() const;
 
 			// return true if operator passes through stats obtained from children,
 			// this is used when computing stats during costing
@@ -107,11 +107,11 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CExpressionHandle &exprhdl,
 					CColRefSet *pcrsRequired,
-					ULONG ulChildIndex,
-					DrgPdp *pdrgpdpCtxt,
+					ULONG child_index,
+					CDrvdProp2dArray *pdrgpdpCtxt,
 					ULONG ulOptReq
 				);
 
@@ -119,11 +119,11 @@ namespace gpopt
 			virtual
 			CCTEReq *PcteRequired
 				(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CExpressionHandle &exprhdl,
 					CCTEReq *pcter,
-					ULONG ulChildIndex,
-					DrgPdp *pdrgpdpCtxt,
+					ULONG child_index,
+					CDrvdProp2dArray *pdrgpdpCtxt,
 					ULONG ulOptReq
 				)
 			const;
@@ -132,11 +132,11 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CExpressionHandle &exprhdl,
 					COrderSpec *posRequired,
-					ULONG ulChildIndex,
-					DrgPdp *pdrgpdpCtxt,
+					ULONG child_index,
+					CDrvdProp2dArray *pdrgpdpCtxt,
 					ULONG ulOptReq
 				)
 			const;
@@ -145,11 +145,11 @@ namespace gpopt
 			virtual
 			CRewindabilitySpec *PrsRequired
 				(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CExpressionHandle &exprhdl,
 					CRewindabilitySpec *prsRequired,
-					ULONG ulChildIndex,
-					DrgPdp *pdrgpdpCtxt,
+					ULONG child_index,
+					CDrvdProp2dArray *pdrgpdpCtxt,
 					ULONG ulOptReq
 				)
 			const;
@@ -158,11 +158,11 @@ namespace gpopt
 			virtual
 			CPartitionPropagationSpec *PppsRequired
 				(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CExpressionHandle &exprhdl,
 					CPartitionPropagationSpec *pppsRequired,
-					ULONG ulChildIndex,
-					DrgPdp *pdrgpdpCtxt,
+					ULONG child_index,
+					CDrvdProp2dArray *pdrgpdpCtxt,
 					ULONG ulOptReq
 				);
 
@@ -184,28 +184,28 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive distribution
 			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CDistributionSpec *PdsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition index map
 			virtual
-			CPartIndexMap *PpimDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt) const;
+			CPartIndexMap *PpimDerive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt) const;
 
 			// derive partition filter map
 			virtual
 			CPartFilterMap *PpfmDerive
 				(
-					IMemoryPool *pmp,
+					IMemoryPool *mp,
 					CExpressionHandle &exprhdl
 				)
 			const;
 
 			// derive rewindability
 			virtual
-			CRewindabilitySpec *PrsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CRewindabilitySpec *PrsDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties

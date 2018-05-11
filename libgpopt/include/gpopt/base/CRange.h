@@ -58,7 +58,7 @@ namespace gpopt
 
 		private:
 			// range type
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 
 			// datum comparator
 			const IComparator *m_pcomp;
@@ -79,17 +79,17 @@ namespace gpopt
 			CRange(const CRange&);
 
 			// construct an equality predicate if possible
-			CExpression *PexprEquality(IMemoryPool *pmp, const CColRef *pcr);
+			CExpression *PexprEquality(IMemoryPool *mp, const CColRef *colref);
 
 			// construct a scalar comparison expression from one of the ends
 			CExpression *PexprScalarCompEnd
 							(
-							IMemoryPool *pmp,
-							IDatum *pdatum,
+							IMemoryPool *mp,
+							IDatum *datum,
 							ERangeInclusion eri,
 							IMDType::ECmpType ecmptIncl,
 							IMDType::ECmpType ecmptExcl,
-							const CColRef *pcr
+							const CColRef *colref
 							);
 
 			// inverse of the inclusion option
@@ -106,14 +106,14 @@ namespace gpopt
 			}
 
 			// print a bound
-			IOstream &OsPrintBound(IOstream &os, IDatum *pdatum, const CHAR *szInfinity) const;
+			IOstream &OsPrintBound(IOstream &os, IDatum *datum, const CHAR *szInfinity) const;
 
 		public:
 
 			// ctor
 			CRange
 				(
-				IMDId *pmdid,
+				IMDId *mdid,
 				const IComparator *pcomp,
 				IDatum *pdatumLeft,
 				ERangeInclusion eriLeft,
@@ -122,16 +122,16 @@ namespace gpopt
 				);
 
 			// ctor
-			CRange(const IComparator *pcomp, IMDType::ECmpType ecmpt, IDatum *pdatum);
+			CRange(const IComparator *pcomp, IMDType::ECmpType cmp_type, IDatum *datum);
 
 			// dtor
 			virtual
 			~CRange();
 
 			// range type
-			IMDId *Pmdid() const
+			IMDId *MDId() const
 			{
-				return m_pmdid;
+				return m_mdid;
 			}
 
 			// range beginning
@@ -162,7 +162,7 @@ namespace gpopt
 			BOOL FDisjointLeft(CRange *prange);
 
 			// does this range contain the given range
-			BOOL FContains(CRange *prange);
+			BOOL Contains(CRange *prange);
 
 			// does this range overlap only the left end of the given range
 			BOOL FOverlapsLeft(CRange *prange);
@@ -189,23 +189,23 @@ namespace gpopt
 			BOOL FPoint() const;
 
 			// intersection with another range
-			CRange *PrngIntersect(IMemoryPool *pmp, CRange *prange);
+			CRange *PrngIntersect(IMemoryPool *mp, CRange *prange);
 
 			// difference between this range and a given range on the left side only
-			CRange *PrngDifferenceLeft(IMemoryPool *pmp, CRange *prange);
+			CRange *PrngDifferenceLeft(IMemoryPool *mp, CRange *prange);
 
 			// difference between this range and a given range on the right side only
-			CRange *PrngDifferenceRight(IMemoryPool *pmp, CRange *prange);
+			CRange *PrngDifferenceRight(IMemoryPool *mp, CRange *prange);
 
 			// return the extension of this range with the given range. The given
 			// range must start right after this range, otherwise NULL is returned
-			CRange *PrngExtend(IMemoryPool *pmp, CRange *prange);
+			CRange *PrngExtend(IMemoryPool *mp, CRange *prange);
 
 			// construct scalar expression
-			CExpression *PexprScalar(IMemoryPool *pmp, const CColRef *pcr);
+			CExpression *PexprScalar(IMemoryPool *mp, const CColRef *colref);
 
 			// is this interval unbounded
-			BOOL FUnbounded() const
+			BOOL IsConstraintUnbounded() const
 			{
 				return (NULL == m_pdatumLeft && NULL == m_pdatumRight);
 			}

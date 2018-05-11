@@ -32,15 +32,15 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerStatsDerivedRelation::CParseHandlerStatsDerivedRelation
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_dRows(CStatistics::DDefaultColumnWidth),
-	m_fEmpty(false),
-	m_pdxlstatsderrel(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_rows(CStatistics::DefaultColumnWidth),
+	m_empty(false),
+	m_dxl_stats_derived_relation(NULL)
 {
 }
 
@@ -54,7 +54,7 @@ CParseHandlerStatsDerivedRelation::CParseHandlerStatsDerivedRelation
 //---------------------------------------------------------------------------
 CParseHandlerStatsDerivedRelation::~CParseHandlerStatsDerivedRelation()
 {
-	m_pdxlstatsderrel->Release();
+	m_dxl_stats_derived_relation->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -68,51 +68,51 @@ CParseHandlerStatsDerivedRelation::~CParseHandlerStatsDerivedRelation()
 void
 CParseHandlerStatsDerivedRelation::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatsDerivedColumn), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatsDerivedColumn), element_local_name))
 	{
 		// start new derived column element
-		CParseHandlerBase *pph = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenStatsDerivedColumn), m_pphm, this);
-		m_pphm->ActivateParseHandler(pph);
+		CParseHandlerBase *parse_handler_base = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenStatsDerivedColumn), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(parse_handler_base);
 
 		// store parse handler
-		this->Append(pph);
+		this->Append(parse_handler_base);
 
-		pph->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		parse_handler_base->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		GPOS_ASSERT(0 == this->UlLength());
+		GPOS_ASSERT(0 == this->Length());
 
 		// parse rows
-		const XMLCh *xmlszRows = CDXLOperatorFactory::XmlstrFromAttrs
+		const XMLCh *xml_rows = CDXLOperatorFactory::ExtractAttrValue
 														(
 														attrs,
 														EdxltokenRows,
 														EdxltokenStatsDerivedRelation
 														);
 
-		m_dRows = CDouble(CDXLOperatorFactory::DValueFromXmlstr
+		m_rows = CDouble(CDXLOperatorFactory::ConvertAttrValueToDouble
 												(
-												m_pphm->Pmm(),
-												xmlszRows,
+												m_parse_handler_mgr->GetDXLMemoryManager(),
+												xml_rows,
 												EdxltokenRows,
 												EdxltokenStatsDerivedRelation
 												));
 
-		m_fEmpty = false;
-		const XMLCh *xmlszEmpty = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenEmptyRelation));
-		if (NULL != xmlszEmpty)
+		m_empty = false;
+		const XMLCh *xml_is_empty = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenEmptyRelation));
+		if (NULL != xml_is_empty)
 		{
-			m_fEmpty = CDXLOperatorFactory::FValueFromXmlstr
+			m_empty = CDXLOperatorFactory::ConvertAttrValueToBool
 											(
-											m_pphm->Pmm(),
-											xmlszEmpty,
+											m_parse_handler_mgr->GetDXLMemoryManager(),
+											xml_is_empty,
 											EdxltokenEmptyRelation,
 											EdxltokenStatsDerivedRelation
 											);
@@ -131,36 +131,36 @@ CParseHandlerStatsDerivedRelation::StartElement
 void
 CParseHandlerStatsDerivedRelation::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatsDerivedRelation), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenStatsDerivedRelation), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// must have at least one column stats
-	GPOS_ASSERT(0 < this->UlLength());
+	GPOS_ASSERT(0 < this->Length());
 
 	// array of derived column statistics
-	DrgPdxlstatsdercol *pdrgpdxlstatsdercol = GPOS_NEW(m_pmp) DrgPdxlstatsdercol(m_pmp);
-	const ULONG ulDerCol = this->UlLength();
-	for (ULONG ul = 0; ul < ulDerCol; ul++)
+	CDXLStatsDerivedColumnArray *dxl_stats_derived_col_array = GPOS_NEW(m_mp) CDXLStatsDerivedColumnArray(m_mp);
+	const ULONG num_of_drvd_col_stats = this->Length();
+	for (ULONG idx = 0; idx < num_of_drvd_col_stats; idx++)
 	{
-		CParseHandlerStatsDerivedColumn *pph = dynamic_cast<CParseHandlerStatsDerivedColumn*>( (*this)[ul]);
+		CParseHandlerStatsDerivedColumn *stats_derived_col_parse_handler = dynamic_cast<CParseHandlerStatsDerivedColumn*>( (*this)[idx]);
 
-		CDXLStatsDerivedColumn *pdxlstatdercol = pph->Pstatsdercol();
+		CDXLStatsDerivedColumn *pdxlstatdercol = stats_derived_col_parse_handler->GetDxlStatsDerivedCol();
 		pdxlstatdercol->AddRef();
-		pdrgpdxlstatsdercol->Append(pdxlstatdercol);
+		dxl_stats_derived_col_array->Append(pdxlstatdercol);
 	}
 
-	m_pdxlstatsderrel = GPOS_NEW(m_pmp) CDXLStatsDerivedRelation(m_dRows, m_fEmpty, pdrgpdxlstatsdercol);
+	m_dxl_stats_derived_relation = GPOS_NEW(m_mp) CDXLStatsDerivedRelation(m_rows, m_empty, dxl_stats_derived_col_array);
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

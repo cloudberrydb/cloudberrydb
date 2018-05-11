@@ -16,43 +16,43 @@ using namespace gpmd;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		IMDProvider::PmdidTypeGPDB
+//		IMDProvider::GetGPDBTypeMdid
 //
 //	@doc:
 //		Return the mdid for the requested type
 //
 //---------------------------------------------------------------------------
 IMDId *
-IMDProvider::PmdidTypeGPDB
+IMDProvider::GetGPDBTypeMdid
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CSystemId
 #ifdef GPOS_DEBUG
 	sysid
 #endif // GPOS_DEBUG
 	,
-	IMDType::ETypeInfo eti
+	IMDType::ETypeInfo type_info
 	)
 {
-	GPOS_ASSERT(IMDId::EmdidGPDB == sysid.Emdidt());
-	GPOS_ASSERT(IMDType::EtiGeneric > eti);
+	GPOS_ASSERT(IMDId::EmdidGPDB == sysid.MdidType());
+	GPOS_ASSERT(IMDType::EtiGeneric > type_info);
 
-	switch(eti)
+	switch(type_info)
 	{
 		case IMDType::EtiInt2:
-			return GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT2);
+			return GPOS_NEW(mp) CMDIdGPDB(GPDB_INT2);
 
 		case IMDType::EtiInt4:
-			return GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT4);
+			return GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4);
 
 		case IMDType::EtiInt8:
-			return GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8);
+			return GPOS_NEW(mp) CMDIdGPDB(GPDB_INT8);
 
 		case IMDType::EtiBool:
-			return GPOS_NEW(pmp) CMDIdGPDB(GPDB_BOOL);
+			return GPOS_NEW(mp) CMDIdGPDB(GPDB_BOOL);
 
 		case IMDType::EtiOid:
-			return GPOS_NEW(pmp) CMDIdGPDB(GPDB_OID);
+			return GPOS_NEW(mp) CMDIdGPDB(GPDB_OID);
 
 		default:
 			return NULL;

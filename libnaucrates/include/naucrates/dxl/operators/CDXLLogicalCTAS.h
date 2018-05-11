@@ -40,41 +40,41 @@ namespace gpdxl
 		private:
 			
 			// mdid of table to create
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// schema name
-			CMDName *m_pmdnameSchema;
+			CMDName *m_mdname_schema;
 			
 			// table name
-			CMDName *m_pmdnameRel;
+			CMDName *m_mdname_rel;
 			
 			// list of columns
-			DrgPdxlcd *m_pdrgpdxlcd;
+		CDXLColDescrArray *m_col_descr_array;
 			
 			// storage options
-			CDXLCtasStorageOptions *m_pdxlctasopt;
+			CDXLCtasStorageOptions *m_dxl_ctas_storage_option;
 			
 			// distribution policy
-			IMDRelation::Ereldistrpolicy m_ereldistrpolicy;
+			IMDRelation::Ereldistrpolicy m_rel_distr_policy;
 
 			// list of distribution column positions		
-			DrgPul *m_pdrgpulDistr;
+			ULongPtrArray *m_distr_column_pos_array;
 			
 			// is this a temporary table
-			BOOL m_fTemporary;
+			BOOL m_is_temp_table;
 			
 			// does table have oids
-			BOOL m_fHasOids;
+			BOOL m_has_oids;
 			
 			// storage type
-			IMDRelation::Erelstoragetype m_erelstorage;
+			IMDRelation::Erelstoragetype m_rel_storage_type;
 			
 			// list of source column ids		
-			DrgPul *m_pdrgpulSource;
+			ULongPtrArray *m_src_colids_array;
 			
 			// list of vartypmod for target expressions
 			// typemod records type-specific, e.g. the maximum length of a character column
-			DrgPi *m_pdrgpiVarTypeMod;
+			IntPtrArray *m_vartypemod_array;
 
 			// private copy ctor
 			CDXLLogicalCTAS(const CDXLLogicalCTAS &);
@@ -84,19 +84,19 @@ namespace gpdxl
 			// ctor
 			CDXLLogicalCTAS
 				(
-				IMemoryPool *pmp, 
-				IMDId *pmdid,
-				CMDName *pmdnameSchema, 
-				CMDName *pmdnameRel, 
-				DrgPdxlcd *pdrgpdxcd,
-				CDXLCtasStorageOptions *pdxlctasopt,
-				IMDRelation::Ereldistrpolicy ereldistrpolicy,
-				DrgPul *pdrgpulDistr, 
+				IMemoryPool *mp, 
+				IMDId *mdid,
+				CMDName *mdname_schema, 
+				CMDName *mdname_rel, 
+						CDXLColDescrArray *dxl_col_descr_array,
+				CDXLCtasStorageOptions *dxl_ctas_storage_option,
+				IMDRelation::Ereldistrpolicy rel_distr_policy,
+				ULongPtrArray *distr_column_pos_array,
 				BOOL fTemporary, 
 				BOOL fHasOids, 
-				IMDRelation::Erelstoragetype erelstorage,
-				DrgPul *pdrgpulSource,
-				DrgPi *pdrgpiVarTypeMod
+				IMDRelation::Erelstoragetype rel_storage_type,
+				ULongPtrArray *src_colids_array,
+				IntPtrArray *vartypemod_array
 				);
 				
 			// dtor
@@ -104,108 +104,108 @@ namespace gpdxl
 			~CDXLLogicalCTAS();
 		
 			// operator type
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// mdid of table to create
-			IMDId *Pmdid() const
+			IMDId *MDId() const
 			{
-				return m_pmdid;
+				return m_mdid;
 			}
 			
 			// schema name
-			CMDName *PmdnameSchema() const
+			CMDName *GetMdNameSchema() const
 			{
-				return m_pmdnameSchema;
+				return m_mdname_schema;
 			}
 			
 			// table name
-			CMDName *Pmdname() const
+			CMDName *MdName() const
 			{
-				return m_pmdnameRel;
+				return m_mdname_rel;
 			}
 			
 			// column descriptors
-			DrgPdxlcd *Pdrgpdxlcd() const
+			CDXLColDescrArray *GetDXLColumnDescrArray() const
 			{
-				return m_pdrgpdxlcd;
+				return m_col_descr_array;
 			}
 			
 			// storage type
-			IMDRelation::Erelstoragetype Erelstorage() const
+			IMDRelation::Erelstoragetype RetrieveRelStorageType() const
 			{
-				return m_erelstorage;
+				return m_rel_storage_type;
 			}
 			
 			// distribution policy
 			IMDRelation::Ereldistrpolicy Ereldistrpolicy() const
 			{
-				return m_ereldistrpolicy;
+				return m_rel_distr_policy;
 			}
 			
 			// distribution column positions
-			DrgPul *PdrgpulDistr() const
+			ULongPtrArray *GetDistrColPosArray() const
 			{
-				return m_pdrgpulDistr;
+				return m_distr_column_pos_array;
 			}
 		
 			// source column ids
-			DrgPul *PdrgpulSource() const
+			ULongPtrArray *GetSrcColidsArray() const
 			{
-				return m_pdrgpulSource;
+				return m_src_colids_array;
 			}
 			
 			// list of vartypmod for target expressions
-			DrgPi *PdrgpiVarTypeMod() const
+			IntPtrArray *GetVarTypeModArray() const
 			{
-				return m_pdrgpiVarTypeMod;
+				return m_vartypemod_array;
 			}
 
 			// is it a temporary table
-			BOOL FTemporary() const
+			BOOL IsTemporary() const
 			{
-				return m_fTemporary;
+				return m_is_temp_table;
 			}
 			
 			// does the table have oids
-			BOOL FHasOids() const
+			BOOL HasOids() const
 			{
-				return m_fHasOids;
+				return m_has_oids;
 			}
 			
 			// CTAS storage options
-			CDXLCtasStorageOptions *Pdxlctasopt() const
+			CDXLCtasStorageOptions *GetDxlCtasStorageOption() const
 			{
-				return m_pdxlctasopt;
+				return m_dxl_ctas_storage_option;
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// check if given column is defined by operator
 			virtual
-			BOOL FDefinesColumn(ULONG ulColId) const;
+			BOOL IsColDefined(ULONG colid) const;
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLLogicalCTAS *PdxlopConvert
+			CDXLLogicalCTAS *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopLogicalCTAS == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopLogicalCTAS == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLLogicalCTAS*>(pdxlop);
+				return dynamic_cast<CDXLLogicalCTAS*>(dxl_op);
 			}
 
 	};

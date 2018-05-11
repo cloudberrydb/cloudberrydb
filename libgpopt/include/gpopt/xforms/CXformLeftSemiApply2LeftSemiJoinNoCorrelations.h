@@ -42,10 +42,10 @@ namespace gpopt
 			explicit
 			CXformLeftSemiApply2LeftSemiJoinNoCorrelations
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>(pmp)
+				CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>(mp)
 			{}
 
 			// dtor
@@ -56,11 +56,11 @@ namespace gpopt
 			// ctor with a passed pattern
 			CXformLeftSemiApply2LeftSemiJoinNoCorrelations
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprPattern
 				)
 				:
-				CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>(pmp, pexprPattern)
+				CXformApply2Join<CLogicalLeftSemiApply, CLogicalLeftSemiJoin>(mp, pexprPattern)
 			{}
 
 			// ident accessors

@@ -38,24 +38,24 @@ using namespace gpopt;
 CDatumOidGPDB::CDatumOidGPDB
 	(
 	CSystemId sysid,
-	OID oidVal,
-	BOOL fNull
+	OID oid_val,
+	BOOL is_null
 	)
 	:
-	m_pmdid(NULL),
-	m_oidVal(oidVal),
-	m_fNull(fNull)
+	m_mdid(NULL),
+	m_val(oid_val),
+	m_is_null(is_null)
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	IMDId *pmdid = dynamic_cast<const CMDTypeOidGPDB *>(pmda->PtMDType<IMDTypeOid>(sysid))->Pmdid();
-	pmdid->AddRef();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	IMDId *mdid = dynamic_cast<const CMDTypeOidGPDB *>(md_accessor->PtMDType<IMDTypeOid>(sysid))->MDId();
+	mdid->AddRef();
 
-	m_pmdid = pmdid;
+	m_mdid = mdid;
 
-	if (FNull())
+	if (IsNull())
 	{
 		// needed for hash computation
-		m_oidVal = gpos::int_max;
+		m_val = gpos::int_max;
 	}
 }
 
@@ -69,22 +69,22 @@ CDatumOidGPDB::CDatumOidGPDB
 //---------------------------------------------------------------------------
 CDatumOidGPDB::CDatumOidGPDB
 	(
-	IMDId *pmdid,
-	OID oidVal,
-	BOOL fNull
+	IMDId *mdid,
+	OID oid_val,
+	BOOL is_null
 	)
 	:
-	m_pmdid(pmdid),
-	m_oidVal(oidVal),
-	m_fNull(fNull)
+	m_mdid(mdid),
+	m_val(oid_val),
+	m_is_null(is_null)
 {
-	GPOS_ASSERT(NULL != m_pmdid);
-	GPOS_ASSERT(GPDB_OID_OID == CMDIdGPDB::PmdidConvert(m_pmdid)->OidObjectId());
+	GPOS_ASSERT(NULL != m_mdid);
+	GPOS_ASSERT(GPDB_OID_OID == CMDIdGPDB::CastMdid(m_mdid)->Oid());
 
-	if (FNull())
+	if (IsNull())
 	{
 		// needed for hash computation
-		m_oidVal = gpos::int_max;
+		m_val = gpos::int_max;
 	}
 }
 
@@ -98,7 +98,7 @@ CDatumOidGPDB::CDatumOidGPDB
 //---------------------------------------------------------------------------
 CDatumOidGPDB::~CDatumOidGPDB()
 {
-	m_pmdid->Release();
+	m_mdid->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -112,121 +112,121 @@ CDatumOidGPDB::~CDatumOidGPDB()
 OID
 CDatumOidGPDB::OidValue() const
 {
-	return m_oidVal;
+	return m_val;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumOidGPDB::FNull
+//		CDatumOidGPDB::IsNull
 //
 //	@doc:
 //		Accessor of is null
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumOidGPDB::FNull() const
+CDatumOidGPDB::IsNull() const
 {
-	return m_fNull;
+	return m_is_null;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumOidGPDB::UlSize
+//		CDatumOidGPDB::Size
 //
 //	@doc:
 //		Accessor of size
 //
 //---------------------------------------------------------------------------
 ULONG
-CDatumOidGPDB::UlSize() const
+CDatumOidGPDB::Size() const
 {
 	return 4;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumOidGPDB::Pmdid
+//		CDatumOidGPDB::MDId
 //
 //	@doc:
 //		Accessor of type information
 //
 //---------------------------------------------------------------------------
 IMDId *
-CDatumOidGPDB::Pmdid() const
+CDatumOidGPDB::MDId() const
 {
-	return m_pmdid;
+	return m_mdid;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumOidGPDB::UlHash
+//		CDatumOidGPDB::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CDatumOidGPDB::UlHash() const
+CDatumOidGPDB::HashValue() const
 {
-	return gpos::UlCombineHashes(m_pmdid->UlHash(), gpos::UlHash<OID>(&m_oidVal));
+	return gpos::CombineHashes(m_mdid->HashValue(), gpos::HashValue<OID>(&m_val));
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumOidGPDB::Pstr
+//		CDatumOidGPDB::GetMDName
 //
 //	@doc:
 //		Return string representation
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDatumOidGPDB::Pstr
+CDatumOidGPDB::GetStrRepr
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	CWStringDynamic str(pmp);
-	if (!FNull())
+	CWStringDynamic str(mp);
+	if (!IsNull())
 	{
-		str.AppendFormat(GPOS_WSZ_LIT("%d"), m_oidVal);
+		str.AppendFormat(GPOS_WSZ_LIT("%d"), m_val);
 	}
 	else
 	{
 		str.AppendFormat(GPOS_WSZ_LIT("null"));
 	}
 
-	return GPOS_NEW(pmp) CWStringConst(pmp, str.Wsz());
+	return GPOS_NEW(mp) CWStringConst(mp, str.GetBuffer());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumOidGPDB::FMatch
+//		CDatumOidGPDB::Matches
 //
 //	@doc:
 //		Matches the values of datums
 //
 //---------------------------------------------------------------------------
 BOOL
-CDatumOidGPDB::FMatch
+CDatumOidGPDB::Matches
 	(
-	const IDatum *pdatum
+	const IDatum *datum
 	)
 	const
 {
-	if(!pdatum->Pmdid()->FEquals(m_pmdid))
+	if(!datum->MDId()->Equals(m_mdid))
 	{
 		return false;
 	}
 
-	const CDatumOidGPDB *pdatumoid = dynamic_cast<const CDatumOidGPDB *>(pdatum);
+	const CDatumOidGPDB *datum_cast = dynamic_cast<const CDatumOidGPDB *>(datum);
 
-	if(!pdatumoid->FNull() && !FNull())
+	if(!datum_cast->IsNull() && !IsNull())
 	{
-		return (pdatumoid->OidValue() == OidValue());
+		return (datum_cast->OidValue() == OidValue());
 	}
 
-	if(pdatumoid->FNull() && FNull())
+	if(datum_cast->IsNull() && IsNull())
 	{
 		return true;
 	}
@@ -236,21 +236,21 @@ CDatumOidGPDB::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumOidGPDB::PdatumCopy
+//		CDatumOidGPDB::MakeCopy
 //
 //	@doc:
 //		Returns a copy of the datum
 //
 //---------------------------------------------------------------------------
 IDatum *
-CDatumOidGPDB::PdatumCopy
+CDatumOidGPDB::MakeCopy
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	const
 {
-	m_pmdid->AddRef();
-	return GPOS_NEW(pmp) CDatumOidGPDB(m_pmdid, m_oidVal, m_fNull);
+	m_mdid->AddRef();
+	return GPOS_NEW(mp) CDatumOidGPDB(m_mdid, m_val, m_is_null);
 }
 
 //---------------------------------------------------------------------------
@@ -268,9 +268,9 @@ CDatumOidGPDB::OsPrint
 	)
 	const
 {
-	if (!FNull())
+	if (!IsNull())
 	{
-		os << m_oidVal;
+		os << m_val;
 	}
 	else
 	{

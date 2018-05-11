@@ -44,16 +44,16 @@ const WCHAR CScalarBitmapBoolOp::m_rgwszBitmapOpType[EbitmapboolSentinel][30] =
 //---------------------------------------------------------------------------
 CScalarBitmapBoolOp::CScalarBitmapBoolOp
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	EBitmapBoolOp ebitmapboolop,
 	IMDId *pmdidBitmapType
 	)
 	:
-	CScalar(pmp),
+	CScalar(mp),
 	m_ebitmapboolop(ebitmapboolop),
 	m_pmdidBitmapType(pmdidBitmapType)
 {
-	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(EbitmapboolSentinel > ebitmapboolop);
 	GPOS_ASSERT(NULL != pmdidBitmapType);
 }
@@ -73,30 +73,30 @@ CScalarBitmapBoolOp::~CScalarBitmapBoolOp()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBitmapBoolOp::UlHash
+//		CScalarBitmapBoolOp::HashValue
 //
 //	@doc:
 //		Operator specific hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarBitmapBoolOp::UlHash() const
+CScalarBitmapBoolOp::HashValue() const
 {
 	ULONG ulBoolop = (ULONG) Ebitmapboolop();
-	return gpos::UlCombineHashes(COperator::UlHash(), gpos::UlHash<ULONG>(&ulBoolop));
+	return gpos::CombineHashes(COperator::HashValue(), gpos::HashValue<ULONG>(&ulBoolop));
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBitmapBoolOp::FMatch
+//		CScalarBitmapBoolOp::Matches
 //
 //	@doc:
 //		Match this operator with the given one.
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarBitmapBoolOp::FMatch
+CScalarBitmapBoolOp::Matches
 	(
 	COperator *pop
 	)
@@ -109,7 +109,7 @@ CScalarBitmapBoolOp::FMatch
 	CScalarBitmapBoolOp *popBitmapBoolOp = PopConvert(pop);
 
 	return popBitmapBoolOp->Ebitmapboolop() == Ebitmapboolop() &&
-		popBitmapBoolOp->PmdidType()->FEquals(m_pmdidBitmapType);
+		popBitmapBoolOp->MdidType()->Equals(m_pmdidBitmapType);
 }
 
 //---------------------------------------------------------------------------

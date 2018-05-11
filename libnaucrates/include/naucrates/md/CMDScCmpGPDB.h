@@ -35,28 +35,28 @@ namespace gpmd
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// DXL for object
-			const CWStringDynamic *m_pstr;
+			const CWStringDynamic *m_dxl_str;
 			
 			// object id
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// operator name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// left type
-			IMDId *m_pmdidLeft;
+			IMDId *m_mdid_left;
 			
 			// right type
-			IMDId *m_pmdidRight;
+			IMDId *m_mdid_right;
 			
 			// comparison type
-			IMDType::ECmpType m_ecmpt;
+			IMDType::ECmpType m_comparision_type;
 			
 			// comparison operator id
-			IMDId *m_pmdidOp;
+			IMDId *m_mdid_op;
 			
 			// private copy ctor
 			CMDScCmpGPDB(const CMDScCmpGPDB &);
@@ -65,13 +65,13 @@ namespace gpmd
 			// ctor
 			CMDScCmpGPDB
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdid,
-				CMDName *pmdname,
-				IMDId *pmdidLeft,
-				IMDId *pmdidRight,
-				IMDType::ECmpType ecmpt,
-				IMDId *pmdidOp
+				IMemoryPool *mp,
+				IMDId *mdid,
+				CMDName *mdname,
+				IMDId *left_mdid,
+				IMDId *right_mdid,
+				IMDType::ECmpType cmp_type,
+				IMDId *mdid_op
 				);
 			
 			// dtor
@@ -80,14 +80,14 @@ namespace gpmd
 			
 			// accessors
 			virtual 
-			const CWStringDynamic *Pstr() const
+			const CWStringDynamic *GetStrRepr() const
 			{
-				return m_pstr;
+				return m_dxl_str;
 			}
 			
 			// copmarison object id
 			virtual 
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// cast object name
 			virtual 
@@ -95,23 +95,23 @@ namespace gpmd
 			
 			// left type
 			virtual 
-			IMDId *PmdidLeft() const;
+			IMDId *GetLeftMdid() const;
 
 			// right type
 			virtual 
-			IMDId *PmdidRight() const;
+			IMDId *GetRightMdid() const;
 			
 			// comparison type
 			virtual 
-			IMDType::ECmpType Ecmpt() const;
+			IMDType::ECmpType ParseCmpType() const;
 			
 			// comparison operator id
 			virtual 
-			IMDId *PmdidOp() const;
+			IMDId *MdIdOp() const;
 		
 			// serialize object in DXL format
 			virtual 
-			void Serialize(gpdxl::CXMLSerializer *pxmlser) const;
+			void Serialize(gpdxl::CXMLSerializer *xml_serializer) const;
 			
 #ifdef GPOS_DEBUG
 			// debug print of the type in the provided stream

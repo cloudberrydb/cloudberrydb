@@ -19,12 +19,12 @@ using namespace gpos;
 // shorthand for HT accessor
 typedef	CSyncHashtableAccessByKey
 			<CTaskLocalStorageObject, 
-			CTaskLocalStorage::Etlsidx, 
-			CSpinlockOS> ShtAcc;
+			CTaskLocalStorage::Etlsidx,
+			CSpinlockOS> HashTableAccessor;
 
 
-// invalid Etlsidx
-const CTaskLocalStorage::Etlsidx CTaskLocalStorage::m_etlsidxInvalid = EtlsidxInvalid;
+// invalid idx
+const CTaskLocalStorage::Etlsidx CTaskLocalStorage::m_invalid_idx = EtlsidxInvalid;
 
 
 //---------------------------------------------------------------------------
@@ -48,22 +48,22 @@ CTaskLocalStorage::~CTaskLocalStorage() {}
 void
 CTaskLocalStorage::Reset
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
 	// destroy old 
-	m_sht.Cleanup();
+	m_hash_table.Cleanup();
 
 	// realloc
-	m_sht.Init
+	m_hash_table.Init
 		(
-		pmp,
+		mp,
 		128, // number of hashbuckets
 		GPOS_OFFSET(CTaskLocalStorageObject, m_link),
 		GPOS_OFFSET(CTaskLocalStorageObject, m_etlsidx),
-		&(CTaskLocalStorage::m_etlsidxInvalid),
-		CTaskLocalStorage::UlHashIdx,
-		CTaskLocalStorage::FEqual
+		&(CTaskLocalStorage::m_invalid_idx),
+		CTaskLocalStorage::HashIdx,
+		CTaskLocalStorage::Equals
 		);
 }
 
@@ -79,38 +79,38 @@ CTaskLocalStorage::Reset
 void
 CTaskLocalStorage::Store
 	(
-	CTaskLocalStorageObject *ptlsobj
+	CTaskLocalStorageObject *obj
 	)
 {
-	GPOS_ASSERT(NULL != ptlsobj);
+	GPOS_ASSERT(NULL != obj);
 
 #ifdef GPOS_DEBUG
 	{
-		ShtAcc shtacc(m_sht, ptlsobj->Etlsidx());
-		GPOS_ASSERT(NULL == shtacc.PtLookup() && "Duplicate TLS object key");
+		HashTableAccessor HashTableAccessor(m_hash_table, obj->idx());
+		GPOS_ASSERT(NULL == HashTableAccessor.Find() && "Duplicate TLS object key");
 	}
 #endif // GPOS_DEBUG
 
-	m_sht.Insert(ptlsobj);
+	m_hash_table.Insert(obj);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTaskLocalStorage::Ptlsobj
+//		CTaskLocalStorage::Get
 //
 //	@doc:
 //		Lookup object in TLS
 //
 //---------------------------------------------------------------------------
 CTaskLocalStorageObject *
-CTaskLocalStorage::Ptlsobj
+CTaskLocalStorage::Get
 	(
-	CTaskLocalStorage::Etlsidx etlsidx
+	CTaskLocalStorage::Etlsidx idx
 	)
 {
-	ShtAcc shtacc(m_sht, etlsidx);
-	return shtacc.PtLookup();
+	HashTableAccessor HashTableAccessor(m_hash_table, idx);
+	return HashTableAccessor.Find();
 }
 
 
@@ -125,16 +125,16 @@ CTaskLocalStorage::Ptlsobj
 void
 CTaskLocalStorage::Remove
 	(
-	CTaskLocalStorageObject *ptlsobj
+	CTaskLocalStorageObject *obj
 	)
 {
-	GPOS_ASSERT(NULL != ptlsobj);
+	GPOS_ASSERT(NULL != obj);
 	
 	// lookup object
-	ShtAcc shtacc(m_sht, ptlsobj->Etlsidx());
-	GPOS_ASSERT(NULL != shtacc.PtLookup() && "Object not found in TLS");
+	HashTableAccessor HashTableAccessor(m_hash_table, obj->idx());
+	GPOS_ASSERT(NULL != HashTableAccessor.Find() && "Object not found in TLS");
 	
-	shtacc.Remove(ptlsobj);
+	HashTableAccessor.Remove(obj);
 }
 
 // EOF

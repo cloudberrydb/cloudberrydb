@@ -21,16 +21,16 @@ using namespace gpos;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalDynamicBitmapTableScan::PstrOpName
+//		CDXLPhysicalDynamicBitmapTableScan::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalDynamicBitmapTableScan::PstrOpName() const
+CDXLPhysicalDynamicBitmapTableScan::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalDynamicBitmapTableScan);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalDynamicBitmapTableScan);
 }
 
 //---------------------------------------------------------------------------
@@ -44,24 +44,24 @@ CDXLPhysicalDynamicBitmapTableScan::PstrOpName() const
 void
 CDXLPhysicalDynamicBitmapTableScan::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *node
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	const CWStringConst *element_name = GetOpNameStr();
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartIndexId), m_ulPartIndexId);
-	if (m_ulPartIndexIdPrintable != m_ulPartIndexId)
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartIndexId), m_part_index_id);
+	if (m_part_index_id_printable != m_part_index_id)
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartIndexIdPrintable), m_ulPartIndexIdPrintable);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPartIndexIdPrintable), m_part_index_id_printable);
 	}
-	pdxln->SerializePropertiesToDXL(pxmlser);
-	pdxln->SerializeChildrenToDXL(pxmlser);
-	m_pdxltabdesc->SerializeToDXL(pxmlser);
+	node->SerializePropertiesToDXL(xml_serializer);
+	node->SerializeChildrenToDXL(xml_serializer);
+	m_dxl_table_descr->SerializeToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 // EOF

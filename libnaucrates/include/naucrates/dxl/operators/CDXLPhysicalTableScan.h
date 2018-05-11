@@ -41,7 +41,7 @@ namespace gpdxl
 		private:
 		
 			// table descriptor for the scanned table
-			CDXLTableDescr *m_pdxltabdesc;
+		CDXLTableDescr *m_dxl_table_descr;
 			
 			// private copy ctor
 			CDXLPhysicalTableScan(CDXLPhysicalTableScan&);
@@ -49,9 +49,9 @@ namespace gpdxl
 		public:
 			// ctors
 			explicit
-			CDXLPhysicalTableScan(IMemoryPool *pmp);
+			CDXLPhysicalTableScan(IMemoryPool *mp);
 			
-			CDXLPhysicalTableScan(IMemoryPool *pmp, CDXLTableDescr *pdxltabdesc);
+			CDXLPhysicalTableScan(IMemoryPool *mp, CDXLTableDescr *table_descr);
 			
 			// dtor
 			virtual
@@ -62,37 +62,37 @@ namespace gpdxl
 			
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// table descriptor
-			const CDXLTableDescr *Pdxltabdesc();
+			const CDXLTableDescr *GetDXLTableDescr();
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalTableScan *PdxlopConvert
+			CDXLPhysicalTableScan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalTableScan == pdxlop->Edxlop() ||
-							EdxlopPhysicalExternalScan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalTableScan == dxl_op->GetDXLOperator() ||
+							EdxlopPhysicalExternalScan == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalTableScan*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalTableScan*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

@@ -108,12 +108,12 @@ CWorkerPoolManagerTest::EresUnittest_Performance()
 GPOS_RESULT
 CWorkerPoolManagerTest::EresUnittest_Stress()
 {
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
-	ULONG ulWorkersMin = pwpm->UlWorkersMin();
-	ULONG ulWorkersMax = pwpm->UlWorkersMax();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
+	ULONG workers_min = pwpm->GetMinWorkers();
+	ULONG workers_max = pwpm->GetMaxWorkers();
 
 #ifdef GPOS_DEBUG
-	BOOL fEnforceTimeSlices = CWorker::m_fEnforceTimeSlices;
+	BOOL fEnforceTimeSlices = CWorker::m_enforce_time_slices;
 #endif // GPOS_DEBUG
 
 	GPOS_TRY
@@ -121,7 +121,7 @@ CWorkerPoolManagerTest::EresUnittest_Stress()
 		GPOS_TRACE(GPOS_WSZ_LIT("Stress worker pool : "));
 
 #ifdef GPOS_DEBUG
-		CWorker::m_fEnforceTimeSlices = false;
+		CWorker::m_enforce_time_slices = false;
 #endif // GPOS_DEBUG
 
 		// task function
@@ -139,11 +139,11 @@ CWorkerPoolManagerTest::EresUnittest_Stress()
 	GPOS_CATCH_EX(ex)
 	{
 		// restore worker count
-		pwpm->SetWorkersMin(ulWorkersMin);
-		pwpm->SetWorkersMax(ulWorkersMax);
+		pwpm->SetMinWorkers(workers_min);
+		pwpm->SetMaxWorkers(workers_max);
 
 #ifdef GPOS_DEBUG
-		CWorker::m_fEnforceTimeSlices = fEnforceTimeSlices;
+		CWorker::m_enforce_time_slices = fEnforceTimeSlices;
 #endif // GPOS_DEBUG
 
 		GPOS_RETHROW(ex);
@@ -151,15 +151,15 @@ CWorkerPoolManagerTest::EresUnittest_Stress()
 	GPOS_CATCH_END;
 
 	// restore worker count
-	pwpm->SetWorkersMin(ulWorkersMin);
-	pwpm->SetWorkersMax(ulWorkersMax);
+	pwpm->SetMinWorkers(workers_min);
+	pwpm->SetMaxWorkers(workers_max);
 
 #ifdef GPOS_DEBUG
-	CWorker::m_fEnforceTimeSlices = fEnforceTimeSlices;
-	CWorker::PwrkrSelf()->ResetTimeSlice();
+	CWorker::m_enforce_time_slices = fEnforceTimeSlices;
+	CWorker::Self()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 
-	while (ulWorkersMax < pwpm->UlWorkers())
+	while (workers_max < pwpm->GetNumWorkers())
 	{
 		clib::USleep(1000);
 	}
@@ -190,16 +190,16 @@ CWorkerPoolManagerTest::Unittest_TestTaskPerformance
 	ULONG timeMulti = 0;
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// scope for clock
 	{
 		CWallClock clock;
 
 		// execute multiple iterations in each task
-		Unittest_TestSingleTaskPerformance(pmp, ulWorkers, ulIterCnt, funcRepeated);
+		Unittest_TestSingleTaskPerformance(mp, ulWorkers, ulIterCnt, funcRepeated);
 
-		timeSingle = clock.UlElapsedMS();
+		timeSingle = clock.ElapsedMS();
 	}
 
 	// scope for clock
@@ -207,9 +207,9 @@ CWorkerPoolManagerTest::Unittest_TestTaskPerformance
 		CWallClock clock;
 
 		// execute one iteration in each task
-		Unittest_TestMultiTaskPerformance(pmp, ulWorkers, ulIterCnt, funcSingle);
+		Unittest_TestMultiTaskPerformance(mp, ulWorkers, ulIterCnt, funcSingle);
 
-		timeMulti = clock.UlElapsedMS();
+		timeMulti = clock.ElapsedMS();
 	}
 
 	// print results
@@ -236,22 +236,22 @@ CWorkerPoolManagerTest::Unittest_TestTaskPerformance
 void
 CWorkerPoolManagerTest::Unittest_TestSingleTaskPerformance
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ULONG ulWorkers,
 	ULONG ulIterCnt,
 	void *funcRepeated(void *)
 	)
 {
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
-	CAutoTaskProxy atp(pmp, pwpm);
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
+	CAutoTaskProxy atp(mp, pwpm);
 	CAutoRg<CTask *> argPtsk;
-	argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, ulWorkers);
+	argPtsk = GPOS_NEW_ARRAY(mp, CTask*, ulWorkers);
 
 	ULONG ulIterCntPerWorkers = ulIterCnt / ulWorkers;
 
 	for (ULONG i = 0; i < ulWorkers; i++)
 	{
-		argPtsk[i] = atp.PtskCreate(funcRepeated, &ulIterCntPerWorkers);
+		argPtsk[i] = atp.Create(funcRepeated, &ulIterCntPerWorkers);
 	}
 
 	for (ULONG i = 0; i < ulWorkers; i++)
@@ -278,26 +278,26 @@ CWorkerPoolManagerTest::Unittest_TestSingleTaskPerformance
 void
 CWorkerPoolManagerTest::Unittest_TestMultiTaskPerformance
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	ULONG ulWorkers,
 	ULONG ulIterCnt,
 	void *funcSingle(void *)
 	)
 {
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
-	CAutoTaskProxy atp(pmp, pwpm);
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
+	CAutoTaskProxy atp(mp, pwpm);
 
 	ULONG ulIterCntPerWorkers = ulIterCnt / ulWorkers;
 
 	for (ULONG i = 0; i < ulIterCntPerWorkers; i++)
 	{
 		CAutoRg<CTask *> argPtsk;
-		argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, ulWorkers);
+		argPtsk = GPOS_NEW_ARRAY(mp, CTask*, ulWorkers);
 		ULLONG ulRes;
 
 		for (ULONG i = 0; i < ulWorkers; i++)
 		{
-			argPtsk[i] = atp.PtskCreate(funcSingle, &ulRes);
+			argPtsk[i] = atp.Create(funcSingle, &ulRes);
 		}
 
 		for (ULONG i = 0; i < ulWorkers; i++)
@@ -336,15 +336,15 @@ CWorkerPoolManagerTest::Unittest_Stress
 	ULONG time = 0;
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcStrict);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// set worker count
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
-	pwpm->SetWorkersMin(ulWorkers);
-	pwpm->SetWorkersMax(ulWorkers);
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
+	pwpm->SetMinWorkers(ulWorkers);
+	pwpm->SetMaxWorkers(ulWorkers);
 
 	// test convergence
-	while (ulWorkers != pwpm->UlWorkers())
+	while (ulWorkers != pwpm->GetNumWorkers())
 	{
 		clib::USleep(1000);
 	}
@@ -353,16 +353,16 @@ CWorkerPoolManagerTest::Unittest_Stress
 
 	// execute tasks
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CAutoRg<CTask *> argPtsk;
-		argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, culTskCnt);
+		argPtsk = GPOS_NEW_ARRAY(mp, CTask*, culTskCnt);
 		ULLONG ulSum = 0;
 
 		CWallClock clock;
 
 		for (ULONG i = 0; i < culTskCnt; i++)
 		{
-			argPtsk[i] = atp.PtskCreate(func, &ulSum);
+			argPtsk[i] = atp.Create(func, &ulSum);
 		}
 
 		for (ULONG i = 0; i < culTskCnt; i++)
@@ -375,7 +375,7 @@ CWorkerPoolManagerTest::Unittest_Stress
 			atp.Wait(argPtsk[i]);
 		}
 
-		time = clock.UlElapsedMS();
+		time = clock.ElapsedMS();
 	}
 
 	// print results

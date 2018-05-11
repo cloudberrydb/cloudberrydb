@@ -35,13 +35,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerCTEConfig::CParseHandlerCTEConfig
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pcteconf(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_cte_conf(NULL)
 {
 }
 
@@ -55,7 +55,7 @@ CParseHandlerCTEConfig::CParseHandlerCTEConfig
 //---------------------------------------------------------------------------
 CParseHandlerCTEConfig::~CParseHandlerCTEConfig()
 {
-	CRefCount::SafeRelease(m_pcteconf);
+	CRefCount::SafeRelease(m_cte_conf);
 }
 
 //---------------------------------------------------------------------------
@@ -69,22 +69,22 @@ CParseHandlerCTEConfig::~CParseHandlerCTEConfig()
 void
 CParseHandlerCTEConfig::StartElement
 	(
-	const XMLCh* const , //xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const , //xmlszQname,
+	const XMLCh* const , //element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const , //element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCTEConfig), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCTEConfig), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// parse CTE configuration options
-	ULONG ulCTEInliningCutoff = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenCTEInliningCutoff, EdxltokenCTEConfig);
+	ULONG cte_inlining_cut_off = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenCTEInliningCutoff, EdxltokenCTEConfig);
 
-	m_pcteconf = GPOS_NEW(m_pmp) CCTEConfig(ulCTEInliningCutoff);
+	m_cte_conf = GPOS_NEW(m_mp) CCTEConfig(cte_inlining_cut_off);
 }
 
 //---------------------------------------------------------------------------
@@ -98,50 +98,50 @@ CParseHandlerCTEConfig::StartElement
 void
 CParseHandlerCTEConfig::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCTEConfig), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCTEConfig), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(NULL != m_pcteconf);
-	GPOS_ASSERT(0 == this->UlLength());
+	GPOS_ASSERT(NULL != m_cte_conf);
+	GPOS_ASSERT(0 == this->Length());
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerCTEConfig::Edxlphtype
+//		CParseHandlerCTEConfig::GetParseHandlerType
 //
 //	@doc:
 //		Return the type of the parse handler.
 //
 //---------------------------------------------------------------------------
 EDxlParseHandlerType
-CParseHandlerCTEConfig::Edxlphtype() const
+CParseHandlerCTEConfig::GetParseHandlerType() const
 {
 	return EdxlphCTEConfig;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerCTEConfig::Pcteconf
+//		CParseHandlerCTEConfig::GetCteConf
 //
 //	@doc:
 //		Returns the CTE configuration
 //
 //---------------------------------------------------------------------------
 CCTEConfig *
-CParseHandlerCTEConfig::Pcteconf() const
+CParseHandlerCTEConfig::GetCteConf() const
 {
-	return m_pcteconf;
+	return m_cte_conf;
 }
 
 // EOF

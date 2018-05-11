@@ -42,19 +42,19 @@ namespace gpopt
 			explicit
 			CXformLeftSemiApplyIn2LeftSemiJoin
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
 				CXformLeftSemiApply2LeftSemiJoin
 					(
-						pmp,
-						GPOS_NEW(pmp) CExpression
+						mp,
+						GPOS_NEW(mp) CExpression
 							(
-							pmp,
-							GPOS_NEW(pmp) CLogicalLeftSemiApplyIn(pmp),
-							GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // left child
-							GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp)), // right child
-							GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp)) // predicate
+							mp,
+							GPOS_NEW(mp) CLogicalLeftSemiApplyIn(mp),
+							GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // left child
+							GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp)), // right child
+							GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp)) // predicate
 							)
 					)
 			{}

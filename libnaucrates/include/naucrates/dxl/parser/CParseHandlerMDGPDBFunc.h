@@ -38,28 +38,28 @@ namespace gpdxl
 	{
 		private:
 			// id and version 
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 					
 			// result type
-			IMDId *m_pmdidTypeResult;
+			IMDId *m_mdid_type_result;
 			
 			// output argument types
-			DrgPmdid *m_pdrgpmdidTypes;
+		IMdIdArray *m_mdid_types_array;
 
 			// whether function returns a set of values
-			BOOL m_fReturnsSet;
+			BOOL m_returns_set;
 			
 			// function stability
-			CMDFunctionGPDB::EFuncStbl m_efuncstbl;
+			CMDFunctionGPDB::EFuncStbl m_func_stability;
 			
 			// function data access
-			CMDFunctionGPDB::EFuncDataAcc m_efuncdataacc;
+			CMDFunctionGPDB::EFuncDataAcc m_func_data_access;
 
 			// function strictness (i.e. whether func returns NULL on NULL input)
-			BOOL m_fStrict;
+			BOOL m_is_strict;
 			
 			// private copy ctor
 			CParseHandlerMDGPDBFunc(const CParseHandlerMDGPDBFunc &);
@@ -67,33 +67,33 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 			
 			// parse function stability property from XML string
-			CMDFunctionGPDB::EFuncStbl EFuncStability(const XMLCh *xmlsz);
+			CMDFunctionGPDB::EFuncStbl ParseFuncStability(const XMLCh *xml_val);
 
 			// parse function data access property from XML string
-			CMDFunctionGPDB::EFuncDataAcc EFuncDataAccess(const XMLCh *xmlsz);
+			CMDFunctionGPDB::EFuncDataAcc ParseFuncDataAccess(const XMLCh *xml_val);
 
 		public:
 			// ctor
 			CParseHandlerMDGPDBFunc
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);			
 	};
 }

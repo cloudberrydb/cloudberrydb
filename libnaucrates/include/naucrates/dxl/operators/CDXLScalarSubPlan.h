@@ -52,16 +52,16 @@ namespace gpdxl
 		private:
 
 			// catalog MDId of the first column type
-			IMDId *m_pmdidFirstColType;
+			IMDId *m_first_col_type_mdid;
 
 			// array of outer column references
-			DrgPdxlcr *m_pdrgdxlcr;
+		CDXLColRefArray *m_dxl_colref_array;
 
 			// subplan type
-			EdxlSubPlanType m_edxlsubplantype;
+			EdxlSubPlanType m_dxl_subplan_type;
 
 			// test expression -- not null if quantified/existential subplan
-			CDXLNode *m_pdxlnTestExpr;
+			CDXLNode *m_dxlnode_test_expr;
 
 			// private copy ctor
 			CDXLScalarSubPlan(CDXLScalarSubPlan&);
@@ -71,74 +71,74 @@ namespace gpdxl
 			// ctor/dtor
 			CDXLScalarSubPlan
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidFirstColType,
-				DrgPdxlcr *pdrgdxlcr,
-				EdxlSubPlanType edxlsubplantype,
-				CDXLNode *pdxlnTestExpr
+				IMemoryPool *mp,
+				IMDId *first_col_type_mdid,
+						  CDXLColRefArray *dxl_colref_array,
+				EdxlSubPlanType dxl_subplan_type,
+				CDXLNode *dxlnode_test_expr
 				);
 
 			virtual
 			~CDXLScalarSubPlan();
 
 			// Operator type
-			Edxlopid Edxlop() const
+			Edxlopid GetDXLOperator() const
 			{
 				return EdxlopScalarSubPlan;
 			}
 
 			// Operator name
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// type of first output column
-			IMDId *PmdidFirstColType() const;
+			IMDId *GetFirstColTypeMdId() const;
 
 			// outer references
-			const DrgPdxlcr *DrgdxlcrOuterRefs() const
+			const CDXLColRefArray *GetDxlOuterColRefsArray() const
 			{
-				return m_pdrgdxlcr;
+				return m_dxl_colref_array;
 			}
 
 			// return subplan type
-			EdxlSubPlanType Edxlsptype() const
+			EdxlSubPlanType GetDxlSubplanType() const
 			{
-				return m_edxlsubplantype;
+				return m_dxl_subplan_type;
 			}
 
 			// return test expression
-			CDXLNode *PdxlnTestExpr() const
+			CDXLNode *GetDxlTestExpr() const
 			{
-				return m_pdxlnTestExpr;
+				return m_dxlnode_test_expr;
 			}
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLScalarSubPlan *PdxlopConvert
+			CDXLScalarSubPlan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarSubPlan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarSubPlan == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarSubPlan*>(pdxlop);
+				return dynamic_cast<CDXLScalarSubPlan*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
+			BOOL HasBoolResult(CMDAccessor *md_accessor) const;
 
 			// return a string representation of Subplan type
-			const CWStringConst *PstrSubplanType() const;
+			const CWStringConst *GetSubplanTypeStr() const;
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 	};

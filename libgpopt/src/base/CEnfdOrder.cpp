@@ -95,16 +95,16 @@ CEnfdOrder::FCompatible
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CEnfdOrder::UlHash
+//		CEnfdOrder::HashValue
 //
 //	@doc:
 // 		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CEnfdOrder::UlHash() const
+CEnfdOrder::HashValue() const
 {
-	return gpos::UlCombineHashes(m_eom + 1, m_pos->UlHash());
+	return gpos::CombineHashes(m_eom + 1, m_pos->HashValue());
 }
 
 

@@ -35,13 +35,13 @@ namespace gpdxl
 		private:
 			
 			// scalar assert operator
-			CDXLScalarAssertConstraintList *m_pdxlop;
+			CDXLScalarAssertConstraintList *m_dxl_op;
 			
 			// current assert constraint
-			CDXLScalarAssertConstraint *m_pdxlopAssertConstraint;
+			CDXLScalarAssertConstraint *m_dxl_op_assert_constraint;
 			
 			// array of assert constraint nodes parsed so far
-			DrgPdxln *m_pdrgpdxlnAssertConstraints;
+		CDXLNodeArray *m_dxlnode_assert_constraints_parsed_array;
 			
 			// private copy ctor
 			CParseHandlerScalarAssertConstraintList(const CParseHandlerScalarAssertConstraintList&);
@@ -49,27 +49,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor
 			CParseHandlerScalarAssertConstraintList
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

@@ -70,7 +70,7 @@ namespace gpopt
 
 		public:
 			// ctor
-			CConstExprEvaluatorDXL(IMemoryPool *pmp, CMDAccessor *pmda, IConstDXLNodeEvaluator *pconstdxleval);
+			CConstExprEvaluatorDXL(IMemoryPool *mp, CMDAccessor *md_accessor, IConstDXLNodeEvaluator *pconstdxleval);
 
 			// dtor
 			virtual

@@ -44,7 +44,7 @@ namespace gpnaucrates
 			CPoint& operator=(CPoint &);
 
 			// datum corresponding to the point
-			IDatum *m_pdatum;
+			IDatum *m_datum;
 
 		public:
 
@@ -53,31 +53,31 @@ namespace gpnaucrates
 			CPoint(IDatum *);
 
 			// get underlying datum
-			IDatum *Pdatum() const
+			IDatum *GetDatum() const
 			{
-				return m_pdatum;
+				return m_datum;
 			}
 
 			// is this point equal to another
-			BOOL FEqual(const CPoint *) const;
+			BOOL Equals(const CPoint *) const;
 
 			// is this point not equal to another
-			BOOL FNotEqual(const CPoint *) const;
+			BOOL IsNotEqual(const CPoint *) const;
 
 			// less than
-			BOOL FLessThan(const CPoint *) const;
+			BOOL IsLessThan(const CPoint *) const;
 
 			// less than or equals
-			BOOL FLessThanOrEqual(const CPoint *) const;
+			BOOL IsLessThanOrEqual(const CPoint *) const;
 
 			// greater than
-			BOOL FGreaterThan(const CPoint *) const;
+			BOOL IsGreaterThan(const CPoint *) const;
 
 			// greater than or equals
-			BOOL FGreaterThanOrEqual(const CPoint *) const;
+			BOOL IsGreaterThanOrEqual(const CPoint *) const;
 
 			// distance between two points
-			CDouble DDistance(const CPoint *) const;
+			CDouble Distance(const CPoint *) const;
 
 			// print function
 			virtual
@@ -86,19 +86,19 @@ namespace gpnaucrates
 			// d'tor
 			virtual ~CPoint()
 			{
-				m_pdatum->Release();
+				m_datum->Release();
 			}
 
 			// translate the point into its DXL representation
-			CDXLDatum *Pdxldatum(IMemoryPool *pmp, CMDAccessor *pmda) const;
+			CDXLDatum *GetDatumVal(IMemoryPool *mp, CMDAccessor *md_accessor) const;
 
 			// minimum of two points using <=
 			static
-			CPoint *PpointMin(CPoint *ppoint1, CPoint *ppoint2);
+			CPoint *MinPoint(CPoint *point1, CPoint *point2);
 
 			// maximum of two points using >=
 			static
-			CPoint *PpointMax(CPoint *ppoint1, CPoint *ppoint2);
+			CPoint *MaxPoint(CPoint *point1, CPoint *point2);
 	}; // class CPoint
 
 }

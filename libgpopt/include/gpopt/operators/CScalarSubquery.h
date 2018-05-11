@@ -47,7 +47,7 @@ namespace gpopt
 		public:
 		
 			// ctor
-			CScalarSubquery(IMemoryPool *pmp, const CColRef *pcr, BOOL fGeneratedByExist, BOOL fGeneratedByQuantified);
+			CScalarSubquery(IMemoryPool *mp, const CColRef *colref, BOOL fGeneratedByExist, BOOL fGeneratedByQuantified);
 
 			// dtor
 			virtual 
@@ -75,13 +75,13 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 			
 			// operator specific hash function
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 			
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 			
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -91,11 +91,11 @@ namespace gpopt
 			
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			// return locally used columns
 			virtual
-			CColRefSet *PcrsUsed(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsUsed(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// is subquery generated from existential subquery?
 			BOOL FGeneratedByExist() const
@@ -113,7 +113,7 @@ namespace gpopt
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *pmp, 
+				IMemoryPool *mp, 
 				CExpressionHandle &exprhdl
 				) 
 				const;

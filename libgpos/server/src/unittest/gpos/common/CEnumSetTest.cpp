@@ -54,28 +54,28 @@ CEnumSetTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	typedef CEnumSet<eTest, eTestSentinel> CETestSet;
 	typedef CEnumSetIter<eTest, eTestSentinel> CETestIter;
 
-	CETestSet *pes = GPOS_NEW(pmp) CETestSet(pmp);
+	CETestSet *enum_set = GPOS_NEW(mp) CETestSet(mp);
 	
-	(void) pes->FExchangeSet(eTestOne);
-	(void) pes->FExchangeSet(eTestTwo);
+	(void) enum_set->ExchangeSet(eTestOne);
+	(void) enum_set->ExchangeSet(eTestTwo);
 	
-	GPOS_ASSERT(pes->FExchangeClear(eTestTwo));
-	GPOS_ASSERT(!pes->FExchangeSet(eTestTwo));
+	GPOS_ASSERT(enum_set->ExchangeClear(eTestTwo));
+	GPOS_ASSERT(!enum_set->ExchangeSet(eTestTwo));
 
-	CETestIter eti(*pes);
-	while(eti.FAdvance())
+	CETestIter type_info(*enum_set);
+	while(type_info.Advance())
 	{
-		GPOS_ASSERT((BOOL)eti);
-		GPOS_ASSERT(eTestSentinel > eti.TBit());
-		GPOS_ASSERT(pes->FBit(eti.TBit()));
+		GPOS_ASSERT((BOOL)type_info);
+		GPOS_ASSERT(eTestSentinel > type_info.TBit());
+		GPOS_ASSERT(enum_set->Get(type_info.TBit()));
 	}
 	
-	pes->Release();
+	enum_set->Release();
 
 	return GPOS_OK;
 }

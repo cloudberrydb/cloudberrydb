@@ -36,23 +36,23 @@ namespace gpdxl
 		public:
 			// ctor
 			explicit
-			CDXLScalarOneTimeFilter(IMemoryPool *pmp);
+			CDXLScalarOneTimeFilter(IMemoryPool *mp);
 			
 			// accessors
-			Edxlopid Edxlop() const;
-			const CWStringConst *PstrOpName() const;
+			Edxlopid GetDXLOperator() const;
+			const CWStringConst *GetOpNameStr() const;
 			
 			// conversion function
 			static
-			CDXLScalarOneTimeFilter *PdxlopConvert
+			CDXLScalarOneTimeFilter *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarOneTimeFilter == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarOneTimeFilter == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarOneTimeFilter*>(pdxlop);
+				return dynamic_cast<CDXLScalarOneTimeFilter*>(dxl_op);
 			}
 
 			// serialize operator in DXL format
@@ -61,9 +61,9 @@ namespace gpdxl
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 			{

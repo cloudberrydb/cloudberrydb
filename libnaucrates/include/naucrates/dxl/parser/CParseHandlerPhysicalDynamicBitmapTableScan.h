@@ -38,18 +38,18 @@ namespace gpdxl
 			CParseHandlerPhysicalDynamicBitmapTableScan(const CParseHandlerPhysicalDynamicBitmapTableScan &);
 
 			// part index id
-			ULONG m_ulPartIndexId;
+			ULONG m_part_index_id;
 
 			// printable partition index id
-			ULONG m_ulPartIndexIdPrintable;
+			ULONG m_part_index_id_printable;
 
 			// process the start of an element
 			virtual
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
@@ -57,23 +57,23 @@ namespace gpdxl
 			virtual
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 
 		public:
 			// ctor
 			CParseHandlerPhysicalDynamicBitmapTableScan
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				)
 				:
-				CParseHandlerPhysicalAbstractBitmapScan(pmp, pphm, pphRoot),
-				m_ulPartIndexId(0),
-				m_ulPartIndexIdPrintable(0)
+				CParseHandlerPhysicalAbstractBitmapScan(mp, parse_handler_mgr, parse_handler_root),
+				m_part_index_id(0),
+				m_part_index_id_printable(0)
 			{}
 	};
 }

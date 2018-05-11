@@ -53,7 +53,7 @@ CListTest::EresUnittest_Basics()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CList<SElem> listFwd;
 	listFwd.Init(GPOS_OFFSET(SElem, m_linkFwd));
@@ -62,53 +62,53 @@ CListTest::EresUnittest_Basics()
 	listBwd.Init(GPOS_OFFSET(SElem, m_linkBwd));
 
 	ULONG cSize = 10;
-	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, cSize);
+	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, cSize);
 
-	GPOS_ASSERT(0 == listFwd.UlSize());
-	GPOS_ASSERT(0 == listBwd.UlSize());
+	GPOS_ASSERT(0 == listFwd.Size());
+	GPOS_ASSERT(0 == listBwd.Size());
 
 	// insert all elements
 	for(ULONG i = 0; i < cSize; i++)
 	{
-		GPOS_ASSERT(i == listFwd.UlSize());
-		GPOS_ASSERT(i == listBwd.UlSize());
+		GPOS_ASSERT(i == listFwd.Size());
+		GPOS_ASSERT(i == listBwd.Size());
 
 		listFwd.Prepend(&rgelem[i]);
 		listBwd.Append(&rgelem[i]);
 	}
 
-	GPOS_ASSERT(cSize == listFwd.UlSize());
-	GPOS_ASSERT(cSize == listBwd.UlSize());
+	GPOS_ASSERT(cSize == listFwd.Size());
+	GPOS_ASSERT(cSize == listBwd.Size());
 
 	// remove first/last element until empty
 	for(ULONG i = 0; i < cSize; i++)
 	{
-		GPOS_ASSERT(cSize - i == listFwd.UlSize());
-		GPOS_ASSERT(&rgelem[i] == listFwd.PtLast());
-		listFwd.Remove(listFwd.PtLast());
+		GPOS_ASSERT(cSize - i == listFwd.Size());
+		GPOS_ASSERT(&rgelem[i] == listFwd.Last());
+		listFwd.Remove(listFwd.Last());
 
 		// make sure it's still in the other list
-		GPOS_ASSERT(GPOS_OK == listBwd.EresFind(&rgelem[i]));
+		GPOS_ASSERT(GPOS_OK == listBwd.Find(&rgelem[i]));
 	}
-	GPOS_ASSERT(NULL == listFwd.PtFirst());
-	GPOS_ASSERT(0 == listFwd.UlSize());
+	GPOS_ASSERT(NULL == listFwd.First());
+	GPOS_ASSERT(0 == listFwd.Size());
 
 	// insert all elements in reverse order,
 	// i.e. list is in same order as array
 	for(ULONG i = cSize; i > 0; i--)
 	{
-		GPOS_ASSERT(cSize - i == listFwd.UlSize());
+		GPOS_ASSERT(cSize - i == listFwd.Size());
 		listFwd.Prepend(&rgelem[i - 1]);
 	}
-	GPOS_ASSERT(cSize == listFwd.UlSize());
+	GPOS_ASSERT(cSize == listFwd.Size());
 
 	for(ULONG i = 0; i < cSize; i++)
 	{
 		listFwd.Remove(&rgelem[(cSize/2 + i) % cSize]);
 	}
-	GPOS_ASSERT(NULL == listFwd.PtFirst());
-	GPOS_ASSERT(NULL == listFwd.PtLast());
-	GPOS_ASSERT(0 == listFwd.UlSize());
+	GPOS_ASSERT(NULL == listFwd.First());
+	GPOS_ASSERT(NULL == listFwd.Last());
+	GPOS_ASSERT(0 == listFwd.Size());
 
 	GPOS_DELETE_ARRAY(rgelem);
 	return GPOS_OK;
@@ -130,7 +130,7 @@ CListTest::EresUnittest_Navigate()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CList<SElem> listFwd;
 	listFwd.Init(GPOS_OFFSET(SElem, m_linkFwd));
@@ -139,7 +139,7 @@ CListTest::EresUnittest_Navigate()
 	listBwd.Init(GPOS_OFFSET(SElem, m_linkBwd));
 
 	ULONG cSize = 10;
-	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, cSize);
+	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, cSize);
 
 	// insert all elements in reverse order,
 	// i.e. list is in same order as array
@@ -150,26 +150,26 @@ CListTest::EresUnittest_Navigate()
 	}
 
 	// use getnext to walk list
-	SElem *pelem = listFwd.PtFirst();
+	SElem *pelem = listFwd.First();
 	for(ULONG i = 0; i < cSize; i++)
 	{
 		GPOS_ASSERT(pelem == &rgelem[i]);
-		pelem = listFwd.PtNext(pelem);
+		pelem = listFwd.Next(pelem);
 	}
 	GPOS_ASSERT(NULL == pelem);
 
 	// go to end of list -- then traverse backward
-	pelem = listFwd.PtFirst();
-	while(pelem && listFwd.PtNext(pelem))
+	pelem = listFwd.First();
+	while(pelem && listFwd.Next(pelem))
 	{
-		pelem = listFwd.PtNext(pelem);
+		pelem = listFwd.Next(pelem);
 	}
-	GPOS_ASSERT(listFwd.PtLast() == pelem);
+	GPOS_ASSERT(listFwd.Last() == pelem);
 
 	for(ULONG i = cSize; i > 0; i--)
 	{
 		GPOS_ASSERT(pelem == &rgelem[i - 1]);
-		pelem = listFwd.PtPrev(pelem);
+		pelem = listFwd.Prev(pelem);
 	}
 	GPOS_ASSERT(NULL == pelem);
 
@@ -192,27 +192,27 @@ CListTest::EresUnittest_Cursor()
 {
 	// create memory pool
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CList<SElem> list;
 	list.Init(GPOS_OFFSET(SElem, m_linkFwd));
 
 	ULONG cSize = 5;
-	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, cSize);
+	SElem *rgelem = GPOS_NEW_ARRAY(mp, SElem, cSize);
 
 	list.Append(&rgelem[0]);
 
-	list.Prepend(&rgelem[1], list.PtFirst());
-	list.Append(&rgelem[2], list.PtLast());
+	list.Prepend(&rgelem[1], list.First());
+	list.Append(&rgelem[2], list.Last());
 
-	GPOS_ASSERT(&rgelem[1] == list.PtFirst());
-	GPOS_ASSERT(&rgelem[2] == list.PtLast());
+	GPOS_ASSERT(&rgelem[1] == list.First());
+	GPOS_ASSERT(&rgelem[2] == list.Last());
 
-	list.Prepend(&rgelem[3], list.PtLast());
-	list.Append(&rgelem[4], list.PtFirst());
+	list.Prepend(&rgelem[3], list.Last());
+	list.Append(&rgelem[4], list.First());
 
-	GPOS_ASSERT(&rgelem[1] == list.PtFirst());
-	GPOS_ASSERT(&rgelem[2] == list.PtLast());
+	GPOS_ASSERT(&rgelem[1] == list.First());
+	GPOS_ASSERT(&rgelem[2] == list.Last());
 
 	GPOS_DELETE_ARRAY(rgelem);
 	return GPOS_OK;

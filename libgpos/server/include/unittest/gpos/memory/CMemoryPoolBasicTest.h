@@ -27,30 +27,30 @@ namespace gpos
 	{
 		private:
 
-			static GPOS_RESULT EresTestType(CMemoryPoolManager::EAllocType eat);
+			static GPOS_RESULT EresTestType(CMemoryPoolManager::AllocType eat);
 			static GPOS_RESULT EresTestExpectedError
 				(
-				GPOS_RESULT (*pfunc)(CMemoryPoolManager::EAllocType),
-				CMemoryPoolManager::EAllocType eat,
-				ULONG ulMinor
+				GPOS_RESULT (*pfunc)(CMemoryPoolManager::AllocType),
+				CMemoryPoolManager::AllocType eat,
+				ULONG minor
 				);
 
-			static GPOS_RESULT EresNewDelete(CMemoryPoolManager::EAllocType eat);
-			static GPOS_RESULT EresOOM(CMemoryPoolManager::EAllocType eat);
-			static GPOS_RESULT EresThrowingCtor(CMemoryPoolManager::EAllocType eat);
+			static GPOS_RESULT EresNewDelete(CMemoryPoolManager::AllocType eat);
+			static GPOS_RESULT EresOOM(CMemoryPoolManager::AllocType eat);
+			static GPOS_RESULT EresThrowingCtor(CMemoryPoolManager::AllocType eat);
 #ifdef GPOS_DEBUG
-			static GPOS_RESULT EresLeak(CMemoryPoolManager::EAllocType eat);
-			static GPOS_RESULT EresLeakByException(CMemoryPoolManager::EAllocType eat);
+			static GPOS_RESULT EresLeak(CMemoryPoolManager::AllocType eat);
+			static GPOS_RESULT EresLeakByException(CMemoryPoolManager::AllocType eat);
 #endif // GPOS_DEBUG
-			static GPOS_RESULT EresConcurrency(CMemoryPoolManager::EAllocType eat);
-			static GPOS_RESULT EresStress(CMemoryPoolManager::EAllocType eat);
+			static GPOS_RESULT EresConcurrency(CMemoryPoolManager::AllocType eat);
+			static GPOS_RESULT EresStress(CMemoryPoolManager::AllocType eat);
 
 			static void *AllocateSerial(void *pv);
 			static void *AllocateRepeated(void *pv);
 			static void *AllocateStress(void *pv);
-			static void Allocate(IMemoryPool *pmp, ULONG ulCount);
-			static void AllocateRandom(IMemoryPool *pmp);
-			static ULONG UlSize(ULONG ulOffset);
+			static void Allocate(IMemoryPool *mp, ULONG count);
+			static void AllocateRandom(IMemoryPool *mp);
+			static ULONG Size(ULONG offset);
 
 		public:
 

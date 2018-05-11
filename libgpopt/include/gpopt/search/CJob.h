@@ -127,7 +127,7 @@ namespace gpopt
 			volatile ULONG_PTR m_ulpRefs;
 
 			// job id - set by job factory
-			ULONG m_ulId;
+			ULONG m_id;
 
 			// job type
 			EJobType m_ejt;
@@ -171,13 +171,13 @@ namespace gpopt
 			// increment reference counter
 			void IncRefs()
 			{
-				(void) UlpExchangeAdd(&m_ulpRefs, 1);
+				(void) ExchangeAddUlongPtrWithInt(&m_ulpRefs, 1);
 			}
 
 			// decrement reference counter
 			ULONG_PTR UlpDecrRefs()
 			{
-				ULONG_PTR ulpRefs = UlpExchangeAdd(&m_ulpRefs, -1);
+				ULONG_PTR ulpRefs = ExchangeAddUlongPtrWithInt(&m_ulpRefs, -1);
 				GPOS_ASSERT(0 < ulpRefs && "Decrement counter from 0");
 				return ulpRefs;
 			}
@@ -218,9 +218,9 @@ namespace gpopt
 		protected:
 
 			// id accessor
-			ULONG UlId() const
+			ULONG Id() const
 			{
-				return m_ulId;
+				return m_id;
 			}
 
 			// ctor
@@ -229,7 +229,7 @@ namespace gpopt
 				m_pjParent(NULL),
 				m_pjq(NULL),
 				m_ulpRefs(0),
-				m_ulId(0),
+				m_id(0),
 				m_fInit(false)
 #ifdef GPOS_DEBUG
 				,
@@ -242,7 +242,7 @@ namespace gpopt
 			{
 				GPOS_ASSERT_IMP
 					(
-					!ITask::PtskSelf()->FPendingExc(),
+					!ITask::Self()->HasPendingExceptions(),
 					0 == m_ulpRefs
 					);
 			}

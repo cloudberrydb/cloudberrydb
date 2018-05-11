@@ -34,18 +34,18 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformExpandNAryJoin::CXformExpandNAryJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CLogicalNAryJoin(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternMultiLeaf(pmp)),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))
+					mp,
+					GPOS_NEW(mp) CLogicalNAryJoin(mp),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiLeaf(mp)),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))
 					)
 		)
 {}
@@ -66,7 +66,7 @@ CXformExpandNAryJoin::Exfp
 	)
 	const
 {
-	if (exprhdl.Pdpscalar(exprhdl.UlArity() - 1)->FHasSubquery())
+	if (exprhdl.GetDrvdScalarProps(exprhdl.Arity() - 1)->FHasSubquery())
 	{
 		// subqueries must be unnested before applying xform
 		return CXform::ExfpNone;
@@ -118,10 +118,10 @@ CXformExpandNAryJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
-	const ULONG ulArity = pexpr->UlArity();
-	GPOS_ASSERT(ulArity >= 3);
+	const ULONG arity = pexpr->Arity();
+	GPOS_ASSERT(arity >= 3);
 
 	// create a cluster of inner joins with same order of given relations
 	// and dummy join condition
@@ -134,21 +134,21 @@ CXformExpandNAryJoin::Transform
 	//	   +--CScalarConst (1)
 	(*pexpr)[0]->AddRef();
 	(*pexpr)[1]->AddRef();
-	CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, (*pexpr)[0], (*pexpr)[1], CPredicateUtils::PexprConjunction(pmp, NULL));
-	for (ULONG ul = 2; ul < ulArity - 1; ul++)
+	CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, (*pexpr)[0], (*pexpr)[1], CPredicateUtils::PexprConjunction(mp, NULL));
+	for (ULONG ul = 2; ul < arity - 1; ul++)
 	{
 		(*pexpr)[ul]->AddRef();
-		pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, pexprJoin, (*pexpr)[ul], CPredicateUtils::PexprConjunction(pmp, NULL));
+		pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, pexprJoin, (*pexpr)[ul], CPredicateUtils::PexprConjunction(mp, NULL));
 	}
 
-	CExpression *pexprScalar = (*pexpr)[ulArity - 1];
+	CExpression *pexprScalar = (*pexpr)[arity - 1];
 	pexprScalar->AddRef();
 
 	// create a logical select with the join expression and scalar condition child
-	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprJoin, pexprScalar);
+	CExpression *pexprSelect = CUtils::PexprLogicalSelect(mp, pexprJoin, pexprScalar);
 
 	// normalize the tree and push down the predicates
-	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprSelect);
+	CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexprSelect);
 	pexprSelect->Release();
 	pxfres->Add(pexprNormalized);
 }

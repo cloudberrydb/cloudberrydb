@@ -38,10 +38,10 @@ namespace gpdxl
 		private:
 					
 			// array of column descriptors to build
-			DrgPdxlcd *m_pdrgdxlcd;
+		CDXLColDescrArray *m_dxl_column_descr_array;
 			
 			// current column descriptor being parsed
-			CDXLColDescr *m_pdxlcd;
+			CDXLColDescr *m_current_column_descr;
 				
 			// private copy ctor
 			CParseHandlerColDescr(const CParseHandlerColDescr&); 
@@ -49,32 +49,32 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 			
 		public:
 			// ctor/dtor
 			CParseHandlerColDescr
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *m_mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_base
 				);
 			
 			virtual ~CParseHandlerColDescr();
 			
-			DrgPdxlcd *Pdrgpdxlcd();
+		CDXLColDescrArray *GetDXLColumnDescrArray();
 	};
 }
 

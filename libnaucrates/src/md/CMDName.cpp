@@ -27,14 +27,14 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CMDName::CMDName
 	(
-	IMemoryPool *pmp,
-	const CWStringBase *pstr
+	IMemoryPool *mp,
+	const CWStringBase *str
 	)
 	:
-	m_psc(NULL),
-	m_fDeepCopy(true)
+	m_name(NULL),
+	m_deep_copy(true)
 {
-	m_psc = GPOS_NEW(pmp) CWStringConst(pmp, pstr->Wsz());
+	m_name = GPOS_NEW(mp) CWStringConst(mp, str->GetBuffer());
 }
 
 //---------------------------------------------------------------------------
@@ -43,21 +43,21 @@ CMDName::CMDName
 //
 //	@doc:
 //		ctor
-//		Depending on the value of the the fOwnsMemory argument, the string object
+//		Depending on the value of the the owns_memory argument, the string object
 //		can become property of the CMDName object
 //
 //---------------------------------------------------------------------------
 CMDName::CMDName
 	(
-	const CWStringConst *pstr,
-	BOOL fOwnsMemory
+	const CWStringConst *str,
+	BOOL owns_memory
 	)
 	:
-	m_psc(pstr),
-	m_fDeepCopy(fOwnsMemory)
+	m_name(str),
+	m_deep_copy(owns_memory)
 {
-	GPOS_ASSERT(NULL != m_psc);
-	GPOS_ASSERT(m_psc->FValid());
+	GPOS_ASSERT(NULL != m_name);
+	GPOS_ASSERT(m_name->IsValid());
 }
 
 //---------------------------------------------------------------------------
@@ -73,11 +73,11 @@ CMDName::CMDName
 	const CMDName &name
 	)
 	:
-	m_psc(name.Pstr()),
-	m_fDeepCopy(false)
+	m_name(name.GetMDName()),
+	m_deep_copy(false)
 {
-	GPOS_ASSERT(NULL != m_psc->Wsz());
-	GPOS_ASSERT(m_psc->FValid());	
+	GPOS_ASSERT(NULL != m_name->GetBuffer());
+	GPOS_ASSERT(m_name->IsValid());	
 }
 
 
@@ -91,11 +91,11 @@ CMDName::CMDName
 //---------------------------------------------------------------------------
 CMDName::~CMDName()
 {
-	GPOS_ASSERT(m_psc->FValid());
+	GPOS_ASSERT(m_name->IsValid());
 
-	if (m_fDeepCopy)
+	if (m_deep_copy)
 	{
-		GPOS_DELETE(m_psc);
+		GPOS_DELETE(m_name);
 	}
 }
 

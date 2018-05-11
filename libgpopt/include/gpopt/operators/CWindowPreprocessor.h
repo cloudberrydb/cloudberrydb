@@ -38,12 +38,12 @@ namespace gpopt
 			static
 			void SplitPrjList
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprSeqPrj,
-				DrgPexpr **ppdrgpexprDistinctAggsPrjElems,
-				DrgPexpr **ppdrgpexprOtherPrjElems,
-				DrgPos **ppdrgposOther,
-				DrgPwf **ppdrgpwfOther
+				CExpressionArray **ppdrgpexprDistinctAggsPrjElems,
+				CExpressionArray **ppdrgpexprOtherPrjElems,
+				COrderSpecArray **ppdrgposOther,
+				CWindowFrameArray **ppdrgpwfOther
 				);
 
 			// split given SeqPrj expression into:
@@ -52,7 +52,7 @@ namespace gpopt
 			static
 			void SplitSeqPrj
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprSeqPrj,
 				CExpression **ppexprGbAgg,
 				CExpression **ppexprOutputSeqPrj
@@ -62,7 +62,7 @@ namespace gpopt
 			static
 			void CreateCTE
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprSeqPrj,
 				CExpression **ppexprFirstConsumer,
 				CExpression **ppexprSecondConsumer
@@ -70,17 +70,17 @@ namespace gpopt
 
 			// extract grouping columns from given expression
 			static
-			DrgPcr *PdrgpcrGrpCols(CExpression *pexprJoinDQAs);
+			CColRefArray *PdrgpcrGrpCols(CExpression *pexprJoinDQAs);
 
 			// transform sequence project expression into an inner join expression
 			static
-			CExpression *PexprSeqPrj2Join(IMemoryPool *pmp, CExpression *pexprSeqPrj);
+			CExpression *PexprSeqPrj2Join(IMemoryPool *mp, CExpression *pexprSeqPrj);
 
 		public:
 
 			// main driver
 			static
-			CExpression *PexprPreprocess(IMemoryPool *pmp, CExpression *pexpr);
+			CExpression *PexprPreprocess(IMemoryPool *mp, CExpression *pexpr);
 
 	}; // class CWindowPreprocessor
 }

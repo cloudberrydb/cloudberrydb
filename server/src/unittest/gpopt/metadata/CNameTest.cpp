@@ -56,9 +56,9 @@ CNameTest::EresUnittest_Basic()
 	CName name2(name1);
 	CName name3 = name2;
 
-	GPOS_ASSERT(name1.FEquals(name2));
-	GPOS_ASSERT(name1.FEquals(name3));
-	GPOS_ASSERT(name2.FEquals(name3));
+	GPOS_ASSERT(name1.Equals(name2));
+	GPOS_ASSERT(name1.Equals(name3));
+	GPOS_ASSERT(name2.Equals(name3));
 
 	return GPOS_OK;
 }
@@ -76,17 +76,17 @@ GPOS_RESULT
 CNameTest::EresUnittest_Ownership()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	CWStringConst strName(GPOS_WSZ_LIT("nametest"));
 	CName name1(&strName);
 
-	CName name2(pmp, name1);
-	CName name3(pmp, name2);
+	CName name2(mp, name1);
+	CName name3(mp, name2);
 
-	GPOS_ASSERT(name1.FEquals(name2));
-	GPOS_ASSERT(name1.FEquals(name3));
-	GPOS_ASSERT(name2.FEquals(name3));
+	GPOS_ASSERT(name1.Equals(name2));
+	GPOS_ASSERT(name1.Equals(name3));
+	GPOS_ASSERT(name2.Equals(name3));
 
 	return GPOS_OK;
 }

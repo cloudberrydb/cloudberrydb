@@ -26,21 +26,21 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMainArgs::CMainArgs
 	(
-	ULONG ulArgs,
-	const CHAR **rgszArgs,
-	const CHAR *szFmt
+	ULONG argc,
+	const CHAR **argv,
+	const CHAR *fmt
 	)
 	:
-	m_ulArgs(ulArgs),
-	m_rgszArgs(rgszArgs),
-	m_szFmt(szFmt),
-	m_szOptarg(optarg),
-	m_iOptind(optind),
-	m_iOptopt(optopt),
-	m_iOpterr(opterr)
+	m_argc(argc),
+	m_argv(argv),
+	m_fmt(fmt),
+	m_optarg(optarg),
+	m_optind(optind),
+	m_optopt(optopt),
+	m_opterr(opterr)
 #ifdef GPOS_Darwin
 	,
-	m_iOptreset(optreset)
+	m_optreset(optreset)
 #endif // GPOS_Darwin
 {
 	// initialize external opt params
@@ -64,37 +64,37 @@ CMainArgs::CMainArgs
 //---------------------------------------------------------------------------
 CMainArgs::~CMainArgs()
 {
-	optarg = m_szOptarg;
-	optind = m_iOptind;
-	optopt = m_iOptopt;
-	opterr = m_iOpterr;
+	optarg = m_optarg;
+	optind = m_optind;
+	optopt = m_optopt;
+	opterr = m_opterr;
 #ifdef GPOS_Darwin
-	optreset = m_iOptreset;
+	optreset = m_optreset;
 #endif // GPOS_Darwin
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMainArgs::FGetopt
+//		CMainArgs::Getopt
 //
 //	@doc:
 //		wraps getopt logic
 //
 //---------------------------------------------------------------------------
 BOOL
-CMainArgs::FGetopt
+CMainArgs::Getopt
 	(
 	CHAR *pch
 	)
 {
 	GPOS_ASSERT(NULL != pch);
 	
-	INT iRes = clib::IGetOpt(m_ulArgs, const_cast<CHAR**>(m_rgszArgs), m_szFmt);
+	INT res = clib::Getopt(m_argc, const_cast<CHAR**>(m_argv), m_fmt);
 
-	if (iRes != -1)
+	if (res != -1)
 	{
-		*pch = (CHAR)iRes;
+		*pch = (CHAR)res;
 		return true;
 	}
 	

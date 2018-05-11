@@ -32,20 +32,20 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLDatumGeneric::CDXLDatumGeneric
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	INT iTypeModifier,
-	BOOL fByVal,
-	BOOL fNull,
-	BYTE *pba,
-	ULONG ulLength
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	INT type_modifier,
+	BOOL is_passed_by_value,
+	BOOL is_null,
+	BYTE *byte_array,
+	ULONG length
 	)
 	:
-	CDXLDatum(pmp, pmdidType, iTypeModifier, fNull, ulLength),
-	m_fByVal(fByVal),
-	m_pba(pba)
+	CDXLDatum(mp, mdid_type, type_modifier, is_null, length),
+	m_is_passed_by_value(is_passed_by_value),
+	m_byte_array(byte_array)
 {
-	GPOS_ASSERT_IMP(m_fNull, (m_pba == NULL) && (m_ulLength == 0));
+	GPOS_ASSERT_IMP(m_is_null, (m_byte_array == NULL) && (m_length == 0));
 }
 
 //---------------------------------------------------------------------------
@@ -58,21 +58,21 @@ CDXLDatumGeneric::CDXLDatumGeneric
 //---------------------------------------------------------------------------
 CDXLDatumGeneric::~CDXLDatumGeneric()
 {
-	GPOS_DELETE_ARRAY(m_pba);
+	GPOS_DELETE_ARRAY(m_byte_array);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLDatumGeneric::Pba
+//		CDXLDatumGeneric::GetByteArray
 //
 //	@doc:
 //		Returns the bytearray of the datum
 //
 //---------------------------------------------------------------------------
 const BYTE *
-CDXLDatumGeneric::Pba() const
+CDXLDatumGeneric::GetByteArray() const
 {
-	return m_pba;
+	return m_byte_array;
 }
 
 //---------------------------------------------------------------------------
@@ -86,17 +86,17 @@ CDXLDatumGeneric::Pba() const
 void
 CDXLDatumGeneric::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 {
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
-	if (IDefaultTypeModifier != ITypeModifier())
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
+	if (default_type_modifier != TypeModifier())
 	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), m_iTypeModifier);
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTypeMod), m_type_modifier);
 	}
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsNull), m_fNull);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsByValue), m_fByVal);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenValue), m_fNull, Pba(), UlLength());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsNull), m_is_null);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsByValue), m_is_passed_by_value);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenValue), m_is_null, GetByteArray(), Length());
 }
 
 // EOF

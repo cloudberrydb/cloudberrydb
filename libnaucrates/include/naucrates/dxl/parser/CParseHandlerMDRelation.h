@@ -38,56 +38,56 @@ namespace gpdxl
 	{
 		protected:
 			// id and version of the relation
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// schema name
-			CMDName *m_pmdnameSchema;
+			CMDName *m_mdname_schema;
 			
 			// table name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// is this a temporary relation
-			BOOL m_fTemporary;
+			BOOL m_is_temp_table;
 			
 			// does this relation have oids
-			BOOL m_fHasOids;
+			BOOL m_has_oids;
 
 			// storage type
-			IMDRelation::Erelstoragetype m_erelstorage;
+			IMDRelation::Erelstoragetype m_rel_storage_type;
 			
 			// distribution policy
-			IMDRelation::Ereldistrpolicy m_ereldistrpolicy;
+			IMDRelation::Ereldistrpolicy m_rel_distr_policy;
 			
 			// distribution columns
-			DrgPul *m_pdrgpulDistrColumns;
+			ULongPtrArray *m_distr_col_array;
 			
 			// do we need to consider a hash distributed table as random distributed
-			BOOL m_fConvertHashToRandom;
+			BOOL m_convert_hash_to_random;
 			
 			// partition keys
-			DrgPul *m_pdrgpulPartColumns;
+			ULongPtrArray *m_partition_cols_array;
 
 			// partition types
-			DrgPsz *m_pdrgpszPartTypes;
+			CharPtrArray *m_str_part_types_array;
 
 			// number of partitions
-			ULONG m_ulPartitions;
+			ULONG m_num_of_partitions;
 			
 			// key sets
-			DrgPdrgPul *m_pdrgpdrgpulKeys;
+			ULongPtr2dArray *m_key_sets_arrays;
 
 			// part constraint
-			CMDPartConstraintGPDB *m_ppartcnstr;
+			CMDPartConstraintGPDB *m_part_constraint;
 			
 			// levels that include default partitions
-			DrgPul *m_pdrgpulDefaultParts;
+			ULongPtrArray *m_level_with_default_part_array;
 
 			// is part constraint unbounded
-			BOOL m_fPartConstraintUnbounded; 
+			BOOL m_part_constraint_unbounded; 
 			
 			// helper function to parse main relation attributes: name, id,
 			// distribution policy and keys
-			void ParseRelationAttributes(const Attributes& attrs, Edxltoken edxltokenElement);
+			void ParseRelationAttributes(const Attributes& attrs, Edxltoken target_elem);
 
 			// create and activate the parse handler for the children nodes
 			void ParseChildNodes();
@@ -99,27 +99,27 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 				
 			// process the end of an element
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);		
 			
 		public:
 			// ctor
 			CParseHandlerMDRelation
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);			
 	};
 }

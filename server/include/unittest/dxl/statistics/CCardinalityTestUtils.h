@@ -35,63 +35,63 @@ namespace gpnaucrates
 
 			// create a bucket with integer bounds, and lower bound is closed
 			static
-			CBucket *PbucketIntegerClosedLowerBound(IMemoryPool *pmp, INT iLower, INT iUpper, CDouble, CDouble);
+			CBucket *PbucketIntegerClosedLowerBound(IMemoryPool *mp, INT iLower, INT iUpper, CDouble, CDouble);
 
 			// create a singleton bucket containing a boolean value
 			static
-			CBucket *PbucketSingletonBoolVal(IMemoryPool *pmp, BOOL fValue, CDouble dFrequency);
+			CBucket *PbucketSingletonBoolVal(IMemoryPool *mp, BOOL fValue, CDouble frequency);
 
 			// create an integer bucket with the provider upper/lower bound, frequency and NDV information
 			static
 			CBucket *PbucketInteger
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				INT iLower,
 				INT iUpper,
-				BOOL fLowerClosed,
-				BOOL fUpperClosed,
-				CDouble dFrequency,
-				CDouble dDistinct
+				BOOL is_lower_closed,
+				BOOL is_upper_closed,
+				CDouble frequency,
+				CDouble distinct
 				);
 
 			// helper function to generate integer histogram based on the NDV and bucket information provided
 			static
 			CHistogram* PhistInt4Remain
 				(
-				IMemoryPool *pmp,
-				ULONG ulBuckets,
+				IMemoryPool *mp,
+				ULONG num_of_buckets,
 				CDouble dNDVPerBucket,
 				BOOL fNullFreq,
-				CDouble dNDVRemain
+				CDouble num_NDV_remain
 				);
 
 			// helper function to generate an example integer histogram
 			static
-			CHistogram* PhistExampleInt4(IMemoryPool *pmp);
+			CHistogram* PhistExampleInt4(IMemoryPool *mp);
 
 			// helper function to generate an example boolean histogram
 			static
-			CHistogram* PhistExampleBool(IMemoryPool *pmp);
+			CHistogram* PhistExampleBool(IMemoryPool *mp);
 
 			// helper function to generate a point from an encoded value of specific datatype
 			static
-			CPoint *PpointGeneric(IMemoryPool *pmp, OID oid, CWStringDynamic *pstrValueEncoded, LINT lValue);
+			CPoint *PpointGeneric(IMemoryPool *mp, OID oid, CWStringDynamic *pstrValueEncoded, LINT value);
 
 			// helper function to generate a point of numeric datatype
 			static
-			CPoint *PpointNumeric(IMemoryPool *pmp, CWStringDynamic *pstrEncodedValue, CDouble dValue);
+			CPoint *PpointNumeric(IMemoryPool *mp, CWStringDynamic *pstrEncodedValue, CDouble value);
 
 			// helper method to print statistics object
 			static
-			void PrintStats(IMemoryPool *pmp, const CStatistics *pstats);
+			void PrintStats(IMemoryPool *mp, const CStatistics *stats);
 
 			// helper method to print histogram object
 			static
-			void PrintHist(IMemoryPool *pmp, const char *pcPrefix, const CHistogram *phist);
+			void PrintHist(IMemoryPool *mp, const char *pcPrefix, const CHistogram *histogram);
 
 			// helper method to print bucket object
 			static
-			void PrintBucket(IMemoryPool *pmp, const char *pcPrefix, const CBucket *pbucket);
+			void PrintBucket(IMemoryPool *mp, const char *pcPrefix, const CBucket *bucket);
 
 	}; // class CCardinalityTestUtils
 }

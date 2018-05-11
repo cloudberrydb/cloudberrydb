@@ -48,7 +48,7 @@ namespace gpnaucrates
 			{};
 
 			// accessor for datum type
-			virtual IMDType::ETypeInfo Eti()
+			virtual IMDType::ETypeInfo GetDatumType()
 			{
 				return IMDType::EtiGeneric;
 			}

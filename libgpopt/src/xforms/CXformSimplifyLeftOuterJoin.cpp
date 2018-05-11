@@ -29,19 +29,19 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformSimplifyLeftOuterJoin::CXformSimplifyLeftOuterJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CLogicalLeftOuterJoin(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // left child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)),  // right child
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))  // predicate tree
+					mp,
+					GPOS_NEW(mp) CLogicalLeftOuterJoin(mp),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // left child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),  // right child
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))  // predicate tree
 					)
 		)
 {}
@@ -62,7 +62,7 @@ CXformSimplifyLeftOuterJoin::Exfp
 	)
 	const
 {
-	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*ulChildIndex*/);
+	CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*child_index*/);
 	if (CUtils::FScalarConstFalse(pexprScalar))
 	{
 		// if LOJ predicate is False, we can replace inner child with empty table
@@ -95,7 +95,7 @@ CXformSimplifyLeftOuterJoin::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
 	CExpression *pexprOuter = (*pexpr)[0];
@@ -110,17 +110,17 @@ CXformSimplifyLeftOuterJoin::Transform
 	GPOS_ASSERT(CUtils::FScalarConstFalse(pexprScalar));
 
 	// extract output columns of inner child
-	DrgPcr *pdrgpcr = CDrvdPropRelational::Pdprel(pexprInner->PdpDerive())->PcrsOutput()->Pdrgpcr(pmp);
+	CColRefArray *colref_array = CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsOutput()->Pdrgpcr(mp);
 
 	// generate empty constant table with the same columns
-	COperator *popCTG = GPOS_NEW(pmp) CLogicalConstTableGet(pmp, pdrgpcr, GPOS_NEW(pmp) DrgPdrgPdatum(pmp));
+	COperator *popCTG = GPOS_NEW(mp) CLogicalConstTableGet(mp, colref_array, GPOS_NEW(mp) IDatum2dArray(mp));
 	pexprResult =
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 			(
-			pmp,
-			GPOS_NEW(pmp) CLogicalLeftOuterJoin(pmp),
+			mp,
+			GPOS_NEW(mp) CLogicalLeftOuterJoin(mp),
 			pexprOuter,
-			GPOS_NEW(pmp) CExpression(pmp, popCTG),
+			GPOS_NEW(mp) CExpression(mp, popCTG),
 			pexprScalar
 			);
 

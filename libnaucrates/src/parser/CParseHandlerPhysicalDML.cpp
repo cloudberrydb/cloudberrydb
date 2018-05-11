@@ -36,21 +36,21 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerPhysicalDML::CParseHandlerPhysicalDML
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerPhysicalOp(pmp, pphm, pphRoot),
-	m_edxldmltype(Edxldmlinsert),
-	m_pdrgpul(NULL),
-	m_ulAction(0),
-	m_ulOid(0),
-	m_ulCtid(0),
-	m_ulSegmentId(0),	
-	m_fPreserveOids(false),
-	m_ulTupleOidColId(0),
-	m_fInputSorted(false)
+	CParseHandlerPhysicalOp(mp, parse_handler_mgr, parse_handler_root),
+	m_dxl_dml_type(Edxldmlinsert),
+	m_src_colids_array(NULL),
+	m_action_colid(0),
+	m_oid_colid(0),
+	m_ctid_colid(0),
+	m_segid_colid(0),	
+	m_preserve_oids(false),
+	m_tuple_oid_col_oid(0),
+	m_input_sort_req(false)
 {
 }
 
@@ -65,95 +65,95 @@ CParseHandlerPhysicalDML::CParseHandlerPhysicalDML
 void
 CParseHandlerPhysicalDML::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes &attrs
 	)
 {
-	Edxltoken edxltoken = EdxltokenPhysicalDMLInsert;
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLInsert), xmlszLocalname) &&
-		0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLDelete), xmlszLocalname) &&
-		0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLUpdate), xmlszLocalname))
+	Edxltoken token_type = EdxltokenPhysicalDMLInsert;
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLInsert), element_local_name) &&
+		0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLDelete), element_local_name) &&
+		0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLUpdate), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 	
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLDelete), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLDelete), element_local_name))
 	{
-		edxltoken = EdxltokenPhysicalDMLDelete;
-		m_edxldmltype = Edxldmldelete;
+		token_type = EdxltokenPhysicalDMLDelete;
+		m_dxl_dml_type = Edxldmldelete;
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLUpdate), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLUpdate), element_local_name))
 	{
-		edxltoken = EdxltokenPhysicalDMLUpdate;
-		m_edxldmltype = Edxldmlupdate;
+		token_type = EdxltokenPhysicalDMLUpdate;
+		m_dxl_dml_type = Edxldmlupdate;
 	}
 
-	const XMLCh *xmlszSourceColIds = CDXLOperatorFactory::XmlstrFromAttrs(attrs, EdxltokenColumns, edxltoken);
-	m_pdrgpul = CDXLOperatorFactory::PdrgpulFromXMLCh(m_pphm->Pmm(), xmlszSourceColIds, EdxltokenColumns, edxltoken);
+	const XMLCh *src_colids_xml = CDXLOperatorFactory::ExtractAttrValue(attrs, EdxltokenColumns, token_type);
+	m_src_colids_array = CDXLOperatorFactory::ExtractIntsToUlongArray(m_parse_handler_mgr->GetDXLMemoryManager(), src_colids_xml, EdxltokenColumns, token_type);
 	
-	m_ulAction = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenActionColId, edxltoken);
-	m_ulOid = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenOidColId, edxltoken);
-	m_ulCtid = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenCtidColId, edxltoken);
-	m_ulSegmentId = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenGpSegmentIdColId, edxltoken);
+	m_action_colid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenActionColId, token_type);
+	m_oid_colid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenOidColId, token_type);
+	m_ctid_colid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenCtidColId, token_type);
+	m_segid_colid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenGpSegmentIdColId, token_type);
 
-	const XMLCh *xmlszPreserveOids = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenUpdatePreservesOids));
-	if (NULL != xmlszPreserveOids)
+	const XMLCh *preserve_oids_xml = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenUpdatePreservesOids));
+	if (NULL != preserve_oids_xml)
 	{
-		m_fPreserveOids = CDXLOperatorFactory::FValueFromXmlstr
+		m_preserve_oids = CDXLOperatorFactory::ConvertAttrValueToBool
 											(
-											m_pphm->Pmm(),
-											xmlszPreserveOids,
+											m_parse_handler_mgr->GetDXLMemoryManager(),
+											preserve_oids_xml,
 											EdxltokenUpdatePreservesOids,
 											EdxltokenPhysicalDMLUpdate
 											);
 	}
 	
-	if (m_fPreserveOids)
+	if (m_preserve_oids)
 	{
-		m_ulTupleOidColId = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTupleOidColId, EdxltokenPhysicalDMLUpdate);
+		m_tuple_oid_col_oid = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(m_parse_handler_mgr->GetDXLMemoryManager(), attrs, EdxltokenTupleOidColId, EdxltokenPhysicalDMLUpdate);
 	}
 
-	const XMLCh *xmlszInputSorted = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenInputSorted));
-	if (NULL != xmlszInputSorted)
+	const XMLCh *input_sort_req_xml = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenInputSorted));
+	if (NULL != input_sort_req_xml)
 	{
-		m_fInputSorted = CDXLOperatorFactory::FValueFromXmlstr
+		m_input_sort_req = CDXLOperatorFactory::ConvertAttrValueToBool
 											(
-											m_pphm->Pmm(),
-											xmlszInputSorted,
+											m_parse_handler_mgr->GetDXLMemoryManager(),
+											input_sort_req_xml,
 											EdxltokenInputSorted,
 											EdxltokenPhysicalDMLInsert
 											);
 	}
 
 	// parse handler for physical operator
-	CParseHandlerBase *pphChild = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenPhysical), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphChild);
+	CParseHandlerBase *child_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenPhysical), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(child_parse_handler);
 
 	//parse handler for the table descriptor
-	CParseHandlerBase *pphTabDesc = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenTableDescr), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphTabDesc);
+	CParseHandlerBase *table_descr_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenTableDescr), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(table_descr_parse_handler);
 
 	// parse handler for the proj list
-	CParseHandlerBase *pphPrL = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphPrL);
+	CParseHandlerBase *proj_list_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(proj_list_parse_handler);
 
 	//parse handler for the direct dispatch info
-	CParseHandlerBase *pphDirectDispatch = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenDirectDispatchInfo), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphDirectDispatch);
+	CParseHandlerBase *direct_dispatch_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenDirectDispatchInfo), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(direct_dispatch_parse_handler);
 	
 	//parse handler for the properties of the operator
-	CParseHandlerBase *pphProp = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenProperties), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphProp);
+	CParseHandlerBase *prop_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenProperties), m_parse_handler_mgr, this);
+	m_parse_handler_mgr->ActivateParseHandler(prop_parse_handler);
 
 	// store child parse handlers in array
-	this->Append(pphProp);
-	this->Append(pphDirectDispatch);
-	this->Append(pphPrL);
-	this->Append(pphTabDesc);
-	this->Append(pphChild);
+	this->Append(prop_parse_handler);
+	this->Append(direct_dispatch_parse_handler);
+	this->Append(proj_list_parse_handler);
+	this->Append(table_descr_parse_handler);
+	this->Append(child_parse_handler);
 }
 
 //---------------------------------------------------------------------------
@@ -167,82 +167,82 @@ CParseHandlerPhysicalDML::StartElement
 void
 CParseHandlerPhysicalDML::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	EdxlDmlType edxldmltype = CParseHandlerPhysicalDML::EdxlDmlOpType(xmlszLocalname);
+	EdxlDmlType dxl_dml_type = CParseHandlerPhysicalDML::GetDmlOpType(element_local_name);
 
-	if (EdxldmlSentinel == edxldmltype || m_edxldmltype != edxldmltype)
+	if (EdxldmlSentinel == dxl_dml_type || m_dxl_dml_type != dxl_dml_type)
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
-	GPOS_ASSERT(5 == this->UlLength());
+	GPOS_ASSERT(5 == this->Length());
 
-	CParseHandlerProperties *pphProp = dynamic_cast<CParseHandlerProperties *>((*this)[0]);
-	GPOS_ASSERT(NULL != pphProp->Pdxlprop());
+	CParseHandlerProperties *prop_parse_handler = dynamic_cast<CParseHandlerProperties *>((*this)[0]);
+	GPOS_ASSERT(NULL != prop_parse_handler->GetProperties());
 
-	CParseHandlerDirectDispatchInfo *pphDirectDispatch = dynamic_cast<CParseHandlerDirectDispatchInfo *>((*this)[1]);
-	GPOS_ASSERT(NULL != pphDirectDispatch->Pdxlddinfo() && NULL != pphDirectDispatch->Pdxlddinfo());
+	CParseHandlerDirectDispatchInfo *direct_dispatch_parse_handler = dynamic_cast<CParseHandlerDirectDispatchInfo *>((*this)[1]);
+	GPOS_ASSERT(NULL != direct_dispatch_parse_handler->GetDXLDirectDispatchInfo() && NULL != direct_dispatch_parse_handler->GetDXLDirectDispatchInfo());
 
-	CParseHandlerProjList *pphPrL = dynamic_cast<CParseHandlerProjList*>((*this)[2]);
-	GPOS_ASSERT(NULL != pphPrL->Pdxln());
+	CParseHandlerProjList *proj_list_parse_handler = dynamic_cast<CParseHandlerProjList*>((*this)[2]);
+	GPOS_ASSERT(NULL != proj_list_parse_handler->CreateDXLNode());
 
-	CParseHandlerTableDescr *pphTabDesc = dynamic_cast<CParseHandlerTableDescr*>((*this)[3]);
-	GPOS_ASSERT(NULL != pphTabDesc->Pdxltabdesc());
-	CDXLTableDescr *pdxltabdesc = pphTabDesc->Pdxltabdesc();
-	pdxltabdesc->AddRef();
+	CParseHandlerTableDescr *table_descr_parse_handler = dynamic_cast<CParseHandlerTableDescr*>((*this)[3]);
+	GPOS_ASSERT(NULL != table_descr_parse_handler->GetDXLTableDescr());
+	CDXLTableDescr *table_descr = table_descr_parse_handler->GetDXLTableDescr();
+	table_descr->AddRef();
 
-	CParseHandlerPhysicalOp *pphChild = dynamic_cast<CParseHandlerPhysicalOp*>((*this)[4]);
-	GPOS_ASSERT(NULL != pphChild->Pdxln());
+	CParseHandlerPhysicalOp *child_parse_handler = dynamic_cast<CParseHandlerPhysicalOp*>((*this)[4]);
+	GPOS_ASSERT(NULL != child_parse_handler->CreateDXLNode());
 
-	CDXLDirectDispatchInfo *pdxlddinfo = pphDirectDispatch->Pdxlddinfo();
-	pdxlddinfo->AddRef();
-	CDXLPhysicalDML *pdxlop = GPOS_NEW(m_pmp) CDXLPhysicalDML(m_pmp, m_edxldmltype, pdxltabdesc, m_pdrgpul, m_ulAction, m_ulOid, m_ulCtid, m_ulSegmentId, m_fPreserveOids, m_ulTupleOidColId, pdxlddinfo, m_fInputSorted);
-	m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlop);
-	
+	CDXLDirectDispatchInfo *dxl_direct_dispatch_info = direct_dispatch_parse_handler->GetDXLDirectDispatchInfo();
+	dxl_direct_dispatch_info->AddRef();
+	CDXLPhysicalDML *dxl_op = GPOS_NEW(m_mp) CDXLPhysicalDML(m_mp, m_dxl_dml_type, table_descr, m_src_colids_array, m_action_colid, m_oid_colid, m_ctid_colid, m_segid_colid, m_preserve_oids, m_tuple_oid_col_oid, dxl_direct_dispatch_info, m_input_sort_req);
+	m_dxl_node = GPOS_NEW(m_mp) CDXLNode(m_mp, dxl_op);
+
 	// set statistics and physical properties
-	CParseHandlerUtils::SetProperties(m_pdxln, pphProp);
+	CParseHandlerUtils::SetProperties(m_dxl_node, prop_parse_handler);
 
-	AddChildFromParseHandler(pphPrL);
-	AddChildFromParseHandler(pphChild);
+	AddChildFromParseHandler(proj_list_parse_handler);
+	AddChildFromParseHandler(child_parse_handler);
 
 #ifdef GPOS_DEBUG
-	m_pdxln->Pdxlop()->AssertValid(m_pdxln, false /* fValidateChildren */);
+	m_dxl_node->GetOperator()->AssertValid(m_dxl_node, false /* validate_children */);
 #endif // GPOS_DEBUG
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerPhysicalDML::EdxlDmlOpType
+//		CParseHandlerPhysicalDML::GetDmlOpType
 //
 //	@doc:
 //		Parse the dml type from the attribute value
 //
 //---------------------------------------------------------------------------
 EdxlDmlType
-CParseHandlerPhysicalDML::EdxlDmlOpType
+CParseHandlerPhysicalDML::GetDmlOpType
 	(
-	const XMLCh *xmlszDmlType
+	const XMLCh *dml_op_type_xml
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLInsert), xmlszDmlType))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLInsert), dml_op_type_xml))
 	{
 		return Edxldmlinsert;
 	}
 
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLDelete), xmlszDmlType))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLDelete), dml_op_type_xml))
 	{
 		return Edxldmldelete;
 	}
 
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLUpdate), xmlszDmlType))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalDMLUpdate), dml_op_type_xml))
 	{
 		return Edxldmlupdate;
 	}

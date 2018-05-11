@@ -46,10 +46,10 @@ namespace gpopt
 			// check if given part index id needs to be enforced on top of the given expression
 			BOOL FRequiresPartitionPropagation
 				(
-				IMemoryPool *pmp, 
+				IMemoryPool *mp, 
 				CExpression *pexpr, 
 				CExpressionHandle &exprhdl,
-				ULONG ulPartIndexId
+				ULONG part_idx_id
 				)
 				const;
 			
@@ -60,11 +60,11 @@ namespace gpopt
 			// as well as the residual predicate
 			void SplitPartPredicates
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprScalar,
-				DrgDrgPcr *pdrgpdrgpcrKeys,
-				HMUlExpr *phmulexprEqFilter,
-				HMUlExpr *phmulexprFilter,
+				CColRef2dArray *pdrgpdrgpcrKeys,
+				UlongToExprMap *phmulexprEqFilter,
+				UlongToExprMap *phmulexprFilter,
 				CExpression **ppexprResidual
 				);
 
@@ -72,27 +72,27 @@ namespace gpopt
 			// indicating which predicates have already been used
 			CExpression *PexprResidualFilter
 				(
-				IMemoryPool *pmp,
-				DrgPexpr *pdrgpexpr,
+				IMemoryPool *mp,
+				CExpressionArray *pdrgpexpr,
 				CBitSet *pbsUsed
 				);
 
 			// return an array of predicates on the given partitioning key given
 			// an array of predicates on all keys
-			DrgPexpr *PdrgpexprPredicatesOnKey
+			CExpressionArray *PdrgpexprPredicatesOnKey
 				(
-				IMemoryPool *pmp,
-				DrgPexpr *pdrgpexpr,
-				CColRef *pcr,
+				IMemoryPool *mp,
+				CExpressionArray *pdrgpexpr,
+				CColRef *colref,
 				CColRefSet *pcrsKeys,
 				CBitSet **ppbs
 				);
 
 			// return a colrefset containing all the part keys
-			CColRefSet *PcrsKeys(IMemoryPool *pmp, DrgDrgPcr *pdrgpdrgpcrKeys);
+			CColRefSet *PcrsKeys(IMemoryPool *mp, CColRef2dArray *pdrgpdrgpcrKeys);
 
 			// return the filter expression for the given Scan Id
-			CExpression *PexprFilter(IMemoryPool *pmp, ULONG ulScanId);
+			CExpression *PexprFilter(IMemoryPool *mp, ULONG scan_id);
 
 		public:
 
@@ -117,22 +117,22 @@ namespace gpopt
 
 			// append enforcers to dynamic array for the given plan properties
 			virtual
-			void AppendEnforcers(IMemoryPool *pmp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, DrgPexpr *pdrgpexpr, CExpression *pexpr);
+			void AppendEnforcers(IMemoryPool *mp, CExpressionHandle &exprhdl, CReqdPropPlan *prpp, CExpressionArray *pdrgpexpr, CExpression *pexpr);
 
 			// hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// extract columns used by the rewindability spec
 			virtual
 			CColRefSet *PcrsUsed
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				const
 			{
 				// return an empty set
-				return GPOS_NEW(pmp) CColRefSet(pmp);
+				return GPOS_NEW(mp) CColRefSet(mp);
 			}
 
 			// property type
@@ -143,7 +143,7 @@ namespace gpopt
 			}
 
 			// equality function
-			BOOL FMatch(const CPartitionPropagationSpec *ppps) const;
+			BOOL Matches(const CPartitionPropagationSpec *ppps) const;
 			
 			// is partition propagation required
 			BOOL FPartPropagationReqd() const

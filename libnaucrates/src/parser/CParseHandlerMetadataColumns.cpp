@@ -33,13 +33,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerMetadataColumns::CParseHandlerMetadataColumns
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pdrgpmdcol(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_md_col_array(NULL)
 {
 }
 
@@ -53,7 +53,7 @@ CParseHandlerMetadataColumns::CParseHandlerMetadataColumns
 //---------------------------------------------------------------------------
 CParseHandlerMetadataColumns::~CParseHandlerMetadataColumns()
 {
-	CRefCount::SafeRelease(m_pdrgpmdcol);
+	CRefCount::SafeRelease(m_md_col_array);
 }
 
 //---------------------------------------------------------------------------
@@ -67,36 +67,36 @@ CParseHandlerMetadataColumns::~CParseHandlerMetadataColumns()
 void
 CParseHandlerMetadataColumns::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenColumns), xmlszLocalname))
+	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenColumns), element_local_name))
 	{
 		// start of a columns' list
-		GPOS_ASSERT(NULL == m_pdrgpmdcol);
+		GPOS_ASSERT(NULL == m_md_col_array);
 		
-		m_pdrgpmdcol = GPOS_NEW(m_pmp) DrgPmdcol(m_pmp);
+		m_md_col_array = GPOS_NEW(m_mp) CMDColumnArray(m_mp);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenColumn), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenColumn), element_local_name))
 	{
 		// column list must be initialized already
-		GPOS_ASSERT(NULL != m_pdrgpmdcol);
+		GPOS_ASSERT(NULL != m_md_col_array);
 		
 		// activate parse handler to parse the column info
-		CParseHandlerBase *pphCol = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenMetadataColumn), m_pphm, this);
+		CParseHandlerBase *col_parse_handler = CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenMetadataColumn), m_parse_handler_mgr, this);
 		
-		m_pphm->ActivateParseHandler(pphCol);
-		this->Append(pphCol);
+		m_parse_handler_mgr->ActivateParseHandler(col_parse_handler);
+		this->Append(col_parse_handler);
 		
-		pphCol->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		col_parse_handler->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -111,51 +111,51 @@ CParseHandlerMetadataColumns::StartElement
 void
 CParseHandlerMetadataColumns::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenColumns), xmlszLocalname))
+	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenColumns), element_local_name))
 	{
 		// end of the columns' list
-		GPOS_ASSERT(NULL != m_pdrgpmdcol);
+		GPOS_ASSERT(NULL != m_md_col_array);
 		
-		const ULONG ulSize = this->UlLength();
+		const ULONG size = this->Length();
 		// add parsed columns to the list
-		for (ULONG ul = 0; ul < ulSize; ul++)
+		for (ULONG ul = 0; ul < size; ul++)
 		{
-			CParseHandlerMetadataColumn *pphCol = dynamic_cast<CParseHandlerMetadataColumn *>((*this)[ul]);
+			CParseHandlerMetadataColumn *md_col_parse_handler = dynamic_cast<CParseHandlerMetadataColumn *>((*this)[ul]);
 			
-			GPOS_ASSERT(NULL != pphCol->Pmdcol());
+			GPOS_ASSERT(NULL != md_col_parse_handler->GetMdCol());
 			
-			CMDColumn *pmdcol = pphCol->Pmdcol();
-			pmdcol->AddRef();
+			CMDColumn *md_col = md_col_parse_handler->GetMdCol();
+			md_col->AddRef();
 			
-			m_pdrgpmdcol->Append(pmdcol);
+			m_md_col_array->Append(md_col);
 		}
 		// deactivate handler
-		m_pphm->DeactivateHandler();
+		m_parse_handler_mgr->DeactivateHandler();
 	}
 	else
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerMetadataColumns::Pdrgpmdcol
+//		CParseHandlerMetadataColumns::GetMdColArray
 //
 //	@doc:
 //		Return the constructed list of metadata columns
 //
 //---------------------------------------------------------------------------
-DrgPmdcol *
-CParseHandlerMetadataColumns::Pdrgpmdcol()
+CMDColumnArray *
+CParseHandlerMetadataColumns::GetMdColArray()
 {
-	return m_pdrgpmdcol;
+	return m_md_col_array;
 }
 
 // EOF

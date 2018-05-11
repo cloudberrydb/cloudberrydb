@@ -44,19 +44,19 @@ namespace gpopt
 			ULONG m_ulOriginOpId;
 
 			// true iff it is a partial scan
-			BOOL m_fPartial;
+			BOOL m_is_partial;
 
 			// id of the dynamic scan
-			ULONG m_ulScanId;
+			ULONG m_scan_id;
 
 			// partition keys
-			DrgDrgPcr *m_pdrgpdrgpcrPart;
+			CColRef2dArray *m_pdrgpdrgpcrPart;
 
 			// secondary scan id in case of partial scan
 			ULONG m_ulSecondaryScanId;
 
 			// dynamic index part constraint
-			CPartConstraint *m_ppartcnstr;
+			CPartConstraint *m_part_constraint;
 
 			// relation part constraint
 			CPartConstraint *m_ppartcnstrRel;
@@ -68,14 +68,14 @@ namespace gpopt
 			// ctor
 			CPhysicalDynamicScan
 				(
-				IMemoryPool *pmp,
-				BOOL fPartial,
+				IMemoryPool *mp,
+				BOOL is_partial,
 				CTableDescriptor *ptabdesc,
 				ULONG ulOriginOpId,
 				const CName *pnameAlias,
-				ULONG ulScanId,
-				DrgPcr *pdrgpcrOutput,
-				DrgDrgPcr *pdrgpdrgpcrParts,
+				ULONG scan_id,
+				CColRefArray *pdrgpcrOutput,
+				CColRef2dArray *pdrgpdrgpcrParts,
 				ULONG ulSecondaryScanId,
 				CPartConstraint *ppartcnstr,
 				CPartConstraint *ppartcnstrRel
@@ -92,19 +92,19 @@ namespace gpopt
 			}
 
 			// true iff the scan is partial
-			BOOL FPartial() const
+			BOOL IsPartial() const
 			{
-				return m_fPartial;
+				return m_is_partial;
 			}
 
 			// return scan id
-			ULONG UlScanId() const
+			ULONG ScanId() const
 			{
-				return m_ulScanId;
+				return m_scan_id;
 			}
 
 			// partition keys
-			DrgDrgPcr *PdrgpdrgpcrPart() const
+			CColRef2dArray *PdrgpdrgpcrPart() const
 			{
 				return m_pdrgpdrgpcrPart;
 			}
@@ -118,7 +118,7 @@ namespace gpopt
 			// dynamic index part constraint
 			CPartConstraint *Ppartcnstr() const
 			{
-				return m_ppartcnstr;
+				return m_part_constraint;
 			}
 
 			// relation part constraint
@@ -136,11 +136,11 @@ namespace gpopt
 
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// derive partition index map
 			virtual
-			CPartIndexMap *PpimDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt) const;
+			CPartIndexMap *PpimDerive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt) const;
 
 			// return true if operator is dynamic scan
 			virtual

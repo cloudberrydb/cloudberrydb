@@ -30,13 +30,13 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerWindowKey::CParseHandlerWindowKey
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pdxlwk(NULL)
+	CParseHandlerBase(mp, parse_handler_mgr, parse_handler_root),
+	m_dxl_window_key_gen(NULL)
 {
 }
 
@@ -51,42 +51,42 @@ CParseHandlerWindowKey::CParseHandlerWindowKey
 void
 CParseHandlerWindowKey::StartElement
 	(
-	const XMLCh* const xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const xmlszQname,
+	const XMLCh* const element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const element_qname,
 	const Attributes& attrs
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKey), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKey), element_local_name))
 	{
-		GPOS_ASSERT(NULL == m_pdxlwk);
-		m_pdxlwk = GPOS_NEW(m_pmp) CDXLWindowKey(m_pmp);
+		GPOS_ASSERT(NULL == m_dxl_window_key_gen);
+		m_dxl_window_key_gen = GPOS_NEW(m_mp) CDXLWindowKey(m_mp);
 
 		// parse handler for the sorting column list
-		CParseHandlerBase *pphSortColList =
-				CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarSortColList), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphSortColList);
+		CParseHandlerBase *sort_col_list_parse_handler =
+				CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenScalarSortColList), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(sort_col_list_parse_handler);
 
 		// store parse handler
-		this->Append(pphSortColList);
+		this->Append(sort_col_list_parse_handler);
 	}
-	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowFrame), xmlszLocalname))
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowFrame), element_local_name))
 	{
-		GPOS_ASSERT(1 == this->UlLength());
+		GPOS_ASSERT(1 == this->Length());
 
 		// parse handler for the leading and trailing scalar values
-		CParseHandlerBase *pphWf =
-				CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenWindowFrame), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphWf);
+		CParseHandlerBase *window_frame_parse_handler_base =
+				CParseHandlerFactory::GetParseHandler(m_mp, CDXLTokens::XmlstrToken(EdxltokenWindowFrame), m_parse_handler_mgr, this);
+		m_parse_handler_mgr->ActivateParseHandler(window_frame_parse_handler_base);
 
 		// store parse handler
-		this->Append(pphWf);
-		pphWf->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		this->Append(window_frame_parse_handler_base);
+		window_frame_parse_handler_base->startElement(element_uri, element_local_name, element_qname, attrs);
 	}
 	else
 	{
-			CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+			CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 }
 
@@ -101,33 +101,33 @@ CParseHandlerWindowKey::StartElement
 void
 CParseHandlerWindowKey::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKey), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenWindowKey), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
-	GPOS_ASSERT(NULL != m_pdxlwk);
-	GPOS_ASSERT(1 <= this->UlLength());
+	GPOS_ASSERT(NULL != m_dxl_window_key_gen);
+	GPOS_ASSERT(1 <= this->Length());
 
-	CParseHandlerSortColList *pphSortColList = dynamic_cast<CParseHandlerSortColList*>((*this)[0]);
-	CDXLNode *pdxlnSortColList = pphSortColList->Pdxln();
-	pdxlnSortColList->AddRef();
-	m_pdxlwk->SetSortColList(pdxlnSortColList);
+	CParseHandlerSortColList *sort_col_list_parse_handler = dynamic_cast<CParseHandlerSortColList *>((*this)[0]);
+	CDXLNode *sort_col_list_dxlnode = sort_col_list_parse_handler->CreateDXLNode();
+	sort_col_list_dxlnode->AddRef();
+	m_dxl_window_key_gen->SetSortColList(sort_col_list_dxlnode);
 
-	if (2 == this->UlLength())
+	if (2 == this->Length())
 	{
-		CParseHandlerWindowFrame *pphWf = dynamic_cast<CParseHandlerWindowFrame *>((*this)[1]);
-		CDXLWindowFrame *pdxlwf = pphWf->Pdxlwf();
-		m_pdxlwk->SetWindowFrame(pdxlwf);
+		CParseHandlerWindowFrame *window_frame_parse_handler_base = dynamic_cast<CParseHandlerWindowFrame *>((*this)[1]);
+		CDXLWindowFrame *window_frame = window_frame_parse_handler_base->GetWindowFrame();
+		m_dxl_window_key_gen->SetWindowFrame(window_frame);
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

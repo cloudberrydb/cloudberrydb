@@ -32,7 +32,7 @@ namespace gpopt
 
 			// dump given string to output file
 			static
-			void Dump(CHAR *szFileName, CHAR *sz);
+			void Dump(CHAR *file_name, CHAR *sz);
 
 	}; // class CIOUtils
 }

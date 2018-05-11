@@ -35,24 +35,24 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarIf::CScalarIf
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdid
+	IMemoryPool *mp,
+	IMDId *mdid
 	)
 	:
-	CScalar(pmp),
-	m_pmdidType(pmdid),
+	CScalar(mp),
+	m_mdid_type(mdid),
 	m_fBoolReturnType(false)
 {
-	GPOS_ASSERT(pmdid->FValid());
+	GPOS_ASSERT(mdid->IsValid());
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_fBoolReturnType = CMDAccessorUtils::FBoolType(pmda, m_pmdidType);
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	m_fBoolReturnType = CMDAccessorUtils::FBoolType(md_accessor, m_mdid_type);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarIf::UlHash
+//		CScalarIf::HashValue
 //
 //	@doc:
 //		Operator specific hash function; combined hash of operator id and
@@ -60,21 +60,21 @@ CScalarIf::CScalarIf
 //
 //---------------------------------------------------------------------------
 ULONG
-CScalarIf::UlHash() const
+CScalarIf::HashValue() const
 {
-	return gpos::UlCombineHashes(COperator::UlHash(), m_pmdidType->UlHash());
+	return gpos::CombineHashes(COperator::HashValue(), m_mdid_type->HashValue());
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarIf::FMatch
+//		CScalarIf::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarIf::FMatch
+CScalarIf::Matches
 	(
 	COperator *pop
 	)
@@ -85,7 +85,7 @@ CScalarIf::FMatch
 		CScalarIf *popScIf = CScalarIf::PopConvert(pop);
 
 		// match if return types are identical
-		return popScIf->PmdidType()->FEquals(m_pmdidType);
+		return popScIf->MdidType()->Equals(m_mdid_type);
 	}
 
 	return false;

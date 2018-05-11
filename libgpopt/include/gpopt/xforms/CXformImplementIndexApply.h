@@ -26,18 +26,18 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformImplementIndexApply(IMemoryPool *pmp)
+			CXformImplementIndexApply(IMemoryPool *mp)
 			:
 			// pattern
 			CXformImplementation
 				(
-				GPOS_NEW(pmp) CExpression
+				GPOS_NEW(mp) CExpression
 								(
-								pmp,
-								GPOS_NEW(pmp) CLogicalIndexApply(pmp),
-								GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // outer child
-								GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)),  // inner child
-								GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp))  // predicate
+								mp,
+								GPOS_NEW(mp) CLogicalIndexApply(mp),
+								GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)), // outer child
+								GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),  // inner child
+								GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp))  // predicate
 								)
 				)
 			{}
@@ -79,14 +79,14 @@ namespace gpopt
 				GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 				GPOS_ASSERT(FCheckPattern(pexpr));
 
-				IMemoryPool *pmp = pxfctxt->Pmp();
+				IMemoryPool *mp = pxfctxt->Pmp();
 
 				// extract components
 				CExpression *pexprOuter = (*pexpr)[0];
 				CExpression *pexprInner = (*pexpr)[1];
 				CExpression *pexprScalar = (*pexpr)[2];
-				DrgPcr *pdrgpcr = CLogicalIndexApply::PopConvert(pexpr->Pop())->PdrgPcrOuterRefs();
-				pdrgpcr->AddRef();
+				CColRefArray *colref_array = CLogicalIndexApply::PopConvert(pexpr->Pop())->PdrgPcrOuterRefs();
+				colref_array->AddRef();
 
 				// addref all components
 				pexprOuter->AddRef();
@@ -97,14 +97,14 @@ namespace gpopt
 				CPhysicalNLJoin *pop = NULL;
 
 				if (CLogicalIndexApply::PopConvert(pexpr->Pop())->FouterJoin())
-					pop = GPOS_NEW(pmp) CPhysicalLeftOuterIndexNLJoin(pmp, pdrgpcr);
+					pop = GPOS_NEW(mp) CPhysicalLeftOuterIndexNLJoin(mp, colref_array);
 				else
-					pop = GPOS_NEW(pmp) CPhysicalInnerIndexNLJoin(pmp, pdrgpcr);
+					pop = GPOS_NEW(mp) CPhysicalInnerIndexNLJoin(mp, colref_array);
 
 				CExpression *pexprResult =
-						GPOS_NEW(pmp) CExpression
+						GPOS_NEW(mp) CExpression
 								(
-								pmp,
+								mp,
 								pop,
 								pexprOuter,
 								pexprInner,

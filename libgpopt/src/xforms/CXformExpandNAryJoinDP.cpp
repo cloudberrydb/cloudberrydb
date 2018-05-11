@@ -36,18 +36,18 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformExpandNAryJoinDP::CXformExpandNAryJoinDP
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	CXformExploration
 		(
 		 // pattern
-		GPOS_NEW(pmp) CExpression
+		GPOS_NEW(mp) CExpression
 					(
-					pmp,
-					GPOS_NEW(pmp) CLogicalNAryJoin(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternMultiLeaf(pmp)),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))
+					mp,
+					GPOS_NEW(mp) CLogicalNAryJoin(mp),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiLeaf(mp)),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))
 					)
 		)
 {}
@@ -68,14 +68,14 @@ CXformExpandNAryJoinDP::Exfp
 	)
 	const
 {
-	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
-	const CHint *phint = poconf->Phint();
+	COptimizerConfig *optimizer_config = COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
+	const CHint *phint = optimizer_config->GetHint();
 
-	const ULONG ulArity = exprhdl.UlArity();
+	const ULONG arity = exprhdl.Arity();
 
 	// since the last child of the join operator is a scalar child
 	// defining the join predicate, ignore it.
-	const ULONG ulRelChild = ulArity - 1;
+	const ULONG ulRelChild = arity - 1;
 
 	if (ulRelChild > phint->UlJoinOrderDPLimit())
 	{
@@ -109,34 +109,34 @@ CXformExpandNAryJoinDP::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
+	IMemoryPool *mp = pxfctxt->Pmp();
 
-	const ULONG ulArity = pexpr->UlArity();
-	GPOS_ASSERT(ulArity >= 3);
+	const ULONG arity = pexpr->Arity();
+	GPOS_ASSERT(arity >= 3);
 
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-	for (ULONG ul = 0; ul < ulArity - 1; ul++)
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	for (ULONG ul = 0; ul < arity - 1; ul++)
 	{
 		CExpression *pexprChild = (*pexpr)[ul];
 		pexprChild->AddRef();
 		pdrgpexpr->Append(pexprChild);
 	}
 
-	CExpression *pexprScalar = (*pexpr)[ulArity - 1];
-	DrgPexpr *pdrgpexprPreds = CPredicateUtils::PdrgpexprConjuncts(pmp, pexprScalar);
+	CExpression *pexprScalar = (*pexpr)[arity - 1];
+	CExpressionArray *pdrgpexprPreds = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
 
 	// create join order using dynamic programming
-	CJoinOrderDP jodp(pmp, pdrgpexpr, pdrgpexprPreds);
+	CJoinOrderDP jodp(mp, pdrgpexpr, pdrgpexprPreds);
 	CExpression *pexprResult = jodp.PexprExpand();
 
 	if (NULL != pexprResult)
 	{
 		// normalize resulting expression
-		CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprResult);
+		CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexprResult);
 		pexprResult->Release();
 		pxfres->Add(pexprNormalized);
 
-		const ULONG UlTopKJoinOrders = jodp.PdrgpexprTopK()->UlLength();
+		const ULONG UlTopKJoinOrders = jodp.PdrgpexprTopK()->Size();
 		for (ULONG ul = 0; ul < UlTopKJoinOrders; ul++)
 		{
 			CExpression *pexprJoinOrder = (*jodp.PdrgpexprTopK())[ul];

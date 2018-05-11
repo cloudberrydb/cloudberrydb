@@ -28,23 +28,23 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarAssertConstraintList::CScalarAssertConstraintList
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CScalar(pmp)
+	CScalar(mp)
 {
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarAssertConstraintList::FMatch
+//		CScalarAssertConstraintList::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarAssertConstraintList::FMatch
+CScalarAssertConstraintList::Matches
 	(
 	COperator *pop
 	)
@@ -56,17 +56,17 @@ CScalarAssertConstraintList::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarAssertConstraintList::FMatch
+//		CScalarAssertConstraintList::Matches
 //
 //	@doc:
 //		Type of expression's result
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarAssertConstraintList::PmdidType() const
+CScalarAssertConstraintList::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	return pmda->PtMDType<IMDTypeBool>()->Pmdid();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	return md_accessor->PtMDType<IMDTypeBool>()->MDId();
 }
 
 

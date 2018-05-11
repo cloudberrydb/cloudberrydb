@@ -64,7 +64,7 @@ CSerializableStackTrace::Serialize
 	COstream& oos
 	)
 {
-	if (!ITask::PtskSelf()->FPendingExc())
+	if (!ITask::Self()->HasPendingExceptions())
 	{
 		// no pending exception: no need to serialize stack trace
 		return;
@@ -74,8 +74,8 @@ CSerializableStackTrace::Serialize
 
 	str.AppendFormat(CDXLSections::m_wszStackTraceHeader);
 
-	CErrorContext *perrctxt = CTask::PtskSelf()->PerrctxtConvert();
-	perrctxt->Psd()->AppendTrace(&str);
+	CErrorContext *perrctxt = CTask::Self()->ConvertErrCtxt();
+	perrctxt->GetStackDescriptor()->AppendTrace(&str);
 
 	str.AppendFormat(CDXLSections::m_wszStackTraceFooter);
 

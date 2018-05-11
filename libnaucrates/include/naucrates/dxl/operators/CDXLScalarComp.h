@@ -43,10 +43,10 @@ namespace gpdxl
 		protected:
 						
 			// operator number in the catalog
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 					
 			// comparison operator name
-			const CWStringConst *m_pstrCompOpName;
+			const CWStringConst *m_comparison_operator_name;
 
 		private:
 
@@ -57,9 +57,9 @@ namespace gpdxl
 			// ctor/dtor		
 			CDXLScalarComp
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidOp,
-				const CWStringConst *pstrCompOpName
+				IMemoryPool *mp,
+				IMDId *operator_mdid,
+				const CWStringConst *comparison_operator_name
 				);
 			
 			virtual
@@ -68,41 +68,41 @@ namespace gpdxl
 			// accessor
 
 			// ident accessors
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 			
 			// name of the DXL operator
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// name of the comparison operator
-			const CWStringConst *PstrCmpOpName() const;
+			const CWStringConst *GetComparisonOpName() const;
 			
 			// operator id
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 						
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *node) const;
 
 			// conversion function
 			static
-			CDXLScalarComp *PdxlopConvert
+			CDXLScalarComp *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarCmp == pdxlop->Edxlop()
-						|| EdxlopScalarDistinct == pdxlop->Edxlop()
-						|| EdxlopScalarArrayComp == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopScalarCmp == dxl_op->GetDXLOperator()
+						|| EdxlopScalarDistinct == dxl_op->GetDXLOperator()
+						|| EdxlopScalarArrayComp == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLScalarComp*>(pdxlop);
+				return dynamic_cast<CDXLScalarComp*>(dxl_op);
 			}
 
 			// does the operator return a boolean result
 			virtual
-			BOOL FBoolean
+			BOOL HasBoolResult
 					(
-					CMDAccessor *//pmda
+					CMDAccessor *//md_accessor
 					)
 					const
 
@@ -113,7 +113,7 @@ namespace gpdxl
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *node, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 	};
 }

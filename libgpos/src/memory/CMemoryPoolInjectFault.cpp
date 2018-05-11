@@ -35,19 +35,19 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMemoryPoolInjectFault::CMemoryPoolInjectFault
 	(
-	IMemoryPool *pmp,
-	BOOL fOwnsUnderlying
+	IMemoryPool *mp,
+	BOOL owns_underlying_memory_pool
 	)
 	:
-	CMemoryPool(pmp, fOwnsUnderlying, true /*fThreadSafe*/)
+	CMemoryPool(mp, owns_underlying_memory_pool, true /*fThreadSafe*/)
 {
-	GPOS_ASSERT(pmp != NULL);
+	GPOS_ASSERT(mp != NULL);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMemoryPoolInjectFault::PvAllocate
+//		CMemoryPoolInjectFault::Allocate
 //
 //	@doc:
 //	  Allocate memory; it will either simulate an allocation failure
@@ -55,23 +55,23 @@ CMemoryPoolInjectFault::CMemoryPoolInjectFault
 //
 //---------------------------------------------------------------------------
 void *
-CMemoryPoolInjectFault::PvAllocate
+CMemoryPoolInjectFault::Allocate
 	(
-	const ULONG ulNumBytes,
-	const CHAR *szFilename,
-	const ULONG ulLine
+	const ULONG num_bytes,
+	const CHAR *filename,
+	const ULONG line
 	)
 {
 #ifdef GPOS_FPSIMULATOR
-	if (FSimulateAllocFailure())
+	if (SimulateAllocFailure())
 	{
-		GPOS_TRACE_FORMAT_ERR("Simulating OOM at %s:%d", szFilename, ulLine);
+		GPOS_TRACE_FORMAT_ERR("Simulating OOM at %s:%d", filename, line);
 
 		return NULL;
 	}
 #endif
 
-	return PmpUnderlying()->PvAllocate(ulNumBytes, szFilename, ulLine);
+	return GetUnderlyingMemoryPool()->Allocate(num_bytes, filename, line);
 }
 
 
@@ -90,10 +90,10 @@ CMemoryPoolInjectFault::PvAllocate
 void
 CMemoryPoolInjectFault::Free
 	(
-	void *pvMemory
+	void *memory
 	)
 {
-	PmpUnderlying()->Free(pvMemory);
+	GetUnderlyingMemoryPool()->Free(memory);
 }
 
 
@@ -108,14 +108,14 @@ CMemoryPoolInjectFault::Free
 //
 //---------------------------------------------------------------------------
 BOOL
-CMemoryPoolInjectFault::FSimulateAllocFailure()
+CMemoryPoolInjectFault::SimulateAllocFailure()
 {
-	ITask *ptsk = ITask::PtskSelf();
-	if (NULL != ptsk)
+	ITask *task = ITask::Self();
+	if (NULL != task)
 	{
 		return
-			ptsk->FTrace(EtraceSimulateOOM) &&
-			CFSimulator::Pfsim()->FNewStack(CException::ExmaSystem, CException::ExmiOOM);
+			task->IsTraceSet(EtraceSimulateOOM) &&
+			CFSimulator::FSim()->NewStack(CException::ExmaSystem, CException::ExmiOOM);
 	}
 
 	return false;

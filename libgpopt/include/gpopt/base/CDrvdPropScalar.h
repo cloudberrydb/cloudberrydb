@@ -38,7 +38,7 @@ namespace gpopt
 	//		project list. This includes used and defined columns.
 	//
 	//---------------------------------------------------------------------------
-	class CDrvdPropScalar : public CDrvdProp
+	class CDrvdPropScalar : public DrvdPropArray
 	{
 
 		private:
@@ -95,7 +95,7 @@ namespace gpopt
 			}
 
 			// derivation function
-			void Derive(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
+			void Derive(IMemoryPool *mp, CExpressionHandle &exprhdl, CDrvdPropCtxt *pdpctxt);
 
 			// check for satisfying required plan properties
 			virtual
@@ -164,7 +164,7 @@ namespace gpopt
 
 			// short hand for conversion
 			static
-			CDrvdPropScalar *Pdpscalar(CDrvdProp *pdp);
+			CDrvdPropScalar *GetDrvdScalarProps(DrvdPropArray *pdp);
 
 			// print function
 			virtual

@@ -32,10 +32,10 @@ namespace gpos
 		private:
 
 			// traceflag id
-			ULONG m_ulTrace;
+			ULONG m_trace;
 
-			// original value
-			BOOL m_fOrig;
+		// original value
+			BOOL m_orig;
 
 			// no copy ctor
 			CAutoTraceFlag(const CAutoTraceFlag&);
@@ -43,7 +43,7 @@ namespace gpos
 		public:
 		
 			// ctor
-			CAutoTraceFlag(ULONG ulTrace, BOOL fVal);
+			CAutoTraceFlag(ULONG trace, BOOL orig);
 
 			// dtor
 			virtual

@@ -47,11 +47,11 @@ namespace gpopt
 			// ctor
 			CScalarCoerceViaIO
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				ECoercionForm edxlcf,
-				INT iLoc
+				IMemoryPool *mp,
+				IMDId *mdid_type,
+				INT type_modifier,
+				ECoercionForm dxl_coerce_format,
+				INT location
 				);
 
 			// dtor
@@ -75,7 +75,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			// sensitivity to order of inputs
 			virtual

@@ -23,96 +23,96 @@ using namespace gpopt;
 // helper for joining histograms
 void
 CJoinStatsProcessor::JoinHistograms
-			(
-			IMemoryPool *pmp,
-			const CHistogram *phist1,
-			const CHistogram *phist2,
-			CStatsPredJoin *pstatsjoin,
-			CDouble dRows1,
-			CDouble dRows2,
-			CHistogram **pphist1, // output: histogram 1 after join
-			CHistogram **pphist2, // output: histogram 2 after join
-			CDouble *pdScaleFactor, // output: scale factor based on the join
-			BOOL fEmptyInput,
-			IStatistics::EStatsJoinType eStatsJoinType,
-			BOOL fIgnoreLasjHistComputation
-			)
+		(
+				IMemoryPool *mp,
+				const CHistogram *histogram1,
+				const CHistogram *histogram2,
+				CStatsPredJoin *join_pred_stats,
+				CDouble num_rows1,
+				CDouble num_rows2,
+				CHistogram **result_hist1, // output: histogram 1 after join
+				CHistogram **result_hist2, // output: histogram 2 after join
+				CDouble *scale_factor, // output: scale factor based on the join
+				BOOL is_input_empty,
+				IStatistics::EStatsJoinType join_type,
+				BOOL DoIgnoreLASJHistComputation
+		)
 {
-	GPOS_ASSERT(NULL != phist1);
-	GPOS_ASSERT(NULL != phist2);
-	GPOS_ASSERT(NULL != pstatsjoin);
-	GPOS_ASSERT(NULL != pphist1);
-	GPOS_ASSERT(NULL != pphist2);
-	GPOS_ASSERT(NULL != pdScaleFactor);
+	GPOS_ASSERT(NULL != histogram1);
+	GPOS_ASSERT(NULL != histogram2);
+	GPOS_ASSERT(NULL != join_pred_stats);
+	GPOS_ASSERT(NULL != result_hist1);
+	GPOS_ASSERT(NULL != result_hist2);
+	GPOS_ASSERT(NULL != scale_factor);
 
-	if (IStatistics::EsjtLeftAntiSemiJoin == eStatsJoinType)
+	if (IStatistics::EsjtLeftAntiSemiJoin == join_type)
 	{
 		CLeftAntiSemiJoinStatsProcessor::JoinHistogramsLASJ
 				(
-				pmp,
-				phist1,
-				phist2,
-				pstatsjoin,
-				dRows1,
-				dRows2,
-				pphist1,
-				pphist2,
-				pdScaleFactor,
-				fEmptyInput,
-				eStatsJoinType,
-				fIgnoreLasjHistComputation
+				mp,
+				histogram1,
+				histogram2,
+				join_pred_stats,
+				num_rows1,
+				num_rows2,
+				result_hist1,
+				result_hist2,
+				scale_factor,
+				is_input_empty,
+				join_type,
+				DoIgnoreLASJHistComputation
 				);
 
 		return;
 	}
 
-	if (fEmptyInput)
+	if (is_input_empty)
 	{
 		// use Cartesian product as scale factor
-		*pdScaleFactor = dRows1 * dRows2;
-		*pphist1 =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp));
-		*pphist2 =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp));
+		*scale_factor = num_rows1 * num_rows2;
+		*result_hist1 = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp));
+		*result_hist2 = GPOS_NEW(mp) CHistogram(GPOS_NEW(mp) CBucketArray(mp));
 
 		return;
 	}
 
-	*pdScaleFactor = CScaleFactorUtils::DDefaultScaleFactorJoin;
+	*scale_factor = CScaleFactorUtils::DefaultJoinPredScaleFactor;
 
-	CStatsPred::EStatsCmpType escmpt = pstatsjoin->Escmpt();
-	BOOL fEmptyHistograms = phist1->FEmpty() || phist2->FEmpty();
+	CStatsPred::EStatsCmpType stats_cmp_type = join_pred_stats->GetCmpType();
+	BOOL empty_histograms = histogram1->IsEmpty() || histogram2->IsEmpty();
 
-	if (fEmptyHistograms)
+	if (empty_histograms)
 	{
 		// if one more input has no histograms (due to lack of statistics
 		// for table columns or computed columns), we estimate
 		// the join cardinality to be the max of the two rows.
 		// In other words, the scale factor is equivalent to the
 		// min of the two rows.
-		*pdScaleFactor = std::min(dRows1, dRows2);
+		*scale_factor = std::min(num_rows1, num_rows2);
 	}
-	else if (CHistogram::FSupportsJoinPred(escmpt))
+	else if (CHistogram::JoinPredCmpTypeIsSupported(stats_cmp_type))
 	{
-		CHistogram *phistJoin = phist1->PhistJoinNormalized
+		CHistogram *join_histogram = histogram1->MakeJoinHistogramNormalize
 				(
-				pmp,
-				escmpt,
-				dRows1,
-				phist2,
-				dRows2,
-				pdScaleFactor
+				mp,
+				stats_cmp_type,
+				num_rows1,
+				histogram2,
+				num_rows2,
+				scale_factor
 				);
 
-		if (CStatsPred::EstatscmptEq == escmpt || CStatsPred::EstatscmptINDF == escmpt || CStatsPred::EstatscmptEqNDV == escmpt)
+		if (CStatsPred::EstatscmptEq == stats_cmp_type || CStatsPred::EstatscmptINDF == stats_cmp_type || CStatsPred::EstatscmptEqNDV == stats_cmp_type)
 		{
-			if (phist1->FScaledNDV())
+			if (histogram1->WereNDVsScaled())
 			{
-				phistJoin->SetNDVScaled();
+				join_histogram->SetNDVScaled();
 			}
-			*pphist1 = phistJoin;
-			*pphist2 = (*pphist1)->PhistCopy(pmp);
-			if (phist2->FScaledNDV())
+			*result_hist1 = join_histogram;
+			*result_hist2 = (*result_hist1)->CopyHistogram(mp);
+			if (histogram2->WereNDVsScaled())
 			{
-				(*pphist2)->SetNDVScaled();
+				(*result_hist2)->SetNDVScaled();
 			}
 			return;
 		}
@@ -120,8 +120,8 @@ CJoinStatsProcessor::JoinHistograms
 		// note that for IDF and Not Equality predicate, we do not generate histograms but
 		// just the scale factors.
 
-		GPOS_ASSERT(phistJoin->FEmpty());
-		GPOS_DELETE(phistJoin);
+		GPOS_ASSERT(join_histogram->IsEmpty());
+		GPOS_DELETE(join_histogram);
 
 		// TODO:  Feb 21 2014, for all join condition except for "=" join predicate
 		// we currently do not compute new histograms for the join columns
@@ -129,230 +129,230 @@ CJoinStatsProcessor::JoinHistograms
 
 	// for an unsupported join predicate operator or in the case of
 	// missing histograms, copy input histograms and use default scale factor
-	*pphist1 = phist1->PhistCopy(pmp);
-	*pphist2 = phist2->PhistCopy(pmp);
+	*result_hist1 = histogram1->CopyHistogram(mp);
+	*result_hist2 = histogram2->CopyHistogram(mp);
 }
 
 //	derive statistics for the given join's predicate(s)
 IStatistics *
-CJoinStatsProcessor::PstatsJoinArray
+CJoinStatsProcessor::CalcAllJoinStats
 		(
-		IMemoryPool *pmp,
-		DrgPstat *pdrgpstat,
-		CExpression *pexprScalar,
-		IStatistics::EStatsJoinType eStatsJoinType
+		IMemoryPool *mp,
+		IStatisticsArray *statistics_array,
+		CExpression *expr,
+		IStatistics::EStatsJoinType join_type
 		)
 {
-	GPOS_ASSERT(NULL != pexprScalar);
-	GPOS_ASSERT(NULL != pdrgpstat);
-	GPOS_ASSERT(0 < pdrgpstat->UlLength());
-	BOOL fLeftOuterJoin = IStatistics::EsjtLeftOuterJoin == eStatsJoinType;
-	GPOS_ASSERT_IMP(fLeftOuterJoin, 2 == pdrgpstat->UlLength());
+	GPOS_ASSERT(NULL != expr);
+	GPOS_ASSERT(NULL != statistics_array);
+	GPOS_ASSERT(0 < statistics_array->Size());
+	BOOL left_outer_join = IStatistics::EsjtLeftOuterJoin == join_type;
+	GPOS_ASSERT_IMP(left_outer_join, 2 == statistics_array->Size());
 
 
 	// create an empty set of outer references for statistics derivation
-	CColRefSet *pcrsOuterRefs = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *outer_refs = GPOS_NEW(mp) CColRefSet(mp);
 
 	// join statistics objects one by one using relevant predicates in given scalar expression
-	const ULONG ulStats = pdrgpstat->UlLength();
-	IStatistics *pstats = (*pdrgpstat)[0]->PstatsCopy(pmp);
-	CDouble dRowsOuter = pstats->DRows();
+	const ULONG num_stats = statistics_array->Size();
+	IStatistics *stats = (*statistics_array)[0]->CopyStats(mp);
+	CDouble num_rows_outer = stats->Rows();
 
-	for (ULONG ul = 1; ul < ulStats; ul++)
+	for (ULONG i = 1; i < num_stats; i++)
 	{
-		IStatistics *pstatsCurrent = (*pdrgpstat)[ul];
+		IStatistics *current_stats = (*statistics_array)[i];
 
-		DrgPcrs *pdrgpcrsOutput= GPOS_NEW(pmp) DrgPcrs(pmp);
-		pdrgpcrsOutput->Append(pstats->Pcrs(pmp));
-		pdrgpcrsOutput->Append(pstatsCurrent->Pcrs(pmp));
+		CColRefSetArray *output_colrefsets = GPOS_NEW(mp) CColRefSetArray(mp);
+		output_colrefsets->Append(stats->GetColRefSet(mp));
+		output_colrefsets->Append(current_stats->GetColRefSet(mp));
 
-		CStatsPred *pstatspredUnsupported = NULL;
-		DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::PdrgpstatspredjoinExtract
+		CStatsPred *unsupported_pred_stats = NULL;
+		CStatsPredJoinArray *join_preds_stats = CStatsPredUtils::ExtractJoinStatsFromJoinPredArray
 				(
-						pmp,
-						pexprScalar,
-						pdrgpcrsOutput,
-						pcrsOuterRefs,
-						&pstatspredUnsupported
+						mp,
+						expr,
+						output_colrefsets,
+						outer_refs,
+						&unsupported_pred_stats
 				);
-		IStatistics *pstatsNew = NULL;
-		if (fLeftOuterJoin)
+		IStatistics *new_stats = NULL;
+		if (left_outer_join)
 		{
-			pstatsNew = pstats->PstatsLOJ(pmp, pstatsCurrent, pdrgpstatspredjoin);
+			new_stats = stats->CalcLOJoinStats(mp, current_stats, join_preds_stats);
 		}
 		else
 		{
-			pstatsNew = pstats->PstatsInnerJoin(pmp, pstatsCurrent, pdrgpstatspredjoin);
+			new_stats = stats->CalcInnerJoinStats(mp, current_stats, join_preds_stats);
 		}
-		pstats->Release();
-		pstats = pstatsNew;
+		stats->Release();
+		stats = new_stats;
 
-		if (NULL != pstatspredUnsupported)
+		if (NULL != unsupported_pred_stats)
 		{
 			// apply the unsupported join filters as a filter on top of the join results.
 			// TODO,  June 13 2014 we currently only cap NDVs for filters
 			// immediately on top of tables.
-			IStatistics *pstatsAfterJoinFilter = CFilterStatsProcessor::PstatsFilter(pmp, dynamic_cast<CStatistics *>(pstats), pstatspredUnsupported, false /* fCapNdvs */);
+			IStatistics *stats_after_join_filter = CFilterStatsProcessor::MakeStatsFilter(mp, dynamic_cast<CStatistics *>(stats), unsupported_pred_stats, false /* do_cap_NDVs */);
 
 			// If it is outer join and the cardinality after applying the unsupported join
 			// filters is less than the cardinality of outer child, we don't use this stats.
 			// Because we need to make sure that Card(LOJ) >= Card(Outer child of LOJ).
-			if (fLeftOuterJoin && pstatsAfterJoinFilter->DRows() < dRowsOuter)
+			if (left_outer_join && stats_after_join_filter->Rows() < num_rows_outer)
 			{
-				pstatsAfterJoinFilter->Release();
+				stats_after_join_filter->Release();
 			}
 			else
 			{
-				pstats->Release();
-				pstats = pstatsAfterJoinFilter;
+				stats->Release();
+				stats = stats_after_join_filter;
 			}
 
-			pstatspredUnsupported->Release();
+			unsupported_pred_stats->Release();
 		}
 
-		pdrgpstatspredjoin->Release();
-		pdrgpcrsOutput->Release();
+		join_preds_stats->Release();
+		output_colrefsets->Release();
 	}
 
 	// clean up
-	pcrsOuterRefs->Release();
+	outer_refs->Release();
 
-	return pstats;
+	return stats;
 }
 
 
 // main driver to generate join stats
 CStatistics *
-CJoinStatsProcessor::PstatsJoinDriver
+CJoinStatsProcessor::SetResultingJoinStats
 		(
-		IMemoryPool *pmp,
-		CStatisticsConfig *pstatsconf,
-		const IStatistics *pistatsOuter,
-		const IStatistics *pistatsInner,
-		DrgPstatspredjoin *pdrgppredInfo,
-		IStatistics::EStatsJoinType eStatsJoinType,
-		BOOL fIgnoreLasjHistComputation
+		IMemoryPool *mp,
+		CStatisticsConfig *stats_config,
+		const IStatistics *outer_stats_input,
+		const IStatistics *inner_stats_input,
+										   CStatsPredJoinArray *join_pred_stats_info,
+		IStatistics::EStatsJoinType join_type,
+		BOOL DoIgnoreLASJHistComputation
 		)
 {
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(NULL != pistatsInner);
-	GPOS_ASSERT(NULL != pistatsOuter);
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(NULL != inner_stats_input);
+	GPOS_ASSERT(NULL != outer_stats_input);
 
-	GPOS_ASSERT(NULL != pdrgppredInfo);
+	GPOS_ASSERT(NULL != join_pred_stats_info);
 
-	BOOL fLASJ = (IStatistics::EsjtLeftAntiSemiJoin == eStatsJoinType);
-	BOOL fSemiJoin = IStatistics::FSemiJoin(eStatsJoinType);
+	BOOL IsLASJ = (IStatistics::EsjtLeftAntiSemiJoin == join_type);
+	BOOL semi_join = IStatistics::IsSemiJoin(join_type);
 
 	// Extract stat objects for inner and outer child.
 	// Historically, IStatistics was meant to have multiple derived classes
 	// However, currently only CStatistics implements IStatistics
 	// Until this changes, the interfaces have been designed to take IStatistics as parameters
 	// In the future, IStatistics should be removed, as it is not being utilized as designed
-	const CStatistics *pstatsOuter = dynamic_cast<const CStatistics *> (pistatsOuter);
-	const CStatistics *pstatsInner = dynamic_cast<const CStatistics *> (pistatsInner);
+	const CStatistics *outer_stats = dynamic_cast<const CStatistics *> (outer_stats_input);
+	const CStatistics *inner_side_stats = dynamic_cast<const CStatistics *> (inner_stats_input);
 
 	// create hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhistJoin = GPOS_NEW(pmp) HMUlHist(pmp);
+	UlongToHistogramMap *result_col_hist_mapping = GPOS_NEW(mp) UlongToHistogramMap(mp);
 
 	// build a bitset with all join columns
-	CBitSet *pbsJoinColIds = GPOS_NEW(pmp) CBitSet(pmp);
-	for (ULONG ul = 0; ul < pdrgppredInfo->UlLength(); ul++)
+	CBitSet *join_colids = GPOS_NEW(mp) CBitSet(mp);
+	for (ULONG i = 0; i < join_pred_stats_info->Size(); i++)
 	{
-		CStatsPredJoin *pstatsjoin = (*pdrgppredInfo)[ul];
+		CStatsPredJoin *join_stats = (*join_pred_stats_info)[i];
 
-		(void) pbsJoinColIds->FExchangeSet(pstatsjoin->UlColId1());
-		if (!fSemiJoin)
+		(void) join_colids->ExchangeSet(join_stats->ColIdOuter());
+		if (!semi_join)
 		{
-			(void) pbsJoinColIds->FExchangeSet(pstatsjoin->UlColId2());
+			(void) join_colids->ExchangeSet(join_stats->ColIdInner());
 		}
 	}
 
 	// histograms on columns that do not appear in join condition will
 	// be copied over to the result structure
-	pstatsOuter->AddNotExcludedHistograms(pmp, pbsJoinColIds, phmulhistJoin);
-	if (!fSemiJoin)
+	outer_stats->AddNotExcludedHistograms(mp, join_colids, result_col_hist_mapping);
+	if (!semi_join)
 	{
-		pstatsInner->AddNotExcludedHistograms(pmp, pbsJoinColIds, phmulhistJoin);
+		inner_side_stats->AddNotExcludedHistograms(mp, join_colids, result_col_hist_mapping);
 	}
 
-	DrgPdouble *pdrgpd = GPOS_NEW(pmp) DrgPdouble(pmp);
-	const ULONG ulJoinConds = pdrgppredInfo->UlLength();
+	CDoubleArray *join_conds_scale_factors = GPOS_NEW(mp) CDoubleArray(mp);
+	const ULONG num_join_conds = join_pred_stats_info->Size();
 
-	BOOL fEmptyOutput = false;
-	CDouble dRowsJoin = 0;
+	BOOL output_is_empty = false;
+	CDouble num_join_rows = 0;
 	// iterate over join's predicate(s)
-	for (ULONG ul = 0; ul < ulJoinConds; ul++)
+	for (ULONG i = 0; i < num_join_conds; i++)
 	{
-		CStatsPredJoin *ppredInfo = (*pdrgppredInfo)[ul];
-		ULONG ulColId1 = ppredInfo->UlColId1();
-		ULONG ulColId2 = ppredInfo->UlColId2();
-		GPOS_ASSERT(ulColId1 != ulColId2);
+		CStatsPredJoin *pred_info = (*join_pred_stats_info)[i];
+		ULONG colid1 = pred_info->ColIdOuter();
+		ULONG colid2 = pred_info->ColIdInner();
+		GPOS_ASSERT(colid1 != colid2);
 		// find the histograms corresponding to the two columns
-		const CHistogram *phistOuter = pstatsOuter->Phist(ulColId1);
+		const CHistogram *outer_histogram = outer_stats->GetHistogram(colid1);
 		// are column id1 and 2 always in the order of outer inner?
-		const CHistogram *phistInner = pstatsInner->Phist(ulColId2);
-		GPOS_ASSERT(NULL != phistOuter);
-		GPOS_ASSERT(NULL != phistInner);
-		BOOL fEmptyInput = CStatistics::FEmptyJoinInput(pstatsOuter, pstatsInner, fLASJ);
+		const CHistogram *inner_histogram = inner_side_stats->GetHistogram(colid2);
+		GPOS_ASSERT(NULL != outer_histogram);
+		GPOS_ASSERT(NULL != inner_histogram);
+		BOOL is_input_empty = CStatistics::IsEmptyJoin(outer_stats, inner_side_stats, IsLASJ);
 
-		CDouble dScaleFactorLocal(1.0);
-		CHistogram *phistOuterAfter = NULL;
-		CHistogram *phistInnerAfter = NULL;
+		CDouble local_scale_factor(1.0);
+		CHistogram *outer_histogram_after = NULL;
+		CHistogram *inner_histogram_after = NULL;
 		JoinHistograms
 				(
-						pmp,
-						phistOuter,
-						phistInner,
-						ppredInfo,
-						pstatsOuter->DRows(),
-						pstatsInner->DRows(),
-						&phistOuterAfter,
-						&phistInnerAfter,
-						&dScaleFactorLocal,
-						fEmptyInput,
-						eStatsJoinType,
-						fIgnoreLasjHistComputation
+						mp,
+						outer_histogram,
+						inner_histogram,
+						pred_info,
+						outer_stats->Rows(),
+						inner_side_stats->Rows(),
+						&outer_histogram_after,
+						&inner_histogram_after,
+						&local_scale_factor,
+						is_input_empty,
+						join_type,
+						DoIgnoreLASJHistComputation
 				);
 
-		fEmptyOutput = FEmptyJoinStats(pstatsOuter->FEmpty(), fEmptyOutput, phistOuter, phistInner, phistOuterAfter, eStatsJoinType);
+		output_is_empty = JoinStatsAreEmpty(outer_stats->IsEmpty(), output_is_empty, outer_histogram, inner_histogram, outer_histogram_after, join_type);
 
-		CStatisticsUtils::AddHistogram(pmp, ulColId1, phistOuterAfter, phmulhistJoin);
-		if (!fSemiJoin)
+		CStatisticsUtils::AddHistogram(mp, colid1, outer_histogram_after, result_col_hist_mapping);
+		if (!semi_join)
 		{
-			CStatisticsUtils::AddHistogram(pmp, ulColId2, phistInnerAfter, phmulhistJoin);
+			CStatisticsUtils::AddHistogram(mp, colid2, inner_histogram_after, result_col_hist_mapping);
 		}
-		GPOS_DELETE(phistOuterAfter);
-		GPOS_DELETE(phistInnerAfter);
+		GPOS_DELETE(outer_histogram_after);
+		GPOS_DELETE(inner_histogram_after);
 
-		pdrgpd->Append(GPOS_NEW(pmp) CDouble(dScaleFactorLocal));
+		join_conds_scale_factors->Append(GPOS_NEW(mp) CDouble(local_scale_factor));
 	}
 
 
-	dRowsJoin = CStatistics::DMinRows;
-	if (!fEmptyOutput)
+	num_join_rows = CStatistics::MinRows;
+	if (!output_is_empty)
 	{
-		dRowsJoin = DJoinCardinality(pstatsconf, pstatsOuter->DRows(), pstatsInner->DRows(), pdrgpd, eStatsJoinType);
+		num_join_rows = CalcJoinCardinality(stats_config, outer_stats->Rows(), inner_side_stats->Rows(), join_conds_scale_factors, join_type);
 	}
 
 	// clean up
-	pdrgpd->Release();
-	pbsJoinColIds->Release();
+	join_conds_scale_factors->Release();
+	join_colids->Release();
 
-	HMUlDouble *phmuldoubleWidthResult = pstatsOuter->CopyWidths(pmp);
-	if (!fSemiJoin)
+	UlongToDoubleMap *col_width_mapping_result = outer_stats->CopyWidths(mp);
+	if (!semi_join)
 	{
-		pstatsInner->CopyWidthsInto(pmp, phmuldoubleWidthResult);
+		inner_side_stats->CopyWidthsInto(mp, col_width_mapping_result);
 	}
 
 	// create an output stats object
-	CStatistics *pstatsJoin = GPOS_NEW(pmp) CStatistics
+	CStatistics *join_stats = GPOS_NEW(mp) CStatistics
 			(
-					pmp,
-					phmulhistJoin,
-					phmuldoubleWidthResult,
-					dRowsJoin,
-					fEmptyOutput,
-					pstatsOuter->UlNumberOfPredicates()
+					mp,
+					result_col_hist_mapping,
+					col_width_mapping_result,
+					num_join_rows,
+					output_is_empty,
+					outer_stats->GetNumberOfPredicates()
 			);
 
 	// In the output statistics object, the upper bound source cardinality of the join column
@@ -361,53 +361,53 @@ CJoinStatsProcessor::PstatsJoinDriver
 	// the minimum of the cardinality upper bound of the source column (in the input hash map)
 	// and estimated join cardinality.
 
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, pstatsOuter, pstatsJoin, dRowsJoin, CStatistics::EcbmMin /* ecbm */);
-	if (!fSemiJoin)
+	CStatisticsUtils::ComputeCardUpperBounds(mp, outer_stats, join_stats, num_join_rows, CStatistics::EcbmMin /* card_bounding_method */);
+	if (!semi_join)
 	{
-		CStatisticsUtils::ComputeCardUpperBounds(pmp, pstatsInner, pstatsJoin, dRowsJoin, CStatistics::EcbmMin /* ecbm */);
+		CStatisticsUtils::ComputeCardUpperBounds(mp, inner_side_stats, join_stats, num_join_rows, CStatistics::EcbmMin /* card_bounding_method */);
 	}
 
-	return pstatsJoin;
+	return join_stats;
 }
 
 
 // return join cardinality based on scaling factor and join type
 CDouble
-CJoinStatsProcessor::DJoinCardinality
+CJoinStatsProcessor::CalcJoinCardinality
 		(
-		CStatisticsConfig *pstatsconf,
-		CDouble dRowsLeft,
-		CDouble dRowsRight,
-		DrgPdouble *pdrgpd,
-		IStatistics::EStatsJoinType eStatsJoinType
+		CStatisticsConfig *stats_config,
+		CDouble left_num_rows,
+		CDouble right_num_rows,
+		CDoubleArray *join_conds_scale_factors,
+		IStatistics::EStatsJoinType join_type
 		)
 {
-	GPOS_ASSERT(NULL != pstatsconf);
-	GPOS_ASSERT(NULL != pdrgpd);
+	GPOS_ASSERT(NULL != stats_config);
+	GPOS_ASSERT(NULL != join_conds_scale_factors);
 
-	CDouble dScaleFactor = CScaleFactorUtils::DCumulativeJoinScaleFactor(pstatsconf, pdrgpd);
-	CDouble dCartesianProduct = dRowsLeft * dRowsRight;
+	CDouble scale_factor = CScaleFactorUtils::CumulativeJoinScaleFactor(stats_config, join_conds_scale_factors);
+	CDouble cartesian_product_num_rows = left_num_rows * right_num_rows;
 
-	if (IStatistics::EsjtLeftAntiSemiJoin == eStatsJoinType || IStatistics::EsjtLeftSemiJoin == eStatsJoinType)
+	if (IStatistics::EsjtLeftAntiSemiJoin == join_type || IStatistics::EsjtLeftSemiJoin == join_type)
 	{
-		CDouble dRows = dRowsLeft;
+		CDouble rows = left_num_rows;
 
-		if (IStatistics::EsjtLeftAntiSemiJoin == eStatsJoinType)
+		if (IStatistics::EsjtLeftAntiSemiJoin == join_type)
 		{
-			dRows = dRowsLeft / dScaleFactor;
+			rows = left_num_rows / scale_factor;
 		}
 		else
 		{
 			// semi join results cannot exceed size of outer side
-			dRows = std::min(dRowsLeft.DVal(), (dCartesianProduct / dScaleFactor).DVal());
+			rows = std::min(left_num_rows.Get(), (cartesian_product_num_rows / scale_factor).Get());
 		}
 
-		return std::max(DOUBLE(1.0), dRows.DVal());
+		return std::max(DOUBLE(1.0), rows.Get());
 	}
 
-	GPOS_ASSERT(CStatistics::DMinRows <= dScaleFactor);
+	GPOS_ASSERT(CStatistics::MinRows <= scale_factor);
 
-	return std::max(CStatistics::DMinRows.DVal(), (dCartesianProduct / dScaleFactor).DVal());
+	return std::max(CStatistics::MinRows.Get(), (cartesian_product_num_rows / scale_factor).Get());
 }
 
 
@@ -415,96 +415,96 @@ CJoinStatsProcessor::DJoinCardinality
 // check if the join statistics object is empty output based on the input
 // histograms and the join histograms
 BOOL
-CJoinStatsProcessor::FEmptyJoinStats
+CJoinStatsProcessor::JoinStatsAreEmpty
 		(
-		BOOL fEmptyOuter,
-		BOOL fEmptyOutput,
-		const CHistogram *phistOuter,
-		const CHistogram *phistInner,
-		CHistogram *phistJoin,
-		IStatistics::EStatsJoinType eStatsJoinType
+		BOOL outer_is_empty,
+		BOOL output_is_empty,
+		const CHistogram *outer_histogram,
+		const CHistogram *inner_histogram,
+		CHistogram *join_histogram,
+		IStatistics::EStatsJoinType join_type
 		)
 {
-	GPOS_ASSERT(NULL != phistOuter);
-	GPOS_ASSERT(NULL != phistInner);
-	GPOS_ASSERT(NULL != phistJoin);
-	BOOL fLASJ = IStatistics::EsjtLeftAntiSemiJoin == eStatsJoinType;
-	return fEmptyOutput ||
-		   (!fLASJ && fEmptyOuter) ||
-		   (!phistOuter->FEmpty() && !phistInner->FEmpty() && phistJoin->FEmpty());
+	GPOS_ASSERT(NULL != outer_histogram);
+	GPOS_ASSERT(NULL != inner_histogram);
+	GPOS_ASSERT(NULL != join_histogram);
+	BOOL IsLASJ = IStatistics::EsjtLeftAntiSemiJoin == join_type;
+	return output_is_empty ||
+		   (!IsLASJ && outer_is_empty) ||
+		   (!outer_histogram->IsEmpty() && !inner_histogram->IsEmpty() && join_histogram->IsEmpty());
 }
 
 // Derive statistics for join operation given array of statistics object
 IStatistics *
-CJoinStatsProcessor::PstatsJoin
+CJoinStatsProcessor::DeriveJoinStats
 		(
-		IMemoryPool *pmp,
+		IMemoryPool *mp,
 		CExpressionHandle &exprhdl,
-		DrgPstat *pdrgpstatCtxt
+		IStatisticsArray *stats_ctxt
 		)
 {
 	GPOS_ASSERT(CLogical::EspNone < CLogical::PopConvert(exprhdl.Pop())->Esp(exprhdl));
 
-	DrgPstat *pdrgpstat = GPOS_NEW(pmp) DrgPstat(pmp);
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG ul = 0; ul < ulArity - 1; ul++)
+	IStatisticsArray *statistics_array = GPOS_NEW(mp) IStatisticsArray(mp);
+	const ULONG arity = exprhdl.Arity();
+	for (ULONG i = 0; i < arity - 1; i++)
 	{
-		IStatistics *pstatsChild = exprhdl.Pstats(ul);
-		pstatsChild->AddRef();
-		pdrgpstat->Append(pstatsChild);
+		IStatistics *child_stats = exprhdl.Pstats(i);
+		child_stats->AddRef();
+		statistics_array->Append(child_stats);
 	}
 
-	CExpression *pexprJoinPred = NULL;
-	if (exprhdl.Pdpscalar(ulArity - 1)->FHasSubquery())
+	CExpression *join_pred_expr = NULL;
+	if (exprhdl.GetDrvdScalarProps(arity - 1)->FHasSubquery())
 	{
 		// in case of subquery in join predicate, assume join condition is True
-		pexprJoinPred = CUtils::PexprScalarConstBool(pmp, true /*fVal*/);
+		join_pred_expr = CUtils::PexprScalarConstBool(mp, true /*value*/);
 	}
 	else
 	{
 		// remove implied predicates from join condition to avoid cardinality under-estimation
-		pexprJoinPred = CPredicateUtils::PexprRemoveImpliedConjuncts(pmp, exprhdl.PexprScalarChild(ulArity - 1), exprhdl);
+		join_pred_expr = CPredicateUtils::PexprRemoveImpliedConjuncts(mp, exprhdl.PexprScalarChild(arity - 1), exprhdl);
 	}
 
 	// split join predicate into local predicate and predicate involving outer references
-	CExpression *pexprLocal = NULL;
-	CExpression *pexprOuterRefs = NULL;
+	CExpression *local_expr = NULL;
+	CExpression *expr_with_outer_refs = NULL;
 
 	// get outer references from expression handle
-	CColRefSet *pcrsOuter = exprhdl.Pdprel()->PcrsOuter();
+	CColRefSet *outer_refs = exprhdl.GetRelationalProperties()->PcrsOuter();
 
-	CPredicateUtils::SeparateOuterRefs(pmp, pexprJoinPred, pcrsOuter, &pexprLocal, &pexprOuterRefs);
-	pexprJoinPred->Release();
+	CPredicateUtils::SeparateOuterRefs(mp, join_pred_expr, outer_refs, &local_expr, &expr_with_outer_refs);
+	join_pred_expr->Release();
 
-	COperator::EOperatorId eopid = exprhdl.Pop()->Eopid();
-	GPOS_ASSERT(COperator::EopLogicalLeftOuterJoin == eopid ||
-				COperator::EopLogicalInnerJoin == eopid ||
-				COperator::EopLogicalNAryJoin == eopid);
+	COperator::EOperatorId op_id = exprhdl.Pop()->Eopid();
+	GPOS_ASSERT(COperator::EopLogicalLeftOuterJoin == op_id ||
+				COperator::EopLogicalInnerJoin == op_id ||
+				COperator::EopLogicalNAryJoin == op_id);
 
 	// we use Inner Join semantics here except in the case of Left Outer Join
-	IStatistics::EStatsJoinType eStatsJoinType = IStatistics::EsjtInnerJoin;
-	if (COperator::EopLogicalLeftOuterJoin == eopid)
+	IStatistics::EStatsJoinType join_type = IStatistics::EsjtInnerJoin;
+	if (COperator::EopLogicalLeftOuterJoin == op_id)
 	{
-		eStatsJoinType = IStatistics::EsjtLeftOuterJoin;
+		join_type = IStatistics::EsjtLeftOuterJoin;
 	}
 
 	// derive stats based on local join condition
-	IStatistics *pstatsJoin = CJoinStatsProcessor::PstatsJoinArray(pmp, pdrgpstat, pexprLocal, eStatsJoinType);
+	IStatistics *join_stats = CJoinStatsProcessor::CalcAllJoinStats(mp, statistics_array, local_expr, join_type);
 
-	if (exprhdl.FHasOuterRefs() && 0 < pdrgpstatCtxt->UlLength())
+	if (exprhdl.HasOuterRefs() && 0 < stats_ctxt->Size())
 	{
 		// derive stats based on outer references
-		IStatistics *pstats = PstatsDeriveWithOuterRefs(pmp, exprhdl, pexprOuterRefs, pstatsJoin, pdrgpstatCtxt, eStatsJoinType);
-		pstatsJoin->Release();
-		pstatsJoin = pstats;
+		IStatistics *stats = DeriveStatsWithOuterRefs(mp, exprhdl, expr_with_outer_refs, join_stats, stats_ctxt, join_type);
+		join_stats->Release();
+		join_stats = stats;
 	}
 
-	pexprLocal->Release();
-	pexprOuterRefs->Release();
+	local_expr->Release();
+	expr_with_outer_refs->Release();
 
-	pdrgpstat->Release();
+	statistics_array->Release();
 
-	return pstatsJoin;
+	return join_stats;
 }
 
 
@@ -561,46 +561,46 @@ CJoinStatsProcessor::PstatsJoin
 // when deriving statistics on 'Select(T.t=R.r)', we join T with the cross
 // product (R x S) based on the condition (T.t=R.r)
 IStatistics *
-CJoinStatsProcessor::PstatsDeriveWithOuterRefs
+CJoinStatsProcessor::DeriveStatsWithOuterRefs
 		(
-		IMemoryPool *pmp,
+		IMemoryPool *mp,
 		CExpressionHandle &
 #ifdef GPOS_DEBUG
 		exprhdl // handle attached to the logical expression we want to derive stats for
 #endif // GPOS_DEBUG
 ,
-		CExpression *pexprScalar, // scalar condition to be used for stats derivation
-		IStatistics *pstats, // statistics object of the attached expression
-		DrgPstat *pdrgpstatOuter, // array of stats objects where outer references are defined
-		IStatistics::EStatsJoinType eStatsJoinType
+		CExpression *expr, // scalar condition to be used for stats derivation
+		IStatistics *stats, // statistics object of the attached expression
+		IStatisticsArray *all_outer_stats, // array of stats objects where outer references are defined
+		IStatistics::EStatsJoinType join_type
 		)
 {
-	GPOS_ASSERT(exprhdl.FHasOuterRefs() && "attached expression does not have outer references");
-	GPOS_ASSERT(NULL != pexprScalar);
-	GPOS_ASSERT(NULL != pstats);
-	GPOS_ASSERT(NULL != pdrgpstatOuter);
-	GPOS_ASSERT(0 < pdrgpstatOuter->UlLength());
-	GPOS_ASSERT(IStatistics::EstiSentinel != eStatsJoinType);
+	GPOS_ASSERT(exprhdl.HasOuterRefs() && "attached expression does not have outer references");
+	GPOS_ASSERT(NULL != expr);
+	GPOS_ASSERT(NULL != stats);
+	GPOS_ASSERT(NULL != all_outer_stats);
+	GPOS_ASSERT(0 < all_outer_stats->Size());
+	GPOS_ASSERT(IStatistics::EstiSentinel != join_type);
 
 	// join outer stats object based on given scalar expression,
 	// we use inner join semantics here to consider all relevant combinations of outer tuples
-	IStatistics *pstatsOuter = CJoinStatsProcessor::PstatsJoinArray(pmp, pdrgpstatOuter, pexprScalar, IStatistics::EsjtInnerJoin);
-	CDouble dRowsOuter = pstatsOuter->DRows();
+	IStatistics *outer_stats = CJoinStatsProcessor::CalcAllJoinStats(mp, all_outer_stats, expr, IStatistics::EsjtInnerJoin);
+	CDouble num_rows_outer = outer_stats->Rows();
 
 	// join passed stats object and outer stats based on the passed join type
-	DrgPstat *pdrgpstat = GPOS_NEW(pmp) DrgPstat(pmp);
-	pdrgpstat->Append(pstatsOuter);
-	pstats->AddRef();
-	pdrgpstat->Append(pstats);
-	IStatistics *pstatsJoined = CJoinStatsProcessor::PstatsJoinArray(pmp, pdrgpstat, pexprScalar, eStatsJoinType);
-	pdrgpstat->Release();
+	IStatisticsArray *statistics_array = GPOS_NEW(mp) IStatisticsArray(mp);
+	statistics_array->Append(outer_stats);
+	stats->AddRef();
+	statistics_array->Append(stats);
+	IStatistics *result_join_stats = CJoinStatsProcessor::CalcAllJoinStats(mp, statistics_array, expr, join_type);
+	statistics_array->Release();
 
 	// scale result using cardinality of outer stats and set number of rebinds of returned stats
-	IStatistics *pstatsResult = pstatsJoined->PstatsScale(pmp, CDouble(1.0/dRowsOuter));
-	pstatsResult->SetRebinds(dRowsOuter);
-	pstatsJoined->Release();
+	IStatistics *result_stats = result_join_stats->ScaleStats(mp, CDouble(1.0/num_rows_outer));
+	result_stats->SetRebinds(num_rows_outer);
+	result_join_stats->Release();
 
-	return pstatsResult;
+	return result_stats;
 }
 
 // EOF

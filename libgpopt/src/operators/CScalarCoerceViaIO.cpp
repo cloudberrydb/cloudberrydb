@@ -32,28 +32,28 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarCoerceViaIO::CScalarCoerceViaIO
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	INT iTypeModifier,
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	INT type_modifier,
 	ECoercionForm ecf,
-	INT iLoc
+	INT location
 	)
 	:
-	CScalarCoerceBase(pmp, pmdidType, iTypeModifier, ecf, iLoc)
+	CScalarCoerceBase(mp, mdid_type, type_modifier, ecf, location)
 {
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCoerceViaIO::FMatch
+//		CScalarCoerceViaIO::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarCoerceViaIO::FMatch
+CScalarCoerceViaIO::Matches
 	(
 	COperator *pop
 	)
@@ -63,10 +63,10 @@ CScalarCoerceViaIO::FMatch
 	{
 		CScalarCoerceViaIO *popCoerce = CScalarCoerceViaIO::PopConvert(pop);
 
-		return popCoerce->PmdidType()->FEquals(PmdidType()) &&
-				popCoerce->ITypeModifier() == ITypeModifier() &&
+		return popCoerce->MdidType()->Equals(MdidType()) &&
+				popCoerce->TypeModifier() == TypeModifier() &&
 				popCoerce->Ecf() == Ecf() &&
-				popCoerce->ILoc() == ILoc();
+				popCoerce->Location() == Location();
 	}
 
 	return false;

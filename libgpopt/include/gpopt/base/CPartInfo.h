@@ -55,13 +55,13 @@ namespace gpopt
 				private:
 
 					// scan id
-					ULONG m_ulScanId;
+					ULONG m_scan_id;
 
 					// partition table mdid
-					IMDId *m_pmdid;
+					IMDId *m_mdid;
 
 					// partition keys
-					DrgPpartkeys *m_pdrgppartkeys;
+					CPartKeysArray *m_pdrgppartkeys;
 
 					// part constraint of the relation
 					CPartConstraint *m_ppartcnstrRel;
@@ -72,7 +72,7 @@ namespace gpopt
 				public:
 
 					// ctor
-					CPartInfoEntry(ULONG ulScanId, IMDId *pmdid, DrgPpartkeys *pdrgppartkeys, CPartConstraint *ppartcnstrRel);
+					CPartInfoEntry(ULONG scan_id, IMDId *mdid, CPartKeysArray *pdrgppartkeys, CPartConstraint *ppartcnstrRel);
 
 					// dtor
 					virtual
@@ -80,9 +80,9 @@ namespace gpopt
 
 					// scan id
 					virtual
-					ULONG UlScanId() const
+					ULONG ScanId() const
 					{
-						return m_ulScanId;
+						return m_scan_id;
 					}
 
 					// relation part constraint
@@ -93,18 +93,18 @@ namespace gpopt
 
 					// create a copy of the current object, and add a set of remapped
 					// part keys to this entry, using the existing keys and the given hashmap
-					CPartInfoEntry *PpartinfoentryAddRemappedKeys(IMemoryPool *pmp, CColRefSet *pcrs, HMUlCr *phmulcr);
+					CPartInfoEntry *PpartinfoentryAddRemappedKeys(IMemoryPool *mp, CColRefSet *pcrs, UlongToColRefMap *colref_mapping);
 
 					// mdid of partition table
 					virtual
-					IMDId *Pmdid() const
+					IMDId *MDId() const
 					{
-						return m_pmdid;
+						return m_mdid;
 					}
 
 					// partition keys of partition table
 					virtual
-					DrgPpartkeys *Pdrgppartkeys() const
+					CPartKeysArray *Pdrgppartkeys() const
 					{
 						return m_pdrgppartkeys;
 					}
@@ -113,7 +113,7 @@ namespace gpopt
 					IOstream &OsPrint(IOstream &os) const;
 
 					// copy part info entry into given memory pool
-					CPartInfoEntry *PpartinfoentryCopy(IMemoryPool *pmp);
+					CPartInfoEntry *PpartinfoentryCopy(IMemoryPool *mp);
 
 #ifdef GPOS_DEBUG
 					// debug print for interactive debugging sessions only
@@ -122,14 +122,14 @@ namespace gpopt
 
 			}; // CPartInfoEntry
 
-			typedef CDynamicPtrArray<CPartInfoEntry, CleanupRelease> DrgPpartentries;
+			typedef CDynamicPtrArray<CPartInfoEntry, CleanupRelease> CPartInfoEntryArray;
 
 			// partition table consumers
-			DrgPpartentries *m_pdrgppartentries;
+			CPartInfoEntryArray *m_pdrgppartentries;
 
 			// private ctor
 			explicit
-			CPartInfo(DrgPpartentries *pdrgppartentries);
+			CPartInfo(CPartInfoEntryArray *pdrgppartentries);
 
 			//private copy ctor
 			CPartInfo(const CPartInfo &);
@@ -138,7 +138,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CPartInfo(IMemoryPool *pmp);
+			CPartInfo(IMemoryPool *mp);
 
 			// dtor
 			virtual
@@ -147,43 +147,43 @@ namespace gpopt
 			// number of part table consumers
 			ULONG UlConsumers() const
 			{
-				return m_pdrgppartentries->UlLength();
+				return m_pdrgppartentries->Size();
 			}
 
 			// add part table consumer
 			void AddPartConsumer
 				(
-				IMemoryPool *pmp,
-				ULONG ulScanId,
-				IMDId *pmdid,
-				DrgDrgPcr *pdrgpdrgpcrPart,
+				IMemoryPool *mp,
+				ULONG scan_id,
+				IMDId *mdid,
+				CColRef2dArray *pdrgpdrgpcrPart,
 				CPartConstraint *ppartcnstrRel
 				);
 
 			// scan id of the entry at the given position
-			ULONG UlScanId(ULONG ulPos)	const;
+			ULONG ScanId(ULONG ulPos)	const;
 
 			// relation mdid of the entry at the given position
-			IMDId *PmdidRel(ULONG ulPos) const;
+			IMDId *GetRelMdId(ULONG ulPos) const;
 
 			// part keys of the entry at the given position
-			DrgPpartkeys *Pdrgppartkeys(ULONG ulPos) const;
+			CPartKeysArray *Pdrgppartkeys(ULONG ulPos) const;
 
 			// part constraint of the entry at the given position
 			CPartConstraint *Ppartcnstr(ULONG ulPos) const;
 
 			// check if part info contains given scan id
-			BOOL FContainsScanId(ULONG ulScanId) const;
+			BOOL FContainsScanId(ULONG scan_id) const;
 
 			// part keys of the entry with the given scan id
-			DrgPpartkeys *PdrgppartkeysByScanId(ULONG ulScanId) const;
+			CPartKeysArray *PdrgppartkeysByScanId(ULONG scan_id) const;
 
 			// return a new part info object with an additional set of remapped keys
 			CPartInfo *PpartinfoWithRemappedKeys
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrSrc,
-				DrgPcr *pdrgpcrDest
+				IMemoryPool *mp,
+				CColRefArray *pdrgpcrSrc,
+				CColRefArray *pdrgpcrDest
 				)
 				const;
 
@@ -194,7 +194,7 @@ namespace gpopt
 			static
 			CPartInfo *PpartinfoCombine
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CPartInfo *ppartinfoFst,
 				CPartInfo *ppartinfoSnd
 				);

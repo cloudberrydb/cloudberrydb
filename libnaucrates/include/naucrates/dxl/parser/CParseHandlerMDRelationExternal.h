@@ -37,13 +37,13 @@ namespace gpdxl
 		private:
 
 			// reject limit
-			INT m_iRejectLimit;
+			INT m_reject_limit;
 
 			// reject limit in rows?
-			BOOL m_fRejLimitInRows;
+			BOOL m_is_rej_limit_in_rows;
 
 			// format error table mdid
-			IMDId *m_pmdidFmtErrRel;
+			IMDId *m_mdid_fmt_err_table;
 
 			// private copy ctor
 			CParseHandlerMDRelationExternal(const CParseHandlerMDRelationExternal &);
@@ -51,18 +51,18 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// process the end of an element
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 
 
@@ -70,9 +70,9 @@ namespace gpdxl
 			// ctor
 			CParseHandlerMDRelationExternal
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);
 	};
 }

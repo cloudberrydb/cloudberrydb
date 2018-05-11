@@ -23,100 +23,100 @@ namespace gpos
 	{
 
 		// thread entry function declaration
-		typedef void *(*PFnPthreadExec)(void*);
+		typedef void *(*ExecFn)(void*);
 
 		// return the specified type is a valid mutex type or not
-		BOOL FValidMutexType(INT type);
+		BOOL MutexTypeIsValid(INT type);
 
 		// return the specified state is a valid detached state or not
-		BOOL FValidDetachedStat(INT state);
+		BOOL IsValidDetachedState(INT state);
 
 		// initialize the thread attributes object
-		INT IPthreadAttrInit(PTHREAD_ATTR_T *pthrAttr);
+		INT AttrInit(PTHREAD_ATTR_T *attr);
 
 		// destroy the thread attributes object
-		void PthreadAttrDestroy(PTHREAD_ATTR_T *pthrAttr);
+		void AttrDestroy(PTHREAD_ATTR_T *attr);
 
 		// get the detachstate attribute
-		INT IPthreadAttrGetDetachState(const PTHREAD_ATTR_T *pthrAttr, INT *piDetachstate);
+		INT AttrGetDetachState(const PTHREAD_ATTR_T *attr, INT *state);
 
 		// set the detachstate attribute
-		INT IPthreadAttrSetDetachState(PTHREAD_ATTR_T *pthrAttr, INT iDetachstate);
+		INT AttrSetDetachState(PTHREAD_ATTR_T *attr, INT state);
 
 		// initialize the mutex attributes object
-		INT IPthreadMutexAttrInit(PTHREAD_MUTEXATTR_T *pmatAttr);
+		INT MutexAttrInit(PTHREAD_MUTEXATTR_T *attr);
 
 		// destroy the mutex attributes object
-		void PthreadMutexAttrDestroy(PTHREAD_MUTEXATTR_T * pmatAttr);
+		void MutexAttrDestroy(PTHREAD_MUTEXATTR_T * attr);
 
 		// get the mutex type attribute
-		void PthreadMutexAttrGettype(const PTHREAD_MUTEXATTR_T *pmatAttr,INT *piType);
+		void MutexAttrGettype(const PTHREAD_MUTEXATTR_T *attr,INT *type);
 
 		// set the mutex type attribute
-		void PthreadMutexAttrSettype(PTHREAD_MUTEXATTR_T *pmatAttr, INT iType);
+		void MutexAttrSettype(PTHREAD_MUTEXATTR_T *attr, INT type);
 
 		// initialize a mutex
-		INT IPthreadMutexInit(PTHREAD_MUTEX_T *ptmutex, const PTHREAD_MUTEXATTR_T *pmatAttr);
+		INT MutexInit(PTHREAD_MUTEX_T *mutex, const PTHREAD_MUTEXATTR_T *attr);
 
 		// destroy a mutex
-		void PthreadMutexDestroy(PTHREAD_MUTEX_T *ptmutex);
+		void MutexDestroy(PTHREAD_MUTEX_T *mutex);
 
 		// lock a mutex
-		INT IPthreadMutexLock(PTHREAD_MUTEX_T *ptmutex);
+		INT MutexLock(PTHREAD_MUTEX_T *mutex);
 
 		// try lock a mutex
-		INT IPthreadMutexTryLock(PTHREAD_MUTEX_T *ptmutex);
+		INT MutexTryLock(PTHREAD_MUTEX_T *mutex);
 
 		// unlock a mutex
-		INT IPthreadMutexUnlock(PTHREAD_MUTEX_T *ptmutex);
+		INT MutexUnlock(PTHREAD_MUTEX_T *mutex);
 
 #ifndef GPOS_Darwin
-		// lock the mutex object referenced by ptmutex with timeout
-		INT IPthreadMutexTimedlock(PTHREAD_MUTEX_T *ptmutex, const TIMESPEC *ptsTimeout);
+		// lock the mutex object referenced by mutex with timeout
+		INT MutexTimedlock(PTHREAD_MUTEX_T *mutex, const TIMESPEC *timeout);
 #endif
 
 		// initialize condition variables
-		INT IPthreadCondInit(PTHREAD_COND_T *__restrict ptcond, const PTHREAD_CONDATTR_T *__restrict pcatAttr);
+		INT CondInit(PTHREAD_COND_T *__restrict cond, const PTHREAD_CONDATTR_T *__restrict attr);
 
 		// destroy condition variables
-		void PthreadCondDestroy(PTHREAD_COND_T *ptcond);
+		void CondDestroy(PTHREAD_COND_T *cond);
 
 		// broadcast a condition
-		INT IPthreadCondBroadcast(PTHREAD_COND_T *ptcond);
+		INT CondBroadcast(PTHREAD_COND_T *cond);
 
 		// signal a condition
-		INT IPthreadCondSignal(PTHREAD_COND_T *ptcond);
+		INT CondSignal(PTHREAD_COND_T *cond);
 
 		// wait on a condition
-		INT IPthreadCondTimedWait(PTHREAD_COND_T *__restrict ptcond, PTHREAD_MUTEX_T *__restrict ptmutex,
-			const TIMESPEC *__restrict ptsAbsTime);
+		INT CondTimedWait(PTHREAD_COND_T *__restrict cond, PTHREAD_MUTEX_T *__restrict mutex,
+			const TIMESPEC *__restrict abstime);
 
 		// wait on a condition
-		INT IPthreadCondWait(PTHREAD_COND_T *__restrict ptcond, PTHREAD_MUTEX_T *__restrict ptmutex);
+		INT CondWait(PTHREAD_COND_T *__restrict cond, PTHREAD_MUTEX_T *__restrict mutex);
 
 		// thread creation
-		INT IPthreadCreate(PTHREAD_T *__restrict pthrdt, const PTHREAD_ATTR_T *__restrict pthrAttr,
-			PFnPthreadExec fnPthreadFunx, void *__restrict pvArg);
+		INT Create(PTHREAD_T *__restrict thread, const PTHREAD_ATTR_T *__restrict attr,
+			ExecFn func, void *__restrict arg);
 
 		// wait for thread termination
-		INT IPthreadJoin(PTHREAD_T thread, void **ppvValue);
+		INT Join(PTHREAD_T thread, void **retval);
 
 		// compare thread IDs
-		BOOL FPthreadEqual(PTHREAD_T pthrdtLhs, PTHREAD_T pthrdtRhs);
+		BOOL Equal(PTHREAD_T pthread1, PTHREAD_T pthread2);
 
 		// get the calling thread ID
-		PTHREAD_T PthrdtPthreadSelf();
+		PTHREAD_T Self();
 
 		// set signal mask for thread
-		void PthreadSigMask(INT iMode, const SIGSET_T *pset, SIGSET_T *psetOld);
+		void SigMask(INT mode, const SIGSET_T *set, SIGSET_T *oldset);
 
 		// initialize signal set to empty
 		void SigEmptySet(SIGSET_T *set);
 
 		// add signal to set
-		void SigAddSet(SIGSET_T *set, INT iSignal);
+		void SigAddSet(SIGSET_T *set, INT signum);
 
-	} // namespace plib
+	} // namespace pthread
 }
 
 #endif

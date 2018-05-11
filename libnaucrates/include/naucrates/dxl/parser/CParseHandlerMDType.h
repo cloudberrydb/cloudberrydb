@@ -42,110 +42,110 @@ namespace gpdxl
 				Edxltoken m_edxltoken;
 				
 				// address of the member variable for that name
-				IMDId **m_ppmdid;
+				IMDId **m_token_mdid;
 			};
 			
 			// id and version of the type
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// type name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// is this a fixed-length type
-			BOOL m_fFixedLength;
+			BOOL m_istype_fixed_Length;
 			
 			// type length
-			INT m_iLength;
+			INT m_type_length;
 			
 			// is type redistributable
-			BOOL m_fRedistributable;
+			BOOL m_is_redistributable;
 			
-			// is type passed by value or by reference
-			BOOL m_fByValue;
+		// is type passed by value or by reference
+			BOOL m_type_passed_by_value;
 			
 			// id of equality operator for type
-			IMDId *m_pmdidOpEq;
+			IMDId *m_mdid_eq_op;
 			
 			// id of inequality operator for type
-			IMDId *m_pmdidOpNEq;
+			IMDId *m_mdid_neq_op;
 
 			// id of less than operator for type
-			IMDId *m_pmdidOpLT;
+			IMDId *m_mdid_lt_op;
 			
 			// id of less than equals operator for type
-			IMDId *m_pmdidOpLEq;
+			IMDId *m_mdid_lteq_op;
 
 			// id of greater than operator for type
-			IMDId *m_pmdidOpGT;
+			IMDId *m_mdid_gt_op;
 			
 			// id of greater than equals operator for type
-			IMDId *m_pmdidOpGEq;
+			IMDId *m_mdid_gteq_op;
 
 			// id of comparison operator for type used in btree lookups
-			IMDId *m_pmdidOpComp;
+			IMDId *m_mdid_cmp_op;
 			
 			// id of min aggregate
-			IMDId *m_pmdidMin;
+			IMDId *m_mdid_min_op;
 						
 			// id of max aggregate
-			IMDId *m_pmdidMax;
+			IMDId *m_mdid_max_op;
 
 			// id of avg aggregate
-			IMDId *m_pmdidAvg;
+			IMDId *m_mdid_avg_op;
 
 			// id of sum aggregate
-			IMDId *m_pmdidSum;
+			IMDId *m_mdid_sum_op;
 
 			// id of count aggregate
-			IMDId *m_pmdidCount;
+			IMDId *m_mdid_count_op;
 
 			// is type hashable
-			BOOL m_fHashable;			
+			BOOL m_is_hashable;
 
 			// is type composite
-			BOOL m_fComposite;
+			BOOL m_is_composite;
 
 			// id of the relation corresponding to a composite type
-			IMDId *m_pmdidBaseRelation;
+			IMDId *m_mdid_base_rel;
 
 			// id of array type
-			IMDId *m_pmdidTypeArray;
+			IMDId *m_mdid_array_type;
 			
 			// private copy ctor
 			CParseHandlerMDType(const CParseHandlerMDType &);
 			
 			// retrieves the address MDId member variable corresponding to the specified token
-			IMDId **Ppmdid(Edxltoken edxltoken);
+			IMDId **GetTokenMDid(Edxltoken token_type);
 
 			// handles a SAX start element event
 			void StartElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
- 					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+ 					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 				);
 			
 			// handles a SAX endelement event
 			void EndElement
 				(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 				);
 			
-			// parse the value for the given mdid variable name from the attributes 
-			void ParseMdid(const XMLCh *xmlszLocalname, const Attributes& attrs);
+			// parse the value for the given mdid variable name from the attributes
+			void ParseMdid(const XMLCh *element_local_name, const Attributes& attrs);
 						
-			BOOL FBuiltInType(const IMDId *pmdid) const;
+			BOOL IsBuiltInType(const IMDId *mdid) const;
 			
 		public:
 			// ctor
 			CParseHandlerMDType
 				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
+				IMemoryPool *mp,
+				CParseHandlerManager *parse_handler_mgr,
+				CParseHandlerBase *parse_handler_root
 				);		
 			
 			// dtor

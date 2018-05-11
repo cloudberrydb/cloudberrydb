@@ -64,11 +64,11 @@ namespace gpopt
 			// ctor
 			CScalarBooleanTest
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				EBoolTest ebt
 				)
 				:
-				CScalar(pmp),
+				CScalar(mp),
 				m_ebt(ebt)
 			{
 				GPOS_ASSERT(0 <= ebt && EbtSentinel > ebt);
@@ -99,7 +99,7 @@ namespace gpopt
 			}
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -111,9 +111,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -121,11 +121,11 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// print
 			virtual

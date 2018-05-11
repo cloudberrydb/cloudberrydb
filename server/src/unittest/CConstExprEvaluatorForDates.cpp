@@ -51,42 +51,42 @@ CConstExprEvaluatorForDates::PexprEval
 
 	CScalarConst *popScalarLeft = dynamic_cast<CScalarConst *>((*pexpr)[0]->Pop());
 
-	GPOS_ASSERT(CMDIdGPDB::m_mdidDate.FEquals(popScalarLeft->Pdatum()->Pmdid()));
-	IDatumStatisticsMappable *pdatumLeft = dynamic_cast<IDatumStatisticsMappable *>(popScalarLeft->Pdatum());
+	GPOS_ASSERT(CMDIdGPDB::m_mdid_date.Equals(popScalarLeft->GetDatum()->MDId()));
+	IDatumStatisticsMappable *pdatumLeft = dynamic_cast<IDatumStatisticsMappable *>(popScalarLeft->GetDatum());
 	CScalarConst *popScalarRight = dynamic_cast<CScalarConst *>((*pexpr)[1]->Pop());
 
-	GPOS_ASSERT(CMDIdGPDB::m_mdidDate.FEquals(popScalarRight->Pdatum()->Pmdid()));
-	IDatumStatisticsMappable *pdatumRight = dynamic_cast<IDatumStatisticsMappable *>(popScalarRight->Pdatum());
+	GPOS_ASSERT(CMDIdGPDB::m_mdid_date.Equals(popScalarRight->GetDatum()->MDId()));
+	IDatumStatisticsMappable *pdatumRight = dynamic_cast<IDatumStatisticsMappable *>(popScalarRight->GetDatum());
 
 	CScalarCmp *popScCmp = dynamic_cast<CScalarCmp *>(pexpr->Pop());
-	CDouble dLeft = pdatumLeft->DStatsMapping();
-	CDouble dRight = pdatumRight->DStatsMapping();
-	BOOL fResult = false;
-	switch (popScCmp->Ecmpt())
+	CDouble dLeft = pdatumLeft->GetDoubleMapping();
+	CDouble dRight = pdatumRight->GetDoubleMapping();
+	BOOL result = false;
+	switch (popScCmp->ParseCmpType())
 	{
 		case IMDType::EcmptEq:
-			fResult = dLeft == dRight;
+			result = dLeft == dRight;
 			break;
 		case IMDType::EcmptNEq:
-			fResult = dLeft != dRight;
+			result = dLeft != dRight;
 			break;
 		case IMDType::EcmptL:
-			fResult = dLeft < dRight;
+			result = dLeft < dRight;
 			break;
 		case IMDType::EcmptLEq:
-			fResult = dLeft <= dRight;
+			result = dLeft <= dRight;
 			break;
 		case IMDType::EcmptG:
-			fResult = dLeft > dRight;
+			result = dLeft > dRight;
 			break;
 		case IMDType::EcmptGEq:
-			fResult = dLeft >= dRight;
+			result = dLeft >= dRight;
 			break;
 		default:
 			GPOS_ASSERT(false && "Unsupported comparison");
 			return NULL;
 	}
-	CExpression *pexprResult = CUtils::PexprScalarConstBool(m_pmp, fResult);
+	CExpression *pexprResult = CUtils::PexprScalarConstBool(m_mp, result);
 
 	return pexprResult;
 }

@@ -35,54 +35,54 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 						
 			// id and version information for the table
-			IMDId *m_pmdid;
+			IMDId *m_mdid;
 			
 			// table name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 	
 			// list of column descriptors		
-			DrgPdxlcd *m_pdrgdxlcd;
+		CDXLColDescrArray *m_dxl_column_descr_array;
 			
 			// id of user the table needs to be accessed with
-			ULONG m_ulExecuteAsUser;
+			ULONG m_execute_as_user_id;
 			
 			// private copy ctor
 			CDXLTableDescr(const CDXLTableDescr &);
 			
-			void SerializeMDId(CXMLSerializer *pxmlser) const;
+			void SerializeMDId(CXMLSerializer *xml_serializer) const;
 		
 		public:
 			// ctor/dtor
-			CDXLTableDescr(IMemoryPool *pmp, IMDId *pmdid, CMDName *pmdname, ULONG ulExecuteAsUser);
+			CDXLTableDescr(IMemoryPool *mp, IMDId *mdid, CMDName *mdname, ULONG ulExecuteAsUser);
 						
 			virtual
 			~CDXLTableDescr();
 		
 			// setters
-			void SetColumnDescriptors(DrgPdxlcd *pdrgpdxlcd);
+		void SetColumnDescriptors(CDXLColDescrArray *dxl_column_descr_array);
 			
 			void AddColumnDescr(CDXLColDescr *pdxlcd);
 			
 			// table name
-			const CMDName *Pmdname() const;
+			const CMDName *MdName() const;
 			
 			// table mdid
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// table arity
-			ULONG UlArity() const;
+			ULONG Arity() const;
 			
 			// user id
-			ULONG UlExecuteAsUser() const;
+			ULONG GetExecuteAsUserId() const;
 			
 			// get the column descriptor at the given position
-			const CDXLColDescr *Pdxlcd(ULONG ul) const;
+			const CDXLColDescr *GetColumnDescrAt(ULONG idx) const;
 			
 			// serialize to dxl format
-			void SerializeToDXL(CXMLSerializer *pxmlser) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer) const;
 	};
 }
 

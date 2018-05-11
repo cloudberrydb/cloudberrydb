@@ -29,12 +29,12 @@ XERCES_CPP_NAMESPACE_USE
 //---------------------------------------------------------------------------
 CParseHandlerExternalScan::CParseHandlerExternalScan
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerTableScan(pmp, pphm, pphRoot)
+	CParseHandlerTableScan(mp, parse_handler_mgr, parse_handler_root)
 {}
 
 //---------------------------------------------------------------------------
@@ -48,13 +48,13 @@ CParseHandlerExternalScan::CParseHandlerExternalScan
 void
 CParseHandlerExternalScan::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& // attrs
 	)
 {
-	CParseHandlerTableScan::StartElement(xmlszLocalname, EdxltokenPhysicalExternalScan);
+	CParseHandlerTableScan::StartElement(element_local_name, EdxltokenPhysicalExternalScan);
 }
 
 //---------------------------------------------------------------------------
@@ -68,12 +68,12 @@ CParseHandlerExternalScan::StartElement
 void
 CParseHandlerExternalScan::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	CParseHandlerTableScan::EndElement(xmlszLocalname, EdxltokenPhysicalExternalScan);
+	CParseHandlerTableScan::EndElement(element_local_name, EdxltokenPhysicalExternalScan);
 }
 
 // EOF

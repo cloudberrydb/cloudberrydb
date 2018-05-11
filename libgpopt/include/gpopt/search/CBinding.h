@@ -41,29 +41,29 @@ namespace gpopt
 			// initialize cursors of child expressions
 			BOOL FInitChildCursors
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CGroupExpression *pgexpr,
 				CExpression *pexprPattern,
-				DrgPexpr *pdrgpexpr
+				CExpressionArray *pdrgpexpr
 				);
 
 			// advance cursors of child expressions
 			BOOL FAdvanceChildCursors
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CGroupExpression *pgexpr,
 				CExpression *pexprPattern,
 				CExpression *pexprLast,
-				DrgPexpr *pdrgpexpr
+				CExpressionArray *pdrgpexpr
 				);
 
 			// extraction of child expressions
 			BOOL FExtractChildren
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpression *pexprPattern,
 				CGroupExpression *pgexprCursor,
-				DrgPexpr *pdrgpexpr
+				CExpressionArray *pdrgpexpr
 				);
 			
 			// move cursor
@@ -79,23 +79,23 @@ namespace gpopt
 				(
 				CExpression *pexpr,
 				ULONG ulPos,
-				ULONG ulArity
+				ULONG arity
 				);
 			
 			// get binding for children
 			BOOL FExtractChildren
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CGroupExpression *pgexpr,
 				CExpression *pexprPattern,
 				CExpression *pexprLast,
-				DrgPexpr *pdrgpexprChildren
+				CExpressionArray *pdrgpexprChildren
 				);
 			
 			// extract binding from a group
 			CExpression *PexprExtract
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CGroup *pgroup,
 				CExpression *pexprPattern,
 				CExpression *pexprLast
@@ -104,9 +104,9 @@ namespace gpopt
 			// build expression
 			CExpression *PexprFinalize
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CGroupExpression *pgexpr,
-				DrgPexpr *pdrgpexprChildren
+				CExpressionArray *pdrgpexprChildren
 				);
 			
 			// private copy ctor
@@ -125,7 +125,7 @@ namespace gpopt
 			// extract binding from group expression
 			CExpression *PexprExtract
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CGroupExpression *pgexpr,
 				CExpression *pexprPatetrn,
 				CExpression *pexprLast

@@ -29,7 +29,7 @@ using namespace gpdxl;
 GPOS_RESULT
 gpdxl::EresExceptionInit
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 {
 	//---------------------------------------------------------------------------
@@ -46,15 +46,15 @@ gpdxl::EresExceptionInit
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiDXLMissingAttribute),
 					 CException::ExsevError,
-					 GPOS_WSZ_WSZLEN("Missing attribute value for attribute %ls in element %ls"),
+			GPOS_WSZ_WSZLEN("Missing attribute value for attribute %ls in element %ls"),
 					 2, // # params: attrname, elemname
-					 GPOS_WSZ_WSZLEN("Missing attribute value")),
+			GPOS_WSZ_WSZLEN("Missing attribute value")),
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiDXLInvalidAttributeValue),
 					 CException::ExsevError,
-					 GPOS_WSZ_WSZLEN("Invalid value for attribute %ls in element %ls"),
+				 GPOS_WSZ_WSZLEN("Invalid value for attribute %ls in element %ls"),
 					 2, // # params: attrname, elemname
-					 GPOS_WSZ_WSZLEN("Invalid attribute value")),
+				 GPOS_WSZ_WSZLEN("Invalid attribute value")),
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnrecognizedOperator),
 					 CException::ExsevError,
@@ -130,9 +130,9 @@ gpdxl::EresExceptionInit
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLMissingValue),
 					CException::ExsevError,
-					GPOS_WSZ_WSZLEN("Query-to-DXL Translation: Missing %ls value"),
+				 GPOS_WSZ_WSZLEN("Query-to-DXL Translation: Missing %ls value"),
 					1, //
-					GPOS_WSZ_WSZLEN("Query-to-DXL Translation: Missing value")),
+				 GPOS_WSZ_WSZLEN("Query-to-DXL Translation: Missing value")),
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLNotNullViolation),
 					CException::ExsevError,
@@ -247,10 +247,10 @@ gpdxl::EresExceptionInit
 		CMessage *rgpmsg[ExmiDXLSentinel];
 		for (ULONG i = 0; i < GPOS_ARRAY_SIZE(rgpmsg); i++)
 		{
-			rgpmsg[i] = GPOS_NEW(pmp) CMessage(rgmsg[i]);
+			rgpmsg[i] = GPOS_NEW(mp) CMessage(rgmsg[i]);
 		}
 
-		CMessageRepository *pmr = CMessageRepository::Pmr();
+		CMessageRepository *pmr = CMessageRepository::GetMessageRepository();
 
 		for (ULONG i = 0; i < GPOS_ARRAY_SIZE(rgmsg); i++)
 		{

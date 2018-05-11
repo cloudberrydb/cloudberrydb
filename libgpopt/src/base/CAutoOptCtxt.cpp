@@ -28,25 +28,25 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CAutoOptCtxt::CAutoOptCtxt
 	(
-	IMemoryPool *pmp,
-	CMDAccessor *pmda,
+	IMemoryPool *mp,
+	CMDAccessor *md_accessor,
 	IConstExprEvaluator *pceeval,
-	COptimizerConfig *poconf
+	COptimizerConfig *optimizer_config
 	)
 {
-	if (NULL == poconf)
+	if (NULL == optimizer_config)
 	{
 		// create default statistics configuration
-		poconf = COptimizerConfig::PoconfDefault(pmp);
+		optimizer_config = COptimizerConfig::PoconfDefault(mp);
 	}
 	if (NULL == pceeval)
 	{
 		// use the default constant expression evaluator which cannot evaluate any expression
-		pceeval = GPOS_NEW(pmp) CConstExprEvaluatorDefault();
+		pceeval = GPOS_NEW(mp) CConstExprEvaluatorDefault();
 	}
 
-	COptCtxt *poctxt = COptCtxt::PoctxtCreate(pmp, pmda, pceeval, poconf);
-	ITask::PtskSelf()->Tls().Store(poctxt);
+	COptCtxt *poctxt = COptCtxt::PoctxtCreate(mp, md_accessor, pceeval, optimizer_config);
+	ITask::Self()->GetTls().Store(poctxt);
 }
 
 //---------------------------------------------------------------------------
@@ -60,8 +60,8 @@ CAutoOptCtxt::CAutoOptCtxt
 //---------------------------------------------------------------------------
 CAutoOptCtxt::CAutoOptCtxt
 	(
-	IMemoryPool *pmp,
-	CMDAccessor *pmda,
+	IMemoryPool *mp,
+	CMDAccessor *md_accessor,
 	IConstExprEvaluator *pceeval,
 	ICostModel *pcm
 	)
@@ -69,16 +69,16 @@ CAutoOptCtxt::CAutoOptCtxt
 	GPOS_ASSERT(NULL != pcm);
 	
 	// create default statistics configuration
-	COptimizerConfig *poconf = COptimizerConfig::PoconfDefault(pmp, pcm);
+	COptimizerConfig *optimizer_config = COptimizerConfig::PoconfDefault(mp, pcm);
 	
 	if (NULL == pceeval)
 	{
 		// use the default constant expression evaluator which cannot evaluate any expression
-		pceeval = GPOS_NEW(pmp) CConstExprEvaluatorDefault();
+		pceeval = GPOS_NEW(mp) CConstExprEvaluatorDefault();
 	}
 
-	COptCtxt *poctxt = COptCtxt::PoctxtCreate(pmp, pmda, pceeval, poconf);
-	ITask::PtskSelf()->Tls().Store(poctxt);
+	COptCtxt *poctxt = COptCtxt::PoctxtCreate(mp, md_accessor, pceeval, optimizer_config);
+	ITask::Self()->GetTls().Store(poctxt);
 }
 
 //---------------------------------------------------------------------------
@@ -92,8 +92,8 @@ CAutoOptCtxt::CAutoOptCtxt
 //---------------------------------------------------------------------------
 CAutoOptCtxt::~CAutoOptCtxt()
 {
-	CTaskLocalStorageObject *ptlsobj = ITask::PtskSelf()->Tls().Ptlsobj(CTaskLocalStorage::EtlsidxOptCtxt);
-	ITask::PtskSelf()->Tls().Remove(ptlsobj);
+	CTaskLocalStorageObject *ptlsobj = ITask::Self()->GetTls().Get(CTaskLocalStorage::EtlsidxOptCtxt);
+	ITask::Self()->GetTls().Remove(ptlsobj);
 	
 	GPOS_DELETE(ptlsobj);
 }

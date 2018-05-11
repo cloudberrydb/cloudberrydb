@@ -44,7 +44,7 @@ namespace gpopt
 			// ctor
 			CPhysicalMotionRandom
 				(
-				IMemoryPool *pmp, 
+				IMemoryPool *mp, 
 				CDistributionSpecRandom *pdsRandom
 				);
 			
@@ -73,14 +73,14 @@ namespace gpopt
 			}
 
 			// is distribution duplicate sensitive
-			BOOL FDuplicateSensitive() const
+			BOOL IsDuplicateSensitive() const
 			{
-				return m_pdsRandom->FDuplicateSensitive();
+				return m_pdsRandom->IsDuplicateSensitive();
 			}
 			
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			//-------------------------------------------------------------------------------------
 			// Required Plan Properties
@@ -90,11 +90,11 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CColRefSet *pcrsInput,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				);
 
@@ -102,11 +102,11 @@ namespace gpopt
 			virtual
 			COrderSpec *PosRequired
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				COrderSpec *posInput,
-				ULONG ulChildIndex,
-				DrgPdp *pdrgpdpCtxt,
+				ULONG child_index,
+				CDrvdProp2dArray *pdrgpdpCtxt,
 				ULONG ulOptReq
 				)
 				const;
@@ -121,7 +121,7 @@ namespace gpopt
 
 			// derive sort order
 			virtual
-			COrderSpec *PosDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			COrderSpec *PosDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 			
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties

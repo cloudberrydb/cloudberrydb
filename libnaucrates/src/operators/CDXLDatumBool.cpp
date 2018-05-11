@@ -26,14 +26,14 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLDatumBool::CDXLDatumBool
 	(
-	IMemoryPool *pmp,
-	IMDId *pmdidType,
-	BOOL fNull,
-	BOOL fVal
+	IMemoryPool *mp,
+	IMDId *mdid_type,
+	BOOL is_null,
+	BOOL value
 	)
 	:
-	CDXLDatum(pmp, pmdidType, IDefaultTypeModifier, fNull, 1 /*ulLength*/),
-	m_fVal(fVal)
+	CDXLDatum(mp, mdid_type, default_type_modifier, is_null, 1 /*length*/),
+	m_value(value)
 {
 }
 
@@ -48,22 +48,22 @@ CDXLDatumBool::CDXLDatumBool
 void
 CDXLDatumBool::Serialize
 	(
-	CXMLSerializer *pxmlser
+	CXMLSerializer *xml_serializer
 	)
 {
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsNull), m_fNull);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsByValue), FByValue());
+	m_mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsNull), m_is_null);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsByValue), IsPassedByValue());
 
-	if (!m_fNull)
+	if (!m_is_null)
 	{
-		if(m_fVal)
+		if(m_value)
 		{
-			pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenValue), CDXLTokens::PstrToken(EdxltokenTrue));
+			xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenValue), CDXLTokens::GetDXLTokenStr(EdxltokenTrue));
 		}
 		else
 		{
-			pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenValue), CDXLTokens::PstrToken(EdxltokenFalse));
+			xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenValue), CDXLTokens::GetDXLTokenStr(EdxltokenFalse));
 		}
 	}
 }

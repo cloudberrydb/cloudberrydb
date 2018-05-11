@@ -53,7 +53,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarAssertConstraint(IMemoryPool *pmp, CWStringBase *pstrErrorMsg);
+			CScalarAssertConstraint(IMemoryPool *mp, CWStringBase *pstrErrorMsg);
 			
 			// dtor
 			~CScalarAssertConstraint();
@@ -74,7 +74,7 @@ namespace gpopt
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			virtual
@@ -87,9 +87,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -97,7 +97,7 @@ namespace gpopt
 
 			// type of expression's result
 			virtual
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 			
 			// error message
 			CWStringBase *PstrErrorMsg() const

@@ -26,28 +26,28 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CColumnDescriptor::CColumnDescriptor
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const IMDType *pmdtype,
-	INT iTypeModifier,
+	INT type_modifier,
 	const CName &name,
-	INT iAttno,
-	BOOL fNullable,
+	INT attno,
+	BOOL is_nullable,
 	ULONG ulWidth
 	)
 	:
 	m_pmdtype(pmdtype),
-	m_iTypeModifier(iTypeModifier),
-	m_name(pmp, name),
-	m_iAttno(iAttno),
-	m_fNullable(fNullable),
-	m_ulWidth(ulWidth)
+	m_type_modifier(type_modifier),
+	m_name(mp, name),
+	m_iAttno(attno),
+	m_is_nullable(is_nullable),
+	m_width(ulWidth)
 {
 	GPOS_ASSERT(NULL != pmdtype);
-	GPOS_ASSERT(pmdtype->Pmdid()->FValid());
+	GPOS_ASSERT(pmdtype->MDId()->IsValid());
 
-	if (m_pmdtype->FFixedLength())
+	if (m_pmdtype->IsFixedLength())
 	{
-		ulWidth = m_pmdtype->UlLength();
+		ulWidth = m_pmdtype->Length();
 	}
 }
 

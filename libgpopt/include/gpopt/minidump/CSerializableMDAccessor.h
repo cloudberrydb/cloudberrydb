@@ -50,7 +50,7 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CSerializableMDAccessor(CMDAccessor *pmda);
+			CSerializableMDAccessor(CMDAccessor *md_accessor);
 
 			// dtor
 			virtual

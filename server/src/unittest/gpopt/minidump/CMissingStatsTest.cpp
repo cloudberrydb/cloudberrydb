@@ -74,47 +74,47 @@ CMissingStatsTest::EresUnittest_RunTests()
 		};
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	GPOS_RESULT eres = GPOS_OK;
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgtc);
 	for (ULONG ul = m_ulMissingStatsTestCounter; ((ul < ulTests) && (GPOS_OK == eres)); ul++)
 	{
-		ICostModel *pcm = CTestUtils::Pcm(pmp);
-		CAutoTraceFlag atf1(EopttracePrintColsWithMissingStats, true /*fVal*/);
+		ICostModel *pcm = CTestUtils::GetCostModel(mp);
+		CAutoTraceFlag atf1(EopttracePrintColsWithMissingStats, true /*value*/);
 
-		COptimizerConfig *poconf = GPOS_NEW(pmp) COptimizerConfig
+		COptimizerConfig *optimizer_config = GPOS_NEW(mp) COptimizerConfig
 												(
-												CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
-												CStatisticsConfig::PstatsconfDefault(pmp),
-												CCTEConfig::PcteconfDefault(pmp),
+												CEnumeratorConfig::GetEnumeratorCfg(mp, 0 /*plan_id*/),
+												CStatisticsConfig::PstatsconfDefault(mp),
+												CCTEConfig::PcteconfDefault(mp),
 												pcm,
-												CHint::PhintDefault(pmp),
-												CWindowOids::Pwindowoids(pmp)
+												CHint::PhintDefault(mp),
+												CWindowOids::GetWindowOids(mp)
 												);
 		SMissingStatsTestCase testCase = rgtc[ul];
 
 		CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 												(
-												pmp,
+												mp,
 												testCase.m_szInputFile,
 												GPOPT_TEST_SEGMENTS /*ulSegments*/,
 												1 /*ulSessionId*/,
 												1, /*ulCmdId*/
-												poconf,
+												optimizer_config,
 												NULL /*pceeval*/
 												);
 
-		CStatisticsConfig *pstatsconf = poconf->Pstatsconf();
+		CStatisticsConfig *stats_config = optimizer_config->GetStatsConf();
 
-		DrgPmdid *pdrgmdidCol = GPOS_NEW(pmp) DrgPmdid(pmp);
-		pstatsconf->CollectMissingStatsColumns(pdrgmdidCol);
-		ULONG ulMissingStats = pdrgmdidCol->UlLength();
+		IMdIdArray *pdrgmdidCol = GPOS_NEW(mp) IMdIdArray(mp);
+		stats_config->CollectMissingStatsColumns(pdrgmdidCol);
+		ULONG ulMissingStats = pdrgmdidCol->Size();
 
 		if (ulMissingStats != testCase.m_ulExpectedMissingStats)
 		{
 			// for debug traces
-			CWStringDynamic str(pmp);
+			CWStringDynamic str(mp);
 			COstreamString oss(&str);
 
 			// print objects
@@ -125,12 +125,12 @@ CMissingStatsTest::EresUnittest_RunTests()
 			oss << "Number of Missing Columns: " << ulMissingStats;
 			oss << std::endl;
 
-			GPOS_TRACE(str.Wsz());
+			GPOS_TRACE(str.GetBuffer());
 			eres = GPOS_FAILED;
 		}
 
 		GPOS_CHECK_ABORT;
-		poconf->Release();
+		optimizer_config->Release();
 		pdxlnPlan->Release();
 
 		m_ulMissingStatsTestCounter++;

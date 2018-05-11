@@ -39,15 +39,15 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializableOptimizerConfig::CSerializableOptimizerConfig
 	(
-	IMemoryPool *pmp,
-	const COptimizerConfig *poconf
+	IMemoryPool *mp,
+	const COptimizerConfig *optimizer_config
 	)
 	:
 	CSerializable(),
-	m_pmp(pmp),
-	m_poconf(poconf)
+	m_mp(mp),
+	m_optimizer_config(optimizer_config)
 {
-	GPOS_ASSERT(NULL != poconf);
+	GPOS_ASSERT(NULL != optimizer_config);
 }
 
 //---------------------------------------------------------------------------
@@ -76,11 +76,11 @@ CSerializableOptimizerConfig::Serialize
 	COstream &oos
 	)
 {
-	CXMLSerializer xmlser(m_pmp, oos, false /*Indent*/);
+	CXMLSerializer xml_serializer(m_mp, oos, false /*Indent*/);
 
 	// Copy traceflags from global state
-	CBitSet *pbs = CTask::PtskSelf()->Ptskctxt()->PbsCopyTraceFlags(m_pmp);
-	m_poconf->Serialize(m_pmp, &xmlser, pbs);
+	CBitSet *pbs = CTask::Self()->GetTaskCtxt()->copy_trace_flags(m_mp);
+	m_optimizer_config->Serialize(m_mp, &xml_serializer, pbs);
 	pbs->Release();
 }
 

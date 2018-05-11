@@ -23,13 +23,13 @@
 namespace gpopt
 {
 	class CGroup;
-	class CDrvdProp;
+	class DrvdPropArray;
 	class CDrvdPropCtxtPlan;
 	class CMemoProxy;
 	class COptimizationContext;
 
 	// memo tree map definition
-	typedef CTreeMap<CCostContext, CExpression, CDrvdPropCtxtPlan, CCostContext::UlHash, CCostContext::FEqual> MemoTreeMap;
+	typedef CTreeMap<CCostContext, CExpression, CDrvdPropCtxtPlan, CCostContext::HashValue, CCostContext::Equals> MemoTreeMap;
 
 	using namespace gpos;
 	
@@ -67,7 +67,7 @@ namespace gpopt
 						CSpinlockMemo> ShtAccIter;
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 		
 			// id counter for groups
 			CAtomicULONG m_aul;
@@ -109,7 +109,7 @@ namespace gpopt
 		
 			// ctor
 			explicit
-			CMemo(IMemoryPool *pmp);
+			CMemo(IMemoryPool *mp);
 			
 			// dtor
 			~CMemo();
@@ -148,7 +148,7 @@ namespace gpopt
 			CGroup *PgroupInsert(CGroup *pgroupTarget, CExpression *pexprOrigin, CGroupExpression *pgexpr);
 
 			// extract a plan that delivers the given required properties
-			CExpression *PexprExtractPlan(IMemoryPool *pmp, CGroup *pgroupRoot, CReqdPropPlan *prppInput, ULONG ulSearchStages);
+			CExpression *PexprExtractPlan(IMemoryPool *mp, CGroup *pgroupRoot, CReqdPropPlan *prppInput, ULONG ulSearchStages);
 
 			// merge duplicate groups
 			void GroupMerge();
@@ -163,7 +163,7 @@ namespace gpopt
 			IOstream &OsPrint(IOstream &os);
 
 			// derive stats when no stats not present for the group
-			void DeriveStatsIfAbsent(IMemoryPool *pmp);
+			void DeriveStatsIfAbsent(IMemoryPool *mp);
 
 			// build tree map
 			void BuildTreeMap(COptimizationContext *poc);
@@ -176,7 +176,7 @@ namespace gpopt
 
 #ifdef GPOS_DEBUG
 			// get group by id
-			CGroup *Pgroup(ULONG ulId);
+			CGroup *Pgroup(ULONG id);
 
 			// debug print for interactive debugging sessions only
 			void DbgPrint();

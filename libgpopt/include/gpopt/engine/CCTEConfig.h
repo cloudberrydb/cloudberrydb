@@ -44,10 +44,10 @@ namespace gpopt
 			// ctor
 			CCTEConfig
 				(
-				ULONG ulCTEInliningCutoff
+				ULONG cte_inlining_cut_off
 				)
 				:
-				m_ulCTEInliningCutoff(ulCTEInliningCutoff)
+				m_ulCTEInliningCutoff(cte_inlining_cut_off)
 			{}
 
 			// CTE inlining cut-off
@@ -58,9 +58,9 @@ namespace gpopt
 
 			// generate default optimizer configurations
 			static
-			CCTEConfig *PcteconfDefault(IMemoryPool *pmp)
+			CCTEConfig *PcteconfDefault(IMemoryPool *mp)
 			{
-				return GPOS_NEW(pmp) CCTEConfig(0 /* ulCTEInliningCutoff */);
+				return GPOS_NEW(mp) CCTEConfig(0 /* cte_inlining_cut_off */);
 			}
 
 	}; // class CCTEConfig

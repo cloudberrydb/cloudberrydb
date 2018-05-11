@@ -29,7 +29,7 @@ namespace gpdxl
 	class CParseHandlerBase;
 	
 	// dynamic arrays of parse handlers
-	typedef CDynamicPtrArray<CParseHandlerBase, CleanupDelete> DrgPph;
+	typedef CDynamicPtrArray<CParseHandlerBase, CleanupDelete> CParseHandlerBaseArray;
 	
 	XERCES_CPP_NAMESPACE_USE
 
@@ -73,54 +73,54 @@ namespace gpdxl
 			CParseHandlerBase(const CParseHandlerBase&); 
 			
 			// array of parse handlers for child elements
-			DrgPph *m_pdrgpph;
+		CParseHandlerBaseArray *m_parse_handler_base_array;
 			
 		protected:
 			// memory pool to create DXL objects in
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 			
 			// manager for transitions between parse handlers
-			CParseHandlerManager *m_pphm;
+			CParseHandlerManager *m_parse_handler_mgr;
 
 			// add child parse handler
 			inline
 			void Append
 				(
-				CParseHandlerBase *pph
+				CParseHandlerBase *parse_handler_base
 				)
 			{
-				GPOS_ASSERT(NULL != pph);
-				m_pdrgpph->Append(pph);
+				GPOS_ASSERT(NULL != parse_handler_base);
+				m_parse_handler_base_array->Append(parse_handler_base);
 			};
 
 			// number of children
 			inline
-			ULONG UlLength() const
+			ULONG Length() const
 			{
-				return m_pdrgpph->UlLength();
+				return m_parse_handler_base_array->Size();
 			}
 
 			// shorthand to access children
 			inline
 			CParseHandlerBase *operator []
 				(
-				ULONG ulPos
+				ULONG idx
 				)
 				const
 			{
-				return (*m_pdrgpph)[ulPos];
+				return (*m_parse_handler_base_array)[idx];
 			};
 			
 			// parse handler for root element
-			CParseHandlerBase *m_pphRoot;
+			CParseHandlerBase *m_parse_handler_root;
 			
 			// process the start of an element
 			virtual 
 			void StartElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				) = 0;
 				
@@ -128,43 +128,43 @@ namespace gpdxl
 			virtual 
 			void EndElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				) = 0;
 
 		public:
 			// ctor
-			CParseHandlerBase(IMemoryPool *pmp, CParseHandlerManager *pphm, CParseHandlerBase *pphRoot);
+			CParseHandlerBase(IMemoryPool *mp, CParseHandlerManager *parse_handler_mgr, CParseHandlerBase *parse_handler_root);
 			
 			//dtor
 			virtual
 			~CParseHandlerBase();
 			
 			virtual 
-			EDxlParseHandlerType Edxlphtype() const;
+			EDxlParseHandlerType GetParseHandlerType() const;
 
 			// replaces a parse handler in the parse handler array with a new one
-			void ReplaceParseHandler(CParseHandlerBase *pphOld, CParseHandlerBase *pphNew);
+			void ReplaceParseHandler(CParseHandlerBase *parse_handler_base_old, CParseHandlerBase *parse_handler_base_new);
 			
 			// Xerces parse handler interface method to eceive notification of the beginning of an element.
 			void startElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname,		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname,		// element's qname
 				const Attributes& attr				// element's attributes
 				);
 
 			// Xerces parse handler interface method to eceive notification of the end of an element.
 			void endElement
 				(
-				const XMLCh* const xmlszUri, 		// URI of element's namespace
-				const XMLCh* const xmlszLocalname,	// local part of element's name
-				const XMLCh* const xmlszQname		// element's qname
+				const XMLCh* const element_uri, 		// URI of element's namespace
+				const XMLCh* const element_local_name,	// local part of element's name
+				const XMLCh* const element_qname		// element's qname
 				);
 			
-			// process a parsing error
+			// process a parsing ProcessError
 			void error(const SAXParseException&);
 	};
 }

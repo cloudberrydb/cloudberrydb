@@ -74,8 +74,8 @@ CUnittest::CUnittest
 	const CHAR *szTitle,
 	ETestType ett,
 	GPOS_RESULT (*pfunc)(void),
-	ULONG ulMajor,
-	ULONG ulMinor
+	ULONG major,
+	ULONG minor
 	)
 	:
 	m_szTitle(szTitle),
@@ -84,8 +84,8 @@ CUnittest::CUnittest
 	m_pfuncSubtest(NULL),
 	m_ulSubtest(0),
 	m_fExcep(true),
-	m_ulMajor(ulMajor),
-	m_ulMinor(ulMinor)
+	m_ulMajor(major),
+	m_ulMinor(minor)
 {}
 
 //---------------------------------------------------------------------------
@@ -157,20 +157,20 @@ CUnittest::FThrows() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CUnittest::FEquals
+//		CUnittest::Equals
 //
 //	@doc:
 //		Is given string equal to title of test?
 //
 //---------------------------------------------------------------------------
 BOOL
-CUnittest::FEquals
+CUnittest::Equals
 	(
 	CHAR *sz
 	)
 	const
 {
-	return 0 == clib::IStrCmp(sz, m_szTitle);
+	return 0 == clib::Strcmp(sz, m_szTitle);
 }
 
 
@@ -185,12 +185,12 @@ CUnittest::FEquals
 BOOL
 CUnittest::FThrows
 	(
-	ULONG ulMajor,
-	ULONG ulMinor
+	ULONG major,
+	ULONG minor
 	)
 	const
 {
-	return (m_ulMajor == ulMajor && m_ulMinor == ulMinor);
+	return (m_ulMajor == major && m_ulMinor == minor);
 }
 
 
@@ -218,19 +218,19 @@ CUnittest::EresExecLoop
 		GPOS_CATCH_EX(ex)
 		{
 			// check for exception simulation
-			if (ITask::PtskSelf()->FTrace(EtraceSimulateOOM))
+			if (ITask::Self()->IsTraceSet(EtraceSimulateOOM))
 			{
 				GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiOOM));
 			}
-			else if (ITask::PtskSelf()->FTrace(EtraceSimulateAbort))
+			else if (ITask::Self()->IsTraceSet(EtraceSimulateAbort))
 			{
 				GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiAbort));
 			}
-			else if (ITask::PtskSelf()->FTrace(EtraceSimulateIOError))
+			else if (ITask::Self()->IsTraceSet(EtraceSimulateIOError))
 			{
 				GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiIOError));
 			}
-			else if (ITask::PtskSelf()->FTrace(EtraceSimulateNetError))
+			else if (ITask::Self()->IsTraceSet(EtraceSimulateNetError))
 			{
 				GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiNetError));
 			}
@@ -271,9 +271,9 @@ CUnittest::EresExecTest
 	GPOS_TRY_HDL(&errhdl)
 	{
 		// reset cancellation flag
-		CTask::PtskSelf()->ResetCancel();
+		CTask::Self()->ResetCancel();
 #ifdef GPOS_DEBUG
-		CWorker::PwrkrSelf()->ResetTimeSlice();
+		CWorker::Self()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 
 		eres = ut.m_pfunc != NULL ? ut.m_pfunc() : ut.m_pfuncSubtest(ut.m_ulSubtest);
@@ -299,7 +299,7 @@ CUnittest::EresExecTest
 		}
 
 		// check if exception was expected
-		if (ut.FThrows(ex.UlMajor(), ex.UlMinor()))
+		if (ut.FThrows(ex.Major(), ex.Minor()))
 		{
 			GPOS_RESET_EX;
 			return GPOS_OK;
@@ -333,20 +333,20 @@ CUnittest::FSimulated
 	CException ex
 	)
 {
-	ITask *ptsk = ITask::PtskSelf();
+	ITask *ptsk = ITask::Self();
 	GPOS_ASSERT(NULL != ptsk);
 
 	return
-		(ptsk->FTrace(EtraceSimulateOOM) &&
+		(ptsk->IsTraceSet(EtraceSimulateOOM) &&
 		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiOOM)) ||
 
-		(ptsk->FTrace(EtraceSimulateAbort) &&
+		(ptsk->IsTraceSet(EtraceSimulateAbort) &&
 		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiAbort)) ||
 
-		(ptsk->FTrace(EtraceSimulateIOError) &&
+		(ptsk->IsTraceSet(EtraceSimulateIOError) &&
 		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiIOError)) ||
 
-		(ptsk->FTrace(EtraceSimulateNetError) &&
+		(ptsk->IsTraceSet(EtraceSimulateNetError) &&
 		 GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiNetError));
 }
 
@@ -387,7 +387,7 @@ CUnittest::EresExecute
 #ifdef GPOS_DEBUG
 		{
 			CAutoMemoryPool amp;
-			CMemoryPoolManager::Pmpm()->PrintOverSizedPools(amp.Pmp(), GPOS_OVERSIZED_POOL_SIZE);
+			CMemoryPoolManager::GetMemoryPoolMgr()->PrintOverSizedPools(amp.Pmp(), GPOS_OVERSIZED_POOL_SIZE);
 		}
 #endif // GPOS_DEBUG
 
@@ -423,14 +423,14 @@ CUnittest::FindTest
 	{
 		CUnittest &ut = CUnittest::m_rgut[i];
 
-		if ((ut.Ett() == ett && (NULL == szTestName || ut.FEquals(szTestName))) ||
-			 (NULL != szTestName && ut.FEquals(szTestName)))
+		if ((ut.Ett() == ett && (NULL == szTestName || ut.Equals(szTestName))) ||
+			 (NULL != szTestName && ut.Equals(szTestName)))
 		{
-			(void) bv.FExchangeSet(i);
+			(void) bv.ExchangeSet(i);
 		}
 	}
 
-	if(bv.FEmpty())
+	if(bv.IsEmpty())
 	{
 		GPOS_TRACE_FORMAT("'%s' is not a valid test case.", szTestName);
 	}
@@ -452,7 +452,7 @@ CUnittest::SetTraceFlag
 	)
 {
 	CHAR *pcEnd = NULL;
-	LINT lTrace = clib::LStrToL(szTrace, &pcEnd, 0/*iBase*/);
+	LINT lTrace = clib::Strtol(szTrace, &pcEnd, 0/*iBase*/);
 
 	GPOS_SET_TRACE((ULONG) lTrace);
 }
@@ -465,7 +465,7 @@ CUnittest::UllParsePlanId
 	)
 {
 	CHAR *pcEnd = NULL;
-	LINT ullPlanId = clib::LStrToL(szPlanId, &pcEnd, 0/*iBase*/);
+	LINT ullPlanId = clib::Strtol(szPlanId, &pcEnd, 0/*iBase*/);
 	return ullPlanId;
 }
 
@@ -492,10 +492,10 @@ CUnittest::Driver
 
 		for (ULONG i = 0; i < CUnittest::m_ulTests; i++)
 		{
-			if (pbv->FBit(i))
+			if (pbv->Get(i))
 			{
 				CUnittest &ut = CUnittest::m_rgut[i];
-				GPOS_RESULT eres = EresExecute(&ut, 1 /*ulSize*/);
+				GPOS_RESULT eres = EresExecute(&ut, 1 /*size*/);
 				GPOS_ASSERT((GPOS_OK == eres || GPOS_FAILED == eres)
 							&& "Unexpected result from unittest");
 
@@ -507,7 +507,7 @@ CUnittest::Driver
 #ifdef GPOS_DEBUG
 		{
 			CAutoMemoryPool amp;
-			CMemoryPoolManager::Pmpm()->PrintOverSizedPools(amp.Pmp(), GPOS_OVERSIZED_POOL_SIZE);
+			CMemoryPoolManager::GetMemoryPoolMgr()->PrintOverSizedPools(amp.Pmp(), GPOS_OVERSIZED_POOL_SIZE);
 		}
 #endif // GPOS_DEBUG
 
@@ -516,9 +516,9 @@ CUnittest::Driver
 	}
 
 	GPOS_TRACE_FORMAT("Tests succeeded: %d", ulOk);
-	GPOS_TRACE_FORMAT("Tests failed:    %d", pbv->CElements() - ulOk);
+	GPOS_TRACE_FORMAT("Tests failed:    %d", pbv->CountSetBits() - ulOk);
 
-	return pbv->CElements() - ulOk;
+	return pbv->CountSetBits() - ulOk;
 }
 
 
@@ -536,10 +536,10 @@ CUnittest::Driver
 	CMainArgs *pma
 	)
 {
-	CBitVector bv(ITask::PtskSelf()->Pmp(), CUnittest::UlTests());
+	CBitVector bv(ITask::Self()->Pmp(), CUnittest::UlTests());
 
 	CHAR ch = '\0';
-	while (pma->FGetopt(&ch))
+	while (pma->Getopt(&ch))
 	{
 		CHAR *szTestName = NULL;
 
@@ -594,7 +594,7 @@ CUnittest::Init
 	m_pfCleanup = pfCleanup;
 
 	// disable allocations using global new operator
-	CMemoryPoolManager::Pmpm()->DisableGlobalNew();
+	CMemoryPoolManager::GetMemoryPoolMgr()->DisableGlobalNew();
 }
 
 // EOF

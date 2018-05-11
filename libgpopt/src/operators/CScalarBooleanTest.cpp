@@ -75,14 +75,14 @@ const BYTE CScalarBooleanTest::m_rgBoolEvalMap [][3] =
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBooleanTest::FMatch
+//		CScalarBooleanTest::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarBooleanTest::FMatch
+CScalarBooleanTest::Matches
 	(
 	COperator *pop
 	)
@@ -99,18 +99,18 @@ CScalarBooleanTest::FMatch
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarBooleanTest::PmdidType
+//		CScalarBooleanTest::MdidType
 //
 //	@doc:
 //		Expression type
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarBooleanTest::PmdidType() const
+CScalarBooleanTest::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
-	return pmda->PtMDType<IMDTypeBool>()->Pmdid();
+	return md_accessor->PtMDType<IMDTypeBool>()->MDId();
 }
 
 //---------------------------------------------------------------------------
@@ -124,12 +124,12 @@ CScalarBooleanTest::PmdidType() const
 CScalar::EBoolEvalResult
 CScalarBooleanTest::Eber
 	(
-	DrgPul *pdrgpulChildren
+	ULongPtrArray *pdrgpulChildren
 	)
 	const
 {
 	GPOS_ASSERT(NULL != pdrgpulChildren);
-	GPOS_ASSERT(1 == pdrgpulChildren->UlLength());
+	GPOS_ASSERT(1 == pdrgpulChildren->Size());
 
 	EBoolEvalResult eber = (EBoolEvalResult) *((*pdrgpulChildren)[0]);
 	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(m_rgBoolEvalMap); ul++)

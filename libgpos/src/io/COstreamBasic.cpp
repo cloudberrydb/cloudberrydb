@@ -29,9 +29,9 @@ COstreamBasic::COstreamBasic
     )
 	: 
     COstream(),
-	m_pos(pos)
+	m_ostream(pos)
 {
-	GPOS_ASSERT(NULL != m_pos && "Output stream cannot be NULL");
+	GPOS_ASSERT(NULL != m_ostream && "Output stream cannot be NULL");
 }
 
 //---------------------------------------------------------------------------
@@ -48,7 +48,7 @@ COstreamBasic::operator <<
 	const WCHAR *wsz
     )
 {
-	m_pos = &(*m_pos << wsz);
+	m_ostream = &(*m_ostream << wsz);
 	return *this;
 }
 
@@ -66,7 +66,7 @@ COstreamBasic::operator <<
 	const WCHAR wc
     )
 {
-	m_pos = &(*m_pos << wc);
+	m_ostream = &(*m_ostream << wc);
 	return *this;
 }
 

@@ -74,7 +74,7 @@ namespace gpnaucrates
 
 			// do the bucket boundaries match
 			static
-			BOOL FMatchBucketBoundary(CBucket *pbucket1, CBucket *pbucket2);
+			BOOL FMatchBucketBoundary(CBucket *bucket1, CBucket *bucket2);
 
 		public:
 

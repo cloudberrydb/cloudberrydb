@@ -31,16 +31,16 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalExternalScan::CPhysicalExternalScan
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	const CName *pnameAlias,
 	CTableDescriptor *ptabdesc,
-	DrgPcr *pdrgpcrOutput
+	CColRefArray *pdrgpcrOutput
 	)
 	:
-	CPhysicalTableScan(pmp, pnameAlias, ptabdesc, pdrgpcrOutput)
+	CPhysicalTableScan(mp, pnameAlias, ptabdesc, pdrgpcrOutput)
 {
 	// if this table is master only, then keep the original distribution spec.
-	if (IMDRelation::EreldistrMasterOnly == ptabdesc->Ereldistribution())
+	if (IMDRelation::EreldistrMasterOnly == ptabdesc->GetRelDistribution())
 	{
 		return;
 	}
@@ -51,19 +51,19 @@ CPhysicalExternalScan::CPhysicalExternalScan
 		m_pds->Release();
 	}
 
-	m_pds = GPOS_NEW(pmp) CDistributionSpecExternal();
+	m_pds = GPOS_NEW(mp) CDistributionSpecExternal();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalExternalScan::FMatch
+//		CPhysicalExternalScan::Matches
 //
 //	@doc:
 //		match operator
 //
 //---------------------------------------------------------------------------
 BOOL
-CPhysicalExternalScan::FMatch
+CPhysicalExternalScan::Matches
 	(
 	COperator *pop
 	)
@@ -76,7 +76,7 @@ CPhysicalExternalScan::FMatch
 
 	CPhysicalExternalScan *popExternalScan = CPhysicalExternalScan::PopConvert(pop);
 	return m_ptabdesc == popExternalScan->Ptabdesc() &&
-			m_pdrgpcrOutput->FEqual(popExternalScan->PdrgpcrOutput());
+			m_pdrgpcrOutput->Equals(popExternalScan->PdrgpcrOutput());
 }
 
 //---------------------------------------------------------------------------

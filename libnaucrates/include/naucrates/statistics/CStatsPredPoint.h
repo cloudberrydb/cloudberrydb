@@ -46,73 +46,73 @@ namespace gpnaucrates
 			CStatsPredPoint& operator=(CStatsPredPoint &);
 
 			// comparison type
-			CStatsPred::EStatsCmpType m_escmpt;
+			CStatsPred::EStatsCmpType m_stats_cmp_type;
 
 			// point to be used for comparison
-			CPoint *m_ppoint;
+			CPoint *m_pred_point;
 
 			// add padding to datums when needed
 			static
-			IDatum *PdatumPreprocess(IMemoryPool *pmp, const CColRef *pcr, IDatum *pdatum);
+			IDatum *PreprocessDatum(IMemoryPool *mp, const CColRef *colref, IDatum *datum);
 
 		public:
 
 			// ctor
 			CStatsPredPoint
 				(
-				ULONG ulColId,
-				CStatsPred::EStatsCmpType escmpt,
-				CPoint *ppoint
+				ULONG colid,
+				CStatsPred::EStatsCmpType stats_cmp_type,
+				CPoint *point
 				);
 
 			// ctor
 			CStatsPredPoint
 				(
-				IMemoryPool *pmp,
-				const CColRef *pcr,
-				CStatsPred::EStatsCmpType escmpt,
-				IDatum *pdatum
+				IMemoryPool *mp,
+				const CColRef *colref,
+				CStatsPred::EStatsCmpType stats_cmp_type,
+				IDatum *datum
 				);
 
 			// dtor
 			virtual
 			~CStatsPredPoint()
 			{
-				m_ppoint->Release();
+				m_pred_point->Release();
 			}
 
 			// comparison types for stats computation
 			virtual
-			CStatsPred::EStatsCmpType Escmpt() const
+			CStatsPred::EStatsCmpType GetCmpType() const
 			{
-				return m_escmpt;
+				return m_stats_cmp_type;
 			}
 
 			// filter point
 			virtual
-			CPoint *Ppoint() const
+			CPoint *GetPredPoint() const
 			{
-				return m_ppoint;
+				return m_pred_point;
 			}
 
 			// filter type id
 			virtual
-			EStatsPredType Espt() const
+			EStatsPredType GetPredStatsType() const
 			{
 				return CStatsPred::EsptPoint;
 			}
 
 			// conversion function
 			static
-			CStatsPredPoint *PstatspredConvert
+			CStatsPredPoint *ConvertPredStats
 				(
-				CStatsPred *pstatspred
+				CStatsPred *pred_stats
 				)
 			{
-				GPOS_ASSERT(NULL != pstatspred);
-				GPOS_ASSERT(CStatsPred::EsptPoint == pstatspred->Espt());
+				GPOS_ASSERT(NULL != pred_stats);
+				GPOS_ASSERT(CStatsPred::EsptPoint == pred_stats->GetPredStatsType());
 
-				return dynamic_cast<CStatsPredPoint*>(pstatspred);
+				return dynamic_cast<CStatsPredPoint*>(pred_stats);
 			}
 
 	}; // class CStatsPredPoint

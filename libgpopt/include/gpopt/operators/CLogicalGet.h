@@ -42,16 +42,16 @@ namespace gpopt
 			CTableDescriptor *m_ptabdesc;
 			
 			// output columns
-			DrgPcr *m_pdrgpcrOutput;
+			CColRefArray *m_pdrgpcrOutput;
 			
 			// partition keys
-			DrgDrgPcr *m_pdrgpdrgpcrPart;
+			CColRef2dArray *m_pdrgpdrgpcrPart;
 
 			// distribution columns (empty for master only tables)
 			CColRefSet *m_pcrsDist;
 
 			void
-			CreatePartCols(IMemoryPool *pmp, const DrgPul *pdrgpulPart);
+			CreatePartCols(IMemoryPool *mp, const ULongPtrArray *pdrgpulPart);
 			
 			// private copy ctor
 			CLogicalGet(const CLogicalGet &);
@@ -60,21 +60,21 @@ namespace gpopt
 		
 			// ctors
 			explicit
-			CLogicalGet(IMemoryPool *pmp);
+			CLogicalGet(IMemoryPool *mp);
 
 			CLogicalGet
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				const CName *pnameAlias,
 				CTableDescriptor *ptabdesc
 				);
 
 			CLogicalGet
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				const CName *pnameAlias,
 				CTableDescriptor *ptabdesc,
-				DrgPcr *pdrgpcrOutput
+				CColRefArray *pdrgpcrOutput
 				);
 
 			// dtor
@@ -103,7 +103,7 @@ namespace gpopt
 			}
 
 			// accessors
-			DrgPcr *PdrgpcrOutput() const
+			CColRefArray *PdrgpcrOutput() const
 			{
 				return m_pdrgpcrOutput;
 			}
@@ -121,7 +121,7 @@ namespace gpopt
 			}
 			
 			// partition columns
-			DrgDrgPcr *
+			CColRef2dArray *
 			PdrgpdrgpcrPartColumns() const
 			{
 				return m_pdrgpdrgpcrPart;
@@ -129,17 +129,17 @@ namespace gpopt
 			
 			// operator specific hash function
 			virtual
-			ULONG UlHash() const;
+			ULONG HashValue() const;
 
 			// match function
-			BOOL FMatch(COperator *pop) const;
+			BOOL Matches(COperator *pop) const;
 
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const;
 
 			// return a copy of the operator with remapped columns
 			virtual
-			COperator *PopCopyWithRemappedColumns(IMemoryPool *pmp, HMUlCr *phmulcr, BOOL fMustExist);
+			COperator *PopCopyWithRemappedColumns(IMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
 
 			//-------------------------------------------------------------------------------------
 			// Derived Relational Properties
@@ -147,41 +147,41 @@ namespace gpopt
 
 			// derive output columns
 			virtual
-			CColRefSet *PcrsDeriveOutput(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			CColRefSet *PcrsDeriveOutput(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// derive not nullable output columns
 			virtual
-			CColRefSet *PcrsDeriveNotNull(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CColRefSet *PcrsDeriveNotNull(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive partition consumer info
 			virtual
 			CPartInfo *PpartinfoDerive
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				) 
 				const
 			{
-				return GPOS_NEW(pmp) CPartInfo(pmp);
+				return GPOS_NEW(mp) CPartInfo(mp);
 			}
 			
 			// derive constraint property
 			virtual
 			CPropConstraint *PpcDeriveConstraint
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				CExpressionHandle & // exprhdl
 				)
 				const
 			{
-				return PpcDeriveConstraintFromTable(pmp, m_ptabdesc, m_pdrgpcrOutput);
+				return PpcDeriveConstraintFromTable(mp, m_ptabdesc, m_pdrgpcrOutput);
 			}
 
 			// derive join depth
 			virtual
-			ULONG UlJoinDepth
+			ULONG JoinDepth
 				(
-				IMemoryPool *, // pmp
+				IMemoryPool *, // mp
 				CExpressionHandle & // exprhdl
 				)
 				const
@@ -197,10 +197,10 @@ namespace gpopt
 			virtual
 			CColRefSet *PcrsStat
 				(
-				IMemoryPool *, // pmp,
+				IMemoryPool *, // mp,
 				CExpressionHandle &, // exprhdl
 				CColRefSet *, // pcrsInput
-				ULONG // ulChildIndex
+				ULONG // child_index
 				)
 				const
 			{
@@ -214,19 +214,19 @@ namespace gpopt
 		
 			// candidate set of xforms
 			virtual
-			CXformSet *PxfsCandidates(IMemoryPool *pmp) const;
+			CXformSet *PxfsCandidates(IMemoryPool *mp) const;
 
 			// derive key collections
 			virtual
-			CKeyCollection *PkcDeriveKeys(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+			CKeyCollection *PkcDeriveKeys(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 			// derive statistics
 			virtual
 			IStatistics *PstatsDerive
 						(
-						IMemoryPool *pmp,
+						IMemoryPool *mp,
 						CExpressionHandle &exprhdl,
-						DrgPstat *pdrgpstatCtxt
+						IStatisticsArray *stats_ctxt
 						)
 						const;
 

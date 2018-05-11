@@ -27,11 +27,11 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarAssertConstraint::CScalarAssertConstraint
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CWStringBase *pstrErrorMsg
 	)
 	:
-	CScalar(pmp),
+	CScalar(mp),
 	m_pstrErrorMsg(pstrErrorMsg)
 {
 	GPOS_ASSERT(NULL != pstrErrorMsg);
@@ -53,14 +53,14 @@ CScalarAssertConstraint::~CScalarAssertConstraint()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarAssertConstraint::FMatch
+//		CScalarAssertConstraint::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarAssertConstraint::FMatch
+CScalarAssertConstraint::Matches
 	(
 	COperator *pop
 	)
@@ -71,7 +71,7 @@ CScalarAssertConstraint::FMatch
 		return false;
 	}
 	
-	return m_pstrErrorMsg->FEquals(CScalarAssertConstraint::PopConvert(pop)->PstrErrorMsg());
+	return m_pstrErrorMsg->Equals(CScalarAssertConstraint::PopConvert(pop)->PstrErrorMsg());
 }
 
 //---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ CScalarAssertConstraint::OsPrint
 	const
 {
 	os << SzId() << " (ErrorMsg: ";
-	os << PstrErrorMsg()->Wsz();
+	os << PstrErrorMsg()->GetBuffer();
 	os << ")";
 	
 	return os;
@@ -98,17 +98,17 @@ CScalarAssertConstraint::OsPrint
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarAssertConstraint::PmdidType
+//		CScalarAssertConstraint::MdidType
 //
 //	@doc:
 //		Type of expression's result
 //
 //---------------------------------------------------------------------------
 IMDId *
-CScalarAssertConstraint::PmdidType() const
+CScalarAssertConstraint::MdidType() const
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	return pmda->PtMDType<IMDTypeBool>()->Pmdid();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	return md_accessor->PtMDType<IMDTypeBool>()->MDId();
 }
 
 

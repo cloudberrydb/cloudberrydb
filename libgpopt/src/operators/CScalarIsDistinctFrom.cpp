@@ -34,9 +34,9 @@ CScalarIsDistinctFrom::PopConvert
 
 // perform boolean expression evaluation
 CScalar::EBoolEvalResult
-CScalarIsDistinctFrom::Eber(DrgPul *pdrgpulChildren) const
+CScalarIsDistinctFrom::Eber(ULongPtrArray *pdrgpulChildren) const
 {
-	GPOS_ASSERT(2 == pdrgpulChildren->UlLength());
+	GPOS_ASSERT(2 == pdrgpulChildren->Size());
 
 	// Is Distinct From(IDF) expression will always evaluate
 	// to a true/false/unknown but not a NULL
@@ -56,7 +56,7 @@ CScalarIsDistinctFrom::Eber(DrgPul *pdrgpulChildren) const
 }
 
 BOOL
-CScalarIsDistinctFrom::FMatch
+CScalarIsDistinctFrom::Matches
 (
  COperator *pop
  )
@@ -67,7 +67,7 @@ const
 		CScalarIsDistinctFrom *popIDF = CScalarIsDistinctFrom::PopConvert(pop);
 		
 		// match if operator mdids are identical
-		return PmdidOp()->FEquals(popIDF->PmdidOp());
+		return MdIdOp()->Equals(popIDF->MdIdOp());
 	}
 	
 	return false;
@@ -77,16 +77,16 @@ const
 CScalarIsDistinctFrom *
 CScalarIsDistinctFrom::PopCommutedOp
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	COperator *pop
 	)
 {
 	
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	IMDId *pmdid = PmdidCommuteOp(pmda, pop);
-	if (NULL != pmdid && pmdid->FValid())
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	IMDId *mdid = PmdidCommuteOp(md_accessor, pop);
+	if (NULL != mdid && mdid->IsValid())
 	{
-		return GPOS_NEW(pmp) CScalarIsDistinctFrom(pmp, pmdid, Pstr(pmp, pmda, pmdid));
+		return GPOS_NEW(mp) CScalarIsDistinctFrom(mp, mdid, Pstr(mp, md_accessor, mdid));
 	}
 	return NULL;
 }

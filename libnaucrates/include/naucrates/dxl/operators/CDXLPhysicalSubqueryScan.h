@@ -44,44 +44,44 @@ namespace gpdxl
 		private:
 		
 			// name for the subquery scan node (corresponding to name in GPDB's SubqueryScan)
-			CMDName *m_pmdnameAlias;
+			CMDName *m_mdname_alias;
 			
 			// private copy ctor
 			CDXLPhysicalSubqueryScan(CDXLPhysicalSubqueryScan&);
 
 		public:
 			// ctor/dtor
-			CDXLPhysicalSubqueryScan(IMemoryPool *pmp, CMDName *pmdname);
+			CDXLPhysicalSubqueryScan(IMemoryPool *mp, CMDName *mdname);
 
 			virtual
 			~CDXLPhysicalSubqueryScan();
 						
 			// accessors
-			Edxlopid Edxlop() const;
-			const CWStringConst *PstrOpName() const;
-			const CMDName *Pmdname();
+			Edxlopid GetDXLOperator() const;
+			const CWStringConst *GetOpNameStr() const;
+			const CMDName *MdName();
 			
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalSubqueryScan *PdxlopConvert
+			CDXLPhysicalSubqueryScan *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalSubqueryScan == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalSubqueryScan == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalSubqueryScan*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalSubqueryScan*>(dxl_op);
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 			
 	};

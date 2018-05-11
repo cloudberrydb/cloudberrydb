@@ -26,84 +26,84 @@ namespace gpos
 		private:
 		
 			// trace vector
-			CBitSet *m_pbs;
+			CBitSet *m_bitset;
 		
 			// output log abstraction
-			ILogger *m_plogOut;
+			ILogger *m_log_out;
 			
 			// error log abstraction
-			ILogger *m_plogErr;
+			ILogger *m_log_err;
 			
 			// locale of messages
-			ELocale m_eloc;
+			ELocale m_locale;
 			
 		public:
 				
 			// basic ctor; used only for the main worker
-			CTaskContext(IMemoryPool *pmp);
+			CTaskContext(IMemoryPool *mp);
 
 			// copy ctor
 			// used to inherit parent task's context
-			CTaskContext(IMemoryPool *pmp, const CTaskContext &tskctxt);
+			CTaskContext(IMemoryPool *mp, const CTaskContext &task_ctxt);
 			
 			// dtor
 			~CTaskContext();
 
 			// accessors
 			inline
-			ILogger *PlogOut() const
+			ILogger *GetOutputLogger() const
 			{
-				return m_plogOut;
+				return m_log_out;
 			}
 			
 			inline
-			ILogger *PlogErr() const
+			ILogger *GetErrorLogger() const
 			{
-				return m_plogErr;
+				return m_log_err;
 			}
 			
-			void SetLogOut(ILogger *plogOut)
+			void SetLogOut(ILogger *log_out)
 			{
-				GPOS_ASSERT(NULL != plogOut);
-				m_plogOut = plogOut;
+				GPOS_ASSERT(NULL != log_out);
+				m_log_out = log_out;
 			}
 
-			void SetLogErr(ILogger *plogErr)
+			void SetLogErr(ILogger *log_err)
 			{
-				GPOS_ASSERT(NULL != plogErr);
-				m_plogErr = plogErr;
+				GPOS_ASSERT(NULL != log_err);
+				m_log_err = log_err;
 			}
 
 			// set trace flag
-			BOOL FTrace(ULONG ulTrace, BOOL fVal);
+			BOOL SetTrace(ULONG trace, BOOL val);
 			
 			// test if tracing on
 			inline
-			BOOL FTrace
+			BOOL IsTraceSet
 				(
-				ULONG ulTrace
+				ULONG trace
 				)
 			{
-				return m_pbs->FBit(ulTrace);
+				return m_bitset->Get(trace);
 			}
 		
 			// locale
-			ELocale Eloc() const
+			ELocale Locale() const
 			{
-				return m_eloc;
+				return m_locale;
 			}
 			
-			void SetEloc
+			void SetLocale
 				(
-				ELocale eloc
+				ELocale locale
 				)
 			{
-				m_eloc = eloc;
+				m_locale = locale;
 			}
 
-			CBitSet *PbsCopyTraceFlags(IMemoryPool *pmp) const
+			CBitSet *copy_trace_flags(IMemoryPool *mp) const
 			{
-				return GPOS_NEW(pmp) CBitSet(pmp, *m_pbs);
+				return GPOS_NEW(mp) CBitSet(mp, *m_bitset);
 			}
 		
 	}; // class CTaskContext

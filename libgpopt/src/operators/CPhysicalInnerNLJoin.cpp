@@ -33,10 +33,10 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalInnerNLJoin::CPhysicalInnerNLJoin
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
-	CPhysicalNLJoin(pmp)
+	CPhysicalNLJoin(mp)
 {
 	// Inner NLJ creates two distribution requests for children:
 	// (0) Outer child is requested for ANY distribution, and inner child is requested for a Replicated (or a matching) distribution
@@ -78,43 +78,43 @@ CPhysicalInnerNLJoin::~CPhysicalInnerNLJoin()
 CDistributionSpec *
 CPhysicalInnerNLJoin::PdsRequired
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CDistributionSpec *pdsRequired,
-	ULONG ulChildIndex,
-	DrgPdp *pdrgpdpCtxt,
+	ULONG child_index,
+	CDrvdProp2dArray *pdrgpdpCtxt,
 	ULONG  ulOptReq
 	)
 	const
 {
-	GPOS_ASSERT(2 > ulChildIndex);
+	GPOS_ASSERT(2 > child_index);
 	GPOS_ASSERT(ulOptReq < UlDistrRequests());
 
 	// if expression has to execute on master then we need a gather
 	if (exprhdl.FMasterOnly())
 	{
-		return PdsEnforceMaster(pmp, exprhdl, pdsRequired, ulChildIndex);
+		return PdsEnforceMaster(mp, exprhdl, pdsRequired, child_index);
 	}
 
-	if (exprhdl.FHasOuterRefs())
+	if (exprhdl.HasOuterRefs())
 	{
 		if (CDistributionSpec::EdtSingleton == pdsRequired->Edt() ||
 			CDistributionSpec::EdtReplicated == pdsRequired->Edt())
 		{
-			return PdsPassThru(pmp, exprhdl, pdsRequired, ulChildIndex);
+			return PdsPassThru(mp, exprhdl, pdsRequired, child_index);
 		}
-		return GPOS_NEW(pmp) CDistributionSpecReplicated();
+		return GPOS_NEW(mp) CDistributionSpecReplicated();
 	}
 
 	if (GPOS_FTRACE(EopttraceDisableReplicateInnerNLJOuterChild) || 0 == ulOptReq)
 	{
-		return CPhysicalJoin::PdsRequired(pmp, exprhdl, pdsRequired, ulChildIndex, pdrgpdpCtxt, ulOptReq);
+		return CPhysicalJoin::PdsRequired(mp, exprhdl, pdsRequired, child_index, pdrgpdpCtxt, ulOptReq);
 	}
 	GPOS_ASSERT(1 == ulOptReq);
 
-	if (0 == ulChildIndex)
+	if (0 == child_index)
 	{
-		return GPOS_NEW(pmp) CDistributionSpecReplicated();
+		return GPOS_NEW(mp) CDistributionSpecReplicated();
 	}
 
 	// compute a matching distribution based on derived distribution of outer child
@@ -122,10 +122,10 @@ CPhysicalInnerNLJoin::PdsRequired
 	if (CDistributionSpec::EdtUniversal == pdsOuter->Edt())
 	{
 		// first child is universal, request second child to execute on the master to avoid duplicates
-		return GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 	}
 
-	return GPOS_NEW(pmp) CDistributionSpecNonSingleton();
+	return GPOS_NEW(mp) CDistributionSpecNonSingleton();
 }
 
 // EOF

@@ -45,22 +45,22 @@ namespace gpmd
 		private:
 		
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *m_mp;
 
 			// metadata id of the object
-			CMDIdRelStats *m_pmdidRelStats;
+			CMDIdRelStats *m_rel_stats_mdid;
 			
 			// table name
-			CMDName *m_pmdname;
+			CMDName *m_mdname;
 			
 			// number of rows
-			CDouble m_dRows;
+			CDouble m_rows;
 			
 			// flag to indicate if input relation is empty
-			BOOL m_fEmpty;
+			BOOL m_empty;
 
 			// DXL string for object
-			CWStringDynamic *m_pstr;
+			CWStringDynamic *m_dxl_str;
 			
 			// private copy ctor
 			CDXLRelStats(const CDXLRelStats &);
@@ -69,11 +69,11 @@ namespace gpmd
 			
 			CDXLRelStats
 				(
-				IMemoryPool *pmp,
-				CMDIdRelStats *pmdidRelStats,
-				CMDName *pmdname,
-				CDouble dRows,
-				BOOL fEmpty
+				IMemoryPool *mp,
+				CMDIdRelStats *rel_stats_mdid,
+				CMDName *mdname,
+				CDouble rows,
+				BOOL is_empty
 				);
 			
 			virtual
@@ -81,7 +81,7 @@ namespace gpmd
 			
 			// the metadata id
 			virtual 
-			IMDId *Pmdid() const;
+			IMDId *MDId() const;
 			
 			// relation name
 			virtual 
@@ -89,17 +89,17 @@ namespace gpmd
 			
 			// DXL string representation of cache object 
 			virtual 
-			const CWStringDynamic *Pstr() const;
+			const CWStringDynamic *GetStrRepr() const;
 			
 			// number of rows
 			virtual
-			CDouble DRows() const;
+			CDouble Rows() const;
 			
 			// is statistics on an empty input
 			virtual
-			BOOL FEmpty() const
+			BOOL IsEmpty() const
 			{
-				return m_fEmpty;
+				return m_empty;
 			}
 
 			// serialize relation stats in DXL format given a serializer object
@@ -114,10 +114,10 @@ namespace gpmd
 
 			// dummy relstats
 			static
-			CDXLRelStats *PdxlrelstatsDummy
+			CDXLRelStats *CreateDXLDummyRelStats
 								(
-								IMemoryPool *pmp,
-								IMDId *pmdid
+								IMemoryPool *mp,
+								IMDId *mdid
 								);
 	};
 

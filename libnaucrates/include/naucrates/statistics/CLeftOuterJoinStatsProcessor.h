@@ -20,36 +20,36 @@ namespace gpnaucrates
 	private:
 		// create a new hash map of histograms from the results of the inner join and the histograms of the outer child
 		static
-		HMUlHist *PhmulhistLOJ
+		UlongToHistogramMap *MakeLOJHistogram
 				(
-				IMemoryPool *pmp,
-				const CStatistics *pstatsOuter,
-				const CStatistics *pstatsInner,
-				CStatistics *pstatsInnerJoin,
-				DrgPstatspredjoin *pdrgpstatspredjoin,
-				CDouble dRowsInnerJoin,
-				CDouble *pdRowsLASJ
+				IMemoryPool *mp,
+				const CStatistics *outer_stats,
+				const CStatistics *inner_side_stats,
+				CStatistics *inner_join_stats,
+													   CStatsPredJoinArray *join_preds_stats,
+				CDouble num_rows_inner_join,
+				CDouble *result_rows_LASJ
 				);
 		// helper method to add histograms of the inner side of a LOJ
 		static
 		void AddHistogramsLOJInner
 				(
-				IMemoryPool *pmp,
-				const CStatistics *pstatsInnerJoin,
-				DrgPul *pdrgpulInnerColId,
-				CDouble dRowsLASJ,
-				CDouble dRowsInnerJoin,
-				HMUlHist *phmulhistLOJ
+				IMemoryPool *mp,
+				const CStatistics *inner_join_stats,
+				ULongPtrArray *inner_colids_with_stats,
+				CDouble num_rows_LASJ,
+				CDouble num_rows_inner_join,
+				UlongToHistogramMap *LOJ_histograms
 				);
 
 	public:
 		static
-		CStatistics *PstatsLOJStatic
+		CStatistics *CalcLOJoinStatsStatic
 				(
-				IMemoryPool *pmp,
-				const IStatistics *pstatsOuter,
-				const IStatistics *pstatsInner,
-				DrgPstatspredjoin *pdrgpstatspredjoin
+				IMemoryPool *mp,
+				const IStatistics *outer_stats,
+				const IStatistics *inner_side_stats,
+				CStatsPredJoinArray *join_preds_stats
 				);
 	};
 }

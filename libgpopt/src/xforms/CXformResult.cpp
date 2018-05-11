@@ -25,13 +25,13 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformResult::CXformResult
 	(
-	IMemoryPool *pmp
+	IMemoryPool *mp
 	)
 	:
 	m_ulExpr(0)
 {
-	GPOS_ASSERT(NULL != pmp);
-	m_pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+	GPOS_ASSERT(NULL != mp);
+	m_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 }
 
 
@@ -83,12 +83,12 @@ CExpression *
 CXformResult::PexprNext()
 {
 	CExpression *pexpr = NULL;
-	if (m_ulExpr < m_pdrgpexpr->UlLength())
+	if (m_ulExpr < m_pdrgpexpr->Size())
 	{
 		pexpr = (*m_pdrgpexpr)[m_ulExpr];
 	}
 
-	GPOS_ASSERT(m_ulExpr <= m_pdrgpexpr->UlLength());
+	GPOS_ASSERT(m_ulExpr <= m_pdrgpexpr->Size());
 	m_ulExpr++;
 	
 	return pexpr;
@@ -112,7 +112,7 @@ CXformResult::OsPrint
 {
 	os << "Alternatives:" << std::endl;
 	
-	for (ULONG i = 0; i < m_pdrgpexpr->UlLength(); i++)
+	for (ULONG i = 0; i < m_pdrgpexpr->Size(); i++)
 	{
 		os << i << ": " << std::endl;
 		(*m_pdrgpexpr)[i]->OsPrint(os);

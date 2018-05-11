@@ -39,10 +39,10 @@ namespace gpopt
 			explicit
 			CPhysicalLeftAntiSemiNLJoinNotIn
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CPhysicalLeftAntiSemiNLJoin(pmp)
+				CPhysicalLeftAntiSemiNLJoin(mp)
 			{}
 
 			// ident accessors

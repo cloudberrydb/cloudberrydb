@@ -35,16 +35,16 @@ namespace gpdxl
 		private:
 
 			// relation id on which triggers are to be executed
-			IMDId *m_pmdidRel;
+			IMDId *m_rel_mdid;
 
 			// trigger type
-			INT m_iType;
+			INT m_type;
 
 			// old column ids
-			DrgPul *m_pdrgpulOld;
+		ULongPtrArray *m_colids_old;
 
 			// new column ids
-			DrgPul *m_pdrgpulNew;
+		ULongPtrArray *m_colids_new;
 
 			// private copy ctor
 			CDXLPhysicalRowTrigger(const CDXLPhysicalRowTrigger &);
@@ -54,11 +54,11 @@ namespace gpdxl
 			// ctor
 			CDXLPhysicalRowTrigger
 				(
-				IMemoryPool *pmp,
-				IMDId *pmdidRel,
-				INT iType,
-				DrgPul *pdrgpulOld,
-				DrgPul *pdrgpulNew
+				IMemoryPool *mp,
+				IMDId *rel_mdid,
+				INT type,
+				ULongPtrArray *colids_old,
+				ULongPtrArray *colids_new
 				);
 
 			// dtor
@@ -67,57 +67,57 @@ namespace gpdxl
 
 			// operator type
 			virtual
-			Edxlopid Edxlop() const;
+			Edxlopid GetDXLOperator() const;
 
 			// operator name
 			virtual
-			const CWStringConst *PstrOpName() const;
+			const CWStringConst *GetOpNameStr() const;
 
 			// relation id
-			IMDId *PmdidRel() const
+			IMDId *GetRelMdId() const
 			{
-				return m_pmdidRel;
+				return m_rel_mdid;
 			}
 
 			// trigger type
-			INT IType() const
+			INT GetType() const
 			{
-				return m_iType;
+				return m_type;
 			}
 
 			// old column ids
-			DrgPul *PdrgpulOld() const
+			ULongPtrArray *GetColIdsOld() const
 			{
-				return m_pdrgpulOld;
+			return m_colids_old;
 			}
 
 			// new column ids
-			DrgPul *PdrgpulNew() const
+			ULongPtrArray *GetColIdsNew() const
 			{
-				return m_pdrgpulNew;
+			return m_colids_new;
 			}
 
 #ifdef GPOS_DEBUG
 			// checks whether the operator has valid structure, i.e. number and
 			// types of child nodes
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
+			void AssertValid(const CDXLNode *dxlnode, BOOL validate_children) const;
 #endif // GPOS_DEBUG
 
 			// serialize operator in DXL format
 			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+			void SerializeToDXL(CXMLSerializer *xml_serializer, const CDXLNode *dxlnode) const;
 
 			// conversion function
 			static
-			CDXLPhysicalRowTrigger *PdxlopConvert
+			CDXLPhysicalRowTrigger *Cast
 				(
-				CDXLOperator *pdxlop
+				CDXLOperator *dxl_op
 				)
 			{
-				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopPhysicalRowTrigger == pdxlop->Edxlop());
+				GPOS_ASSERT(NULL != dxl_op);
+				GPOS_ASSERT(EdxlopPhysicalRowTrigger == dxl_op->GetDXLOperator());
 
-				return dynamic_cast<CDXLPhysicalRowTrigger*>(pdxlop);
+				return dynamic_cast<CDXLPhysicalRowTrigger*>(dxl_op);
 			}
 	};
 }

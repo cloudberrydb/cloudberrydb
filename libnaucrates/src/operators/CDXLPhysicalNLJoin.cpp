@@ -28,14 +28,14 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLPhysicalNLJoin::CDXLPhysicalNLJoin
 	(
-	IMemoryPool *pmp,
-	EdxlJoinType edxljt,
-	BOOL fIndexNLJ,
+	IMemoryPool *mp,
+	EdxlJoinType join_type,
+	BOOL is_index_nlj,
 	BOOL nest_params_exists
 	)
 	:
-	CDXLPhysicalJoin(pmp, edxljt),
-	m_fIndexNLJ(fIndexNLJ),
+	CDXLPhysicalJoin(mp, join_type),
+	m_is_index_nlj(is_index_nlj),
 	m_nest_params_exists(nest_params_exists)
 {
 	m_nest_params_col_refs = NULL;
@@ -48,14 +48,14 @@ CDXLPhysicalNLJoin::~CDXLPhysicalNLJoin()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalNLJoin::Edxlop
+//		CDXLPhysicalNLJoin::GetDXLOperator
 //
 //	@doc:
 //		Operator type
 //
 //---------------------------------------------------------------------------
 Edxlopid
-CDXLPhysicalNLJoin::Edxlop() const
+CDXLPhysicalNLJoin::GetDXLOperator() const
 {
 	return EdxlopPhysicalNLJoin;
 }
@@ -63,16 +63,16 @@ CDXLPhysicalNLJoin::Edxlop() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLPhysicalNLJoin::PstrOpName
+//		CDXLPhysicalNLJoin::GetOpNameStr
 //
 //	@doc:
 //		Operator name
 //
 //---------------------------------------------------------------------------
 const CWStringConst *
-CDXLPhysicalNLJoin::PstrOpName() const
+CDXLPhysicalNLJoin::GetOpNameStr() const
 {
-	return CDXLTokens::PstrToken(EdxltokenPhysicalNLJoin);
+	return CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalNLJoin);
 }
 
 //---------------------------------------------------------------------------
@@ -86,30 +86,30 @@ CDXLPhysicalNLJoin::PstrOpName() const
 void
 CDXLPhysicalNLJoin::SerializeToDXL
 	(
-	CXMLSerializer *pxmlser,
-	const CDXLNode *pdxln
+	CXMLSerializer *xml_serializer,
+	const CDXLNode *dxlnode
 	)
 	const
 {
-	const CWStringConst *pstrElemName = PstrOpName();
+	const CWStringConst *element_name = GetOpNameStr();
 	
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);		
+	xml_serializer->OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 	
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenJoinType), PstrJoinTypeName());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPhysicalNLJoinIndex), m_fIndexNLJ);
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenNLJIndexOuterRefAsParam), m_nest_params_exists);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenJoinType), GetJoinTypeNameStr());
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenPhysicalNLJoinIndex), m_is_index_nlj);
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenNLJIndexOuterRefAsParam), m_nest_params_exists);
 
 
 	// serialize properties
-	pdxln->SerializePropertiesToDXL(pxmlser);
+	dxlnode->SerializePropertiesToDXL(xml_serializer);
 	
 	// serialize children
-	pdxln->SerializeChildrenToDXL(pxmlser);
+	dxlnode->SerializeChildrenToDXL(xml_serializer);
 
 	// serialize nestloop params
-	SerializeNestLoopParamsToDXL(pxmlser);
+	SerializeNestLoopParamsToDXL(xml_serializer);
 
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);		
+	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), element_name);
 }
 
 void
@@ -127,37 +127,37 @@ const
 	// Serialize NLJ index paramlist
 	xml_serializer->OpenElement
 	(
-	 CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-	 CDXLTokens::PstrToken(EdxltokenNLJIndexParamList)
+	 CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+	 CDXLTokens::GetDXLTokenStr(EdxltokenNLJIndexParamList)
 	 );
-	
-	for (ULONG ul = 0; ul < m_nest_params_col_refs->UlLength(); ul++)
+
+	for (ULONG ul = 0; ul < m_nest_params_col_refs->Size(); ul++)
 	{
 		xml_serializer->OpenElement
 		(
-		CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-		CDXLTokens::PstrToken(EdxltokenNLJIndexParam)
+		CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+		CDXLTokens::GetDXLTokenStr(EdxltokenNLJIndexParam)
 		);
-		
-		ULONG id = (*m_nest_params_col_refs)[ul]->UlID();
-		xml_serializer->AddAttribute(CDXLTokens::PstrToken(EdxltokenColId), id);
-		
-		const CMDName *md_name = (*m_nest_params_col_refs)[ul]->Pmdname();
-		const IMDId *mdid_type = (*m_nest_params_col_refs)[ul]->PmdidType();
-		xml_serializer->AddAttribute(CDXLTokens::PstrToken(EdxltokenColName), md_name->Pstr());
-		mdid_type->Serialize(xml_serializer, CDXLTokens::PstrToken(EdxltokenTypeId));
-		
+
+		ULONG id = (*m_nest_params_col_refs)[ul]->Id();
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenColId), id);
+
+		const CMDName *md_name = (*m_nest_params_col_refs)[ul]->MdName();
+		const IMDId *mdid_type = (*m_nest_params_col_refs)[ul]->MdidType();
+		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenColName), md_name->GetMDName());
+		mdid_type->Serialize(xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
+
 		xml_serializer->CloseElement
 		(
-		CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-		CDXLTokens::PstrToken(EdxltokenNLJIndexParam)
+		CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+		CDXLTokens::GetDXLTokenStr(EdxltokenNLJIndexParam)
 		);
 	}
-	
+
 	xml_serializer->CloseElement
 	(
-	CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
-	CDXLTokens::PstrToken(EdxltokenNLJIndexParamList)
+	CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
+	CDXLTokens::GetDXLTokenStr(EdxltokenNLJIndexParamList)
 	);
 }
 
@@ -173,37 +173,37 @@ const
 void
 CDXLPhysicalNLJoin::AssertValid
 	(
-	const CDXLNode *pdxln,
-	BOOL fValidateChildren
+	const CDXLNode *dxlnode,
+	BOOL validate_children
 	) 
 	const
 {
 	// assert proj list and filter are valid
-	CDXLPhysical::AssertValid(pdxln, fValidateChildren);
+	CDXLPhysical::AssertValid(dxlnode, validate_children);
 	
-	GPOS_ASSERT(EdxlnljIndexSentinel == pdxln->UlArity());
-	GPOS_ASSERT(EdxljtSentinel > Edxltype());
+	GPOS_ASSERT(EdxlnljIndexSentinel == dxlnode->Arity());
+	GPOS_ASSERT(EdxljtSentinel > GetJoinType());
 	
-	CDXLNode *pdxlnJoinFilter = (*pdxln)[EdxlnljIndexJoinFilter];
-	CDXLNode *pdxlnLeft = (*pdxln)[EdxlnljIndexLeftChild];
-	CDXLNode *pdxlnRight = (*pdxln)[EdxlnljIndexRightChild];
+	CDXLNode *dxlnode_join_filter = (*dxlnode)[EdxlnljIndexJoinFilter];
+	CDXLNode *dxlnode_left = (*dxlnode)[EdxlnljIndexLeftChild];
+	CDXLNode *dxlnode_right = (*dxlnode)[EdxlnljIndexRightChild];
 	
 	// assert children are of right type (physical/scalar)
-	GPOS_ASSERT(EdxlopScalarJoinFilter == pdxlnJoinFilter->Pdxlop()->Edxlop());
-	GPOS_ASSERT(EdxloptypePhysical == pdxlnLeft->Pdxlop()->Edxloperatortype());
-	GPOS_ASSERT(EdxloptypePhysical == pdxlnRight->Pdxlop()->Edxloperatortype());
+	GPOS_ASSERT(EdxlopScalarJoinFilter == dxlnode_join_filter->GetOperator()->GetDXLOperator());
+	GPOS_ASSERT(EdxloptypePhysical == dxlnode_left->GetOperator()->GetDXLOperatorType());
+	GPOS_ASSERT(EdxloptypePhysical == dxlnode_right->GetOperator()->GetDXLOperatorType());
 	
-	if (fValidateChildren)
+	if (validate_children)
 	{
-		pdxlnJoinFilter->Pdxlop()->AssertValid(pdxlnJoinFilter, fValidateChildren);
-		pdxlnLeft->Pdxlop()->AssertValid(pdxlnLeft, fValidateChildren);
-		pdxlnRight->Pdxlop()->AssertValid(pdxlnRight, fValidateChildren);
+		dxlnode_join_filter->GetOperator()->AssertValid(dxlnode_join_filter, validate_children);
+		dxlnode_left->GetOperator()->AssertValid(dxlnode_left, validate_children);
+		dxlnode_right->GetOperator()->AssertValid(dxlnode_right, validate_children);
 	}
 }
 #endif // GPOS_DEBUG
 
 void
-CDXLPhysicalNLJoin::SetNestLoopParamsColRefs(DrgPdxlcr *nest_params_col_refs)
+CDXLPhysicalNLJoin::SetNestLoopParamsColRefs(CDXLColRefArray *nest_params_col_refs)
 {
 	m_nest_params_col_refs = nest_params_col_refs;
 }
@@ -214,7 +214,7 @@ CDXLPhysicalNLJoin::NestParamsExists() const
 	return m_nest_params_exists;
 }
 
-DrgPdxlcr *
+CDXLColRefArray *
 CDXLPhysicalNLJoin::GetNestLoopParamsColRefs() const
 {
 	return m_nest_params_col_refs;

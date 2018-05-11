@@ -37,7 +37,7 @@ namespace gpdxl
 	{
 		private:
 	
-			EdxlBoolExprType m_edxlBoolType;
+			EdxlBoolExprType m_dxl_bool_type;
 	
 			// private copy ctor
 			CParseHandlerScalarBoolExpr(const CParseHandlerScalarBoolExpr &);
@@ -45,31 +45,31 @@ namespace gpdxl
 			// process the start of an element
 			void StartElement
 					(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname,		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname,		// element's qname
 					const Attributes& attr				// element's attributes
 					);
 	
 			// process the end of an element
 			void EndElement
 					(
-					const XMLCh* const xmlszUri, 		// URI of element's namespace
-					const XMLCh* const xmlszLocalname,	// local part of element's name
-					const XMLCh* const xmlszQname		// element's qname
+					const XMLCh* const element_uri, 		// URI of element's namespace
+					const XMLCh* const element_local_name,	// local part of element's name
+					const XMLCh* const element_qname		// element's qname
 					);
 	
 			// parse the bool type from the Xerces xml string
 			static
-			EdxlBoolExprType EdxlBoolType(const XMLCh *xmlszBoolType);
+			EdxlBoolExprType GetDxlBoolTypeStr(const XMLCh *xmlszBoolType);
 
 		public:
 			// ctor
 			CParseHandlerScalarBoolExpr
 					(
-					IMemoryPool *pmp,
-					CParseHandlerManager *pphm,
-					CParseHandlerBase *pphRoot
+					IMemoryPool *mp,
+					CParseHandlerManager *parse_handler_mgr,
+					CParseHandlerBase *parse_handler_root
 					);
 
 	};

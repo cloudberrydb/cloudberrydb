@@ -16,28 +16,28 @@ using namespace gpmd;
 
 // return statistics object after performing inner join
 CStatistics *
-CInnerJoinStatsProcessor::PstatsInnerJoinStatic
+CInnerJoinStatsProcessor::CalcInnerJoinStatsStatic
 			(
-			IMemoryPool *pmp,
-			const IStatistics *pistatsOuter,
-			const IStatistics *pistatsInner,
-			DrgPstatspredjoin *pdrgpstatspredjoin
+			IMemoryPool *mp,
+			const IStatistics *outer_stats_input,
+			const IStatistics *inner_stats_input,
+			CStatsPredJoinArray *join_preds_stats
 			)
 {
-	GPOS_ASSERT(NULL != pistatsOuter);
-	GPOS_ASSERT(NULL != pistatsInner);
-	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
-	const CStatistics *pstatsOuter = dynamic_cast<const CStatistics *> (pistatsOuter);
+	GPOS_ASSERT(NULL != outer_stats_input);
+	GPOS_ASSERT(NULL != inner_stats_input);
+	GPOS_ASSERT(NULL != join_preds_stats);
+	const CStatistics *outer_stats = dynamic_cast<const CStatistics *> (outer_stats_input);
 
-	return CJoinStatsProcessor::PstatsJoinDriver
+	return CJoinStatsProcessor::SetResultingJoinStats
 			(
-			pmp,
-			pstatsOuter->PStatsConf(),
-			pistatsOuter,
-			pistatsInner,
-			pdrgpstatspredjoin,
+			mp,
+			outer_stats->GetStatsConfig(),
+			outer_stats_input,
+			inner_stats_input,
+			join_preds_stats,
 			IStatistics::EsjtInnerJoin,
-			true /* fIgnoreLasjHistComputation */
+			true /* DoIgnoreLASJHistComputation */
 			);
 }
 

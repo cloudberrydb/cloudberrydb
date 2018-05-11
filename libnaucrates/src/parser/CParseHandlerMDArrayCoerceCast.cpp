@@ -26,146 +26,146 @@ XERCES_CPP_NAMESPACE_USE
 // ctor
 CParseHandlerMDArrayCoerceCast::CParseHandlerMDArrayCoerceCast
 	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
+	IMemoryPool *mp,
+	CParseHandlerManager *parse_handler_mgr,
+	CParseHandlerBase *parse_handler_root
 	)
 	:
-	CParseHandlerMetadataObject(pmp, pphm, pphRoot)
+	CParseHandlerMetadataObject(mp, parse_handler_mgr, parse_handler_root)
 {}
 
 // invoked by Xerces to process an opening tag
 void
 CParseHandlerMDArrayCoerceCast::StartElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const, // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const, // element_qname
 	const Attributes& attrs
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBArrayCoerceCast), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBArrayCoerceCast), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// parse func name
-	const XMLCh *xmlszFuncName = CDXLOperatorFactory::XmlstrFromAttrs
+	const XMLCh *xml_str_fun_name = CDXLOperatorFactory::ExtractAttrValue
 														(
 														attrs,
 														EdxltokenName,
 														EdxltokenGPDBArrayCoerceCast
 														);
 
-	CMDName *pmdname = CDXLUtils::PmdnameFromXmlsz(m_pphm->Pmm(), xmlszFuncName);
+	CMDName *mdname = CDXLUtils::CreateMDNameFromXMLChar(m_parse_handler_mgr->GetDXLMemoryManager(), xml_str_fun_name);
 
 	// parse cast properties
-	IMDId *pmdid = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenMdid,
 									EdxltokenGPDBArrayCoerceCast
 									);
 
-	IMDId *pmdidSrc = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid_src = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenGPDBCastSrcType,
 									EdxltokenGPDBArrayCoerceCast
 									);
 
-	IMDId *pmdidDest = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid_dest = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenGPDBCastDestType,
 									EdxltokenGPDBArrayCoerceCast
 									);
 
-	IMDId *pmdidCastFunc = CDXLOperatorFactory::PmdidFromAttrs
+	IMDId *mdid_cast_func = CDXLOperatorFactory::ExtractConvertAttrValueToMdId
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenGPDBCastFuncId,
 									EdxltokenGPDBArrayCoerceCast
 									);
 
 	// parse whether func returns a set
-	BOOL fBinaryCoercible = CDXLOperatorFactory::FValueFromAttrs
+	BOOL is_binary_coercible = CDXLOperatorFactory::ExtractConvertAttrValueToBool
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenGPDBCastBinaryCoercible,
 									EdxltokenGPDBArrayCoerceCast
 									);
 
 	// parse coercion path type
-	IMDCast::EmdCoercepathType eCoercePathType = (IMDCast::EmdCoercepathType)
-													CDXLOperatorFactory::IValueFromAttrs
+	IMDCast::EmdCoercepathType coerce_path_type = (IMDCast::EmdCoercepathType)
+													CDXLOperatorFactory::ExtractConvertAttrValueToInt
 															(
-															m_pphm->Pmm(),
+															m_parse_handler_mgr->GetDXLMemoryManager(),
 															attrs,
 															EdxltokenGPDBCastCoercePathType,
 															EdxltokenGPDBArrayCoerceCast
 															);
 
-	INT iTypeModifier = CDXLOperatorFactory::IValueFromAttrs
+	INT type_modifier = CDXLOperatorFactory::ExtractConvertAttrValueToInt
 							(
-							m_pphm->Pmm(),
+							m_parse_handler_mgr->GetDXLMemoryManager(),
 							attrs,
 							EdxltokenTypeMod,
 							EdxltokenGPDBArrayCoerceCast,
 							true,
-							IDefaultTypeModifier
+							default_type_modifier
 							);
 
-	BOOL fIsExplicit =CDXLOperatorFactory::FValueFromAttrs
+	BOOL is_explicit =CDXLOperatorFactory::ExtractConvertAttrValueToBool
 									(
-									m_pphm->Pmm(),
+									m_parse_handler_mgr->GetDXLMemoryManager(),
 									attrs,
 									EdxltokenIsExplicit,
 									EdxltokenGPDBArrayCoerceCast
 									);
 
-	EdxlCoercionForm edcf = (EdxlCoercionForm) CDXLOperatorFactory::IValueFromAttrs
+	EdxlCoercionForm dxl_coercion_form = (EdxlCoercionForm) CDXLOperatorFactory::ExtractConvertAttrValueToInt
 																		(
-																		m_pphm->Pmm(),
+																		m_parse_handler_mgr->GetDXLMemoryManager(),
 																		attrs,
 																		EdxltokenCoercionForm,
 																		EdxltokenGPDBArrayCoerceCast
 																		);
 
-	INT iLoc = CDXLOperatorFactory::IValueFromAttrs
+	INT location = CDXLOperatorFactory::ExtractConvertAttrValueToInt
 							(
-							m_pphm->Pmm(),
+							m_parse_handler_mgr->GetDXLMemoryManager(),
 							attrs,
 							EdxltokenLocation,
 							EdxltokenGPDBArrayCoerceCast
 							);
 
-	m_pimdobj = GPOS_NEW(m_pmp) CMDArrayCoerceCastGPDB(m_pmp, pmdid, pmdname, pmdidSrc, pmdidDest, fBinaryCoercible, pmdidCastFunc, eCoercePathType, iTypeModifier, fIsExplicit, edcf, iLoc);
+	m_imd_obj = GPOS_NEW(m_mp) CMDArrayCoerceCastGPDB(m_mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible, mdid_cast_func, coerce_path_type, type_modifier, is_explicit, dxl_coercion_form, location);
 }
 
 // invoked by Xerces to process a closing tag
 void
 CParseHandlerMDArrayCoerceCast::EndElement
 	(
-	const XMLCh* const, // xmlszUri,
-	const XMLCh* const xmlszLocalname,
-	const XMLCh* const // xmlszQname
+	const XMLCh* const, // element_uri,
+	const XMLCh* const element_local_name,
+	const XMLCh* const // element_qname
 	)
 {
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBArrayCoerceCast), xmlszLocalname))
+	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenGPDBArrayCoerceCast), element_local_name))
 	{
-		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
+		CWStringDynamic *str = CDXLUtils::CreateDynamicStringFromXMLChArray(m_parse_handler_mgr->GetDXLMemoryManager(), element_local_name);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, str->GetBuffer());
 	}
 
 	// deactivate handler
-	m_pphm->DeactivateHandler();
+	m_parse_handler_mgr->DeactivateHandler();
 }
 
 // EOF

@@ -61,7 +61,7 @@ namespace gpopt
 			// ctor
 			CAutoMDAccessor
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				IMDProvider *pmdp,
 				CSystemId sysid
 				)
@@ -73,15 +73,15 @@ namespace gpopt
 				GPOS_ASSERT(NULL != pmdp);
 
 				m_pcache =
-					CCacheFactory::PCacheCreate<gpmd::IMDCacheObject*, gpopt::CMDKey*>(true /*fUnique*/, 0 /* unlimited cache quota */,
+					CCacheFactory::CreateCache<gpmd::IMDCacheObject*, gpopt::CMDKey*>(true /*fUnique*/, 0 /* unlimited cache quota */,
 							gpopt::CMDKey::UlHashMDKey, gpopt::CMDKey::FEqualMDKey);
-				m_pmda = GPOS_NEW(pmp) CMDAccessor(pmp, m_pcache, sysid, pmdp);
+				m_pmda = GPOS_NEW(mp) CMDAccessor(mp, m_pcache, sysid, pmdp);
 			}
 
 			// ctor
 			CAutoMDAccessor
 				(
-				IMemoryPool *pmp,
+				IMemoryPool *mp,
 				IMDProvider *pmdp,
 				CSystemId sysid,
 				CMDAccessor::MDCache *pcache
@@ -95,7 +95,7 @@ namespace gpopt
 				GPOS_ASSERT(NULL != pmdp);
 				GPOS_ASSERT(NULL != pcache);
 
-				m_pmda = GPOS_NEW(pmp) CMDAccessor(pmp, m_pcache, sysid, pmdp);
+				m_pmda = GPOS_NEW(mp) CMDAccessor(mp, m_pcache, sysid, pmdp);
 			}
 
 			// dtor

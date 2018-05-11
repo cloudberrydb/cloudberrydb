@@ -60,19 +60,19 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_Wait()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CTask *rgPtsk[2];
 		ULLONG rgRes[2];
 
 		// create tasks
-		rgPtsk[0] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[0]);
-		rgPtsk[1] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Long, &rgRes[1]);
+		rgPtsk[0] = atp.Create(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[0]);
+		rgPtsk[1] = atp.Create(CAutoTaskProxyTest::PvUnittest_Long, &rgRes[1]);
 
 		// start two tasks
 		atp.Schedule(rgPtsk[0]);
@@ -82,8 +82,8 @@ CAutoTaskProxyTest::EresUnittest_Wait()
 		atp.Wait(rgPtsk[0]);
 		atp.Wait(rgPtsk[1]);
 
-		GPOS_ASSERT(rgRes[0] == *(ULLONG *)rgPtsk[0]->PvRes());
-		GPOS_ASSERT(rgRes[1] == *(ULLONG *)rgPtsk[1]->PvRes());
+		GPOS_ASSERT(rgRes[0] == *(ULLONG *)rgPtsk[0]->GetRes());
+		GPOS_ASSERT(rgRes[1] == *(ULLONG *)rgPtsk[1]->GetRes());
 	}
 
 
@@ -103,20 +103,20 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_WaitAny()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CTask *rgPtsk[3];
 		ULLONG rgRes[3];
 
 		// create tasks
-		rgPtsk[0] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[0]);
-		rgPtsk[1] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[1]);
-		rgPtsk[2] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[2]);
+		rgPtsk[0] = atp.Create(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[0]);
+		rgPtsk[1] = atp.Create(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[1]);
+		rgPtsk[2] = atp.Create(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[2]);
 
 		// start tasks
 		atp.Schedule(rgPtsk[0]);
@@ -127,8 +127,8 @@ CAutoTaskProxyTest::EresUnittest_WaitAny()
 		CTask *ptsk = NULL;
 		atp.WaitAny(&ptsk);
 
-		GPOS_ASSERT(rgPtsk[0]->FCheckStatus(false /*fCompleted*/));
-		GPOS_ASSERT(rgPtsk[1]->FCheckStatus(false /*fCompleted*/));
+		GPOS_ASSERT(rgPtsk[0]->CheckStatus(false /*fCompleted*/));
+		GPOS_ASSERT(rgPtsk[1]->CheckStatus(false /*fCompleted*/));
 
 		GPOS_ASSERT(ptsk == rgPtsk[2]);
 
@@ -139,17 +139,17 @@ CAutoTaskProxyTest::EresUnittest_WaitAny()
 		atp.Cancel(rgPtsk[0]);
 		atp.WaitAny(&ptsk);
 
-		GPOS_ASSERT(rgPtsk[1]->FCheckStatus(false /*fCompleted*/));
+		GPOS_ASSERT(rgPtsk[1]->CheckStatus(false /*fCompleted*/));
 
 		GPOS_ASSERT(ptsk == rgPtsk[0]);
-		GPOS_ASSERT(rgPtsk[0]->FCanceled());
+		GPOS_ASSERT(rgPtsk[0]->IsCanceled());
 
-		GPOS_ASSERT(CTask::EtsError == rgPtsk[0]->Ets());
-		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->Ets());
+		GPOS_ASSERT(CTask::EtsError == rgPtsk[0]->GetStatus());
+		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->GetStatus());
 
-		GPOS_ASSERT(NULL == rgPtsk[0]->PvRes());
-		GPOS_ASSERT(NULL == rgPtsk[1]->PvRes());
-		GPOS_ASSERT(rgRes[2] == *(ULLONG *)rgPtsk[2]->PvRes());
+		GPOS_ASSERT(NULL == rgPtsk[0]->GetRes());
+		GPOS_ASSERT(NULL == rgPtsk[1]->GetRes());
+		GPOS_ASSERT(rgRes[2] == *(ULLONG *)rgPtsk[2]->GetRes());
 
 		// ATP cancels running task
 	}
@@ -170,19 +170,19 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_TimedWait()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CTask *rgPtsk[2];
 		ULLONG rgRes[2];
 
 		// create tasks
-		rgPtsk[0] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[0]);
-		rgPtsk[1] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[1]);
+		rgPtsk[0] = atp.Create(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[0]);
+		rgPtsk[1] = atp.Create(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[1]);
 
 		// start tasks
 		atp.Schedule(rgPtsk[0]);
@@ -192,31 +192,31 @@ CAutoTaskProxyTest::EresUnittest_TimedWait()
 #ifdef GPOS_DEBUG
 		GPOS_RESULT eres =
 #endif // GPOS_DEBUG
-		atp.EresTimedWait(rgPtsk[0], gpos::ulong_max);
+		atp.TimedWait(rgPtsk[0], gpos::ulong_max);
 		GPOS_ASSERT(GPOS_OK == eres);
 
 		// check second task - timeout immediately
 #ifdef GPOS_DEBUG
 		eres =
 #endif // GPOS_DEBUG
-		atp.EresTimedWait(rgPtsk[1], 0);
+		atp.TimedWait(rgPtsk[1], 0);
 		GPOS_ASSERT(GPOS_TIMEOUT == eres);
 
 		// wait for second task - timeout
 #ifdef GPOS_DEBUG
 		eres =
 #endif // GPOS_DEBUG
-		atp.EresTimedWait(rgPtsk[1], 10);
+		atp.TimedWait(rgPtsk[1], 10);
 		GPOS_ASSERT(GPOS_TIMEOUT == eres);
 
-		GPOS_ASSERT(!rgPtsk[0]->FCanceled());
-		GPOS_ASSERT(!rgPtsk[1]->FCanceled());
+		GPOS_ASSERT(!rgPtsk[0]->IsCanceled());
+		GPOS_ASSERT(!rgPtsk[1]->IsCanceled());
 
-		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[0]->Ets());
-		GPOS_ASSERT(rgPtsk[1]->FScheduled() && !rgPtsk[1]->FFinished());
+		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[0]->GetStatus());
+		GPOS_ASSERT(rgPtsk[1]->IsScheduled() && !rgPtsk[1]->IsFinished());
 
-		GPOS_ASSERT(rgRes[0] == *(ULLONG *)rgPtsk[0]->PvRes());
-		GPOS_ASSERT(NULL == rgPtsk[1]->PvRes());
+		GPOS_ASSERT(rgRes[0] == *(ULLONG *)rgPtsk[0]->GetRes());
+		GPOS_ASSERT(NULL == rgPtsk[1]->GetRes());
 
 		// ATP cancels running task
 	}
@@ -238,20 +238,20 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_TimedWaitAny()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CTask *rgPtsk[3];
 		ULLONG rgRes[3];
 
 		// create tasks
-		rgPtsk[0] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[0]);
-		rgPtsk[1] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[1]);
-		rgPtsk[2] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[2]);
+		rgPtsk[0] = atp.Create(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[0]);
+		rgPtsk[1] = atp.Create(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[1]);
+		rgPtsk[2] = atp.Create(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[2]);
 
 		// start tasks
 		atp.Schedule(rgPtsk[0]);
@@ -264,20 +264,20 @@ CAutoTaskProxyTest::EresUnittest_TimedWaitAny()
 #ifdef GPOS_DEBUG
 		GPOS_RESULT eres =
 #endif // GPOS_DEBUG
-		atp.EresTimedWaitAny(&ptsk, gpos::ulong_max);
+		atp.TimedWaitAny(&ptsk, gpos::ulong_max);
 		GPOS_ASSERT(GPOS_OK == eres);
 		GPOS_ASSERT(ptsk == rgPtsk[2]);
-		GPOS_ASSERT(!rgPtsk[2]->FCanceled());
+		GPOS_ASSERT(!rgPtsk[2]->IsCanceled());
 
-		GPOS_ASSERT(rgPtsk[0]->FScheduled() && !rgPtsk[0]->FFinished());
-		GPOS_ASSERT(rgPtsk[1]->FScheduled() && !rgPtsk[1]->FFinished());
-		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->Ets());
+		GPOS_ASSERT(rgPtsk[0]->IsScheduled() && !rgPtsk[0]->IsFinished());
+		GPOS_ASSERT(rgPtsk[1]->IsScheduled() && !rgPtsk[1]->IsFinished());
+		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->GetStatus());
 
 		// check if any task is complete - immediate timeout
 #ifdef GPOS_DEBUG
 		eres =
 #endif // GPOS_DEBUG
-		atp.EresTimedWaitAny(&ptsk, 0);
+		atp.TimedWaitAny(&ptsk, 0);
 		GPOS_ASSERT(GPOS_TIMEOUT == eres);
 		GPOS_ASSERT(NULL == ptsk);
 
@@ -285,13 +285,13 @@ CAutoTaskProxyTest::EresUnittest_TimedWaitAny()
 #ifdef GPOS_DEBUG
 		eres =
 #endif // GPOS_DEBUG
-		atp.EresTimedWaitAny(&ptsk, 10);
+		atp.TimedWaitAny(&ptsk, 10);
 		GPOS_ASSERT(GPOS_TIMEOUT == eres);
 		GPOS_ASSERT(NULL == ptsk);
 
-		GPOS_ASSERT(rgPtsk[0]->FScheduled() && !rgPtsk[0]->FFinished());
-		GPOS_ASSERT(rgPtsk[1]->FScheduled() && !rgPtsk[1]->FFinished());
-		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->Ets());
+		GPOS_ASSERT(rgPtsk[0]->IsScheduled() && !rgPtsk[0]->IsFinished());
+		GPOS_ASSERT(rgPtsk[1]->IsScheduled() && !rgPtsk[1]->IsFinished());
+		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->GetStatus());
 
 		// cancel task
 		atp.Cancel(rgPtsk[0]);
@@ -301,19 +301,19 @@ CAutoTaskProxyTest::EresUnittest_TimedWaitAny()
 #ifdef GPOS_DEBUG
 		eres =
 #endif // GPOS_DEBUG
-		atp.EresTimedWaitAny(&ptsk, gpos::ulong_max);
+		atp.TimedWaitAny(&ptsk, gpos::ulong_max);
 
 		GPOS_ASSERT(GPOS_OK == eres);
 		GPOS_ASSERT(ptsk == rgPtsk[0]);
-		GPOS_ASSERT(rgPtsk[0]->FCanceled());
+		GPOS_ASSERT(rgPtsk[0]->IsCanceled());
 
-		GPOS_ASSERT(CTask::EtsError == rgPtsk[0]->Ets());
-		GPOS_ASSERT(rgPtsk[1]->FScheduled() && !rgPtsk[1]->FFinished());
-		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->Ets());
+		GPOS_ASSERT(CTask::EtsError == rgPtsk[0]->GetStatus());
+		GPOS_ASSERT(rgPtsk[1]->IsScheduled() && !rgPtsk[1]->IsFinished());
+		GPOS_ASSERT(CTask::EtsCompleted == rgPtsk[2]->GetStatus());
 
-		GPOS_ASSERT(NULL == rgPtsk[0]->PvRes());
-		GPOS_ASSERT(NULL == rgPtsk[1]->PvRes());
-		GPOS_ASSERT(rgRes[2] == *(ULLONG *)rgPtsk[2]->PvRes());
+		GPOS_ASSERT(NULL == rgPtsk[0]->GetRes());
+		GPOS_ASSERT(NULL == rgPtsk[1]->GetRes());
+		GPOS_ASSERT(rgRes[2] == *(ULLONG *)rgPtsk[2]->GetRes());
 
 		// ATP cancels running task
 	}
@@ -336,13 +336,13 @@ CAutoTaskProxyTest::EresUnittest_Destroy()
 	const ULONG culTskCnt = 90;
 
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		CTask *rgPtsk[culTskCnt];
 		ULLONG rgRes[culTskCnt];
 
@@ -355,9 +355,9 @@ CAutoTaskProxyTest::EresUnittest_Destroy()
 			GPOS_CHECK_ABORT;
 
 			// create 3 tasks
-			rgPtsk[3*i] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[3*i]);
-			rgPtsk[3*i + 1] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Long, &rgRes[3*i + 1]);
-			rgPtsk[3*i + 2] = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[3*i + 2]);
+			rgPtsk[3*i] = atp.Create(CAutoTaskProxyTest::PvUnittest_Short, &rgRes[3*i]);
+			rgPtsk[3*i + 1] = atp.Create(CAutoTaskProxyTest::PvUnittest_Long, &rgRes[3*i + 1]);
+			rgPtsk[3*i + 2] = atp.Create(CAutoTaskProxyTest::PvUnittest_Infinite, &rgRes[3*i + 2]);
 
 			atp.Schedule(rgPtsk[3*i]);
 			atp.Schedule(rgPtsk[3*i + 1]);
@@ -367,9 +367,9 @@ CAutoTaskProxyTest::EresUnittest_Destroy()
 			atp.Cancel(rgPtsk[3*i + 2]);
 
 			// destroy completed tasks
-			while (0 < atp.UlTasks() && GPOS_OK == atp.EresTimedWaitAny(&ptsk, 0))
+			while (0 < atp.TaskCount() && GPOS_OK == atp.TimedWaitAny(&ptsk, 0))
 			{
-				GPOS_ASSERT(CTask::EtsCompleted == ptsk->Ets() || ptsk->FCanceled());
+				GPOS_ASSERT(CTask::EtsCompleted == ptsk->GetStatus() || ptsk->IsCanceled());
 
 				atp.Destroy(ptsk);
 			}
@@ -402,7 +402,7 @@ CAutoTaskProxyTest::Unittest_ExecuteWaitFunc
 	GPOS_ASSERT(EwtInvalid < ewtCur && EwtSentinel > ewtCur);
 
 	// loop until the task is running or finished
-	while (!(ptsk->FRunning() || ptsk->FFinished()))
+	while (!(ptsk->IsRunning() || ptsk->IsFinished()))
 	{
 		clib::USleep(1000);
 	}
@@ -410,7 +410,7 @@ CAutoTaskProxyTest::Unittest_ExecuteWaitFunc
 	// cancel the task or not
 	if (fInvokeCancel)
 	{
-		GPOS_ASSERT(ptsk->FRunning());
+		GPOS_ASSERT(ptsk->IsRunning());
 		
 		// cancel the running task
 		atp.Cancel(ptsk);
@@ -430,10 +430,10 @@ CAutoTaskProxyTest::Unittest_ExecuteWaitFunc
 			atp.WaitAny(&finishedTask);
 			break;
 		case EwtTimedWait:
-			atp.EresTimedWait(ptsk, gpos::ulong_max);
+			atp.TimedWait(ptsk, gpos::ulong_max);
 			break;
 		case EwtTimedWaitAny:
-			atp.EresTimedWaitAny(&finishedTask, gpos::ulong_max);
+			atp.TimedWaitAny(&finishedTask, gpos::ulong_max);
 			break;
 		case EwtDestroy:
 			atp.Destroy(ptsk);
@@ -475,32 +475,32 @@ CAutoTaskProxyTest::Unittest_PropagateErrorInternal
 	)
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 		const ULONG ulTaskSize = EwtSentinel - 1;
 		CTask *rgPtsk[ulTaskSize];
 		ULLONG rgRes[ulTaskSize];
 
-		for (ULONG ulIdx = 0; ulIdx < ulTaskSize; ++ulIdx)
+		for (ULONG idx = 0; idx < ulTaskSize; ++idx)
 		{
-			rgPtsk[ulIdx] = atp.PtskCreate(pfnTaskExec, &rgRes[ulIdx]);
+			rgPtsk[idx] = atp.Create(pfnTaskExec, &rgRes[idx]);
 		}
 
 		// start tasks
-		for (ULONG ulIdx = 0; ulIdx < ulTaskSize; ++ulIdx)
+		for (ULONG idx = 0; idx < ulTaskSize; ++idx)
 		{
-			atp.Schedule(rgPtsk[ulIdx]);
+			atp.Schedule(rgPtsk[idx]);
 		}
 
 		// invoke each *wait* function separately
-		for(ULONG ulIdx = EwtInvalid + 1; ulIdx < EwtSentinel; ++ulIdx)
+		for(ULONG idx = EwtInvalid + 1; idx < EwtSentinel; ++idx)
 		{
-			Unittest_ExecuteWaitFunc(atp, rgPtsk[ulIdx - 1], fInvokeCancel, static_cast<EWaitType>(ulIdx));
+			Unittest_ExecuteWaitFunc(atp, rgPtsk[idx - 1], fInvokeCancel, static_cast<EWaitType>(idx));
 		}
 
 	}
@@ -510,13 +510,13 @@ void* CAutoTaskProxyTest::Unittest_CheckExecuteErrorInternal(void* pv)
 {
 	GPOS_ASSERT(NULL != pv);
 	STestThreadDescriptor *ptd = reinterpret_cast<STestThreadDescriptor *>(pv);
-	CWorker wrkr(ptd->ulId, GPOS_WORKER_STACK_SIZE, (ULONG_PTR) &ptd);
+	CWorker wrkr(ptd->id, GPOS_WORKER_STACK_SIZE, (ULONG_PTR) &ptd);
 	ptd->fException = false;
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(ptd->m_pmp, pwpm, ptd->fPropagateException);
-		CTask *task = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Error, NULL);
+		CAutoTaskProxy atp(ptd->m_mp, pwpm, ptd->fPropagateException);
+		CTask *task = atp.Create(CAutoTaskProxyTest::PvUnittest_Error, NULL);
 		GPOS_TRY
 		{
 			atp.Execute(task);
@@ -578,14 +578,14 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_ExecuteError()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
 	// Create new thread so worker for this new
 	// thread is available to run the task ("CAutoTaskProxyTest::PvUnittest_Error")
 	// from Unittest_CheckExecuteErrorInternal
 	STestThreadDescriptor st;
-	st.ulId = GPOS_THREAD_MAX + 1;
-	st.m_pmp = pmp;
+	st.id = GPOS_THREAD_MAX + 1;
+	st.m_mp = mp;
 	st.fException = false;
 	st.fPropagateException = true;
 
@@ -632,23 +632,23 @@ GPOS_RESULT
 CAutoTaskProxyTest::EresUnittest_CheckErrorPropagation()
 {
 	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
+	IMemoryPool *mp = amp.Pmp();
 
-	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::WorkerPoolManager();
 
 	// scope for ATP
 	{
-		CAutoTaskProxy atp(pmp, pwpm);
+		CAutoTaskProxy atp(mp, pwpm);
 
 		CTask* ptsk = NULL;
 
 		// error propagation is enable by default
-		ptsk = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Error, NULL);
+		ptsk = atp.Create(CAutoTaskProxyTest::PvUnittest_Error, NULL);
 		atp.Schedule(ptsk);
 		Unittest_ExecuteWaitFunc(atp, ptsk, false /* fInvokeCancel */, EwtWait);
 
 		// disable error propagation
-		ptsk = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Error, NULL);
+		ptsk = atp.Create(CAutoTaskProxyTest::PvUnittest_Error, NULL);
 		atp.SetPropagateError(false /* fPropagateError */);
 		atp.Schedule(ptsk);
 
@@ -657,7 +657,7 @@ CAutoTaskProxyTest::EresUnittest_CheckErrorPropagation()
 		GPOS_ASSERT("Task completed");
 
 		// enable error propagation
-		ptsk = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Error, NULL);
+		ptsk = atp.Create(CAutoTaskProxyTest::PvUnittest_Error, NULL);
 		atp.SetPropagateError(true /* fPropagateError */);
 		atp.Schedule(ptsk);
 		Unittest_ExecuteWaitFunc(atp, ptsk, false /* fInvokeCancel */, EwtWait);
@@ -681,7 +681,7 @@ CAutoTaskProxyTest::PvUnittest_Short
 	void *pv
 	)
 {
-	GPOS_ASSERT(CWorkerPoolManager::Pwpm()->FOwnedThread(gpos::pthread::PthrdtPthreadSelf()));
+	GPOS_ASSERT(CWorkerPoolManager::WorkerPoolManager()->OwnedThread(gpos::pthread::Self()));
 
 	ULLONG *pullSum = (ULLONG *) pv;
 	*pullSum = 0;
@@ -709,7 +709,7 @@ CAutoTaskProxyTest::PvUnittest_Long
 	void *pv
 	)
 {
-	GPOS_ASSERT(CWorkerPoolManager::Pwpm()->FOwnedThread(gpos::pthread::PthrdtPthreadSelf()));
+	GPOS_ASSERT(CWorkerPoolManager::WorkerPoolManager()->OwnedThread(gpos::pthread::Self()));
 
 	ULLONG *pullSum = (ULLONG *) pv;
 	*pullSum = 0;
@@ -741,7 +741,7 @@ CAutoTaskProxyTest::PvUnittest_Infinite
 	void * // pv
 	)
 {
-	GPOS_ASSERT(CWorkerPoolManager::Pwpm()->FOwnedThread(gpos::pthread::PthrdtPthreadSelf()));
+	GPOS_ASSERT(CWorkerPoolManager::WorkerPoolManager()->OwnedThread(gpos::pthread::Self()));
 
 	while (true)
 	{

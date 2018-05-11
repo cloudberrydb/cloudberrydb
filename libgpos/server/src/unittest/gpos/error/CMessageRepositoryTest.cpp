@@ -53,31 +53,31 @@ CMessageRepositoryTest::EresUnittest_Basic()
 		
 #ifdef GPOS_DEBUG
 	// lookup OOM message
-	CMessage *pmsg = CMessageRepository::Pmr()->PmsgLookup(
+	CMessage *pmsg = CMessageRepository::GetMessageRepository()->LookupMessage(
 						CException(CException::ExmaSystem, CException::ExmiOOM),
 						ElocEnUS_Utf8);
 
-	GPOS_ASSERT(GPOS_MATCH_EX(pmsg->m_exc, 
+	GPOS_ASSERT(GPOS_MATCH_EX(pmsg->m_exception, 
 						CException::ExmaSystem, 
 						CException::ExmiOOM));
 	
-	GPOS_ASSERT(pmsg == CMessage::Pmsg(CException::ExmiOOM));
+	GPOS_ASSERT(pmsg == CMessage::GetMessage(CException::ExmiOOM));
 
 	// attempt looking up OOM message in German -- should return enUS OOM message;
-	pmsg = CMessageRepository::Pmr()->PmsgLookup(
+	pmsg = CMessageRepository::GetMessageRepository()->LookupMessage(
 						 CException(CException::ExmaSystem, CException::ExmiOOM),
 						 ElocGeDE_Utf8);
 
-	GPOS_ASSERT(GPOS_MATCH_EX(pmsg->m_exc,
+	GPOS_ASSERT(GPOS_MATCH_EX(pmsg->m_exception,
 						  CException::ExmaSystem,
 						  CException::ExmiOOM));
 
-	GPOS_ASSERT(pmsg == CMessage::Pmsg(CException::ExmiOOM));
+	GPOS_ASSERT(pmsg == CMessage::GetMessage(CException::ExmiOOM));
 
 	GPOS_TRY
 	{
 		// attempt looking up message with invalid exception code
-		pmsg = CMessageRepository::Pmr()->PmsgLookup(
+		pmsg = CMessageRepository::GetMessageRepository()->LookupMessage(
 							CException(CException::ExmaSystem, 1234567),
 							ElocEnUS_Utf8);
 	}

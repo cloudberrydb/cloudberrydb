@@ -37,60 +37,60 @@ namespace gpnaucrates
 			CStatsPredConj& operator=(CStatsPredConj &);
 
 			// array of filters
-			DrgPstatspred *m_pdrgpstatspred;
+		CStatsPredPtrArry *m_conj_pred_stats_array;
 
 		public:
 
 			// ctor
 			explicit
-			CStatsPredConj(DrgPstatspred *pdrgpstatspred);
+			CStatsPredConj(CStatsPredPtrArry *pdrgpstatspred);
 
 			// dtor
 			virtual
 			~CStatsPredConj()
 			{
-				m_pdrgpstatspred->Release();
+				m_conj_pred_stats_array->Release();
 			}
 
 			// the column identifier on which the predicates are on
 			virtual
-			ULONG UlColId() const;
+			ULONG GetColId() const;
 
 			// total number of predicates in the conjunction
-			ULONG UlFilters() const
+			ULONG GetNumPreds() const
 			{
-				return m_pdrgpstatspred->UlLength();
+				return m_conj_pred_stats_array->Size();
 			}
 
-			DrgPstatspred *Pdrgpstatspred() const
+			CStatsPredPtrArry *GetConjPredStatsArray() const
 			{
-				return m_pdrgpstatspred;
+				return m_conj_pred_stats_array;
 			}
 
 			// sort the components of the conjunction
 			void Sort() const;
 
 			// return the filter at a particular position
-			CStatsPred *Pstatspred(ULONG ulPos) const;
+			CStatsPred *GetPredStats(ULONG pos) const;
 
 			// filter type id
 			virtual
-			EStatsPredType Espt() const
+			EStatsPredType GetPredStatsType() const
 			{
 				return CStatsPred::EsptConj;
 			}
 
 			// conversion function
 			static
-			CStatsPredConj *PstatspredConvert
+			CStatsPredConj *ConvertPredStats
 				(
-				CStatsPred *pstatspred
+				CStatsPred *pred_stats
 				)
 			{
-				GPOS_ASSERT(NULL != pstatspred);
-				GPOS_ASSERT(CStatsPred::EsptConj == pstatspred->Espt());
+				GPOS_ASSERT(NULL != pred_stats);
+				GPOS_ASSERT(CStatsPred::EsptConj == pred_stats->GetPredStatsType());
 
-				return dynamic_cast<CStatsPredConj*>(pstatspred);
+				return dynamic_cast<CStatsPredConj*>(pred_stats);
 			}
 
 	}; // class CStatsPredConj

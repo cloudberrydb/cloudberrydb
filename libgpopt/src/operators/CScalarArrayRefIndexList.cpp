@@ -26,11 +26,11 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CScalarArrayRefIndexList::CScalarArrayRefIndexList
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *mp,
 	EIndexListType eilt
 	)
 	:
-	CScalar(pmp),
+	CScalar(mp),
 	m_eilt(eilt)
 {
 	GPOS_ASSERT(EiltSentinel > eilt);
@@ -38,14 +38,14 @@ CScalarArrayRefIndexList::CScalarArrayRefIndexList
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarArrayRefIndexList::FMatch
+//		CScalarArrayRefIndexList::Matches
 //
 //	@doc:
 //		Match function on operator level
 //
 //---------------------------------------------------------------------------
 BOOL
-CScalarArrayRefIndexList::FMatch
+CScalarArrayRefIndexList::Matches
 	(
 	COperator *pop
 	)

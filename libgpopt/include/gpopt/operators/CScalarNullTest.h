@@ -42,10 +42,10 @@ namespace gpopt
 			explicit
 			CScalarNullTest
 				(
-				IMemoryPool *pmp
+				IMemoryPool *mp
 				)
 				:
-				CScalar(pmp)
+				CScalar(mp)
 			{}
 
 			// dtor
@@ -68,7 +68,7 @@ namespace gpopt
 			}
 
 			// match function
-			BOOL FMatch(COperator *) const;
+			BOOL Matches(COperator *) const;
 
 			// sensitivity to order of inputs
 			BOOL FInputOrderSensitive() const
@@ -80,9 +80,9 @@ namespace gpopt
 			virtual
 			COperator *PopCopyWithRemappedColumns
 						(
-						IMemoryPool *, //pmp,
-						HMUlCr *, //phmulcr,
-						BOOL //fMustExist
+						IMemoryPool *, //mp,
+						UlongToColRefMap *, //colref_mapping,
+						BOOL //must_exist
 						)
 			{
 				return PopCopyDefault();
@@ -90,11 +90,11 @@ namespace gpopt
 
 			// the type of the scalar expression
 			virtual 
-			IMDId *PmdidType() const;
+			IMDId *MdidType() const;
 
 			// boolean expression evaluation
 			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+			EBoolEvalResult Eber(ULongPtrArray *pdrgpulChildren) const;
 
 			// conversion function
 			static
