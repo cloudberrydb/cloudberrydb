@@ -68,7 +68,6 @@ typedef struct ResGroupOptions
 /*
  * GUC variables.
  */
-extern char                		*gp_resgroup_memory_policy_str;
 extern bool						gp_log_resgroup_memory;
 extern int						gp_resgroup_memory_policy_auto_fixed_mem;
 extern bool						gp_resgroup_print_operator_memory_limits;

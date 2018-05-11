@@ -4755,6 +4755,15 @@ struct config_enum ConfigureNamesEnum_gp[] =
 	},
 
 	{
+		{"gp_resgroup_memory_policy", PGC_SUSET, RESOURCES_MGM,
+			gettext_noop("Sets the policy for memory allocation of queries."),
+			gettext_noop("Valid values are AUTO, EAGER_FREE.")
+		},
+		&gp_resgroup_memory_policy,
+		RESMANAGER_MEMORY_POLICY_EAGER_FREE, gp_resqueue_memory_policies, NULL, NULL
+	},
+
+	{
 		{"gp_workfile_type_hashjoin", PGC_USERSET, QUERY_TUNING_OTHER,
 			gettext_noop("Specify the type of work files to use for executing hash join plans."),
 			gettext_noop("Valid values are \"BFZ\", \"BUFFILE\"."),
