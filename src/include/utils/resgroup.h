@@ -54,16 +54,8 @@ typedef struct ResGroupCaps
 	ResGroupCap		memLimit;
 	ResGroupCap		memSharedQuota;
 	ResGroupCap		memSpillRatio;
+	ResGroupCap		memAuditor;
 } ResGroupCaps;
-
-/*
- * Resource group options
- */
-typedef struct ResGroupOptions
-{
-	ResGroupCaps caps;
-	int32 memAuditor;
-} ResGroupOptions;
 
 /*
  * GUC variables.
@@ -113,7 +105,7 @@ extern void ResGroupControlInit(void);
 /* Load resource group information from catalog */
 extern void	InitResGroups(void);
 
-extern void AllocResGroupEntry(Oid groupId, const ResGroupOptions *groupOptions);
+extern void AllocResGroupEntry(Oid groupId, const ResGroupCaps *caps);
 
 extern void SerializeResGroupInfo(StringInfo str);
 extern void DeserializeResGroupInfo(struct ResGroupCaps *capsOut,

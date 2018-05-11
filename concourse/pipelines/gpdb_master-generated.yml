@@ -1432,6 +1432,9 @@ jobs:
     - get: bin_gpdb_sles11
       passed:
       - compile_gpdb_sles11
+    - get: gpdb_src
+      resource: gpdb_src_binary_swap
+      trigger: true
 
 - name: resource_group_centos6
   plan:
@@ -1445,7 +1448,7 @@ jobs:
     - get: ccp_src
     - get: centos-gpdb-dev-6
     - get: binary_swap_gpdb
-      passed: [compile_gpdb_binary_swap_centos6]
+      passed: [gate_resource_groups_start]
       resource: binary_swap_gpdb_centos6
       trigger: true
   - put: terraform
@@ -1482,7 +1485,7 @@ jobs:
     - get: ccp_src
     - get: centos-gpdb-dev-6
     - get: binary_swap_gpdb
-      passed: [compile_gpdb_binary_swap_centos6]
+      passed: [gate_resource_groups_start]
       resource: binary_swap_gpdb_centos6
       trigger: true
   - put: terraform

@@ -80,10 +80,10 @@ ERROR:  resource group "rg_test_group" does not exist
 --end_ignore
 
 SELECT * FROM gp_toolkit.gp_resgroup_config;
-groupid|groupname    |memauditor|concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota|memory_spill_ratio|proposed_memory_spill_ratio
--------+-------------+----------+-----------+--------------------+--------------+------------+---------------------+-------------------+----------------------------+------------------+---------------------------
-6437   |default_group|0         |20         |20                  |30            |30          |30                   |50                 |50                          |20                |20                         
-6438   |admin_group  |0         |2          |2                   |10            |10          |10                   |50                 |50                          |20                |20                         
+groupid|groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota|memory_spill_ratio|proposed_memory_spill_ratio|memory_auditor
+-------+-------------+-----------+--------------------+--------------+------------+---------------------+-------------------+----------------------------+------------------+---------------------------+--------------
+6437   |default_group|20         |20                  |30            |30          |30                   |50                 |50                          |20                |20                         |vmtracker     
+6438   |admin_group  |2          |2                   |10            |10          |10                   |50                 |50                          |20                |20                         |vmtracker     
 (2 rows)
 
 -- negative
