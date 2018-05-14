@@ -415,11 +415,17 @@ resources:
 
 {% endif %}
 {% if "centos7" in os_types %}
-- name: centos-gpdb-dev-7
+- name: centos-gpdb-build-7
   type: docker-image
   source:
-    repository: pivotaldata/centos-gpdb-dev
-    tag: 7-gcc6.2-llvm3.7
+    repository: pivotaldata/centos7-build
+    tag: 'gpdb5-latest'
+
+- name: centos-gpdb-test-7
+  type: docker-image
+  source:
+    repository: pivotaldata/centos7-test
+    tag: 'gpdb5-latest'
 
 {% endif %}
 {% if "ubuntu16" in os_types %}
@@ -773,9 +779,9 @@ jobs:
     - get: gpdb_src
       trigger: ((gpdb_src-trigger-flag))
     - get: gpaddon_src
-    - get: centos-gpdb-dev-7
+    - get: centos-gpdb-build-7
   - task: compile_gpdb
-    image: centos-gpdb-dev-7
+    image: centos-gpdb-build-7
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
@@ -1129,10 +1135,10 @@ jobs:
       resource: bin_gpdb_centos7
       passed: [compile_gpdb_centos7]
       trigger: [[ test_trigger ]]
-    - get: centos-gpdb-dev-7
+    - get: centos-gpdb-test-7
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos-gpdb-dev-7
+    image: centos-gpdb-test-7
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
       TEST_OS: centos
@@ -1147,10 +1153,10 @@ jobs:
       passed: [compile_gpdb_centos7]
       resource: bin_gpdb_centos7
       trigger: [[ test_trigger ]]
-    - get: centos-gpdb-dev-7
+    - get: centos-gpdb-test-7
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos-gpdb-dev-7
+    image: centos-gpdb-test-7
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
       TEST_OS: centos

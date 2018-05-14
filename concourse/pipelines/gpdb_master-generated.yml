@@ -325,8 +325,8 @@ resources:
 - name: centos-gpdb-dev-7
   type: docker-image
   source:
-    repository: pivotaldata/centos-gpdb-dev
-    tag: 7-gcc6.2-llvm3.7
+    repository: pivotaldata/centos7-dev
+    tag: gpdb5-latest
 
 - name: ubuntu-gpdb-dev-16
   type: docker-image
