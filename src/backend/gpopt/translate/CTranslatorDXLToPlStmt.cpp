@@ -2766,7 +2766,6 @@ CTranslatorDXLToPlStmt::PplanPartitionSelector
 
 	CDXLNode *pdxlnChild = NULL;
 	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
-	DrgPdxltrctx *pdrgpdxltrctxWithSiblings = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
 
 	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
@@ -2784,20 +2783,12 @@ CTranslatorDXLToPlStmt::PplanPartitionSelector
 	}
 
 	pdrgpdxltrctx->Append(&dxltrctxChild);
-	pdrgpdxltrctx->Append(pdxltrctxOut);
-
-	pdrgpdxltrctxWithSiblings->AppendArray(pdrgpdxltrctx);
-	if (NULL != pdrgpdxltrctxPrevSiblings)
-	{
-		pdrgpdxltrctxWithSiblings->AppendArray(pdrgpdxltrctxPrevSiblings);
-	}
 
 	CDXLNode *pdxlnPrL = (*pdxlnPartitionSelector)[EdxlpsIndexProjList];
 	CDXLNode *pdxlnEqFilters = (*pdxlnPartitionSelector)[EdxlpsIndexEqFilters];
 	CDXLNode *pdxlnFilters = (*pdxlnPartitionSelector)[EdxlpsIndexFilters];
 	CDXLNode *pdxlnResidualFilter = (*pdxlnPartitionSelector)[EdxlpsIndexResidualFilter];
 	CDXLNode *pdxlnPropExpr = (*pdxlnPartitionSelector)[EdxlpsIndexPropExpr];
-	CDXLNode *pdxlnPrintableFilter = (*pdxlnPartitionSelector)[EdxlpsIndexPrintableFilter];
 
 	// translate proj list
 	pplan->targetlist = PlTargetListFromProjList(pdxlnPrL, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut);
@@ -2810,7 +2801,7 @@ CTranslatorDXLToPlStmt::PplanPartitionSelector
 	ppartsel->levelExpressions = PlFilterList(pdxlnFilters, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut);
 
 	//translate residual filter
-	CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt(m_pmp, NULL /*pdxltrctxbt*/, pdrgpdxltrctxWithSiblings, pdxltrctxOut, m_pctxdxltoplstmt);
+	CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt(m_pmp, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut, m_pctxdxltoplstmt);
 	if (!m_pdxlsctranslator->FConstTrue(pdxlnResidualFilter, m_pmda))
 	{
 		ppartsel->residualPredicate = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnResidualFilter, &mapcidvarplstmt);
@@ -2822,11 +2813,7 @@ CTranslatorDXLToPlStmt::PplanPartitionSelector
 		ppartsel->propagationExpression = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnPropExpr, &mapcidvarplstmt);
 	}
 
-	//translate printable filter
-	if (!m_pdxlsctranslator->FConstTrue(pdxlnPrintableFilter, m_pmda))
-	{
-		ppartsel->printablePredicate = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnPrintableFilter, &mapcidvarplstmt);
-	}
+	// no need to translate printable filter - since it is not needed by the executor
 
 	ppartsel->staticPartOids = NIL;
 	ppartsel->staticScanIds = NIL;
@@ -2853,7 +2840,6 @@ CTranslatorDXLToPlStmt::PplanPartitionSelector
 
 	// cleanup
 	pdrgpdxltrctx->Release();
-	pdrgpdxltrctxWithSiblings->Release();
 
 	return (Plan *) ppartsel;
 }
