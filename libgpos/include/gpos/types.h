@@ -17,6 +17,7 @@
 #ifndef GPOS_types_H
 #define GPOS_types_H
 
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
