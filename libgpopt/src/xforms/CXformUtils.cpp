@@ -2063,6 +2063,8 @@ CXformUtils::FApplyOnce
 		CXform::ExfInnerJoin2PartialDynamicIndexGetApply,
 		CXform::ExfLeftOuter2InnerUnionAllLeftAntiSemiJoin,
 		CXform::ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply,
+		CXform::ExfInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply,
+		CXform::ExfInnerJoinWithInnerSelect2DynamicIndexGetApply,
 		CXform::ExfGbAggWithMDQA2Join,
 	};
 
