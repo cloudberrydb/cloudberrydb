@@ -68,7 +68,6 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	DefElem    *dencoding = NULL;
 	ListCell   *option;
 	Oid			reloid = 0;
-	Oid			fmtErrTblOid = InvalidOid;
 	Datum		formatOptStr;
 	Datum		optionsStr;
 	Datum		locationUris = 0;
@@ -80,6 +79,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	int			rejectlimit = -1;
 	int			encoding = -1;
 	bool		issreh = false; /* is single row error handling requested? */
+	bool 		logerrors = false;
 	bool		iswritable = createExtStmt->iswritable;
 	bool		isweb = createExtStmt->isweb;
 	bool		shouldDispatch = (Gp_role == GP_ROLE_DISPATCH &&
@@ -314,6 +314,8 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 
 		issreh = true;
 
+		logerrors = singlerowerrorDesc->into_file;
+
 		/* get reject limit, and reject limit type */
 		rejectlimit = singlerowerrorDesc->rejectlimit;
 		rejectlimittype = (singlerowerrorDesc->is_limit_in_rows ? 'r' : 'p');
@@ -421,24 +423,16 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 		reloid = RangeVarGetRelid(createExtStmt->relation, true);
 
 	/*
-	 * In the case of error log file, set fmtErrorTblOid to the external table
-	 * itself.
-	 */
-	if (issreh)
-		fmtErrTblOid = reloid;
-
-	/*
 	 * create a pg_exttable entry for this external table.
 	 */
 	InsertExtTableEntry(reloid,
 						iswritable,
-						isweb,
 						issreh,
 						formattype,
 						rejectlimittype,
 						commandString,
 						rejectlimit,
-						fmtErrTblOid,
+						logerrors,
 						encoding,
 						formatOptStr,
 						optionsStr,
