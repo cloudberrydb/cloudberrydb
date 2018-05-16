@@ -1720,7 +1720,7 @@ setup_collation(void)
 
 	PG_CMD_OPEN;
 
-	PG_CMD_PUTS("SELECT pg_import_system_collations( (SELECT oid FROM pg_namespace WHERE nspname = 'pg_catalog') ) ;\n\n");
+	//PG_CMD_PUTS("SELECT pg_import_system_collations( (SELECT oid FROM pg_namespace WHERE nspname = 'pg_catalog') ) ;\n\n");
 
 	/* Add an SQL-standard name */
 	PG_CMD_PRINTF2("INSERT INTO pg_collation "

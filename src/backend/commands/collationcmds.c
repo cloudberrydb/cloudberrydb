@@ -19,6 +19,7 @@
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_collation_fn.h"
 #include "commands/alter.h"
@@ -32,6 +33,9 @@
 #include "utils/lsyscache.h"
 #include "utils/pg_locale.h"
 #include "utils/syscache.h"
+
+#include "cdb/cdbvars.h"
+#include "cdb/cdbdisp_query.h"
 
 static void AlterCollationOwner_internal(Relation rel, Oid collationOid,
 							 Oid newOwnerId);
@@ -155,6 +159,23 @@ DefineCollation(List *names, List *parameters, bool if_not_exists)
 	/* check that the locales can be loaded */
 	CommandCounterIncrement();
 	(void) pg_newlocale_from_collation(newoid);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		DefineStmt * stmt = makeNode(DefineStmt);
+		stmt->kind = OBJECT_COLLATION;
+		stmt->oldstyle = false;
+		stmt->defnames = names;
+		stmt->args = NIL;
+		stmt->definition = parameters;
+		stmt->trusted = false;
+		CdbDispatchUtilityStatement((Node *) stmt,
+		                            DF_CANCEL_ON_ERROR|
+			                        DF_WITH_SNAPSHOT|
+			                        DF_NEED_TWO_PHASE,
+		                            GetAssignedOidsForDispatch(),
+		                            NULL);
+	}
 }
 
 /*
@@ -510,6 +531,41 @@ cmpaliases(const void *a, const void *b)
 }
 #endif							/* READ_LOCALE_A_OUTPUT */
 
+static void
+DispatchCollationCreate(char *alias, char *locale, Oid nspid, int encoding)
+{
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+
+	List *names = NIL;
+	Value *schemaname = makeString(get_namespace_name(nspid));
+	Value *relname = makeString(alias);
+
+	names = lappend(names, schemaname);
+	names = lappend(names, relname);
+
+	List *parameters = NIL;
+	DefElem *defstring = makeNode(DefElem);
+
+	defstring->defname = "locale";
+	defstring->defaction = DEFELEM_UNSPEC;
+	defstring->arg = (Node*) makeString(locale);
+
+	parameters = lappend(parameters, defstring);
+
+	DefineStmt * stmt = makeNode(DefineStmt);
+	stmt->kind = OBJECT_COLLATION;
+	stmt->oldstyle = false;
+	stmt->defnames = names;
+	stmt->args = NIL;
+	stmt->definition = parameters;
+	stmt->trusted = false;
+	CdbDispatchUtilityStatement((Node *) stmt,
+	                            DF_CANCEL_ON_ERROR|
+		                        DF_WITH_SNAPSHOT|
+		                        DF_NEED_TWO_PHASE,
+	                            GetAssignedOidsForDispatch(),
+	                            NULL);
+}
 
 /*
  * pg_import_system_collations: add known system collations to pg_collation
@@ -527,6 +583,10 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 (errmsg("must be superuser to import system collations"))));
+
+	if (Gp_role != GP_ROLE_DISPATCH)
+		ereport(ERROR,
+					(errmsg("must be dispatcher to import system collations")));
 
 	/* Load collations known to libc, using "locale -a" to enumerate them */
 #ifdef READ_LOCALE_A_OUTPUT
@@ -601,6 +661,8 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 				continue;		/* ignore locales for client-only encodings */
 			if (enc == PG_SQL_ASCII)
 				continue;		/* C/POSIX are already in the catalog */
+			if (enc != GetDatabaseEncoding())
+				continue;
 
 			/* count valid locales found in operating system */
 			nvalid++;
@@ -620,6 +682,8 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 
 			if (OidIsValid(collid))
 			{
+				DispatchCollationCreate(localebuf, localebuf, nspid, enc);
+
 				ncreated++;
 
 				/* Must do CCI between inserts to handle duplicates correctly */
@@ -682,6 +746,8 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 
 			if (OidIsValid(collid))
 			{
+				DispatchCollationCreate(alias, locale, nspid, enc);
+
 				ncreated++;
 
 				CommandCounterIncrement();
