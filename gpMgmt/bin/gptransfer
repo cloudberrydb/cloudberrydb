@@ -1553,11 +1553,11 @@ class GpSchemaDump(Command):
             else:
                 cmdStr = 'pg_dump -s -x -O --gp-syntax -h %s -p %d -U %s ' % (host, port, user)
 
-        for table in tables:
-            tableOptions = " -t \'\"%s\".\"%s\"\' " % (table.schema, table.table)
-            cmdStr += tableOptions
+            for table in tables:
+                tableOptions = " -t \'\"%s\".\"%s\"\' " % (table.schema, table.table)
+                cmdStr += tableOptions
 
-        cmdStr += " %s" % database
+            cmdStr += " %s" % database
 
         Command.__init__(self, name, cmdStr, ctxt, remoteHost)
 
