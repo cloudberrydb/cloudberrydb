@@ -76,7 +76,6 @@ groups:
 {% if "Replication" in test_sections %}
   ## --------------------------------------------------------------------
   - gate_replication_start
-  - walrep_1
   - walrep_2
   - segwalrep_mirrorless_centos6
 {% endif %}
@@ -204,7 +203,6 @@ groups:
 - name: Replication
   jobs:
   - gate_replication_start
-  - walrep_1
   - walrep_2
   - segwalrep_mirrorless_centos6
   - compile_gpdb_centos6
@@ -2240,7 +2238,6 @@ jobs:
     - resource_group_centos7
     - resource_group_sles12
     - segwalrep_mirrorless_centos6
-    - walrep_1
     - walrep_2
     - QP_memory-accounting
     - regression_tests_gphdfs_centos
