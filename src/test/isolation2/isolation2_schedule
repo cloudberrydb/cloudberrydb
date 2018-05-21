@@ -140,3 +140,6 @@ test: reindex/serializable_reindex_with_drop_index_ao reindex/serializable_reind
 test: reindex/repeatable_read_reindex_with_insert_heap
 test: reindex/repeatable_read_reindex_with_insert_part_heap reindex/vacuum_anal_while_reindex_ao_btree
 test: reindex/vacuum_while_reindex_ao_bitmap reindex/vacuum_while_reindex_heap_btree reindex/vacuum_while_reindex_heap_btree_toast
+
+# Cancel test
+test: cancel_plpython
