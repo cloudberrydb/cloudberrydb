@@ -672,7 +672,7 @@ test_postmaster_connection(bool do_checkpoint)
 		 * file there but it appears stale, issue a suitable warning and give
 		 * up waiting.
 		 */
-		if (i >= 5)
+		if (i >= 5 * WAITS_PER_SEC)
 		{
 			struct stat statbuf;
 
