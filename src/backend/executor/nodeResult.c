@@ -289,19 +289,9 @@ static bool TupleMatchesHashFilter(Result *resultNode, TupleTableSlot *resultSlo
 
 				/* CdbHash treats all array-types as ANYARRAYOID, it doesn't know how to hash
 				 * the individual types (why is this ?) */
-				switch (att_type)
-				{
-					case INT2ARRAYOID:
-					case INT4ARRAYOID:
-					case INT8ARRAYOID:
-					case FLOAT4ARRAYOID:
-					case FLOAT8ARRAYOID:
-					case REGTYPEARRAYOID:
-						att_type = ANYARRAYOID;
-						/* fall through */
-					default:
-						break;
-				}
+				if (typeIsArrayType(att_type))
+					att_type = ANYARRAYOID;
+
 				cdbhash(hash, hAttr, att_type);
 			}
 			else
