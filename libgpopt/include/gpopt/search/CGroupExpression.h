@@ -154,7 +154,8 @@ namespace gpopt
 				IMemoryPool *pmp,
 				CXform *pxform,
 				CExpression *pexpr,
-				CXformResult *pxfres
+				CXformResult *pxfres,
+				ULONG ulNumResults
 				);
 
 			// preprocessing before applying transformation

@@ -884,8 +884,10 @@ CGroupExpression::Transform
 	CExpression *pexpr = binding.PexprExtract(pmp, this, pexprPattern , NULL);
 	while (NULL != pexpr)
 	{
+		ULONG ulNumResults = pxfres->Pdrgpexpr()->UlLength();
 		pxform->Transform(pxfctxt, pxfres, pexpr);
-		PrintXform(pmp, pxform, pexpr, pxfres);
+		ulNumResults = pxfres->Pdrgpexpr()->UlLength() - ulNumResults;
+		PrintXform(pmp, pxform, pexpr, pxfres, ulNumResults);
 
 		if (CXformUtils::FApplyOnce(pxform->Exfid()) ||
 			(0 < pxfres->Pdrgpexpr()->UlLength() &&
@@ -1107,7 +1109,8 @@ CGroupExpression::PrintXform
 	IMemoryPool *pmp,
 	CXform *pxform,
 	CExpression *pexpr,
-	CXformResult *pxfres
+	CXformResult *pxfres,
+	ULONG ulNumResults
 	)
 {
 	if (NULL != pexpr && GPOS_FTRACE(EopttracePrintXform) && GPOS_FTRACE(EopttracePrintXformResults))
@@ -1119,7 +1122,17 @@ CGroupExpression::PrintXform
 			<< *pxform
 			<< std::endl
 			<< "Input:" << std::endl << *pexpr
-			<< "Output:" << std::endl << *pxfres;
+			<< "Output:" << std::endl
+			<< "Alternatives:" << std::endl;
+		DrgPexpr *pdrgpexpr = pxfres->Pdrgpexpr();
+		ULONG ulStart = pdrgpexpr->UlLength() - ulNumResults;
+		ULONG ulEnd = pdrgpexpr->UlLength();
+
+		for (ULONG i = ulStart; i < ulEnd; i++)
+		{
+			os << i-ulStart << ": " << std::endl;
+			(*pdrgpexpr)[i]->OsPrint(os);
+		}
 	}
 }
 
