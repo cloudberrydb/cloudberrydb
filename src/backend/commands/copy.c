@@ -197,7 +197,7 @@ static void SendCopyFromForwardedTuple(CopyState cstate,
 						   CdbCopy *cdbCopy,
 						   bool toAll,
 						   int target_seg,
-						   Oid relid,
+						   Relation rel,
 						   int64 lineno,
 						   char *line,
 						   int line_len,
@@ -3270,9 +3270,6 @@ CopyFrom(CopyState cstate)
 	 */
 	ExecBSInsertTriggers(estate, resultRelInfo);
 
-	partValues = (Datum *) palloc(num_phys_attrs * sizeof(Datum));
-	partNulls = (bool *) palloc(num_phys_attrs * sizeof(bool));
-
 	bistate = GetBulkInsertState();
 	econtext = GetPerTupleExprContext(estate);
 
@@ -3511,17 +3508,19 @@ CopyFrom(CopyState cstate)
 			if (resultRelInfo->ri_partInsertMap)
 			{
 				AttrMap *map = resultRelInfo->ri_partInsertMap;
+				int relnatts;
 
 				if (!resultRelInfo->ri_resultSlot)
 					resultRelInfo->ri_resultSlot =
 						MakeSingleTupleTableSlot(resultRelInfo->ri_RelationDesc->rd_att);
 
+				relnatts = resultRelInfo->ri_RelationDesc->rd_att->natts;
 				slot = resultRelInfo->ri_resultSlot;
 				ExecClearTuple(slot);
 				partValues = slot_get_values(resultRelInfo->ri_resultSlot);
 				partNulls = slot_get_isnull(resultRelInfo->ri_resultSlot);
-				MemSet(partValues, 0, attr_count * sizeof(Datum));
-				MemSet(partNulls, true, attr_count * sizeof(bool));
+				MemSet(partValues, 0, relnatts * sizeof(Datum));
+				MemSet(partNulls, true, relnatts * sizeof(bool));
 
 				reconstructTupleValues(map, baseValues, baseNulls, (int) num_phys_attrs,
 									   partValues, partNulls, (int) attr_count);
@@ -3638,7 +3637,7 @@ CopyFrom(CopyState cstate)
 			/* in the QD, forward the row to the correct segment(s). */
 			SendCopyFromForwardedTuple(cstate, cdbCopy, send_to_all,
 									   send_to_all ? 0 : target_seg,
-									   RelationGetRelid(resultRelInfo->ri_RelationDesc),
+									   resultRelInfo->ri_RelationDesc,
 									   cstate->cur_lineno,
 									   cstate->line_buf.data,
 									   cstate->line_buf.len,
@@ -4932,7 +4931,7 @@ SendCopyFromForwardedTuple(CopyState cstate,
 						   CdbCopy *cdbCopy,
 						   bool toAll,
 						   int target_seg,
-						   Oid relid,
+						   Relation rel,
 						   int64 lineno,
 						   char *line,
 						   int line_len,
@@ -4948,10 +4947,10 @@ SendCopyFromForwardedTuple(CopyState cstate,
 	AttrNumber	num_phys_attrs;
 	int			i;
 
-	if (!OidIsValid(relid))
+	if (!OidIsValid(RelationGetRelid(rel)))
 		elog(ERROR, "invalid target table OID in COPY");
 
-	tupDesc = RelationGetDescr(cstate->rel);
+	tupDesc = RelationGetDescr(rel);
 	attr = tupDesc->attrs;
 	num_phys_attrs = tupDesc->natts;
 
@@ -5004,7 +5003,7 @@ SendCopyFromForwardedTuple(CopyState cstate,
 
 	frame = (copy_from_dispatch_row *) msgbuf->data;
 
-	frame->relid = relid;
+	frame->relid = RelationGetRelid(rel);
 	frame->loaded_oid = tuple_oid;
 	frame->lineno = lineno;
 	frame->fld_count = num_sent_fields;
