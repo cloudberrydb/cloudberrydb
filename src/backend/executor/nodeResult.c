@@ -144,6 +144,15 @@ ExecResult(ResultState *node)
 		node->rs_checkqual = false;
 		if (!qualResult)
 		{
+			/*
+			 * CDB: We'll read no more from outer subtree. To keep our
+			 * sibling QEs from being starved, tell source QEs not to clog
+			 * up the pipeline with our never-to-be-consumed data.
+			 */
+			PlanState *outerPlan = outerPlanState(node);	
+			if (outerPlan)
+				ExecSquelchNode(outerPlan);	
+
 			return NULL;
 		}
 	}
