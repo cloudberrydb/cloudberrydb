@@ -13236,7 +13236,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			 errmsg("SET DISTRIBUTED BY not supported in utility mode")));
 
-	/* we only support partitioned/replicated tables */
+	/* we only support partitioned tables */
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		if (GpPolicyIsEntry(rel->rd_cdbpolicy))
@@ -13385,25 +13385,20 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			}
 
 			policy = createRandomPartitionedPolicy(NULL);
+			rel->rd_cdbpolicy = GpPolicyCopy(GetMemoryChunkContext(rel), policy);
+			GpPolicyReplace(RelationGetRelid(rel), policy);
 
-			/* always need to rebuild if changed from replicated policy */
-			if (!GpPolicyIsReplicated(rel->rd_cdbpolicy))
+			/* only need to rebuild if have new storage options */
+			if (!(DatumGetPointer(newOptions) || force_reorg))
 			{
-				rel->rd_cdbpolicy = GpPolicyCopy(GetMemoryChunkContext(rel), policy);
-				GpPolicyReplace(RelationGetRelid(rel), policy);
-
-				/* only need to rebuild if have new storage options */
-				if (!(DatumGetPointer(newOptions) || force_reorg))
-				{
-					/*
-					 * caller expects ATExecSetDistributedBy() to close rel
-					 * (see the non-random distribution case below for why.
-					 */
-					heap_close(rel, NoLock);
-					lsecond(lprime) = makeNode(SetDistributionCmd);
-					lprime = lappend(lprime, policy);
-					goto l_distro_fini;
-				}
+				/*
+				 * caller expects ATExecSetDistributedBy() to close rel
+				 * (see the non-random distribution case below for why.
+				 */
+				heap_close(rel, NoLock);
+				lsecond(lprime) = makeNode(SetDistributionCmd);
+				lprime = lappend(lprime, policy);
+				goto l_distro_fini;
 			}
 		}
 
@@ -13411,19 +13406,21 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 		{
 			rep_pol = true;
 
-			if (GpPolicyIsReplicated(rel->rd_cdbpolicy))
-				ereport(WARNING,
-						(errcode(ERRCODE_DUPLICATE_OBJECT),
-						 errmsg("distribution policy of relation \"%s\" already set to DISTRIBUTED REPLICATED",
-								RelationGetRelationName(rel)),
-						 errhint("Use ALTER TABLE \"%s\" SET WITH (REORGANIZE=TRUE) DISTRIBUTED REPLICATED to force a replicated redistribution.",
-								 RelationGetRelationName(rel))));
+			if (!force_reorg)
+			{
+				if (GpPolicyIsReplicated(rel->rd_cdbpolicy))
+					ereport(WARNING,
+							(errcode(ERRCODE_DUPLICATE_OBJECT),
+							 errmsg("distribution policy of relation \"%s\" already set to DISTRIBUTED REPLICATED",
+									RelationGetRelationName(rel)),
+							 errhint("Use ALTER TABLE \"%s\" SET WITH (REORGANIZE=TRUE) DISTRIBUTED REPLICATED to force a replicated redistribution.",
+									 RelationGetRelationName(rel))));
+			}
 
 			policy = createReplicatedGpPolicy(NULL);
 
-			/* rebuild if have new storage options or policy changed */
-			if (!DatumGetPointer(newOptions) &&
-				GpPolicyIsReplicated(rel->rd_cdbpolicy))
+			/* only need to rebuild if have new storage options */
+			if (!(DatumGetPointer(newOptions) || force_reorg))
 			{
 				/*
 				 * caller expects ATExecSetDistributedBy() to close rel
