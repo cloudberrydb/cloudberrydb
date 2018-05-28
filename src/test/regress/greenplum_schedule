@@ -123,7 +123,7 @@ test: bb_memory_quota memconsumption
 
 test: tuple_serialization
 # Tests for replicated table
-test: rpt rpt_joins rpt_tpch
+test: rpt rpt_joins rpt_tpch rpt_returning
 
 # NOTE: The bfv_temp test assumes that there are no temporary tables in
 # other sessions. Therefore the other tests in this group mustn't create
