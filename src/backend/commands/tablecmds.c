@@ -12907,12 +12907,21 @@ make_temp_table_name(Relation rel, BackendId id)
 {
 	char	   *nspname;
 	char		tmpname[NAMEDATALEN];
+	RangeVar   *tmprel;
 
 	/* temporary enough */
 	snprintf(tmpname, NAMEDATALEN, "pg_temp_%u_%i", RelationGetRelid(rel), id);
 	nspname = get_namespace_name(RelationGetNamespace(rel));
 
-	return makeRangeVar(nspname, pstrdup(tmpname), -1);
+	tmprel = makeRangeVar(nspname, pstrdup(tmpname), -1);
+
+	/*
+	 * Ensure the temp relation has the same persistence setting with the
+	 * original relation.
+	 */
+	tmprel->relpersistence = rel->rd_rel->relpersistence;
+
+	return tmprel;
 }
 
 /*
