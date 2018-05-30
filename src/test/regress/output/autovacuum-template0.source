@@ -13,10 +13,10 @@ select age(datfrozenxid) < 200 * 1000000 from pg_database where datname='templat
 (1 row)
 
 -- track that we've updated the row in pg_database for template0
-SELECT gp_inject_fault('vacuum_update_dat_frozen_xid', 'skip', 1);
+SELECT gp_inject_fault_infinite('vacuum_update_dat_frozen_xid', 'skip', 1);
 NOTICE:  Success:
- gp_inject_fault 
------------------
+ gp_inject_fault_infinite 
+--------------------------
  t
 (1 row)
 

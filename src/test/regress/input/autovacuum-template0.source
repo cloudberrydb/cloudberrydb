@@ -12,7 +12,7 @@ set debug_burn_xids=on;
 select age(datfrozenxid) < 200 * 1000000 from pg_database where datname='template0';
 
 -- track that we've updated the row in pg_database for template0
-SELECT gp_inject_fault('vacuum_update_dat_frozen_xid', 'skip', 1);
+SELECT gp_inject_fault_infinite('vacuum_update_dat_frozen_xid', 'skip', 1);
 
 select test_consume_xids(100 * 1000000);
 select test_consume_xids(100 * 1000000);
