@@ -218,7 +218,7 @@ MotionHazard-NoMaterializeSortUnderResult  MotionHazard-NoMaterializeGatherUnder
 MotionHazard-NoMaterializeHashAggUnderResult;
 
 CConstraintNegationTest:
-AggregatesConstraintDeriveNegation CTEConstraintDeriveNegation;
+AggregatesConstraintDeriveNegation CTEConstraintDeriveNegation Union-NOT-Plus-OR-Constraint;
 
 CNonRedistributableColTest:
 JOIN-NonRedistributableCol DQA-NonRedistributableCol
