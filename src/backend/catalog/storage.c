@@ -391,12 +391,9 @@ smgrDoPendingDeletes(bool isCommit)
  * Greenplum-specific notes: We *do* include temporary relations in the returned
  * list. Because unlike in Upstream Postgres, Greenplum two-phase commits can
  * involve temporary tables, which necessitates including the temporary
- * relations in the two-phase state files. Otherwise the relation files won't
- * get unlink(2)'d, or the shared buffers won't be dropped.
- *
- * GPDB_91_MERGE_FIXME: do we bother to skip xlog'ging dropping temp relations?
- * Note that it seems a big undertaking to exclude temporary relations from the
- * two-phase state file.
+ * relations in the two-phase state files (PREPARE xlog record). Otherwise the
+ * relation files won't get unlink(2)'d, or the shared buffers won't be
+ * dropped at the end of COMMIT phase.
  */
 int
 smgrGetPendingDeletes(bool forCommit, RelFileNode **ptr)
@@ -411,7 +408,8 @@ smgrGetPendingDeletes(bool forCommit, RelFileNode **ptr)
 	{
 		if (pending->nestLevel >= nestLevel && pending->atCommit == forCommit
 			/*
-			 * Greenplum uses shared buffer for temp tables
+			 * Greenplum allows transactions that access temporary tables to be
+			 * prepared.
 			 */
 			/* && pending->backend == InvalidBackendId) */
 				)
