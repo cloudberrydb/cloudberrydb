@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-create table TABLE ta ( f1 smallint, f2 integer, f3 integer )  DISTRIBUTED RANDOMLY;
+create table tb ( f1 smallint, f2 integer, f3 integer )  DISTRIBUTED RANDOMLY;
 
 explain SELECT a.f3 FROM tb a JOIN tb b ON a.f1 = b.f1 AND NOT ( a.f2 = 0 OR a.f3 = 0 ) UNION SELECT 1 ad_nr ;
 -->
