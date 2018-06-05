@@ -3,14 +3,13 @@
 
 ! rmdir @cgroup_mnt_point@/cpuacct/gpdb;
 
+! rmdir @cgroup_mnt_point@/cpuset/gpdb;
+
 ! mkdir @cgroup_mnt_point@/cpu/gpdb;
 
 ! mkdir @cgroup_mnt_point@/cpuacct/gpdb;
 
-! chmod 755 @cgroup_mnt_point@/cpu/gpdb;
-
-! chmod 755 @cgroup_mnt_point@/cpuacct/gpdb;
-
+! mkdir @cgroup_mnt_point@/cpuset/gpdb;
 -- end_ignore
 
 -- enable resource group and restart cluster.
