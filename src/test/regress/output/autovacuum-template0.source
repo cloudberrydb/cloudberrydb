@@ -39,10 +39,10 @@ select test_consume_xids(10 * 1000000);
 (1 row)
 
 -- wait until autovacuum worker updates pg_database
-SELECT gp_inject_fault('vacuum_update_dat_frozen_xid', 'wait_until_triggered', 1);
+SELECT gp_wait_until_triggered_fault('vacuum_update_dat_frozen_xid', 1, 1);
 NOTICE:  Success:
- gp_inject_fault 
------------------
+ gp_wait_until_triggered_fault 
+-------------------------------
  t
 (1 row)
 

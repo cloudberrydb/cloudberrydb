@@ -19,7 +19,7 @@ select test_consume_xids(100 * 1000000);
 select test_consume_xids(10 * 1000000);
 
 -- wait until autovacuum worker updates pg_database
-SELECT gp_inject_fault('vacuum_update_dat_frozen_xid', 'wait_until_triggered', 1);
+SELECT gp_wait_until_triggered_fault('vacuum_update_dat_frozen_xid', 1, 1);
 SELECT gp_inject_fault('vacuum_update_dat_frozen_xid', 'reset', 1);
 
 -- Wait until autovacuum commits the pg_database change
