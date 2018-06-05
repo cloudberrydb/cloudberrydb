@@ -102,8 +102,7 @@ CScalarIdent::PopCopyWithRemappedColumns
 			// not found in hashmap, so create a new colref and add to hashmap
 			CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
 
-			CName name(m_pcr->Name());
-			pcr = pcf->PcrCreate(m_pcr->Pmdtype(), m_pcr->ITypeModifier(), name);
+			pcr = pcf->PcrCopy(m_pcr);
 
 #ifdef GPOS_DEBUG
 			BOOL fResult =

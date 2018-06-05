@@ -195,7 +195,8 @@ Intersect-Volatile-Func Except-Volatile-Func;
 CSetop4Test:
 PushSelectDownUnionAllOfCTG Push-Subplan-Below-Union Intersect-OuterRefs
 PushSelectWithOuterRefBelowUnion PushGbBelowUnion UnionGbSubquery MS-UnionAll-4
-AnyPredicate-Over-UnionOfConsts EquivClassesUnion EquivClassesIntersect;
+AnyPredicate-Over-UnionOfConsts EquivClassesUnion EquivClassesIntersect
+IndexScanWithNestedCTEAndSetOp;
 
 CEquivClassTest:
 Equiv-HashedDistr-1 Equiv-HashedDistr-2 EquivClassesAndOr EquivClassesLimit IndexNLJoin_Cast_NoMotion;
