@@ -361,8 +361,6 @@ GlobalDeadLockDetectorLoop(void)
 
 	for (;;)
 	{
-		pg_usleep(gp_global_deadlock_detector_period * 1000000L);
-
 		CHECK_FOR_INTERRUPTS();
 
 		if (shutdown_requested)
@@ -389,6 +387,10 @@ GlobalDeadLockDetectorLoop(void)
 			CommitTransactionCommand();
 		else
 			AbortCurrentTransaction();
+
+		/* GUC gp_global_deadlock_detector_period may be changed, skip sleep */
+		if (!got_SIGHUP)
+			pg_usleep(gp_global_deadlock_detector_period * 1000000L);
 	}
 
 	return;
