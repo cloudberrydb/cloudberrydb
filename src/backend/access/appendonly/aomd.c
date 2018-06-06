@@ -285,7 +285,6 @@ mdunlink_ao(const char *path)
 		bool finished = false;
 		for (int i = 0; i < segNumberArraySize; i++)
 		{
-			bool finished = false;
 			sprintf(segpath_suffix_position, ".%u",
 					colnum*AOTupleId_MultiplierSegmentFileNum + segNumberArray[i]);
 			if (unlink(segpath) != 0)
