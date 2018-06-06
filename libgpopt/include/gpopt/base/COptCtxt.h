@@ -99,6 +99,9 @@ namespace gpopt
 			// functions that read/modify SQL data
 			BOOL m_has_volatile_or_SQL_func;
 
+			// does the query have replicated tables
+			BOOL m_has_replicated_tables;
+
 		public:
 
 			// ctor
@@ -152,6 +155,11 @@ namespace gpopt
 				m_has_volatile_or_SQL_func = true;
 			}
 
+			void SetHasReplicatedTables()
+			{
+				m_has_replicated_tables = true;
+			}
+
 			BOOL HasMasterOnlyTables() const
 			{
 				return m_has_master_only_tables;
@@ -160,6 +168,11 @@ namespace gpopt
 			BOOL HasVolatileOrSQLFunc() const
 			{
 				return m_has_volatile_or_SQL_func;
+			}
+
+			BOOL HasReplicatedTables() const
+			{
+				return m_has_replicated_tables;
 			}
 
 			BOOL OptimizeDMLQueryWithSingletonSegment() const

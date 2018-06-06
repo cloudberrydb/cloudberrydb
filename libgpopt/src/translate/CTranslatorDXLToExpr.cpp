@@ -1456,6 +1456,12 @@ CTranslatorDXLToExpr::PexprLogicalDelete
 
 	CTableDescriptor *ptabdesc = Ptabdesc(pdxlopDelete->GetDXLTableDescr());
 
+	if (COptCtxt::PoctxtFromTLS()->HasReplicatedTables())
+	{
+		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+				   GPOS_WSZ_LIT("Delete on replicated tables"));
+	}
+
 	ULONG ctid_colid = pdxlopDelete->GetCtIdColId();
 	ULONG segid_colid = pdxlopDelete->GetSegmentIdColId();
 
@@ -1495,6 +1501,12 @@ CTranslatorDXLToExpr::PexprLogicalUpdate
 	CExpression *pexprChild = PexprLogical(child_dxlnode);
 
 	CTableDescriptor *ptabdesc = Ptabdesc(pdxlopUpdate->GetDXLTableDescr());
+
+	if (COptCtxt::PoctxtFromTLS()->HasReplicatedTables())
+	{
+		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+				   GPOS_WSZ_LIT("Update on replicated tables"));
+	}
 
 	ULONG ctid_colid = pdxlopUpdate->GetCtIdColId();
 	ULONG segid_colid = pdxlopUpdate->GetSegmentIdColId();
@@ -2176,6 +2188,11 @@ CTranslatorDXLToExpr::Ptabdesc
 	if(IMDRelation::EreldistrMasterOnly == rel_distr_policy)
 	{
 		COptCtxt::PoctxtFromTLS()->SetHasMasterOnlyTables();
+	}
+
+	if(IMDRelation::EreldistrReplicated == rel_distr_policy)
+	{
+		COptCtxt::PoctxtFromTLS()->SetHasReplicatedTables();
 	}
 
 	return ptabdesc;

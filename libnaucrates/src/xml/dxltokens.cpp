@@ -503,6 +503,7 @@ CDXLTokens::Init
 			{EdxltokenRelDistrMasterOnly, GPOS_WSZ_LIT("MasterOnly")},
 			{EdxltokenRelDistrHash, GPOS_WSZ_LIT("Hash")},
 			{EdxltokenRelDistrRandom, GPOS_WSZ_LIT("Random")},
+			{EdxltokenRelDistrReplicated, GPOS_WSZ_LIT("Replicated")},
 			{EdxltokenConvertHashToRandom, GPOS_WSZ_LIT("ConvertHashToRandom")},
 			
 			{EdxltokenExtRelRejLimit, GPOS_WSZ_LIT("RejectLimit")},

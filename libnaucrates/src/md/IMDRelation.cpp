@@ -39,6 +39,8 @@ IMDRelation::GetDistrPolicyStr
 			return CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrHash);
 		case EreldistrRandom:
 			return CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrRandom);
+		case EreldistrReplicated:
+			return CDXLTokens::GetDXLTokenStr(EdxltokenRelDistrReplicated);
 		default:
 			return NULL;
 	}

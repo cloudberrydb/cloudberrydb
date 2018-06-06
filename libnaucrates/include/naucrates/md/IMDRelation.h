@@ -66,6 +66,7 @@ namespace gpmd
 				EreldistrMasterOnly,
 				EreldistrHash,
 				EreldistrRandom,
+				EreldistrReplicated,
 				EreldistrSentinel
 			};
 

@@ -3973,7 +3973,11 @@ CDXLOperatorFactory::ParseRelationDistPolicy
 	{
 		rel_distr_policy = IMDRelation::EreldistrRandom;
 	}
-	
+	else if (0 == XMLString::compareString(xml_val, CDXLTokens::XmlstrToken(EdxltokenRelDistrReplicated)))
+	{
+		rel_distr_policy = IMDRelation::EreldistrReplicated;
+	}
+
 	return rel_distr_policy;
 }
 
