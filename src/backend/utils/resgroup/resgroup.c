@@ -2347,7 +2347,31 @@ AssignResGroupOnMaster(void)
 	 * resource group, leave self unassigned
 	 */
 	if (shouldBypassQuery(debug_query_string))
+	{
+		ResGroupCaps	caps;
+
+		/*
+		 * Although we decide to bypass this query we should load the
+		 * memory_spill_ratio setting from the resgroup, otherwise a
+		 * `SHOW memory_spill_ratio` command will output the default value 20
+		 * if it's the first query in the connection (make sure tab completion
+		 * is not triggered otherwise it will run some implicit query before
+		 * you execute the SHOW command).
+		 */
+		do {
+			decideResGroup(&groupInfo);
+
+			/*
+			 * It's possible that the resgroup is concurrently dropped,
+			 * so we need to check again in such a case.
+			 */
+			if (groupInfo.group)
+				caps = groupInfo.group->caps;
+		} while (!groupInfo.group || groupInfo.group->groupId == InvalidOid);
+
+		groupSetMemorySpillRatio(&caps);
 		return;
+	}
 
 	PG_TRY();
 	{

@@ -73,3 +73,7 @@ rqpsession|rqpcommand|rqppriority|rqpweight
 -- very small memory quota for each resgroup slot, correct it.
 ALTER RESOURCE GROUP admin_group SET concurrency 2;
 ALTER
+-- in later cases we will SHOW memory_spill_ratio as first command
+-- to verify that it can be correctly loaded even for bypassed commands
+ALTER RESOURCE GROUP admin_group SET memory_spill_ratio 10;
+ALTER
