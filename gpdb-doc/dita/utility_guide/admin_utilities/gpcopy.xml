@@ -387,7 +387,7 @@
                 quits. No data is copied. </p>
             <p>The source table data can change while the data is being copied. A lock is not
                 acquired on the source table when data is copied. </p>
-            <p>The utility cannot copy a row with a with a width greater than 1GB (a PostgreSQL
+            <p>The utility cannot copy a row with a width greater than 1GB (a PostgreSQL
                 limitation). </p>
             <p>If you copy a set of database tables with the <codeph>--dbname</codeph>,
                     <codeph>--include-table</codeph>, or <codeph>--include-table-file</codeph>
