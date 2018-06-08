@@ -111,19 +111,13 @@ namespace gpopt
 			
 			// compute cover of each edge
 			void ComputeEdgeCover();
-			
-			// apply edges to graph components
-			void MergeComponents();
-			
-			// add edge and merge associated components
-			void AddEdge(SEdge *pedge, DrgPexpr *pdrgpexprConjuncts);
 
-			// combine two disjoint components
-			void CombineComponents(SComponent *pcompLeft, SComponent *pcompRight, DrgPexpr *pdrgpexpr);
-			
-			// determine order in which to apply edges
-			virtual 
-			void SortEdges();
+			// combine the two given components using applicable edges
+			SComponent *PcompCombine(SComponent *pcompOuter, SComponent *pcompInner);
+
+			// derive stats on a given component
+			virtual
+			void DeriveStats(CExpression *pexpr);
 
 		private:
 
@@ -144,10 +138,6 @@ namespace gpopt
 			virtual
 			~CJoinOrder();			
 		
-			// main handler
-			virtual
-			CExpression *PexprExpand();
-			
 			// print function
 			virtual
 			IOstream &OsPrint(IOstream &) const;

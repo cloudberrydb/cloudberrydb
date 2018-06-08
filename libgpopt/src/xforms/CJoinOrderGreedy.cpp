@@ -1,12 +1,13 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2018 Pivotal Software Inc.
 //
 //	@filename:
-//		CJoinOrderMinCard.cpp
+//		CJoinOrderGreedy.cpp
 //
 //	@doc:
-//		Implementation of cardinality-based join order generation
+//		Implementation of cardinality-based join order generation with
+//		delayed cross joins
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
@@ -23,20 +24,20 @@
 #include "gpopt/operators/ops.h"
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/operators/CNormalizer.h"
-#include "gpopt/xforms/CJoinOrderMinCard.h"
+#include "gpopt/xforms/CJoinOrderGreedy.h"
 
 using namespace gpopt;
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderMinCard::CJoinOrderMinCard
+//		CJoinOrderGreedy::CJoinOrderGreedy
 //
 //	@doc:
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJoinOrderMinCard::CJoinOrderMinCard
+CJoinOrderGreedy::CJoinOrderGreedy
 	(
 	IMemoryPool *pmp,
 	DrgPexpr *pdrgpexprComponents,
@@ -46,6 +47,7 @@ CJoinOrderMinCard::CJoinOrderMinCard
 	CJoinOrder(pmp, pdrgpexprComponents, pdrgpexprConjuncts),
 	m_pcompResult(NULL)
 {
+	m_ulNumUsedEdges = m_ulEdges;
 #ifdef GPOS_DEBUG
 	for (ULONG ul = 0; ul < m_ulComps; ul++)
 	{
@@ -58,13 +60,13 @@ CJoinOrderMinCard::CJoinOrderMinCard
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderMinCard::~CJoinOrderMinCard
+//		CJoinOrderGreedy::~CJoinOrderGreedy
 //
 //	@doc:
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CJoinOrderMinCard::~CJoinOrderMinCard()
+CJoinOrderGreedy::~CJoinOrderGreedy()
 {
 	CRefCount::SafeRelease(m_pcompResult);
 }
@@ -72,14 +74,14 @@ CJoinOrderMinCard::~CJoinOrderMinCard()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderMinCard::MarkUsedEdges
+//		CJoinOrder::MarkUsedEdges
 //
 //	@doc:
 //		Mark edges used by result component
 //
 //---------------------------------------------------------------------------
 void
-CJoinOrderMinCard::MarkUsedEdges()
+CJoinOrderGreedy::MarkUsedEdges()
 {
 	GPOS_ASSERT(NULL != m_pcompResult);
 
@@ -109,27 +111,93 @@ CJoinOrderMinCard::MarkUsedEdges()
 			if ((*pdrgpexpr)[ulPred] == pedge->m_pexpr)
 			{
 				pedge->m_fUsed = true;
+				m_ulNumUsedEdges--;
 			}
 		}
 	}
 	pdrgpexpr->Release();
 }
 
+
+// function to get the minimal cardinality join pair as the starting pair
+CJoinOrder::SComponent *
+CJoinOrderGreedy::GetStartingJoins()
+{
+
+	CDouble dMinRows(0.0);
+	ULONG ul1Counter = 0;
+	ULONG ul2Counter = 0;
+	CJoinOrder::SComponent *pcompBest = GPOS_NEW(m_pmp) SComponent(m_pmp, NULL /*pexpr*/);
+
+	for (ULONG ul1 = 0; ul1 < m_ulComps; ul1++)
+	{
+		for (ULONG ul2 = ul1+1; ul2 < m_ulComps; ul2++)
+		{
+			CJoinOrder::SComponent *pcompTemp = PcompCombine(m_rgpcomp[ul1], m_rgpcomp[ul2]);
+			// exclude cross joins to be considered as late as possible in the join order
+			if(CUtils::FCrossJoin(pcompTemp->m_pexpr))
+			{
+				pcompTemp->Release();
+				continue;
+			}
+			DeriveStats(pcompTemp->m_pexpr);
+			CDouble dRows = pcompTemp->m_pexpr->Pstats()->DRows();
+			if (dMinRows <= 0 || dRows < dMinRows)
+			{
+				ul1Counter = ul1;
+				ul2Counter = ul2;
+				dMinRows = dRows;
+				pcompTemp->AddRef();
+				CRefCount::SafeRelease(pcompBest);
+				pcompBest = pcompTemp;
+			}
+			pcompTemp->Release();
+		}
+	}
+
+	if((ul1Counter == 0) && (ul2Counter==0))
+	{
+		pcompBest->Release();
+		return NULL;
+	}
+
+	SComponent *comp1 = m_rgpcomp[ul1Counter];
+	comp1->m_fUsed = true;
+	SComponent *comp2 = m_rgpcomp[ul2Counter];
+	comp2->m_fUsed = true;
+	pcompBest->m_fUsed = true;
+
+	return pcompBest;
+
+}
+
+
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderMinCard::PexprExpand
+//		CJoinOrderGreedy::PexprExpand
 //
 //	@doc:
 //		Create join order
 //
 //---------------------------------------------------------------------------
 CExpression *
-CJoinOrderMinCard::PexprExpand()
+CJoinOrderGreedy::PexprExpand()
 {
 	GPOS_ASSERT(NULL == m_pcompResult && "join order is already expanded");
 
-	m_pcompResult = GPOS_NEW(m_pmp) SComponent(m_pmp, NULL /*pexpr*/);
 	ULONG ulCoveredComps = 0;
+	m_pcompResult = GetStartingJoins();
+
+	if(NULL != m_pcompResult)
+	{
+		ulCoveredComps = 2;
+		MarkUsedEdges();
+	}
+	else
+	{
+		m_pcompResult = GPOS_NEW(m_pmp) SComponent(m_pmp, NULL /*pexpr*/);
+	}
+
 	while (ulCoveredComps < m_ulComps)
 	{
 		CDouble dMinRows(0.0);
@@ -147,6 +215,11 @@ CJoinOrderMinCard::PexprExpand()
 
 			// combine component with current result and derive stats
 			CJoinOrder::SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
+			if(CUtils::FCrossJoin(pcompTemp->m_pexpr) && 1 < m_ulNumUsedEdges)
+			{
+				pcompTemp->Release();
+				continue;
+			}
 			DeriveStats(pcompTemp->m_pexpr);
 			CDouble dRows = pcompTemp->m_pexpr->Pstats()->DRows();
 
@@ -177,30 +250,6 @@ CJoinOrderMinCard::PexprExpand()
 	pexprResult->AddRef();
 
 	return pexprResult;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderMinCard::OsPrint
-//
-//	@doc:
-//		Print created join order
-//
-//---------------------------------------------------------------------------
-IOstream &
-CJoinOrderMinCard::OsPrint
-	(
-	IOstream &os
-	)
-	const
-{
-	if (NULL != m_pcompResult->m_pexpr)
-	{
-		os << *m_pcompResult->m_pexpr;
-	}
-
-	return os;
 }
 
 // EOF

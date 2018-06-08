@@ -47,86 +47,11 @@ CJoinOrderTest::EresUnittest()
 
 	CUnittest rgut[] =
 		{
-		GPOS_UNITTEST_FUNC(CJoinOrderTest::EresUnittest_Expand),
 		GPOS_UNITTEST_FUNC(EresUnittest_ExpandMinCard),
 		GPOS_UNITTEST_FUNC(EresUnittest_RunTests)
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderTest::EresUnittest_Expand
-//
-//	@doc:
-//		Simple expansion test
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CJoinOrderTest::EresUnittest_Expand()
-{
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-
-	// setup a file-based provider
-	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
-	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
-	
-	// install opt context in TLS
-	CAutoOptCtxt aoc
-				(
-				pmp,
-				&mda,
-				NULL,  /* pceeval */
-				CTestUtils::Pcm(pmp)
-				);
-
-	// build test case
-	CExpression *pexpr = CTestUtils::PexprLogicalNAryJoin(pmp);
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-	ULONG ulArity = pexpr->UlArity();
-	for (ULONG ul = 0; ul < ulArity - 1; ul++)
-	{
-		CExpression *pexprChild = (*pexpr)[ul];
-		pexprChild->AddRef();
-		pdrgpexpr->Append(pexprChild);
-	}
-
-	DrgPexpr *pdrgpexprConj = CPredicateUtils::PdrgpexprConjuncts(pmp, (*pexpr)[ulArity - 1]);
-
-	// add predicates selectively to trigger special case of cross join
-	DrgPexpr *pdrgpexprTest = GPOS_NEW(pmp) DrgPexpr(pmp);	
-	for (ULONG ul = 0; ul < pdrgpexprConj->UlLength() - 1; ul++)
-	{
-		CExpression *pexprConjunct = (*pdrgpexprConj)[ul];
-		pexprConjunct->AddRef();
-		pdrgpexprTest->Append(pexprConjunct);
-	}
-	
-	pdrgpexprConj->Release();
-
-	// single-table predicate
-	CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel((*pdrgpexpr)[ulArity - 2]->PdpDerive())->PcrsOutput();
-	CExpression *pexprSingleton = CUtils::PexprScalarEqCmp(pmp, pcrsOutput->PcrAny(), pcrsOutput->PcrAny());
-	
-	pdrgpexprTest->Append(pexprSingleton);
-	
-	CJoinOrder jo(pmp, pdrgpexpr, pdrgpexprTest);
-	CExpression *pexprResult = jo.PexprExpand();
-	{
-		CAutoTrace at(pmp);
-		at.Os() << std::endl << "INPUT:" << std::endl << *pexpr << std::endl;
-		at.Os() << std::endl << "OUTPUT:" << std::endl << *pexprResult << std::endl;
-	}
-
-	CRefCount::SafeRelease(pexprResult);
-
-	pexpr->Release();
-
-	return GPOS_OK;
 }
 
 

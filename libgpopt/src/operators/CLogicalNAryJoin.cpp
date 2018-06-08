@@ -78,7 +78,8 @@ CLogicalNAryJoin::PxfsCandidates
 	(void) pxfs->FExchangeSet(CXform::ExfExpandNAryJoin);
 	(void) pxfs->FExchangeSet(CXform::ExfExpandNAryJoinMinCard);
 	(void) pxfs->FExchangeSet(CXform::ExfExpandNAryJoinDP);
-	
+	(void) pxfs->FExchangeSet(CXform::ExfExpandNAryJoinGreedy);
+
 	return pxfs;
 }
 

@@ -309,248 +309,92 @@ CJoinOrder::ComputeEdgeCover()
 	}
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrder::SortEdges
+//		CJoinOrder::PcompCombine
 //
 //	@doc:
-//		Sort edge array by lengths of edges;
-//		Function to be overwritten by more sophisticated subclasses
+//		Combine the two given components using applicable edges
+//
 //
 //---------------------------------------------------------------------------
-void
-CJoinOrder::SortEdges()
-{
-	clib::QSort(m_rgpedge, m_ulEdges, GPOS_SIZEOF(m_rgpedge[0]), ICmpEdgesByLength);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrder::MergeComponents
-//
-//	@doc:
-//		Build join order by establishing an order among the edges, then
-//		apply each edge by merging spanned components
-//
-//---------------------------------------------------------------------------
-void
-CJoinOrder::MergeComponents()
-{
-	SortEdges();
-	
-	ULONG ulEdge = 0;
-	while (ulEdge < m_ulEdges)
-	{
-		// array for conjuncts
-		DrgPexpr *pdrgpexpr = GPOS_NEW(m_pmp) DrgPexpr(m_pmp);
-		
-		// next cover
-		CBitSet *pbsCover = m_rgpedge[ulEdge]->m_pbs;
-
-		CExpression *pexprConj = m_rgpedge[ulEdge]->m_pexpr;
-		pexprConj->AddRef();
-		pdrgpexpr->Append(pexprConj);
-		
-		// gobble up subsequent edges with exactly the same coverage
-		while (ulEdge < m_ulEdges - 1 && 
-			   m_rgpedge[ulEdge + 1]->m_pbs->FEqual(pbsCover))
-		{
-			pexprConj = m_rgpedge[ulEdge + 1]->m_pexpr;
-			pexprConj->AddRef();
-			pdrgpexpr->Append(pexprConj);
-			ulEdge++;
-		}
-		
-		// create new join(s)
-		AddEdge(m_rgpedge[ulEdge], pdrgpexpr);
-		ulEdge++;
-	}
-}		
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrder::AddEdge
-//
-//	@doc:
-//		Process an edge, add Select or Join, then recompute components 
-//		and new cover
-//
-//---------------------------------------------------------------------------
-void
-CJoinOrder::AddEdge
+CJoinOrder::SComponent *
+CJoinOrder::PcompCombine
 	(
-	CJoinOrder::SEdge *pedge,
-	DrgPexpr *pdrgpexpr
+	SComponent *pcompOuter,
+	SComponent *pcompInner
 	)
 {
-	// by default start with first component; if edge doesn't span any 
-	// components, it suffices to apply to first component
-	SComponent *pcomp = m_rgpcomp[0];
-
-	CBitSetIter bsiterEdge(*pedge->m_pbs);
-	if (bsiterEdge.FAdvance())
+	CBitSet *pbs = GPOS_NEW(m_pmp) CBitSet(m_pmp);
+	pbs->Union(pcompOuter->m_pbs);
+	pbs->Union(pcompInner->m_pbs);
+	DrgPexpr *pdrgpexpr = GPOS_NEW(m_pmp) DrgPexpr(m_pmp);
+	for (ULONG ul = 0; ul < m_ulEdges; ul++)
 	{
-		pcomp = m_rgpcomp[bsiterEdge.UlBit()];
+		SEdge *pedge = m_rgpedge[ul];
+		if (pedge->m_fUsed)
+		{
+			// edge is already used in result component
+			continue;
+		}
+
+		if (pbs->FSubset(pedge->m_pbs))
+		{
+			// edge is subsumed by the cover of the combined component
+			CExpression *pexpr = pedge->m_pexpr;
+			pexpr->AddRef();
+			pdrgpexpr->Append(pexpr);
+		}
 	}
 
-	// edge fully subsumed by first component's cover
-	if (pcomp->m_pbs->FSubset(pedge->m_pbs))
+	CExpression *pexprOuter = pcompOuter->m_pexpr;
+	CExpression *pexprInner = pcompInner->m_pexpr;
+	CExpression *pexprScalar = CPredicateUtils::PexprConjunction(m_pmp, pdrgpexpr);
+
+	CExpression *pexpr = NULL;
+	if (NULL == pexprOuter)
 	{
-		CExpression *pexprPred = CPredicateUtils::PexprConjunction(m_pmp, pdrgpexpr);
-		if (CUtils::FScalarConstTrue(pexprPred))
-		{
-			pexprPred->Release();
-		}
-		else
-		{
-			CExpression *pexprRel = pcomp->m_pexpr;
-			pcomp->m_pexpr = CUtils::PexprCollapseSelect(m_pmp, pexprRel, pexprPred);
-			pexprRel->Release();
-			pexprPred->Release();
-		}
-
-		return;
+		// first call to this function, we create a Select node
+		pexpr = CUtils::PexprCollapseSelect(m_pmp, pexprInner, pexprScalar);
+		pexprScalar->Release();
 	}
-	
-	// subtract component cover from edge cover
-	CBitSet *pbsCover = GPOS_NEW(m_pmp) CBitSet(m_pmp, *pedge->m_pbs);
-	GPOS_ASSERT(0 < pbsCover->CElements());
-
-	pbsCover->Difference(pcomp->m_pbs);
-	ULONG ulLength = pbsCover->CElements();
-	
-	// iterate through remaining edge cover
-	BOOL fCovered = false;
-	CBitSetIter bsiter(*pbsCover);	
-	while (bsiter.FAdvance() && !fCovered)
+	else
 	{
-		ULONG ulComp = bsiter.UlBit();
-		GPOS_ASSERT(!pcomp->m_pbs->FBit(ulComp));
-
-		SComponent *pcompOther = m_rgpcomp[ulComp];
-
-		// add predicate after all required components are merged
-		DrgPexpr *pdrgpexprFinal = NULL;
-		ulLength --;
-		if (0 == ulLength)
-		{
-			// reached end of edge cover, use edge's predicate
-			pdrgpexprFinal = pdrgpexpr;
-		}
-		else
-		{
-			// determine if combining components can produce edge
-			// coverage without going through further iterations
-			CBitSet *pbsCombined = GPOS_NEW(m_pmp) CBitSet(m_pmp);
-			pbsCombined->Union(pcomp->m_pbs);
-			pbsCombined->Union(pcompOther->m_pbs);
-			fCovered = pbsCombined->FSubset(pbsCover);
-			pbsCombined->Release();
-			if (fCovered)
-			{
-				// edge is covered by combining components, use edges's predicate
-				pdrgpexprFinal = pdrgpexpr;
-			}
-		}
-
-		CombineComponents(pcomp, pcompOther, pdrgpexprFinal);
+		// not first call, we create an Inner Join
+		pexprInner->AddRef();
+		pexprOuter->AddRef();
+		pexpr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(m_pmp, pexprOuter, pexprInner, pexprScalar);
 	}
-	
-	pbsCover->Release();
+
+	return GPOS_NEW(m_pmp) SComponent(pexpr, pbs);
 }
-
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrder::CombineComponents
+//		CJoinOrder::DeriveStats
 //
 //	@doc:
-//		Merge individual disjoint components
+//		Helper function to derive stats on a given component
 //
 //---------------------------------------------------------------------------
 void
-CJoinOrder::CombineComponents
+CJoinOrder::DeriveStats
 	(
-	SComponent *pcompLeft,
-	SComponent *pcompRight,
-	DrgPexpr *pdrgpexpr
+	CExpression *pexpr
 	)
 {
-	GPOS_ASSERT_IMP(!pcompLeft->m_pbs->FDisjoint(pcompRight->m_pbs),
-					pcompLeft->m_pbs->FEqual(pcompRight->m_pbs));
+	GPOS_ASSERT(NULL != pexpr);
 
-	// special case when coalescing components at end of algorithm
-	if (pcompLeft->m_pbs->FEqual(pcompRight->m_pbs))
+	if (NULL != pexpr->Pstats())
 	{
+		// stats have been already derived
 		return;
 	}
-	
-	// assemble join & update component
-	pcompLeft->m_pexpr->AddRef();
-	pcompRight->m_pexpr->AddRef();
-	
-	CExpression *pexprResult = 
-		GPOS_NEW(m_pmp) CExpression(m_pmp, 
-							   GPOS_NEW(m_pmp) CLogicalInnerJoin(m_pmp),
-							   pcompLeft->m_pexpr,
-							   pcompRight->m_pexpr,
-							   CPredicateUtils::PexprConjunction(m_pmp, pdrgpexpr));
-	
-	pcompLeft->m_pexpr->Release();
-	pcompLeft->m_pexpr = pexprResult;
 
-	// adjust cover information
-	pcompLeft->m_pbs->Union(pcompRight->m_pbs);
-		
-	// extra reference since we unlink all references to right component below
-	pcompRight->AddRef();
-
-	// replace all pointers to right component with pointers to left component
-	CBitSetIter bsiter(*pcompRight->m_pbs);
-	while (bsiter.FAdvance())
-	{
-		ULONG ulPos = bsiter.UlBit();
-	
-		GPOS_ASSERT(m_rgpcomp[ulPos] == pcompRight);
-		m_rgpcomp[ulPos]->Release();
-		
-		pcompLeft->AddRef();
-		m_rgpcomp[ulPos] = pcompLeft;
-	}
-	
-	pcompRight->Release();
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrder::PexprExpand
-//
-//	@doc:
-//		Create actual join order
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrder::PexprExpand()
-{
-	// create joins for all connected components
-	MergeComponents();
-	
-	// stitch resulting components together with cross joins if needed
-	for (ULONG ul = 0; ul < m_ulComps - 1; ul++)
-	{
-		CombineComponents(m_rgpcomp[ul], m_rgpcomp[ul + 1], NULL /*pdrgpexr*/);
-	}
-
-	CExpression *pexpr = m_rgpcomp[0]->m_pexpr;
-	pexpr->AddRef();	
-	
-	// return last surviving component
-	return pexpr;
+	CExpressionHandle exprhdl(m_pmp);
+	exprhdl.Attach(pexpr);
+	exprhdl.DeriveStats(m_pmp, m_pmp, NULL /*prprel*/, NULL /*pdrgpstatCtxt*/);
 }
 
 

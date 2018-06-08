@@ -1,15 +1,15 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2018 Pivotal Software Inc.
 //
 //	@filename:
-//		CJoinOrderMinCard.h
+//		CJoinOrderGreedy.h
 //
 //	@doc:
-//		Cardinality-based join order generation
+//		Cardinality-based join order generation with delayed cross joins
 //---------------------------------------------------------------------------
-#ifndef GPOPT_CJoinOrderMinCard_H
-#define GPOPT_CJoinOrderMinCard_H
+#ifndef GPOPT_CJoinOrderGreedy_H
+#define GPOPT_CJoinOrderGreedy_H
 
 #include "gpos/base.h"
 #include "gpos/io/IOstream.h"
@@ -21,13 +21,13 @@ namespace gpopt
 
 	//---------------------------------------------------------------------------
 	//	@class:
-	//		CJoinOrderMinCard
+	//		CJoinOrderGreedy
 	//
 	//	@doc:
 	//		Helper class for creating join orders based on cardinality of results
 	//
 	//---------------------------------------------------------------------------
-	class CJoinOrderMinCard : public CJoinOrder
+	class CJoinOrderGreedy : public CJoinOrder
 	{
 
 		private:
@@ -35,13 +35,18 @@ namespace gpopt
 			// result component
 			SComponent *m_pcompResult;
 
+			ULONG m_ulNumUsedEdges;
+
 			// mark edges used by result component
 			void MarkUsedEdges();
+
+			// returns starting joins with minimal cardinality
+			SComponent *GetStartingJoins();
 
 		public:
 
 			// ctor
-			CJoinOrderMinCard
+			CJoinOrderGreedy
 				(
 				IMemoryPool *pmp,
 				DrgPexpr *pdrgpexprComponents,
@@ -50,20 +55,16 @@ namespace gpopt
 
 			// dtor
 			virtual
-			~CJoinOrderMinCard();
+			~CJoinOrderGreedy();
 
 			// main handler
 			virtual
 			CExpression *PexprExpand();
 
-			// print function
-			virtual
-			IOstream &OsPrint(IOstream &) const;
-
-	}; // class CJoinOrderMinCard
+	}; // class CJoinOrderGreedy
 
 }
 
-#endif // !GPOPT_CJoinOrderMinCard_H
+#endif // !GPOPT_CJoinOrderGreedy_H
 
 // EOF

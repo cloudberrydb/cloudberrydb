@@ -214,6 +214,7 @@ namespace gpopt
 				ExfLeftOuterJoin2IndexGetApply,
 				ExfLeftOuterJoinWithInnerSelect2BitmapIndexGetApply,
 				ExfLeftOuterJoinWithInnerSelect2IndexGetApply,
+				ExfExpandNAryJoinGreedy,
 				ExfInvalid,
 				ExfSentinel = ExfInvalid
 			};

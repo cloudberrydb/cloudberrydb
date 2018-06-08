@@ -37,7 +37,6 @@ namespace gpopt
 		
 			// unittests
 			static GPOS_RESULT EresUnittest();
-			static GPOS_RESULT EresUnittest_Expand();
 			static GPOS_RESULT EresUnittest_ExpandMinCard();
 			static GPOS_RESULT EresUnittest_RunTests();
 

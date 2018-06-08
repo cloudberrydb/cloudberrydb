@@ -155,6 +155,7 @@ namespace gpopt
 			CDouble DCost(CExpression *pexpr);
 
 			// derive stats on given expression
+			virtual
 			void DeriveStats(CExpression *pexpr);
 
 			// add expression to cost map
