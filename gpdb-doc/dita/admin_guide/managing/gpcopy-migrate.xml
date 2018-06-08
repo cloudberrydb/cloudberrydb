@@ -149,9 +149,7 @@
     <body>
       <p>Follow this procedure to migrate data from one Greenplum Database system to another with
           <codeph>gpcopy</codeph>:<ol id="ol_zc4_b34_b2b">
-          <li>Start both the source and destination clusters. If you want to prevent users from
-            updating data during the <codeph>gpcopy</codeph> operation, start the clusters in
-            restricted mode (using <codeph>gpstart -R</codeph>).</li>
+          <li>Start both the source and destination clusters.</li>
           <li>Perform a full database backup in the source Greenplum Database system. See <xref
               href="backup-gpbackup.xml#topic_yrr_hqw_sbb"/>.</li>
           <li>While Greenplum Database 4.3.26 and later support migration with
@@ -243,9 +241,7 @@
       <p>If you attempt to use the instructions in <xref href="#topic_ekp_rmp_zdb" format="dita"/>
         to migrate systems that use the same hardware, but you do not have the required free
           space:<ol id="ul_zdm_bm4_b2b">
-          <li>Start both the source and destination clusters. If you want to prevent users from
-            updating data during the <codeph>gpcopy</codeph> operation, start the clusters in
-            restricted mode (using <codeph>gpstart -R</codeph>).</li>
+          <li>Start both the source and destination clusters. </li>
           <li>Perform a full database backup in the source Greenplum Database system. See <xref
               href="backup-gpbackup.xml#topic_yrr_hqw_sbb"/>.</li>
           <li>Determine if you have enough free space to migrate your data using
