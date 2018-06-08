@@ -919,6 +919,11 @@ CTranslatorRelcacheToDXL::GetRelDistribution
 		return IMDRelation::EreldistrMasterOnly;
 	}
 
+	if (POLICYTYPE_REPLICATED == gp_policy->ptype)
+	{
+		return IMDRelation::EreldistrReplicated;
+	}
+
 	if (POLICYTYPE_PARTITIONED == gp_policy->ptype)
 	{
 		if (0 == gp_policy->nattrs)
@@ -2309,7 +2314,7 @@ CTranslatorRelcacheToDXL::RetrieveRelStats
 		BlockNumber pg_attribute_unused() pages = 0;
 		double pg_attribute_unused() allvisfrac = 0.0;
 		GpPolicy *gp_policy = gpdb::GetDistributionPolicy(rel);
-		if (!gp_policy ||gp_policy->ptype != POLICYTYPE_PARTITIONED)
+		if (!gp_policy || (gp_policy->ptype != POLICYTYPE_PARTITIONED && gp_policy->ptype != POLICYTYPE_REPLICATED))
 		{
 			gpdb::EstimateRelationSize(rel, NULL, &pages, &num_rows, &allvisfrac);
 		}

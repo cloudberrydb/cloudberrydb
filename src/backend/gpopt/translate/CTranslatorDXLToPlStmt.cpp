@@ -5181,9 +5181,18 @@ CTranslatorDXLToPlStmt::TranslateDXLPhyCtasToDistrPolicy
 												gpdb::GetGPSegmentCount());
 
 	GPOS_ASSERT(IMDRelation::EreldistrHash == dxlop->Ereldistrpolicy() ||
-				IMDRelation::EreldistrRandom == dxlop->Ereldistrpolicy());
-	
-	distr_policy->ptype = POLICYTYPE_PARTITIONED;
+				IMDRelation::EreldistrRandom == dxlop->Ereldistrpolicy() ||
+				IMDRelation::EreldistrReplicated == dxlop->Ereldistrpolicy()) ;
+
+	if (IMDRelation::EreldistrReplicated == dxlop->Ereldistrpolicy())
+	{
+		distr_policy->ptype = POLICYTYPE_REPLICATED;
+	}
+	else
+	{
+		distr_policy->ptype = POLICYTYPE_PARTITIONED;
+	}
+
 	distr_policy->nattrs = 0;
 	if (IMDRelation::EreldistrHash == dxlop->Ereldistrpolicy())
 	{

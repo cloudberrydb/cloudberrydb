@@ -148,7 +148,7 @@ CTranslatorUtils::GetTableDescr
 	IMDRelation::Ereldistrpolicy distribution_policy = rel->GetRelDistribution();
 
 	if (NULL != is_distributed_table &&
-		(IMDRelation::EreldistrHash == distribution_policy || IMDRelation::EreldistrRandom == distribution_policy))
+		(IMDRelation::EreldistrHash == distribution_policy || IMDRelation::EreldistrRandom == distribution_policy || IMDRelation::EreldistrReplicated == distribution_policy))
 	{
 		*is_distributed_table = true;
 	}
