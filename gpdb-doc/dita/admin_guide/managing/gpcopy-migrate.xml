@@ -16,7 +16,7 @@
       schema, table data, indexes, views, roles, user-defined functions, resource queues, and
       resource groups. If a copied table or database does not exist in the destination cluster,
         <codeph>gpcopy</codeph> creates it automatically, along with indexes as necessary.</p>
-    <p>Configuration files, including <codeph>postgres.conf</codeph> and
+    <p>Configuration files, including <codeph>postgresql.conf</codeph> and
         <codeph>pg_hba.conf</codeph>, must be transferred manually by an administrator. Extensions
       installed in the database with <codeph>gppkg</codeph>, such as MADlib and programming language
       extensions, must be installed in the destination database by an administrator. </p>
