@@ -1199,10 +1199,6 @@ def start_standbymaster(host, datadir, port, dbid, ncontents, era=None,
     if res:
         logger.warning("Unable to cleanup previously started standby: '%s'" % res)
 
-    #create a pg_log directory if necessary
-    CreateDirIfNecessary.remote('create standby logdir if needed', host, datadir + "/pg_log")
-
-
     cmd = GpStandbyStart.remote('start standby master',
                                 host, datadir, port, ncontents, dbid, era=era,
                                 wrapper=wrapper, wrapper_args=wrapper_args)

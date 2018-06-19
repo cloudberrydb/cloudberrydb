@@ -282,8 +282,6 @@ class PgBaseBackup(Command):
         # slow down the speed of gpinitstandby if containing a lot of data
         if excludePaths is None or len(excludePaths) == 0:
             cmd_tokens.append('-E')
-            cmd_tokens.append('./pg_log')
-            cmd_tokens.append('-E')
             cmd_tokens.append('./db_dumps')
             cmd_tokens.append('-E')
             cmd_tokens.append('./gpperfmon/data')
