@@ -50,7 +50,6 @@ groups:
   - icw_gporca_centos6_gpos_memory
   - icw_planner_centos6
   - icw_planner_ictcp_centos6
-  - QP_memory-accounting
   - icw_extensions_gpcloud_centos6
 {% endif %}
 {% if "centos7" in os_types %}
@@ -171,7 +170,6 @@ groups:
   - icw_gporca_centos6_gpos_memory
   - icw_planner_centos6
   - icw_planner_ictcp_centos6
-  - QP_memory-accounting
   - icw_extensions_gpcloud_centos6
   - compile_gpdb_centos6
 {% endif %}
@@ -1120,25 +1118,6 @@ jobs:
       MAKE_TEST_COMMAND: -k PGOPTIONS='-c gp_interconnect_type=tcp -c optimizer=off' installcheck-world
       TEST_OS: centos
 
-- name: QP_memory-accounting
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-      trigger: [[ test_trigger ]]
-    - get: bin_gpdb
-      passed: [compile_gpdb_centos6]
-      resource: bin_gpdb_centos6
-    - get: centos-gpdb-dev-6
-  - task: memory-accounting
-    timeout: 3h
-    file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-    image: centos-gpdb-dev-6
-    params:
-      MAKE_TEST_COMMAND: memory_accounting
-      TEST_OS: "centos"
-      CONFIGURE_FLAGS: {{configure_flags}}
-
 {% endif %}
 {% if "centos7" in os_types %}
 - name: icw_gporca_centos7
@@ -1398,7 +1377,6 @@ jobs:
       - icw_gporca_centos6_gpos_memory
       - icw_planner_centos6
       - icw_planner_ictcp_centos6
-      - QP_memory-accounting
       - icw_extensions_gpcloud_centos6
 {% endif %}
     - get: gpdb_src
@@ -1408,7 +1386,6 @@ jobs:
       - icw_gporca_centos6_gpos_memory
       - icw_planner_centos6
       - icw_planner_ictcp_centos6
-      - QP_memory-accounting
       - icw_extensions_gpcloud_centos6
 {% endif %}
 {% if 'ubuntu16' in os_types %}
@@ -2188,7 +2165,6 @@ jobs:
       - resource_group_sles12
       - segwalrep_mirrorless_centos6
       - walrep_2
-      - QP_memory-accounting
       - regression_tests_gphdfs_centos
       - regression_tests_pxf
 {% for test_name in CLI_1_suites +
@@ -2215,7 +2191,6 @@ jobs:
       - resource_group_centos6
       - segwalrep_mirrorless_centos6
       - walrep_2
-      - QP_memory-accounting
       - regression_tests_gphdfs_centos
       - regression_tests_pxf
 {% for test_name in CLI_1_suites +
