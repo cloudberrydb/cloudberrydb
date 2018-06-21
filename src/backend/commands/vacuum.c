@@ -1115,7 +1115,7 @@ get_rel_oids(Oid relid, VacuumStmt *vacstmt, int stmttype)
 				 * to work with the root partition only. To gather stats on mid-level partitions
 				 * (for Orca's use), the user should run ANALYZE or ANALYZE ROOTPARTITION on the
 				 * root level with optimizer_analyze_midlevel_partition GUC set to ON.
-				 * Planner uses the stats on leaf partitions, so its unnecesary to collect stats on
+				 * Planner uses the stats on leaf partitions, so it's unnecessary to collect stats on
 				 * midlevel partitions.
 				 */
 				ereport(WARNING,
