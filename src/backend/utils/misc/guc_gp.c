@@ -481,6 +481,8 @@ char	   *gp_default_storage_options = NULL;
 
 int			writable_external_table_bufsize = 64;
 
+bool		gp_external_enable_filter_pushdown = false;
+
 /* Executor */
 bool		gp_enable_mk_sort = true;
 bool		gp_enable_motion_mk_sort = true;
@@ -1839,7 +1841,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 	{
 		{"gp_enable_query_metrics", PGC_POSTMASTER, UNGROUPED,
 			gettext_noop("Enable all query metrics collection."),
-			NULL	
+			NULL
 		},
 		&gp_enable_query_metrics,
 		false,
@@ -3103,6 +3105,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&verify_gpfdists_cert,
 		true, check_verify_gpfdists_cert, NULL
+	},
+
+	{
+		{"gp_external_enable_filter_pushdown", PGC_USERSET, EXTERNAL_TABLES,
+			gettext_noop("Enable passing of query constraints to external table providers"),
+			NULL,
+			GUC_GPDB_ADDOPT
+		},
+		&gp_external_enable_filter_pushdown,
+		false, NULL, NULL
 	},
 
 	/* End-of-list marker */
