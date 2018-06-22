@@ -1770,6 +1770,21 @@ ExecuteTruncate(TruncateStmt *stmt)
 	{
 		Relation	rel = (Relation) lfirst(cell);
 
+		if (RelationIsAppendOptimized(rel) && IS_QUERY_DISPATCHER())
+		{
+			/*
+			 * Drop the shared memory hash table entry for this table if it
+			 * exists. We must do so since before the rewrite we probably have few
+			 * non-zero segfile entries for this table while after the rewrite
+			 * only segno zero will be full and the others will be empty. By
+			 * dropping the hash entry we force refreshing the entry from the
+			 * catalog the next time a write into this AO table comes along.
+			 */
+			LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+			AORelRemoveHashEntry(RelationGetRelid(rel));
+			LWLockRelease(AOSegFileLock);
+		}
+
 		heap_close(rel, NoLock);
 	}
 }
