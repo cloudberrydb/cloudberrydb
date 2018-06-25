@@ -1,8 +1,186 @@
-/* 
- * This file contains all the non-macro constants used by hyperloglog.c
- */
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef _HYPERLOGLOG_H_
+#define _HYPERLOGLOG_H_
+/* This is an implementation of HyperLogLog algorithm as described in the
+ * paper "HyperLogLog: the analysis of near-optimal cardinality estimation
+ * algorithm", published by Flajolet, Fusy, Gandouet and Meunier in 2007.
+ * Generally it is an improved version of LogLog algorithm with the last
+ * step modified, to combine the parts using harmonic means.
+ *
+ * Several improvements have been included that are described in "HyperLogLog 
+ * in Practice: Algorithmic Engineering of a State of The Art Cardinality 
+ * Estimation Algorithm", published by Stefan Heulem, Marc Nunkesse and 
+ * Alexander Hall.
+ *
+ * ---------------------------------------------------------------------------
+ * -------------------------- DEFINED CONSTANTS ------------------------------
+ * ---------------------------------------------------------------------------
+ *
+ * ERROR_CONST = 1.04*1.04
+ * 
+ * 	Used in calculating the minimum m for a desired error_rate. Derived from 
+ * 	error_rate = 1.04/sqrt(m)
+ * 	sqrt(m) = 1.04/error_rate
+ * 	m = (1.04/error_rate)^2
+ * 	m = 1.0816/(error_rate*error_rate) 
+ *
+ * MIN_INDEX_BITS no real sense in being as inaccurate as <4 values would be
+ * (>35%)
+ *
+ * MAX_INDEX_BITS error correction data only goes up to 18
+ *
+ * HASH_LENGTH the version of MurmurHash we use produces 64 bit hashes 
+ *
+ * HASH_SEED a random seed for the hash function to use
+ *
+ * MAX_INTERPOLATION_POINTS any precision (# index bits) above 5 has 200
+ * points
+ *
+ * PRECISION_5_MAX_INTERPOLATION_POINTS precision 5 only has 159 points
+ *
+ * PRECISION_4_MAX_INTERPOLATION_POINTS precision 4 only has 79 points 
+ * 
+ * STRUCT_VERSION
+ * 0 - Basic implementation + compression and H++'s improved error correction
+ * at low cardinalities */
+#define ERROR_CONST  1.0816
+#define MIN_INDEX_BITS 4
+#define MAX_INDEX_BITS 18
+#define MIN_BINBITS 4
+#define MAX_BINBITS 8
+#define HASH_LENGTH 64
+#define HASH_SEED 0xadc83b19ULL
+#define MAX_INTERPOLATION_POINTS 200
+#define PRECISION_5_MAX_INTERPOLATION_POINTS 159
+#define PRECISION_4_MAX_INTERPOLATION_POINTS 79
+#define STRUCT_VERSION 2
+#define PACKED 0
+#define PACKED_UNPACKED 1
+#define UNPACKED 2
+#define UNPACKED_UNPACKED 3
+
+#define HLL_DENSE_GET_REGISTER(target,p,regnum,hll_bits) do { \
+    uint8_t *_p = (uint8_t*) p; \
+    unsigned long _byte = regnum*hll_bits/8; \
+    unsigned long _fb = regnum*hll_bits&7; \
+    unsigned long _fb8 = 8 - _fb; \
+    unsigned long b0 = _p[_byte]; \
+    unsigned long b1 = _p[_byte+1]; \
+    target = ((b0 >> _fb) | (b1 << _fb8)) & ((1<<hll_bits)-1); \
+} while(0)
+
+/* Set the value of the register at position 'regnum' to 'val'.
+ * 'p' is an array of unsigned bytes. */
+#define HLL_DENSE_SET_REGISTER(p,regnum,val,hll_bits) do { \
+    uint8_t *_p = (uint8_t*) p; \
+    unsigned long _byte = regnum*hll_bits/8; \
+    unsigned long _fb = regnum*hll_bits&7; \
+    unsigned long _fb8 = 8 - _fb; \
+    unsigned long _v = val; \
+    _p[_byte] &= ~(((1<<hll_bits)-1) << _fb); \
+    _p[_byte] |= _v << _fb; \
+    _p[_byte+1] &= ~(((1<<hll_bits)-1) >> _fb8); \
+    _p[_byte+1] |= _v >> _fb8; \
+} while(0)
+
+/* ------------------------ type declarations -------------------------- */
+typedef struct HLLData {
+    
+    /* length of the structure (varlena) used heavily by postgres internally*/
+    char vl_len_[4];
+    
+    /* Number bits used to index the buckets - this is determined depending
+     * on the requested error rate - see hll_create() for details.
+     * This variable is unsigned as a negative version is used to indicate
+     * the data is compressed and requires decompression */
+    int8_t b; /* bits for bin index */
+    
+    /* number of bits for a single bucket */
+    uint8_t binbits;
+
+    /* Used to indicate the version of the struct to allow further
+     * modification in the future */
+    uint8_t version;
+
+    /* Used to specify the format of the counter (currently 0 - bitpacked
+     * 1 - unpacked */
+    uint8_t format; 
+   
+    /* The current index of the sparse encoded data array. Also when -1 used
+     * as a flag for dense encoded counters */
+    int32_t idx;
+
+	/* Number of multiples counted during the scan */
+	int32_t nmultiples;
+
+	/* Actual distinct value in the sample */
+	int32_t ndistinct;
+
+	/* Sample size which based on this counter is created */
+	int32_t samplerows;
+
+	/* Number of tuples in the partition */
+	float4 relTuples;
+
+	/* Number of pages in the partition */
+	float4 relPages;
+
+	/* padding to save more values for the future */
+	int32_t padding[11];
+
+    /* largest observed 'rho' for each of the 'm' buckets (uses the very same
+     * trick  as in the varlena type in include/c.h where additional memory 
+     * is palloc'ed and treated as part of the data array ) */
+    char data[1];
+    
+} HLLData;
+
+typedef HLLData * HLLCounter;
+
+/* ---------------------- function declarations ------------------------ */
+
+/* creates an optimal bitmap able to count a multiset with the expected
+ * cardinality and the given error rate. */
+HLLCounter hll_create(double ndistinct, float error, uint8_t format);
+
+/* Helper function to return the size of a fully populated counter with
+ * the given parameters. */
+int hll_get_size(double ndistinct, float error);
+
+/* Returns a copy of the counter */
+HLLCounter hll_copy(HLLCounter counter);
+
+/* Merges two counters into one. The final counter can either be a modified 
+ * counter1 or completely new copy. */
+HLLCounter hll_merge(HLLCounter counter1, HLLCounter counter2);
+
+/* add element existence */
+HLLCounter hll_add_element(HLLCounter hloglog, const char * element, int elen);
+
+/* get an estimate from the hyperloglog counter */
+double hll_estimate(HLLCounter hloglog);
+
+/* reset a counter */
+void hll_reset_internal(HLLCounter hloglog);
+
+/* data compression/decompression */
+HLLCounter hll_compress(HLLCounter hloglog);
+HLLCounter hll_decompress(HLLCounter hloglog);
+HLLCounter hll_unpack(HLLCounter hloglog);
+
+/* shoot for 2^64 distinct items and 0.8125% error rate by default */
+#define DEFAULT_NDISTINCT   1ULL << 63
+#define DEFAULT_ERROR       0.008125
+
+
+/* ------------- function declarations for local functions --------------- */
+extern HLLCounter hyperloglog_add_item(HLLCounter hllcounter, Datum element, int16 typlen, bool typbyval, char typalign);
+
+extern double hyperloglog_estimate(HLLCounter hyperloglog);
+extern HLLCounter hyperloglog_merge_counters(HLLCounter counter1, HLLCounter counter2);
+
+extern HLLCounter hyperloglog_init_def(void);
+extern int hyperloglog_len(HLLCounter hyperloglog);
+
 
 /*
  * NUMOFPRECOMPUTEDEXPONENTS - The number of precomputed inverse powers of two
@@ -44,13 +222,13 @@
  * alpha[] = {0, 0, 0, 0, 0.673, 0.697, 0.709, 0.7153, 0.7183, 0.7198, 0.7205,
  *            0.7209, 0.7211, 0.7212, 0.7213, 0.7213, 0.7213};
  */
-const float alpham[ALPHAM_BOUND] = {0, 0, 0, 0, 172.288 , 713.728, 2904.064,11718.991761634348, 47072.71267120224, 188686.82445861166, 755541.746198293, 3023758.3915552306, 12098218.894406674, 48399248.750978045, 193609743.86875492, 774464475.7234259, 3097908905.9095263};
+static const float alpham[ALPHAM_BOUND] = {0, 0, 0, 0, 172.288 , 713.728, 2904.064,11718.991761634348, 47072.71267120224, 188686.82445861166, 755541.746198293, 3023758.3915552306, 12098218.894406674, 48399248.750978045, 193609743.86875492, 774464475.7234259, 3097908905.9095263};
 
 /* linear counting thresholds */
-const int threshold[THRESHOLD_BOUND] = {0,0,0,0,10,20,40,80,220,400,900,1800,3100,6500,11500,20000,50000,120000,350000};
+static const int threshold[THRESHOLD_BOUND] = {0,0,0,0,10,20,40,80,220,400,900,1800,3100,6500,11500,20000,50000,120000,350000};
 
 /* mask */
-const uint32_t MASK[NUM_OF_PRECISIONS][NUM_OF_BINWIDTHS] = {{0x7FFFFF,0x3FFFFF,0x1FFFFF,0xFFFFF,0x7FFFF},
+static const uint32_t MASK[NUM_OF_PRECISIONS][NUM_OF_BINWIDTHS] = {{0x7FFFFF,0x3FFFFF,0x1FFFFF,0xFFFFF,0x7FFFF},
                         {0x3FFFFF,0x1FFFFF,0xFFFFF,0x7FFFF,0x3FFFF},
                         {0x1FFFFF,0xFFFFF,0x7FFFF,0x3FFFF,0x1FFFF},
                         {0xFFFFF,0x7FFFF,0x3FFFF,0x1FFFF,0xFFFF},
@@ -67,7 +245,7 @@ const uint32_t MASK[NUM_OF_PRECISIONS][NUM_OF_BINWIDTHS] = {{0x7FFFFF,0x3FFFFF,0
                         {0x1FF,0xFF,0x7F,0x3F,0x1F}};
 
 /* error correction data (x-values) */
-const double rawEstimateData[NUM_OF_PRECISIONS][MAX_NUM_OF_INTERPOLATION_POINTS] = {
+static const double rawEstimateData[NUM_OF_PRECISIONS][MAX_NUM_OF_INTERPOLATION_POINTS] = {
   // precision 4
   { 11, 11.717, 12.207, 12.7896, 13.2882, 13.8204, 14.3772, 14.9342, 15.5202, 16.161, 16.7722, 17.4636, 18.0396, 18.6766, 19.3566, 20.0454, 20.7936, 21.4856, 22.2666, 22.9946, 23.766, 24.4692, 25.3638, 26.0764, 26.7864, 27.7602, 28.4814, 29.433, 30.2926, 31.0664, 31.9996, 32.7956, 33.5366, 34.5894, 35.5738, 36.2698, 37.3682, 38.0544, 39.2342, 40.0108, 40.7966, 41.9298, 42.8704, 43.6358, 44.5194, 45.773, 46.6772, 47.6174, 48.4888, 49.3304, 50.2506, 51.4996, 52.3824, 53.3078, 54.3984, 55.5838, 56.6618, 57.2174, 58.3514, 59.0802, 60.1482, 61.0376, 62.3598, 62.8078, 63.9744, 64.914, 65.781, 67.1806, 68.0594, 68.8446, 69.7928, 70.8248, 71.8324, 72.8598, 73.6246, 74.7014, 75.393, 76.6708, 77.2394, },
   // precision 5
@@ -101,7 +279,7 @@ const double rawEstimateData[NUM_OF_PRECISIONS][MAX_NUM_OF_INTERPOLATION_POINTS]
 };
 
 /* error correction data (y-values) */
-const double biasData[NUM_OF_PRECISIONS][MAX_NUM_OF_INTERPOLATION_POINTS] = {
+static const double biasData[NUM_OF_PRECISIONS][MAX_NUM_OF_INTERPOLATION_POINTS] = {
   // precision 4
   { 10, 9.717, 9.207, 8.7896, 8.2882, 7.8204, 7.3772, 6.9342, 6.5202, 6.161, 5.7722, 5.4636, 5.0396, 4.6766, 4.3566, 4.0454, 3.7936, 3.4856, 3.2666, 2.9946, 2.766, 2.4692, 2.3638, 2.0764, 1.7864, 1.7602, 1.4814, 1.433, 1.2926, 1.0664, 0.999600000000001, 0.7956, 0.5366, 0.589399999999998, 0.573799999999999, 0.269799999999996, 0.368200000000002, 0.0544000000000011, 0.234200000000001, 0.0108000000000033, -0.203400000000002, -0.0701999999999998, -0.129600000000003, -0.364199999999997, -0.480600000000003, -0.226999999999997, -0.322800000000001, -0.382599999999996, -0.511200000000002, -0.669600000000003, -0.749400000000001, -0.500399999999999, -0.617600000000003, -0.6922, -0.601599999999998, -0.416200000000003, -0.338200000000001, -0.782600000000002, -0.648600000000002, -0.919800000000002, -0.851799999999997, -0.962400000000002, -0.6402, -1.1922, -1.0256, -1.086, -1.21899999999999, -0.819400000000002, -0.940600000000003, -1.1554, -1.2072, -1.1752, -1.16759999999999, -1.14019999999999, -1.3754, -1.29859999999999, -1.607, -1.3292, -1.7606, },
   // precision 5
@@ -135,7 +313,7 @@ const double biasData[NUM_OF_PRECISIONS][MAX_NUM_OF_INTERPOLATION_POINTS] = {
 };
 
 /* precomputed inverse powers of 2 */
-const double PE[NUM_OF_PRECOMPUTED_EXPONENTS] = { 1.,
+static const double PE[NUM_OF_PRECOMPUTED_EXPONENTS] = { 1.,
         0.5,
         0.25,
         0.125,
@@ -199,4 +377,17 @@ const double PE[NUM_OF_PRECOMPUTED_EXPONENTS] = { 1.,
         0.00000000000000000043368086899420177,
         0.00000000000000000021684043449710089,
         0.00000000000000000010842021724855044};
-#endif
+
+#define POW2(a) (1 << (a))
+
+/* Provides encoding and decoding to convert the estimator bytes into a human
+ * readable form. Currently only base 64 encoding is provided. */
+
+int hll_b64_encode(const char *src, unsigned len, char *dst);
+int hll_b64_decode(const char *src, unsigned len, char *dst);
+int b64_enc_len(const char *src, unsigned srclen);
+int b64_dec_len(const char *src, unsigned srclen);
+
+uint64_t MurmurHash64A (const void * key, int len, unsigned int seed);
+
+#endif // #ifndef _HYPERLOGLOG_H_
