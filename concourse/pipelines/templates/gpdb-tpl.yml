@@ -603,13 +603,13 @@ resources:
 
 {% endif %}
 {% if "aix7" in os_types %}
-- name: nightly-trigger
-  type: time
-  source:
-    location: America/Los_Angeles
-    days: [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday]
-    start: 6:00 AM
-    stop: 7:00 AM
+#- name: nightly-trigger
+#  type: time
+#  source:
+#    location: America/Los_Angeles
+#    days: [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday]
+#    start: 6:00 AM
+#    stop: 7:00 AM
 
 {% endif %}
 - name: reduced-frequency-trigger
@@ -768,14 +768,22 @@ jobs:
       trigger: ((reduced-frequency-trigger-flag))
     - get: gpaddon_src
     - get: centos-gpdb-dev-6
-  - task: compile_gpdb
-    file: gpdb_src/concourse/tasks/compile_gpdb.yml
+  - task: sync_tools
+    file: gpdb_src/concourse/tasks/sync_tools.yml
     image: centos-gpdb-dev-6
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
       IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: centos
+      TARGET_OS_VERSION: 6
+      TASK_OS: centos
+      TASK_OS_VERSION: 6
+  - task: compile_gpdb
+    file: gpdb_src/concourse/tasks/compile_gpdb.yml
+    image: centos-gpdb-dev-6
+    params:
       CONFIGURE_FLAGS: {{configure_flags}}
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
@@ -796,14 +804,22 @@ jobs:
       trigger: ((gpdb_src-trigger-flag))
     - get: gpaddon_src
     - get: centos-gpdb-build-7
-  - task: compile_gpdb
+  - task: sync_tools
+    file: gpdb_src/concourse/tasks/sync_tools.yml
     image: centos-gpdb-build-7
-    file: gpdb_src/concourse/tasks/compile_gpdb.yml
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
       IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: centos
+      TARGET_OS_VERSION: 7
+      TASK_OS: centos
+      TASK_OS_VERSION: 7
+  - task: compile_gpdb
+    image: centos-gpdb-build-7
+    file: gpdb_src/concourse/tasks/compile_gpdb.yml
+    params:
       CONFIGURE_FLAGS: {{configure_flags}}
       TARGET_OS: centos
       TARGET_OS_VERSION: 7
@@ -823,13 +839,22 @@ jobs:
     - get: gpdb_src
       trigger: ((gpdb_src-trigger-flag))
     - get: gpaddon_src
-  - task: compile_gpdb
-    file: gpdb_src/concourse/tasks/compile_gpdb_sles11.yml
+    - get: centos-gpdb-build-7
+  - task: sync_tools
+    file: gpdb_src/concourse/tasks/sync_tools.yml
+    image: centos-gpdb-build-7
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
       IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: sles
+      TARGET_OS_VERSION:
+      TASK_OS: centos
+      TASK_OS_VERSION: 7
+  - task: compile_gpdb
+    file: gpdb_src/concourse/tasks/compile_gpdb_sles11.yml
+    params:
       CONFIGURE_FLAGS: {{configure_flags}}
       TARGET_OS: sles
       TARGET_OS_VERSION:
@@ -931,18 +956,30 @@ jobs:
       tags: ["wix"]
     - get: centos-mingw
       tags: ["wix"]
+    - get: centos-gpdb-build-7
+      tags: ["wix"]
+  - task: sync_tools
+    tags: ["wix"]
+    file: gpdb_src/concourse/tasks/sync_tools.yml
+    image: centos-gpdb-build-7
+    params:
+      IVYREPO_HOST: {{ivyrepo_host}}
+      IVYREPO_REALM: {{ivyrepo_realm}}
+      IVYREPO_USER: {{ivyrepo_user}}
+      IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: win32
+      TARGET_OS_VERSION:
+      TASK_OS: centos
+      TASK_OS_VERSION: 7
   - task: compile_gpdb
     tags: ["wix"]
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: centos-mingw
     params:
+      CONFIGURE_FLAGS: {{configure_flags}}
       TARGET_OS: win32
       TARGET_OS_VERSION:
-      BLD_TARGETS: clients loaders
-      IVYREPO_HOST: {{ivyrepo_host}}
-      IVYREPO_REALM: {{ivyrepo_realm}}
-      IVYREPO_USER: {{ivyrepo_user}}
-      IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      BLD_TARGETS: "clients loaders"
   - aggregate:
     - put: bin_gpdb_windows_clients
       tags: ["wix"]
@@ -962,8 +999,8 @@ jobs:
   # We need to serialize this job to avoid overwhelming workload
   # on remote machine.
   - aggregate:
-    - get: nightly-trigger
-      trigger: true
+#    - get: nightly-trigger
+#      trigger: true
     - get: gpdb_src
     - get: gpaddon_src
     - get: centos-gpdb-dev-6
@@ -973,8 +1010,6 @@ jobs:
     params:
       REMOTE_HOST: {{remote_host_build}}
       REMOTE_PORT: {{remote_port_build}}
-      REMOTE_USER: {{remote_user_build}}
-      REMOTE_KEY: {{remote_key_build}}
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
