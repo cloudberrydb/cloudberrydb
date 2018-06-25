@@ -545,27 +545,15 @@ rg_perseg_mem = ((RAM * (vm.overcommit_ratio / 100) + SWAP) * gp_resource_group_
      }
      cpuacct {
      }
- } </codeblock>
-            <p>This content configures CPU and CPU accounting control groups managed by the
-                <codeph>gpadmin</codeph> user.</p>
-          </li>
-          <li>If you plan to use resource groups to manage PL/Container instances, you must add a
-            memory block to the <codeph>gpdb.conf</codeph> file. Be sure to add the block before the
-            closing curly-brace
-            (<codeph>}</codeph>):<codeblock>     cpuacct {
+     cpuset {
      }
-     <b>memory {
-     }</b>
- }</codeblock>
-          </li>
-          <li>If you plan to assign specific CPU cores to resource groups, you must add a cpuset
-            block to the <codeph>gpdb.conf</codeph> file. Be sure to add the block before the
-            closing curly-brace
-            (<codeph>}</codeph>):<codeblock>     cpuacct {
+     memory {
      }
-     <b>cpuset {
-     }</b>
- }</codeblock>
+} </codeblock>
+            <p>This content configures CPU, CPU accounting, CPU core set, and memory control groups
+              managed by the <codeph>gpadmin</codeph> user. Greenplum Database uses the memory
+              control group only for those resource groups created with the <codeph>cgroup</codeph>
+              <codeph>MEMORY_AUDITOR</codeph>.</p>
           </li>
           <li>If not already installed and running, install the Control Groups operating system
             package and start the cgroups service on each Greenplum Database node. The commands that
@@ -727,8 +715,8 @@ gpstart
     <title id="iz139857">Creating Resource Groups</title>
     <body>
       <p><i>When you create a resource group for a role</i>, you provide a name, a CPU resource
-        allocation mode, and a memory limit. You can optionally provide a concurrent transaction
-        limit and memory shared quota and spill ratio. Use the <codeph><xref
+        allocation mode, and memory limit. You can optionally provide a concurrent transaction limit
+        and memory shared quota and spill ratio. Use the <codeph><xref
             href="../ref_guide/sql_commands/CREATE_RESOURCE_GROUP.xml#topic1" type="topic"
             format="dita"/></codeph> command to create a new resource group. </p>
       <p id="iz152723">When you create a resource group for a role, you must provide
@@ -853,33 +841,6 @@ gpstart
         <p>
           <codeblock>=# SELECT * FROM gp_toolkit.gp_resgroup_config;
 </codeblock>
-        </p>
-        <p> The <codeph>gp_toolkit.gp_resgroup_config</codeph> view does not display the resource
-          group memory auditor or CPU core assignment attributes. To view the these attributes along
-          with the other resource group limits, run the following
-          query:<codeblock>=# SELECT g.oid AS groupid, g.rsgname AS groupname,
-     t1.value AS concurrency, t1.proposed AS proposed_concurrency,
-     t2.value AS cpu_rate_limit, t3.value AS memory_limit,
-     t3.proposed AS proposed_memory_limit,
-     t4.value AS memory_shared_quota,
-     t4.proposed AS proposed_memory_shared_quota,
-     t5.value AS memory_spill_ratio,
-     t5.proposed AS proposed_memory_spill_ratio,
-     CASE
-       WHEN t6.value IS NULL THEN 'vmtracker'::text
-       WHEN t6.value = '0'::text THEN 'vmtracker'::text
-       WHEN t6.value = '1'::text THEN 'cgroup'::text
-       ELSE 'unknown'::text
-     END AS memory_auditor,
-     t7.value AS cpuset
-   FROM pg_resgroup g
-     JOIN pg_resgroupcapability t1 ON g.oid = t1.resgroupid AND t1.reslimittype = 1
-     JOIN pg_resgroupcapability t2 ON g.oid = t2.resgroupid AND t2.reslimittype = 2
-     JOIN pg_resgroupcapability t3 ON g.oid = t3.resgroupid AND t3.reslimittype = 3
-     JOIN pg_resgroupcapability t4 ON g.oid = t4.resgroupid AND t4.reslimittype = 4
-     JOIN pg_resgroupcapability t5 ON g.oid = t5.resgroupid AND t5.reslimittype = 5
-     LEFT JOIN pg_resgroupcapability t6 ON g.oid = t6.resgroupid AND t6.reslimittype = 6
-     LEFT JOIN pg_resgroupcapability t7 ON g.oid = t7.resgroupid AND t7.reslimittype = 7;</codeblock>
         </p>
       </body>
     </topic>
@@ -1030,9 +991,9 @@ gpstart
               or more queries running in the group is allocated memory from the global shared memory
               pool. (If no global shared memory is available, queries fail and do not impact the
               memory resources of other resource groups.)</p><p>When global shared memory is
-              available, memory usage may exceed the configured amount when a transaction spills to
-              disk. Greenplum Database statements continue to request memory when they start to
-              spill to disk because:<ul>
+              available, memory usage may also exceed the configured amount when a transaction
+              spills to disk. Greenplum Database statements continue to request memory when they
+              start to spill to disk because:<ul>
                 <li>Spilling to disk requires extra memory to work.</li>
                 <li>Other operators may continue to request memory.</li>
               </ul> Memory usage grows in spill situations; when global shared memory is available,
