@@ -603,13 +603,13 @@ resources:
 
 {% endif %}
 {% if "aix7" in os_types %}
-#- name: nightly-trigger
-#  type: time
-#  source:
-#    location: America/Los_Angeles
-#    days: [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday]
-#    start: 6:00 AM
-#    stop: 7:00 AM
+- name: nightly-trigger
+  type: time
+  source:
+    location: America/Los_Angeles
+    days: [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday]
+    start: 6:00 AM
+    stop: 7:00 AM
 
 {% endif %}
 - name: reduced-frequency-trigger
@@ -999,8 +999,8 @@ jobs:
   # We need to serialize this job to avoid overwhelming workload
   # on remote machine.
   - aggregate:
-#    - get: nightly-trigger
-#      trigger: true
+    - get: nightly-trigger
+      trigger: true
     - get: gpdb_src
     - get: gpaddon_src
     - get: centos-gpdb-dev-6
@@ -1010,6 +1010,8 @@ jobs:
     params:
       REMOTE_HOST: {{remote_host_build}}
       REMOTE_PORT: {{remote_port_build}}
+      REMOTE_USER: {{remote_user_build}}
+      REMOTE_KEY: {{remote_key_build}}
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
