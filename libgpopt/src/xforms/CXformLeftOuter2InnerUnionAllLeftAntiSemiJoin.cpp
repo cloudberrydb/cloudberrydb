@@ -490,4 +490,9 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::PexprProjectOverLeftAntiSemiJoin
 	return pexprProject;
 }
 
+BOOL
+CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::IsApplyOnce()
+{
+	return true;
+}
 // EOF

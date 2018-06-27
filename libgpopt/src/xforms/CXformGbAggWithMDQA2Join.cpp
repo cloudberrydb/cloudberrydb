@@ -261,5 +261,9 @@ CXformGbAggWithMDQA2Join::Transform
 	}
 }
 
-
+BOOL
+CXformGbAggWithMDQA2Join::IsApplyOnce()
+{
+	return true;
+}
 // EOF

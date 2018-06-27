@@ -277,5 +277,11 @@ CBitSet *CXform::PbsJoinOrderOnGreedyXforms
 
 	return pbs;
 }
+
+BOOL
+CXform::IsApplyOnce()
+{
+	return false;
+}
 // EOF
 

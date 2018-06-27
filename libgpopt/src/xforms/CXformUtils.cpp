@@ -2041,35 +2041,6 @@ CXformUtils::FSubqueryUnnesting
 			CXformExploration::Pxformexp(pxform)->FSubqueryUnnesting();
 }
 
-
-//---------------------------------------------------------------------------
-//      @function:
-//              CXformUtils::FApplyOnce
-//
-//      @doc:
-//         Return true if xform should be applied only once
-//
-//---------------------------------------------------------------------------
-BOOL
-CXformUtils::FApplyOnce
-	(
-	CXform::EXformId exfid
-	)
-{
-	// set of transformations that should be applied once
-	CXform::EXformId rgXforms[] =
-	{
-		CXform::ExfInnerJoin2PartialDynamicIndexGetApply,
-		CXform::ExfLeftOuter2InnerUnionAllLeftAntiSemiJoin,
-		CXform::ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply,
-		CXform::ExfInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply,
-		CXform::ExfInnerJoinWithInnerSelect2DynamicIndexGetApply,
-		CXform::ExfGbAggWithMDQA2Join,
-	};
-
-	return FXformInArray(exfid, rgXforms, GPOS_ARRAY_SIZE(rgXforms));
-}
-
 //---------------------------------------------------------------------------
 //      @function:
 //              CXformUtils::FApplyToNextBinding

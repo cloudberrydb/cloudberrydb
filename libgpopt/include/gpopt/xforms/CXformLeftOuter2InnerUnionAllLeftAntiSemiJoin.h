@@ -133,6 +133,10 @@ namespace gpopt
 				CExpression *pexpr
 				)
 				const;
+
+			// return true if xform should be applied only once
+			virtual
+			BOOL IsApplyOnce();
 	};
 }
 

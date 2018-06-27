@@ -74,6 +74,13 @@ namespace gpopt
 				return "CXformInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply";
 			}
 
+			// return true if xform should be applied only once
+			virtual
+			BOOL IsApplyOnce()
+			{
+				return true;
+			}
+
 	}; // class CXformInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply
 }
 

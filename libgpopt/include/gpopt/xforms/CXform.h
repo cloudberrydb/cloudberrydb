@@ -346,6 +346,14 @@ namespace gpopt
 			static
 			CBitSet *PbsJoinOrderOnGreedyXforms(IMemoryPool *pmp);
 
+			// return true if xform should be applied only once.
+			// for expression of type CPatternTree, in deep trees, the number
+			// of expressions generated for group expression can be significantly
+			// large causing the Xform to be applied many times. This can lead to
+			// significantly long planning time, so such Xform should only be applied once
+			virtual
+			BOOL IsApplyOnce();
+
 	}; // class CXform
 	
 	// shorthand for printing

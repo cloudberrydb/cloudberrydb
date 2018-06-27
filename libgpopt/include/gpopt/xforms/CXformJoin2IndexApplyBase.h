@@ -127,6 +127,11 @@ namespace gpopt
 				(
 				pmp,
 				GPOS_NEW(pmp) TJoin(pmp),
+				fPartial // only when fPartial is true, CTE producer is created and is preprocessed,
+					     // where it needs the entire tree for deriving relational properties.
+				?
+				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp)) // outer child
+				:
 				GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternLeaf(pmp)), // outer child
 					fWithSelect
 					?
@@ -222,6 +227,15 @@ namespace gpopt
 						);
 				}
 				CRefCount::SafeRelease(pexprAllPredicates);
+			}
+
+			// return true if xform should be applied only once
+			// only when fPartial is true, CTE producer is created and is preprocessed,
+			// where it needs the entire tree for deriving relational properties.
+			virtual
+			BOOL IsApplyOnce()
+			{
+				return fPartial;
 			}
 
 	}; // class CXformJoin2IndexApplyBase

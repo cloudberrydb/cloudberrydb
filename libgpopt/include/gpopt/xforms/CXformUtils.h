@@ -760,10 +760,6 @@ namespace gpopt
 			static
 			BOOL FApplyToNextBinding(CXform *pxform, CExpression *pexprLastBinding);
 
-			// return true if xform should be applied only once
-			static
-			BOOL FApplyOnce(CXform::EXformId exfid);
-
 			// return a formatted error message for the given exception
 			static
 			CWStringConst *PstrErrorMessage(IMemoryPool *pmp, ULONG ulMajor, ULONG ulMinor, ...);

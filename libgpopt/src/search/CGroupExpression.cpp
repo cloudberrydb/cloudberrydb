@@ -889,7 +889,7 @@ CGroupExpression::Transform
 		ulNumResults = pxfres->Pdrgpexpr()->UlLength() - ulNumResults;
 		PrintXform(pmp, pxform, pexpr, pxfres, ulNumResults);
 
-		if (CXformUtils::FApplyOnce(pxform->Exfid()) ||
+		if (pxform->IsApplyOnce() ||
 			(0 < pxfres->Pdrgpexpr()->UlLength() &&
 			!CXformUtils::FApplyToNextBinding(pxform, pexpr)))
 		{

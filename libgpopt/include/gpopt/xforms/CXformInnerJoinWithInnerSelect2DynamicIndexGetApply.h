@@ -71,6 +71,13 @@ namespace gpopt
 			{
 				return "CXformInnerJoinWithInnerSelect2DynamicIndexGetApply";
 			}
+
+			// return true if xform should be applied only once
+			virtual
+			BOOL IsApplyOnce()
+			{
+				return true;
+			}
 	};
 }
 

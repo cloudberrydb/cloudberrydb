@@ -79,6 +79,10 @@ namespace gpopt
 			// actual transform
 			void Transform(CXformContext *, CXformResult *, CExpression *) const;
 
+			// return true if xform should be applied only once
+			virtual
+			BOOL IsApplyOnce();
+
 	}; // class CXformGbAggWithMDQA2Join
 
 }
