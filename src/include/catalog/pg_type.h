@@ -672,6 +672,10 @@ DATA(insert OID = 7053 ( anytable		PGNSP PGUID -1 f p P f t \054 0	0 0 anytable_
 DESCR("Represents a generic TABLE value expression");
 #define ANYTABLEOID     7053
 
+/* hyperloglog */
+DATA(insert OID = 7157 ( hyperloglog_estimator		PGNSP PGUID -1 f b X f t \054 0    0 7165 hyperloglog_in hyperloglog_out - - - - - i x f 0 -1 0 0 _null_ _null_ ));
+DESCR("hyperloglog_estimator’s internal bytea representation for hyperloglog counter");
+DATA(insert OID = 7165 ( _hyperloglog_estimator		PGNSP PGUID -1 f b A f t \054 0	7157 0 array_in array_out array_recv array_send - - - i x f 0 -1 0 0 _null_ _null_ ));
 
 /*
  * macros

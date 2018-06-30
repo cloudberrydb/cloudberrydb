@@ -315,6 +315,9 @@ DATA(insert ( 6130	o 1 ordered_set_transition	- - -		percentile_cont_timestamptz
 /* text */
 DATA(insert ( 3538	n 0 string_agg_transfn - - - string_agg_finalfn f 0 2281 _null_));
 
+/* hyperloglog */
+DATA(insert ( 7164	n 0 hyperloglog_add_item_agg_default	- hyperloglog_merge - hyperloglog_comp	f 0 7157	_null_));
+
 /*
  * prototypes for functions in pg_aggregate.c
  */

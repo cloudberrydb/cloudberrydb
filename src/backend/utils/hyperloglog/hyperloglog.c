@@ -1,6 +1,56 @@
+/*
+ * Copyright 2012, Tomas Vondra (tv@fuzzy.cz). All rights reserved.
+ * Copyright 2015, Conversant, Inc. All rights reserved.
+ * Copyright 2018, Pivotal Software, Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, are
+ * permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this list of
+ * conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list
+ * of conditions and the following disclaimer in the documentation and/or other materials
+ * provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY TOMAS VONDRA, CONVERSANT INC, PIVOTAL SOFTWARE INC. AND ANY
+ * OTHER CONTRIBUTORS (THE "AUTHORS") ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+ * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation are those of the
+ * Authors and should not be interpreted as representing official policies, either expressed
+ * or implied, of the Authors.
+ */
+
+/*
+ * 07/26/2018
+ *
+ * We have updated, removed and modified the content of this file.
+ *
+ * 	1. We have removed some funciton definitions in as we did not need
+ * 	them for implementing incremental analyze.
+ * 	2. We modified utility function definitions as most of them are used in the
+ * 	code internally and not exposed to the user.Function parameters are
+ * 	no longer as the type of `PG_FUNCTION_ARGS` and extracted in the
+ * 	function body, but only passed by the caller as it is.
+ *	3. We kept the definitions of user facing functions that are necessary for
+ * 	full scan incremental analyze.
+ * 	4. We abondoned the sparse represenation of the hyperloglog and for
+ *  simplicity this version only supports dense represenation.
+ */
+
+
 /* This file contains internal functions and several functions exposed to the
  * outside via hyperloglog.h. The functions are for the manipulation/creation/
- * evaluation of HLLCounters.
+ * evaluation of HLLCounters that are necessary for implementing incremental
+ * analyze in GPDB. This file is modified from its original content and we removed
+ * the code that was unnecessary for our purpose.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +59,13 @@
 #include <string.h>
 
 #include "postgres.h"
+#include "fmgr.h"
 #include "utils/pg_lzcompress.h"
+#include "utils/builtins.h"
+#include "utils/bytea.h"
+#include "utils/lsyscache.h"
+#include "lib/stringinfo.h"
+#include "libpq/pqformat.h"
 
 #include "utils/hyperloglog/hyperloglog.h"
 
@@ -991,5 +1047,194 @@ int
 b64_dec_len(const char *src, unsigned srclen)
 {
 	return (srclen * 3) >> 2;
+}
+
+/* PG_GETARG macros for HLLCounter's that does version checking */
+#define PG_GETARG_HLL_P(n) pg_check_hll_version((HLLCounter) PG_GETARG_BYTEA_P(n))
+#define PG_GETARG_HLL_P_COPY(n) pg_check_hll_version((HLLCounter) PG_GETARG_BYTEA_P_COPY(n))
+
+/* shoot for 2^64 distinct items and 0.8125% error rate by default */
+#define DEFAULT_NDISTINCT   1ULL << 63
+#define DEFAULT_ERROR       0.008125
+
+/* Use the PG_FUNCTION_INFO_V! macro to pass functions to postgres */
+PG_FUNCTION_INFO_V1(hyperloglog_add_item_agg_default);
+
+PG_FUNCTION_INFO_V1(hyperloglog_merge);
+PG_FUNCTION_INFO_V1(hyperloglog_get_estimate);
+
+PG_FUNCTION_INFO_V1(hyperloglog_in);
+PG_FUNCTION_INFO_V1(hyperloglog_out);
+
+PG_FUNCTION_INFO_V1(hyperloglog_comp);
+
+/* ------------- function declarations for local functions --------------- */
+extern Datum hyperloglog_add_item_agg_default(PG_FUNCTION_ARGS);
+
+extern Datum hyperloglog_get_estimate(PG_FUNCTION_ARGS);
+extern Datum hyperloglog_merge(PG_FUNCTION_ARGS);
+
+extern Datum hyperloglog_in(PG_FUNCTION_ARGS);
+extern Datum hyperloglog_out(PG_FUNCTION_ARGS);
+
+extern Datum hyperloglog_comp(PG_FUNCTION_ARGS);
+
+static HLLCounter pg_check_hll_version(HLLCounter hloglog);
+
+/* ---------------------- function definitions --------------------------- */
+static HLLCounter
+pg_check_hll_version(HLLCounter hloglog)
+{
+	if (hloglog->version != STRUCT_VERSION){
+		elog(ERROR,"ERROR: The stored counter is version %u while the library is version %u. Please change library version or use upgrade function to upgrade the counter",hloglog->version,STRUCT_VERSION);
+	}
+	return hloglog;
+}
+
+Datum
+hyperloglog_add_item_agg_default(PG_FUNCTION_ARGS)
+{
+
+	HLLCounter hyperloglog;
+
+	/* info for anyelement */
+	Oid         element_type = get_fn_expr_argtype(fcinfo->flinfo, 1);
+	Datum       element = PG_GETARG_DATUM(1);
+	int16       typlen;
+	bool        typbyval;
+	char        typalign;
+
+	/* Create a new estimator (with default error rate and ndistinct) or reuse
+	 * the existing one. Return null if both counter and element args are null.
+	 * This prevents excess empty counter creation */
+	if (PG_ARGISNULL(0) && PG_ARGISNULL(1)){
+		PG_RETURN_NULL();
+	} else if (PG_ARGISNULL(0)) {
+		hyperloglog = hll_create(DEFAULT_NDISTINCT, DEFAULT_ERROR, PACKED);
+	} else {
+		hyperloglog = PG_GETARG_HLL_P(0);
+	}
+
+	/* add the item to the estimator (skip NULLs) */
+	if (! PG_ARGISNULL(1)) {
+
+		/* TODO The requests for type info shouldn't be a problem (thanks to
+		 * lsyscache), but if it turns out to have a noticeable impact it's
+		 * possible to cache that between the calls (in the estimator).
+		 *
+		 * I have noticed no measurable effect from either option. */
+
+		/* get type information for the second parameter (anyelement item) */
+		get_typlenbyvalalign(element_type, &typlen, &typbyval, &typalign);
+
+		hyperloglog = hyperloglog_add_item(hyperloglog, element, typlen, typbyval, typalign);
+	}
+
+	/* return the updated bytea */
+	PG_RETURN_BYTEA_P(hyperloglog);
+
+}
+
+Datum
+hyperloglog_merge(PG_FUNCTION_ARGS)
+{
+
+	HLLCounter counter1;
+	HLLCounter counter2;
+
+	if (PG_ARGISNULL(0) && PG_ARGISNULL(1)){
+		/* if both counters are null return null */
+		PG_RETURN_NULL();
+
+	} else if (PG_ARGISNULL(0)) {
+		/* if first counter is null just copy the second estimator into the
+		 * first one */
+		counter1 = PG_GETARG_HLL_P(1);
+
+	} else if (PG_ARGISNULL(1)) {
+		/* if second counter is null just return the the first estimator */
+		counter1 = PG_GETARG_HLL_P(0);
+
+	} else {
+		/* ok, we already have the estimator - merge the second one into it */
+		counter1 = PG_GETARG_HLL_P_COPY(0);
+		counter2 = PG_GETARG_HLL_P_COPY(1);
+
+		counter1 = hyperloglog_merge_counters(counter1, counter2);
+	}
+
+	/* return the updated bytea */
+	PG_RETURN_BYTEA_P(counter1);
+
+}
+
+Datum
+hyperloglog_get_estimate(PG_FUNCTION_ARGS)
+{
+	double estimate;
+	HLLCounter hyperloglog = PG_GETARG_HLL_P_COPY(0);
+
+	estimate = hyperloglog_estimate(hyperloglog);
+
+	/* return the updated bytea */
+	PG_RETURN_FLOAT8(estimate);
+}
+
+Datum
+hyperloglog_out(PG_FUNCTION_ARGS)
+{
+	int16   datalen, resultlen, res;
+	char     *result;
+	bytea    *data = PG_GETARG_BYTEA_P(0);
+
+	datalen = VARSIZE_ANY_EXHDR(data);
+	resultlen = b64_enc_len(VARDATA_ANY(data), datalen);
+	result = palloc(resultlen + 1);
+	res = hll_b64_encode(VARDATA_ANY(data),datalen, result);
+
+	/* Make this FATAL 'cause we've trodden on memory ... */
+	if (res > resultlen)
+		elog(FATAL, "overflow - encode estimate too small");
+
+	result[res] = '\0';
+
+	PG_RETURN_CSTRING(result);
+}
+
+Datum
+hyperloglog_in(PG_FUNCTION_ARGS)
+{
+	bytea      *result;
+	char       *data = PG_GETARG_CSTRING(0);
+	int16      datalen, resultlen, res;
+
+	datalen = strlen(data);
+	resultlen = b64_dec_len(data,datalen);
+	result = palloc(VARHDRSZ + resultlen);
+	res = hll_b64_decode(data, datalen, VARDATA(result));
+
+	/* Make this FATAL 'cause we've trodden on memory ... */
+	if (res > resultlen)
+		elog(FATAL, "overflow - decode estimate too small");
+
+	SET_VARSIZE(result, VARHDRSZ + res);
+
+	PG_RETURN_BYTEA_P(result);
+}
+
+Datum
+hyperloglog_comp(PG_FUNCTION_ARGS)
+{
+	HLLCounter hyperloglog;
+
+	if (PG_ARGISNULL(0) ){
+		PG_RETURN_NULL();
+	}
+
+	hyperloglog =  PG_GETARG_HLL_P_COPY(0);
+
+	hyperloglog = hll_compress(hyperloglog);
+
+	PG_RETURN_BYTEA_P(hyperloglog);
 }
 
