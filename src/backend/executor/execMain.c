@@ -4046,7 +4046,8 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  reloptions,
 											  true,
 											  allowSystemTableModsDDL,
-											  /* valid_opts */ !validate_reloptions);
+											  /* valid_opts */ !validate_reloptions,
+											  /* is_part_child */ false);
 	Assert(intoRelationId != InvalidOid);
 
 	FreeTupleDesc(tupdesc);

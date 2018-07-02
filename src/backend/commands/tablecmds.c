@@ -812,7 +812,8 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId, char relstorage, boo
                                           reloptions,
 										  true,
 										  allowSystemTableModsDDL,
-										  valid_opts);
+										  valid_opts,
+										  stmt->is_part_child);
 
 	/*
 	 * Give a warning if you use OIDS=TRUE on user tables. We do this after calling
