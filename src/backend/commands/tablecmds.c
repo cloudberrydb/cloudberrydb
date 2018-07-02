@@ -9863,8 +9863,19 @@ ATPrepAlterColumnType(List **wqueue,
 		 * we waste effort, and because we need the expression to be parsed
 		 * against the original table rowtype.
 		 */
-		/* GPDB: we always need the RTE */
-		/* GPDB_91_MERGE_FIXME: Why do we always need the RTE? */
+		/*
+		 * GPDB: we always need the RTE. The main reason being to support
+		 * unknown to text implicit conversion for queries like
+		 * CREATE TABLE t AS SELECT j AS a, 'abc' AS i FROM
+		 * generate_series(1, 10) j;
+		 *
+		 * Executes autostats internally which runs query to collect the same
+		 * which fails without RTE. More supported examples of unknown to text
+		 * can be found in src/test/regress/sql/strings.sql.
+		 *
+		 * GPDB_10_MERGE_FIXME: Upstream fixes this problem in PG10 hence need
+		 * to live with this code till then.
+		 */
 		{
 			RangeTblEntry *rte;
 
