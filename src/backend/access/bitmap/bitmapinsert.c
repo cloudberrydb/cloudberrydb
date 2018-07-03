@@ -2497,7 +2497,7 @@ _bitmap_doinsert(Relation rel, ItemPointerData ht_ctid, Datum *attdata,
 
 	/* insert this new tuple into the bitmap index. */
 	inserttuple(rel, metabuf, tidOffset, ht_ctid, tupDesc, attdata, nulls, 
-				lovHeap, lovIndex, scanKeys, scanDesc, true);
+				lovHeap, lovIndex, scanKeys, scanDesc, RelationNeedsWAL(rel));
 
 	index_endscan(scanDesc);
 	_bitmap_close_lov_heapandindex(lovHeap, lovIndex, RowExclusiveLock);
