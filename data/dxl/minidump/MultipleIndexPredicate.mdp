@@ -1,0 +1,1711 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Comment><![CDATA[
+	CREATE TABLE foo (
+	    pl character varying(6) NOT NULL,
+	    pcd timestamp without time zone NOT NULL,
+	    tn integer NOT NULL,
+	    st integer NOT NULL,
+	    fn character varying(20),
+	    dd timestamp without time zone,
+	    bp character varying(5),
+	    fsi integer,
+	    op character varying(5),
+	    ad timestamp without time zone,
+	    cc character varying(5),
+	    mf character varying(20),
+	    mc character varying(5),
+	    at character varying(20),
+	    bc character varying(20),
+	    sc character varying(20),
+	    cc1 character(1),
+	    sn character varying(20),
+	    ct integer,
+	    bs character varying(20),
+	    chi character(1),
+	    pfs character varying(20),
+	    acn character varying(15),
+	    ofa character varying(20),
+	    ofc character varying(5),
+	    atl character varying(35),
+	    acc character varying(35),
+	    bcd timestamp without time zone,
+	    cor character varying(2),
+	    sfi character(1),
+	    zz character varying(20),
+	    zzd date,
+	    xc character varying(20),
+	    xc1 character varying(20),
+	    xcz character varying(20),
+	    vbn character varying(2),
+	    dsd character varying(20),
+	    nat character varying(2),
+	    erer date,
+	    fgg character(1),
+	    nnn character varying(15),
+	    fnbc bigint,
+	    zxcv bigint,
+	    zd character varying(20),
+	    xyz character varying(32),
+	    xyz1 timestamp without time zone NOT NULL,
+	    xyz2 timestamp without time zone NOT NULL,
+	    xyz3 character varying(30) NOT NULL,
+	    xyz4 integer NOT NULL,
+	    xyz5 character varying(30),
+	    xyz6 timestamp without time zone,
+	    xyz7 character varying(4)
+	)
+	WITH (appendonly=true, orientation=row) DISTRIBUTED BY (pcd ,pl);
+
+	CREATE INDEX idx_foo_dd ON foo USING btree (dd, fn);
+	CREATE INDEX idx_foo_ad ON foo USING btree (ad, fn);
+	CREATE INDEX idx_foo_new_fn ON foo USING btree (fn);
+
+	SELECT * FROM foo WHERE fn  IN  ('SQ1','SQ2','SQ3','SQ4','SQ5','SQ6','SQ7','SQ8','SQ9','SQ10','SQ11','SQ12','SQ13','SQ14','SQ15','SQ16','SQ17','SQ18','SQ19','SQ20','SQ22','SQ21','SQ23','SQ24','SQ25','SQ26','SQ27','SQ28','SQ29','SQ30','SQ31','SQ32','SQ33','SQ34','SQ35','SQ36','SQ37','SQ38','SQ39','SQ40','SQ41','SQ42','SQ43','SQ44','SQ45','SQ46','SQ47','SQ48','SQ49','SQ50','SQ51','SQ52','SQ53','SQ54','SQ55','SQ56','SQ57','SQ58','SQ59','SQ60','SQ61','SQ62','SQ63','SQ64','SQ65','SQ66','SQ67','SQ68','SQ69','SQ70','SQ71','SQ72','SQ73','SQ74','SQ75','SQ76','SQ77','SQ78','SQ79','SQ80','SQ81','SQ82','SQ83','SQ84','SQ85','SQ86','SQ87','SQ88','SQ89','SQ90','SQ91','SQ92','SQ93','SQ94','SQ95','SQ96','SQ97','SQ98','SQ99','SQ100','SQ101','SQ102','SQ103','SQ104','SQ105','SQ106','SQ107','SQ108','SQ109','SQ110','SQ111','SQ112','SQ113','SQ114','SQ115','SQ116','SQ117','SQ118','SQ119','SQ120','SQ121','SQ122','SQ123','SQ124','SQ125','SQ126','SQ127','SQ128','SQ129','SQ130','SQ131','SQ132','SQ133','SQ134','SQ135','SQ136','SQ137','SQ138','SQ139','SQ140','SQ141','SQ142','SQ143','SQ144','SQ145','SQ146','SQ147','SQ148','SQ149','SQ150','SQ151','SQ152','SQ153','SQ154','SQ155','SQ156','SQ157','SQ158','SQ159','SQ160','SQ161','SQ162','SQ163','SQ164','SQ165','SQ166','SQ167','SQ168','SQ169','SQ170','SQ171','SQ172','SQ173','SQ174','SQ175','SQ176','SQ177','SQ178','SQ179','SQ180','SQ181','SQ182','SQ183','SQ184','SQ185','SQ186','SQ187','SQ188','SQ189','SQ190','SQ191','SQ192','SQ193','SQ194','SQ195','SQ196','SQ197','SQ198','SQ199','SQ200','SQ201','SQ202','SQ203','SQ204','SQ205','SQ206','SQ207','SQ208','SQ209','SQ210','SQ211','SQ212','SQ213','SQ214','SQ215','SQ216','SQ217','SQ218','SQ219','SQ220','SQ221','SQ222','SQ223','SQ224','SQ225','SQ226','SQ227','SQ228','SQ229','SQ230','SQ231','SQ232','SQ233','SQ234','SQ235','SQ236','SQ237','SQ238','SQ239','SQ240','SQ241','SQ242','SQ243','SQ244','SQ245','SQ246','SQ247','SQ248','SQ249','SQ251','SQ252','SQ253','SQ254','SQ255','SQ256','SQ257','SQ258','SQ259','SQ260','SQ250','SQ261','SQ262','SQ263','SQ264','SQ265','SQ266','SQ267','SQ268','SQ269','SQ270','SQ271','SQ272','SQ273','SQ274','SQ275','SQ276','SQ278','SQ279','SQ280','SQ277','SQ281','SQ282','SQ283','SQ284','SQ285','SQ286','SQ287','SQ288','SQ289','SQ290','SQ291','SQ292','SQ293','SQ294','SQ295','SQ296','SQ297','SQ298','SQ299','SQ300','SQ301','SQ302','SQ303','SQ304','SQ305','SQ306','SQ307','SQ308','SQ309','SQ310','SQ311','SQ312','SQ313','SQ314','SQ315','SQ316','SQ317','SQ318','SQ319','SQ320','SQ321','SQ322','SQ323','SQ324','SQ325','SQ326','SQ327','SQ328','SQ329','SQ330','SQ331','SQ332','SQ333','SQ334','SQ335','SQ336','SQ337','SQ338','SQ339','SQ340','SQ341','SQ342','SQ343','SQ344','SQ345','SQ346','SQ347','SQ348','SQ349','SQ350','SQ351','SQ352','SQ353','SQ354','SQ355','SQ356','SQ357','SQ358','SQ359','SQ360','SQ361','SQ362','SQ363','SQ364','SQ365','SQ366','SQ367','SQ368','SQ369','SQ370','SQ371','SQ372','SQ373','SQ374','SQ375','SQ376','SQ377','SQ378','SQ379','SQ380','SQ381','SQ382','SQ383','SQ384','SQ385','SQ386','SQ387','SQ388','SQ389','SQ390','SQ391','SQ392','SQ393','SQ394','SQ395','SQ396','SQ397','SQ398','SQ399','SQ400','SQ401','SQ402','SQ403','SQ404','SQ405','SQ406','SQ407','SQ408','SQ409','SQ410','SQ411','SQ412','SQ413','SQ414','SQ415','SQ416','SQ417','SQ418','SQ419','SQ420','SQ421','SQ422','SQ423','SQ424','SQ425','SQ426','SQ427','SQ428','SQ429','SQ430','SQ431','SQ432','SQ433','SQ434','SQ435','SQ436','SQ437','SQ438','SQ439','SQ440','SQ441','SQ442','SQ443','SQ444','SQ445','SQ446','SQ447','SQ448','SQ449','SQ450','SQ451','SQ452','SQ453','SQ454','SQ455','SQ456','SQ457','SQ458','SQ459','SQ460','SQ461','SQ462','SQ463','SQ464','SQ465','SQ466','SQ467','SQ468','SQ469','SQ470','SQ471','SQ472','SQ473','SQ474','SQ475','SQ476','SQ477','SQ478','SQ479','SQ480','SQ481','SQ482','SQ483','SQ484','SQ485','SQ486','SQ487','SQ488','SQ489','SQ490','SQ491','SQ492','SQ493','SQ494','SQ495','SQ496','SQ497','SQ498','SQ499','SQ500','SQ501','SQ502','SQ503','SQ504','SQ505','SQ506','SQ507','SQ508','SQ509','SQ510','SQ511','SQ512','SQ513','SQ514','SQ515','SQ516','SQ517','SQ518','SQ519','SQ520','SQ521','SQ522','SQ523','SQ524','SQ525','SQ526','SQ527','SQ528','SQ529','SQ530','SQ531','SQ532','SQ533','SQ534','SQ535','SQ536','SQ537','SQ538','SQ539','SQ540','SQ541','SQ542','SQ543','SQ544','SQ545','SQ546','SQ547','SQ548','SQ549','SQ550','SQ551','SQ552','SQ553','SQ554','SQ555','SQ556','SQ557','SQ558','SQ559','SQ560','SQ561','SQ562','SQ563','SQ564','SQ565','SQ566','SQ567','SQ568','SQ569','SQ570','SQ571','SQ572','SQ573','SQ574','SQ575','SQ576','SQ577','SQ578','SQ579','SQ580','SQ581','SQ582','SQ583','SQ584','SQ585','SQ586','SQ587','SQ588','SQ589','SQ590','SQ591','SQ592','SQ593','SQ594','SQ595','SQ596','SQ597','SQ598','SQ599','SQ600','SQ601','SQ602','SQ603','SQ604','SQ605','SQ606','SQ607','SQ608','SQ609','SQ610','SQ611','SQ612','SQ613','SQ614','SQ615','SQ616','SQ617','SQ618','SQ619','SQ620','SQ621','SQ622','SQ623','SQ624','SQ625','SQ626','SQ627','SQ628','SQ629','SQ630','SQ631','SQ632','SQ633','SQ634','SQ635','SQ636','SQ637','SQ638','SQ639','SQ640','SQ641','SQ642','SQ643','SQ644','SQ645','SQ646','SQ647','SQ648','SQ649','SQ650','SQ651','SQ652','SQ653','SQ654','SQ655','SQ656','SQ657','SQ658','SQ659','SQ660','SQ661','SQ662','SQ663','SQ664','SQ665','SQ666','SQ667','SQ668','SQ669','SQ670','SQ671','SQ672','SQ673','SQ674','SQ675','SQ676','SQ677','SQ678','SQ679','SQ680','SQ681','SQ682','SQ683','SQ684','SQ685','SQ686','SQ687','SQ688','SQ689','SQ690','SQ691','SQ692','SQ693','SQ694','SQ695','SQ696','SQ697','SQ698','SQ699','SQ700','SQ701','SQ702','SQ703','SQ704','SQ705','SQ706','SQ707','SQ708','SQ709','SQ710','SQ711','SQ712','SQ713','SQ714','SQ715','SQ716','SQ717','SQ718','SQ719','SQ720','SQ721','SQ722','SQ723','SQ724','SQ725','SQ726','SQ727','SQ728','SQ729','SQ730','SQ731','SQ732','SQ733','SQ734','SQ735','SQ736','SQ737','SQ738','SQ739','SQ740','SQ741','SQ742','SQ743','SQ744','SQ745','SQ746','SQ747','SQ748','SQ749','SQ750','SQ751','SQ752','SQ753','SQ754','SQ755','SQ756','SQ757','SQ758','SQ759','SQ760','SQ761','SQ762','SQ763','SQ764','SQ765','SQ766','SQ767','SQ768','SQ769','SQ770','SQ771','SQ772','SQ773','SQ774','SQ775','SQ776','SQ777','SQ778','SQ779','SQ780','SQ781','SQ782','SQ783','SQ784','SQ785','SQ786','SQ787','SQ788','SQ789','SQ790','SQ791','SQ792','SQ793','SQ794','SQ795','SQ796','SQ797','SQ798','SQ799','SQ800','SQ801','SQ802','SQ803','SQ804','SQ805','SQ806','SQ807','SQ808','SQ809','SQ810','SQ811','SQ812','SQ813','SQ814','SQ815','SQ816','SQ817','SQ818','SQ819','SQ820','SQ821','SQ822','SQ823','SQ824','SQ825','SQ826','SQ827','SQ828','SQ829','SQ830','SQ831','SQ832','SQ833','SQ834','SQ835','SQ836','SQ837','SQ838','SQ839','SQ840','SQ841','SQ842','SQ843','SQ844','SQ845','SQ846','SQ847','SQ848','SQ849','SQ850','SQ851','SQ852','SQ853','SQ854','SQ855','SQ856','SQ857','SQ858','SQ859','SQ860','SQ861','SQ862','SQ863','SQ864','SQ865','SQ866','SQ867','SQ868','SQ869','SQ870','SQ871','SQ872','SQ873','SQ874','SQ875','SQ876','SQ877','SQ878','SQ879','SQ880','SQ881','SQ882','SQ883','SQ884','SQ885','SQ886','SQ887','SQ888','SQ889','SQ890','SQ891','SQ892','SQ893','SQ894','SQ895','SQ896','SQ897','SQ898','SQ899','SQ900','SQ901','SQ902','SQ903','SQ904','SQ905','SQ906','SQ907','SQ908','SQ909','SQ910','SQ911','SQ912','SQ913','SQ914','SQ915','SQ916','SQ917','SQ918','SQ919','SQ920','SQ921','SQ922','SQ923','SQ924','SQ925','SQ926','SQ927','SQ928','SQ929','SQ930','SQ931','SQ932','SQ933','SQ934','SQ935','SQ936','SQ937','SQ938','SQ939','SQ940','SQ941','SQ942','SQ943','SQ944','SQ945','SQ946','SQ947','SQ948','SQ949','SQ950','SQ951','SQ952','SQ953','SQ954','SQ955','SQ956','SQ957','SQ958','SQ959','SQ960','SQ961','SQ962','SQ963','SQ964','SQ965','SQ966','SQ967','SQ968','SQ969','SQ970','SQ971','SQ972','SQ973','SQ974','SQ975','SQ976','SQ977','SQ978','SQ979','SQ980','SQ981','SQ982','SQ983','SQ984','SQ985','SQ986','SQ987','SQ988','SQ989','SQ990','SQ991','SQ992','SQ993','SQ994','SQ995','SQ996','SQ997','SQ998','SQ999') AND (ad < current_date + 1 +  1 * interval '1 day'  + 5 * interval '1 day'  ) AND (ad  >= current_date +  1 * interval '1 day'  - 5 * interval '1 day'  ) AND (bs IN ('HK','RR','TK','KK','KL'));	
+	]]>
+  </dxl:Comment>
+  <dxl:Thread Id="0">
+    <dxl:OptimizerConfig>
+      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
+      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
+      <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
+        <dxl:CostParams>
+          <dxl:CostParam Name="NLJFactor" Value="1024.000000" LowerBound="1023.500000" UpperBound="1024.500000"/>
+        </dxl:CostParams>
+      </dxl:CostModelConfig>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
+      <dxl:TraceFlags Value="102074,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+    </dxl:OptimizerConfig>
+    <dxl:Metadata SystemIds="0.GPDB">
+      <dxl:Index Mdid="0.74761.1.0" Name="idx_foo_new_fn" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54">
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1994.1.0"/>
+        </dxl:OpClasses>
+      </dxl:Index>
+      <dxl:GPDBScalarOp Mdid="0.2060.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.1114.1.0"/>
+        <dxl:RightType Mdid="0.1114.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.2052.1.0"/>
+        <dxl:Commutator Mdid="0.2060.1.0"/>
+        <dxl:InverseOp Mdid="0.2061.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.434.1.0"/>
+          <dxl:OpClass Mdid="0.2040.1.0"/>
+          <dxl:OpClass Mdid="0.3041.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.2063.1.0" Name="&lt;=" ComparisonType="LEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.1114.1.0"/>
+        <dxl:RightType Mdid="0.1114.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.2055.1.0"/>
+        <dxl:Commutator Mdid="0.2065.1.0"/>
+        <dxl:InverseOp Mdid="0.2064.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.434.1.0"/>
+          <dxl:OpClass Mdid="0.3041.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.2062.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.1114.1.0"/>
+        <dxl:RightType Mdid="0.1114.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.2054.1.0"/>
+        <dxl:Commutator Mdid="0.2064.1.0"/>
+        <dxl:InverseOp Mdid="0.2065.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.434.1.0"/>
+          <dxl:OpClass Mdid="0.3041.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.2065.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.1114.1.0"/>
+        <dxl:RightType Mdid="0.1114.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.2056.1.0"/>
+        <dxl:Commutator Mdid="0.2063.1.0"/>
+        <dxl:InverseOp Mdid="0.2062.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.434.1.0"/>
+          <dxl:OpClass Mdid="0.3041.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
+      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.91.1.0"/>
+        <dxl:InequalityOp Mdid="0.85.1.0"/>
+        <dxl:LessThanOp Mdid="0.58.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.59.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1693.1.0"/>
+        <dxl:ArrayType Mdid="0.1000.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.1042.1.0" Name="bpchar" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.1054.1.0"/>
+        <dxl:InequalityOp Mdid="0.1057.1.0"/>
+        <dxl:LessThanOp Mdid="0.1058.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1059.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.1060.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1061.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1078.1.0"/>
+        <dxl:ArrayType Mdid="0.1014.1.0"/>
+        <dxl:MinAgg Mdid="0.2245.1.0"/>
+        <dxl:MaxAgg Mdid="0.2244.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.1043.1.0" Name="varchar" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.98.1.0"/>
+        <dxl:InequalityOp Mdid="0.531.1.0"/>
+        <dxl:LessThanOp Mdid="0.664.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.665.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.666.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.667.1.0"/>
+        <dxl:ComparisonOp Mdid="0.360.1.0"/>
+        <dxl:ArrayType Mdid="0.1015.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.20.1.0" Name="Int8" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.410.1.0"/>
+        <dxl:InequalityOp Mdid="0.411.1.0"/>
+        <dxl:LessThanOp Mdid="0.412.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.414.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.413.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.415.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1016.1.0"/>
+        <dxl:MinAgg Mdid="0.2131.1.0"/>
+        <dxl:MaxAgg Mdid="0.2115.1.0"/>
+        <dxl:AvgAgg Mdid="0.2100.1.0"/>
+        <dxl:SumAgg Mdid="0.2107.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Index Mdid="0.74775.1.0" Name="idx_foo_new_pcd" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1,0,2" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54">
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.434.1.0"/>
+          <dxl:OpClass Mdid="0.1994.1.0"/>
+          <dxl:OpClass Mdid="0.1976.1.0"/>
+        </dxl:OpClasses>
+      </dxl:Index>
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.98.1.0"/>
+        <dxl:InequalityOp Mdid="0.531.1.0"/>
+        <dxl:LessThanOp Mdid="0.664.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.665.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.666.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.667.1.0"/>
+        <dxl:ComparisonOp Mdid="0.360.1.0"/>
+        <dxl:ArrayType Mdid="0.1009.1.0"/>
+        <dxl:MinAgg Mdid="0.2145.1.0"/>
+        <dxl:MaxAgg Mdid="0.2129.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.607.1.0"/>
+        <dxl:InequalityOp Mdid="0.608.1.0"/>
+        <dxl:LessThanOp Mdid="0.609.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.611.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.610.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.612.1.0"/>
+        <dxl:ComparisonOp Mdid="0.356.1.0"/>
+        <dxl:ArrayType Mdid="0.1028.1.0"/>
+        <dxl:MinAgg Mdid="0.2118.1.0"/>
+        <dxl:MaxAgg Mdid="0.2134.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.27.1.0" Name="tid" IsRedistributable="true" IsHashable="false" IsComposite="false" IsFixedLength="true" Length="6" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.387.1.0"/>
+        <dxl:InequalityOp Mdid="0.402.1.0"/>
+        <dxl:LessThanOp Mdid="0.2799.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.2801.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.2800.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.2802.1.0"/>
+        <dxl:ComparisonOp Mdid="0.2794.1.0"/>
+        <dxl:ArrayType Mdid="0.1010.1.0"/>
+        <dxl:MinAgg Mdid="0.2798.1.0"/>
+        <dxl:MaxAgg Mdid="0.2797.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.74486.1.0.19" Name="bs" Width="3.000000" NullFreq="0.000000" NdvRemain="18.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:Index Mdid="0.74789.1.0" Name="idx_foo_new_pl" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54">
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1994.1.0"/>
+        </dxl:OpClasses>
+      </dxl:Index>
+      <dxl:Type Mdid="0.1082.1.0" Name="date" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.1093.1.0"/>
+        <dxl:InequalityOp Mdid="0.1094.1.0"/>
+        <dxl:LessThanOp Mdid="0.1095.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1096.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.1097.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1098.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1092.1.0"/>
+        <dxl:ArrayType Mdid="0.1182.1.0"/>
+        <dxl:MinAgg Mdid="0.2138.1.0"/>
+        <dxl:MaxAgg Mdid="0.2122.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:ColumnStatistics Mdid="1.74486.1.0.9" Name="ad" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOFyPy94AQA=" DoubleValue="413619300000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFbf7iCqAQA=" DoubleValue="468533400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.020907" DistinctValues="3515.906861">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFbf7iCqAQA=" DoubleValue="468533400000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHVYyferAQA=" DoubleValue="470555700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHVYyferAQA=" DoubleValue="470555700000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHVYyferAQA=" DoubleValue="470555700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.018984" DistinctValues="3192.533139">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHVYyferAQA=" DoubleValue="470555700000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANBaVaOtAQA=" DoubleValue="472392000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANBaVaOtAQA=" DoubleValue="472392000000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKxAy5SxAQA=" DoubleValue="476727600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.007504" DistinctValues="1261.665068">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKxAy5SxAQA=" DoubleValue="476727600000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFNIwEqyAQA=" DoubleValue="477509100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFNIwEqyAQA=" DoubleValue="477509100000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFNIwEqyAQA=" DoubleValue="477509100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.005413" DistinctValues="910.045552">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFNIwEqyAQA=" DoubleValue="477509100000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALhr/82yAQA=" DoubleValue="478072800000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALhr/82yAQA=" DoubleValue="478072800000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALhr/82yAQA=" DoubleValue="478072800000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.026944" DistinctValues="4529.886136">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALhr/82yAQA=" DoubleValue="478072800000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APMXTFu1AQA=" DoubleValue="480878700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APMXTFu1AQA=" DoubleValue="480878700000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APMXTFu1AQA=" DoubleValue="480878700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000029" DistinctValues="4.843244">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APMXTFu1AQA=" DoubleValue="480878700000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFHo/lu1AQA=" DoubleValue="480881700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFHo/lu1AQA=" DoubleValue="480881700000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APus6zi5AQA=" DoubleValue="485129100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APus6zi5AQA=" DoubleValue="485129100000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL5e4qu8AQA=" DoubleValue="488921400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.003835" DistinctValues="644.923686">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL5e4qu8AQA=" DoubleValue="488921400000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5t//i8AQA=" DoubleValue="489252600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5t//i8AQA=" DoubleValue="489252600000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5t//i8AQA=" DoubleValue="489252600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.022613" DistinctValues="3802.362564">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5t//i8AQA=" DoubleValue="489252600000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABVrpb++AQA=" DoubleValue="491205300000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABVrpb++AQA=" DoubleValue="491205300000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABVrpb++AQA=" DoubleValue="491205300000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.013441" DistinctValues="2260.153750">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABVrpb++AQA=" DoubleValue="491205300000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIyH5M2/AQA=" DoubleValue="492366000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIyH5M2/AQA=" DoubleValue="492366000000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APn4TUbDAQA=" DoubleValue="496181700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.030027" DistinctValues="5049.770884">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APn4TUbDAQA=" DoubleValue="496181700000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APp/cgDGAQA=" DoubleValue="499180200000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APp/cgDGAQA=" DoubleValue="499180200000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APp/cgDGAQA=" DoubleValue="499180200000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.009863" DistinctValues="1658.669116">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APp/cgDGAQA=" DoubleValue="499180200000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFMdw+XGAQA=" DoubleValue="500165100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.038774" DistinctValues="6520.665211">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFMdw+XGAQA=" DoubleValue="500165100000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIIVa0DKAQA=" DoubleValue="503853000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIIVa0DKAQA=" DoubleValue="503853000000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIIVa0DKAQA=" DoubleValue="503853000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.001117" DistinctValues="187.774789">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIIVa0DKAQA=" DoubleValue="503853000000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOgYJVnKAQA=" DoubleValue="503959200000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.001511" DistinctValues="254.024105">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOgYJVnKAQA=" DoubleValue="503959200000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKHp/3vKAQA=" DoubleValue="504108900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKHp/3vKAQA=" DoubleValue="504108900000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKHp/3vKAQA=" DoubleValue="504108900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.008042" DistinctValues="1352.080206">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKHp/3vKAQA=" DoubleValue="504108900000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMHkhDXLAQA=" DoubleValue="504905700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMHkhDXLAQA=" DoubleValue="504905700000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMHkhDXLAQA=" DoubleValue="504905700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.025262" DistinctValues="4247.140498">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMHkhDXLAQA=" DoubleValue="504905700000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOZbRXzNAQA=" DoubleValue="507408600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOZbRXzNAQA=" DoubleValue="507408600000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOZbRXzNAQA=" DoubleValue="507408600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.005075" DistinctValues="853.195191">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOZbRXzNAQA=" DoubleValue="507408600000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AAqTVvHNAQA=" DoubleValue="507911400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AAqTVvHNAQA=" DoubleValue="507911400000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHifKaDRAQA=" DoubleValue="511960800000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHifKaDRAQA=" DoubleValue="511960800000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALf93yrVAQA=" DoubleValue="515855100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.028549" DistinctValues="4801.094003">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALf93yrVAQA=" DoubleValue="515855100000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANQT48TXAQA=" DoubleValue="518715600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANQT48TXAQA=" DoubleValue="518715600000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANQT48TXAQA=" DoubleValue="518715600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.011342" DistinctValues="1907.345997">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANQT48TXAQA=" DoubleValue="518715600000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALjLec3YAQA=" DoubleValue="519852000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.018141" DistinctValues="3050.778005">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALjLec3YAQA=" DoubleValue="519852000000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACkxSFTaAQA=" DoubleValue="521530500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACkxSFTaAQA=" DoubleValue="521530500000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACkxSFTaAQA=" DoubleValue="521530500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.021749" DistinctValues="3657.661995">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACkxSFTaAQA=" DoubleValue="521530500000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEWU1CjcAQA=" DoubleValue="523542900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000882" DistinctValues="148.332493">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEWU1CjcAQA=" DoubleValue="523542900000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKVr8jzcAQA=" DoubleValue="523629300000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKVr8jzcAQA=" DoubleValue="523629300000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKVr8jzcAQA=" DoubleValue="523629300000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039008" DistinctValues="6560.107507">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKVr8jzcAQA=" DoubleValue="523629300000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIi6nbbfAQA=" DoubleValue="527450400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.024615" DistinctValues="4139.528228">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIi6nbbfAQA=" DoubleValue="527450400000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFhd0t/hAQA=" DoubleValue="529826400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFhd0t/hAQA=" DoubleValue="529826400000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFhd0t/hAQA=" DoubleValue="529826400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.015275" DistinctValues="2568.911772">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFhd0t/hAQA=" DoubleValue="529826400000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANFpITfjAQA=" DoubleValue="531300900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6709.440000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANFpITfjAQA=" DoubleValue="531300900000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKswH4bmAQA=" DoubleValue="534938700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.009549" DistinctValues="1605.330832">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKswH4bmAQA=" DoubleValue="534938700000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5HH03nAQA=" DoubleValue="535793400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000133" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5HH03nAQA=" DoubleValue="535793400000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5HH03nAQA=" DoubleValue="535793400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.019965" DistinctValues="3356.600830">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AK5HH03nAQA=" DoubleValue="535793400000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJ29Nu3oAQA=" DoubleValue="537580500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000133" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJ29Nu3oAQA=" DoubleValue="537580500000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJ29Nu3oAQA=" DoubleValue="537580500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000798" DistinctValues="134.106261">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJ29Nu3oAQA=" DoubleValue="537580500000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACeD1v3oAQA=" DoubleValue="537651900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000133" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACeD1v3oAQA=" DoubleValue="537651900000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACeD1v3oAQA=" DoubleValue="537651900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.009579" DistinctValues="1610.402077">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACeD1v3oAQA=" DoubleValue="537651900000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOWId8XpAQA=" DoubleValue="538509300000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.010207" DistinctValues="1716.512651">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOWId8XpAQA=" DoubleValue="538509300000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AESvgp3qAQA=" DoubleValue="539437200000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AESvgp3qAQA=" DoubleValue="539437200000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AESvgp3qAQA=" DoubleValue="539437200000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.029683" DistinctValues="4991.927349">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AESvgp3qAQA=" DoubleValue="539437200000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AI3RzRHtAQA=" DoubleValue="542135700000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.036788" DistinctValues="6186.815622">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AI3RzRHtAQA=" DoubleValue="542135700000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABYvNFjwAQA=" DoubleValue="545736600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABYvNFjwAQA=" DoubleValue="545736600000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABYvNFjwAQA=" DoubleValue="545736600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.003102" DistinctValues="521.624378">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABYvNFjwAQA=" DoubleValue="545736600000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHIn5J7wAQA=" DoubleValue="546040200000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.008702" DistinctValues="1463.209107">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHIn5J7wAQA=" DoubleValue="546040200000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACY51l7xAQA=" DoubleValue="546864600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACY51l7xAQA=" DoubleValue="546864600000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACY51l7xAQA=" DoubleValue="546864600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.030922" DistinctValues="5199.503977">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ACY51l7xAQA=" DoubleValue="546864600000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALUH6gj0AQA=" DoubleValue="549794100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALUH6gj0AQA=" DoubleValue="549794100000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALUH6gj0AQA=" DoubleValue="549794100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000266" DistinctValues="44.726916">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALUH6gj0AQA=" DoubleValue="549794100000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ADERyA70AQA=" DoubleValue="549819300000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.019256" DistinctValues="3238.319822">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ADERyA70AQA=" DoubleValue="549819300000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANWmApn1AQA=" DoubleValue="551512500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANWmApn1AQA=" DoubleValue="551512500000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANWmApn1AQA=" DoubleValue="551512500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.020634" DistinctValues="3470.120178">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANWmApn1AQA=" DoubleValue="551512500000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALVRdT/3AQA=" DoubleValue="553326900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALVRdT/3AQA=" DoubleValue="553326900000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALVRdT/3AQA=" DoubleValue="553326900000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039890" DistinctValues="6708.440000">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALVRdT/3AQA=" DoubleValue="553326900000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AAk1V5n8AQA=" DoubleValue="559210500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.001177" DistinctValues="197.936152">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AAk1V5n8AQA=" DoubleValue="559210500000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AE4BpTn9AQA=" DoubleValue="559899000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AE4BpTn9AQA=" DoubleValue="559899000000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AE4BpTn9AQA=" DoubleValue="559899000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.038713" DistinctValues="6510.503848">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AE4BpTn9AQA=" DoubleValue="559899000000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEvAWdIRAgA=" DoubleValue="582545100000000.000000"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:ColumnStatistics Mdid="1.74486.1.0.1" Name="pcd" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.039123" DistinctValues="36270.639944">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AI5kQB5xAQA=" DoubleValue="405849720000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APzU3HKhAQA=" DoubleValue="458989680000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APzU3HKhAQA=" DoubleValue="458989680000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APzU3HKhAQA=" DoubleValue="458989680000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000810" DistinctValues="751.200056">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APzU3HKhAQA=" DoubleValue="458989680000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA2DHHOiAQA=" DoubleValue="460090260000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA2DHHOiAQA=" DoubleValue="460090260000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AML00yWoAQA=" DoubleValue="466355400000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.021686" DistinctValues="20105.199730">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AML00yWoAQA=" DoubleValue="466355400000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA34VReqAQA=" DoubleValue="468492180000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA34VReqAQA=" DoubleValue="468492180000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA34VReqAQA=" DoubleValue="468492180000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.018247" DistinctValues="16916.640270">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA34VReqAQA=" DoubleValue="468492180000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOgo8bmrAQA=" DoubleValue="470290080000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.026146" DistinctValues="24239.637172">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOgo8bmrAQA=" DoubleValue="470290080000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOJ0loCuAQA=" DoubleValue="473342280000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOJ0loCuAQA=" DoubleValue="473342280000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOJ0loCuAQA=" DoubleValue="473342280000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.009501" DistinctValues="8808.132359">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOJ0loCuAQA=" DoubleValue="473342280000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANX30YKvAQA=" DoubleValue="474451380000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANX30YKvAQA=" DoubleValue="474451380000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANX30YKvAQA=" DoubleValue="474451380000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.004286" DistinctValues="3973.070469">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANX30YKvAQA=" DoubleValue="474451380000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANP6TPevAQA=" DoubleValue="474951660000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.001104" DistinctValues="1023.906919">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANP6TPevAQA=" DoubleValue="474951660000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AColOw+wAQA=" DoubleValue="475054440000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AColOw+wAQA=" DoubleValue="475054440000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AColOw+wAQA=" DoubleValue="475054440000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.037951" DistinctValues="35183.426183">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AColOw+wAQA=" DoubleValue="475054440000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKwPhkWzAQA=" DoubleValue="478586160000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKwPhkWzAQA=" DoubleValue="478586160000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKwPhkWzAQA=" DoubleValue="478586160000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000877" DistinctValues="813.506898">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKwPhkWzAQA=" DoubleValue="478586160000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGNgiVizAQA=" DoubleValue="478667820000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.002116" DistinctValues="1961.783903">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGNgiVizAQA=" DoubleValue="478667820000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALkCKIWzAQA=" DoubleValue="478859460000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALkCKIWzAQA=" DoubleValue="478859460000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALkCKIWzAQA=" DoubleValue="478859460000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.023894" DistinctValues="22151.451614">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALkCKIWzAQA=" DoubleValue="478859460000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGCA+ny1AQA=" DoubleValue="481023360000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000107" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGCA+ny1AQA=" DoubleValue="481023360000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGCA+ny1AQA=" DoubleValue="481023360000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.013923" DistinctValues="12907.604483">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGCA+ny1AQA=" DoubleValue="481023360000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIH/jaK2AQA=" DoubleValue="482284260000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIH/jaK2AQA=" DoubleValue="482284260000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANI0UaG5AQA=" DoubleValue="485577480000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANI0UaG5AQA=" DoubleValue="485577480000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL/5S+K8AQA=" DoubleValue="489155100000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL/5S+K8AQA=" DoubleValue="489155100000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANfc7GDAAQA=" DoubleValue="492997500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.002072" DistinctValues="1921.304838">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANfc7GDAAQA=" DoubleValue="492997500000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANESYo7AAQA=" DoubleValue="493192740000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANESYo7AAQA=" DoubleValue="493192740000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANESYo7AAQA=" DoubleValue="493192740000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.031705" DistinctValues="29392.893717">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ANESYo7AAQA=" DoubleValue="493192740000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AITN0EXDAQA=" DoubleValue="496179600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AITN0EXDAQA=" DoubleValue="496179600000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AITN0EXDAQA=" DoubleValue="496179600000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.006156" DistinctValues="5706.641445">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AITN0EXDAQA=" DoubleValue="496179600000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEuJ1czDAQA=" DoubleValue="496759500000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEuJ1czDAQA=" DoubleValue="496759500000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APKdxljHAQA=" DoubleValue="500659080000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.027790" DistinctValues="25763.916264">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APKdxljHAQA=" DoubleValue="500659080000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGykAV7KAQA=" DoubleValue="503980080000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGykAV7KAQA=" DoubleValue="503980080000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGykAV7KAQA=" DoubleValue="503980080000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.012143" DistinctValues="11257.923736">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AGykAV7KAQA=" DoubleValue="503980080000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMKE4a/LAQA=" DoubleValue="505431240000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMKE4a/LAQA=" DoubleValue="505431240000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFeOairPAQA=" DoubleValue="509256060000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.019915" DistinctValues="18463.109046">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFeOairPAQA=" DoubleValue="509256060000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA33cKnQAQA=" DoubleValue="510901140000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA33cKnQAQA=" DoubleValue="510901140000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA33cKnQAQA=" DoubleValue="510901140000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.020018" DistinctValues="18558.730954">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AA33cKnQAQA=" DoubleValue="510901140000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKU0cyrSAQA=" DoubleValue="512554740000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039578" DistinctValues="36692.892912">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKU0cyrSAQA=" DoubleValue="512554740000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIy/ql/VAQA=" DoubleValue="516081840000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIy/ql/VAQA=" DoubleValue="516081840000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIy/ql/VAQA=" DoubleValue="516081840000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000355" DistinctValues="328.947088">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIy/ql/VAQA=" DoubleValue="516081840000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHVyB2fVAQA=" DoubleValue="516113460000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.018890" DistinctValues="17512.571004">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AHVyB2fVAQA=" DoubleValue="516113460000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIvOeQjXAQA=" DoubleValue="517906380000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIvOeQjXAQA=" DoubleValue="517906380000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIvOeQjXAQA=" DoubleValue="517906380000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.021043" DistinctValues="19509.268996">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIvOeQjXAQA=" DoubleValue="517906380000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEqMhNnYAQA=" DoubleValue="519903720000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEqMhNnYAQA=" DoubleValue="519903720000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AN8hlJvcAQA=" DoubleValue="524035740000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.022428" DistinctValues="20792.686446">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AN8hlJvcAQA=" DoubleValue="524035740000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APe8DW3eAQA=" DoubleValue="526034940000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APe8DW3eAQA=" DoubleValue="526034940000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APe8DW3eAQA=" DoubleValue="526034940000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.017505" DistinctValues="16229.153554">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APe8DW3eAQA=" DoubleValue="526034940000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJgEXtjfAQA=" DoubleValue="527595360000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.016759" DistinctValues="15536.515009">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJgEXtjfAQA=" DoubleValue="527595360000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFp/2TzhAQA=" DoubleValue="529126440000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFp/2TzhAQA=" DoubleValue="529126440000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFp/2TzhAQA=" DoubleValue="529126440000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.017224" DistinctValues="15968.186345">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFp/2TzhAQA=" DoubleValue="529126440000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AP+OPKviAQA=" DoubleValue="530700060000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AP+OPKviAQA=" DoubleValue="530700060000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AP+OPKviAQA=" DoubleValue="530700060000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.005950" DistinctValues="5516.138646">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AP+OPKviAQA=" DoubleValue="530700060000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALukzSnjAQA=" DoubleValue="531243660000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.020304" DistinctValues="18824.098089">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ALukzSnjAQA=" DoubleValue="531243660000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL6AohnlAQA=" DoubleValue="533373240000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL6AohnlAQA=" DoubleValue="533373240000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL6AohnlAQA=" DoubleValue="533373240000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.019629" DistinctValues="18197.741911">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AL6AohnlAQA=" DoubleValue="533373240000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APbG9/jmAQA=" DoubleValue="535431960000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="APbG9/jmAQA=" DoubleValue="535431960000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIRPPlzqAQA=" DoubleValue="539156880000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.025909" DistinctValues="24019.141821">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AIRPPlzqAQA=" DoubleValue="539156880000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AB+MMxXsAQA=" DoubleValue="541050780000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AB+MMxXsAQA=" DoubleValue="541050780000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AB+MMxXsAQA=" DoubleValue="541050780000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.002631" DistinctValues="2438.819881">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AB+MMxXsAQA=" DoubleValue="541050780000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEKF+UHsAQA=" DoubleValue="541243080000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEKF+UHsAQA=" DoubleValue="541243080000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEKF+UHsAQA=" DoubleValue="541243080000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.008686" DistinctValues="8052.290789">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEKF+UHsAQA=" DoubleValue="541243080000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJyzzdXsAQA=" DoubleValue="541878000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJyzzdXsAQA=" DoubleValue="541878000000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJyzzdXsAQA=" DoubleValue="541878000000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.002707" DistinctValues="2509.587509">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AJyzzdXsAQA=" DoubleValue="541878000000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMpE4APtAQA=" DoubleValue="542075880000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.013518" DistinctValues="12531.556914">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMpE4APtAQA=" DoubleValue="542075880000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFwZtx/uAQA=" DoubleValue="543294960000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFwZtx/uAQA=" DoubleValue="543294960000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFwZtx/uAQA=" DoubleValue="543294960000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.006969" DistinctValues="6460.678151">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AFwZtx/uAQA=" DoubleValue="543294960000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEmeDLLuAQA=" DoubleValue="543923460000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000053" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEmeDLLuAQA=" DoubleValue="543923460000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEmeDLLuAQA=" DoubleValue="543923460000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.009448" DistinctValues="8758.767583">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AEmeDLLuAQA=" DoubleValue="543923460000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABhab3jvAQA=" DoubleValue="544775520000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABhab3jvAQA=" DoubleValue="544775520000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABhab3jvAQA=" DoubleValue="544775520000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.009998" DistinctValues="9268.837352">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="ABhab3jvAQA=" DoubleValue="544775520000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AASrX0rwAQA=" DoubleValue="545677200000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.011214" DistinctValues="10396.630908">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AASrX0rwAQA=" DoubleValue="545677200000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKw/ly/xAQA=" DoubleValue="546661680000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.000080" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKw/ly/xAQA=" DoubleValue="546661680000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKw/ly/xAQA=" DoubleValue="546661680000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.028719" DistinctValues="26625.209092">
+          <dxl:LowerBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKw/ly/xAQA=" DoubleValue="546661680000000.000000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKh6mnrzAQA=" DoubleValue="549182880000000.000000"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.039933" DistinctValues="37022.840000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKh6mnrzAQA=" DoubleValue="549182880000000.000000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOmiLLj2AQA=" DoubleValue="552745860000000.000000"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:ColumnStatistics Mdid="1.74486.1.0.0" Name="pl" Width="7.000000" NullFreq="0.000000" NdvRemain="7441750.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+      <dxl:MDCast Mdid="3.1043.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.1043.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0" CoercePathType="0"/>
+      <dxl:Type Mdid="0.1114.1.0" Name="timestamp" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.2060.1.0"/>
+        <dxl:InequalityOp Mdid="0.2061.1.0"/>
+        <dxl:LessThanOp Mdid="0.2062.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.2063.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.2064.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.2065.1.0"/>
+        <dxl:ComparisonOp Mdid="0.2045.1.0"/>
+        <dxl:ArrayType Mdid="0.1115.1.0"/>
+        <dxl:MinAgg Mdid="0.2142.1.0"/>
+        <dxl:MaxAgg Mdid="0.2126.1.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:GPDBScalarOp Mdid="0.98.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.25.1.0"/>
+        <dxl:RightType Mdid="0.25.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.67.1.0"/>
+        <dxl:Commutator Mdid="0.98.1.0"/>
+        <dxl:InverseOp Mdid="0.531.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1994.1.0"/>
+          <dxl:OpClass Mdid="0.1995.1.0"/>
+          <dxl:OpClass Mdid="0.3035.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
+      <dxl:Index Mdid="0.74730.1.0" Name="idx_foo_dd" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="5,4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54">
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.434.1.0"/>
+          <dxl:OpClass Mdid="0.1994.1.0"/>
+        </dxl:OpClasses>
+      </dxl:Index>
+      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+        <dxl:EqualityOp Mdid="0.1070.1.0"/>
+        <dxl:InequalityOp Mdid="0.1071.1.0"/>
+        <dxl:LessThanOp Mdid="0.1072.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1074.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.1073.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1075.1.0"/>
+        <dxl:ComparisonOp Mdid="0.382.1.0"/>
+        <dxl:ArrayType Mdid="0.0.0.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:RelationStatistics Mdid="2.74486.1.0" Name="foo" Rows="83527200.000000" EmptyRelation="false"/>
+      <dxl:Relation Mdid="0.74486.1.0" Name="foo" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="1,0" Keys="54,52" NumberLeafPartitions="0">
+        <dxl:Columns>
+          <dxl:Column Name="pl" Attno="1" Mdid="0.1043.1.0" TypeModifier="10" Nullable="false" ColWidth="7">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="pcd" Attno="2" Mdid="0.1114.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tn" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="st" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="fn" Attno="5" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="5">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="dd" Attno="6" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bp" Attno="7" Mdid="0.1043.1.0" TypeModifier="9" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="fsi" Attno="8" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="op" Attno="9" Mdid="0.1043.1.0" TypeModifier="9" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ad" Attno="10" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cc" Attno="11" Mdid="0.1043.1.0" TypeModifier="9" Nullable="true" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="mf" Attno="12" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="mc" Attno="13" Mdid="0.1043.1.0" TypeModifier="9" Nullable="true" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="at" Attno="14" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bc" Attno="15" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="sc" Attno="16" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cc1" Attno="17" Mdid="0.1042.1.0" TypeModifier="5" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="sn" Attno="18" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ct" Attno="19" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bs" Attno="20" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="chi" Attno="21" Mdid="0.1042.1.0" TypeModifier="5" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="pfs" Attno="22" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="0">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="acn" Attno="23" Mdid="0.1043.1.0" TypeModifier="19" Nullable="true" ColWidth="11">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ofa" Attno="24" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="11">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ofc" Attno="25" Mdid="0.1043.1.0" TypeModifier="9" Nullable="true" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="atl" Attno="26" Mdid="0.1043.1.0" TypeModifier="39" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="acc" Attno="27" Mdid="0.1043.1.0" TypeModifier="39" Nullable="true" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="bcd" Attno="28" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cor" Attno="29" Mdid="0.1043.1.0" TypeModifier="6" Nullable="true" ColWidth="0">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="sfi" Attno="30" Mdid="0.1042.1.0" TypeModifier="5" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="zz" Attno="31" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="14">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="zzd" Attno="32" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xc" Attno="33" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xc1" Attno="34" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xcz" Attno="35" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="9">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="vbn" Attno="36" Mdid="0.1043.1.0" TypeModifier="6" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="dsd" Attno="37" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="nat" Attno="38" Mdid="0.1043.1.0" TypeModifier="6" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="erer" Attno="39" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="fgg" Attno="40" Mdid="0.1042.1.0" TypeModifier="5" Nullable="true" ColWidth="2">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="nnn" Attno="41" Mdid="0.1043.1.0" TypeModifier="19" Nullable="true" ColWidth="9">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="fnbc" Attno="42" Mdid="0.20.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="zxcv" Attno="43" Mdid="0.20.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="zd" Attno="44" Mdid="0.1043.1.0" TypeModifier="24" Nullable="true" ColWidth="3">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz" Attno="45" Mdid="0.1043.1.0" TypeModifier="36" Nullable="true" ColWidth="0">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz1" Attno="46" Mdid="0.1114.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz2" Attno="47" Mdid="0.1114.1.0" Nullable="false" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz3" Attno="48" Mdid="0.1043.1.0" TypeModifier="34" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz4" Attno="49" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz5" Attno="50" Mdid="0.1043.1.0" TypeModifier="34" Nullable="true" ColWidth="7">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz6" Attno="51" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xyz7" Attno="52" Mdid="0.1043.1.0" TypeModifier="8" Nullable="true" ColWidth="5">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.74730.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.74747.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.74761.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.74775.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.74789.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:Index Mdid="0.74747.1.0" Name="idx_foo_ad" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="9,4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54">
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.434.1.0"/>
+          <dxl:OpClass Mdid="0.1994.1.0"/>
+        </dxl:OpClasses>
+      </dxl:Index>
+      <dxl:ColumnStatistics Mdid="1.74486.1.0.4" Name="fn" Width="5.000000" NullFreq="0.000000" NdvRemain="3954.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
+    </dxl:Metadata>
+    <dxl:Query>
+      <dxl:OutputColumns>
+        <dxl:Ident ColId="1" ColName="pl" TypeMdid="0.1043.1.0" TypeModifier="10"/>
+        <dxl:Ident ColId="2" ColName="pcd" TypeMdid="0.1114.1.0"/>
+        <dxl:Ident ColId="3" ColName="tn" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="4" ColName="st" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="5" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="6" ColName="dd" TypeMdid="0.1114.1.0"/>
+        <dxl:Ident ColId="7" ColName="bp" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+        <dxl:Ident ColId="8" ColName="fsi" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="9" ColName="op" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+        <dxl:Ident ColId="10" ColName="ad" TypeMdid="0.1114.1.0"/>
+        <dxl:Ident ColId="11" ColName="cc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+        <dxl:Ident ColId="12" ColName="mf" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="13" ColName="mc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+        <dxl:Ident ColId="14" ColName="at" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="15" ColName="bc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="16" ColName="sc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="17" ColName="cc1" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+        <dxl:Ident ColId="18" ColName="sn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="19" ColName="ct" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="20" ColName="bs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="21" ColName="chi" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+        <dxl:Ident ColId="22" ColName="pfs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="23" ColName="acn" TypeMdid="0.1043.1.0" TypeModifier="19"/>
+        <dxl:Ident ColId="24" ColName="ofa" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="25" ColName="ofc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+        <dxl:Ident ColId="26" ColName="atl" TypeMdid="0.1043.1.0" TypeModifier="39"/>
+        <dxl:Ident ColId="27" ColName="acc" TypeMdid="0.1043.1.0" TypeModifier="39"/>
+        <dxl:Ident ColId="28" ColName="bcd" TypeMdid="0.1114.1.0"/>
+        <dxl:Ident ColId="29" ColName="cor" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+        <dxl:Ident ColId="30" ColName="sfi" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+        <dxl:Ident ColId="31" ColName="zz" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="32" ColName="zzd" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="33" ColName="xc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="34" ColName="xc1" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="35" ColName="xcz" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="36" ColName="vbn" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+        <dxl:Ident ColId="37" ColName="dsd" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="38" ColName="nat" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+        <dxl:Ident ColId="39" ColName="erer" TypeMdid="0.1082.1.0"/>
+        <dxl:Ident ColId="40" ColName="fgg" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+        <dxl:Ident ColId="41" ColName="nnn" TypeMdid="0.1043.1.0" TypeModifier="19"/>
+        <dxl:Ident ColId="42" ColName="fnbc" TypeMdid="0.20.1.0"/>
+        <dxl:Ident ColId="43" ColName="zxcv" TypeMdid="0.20.1.0"/>
+        <dxl:Ident ColId="44" ColName="zd" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+        <dxl:Ident ColId="45" ColName="xyz" TypeMdid="0.1043.1.0" TypeModifier="36"/>
+        <dxl:Ident ColId="46" ColName="xyz1" TypeMdid="0.1114.1.0"/>
+        <dxl:Ident ColId="47" ColName="xyz2" TypeMdid="0.1114.1.0"/>
+        <dxl:Ident ColId="48" ColName="xyz3" TypeMdid="0.1043.1.0" TypeModifier="34"/>
+        <dxl:Ident ColId="49" ColName="xyz4" TypeMdid="0.23.1.0"/>
+        <dxl:Ident ColId="50" ColName="xyz5" TypeMdid="0.1043.1.0" TypeModifier="34"/>
+        <dxl:Ident ColId="51" ColName="xyz6" TypeMdid="0.1114.1.0"/>
+        <dxl:Ident ColId="52" ColName="xyz7" TypeMdid="0.1043.1.0" TypeModifier="8"/>
+      </dxl:OutputColumns>
+      <dxl:CTEList/>
+      <dxl:LogicalSelect>
+        <dxl:And>
+          <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
+            <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+              <dxl:Ident ColId="5" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:Cast>
+            <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" IsByValue="false" Value="AAAtYAEAAAAAAAAAGQAAAOcDAAABAAAAAAAAB1NRMQAAAAAHU1EyAAAAAAdT&#10;UTMAAAAAB1NRNAAAAAAHU1E1AAAAAAdTUTYAAAAAB1NRNwAAAAAHU1E4AAAA&#10;AAdTUTkAAAAACFNRMTAAAAAIU1ExMQAAAAhTUTEyAAAACFNRMTMAAAAIU1Ex&#10;NAAAAAhTUTE1AAAACFNRMTYAAAAIU1ExNwAAAAhTUTE4AAAACFNRMTkAAAAI&#10;U1EyMAAAAAhTUTIyAAAACFNRMjEAAAAIU1EyMwAAAAhTUTI0AAAACFNRMjUA&#10;AAAIU1EyNgAAAAhTUTI3AAAACFNRMjgAAAAIU1EyOQAAAAhTUTMwAAAACFNR&#10;MzEAAAAIU1EzMgAAAAhTUTMzAAAACFNRMzQAAAAIU1EzNQAAAAhTUTM2AAAA&#10;CFNRMzcAAAAIU1EzOAAAAAhTUTM5AAAACFNRNDAAAAAIU1E0MQAAAAhTUTQy&#10;AAAACFNRNDMAAAAIU1E0NAAAAAhTUTQ1AAAACFNRNDYAAAAIU1E0NwAAAAhT&#10;UTQ4AAAACFNRNDkAAAAIU1E1MAAAAAhTUTUxAAAACFNRNTIAAAAIU1E1MwAA&#10;AAhTUTU0AAAACFNRNTUAAAAIU1E1NgAAAAhTUTU3AAAACFNRNTgAAAAIU1E1&#10;OQAAAAhTUTYwAAAACFNRNjEAAAAIU1E2MgAAAAhTUTYzAAAACFNRNjQAAAAI&#10;U1E2NQAAAAhTUTY2AAAACFNRNjcAAAAIU1E2OAAAAAhTUTY5AAAACFNRNzAA&#10;AAAIU1E3MQAAAAhTUTcyAAAACFNRNzMAAAAIU1E3NAAAAAhTUTc1AAAACFNR&#10;NzYAAAAIU1E3NwAAAAhTUTc4AAAACFNRNzkAAAAIU1E4MAAAAAhTUTgxAAAA&#10;CFNRODIAAAAIU1E4MwAAAAhTUTg0AAAACFNRODUAAAAIU1E4NgAAAAhTUTg3&#10;AAAACFNRODgAAAAIU1E4OQAAAAhTUTkwAAAACFNROTEAAAAIU1E5MgAAAAhT&#10;UTkzAAAACFNROTQAAAAIU1E5NQAAAAhTUTk2AAAACFNROTcAAAAIU1E5OAAA&#10;AAhTUTk5AAAACVNRMTAwAAAAAAAACVNRMTAxAAAAAAAACVNRMTAyAAAAAAAA&#10;CVNRMTAzAAAAAAAACVNRMTA0AAAAAAAACVNRMTA1AAAAAAAACVNRMTA2AAAA&#10;AAAACVNRMTA3AAAAAAAACVNRMTA4AAAAAAAACVNRMTA5AAAAAAAACVNRMTEw&#10;AAAAAAAACVNRMTExAAAAAAAACVNRMTEyAAAAAAAACVNRMTEzAAAAAAAACVNR&#10;MTE0AAAAAAAACVNRMTE1AAAAAAAACVNRMTE2AAAAAAAACVNRMTE3AAAAAAAA&#10;CVNRMTE4AAAAAAAACVNRMTE5AAAAAAAACVNRMTIwAAAAAAAACVNRMTIxAAAA&#10;AAAACVNRMTIyAAAAAAAACVNRMTIzAAAAAAAACVNRMTI0AAAAAAAACVNRMTI1&#10;AAAAAAAACVNRMTI2AAAAAAAACVNRMTI3AAAAAAAACVNRMTI4AAAAAAAACVNR&#10;MTI5AAAAAAAACVNRMTMwAAAAAAAACVNRMTMxAAAAAAAACVNRMTMyAAAAAAAA&#10;CVNRMTMzAAAAAAAACVNRMTM0AAAAAAAACVNRMTM1AAAAAAAACVNRMTM2AAAA&#10;AAAACVNRMTM3AAAAAAAACVNRMTM4AAAAAAAACVNRMTM5AAAAAAAACVNRMTQw&#10;AAAAAAAACVNRMTQxAAAAAAAACVNRMTQyAAAAAAAACVNRMTQzAAAAAAAACVNR&#10;MTQ0AAAAAAAACVNRMTQ1AAAAAAAACVNRMTQ2AAAAAAAACVNRMTQ3AAAAAAAA&#10;CVNRMTQ4AAAAAAAACVNRMTQ5AAAAAAAACVNRMTUwAAAAAAAACVNRMTUxAAAA&#10;AAAACVNRMTUyAAAAAAAACVNRMTUzAAAAAAAACVNRMTU0AAAAAAAACVNRMTU1&#10;AAAAAAAACVNRMTU2AAAAAAAACVNRMTU3AAAAAAAACVNRMTU4AAAAAAAACVNR&#10;MTU5AAAAAAAACVNRMTYwAAAAAAAACVNRMTYxAAAAAAAACVNRMTYyAAAAAAAA&#10;CVNRMTYzAAAAAAAACVNRMTY0AAAAAAAACVNRMTY1AAAAAAAACVNRMTY2AAAA&#10;AAAACVNRMTY3AAAAAAAACVNRMTY4AAAAAAAACVNRMTY5AAAAAAAACVNRMTcw&#10;AAAAAAAACVNRMTcxAAAAAAAACVNRMTcyAAAAAAAACVNRMTczAAAAAAAACVNR&#10;MTc0AAAAAAAACVNRMTc1AAAAAAAACVNRMTc2AAAAAAAACVNRMTc3AAAAAAAA&#10;CVNRMTc4AAAAAAAACVNRMTc5AAAAAAAACVNRMTgwAAAAAAAACVNRMTgxAAAA&#10;AAAACVNRMTgyAAAAAAAACVNRMTgzAAAAAAAACVNRMTg0AAAAAAAACVNRMTg1&#10;AAAAAAAACVNRMTg2AAAAAAAACVNRMTg3AAAAAAAACVNRMTg4AAAAAAAACVNR&#10;MTg5AAAAAAAACVNRMTkwAAAAAAAACVNRMTkxAAAAAAAACVNRMTkyAAAAAAAA&#10;CVNRMTkzAAAAAAAACVNRMTk0AAAAAAAACVNRMTk1AAAAAAAACVNRMTk2AAAA&#10;AAAACVNRMTk3AAAAAAAACVNRMTk4AAAAAAAACVNRMTk5AAAAAAAACVNRMjAw&#10;AAAAAAAACVNRMjAxAAAAAAAACVNRMjAyAAAAAAAACVNRMjAzAAAAAAAACVNR&#10;MjA0AAAAAAAACVNRMjA1AAAAAAAACVNRMjA2AAAAAAAACVNRMjA3AAAAAAAA&#10;CVNRMjA4AAAAAAAACVNRMjA5AAAAAAAACVNRMjEwAAAAAAAACVNRMjExAAAA&#10;AAAACVNRMjEyAAAAAAAACVNRMjEzAAAAAAAACVNRMjE0AAAAAAAACVNRMjE1&#10;AAAAAAAACVNRMjE2AAAAAAAACVNRMjE3AAAAAAAACVNRMjE4AAAAAAAACVNR&#10;MjE5AAAAAAAACVNRMjIwAAAAAAAACVNRMjIxAAAAAAAACVNRMjIyAAAAAAAA&#10;CVNRMjIzAAAAAAAACVNRMjI0AAAAAAAACVNRMjI1AAAAAAAACVNRMjI2AAAA&#10;AAAACVNRMjI3AAAAAAAACVNRMjI4AAAAAAAACVNRMjI5AAAAAAAACVNRMjMw&#10;AAAAAAAACVNRMjMxAAAAAAAACVNRMjMyAAAAAAAACVNRMjMzAAAAAAAACVNR&#10;MjM0AAAAAAAACVNRMjM1AAAAAAAACVNRMjM2AAAAAAAACVNRMjM3AAAAAAAA&#10;CVNRMjM4AAAAAAAACVNRMjM5AAAAAAAACVNRMjQwAAAAAAAACVNRMjQxAAAA&#10;AAAACVNRMjQyAAAAAAAACVNRMjQzAAAAAAAACVNRMjQ0AAAAAAAACVNRMjQ1&#10;AAAAAAAACVNRMjQ2AAAAAAAACVNRMjQ3AAAAAAAACVNRMjQ4AAAAAAAACVNR&#10;MjQ5AAAAAAAACVNRMjUxAAAAAAAACVNRMjUyAAAAAAAACVNRMjUzAAAAAAAA&#10;CVNRMjU0AAAAAAAACVNRMjU1AAAAAAAACVNRMjU2AAAAAAAACVNRMjU3AAAA&#10;AAAACVNRMjU4AAAAAAAACVNRMjU5AAAAAAAACVNRMjYwAAAAAAAACVNRMjUw&#10;AAAAAAAACVNRMjYxAAAAAAAACVNRMjYyAAAAAAAACVNRMjYzAAAAAAAACVNR&#10;MjY0AAAAAAAACVNRMjY1AAAAAAAACVNRMjY2AAAAAAAACVNRMjY3AAAAAAAA&#10;CVNRMjY4AAAAAAAACVNRMjY5AAAAAAAACVNRMjcwAAAAAAAACVNRMjcxAAAA&#10;AAAACVNRMjcyAAAAAAAACVNRMjczAAAAAAAACVNRMjc0AAAAAAAACVNRMjc1&#10;AAAAAAAACVNRMjc2AAAAAAAACVNRMjc4AAAAAAAACVNRMjc5AAAAAAAACVNR&#10;MjgwAAAAAAAACVNRMjc3AAAAAAAACVNRMjgxAAAAAAAACVNRMjgyAAAAAAAA&#10;CVNRMjgzAAAAAAAACVNRMjg0AAAAAAAACVNRMjg1AAAAAAAACVNRMjg2AAAA&#10;AAAACVNRMjg3AAAAAAAACVNRMjg4AAAAAAAACVNRMjg5AAAAAAAACVNRMjkw&#10;AAAAAAAACVNRMjkxAAAAAAAACVNRMjkyAAAAAAAACVNRMjkzAAAAAAAACVNR&#10;Mjk0AAAAAAAACVNRMjk1AAAAAAAACVNRMjk2AAAAAAAACVNRMjk3AAAAAAAA&#10;CVNRMjk4AAAAAAAACVNRMjk5AAAAAAAACVNRMzAwAAAAAAAACVNRMzAxAAAA&#10;AAAACVNRMzAyAAAAAAAACVNRMzAzAAAAAAAACVNRMzA0AAAAAAAACVNRMzA1&#10;AAAAAAAACVNRMzA2AAAAAAAACVNRMzA3AAAAAAAACVNRMzA4AAAAAAAACVNR&#10;MzA5AAAAAAAACVNRMzEwAAAAAAAACVNRMzExAAAAAAAACVNRMzEyAAAAAAAA&#10;CVNRMzEzAAAAAAAACVNRMzE0AAAAAAAACVNRMzE1AAAAAAAACVNRMzE2AAAA&#10;AAAACVNRMzE3AAAAAAAACVNRMzE4AAAAAAAACVNRMzE5AAAAAAAACVNRMzIw&#10;AAAAAAAACVNRMzIxAAAAAAAACVNRMzIyAAAAAAAACVNRMzIzAAAAAAAACVNR&#10;MzI0AAAAAAAACVNRMzI1AAAAAAAACVNRMzI2AAAAAAAACVNRMzI3AAAAAAAA&#10;CVNRMzI4AAAAAAAACVNRMzI5AAAAAAAACVNRMzMwAAAAAAAACVNRMzMxAAAA&#10;AAAACVNRMzMyAAAAAAAACVNRMzMzAAAAAAAACVNRMzM0AAAAAAAACVNRMzM1&#10;AAAAAAAACVNRMzM2AAAAAAAACVNRMzM3AAAAAAAACVNRMzM4AAAAAAAACVNR&#10;MzM5AAAAAAAACVNRMzQwAAAAAAAACVNRMzQxAAAAAAAACVNRMzQyAAAAAAAA&#10;CVNRMzQzAAAAAAAACVNRMzQ0AAAAAAAACVNRMzQ1AAAAAAAACVNRMzQ2AAAA&#10;AAAACVNRMzQ3AAAAAAAACVNRMzQ4AAAAAAAACVNRMzQ5AAAAAAAACVNRMzUw&#10;AAAAAAAACVNRMzUxAAAAAAAACVNRMzUyAAAAAAAACVNRMzUzAAAAAAAACVNR&#10;MzU0AAAAAAAACVNRMzU1AAAAAAAACVNRMzU2AAAAAAAACVNRMzU3AAAAAAAA&#10;CVNRMzU4AAAAAAAACVNRMzU5AAAAAAAACVNRMzYwAAAAAAAACVNRMzYxAAAA&#10;AAAACVNRMzYyAAAAAAAACVNRMzYzAAAAAAAACVNRMzY0AAAAAAAACVNRMzY1&#10;AAAAAAAACVNRMzY2AAAAAAAACVNRMzY3AAAAAAAACVNRMzY4AAAAAAAACVNR&#10;MzY5AAAAAAAACVNRMzcwAAAAAAAACVNRMzcxAAAAAAAACVNRMzcyAAAAAAAA&#10;CVNRMzczAAAAAAAACVNRMzc0AAAAAAAACVNRMzc1AAAAAAAACVNRMzc2AAAA&#10;AAAACVNRMzc3AAAAAAAACVNRMzc4AAAAAAAACVNRMzc5AAAAAAAACVNRMzgw&#10;AAAAAAAACVNRMzgxAAAAAAAACVNRMzgyAAAAAAAACVNRMzgzAAAAAAAACVNR&#10;Mzg0AAAAAAAACVNRMzg1AAAAAAAACVNRMzg2AAAAAAAACVNRMzg3AAAAAAAA&#10;CVNRMzg4AAAAAAAACVNRMzg5AAAAAAAACVNRMzkwAAAAAAAACVNRMzkxAAAA&#10;AAAACVNRMzkyAAAAAAAACVNRMzkzAAAAAAAACVNRMzk0AAAAAAAACVNRMzk1&#10;AAAAAAAACVNRMzk2AAAAAAAACVNRMzk3AAAAAAAACVNRMzk4AAAAAAAACVNR&#10;Mzk5AAAAAAAACVNRNDAwAAAAAAAACVNRNDAxAAAAAAAACVNRNDAyAAAAAAAA&#10;CVNRNDAzAAAAAAAACVNRNDA0AAAAAAAACVNRNDA1AAAAAAAACVNRNDA2AAAA&#10;AAAACVNRNDA3AAAAAAAACVNRNDA4AAAAAAAACVNRNDA5AAAAAAAACVNRNDEw&#10;AAAAAAAACVNRNDExAAAAAAAACVNRNDEyAAAAAAAACVNRNDEzAAAAAAAACVNR&#10;NDE0AAAAAAAACVNRNDE1AAAAAAAACVNRNDE2AAAAAAAACVNRNDE3AAAAAAAA&#10;CVNRNDE4AAAAAAAACVNRNDE5AAAAAAAACVNRNDIwAAAAAAAACVNRNDIxAAAA&#10;AAAACVNRNDIyAAAAAAAACVNRNDIzAAAAAAAACVNRNDI0AAAAAAAACVNRNDI1&#10;AAAAAAAACVNRNDI2AAAAAAAACVNRNDI3AAAAAAAACVNRNDI4AAAAAAAACVNR&#10;NDI5AAAAAAAACVNRNDMwAAAAAAAACVNRNDMxAAAAAAAACVNRNDMyAAAAAAAA&#10;CVNRNDMzAAAAAAAACVNRNDM0AAAAAAAACVNRNDM1AAAAAAAACVNRNDM2AAAA&#10;AAAACVNRNDM3AAAAAAAACVNRNDM4AAAAAAAACVNRNDM5AAAAAAAACVNRNDQw&#10;AAAAAAAACVNRNDQxAAAAAAAACVNRNDQyAAAAAAAACVNRNDQzAAAAAAAACVNR&#10;NDQ0AAAAAAAACVNRNDQ1AAAAAAAACVNRNDQ2AAAAAAAACVNRNDQ3AAAAAAAA&#10;CVNRNDQ4AAAAAAAACVNRNDQ5AAAAAAAACVNRNDUwAAAAAAAACVNRNDUxAAAA&#10;AAAACVNRNDUyAAAAAAAACVNRNDUzAAAAAAAACVNRNDU0AAAAAAAACVNRNDU1&#10;AAAAAAAACVNRNDU2AAAAAAAACVNRNDU3AAAAAAAACVNRNDU4AAAAAAAACVNR&#10;NDU5AAAAAAAACVNRNDYwAAAAAAAACVNRNDYxAAAAAAAACVNRNDYyAAAAAAAA&#10;CVNRNDYzAAAAAAAACVNRNDY0AAAAAAAACVNRNDY1AAAAAAAACVNRNDY2AAAA&#10;AAAACVNRNDY3AAAAAAAACVNRNDY4AAAAAAAACVNRNDY5AAAAAAAACVNRNDcw&#10;AAAAAAAACVNRNDcxAAAAAAAACVNRNDcyAAAAAAAACVNRNDczAAAAAAAACVNR&#10;NDc0AAAAAAAACVNRNDc1AAAAAAAACVNRNDc2AAAAAAAACVNRNDc3AAAAAAAA&#10;CVNRNDc4AAAAAAAACVNRNDc5AAAAAAAACVNRNDgwAAAAAAAACVNRNDgxAAAA&#10;AAAACVNRNDgyAAAAAAAACVNRNDgzAAAAAAAACVNRNDg0AAAAAAAACVNRNDg1&#10;AAAAAAAACVNRNDg2AAAAAAAACVNRNDg3AAAAAAAACVNRNDg4AAAAAAAACVNR&#10;NDg5AAAAAAAACVNRNDkwAAAAAAAACVNRNDkxAAAAAAAACVNRNDkyAAAAAAAA&#10;CVNRNDkzAAAAAAAACVNRNDk0AAAAAAAACVNRNDk1AAAAAAAACVNRNDk2AAAA&#10;AAAACVNRNDk3AAAAAAAACVNRNDk4AAAAAAAACVNRNDk5AAAAAAAACVNRNTAw&#10;AAAAAAAACVNRNTAxAAAAAAAACVNRNTAyAAAAAAAACVNRNTAzAAAAAAAACVNR&#10;NTA0AAAAAAAACVNRNTA1AAAAAAAACVNRNTA2AAAAAAAACVNRNTA3AAAAAAAA&#10;CVNRNTA4AAAAAAAACVNRNTA5AAAAAAAACVNRNTEwAAAAAAAACVNRNTExAAAA&#10;AAAACVNRNTEyAAAAAAAACVNRNTEzAAAAAAAACVNRNTE0AAAAAAAACVNRNTE1&#10;AAAAAAAACVNRNTE2AAAAAAAACVNRNTE3AAAAAAAACVNRNTE4AAAAAAAACVNR&#10;NTE5AAAAAAAACVNRNTIwAAAAAAAACVNRNTIxAAAAAAAACVNRNTIyAAAAAAAA&#10;CVNRNTIzAAAAAAAACVNRNTI0AAAAAAAACVNRNTI1AAAAAAAACVNRNTI2AAAA&#10;AAAACVNRNTI3AAAAAAAACVNRNTI4AAAAAAAACVNRNTI5AAAAAAAACVNRNTMw&#10;AAAAAAAACVNRNTMxAAAAAAAACVNRNTMyAAAAAAAACVNRNTMzAAAAAAAACVNR&#10;NTM0AAAAAAAACVNRNTM1AAAAAAAACVNRNTM2AAAAAAAACVNRNTM3AAAAAAAA&#10;CVNRNTM4AAAAAAAACVNRNTM5AAAAAAAACVNRNTQwAAAAAAAACVNRNTQxAAAA&#10;AAAACVNRNTQyAAAAAAAACVNRNTQzAAAAAAAACVNRNTQ0AAAAAAAACVNRNTQ1&#10;AAAAAAAACVNRNTQ2AAAAAAAACVNRNTQ3AAAAAAAACVNRNTQ4AAAAAAAACVNR&#10;NTQ5AAAAAAAACVNRNTUwAAAAAAAACVNRNTUxAAAAAAAACVNRNTUyAAAAAAAA&#10;CVNRNTUzAAAAAAAACVNRNTU0AAAAAAAACVNRNTU1AAAAAAAACVNRNTU2AAAA&#10;AAAACVNRNTU3AAAAAAAACVNRNTU4AAAAAAAACVNRNTU5AAAAAAAACVNRNTYw&#10;AAAAAAAACVNRNTYxAAAAAAAACVNRNTYyAAAAAAAACVNRNTYzAAAAAAAACVNR&#10;NTY0AAAAAAAACVNRNTY1AAAAAAAACVNRNTY2AAAAAAAACVNRNTY3AAAAAAAA&#10;CVNRNTY4AAAAAAAACVNRNTY5AAAAAAAACVNRNTcwAAAAAAAACVNRNTcxAAAA&#10;AAAACVNRNTcyAAAAAAAACVNRNTczAAAAAAAACVNRNTc0AAAAAAAACVNRNTc1&#10;AAAAAAAACVNRNTc2AAAAAAAACVNRNTc3AAAAAAAACVNRNTc4AAAAAAAACVNR&#10;NTc5AAAAAAAACVNRNTgwAAAAAAAACVNRNTgxAAAAAAAACVNRNTgyAAAAAAAA&#10;CVNRNTgzAAAAAAAACVNRNTg0AAAAAAAACVNRNTg1AAAAAAAACVNRNTg2AAAA&#10;AAAACVNRNTg3AAAAAAAACVNRNTg4AAAAAAAACVNRNTg5AAAAAAAACVNRNTkw&#10;AAAAAAAACVNRNTkxAAAAAAAACVNRNTkyAAAAAAAACVNRNTkzAAAAAAAACVNR&#10;NTk0AAAAAAAACVNRNTk1AAAAAAAACVNRNTk2AAAAAAAACVNRNTk3AAAAAAAA&#10;CVNRNTk4AAAAAAAACVNRNTk5AAAAAAAACVNRNjAwAAAAAAAACVNRNjAxAAAA&#10;AAAACVNRNjAyAAAAAAAACVNRNjAzAAAAAAAACVNRNjA0AAAAAAAACVNRNjA1&#10;AAAAAAAACVNRNjA2AAAAAAAACVNRNjA3AAAAAAAACVNRNjA4AAAAAAAACVNR&#10;NjA5AAAAAAAACVNRNjEwAAAAAAAACVNRNjExAAAAAAAACVNRNjEyAAAAAAAA&#10;CVNRNjEzAAAAAAAACVNRNjE0AAAAAAAACVNRNjE1AAAAAAAACVNRNjE2AAAA&#10;AAAACVNRNjE3AAAAAAAACVNRNjE4AAAAAAAACVNRNjE5AAAAAAAACVNRNjIw&#10;AAAAAAAACVNRNjIxAAAAAAAACVNRNjIyAAAAAAAACVNRNjIzAAAAAAAACVNR&#10;NjI0AAAAAAAACVNRNjI1AAAAAAAACVNRNjI2AAAAAAAACVNRNjI3AAAAAAAA&#10;CVNRNjI4AAAAAAAACVNRNjI5AAAAAAAACVNRNjMwAAAAAAAACVNRNjMxAAAA&#10;AAAACVNRNjMyAAAAAAAACVNRNjMzAAAAAAAACVNRNjM0AAAAAAAACVNRNjM1&#10;AAAAAAAACVNRNjM2AAAAAAAACVNRNjM3AAAAAAAACVNRNjM4AAAAAAAACVNR&#10;NjM5AAAAAAAACVNRNjQwAAAAAAAACVNRNjQxAAAAAAAACVNRNjQyAAAAAAAA&#10;CVNRNjQzAAAAAAAACVNRNjQ0AAAAAAAACVNRNjQ1AAAAAAAACVNRNjQ2AAAA&#10;AAAACVNRNjQ3AAAAAAAACVNRNjQ4AAAAAAAACVNRNjQ5AAAAAAAACVNRNjUw&#10;AAAAAAAACVNRNjUxAAAAAAAACVNRNjUyAAAAAAAACVNRNjUzAAAAAAAACVNR&#10;NjU0AAAAAAAACVNRNjU1AAAAAAAACVNRNjU2AAAAAAAACVNRNjU3AAAAAAAA&#10;CVNRNjU4AAAAAAAACVNRNjU5AAAAAAAACVNRNjYwAAAAAAAACVNRNjYxAAAA&#10;AAAACVNRNjYyAAAAAAAACVNRNjYzAAAAAAAACVNRNjY0AAAAAAAACVNRNjY1&#10;AAAAAAAACVNRNjY2AAAAAAAACVNRNjY3AAAAAAAACVNRNjY4AAAAAAAACVNR&#10;NjY5AAAAAAAACVNRNjcwAAAAAAAACVNRNjcxAAAAAAAACVNRNjcyAAAAAAAA&#10;CVNRNjczAAAAAAAACVNRNjc0AAAAAAAACVNRNjc1AAAAAAAACVNRNjc2AAAA&#10;AAAACVNRNjc3AAAAAAAACVNRNjc4AAAAAAAACVNRNjc5AAAAAAAACVNRNjgw&#10;AAAAAAAACVNRNjgxAAAAAAAACVNRNjgyAAAAAAAACVNRNjgzAAAAAAAACVNR&#10;Njg0AAAAAAAACVNRNjg1AAAAAAAACVNRNjg2AAAAAAAACVNRNjg3AAAAAAAA&#10;CVNRNjg4AAAAAAAACVNRNjg5AAAAAAAACVNRNjkwAAAAAAAACVNRNjkxAAAA&#10;AAAACVNRNjkyAAAAAAAACVNRNjkzAAAAAAAACVNRNjk0AAAAAAAACVNRNjk1&#10;AAAAAAAACVNRNjk2AAAAAAAACVNRNjk3AAAAAAAACVNRNjk4AAAAAAAACVNR&#10;Njk5AAAAAAAACVNRNzAwAAAAAAAACVNRNzAxAAAAAAAACVNRNzAyAAAAAAAA&#10;CVNRNzAzAAAAAAAACVNRNzA0AAAAAAAACVNRNzA1AAAAAAAACVNRNzA2AAAA&#10;AAAACVNRNzA3AAAAAAAACVNRNzA4AAAAAAAACVNRNzA5AAAAAAAACVNRNzEw&#10;AAAAAAAACVNRNzExAAAAAAAACVNRNzEyAAAAAAAACVNRNzEzAAAAAAAACVNR&#10;NzE0AAAAAAAACVNRNzE1AAAAAAAACVNRNzE2AAAAAAAACVNRNzE3AAAAAAAA&#10;CVNRNzE4AAAAAAAACVNRNzE5AAAAAAAACVNRNzIwAAAAAAAACVNRNzIxAAAA&#10;AAAACVNRNzIyAAAAAAAACVNRNzIzAAAAAAAACVNRNzI0AAAAAAAACVNRNzI1&#10;AAAAAAAACVNRNzI2AAAAAAAACVNRNzI3AAAAAAAACVNRNzI4AAAAAAAACVNR&#10;NzI5AAAAAAAACVNRNzMwAAAAAAAACVNRNzMxAAAAAAAACVNRNzMyAAAAAAAA&#10;CVNRNzMzAAAAAAAACVNRNzM0AAAAAAAACVNRNzM1AAAAAAAACVNRNzM2AAAA&#10;AAAACVNRNzM3AAAAAAAACVNRNzM4AAAAAAAACVNRNzM5AAAAAAAACVNRNzQw&#10;AAAAAAAACVNRNzQxAAAAAAAACVNRNzQyAAAAAAAACVNRNzQzAAAAAAAACVNR&#10;NzQ0AAAAAAAACVNRNzQ1AAAAAAAACVNRNzQ2AAAAAAAACVNRNzQ3AAAAAAAA&#10;CVNRNzQ4AAAAAAAACVNRNzQ5AAAAAAAACVNRNzUwAAAAAAAACVNRNzUxAAAA&#10;AAAACVNRNzUyAAAAAAAACVNRNzUzAAAAAAAACVNRNzU0AAAAAAAACVNRNzU1&#10;AAAAAAAACVNRNzU2AAAAAAAACVNRNzU3AAAAAAAACVNRNzU4AAAAAAAACVNR&#10;NzU5AAAAAAAACVNRNzYwAAAAAAAACVNRNzYxAAAAAAAACVNRNzYyAAAAAAAA&#10;CVNRNzYzAAAAAAAACVNRNzY0AAAAAAAACVNRNzY1AAAAAAAACVNRNzY2AAAA&#10;AAAACVNRNzY3AAAAAAAACVNRNzY4AAAAAAAACVNRNzY5AAAAAAAACVNRNzcw&#10;AAAAAAAACVNRNzcxAAAAAAAACVNRNzcyAAAAAAAACVNRNzczAAAAAAAACVNR&#10;Nzc0AAAAAAAACVNRNzc1AAAAAAAACVNRNzc2AAAAAAAACVNRNzc3AAAAAAAA&#10;CVNRNzc4AAAAAAAACVNRNzc5AAAAAAAACVNRNzgwAAAAAAAACVNRNzgxAAAA&#10;AAAACVNRNzgyAAAAAAAACVNRNzgzAAAAAAAACVNRNzg0AAAAAAAACVNRNzg1&#10;AAAAAAAACVNRNzg2AAAAAAAACVNRNzg3AAAAAAAACVNRNzg4AAAAAAAACVNR&#10;Nzg5AAAAAAAACVNRNzkwAAAAAAAACVNRNzkxAAAAAAAACVNRNzkyAAAAAAAA&#10;CVNRNzkzAAAAAAAACVNRNzk0AAAAAAAACVNRNzk1AAAAAAAACVNRNzk2AAAA&#10;AAAACVNRNzk3AAAAAAAACVNRNzk4AAAAAAAACVNRNzk5AAAAAAAACVNRODAw&#10;AAAAAAAACVNRODAxAAAAAAAACVNRODAyAAAAAAAACVNRODAzAAAAAAAACVNR&#10;ODA0AAAAAAAACVNRODA1AAAAAAAACVNRODA2AAAAAAAACVNRODA3AAAAAAAA&#10;CVNRODA4AAAAAAAACVNRODA5AAAAAAAACVNRODEwAAAAAAAACVNRODExAAAA&#10;AAAACVNRODEyAAAAAAAACVNRODEzAAAAAAAACVNRODE0AAAAAAAACVNRODE1&#10;AAAAAAAACVNRODE2AAAAAAAACVNRODE3AAAAAAAACVNRODE4AAAAAAAACVNR&#10;ODE5AAAAAAAACVNRODIwAAAAAAAACVNRODIxAAAAAAAACVNRODIyAAAAAAAA&#10;CVNRODIzAAAAAAAACVNRODI0AAAAAAAACVNRODI1AAAAAAAACVNRODI2AAAA&#10;AAAACVNRODI3AAAAAAAACVNRODI4AAAAAAAACVNRODI5AAAAAAAACVNRODMw&#10;AAAAAAAACVNRODMxAAAAAAAACVNRODMyAAAAAAAACVNRODMzAAAAAAAACVNR&#10;ODM0AAAAAAAACVNRODM1AAAAAAAACVNRODM2AAAAAAAACVNRODM3AAAAAAAA&#10;CVNRODM4AAAAAAAACVNRODM5AAAAAAAACVNRODQwAAAAAAAACVNRODQxAAAA&#10;AAAACVNRODQyAAAAAAAACVNRODQzAAAAAAAACVNRODQ0AAAAAAAACVNRODQ1&#10;AAAAAAAACVNRODQ2AAAAAAAACVNRODQ3AAAAAAAACVNRODQ4AAAAAAAACVNR&#10;ODQ5AAAAAAAACVNRODUwAAAAAAAACVNRODUxAAAAAAAACVNRODUyAAAAAAAA&#10;CVNRODUzAAAAAAAACVNRODU0AAAAAAAACVNRODU1AAAAAAAACVNRODU2AAAA&#10;AAAACVNRODU3AAAAAAAACVNRODU4AAAAAAAACVNRODU5AAAAAAAACVNRODYw&#10;AAAAAAAACVNRODYxAAAAAAAACVNRODYyAAAAAAAACVNRODYzAAAAAAAACVNR&#10;ODY0AAAAAAAACVNRODY1AAAAAAAACVNRODY2AAAAAAAACVNRODY3AAAAAAAA&#10;CVNRODY4AAAAAAAACVNRODY5AAAAAAAACVNRODcwAAAAAAAACVNRODcxAAAA&#10;AAAACVNRODcyAAAAAAAACVNRODczAAAAAAAACVNRODc0AAAAAAAACVNRODc1&#10;AAAAAAAACVNRODc2AAAAAAAACVNRODc3AAAAAAAACVNRODc4AAAAAAAACVNR&#10;ODc5AAAAAAAACVNRODgwAAAAAAAACVNRODgxAAAAAAAACVNRODgyAAAAAAAA&#10;CVNRODgzAAAAAAAACVNRODg0AAAAAAAACVNRODg1AAAAAAAACVNRODg2AAAA&#10;AAAACVNRODg3AAAAAAAACVNRODg4AAAAAAAACVNRODg5AAAAAAAACVNRODkw&#10;AAAAAAAACVNRODkxAAAAAAAACVNRODkyAAAAAAAACVNRODkzAAAAAAAACVNR&#10;ODk0AAAAAAAACVNRODk1AAAAAAAACVNRODk2AAAAAAAACVNRODk3AAAAAAAA&#10;CVNRODk4AAAAAAAACVNRODk5AAAAAAAACVNROTAwAAAAAAAACVNROTAxAAAA&#10;AAAACVNROTAyAAAAAAAACVNROTAzAAAAAAAACVNROTA0AAAAAAAACVNROTA1&#10;AAAAAAAACVNROTA2AAAAAAAACVNROTA3AAAAAAAACVNROTA4AAAAAAAACVNR&#10;OTA5AAAAAAAACVNROTEwAAAAAAAACVNROTExAAAAAAAACVNROTEyAAAAAAAA&#10;CVNROTEzAAAAAAAACVNROTE0AAAAAAAACVNROTE1AAAAAAAACVNROTE2AAAA&#10;AAAACVNROTE3AAAAAAAACVNROTE4AAAAAAAACVNROTE5AAAAAAAACVNROTIw&#10;AAAAAAAACVNROTIxAAAAAAAACVNROTIyAAAAAAAACVNROTIzAAAAAAAACVNR&#10;OTI0AAAAAAAACVNROTI1AAAAAAAACVNROTI2AAAAAAAACVNROTI3AAAAAAAA&#10;CVNROTI4AAAAAAAACVNROTI5AAAAAAAACVNROTMwAAAAAAAACVNROTMxAAAA&#10;AAAACVNROTMyAAAAAAAACVNROTMzAAAAAAAACVNROTM0AAAAAAAACVNROTM1&#10;AAAAAAAACVNROTM2AAAAAAAACVNROTM3AAAAAAAACVNROTM4AAAAAAAACVNR&#10;OTM5AAAAAAAACVNROTQwAAAAAAAACVNROTQxAAAAAAAACVNROTQyAAAAAAAA&#10;CVNROTQzAAAAAAAACVNROTQ0AAAAAAAACVNROTQ1AAAAAAAACVNROTQ2AAAA&#10;AAAACVNROTQ3AAAAAAAACVNROTQ4AAAAAAAACVNROTQ5AAAAAAAACVNROTUw&#10;AAAAAAAACVNROTUxAAAAAAAACVNROTUyAAAAAAAACVNROTUzAAAAAAAACVNR&#10;OTU0AAAAAAAACVNROTU1AAAAAAAACVNROTU2AAAAAAAACVNROTU3AAAAAAAA&#10;CVNROTU4AAAAAAAACVNROTU5AAAAAAAACVNROTYwAAAAAAAACVNROTYxAAAA&#10;AAAACVNROTYyAAAAAAAACVNROTYzAAAAAAAACVNROTY0AAAAAAAACVNROTY1&#10;AAAAAAAACVNROTY2AAAAAAAACVNROTY3AAAAAAAACVNROTY4AAAAAAAACVNR&#10;OTY5AAAAAAAACVNROTcwAAAAAAAACVNROTcxAAAAAAAACVNROTcyAAAAAAAA&#10;CVNROTczAAAAAAAACVNROTc0AAAAAAAACVNROTc1AAAAAAAACVNROTc2AAAA&#10;AAAACVNROTc3AAAAAAAACVNROTc4AAAAAAAACVNROTc5AAAAAAAACVNROTgw&#10;AAAAAAAACVNROTgxAAAAAAAACVNROTgyAAAAAAAACVNROTgzAAAAAAAACVNR&#10;OTg0AAAAAAAACVNROTg1AAAAAAAACVNROTg2AAAAAAAACVNROTg3AAAAAAAA&#10;CVNROTg4AAAAAAAACVNROTg5AAAAAAAACVNROTkwAAAAAAAACVNROTkxAAAA&#10;AAAACVNROTkyAAAAAAAACVNROTkzAAAAAAAACVNROTk0AAAAAAAACVNROTk1&#10;AAAAAAAACVNROTk2AAAAAAAACVNROTk3AAAAAAAACVNROTk4AAAAAAAACVNR&#10;OTk5AAAA"/>
+          </dxl:ArrayComp>
+          <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.2062.1.0">
+            <dxl:Ident ColId="10" ColName="ad" TypeMdid="0.1114.1.0"/>
+            <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOBzlJgTAgA=" DoubleValue="584496000000000.000000"/>
+          </dxl:Comparison>
+          <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
+            <dxl:Ident ColId="10" ColName="ad" TypeMdid="0.1114.1.0"/>
+            <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMAyTLsSAgA=" DoubleValue="583545600000000.000000"/>
+          </dxl:Comparison>
+          <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
+            <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+              <dxl:Ident ColId="20" ColName="bs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:Cast>
+            <dxl:Array ArrayType="0.1009.1.0" ElementType="0.25.1.0" MultiDimensional="false">
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABkhL" LintValue="714957604"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABlJS" LintValue="740180772"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABlRL" LintValue="765289252"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABktL" LintValue="706569004"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABktM" LintValue="706577196"/>
+            </dxl:Array>
+          </dxl:ArrayComp>
+        </dxl:And>
+        <dxl:LogicalGet>
+          <dxl:TableDescriptor Mdid="0.74486.1.0" TableName="foo">
+            <dxl:Columns>
+              <dxl:Column ColId="1" Attno="1" ColName="pl" TypeMdid="0.1043.1.0" TypeModifier="10" ColWidth="7"/>
+              <dxl:Column ColId="2" Attno="2" ColName="pcd" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="3" Attno="3" ColName="tn" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="4" Attno="4" ColName="st" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="5" Attno="5" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="5"/>
+              <dxl:Column ColId="6" Attno="6" ColName="dd" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="7" Attno="7" ColName="bp" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="4"/>
+              <dxl:Column ColId="8" Attno="8" ColName="fsi" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="9" Attno="9" ColName="op" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="4"/>
+              <dxl:Column ColId="10" Attno="10" ColName="ad" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="11" Attno="11" ColName="cc" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="3"/>
+              <dxl:Column ColId="12" Attno="12" ColName="mf" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="6"/>
+              <dxl:Column ColId="13" Attno="13" ColName="mc" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="3"/>
+              <dxl:Column ColId="14" Attno="14" ColName="at" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="4"/>
+              <dxl:Column ColId="15" Attno="15" ColName="bc" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="16" Attno="16" ColName="sc" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="17" Attno="17" ColName="cc1" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="18" Attno="18" ColName="sn" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="3"/>
+              <dxl:Column ColId="19" Attno="19" ColName="ct" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="20" Attno="20" ColName="bs" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="3"/>
+              <dxl:Column ColId="21" Attno="21" ColName="chi" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="22" Attno="22" ColName="pfs" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="0"/>
+              <dxl:Column ColId="23" Attno="23" ColName="acn" TypeMdid="0.1043.1.0" TypeModifier="19" ColWidth="11"/>
+              <dxl:Column ColId="24" Attno="24" ColName="ofa" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="11"/>
+              <dxl:Column ColId="25" Attno="25" ColName="ofc" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="3"/>
+              <dxl:Column ColId="26" Attno="26" ColName="atl" TypeMdid="0.1043.1.0" TypeModifier="39" ColWidth="2"/>
+              <dxl:Column ColId="27" Attno="27" ColName="acc" TypeMdid="0.1043.1.0" TypeModifier="39" ColWidth="3"/>
+              <dxl:Column ColId="28" Attno="28" ColName="bcd" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="29" Attno="29" ColName="cor" TypeMdid="0.1043.1.0" TypeModifier="6" ColWidth="0"/>
+              <dxl:Column ColId="30" Attno="30" ColName="sfi" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="31" Attno="31" ColName="zz" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="14"/>
+              <dxl:Column ColId="32" Attno="32" ColName="zzd" TypeMdid="0.1082.1.0" ColWidth="4"/>
+              <dxl:Column ColId="33" Attno="33" ColName="xc" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="34" Attno="34" ColName="xc1" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="35" Attno="35" ColName="xcz" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="9"/>
+              <dxl:Column ColId="36" Attno="36" ColName="vbn" TypeMdid="0.1043.1.0" TypeModifier="6" ColWidth="2"/>
+              <dxl:Column ColId="37" Attno="37" ColName="dsd" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="38" Attno="38" ColName="nat" TypeMdid="0.1043.1.0" TypeModifier="6" ColWidth="2"/>
+              <dxl:Column ColId="39" Attno="39" ColName="erer" TypeMdid="0.1082.1.0" ColWidth="4"/>
+              <dxl:Column ColId="40" Attno="40" ColName="fgg" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="41" Attno="41" ColName="nnn" TypeMdid="0.1043.1.0" TypeModifier="19" ColWidth="9"/>
+              <dxl:Column ColId="42" Attno="42" ColName="fnbc" TypeMdid="0.20.1.0" ColWidth="8"/>
+              <dxl:Column ColId="43" Attno="43" ColName="zxcv" TypeMdid="0.20.1.0" ColWidth="8"/>
+              <dxl:Column ColId="44" Attno="44" ColName="zd" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="3"/>
+              <dxl:Column ColId="45" Attno="45" ColName="xyz" TypeMdid="0.1043.1.0" TypeModifier="36" ColWidth="0"/>
+              <dxl:Column ColId="46" Attno="46" ColName="xyz1" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="47" Attno="47" ColName="xyz2" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="48" Attno="48" ColName="xyz3" TypeMdid="0.1043.1.0" TypeModifier="34" ColWidth="4"/>
+              <dxl:Column ColId="49" Attno="49" ColName="xyz4" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="50" Attno="50" ColName="xyz5" TypeMdid="0.1043.1.0" TypeModifier="34" ColWidth="7"/>
+              <dxl:Column ColId="51" Attno="51" ColName="xyz6" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="52" Attno="52" ColName="xyz7" TypeMdid="0.1043.1.0" TypeModifier="8" ColWidth="5"/>
+              <dxl:Column ColId="53" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+              <dxl:Column ColId="54" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+              <dxl:Column ColId="55" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:LogicalGet>
+      </dxl:LogicalSelect>
+    </dxl:Query>
+    <dxl:Plan Id="0" SpaceSize="2">
+      <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="431.014551" Rows="1.000000" Width="245"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="pl">
+            <dxl:Ident ColId="0" ColName="pl" TypeMdid="0.1043.1.0" TypeModifier="10"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="pcd">
+            <dxl:Ident ColId="1" ColName="pcd" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="2" Alias="tn">
+            <dxl:Ident ColId="2" ColName="tn" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="3" Alias="st">
+            <dxl:Ident ColId="3" ColName="st" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="4" Alias="fn">
+            <dxl:Ident ColId="4" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="5" Alias="dd">
+            <dxl:Ident ColId="5" ColName="dd" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="6" Alias="bp">
+            <dxl:Ident ColId="6" ColName="bp" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="7" Alias="fsi">
+            <dxl:Ident ColId="7" ColName="fsi" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="8" Alias="op">
+            <dxl:Ident ColId="8" ColName="op" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="9" Alias="ad">
+            <dxl:Ident ColId="9" ColName="ad" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="10" Alias="cc">
+            <dxl:Ident ColId="10" ColName="cc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="11" Alias="mf">
+            <dxl:Ident ColId="11" ColName="mf" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="12" Alias="mc">
+            <dxl:Ident ColId="12" ColName="mc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="13" Alias="at">
+            <dxl:Ident ColId="13" ColName="at" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="14" Alias="bc">
+            <dxl:Ident ColId="14" ColName="bc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="15" Alias="sc">
+            <dxl:Ident ColId="15" ColName="sc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="16" Alias="cc1">
+            <dxl:Ident ColId="16" ColName="cc1" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="17" Alias="sn">
+            <dxl:Ident ColId="17" ColName="sn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="18" Alias="ct">
+            <dxl:Ident ColId="18" ColName="ct" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="19" Alias="bs">
+            <dxl:Ident ColId="19" ColName="bs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="20" Alias="chi">
+            <dxl:Ident ColId="20" ColName="chi" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="21" Alias="pfs">
+            <dxl:Ident ColId="21" ColName="pfs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="22" Alias="acn">
+            <dxl:Ident ColId="22" ColName="acn" TypeMdid="0.1043.1.0" TypeModifier="19"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="23" Alias="ofa">
+            <dxl:Ident ColId="23" ColName="ofa" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="24" Alias="ofc">
+            <dxl:Ident ColId="24" ColName="ofc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="25" Alias="atl">
+            <dxl:Ident ColId="25" ColName="atl" TypeMdid="0.1043.1.0" TypeModifier="39"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="26" Alias="acc">
+            <dxl:Ident ColId="26" ColName="acc" TypeMdid="0.1043.1.0" TypeModifier="39"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="27" Alias="bcd">
+            <dxl:Ident ColId="27" ColName="bcd" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="28" Alias="cor">
+            <dxl:Ident ColId="28" ColName="cor" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="29" Alias="sfi">
+            <dxl:Ident ColId="29" ColName="sfi" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="30" Alias="zz">
+            <dxl:Ident ColId="30" ColName="zz" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="31" Alias="zzd">
+            <dxl:Ident ColId="31" ColName="zzd" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="32" Alias="xc">
+            <dxl:Ident ColId="32" ColName="xc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="33" Alias="xc1">
+            <dxl:Ident ColId="33" ColName="xc1" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="34" Alias="xcz">
+            <dxl:Ident ColId="34" ColName="xcz" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="35" Alias="vbn">
+            <dxl:Ident ColId="35" ColName="vbn" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="36" Alias="dsd">
+            <dxl:Ident ColId="36" ColName="dsd" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="37" Alias="nat">
+            <dxl:Ident ColId="37" ColName="nat" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="38" Alias="erer">
+            <dxl:Ident ColId="38" ColName="erer" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="39" Alias="fgg">
+            <dxl:Ident ColId="39" ColName="fgg" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="40" Alias="nnn">
+            <dxl:Ident ColId="40" ColName="nnn" TypeMdid="0.1043.1.0" TypeModifier="19"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="41" Alias="fnbc">
+            <dxl:Ident ColId="41" ColName="fnbc" TypeMdid="0.20.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="42" Alias="zxcv">
+            <dxl:Ident ColId="42" ColName="zxcv" TypeMdid="0.20.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="43" Alias="zd">
+            <dxl:Ident ColId="43" ColName="zd" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="44" Alias="xyz">
+            <dxl:Ident ColId="44" ColName="xyz" TypeMdid="0.1043.1.0" TypeModifier="36"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="45" Alias="xyz1">
+            <dxl:Ident ColId="45" ColName="xyz1" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="46" Alias="xyz2">
+            <dxl:Ident ColId="46" ColName="xyz2" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="47" Alias="xyz3">
+            <dxl:Ident ColId="47" ColName="xyz3" TypeMdid="0.1043.1.0" TypeModifier="34"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="48" Alias="xyz4">
+            <dxl:Ident ColId="48" ColName="xyz4" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="49" Alias="xyz5">
+            <dxl:Ident ColId="49" ColName="xyz5" TypeMdid="0.1043.1.0" TypeModifier="34"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="50" Alias="xyz6">
+            <dxl:Ident ColId="50" ColName="xyz6" TypeMdid="0.1114.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="51" Alias="xyz7">
+            <dxl:Ident ColId="51" ColName="xyz7" TypeMdid="0.1043.1.0" TypeModifier="8"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:SortingColumnList/>
+        <dxl:BitmapTableScan>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="431.013638" Rows="1.000000" Width="245"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="pl">
+              <dxl:Ident ColId="0" ColName="pl" TypeMdid="0.1043.1.0" TypeModifier="10"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="pcd">
+              <dxl:Ident ColId="1" ColName="pcd" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="tn">
+              <dxl:Ident ColId="2" ColName="tn" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="3" Alias="st">
+              <dxl:Ident ColId="3" ColName="st" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="fn">
+              <dxl:Ident ColId="4" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="5" Alias="dd">
+              <dxl:Ident ColId="5" ColName="dd" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="6" Alias="bp">
+              <dxl:Ident ColId="6" ColName="bp" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="7" Alias="fsi">
+              <dxl:Ident ColId="7" ColName="fsi" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="8" Alias="op">
+              <dxl:Ident ColId="8" ColName="op" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="9" Alias="ad">
+              <dxl:Ident ColId="9" ColName="ad" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="10" Alias="cc">
+              <dxl:Ident ColId="10" ColName="cc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="11" Alias="mf">
+              <dxl:Ident ColId="11" ColName="mf" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="12" Alias="mc">
+              <dxl:Ident ColId="12" ColName="mc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="13" Alias="at">
+              <dxl:Ident ColId="13" ColName="at" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="14" Alias="bc">
+              <dxl:Ident ColId="14" ColName="bc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="15" Alias="sc">
+              <dxl:Ident ColId="15" ColName="sc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="16" Alias="cc1">
+              <dxl:Ident ColId="16" ColName="cc1" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="17" Alias="sn">
+              <dxl:Ident ColId="17" ColName="sn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="18" Alias="ct">
+              <dxl:Ident ColId="18" ColName="ct" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="19" Alias="bs">
+              <dxl:Ident ColId="19" ColName="bs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="20" Alias="chi">
+              <dxl:Ident ColId="20" ColName="chi" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="21" Alias="pfs">
+              <dxl:Ident ColId="21" ColName="pfs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="22" Alias="acn">
+              <dxl:Ident ColId="22" ColName="acn" TypeMdid="0.1043.1.0" TypeModifier="19"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="23" Alias="ofa">
+              <dxl:Ident ColId="23" ColName="ofa" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="24" Alias="ofc">
+              <dxl:Ident ColId="24" ColName="ofc" TypeMdid="0.1043.1.0" TypeModifier="9"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="25" Alias="atl">
+              <dxl:Ident ColId="25" ColName="atl" TypeMdid="0.1043.1.0" TypeModifier="39"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="26" Alias="acc">
+              <dxl:Ident ColId="26" ColName="acc" TypeMdid="0.1043.1.0" TypeModifier="39"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="27" Alias="bcd">
+              <dxl:Ident ColId="27" ColName="bcd" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="28" Alias="cor">
+              <dxl:Ident ColId="28" ColName="cor" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="29" Alias="sfi">
+              <dxl:Ident ColId="29" ColName="sfi" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="30" Alias="zz">
+              <dxl:Ident ColId="30" ColName="zz" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="31" Alias="zzd">
+              <dxl:Ident ColId="31" ColName="zzd" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="32" Alias="xc">
+              <dxl:Ident ColId="32" ColName="xc" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="33" Alias="xc1">
+              <dxl:Ident ColId="33" ColName="xc1" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="34" Alias="xcz">
+              <dxl:Ident ColId="34" ColName="xcz" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="35" Alias="vbn">
+              <dxl:Ident ColId="35" ColName="vbn" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="36" Alias="dsd">
+              <dxl:Ident ColId="36" ColName="dsd" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="37" Alias="nat">
+              <dxl:Ident ColId="37" ColName="nat" TypeMdid="0.1043.1.0" TypeModifier="6"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="38" Alias="erer">
+              <dxl:Ident ColId="38" ColName="erer" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="39" Alias="fgg">
+              <dxl:Ident ColId="39" ColName="fgg" TypeMdid="0.1042.1.0" TypeModifier="5"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="40" Alias="nnn">
+              <dxl:Ident ColId="40" ColName="nnn" TypeMdid="0.1043.1.0" TypeModifier="19"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="41" Alias="fnbc">
+              <dxl:Ident ColId="41" ColName="fnbc" TypeMdid="0.20.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="42" Alias="zxcv">
+              <dxl:Ident ColId="42" ColName="zxcv" TypeMdid="0.20.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="43" Alias="zd">
+              <dxl:Ident ColId="43" ColName="zd" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="44" Alias="xyz">
+              <dxl:Ident ColId="44" ColName="xyz" TypeMdid="0.1043.1.0" TypeModifier="36"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="45" Alias="xyz1">
+              <dxl:Ident ColId="45" ColName="xyz1" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="46" Alias="xyz2">
+              <dxl:Ident ColId="46" ColName="xyz2" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="47" Alias="xyz3">
+              <dxl:Ident ColId="47" ColName="xyz3" TypeMdid="0.1043.1.0" TypeModifier="34"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="48" Alias="xyz4">
+              <dxl:Ident ColId="48" ColName="xyz4" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="49" Alias="xyz5">
+              <dxl:Ident ColId="49" ColName="xyz5" TypeMdid="0.1043.1.0" TypeModifier="34"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="50" Alias="xyz6">
+              <dxl:Ident ColId="50" ColName="xyz6" TypeMdid="0.1114.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="51" Alias="xyz7">
+              <dxl:Ident ColId="51" ColName="xyz7" TypeMdid="0.1043.1.0" TypeModifier="8"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter>
+            <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
+              <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                <dxl:Ident ColId="19" ColName="bs" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+              </dxl:Cast>
+              <dxl:Array ArrayType="0.1009.1.0" ElementType="0.25.1.0" MultiDimensional="false">
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABkhL" LintValue="714957604"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABlJS" LintValue="740180772"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABlRL" LintValue="765289252"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABktL" LintValue="706569004"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABktM" LintValue="706577196"/>
+              </dxl:Array>
+            </dxl:ArrayComp>
+          </dxl:Filter>
+          <dxl:RecheckCond>
+            <dxl:And>
+              <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
+                <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                  <dxl:Ident ColId="4" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+                </dxl:Cast>
+                <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" IsByValue="false" Value="AAAtYAEAAAAAAAAAGQAAAOcDAAABAAAAAAAAB1NRMQAAAAAHU1EyAAAAAAdT&#10;UTMAAAAAB1NRNAAAAAAHU1E1AAAAAAdTUTYAAAAAB1NRNwAAAAAHU1E4AAAA&#10;AAdTUTkAAAAACFNRMTAAAAAIU1ExMQAAAAhTUTEyAAAACFNRMTMAAAAIU1Ex&#10;NAAAAAhTUTE1AAAACFNRMTYAAAAIU1ExNwAAAAhTUTE4AAAACFNRMTkAAAAI&#10;U1EyMAAAAAhTUTIyAAAACFNRMjEAAAAIU1EyMwAAAAhTUTI0AAAACFNRMjUA&#10;AAAIU1EyNgAAAAhTUTI3AAAACFNRMjgAAAAIU1EyOQAAAAhTUTMwAAAACFNR&#10;MzEAAAAIU1EzMgAAAAhTUTMzAAAACFNRMzQAAAAIU1EzNQAAAAhTUTM2AAAA&#10;CFNRMzcAAAAIU1EzOAAAAAhTUTM5AAAACFNRNDAAAAAIU1E0MQAAAAhTUTQy&#10;AAAACFNRNDMAAAAIU1E0NAAAAAhTUTQ1AAAACFNRNDYAAAAIU1E0NwAAAAhT&#10;UTQ4AAAACFNRNDkAAAAIU1E1MAAAAAhTUTUxAAAACFNRNTIAAAAIU1E1MwAA&#10;AAhTUTU0AAAACFNRNTUAAAAIU1E1NgAAAAhTUTU3AAAACFNRNTgAAAAIU1E1&#10;OQAAAAhTUTYwAAAACFNRNjEAAAAIU1E2MgAAAAhTUTYzAAAACFNRNjQAAAAI&#10;U1E2NQAAAAhTUTY2AAAACFNRNjcAAAAIU1E2OAAAAAhTUTY5AAAACFNRNzAA&#10;AAAIU1E3MQAAAAhTUTcyAAAACFNRNzMAAAAIU1E3NAAAAAhTUTc1AAAACFNR&#10;NzYAAAAIU1E3NwAAAAhTUTc4AAAACFNRNzkAAAAIU1E4MAAAAAhTUTgxAAAA&#10;CFNRODIAAAAIU1E4MwAAAAhTUTg0AAAACFNRODUAAAAIU1E4NgAAAAhTUTg3&#10;AAAACFNRODgAAAAIU1E4OQAAAAhTUTkwAAAACFNROTEAAAAIU1E5MgAAAAhT&#10;UTkzAAAACFNROTQAAAAIU1E5NQAAAAhTUTk2AAAACFNROTcAAAAIU1E5OAAA&#10;AAhTUTk5AAAACVNRMTAwAAAAAAAACVNRMTAxAAAAAAAACVNRMTAyAAAAAAAA&#10;CVNRMTAzAAAAAAAACVNRMTA0AAAAAAAACVNRMTA1AAAAAAAACVNRMTA2AAAA&#10;AAAACVNRMTA3AAAAAAAACVNRMTA4AAAAAAAACVNRMTA5AAAAAAAACVNRMTEw&#10;AAAAAAAACVNRMTExAAAAAAAACVNRMTEyAAAAAAAACVNRMTEzAAAAAAAACVNR&#10;MTE0AAAAAAAACVNRMTE1AAAAAAAACVNRMTE2AAAAAAAACVNRMTE3AAAAAAAA&#10;CVNRMTE4AAAAAAAACVNRMTE5AAAAAAAACVNRMTIwAAAAAAAACVNRMTIxAAAA&#10;AAAACVNRMTIyAAAAAAAACVNRMTIzAAAAAAAACVNRMTI0AAAAAAAACVNRMTI1&#10;AAAAAAAACVNRMTI2AAAAAAAACVNRMTI3AAAAAAAACVNRMTI4AAAAAAAACVNR&#10;MTI5AAAAAAAACVNRMTMwAAAAAAAACVNRMTMxAAAAAAAACVNRMTMyAAAAAAAA&#10;CVNRMTMzAAAAAAAACVNRMTM0AAAAAAAACVNRMTM1AAAAAAAACVNRMTM2AAAA&#10;AAAACVNRMTM3AAAAAAAACVNRMTM4AAAAAAAACVNRMTM5AAAAAAAACVNRMTQw&#10;AAAAAAAACVNRMTQxAAAAAAAACVNRMTQyAAAAAAAACVNRMTQzAAAAAAAACVNR&#10;MTQ0AAAAAAAACVNRMTQ1AAAAAAAACVNRMTQ2AAAAAAAACVNRMTQ3AAAAAAAA&#10;CVNRMTQ4AAAAAAAACVNRMTQ5AAAAAAAACVNRMTUwAAAAAAAACVNRMTUxAAAA&#10;AAAACVNRMTUyAAAAAAAACVNRMTUzAAAAAAAACVNRMTU0AAAAAAAACVNRMTU1&#10;AAAAAAAACVNRMTU2AAAAAAAACVNRMTU3AAAAAAAACVNRMTU4AAAAAAAACVNR&#10;MTU5AAAAAAAACVNRMTYwAAAAAAAACVNRMTYxAAAAAAAACVNRMTYyAAAAAAAA&#10;CVNRMTYzAAAAAAAACVNRMTY0AAAAAAAACVNRMTY1AAAAAAAACVNRMTY2AAAA&#10;AAAACVNRMTY3AAAAAAAACVNRMTY4AAAAAAAACVNRMTY5AAAAAAAACVNRMTcw&#10;AAAAAAAACVNRMTcxAAAAAAAACVNRMTcyAAAAAAAACVNRMTczAAAAAAAACVNR&#10;MTc0AAAAAAAACVNRMTc1AAAAAAAACVNRMTc2AAAAAAAACVNRMTc3AAAAAAAA&#10;CVNRMTc4AAAAAAAACVNRMTc5AAAAAAAACVNRMTgwAAAAAAAACVNRMTgxAAAA&#10;AAAACVNRMTgyAAAAAAAACVNRMTgzAAAAAAAACVNRMTg0AAAAAAAACVNRMTg1&#10;AAAAAAAACVNRMTg2AAAAAAAACVNRMTg3AAAAAAAACVNRMTg4AAAAAAAACVNR&#10;MTg5AAAAAAAACVNRMTkwAAAAAAAACVNRMTkxAAAAAAAACVNRMTkyAAAAAAAA&#10;CVNRMTkzAAAAAAAACVNRMTk0AAAAAAAACVNRMTk1AAAAAAAACVNRMTk2AAAA&#10;AAAACVNRMTk3AAAAAAAACVNRMTk4AAAAAAAACVNRMTk5AAAAAAAACVNRMjAw&#10;AAAAAAAACVNRMjAxAAAAAAAACVNRMjAyAAAAAAAACVNRMjAzAAAAAAAACVNR&#10;MjA0AAAAAAAACVNRMjA1AAAAAAAACVNRMjA2AAAAAAAACVNRMjA3AAAAAAAA&#10;CVNRMjA4AAAAAAAACVNRMjA5AAAAAAAACVNRMjEwAAAAAAAACVNRMjExAAAA&#10;AAAACVNRMjEyAAAAAAAACVNRMjEzAAAAAAAACVNRMjE0AAAAAAAACVNRMjE1&#10;AAAAAAAACVNRMjE2AAAAAAAACVNRMjE3AAAAAAAACVNRMjE4AAAAAAAACVNR&#10;MjE5AAAAAAAACVNRMjIwAAAAAAAACVNRMjIxAAAAAAAACVNRMjIyAAAAAAAA&#10;CVNRMjIzAAAAAAAACVNRMjI0AAAAAAAACVNRMjI1AAAAAAAACVNRMjI2AAAA&#10;AAAACVNRMjI3AAAAAAAACVNRMjI4AAAAAAAACVNRMjI5AAAAAAAACVNRMjMw&#10;AAAAAAAACVNRMjMxAAAAAAAACVNRMjMyAAAAAAAACVNRMjMzAAAAAAAACVNR&#10;MjM0AAAAAAAACVNRMjM1AAAAAAAACVNRMjM2AAAAAAAACVNRMjM3AAAAAAAA&#10;CVNRMjM4AAAAAAAACVNRMjM5AAAAAAAACVNRMjQwAAAAAAAACVNRMjQxAAAA&#10;AAAACVNRMjQyAAAAAAAACVNRMjQzAAAAAAAACVNRMjQ0AAAAAAAACVNRMjQ1&#10;AAAAAAAACVNRMjQ2AAAAAAAACVNRMjQ3AAAAAAAACVNRMjQ4AAAAAAAACVNR&#10;MjQ5AAAAAAAACVNRMjUxAAAAAAAACVNRMjUyAAAAAAAACVNRMjUzAAAAAAAA&#10;CVNRMjU0AAAAAAAACVNRMjU1AAAAAAAACVNRMjU2AAAAAAAACVNRMjU3AAAA&#10;AAAACVNRMjU4AAAAAAAACVNRMjU5AAAAAAAACVNRMjYwAAAAAAAACVNRMjUw&#10;AAAAAAAACVNRMjYxAAAAAAAACVNRMjYyAAAAAAAACVNRMjYzAAAAAAAACVNR&#10;MjY0AAAAAAAACVNRMjY1AAAAAAAACVNRMjY2AAAAAAAACVNRMjY3AAAAAAAA&#10;CVNRMjY4AAAAAAAACVNRMjY5AAAAAAAACVNRMjcwAAAAAAAACVNRMjcxAAAA&#10;AAAACVNRMjcyAAAAAAAACVNRMjczAAAAAAAACVNRMjc0AAAAAAAACVNRMjc1&#10;AAAAAAAACVNRMjc2AAAAAAAACVNRMjc4AAAAAAAACVNRMjc5AAAAAAAACVNR&#10;MjgwAAAAAAAACVNRMjc3AAAAAAAACVNRMjgxAAAAAAAACVNRMjgyAAAAAAAA&#10;CVNRMjgzAAAAAAAACVNRMjg0AAAAAAAACVNRMjg1AAAAAAAACVNRMjg2AAAA&#10;AAAACVNRMjg3AAAAAAAACVNRMjg4AAAAAAAACVNRMjg5AAAAAAAACVNRMjkw&#10;AAAAAAAACVNRMjkxAAAAAAAACVNRMjkyAAAAAAAACVNRMjkzAAAAAAAACVNR&#10;Mjk0AAAAAAAACVNRMjk1AAAAAAAACVNRMjk2AAAAAAAACVNRMjk3AAAAAAAA&#10;CVNRMjk4AAAAAAAACVNRMjk5AAAAAAAACVNRMzAwAAAAAAAACVNRMzAxAAAA&#10;AAAACVNRMzAyAAAAAAAACVNRMzAzAAAAAAAACVNRMzA0AAAAAAAACVNRMzA1&#10;AAAAAAAACVNRMzA2AAAAAAAACVNRMzA3AAAAAAAACVNRMzA4AAAAAAAACVNR&#10;MzA5AAAAAAAACVNRMzEwAAAAAAAACVNRMzExAAAAAAAACVNRMzEyAAAAAAAA&#10;CVNRMzEzAAAAAAAACVNRMzE0AAAAAAAACVNRMzE1AAAAAAAACVNRMzE2AAAA&#10;AAAACVNRMzE3AAAAAAAACVNRMzE4AAAAAAAACVNRMzE5AAAAAAAACVNRMzIw&#10;AAAAAAAACVNRMzIxAAAAAAAACVNRMzIyAAAAAAAACVNRMzIzAAAAAAAACVNR&#10;MzI0AAAAAAAACVNRMzI1AAAAAAAACVNRMzI2AAAAAAAACVNRMzI3AAAAAAAA&#10;CVNRMzI4AAAAAAAACVNRMzI5AAAAAAAACVNRMzMwAAAAAAAACVNRMzMxAAAA&#10;AAAACVNRMzMyAAAAAAAACVNRMzMzAAAAAAAACVNRMzM0AAAAAAAACVNRMzM1&#10;AAAAAAAACVNRMzM2AAAAAAAACVNRMzM3AAAAAAAACVNRMzM4AAAAAAAACVNR&#10;MzM5AAAAAAAACVNRMzQwAAAAAAAACVNRMzQxAAAAAAAACVNRMzQyAAAAAAAA&#10;CVNRMzQzAAAAAAAACVNRMzQ0AAAAAAAACVNRMzQ1AAAAAAAACVNRMzQ2AAAA&#10;AAAACVNRMzQ3AAAAAAAACVNRMzQ4AAAAAAAACVNRMzQ5AAAAAAAACVNRMzUw&#10;AAAAAAAACVNRMzUxAAAAAAAACVNRMzUyAAAAAAAACVNRMzUzAAAAAAAACVNR&#10;MzU0AAAAAAAACVNRMzU1AAAAAAAACVNRMzU2AAAAAAAACVNRMzU3AAAAAAAA&#10;CVNRMzU4AAAAAAAACVNRMzU5AAAAAAAACVNRMzYwAAAAAAAACVNRMzYxAAAA&#10;AAAACVNRMzYyAAAAAAAACVNRMzYzAAAAAAAACVNRMzY0AAAAAAAACVNRMzY1&#10;AAAAAAAACVNRMzY2AAAAAAAACVNRMzY3AAAAAAAACVNRMzY4AAAAAAAACVNR&#10;MzY5AAAAAAAACVNRMzcwAAAAAAAACVNRMzcxAAAAAAAACVNRMzcyAAAAAAAA&#10;CVNRMzczAAAAAAAACVNRMzc0AAAAAAAACVNRMzc1AAAAAAAACVNRMzc2AAAA&#10;AAAACVNRMzc3AAAAAAAACVNRMzc4AAAAAAAACVNRMzc5AAAAAAAACVNRMzgw&#10;AAAAAAAACVNRMzgxAAAAAAAACVNRMzgyAAAAAAAACVNRMzgzAAAAAAAACVNR&#10;Mzg0AAAAAAAACVNRMzg1AAAAAAAACVNRMzg2AAAAAAAACVNRMzg3AAAAAAAA&#10;CVNRMzg4AAAAAAAACVNRMzg5AAAAAAAACVNRMzkwAAAAAAAACVNRMzkxAAAA&#10;AAAACVNRMzkyAAAAAAAACVNRMzkzAAAAAAAACVNRMzk0AAAAAAAACVNRMzk1&#10;AAAAAAAACVNRMzk2AAAAAAAACVNRMzk3AAAAAAAACVNRMzk4AAAAAAAACVNR&#10;Mzk5AAAAAAAACVNRNDAwAAAAAAAACVNRNDAxAAAAAAAACVNRNDAyAAAAAAAA&#10;CVNRNDAzAAAAAAAACVNRNDA0AAAAAAAACVNRNDA1AAAAAAAACVNRNDA2AAAA&#10;AAAACVNRNDA3AAAAAAAACVNRNDA4AAAAAAAACVNRNDA5AAAAAAAACVNRNDEw&#10;AAAAAAAACVNRNDExAAAAAAAACVNRNDEyAAAAAAAACVNRNDEzAAAAAAAACVNR&#10;NDE0AAAAAAAACVNRNDE1AAAAAAAACVNRNDE2AAAAAAAACVNRNDE3AAAAAAAA&#10;CVNRNDE4AAAAAAAACVNRNDE5AAAAAAAACVNRNDIwAAAAAAAACVNRNDIxAAAA&#10;AAAACVNRNDIyAAAAAAAACVNRNDIzAAAAAAAACVNRNDI0AAAAAAAACVNRNDI1&#10;AAAAAAAACVNRNDI2AAAAAAAACVNRNDI3AAAAAAAACVNRNDI4AAAAAAAACVNR&#10;NDI5AAAAAAAACVNRNDMwAAAAAAAACVNRNDMxAAAAAAAACVNRNDMyAAAAAAAA&#10;CVNRNDMzAAAAAAAACVNRNDM0AAAAAAAACVNRNDM1AAAAAAAACVNRNDM2AAAA&#10;AAAACVNRNDM3AAAAAAAACVNRNDM4AAAAAAAACVNRNDM5AAAAAAAACVNRNDQw&#10;AAAAAAAACVNRNDQxAAAAAAAACVNRNDQyAAAAAAAACVNRNDQzAAAAAAAACVNR&#10;NDQ0AAAAAAAACVNRNDQ1AAAAAAAACVNRNDQ2AAAAAAAACVNRNDQ3AAAAAAAA&#10;CVNRNDQ4AAAAAAAACVNRNDQ5AAAAAAAACVNRNDUwAAAAAAAACVNRNDUxAAAA&#10;AAAACVNRNDUyAAAAAAAACVNRNDUzAAAAAAAACVNRNDU0AAAAAAAACVNRNDU1&#10;AAAAAAAACVNRNDU2AAAAAAAACVNRNDU3AAAAAAAACVNRNDU4AAAAAAAACVNR&#10;NDU5AAAAAAAACVNRNDYwAAAAAAAACVNRNDYxAAAAAAAACVNRNDYyAAAAAAAA&#10;CVNRNDYzAAAAAAAACVNRNDY0AAAAAAAACVNRNDY1AAAAAAAACVNRNDY2AAAA&#10;AAAACVNRNDY3AAAAAAAACVNRNDY4AAAAAAAACVNRNDY5AAAAAAAACVNRNDcw&#10;AAAAAAAACVNRNDcxAAAAAAAACVNRNDcyAAAAAAAACVNRNDczAAAAAAAACVNR&#10;NDc0AAAAAAAACVNRNDc1AAAAAAAACVNRNDc2AAAAAAAACVNRNDc3AAAAAAAA&#10;CVNRNDc4AAAAAAAACVNRNDc5AAAAAAAACVNRNDgwAAAAAAAACVNRNDgxAAAA&#10;AAAACVNRNDgyAAAAAAAACVNRNDgzAAAAAAAACVNRNDg0AAAAAAAACVNRNDg1&#10;AAAAAAAACVNRNDg2AAAAAAAACVNRNDg3AAAAAAAACVNRNDg4AAAAAAAACVNR&#10;NDg5AAAAAAAACVNRNDkwAAAAAAAACVNRNDkxAAAAAAAACVNRNDkyAAAAAAAA&#10;CVNRNDkzAAAAAAAACVNRNDk0AAAAAAAACVNRNDk1AAAAAAAACVNRNDk2AAAA&#10;AAAACVNRNDk3AAAAAAAACVNRNDk4AAAAAAAACVNRNDk5AAAAAAAACVNRNTAw&#10;AAAAAAAACVNRNTAxAAAAAAAACVNRNTAyAAAAAAAACVNRNTAzAAAAAAAACVNR&#10;NTA0AAAAAAAACVNRNTA1AAAAAAAACVNRNTA2AAAAAAAACVNRNTA3AAAAAAAA&#10;CVNRNTA4AAAAAAAACVNRNTA5AAAAAAAACVNRNTEwAAAAAAAACVNRNTExAAAA&#10;AAAACVNRNTEyAAAAAAAACVNRNTEzAAAAAAAACVNRNTE0AAAAAAAACVNRNTE1&#10;AAAAAAAACVNRNTE2AAAAAAAACVNRNTE3AAAAAAAACVNRNTE4AAAAAAAACVNR&#10;NTE5AAAAAAAACVNRNTIwAAAAAAAACVNRNTIxAAAAAAAACVNRNTIyAAAAAAAA&#10;CVNRNTIzAAAAAAAACVNRNTI0AAAAAAAACVNRNTI1AAAAAAAACVNRNTI2AAAA&#10;AAAACVNRNTI3AAAAAAAACVNRNTI4AAAAAAAACVNRNTI5AAAAAAAACVNRNTMw&#10;AAAAAAAACVNRNTMxAAAAAAAACVNRNTMyAAAAAAAACVNRNTMzAAAAAAAACVNR&#10;NTM0AAAAAAAACVNRNTM1AAAAAAAACVNRNTM2AAAAAAAACVNRNTM3AAAAAAAA&#10;CVNRNTM4AAAAAAAACVNRNTM5AAAAAAAACVNRNTQwAAAAAAAACVNRNTQxAAAA&#10;AAAACVNRNTQyAAAAAAAACVNRNTQzAAAAAAAACVNRNTQ0AAAAAAAACVNRNTQ1&#10;AAAAAAAACVNRNTQ2AAAAAAAACVNRNTQ3AAAAAAAACVNRNTQ4AAAAAAAACVNR&#10;NTQ5AAAAAAAACVNRNTUwAAAAAAAACVNRNTUxAAAAAAAACVNRNTUyAAAAAAAA&#10;CVNRNTUzAAAAAAAACVNRNTU0AAAAAAAACVNRNTU1AAAAAAAACVNRNTU2AAAA&#10;AAAACVNRNTU3AAAAAAAACVNRNTU4AAAAAAAACVNRNTU5AAAAAAAACVNRNTYw&#10;AAAAAAAACVNRNTYxAAAAAAAACVNRNTYyAAAAAAAACVNRNTYzAAAAAAAACVNR&#10;NTY0AAAAAAAACVNRNTY1AAAAAAAACVNRNTY2AAAAAAAACVNRNTY3AAAAAAAA&#10;CVNRNTY4AAAAAAAACVNRNTY5AAAAAAAACVNRNTcwAAAAAAAACVNRNTcxAAAA&#10;AAAACVNRNTcyAAAAAAAACVNRNTczAAAAAAAACVNRNTc0AAAAAAAACVNRNTc1&#10;AAAAAAAACVNRNTc2AAAAAAAACVNRNTc3AAAAAAAACVNRNTc4AAAAAAAACVNR&#10;NTc5AAAAAAAACVNRNTgwAAAAAAAACVNRNTgxAAAAAAAACVNRNTgyAAAAAAAA&#10;CVNRNTgzAAAAAAAACVNRNTg0AAAAAAAACVNRNTg1AAAAAAAACVNRNTg2AAAA&#10;AAAACVNRNTg3AAAAAAAACVNRNTg4AAAAAAAACVNRNTg5AAAAAAAACVNRNTkw&#10;AAAAAAAACVNRNTkxAAAAAAAACVNRNTkyAAAAAAAACVNRNTkzAAAAAAAACVNR&#10;NTk0AAAAAAAACVNRNTk1AAAAAAAACVNRNTk2AAAAAAAACVNRNTk3AAAAAAAA&#10;CVNRNTk4AAAAAAAACVNRNTk5AAAAAAAACVNRNjAwAAAAAAAACVNRNjAxAAAA&#10;AAAACVNRNjAyAAAAAAAACVNRNjAzAAAAAAAACVNRNjA0AAAAAAAACVNRNjA1&#10;AAAAAAAACVNRNjA2AAAAAAAACVNRNjA3AAAAAAAACVNRNjA4AAAAAAAACVNR&#10;NjA5AAAAAAAACVNRNjEwAAAAAAAACVNRNjExAAAAAAAACVNRNjEyAAAAAAAA&#10;CVNRNjEzAAAAAAAACVNRNjE0AAAAAAAACVNRNjE1AAAAAAAACVNRNjE2AAAA&#10;AAAACVNRNjE3AAAAAAAACVNRNjE4AAAAAAAACVNRNjE5AAAAAAAACVNRNjIw&#10;AAAAAAAACVNRNjIxAAAAAAAACVNRNjIyAAAAAAAACVNRNjIzAAAAAAAACVNR&#10;NjI0AAAAAAAACVNRNjI1AAAAAAAACVNRNjI2AAAAAAAACVNRNjI3AAAAAAAA&#10;CVNRNjI4AAAAAAAACVNRNjI5AAAAAAAACVNRNjMwAAAAAAAACVNRNjMxAAAA&#10;AAAACVNRNjMyAAAAAAAACVNRNjMzAAAAAAAACVNRNjM0AAAAAAAACVNRNjM1&#10;AAAAAAAACVNRNjM2AAAAAAAACVNRNjM3AAAAAAAACVNRNjM4AAAAAAAACVNR&#10;NjM5AAAAAAAACVNRNjQwAAAAAAAACVNRNjQxAAAAAAAACVNRNjQyAAAAAAAA&#10;CVNRNjQzAAAAAAAACVNRNjQ0AAAAAAAACVNRNjQ1AAAAAAAACVNRNjQ2AAAA&#10;AAAACVNRNjQ3AAAAAAAACVNRNjQ4AAAAAAAACVNRNjQ5AAAAAAAACVNRNjUw&#10;AAAAAAAACVNRNjUxAAAAAAAACVNRNjUyAAAAAAAACVNRNjUzAAAAAAAACVNR&#10;NjU0AAAAAAAACVNRNjU1AAAAAAAACVNRNjU2AAAAAAAACVNRNjU3AAAAAAAA&#10;CVNRNjU4AAAAAAAACVNRNjU5AAAAAAAACVNRNjYwAAAAAAAACVNRNjYxAAAA&#10;AAAACVNRNjYyAAAAAAAACVNRNjYzAAAAAAAACVNRNjY0AAAAAAAACVNRNjY1&#10;AAAAAAAACVNRNjY2AAAAAAAACVNRNjY3AAAAAAAACVNRNjY4AAAAAAAACVNR&#10;NjY5AAAAAAAACVNRNjcwAAAAAAAACVNRNjcxAAAAAAAACVNRNjcyAAAAAAAA&#10;CVNRNjczAAAAAAAACVNRNjc0AAAAAAAACVNRNjc1AAAAAAAACVNRNjc2AAAA&#10;AAAACVNRNjc3AAAAAAAACVNRNjc4AAAAAAAACVNRNjc5AAAAAAAACVNRNjgw&#10;AAAAAAAACVNRNjgxAAAAAAAACVNRNjgyAAAAAAAACVNRNjgzAAAAAAAACVNR&#10;Njg0AAAAAAAACVNRNjg1AAAAAAAACVNRNjg2AAAAAAAACVNRNjg3AAAAAAAA&#10;CVNRNjg4AAAAAAAACVNRNjg5AAAAAAAACVNRNjkwAAAAAAAACVNRNjkxAAAA&#10;AAAACVNRNjkyAAAAAAAACVNRNjkzAAAAAAAACVNRNjk0AAAAAAAACVNRNjk1&#10;AAAAAAAACVNRNjk2AAAAAAAACVNRNjk3AAAAAAAACVNRNjk4AAAAAAAACVNR&#10;Njk5AAAAAAAACVNRNzAwAAAAAAAACVNRNzAxAAAAAAAACVNRNzAyAAAAAAAA&#10;CVNRNzAzAAAAAAAACVNRNzA0AAAAAAAACVNRNzA1AAAAAAAACVNRNzA2AAAA&#10;AAAACVNRNzA3AAAAAAAACVNRNzA4AAAAAAAACVNRNzA5AAAAAAAACVNRNzEw&#10;AAAAAAAACVNRNzExAAAAAAAACVNRNzEyAAAAAAAACVNRNzEzAAAAAAAACVNR&#10;NzE0AAAAAAAACVNRNzE1AAAAAAAACVNRNzE2AAAAAAAACVNRNzE3AAAAAAAA&#10;CVNRNzE4AAAAAAAACVNRNzE5AAAAAAAACVNRNzIwAAAAAAAACVNRNzIxAAAA&#10;AAAACVNRNzIyAAAAAAAACVNRNzIzAAAAAAAACVNRNzI0AAAAAAAACVNRNzI1&#10;AAAAAAAACVNRNzI2AAAAAAAACVNRNzI3AAAAAAAACVNRNzI4AAAAAAAACVNR&#10;NzI5AAAAAAAACVNRNzMwAAAAAAAACVNRNzMxAAAAAAAACVNRNzMyAAAAAAAA&#10;CVNRNzMzAAAAAAAACVNRNzM0AAAAAAAACVNRNzM1AAAAAAAACVNRNzM2AAAA&#10;AAAACVNRNzM3AAAAAAAACVNRNzM4AAAAAAAACVNRNzM5AAAAAAAACVNRNzQw&#10;AAAAAAAACVNRNzQxAAAAAAAACVNRNzQyAAAAAAAACVNRNzQzAAAAAAAACVNR&#10;NzQ0AAAAAAAACVNRNzQ1AAAAAAAACVNRNzQ2AAAAAAAACVNRNzQ3AAAAAAAA&#10;CVNRNzQ4AAAAAAAACVNRNzQ5AAAAAAAACVNRNzUwAAAAAAAACVNRNzUxAAAA&#10;AAAACVNRNzUyAAAAAAAACVNRNzUzAAAAAAAACVNRNzU0AAAAAAAACVNRNzU1&#10;AAAAAAAACVNRNzU2AAAAAAAACVNRNzU3AAAAAAAACVNRNzU4AAAAAAAACVNR&#10;NzU5AAAAAAAACVNRNzYwAAAAAAAACVNRNzYxAAAAAAAACVNRNzYyAAAAAAAA&#10;CVNRNzYzAAAAAAAACVNRNzY0AAAAAAAACVNRNzY1AAAAAAAACVNRNzY2AAAA&#10;AAAACVNRNzY3AAAAAAAACVNRNzY4AAAAAAAACVNRNzY5AAAAAAAACVNRNzcw&#10;AAAAAAAACVNRNzcxAAAAAAAACVNRNzcyAAAAAAAACVNRNzczAAAAAAAACVNR&#10;Nzc0AAAAAAAACVNRNzc1AAAAAAAACVNRNzc2AAAAAAAACVNRNzc3AAAAAAAA&#10;CVNRNzc4AAAAAAAACVNRNzc5AAAAAAAACVNRNzgwAAAAAAAACVNRNzgxAAAA&#10;AAAACVNRNzgyAAAAAAAACVNRNzgzAAAAAAAACVNRNzg0AAAAAAAACVNRNzg1&#10;AAAAAAAACVNRNzg2AAAAAAAACVNRNzg3AAAAAAAACVNRNzg4AAAAAAAACVNR&#10;Nzg5AAAAAAAACVNRNzkwAAAAAAAACVNRNzkxAAAAAAAACVNRNzkyAAAAAAAA&#10;CVNRNzkzAAAAAAAACVNRNzk0AAAAAAAACVNRNzk1AAAAAAAACVNRNzk2AAAA&#10;AAAACVNRNzk3AAAAAAAACVNRNzk4AAAAAAAACVNRNzk5AAAAAAAACVNRODAw&#10;AAAAAAAACVNRODAxAAAAAAAACVNRODAyAAAAAAAACVNRODAzAAAAAAAACVNR&#10;ODA0AAAAAAAACVNRODA1AAAAAAAACVNRODA2AAAAAAAACVNRODA3AAAAAAAA&#10;CVNRODA4AAAAAAAACVNRODA5AAAAAAAACVNRODEwAAAAAAAACVNRODExAAAA&#10;AAAACVNRODEyAAAAAAAACVNRODEzAAAAAAAACVNRODE0AAAAAAAACVNRODE1&#10;AAAAAAAACVNRODE2AAAAAAAACVNRODE3AAAAAAAACVNRODE4AAAAAAAACVNR&#10;ODE5AAAAAAAACVNRODIwAAAAAAAACVNRODIxAAAAAAAACVNRODIyAAAAAAAA&#10;CVNRODIzAAAAAAAACVNRODI0AAAAAAAACVNRODI1AAAAAAAACVNRODI2AAAA&#10;AAAACVNRODI3AAAAAAAACVNRODI4AAAAAAAACVNRODI5AAAAAAAACVNRODMw&#10;AAAAAAAACVNRODMxAAAAAAAACVNRODMyAAAAAAAACVNRODMzAAAAAAAACVNR&#10;ODM0AAAAAAAACVNRODM1AAAAAAAACVNRODM2AAAAAAAACVNRODM3AAAAAAAA&#10;CVNRODM4AAAAAAAACVNRODM5AAAAAAAACVNRODQwAAAAAAAACVNRODQxAAAA&#10;AAAACVNRODQyAAAAAAAACVNRODQzAAAAAAAACVNRODQ0AAAAAAAACVNRODQ1&#10;AAAAAAAACVNRODQ2AAAAAAAACVNRODQ3AAAAAAAACVNRODQ4AAAAAAAACVNR&#10;ODQ5AAAAAAAACVNRODUwAAAAAAAACVNRODUxAAAAAAAACVNRODUyAAAAAAAA&#10;CVNRODUzAAAAAAAACVNRODU0AAAAAAAACVNRODU1AAAAAAAACVNRODU2AAAA&#10;AAAACVNRODU3AAAAAAAACVNRODU4AAAAAAAACVNRODU5AAAAAAAACVNRODYw&#10;AAAAAAAACVNRODYxAAAAAAAACVNRODYyAAAAAAAACVNRODYzAAAAAAAACVNR&#10;ODY0AAAAAAAACVNRODY1AAAAAAAACVNRODY2AAAAAAAACVNRODY3AAAAAAAA&#10;CVNRODY4AAAAAAAACVNRODY5AAAAAAAACVNRODcwAAAAAAAACVNRODcxAAAA&#10;AAAACVNRODcyAAAAAAAACVNRODczAAAAAAAACVNRODc0AAAAAAAACVNRODc1&#10;AAAAAAAACVNRODc2AAAAAAAACVNRODc3AAAAAAAACVNRODc4AAAAAAAACVNR&#10;ODc5AAAAAAAACVNRODgwAAAAAAAACVNRODgxAAAAAAAACVNRODgyAAAAAAAA&#10;CVNRODgzAAAAAAAACVNRODg0AAAAAAAACVNRODg1AAAAAAAACVNRODg2AAAA&#10;AAAACVNRODg3AAAAAAAACVNRODg4AAAAAAAACVNRODg5AAAAAAAACVNRODkw&#10;AAAAAAAACVNRODkxAAAAAAAACVNRODkyAAAAAAAACVNRODkzAAAAAAAACVNR&#10;ODk0AAAAAAAACVNRODk1AAAAAAAACVNRODk2AAAAAAAACVNRODk3AAAAAAAA&#10;CVNRODk4AAAAAAAACVNRODk5AAAAAAAACVNROTAwAAAAAAAACVNROTAxAAAA&#10;AAAACVNROTAyAAAAAAAACVNROTAzAAAAAAAACVNROTA0AAAAAAAACVNROTA1&#10;AAAAAAAACVNROTA2AAAAAAAACVNROTA3AAAAAAAACVNROTA4AAAAAAAACVNR&#10;OTA5AAAAAAAACVNROTEwAAAAAAAACVNROTExAAAAAAAACVNROTEyAAAAAAAA&#10;CVNROTEzAAAAAAAACVNROTE0AAAAAAAACVNROTE1AAAAAAAACVNROTE2AAAA&#10;AAAACVNROTE3AAAAAAAACVNROTE4AAAAAAAACVNROTE5AAAAAAAACVNROTIw&#10;AAAAAAAACVNROTIxAAAAAAAACVNROTIyAAAAAAAACVNROTIzAAAAAAAACVNR&#10;OTI0AAAAAAAACVNROTI1AAAAAAAACVNROTI2AAAAAAAACVNROTI3AAAAAAAA&#10;CVNROTI4AAAAAAAACVNROTI5AAAAAAAACVNROTMwAAAAAAAACVNROTMxAAAA&#10;AAAACVNROTMyAAAAAAAACVNROTMzAAAAAAAACVNROTM0AAAAAAAACVNROTM1&#10;AAAAAAAACVNROTM2AAAAAAAACVNROTM3AAAAAAAACVNROTM4AAAAAAAACVNR&#10;OTM5AAAAAAAACVNROTQwAAAAAAAACVNROTQxAAAAAAAACVNROTQyAAAAAAAA&#10;CVNROTQzAAAAAAAACVNROTQ0AAAAAAAACVNROTQ1AAAAAAAACVNROTQ2AAAA&#10;AAAACVNROTQ3AAAAAAAACVNROTQ4AAAAAAAACVNROTQ5AAAAAAAACVNROTUw&#10;AAAAAAAACVNROTUxAAAAAAAACVNROTUyAAAAAAAACVNROTUzAAAAAAAACVNR&#10;OTU0AAAAAAAACVNROTU1AAAAAAAACVNROTU2AAAAAAAACVNROTU3AAAAAAAA&#10;CVNROTU4AAAAAAAACVNROTU5AAAAAAAACVNROTYwAAAAAAAACVNROTYxAAAA&#10;AAAACVNROTYyAAAAAAAACVNROTYzAAAAAAAACVNROTY0AAAAAAAACVNROTY1&#10;AAAAAAAACVNROTY2AAAAAAAACVNROTY3AAAAAAAACVNROTY4AAAAAAAACVNR&#10;OTY5AAAAAAAACVNROTcwAAAAAAAACVNROTcxAAAAAAAACVNROTcyAAAAAAAA&#10;CVNROTczAAAAAAAACVNROTc0AAAAAAAACVNROTc1AAAAAAAACVNROTc2AAAA&#10;AAAACVNROTc3AAAAAAAACVNROTc4AAAAAAAACVNROTc5AAAAAAAACVNROTgw&#10;AAAAAAAACVNROTgxAAAAAAAACVNROTgyAAAAAAAACVNROTgzAAAAAAAACVNR&#10;OTg0AAAAAAAACVNROTg1AAAAAAAACVNROTg2AAAAAAAACVNROTg3AAAAAAAA&#10;CVNROTg4AAAAAAAACVNROTg5AAAAAAAACVNROTkwAAAAAAAACVNROTkxAAAA&#10;AAAACVNROTkyAAAAAAAACVNROTkzAAAAAAAACVNROTk0AAAAAAAACVNROTk1&#10;AAAAAAAACVNROTk2AAAAAAAACVNROTk3AAAAAAAACVNROTk4AAAAAAAACVNR&#10;OTk5AAAA"/>
+              </dxl:ArrayComp>
+              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.2062.1.0">
+                <dxl:Ident ColId="9" ColName="ad" TypeMdid="0.1114.1.0"/>
+                <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOBzlJgTAgA=" DoubleValue="584496000000000.000000"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
+                <dxl:Ident ColId="9" ColName="ad" TypeMdid="0.1114.1.0"/>
+                <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMAyTLsSAgA=" DoubleValue="583545600000000.000000"/>
+              </dxl:Comparison>
+            </dxl:And>
+          </dxl:RecheckCond>
+          <dxl:BitmapIndexProbe>
+            <dxl:IndexCondList>
+              <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
+                <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                  <dxl:Ident ColId="4" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24"/>
+                </dxl:Cast>
+                <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" IsByValue="false" Value="AAAtYAEAAAAAAAAAGQAAAOcDAAABAAAAAAAAB1NRMQAAAAAHU1EyAAAAAAdT&#10;UTMAAAAAB1NRNAAAAAAHU1E1AAAAAAdTUTYAAAAAB1NRNwAAAAAHU1E4AAAA&#10;AAdTUTkAAAAACFNRMTAAAAAIU1ExMQAAAAhTUTEyAAAACFNRMTMAAAAIU1Ex&#10;NAAAAAhTUTE1AAAACFNRMTYAAAAIU1ExNwAAAAhTUTE4AAAACFNRMTkAAAAI&#10;U1EyMAAAAAhTUTIyAAAACFNRMjEAAAAIU1EyMwAAAAhTUTI0AAAACFNRMjUA&#10;AAAIU1EyNgAAAAhTUTI3AAAACFNRMjgAAAAIU1EyOQAAAAhTUTMwAAAACFNR&#10;MzEAAAAIU1EzMgAAAAhTUTMzAAAACFNRMzQAAAAIU1EzNQAAAAhTUTM2AAAA&#10;CFNRMzcAAAAIU1EzOAAAAAhTUTM5AAAACFNRNDAAAAAIU1E0MQAAAAhTUTQy&#10;AAAACFNRNDMAAAAIU1E0NAAAAAhTUTQ1AAAACFNRNDYAAAAIU1E0NwAAAAhT&#10;UTQ4AAAACFNRNDkAAAAIU1E1MAAAAAhTUTUxAAAACFNRNTIAAAAIU1E1MwAA&#10;AAhTUTU0AAAACFNRNTUAAAAIU1E1NgAAAAhTUTU3AAAACFNRNTgAAAAIU1E1&#10;OQAAAAhTUTYwAAAACFNRNjEAAAAIU1E2MgAAAAhTUTYzAAAACFNRNjQAAAAI&#10;U1E2NQAAAAhTUTY2AAAACFNRNjcAAAAIU1E2OAAAAAhTUTY5AAAACFNRNzAA&#10;AAAIU1E3MQAAAAhTUTcyAAAACFNRNzMAAAAIU1E3NAAAAAhTUTc1AAAACFNR&#10;NzYAAAAIU1E3NwAAAAhTUTc4AAAACFNRNzkAAAAIU1E4MAAAAAhTUTgxAAAA&#10;CFNRODIAAAAIU1E4MwAAAAhTUTg0AAAACFNRODUAAAAIU1E4NgAAAAhTUTg3&#10;AAAACFNRODgAAAAIU1E4OQAAAAhTUTkwAAAACFNROTEAAAAIU1E5MgAAAAhT&#10;UTkzAAAACFNROTQAAAAIU1E5NQAAAAhTUTk2AAAACFNROTcAAAAIU1E5OAAA&#10;AAhTUTk5AAAACVNRMTAwAAAAAAAACVNRMTAxAAAAAAAACVNRMTAyAAAAAAAA&#10;CVNRMTAzAAAAAAAACVNRMTA0AAAAAAAACVNRMTA1AAAAAAAACVNRMTA2AAAA&#10;AAAACVNRMTA3AAAAAAAACVNRMTA4AAAAAAAACVNRMTA5AAAAAAAACVNRMTEw&#10;AAAAAAAACVNRMTExAAAAAAAACVNRMTEyAAAAAAAACVNRMTEzAAAAAAAACVNR&#10;MTE0AAAAAAAACVNRMTE1AAAAAAAACVNRMTE2AAAAAAAACVNRMTE3AAAAAAAA&#10;CVNRMTE4AAAAAAAACVNRMTE5AAAAAAAACVNRMTIwAAAAAAAACVNRMTIxAAAA&#10;AAAACVNRMTIyAAAAAAAACVNRMTIzAAAAAAAACVNRMTI0AAAAAAAACVNRMTI1&#10;AAAAAAAACVNRMTI2AAAAAAAACVNRMTI3AAAAAAAACVNRMTI4AAAAAAAACVNR&#10;MTI5AAAAAAAACVNRMTMwAAAAAAAACVNRMTMxAAAAAAAACVNRMTMyAAAAAAAA&#10;CVNRMTMzAAAAAAAACVNRMTM0AAAAAAAACVNRMTM1AAAAAAAACVNRMTM2AAAA&#10;AAAACVNRMTM3AAAAAAAACVNRMTM4AAAAAAAACVNRMTM5AAAAAAAACVNRMTQw&#10;AAAAAAAACVNRMTQxAAAAAAAACVNRMTQyAAAAAAAACVNRMTQzAAAAAAAACVNR&#10;MTQ0AAAAAAAACVNRMTQ1AAAAAAAACVNRMTQ2AAAAAAAACVNRMTQ3AAAAAAAA&#10;CVNRMTQ4AAAAAAAACVNRMTQ5AAAAAAAACVNRMTUwAAAAAAAACVNRMTUxAAAA&#10;AAAACVNRMTUyAAAAAAAACVNRMTUzAAAAAAAACVNRMTU0AAAAAAAACVNRMTU1&#10;AAAAAAAACVNRMTU2AAAAAAAACVNRMTU3AAAAAAAACVNRMTU4AAAAAAAACVNR&#10;MTU5AAAAAAAACVNRMTYwAAAAAAAACVNRMTYxAAAAAAAACVNRMTYyAAAAAAAA&#10;CVNRMTYzAAAAAAAACVNRMTY0AAAAAAAACVNRMTY1AAAAAAAACVNRMTY2AAAA&#10;AAAACVNRMTY3AAAAAAAACVNRMTY4AAAAAAAACVNRMTY5AAAAAAAACVNRMTcw&#10;AAAAAAAACVNRMTcxAAAAAAAACVNRMTcyAAAAAAAACVNRMTczAAAAAAAACVNR&#10;MTc0AAAAAAAACVNRMTc1AAAAAAAACVNRMTc2AAAAAAAACVNRMTc3AAAAAAAA&#10;CVNRMTc4AAAAAAAACVNRMTc5AAAAAAAACVNRMTgwAAAAAAAACVNRMTgxAAAA&#10;AAAACVNRMTgyAAAAAAAACVNRMTgzAAAAAAAACVNRMTg0AAAAAAAACVNRMTg1&#10;AAAAAAAACVNRMTg2AAAAAAAACVNRMTg3AAAAAAAACVNRMTg4AAAAAAAACVNR&#10;MTg5AAAAAAAACVNRMTkwAAAAAAAACVNRMTkxAAAAAAAACVNRMTkyAAAAAAAA&#10;CVNRMTkzAAAAAAAACVNRMTk0AAAAAAAACVNRMTk1AAAAAAAACVNRMTk2AAAA&#10;AAAACVNRMTk3AAAAAAAACVNRMTk4AAAAAAAACVNRMTk5AAAAAAAACVNRMjAw&#10;AAAAAAAACVNRMjAxAAAAAAAACVNRMjAyAAAAAAAACVNRMjAzAAAAAAAACVNR&#10;MjA0AAAAAAAACVNRMjA1AAAAAAAACVNRMjA2AAAAAAAACVNRMjA3AAAAAAAA&#10;CVNRMjA4AAAAAAAACVNRMjA5AAAAAAAACVNRMjEwAAAAAAAACVNRMjExAAAA&#10;AAAACVNRMjEyAAAAAAAACVNRMjEzAAAAAAAACVNRMjE0AAAAAAAACVNRMjE1&#10;AAAAAAAACVNRMjE2AAAAAAAACVNRMjE3AAAAAAAACVNRMjE4AAAAAAAACVNR&#10;MjE5AAAAAAAACVNRMjIwAAAAAAAACVNRMjIxAAAAAAAACVNRMjIyAAAAAAAA&#10;CVNRMjIzAAAAAAAACVNRMjI0AAAAAAAACVNRMjI1AAAAAAAACVNRMjI2AAAA&#10;AAAACVNRMjI3AAAAAAAACVNRMjI4AAAAAAAACVNRMjI5AAAAAAAACVNRMjMw&#10;AAAAAAAACVNRMjMxAAAAAAAACVNRMjMyAAAAAAAACVNRMjMzAAAAAAAACVNR&#10;MjM0AAAAAAAACVNRMjM1AAAAAAAACVNRMjM2AAAAAAAACVNRMjM3AAAAAAAA&#10;CVNRMjM4AAAAAAAACVNRMjM5AAAAAAAACVNRMjQwAAAAAAAACVNRMjQxAAAA&#10;AAAACVNRMjQyAAAAAAAACVNRMjQzAAAAAAAACVNRMjQ0AAAAAAAACVNRMjQ1&#10;AAAAAAAACVNRMjQ2AAAAAAAACVNRMjQ3AAAAAAAACVNRMjQ4AAAAAAAACVNR&#10;MjQ5AAAAAAAACVNRMjUxAAAAAAAACVNRMjUyAAAAAAAACVNRMjUzAAAAAAAA&#10;CVNRMjU0AAAAAAAACVNRMjU1AAAAAAAACVNRMjU2AAAAAAAACVNRMjU3AAAA&#10;AAAACVNRMjU4AAAAAAAACVNRMjU5AAAAAAAACVNRMjYwAAAAAAAACVNRMjUw&#10;AAAAAAAACVNRMjYxAAAAAAAACVNRMjYyAAAAAAAACVNRMjYzAAAAAAAACVNR&#10;MjY0AAAAAAAACVNRMjY1AAAAAAAACVNRMjY2AAAAAAAACVNRMjY3AAAAAAAA&#10;CVNRMjY4AAAAAAAACVNRMjY5AAAAAAAACVNRMjcwAAAAAAAACVNRMjcxAAAA&#10;AAAACVNRMjcyAAAAAAAACVNRMjczAAAAAAAACVNRMjc0AAAAAAAACVNRMjc1&#10;AAAAAAAACVNRMjc2AAAAAAAACVNRMjc4AAAAAAAACVNRMjc5AAAAAAAACVNR&#10;MjgwAAAAAAAACVNRMjc3AAAAAAAACVNRMjgxAAAAAAAACVNRMjgyAAAAAAAA&#10;CVNRMjgzAAAAAAAACVNRMjg0AAAAAAAACVNRMjg1AAAAAAAACVNRMjg2AAAA&#10;AAAACVNRMjg3AAAAAAAACVNRMjg4AAAAAAAACVNRMjg5AAAAAAAACVNRMjkw&#10;AAAAAAAACVNRMjkxAAAAAAAACVNRMjkyAAAAAAAACVNRMjkzAAAAAAAACVNR&#10;Mjk0AAAAAAAACVNRMjk1AAAAAAAACVNRMjk2AAAAAAAACVNRMjk3AAAAAAAA&#10;CVNRMjk4AAAAAAAACVNRMjk5AAAAAAAACVNRMzAwAAAAAAAACVNRMzAxAAAA&#10;AAAACVNRMzAyAAAAAAAACVNRMzAzAAAAAAAACVNRMzA0AAAAAAAACVNRMzA1&#10;AAAAAAAACVNRMzA2AAAAAAAACVNRMzA3AAAAAAAACVNRMzA4AAAAAAAACVNR&#10;MzA5AAAAAAAACVNRMzEwAAAAAAAACVNRMzExAAAAAAAACVNRMzEyAAAAAAAA&#10;CVNRMzEzAAAAAAAACVNRMzE0AAAAAAAACVNRMzE1AAAAAAAACVNRMzE2AAAA&#10;AAAACVNRMzE3AAAAAAAACVNRMzE4AAAAAAAACVNRMzE5AAAAAAAACVNRMzIw&#10;AAAAAAAACVNRMzIxAAAAAAAACVNRMzIyAAAAAAAACVNRMzIzAAAAAAAACVNR&#10;MzI0AAAAAAAACVNRMzI1AAAAAAAACVNRMzI2AAAAAAAACVNRMzI3AAAAAAAA&#10;CVNRMzI4AAAAAAAACVNRMzI5AAAAAAAACVNRMzMwAAAAAAAACVNRMzMxAAAA&#10;AAAACVNRMzMyAAAAAAAACVNRMzMzAAAAAAAACVNRMzM0AAAAAAAACVNRMzM1&#10;AAAAAAAACVNRMzM2AAAAAAAACVNRMzM3AAAAAAAACVNRMzM4AAAAAAAACVNR&#10;MzM5AAAAAAAACVNRMzQwAAAAAAAACVNRMzQxAAAAAAAACVNRMzQyAAAAAAAA&#10;CVNRMzQzAAAAAAAACVNRMzQ0AAAAAAAACVNRMzQ1AAAAAAAACVNRMzQ2AAAA&#10;AAAACVNRMzQ3AAAAAAAACVNRMzQ4AAAAAAAACVNRMzQ5AAAAAAAACVNRMzUw&#10;AAAAAAAACVNRMzUxAAAAAAAACVNRMzUyAAAAAAAACVNRMzUzAAAAAAAACVNR&#10;MzU0AAAAAAAACVNRMzU1AAAAAAAACVNRMzU2AAAAAAAACVNRMzU3AAAAAAAA&#10;CVNRMzU4AAAAAAAACVNRMzU5AAAAAAAACVNRMzYwAAAAAAAACVNRMzYxAAAA&#10;AAAACVNRMzYyAAAAAAAACVNRMzYzAAAAAAAACVNRMzY0AAAAAAAACVNRMzY1&#10;AAAAAAAACVNRMzY2AAAAAAAACVNRMzY3AAAAAAAACVNRMzY4AAAAAAAACVNR&#10;MzY5AAAAAAAACVNRMzcwAAAAAAAACVNRMzcxAAAAAAAACVNRMzcyAAAAAAAA&#10;CVNRMzczAAAAAAAACVNRMzc0AAAAAAAACVNRMzc1AAAAAAAACVNRMzc2AAAA&#10;AAAACVNRMzc3AAAAAAAACVNRMzc4AAAAAAAACVNRMzc5AAAAAAAACVNRMzgw&#10;AAAAAAAACVNRMzgxAAAAAAAACVNRMzgyAAAAAAAACVNRMzgzAAAAAAAACVNR&#10;Mzg0AAAAAAAACVNRMzg1AAAAAAAACVNRMzg2AAAAAAAACVNRMzg3AAAAAAAA&#10;CVNRMzg4AAAAAAAACVNRMzg5AAAAAAAACVNRMzkwAAAAAAAACVNRMzkxAAAA&#10;AAAACVNRMzkyAAAAAAAACVNRMzkzAAAAAAAACVNRMzk0AAAAAAAACVNRMzk1&#10;AAAAAAAACVNRMzk2AAAAAAAACVNRMzk3AAAAAAAACVNRMzk4AAAAAAAACVNR&#10;Mzk5AAAAAAAACVNRNDAwAAAAAAAACVNRNDAxAAAAAAAACVNRNDAyAAAAAAAA&#10;CVNRNDAzAAAAAAAACVNRNDA0AAAAAAAACVNRNDA1AAAAAAAACVNRNDA2AAAA&#10;AAAACVNRNDA3AAAAAAAACVNRNDA4AAAAAAAACVNRNDA5AAAAAAAACVNRNDEw&#10;AAAAAAAACVNRNDExAAAAAAAACVNRNDEyAAAAAAAACVNRNDEzAAAAAAAACVNR&#10;NDE0AAAAAAAACVNRNDE1AAAAAAAACVNRNDE2AAAAAAAACVNRNDE3AAAAAAAA&#10;CVNRNDE4AAAAAAAACVNRNDE5AAAAAAAACVNRNDIwAAAAAAAACVNRNDIxAAAA&#10;AAAACVNRNDIyAAAAAAAACVNRNDIzAAAAAAAACVNRNDI0AAAAAAAACVNRNDI1&#10;AAAAAAAACVNRNDI2AAAAAAAACVNRNDI3AAAAAAAACVNRNDI4AAAAAAAACVNR&#10;NDI5AAAAAAAACVNRNDMwAAAAAAAACVNRNDMxAAAAAAAACVNRNDMyAAAAAAAA&#10;CVNRNDMzAAAAAAAACVNRNDM0AAAAAAAACVNRNDM1AAAAAAAACVNRNDM2AAAA&#10;AAAACVNRNDM3AAAAAAAACVNRNDM4AAAAAAAACVNRNDM5AAAAAAAACVNRNDQw&#10;AAAAAAAACVNRNDQxAAAAAAAACVNRNDQyAAAAAAAACVNRNDQzAAAAAAAACVNR&#10;NDQ0AAAAAAAACVNRNDQ1AAAAAAAACVNRNDQ2AAAAAAAACVNRNDQ3AAAAAAAA&#10;CVNRNDQ4AAAAAAAACVNRNDQ5AAAAAAAACVNRNDUwAAAAAAAACVNRNDUxAAAA&#10;AAAACVNRNDUyAAAAAAAACVNRNDUzAAAAAAAACVNRNDU0AAAAAAAACVNRNDU1&#10;AAAAAAAACVNRNDU2AAAAAAAACVNRNDU3AAAAAAAACVNRNDU4AAAAAAAACVNR&#10;NDU5AAAAAAAACVNRNDYwAAAAAAAACVNRNDYxAAAAAAAACVNRNDYyAAAAAAAA&#10;CVNRNDYzAAAAAAAACVNRNDY0AAAAAAAACVNRNDY1AAAAAAAACVNRNDY2AAAA&#10;AAAACVNRNDY3AAAAAAAACVNRNDY4AAAAAAAACVNRNDY5AAAAAAAACVNRNDcw&#10;AAAAAAAACVNRNDcxAAAAAAAACVNRNDcyAAAAAAAACVNRNDczAAAAAAAACVNR&#10;NDc0AAAAAAAACVNRNDc1AAAAAAAACVNRNDc2AAAAAAAACVNRNDc3AAAAAAAA&#10;CVNRNDc4AAAAAAAACVNRNDc5AAAAAAAACVNRNDgwAAAAAAAACVNRNDgxAAAA&#10;AAAACVNRNDgyAAAAAAAACVNRNDgzAAAAAAAACVNRNDg0AAAAAAAACVNRNDg1&#10;AAAAAAAACVNRNDg2AAAAAAAACVNRNDg3AAAAAAAACVNRNDg4AAAAAAAACVNR&#10;NDg5AAAAAAAACVNRNDkwAAAAAAAACVNRNDkxAAAAAAAACVNRNDkyAAAAAAAA&#10;CVNRNDkzAAAAAAAACVNRNDk0AAAAAAAACVNRNDk1AAAAAAAACVNRNDk2AAAA&#10;AAAACVNRNDk3AAAAAAAACVNRNDk4AAAAAAAACVNRNDk5AAAAAAAACVNRNTAw&#10;AAAAAAAACVNRNTAxAAAAAAAACVNRNTAyAAAAAAAACVNRNTAzAAAAAAAACVNR&#10;NTA0AAAAAAAACVNRNTA1AAAAAAAACVNRNTA2AAAAAAAACVNRNTA3AAAAAAAA&#10;CVNRNTA4AAAAAAAACVNRNTA5AAAAAAAACVNRNTEwAAAAAAAACVNRNTExAAAA&#10;AAAACVNRNTEyAAAAAAAACVNRNTEzAAAAAAAACVNRNTE0AAAAAAAACVNRNTE1&#10;AAAAAAAACVNRNTE2AAAAAAAACVNRNTE3AAAAAAAACVNRNTE4AAAAAAAACVNR&#10;NTE5AAAAAAAACVNRNTIwAAAAAAAACVNRNTIxAAAAAAAACVNRNTIyAAAAAAAA&#10;CVNRNTIzAAAAAAAACVNRNTI0AAAAAAAACVNRNTI1AAAAAAAACVNRNTI2AAAA&#10;AAAACVNRNTI3AAAAAAAACVNRNTI4AAAAAAAACVNRNTI5AAAAAAAACVNRNTMw&#10;AAAAAAAACVNRNTMxAAAAAAAACVNRNTMyAAAAAAAACVNRNTMzAAAAAAAACVNR&#10;NTM0AAAAAAAACVNRNTM1AAAAAAAACVNRNTM2AAAAAAAACVNRNTM3AAAAAAAA&#10;CVNRNTM4AAAAAAAACVNRNTM5AAAAAAAACVNRNTQwAAAAAAAACVNRNTQxAAAA&#10;AAAACVNRNTQyAAAAAAAACVNRNTQzAAAAAAAACVNRNTQ0AAAAAAAACVNRNTQ1&#10;AAAAAAAACVNRNTQ2AAAAAAAACVNRNTQ3AAAAAAAACVNRNTQ4AAAAAAAACVNR&#10;NTQ5AAAAAAAACVNRNTUwAAAAAAAACVNRNTUxAAAAAAAACVNRNTUyAAAAAAAA&#10;CVNRNTUzAAAAAAAACVNRNTU0AAAAAAAACVNRNTU1AAAAAAAACVNRNTU2AAAA&#10;AAAACVNRNTU3AAAAAAAACVNRNTU4AAAAAAAACVNRNTU5AAAAAAAACVNRNTYw&#10;AAAAAAAACVNRNTYxAAAAAAAACVNRNTYyAAAAAAAACVNRNTYzAAAAAAAACVNR&#10;NTY0AAAAAAAACVNRNTY1AAAAAAAACVNRNTY2AAAAAAAACVNRNTY3AAAAAAAA&#10;CVNRNTY4AAAAAAAACVNRNTY5AAAAAAAACVNRNTcwAAAAAAAACVNRNTcxAAAA&#10;AAAACVNRNTcyAAAAAAAACVNRNTczAAAAAAAACVNRNTc0AAAAAAAACVNRNTc1&#10;AAAAAAAACVNRNTc2AAAAAAAACVNRNTc3AAAAAAAACVNRNTc4AAAAAAAACVNR&#10;NTc5AAAAAAAACVNRNTgwAAAAAAAACVNRNTgxAAAAAAAACVNRNTgyAAAAAAAA&#10;CVNRNTgzAAAAAAAACVNRNTg0AAAAAAAACVNRNTg1AAAAAAAACVNRNTg2AAAA&#10;AAAACVNRNTg3AAAAAAAACVNRNTg4AAAAAAAACVNRNTg5AAAAAAAACVNRNTkw&#10;AAAAAAAACVNRNTkxAAAAAAAACVNRNTkyAAAAAAAACVNRNTkzAAAAAAAACVNR&#10;NTk0AAAAAAAACVNRNTk1AAAAAAAACVNRNTk2AAAAAAAACVNRNTk3AAAAAAAA&#10;CVNRNTk4AAAAAAAACVNRNTk5AAAAAAAACVNRNjAwAAAAAAAACVNRNjAxAAAA&#10;AAAACVNRNjAyAAAAAAAACVNRNjAzAAAAAAAACVNRNjA0AAAAAAAACVNRNjA1&#10;AAAAAAAACVNRNjA2AAAAAAAACVNRNjA3AAAAAAAACVNRNjA4AAAAAAAACVNR&#10;NjA5AAAAAAAACVNRNjEwAAAAAAAACVNRNjExAAAAAAAACVNRNjEyAAAAAAAA&#10;CVNRNjEzAAAAAAAACVNRNjE0AAAAAAAACVNRNjE1AAAAAAAACVNRNjE2AAAA&#10;AAAACVNRNjE3AAAAAAAACVNRNjE4AAAAAAAACVNRNjE5AAAAAAAACVNRNjIw&#10;AAAAAAAACVNRNjIxAAAAAAAACVNRNjIyAAAAAAAACVNRNjIzAAAAAAAACVNR&#10;NjI0AAAAAAAACVNRNjI1AAAAAAAACVNRNjI2AAAAAAAACVNRNjI3AAAAAAAA&#10;CVNRNjI4AAAAAAAACVNRNjI5AAAAAAAACVNRNjMwAAAAAAAACVNRNjMxAAAA&#10;AAAACVNRNjMyAAAAAAAACVNRNjMzAAAAAAAACVNRNjM0AAAAAAAACVNRNjM1&#10;AAAAAAAACVNRNjM2AAAAAAAACVNRNjM3AAAAAAAACVNRNjM4AAAAAAAACVNR&#10;NjM5AAAAAAAACVNRNjQwAAAAAAAACVNRNjQxAAAAAAAACVNRNjQyAAAAAAAA&#10;CVNRNjQzAAAAAAAACVNRNjQ0AAAAAAAACVNRNjQ1AAAAAAAACVNRNjQ2AAAA&#10;AAAACVNRNjQ3AAAAAAAACVNRNjQ4AAAAAAAACVNRNjQ5AAAAAAAACVNRNjUw&#10;AAAAAAAACVNRNjUxAAAAAAAACVNRNjUyAAAAAAAACVNRNjUzAAAAAAAACVNR&#10;NjU0AAAAAAAACVNRNjU1AAAAAAAACVNRNjU2AAAAAAAACVNRNjU3AAAAAAAA&#10;CVNRNjU4AAAAAAAACVNRNjU5AAAAAAAACVNRNjYwAAAAAAAACVNRNjYxAAAA&#10;AAAACVNRNjYyAAAAAAAACVNRNjYzAAAAAAAACVNRNjY0AAAAAAAACVNRNjY1&#10;AAAAAAAACVNRNjY2AAAAAAAACVNRNjY3AAAAAAAACVNRNjY4AAAAAAAACVNR&#10;NjY5AAAAAAAACVNRNjcwAAAAAAAACVNRNjcxAAAAAAAACVNRNjcyAAAAAAAA&#10;CVNRNjczAAAAAAAACVNRNjc0AAAAAAAACVNRNjc1AAAAAAAACVNRNjc2AAAA&#10;AAAACVNRNjc3AAAAAAAACVNRNjc4AAAAAAAACVNRNjc5AAAAAAAACVNRNjgw&#10;AAAAAAAACVNRNjgxAAAAAAAACVNRNjgyAAAAAAAACVNRNjgzAAAAAAAACVNR&#10;Njg0AAAAAAAACVNRNjg1AAAAAAAACVNRNjg2AAAAAAAACVNRNjg3AAAAAAAA&#10;CVNRNjg4AAAAAAAACVNRNjg5AAAAAAAACVNRNjkwAAAAAAAACVNRNjkxAAAA&#10;AAAACVNRNjkyAAAAAAAACVNRNjkzAAAAAAAACVNRNjk0AAAAAAAACVNRNjk1&#10;AAAAAAAACVNRNjk2AAAAAAAACVNRNjk3AAAAAAAACVNRNjk4AAAAAAAACVNR&#10;Njk5AAAAAAAACVNRNzAwAAAAAAAACVNRNzAxAAAAAAAACVNRNzAyAAAAAAAA&#10;CVNRNzAzAAAAAAAACVNRNzA0AAAAAAAACVNRNzA1AAAAAAAACVNRNzA2AAAA&#10;AAAACVNRNzA3AAAAAAAACVNRNzA4AAAAAAAACVNRNzA5AAAAAAAACVNRNzEw&#10;AAAAAAAACVNRNzExAAAAAAAACVNRNzEyAAAAAAAACVNRNzEzAAAAAAAACVNR&#10;NzE0AAAAAAAACVNRNzE1AAAAAAAACVNRNzE2AAAAAAAACVNRNzE3AAAAAAAA&#10;CVNRNzE4AAAAAAAACVNRNzE5AAAAAAAACVNRNzIwAAAAAAAACVNRNzIxAAAA&#10;AAAACVNRNzIyAAAAAAAACVNRNzIzAAAAAAAACVNRNzI0AAAAAAAACVNRNzI1&#10;AAAAAAAACVNRNzI2AAAAAAAACVNRNzI3AAAAAAAACVNRNzI4AAAAAAAACVNR&#10;NzI5AAAAAAAACVNRNzMwAAAAAAAACVNRNzMxAAAAAAAACVNRNzMyAAAAAAAA&#10;CVNRNzMzAAAAAAAACVNRNzM0AAAAAAAACVNRNzM1AAAAAAAACVNRNzM2AAAA&#10;AAAACVNRNzM3AAAAAAAACVNRNzM4AAAAAAAACVNRNzM5AAAAAAAACVNRNzQw&#10;AAAAAAAACVNRNzQxAAAAAAAACVNRNzQyAAAAAAAACVNRNzQzAAAAAAAACVNR&#10;NzQ0AAAAAAAACVNRNzQ1AAAAAAAACVNRNzQ2AAAAAAAACVNRNzQ3AAAAAAAA&#10;CVNRNzQ4AAAAAAAACVNRNzQ5AAAAAAAACVNRNzUwAAAAAAAACVNRNzUxAAAA&#10;AAAACVNRNzUyAAAAAAAACVNRNzUzAAAAAAAACVNRNzU0AAAAAAAACVNRNzU1&#10;AAAAAAAACVNRNzU2AAAAAAAACVNRNzU3AAAAAAAACVNRNzU4AAAAAAAACVNR&#10;NzU5AAAAAAAACVNRNzYwAAAAAAAACVNRNzYxAAAAAAAACVNRNzYyAAAAAAAA&#10;CVNRNzYzAAAAAAAACVNRNzY0AAAAAAAACVNRNzY1AAAAAAAACVNRNzY2AAAA&#10;AAAACVNRNzY3AAAAAAAACVNRNzY4AAAAAAAACVNRNzY5AAAAAAAACVNRNzcw&#10;AAAAAAAACVNRNzcxAAAAAAAACVNRNzcyAAAAAAAACVNRNzczAAAAAAAACVNR&#10;Nzc0AAAAAAAACVNRNzc1AAAAAAAACVNRNzc2AAAAAAAACVNRNzc3AAAAAAAA&#10;CVNRNzc4AAAAAAAACVNRNzc5AAAAAAAACVNRNzgwAAAAAAAACVNRNzgxAAAA&#10;AAAACVNRNzgyAAAAAAAACVNRNzgzAAAAAAAACVNRNzg0AAAAAAAACVNRNzg1&#10;AAAAAAAACVNRNzg2AAAAAAAACVNRNzg3AAAAAAAACVNRNzg4AAAAAAAACVNR&#10;Nzg5AAAAAAAACVNRNzkwAAAAAAAACVNRNzkxAAAAAAAACVNRNzkyAAAAAAAA&#10;CVNRNzkzAAAAAAAACVNRNzk0AAAAAAAACVNRNzk1AAAAAAAACVNRNzk2AAAA&#10;AAAACVNRNzk3AAAAAAAACVNRNzk4AAAAAAAACVNRNzk5AAAAAAAACVNRODAw&#10;AAAAAAAACVNRODAxAAAAAAAACVNRODAyAAAAAAAACVNRODAzAAAAAAAACVNR&#10;ODA0AAAAAAAACVNRODA1AAAAAAAACVNRODA2AAAAAAAACVNRODA3AAAAAAAA&#10;CVNRODA4AAAAAAAACVNRODA5AAAAAAAACVNRODEwAAAAAAAACVNRODExAAAA&#10;AAAACVNRODEyAAAAAAAACVNRODEzAAAAAAAACVNRODE0AAAAAAAACVNRODE1&#10;AAAAAAAACVNRODE2AAAAAAAACVNRODE3AAAAAAAACVNRODE4AAAAAAAACVNR&#10;ODE5AAAAAAAACVNRODIwAAAAAAAACVNRODIxAAAAAAAACVNRODIyAAAAAAAA&#10;CVNRODIzAAAAAAAACVNRODI0AAAAAAAACVNRODI1AAAAAAAACVNRODI2AAAA&#10;AAAACVNRODI3AAAAAAAACVNRODI4AAAAAAAACVNRODI5AAAAAAAACVNRODMw&#10;AAAAAAAACVNRODMxAAAAAAAACVNRODMyAAAAAAAACVNRODMzAAAAAAAACVNR&#10;ODM0AAAAAAAACVNRODM1AAAAAAAACVNRODM2AAAAAAAACVNRODM3AAAAAAAA&#10;CVNRODM4AAAAAAAACVNRODM5AAAAAAAACVNRODQwAAAAAAAACVNRODQxAAAA&#10;AAAACVNRODQyAAAAAAAACVNRODQzAAAAAAAACVNRODQ0AAAAAAAACVNRODQ1&#10;AAAAAAAACVNRODQ2AAAAAAAACVNRODQ3AAAAAAAACVNRODQ4AAAAAAAACVNR&#10;ODQ5AAAAAAAACVNRODUwAAAAAAAACVNRODUxAAAAAAAACVNRODUyAAAAAAAA&#10;CVNRODUzAAAAAAAACVNRODU0AAAAAAAACVNRODU1AAAAAAAACVNRODU2AAAA&#10;AAAACVNRODU3AAAAAAAACVNRODU4AAAAAAAACVNRODU5AAAAAAAACVNRODYw&#10;AAAAAAAACVNRODYxAAAAAAAACVNRODYyAAAAAAAACVNRODYzAAAAAAAACVNR&#10;ODY0AAAAAAAACVNRODY1AAAAAAAACVNRODY2AAAAAAAACVNRODY3AAAAAAAA&#10;CVNRODY4AAAAAAAACVNRODY5AAAAAAAACVNRODcwAAAAAAAACVNRODcxAAAA&#10;AAAACVNRODcyAAAAAAAACVNRODczAAAAAAAACVNRODc0AAAAAAAACVNRODc1&#10;AAAAAAAACVNRODc2AAAAAAAACVNRODc3AAAAAAAACVNRODc4AAAAAAAACVNR&#10;ODc5AAAAAAAACVNRODgwAAAAAAAACVNRODgxAAAAAAAACVNRODgyAAAAAAAA&#10;CVNRODgzAAAAAAAACVNRODg0AAAAAAAACVNRODg1AAAAAAAACVNRODg2AAAA&#10;AAAACVNRODg3AAAAAAAACVNRODg4AAAAAAAACVNRODg5AAAAAAAACVNRODkw&#10;AAAAAAAACVNRODkxAAAAAAAACVNRODkyAAAAAAAACVNRODkzAAAAAAAACVNR&#10;ODk0AAAAAAAACVNRODk1AAAAAAAACVNRODk2AAAAAAAACVNRODk3AAAAAAAA&#10;CVNRODk4AAAAAAAACVNRODk5AAAAAAAACVNROTAwAAAAAAAACVNROTAxAAAA&#10;AAAACVNROTAyAAAAAAAACVNROTAzAAAAAAAACVNROTA0AAAAAAAACVNROTA1&#10;AAAAAAAACVNROTA2AAAAAAAACVNROTA3AAAAAAAACVNROTA4AAAAAAAACVNR&#10;OTA5AAAAAAAACVNROTEwAAAAAAAACVNROTExAAAAAAAACVNROTEyAAAAAAAA&#10;CVNROTEzAAAAAAAACVNROTE0AAAAAAAACVNROTE1AAAAAAAACVNROTE2AAAA&#10;AAAACVNROTE3AAAAAAAACVNROTE4AAAAAAAACVNROTE5AAAAAAAACVNROTIw&#10;AAAAAAAACVNROTIxAAAAAAAACVNROTIyAAAAAAAACVNROTIzAAAAAAAACVNR&#10;OTI0AAAAAAAACVNROTI1AAAAAAAACVNROTI2AAAAAAAACVNROTI3AAAAAAAA&#10;CVNROTI4AAAAAAAACVNROTI5AAAAAAAACVNROTMwAAAAAAAACVNROTMxAAAA&#10;AAAACVNROTMyAAAAAAAACVNROTMzAAAAAAAACVNROTM0AAAAAAAACVNROTM1&#10;AAAAAAAACVNROTM2AAAAAAAACVNROTM3AAAAAAAACVNROTM4AAAAAAAACVNR&#10;OTM5AAAAAAAACVNROTQwAAAAAAAACVNROTQxAAAAAAAACVNROTQyAAAAAAAA&#10;CVNROTQzAAAAAAAACVNROTQ0AAAAAAAACVNROTQ1AAAAAAAACVNROTQ2AAAA&#10;AAAACVNROTQ3AAAAAAAACVNROTQ4AAAAAAAACVNROTQ5AAAAAAAACVNROTUw&#10;AAAAAAAACVNROTUxAAAAAAAACVNROTUyAAAAAAAACVNROTUzAAAAAAAACVNR&#10;OTU0AAAAAAAACVNROTU1AAAAAAAACVNROTU2AAAAAAAACVNROTU3AAAAAAAA&#10;CVNROTU4AAAAAAAACVNROTU5AAAAAAAACVNROTYwAAAAAAAACVNROTYxAAAA&#10;AAAACVNROTYyAAAAAAAACVNROTYzAAAAAAAACVNROTY0AAAAAAAACVNROTY1&#10;AAAAAAAACVNROTY2AAAAAAAACVNROTY3AAAAAAAACVNROTY4AAAAAAAACVNR&#10;OTY5AAAAAAAACVNROTcwAAAAAAAACVNROTcxAAAAAAAACVNROTcyAAAAAAAA&#10;CVNROTczAAAAAAAACVNROTc0AAAAAAAACVNROTc1AAAAAAAACVNROTc2AAAA&#10;AAAACVNROTc3AAAAAAAACVNROTc4AAAAAAAACVNROTc5AAAAAAAACVNROTgw&#10;AAAAAAAACVNROTgxAAAAAAAACVNROTgyAAAAAAAACVNROTgzAAAAAAAACVNR&#10;OTg0AAAAAAAACVNROTg1AAAAAAAACVNROTg2AAAAAAAACVNROTg3AAAAAAAA&#10;CVNROTg4AAAAAAAACVNROTg5AAAAAAAACVNROTkwAAAAAAAACVNROTkxAAAA&#10;AAAACVNROTkyAAAAAAAACVNROTkzAAAAAAAACVNROTk0AAAAAAAACVNROTk1&#10;AAAAAAAACVNROTk2AAAAAAAACVNROTk3AAAAAAAACVNROTk4AAAAAAAACVNR&#10;OTk5AAAA"/>
+              </dxl:ArrayComp>
+              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.2062.1.0">
+                <dxl:Ident ColId="9" ColName="ad" TypeMdid="0.1114.1.0"/>
+                <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AOBzlJgTAgA=" DoubleValue="584496000000000.000000"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
+                <dxl:Ident ColId="9" ColName="ad" TypeMdid="0.1114.1.0"/>
+                <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMAyTLsSAgA=" DoubleValue="583545600000000.000000"/>
+              </dxl:Comparison>
+            </dxl:IndexCondList>
+            <dxl:IndexDescriptor Mdid="0.74747.1.0" IndexName="idx_foo_ad"/>
+          </dxl:BitmapIndexProbe>
+          <dxl:TableDescriptor Mdid="0.74486.1.0" TableName="foo">
+            <dxl:Columns>
+              <dxl:Column ColId="0" Attno="1" ColName="pl" TypeMdid="0.1043.1.0" TypeModifier="10" ColWidth="7"/>
+              <dxl:Column ColId="1" Attno="2" ColName="pcd" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="2" Attno="3" ColName="tn" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="3" Attno="4" ColName="st" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="4" Attno="5" ColName="fn" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="5"/>
+              <dxl:Column ColId="5" Attno="6" ColName="dd" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="6" Attno="7" ColName="bp" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="4"/>
+              <dxl:Column ColId="7" Attno="8" ColName="fsi" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="8" Attno="9" ColName="op" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="4"/>
+              <dxl:Column ColId="9" Attno="10" ColName="ad" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="10" Attno="11" ColName="cc" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="3"/>
+              <dxl:Column ColId="11" Attno="12" ColName="mf" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="6"/>
+              <dxl:Column ColId="12" Attno="13" ColName="mc" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="3"/>
+              <dxl:Column ColId="13" Attno="14" ColName="at" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="4"/>
+              <dxl:Column ColId="14" Attno="15" ColName="bc" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="15" Attno="16" ColName="sc" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="16" Attno="17" ColName="cc1" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="17" Attno="18" ColName="sn" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="3"/>
+              <dxl:Column ColId="18" Attno="19" ColName="ct" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="19" Attno="20" ColName="bs" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="3"/>
+              <dxl:Column ColId="20" Attno="21" ColName="chi" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="21" Attno="22" ColName="pfs" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="0"/>
+              <dxl:Column ColId="22" Attno="23" ColName="acn" TypeMdid="0.1043.1.0" TypeModifier="19" ColWidth="11"/>
+              <dxl:Column ColId="23" Attno="24" ColName="ofa" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="11"/>
+              <dxl:Column ColId="24" Attno="25" ColName="ofc" TypeMdid="0.1043.1.0" TypeModifier="9" ColWidth="3"/>
+              <dxl:Column ColId="25" Attno="26" ColName="atl" TypeMdid="0.1043.1.0" TypeModifier="39" ColWidth="2"/>
+              <dxl:Column ColId="26" Attno="27" ColName="acc" TypeMdid="0.1043.1.0" TypeModifier="39" ColWidth="3"/>
+              <dxl:Column ColId="27" Attno="28" ColName="bcd" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="28" Attno="29" ColName="cor" TypeMdid="0.1043.1.0" TypeModifier="6" ColWidth="0"/>
+              <dxl:Column ColId="29" Attno="30" ColName="sfi" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="30" Attno="31" ColName="zz" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="14"/>
+              <dxl:Column ColId="31" Attno="32" ColName="zzd" TypeMdid="0.1082.1.0" ColWidth="4"/>
+              <dxl:Column ColId="32" Attno="33" ColName="xc" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="33" Attno="34" ColName="xc1" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="34" Attno="35" ColName="xcz" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="9"/>
+              <dxl:Column ColId="35" Attno="36" ColName="vbn" TypeMdid="0.1043.1.0" TypeModifier="6" ColWidth="2"/>
+              <dxl:Column ColId="36" Attno="37" ColName="dsd" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="2"/>
+              <dxl:Column ColId="37" Attno="38" ColName="nat" TypeMdid="0.1043.1.0" TypeModifier="6" ColWidth="2"/>
+              <dxl:Column ColId="38" Attno="39" ColName="erer" TypeMdid="0.1082.1.0" ColWidth="4"/>
+              <dxl:Column ColId="39" Attno="40" ColName="fgg" TypeMdid="0.1042.1.0" TypeModifier="5" ColWidth="2"/>
+              <dxl:Column ColId="40" Attno="41" ColName="nnn" TypeMdid="0.1043.1.0" TypeModifier="19" ColWidth="9"/>
+              <dxl:Column ColId="41" Attno="42" ColName="fnbc" TypeMdid="0.20.1.0" ColWidth="8"/>
+              <dxl:Column ColId="42" Attno="43" ColName="zxcv" TypeMdid="0.20.1.0" ColWidth="8"/>
+              <dxl:Column ColId="43" Attno="44" ColName="zd" TypeMdid="0.1043.1.0" TypeModifier="24" ColWidth="3"/>
+              <dxl:Column ColId="44" Attno="45" ColName="xyz" TypeMdid="0.1043.1.0" TypeModifier="36" ColWidth="0"/>
+              <dxl:Column ColId="45" Attno="46" ColName="xyz1" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="46" Attno="47" ColName="xyz2" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="47" Attno="48" ColName="xyz3" TypeMdid="0.1043.1.0" TypeModifier="34" ColWidth="4"/>
+              <dxl:Column ColId="48" Attno="49" ColName="xyz4" TypeMdid="0.23.1.0" ColWidth="4"/>
+              <dxl:Column ColId="49" Attno="50" ColName="xyz5" TypeMdid="0.1043.1.0" TypeModifier="34" ColWidth="7"/>
+              <dxl:Column ColId="50" Attno="51" ColName="xyz6" TypeMdid="0.1114.1.0" ColWidth="8"/>
+              <dxl:Column ColId="51" Attno="52" ColName="xyz7" TypeMdid="0.1043.1.0" TypeModifier="8" ColWidth="5"/>
+              <dxl:Column ColId="52" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+              <dxl:Column ColId="53" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+              <dxl:Column ColId="54" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:BitmapTableScan>
+      </dxl:GatherMotion>
+    </dxl:Plan>
+  </dxl:Thread>
+</dxl:DXLMessage>

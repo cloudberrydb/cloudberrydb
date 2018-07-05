@@ -8,7 +8,7 @@ PARTITION p2 START(11) END (20) INCLUSIVE);
 INSERT INTO foo select  i%20+1, i%10+2, i%10+3, i%10+4 from generate_series(1,100000) i;
 
 CREATE INDEX complete_idx_c on foo USING btree (c);
-CREATE INDEX complete_idx_cd on foo USING btree (c, d);
+CREATE INDEX complete_idx_cd on foo USING btree (d,c);
 ANALYZE foo_1_prt_p2;
 EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
 -->
@@ -17,29 +17,17 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
         <dxl:CostParams>
-          <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
+          <dxl:CostParam Name="NLJFactor" Value="1024.000000" LowerBound="1023.500000" UpperBound="1024.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="7" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
-      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
+      <dxl:TraceFlags Value="102074,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
-      <dxl:CheckConstraint Mdid="0.31360.1.0" Name="foo_1_prt_p2_check" RelationMdid="0.31358.1.0">
-        <dxl:And>
-          <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-            <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
-          </dxl:Comparison>
-          <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-            <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
-          </dxl:Comparison>
-        </dxl:And>
-      </dxl:CheckConstraint>
       <dxl:GPDBScalarOp Mdid="0.521.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.23.1.0"/>
         <dxl:RightType Mdid="0.23.1.0"/>
@@ -52,6 +40,71 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:ColumnStatistics Mdid="1.16678.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+        </dxl:StatsBucket>
+        <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:Relation Mdid="0.16648.1.0" Name="foo" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="5,6,4" PartitionColumns="1" PartitionTypes="r" NumberLeafPartitions="2">
+        <dxl:Columns>
+          <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="b" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="c" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="d" Attno="4" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.16728.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16776.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
+          <dxl:Or>
+            <dxl:And>
+              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
+                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
+                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              </dxl:Comparison>
+            </dxl:And>
+            <dxl:And>
+              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
+                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
+                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+              </dxl:Comparison>
+            </dxl:And>
+          </dxl:Or>
+        </dxl:PartConstraint>
+      </dxl:Relation>
       <dxl:GPDBScalarOp Mdid="0.523.1.0" Name="&lt;=" ComparisonType="LEq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.23.1.0"/>
         <dxl:RightType Mdid="0.23.1.0"/>
@@ -91,6 +144,12 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
+      <dxl:Index Mdid="0.16790.1.0" Name="complete_idx_cd_1_prt_p2" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="3,2" IncludedColumns="0,1,2,3,4,5,6">
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1976.1.0"/>
+          <dxl:OpClass Mdid="0.1976.1.0"/>
+        </dxl:OpClasses>
+      </dxl:Index>
       <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.96.1.0"/>
         <dxl:InequalityOp Mdid="0.518.1.0"/>
@@ -136,41 +195,8 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Index Mdid="0.31425.1.0" Name="complete_idx_c_1_prt_p2" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="2" IncludedColumns="0,1,2,3,4,5,6">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-        </dxl:OpClasses>
-      </dxl:Index>
-      <dxl:ColumnStatistics Mdid="1.31358.1.0.3" Name="d" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
-        <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="13"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="13"/>
-        </dxl:StatsBucket>
-      </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.31358.1.0.2" Name="c" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
-        <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
-        </dxl:StatsBucket>
-      </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.31358.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
-        <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-        </dxl:StatsBucket>
-        <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
-        </dxl:StatsBucket>
-      </dxl:ColumnStatistics>
-      <dxl:Index Mdid="0.31470.1.0" Name="complete_idx_cd_1_prt_p2" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="2,3" IncludedColumns="0,1,2,3,4,5,6">
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-          <dxl:OpClass Mdid="0.1976.1.0"/>
-        </dxl:OpClasses>
-      </dxl:Index>
-      <dxl:RelationStatistics Mdid="2.31358.1.0" Name="foo_1_prt_p2" Rows="20000.000000" EmptyRelation="false"/>
-      <dxl:Relation Mdid="0.31358.1.0" Name="foo_1_prt_p2" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="6,4" NumberLeafPartitions="0">
+      <dxl:RelationStatistics Mdid="2.16678.1.0" Name="foo_1_prt_p2" Rows="10000.000000" EmptyRelation="false"/>
+      <dxl:Relation Mdid="0.16678.1.0" Name="foo_1_prt_p2" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="6,4" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
@@ -195,14 +221,43 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.31425.1.0" IsPartial="false"/>
-          <dxl:IndexInfo Mdid="0.31470.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16745.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.16790.1.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints>
-          <dxl:CheckConstraint Mdid="0.31360.1.0"/>
+          <dxl:CheckConstraint Mdid="0.16680.1.0"/>
         </dxl:CheckConstraints>
       </dxl:Relation>
+      <dxl:ColumnStatistics Mdid="1.16678.1.0.3" Name="d" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="13"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="13"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:ColumnStatistics Mdid="1.16678.1.0.2" Name="c" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
+        <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+        </dxl:StatsBucket>
+      </dxl:ColumnStatistics>
+      <dxl:CheckConstraint Mdid="0.16680.1.0" Name="foo_1_prt_p2_check" RelationMdid="0.16678.1.0">
+        <dxl:And>
+          <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
+            <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+          </dxl:Comparison>
+          <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
+            <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+          </dxl:Comparison>
+        </dxl:And>
+      </dxl:CheckConstraint>
+      <dxl:Index Mdid="0.16745.1.0" Name="complete_idx_c_1_prt_p2" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="2" IncludedColumns="0,1,2,3,4,5,6">
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1976.1.0"/>
+        </dxl:OpClasses>
+      </dxl:Index>
     </dxl:Metadata>
     <dxl:Query>
       <dxl:OutputColumns>
@@ -224,7 +279,7 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
           </dxl:Comparison>
         </dxl:Or>
         <dxl:LogicalGet>
-          <dxl:TableDescriptor Mdid="0.31358.1.0" TableName="foo_1_prt_p2">
+          <dxl:TableDescriptor Mdid="0.16678.1.0" TableName="foo_1_prt_p2">
             <dxl:Columns>
               <dxl:Column ColId="1" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
               <dxl:Column ColId="2" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
@@ -298,7 +353,7 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
-              <dxl:IndexDescriptor Mdid="0.31425.1.0" IndexName="complete_idx_c_1_prt_p2"/>
+              <dxl:IndexDescriptor Mdid="0.16745.1.0" IndexName="complete_idx_c_1_prt_p2"/>
             </dxl:BitmapIndexProbe>
             <dxl:BitmapIndexProbe>
               <dxl:IndexCondList>
@@ -307,10 +362,10 @@ EXPLAIN SELECT * FROM foo_1_prt_p2 WHERE c > 12 OR d > 13;
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="13"/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
-              <dxl:IndexDescriptor Mdid="0.31470.1.0" IndexName="complete_idx_cd_1_prt_p2"/>
+              <dxl:IndexDescriptor Mdid="0.16790.1.0" IndexName="complete_idx_cd_1_prt_p2"/>
             </dxl:BitmapIndexProbe>
           </dxl:BitmapOr>
-          <dxl:TableDescriptor Mdid="0.31358.1.0" TableName="foo_1_prt_p2">
+          <dxl:TableDescriptor Mdid="0.16678.1.0" TableName="foo_1_prt_p2">
             <dxl:Columns>
               <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
               <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>

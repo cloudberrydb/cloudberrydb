@@ -52,7 +52,10 @@ const CHAR *rgszBitmapFileNames[] =
 	"../data/dxl/minidump/BitmapIndexApply-PartTable.mdp",
 	"../data/dxl/minidump/BitmapIndexApply-InnerSelect-Basic.mdp",
 	"../data/dxl/minidump/BitmapIndexApply-InnerSelect-PartTable.mdp",
-
+	"../data/dxl/minidump/PredicateWithConjunctsAndDisjuncts.mdp",
+	"../data/dxl/minidump/PredicateWithConjunctsOfDisjuncts.mdp",
+	"../data/dxl/minidump/PredicateWithLongConjunction.mdp",
+	"../data/dxl/minidump/MultipleIndexPredicate.mdp",
 	};
 
 //---------------------------------------------------------------------------
