@@ -870,7 +870,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 			NULL,
 		},
 		&gp_enable_groupext_distinct_pruning,
-		false /* GPDB_84_MERGE_FIXME: Turn GUC back to true and fix the failing tests */,
+		true,
 		NULL, NULL, NULL
 	},
 
