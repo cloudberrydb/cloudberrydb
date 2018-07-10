@@ -318,6 +318,7 @@ PvExec
 	CHAR *szFileName = NULL;
 	BOOL fMinidump = false;
 	BOOL fUnittest = false;
+	ULLONG ullPlanId = 0;
 	
 	while (pma->FGetopt(&ch))
 	{
@@ -341,7 +342,12 @@ PvExec
 			case 'T':
 				CUnittest::SetTraceFlag(optarg);
 				break;
-				
+
+			case 'i':
+				ullPlanId = CUnittest::UllParsePlanId(optarg);
+				GPOS_SET_TRACE(EopttraceEnumeratePlans);
+				break;
+
 			case 'd':
 				fMinidump = true;
 				szFileName = optarg;
@@ -382,6 +388,11 @@ PvExec
 		else
 		{
 			poconf -> AddRef();
+		}
+
+		if (ullPlanId != 0)
+		{
+			poconf->Pec()->SetPlanId(ullPlanId);
 		}
 
 		ULONG ulSegments = CTestUtils::UlSegments(poconf);
@@ -443,7 +454,7 @@ INT main
 	}
 
 	// setup args for unittest params
-	CMainArgs ma(iArgs, rgszArgs, "uU:d:xT:");
+	CMainArgs ma(iArgs, rgszArgs, "uU:d:xT:i:");
 	
 	// initialize unittest framework
 	CUnittest::Init(rgut, GPOS_ARRAY_SIZE(rgut), ConfigureTests, Cleanup);

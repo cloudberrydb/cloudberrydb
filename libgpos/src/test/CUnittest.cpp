@@ -457,6 +457,17 @@ CUnittest::SetTraceFlag
 	GPOS_SET_TRACE((ULONG) lTrace);
 }
 
+// Parse plan id
+ULLONG
+CUnittest::UllParsePlanId
+	(
+	const CHAR *szPlanId
+	)
+{
+	CHAR *pcEnd = NULL;
+	LINT ullPlanId = clib::LStrToL(szPlanId, &pcEnd, 0/*iBase*/);
+	return ullPlanId;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

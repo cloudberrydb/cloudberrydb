@@ -189,6 +189,10 @@ namespace gpos
 			static
 			void SetTraceFlag(const CHAR *szTrace);
 
+			// Parse plan id
+			static
+			ULLONG UllParsePlanId(const CHAR *szPlanId);
+
 			// get number of unittests
 			static
 			ULONG UlTests()
