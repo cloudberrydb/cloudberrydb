@@ -846,49 +846,32 @@ vacuumStatement_Relation(VacuumStmt *vacstmt, Oid relid,
 			PushActiveSnapshot(GetTransactionSnapshot());
 
 			/*
-			 * If there is another parallel drop transaction (on any relation) active,
-			 * bail out. The other drop transaction might be on the same relation and
-			 * that would be upgrade deadlock.
+			 * Upgrade to AccessExclusiveLock from SharedAccessExclusive here
+			 * before doing the drops. We set the dontwait flag here to
+			 * prevent deadlock scenarios such as a concurrent transaction
+			 * holding AccessShareLock and then upgrading to ExclusiveLock to
+			 * run DELETE/UPDATE while VACUUM is waiting here for
+			 * AccessExclusiveLock.
 			 *
-			 * Note: By the time we would have reached try_relation_open the other
-			 * drop transaction might already be completed, but we don't take that
-			 * risk here.
-			 *
-			 * My marking the drop transaction as busy before checking, the worst
-			 * thing that can happen is that both transaction see each other and
-			 * both cancel the drop.
-			 *
-			 * The upgrade deadlock is not applicable to vacuum full because
-			 * it begins with an AccessExclusive lock and doesn't need to
-			 * upgrade it.
+			 * Skipping when we are not able to upgrade to AccessExclusivelock
+			 * can be an issue though because it is possible to accumulate a
+			 * large amount of segfiles marked AOSEG_STATE_AWAITING_DROP.
+			 * However, we do not expect this to happen too frequently such
+			 * that all segfiles are marked.
 			 */
-			if (!(vacstmt->options & VACOPT_FULL))
-			{
-				MyProc->inDropTransaction = true;
-				SIMPLE_FAULT_INJECTOR(VacuumRelationOpenRelationDuringDropPhase);
-				if (HasDropTransaction(false))
-				{
-					elogif(Debug_appendonly_print_compaction, LOG,
-						   "Skip drop because of concurrent drop transaction");
-					onerel = NULL;
-				}
-				else
-					onerel = try_relation_open(relid, AccessExclusiveLock, true /* dontwait */);
-			}
-			else
-					onerel = try_relation_open(relid, AccessExclusiveLock, true /* dontwait */);
+			SIMPLE_FAULT_INJECTOR(VacuumRelationOpenRelationDuringDropPhase);
+			onerel = try_relation_open(relid, AccessExclusiveLock, true /* dontwait */);
 
-			if (!onerel)
+			if (!RelationIsValid(onerel))
 			{
 				/* Couldn't get AccessExclusiveLock. */
 				PopActiveSnapshot();
 				CommitTransactionCommand();
 
 				/*
-				 * Skip the performing DROP and continue with other segfiles
-				 * in case they have crossed threshold and need to be
-				 * compacted or marked as AOSEG_STATE_AWAITING_DROP (depending
-				 * if above try_relation_open succeeds or not). To ensure that
+				 * Skip performing DROP and continue with other segfiles in
+				 * case they have crossed threshold and need to be compacted
+				 * or marked as AOSEG_STATE_AWAITING_DROP. To ensure that
 				 * vacuum decreases the age for appendonly tables even if drop
 				 * phase is getting skipped, perform cleanup phase when done
 				 * iterating through all segfiles so that the relfrozenxid

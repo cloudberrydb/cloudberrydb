@@ -38,13 +38,16 @@
 3:SELECT gp_wait_until_triggered_fault('compaction_before_segmentfile_drop', 1, 2);
 3:SELECT gp_inject_fault('appendonly_insert', 'panic', '', '', 'crash_vacuum_in_appendonly_insert', 1, -1, 0, 2);
 
--- Only one AO table can be in drop phase at a time. VACUUM on
--- crash_before_cleanup_phase will end up skipping the drop phase because
--- previous VACUUM on crash_before_segmentfile_drop is suspended in drop
--- phase. This results in segment file 1 remaining in drop pending state which
--- results in segment file 1 not being scheduled for any new inserts.
+-- VACUUM on crash_before_cleanup_phase will end up skipping the drop
+-- phase after not being able to acquire AccessExclusiveLock because
+-- we make session 3 hold AccessShareLock. This results in segment
+-- file 1 remaining in drop pending state which results in segment
+-- file 1 not being scheduled for any new inserts.
 3:SELECT gp_inject_fault('compaction_before_cleanup_phase', 'suspend', '', '', 'crash_before_cleanup_phase', 1, -1, 0, 2);
+3:BEGIN;
+3:SELECT count(*) FROM crash_before_cleanup_phase;
 1&:VACUUM crash_before_cleanup_phase;
+3:END;
 3:SELECT gp_wait_until_triggered_fault('compaction_before_cleanup_phase', 1, 2);
 
 -- we already waited for suspend faults to trigger and hence we can proceed to
