@@ -59,7 +59,7 @@ function build_gpdb() {
 
 function unittest_check_gpdb() {
   pushd gpdb_src/src/backend
-    make -s -j4 unittest-check
+    make -s unittest-check
   popd
 }
 
