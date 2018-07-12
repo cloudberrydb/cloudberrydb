@@ -177,7 +177,10 @@ namespace gpopt
 			static
 			const ULONG m_ulInvalid;
 
-			
+#ifdef GPOS_DEBUG
+			void DbgPrint() const;
+#endif  // GPOS_DEBUG
+
 	}; // class CColRef
 
  	// shorthand for printing

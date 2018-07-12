@@ -299,6 +299,10 @@ namespace gpopt
 
 			// debug print; for interactive debugging sessions only
 			void DbgPrint() const;
+
+			// debug print; for interactive debugging sessions only
+			// prints expression properties as well
+			void DbgPrintWithProperties() const;
 #endif // GPOS_DEBUG
 
 			// check if the expression satisfies given required properties

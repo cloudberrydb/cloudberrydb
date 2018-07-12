@@ -987,7 +987,6 @@ CConstraint::PrintConjunctionDisjunction
 void
 CConstraint::DbgPrint() const
 {
-	CAutoTraceFlag atf(EopttracePrintExpressionProperties, true);
 	CAutoTrace at(m_pmp);
 	(void) this->OsPrint(at.Os());
 }

@@ -1183,18 +1183,22 @@ CExpression::PrintProperties
 	}
 }
 
+// ----------------------------------------------------------------
+//	Print driving functions for use in interactive debugging;
+//	always prints to stderr.
+// ----------------------------------------------------------------
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpression::DbgPrint
-//
-//	@doc:
-//		Print driving function for use in interactive debugging;
-//		always prints to stderr;
-//
-//---------------------------------------------------------------------------
+// prints expression only
 void
 CExpression::DbgPrint() const
+{
+	CAutoTrace at(m_pmp);
+	(void) this->OsPrint(at.Os());
+}
+
+// Prints expression along with it's properties
+void
+CExpression::DbgPrintWithProperties() const
 {
 	CAutoTraceFlag atf(EopttracePrintExpressionProperties, true);
 	CAutoTrace at(m_pmp);
