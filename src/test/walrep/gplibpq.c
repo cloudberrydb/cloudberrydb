@@ -489,7 +489,7 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 			CheckAoRecordResult *aorecordresult = &aorecordresults[num_found];
 			aorecordresult->xrecoff = xrecoff + i;
 
-			xl_ao_target *xlaorecord = XLogRecGetData(xlrec);
+			xl_ao_target *xlaorecord = (xl_ao_target*) XLogRecGetData(xlrec);
 
 			if (xlrec->xl_tot_len > avail_in_block)
 			{
