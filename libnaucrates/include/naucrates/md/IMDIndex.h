@@ -43,6 +43,7 @@ namespace gpmd
 			{
 				EmdindBtree,	// btree
 				EmdindBitmap,	// bitmap
+				EmdindGist,     // either btree or bitmap
 				EmdindSentinel
 			};
 

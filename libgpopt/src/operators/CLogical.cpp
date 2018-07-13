@@ -172,6 +172,9 @@ CLogical::PosFromIndex
 	//
 
 	COrderSpec *pos = GPOS_NEW(pmp) COrderSpec(pmp);
+	if (pmdindex->Emdindt() == IMDIndex::EmdindGist)
+		return pos;
+
 	const ULONG ulLenKeys = pmdindex->UlKeys();
 
 	// get relation from the metadata accessor using metadata id

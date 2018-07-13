@@ -4139,6 +4139,10 @@ CDXLOperatorFactory::EmdindtFromAttr
 	{
 		return IMDIndex::EmdindBitmap;
 	}
+	else if (0 == XMLString::compareString(xmlsz, CDXLTokens::XmlstrToken(EdxltokenIndexTypeGist)))
+	{
+		return IMDIndex::EmdindGist;
+	}
 	
 	GPOS_RAISE
 			(

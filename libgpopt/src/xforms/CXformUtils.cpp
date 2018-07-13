@@ -2290,7 +2290,7 @@ CXformUtils::FIndexApplicable
 	IMDIndex::EmdindexType emdindtype
 	)
 {
-	if (emdindtype != pmdindex->Emdindt() ||
+	if ((emdindtype != pmdindex->Emdindt() && pmdindex->Emdindt() != IMDIndex::EmdindGist) ||
 		0 == pcrsScalar->CElements()) // no columns to match index against
 	{
 		return false;
@@ -2793,7 +2793,7 @@ CXformUtils::PexprBuildIndexPlan
 	BOOL fDynamicGet = (COperator::EopLogicalDynamicGet == eopid);
 	GPOS_ASSERT_IMP(!fDynamicGet, NULL == ppartcnstrIndex);
 
-	CTableDescriptor *ptabdesc = NULL;
+	CTableDescriptor *ptabdesc = CLogical::PtabdescFromTableGet(pexprGet->Pop());
 	DrgPcr *pdrgpcrOutput = NULL;
 	CWStringConst *pstrAlias = NULL;
 	ULONG ulPartIndex = gpos::ulong_max;
@@ -2802,7 +2802,7 @@ CXformUtils::PexprBuildIndexPlan
 	ULONG ulSecondaryPartIndex = gpos::ulong_max;
 	CPartConstraint *ppartcnstrRel = NULL;
 
-	if (!fAllowPartialIndex && fPartialIndex)
+	if ((!fAllowPartialIndex && fPartialIndex) || ptabdesc->Erelstorage() != IMDRelation::ErelstorageHeap)
 	{
 		CRefCount::SafeRelease(ppartcnstrIndex);
 
@@ -2814,7 +2814,6 @@ CXformUtils::PexprBuildIndexPlan
 	{
 		CLogicalDynamicGet *popDynamicGet = CLogicalDynamicGet::PopConvert(pexprGet->Pop());
 
-		ptabdesc = popDynamicGet->Ptabdesc();
 		ulPartIndex = popDynamicGet->UlScanId();
 		pdrgpcrOutput = popDynamicGet->PdrgpcrOutput();
 		GPOS_ASSERT(NULL != pdrgpcrOutput);
@@ -2826,7 +2825,6 @@ CXformUtils::PexprBuildIndexPlan
 	else
 	{
 		CLogicalGet *popGet = CLogicalGet::PopConvert(pexprGet->Pop());
-		ptabdesc = popGet->Ptabdesc();
 		pdrgpcrOutput = popGet->PdrgpcrOutput();
 		GPOS_ASSERT(NULL != pdrgpcrOutput);
 		pstrAlias = GPOS_NEW(pmp) CWStringConst(pmp, popGet->Name().Pstr()->Wsz());

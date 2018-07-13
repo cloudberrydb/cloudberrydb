@@ -1951,7 +1951,7 @@ CPredicateUtils::PexprIndexLookup
 
 	if (cmptype == IMDType::EcmptNEq ||
 		cmptype == IMDType::EcmptIDF ||
-		cmptype == IMDType::EcmptOther)
+		(cmptype == IMDType::EcmptOther && pmdindex->Emdindt() != IMDIndex::EmdindGist))
 	{
 		return NULL;
 	}

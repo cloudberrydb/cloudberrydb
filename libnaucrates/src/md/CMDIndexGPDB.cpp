@@ -61,7 +61,7 @@ CMDIndexGPDB::CMDIndexGPDB
 	GPOS_ASSERT(NULL != pdrgpulKeyCols);
 	GPOS_ASSERT(0 < pdrgpulKeyCols->UlLength());
 	GPOS_ASSERT(NULL != pdrgpulIncludedCols);
-	GPOS_ASSERT_IMP(NULL != pmdidItemType, IMDIndex::EmdindBitmap == emdindt);
+	GPOS_ASSERT_IMP(NULL != pmdidItemType, IMDIndex::EmdindBitmap == emdindt || IMDIndex::EmdindGist == emdindt);
 	GPOS_ASSERT_IMP(IMDIndex::EmdindBitmap == emdindt, NULL != pmdidItemType && pmdidItemType->FValid());
 	GPOS_ASSERT(NULL != pdrgpmdidOpClasses);
 	
