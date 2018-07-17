@@ -13346,7 +13346,7 @@ int
 main ()
 {
 
-return strncmp("2.64.", GPORCA_VERSION_STRING, 5);
+return strncmp("2.65.", GPORCA_VERSION_STRING, 5);
 
   ;
   return 0;
