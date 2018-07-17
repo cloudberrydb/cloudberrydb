@@ -114,7 +114,7 @@ class WalReplKillProcessTestCase(TINCTestCase):
 
    def kill_transc_backend_check_reset(self):
        dict_process = { 'stats collector process': -1, 'writer process': -1,
-                       'checkpointer process': -1,'seqserver process': -1,
+                       'checkpointer process': -1,
                        'ftsprobe process': -1,'sweeper process': -1,'wal sender process': -1}
        for process in dict_process:
            pid = self.pgutil.get_pid_by_keyword(pgport=self.pgport,keyword=process)
