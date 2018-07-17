@@ -33,14 +33,16 @@ CIndexDescriptor::CIndexDescriptor
 	const CName &name,
 	DrgPcoldesc *pdrgcoldescKeyCols,
 	DrgPcoldesc *pdrgcoldescIncludedCols,
-	BOOL fClustered
+	BOOL fClustered,
+	IMDIndex::EmdindexType emdindtype
 	)
 	:
 	m_pmdidIndex(pmdidIndex),
 	m_name(pmp, name),
 	m_pdrgpcoldescKeyCols(pdrgcoldescKeyCols),
 	m_pdrgpcoldescIncludedCols(pdrgcoldescIncludedCols),
-	m_fClustered(fClustered)
+	m_fClustered(fClustered),
+	m_emdindt(emdindtype)
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(pmdidIndex->FValid());
@@ -146,7 +148,8 @@ CIndexDescriptor::Pindexdesc
 											CName(&strIndexName),
 											pdrgcoldescKey,
 											pdrgcoldescIncluded,
-											pmdindex->FClustered()
+											pmdindex->FClustered(),
+											pmdindex->Emdindt()
 											);
 	return pindexdesc;
 }

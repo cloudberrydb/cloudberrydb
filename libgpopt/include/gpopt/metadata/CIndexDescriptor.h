@@ -53,6 +53,9 @@ namespace gpopt
 			// clustered index
 			BOOL m_fClustered;
 
+			// index type
+			IMDIndex::EmdindexType m_emdindt;
+
 			// private copy ctor
 			CIndexDescriptor(const CIndexDescriptor &);
 
@@ -66,7 +69,8 @@ namespace gpopt
 				const CName &name,
 				DrgPcoldesc *pdrgcoldescKeyCols,
 				DrgPcoldesc *pdrgcoldescIncludedCols,
-				BOOL fClustered
+				BOOL fClustered,
+				IMDIndex::EmdindexType emdindt
 				);
 
 			// dtor
@@ -107,6 +111,11 @@ namespace gpopt
 			BOOL FClustered() const
 			{
 				return m_fClustered;
+			}
+
+			IMDIndex::EmdindexType Emdindt() const
+			{
+				return m_emdindt;
 			}
 
 			// create an index descriptor

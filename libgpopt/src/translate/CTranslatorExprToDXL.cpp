@@ -1396,10 +1396,24 @@ CTranslatorExprToDXL::PdxlnIndexScanWithInlinedCondition
 	GPOS_ASSERT(COperator::EopPhysicalIndexScan == eopid ||
 			COperator::EopPhysicalDynamicIndexScan == eopid);
 
+	// check if index is of type GiST
+	BOOL isGist = false;
+	if (COperator::EopPhysicalIndexScan == eopid)
+	{
+		CPhysicalIndexScan *indexScan = (CPhysicalIndexScan *) pexprIndexScan->Pop();
+		isGist = (indexScan->Pindexdesc()->Emdindt() == IMDIndex::EmdindGist);
+	}
+	else
+	{
+		CPhysicalDynamicIndexScan *indexScan = (CPhysicalDynamicIndexScan *) pexprIndexScan->Pop();
+		isGist = (indexScan->Pindexdesc()->Emdindt() == IMDIndex::EmdindGist);
+	}
+
 	// inline scalar condition in index scan, if it is not the same as index lookup condition
 	CExpression *pexprIndexLookupCond = (*pexprIndexScan)[0];
 	CDXLNode *pdxlnIndexScan = NULL;
-	if (!CUtils::FScalarConstTrue(pexprScalarCond) && !pexprScalarCond->FMatch(pexprIndexLookupCond))
+	if ((!CUtils::FScalarConstTrue(pexprScalarCond) && !pexprScalarCond->FMatch(pexprIndexLookupCond))
+		|| isGist) // GiST indexes require a recheck condition since they are lossy.
 	{
 		// combine scalar condition with existing index conditions, if any
 		pexprScalarCond->AddRef();
@@ -1579,14 +1593,22 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorWithInlinedCondition
 	BOOL fIndexChild = (COperator::EopPhysicalDynamicIndexScan == eopid || COperator::EopPhysicalDynamicBitmapTableScan == eopid);
 	GPOS_ASSERT(fTableScanChild || fIndexChild);
 
+	// if we are a dynamic GiST index scan, we need to do a recheck condition since GiST indexes are lossy
+	BOOL isGist = false;
+	if (COperator::EopPhysicalDynamicIndexScan == eopid)
+	{
+		CPhysicalDynamicIndexScan *indexScan = (CPhysicalDynamicIndexScan *) pexprChild->Pop();
+		isGist = indexScan->Pindexdesc()->Emdindt() == IMDIndex::EmdindGist;
+	}
+
 	// inline condition in child operator if the following conditions are met:
 	BOOL fInlineCondition =
 		NULL != pexprScalar &&	// condition is not NULL
 		!CUtils::FScalarConstTrue(pexprScalar) &&	// condition is not const True
 		(
 		fTableScanChild || 	// child operator is TableScan
-		(fIndexChild && !pexprScalar->FMatch((*pexprChild)[0]))	// OR, child operator is IndexScan and condition does not match index condition
-		);
+		(fIndexChild && (!pexprScalar->FMatch((*pexprChild)[0]) || isGist))	// OR, child operator is IndexScan and condition does not match index condition
+		); // if it is of type GiST, inline the condition anyway as the recheck
 
 	CExpression *pexprCond = NULL;
 	CDXLPhysicalProperties *pdxlprop = NULL;

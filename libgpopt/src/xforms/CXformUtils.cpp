@@ -1635,8 +1635,8 @@ CXformUtils::PexprAssertCheckConstraints
 	const ULONG ulCheckConstraint = pmdrel->UlCheckConstraints();
 	if (0 < ulCheckConstraint)
 	{
-	 	DrgPexpr *pdrgpexprAssertConstraints = GPOS_NEW(pmp) DrgPexpr(pmp);
-	 	
+		DrgPexpr *pdrgpexprAssertConstraints = GPOS_NEW(pmp) DrgPexpr(pmp);
+
 		for (ULONG ul = 0; ul < ulCheckConstraint; ul++)
 		{
 			IMDId *pmdidCheckConstraint = pmdrel->PmdidCheckConstraint(ul);
@@ -1663,12 +1663,12 @@ CXformUtils::PexprAssertCheckConstraints
 													GPOS_NEW(pmp) CScalarAssertConstraint(pmp, pstrErrMsg),
 													pexprIsNotFalse
 													);
-			
+
 			pdrgpexprAssertConstraints->Append(pexprAssertConstraint);	
 		}
 
-	 	CExpression *pexprAssertPredicate = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarAssertConstraintList(pmp), pdrgpexprAssertConstraints);
-	 	
+		CExpression *pexprAssertPredicate = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarAssertConstraintList(pmp), pdrgpexprAssertConstraints);
+
 		CLogicalAssert *popAssert = 
 				GPOS_NEW(pmp) CLogicalAssert
 							(
@@ -1677,13 +1677,13 @@ CXformUtils::PexprAssertCheckConstraints
 							);
 		
 
-	 	return GPOS_NEW(pmp) CExpression
-	 						(
-	 						pmp,
-	 						popAssert,
-	 						pexprChild,
-	 						pexprAssertPredicate
-	 						);
+		return GPOS_NEW(pmp) CExpression
+							(
+							pmp,
+							popAssert,
+							pexprChild,
+							pexprAssertPredicate
+							);
 	}
 
 	return pexprChild;
@@ -2854,7 +2854,21 @@ CXformUtils::PexprBuildIndexPlan
 
 		return NULL;
 	}
-	GPOS_ASSERT(pdrgpexprConds->UlLength() == pdrgpexprResidual->UlLength() + pdrgpexprIndex->UlLength());
+
+	// most GiST indexes are lossy, so conservatively re-add all the index quals to the residual so that they can be rechecked
+	if (pmdindex->Emdindt() == IMDIndex::EmdindGist)
+	{
+		for (ULONG ul = 0; ul < pdrgpexprIndex->UlLength(); ul++)
+		{
+			CExpression *pexprPred = (*pdrgpexprIndex)[ul];
+			pexprPred->AddRef();
+			pdrgpexprResidual->Append(pexprPred);
+		}
+	}
+	else
+	{
+		GPOS_ASSERT(pdrgpexprConds->UlLength() == pdrgpexprResidual->UlLength() + pdrgpexprIndex->UlLength());
+	}
 
 	ptabdesc->AddRef();
 	pdrgpcrOutput->AddRef();
@@ -4134,6 +4148,17 @@ CXformUtils::PpartcnstrUpdateCovered
 	{
 		// no predicate could use the index: clean up
 		return NULL;
+	}
+
+	// most GiST indexes are lossy, so conservatively re-add all the index quals to the residual so that they can be rechecked
+	if (pmdindex->Emdindt() == IMDIndex::EmdindGist)
+	{
+		for (ULONG ul = 0; ul < pdrgpexprIndex->UlLength(); ul++)
+		{
+			CExpression *pexprPred = (*pdrgpexprIndex)[ul];
+			pexprPred->AddRef();
+			pdrgpexprResidual->Append(pexprPred);
+		}
 	}
 
 	return CXformUtils::PpartcnstrDisjunction(pmp, ppartcnstrCovered, ppartcnstr);
