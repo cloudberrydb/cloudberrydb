@@ -439,26 +439,8 @@ namespace gpopt
 				DrgPcr *pdrgpcrOutput,
 				CColRefSet *pcrsOuterRefs,
 				CColRefSet *pcrsReqd,
-				BOOL fConjunction,
 				CExpression **ppexprRecheck,
 				CExpression **ppexprResidual
-				);
-
-			// returns the recheck condition to use in a bitmap
-			// index scan computed out of the expression 'pexprPred' that
-			// uses the bitmap index
-			// fBoolColumn (and fNegatedColumn) say whether the predicate is a
-			// (negated) boolean scalar identifier
-			// caller takes ownership of the returned expression
-			static
-			CExpression *PexprBitmapCondToUse
-				(
-				IMemoryPool *pmp,
-				CMDAccessor *pmda,
-				CExpression *pexprPred,
-				BOOL fBoolColumn,
-				BOOL fNegatedBoolColumn,
-				CColRefSet *pcrsScalar
 				);
 			
 			// compute the residual predicate for a bitmap table scan
@@ -484,7 +466,7 @@ namespace gpopt
 			// construct a bitmap index path expression for the given predicate coming
 			// from a condition without outer references
 			static
-			CExpression *PexprBitmapForSelectCondition
+			CExpression *PexprBitmap
 				(
 				IMemoryPool *pmp,
 				CMDAccessor *pmda,
@@ -494,8 +476,7 @@ namespace gpopt
 				DrgPcr *pdrgpcrOutput,
 				CColRefSet *pcrsReqd,
 				CExpression **ppexprRecheck,
-				BOOL fBoolColumn,
-				BOOL fNegatedBoolColumn
+				CExpression **ppexprResidual
 				);
 
 			// construct a bitmap index path expression for the given predicate coming
@@ -933,25 +914,7 @@ namespace gpopt
 				CExpression *pexprRight,
 				BOOL fConjunction
 				);
-			
-			// construct a bitmap index path expression for the given predicate
-			static
-			CExpression *PexprBitmap
-				(
-				IMemoryPool *pmp, 
-				CMDAccessor *pmda,
-				CExpression *pexprOriginalPred,
-				CExpression *pexprPred, 
-				CTableDescriptor *ptabdesc,
-				const IMDRelation *pmdrel,
-				DrgPcr *pdrgpcrOutput,
-				CColRefSet *pcrsOuterRefs,
-				CColRefSet *pcrsReqd,
-				BOOL fConjunction,
-				CExpression **ppexprRecheck,
-				CExpression **ppexprResidual
-				);
-			
+
 			// given an array of predicate expressions, construct a bitmap access path
 			// expression for each predicate and accumulate it in the pdrgpexprBitmap array
 			static
@@ -960,7 +923,7 @@ namespace gpopt
 				IMemoryPool *pmp, 
 				CMDAccessor *pmda,
 				CExpression *pexprOriginalPred,
-				DrgPexpr *pdrgpexpr, 
+				DrgPexpr *pdrgpexprPreds,
 				CTableDescriptor *ptabdesc,
 				const IMDRelation *pmdrel,
 				DrgPcr *pdrgpcrOutput,
@@ -971,6 +934,42 @@ namespace gpopt
 				DrgPexpr *pdrgpexprRecheck,
 				DrgPexpr *pdrgpexprResidual
 				);
+
+			static
+			void CreateBitmapIndexProbes
+				(
+				 IMemoryPool *pmp,
+				 CMDAccessor *pmda,
+				 CExpression *pexprOriginalPred,
+				 CExpression *pexprPred,
+				 CTableDescriptor *ptabdesc,
+				 const IMDRelation *pmdrel,
+				 DrgPcr *pdrgpcrOutput,
+				 CColRefSet *pcrsOuterRefs,
+				 CColRefSet *pcrsReqd,
+				 BOOL fConjunction,
+				 DrgPexpr *pdrgpexprBitmap,
+				 DrgPexpr *pdrgpexprRecheck,
+				 DrgPexpr *pdrgpexprBitmapNew,
+				 DrgPexpr *pdrgpexprRecheckNew,
+				 DrgPexpr *pdrgpexprResidual
+				 );
+
+			static
+			CExpression *PexprBitmapLookupWithPredicateBreakDown
+						(
+						 IMemoryPool *pmp,
+						 CMDAccessor *pmda,
+						 CExpression *pexprOriginalPred,
+						 CExpression *pexprPred,
+						 CTableDescriptor *ptabdesc,
+						 const IMDRelation *pmdrel,
+						 DrgPcr *pdrgpcrOutput,
+						 CColRefSet *pcrsOuterRefs,
+						 CColRefSet *pcrsReqd,
+						 CExpression **ppexprRecheck,
+						 CExpression **ppexprResidual
+						 );
 
 			// check if expression has any scalar node with ambiguous return type
 			static
@@ -1107,6 +1106,18 @@ namespace gpopt
 			// convert GbAgg with distinct aggregates to a join
 			static
 			CExpression *PexprGbAggOnCTEConsumer2Join(IMemoryPool *pmp, CExpression *pexprGbAgg);
+
+			// combine the individual bitmap access paths to form a bitmap bool op expression
+			static
+			void JoinBitmapIndexProbes
+					(
+					 IMemoryPool *pmp,
+					 DrgPexpr *pdrgpexprBitmapOld,
+					 DrgPexpr *pdrgpexprRecheckOld,
+					 BOOL fConjunction,
+					 CExpression **ppexprBitmap,
+					 CExpression **ppexprRecheck
+					 );
 
 	}; // class CXformUtils
 }

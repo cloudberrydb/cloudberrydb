@@ -570,6 +570,11 @@ namespace gpopt
 			static
 			BOOL FConvertToCNF(CExpression *pexpr, 	CExpression *pexprOuter, CExpression *pexprInner);
 
+			// check if the predicate is a simple scalar cmp or a simple conjuct that can be used directly
+			// for bitmap index looup without breaking it down.
+			static
+			BOOL FBitmapLookupSupportedPredicateOrConjunct(CExpression *pexpr);
+
 	}; // class CPredicateUtils
 }
 

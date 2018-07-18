@@ -2734,4 +2734,55 @@ CPredicateUtils::FCollapsibleChildUnionUnionAll
 	return (pexprChild->Pop()->Eopid() == pexpr->Pop()->Eopid());
 }
 
+// check if the input predicate is a simple predicate that can be used for bitmap
+// index lookup directly without separating it's children, such as
+// * A simple scalar (array) cmp between an ident and a constant (array)
+// * A conjunct with children of the form:
+//		+--CScalarCmp (op)
+//		|--CScalarIdent
+//		+--CScalarConst
+// OR
+//		+--CScalarArrayCmp (op)
+//		|--CScalarIdent
+//		+--CScalarConstArray
+// OR
+//		+--CScalarBoolOp (EboolopNot)
+//			+--CScalarIdent (boolean type)
+// OR
+//		+--CScalarIdent   (boolean type)
+
+// Note: Casted idents, constants or const arrays are allowed, such as
+//		+--CScalarArrayCmp (op)
+//		|--CScalarCast
+//		|  +--CScalarIdent
+//		+--CScalarConstArray
+BOOL
+CPredicateUtils::FBitmapLookupSupportedPredicateOrConjunct
+	(
+	CExpression *pexpr
+	)
+{
+	if (CPredicateUtils::FAnd(pexpr))
+	{
+		const ULONG ulArity = pexpr->UlArity();
+		BOOL result = true;
+		for (ULONG ul = 0; ul < ulArity && result; ul++)
+		{
+			result = result && CPredicateUtils::FBitmapLookupSupportedPredicateOrConjunct((*pexpr)[ul]);
+		}
+
+		return result;
+	}
+
+	if(CPredicateUtils::FIdentCompareConstIgnoreCast(pexpr, COperator::EopScalarCmp) ||
+	   CPredicateUtils::FArrayCompareIdentToConstIgnoreCast(pexpr) ||
+	   CUtils::FScalarIdentBoolType(pexpr) ||
+	   (!CUtils::FScalarIdentBoolType(pexpr) && CPredicateUtils::FNotIdent(pexpr)))
+	{
+		return true;
+	}
+
+	return false;
+}
+
 // EOF
