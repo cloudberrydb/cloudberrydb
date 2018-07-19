@@ -2291,8 +2291,9 @@ CXformUtils::FIndexApplicable
 	)
 {
 	if ((emdindtype != pmdindex->Emdindt() && pmdindex->Emdindt() != IMDIndex::EmdindGist) ||
-		0 == pcrsScalar->CElements()) // no columns to match index against
-	{
+        0 == pcrsScalar->CElements() || // no columns to match index against
+        (pmdindex->Emdindt() == IMDIndex::EmdindGist && pmdrel->FPartialIndex(pmdindex->Pmdid()))) // partial indexes not supported for GiST
+    {
 		return false;
 	}
 	
