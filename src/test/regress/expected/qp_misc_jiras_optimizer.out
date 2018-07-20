@@ -4607,6 +4607,50 @@ select test();
  
 (1 row)
 
+--
+-- Test gp_enable_relsize_collection's effect on ORCA plan generation
+--
+create table tbl_z(x int) distributed by (x);
+set optimizer_metadata_caching to off;
+insert into tbl_z select i from generate_series(1,100) i;
+-- plan with no relsize collection
+explain select 1 as t1 where 1 <= ALL (select x from tbl_z);
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Result  (cost=0.00..882688.07 rows=1 width=4)
+   ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=0.00..882688.07 rows=1 width=1)
+         Join Filter: true
+         ->  Result  (cost=0.00..0.00 rows=1 width=1)
+         ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
+               ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+                     ->  Table Scan on tbl_z  (cost=0.00..431.00 rows=1 width=1)
+                           Filter: 1 > x
+ Optimizer: PQO version 2.65.1
+(9 rows)
+
+set gp_enable_relsize_collection = on;
+-- plan with relsize collection
+explain select 1 as t1 where 1 <= ALL (select x from tbl_z);
+                                                                                                                                                                              QUERY PLAN                                                                                                                                                                               
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.00..882700.51 rows=1 width=4)
+   ->  Nested Loop  (cost=0.00..882700.51 rows=1 width=1)
+         Join Filter: true
+         ->  Result  (cost=0.00..431.01 rows=1 width=1)
+               Filter: (CASE WHEN (pg_catalog.sum((sum((CASE WHEN 1 > x THEN 1 ELSE 0 END))))) IS NULL THEN true WHEN (pg_catalog.sum((sum((CASE WHEN x IS NULL THEN 1 ELSE 0 END))))) > 0::bigint THEN NULL::boolean WHEN 1 IS NULL THEN NULL::boolean WHEN (pg_catalog.sum((sum((CASE WHEN 1 > x THEN 1 ELSE 0 END))))) = 0::bigint THEN true ELSE false END) = true
+               ->  Result  (cost=0.00..431.01 rows=1 width=1)
+                     ->  Aggregate  (cost=0.00..431.01 rows=1 width=16)
+                           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.01 rows=1 width=16)
+                                 ->  Aggregate  (cost=0.00..431.01 rows=1 width=16)
+                                       ->  Result  (cost=0.00..431.01 rows=321 width=8)
+                                             ->  Table Scan on tbl_z  (cost=0.00..431.01 rows=321 width=4)
+         ->  Result  (cost=0.00..0.00 rows=1 width=1)
+ Optimizer: PQO version 2.65.1
+(13 rows)
+
+drop table if exists tbl_z;
+reset optimizer_metadata_caching;
+reset gp_enable_relsize_collection;
 -- start_ignore
 drop schema qp_misc_jiras cascade;
 NOTICE:  drop cascades to table qp_misc_jiras._tbl10050_test

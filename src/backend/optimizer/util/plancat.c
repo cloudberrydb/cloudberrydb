@@ -59,14 +59,6 @@ static List *get_relation_constraints(PlannerInfo *root,
 						 Oid relationObjectId, RelOptInfo *rel,
 						 bool include_notnull);
 
-static void
-cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
-                      Relation      baserel,
-                      Relation      rel,
-                      int32        *attr_widths,
-				      BlockNumber  *pages,
-                      double       *tuples);
-
 static void get_external_relation_info(Relation relation, RelOptInfo *rel);
 
 
