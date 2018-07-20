@@ -151,7 +151,7 @@ class GPDBConfig():
     def is_multinode(self):
         '''
         Check whether GPDB is multinode
-        For OSX, it will always be single node. It's documented about issues with OSX and GPBD setting up
+        For OSX, it will always be single node. It's documented about issues with OSX and GPDB setting up
         @note: On DCA, the hostname for each segment is different, but the address is pointing to localhost
         localhost
         '''
