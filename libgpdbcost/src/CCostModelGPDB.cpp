@@ -1325,14 +1325,9 @@ CCostModelGPDB::CostIndexScan
 	// table width and a randomIOFactor.
 	// 2. output tuple cost: this is handled by the Filter on top of IndexScan, if no Filter exists, we add output cost
 	// when we sum-up children cost
-	return CCost
-			(
-				pci->NumRebinds() *
-				(
-				dRowsIndex *
-				(ulIndexKeys * dIndexFilterCostUnit + dTableWidth * dIndexScanTupCostUnit + dIndexScanTupRandomFactor)
-				)
-			);
+
+	CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit + dTableWidth * dIndexScanTupCostUnit;
+	return CCost(pci->NumRebinds() * (dRowsIndex * dCostPerIndexRow + dIndexScanTupRandomFactor));
 }
 
 

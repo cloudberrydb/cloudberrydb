@@ -16,7 +16,7 @@ AND
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2">
         <dxl:CostParams>
@@ -827,7 +827,7 @@ AND
     <dxl:Plan Id="0" SpaceSize="324">
       <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1416.146987" Rows="512.000000" Width="106"/>
+          <dxl:Cost StartupCost="0" TotalCost="1373.906987" Rows="512.000000" Width="106"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="rolname">
@@ -954,7 +954,7 @@ AND
         </dxl:JoinFilter>
         <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="553.923613" Rows="64.000000" Width="82"/>
+            <dxl:Cost StartupCost="0" TotalCost="511.683613" Rows="64.000000" Width="82"/>
           </dxl:Properties>
           <dxl:GroupingColumns>
             <dxl:GroupingColumn ColId="0"/>
@@ -1115,7 +1115,7 @@ AND
           <dxl:Filter/>
           <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="553.919624" Rows="10.240000" Width="102"/>
+              <dxl:Cost StartupCost="0" TotalCost="511.679624" Rows="10.240000" Width="102"/>
             </dxl:Properties>
             <dxl:GroupingColumns>
               <dxl:GroupingColumn ColId="0"/>
@@ -1276,7 +1276,7 @@ AND
             <dxl:Filter/>
             <dxl:Sort SortDiscardDuplicates="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="553.917994" Rows="10.240000" Width="102"/>
+                <dxl:Cost StartupCost="0" TotalCost="511.677994" Rows="10.240000" Width="102"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="rolname">
@@ -1405,7 +1405,7 @@ AND
               <dxl:LimitOffset/>
               <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="553.898118" Rows="10.240000" Width="102"/>
+                  <dxl:Cost StartupCost="0" TotalCost="511.658118" Rows="10.240000" Width="102"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="rolname">
@@ -1529,7 +1529,7 @@ AND
                 </dxl:JoinFilter>
                 <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="492.448609" Rows="10.240000" Width="61"/>
+                    <dxl:Cost StartupCost="0" TotalCost="450.208609" Rows="10.240000" Width="61"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="rolname">
@@ -1660,7 +1660,7 @@ AND
                   </dxl:Result>
                   <dxl:IndexScan IndexScanDirection="Forward">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="61.444426" Rows="3.200000" Width="67"/>
+                      <dxl:Cost StartupCost="0" TotalCost="19.204426" Rows="3.200000" Width="67"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="0" Alias="rolname">

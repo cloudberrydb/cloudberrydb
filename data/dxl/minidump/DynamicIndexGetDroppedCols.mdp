@@ -115,7 +115,7 @@ EXPLAIN SELECT * FROM solo WHERE year_id=2017 AND month_id=6;
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
         <dxl:CostParams>
@@ -2285,7 +2285,7 @@ EXPLAIN SELECT * FROM solo WHERE year_id=2017 AND month_id=6;
     <dxl:Plan Id="0" SpaceSize="2">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="3.550059" Rows="1.774224" Width="88"/>
+          <dxl:Cost StartupCost="0" TotalCost="6.001611" Rows="1.774224" Width="88"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="some_id">
@@ -2362,7 +2362,7 @@ EXPLAIN SELECT * FROM solo WHERE year_id=2017 AND month_id=6;
         <dxl:SortingColumnList/>
         <dxl:Sequence>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="3.549289" Rows="1.774224" Width="88"/>
+            <dxl:Cost StartupCost="0" TotalCost="6.000841" Rows="1.774224" Width="88"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="some_id">
@@ -2469,7 +2469,7 @@ EXPLAIN SELECT * FROM solo WHERE year_id=2017 AND month_id=6;
           </dxl:PartitionSelector>
           <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="3.549289" Rows="1.774224" Width="88"/>
+              <dxl:Cost StartupCost="0" TotalCost="6.000841" Rows="1.774224" Width="88"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="some_id">

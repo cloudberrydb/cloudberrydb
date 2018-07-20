@@ -4,7 +4,7 @@
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2">
         <dxl:CostParams>
@@ -729,7 +729,7 @@
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="6108848479.934728" Rows="2036160000.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="4033567.934727" Rows="2036160000.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="i">
@@ -740,7 +740,7 @@
         <dxl:SortingColumnList/>
         <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="6108811910.501127" Rows="2036160000.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="3996998.501127" Rows="2036160000.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="i">
@@ -789,7 +789,7 @@
           </dxl:BroadcastMotion>
           <dxl:IndexScan IndexScanDirection="Forward">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="6108789577.766400" Rows="3333.333333" Width="4"/>
+              <dxl:Cost StartupCost="0" TotalCost="3974665.766400" Rows="3333.333333" Width="4"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="i">

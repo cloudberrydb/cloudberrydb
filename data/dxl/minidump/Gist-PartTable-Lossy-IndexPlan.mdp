@@ -319,7 +319,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
     <dxl:Plan Id="0" SpaceSize="2">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="2.000212" Rows="1.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="6.000212" Rows="1.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="id">
@@ -330,7 +330,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
         <dxl:SortingColumnList/>
         <dxl:Result>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="2.000197" Rows="1.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="6.000197" Rows="1.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="id">
@@ -341,7 +341,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
           <dxl:OneTimeFilter/>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="2.000197" Rows="1.000000" Width="4"/>
+              <dxl:Cost StartupCost="0" TotalCost="6.000197" Rows="1.000000" Width="4"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="id">
@@ -374,7 +374,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
             </dxl:PartitionSelector>
             <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="2.000197" Rows="1.000000" Width="4"/>
+                <dxl:Cost StartupCost="0" TotalCost="6.000197" Rows="1.000000" Width="4"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="id">

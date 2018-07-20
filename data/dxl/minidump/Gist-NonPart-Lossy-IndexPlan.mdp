@@ -259,7 +259,7 @@ Optimizer status: PQO version 2.65.1
     <dxl:Plan Id="0" SpaceSize="2">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="80.029325" Rows="40.000000" Width="101"/>
+          <dxl:Cost StartupCost="0" TotalCost="6.029325" Rows="40.000000" Width="101"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="1" Alias="p">
@@ -270,7 +270,7 @@ Optimizer status: PQO version 2.65.1
         <dxl:SortingColumnList/>
         <dxl:IndexScan IndexScanDirection="Forward">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="80.014269" Rows="40.000000" Width="101"/>
+            <dxl:Cost StartupCost="0" TotalCost="6.014269" Rows="40.000000" Width="101"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="1" Alias="p">

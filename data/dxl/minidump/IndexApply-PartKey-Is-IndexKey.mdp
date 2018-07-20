@@ -25,7 +25,7 @@ select z_p.j from z_p,tt_p where  z_p.i=6 and z_p.i<tt_p.i;
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2">
         <dxl:CostParams>
@@ -583,7 +583,7 @@ select z_p.j from z_p,tt_p where  z_p.i=6 and z_p.i<tt_p.i;
     <dxl:Plan Id="0" SpaceSize="24">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="9.001200" Rows="1.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="12.001200" Rows="1.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="1" Alias="j">
@@ -594,7 +594,7 @@ select z_p.j from z_p,tt_p where  z_p.i=6 and z_p.i<tt_p.i;
         <dxl:SortingColumnList/>
         <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="9.001182" Rows="1.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="12.001182" Rows="1.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="1" Alias="j">
@@ -694,7 +694,7 @@ select z_p.j from z_p,tt_p where  z_p.i=6 and z_p.i<tt_p.i;
           </dxl:BroadcastMotion>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="3.000152" Rows="1.000000" Width="1"/>
+              <dxl:Cost StartupCost="0" TotalCost="6.000152" Rows="1.000000" Width="1"/>
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartitionSelector RelationMdid="0.41880825.1.1" PartitionLevels="1" ScanId="2">
@@ -720,7 +720,7 @@ select z_p.j from z_p,tt_p where  z_p.i=6 and z_p.i<tt_p.i;
             </dxl:PartitionSelector>
             <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="2">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="3.000152" Rows="1.000000" Width="1"/>
+                <dxl:Cost StartupCost="0" TotalCost="6.000152" Rows="1.000000" Width="1"/>
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:Filter/>
