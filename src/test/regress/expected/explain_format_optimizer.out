@@ -34,12 +34,11 @@ EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT 
                      Hash Cond: boxes.apple_id = apples.id
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2437.00 rows=25967 width=12)
                            Hash Key: boxes.apple_id
-                           ->  Seq Scan on boxes  (cost=0.00..879.00 rows=25967 width=12)
+                           ->  Table Scan on boxes  (cost=0.00..879.00 rows=25967 width=12)
                      ->  Hash  (cost=596.00..596.00 rows=16534 width=36)
-                           ->  Seq Scan on apples  (cost=0.00..596.00 rows=16534 width=36)
+                           ->  Table Scan on apples  (cost=0.00..596.00 rows=16534 width=36)
          ->  Hash  (cost=596.00..596.00 rows=16534 width=36)
-               ->  Seq Scan on locations  (cost=0.00..596.00 rows=16534 width=36)
- Optimizer: legacy query optimizer
+               ->  Table Scan on locations  (cost=0.00..596.00 rows=16534 width=36)
 (15 rows)
 
 -- explain_processing_on
@@ -57,17 +56,16 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
                      Hash Cond: boxes.apple_id = apples.id
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
                            Hash Key: boxes.apple_id
-                           ->  Seq Scan on boxes  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+                           ->  Table Scan on boxes  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
                      ->  Hash  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
-                           ->  Seq Scan on apples  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+                           ->  Table Scan on apples  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
          ->  Hash  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
-               ->  Seq Scan on locations  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+               ->  Table Scan on locations  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 59K bytes avg x 3 workers, 59K bytes max (seg0).
    (slice2)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).
    (slice3)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
  Total runtime: 34.572 ms
 (21 rows)
 
@@ -157,7 +155,7 @@ EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
                      Plan Width: 12                     +
                      Hash Key: "boxes.apple_id"         +
                      Plans:                             +
-                       - Node Type: "Seq Scan"          +
+                       - Node Type: "Table Scan"        +
                          Parent Relationship: "Outer"   +
                          Slice: 1                       +
                          Segments: 3                    +
@@ -178,7 +176,7 @@ EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
                      Plan Rows: 49600                   +
                      Plan Width: 36                     +
                      Plans:                             +
-                       - Node Type: "Seq Scan"          +
+                       - Node Type: "Table Scan"        +
                          Parent Relationship: "Outer"   +
                          Slice: 2                       +
                          Segments: 3                    +
@@ -199,7 +197,7 @@ EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
              Plan Rows: 49600                           +
              Plan Width: 36                             +
              Plans:                                     +
-               - Node Type: "Seq Scan"                  +
+               - Node Type: "Table Scan"                +
                  Parent Relationship: "Outer"           +
                  Slice: 3                               +
                  Segments: 10                           +
@@ -211,7 +209,7 @@ EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
                  Plan Rows: 49600                       +
                  Plan Width: 36                         +
    Settings:                                            +
-     Optimizer: "legacy query optimizer"
+     Optimizer: "PQO version 1.2.3"
 (1 row)
 
 --- Check Explain Analyze YAML output that include the slices information
@@ -301,7 +299,7 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
                      Actual Loops: 0                    +
                      Hash Key: "boxes.apple_id"         +
                      Plans:                             +
-                       - Node Type: "Seq Scan"          +
+                       - Node Type: "Table Scan"        +
                          Parent Relationship: "Outer"   +
                          Slice: 1                       +
                          Segments: 3                    +
@@ -330,7 +328,7 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
                      Actual Rows: 0                     +
                      Actual Loops: 0                    +
                      Plans:                             +
-                       - Node Type: "Seq Scan"          +
+                       - Node Type: "Table Scan"        +
                          Parent Relationship: "Outer"   +
                          Slice: 2                       +
                          Segments: 3                    +
@@ -359,7 +357,7 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
              Actual Rows: 0                             +
              Actual Loops: 0                            +
              Plans:                                     +
-               - Node Type: "Seq Scan"                  +
+               - Node Type: "Table Scan"                +
                  Parent Relationship: "Outer"           +
                  Slice: 3                               +
                  Segments: 10                           +
@@ -378,7 +376,7 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
    Statement statistics:                                +
      Memory used: 128000                                +
    Settings:                                            +
-     Optimizer: "legacy query optimizer"                +
+     Optimizer: "PQO version 1.2.3"                     +
    Total Runtime: 2.652
 (1 row)
 
@@ -476,7 +474,7 @@ EXPLAIN (FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
                        "Hash Key": "boxes.apple_id",         +
                        "Plans": [                            +
                          {                                   +
-                           "Node Type": "Seq Scan",          +
+                           "Node Type": "Table Scan",        +
                            "Parent Relationship": "Outer",   +
                            "Slice": 1,                       +
                            "Segments": 3,                    +
@@ -502,7 +500,7 @@ EXPLAIN (FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
                        "Plan Width": 36,                     +
                        "Plans": [                            +
                          {                                   +
-                           "Node Type": "Seq Scan",          +
+                           "Node Type": "Table Scan",        +
                            "Parent Relationship": "Outer",   +
                            "Slice": 2,                       +
                            "Segments": 3,                    +
@@ -532,7 +530,7 @@ EXPLAIN (FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
                "Plan Width": 36,                             +
                "Plans": [                                    +
                  {                                           +
-                   "Node Type": "Seq Scan",                  +
+                   "Node Type": "Table Scan",                +
                    "Parent Relationship": "Outer",           +
                    "Slice": 3,                               +
                    "Segments": 10,                           +
@@ -551,7 +549,7 @@ EXPLAIN (FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.
        ]                                                     +
      },                                                      +
      "Settings": {                                           +
-       "Optimizer": "legacy query optimizer"                 +
+       "Optimizer": "PQO version 1.2.3"                      +
      }                                                       +
    }                                                         +
  ]
@@ -652,7 +650,7 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
                        "Hash Key": "boxes.apple_id",         +
                        "Plans": [                            +
                          {                                   +
-                           "Node Type": "Seq Scan",          +
+                           "Node Type": "Table Scan",        +
                            "Parent Relationship": "Outer",   +
                            "Slice": 1,                       +
                            "Segments": 3,                    +
@@ -686,7 +684,7 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
                        "Actual Loops": 0,                    +
                        "Plans": [                            +
                          {                                   +
-                           "Node Type": "Seq Scan",          +
+                           "Node Type": "Table Scan",        +
                            "Parent Relationship": "Outer",   +
                            "Slice": 2,                       +
                            "Segments": 3,                    +
@@ -724,7 +722,7 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
                "Actual Loops": 0,                            +
                "Plans": [                                    +
                  {                                           +
-                   "Node Type": "Seq Scan",                  +
+                   "Node Type": "Table Scan",                +
                    "Parent Relationship": "Outer",           +
                    "Slice": 3,                               +
                    "Segments": 3,                            +
@@ -752,7 +750,7 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
        "Memory used": 12800                                  +
      },                                                      +
      "Settings": {                                           +
-       "Optimizer": "legacy query optimizer"                 +
+       "Optimizer": "PQO version 1.2.3"                      +
      },                                                      +
      "Total Runtime": 28.324                                 +
    }                                                         +
@@ -853,7 +851,7 @@ EXPLAIN (FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.a
                        <Hash-Key>boxes.apple_id</Hash-Key>                 +
                        <Plans>                                             +
                          <Plan>                                            +
-                           <Node-Type>Seq Scan</Node-Type>                 +
+                           <Node-Type>Table Scan</Node-Type>               +
                            <Parent-Relationship>Outer</Parent-Relationship>+
                            <Slice>1</Slice>                                +
                            <Segments>3</Segments>                          +
@@ -879,7 +877,7 @@ EXPLAIN (FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.a
                        <Plan-Width>36</Plan-Width>                         +
                        <Plans>                                             +
                          <Plan>                                            +
-                           <Node-Type>Seq Scan</Node-Type>                 +
+                           <Node-Type>Table Scan</Node-Type>               +
                            <Parent-Relationship>Outer</Parent-Relationship>+
                            <Slice>2</Slice>                                +
                            <Segments>4</Segments>                          +
@@ -909,7 +907,7 @@ EXPLAIN (FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.a
                <Plan-Width>36</Plan-Width>                                 +
                <Plans>                                                     +
                  <Plan>                                                    +
-                   <Node-Type>Seq Scan</Node-Type>                         +
+                   <Node-Type>Table Scan</Node-Type>                       +
                    <Parent-Relationship>Outer</Parent-Relationship>        +
                    <Slice>3</Slice>                                        +
                    <Segments>3</Segments>                                  +
@@ -928,7 +926,7 @@ EXPLAIN (FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.a
        </Plans>                                                            +
      </Plan>                                                               +
      <Settings>                                                            +
-       <Optimizer>legacy query optimizer</Optimizer>                       +
+       <Optimizer>PQO version 1.2.3</Optimizer>                           +
      </Settings>                                                           +
    </Query>                                                                +
  </explain>
@@ -1029,7 +1027,7 @@ EXPLAIN (ANALYZE, FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id 
                        <Hash-Key>boxes.apple_id</Hash-Key>                 +
                        <Plans>                                             +
                          <Plan>                                            +
-                           <Node-Type>Seq Scan</Node-Type>                 +
+                           <Node-Type>Table Scan</Node-Type>               +
                            <Parent-Relationship>Outer</Parent-Relationship>+
                            <Slice>1</Slice>                                +
                            <Segments>3</Segments>                          +
@@ -1063,7 +1061,7 @@ EXPLAIN (ANALYZE, FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id 
                        <Actual-Loops>0</Actual-Loops>                      +
                        <Plans>                                             +
                          <Plan>                                            +
-                           <Node-Type>Seq Scan</Node-Type>                 +
+                           <Node-Type>Table Scan</Node-Type>               +
                            <Parent-Relationship>Outer</Parent-Relationship>+
                            <Slice>2</Slice>                                +
                            <Segments>3</Segments>                          +
@@ -1101,7 +1099,7 @@ EXPLAIN (ANALYZE, FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id 
                <Actual-Loops>0</Actual-Loops>                              +
                <Plans>                                                     +
                  <Plan>                                                    +
-                   <Node-Type>Seq Scan</Node-Type>                         +
+                   <Node-Type>Table Scan</Node-Type>                       +
                    <Parent-Relationship>Outer</Parent-Relationship>        +
                    <Slice>3</Slice>                                        +
                    <Segments>1</Segments>                                  +
@@ -1129,7 +1127,7 @@ EXPLAIN (ANALYZE, FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id 
        <Memory-used>1200</Memory-used>                                   +
      </Statement-statistics>                                               +
      <Settings>                                                            +
-       <Optimizer>legacy query optimizer</Optimizer>                       +
+       <Optimizer>PQO version 1.2.3</Optimizer>                           +
      </Settings>                                                           +
      <Total-Runtime>24.8</Total-Runtime>                                 +
    </Query>                                                                +
