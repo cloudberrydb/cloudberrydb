@@ -1,0 +1,72 @@
+-- start_matchsubs
+-- m/\(actual time=\d+.\d+..\d+.\d+ rows=\d+ loops=\d+\)/
+-- s/\(actual time=\d+.\d+..\d+.\d+ rows=\d+ loops=\d+\)/(actual time=10.302..10.302 rows=0 loops=1)/
+-- m/\(slice\d+\)    Executor memory: (\d+)\w bytes\./
+-- s/\(slice\d+\)    Executor memory: (\d+)\w bytes\./\(slice\)    Executor memory: (#####)K bytes./
+-- m/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./
+-- s/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./\(slice\)    Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg0)./
+-- m/Total runtime: \d+\.\d+ ms/
+-- s/Total runtime: \d+\.\d+ ms/Total runtime: ##.### ms/
+-- m/cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+/
+-- s/\(cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+\)/(cost=##.###..##.### rows=### width=###)/
+-- end_matchsubs
+--
+-- DEFAULT syntax
+CREATE TABLE apples(id int PRIMARY KEY, type text);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "apples_pkey" for table "apples"
+CREATE TABLE locations(id int PRIMARY KEY, address text);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "locations_pkey" for table "locations"
+CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES locations(id));
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "boxes_pkey" for table "boxes"
+WARNING:  Referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced.
+WARNING:  Referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced.
+--- Check Explain Text output
+EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+                                                   QUERY PLAN
+------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=2432.00..8569.25 rows=77900 width=84)
+   ->  Hash Left Join  (cost=2432.00..8569.25 rows=25967 width=84)
+         Hash Cond: boxes.location_id = locations.id
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=1216.00..6282.12 rows=25967 width=48)
+               Hash Key: boxes.location_id
+               ->  Hash Left Join  (cost=1216.00..4724.12 rows=25967 width=48)
+                     Hash Cond: boxes.apple_id = apples.id
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2437.00 rows=25967 width=12)
+                           Hash Key: boxes.apple_id
+                           ->  Seq Scan on boxes  (cost=0.00..879.00 rows=25967 width=12)
+                     ->  Hash  (cost=596.00..596.00 rows=16534 width=36)
+                           ->  Seq Scan on apples  (cost=0.00..596.00 rows=16534 width=36)
+         ->  Hash  (cost=596.00..596.00 rows=16534 width=36)
+               ->  Seq Scan on locations  (cost=0.00..596.00 rows=16534 width=36)
+ Optimizer: legacy query optimizer
+(15 rows)
+
+--- Check Explain Analyze Text output
+-- explain_processing_off
+EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+                                                            QUERY PLAN
+-----------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=2432.00..8569.25 rows=77900 width=84) (actual time=3.936..3.936 rows=0 loops=1)
+   ->  Hash Left Join  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+         Hash Cond: boxes.location_id = locations.id
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+               Hash Key: boxes.location_id
+               ->  Hash Left Join  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+                     Hash Cond: boxes.apple_id = apples.id
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+                           Hash Key: boxes.apple_id
+                           ->  Seq Scan on boxes  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+                     ->  Hash  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+                           ->  Seq Scan on apples  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+         ->  Hash  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+               ->  Seq Scan on locations  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+   (slice0)    Executor memory: 386K bytes.
+   (slice1)    Executor memory: 59K bytes avg x 3 workers, 59K bytes max (seg0).
+   (slice2)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).
+   (slice3)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).
+ Memory used:  128000kB
+ Optimizer: legacy query optimizer
+ Total runtime: 34.572 ms
+(21 rows)
+
+-- explain_processing_on
