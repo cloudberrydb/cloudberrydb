@@ -16,6 +16,7 @@
 #include "naucrates/dxl/parser/CParseHandlerProperties.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarOp.h"
 #include "naucrates/dxl/parser/CParseHandlerUtils.h"
+#include "naucrates/dxl/parser/CParseHandlerNLJIndexParamList.h"
 
 #include "naucrates/dxl/operators/CDXLOperatorFactory.h"
 
@@ -67,12 +68,20 @@ CParseHandlerNLJoin::StartElement
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
 	}
 	
-	// parse and create Hash join operator
+	// parse and create nest loop join operator
 	m_pdxlop = (CDXLPhysicalNLJoin *) CDXLOperatorFactory::PdxlopNLJoin(m_pphm->Pmm(), attrs);
 	
 	// create and activate the parse handler for the children nodes in reverse
 	// order of their expected appearance
-	
+
+	// parse handler for the nest loop params list
+	CParseHandlerBase *nest_params_parse_handler = NULL;
+	if (m_pdxlop->NestParamsExists())
+	{
+		nest_params_parse_handler = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenNLJIndexParamList), m_pphm, this);
+		m_pphm->ActivateParseHandler(nest_params_parse_handler);
+	}
+
 	// parse handler for right child
 	CParseHandlerBase *pphRight = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenPhysical), m_pphm, this);
 	m_pphm->ActivateParseHandler(pphRight);
@@ -104,6 +113,10 @@ CParseHandlerNLJoin::StartElement
 	this->Append(pphJoinFilter);
 	this->Append(pphLeft);
 	this->Append(pphRight);
+	if (NULL != nest_params_parse_handler)
+	{
+		this->Append(nest_params_parse_handler);
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -134,23 +147,32 @@ CParseHandlerNLJoin::EndElement
 	}
 	
 	// construct node from the created child nodes
-	CParseHandlerProperties *pphProp = dynamic_cast<CParseHandlerProperties *>((*this)[0]);
-	CParseHandlerProjList *pphPrL = dynamic_cast<CParseHandlerProjList*>((*this)[1]);
-	CParseHandlerFilter *pphFilter = dynamic_cast<CParseHandlerFilter *>((*this)[2]);
-	CParseHandlerFilter *pphJoinFilter = dynamic_cast<CParseHandlerFilter *>((*this)[3]);
-	CParseHandlerPhysicalOp *pphLeft = dynamic_cast<CParseHandlerPhysicalOp *>((*this)[4]);
-	CParseHandlerPhysicalOp *pphRight = dynamic_cast<CParseHandlerPhysicalOp *>((*this)[5]);
+	CParseHandlerProperties *prop_parse_handler = dynamic_cast<CParseHandlerProperties *>((*this)[EdxlParseHandlerNLJIndexProp]);
+	CParseHandlerProjList *proj_list_parse_handler = dynamic_cast<CParseHandlerProjList*>((*this)[EdxlParseHandlerNLJIndexProjList]);
+	CParseHandlerFilter *filter_parse_handler = dynamic_cast<CParseHandlerFilter *>((*this)[EdxlParseHandlerNLJIndexFilter]);
+	CParseHandlerFilter *join_filter_parse_handler = dynamic_cast<CParseHandlerFilter *>((*this)[EdxlParseHandlerNLJIndexJoinFilter]);
+	CParseHandlerPhysicalOp *left_child_parse_handler = dynamic_cast<CParseHandlerPhysicalOp *>((*this)[EdxlParseHandlerNLJIndexLeftChild]);
+	CParseHandlerPhysicalOp *right_child_parse_handler = dynamic_cast<CParseHandlerPhysicalOp *>((*this)[EdxlParseHandlerNLJIndexRightChild]);
+
+	if (m_pdxlop->NestParamsExists())
+	{
+		CParseHandlerNLJIndexParamList *nest_params_parse_handler = dynamic_cast<CParseHandlerNLJIndexParamList*>((*this)[EdxlParseHandlerNLJIndexNestLoopParams]);
+		GPOS_ASSERT(nest_params_parse_handler);
+		DrgPdxlcr *nest_params_colrefs = nest_params_parse_handler->GetNLParamsColRefs();
+		nest_params_colrefs->AddRef();
+		m_pdxlop->SetNestLoopParamsColRefs(nest_params_colrefs);
+	}
 
 	m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, m_pdxlop);
 	// set statictics and physical properties
-	CParseHandlerUtils::SetProperties(m_pdxln, pphProp);
+	CParseHandlerUtils::SetProperties(m_pdxln, prop_parse_handler);
 	
 	// add constructed children
-	AddChildFromParseHandler(pphPrL);
-	AddChildFromParseHandler(pphFilter);
-	AddChildFromParseHandler(pphJoinFilter);
-	AddChildFromParseHandler(pphLeft);
-	AddChildFromParseHandler(pphRight);
+	AddChildFromParseHandler(proj_list_parse_handler);
+	AddChildFromParseHandler(filter_parse_handler);
+	AddChildFromParseHandler(join_filter_parse_handler);
+	AddChildFromParseHandler(left_child_parse_handler);
+	AddChildFromParseHandler(right_child_parse_handler);
 	
 #ifdef GPOS_DEBUG
 	m_pdxlop->AssertValid(m_pdxln, false /* fValidateChildren */);

@@ -423,6 +423,11 @@ namespace gpdxl
 		EdxltokenTrue,
 		EdxltokenFalse,
 		
+		// nest params related constants
+		EdxltokenNLJIndexParamList,
+		EdxltokenNLJIndexParam,
+		EdxltokenNLJIndexOuterRefAsParam,
+		
 		// metadata-related constants
 		EdxltokenRelation,
 		EdxltokenRelationExternal,

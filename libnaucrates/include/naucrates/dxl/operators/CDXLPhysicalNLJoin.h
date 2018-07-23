@@ -16,6 +16,7 @@
 
 #include "gpos/base.h"
 #include "naucrates/dxl/operators/CDXLPhysicalJoin.h"
+#include "naucrates/dxl/operators/CDXLColRef.h"
 
 namespace gpdxl
 {
@@ -47,12 +48,23 @@ namespace gpdxl
 			// i.e., inner side is an index scan that uses values from outer side
 			BOOL m_fIndexNLJ;
 
+			// array holding nest params col references used for creating nestparam
+			// node during translation
+			DrgPdxlcr *m_nest_params_col_refs;
+
+			// if nest params are required to be parsed
+			BOOL m_nest_params_exists;
+
+			void SerializeNestLoopParamsToDXL(CXMLSerializer *pxmlser) const;
+
 			// private copy ctor
 			CDXLPhysicalNLJoin(const CDXLPhysicalNLJoin&);
 
 		public:
-			// ctor/dtor
-			CDXLPhysicalNLJoin(IMemoryPool *pmp, EdxlJoinType edxljt, BOOL fIndexNLJ);
+			// ctor
+			CDXLPhysicalNLJoin(IMemoryPool *pmp, EdxlJoinType edxljt, BOOL fIndexNLJ, BOOL nest_params_exists);
+		
+			~CDXLPhysicalNLJoin();
 			
 			// accessors
 			Edxlopid Edxlop() const;
@@ -64,9 +76,16 @@ namespace gpdxl
 				return m_fIndexNLJ;
 			}
 
+			// nest params exists for parsing
+			BOOL NestParamsExists() const;
+
 			// serialize operator in DXL format
 			virtual
 			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
+
+			void SetNestLoopParamsColRefs(DrgPdxlcr *nest_params_col_refs);
+
+			DrgPdxlcr *GetNestLoopParamsColRefs() const;
 
 			// conversion function
 			static

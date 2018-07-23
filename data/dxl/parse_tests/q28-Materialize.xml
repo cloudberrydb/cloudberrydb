@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Plan Id="0" SpaceSize="0">
-    <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+    <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
       <dxl:Properties>
         <dxl:Cost StartupCost="1" TotalCost="5" Rows="10" Width="16"/>
       </dxl:Properties>

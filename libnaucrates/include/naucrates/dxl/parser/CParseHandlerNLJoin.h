@@ -23,6 +23,19 @@ namespace gpdxl
 
 	XERCES_CPP_NAMESPACE_USE
 	
+	// indices of nested loop join elements in the children array
+	enum ENLJoinParseHandlerChildIndices
+	{
+		EdxlParseHandlerNLJIndexProp = 0,
+		EdxlParseHandlerNLJIndexProjList,
+		EdxlParseHandlerNLJIndexFilter,
+		EdxlParseHandlerNLJIndexJoinFilter,
+		EdxlParseHandlerNLJIndexLeftChild,
+		EdxlParseHandlerNLJIndexRightChild,
+		EdxlParseHandlerNLJIndexNestLoopParams,
+		EdxlParseHandlerNLJIndexSentinel
+	};
+	
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CParseHandlerNLJoin

@@ -197,6 +197,9 @@ namespace gpos
 		// do not use the built-in evaluators for integers in constraint derivation
 		EopttraceUseExternalConstantExpressionEvaluationForInts = 105001,
 
+		// is nestloop params enabled, it is only enabled in GPDB 6.x onwards.
+		EopttraceIndexedNLJOuterRefAsParams = 106000,
+
 		// max
 		EopttraceSentinel = 199999
 	};
