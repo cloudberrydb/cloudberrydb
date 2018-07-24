@@ -100,13 +100,13 @@ count
 7    
 (1 row)
 1&:VACUUM crash_before_cleanup_phase;  <waiting ...>
-3:END;
-END
 3:SELECT gp_wait_until_triggered_fault('compaction_before_cleanup_phase', 1, 2);
 gp_wait_until_triggered_fault
 -----------------------------
 t                            
 (1 row)
+3:END;
+END
 
 -- we already waited for suspend faults to trigger and hence we can proceed to
 -- run next command which would trigger panic fault and help test
