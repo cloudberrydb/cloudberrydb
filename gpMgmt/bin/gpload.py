@@ -2081,9 +2081,9 @@ class gpload:
     # names and types
     #
     # This function will return the SQL to run in order to find out whether
-    # such a table exists.
+    # such a table exists. The results of this SQl are table names without schema
     #
-    def get_fast_match_exttable_query(self, locationStr, formatType, formatOpts, limitStr, schemaName, log_errors):
+    def get_fast_match_exttable_query(self, formatType, formatOpts, limitStr, schemaName, log_errors):
 
         sqlFormat = """select relname from pg_class
                     join
@@ -2341,7 +2341,7 @@ class gpload:
                 # process the single quotes in order to successfully find an existing external table to reuse.
                 self.formatOpts = self.formatOpts.replace("E'\\''","'\''")
                 if self.fast_match:
-                    sql = self.get_fast_match_exttable_query(locationStr, formatType, self.formatOpts,
+                    sql = self.get_fast_match_exttable_query(formatType, self.formatOpts,
                         limitStr, self.extSchemaName, self.log_errors)
                 else:
                     sql = self.get_reuse_exttable_query(formatType, self.formatOpts,
@@ -2351,7 +2351,11 @@ class gpload:
                 if len(resultList) > 0:
                     # found an external table to reuse. no need to create one. we're done here.
                     self.extTableName = (resultList[0])[0]
-                    self.extSchemaTable = self.extTableName
+                    # fast match result is only table name, so we need add schema info
+                    if self.fast_match:
+                        self.extSchemaTable = self.get_ext_schematable(quote_unident(self.extSchemaName), self.extTableName)
+                    else:
+                        self.extSchemaTable = self.extTableName
                     self.log(self.INFO, "reusing external table %s" % self.extSchemaTable)
                     return
 

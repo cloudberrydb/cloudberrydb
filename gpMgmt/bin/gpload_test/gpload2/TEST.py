@@ -437,7 +437,7 @@ class GPLoad_FormatOpts_TestCase(unittest.TestCase):
 
     def test_00_gpload_formatOpts_setup(self):
         "0  gpload setup"
-        for num in range(1,33):
+        for num in range(1,34):
            f = open(mkpath('query%d.sql' % num),'w')
            f.write("\! gpload -f "+mkpath('config/config_file')+ " -d reuse_gptest\n"+"\! gpload -f "+mkpath('config/config_file')+ " -d reuse_gptest\n")
            f.close()
@@ -683,7 +683,7 @@ class GPLoad_FormatOpts_TestCase(unittest.TestCase):
 
     def test_30_gpload_reuse_table_update_mode_with_fast_match(self):
         "30  gpload update mode with fast match"
-        #drop_tables()
+        drop_tables()
         copy_data('external_file_04.txt','data_file.txt')
         write_config_file(mode='update',reuse_flag='true',fast_match='true',file='data_file.txt')
         self.doTest(30)
@@ -701,6 +701,13 @@ class GPLoad_FormatOpts_TestCase(unittest.TestCase):
         copy_data('external_file_08.txt','data_file.txt')
         write_config_file(mode='update',reuse_flag='false',fast_match='true',file='data_file.txt')
         self.doTest(32)
+    def test_33_gpload_reuse_table_merge_mode_with_fast_match_and_external_schema(self):
+        "33  gpload update mode with fast match and external schema"
+        file = mkpath('setup.sql')
+        runfile(file)
+        copy_data('external_file_04.txt','data_file.txt')
+        write_config_file(mode='merge',reuse_flag='true',fast_match='true',file='data_file.txt',externalSchema='test')
+        self.doTest(33)
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(GPLoad_FormatOpts_TestCase)
