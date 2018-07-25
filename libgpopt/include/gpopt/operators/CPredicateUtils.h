@@ -193,10 +193,15 @@ namespace gpopt
 			static
 			CExpression *PexprINDFConjunction(IMemoryPool *pmp, DrgPcr *pdrgpcrFirst, DrgPcr *pdrgpcrSecond);
 
-			// is the given expression of the form (col CMP/IS DISTINCT/IS NOT DISTINCT FROM FROM constant)
+			// is the given expression of the form (col CMP/IS DISTINCT/IS NOT DISTINCT FROM constant)
 			// either the constant or the column can be casted
 			static
 			BOOL FIdentCompareConstIgnoreCast(CExpression *pexpr, COperator::EOperatorId);
+
+			// is the given expression a comparison between scalar ident and a const array
+			// either the ident or constant array can be casted
+			static
+			BOOL FArrayCompareIdentToConstIgnoreCast(CExpression *pexpr);
 
 			// is the given expression of the form (col IS DISTINCT FROM constant)
 			// either the constant or the column can be casted

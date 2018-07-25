@@ -1212,6 +1212,32 @@ CPredicateUtils::FIdentCompareConstIgnoreCast
 	return false;
 }
 
+// is the given expression an array comparison between scalar ident
+// and a const array or a constant
+BOOL
+CPredicateUtils::FArrayCompareIdentToConstIgnoreCast(CExpression *pexpr)
+{
+	if (!CUtils::FScalarArrayCmp(pexpr))
+	{
+		return false;
+	}
+
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+
+	if (CUtils::FScalarIdent(pexprLeft) || CScalarIdent::FCastedScId(pexprLeft))
+	{
+		if((CUtils::FScalarArray(pexprRight) || CUtils::FScalarArrayCoerce(pexprRight)))
+		{
+			CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexpr);
+			return CUtils::FScalarConstArray(pexprArray);
+		}
+		return CUtils::FScalarConst(pexprRight) || CScalarConst::FCastedConst(pexprRight);
+	}
+
+	return false;
+}
+
 // is the given expression of the form NOT (col IS DISTINCT FROM const) ignoring cast on either sides
 BOOL
 CPredicateUtils::FIdentINDFConstIgnoreCast
@@ -2707,6 +2733,5 @@ CPredicateUtils::FCollapsibleChildUnionUnionAll
 	// we can only collapse when the parent and child operator are of the same kind
 	return (pexprChild->Pop()->Eopid() == pexpr->Pop()->Eopid());
 }
-
 
 // EOF
