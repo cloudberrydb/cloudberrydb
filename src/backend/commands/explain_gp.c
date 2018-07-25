@@ -2069,9 +2069,11 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
             }
             else
             {
-                ExplainPropertyInteger("Average Executor Memory", cdbexplain_agg_avg(&ss->peakmemused), es);
+                ExplainOpenGroup("Executor Memory", "Executor Memory", true, es);
+                ExplainPropertyInteger("Average", cdbexplain_agg_avg(&ss->peakmemused), es);
                 ExplainPropertyInteger("Workers", ss->peakmemused.vcnt, es);
                 ExplainPropertyInteger("Maximum Memory Used", ss->peakmemused.vmax, es);
+                ExplainCloseGroup("Executor Memory", "Executor Memory", true, es);
             }
         }
 
@@ -2083,39 +2085,58 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
             cdbexplain_formatMemory(maxbuf, sizeof(maxbuf), kilobytes);
             if (ss->memory_accounting_global_peak.vcnt == 1)
             {
-                const char *seg = segbuf;
+                
+                if (es->format == EXPLAIN_FORMAT_TEXT)
+                {
+                    const char *seg = segbuf;
 
-                if (ss->memory_accounting_global_peak.imax >= 0)
-                {
-                    cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->memory_accounting_global_peak.imax, 999);
-                }
-                else if (slice &&
-                         slice->gangSize > 0)
-                {
-                    seg = " (entry db)";
-                }
+                    if (ss->memory_accounting_global_peak.imax >= 0)
+                    {
+                        cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->memory_accounting_global_peak.imax, 999);
+                    }
+                    else if (slice &&
+                             slice->gangSize > 0)
+                    {
+                        seg = " (entry db)";
+                    }
+                    else
+                    {
+                        seg = "";
+                    }
+                    appendStringInfo(es->str,
+                                     "  Peak memory: %s%s.",
+                                     maxbuf,
+                                     seg);
+                } 
                 else
                 {
-                    seg = "";
+                    ExplainPropertyInteger("Global Peak Memory", ss->memory_accounting_global_peak.vmax, es);
                 }
-                appendStringInfo(es->str,
-                                 "  Peak memory: %s%s.",
-                                 maxbuf,
-                                 seg);
             }
             else if (ss->memory_accounting_global_peak.vcnt > 1)
             {
-                kilobytes = cdbexplain_agg_avg(&ss->memory_accounting_global_peak);
-                workers = ss->memory_accounting_global_peak.vcnt;
-                kilobytes = floor((kilobytes + 1023.0) / 1024.0);
-                cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), kilobytes);
-                cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->memory_accounting_global_peak.imax, ss->nworker);
-                appendStringInfo(es->str,
-                                 "  Peak memory: %s avg x %d workers, %s max%s.",
-                                 avgbuf,
-                                 ss->memory_accounting_global_peak.vcnt,
-                                 maxbuf,
-                                 segbuf);
+                if (es->format == EXPLAIN_FORMAT_TEXT)
+                {
+                	kilobytes = cdbexplain_agg_avg(&ss->memory_accounting_global_peak);
+                	workers = ss->memory_accounting_global_peak.vcnt;
+                	kilobytes = floor((kilobytes + 1023.0) / 1024.0);
+                	cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), kilobytes);
+                	cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->memory_accounting_global_peak.imax, ss->nworker);
+                	appendStringInfo(es->str,
+                	                 "  Peak memory: %s avg x %d workers, %s max%s.",
+                	                 avgbuf,
+                	                 ss->memory_accounting_global_peak.vcnt,
+                	                 maxbuf,
+                	                 segbuf);
+				}
+				else
+                {
+                    ExplainOpenGroup("Global Peak Memory", "Global Peak Memory", true, es);
+                    ExplainPropertyInteger("Average", cdbexplain_agg_avg(&ss->memory_accounting_global_peak), es);
+                    ExplainPropertyInteger("Workers", ss->memory_accounting_global_peak.vcnt, es);
+                    ExplainPropertyInteger("Maximum Memory Used", ss->memory_accounting_global_peak.vmax, es);
+                    ExplainCloseGroup("Global Peak Memory", "Global Peak Memory", true, es);
+                }
             }
 
             kilobytes = floor((kilobytes + 1023.0) / 1024.0);
@@ -2125,36 +2146,56 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
             cdbexplain_formatMemory(maxbuf, sizeof(maxbuf), ss->vmem_reserved.vmax);
             if (ss->vmem_reserved.vcnt == 1)
             {
-                const char *seg = segbuf;
 
-                if (ss->vmem_reserved.imax >= 0)
+                if (es->format == EXPLAIN_FORMAT_TEXT)
                 {
-                    cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->vmem_reserved.imax, 999);
-                }
-                else if (slice &&
-                         slice->gangSize > 0)
-                {
-                    seg = " (entry db)";
+                    const char *seg = segbuf;
+
+                    if (ss->vmem_reserved.imax >= 0)
+                    {
+                        cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->vmem_reserved.imax, 999);
+                    }
+                    else if (slice &&
+                             slice->gangSize > 0)
+                    {
+                        seg = " (entry db)";
+                    }
+                    else
+                    {
+                        seg = "";
+                    }
+                    appendStringInfo(es->str,
+                                     "  Vmem reserved: %s%s.",
+                                     maxbuf,
+                                     seg);
                 }
                 else
                 {
-                    seg = "";
+                    ExplainPropertyInteger("Virtual Memory", ss->vmem_reserved.vmax, es);
                 }
-                appendStringInfo(es->str,
-                                 "  Vmem reserved: %s%s.",
-                                 maxbuf,
-                                 seg);
             }
             else if (ss->vmem_reserved.vcnt > 1)
             {
-                cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), cdbexplain_agg_avg(&ss->vmem_reserved));
-                cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->vmem_reserved.imax, ss->nworker);
-                appendStringInfo(es->str,
-                                 "  Vmem reserved: %s avg x %d workers, %s max%s.",
-                                 avgbuf,
-                                 ss->vmem_reserved.vcnt,
-                                 maxbuf,
-                                 segbuf);
+                if (es->format == EXPLAIN_FORMAT_TEXT)
+                {
+                    cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), cdbexplain_agg_avg(&ss->vmem_reserved));
+                    cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->vmem_reserved.imax, ss->nworker);
+                    appendStringInfo(es->str,
+                                     "  Vmem reserved: %s avg x %d workers, %s max%s.",
+                                     avgbuf,
+                                     ss->vmem_reserved.vcnt,
+                                     maxbuf,
+                                     segbuf);
+                }
+                else
+                {
+                    ExplainOpenGroup("Virtual Memory", "Virtual Memory", true, es);
+                    ExplainPropertyInteger("Average", cdbexplain_agg_avg(&ss->vmem_reserved), es);
+                    ExplainPropertyInteger("Workers", ss->vmem_reserved.vcnt, es);
+                    ExplainPropertyInteger("Maximum Memory Used", ss->vmem_reserved.vmax, es);
+                    ExplainCloseGroup("Virtual Memory", "Virtual Memory", true, es);
+                }
+
             }
         }
 
@@ -2185,13 +2226,20 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
         ExplainCloseGroup("Slice", NULL, true, es);
     }
 
-    if (total_memory_across_slices > 0)
-    {
-        appendStringInfo(es->str, "Total memory used across slices: %.0fK bytes \n", total_memory_across_slices);
-    }
-
     if (showstatctx->nslice > 0)
         ExplainCloseGroup("Slice statistics", "Slice statistics", false, es);
+
+    if (total_memory_across_slices > 0)
+    {
+        if (es->format == EXPLAIN_FORMAT_TEXT)
+        {
+            appendStringInfo(es->str, "Total memory used across slices: %.0fK bytes \n", total_memory_across_slices);
+        }
+        else
+        {
+            ExplainPropertyInteger("Total memory used across slices", total_memory_across_slices, es);
+        }
+    }
 }
 
 static int

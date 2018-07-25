@@ -11,6 +11,20 @@
 -- s/Total runtime: \d+\.\d+ ms/Total runtime: ##.### ms/
 -- m/cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+/
 -- s/\(cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+\)/(cost=##.###..##.### rows=### width=###)/
+-- m/Peak memory: \d+\w? bytes\./
+-- s/Peak memory: \d+\w? bytes\./Peak memory: ### bytes./
+-- m/Peak memory: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)./
+-- s/Peak memory: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)\./Peak memory: ### bytes avg x # workers, ### bytes max (seg#)./
+-- m/Vmem reserved: \d+\w? bytes\./
+-- s/Vmem reserved: \d+\w? bytes\./Vmem reserved: ### bytes./
+-- m/Vmem reserved: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)/
+-- s/Vmem reserved: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)/Vmem reserved: ### bytes avg x # workers, ### bytes max (seg#)/
+-- m/Total memory used across slices: \d+\w bytes./
+-- s/Total memory used across slices: \d+\w bytes./Total memory used across slices: ### bytes./
+-- m/Memory used:  \d+\w?B/
+-- s/Memory used:  \d+\w?B/Memory used: ###B/
+-- m/ORCA Memory used: peak \d+\w?B  allocated \d+\w?B  freed \d+\w?B/
+-- s/ORCA Memory used: peak \d+\w?B  allocated \d+\w?B  freed \d+\w?B/ORCA Memory used: peak ##B  allocated ##B  freed ##B/
 -- end_matchsubs
 --
 -- DEFAULT syntax
@@ -18,6 +32,9 @@ CREATE TABLE apples(id int PRIMARY KEY, type text);
 INSERT INTO apples(id) SELECT generate_series(1, 100000);
 CREATE TABLE locations(id int PRIMARY KEY, address text);
 CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES locations(id));
+
+-- Activate GUP that will show more memory information
+SET explain_memory_verbosity = 'summary';
 
 --- Check Explain Text format output
 -- explain_processing_off
@@ -45,16 +62,24 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- s/Total Runtime: \d+\.\d+/Total Runtime: ##.###/
 -- m/Segments: \d+\s+/
 -- s/Segments: \d+\s+/Segments: #/
--- m/PQO version \d+\.\d+\.\d+"\s+/
--- s/PQO version \d+\.\d+\.\d+"\s+/PQO version ##.##.##"/
+-- m/PQO version \d+\.\d+\.\d+",?\s+/
+-- s/PQO version \d+\.\d+\.\d+",?\s+/PQO version ##.##.##"/
 -- m/Slice: [0-3]\s+/
 -- s/Slice: [0-3]\s+/Slice: # /
--- m/Executor Memory: \d+\s+/
--- s/Executor Memory: \d+\s+/Executor Memory: ### /
+-- m/ Memory: \d+\s+/
+-- s/ Memory: \d+\s+/ Memory: ### /
 -- m/Maximum Memory Used: \d+\s+/
 -- s/Maximum Memory Used: \d+\s+/Maximum Memory Used: ### /
 -- m/Work Maximum Memory: \d+\s+/
 -- s/Work Maximum Memory: \d+\s+/Work Maximum Memory: ### /
+-- m/Workers: \d+\s+/
+-- s/Workers: \d+\s+/Workers: ## /
+-- m/Average: \d+\s+/
+-- s/Average: \d+\s+/Average: ## /
+-- m/Total memory used across slices: \d+/
+-- s/Total memory used across slices: \d+/Total memory used across slices: ###/
+-- m/ORCA Memory Used \w+: \d+/
+-- s/ORCA Memory Used (\w+): \d+\s+/ORCA Memory Used $1: ##/
 -- end_matchsubs
 -- Check Explain YAML output
 EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
@@ -92,6 +117,16 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- s/"Work Maximum Memory": \d+,?\s+/"Work Maximum Memory": ### /
 -- m/"Workers": \d+,\s+/
 -- s/"Workers": \d+,\s+/"Workers": ##, /
+-- m/Peak Memory": \d+,/
+-- s/Peak Memory": \d+,\s+/Peak Memory": ###,/
+-- m/Virtual Memory": \d+/
+-- s/Virtual Memory": \d+\s+/Virtual Memory": ###/
+-- m/"Average": \d+,\s+/
+-- s/"Average": \d+,\s+/"Average": ##, /
+-- m/"Total memory used across slices": \d+,/
+-- s/"Total memory used across slices": \d+,/"Total memory used across slices": ###,/
+-- m/"ORCA Memory Used \w+": \d+,?/
+-- s/"ORCA Memory Used (\w+)": \d+,?\s+/"ORCA Memory Used $1": ##/
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain JSON output
@@ -126,7 +161,7 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- m/PQO version \d+\.\d+\.\d+/
 -- s/PQO version \d+\.\d+\.\d+/PQO version ##.##.##/
 -- m/<Slice>[0-3]<\/Slice>/
--- s/<Slice>[0-3]<\/Slice>/<Slice>#<\/Slice> /
+-- s/<Slice>[0-3]<\/Slice>\s+/<Slice>#<\/Slice> /
 -- m/Executor-Memory>\d+<\//
 -- s/Executor-Memory>\d+<\/([^>]+)>\s+/Executor-Memory>###<\/$1> /
 -- m/<Maximum-Memory-Used>\d+<\/Maximum-Memory-Used>\s+/
@@ -135,6 +170,18 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- s/<Work-Maximum-Memory>\d+<\/Work-Maximum-Memory>\s+/<Work-Maximum-Memory>###<\/Work-Maximum-Memory> /
 -- m/<Workers>\d+<\/Workers>\s+/
 -- s/<Workers>\d+<\/Workers>\s+/<Workers>###<\/Workers> /
+-- m/Peak-Memory>\d+<\//
+-- s/Peak-Memory>\d+<\/([^>]+)>\s+/Peak-Memory>###<\/$1>/
+-- m/Virtual-Memory>\d+/
+-- s/Virtual-Memory>\d+<\/([^>]+)>\s+/Virtual-Memory>###<\/$1>/
+-- m/<Average>\d+<\/Average>/
+-- s/<Average>\d+<\/Average>\s+/<Average>##<\/Average>/
+-- m/<Total-memory-used-across-slices>\d+/
+-- s/(<Total-memory-used-across-slices>)\d+(<\/[^>]+>)\s*/$1###$2/
+-- m/<ORCA-Memory-Used-\w+>\d+/
+-- s/<ORCA-Memory-Used-(\w+)>\d+(<\/[^>]+>)\s+/<ORCA-Memory-Used-$1>##$2/
+-- m/>\s+\+/
+-- s/>\s+\+/>+/
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain XML output
