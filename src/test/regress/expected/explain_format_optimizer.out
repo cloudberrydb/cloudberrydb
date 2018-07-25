@@ -1,10 +1,12 @@
 -- start_matchsubs
--- m/\(actual time=\d+.\d+..\d+.\d+ rows=\d+ loops=\d+\)/
--- s/\(actual time=\d+.\d+..\d+.\d+ rows=\d+ loops=\d+\)/(actual time=10.302..10.302 rows=0 loops=1)/
+-- m/\(actual time=\d+\.\d+..\d+\.\d+ rows=\d+ loops=\d+\)/
+-- s/\(actual time=\d+\.\d+..\d+\.\d+ rows=\d+ loops=\d+\)/(actual time=##.###..##.### rows=# loops=#)/
 -- m/\(slice\d+\)    Executor memory: (\d+)\w bytes\./
 -- s/\(slice\d+\)    Executor memory: (\d+)\w bytes\./\(slice\)    Executor memory: (#####)K bytes./
 -- m/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./
--- s/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./\(slice\)    Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg0)./
+-- s/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./\(slice\)    Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg#)./
+-- m/Work_mem: \d+\w bytes max\./
+-- s/Work_mem: \d+\w bytes max\. */Work_mem: ###K bytes max./
 -- m/Total runtime: \d+\.\d+ ms/
 -- s/Total runtime: \d+\.\d+ ms/Total runtime: ##.### ms/
 -- m/cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+/
@@ -14,6 +16,7 @@
 -- DEFAULT syntax
 CREATE TABLE apples(id int PRIMARY KEY, type text);
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "apples_pkey" for table "apples"
+INSERT INTO apples(id) SELECT generate_series(1, 100000);
 CREATE TABLE locations(id int PRIMARY KEY, address text);
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "locations_pkey" for table "locations"
 CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES locations(id));
@@ -57,13 +60,13 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
                            Hash Key: boxes.apple_id
                            ->  Table Scan on boxes  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
-                     ->  Hash  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
-                           ->  Table Scan on apples  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
+                     ->  Hash  (cost=2432.00..8569.25 rows=25967 width=84) (actual time=1.323..3.123 rows=9 loops=1)
+                           ->  Table Scan on apples  (cost=2432.00..8569.25 rows=25967 width=84) (actual time=1.323..3.123 rows=9 loops=1)
          ->  Hash  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
                ->  Table Scan on locations  (cost=2432.00..8569.25 rows=25967 width=84) (never executed)
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 59K bytes avg x 3 workers, 59K bytes max (seg0).
-   (slice2)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).
+   (slice2)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).  Work_mem: 12343K bytes max.
    (slice3)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).
  Memory used:  128000kB
  Total runtime: 34.572 ms
@@ -88,6 +91,14 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- s/Segments: \d+\s+/Segments: #/
 -- m/PQO version \d+\.\d+\.\d+"\s+/
 -- s/PQO version \d+\.\d+\.\d+"\s+/PQO version ##.##.##"/
+-- m/Slice: [0-3]\s+/
+-- s/Slice: [0-3]\s+/Slice: # /
+-- m/Executor Memory: \d+\s+/
+-- s/Executor Memory: \d+\s+/Executor Memory: ### /
+-- m/Maximum Memory Used: \d+\s+/
+-- s/Maximum Memory Used: \d+\s+/Maximum Memory Used: ### /
+-- m/Work Maximum Memory: \d+\s+/
+-- s/Work Maximum Memory: \d+\s+/Work Maximum Memory: ### /
 -- end_matchsubs
 -- Check Explain YAML output
 EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
@@ -373,6 +384,22 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
                  Actual Rows: 0                         +
                  Actual Loops: 0                        +
    Triggers:                                            +
+   Slice statistics:                                    +
+     - Slice: 0                                         +
+       Executor Memory: 386000                          +
+     - Slice: 1                                         +
+       Average Executor Memory: 59000                   +
+       Workers: 3                                       +
+       Maximum Memory Used: 59000                       +
+     - Slice: 2                                         +
+       Average Executor Memory: 1110000                 +
+       Workers: 3                                       +
+       Maximum Memory Used: 1110000                     +
+       Work Maximum Memory: 1043000                     +
+     - Slice: 3                                         +
+       Average Executor Memory: 1110000                 +
+       Workers: 3                                       +
+       Maximum Memory Used: 1110000                     +
    Statement statistics:                                +
      Memory used: 128000                                +
    Settings:                                            +
@@ -399,6 +426,16 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- s/"Memory used": \d+,?\s+/"Memory used": ####,/
 -- m/"Segments": \d+,\s+/
 -- s/"Segments": \d+,\s+/"Segments": #,/
+-- m/"Slice": [0-3],\s+/
+-- s/"Slice": [0-3],\s+/"Slice": #, /
+-- m/Executor Memory": \d+,?\s+/
+-- s/Executor Memory": \d+,?\s+/Executor Memory": ### /
+-- m/"Maximum Memory Used": \d+,?\s+/
+-- s/"Maximum Memory Used": \d+,?\s+/"Maximum Memory Used": ###, /
+-- m/"Work Maximum Memory": \d+,?\s+/
+-- s/"Work Maximum Memory": \d+,?\s+/"Work Maximum Memory": ### /
+-- m/"Workers": \d+,\s+/
+-- s/"Workers": \d+,\s+/"Workers": ##, /
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain JSON output
@@ -746,6 +783,31 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
      },                                                      +
      "Triggers": [                                           +
      ],                                                      +
+     "Slice statistics": [                                   +
+       {                                                     +
+         "Slice": 0,                                         +
+         "Executor Memory": 123546                           +
+       },                                                    +
+       {                                                     +
+         "Slice": 1,                                         +
+         "Average Executor Memory": 123546                   +
+         "Workers": 1,                                       +
+         "Maximum Memory Used": 432255                       +
+       },                                                    +
+       {                                                     +
+         "Slice": 2,                                         +
+         "Average Executor Memory": 123432                   +
+         "Workers": 2,                                       +
+         "Maximum Memory Used": 4324,                        +
+         "Work Maximum Memory": 23424                        +
+       },                                                    +
+       {                                                     +
+         "Slice": 3,                                         +
+         "Average Executor Memory": 2341                     +
+         "Workers": 3,                                       +
+         "Maximum Memory Used": 123432                       +
+       }                                                     +
+     ],                                                      +
      "Statement statistics": {                               +
        "Memory used": 12800                                  +
      },                                                      +
@@ -768,14 +830,28 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- s/Plan-Width>\d+<\/Plan-Width>\s+/Plan-Width>###<\/Plan-Width>/
 -- m/Segments>\d+<\/Segments>\s+/
 -- s/Segments>\d+<\/Segments>\s+/Segments>##<\/Segments>/
--- m/-Time>\d+\.\d+<\/[^>]+\-Time>\s+/
--- s/-Time>\d+\.\d+<\/([^>]+)\-Time>\s+/-Time>##.###<\/$1-Time>/
+-- m/Actual-Rows>\d+<\/Actual-Rows>\s+/
+-- s/Actual-Rows>\d+<\/Actual-Rows>\s+/Actual-Rows>###<\/Actual-Rows>/
+-- m/Actual-Loops>\d+<\/Actual-Loops>\s+/
+-- s/Actual-Loops>\d+<\/Actual-Loops>\s+/Actual-Loops>###<\/Actual-Loops>/
+-- m/-Time>\d+\.\d+<\/[^>]+\-Time>\s*/
+-- s/-Time>\d+\.\d+<\/([^>]+)\-Time>\s*/-Time>##.###<\/$1-Time>/
 -- m/Total-Runtime>\d+\.\d+<\/Total-Runtime>\s+/
 -- s/Total-Runtime>\d+\.\d+<\/Total-Runtime>\s+/Total-Runtime>##.###<\/Total-Runtime>/
 -- m/Memory-used>\d+<\/Memory-used>\s+/
 -- s/Memory-used>\d+<\/Memory-used>\s+/Memory-used>###<\/Memory-used>/
 -- m/PQO version \d+\.\d+\.\d+/
 -- s/PQO version \d+\.\d+\.\d+/PQO version ##.##.##/
+-- m/<Slice>[0-3]<\/Slice>/
+-- s/<Slice>[0-3]<\/Slice>/<Slice>#<\/Slice> /
+-- m/Executor-Memory>\d+<\//
+-- s/Executor-Memory>\d+<\/([^>]+)>\s+/Executor-Memory>###<\/$1> /
+-- m/<Maximum-Memory-Used>\d+<\/Maximum-Memory-Used>\s+/
+-- s/<Maximum-Memory-Used>\d+<\/Maximum-Memory-Used>\s+/<Maximum-Memory-Used>###<\/Maximum-Memory-Used> /
+-- m/<Work-Maximum-Memory>\d+<\/Work-Maximum-Memory>\s+/
+-- s/<Work-Maximum-Memory>\d+<\/Work-Maximum-Memory>\s+/<Work-Maximum-Memory>###<\/Work-Maximum-Memory> /
+-- m/<Workers>\d+<\/Workers>\s+/
+-- s/<Workers>\d+<\/Workers>\s+/<Workers>###<\/Workers> /
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain XML output
@@ -1123,6 +1199,31 @@ EXPLAIN (ANALYZE, FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id 
      </Plan>                                                               +
      <Triggers>                                                            +
      </Triggers>                                                           +
+     <Slice-statistics>                                                    +
+       <Slice>                                                             +
+         <Slice>0</Slice>                                                  +
+         <Executor-Memory>123454</Executor-Memory>                         +
+       </Slice>                                                            +
+       <Slice>                                                             +
+         <Slice>1</Slice>                                                  +
+         <Average-Executor-Memory>1312423</Average-Executor-Memory>        +
+         <Workers>3342</Workers>                                           +
+         <Maximum-Memory-Used>423</Maximum-Memory-Used>                    +
+       </Slice>                                                            +
+       <Slice>                                                             +
+         <Slice>2</Slice>                                                  +
+         <Average-Executor-Memory>123123</Average-Executor-Memory>         +
+         <Workers>2</Workers>                                              +
+         <Maximum-Memory-Used>543123</Maximum-Memory-Used>                 +
+         <Work-Maximum-Memory>543</Work-Maximum-Memory>                    +
+       </Slice>                                                            +
+       <Slice>                                                             +
+         <Slice>3</Slice>                                                  +
+         <Average-Executor-Memory>1321321</Average-Executor-Memory>        +
+         <Workers>54</Workers>                                             +
+         <Maximum-Memory-Used>324</Maximum-Memory-Used>                    +
+       </Slice>                                                            +
+     </Slice-statistics>                                                   +
      <Statement-statistics>                                                +
        <Memory-used>1200</Memory-used>                                   +
      </Statement-statistics>                                               +

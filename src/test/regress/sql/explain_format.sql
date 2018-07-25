@@ -1,10 +1,12 @@
 -- start_matchsubs
--- m/\(actual time=\d+.\d+..\d+.\d+ rows=\d+ loops=\d+\)/
--- s/\(actual time=\d+.\d+..\d+.\d+ rows=\d+ loops=\d+\)/(actual time=10.302..10.302 rows=0 loops=1)/
+-- m/\(actual time=\d+\.\d+..\d+\.\d+ rows=\d+ loops=\d+\)/
+-- s/\(actual time=\d+\.\d+..\d+\.\d+ rows=\d+ loops=\d+\)/(actual time=##.###..##.### rows=# loops=#)/
 -- m/\(slice\d+\)    Executor memory: (\d+)\w bytes\./
 -- s/\(slice\d+\)    Executor memory: (\d+)\w bytes\./\(slice\)    Executor memory: (#####)K bytes./
 -- m/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./
--- s/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./\(slice\)    Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg0)./
+-- s/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./\(slice\)    Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg#)./
+-- m/Work_mem: \d+\w bytes max\./
+-- s/Work_mem: \d+\w bytes max\. */Work_mem: ###K bytes max./
 -- m/Total runtime: \d+\.\d+ ms/
 -- s/Total runtime: \d+\.\d+ ms/Total runtime: ##.### ms/
 -- m/cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+/
@@ -13,6 +15,7 @@
 --
 -- DEFAULT syntax
 CREATE TABLE apples(id int PRIMARY KEY, type text);
+INSERT INTO apples(id) SELECT generate_series(1, 100000);
 CREATE TABLE locations(id int PRIMARY KEY, address text);
 CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES locations(id));
 
@@ -44,6 +47,14 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- s/Segments: \d+\s+/Segments: #/
 -- m/PQO version \d+\.\d+\.\d+"\s+/
 -- s/PQO version \d+\.\d+\.\d+"\s+/PQO version ##.##.##"/
+-- m/Slice: [0-3]\s+/
+-- s/Slice: [0-3]\s+/Slice: # /
+-- m/Executor Memory: \d+\s+/
+-- s/Executor Memory: \d+\s+/Executor Memory: ### /
+-- m/Maximum Memory Used: \d+\s+/
+-- s/Maximum Memory Used: \d+\s+/Maximum Memory Used: ### /
+-- m/Work Maximum Memory: \d+\s+/
+-- s/Work Maximum Memory: \d+\s+/Work Maximum Memory: ### /
 -- end_matchsubs
 -- Check Explain YAML output
 EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
@@ -71,6 +82,16 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- s/"Memory used": \d+,?\s+/"Memory used": ####,/
 -- m/"Segments": \d+,\s+/
 -- s/"Segments": \d+,\s+/"Segments": #,/
+-- m/"Slice": [0-3],\s+/
+-- s/"Slice": [0-3],\s+/"Slice": #, /
+-- m/Executor Memory": \d+,?\s+/
+-- s/Executor Memory": \d+,?\s+/Executor Memory": ### /
+-- m/"Maximum Memory Used": \d+,?\s+/
+-- s/"Maximum Memory Used": \d+,?\s+/"Maximum Memory Used": ###, /
+-- m/"Work Maximum Memory": \d+,?\s+/
+-- s/"Work Maximum Memory": \d+,?\s+/"Work Maximum Memory": ### /
+-- m/"Workers": \d+,\s+/
+-- s/"Workers": \d+,\s+/"Workers": ##, /
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain JSON output
@@ -92,14 +113,28 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- s/Plan-Width>\d+<\/Plan-Width>\s+/Plan-Width>###<\/Plan-Width>/
 -- m/Segments>\d+<\/Segments>\s+/
 -- s/Segments>\d+<\/Segments>\s+/Segments>##<\/Segments>/
--- m/-Time>\d+\.\d+<\/[^>]+\-Time>\s+/
--- s/-Time>\d+\.\d+<\/([^>]+)\-Time>\s+/-Time>##.###<\/$1-Time>/
+-- m/Actual-Rows>\d+<\/Actual-Rows>\s+/
+-- s/Actual-Rows>\d+<\/Actual-Rows>\s+/Actual-Rows>###<\/Actual-Rows>/
+-- m/Actual-Loops>\d+<\/Actual-Loops>\s+/
+-- s/Actual-Loops>\d+<\/Actual-Loops>\s+/Actual-Loops>###<\/Actual-Loops>/
+-- m/-Time>\d+\.\d+<\/[^>]+\-Time>\s*/
+-- s/-Time>\d+\.\d+<\/([^>]+)\-Time>\s*/-Time>##.###<\/$1-Time>/
 -- m/Total-Runtime>\d+\.\d+<\/Total-Runtime>\s+/
 -- s/Total-Runtime>\d+\.\d+<\/Total-Runtime>\s+/Total-Runtime>##.###<\/Total-Runtime>/
 -- m/Memory-used>\d+<\/Memory-used>\s+/
 -- s/Memory-used>\d+<\/Memory-used>\s+/Memory-used>###<\/Memory-used>/
 -- m/PQO version \d+\.\d+\.\d+/
 -- s/PQO version \d+\.\d+\.\d+/PQO version ##.##.##/
+-- m/<Slice>[0-3]<\/Slice>/
+-- s/<Slice>[0-3]<\/Slice>/<Slice>#<\/Slice> /
+-- m/Executor-Memory>\d+<\//
+-- s/Executor-Memory>\d+<\/([^>]+)>\s+/Executor-Memory>###<\/$1> /
+-- m/<Maximum-Memory-Used>\d+<\/Maximum-Memory-Used>\s+/
+-- s/<Maximum-Memory-Used>\d+<\/Maximum-Memory-Used>\s+/<Maximum-Memory-Used>###<\/Maximum-Memory-Used> /
+-- m/<Work-Maximum-Memory>\d+<\/Work-Maximum-Memory>\s+/
+-- s/<Work-Maximum-Memory>\d+<\/Work-Maximum-Memory>\s+/<Work-Maximum-Memory>###<\/Work-Maximum-Memory> /
+-- m/<Workers>\d+<\/Workers>\s+/
+-- s/<Workers>\d+<\/Workers>\s+/<Workers>###<\/Workers> /
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain XML output
