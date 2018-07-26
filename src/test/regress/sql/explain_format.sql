@@ -5,6 +5,8 @@
 -- s/\(slice\d+\)    Executor memory: (\d+)\w bytes\./\(slice\)    Executor memory: (#####)K bytes./
 -- m/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./
 -- s/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./\(slice\)    Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg#)./
+-- m/\(slice\d+\)    /
+-- s/\(slice\d+\)    /\(slice\)    /
 -- m/Work_mem: \d+\w bytes max\./
 -- s/Work_mem: \d+\w bytes max\. */Work_mem: ###K bytes max./
 -- m/Total runtime: \d+\.\d+ ms/
@@ -30,20 +32,20 @@
 -- DEFAULT syntax
 CREATE TABLE apples(id int PRIMARY KEY, type text);
 INSERT INTO apples(id) SELECT generate_series(1, 100000);
-CREATE TABLE locations(id int PRIMARY KEY, address text);
-CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES locations(id));
+CREATE TABLE box_locations(id int PRIMARY KEY, address text);
+CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES box_locations(id));
 
--- Activate GUP that will show more memory information
+-- Activate GUC that will show more memory information
 SET explain_memory_verbosity = 'summary';
 
 --- Check Explain Text format output
 -- explain_processing_off
-EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
 
 --- Check Explain Analyze Text output that include the slices information
 -- explain_processing_off
-EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
 
 -- YAML Required replaces for costs and time changes
@@ -77,16 +79,18 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- m/Average: \d+\s+/
 -- s/Average: \d+\s+/Average: ## /
 -- m/Total memory used across slices: \d+/
--- s/Total memory used across slices: \d+/Total memory used across slices: ###/
+-- s/Total memory used across slices: \d+\s*/Total memory used across slices: ###/
+-- m/Memory used: \d+/
+-- s/Memory used: \d+\s+/Memory used: ###/
 -- m/ORCA Memory Used \w+: \d+/
 -- s/ORCA Memory Used (\w+): \d+\s+/ORCA Memory Used $1: ##/
 -- end_matchsubs
 -- Check Explain YAML output
-EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 
 --- Check Explain Analyze YAML output that include the slices information
 -- explain_processing_off
-EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
 
 -- JSON Required replaces for costs and time changes
@@ -124,18 +128,18 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- m/"Average": \d+,\s+/
 -- s/"Average": \d+,\s+/"Average": ##, /
 -- m/"Total memory used across slices": \d+,/
--- s/"Total memory used across slices": \d+,/"Total memory used across slices": ###,/
+-- s/"Total memory used across slices": \d+,\s*/"Total memory used across slices": ###,/
 -- m/"ORCA Memory Used \w+": \d+,?/
 -- s/"ORCA Memory Used (\w+)": \d+,?\s+/"ORCA Memory Used $1": ##/
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain JSON output
-EXPLAIN (FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN (FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
 
 --- Check Explain Analyze JSON output that include the slices information
 -- explain_processing_off
-EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
 
 -- XML Required replaces for costs and time changes
@@ -185,10 +189,15 @@ EXPLAIN (ANALYZE, FORMAT JSON) SELECT * from boxes LEFT JOIN apples ON apples.id
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain XML output
-EXPLAIN (FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN (FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
 
 -- explain_processing_off
 -- Check Explain Analyze XML output
-EXPLAIN (ANALYZE, FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN locations ON locations.id = boxes.location_id;
+EXPLAIN (ANALYZE, FORMAT XML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
+
+-- Cleanup
+DROP TABLE boxes;
+DROP TABLE apples;
+DROP TABLE box_locations;
