@@ -11,4 +11,4 @@ CREATE DATABASE pgutest;
 \c pgutest;
 
 CREATE TABLE t (a integer, b numeric);
-CREATE TALBE tt (a integer, b numeric) WITH (appendonly = true);
+CREATE TABLE tt (a integer, b numeric) WITH (appendonly = true);
