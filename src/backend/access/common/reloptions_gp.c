@@ -988,17 +988,25 @@ validate_and_adjust_options(StdRdOptions *result,
 		}
 
 		if (result->compresstype[0] &&
-			(pg_strcasecmp(result->compresstype, "zstd") == 0) &&
-			(result->compresslevel > 19))
+			(pg_strcasecmp(result->compresstype, "zstd") == 0))
 		{
-			if (validate)
-				ereport(ERROR,
-						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						 errmsg("compresslevel=%d is out of range for zstd "
-								"(should be in the range 1 to 19)",
-								result->compresslevel)));
+#ifndef HAVE_LIBZSTD
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("Zstandard library is not supported by this build"),
+					 errhint("Compile with --with-zstd to use Zstandard compression.")));
+#endif
+			if (result->compresslevel > 19)
+			{
+				if (validate)
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							 errmsg("compresslevel=%d is out of range for zstd "
+									"(should be in the range 1 to 19)",
+									result->compresslevel)));
 
-			result->compresslevel = setDefaultCompressionLevel(result->compresstype);
+				result->compresslevel = setDefaultCompressionLevel(result->compresstype);
+			}
 		}
 
 		if (result->compresstype[0] &&
@@ -1212,13 +1220,19 @@ validateAppendOnlyRelOptions(bool ao,
 							complevel)));
 		}
 
-		if (comptype && (pg_strcasecmp(comptype, "zstd") == 0) &&
-			(complevel < 0 || complevel > 19))
+		if (comptype && (pg_strcasecmp(comptype, "zstd") == 0))
 		{
+#ifndef HAVE_LIBZSTD
 			ereport(ERROR,
-					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("compresslevel=%d is out of range for zstd "
-							"(should be in the range 1 to 19)", complevel)));
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("Zstandard library is not supported by this build"),
+					 errhint("Compile with --with-zstd to use Zstandard compression.")));
+#endif
+			if (complevel < 0 || complevel > 19)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("compresslevel=%d is out of range for zstd "
+								"(should be in the range 1 to 19)", complevel)));
 		}
 
 		if (comptype && (pg_strcasecmp(comptype, "quicklz") == 0) &&
