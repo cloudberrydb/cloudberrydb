@@ -1,14 +1,8 @@
 import fnmatch
 import getpass
 import glob
-import gzip
 import json
 import yaml
-try:
-    import pexpect
-except:
-    print "The pexpect module could not be imported."
-
 import os
 import re
 import platform
@@ -18,7 +12,6 @@ import tarfile
 import tempfile
 import thread
 import json
-import csv
 import subprocess
 import commands
 import signal
@@ -557,22 +550,6 @@ def impl(context, dbname):
             raise Exception('Database exists when it shouldnt "%s"' % dbname)
 
 
-def get_host_and_port():
-    if 'PGPORT' not in os.environ:
-        raise Exception('PGPORT needs to be set in the environment')
-    port = os.environ['PGPORT']
-    gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    master_host = None
-    for seg in gparray.getDbList():
-        if seg.isSegmentMaster():
-            master_host = seg.getSegmentAddress()
-
-    if master_host is None:
-        raise Exception('Unable to determine the master hostname')
-
-    return (master_host, port)
-
-
 @when('the performance timer is started')
 def impl(context):
     context.performance_timer = time.time()
@@ -807,13 +784,6 @@ def impl(context):
     authorized_keys_backup_file = '%s/.ssh/authorized_keys.bk' % user_home
     if os.path.exists(authorized_keys_backup_file):
         shutil.move(authorized_keys_backup_file, authorized_keys_backup_file[:-3])
-
-def delete_data_dir(host):
-    cmd = Command(name='remove data directories',
-                  cmdStr='rm -rf %s' % master_data_dir,
-                  ctxt=REMOTE,
-                  remoteHost=host)
-    cmd.run(validateAfter=True)
 
 def run_gpinitstandby(context, hostname, port, standby_data_dir, options='', remote=False):
     if '-n' in options:
@@ -1539,13 +1509,6 @@ def impl(context, secs):
     time.sleep(secs)
 
 
-def execute_sql_for_sec(dbname, query, sec):
-    with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
-        dbconn.execSQL(conn, query)
-        conn.commit()
-        time.sleep(sec)
-
-
 @given('the standby is not initialized')
 @then('the standby is not initialized')
 def impl(context):
@@ -1817,16 +1780,6 @@ def impl(context, filepath, is_partition_transfer):
 def impl(context, dbname):
     drop_database_if_exists(context, dbname)
     create_database(context, dbname)
-
-
-def execute_sql_until_stopped(context, dbname, query):
-    with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
-        dbconn.execSQL(conn, query)
-        conn.commit()
-        while True:
-            if hasattr(context, 'background_query_lock'):
-                break
-            time.sleep(1)
 
 
 @then('validate and run gpcheckcat repair')
