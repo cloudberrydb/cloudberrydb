@@ -966,9 +966,6 @@ make_scalar_array_op(ParseState *pstate, List *opname,
 
 	ReleaseSysCache(tup);
 
-	/* Hack to protect pg_get_expr() against misuse */
-	check_pg_get_expr_args(pstate, result->opfuncid, args);
-
 	return (Expr *) result;
 }
 
