@@ -162,16 +162,16 @@ CLogical::PosFromIndex
 	const CTableDescriptor *ptabdesc
 	)
 {
-	//
 	// compute the order spec after getting the current position of the index key
 	// from the table descriptor. Index keys are relative to the
 	// relation. So consider a case where we had 20 columns in a table. We
 	// create an index that covers col # 20 as one of its keys. Then we drop
 	// columns 10 through 15. Now the index key still points to col #20 but the
 	// column ref list in pdrgpcr will only have 15 elements in it.
-	//
 
 	COrderSpec *pos = GPOS_NEW(pmp) COrderSpec(pmp);
+
+	// GiST indexes have no order, so return an empty order spec
 	if (pmdindex->Emdindt() == IMDIndex::EmdindGist)
 		return pos;
 

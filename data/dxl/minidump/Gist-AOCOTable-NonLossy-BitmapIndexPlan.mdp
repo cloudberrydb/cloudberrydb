@@ -2,7 +2,9 @@
 <!--
 Objective:
 The alternative produced should contain a Bitmap index scan for the underlying
-GiST index on an AOCO table. A B-Tree alternative should never be created.
+GiST index on an AOCO table. A B-Tree alternative should never be created. This
+is because the B-Tree index path itself does not support AO tables, so GiST also
+does not support AO tables for the B-Tree path.
 
 CREATE TABLE aoco_gist_tbl ( id INTEGER, b BOX, p POLYGON, c CIRCLE)
  WITH (APPENDONLY=True, ORIENTATION='column')

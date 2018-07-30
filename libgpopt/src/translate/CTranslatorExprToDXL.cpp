@@ -1400,20 +1400,22 @@ CTranslatorExprToDXL::PdxlnIndexScanWithInlinedCondition
 	BOOL isGist = false;
 	if (COperator::EopPhysicalIndexScan == eopid)
 	{
-		CPhysicalIndexScan *indexScan = (CPhysicalIndexScan *) pexprIndexScan->Pop();
+		CPhysicalIndexScan *indexScan = CPhysicalIndexScan::PopConvert(pexprIndexScan->Pop());
 		isGist = (indexScan->Pindexdesc()->Emdindt() == IMDIndex::EmdindGist);
 	}
 	else
 	{
-		CPhysicalDynamicIndexScan *indexScan = (CPhysicalDynamicIndexScan *) pexprIndexScan->Pop();
+		CPhysicalDynamicIndexScan *indexScan = CPhysicalDynamicIndexScan::PopConvert(pexprIndexScan->Pop());
 		isGist = (indexScan->Pindexdesc()->Emdindt() == IMDIndex::EmdindGist);
 	}
 
 	// inline scalar condition in index scan, if it is not the same as index lookup condition
+	// Exception: most GiST indexes require a recheck condition since they are lossy: re-add the lookup
+	// condition as a scalar condition. For now, all GiST indexes are treated as lossy
 	CExpression *pexprIndexLookupCond = (*pexprIndexScan)[0];
 	CDXLNode *pdxlnIndexScan = NULL;
 	if ((!CUtils::FScalarConstTrue(pexprScalarCond) && !pexprScalarCond->FMatch(pexprIndexLookupCond))
-		|| isGist) // GiST indexes require a recheck condition since they are lossy.
+		|| isGist)
 	{
 		// combine scalar condition with existing index conditions, if any
 		pexprScalarCond->AddRef();
@@ -1597,7 +1599,7 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorWithInlinedCondition
 	BOOL isGist = false;
 	if (COperator::EopPhysicalDynamicIndexScan == eopid)
 	{
-		CPhysicalDynamicIndexScan *indexScan = (CPhysicalDynamicIndexScan *) pexprChild->Pop();
+		CPhysicalDynamicIndexScan *indexScan = CPhysicalDynamicIndexScan::PopConvert(pexprChild->Pop());
 		isGist = indexScan->Pindexdesc()->Emdindt() == IMDIndex::EmdindGist;
 	}
 

@@ -232,9 +232,9 @@ CInvalidCostContextTest:
 SpoolShouldInvalidateUnresolvedDynamicScans;
 
 CGistIndexTest:
-gist_aoco_box_bitmap_plan gist_nonpart_polygon_bitmap_plan gist_nonpart_polygon_index_plan 
-gist_part_poly_index_plan gist_part_box_bitmap_plan gist_partial_table_scan
-gist_nlj_poly_index_plan gist_nlj_postgis_index_plan gist_orderby_bitmap_plan gist_orderby_index_plan
+Gist-AOCOTable-NonLossy-BitmapIndexPlan Gist-NonPart-Lossy-BitmapIndexPlan Gist-NonPart-Lossy-IndexPlan
+Gist-PartTable-Lossy-IndexPlan Gist-PartTable-NonLossy-BitmapIndexPlan Gist-PartialIndex-TableScan
+Gist-NestedLoopJoin-Lossy-IndexPlan Gist-NestedLoopJoin-Postgis-IndexPlan Gist-OrderBy-BitmapPlan Gist-OrderBy-IndexPlan
 ")
 
 set(mdp_dir "../data/dxl/minidump/")

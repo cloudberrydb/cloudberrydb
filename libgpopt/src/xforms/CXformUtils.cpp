@@ -1,3 +1,4 @@
+
 //---------------------------------------------------------------------------
 //	Greenplum Database
 //	Copyright 2012 EMC Corp.
@@ -2290,10 +2291,18 @@ CXformUtils::FIndexApplicable
 	IMDIndex::EmdindexType emdindtype
 	)
 {
-	if ((emdindtype != pmdindex->Emdindt() && pmdindex->Emdindt() != IMDIndex::EmdindGist) ||
-        0 == pcrsScalar->CElements() || // no columns to match index against
-        (pmdindex->Emdindt() == IMDIndex::EmdindGist && pmdrel->FPartialIndex(pmdindex->Pmdid()))) // partial indexes not supported for GiST
-    {
+	// GiST can match with either Btree or Bitmap indexes
+	if (pmdindex->Emdindt() == IMDIndex::EmdindGist)
+	{
+		if (pmdrel->FPartialIndex(pmdindex->Pmdid()))
+		{
+			// partial indexes not supported for GiST
+			return false;
+		}
+	}
+	else if (emdindtype != pmdindex->Emdindt() || // otherwise make sure the index matches the given type
+		0 == pcrsScalar->CElements()) // no columns to match index against
+	{
 		return false;
 	}
 	
@@ -2803,11 +2812,20 @@ CXformUtils::PexprBuildIndexPlan
 	ULONG ulSecondaryPartIndex = gpos::ulong_max;
 	CPartConstraint *ppartcnstrRel = NULL;
 
-	if ((!fAllowPartialIndex && fPartialIndex) || ptabdesc->Erelstorage() != IMDRelation::ErelstorageHeap)
+	if (!fAllowPartialIndex && fPartialIndex)
 	{
 		CRefCount::SafeRelease(ppartcnstrIndex);
 
 		// partial indexes are not allowed
+		return NULL;
+	}
+
+	if (ptabdesc->Erelstorage() != IMDRelation::ErelstorageHeap &&
+		pmdindex->Emdindt() == IMDIndex::EmdindGist)
+	{
+		CRefCount::SafeRelease(ppartcnstrIndex);
+
+		// Non-heap tables not supported for GiST
 		return NULL;
 	}
 

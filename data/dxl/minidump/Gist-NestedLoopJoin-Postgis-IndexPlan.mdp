@@ -3,9 +3,12 @@
 Objective:
 The alternative produced should contain a NLJ index scan for the 
 underlying GiST index on one of the two tables. It should not fail
-even though the where clause is a function. There should exist a 
-filter that is the same as the index condition as a recheck even 
-though there is already a filter for the actual function. 
+even though the where clause is a function. There should exist a
+filter that is the same as the index condition as a recheck even
+though there is already a filter for the actual function. The
+filter should exist because GiST indexes on geometric types
+are lossy.
+
 ENSURE THAT POSTGIS IS INSTALLED BEFORE RUNNING THIS QUERY.
 
 CREATE TABLE postgis (a int, geo geometry(point));
