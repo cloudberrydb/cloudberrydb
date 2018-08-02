@@ -9,6 +9,7 @@
 
 #include "catalog/pg_type.h"
 #include "tsearch/ts_locale.h"
+#include "utils/array.h"
 
 
 PG_MODULE_MAGIC;

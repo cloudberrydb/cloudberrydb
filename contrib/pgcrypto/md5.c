@@ -35,6 +35,7 @@
 
 #include <sys/param.h>
 
+#include "px.h"
 #include "md5.h"
 
 #define SHIFT(X, s) (((X) << (s)) | ((X) >> (32 - (s))))

@@ -221,7 +221,7 @@ SegmentInfoSenderLoop(void)
 		}
 
 		/* no need to live on if postmaster has died */
-		if (!PostmasterIsAlive())
+		if (!PostmasterIsAlive(true))
 			exit(1);
 
 		if (cluster_state_collect_hook)

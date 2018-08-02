@@ -9,7 +9,7 @@
  * the single-user case works.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -37,7 +37,7 @@ static Oid	last_roleid = InvalidOid;	/* InvalidOid == cache not valid */
 static bool last_roleid_is_super = false;
 static bool roleid_callback_registered = false;
 
-static void RoleidCallback(Datum arg, int cacheid, uint32 hashvalue);
+static void RoleidCallback(Datum arg, int cacheid, ItemPointer tuplePtr);
 
 
 /*
@@ -105,11 +105,11 @@ superuser_arg(Oid roleid)
 }
 
 /*
- * RoleidCallback
+ * UseridCallback
  *		Syscache inval callback function
  */
 static void
-RoleidCallback(Datum arg, int cacheid, uint32 hashvalue)
+RoleidCallback(Datum arg, int cacheid, ItemPointer tuplePtr)
 {
 	/* Invalidate our local cache in case role's superuserness changed */
 	last_roleid = InvalidOid;

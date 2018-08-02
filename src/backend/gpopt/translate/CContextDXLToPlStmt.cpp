@@ -347,8 +347,6 @@ CContextDXLToPlStmt::AddSubplan(Plan *pplan)
 //		Add CTAS info
 //
 //---------------------------------------------------------------------------
-// GPDB_92_MERGE_FIXME: we really should care about intoClause
-// But planner cheats. FIX that and re-enable ORCA's handling of intoClause
 void
 CContextDXLToPlStmt::AddCtasInfo
 	(
@@ -356,7 +354,7 @@ CContextDXLToPlStmt::AddCtasInfo
 	GpPolicy *pdistrpolicy
 	)
 {
-//	GPOS_ASSERT(NULL != pintocl);
+	GPOS_ASSERT(NULL != pintocl);
 	GPOS_ASSERT(NULL != pdistrpolicy);
 	
 	m_pintocl = pintocl;

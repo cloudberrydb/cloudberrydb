@@ -1,8 +1,5 @@
 /* contrib/uuid-ossp/uuid-ossp--1.0.sql */
 
--- complain if script is sourced in psql, rather than via CREATE EXTENSION
-\echo Use "CREATE EXTENSION uuid-ossp" to load this file. \quit
-
 CREATE FUNCTION uuid_nil()
 RETURNS uuid
 AS 'MODULE_PATHNAME', 'uuid_nil'

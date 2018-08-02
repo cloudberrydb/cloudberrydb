@@ -4,7 +4,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,7 +18,6 @@
 #include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
-#include "nodes/plannodes.h"
 #include "optimizer/clauses.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_relation.h"
@@ -367,7 +366,6 @@ OffsetVarNodes_walker(Node *node, OffsetVarNodes_context *context)
 		/* fall through to examine children */
 	}
 	/* Shouldn't need to handle other planner auxiliary nodes here */
-	Assert(!IsA(node, PlanRowMark));
 	Assert(!IsA(node, SpecialJoinInfo));
 	Assert(!IsA(node, PlaceHolderInfo));
 	Assert(!IsA(node, MinMaxAggInfo));
@@ -521,19 +519,6 @@ ChangeVarNodes_walker(Node *node, ChangeVarNodes_context *context)
 										   context->new_index);
 		}
 		/* fall through to examine children */
-	}
-	if (IsA(node, PlanRowMark))
-	{
-		PlanRowMark *rowmark = (PlanRowMark *) node;
-
-		if (context->sublevels_up == 0)
-		{
-			if (rowmark->rti == context->rt_index)
-				rowmark->rti = context->new_index;
-			if (rowmark->prti == context->rt_index)
-				rowmark->prti = context->new_index;
-		}
-		return false;
 	}
 	if (IsA(node, AppendRelInfo))
 	{
@@ -863,7 +848,6 @@ rangeTableEntry_used_walker(Node *node,
 	}
 	/* Shouldn't need to handle planner auxiliary nodes here */
 	Assert(!IsA(node, PlaceHolderVar));
-	Assert(!IsA(node, PlanRowMark));
 	Assert(!IsA(node, SpecialJoinInfo));
 	Assert(!IsA(node, AppendRelInfo));
 	Assert(!IsA(node, PlaceHolderInfo));

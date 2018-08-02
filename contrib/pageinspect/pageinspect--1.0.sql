@@ -1,8 +1,5 @@
 /* contrib/pageinspect/pageinspect--1.0.sql */
 
--- complain if script is sourced in psql, rather than via CREATE EXTENSION
-\echo Use "CREATE EXTENSION pageinspect" to load this file. \quit
-
 --
 -- get_raw_page()
 --

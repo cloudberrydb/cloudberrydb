@@ -3,7 +3,7 @@
  * plpgsql.h		- Definitions for the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -19,8 +19,12 @@
 #include "postgres.h"
 
 #include "access/xact.h"
+#include "fmgr.h"
 #include "commands/trigger.h"
 #include "executor/spi.h"
+#include "lib/stringinfo.h"
+#include "nodes/bitmapset.h"
+#include "utils/tuplestore.h"
 
 /**********************************************************************
  * Definitions
@@ -116,18 +120,13 @@ enum
 };
 
 /* ----------
- * GET DIAGNOSTICS information items
+ * GET DIAGNOSTICS system attrs
  * ----------
  */
 enum
 {
 	PLPGSQL_GETDIAG_ROW_COUNT,
-	PLPGSQL_GETDIAG_RESULT_OID,
-	PLPGSQL_GETDIAG_ERROR_CONTEXT,
-	PLPGSQL_GETDIAG_ERROR_DETAIL,
-	PLPGSQL_GETDIAG_ERROR_HINT,
-	PLPGSQL_GETDIAG_RETURNED_SQLSTATE,
-	PLPGSQL_GETDIAG_MESSAGE_TEXT
+	PLPGSQL_GETDIAG_RESULT_OID
 };
 
 /* --------
@@ -301,16 +300,6 @@ typedef struct
 	int			dno;
 	PLpgSQL_expr *subscript;
 	int			arrayparentno;	/* dno of parent array variable */
-	/* Remaining fields are cached info about the array variable's type */
-	Oid			parenttypoid;	/* type of array variable; 0 if not yet set */
-	int32		parenttypmod;	/* typmod of array variable */
-	Oid			arraytypoid;	/* OID of actual array type */
-	int32		arraytypmod;	/* typmod of array (and its elements too) */
-	int16		arraytyplen;	/* typlen of array type */
-	Oid			elemtypoid;		/* OID of array element type */
-	int16		elemtyplen;		/* typlen of element type */
-	bool		elemtypbyval;	/* element type is pass-by-value? */
-	char		elemtypalign;	/* typalign of element type */
 } PLpgSQL_arrayelem;
 
 
@@ -389,7 +378,6 @@ typedef struct
 {								/* Get Diagnostics statement		*/
 	int			cmd_type;
 	int			lineno;
-	bool		is_stacked;		/* STACKED or CURRENT diagnostics area? */
 	List	   *diag_items;		/* List of PLpgSQL_diag_item */
 } PLpgSQL_stmt_getdiag;
 
@@ -398,18 +386,10 @@ typedef struct
 {								/* IF statement				*/
 	int			cmd_type;
 	int			lineno;
-	PLpgSQL_expr *cond;			/* boolean expression for THEN */
-	List	   *then_body;		/* List of statements */
-	List	   *elsif_list;		/* List of PLpgSQL_if_elsif structs */
-	List	   *else_body;		/* List of statements */
+	PLpgSQL_expr *cond;
+	List	   *true_body;		/* List of statements */
+	List	   *false_body;		/* List of statements */
 } PLpgSQL_stmt_if;
-
-typedef struct					/* one ELSIF arm of IF statement */
-{
-	int			lineno;
-	PLpgSQL_expr *cond;			/* boolean expression for this case */
-	List	   *stmts;			/* List of statements */
-} PLpgSQL_if_elsif;
 
 
 typedef struct					/* CASE statement */
@@ -680,7 +660,7 @@ typedef struct PLpgSQL_func_hashkey
 
 typedef struct PLpgSQL_function
 {								/* Complete compiled function	  */
-	char	   *fn_signature;
+	char	   *fn_name;
 	Oid			fn_oid;
 	TransactionId fn_xmin;
 	ItemPointerData fn_tid;
@@ -951,7 +931,6 @@ extern PLpgSQL_nsitem *plpgsql_ns_lookup_label(PLpgSQL_nsitem *ns_cur,
  * ----------
  */
 extern const char *plpgsql_stmt_typename(PLpgSQL_stmt *stmt);
-extern const char *plpgsql_getdiag_kindname(int kind);
 extern void plpgsql_free_function_memory(PLpgSQL_function *func);
 extern void plpgsql_dumptree(PLpgSQL_function *func);
 
@@ -964,8 +943,6 @@ extern int	plpgsql_yylex(void);
 extern void plpgsql_push_back_token(int token);
 extern void plpgsql_append_source_text(StringInfo buf,
 						   int startlocation, int endlocation);
-extern void plpgsql_peek2(int *tok1_p, int *tok2_p, int *tok1_loc,
-			  int *tok2_loc);
 extern int	plpgsql_scanner_errposition(int location);
 extern void plpgsql_yyerror(const char *message);
 extern int	plpgsql_location_to_lineno(int location);

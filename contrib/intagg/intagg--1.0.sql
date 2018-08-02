@@ -1,8 +1,5 @@
 /* contrib/intagg/intagg--1.0.sql */
 
--- complain if script is sourced in psql, rather than via CREATE EXTENSION
-\echo Use "CREATE EXTENSION intagg" to load this file. \quit
-
 -- Internal function for the aggregate
 -- Is called for each item in an aggregation
 CREATE FUNCTION int_agg_state (internal, int4)

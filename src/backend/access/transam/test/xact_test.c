@@ -150,7 +150,6 @@ void
 test_IsCurrentTransactionIdForReader(void **state)
 {
 	PGPROC testProc = {0};
-	PGXACT testXAct = {0};
 
 	SharedSnapshotSlot testSlot = {0};
 	SharedLocalSnapshotSlot = &testSlot;
@@ -172,7 +171,6 @@ test_IsCurrentTransactionIdForReader(void **state)
 
 	/* test: writer_proc->pid is invalid */
 	testSlot.writer_proc = &testProc;
-	testSlot.writer_xact = &testXAct;
 	testProc.pid = 0;
 	helper_ExpectLWLock(testSlot.slotLock);
 	PG_TRY();
@@ -190,7 +188,7 @@ test_IsCurrentTransactionIdForReader(void **state)
 	 * xid yet.
 	 */
 	testProc.pid = 1234;
-	testXAct.xid = 0;
+	testProc.xid = 0;
 
 	helper_ExpectLWLock(testSlot.slotLock);
 	assert_false(IsCurrentTransactionIdForReader(100));
@@ -199,14 +197,14 @@ test_IsCurrentTransactionIdForReader(void **state)
 	 * test: not a subtransaction - xid matches writer's top
 	 * transaction ID
 	 */
-	testXAct.xid = 100;
+	testProc.xid = 100;
 
 	helper_ExpectLWLock(testSlot.slotLock);
 	assert_true(IsCurrentTransactionIdForReader(100));
 
 	/* test: subtransaction found in writer_proc cache */
-	testXAct.xid = 90;
-	testXAct.nxids = 2;
+	testProc.xid = 90;
+	testProc.subxids.nxids = 2;
 	testProc.subxids.xids[0] = 100;
 	testProc.subxids.xids[1] = 110;
 
@@ -218,9 +216,9 @@ test_IsCurrentTransactionIdForReader(void **state)
 	assert_false(IsCurrentTransactionIdForReader(120));
 
 	/* test: overflow, with top xid matching writer's xid */
-	testXAct.xid = 90;
-	testXAct.nxids = 0;
-	testXAct.overflowed = true;
+	testProc.xid = 90;
+	testProc.subxids.nxids = 0;
+	testProc.subxids.overflowed = true;
 
 	helper_ExpectLWLock(testSlot.slotLock);
 
@@ -230,9 +228,9 @@ test_IsCurrentTransactionIdForReader(void **state)
 	assert_true(IsCurrentTransactionIdForReader(100));
 
 	/* test: overflow, with top xid not matching writer's xid */
-	testXAct.xid = 80;
-	testXAct.nxids = 0;
-	testXAct.overflowed = true;
+	testProc.xid = 80;
+	testProc.subxids.nxids = 0;
+	testProc.subxids.overflowed = true;
 
 	helper_ExpectLWLock(testSlot.slotLock);
 

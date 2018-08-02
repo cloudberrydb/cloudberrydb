@@ -51,7 +51,7 @@ class StandbyVerify(object):
         with DbConn(utility=True, dbname='template1') as conn:
             return conn.execute("""
                 SELECT
-                    pid,
+                    procpid,
                     usesysid,
                     usename,
                     application_name,

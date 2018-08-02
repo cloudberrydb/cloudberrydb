@@ -8,6 +8,7 @@
 #include <ctype.h>
 
 #include "catalog/pg_collation.h"
+#include "utils/array.h"
 #include "utils/formatting.h"
 #include "ltree.h"
 

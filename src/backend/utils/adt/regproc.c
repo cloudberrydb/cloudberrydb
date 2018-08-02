@@ -8,7 +8,7 @@
  * special I/O conversion routines.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -819,8 +819,7 @@ regclassin(PG_FUNCTION_ARGS)
 	 */
 	names = stringToQualifiedNameList(class_name_or_oid);
 
-	/* We might not even have permissions on this relation; don't lock it. */
-	result = RangeVarGetRelid(makeRangeVarFromNameList(names), NoLock, false);
+	result = RangeVarGetRelid(makeRangeVarFromNameList(names), false);
 
 	PG_RETURN_OID(result);
 }
@@ -1290,9 +1289,7 @@ text_regclass(PG_FUNCTION_ARGS)
 	RangeVar   *rv;
 
 	rv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
-
-	/* We might not even have permissions on this relation; don't lock it. */
-	result = RangeVarGetRelid(rv, NoLock, false);
+	result = RangeVarGetRelid(rv, false);
 
 	PG_RETURN_OID(result);
 }

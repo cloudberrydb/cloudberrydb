@@ -20,11 +20,13 @@
 #include "cdb/cdbvars.h"
 #include "commands/async.h"
 #include "miscadmin.h"
+#include "storage/latch.h"
 #include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/proc.h"
 #include "storage/procsignal.h"
 #include "storage/sinval.h"
+#include "storage/standby.h"
 #include "tcop/tcopprot.h"
 
 

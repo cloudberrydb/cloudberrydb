@@ -3,7 +3,7 @@
  * storage.c
  *	  code to create and destroy physical storage for relations
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -208,13 +208,10 @@ RelationDropStorage(Relation rel)
  * The relation mapper fixes this by telling us to not delete such relations
  * after all as part of its commit.
  *
- * We also use this to reuse an old build of an index during ALTER TABLE, this
- * time removing the delete-at-commit entry.
- *
  * No-op if the relation is not among those scheduled for deletion.
  */
 void
-RelationPreserveStorage(RelFileNode rnode, bool atCommit)
+RelationPreserveStorage(RelFileNode rnode)
 {
 	PendingRelDelete *pending;
 	PendingRelDelete *prev;
@@ -224,9 +221,11 @@ RelationPreserveStorage(RelFileNode rnode, bool atCommit)
 	for (pending = pendingDeletes; pending != NULL; pending = next)
 	{
 		next = pending->next;
-		if (RelFileNodeEquals(rnode, pending->relnode.node)
-			&& pending->atCommit == atCommit)
+		if (RelFileNodeEquals(rnode, pending->relnode.node))
 		{
+			/* we should only find delete-on-abort entries, else trouble */
+			if (pending->atCommit)
+				elog(ERROR, "cannot preserve a delete-on-commit relation");
 			/* unlink and delete list entry */
 			if (prev)
 				prev->next = next;
@@ -358,10 +357,13 @@ smgrDoPendingDeletes(bool isCommit)
 			if (pending->atCommit == isCommit)
 			{
 				SMgrRelation srel;
+				int			i;
 
 				srel = smgropen(pending->relnode.node, pending->backend);
-
-				smgrdounlink(srel, false, pending->relnode.relstorage);
+				for (i = 0; i <= MAX_FORKNUM; i++)
+				{
+					smgrdounlink(srel, i, false, pending->relnode.relstorage);
+				}
 				smgrclose(srel);
 			}
 			/* must explicitly free the list entry */
@@ -519,8 +521,8 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		/*
 		 * Forcibly create relation if it doesn't exist (which suggests that
 		 * it was dropped somewhere later in the WAL sequence).  As in
-		 * XLogReadBuffer, we prefer to recreate the rel and replay the log as
-		 * best we can until the drop is seen.
+		 * XLogOpenRelation, we prefer to recreate the rel and replay the log
+		 * as best we can until the drop is seen.
 		 */
 		smgrcreate(reln, MAIN_FORKNUM, true);
 

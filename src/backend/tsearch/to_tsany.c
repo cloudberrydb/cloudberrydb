@@ -3,7 +3,7 @@
  * to_tsany.c
  *		to_ts* function definitions
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -13,9 +13,11 @@
  */
 #include "postgres.h"
 
+#include "catalog/namespace.h"
 #include "tsearch/ts_cache.h"
 #include "tsearch/ts_utils.h"
 #include "utils/builtins.h"
+#include "utils/syscache.h"
 
 
 Datum
@@ -33,16 +35,16 @@ compareWORD(const void *a, const void *b)
 	int			res;
 
 	res = tsCompareString(
-			   ((const ParsedWord *) a)->word, ((const ParsedWord *) a)->len,
-			   ((const ParsedWord *) b)->word, ((const ParsedWord *) b)->len,
+						  ((ParsedWord *) a)->word, ((ParsedWord *) a)->len,
+						  ((ParsedWord *) b)->word, ((ParsedWord *) b)->len,
 						  false);
 
 	if (res == 0)
 	{
-		if (((const ParsedWord *) a)->pos.pos == ((const ParsedWord *) b)->pos.pos)
+		if (((ParsedWord *) a)->pos.pos == ((ParsedWord *) b)->pos.pos)
 			return 0;
 
-		res = (((const ParsedWord *) a)->pos.pos > ((const ParsedWord *) b)->pos.pos) ? 1 : -1;
+		res = (((ParsedWord *) a)->pos.pos > ((ParsedWord *) b)->pos.pos) ? 1 : -1;
 	}
 
 	return res;

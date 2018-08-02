@@ -83,7 +83,8 @@ UNLISTEN *;
 SELECT pg_advisory_unlock_all();
 DISCARD PLANS;
 DISCARD TEMP;
-</programlisting></para>
+</programlisting>
+     </para>
     </listitem>
    </varlistentry>
 

@@ -1,8 +1,6 @@
 /*
  * contrib/btree_gist/btree_inet.c
  */
-#include "postgres.h"
-
 #include "btree_gist.h"
 #include "btree_utils_num.h"
 #include "utils/builtins.h"
@@ -36,34 +34,34 @@ Datum		gbt_inet_same(PG_FUNCTION_ARGS);
 static bool
 gbt_inetgt(const void *a, const void *b)
 {
-	return (*((const double *) a) > *((const double *) b));
+	return (*((double *) a) > *((double *) b));
 }
 static bool
 gbt_inetge(const void *a, const void *b)
 {
-	return (*((const double *) a) >= *((const double *) b));
+	return (*((double *) a) >= *((double *) b));
 }
 static bool
 gbt_ineteq(const void *a, const void *b)
 {
-	return (*((const double *) a) == *((const double *) b));
+	return (*((double *) a) == *((double *) b));
 }
 static bool
 gbt_inetle(const void *a, const void *b)
 {
-	return (*((const double *) a) <= *((const double *) b));
+	return (*((double *) a) <= *((double *) b));
 }
 static bool
 gbt_inetlt(const void *a, const void *b)
 {
-	return (*((const double *) a) < *((const double *) b));
+	return (*((double *) a) < *((double *) b));
 }
 
 static int
 gbt_inetkey_cmp(const void *a, const void *b)
 {
-	inetKEY    *ia = (inetKEY *) (((const Nsrt *) a)->t);
-	inetKEY    *ib = (inetKEY *) (((const Nsrt *) b)->t);
+	inetKEY    *ia = (inetKEY *) (((Nsrt *) a)->t);
+	inetKEY    *ib = (inetKEY *) (((Nsrt *) b)->t);
 
 	if (ia->lower == ib->lower)
 	{

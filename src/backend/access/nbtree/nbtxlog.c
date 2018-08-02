@@ -4,7 +4,7 @@
  *	  WAL replay logic for btrees.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -16,7 +16,10 @@
 
 #include "access/nbtree.h"
 #include "access/transam.h"
+#include "access/xact.h"
+#include "storage/bufmgr.h"
 #include "storage/procarray.h"
+#include "storage/standby.h"
 #include "miscadmin.h"
 
 #include "access/bufmask.h"
@@ -218,9 +221,10 @@ btree_xlog_insert(bool isleaf, bool ismeta,
 		datalen -= sizeof(xl_btree_metadata);
 	}
 
-	if (IsBkpBlockApplied(record, 0))
-		(void) RestoreBackupBlock(lsn, record, 0, false, false);
-	else
+	if ((IsBkpBlockApplied(record, 0)) && !ismeta && isleaf)
+		return;					/* nothing to do */
+
+	if (!(IsBkpBlockApplied(record, 0)))
 	{
 		buffer = XLogReadBuffer(xlrec->target.node,
 							 ItemPointerGetBlockNumber(&(xlrec->target.tid)),
@@ -247,13 +251,6 @@ btree_xlog_insert(bool isleaf, bool ismeta,
 		}
 	}
 
-	/*
-	 * Note: in normal operation, we'd update the metapage while still holding
-	 * lock on the page we inserted into.  But during replay it's not
-	 * necessary to hold that lock, since no other index updates can be
-	 * happening concurrently, and readers will cope fine with following an
-	 * obsolete link from the metapage.
-	 */
 	if (ismeta)
 		_bt_restore_meta(xlrec->target.node, lsn,
 						 md.root, md.level,
@@ -328,7 +325,7 @@ btree_xlog_split(bool onleft, bool isroot,
 		datalen -= newitemsz;
 	}
 
-	/* Reconstruct right (new) sibling page from scratch */
+	/* Reconstruct right (new) sibling from scratch */
 	rbuf = XLogReadBuffer(xlrec->node, xlrec->rightsib, true);
 	Assert(BufferIsValid(rbuf));
 	rpage = (Page) BufferGetPage(rbuf);
@@ -361,21 +358,18 @@ btree_xlog_split(bool onleft, bool isroot,
 
 	/* don't release the buffer yet; we touch right page's first item below */
 
-	/* Now reconstruct left (original) sibling page */
-	if (IsBkpBlockApplied(record, 0))
-		(void) RestoreBackupBlock(lsn, record, 0, false, false);
-	else
+	/*
+	 * Reconstruct left (original) sibling if needed.  Note that this code
+	 * ensures that the items remaining on the left page are in the correct
+	 * item number order, but it does not reproduce the physical order they
+	 * would have had.	Is this worth changing?  See also _bt_restore_page().
+	 */
+	if (!(IsBkpBlockApplied(record, 0)))
 	{
 		Buffer		lbuf = XLogReadBuffer(xlrec->node, xlrec->leftsib, false);
 
 		if (BufferIsValid(lbuf))
 		{
-			/*
-			 * Note that this code ensures that the items remaining on the
-			 * left page are in the correct item number order, but it does not
-			 * reproduce the physical order they would have had.  Is this
-			 * worth changing?  See also _bt_restore_page().
-			 */
 			Page		lpage = (Page) BufferGetPage(lbuf);
 			BTPageOpaque lopaque = (BTPageOpaque) PageGetSpecialPointer(lpage);
 
@@ -438,17 +432,8 @@ btree_xlog_split(bool onleft, bool isroot,
 	/* We no longer need the right buffer */
 	UnlockReleaseBuffer(rbuf);
 
-	/*
-	 * Fix left-link of the page to the right of the new right sibling.
-	 *
-	 * Note: in normal operation, we do this while still holding lock on the
-	 * two split pages.  However, that's not necessary for correctness in WAL
-	 * replay, because no other index update can be in progress, and readers
-	 * will cope properly when following an obsolete left-link.
-	 */
-	if (IsBkpBlockApplied(record, 1))
-		(void) RestoreBackupBlock(lsn, record, 1, false, false);
-	else if (xlrec->rnext != P_NONE)
+	/* Fix left-link of the page to the right of the new right sibling */
+	if (xlrec->rnext != P_NONE && !(IsBkpBlockApplied(record, 1)))
 	{
 		Buffer		buffer = XLogReadBuffer(xlrec->node, xlrec->rnext, false);
 
@@ -477,10 +462,12 @@ btree_xlog_split(bool onleft, bool isroot,
 static void
 btree_xlog_vacuum(XLogRecPtr lsn, XLogRecord *record)
 {
-	xl_btree_vacuum *xlrec = (xl_btree_vacuum *) XLogRecGetData(record);
+	xl_btree_vacuum *xlrec;
 	Buffer		buffer;
 	Page		page;
 	BTPageOpaque opaque;
+
+	xlrec = (xl_btree_vacuum *) XLogRecGetData(record);
 
 	/*
 	 * If queries might be active then we need to ensure every block is
@@ -514,14 +501,13 @@ btree_xlog_vacuum(XLogRecPtr lsn, XLogRecord *record)
 	}
 
 	/*
-	 * If we have a full-page image, restore it (using a cleanup lock) and
-	 * we're done.
+	 * If the block was restored from a full page image, nothing more to do.
+	 * The RestoreBkpBlocks() call already pinned and took cleanup lock on it.
+	 * XXX: Perhaps we should call RestoreBkpBlocks() *after* the loop above,
+	 * to make the disk access more sequential.
 	 */
-	if (record->xl_info & XLR_BKP_BLOCK(0))
-	{
-		(void) RestoreBackupBlock(lsn, record, 0, true, false);
+	if (record->xl_info & XLR_BKP_BLOCK_1)
 		return;
-	}
 
 	/*
 	 * Like in btvacuumpage(), we need to take a cleanup lock on every leaf
@@ -553,7 +539,7 @@ btree_xlog_vacuum(XLogRecPtr lsn, XLogRecord *record)
 
 	/*
 	 * Mark the page as not containing any LP_DEAD items --- see comments in
-	 * _bt_delitems_vacuum().
+	 * _bt_delitems().
 	 */
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	opaque->btpo_flags &= ~BTP_HAS_GARBAGE;
@@ -575,8 +561,9 @@ btree_xlog_vacuum(XLogRecPtr lsn, XLogRecord *record)
  * XXX optimise later with something like XLogPrefetchBuffer()
  */
 static TransactionId
-btree_xlog_delete_get_latestRemovedXid(xl_btree_delete *xlrec)
+btree_xlog_delete_get_latestRemovedXid(XLogRecord *record)
 {
+	xl_btree_delete *xlrec = (xl_btree_delete *) XLogRecGetData(record);
 	OffsetNumber *unused;
 	Buffer		ibuffer,
 				hbuffer;
@@ -696,35 +683,15 @@ btree_xlog_delete_get_latestRemovedXid(xl_btree_delete *xlrec)
 static void
 btree_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 {
-	xl_btree_delete *xlrec = (xl_btree_delete *) XLogRecGetData(record);
+	xl_btree_delete *xlrec;
 	Buffer		buffer;
 	Page		page;
 	BTPageOpaque opaque;
 
-	/*
-	 * If we have any conflict processing to do, it must happen before we
-	 * update the page.
-	 *
-	 * Btree delete records can conflict with standby queries.  You might
-	 * think that vacuum records would conflict as well, but we've handled
-	 * that already.  XLOG_HEAP2_CLEANUP_INFO records provide the highest xid
-	 * cleaned by the vacuum of the heap and so we can resolve any conflicts
-	 * just once when that arrives.  After that we know that no conflicts
-	 * exist from individual btree vacuum records on that index.
-	 */
-	if (InHotStandby)
-	{
-		TransactionId latestRemovedXid = btree_xlog_delete_get_latestRemovedXid(xlrec);
-
-		ResolveRecoveryConflictWithSnapshot(latestRemovedXid, xlrec->node);
-	}
-
-	/* If we have a full-page image, restore it and we're done */
 	if (IsBkpBlockApplied(record, 0))
-	{
-		(void) RestoreBackupBlock(lsn, record, 0, false, false);
 		return;
-	}
+
+	xlrec = (xl_btree_delete *) XLogRecGetData(record);
 
 	/*
 	 * We don't need to take a cleanup lock to apply these changes. See
@@ -752,7 +719,7 @@ btree_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 
 	/*
 	 * Mark the page as not containing any LP_DEAD items --- see comments in
-	 * _bt_delitems_delete().
+	 * _bt_delitems().
 	 */
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	opaque->btpo_flags &= ~BTP_HAS_GARBAGE;
@@ -779,18 +746,8 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 	leftsib = xlrec->leftblk;
 	rightsib = xlrec->rightblk;
 
-	/*
-	 * In normal operation, we would lock all the pages this WAL record
-	 * touches before changing any of them.  In WAL replay, it should be okay
-	 * to lock just one page at a time, since no concurrent index updates can
-	 * be happening, and readers should not care whether they arrive at the
-	 * target page or not (since it's surely empty).
-	 */
-
 	/* parent page */
-	if (IsBkpBlockApplied(record, 0))
-		(void) RestoreBackupBlock(lsn, record, 0, false, false);
-	else
+	if (!(IsBkpBlockApplied(record, 0)))
 	{
 		buffer = XLogReadBuffer(xlrec->target.node, parent, false);
 		if (BufferIsValid(buffer))
@@ -835,9 +792,7 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 	}
 
 	/* Fix left-link of right sibling */
-	if (IsBkpBlockApplied(record, 1))
-		(void) RestoreBackupBlock(lsn, record, 1, false, false);
-	else
+	if (!(IsBkpBlockApplied(record, 1)))
 	{
 		buffer = XLogReadBuffer(xlrec->target.node, rightsib, false);
 		if (BufferIsValid(buffer))
@@ -860,9 +815,7 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 	}
 
 	/* Fix right-link of left sibling, if any */
-	if (IsBkpBlockApplied(record, 2))
-		(void) RestoreBackupBlock(lsn, record, 2, false, false);
-	else
+	if (!(IsBkpBlockApplied(record, 2)))
 	{
 		if (leftsib != P_NONE)
 		{
@@ -934,9 +887,6 @@ btree_xlog_newroot(XLogRecPtr lsn, XLogRecord *record)
 	BTPageOpaque pageop;
 	BlockNumber downlink = 0;
 
-	/* Backup blocks are not used in newroot records */
-	Assert(!(record->xl_info & XLR_BKP_BLOCK_MASK));
-
 	buffer = XLogReadBuffer(xlrec->node, xlrec->rootblk, true);
 	Assert(BufferIsValid(buffer));
 	page = (Page) BufferGetPage(buffer);
@@ -977,36 +927,59 @@ btree_xlog_newroot(XLogRecPtr lsn, XLogRecord *record)
 		forget_matching_split(xlrec->node, downlink, true);
 }
 
-static void
-btree_xlog_reuse_page(XLogRecPtr lsn, XLogRecord *record)
-{
-	xl_btree_reuse_page *xlrec = (xl_btree_reuse_page *) XLogRecGetData(record);
-
-	/*
-	 * Btree reuse_page records exist to provide a conflict point when we
-	 * reuse pages in the index via the FSM.  That's all they do though.
-	 *
-	 * latestRemovedXid was the page's btpo.xact.  The btpo.xact <
-	 * RecentGlobalXmin test in _bt_page_recyclable() conceptually mirrors the
-	 * pgxact->xmin > limitXmin test in GetConflictingVirtualXIDs().
-	 * Consequently, one XID value achieves the same exclusion effect on
-	 * master and standby.
-	 */
-	if (InHotStandby)
-	{
-		ResolveRecoveryConflictWithSnapshot(xlrec->latestRemovedXid,
-											xlrec->node);
-	}
-
-	/* Backup blocks are not used in reuse_page records */
-	Assert(!(record->xl_info & XLR_BKP_BLOCK_MASK));
-}
-
 
 void
 btree_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
+
+	if (InHotStandby)
+	{
+		switch (info)
+		{
+			case XLOG_BTREE_DELETE:
+
+				/*
+				 * Btree delete records can conflict with standby queries. You
+				 * might think that vacuum records would conflict as well, but
+				 * we've handled that already. XLOG_HEAP2_CLEANUP_INFO records
+				 * provide the highest xid cleaned by the vacuum of the heap
+				 * and so we can resolve any conflicts just once when that
+				 * arrives. After that any we know that no conflicts exist
+				 * from individual btree vacuum records on that index.
+				 */
+				{
+					TransactionId latestRemovedXid = btree_xlog_delete_get_latestRemovedXid(record);
+					xl_btree_delete *xlrec = (xl_btree_delete *) XLogRecGetData(record);
+
+					ResolveRecoveryConflictWithSnapshot(latestRemovedXid, xlrec->node);
+				}
+				break;
+
+			case XLOG_BTREE_REUSE_PAGE:
+
+				/*
+				 * Btree reuse page records exist to provide a conflict point
+				 * when we reuse pages in the index via the FSM. That's all it
+				 * does though.
+				 */
+				{
+					xl_btree_reuse_page *xlrec = (xl_btree_reuse_page *) XLogRecGetData(record);
+
+					ResolveRecoveryConflictWithSnapshot(xlrec->latestRemovedXid, xlrec->node);
+				}
+				return;
+
+			default:
+				break;
+		}
+	}
+
+	/*
+	 * Vacuum needs to pin and take cleanup lock on every leaf page, a regular
+	 * exclusive lock is enough for all other purposes.
+	 */
+	RestoreBkpBlocks(lsn, record, (info == XLOG_BTREE_VACUUM));
 
 	switch (info)
 	{
@@ -1046,7 +1019,7 @@ btree_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			btree_xlog_newroot(lsn, record);
 			break;
 		case XLOG_BTREE_REUSE_PAGE:
-			btree_xlog_reuse_page(lsn, record);
+			/* Handled above before restoring bkp block */
 			break;
 		default:
 			elog(PANIC, "btree_redo: unknown op code %u", info);

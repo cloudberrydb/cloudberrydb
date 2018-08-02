@@ -24,8 +24,8 @@ PostgreSQL documentation
    <command>createdb</command>
    <arg rep="repeat"><replaceable>connection-option</replaceable></arg>
    <arg rep="repeat"><replaceable>option</replaceable></arg>
-   <arg choice="opt"><replaceable>dbname</replaceable>
-   <arg choice="opt"><replaceable>description</replaceable></arg></arg>
+   <arg><replaceable>dbname</replaceable></arg>
+   <arg><replaceable>description</replaceable></arg>
   </cmdsynopsis>
  </refsynopsisdiv>
 
@@ -90,8 +90,7 @@ PostgreSQL documentation
       <term><option>--tablespace=<replaceable class="parameter">tablespace</replaceable></></term>
       <listitem>
        <para>
-        Specifies the default tablespace for the database. (This name
-        is processed as a double-quoted identifier.)
+        Specifies the default tablespace for the database.
        </para>
       </listitem>
      </varlistentry>
@@ -155,7 +154,6 @@ PostgreSQL documentation
       <listitem>
        <para>
         Specifies the database user who will own the new database.
-        (This name is processed as a double-quoted identifier.)
        </para>
       </listitem>
      </varlistentry>
@@ -165,8 +163,7 @@ PostgreSQL documentation
       <term><option>--template=<replaceable class="parameter">template</replaceable></></term>
       <listitem>
        <para>
-        Specifies the template database from which to build this
-        database.  (This name is processed as a double-quoted identifier.)
+        Specifies the template database from which to build this database.
        </para>
       </listitem>
      </varlistentry>
@@ -276,19 +273,6 @@ PostgreSQL documentation
        </para>
       </listitem>
      </varlistentry>
-
-     <varlistentry>
-      <term><option>--maintenance-db=<replaceable class="parameter">dbname</replaceable></></term>
-      <listitem>
-       <para>
-         Specifies the name of the database to connect to when creating the
-         new database. If not specified, the <literal>postgres</literal>
-         database will be used; if that does not exist (or if it is the name
-         of the new database being created), <literal>template1</literal> will
-         be used.
-       </para>
-      </listitem>
-     </varlistentry>
     </variablelist>
    </para>
 
@@ -368,7 +352,8 @@ PostgreSQL documentation
 <screen>
 <prompt>$ </prompt><userinput>createdb -p 5000 -h eden -E LATIN1 -e demo</userinput>
 <computeroutput>CREATE DATABASE demo ENCODING 'LATIN1';</computeroutput>
-</screen></para>
+</screen>
+   </para>
  </refsect1>
 
 

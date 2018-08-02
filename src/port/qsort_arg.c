@@ -7,7 +7,7 @@
  *	  Remove ill-considered "swap_cnt" switch to insertion sort,
  *	  in favor of a simple check for presorted input.
  *
- *	CAUTION: if you change this file, see also qsort.c, gen_qsort_tuple.pl
+ *	CAUTION: if you change this file, see also qsort.c
  *
  *	src/port/qsort_arg.c
  */

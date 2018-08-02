@@ -118,7 +118,8 @@ CREATE TABLESPACE dbspace LOCATION '/data/dbs';
    owned by user <literal>genevieve</>:
 <programlisting>
 CREATE TABLESPACE indexspace OWNER genevieve LOCATION '/data/indexes';
-</programlisting></para>
+</programlisting>
+  </para>
  </refsect1>
 
  <refsect1>

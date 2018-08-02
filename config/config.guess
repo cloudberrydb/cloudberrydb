@@ -851,7 +851,7 @@ EOF
     *:MINGW*:*)
 	echo ${UNAME_MACHINE}-pc-mingw32
 	exit ;;
-    i*:MSYS*:*)
+    *:MSYS*:*)
 	echo ${UNAME_MACHINE}-pc-msys
 	exit ;;
     i*:windows32*:*)
@@ -909,11 +909,11 @@ EOF
 	echo ${UNAME_MACHINE}-pc-minix
 	exit ;;
     aarch64:Linux:*:*)
-	echo ${UNAME_MACHINE}-unknown-linux-gnu
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     aarch64_be:Linux:*:*)
 	UNAME_MACHINE=aarch64_be
-	echo ${UNAME_MACHINE}-unknown-linux-gnu
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     alpha:Linux:*:*)
 	case `sed -n '/^cpu model/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo` in
@@ -952,16 +952,19 @@ EOF
 	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     cris:Linux:*:*)
-	echo ${UNAME_MACHINE}-axis-linux-gnu
+	echo ${UNAME_MACHINE}-axis-linux-${LIBC}
 	exit ;;
     crisv32:Linux:*:*)
-	echo ${UNAME_MACHINE}-axis-linux-gnu
+	echo ${UNAME_MACHINE}-axis-linux-${LIBC}
+	exit ;;
+    e2k:Linux:*:*)
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     frv:Linux:*:*)
-	echo ${UNAME_MACHINE}-unknown-linux-gnu
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     hexagon:Linux:*:*)
-	echo ${UNAME_MACHINE}-unknown-linux-gnu
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     i*86:Linux:*:*)
 	echo ${UNAME_MACHINE}-pc-linux-${LIBC}
@@ -997,8 +1000,14 @@ EOF
 	eval `$CC_FOR_BUILD -E $dummy.c 2>/dev/null | grep '^CPU'`
 	test x"${CPU}" != x && { echo "${CPU}-unknown-linux-${LIBC}"; exit; }
 	;;
-    or32:Linux:*:*)
-	echo ${UNAME_MACHINE}-unknown-linux-gnu
+    mips64el:Linux:*:*)
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
+	exit ;;
+    openrisc*:Linux:*:*)
+	echo or1k-unknown-linux-${LIBC}
+	exit ;;
+    or32:Linux:*:* | or1k*:Linux:*:*)
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     padre:Linux:*:*)
 	echo sparc-unknown-linux-${LIBC}
@@ -1042,13 +1051,13 @@ EOF
 	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     tile*:Linux:*:*)
-	echo ${UNAME_MACHINE}-unknown-linux-gnu
+	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
 	exit ;;
     vax:Linux:*:*)
 	echo ${UNAME_MACHINE}-dec-linux-${LIBC}
 	exit ;;
     x86_64:Linux:*:*)
-	echo ${UNAME_MACHINE}-unknown-linux-gnu
+	echo ${UNAME_MACHINE}-pc-linux-${LIBC}
 	exit ;;
     xtensa*:Linux:*:*)
 	echo ${UNAME_MACHINE}-unknown-linux-${LIBC}
@@ -1399,6 +1408,9 @@ EOF
 	exit ;;
     x86_64:VMkernel:*:*)
 	echo ${UNAME_MACHINE}-unknown-esx
+	exit ;;
+    amd64:Isilon\ OneFS:*:*)
+	echo x86_64-unknown-onefs
 	exit ;;
 esac
 

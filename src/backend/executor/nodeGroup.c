@@ -3,7 +3,7 @@
  * nodeGroup.c
  *	  Routines to handle group nodes (used for queries with GROUP BY clause).
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -118,8 +118,6 @@ ExecGroup(GroupState *node)
 				return result;
 			}
 		}
-		else
-			InstrCountFiltered1(node, 1);
 	}
 
 	/*
@@ -181,8 +179,6 @@ ExecGroup(GroupState *node)
 				return result;
 			}
 		}
-		else
-			InstrCountFiltered1(node, 1);
 	}
 
 	/* NOTREACHED */

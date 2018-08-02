@@ -2,25 +2,23 @@
 #
 # win32tzlist.pl -- compare Windows timezone information
 #
-# Copyright (c) 2008-2012, PostgreSQL Global Development Group
+# Copyright (c) 2008-2011, PostgreSQL Global Development Group
 #
 # src/tools/win32tzlist.pl
 #################################################################
 
 #
-# This script compares the timezone information in the Windows registry
-# with that in src/bin/initdb/findtimezone.c.  A list of changes will be
-# written to stdout - no attempt is made to automatically edit the file.
+# This script compares the timezone information in the Windows
+# registry with that in pgtz.c. A list of changes will be written
+# to stdout - no attempt is made to automatically edit the file.
 #
-# Run the script from the top-level PG source directory.
+# Run the script from the src/timezone directory.
 #
 
 use strict;
 use warnings;
 
 use Win32::Registry;
-
-my $tzfile = 'src/bin/initdb/findtimezone.c';
 
 #
 # Fetch all timezones in the registry
@@ -59,16 +57,16 @@ $basekey->Close();
 # Fetch all timezones currently in the file
 #
 my @file_zones;
-open(TZFILE,"<$tzfile") or die "Could not open $tzfile!\n";
+open(PGTZ,'<pgtz.c') or die "Could not open pgtz.c!\n";
 my $t = $/;
 undef $/;
-my $pgtz = <TZFILE>;
-close(TZFILE);
+my $pgtz = <PGTZ>;
+close(PGTZ);
 $/ = $t;
 
 # Attempt to locate and extract the complete win32_tzmap struct
 $pgtz =~ /win32_tzmap\[\] =\s+{\s+\/\*[^\/]+\*\/\s+(.+?)};/gs
-  or die "Could not locate struct win32_tzmap in $tzfile!";
+  or die "Could not locate struct win32_tzmap in pgtz.c!";
 $pgtz = $1;
 
 # Extract each individual record from the struct

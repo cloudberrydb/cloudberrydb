@@ -14,14 +14,7 @@ $$ LANGUAGE plpythonu;
 
 CREATE FUNCTION test_param_names2(u users) RETURNS text AS $$
 assert u == args[0]
-if isinstance(u, dict):
-    # stringify dict the hard way because otherwise the order is implementation-dependent
-    u_keys = list(u.keys())
-    u_keys.sort()
-    s = '{' + ', '.join([repr(k) + ': ' + repr(u[k]) for k in u_keys]) + '}'
-else:
-    s = str(u)
-return s
+return str(u)
 $$ LANGUAGE plpythonu;
 
 -- use deliberately wrong parameter names

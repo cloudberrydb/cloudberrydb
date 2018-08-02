@@ -12,7 +12,6 @@
 #include "commands/trigger.h"
 #include "executor/spi.h"
 #include "utils/builtins.h"
-#include "utils/rel.h"
 
 PG_MODULE_MAGIC;
 
@@ -190,11 +189,12 @@ check_primary_key(PG_FUNCTION_ARGS)
 
 		/*
 		 * Remember that SPI_prepare places plan in current memory context -
-		 * so, we have to save plan in Top memory context for later use.
+		 * so, we have to save plan in Top memory context for latter use.
 		 */
-		if (SPI_keepplan(pplan))
+		pplan = SPI_saveplan(pplan);
+		if (pplan == NULL)
 			/* internal error */
-			elog(ERROR, "check_primary_key: SPI_keepplan failed");
+			elog(ERROR, "check_primary_key: SPI_saveplan returned %d", SPI_result);
 		plan->splan = (SPIPlanPtr *) malloc(sizeof(SPIPlanPtr));
 		*(plan->splan) = pplan;
 		plan->nplans = 1;
@@ -536,11 +536,13 @@ check_foreign_key(PG_FUNCTION_ARGS)
 
 			/*
 			 * Remember that SPI_prepare places plan in current memory context
-			 * - so, we have to save plan in Top memory context for later use.
+			 * - so, we have to save plan in Top memory context for latter
+			 * use.
 			 */
-			if (SPI_keepplan(pplan))
+			pplan = SPI_saveplan(pplan);
+			if (pplan == NULL)
 				/* internal error */
-				elog(ERROR, "check_foreign_key: SPI_keepplan failed");
+				elog(ERROR, "check_foreign_key: SPI_saveplan returned %d", SPI_result);
 
 			plan->splan[r] = pplan;
 

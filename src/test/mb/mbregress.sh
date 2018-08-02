@@ -14,13 +14,11 @@ if [ ! -d results ];then
     mkdir results
 fi
 
-dropdb --if-exists utf8
-createdb -T template0 -l C -E UTF8 utf8 || exit 1
+dropdb utf8
+createdb -T template0 -l C -E UTF8 utf8
 
 PSQL="psql -n -e -q"
 tests="euc_jp sjis euc_kr euc_cn euc_tw big5 utf8 mule_internal"
-EXITCODE=0
-
 unset PGCLIENTENCODING
 for i in $tests
 do
@@ -56,10 +54,7 @@ do
 		echo "----------------------"; \
 		echo "" ) >> regression.diffs
 		echo failed
-		EXITCODE=1
 	else
 		echo ok
 	fi
 done
-
-exit $EXITCODE

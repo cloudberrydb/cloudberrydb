@@ -38,7 +38,6 @@
 #   SCRIPTS_built -- script files (not binaries) to install into $PREFIX/bin,
 #     which need to be built first
 #   REGRESS -- list of regression test cases (without suffix)
-#   REGRESS_OPTS -- additional switches to pass to pg_regress
 #   EXTRA_CLEAN -- extra files to remove in 'make clean'
 #   PG_CPPFLAGS -- will be added to CPPFLAGS
 #   PG_LIBS -- will be added to PROGRAM link line
@@ -64,16 +63,6 @@ include $(top_builddir)/src/Makefile.global
 top_srcdir = $(top_builddir)
 srcdir = .
 VPATH =
-
-# These might be set in Makefile.global, but if they were not found
-# during the build of PostgreSQL, supply default values so that users
-# of pgxs can use the variables.
-ifeq ($(BISON),)
-BISON = bison
-endif
-ifeq ($(FLEX),)
-FLEX = flex
-endif
 endif
 
 
@@ -252,8 +241,10 @@ distclean maintainer-clean: clean
 
 ifdef REGRESS
 
-# Select database to use for running the tests
-REGRESS_OPTS += --dbname=$(CONTRIB_TESTDB)
+# Calling makefile can set REGRESS_OPTS, but this is the default:
+ifndef REGRESS_OPTS
+REGRESS_OPTS = --dbname=$(CONTRIB_TESTDB)
+endif
 
 # where to find psql for running the tests
 PSQLDIR = $(bindir)
@@ -282,7 +273,7 @@ ifndef PGXS
 endif
 
 # against installed postmaster
-installcheck: submake $(REGRESS_PREP)
+installcheck: submake
 	$(pg_regress_installcheck) $(REGRESS_OPTS) $(REGRESS)
 
 ifdef PGXS
@@ -290,7 +281,7 @@ check:
 	@echo '"$(MAKE) check" is not supported.'
 	@echo 'Do "$(MAKE) install", then "$(MAKE) installcheck" instead.'
 else
-check: all submake $(REGRESS_PREP)
+check: all submake
 	$(pg_regress_check) --extra-install=$(subdir) $(REGRESS_OPTS) $(REGRESS)
 endif
 endif # REGRESS

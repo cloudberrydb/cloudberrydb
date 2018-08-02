@@ -3,7 +3,7 @@
  * execQual.c
  *	  Routines to evaluate qualification and targetlist expressions
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -691,15 +691,13 @@ ExecEvalScalarVar(ExprState *exprstate, ExprContext *econtext,
 	/* Get the input slot and attribute number we want */
 	switch (variable->varno)
 	{
-		case INNER_VAR: /* get the tuple from the inner node */
+		case INNER:				/* get the tuple from the inner node */
 			slot = econtext->ecxt_innertuple;
 			break;
 
-		case OUTER_VAR: /* get the tuple from the outer node */
+		case OUTER:				/* get the tuple from the outer node */
 			slot = econtext->ecxt_outertuple;
 			break;
-
-			/* INDEX_VAR is handled by default case */
 
 		default:				/* get the tuple from the relation being
 								 * scanned */
@@ -779,11 +777,11 @@ ExecEvalScalarVarFast(ExprState *exprstate, ExprContext *econtext,
 	/* Get the input slot and attribute number we want */
 	switch (variable->varno)
 	{
-		case INNER_VAR:				/* get the tuple from the inner node */
+		case INNER:				/* get the tuple from the inner node */
 			slot = econtext->ecxt_innertuple;
 			break;
 
-		case OUTER_VAR:				/* get the tuple from the outer node */
+		case OUTER:				/* get the tuple from the outer node */
 			slot = econtext->ecxt_outertuple;
 			break;
 
@@ -826,8 +824,8 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	Assert(variable->varattno == InvalidAttrNumber);
 
 	/* Get the input slot we want */
-	Assert(variable->varno != INNER_VAR);
-	Assert(variable->varno != OUTER_VAR);
+	Assert(variable->varno != INNER);
+	Assert(variable->varno != OUTER);
 	slot = econtext->ecxt_scantuple;
 
 	/*
@@ -973,7 +971,7 @@ ExecEvalWholeRowFast(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 					 bool *isNull, ExprDoneCond *isDone)
 {
 	Var		   *variable = (Var *) wrvstate->xprstate.expr;
-	TupleTableSlot *slot;
+	TupleTableSlot *slot = econtext->ecxt_scantuple;
 	HeapTuple	tuple;
 	TupleDesc	slot_tupdesc;
 	HeapTupleHeader dtuple;
@@ -981,25 +979,6 @@ ExecEvalWholeRowFast(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	if (isDone)
 		*isDone = ExprSingleResult;
 	*isNull = false;
-
-	/* Get the input slot we want */
-	switch (variable->varno)
-	{
-		case INNER_VAR: /* get the tuple from the inner node */
-			slot = econtext->ecxt_innertuple;
-			break;
-
-		case OUTER_VAR: /* get the tuple from the outer node */
-			slot = econtext->ecxt_outertuple;
-			break;
-
-			/* INDEX_VAR is handled by default case */
-
-		default:				/* get the tuple from the relation being
-								 * scanned */
-			slot = econtext->ecxt_scantuple;
-			break;
-	}
 
 	/* Apply the junkfilter if any */
 	if (wrvstate->wrv_junkFilter != NULL)
@@ -1059,7 +1038,7 @@ ExecEvalWholeRowSlow(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 					 bool *isNull, ExprDoneCond *isDone)
 {
 	Var		   *variable = (Var *) wrvstate->xprstate.expr;
-	TupleTableSlot *slot;
+	TupleTableSlot *slot = econtext->ecxt_scantuple;
 	HeapTuple	tuple;
 	TupleDesc	tupleDesc;
 	TupleDesc	var_tupdesc;
@@ -1070,31 +1049,6 @@ ExecEvalWholeRowSlow(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 		*isDone = ExprSingleResult;
 	*isNull = false;
 
-	/*
-	 * GPDB_92_MERGE_FIXME: Previous code does not have the code block below, 
-	 * but in theory this is needed. So why there is not test failure on gpdb master?
-	 * Besides, we should consider to follow pg to use ExecEvalVar() for Var code entrance.
-	 */
-
-	/* Get the input slot we want */
-	switch (variable->varno)
-	{
-		case INNER_VAR: /* get the tuple from the inner node */
-			slot = econtext->ecxt_innertuple;
-			break;
-
-		case OUTER_VAR: /* get the tuple from the outer node */
-			slot = econtext->ecxt_outertuple;
-			break;
-
-			/* INDEX_VAR is handled by default case */
-
-		default:				/* get the tuple from the relation being
-								 * scanned */
-			slot = econtext->ecxt_scantuple;
-			break;
-	}
-
 	/* Apply the junkfilter if any */
 	if (wrvstate->wrv_junkFilter != NULL)
 		slot = ExecFilterJunk(wrvstate->wrv_junkFilter, slot);
@@ -1102,13 +1056,6 @@ ExecEvalWholeRowSlow(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	tuple = ExecFetchSlotHeapTuple(slot);
 	tupleDesc = slot->tts_tupleDescriptor;
 
-	/*
-	 * Currently, the only data modification case handled here is stripping of
-	 * trailing resjunk fields, which we do in a slightly chintzy way by just
-	 * adjusting the tuple's natts header field.  Possibly there will someday
-	 * be a need for more-extensive rearrangements, in which case we'd
-	 * probably use tupconvert.c.
-	 */
 	Assert(variable->vartype != RECORDOID);
 	var_tupdesc = lookup_rowtype_tupdesc(variable->vartype, -1);
 
@@ -5002,8 +4949,8 @@ ExecEvalCurrentOfExpr(ExprState *exprstate, ExprContext *econtext,
 		*isDone = ExprSingleResult;
 	*isNull = false;
 
-	Assert(cexpr->cvarno != INNER_VAR);
-	Assert(cexpr->cvarno != OUTER_VAR);
+	Assert(cexpr->cvarno != INNER);
+	Assert(cexpr->cvarno != OUTER);
 
 	slot = econtext->ecxt_scantuple;
 	Assert(!TupIsNull(slot));
@@ -5652,8 +5599,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				if (rowexpr->row_typeid == RECORDOID)
 				{
 					/* generic record, use runtime type assignment */
-					rstate->tupdesc = ExecTypeFromExprList(rowexpr->args,
-														   rowexpr->colnames);
+					rstate->tupdesc = ExecTypeFromExprList(rowexpr->args);
 					BlessTupleDesc(rstate->tupdesc);
 					/* we won't need to redo this at runtime */
 				}

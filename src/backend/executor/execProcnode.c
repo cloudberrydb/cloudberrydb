@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -58,7 +58,7 @@
  *		of ExecInitNode() is a plan state tree built with the same structure
  *		as the underlying plan tree.
  *
- *	  * Then when ExecutorRun() is called, it calls ExecutePlan() which calls
+ *	  * Then when ExecRun() is called, it calls ExecutePlan() which calls
  *		ExecProcNode() repeatedly on the top node of the plan state tree.
  *		Each time this happens, ExecProcNode() will end up calling
  *		ExecNestLoop(), which calls ExecProcNode() on its subplans.
@@ -68,7 +68,7 @@
  *		form the tuples it returns.
  *
  *	  * Eventually ExecSeqScan() stops returning tuples and the nest
- *		loop join ends.  Lastly, ExecutorEnd() calls ExecEndNode() which
+ *		loop join ends.  Lastly, ExecEnd() calls ExecEndNode() which
  *		calls ExecEndNestLoop() which in turn calls ExecEndNode() on
  *		its subplans which result in ExecEndSeqScan().
  *
@@ -80,6 +80,7 @@
 #include "postgres.h"
 
 #include "executor/executor.h"
+#include "executor/instrument.h"
 #include "executor/nodeAgg.h"
 #include "executor/nodeAppend.h"
 #include "executor/nodeBitmapAnd.h"
@@ -92,7 +93,6 @@
 #include "executor/nodeFunctionscan.h"
 #include "executor/nodeHash.h"
 #include "executor/nodeHashjoin.h"
-#include "executor/nodeIndexonlyscan.h"
 #include "executor/nodeIndexscan.h"
 #include "executor/nodeLimit.h"
 #include "executor/nodeLockRows.h"
@@ -420,17 +420,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			END_MEMORY_ACCOUNT();
 			break;
 
-		case T_IndexOnlyScan:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, IndexOnlyScan);
-
-			START_MEMORY_ACCOUNT(curMemoryAccountId);
-			{
-			result = (PlanState *) ExecInitIndexOnlyScan((IndexOnlyScan *) node,
-														 estate, eflags);
-			}
-			END_MEMORY_ACCOUNT();
-			break;
-
 		case T_BitmapIndexScan:
 			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, BitmapIndexScan);
 
@@ -564,14 +553,8 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			break;
 
 		case T_ForeignScan:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, ForeignScan);
-
-			START_MEMORY_ACCOUNT(curMemoryAccountId);
-			{
 			result = (PlanState *) ExecInitForeignScan((ForeignScan *) node,
-														estate, eflags);
-			}
-			END_MEMORY_ACCOUNT();
+													   estate, eflags);
 			break;
 
 			/*
@@ -984,10 +967,6 @@ ExecProcNode(PlanState *node)
 
 		case T_DynamicIndexScanState:
 			result = ExecDynamicIndexScan((DynamicIndexScanState *) node);
-			break;
-
-		case T_IndexOnlyScanState:
-			result = ExecIndexOnlyScan((IndexOnlyScanState *) node);
 			break;
 
 			/* BitmapIndexScanState does not yield tuples */
@@ -1449,10 +1428,6 @@ ExecEndNode(PlanState *node)
 
 		case T_ExternalScanState:
 			ExecEndExternalScan((ExternalScanState *) node);
-			break;
-
-		case T_IndexOnlyScanState:
-			ExecEndIndexOnlyScan((IndexOnlyScanState *) node);
 			break;
 
 		case T_BitmapIndexScanState:

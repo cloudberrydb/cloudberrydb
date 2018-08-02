@@ -16,7 +16,11 @@
 
 #include <fcntl.h>
 
-#include "datatype/timestamp.h"
+/*
+ * GPDB_92_MERGE_FIXME: Remove timestamp.h and include datatype/timestamp.h
+ * instead when a7801b62f21bd051444bd1119cd3745ecc8e14ec has been merged.
+ */
+#include "timestamp.h"
 #include "pgtz.h"
 
 #include "private.h"

@@ -16,7 +16,7 @@
  * a quick copyObject() call before manipulating the query tree.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/parser/parse_utilcmd.c
@@ -26,6 +26,8 @@
 
 #include "postgres.h"
 
+#include "access/genam.h"
+#include "access/heapam.h"
 #include "access/reloptions.h"
 #include "catalog/pg_compression.h"
 #include "catalog/pg_constraint.h"
@@ -58,12 +60,13 @@
 #include "parser/parse_utilcmd.h"
 #include "parser/parser.h"
 #include "rewrite/rewriteManip.h"
+#include "storage/lock.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/rel.h"
+#include "utils/relcache.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 
@@ -94,9 +97,6 @@ static void transformColumnDefinition(CreateStmtContext *cxt,
 						  ColumnDef *column);
 static void transformTableConstraint(CreateStmtContext *cxt,
 						 Constraint *constraint);
-static void transformTableLikeClause(CreateStmtContext *cxt,
-						 TableLikeClause *table_like_clause,
-						 bool forceBareCol);
 static void transformOfType(CreateStmtContext *cxt,
 				TypeName *ofTypename);
 static char *chooseIndexName(const RangeVar *relation, IndexStmt *index_stmt);
@@ -116,7 +116,7 @@ static void transformConstraintAttrs(CreateStmtContext *cxt,
 static void transformColumnType(CreateStmtContext *cxt, ColumnDef *column);
 static void setSchemaName(char *context_schema, char **stmt_schema_name);
 
-static DistributedBy *getLikeDistributionPolicy(TableLikeClause *e);
+static DistributedBy *getLikeDistributionPolicy(InhRelation *e);
 static bool co_explicitly_disabled(List *opts);
 static GpPolicy *transformDistributedBy(CreateStmtContext *cxt,
 					   DistributedBy *distributedBy,
@@ -156,7 +156,6 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	List	   *save_alist;
 	ListCell   *elements;
 	Oid			namespaceid;
-	Oid			existing_relid;
 	DistributedBy *likeDistributedBy = NULL;
 	bool		bQuiet = false;		/* shut up transformDistributedBy messages */
 	List	   *stenc = NIL;		/* column reference storage encoding clauses */
@@ -186,25 +185,29 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 
 	/*
 	 * Look up the creation namespace.	This also checks permissions on the
-	 * target namespace, locks it against concurrent drops, checks for a
-	 * preexisting relation in that namespace with the same name, and updates
-	 * stmt->relation->relpersistence if the select namespace is temporary.
+	 * target namespace, so that we throw any permissions error as early as
+	 * possible.
 	 */
-	namespaceid =
-		RangeVarGetAndCheckCreationNamespace(stmt->relation, NoLock,
-											 &existing_relid);
+	namespaceid = RangeVarGetAndCheckCreationNamespace(stmt->relation);
 
 	/*
 	 * If the relation already exists and the user specified "IF NOT EXISTS",
 	 * bail out with a NOTICE.
 	 */
-	if (stmt->if_not_exists && OidIsValid(existing_relid))
+	if (stmt->if_not_exists)
 	{
-		ereport(NOTICE,
-				(errcode(ERRCODE_DUPLICATE_TABLE),
-				 errmsg("relation \"%s\" already exists, skipping",
-						stmt->relation->relname)));
-		return NIL;
+		Oid			existing_relid;
+
+		existing_relid = get_relname_relid(stmt->relation->relname,
+										   namespaceid);
+		if (existing_relid != InvalidOid)
+		{
+			ereport(NOTICE,
+					(errcode(ERRCODE_DUPLICATE_TABLE),
+					 errmsg("relation \"%s\" already exists, skipping",
+							stmt->relation->relname)));
+			return NIL;
+		}
 	}
 
 	/*
@@ -300,21 +303,21 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 				transformTableConstraint(&cxt, (Constraint *) element);
 				break;
 
-			case T_TableLikeClause:
+			case T_InhRelation:
+			{
+				bool            isBeginning = (cxt.columns == NIL);
+
+				transformInhRelation(&cxt, (InhRelation *) element, false);
+
+				if (Gp_role == GP_ROLE_DISPATCH && isBeginning &&
+					stmt->distributedBy == NULL &&
+					stmt->inhRelations == NIL &&
+					stmt->policy == NULL)
 				{
-					bool            isBeginning = (cxt.columns == NIL);
-
-					transformTableLikeClause(&cxt, (TableLikeClause *) element, false);
-
-					if (Gp_role == GP_ROLE_DISPATCH && isBeginning &&
-						stmt->distributedBy == NULL &&
-						stmt->inhRelations == NIL &&
-						stmt->policy == NULL)
-					{
-						likeDistributedBy = getLikeDistributionPolicy((TableLikeClause*) element);
-					}
+					likeDistributedBy = getLikeDistributionPolicy((InhRelation *) element);
 				}
 				break;
+			}
 
 			case T_ColumnReferenceStorageDirective:
 				/* processed below in transformAttributeEncoding() */
@@ -465,15 +468,8 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
 	{
 		char	   *typname = strVal(linitial(column->typeName->names));
 
-		if (strcmp(typname, "smallserial") == 0 ||
-			strcmp(typname, "serial2") == 0)
-		{
-			is_serial = true;
-			column->typeName->names = NIL;
-			column->typeName->typeOid = INT2OID;
-		}
-		else if (strcmp(typname, "serial") == 0 ||
-				 strcmp(typname, "serial4") == 0)
+		if (strcmp(typname, "serial") == 0 ||
+			strcmp(typname, "serial4") == 0)
 		{
 			is_serial = true;
 			column->typeName->names = NIL;
@@ -532,10 +528,7 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
 		if (cxt->rel)
 			snamespaceid = RelationGetNamespace(cxt->rel);
 		else
-		{
 			snamespaceid = RangeVarGetCreationNamespace(cxt->relation);
-			RangeVarAdjustRelationPersistence(cxt->relation, snamespaceid);
-		}
 		snamespace = get_namespace_name(snamespaceid);
 		sname = ChooseRelationName(cxt->relation->relname,
 								   column->colname,
@@ -716,31 +709,6 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
 				break;
 		}
 	}
-
-	/*
-	 * Generate ALTER FOREIGN TABLE ALTER COLUMN statement which adds
-	 * per-column foreign data wrapper options for this column.
-	 */
-	if (column->fdwoptions != NIL)
-	{
-		AlterTableStmt *stmt;
-		AlterTableCmd *cmd;
-
-		cmd = makeNode(AlterTableCmd);
-		cmd->subtype = AT_AlterColumnGenericOptions;
-		cmd->name = column->colname;
-		cmd->def = (Node *) column->fdwoptions;
-		cmd->behavior = DROP_RESTRICT;
-		cmd->missing_ok = false;
-
-		stmt = makeNode(AlterTableStmt);
-		stmt->relation = cxt->relation;
-		stmt->cmds = NIL;
-		stmt->relkind = OBJECT_FOREIGN_TABLE;
-		stmt->cmds = lappend(stmt->cmds, cmd);
-
-		cxt->alist = lappend(cxt->alist, stmt);
-	}
 }
 
 /*
@@ -785,17 +753,17 @@ transformTableConstraint(CreateStmtContext *cxt, Constraint *constraint)
 }
 
 /*
- * transformTableLikeClause
+ * transformInhRelation
  *
- * Change the LIKE <srctable> portion of a CREATE TABLE statement into
+ * Change the LIKE <subtable> portion of a CREATE TABLE statement into
  * column definitions which recreate the user defined column portions of
- * <srctable>.
+ * <subtable>.
  *
- * GPDB: if forceBareCol is true we disallow inheriting any indexes/constr/defaults.
+ * if forceBareCol is true we disallow inheriting any indexes/constr/defaults.
  */
-static void
-transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_clause,
-						 bool forceBareCol)
+void
+transformInhRelation(CreateStmtContext *cxt, InhRelation *inhRelation,
+					 bool forceBareCol)
 {
 	AttrNumber	parent_attno;
 	Relation	relation;
@@ -804,47 +772,30 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 	AttrNumber *attmap;
 	AclResult	aclresult;
 	char	   *comment;
-	ParseCallbackState pcbstate;
 
-	setup_parser_errposition_callback(&pcbstate, cxt->pstate, table_like_clause->relation->location);
+	relation = parserOpenTable(cxt->pstate, inhRelation->relation,
+							   AccessShareLock,
+							   false, NULL);
 
-	relation = relation_openrv(table_like_clause->relation, AccessShareLock);
-
-	if (relation->rd_rel->relkind != RELKIND_RELATION
-		&& relation->rd_rel->relkind != RELKIND_VIEW
-		&& relation->rd_rel->relkind != RELKIND_FOREIGN_TABLE
-		&& relation->rd_rel->relkind != RELKIND_COMPOSITE_TYPE)
+	if (relation->rd_rel->relkind != RELKIND_RELATION)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is not a table, view, composite type, or foreign table",
-						table_like_clause->relation->relname)));
-
-	cancel_parser_errposition_callback(&pcbstate);
+				 errmsg("inherited relation \"%s\" is not a table",
+						inhRelation->relation->relname)));
 
 	/*
-	 * Check for privileges
+	 * Check for SELECT privilages
 	 */
-	if (relation->rd_rel->relkind == RELKIND_COMPOSITE_TYPE)
-	{
-		aclresult = pg_type_aclcheck(relation->rd_rel->reltype, GetUserId(),
-									 ACL_USAGE);
-		if (aclresult != ACLCHECK_OK)
-			aclcheck_error(aclresult, ACL_KIND_TYPE,
-						   RelationGetRelationName(relation));
-	}
-	else
-	{
-		aclresult = pg_class_aclcheck(RelationGetRelid(relation), GetUserId(),
-									  ACL_SELECT);
-		if (aclresult != ACLCHECK_OK)
-			aclcheck_error(aclresult, ACL_KIND_CLASS,
-						   RelationGetRelationName(relation));
-	}
+	aclresult = pg_class_aclcheck(RelationGetRelid(relation), GetUserId(),
+								  ACL_SELECT);
+	if (aclresult != ACLCHECK_OK)
+		aclcheck_error(aclresult, ACL_KIND_CLASS,
+					   RelationGetRelationName(relation));
 
 	tupleDesc = RelationGetDescr(relation);
 	constr = tupleDesc->constr;
 
-	if (forceBareCol && table_like_clause->options != 0)
+	if (forceBareCol && inhRelation->options != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("LIKE INCLUDING may not be used with this kind of relation")));
@@ -904,7 +855,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 		 * Copy default, if present and the default has been requested
 		 */
 		if (attribute->atthasdef &&
-			(table_like_clause->options & CREATE_TABLE_LIKE_DEFAULTS))
+			(inhRelation->options & CREATE_TABLE_LIKE_DEFAULTS))
 		{
 			Node	   *this_default = NULL;
 			AttrDefault *attrdef;
@@ -932,13 +883,13 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 		}
 
 		/* Likewise, copy storage if requested */
-		if (table_like_clause->options & CREATE_TABLE_LIKE_STORAGE)
+		if (inhRelation->options & CREATE_TABLE_LIKE_STORAGE)
 			def->storage = attribute->attstorage;
 		else
 			def->storage = 0;
 
 		/* Likewise, copy comment if requested */
-		if ((table_like_clause->options & CREATE_TABLE_LIKE_COMMENTS) &&
+		if ((inhRelation->options & CREATE_TABLE_LIKE_COMMENTS) &&
 			(comment = GetComment(attribute->attrelid,
 								  RelationRelationId,
 								  attribute->attnum)) != NULL)
@@ -960,7 +911,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 	 * Copy CHECK constraints if requested, being careful to adjust attribute
 	 * numbers so they match the child.
 	 */
-	if ((table_like_clause->options & CREATE_TABLE_LIKE_CONSTRAINTS) &&
+	if ((inhRelation->options & CREATE_TABLE_LIKE_CONSTRAINTS) &&
 		tupleDesc->constr)
 	{
 		int			ccnum;
@@ -1000,9 +951,9 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 			cxt->ckconstraints = lappend(cxt->ckconstraints, n);
 
 			/* Copy comment on constraint */
-			if ((table_like_clause->options & CREATE_TABLE_LIKE_COMMENTS) &&
-				(comment = GetComment(get_relation_constraint_oid(RelationGetRelid(relation),
-														  n->conname, false),
+			if ((inhRelation->options & CREATE_TABLE_LIKE_COMMENTS) &&
+				(comment = GetComment(get_constraint_oid(RelationGetRelid(relation),
+														 n->conname, false),
 									  ConstraintRelationId,
 									  0)) != NULL)
 			{
@@ -1023,7 +974,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 	/*
 	 * Likewise, copy indexes if requested
 	 */
-	if ((table_like_clause->options & CREATE_TABLE_LIKE_INDEXES) &&
+	if ((inhRelation->options & CREATE_TABLE_LIKE_INDEXES) &&
 		relation->rd_rel->relhasindex)
 	{
 		List	   *parent_indexes;
@@ -1044,7 +995,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 												 attmap, tupleDesc->natts);
 
 			/* Copy comment on index */
-			if (table_like_clause->options & CREATE_TABLE_LIKE_COMMENTS)
+			if (inhRelation->options & CREATE_TABLE_LIKE_COMMENTS)
 			{
 				comment = GetComment(parent_index_oid, RelationRelationId, 0);
 
@@ -1091,6 +1042,7 @@ static void
 transformOfType(CreateStmtContext *cxt, TypeName *ofTypename)
 {
 	HeapTuple	tuple;
+	Form_pg_type typ;
 	TupleDesc	tupdesc;
 	int			i;
 	Oid			ofTypeId;
@@ -1099,6 +1051,7 @@ transformOfType(CreateStmtContext *cxt, TypeName *ofTypename)
 
 	tuple = typenameType(NULL, ofTypename, NULL);
 	check_of_type(tuple);
+	typ = (Form_pg_type) GETSTRUCT(tuple);
 	ofTypeId = HeapTupleGetOid(tuple);
 	ofTypename->typeOid = ofTypeId;		/* cached for later */
 
@@ -1597,19 +1550,19 @@ transformCreateExternalStmt(CreateExternalStmt *stmt, const char *queryString)
 					 (int) nodeTag(element));
 				break;
 
-			case T_TableLikeClause:
+			case T_InhRelation:
 				{
 					/* LIKE */
 					bool	isBeginning = (cxt.columns == NIL);
 
-					transformTableLikeClause(&cxt, (TableLikeClause *) element, true);
+					transformInhRelation(&cxt, (InhRelation *) element, true);
 
 					if (Gp_role == GP_ROLE_DISPATCH && isBeginning &&
 						stmt->distributedBy == NULL &&
 						stmt->policy == NULL &&
 						iswritable /* dont bother if readable table */)
 					{
-						likeDistributedBy = getLikeDistributionPolicy((TableLikeClause *) element);
+						likeDistributedBy = getLikeDistributionPolicy((InhRelation *) element);
 					}
 				}
 				break;
@@ -1844,7 +1797,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 		foreach(entry, cxt->inhRelations)
 		{
 			RangeVar   *parent = (RangeVar *) lfirst(entry);
-			Oid			relId = RangeVarGetRelid(parent, NoLock, false);
+			Oid			relId = RangeVarGetRelid(parent, false);
 			GpPolicy  *oldTablePolicy =
 				GpPolicyFetch(CurrentMemoryContext, relId);
 
@@ -2749,21 +2702,21 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("\"%s\" is not a unique index", index_name),
-					 errdetail("Cannot create a primary key or unique constraint using such an index."),
+					 errdetail("Cannot create a PRIMARY KEY or UNIQUE constraint using such an index."),
 					 parser_errposition(cxt->pstate, constraint->location)));
 
 		if (RelationGetIndexExpressions(index_rel) != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("index \"%s\" contains expressions", index_name),
-					 errdetail("Cannot create a primary key or unique constraint using such an index."),
+					 errdetail("Cannot create a PRIMARY KEY or UNIQUE constraint using such an index."),
 					 parser_errposition(cxt->pstate, constraint->location)));
 
 		if (RelationGetIndexPredicate(index_rel) != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("\"%s\" is a partial index", index_name),
-					 errdetail("Cannot create a primary key or unique constraint using such an index."),
+					 errdetail("Cannot create a PRIMARY KEY or UNIQUE constraint using such an index."),
 					 parser_errposition(cxt->pstate, constraint->location)));
 
 		/*
@@ -2788,7 +2741,7 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 		if (index_rel->rd_rel->relam != get_am_oid(DEFAULT_INDEX_TYPE, false))
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("index \"%s\" is not a btree", index_name),
+					 errmsg("index \"%s\" is not a b-tree", index_name),
 					 parser_errposition(cxt->pstate, constraint->location)));
 
 		/* Must get indclass the hard way */
@@ -2833,7 +2786,7 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 				ereport(ERROR,
 						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 						 errmsg("index \"%s\" does not have default sorting behavior", index_name),
-						 errdetail("Cannot create a primary key or unique constraint using such an index."),
+						 errdetail("Cannot create a PRIMARY KEY or UNIQUE constraint using such an index."),
 					 parser_errposition(cxt->pstate, constraint->location)));
 
 			constraint->keys = lappend(constraint->keys, makeString(attname));
@@ -3019,8 +2972,7 @@ transformFKConstraints(CreateStmtContext *cxt,
 
 	/*
 	 * If CREATE TABLE or adding a column with NULL default, we can safely
-	 * skip validation of FK constraints, and nonetheless mark them valid.
-	 * (This will override any user-supplied NOT VALID flag.)
+	 * skip validation of the constraint.
 	 */
 	if (skipValidation)
 	{
@@ -3096,7 +3048,7 @@ transformIndexStmt(IndexStmt *stmt, const char *queryString)
 	{
 		Oid			relId;
 
-		relId = RangeVarGetRelid(stmt->relation, NoLock, true);
+		relId = RangeVarGetRelid(stmt->relation, true);
 
 		if (relId != InvalidOid && rel_is_partitioned(relId))
 			recurseToPartitions = true;
@@ -3684,15 +3636,7 @@ transformAlterTableStmt(AlterTableStmt *stmt, const char *queryString)
 	 * In GPDB, we release the lock early if this command is part of a
 	 * partitioned CREATE TABLE.
 	 */
-	rel = relation_openrv_extended(stmt->relation, lockmode, stmt->missing_ok, false /*GPDB_92_MERGE_FIXME*/);
-	if (rel == NULL)
-	{
-		/* this message is consistent with relation_openrv */
-		ereport(NOTICE,
-				(errmsg("relation \"%s\" does not exist, skipping",
-						stmt->relation->relname)));
-		return NIL;
-	}
+	rel = relation_openrv(stmt->relation, lockmode);
 
 	/* Set up pstate and CreateStmtContext */
 	pstate = make_parsestate(NULL);
@@ -3922,8 +3866,8 @@ transformAlterTableStmt(AlterTableStmt *stmt, const char *queryString)
  * and detect inconsistent/misplaced constraint attributes.
  *
  * NOTE: currently, attributes are only supported for FOREIGN KEY, UNIQUE,
- * EXCLUSION, and PRIMARY KEY constraints, but someday they ought to be
- * supported for other constraint types.
+ * and PRIMARY KEY constraints, but someday they ought to be supported
+ * for other constraint types.
  */
 static void
 transformConstraintAttrs(CreateStmtContext *cxt, List *constraintList)
@@ -4219,13 +4163,13 @@ setSchemaName(char *context_schema, char **stmt_schema_name)
  * we also have INHERITS
  */
 static DistributedBy *
-getLikeDistributionPolicy(TableLikeClause *e)
+getLikeDistributionPolicy(InhRelation* e)
 {
 	DistributedBy		*likeDistributedBy = NULL;
 	Oid				relId;
 	GpPolicy*		oldTablePolicy;
 
-	relId = RangeVarGetRelid(e->relation, NoLock, false);
+	relId = RangeVarGetRelid(e->relation, false);
 	oldTablePolicy = GpPolicyFetch(CurrentMemoryContext, relId);
 
 	if (oldTablePolicy != NULL && oldTablePolicy->ptype != POLICYTYPE_ENTRY)

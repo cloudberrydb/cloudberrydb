@@ -87,7 +87,8 @@ DROP DOMAIN [ IF EXISTS ] <replaceable class="PARAMETER">name</replaceable> [, .
 
 <programlisting>
 DROP DOMAIN box;
-</programlisting></para>
+</programlisting>
+  </para>
  </refsect1>
 
  <refsect1 id="SQL-DROPDOMAIN-compatibility">

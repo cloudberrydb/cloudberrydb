@@ -4,7 +4,7 @@
  *	  BTree-specific page management code for the Postgres btree access
  *	  method.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,6 +26,8 @@
 #include "access/nbtree.h"
 #include "access/transam.h"
 #include "miscadmin.h"
+#include "storage/bufmgr.h"
+#include "storage/freespace.h"
 #include "storage/indexfsm.h"
 #include "storage/lmgr.h"
 #include "storage/predicate.h"
@@ -697,7 +699,7 @@ _bt_page_recyclable(Page page)
 }
 
 /*
- * Delete item(s) from a btree page during VACUUM.
+ * Delete item(s) from a btree page.
  *
  * This must only be used for deleting leaf items.	Deleting an item on a
  * non-leaf page has to be done as part of an atomic action that includes
@@ -718,8 +720,7 @@ _bt_page_recyclable(Page page)
  */
 void
 _bt_delitems_vacuum(Relation rel, Buffer buf,
-					OffsetNumber *itemnos, int nitems,
-					BlockNumber lastBlockVacuumed)
+			OffsetNumber *itemnos, int nitems, BlockNumber lastBlockVacuumed)
 {
 	Page		page;
 	BTPageOpaque opaque;
@@ -756,6 +757,7 @@ _bt_delitems_vacuum(Relation rel, Buffer buf,
 	{
 		XLogRecPtr	recptr;
 		XLogRecData rdata[2];
+
 		xl_btree_vacuum xlrec_vacuum;
 
 		xlrec_vacuum.node = rel->rd_node;
@@ -794,27 +796,13 @@ _bt_delitems_vacuum(Relation rel, Buffer buf,
 	END_CRIT_SECTION();
 }
 
-/*
- * Delete item(s) from a btree page during single-page cleanup.
- *
- * As above, must only be used on leaf pages.
- *
- * This routine assumes that the caller has pinned and locked the buffer.
- * Also, the given itemnos *must* appear in increasing order in the array.
- *
- * This is nearly the same as _bt_delitems_vacuum as far as what it does to
- * the page, but the WAL logging considerations are quite different.  See
- * comments for _bt_delitems_vacuum.
- */
 void
 _bt_delitems_delete(Relation rel, Buffer buf,
-					OffsetNumber *itemnos, int nitems,
-					Relation heapRel)
+					OffsetNumber *itemnos, int nitems, Relation heapRel)
 {
 	Page		page = BufferGetPage(buf);
 	BTPageOpaque opaque;
 
-	/* Shouldn't be called unless there's something to do */
 	Assert(nitems > 0);
 
 	/* No ereport(ERROR) until changes are logged */
@@ -824,9 +812,11 @@ _bt_delitems_delete(Relation rel, Buffer buf,
 	PageIndexMultiDelete(page, itemnos, nitems);
 
 	/*
-	 * Unlike _bt_delitems_vacuum, we *must not* clear the vacuum cycle ID,
-	 * because this is not called by VACUUM.
+	 * We can clear the vacuum cycle ID since this page has certainly been
+	 * processed by the current vacuum scan.
 	 */
+	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+	opaque->btpo_cycleid = 0;
 
 	/*
 	 * Mark the page as not containing any LP_DEAD items.  This is not
@@ -835,7 +825,6 @@ _bt_delitems_delete(Relation rel, Buffer buf,
 	 * true and it doesn't seem worth an additional page scan to check it.
 	 * Remember that BTP_HAS_GARBAGE is only a hint anyway.
 	 */
-	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	opaque->btpo_flags &= ~BTP_HAS_GARBAGE;
 
 	MarkBufferDirty(buf);
@@ -845,6 +834,7 @@ _bt_delitems_delete(Relation rel, Buffer buf,
 	{
 		XLogRecPtr	recptr;
 		XLogRecData rdata[3];
+
 		xl_btree_delete xlrec_delete;
 
 		xlrec_delete.node = rel->rd_node;
@@ -858,9 +848,8 @@ _bt_delitems_delete(Relation rel, Buffer buf,
 		rdata[0].next = &(rdata[1]);
 
 		/*
-		 * We need the target-offsets array whether or not we store the whole
-		 * buffer, to allow us to find the latestRemovedXid on a standby
-		 * server.
+		 * We need the target-offsets array whether or not we store the to
+		 * allow us to find the latestRemovedXid on a standby server.
 		 */
 		rdata[1].data = (char *) itemnos;
 		rdata[1].len = nitems * sizeof(OffsetNumber);
@@ -1358,13 +1347,7 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack)
 
 	/*
 	 * Mark the page itself deleted.  It can be recycled when all current
-	 * transactions are gone.  Storing GetTopTransactionId() would work, but
-	 * we're in VACUUM and would not otherwise have an XID.  Having already
-	 * updated links to the target, ReadNewTransactionId() suffices as an
-	 * upper bound.  Any scan having retained a now-stale link is advertising
-	 * in its PGXACT an xmin less than or equal to the value we read here.	It
-	 * will continue to do so, holding back RecentGlobalXmin, for the duration
-	 * of that scan.
+	 * transactions are gone.
 	 */
 	page = BufferGetPage(buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);

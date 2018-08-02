@@ -7,5 +7,3 @@
  */
 
 CREATE PROCEDURAL LANGUAGE pltcl;
-
-COMMENT ON PROCEDURAL LANGUAGE pltcl IS 'PL/Tcl procedural language';

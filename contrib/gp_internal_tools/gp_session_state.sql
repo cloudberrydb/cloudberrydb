@@ -86,7 +86,7 @@ WITH all_entries AS (
 SELECT S.datname,
        M.sessionid as sess_id,
        S.usename,
-       S.query as query,
+       S.current_query as current_query,
        M.segid,
        M.vmem_mb,
        case when M.runaway_status = 0 then false else true end as is_runaway,

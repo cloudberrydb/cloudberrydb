@@ -33,6 +33,7 @@
 
 #include <ctype.h>
 
+#include "fmgr.h"
 #include "parser/scansup.h"
 #include "utils/builtins.h"
 

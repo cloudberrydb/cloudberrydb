@@ -45,7 +45,6 @@ select unnamed_tuple_test();
 select named_tuple_test(); 
 
 --
--- These test results will follow the upsteam results
 CREATE OR REPLACE FUNCTION oneline() returns text as $$ 
 return 'No spaces' 
 $$ language plpythonu;

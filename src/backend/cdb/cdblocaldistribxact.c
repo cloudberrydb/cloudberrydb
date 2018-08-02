@@ -27,7 +27,6 @@
 #include "cdb/cdbvars.h"
 #include "storage/proc.h"
 #include "utils/hsearch.h"
-#include "utils/guc.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
 #include "cdb/cdbdoublylinked.h"
@@ -58,11 +57,9 @@ LocalDistribXactStateToString(LocalDistribXactState state)
 
 /*  ***************************************************************************** */
 void
-LocalDistribXact_ChangeState(int pgprocno,
+LocalDistribXact_ChangeState(PGPROC *proc,
 							 LocalDistribXactState newState)
 {
-	PGPROC *proc = &ProcGlobal->allProcs[pgprocno];
-	PGXACT *pgxact = &ProcGlobal->allPgXact[pgprocno];
 	LocalDistribXactState oldState;
 	DistributedTransactionId distribXid;
 
@@ -118,7 +115,7 @@ LocalDistribXact_ChangeState(int pgprocno,
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "Moved distributed transaction xid = %u (local xid = %u) from \"%s\" to \"%s\"",
 		 distribXid,
-		 pgxact->xid,
+		 proc->xid,
 		 LocalDistribXactStateToString(oldState),
 		 LocalDistribXactStateToString(newState));
 }
@@ -127,10 +124,8 @@ LocalDistribXact_ChangeState(int pgprocno,
 static char LocalDistribDisplayBuffer[MAX_LOCAL_DISTRIB_DISPLAY_BUFFER];
 
 char *
-LocalDistribXact_DisplayString(int pgprocno)
+LocalDistribXact_DisplayString(PGPROC *proc)
 {
-	PGPROC *proc = &ProcGlobal->allProcs[pgprocno];
-	PGXACT *pgxact = &ProcGlobal->allPgXact[pgprocno];
 	int			snprintfResult;
 
 	snprintfResult =
@@ -140,7 +135,7 @@ LocalDistribXact_DisplayString(int pgprocno)
 				 "distributed transaction {timestamp %u, xid %u} for local xid %u",
 				 proc->localDistribXactData.distribTimeStamp,
 				 proc->localDistribXactData.distribXid,
-				 pgxact->xid);
+				 proc->xid);
 
 	Assert(snprintfResult >= 0);
 	Assert(snprintfResult < MAX_LOCAL_DISTRIB_DISPLAY_BUFFER);

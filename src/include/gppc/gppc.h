@@ -1916,8 +1916,7 @@ typedef enum GppcReportLevel
  * and emit it to the frontend and/or log file, depending on the reporting
  * level and session configuration parameters such as client_min_messages.
  */
-void GppcReport(GppcReportLevel elevel, const char *fmt, ...)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
+void GppcReport(GppcReportLevel elevel, const char *fmt, ...);
 
 /**
  * \brief Installs report callback function which is called on any report.

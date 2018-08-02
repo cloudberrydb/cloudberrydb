@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2011, PostgreSQL Global Development Group
  *
  * src/bin/psql/common.c
  */
@@ -194,7 +194,7 @@ NoticeProcessor(void *arg, const char *message)
  * so. We use write() to report to stderr because it's better to use simple
  * facilities in a signal handler.
  *
- * On win32, the signal canceling happens on a separate thread, because
+ * On win32, the signal cancelling happens on a separate thread, because
  * that's how SetConsoleCtrlHandler works. The PQcancel function is safe
  * for this (unlike PQrequestCancel). However, a CRITICAL_SECTION is required
  * to protect the PGcancel structure against being changed while the signal
@@ -228,7 +228,6 @@ static void
 handle_sigint(SIGNAL_ARGS)
 {
 	int			save_errno = errno;
-	int			rc;
 	char		errbuf[256];
 
 	/* if we are waiting for input, longjmp out of it */
@@ -245,16 +244,11 @@ handle_sigint(SIGNAL_ARGS)
 	if (cancelConn != NULL)
 	{
 		if (PQcancel(cancelConn, errbuf, sizeof(errbuf)))
-		{
-			rc = write_stderr("Cancel request sent\n");
-			(void) rc;			/* ignore errors, nothing we can do here */
-		}
+			write_stderr("Cancel request sent\n");
 		else
 		{
-			rc = write_stderr("Could not send cancel request: ");
-			(void) rc;			/* ignore errors, nothing we can do here */
-			rc = write_stderr(errbuf);
-			(void) rc;			/* ignore errors, nothing we can do here */
+			write_stderr("Could not send cancel request: ");
+			write_stderr(errbuf);
 		}
 	}
 
@@ -438,7 +432,7 @@ ResetCancelConn(void)
 static bool
 AcceptResult(const PGresult *result)
 {
-	bool		OK;
+	bool		OK = true;
 
 	if (!result)
 		OK = false;
@@ -451,19 +445,10 @@ AcceptResult(const PGresult *result)
 			case PGRES_COPY_IN:
 			case PGRES_COPY_OUT:
 				/* Fine, do nothing */
-				OK = true;
-				break;
-
-			case PGRES_BAD_RESPONSE:
-			case PGRES_NONFATAL_ERROR:
-			case PGRES_FATAL_ERROR:
-				OK = false;
 				break;
 
 			default:
 				OK = false;
-				psql_error("unexpected PQresultStatus (%d)",
-						   PQresultStatus(result));
 				break;
 		}
 
@@ -629,105 +614,48 @@ PrintQueryTuples(const PGresult *results)
 
 
 /*
- * ProcessResult: utility function for use by SendQuery() only
+ * ProcessCopyResult: if command was a COPY FROM STDIN/TO STDOUT, handle it
  *
- * When our command string contained a COPY FROM STDIN or COPY TO STDOUT,
- * PQexec() has stopped at the PGresult associated with the first such
- * command.  In that event, we'll marshal data for the COPY and then cycle
- * through any subsequent PGresult objects.
+ * Note: Utility function for use by SendQuery() only.
  *
- * When the command string contained no affected COPY command, this function
- * degenerates to an AcceptResult() call.
- *
- * Changes its argument to point to the last PGresult of the command string,
- * or NULL if that result was for a COPY FROM STDIN or COPY TO STDOUT.
- *
- * Returns true on complete success, false otherwise.  Possible failure modes
- * include purely client-side problems; check the transaction status for the
- * server-side opinion.
+ * Returns true if the query executed successfully, false otherwise.
  */
 static bool
-ProcessResult(PGresult **results)
+ProcessCopyResult(PGresult *results)
 {
-	PGresult   *next_result;
-	bool		success = true;
-	bool		first_cycle = true;
+	bool		success = false;
 
-	do
+	if (!results)
+		return false;
+
+	switch (PQresultStatus(results))
 	{
-		ExecStatusType result_status;
-		bool		is_copy;
-
-		if (!AcceptResult(*results))
-		{
-			/*
-			 * Failure at this point is always a server-side failure or a
-			 * failure to submit the command string.  Either way, we're
-			 * finished with this command string.
-			 */
-			success = false;
+		case PGRES_TUPLES_OK:
+		case PGRES_COMMAND_OK:
+		case PGRES_EMPTY_QUERY:
+			/* nothing to do here */
+			success = true;
 			break;
-		}
 
-		result_status = PQresultStatus(*results);
-		switch (result_status)
-		{
-			case PGRES_EMPTY_QUERY:
-			case PGRES_COMMAND_OK:
-			case PGRES_TUPLES_OK:
-				is_copy = false;
-				break;
-
-			case PGRES_COPY_OUT:
-			case PGRES_COPY_IN:
-				is_copy = true;
-				break;
-
-			default:
-				/* AcceptResult() should have caught anything else. */
-				is_copy = false;
-				psql_error("unexpected PQresultStatus (%d)", result_status);
-				break;
-		}
-
-		if (is_copy)
-		{
-			/*
-			 * Marshal the COPY data.  Either subroutine will get the
-			 * connection out of its COPY state, then call PQresultStatus()
-			 * once and report any error.
-			 */
+		case PGRES_COPY_OUT:
 			SetCancelConn();
-			if (result_status == PGRES_COPY_OUT)
-				success = handleCopyOut(pset.db, pset.queryFout) && success;
-			else
-				success = handleCopyIn(pset.db, pset.cur_cmd_source,
-									   PQbinaryTuples(*results)) && success;
+			success = handleCopyOut(pset.db, pset.queryFout);
 			ResetCancelConn();
-
-			/*
-			 * Call PQgetResult() once more.  In the typical case of a
-			 * single-command string, it will return NULL.	Otherwise, we'll
-			 * have other results to process that may include other COPYs.
-			 */
-			PQclear(*results);
-			*results = next_result = PQgetResult(pset.db);
-		}
-		else if (first_cycle)
-			/* fast path: no COPY commands; PQexec visited all results */
 			break;
-		else if ((next_result = PQgetResult(pset.db)))
-		{
-			/* non-COPY command(s) after a COPY: keep the last one */
-			PQclear(*results);
-			*results = next_result;
-		}
 
-		first_cycle = false;
-	} while (next_result);
+		case PGRES_COPY_IN:
+			SetCancelConn();
+			success = handleCopyIn(pset.db, pset.cur_cmd_source,
+								   PQbinaryTuples(results));
+			ResetCancelConn();
+			break;
+
+		default:
+			break;
+	}
 
 	/* may need this to recover from conn loss during COPY */
-	if (!first_cycle && !CheckConnection())
+	if (!CheckConnection())
 		return false;
 
 	return success;
@@ -774,7 +702,7 @@ PrintQueryStatus(PGresult *results)
 static bool
 PrintQueryResults(PGresult *results)
 {
-	bool		success;
+	bool		success = false;
 	const char *cmdstatus;
 
 	if (!results)
@@ -808,16 +736,7 @@ PrintQueryResults(PGresult *results)
 			success = true;
 			break;
 
-		case PGRES_BAD_RESPONSE:
-		case PGRES_NONFATAL_ERROR:
-		case PGRES_FATAL_ERROR:
-			success = false;
-			break;
-
 		default:
-			success = false;
-			psql_error("unexpected PQresultStatus (%d)",
-					   PQresultStatus(results));
 			break;
 	}
 
@@ -942,7 +861,7 @@ SendQuery(const char *query)
 
 		/* these operations are included in the timing result: */
 		ResetCancelConn();
-		OK = ProcessResult(&results);
+		OK = (AcceptResult(results) && ProcessCopyResult(results));
 
 		if (pset.timing)
 		{
@@ -952,7 +871,7 @@ SendQuery(const char *query)
 		}
 
 		/* but printing results isn't: */
-		if (OK && results)
+		if (OK)
 			OK = PrintQueryResults(results);
 	}
 	else
@@ -966,47 +885,34 @@ SendQuery(const char *query)
 	/* If we made a temporary savepoint, possibly release/rollback */
 	if (on_error_rollback_savepoint)
 	{
-		const char *svptcmd = NULL;
+		const char *svptcmd;
 
 		transaction_status = PQtransactionStatus(pset.db);
 
-		switch (transaction_status)
+		if (transaction_status == PQTRANS_INERROR)
 		{
-			case PQTRANS_INERROR:
-				/* We always rollback on an error */
-				svptcmd = "ROLLBACK TO pg_psql_temporary_savepoint";
-				break;
-
-			case PQTRANS_IDLE:
-				/* If they are no longer in a transaction, then do nothing */
-				break;
-
-			case PQTRANS_INTRANS:
-
-				/*
-				 * Do nothing if they are messing with savepoints themselves:
-				 * If the user did RELEASE or ROLLBACK, our savepoint is gone.
-				 * If they issued a SAVEPOINT, releasing ours would remove
-				 * theirs.
-				 */
-				if (results &&
-					(strcmp(PQcmdStatus(results), "SAVEPOINT") == 0 ||
-					 strcmp(PQcmdStatus(results), "RELEASE") == 0 ||
-					 strcmp(PQcmdStatus(results), "ROLLBACK") == 0))
-					svptcmd = NULL;
-				else
-					svptcmd = "RELEASE pg_psql_temporary_savepoint";
-				break;
-
-			case PQTRANS_ACTIVE:
-			case PQTRANS_UNKNOWN:
-			default:
-				OK = false;
-				/* PQTRANS_UNKNOWN is expected given a broken connection. */
-				if (transaction_status != PQTRANS_UNKNOWN || ConnectionUp())
-					psql_error("unexpected transaction status (%d)\n",
-							   transaction_status);
-				break;
+			/* We always rollback on an error */
+			svptcmd = "ROLLBACK TO pg_psql_temporary_savepoint";
+		}
+		else if (transaction_status != PQTRANS_INTRANS)
+		{
+			/* If they are no longer in a transaction, then do nothing */
+			svptcmd = NULL;
+		}
+		else
+		{
+			/*
+			 * Do nothing if they are messing with savepoints themselves: If
+			 * the user did RELEASE or ROLLBACK, our savepoint is gone. If
+			 * they issued a SAVEPOINT, releasing ours would remove theirs.
+			 */
+			if (results &&
+				(strcmp(PQcmdStatus(results), "SAVEPOINT") == 0 ||
+				 strcmp(PQcmdStatus(results), "RELEASE") == 0 ||
+				 strcmp(PQcmdStatus(results), "ROLLBACK") == 0))
+				svptcmd = NULL;
+			else
+				svptcmd = "RELEASE pg_psql_temporary_savepoint";
 		}
 
 		if (svptcmd)
@@ -1030,7 +936,7 @@ SendQuery(const char *query)
 	PQclear(results);
 
 	/* Possible microtiming output */
-	if (pset.timing)
+	if (OK && pset.timing)
 		printf(_("Time: %.3f ms\n"), elapsed_msec);
 
 	/* check for events that may occur during query execution */

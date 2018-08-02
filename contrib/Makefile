@@ -25,26 +25,12 @@ SUBDIRS = \
 		pg_standby	\
 		pg_stat_statements \
 		pg_test_fsync	\
-		pg_test_timing	\
 		pg_trgm		\
 		pg_upgrade	\
 		pg_upgrade_support \
 		pgbench		\
 		pgcrypto	\
-		pgrowlocks	\
-		pgstattuple	\
-		spi		\
-		tcn		\
-		test_parser	\
-		tsearch2	\
-		unaccent
-
-
-# GPDB_92_MERGE_FIXME: Why some files (especially Makefile) are missing under
-# these directories?
-#       seg         \
-		tablefunc	\
-		vacuumlo
+		test_parser
 
 # Greenplum-specific additions (to ease merge pain).
 SUBDIRS += \
@@ -61,26 +47,18 @@ SUBDIRS += \
 
 ifeq ($(with_openssl),yes)
 SUBDIRS += sslinfo
-else
-ALWAYS_SUBDIRS += sslinfo
 endif
 
 ifeq ($(with_ossp_uuid),yes)
 SUBDIRS += uuid-ossp
-else
-ALWAYS_SUBDIRS += uuid-ossp
 endif
 
 ifeq ($(with_libxml),yes)
 SUBDIRS += xml2
-else
-ALWAYS_SUBDIRS += xml2
 endif
 
 ifeq ($(with_selinux),yes)
 SUBDIRS += sepgsql
-else
-ALWAYS_SUBDIRS += sepgsql
 endif
 
 ifeq ($(enable_orca),yes)
@@ -94,4 +72,3 @@ SUBDIRS += gp_replica_check
 
 
 $(recurse)
-$(recurse_always)

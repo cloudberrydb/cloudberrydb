@@ -162,7 +162,7 @@ GetContentIdsFromPlanForSingleRelation(List *rtable, Plan *plan, int rangeTableI
 
 	DirectDispatchCalculationInfo result;
 	RangeTblEntry *rte;
-	Relation	relation = NULL;
+	Relation	relation;
 
 	InitDirectDispatchCalculationInfo(&result);
 
@@ -220,8 +220,6 @@ GetContentIdsFromPlanForSingleRelation(List *rtable, Plan *plan, int rangeTableI
 	else
 	{
 		long		totalCombinations = 1;
-
-		Assert(parts != NULL);
 
 		/* calculate possible value set for each partitioning attribute */
 		for (i = 0; i < policy->nattrs; i++)
@@ -514,10 +512,8 @@ AssignContentIdsToPlanData_Walker(Node *node, void *context)
 				 * we can determine the dispatch data to merge by looking at
 				 * the relation begin scanned
 				 */
-				dispatchInfo = GetContentIdsFromPlanForSingleRelation(data->rtable,
-																	 (Plan *) node,
-																	 ((Scan *) node)->scanrelid,
-																	 (Node *) ((Plan *) node)->qual);
+				dispatchInfo = GetContentIdsFromPlanForSingleRelation(data->rtable, (Plan *) node, ((Scan *) node)->scanrelid,
+																	  (Node *) ((Plan *) node)->qual);
 				break;
 
 			case T_ExternalScan:
@@ -534,30 +530,11 @@ AssignContentIdsToPlanData_Walker(Node *node, void *context)
 					 * we can determine the dispatch data to merge by looking
 					 * at the relation begin scanned
 					 */
-					dispatchInfo = GetContentIdsFromPlanForSingleRelation(data->rtable,
-																		 (Plan *) node,
-																		 ((Scan *) node)->scanrelid,
-																		 (Node *) indexScan->indexqualorig);
+					dispatchInfo = GetContentIdsFromPlanForSingleRelation(data->rtable, (Plan *) node, ((Scan *) node)->scanrelid,
+																		  (Node *) indexScan->indexqualorig);
 					/* must use _orig_ qual ! */
 				}
 				break;
-
-			case T_IndexOnlyScan:
-				{
-					IndexOnlyScan  *indexOnlyScan = (IndexOnlyScan *) node;
-
-					/*
-					 * we can determine the dispatch data to merge by looking
-					 * at the relation begin scanned
-					 */
-					dispatchInfo = GetContentIdsFromPlanForSingleRelation(data->rtable,
-																		 (Plan *) node,
-																		 ((Scan *) node)->scanrelid,
-																		 (Node *) indexOnlyScan->indexqualorig);
-					/* must use _orig_ qual ! */
-				}
-				break;
-
 			case T_BitmapIndexScan:
 				{
 					BitmapIndexScan *bitmapScan = (BitmapIndexScan *) node;
@@ -566,10 +543,8 @@ AssignContentIdsToPlanData_Walker(Node *node, void *context)
 					 * we can determine the dispatch data to merge by looking
 					 * at the relation begin scanned
 					 */
-					dispatchInfo = GetContentIdsFromPlanForSingleRelation(data->rtable,
-																		 (Plan *) node,
-																		 ((Scan *) node)->scanrelid,
-																		 (Node *) bitmapScan->indexqualorig);
+					dispatchInfo = GetContentIdsFromPlanForSingleRelation(data->rtable, (Plan *) node, ((Scan *) node)->scanrelid,
+																		  (Node *) bitmapScan->indexqualorig);
 					/* must use original qual ! */
 				}
 				break;
@@ -655,11 +630,6 @@ AssignContentIdsToPlanData_Walker(Node *node, void *context)
 					pushNewDirectDispatchInfo = true;
 					break;
 				}
-			case T_ForeignScan:
-				DisableTargetedDispatch(&dispatchInfo); /* not sure about
-														 * foreign tables ...
-														 * so disable */
-				break;
 			case T_SplitUpdate:
 				break;
 			default:

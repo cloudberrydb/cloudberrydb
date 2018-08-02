@@ -12,7 +12,7 @@
  *	  This information is needed by routines manipulating tuples
  *	  (getattribute, formtuple, etc.).
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -1131,28 +1131,27 @@ ExecTypeFromTLInternal(List *targetList, bool hasoid, bool skipjunk)
 /*
  * ExecTypeFromExprList - build a tuple descriptor from a list of Exprs
  *
- * Caller must also supply a list of field names (String nodes).
+ * Here we must make up an arbitrary set of field names.
  */
 TupleDesc
-ExecTypeFromExprList(List *exprList, List *namesList)
+ExecTypeFromExprList(List *exprList)
 {
 	TupleDesc	typeInfo;
-	ListCell   *le;
-	ListCell   *ln;
+	ListCell   *l;
 	int			cur_resno = 1;
-
-	Assert(list_length(exprList) == list_length(namesList));
+	char		fldname[NAMEDATALEN];
 
 	typeInfo = CreateTemplateTupleDesc(list_length(exprList), false);
 
-	forboth(le, exprList, ln, namesList)
+	foreach(l, exprList)
 	{
-		Node	   *e = lfirst(le);
-		char	   *n = strVal(lfirst(ln));
+		Node	   *e = lfirst(l);
+
+		sprintf(fldname, "f%d", cur_resno);
 
 		TupleDescInitEntry(typeInfo,
 						   cur_resno,
-						   n,
+						   fldname,
 						   exprType(e),
 						   exprTypmod(e),
 						   0);

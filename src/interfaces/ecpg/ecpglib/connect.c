@@ -149,13 +149,6 @@ ecpg_finish(struct connection * act)
 		for (cache = act->cache_head; cache; ptr = cache, cache = cache->next, ecpg_free(ptr));
 		ecpg_free(act->name);
 		ecpg_free(act);
-		/* delete cursor variables when last connection gets closed */
-		if (all_connections == NULL)
-		{
-			struct var_list *iv_ptr;
-
-			for (; ivlist; iv_ptr = ivlist, ivlist = ivlist->next, ecpg_free(iv_ptr));
-		}
 	}
 	else
 		ecpg_log("ecpg_finish: called an extra time\n");
@@ -260,6 +253,14 @@ ECPGnoticeReceiver(void *arg, const PGresult *result)
 	ecpg_log("raising sqlcode %d\n", sqlcode);
 }
 
+static int
+strlen_or_null(const char *string)
+{
+	if (!string)
+		return 0;
+	return (strlen(string));
+}
+
 /* this contains some quick hacks, needs to be cleaned up, but it works */
 bool
 ECPGconnect(int lineno, int c, const char *name, const char *user, const char *passwd, const char *connection_name, int autocommit)
@@ -267,16 +268,14 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 	struct sqlca_t *sqlca = ECPGget_sqlca();
 	enum COMPAT_MODE compat = c;
 	struct connection *this;
-	int			i,
-				connect_params = 0;
+	int i;
 	char	   *dbname = name ? ecpg_strdup(name, lineno) : NULL,
 			   *host = NULL,
 			   *tmp,
 			   *port = NULL,
 			   *realname = NULL,
-			   *options = NULL;
-	const char **conn_keywords;
-	const char **conn_values;
+			   *options = NULL,
+			   *connect_string = NULL;
 
 	ecpg_init_sqlca(sqlca);
 
@@ -360,10 +359,7 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 				if (tmp != NULL)	/* database name given */
 				{
 					if (tmp[1] != '\0') /* non-empty database name */
-					{
 						realname = ecpg_strdup(tmp + 1, lineno);
-						connect_params++;
-					}
 					*tmp = '\0';
 				}
 
@@ -377,7 +373,6 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 					{
 						*tmp2 = '\0';
 						host = ecpg_strdup(tmp + 1, lineno);
-						connect_params++;
 						if (strncmp(dbname, "unix:", 5) != 0)
 						{
 							ecpg_log("ECPGconnect: socketname %s given for TCP connection on line %d\n", host, lineno);
@@ -399,10 +394,7 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 						}
 					}
 					else
-					{
 						port = ecpg_strdup(tmp + 1, lineno);
-						connect_params++;
-					}
 				}
 
 				if (strncmp(dbname, "unix:", 5) == 0)
@@ -426,10 +418,7 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 					}
 				}
 				else
-				{
 					host = ecpg_strdup(dbname + offset, lineno);
-					connect_params++;
-				}
 
 			}
 		}
@@ -440,7 +429,6 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 			if (tmp != NULL)	/* port number given */
 			{
 				port = ecpg_strdup(tmp + 1, lineno);
-				connect_params++;
 				*tmp = '\0';
 			}
 
@@ -448,17 +436,10 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 			if (tmp != NULL)	/* host name given */
 			{
 				host = ecpg_strdup(tmp + 1, lineno);
-				connect_params++;
 				*tmp = '\0';
 			}
 
-			if (strlen(dbname) > 0)
-			{
-				realname = ecpg_strdup(dbname, lineno);
-				connect_params++;
-			}
-			else
-				realname = NULL;
+			realname = (strlen(dbname) > 0) ? ecpg_strdup(dbname, lineno) : NULL;
 		}
 	}
 	else
@@ -494,113 +475,34 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 			 options ? "with options " : "", options ? options : "",
 			 (user && strlen(user) > 0) ? "for user " : "", user ? user : "");
 
-	if (options)
+	connect_string = ecpg_alloc(strlen_or_null(host)
+								+ strlen_or_null(port)
+								+ strlen_or_null(options)
+								+ strlen_or_null(realname)
+								+ strlen_or_null(user)
+								+ strlen_or_null(passwd)
+			  + sizeof(" host = port = dbname = user = password ="), lineno);
+
+	if (options)				/* replace '&' if tehre are any */
 		for (i = 0; options[i]; i++)
-			/* count options */
-			if (options[i] == '=')
-				connect_params++;
+			if (options[i] == '&')
+				options[i] = ' ';
 
-	if (user && strlen(user) > 0)
-		connect_params++;
-	if (passwd && strlen(passwd) > 0)
-		connect_params++;
+	sprintf(connect_string, "%s%s %s%s %s%s %s%s %s%s %s",
+			realname ? "dbname=" : "", realname ? realname : "",
+			host ? "host=" : "", host ? host : "",
+			port ? "port=" : "", port ? port : "",
+			(user && strlen(user) > 0) ? "user=" : "", user ? user : "",
+	 (passwd && strlen(passwd) > 0) ? "password=" : "", passwd ? passwd : "",
+			options ? options : "");
 
-	/* allocate enough space for all connection parameters */
-	conn_keywords = (const char **) ecpg_alloc((connect_params + 1) * sizeof(char *), lineno);
-	conn_values = (const char **) ecpg_alloc(connect_params * sizeof(char *), lineno);
-	if (conn_keywords == NULL || conn_values == NULL)
-	{
-		if (host)
-			ecpg_free(host);
-		if (port)
-			ecpg_free(port);
-		if (options)
-			ecpg_free(options);
-		if (realname)
-			ecpg_free(realname);
-		if (dbname)
-			ecpg_free(dbname);
-		if (conn_keywords)
-			ecpg_free(conn_keywords);
-		if (conn_values)
-			ecpg_free(conn_values);
-		free(this);
-		return false;
-	}
+	/*
+	 * this is deprecated this->connection = PQsetdbLogin(host, port, options,
+	 * NULL, realname, user, passwd);
+	 */
+	this->connection = PQconnectdb(connect_string);
 
-	i = 0;
-	if (realname)
-	{
-		conn_keywords[i] = "dbname";
-		conn_values[i] = realname;
-		i++;
-	}
-	if (host)
-	{
-		conn_keywords[i] = "host";
-		conn_values[i] = host;
-		i++;
-	}
-	if (port)
-	{
-		conn_keywords[i] = "port";
-		conn_values[i] = port;
-		i++;
-	}
-	if (user && strlen(user) > 0)
-	{
-		conn_keywords[i] = "user";
-		conn_values[i] = user;
-		i++;
-	}
-	if (passwd && strlen(passwd) > 0)
-	{
-		conn_keywords[i] = "password";
-		conn_values[i] = passwd;
-		i++;
-	}
-	if (options)
-	{
-		char	   *str;
-
-		/* options look like this "option1 = value1 option2 = value2 ... */
-		/* we have to break up the string into single options */
-		for (str = options; *str;)
-		{
-			int			e,
-						a;
-			char	   *token1,
-					   *token2;
-
-			for (token1 = str; *token1 && *token1 == ' '; token1++);
-			for (e = 0; token1[e] && token1[e] != '='; e++);
-			if (token1[e])		/* found "=" */
-			{
-				token1[e] = '\0';
-				for (token2 = token1 + e + 1; *token2 && *token2 == ' '; token2++);
-				for (a = 0; token2[a] && token2[a] != '&'; a++);
-				if (token2[a])	/* found "&" => another option follows */
-				{
-					token2[a] = '\0';
-					str = token2 + a + 1;
-				}
-				else
-					str = token2 + a;
-
-				conn_keywords[i] = token1;
-				conn_values[i] = token2;
-				i++;
-			}
-			else
-				/* the parser should not be able to create this invalid option */
-				str = token1 + e;
-		}
-
-	}
-	conn_keywords[i] = NULL;	/* terminator */
-
-	this->connection = PQconnectdbParams(conn_keywords, conn_values, 0);
-
+	ecpg_free(connect_string);
 	if (host)
 		ecpg_free(host);
 	if (port)
@@ -609,8 +511,6 @@ ECPGconnect(int lineno, int c, const char *name, const char *user, const char *p
 		ecpg_free(options);
 	if (dbname)
 		ecpg_free(dbname);
-	ecpg_free(conn_values);
-	ecpg_free(conn_keywords);
 
 	if (PQstatus(this->connection) == CONNECTION_BAD)
 	{

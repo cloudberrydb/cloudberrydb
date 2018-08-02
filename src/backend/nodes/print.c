@@ -3,7 +3,7 @@
  * print.c
  *	  various print routines (used mostly for debugging)
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,10 +20,12 @@
 #include "postgres.h"
 
 #include "access/printtup.h"
+#include "lib/stringinfo.h"
 #include "nodes/print.h"
 #include "optimizer/clauses.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
+#include "utils/rel.h"
 
 
 /*
@@ -31,7 +33,7 @@
  *	  print contents of Node to stdout
  */
 void
-print(const void *obj)
+print(void *obj)
 {
 	char	   *s;
 	char	   *f;
@@ -49,7 +51,7 @@ print(const void *obj)
  *	  pretty-print contents of Node to stdout
  */
 void
-pprint(const void *obj)
+pprint(void *obj)
 {
 	char	   *s;
 	char	   *f;
@@ -67,7 +69,7 @@ pprint(const void *obj)
  *	  send pretty-printed contents of Node to postmaster log
  */
 void
-elog_node_display(int lev, const char *title, const void *obj, bool pretty)
+elog_node_display(int lev, const char *title, void *obj, bool pretty)
 {
 	char	   *s;
 	char	   *f;
@@ -80,7 +82,7 @@ elog_node_display(int lev, const char *title, const void *obj, bool pretty)
 	pfree(s);
 	ereport(lev,
 			(errmsg_internal("%s:", title),
-			 errdetail_internal("%s", f)));
+			 errdetail("%s", f)));
 	pfree(f);
 }
 
@@ -249,9 +251,9 @@ pretty_format_node_dump(const char *dump)
  *	  print contents of range table
  */
 void
-print_rt(const List *rtable)
+print_rt(List *rtable)
 {
-	const ListCell *l;
+	ListCell   *l;
 	int			i = 1;
 
 	printf("resno\trefname  \trelid\tinFromCl\n");
@@ -314,7 +316,7 @@ print_rt(const List *rtable)
  *	  print an expression
  */
 void
-print_expr(const Node *expr, const List *rtable)
+print_expr(Node *expr, List *rtable)
 {
 	if (expr == NULL)
 	{
@@ -324,22 +326,18 @@ print_expr(const Node *expr, const List *rtable)
 
 	if (IsA(expr, Var))
 	{
-		const Var  *var = (const Var *) expr;
+		Var		   *var = (Var *) expr;
 		char	   *relname,
 				   *attname;
 
 		switch (var->varno)
 		{
-			case INNER_VAR:
+			case INNER:
 				relname = "INNER";
 				attname = "?";
 				break;
-			case OUTER_VAR:
+			case OUTER:
 				relname = "OUTER";
-				attname = "?";
-				break;
-			case INDEX_VAR:
-				relname = "INDEX";
 				attname = "?";
 				break;
 			default:
@@ -358,7 +356,7 @@ print_expr(const Node *expr, const List *rtable)
 	}
 	else if (IsA(expr, Const))
 	{
-		const Const *c = (const Const *) expr;
+		Const	   *c = (Const *) expr;
 		Oid			typoutput;
 		bool		typIsVarlena;
 		char	   *outputstr;
@@ -378,26 +376,26 @@ print_expr(const Node *expr, const List *rtable)
 	}
 	else if (IsA(expr, OpExpr))
 	{
-		const OpExpr *e = (const OpExpr *) expr;
+		OpExpr	   *e = (OpExpr *) expr;
 		char	   *opname;
 
 		opname = get_opname(e->opno);
 		if (list_length(e->args) > 1)
 		{
-			print_expr(get_leftop((const Expr *) e), rtable);
+			print_expr(get_leftop((Expr *) e), rtable);
 			printf(" %s ", ((opname != NULL) ? opname : "(invalid operator)"));
-			print_expr(get_rightop((const Expr *) e), rtable);
+			print_expr(get_rightop((Expr *) e), rtable);
 		}
 		else
 		{
 			/* we print prefix and postfix ops the same... */
 			printf("%s ", ((opname != NULL) ? opname : "(invalid operator)"));
-			print_expr(get_leftop((const Expr *) e), rtable);
+			print_expr(get_leftop((Expr *) e), rtable);
 		}
 	}
 	else if (IsA(expr, FuncExpr))
 	{
-		const FuncExpr *e = (const FuncExpr *) expr;
+		FuncExpr   *e = (FuncExpr *) expr;
 		char	   *funcname;
 		ListCell   *l;
 
@@ -420,9 +418,9 @@ print_expr(const Node *expr, const List *rtable)
  *	  pathkeys list of PathKeys
  */
 void
-print_pathkeys(const List *pathkeys, const List *rtable)
+print_pathkeys(List *pathkeys, List *rtable)
 {
-	const ListCell *i;
+	ListCell   *i;
 
 	printf("(");
 	foreach(i, pathkeys)
@@ -460,9 +458,9 @@ print_pathkeys(const List *pathkeys, const List *rtable)
  *	  print targetlist in a more legible way.
  */
 void
-print_tl(const List *tlist, const List *rtable)
+print_tl(List *tlist, List *rtable)
 {
-	const ListCell *tl;
+	ListCell   *tl;
 
 	printf("(\n");
 	foreach(tl, tlist)
@@ -573,8 +571,6 @@ plannode_type(Plan *p)
 			return "MOTION";
 		case T_Repeat:
 			return "REPEAT";
-		case T_ForeignScan:
-			return "FOREIGNSCAN";
 		default:
 			return "UNKNOWN";
 	}

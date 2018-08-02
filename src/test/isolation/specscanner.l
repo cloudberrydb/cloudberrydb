@@ -4,7 +4,7 @@
  * specscanner.l
  *	  a lexical scanner for an isolation test specification
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *-------------------------------------------------------------------------
@@ -15,7 +15,7 @@ static int	yyline = 1;			/* line number for error reporting */
 static char litbuf[1024];
 static int litbufpos = 0;
 
-static void addlitchar(char c);
+static void addlitchar(const char c);
 
 %}
 
@@ -25,7 +25,6 @@ static void addlitchar(char c);
 %option noinput
 %option nounput
 %option noyywrap
-%option warn
 %option prefix="spec_yy"
 
 
@@ -94,14 +93,14 @@ teardown		{ return(TEARDOWN); }
 %%
 
 static void
-addlitchar(char c)
+addlitchar(const char c)
 {
-	if (litbufpos >= sizeof(litbuf) - 1)
-	{
-		fprintf(stderr, "SQL step too long\n");
-		exit(1);
-	}
-	litbuf[litbufpos++] = c;
+  if (litbufpos >= sizeof(litbuf) - 1)
+  {
+    fprintf(stderr, "SQL step too long\n");
+    exit(1);
+  }
+  litbuf[litbufpos++] = c;
 }
 
 void

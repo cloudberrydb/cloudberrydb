@@ -5,7 +5,7 @@
  *
  *
  * Portions Copyright (c) 2017, Pivotal Software Inc
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,7 +26,12 @@
 
 /* Local functions */
 static Relids find_placeholders_recurse(PlannerInfo *root, Node *jtnode);
-static void mark_placeholders_in_expr(PlannerInfo *root, Node *expr,
+static void find_placeholders_in_qual(PlannerInfo *root, Node *expr,
+									  Relids relids);
+
+/* Local functions */
+static Relids find_placeholders_recurse(PlannerInfo *root, Node *jtnode);
+static void find_placeholders_in_qual(PlannerInfo *root, Node *qual,
 						  Relids relids);
 
 
@@ -52,10 +57,7 @@ make_placeholder_expr(PlannerInfo *root, Expr *expr, Relids phrels)
 
 /*
  * find_placeholder_info
- *		Fetch the PlaceHolderInfo for the given PHV
- *
- * If the PlaceHolderInfo doesn't exist yet, create it if create_new_ph is
- * true, else throw an error.
+ *		Fetch the PlaceHolderInfo for the given PHV; create it if not found
  *
  * This is separate from make_placeholder_expr because subquery pullup has
  * to make PlaceHolderVars for expressions that might not be used at all in
@@ -63,13 +65,10 @@ make_placeholder_expr(PlannerInfo *root, Expr *expr, Relids phrels)
  * We build PlaceHolderInfos only for PHVs that are still present in the
  * simplified query passed to query_planner().
  *
- * Note: this should only be called after query_planner() has started.	Also,
- * create_new_ph must not be TRUE after deconstruct_jointree begins, because
- * make_outerjoininfo assumes that we already know about all placeholders.
+ * Note: this should only be called after query_planner() has started.
  */
 PlaceHolderInfo *
-find_placeholder_info(PlannerInfo *root, PlaceHolderVar *phv,
-					  bool create_new_ph)
+find_placeholder_info(PlannerInfo *root, PlaceHolderVar *phv)
 {
 	PlaceHolderInfo *phinfo;
 	ListCell   *lc;
@@ -86,9 +85,6 @@ find_placeholder_info(PlannerInfo *root, PlaceHolderVar *phv,
 	}
 
 	/* Not found, so create it */
-	if (!create_new_ph)
-		elog(ERROR, "too late to create a new PlaceHolderInfo");
-
 	phinfo = makeNode(PlaceHolderInfo);
 	phinfo->phid = phv->phid;
 	phinfo->ph_var = copyObject(phv);
@@ -168,7 +164,7 @@ find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
 		/*
 		 * Now process the top-level quals.
 		 */
-		mark_placeholders_in_expr(root, f->quals, jtrelids);
+		find_placeholders_in_qual(root, f->quals, jtrelids);
 	}
 	else if (IsA(jtnode, JoinExpr))
 	{
@@ -184,7 +180,7 @@ find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
 		jtrelids = bms_join(leftids, rightids);
 
 		/* Process the qual clauses */
-		mark_placeholders_in_expr(root, j->quals, jtrelids);
+		find_placeholders_in_qual(root, j->quals, jtrelids);
 	}
 	else
 	{
@@ -196,15 +192,14 @@ find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
 }
 
 /*
- * mark_placeholders_in_expr
- *		Find all PlaceHolderVars in the given expression, and mark them
- *		as possibly needed at the specified join level.
+ * find_placeholders_in_qual
+ *		Process a qual clause for find_placeholders_in_jointree.
  *
  * relids is the syntactic join level to mark as the "maybe needed" level
- * for each PlaceHolderVar found in the expression.
+ * for each PlaceHolderVar found in the qual clause.
  */
 static void
-mark_placeholders_in_expr(PlannerInfo *root, Node *expr, Relids relids)
+find_placeholders_in_qual(PlannerInfo *root, Node *qual, Relids relids)
 {
 	List	   *vars;
 	ListCell   *vl;
@@ -213,7 +208,7 @@ mark_placeholders_in_expr(PlannerInfo *root, Node *expr, Relids relids)
 	 * pull_var_clause does more than we need here, but it'll do and it's
 	 * convenient to use.
 	 */
-	vars = pull_var_clause(expr,
+	vars = pull_var_clause(qual,
 						   PVC_RECURSE_AGGREGATES,
 						   PVC_INCLUDE_PLACEHOLDERS);
 	foreach(vl, vars)
@@ -226,45 +221,23 @@ mark_placeholders_in_expr(PlannerInfo *root, Node *expr, Relids relids)
 			continue;
 
 		/* Create a PlaceHolderInfo entry if there's not one already */
-		phinfo = find_placeholder_info(root, phv, true);
+		phinfo = find_placeholder_info(root, phv);
 
-		/* Mark it, and recursively process any contained placeholders */
-		mark_placeholder_maybe_needed(root, phinfo, relids);
+		/* Mark the PHV as possibly needed at the qual's syntactic level */
+		phinfo->ph_may_need = bms_add_members(phinfo->ph_may_need, relids);
+
+		/*
+		 * This is a bit tricky: the PHV's contained expression may contain
+		 * other, lower-level PHVs.  We need to get those into the
+		 * PlaceHolderInfo list, but they aren't going to be needed where the
+		 * outer PHV is referenced.  Rather, they'll be needed where the outer
+		 * PHV is evaluated.  We can estimate that (conservatively) as the
+		 * syntactic location of the PHV's expression.  Recurse to take care
+		 * of any such PHVs.
+		 */
+		find_placeholders_in_qual(root, (Node *) phv->phexpr, phv->phrels);
 	}
 	list_free(vars);
-}
-
-/*
- * mark_placeholder_maybe_needed
- *		Mark a placeholder as possibly needed at the specified join level.
- *
- * relids is the syntactic join level to mark as the "maybe needed" level
- * for the placeholder.
- *
- * This is called during an initial scan of the query's targetlist and quals
- * before we begin deconstruct_jointree.  Once we begin deconstruct_jointree,
- * all active placeholders must be present in root->placeholder_list with
- * their correct ph_may_need values, because make_outerjoininfo and
- * update_placeholder_eval_levels require this info to be available while
- * we crawl up the join tree.
- */
-void
-mark_placeholder_maybe_needed(PlannerInfo *root, PlaceHolderInfo *phinfo,
-							  Relids relids)
-{
-	/* Mark the PHV as possibly needed at the given syntactic level */
-	phinfo->ph_may_need = bms_add_members(phinfo->ph_may_need, relids);
-
-	/*
-	 * This is a bit tricky: the PHV's contained expression may contain other,
-	 * lower-level PHVs.  We need to get those into the PlaceHolderInfo list,
-	 * but they aren't going to be needed where the outer PHV is referenced.
-	 * Rather, they'll be needed where the outer PHV is evaluated.  We can
-	 * estimate that (conservatively) as the syntactic location of the PHV's
-	 * expression.	Recurse to take care of any such PHVs.
-	 */
-	mark_placeholders_in_expr(root, (Node *) phinfo->ph_var->phexpr,
-							  phinfo->ph_var->phrels);
 }
 
 /*
@@ -387,7 +360,7 @@ fix_placeholder_input_needed_levels(PlannerInfo *root)
 											   PVC_RECURSE_AGGREGATES,
 											   PVC_INCLUDE_PLACEHOLDERS);
 
-			add_vars_to_targetlist(root, vars, eval_at, false);
+			add_vars_to_targetlist(root, vars, eval_at);
 			list_free(vars);
 		}
 	}

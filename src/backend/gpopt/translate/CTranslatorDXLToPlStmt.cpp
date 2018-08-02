@@ -236,10 +236,7 @@ CTranslatorDXLToPlStmt::PplstmtFromDXL
 	}
 	
 	pplstmt->resultRelations = m_plResultRelations;
-	// GPDB_92_MERGE_FIXME: we really *should* be handling intoClause
-	// but currently planner cheats (c.f. createas.c)
-	// shift the intoClause handling into planner and re-enable this
-//	pplstmt->intoClause = m_pctxdxltoplstmt->Pintocl();
+	pplstmt->intoClause = m_pctxdxltoplstmt->Pintocl();
 	pplstmt->intoPolicy = m_pctxdxltoplstmt->Pdistrpolicy();
 	
 	SetInitPlanVariables(pplstmt);
@@ -542,7 +539,7 @@ CTranslatorDXLToPlStmt::FSetIndexVarAttno
 		return false;
 	}
 
-	if (IsA(pnode, Var) && ((Var *)pnode)->varno != OUTER_VAR)
+	if (IsA(pnode, Var) && ((Var *)pnode)->varno != OUTER)
 	{
 		INT iAttno = ((Var *)pnode)->varattno;
 		const IMDRelation *pmdrel = pctxtidxvarattno->m_pmdrel;
@@ -847,25 +844,15 @@ CTranslatorDXLToPlStmt::TranslateIndexConditions
 		GPOS_ASSERT((IsA(pnodeFst, Var) || IsA(pnodeSnd, Var)) && "expected index key in index qual");
 
 		INT iAttno = 0;
-		// GPDB_92_MERGE_FIXME: I don't believe we can have index key on the
-		// RHS of OpExpr for indexqual, so why do we have this conditional here
-		// at all?
-		if (IsA(pnodeFst, Var) && ((Var *) pnodeFst)->varno != OUTER_VAR)
+		if (IsA(pnodeFst, Var) && ((Var *) pnodeFst)->varno != OUTER)
 		{
 			// index key is on the left side
 			iAttno =  ((Var *) pnodeFst)->varattno;
-
-			// GPDB_92_MERGE_FIXME: helluva hack
-			// Upstream commit a0185461 cleaned up how the varno of indices
-			// We are patching up varno here, but it seems this really should
-			// happen in CTranslatorDXLToScalar::PexprFromDXLNodeScalar .
-			// Furthermore, should we guard against nonsensical varno?
-			((Var *) pnodeFst)->varno = INDEX_VAR;
 		}
 		else
 		{
 			// index key is on the right side
-			GPOS_ASSERT(((Var *) pnodeSnd)->varno != OUTER_VAR && "unexpected outer reference in index qual");
+			GPOS_ASSERT(((Var *) pnodeSnd)->varno != OUTER && "unexpected outer reference in index qual");
 			iAttno = ((Var *) pnodeSnd)->varattno;
 		}
 		
@@ -3020,7 +3007,7 @@ CTranslatorDXLToPlStmt::PappendFromDXLAppend
 		CDXLNode *pdxlnExpr = (*pdxlnPrEl)[0];
 		CDXLScalarIdent *pdxlopScIdent = CDXLScalarIdent::PdxlopConvert(pdxlnExpr->Pdxlop());
 
-		Index idxVarno = OUTER_VAR;
+		Index idxVarno = OUTER;
 		AttrNumber attno = (AttrNumber) (ul + 1);
 
 		Var *pvar = gpdb::PvarMakeVar
@@ -3234,7 +3221,7 @@ CTranslatorDXLToPlStmt::PshscanFromDXLCTEProducer
 			GPOS_ASSERT(IsA(pexpr, Var));
 
 			Var *pvar = (Var *) pexpr;
-			Var *pvarNew = gpdb::PvarMakeVar(OUTER_VAR, pvar->varattno, pvar->vartype, pvar->vartypmod, 0 /* varlevelsup */);
+			Var *pvarNew = gpdb::PvarMakeVar(OUTER, pvar->varattno, pvar->vartype, pvar->vartypmod,	0 /* varlevelsup */);
 			pvarNew->varnoold = pvar->varnoold;
 			pvarNew->varoattno = pvar->varoattno;
 
@@ -3425,7 +3412,7 @@ CTranslatorDXLToPlStmt::PshscanFromDXLCTEConsumer
 		CDXLScalarIdent *pdxlopScIdent = CDXLScalarIdent::PdxlopConvert(pdxlnScIdent->Pdxlop());
 		OID oidType = CMDIdGPDB::PmdidConvert(pdxlopScIdent->PmdidType())->OidObjectId();
 
-		Var *pvar = gpdb::PvarMakeVar(OUTER_VAR, (AttrNumber) (ul + 1), oidType, pdxlopScIdent->ITypeModifier(),  0	/* varlevelsup */);
+		Var *pvar = gpdb::PvarMakeVar(OUTER, (AttrNumber) (ul + 1), oidType, pdxlopScIdent->ITypeModifier(),  0	/* varlevelsup */);
 
 		CHAR *szResname = CTranslatorUtils::SzFromWsz(pdxlopPrE->PmdnameAlias()->Pstr()->Wsz());
 		TargetEntry *pte = gpdb::PteMakeTargetEntry((Expr *) pvar, (AttrNumber) (ul + 1), szResname, false /* resjunk */);
@@ -4541,14 +4528,14 @@ CTranslatorDXLToPlStmt::PlTargetListForHashNode
 		}
 		else
 		{
-			idxVarnoold = OUTER_VAR;
+			idxVarnoold = OUTER;
 			attnoOld = pteChild->resno;
 		}
 
 		// create a Var expression for this target list entry expression
 		Var *pvar = gpdb::PvarMakeVar
 					(
-					OUTER_VAR,
+					OUTER,
 					pteChild->resno,
 					oidType,
 					iTypeModifier,
@@ -4905,7 +4892,7 @@ CTranslatorDXLToPlStmt::UlAddTargetEntryForColId
 	INT iTypeModifier = gpdb::IExprTypeMod((Node *) pte->expr);
 	Var *pvar = gpdb::PvarMakeVar
 						(
-						OUTER_VAR,
+						OUTER,
 						pte->resno,
 						oidExpr,
 						iTypeModifier,
@@ -5058,8 +5045,7 @@ CTranslatorDXLToPlStmt::PplanCTAS
 		&(pplan->plan_width)
 		);
 
-//	IntoClause *pintocl = PintoclFromCtas(pdxlop);
-	IntoClause *pintocl = NULL;
+	IntoClause *pintocl = PintoclFromCtas(pdxlop);
 	GpPolicy *pdistrpolicy = PdistrpolicyFromCtas(pdxlop);
 	m_pctxdxltoplstmt->AddCtasInfo(pintocl, pdistrpolicy);
 	
@@ -5648,7 +5634,7 @@ CTranslatorDXLToPlStmt::TranslateNestLoopParamList
 		GPOS_ASSERT(NULL != target_entry);
 		Var *old_var = (Var *) target_entry->expr;
 
-		Var *new_var = gpdb::PvarMakeVar(OUTER_VAR, target_entry->resno, old_var->vartype, old_var->vartypmod, 0/*varlevelsup*/);
+		Var *new_var = gpdb::PvarMakeVar(OUTER, target_entry->resno, old_var->vartype, old_var->vartypmod, 0/*varlevelsup*/);
 		new_var->varnoold = old_var->varnoold;
 		new_var->varoattno = old_var->varoattno;
 

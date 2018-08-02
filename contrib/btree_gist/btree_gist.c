@@ -1,8 +1,6 @@
 /*
  * contrib/btree_gist/btree_gist.c
  */
-#include "postgres.h"
-
 #include "btree_gist.h"
 
 PG_MODULE_MAGIC;

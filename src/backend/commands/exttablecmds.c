@@ -410,7 +410,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	 */
 	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
 		reloid = DefineRelation(createStmt, RELKIND_RELATION, InvalidOid,
-								RELSTORAGE_EXTERNAL, true, true);
+								RELSTORAGE_EXTERNAL, true);
 
 	/*
 	 * Now we take care of pg_exttable.
@@ -422,7 +422,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
 		Assert(reloid != InvalidOid);
 	else
-		reloid = RangeVarGetRelid(createExtStmt->relation, NoLock, true);
+		reloid = RangeVarGetRelid(createExtStmt->relation, true);
 
 	/*
 	 * create a pg_exttable entry for this external table.

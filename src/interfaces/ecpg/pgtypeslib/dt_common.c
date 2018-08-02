@@ -310,7 +310,7 @@ static datetkn datetktbl[] = {
 #if 0
 	phst
 #endif
-	{"pht", TZ, POS(32)},		/* Philippine Time */
+	{"pht", TZ, POS(32)},		/* Phillipine Time */
 	{"pkt", TZ, POS(20)},		/* Pakistan Time */
 	{"pm", AMPM, PM},
 	{"pmdt", DTZ, NEG(8)},		/* Pierre & Miquelon Daylight Time */
@@ -759,14 +759,7 @@ TrimTrailingZeros(char *str)
 
 /* EncodeDateTime()
  * Encode date and time interpreted as local time.
- *
- * tm and fsec are the value to encode, print_tz determines whether to include
- * a time zone (the difference between timestamp and timestamptz types), tz is
- * the numeric time zone offset, tzn is the textual time zone, which if
- * specified will be used instead of tz by some styles, style is the date
- * style, str is where to write the output.
- *
- * Supported date styles:
+ * Support several date styles:
  *	Postgres - day mon hh:mm:ss yyyy tz
  *	SQL - mm/dd/yyyy hh:mm:ss.ss tz
  *	ISO - yyyy-mm-dd hh:mm:ss+/-tz
@@ -776,17 +769,11 @@ TrimTrailingZeros(char *str)
  *	European - dd/mm/yyyy
  */
 int
-EncodeDateTime(struct tm * tm, fsec_t fsec, bool print_tz, int tz, const char *tzn, int style, char *str, bool EuroDates)
+EncodeDateTime(struct tm * tm, fsec_t fsec, int *tzp, char **tzn, int style, char *str, bool EuroDates)
 {
 	int			day,
 				hour,
 				min;
-
-	/*
-	 * Negative tm_isdst means we have no valid time zone translation.
-	 */
-	if (tm->tm_isdst < 0)
-		print_tz = false;
 
 	switch (style)
 	{
@@ -821,10 +808,16 @@ EncodeDateTime(struct tm * tm, fsec_t fsec, bool print_tz, int tz, const char *t
 			if (tm->tm_year <= 0)
 				sprintf(str + strlen(str), " BC");
 
-			if (print_tz)
+			/*
+			 * tzp == NULL indicates that we don't want *any* time zone info
+			 * in the output string. *tzn != NULL indicates that we have alpha
+			 * time zone info available. tm_isdst != -1 indicates that we have
+			 * a valid time zone translation.
+			 */
+			if (tzp != NULL && tm->tm_isdst >= 0)
 			{
-				hour = -(tz / SECS_PER_HOUR);
-				min = (abs(tz) / MINS_PER_HOUR) % MINS_PER_HOUR;
+				hour = -(*tzp / SECS_PER_HOUR);
+				min = (abs(*tzp) / MINS_PER_HOUR) % MINS_PER_HOUR;
 				if (min != 0)
 					sprintf(str + strlen(str), "%+03d:%02d", hour, min);
 				else
@@ -874,14 +867,14 @@ EncodeDateTime(struct tm * tm, fsec_t fsec, bool print_tz, int tz, const char *t
 			 * TZ abbreviations in the Olson database are plain ASCII.
 			 */
 
-			if (print_tz)
+			if (tzp != NULL && tm->tm_isdst >= 0)
 			{
-				if (tzn)
-					sprintf(str + strlen(str), " %.*s", MAXTZLEN, tzn);
+				if (*tzn != NULL)
+					sprintf(str + strlen(str), " %.*s", MAXTZLEN, *tzn);
 				else
 				{
-					hour = -(tz / SECS_PER_HOUR);
-					min = (abs(tz) / MINS_PER_HOUR) % MINS_PER_HOUR;
+					hour = -(*tzp / SECS_PER_HOUR);
+					min = (abs(*tzp) / MINS_PER_HOUR) % MINS_PER_HOUR;
 					if (min != 0)
 						sprintf(str + strlen(str), "%+03d:%02d", hour, min);
 					else
@@ -923,14 +916,14 @@ EncodeDateTime(struct tm * tm, fsec_t fsec, bool print_tz, int tz, const char *t
 			if (tm->tm_year <= 0)
 				sprintf(str + strlen(str), " BC");
 
-			if (print_tz)
+			if (tzp != NULL && tm->tm_isdst >= 0)
 			{
-				if (tzn)
-					sprintf(str + strlen(str), " %.*s", MAXTZLEN, tzn);
+				if (*tzn != NULL)
+					sprintf(str + strlen(str), " %.*s", MAXTZLEN, *tzn);
 				else
 				{
-					hour = -(tz / SECS_PER_HOUR);
-					min = (abs(tz) / MINS_PER_HOUR) % MINS_PER_HOUR;
+					hour = -(*tzp / SECS_PER_HOUR);
+					min = (abs(*tzp) / MINS_PER_HOUR) % MINS_PER_HOUR;
 					if (min != 0)
 						sprintf(str + strlen(str), "%+03d:%02d", hour, min);
 					else
@@ -982,10 +975,10 @@ EncodeDateTime(struct tm * tm, fsec_t fsec, bool print_tz, int tz, const char *t
 			if (tm->tm_year <= 0)
 				sprintf(str + strlen(str), " BC");
 
-			if (print_tz)
+			if (tzp != NULL && tm->tm_isdst >= 0)
 			{
-				if (tzn)
-					sprintf(str + strlen(str), " %.*s", MAXTZLEN, tzn);
+				if (*tzn != NULL)
+					sprintf(str + strlen(str), " %.*s", MAXTZLEN, *tzn);
 				else
 				{
 					/*
@@ -994,8 +987,8 @@ EncodeDateTime(struct tm * tm, fsec_t fsec, bool print_tz, int tz, const char *t
 					 * avoid formatting something which would be rejected by
 					 * the date/time parser later. - thomas 2001-10-19
 					 */
-					hour = -(tz / SECS_PER_HOUR);
-					min = (abs(tz) / MINS_PER_HOUR) % MINS_PER_HOUR;
+					hour = -(*tzp / SECS_PER_HOUR);
+					min = (abs(*tzp) / MINS_PER_HOUR) % MINS_PER_HOUR;
 					if (min != 0)
 						sprintf(str + strlen(str), " %+03d:%02d", hour, min);
 					else
@@ -2360,7 +2353,7 @@ DecodeDateTime(char **field, int *ftype, int nf,
 						 */
 						tmask = 0;
 
-						/* No preceding date? Then quit... */
+						/* No preceeding date? Then quit... */
 						if ((fmask & DTK_DATE_M) != DTK_DATE_M)
 							return -1;
 

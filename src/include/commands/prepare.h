@@ -4,7 +4,7 @@
  *	  PREPARE, EXECUTE and DEALLOCATE commands, and prepared-stmt storage
  *
  *
- * Copyright (c) 2002-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2011, PostgreSQL Global Development Group
  *
  * src/include/commands/prepare.h
  *
@@ -15,6 +15,7 @@
 
 #include "commands/explain.h"
 #include "utils/plancache.h"
+#include "utils/timestamp.h"
 
 /*
  * The data structure representing a prepared statement.  This is now just
@@ -35,17 +36,23 @@ typedef struct
 
 /* Utility statements PREPARE, EXECUTE, DEALLOCATE, EXPLAIN EXECUTE */
 extern void PrepareQuery(PrepareStmt *stmt, const char *queryString);
-extern void ExecuteQuery(ExecuteStmt *stmt, IntoClause *intoClause,
-			 const char *queryString, ParamListInfo params,
+extern void ExecuteQuery(ExecuteStmt *stmt, const char *queryString,
+			 ParamListInfo params,
 			 DestReceiver *dest, char *completionTag);
 extern void DeallocateQuery(DeallocateStmt *stmt);
-extern void ExplainExecuteQuery(ExecuteStmt *execstmt, IntoClause *into,
-					ExplainState *es,
+extern void ExplainExecuteQuery(ExecuteStmt *execstmt, ExplainState *es,
 					const char *queryString, ParamListInfo params);
 
 /* Low-level access to stored prepared statements */
 extern void StorePreparedStatement(const char *stmt_name,
-					   CachedPlanSource *plansource,
+					   Node *raw_parse_tree,
+					   const char *query_string,
+					   NodeTag	   sourceTag, /* GPDB */
+					   const char *commandTag,
+					   Oid *param_types,
+					   int num_params,
+					   int cursor_options,
+					   List *stmt_list,
 					   bool from_sql);
 extern PreparedStatement *FetchPreparedStatement(const char *stmt_name,
 					   bool throwError);
@@ -53,6 +60,6 @@ extern void DropPreparedStatement(const char *stmt_name, bool showError);
 extern TupleDesc FetchPreparedStatementResultDesc(PreparedStatement *stmt);
 extern List *FetchPreparedStatementTargetList(PreparedStatement *stmt);
 
-extern void DropAllPreparedStatements(void);
+void		DropAllPreparedStatements(void);
 
 #endif   /* PREPARE_H */

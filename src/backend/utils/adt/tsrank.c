@@ -3,7 +3,7 @@
  * tsrank.c
  *		rank tsvector by tsquery
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -15,6 +15,7 @@
 
 #include <math.h>
 
+#include "tsearch/ts_type.h"
 #include "tsearch/ts_utils.h"
 #include "utils/array.h"
 #include "miscadmin.h"
@@ -134,8 +135,8 @@ static int
 compareQueryOperand(const void *a, const void *b, void *arg)
 {
 	char	   *operand = (char *) arg;
-	QueryOperand *qa = (*(QueryOperand *const *) a);
-	QueryOperand *qb = (*(QueryOperand *const *) b);
+	QueryOperand *qa = (*(QueryOperand **) a);
+	QueryOperand *qb = (*(QueryOperand **) b);
 
 	return tsCompareString(operand + qa->distance, qa->length,
 						   operand + qb->distance, qb->length,
@@ -175,7 +176,7 @@ SortAndUniqItems(TSQuery q, int *size)
 	if (*size < 2)
 		return res;
 
-	qsort_arg(res, *size, sizeof(QueryOperand *), compareQueryOperand, (void *) operand);
+	qsort_arg(res, *size, sizeof(QueryOperand **), compareQueryOperand, (void *) operand);
 
 	ptr = res + 1;
 	prevptr = res;
@@ -498,8 +499,8 @@ typedef struct
 static int
 compareDocR(const void *va, const void *vb)
 {
-	const DocRepresentation *a = (const DocRepresentation *) va;
-	const DocRepresentation *b = (const DocRepresentation *) vb;
+	DocRepresentation *a = (DocRepresentation *) va;
+	DocRepresentation *b = (DocRepresentation *) vb;
 
 	if (a->pos == b->pos)
 		return 0;
@@ -603,7 +604,7 @@ Cover(DocRepresentation *doc, int len, QueryRepresentation *qr, Extention *ext)
 	if (ext->p <= ext->q)
 	{
 		/*
-		 * set position for next try to next lexeme after beginning of found
+		 * set position for next try to next lexeme after begining of founded
 		 * cover
 		 */
 		ext->pos = (ptr - doc) + 1;

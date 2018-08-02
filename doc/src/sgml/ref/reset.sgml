@@ -91,7 +91,8 @@ SET <replaceable class="parameter">configuration_parameter</replaceable> TO DEFA
    Set the <varname>timezone</> configuration variable to its default value:
 <screen>
 RESET timezone;
-</screen></para>
+</screen>
+  </para>
  </refsect1>
 
  <refsect1>

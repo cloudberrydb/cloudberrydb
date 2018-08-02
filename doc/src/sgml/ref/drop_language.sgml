@@ -100,7 +100,8 @@ DROP [ PROCEDURAL ] LANGUAGE [ IF EXISTS ] <replaceable class="PARAMETER">name</
 
 <programlisting>
 DROP LANGUAGE plsample;
-</programlisting></para>
+</programlisting>
+  </para>
  </refsect1>
 
  <refsect1>

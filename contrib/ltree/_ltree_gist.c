@@ -9,6 +9,7 @@
 
 #include "access/gist.h"
 #include "access/skey.h"
+#include "utils/array.h"
 #include "crc32.h"
 #include "ltree.h"
 
@@ -280,7 +281,7 @@ typedef struct
 static int
 comparecost(const void *a, const void *b)
 {
-	return ((const SPLITCOST *) a)->cost - ((const SPLITCOST *) b)->cost;
+	return ((SPLITCOST *) a)->cost - ((SPLITCOST *) b)->cost;
 }
 
 Datum

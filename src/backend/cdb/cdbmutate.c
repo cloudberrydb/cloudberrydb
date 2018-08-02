@@ -32,7 +32,6 @@
 #include "utils/syscache.h"
 #include "utils/portal.h"
 #include "optimizer/clauses.h"
-#include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "nodes/makefuncs.h"
 
@@ -105,7 +104,7 @@ static Node *apply_motion_mutator(Node *node, ApplyMotionState *context);
 
 static AttrNumber find_segid_column(List *tlist, Index relid);
 
-static bool replace_shareinput_targetlists_walker(Node *node, PlannerInfo *root, bool fPop);
+static bool replace_shareinput_targetlists_walker(Node *node, PlannerGlobal *glob, bool fPop);
 
 static bool fixup_subplan_walker(Node *node, SubPlanWalkerContext *context);
 
@@ -266,8 +265,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 	switch (query->commandType)
 	{
 		case CMD_SELECT:
-			/* If the query comes from 'CREAT TABLE AS' or 'SELECT INTO' */
-			if (query->isCTAS)
+			if (query->intoClause)
 			{
 				List	   *hashExpr;
 				ListCell   *exp1;
@@ -328,17 +326,17 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 								if (IsA(target->expr, Var))
 								{
 									new_var = copyObject(target->expr);
-									new_var->varno = OUTER_VAR;
+									new_var->varno = OUTER;
 									new_var->varattno = n;
 								}
 
 								/*
 								 * Make a Var that references the target list
-								 * entry at this offset, using OUTER_VAR as the
+								 * entry at this offset, using OUTER as the
 								 * varno
 								 */
 								else
-									new_var = makeVar(OUTER_VAR,
+									new_var = makeVar(OUTER,
 													  n,
 													  exprType((Node *) target->expr),
 													  exprTypmod((Node *) target->expr),
@@ -484,16 +482,14 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 
 				Assert(query->intoPolicy->ptype != POLICYTYPE_ENTRY);
 			}
-			else
-			{
-				if (plan->flow->flotype == FLOW_PARTITIONED ||
-					(plan->flow->flotype == FLOW_SINGLETON &&
-					plan->flow->locustype == CdbLocusType_SegmentGeneral))
+
+			if ((plan->flow->flotype == FLOW_PARTITIONED && !query->intoClause) ||
+				(!query->intoClause &&
+					 	plan->flow->flotype == FLOW_SINGLETON &&
+				 		plan->flow->locustype == CdbLocusType_SegmentGeneral))
 				bringResultToDispatcher = true;
 
-				needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch;
-			}
-
+			needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch && !query->intoClause;
 			break;
 
 		case CMD_INSERT:
@@ -510,9 +506,6 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 			{
 				bringResultToDispatcher = true;
 			}
-			break;
-
-		case CMD_UTILITY:
 			break;
 
 		default:
@@ -1088,7 +1081,7 @@ makeDefaultSegIdxArray(int numSegs)
  * The AttrNumber indexes actually refer to the 1 based index into the
  * target list.
  *
- * The entries have the varno field replaced by references in OUTER_VAR.
+ * The entries have the varno field replaced by references in OUTER.
  * ----------------------------------------------------------------
  */
 List *
@@ -1112,7 +1105,7 @@ getExprListFromTargetList(List *tlist,
 
 		/* After set_plan_references(), make a Var referencing subplan tlist. */
 		if (useExecutorVarFormat)
-			elist = lappend(elist, cdbpullup_make_expr(OUTER_VAR, n, target->expr, false));
+			elist = lappend(elist, cdbpullup_make_expr(OUTER, n, target->expr, false));
 
 		/* Before set_plan_references(), copy the subplan's result expr. */
 		else
@@ -1437,8 +1430,8 @@ copy_junk_attributes(List *src, List **dest, AttrNumber startAttrIdx)
 		Assert(IsA(lfirst(lct), TargetEntry) && IsA(((TargetEntry *) lfirst(lct))->expr, Var));
 
 		var = copyObject(((TargetEntry *) lfirst(lct))->expr);
-		var->varno = OUTER_VAR;
-		var->varnoold = OUTER_VAR;
+		var->varno = OUTER;
+		var->varnoold = OUTER;
 		var->varattno = ((TargetEntry *) lfirst(lct))->resno;
 		var->varoattno = ((TargetEntry *) lfirst(lct))->resno;
 
@@ -1522,7 +1515,7 @@ process_targetlist_for_splitupdate(TupleDesc resultDesc, Index resultRelationsId
 		}
 		else
 		{
-			splitVar = makeVar(OUTER_VAR, attrIdx, exprType((Node *) tle->expr),
+			splitVar = makeVar(OUTER, attrIdx, exprType((Node *) tle->expr),
 							   exprTypmod((Node *) tle->expr), exprCollation((Node *) tle->expr), 0 /* varlevelsup */);
 			splitTargetEntry = makeTargetEntry((Expr *) splitVar, tle->resno, tle->resname, tle->resjunk);
 			*splitUpdateTargetList = lappend(*splitUpdateTargetList, splitTargetEntry);
@@ -1577,7 +1570,7 @@ add_oid_target_entry(PlannerInfo *root, Plan *subplan, Index resultRelationsIdx,
 	Assert(oidIdx < list_length(subplan->targetlist));
 
 	*oidColIdx = list_length(*splitUpdateTargetList) + 1;
-	splitVar = makeVar(OUTER_VAR, oidIdx + 1, OIDOID, -1 /* type mod */, InvalidOid, 0 /* varlevelsup */);
+	splitVar = makeVar(OUTER, oidIdx + 1, OIDOID, -1 /* type mod */, InvalidOid, 0 /* varlevelsup */);
 	splitVar->varnoold = resultRelationsIdx;
 	splitVar->varoattno = ObjectIdAttributeNumber;
 	splitTargetEntry = makeTargetEntry((Expr *) splitVar, *oidColIdx, "oid", true);
@@ -1662,10 +1655,11 @@ make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntr
 	if (resultRelation->rd_rel->relhasoids)
 		hasOids = true;
 
-	find_ctid_attribute_check(subplan->targetlist, &ctidColIdx, resultRelationsIdx);
-	copy_junk_attributes(subplan->targetlist, &splitUpdateTargetList, resultDesc->natts);
 
 	relation_close(resultRelation, NoLock);
+
+	find_ctid_attribute_check(subplan->targetlist, &ctidColIdx, resultRelationsIdx);
+	copy_junk_attributes(subplan->targetlist, &splitUpdateTargetList, resultDesc->natts);
 
 	/* add the TargetEntry of old values to the lower plan node */
 	absentAttrStart = list_length(subplan->targetlist);
@@ -1902,9 +1896,9 @@ cdbmutate_warn_ctid_without_segid(struct PlannerInfo *root, struct RelOptInfo *r
  * Shareinput fix shared_as_id and underlying_share_id of nodes in place.  We do not want to use
  * the ordinary tree walker as it is unnecessary to make copies etc.
  */
-typedef bool (*SHAREINPUT_MUTATOR) (Node *node, PlannerInfo *root, bool fPop);
+typedef bool (*SHAREINPUT_MUTATOR) (Node *node, PlannerGlobal *glob, bool fPop);
 static void
-shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
+shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerGlobal *glob)
 {
 	Plan	   *plan = NULL;
 	bool		recursive_down;
@@ -1921,7 +1915,7 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 		{
 			Node	   *n = lfirst(lc);
 
-			shareinput_walker(f, n, root);
+			shareinput_walker(f, n, glob);
 		}
 		return;
 	}
@@ -1930,7 +1924,7 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 		return;
 
 	plan = (Plan *) node;
-	recursive_down = (*f) (node, root, false);
+	recursive_down = (*f) (node, glob, false);
 
 	if (recursive_down)
 	{
@@ -1940,7 +1934,7 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 			Append	   *app = (Append *) node;
 
 			foreach(cell, app->appendplans)
-				shareinput_walker(f, (Node *) lfirst(cell), root);
+				shareinput_walker(f, (Node *) lfirst(cell), glob);
 		}
 		else if (IsA(node, ModifyTable))
 		{
@@ -1948,62 +1942,16 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 			ModifyTable *mt = (ModifyTable *) node;
 
 			foreach(cell, mt->plans)
-				shareinput_walker(f, (Node *) lfirst(cell), root);
+				shareinput_walker(f, (Node *) lfirst(cell), glob);
 		}
 		else if (IsA(node, SubqueryScan))
 		{
-			SubqueryScan  *subqscan = (SubqueryScan *) node;
-			PlannerGlobal *glob = root->glob;
-			PlannerInfo   *subroot;
-			List	      *save_rtable;
-			RelOptInfo    *rel;
+			SubqueryScan *subqscan = (SubqueryScan *) node;
+			List	   *save_rtable;
 
-			/*
-			 * If glob->finalrtable is not NULL, rtables have been flatten,
-			 * thus we should use glob->finalrtable instead.
-			 */
 			save_rtable = glob->share.curr_rtable;
-			if (root->glob->finalrtable == NULL)
-			{
-				rel = find_base_rel(root, subqscan->scan.scanrelid);
-				Assert(rel->subplan == subqscan->subplan);
-				subroot = rel->subroot;
-				glob->share.curr_rtable = subroot->parse->rtable;
-			}
-			else
-			{
-				subroot = root;
-				glob->share.curr_rtable = glob->finalrtable;
-			}
-			shareinput_walker(f, (Node *) subqscan->subplan, subroot);
-			glob->share.curr_rtable = save_rtable;
-		}
-		else if (IsA(node, TableFunctionScan))
-		{
-			TableFunctionScan  *tfscan = (TableFunctionScan *) node;
-			PlannerGlobal *glob = root->glob;
-			PlannerInfo   *subroot;
-			List	      *save_rtable;
-			RelOptInfo    *rel;
-
-			/*
-			 * If glob->finalrtable is not NULL, rtables have been flatten,
-			 * thus we should use glob->finalrtable instead.
-			 */
-			save_rtable = glob->share.curr_rtable;
-			if (root->glob->finalrtable == NULL)
-			{
-				rel = find_base_rel(root, tfscan->scan.scanrelid);
-				Assert(rel->subplan == tfscan->scan.plan.lefttree);
-				subroot = rel->subroot;
-				glob->share.curr_rtable = subroot->parse->rtable;
-			}
-			else
-			{
-				subroot = root;
-				glob->share.curr_rtable = glob->finalrtable;
-			}
-			shareinput_walker(f, (Node *)  tfscan->scan.plan.lefttree, subroot);
+			glob->share.curr_rtable = subqscan->subrtable;
+			shareinput_walker(f, (Node *) subqscan->subplan, glob);
 			glob->share.curr_rtable = save_rtable;
 		}
 		else if (IsA(node, BitmapAnd))
@@ -2012,7 +1960,7 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 			BitmapAnd  *ba = (BitmapAnd *) node;
 
 			foreach(cell, ba->bitmapplans)
-				shareinput_walker(f, (Node *) lfirst(cell), root);
+				shareinput_walker(f, (Node *) lfirst(cell), glob);
 		}
 		else if (IsA(node, BitmapOr))
 		{
@@ -2020,7 +1968,7 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 			BitmapOr   *bo = (BitmapOr *) node;
 
 			foreach(cell, bo->bitmapplans)
-				shareinput_walker(f, (Node *) lfirst(cell), root);
+				shareinput_walker(f, (Node *) lfirst(cell), glob);
 		}
 		else if (IsA(node, NestLoop))
 		{
@@ -2032,20 +1980,20 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 
 			if (nl->join.prefetch_inner)
 			{
-				shareinput_walker(f, (Node *) plan->righttree, root);
-				shareinput_walker(f, (Node *) plan->lefttree, root);
+				shareinput_walker(f, (Node *) plan->righttree, glob);
+				shareinput_walker(f, (Node *) plan->lefttree, glob);
 			}
 			else
 			{
-				shareinput_walker(f, (Node *) plan->lefttree, root);
-				shareinput_walker(f, (Node *) plan->righttree, root);
+				shareinput_walker(f, (Node *) plan->lefttree, glob);
+				shareinput_walker(f, (Node *) plan->righttree, glob);
 			}
 		}
 		else if (IsA(node, HashJoin))
 		{
 			/* Hash join the hash table is at inner */
-			shareinput_walker(f, (Node *) plan->righttree, root);
-			shareinput_walker(f, (Node *) plan->lefttree, root);
+			shareinput_walker(f, (Node *) plan->righttree, glob);
+			shareinput_walker(f, (Node *) plan->lefttree, glob);
 		}
 		else if (IsA(node, MergeJoin))
 		{
@@ -2053,13 +2001,13 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 
 			if (mj->unique_outer)
 			{
-				shareinput_walker(f, (Node *) plan->lefttree, root);
-				shareinput_walker(f, (Node *) plan->righttree, root);
+				shareinput_walker(f, (Node *) plan->lefttree, glob);
+				shareinput_walker(f, (Node *) plan->righttree, glob);
 			}
 			else
 			{
-				shareinput_walker(f, (Node *) plan->righttree, root);
-				shareinput_walker(f, (Node *) plan->lefttree, root);
+				shareinput_walker(f, (Node *) plan->righttree, glob);
+				shareinput_walker(f, (Node *) plan->lefttree, glob);
 			}
 		}
 		else if (IsA(node, Sequence))
@@ -2069,18 +2017,18 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 
 			foreach(cell, sequence->subplans)
 			{
-				shareinput_walker(f, (Node *) lfirst(cell), root);
+				shareinput_walker(f, (Node *) lfirst(cell), glob);
 			}
 		}
 		else
 		{
-			shareinput_walker(f, (Node *) plan->lefttree, root);
-			shareinput_walker(f, (Node *) plan->righttree, root);
-			shareinput_walker(f, (Node *) plan->initPlan, root);
+			shareinput_walker(f, (Node *) plan->lefttree, glob);
+			shareinput_walker(f, (Node *) plan->righttree, glob);
+			shareinput_walker(f, (Node *) plan->initPlan, glob);
 		}
 	}
 
-	(*f) (node, root, true);
+	(*f) (node, glob, true);
 }
 
 typedef struct
@@ -2194,7 +2142,7 @@ create_shareinput_producer_rte(ApplyShareInputContext *ctxt, int share_id,
 		 * We should've filled in tle->resname in shareinput_save_producer().
 		 * Note that it's too late to call get_tle_name() here, because this
 		 * runs after all the varnos in Vars have already been changed to
-		 * INNER_VAR/OUTER_VAR.
+		 * INNER/OUTER.
 		 */
 		resname = tle->resname;
 		if (!resname)
@@ -2274,9 +2222,8 @@ shareinput_save_producer(ShareInputScan *plan, ApplyShareInputContext *ctxt)
  * are linked together by the same share_id.
  */
 static bool
-shareinput_mutator_dag_to_tree(Node *node, PlannerInfo *root, bool fPop)
+shareinput_mutator_dag_to_tree(Node *node, PlannerGlobal *glob, bool fPop)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
 	Plan	   *plan = (Plan *) node;
 
@@ -2345,12 +2292,10 @@ shareinput_mutator_dag_to_tree(Node *node, PlannerInfo *root, bool fPop)
 }
 
 Plan *
-apply_shareinput_dag_to_tree(PlannerInfo *root, Plan *plan)
+apply_shareinput_dag_to_tree(PlannerGlobal *glob, Plan *plan, List *rtable)
 {
-	PlannerGlobal *glob = root->glob;
-
-	glob->share.curr_rtable = root->parse->rtable;
-	shareinput_walker(shareinput_mutator_dag_to_tree, (Node *) plan, root);
+	glob->share.curr_rtable = rtable;
+	shareinput_walker(shareinput_mutator_dag_to_tree, (Node *) plan, glob);
 	return plan;
 }
 
@@ -2364,9 +2309,8 @@ apply_shareinput_dag_to_tree(PlannerInfo *root, Plan *plan)
  * tree conversion or assign share_ids here.
  */
 static bool
-collect_shareinput_producers_walker(Node *node, PlannerInfo *root, bool fPop)
+collect_shareinput_producers_walker(Node *node, PlannerGlobal *glob, bool fPop)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
 
 	if (fPop)
@@ -2388,12 +2332,10 @@ collect_shareinput_producers_walker(Node *node, PlannerInfo *root, bool fPop)
 }
 
 void
-collect_shareinput_producers(PlannerInfo *root, Plan *plan)
+collect_shareinput_producers(PlannerGlobal *glob, Plan *plan, List *rtable)
 {
-	PlannerGlobal *glob = root->glob;
-
-	glob->share.curr_rtable = glob->finalrtable;
-	shareinput_walker(collect_shareinput_producers_walker, (Node *) plan, root);
+	glob->share.curr_rtable = rtable;
+	shareinput_walker(collect_shareinput_producers_walker, (Node *) plan, glob);
 }
 
 /* Some helper: implements a stack using List. */
@@ -2431,16 +2373,15 @@ shareinput_peekmot(ApplyShareInputContext *ctxt)
  * Vars that point to the CTE instead of the child plan.
  */
 Plan *
-replace_shareinput_targetlists(PlannerInfo *root, Plan *plan)
+replace_shareinput_targetlists(PlannerGlobal *glob, Plan *plan, List *rtable)
 {
-	shareinput_walker(replace_shareinput_targetlists_walker, (Node *) plan, root);
+	shareinput_walker(replace_shareinput_targetlists_walker, (Node *) plan, glob);
 	return plan;
 }
 
 static bool
-replace_shareinput_targetlists_walker(Node *node, PlannerInfo *root, bool fPop)
+replace_shareinput_targetlists_walker(Node *node, PlannerGlobal *glob, bool fPop)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
 
 	if (fPop)
@@ -2560,9 +2501,8 @@ shareinput_find_sharenode(ApplyShareInputContext *ctxt, int share_id, ShareNodeW
  * 2. Build a list a share on QD
  */
 static bool
-shareinput_mutator_xslice_1(Node *node, PlannerInfo *root, bool fPop)
+shareinput_mutator_xslice_1(Node *node, PlannerGlobal *glob, bool fPop)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
 	Plan	   *plan = (Plan *) node;
 
@@ -2618,9 +2558,8 @@ shareinput_mutator_xslice_1(Node *node, PlannerInfo *root, bool fPop)
  * if a 'shared' is cross-slice.
  */
 static bool
-shareinput_mutator_xslice_2(Node *node, PlannerInfo *root, bool fPop)
+shareinput_mutator_xslice_2(Node *node, PlannerGlobal *glob, bool fPop)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
 	Plan	   *plan = (Plan *) node;
 
@@ -2678,9 +2617,8 @@ shareinput_mutator_xslice_2(Node *node, PlannerInfo *root, bool fPop)
  * 	2. Bulid a list of QD slices
  */
 static bool
-shareinput_mutator_xslice_3(Node *node, PlannerInfo *root, bool fPop)
+shareinput_mutator_xslice_3(Node *node, PlannerGlobal *glob, bool fPop)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
 	Plan	   *plan = (Plan *) node;
 
@@ -2744,9 +2682,8 @@ shareinput_mutator_xslice_3(Node *node, PlannerInfo *root, bool fPop)
  * this share must be on QD.  Move them to QD.
  */
 static bool
-shareinput_mutator_xslice_4(Node *node, PlannerInfo *root, bool fPop)
+shareinput_mutator_xslice_4(Node *node, PlannerGlobal *glob, bool fPop)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
 	Plan	   *plan = (Plan *) node;
 	int			motId = shareinput_peekmot(ctxt);
@@ -2783,11 +2720,10 @@ shareinput_mutator_xslice_4(Node *node, PlannerInfo *root, bool fPop)
 }
 
 Plan *
-apply_shareinput_xslice(Plan *plan, PlannerInfo *root)
+apply_shareinput_xslice(Plan *plan, PlannerGlobal *glob)
 {
-	PlannerGlobal *glob = root->glob;
 	ApplyShareInputContext *ctxt = &glob->share;
-	ListCell   *lp, *lr;
+	ListCell   *lp;
 
 	ctxt->motStack = NULL;
 	ctxt->qdShares = NULL;
@@ -2810,42 +2746,38 @@ apply_shareinput_xslice(Plan *plan, PlannerInfo *root)
 	 * walk through all plans and collect all producer subplans into the
 	 * context, before processing the consumers.
 	 */
-	forboth(lp, glob->subplans, lr, glob->subroots)
+	foreach(lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
-		PlannerInfo *subroot =  (PlannerInfo *) lfirst(lr);
 
-		shareinput_walker(shareinput_mutator_xslice_1, (Node *) subplan, subroot);
+		shareinput_walker(shareinput_mutator_xslice_1, (Node *) subplan, glob);
 	}
-	shareinput_walker(shareinput_mutator_xslice_1, (Node *) plan, root);
+	shareinput_walker(shareinput_mutator_xslice_1, (Node *) plan, glob);
 
 	/* Now walk the tree again, and process all the consumers. */
-	forboth(lp, glob->subplans, lr, glob->subroots)
+	foreach(lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
-		PlannerInfo *subroot =  (PlannerInfo *) lfirst(lr);
 
-		shareinput_walker(shareinput_mutator_xslice_2, (Node *) subplan, subroot);
+		shareinput_walker(shareinput_mutator_xslice_2, (Node *) subplan, glob);
 	}
-	shareinput_walker(shareinput_mutator_xslice_2, (Node *) plan, root);
+	shareinput_walker(shareinput_mutator_xslice_2, (Node *) plan, glob);
 
-	forboth(lp, glob->subplans, lr, glob->subroots)
+	foreach(lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
-		PlannerInfo *subroot =  (PlannerInfo *) lfirst(lr);
 
-		shareinput_walker(shareinput_mutator_xslice_3, (Node *) subplan, subroot);
+		shareinput_walker(shareinput_mutator_xslice_3, (Node *) subplan, glob);
 	}
-	shareinput_walker(shareinput_mutator_xslice_3, (Node *) plan, root);
+	shareinput_walker(shareinput_mutator_xslice_3, (Node *) plan, glob);
 
-	forboth(lp, glob->subplans, lr, glob->subroots)
+	foreach(lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
-		PlannerInfo *subroot =  (PlannerInfo *) lfirst(lr);
 
-		shareinput_walker(shareinput_mutator_xslice_4, (Node *) subplan, subroot);
+		shareinput_walker(shareinput_mutator_xslice_4, (Node *) subplan, glob);
 	}
-	shareinput_walker(shareinput_mutator_xslice_4, (Node *) plan, root);
+	shareinput_walker(shareinput_mutator_xslice_4, (Node *) plan, glob);
 
 	return plan;
 }
@@ -3163,12 +3095,11 @@ fixup_subplan_walker(Node *node, SubPlanWalkerContext *context)
 			 * there is more than one subplan node which refer to the same
 			 * plan_id. In this case create a duplicate subplan, append it to
 			 * the glob->subplans and update the plan_id of the subplan to
-			 * refer to the new copy of the subplan node. Note since subroot
-			 * is not used there is no need of new subroot.
+			 * refer to the new copy of the subplan node
 			 */
 			PlannerInfo *root = (PlannerInfo *) context->base.node;
-			Plan	    *dupsubplan = (Plan *) copyObject(planner_subplan_get_plan(root, subplan));
-			int			 newplan_id = list_length(root->glob->subplans) + 1;
+			Plan	   *dupsubplan = (Plan *) copyObject(planner_subplan_get_plan(root, subplan));
+			int			newplan_id = list_length(root->glob->subplans) + 1;
 
 			subplan->plan_id = newplan_id;
 			root->glob->subplans = lappend(root->glob->subplans, dupsubplan);

@@ -1,8 +1,6 @@
 /*
  * contrib/btree_gist/btree_time.c
  */
-#include "postgres.h"
-
 #include "btree_gist.h"
 #include "btree_utils_num.h"
 #include "utils/date.h"
@@ -105,8 +103,8 @@ gbt_timelt(const void *a, const void *b)
 static int
 gbt_timekey_cmp(const void *a, const void *b)
 {
-	timeKEY    *ia = (timeKEY *) (((const Nsrt *) a)->t);
-	timeKEY    *ib = (timeKEY *) (((const Nsrt *) b)->t);
+	timeKEY    *ia = (timeKEY *) (((Nsrt *) a)->t);
+	timeKEY    *ib = (timeKEY *) (((Nsrt *) b)->t);
 	int			res;
 
 	res = DatumGetInt32(DirectFunctionCall2(time_cmp, TimeADTGetDatumFast(ia->lower), TimeADTGetDatumFast(ib->lower)));

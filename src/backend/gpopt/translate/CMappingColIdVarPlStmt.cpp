@@ -168,7 +168,7 @@ CMappingColIdVarPlStmt::PvarFromDXLNodeScId
 		if (NULL != pte)
 		{
 			// identifier comes from left child
-			idxVarno = OUTER_VAR;
+			idxVarno = OUTER;
 		}
 		else
 		{
@@ -187,7 +187,7 @@ CMappingColIdVarPlStmt::PvarFromDXLNodeScId
 
 			pte = pdxltrctxRight->Pte(ulColId);
 
-			idxVarno = INNER_VAR;
+			idxVarno = INNER;
 
 			// check any additional contexts if col is still not found yet
 			for (ULONG ul = 2; NULL == pte && ul < ulContexts; ul++)

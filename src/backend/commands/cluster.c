@@ -8,7 +8,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  *
@@ -19,6 +19,8 @@
  */
 #include "postgres.h"
 
+#include "access/genam.h"
+#include "access/heapam.h"
 #include "access/relscan.h"
 #include "access/rewriteheap.h"
 #include "access/transam.h"
@@ -30,6 +32,7 @@
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
+#include "catalog/indexing.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_appendonly_fn.h"
 #include "catalog/pg_attribute_encoding.h"
@@ -39,12 +42,14 @@
 #include "catalog/toasting.h"
 #include "commands/cluster.h"
 #include "commands/tablecmds.h"
+#include "commands/trigger.h"
 #include "commands/vacuum.h"
 #include "miscadmin.h"
 #include "optimizer/planner.h"
 #include "storage/bufmgr.h"
 #include "storage/lmgr.h"
 #include "storage/predicate.h"
+#include "storage/procarray.h"
 #include "storage/smgr.h"
 #include "utils/acl.h"
 #include "utils/fmgroids.h"
@@ -52,6 +57,7 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/pg_rusage.h"
+#include "utils/relcache.h"
 #include "utils/relmapper.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
@@ -120,12 +126,15 @@ cluster(ClusterStmt *stmt, bool isTopLevel)
 					indexOid = InvalidOid;
 		Relation	rel;
 
-		/* Find, lock, and check permissions on the table */
-		tableOid = RangeVarGetRelidExtended(stmt->relation,
-											AccessExclusiveLock,
-											false, false,
-											RangeVarCallbackOwnsTable, NULL);
-		rel = heap_open(tableOid, NoLock);
+		/* Find and lock the table */
+		rel = heap_openrv(stmt->relation, AccessExclusiveLock);
+
+		tableOid = RelationGetRelid(rel);
+
+		/* Check permissions */
+		if (!pg_class_ownercheck(tableOid, GetUserId()))
+			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_CLASS,
+						   RelationGetRelationName(rel));
 
 		/*
 		 * Reject clustering a remote temp table ... their local buffer
@@ -652,7 +661,8 @@ Oid
 make_new_heap(Oid OIDOldHeap, Oid NewTableSpace,
 			  bool createAoBlockDirectory)
 {
-	TupleDesc	OldHeapDesc;
+	TupleDesc	OldHeapDesc,
+				tupdesc;
 	char		NewHeapName[NAMEDATALEN];
 	Oid			OIDNewHeap;
 	Oid			toastid;
@@ -668,11 +678,13 @@ make_new_heap(Oid OIDOldHeap, Oid NewTableSpace,
 	is_part = !rel_needs_long_lock(OIDOldHeap);
 
 	/*
-	 * Note that the NewHeap will not receive any of the defaults or
-	 * constraints associated with the OldHeap; we don't need 'em, and there's
-	 * no reason to spend cycles inserting them into the catalogs only to
-	 * delete them.
+	 * Need to make a copy of the tuple descriptor, since
+	 * heap_create_with_catalog modifies it.  Note that the NewHeap will not
+	 * receive any of the defaults or constraints associated with the OldHeap;
+	 * we don't need 'em, and there's no reason to spend cycles inserting them
+	 * into the catalogs only to delete them.
 	 */
+	tupdesc = CreateTupleDescCopy(OldHeapDesc);
 
 	/*
 	 * But we do want to use reloptions of the old heap for new heap.
@@ -706,7 +718,7 @@ make_new_heap(Oid OIDOldHeap, Oid NewTableSpace,
 										  InvalidOid,
 										  InvalidOid,
 										  OldHeap->rd_rel->relowner,
-										  OldHeapDesc,
+										  tupdesc,
 										  NIL,
 										  OldHeap->rd_rel->relam,
 										  OldHeap->rd_rel->relkind,
@@ -878,19 +890,12 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex,
 		 * When doing swap by content, any toast pointers written into NewHeap
 		 * must use the old toast table's OID, because that's where the toast
 		 * data will eventually be found.  Set this up by setting rd_toastoid.
-		 * This also tells toast_save_datum() to preserve the toast value
-		 * OIDs, which we want so as not to invalidate toast pointers in
-		 * system catalog caches, and to avoid making multiple copies of a
-		 * single toast value.
-		 *
 		 * Note that we must hold NewHeap open until we are done writing data,
 		 * since the relcache will not guarantee to remember this setting once
 		 * the relation is closed.	Also, this technique depends on the fact
 		 * that no one will try to read from the NewHeap until after we've
 		 * finished writing it and swapping the rels --- otherwise they could
-		 * follow the toast pointers to the wrong place.  (It would actually
-		 * work for values copied over from the old toast table, but not for
-		 * any values that we toast which were previously not toasted.)
+		 * follow the toast pointers to the wrong place.
 		 */
 		NewHeap->rd_toastoid = OldHeap->rd_rel->reltoastrelid;
 	}
@@ -1369,7 +1374,6 @@ swap_relation_files(Oid r1, Oid r2, bool target_is_pg_class,
 	{
 		int4		swap_pages;
 		float4		swap_tuples;
-		int4		swap_allvisible;
 
 		swap_pages = relform1->relpages;
 		relform1->relpages = relform2->relpages;
@@ -1378,10 +1382,6 @@ swap_relation_files(Oid r1, Oid r2, bool target_is_pg_class,
 		swap_tuples = relform1->reltuples;
 		relform1->reltuples = relform2->reltuples;
 		relform2->reltuples = swap_tuples;
-
-		swap_allvisible = relform1->relallvisible;
-		relform1->relallvisible = relform2->relallvisible;
-		relform2->relallvisible = swap_allvisible;
 	}
 
 	/*
@@ -1595,7 +1595,7 @@ finish_heap_swap(Oid OIDOldHeap, Oid OIDNewHeap,
 	 * The new relation is local to our transaction and we know nothing
 	 * depends on it, so DROP_RESTRICT should be OK.
 	 */
-	performDeletion(&object, DROP_RESTRICT, PERFORM_DELETION_INTERNAL);
+	performDeletion(&object, DROP_RESTRICT);
 
 	/* performDeletion does CommandCounterIncrement at end */
 
@@ -1627,24 +1627,28 @@ finish_heap_swap(Oid OIDOldHeap, Oid OIDNewHeap,
 		{
 			Relation	toastrel;
 			Oid			toastidx;
+			Oid			toastnamespace;
 			char		NewToastName[NAMEDATALEN];
 
 			toastrel = relation_open(newrel->rd_rel->reltoastrelid,
 									 AccessShareLock);
 			toastidx = toastrel->rd_rel->reltoastidxid;
+			toastnamespace = toastrel->rd_rel->relnamespace;
 			relation_close(toastrel, AccessShareLock);
 
 			/* rename the toast table ... */
 			snprintf(NewToastName, NAMEDATALEN, "pg_toast_%u",
 					 OIDOldHeap);
 			RenameRelationInternal(newrel->rd_rel->reltoastrelid,
-								   NewToastName);
+								   NewToastName,
+								   toastnamespace);
 
 			/* ... and its index too */
 			snprintf(NewToastName, NAMEDATALEN, "pg_toast_%u_index",
 					 OIDOldHeap);
 			RenameRelationInternal(toastidx,
-								   NewToastName);
+								   NewToastName,
+								   toastnamespace);
 		}
 		relation_close(newrel, NoLock);
 	}

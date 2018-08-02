@@ -17,7 +17,6 @@
 #include "port/atomics.h"
 #include "utils/builtins.h"
 #include "utils/geo_decls.h"
-#include "utils/rel.h"
 
 
 #define P_MAXDIG 12
@@ -630,8 +629,9 @@ ttdummy(PG_FUNCTION_ARGS)
 		if (pplan == NULL)
 			elog(ERROR, "ttdummy (%s): SPI_prepare returned %d", relname, SPI_result);
 
-		if (SPI_keepplan(pplan))
-			elog(ERROR, "ttdummy (%s): SPI_keepplan failed", relname);
+		pplan = SPI_saveplan(pplan);
+		if (pplan == NULL)
+			elog(ERROR, "ttdummy (%s): SPI_saveplan returned %d", relname, SPI_result);
 
 		splan = pplan;
 	}

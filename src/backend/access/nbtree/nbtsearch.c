@@ -4,7 +4,7 @@
  *	  Search code for postgres btrees.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -15,10 +15,12 @@
 
 #include "postgres.h"
 
+#include "access/genam.h"
 #include "access/nbtree.h"
 #include "access/relscan.h"
 #include "miscadmin.h"
 #include "pgstat.h"
+#include "storage/bufmgr.h"
 #include "storage/predicate.h"
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
@@ -26,8 +28,6 @@
 
 static bool _bt_readpage(IndexScanDesc scan, ScanDirection dir,
 			 OffsetNumber offnum);
-static void _bt_saveitem(BTScanOpaque so, int itemIndex,
-			 OffsetNumber offnum, IndexTuple itup);
 static bool _bt_steppage(IndexScanDesc scan, ScanDirection dir);
 static Buffer _bt_walk_left(Relation rel, Buffer buf);
 static bool _bt_endpoint(IndexScanDesc scan, ScanDirection dir);
@@ -64,7 +64,10 @@ _bt_search(Relation rel, int keysz, ScanKey scankey, bool nextkey,
 
 	/* If index is empty and access = BT_READ, no root page is created. */
 	if (!BufferIsValid(*bufP))
+	{
+		PredicateLockRelation(rel);		/* Nothing finer to lock exists. */
 		return (BTStack) NULL;
+	}
 
 	/* Loop iterates once per level descended in the tree */
 	for (;;)
@@ -89,7 +92,11 @@ _bt_search(Relation rel, int keysz, ScanKey scankey, bool nextkey,
 		page = BufferGetPage(*bufP);
 		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 		if (P_ISLEAF(opaque))
+		{
+			if (access == BT_READ)
+				PredicateLockPage(rel, BufferGetBlockNumber(*bufP));
 			break;
+		}
 
 		/*
 		 * Find the appropriate item on the internal page, and get the child
@@ -431,9 +438,8 @@ _bt_compare(Relation rel,
  *		if backwards scan, the last item) in the tree that satisfies the
  *		qualifications in the scan key.  On success exit, the page containing
  *		the current index tuple is pinned but not locked, and data about
- *		the matching tuple(s) on the page has been loaded into so->currPos.
- *		scan->xs_ctup.t_self is set to the heap TID of the current tuple,
- *		and if requested, scan->xs_itup points to a copy of the index tuple.
+ *		the matching tuple(s) on the page has been loaded into so->currPos,
+ *		and scan->xs_ctup.t_self is set to the heap TID of the current tuple.
  *
  * If there are no matching items in the index, we return FALSE, with no
  * pins or locks held.
@@ -456,11 +462,9 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 	bool		goback;
 	ScanKey		startKeys[INDEX_MAX_KEYS];
 	ScanKeyData scankeys[INDEX_MAX_KEYS];
-	ScanKeyData notnullkeys[INDEX_MAX_KEYS];
 	int			keysCount = 0;
 	int			i;
 	StrategyNumber strat_total;
-	BTScanPosItem *currItem;
 
 	pgstat_count_index_scan(rel);
 
@@ -507,14 +511,6 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 	 * one we use --- by definition, they are either redundant or
 	 * contradictory.
 	 *
-	 * Any regular (not SK_SEARCHNULL) key implies a NOT NULL qualifier.
-	 * If the index stores nulls at the end of the index we'll be starting
-	 * from, and we have no boundary key for the column (which means the key
-	 * we deduced NOT NULL from is an inequality key that constrains the other
-	 * end of the index), then we cons up an explicit SK_SEARCHNOTNULL key to
-	 * use as a boundary key.  If we didn't do this, we might find ourselves
-	 * traversing a lot of null entries at the start of the scan.
-	 *
 	 * In this loop, row-comparison keys are treated the same as keys on their
 	 * first (leftmost) columns.  We'll add on lower-order columns of the row
 	 * comparison below, if possible.
@@ -528,7 +524,6 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 	{
 		AttrNumber	curattr;
 		ScanKey		chosen;
-		ScanKey		impliesNN;
 		ScanKey		cur;
 
 		/*
@@ -538,8 +533,6 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 		 */
 		curattr = 1;
 		chosen = NULL;
-		/* Also remember any scankey that implies a NOT NULL constraint */
-		impliesNN = NULL;
 
 		/*
 		 * Loop iterates from 0 to numberOfKeys inclusive; we use the last
@@ -552,32 +545,8 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 			{
 				/*
 				 * Done looking at keys for curattr.  If we didn't find a
-				 * usable boundary key, see if we can deduce a NOT NULL key.
-				 */
-				if (chosen == NULL && impliesNN != NULL &&
-					((impliesNN->sk_flags & SK_BT_NULLS_FIRST) ?
-					 ScanDirectionIsForward(dir) :
-					 ScanDirectionIsBackward(dir)))
-				{
-					/* Yes, so build the key in notnullkeys[keysCount] */
-					chosen = &notnullkeys[keysCount];
-					ScanKeyEntryInitialize(chosen,
-										   (SK_SEARCHNOTNULL | SK_ISNULL |
-											(impliesNN->sk_flags &
-										  (SK_BT_DESC | SK_BT_NULLS_FIRST))),
-										   curattr,
-								 ((impliesNN->sk_flags & SK_BT_NULLS_FIRST) ?
-								  BTGreaterStrategyNumber :
-								  BTLessStrategyNumber),
-										   InvalidOid,
-										   InvalidOid,
-										   InvalidOid,
-										   (Datum) 0);
-				}
-
-				/*
-				 * If we still didn't find a usable boundary key, quit; else
-				 * save the boundary key pointer in startKeys.
+				 * usable boundary key, quit; else save the boundary key
+				 * pointer in startKeys.
 				 */
 				if (chosen == NULL)
 					break;
@@ -610,27 +579,15 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 				 */
 				curattr = cur->sk_attno;
 				chosen = NULL;
-				impliesNN = NULL;
 			}
 
-			/*
-			 * Can we use this key as a starting boundary for this attr?
-			 *
-			 * If not, does it imply a NOT NULL constraint?  (Because
-			 * SK_SEARCHNULL keys are always assigned BTEqualStrategyNumber,
-			 * *any* inequality key works for that; we need not test.)
-			 */
+			/* Can we use this key as a starting boundary for this attr? */
 			switch (cur->sk_strategy)
 			{
 				case BTLessStrategyNumber:
 				case BTLessEqualStrategyNumber:
-					if (chosen == NULL)
-					{
-						if (ScanDirectionIsBackward(dir))
-							chosen = cur;
-						else
-							impliesNN = cur;
-					}
+					if (chosen == NULL && ScanDirectionIsBackward(dir))
+						chosen = cur;
 					break;
 				case BTEqualStrategyNumber:
 					/* override any non-equality choice */
@@ -638,13 +595,8 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 					break;
 				case BTGreaterEqualStrategyNumber:
 				case BTGreaterStrategyNumber:
-					if (chosen == NULL)
-					{
-						if (ScanDirectionIsForward(dir))
-							chosen = cur;
-						else
-							impliesNN = cur;
-					}
+					if (chosen == NULL && ScanDirectionIsForward(dir))
+						chosen = cur;
 					break;
 			}
 		}
@@ -903,16 +855,9 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 
 	if (!BufferIsValid(buf))
 	{
-		/*
-		 * We only get here if the index is completely empty. Lock relation
-		 * because nothing finer to lock exists.
-		 */
-		PredicateLockRelation(rel, scan->xs_snapshot);
+		/* Only get here if index is completely empty */
 		return false;
 	}
-	else
-		PredicateLockPage(rel, BufferGetBlockNumber(buf),
-						  scan->xs_snapshot);
 
 	/* initialize moreLeft/moreRight appropriately for scan direction */
 	if (ScanDirectionIsForward(dir))
@@ -969,10 +914,7 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 	LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
 
 	/* OK, itemIndex says what to return */
-	currItem = &so->currPos.items[so->currPos.itemIndex];
-	scan->xs_ctup.t_self = currItem->heapTid;
-	if (scan->xs_want_itup)
-		scan->xs_itup = (IndexTuple) (so->currTuples + currItem->tupleOffset);
+	scan->xs_ctup.t_self = so->currPos.items[so->currPos.itemIndex].heapTid;
 
 	return true;
 }
@@ -985,8 +927,7 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
  *		previously returned.
  *
  *		On successful exit, scan->xs_ctup.t_self is set to the TID of the
- *		next heap tuple, and if requested, scan->xs_itup points to a copy of
- *		the index tuple.  so->currPos is updated as needed.
+ *		next heap tuple, and so->currPos is updated as needed.
  *
  *		On failure exit (no more tuples), we release pin and set
  *		so->currPos.buf to InvalidBuffer.
@@ -995,7 +936,6 @@ bool
 _bt_next(IndexScanDesc scan, ScanDirection dir)
 {
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
-	BTScanPosItem *currItem;
 
 	/*
 	 * Advance to next tuple on current page; or if there's no more, try to
@@ -1029,10 +969,7 @@ _bt_next(IndexScanDesc scan, ScanDirection dir)
 	}
 
 	/* OK, itemIndex says what to return */
-	currItem = &so->currPos.items[so->currPos.itemIndex];
-	scan->xs_ctup.t_self = currItem->heapTid;
-	if (scan->xs_want_itup)
-		scan->xs_itup = (IndexTuple) (so->currTuples + currItem->tupleOffset);
+	scan->xs_ctup.t_self = so->currPos.items[so->currPos.itemIndex].heapTid;
 
 	return true;
 }
@@ -1061,7 +998,6 @@ _bt_readpage(IndexScanDesc scan, ScanDirection dir, OffsetNumber offnum)
 	OffsetNumber minoff;
 	OffsetNumber maxoff;
 	int			itemIndex;
-	IndexTuple	itup;
 	bool		continuescan;
 
 	/* we must have the buffer pinned and locked */
@@ -1079,9 +1015,6 @@ _bt_readpage(IndexScanDesc scan, ScanDirection dir, OffsetNumber offnum)
 	 */
 	so->currPos.nextPage = opaque->btpo_next;
 
-	/* initialize tuple workspace to empty */
-	so->currPos.nextTupleOffset = 0;
-
 	if (ScanDirectionIsForward(dir))
 	{
 		/* load items[] in ascending order */
@@ -1091,11 +1024,12 @@ _bt_readpage(IndexScanDesc scan, ScanDirection dir, OffsetNumber offnum)
 
 		while (offnum <= maxoff)
 		{
-			itup = _bt_checkkeys(scan, page, offnum, dir, &continuescan);
-			if (itup != NULL)
+			if (_bt_checkkeys(scan, page, offnum, dir, &continuescan))
 			{
 				/* tuple passes all scan key conditions, so remember it */
-				_bt_saveitem(so, itemIndex, offnum, itup);
+				/* _bt_checkkeys put the heap ptr into scan->xs_ctup.t_self */
+				so->currPos.items[itemIndex].heapTid = scan->xs_ctup.t_self;
+				so->currPos.items[itemIndex].indexOffset = offnum;
 				itemIndex++;
 			}
 			if (!continuescan)
@@ -1122,12 +1056,13 @@ _bt_readpage(IndexScanDesc scan, ScanDirection dir, OffsetNumber offnum)
 
 		while (offnum >= minoff)
 		{
-			itup = _bt_checkkeys(scan, page, offnum, dir, &continuescan);
-			if (itup != NULL)
+			if (_bt_checkkeys(scan, page, offnum, dir, &continuescan))
 			{
 				/* tuple passes all scan key conditions, so remember it */
+				/* _bt_checkkeys put the heap ptr into scan->xs_ctup.t_self */
 				itemIndex--;
-				_bt_saveitem(so, itemIndex, offnum, itup);
+				so->currPos.items[itemIndex].heapTid = scan->xs_ctup.t_self;
+				so->currPos.items[itemIndex].indexOffset = offnum;
 			}
 			if (!continuescan)
 			{
@@ -1146,25 +1081,6 @@ _bt_readpage(IndexScanDesc scan, ScanDirection dir, OffsetNumber offnum)
 	}
 
 	return (so->currPos.firstItem <= so->currPos.lastItem);
-}
-
-/* Save an index item into so->currPos.items[itemIndex] */
-static void
-_bt_saveitem(BTScanOpaque so, int itemIndex,
-			 OffsetNumber offnum, IndexTuple itup)
-{
-	BTScanPosItem *currItem = &so->currPos.items[itemIndex];
-
-	currItem->heapTid = itup->t_tid;
-	currItem->indexOffset = offnum;
-	if (so->currTuples)
-	{
-		Size		itupsz = IndexTupleSize(itup);
-
-		currItem->tupleOffset = so->currPos.nextTupleOffset;
-		memcpy(so->currTuples + so->currPos.nextTupleOffset, itup, itupsz);
-		so->currPos.nextTupleOffset += MAXALIGN(itupsz);
-	}
 }
 
 /*
@@ -1205,9 +1121,6 @@ _bt_steppage(IndexScanDesc scan, ScanDirection dir)
 		memcpy(&so->markPos, &so->currPos,
 			   offsetof(BTScanPosData, items[1]) +
 			   so->currPos.lastItem * sizeof(BTScanPosItem));
-		if (so->markTuples)
-			memcpy(so->markTuples, so->currTuples,
-				   so->currPos.nextTupleOffset);
 		so->markPos.itemIndex = so->markItemIndex;
 		so->markItemIndex = -1;
 	}
@@ -1240,7 +1153,7 @@ _bt_steppage(IndexScanDesc scan, ScanDirection dir)
 			opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 			if (!P_IGNORE(opaque))
 			{
-				PredicateLockPage(rel, blkno, scan->xs_snapshot);
+				PredicateLockPage(rel, blkno);
 				/* see if there are any matches on this page */
 				/* note that this will clear moreRight if we can stop */
 				if (_bt_readpage(scan, dir, P_FIRSTDATAKEY(opaque)))
@@ -1288,7 +1201,7 @@ _bt_steppage(IndexScanDesc scan, ScanDirection dir)
 			opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 			if (!P_IGNORE(opaque))
 			{
-				PredicateLockPage(rel, BufferGetBlockNumber(so->currPos.buf), scan->xs_snapshot);
+				PredicateLockPage(rel, BufferGetBlockNumber(so->currPos.buf));
 				/* see if there are any matches on this page */
 				/* note that this will clear moreLeft if we can stop */
 				if (_bt_readpage(scan, dir, PageGetMaxOffsetNumber(page)))
@@ -1450,7 +1363,11 @@ _bt_get_endpoint(Relation rel, uint32 level, bool rightmost)
 		buf = _bt_gettrueroot(rel);
 
 	if (!BufferIsValid(buf))
+	{
+		/* empty index... */
+		PredicateLockRelation(rel);		/* Nothing finer to lock exists. */
 		return InvalidBuffer;
+	}
 
 	page = BufferGetPage(buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
@@ -1517,7 +1434,6 @@ _bt_endpoint(IndexScanDesc scan, ScanDirection dir)
 	Page		page;
 	BTPageOpaque opaque;
 	OffsetNumber start;
-	BTScanPosItem *currItem;
 
 	/*
 	 * Scan down to the leftmost or rightmost leaf page.  This is a simplified
@@ -1528,16 +1444,13 @@ _bt_endpoint(IndexScanDesc scan, ScanDirection dir)
 
 	if (!BufferIsValid(buf))
 	{
-		/*
-		 * Empty index. Lock the whole relation, as nothing finer to lock
-		 * exists.
-		 */
-		PredicateLockRelation(rel, scan->xs_snapshot);
+		/* empty index... */
+		PredicateLockRelation(rel);		/* Nothing finer to lock exists. */
 		so->currPos.buf = InvalidBuffer;
 		return false;
 	}
 
-	PredicateLockPage(rel, BufferGetBlockNumber(buf), scan->xs_snapshot);
+	PredicateLockPage(rel, BufferGetBlockNumber(buf));
 	page = BufferGetPage(buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	Assert(P_ISLEAF(opaque));
@@ -1595,10 +1508,7 @@ _bt_endpoint(IndexScanDesc scan, ScanDirection dir)
 	LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
 
 	/* OK, itemIndex says what to return */
-	currItem = &so->currPos.items[so->currPos.itemIndex];
-	scan->xs_ctup.t_self = currItem->heapTid;
-	if (scan->xs_want_itup)
-		scan->xs_itup = (IndexTuple) (so->currTuples + currItem->tupleOffset);
+	scan->xs_ctup.t_self = so->currPos.items[so->currPos.itemIndex].heapTid;
 
 	return true;
 }

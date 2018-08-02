@@ -47,24 +47,11 @@ rpathdir = $(python_libdir):$(INSTLOC)/ext/python/lib
 
 NAME = plpython$(python_majorversion)
 
-OBJS = \
-	plpy_cursorobject.o \
-	plpy_elog.o \
-	plpy_exec.o \
-	plpy_main.o \
-	plpy_planobject.o \
-	plpy_plpymodule.o \
-	plpy_procedure.o \
-	plpy_resultobject.o \
-	plpy_spi.o \
-	plpy_subxactobject.o \
-	plpy_typeio.o \
-	plpy_util.o
+OBJS = plpython.o
 
-DATA = $(NAME)u.control $(NAME)u--1.0.sql $(NAME)u--unpackaged--1.0.sql
-ifeq ($(python_majorversion),2)
-DATA += plpythonu.control plpythonu--1.0.sql plpythonu--unpackaged--1.0.sql
-endif
+DATA = plpythonu.control plpythonu--1.0.sql plpythonu--unpackaged--1.0.sql \
+       plpython2u.control plpython2u--1.0.sql plpython2u--unpackaged--1.0.sql \
+       plpython3u.control plpython3u--1.0.sql plpython3u--unpackaged--1.0.sql
 
 
 # Python on win32 ships with import libraries only for Microsoft Visual C++,
@@ -119,7 +106,15 @@ PSQLDIR = $(bindir)
 
 include $(top_srcdir)/src/Makefile.shlib
 
+# Force this dependency to be known even without dependency info built:
+plpython.o: spiexceptions.h
+
+spiexceptions.h: $(top_srcdir)/src/backend/utils/errcodes.txt generate-spiexceptions.pl
+	$(PERL) $(srcdir)/generate-spiexceptions.pl $< > $@
+
 all: all-lib
+
+distprep: spiexceptions.h
 
 
 install: all install-lib install-data
@@ -154,26 +149,26 @@ prep3:
 	      -e "s/LANGUAGE plpython2u/LANGUAGE plpython3u/g" \
 	      -e "s/EXTENSION plpythonu/EXTENSION plpython3u/g" \
 	      -e "s/EXTENSION plpython2u/EXTENSION plpython3u/g" \
-	    $$file >`echo $$file | sed 's,^.*\(/[^/][^/]*/[^/][^/]*\)$$,python3\1,'` || exit; \
+	    $$file >`echo $$file | sed 's,$(srcdir),python3,'` || exit; \
 	done
 
 clean3:
 	rm -rf python3/
 
-check: all submake prep3
+check: submake prep3
 	$(pg_regress_check) --inputdir=./python3 --outputdir=./python3 $(REGRESS_OPTS) $(REGRESS)
 
 installcheck: submake prep3
 	$(pg_regress_installcheck) --inputdir=./python3 --outputdir=./python3 $(REGRESS_OPTS) $(REGRESS)
 
 clean: clean3
-else # not Python 3
-check: all submake
+else
+check: submake
 	$(pg_regress_check) $(REGRESS_OPTS) $(REGRESS)
 
 installcheck: submake
 	$(pg_regress_installcheck) $(REGRESS_OPTS) $(REGRESS)
-endif # not Python 3
+endif
 
 .PHONY: submake
 submake:
@@ -186,6 +181,9 @@ ifeq ($(PORTNAME), win32)
 	rm -f python${pytverstr}.def
 endif
 
+maintainer-clean: distclean
+	rm -f spiexceptions.h
+
 else # can't build
 
 all:
@@ -196,16 +194,3 @@ all:
 	 echo ""
 
 endif # can't build
-
-# distprep and maintainer-clean rules should be run even if we can't build.
-
-# Force this dependency to be known even without dependency info built:
-plpy_plpymodule.o: spiexceptions.h
-
-spiexceptions.h: $(top_srcdir)/src/backend/utils/errcodes.txt generate-spiexceptions.pl
-	$(PERL) $(srcdir)/generate-spiexceptions.pl $< > $@
-
-distprep: spiexceptions.h
-
-maintainer-clean: distclean
-	rm -f spiexceptions.h

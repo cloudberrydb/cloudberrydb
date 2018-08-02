@@ -6,7 +6,9 @@
 #include "postgres.h"
 
 #include "access/gist.h"
+#include "access/nbtree.h"
 #include "access/skey.h"
+#include "utils/array.h"
 #include "crc32.h"
 #include "ltree.h"
 
@@ -275,8 +277,8 @@ static int
 treekey_cmp(const void *a, const void *b)
 {
 	return ltree_compare(
-						 ((const RIX *) a)->r,
-						 ((const RIX *) b)->r
+						 ((RIX *) a)->r,
+						 ((RIX *) b)->r
 		);
 }
 

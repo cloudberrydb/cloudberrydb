@@ -169,7 +169,6 @@ CreateAOAuxiliaryTable(
 		aoauxiliary_idxid = index_create(aoauxiliary_rel,
 										 aoauxiliary_idxname,
 										 InvalidOid,
-										 InvalidOid,
 										 indexInfo,
 										 indexColNames,
 										 BTREE_AM_OID,

@@ -171,8 +171,7 @@ __attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
  * va_start(args, x) before calling, and va_end(args) upon return.
  */
 void
-appendPQExpBufferVA(PQExpBuffer str, const char *fmt, va_list args)
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 0)));
+appendPQExpBufferVA(PQExpBuffer str, const char *fmt, va_list args);
 
 /*------------------------
  * appendPQExpBufferStr

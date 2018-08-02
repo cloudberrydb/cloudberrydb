@@ -13,6 +13,7 @@
 
 #include "access/gist.h"
 #include "access/skey.h"
+#include "lib/stringinfo.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
 

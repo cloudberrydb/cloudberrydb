@@ -1,8 +1,5 @@
 /* contrib/pgcrypto/pgcrypto--1.0.sql */
 
--- complain if script is sourced in psql, rather than via CREATE EXTENSION
-\echo Use "CREATE EXTENSION pgcrypto" to load this file. \quit
-
 CREATE FUNCTION digest(text, text)
 RETURNS bytea
 AS 'MODULE_PATHNAME', 'pg_digest'
@@ -61,7 +58,7 @@ LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION gen_random_bytes(int4)
 RETURNS bytea
 AS 'MODULE_PATHNAME', 'pg_random_bytes'
-LANGUAGE C VOLATILE STRICT;
+LANGUAGE 'C' VOLATILE STRICT;
 
 --
 -- pgp_sym_encrypt(data, key)

@@ -577,11 +577,11 @@ ERROR:  could not convert Python object into cstring: Python string representati
 SELECT test_return_text(
     E'1; exec("class Foo:\\n  def __str__(self): return None"); y = Foo()'
 );
-ERROR:  could not create string representation of Python object (plpy_elog.c:106)
+ERROR:  could not create string representation of Python object (plpython.c:4957)
 SELECT * FROM test_return_text(
     E'1; exec("class Foo:\\n  def __str__(self): return None"); y = Foo()'
 );
-ERROR:  could not create string representation of Python object (plpy_elog.c:106)
+ERROR:  could not create string representation of Python object (plpython.c:4957)
 --
 -- Case 4: Return Bytea
 --
@@ -798,15 +798,15 @@ FROM gp_single_row;
 SELECT test_return_bytea(
     E'1; exec("class Foo:\\n  def __str__(self): return None"); y = Foo()'
 );
-ERROR:  could not create bytes representation of Python object (plpy_elog.c:106)
+ERROR:  could not create bytes representation of Python object (plpython.c:4957)
 SELECT * FROM test_return_bytea(
     E'1; exec("class Foo:\\n  def __str__(self): return None"); y = Foo()'
 );
-ERROR:  could not create bytes representation of Python object (plpy_elog.c:106)
+ERROR:  could not create bytes representation of Python object (plpython.c:4957)
 SELECT test_return_bytea(
     E'1; exec("class Foo:\\n  def __str__(self): return None"); y = Foo()'
 ) FROM gp_single_row;
-ERROR:  could not create bytes representation of Python object (plpy_elog.c:106)  (seg0 slice1 127.0.0.1:25432 pid=24014) (plpy_elog.c:106)
+ERROR:  could not create bytes representation of Python object (plpython.c:4957)  (seg0 slice1 192.168.1.64:25432 pid=13796)
 --
 -- Case 5: Return Circle
 --
@@ -980,9 +980,9 @@ SELECT * FROM test_return_array_int('[[1,2,3],[4,5,6]]');
 -- Error conditions
 -- Multi-dimensional array with non-fixed dimension sizes
 SELECT test_return_array_int('[[1,2,3],[1,2]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length 2 while expected 3 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length 2, but 3 was expected
 SELECT * FROM test_return_array_int('[[1,2,3],[1,2]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length 2 while expected 3 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length 2, but 3 was expected
 -- Multi-dimensional array with mix of arrays and atomic elements
 SELECT test_return_array_int('[[1,2,3],[1,[2,3],[4,5]]]');
 ERROR:  invalid input syntax for integer: "[2, 3]"
@@ -990,9 +990,9 @@ SELECT * FROM test_return_array_int('[[1,2,3],[1,[2,3],[4,5]]]');
 ERROR:  invalid input syntax for integer: "[2, 3]"
 -- Multi-dimensional array with missing dimensions
 SELECT test_return_array_int('[[1,2,3],None,[4,5,6]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length -1 while expected 3 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length -1, but 3 was expected
 SELECT * FROM test_return_array_int('[[1,2,3],None,[4,5,6]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length -1 while expected 3 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length -1, but 3 was expected
 --
 -- Case 5: Return array of texts
 --
@@ -1053,19 +1053,19 @@ SELECT * FROM test_return_array_text('[["a","bcd","ef"],[None,"gh","ijklm"]]');
 -- Error conditions
 -- Multi-dimensional array with non-fixed dimension sizes
 SELECT test_return_array_text('[["a","bcd","ef"],[None,"gh","ijklm","ERROR"]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length 4 while expected 3 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length 4, but 3 was expected
 SELECT * FROM test_return_array_text('[["a","bcd","ef"],[None,"gh","ijklm","ERROR"]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length 4 while expected 3 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length 4, but 3 was expected
 -- Multi-dimensional array with mix of arrays and atomic elements
 SELECT test_return_array_text('[[["a"],"b"],["c",["d","e"]]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length 2 while expected 1 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length 2, but 1 was expected
 SELECT * FROM test_return_array_text('[[["a"],"b"],["c",["d","e"]]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length 2 while expected 1 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length 2, but 1 was expected
 -- Multi-dimensional array with missing dimensions
 SELECT test_return_array_text('[["abc","def"],None,["ghij","k"]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length -1 while expected 2 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length -1, but 2 was expected
 SELECT * FROM test_return_array_text('[["abc","def"],None,["ghij","k"]]');
-ERROR:  multidimensional arrays must have array expressions with matching dimensions. PL/Python function return value has sequence length -1 while expected 2 (plpy_elog.c:106)
+ERROR:  wrong length of inner sequence: has length -1, but 2 was expected
 -- ===================================================
 -- TEST 2:  RETURN VALUE TESTING - SETOF scalar values
 -- ===================================================
@@ -1858,14 +1858,14 @@ SELECT * FROM test_return_type_record('True');
 ERROR:  attribute "first" does not exist in Python object
 -- [ERROR] From Python empty string
 SELECT test_return_type_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_type_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python string
 SELECT test_return_type_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_type_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python non-empty list, wrong number of columns
 SELECT test_return_type_record('[False]');
 ERROR:  length of returned sequence did not match number of columns in row
@@ -1889,9 +1889,17 @@ ERROR:  key "first" not found in mapping
 -- Questionable Success conditions
 --  From Python String (one character per column)
 SELECT test_return_type_record('"a4"');
-ERROR:  malformed record literal: "a4"
+ test_return_type_record 
+-------------------------
+ (a,4)
+(1 row)
+
 SELECT * FROM test_return_type_record('"a4"');
-ERROR:  malformed record literal: "a4"
+ first | second 
+-------+--------
+ a     |      4
+(1 row)
+
 -- From Python Dictionary, with extra fields
 SELECT test_return_type_record('{"first": "value", "second": 4, "third": "ignored"}');
  test_return_type_record 
@@ -2048,14 +2056,14 @@ SELECT * FROM test_return_table_record('True');
 ERROR:  attribute "first" does not exist in Python object
 -- [ERROR] From Python empty string
 SELECT test_return_table_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_table_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python string
 SELECT test_return_table_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_table_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python non-empty list, wrong number of columns
 SELECT test_return_table_record('[False]');
 ERROR:  length of returned sequence did not match number of columns in row
@@ -2079,9 +2087,17 @@ ERROR:  key "first" not found in mapping
 -- Questionable Success conditions
 --  From Python String (one character per column)
 SELECT test_return_table_record('"a4"');
-ERROR:  malformed record literal: "a4"
+ test_return_table_record 
+--------------------------
+ (a,4)
+(1 row)
+
 SELECT * FROM test_return_table_record('"a4"');
-ERROR:  malformed record literal: "a4"
+ first | second 
+-------+--------
+ a     |      4
+(1 row)
+
 -- From Python Dictionary, with extra fields
 SELECT test_return_table_record('{"first": "value", "second": 4, "third": "ignored"}');
  test_return_table_record 
@@ -2090,7 +2106,7 @@ SELECT test_return_table_record('{"first": "value", "second": 4, "third": "ignor
 (1 row)
 
 SELECT * FROM test_return_table_record('{"first": "value", "second": 4}, "third": "ignored"}');
-ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpy_elog.c:106)
+ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpython.c:4957)
 -- =====================================================
 -- TEST 4:  RETURN VALUE TESTING - SETOF Compound values
 -- =====================================================
@@ -2110,12 +2126,12 @@ SELECT * FROM test_return_setof_type_record('[]');
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT test_return_setof_type_record('[]')
 FROM gp_single_row;
-ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 192.168.1.64:25432 pid=13796)
 SELECT (test_return_setof_type_record('[]')).*;
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT (test_return_setof_type_record('[]')).*
 FROM gp_single_row;
-ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 192.168.1.64:25432 pid=13796)
 -- From Python List
 SELECT test_return_setof_type_record('[ ("value", 4), {"first": "test", "second": 2} ]');
 ERROR:  invalid input syntax for integer: "{'second': 2, 'first': 'test'}"
@@ -2123,12 +2139,12 @@ SELECT * FROM test_return_setof_type_record('[ None, ("value", 4), {"first": "te
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT test_return_setof_type_record('[ ("value", 4), {"first": "test", "second": 2} ]')
 FROM gp_single_row;
-ERROR:  invalid input syntax for integer: "{'second': 2, 'first': 'test'}"  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  invalid input syntax for integer: "{'second': 2, 'first': 'test'}"  (seg0 slice1 192.168.1.64:25432 pid=13796)
 SELECT (test_return_setof_type_record('[ ("value", 4), {"first": "test", "second": 2} ]')).*;
 ERROR:  invalid input syntax for integer: "{'second': 2, 'first': 'test'}"
 SELECT (test_return_setof_type_record('[ ("value", 4), {"first": "test", "second": 2} ]')).*
 FROM gp_single_row;
-ERROR:  invalid input syntax for integer: "{'second': 2, 'first': 'test'}"  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  invalid input syntax for integer: "{'second': 2, 'first': 'test'}"  (seg0 slice1 192.168.1.64:25432 pid=13796)
 -- Error conditions
 -- [ERROR] From Python None
 SELECT test_return_setof_type_record('None');
@@ -2150,9 +2166,9 @@ SELECT * FROM test_return_setof_type_record('True');
 ERROR:  attribute "first" does not exist in Python object
 -- [ERROR] From Python string
 SELECT test_return_setof_type_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_setof_type_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python List
 SELECT test_return_setof_type_record('("value", 4)');
  test_return_setof_type_record 
@@ -2194,9 +2210,9 @@ ERROR:  length of returned sequence did not match number of columns in row
 -- Questionable Success conditions
 -- From Python empty string
 SELECT test_return_setof_type_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_setof_type_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 -- From Python empty dict
 SELECT test_return_setof_type_record('{}');
 ERROR:  key "first" not found in mapping
@@ -2206,7 +2222,7 @@ ERROR:  key "first" not found in mapping
 SELECT test_return_setof_type_record('[{"first": "value", "second": 4, "third": "ignored"}]');
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_setof_type_record('[{"first": "value", "second": 4}, "third": "ignored"}]');
-ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpy_elog.c:106)
+ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpython.c:4957)
 --
 -- Case 2: From a setof Table Type
 --
@@ -2217,12 +2233,12 @@ SELECT * FROM test_return_setof_table_record('[]');
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT test_return_setof_table_record('[]')
 FROM gp_single_row;
-ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 192.168.1.64:25432 pid=13796)
 SELECT (test_return_setof_table_record('[]')).*;
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT (test_return_setof_table_record('[]')).*
 FROM gp_single_row;
-ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 192.168.1.64:25432 pid=13796)
 -- From Python List
 SELECT test_return_setof_table_record('[ None, ("value", 4), {"first": "test", "second": 2} ]');
 ERROR:  length of returned sequence did not match number of columns in row
@@ -2230,12 +2246,12 @@ SELECT * FROM test_return_setof_table_record('[ None, ("value", 4), {"first": "t
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT test_return_setof_table_record('[ None, ("value", 4), {"first": "test", "second": 2} ]')
 FROM gp_single_row;
-ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 192.168.1.64:25432 pid=13796)
 SELECT (test_return_setof_table_record('[ None, ("value", 4), {"first": "test", "second": 2} ]')).*;
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT (test_return_setof_table_record('[ None, ("value", 4), {"first": "test", "second": 2} ]')).*
 FROM gp_single_row;
-ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 127.0.0.1:25432 pid=24014)
+ERROR:  length of returned sequence did not match number of columns in row  (seg0 slice1 192.168.1.64:25432 pid=13796)
 -- Error conditions
 -- [ERROR] From Python None
 SELECT test_return_setof_table_record('None');
@@ -2257,9 +2273,9 @@ SELECT * FROM test_return_setof_table_record('True');
 ERROR:  attribute "first" does not exist in Python object
 -- [ERROR] From Python string
 SELECT test_return_setof_table_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_setof_table_record('"value"');
-ERROR:  malformed record literal: "value"
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python List
 SELECT test_return_setof_table_record('("value", 4)');
  test_return_setof_table_record 
@@ -2301,9 +2317,9 @@ ERROR:  length of returned sequence did not match number of columns in row
 -- Questionable Success conditions
 -- From Python empty string
 SELECT test_return_setof_table_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_setof_table_record('""');
-ERROR:  malformed record literal: ""
+ERROR:  length of returned sequence did not match number of columns in row
 -- From Python empty dict
 SELECT test_return_setof_table_record('{}');
 ERROR:  key "first" not found in mapping
@@ -2313,7 +2329,7 @@ ERROR:  key "first" not found in mapping
 SELECT test_return_setof_table_record('[{"first": "value", "second": 4, "third": "ignored"}]');
 ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_setof_table_record('[{"first": "value", "second": 4}, "third": "ignored"}]');
-ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpy_elog.c:106)
+ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpython.c:4957)
 -- =====================================================
 -- TEST 5:  RETURN VALUE TESTING - OUT Parameters
 -- =====================================================
@@ -2518,11 +2534,11 @@ ERROR:  could not convert Python object into cstring: Python string representati
 SELECT test_return_out_text(
     E'1; exec("class Foo:\\n  def __str__(self): return None"); y = Foo()'
 );
-ERROR:  could not create string representation of Python object (plpy_elog.c:106)
+ERROR:  could not create string representation of Python object (plpython.c:4957)
 SELECT * FROM test_return_out_text(
     E'1; exec("class Foo:\\n  def __str__(self): return None"); y = Foo()'
 );
-ERROR:  could not create string representation of Python object (plpy_elog.c:106)
+ERROR:  could not create string representation of Python object (plpython.c:4957)
 --
 -- Case 2: RETURNS RECORD
 --
@@ -2666,14 +2682,14 @@ SELECT * FROM test_return_out_record('True');
 ERROR:  attribute "first" does not exist in Python object
 -- [ERROR] From Python empty string
 SELECT test_return_out_record('""');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_out_record('""');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python string
 SELECT test_return_out_record('"value"');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_out_record('"value"');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python non-empty list, wrong number of columns
 SELECT test_return_out_record('[False]');
 ERROR:  length of returned sequence did not match number of columns in row
@@ -2697,9 +2713,17 @@ ERROR:  key "first" not found in mapping
 -- Questionable Success conditions
 --  From Python String (one character per column)
 SELECT test_return_out_record('"a4"');
-ERROR:  input of anonymous composite types is not implemented
+ test_return_out_record 
+------------------------
+ (a,4)
+(1 row)
+
 SELECT * FROM test_return_out_record('"a4"');
-ERROR:  input of anonymous composite types is not implemented
+ first | second 
+-------+--------
+ a     |      4
+(1 row)
+
 -- From Python Dictionary, with extra fields
 SELECT test_return_out_record('{"first": "value", "second": 4, "third": "ignored"}');
  test_return_out_record 
@@ -2922,14 +2946,14 @@ SELECT * FROM test_return_out_setof_record('True');
 ERROR:  returned object cannot be iterated
 -- [ERROR] From Python string
 SELECT test_return_out_setof_record('"value"');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_out_setof_record('"value"');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python List
 SELECT test_return_out_setof_record('("value", 4)');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_out_setof_record('("value", 4)');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python non-empty list, wrong number of columns
 SELECT test_return_out_setof_record('[ [False] ]');
 ERROR:  length of returned sequence did not match number of columns in row
@@ -2985,12 +3009,20 @@ SELECT test_return_out_setof_record('[{"first": "value", "second": 4, "third": "
 (1 row)
 
 SELECT * FROM test_return_out_setof_record('[{"first": "value", "second": 4}, "third": "ignored"}]');
-ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpy_elog.c:106)
+ERROR:  SyntaxError: invalid syntax (<string>, line 1) (plpython.c:4957)
 -- From Python List of String (one character per column)
 SELECT test_return_out_setof_record('["a4"]');
-ERROR:  input of anonymous composite types is not implemented
+ test_return_out_setof_record 
+------------------------------
+ (a,4)
+(1 row)
+
 SELECT * FROM test_return_out_setof_record('["a4"]');
-ERROR:  input of anonymous composite types is not implemented
+ first | second 
+-------+--------
+ a     |      4
+(1 row)
+
 --
 -- Case 5: RETURNS TABLE
 --
@@ -3074,14 +3106,14 @@ SELECT * FROM test_return_table('True');
 ERROR:  returned object cannot be iterated
 -- [ERROR] From Python string
 SELECT test_return_table('"value"');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_table('"value"');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python List
 SELECT test_return_table('("value", 4)');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 SELECT * FROM test_return_table('("value", 4)');
-ERROR:  input of anonymous composite types is not implemented
+ERROR:  length of returned sequence did not match number of columns in row
 -- [ERROR] From Python non-empty list, wrong number of columns
 SELECT test_return_table('[ [False] ]');
 ERROR:  length of returned sequence did not match number of columns in row
@@ -3109,9 +3141,17 @@ SELECT * FROM test_return_table('[ {None: None} ]');
 ERROR:  key "first" not found in mapping
 -- [ERROR] From Python List of String (one character per column)
 SELECT test_return_table('["a4"]');
-ERROR:  input of anonymous composite types is not implemented
+ test_return_table 
+-------------------
+ (a,4)
+(1 row)
+
 SELECT * FROM test_return_table('["a4"]');
-ERROR:  input of anonymous composite types is not implemented
+ first | second 
+-------+--------
+ a     |      4
+(1 row)
+
 -- Questionable Success conditions
 -- From Python empty string
 SELECT test_return_table('""');

@@ -3,7 +3,7 @@
  * tsearch2.c
  *		Backwards-compatibility package for old contrib/tsearch2 API
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -16,6 +16,7 @@
 #include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "commands/trigger.h"
+#include "fmgr.h"
 #include "tsearch/ts_utils.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
@@ -253,8 +254,11 @@ tsa_set_curcfg(PG_FUNCTION_ARGS)
 	name = DatumGetCString(DirectFunctionCall1(regconfigout,
 											   ObjectIdGetDatum(arg0)));
 
-	SetConfigOption("default_text_search_config", name,
-					PGC_USERSET, PGC_S_SESSION);
+	set_config_option("default_text_search_config", name,
+					  PGC_USERSET,
+					  PGC_S_SESSION,
+					  GUC_ACTION_SET,
+					  true);
 
 	PG_RETURN_VOID();
 }
@@ -268,8 +272,11 @@ tsa_set_curcfg_byname(PG_FUNCTION_ARGS)
 
 	name = text_to_cstring(arg0);
 
-	SetConfigOption("default_text_search_config", name,
-					PGC_USERSET, PGC_S_SESSION);
+	set_config_option("default_text_search_config", name,
+					  PGC_USERSET,
+					  PGC_S_SESSION,
+					  GUC_ACTION_SET,
+					  true);
 
 	PG_RETURN_VOID();
 }

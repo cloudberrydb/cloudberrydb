@@ -36,7 +36,6 @@
 #include "utils/hsearch.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/rel.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 
@@ -184,7 +183,7 @@ typedef struct plperl_query_desc
 {
 	char		qname[24];
 	MemoryContext plan_cxt;		/* context holding this struct */
-	SPIPlanPtr	plan;
+	void	   *plan;
 	int			nargs;
 	Oid		   *argtypes;
 	FmgrInfo   *arginfuncs;
@@ -1309,7 +1308,7 @@ plperl_sv_to_datum(SV *sv, Oid typid, int32 typmod,
 			if (!type_is_rowtype(typid))
 				ereport(ERROR,
 						(errcode(ERRCODE_DATATYPE_MISMATCH),
-					errmsg("cannot convert Perl hash to non-composite type %s",
+						 errmsg("cannot convert Perl hash to non-composite type %s",
 								format_type_be(typid))));
 
 			td = lookup_rowtype_tupdesc_noerror(typid, typmod, true);
@@ -1320,7 +1319,7 @@ plperl_sv_to_datum(SV *sv, Oid typid, int32 typmod,
 					get_call_result_type(fcinfo, NULL, &td) != TYPEFUNC_COMPOSITE)
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						errmsg("function returning record called in context "
+							 errmsg("function returning record called in context "
 									"that cannot accept type record")));
 			}
 
@@ -3068,7 +3067,7 @@ plperl_spi_query(char *query)
 
 	PG_TRY();
 	{
-		SPIPlanPtr	plan;
+		void	   *plan;
 		Portal		portal;
 
 		/* Make sure the query is validly encoded */
@@ -3232,7 +3231,7 @@ plperl_spi_cursor_close(char *cursor)
 SV *
 plperl_spi_prepare(char *query, int argc, SV **argv)
 {
-	volatile SPIPlanPtr plan = NULL;
+	void	   *volatile plan = NULL;
 	volatile MemoryContext plan_cxt = NULL;
 	plperl_query_desc *volatile qdesc = NULL;
 	plperl_query_entry *volatile hash_entry = NULL;
@@ -3323,9 +3322,13 @@ plperl_spi_prepare(char *query, int argc, SV **argv)
 		 * Save the plan into permanent memory (right now it's in the
 		 * SPI procCxt, which will go away at function end).
 		 ************************************************************/
-		if (SPI_keepplan(plan))
-			elog(ERROR, "SPI_keepplan() failed");
-		qdesc->plan = plan;
+		qdesc->plan = SPI_saveplan(plan);
+		if (qdesc->plan == NULL)
+			elog(ERROR, "SPI_saveplan() failed: %s",
+				 SPI_result_code_string(SPI_result));
+
+		/* Release the procCxt copy to avoid within-function memory leak */
+		SPI_freeplan(plan);
 
 		/************************************************************
 		 * Insert a hashtable entry for the plan.
@@ -3664,7 +3667,7 @@ plperl_spi_query_prepared(char *query, int argc, SV **argv)
 void
 plperl_spi_freeplan(char *query)
 {
-	SPIPlanPtr	plan;
+	void	   *plan;
 	plperl_query_desc *qdesc;
 	plperl_query_entry *hash_entry;
 

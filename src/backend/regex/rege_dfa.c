@@ -272,35 +272,36 @@ static struct dfa *
 newdfa(struct vars * v,
 	   struct cnfa * cnfa,
 	   struct colormap * cm,
-	   struct smalldfa * sml)	/* preallocated space, may be NULL */
+	   struct smalldfa * small) /* preallocated space, may be NULL */
 {
 	struct dfa *d;
 	size_t		nss = cnfa->nstates * 2;
 	int			wordsper = (cnfa->nstates + UBITS - 1) / UBITS;
-	struct smalldfa *smallwas = sml;
+	struct smalldfa *smallwas = small;
 
 	assert(cnfa != NULL && cnfa->nstates != 0);
 
 	if (nss <= FEWSTATES && cnfa->ncolors <= FEWCOLORS)
 	{
 		assert(wordsper == 1);
-		if (sml == NULL)
+		if (small == NULL)
 		{
-			sml = (struct smalldfa *) MALLOC(sizeof(struct smalldfa));
-			if (sml == NULL)
+			small = (struct smalldfa *) MALLOC(
+											   sizeof(struct smalldfa));
+			if (small == NULL)
 			{
 				ERR(REG_ESPACE);
 				return NULL;
 			}
 		}
-		d = &sml->dfa;
-		d->ssets = sml->ssets;
-		d->statesarea = sml->statesarea;
+		d = &small->dfa;
+		d->ssets = small->ssets;
+		d->statesarea = small->statesarea;
 		d->work = &d->statesarea[nss];
-		d->outsarea = sml->outsarea;
-		d->incarea = sml->incarea;
+		d->outsarea = small->outsarea;
+		d->incarea = small->incarea;
 		d->cptsmalloced = 0;
-		d->mallocarea = (smallwas == NULL) ? (char *) sml : NULL;
+		d->mallocarea = (smallwas == NULL) ? (char *) small : NULL;
 	}
 	else
 	{

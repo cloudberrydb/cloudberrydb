@@ -44,10 +44,10 @@ typedef struct LocalDistribXactData
 
 } LocalDistribXactData;
 
-extern void LocalDistribXact_ChangeState(int pgprocno,
+extern void LocalDistribXact_ChangeState(PGPROC *proc,
 	LocalDistribXactState		newState);
 
-extern char* LocalDistribXact_DisplayString(int pgprocno);
+extern char* LocalDistribXact_DisplayString(PGPROC *proc);
 
 extern bool LocalDistribXactCache_CommittedFind(
 	TransactionId						localXid,

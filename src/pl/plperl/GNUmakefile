@@ -100,7 +100,7 @@ uninstall-data:
 .PHONY: install-data uninstall-data
 
 
-check: all submake
+check: submake
 	$(pg_regress_check) $(REGRESS_OPTS) $(REGRESS)
 
 installcheck: submake

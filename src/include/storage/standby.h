@@ -4,7 +4,7 @@
  *	  Definitions for hot standby mode.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/standby.h
@@ -29,12 +29,13 @@ extern void ShutdownRecoveryTransactionEnvironment(void);
 
 extern void ResolveRecoveryConflictWithSnapshot(TransactionId latestRemovedXid,
 									RelFileNode node);
+extern void ResolveRecoveryConflictWithRemovedTransactionId(void);
 extern void ResolveRecoveryConflictWithTablespace(Oid tsid);
 extern void ResolveRecoveryConflictWithDatabase(Oid dbid);
 
 extern void ResolveRecoveryConflictWithBufferPin(void);
 extern void SendRecoveryConflictWithBufferPin(ProcSignalReason reason);
-extern void CheckRecoveryConflictDeadlock(void);
+extern void CheckRecoveryConflictDeadlock(LWLockId partitionLock);
 
 /*
  * Standby Rmgr (RM_STANDBY_ID)
@@ -47,7 +48,7 @@ extern void StandbyAcquireAccessExclusiveLock(TransactionId xid, Oid dbOid, Oid 
 extern void StandbyReleaseLockTree(TransactionId xid,
 					   int nsubxids, TransactionId *subxids);
 extern void StandbyReleaseAllLocks(void);
-extern void StandbyReleaseOldLocks(int nxids, TransactionId *xids);
+extern void StandbyReleaseOldLocks(TransactionId removeXid);
 
 /*
  * XLOG message types
@@ -110,6 +111,6 @@ typedef RunningTransactionsData *RunningTransactions;
 extern void LogAccessExclusiveLock(Oid dbOid, Oid relOid);
 extern void LogAccessExclusiveLockPrepare(void);
 
-extern void LogStandbySnapshot(TransactionId *nextXid);
+extern void LogStandbySnapshot(TransactionId *oldestActiveXid, TransactionId *nextXid);
 
 #endif   /* STANDBY_H */

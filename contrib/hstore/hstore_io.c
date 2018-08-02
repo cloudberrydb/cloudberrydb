@@ -5,6 +5,8 @@
 
 #include <ctype.h>
 
+#include "access/heapam.h"
+#include "access/htup.h"
 #include "catalog/pg_type.h"
 #include "funcapi.h"
 #include "libpq/pqformat.h"
@@ -74,7 +76,7 @@ get_val(HSParser *state, bool ignoreeq, bool *escaped)
 			}
 			else if (*(state->ptr) == '=' && !ignoreeq)
 			{
-				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at postion %d", *(state->ptr), (int4) (state->ptr - state->begin));
 			}
 			else if (*(state->ptr) == '\\')
 			{
@@ -276,25 +278,24 @@ parse_hstore(HSParser *state)
 static int
 comparePairs(const void *a, const void *b)
 {
-	const Pairs *pa = a;
-	const Pairs *pb = b;
-
-	if (pa->keylen == pb->keylen)
+	if (((Pairs *) a)->keylen == ((Pairs *) b)->keylen)
 	{
-		int			res = memcmp(pa->key, pb->key, pa->keylen);
+		int			res = memcmp(((Pairs *) a)->key,
+								 ((Pairs *) b)->key,
+								 ((Pairs *) a)->keylen);
 
 		if (res)
 			return res;
 
 		/* guarantee that needfree will be later */
-		if (pb->needfree == pa->needfree)
+		if (((Pairs *) b)->needfree == ((Pairs *) a)->needfree)
 			return 0;
-		else if (pa->needfree)
+		else if (((Pairs *) a)->needfree)
 			return 1;
 		else
 			return -1;
 	}
-	return (pa->keylen > pb->keylen) ? 1 : -1;
+	return (((Pairs *) a)->keylen > ((Pairs *) b)->keylen) ? 1 : -1;
 }
 
 /*

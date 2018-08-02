@@ -38,7 +38,7 @@ Datum		xpath_table(PG_FUNCTION_ARGS);
 
 /* exported for use by xslt_proc.c */
 
-PgXmlErrorContext *pgxml_parser_init(PgXmlStrictness strictness);
+void		pgxml_parser_init(void);
 
 /* workspace for pgxml_xpath() */
 
@@ -68,27 +68,18 @@ static void cleanup_workspace(xpath_workspace *workspace);
 
 /*
  * Initialize for xml parsing.
- *
- * As with the underlying pg_xml_init function, calls to this MUST be followed
- * by a PG_TRY block that guarantees that pg_xml_done is called.
  */
-PgXmlErrorContext *
-pgxml_parser_init(PgXmlStrictness strictness)
+void
+pgxml_parser_init(void)
 {
-	PgXmlErrorContext *xmlerrcxt;
-
 	/* Set up error handling (we share the core's error handler) */
-	xmlerrcxt = pg_xml_init(strictness);
-
-	/* Note: we're assuming an elog cannot be thrown by the following calls */
+	pg_xml_init();
 
 	/* Initialize libxml */
 	xmlInitParser();
 
 	xmlSubstituteEntitiesDefault(1);
 	xmlLoadExtDtdDefaultValue = 1;
-
-	return xmlerrcxt;
 }
 
 
@@ -107,33 +98,16 @@ Datum
 xml_is_well_formed(PG_FUNCTION_ARGS)
 {
 	text	   *t = PG_GETARG_TEXT_P(0);		/* document buffer */
-	bool		result = false;
 	int32		docsize = VARSIZE(t) - VARHDRSZ;
 	xmlDocPtr	doctree;
-	PgXmlErrorContext *xmlerrcxt;
 
-	xmlerrcxt = pgxml_parser_init(PG_XML_STRICTNESS_LEGACY);
+	pgxml_parser_init();
 
-	PG_TRY();
-	{
-		doctree = xmlParseMemory((char *) VARDATA(t), docsize);
-
-		result = (doctree != NULL);
-
-		if (doctree != NULL)
-			xmlFreeDoc(doctree);
-	}
-	PG_CATCH();
-	{
-		pg_xml_done(xmlerrcxt, true);
-
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-
-	pg_xml_done(xmlerrcxt, false);
-
-	PG_RETURN_BOOL(result);
+	doctree = xmlParseMemory((char *) VARDATA(t), docsize);
+	if (doctree == NULL)
+		PG_RETURN_BOOL(false);	/* i.e. not well-formed */
+	xmlFreeDoc(doctree);
+	PG_RETURN_BOOL(true);
 }
 
 
@@ -425,52 +399,41 @@ static xmlXPathObjectPtr
 pgxml_xpath(text *document, xmlChar *xpath, xpath_workspace *workspace)
 {
 	int32		docsize = VARSIZE(document) - VARHDRSZ;
-	PgXmlErrorContext *xmlerrcxt;
+	xmlXPathObjectPtr res;
 	xmlXPathCompExprPtr comppath;
 
 	workspace->doctree = NULL;
 	workspace->ctxt = NULL;
 	workspace->res = NULL;
 
-	xmlerrcxt = pgxml_parser_init(PG_XML_STRICTNESS_LEGACY);
+	pgxml_parser_init();
 
-	PG_TRY();
-	{
-		workspace->doctree = xmlParseMemory((char *) VARDATA(document),
-											docsize);
-		if (workspace->doctree != NULL)
-		{
-			workspace->ctxt = xmlXPathNewContext(workspace->doctree);
-			workspace->ctxt->node = xmlDocGetRootElement(workspace->doctree);
+	workspace->doctree = xmlParseMemory((char *) VARDATA(document), docsize);
+	if (workspace->doctree == NULL)
+		return NULL;			/* not well-formed */
 
-			/* compile the path */
-			comppath = xmlXPathCompile(xpath);
-			if (comppath == NULL)
-				xml_ereport(xmlerrcxt, ERROR, ERRCODE_EXTERNAL_ROUTINE_EXCEPTION,
-							"XPath Syntax Error");
+	workspace->ctxt = xmlXPathNewContext(workspace->doctree);
+	workspace->ctxt->node = xmlDocGetRootElement(workspace->doctree);
 
-			/* Now evaluate the path expression. */
-			workspace->res = xmlXPathCompiledEval(comppath, workspace->ctxt);
-
-			xmlXPathFreeCompExpr(comppath);
-		}
-	}
-	PG_CATCH();
+	/* compile the path */
+	comppath = xmlXPathCompile(xpath);
+	if (comppath == NULL)
 	{
 		cleanup_workspace(workspace);
-
-		pg_xml_done(xmlerrcxt, true);
-
-		PG_RE_THROW();
+		xml_ereport(ERROR, ERRCODE_EXTERNAL_ROUTINE_EXCEPTION,
+					"XPath Syntax Error");
 	}
-	PG_END_TRY();
 
-	if (workspace->res == NULL)
+	/* Now evaluate the path expression. */
+	res = xmlXPathCompiledEval(comppath, workspace->ctxt);
+	workspace->res = res;
+
+	xmlXPathFreeCompExpr(comppath);
+
+	if (res == NULL)
 		cleanup_workspace(workspace);
 
-	pg_xml_done(xmlerrcxt, false);
-
-	return workspace->res;
+	return res;
 }
 
 /* Clean up after processing the result of pgxml_xpath() */
@@ -571,8 +534,6 @@ xpath_table(PG_FUNCTION_ARGS)
 								 * document */
 	bool		had_values;		/* To determine end of nodeset results */
 	StringInfoData query_buf;
-	PgXmlErrorContext *xmlerrcxt;
-	volatile xmlDocPtr doctree = NULL;
 
 	/* We only have a valid tuple description in table function mode */
 	if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
@@ -697,146 +658,130 @@ xpath_table(PG_FUNCTION_ARGS)
 	 * Setup the parser.  This should happen after we are done evaluating the
 	 * query, in case it calls functions that set up libxml differently.
 	 */
-	xmlerrcxt = pgxml_parser_init(PG_XML_STRICTNESS_LEGACY);
+	pgxml_parser_init();
 
-	PG_TRY();
+	/* For each row i.e. document returned from SPI */
+	for (i = 0; i < proc; i++)
 	{
-		/* For each row i.e. document returned from SPI */
-		for (i = 0; i < proc; i++)
-		{
-			char	   *pkey;
-			char	   *xmldoc;
-			xmlXPathContextPtr ctxt;
-			xmlXPathObjectPtr res;
-			xmlChar    *resstr;
-			xmlXPathCompExprPtr comppath;
+		char	   *pkey;
+		char	   *xmldoc;
+		xmlDocPtr	doctree;
+		xmlXPathContextPtr ctxt;
+		xmlXPathObjectPtr res;
+		xmlChar    *resstr;
+		xmlXPathCompExprPtr comppath;
 
-			/* Extract the row data as C Strings */
-			spi_tuple = tuptable->vals[i];
-			pkey = SPI_getvalue(spi_tuple, spi_tupdesc, 1);
-			xmldoc = SPI_getvalue(spi_tuple, spi_tupdesc, 2);
+		/* Extract the row data as C Strings */
+		spi_tuple = tuptable->vals[i];
+		pkey = SPI_getvalue(spi_tuple, spi_tupdesc, 1);
+		xmldoc = SPI_getvalue(spi_tuple, spi_tupdesc, 2);
 
-			/*
-			 * Clear the values array, so that not-well-formed documents
-			 * return NULL in all columns.	Note that this also means that
-			 * spare columns will be NULL.
-			 */
-			for (j = 0; j < ret_tupdesc->natts; j++)
-				values[j] = NULL;
+		/*
+		 * Clear the values array, so that not-well-formed documents return
+		 * NULL in all columns.  Note that this also means that spare columns
+		 * will be NULL.
+		 */
+		for (j = 0; j < ret_tupdesc->natts; j++)
+			values[j] = NULL;
 
-			/* Insert primary key */
-			values[0] = pkey;
+		/* Insert primary key */
+		values[0] = pkey;
 
-			/* Parse the document */
-			if (xmldoc)
-				doctree = xmlParseMemory(xmldoc, strlen(xmldoc));
-			else	/* treat NULL as not well-formed */
-				doctree = NULL;
-
-			if (doctree == NULL)
-			{
-				/* not well-formed, so output all-NULL tuple */
-				ret_tuple = BuildTupleFromCStrings(attinmeta, values);
-				tuplestore_puttuple(tupstore, ret_tuple);
-				heap_freetuple(ret_tuple);
-			}
-			else
-			{
-				/* New loop here - we have to deal with nodeset results */
-				rownr = 0;
-
-				do
-				{
-					/* Now evaluate the set of xpaths. */
-					had_values = false;
-					for (j = 0; j < numpaths; j++)
-					{
-						ctxt = xmlXPathNewContext(doctree);
-						ctxt->node = xmlDocGetRootElement(doctree);
-
-						/* compile the path */
-						comppath = xmlXPathCompile(xpaths[j]);
-						if (comppath == NULL)
-							xml_ereport(xmlerrcxt, ERROR,
-										ERRCODE_EXTERNAL_ROUTINE_EXCEPTION,
-										"XPath Syntax Error");
-
-						/* Now evaluate the path expression. */
-						res = xmlXPathCompiledEval(comppath, ctxt);
-						xmlXPathFreeCompExpr(comppath);
-
-						if (res != NULL)
-						{
-							switch (res->type)
-							{
-								case XPATH_NODESET:
-									/* We see if this nodeset has enough nodes */
-									if (res->nodesetval != NULL &&
-										rownr < res->nodesetval->nodeNr)
-									{
-										resstr = xmlXPathCastNodeToString(res->nodesetval->nodeTab[rownr]);
-										had_values = true;
-									}
-									else
-										resstr = NULL;
-
-									break;
-
-								case XPATH_STRING:
-									resstr = xmlStrdup(res->stringval);
-									break;
-
-								default:
-									elog(NOTICE, "unsupported XQuery result: %d", res->type);
-									resstr = xmlStrdup((const xmlChar *) "<unsupported/>");
-							}
-
-							/*
-							 * Insert this into the appropriate column in the
-							 * result tuple.
-							 */
-							values[j + 1] = (char *) resstr;
-						}
-						xmlXPathFreeContext(ctxt);
-					}
-
-					/* Now add the tuple to the output, if there is one. */
-					if (had_values)
-					{
-						ret_tuple = BuildTupleFromCStrings(attinmeta, values);
-						tuplestore_puttuple(tupstore, ret_tuple);
-						heap_freetuple(ret_tuple);
-					}
-
-					rownr++;
-				} while (had_values);
-			}
-
-			if (doctree != NULL)
-				xmlFreeDoc(doctree);
+		/* Parse the document */
+		if (xmldoc)
+			doctree = xmlParseMemory(xmldoc, strlen(xmldoc));
+		else	/* treat NULL as not well-formed */
 			doctree = NULL;
 
-			if (pkey)
-				pfree(pkey);
-			if (xmldoc)
-				pfree(xmldoc);
+		if (doctree == NULL)
+		{
+			/* not well-formed, so output all-NULL tuple */
+			ret_tuple = BuildTupleFromCStrings(attinmeta, values);
+			tuplestore_puttuple(tupstore, ret_tuple);
+			heap_freetuple(ret_tuple);
 		}
-	}
-	PG_CATCH();
-	{
-		if (doctree != NULL)
-			xmlFreeDoc(doctree);
+		else
+		{
+			/* New loop here - we have to deal with nodeset results */
+			rownr = 0;
 
-		pg_xml_done(xmlerrcxt, true);
+			do
+			{
+				/* Now evaluate the set of xpaths. */
+				had_values = false;
+				for (j = 0; j < numpaths; j++)
+				{
+					ctxt = xmlXPathNewContext(doctree);
+					ctxt->node = xmlDocGetRootElement(doctree);
 
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
+					/* compile the path */
+					comppath = xmlXPathCompile(xpaths[j]);
+					if (comppath == NULL)
+					{
+						xmlFreeDoc(doctree);
+						xml_ereport(ERROR, ERRCODE_EXTERNAL_ROUTINE_EXCEPTION,
+									"XPath Syntax Error");
+					}
 
-	if (doctree != NULL)
+					/* Now evaluate the path expression. */
+					res = xmlXPathCompiledEval(comppath, ctxt);
+					xmlXPathFreeCompExpr(comppath);
+
+					if (res != NULL)
+					{
+						switch (res->type)
+						{
+							case XPATH_NODESET:
+								/* We see if this nodeset has enough nodes */
+								if (res->nodesetval != NULL &&
+									rownr < res->nodesetval->nodeNr)
+								{
+									resstr =
+										xmlXPathCastNodeToString(res->nodesetval->nodeTab[rownr]);
+									had_values = true;
+								}
+								else
+									resstr = NULL;
+
+								break;
+
+							case XPATH_STRING:
+								resstr = xmlStrdup(res->stringval);
+								break;
+
+							default:
+								elog(NOTICE, "unsupported XQuery result: %d", res->type);
+								resstr = xmlStrdup((const xmlChar *) "<unsupported/>");
+						}
+
+						/*
+						 * Insert this into the appropriate column in the
+						 * result tuple.
+						 */
+						values[j + 1] = (char *) resstr;
+					}
+					xmlXPathFreeContext(ctxt);
+				}
+
+				/* Now add the tuple to the output, if there is one. */
+				if (had_values)
+				{
+					ret_tuple = BuildTupleFromCStrings(attinmeta, values);
+					tuplestore_puttuple(tupstore, ret_tuple);
+					heap_freetuple(ret_tuple);
+				}
+
+				rownr++;
+			} while (had_values);
+		}
+
 		xmlFreeDoc(doctree);
 
-	pg_xml_done(xmlerrcxt, false);
+		if (pkey)
+			pfree(pkey);
+		if (xmldoc)
+			pfree(xmldoc);
+	}
 
 	tuplestore_donestoring(tupstore);
 

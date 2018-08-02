@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2011, PostgreSQL Global Development Group
  *
  * src/bin/psql/print.c
  */
@@ -44,9 +44,6 @@ volatile bool cancel_pressed = false;
 static char *decimal_point;
 static int	groupdigits;
 static char *thousands_sep;
-
-static char default_footer[100];
-static printTableFooter default_footer_cell = {default_footer, NULL};
 
 /* Line style control structures */
 const printTextFormat pg_asciiformat =
@@ -126,10 +123,8 @@ const printTextFormat pg_utf8format =
 
 /* Local functions */
 static int	strlen_max_width(unsigned char *str, int *target_width, int encoding);
-static void IsPagerNeeded(const printTableContent *cont, const int extra_lines, bool expanded,
+static void IsPagerNeeded(const printTableContent *cont, const int extra_lines,
 			  FILE **fout, bool *is_pager);
-
-static void print_aligned_vertical(const printTableContent *cont, FILE *fout);
 
 
 static void *
@@ -273,44 +268,6 @@ fputnbytes(FILE *f, const char *str, size_t n)
 }
 
 
-static void
-print_separator(struct separator sep, FILE *fout)
-{
-	if (sep.separator_zero)
-		fputc('\000', fout);
-	else if (sep.separator)
-		fputs(sep.separator, fout);
-}
-
-
-/*
- * Return the list of explicitly-requested footers or, when applicable, the
- * default "(xx rows)" footer.	Always omit the default footer when given
- * non-default footers, "\pset footer off", or a specific instruction to that
- * effect from a calling backslash command.  Vertical formats number each row,
- * making the default footer redundant; they do not call this function.
- *
- * The return value may point to static storage; do not keep it across calls.
- */
-static printTableFooter *
-footers_with_default(const printTableContent *cont)
-{
-	if (cont->footers == NULL && cont->opt->default_footer)
-	{
-		unsigned long total_records;
-
-		total_records = cont->opt->prior_records + cont->nrows;
-		snprintf(default_footer, sizeof(default_footer),
-				 ngettext("(%lu row)", "(%lu rows)", total_records),
-				 total_records);
-
-		return &default_footer_cell;
-	}
-	else
-		return cont->footers;
-}
-
-
 /*************************/
 /* Unaligned text		 */
 /*************************/
@@ -319,6 +276,8 @@ footers_with_default(const printTableContent *cont)
 static void
 print_unaligned_text(const printTableContent *cont, FILE *fout)
 {
+	const char *opt_fieldsep = cont->opt->fieldSep;
+	const char *opt_recordsep = cont->opt->recordSep;
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned int i;
 	const char *const * ptr;
@@ -327,14 +286,16 @@ print_unaligned_text(const printTableContent *cont, FILE *fout)
 	if (cancel_pressed)
 		return;
 
+	if (!opt_fieldsep)
+		opt_fieldsep = "";
+	if (!opt_recordsep)
+		opt_recordsep = "";
+
 	if (cont->opt->start_table)
 	{
 		/* print title */
 		if (!opt_tuples_only && cont->title)
-		{
-			fputs(cont->title, fout);
-			print_separator(cont->opt->recordSep, fout);
-		}
+			fprintf(fout, "%s%s", cont->title, opt_recordsep);
 
 		/* print headers */
 		if (!opt_tuples_only)
@@ -342,7 +303,7 @@ print_unaligned_text(const printTableContent *cont, FILE *fout)
 			for (ptr = cont->headers; *ptr; ptr++)
 			{
 				if (ptr != cont->headers)
-					print_separator(cont->opt->fieldSep, fout);
+					fputs(opt_fieldsep, fout);
 				fputs(*ptr, fout);
 			}
 			need_recordsep = true;
@@ -357,7 +318,7 @@ print_unaligned_text(const printTableContent *cont, FILE *fout)
 	{
 		if (need_recordsep)
 		{
-			print_separator(cont->opt->recordSep, fout);
+			fputs(opt_recordsep, fout);
 			need_recordsep = false;
 			if (cancel_pressed)
 				break;
@@ -365,7 +326,7 @@ print_unaligned_text(const printTableContent *cont, FILE *fout)
 		fputs(*ptr, fout);
 
 		if ((i + 1) % cont->ncolumns)
-			print_separator(cont->opt->fieldSep, fout);
+			fputs(opt_fieldsep, fout);
 		else
 			need_recordsep = true;
 	}
@@ -373,36 +334,24 @@ print_unaligned_text(const printTableContent *cont, FILE *fout)
 	/* print footers */
 	if (cont->opt->stop_table)
 	{
-		printTableFooter *footers = footers_with_default(cont);
-
-		if (!opt_tuples_only && footers != NULL && !cancel_pressed)
+		if (!opt_tuples_only && cont->footers != NULL && !cancel_pressed)
 		{
 			printTableFooter *f;
 
-			for (f = footers; f; f = f->next)
+			for (f = cont->footers; f; f = f->next)
 			{
 				if (need_recordsep)
 				{
-					print_separator(cont->opt->recordSep, fout);
+					fputs(opt_recordsep, fout);
 					need_recordsep = false;
 				}
 				fputs(f->data, fout);
 				need_recordsep = true;
 			}
 		}
-
-		/*
-		 * The last record is terminated by a newline, independent of the set
-		 * record separator.  But when the record separator is a zero byte, we
-		 * use that (compatible with find -print0 and xargs).
-		 */
+		/* the last record needs to be concluded with a newline */
 		if (need_recordsep)
-		{
-			if (cont->opt->recordSep.separator_zero)
-				print_separator(cont->opt->recordSep, fout);
-			else
-				fputc('\n', fout);
-		}
+			fputc('\n', fout);
 	}
 }
 
@@ -410,6 +359,8 @@ print_unaligned_text(const printTableContent *cont, FILE *fout)
 static void
 print_unaligned_vertical(const printTableContent *cont, FILE *fout)
 {
+	const char *opt_fieldsep = cont->opt->fieldSep;
+	const char *opt_recordsep = cont->opt->recordSep;
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned int i;
 	const char *const * ptr;
@@ -417,6 +368,11 @@ print_unaligned_vertical(const printTableContent *cont, FILE *fout)
 
 	if (cancel_pressed)
 		return;
+
+	if (!opt_fieldsep)
+		opt_fieldsep = "";
+	if (!opt_recordsep)
+		opt_recordsep = "";
 
 	if (cont->opt->start_table)
 	{
@@ -437,19 +393,19 @@ print_unaligned_vertical(const printTableContent *cont, FILE *fout)
 		if (need_recordsep)
 		{
 			/* record separator is 2 occurrences of recordsep in this mode */
-			print_separator(cont->opt->recordSep, fout);
-			print_separator(cont->opt->recordSep, fout);
+			fputs(opt_recordsep, fout);
+			fputs(opt_recordsep, fout);
 			need_recordsep = false;
 			if (cancel_pressed)
 				break;
 		}
 
 		fputs(cont->headers[i % cont->ncolumns], fout);
-		print_separator(cont->opt->fieldSep, fout);
+		fputs(opt_fieldsep, fout);
 		fputs(*ptr, fout);
 
 		if ((i + 1) % cont->ncolumns)
-			print_separator(cont->opt->recordSep, fout);
+			fputs(opt_recordsep, fout);
 		else
 			need_recordsep = true;
 	}
@@ -461,19 +417,15 @@ print_unaligned_vertical(const printTableContent *cont, FILE *fout)
 		{
 			printTableFooter *f;
 
-			print_separator(cont->opt->recordSep, fout);
+			fputs(opt_recordsep, fout);
 			for (f = cont->footers; f; f = f->next)
 			{
-				print_separator(cont->opt->recordSep, fout);
+				fputs(opt_recordsep, fout);
 				fputs(f->data, fout);
 			}
 		}
 
-		/* see above in print_unaligned_text() */
-		if (cont->opt->recordSep.separator_zero)
-			print_separator(cont->opt->recordSep, fout);
-		else
-			fputc('\n', fout);
+		fputc('\n', fout);
 	}
 }
 
@@ -609,7 +561,7 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 					nl_lines,
 					bytes_required;
 
-		pg_wcssize((const unsigned char *) cont->headers[i], strlen(cont->headers[i]),
+		pg_wcssize((unsigned char *) cont->headers[i], strlen(cont->headers[i]),
 				   encoding, &width, &nl_lines, &bytes_required);
 		if (width > max_width[i])
 			max_width[i] = width;
@@ -633,7 +585,7 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 					nl_lines,
 					bytes_required;
 
-		pg_wcssize((const unsigned char *) *ptr, strlen(*ptr), encoding,
+		pg_wcssize((unsigned char *) *ptr, strlen(*ptr), encoding,
 				   &width, &nl_lines, &bytes_required);
 
 		if (width > max_width[i % col_count])
@@ -763,17 +715,6 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 		}
 	}
 
-	/*
-	 * If in expanded auto mode, we have now calculated the expected width, so
-	 * we can now escape to vertical mode if necessary.
-	 */
-	if (cont->opt->expanded == 2 && output_columns > 0 &&
-		(output_columns < total_header_width || output_columns < width_total))
-	{
-		print_aligned_vertical(cont, fout);
-		goto cleanup;
-	}
-
 	/* If we wrapped beyond the display width, use the pager */
 	if (!is_pager && fout == stdout && output_columns > 0 &&
 		(output_columns < total_header_width || output_columns < width_total))
@@ -792,7 +733,7 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 						nl_lines,
 						bytes_required;
 
-			pg_wcssize((const unsigned char *) *ptr, strlen(*ptr), encoding,
+			pg_wcssize((unsigned char *) *ptr, strlen(*ptr), encoding,
 					   &width, &nl_lines, &bytes_required);
 
 			/*
@@ -817,7 +758,7 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 				extra_row_output_lines = 0;
 			}
 		}
-		IsPagerNeeded(cont, extra_output_lines, false, &fout, &is_pager);
+		IsPagerNeeded(cont, extra_output_lines, &fout, &is_pager);
 	}
 
 	/* time to output */
@@ -829,7 +770,7 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 			int			width,
 						height;
 
-			pg_wcssize((const unsigned char *) cont->title, strlen(cont->title),
+			pg_wcssize((unsigned char *) cont->title, strlen(cont->title),
 					   encoding, &width, &height, NULL);
 			if (width >= width_total)
 				/* Aligned */
@@ -851,7 +792,7 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 									   PRINT_RULE_TOP, format, fout);
 
 			for (i = 0; i < col_count; i++)
-				pg_wcsformat((const unsigned char *) cont->headers[i],
+				pg_wcsformat((unsigned char *) cont->headers[i],
 							 strlen(cont->headers[i]), encoding,
 							 col_lineptrs[i], max_nl_lines[i]);
 
@@ -922,7 +863,7 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 		 */
 		for (j = 0; j < col_count; j++)
 		{
-			pg_wcsformat((const unsigned char *) ptr[j], strlen(ptr[j]), encoding,
+			pg_wcsformat((unsigned char *) ptr[j], strlen(ptr[j]), encoding,
 						 col_lineptrs[j], max_nl_lines[j]);
 			curr_nl_line[j] = 0;
 		}
@@ -1070,25 +1011,22 @@ print_aligned_text(const printTableContent *cont, FILE *fout)
 
 	if (cont->opt->stop_table)
 	{
-		printTableFooter *footers = footers_with_default(cont);
-
 		if (opt_border == 2 && !cancel_pressed)
 			_print_horizontal_line(col_count, width_wrap, opt_border,
 								   PRINT_RULE_BOTTOM, format, fout);
 
 		/* print footers */
-		if (footers && !opt_tuples_only && !cancel_pressed)
+		if (cont->footers && !opt_tuples_only && !cancel_pressed)
 		{
 			printTableFooter *f;
 
-			for (f = footers; f; f = f->next)
+			for (f = cont->footers; f; f = f->next)
 				fprintf(fout, "%s\n", f->data);
 		}
 
 		fputc('\n', fout);
 	}
 
-cleanup:
 	/* clean up */
 	for (i = 0; i < col_count; i++)
 	{
@@ -1188,7 +1126,6 @@ print_aligned_vertical(const printTableContent *cont, FILE *fout)
 				dformatsize = 0;
 	struct lineptr *hlineptr,
 			   *dlineptr;
-	bool		is_pager = false;
 
 	if (cancel_pressed)
 		return;
@@ -1203,13 +1140,6 @@ print_aligned_vertical(const printTableContent *cont, FILE *fout)
 		return;
 	}
 
-	/*
-	 * Deal with the pager here instead of in printTable(), because we could
-	 * get here via print_aligned_text() in expanded auto mode, and so we have
-	 * to recalcuate the pager requirement based on vertical output.
-	 */
-	IsPagerNeeded(cont, 0, true, &fout, &is_pager);
-
 	/* Find the maximum dimensions for the headers */
 	for (i = 0; i < cont->ncolumns; i++)
 	{
@@ -1217,7 +1147,7 @@ print_aligned_vertical(const printTableContent *cont, FILE *fout)
 					height,
 					fs;
 
-		pg_wcssize((const unsigned char *) cont->headers[i], strlen(cont->headers[i]),
+		pg_wcssize((unsigned char *) cont->headers[i], strlen(cont->headers[i]),
 				   encoding, &width, &height, &fs);
 		if (width > hwidth)
 			hwidth = width;
@@ -1234,7 +1164,7 @@ print_aligned_vertical(const printTableContent *cont, FILE *fout)
 					height,
 					fs;
 
-		pg_wcssize((const unsigned char *) *ptr, strlen(*ptr), encoding,
+		pg_wcssize((unsigned char *) *ptr, strlen(*ptr), encoding,
 				   &width, &height, &fs);
 		if (width > dwidth)
 			dwidth = width;
@@ -1290,11 +1220,11 @@ print_aligned_vertical(const printTableContent *cont, FILE *fout)
 		}
 
 		/* Format the header */
-		pg_wcsformat((const unsigned char *) cont->headers[i % cont->ncolumns],
+		pg_wcsformat((unsigned char *) cont->headers[i % cont->ncolumns],
 					 strlen(cont->headers[i % cont->ncolumns]),
 					 encoding, hlineptr, hheight);
 		/* Format the data */
-		pg_wcsformat((const unsigned char *) *ptr, strlen(*ptr), encoding,
+		pg_wcsformat((unsigned char *) *ptr, strlen(*ptr), encoding,
 					 dlineptr, dheight);
 
 		line_count = 0;
@@ -1366,9 +1296,6 @@ print_aligned_vertical(const printTableContent *cont, FILE *fout)
 	free(dlineptr->ptr);
 	free(hlineptr);
 	free(dlineptr);
-
-	if (is_pager)
-		ClosePager(fout);
 }
 
 
@@ -1484,17 +1411,15 @@ print_html_text(const printTableContent *cont, FILE *fout)
 
 	if (cont->opt->stop_table)
 	{
-		printTableFooter *footers = footers_with_default(cont);
-
 		fputs("</table>\n", fout);
 
 		/* print footers */
-		if (!opt_tuples_only && footers != NULL && !cancel_pressed)
+		if (!opt_tuples_only && cont->footers != NULL && !cancel_pressed)
 		{
 			printTableFooter *f;
 
 			fputs("<p>", fout);
-			for (f = footers; f; f = f->next)
+			for (f = cont->footers; f; f = f->next)
 			{
 				html_escaped_print(f->data, fout);
 				fputs("<br />\n", fout);
@@ -1707,19 +1632,17 @@ print_latex_text(const printTableContent *cont, FILE *fout)
 
 	if (cont->opt->stop_table)
 	{
-		printTableFooter *footers = footers_with_default(cont);
-
 		if (opt_border == 2)
 			fputs("\\hline\n", fout);
 
 		fputs("\\end{tabular}\n\n\\noindent ", fout);
 
 		/* print footers */
-		if (footers && !opt_tuples_only && !cancel_pressed)
+		if (cont->footers && !opt_tuples_only && !cancel_pressed)
 		{
 			printTableFooter *f;
 
-			for (f = footers; f; f = f->next)
+			for (f = cont->footers; f; f = f->next)
 			{
 				latex_escaped_print(f->data, fout);
 				fputs(" \\\\\n", fout);
@@ -1912,16 +1835,14 @@ print_troff_ms_text(const printTableContent *cont, FILE *fout)
 
 	if (cont->opt->stop_table)
 	{
-		printTableFooter *footers = footers_with_default(cont);
-
 		fputs(".TE\n.DS L\n", fout);
 
 		/* print footers */
-		if (footers && !opt_tuples_only && !cancel_pressed)
+		if (cont->footers && !opt_tuples_only && !cancel_pressed)
 		{
 			printTableFooter *f;
 
-			for (f = footers; f; f = f->next)
+			for (f = cont->footers; f; f = f->next)
 			{
 				troff_ms_escaped_print(f->data, fout);
 				fputc('\n', fout);
@@ -2165,7 +2086,7 @@ printTableInit(printTableContent *const content, const printTableOpt *opt,
  * column.
  */
 void
-printTableAddHeader(printTableContent *const content, char *header,
+printTableAddHeader(printTableContent *const content, const char *header,
 					const bool translate, const char align)
 {
 #ifndef ENABLE_NLS
@@ -2205,7 +2126,7 @@ printTableAddHeader(printTableContent *const content, char *header,
  * Note: Automatic freeing of translatable strings is not supported.
  */
 void
-printTableAddCell(printTableContent *const content, char *cell,
+printTableAddCell(printTableContent *const content, const char *cell,
 				  const bool translate, const bool mustfree)
 {
 #ifndef ENABLE_NLS
@@ -2345,14 +2266,14 @@ printTableCleanup(printTableContent *const content)
  * Setup pager if required
  */
 static void
-IsPagerNeeded(const printTableContent *cont, const int extra_lines, bool expanded, FILE **fout,
+IsPagerNeeded(const printTableContent *cont, const int extra_lines, FILE **fout,
 			  bool *is_pager)
 {
 	if (*fout == stdout)
 	{
 		int			lines;
 
-		if (expanded)
+		if (cont->opt->expanded)
 			lines = (cont->ncolumns + 1) * cont->nrows;
 		else
 			lines = cont->nrows + 1;
@@ -2390,10 +2311,11 @@ printTable(const printTableContent *cont, FILE *fout, FILE *flog)
 	if (cont->opt->format == PRINT_NOTHING)
 		return;
 
-	/* print_aligned_*() handles the pager themselves */
-	if (cont->opt->format != PRINT_ALIGNED &&
-		cont->opt->format != PRINT_WRAPPED)
-		IsPagerNeeded(cont, 0, (cont->opt->expanded == 1), &fout, &is_pager);
+	/* print_aligned_text() handles the pager itself */
+	if ((cont->opt->format != PRINT_ALIGNED &&
+		 cont->opt->format != PRINT_WRAPPED) ||
+		cont->opt->expanded)
+		IsPagerNeeded(cont, 0, &fout, &is_pager);
 
 	/* print the stuff */
 
@@ -2403,32 +2325,32 @@ printTable(const printTableContent *cont, FILE *fout, FILE *flog)
 	switch (cont->opt->format)
 	{
 		case PRINT_UNALIGNED:
-			if (cont->opt->expanded == 1)
+			if (cont->opt->expanded)
 				print_unaligned_vertical(cont, fout);
 			else
 				print_unaligned_text(cont, fout);
 			break;
 		case PRINT_ALIGNED:
 		case PRINT_WRAPPED:
-			if (cont->opt->expanded == 1)
+			if (cont->opt->expanded)
 				print_aligned_vertical(cont, fout);
 			else
 				print_aligned_text(cont, fout);
 			break;
 		case PRINT_HTML:
-			if (cont->opt->expanded == 1)
+			if (cont->opt->expanded)
 				print_html_vertical(cont, fout);
 			else
 				print_html_text(cont, fout);
 			break;
 		case PRINT_LATEX:
-			if (cont->opt->expanded == 1)
+			if (cont->opt->expanded)
 				print_latex_vertical(cont, fout);
 			else
 				print_latex_text(cont, fout);
 			break;
 		case PRINT_TROFF_MS:
-			if (cont->opt->expanded == 1)
+			if (cont->opt->expanded)
 				print_troff_ms_vertical(cont, fout);
 			else
 				print_troff_ms_text(cont, fout);
@@ -2523,6 +2445,18 @@ printQuery(const PGresult *result, const printQueryOpt *opt, FILE *fout, FILE *f
 
 		for (footer = opt->footers; *footer; footer++)
 			printTableAddFooter(&cont, *footer);
+	}
+	else if (!opt->topt.expanded && opt->default_footer)
+	{
+		unsigned long total_records;
+		char		default_footer[100];
+
+		total_records = opt->topt.prior_records + cont.nrows;
+		snprintf(default_footer, sizeof(default_footer),
+				 ngettext("(%lu row)", "(%lu rows)", total_records),
+				 total_records);
+
+		printTableAddFooter(&cont, default_footer);
 	}
 
 	printTable(&cont, fout, flog);

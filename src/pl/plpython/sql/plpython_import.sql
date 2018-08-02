@@ -4,7 +4,8 @@ CREATE FUNCTION import_fail() returns text
     AS
 'try:
 	import foosocket
-except ImportError:
+except Exception, ex:
+	plpy.notice("import socket failed -- %s" % str(ex))
 	return "failed as expected"
 return "succeeded, that wasn''t supposed to happen"'
     LANGUAGE plpythonu;

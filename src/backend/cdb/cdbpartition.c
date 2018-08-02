@@ -1629,7 +1629,7 @@ add_part_to_catalog(Oid relid, PartitionBy *pby,
 	/*
 	 * Get the partitioned table relid.
 	 */
-	rootrelid = RangeVarGetRelid(pby->parentRel, NoLock, false);
+	rootrelid = RangeVarGetRelid(pby->parentRel, false);
 	paroid = get_part_oid(rootrelid, pby->partDepth,
 						  bTemplate_Only /* = false */ );
 
@@ -6553,14 +6553,14 @@ atpxPartAddList(Relation rel,
 								RelationGetRelationName(par_rel), -1);
 
 	/*
-	 * in analyze.c, fill in tableelts with a list of TableLikeClause of the
-	 * partition parent table, and fill in TableLikeClauses with copy of rangevar
+	 * in analyze.c, fill in tableelts with a list of inhrelation of the
+	 * partition parent table, and fill in inhrelations with copy of rangevar
 	 * for parent table
 	 */
-	TableLikeClause *tlc = makeNode(TableLikeClause);
+	InhRelation *inh = makeNode(InhRelation);
 
-	tlc->relation = copyObject(ct->relation);
-	tlc->options = CREATE_TABLE_LIKE_DEFAULTS
+	inh->relation = copyObject(ct->relation);
+	inh->options = CREATE_TABLE_LIKE_DEFAULTS
 		| CREATE_TABLE_LIKE_CONSTRAINTS
 		| CREATE_TABLE_LIKE_INDEXES;
 
@@ -6568,7 +6568,7 @@ atpxPartAddList(Relation rel,
 	 * fill in remaining fields from parse time (gram.y): the new partition is
 	 * LIKE the parent and it inherits from it
 	 */
-	ct->tableElts = lappend(ct->tableElts, tlc);
+	ct->tableElts = lappend(ct->tableElts, inh);
 	ct->constraints = NIL;
 
 	if (pelem->storeAttr)
@@ -6842,7 +6842,7 @@ atpxPartAddList(Relation rel,
 			{
 				CreateStmt *t = (CreateStmt *) s;
 
-				skipTableRelid = RangeVarGetRelid(t->relation, NoLock, true);
+				skipTableRelid = RangeVarGetRelid(t->relation, true);
 			}
 		}
 
@@ -6859,7 +6859,7 @@ atpxPartAddList(Relation rel,
 			if (IsA(q, IndexStmt))
 			{
 				IndexStmt  *istmt = (IndexStmt *) q;
-				Oid			idxRelid = RangeVarGetRelid(istmt->relation, NoLock, true);
+				Oid			idxRelid = RangeVarGetRelid(istmt->relation, true);
 
 				if (idxRelid == RelationGetRelid(rel))
 					continue;
@@ -8428,8 +8428,7 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 									  conbin,
 									  consrc,
 									  con->conislocal,
-									  con->coninhcount,
-									  false);
+									  con->coninhcount);
 				break;
 			}
 
@@ -8482,8 +8481,7 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 									  NULL,
 									  NULL,
 									  con->conislocal,
-									  con->coninhcount,
-									  true);
+									  con->coninhcount);
 
 				heap_close(frel, AccessExclusiveLock);
 				break;
@@ -8710,7 +8708,7 @@ fixCreateStmtForPartitionedTable(CreateStmt *stmt)
 					}
 					break;
 				}
-			case T_TableLikeClause:
+			case T_InhRelation:
 				{
 					break;
 				}

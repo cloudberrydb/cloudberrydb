@@ -5,6 +5,7 @@
 
 #include <limits.h>
 
+#include "fmgr.h"
 #include "access/skey.h"
 #include "utils/builtins.h"
 #include "utils/bytea.h"

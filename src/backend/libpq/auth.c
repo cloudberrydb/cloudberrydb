@@ -3,7 +3,7 @@
  * auth.c
  *	  Routines to handle network authentication
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -164,7 +164,7 @@ static int	pg_krb5_recvauth(Port *port);
 #include <com_err.h>
 #endif
 /*
- * Various krb5 state which is not connection specific, and a flag to
+ * Various krb5 state which is not connection specfic, and a flag to
  * indicate whether we have initialised it yet.
  */
 static int	pg_krb5_initialised;
@@ -456,11 +456,15 @@ ClientAuthentication(Port *port)
 
 	/*
 	 * Get the authentication method to use for this frontend/database
-	 * combination.  Note: we do not parse the file at this point; this has
-	 * already been done elsewhere.  hba.c dropped an error message into the
-	 * server logfile if parsing the hba config file failed.
+	 * combination.  Note: a failure return indicates a problem with the hba
+	 * config file, not with the request.  hba.c should have dropped an error
+	 * message into the postmaster logfile if it failed.
 	 */
-	hba_getauthmethod(port);
+	if (hba_getauthmethod(port) != STATUS_OK)
+		ereport(FATAL,
+				(errcode(ERRCODE_CONFIG_FILE_ERROR),
+				 errmsg("missing or erroneous pg_hba.conf file"),
+				 errhint("See server log for details.")));
 
 	/*
 	 * Enable immediate response to SIGTERM/SIGINT/timeout interrupts. (We
@@ -582,17 +586,6 @@ ClientAuthentication(Port *port)
 								   NULL, 0,
 								   NI_NUMERICHOST);
 
-#define HOSTNAME_LOOKUP_DETAIL(port) \
-				(port->remote_hostname				  \
-				 ? (port->remote_hostname_resolv == +1					\
-					? errdetail_log("Client IP address resolved to \"%s\", forward lookup matches.", port->remote_hostname) \
-					: (port->remote_hostname_resolv == 0				\
-					   ? errdetail_log("Client IP address resolved to \"%s\", forward lookup not checked.", port->remote_hostname) \
-					   : (port->remote_hostname_resolv == -1			\
-						  ? errdetail_log("Client IP address resolved to \"%s\", forward lookup does not match.", port->remote_hostname) \
-						  : 0)))										\
-				 : 0)
-
 				if (am_walsender)
 				{
 #ifdef USE_SSL
@@ -600,14 +593,12 @@ ClientAuthentication(Port *port)
 					   (errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
 						errmsg("no pg_hba.conf entry for replication connection from host \"%s\", user \"%s\", %s",
 							   hostinfo, port->user_name,
-							   port->ssl ? _("SSL on") : _("SSL off")),
-						HOSTNAME_LOOKUP_DETAIL(port)));
+							   port->ssl ? _("SSL on") : _("SSL off"))));
 #else
 					ereport(FATAL,
 					   (errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
 						errmsg("no pg_hba.conf entry for replication connection from host \"%s\", user \"%s\"",
-							   hostinfo, port->user_name),
-						HOSTNAME_LOOKUP_DETAIL(port)));
+							   hostinfo, port->user_name)));
 #endif
 				}
 				else
@@ -618,15 +609,13 @@ ClientAuthentication(Port *port)
 						errmsg("no pg_hba.conf entry for host \"%s\", user \"%s\", database \"%s\", %s",
 							   hostinfo, port->user_name,
 							   port->database_name,
-							   port->ssl ? _("SSL on") : _("SSL off")),
-						HOSTNAME_LOOKUP_DETAIL(port)));
+							   port->ssl ? _("SSL on") : _("SSL off"))));
 #else
 					ereport(FATAL,
 					   (errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
 						errmsg("no pg_hba.conf entry for host \"%s\", user \"%s\", database \"%s\"",
 							   hostinfo, port->user_name,
-							   port->database_name),
-						HOSTNAME_LOOKUP_DETAIL(port)));
+							   port->database_name)));
 #endif
 				}
 				break;
@@ -1133,7 +1122,7 @@ pg_GSS_error(int severity, char *errmsg, OM_uint32 maj_stat, OM_uint32 min_stat)
 	 */
 	ereport(severity,
 			(errmsg_internal("%s", errmsg),
-			 errdetail_internal("%s: %s", msg_major, msg_minor)));
+			 errdetail("%s: %s", msg_major, msg_minor)));
 }
 
 /* Check to see if the password of a user is valid 
@@ -1433,11 +1422,11 @@ pg_SSPI_error(int severity, const char *errmsg, SECURITY_STATUS r)
 					  sysmsg, sizeof(sysmsg), NULL) == 0)
 		ereport(severity,
 				(errmsg_internal("%s", errmsg),
-				 errdetail_internal("SSPI error %x", (unsigned int) r)));
+				 errdetail("SSPI error %x", (unsigned int) r)));
 	else
 		ereport(severity,
 				(errmsg_internal("%s", errmsg),
-				 errdetail_internal("%s (%x)", sysmsg, (unsigned int) r)));
+				 errdetail("%s (%x)", sysmsg, (unsigned int) r)));
 }
 
 static int
@@ -1584,21 +1573,15 @@ pg_SSPI_recvauth(Port *port)
 						  _("could not accept SSPI security context"), r);
 		}
 
-		/*
-		 * Overwrite the current context with the one we just received. If
-		 * sspictx is NULL it was the first loop and we need to allocate a
-		 * buffer for it. On subsequent runs, we can just overwrite the buffer
-		 * contents since the size does not change.
-		 */
 		if (sspictx == NULL)
 		{
 			sspictx = malloc(sizeof(CtxtHandle));
 			if (sspictx == NULL)
 				ereport(ERROR,
 						(errmsg("out of memory")));
-		}
 
-		memcpy(sspictx, &newctx, sizeof(CtxtHandle));
+			memcpy(sspictx, &newctx, sizeof(CtxtHandle));
+		}
 
 		if (r == SEC_I_CONTINUE_NEEDED)
 			elog(DEBUG4, "SSPI continue needed");
@@ -1625,8 +1608,8 @@ pg_SSPI_recvauth(Port *port)
 	secur32 = LoadLibrary("SECUR32.DLL");
 	if (secur32 == NULL)
 		ereport(ERROR,
-				(errmsg_internal("could not load secur32.dll: error code %lu",
-								 GetLastError())));
+				(errmsg_internal("could not load secur32.dll: %d",
+								 (int) GetLastError())));
 
 	_QuerySecurityContextToken = (QUERY_SECURITY_CONTEXT_TOKEN_FN)
 		GetProcAddress(secur32, "QuerySecurityContextToken");
@@ -1634,8 +1617,8 @@ pg_SSPI_recvauth(Port *port)
 	{
 		FreeLibrary(secur32);
 		ereport(ERROR,
-				(errmsg_internal("could not locate QuerySecurityContextToken in secur32.dll: error code %lu",
-								 GetLastError())));
+				(errmsg_internal("could not locate QuerySecurityContextToken in secur32.dll: %d",
+								 (int) GetLastError())));
 	}
 
 	r = (_QuerySecurityContextToken) (sspictx, &token);
@@ -1657,8 +1640,8 @@ pg_SSPI_recvauth(Port *port)
 
 	if (!GetTokenInformation(token, TokenUser, NULL, 0, &retlen) && GetLastError() != 122)
 		ereport(ERROR,
-			(errmsg_internal("could not get token user size: error code %lu",
-							 GetLastError())));
+			 (errmsg_internal("could not get token user size: error code %d",
+							  (int) GetLastError())));
 
 	tokenuser = malloc(retlen);
 	if (tokenuser == NULL)
@@ -1667,14 +1650,14 @@ pg_SSPI_recvauth(Port *port)
 
 	if (!GetTokenInformation(token, TokenUser, tokenuser, retlen, &retlen))
 		ereport(ERROR,
-				(errmsg_internal("could not get user token: error code %lu",
-								 GetLastError())));
+				(errmsg_internal("could not get user token: error code %d",
+								 (int) GetLastError())));
 
 	if (!LookupAccountSid(NULL, tokenuser->User.Sid, accountname, &accountnamesize,
 						  domainname, &domainnamesize, &accountnameuse))
 		ereport(ERROR,
-			(errmsg_internal("could not look up account SID: error code %lu",
-							 GetLastError())));
+			  (errmsg_internal("could not lookup acconut sid: error code %d",
+							   (int) GetLastError())));
 
 	free(tokenuser);
 
@@ -1684,7 +1667,7 @@ pg_SSPI_recvauth(Port *port)
 	 */
 	if (port->hba->krb_realm && strlen(port->hba->krb_realm))
 	{
-		if (pg_strcasecmp(port->hba->krb_realm, domainname) != 0)
+		if (pg_strcasecmp(port->hba->krb_realm, domainname))
 		{
 			elog(DEBUG2,
 				 "SSPI domain (%s) and configured domain (%s) don't match",
@@ -2660,7 +2643,7 @@ radius_add_attribute(radius_packet *packet, uint8 type, const unsigned char *dat
 		 * fail.
 		 */
 		elog(WARNING,
-			 "Adding attribute code %d with length %d to radius packet would create oversize packet, ignoring",
+			 "Adding attribute code %i with length %i to radius packet would create oversize packet, ignoring",
 			 type, len);
 		return;
 
@@ -2937,11 +2920,11 @@ CheckRADIUSAuth(Port *port)
 		{
 #ifdef HAVE_IPV6
 			ereport(LOG,
-				  (errmsg("RADIUS response was sent from incorrect port: %d",
+				  (errmsg("RADIUS response was sent from incorrect port: %i",
 						  ntohs(remoteaddr.sin6_port))));
 #else
 			ereport(LOG,
-				  (errmsg("RADIUS response was sent from incorrect port: %d",
+				  (errmsg("RADIUS response was sent from incorrect port: %i",
 						  ntohs(remoteaddr.sin_port))));
 #endif
 			continue;
@@ -2950,14 +2933,14 @@ CheckRADIUSAuth(Port *port)
 		if (packetlength < RADIUS_HEADER_LENGTH)
 		{
 			ereport(LOG,
-					(errmsg("RADIUS response too short: %d", packetlength)));
+					(errmsg("RADIUS response too short: %i", packetlength)));
 			continue;
 		}
 
 		if (packetlength != ntohs(receivepacket->length))
 		{
 			ereport(LOG,
-					(errmsg("RADIUS response has corrupt length: %d (actual length %d)",
+					(errmsg("RADIUS response has corrupt length: %i (actual length %i)",
 							ntohs(receivepacket->length), packetlength)));
 			continue;
 		}
@@ -2965,7 +2948,7 @@ CheckRADIUSAuth(Port *port)
 		if (packet->id != receivepacket->id)
 		{
 			ereport(LOG,
-					(errmsg("RADIUS response is to a different request: %d (should be %d)",
+					(errmsg("RADIUS response is to a different request: %i (should be %i)",
 							receivepacket->id, packet->id)));
 			continue;
 		}
@@ -3016,7 +2999,7 @@ CheckRADIUSAuth(Port *port)
 		else
 		{
 			ereport(LOG,
-			 (errmsg("RADIUS response has invalid code (%d) for user \"%s\"",
+			 (errmsg("RADIUS response has invalid code (%i) for user \"%s\"",
 					 receivepacket->code, port->user_name)));
 			continue;
 		}
@@ -3071,7 +3054,7 @@ timestamptz_to_point(TimestampTz in, authPoint *out)
 	/* from timestamptz_to_char */
 	struct	pg_tm 	tm;
 	fsec_t  fsec;   
-	const char	*tzn;
+	char	*tzn;
 	int 	tzp, thisdate;
 	if (timestamp2tm(in, &tzp, &tm, &fsec, &tzn, NULL) != 0)
 		ereport(FATAL,

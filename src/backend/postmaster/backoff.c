@@ -1330,7 +1330,7 @@ BackoffSweeperLoop(void)
 			break;
 
 		/* no need to live on if postmaster has died */
-		if (!PostmasterIsAlive())
+		if (!PostmasterIsAlive(true))
 			exit(1);
 
 		if (gp_enable_resqueue_priority)

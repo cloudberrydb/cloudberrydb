@@ -17,16 +17,10 @@
 #include "tcop/tcopprot.h"
 #include "optimizer/planmain.h"
 #include "utils/builtins.h"
-#include "utils/fmgroids.h"
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
-static List *proc_oids_for_dump = NIL;
-static bool is_proc_oids_valid = false;
-
 Datum gp_dump_query_oids(PG_FUNCTION_ARGS);
-
-List* get_proc_oids_for_dump(void);
 
 PG_FUNCTION_INFO_V1(gp_dump_query_oids);
 
@@ -67,19 +61,6 @@ sql_query_parse_error_callback(void *arg)
 	internalerrquery(query_text);
 }
 
-void
-add_proc_oids_for_dump(Oid funcid)
-{
-	if (is_proc_oids_valid)
-		proc_oids_for_dump = lappend_oid(proc_oids_for_dump, funcid);
-}
-
-List*
-get_proc_oids_for_dump()
-{
-	return proc_oids_for_dump;
-}
-
 /*
  * Function dumping dependent relation & function oids for a given SQL text
  */
@@ -94,6 +75,7 @@ gp_dump_query_oids(PG_FUNCTION_ARGS)
 	HTAB	   *dedup_htab;
 	StringInfoData str;
 	ErrorContextCallback sqlerrcontext;
+	Relation	procRelation;
 	List	   *invalidItems = NIL;
 	List	   *relationOids = NIL;
 	List	   *deduped_relationOids = NIL;
@@ -129,30 +111,17 @@ gp_dump_query_oids(PG_FUNCTION_ARGS)
 	error_context_stack = sqlerrcontext.previous;
 
 	/* Then scan each Query and scrape any relation and function OIDs */
-	is_proc_oids_valid = true;
-	PG_TRY();
+	foreach(lc, flat_query_list)
 	{
-		foreach(lc, flat_query_list)
-		{
-			Query	   *q = lfirst(lc);
-			List	   *q_relationOids = NIL;
-			List	   *q_invalidItems = NIL;
+		Query	   *q = lfirst(lc);
+		List	   *q_relationOids = NIL;
+		List	   *q_invalidItems = NIL;
 
-			extract_query_dependencies((Node *) q, &q_relationOids, &q_invalidItems);
+		extract_query_dependencies((Node *) q, &q_relationOids, &q_invalidItems);
 
-			relationOids = list_concat(relationOids, q_relationOids);
-			invalidItems = list_concat(invalidItems, q_invalidItems);
-		}
+		relationOids = list_concat(relationOids, q_relationOids);
+		invalidItems = list_concat(invalidItems, q_invalidItems);
 	}
-	PG_CATCH();
-	{
-		/* Make proc_oids_valid set false and proc_oids_for_dump set null */
-		is_proc_oids_valid = false;
-		proc_oids_for_dump = NIL;
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-	is_proc_oids_valid = false;
 
 	/*
 	 * Deduplicate the relation oids
@@ -193,23 +162,46 @@ gp_dump_query_oids(PG_FUNCTION_ARGS)
 	 * Fetch the procedure OIDs based on the PlanInvalItems. Deduplicate them as
 	 * we go.
 	 */
+	procRelation = heap_open(ProcedureRelationId, AccessShareLock);
+
 	memset(&ctl, 0, sizeof(HASHCTL));
 	ctl.keysize = sizeof(Oid);
 	ctl.entrysize = sizeof(Oid);
 	ctl.hash = oid_hash;
 	dedup_htab = hash_create("funcid hash table", 100, &ctl, HASH_ELEM | HASH_FUNCTION);
 
-	foreach (lc, get_proc_oids_for_dump())
+	foreach (lc, invalidItems)
 	{
-		Oid funcId = lfirst_oid(lc);
-		bool		found;
+		PlanInvalItem *inval_item = (PlanInvalItem *) lfirst(lc);
 
-		hash_search(dedup_htab, (void *) &funcId, HASH_ENTER, &found);
-		if (!found)
-			procOids = lappend_oid(procOids, funcId);
+		if (inval_item->cacheId == PROCOID)
+		{
+			HeapTupleData htup;
+			Buffer		buf = InvalidBuffer;
+
+			htup.t_self = inval_item->tupleId;
+
+			if (heap_fetch(procRelation,
+						   SnapshotAny,
+						   &htup,
+						   &buf,
+						   false,
+						   NULL))
+			{
+				Oid			funcId = HeapTupleGetOid(&htup);
+				bool		found;
+
+				hash_search(dedup_htab, (void *) &funcId, HASH_ENTER, &found);
+				if (!found)
+					 procOids = lappend_oid(procOids, funcId);
+			}
+
+			if (BufferIsValid(buf))
+				ReleaseBuffer(buf);
+		}
 	}
 
-	proc_oids_for_dump = NIL;
+	heap_close(procRelation, AccessShareLock);
 
 	/*
 	 * Construct the final output

@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -231,7 +231,6 @@ Boot_CreateStmt:
 												   PG_CATALOG_NAMESPACE,
 												   shared_relation ? GLOBALTABLESPACE_OID : 0,
 												   $3,
-												   InvalidOid,
 												   tupdesc,
 												   /* relam */ InvalidOid,
 												   RELKIND_RELATION,
@@ -307,7 +306,6 @@ Boot_DeclareIndexStmt:
 					DefineIndex(makeRangeVar(NULL, $6, -1),
 								$3,
 								$4,
-								InvalidOid,
 								$8,
 								NULL,
 								$10,
@@ -327,7 +325,6 @@ Boot_DeclareUniqueIndexStmt:
 					DefineIndex(makeRangeVar(NULL, $7, -1),
 								$4,
 								$5,
-								InvalidOid,
 								$9,
 								NULL,
 								$11,

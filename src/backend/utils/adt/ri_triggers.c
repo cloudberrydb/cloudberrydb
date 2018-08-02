@@ -8,12 +8,12 @@
  *	across query and transaction boundaries, in fact they live as long as
  *	the backend does.  This works because the hashtable structures
  *	themselves are allocated by dynahash.c in its permanent DynaHashCxt,
- *	and the SPI plans they point to are saved using SPI_keepplan().
+ *	and the SPI plans they point to are saved using SPI_saveplan().
  *	There is not currently any provision for throwing away a no-longer-needed
  *	plan --- consider improving this someday.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  *
  * src/backend/utils/adt/ri_triggers.c
  *
@@ -42,12 +42,12 @@
 #include "parser/parse_coerce.h"
 #include "parser/parse_relation.h"
 #include "miscadmin.h"
+#include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/rel.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 #include "utils/tqual.h"
@@ -2633,7 +2633,7 @@ RI_Initial_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 	RangeTblEntry *fkrte;
 	const char *sep;
 	int			i;
-	int			save_nestlevel;
+	int			old_work_mem;
 	char		workmembuf[32];
 	int			spi_result;
 	SPIPlanPtr	qplan;
@@ -2772,16 +2772,14 @@ RI_Initial_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 	 * this seems to meet the criteria for being considered a "maintenance"
 	 * operation, and accordingly we use maintenance_work_mem.
 	 *
-	 * We use the equivalent of a function SET option to allow the setting to
-	 * persist for exactly the duration of the check query.  guc.c also takes
-	 * care of undoing the setting on error.
+	 * We do the equivalent of "SET LOCAL work_mem" so that transaction abort
+	 * will restore the old value if we lose control due to an error.
 	 */
-	save_nestlevel = NewGUCNestLevel();
-
+	old_work_mem = work_mem;
 	snprintf(workmembuf, sizeof(workmembuf), "%d", maintenance_work_mem);
 	(void) set_config_option("work_mem", workmembuf,
 							 PGC_USERSET, PGC_S_SESSION,
-							 GUC_ACTION_SAVE, true, 0);
+							 GUC_ACTION_LOCAL, true);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
@@ -2864,9 +2862,13 @@ RI_Initial_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 		elog(ERROR, "SPI_finish failed");
 
 	/*
-	 * Restore work_mem.
+	 * Restore work_mem for the remainder of the current transaction. This is
+	 * another SET LOCAL, so it won't affect the session value.
 	 */
-	AtEOXact_GUC(true, save_nestlevel);
+	snprintf(workmembuf, sizeof(workmembuf), "%d", old_work_mem);
+	(void) set_config_option("work_mem", workmembuf,
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_LOCAL, true);
 
 	return true;
 }
@@ -3224,7 +3226,6 @@ ri_FetchConstraintInfo(RI_ConstraintInfo *riinfo,
 		elog(ERROR, "null conpfeqop for constraint %u", constraintOid);
 	arr = DatumGetArrayTypeP(adatum);	/* ensure not toasted */
 	numkeys = ARR_DIMS(arr)[0];
-	/* see TryReuseForeignKey if you change the test below */
 	if (ARR_NDIM(arr) != 1 ||
 		numkeys != riinfo->nkeys ||
 		numkeys > RI_MAX_NUMKEYS ||
@@ -3315,7 +3316,7 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
 	/* Save the plan if requested */
 	if (cache_plan)
 	{
-		SPI_keepplan(qplan);
+		qplan = SPI_saveplan(qplan);
 		ri_HashPreparedPlan(qkey, qplan);
 	}
 

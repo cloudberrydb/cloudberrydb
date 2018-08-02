@@ -2,7 +2,7 @@
  *
  * dropuser
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/bin/scripts/dropuser.c
@@ -21,8 +21,6 @@ static void help(const char *progname);
 int
 main(int argc, char *argv[])
 {
-	static int	if_exists = 0;
-
 	static struct option long_options[] = {
 		{"host", required_argument, NULL, 'h'},
 		{"port", required_argument, NULL, 'p'},
@@ -31,7 +29,6 @@ main(int argc, char *argv[])
 		{"password", no_argument, NULL, 'W'},
 		{"echo", no_argument, NULL, 'e'},
 		{"interactive", no_argument, NULL, 'i'},
-		{"if-exists", no_argument, &if_exists, 1},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -82,9 +79,6 @@ main(int argc, char *argv[])
 			case 'i':
 				interactive = true;
 				break;
-			case 0:
-				/* this covers the long options */
-				break;
 			default:
 				fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
 				exit(1);
@@ -106,16 +100,7 @@ main(int argc, char *argv[])
 	}
 
 	if (dropuser == NULL)
-	{
-		if (interactive)
-			dropuser = simple_prompt("Enter name of role to drop: ", 128, true);
-		else
-		{
-			fprintf(stderr, _("%s: missing required argument role name\n"), progname);
-			fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
-			exit(1);
-		}
-	}
+		dropuser = simple_prompt("Enter name of role to drop: ", 128, true);
 
 	if (interactive)
 	{
@@ -125,11 +110,9 @@ main(int argc, char *argv[])
 	}
 
 	initPQExpBuffer(&sql);
-	appendPQExpBuffer(&sql, "DROP ROLE %s%s;\n",
-					  (if_exists ? "IF EXISTS " : ""), fmtId(dropuser));
+	appendPQExpBuffer(&sql, "DROP ROLE %s;\n", fmtId(dropuser));
 
-	conn = connectDatabase("postgres", host, port, username, prompt_password,
-						   progname, false);
+	conn = connectDatabase("postgres", host, port, username, prompt_password, progname);
 
 	if (echo)
 		printf("%s", sql.data);
@@ -157,9 +140,7 @@ help(const char *progname)
 	printf(_("  %s [OPTION]... [ROLENAME]\n"), progname);
 	printf(_("\nOptions:\n"));
 	printf(_("  -e, --echo                show the commands being sent to the server\n"));
-	printf(_("  -i, --interactive         prompt before deleting anything, and prompt for\n"
-			 "                            role name if not specified\n"));
-	printf(_("  --if-exists               don't report error if user doesn't exist\n"));
+	printf(_("  -i, --interactive         prompt before deleting anything\n"));
 	printf(_("  --help                    show this help, then exit\n"));
 	printf(_("  --version                 output version information, then exit\n"));
 	printf(_("\nConnection options:\n"));

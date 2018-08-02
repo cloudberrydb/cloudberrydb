@@ -3,7 +3,7 @@
  * pl_comp.c		- Compiler part of the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,17 +18,20 @@
 #include <ctype.h>
 
 #include "catalog/namespace.h"
+#include "catalog/pg_attrdef.h"
+#include "catalog/pg_attribute.h"
+#include "catalog/pg_class.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_proc_fn.h"
 #include "catalog/pg_type.h"
 #include "funcapi.h"
 #include "nodes/makefuncs.h"
 #include "parser/parse_type.h"
+#include "tcop/tcopprot.h"
+#include "utils/array.h"
 #include "utils/builtins.h"
-#include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/rel.h"
 #include "utils/syscache.h"
 
 #include "cdb/cdbvars.h"
@@ -79,7 +82,7 @@ typedef struct
 } ExceptionLabelMap;
 
 static const ExceptionLabelMap exception_label_map[] = {
-#include "plerrcodes.h"			/* pgrminclude ignore */
+#include "plerrcodes.h"
 	{NULL, 0}
 };
 
@@ -343,7 +346,7 @@ do_compile(FunctionCallInfo fcinfo,
 									 ALLOCSET_DEFAULT_MAXSIZE);
 	compile_tmp_cxt = MemoryContextSwitchTo(func_cxt);
 
-	function->fn_signature = format_procedure(fcinfo->flinfo->fn_oid);
+	function->fn_name = pstrdup(NameStr(procStruct->proname));
 	function->fn_oid = fcinfo->flinfo->fn_oid;
 	function->fn_xmin = HeapTupleHeaderGetXmin(procTup->t_data);
 	function->fn_tid = procTup->t_self;
@@ -511,8 +514,6 @@ do_compile(FunctionCallInfo fcinfo,
 				{
 					if (rettypeid == ANYARRAYOID)
 						rettypeid = INT4ARRAYOID;
-					else if (rettypeid == ANYRANGEOID)
-						rettypeid = INT4RANGEOID;
 					else	/* ANYELEMENT or ANYNONARRAY */
 						rettypeid = INT4OID;
 					/* XXX what could we use for ANYENUM? */
@@ -849,7 +850,7 @@ plpgsql_compile_inline(char *proc_source)
 									 ALLOCSET_DEFAULT_MAXSIZE);
 	compile_tmp_cxt = MemoryContextSwitchTo(func_cxt);
 
-	function->fn_signature = pstrdup(func_name);
+	function->fn_name = pstrdup(func_name);
 	function->fn_is_trigger = false;
 	function->fn_input_collation = InvalidOid;
 	function->fn_cxt = func_cxt;
@@ -1753,8 +1754,7 @@ plpgsql_parse_cwordtype(List *idents)
 		relvar = makeRangeVar(strVal(linitial(idents)),
 							  strVal(lsecond(idents)),
 							  -1);
-		/* Can't lock relation - we might not have privileges. */
-		classOid = RangeVarGetRelid(relvar, NoLock, true);
+		classOid = RangeVarGetRelid(relvar, true);
 		if (!OidIsValid(classOid))
 			goto done;
 		fldname = strVal(lthird(idents));
@@ -1768,13 +1768,12 @@ plpgsql_parse_cwordtype(List *idents)
 	classStruct = (Form_pg_class) GETSTRUCT(classtup);
 
 	/*
-	 * It must be a relation, sequence, view, composite type, or foreign table
+	 * It must be a relation, sequence, view, or type
 	 */
 	if (classStruct->relkind != RELKIND_RELATION &&
 		classStruct->relkind != RELKIND_SEQUENCE &&
 		classStruct->relkind != RELKIND_VIEW &&
-		classStruct->relkind != RELKIND_COMPOSITE_TYPE &&
-		classStruct->relkind != RELKIND_FOREIGN_TABLE)
+		classStruct->relkind != RELKIND_COMPOSITE_TYPE)
 		goto done;
 
 	/*
@@ -1851,11 +1850,16 @@ plpgsql_parse_cwordrowtype(List *idents)
 	/* Avoid memory leaks in long-term function context */
 	oldCxt = MemoryContextSwitchTo(compile_tmp_cxt);
 
-	/* Look up relation name.  Can't lock it - we might not have privileges. */
+	/* Lookup the relation */
 	relvar = makeRangeVar(strVal(linitial(idents)),
 						  strVal(lsecond(idents)),
 						  -1);
-	classOid = RangeVarGetRelid(relvar, NoLock, false);
+	classOid = RangeVarGetRelid(relvar, true);
+	if (!OidIsValid(classOid))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_TABLE),
+				 errmsg("relation \"%s.%s\" does not exist",
+						strVal(linitial(idents)), strVal(lsecond(idents)))));
 
 	MemoryContextSwitchTo(oldCxt);
 
@@ -1990,12 +1994,11 @@ build_row_from_class(Oid classOid)
 	classStruct = RelationGetForm(rel);
 	relname = RelationGetRelationName(rel);
 
-	/* accept relation, sequence, view, composite type, or foreign table */
+	/* accept relation, sequence, view, or composite type entries */
 	if (classStruct->relkind != RELKIND_RELATION &&
 		classStruct->relkind != RELKIND_SEQUENCE &&
 		classStruct->relkind != RELKIND_VIEW &&
-		classStruct->relkind != RELKIND_COMPOSITE_TYPE &&
-		classStruct->relkind != RELKIND_FOREIGN_TABLE)
+		classStruct->relkind != RELKIND_COMPOSITE_TYPE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("relation \"%s\" is not a table", relname)));
@@ -2170,7 +2173,6 @@ build_datatype(HeapTuple typeTup, int32 typmod, Oid collation)
 		case TYPTYPE_BASE:
 		case TYPTYPE_DOMAIN:
 		case TYPTYPE_ENUM:
-		case TYPTYPE_RANGE:
 			typ->ttype = PLPGSQL_TTYPE_SCALAR;
 			break;
 		case TYPTYPE_COMPOSITE:
@@ -2425,8 +2427,8 @@ compute_function_hashkey(FunctionCallInfo fcinfo,
 /*
  * This is the same as the standard resolve_polymorphic_argtypes() function,
  * but with a special case for validation: assume that polymorphic arguments
- * are integer, integer-array or integer-range.  Also, we go ahead and report
- * the error if we can't resolve the types.
+ * are integer or integer-array.  Also, we go ahead and report the error
+ * if we can't resolve the types.
  */
 static void
 plpgsql_resolve_polymorphic_argtypes(int numargs,
@@ -2461,9 +2463,6 @@ plpgsql_resolve_polymorphic_argtypes(int numargs,
 					break;
 				case ANYARRAYOID:
 					argtypes[i] = INT4ARRAYOID;
-					break;
-				case ANYRANGEOID:
-					argtypes[i] = INT4RANGEOID;
 					break;
 				default:
 					break;

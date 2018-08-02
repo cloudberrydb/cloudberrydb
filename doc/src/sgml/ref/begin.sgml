@@ -122,7 +122,8 @@ BEGIN [ WORK | TRANSACTION ] [ <replaceable class="parameter">transaction_mode</
 
 <programlisting>
 BEGIN;
-</programlisting></para>
+</programlisting>
+  </para>
  </refsect1>
 
  <refsect1>

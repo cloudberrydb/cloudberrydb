@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -110,14 +110,8 @@ LookupTypeName(ParseState *pstate, const TypeName *typeName,
 				break;
 		}
 
-		/*
-		 * Look up the field.
-		 *
-		 * XXX: As no lock is taken here, this might fail in the presence of
-		 * concurrent DDL.	But taking a lock would carry a performance
-		 * penalty and would also require a permissions check.
-		 */
-		relid = RangeVarGetRelid(rel, NoLock, false);
+		/* look up the field */
+		relid = RangeVarGetRelid(rel, false);
 		attnum = get_attnum(relid, field);
 		if (attnum == InvalidAttrNumber)
 			ereport(ERROR,

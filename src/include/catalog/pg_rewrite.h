@@ -8,7 +8,7 @@
  * --- ie, rule names are only unique among the rules of a given table.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_rewrite.h
@@ -40,10 +40,9 @@ CATALOG(pg_rewrite,2618)
 	char		ev_enabled;
 	bool		is_instead;
 
-#ifdef CATALOG_VARLEN			/* variable-length fields start here */
+	/* NB: remaining fields must be accessed via heap_getattr */
 	pg_node_tree ev_qual;
 	pg_node_tree ev_action;
-#endif
 } FormData_pg_rewrite;
 
 /* GPDB added foreign key definitions for gpcheckcat. */

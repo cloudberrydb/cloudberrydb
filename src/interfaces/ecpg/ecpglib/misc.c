@@ -501,7 +501,12 @@ ecpg_gettext(const char *msgid)
 }
 #endif   /* ENABLE_NLS */
 
-struct var_list *ivlist = NULL;
+static struct var_list
+{
+	int			number;
+	void	   *pointer;
+	struct var_list *next;
+}	*ivlist = NULL;
 
 void
 ECPGset_var(int number, void *pointer, int lineno)
@@ -525,7 +530,7 @@ ECPGset_var(int number, void *pointer, int lineno)
 		struct sqlca_t *sqlca = ECPGget_sqlca();
 
 		sqlca->sqlcode = ECPG_OUT_OF_MEMORY;
-		strncpy(sqlca->sqlstate, "YE001", sizeof(sqlca->sqlstate));
+		strncpy(sqlca->sqlstate, "YE001", sizeof("YE001"));
 		snprintf(sqlca->sqlerrm.sqlerrmc, sizeof(sqlca->sqlerrm.sqlerrmc), "out of memory on line %d", lineno);
 		sqlca->sqlerrm.sqlerrml = strlen(sqlca->sqlerrm.sqlerrmc);
 		/* free all memory we have allocated for the user */

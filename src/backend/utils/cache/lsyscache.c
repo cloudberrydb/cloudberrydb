@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2007-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -22,7 +22,6 @@
 #include "access/nbtree.h"
 #include "bootstrap/bootstrap.h"
 #include "catalog/heap.h"                   /* SystemAttributeDefinition() */
-#include "catalog/pg_aggregate.h"
 #include "catalog/pg_amop.h"
 #include "catalog/pg_amproc.h"
 #include "catalog/pg_collation.h"
@@ -33,7 +32,8 @@
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
-#include "catalog/pg_range.h"
+#include "catalog/pg_aggregate.h"
+#include "catalog/pg_constraint.h"
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_type.h"
@@ -50,7 +50,6 @@
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
-#include "utils/rel.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 #include "utils/fmgroids.h"
@@ -299,62 +298,6 @@ get_compare_function_for_ordering_op(Oid opno, Oid *cmpfunc, bool *reverse)
 	/* ensure outputs are set on failure */
 	*cmpfunc = InvalidOid;
 
-	*reverse = false;
-	return false;
-}
-
-/*
- * get_sort_function_for_ordering_op
- *		Get the OID of the datatype-specific btree sort support function,
- *		or if there is none, the btree comparison function,
- *		associated with an ordering operator (a "<" or ">" operator).
- *
- * *sortfunc receives the support or comparison function OID.
- * *issupport is set TRUE if it's a support func, FALSE if a comparison func.
- * *reverse is set FALSE if the operator is "<", TRUE if it's ">"
- * (indicating that comparison results must be negated before use).
- *
- * Returns TRUE if successful, FALSE if no btree function can be found.
- * (This indicates that the operator is not a valid ordering operator.)
- */
-bool
-get_sort_function_for_ordering_op(Oid opno, Oid *sortfunc,
-								  bool *issupport, bool *reverse)
-{
-	Oid			opfamily;
-	Oid			opcintype;
-	int16		strategy;
-
-	/* Find the operator in pg_amop */
-	if (get_ordering_op_properties(opno,
-								   &opfamily, &opcintype, &strategy))
-	{
-		/* Found a suitable opfamily, get matching support function */
-		*sortfunc = get_opfamily_proc(opfamily,
-									  opcintype,
-									  opcintype,
-									  BTSORTSUPPORT_PROC);
-		if (OidIsValid(*sortfunc))
-			*issupport = true;
-		else
-		{
-			/* opfamily doesn't provide sort support, get comparison func */
-			*sortfunc = get_opfamily_proc(opfamily,
-										  opcintype,
-										  opcintype,
-										  BTORDER_PROC);
-			if (!OidIsValid(*sortfunc)) /* should not happen */
-				elog(ERROR, "missing support function %d(%u,%u) in opfamily %u",
-					 BTORDER_PROC, opcintype, opcintype, opfamily);
-			*issupport = false;
-		}
-		*reverse = (strategy == BTGreaterStrategyNumber);
-		return true;
-	}
-
-	/* ensure outputs are set on failure */
-	*sortfunc = InvalidOid;
-	*issupport = false;
 	*reverse = false;
 	return false;
 }
@@ -697,30 +640,52 @@ get_op_hash_functions(Oid opno,
 /*
  * get_op_btree_interpretation
  *		Given an operator's OID, find out which btree opfamilies it belongs to,
- *		and what properties it has within each one.  The results are returned
- *		as a palloc'd list of OpBtreeInterpretation structs.
+ *		and what strategy number it has within each one.  The results are
+ *		returned as an OID list and a parallel integer list.
  *
  * In addition to the normal btree operators, we consider a <> operator to be
  * a "member" of an opfamily if its negator is an equality operator of the
  * opfamily.  ROWCOMPARE_NE is returned as the strategy number for this case.
  */
-List *
-get_op_btree_interpretation(Oid opno)
+void
+get_op_btree_interpretation(Oid opno, List **opfamilies, List **opstrats)
 {
-	List	   *result = NIL;
-	OpBtreeInterpretation *thisresult;
 	CatCList   *catlist;
+	bool		op_negated;
 	int			i;
+
+	*opfamilies = NIL;
+	*opstrats = NIL;
 
 	/*
 	 * Find all the pg_amop entries containing the operator.
 	 */
 	catlist = SearchSysCacheList1(AMOPOPID, ObjectIdGetDatum(opno));
 
+	/*
+	 * If we can't find any opfamily containing the op, perhaps it is a <>
+	 * operator.  See if it has a negator that is in an opfamily.
+	 */
+	op_negated = false;
+	if (catlist->n_members == 0)
+	{
+		Oid			op_negator = get_negator(opno);
+
+		if (OidIsValid(op_negator))
+		{
+			op_negated = true;
+			ReleaseSysCacheList(catlist);
+			catlist = SearchSysCacheList1(AMOPOPID,
+										  ObjectIdGetDatum(op_negator));
+		}
+	}
+
+	/* Now search the opfamilies */
 	for (i = 0; i < catlist->n_members; i++)
 	{
 		HeapTuple	op_tuple = &catlist->members[i]->tuple;
 		Form_pg_amop op_form = (Form_pg_amop) GETSTRUCT(op_tuple);
+		Oid			opfamily_id;
 		StrategyNumber op_strategy;
 
 		/* must be btree */
@@ -728,66 +693,23 @@ get_op_btree_interpretation(Oid opno)
 			continue;
 
 		/* Get the operator's btree strategy number */
+		opfamily_id = op_form->amopfamily;
 		op_strategy = (StrategyNumber) op_form->amopstrategy;
 		Assert(op_strategy >= 1 && op_strategy <= 5);
 
-		thisresult = (OpBtreeInterpretation *)
-			palloc(sizeof(OpBtreeInterpretation));
-		thisresult->opfamily_id = op_form->amopfamily;
-		thisresult->strategy = op_strategy;
-		thisresult->oplefttype = op_form->amoplefttype;
-		thisresult->oprighttype = op_form->amoprighttype;
-		result = lappend(result, thisresult);
+		if (op_negated)
+		{
+			/* Only consider negators that are = */
+			if (op_strategy != BTEqualStrategyNumber)
+				continue;
+			op_strategy = ROWCOMPARE_NE;
+		}
+
+		*opfamilies = lappend_oid(*opfamilies, opfamily_id);
+		*opstrats = lappend_int(*opstrats, op_strategy);
 	}
 
 	ReleaseSysCacheList(catlist);
-
-	/*
-	 * If we didn't find any btree opfamily containing the operator, perhaps
-	 * it is a <> operator.  See if it has a negator that is in an opfamily.
-	 */
-	if (result == NIL)
-	{
-		Oid			op_negator = get_negator(opno);
-
-		if (OidIsValid(op_negator))
-		{
-			catlist = SearchSysCacheList1(AMOPOPID,
-										  ObjectIdGetDatum(op_negator));
-
-			for (i = 0; i < catlist->n_members; i++)
-			{
-				HeapTuple	op_tuple = &catlist->members[i]->tuple;
-				Form_pg_amop op_form = (Form_pg_amop) GETSTRUCT(op_tuple);
-				StrategyNumber op_strategy;
-
-				/* must be btree */
-				if (op_form->amopmethod != BTREE_AM_OID)
-					continue;
-
-				/* Get the operator's btree strategy number */
-				op_strategy = (StrategyNumber) op_form->amopstrategy;
-				Assert(op_strategy >= 1 && op_strategy <= 5);
-
-				/* Only consider negators that are = */
-				if (op_strategy != BTEqualStrategyNumber)
-					continue;
-
-				/* OK, report it with "strategy" ROWCOMPARE_NE */
-				thisresult = (OpBtreeInterpretation *)
-					palloc(sizeof(OpBtreeInterpretation));
-				thisresult->opfamily_id = op_form->amopfamily;
-				thisresult->strategy = ROWCOMPARE_NE;
-				thisresult->oplefttype = op_form->amoplefttype;
-				thisresult->oprighttype = op_form->amoprighttype;
-				result = lappend(result, thisresult);
-			}
-
-			ReleaseSysCacheList(catlist);
-		}
-	}
-
-	return result;
 }
 
 /*
@@ -2090,25 +2012,6 @@ func_volatile(Oid funcid)
 }
 
 /*
- * get_func_leakproof
- *	   Given procedure id, return the function's leakproof field.
- */
-bool
-get_func_leakproof(Oid funcid)
-{
-	HeapTuple	tp;
-	bool		result;
-
-	tp = SearchSysCache1(PROCOID, ObjectIdGetDatum(funcid));
-	if (!HeapTupleIsValid(tp))
-		elog(ERROR, "cache lookup failed for function %u", funcid);
-
-	result = ((Form_pg_proc) GETSTRUCT(tp))->proleakproof;
-	ReleaseSysCache(tp);
-	return result;
-}
-
-/*
  * func_data_access
  *		Given procedure id, return the function's data access flag.
  */
@@ -2518,9 +2421,10 @@ getTypeIOParam(HeapTuple typeTuple)
 
 	/*
 	 * Array types get their typelem as parameter; everybody else gets their
-	 * own type OID as parameter.
+	 * own type OID as parameter.  (As of 8.2, domains must get their own OID
+	 * even if their base type is an array.)
 	 */
-	if (OidIsValid(typeStruct->typelem))
+	if (typeStruct->typtype == TYPTYPE_BASE && OidIsValid(typeStruct->typelem))
 		return typeStruct->typelem;
 	else
 		return HeapTupleGetOid(typeTuple);
@@ -2876,16 +2780,6 @@ bool
 type_is_enum(Oid typid)
 {
 	return (get_typtype(typid) == TYPTYPE_ENUM);
-}
-
-/*
- * type_is_range
- *	  Returns true if the given type is a range type.
- */
-bool
-type_is_range(Oid typid)
-{
-	return (get_typtype(typid) == TYPTYPE_RANGE);
 }
 
 /*
@@ -3562,33 +3456,6 @@ get_namespace_name(Oid nspid)
 		return NULL;
 }
 
-/*				---------- PG_RANGE CACHE ----------				 */
-
-/*
- * get_range_subtype
- *		Returns the subtype of a given range type
- *
- * Returns InvalidOid if the type is not a range type.
- */
-Oid
-get_range_subtype(Oid rangeOid)
-{
-	HeapTuple	tp;
-
-	tp = SearchSysCache1(RANGETYPE, ObjectIdGetDatum(rangeOid));
-	if (HeapTupleIsValid(tp))
-	{
-		Form_pg_range rngtup = (Form_pg_range) GETSTRUCT(tp);
-		Oid			result;
-
-		result = rngtup->rngsubtype;
-		ReleaseSysCache(tp);
-		return result;
-	}
-	else
-		return InvalidOid;
-}
-
 /*
  * relation_oids
  *	  Extract all relation oids from the catalog.
@@ -3942,7 +3809,7 @@ get_check_constraint_oids(Oid oidRel)
 		Form_pg_constraint contuple = (Form_pg_constraint) GETSTRUCT(htup);
 
 		// only consider check constraints
-		if (CONSTRAINT_CHECK != contuple->contype || !contuple->convalidated)
+		if (CONSTRAINT_CHECK != contuple->contype)
 		{
 			continue;
 		}
@@ -4030,16 +3897,19 @@ get_cast_func(Oid oidSrc, Oid oidDest, bool *is_binary_coercible, Oid *oidCastFu
 CmpType
 get_comparison_type(Oid oidOp, Oid oidLeft, Oid oidRight)
 {
-	OpBtreeInterpretation		   *opBti;
-	List						   *opBtis;
+	List	   *opfamilies;
+	List	   *opstrats;
+	int			opstrat;
 
-	opBtis = get_op_btree_interpretation(oidOp);
+	get_op_btree_interpretation(oidOp, &opfamilies, &opstrats);
 
-	if (opBtis == NIL)
+	if (opfamilies == NIL)
 	{
 		/* The operator does not belong to any B-tree operator family */
 		return CmptOther;
 	}
+
+	Assert(opstrats);
 
 	/*
 	 * XXX: Arbitrarily use the first found operator family. Usually
@@ -4048,9 +3918,9 @@ get_comparison_type(Oid oidOp, Oid oidLeft, Oid oidRight)
 	 * < operator stands for the less than operator of the ascending opfamily,
 	 * or the greater than operator for the descending opfamily.
 	 */
-	opBti = (OpBtreeInterpretation*)linitial(opBtis);
+	opstrat = linitial_int(opstrats);
 
-	switch(opBti->strategy)
+	switch(opstrat)
 	{
 		case BTLessStrategyNumber:
 			return CmptLT;
@@ -4065,7 +3935,7 @@ get_comparison_type(Oid oidOp, Oid oidLeft, Oid oidRight)
 		case ROWCOMPARE_NE:
 			return CmptNEq;
 		default:
-			elog(ERROR, "unknown B-tree strategy: %d", opBti->strategy);
+			elog(ERROR, "unknown B-tree strategy: %d", opstrat);
 			return CmptOther;
 	}
 }

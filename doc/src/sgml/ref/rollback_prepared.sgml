@@ -79,20 +79,9 @@ ROLLBACK PREPARED <replaceable class="PARAMETER">transaction_id</replaceable>
 
 <programlisting>
 ROLLBACK PREPARED 'foobar';
-</programlisting></para>
-
- </refsect1>
-
- <refsect1>
-  <title>Compatibility</title>
-
-  <para>
-   <command>ROLLBACK PREPARED</command> is a
-   <productname>PostgreSQL</productname> extension.  It is intended for use by
-   external transaction management systems, some of which are covered by
-   standards (such as X/Open XA), but the SQL side of those systems is not
-   standardized.
+</programlisting>
   </para>
+
  </refsect1>
 
  <refsect1>

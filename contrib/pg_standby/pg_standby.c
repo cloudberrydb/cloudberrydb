@@ -173,7 +173,7 @@ CustomizableInitialize(void)
 	 */
 	if (stat(archiveLocation, &stat_buf) != 0)
 	{
-		fprintf(stderr, "%s: archive location \"%s\" does not exist\n", progname, archiveLocation);
+		fprintf(stderr, "%s: archiveLocation \"%s\" does not exist\n", progname, archiveLocation);
 		fflush(stderr);
 		exit(2);
 	}
@@ -283,12 +283,12 @@ CustomizableCleanupPriorWALFiles(void)
 #endif
 
 					if (debug)
-						fprintf(stderr, "\nremoving file \"%s\"", WALFilePath);
+						fprintf(stderr, "\nremoving \"%s\"", WALFilePath);
 
 					rc = unlink(WALFilePath);
 					if (rc != 0)
 					{
-						fprintf(stderr, "\n%s: ERROR: could not remove file \"%s\": %s\n",
+						fprintf(stderr, "\n%s: ERROR failed to remove \"%s\": %s",
 								progname, WALFilePath, strerror(errno));
 						break;
 					}
@@ -298,8 +298,7 @@ CustomizableCleanupPriorWALFiles(void)
 				fprintf(stderr, "\n");
 		}
 		else
-			fprintf(stderr, "%s: could not open archive location \"%s\": %s\n",
-					progname, archiveLocation, strerror(errno));
+			fprintf(stderr, "%s: archiveLocation \"%s\" open error\n", progname, archiveLocation);
 
 		closedir(xldir);
 		fflush(stderr);
@@ -488,7 +487,7 @@ RestoreWALFileForRecovery(void)
 
 	if (debug)
 	{
-		fprintf(stderr, "running restore:      ");
+		fprintf(stderr, "running restore		:");
 		fflush(stderr);
 	}
 
@@ -499,7 +498,7 @@ RestoreWALFileForRecovery(void)
 		{
 			if (debug)
 			{
-				fprintf(stderr, "OK\n");
+				fprintf(stderr, " OK\n");
 				fflush(stderr);
 			}
 			return true;
@@ -522,16 +521,16 @@ usage(void)
 	printf("Usage:\n");
 	printf("  %s [OPTION]... ARCHIVELOCATION NEXTWALFILE XLOGFILEPATH [RESTARTWALFILE]\n", progname);
 	printf("\nOptions:\n");
-	printf("  -c                 copy file from archive (default)\n");
+	printf("  -c                 copies file from archive (default)\n");
 	printf("  -d                 generate lots of debugging output (testing only)\n");
-	printf("  -k NUMFILESTOKEEP  if RESTARTWALFILE is not used, remove files prior to limit\n"
+	printf("  -k NUMFILESTOKEEP  if RESTARTWALFILE not used, removes files prior to limit\n"
 		   "                     (0 keeps all)\n");
 	printf("  -l                 does nothing; use of link is now deprecated\n");
 	printf("  -r MAXRETRIES      max number of times to retry, with progressive wait\n"
 		   "                     (default=3)\n");
 	printf("  -s SLEEPTIME       seconds to wait between file checks (min=1, max=60,\n"
 		   "                     default=5)\n");
-	printf("  -t TRIGGERFILE     trigger file to initiate failover (no default)\n");
+	printf("  -t TRIGGERFILE     defines a trigger file to initiate failover (no default)\n");
 	printf("  -w MAXWAITTIME     max seconds to wait for a file (0=no limit) (default=0)\n");
 	printf("  --help             show this help, then exit\n");
 	printf("  --version          output version information, then exit\n");
@@ -699,7 +698,7 @@ main(int argc, char **argv)
 	}
 	else
 	{
-		fprintf(stderr, "%s: must specify WAL file name as second non-option argument (use \"%%f\")\n", progname);
+		fprintf(stderr, "%s: use %%f to specify nextWALFileName\n", progname);
 		fprintf(stderr, "Try \"%s --help\" for more information.\n", progname);
 		exit(2);
 	}
@@ -711,7 +710,7 @@ main(int argc, char **argv)
 	}
 	else
 	{
-		fprintf(stderr, "%s: must specify xlog destination as third non-option argument (use \"%%p\")\n", progname);
+		fprintf(stderr, "%s: use %%p to specify xlogFilePath\n", progname);
 		fprintf(stderr, "Try \"%s --help\" for more information.\n", progname);
 		exit(2);
 	}

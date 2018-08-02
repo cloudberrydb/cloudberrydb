@@ -122,7 +122,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			pathnode->path.pathtype = T_Motion;
 			pathnode->path.parent = subpath->parent;
 			pathnode->path.locus = locus;
-			pathnode->path.rows = subpath->rows;
 			pathnode->path.pathkeys = pathkeys;
 			pathnode->subpath = subpath;
 
@@ -150,7 +149,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			pathnode->path.pathtype = T_Motion;
 			pathnode->path.parent = subpath->parent;
 			pathnode->path.locus = locus;
-			pathnode->path.rows = subpath->rows;
 			pathnode->path.pathkeys = pathkeys;
 			pathnode->subpath = subpath;
 
@@ -278,7 +276,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 	pathnode->path.pathtype = T_Motion;
 	pathnode->path.parent = subpath->parent;
 	pathnode->path.locus = locus;
-	pathnode->path.rows = subpath->rows;
 	pathnode->path.pathkeys = pathkeys;
 	pathnode->subpath = subpath;
 
@@ -1480,10 +1477,7 @@ cdbpath_dedup_fixup_baserel(Path *path, CdbpathDedupFixupContext *ctx)
 	}
 
 	/* Add these vars to the rel's list of result columns. */
-	/* GPDB_92_MERGE_FIXME: set create_new_ph as true or false?
-	 * I'm setting it as safe value true here.
-	 */
-	add_vars_to_targetlist(ctx->root, rowid_vars, ctx->distinct_on_rowid_relids, true);
+	add_vars_to_targetlist(ctx->root, rowid_vars, ctx->distinct_on_rowid_relids);
 
 	/* Recalculate width of the rel's result rows. */
 	set_rel_width(ctx->root, rel);
@@ -1676,7 +1670,6 @@ cdbpath_dedup_fixup_walker(Path *path, void *context)
 		case T_FunctionScan:
 		case T_ValuesScan:
 		case T_CteScan:
-		case T_ForeignScan:
 			cdbpath_dedup_fixup_baserel(path, ctx);
 			break;
 

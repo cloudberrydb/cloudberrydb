@@ -7,13 +7,7 @@ use strict;
 #
 # src/tools/check_keywords.pl
 
-my $errors = 0;
 my $path;
-
-sub error(@) {
-    print STDERR @_;
-    $errors = 1;
-}
 
 if (@ARGV) {
 	$path = $ARGV[0];
@@ -22,6 +16,7 @@ if (@ARGV) {
 	$path = ".";
 }
 
+$[ = 1;			# set array base to 1
 $, = ' ';		# set output field separator
 $\ = "\n";		# set output record separator
 
@@ -65,7 +60,7 @@ line: while (<GRAM>) {
     $n = (@arr = split(' ', $S));
 
     # Ok, we're in a keyword list. Go through each field in turn
-    for (my $fieldIndexer = 0; $fieldIndexer < $n; $fieldIndexer++) {
+    for (my $fieldIndexer = 1; $fieldIndexer <= $n; $fieldIndexer++) {
 	if ($arr[$fieldIndexer] eq '*/' && $comment) {
 	    $comment = 0;
 	    next;
@@ -108,8 +103,7 @@ foreach $kcat (keys %keyword_categories) {
 	$bare_kword = $kword;
 	$bare_kword =~ s/_P$//;
 	if ($bare_kword le $prevkword) {
-	    error "'$bare_kword' after '$prevkword' in $kcat list is misplaced";
-	    $errors = 1;
+	    print "'$bare_kword' after '$prevkword' in $kcat list is misplaced";
 	}
 	$prevkword = $bare_kword;
     }
@@ -148,35 +142,35 @@ kwlist_line: while (<KWLIST>) {
 
 	# Check that the list is in alphabetical order
 	if ($kwstring le $prevkwstring) {
-	    error "'$kwstring' after '$prevkwstring' in kwlist.h is misplaced";
+	    print "'$kwstring' after '$prevkwstring' in kwlist.h is misplaced";
 	}
 	$prevkwstring = $kwstring;
 
 	# Check that the keyword string is valid: all lower-case ASCII chars
 	if ($kwstring !~ /^[a-z_]*$/) {
-	    error "'$kwstring' is not a valid keyword string, must be all lower-case ASCII chars";
+	    print "'$kwstring' is not a valid keyword string, must be all lower-case ASCII chars";
 	}
 
 	# Check that the keyword name is valid: all upper-case ASCII chars
 	if ($kwname !~ /^[A-Z_]*$/) {
-	    error "'$kwname' is not a valid keyword name, must be all upper-case ASCII chars";
+	    print "'$kwname' is not a valid keyword name, must be all upper-case ASCII chars";
 	}
 
 	# Check that the keyword string matches keyword name
 	$bare_kwname = $kwname;
 	$bare_kwname =~ s/_P$//;
 	if ($bare_kwname ne uc($kwstring)) {
-	    error "keyword name '$kwname' doesn't match keyword string '$kwstring'";
+	    print "keyword name '$kwname' doesn't match keyword string '$kwstring'";
 	}
 
 	# Check that the keyword is present in the grammar
 	%kwhash = %{$kwhashes{$kwcat_id}};
 
 	if (!(%kwhash))	{
-	    #error "Unknown kwcat_id: $kwcat_id";
+	    #print "Unknown kwcat_id: $kwcat_id";
 	} else {
 	    if (!($kwhash{$kwname})) {
-		error "'$kwname' not present in $kwcat_id section of gram.y";
+		print "'$kwname' not present in $kwcat_id section of gram.y";
 	    } else {
 		# Remove it from the hash, so that we can complain at the end
 		# if there's keywords left that were not found in kwlist.h
@@ -192,8 +186,6 @@ while ( my ($kwcat, $kwcat_id) = each(%keyword_categories) ) {
     %kwhash = %{$kwhashes{$kwcat_id}};
 
     for my $kw ( keys %kwhash ) {
-	error "'$kw' found in gram.y $kwcat category, but not in kwlist.h"
+	print "'$kw' found in gram.y $kwcat category, but not in kwlist.h"
     }
 }
-
-exit $errors;

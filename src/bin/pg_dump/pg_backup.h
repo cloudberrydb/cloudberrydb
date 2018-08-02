@@ -48,6 +48,7 @@ typedef enum _archiveFormat
 {
 	archUnknown = 0,
 	archCustom = 1,
+	archFiles = 2,
 	archTar = 3,
 	archNull = 4,
 	archDirectory = 5
@@ -72,7 +73,7 @@ typedef enum _teSection
  *	We may want to have some more user-readable data, but in the mean
  *	time this gives us some abstraction and type checking.
  */
-struct Archive
+typedef struct _Archive
 {
 	int			verbose;
 	char	   *remoteVersionStr;		/* server's version string */
@@ -90,7 +91,7 @@ struct Archive
 	int			n_errors;		/* number of errors (if no die) */
 
 	/* The rest is private */
-};
+} Archive;
 
 typedef int (*DataDumperPtr) (Archive *AH, void *userArg);
 
@@ -106,12 +107,11 @@ typedef struct _restoreOptions
 	int			no_security_labels;		/* Skip security label entries */
 	char	   *superuser;		/* Username to use as superuser */
 	char	   *use_role;		/* Issue SET ROLE to this */
+	int			dataOnly;
 	int			postdataSchemaRestore;
 	int			dropSchema;
-	const char *filename;
-	int			dataOnly;
+	char	   *filename;
 	int			schemaOnly;
-	int			dumpSections;
 	int			verbose;
 	int			aclsSkip;
 	int			tocSummary;
@@ -151,15 +151,20 @@ typedef struct _restoreOptions
  * Main archiver interface.
  */
 
-extern void ConnectDatabase(Archive *AH,
+extern void
+exit_horribly(Archive *AH, const char *modulename, const char *fmt,...)
+__attribute__((format(PG_PRINTF_ATTRIBUTE, 3, 4)));
+
+
+/* Lets the archive know we have a DB connection to shutdown if it dies */
+
+PGconn *ConnectDatabase(Archive *AH,
 				const char *dbname,
 				const char *pghost,
 				const char *pgport,
 				const char *username,
 				enum trivalue prompt_password,
-				bool binary_upgrade);
-extern void DisconnectDatabase(Archive *AHX);
-extern PGconn *GetConnection(Archive *AHX);
+			   	bool binary_upgrade);
 
 /* Called to add a TOC entry */
 extern void ArchiveEntry(Archive *AHX,
@@ -181,9 +186,7 @@ extern int	EndBlob(Archive *AH, Oid oid);
 
 extern void CloseArchive(Archive *AH);
 
-extern void SetArchiveRestoreOptions(Archive *AH, RestoreOptions *ropt);
-
-extern void RestoreArchive(Archive *AH);
+extern void RestoreArchive(Archive *AH, RestoreOptions *ropt);
 
 /* Open an existing archive */
 extern Archive *OpenArchive(const char *FileSpec, const ArchiveFormat fmt);
@@ -199,6 +202,7 @@ extern RestoreOptions *NewRestoreOptions(void);
 
 /* Rearrange and filter TOC entries */
 extern void SortTocFromFile(Archive *AHX, RestoreOptions *ropt);
+extern void InitDummyWantedList(Archive *AHX, RestoreOptions *ropt);
 
 /* Convenience functions used only when writing DATA */
 extern int	archputs(const char *s, Archive *AH);

@@ -864,6 +864,7 @@ pqSendSome(PGconn *conn, int len)
 	while (len > 0)
 	{
 		int			sent;
+		char sebuf[256];
 
 #ifndef WIN32
 		sent = pqsecure_write(conn, ptr, len);
@@ -879,7 +880,11 @@ pqSendSome(PGconn *conn, int len)
 
 		if (sent < 0)
 		{
-			/* Anything except EAGAIN/EWOULDBLOCK/EINTR is trouble */
+			/*
+			 * Anything except EAGAIN/EWOULDBLOCK/EINTR is trouble. If it's
+			 * EPIPE or ECONNRESET, assume we've lost the backend connection
+			 * permanently.
+			 */
 			switch (SOCK_ERRNO)
 			{
 #ifdef EAGAIN
@@ -893,8 +898,15 @@ pqSendSome(PGconn *conn, int len)
 				case EINTR:
 					continue;
 
-				default:
-					/* pqsecure_write set the error message for us */
+				case EPIPE:
+#ifdef ECONNRESET
+				case ECONNRESET:
+#endif
+					printfPQExpBuffer(&conn->errorMessage,
+									  libpq_gettext(
+								"server closed the connection unexpectedly\n"
+					"\tThis probably means the server terminated abnormally\n"
+							 "\tbefore or while processing the request.\n"));
 
 					/*
 					 * We used to close the socket here, but that's a bad idea
@@ -904,6 +916,14 @@ pqSendSome(PGconn *conn, int len)
 					 * pqReadData finds no more data can be read.  But abandon
 					 * attempt to send data.
 					 */
+					conn->outCount = 0;
+					return -1;
+
+				default:
+					printfPQExpBuffer(&conn->errorMessage,
+						libpq_gettext("could not send data to server: %s\n"),
+							SOCK_STRERROR(SOCK_ERRNO, sebuf, sizeof(sebuf)));
+					/* We don't assume it's a fatal error... */
 					conn->outCount = 0;
 					return -1;
 			}

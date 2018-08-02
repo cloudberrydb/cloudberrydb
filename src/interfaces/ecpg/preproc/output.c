@@ -163,7 +163,7 @@ output_deallocate_prepare_statement(char *name)
 {
 	const char *con = connection ? connection : "NULL";
 
-	if (strcmp(name, "all") != 0)
+	if (strcmp(name, "all"))
 	{
 		fprintf(yyout, "{ ECPGdeallocate(__LINE__, %d, %s, ", compat, con);
 		output_escaped_str(name, true);

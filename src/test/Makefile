@@ -1,17 +1,15 @@
 #-------------------------------------------------------------------------
 #
-# Makefile for src/test
+# Makefile.inc--
+#    Makefile for test suites
 #
 # Copyright (c) 1994, Regents of the University of California
 #
-# src/test/Makefile
+#
+# IDENTIFICATION
+#    src/test/Makefile
 #
 #-------------------------------------------------------------------------
 
-subdir = src/test
-top_builddir = ../..
-include $(top_builddir)/src/Makefile.global
-
-SUBDIRS = regress isolation
-
-$(recurse)
+.DEFAULT:
+	$(MAKE) -C regress $@

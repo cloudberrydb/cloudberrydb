@@ -3688,8 +3688,8 @@ deconstruct_agg_info(MppGroupContext *ctx)
 	 * and inner to the respective inputs to a join.
 	 */
 	ctx->final_varno = 1;
-	ctx->outer_varno = OUTER_VAR;
-	ctx->inner_varno = INNER_VAR;
+	ctx->outer_varno = OUTER;
+	ctx->inner_varno = INNER;
 
 	/*---------------------------------------------------------------------
 	 * Target lists used in multi-phase planning at or above the level of
@@ -4440,15 +4440,6 @@ add_second_stage_agg(PlannerInfo *root,
 	RangeTblRef *newrtref;
 	Plan	   *agg_node;
 
-	RelOptInfo *rel;
-	PlannerInfo *subroot;
-
-	subroot = makeNode(PlannerInfo);
-	/* shallow copy from root at first. */
-	memcpy(subroot, root, sizeof(PlannerInfo));
-	/* deep copy if needed. */
-	subroot->parse = copyObject(parse);
-
 	/*
 	 * Add a SubqueryScan node to renumber the range of the query.
 	 *
@@ -4587,24 +4578,19 @@ add_second_stage_agg(PlannerInfo *root,
 	 * Since the rtable has changed, we had better recreate a RelOptInfo entry
 	 * for it. Make a copy of the groupClause since freeing the arrays can
 	 * pull out references still in use from underneath it.
-	 * We do not free root->simple_rel_array and root->simple_rte_array since
-	 * they are used by subroot.
-	 * GPDB_92_MERGE_FIXME: Do we still need to copy groupClause?
 	 */
 	root->parse->groupClause = copyObject(root->parse->groupClause);
-	rebuild_simple_rel_and_rte(root);
 
-	/*
-	 * Assign subroot and subplan for rel. They are needed in
-	 * function set_subqueryscan_references().
-	 */
-	Assert(IsA(result_plan, SubqueryScan));
-	rel = find_base_rel(root, 1);
-	rel->subroot = subroot;
-	rel->subplan = ((SubqueryScan *)result_plan)->subplan;
+	if (root->simple_rel_array)
+		pfree(root->simple_rel_array);
+	if (root->simple_rte_array)
+		pfree(root->simple_rte_array);
+
+	rebuild_simple_rel_and_rte(root);
 
 	return agg_node;
 }
+
 
 /*
  * Add a SubqueryScan node to the input plan and maintain the given
@@ -4626,10 +4612,12 @@ add_subqueryscan(PlannerInfo *root, List **p_pathkeys,
 	subplan_tlist = generate_subquery_tlist(varno, subquery->targetList,
 											false, &resno_map);
 
-	subplan = (Plan *) make_subqueryscan(subplan_tlist,
+	subplan = (Plan *) make_subqueryscan(root, subplan_tlist,
 										 NIL,
 										 varno, /* scanrelid (= varno) */
-										 subplan);
+										 subplan,
+										 subquery->rtable,
+										 subquery->rowMarks);
 
 	mark_passthru_locus(subplan, true, true);
 
@@ -4748,8 +4736,6 @@ reconstruct_pathkeys(PlannerInfo *root, List *pathkeys, int *resno_map,
 													  em->em_datatype,
 													  exprCollation((Node *) tle->expr),
 													  0,
- 				/* GPDB_92_MERGE_FIXME_AFTER_GPDB_RUNS: NULL does not look like a correct parameter. */
-													  NULL,
 													  true);
 				new_pathkey = makePathKey(new_eclass, pathkey->pk_opfamily, pathkey->pk_strategy,
 										  pathkey->pk_nulls_first);

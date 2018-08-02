@@ -4,7 +4,7 @@
  *
  * PostgreSQL object comments utility code.
  *
- * Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Copyright (c) 1996-2011, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/commands/comment.c
@@ -25,7 +25,6 @@
 #include "miscadmin.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
-#include "utils/rel.h"
 #include "utils/tqual.h"
 
 #include "cdb/cdbvars.h"
@@ -73,7 +72,7 @@ CommentObject(CommentStmt *stmt)
 	 * against concurrent DROP operations.
 	 */
 	address = get_object_address(stmt->objtype, stmt->objname, stmt->objargs,
-								 &relation, ShareUpdateExclusiveLock, false);
+								 &relation, ShareUpdateExclusiveLock);
 
 	/* Require ownership of the target object. */
 	check_object_ownership(GetUserId(), stmt->objtype, address,
@@ -180,10 +179,11 @@ CreateComments(Oid oid, Oid classoid, int32 subid, char *comment)
 			nulls[i] = false;
 			replaces[i] = true;
 		}
-		values[Anum_pg_description_objoid - 1] = ObjectIdGetDatum(oid);
-		values[Anum_pg_description_classoid - 1] = ObjectIdGetDatum(classoid);
-		values[Anum_pg_description_objsubid - 1] = Int32GetDatum(subid);
-		values[Anum_pg_description_description - 1] = CStringGetTextDatum(comment);
+		i = 0;
+		values[i++] = ObjectIdGetDatum(oid);
+		values[i++] = ObjectIdGetDatum(classoid);
+		values[i++] = Int32GetDatum(subid);
+		values[i++] = CStringGetTextDatum(comment);
 	}
 
 	/* Use the index to search for a matching old tuple */
@@ -279,9 +279,10 @@ CreateSharedComments(Oid oid, Oid classoid, char *comment)
 			nulls[i] = false;
 			replaces[i] = true;
 		}
-		values[Anum_pg_shdescription_objoid - 1] = ObjectIdGetDatum(oid);
-		values[Anum_pg_shdescription_classoid - 1] = ObjectIdGetDatum(classoid);
-		values[Anum_pg_shdescription_description - 1] = CStringGetTextDatum(comment);
+		i = 0;
+		values[i++] = ObjectIdGetDatum(oid);
+		values[i++] = ObjectIdGetDatum(classoid);
+		values[i++] = CStringGetTextDatum(comment);
 	}
 
 	/* Use the index to search for a matching old tuple */

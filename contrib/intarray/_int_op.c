@@ -3,6 +3,7 @@
  */
 #include "postgres.h"
 
+#include "lib/stringinfo.h"
 
 #include "_int.h"
 

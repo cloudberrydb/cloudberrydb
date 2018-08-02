@@ -39,8 +39,8 @@
  *
  *	In short, we need to remember until xact end every insert or delete
  *	of a tuple that might be in the system caches.	Updates are treated as
- *	two events, delete + insert, for simplicity.  (If the update doesn't
- *	change the tuple hash value, catcache.c optimizes this into one event.)
+ *	two events, delete + insert, for simplicity.  (There are cases where
+ *	it'd be possible to record just one event, but we don't currently try.)
  *
  *	We do not need to register EVERY tuple operation in this way, just those
  *	on tuples in relations that have associated catcaches.	We do, however,
@@ -75,17 +75,8 @@
  *	transaction but must be kept till top-level commit otherwise.  For
  *	simplicity we keep the controlling list-of-lists in TopTransactionContext.
  *
- *	Currently, inval messages are sent without regard for the possibility
- *	that the object described by the catalog tuple might be a session-local
- *	object such as a temporary table.  This is because (1) this code has
- *	no practical way to tell the difference, and (2) it is not certain that
- *	other backends don't have catalog cache or even relcache entries for
- *	such tables, anyway; there is nothing that prevents that.  It might be
- *	worth trying to avoid sending such inval traffic in the future, if those
- *	problems can be overcome cheaply.
  *
- *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -95,8 +86,10 @@
  */
 #include "postgres.h"
 
+#include "access/twophase_rmgr.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
+#include "catalog/pg_tablespace.h"
 #include "miscadmin.h"
 #include "storage/sinval.h"
 #include "storage/smgr.h"
@@ -327,12 +320,14 @@ AppendInvalidationMessageList(InvalidationChunk **destHdr,
  */
 static void
 AddCatcacheInvalidationMessage(InvalidationListHeader *hdr,
-							   int id, uint32 hashValue, Oid dbId)
+							   int id, uint32 hashValue,
+							   ItemPointer tuplePtr, Oid dbId)
 {
 	SharedInvalidationMessage msg;
 
 	Assert(id < CHAR_MAX);
 	msg.cc.id = (int8) id;
+	msg.cc.tuplePtr = *tuplePtr;
 	msg.cc.dbId = dbId;
 	msg.cc.hashValue = hashValue;
 	AddInvalidationMessage(&hdr->cclist, &msg);
@@ -427,10 +422,11 @@ ProcessInvalidationMessagesMulti(InvalidationListHeader *hdr,
 static void
 RegisterCatcacheInvalidation(int cacheId,
 							 uint32 hashValue,
+							 ItemPointer tuplePtr,
 							 Oid dbId)
 {
 	AddCatcacheInvalidationMessage(&transInvalInfo->CurrentCmdInvalidMsgs,
-								   cacheId, hashValue, dbId);
+								   cacheId, hashValue, tuplePtr, dbId);
 }
 
 /*
@@ -518,9 +514,11 @@ LocalExecuteInvalidationMessage(SharedInvalidationMessage *msg)
 	{
 		if (msg->cc.dbId == MyDatabaseId || msg->cc.dbId == InvalidOid)
 		{
-			CatalogCacheIdInvalidate(msg->cc.id, msg->cc.hashValue);
+			CatalogCacheIdInvalidate(msg->cc.id,
+									 msg->cc.hashValue,
+									 &msg->cc.tuplePtr);
 
-			CallSyscacheCallbacks(msg->cc.id, msg->cc.hashValue);
+			CallSyscacheCallbacks(msg->cc.id, &msg->cc.tuplePtr);
 		}
 	}
 	else if (msg->id == SHAREDINVALCATALOG_ID)
@@ -573,7 +571,7 @@ LocalExecuteInvalidationMessage(SharedInvalidationMessage *msg)
 #ifdef USE_ASSERT_CHECKING
 		elog(NOTICE, "invalid SI message: %s", si_to_str(msg));
 #endif
-		elog(FATAL, "unrecognized SI message ID: %d", msg->id);
+		elog(FATAL, "unrecognized SI message id: %d", msg->id);
 	}
 }
 
@@ -600,7 +598,7 @@ InvalidateSystemCaches(void)
 	{
 		struct SYSCACHECALLBACK *ccitem = syscache_callback_list + i;
 
-		(*ccitem->function) (ccitem->arg, ccitem->id, 0);
+		(*ccitem->function) (ccitem->arg, ccitem->id, NULL);
 	}
 
 	for (i = 0; i < relcache_callback_count; i++)
@@ -609,6 +607,105 @@ InvalidateSystemCaches(void)
 
 		(*ccitem->function) (ccitem->arg, InvalidOid);
 	}
+}
+
+/*
+ * PrepareForTupleInvalidation
+ *		Detect whether invalidation of this tuple implies invalidation
+ *		of catalog/relation cache entries; if so, register inval events.
+ */
+static void
+PrepareForTupleInvalidation(Relation relation, HeapTuple tuple)
+{
+	Oid			tupleRelId;
+	Oid			databaseId;
+	Oid			relationId;
+
+	/* Do nothing during bootstrap */
+	if (IsBootstrapProcessingMode())
+		return;
+
+	/*
+	 * We only need to worry about invalidation for tuples that are in system
+	 * relations; user-relation tuples are never in catcaches and can't affect
+	 * the relcache either.
+	 */
+	if (!IsSystemRelation(relation))
+		return;
+
+	/*
+	 * TOAST tuples can likewise be ignored here. Note that TOAST tables are
+	 * considered system relations so they are not filtered by the above test.
+	 */
+	if (IsToastRelation(relation))
+		return;
+
+	/*
+	 * First let the catcache do its thing
+	 */
+	PrepareToInvalidateCacheTuple(relation, tuple,
+								  RegisterCatcacheInvalidation);
+
+	/*
+	 * Now, is this tuple one of the primary definers of a relcache entry?
+	 */
+	tupleRelId = RelationGetRelid(relation);
+
+	if (tupleRelId == RelationRelationId)
+	{
+		Form_pg_class classtup = (Form_pg_class) GETSTRUCT(tuple);
+
+		relationId = HeapTupleGetOid(tuple);
+		if (classtup->relisshared)
+			databaseId = InvalidOid;
+		else
+			databaseId = MyDatabaseId;
+	}
+	else if (tupleRelId == AttributeRelationId)
+	{
+		Form_pg_attribute atttup = (Form_pg_attribute) GETSTRUCT(tuple);
+
+		relationId = atttup->attrelid;
+
+		/*
+		 * KLUGE ALERT: we always send the relcache event with MyDatabaseId,
+		 * even if the rel in question is shared (which we can't easily tell).
+		 * This essentially means that only backends in this same database
+		 * will react to the relcache flush request.  This is in fact
+		 * appropriate, since only those backends could see our pg_attribute
+		 * change anyway.  It looks a bit ugly though.	(In practice, shared
+		 * relations can't have schema changes after bootstrap, so we should
+		 * never come here for a shared rel anyway.)
+		 */
+		databaseId = MyDatabaseId;
+	}
+	else if (tupleRelId == GpPolicyRelationId)
+	{
+		FormData_gp_policy *gptup = (FormData_gp_policy *) GETSTRUCT(tuple);
+
+		relationId = gptup->localoid;
+		databaseId = MyDatabaseId;
+	}
+	else if (tupleRelId == IndexRelationId)
+	{
+		Form_pg_index indextup = (Form_pg_index) GETSTRUCT(tuple);
+
+		/*
+		 * When a pg_index row is updated, we should send out a relcache inval
+		 * for the index relation.	As above, we don't know the shared status
+		 * of the index, but in practice it doesn't matter since indexes of
+		 * shared catalogs can't have such updates.
+		 */
+		relationId = indextup->indexrelid;
+		databaseId = MyDatabaseId;
+	}
+	else
+		return;
+
+	/*
+	 * Yes.  We need to register a relcache invalidation event.
+	 */
+	RegisterRelcacheInvalidation(databaseId, relationId);
 }
 
 
@@ -813,6 +910,10 @@ xactGetCommittedInvalidationMessages(SharedInvalidationMessage **msgs,
  *
  * Relcache init file invalidation requires processing both
  * before and after we send the SI messages. See AtEOXact_Inval()
+ *
+ * We deliberately avoid SetDatabasePath() since it is intended to be used
+ * only once by normal backends, so we set DatabasePath directly then
+ * pfree after use. See RecoveryRelationCacheInitFileInvalidate() macro.
  */
 void
 ProcessCommittedInvalidationMessages(SharedInvalidationMessage *msgs,
@@ -1009,110 +1110,11 @@ CommandEndInvalidationMessages(void)
  * CacheInvalidateHeapTuple
  *		Register the given tuple for invalidation at end of command
  *		(ie, current command is creating or outdating this tuple).
- *		Also, detect whether a relcache invalidation is implied.
- *
- * For an insert or delete, tuple is the target tuple and newtuple is NULL.
- * For an update, we are called just once, with tuple being the old tuple
- * version and newtuple the new version.  This allows avoidance of duplicate
- * effort during an update.
  */
 void
-CacheInvalidateHeapTuple(Relation relation,
-						 HeapTuple tuple,
-						 HeapTuple newtuple)
+CacheInvalidateHeapTuple(Relation relation, HeapTuple tuple)
 {
-	Oid			tupleRelId;
-	Oid			databaseId;
-	Oid			relationId;
-
-	/* Do nothing during bootstrap */
-	if (IsBootstrapProcessingMode())
-		return;
-
-	/*
-	 * We only need to worry about invalidation for tuples that are in system
-	 * relations; user-relation tuples are never in catcaches and can't affect
-	 * the relcache either.
-	 */
-	if (!IsSystemRelation(relation))
-		return;
-
-	/*
-	 * TOAST tuples can likewise be ignored here. Note that TOAST tables are
-	 * considered system relations so they are not filtered by the above test.
-	 */
-	if (IsToastRelation(relation))
-		return;
-
-	/*
-	 * First let the catcache do its thing
-	 */
-	PrepareToInvalidateCacheTuple(relation, tuple, newtuple,
-								  RegisterCatcacheInvalidation);
-
-	/*
-	 * Now, is this tuple one of the primary definers of a relcache entry?
-	 *
-	 * Note we ignore newtuple here; we assume an update cannot move a tuple
-	 * from being part of one relcache entry to being part of another.
-	 */
-	tupleRelId = RelationGetRelid(relation);
-
-	if (tupleRelId == RelationRelationId)
-	{
-		Form_pg_class classtup = (Form_pg_class) GETSTRUCT(tuple);
-
-		relationId = HeapTupleGetOid(tuple);
-		if (classtup->relisshared)
-			databaseId = InvalidOid;
-		else
-			databaseId = MyDatabaseId;
-	}
-	else if (tupleRelId == AttributeRelationId)
-	{
-		Form_pg_attribute atttup = (Form_pg_attribute) GETSTRUCT(tuple);
-
-		relationId = atttup->attrelid;
-
-		/*
-		 * KLUGE ALERT: we always send the relcache event with MyDatabaseId,
-		 * even if the rel in question is shared (which we can't easily tell).
-		 * This essentially means that only backends in this same database
-		 * will react to the relcache flush request.  This is in fact
-		 * appropriate, since only those backends could see our pg_attribute
-		 * change anyway.  It looks a bit ugly though.	(In practice, shared
-		 * relations can't have schema changes after bootstrap, so we should
-		 * never come here for a shared rel anyway.)
-		 */
-		databaseId = MyDatabaseId;
-	}
-	else if (tupleRelId == GpPolicyRelationId)
-	{
-		FormData_gp_policy *gptup = (FormData_gp_policy *) GETSTRUCT(tuple);
-
-		relationId = gptup->localoid;
-		databaseId = MyDatabaseId;
-	}
-	else if (tupleRelId == IndexRelationId)
-	{
-		Form_pg_index indextup = (Form_pg_index) GETSTRUCT(tuple);
-
-		/*
-		 * When a pg_index row is updated, we should send out a relcache inval
-		 * for the index relation.	As above, we don't know the shared status
-		 * of the index, but in practice it doesn't matter since indexes of
-		 * shared catalogs can't have such updates.
-		 */
-		relationId = indextup->indexrelid;
-		databaseId = MyDatabaseId;
-	}
-	else
-		return;
-
-	/*
-	 * Yes.  We need to register a relcache invalidation event.
-	 */
-	RegisterRelcacheInvalidation(databaseId, relationId);
+	PrepareForTupleInvalidation(relation, tuple);
 }
 
 /*
@@ -1146,7 +1148,7 @@ CacheInvalidateCatalog(Oid catalogId)
  *
  * This is used in places that need to force relcache rebuild but aren't
  * changing any of the tuples recognized as contributors to the relcache
- * entry by CacheInvalidateHeapTuple.  (An example is dropping an index.)
+ * entry by PrepareForTupleInvalidation.  (An example is dropping an index.)
  */
 void
 CacheInvalidateRelcache(Relation relation)
@@ -1268,14 +1270,10 @@ CacheInvalidateRelmap(Oid databaseId)
  * CacheRegisterSyscacheCallback
  *		Register the specified function to be called for all future
  *		invalidation events in the specified cache.  The cache ID and the
- *		hash value of the tuple being invalidated will be passed to the
- *		function.
+ *		TID of the tuple being invalidated will be passed to the function.
  *
- * NOTE: Hash value zero will be passed if a cache reset request is received.
+ * NOTE: NULL will be passed for the TID if a cache reset request is received.
  * In this case the called routines should flush all cached state.
- * Yes, there's a possibility of a false match to zero, but it doesn't seem
- * worth troubling over, especially since most of the current callees just
- * flush all cached state anyway.
  */
 void
 CacheRegisterSyscacheCallback(int cacheid,
@@ -1321,7 +1319,7 @@ CacheRegisterRelcacheCallback(RelcacheCallbackFunction func,
  * this module from knowing which catcache IDs correspond to which catalogs.
  */
 void
-CallSyscacheCallbacks(int cacheid, uint32 hashvalue)
+CallSyscacheCallbacks(int cacheid, ItemPointer tuplePtr)
 {
 	int			i;
 
@@ -1330,6 +1328,6 @@ CallSyscacheCallbacks(int cacheid, uint32 hashvalue)
 		struct SYSCACHECALLBACK *ccitem = syscache_callback_list + i;
 
 		if (ccitem->id == cacheid)
-			(*ccitem->function) (ccitem->arg, cacheid, hashvalue);
+			(*ccitem->function) (ccitem->arg, cacheid, tuplePtr);
 	}
 }

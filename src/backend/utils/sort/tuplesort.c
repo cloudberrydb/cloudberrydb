@@ -89,7 +89,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -105,8 +105,11 @@
 
 #include <limits.h>
 
+#include "access/genam.h"
 #include "access/nbtree.h"
 #include "catalog/index.h"
+#include "catalog/pg_amop.h"
+#include "catalog/pg_operator.h"
 #include "commands/tablespace.h"
 #include "executor/executor.h"
 #include "miscadmin.h"
@@ -117,7 +120,7 @@
 #include "utils/memutils.h"
 #include "utils/pg_rusage.h"
 #include "utils/rel.h"
-#include "utils/sortsupport.h"
+#include "utils/syscache.h"
 #include "utils/tuplesort.h"
 
 #include "access/genam.h"
@@ -208,7 +211,7 @@ typedef enum
 #define TAPE_BUFFER_OVERHEAD		(BLCKSZ * 3)
 #define MERGE_BUFFER_SIZE			(BLCKSZ * 32)
 
-/*
+/* 
  * Current postion of Tuplesort operation.
  */
 struct TuplesortPos
@@ -231,8 +234,6 @@ struct TuplesortPos
 	LogicalTape* 		cur_work_tape;      /* current tape that I am working on */
 };
 
-typedef int (*SortTupleComparator) (const SortTuple *a, const SortTuple *b,
-												Tuplesortstate *state);
 
 /*
  * Private state of a Tuplesort operation.
@@ -267,7 +268,8 @@ struct Tuplesortstate
 	 * <0, 0, >0 according as a<b, a=b, a>b.  The API must match
 	 * qsort_arg_comparator.
 	 */
-	SortTupleComparator comparetup;
+	int			(*comparetup) (const SortTuple *a, const SortTuple *b,
+										   Tuplesortstate *state);
 
 	/*
 	 * Function to copy a supplied input tuple into palloc'd space and set up
@@ -384,13 +386,7 @@ struct Tuplesortstate
 	 * tuplesort_begin_heap and used only by the MinimalTuple routines.
 	 */
 	TupleDesc	tupDesc;
-	SortSupport sortKeys;		/* array of length nKeys */
-
-	/*
-	 * This variable is shared by the single-key MinimalTuple case and the
-	 * Datum case (which both use qsort_ssup()).  Otherwise it's NULL.
-	 */
-	SortSupport onlyKey;
+	ScanKey		scanKeys;		/* array of length nKeys */
 
 	MemTupleBinding *mt_bind;
 	/*
@@ -419,6 +415,9 @@ struct Tuplesortstate
 	 * tuplesort_begin_datum and used only by the DatumTuple routines.
 	 */
 	Oid			datumType;
+	FmgrInfo	sortOpFn;		/* cached lookup data for sortOperator */
+	int			sortFnFlags;	/* equivalent to sk_flags */
+	Oid			sortCollation;	/* equivalent to sk_collation */
 	/* we need typelen and byval in order to know how to copy the Datums. */
 	int			datumTypeLen;
 	bool		datumTypeByVal;
@@ -567,15 +566,6 @@ static void free_sort_tuple(Tuplesortstate *state, SortTuple *stup);
 
 static void tuplesort_sorted_insert(Tuplesortstate *state, SortTuple *tuple,
 					  int tupleindex, bool checkIndex);
-/*
- * Special versions of qsort just for SortTuple objects.  qsort_tuple() sorts
- * any variant of SortTuples, using the appropriate comparetup function.
- * qsort_ssup() is specialized for the case where the comparetup function
- * reduces to ApplySortComparator(), that is single-key MinimalTuple sorts
- * and Datum sorts.
- */
-#include "qsort_tuple.c"
-
 
 /*
  *		tuplesort_begin_xxx
@@ -715,26 +705,42 @@ tuplesort_begin_heap(ScanState *ss, TupleDesc tupDesc,
 	state->tupDesc = tupDesc;	/* assume we need not copy tupDesc */
 	state->mt_bind = create_memtuple_binding(tupDesc);
 
-	/* Prepare SortSupport data for each column */
-	state->sortKeys = (SortSupport) palloc0(nkeys * sizeof(SortSupportData));
+	state->scanKeys = (ScanKey) palloc0(nkeys * sizeof(ScanKeyData));
 
 	for (i = 0; i < nkeys; i++)
 	{
-		SortSupport sortKey = state->sortKeys + i;
+		Oid			sortFunction;
+		bool		reverse;
+		int			flags;
 
 		AssertArg(attNums[i] != 0);
 		AssertArg(sortOperators[i] != 0);
 
-		sortKey->ssup_cxt = CurrentMemoryContext;
-		sortKey->ssup_collation = sortCollations[i];
-		sortKey->ssup_nulls_first = nullsFirstFlags[i];
-		sortKey->ssup_attno = attNums[i];
+		if (!get_compare_function_for_ordering_op(sortOperators[i],
+												  &sortFunction, &reverse))
+			elog(ERROR, "operator %u is not a valid ordering operator",
+				 sortOperators[i]);
 
-		PrepareSortSupportFromOrderingOp(sortOperators[i], sortKey);
+		/* We use btree's conventions for encoding directionality */
+		flags = 0;
+		if (reverse)
+			flags |= SK_BT_DESC;
+		if (nullsFirstFlags[i])
+			flags |= SK_BT_NULLS_FIRST;
+
+		/*
+		 * We needn't fill in sk_strategy or sk_subtype since these scankeys
+		 * will never be passed to an index.
+		 */
+		ScanKeyEntryInitialize(&state->scanKeys[i],
+							   flags,
+							   attNums[i],
+							   InvalidStrategy,
+							   InvalidOid,
+							   sortCollations[i],
+							   sortFunction,
+							   (Datum) 0);
 	}
-
-	if (nkeys == 1)
-		state->onlyKey = state->sortKeys;
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -884,6 +890,8 @@ tuplesort_begin_datum(ScanState *ss,
 {
 	Tuplesortstate *state = tuplesort_begin_common(workMem, randomAccess, true);
 	MemoryContext oldcontext;
+	Oid			sortFunction;
+	bool		reverse;
 	int16		typlen;
 	bool		typbyval;
 
@@ -910,14 +918,18 @@ tuplesort_begin_datum(ScanState *ss,
 
 	state->datumType = datumType;
 
-	/* Prepare SortSupport data */
-	state->onlyKey = (SortSupport) palloc0(sizeof(SortSupportData));
+	/* lookup the ordering function */
+	if (!get_compare_function_for_ordering_op(sortOperator,
+											  &sortFunction, &reverse))
+		elog(ERROR, "operator %u is not a valid ordering operator",
+			 sortOperator);
+	fmgr_info(sortFunction, &state->sortOpFn);
 
-	state->onlyKey->ssup_cxt = CurrentMemoryContext;
-	state->onlyKey->ssup_collation = sortCollation;
-	state->onlyKey->ssup_nulls_first = nullsFirstFlag;
-
-	PrepareSortSupportFromOrderingOp(sortOperator, state->onlyKey);
+	/* set ordering flags and collation */
+	state->sortFnFlags = reverse ? SK_BT_DESC : 0;
+	if (nullsFirstFlag)
+		state->sortFnFlags |= SK_BT_NULLS_FIRST;
+	state->sortCollation = sortCollation;
 
 	/* lookup necessary attributes of the datum type */
 	get_typlenbyval(datumType, &typlen, &typbyval);
@@ -1310,7 +1322,6 @@ puttuple_common(Tuplesortstate *state, SortTuple *tuple)
 			{
 				/* new tuple <= top of the heap, so we can discard it */
 				free_sort_tuple(state, tuple);
-				CHECK_FOR_INTERRUPTS();
 			}
 			else
 			{
@@ -1380,18 +1391,13 @@ tuplesort_performsort(Tuplesortstate *state)
 			 * We were able to accumulate all the tuples within the allowed
 			 * amount of memory.  Just qsort 'em and we're done.
 			 */
-			if (state->memtupcount > 1)
-			{
-				/* Can we use the single-key sort function? */
-				if (state->onlyKey != NULL)
-					qsort_ssup(state->memtuples, state->memtupcount,
-							   state->onlyKey);
-				else
-					qsort_tuple(state->memtuples,
-								state->memtupcount,
-								state->comparetup,
-								state);
-			}
+			if ((state->memtupcount > 1)
+				&& state->standardsort)
+				qsort_arg((void *) state->memtuples,
+						  state->memtupcount,
+						  sizeof(SortTuple),
+						  (qsort_arg_comparator) state->comparetup,
+						  (void *) state);
 			state->pos.current = 0;
 			state->pos.eof_reached = false;
 			state->pos.markpos.mempos = 0;
@@ -2764,7 +2770,6 @@ make_bounded_heap(Tuplesortstate *state)
 		{
 			/* New tuple would just get thrown out, so skip it */
 			free_sort_tuple(state, &state->memtuples[i]);
-			CHECK_FOR_INTERRUPTS();
 		}
 		else
 		{
@@ -2853,8 +2858,6 @@ tuplesort_heap_insert(Tuplesortstate *state, SortTuple *tuple,
 	memtuples = state->memtuples;
 	Assert(state->memtupcount < state->memtupsize);
 
-	CHECK_FOR_INTERRUPTS();
-
 	/*
 	 * Sift-up the new entry, per Knuth 5.2.3 exercise 16. Note that Knuth is
 	 * using 1-based array indexes, not 0-based.
@@ -2888,9 +2891,6 @@ tuplesort_heap_siftup(Tuplesortstate *state, bool checkIndex)
 
 	if (--state->memtupcount <= 0)
 		return;
-
-	CHECK_FOR_INTERRUPTS();
-
 	n = state->memtupcount;
 	tuple = &memtuples[n];		/* tuple that must be reinserted */
 	i = 0;						/* i is where the "hole" is */
@@ -2945,27 +2945,28 @@ markrunend(Tuplesortstate *state, int tapenum)
 	LogicalTapeWrite(state->tapeset, lt, (void *) &len, sizeof(len));
 }
 
+
 /*
- * Set up for an external caller of ApplySortFunction.  This function
+ * Set up for an external caller of ApplySortFunction.	This function
  * basically just exists to localize knowledge of the encoding of sk_flags
  * used in this module.
  */
 void
 SelectSortFunction(Oid sortOperator,
-                   bool nulls_first,
-                   Oid *sortFunction,
-                   int *sortFlags)
+				   bool nulls_first,
+				   Oid *sortFunction,
+				   int *sortFlags)
 {
-    bool        reverse;
+	bool		reverse;
 
-    if (!get_compare_function_for_ordering_op(sortOperator,
-                                              sortFunction, &reverse))
-        elog(ERROR, "operator %u is not a valid ordering operator",
-             sortOperator);
+	if (!get_compare_function_for_ordering_op(sortOperator,
+											  sortFunction, &reverse))
+		elog(ERROR, "operator %u is not a valid ordering operator",
+			 sortOperator);
 
-    *sortFlags = reverse ? SK_BT_DESC : 0;
-    if (nulls_first)
-        *sortFlags |= SK_BT_NULLS_FIRST;
+	*sortFlags = reverse ? SK_BT_DESC : 0;
+	if (nulls_first)
+		*sortFlags |= SK_BT_NULLS_FIRST;
 }
 
 /*
@@ -3049,7 +3050,6 @@ ApplySortFunction(FmgrInfo *sortFunction, int sortFlags, Oid collation,
 }
 
 
-
 /*
  * Routines specialized for HeapTuple (actually MinimalTuple) case
  */
@@ -3057,7 +3057,7 @@ ApplySortFunction(FmgrInfo *sortFunction, int sortFlags, Oid collation,
 static int
 comparetup_heap(const SortTuple *a, const SortTuple *b, Tuplesortstate *state)
 {
-	SortSupport sortKey = state->sortKeys;
+	ScanKey		scanKey = state->scanKeys;
 	int			nkey;
 	int32		compare;
 
@@ -3066,16 +3066,17 @@ comparetup_heap(const SortTuple *a, const SortTuple *b, Tuplesortstate *state)
 
 	Assert(state->mt_bind);
 	/* Compare the leading sort key */
-	compare = ApplySortComparator(a->datum1, a->isnull1,
-								  b->datum1, b->isnull1,
-								  sortKey);
+	compare = inlineApplySortFunction(&scanKey->sk_func, scanKey->sk_flags,
+									  scanKey->sk_collation,
+									  a->datum1, a->isnull1,
+									  b->datum1, b->isnull1);
 	if (compare != 0)
 		return compare;
 
-	sortKey++;
-	for (nkey = 1; nkey < state->nKeys; nkey++, sortKey++)
+	scanKey++;
+	for (nkey = 1; nkey < state->nKeys; nkey++, scanKey++)
 	{
-		AttrNumber	attno = sortKey->ssup_attno;
+		AttrNumber	attno = scanKey->sk_attno;
 		Datum		datum1,
 					datum2;
 		bool		isnull1,
@@ -3084,9 +3085,11 @@ comparetup_heap(const SortTuple *a, const SortTuple *b, Tuplesortstate *state)
 		datum1 = memtuple_getattr(a->tuple, state->mt_bind, attno, &isnull1); 
 		datum2 = memtuple_getattr(b->tuple, state->mt_bind, attno, &isnull2);
 
-		compare = ApplySortComparator(datum1, isnull1,
-									  datum2, isnull2,
-									  sortKey);
+		compare = inlineApplySortFunction(&scanKey->sk_func, scanKey->sk_flags,
+										  scanKey->sk_collation,
+										  datum1, isnull1,
+										  datum2, isnull2);
+
 		if (compare != 0)
 			return compare;
 	}
@@ -3114,7 +3117,7 @@ copytup_heap(Tuplesortstate *state, SortTuple *stup, void *tup)
 	USEMEM(state, GetMemoryChunkSpace(stup->tuple));
 
 	Assert(state->mt_bind);
-	stup->datum1 = memtuple_getattr(stup->tuple, state->mt_bind, state->sortKeys[0].ssup_attno, &stup->isnull1);
+	stup->datum1 = memtuple_getattr(stup->tuple, state->mt_bind, state->scanKeys[0].sk_attno, &stup->isnull1);
 }
 
 static void
@@ -3155,19 +3158,18 @@ readtup_heap(Tuplesortstate *state, TuplesortPos *pos, SortTuple *stup,
 	 */
 	AssertImply(!state->mt_bind, state->status == TSS_SORTEDONTAPE);
 	if(state->mt_bind)
-		stup->datum1 = memtuple_getattr(stup->tuple, state->mt_bind, state->sortKeys[0].ssup_attno, &stup->isnull1);
+		stup->datum1 = memtuple_getattr(stup->tuple, state->mt_bind, state->scanKeys[0].sk_attno, &stup->isnull1);
 }
 
 static void
 reversedirection_heap(Tuplesortstate *state)
 {
-	SortSupport sortKey = state->sortKeys;
+	ScanKey		scanKey = state->scanKeys;
 	int			nkey;
 
-	for (nkey = 0; nkey < state->nKeys; nkey++, sortKey++)
+	for (nkey = 0; nkey < state->nKeys; nkey++, scanKey++)
 	{
-		sortKey->ssup_reverse = !sortKey->ssup_reverse;
-		sortKey->ssup_nulls_first = !sortKey->ssup_nulls_first;
+		scanKey->sk_flags ^= (SK_BT_DESC | SK_BT_NULLS_FIRST);
 	}
 }
 
@@ -3187,6 +3189,9 @@ comparetup_cluster(const SortTuple *a, const SortTuple *b,
 	TupleDesc	tupDesc;
 	int			nkey;
 	int32		compare;
+
+	/* Allow interrupting long sorts */
+	CHECK_FOR_INTERRUPTS();
 
 	/* Compare the leading sort key, if it's simple */
 	if (state->indexInfo->ii_KeyAttrNumbers[0] != 0)
@@ -3378,6 +3383,9 @@ comparetup_index_btree(const SortTuple *a, const SortTuple *b,
 	int			nkey;
 	int32		compare;
 
+	/* Allow interrupting long sorts */
+	CHECK_FOR_INTERRUPTS();
+
 	/* Compare the leading sort key */
 	compare = inlineApplySortFunction(&scanKey->sk_func, scanKey->sk_flags,
 									  scanKey->sk_collation,
@@ -3426,19 +3434,17 @@ comparetup_index_btree(const SortTuple *a, const SortTuple *b,
 	 * they *must* get compared at some stage of the sort --- otherwise the
 	 * sort algorithm wouldn't have checked whether one must appear before the
 	 * other.
+	 *
+	 * Some rather brain-dead implementations of qsort will sometimes call the
+	 * comparison routine to compare a value to itself.  (At this writing only
+	 * QNX 4 is known to do such silly things; we don't support QNX anymore,
+	 * but perhaps the behavior still exists elsewhere.)  Don't raise a bogus
+	 * error in that case.
 	 */
-	if (state->enforceUnique && !equal_hasnull)
+	if (state->enforceUnique && !equal_hasnull && tuple1 != tuple2)
 	{
 		Datum		values[INDEX_MAX_KEYS];
 		bool		isnull[INDEX_MAX_KEYS];
-
-		/*
-		 * Some rather brain-dead implementations of qsort (such as the one in
-		 * QNX 4) will sometimes call the comparison routine to compare a
-		 * value to itself, but we always use our own implementation, which
-		 * does not.
-		 */
-		Assert(tuple1 != tuple2);
 
 		index_deform_tuple(tuple1, tupDes, values, isnull);
 		ereport(ERROR,
@@ -3452,8 +3458,9 @@ comparetup_index_btree(const SortTuple *a, const SortTuple *b,
 
 	/*
 	 * If key values are equal, we sort on ItemPointer.  This does not affect
-	 * validity of the finished index, but it may be useful to have index
-	 * scans in physical order.
+	 * validity of the finished index, but it offers cheap insurance against
+	 * performance problems with bad qsort implementations that have trouble
+	 * with large numbers of equal keys.
 	 */
 	{
 		BlockNumber blk1 = ItemPointerGetBlockNumber(&tuple1->t_tid);
@@ -3482,6 +3489,9 @@ comparetup_index_hash(const SortTuple *a, const SortTuple *b,
 	IndexTuple	tuple1;
 	IndexTuple	tuple2;
 
+	/* Allow interrupting long sorts */
+	CHECK_FOR_INTERRUPTS();
+
 	/*
 	 * Fetch hash keys and mask off bits we don't want to sort by. We know
 	 * that the first column of the index tuple is the hash key.
@@ -3498,8 +3508,9 @@ comparetup_index_hash(const SortTuple *a, const SortTuple *b,
 
 	/*
 	 * If hash values are equal, we sort on ItemPointer.  This does not affect
-	 * validity of the finished index, but it may be useful to have index
-	 * scans in physical order.
+	 * validity of the finished index, but it offers cheap insurance against
+	 * performance problems with bad qsort implementations that have trouble
+	 * with large numbers of equal keys.
 	 */
 	tuple1 = (IndexTuple) a->tuple;
 	tuple2 = (IndexTuple) b->tuple;
@@ -3613,9 +3624,13 @@ reversedirection_index_hash(Tuplesortstate *state)
 static int
 comparetup_datum(const SortTuple *a, const SortTuple *b, Tuplesortstate *state)
 {
-	return ApplySortComparator(a->datum1, a->isnull1,
-							   b->datum1, b->isnull1,
-							   state->onlyKey);
+	/* Allow interrupting long sorts */
+	CHECK_FOR_INTERRUPTS();
+
+	return inlineApplySortFunction(&state->sortOpFn, state->sortFnFlags,
+								   state->sortCollation,
+								   a->datum1, a->isnull1,
+								   b->datum1, b->isnull1);
 }
 
 static void
@@ -3710,8 +3725,7 @@ readtup_datum(Tuplesortstate *state, TuplesortPos *pos, SortTuple *stup,
 static void
 reversedirection_datum(Tuplesortstate *state)
 {
-	state->onlyKey->ssup_reverse = !state->onlyKey->ssup_reverse;
-	state->onlyKey->ssup_nulls_first = !state->onlyKey->ssup_nulls_first;
+	state->sortFnFlags ^= (SK_BT_DESC | SK_BT_NULLS_FIRST);
 }
 
 /*

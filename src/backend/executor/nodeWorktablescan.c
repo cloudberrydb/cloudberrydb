@@ -3,7 +3,7 @@
  * nodeWorktablescan.c
  *	  routines to handle WorkTableScan nodes.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -30,6 +30,7 @@ static TupleTableSlot *
 WorkTableScanNext(WorkTableScanState *node)
 {
 	TupleTableSlot *slot;
+	EState	   *estate;
 	Tuplestorestate *tuplestorestate;
 
 	/*
@@ -47,12 +48,13 @@ WorkTableScanNext(WorkTableScanState *node)
 	 * worktable.  Therefore, we don't need a private read pointer for the
 	 * tuplestore, nor do we need to tell tuplestore_gettupleslot to copy.
 	 */
+	estate = node->ss.ps.state;
 
 	/*
 	 * RECURSIVE_CTE_FIXME: Double check we don't have backward scan required by
 	 * plan (both planner and ORCA).
 	 */
-	Assert(ScanDirectionIsForward(node->ss.ps.state->es_direction));
+	Assert(ScanDirectionIsForward(estate->es_direction));
 
 	tuplestorestate = node->rustate->working_table;
 

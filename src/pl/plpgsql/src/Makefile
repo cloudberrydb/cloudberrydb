@@ -27,28 +27,20 @@ all: all-lib
 include $(top_srcdir)/src/Makefile.shlib
 
 
-install: all install-lib install-data install-headers
+install: all install-lib install-data
 
 installdirs: installdirs-lib
 	$(MKDIR_P) '$(DESTDIR)$(datadir)/extension'
-	$(MKDIR_P) '$(DESTDIR)$(includedir_server)'
 
-uninstall: uninstall-lib uninstall-data uninstall-headers
+uninstall: uninstall-lib uninstall-data
 
 install-data: installdirs
 	$(INSTALL_DATA) $(addprefix $(srcdir)/, $(DATA)) '$(DESTDIR)$(datadir)/extension/'
 
-# The plpgsql.h header file is needed by instrumentation plugins
-install-headers: installdirs
-	$(INSTALL_DATA) '$(srcdir)/plpgsql.h' '$(DESTDIR)$(includedir_server)'
-
 uninstall-data:
 	rm -f $(addprefix '$(DESTDIR)$(datadir)/extension'/, $(notdir $(DATA)))
 
-uninstall-headers:
-	rm -f '$(DESTDIR)$(includedir_server)/plpgsql.h'
-
-.PHONY: install-data install-headers uninstall-data uninstall-headers
+.PHONY: install-data uninstall-data
 
 
 # Force these dependencies to be known even without dependency info built:

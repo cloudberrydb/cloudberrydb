@@ -31,6 +31,8 @@
 
 #include "postgres.h"
 
+#include "fmgr.h"
+#include "parser/scansup.h"
 #include "mb/pg_wchar.h"
 #include "utils/builtins.h"
 
@@ -615,7 +617,7 @@ decrypt_internal(int is_pubenc, int need_text, text *data,
 	px_set_debug_handler(NULL);
 
 	/*
-	 * add successful decryptions also into RNG
+	 * add successfull decryptions also into RNG
 	 */
 	add_entropy(res, key, keypsw);
 

@@ -3,7 +3,7 @@
  * unaccent.c
  *	  Text search unaccent dictionary
  *
- * Copyright (c) 2009-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2009-2011, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/unaccent/unaccent.c
@@ -13,8 +13,10 @@
 
 #include "postgres.h"
 
+#include "fmgr.h"
 #include "catalog/namespace.h"
 #include "commands/defrem.h"
+#include "mb/pg_wchar.h"
 #include "tsearch/ts_cache.h"
 #include "tsearch/ts_locale.h"
 #include "tsearch/ts_public.h"
@@ -91,83 +93,35 @@ initSuffixTree(char *filename)
 
 	do
 	{
-		/*
-		 * pg_do_encoding_conversion() (called by tsearch_readline()) will
-		 * emit exception if it finds untranslatable characters in current
-		 * locale. We just skip such lines, continuing with the next.
-		 */
+		char		src[4096];
+		char		trg[4096];
+		int			srclen;
+		int			trglen;
+		char	   *line = NULL;
+
 		skip = true;
 
 		PG_TRY();
 		{
-			char	   *line;
-
+			/*
+			 * pg_do_encoding_conversion() (called by tsearch_readline()) will
+			 * emit exception if it finds untranslatable characters in current
+			 * locale. We just skip such characters.
+			 */
 			while ((line = tsearch_readline(&trst)) != NULL)
 			{
-				/*
-				 * The format of each line must be "src trg" where src and trg
-				 * are sequences of one or more non-whitespace characters,
-				 * separated by whitespace.  Whitespace at start or end of
-				 * line is ignored.
-				 */
-				int			state;
-				char	   *ptr;
-				char	   *src = NULL;
-				char	   *trg = NULL;
-				int			ptrlen;
-				int			srclen = 0;
-				int			trglen = 0;
+				if (sscanf(line, "%s\t%s\n", src, trg) != 2)
+					continue;
 
-				state = 0;
-				for (ptr = line; *ptr; ptr += ptrlen)
-				{
-					ptrlen = pg_mblen(ptr);
-					/* ignore whitespace, but end src or trg */
-					if (t_isspace(ptr))
-					{
-						if (state == 1)
-							state = 2;
-						else if (state == 3)
-							state = 4;
-						continue;
-					}
-					switch (state)
-					{
-						case 0:
-							/* start of src */
-							src = ptr;
-							srclen = ptrlen;
-							state = 1;
-							break;
-						case 1:
-							/* continue src */
-							srclen += ptrlen;
-							break;
-						case 2:
-							/* start of trg */
-							trg = ptr;
-							trglen = ptrlen;
-							state = 3;
-							break;
-						case 3:
-							/* continue trg */
-							trglen += ptrlen;
-							break;
-						default:
-							/* bogus line format */
-							state = -1;
-							break;
-					}
-				}
+				srclen = strlen(src);
+				trglen = strlen(trg);
 
-				if (state >= 3)
-					rootSuffixTree = placeChar(rootSuffixTree,
-											   (unsigned char *) src, srclen,
-											   trg, trglen);
-
+				rootSuffixTree = placeChar(rootSuffixTree,
+										   (unsigned char *) src, srclen,
+										   trg, trglen);
+				skip = false;
 				pfree(line);
 			}
-			skip = false;
 		}
 		PG_CATCH();
 		{
@@ -281,7 +235,7 @@ unaccent_lexize(PG_FUNCTION_ARGS)
 		{
 			if (!res)
 			{
-				/* allocate res only if it's needed */
+				/* allocate res only it it's needed */
 				res = palloc0(sizeof(TSLexeme) * 2);
 				res->lexeme = trgchar = palloc(len * pg_database_encoding_max_length() + 1 /* \0 */ );
 				res->flags = TSL_FILTER;

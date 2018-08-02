@@ -5,7 +5,7 @@
 BEGIN
 {
 
-	chdir("../../..") if  (-d "../msvc" && -d "../../../src");
+    chdir("../../..") if  (-d "../msvc" && -d "../../../src");
 
 }
 
@@ -19,13 +19,13 @@ use Mkvcbuild;
 # it should contain lines like:
 # $ENV{PATH} = "c:/path/to/bison/bin;$ENV{PATH}";
 
-if (-e "src/tools/msvc/buildenv.pl")
+if ( -e "src/tools/msvc/buildenv.pl")
 {
-	require "src/tools/msvc/buildenv.pl";
+    require "src/tools/msvc/buildenv.pl";
 }
-elsif (-e "./buildenv.pl")
+elsif (-e "./buildenv.pl" )
 {
-	require "./buildenv.pl";
+    require "./buildenv.pl";
 }
 
 # set up the project
@@ -33,7 +33,7 @@ our $config;
 require "config_default.pl";
 require "config.pl" if (-f "src/tools/msvc/config.pl");
 
-my $vcver = Mkvcbuild::mkvcbuild($config);
+Mkvcbuild::mkvcbuild($config);
 
 # check what sort of build we are doing
 
@@ -41,26 +41,22 @@ my $bconf = $ENV{CONFIG} || "Release";
 my $buildwhat = $ARGV[1] || "";
 if ($ARGV[0] eq 'DEBUG')
 {
-	$bconf = "Debug";
+    $bconf = "Debug";
 }
 elsif ($ARGV[0] ne "RELEASE")
 {
-	$buildwhat = $ARGV[0] || "";
+    $buildwhat = $ARGV[0] || "";
 }
 
 # ... and do it
 
-if ($buildwhat and $vcver eq '10.00')
+if ($buildwhat)
 {
-	system("msbuild $buildwhat.vcxproj /verbosity:detailed /p:Configuration=$bconf");
-}
-elsif ($buildwhat)
-{
-	system("vcbuild $buildwhat.vcproj $bconf");
+    system("vcbuild $buildwhat.vcproj $bconf");
 }
 else
 {
-	system("msbuild pgsql.sln /verbosity:detailed /p:Configuration=$bconf");
+    system("msbuild pgsql.sln /verbosity:detailed /p:Configuration=$bconf");
 }
 
 # report status

@@ -36,6 +36,7 @@
 #include "px.h"
 #include "md5.h"
 #include "sha1.h"
+#include "sha2.h"
 #include "blf.h"
 #include "rijndael.h"
 #include "fortuna.h"
@@ -603,7 +604,7 @@ px_find_cipher(const char *name, PX_Cipher **res)
 	name = px_resolve_alias(int_aliases, name);
 
 	for (i = 0; int_ciphers[i].name; i++)
-		if (strcmp(int_ciphers[i].name, name) == 0)
+		if (!strcmp(int_ciphers[i].name, name))
 		{
 			c = int_ciphers[i].load();
 			break;

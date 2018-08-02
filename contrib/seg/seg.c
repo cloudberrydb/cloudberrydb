@@ -13,6 +13,7 @@
 
 #include "access/gist.h"
 #include "access/skey.h"
+#include "utils/builtins.h"
 
 #include "segdata.h"
 

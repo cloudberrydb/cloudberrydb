@@ -18,7 +18,7 @@
 #include "pgtypes_date.h"
 
 
-int PGTYPEStimestamp_defmt_scan(char **, const char *, timestamp *, int *, int *, int *,
+int PGTYPEStimestamp_defmt_scan(char **, char *, timestamp *, int *, int *, int *,
 							int *, int *, int *, int *);
 
 #ifdef HAVE_INT64_TIMESTAMP
@@ -119,7 +119,7 @@ SetEpochTimestamp(void)
  *	local time zone. If out of this range, leave as GMT. - tgl 97/05/27
  */
 static int
-timestamp2tm(timestamp dt, int *tzp, struct tm * tm, fsec_t *fsec, const char **tzn)
+timestamp2tm(timestamp dt, int *tzp, struct tm * tm, fsec_t *fsec, char **tzn)
 {
 #ifdef HAVE_INT64_TIMESTAMP
 	int64		dDate,
@@ -130,8 +130,9 @@ timestamp2tm(timestamp dt, int *tzp, struct tm * tm, fsec_t *fsec, const char **
 				date0;
 	double		time;
 #endif
-#if defined(HAVE_TM_ZONE) || defined(HAVE_INT_TIMEZONE)
 	time_t		utime;
+
+#if defined(HAVE_TM_ZONE) || defined(HAVE_INT_TIMEZONE)
 	struct tm  *tx;
 #endif
 
@@ -201,8 +202,6 @@ recalc_t:
 		 */
 		if (IS_VALID_UTIME(tm->tm_year, tm->tm_mon, tm->tm_mday))
 		{
-#if defined(HAVE_TM_ZONE) || defined(HAVE_INT_TIMEZONE)
-
 #ifdef HAVE_INT64_TIMESTAMP
 			utime = dt / USECS_PER_SEC +
 				((date0 - date2j(1970, 1, 1)) * INT64CONST(86400));
@@ -210,6 +209,7 @@ recalc_t:
 			utime = dt + (date0 - date2j(1970, 1, 1)) * SECS_PER_DAY;
 #endif
 
+#if defined(HAVE_TM_ZONE) || defined(HAVE_INT_TIMEZONE)
 			tx = localtime(&utime);
 			tm->tm_year = tx->tm_year + 1900;
 			tm->tm_mon = tx->tm_mon + 1;
@@ -224,7 +224,7 @@ recalc_t:
 
 			*tzp = -tm->tm_gmtoff;		/* tm_gmtoff is Sun/DEC-ism */
 			if (tzn != NULL)
-				*tzn = tm->tm_zone;
+				*tzn = (char *) tm->tm_zone;
 #elif defined(HAVE_INT_TIMEZONE)
 			*tzp = (tm->tm_isdst > 0) ? TIMEZONE_GLOBAL - SECS_PER_HOUR : TIMEZONE_GLOBAL;
 			if (tzn != NULL)
@@ -342,7 +342,7 @@ PGTYPEStimestamp_from_asc(char *str, char **endptr)
 
 	/*
 	 * Since it's difficult to test for noresult, make sure errno is 0 if no
-	 * error occurred.
+	 * error occured.
 	 */
 	errno = 0;
 	return result;
@@ -354,6 +354,7 @@ PGTYPEStimestamp_to_asc(timestamp tstamp)
 	struct tm	tt,
 			   *tm = &tt;
 	char		buf[MAXDATELEN + 1];
+	char	   *tzn = NULL;
 	fsec_t		fsec;
 	int			DateStyle = 1;	/* this defaults to ISO_DATES, shall we make
 								 * it an option? */
@@ -361,7 +362,7 @@ PGTYPEStimestamp_to_asc(timestamp tstamp)
 	if (TIMESTAMP_NOT_FINITE(tstamp))
 		EncodeSpecialTimestamp(tstamp, buf);
 	else if (timestamp2tm(tstamp, NULL, tm, &fsec, NULL) == 0)
-		EncodeDateTime(tm, fsec, false, 0, NULL, DateStyle, buf, 0);
+		EncodeDateTime(tm, fsec, NULL, &tzn, DateStyle, buf, 0);
 	else
 	{
 		errno = PGTYPES_TS_BAD_TIMESTAMP;
@@ -383,12 +384,12 @@ PGTYPEStimestamp_current(timestamp * ts)
 
 static int
 dttofmtasc_replace(timestamp * ts, date dDate, int dow, struct tm * tm,
-				   char *output, int *pstr_len, const char *fmtstr)
+				   char *output, int *pstr_len, char *fmtstr)
 {
 	union un_fmt_comb replace_val;
 	int			replace_type;
 	int			i;
-	const char *p = fmtstr;
+	char	   *p = fmtstr;
 	char	   *q = output;
 
 	while (*p)
@@ -865,7 +866,7 @@ dttofmtasc_replace(timestamp * ts, date dDate, int dow, struct tm * tm,
 
 
 int
-PGTYPEStimestamp_fmt_asc(timestamp * ts, char *output, int str_len, const char *fmtstr)
+PGTYPEStimestamp_fmt_asc(timestamp * ts, char *output, int str_len, char *fmtstr)
 {
 	struct tm	tm;
 	fsec_t		fsec;
@@ -893,7 +894,7 @@ PGTYPEStimestamp_sub(timestamp * ts1, timestamp * ts2, interval * iv)
 }
 
 int
-PGTYPEStimestamp_defmt_asc(char *str, const char *fmt, timestamp * d)
+PGTYPEStimestamp_defmt_asc(char *str, char *fmt, timestamp * d)
 {
 	int			year,
 				month,

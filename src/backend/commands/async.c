@@ -3,7 +3,7 @@
  * async.c
  *	  Asynchronous notification: NOTIFY, LISTEN, UNLISTEN
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -133,7 +133,6 @@
 #include "utils/builtins.h"
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
-#include "utils/timestamp.h"
 
 
 /*
@@ -195,7 +194,7 @@ typedef struct QueuePosition
 
 /* choose logically smaller QueuePosition */
 #define QUEUE_POS_MIN(x,y) \
-	(asyncQueuePagePrecedes((x).page, (y).page) ? (x) : \
+	(asyncQueuePagePrecedesLogically((x).page, (y).page) ? (x) : \
 	 (x).page != (y).page ? (y) : \
 	 (x).offset < (y).offset ? (x) : (y))
 
@@ -361,7 +360,8 @@ static bool backendHasExecutedInitialListen = false;
 bool		Trace_notify = false;
 
 /* local function prototypes */
-static bool asyncQueuePagePrecedes(int p, int q);
+static bool asyncQueuePagePrecedesPhysically(int p, int q);
+static bool asyncQueuePagePrecedesLogically(int p, int q);
 static void queue_listen(ListenActionKind action, const char *channel);
 static void Async_UnlistenOnExit(int code, Datum arg);
 static void Exec_ListenPreCommit(void);
@@ -388,11 +388,25 @@ static void NotifyMyFrontEnd(const char *channel,
 static bool AsyncExistsPendingNotify(const char *channel, const char *payload);
 static void ClearPendingActionsAndNotifies(void);
 
+
 /*
  * We will work on the page range of 0..QUEUE_MAX_PAGE.
+ *
+ * asyncQueuePagePrecedesPhysically just checks numerically without any magic
+ * if one page precedes another one.  This is wrong for normal operation but
+ * is helpful when clearing pg_notify/ during startup.
+ *
+ * asyncQueuePagePrecedesLogically compares using wraparound logic, as is
+ * required by slru.c.
  */
 static bool
-asyncQueuePagePrecedes(int p, int q)
+asyncQueuePagePrecedesPhysically(int p, int q)
+{
+	return p < q;
+}
+
+static bool
+asyncQueuePagePrecedesLogically(int p, int q)
 {
 	int			diff;
 
@@ -470,7 +484,7 @@ AsyncShmemInit(void)
 	/*
 	 * Set up SLRU management of the pg_notify data.
 	 */
-	AsyncCtl->PagePrecedes = asyncQueuePagePrecedes;
+	AsyncCtl->PagePrecedes = asyncQueuePagePrecedesLogically;
 	SimpleLruInit(AsyncCtl, "Async Ctl", NUM_ASYNC_BUFFERS, 0,
 				  AsyncCtlLock, "pg_notify");
 	/* Override default assumption that writes should be fsync'd */
@@ -480,8 +494,15 @@ AsyncShmemInit(void)
 	{
 		/*
 		 * During start or reboot, clean out the pg_notify directory.
+		 *
+		 * Since we want to remove every file, we temporarily use
+		 * asyncQueuePagePrecedesPhysically() and pass INT_MAX as the
+		 * comparison value; every file in the directory should therefore
+		 * appear to be less than that.
 		 */
-		(void) SlruScanDirectory(AsyncCtl, SlruScanDirCbDeleteAll, NULL);
+		AsyncCtl->PagePrecedes = asyncQueuePagePrecedesPhysically;
+		(void) SlruScanDirectory(AsyncCtl, INT_MAX, true);
+		AsyncCtl->PagePrecedes = asyncQueuePagePrecedesLogically;
 
 		/* Now initialize page zero to empty */
 		LWLockAcquire(AsyncCtlLock, LW_EXCLUSIVE);
@@ -740,7 +761,7 @@ AtPrepare_Notify(void)
 	if (pendingActions || pendingNotifies)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("cannot PREPARE a transaction that has executed LISTEN, UNLISTEN, or NOTIFY")));
+				 errmsg("cannot PREPARE a transaction that has executed LISTEN, UNLISTEN or NOTIFY")));
 }
 
 /*
@@ -1202,7 +1223,7 @@ asyncQueueIsFull(void)
 		nexthead = 0;			/* wrap around */
 	boundary = QUEUE_POS_PAGE(QUEUE_TAIL);
 	boundary -= boundary % SLRU_PAGES_PER_SEGMENT;
-	return asyncQueuePagePrecedes(nexthead, boundary);
+	return asyncQueuePagePrecedesLogically(nexthead, boundary);
 }
 
 /*
@@ -2052,7 +2073,7 @@ asyncQueueAdvanceTail(void)
 	 */
 	newtailpage = QUEUE_POS_PAGE(min);
 	boundary = newtailpage - (newtailpage % SLRU_PAGES_PER_SEGMENT);
-	if (asyncQueuePagePrecedes(oldtailpage, boundary))
+	if (asyncQueuePagePrecedesLogically(oldtailpage, boundary))
 	{
 		/*
 		 * SimpleLruTruncate() will ask for AsyncCtlLock but will also release

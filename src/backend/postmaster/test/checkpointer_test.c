@@ -8,7 +8,6 @@
 #include "postgres.h"
 
 #define MAX_BGW_REQUESTS 5
-
 void
 init_request_queue(void)
 {
@@ -18,8 +17,6 @@ init_request_queue(void)
 	CheckpointerShmem->checkpointer_pid = 1234;
 	CheckpointerShmem->max_requests = MAX_BGW_REQUESTS;
 	IsUnderPostmaster = true;
-	ProcGlobal = (PROC_HDR *) malloc(sizeof(PROC_HDR));
-	ProcGlobal->checkpointerLatch = NULL;
 }
 
 /*
@@ -33,7 +30,6 @@ test__ForwardFsyncRequest_enqueue(void **state)
 	int i;
 	RelFileNode dummy = {1,1,1};
 	init_request_queue();
-	ProcGlobal->checkpointerLatch = NULL;
 	expect_value(LWLockAcquire, lockid, CheckpointerCommLock);
 	expect_value(LWLockAcquire, mode, LW_EXCLUSIVE);
 	will_be_called(LWLockAcquire);

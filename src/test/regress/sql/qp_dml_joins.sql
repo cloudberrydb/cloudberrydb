@@ -9,11 +9,6 @@
 -- end_matchsubs
 
 -- First create a bunch of test tables
-
--- start_matchsubs
--- m/DETAIL:  Failing row contains \(.*\)/
--- s/DETAIL:  Failing row contains \(.*\)/DETAIL:  Failing row contains (#####)/
--- end_matchsubs
 SET statement_mem='250 MB';
 
 CREATE TABLE dml_ao_check_r (

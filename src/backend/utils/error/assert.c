@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,8 +26,11 @@
 
 /*
  * ExceptionalCondition - Handles the failure of an Assert()
+ *
+ * Note: this can't actually return, but we declare it as returning int
+ * because the TrapMacro() macro might get wonky otherwise.
  */
-void
+int
 ExceptionalCondition(const char *conditionName,
 					 const char *errorType,
 					 const char *fileName,
@@ -64,4 +67,5 @@ ExceptionalCondition(const char *conditionName,
 #endif
 
 	abort();
+	return 0;
 }

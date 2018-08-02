@@ -11,7 +11,7 @@
  *			- Add a pgstat config column to pg_database, so this
  *			  entire thing can be enabled/disabled on a per db basis.
  *
- *	Copyright (c) 2001-2012, PostgreSQL Global Development Group
+ *	Copyright (c) 2001-2011, PostgreSQL Global Development Group
  *
  *	src/backend/postmaster/pgstat.c
  * ----------
@@ -28,6 +28,12 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <time.h>
+#ifdef HAVE_POLL_H
+#include <poll.h>
+#endif
+#ifdef HAVE_SYS_POLL_H
+#include <sys/poll.h>
+#endif
 
 #include "pgstat.h"
 
@@ -50,15 +56,13 @@
 #include "storage/backendid.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
-#include "storage/latch.h"
 #include "storage/pg_shmem.h"
+#include "storage/pmsignal.h"
 #include "storage/procsignal.h"
-#include "utils/ascii.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
 #include "utils/rel.h"
-#include "utils/timestamp.h"
 #include "utils/tqual.h"
 #include "cdb/cdbvars.h"
 
@@ -79,21 +83,20 @@
 #define PGSTAT_STAT_INTERVAL	500		/* Minimum time between stats file
 										 * updates; in milliseconds. */
 
-#define PGSTAT_RETRY_DELAY		10		/* How long to wait between checks for
-										 * a new file; in milliseconds. */
+#define PGSTAT_RETRY_DELAY		10		/* How long to wait between statistics
+										 * update requests; in milliseconds. */
 
-#define PGSTAT_MAX_WAIT_TIME	10000	/* Maximum time to wait for a stats
+#define PGSTAT_MAX_WAIT_TIME	5000	/* Maximum time to wait for a stats
 										 * file update; in milliseconds. */
-
-#define PGSTAT_INQ_INTERVAL		640		/* How often to ping the collector for
-										 * a new file; in milliseconds. */
 
 #define PGSTAT_RESTART_INTERVAL 60		/* How often to attempt to restart a
 										 * failed statistics collector; in
 										 * seconds. */
 
+#define PGSTAT_SELECT_TIMEOUT	2		/* How often to check for postmaster
+										 * death; in seconds. */
+
 #define PGSTAT_POLL_LOOP_COUNT	(PGSTAT_MAX_WAIT_TIME / PGSTAT_RETRY_DELAY)
-#define PGSTAT_INQ_LOOP_COUNT	(PGSTAT_INQ_INTERVAL / PGSTAT_RETRY_DELAY)
 
 
 /* ----------
@@ -136,8 +139,6 @@ PgStat_MsgBgWriter BgWriterStats;
  * ----------
  */
 NON_EXEC_STATIC pgsocket pgStatSock = PGINVALID_SOCKET;
-
-static Latch pgStatLatch;
 
 static struct sockaddr_storage pgStatAddr;
 
@@ -197,8 +198,6 @@ static PgStat_SubXactStatus *pgStatXactStack = NULL;
 
 static int	pgStatXactCommit = 0;
 static int	pgStatXactRollback = 0;
-PgStat_Counter pgStatBlockReadTime = 0;
-PgStat_Counter pgStatBlockWriteTime = 0;
 
 /* Record that's written to 2PC state file when pgstat state is persisted */
 typedef struct TwoPhasePgStatRecord
@@ -303,8 +302,6 @@ static void pgstat_recv_bgwriter(PgStat_MsgBgWriter *msg, int len);
 static void pgstat_recv_funcstat(PgStat_MsgFuncstat *msg, int len);
 static void pgstat_recv_funcpurge(PgStat_MsgFuncpurge *msg, int len);
 static void pgstat_recv_recoveryconflict(PgStat_MsgRecoveryConflict *msg, int len);
-static void pgstat_recv_deadlock(PgStat_MsgDeadlock *msg, int len);
-static void pgstat_recv_tempfile(PgStat_MsgTempFile *msg, int len);
 
 
 /* ------------------------------------------------------------
@@ -807,26 +804,20 @@ pgstat_send_tabstat(PgStat_MsgTabstat *tsmsg)
 		return;
 
 	/*
-	 * Report and reset accumulated xact commit/rollback and I/O timings
-	 * whenever we send a normal tabstat message
+	 * Report accumulated xact commit/rollback whenever we send a normal
+	 * tabstat message
 	 */
 	if (OidIsValid(tsmsg->m_databaseid))
 	{
 		tsmsg->m_xact_commit = pgStatXactCommit;
 		tsmsg->m_xact_rollback = pgStatXactRollback;
-		tsmsg->m_block_read_time = pgStatBlockReadTime;
-		tsmsg->m_block_write_time = pgStatBlockWriteTime;
 		pgStatXactCommit = 0;
 		pgStatXactRollback = 0;
-		pgStatBlockReadTime = 0;
-		pgStatBlockWriteTime = 0;
 	}
 	else
 	{
 		tsmsg->m_xact_commit = 0;
 		tsmsg->m_xact_rollback = 0;
-		tsmsg->m_block_read_time = 0;
-		tsmsg->m_block_write_time = 0;
 	}
 
 	n = tsmsg->m_nentries;
@@ -871,8 +862,8 @@ pgstat_send_funcstats(void)
 		m_ent = &msg.m_entry[msg.m_nentries];
 		m_ent->f_id = entry->f_id;
 		m_ent->f_numcalls = entry->f_counts.f_numcalls;
-		m_ent->f_total_time = INSTR_TIME_GET_MICROSEC(entry->f_counts.f_total_time);
-		m_ent->f_self_time = INSTR_TIME_GET_MICROSEC(entry->f_counts.f_self_time);
+		m_ent->f_time = INSTR_TIME_GET_MICROSEC(entry->f_counts.f_time);
+		m_ent->f_time_self = INSTR_TIME_GET_MICROSEC(entry->f_counts.f_time_self);
 
 		if (++msg.m_nentries >= PGSTAT_NUM_FUNCENTRIES)
 		{
@@ -1372,46 +1363,6 @@ pgstat_report_recovery_conflict(int reason)
 	pgstat_send(&msg, sizeof(msg));
 }
 
-/* --------
- * pgstat_report_deadlock() -
- *
- *	Tell the collector about a deadlock detected.
- * --------
- */
-void
-pgstat_report_deadlock(void)
-{
-	PgStat_MsgDeadlock msg;
-
-	if (pgStatSock == PGINVALID_SOCKET || !pgstat_track_counts)
-		return;
-
-	pgstat_setheader(&msg.m_hdr, PGSTAT_MTYPE_DEADLOCK);
-	msg.m_databaseid = MyDatabaseId;
-	pgstat_send(&msg, sizeof(msg));
-}
-
-/* --------
- * pgstat_report_tempfile() -
- *
- *	Tell the collector about a temporary file.
- * --------
- */
-void
-pgstat_report_tempfile(size_t filesize)
-{
-	PgStat_MsgTempFile msg;
-
-	if (pgStatSock == PGINVALID_SOCKET || !pgstat_track_counts)
-		return;
-
-	pgstat_setheader(&msg.m_hdr, PGSTAT_MTYPE_TEMPFILE);
-	msg.m_databaseid = MyDatabaseId;
-	msg.m_filesize = filesize;
-	pgstat_send(&msg, sizeof(msg));
-}
-
-
 /* ----------
  * pgstat_ping() -
  *
@@ -1490,7 +1441,7 @@ pgstat_init_function_usage(FunctionCallInfoData *fcinfo,
 	fcu->fs = &htabent->f_counts;
 
 	/* save stats for this function, later used to compensate for recursion */
-	fcu->save_f_total_time = htabent->f_counts.f_total_time;
+	fcu->save_f_time = htabent->f_counts.f_time;
 
 	/* save current backend-wide total time */
 	fcu->save_total = total_func_time;
@@ -1551,19 +1502,19 @@ pgstat_end_function_usage(PgStat_FunctionCallUsage *fcu, bool finalize)
 	INSTR_TIME_ADD(total_func_time, f_self);
 
 	/*
-	 * Compute the new f_total_time as the total elapsed time added to the
-	 * pre-call value of f_total_time.	This is necessary to avoid
-	 * double-counting any time taken by recursive calls of myself.  (We do
-	 * not need any similar kluge for self time, since that already excludes
-	 * any recursive calls.)
+	 * Compute the new total f_time as the total elapsed time added to the
+	 * pre-call value of f_time.  This is necessary to avoid double-counting
+	 * any time taken by recursive calls of myself.  (We do not need any
+	 * similar kluge for self time, since that already excludes any recursive
+	 * calls.)
 	 */
-	INSTR_TIME_ADD(f_total, fcu->save_f_total_time);
+	INSTR_TIME_ADD(f_total, fcu->save_f_time);
 
 	/* update counters in function stats table */
 	if (finalize)
 		fs->f_numcalls++;
-	fs->f_total_time = f_total;
-	INSTR_TIME_ADD(fs->f_self_time, f_self);
+	fs->f_time = f_total;
+	INSTR_TIME_ADD(fs->f_time_self, f_self);
 
 	/* indicate that we have something to send */
 	have_function_stats = true;
@@ -1750,10 +1701,10 @@ add_tabstat_xact_level(PgStat_TableStatus *pgstat_info, int nest_level)
 }
 
 /*
- * pgstat_count_heap_insert - count a tuple insertion of n tuples
+ * pgstat_count_heap_insert - count a tuple insertion
  */
 void
-pgstat_count_heap_insert(Relation rel, int n)
+pgstat_count_heap_insert(Relation rel)
 {
 	PgStat_TableStatus *pgstat_info = rel->pgstat_info;
 
@@ -1766,7 +1717,7 @@ pgstat_count_heap_insert(Relation rel, int n)
 			pgstat_info->trans->nest_level != nest_level)
 			add_tabstat_xact_level(pgstat_info, nest_level);
 
-		pgstat_info->trans->tuples_inserted += n;
+		pgstat_info->trans->tuples_inserted++;
 	}
 }
 
@@ -2301,7 +2252,6 @@ static PgBackendStatus *MyBEEntry = NULL;
 static char *BackendClientHostnameBuffer = NULL;
 static char *BackendAppnameBuffer = NULL;
 static char *BackendActivityBuffer = NULL;
-static Size BackendActivityBufferSize = 0;
 
 
 /*
@@ -2384,12 +2334,9 @@ CreateSharedBackendStatus(void)
 	}
 
 	/* Create or attach to the shared activity buffer */
-	BackendActivityBufferSize = mul_size(pgstat_track_activity_query_size,
-										 MaxBackends);
+	size = mul_size(pgstat_track_activity_query_size, MaxBackends);
 	BackendActivityBuffer = (char *)
-		ShmemInitStruct("Backend Activity Buffer",
-						BackendActivityBufferSize,
-						&found);
+		ShmemInitStruct("Backend Activity Buffer", size, &found);
 
 	if (!found)
 	{
@@ -2482,7 +2429,6 @@ pgstat_bestart(void)
 	beentry->st_procpid = MyProcPid;
 	beentry->st_proc_start_timestamp = proc_start_timestamp;
 	beentry->st_activity_start_timestamp = 0;
-	beentry->st_state_start_timestamp = 0;
 	beentry->st_xact_start_timestamp = 0;
 	beentry->st_resgroup_queue_start_timestamp = 0;
 	beentry->st_databaseid = MyDatabaseId;
@@ -2491,7 +2437,6 @@ pgstat_bestart(void)
 	beentry->st_clientaddr = clientaddr;
 	beentry->st_clienthostname[0] = '\0';
 	beentry->st_waiting = PGBE_WAITING_NONE;
-	beentry->st_state = STATE_UNDEFINED;
 	beentry->st_appname[0] = '\0';
 	beentry->st_activity[0] = '\0';
 	/* Also make sure the last byte in each string area is always 0 */
@@ -2559,70 +2504,39 @@ pgstat_beshutdown_hook(int code, Datum arg)
  *
  *	Called from tcop/postgres.c to report what the backend is actually doing
  *	(usually "<IDLE>" or the start of the query to be executed).
- *
- * All updates of the status entry follow the protocol of bumping
- * st_changecount before and after.  We use a volatile pointer here to
- * ensure the compiler doesn't try to get cute.
  * ----------
  */
 void
-pgstat_report_activity(BackendState state, const char *cmd_str)
+pgstat_report_activity(const char *cmd_str)
 {
 	volatile PgBackendStatus *beentry = MyBEEntry;
 	TimestampTz start_timestamp;
-	TimestampTz current_timestamp;
-	int			len = 0;
+	int			len;
 
 	TRACE_POSTGRESQL_STATEMENT_STATUS(cmd_str);
 
-	if (!beentry)
+	if (!pgstat_track_activities || !beentry)
 		return;
 
 	/*
 	 * To minimize the time spent modifying the entry, fetch all the needed
 	 * data first.
 	 */
-	current_timestamp = GetCurrentTimestamp();
-
-	if (!pgstat_track_activities && beentry->st_state != STATE_DISABLED)
-	{
-		/*
-		 * Track activities is disabled, but we have a non-disabled state set.
-		 * That means the status changed - so as our last update, tell the
-		 * collector that we disabled it and will no longer update.
-		 */
-		beentry->st_changecount++;
-		beentry->st_state = STATE_DISABLED;
-		beentry->st_state_start_timestamp = current_timestamp;
-		beentry->st_changecount++;
-		Assert((beentry->st_changecount & 1) == 0);
-		return;
-	}
-
-	/*
-	 * Fetch more data before we start modifying the entry
-	 */
 	start_timestamp = GetCurrentStatementStartTimestamp();
-	if (cmd_str != NULL)
-	{
-		len = pg_mbcliplen(cmd_str, strlen(cmd_str),
-						   pgstat_track_activity_query_size - 1);
-	}
+
+	len = strlen(cmd_str);
+	len = pg_mbcliplen(cmd_str, len, pgstat_track_activity_query_size - 1);
 
 	/*
-	 * Now update the status entry
+	 * Update my status entry, following the protocol of bumping
+	 * st_changecount before and after.  We use a volatile pointer here to
+	 * ensure the compiler doesn't try to get cute.
 	 */
 	beentry->st_changecount++;
 
-	beentry->st_state = state;
-	beentry->st_state_start_timestamp = current_timestamp;
-
-	if (cmd_str != NULL)
-	{
-		memcpy((char *) beentry->st_activity, cmd_str, len);
-		beentry->st_activity[len] = '\0';
-		beentry->st_activity_start_timestamp = start_timestamp;
-	}
+	beentry->st_activity_start_timestamp = start_timestamp;
+	memcpy((char *) beentry->st_activity, cmd_str, len);
+	beentry->st_activity[len] = '\0';
 
 	beentry->st_changecount++;
 	Assert((beentry->st_changecount & 1) == 0);
@@ -2924,80 +2838,6 @@ pgstat_get_backend_current_activity(int pid, bool checkUser)
 	return "<backend information not available>";
 }
 
-/* ----------
- * pgstat_get_crashed_backend_activity() -
- *
- *	Return a string representing the current activity of the backend with
- *	the specified PID.	Like the function above, but reads shared memory with
- *	the expectation that it may be corrupt.  On success, copy the string
- *	into the "buffer" argument and return that pointer.  On failure,
- *	return NULL.
- *
- *	This function is only intended to be used by the postmaster to report the
- *	query that crashed a backend.  In particular, no attempt is made to
- *	follow the correct concurrency protocol when accessing the
- *	BackendStatusArray.  But that's OK, in the worst case we'll return a
- *	corrupted message.	We also must take care not to trip on ereport(ERROR).
- * ----------
- */
-const char *
-pgstat_get_crashed_backend_activity(int pid, char *buffer, int buflen)
-{
-	volatile PgBackendStatus *beentry;
-	int			i;
-
-	beentry = BackendStatusArray;
-
-	/*
-	 * We probably shouldn't get here before shared memory has been set up,
-	 * but be safe.
-	 */
-	if (beentry == NULL || BackendActivityBuffer == NULL)
-		return NULL;
-
-	for (i = 1; i <= MaxBackends; i++)
-	{
-		if (beentry->st_procpid == pid)
-		{
-			/* Read pointer just once, so it can't change after validation */
-			const char *activity = beentry->st_activity;
-			const char *activity_last;
-
-			/*
-			 * We mustn't access activity string before we verify that it
-			 * falls within the BackendActivityBuffer. To make sure that the
-			 * entire string including its ending is contained within the
-			 * buffer, subtract one activity length from the buffer size.
-			 */
-			activity_last = BackendActivityBuffer + BackendActivityBufferSize
-				- pgstat_track_activity_query_size;
-
-			if (activity < BackendActivityBuffer ||
-				activity > activity_last)
-				return NULL;
-
-			/* If no string available, no point in a report */
-			if (activity[0] == '\0')
-				return NULL;
-
-			/*
-			 * Copy only ASCII-safe characters so we don't run into encoding
-			 * problems when reporting the message; and be sure not to run off
-			 * the end of memory.
-			 */
-			ascii_safe_strlcpy(buffer, activity,
-							   Min(buflen, pgstat_track_activity_query_size));
-
-			return buffer;
-		}
-
-		beentry++;
-	}
-
-	/* PID not found */
-	return NULL;
-}
-
 
 /* ------------------------------------------------------------
  * Local support functions follow
@@ -3094,7 +2934,15 @@ PgstatCollectorMain(int argc, char *argv[])
 {
 	int			len;
 	PgStat_Msg	msg;
-	int			wr;
+
+#ifndef WIN32
+#ifdef HAVE_POLL
+	struct pollfd input_fd;
+#else
+	struct timeval sel_timeout;
+	fd_set		rfds;
+#endif
+#endif
 
 	IsUnderPostmaster = true;	/* we are a postmaster subprocess now */
 
@@ -3113,13 +2961,9 @@ PgstatCollectorMain(int argc, char *argv[])
 		elog(FATAL, "setsid() failed: %m");
 #endif
 
-	/* Initialize private latch for use by signal handlers */
-	InitLatch(&pgStatLatch);
-
 	/*
 	 * Ignore all signals usually bound to some action in the postmaster,
-	 * except SIGHUP and SIGQUIT.  Note we don't need a SIGUSR1 handler to
-	 * support latch operations, because pgStatLatch is local not shared.
+	 * except SIGQUIT.
 	 */
 	pqsignal(SIGHUP, pgstat_sighup_handler);
 	pqsignal(SIGINT, SIG_IGN);
@@ -3155,23 +2999,25 @@ PgstatCollectorMain(int argc, char *argv[])
 	pgStatDBHash = pgstat_read_statsfile(InvalidOid, true);
 
 	/*
+	 * Setup the descriptor set for select(2).	Since only one bit in the set
+	 * ever changes, we need not repeat FD_ZERO each time.
+	 */
+#if !defined(HAVE_POLL) && !defined(WIN32)
+	FD_ZERO(&rfds);
+#endif
+
+	/*
 	 * Loop to process messages until we get SIGQUIT or detect ungraceful
 	 * death of our parent postmaster.
 	 *
-	 * For performance reasons, we don't want to do ResetLatch/WaitLatch after
-	 * every message; instead, do that only after a recv() fails to obtain a
-	 * message.  (This effectively means that if backends are sending us stuff
-	 * like mad, we won't notice postmaster death until things slack off a
-	 * bit; which seems fine.)	To do that, we have an inner loop that
-	 * iterates as long as recv() succeeds.  We do recognize got_SIGHUP inside
-	 * the inner loop, which means that such interrupts will get serviced but
-	 * the latch won't get cleared until next time there is a break in the
-	 * action.
+	 * For performance reasons, we don't want to do a PostmasterIsAlive() test
+	 * after every message; instead, do it only when select()/poll() is
+	 * interrupted by timeout.	In essence, we'll stay alive as long as
+	 * backends keep sending us stuff often, even if the postmaster is gone.
 	 */
 	for (;;)
 	{
-		/* Clear any already-pending wakeups */
-		ResetLatch(&pgStatLatch);
+		int			got_data;
 
 		/*
 		 * Quit if we get SIGQUIT from the postmaster.
@@ -3180,50 +3026,87 @@ PgstatCollectorMain(int argc, char *argv[])
 			break;
 
 		/*
-		 * Inner loop iterates as long as we keep getting messages, or until
-		 * need_exit becomes set.
+		 * Reload configuration if we got SIGHUP from the postmaster.
 		 */
-		while (!need_exit)
+		if (got_SIGHUP)
 		{
-			/*
-			 * Reload configuration if we got SIGHUP from the postmaster.
-			 */
-			if (got_SIGHUP)
-			{
-				got_SIGHUP = false;
-				ProcessConfigFile(PGC_SIGHUP);
-			}
+			ProcessConfigFile(PGC_SIGHUP);
+			got_SIGHUP = false;
+		}
 
-			/*
-			 * Write the stats file if a new request has arrived that is not
-			 * satisfied by existing file.
-			 */
-			if (last_statwrite < last_statrequest)
-				pgstat_write_statsfile(false);
+		/*
+		 * Write the stats file if a new request has arrived that is not
+		 * satisfied by existing file.
+		 */
+		if (last_statwrite < last_statrequest)
+			pgstat_write_statsfile(false);
 
-			/*
-			 * Try to receive and process a message.  This will not block,
-			 * since the socket is set to non-blocking mode.
-			 *
-			 * XXX On Windows, we have to force pgwin32_recv to cooperate,
-			 * despite the previous use of pg_set_noblock() on the socket.
-			 * This is extremely broken and should be fixed someday.
-			 */
-#ifdef WIN32
-			pgwin32_noblock = 1;
+		/*
+		 * Wait for a message to arrive; but not for more than
+		 * PGSTAT_SELECT_TIMEOUT seconds. (This determines how quickly we will
+		 * shut down after an ungraceful postmaster termination; so it needn't
+		 * be very fast.  However, on some systems SIGQUIT won't interrupt the
+		 * poll/select call, so this also limits speed of response to SIGQUIT,
+		 * which is more important.)
+		 *
+		 * We use poll(2) if available, otherwise select(2). Win32 has its own
+		 * implementation.
+		 */
+#ifndef WIN32
+#ifdef HAVE_POLL
+		input_fd.fd = pgStatSock;
+		input_fd.events = POLLIN | POLLERR;
+		input_fd.revents = 0;
+
+		if (poll(&input_fd, 1, PGSTAT_SELECT_TIMEOUT * 1000) < 0)
+		{
+			if (errno == EINTR)
+				continue;
+			ereport(ERROR,
+					(errcode_for_socket_access(),
+					 errmsg("poll() failed in statistics collector: %m")));
+		}
+
+		got_data = (input_fd.revents != 0);
+#else							/* !HAVE_POLL */
+
+		FD_SET(pgStatSock, &rfds);
+
+		/*
+		 * timeout struct is modified by select() on some operating systems,
+		 * so re-fill it each time.
+		 */
+		sel_timeout.tv_sec = PGSTAT_SELECT_TIMEOUT;
+		sel_timeout.tv_usec = 0;
+
+		if (select(pgStatSock + 1, &rfds, NULL, NULL, &sel_timeout) < 0)
+		{
+			if (errno == EINTR)
+				continue;
+			ereport(ERROR,
+					(errcode_for_socket_access(),
+					 errmsg("select() failed in statistics collector: %m")));
+		}
+
+		got_data = FD_ISSET(pgStatSock, &rfds);
+#endif   /* HAVE_POLL */
+#else							/* WIN32 */
+		got_data = pgwin32_waitforsinglesocket(pgStatSock, FD_READ,
+											   PGSTAT_SELECT_TIMEOUT * 1000);
 #endif
 
+		/*
+		 * If there is a message on the socket, read it and check for
+		 * validity.
+		 */
+		if (got_data)
+		{
 			len = recv(pgStatSock, (char *) &msg,
 					   sizeof(PgStat_Msg), 0);
-
-#ifdef WIN32
-			pgwin32_noblock = 0;
-#endif
-
 			if (len < 0)
 			{
-				if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-					break;		/* out of inner loop */
+				if (errno == EINTR)
+					continue;
 				ereport(ERROR,
 						(errcode_for_socket_access(),
 						 errmsg("could not read statistics message: %m")));
@@ -3314,50 +3197,20 @@ PgstatCollectorMain(int argc, char *argv[])
 					pgstat_recv_recoveryconflict((PgStat_MsgRecoveryConflict *) &msg, len);
 					break;
 
-				case PGSTAT_MTYPE_DEADLOCK:
-					pgstat_recv_deadlock((PgStat_MsgDeadlock *) &msg, len);
-					break;
-
-				case PGSTAT_MTYPE_TEMPFILE:
-					pgstat_recv_tempfile((PgStat_MsgTempFile *) &msg, len);
-					break;
-
 				default:
 					break;
 			}
-		}						/* end of inner message-processing loop */
-
-		/* Sleep until there's something to do */
-#ifndef WIN32
-		wr = WaitLatchOrSocket(&pgStatLatch,
-					 WL_LATCH_SET | WL_POSTMASTER_DEATH | WL_SOCKET_READABLE,
-							   pgStatSock,
-							   -1L);
-#else
-
-		/*
-		 * Windows, at least in its Windows Server 2003 R2 incarnation,
-		 * sometimes loses FD_READ events.	Waking up and retrying the recv()
-		 * fixes that, so don't sleep indefinitely.  This is a crock of the
-		 * first water, but until somebody wants to debug exactly what's
-		 * happening there, this is the best we can do.  The two-second
-		 * timeout matches our pre-9.2 behavior, and needs to be short enough
-		 * to not provoke "pgstat wait timeout" complaints from
-		 * backend_read_statsfile.
-		 */
-		wr = WaitLatchOrSocket(&pgStatLatch,
-		WL_LATCH_SET | WL_POSTMASTER_DEATH | WL_SOCKET_READABLE | WL_TIMEOUT,
-							   pgStatSock,
-							   2 * 1000L /* msec */ );
-#endif
-
-		/*
-		 * Emergency bailout if postmaster has died.  This is to avoid the
-		 * necessity for manual cleanup of all postmaster children.
-		 */
-		if (wr & WL_POSTMASTER_DEATH)
-			break;
-	}							/* end of outer loop */
+		}
+		else
+		{
+			/*
+			 * We can only get here if the select/poll timeout elapsed. Check
+			 * for postmaster death.
+			 */
+			if (!PostmasterIsAlive(true))
+				break;
+		}
+	}							/* end of message-processing loop */
 
 	/*
 	 * Save the final stats to reuse at next startup.
@@ -3372,24 +3225,14 @@ PgstatCollectorMain(int argc, char *argv[])
 static void
 pgstat_exit(SIGNAL_ARGS)
 {
-	int			save_errno = errno;
-
 	need_exit = true;
-	SetLatch(&pgStatLatch);
-
-	errno = save_errno;
 }
 
 /* SIGHUP handler for collector process */
 static void
 pgstat_sighup_handler(SIGNAL_ARGS)
 {
-	int			save_errno = errno;
-
 	got_SIGHUP = true;
-	SetLatch(&pgStatLatch);
-
-	errno = save_errno;
 }
 
 
@@ -3435,11 +3278,6 @@ pgstat_get_db_entry(Oid databaseid, bool create)
 		result->n_conflict_snapshot = 0;
 		result->n_conflict_bufferpin = 0;
 		result->n_conflict_startup_deadlock = 0;
-		result->n_temp_files = 0;
-		result->n_temp_bytes = 0;
-		result->n_deadlocks = 0;
-		result->n_block_read_time = 0;
-		result->n_block_write_time = 0;
 
 		result->stat_reset_timestamp = GetCurrentTimestamp();
 
@@ -3538,7 +3376,6 @@ pgstat_write_statsfile(bool permanent)
 	int32		format_id;
 	const char *tmpfile = permanent ? PGSTAT_STAT_PERMANENT_TMPFILE : pgstat_stat_tmpname;
 	const char *statfile = permanent ? PGSTAT_STAT_PERMANENT_FILENAME : pgstat_stat_filename;
-	int			rc;
 
 	/*
 	 * Open the statistics temp file to write out the current values.
@@ -3562,14 +3399,12 @@ pgstat_write_statsfile(bool permanent)
 	 * Write the file header --- currently just a format ID.
 	 */
 	format_id = PGSTAT_FILE_FORMAT_ID;
-	rc = fwrite(&format_id, sizeof(format_id), 1, fpout);
-	(void) rc;					/* we'll check for error with ferror */
+	fwrite(&format_id, sizeof(format_id), 1, fpout);
 
 	/*
 	 * Write global stats struct
 	 */
-	rc = fwrite(&globalStats, sizeof(globalStats), 1, fpout);
-	(void) rc;					/* we'll check for error with ferror */
+	fwrite(&globalStats, sizeof(globalStats), 1, fpout);
 
 	/*
 	 * Walk through the database table.
@@ -3583,8 +3418,7 @@ pgstat_write_statsfile(bool permanent)
 		 * use to any other process.
 		 */
 		fputc('D', fpout);
-		rc = fwrite(dbentry, offsetof(PgStat_StatDBEntry, tables), 1, fpout);
-		(void) rc;				/* we'll check for error with ferror */
+		fwrite(dbentry, offsetof(PgStat_StatDBEntry, tables), 1, fpout);
 
 		/*
 		 * Walk through the database's access stats per table.
@@ -3593,8 +3427,7 @@ pgstat_write_statsfile(bool permanent)
 		while ((tabentry = (PgStat_StatTabEntry *) hash_seq_search(&tstat)) != NULL)
 		{
 			fputc('T', fpout);
-			rc = fwrite(tabentry, sizeof(PgStat_StatTabEntry), 1, fpout);
-			(void) rc;			/* we'll check for error with ferror */
+			fwrite(tabentry, sizeof(PgStat_StatTabEntry), 1, fpout);
 		}
 
 		/*
@@ -3604,8 +3437,7 @@ pgstat_write_statsfile(bool permanent)
 		while ((funcentry = (PgStat_StatFuncEntry *) hash_seq_search(&fstat)) != NULL)
 		{
 			fputc('F', fpout);
-			rc = fwrite(funcentry, sizeof(PgStat_StatFuncEntry), 1, fpout);
-			(void) rc;			/* we'll check for error with ferror */
+			fwrite(funcentry, sizeof(PgStat_StatFuncEntry), 1, fpout);
 		}
 
 		/*
@@ -4083,7 +3915,6 @@ pgstat_read_statsfile_timestamp(bool permanent, TimestampTz *ts)
 static void
 backend_read_statsfile(void)
 {
-	TimestampTz cur_ts;
 	TimestampTz min_ts;
 	int			count;
 
@@ -4106,16 +3937,17 @@ backend_read_statsfile(void)
 	 * PGSTAT_STAT_INTERVAL; and we don't want to lie to the collector about
 	 * what our cutoff time really is.
 	 */
-	cur_ts = GetCurrentTimestamp();
 	if (IsAutoVacuumWorkerProcess())
-		min_ts = TimestampTzPlusMilliseconds(cur_ts, -PGSTAT_RETRY_DELAY);
+		min_ts = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
+											 -PGSTAT_RETRY_DELAY);
 	else
-		min_ts = TimestampTzPlusMilliseconds(cur_ts, -PGSTAT_STAT_INTERVAL);
+		min_ts = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
+											 -PGSTAT_STAT_INTERVAL);
 
 	/*
 	 * Loop until fresh enough stats file is available or we ran out of time.
 	 * The stats inquiry message is sent repeatedly in case collector drops
-	 * it; but not every single time, as that just swamps the collector.
+	 * it.
 	 */
 	for (count = 0; count < PGSTAT_POLL_LOOP_COUNT; count++)
 	{
@@ -4128,9 +3960,7 @@ backend_read_statsfile(void)
 			break;
 
 		/* Not there or too old, so kick the collector and wait a bit */
-		if ((count % PGSTAT_INQ_LOOP_COUNT) == 0)
-			pgstat_send_inquiry(min_ts);
-
+		pgstat_send_inquiry(min_ts);
 		pg_usleep(PGSTAT_RETRY_DELAY * 1000L);
 	}
 
@@ -4225,8 +4055,6 @@ pgstat_recv_tabstat(PgStat_MsgTabstat *msg, int len)
 	 */
 	dbentry->n_xact_commit += (PgStat_Counter) (msg->m_xact_commit);
 	dbentry->n_xact_rollback += (PgStat_Counter) (msg->m_xact_rollback);
-	dbentry->n_block_read_time += msg->m_block_read_time;
-	dbentry->n_block_write_time += msg->m_block_write_time;
 
 	/*
 	 * Process all table entries in the message.
@@ -4420,11 +4248,6 @@ pgstat_recv_resetcounter(PgStat_MsgResetcounter *msg, int len)
 	dbentry->n_tuples_updated = 0;
 	dbentry->n_tuples_deleted = 0;
 	dbentry->last_autovac_time = 0;
-	dbentry->n_temp_bytes = 0;
-	dbentry->n_temp_files = 0;
-	dbentry->n_deadlocks = 0;
-	dbentry->n_block_read_time = 0;
-	dbentry->n_block_write_time = 0;
 
 	dbentry->stat_reset_timestamp = GetCurrentTimestamp();
 
@@ -4602,8 +4425,6 @@ pgstat_recv_bgwriter(PgStat_MsgBgWriter *msg, int len)
 {
 	globalStats.timed_checkpoints += msg->m_timed_checkpoints;
 	globalStats.requested_checkpoints += msg->m_requested_checkpoints;
-	globalStats.checkpoint_write_time += msg->m_checkpoint_write_time;
-	globalStats.checkpoint_sync_time += msg->m_checkpoint_sync_time;
 	globalStats.buf_written_checkpoints += msg->m_buf_written_checkpoints;
 	globalStats.buf_written_clean += msg->m_buf_written_clean;
 	globalStats.maxwritten_clean += msg->m_maxwritten_clean;
@@ -4807,7 +4628,7 @@ pgstat_fetch_stat_queueentry(Oid queueid)
 /* ----------
  * pgstat_recv_recoveryconflict() -
  *
- *	Process a RECOVERYCONFLICT message.
+ *	Process as RECOVERYCONFLICT message.
  * ----------
  */
 static void
@@ -4845,39 +4666,6 @@ pgstat_recv_recoveryconflict(PgStat_MsgRecoveryConflict *msg, int len)
 }
 
 /* ----------
- * pgstat_recv_deadlock() -
- *
- *	Process a DEADLOCK message.
- * ----------
- */
-static void
-pgstat_recv_deadlock(PgStat_MsgDeadlock *msg, int len)
-{
-	PgStat_StatDBEntry *dbentry;
-
-	dbentry = pgstat_get_db_entry(msg->m_databaseid, true);
-
-	dbentry->n_deadlocks++;
-}
-
-/* ----------
- * pgstat_recv_tempfile() -
- *
- *	Process a TEMPFILE message.
- * ----------
- */
-static void
-pgstat_recv_tempfile(PgStat_MsgTempFile *msg, int len)
-{
-	PgStat_StatDBEntry *dbentry;
-
-	dbentry = pgstat_get_db_entry(msg->m_databaseid, true);
-
-	dbentry->n_temp_bytes += msg->m_filesize;
-	dbentry->n_temp_files += 1;
-}
-
-/* ----------
  * pgstat_recv_funcstat() -
  *
  *	Count what the backend has done.
@@ -4910,8 +4698,8 @@ pgstat_recv_funcstat(PgStat_MsgFuncstat *msg, int len)
 			 * we just got.
 			 */
 			funcentry->f_numcalls = funcmsg->f_numcalls;
-			funcentry->f_total_time = funcmsg->f_total_time;
-			funcentry->f_self_time = funcmsg->f_self_time;
+			funcentry->f_time = funcmsg->f_time;
+			funcentry->f_time_self = funcmsg->f_time_self;
 		}
 		else
 		{
@@ -4919,8 +4707,8 @@ pgstat_recv_funcstat(PgStat_MsgFuncstat *msg, int len)
 			 * Otherwise add the values to the existing entry.
 			 */
 			funcentry->f_numcalls += funcmsg->f_numcalls;
-			funcentry->f_total_time += funcmsg->f_total_time;
-			funcentry->f_self_time += funcmsg->f_self_time;
+			funcentry->f_time += funcmsg->f_time;
+			funcentry->f_time_self += funcmsg->f_time_self;
 		}
 	}
 }

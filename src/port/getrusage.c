@@ -3,7 +3,7 @@
  * getrusage.c
  *	  get information about resource utilisation
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,9 +18,11 @@
 #include "rusagestub.h"
 
 /* This code works on:
- *		sco
+ *		univel
  *		solaris_i386
+ *		sco
  *		solaris_sparc
+ *		svr4
  *		hpux 9.*
  *		win32
  * which currently is all the supported platforms that don't have a

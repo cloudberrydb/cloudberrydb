@@ -9,7 +9,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
-#include <signal.h>
 
 #include "getopt_long.h"
 #include "access/xlogdefs.h"
@@ -27,46 +26,14 @@
 #define NA_FORMAT			"%18s"
 #define OPS_FORMAT			"%9.3f ops/sec"
 
-/* These are macros to avoid timing the function call overhead. */
-#ifndef WIN32
-#define START_TIMER \
-do { \
-	alarm_triggered = false; \
-	alarm(secs_per_test); \
-	gettimeofday(&start_t, NULL); \
-} while (0)
-#else
-/* WIN32 doesn't support alarm, so we create a thread and sleep there */
-#define START_TIMER \
-do { \
-	alarm_triggered = false; \
-	if (CreateThread(NULL, 0, process_alarm, NULL, 0, NULL) == \
-		INVALID_HANDLE_VALUE) \
-	{ \
-		fprintf(stderr, "Cannot create thread for alarm\n"); \
-		exit(1); \
-	} \
-	gettimeofday(&start_t, NULL); \
-} while (0)
-#endif
-
-#define STOP_TIMER	\
-do { \
-	gettimeofday(&stop_t, NULL); \
-	print_elapse(start_t, stop_t, ops); \
-} while (0)
-
-
 static const char *progname;
 
-static int	secs_per_test = 2;
-static int	needs_unlink = 0;
+static int	ops_per_test = 2000;
 static char full_buf[XLOG_SEG_SIZE],
 		   *buf,
 		   *filename = FSYNC_FILENAME;
 static struct timeval start_t,
 			stop_t;
-static bool alarm_triggered = false;
 
 
 static void handle_args(int argc, char *argv[]);
@@ -78,17 +45,10 @@ static void test_open_syncs(void);
 static void test_open_sync(const char *msg, int writes_size);
 static void test_file_descriptor_sync(void);
 
-#ifndef WIN32
-static void process_alarm(int sig);
-#else
-static DWORD WINAPI process_alarm(LPVOID param);
-#endif
-static void signal_cleanup(int sig);
-
 #ifdef HAVE_FSYNC_WRITETHROUGH
 static int	pg_fsync_writethrough(int fd);
 #endif
-static void print_elapse(struct timeval start_t, struct timeval stop_t, int ops);
+static void print_elapse(struct timeval start_t, struct timeval stop_t);
 static void die(const char *str);
 
 
@@ -98,17 +58,6 @@ main(int argc, char *argv[])
 	progname = get_progname(argv[0]);
 
 	handle_args(argc, argv);
-
-	/* Prevent leaving behind the test file */
-	signal(SIGINT, signal_cleanup);
-	signal(SIGTERM, signal_cleanup);
-#ifndef WIN32
-	signal(SIGALRM, process_alarm);
-#endif
-#ifdef SIGHUP
-	/* Not defined on win32 */
-	signal(SIGHUP, signal_cleanup);
-#endif
 
 	prepare_buf();
 
@@ -136,7 +85,7 @@ handle_args(int argc, char *argv[])
 {
 	static struct option long_options[] = {
 		{"filename", required_argument, NULL, 'f'},
-		{"secs-per-test", required_argument, NULL, 's'},
+		{"ops-per-test", required_argument, NULL, 'o'},
 		{NULL, 0, NULL, 0}
 	};
 	int			option;			/* Command line option */
@@ -147,7 +96,7 @@ handle_args(int argc, char *argv[])
 		if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0 ||
 			strcmp(argv[1], "-?") == 0)
 		{
-			printf("Usage: %s [-f FILENAME] [-s SECS-PER-TEST]\n", progname);
+			printf("Usage: %s [-f FILENAME] [-o OPS-PER-TEST]\n", progname);
 			exit(0);
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
@@ -157,7 +106,7 @@ handle_args(int argc, char *argv[])
 		}
 	}
 
-	while ((option = getopt_long(argc, argv, "f:s:",
+	while ((option = getopt_long(argc, argv, "f:o:",
 								 long_options, &optindex)) != -1)
 	{
 		switch (option)
@@ -166,8 +115,8 @@ handle_args(int argc, char *argv[])
 				filename = strdup(optarg);
 				break;
 
-			case 's':
-				secs_per_test = atoi(optarg);
+			case 'o':
+				ops_per_test = atoi(optarg);
 				break;
 
 			default:
@@ -188,7 +137,7 @@ handle_args(int argc, char *argv[])
 		exit(1);
 	}
 
-	printf("%d seconds per test\n", secs_per_test);
+	printf("%d operations per test\n", ops_per_test);
 #if PG_O_DIRECT != 0
 	printf("O_DIRECT supported on this platform for open_datasync and open_sync.\n");
 #else
@@ -218,7 +167,6 @@ test_open(void)
 	 */
 	if ((tmpfile = open(filename, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) == -1)
 		die("could not open output file");
-	needs_unlink = 1;
 	if (write(tmpfile, full_buf, XLOG_SEG_SIZE) != XLOG_SEG_SIZE)
 		die("write failed");
 
@@ -260,8 +208,8 @@ test_sync(int writes_per_op)
 	{
 		if ((tmpfile = open(filename, O_RDWR | O_DSYNC | PG_O_DIRECT, 0)) == -1)
 			die("could not open output file");
-		START_TIMER;
-		for (ops = 0; alarm_triggered == false; ops++)
+		gettimeofday(&start_t, NULL);
+		for (ops = 0; ops < ops_per_test; ops++)
 		{
 			for (writes = 0; writes < writes_per_op; writes++)
 				if (write(tmpfile, buf, XLOG_BLCKSZ) != XLOG_BLCKSZ)
@@ -269,8 +217,9 @@ test_sync(int writes_per_op)
 			if (lseek(tmpfile, 0, SEEK_SET) == -1)
 				die("seek failed");
 		}
-		STOP_TIMER;
+		gettimeofday(&stop_t, NULL);
 		close(tmpfile);
+		print_elapse(start_t, stop_t);
 	}
 #else
 	printf(NA_FORMAT, "n/a\n");
@@ -285,8 +234,8 @@ test_sync(int writes_per_op)
 #ifdef HAVE_FDATASYNC
 	if ((tmpfile = open(filename, O_RDWR, 0)) == -1)
 		die("could not open output file");
-	START_TIMER;
-	for (ops = 0; alarm_triggered == false; ops++)
+	gettimeofday(&start_t, NULL);
+	for (ops = 0; ops < ops_per_test; ops++)
 	{
 		for (writes = 0; writes < writes_per_op; writes++)
 			if (write(tmpfile, buf, XLOG_BLCKSZ) != XLOG_BLCKSZ)
@@ -295,8 +244,9 @@ test_sync(int writes_per_op)
 		if (lseek(tmpfile, 0, SEEK_SET) == -1)
 			die("seek failed");
 	}
-	STOP_TIMER;
+	gettimeofday(&stop_t, NULL);
 	close(tmpfile);
+	print_elapse(start_t, stop_t);
 #else
 	printf(NA_FORMAT, "n/a\n");
 #endif
@@ -309,8 +259,8 @@ test_sync(int writes_per_op)
 
 	if ((tmpfile = open(filename, O_RDWR, 0)) == -1)
 		die("could not open output file");
-	START_TIMER;
-	for (ops = 0; alarm_triggered == false; ops++)
+	gettimeofday(&start_t, NULL);
+	for (ops = 0; ops < ops_per_test; ops++)
 	{
 		for (writes = 0; writes < writes_per_op; writes++)
 			if (write(tmpfile, buf, XLOG_BLCKSZ) != XLOG_BLCKSZ)
@@ -320,8 +270,9 @@ test_sync(int writes_per_op)
 		if (lseek(tmpfile, 0, SEEK_SET) == -1)
 			die("seek failed");
 	}
-	STOP_TIMER;
+	gettimeofday(&stop_t, NULL);
 	close(tmpfile);
+	print_elapse(start_t, stop_t);
 
 /*
  * If fsync_writethrough is available, test as well
@@ -332,8 +283,8 @@ test_sync(int writes_per_op)
 #ifdef HAVE_FSYNC_WRITETHROUGH
 	if ((tmpfile = open(filename, O_RDWR, 0)) == -1)
 		die("could not open output file");
-	START_TIMER;
-	for (ops = 0; alarm_triggered == false; ops++)
+	gettimeofday(&start_t, NULL);
+	for (ops = 0; ops < ops_per_test; ops++)
 	{
 		for (writes = 0; writes < writes_per_op; writes++)
 			if (write(tmpfile, buf, XLOG_BLCKSZ) != XLOG_BLCKSZ)
@@ -343,8 +294,9 @@ test_sync(int writes_per_op)
 		if (lseek(tmpfile, 0, SEEK_SET) == -1)
 			die("seek failed");
 	}
-	STOP_TIMER;
+	gettimeofday(&stop_t, NULL);
 	close(tmpfile);
+	print_elapse(start_t, stop_t);
 #else
 	printf(NA_FORMAT, "n/a\n");
 #endif
@@ -363,8 +315,8 @@ test_sync(int writes_per_op)
 	}
 	else
 	{
-		START_TIMER;
-		for (ops = 0; alarm_triggered == false; ops++)
+		gettimeofday(&start_t, NULL);
+		for (ops = 0; ops < ops_per_test; ops++)
 		{
 			for (writes = 0; writes < writes_per_op; writes++)
 				if (write(tmpfile, buf, XLOG_BLCKSZ) != XLOG_BLCKSZ)
@@ -372,8 +324,9 @@ test_sync(int writes_per_op)
 			if (lseek(tmpfile, 0, SEEK_SET) == -1)
 				die("seek failed");
 		}
-		STOP_TIMER;
+		gettimeofday(&stop_t, NULL);
 		close(tmpfile);
+		print_elapse(start_t, stop_t);
 	}
 #else
 	printf(NA_FORMAT, "n/a\n");
@@ -393,11 +346,11 @@ test_open_syncs(void)
 	printf("(This is designed to compare the cost of writing 16kB\n");
 	printf("in different write open_sync sizes.)\n");
 
-	test_open_sync(" 1 * 16kB open_sync write", 16);
-	test_open_sync(" 2 *  8kB open_sync writes", 8);
-	test_open_sync(" 4 *  4kB open_sync writes", 4);
-	test_open_sync(" 8 *  2kB open_sync writes", 2);
-	test_open_sync("16 *  1kB open_sync writes", 1);
+	test_open_sync("16kB open_sync write", 16);
+	test_open_sync(" 8kB open_sync writes", 8);
+	test_open_sync(" 4kB open_sync writes", 4);
+	test_open_sync(" 2kB open_sync writes", 2);
+	test_open_sync(" 1kB open_sync writes", 1);
 }
 
 /*
@@ -420,8 +373,8 @@ test_open_sync(const char *msg, int writes_size)
 		printf(NA_FORMAT, "n/a*\n");
 	else
 	{
-		START_TIMER;
-		for (ops = 0; alarm_triggered == false; ops++)
+		gettimeofday(&start_t, NULL);
+		for (ops = 0; ops < ops_per_test; ops++)
 		{
 			for (writes = 0; writes < 16 / writes_size; writes++)
 				if (write(tmpfile, buf, writes_size * 1024) !=
@@ -430,8 +383,9 @@ test_open_sync(const char *msg, int writes_size)
 			if (lseek(tmpfile, 0, SEEK_SET) == -1)
 				die("seek failed");
 		}
-		STOP_TIMER;
+		gettimeofday(&stop_t, NULL);
 		close(tmpfile);
+		print_elapse(start_t, stop_t);
 	}
 #else
 	printf(NA_FORMAT, "n/a\n");
@@ -461,8 +415,8 @@ test_file_descriptor_sync(void)
 	printf(LABEL_FORMAT, "write, fsync, close");
 	fflush(stdout);
 
-	START_TIMER;
-	for (ops = 0; alarm_triggered == false; ops++)
+	gettimeofday(&start_t, NULL);
+	for (ops = 0; ops < ops_per_test; ops++)
 	{
 		if ((tmpfile = open(filename, O_RDWR, 0)) == -1)
 			die("could not open output file");
@@ -480,7 +434,8 @@ test_file_descriptor_sync(void)
 			die("could not open output file");
 		close(tmpfile);
 	}
-	STOP_TIMER;
+	gettimeofday(&stop_t, NULL);
+	print_elapse(start_t, stop_t);
 
 	/*
 	 * Now open, write, close, open again and fsync This simulates processes
@@ -489,8 +444,8 @@ test_file_descriptor_sync(void)
 	printf(LABEL_FORMAT, "write, close, fsync");
 	fflush(stdout);
 
-	START_TIMER;
-	for (ops = 0; alarm_triggered == false; ops++)
+	gettimeofday(&start_t, NULL);
+	for (ops = 0; ops < ops_per_test; ops++)
 	{
 		if ((tmpfile = open(filename, O_RDWR, 0)) == -1)
 			die("could not open output file");
@@ -504,7 +459,9 @@ test_file_descriptor_sync(void)
 			die("fsync failed");
 		close(tmpfile);
 	}
-	STOP_TIMER;
+	gettimeofday(&stop_t, NULL);
+	print_elapse(start_t, stop_t);
+
 }
 
 static void
@@ -520,8 +477,8 @@ test_non_sync(void)
 	printf(LABEL_FORMAT, "write");
 	fflush(stdout);
 
-	START_TIMER;
-	for (ops = 0; alarm_triggered == false; ops++)
+	gettimeofday(&start_t, NULL);
+	for (ops = 0; ops < ops_per_test; ops++)
 	{
 		if ((tmpfile = open(filename, O_RDWR, 0)) == -1)
 			die("could not open output file");
@@ -529,18 +486,8 @@ test_non_sync(void)
 			die("write failed");
 		close(tmpfile);
 	}
-	STOP_TIMER;
-}
-
-static void
-signal_cleanup(int signum)
-{
-	/* Delete the file if it exists. Ignore errors */
-	if (needs_unlink)
-		unlink(filename);
-	/* Finish incomplete line on stdout */
-	puts("");
-	exit(signum);
+	gettimeofday(&stop_t, NULL);
+	print_elapse(start_t, stop_t);
 }
 
 #ifdef HAVE_FSYNC_WRITETHROUGH
@@ -563,31 +510,14 @@ pg_fsync_writethrough(int fd)
  * print out the writes per second for tests
  */
 static void
-print_elapse(struct timeval start_t, struct timeval stop_t, int ops)
+print_elapse(struct timeval start_t, struct timeval stop_t)
 {
 	double		total_time = (stop_t.tv_sec - start_t.tv_sec) +
 	(stop_t.tv_usec - start_t.tv_usec) * 0.000001;
-	double		per_second = ops / total_time;
+	double		per_second = ops_per_test / total_time;
 
 	printf(OPS_FORMAT "\n", per_second);
 }
-
-#ifndef WIN32
-static void
-process_alarm(int sig)
-{
-	alarm_triggered = true;
-}
-#else
-static DWORD WINAPI
-process_alarm(LPVOID param)
-{
-	/* WIN32 doesn't support alarm, so we create a thread and sleep here */
-	Sleep(secs_per_test * 1000);
-	alarm_triggered = true;
-	ExitThread(0);
-}
-#endif
 
 static void
 die(const char *str)
