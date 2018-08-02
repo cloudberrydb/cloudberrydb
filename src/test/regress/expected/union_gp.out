@@ -1869,6 +1869,22 @@ UNION SELECT 300, 300)
               2
 (1 row)
 
+CREATE TABLE t1_setop(a int) DISTRIBUTED BY (a);
+CREATE TABLE t2_setop(a int) DISTRIBUTED BY (a);
+INSERT INTO t1_setop VALUES (1), (2), (3);
+INSERT INTO t2_setop VALUES (3), (4), (5);
+(SELECT a FROM t1_setop EXCEPT SELECT a FROM t2_setop ORDER BY a)
+UNION
+(SELECT a FROM t2_setop EXCEPT SELECT a FROM t1_setop ORDER BY a)
+ORDER BY a;
+ a 
+---
+ 1
+ 2
+ 4
+ 5
+(4 rows)
+
 --
 -- Clean up
 --

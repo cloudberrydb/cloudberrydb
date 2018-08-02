@@ -511,6 +511,15 @@ UNION SELECT 200, 200
 UNION SELECT 300, 300)
 (select d1 from T_constant) UNION (select c1 from T_random) order by 1;', 'APPEND');
 
+CREATE TABLE t1_setop(a int) DISTRIBUTED BY (a);
+CREATE TABLE t2_setop(a int) DISTRIBUTED BY (a);
+INSERT INTO t1_setop VALUES (1), (2), (3);
+INSERT INTO t2_setop VALUES (3), (4), (5);
+(SELECT a FROM t1_setop EXCEPT SELECT a FROM t2_setop ORDER BY a)
+UNION
+(SELECT a FROM t2_setop EXCEPT SELECT a FROM t1_setop ORDER BY a)
+ORDER BY a;
+
 --
 -- Clean up
 --
