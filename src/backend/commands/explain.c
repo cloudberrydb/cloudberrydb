@@ -1751,6 +1751,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 						     ((Unique *) plan)->uniqColIdx,
 						     "Group Key",
 						     ancestors, es);
+			break;
 		case T_Sort:
 			show_sort_keys((SortState *) planstate, ancestors, es);
 			show_sort_info((SortState *) planstate, es);

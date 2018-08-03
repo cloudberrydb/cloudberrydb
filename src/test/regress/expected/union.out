@@ -496,7 +496,6 @@ explain (costs off)
  Gather Motion 3:1  (slice2; segments: 3)
    ->  Unique
          Group Key: (t1.a || t1.b)
-         Sort Key (Distinct): (t1.a || t1.b)
          ->  Sort
                Sort Key (Distinct): (t1.a || t1.b)
                ->  Redistribute Motion 3:3  (slice1; segments: 3)
