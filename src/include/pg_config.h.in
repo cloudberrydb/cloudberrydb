@@ -172,6 +172,9 @@
 /* Define to 1 if you have the <event.h> header file. */
 #undef HAVE_EVENT_H
 
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
+
 /* Define to 1 if you have the `fcvt' function. */
 #undef HAVE_FCVT
 
@@ -343,6 +346,9 @@
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
+
+/* Define to 1 if you have the `execinfo' library (-lexecinfo). */
+#undef HAVE_LIBEXECINFO
 
 /* Define to 1 if you have the `gpdbcost' library (-lgpdbcost). */
 #undef HAVE_LIBGPDBCOST
@@ -809,6 +815,9 @@
 
 /* PostgreSQL major version as a string */
 #undef PG_MAJORVERSION
+
+/* Define to gnu_printf if compiler supports it, else printf. */
+#undef PG_PRINTF_ATTRIBUTE
 
 /* Define to 1 if "static inline" works without unwanted warnings from
    compilations where static inline functions are defined but not called. */
