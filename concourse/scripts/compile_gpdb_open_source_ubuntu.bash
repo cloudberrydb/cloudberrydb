@@ -29,7 +29,7 @@ function build_gpdb() {
     build_external_depends
     pushd gpdb_src
         CWD=$(pwd)
-        LD_LIBRARY_PATH=${CWD}/depends/build/lib CC=$(which gcc) CXX=$(which g++) ./configure --enable-mapreduce --with-gssapi --with-perl --with-libxml \
+        LD_LIBRARY_PATH=${CWD}/depends/build/lib CC=$(which gcc) CXX=$(which g++) ./configure --enable-mapreduce --enable-orafce --with-gssapi --with-perl --with-libxml \
           --with-python \
           --with-libraries=${CWD}/depends/build/lib \
           --with-includes=${CWD}/depends/build/include \

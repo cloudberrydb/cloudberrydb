@@ -220,6 +220,13 @@ PGAC_ARG_BOOL(enable, gphdfs, no,
 AC_SUBST(enable_gphdfs)
 
 #
+# orafce
+#
+PGAC_ARG_BOOL(enable, orafce, no,
+             [do not build Oracle compatability functions])
+AC_SUBST(enable_orafce)
+
+#
 # --enable-gpperfmon
 #
 PGAC_ARG_BOOL(enable, gpperfmon, no,
