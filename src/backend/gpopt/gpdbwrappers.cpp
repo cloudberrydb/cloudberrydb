@@ -553,7 +553,7 @@ gpdb::OidExprCollation
 	{
 		if (pnodeExpr && IsA(pnodeExpr, List))
 		{
-			// GDPB_91_MERGE_FIXME: collation
+			// GPORCA currently does not support collations, so infer them using type defaults
 			List *exprlist = (List *) pnodeExpr;
 			ListCell   *lc;
 
@@ -1899,7 +1899,7 @@ gpdb::PvarMakeVar
 {
 	GP_WRAP_START;
 	{
-		// GPDB_91_MERGE_FIXME: collation
+		// GPORCA currently does not support collations, so infer them using type defaults
 		Oid collation = OidTypeCollation(vartype);
 		return makeVar(varno, varattno, vartype, vartypmod, collation, varlevelsup);
 	}
@@ -2957,7 +2957,7 @@ gpdb::PexprEvaluate
 {
 	GP_WRAP_START;
 	{
-		// GPDB_91_MERGE_FIXME: collation
+		// GPORCA currently does not support collations, so infer them using type defaults
 		return evaluate_expr(pexpr, oidResultType, iTypeMod, InvalidOid);
 	}
 	GP_WRAP_END;
