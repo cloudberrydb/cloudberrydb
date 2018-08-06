@@ -1272,7 +1272,7 @@ CTranslatorDXLToPlStmt::PplanFunctionScanFromDXLTVF
 
 		pfuncscan->funccoltypes = gpdb::PlAppendOid(pfuncscan->funccoltypes, oidType);
 		pfuncscan->funccoltypmods = gpdb::PlAppendInt(pfuncscan->funccoltypmods, typMod);
-		// GDPB_91_MERGE_FIXME: collation
+		// GPORCA currently does not support collations, so infer them using type defaults
 		pfuncscan->funccolcollations = gpdb::PlAppendOid(pfuncscan->funccolcollations, typCollation);
 	}
 

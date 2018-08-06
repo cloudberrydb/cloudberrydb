@@ -882,28 +882,18 @@ exprCollation(const Node *expr)
 			break;
 
 		case T_DMLActionExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
-			break;
 		case T_PartSelectedExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
-			break;
 		case T_PartDefaultExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
-			break;
 		case T_PartBoundExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
-			break;
 		case T_PartBoundInclusionExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
-			break;
 		case T_PartBoundOpenExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
-			break;
 		case T_PartListRuleExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
-			break;
 		case T_PartListNullTestExpr:
-			coll = InvalidOid;	/* GPDB_91_MERGE_FIXME: ORCA only expression */
+			/*
+			 * ORCA currently does not support collation,
+			 * so return invalid oid for ORCA only expressions
+			 */
+			coll = InvalidOid;
 			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(expr));
