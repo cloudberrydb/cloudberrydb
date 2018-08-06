@@ -484,15 +484,6 @@ ExecInsert(TupleTableSlot *slot,
 		!isUpdate)
 	{
 		HeapTuple tuple = ExecMaterializeSlot(slot);
-
-		/*
-		 * GPDB_90_MERGE_FIXME: do we really need this? It seems like if ORCA
-		 * can get us here, we shouldn't worry about it. Commenting to get
-		 * alter_table working with ORCA.
-		 *
-		Assert(planGen == PLANGEN_PLANNER);
-		 */
-
 		ExecARInsertTriggers(estate, resultRelInfo, tuple, recheckIndexes);
 	}
 
