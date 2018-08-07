@@ -1,8 +1,7 @@
---
--- Checks the session_level_memory_consumption view installation/uninstallation and population
---
+-- Before the extension is loaded no information is available
+select * from session_state.session_level_memory_consumption limit 0;
 
-\i @bindir@/../share/postgresql/contrib/gp_session_state.sql
+CREATE EXTENSION gp_internal_tools;
 
 select * from session_state.session_level_memory_consumption limit 0;
 
@@ -11,7 +10,7 @@ select 1 as session_entry_count from session_state.session_level_memory_consumpt
 and session_state.session_level_memory_consumption.sess_id = pg_stat_activity.sess_id 
 having count(1) = (select count(1) from gp_segment_configuration where preferred_role = 'p');
 
-\i @bindir@/../share/postgresql/contrib/uninstall_gp_session_state.sql
+DROP EXTENSION gp_internal_tools;
 
 -- Should error out as we uninstalled
 select * from session_state.session_level_memory_consumption limit 0;
