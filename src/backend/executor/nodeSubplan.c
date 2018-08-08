@@ -959,7 +959,7 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext, QueryDesc *queryDesc
 	if (Gp_role == GP_ROLE_DISPATCH &&
 		planstate != NULL &&
 		planstate->plan != NULL &&
-		planstate->plan->dispatch == DISPATCH_PARALLEL)
+		subplan->initPlanParallel)
 		shouldDispatch = true;
 
 	planstate->state->currentSubplanLevel++;
@@ -1177,6 +1177,8 @@ PG_TRY();
 		 * exit to our error handler (below) via PG_THROW.
 		 */
 		cdbdisp_finishCommand(queryDesc->estate->dispatcherState, NULL, NULL, true);
+		/* Main plan use same estate, must reset dispatcherState  */
+		queryDesc->estate->dispatcherState = NULL;
 	}
 
 	/* Clean up the interconnect. */

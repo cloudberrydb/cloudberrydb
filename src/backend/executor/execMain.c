@@ -423,7 +423,9 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	/*
 	 * Handling of the Slice table depends on context.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
+	if (Gp_role == GP_ROLE_DISPATCH &&
+		(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
+		 queryDesc->plannedstmt->nMotionNodes > 0))
 	{
 		if (queryDesc->ddesc == NULL)
 		{
@@ -443,8 +445,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		 * MPP-7504/MPP-7448: We also call this down inside the dispatcher after
 		 * the pre-dispatch evaluator has run.
 		 */
-		if (queryDesc->extended_query)
-		{
+		if (queryDesc->extended_query) {
 			verify_shared_snapshot_ready();
 		}
 
@@ -579,7 +580,8 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		Assert(queryDesc->planstate);
 
 		if (Gp_role == GP_ROLE_DISPATCH &&
-			queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
+			(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
+			 queryDesc->plannedstmt->nMotionNodes > 0))
 		{
 			if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
 			{
@@ -646,7 +648,8 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		 * a QD and the plan is a parallel plan.
 		 */
 		if (Gp_role == GP_ROLE_DISPATCH &&
-			queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL &&
+			(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
+			 queryDesc->plannedstmt->nMotionNodes > 0) &&
 			!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
 		{
 			shouldDispatch = true;
@@ -721,8 +724,11 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			 * plan to the appropriate segdbs.  It does not wait for them to
 			 * finish unless an error is detected before all slices have been
 			 * dispatched.
+			 *
+			 * Main plan is parallel, send plan to it.
 			 */
-			CdbDispatchPlan(queryDesc, needDtxTwoPhase, true);
+			if (queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
+				CdbDispatchPlan(queryDesc, needDtxTwoPhase, true);
 		}
 
 		/*
@@ -1246,7 +1252,9 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
 	/*
 	 * Release any gangs we may have assigned.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
+	if (Gp_role == GP_ROLE_DISPATCH && 
+		(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
+		 queryDesc->plannedstmt->nMotionNodes > 0))
 		ReleaseGangs(queryDesc);
 
 	/*

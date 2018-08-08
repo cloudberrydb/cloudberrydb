@@ -766,3 +766,10 @@ DROP TABLE IF EXISTS dedup_test1;
 DROP TABLE IF EXISTS dedup_test2;
 DROP TABLE IF EXISTS dedup_test3;
 -- end_ignore
+
+-- Test init/main plan are not both parallel
+create table init_main_plan_parallel (c1 int, c2 int);
+-- case 1: init plan is parallel, main plan is not.
+select relname from pg_class where exists(select * from init_main_plan_parallel);
+-- case2: init plan is not parallel, main plan is parallel
+select * from init_main_plan_parallel where exists (select * from pg_class);

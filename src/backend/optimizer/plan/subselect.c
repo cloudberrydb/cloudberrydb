@@ -744,6 +744,7 @@ build_subplan(PlannerInfo *root, Plan *plan, PlannerInfo *subroot,
 	splan->is_initplan = false;
 	splan->is_multirow = false;
 	splan->is_parallelized = false;
+	splan->initPlanParallel = false;
 	splan->setParam = NIL;
 	splan->parParam = NIL;
 	splan->args = NIL;
