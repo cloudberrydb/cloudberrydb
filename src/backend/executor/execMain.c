@@ -1534,7 +1534,7 @@ ExecCheckRTEPerms(RangeTblEntry *rte)
  *
  * This function is used to check if the current statement will perform any writes.
  * It is used to enforce:
- *  (1) read-only mode (both fts and transcation isolation level read only)
+ *  (1) read-only mode (both fts and transaction isolation level read only)
  *      as well as
  *  (2) to keep track of when a distributed transaction becomes
  *      "dirty" and will require 2pc.
