@@ -926,7 +926,7 @@ tuplestore_gettuple(Tuplestorestate *state, bool forward,
 			 */
 
 			ereport(ERROR, (errmsg("Backward scanning of tuplestores are not supported at this time")));
-
+#if 0
 			if (BufFileSeek(state->myfile, readptr->file, -(long) sizeof(unsigned int),
 							SEEK_CUR) != 0)
 			{
@@ -978,7 +978,7 @@ tuplestore_gettuple(Tuplestorestate *state, bool forward,
 				elog(ERROR, "bogus tuple length in backward scan");
 			tup = READTUP(state, tuplen);
 			return tup;
-
+#endif
 		default:
 			elog(ERROR, "invalid tuplestore state");
 			return NULL;		/* keep compiler quiet */
