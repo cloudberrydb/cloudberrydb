@@ -1997,7 +1997,7 @@ elog_dismiss(int downgrade_to_elevel)
 		ErrorData  *newedata = &errordata[errordata_stack_depth];
 
 		/* errstart has stacked a new ErrorData entry. */
-		Insist(newedata == edata + 1);
+		Assert(newedata == edata + 1);
 
 		/* It tells us where to send the error report for the new elevel. */
 		edata->elevel = newedata->elevel;

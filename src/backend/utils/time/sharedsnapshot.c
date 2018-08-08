@@ -390,9 +390,8 @@ retry:
 		}
 		else
 		{
-			insist_log(false, "writer segworker group shared snapshot collision on id %d", slotId);
+			elog(ERROR, "writer segworker group shared snapshot collision on id %d", slotId);
 		}
-		/* not reached */
 	}
 
 	if (arrayP->numSlots >= arrayP->maxSlots || arrayP->nextSlot == -1)

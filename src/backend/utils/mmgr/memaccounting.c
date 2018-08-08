@@ -1463,16 +1463,12 @@ SaveMemoryBufToDisk(struct StringInfoData *memoryBuf, char *prefix)
 	FILE *file = fopen(fileName, "w");
 
 	if (file == NULL)
-	{
 		elog(ERROR, "Could not write memory usage information. Failed to open file: %s", fileName);
-	}
 
 	uint64 bytes = fwrite(memoryBuf->data, 1, memoryBuf->len, file);
 
 	if (bytes != memoryBuf->len)
-	{
-		insist_log(false, "Could not write memory usage information. Attempted to write %d", memoryBuf->len);
-	}
+		elog(ERROR, "Could not write memory usage information. Attempted to write %d", memoryBuf->len);
 
 	fclose(file);
 }

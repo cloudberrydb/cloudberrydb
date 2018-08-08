@@ -3794,7 +3794,8 @@ tuplesort_begin_heap_file_readerwriter(ScanState *ss,
 	Assert(randomAccess);
 
 	int len = snprintf(statedump, sizeof(statedump), "%s_sortstate", rwfile_prefix);
-	insist_log(len <= MAXPGPATH - 1, "could not generate temporary file name");
+	if (len >= MAXPGPATH)
+		elog(ERROR, "could not generate temporary file name");
 
 	if(isWriter)
 	{
