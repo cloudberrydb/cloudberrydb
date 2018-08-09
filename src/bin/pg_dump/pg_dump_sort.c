@@ -111,7 +111,9 @@ static const int newObjectTypePriority[] =
 
 
 static int	DOTypeNameCompare(const void *p1, const void *p2);
+#if 0 /* GPDB_100_MERGE_FIXME: we don't support pre-7.3 dumps. This disappears in PG10. */
 static int	DOTypeOidCompare(const void *p1, const void *p2);
+#endif
 static bool TopoSort(DumpableObject **objs,
 		 int numObjs,
 		 DumpableObject **ordering,
