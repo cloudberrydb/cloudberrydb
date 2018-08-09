@@ -900,11 +900,10 @@ LockAcquireExtended(const LOCKTAG *locktag,
 	}
 	else if (proclock->holdMask & LOCKBIT_ON(lockmode))
 	{
-		elog(LOG, "lock %s on object %u/%u/%u is already held",
+		ereport(ERROR, (errmsg("lock %s on object %u/%u/%u is already held",
 			 lockMethodTable->lockModeNames[lockmode],
 			 lock->tag.locktag_field1, lock->tag.locktag_field2,
-			 lock->tag.locktag_field3);
-		Insist(false);
+			 lock->tag.locktag_field3)));
 	}
 
 	if (MyProc == lockHolderProcPtr)
@@ -4019,13 +4018,10 @@ lock_twophase_recover(TransactionId xid, uint16 info,
 	 * We shouldn't already hold the desired lock.
 	 */
 	if (proclock->holdMask & LOCKBIT_ON(lockmode))
-	{
-		elog(LOG, "lock %s on object %u/%u/%u is already held",
+		ereport(ERROR, (errmsg("lock %s on object %u/%u/%u is already held",
 			 lockMethodTable->lockModeNames[lockmode],
 			 lock->tag.locktag_field1, lock->tag.locktag_field2,
-			 lock->tag.locktag_field3);
-		Insist(false);
-	}
+			 lock->tag.locktag_field3)));
 
 	/*
 	 * We ignore any possible conflicts and just grant ourselves the lock. Not

@@ -478,9 +478,7 @@ count_usable_fds(int max_to_probe, int *usable_fds, int *already_open)
 		{
 			/* Expect EMFILE or ENFILE, else it's fishy */
 			if (errno != EMFILE && errno != ENFILE)
-			{
-				insist_log(false, "dup(0) failed after %d successes: %m", used);
-			}
+				ereport(WARNING, (errmsg("dup(0) failed after %d successes: %m", used)));
 			break;
 		}
 

@@ -46,7 +46,7 @@ int gp_trycompress_new(
 	 PGFunction     compressor,
 	 CompressionState *compressionState)
 {
-	Insist(PointerIsValid(compressor));
+	Assert(PointerIsValid(compressor));
 
 	gp_trycompress_generic(sourceData, sourceLen, compressedBuffer,
 						   compressedBufferWithOverrrunLen, compressedLen,
