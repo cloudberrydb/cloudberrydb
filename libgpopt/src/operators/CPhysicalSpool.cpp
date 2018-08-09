@@ -29,10 +29,12 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CPhysicalSpool::CPhysicalSpool
 	(
-	IMemoryPool *mp
+	IMemoryPool *mp,
+	BOOL eager
 	)
 	:
-	CPhysical(mp)
+	CPhysical(mp),
+	m_eager(eager)
 {}
 
 
@@ -191,7 +193,7 @@ CPhysicalSpool::PrsRequired
 	(
 	IMemoryPool *mp,
 	CExpressionHandle &, // exprhdl,
-	CRewindabilitySpec *,// prsRequired,
+	CRewindabilitySpec *prsRequired,
 	ULONG
 #ifdef GPOS_DEBUG
 	child_index
@@ -205,7 +207,10 @@ CPhysicalSpool::PrsRequired
 	GPOS_ASSERT(0 == child_index);
 
 	// spool establishes rewindability on its own
-	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+	CRewindabilitySpec::EMotionHazardType motion_hazard = (prsRequired->HasMotionHazard() && !FEager()) ?
+														  CRewindabilitySpec::EmhtMotion :
+														  CRewindabilitySpec::EmhtNoMotion;
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, motion_hazard);
 }
 
 
@@ -261,12 +266,17 @@ CRewindabilitySpec *
 CPhysicalSpool::PrsDerive
 	(
 	IMemoryPool *mp,
-	CExpressionHandle & // exprhdl
+	CExpressionHandle &exprhdl
 	)
 	const
 {
-	// rewindability of output is always true
-	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
+	CRewindabilitySpec *prsChild = PrsDerivePassThruOuter(exprhdl);
+	CRewindabilitySpec::EMotionHazardType motion_hazard = (!FEager() && prsChild->HasMotionHazard()) ?
+														  CRewindabilitySpec::EmhtMotion :
+														  CRewindabilitySpec::EmhtNoMotion;
+	prsChild->Release();
+
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, motion_hazard);
 }
 
 
@@ -285,10 +295,21 @@ CPhysicalSpool::Matches
 	)
 	const
 {
-	// spool doesn't contain any members as of now
-	return Eopid() == pop->Eopid();
+	if(Eopid() == pop->Eopid())
+	{
+		CPhysicalSpool *popSpool = CPhysicalSpool::PopConvert(pop);
+		return m_eager == popSpool->FEager();
+	}
+
+	return false;
 }
 
+ULONG
+CPhysicalSpool::HashValue() const
+{
+	ULONG hash = COperator::HashValue();
+	return  gpos::CombineHashes(hash, gpos::HashValue<BOOL>(&m_eager));
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -390,7 +411,7 @@ BOOL
 CPhysicalSpool::FValidContext
 	(
 	IMemoryPool *,
-	COptimizationContext *,
+	COptimizationContext *poc,
 	COptimizationContextArray *pdrgpocChild
 	)
 	const
@@ -435,7 +456,40 @@ CPhysicalSpool::FValidContext
 	{
 		return false;
 	}
+
+	// Discard any context that is requesting for rewindability with motion hazard handling and
+	// the physical spool is streaming with a motion underneath it.
+	// We do not want to add a blocking spool over a spool as spooling twice will be expensive,
+	// hence invalidate this context.
+	CEnfdRewindability *per = poc->Prpp()->Per();
+	if(per->PrsRequired()->HasMotionHazard() &&
+	   pdpplanChild->Prs()->HasMotionHazard())
+	{
+		return FEager();
+	}
+
 	return true;
 }
+
+IOstream &
+CPhysicalSpool::OsPrint
+(
+	IOstream &os
+)
+const
+{
+	os << SzId() << " (";
+	if(FEager())
+	{
+		os << "Blocking)";
+	}
+	else
+	{
+		os	<< "Streaming)";
+	}
+
+	return os;
+}
+
 // EOF
 

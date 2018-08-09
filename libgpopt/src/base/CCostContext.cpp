@@ -23,6 +23,7 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPhysicalDynamicTableScan.h"
 #include "gpopt/operators/CPhysicalDynamicIndexScan.h"
+#include "gpopt/operators/CPhysicalSpool.h"
 
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/search/CGroupExpression.h"
@@ -454,6 +455,23 @@ CCostContext::FBetterThan
 			return (this == pccPrefered);
 		}
 	}
+
+	if(COperator::EopPhysicalSpool == pcc->Pgexpr()->Pop()->Eopid() &&
+	   COperator::EopPhysicalSpool == Pgexpr()->Pop()->Eopid())
+	{
+		CPhysicalSpool *current_best_ctxt = CPhysicalSpool::PopConvert(Pgexpr()->Pop());
+		CPhysicalSpool *new_ctxt = CPhysicalSpool::PopConvert(pcc->Pgexpr()->Pop());
+
+		// if the request does not need to be conscious of motion, then always prefer a
+		// streaming spool since a blocking one will be unnecessary
+		if (!pcc->Poc()->Prpp()->Per()->PrsRequired()->HasMotionHazard())
+		{
+			if (new_ctxt->FEager() && !current_best_ctxt->FEager())
+			{
+				return true;
+			}
+		}
+   }
 
 	return false;
 }

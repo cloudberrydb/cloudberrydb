@@ -224,13 +224,13 @@ CPhysicalHashJoin::PrsRequired
 	// if there are outer references, then we need a materialize on both children
 	if (exprhdl.HasOuterRefs())
 	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
 	}
 
 	if (1 == child_index)
 	{
 		// inner child does not have to be rewindable
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, prsRequired->Emht());
 	}
 		
 	// pass through requirements to outer child

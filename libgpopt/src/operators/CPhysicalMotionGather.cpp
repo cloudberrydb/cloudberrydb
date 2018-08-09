@@ -248,7 +248,6 @@ CPhysicalMotionGather::PosDerive
 	return m_pos;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CPhysicalMotionGather::OsPrint

@@ -33,11 +33,15 @@ namespace gpopt
 			// private copy ctor
 			CPhysicalSpool(const CPhysicalSpool &);
 
+			// true if spool is blocking - consume all input the tuples, before yielding an output tuple
+			// false if spool is streaming - stream the tuples as they come
+			BOOL m_eager;
+
 		public:
 		
 			// ctor
 			explicit
-			CPhysicalSpool(IMemoryPool *mp);
+			CPhysicalSpool(IMemoryPool *mp, BOOL eager);
 
 			// dtor
 			virtual 
@@ -264,8 +268,17 @@ namespace gpopt
 				return dynamic_cast<CPhysicalSpool*>(pop);
 			}
 
+			BOOL FEager() const
+			{
+				return m_eager;
+			}
+
+			ULONG HashValue() const;
+
 			virtual BOOL
 			FValidContext(IMemoryPool *mp, COptimizationContext *poc, COptimizationContextArray *pdrgpocChild) const;
+
+			IOstream &OsPrint(IOstream &os) const;
 
 	}; // class CPhysicalSpool
 

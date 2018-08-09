@@ -451,6 +451,9 @@ namespace gpopt
 			static
 			ULONG UlDistrRequestsForCorrelatedJoin();
 
+			static
+			CRewindabilitySpec *PrsRequiredForNLJoinOuterChild(IMemoryPool *pmp, CExpressionHandle &exprhdl, CRewindabilitySpec *prsRequired);
+
 	}; // class CPhysicalJoin
 
 }

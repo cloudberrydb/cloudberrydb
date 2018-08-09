@@ -265,7 +265,7 @@ CPhysicalComputeScalar::PrsRequired
 	// if there are outer references, then we need a materialize
 	if (exprhdl.HasOuterRefs())
 	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
 	}
 
 	return PrsPassThru(mp, exprhdl, prsRequired, child_index);
@@ -425,14 +425,18 @@ CPhysicalComputeScalar::PrsDerive
 	)
 	const
 {
-	CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(1 /*child_index*/);
+	CRewindabilitySpec *prsChild = PrsDerivePassThruOuter(exprhdl);
+
+	CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(1 /*ulChildIndex*/);
 	if (pdpscalar->FHasNonScalarFunction() || IMDFunction::EfsVolatile == pdpscalar->Pfp()->Efs())
 	{
 		// ComputeScalar is not rewindable if it has non-scalar/volatile functions in project list
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+		CRewindabilitySpec * prs = GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, prsChild->Emht());
+		prsChild->Release();
+		return prs;
 	}
 
-	return PrsDerivePassThruOuter(exprhdl);
+	return prsChild;
 }
 
 
@@ -505,7 +509,7 @@ CPhysicalComputeScalar::EpetRewindability
 	CRewindabilitySpec *prs = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Prs();
 	if (per->FCompatible(prs))
 	{
-		 // required distribution is already provided
+		 // required rewindability is already provided
 		 return CEnfdProp::EpetUnnecessary;
 	}
 

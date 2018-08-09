@@ -13,6 +13,7 @@
 #include "gpopt/base/CUtils.h"
 
 #include "gpopt/base/COptCtxt.h"
+#include "gpopt/base/CRewindabilitySpec.h"
 #include "gpopt/operators/CPhysicalNLJoin.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPredicateUtils.h"
@@ -109,7 +110,7 @@ CPhysicalNLJoin::PrsRequired
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt
+	CDrvdProp2dArray *pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 	const
@@ -117,20 +118,28 @@ CPhysicalNLJoin::PrsRequired
 	GPOS_ASSERT(child_index < 2 &&
 				"Required rewindability can be computed on the relational child only");
 
-	// if there are outer references, then we need a materialize on both children
-	if (exprhdl.HasOuterRefs())
-	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
-	}
-
+	// inner child has to be rewindable
 	if (1 == child_index)
 	{
-		// inner child has to be rewindable
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
+		if(FFirstChildToOptimize(child_index))
+		{
+			// for index nested loop joins, inner child is optimized first
+			return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
+		}
+
+		CRewindabilitySpec *prsOuter = CDrvdPropPlan::Pdpplan((*pdrgpdpCtxt)[0 /*outer child*/])->Prs();
+		CRewindabilitySpec::EMotionHazardType motion_hazard = GPOS_FTRACE(EopttraceMotionHazardHandling) &&
+															  (prsOuter->HasMotionHazard() ||
+															   prsRequired->HasMotionHazard()) ?
+															   CRewindabilitySpec::EmhtMotion :
+															   CRewindabilitySpec::EmhtNoMotion;
+
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, motion_hazard);
 	}
 
-	// pass through requirements to outer child
-	return PrsPassThru(mp, exprhdl, prsRequired, 0 /*child_index*/);
+	GPOS_ASSERT(0 == child_index);
+
+	return PrsRequiredForNLJoinOuterChild(mp, exprhdl, prsRequired);
 }
 
 //---------------------------------------------------------------------------

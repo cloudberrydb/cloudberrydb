@@ -270,7 +270,7 @@ namespace gpopt
 				const
 			{
 				// rewindability of output is always true
-				return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
+				return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, CRewindabilitySpec::EmhtNoMotion);
 			}
 
 			// derive partition filter map

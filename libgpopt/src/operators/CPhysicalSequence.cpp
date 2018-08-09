@@ -317,7 +317,7 @@ CPhysicalSequence::PrsRequired
 	(
 	IMemoryPool *, // mp,
 	CExpressionHandle &, // exprhdl,
-	CRewindabilitySpec *, // prsRequired,
+	CRewindabilitySpec *prsRequired,
 	ULONG , // child_index,
 	CDrvdProp2dArray *, // pdrgpdpCtxt
 	ULONG // ulOptReq
@@ -325,7 +325,7 @@ CPhysicalSequence::PrsRequired
 	const
 {
 	// no rewindability required on the children
-	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone);
+	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, prsRequired->Emht());
 }
 
 //---------------------------------------------------------------------------
@@ -394,13 +394,27 @@ CPhysicalSequence::PdsDerive
 CRewindabilitySpec *
 CPhysicalSequence::PrsDerive
 	(
-	IMemoryPool *, // mp,
-	CExpressionHandle & // exprhdl
+	IMemoryPool *, //mp
+	CExpressionHandle &exprhdl
 	)
 	const
 {
+	const ULONG arity = exprhdl.Arity();
+	GPOS_ASSERT(1 <= arity);
+
+	CRewindabilitySpec::EMotionHazardType motion_hazard = CRewindabilitySpec::EmhtNoMotion;
+	for (ULONG ul = 0; ul < arity; ul++)
+	{
+		CRewindabilitySpec *prs = exprhdl.Pdpplan(ul)->Prs();
+		if (prs->HasMotionHazard())
+		{
+			motion_hazard = CRewindabilitySpec::EmhtMotion;
+			break;
+		}
+	}
+
 	// no rewindability by sequence
-	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, motion_hazard);
 }
 
 

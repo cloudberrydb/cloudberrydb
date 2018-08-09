@@ -321,10 +321,10 @@ CPhysicalTVF::PrsDerive
 {
 	if (IMDFunction::EfsVolatile == exprhdl.GetRelationalProperties()->Pfp()->Efs() || 0 < exprhdl.Arity())
 	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, CRewindabilitySpec::EmhtNoMotion);
 	}
 
-	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, CRewindabilitySpec::EmhtNoMotion);
 }
 
 //---------------------------------------------------------------------------

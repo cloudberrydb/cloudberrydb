@@ -4117,8 +4117,10 @@ CTranslatorExprToDXL::PdxlnMaterialize
 	// translate relational child expression
 	CDXLNode *child_dxlnode = CreateDXLNode(pexprChild, colref_array, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
 
+	CPhysicalSpool *spool = CPhysicalSpool::PopConvert(pexprSpool->Pop());
+
 	// construct a materialize node
-	CDXLPhysicalMaterialize *pdxlopMat = GPOS_NEW(m_mp) CDXLPhysicalMaterialize(m_mp, true /* fEager */);
+	CDXLPhysicalMaterialize *pdxlopMat = GPOS_NEW(m_mp) CDXLPhysicalMaterialize(m_mp, spool->FEager());
 
 	// construct project list from child project list
 	GPOS_ASSERT(NULL != child_dxlnode && 1 <= child_dxlnode->Arity());
@@ -8006,6 +8008,13 @@ CTranslatorExprToDXL::FNeedsMaterializeUnderResult
 	CDXLNode *child_dxlnode
 	)
 {
+	if(GPOS_FTRACE(EopttraceMotionHazardHandling))
+	{
+		// If motion hazard handling is enabled then optimization framework has
+		// already handled this, hence no materialize is needed in this case.
+		return false;
+	}
+
 	BOOL fMotionHazard = false;
 
 	// if there is no subplan with a broadcast motion in the project list,

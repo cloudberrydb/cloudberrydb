@@ -166,6 +166,9 @@ namespace gpos
 		// create constraint intervals from array expressions in preprocessing
 		EopttraceArrayConstraints = 103026,
 
+		// enable motion hazard handling during NLJ optimization
+		EopttraceMotionHazardHandling = 103027,
+
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

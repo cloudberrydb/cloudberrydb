@@ -10,6 +10,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
+#include "gpopt/base/CRewindabilitySpec.h"
 #include "gpopt/base/CUtils.h"
 
 #include "gpopt/operators/CExpressionHandle.h"
@@ -172,7 +173,7 @@ CPhysicalAssert::PrsRequired
 	// if there are outer references, then we need a materialize
 	if (exprhdl.HasOuterRefs())
 	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
 	}
 
 	return PrsPassThru(mp, exprhdl, prsRequired, child_index);

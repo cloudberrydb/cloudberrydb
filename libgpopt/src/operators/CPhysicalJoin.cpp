@@ -390,29 +390,16 @@ CPhysicalJoin::PrsDerive
 	CRewindabilitySpec *prsInner = exprhdl.Pdpplan(1 /*child_index*/)->Prs();
 	GPOS_ASSERT(NULL != prsInner);
 
-	if (CUtils::FCorrelatedNLJoin(exprhdl.Pop()))
-	{
-		// rewindability is not established if correlated join
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
-	}
+	CRewindabilitySpec::EMotionHazardType motion_hazard = (prsOuter->HasMotionHazard() || prsInner->HasMotionHazard()) ?
+														  CRewindabilitySpec::EmhtMotion :
+														  CRewindabilitySpec::EmhtNoMotion;
 
-	if (CRewindabilitySpec::ErtNone == prsOuter->Ert() ||
-		CRewindabilitySpec::ErtNone == prsInner->Ert())
-	{
-		// rewindability is not established if any child is non-rewindable
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
-	}
+	if (!prsOuter->IsRewindable() || !prsInner->IsRewindable() || CUtils::FCorrelatedNLJoin(exprhdl.Pop()))
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, motion_hazard);
 
-	// check if both children have the same rewindability spec
-	if (prsOuter->Ert() ==  prsInner->Ert())
-	{
-		prsOuter->AddRef();
-		return prsOuter;
-	}
-
-	// one of the two children has general rewindability while the other child has
-	// mark-restore  rewindability
-	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
+	// else both the children are rewindable
+	GPOS_ASSERT(prsOuter->IsRewindable() && prsInner->IsRewindable());
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, motion_hazard);
 }
 
 
@@ -901,7 +888,7 @@ CPhysicalJoin::PrsRequiredCorrelatedJoin
 	CExpressionHandle &exprhdl,
 	CRewindabilitySpec *prsRequired,
 	ULONG child_index,
-	CDrvdProp2dArray *, //pdrgpdpCtxt
+	CDrvdProp2dArray *pdrgpdpCtxt,
 	ULONG // ulOptReq
 	)
 	const
@@ -910,24 +897,56 @@ CPhysicalJoin::PrsRequiredCorrelatedJoin
 	GPOS_ASSERT(2 > child_index);
 	GPOS_ASSERT(CUtils::FCorrelatedNLJoin(exprhdl.Pop()));
 
-	// if there are outer references, then we need a materialize on both children
-	if (exprhdl.HasOuterRefs())
-	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
-	}
-
 	if (1 == child_index)
 	{
-		// inner child has no rewindability requirement. if there is something
-		// below that needs rewindability (e.g. filter, computescalar, agg), it
-		// will be requested where needed. However, if inner child has no outer
-		// refs (i.e. subplan with no params) then we need a materialize
-		if (!exprhdl.HasOuterRefs(1))
+		CRewindabilitySpec *prsOuter = CDrvdPropPlan::Pdpplan((*pdrgpdpCtxt)[0 /*outer child*/])->Prs();
+
+		CRewindabilitySpec::EMotionHazardType motion_hazard = GPOS_FTRACE(EopttraceMotionHazardHandling) &&
+															  (prsOuter->HasMotionHazard() || prsRequired->HasMotionHazard()) ?
+															   CRewindabilitySpec::EmhtMotion :
+															   CRewindabilitySpec::EmhtNoMotion;
+
+		// if there are outer references, then we need a materialize on inner child
+		if (exprhdl.HasOuterRefs())
 		{
-			return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral /*ert*/);
+			return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, motion_hazard);
+		}
+		else
+		{
+			// if inner child has no outer refs (i.e. subplan with no params) then we need a materialize
+			if (!exprhdl.HasOuterRefs(1))
+			{
+				return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, motion_hazard);
+			}
+
+			// inner child has no rewindability requirement. if there is something
+			// below that needs rewindability (e.g. filter, computescalar, agg), it
+			// will be requested where needed. Also we must warn the inner child
+			// about motion hazard, such that it can make appropriate rewindability
+			// request.
+			return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, motion_hazard);
 		}
 
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
+	}
+
+	GPOS_ASSERT(0 == child_index);
+
+	return PrsRequiredForNLJoinOuterChild(mp, exprhdl, prsRequired);
+}
+
+// generate/pass through rewindability request to outer child
+CRewindabilitySpec *
+CPhysicalJoin::PrsRequiredForNLJoinOuterChild
+	(
+	IMemoryPool *mp,
+	CExpressionHandle &exprhdl,
+	CRewindabilitySpec *prsRequired
+	)
+{
+	// if there are outer references, then we need a materialize on outer child
+	if (exprhdl.HasOuterRefs())
+	{
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
 	}
 
 	// pass through requirements to outer child
