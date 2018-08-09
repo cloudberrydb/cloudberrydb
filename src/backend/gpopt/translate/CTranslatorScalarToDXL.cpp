@@ -1355,9 +1355,7 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 	GPOS_ASSERT(EdxlaggstageSentinel != edxlaggstage && "Invalid agg stage");
 
 	CMDIdGPDB *pmdidAgg = GPOS_NEW(m_pmp) CMDIdGPDB(paggref->aggfnoid);
-	const IMDAggregate *pmdagg = m_pmda->Pmdagg(pmdidAgg);
-
-	GPOS_ASSERT(!pmdagg->FOrdered());
+	GPOS_ASSERT(!m_pmda->Pmdagg(pmdidAgg)->FOrdered());
 
 	if (0 != paggref->agglevelsup)
 	{
