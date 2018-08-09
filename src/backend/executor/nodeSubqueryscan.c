@@ -119,14 +119,6 @@ ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	Assert(innerPlan(node) == NULL);
 
 	/*
-	 * Since subquery nodes create its own executor state,
-	 * and pass it down to its child nodes, we always
-	 * initialize the subquery node. However, some
-	 * fields are not initialized if not necessary, see
-	 * below.
-	 */
-
-	/*
 	 * create state structure
 	 */
 	subquerystate = makeNode(SubqueryScanState);
