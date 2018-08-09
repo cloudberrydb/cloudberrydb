@@ -1152,7 +1152,7 @@ exec_mpp_query(const char *query_string,
 			sliceTable->localSlice = localSlice;
 
 			slice = (Slice *)list_nth(sliceTable->slices, sliceTable->localSlice);
-			Insist(IsA(slice, Slice));
+			Assert(IsA(slice, Slice));
 
 			/* Set global sliceid variable for elog. */
 			currentSliceId = sliceTable->localSlice;
