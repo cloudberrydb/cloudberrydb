@@ -955,9 +955,6 @@ addRangeTableEntry(ParseState *pstate,
 	rte->relid = RelationGetRelid(rel);
 	rte->relkind = rel->rd_rel->relkind;
 
-	/* external tables don't allow inheritance */
-	if (RelationIsExternal(rel))
-		inh = false;
 
 	/*
 	 * Build the list of effective column names using user-supplied aliases
