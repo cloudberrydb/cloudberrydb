@@ -74,17 +74,3 @@ def dropSchemaIfExist(conn,schemaname):
         if cursor:
             cursor.close()
         conn.commit()
-
-def get_catalogtable_list(conn):
-    sql = """SELECT schemaname || '.' ||  tablename 
-             FROM pg_tables 
-             WHERE schemaname = 'pg_catalog'
-          """
-    cursor=None
-    try:
-        cursor=dbconn.execSQL(conn,sql)
-        
-        return cursor.fetchall()
-    finally:
-        if cursor:
-            cursor.close()
