@@ -201,6 +201,7 @@ CLogicalSelect::PstatsDerive
 // given an input scalar expression, find out the predicate
 // in the scalar expression which is used for partitioning
 //
+// clang-format off
 // Input Expr:
 //	+--CScalarBoolOp (EboolopAnd)
 //	|--CScalarArrayCmp Any (=)
@@ -216,6 +217,7 @@ CLogicalSelect::PstatsDerive
 //	+--CScalarCmp (=)
 //	|--CScalarIdent "value_date" (0)
 //	+--CScalarConst (559094400000000.000)
+// clang-format on
 CExpression *
 CLogicalSelect::PexprPartPred
 	(

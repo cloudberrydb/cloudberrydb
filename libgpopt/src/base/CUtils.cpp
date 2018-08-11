@@ -4541,6 +4541,7 @@ CUtils::FDuplicateHazardMotion
 
 // Collapse the top two project nodes like this, if unable return NULL;
 //
+// clang-format off
 //	+--CLogicalProject                                            <-- pexpr
 //		|--CLogicalProject                                        <-- pexprRel
 //		|  |--CLogicalGet "t" ("t"), Columns: ["a" (0), "b" (1)]  <-- pexprChildRel
@@ -4554,6 +4555,7 @@ CUtils::FDuplicateHazardMotion
 //			  +--CScalarFunc ()
 //				 |--CScalarIdent "b" (1)
 //				 +--CScalarConst ()
+// clang-format on
 CExpression *
 CUtils::PexprCollapseProjects
 	(
@@ -4651,10 +4653,10 @@ CUtils::PexprCollapseProjects
 		// We come here when either
 		// 1. None of the parent's project element use a set retuning function
 		// 2. Both parent's and relation child's project list has atleast one project element using set
-		//    returning functions. In this case we should not collapsed into one project to ensure for correctness.
+		// returning functions. In this case we should not collapsed into one project to ensure for correctness.
 		// 3. In the parent's project list there exists a project element with set returning functions that
-		//    cannot be collapsed. If the parent's project list has more than one project element with
-		//    set returning functions we should either collapse all of them or none of them for correctness.
+		// cannot be collapsed. If the parent's project list has more than one project element with
+		// set returning functions we should either collapse all of them or none of them for correctness.
 
 		AppendArrayExpr(pdrgpexprSetReturnFunc, pdrgpexprPrEl);
 	}

@@ -1,45 +1,35 @@
-//---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+// Greenplum Database
+// Copyright (C) 2012 EMC Corp.
 //
-//	@filename:
-//		CPhysicalAssert.h
+// Assert operator for runtime checking of constraints. Assert operators have a list
+// of constraints to be checked, and corresponding error messages to print in the 
+// event of constraint violation.
+//	
+// For example:
+// clang-format off
 //
-//	@doc:
-//		Assert operator for runtime checking of constraints. Assert operators have a list
-//		of constraints to be checked, and corresponding error messages to print in the 
-//		event of constraint violation.
-//		
-//		For example:
-// 
-//      +--CPhysicalAssert (Error code: 23514)   
-//         |--CPhysicalAssert (Error code: 23502)  
-//         |  |--CPhysical [...]
-//         |  +--CScalarAssertConstraintList
-//         |     +--CScalarAssertConstraint (ErrorMsg: Not null constraint for column b of table r violated)
-//         |        +--CScalarBoolOp (EboolopNot)
-//         |           +--CScalarNullTest
-//         |              +--CScalarIdent "b" (2) 
-//         +--CScalarAssertConstraintList
-//            |--CScalarAssertConstraint (ErrorMsg: Check constraint r_check for table r violated)
-//            |  +--CScalarIsDistinctFrom (=)
-//            |     |--CScalarCmp (<)
-//            |     |  |--CScalarIdent "d" (4)
-//            |     |  +--CScalarIdent "c" (3)
-//            |     +--CScalarConst (0)
-//            +--CScalarAssertConstraint (ErrorMsg: Check constraint r_c_check for table r violated)
-//               +--CScalarIsDistinctFrom (=)
-//                  |--CScalarCmp (>)
-//                  |  |--CScalarIdent "c" (3) 
-//                  |  +--CScalarConst (0)
-//                  +--CScalarConst (0)
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
-//---------------------------------------------------------------------------
+// +--CPhysicalAssert (Error code: 23514)   
+//    |--CPhysicalAssert (Error code: 23502)  
+//    |  |--CPhysical [...]
+//    |  +--CScalarAssertConstraintList
+//    |     +--CScalarAssertConstraint (ErrorMsg: Not null constraint for column b of table r violated)
+//    |        +--CScalarBoolOp (EboolopNot)
+//    |           +--CScalarNullTest
+//    |              +--CScalarIdent "b" (2) 
+//    +--CScalarAssertConstraintList
+//       |--CScalarAssertConstraint (ErrorMsg: Check constraint r_check for table r violated)
+//       |  +--CScalarIsDistinctFrom (=)
+//       |     |--CScalarCmp (<)
+//       |     |  |--CScalarIdent "d" (4)
+//       |     |  +--CScalarIdent "c" (3)
+//       |     +--CScalarConst (0)
+//       +--CScalarAssertConstraint (ErrorMsg: Check constraint r_c_check for table r violated)
+//          +--CScalarIsDistinctFrom (=)
+//             |--CScalarCmp (>)
+//             |  |--CScalarIdent "c" (3) 
+//             |  +--CScalarConst (0)
+//             +--CScalarConst (0)
+// clang-format on
 #ifndef GPOPT_CPhysicalAssert_H
 #define GPOPT_CPhysicalAssert_H
 

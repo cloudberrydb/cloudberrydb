@@ -26,8 +26,9 @@
 #include "gpopt/base/CDistributionSpecSingleton.h"
 #include "gpopt/cost/CCost.h"
 
-#define GPOPT_PLAN_PROPS	4	// number of plan properties requested during optimization,
-								// currently, there are 4 properties: order, distribution, rewindability and partition propagation
+// number of plan properties requested during optimization, currently, there are 4 properties:
+// order, distribution, rewindability and partition propagation
+#define GPOPT_PLAN_PROPS	4
 
 namespace gpopt
 {

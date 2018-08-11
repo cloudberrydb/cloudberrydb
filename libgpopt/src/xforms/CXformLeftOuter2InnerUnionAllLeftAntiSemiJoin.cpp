@@ -154,13 +154,11 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::FApplyXformUsingStatsInfo
 	return num_rows_outer / dRowsInner <= m_dOuterInnerRatioThreshold;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Transform
+
+// Apply the transformation, e.g.
 //
-//	@doc:
-//		Apply the transformation, e.g.
-//  Input:
+// clang-format off
+// Input:
 //  +--CLogicalLeftOuterJoin
 //     |--CLogicalGet "items", Columns: ["i_item_sk" (95)]
 //     |--CLogicalGet "store_sales", Columns: ["ss_item_sk" (124)]
@@ -199,7 +197,7 @@ CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::FApplyXformUsingStatsInfo
 //            |--CScalarIdent "i_item_sk" (247)
 //            +--CScalarIdent "ss_item_sk" (248)
 //
-//---------------------------------------------------------------------------
+// clang-format on
 void
 CXformLeftOuter2InnerUnionAllLeftAntiSemiJoin::Transform
 	(

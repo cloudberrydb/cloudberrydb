@@ -410,70 +410,66 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
+// Helper to add IndexApply expressions to given xform results container
+// for partial indexes. For the partitions without indexes we add one
+// regular inner join.
+// For instance, if there are two partial indexes plus some partitions
+// not covered by any index, the result of this xform on:
 //
-//	@doc:
-//		Helper to add IndexApply expressions to given xform results container
-//		for partial indexes. For the partitions without indexes we add one
-//		regular inner join.
-//		For instance, if there are two partial indexes plus some partitions
-//		not covered by any index, the result of this xform on:
+// clang-format off
+// +--CLogicalInnerJoin
+//   |--CLogicalGet "my_tt_agg_small", Columns: ["symbol" (0), "event_ts" (1)]
+//   |--CLogicalDynamicGet "my_tq_agg_small_part", Columns: ["ets" (11), "end_ts" (15)]
+//   +--CScalarBoolOp (EboolopAnd)
+//     |--CScalarCmp (>=)
+//     |  |--CScalarIdent "event_ts" (1)
+//     |  +--CScalarIdent "ets" (11)
+//     +--CScalarCmp (<)
+//        |--CScalarIdent "event_ts" (1)
+//        +--CScalarIdent "end_ts" (15)
 //
-//    +--CLogicalInnerJoin
-//      |--CLogicalGet "my_tt_agg_small", Columns: ["symbol" (0), "event_ts" (1)]
-//      |--CLogicalDynamicGet "my_tq_agg_small_part", Columns: ["ets" (11), "end_ts" (15)]
-//      +--CScalarBoolOp (EboolopAnd)
-//        |--CScalarCmp (>=)
-//        |  |--CScalarIdent "event_ts" (1)
-//        |  +--CScalarIdent "ets" (11)
-//        +--CScalarCmp (<)
-//           |--CScalarIdent "event_ts" (1)
-//           +--CScalarIdent "end_ts" (15)
+// will look like:
 //
-//    will look like:
+// +--CLogicalCTEAnchor (0)
+//    +--CLogicalUnionAll ["symbol" (0), "event_ts" (1),  ...]
+//     |--CLogicalUnionAll ["symbol" (0), "event_ts" (1),  ...]
+//     |  |--CLogicalInnerIndexApply
+//     |  |  |--CLogicalCTEConsumer (0), Columns: ["symbol" (0), "event_ts" (1), "gp_segment_id" (10)]
+//     |  |  |--CLogicalDynamicIndexGet   Index Name: ("my_tq_agg_small_part_ets_end_ts_ix_1"),
+//     |  |  |      Columns: ["ets" (11), "end_ts" (15) "gp_segment_id" (22)]
+//     |  |  |  |--CScalarBoolOp (EboolopAnd)
+//     |  |  |  |  |--CScalarCmp (<=)
+//     |  |  |  |  |  |--CScalarIdent "ets" (11)
+//     |  |  |  |  |  +--CScalarIdent "event_ts" (1)
+//     |  |  |  |  +--CScalarCmp (>)
+//     |  |  |  |     |--CScalarIdent "end_ts" (15)
+//     |  |  |  |     +--CScalarIdent "event_ts" (1)
+//     |  |  |  +--CScalarConst (TRUE)
+//     |  |  +--CScalarConst (TRUE)
+//     |  +--CLogicalInnerIndexApply
+//     |     |--CLogicalCTEConsumer (0), Columns: ["symbol" (35), "event_ts" (36), "gp_segment_id" (45)]
+//     |     |--CLogicalDynamicIndexGet   Index Name: ("my_tq_agg_small_part_ets_end_ts_ix_2"),
+//     |     |    Columns: ["ets" (46),  "end_ts" (50), "gp_segment_id" (57)]
+//     |     |  |--CScalarCmp (<=)
+//     |     |  |  |--CScalarIdent "ets" (46)
+//     |     |  |  +--CScalarIdent "event_ts" (36)
+//     |     |  +--CScalarCmp (<)
+//     |     |     |--CScalarIdent "event_ts" (36)
+//     |     |     +--CScalarIdent "end_ts" (50)
+//     |     +--CScalarConst (TRUE)
+//     +--CLogicalInnerJoin
+//          |--CLogicalCTEConsumer (0), Columns: ["symbol" (58), "event_ts" (59), "gp_segment_id" (68)]
+//          |--CLogicalDynamicGet "my_tq_agg_small_part" ,
+//         Columns: ["ets" (69), "end_ts" (73), "gp_segment_id" (80)]
+//            +--CScalarBoolOp (EboolopAnd)
+//            |--CScalarCmp (>=)
+//            |  |--CScalarIdent "event_ts" (59)
+//            |  +--CScalarIdent "ets" (69)
+//            +--CScalarCmp (<)
+//               |--CScalarIdent "event_ts" (59)
+//               +--CScalarIdent "end_ts" (73)
 //
-//    +--CLogicalCTEAnchor (0)
-//       +--CLogicalUnionAll ["symbol" (0), "event_ts" (1),  ...]
-//        |--CLogicalUnionAll ["symbol" (0), "event_ts" (1),  ...]
-//        |  |--CLogicalInnerIndexApply
-//        |  |  |--CLogicalCTEConsumer (0), Columns: ["symbol" (0), "event_ts" (1), "gp_segment_id" (10)]
-//        |  |  |--CLogicalDynamicIndexGet   Index Name: ("my_tq_agg_small_part_ets_end_ts_ix_1"),
-//        |  |  |      Columns: ["ets" (11), "end_ts" (15) "gp_segment_id" (22)]
-//        |  |  |  |--CScalarBoolOp (EboolopAnd)
-//        |  |  |  |  |--CScalarCmp (<=)
-//        |  |  |  |  |  |--CScalarIdent "ets" (11)
-//        |  |  |  |  |  +--CScalarIdent "event_ts" (1)
-//        |  |  |  |  +--CScalarCmp (>)
-//        |  |  |  |     |--CScalarIdent "end_ts" (15)
-//        |  |  |  |     +--CScalarIdent "event_ts" (1)
-//        |  |  |  +--CScalarConst (TRUE)
-//        |  |  +--CScalarConst (TRUE)
-//        |  +--CLogicalInnerIndexApply
-//        |     |--CLogicalCTEConsumer (0), Columns: ["symbol" (35), "event_ts" (36), "gp_segment_id" (45)]
-//        |     |--CLogicalDynamicIndexGet   Index Name: ("my_tq_agg_small_part_ets_end_ts_ix_2"),
-//        |     |    Columns: ["ets" (46),  "end_ts" (50), "gp_segment_id" (57)]
-//        |     |  |--CScalarCmp (<=)
-//        |     |  |  |--CScalarIdent "ets" (46)
-//        |     |  |  +--CScalarIdent "event_ts" (36)
-//        |     |  +--CScalarCmp (<)
-//        |     |     |--CScalarIdent "event_ts" (36)
-//        |     |     +--CScalarIdent "end_ts" (50)
-//        |     +--CScalarConst (TRUE)
-//        +--CLogicalInnerJoin
-//             |--CLogicalCTEConsumer (0), Columns: ["symbol" (58), "event_ts" (59), "gp_segment_id" (68)]
-//             |--CLogicalDynamicGet "my_tq_agg_small_part" ,
-//            Columns: ["ets" (69), "end_ts" (73), "gp_segment_id" (80)]
-//               +--CScalarBoolOp (EboolopAnd)
-//               |--CScalarCmp (>=)
-//               |  |--CScalarIdent "event_ts" (59)
-//               |  +--CScalarIdent "ets" (69)
-//               +--CScalarCmp (<)
-//                  |--CScalarIdent "event_ts" (59)
-//                  +--CScalarIdent "end_ts" (73)
-//
-//---------------------------------------------------------------------------
+// clang-format on
 void
 CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 	(

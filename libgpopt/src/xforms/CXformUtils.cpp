@@ -1851,16 +1851,9 @@ CXformUtils::FSplitAggXform
 }
 
 
-//---------------------------------------------------------------------------
-//   @function:
-//		CXformUtils::FMultiStageAgg
-//
-//   @doc:
-//      Check if given expression is a multi-stage Agg based on agg type
-//		or origin xform
-//
-//
-//---------------------------------------------------------------------------
+
+// Check if given expression is a multi-stage Agg based on agg type
+// or origin xform
 BOOL
 CXformUtils::FMultiStageAgg
 	(

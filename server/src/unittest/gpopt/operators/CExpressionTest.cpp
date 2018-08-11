@@ -437,10 +437,13 @@ CExpressionTest::EresUnittest_BitmapGet()
 	COstreamString ossIndex2(&strIndex2);
 	pexprBitmapIndex2->OsPrint(ossIndex2);
 	CWStringConst strExpectedDebugPrintIndex2(GPOS_WSZ_LIT(
+	// clang-format off
 		"+--CScalarBitmapIndexProbe   Bitmap Index Name: (\"T_a\")\n"
 		"   +--CScalarCmp (=)\n"
 		"      |--CScalarIdent \"ColRef_0000\" (0)\n"
-		"      +--CScalarConst (20)\n"));
+		"      +--CScalarConst (20)\n"
+	// clang-format on
+														   ));
 
 	GPOS_ASSERT(strIndex2.Equals(&strExpectedDebugPrintIndex2));
 	GPOS_ASSERT(pexprBitmapIndex2->Matches(pexprBitmapIndex));

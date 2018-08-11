@@ -642,6 +642,7 @@ CDecorrelator::FProcessMaxOneRow
 }
 
 // decorrelate project/sequence project
+// clang-format off
 // if the expression can be decorrelated, the scalar cmp is pulled up and is replaced by
 // the project list.
 // input ex with CLogicalSequenceProject:
@@ -669,6 +670,7 @@ CDecorrelator::FProcessMaxOneRow
 //         +--CScalarCmp (=)   origin: [Grp:4, GrpExpr:0]
 //            |--CScalarIdent "i" (0)   origin: [Grp:2, GrpExpr:0]
 //            +--CScalarIdent "i" (9)   origin: [Grp:3, GrpExpr:0]
+// clang-format on
 BOOL
 CDecorrelator::FProcessProject
 	(

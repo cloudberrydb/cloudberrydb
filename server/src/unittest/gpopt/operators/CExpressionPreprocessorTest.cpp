@@ -711,6 +711,7 @@ CExpressionPreprocessorTest::EresTestLOJ
 
 	// the input expression looks like the following:
 	//
+	// clang-format off
 	//		+--CLogicalSelect
 	//		   |--CLogicalSequenceProject (HASHED: [ +--CScalarIdent "column_0000" (3) , nulls colocated ], [], [])  /* (added if fAddWindowFunction is TRUE) */
 	//		   |  |--CLogicalSelect								/* (added if fPredBelowWindow is TRUE) */
@@ -739,6 +740,7 @@ CExpressionPreprocessorTest::EresTestLOJ
 	//		   +--CScalarCmp (=)
 	//			  |--CScalarIdent "column_0000" (3)				/* (column is generated from LOJ's outer child if fOuterChildPred is TRUE) */
 	//			  +--CScalarConst (1)
+	// clang-format on
 
 
 	// we generate 16 test cases using 4 nested loops that consider all possible values of the 4 flags
@@ -1700,6 +1702,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
  	COstreamString oss(&strSelect);
  	pexprSelect->OsPrint(oss);
 	CWStringConst strExpectedDebugPrintForSelect(GPOS_WSZ_LIT(
+	// clang-format off
 			"+--CLogicalSelect\n"
 			"   |--CLogicalInnerJoin\n"
 			"   |  |--CLogicalGet \"BaseTableAlias\" (\"BaseTable\"), Columns: [\"column_0000\" (3), \"column_0001\" (4), \"column_0002\" (5)] Key sets: {[0]}\n"
@@ -1731,7 +1734,9 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
 			"         |  +--CScalarConst (0)\n"
 			"         +--CScalarCmp (=)\n"
 			"            |--CScalarIdent \"column_0000\" (0)\n"
-			"            +--CScalarConst (1)\n"));
+			"            +--CScalarConst (1)\n"
+	// clang-format on
+															  ));
 
 	GPOS_ASSERT(strSelect.Equals(&strExpectedDebugPrintForSelect));
 
@@ -1749,6 +1754,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
  	COstreamString ossPreprocessed(&strPreprocessed);
  	pexprPreprocessed->OsPrint(ossPreprocessed);
 	CWStringConst strExpectedDebugPrintForPreprocessed(GPOS_WSZ_LIT(
+	// clang-format off
 			"+--CLogicalNAryJoin\n"
 			"   |--CLogicalSelect\n"
 			"   |  |--CLogicalGet \"BaseTableAlias\" (\"BaseTable\"), Columns: [\"column_0000\" (3), \"column_0001\" (4), \"column_0002\" (5)] Key sets: {[0]}\n"
@@ -1815,7 +1821,10 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
 			"            |  +--CScalarConst (0)\n"
 			"            +--CScalarCmp (=)\n"
 			"               |--CScalarIdent \"column_0000\" (0)\n"
-			"               +--CScalarConst (1)\n"));
+			"               +--CScalarConst (1)\n"
+	// clang-format on
+																	));
+
 	pexprSelect->Release();
 	pexprPreprocessed->Release();
 
@@ -1896,6 +1905,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefiltersPartialPush()
  	COstreamString oss(&strSelect);
  	pexprSelect->OsPrint(oss);
 	CWStringConst strExpectedDebugPrintForSelect(GPOS_WSZ_LIT(
+	// clang-format on
 			"+--CLogicalSelect\n"
 			"   |--CLogicalInnerJoin\n"
 			"   |  |--CLogicalGet \"BaseTableAlias\" (\"BaseTable\"), Columns: [\"column_0000\" (3), \"column_0001\" (4), \"column_0002\" (5)] Key sets: {[0]}\n"
@@ -1913,7 +1923,9 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefiltersPartialPush()
 			"      |     +--CScalarConst (1)\n"
 		    "      +--CScalarCmp (=)\n"
 		    "         |--CScalarIdent \"column_0002\" (2)\n"
-		    "         +--CScalarConst (0)\n"));
+		    "         +--CScalarConst (0)\n"
+	// clang-format on
+															  ));
 
 	GPOS_ASSERT(strSelect.Equals(&strExpectedDebugPrintForSelect));
 
@@ -1921,6 +1933,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefiltersPartialPush()
  	COstreamString ossPreprocessed(&strPreprocessed);
  	pexprPreprocessed->OsPrint(ossPreprocessed);
 	CWStringConst strExpectedDebugPrintForPreprocessed(GPOS_WSZ_LIT(
+	// clang-format off
 			"+--CLogicalNAryJoin\n"
 			"   |--CLogicalGet \"BaseTableAlias\" (\"BaseTable\"), Columns: [\"column_0000\" (3), \"column_0001\" (4), \"column_0002\" (5)] Key sets: {[0]}\n"
 			"   |--CLogicalSelect\n"
@@ -1947,6 +1960,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefiltersPartialPush()
 			"         +--CScalarCmp (=)\n"
 			"            |--CScalarIdent \"column_0002\" (2)\n"
 			"            +--CScalarConst (0)\n"));
+	// clang-format on
 
 
  	pexprSelect->Release();
@@ -2183,37 +2197,29 @@ CExpressionPreprocessorTest::EresUnittest_CollapseInnerJoin()
 	return GPOS_OK;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessorTest
-//				::EresUnittest_PreProcessConvert2InPredicate
-//
-//	@doc:
-//		Tests that a expression with nested OR statements will convert them into
-//		an array IN statement. The statement we are testing looks is equivalent to
-//		+-LogicalGet
-//			+-ScalarBoolOp (Or)
-//				+-ScalarBoolCmp
-//					+-ScalarId
-//					+-ScalarConst
-//				+-ScalarBoolCmp
-//					+-ScalarId
-//					+-ScalarConst
-//				+-ScalarCmp
-//					+-ScalarId
-//					+-ScalarId
-//		and should convert to
-//		+-LogicalGet
-//			+-ScalarArrayCmp
-//				+-ScalarId
-//				+-ScalarArray
-//					+-ScalarConst
-//					+-ScalarConst
-//			+-ScalarCmp
-//				+-ScalarId
-//				+-ScalarId
-//
-//---------------------------------------------------------------------------
+// Tests that a expression with nested OR statements will convert them into
+// an array IN statement. The statement we are testing looks is equivalent to
+// +-LogicalGet
+// 	+-ScalarBoolOp (Or)
+// 		+-ScalarBoolCmp
+// 			+-ScalarId
+// 			+-ScalarConst
+// 		+-ScalarBoolCmp
+// 			+-ScalarId
+// 			+-ScalarConst
+// 		+-ScalarCmp
+// 			+-ScalarId
+// 			+-ScalarId
+// and should convert to
+// +-LogicalGet
+// 	+-ScalarArrayCmp
+// 		+-ScalarId
+// 		+-ScalarArray
+// 			+-ScalarConst
+// 			+-ScalarConst
+// 	+-ScalarCmp
+// 		+-ScalarId
+// 		+-ScalarId
 GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessConvert2InPredicate()
 {
