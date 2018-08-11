@@ -1018,6 +1018,7 @@ class GpAppendGucToFile(Command):
         cmdStr = 'echo "%s=%s" >> %s' %  (guc, finalText, file)
         Command.__init__(self,name,cmdStr,ctxt,remoteHost)
 
+#-----------------------------------------------
 class GpLogFilter(Command):
     def __init__(self, name, filename, start=None, end=None, duration=None,
                  case=None, count=None, search_string=None,
@@ -1045,9 +1046,10 @@ class GpLogFilter(Command):
         if trouble:
             cmdfrags.append('-t')
         cmdfrags.append(filename)
-         self.cmdStr = "$GPHOME/bin/gplogfilter %s" % ' '.join(cmdfrags)
+        self.cmdStr = "$GPHOME/bin/gplogfilter %s" % ' '.join(cmdfrags)
         Command.__init__(self, name, self.cmdStr, ctxt,remoteHost)
-     @staticmethod
+
+    @staticmethod
     def local(name, filename, start=None, end=None, duration=None,
                case=None, count=None, search_string=None,
                exclude_string=None, search_regex=None, exclude_regex=None,
