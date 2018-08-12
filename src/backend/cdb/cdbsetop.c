@@ -30,13 +30,6 @@
 static Flow *copyFlow(Flow *model_flow, bool withExprs, bool withSort);
 static List *makeHashExprsFromNonjunkTargets(List *targetList);
 
-#define ARRAYCOPY(to, from, sz) \
-	do { \
-		Size	_size = (sz); \
-		(to) = palloc(_size); \
-		memcpy((to), (from), _size); \
-	} while (0)
-
 /*
  * Function: choose_setop_type
  *

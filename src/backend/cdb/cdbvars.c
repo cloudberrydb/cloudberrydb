@@ -17,8 +17,8 @@
  *
  *-------------------------------------------------------------------------
  */
-
 #include "postgres.h"
+
 #include "miscadmin.h"
 #include "utils/guc.h"
 #include "catalog/gp_segment_config.h"
@@ -31,10 +31,8 @@
 #include "cdb/cdbdisp.h"
 #include "lib/stringinfo.h"
 #include "libpq/libpq-be.h"
-#include "utils/memutils.h"
 #include "utils/resource_manager.h"
 #include "utils/resgroup-ops.h"
-#include "storage/bfz.h"
 #include "storage/proc.h"
 #include "cdb/memquota.h"
 
@@ -241,11 +239,6 @@ bool		gp_selectivity_damping_sigsort = true;
 int			gp_hashjoin_tuples_per_bucket = 5;
 int			gp_hashagg_groups_per_bucket = 5;
 
-
-/* default value to 0, which means we do not try to control number of spill batches */
-int			gp_hashagg_spillbatch_min = 0;
-int			gp_hashagg_spillbatch_max = 0;
-
 /* Analyzing aid */
 int			gp_motion_slice_noop = 0;
 
@@ -259,7 +252,6 @@ bool		gp_enable_motion_deadlock_sanity = FALSE;	/* planning time sanity
 bool		gp_mk_sort_check = false;
 #endif
 int			gp_sort_flags = 0;
-int			gp_dbg_flags = 0;
 int			gp_sort_max_distinct = 20000;
 
 bool		gp_enable_tablespace_auto_mkdir = FALSE;
@@ -379,8 +371,7 @@ int			cdb_max_slices = 0;
 /*
  *	Forward declarations of local function.
  */
-GpRoleValue string_to_role(const char *string);
-const char *role_to_string(GpRoleValue role);
+static GpRoleValue string_to_role(const char *string);
 
 
 /*
@@ -388,7 +379,7 @@ const char *role_to_string(GpRoleValue role);
  * enum value of type GpRoleValue. Return GP_ROLE_UNDEFINED in case the
  * string is unrecognized.
  */
-GpRoleValue
+static GpRoleValue
 string_to_role(const char *string)
 {
 	GpRoleValue role = GP_ROLE_UNDEFINED;
@@ -608,27 +599,6 @@ const char *
 show_gp_role(void)
 {
 	return role_to_string(Gp_role);
-}
-
-/*
- * Show hook routine for "gp_connections_per_thread" option.
- *
- * See src/backend/util/misc/guc.c for option definition.
- */
-const char *
-show_gp_connections_per_thread(void)
-{
-	/*
-	 * We rely on the fact that the memory context will clean up the memory
-	 * for the buffer.data.
-	 */
-	StringInfoData buffer;
-
-	initStringInfo(&buffer);
-
-	appendStringInfo(&buffer, "%d", gp_connections_per_thread);
-
-	return buffer.data;
 }
 
 

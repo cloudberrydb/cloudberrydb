@@ -3644,7 +3644,7 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_connections_per_thread,
 		0, 0, INT_MAX,
-		NULL, assign_gp_connections_per_thread, show_gp_connections_per_thread
+		NULL, assign_gp_connections_per_thread, NULL
 	},
 
 	{

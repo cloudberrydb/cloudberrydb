@@ -104,9 +104,6 @@ static void subquery_push_qual(Query *subquery,
 				   RangeTblEntry *rte, Index rti, Node *qual);
 static void recurse_push_qual(Node *setOp, Query *topquery,
 				  RangeTblEntry *rte, Index rti, Node *qual);
-#ifdef _MSC_VER
-__declspec(noreturn)
-#endif
 
 
 /*

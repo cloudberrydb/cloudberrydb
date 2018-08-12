@@ -18,7 +18,6 @@
  */
 
 #include "postgres.h"
-#include "gpmon/gpmon.h"
 
 #include <fcntl.h>
 #include <limits.h>
@@ -498,7 +497,7 @@ SocketBackend(StringInfo inBuf)
 					{
 						/*
 						 * Can't send DEBUG log messages to client at this
-						 * point.Since we're disconnecting right away, we
+						 * point. Since we're disconnecting right away, we
 						 * don't need to restore whereToSendOutput.
 						 */
 						whereToSendOutput = DestNone;

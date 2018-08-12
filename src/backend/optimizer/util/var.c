@@ -32,6 +32,7 @@
 #include "rewrite/rewriteManip.h"
 #include "utils/lsyscache.h"
 
+
 typedef struct
 {
 	Relids		varnos;
