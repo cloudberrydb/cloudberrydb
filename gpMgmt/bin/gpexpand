@@ -520,9 +520,10 @@ class GpExpandStatus():
     def _sync_status_file(self):
         """Syncs the gpexpand status file with the master mirror"""
         if self._master_mirror:
-            cpCmd = RemoteCopy('gpexpand copying status file to master mirror',
-                               self._status_standby_filename, self._master_mirror.getSegmentHostName(),
-                               self._status_filename)
+            cpCmd = Scp('gpexpand copying status file to master mirror',
+                        srcFile=self._status_standby_filename,
+                        dstFile=self._status_filename,
+                        dstHost=self._master_mirror.getSegmentHostName())
             cpCmd.run(validateAfter=True)
 
     def set_status(self, status, status_info=None):
@@ -751,7 +752,10 @@ class SegmentTemplate:
         """Distributes template tar file to hosts"""
         for host in self.hosts:
             logger.debug('Copying tar file to %s' % host)
-            cpCmd = RemoteCopy('gpexpand distribute tar file to new hosts', self.schema_tar_file, host, self.segTarDir)
+            cpCmd = Scp(name='gpexpand distribute tar file to new hosts',
+                        srcFile=self.schema_tar_file,
+                        dstFile=self.segTarDir,
+                        dstHost=host)
             self.pool.addCommand(cpCmd)
 
         self.pool.join()
@@ -848,16 +852,19 @@ class SegmentTemplate:
         self.logger.info('Copying postgresql.conf from existing segment into template')
 
         localHostname = self.gparray.master.getSegmentHostName()
-        cpCmd = RemoteCopy(
-            'gpexpand copying postgresql.conf to %s:%s/postgresql.conf' % (self.srcSegHostname, self.srcSegDataDir),
-            self.srcSegDataDir + '/postgresql.conf', localHostname,
-            self.tempDir, ctxt=REMOTE, remoteHost=self.srcSegHostname)
+        cmdName = 'gpexpand copying postgresql.conf to %s:%s/postgresql.conf' \
+                  % (self.srcSegHostname, self.srcSegDataDir)
+        cpCmd = Scp(name=cmdName, srcFile=self.srcSegDataDir + '/postgresql.conf',
+            dstFile=self.tempDir, dstHost=localHostname, ctxt=REMOTE,
+            remoteHost=self.srcSegHostname)
         cpCmd.run(validateAfter=True)
 
         self.logger.info('Copying pg_hba.conf from existing segment into template')
-        cpCmd = RemoteCopy('gpexpand copy pg_hba.conf to %s:%s/pg_hba.conf' % (self.srcSegHostname, self.srcSegDataDir),
-                           self.srcSegDataDir + '/pg_hba.conf', localHostname,
-                           self.tempDir, ctxt=REMOTE, remoteHost=self.srcSegHostname)
+        cmdName = 'gpexpand copy pg_hba.conf to %s:%s/pg_hba.conf' \
+                  % (self.srcSegHostname, self.srcSegDataDir)
+        cpCmd = Scp(name=cmdName, srcFile=self.srcSegDataDir + '/pg_hba.conf',
+                    dstFile=self.tempDir, dstHost=localHostname,ctxt=REMOTE,
+                    remoteHost=self.srcSegHostname)
         cpCmd.run(validateAfter=True)
 
         # Don't need log files and gpperfmon files in template.
@@ -1411,8 +1418,9 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
 
             srcFile = datadir + '/pg_hba.conf'
             dstFile = datadir + '/pg_hba.gpexpand.bak'
-            cpCmd = RemoteCopy('gpexpand back up pg_hba.conf file on original segments',
-                               srcFile, hostname, dstFile, ctxt=REMOTE, remoteHost=hostname)
+            cpCmd = Scp(name='gpexpand back up pg_hba.conf file on original segments',
+                        srcFile=srcFile, dstFile=dstFile, dstHost=hostname, ctxt=REMOTE,
+                        remoteHost=hostname)
 
             self.pool.addCommand(cpCmd)
 
@@ -1432,8 +1440,9 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
             hostname = seg.getSegmentHostName()
             datadir = seg.getSegmentDataDirectory()
 
-            cpCmd = RemoteCopy('gpexpand copy new pg_hba.conf file to original segments',
-                               self.tempDir + '/pg_hba.conf', hostname, datadir)
+            cpCmd = Scp(name='gpexpand copy new pg_hba.conf file to original segments',
+                        srcFile=self.tempDir + '/pg_hba.conf', dstFile=datadir,
+                        dstHost=hostname)
 
             self.pool.addCommand(cpCmd)
 
@@ -1478,9 +1487,9 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
 
             srcFile = datadir + '/pg_hba.gpexpand.bak'
             dstFile = datadir + '/pg_hba.conf'
-            cpCmd = RemoteCopy('gpexpand restore of pg_hba.conf file on original segments',
-                               srcFile, hostname, dstFile, ctxt=REMOTE,
-                               remoteHost=hostname)
+            cpCmd = Scp(name='gpexpand restore of pg_hba.conf file on original segments',
+                        srcFile=srcFile, dstFile=dstFile, dstHost=hostname, ctxt=REMOTE,
+                        remoteHost=hostname)
 
             self.pool.addCommand(cpCmd)
 

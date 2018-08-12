@@ -1066,7 +1066,7 @@ def distribute_tarball(queue,list,tarball):
             hostname = db.getSegmentHostName()
             datadir = db.getSegmentDataDirectory()
             (head,tail)=os.path.split(datadir)
-            scp_cmd=RemoteCopy("copy master",tarball,hostname,head)
+            scp_cmd=Scp(name="copy master",srcFile=tarball,dstHost=hostname,dstFile=head)
             queue.addCommand(scp_cmd)
         queue.join()
         queue.check_results()

@@ -691,16 +691,6 @@ def canonicalize(addr):
     return '[' + addr + ']'
 
 
-class RemoteCopy(Command):
-    def __init__(self, name, srcDirectory, dstHost, dstDirectory, ctxt=LOCAL, remoteHost=None):
-        self.srcDirectory = srcDirectory
-        self.dstHost = dstHost
-        self.dstDirectory = dstDirectory
-        cmdStr = "%s -o 'StrictHostKeyChecking no' -r %s %s:%s" % (
-            findCmdInPath('scp'), srcDirectory, canonicalize(dstHost), dstDirectory)
-        Command.__init__(self, name, cmdStr, ctxt, remoteHost)
-
-
 class Scp(Command):
     def __init__(self, name, srcFile, dstFile, srcHost=None, dstHost=None, recursive=False, ctxt=LOCAL,
                  remoteHost=None):
