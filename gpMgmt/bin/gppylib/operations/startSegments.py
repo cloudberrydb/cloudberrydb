@@ -150,21 +150,6 @@ class StartSegmentsOperation:
         assert totalToAttempt == len(result.getFailedSegmentObjs()) + len(result.getSuccessfulSegments())
         return result
 
-    def transitionSegments(self, gpArray, segments, convertUsingFullResync, mirrorMode):
-        """
-        gpArray: the system to which the segments to start belong
-        segments: the list of segments to be transitioned
-        convertUsingFullResync: in parallel with segments, gives true/false for whether fullResync flag should be passed
-        mirrorMode: should be one of the MIRROR_MODE_* constant values
-
-        """
-
-        result = StartSegmentsResult()
-        self.__sendPrimaryMirrorTransition(mirrorMode, segments, convertUsingFullResync, gpArray, result)
-        
-        assert len(segments) == len(result.getFailedSegmentObjs()) + len(result.getSuccessfulSegments())
-        return result
-
     def __runStartCommand(self, segments, startMethod, numContentsInCluster, resultOut, gpArray, era):
         """
         Putt results into the resultOut object
