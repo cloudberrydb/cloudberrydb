@@ -1811,7 +1811,7 @@ tuplesort_skiptuples_mk(Tuplesortstate_mk *state, int64 ntuples, bool forward)
 				fOK = false;
 				break;
 			}
-			if (should_free)
+			if (should_free && e.ptr)
 				pfree(e.ptr);
 			CHECK_FOR_INTERRUPTS();
 		}
