@@ -1677,7 +1677,7 @@ create_material_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath)
 				  root,
 				  subpath->startup_cost,
 				  subpath->total_cost,
-				  cdbpath_rows(root, subpath),
+				  subpath->rows,
 				  rel->width);
 
 	return pathnode;
@@ -3262,9 +3262,9 @@ create_hashjoin_path(PlannerInfo *root,
 		double		innersize;
 
 		outersize = ExecHashRowSize(outer_path->parent->width) *
-			cdbpath_rows(root, outer_path);
+			outer_path->rows;
 		innersize = ExecHashRowSize(inner_path->parent->width) *
-			cdbpath_rows(root, inner_path);
+			inner_path->rows;
 
 		if (innersize > outersize)
 			return NULL;

@@ -432,7 +432,7 @@ query_planner(PlannerInfo *root, List *tlist,
 			/* Figure cost for sorting */
 			cost_sort(&sort_path, root, root->query_pathkeys,
 					  cheapestpath->total_cost,
-					  cdbpath_rows(root, cheapestpath), final_rel->width,
+					  cheapestpath->rows, final_rel->width,
 					  0.0, work_mem, limit_tuples);
 		}
 

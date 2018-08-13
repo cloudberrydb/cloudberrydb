@@ -1246,7 +1246,7 @@ create_unique_plan(PlannerInfo *root, UniquePath *best_path)
 	}
 
 	/* Adjust output size estimate (other fields should be OK already) */
-	plan->plan_rows = cdbpath_rows(root, &best_path->path);
+	plan->plan_rows = best_path->path.rows;
 
 	return plan;
 }
@@ -4391,7 +4391,7 @@ copy_path_costsize(PlannerInfo *root, Plan *dest, Path *src)
 	{
 		dest->startup_cost = src->startup_cost;
 		dest->total_cost = src->total_cost;
-		dest->plan_rows = cdbpath_rows(root, src);
+		dest->plan_rows = src->rows;
 		dest->plan_width = src->parent->width;
 	}
 	else

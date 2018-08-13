@@ -91,7 +91,6 @@
 #include "utils/spccache.h"
 #include "utils/tuplesort.h"
 
-#include "cdb/cdbpath.h"        /* cdbpath_rows() */
 #include "cdb/cdbvars.h"
 
 #define LOG2(x)  (log(x) / 0.693147180559945)
@@ -1304,6 +1303,8 @@ cost_tablefunction(Path *path, PlannerInfo *root, RelOptInfo *baserel)
 	Assert(baserel->relid > 0);
 	Assert(baserel->rtekind == RTE_TABLEFUNCTION);
 
+	path->rows = baserel->rows;
+
 	/* Initialize cost of the subquery input */
 	path->startup_cost = baserel->subplan->startup_cost;
 	path->total_cost   = baserel->subplan->total_cost;
@@ -1950,6 +1951,7 @@ cost_shareinputscan(Path *path, PlannerInfo *root, Cost sharecost, double tuples
 	double nbytes = relation_byte_size(tuples, width);
 	double npages = ceil(nbytes/BLCKSZ);
 
+	path->rows = tuples;
 	path->startup_cost = sharecost;
 	path->total_cost = sharecost;
 	
@@ -2001,7 +2003,7 @@ initial_cost_nestloop(PlannerInfo *root, JoinCostWorkspace *workspace,
 {
 	Cost		startup_cost = 0;
 	Cost		run_cost = 0;
-	double		outer_path_rows = cdbpath_rows(root, outer_path);
+	double		outer_path_rows = outer_path->rows;
 	Cost		inner_rescan_start_cost;
 	Cost		inner_rescan_total_cost;
 	Cost		inner_run_cost;
@@ -2104,8 +2106,8 @@ final_cost_nestloop(PlannerInfo *root, NestPath *path,
 {
 	Path	   *outer_path = path->outerjoinpath;
 	Path	   *inner_path = path->innerjoinpath;
-	double		outer_path_rows = cdbpath_rows(root, outer_path);
-	double		inner_path_rows = cdbpath_rows(root, inner_path);
+	double		outer_path_rows = outer_path->rows;
+	double		inner_path_rows = inner_path->rows;
 	Cost		startup_cost = workspace->startup_cost;
 	Cost		run_cost = workspace->run_cost;
 	Cost		inner_rescan_run_cost = workspace->inner_rescan_run_cost;
@@ -2225,8 +2227,8 @@ initial_cost_mergejoin(PlannerInfo *root, JoinCostWorkspace *workspace,
 {
 	Cost		startup_cost = 0;
 	Cost		run_cost = 0;
-	double		outer_path_rows = cdbpath_rows(root, outer_path);
-	double		inner_path_rows = cdbpath_rows(root, inner_path);
+	double		outer_path_rows = outer_path->rows;
+	double		inner_path_rows = inner_path->rows;
 	Cost		inner_run_cost;
 	double		outer_rows,
 				inner_rows,
@@ -2450,7 +2452,7 @@ final_cost_mergejoin(PlannerInfo *root, MergePath *path,
 {
 	Path	   *outer_path = path->jpath.outerjoinpath;
 	Path	   *inner_path = path->jpath.innerjoinpath;
-	double		inner_path_rows = cdbpath_rows(root, inner_path);
+	double		inner_path_rows = inner_path->rows;
 	List	   *mergeclauses = path->path_mergeclauses;
 	List	   *innersortkeys = path->innersortkeys;
 	Cost		startup_cost = workspace->startup_cost;
@@ -2740,8 +2742,8 @@ initial_cost_hashjoin(PlannerInfo *root, JoinCostWorkspace *workspace,
 {
 	Cost		startup_cost = 0;
 	Cost		run_cost = 0;
-	double		outer_path_rows = cdbpath_rows(root, outer_path);
-	double		inner_path_rows = cdbpath_rows(root, inner_path);
+	double		outer_path_rows = outer_path->rows;
+	double		inner_path_rows = inner_path->rows;
 	int			num_hashclauses = list_length(hashclauses);
 	int			numbuckets;
 	int			numbatches;
@@ -2824,8 +2826,8 @@ final_cost_hashjoin(PlannerInfo *root, HashPath *path,
 {
 	Path	   *outer_path = path->jpath.outerjoinpath;
 	Path	   *inner_path = path->jpath.innerjoinpath;
-	double		outer_path_rows = cdbpath_rows(root, outer_path);
-	double		inner_path_rows = cdbpath_rows(root, inner_path);
+	double		outer_path_rows = outer_path->rows;
+	double		inner_path_rows = inner_path->rows;
 	List	   *hashclauses = path->path_hashclauses;
 	Cost		startup_cost = workspace->startup_cost;
 	Cost		run_cost = workspace->run_cost;

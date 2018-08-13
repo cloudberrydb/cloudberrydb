@@ -52,11 +52,20 @@ cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath)
 	double		recvrows;
 	double		sendrows;
 
+	if (! IsA(subpath, BitmapHeapPath) &&
+		! IsA(subpath, BitmapAppendOnlyPath) && 
+		! IsA(subpath, IndexPath) && 
+		! IsA(subpath, UniquePath) &&
+		CdbPathLocus_IsReplicated(motionpath->path.locus))
+		motionpath->path.rows = subpath->rows * root->config->cdbpath_segments;
+	else
+		motionpath->path.rows = subpath->rows;
+
 	cost_per_row = (gp_motion_cost_per_row > 0.0)
 		? gp_motion_cost_per_row
 		: 2.0 * cpu_tuple_cost;
-	sendrows = cdbpath_rows(root, subpath);
-	recvrows = cdbpath_rows(root, (Path *) motionpath);
+	sendrows = subpath->rows;
+	recvrows = motionpath->path.rows;
 	motioncost = cost_per_row * 0.5 * (sendrows + recvrows);
 
 	motionpath->path.total_cost = motioncost + subpath->total_cost;
@@ -891,8 +900,8 @@ cdbpath_motion_for_join(PlannerInfo *root,
 	}
 
 	/* Get rel sizes. */
-	outer.bytes = cdbpath_rows(root, outer.path) * outer.path->parent->width;
-	inner.bytes = cdbpath_rows(root, inner.path) * inner.path->parent->width;
+	outer.bytes = outer.path->rows * outer.path->parent->width;
+	inner.bytes = inner.path->rows * inner.path->parent->width;
 
 	/*
 	 * Motion not needed if either source is everywhere (e.g. a constant).
@@ -1519,7 +1528,7 @@ cdbpath_dedup_fixup_joinrel(JoinPath *joinpath, CdbpathDedupFixupContext *ctx)
 		/* Which rel has more rows?  Put its row id vars in front. */
 		if (outer_rowid_vars &&
 			ctx->rowid_vars &&
-			cdbpath_rows(ctx->root, joinpath->outerjoinpath) >= cdbpath_rows(ctx->root, joinpath->innerjoinpath))
+			joinpath->outerjoinpath->rows >= joinpath->innerjoinpath->rows)
 			ctx->rowid_vars = list_concat(outer_rowid_vars, ctx->rowid_vars);
 		else
 			ctx->rowid_vars = list_concat(ctx->rowid_vars, outer_rowid_vars);

@@ -44,33 +44,4 @@ cdbpath_dedup_fixup(PlannerInfo *root, Path *path);
 bool
 cdbpath_contains_wts(Path *path);
 
-/*
- * cdbpath_rows
- *
- * Returns a Path's estimated number of result rows.
- */
-static inline double
-cdbpath_rows(PlannerInfo *root, Path *path)
-{
-	/* GPDB_92_MERGE_FIXME: Maybe we should think about removing this function.
-	 * That will eliminate merge risk since pg upstream (since 9.2) uses
-	 * path->rows directly.
-	 */
-	Path  *p;
-
-	p = (IsA(path, CdbMotionPath))  ? ((CdbMotionPath *)path)->subpath
-		: path;
-
-	if (IsA(p, BitmapHeapPath) ||
-			IsA(p, BitmapAppendOnlyPath) ||
-			IsA(p, IndexPath) ||
-			IsA(p, UniquePath))
-		return p->rows;
-
-	if (CdbPathLocus_IsReplicated(path->locus))
-		return  (path->parent->rows * root->config->cdbpath_segments);
-
-	return  path->parent->rows;
-}                               /* cdbpath_rows */
-
 #endif   /* CDBPATH_H */
