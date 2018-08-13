@@ -1557,6 +1557,10 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 		Motion	   *pMotion = (Motion *) planstate->plan;
 		int			curSliceId = pMotion->motionID;
 
+		/*
+		 * FIXME: Only displayed in text format
+		 * [#159442827]
+		 */
 		for (int iWorker = 0; iWorker < ctx->slices[curSliceId].nworker; iWorker++)
 		{
 			appendStringInfoSpaces(es->str, es->indent * 2);
@@ -1658,6 +1662,7 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 
 	/*
 	 * What value of work_mem would suffice to eliminate workfile I/O?
+	 * [#159443489]
 	 */
 	if (es->analyze && es->verbose && ns->workmemwanted.vcnt > 0)
 	{
@@ -1690,7 +1695,10 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 												|| T_DynamicTableScanState == planstate->type
 												|| T_DynamicIndexScanState == planstate->type))
 	{
-
+		/*
+		 * FIXME: Only displayed in TEXT format
+		 * [#159443692]
+		 */
 		if (es->format == EXPLAIN_FORMAT_TEXT)
 		{
 			double		nPartTableScanned_avg = cdbexplain_agg_avg(&ns->totalPartTableScanned);
@@ -1785,39 +1793,37 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 		}
 	}
 
+	bool haveExtraText = false;
+	StringInfo extraData = makeStringInfo();
+	for (i = 0; i < ns->ninst; i++)
 	{
-		bool haveExtraText = false;
-		StringInfo extraData = makeStringInfo();
-		for (i = 0; i < ns->ninst; i++)
+		CdbExplain_StatInst *nsi = &ns->insts[i];
+
+		if (nsi->bnotes < nsi->enotes)
 		{
-			CdbExplain_StatInst *nsi = &ns->insts[i];
-
-			if (nsi->bnotes < nsi->enotes)
-			{
-				if (!haveExtraText) {
-					ExplainOpenGroup("Extra Text", "Extra Text", false, es);
-					ExplainOpenGroup("Segment", NULL, true, es);
-					haveExtraText = true;
-				}
-				
-				resetStringInfo(extraData);
-
-				cdbexplain_formatExtraText(extraData,
-										   0,
-										   (ns->ninst == 1) ? -1
-										   : ns->segindex0 + i,
-										   ctx->extratextbuf.data + nsi->bnotes,
-										   nsi->enotes - nsi->bnotes);
-				ExplainPropertyStringInfo("Extra Text", es, "%s", extraData->data);
+			if (!haveExtraText) {
+				ExplainOpenGroup("Extra Text", "Extra Text", false, es);
+				ExplainOpenGroup("Segment", NULL, true, es);
+				haveExtraText = true;
 			}
-		}
+			
+			resetStringInfo(extraData);
 
-		if (haveExtraText) {
-			ExplainCloseGroup("Extra Text", "Extra Text", false, es);
-			ExplainCloseGroup("Segment", NULL, true, es);
+			cdbexplain_formatExtraText(extraData,
+									   0,
+									   (ns->ninst == 1) ? -1
+									   : ns->segindex0 + i,
+									   ctx->extratextbuf.data + nsi->bnotes,
+									   nsi->enotes - nsi->bnotes);
+			ExplainPropertyStringInfo("Extra Text", es, "%s", extraData->data);
 		}
-		pfree(extraData);
 	}
+
+	if (haveExtraText) {
+		ExplainCloseGroup("Extra Text", "Extra Text", false, es);
+		ExplainCloseGroup("Segment", NULL, true, es);
+	}
+	pfree(extraData);
 
 	/*
 	 * Dump stats for all workers.
@@ -1825,6 +1831,10 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 	if (gp_enable_explain_allstat && ns->segindex0 >= 0 && ns->ninst > 0)
 	{
 
+		/*
+		 * FIXME: Only displyed on TEXT format
+		 * [#159443819]
+		 */
 		if (es->format == EXPLAIN_FORMAT_TEXT)
 		{
 			/*
@@ -1833,14 +1843,7 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 			 */
 			appendStringInfoSpaces(es->str, es->indent * 2);
 			appendStringInfoString(es->str,
-								   "allstat: "
-
-			/*
-			 *
-			 * "seg_starttime_firststart_counter_firsttuple_startup_total_ntuples_n
-			 * loops"
-			 */
-								   "seg_firststart_total_ntuples");
+								   "allstat: seg_firststart_total_ntuples");
 
 			for (i = 0; i < ns->ninst; i++)
 			{
