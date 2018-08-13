@@ -254,9 +254,6 @@ typedef struct PROC_HDR
 
     /* Counter for assigning serial numbers to processes */
     int         mppLocalProcessCounter;
-
-	/* Number of free PGPROC entries in freeProcs list. */
-	int			numFreeProcs;
 } PROC_HDR;
 
 extern PROC_HDR *ProcGlobal;

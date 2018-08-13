@@ -295,13 +295,6 @@ InitProcGlobal(void)
 	/* Create ProcStructLock spinlock, too */
 	ProcStructLock = (slock_t *) ShmemAlloc(sizeof(slock_t));
 	SpinLockInit(ProcStructLock);
-
-	/*
-	 * GPDB: numFreeProcs is used to keep track of the
-	 * number of free PGPROC entries in freeProcs list,
-	 * and will accelerate HaveNFreeProcs().
-	 */
-	ProcGlobal->numFreeProcs = MaxConnections;
 }
 
 /*
@@ -351,17 +344,9 @@ InitProcess(void)
 	if (MyProc != NULL)
 	{
 		if (IsAnyAutoVacuumProcess())
-		{
 			procglobal->autovacFreeProcs = (PGPROC *) MyProc->links.next;
-		}
 		else
-		{
 			procglobal->freeProcs = (PGPROC *) MyProc->links.next;
-
-			procglobal->numFreeProcs--;     /* we removed an entry from the list. */
-			Assert(procglobal->numFreeProcs >= 0);
-		}
-
 		SpinLockRelease(ProcStructLock);
 	}
 	else
@@ -712,13 +697,30 @@ GetStartupBufferPinWaitBufId(void)
 
 /*
  * Check whether there are at least N free PGPROC objects.
+ *
+ * Note: this is designed on the assumption that N will generally be small.
  */
 bool
 HaveNFreeProcs(int n)
 {
-	Assert(n >= 0);
+	PGPROC	   *proc;
 
-	return (ProcGlobal->numFreeProcs >= n);
+	/* use volatile pointer to prevent code rearrangement */
+	volatile PROC_HDR *procglobal = ProcGlobal;
+
+	SpinLockAcquire(ProcStructLock);
+
+	proc = procglobal->freeProcs;
+
+	while (n > 0 && proc != NULL)
+	{
+		proc = (PGPROC *) proc->links.next;
+		n--;
+	}
+
+	SpinLockRelease(ProcStructLock);
+
+	return (n <= 0);
 }
 
 /*
@@ -950,8 +952,6 @@ ProcKill(int code, Datum arg)
 	{
 		proc->links.next = (SHM_QUEUE *) procglobal->freeProcs;
 		procglobal->freeProcs = proc;
-
-		procglobal->numFreeProcs++;	/* we added an entry */
 	}
 
 
