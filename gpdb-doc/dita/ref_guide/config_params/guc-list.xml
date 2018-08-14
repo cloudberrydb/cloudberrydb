@@ -4353,7 +4353,7 @@
     <title>gp_max_csv_line_length</title>
     <body>
       <p>The maximum length of a line in a CSV formatted file that will be imported into the system.
-        The default is 1MB (1048576 bytes). Maximum allowed is 4MB (4194184 bytes). The default may
+        The default is 1MB (1048576 bytes). Maximum allowed is 4MB (4194304 bytes). The default may
         need to be increased if using the <i>gp_toolkit</i> administrative schema to read Greenplum
         Database log files.</p>
       <table id="gp_max_csv_line_length_table">
@@ -4371,7 +4371,7 @@
           <tbody>
             <row>
               <entry colname="col1">number of bytes</entry>
-              <entry colname="col2">1048576</entry>
+              <entry colname="col2">4194304</entry>
               <entry colname="col3">local<p>system</p><p>restart</p></entry>
             </row>
           </tbody>
