@@ -611,28 +611,6 @@ class GpSegStartCmd(Command):
         Command.__init__(self,name,cmdStr,ctxt,remoteHost)
 
 
-class GpSegChangeMirrorModeCmd(Command):
-    def __init__(self, name, gphome, gpversion, dbs, targetMode,
-                 pickledParams, verbose=False, ctxt=LOCAL, remoteHost=None):
-        self.gphome=gphome
-        self.dblist=dbs
-        self.dirlist=[]
-        for db in dbs:
-            datadir = db.getSegmentDataDirectory()
-            port = db.getSegmentPort()
-            self.dirlist.append(datadir + ':' + str(port))
-
-        dirstr=" -D ".join(self.dirlist)
-        if verbose:
-            setverbose=" -v "
-        else:
-            setverbose=""
-
-        cmdStr="$GPHOME/sbin/gpsegtoprimaryormirror.py %s -D %s -M %s -p %s -V '%s'" % \
-                (setverbose,dirstr,targetMode,pickledParams,gpversion)
-
-        Command.__init__(self,name,cmdStr,ctxt,remoteHost)
-
 #-----------------------------------------------
 class GpSegStopCmd(Command):
     def __init__(self, name, gphome, version,mode,dbs,timeout=SEGMENT_STOP_TIMEOUT_DEFAULT,
