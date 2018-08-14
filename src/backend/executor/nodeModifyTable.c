@@ -167,10 +167,18 @@ ExecProcessReturning(ProjectionInfo *projectReturning,
  *		and insert appropriate tuples into the index relations.
  *
  *		Returns RETURNING result if any, otherwise NULL.
+ *
+ * If the target table is partitioned, the input tuple in 'parentslot'
+ * is in the shape required for the parent table. This function will
+ * look up the ResultRelInfo of the target partition, and form a
+ * tuple suitable for the target partition. (It can be different, if
+ * there are dropped columns in the parent, but not the partition,
+ * for example.)
+ *
  * ----------------------------------------------------------------
  */
 TupleTableSlot *
-ExecInsert(TupleTableSlot *slot,
+ExecInsert(TupleTableSlot *parentslot,
 		   TupleTableSlot *planSlot,
 		   EState *estate,
 		   bool canSetTag,
@@ -189,13 +197,21 @@ ExecInsert(TupleTableSlot *slot,
 	bool		rel_is_external = false;
 	ItemPointerData lastTid;
 	Oid			tuple_oid = tupleOid;
+	ProjectionInfo *projectReturning;
+	TupleTableSlot *slot;
+
+	/*
+	 * RETURNING is only present in the parent ResultRelInfo, so stash
+	 * that before looking up the ResultRelInfo of the target partition.
+	 */
+	projectReturning = estate->es_result_relation_info->ri_projectReturning;
 
 	/*
 	 * get information on the (current) result relation
 	 */
 	if (estate->es_result_partitions)
 	{
-		resultRelInfo = slot_get_partition(slot, estate);
+		resultRelInfo = slot_get_partition(parentslot, estate);
 
 		/*
 		 * Check whether the user provided the correct leaf part only if required.
@@ -315,7 +331,7 @@ ExecInsert(TupleTableSlot *slot,
 		{
 			GenericTuple gtuple;
 
-			gtuple = ExecFetchSlotGenericTuple(slot, false);
+			gtuple = ExecFetchSlotGenericTuple(parentslot, false);
 
 			if (!is_memtuple(gtuple))
 				tuple_oid = HeapTupleGetOid((HeapTuple) gtuple);
@@ -328,7 +344,7 @@ ExecInsert(TupleTableSlot *slot,
 		}
 	}
 
-	slot = reconstructMatchingTupleSlot(slot, resultRelInfo);
+	slot = reconstructMatchingTupleSlot(parentslot, resultRelInfo);
 
 	if (rel_is_external &&
 		estate->es_result_partitions &&
@@ -490,9 +506,9 @@ ExecInsert(TupleTableSlot *slot,
 	list_free(recheckIndexes);
 
 	/* Process RETURNING if present */
-	if (resultRelInfo->ri_projectReturning)
-		return ExecProcessReturning(resultRelInfo->ri_projectReturning,
-									slot, planSlot);
+	if (projectReturning)
+		return ExecProcessReturning(projectReturning,
+									parentslot, planSlot);
 
 	return NULL;
 }
