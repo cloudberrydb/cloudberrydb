@@ -4739,7 +4739,16 @@ uint32 gp_backtrace(void **stackAddresses, uint32 maxStackDepth)
 {
 #if defined(__i386) || defined(__x86_64__)
 
-	Assert(stack_base_ptr != NULL);
+	/*
+	 * Stack base pointer has not been initialized by PostmasterMain,
+	 * or PostgresMain/AuxiliaryProcessMain is called directly by main
+	 * rather than forked by PostmasterMain (such as when initdb).
+	 *
+	 * In this case, just return depth as 0 to indicate that we have not
+	 * stored any frame addresses.
+	 */
+	if (stack_base_ptr == NULL)
+		return 0;
 
 	/* get base pointer of current frame */
 	uint64 framePtrValue = 0;

@@ -51,9 +51,6 @@ extern int	postmaster_alive_fds[2];
 
 extern const char *progname;
 
-/* stack base pointer, defined in postgres.c */
-extern char *stack_base_ptr;
-
 extern int	PostmasterMain(int argc, char *argv[]);
 extern void ClosePostmasterPorts(bool am_syslogger);
 

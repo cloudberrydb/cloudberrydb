@@ -208,12 +208,6 @@ main(int argc, char *argv[])
 	if (argc > 1 && strcmp(argv[1], "--single") == 0)
 		exit(PostgresMain(argc, argv, NULL, get_current_username(progname)));
 
-	if (strcmp(progname, "postmaster") == 0)
-	{
-		/* Called as "postmaster" */
-		exit(PostmasterMain(argc, argv));
-	}
-
 	exit(PostmasterMain(argc, argv));
 }
 

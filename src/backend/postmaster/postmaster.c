@@ -613,16 +613,12 @@ PostmasterMain(int argc, char *argv[])
 	char	   *userDoption = NULL;
 	bool		listen_addr_saved = false;
 	int			i;
-	char		stack_base;
 
 	MyProcPid = PostmasterPid = getpid();
 
 	MyStartTime = time(NULL);
 
 	IsPostmasterEnvironment = true;
-
-	/* Set up reference point for stack depth checking */
-	stack_base_ptr = &stack_base;
 
 	/*
 	 * for security, no dir or file created can be group or other accessible
