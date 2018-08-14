@@ -4371,7 +4371,7 @@
           <tbody>
             <row>
               <entry colname="col1">number of bytes</entry>
-              <entry colname="col2">4194304</entry>
+              <entry colname="col2">1048576</entry>
               <entry colname="col3">local<p>system</p><p>restart</p></entry>
             </row>
           </tbody>
