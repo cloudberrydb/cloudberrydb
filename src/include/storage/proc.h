@@ -176,7 +176,6 @@ struct PGPROC
 	void		*resSlot;	/* the resource group slot granted.
    							 * NULL indicates the resource group is
 							 * locked for drop. */
-	TMGXACT		gxact;
 
 	/* Per-backend LWLock.	Protects fields below. */
 	LWLockId	backendLock;	/* protects the fields below */
@@ -194,6 +193,7 @@ struct PGPROC
 
 extern PGDLLIMPORT PGPROC *MyProc;
 extern PGDLLIMPORT struct PGXACT *MyPgXact;
+extern PGDLLIMPORT struct TMGXACT *MyTmGxact;
 
 /* Special for MPP reader gangs */
 extern PGDLLIMPORT PGPROC *lockHolderProcPtr;
@@ -233,6 +233,8 @@ typedef struct PROC_HDR
 	PGPROC	   *allProcs;
 	/* Array of PGXACT structures (not including dummies for prepared txns) */
 	PGXACT	   *allPgXact;
+	/* Array of TMGXACT structures (not including dummies for prepared txns) */
+	TMGXACT	   *allTmGxact;
 	/* Length of allProcs array */
 	uint32		allProcCount;
 	/* Head of list of free PGPROC structures */

@@ -104,6 +104,7 @@ static ProcArrayStruct *procArray;
 
 static PGPROC *allProcs;
 static PGXACT *allPgXact;
+static TMGXACT *allTmGxact;
 
 /*
  * Bookkeeping for tracking emulated transactions in recovery
@@ -249,6 +250,7 @@ CreateSharedProcArray(void)
 
 	allProcs = ProcGlobal->allProcs;
 	allPgXact = ProcGlobal->allPgXact;
+	allTmGxact = ProcGlobal->allTmGxact;
 
 	/* Create or attach to the KnownAssignedXids arrays too, if needed */
 	if (EnableHotStandby)
@@ -382,7 +384,7 @@ void
 ProcArrayEndGxact(void)
 {
 	Assert(LWLockHeldByMe(ProcArrayLock));
-	initGxact(&MyProc->gxact);
+	initGxact(MyTmGxact);
 }
 
 /*
@@ -1608,8 +1610,7 @@ getAllDistributedXactStatus(TMGALLXACTSTATUS **allDistributedXactStatus)
 			palloc(MAXALIGN(count * sizeof(TMGXACTSTATUS)));
 		for (i = 0; i < count; i++)
 		{
-			PGPROC *proc = &allProcs[arrayP->pgprocnos[i]];
-			TMGXACT *gxact = &proc->gxact;
+			volatile TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
 			all->statusArray[i].gxid = gxact->gxid;
 			if (strlen(gxact->gid) >= TMGIDSIZE)
@@ -1687,8 +1688,7 @@ getDtxCheckPointInfo(char **result, int *result_size)
 	for (i = 0; i < arrayP->numProcs; i++)
 	{
 		TMGXACT_LOG *gxact_log;
-		PGPROC  *proc = &allProcs[arrayP->pgprocnos[i]];
-		TMGXACT *gxact = &proc->gxact;
+		volatile TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
 
 		if (!includeInCheckpointIsNeeded(gxact))
 			continue;
@@ -1777,9 +1777,9 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 	 */
 	for (i = 0; i < arrayP->numProcs; i++)
 	{
-		PGPROC  *proc = &allProcs[arrayP->pgprocnos[i]];
-		TMGXACT	*gxact_candidate = &proc->gxact;
-		volatile DistributedTransactionId gxid;
+		int         pgprocno = arrayP->pgprocnos[i];
+		volatile TMGXACT	*gxact_candidate = &allTmGxact[pgprocno];
+		DistributedTransactionId gxid;
 		DistributedTransactionId dxid;
 
 		/* just fetch once */
@@ -1816,7 +1816,7 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 			xmax = gxid;
 		}
 
-		if (proc == MyProc)
+		if (gxact_candidate == MyTmGxact)
 			continue;
 
 		if (count >= ds->maxCount)
@@ -1860,8 +1860,8 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 	ds->xmax = xmax;
 	ds->count = count;
 
-	if (xmin < MyProc->gxact.xminDistributedSnapshot)
-		MyProc->gxact.xminDistributedSnapshot = xmin;
+	if (xmin < MyTmGxact->xminDistributedSnapshot)
+		MyTmGxact->xminDistributedSnapshot = xmin;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "CreateDistributedSnapshot distributed snapshot has xmin = %u, count = %u, xmax = %u.",
@@ -1869,7 +1869,7 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 	elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 		 "[Distributed Snapshot #%u] *Create* (gxid = %u, '%s')",
 		 distribSnapshotId,
-		 MyProc->gxact.gxid,
+		 MyTmGxact->gxid,
 		 DtxContextToString(DistributedTransactionContext));
 
 	return true;
@@ -4570,9 +4570,9 @@ ListAllGxid(void)
 
 	for (index = 0; index < arrayP->numProcs; index++)
 	{
-		volatile PGPROC *proc = &allProcs[arrayP->pgprocnos[index]];
+		volatile TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[index]];
 
-		gxid = proc->gxact.gxid;
+		gxid = gxact->gxid;
 		if (gxid == InvalidDistributedTransactionId)
 			continue;
 		gxids = lappend_int(gxids, gxid);
@@ -4599,7 +4599,8 @@ GetPidByGxid(DistributedTransactionId gxid)
 	for (i = 0; i < arrayP->numProcs; i++)
 	{
 		volatile PGPROC *proc = &allProcs[arrayP->pgprocnos[i]];
-		if (proc->gxact.gxid == gxid)
+		volatile TMGXACT *gxact = &allTmGxact[arrayP->pgprocnos[i]];
+		if (gxact->gxid == gxid)
 		{
 			pid = proc->pid;
 			break;

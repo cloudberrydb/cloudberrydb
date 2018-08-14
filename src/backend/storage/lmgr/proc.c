@@ -76,6 +76,7 @@ bool		log_lock_waits = false;
 /* Pointer to this process's PGPROC and PGXACT structs, if any */
 PGPROC	   *MyProc = NULL;
 PGXACT	   *MyPgXact = NULL;
+TMGXACT	   *MyTmGxact = NULL;
 
 /* Special for MPP reader gangs */
 PGPROC	   *lockHolderProcPtr = NULL;
@@ -190,6 +191,7 @@ InitProcGlobal(void)
 {
 	PGPROC	   *procs;
 	PGXACT	   *pgxacts;
+	TMGXACT	   *tmgxacts;
 	int			i,
 				j;
 	bool		found;
@@ -241,6 +243,14 @@ InitProcGlobal(void)
 	pgxacts = (PGXACT *) ShmemAlloc(TotalProcs * sizeof(PGXACT));
 	MemSet(pgxacts, 0, TotalProcs * sizeof(PGXACT));
 	ProcGlobal->allPgXact = pgxacts;
+
+	/*
+	 * Also allocate a separate array of TMGXACT structures out of the same
+	 * consideration as above.
+	 */
+	tmgxacts = (TMGXACT *) ShmemAlloc(TotalProcs * sizeof(TMGXACT));
+	MemSet(tmgxacts, 0, TotalProcs * sizeof(TMGXACT));
+	ProcGlobal->allTmGxact = tmgxacts;
 
 	for (i = 0; i < TotalProcs; i++)
 	{
@@ -363,6 +373,7 @@ InitProcess(void)
 				 errmsg("sorry, too many clients already")));
 	}
 	MyPgXact = &ProcGlobal->allPgXact[MyProc->pgprocno];
+	MyTmGxact = &ProcGlobal->allTmGxact[MyProc->pgprocno];
 
 	if (gp_debug_pgproc)
 	{
@@ -485,7 +496,7 @@ InitProcess(void)
 	MyProc->queryCommandId = -1;
 
 	/* Init gxact */
-	initGxact(&MyProc->gxact);
+	initGxact(MyTmGxact);
 
 	/*
 	 * Arrange to clean up at backend exit.
@@ -590,6 +601,7 @@ InitAuxiliaryProcess(void)
 	MyProc = auxproc;
 	lockHolderProcPtr = auxproc;
 	MyPgXact = &ProcGlobal->allPgXact[auxproc->pgprocno];
+	MyTmGxact = &ProcGlobal->allTmGxact[auxproc->pgprocno];
 
 	SpinLockRelease(ProcStructLock);
 
