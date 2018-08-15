@@ -52,56 +52,52 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CQueryMutators
 	{
-		typedef Node *(*MutatorWalkerFn) ();
-		typedef BOOL (*FallbackWalkerFn) ();
+		typedef Node *(*Pfnode) ();
+		typedef BOOL (*PfFallback) ();
 
 		typedef struct SContextHavingQualMutator
 		{
 			public:
 				// memory pool
-				IMemoryPool *m_mp;
+				IMemoryPool *m_pmp;
 
 				// MD accessor for function names
-				CMDAccessor *m_md_accessor;
+				CMDAccessor *m_pmda;
 
 				// the counter for Query's total number of target entries
-				ULONG m_num_target_entries;
+				ULONG m_ulTECount;
 
 				// the target list of the new group by query
-				List *m_groupby_target_list;
+				List *m_plTENewGroupByQuery;
 
 				// the current query level
-				ULONG m_current_query_level;
+				ULONG m_ulCurrLevelsUp;
 
 		 	 	// indicate whether we are mutating the argument of an aggregate
-				BOOL m_is_mutating_agg_arg;
+				BOOL m_fAggregateArg;
 
 				// indicate the levels up of the aggregate we are mutating
-				ULONG m_agg_levels_up;
+				ULONG m_ulAggregateLevelUp;
 				
 				// fall back to the planner by raising an expression since we encountered an
 				// expression / attribute that we could not resolve
-				BOOL m_should_fallback;
+				BOOL m_fFallbackToPlanner;
 
 				// ctor
-				SContextHavingQualMutator
-					(
-					IMemoryPool *mp,
-					CMDAccessor *md_accessor,
-					ULONG num_target_entries,
-					List *groupby_target_list
-					)
-					:
-					m_mp(mp),
-					m_md_accessor(md_accessor),
-					m_num_target_entries(num_target_entries),
-					m_groupby_target_list(groupby_target_list),
-					m_current_query_level(0),
-					m_is_mutating_agg_arg(false),
-					m_agg_levels_up(gpos::ulong_max),
-					m_should_fallback(false)
+				SContextHavingQualMutator(IMemoryPool *pmp,
+										  CMDAccessor *pmda,
+										  ULONG ulTECount,
+										  List *plTENewGroupByQuery)
+					: m_pmp(pmp),
+					  m_pmda(pmda),
+					  m_ulTECount(ulTECount),
+					  m_plTENewGroupByQuery(plTENewGroupByQuery),
+					  m_ulCurrLevelsUp(0),
+					  m_fAggregateArg(false),
+					  m_ulAggregateLevelUp(gpos::ulong_max),
+					  m_fFallbackToPlanner(false)
 				{
-					GPOS_ASSERT(NULL != groupby_target_list);
+					GPOS_ASSERT(NULL != plTENewGroupByQuery);
 				}
 
 				// dtor
@@ -115,42 +111,42 @@ namespace gpdxl
 			public:
 
 				// memory pool
-				IMemoryPool *m_mp;
+				IMemoryPool *m_pmp;
 
 				// MD accessor to get the function name
-				CMDAccessor *m_md_accessor;
+				CMDAccessor *m_pmda;
 
 				// original query
-				Query *m_query;
+				Query *m_pquery;
 
 				// the new target list of the group by query
-				List *m_groupby_target_list;
+				List *m_plTENewGroupByQuery;
 
 				// the current query level
-				ULONG m_current_query_level;
+				ULONG m_ulCurrLevelsUp;
 
 				// the sorting / grouping reference of the original target list entry
-				ULONG m_sort_group_ref;
+				ULONG m_ulRessortgroupref;
 
 				// indicate whether we are mutating the argument of an aggregate
-				BOOL m_is_mutating_agg_arg;
+				BOOL m_fAggregateArg;
 
 				// ctor
 				SContextGrpbyPlMutator
 					(
-					IMemoryPool *mp,
-					CMDAccessor *md_accessor,
-					Query *query,
-					List *groupby_target_list
+					IMemoryPool *pmp,
+					CMDAccessor *pmda,
+					Query *pquery,
+					List *plTENewGroupByQuery
 					)
 					:
-					m_mp(mp),
-					m_md_accessor(md_accessor),
-					m_query(query),
-					m_groupby_target_list(groupby_target_list),
-					m_current_query_level(0),
-					m_sort_group_ref(0),
-					m_is_mutating_agg_arg(false)
+					m_pmp(pmp),
+					m_pmda(pmda),
+					m_pquery(pquery),
+					m_plTENewGroupByQuery(plTENewGroupByQuery),
+					m_ulCurrLevelsUp(0),
+					m_ulRessortgroupref(0),
+					m_fAggregateArg(false)
 				{
 				}
 
@@ -165,20 +161,20 @@ namespace gpdxl
 			public:
 
 				// the current query level
-				ULONG m_current_query_level;
+				ULONG m_ulCurrLevelsUp;
 				
 				// fix target list entry of the top level
-				BOOL m_should_fix_top_level_target_list;
+				BOOL m_fFixTargetListTopLevel;
 
 				// ctor
 				SContextIncLevelsupMutator
 					(
-					ULONG current_query_level,
-					BOOL should_fix_top_level_target_list
+					ULONG ulCurrLevelsUp,
+					BOOL fFixTargetListTopLevel
 					)
 					:
-					m_current_query_level(current_query_level),
-					m_should_fix_top_level_target_list(should_fix_top_level_target_list)
+					m_ulCurrLevelsUp(ulCurrLevelsUp),
+					m_fFixTargetListTopLevel(fFixTargetListTopLevel)
 				{
 				}
 
@@ -194,20 +190,20 @@ namespace gpdxl
 					public:
 
 						// list of target list entries in the query
-						List *m_target_entries;
+						List *m_plTE;
 
 						// list of grouping clauses
-						List *m_group_clause;
+						List *m_groupClause;
 
 						// ctor
 						SContextTLWalker
 							(
-							List *target_entries,
-							List *group_clause
+							List *plTE,
+							List *groupClause
 							)
 							:
-							m_target_entries(target_entries),
-							m_group_clause(group_clause)
+							m_plTE(plTE),
+							m_groupClause(groupClause)
 						{
 						}
 
@@ -221,107 +217,107 @@ namespace gpdxl
 
 			// check if the cte levels up needs to be corrected
 			static
-			BOOL NeedsLevelsUpCorrection(SContextIncLevelsupMutator *context, Index cte_levels_up);
+			BOOL FNeedsLevelsUpCorrection(SContextIncLevelsupMutator *pctxinclvlmutator, Index idxCtelevelsup);
 
 		public:
 
 			// fall back during since the target list refers to a attribute which algebrizer at this point cannot resolve
 			static
-			BOOL ShouldFallback(Node *node, SContextTLWalker *context);
+			BOOL FNeedsToFallback(Node *pnode, void *pctx);
 
 			// check if the project list contains expressions on aggregates thereby needing normalization
 			static
-			BOOL NeedsProjListNormalization(const Query *query);
+			BOOL FNeedsPrLNormalization(const Query *pquery);
 
 			// normalize query
 			static
-			Query *NormalizeQuery(IMemoryPool *mp, CMDAccessor *md_accessor, const Query *query, ULONG query_level);
+			Query *PqueryNormalize(IMemoryPool *pmp, CMDAccessor *pmda, const Query *pquery, ULONG ulQueryLevel);
 
 			// check if the project list contains expressions on window operators thereby needing normalization
 			static
-			BOOL NeedsProjListWindowNormalization(const Query *query);
+			BOOL FNeedsWindowPrLNormalization(const Query *pquery);
 
 			// flatten expressions in window operation project list
 			static
-			Query *NormalizeWindowProjList(IMemoryPool *mp, CMDAccessor *md_accessor, const Query *query);
+			Query *PqueryNormalizeWindowPrL(IMemoryPool *pmp, CMDAccessor *pmda, const Query *pquery);
 
 			// traverse the project list to extract all window functions in an arbitrarily complex project element
 			static
-			Node *RunWindowProjListMutator(Node *node, SContextGrpbyPlMutator *context);
+			Node *PnodeWindowPrLMutator(Node *pnode, void *ctx);
 
 			// flatten expressions in project list
 			static
-			Query *NormalizeGroupByProjList(IMemoryPool *mp, CMDAccessor *md_accessor, const Query *query);
+			Query *PqueryNormalizeGrpByPrL(IMemoryPool *pmp, CMDAccessor *pmda, const Query *pquery);
 
 			// make a copy of the aggref (minus the arguments)
 			static
-			Aggref *FlatCopyAggref(Aggref *aggref);
+			Aggref *PaggrefFlatCopy(Aggref *paggrefOld);
 
 			// create a new entry in the derived table and return its corresponding var
 			static
-			Var *MakeVarInDerivedTable(Node *node, SContextHavingQualMutator *context);
+			Var *PvarInsertIntoDerivedTable(Node *pnode, SContextHavingQualMutator *context);
 
 			// check if a matching node exists in the list of target entries
 			static
-			Node *FindNodeInTargetEntries(Node *node, SContextHavingQualMutator *context);
+			Node *PnodeFind(Node *pnode, SContextHavingQualMutator *pctx);
 
 			// increment the levels up of outer references
 			static
-			Var *IncrLevelsUpInVar(Var *var);
+			Var *PvarOuterReferenceIncrLevelsUp(Var *pvar);
 
 			// pull up having clause into a select
 			static
-			Query *NormalizeHaving(IMemoryPool *mp, CMDAccessor *md_accessor, const Query *query);
+			Query *PqueryNormalizeHaving(IMemoryPool *pmp, CMDAccessor *pmda, const Query *pquery);
 
 			// traverse the expression and fix the levels up of any outer reference
 			static
-			Node *RunIncrLevelsUpMutator(Node *node, SContextIncLevelsupMutator *context);
+			Node *PnodeIncrementLevelsupMutator(Node *pnode, void *ctx);
 
 			// traverse the expression and fix the levels up of any CTE
 			static
-			Node *RunFixCTELevelsUpMutator(Node *node, SContextIncLevelsupMutator *context);
+			Node *PnodeFixCTELevelsupMutator(Node *pnode, void *ctx);
 
 			// traverse the project list of a groupby operator, to
 			// extract all aggregate functions in an arbitrarily complex project element,
 			static
-			Node *RunGroupByProjListMutator(Node *node, SContextGrpbyPlMutator *context);
+			Node *PnodeGrpbyPrLMutator(Node *pnode, void *ctx);
 
 			// mutate the grouping columns, fix levels up when necessary
 			static
-			Node *RunGroupingColMutator(Node *node, SContextGrpbyPlMutator *context);
+			Node *PnodeGrpColMutator(Node *pnode, void *pctx);
 
 			// fix the level up of grouping columns when necessary
 			static
-			Node *FixGroupingCols(Node *node, TargetEntry *original, SContextGrpbyPlMutator *context);
+			Node *PnodeFixGrpCol(Node *pnode, TargetEntry *pteOriginal, SContextGrpbyPlMutator *pctxGrpByMutator);
 
 			// return a target entry for the aggregate expression
 			static
-			TargetEntry *GetTargetEntryForAggExpr(IMemoryPool *mp, CMDAccessor *md_accessor, Node *node, ULONG attno);
+			TargetEntry *PteAggregateExpr(IMemoryPool *pmp, CMDAccessor *pmda, Node *pnode, ULONG ulAttno);
 
 			// traverse the having qual to extract all aggregate functions,
 			// fix correlated vars and return the modified having qual
 			static
-			Node *RunHavingQualMutator(Node *node, SContextHavingQualMutator *context);
+			Node *PnodeHavingQualMutator(Node *pnode, void *ctx);
 
 			// for a given an TE in the derived table, create a new TE to be added to the top level query
 			static
-			TargetEntry *MakeTopLevelTargetEntry(TargetEntry *target_entry, ULONG attno);
+			TargetEntry *Pte(TargetEntry *pte, ULONG ulVarAttno);
 
 			// return the column name of the target entry
 			static
-			CHAR* GetTargetEntryColName(TargetEntry *target_entry, Query *query);
+			CHAR* SzTEName(TargetEntry *pte, Query *pquery);
 
 			// make the input query into a derived table and return a new root query
 			static
-			Query *ConvertToDerivedTable(const Query *query, BOOL should_fix_target_list, BOOL should_fix_having_qual);
+			Query *PqueryConvertToDerivedTable(const Query *pquery, BOOL fFixTargetList, BOOL fFixHavingQual);
 
 			// eliminate distinct clause
 			static
-			Query *EliminateDistinctClause(const Query *query);
+			Query *PqueryEliminateDistinctClause(const Query *pquery);
 
 			// reassign the sorting clause from the derived table to the new top-level query
 			static
-			void ReassignSortClause(Query *top_level_query, Query *derive_table_query);
+			void ReassignSortClause(Query *pqueryNew, Query *pqueryDrdTbl);
 	};
 }
 #endif // GPDXL_CWalkerUtils_H

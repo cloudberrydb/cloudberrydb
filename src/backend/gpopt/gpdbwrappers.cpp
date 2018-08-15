@@ -52,7 +52,7 @@
 using namespace gpos;
 
 bool
-gpdb::BoolFromDatum
+gpdb::FBoolFromDatum
 	(
 	Datum d
 	)
@@ -66,7 +66,7 @@ gpdb::BoolFromDatum
 }
 
 Datum
-gpdb::DatumFromBool
+gpdb::DDatumFromBool
 	(
 	bool b
 	)
@@ -80,7 +80,7 @@ gpdb::DatumFromBool
 }
 
 char
-gpdb::CharFromDatum
+gpdb::CCharFromDatum
 	(
 	Datum d
 	)
@@ -94,7 +94,7 @@ gpdb::CharFromDatum
 }
 
 Datum
-gpdb::DatumFromChar
+gpdb::DDatumFromChar
 	(
 	char c
 	)
@@ -108,7 +108,7 @@ gpdb::DatumFromChar
 }
 
 int8
-gpdb::Int8FromDatum
+gpdb::CInt8FromDatum
 	(
 	Datum d
 	)
@@ -122,7 +122,7 @@ gpdb::Int8FromDatum
 }
 
 Datum
-gpdb::DatumFromInt8
+gpdb::DDatumFromInt8
 	(
 	int8 i8
 	)
@@ -136,7 +136,7 @@ gpdb::DatumFromInt8
 }
 
 uint8
-gpdb::Uint8FromDatum
+gpdb::UcUint8FromDatum
 	(
 	Datum d
 	)
@@ -150,7 +150,7 @@ gpdb::Uint8FromDatum
 }
 
 Datum
-gpdb::DatumFromUint8
+gpdb::DDatumFromUint8
 	(
 	uint8 ui8
 	)
@@ -164,7 +164,7 @@ gpdb::DatumFromUint8
 }
 
 int16
-gpdb::Int16FromDatum
+gpdb::SInt16FromDatum
 	(
 	Datum d
 	)
@@ -178,7 +178,7 @@ gpdb::Int16FromDatum
 }
 
 Datum
-gpdb::DatumFromInt16
+gpdb::DDatumFromInt16
 	(
 	int16 i16
 	)
@@ -192,7 +192,7 @@ gpdb::DatumFromInt16
 }
 
 uint16
-gpdb::Uint16FromDatum
+gpdb::UsUint16FromDatum
 	(
 	Datum d
 	)
@@ -206,7 +206,7 @@ gpdb::Uint16FromDatum
 }
 
 Datum
-gpdb::DatumFromUint16
+gpdb::DDatumFromUint16
 	(
 	uint16 ui16
 	)
@@ -220,7 +220,7 @@ gpdb::DatumFromUint16
 }
 
 int32
-gpdb::Int32FromDatum
+gpdb::IInt32FromDatum
 	(
 	Datum d
 	)
@@ -234,7 +234,7 @@ gpdb::Int32FromDatum
 }
 
 Datum
-gpdb::DatumFromInt32
+gpdb::DDatumFromInt32
 	(
 	int32 i32
 	)
@@ -248,7 +248,7 @@ gpdb::DatumFromInt32
 }
 
 uint32
-gpdb::lUint32FromDatum
+gpdb::UlUint32FromDatum
 	(
 	Datum d
 	)
@@ -262,7 +262,7 @@ gpdb::lUint32FromDatum
 }
 
 Datum
-gpdb::DatumFromUint32
+gpdb::DDatumFromUint32
 	(
 	uint32 ui32
 	)
@@ -276,7 +276,7 @@ gpdb::DatumFromUint32
 }
 
 int64
-gpdb::Int64FromDatum
+gpdb::LlInt64FromDatum
 	(
 	Datum d
 	)
@@ -291,7 +291,7 @@ gpdb::Int64FromDatum
 }
 
 Datum
-gpdb::DatumFromInt64
+gpdb::DDatumFromInt64
 	(
 	int64 i64
 	)
@@ -306,7 +306,7 @@ gpdb::DatumFromInt64
 }
 
 uint64
-gpdb::Uint64FromDatum
+gpdb::UllUint64FromDatum
 	(
 	Datum d
 	)
@@ -320,7 +320,7 @@ gpdb::Uint64FromDatum
 }
 
 Datum
-gpdb::DatumFromUint64
+gpdb::DDatumFromUint64
 	(
 	uint64 ui64
 	)
@@ -348,7 +348,7 @@ gpdb::OidFromDatum
 }
 
 void *
-gpdb::PointerFromDatum
+gpdb::PvPointerFromDatum
 	(
 	Datum d
 	)
@@ -362,7 +362,7 @@ gpdb::PointerFromDatum
 }
 
 float4
-gpdb::Float4FromDatum
+gpdb::FpFloat4FromDatum
 	(
 	Datum d
 	)
@@ -376,7 +376,7 @@ gpdb::Float4FromDatum
 }
 
 float8
-gpdb::Float8FromDatum
+gpdb::DFloat8FromDatum
 	(
 	Datum d
 	)
@@ -390,7 +390,7 @@ gpdb::Float8FromDatum
 }
 
 Datum
-gpdb::DatumFromPointer
+gpdb::DDatumFromPointer
 	(
 	const void *p
 	)
@@ -404,7 +404,7 @@ gpdb::DatumFromPointer
 }
 
 bool
-gpdb::AggregateExists
+gpdb::FAggregateExists
 	(
 	Oid oid
 	)
@@ -418,7 +418,7 @@ gpdb::AggregateExists
 }
 
 Bitmapset *
-gpdb::BmsAddMember
+gpdb::PbmsAddMember
 	(
 	Bitmapset *a,
 	int x
@@ -433,7 +433,7 @@ gpdb::BmsAddMember
 }
 
 void *
-gpdb::CopyObject
+gpdb::PvCopyObject
 	(
 	void *from
 	)
@@ -447,16 +447,16 @@ gpdb::CopyObject
 }
 
 Size
-gpdb::DatumSize
+gpdb::SDatumSize
 	(
 	Datum value,
-	bool type_by_val,
+	bool typByVal,
 	int iTypLen
 	)
 {
 	GP_WRAP_START;
 	{
-		return datumGetSize(value, type_by_val, iTypLen);
+		return datumGetSize(value, typByVal, iTypLen);
 	}
 	GP_WRAP_END;
 	return 0;
@@ -465,112 +465,112 @@ gpdb::DatumSize
 void
 gpdb::DeconstructArray
 	(
-	struct ArrayType *array,
+	struct ArrayType *parray,
 	Oid elmtype,
-	int elmlen,
+	int iElmlen,
 	bool elmbyval,
-	char elmalign,
-	Datum **elemsp,
+	char cElmalign,
+	Datum **ppElemSP,
 	bool **nullsp,
-	int *nelemsp
+	int *piElemSP
 	)
 {
 	GP_WRAP_START;
 	{
-		deconstruct_array(array, elmtype, elmlen, elmbyval, elmalign, elemsp, nullsp, nelemsp);
+		deconstruct_array(parray, elmtype, iElmlen, elmbyval, cElmalign, ppElemSP, nullsp, piElemSP);
 		return;
 	}
 	GP_WRAP_END;
 }
 
 Node *
-gpdb::MutateExpressionTree
+gpdb::PnodeMutateExpressionTree
 	(
-	Node *node,
+	Node *pnode,
 	Node *(*mutator) (),
 	void *context
 	)
 {
 	GP_WRAP_START;
 	{
-		return expression_tree_mutator(node, mutator, context);
+		return expression_tree_mutator(pnode, mutator, context);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 bool
-gpdb::WalkExpressionTree
+gpdb::FWalkExpressionTree
 	(
-	Node *node,
+	Node *pnode,
 	bool (*walker) (),
 	void *context
 	)
 {
 	GP_WRAP_START;
 	{
-		return expression_tree_walker(node, walker, context);
+		return expression_tree_walker(pnode, walker, context);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 Oid
-gpdb::ExprType
+gpdb::OidExprType
 	(
-	Node *expr
+	Node *pnodeExpr
 	)
 {
 	GP_WRAP_START;
 	{
-		return exprType(expr);
+		return exprType(pnodeExpr);
 	}
 	GP_WRAP_END;
 	return 0;
 }
 
 int32
-gpdb::ExprTypeMod
+gpdb::IExprTypeMod
 	(
-	Node *expr
+	Node *pnodeExpr
 	)
 {
 	GP_WRAP_START;
 	{
-		return exprTypmod(expr);
+		return exprTypmod(pnodeExpr);
 	}
 	GP_WRAP_END;
 	return 0;
 }
 
 Oid
-gpdb::ExprCollation
+gpdb::OidExprCollation
 	(
-	Node *expr
+	Node *pnodeExpr
 	)
 {
 	GP_WRAP_START;
 	{
-		if (expr && IsA(expr, List))
+		if (pnodeExpr && IsA(pnodeExpr, List))
 		{
-			// GDPB_91_MERGE_FIXME: collation
-			List *exprlist = (List *) expr;
+			// GPORCA currently does not support collations, so infer them using type defaults
+			List *exprlist = (List *) pnodeExpr;
 			ListCell   *lc;
 
-			Oid collation = InvalidOid;
+			Oid oidCollation = InvalidOid;
 			foreach(lc, exprlist)
 			{
 				Node *expr = (Node *) lfirst(lc);
-				if ((collation = exprCollation(expr)) != InvalidOid)
+				if ((oidCollation = exprCollation(expr)) != InvalidOid)
 				{
 					break;
 				}
 			}
-			return collation;
+			return oidCollation;
 		}
 		else
 		{
-			return exprCollation(expr);
+			return exprCollation(pnodeExpr);
 		}
 	}
 	GP_WRAP_END;
@@ -578,7 +578,7 @@ gpdb::ExprCollation
 }
 
 Oid
-gpdb::TypeCollation
+gpdb::OidTypeCollation
 (
  Oid type
  )
@@ -598,32 +598,32 @@ gpdb::TypeCollation
 
 
 List *
-gpdb::ExtractNodesPlan
+gpdb::PlExtractNodesPlan
 	(
 	Plan *pl,
-	int node_tag,
-	bool descend_into_subqueries
+	int iNodeTag,
+	bool descendIntoSubqueries
 	)
 {
 	GP_WRAP_START;
 	{
-		return extract_nodes_plan(pl, node_tag, descend_into_subqueries);
+		return extract_nodes_plan(pl, iNodeTag, descendIntoSubqueries);
 	}
 	GP_WRAP_END;
 	return NIL;
 }
 
 List *
-gpdb::ExtractNodesExpression
+gpdb::PlExtractNodesExpression
 	(
 	Node *node,
-	int node_tag,
-	bool descend_into_subqueries
+	int iNodeTag,
+	bool descendIntoSubqueries
 	)
 {
 	GP_WRAP_START;
 	{
-		return extract_nodes_expression(node, node_tag, descend_into_subqueries);
+		return extract_nodes_expression(node, iNodeTag, descendIntoSubqueries);
 	}
 	GP_WRAP_END;
 	return NIL;
@@ -644,7 +644,7 @@ gpdb::FreeAttrStatsSlot
 }
 
 bool
-gpdb::FuncStrict
+gpdb::FFuncStrict
 	(
 	Oid funcid
 	)
@@ -659,7 +659,7 @@ gpdb::FuncStrict
 }
 
 char
-gpdb::FuncStability
+gpdb::CFuncStability
 	(
 	Oid funcid
 	)
@@ -674,7 +674,7 @@ gpdb::FuncStability
 }
 
 char
-gpdb::FuncDataAccess
+gpdb::CFuncDataAccess
 	(
 	Oid funcid
 	)
@@ -689,7 +689,7 @@ gpdb::FuncDataAccess
 }
 
 char
-gpdb::FuncExecLocation
+gpdb::CFuncExecLocation
 	(
 	Oid funcid
 	)
@@ -704,7 +704,7 @@ gpdb::FuncExecLocation
 }
 
 bool
-gpdb::FunctionExists
+gpdb::FFunctionExists
 	(
 	Oid oid
 	)
@@ -719,7 +719,7 @@ gpdb::FunctionExists
 }
 
 List *
-gpdb::FunctionOids(void)
+gpdb::PlFunctionOids(void)
 {
 	GP_WRAP_START;
 	{
@@ -731,7 +731,7 @@ gpdb::FunctionOids(void)
 }
 
 Oid
-gpdb::GetAggIntermediateResultType
+gpdb::OidAggIntermediateResultType
 	(
 	Oid aggid
 	)
@@ -746,15 +746,15 @@ gpdb::GetAggIntermediateResultType
 }
 
 Query *
-gpdb::FlattenJoinAliasVar
+gpdb::PqueryFlattenJoinAliasVar
 	(
-	Query *query,
-	gpos::ULONG query_level
+	Query *pquery,
+	gpos::ULONG ulQueryLevel
 	)
 {
 	GP_WRAP_START;
 	{
-		return flatten_join_alias_var_optimizer(query, query_level);
+		return flatten_join_alias_var_optimizer(pquery, ulQueryLevel);
 	}
 	GP_WRAP_END;
 
@@ -762,7 +762,7 @@ gpdb::FlattenJoinAliasVar
 }
 
 bool
-gpdb::IsOrderedAgg
+gpdb::FOrderedAgg
 	(
 	Oid aggid
 	)
@@ -777,7 +777,7 @@ gpdb::IsOrderedAgg
 }
 
 bool
-gpdb::AggHasPrelimFunc
+gpdb::FAggHasPrelimFunc
 	(
 	Oid aggid
 	)
@@ -792,7 +792,7 @@ gpdb::AggHasPrelimFunc
 }
 
 bool
-gpdb::AggHasPrelimOrInvPrelimFunc
+gpdb::FAggHasPrelimOrInvPrelimFunc
 	(
 	Oid aggid
 	)
@@ -807,23 +807,23 @@ gpdb::AggHasPrelimOrInvPrelimFunc
 }
 
 Oid
-gpdb::GetAggregate
+gpdb::OidAggregate
 	(
-	const char *agg,
-	Oid type_oid
+	const char *szAgg,
+	Oid oidType
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_aggregate */
-		return get_aggregate(agg, type_oid);
+		return get_aggregate(szAgg, oidType);
 	}
 	GP_WRAP_END;
 	return 0;
 }
 
 Oid
-gpdb::GetArrayType
+gpdb::OidArrayType
 	(
 	Oid typid
 	)
@@ -838,25 +838,25 @@ gpdb::GetArrayType
 }
 
 bool
-gpdb::GetAttrStatsSlot
+gpdb::FGetAttrStatsSlot
 	(
 	AttStatsSlot *sslot,
 	HeapTuple statstuple,
-	int reqkind,
+	int iReqKind,
 	Oid reqop,
 	int flags
 	)
 {
 	GP_WRAP_START;
 	{
-		return get_attstatsslot(sslot, statstuple, reqkind, reqop, flags);
+		return get_attstatsslot(sslot, statstuple, iReqKind, reqop, flags);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 HeapTuple
-gpdb::GetAttStats
+gpdb::HtAttrStats
 	(
 	Oid relid,
 	AttrNumber attnum
@@ -872,7 +872,7 @@ gpdb::GetAttStats
 }
 
 Oid
-gpdb::GetCommutatorOp
+gpdb::OidCommutatorOp
 	(
 	Oid opno
 	)
@@ -887,7 +887,7 @@ gpdb::GetCommutatorOp
 }
 
 char *
-gpdb::GetTriggerName
+gpdb::SzTriggerName
 	(
 	Oid triggerid
 	)
@@ -902,7 +902,7 @@ gpdb::GetTriggerName
 }
 
 Oid
-gpdb::GetTriggerRelid
+gpdb::OidTriggerRelid
 	(
 	Oid triggerid
 	)
@@ -917,7 +917,7 @@ gpdb::GetTriggerRelid
 }
 
 Oid
-gpdb::GetTriggerFuncid
+gpdb::OidTriggerFuncid
 	(
 	Oid triggerid
 	)
@@ -932,7 +932,7 @@ gpdb::GetTriggerFuncid
 }
 
 int32
-gpdb::GetTriggerType
+gpdb::ITriggerType
 	(
 	Oid triggerid
 	)
@@ -947,7 +947,7 @@ gpdb::GetTriggerType
 }
 
 bool
-gpdb::IsTriggerEnabled
+gpdb::FTriggerEnabled
 	(
 	Oid triggerid
 	)
@@ -962,7 +962,7 @@ gpdb::IsTriggerEnabled
 }
 
 bool
-gpdb::TriggerExists
+gpdb::FTriggerExists
 	(
 	Oid oid
 	)
@@ -977,45 +977,45 @@ gpdb::TriggerExists
 }
 
 bool
-gpdb::CheckConstraintExists
+gpdb::FCheckConstraintExists
 	(
-	Oid check_constraint_oid
+	Oid oidCheckConstraint
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_constraint */
-		return check_constraint_exists(check_constraint_oid);
+		return check_constraint_exists(oidCheckConstraint);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 char *
-gpdb::GetCheckConstraintName
+gpdb::SzCheckConstraintName
 	(
-	Oid check_constraint_oid
+	Oid oidCheckConstraint
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_constraint */
-		return get_check_constraint_name(check_constraint_oid);
+		return get_check_constraint_name(oidCheckConstraint);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 Oid
-gpdb::GetCheckConstraintRelid
+gpdb::OidCheckConstraintRelid
 	(
-	Oid check_constraint_oid
+	Oid oidCheckConstraint
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_constraint */
-		return get_check_constraint_relid(check_constraint_oid);
+		return get_check_constraint_relid(oidCheckConstraint);
 	}
 	GP_WRAP_END;
 	return 0;
@@ -1024,51 +1024,51 @@ gpdb::GetCheckConstraintRelid
 Node *
 gpdb::PnodeCheckConstraint
 	(
-	Oid check_constraint_oid
+	Oid oidCheckConstraint
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_constraint */
-		return get_check_constraint_expr_tree(check_constraint_oid);
+		return get_check_constraint_expr_tree(oidCheckConstraint);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 List *
-gpdb::GetCheckConstraintOids
+gpdb::PlCheckConstraint
 	(
-	Oid rel_oid
+	Oid oidRel
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_constraint */
-		return get_check_constraint_oids(rel_oid);
+		return get_check_constraint_oids(oidRel);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 Node *
-gpdb::GetRelationPartContraints
+gpdb::PnodePartConstraintRel
 	(
-	Oid rel_oid,
-	List **default_levels
+	Oid oidRel,
+	List **pplDefaultLevels
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_partition, pg_partition_rule, pg_constraint */
-		return get_relation_part_constraints(rel_oid, default_levels);
+		return get_relation_part_constraints(oidRel, pplDefaultLevels);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 bool
-gpdb::HasExternalPartition
+gpdb::FHasExternalPartition
 	(
 	Oid oid
 	)
@@ -1084,7 +1084,7 @@ gpdb::HasExternalPartition
 
 
 bool
-gpdb::IsLeafPartition
+gpdb::FLeafPartition
 	(
 	Oid oid
 	)
@@ -1099,7 +1099,7 @@ gpdb::IsLeafPartition
 }
 
 Oid
-gpdb::GetRootPartition
+gpdb::OidRootPartition
 	(
 	Oid oid
 	)
@@ -1114,62 +1114,62 @@ gpdb::GetRootPartition
 }
 
 bool
-gpdb::GetCastFunc
+gpdb::FCastFunc
 	(
-	Oid src_oid,
-	Oid dest_oid,
+	Oid oidSrc,
+	Oid oidDest, 
 	bool *is_binary_coercible,
-	Oid *cast_fn_oid,
+	Oid *oidCastFunc,
 	CoercionPathType *pathtype
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_cast */
-		return get_cast_func(src_oid, dest_oid, is_binary_coercible, cast_fn_oid, pathtype);
+		return get_cast_func(oidSrc, oidDest, is_binary_coercible, oidCastFunc, pathtype);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 unsigned int
-gpdb::GetComparisonType
+gpdb::UlCmpt
 	(
-	Oid op_oid,
-	Oid left_oid,
-	Oid right_oid
+	Oid oidOp,
+	Oid oidLeft, 
+	Oid oidRight
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_amop */
-		return get_comparison_type(op_oid, left_oid, right_oid);
+		return get_comparison_type(oidOp, oidLeft, oidRight);
 	}
 	GP_WRAP_END;
 	return CmptOther;
 }
 
 Oid
-gpdb::GetComparisonOperator
+gpdb::OidScCmp
 	(
-	Oid left_oid,
-	Oid right_oid,
-	unsigned int cmpt
+	Oid oidLeft, 
+	Oid oidRight,
+	unsigned int ulCmpt
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_amop */
-		return get_comparison_operator(left_oid, right_oid, (CmpType) cmpt);
+		return get_comparison_operator(oidLeft, oidRight, (CmpType) ulCmpt);
 	}
 	GP_WRAP_END;
 	return InvalidOid;
 }
 
 Oid
-gpdb::GetEqualityOp
+gpdb::OidEqualityOp
 	(
-	Oid type_oid
+	Oid oidType
 	)
 {
 	GP_WRAP_START;
@@ -1177,7 +1177,7 @@ gpdb::GetEqualityOp
 		/* catalog tables: pg_type */
 		Oid eq_opr;
 
-		get_sort_group_operators(type_oid,
+		get_sort_group_operators(oidType,
 					 false, true, false,
 					 NULL, &eq_opr, NULL, NULL);
 
@@ -1188,7 +1188,7 @@ gpdb::GetEqualityOp
 }
 
 Oid
-gpdb::GetEqualityOpForOrderingOp
+gpdb::OidEqualityOpForOrderingOp
 	(
 	Oid opno,
 	bool *reverse
@@ -1204,7 +1204,7 @@ gpdb::GetEqualityOpForOrderingOp
 }
 
 Oid
-gpdb::GetOrderingOpForEqualityOp
+gpdb::OidOrderingOpForEqualityOp
 (
 	Oid opno,
 	bool *reverse
@@ -1220,7 +1220,7 @@ gpdb::GetOrderingOpForEqualityOp
 }
 
 char *
-gpdb::GetFuncName
+gpdb::SzFuncName
 	(
 	Oid funcid
 	)
@@ -1235,7 +1235,7 @@ gpdb::GetFuncName
 }
 
 List *
-gpdb::GetFuncOutputArgTypes
+gpdb::PlFuncOutputArgTypes
 	(
 	Oid funcid
 	)
@@ -1250,7 +1250,7 @@ gpdb::GetFuncOutputArgTypes
 }
 
 List *
-gpdb::GetFuncArgTypes
+gpdb::PlFuncArgTypes
 	(
 	Oid funcid
 	)
@@ -1265,7 +1265,7 @@ gpdb::GetFuncArgTypes
 }
 
 bool
-gpdb::GetFuncRetset
+gpdb::FFuncRetset
 	(
 	Oid funcid
 	)
@@ -1280,7 +1280,7 @@ gpdb::GetFuncRetset
 }
 
 Oid
-gpdb::GetFuncRetType
+gpdb::OidFuncRetType
 	(
 	Oid funcid
 	)
@@ -1295,7 +1295,7 @@ gpdb::GetFuncRetType
 }
 
 Oid
-gpdb::GetInverseOp
+gpdb::OidInverseOp
 	(
 	Oid opno
 	)
@@ -1310,7 +1310,7 @@ gpdb::GetInverseOp
 }
 
 RegProcedure
-gpdb::GetOpFunc
+gpdb::OidOpFunc
 	(
 	Oid opno
 	)
@@ -1325,7 +1325,7 @@ gpdb::GetOpFunc
 }
 
 char *
-gpdb::GetOpName
+gpdb::SzOpName
 	(
 	Oid opno
 	)
@@ -1340,7 +1340,7 @@ gpdb::GetOpName
 }
 
 List *
-gpdb::GetPartitionAttrs
+gpdb::PlPartitionAttrs
 	(
 	Oid oid
 	)
@@ -1372,7 +1372,7 @@ gpdb::GetOrderedPartKeysAndKinds
 }
 
 PartitionNode *
-gpdb::GetParts
+gpdb::PpnParts
 	(
 	Oid relid,
 	int2 level,
@@ -1391,7 +1391,7 @@ gpdb::GetParts
 }
 
 List *
-gpdb::GetRelationKeys
+gpdb::PlRelationKeys
 	(
 	Oid relid
 	)
@@ -1406,7 +1406,7 @@ gpdb::GetRelationKeys
 }
 
 Oid
-gpdb::GetTypeRelid
+gpdb::OidTypeRelid
 	(
 	Oid typid
 	)
@@ -1421,7 +1421,7 @@ gpdb::GetTypeRelid
 }
 
 char *
-gpdb::GetTypeName
+gpdb::SzTypeName
 	(
 	Oid typid
 	)
@@ -1436,7 +1436,7 @@ gpdb::GetTypeName
 }
 
 int
-gpdb::GetGPSegmentCount(void)
+gpdb::UlSegmentCountGP(void)
 {
 	GP_WRAP_START;
 	{
@@ -1447,15 +1447,15 @@ gpdb::GetGPSegmentCount(void)
 }
 
 bool
-gpdb::HeapAttIsNull
+gpdb::FHeapAttIsNull
 	(
 	HeapTuple tup,
-	int attno
+	int iAttNum
 	)
 {
 	GP_WRAP_START;
 	{
-		return heap_attisnull(tup, attno);
+		return heap_attisnull(tup, iAttNum);
 	}
 	GP_WRAP_END;
 	return false;
@@ -1476,7 +1476,7 @@ gpdb::FreeHeapTuple
 }
 
 bool
-gpdb::IndexExists
+gpdb::FIndexExists
 	(
 	Oid oid
 	)
@@ -1491,7 +1491,7 @@ gpdb::IndexExists
 }
 
 bool
-gpdb::IsGreenplumDbHashable
+gpdb::FGreenplumDbHashable
 	(
 	Oid typid
 	)
@@ -1506,52 +1506,52 @@ gpdb::IsGreenplumDbHashable
 }
 
 List *
-gpdb::LAppend
+gpdb::PlAppendElement
 	(
-	List *list,
+	List *plist,
 	void *datum
 	)
 {
 	GP_WRAP_START;
 	{
-		return lappend(list, datum);
+		return lappend(plist, datum);
 	}
 	GP_WRAP_END;
 	return NIL;
 }
 
 List *
-gpdb::LAppendInt
+gpdb::PlAppendInt
 	(
-	List *list,
+	List *plist,
 	int iDatum
 	)
 {
 	GP_WRAP_START;
 	{
-		return lappend_int(list, iDatum);
+		return lappend_int(plist, iDatum);
 	}
 	GP_WRAP_END;
 	return NIL;
 }
 
 List *
-gpdb::LAppendOid
+gpdb::PlAppendOid
 	(
-	List *list,
+	List *plist,
 	Oid datum
 	)
 {
 	GP_WRAP_START;
 	{
-		return lappend_oid(list, datum);
+		return lappend_oid(plist, datum);
 	}
 	GP_WRAP_END;
 	return NIL;
 }
 
 List *
-gpdb::LPrepend
+gpdb::PlPrependElement
 	(
 	void *datum,
 	List *list
@@ -1566,7 +1566,7 @@ gpdb::LPrepend
 }
 
 List *
-gpdb::LPrependInt
+gpdb::PlPrependInt
 	(
 	int datum,
 	List *list
@@ -1581,7 +1581,7 @@ gpdb::LPrependInt
 }
 
 List *
-gpdb::LPrependOid
+gpdb::PlPrependOid
 	(
 	Oid datum,
 	List *list
@@ -1596,7 +1596,7 @@ gpdb::LPrependOid
 }
 
 List *
-gpdb::ListConcat
+gpdb::PlConcat
 	(
 	List *list1,
 	List *list2
@@ -1611,7 +1611,7 @@ gpdb::ListConcat
 }
 
 List *
-gpdb::ListCopy
+gpdb::PlCopy
 	(
 	List *list
 	)
@@ -1625,7 +1625,7 @@ gpdb::ListCopy
 }
 
 ListCell *
-gpdb::ListHead
+gpdb::PlcListHead
 	(
 	List *l
 	)
@@ -1639,7 +1639,7 @@ gpdb::ListHead
 }
 
 ListCell *
-gpdb::ListTail
+gpdb::PlcListTail
 	(
 	List *l
 	)
@@ -1653,7 +1653,7 @@ gpdb::ListTail
 }
 
 uint32
-gpdb::ListLength
+gpdb::UlListLength
 	(
 	List *l
 	)
@@ -1667,7 +1667,7 @@ gpdb::ListLength
 }
 
 void *
-gpdb::ListNth
+gpdb::PvListNth
 	(
 	List *list,
 	int n
@@ -1682,7 +1682,7 @@ gpdb::ListNth
 }
 
 int
-gpdb::ListNthInt
+gpdb::IListNth
 	(
 	List *list,
 	int n
@@ -1697,7 +1697,7 @@ gpdb::ListNthInt
 }
 
 Oid
-gpdb::ListNthOid
+gpdb::OidListNth
 	(
 	List *list,
 	int n
@@ -1712,7 +1712,7 @@ gpdb::ListNthOid
 }
 
 bool
-gpdb::ListMemberOid
+gpdb::FMemberOid
 	(
 	List *list,
 	Oid oid
@@ -1727,78 +1727,78 @@ gpdb::ListMemberOid
 }
 
 void
-gpdb::ListFree
+gpdb::FreeList
 	(
-	List *list
+	List *plist
 	)
 {
 	GP_WRAP_START;
 	{
-		list_free(list);
+		list_free(plist);
 		return;
 	}
 	GP_WRAP_END;
 }
 
 void
-gpdb::ListFreeDeep
+gpdb::FreeListDeep
 	(
-	List *list
+	List *plist
 	)
 {
 	GP_WRAP_START;
 	{
-		list_free_deep(list);
+		list_free_deep(plist);
 		return;
 	}
 	GP_WRAP_END;
 }
 
 bool
-gpdb::IsMotionGather
+gpdb::FMotionGather
 	(
-	const Motion *motion
+	const Motion *pmotion
 	)
 {
 	GP_WRAP_START;
 	{
-		return isMotionGather(motion);
+		return isMotionGather(pmotion);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 bool
-gpdb::IsAppendOnlyPartitionTable
+gpdb::FAppendOnlyPartitionTable
 	(
-	Oid root_oid
+	Oid rootOid
 	)
 {
 	GP_WRAP_START;
 	{
-		return rel_has_appendonly_partition(root_oid);
+		return rel_has_appendonly_partition(rootOid);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 bool
-gpdb::IsMultilevelPartitionUniform
+gpdb::FMultilevelPartitionUniform
 	(
-	Oid root_oid
+	Oid rootOid
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_partition, pg_partition_rule, pg_constraint */
-		return rel_partitioning_is_uniform(root_oid);
+		return rel_partitioning_is_uniform(rootOid);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 TypeCacheEntry *
-gpdb::LookupTypeCache
+gpdb::PtceLookup
 	(
 	Oid type_id,
 	int flags
@@ -1814,7 +1814,7 @@ gpdb::LookupTypeCache
 }
 
 Value *
-gpdb::MakeStringValue
+gpdb::PvalMakeString
 	(
 	char *str
 	)
@@ -1828,7 +1828,7 @@ gpdb::MakeStringValue
 }
 
 Value *
-gpdb::MakeIntegerValue
+gpdb::PvalMakeInteger
 	(
 	long i
 	)
@@ -1842,7 +1842,7 @@ gpdb::MakeIntegerValue
 }
 
 Node *
-gpdb::MakeBoolConst
+gpdb::PnodeMakeBoolConst
 	(
 	bool value,
 	bool isnull
@@ -1857,23 +1857,23 @@ gpdb::MakeBoolConst
 }
 
 Node *
-gpdb::MakeNULLConst
+gpdb::PnodeMakeNULLConst
 	(
-	Oid type_oid
+	Oid oidType
 	)
 {
 	GP_WRAP_START;
 	{
-		return (Node *) makeNullConst(type_oid, -1 /*consttypmod*/, InvalidOid);
+		return (Node *) makeNullConst(oidType, -1 /*consttypmod*/, InvalidOid);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 TargetEntry *
-gpdb::MakeTargetEntry
+gpdb::PteMakeTargetEntry
 	(
-	Expr *expr,
+	Expr *pnodeExpr,
 	AttrNumber resno,
 	char *resname,
 	bool resjunk
@@ -1881,14 +1881,14 @@ gpdb::MakeTargetEntry
 {
 	GP_WRAP_START;
 	{
-		return makeTargetEntry(expr, resno, resname, resjunk);
+		return makeTargetEntry(pnodeExpr, resno, resname, resjunk);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 Var *
-gpdb::MakeVar
+gpdb::PvarMakeVar
 	(
 	Index varno,
 	AttrNumber varattno,
@@ -1899,8 +1899,8 @@ gpdb::MakeVar
 {
 	GP_WRAP_START;
 	{
-		// GPDB_91_MERGE_FIXME: collation
-		Oid collation = TypeCollation(vartype);
+		// GPORCA currently does not support collations, so infer them using type defaults
+		Oid collation = OidTypeCollation(vartype);
 		return makeVar(varno, varattno, vartype, vartypmod, collation, varlevelsup);
 	}
 	GP_WRAP_END;
@@ -1908,7 +1908,7 @@ gpdb::MakeVar
 }
 
 void *
-gpdb::MemCtxtAllocImpl
+gpdb::PvMemoryContextAllocImpl
 	(
 	MemoryContext context,
 	Size size,
@@ -1926,7 +1926,7 @@ gpdb::MemCtxtAllocImpl
 }
 
 void *
-gpdb::MemCtxtAllocZeroAlignedImpl
+gpdb::PvMemoryContextAllocZeroAlignedImpl
 	(
 	MemoryContext context,
 	Size size,
@@ -1944,7 +1944,7 @@ gpdb::MemCtxtAllocZeroAlignedImpl
 }
 
 void *
-gpdb::MemCtxtAllocZeroImpl
+gpdb::PvMemoryContextAllocZeroImpl
 	(
 	MemoryContext context,
 	Size size,
@@ -1962,7 +1962,7 @@ gpdb::MemCtxtAllocZeroImpl
 }
 
 void *
-gpdb::MemCtxtReallocImpl
+gpdb::PvMemoryContextReallocImpl
 	(
 	void *pointer,
 	Size size,
@@ -1980,7 +1980,7 @@ gpdb::MemCtxtReallocImpl
 }
 
 char *
-gpdb::MemCtxtStrdup
+gpdb::SzMemoryContextStrdup
 	(
 	MemoryContext context,
 	const char *string
@@ -2025,7 +2025,7 @@ gpdb::GpdbEreportImpl
 }
 
 char *
-gpdb::NodeToString
+gpdb::SzNodeToString
 	(
 	void *obj
 	)
@@ -2039,7 +2039,7 @@ gpdb::NodeToString
 }
 
 Node *
-gpdb::StringToNode
+gpdb::Pnode
 	(
 	char *string
 	)
@@ -2054,7 +2054,7 @@ gpdb::StringToNode
 
 
 Node *
-gpdb::GetTypeDefault
+gpdb::PnodeTypeDefault
 	(
 	Oid typid
 	)
@@ -2070,7 +2070,7 @@ gpdb::GetTypeDefault
 
 
 double
-gpdb::NumericToDoubleNoOverflow
+gpdb::DNumericToDoubleNoOverflow
 	(
 	Numeric num
 	)
@@ -2084,7 +2084,7 @@ gpdb::NumericToDoubleNoOverflow
 }
 
 double
-gpdb::ConvertTimeValueToScalar
+gpdb::DConvertTimeValueToScalar
 	(
 	Datum datum,
 	Oid typid
@@ -2099,7 +2099,7 @@ gpdb::ConvertTimeValueToScalar
 }
 
 double
-gpdb::ConvertNetworkToScalar
+gpdb::DConvertNetworkToScalar
 	(
 	Datum datum,
 	Oid typid
@@ -2114,7 +2114,7 @@ gpdb::ConvertNetworkToScalar
 }
 
 bool
-gpdb::IsOpHashJoinable
+gpdb::FOpHashJoinable
 	(
 	Oid opno,
 	Oid inputtype
@@ -2130,7 +2130,7 @@ gpdb::IsOpHashJoinable
 }
 
 bool
-gpdb::IsOpStrict
+gpdb::FOpStrict
 	(
 	Oid opno
 	)
@@ -2162,7 +2162,7 @@ gpdb::GetOpInputTypes
 }
 
 bool
-gpdb::OperatorExists
+gpdb::FOperatorExists
 	(
 	Oid oid
 	)
@@ -2205,7 +2205,7 @@ gpdb::GPDBFree
 }
 
 struct varlena *
-gpdb::DetoastDatum
+gpdb::PvlenDetoastDatum
 	(
 	struct varlena * datum
 	)
@@ -2219,9 +2219,9 @@ gpdb::DetoastDatum
 }
 
 bool
-gpdb::WalkQueryOrExpressionTree
+gpdb::FWalkQueryOrExpressionTree
 	(
-	Node *node,
+	Node *pnode,
 	bool (*walker) (),
 	void *context,
 	int flags
@@ -2229,16 +2229,16 @@ gpdb::WalkQueryOrExpressionTree
 {
 	GP_WRAP_START;
 	{
-		return query_or_expression_tree_walker(node, walker, context, flags);
+		return query_or_expression_tree_walker(pnode, walker, context, flags);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 Node *
-gpdb::MutateQueryOrExpressionTree
+gpdb::PnodeMutateQueryOrExpressionTree
 	(
-	Node *node,
+	Node *pnode,
 	Node *(*mutator) (),
 	void *context,
 	int flags
@@ -2246,14 +2246,14 @@ gpdb::MutateQueryOrExpressionTree
 {
 	GP_WRAP_START;
 	{
-		return query_or_expression_tree_mutator(node, mutator, context, flags);
+		return query_or_expression_tree_mutator(pnode, mutator, context, flags);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 Query *
-gpdb::MutateQueryTree
+gpdb::PqueryMutateQueryTree
 	(
 	Query *query,
 	Node *(*mutator) (),
@@ -2270,7 +2270,7 @@ gpdb::MutateQueryTree
 }
 
 List *
-gpdb::MutateRangeTable
+gpdb::PlMutateRangeTable
 	(
 	List *rtable,
 	Node *(*mutator) (),
@@ -2287,7 +2287,7 @@ gpdb::MutateRangeTable
 }
 
 bool
-gpdb::RelPartIsRoot
+gpdb::FRelPartIsRoot
 	(
 	Oid relid
 	)
@@ -2301,7 +2301,7 @@ gpdb::RelPartIsRoot
 }
 
 bool
-gpdb::RelPartIsInterior
+gpdb::FRelPartIsInterior
 	(
 	Oid relid
 	)
@@ -2315,7 +2315,7 @@ gpdb::RelPartIsInterior
 }
 
 bool
-gpdb::RelPartIsNone
+gpdb::FRelPartIsNone
 	(
 	Oid relid
 	)
@@ -2329,15 +2329,15 @@ gpdb::RelPartIsNone
 }
 
 bool
-gpdb::HasSubclassSlow
+gpdb::FHasSubclassSlow
 	(
-	Oid rel_oid
+	Oid oidRel
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_inherits */
-		return has_subclass_slow(rel_oid);
+		return has_subclass_slow(oidRel);
 	}
 	GP_WRAP_END;
 	return false;
@@ -2345,22 +2345,22 @@ gpdb::HasSubclassSlow
 
 
 bool
-gpdb::HasParquetChildren
+gpdb::FHasParquetChildren
 	(
-	Oid rel_oid
+	Oid oidRel
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_inherits, pg_class */
-		return has_parquet_children(rel_oid);
+		return has_parquet_children(oidRel);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 GpPolicy *
-gpdb::GetDistributionPolicy
+gpdb::Pdistrpolicy
 	(
 	Relation rel
 	)
@@ -2375,7 +2375,7 @@ gpdb::GetDistributionPolicy
 }
 
 gpos::BOOL
-gpdb::IsChildPartDistributionMismatched
+gpdb::FChildPartDistributionMismatch
 	(
 	Relation rel
 	)
@@ -2390,23 +2390,23 @@ gpdb::IsChildPartDistributionMismatched
 }
 
 gpos::BOOL
-gpdb::ChildPartHasTriggers
+gpdb::FChildTriggers
 	(
 	Oid oid,
-	int trigger_type
+	int triggerType
 	)
 {
     GP_WRAP_START;
     {
 		/* catalog tables: pg_inherits, pg_trigger */
-    	return child_triggers(oid, trigger_type);
+    	return child_triggers(oid, triggerType);
     }
     GP_WRAP_END;
     return false;
 }
 
 bool
-gpdb::RelationExists
+gpdb::FRelationExists
 	(
 	Oid oid
 	)
@@ -2421,7 +2421,7 @@ gpdb::RelationExists
 }
 
 List *
-gpdb::GetAllRelationOids(void)
+gpdb::PlRelationOids(void)
 {
 	GP_WRAP_START;
 	{
@@ -2484,7 +2484,7 @@ gpdb::CloseRelation
 }
 
 List *
-gpdb::GetRelationIndexes
+gpdb::PlRelationIndexes
 	(
 	Relation relation
 	)
@@ -2499,7 +2499,7 @@ gpdb::GetRelationIndexes
 }
 
 LogicalIndexes *
-gpdb::GetLogicalPartIndexes
+gpdb::Plgidx
 	(
 	Oid oid
 	)
@@ -2514,16 +2514,16 @@ gpdb::GetLogicalPartIndexes
 }
 
 LogicalIndexInfo *
-gpdb::GetLogicalIndexInfo
+gpdb::Plgidxinfo
 	(
-	Oid root_oid,
-	Oid index_oid
+	Oid rootOid, 
+	Oid indexOid
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_index */
-		return logicalIndexInfoForIndexOid(root_oid, index_oid);
+		return logicalIndexInfoForIndexOid(rootOid, indexOid);
 	}
 	GP_WRAP_END;
 	return NULL;
@@ -2545,37 +2545,37 @@ gpdb::BuildRelationTriggers
 }
 
 Relation
-gpdb::GetRelation
+gpdb::RelGetRelation
 	(
-	Oid rel_oid
+	Oid relationId
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: relcache */
-		return RelationIdGetRelation(rel_oid);
+		return RelationIdGetRelation(relationId);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 ExtTableEntry *
-gpdb::GetExternalTableEntry
+gpdb::Pexttable
 	(
-	Oid rel_oid
+	Oid relationId
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_exttable */
-		return GetExtTableEntry(rel_oid);
+		return GetExtTableEntry(relationId);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 List *
-gpdb::GetExternalScanUriList
+gpdb::PlExternalScanUriList
 	(
 	ExtTableEntry *ext,
 	bool *ismasteronlyp
@@ -2590,30 +2590,30 @@ gpdb::GetExternalScanUriList
 }
 
 TargetEntry *
-gpdb::FindFirstMatchingMemberInTargetList
+gpdb::PteMember
 	(
-	Node *node,
+	Node *pnode,
 	List *targetlist
 	)
 {
 	GP_WRAP_START;
 	{
-		return tlist_member(node, targetlist);
+		return tlist_member(pnode, targetlist);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 List *
-gpdb::FindMatchingMembersInTargetList
+gpdb::PteMembers
 	(
-	Node *node,
+	Node *pnode,
 	List *targetlist
 	)
 {
 	GP_WRAP_START;
 	{
-		return tlist_members(node, targetlist);
+		return tlist_members(pnode, targetlist);
 	}
 	GP_WRAP_END;
 
@@ -2621,7 +2621,7 @@ gpdb::FindMatchingMembersInTargetList
 }
 
 bool
-gpdb::Equals
+gpdb::FEqual
 	(
 	void *p1,
 	void *p2
@@ -2636,7 +2636,7 @@ gpdb::Equals
 }
 
 bool
-gpdb::TypeExists
+gpdb::FTypeExists
 	(
 	Oid oid
 	)
@@ -2651,7 +2651,7 @@ gpdb::TypeExists
 }
 
 bool
-gpdb::IsCompositeType
+gpdb::FCompositeType
 	(
 	Oid typid
 	)
@@ -2666,35 +2666,35 @@ gpdb::IsCompositeType
 }
 
 int
-gpdb::GetIntFromValue
+gpdb::IValue
 	(
-	Node *node
+	Node *pnode
 	)
 {
 	GP_WRAP_START;
 	{
-		return intVal(node);
+		return intVal(pnode);
 	}
 	GP_WRAP_END;
 	return 0;
 }
 
 Uri *
-gpdb::ParseExternalTableUri
+gpdb::PuriParseExternalTable
 	(
-	const char *uri
+	const char *szUri
 	)
 {
 	GP_WRAP_START;
 	{
-		return ParseExternalTableUri(uri);
+		return ParseExternalTableUri(szUri);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 CdbComponentDatabases *
-gpdb::GetComponentDatabases(void)
+gpdb::PcdbComponentDatabases(void)
 {
 	GP_WRAP_START;
 	{
@@ -2706,22 +2706,22 @@ gpdb::GetComponentDatabases(void)
 }
 
 int
-gpdb::StrCmpIgnoreCase
+gpdb::IStrCmpIgnoreCase
 	(
-	const char *s1,
-	const char *s2
+	const char *sz1,
+	const char *sz2
 	)
 {
 	GP_WRAP_START;
 	{
-		return pg_strcasecmp(s1, s2);
+		return pg_strcasecmp(sz1, sz2);
 	}
 	GP_WRAP_END;
 	return 0;
 }
 
 bool *
-gpdb::ConstructRandomSegMap
+gpdb::RgfRandomSegMap
 	(
 	int total_primaries,
 	int total_to_skip
@@ -2736,7 +2736,7 @@ gpdb::ConstructRandomSegMap
 }
 
 StringInfo
-gpdb::MakeStringInfo(void)
+gpdb::SiMakeStringInfo(void)
 {
 	GP_WRAP_START;
 	{
@@ -2763,7 +2763,7 @@ gpdb::AppendStringInfo
 }
 
 int
-gpdb::FindNodes
+gpdb::IFindNodes
 	(
 	Node *node,
 	List *nodeTags
@@ -2778,7 +2778,7 @@ gpdb::FindNodes
 }
 
 int
-gpdb::CheckCollation
+gpdb::ICheckCollation
 	(
 	Node *node
 	)
@@ -2792,11 +2792,11 @@ gpdb::CheckCollation
 }
 
 Node *
-gpdb::CoerceToCommonType
+gpdb::PnodeCoerceToCommonType
 	(
 	ParseState *pstate,
-	Node *node,
-	Oid target_type,
+	Node *pnode,
+	Oid oidTargetType,
 	const char *context
 	)
 {
@@ -2806,8 +2806,8 @@ gpdb::CoerceToCommonType
 		return coerce_to_common_type
 					(
 					pstate,
-					node,
-					target_type,
+					pnode,
+					oidTargetType,
 					context
 					);
 	}
@@ -2816,7 +2816,7 @@ gpdb::CoerceToCommonType
 }
 
 bool
-gpdb::ResolvePolymorphicArgType
+gpdb::FResolvePolymorphicType
 	(
 	int numargs,
 	Oid *argtypes,
@@ -2835,15 +2835,15 @@ gpdb::ResolvePolymorphicArgType
 
 // hash a const value with GPDB's hash function
 int32 
-gpdb::CdbHashConst
+gpdb::ICdbHash
 	(
-	Const *constant,
-	int num_segments
+	Const *pconst,
+	int iSegments
 	)
 {
 	GP_WRAP_START;
 	{
-		return cdbhash_const(constant, num_segments);
+		return cdbhash_const(pconst, iSegments);	
 	}
 	GP_WRAP_END;
 	return 0;
@@ -2851,15 +2851,15 @@ gpdb::CdbHashConst
 
 // hash a list of const values with GPDB's hash function
 int32 
-gpdb::CdbHashConstList
+gpdb::ICdbHashList
 	(
-	List *constants,
-	int num_segments
+	List *plConsts,
+	int iSegments
 	)
 {
 	GP_WRAP_START;
 	{
-		return cdbhash_const_list(constants, num_segments);
+		return cdbhash_const_list(plConsts, iSegments);	
 	}
 	GP_WRAP_END;
 	return 0;
@@ -2869,12 +2869,12 @@ gpdb::CdbHashConstList
 void
 gpdb::CheckRTPermissions
 	(
-	List *rtable
+	List *plRangeTable
 	)
 {
 	GP_WRAP_START;
 	{
-		ExecCheckRTPerms(rtable, true);
+		ExecCheckRTPerms(plRangeTable, true);
 		return;
 	}
 	GP_WRAP_END;
@@ -2906,9 +2906,9 @@ gpdb::IndexOpProperties
 
 // get oids of opfamilies for the index keys
 List *
-gpdb::GetIndexOpFamilies
+gpdb::PlIndexOpFamilies
 	(
-	Oid index_oid
+	Oid oidIndex
 	)
 {
 	GP_WRAP_START;
@@ -2916,7 +2916,7 @@ gpdb::GetIndexOpFamilies
 		/* catalog tables: pg_index */
 
 		// We return the operator families of the index keys.
-		return get_index_opfamilies(index_oid);
+		return get_index_opfamilies(oidIndex);
 	}
 	GP_WRAP_END;
 	
@@ -2925,7 +2925,7 @@ gpdb::GetIndexOpFamilies
 
 // get oids of families this operator belongs to
 List *
-gpdb::GetOpFamiliesForScOp
+gpdb::PlScOpOpFamilies
 	(
 	Oid opno
 	)
@@ -2945,20 +2945,20 @@ gpdb::GetOpFamiliesForScOp
 
 
 
-// Evaluates 'expr' and returns the result as an Expr.
-// Caller keeps ownership of 'expr' and takes ownership of the result
+// Evaluates 'pexpr' and returns the result as an Expr.
+// Caller keeps ownership of 'pexpr' and takes ownership of the result
 Expr *
-gpdb::EvaluateExpr
+gpdb::PexprEvaluate
 	(
-	Expr *expr,
-	Oid result_type,
-	int32 typmod
+	Expr *pexpr,
+	Oid oidResultType,
+	int32 iTypeMod
 	)
 {
 	GP_WRAP_START;
 	{
-		// GPDB_91_MERGE_FIXME: collation
-		return evaluate_expr(expr, result_type, typmod, InvalidOid);
+		// GPORCA currently does not support collations, so infer them using type defaults
+		return evaluate_expr(pexpr, oidResultType, iTypeMod, InvalidOid);
 	}
 	GP_WRAP_END;
 	return NULL;
@@ -2966,35 +2966,35 @@ gpdb::EvaluateExpr
 
 // interpret the value of "With oids" option from a list of defelems
 bool
-gpdb::InterpretOidsOption
+gpdb::FInterpretOidsOption
 	(
-	List *options
+	List *plOptions
 	)
 {
 	GP_WRAP_START;
 	{
-		return interpretOidsOption(options);
+		return interpretOidsOption(plOptions);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 char *
-gpdb::DefGetString
+gpdb::SzDefGetString
 	(
-	DefElem *defelem
+	DefElem *pdefelem
 	)
 {
 	GP_WRAP_START;
 	{
-		return defGetString(defelem);
+		return defGetString(pdefelem);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 Expr *
-gpdb::TransformArrayConstToArrayExpr
+gpdb::PexprTransformArrayConstToArrayExpr
 	(
 	Const *c
 	)
@@ -3008,7 +3008,7 @@ gpdb::TransformArrayConstToArrayExpr
 }
 
 Node *
-gpdb::EvalConstExpressions
+gpdb::PnodeEvalConstExpressions
 	(
 	Node *node
 	)
@@ -3022,7 +3022,7 @@ gpdb::EvalConstExpressions
 }
 
 SelectedParts *
-gpdb::RunStaticPartitionSelection
+gpdb::SpStaticPartitionSelection
 	(
 	PartitionSelector *ps
 	)
@@ -3036,7 +3036,7 @@ gpdb::RunStaticPartitionSelection
 }
 
 FaultInjectorType_e
-gpdb::InjectFaultInOptTasks
+gpdb::OptTasksFaultInjector
 	(
 	FaultInjectorIdentifier_e identifier
 	)
@@ -3053,15 +3053,15 @@ gpdb::InjectFaultInOptTasks
 }
 
 gpos::ULONG
-gpdb::CountLeafPartTables
+gpdb::UlLeafPartitions
        (
-       Oid rel_oid
+       Oid oidRelation
        )
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_partition, pg_partition_rules */
-		return countLeafPartTables(rel_oid);
+		return countLeafPartTables(oidRelation);
 	}
 	GP_WRAP_END;
 
@@ -3173,7 +3173,7 @@ register_mdcache_invalidation_callbacks(void)
 
 // Has there been any catalog changes since last call?
 bool
-gpdb::MDCacheNeedsReset
+gpdb::FMDCacheNeedsReset
 		(
 			void
 		)
@@ -3229,7 +3229,7 @@ gpdb::OptimizerFree
 
 // returns true if a query cancel is requested in GPDB
 bool
-gpdb::IsAbortRequested
+gpdb::FAbortRequested
 	(
 	void
 	)
@@ -3238,7 +3238,7 @@ gpdb::IsAbortRequested
 }
 
 GpPolicy *
-gpdb::MakeGpPolicy
+gpdb::PMakeGpPolicy
        (
                MemoryContext mcxt,
                GpPolicyType ptype,

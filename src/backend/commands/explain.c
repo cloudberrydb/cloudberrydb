@@ -40,7 +40,7 @@
 #include "cdb/cdbgang.h"
 
 #ifdef USE_ORCA
-extern char *SerializeDXLPlan(Query *parse);
+extern char *SzDXLPlan(Query *parse);
 extern const char *OptVersion();
 #endif
 
@@ -335,7 +335,7 @@ ExplainDXL(Query *query, ExplainState *es, const char *queryString,
 	optimizer_enumerate_plans = true;
 
 	/* optimize query using optimizer and get generated plan in DXL format */
-	dxl = SerializeDXLPlan(query);
+	dxl = SzDXLPlan(query);
 
 	/* restore old value of enumerate plans GUC */
 	optimizer_enumerate_plans = save_enumerate;

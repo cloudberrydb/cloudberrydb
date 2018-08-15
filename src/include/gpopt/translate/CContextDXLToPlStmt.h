@@ -42,7 +42,7 @@ namespace gpdxl
 	// fwd decl
 	class CDXLTranslateContext;
 
-	typedef CHashMap<ULONG, CDXLTranslateContext, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+	typedef CHashMap<ULONG, CDXLTranslateContext, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
 			CleanupDelete<ULONG>, CleanupDelete<CDXLTranslateContext> > HMUlDxltrctx;
 
 	//---------------------------------------------------------------------------
@@ -63,82 +63,82 @@ namespace gpdxl
 			struct SCTEConsumerInfo
 			{
 				// list of ShareInputScan represent cte consumers
-				List *m_cte_consumer_list;
+				List *m_plSis;
 
 				// ctor
 				SCTEConsumerInfo
 					(
-					List *plan_cte
+					List *plPlanCTE
 					)
 					:
-					m_cte_consumer_list(plan_cte)
+					m_plSis(plPlanCTE)
 					{}
 
 				void AddCTEPlan
 					(
-					ShareInputScan *share_input_scan
+					ShareInputScan *psis
 					)
 				{
-					GPOS_ASSERT(NULL != share_input_scan);
-					m_cte_consumer_list = gpdb::LAppend(m_cte_consumer_list, share_input_scan);
+					GPOS_ASSERT(NULL != psis);
+					m_plSis = gpdb::PlAppendElement(m_plSis, psis);
 				}
 
 				~SCTEConsumerInfo()
 				{
-					gpdb::ListFree(m_cte_consumer_list);
+					gpdb::FreeList(m_plSis);
 				}
 
 			};
 
 			// hash maps mapping ULONG -> SCTEConsumerInfo
-			typedef CHashMap<ULONG, SCTEConsumerInfo, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+			typedef CHashMap<ULONG, SCTEConsumerInfo, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
 			CleanupDelete<ULONG>, CleanupDelete<SCTEConsumerInfo> > HMUlCTEConsumerInfo;
 
-			IMemoryPool *m_mp;
+			IMemoryPool *m_pmp;
 
 			// counter for generating plan ids
-			CIdGenerator *m_plan_id_counter;
+			CIdGenerator *m_pidgtorPlan;
 
 			// counter for generating motion ids
-			CIdGenerator *m_motion_id_counter;
+			CIdGenerator *m_pidgtorMotion;
 
 			// counter for generating unique param ids
-			CIdGenerator *m_param_id_counter;
+			CIdGenerator *m_pidgtorParam;
 
 			// list of all rtable entries
-			List **m_rtable_entries_list;
+			List **m_pplRTable;
 
 			// list of oids of partitioned tables
-			List *m_partitioned_tables_list;
+			List *m_plPartitionTables;
 
 			// number of partition selectors for each dynamic scan
-			ULongPtrArray *m_num_partition_selectors_array;
+			DrgPul *m_pdrgpulNumSelectors;
 
 			// list of all subplan entries
-			List **m_subplan_entries_list;
+			List **m_pplSubPlan;
 
 			// index of the target relation in the rtable or 0 if not a DML statement
-			ULONG m_result_relation_index;
+			ULONG m_ulResultRelation;
 
 			// hash map of the cte identifiers and the cte consumers with the same cte identifier
-			HMUlCTEConsumerInfo *m_cte_consumer_info;
+			HMUlCTEConsumerInfo *m_phmulcteconsumerinfo;
 
 			// into clause
-			IntoClause *m_into_clause;
+			IntoClause *m_pintocl;
 			
 			// CTAS distribution policy
-			GpPolicy  *m_distribution_policy;
+			GpPolicy  *m_pdistrpolicy;
 			
 		public:
 			// ctor/dtor
 			CContextDXLToPlStmt
 						(
-						IMemoryPool *mp,
-						CIdGenerator *plan_id_counter,
-						CIdGenerator *motion_id_counter,
-						CIdGenerator *param_id_counter,
-						List **rtable_entries_list,
-						List **subplan_entries_list
+						IMemoryPool *pmp,
+						CIdGenerator *pidgtorPlan,
+						CIdGenerator *pidgtorMotion,
+						CIdGenerator *pidgtorParam,
+						List **plRTable,
+						List **plSubPlan
 						)
 						;
 
@@ -146,70 +146,70 @@ namespace gpdxl
 			~CContextDXLToPlStmt();
 
 			// retrieve the next plan id
-			ULONG GetNextPlanId();
+			ULONG UlNextPlanId();
 
 			// retrieve the current motion id
-			ULONG GetCurrentMotionId();
+			ULONG UlCurrentMotionId();
 
 			// retrieve the next motion id
-			ULONG GetNextMotionId();
+			ULONG UlNextMotionId();
 
 			// retrieve the current parameter id
-			ULONG GetCurrentParamId();
+			ULONG UlCurrentParamId();
 
 			// retrieve the next parameter id
-			ULONG GetNextParamId();
+			ULONG UlNextParamId();
 
 			// add a newly found CTE consumer
-			void AddCTEConsumerInfo(ULONG cte_id, ShareInputScan *share_input_scan);
+			void AddCTEConsumerInfo(ULONG ulCTEId, ShareInputScan *psis);
 
 			// return the list of shared input scan plans representing the CTE consumers
-			List *GetCTEConsumerList(ULONG cte_id) const;
+			List *PshscanCTEConsumer(ULONG ulCteId) const;
 
 			// return list of range table entries
-			List *GetRTableEntriesList();
+			List *PlPrte();
 
 			// return list of partitioned table indexes
-			List *GetPartitionedTablesList() const
+			List *PlPartitionedTables() const
 			{
-				return m_partitioned_tables_list;
+				return m_plPartitionTables;
 			}
 
 			// return list containing number of partition selectors for every scan id
-			List *GetNumPartitionSelectorsList() const;
+			List *PlNumPartitionSelectors() const;
 
-			List *GetSubplanEntriesList();
+			List *PlPplanSubplan();
 
 			// index of result relation in the rtable
-			ULONG GetResultRelationIndex() const
+			ULONG UlResultRelation() const
 			{
-				return m_result_relation_index;
+				return m_ulResultRelation;
 			}
 
 			// add a range table entry
-			void AddRTE(RangeTblEntry *rte, BOOL is_result_relation = false);
+			void AddRTE(RangeTblEntry *prte, BOOL fResultRelation = false);
 
 			// add a partitioned table index
 			void AddPartitionedTable(OID oid);
 
 			// increment the number of partition selectors for the given scan id
-			void IncrementPartitionSelectors(ULONG scan_id);
+			void IncrementPartitionSelectors(ULONG ulScanId);
 
 			void AddSubplan(Plan * );
 				
 			// add CTAS information
-			void AddCtasInfo(IntoClause *into_clause, GpPolicy *distribution_policy);
+			void AddCtasInfo(IntoClause *pintocl, GpPolicy *pdistrpolicy);
 			
 			// into clause
-			IntoClause *GetIntoClause() const
+			IntoClause *Pintocl() const
 			{
-				return m_into_clause;
+				return m_pintocl;
 			}
 
 			// CTAS distribution policy
-			GpPolicy *GetDistributionPolicy() const
+			GpPolicy *Pdistrpolicy() const
 			{
-				return m_distribution_policy;
+				return m_pdistrpolicy;
 			}
 
 	};

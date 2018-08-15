@@ -276,7 +276,7 @@ static int translateQueryToFile
 	Assert(pquery);
 
 	char *szXmlString = COptTasks::SzDXL(pquery);
-	int iLen = (int) gpos::clib::Strlen(szXmlString);
+	int iLen = (int) gpos::clib::UlStrLen(szXmlString);
 
 	CFileWriter fw;
 	fw.Open(szFilename, S_IRUSR | S_IWUSR);
@@ -668,14 +668,14 @@ DumpMDObjDXL(PG_FUNCTION_ARGS)
 {
 	Oid oid = gpdb::OidFromDatum(PG_GETARG_DATUM(0));
 
-	char *dxl_string = COptTasks::SzMDObjs(ListMake1Oid(oid));
+	char *szDXL = COptTasks::SzMDObjs(ListMake1Oid(oid));
 
-	if (NULL == dxl_string)
+	if (NULL == szDXL)
 	{
 		elog(ERROR, "Error dumping MD object");
 	}
 
-	PG_RETURN_TEXT_P(cstring_to_text(dxl_string));
+	PG_RETURN_TEXT_P(cstring_to_text(szDXL));
 }
 }
 
@@ -696,9 +696,9 @@ DumpRelStatsDXL(PG_FUNCTION_ARGS)
 {
 	Oid oid = gpdb::OidFromDatum(PG_GETARG_DATUM(0));
 
-	char *dxl_string = COptTasks::SzRelStats(ListMake1Oid(oid));
+	char *szDXL = COptTasks::SzRelStats(ListMake1Oid(oid));
 
-	PG_RETURN_TEXT_P(cstring_to_text(dxl_string));
+	PG_RETURN_TEXT_P(cstring_to_text(szDXL));
 }
 }
 
@@ -720,9 +720,9 @@ DumpMDCastDXL(PG_FUNCTION_ARGS)
 	Oid oidSrc = gpdb::OidFromDatum(PG_GETARG_DATUM(0));
 	Oid oidDest = gpdb::OidFromDatum(PG_GETARG_DATUM(1));
 
-	char *dxl_string = COptTasks::SzMDCast(ListMake2Oid(oidSrc, oidDest));
+	char *szDXL = COptTasks::SzMDCast(ListMake2Oid(oidSrc, oidDest));
 
-	PG_RETURN_TEXT_P(cstring_to_text(dxl_string));
+	PG_RETURN_TEXT_P(cstring_to_text(szDXL));
 }
 }
 
@@ -745,9 +745,9 @@ DumpMDScCmpDXL(PG_FUNCTION_ARGS)
 	Oid oidRight = gpdb::OidFromDatum(PG_GETARG_DATUM(1));
 	char *szCmpType = text_to_cstring(PG_GETARG_TEXT_P(2));
 	
-	char *dxl_string = COptTasks::SzMDScCmp(ListMake2Oid(oidLeft, oidRight), szCmpType);
+	char *szDXL = COptTasks::SzMDScCmp(ListMake2Oid(oidLeft, oidRight), szCmpType);
 
-	PG_RETURN_TEXT_P(cstring_to_text(dxl_string));
+	PG_RETURN_TEXT_P(cstring_to_text(szDXL));
 }
 }
 

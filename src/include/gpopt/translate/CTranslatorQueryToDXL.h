@@ -45,11 +45,11 @@ namespace gpdxl
 	using namespace gpos;
 	using namespace gpopt;
 
-	typedef CHashMap<ULONG, BOOL, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
-			CleanupDelete<ULONG>, CleanupDelete<BOOL> > UlongBoolHashMap;
+	typedef CHashMap<ULONG, BOOL, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+			CleanupDelete<ULONG>, CleanupDelete<BOOL> > HMUlF;
 
-	typedef CHashMapIter<INT, ULONG, gpos::HashValue<INT>, gpos::Equals<INT>,
-			CleanupDelete<INT>, CleanupDelete<ULONG> > IntUlongHashmapIter;
+	typedef CHashMapIter<INT, ULONG, gpos::UlHash<INT>, gpos::FEqual<INT>,
+			CleanupDelete<INT>, CleanupDelete<ULONG> > HMIUlIter;
 	
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -63,98 +63,98 @@ namespace gpdxl
 	class CTranslatorQueryToDXL
 	{
 		// shorthand for functions for translating DXL nodes to GPDB expressions
-		typedef CDXLNode * (CTranslatorQueryToDXL::*DXLNodeToLogicalFunc)(const RangeTblEntry *rte, ULONG rti, ULONG current_query_level);
+		typedef CDXLNode * (CTranslatorQueryToDXL::*PfPdxlnLogical)(const RangeTblEntry *prte, ULONG ulRTIndex, ULONG ulCurrQueryLevel);
 
 		// mapping RTEKind to WCHARs
 		struct SRTENameElem
 		{
 			RTEKind m_rtekind;
-			const WCHAR *m_rte_name;
+			const WCHAR *m_wsz;
 		};
 
 		// pair of RTEKind and its translators
 		struct SRTETranslator
 		{
 			RTEKind m_rtekind;
-			DXLNodeToLogicalFunc dxlnode_to_logical_funct;
+			PfPdxlnLogical pf;
 		};
 
 		// mapping CmdType to WCHARs
 		struct SCmdNameElem
 		{
-			CmdType m_cmd_type;
-			const WCHAR *m_cmd_name;
+			CmdType m_cmdtype;
+			const WCHAR *m_wsz;
 		};
 
 		// pair of unsupported node tag and feature name
 		struct SUnsupportedFeature
 		{
-			NodeTag node_tag;
-			const WCHAR *m_feature_name;
+			NodeTag ent;
+			const WCHAR *m_wsz;
 		};
 		
 		private:
 			// memory pool
-			IMemoryPool *m_mp;
+			IMemoryPool *m_pmp;
 
 			// source system id
 			CSystemId m_sysid;
 
 			// meta data accessor
-			CMDAccessor *m_md_accessor;
+			CMDAccessor *m_pmda;
 
 			// counter for generating unique column ids
-			CIdGenerator *m_colid_counter;
+			CIdGenerator *m_pidgtorCol;
 
 			// counter for generating unique CTE ids
-			CIdGenerator *m_cte_id_counter;
+			CIdGenerator *m_pidgtorCTE;
 
 			// scalar translator used to convert scalar operation into DXL.
-			CTranslatorScalarToDXL *m_scalar_translator;
+			CTranslatorScalarToDXL *m_psctranslator;
 
 			// holds the var to col id information mapping
-			CMappingVarColId *m_var_to_colid_map;
+			CMappingVarColId *m_pmapvarcolid;
 
 			// query being translated
-			Query *m_query;
+			Query *m_pquery;
 
 			// absolute level of query being translated
-			ULONG m_query_level;
+			ULONG m_ulQueryLevel;
 
 			// does the query have distributed tables
-			BOOL m_has_distributed_tables;
+			BOOL m_fHasDistributedTables;
 
 			// top query is a DML
-			BOOL m_is_top_query_dml;
+			BOOL m_fTopDMLQuery;
 
 			// this is a CTAS query
-			BOOL m_is_ctas_query;
+			BOOL m_fCTASQuery;
 
 			// hash map that maintains the list of CTEs defined at a particular query level
-			HMUlCTEListEntry *m_query_level_to_cte_map;
+			HMUlCTEListEntry *m_phmulCTEEntries;
 
 			// query output columns
-			CDXLNodeArray *m_dxl_query_output_cols;
+			DrgPdxln *m_pdrgpdxlnQueryOutput;
 			
 			// list of CTE producers
-			CDXLNodeArray *m_dxl_cte_producers;
+			DrgPdxln *m_pdrgpdxlnCTE;
 			
 			// CTE producer IDs defined at the current query level
-			UlongBoolHashMap *m_cteid_at_current_query_level_map;
+			HMUlF *m_phmulfCTEProducers;
 
 			//ctor
-			// private constructor, called from the public factory function QueryToDXLInstance
+			// private constructor, called from the public factory function PtrquerytodxlInstance
 			CTranslatorQueryToDXL
 				(
-				IMemoryPool *mp,
-				CMDAccessor *md_accessor,
-				CIdGenerator *m_colid_counter,
-				CIdGenerator *cte_id_counter,
-				CMappingVarColId *var_colid_mapping,
-				Query *query,
-				ULONG query_level,
-				BOOL is_top_query_dml,
-				HMUlCTEListEntry *query_level_to_cte_map  // hash map between query level -> list of CTEs defined at that level
+				IMemoryPool *pmp,
+				CMDAccessor *pmda,
+				CIdGenerator *pidgtorColId,
+				CIdGenerator *pidgtorCTE,
+				CMappingVarColId *pmapvarcolid,
+				Query *pquery,
+				ULONG ulQueryLevel,
+				BOOL fTopDMLQuery,
+				HMUlCTEListEntry *phmulCTEEntries  // hash map between query level -> list of CTEs defined at that level
 				);
 
 			// private copy ctor
@@ -162,302 +162,303 @@ namespace gpdxl
 
 			// check for unsupported node types, throws an exception if an unsupported
 			// node is found
-			void CheckUnsupportedNodeTypes(Query *query);
+			void CheckUnsupportedNodeTypes(Query *pquery);
 
 			// check for SIRV functions in the targetlist without a FROM clause and
 			// throw an exception when found
-			void CheckSirvFuncsWithoutFromClause(Query *query);
+			void CheckSirvFuncsWithoutFromClause(Query *pquery);
 
 			// check for SIRV functions in the tree rooted at the given node
-			BOOL HasSirvFunctions (Node *node) const;
+			BOOL FHasSirvFunctions (Node *pnode) const;
 
 			// translate FromExpr (in the GPDB query) into a CDXLLogicalJoin or CDXLLogicalGet
-			CDXLNode *TranslateFromExprToDXL(FromExpr *from_expr);
+			CDXLNode *PdxlnFromGPDBFromExpr(FromExpr *pfromexpr);
 
 			// translate set operations
-			CDXLNode *TranslateSetOpToDXL(Node *setop_node, List *target_list, IntToUlongMap *output_attno_to_colid_mapping);
+			CDXLNode *PdxlnFromSetOp(Node *pnodeSetOp, List *plTargetList, HMIUl *phmiulOutputCols);
 
 			// create the set operation given its children, input and output columns
-			CDXLNode *CreateDXLSetOpFromColumns
+			CDXLNode *PdxlnSetOp
 				(
-				EdxlSetOpType setop_type,
-				List *output_target_list,
-				ULongPtrArray *output_colids,
-				ULongPtr2dArray *input_colids,
-				CDXLNodeArray *children_dxlnodes,
-				BOOL is_cast_across_input,
-				BOOL keep_res_junked
+				EdxlSetOpType edxlsetop,
+				List *plTargetListOutput,
+				DrgPul *pdrgpulOutput,
+				DrgPdrgPul *pdrgpdrgulInputColIds,
+				DrgPdxln *pdrgpdxlnChildren,
+				BOOL fCastAcrossInput,
+				BOOL fKeepResjunked
 				)
 				const;
 
 			// check if the set operation need to cast any of its input columns
-			BOOL SetOpNeedsCast(List *target_list, IMdIdArray *input_col_mdids) const;
+			BOOL FCast(List *plTargetList, DrgPmdid *pdrgpmdid) const;
 			// translate a window operator
-			CDXLNode *TranslateWindowToDXL
+			CDXLNode *PdxlnWindow
 				(
-				CDXLNode *child_dxlnode,
-				List *target_list,
-				List *window_clause,
-				List *sort_clause,
-				IntToUlongMap *sort_col_attno_to_colid_mapping,
-				IntToUlongMap *output_attno_to_colid_mapping
+				CDXLNode *pdxlnChild,
+				List *plTargetList,
+				List *plWindowClause,
+				List *plSortClause,
+				HMIUl *phmiulSortColsColId,
+				HMIUl *phmiulOutputCols
 				);
 
 			// translate window spec
-			CDXLWindowSpecArray *TranslateWindowSpecToDXL(List *window_clause, IntToUlongMap *sort_col_attno_to_colid_mapping, CDXLNode *project_list_dxlnode_node);
+			DrgPdxlws *Pdrgpdxlws(List *plWindowClause, HMIUl *phmiulSortColsColId, CDXLNode *pdxlnScPrL);
 
 			// update window spec positions of LEAD/LAG functions
-			void UpdateLeadLagWinSpecPos(CDXLNode *project_list_dxlnode, CDXLWindowSpecArray *window_specs_dxlnode) const;
+			void UpdateLeadLagWinSpecPos(CDXLNode *pdxlnPrL, DrgPdxlws *pdrgpdxlwinspec) const;
 
 			// manufucture window frame for lead/lag functions
-			CDXLWindowFrame *CreateWindowFramForLeadLag(BOOL is_lead_func, CDXLNode *dxl_offset) const;
+			CDXLWindowFrame *PdxlwfLeadLag(BOOL fLead, CDXLNode *pdxlnOffset) const;
 
 			// translate the child of a set operation
-			CDXLNode *TranslateSetOpChild(Node *child_node, ULongPtrArray *pdrgpul, IMdIdArray *input_col_mdids, List *target_list);
+			CDXLNode *PdxlnSetOpChild(Node *pnodeChild, DrgPul *pdrgpul, DrgPmdid *pdrgpmdid, List *plTargetList);
 
 			// return a dummy const table get
-			CDXLNode *DXLDummyConstTableGet() const;
+			CDXLNode *PdxlnConstTableGet() const;
 
 			// translate an Expr into CDXLNode
-			CDXLNode *TranslateExprToDXL(Expr *expr);
+			CDXLNode *PdxlnScFromGPDBExpr(Expr *pexpr);
 
 			// translate the JoinExpr (inside FromExpr) into a CDXLLogicalJoin node
-			CDXLNode *TranslateJoinExprInFromToDXL(JoinExpr *join_expr);
+			CDXLNode *PdxlnLgJoinFromGPDBJoinExpr(JoinExpr *pjoinexpr);
 
 			// construct a group by node for a set of grouping columns
-			CDXLNode *CreateSimpleGroupBy
+			CDXLNode *PdxlnSimpleGroupBy
 				(
-				List *target_list,
-				List *group_clause,
-				CBitSet *bitset,
-				BOOL has_aggs,
-				BOOL has_grouping_sets,				// is this GB part of a GS query
-				CDXLNode *child_dxlnode,
-				IntToUlongMap *phmiulSortGrpColsColId,  // mapping sortgroupref -> ColId
-				IntToUlongMap *child_attno_colid_mapping,				// mapping attno->colid in child node
-				IntToUlongMap *output_attno_to_colid_mapping			// mapping attno -> ColId for output columns
+				List *plTargetList,
+				List *plGroupClause,
+				CBitSet *pbs,
+				BOOL fHasAggs,
+				BOOL fGroupingSets,				// is this GB part of a GS query
+				CDXLNode *pdxlnChild,
+				HMIUl *phmiulSortGrpColsColId,  // mapping sortgroupref -> ColId
+				HMIUl *phmiulChild,				// mapping attno->colid in child node
+				HMIUl *phmiulOutputCols			// mapping attno -> ColId for output columns
 				);
 
 			// check if the argument of a DQA has already being used by another DQA
 			static
-			BOOL IsDuplicateDqaArg(List *dqa_list, Aggref *aggref);
+			BOOL FDuplicateDqaArg(List *plDQA, Aggref *paggref);
 
 			// translate a query with grouping sets
-			CDXLNode *TranslateGroupingSets
+			CDXLNode *PdxlnGroupingSets
 				(
-				FromExpr *from_expr,
-				List *target_list,
-				List *group_clause,
-				BOOL has_aggs,
-				IntToUlongMap *phmiulSortGrpColsColId,
-				IntToUlongMap *output_attno_to_colid_mapping
+				FromExpr *pfromexpr,
+				List *plTargetList,
+				List *plGroupClause,
+				BOOL fHasAggs,
+				HMIUl *phmiulSortGrpColsColId,
+				HMIUl *phmiulOutputCols
 				);
 
 			// expand the grouping sets into a union all operator
-			CDXLNode *CreateDXLUnionAllForGroupingSets
+			CDXLNode *PdxlnUnionAllForGroupingSets
 				(
-				FromExpr *from_expr,
-				List *target_list,
-				List *group_clause,
-				BOOL has_aggs,
-				CBitSetArray *pdrgpbsGroupingSets,
-				IntToUlongMap *phmiulSortGrpColsColId,
-				IntToUlongMap *output_attno_to_colid_mapping,
-				UlongToUlongMap *grpcol_index_to_colid_mapping		// mapping pos->unique grouping columns for grouping func arguments
+				FromExpr *pfromexpr,
+				List *plTargetList,
+				List *plGroupClause,
+				BOOL fHasAggs,
+				DrgPbs *pdrgpbsGroupingSets,
+				HMIUl *phmiulSortGrpColsColId,
+				HMIUl *phmiulOutputCols,
+				HMUlUl *phmululGrpColPos		// mapping pos->unique grouping columns for grouping func arguments
 				);
 
 			// construct a project node with NULL values for columns not included in the grouping set
-			CDXLNode *CreateDXLProjectNullsForGroupingSets
+			CDXLNode *PdxlnProjectNullsForGroupingSets
 				(
-				List *target_list,
-				CDXLNode *child_dxlnode,
-				CBitSet *bitset,
-				IntToUlongMap *sort_grouping_col_mapping,
-				IntToUlongMap *output_attno_to_colid_mapping,
-				UlongToUlongMap *grpcol_index_to_colid_mapping
+				List *plTargetList, 
+				CDXLNode *pdxlnChild, 
+				CBitSet *pbs, 
+				HMIUl *phmiulSortgrouprefCols, 
+				HMIUl *phmiulOutputCols, 
+				HMUlUl *phmululGrpColPos
 				) 
 				const;
 
 			// construct a project node with appropriate values for the grouping funcs in the given target list
-			CDXLNode *CreateDXLProjectGroupingFuncs
+			CDXLNode *PdxlnProjectGroupingFuncs
 				(
-				List *target_list,
-				CDXLNode *child_dxlnode,
-				CBitSet *bitset,
-				IntToUlongMap *output_attno_to_colid_mapping,
-				UlongToUlongMap *grpcol_index_to_colid_mapping,
-				IntToUlongMap *sort_grpref_to_colid_mapping
+				List *plTargetList,
+				CDXLNode *pdxlnChild,
+				CBitSet *pbs,
+				HMIUl *phmiulOutputCols,
+				HMUlUl *phmululGrpColPos,
+				HMIUl *phmiulSortgrouprefColId
 				)
 				const;
 
 			// add sorting and grouping column into the hash map
-			void AddSortingGroupingColumn(TargetEntry *target_entry, IntToUlongMap *phmiulSortGrpColsColId, ULONG colid) const;
+			void AddSortingGroupingColumn(TargetEntry *pte, HMIUl *phmiulSortGrpColsColId, ULONG ulColId) const;
 
 			// translate the list of sorting columns
-			CDXLNodeArray *TranslateSortColumsToDXL(List *sort_clause, IntToUlongMap *col_attno_colid_mapping) const;
+			DrgPdxln *PdrgpdxlnSortCol(List *plSortCl, HMIUl *phmiulColColId) const;
 
 			// translate the list of partition-by column identifiers
-			ULongPtrArray *TranslatePartColumns(List *sort_clause, IntToUlongMap *col_attno_colid_mapping) const;
+			DrgPul *PdrgpulPartCol(List *plSortCl, HMIUl *phmiulColColId) const;
 
-			CDXLNode *TranslateLimitToDXLGroupBy
+			CDXLNode *PdxlnLgLimit
 				(
 				List *plsortcl, // list of sort clauses
-				Node *limit_count, // query node representing the limit count
-				Node *limit_offset_node, // query node representing the limit offset
-				CDXLNode *dxlnode, // the dxl node representing the subtree
-				IntToUlongMap *grpcols_to_colid_mapping // the mapping between the position in the TargetList to the ColId
+				Node *pnodeLimitCount, // query node representing the limit count
+				Node *pnodeLimitOffset, // query node representing the limit offset
+				CDXLNode *pdxln, // the dxl node representing the subtree
+				HMIUl *phmiulGrpColsColId // the mapping between the position in the TargetList to the ColId
 				);
 
 			// throws an exception when RTE kind not yet supported
 			void UnsupportedRTEKind(RTEKind rtekind) const;
 
 			// translate an entry of the from clause (this can either be FromExpr or JoinExpr)
-			CDXLNode *TranslateFromClauseToDXL(Node *node);
+			CDXLNode *PdxlnFromGPDBFromClauseEntry(Node *pnode);
 
 			// translate the target list entries of the query into a logical project
-			CDXLNode *TranslateTargetListToDXLProject
+			CDXLNode *PdxlnLgProjectFromGPDBTL
 				(
-				List *target_list,
-				CDXLNode *child_dxlnode,
-				IntToUlongMap *	group_col_to_colid_mapping,
-				IntToUlongMap *output_attno_to_colid_mapping,
-				List *group_clause,
-				BOOL is_aggref_expanded = false
+				List *plTargetList,
+				CDXLNode *pdxlnChild,
+				HMIUl *	phmiulGrpcolColId,
+				HMIUl *phmiulOutputCols,
+				List *plGrpCl,
+				BOOL fExpandAggrrefExpr = false
 				);
 
 			// translate a target list entry or a join alias entry into a project element
-			CDXLNode *TranslateExprToDXLProject(Expr *expr, const CHAR *alias_name, BOOL insist_new_colids = false);
+			CDXLNode *PdxlnPrEFromGPDBExpr(Expr *pexpr, const CHAR *szAliasName, BOOL fInsistNewColIds = false);
 
 			// translate a CTE into a DXL logical CTE operator
-			CDXLNode *TranslateCTEToDXL
+			CDXLNode *PdxlnFromCTE
 				(
-				const RangeTblEntry *rte,
-				ULONG rti,
-				ULONG current_query_level
+				const RangeTblEntry *prte,
+				ULONG ulRTIndex,
+				ULONG ulCurrQueryLevel
 				);
 
 			// translate a base table range table entry into a logical get
-			CDXLNode *TranslateRTEToDXLLogicalGet
+			CDXLNode *PdxlnFromRelation
 				(
-				const RangeTblEntry *rte,
-				ULONG rti,
-				ULONG //current_query_level
+				const RangeTblEntry *prte,
+				ULONG ulRTIndex,
+				ULONG //ulCurrQueryLevel
 				);
 
 			// generate a DXL node from column values, where each column value is
 			// either a datum or scalar expression represented as a project element.
-			CDXLNode *TranslateColumnValuesToDXL
+			CDXLNode *PdxlnFromColumnValues
 			 	(
-			 	CDXLDatumArray *dxl_datum_array,
-			 	CDXLColDescrArray *dxl_column_descriptors,
-			 	CDXLNodeArray *dxl_project_elements
+			 	DrgPdxldatum *pdrgpdxldatum,
+			 	DrgPdxlcd *pdrgpdxlcdCTG,
+			 	DrgPdxln *pdrgpdxlnPE
 			    )
 			    const;
 
 			// translate a value scan range table entry
-			CDXLNode *TranslateValueScanRTEToDXL
+			CDXLNode *PdxlnFromValues
 				(
-				const RangeTblEntry *rte,
-				ULONG rti,
-				ULONG //current_query_level
+				const RangeTblEntry *prte,
+				ULONG ulRTIndex,
+				ULONG //ulCurrQueryLevel
 				);
 
 			// create a dxl node from a array of datums and project elements
-			CDXLNode *TranslateTVFToDXL
+			CDXLNode *PdxlnFromTVF
 				(
-				const RangeTblEntry *rte,
-				ULONG rti,
-				ULONG //current_query_level
+				const RangeTblEntry *prte,
+				ULONG ulRTIndex,
+				ULONG //ulCurrQueryLevel
 				);
 
 			// translate a derived table into a DXL logical operator
-			CDXLNode *TranslateDerivedTablesToDXL
+			CDXLNode *PdxlnFromDerivedTable
 						(
-						const RangeTblEntry *rte,
-						ULONG rti,
-						ULONG current_query_level
+						const RangeTblEntry *prte,
+						ULONG ulRTIndex,
+						ULONG ulCurrQueryLevel
 						);
 
 			// create a DXL node representing the scalar constant "true"
-			CDXLNode *CreateDXLConstValueTrue();
+			CDXLNode *PdxlnScConstValueTrue();
 
 			// store mapping attno->colid
-			void StoreAttnoColIdMapping(IntToUlongMap *attno_to_colid_mapping, INT attno, ULONG colid) const;
+			void StoreAttnoColIdMapping(HMIUl *phmiul, INT iAttno, ULONG ulColId) const;
 
 			// construct an array of output columns
-			CDXLNodeArray *CreateDXLOutputCols(List *target_list, IntToUlongMap *attno_to_colid_mapping) const;
+			DrgPdxln *PdrgpdxlnConstructOutputCols(List *plTargetList, HMIUl *phmiulAttnoColId) const;
 
 			// check for support command types, throws an exception when command type not yet supported
-			void CheckSupportedCmdType(Query *query);
+			void CheckSupportedCmdType(Query *pquery);
 
 			// translate a select-project-join expression into DXL
-			CDXLNode *TranslateSelectProjectJoinToDXL(List *target_list, FromExpr *from_expr, IntToUlongMap *sort_group_attno_to_colid_mapping, IntToUlongMap *output_attno_to_colid_mapping, List *group_clause);
+			CDXLNode *PdxlnSPJ(List *plTargetList, FromExpr *pfromexpr, HMIUl *phmiulSortGroupColsColId, HMIUl *phmiulOutputCols, List *plGroupClause);
 
 			// translate a select-project-join expression into DXL and keep variables appearing
 			// in aggregates and grouping columns in the output column map
-			CDXLNode *TranslateSelectProjectJoinForGrpSetsToDXL(List *target_list, FromExpr *from_expr, IntToUlongMap *sort_group_attno_to_colid_mapping, IntToUlongMap *output_attno_to_colid_mapping, List *group_clause);
+			CDXLNode *PdxlnSPJForGroupingSets(List *plTargetList, FromExpr *pfromexpr, HMIUl *phmiulSortGroupColsColId, HMIUl *phmiulOutputCols, List *plGroupClause);
 			
 			// helper to check if OID is included in given array of OIDs
 			static
-			BOOL OIDFound(OID oid, const OID oids[], ULONG size);
+			BOOL FOIDFound(OID oid, const OID rgOID[], ULONG ulSize);
 
 			// check if given operator is lead() window function
 			static
-			BOOL IsLeadWindowFunc(CDXLOperator *dxlop);
+			BOOL FLeadWindowFunc(CDXLOperator *Pdxlop);
 
 			// check if given operator is lag() window function
 			static
-			BOOL IsLagWindowFunc(CDXLOperator *dxlop);
+			BOOL FLagWindowFunc(CDXLOperator *pdxlop);
 
 		    // translate an insert query
-			CDXLNode *TranslateInsertQueryToDXL();
+			CDXLNode *PdxlnInsert();
 
 			// translate a delete query
-			CDXLNode *TranslateDeleteQueryToDXL();
+			CDXLNode *PdxlnDelete();
 
 			// translate an update query
-			CDXLNode *TranslateUpdateQueryToDXL();
+			CDXLNode *PdxlnUpdate();
 
 		    // translate a CTAS query
-			CDXLNode *TranslateCTASToDXL();
+			CDXLNode *PdxlnCTAS();
+
 			// translate CTAS storage options
-			CDXLCtasStorageOptions::CDXLCtasOptionArray *GetDXLCtasOptionArray(List *options, IMDRelation::Erelstoragetype *storage_type);
+			CDXLCtasStorageOptions::DrgPctasOpt *Pdrgpctasopt(List *plOptions, IMDRelation::Erelstoragetype *perelstoragetype);
 			
 			// extract storage option value from defelem
-			CWStringDynamic *ExtractStorageOptionStr(DefElem *def_elem);
+			CWStringDynamic *PstrExtractOptionValue(DefElem *pdefelem);
 			
 			// return resno -> colId mapping of columns to be updated
-			IntToUlongMap *UpdatedColumnMapping();
+			HMIUl *PhmiulUpdateCols();
 
 			// obtain the ids of the ctid and segmentid columns for the target
 			// table of a DML query
-			void GetCtidAndSegmentId(ULONG *ctid, ULONG *segment_id);
+			void GetCtidAndSegmentId(ULONG *pulCtid, ULONG *pulSegmentId);
 			
 			// obtain the column id for the tuple oid column of the target table
 			// of a DML statement
-			ULONG GetTupleOidColId();
+			ULONG UlTupleOidColId();
 
 			// translate a grouping func expression
-			CDXLNode *TranslateGroupingFuncToDXL(const Expr *expr, CBitSet *bitset, UlongToUlongMap *grpcol_index_to_colid_mapping) const;
+			CDXLNode *PdxlnGroupingFunc(const Expr *pexpr, CBitSet *pbs, HMUlUl *phmululGrpColPos) const;
 
 			// construct a list of CTE producers from the query's CTE list
-			void ConstructCTEProducerList(List *cte_list, ULONG query_level);
+			void ConstructCTEProducerList(List *plCTE, ULONG ulQueryLevel);
 			
 			// construct a stack of CTE anchors for each CTE producer in the given array
-			void ConstructCTEAnchors(CDXLNodeArray *dxlnodes, CDXLNode **dxl_cte_anchor_top, CDXLNode **dxl_cte_anchor_bottom);
+			void ConstructCTEAnchors(DrgPdxln *pdrgpdxln, CDXLNode **ppdxlnCTEAnchorTop, CDXLNode **ppdxlnCTEAnchorBottom);
 			
 			// generate an array of new column ids of the given size
-			ULongPtrArray *GenerateColIds(IMemoryPool *mp, ULONG size) const;
+			DrgPul *PdrgpulGenerateColIds(IMemoryPool *pmp, ULONG ulSize) const;
 
 			// extract an array of colids from the given column mapping
-			ULongPtrArray *ExtractColIds(IMemoryPool *mp, IntToUlongMap *attno_to_colid_mapping) const;
+			DrgPul *PdrgpulExtractColIds(IMemoryPool *pmp, HMIUl *phmiul) const;
 			
 			// construct a new mapping based on the given one by replacing the colid in the "From" list
 			// with the colid at the same position in the "To" list
-			IntToUlongMap *RemapColIds(IMemoryPool *mp, IntToUlongMap *attno_to_colid_mapping, ULongPtrArray *from_list_colids, ULongPtrArray *to_list_colids) const;
+			HMIUl *PhmiulRemapColIds(IMemoryPool *pmp, HMIUl *phmiul, DrgPul *pdrgpulFrom, DrgPul *pdrgpulTo) const;
 
 			// true iff this query or one of its ancestors is a DML query
-			BOOL IsDMLQuery();
+			BOOL FDMLQuery();
 
 		public:
 			// dtor
@@ -466,39 +467,39 @@ namespace gpdxl
 			// query object
 			const Query *Pquery() const
 			{
-				return m_query;
+				return m_pquery;
 			}
 
 			// does query have distributed tables
-			BOOL HasDistributedTables() const
+			BOOL FHasDistributedTables() const
 			{
-				return m_has_distributed_tables;
+				return m_fHasDistributedTables;
 			}
 
 			// main translation routine for Query -> DXL tree
-			CDXLNode *TranslateSelectQueryToDXL();
+			CDXLNode *PdxlnFromQueryInternal();
 
 			// main driver
-			CDXLNode *TranslateQueryToDXL();
+			CDXLNode *PdxlnFromQuery();
 
 			// return the list of output columns
-			CDXLNodeArray *GetQueryOutputCols() const;
+			DrgPdxln *PdrgpdxlnQueryOutput() const;
 
 			// return the list of CTEs
-			CDXLNodeArray *GetCTEs() const;
+			DrgPdxln *PdrgpdxlnCTE() const;
 
 			// factory function
 			static
-			CTranslatorQueryToDXL *QueryToDXLInstance
+			CTranslatorQueryToDXL *PtrquerytodxlInstance
 				(
-				IMemoryPool *mp,
-				CMDAccessor *md_accessor,
-				CIdGenerator *m_colid_counter,
-				CIdGenerator *cte_id_counter,
-				CMappingVarColId *var_colid_mapping,
-				Query *query,
-				ULONG query_level,
-				HMUlCTEListEntry *query_level_to_cte_map = NULL // hash map between query level -> list of CTEs defined at that level
+				IMemoryPool *pmp,
+				CMDAccessor *pmda,
+				CIdGenerator *pidgtorColId,
+				CIdGenerator *pidgtorCTE,
+				CMappingVarColId *pmapvarcolid,
+				Query *pquery,
+				ULONG ulQueryLevel,
+				HMUlCTEListEntry *phmulCTEEntries = NULL // hash map between query level -> list of CTEs defined at that level
 				);
 	};
 }

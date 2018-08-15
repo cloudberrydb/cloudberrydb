@@ -48,40 +48,40 @@ namespace gpdxl
 	{
 		private:
 
-			const CDXLTranslateContextBaseTable *m_base_table_context;
+			const CDXLTranslateContextBaseTable *m_pdxltrctxbt;
 
 			// the array of translator context (one for each child of the DXL operator)
-			CDXLTranslationContextArray *m_child_contexts;
+			DrgPdxltrctx *m_pdrgpdxltrctx;
 
-			CDXLTranslateContext *m_output_context;
+			CDXLTranslateContext *m_pdxltrctxOut;
 
 			// translator context used to translate initplan and subplans associated
 			// with a param node
-			CContextDXLToPlStmt *m_dxl_to_plstmt_context;
+			CContextDXLToPlStmt *m_pctxdxltoplstmt;
 
 		public:
 
 			CMappingColIdVarPlStmt
 				(
-				IMemoryPool *mp,
-				const CDXLTranslateContextBaseTable *base_table_context,
-				CDXLTranslationContextArray *child_contexts,
-				CDXLTranslateContext *output_context,
-				CContextDXLToPlStmt *dxl_to_plstmt_context
+				IMemoryPool *pmp,
+				const CDXLTranslateContextBaseTable *pdxltrctxbt,
+				DrgPdxltrctx *pdrgpdxltrctx,
+				CDXLTranslateContext *pdxltrctxOut,
+				CContextDXLToPlStmt *pctxdxltoplstmt
 				);
 
 			// translate DXL ScalarIdent node into GPDB Var node
 			virtual
-			Var *VarFromDXLNodeScId(const CDXLScalarIdent *dxlop);
+			Var *PvarFromDXLNodeScId(const CDXLScalarIdent *pdxlop);
 
 			// translate DXL ScalarIdent node into GPDB Param node
-			Param *ParamFromDXLNodeScId(const CDXLScalarIdent *dxlop);
+			Param *PparamFromDXLNodeScId(const CDXLScalarIdent *pdxlop);
 
 			// get the output translator context
-			CDXLTranslateContext *GetOutputContext();
+			CDXLTranslateContext *PpdxltrctxOut();
 
 			// return the context of the DXL->PlStmt translation
-			CContextDXLToPlStmt *GetDXLToPlStmtContext();
+			CContextDXLToPlStmt *Pctxdxltoplstmt();
 	};
 }
 

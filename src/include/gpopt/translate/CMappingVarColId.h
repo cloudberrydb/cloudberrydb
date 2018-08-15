@@ -76,31 +76,31 @@ namespace gpdxl
 	{
 		private:
 			// memory pool
-			IMemoryPool *m_mp;
+			IMemoryPool *m_pmp;
 
 			// hash map structure to store gpdb att -> opt col information
-			typedef CHashMap<CGPDBAttInfo, CGPDBAttOptCol, HashGPDBAttInfo, EqualGPDBAttInfo,
-							CleanupRelease, CleanupRelease > GPDBAttOptColHashMap;
+			typedef CHashMap<CGPDBAttInfo, CGPDBAttOptCol, UlHashGPDBAttInfo, FEqualGPDBAttInfo,
+							CleanupRelease, CleanupRelease > CMVCMap;
 
 			// iterator
-			typedef CHashMapIter<CGPDBAttInfo, CGPDBAttOptCol, HashGPDBAttInfo, EqualGPDBAttInfo,
-							CleanupRelease, CleanupRelease > GPDBAttOptColHashMapIter;
+			typedef CHashMapIter<CGPDBAttInfo, CGPDBAttOptCol, UlHashGPDBAttInfo, FEqualGPDBAttInfo,
+							CleanupRelease, CleanupRelease > CMVCMapIter;
 
 			// map from gpdb att to optimizer col
-			GPDBAttOptColHashMap	*m_gpdb_att_opt_col_mapping;
+			CMVCMap	*m_pmvcmap;
 
 			// insert mapping entry
-			void Insert(ULONG, ULONG, INT, ULONG, CWStringBase *str);
+			void Insert(ULONG, ULONG, INT, ULONG, CWStringBase *pstr);
 
 			// no copy constructor
 			CMappingVarColId(const CMappingVarColId &);
 
 			// helper function to access mapping
-			const CGPDBAttOptCol *GetGPDBAttOptColMapping
+			const CGPDBAttOptCol *Pgpdbattoptcol
 								(
-								ULONG current_query_level,
-								const Var *var,
-								EPlStmtPhysicalOpType plstmt_physical_op_type
+								ULONG ulCurrentQueryLevel,
+								const Var *pvar,
+								EPlStmtPhysicalOpType eplsphoptype
 								)
 								const;
 
@@ -114,62 +114,62 @@ namespace gpdxl
 			virtual
 			~CMappingVarColId()
 			{
-				m_gpdb_att_opt_col_mapping->Release();
+				m_pmvcmap->Release();
 			}
 
 			// given a gpdb attribute, return a column name in optimizer world
 			virtual
-			const CWStringBase *GetOptColName
+			const CWStringBase *PstrColName
 											(
-											ULONG current_query_level,
-											const Var *var,
-											EPlStmtPhysicalOpType plstmt_physical_op_type
+											ULONG ulCurrentQueryLevel,
+											const Var *pvar,
+											EPlStmtPhysicalOpType eplsphoptype
 											)
 											const;
 
 			// given a gpdb attribute, return column id
 			virtual
-			ULONG GetColId
+			ULONG UlColId
 							(
-							ULONG current_query_level,
-							const Var *var,
-							EPlStmtPhysicalOpType plstmt_physical_op_type
+							ULONG ulCurrentQueryLevel,
+							const Var *pvar,
+							EPlStmtPhysicalOpType eplsphoptype
 							)
 							const;
 
 			// load up mapping information from an index
-			void LoadIndexColumns(ULONG query_level, ULONG RTE_index, const IMDIndex *index, const CDXLTableDescr *table_descr);
+			void LoadIndexColumns(ULONG ulQueryLevel, ULONG ulRTEIndex, const IMDIndex *pmdindex, const CDXLTableDescr *pdxltabdesc);
 
 			// load up mapping information from table descriptor
-			void LoadTblColumns(ULONG query_level, ULONG RTE_index, const CDXLTableDescr *table_descr);
+			void LoadTblColumns(ULONG ulQueryLevel, ULONG ulRTEIndex, const CDXLTableDescr *pdxltabdesc);
 
 			// load up column id mapping information from the array of column descriptors
-			void LoadColumns(ULONG query_level, ULONG RTE_index, const CDXLColDescrArray *column_descrs);
+			void LoadColumns(ULONG ulQueryLevel, ULONG ulRTEIndex, const DrgPdxlcd *pdrgdxlcd);
 
 			// load up mapping information from derived table columns
-			void LoadDerivedTblColumns(ULONG query_level, ULONG RTE_index, const CDXLNodeArray *derived_columns_dxl, List *target_list);
+			void LoadDerivedTblColumns(ULONG ulQueryLevel, ULONG ulRTEIndex, const DrgPdxln *pdrgpdxlnDerivedColumns, List *plTargetList);
 
 			// load information from CTE columns
-			void LoadCTEColumns(ULONG query_level, ULONG RTE_index, const ULongPtrArray *pdrgpulCTE, List *target_list);
+			void LoadCTEColumns(ULONG ulQueryLevel, ULONG ulRTEIndex, const DrgPul *pdrgpulCTE, List *plTargetList);
 
 			// load up mapping information from scalar projection list
-			void LoadProjectElements(ULONG query_level, ULONG RTE_index, const CDXLNode *project_list_dxlnode);
+			void LoadProjectElements(ULONG ulQueryLevel, ULONG ulRTEIndex, const CDXLNode *pdxlnPrL);
 
 			// load up mapping information from list of column names
-			void Load(ULONG query_level, ULONG RTE_index,	CIdGenerator *id_generator, List *col_names);
+			void Load(ULONG ulQueryLevel, ULONG ulRTEIndex,	CIdGenerator *pidgtor, List *plColNames);
 
 			// create a deep copy
-			CMappingVarColId *CopyMapColId(IMemoryPool *mp) const;
+			CMappingVarColId *PmapvarcolidCopy(IMemoryPool *pmp) const;
 
 			// create a deep copy
-			CMappingVarColId *CopyMapColId(ULONG query_level) const;
+			CMappingVarColId *PmapvarcolidCopy(ULONG ulQueryLevel) const;
 			
 			// create a copy of the mapping replacing old col ids with new ones
-			CMappingVarColId *CopyRemapColId
+			CMappingVarColId *PmapvarcolidRemap
 				(
-				IMemoryPool *mp,
-				ULongPtrArray *old_colids,
-				ULongPtrArray *new_colids
+				IMemoryPool *pmp,
+				DrgPul *pdrgpulOld,
+				DrgPul *pdrgpulNew
 				)
 				const;
 	};

@@ -37,51 +37,51 @@ namespace gpdxl
 		private:
 
 			// column id
-			ULONG m_colid;
+			ULONG m_ulColId;
 
 			// column name
-			CWStringBase *m_str;
+			CWStringBase *m_pstr;
 
 			// private copy c'tor
 			COptColInfo(const COptColInfo&);
 
 		public:
 			// ctor
-			COptColInfo(ULONG colid, CWStringBase *str)
-				: m_colid(colid), m_str(str)
+			COptColInfo(ULONG ulColId, CWStringBase *pstr)
+				: m_ulColId(ulColId), m_pstr(pstr)
 			{
-				GPOS_ASSERT(m_str);
+				GPOS_ASSERT(m_pstr);
 			}
 
 			// dtor
 			virtual
 			~COptColInfo()
 			{
-				GPOS_DELETE(m_str);
+				GPOS_DELETE(m_pstr);
 			}
 
 			// accessors
-			ULONG GetColId() const
+			ULONG UlColId() const
 			{
-				return m_colid;
+				return m_ulColId;
 			}
 
-			CWStringBase* GetOptColName() const
+			CWStringBase* PstrColName() const
 			{
-				return m_str;
+				return m_pstr;
 			}
 
 			// equality check
-			BOOL Equals(const COptColInfo& optcolinfo) const
+			BOOL FEquals(const COptColInfo& optcolinfo) const
 			{
 				// don't need to check name as column id is unique
-				return m_colid == optcolinfo.m_colid;
+				return m_ulColId == optcolinfo.m_ulColId;
 			}
 
 			// hash value
-			ULONG HashValue() const
+			ULONG UlHash() const
 			{
-				return gpos::HashValue(&m_colid);
+				return gpos::UlHash(&m_ulColId);
 			}
 
 	};
@@ -90,23 +90,23 @@ namespace gpdxl
 	inline
 	ULONG UlHashOptColInfo
 		(
-		const COptColInfo *opt_col_info
+		const COptColInfo *poptcolinfo
 		)
 	{
-		GPOS_ASSERT(NULL != opt_col_info);
-		return opt_col_info->HashValue();
+		GPOS_ASSERT(NULL != poptcolinfo);
+		return poptcolinfo->UlHash();
 	}
 
 	// equality function
 	inline
 	BOOL FEqualOptColInfo
 		(
-		const COptColInfo *opt_col_infoA,
-		const COptColInfo *opt_col_infoB
+		const COptColInfo *poptcolinfoA,
+		const COptColInfo *poptcolinfoB
 		)
 	{
-		GPOS_ASSERT(NULL != opt_col_infoA && NULL != opt_col_infoB);
-		return opt_col_infoA->Equals(*opt_col_infoB);
+		GPOS_ASSERT(NULL != poptcolinfoA && NULL != poptcolinfoB);
+		return poptcolinfoA->FEquals(*poptcolinfoB);
 	}
 
 }

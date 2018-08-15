@@ -35,19 +35,19 @@ namespace gpdxl
 	
 	// hash on character arrays
 	inline
-	ULONG HashStr
+	ULONG UlHashSz
 		(
-		const CHAR *str
+		const CHAR *sz
 		)
 	{
-		return gpos::HashByteArray((BYTE *) str, clib::Strlen(str));
+		return gpos::UlHashByteArray((BYTE *) sz, clib::UlStrLen(sz));
 	}
 	
 	// equality on character arrays
 	inline
-	BOOL StrEqual(const CHAR *str_a, const CHAR *str_b)
+	BOOL FEqualSz(const CHAR *szA, const CHAR *szB)
 	{
-		return (0 == clib::Strcmp(str_a, str_b));
+		return (0 == clib::IStrCmp(szA, szB));
 	}
 	
 
@@ -67,66 +67,66 @@ namespace gpdxl
 			// pair of DXL CTE producer and target list of the original CTE query
 			struct SCTEProducerInfo
 			{
-				const CDXLNode *m_cte_producer;
-				List *m_target_list;
+				const CDXLNode *m_pdxlnCTEProducer;
+				List *m_plTargetList;
 				
 				// ctor
 				SCTEProducerInfo
 					(
-					const CDXLNode *cte_producer,
-					List *target_list
+					const CDXLNode *pdxlnCTEProducer,
+					List *plTargetList
 					)
 					:
-					m_cte_producer(cte_producer),
-					m_target_list(target_list)
+					m_pdxlnCTEProducer(pdxlnCTEProducer),
+					m_plTargetList(plTargetList)
 				{}
 			};
 			
 			// hash maps mapping CHAR *->SCTEProducerInfo
-			typedef CHashMap<CHAR, SCTEProducerInfo, HashStr, StrEqual, CleanupNULL, CleanupDelete > HMSzCTEInfo;
+			typedef CHashMap<CHAR, SCTEProducerInfo, UlHashSz, FEqualSz, CleanupNULL, CleanupDelete > HMSzCTEInfo;
 
 			// query level where the CTEs are defined
-			ULONG m_query_level;
+			ULONG m_ulQueryLevel;
 
 			// CTE producers at that level indexed by their name
-			HMSzCTEInfo *m_cte_info; 
+			HMSzCTEInfo *m_phmszcteinfo; 
 
 		public:
 			// ctor: single CTE 
-			CCTEListEntry(IMemoryPool *mp, ULONG query_level, CommonTableExpr *cte, CDXLNode *cte_producer);
+			CCTEListEntry(IMemoryPool *pmp, ULONG ulQueryLevel, CommonTableExpr *pcte, CDXLNode *pdxlnCTEProducer);
 			
 			// ctor: multiple CTEs
-			CCTEListEntry(IMemoryPool *mp, ULONG query_level, List *cte_list, CDXLNodeArray *dxlnodes);
+			CCTEListEntry(IMemoryPool *pmp, ULONG ulQueryLevel, List *plCTE, DrgPdxln *pdrgpdxln);
 
 			// dtor
 			virtual
 			~CCTEListEntry()
 			{
-				m_cte_info->Release();
+				m_phmszcteinfo->Release();
 			};
 
 			// the query level
-			ULONG GetQueryLevel() const
+			ULONG UlQueryLevel() const
 			{
-				return m_query_level;
+				return m_ulQueryLevel;
 			}
 
 			// lookup CTE producer by its name
-			const CDXLNode *GetCTEProducer(const CHAR *cte_str) const;
+			const CDXLNode *PdxlnCTEProducer(const CHAR *szCTE) const;
 
 			// lookup CTE producer target list by its name
-			List *GetCTEProducerTargetList(const CHAR *cte_str) const;
+			List *PlCTEProducerTL(const CHAR *szCTE) const;
 
 			// add a new CTE producer for this level
-			void AddCTEProducer(IMemoryPool *mp, CommonTableExpr *cte, const CDXLNode *cte_producer);
+			void AddCTEProducer(IMemoryPool *pmp, CommonTableExpr *pcte, const CDXLNode *pdxlnCTEProducer);
 	};
 
 	// hash maps mapping ULONG -> CCTEListEntry
-	typedef CHashMap<ULONG, CCTEListEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+	typedef CHashMap<ULONG, CCTEListEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
 	CleanupDelete<ULONG>, CleanupRelease > HMUlCTEListEntry;
 
 	// iterator
-	typedef CHashMapIter<ULONG, CCTEListEntry, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
+	typedef CHashMapIter<ULONG, CCTEListEntry, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
 	CleanupDelete<ULONG>, CleanupRelease > HMIterUlCTEListEntry;
 
 	}

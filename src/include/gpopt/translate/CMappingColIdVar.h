@@ -47,7 +47,7 @@ namespace gpdxl
 	{
 		protected:
 			// memory pool
-			IMemoryPool *m_mp;
+			IMemoryPool *m_pmp;
 
 		public:
 
@@ -60,7 +60,7 @@ namespace gpdxl
 
 			// translate DXL ScalarIdent node into GPDB Var node
 			virtual
-			Var *VarFromDXLNodeScId(const CDXLScalarIdent *) = 0;
+			Var *PvarFromDXLNodeScId(const CDXLScalarIdent *) = 0;
 	};
 }
 

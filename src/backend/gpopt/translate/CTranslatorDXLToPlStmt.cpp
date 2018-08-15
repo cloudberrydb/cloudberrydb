@@ -69,23 +69,23 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt
 	(
-	IMemoryPool *mp,
-	CMDAccessor *md_accessor,
-	CContextDXLToPlStmt* dxl_to_plstmt_context,
-	ULONG num_of_segments
+	IMemoryPool *pmp,
+	CMDAccessor *pmda,
+	CContextDXLToPlStmt* pctxdxltoplstmt,
+	ULONG ulSegments
 	)
 	:
-	m_mp(mp),
-	m_md_accessor(md_accessor),
-	m_dxl_to_plstmt_context(dxl_to_plstmt_context),
-	m_cmd_type(CMD_SELECT),
-	m_is_tgt_tbl_distributed(false),
-	m_result_rel_list(NULL),
-	m_external_scan_counter(0),
-	m_num_of_segments(num_of_segments),
-	m_partition_selector_counter(0)
+	m_pmp(pmp),
+	m_pmda(pmda),
+	m_pctxdxltoplstmt(pctxdxltoplstmt),
+	m_cmdtype(CMD_SELECT),
+	m_fTargetTableDistributed(false),
+	m_plResultRelations(NULL),
+	m_ulExternalScanCounter(0),
+	m_ulSegments(ulSegments),
+	m_ulPartitionSelectorCounter(0)
 {
-	m_translator_dxl_to_scalar = GPOS_NEW(m_mp) CTranslatorDXLToScalar(m_mp, m_md_accessor, m_num_of_segments);
+	m_pdxlsctranslator = GPOS_NEW(m_pmp) CTranslatorDXLToScalar(m_pmp, m_pmda, m_ulSegments);
 	InitTranslators();
 }
 
@@ -99,7 +99,7 @@ CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt
 //---------------------------------------------------------------------------
 CTranslatorDXLToPlStmt::~CTranslatorDXLToPlStmt()
 {
-	GPOS_DELETE(m_translator_dxl_to_scalar);
+	GPOS_DELETE(m_pdxlsctranslator);
 }
 
 //---------------------------------------------------------------------------
@@ -113,192 +113,192 @@ CTranslatorDXLToPlStmt::~CTranslatorDXLToPlStmt()
 void
 CTranslatorDXLToPlStmt::InitTranslators()
 {
-	for (ULONG idx = 0; idx < GPOS_ARRAY_SIZE(m_dxlop_translator_func_mapping_array); idx++)
+	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(m_rgpfTranslators); ul++)
 	{
-		m_dxlop_translator_func_mapping_array[idx] = NULL;
+		m_rgpfTranslators[ul] = NULL;
 	}
 
 	// array mapping operator type to translator function
-	static const STranslatorMapping dxlop_translator_func_mapping_array[] =
+	static const STranslatorMapping rgTranslators[] =
 	{
-			{EdxlopPhysicalTableScan,				&gpopt::CTranslatorDXLToPlStmt::TranslateDXLTblScan},
-			{EdxlopPhysicalExternalScan,			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLTblScan},
-			{EdxlopPhysicalIndexScan,				&gpopt::CTranslatorDXLToPlStmt::TranslateDXLIndexScan},
-			{EdxlopPhysicalHashJoin, 				&gpopt::CTranslatorDXLToPlStmt::TranslateDXLHashJoin},
-			{EdxlopPhysicalNLJoin, 					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLNLJoin},
-			{EdxlopPhysicalMergeJoin,				&gpopt::CTranslatorDXLToPlStmt::TranslateDXLMergeJoin},
-			{EdxlopPhysicalMotionGather,			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLMotion},
-			{EdxlopPhysicalMotionBroadcast,			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLMotion},
-			{EdxlopPhysicalMotionRedistribute,		&gpopt::CTranslatorDXLToPlStmt::TranslateDXLDuplicateSensitiveMotion},
-			{EdxlopPhysicalMotionRandom,			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLDuplicateSensitiveMotion},
-			{EdxlopPhysicalMotionRoutedDistribute,	&gpopt::CTranslatorDXLToPlStmt::TranslateDXLMotion},
-			{EdxlopPhysicalLimit, 					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLLimit},
-			{EdxlopPhysicalAgg, 					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLAgg},
-			{EdxlopPhysicalWindow, 					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLWindow},
-			{EdxlopPhysicalSort,					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLSort},
-			{EdxlopPhysicalSubqueryScan,			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLSubQueryScan},
-			{EdxlopPhysicalResult, 					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLResult},
-			{EdxlopPhysicalAppend, 					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLAppend},
-			{EdxlopPhysicalMaterialize, 			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLMaterialize},
-			{EdxlopPhysicalSequence, 				&gpopt::CTranslatorDXLToPlStmt::TranslateDXLSequence},
-			{EdxlopPhysicalDynamicTableScan,		&gpopt::CTranslatorDXLToPlStmt::TranslateDXLDynTblScan},
-			{EdxlopPhysicalDynamicIndexScan,		&gpopt::CTranslatorDXLToPlStmt::TranslateDXLDynIdxScan},
-			{EdxlopPhysicalTVF,						&gpopt::CTranslatorDXLToPlStmt::TranslateDXLTvf},
-			{EdxlopPhysicalDML,						&gpopt::CTranslatorDXLToPlStmt::TranslateDXLDml},
-			{EdxlopPhysicalSplit,					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLSplit},
-			{EdxlopPhysicalRowTrigger,				&gpopt::CTranslatorDXLToPlStmt::TranslateDXLRowTrigger},
-			{EdxlopPhysicalAssert,					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLAssert},
-			{EdxlopPhysicalCTEProducer, 			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan},
-			{EdxlopPhysicalCTEConsumer, 			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLCTEConsumerToSharedScan},
-			{EdxlopPhysicalBitmapTableScan,			&gpopt::CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan},
-			{EdxlopPhysicalDynamicBitmapTableScan,	&gpopt::CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan},
-			{EdxlopPhysicalCTAS, 					&gpopt::CTranslatorDXLToPlStmt::TranslateDXLCtas},
-			{EdxlopPhysicalPartitionSelector,		&gpopt::CTranslatorDXLToPlStmt::TranslateDXLPartSelector},
-			{EdxlopPhysicalValuesScan,				&gpopt::CTranslatorDXLToPlStmt::TranslateDXLValueScan},
+			{EdxlopPhysicalTableScan,				&gpopt::CTranslatorDXLToPlStmt::PtsFromDXLTblScan},
+			{EdxlopPhysicalExternalScan,			&gpopt::CTranslatorDXLToPlStmt::PtsFromDXLTblScan},
+			{EdxlopPhysicalIndexScan,				&gpopt::CTranslatorDXLToPlStmt::PisFromDXLIndexScan},
+			{EdxlopPhysicalHashJoin, 				&gpopt::CTranslatorDXLToPlStmt::PhjFromDXLHJ},
+			{EdxlopPhysicalNLJoin, 					&gpopt::CTranslatorDXLToPlStmt::PnljFromDXLNLJ},
+			{EdxlopPhysicalMergeJoin,				&gpopt::CTranslatorDXLToPlStmt::PmjFromDXLMJ},
+			{EdxlopPhysicalMotionGather,			&gpopt::CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion},
+			{EdxlopPhysicalMotionBroadcast,			&gpopt::CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion},
+			{EdxlopPhysicalMotionRedistribute,		&gpopt::CTranslatorDXLToPlStmt::PplanTranslateDXLMotion},
+			{EdxlopPhysicalMotionRandom,			&gpopt::CTranslatorDXLToPlStmt::PplanTranslateDXLMotion},
+			{EdxlopPhysicalMotionRoutedDistribute,	&gpopt::CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion},
+			{EdxlopPhysicalLimit, 					&gpopt::CTranslatorDXLToPlStmt::PlimitFromDXLLimit},
+			{EdxlopPhysicalAgg, 					&gpopt::CTranslatorDXLToPlStmt::PaggFromDXLAgg},
+			{EdxlopPhysicalWindow, 					&gpopt::CTranslatorDXLToPlStmt::PwindowFromDXLWindow},
+			{EdxlopPhysicalSort,					&gpopt::CTranslatorDXLToPlStmt::PsortFromDXLSort},
+			{EdxlopPhysicalSubqueryScan,			&gpopt::CTranslatorDXLToPlStmt::PsubqscanFromDXLSubqScan},
+			{EdxlopPhysicalResult, 					&gpopt::CTranslatorDXLToPlStmt::PresultFromDXLResult},
+			{EdxlopPhysicalAppend, 					&gpopt::CTranslatorDXLToPlStmt::PappendFromDXLAppend},
+			{EdxlopPhysicalMaterialize, 			&gpopt::CTranslatorDXLToPlStmt::PmatFromDXLMaterialize},
+			{EdxlopPhysicalSequence, 				&gpopt::CTranslatorDXLToPlStmt::PplanSequence},
+			{EdxlopPhysicalDynamicTableScan,		&gpopt::CTranslatorDXLToPlStmt::PplanDTS},
+			{EdxlopPhysicalDynamicIndexScan,		&gpopt::CTranslatorDXLToPlStmt::PplanDIS},
+			{EdxlopPhysicalTVF,						&gpopt::CTranslatorDXLToPlStmt::PplanFunctionScanFromDXLTVF},
+			{EdxlopPhysicalDML,						&gpopt::CTranslatorDXLToPlStmt::PplanDML},
+			{EdxlopPhysicalSplit,					&gpopt::CTranslatorDXLToPlStmt::PplanSplit},
+			{EdxlopPhysicalRowTrigger,				&gpopt::CTranslatorDXLToPlStmt::PplanRowTrigger},
+			{EdxlopPhysicalAssert,					&gpopt::CTranslatorDXLToPlStmt::PplanAssert},
+			{EdxlopPhysicalCTEProducer, 			&gpopt::CTranslatorDXLToPlStmt::PshscanFromDXLCTEProducer},
+			{EdxlopPhysicalCTEConsumer, 			&gpopt::CTranslatorDXLToPlStmt::PshscanFromDXLCTEConsumer},
+			{EdxlopPhysicalBitmapTableScan,			&gpopt::CTranslatorDXLToPlStmt::PplanBitmapTableScan},
+			{EdxlopPhysicalDynamicBitmapTableScan,	&gpopt::CTranslatorDXLToPlStmt::PplanBitmapTableScan},
+			{EdxlopPhysicalCTAS, 					&gpopt::CTranslatorDXLToPlStmt::PplanCTAS},
+			{EdxlopPhysicalPartitionSelector,		&gpopt::CTranslatorDXLToPlStmt::PplanPartitionSelector},
+			{EdxlopPhysicalValuesScan,				&gpopt::CTranslatorDXLToPlStmt::PplanValueScan},
 	};
 
-	const ULONG num_of_translators = GPOS_ARRAY_SIZE(dxlop_translator_func_mapping_array);
+	const ULONG ulTranslators = GPOS_ARRAY_SIZE(rgTranslators);
 
-	for (ULONG idx = 0; idx < num_of_translators; idx++)
+	for (ULONG ul = 0; ul < ulTranslators; ul++)
 	{
-		STranslatorMapping elem = dxlop_translator_func_mapping_array[idx];
-		m_dxlop_translator_func_mapping_array[elem.dxl_op_id] = elem.dxlnode_to_logical_funct;
+		STranslatorMapping elem = rgTranslators[ul];
+		m_rgpfTranslators[elem.edxlopid] = elem.pf;
 	}
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
+//		CTranslatorDXLToPlStmt::PplstmtFromDXL
 //
 //	@doc:
 //		Translate DXL node into a PlannedStmt
 //
 //---------------------------------------------------------------------------
 PlannedStmt *
-CTranslatorDXLToPlStmt::GetPlannedStmtFromDXL
+CTranslatorDXLToPlStmt::PplstmtFromDXL
 	(
-	const CDXLNode *dxlnode,
-	bool can_set_tag
+	const CDXLNode *pdxln,
+	bool canSetTag
 	)
 {
-	GPOS_ASSERT(NULL != dxlnode);
+	GPOS_ASSERT(NULL != pdxln);
 
-	CDXLTranslateContext dxl_translate_ctxt(m_mp, false);
+	CDXLTranslateContext dxltrctx(m_pmp, false);
 
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	Plan *plan = TranslateDXLOperatorToPlan(dxlnode, &dxl_translate_ctxt, ctxt_translation_prev_siblings);
-	ctxt_translation_prev_siblings->Release();
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	Plan *pplan = PplFromDXL(pdxln, &dxltrctx, pdrgpdxltrctxPrevSiblings);
+	pdrgpdxltrctxPrevSiblings->Release();
 
-	GPOS_ASSERT(NULL != plan);
+	GPOS_ASSERT(NULL != pplan);
 
 	// collect oids from rtable
-	List *oids_list = NIL;
+	List *plOids = NIL;
 
-	ListCell *lc_rte = NULL;
-	ForEach (lc_rte, m_dxl_to_plstmt_context->GetRTableEntriesList())
+	ListCell *plcRTE = NULL;
+	ForEach (plcRTE, m_pctxdxltoplstmt->PlPrte())
 	{
-		RangeTblEntry *pRTE = (RangeTblEntry *) lfirst(lc_rte);
+		RangeTblEntry *pRTE = (RangeTblEntry *) lfirst(plcRTE);
 
 		if (pRTE->rtekind == RTE_RELATION)
 		{
-			oids_list = gpdb::LAppendOid(oids_list, pRTE->relid);
+			plOids = gpdb::PlAppendOid(plOids, pRTE->relid);
 		}
 	}
 
 	// assemble planned stmt
-	PlannedStmt *planned_stmt = MakeNode(PlannedStmt);
-	planned_stmt->planGen = PLANGEN_OPTIMIZER;
+	PlannedStmt *pplstmt = MakeNode(PlannedStmt);
+	pplstmt->planGen = PLANGEN_OPTIMIZER;
 	
-	planned_stmt->rtable = m_dxl_to_plstmt_context->GetRTableEntriesList();
-	planned_stmt->subplans = m_dxl_to_plstmt_context->GetSubplanEntriesList();
-	planned_stmt->planTree = plan;
+	pplstmt->rtable = m_pctxdxltoplstmt->PlPrte();
+	pplstmt->subplans = m_pctxdxltoplstmt->PlPplanSubplan();
+	pplstmt->planTree = pplan;
 
 	// store partitioned table indexes in planned stmt
-	planned_stmt->queryPartOids = m_dxl_to_plstmt_context->GetPartitionedTablesList();
-	planned_stmt->canSetTag = can_set_tag;
-	planned_stmt->relationOids = oids_list;
-	planned_stmt->numSelectorsPerScanId = m_dxl_to_plstmt_context->GetNumPartitionSelectorsList();
+	pplstmt->queryPartOids = m_pctxdxltoplstmt->PlPartitionedTables();
+	pplstmt->canSetTag = canSetTag;
+	pplstmt->relationOids = plOids;
+	pplstmt->numSelectorsPerScanId = m_pctxdxltoplstmt->PlNumPartitionSelectors();
 
-	plan->nMotionNodes  = m_dxl_to_plstmt_context->GetCurrentMotionId()-1;
-	planned_stmt->nMotionNodes =  m_dxl_to_plstmt_context->GetCurrentMotionId()-1;
+	pplan->nMotionNodes  = m_pctxdxltoplstmt->UlCurrentMotionId()-1;
+	pplstmt->nMotionNodes =  m_pctxdxltoplstmt->UlCurrentMotionId()-1;
 
-	planned_stmt->commandType = m_cmd_type;
+	pplstmt->commandType = m_cmdtype;
 	
-	GPOS_ASSERT(plan->nMotionNodes >= 0);
-	if (0 == plan->nMotionNodes && !m_is_tgt_tbl_distributed)
+	GPOS_ASSERT(pplan->nMotionNodes >= 0);
+	if (0 == pplan->nMotionNodes && !m_fTargetTableDistributed)
 	{
 		// no motion nodes and not a DML on a distributed table
-		plan->dispatch = DISPATCH_SEQUENTIAL;
+		pplan->dispatch = DISPATCH_SEQUENTIAL;
 	}
 	else
 	{
-		plan->dispatch = DISPATCH_PARALLEL;
+		pplan->dispatch = DISPATCH_PARALLEL;
 	}
 	
-	planned_stmt->resultRelations = m_result_rel_list;
+	pplstmt->resultRelations = m_plResultRelations;
 	// GPDB_92_MERGE_FIXME: we really *should* be handling intoClause
 	// but currently planner cheats (c.f. createas.c)
 	// shift the intoClause handling into planner and re-enable this
 //	pplstmt->intoClause = m_pctxdxltoplstmt->Pintocl();
-	planned_stmt->intoPolicy = m_dxl_to_plstmt_context->GetDistributionPolicy();
+	pplstmt->intoPolicy = m_pctxdxltoplstmt->Pdistrpolicy();
 	
-	SetInitPlanVariables(planned_stmt);
+	SetInitPlanVariables(pplstmt);
 	
-	if (CMD_SELECT == m_cmd_type && NULL != dxlnode->GetDXLDirectDispatchInfo())
+	if (CMD_SELECT == m_cmdtype && NULL != pdxln->Pdxlddinfo())
 	{
-		List *direct_dispatch_segids = TranslateDXLDirectDispatchInfo(dxlnode->GetDXLDirectDispatchInfo());
-		plan->directDispatch.contentIds = direct_dispatch_segids;
-		plan->directDispatch.isDirectDispatch = (NIL != direct_dispatch_segids);
+		List *plDirectDispatchSegIds = PlDirectDispatchSegIds(pdxln->Pdxlddinfo());
+		pplan->directDispatch.contentIds = plDirectDispatchSegIds;
+		pplan->directDispatch.isDirectDispatch = (NIL != plDirectDispatchSegIds);
 		
-		if (plan->directDispatch.isDirectDispatch)
+		if (pplan->directDispatch.isDirectDispatch)
 		{
-			List *motion_node_list = gpdb::ExtractNodesPlan(planned_stmt->planTree, T_Motion, true /*descendIntoSubqueries*/);
-			ListCell *lc = NULL;
-			ForEach(lc, motion_node_list)
+			List *plMotions = gpdb::PlExtractNodesPlan(pplstmt->planTree, T_Motion, true /*descendIntoSubqueries*/);
+			ListCell *plc = NULL;
+			ForEach(plc, plMotions)
 			{
-				Motion *motion = (Motion *) lfirst(lc);
-				GPOS_ASSERT(IsA(motion, Motion));
-				GPOS_ASSERT(gpdb::IsMotionGather(motion));
+				Motion *pmotion = (Motion *) lfirst(plc);
+				GPOS_ASSERT(IsA(pmotion, Motion));
+				GPOS_ASSERT(gpdb::FMotionGather(pmotion));
 				
-				motion->plan.directDispatch.isDirectDispatch = true;
-				motion->plan.directDispatch.contentIds = plan->directDispatch.contentIds;
+				pmotion->plan.directDispatch.isDirectDispatch = true;
+				pmotion->plan.directDispatch.contentIds = pplan->directDispatch.contentIds;
 			}
 		}
 	}
 	
-	return planned_stmt;
+	return pplstmt;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan
+//		CTranslatorDXLToPlStmt::PplFromDXL
 //
 //	@doc:
 //		Translates a DXL tree into a Plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan
+CTranslatorDXLToPlStmt::PplFromDXL
 	(
-	const CDXLNode *dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxln,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	GPOS_ASSERT(NULL != dxlnode);
-	GPOS_ASSERT(NULL != ctxt_translation_prev_siblings);
+	GPOS_ASSERT(NULL != pdxln);
+	GPOS_ASSERT(NULL != pdrgpdxltrctxPrevSiblings);
 
-	CDXLOperator *dxlop = dxlnode->GetOperator();
-	ULONG ulOpId =  (ULONG) dxlop->GetDXLOperator();
+	CDXLOperator *pdxlop = pdxln->Pdxlop();
+	ULONG ulOpId =  (ULONG) pdxlop->Edxlop();
 
-	PfPplan dxlnode_to_logical_funct = m_dxlop_translator_func_mapping_array[ulOpId];
+	PfPplan pf = m_rgpfTranslators[ulOpId];
 
-	if (NULL == dxlnode_to_logical_funct)
+	if (NULL == pf)
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion, dxlnode->GetOperator()->GetOpNameStr()->GetBuffer());
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion, pdxln->Pdxlop()->PstrOpName()->Wsz());
 	}
 
-	return (this->* dxlnode_to_logical_funct)(dxlnode, output_context, ctxt_translation_prev_siblings);
+	return (this->* pf)(pdxln, pdxltrctxOut, pdrgpdxltrctxPrevSiblings);
 }
 
 //---------------------------------------------------------------------------
@@ -310,46 +310,46 @@ CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan
 //		as well as its subplans. Set the number of parameters used in the plan.
 //---------------------------------------------------------------------------
 void
-CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* planned_stmt)
+CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* pplstmt)
 {
-	if(1 != m_dxl_to_plstmt_context->GetCurrentMotionId()) // For Distributed Tables m_ulMotionId > 1
+	if(1 != m_pctxdxltoplstmt->UlCurrentMotionId()) // For Distributed Tables m_ulMotionId > 1
 	{
-		planned_stmt->nInitPlans = m_dxl_to_plstmt_context->GetCurrentParamId();
-		planned_stmt->planTree->nInitPlans = m_dxl_to_plstmt_context->GetCurrentParamId();
+		pplstmt->nInitPlans = m_pctxdxltoplstmt->UlCurrentParamId();
+		pplstmt->planTree->nInitPlans = m_pctxdxltoplstmt->UlCurrentParamId();
 	}
 
-	planned_stmt->nParamExec = m_dxl_to_plstmt_context->GetCurrentParamId();
+	pplstmt->nParamExec = m_pctxdxltoplstmt->UlCurrentParamId();
 
 	// Extract all subplans defined in the planTree
-	List *subplan_list = gpdb::ExtractNodesPlan(planned_stmt->planTree, T_SubPlan, true);
+	List *plSubPlans = gpdb::PlExtractNodesPlan(pplstmt->planTree, T_SubPlan, true);
 
-	ListCell *lc = NULL;
+	ListCell *plc = NULL;
 
-	ForEach (lc, subplan_list)
+	ForEach (plc, plSubPlans)
 	{
-		SubPlan *subplan = (SubPlan*) lfirst(lc);
-		if (subplan->is_initplan)
+		SubPlan *psubplan = (SubPlan*) lfirst(plc);
+		if (psubplan->is_initplan)
 		{
-			SetInitPlanSliceInformation(subplan);
+			SetInitPlanSliceInformation(psubplan);
 		}
 	}
 
 	// InitPlans can also be defined in subplans. We therefore have to iterate
 	// over all the subplans referred to in the planned statement.
 
-	List *initplan_list = planned_stmt->subplans;
+	List *plInitPlans = pplstmt->subplans;
 
-	ForEach (lc,initplan_list)
+	ForEach (plc,plInitPlans)
 	{
-		subplan_list = gpdb::ExtractNodesPlan((Plan*) lfirst(lc), T_SubPlan, true);
-		ListCell *lc2;
+		plSubPlans = gpdb::PlExtractNodesPlan((Plan*) lfirst(plc), T_SubPlan, true);
+		ListCell *plc2;
 
-		ForEach (lc2, subplan_list)
+		ForEach (plc2, plSubPlans)
 		{
-			SubPlan *subplan = (SubPlan*) lfirst(lc2);
-			if (subplan->is_initplan)
+			SubPlan *psubplan = (SubPlan*) lfirst(plc2);
+			if (psubplan->is_initplan)
 			{
-				SetInitPlanSliceInformation(subplan);
+				SetInitPlanSliceInformation(psubplan);
 			}
 		}
 	}
@@ -368,21 +368,21 @@ CTranslatorDXLToPlStmt::SetInitPlanVariables(PlannedStmt* planned_stmt)
 //
 //---------------------------------------------------------------------------
 void
-CTranslatorDXLToPlStmt::SetInitPlanSliceInformation(SubPlan * subplan)
+CTranslatorDXLToPlStmt::SetInitPlanSliceInformation(SubPlan * psubplan)
 {
-	GPOS_ASSERT(subplan->is_initplan && "This is processed for initplans only");
+	GPOS_ASSERT(psubplan->is_initplan && "This is processed for initplans only");
 
-	if (subplan->is_initplan)
+	if (psubplan->is_initplan)
 	{
-		GPOS_ASSERT(0 < m_dxl_to_plstmt_context->GetCurrentMotionId());
+		GPOS_ASSERT(0 < m_pctxdxltoplstmt->UlCurrentMotionId());
 
-		if(1 < m_dxl_to_plstmt_context->GetCurrentMotionId())
+		if(1 < m_pctxdxltoplstmt->UlCurrentMotionId())
 		{
-			subplan->qDispSliceId =  m_dxl_to_plstmt_context->GetCurrentMotionId() + subplan->plan_id-1;
+			psubplan->qDispSliceId =  m_pctxdxltoplstmt->UlCurrentMotionId() + psubplan->plan_id-1;
 		}
 		else
 		{
-			subplan->qDispSliceId = 0;
+			psubplan->qDispSliceId = 0;
 		}
 	}
 }
@@ -396,133 +396,133 @@ CTranslatorDXLToPlStmt::SetInitPlanSliceInformation(SubPlan * subplan)
 //
 //---------------------------------------------------------------------------
 void
-CTranslatorDXLToPlStmt::SetParamIds(Plan* plan)
+CTranslatorDXLToPlStmt::SetParamIds(Plan* pplan)
 {
-	List *params_node_list = gpdb::ExtractNodesPlan(plan, T_Param, true);
+	List *plParams = gpdb::PlExtractNodesPlan(pplan, T_Param, true);
 
-	ListCell *lc = NULL;
+	ListCell *plc = NULL;
 
-	Bitmapset  *bitmapset = NULL;
+	Bitmapset  *pbitmapset = NULL;
 
-	ForEach (lc, params_node_list)
+	ForEach (plc, plParams)
 	{
-		Param *param = (Param*) lfirst(lc);
-		bitmapset = gpdb::BmsAddMember(bitmapset, param->paramid);
+		Param *pparam = (Param*) lfirst(plc);
+		pbitmapset = gpdb::PbmsAddMember(pbitmapset, pparam->paramid);
 	}
 
-	plan->extParam = bitmapset;
-	plan->allParam = bitmapset;
+	pplan->extParam = pbitmapset;
+	pplan->allParam = pbitmapset;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLTblScan
+//		CTranslatorDXLToPlStmt::PtsFromDXLTblScan
 //
 //	@doc:
 //		Translates a DXL table scan node into a TableScan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLTblScan
+CTranslatorDXLToPlStmt::PtsFromDXLTblScan
 	(
-	const CDXLNode *tbl_scan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnTblScan,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// translate table descriptor into a range table entry
-	CDXLPhysicalTableScan *phy_tbl_scan_dxlop = CDXLPhysicalTableScan::Cast(tbl_scan_dxlnode->GetOperator());
+	CDXLPhysicalTableScan *pdxlopTS = CDXLPhysicalTableScan::PdxlopConvert(pdxlnTblScan->Pdxlop());
 
 	// translation context for column mappings in the base relation
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
 	// we will add the new range table entry as the last element of the range table
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
-	const CDXLTableDescr *dxl_table_descr = phy_tbl_scan_dxlop->GetDXLTableDescr();
-	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(dxl_table_descr->MDId());
-	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(dxl_table_descr, NULL /*index_descr_dxl*/, index, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
-	rte->requiredPerms |= ACL_SELECT;
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	const CDXLTableDescr *pdxltabdesc = pdxlopTS->Pdxltabdesc();
+	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
+	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, iRel, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
+	prte->requiredPerms |= ACL_SELECT;
+	m_pctxdxltoplstmt->AddRTE(prte);
 
-	Plan *plan = NULL;
-	Plan *plan_return = NULL;
-	if (IMDRelation::ErelstorageExternal == md_rel->RetrieveRelStorageType())
+	Plan *pplan = NULL;
+	Plan *pplanReturn = NULL;
+	if (IMDRelation::ErelstorageExternal == pmdrel->Erelstorage())
 	{
-		const IMDRelationExternal *md_rel_ext = dynamic_cast<const IMDRelationExternal*>(md_rel);
-		OID oidRel = CMDIdGPDB::CastMdid(md_rel->MDId())->Oid();
-		ExtTableEntry *ext_table_entry = gpdb::GetExternalTableEntry(oidRel);
+		const IMDRelationExternal *pmdrelext = dynamic_cast<const IMDRelationExternal*>(pmdrel);
+		OID oidRel = CMDIdGPDB::PmdidConvert(pmdrel->Pmdid())->OidObjectId();
+		ExtTableEntry *pextentry = gpdb::Pexttable(oidRel);
 		bool isMasterOnly;
 		
 		// create external scan node
-		ExternalScan *ext_scan = MakeNode(ExternalScan);
-		ext_scan->scan.scanrelid = index;
-		ext_scan->uriList = gpdb::GetExternalScanUriList(ext_table_entry, &isMasterOnly);
-		ext_scan->fmtOptString = ext_table_entry->fmtopts;
-		ext_scan->fmtType = ext_table_entry->fmtcode;
-		ext_scan->isMasterOnly = isMasterOnly;
-		GPOS_ASSERT((IMDRelation::EreldistrMasterOnly == md_rel_ext->GetRelDistribution()) == isMasterOnly);
-		ext_scan->logErrors = ext_table_entry->logerrors;
-		ext_scan->rejLimit = md_rel_ext->RejectLimit();
-		ext_scan->rejLimitInRows = md_rel_ext->IsRejectLimitInRows();
+		ExternalScan *pes = MakeNode(ExternalScan);
+		pes->scan.scanrelid = iRel;
+		pes->uriList = gpdb::PlExternalScanUriList(pextentry, &isMasterOnly);
+		pes->fmtOptString = pextentry->fmtopts;
+		pes->fmtType = pextentry->fmtcode;
+		pes->isMasterOnly = isMasterOnly;
+		GPOS_ASSERT((IMDRelation::EreldistrMasterOnly == pmdrelext->Ereldistribution()) == isMasterOnly);
+		pes->logErrors = pextentry->logerrors;
+		pes->rejLimit = pmdrelext->IRejectLimit();
+		pes->rejLimitInRows = pmdrelext->FRejLimitInRows();
 
-		ext_scan->encoding = ext_table_entry->encoding;
-		ext_scan->scancounter = m_external_scan_counter++;
+		pes->encoding = pextentry->encoding;
+		pes->scancounter = m_ulExternalScanCounter++;
 
-		plan = &(ext_scan->scan.plan);
-		plan_return = (Plan *) ext_scan;
+		pplan = &(pes->scan.plan);
+		pplanReturn = (Plan *) pes;
 	}
 	else
 	{
 		// create table scan node
-		TableScan *table_scan = MakeNode(TableScan);
-		table_scan->scanrelid = index;
-		plan = &(table_scan->plan);
-		plan_return = (Plan *) table_scan;
+		TableScan *pts = MakeNode(TableScan);
+		pts->scanrelid = iRel;
+		pplan = &(pts->plan);
+		pplanReturn = (Plan *) pts;
 	}
 
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(tbl_scan_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnTblScan->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// a table scan node must have 2 children: projection list and filter
-	GPOS_ASSERT(2 == tbl_scan_dxlnode->Arity());
+	GPOS_ASSERT(2 == pdxlnTblScan->UlArity());
 
 	// translate proj list and filter
-	CDXLNode *project_list_dxlnode = (*tbl_scan_dxlnode)[EdxltsIndexProjList];
-	CDXLNode *filter_dxlnode = (*tbl_scan_dxlnode)[EdxltsIndexFilter];
+	CDXLNode *pdxlnPrL = (*pdxlnTblScan)[EdxltsIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnTblScan)[EdxltsIndexFilter];
 
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
-		&base_table_context,	// translate context for the base table
-		NULL,			// translate_ctxt_left and pdxltrctxRight,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdxlnPrL,
+		pdxlnFilter,
+		&dxltrctxbt,	// translate context for the base table
+		NULL,			// pdxltrctxLeft and pdxltrctxRight,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return plan_return;
+	return pplanReturn;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::SetIndexVarAttnoWalker
+//		CTranslatorDXLToPlStmt::FSetIndexVarAttno
 //
 //	@doc:
 //		Walker to set index var attno's,
@@ -531,189 +531,189 @@ CTranslatorDXLToPlStmt::TranslateDXLTblScan
 //
 //---------------------------------------------------------------------------
 BOOL
-CTranslatorDXLToPlStmt::SetIndexVarAttnoWalker
+CTranslatorDXLToPlStmt::FSetIndexVarAttno
 	(
-	Node *node,
-	SContextIndexVarAttno *ctxt_index_var_attno_walker
+	Node *pnode,
+	SContextIndexVarAttno *pctxtidxvarattno
 	)
 {
-	if (NULL == node)
+	if (NULL == pnode)
 	{
 		return false;
 	}
 
-	if (IsA(node, Var) && ((Var *)node)->varno != OUTER_VAR)
+	if (IsA(pnode, Var) && ((Var *)pnode)->varno != OUTER_VAR)
 	{
-		INT attno = ((Var *)node)->varattno;
-		const IMDRelation *md_rel = ctxt_index_var_attno_walker->m_md_rel;
-		const IMDIndex *index = ctxt_index_var_attno_walker->m_md_index;
+		INT iAttno = ((Var *)pnode)->varattno;
+		const IMDRelation *pmdrel = pctxtidxvarattno->m_pmdrel;
+		const IMDIndex *pmdindex = pctxtidxvarattno->m_pmdindex;
 
-		ULONG index_col_pos_idx_max = gpos::ulong_max;
-		const ULONG arity = md_rel->ColumnCount();
-		for (ULONG col_pos_idx = 0; col_pos_idx < arity; col_pos_idx++)
+		ULONG ulIndexColPos = gpos::ulong_max;
+		const ULONG ulArity = pmdrel->UlColumns();
+		for (ULONG ulColPos = 0; ulColPos < ulArity; ulColPos++)
 		{
-			const IMDColumn *md_col = md_rel->GetMdCol(col_pos_idx);
-			if (attno == md_col->AttrNum())
+			const IMDColumn *pmdcol = pmdrel->Pmdcol(ulColPos);
+			if (iAttno == pmdcol->IAttno())
 			{
-				index_col_pos_idx_max = col_pos_idx;
+				ulIndexColPos = ulColPos;
 				break;
 			}
 		}
 
-		if (gpos::ulong_max > index_col_pos_idx_max)
+		if (gpos::ulong_max > ulIndexColPos)
 		{
-			((Var *)node)->varattno =  1 + index->GetKeyPos(index_col_pos_idx_max);
+			((Var *)pnode)->varattno =  1 + pmdindex->UlPosInKey(ulIndexColPos);
 		}
 
 		return false;
 	}
 
-	return gpdb::WalkExpressionTree
+	return gpdb::FWalkExpressionTree
 			(
-			node,
-			(BOOL (*)()) CTranslatorDXLToPlStmt::SetIndexVarAttnoWalker,
-			ctxt_index_var_attno_walker
+			pnode,
+			(BOOL (*)()) CTranslatorDXLToPlStmt::FSetIndexVarAttno,
+			pctxtidxvarattno
 			);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLIndexScan
+//		CTranslatorDXLToPlStmt::PisFromDXLIndexScan
 //
 //	@doc:
 //		Translates a DXL index scan node into a IndexScan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLIndexScan
+CTranslatorDXLToPlStmt::PisFromDXLIndexScan
 	(
-	const CDXLNode *index_scan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnIndexScan,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// translate table descriptor into a range table entry
-	CDXLPhysicalIndexScan *physical_idx_scan_dxlop = CDXLPhysicalIndexScan::Cast(index_scan_dxlnode->GetOperator());
+	CDXLPhysicalIndexScan *pdxlopIndexScan = CDXLPhysicalIndexScan::PdxlopConvert(pdxlnIndexScan->Pdxlop());
 
-	return TranslateDXLIndexScan(index_scan_dxlnode, physical_idx_scan_dxlop, output_context, false /*is_index_only_scan*/, ctxt_translation_prev_siblings);
+	return PisFromDXLIndexScan(pdxlnIndexScan, pdxlopIndexScan, pdxltrctxOut, false /*fIndexOnlyScan*/, pdrgpdxltrctxPrevSiblings);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLIndexScan
+//		CTranslatorDXLToPlStmt::PisFromDXLIndexScan
 //
 //	@doc:
 //		Translates a DXL index scan node into a IndexScan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLIndexScan
+CTranslatorDXLToPlStmt::PisFromDXLIndexScan
 	(
-	const CDXLNode *index_scan_dxlnode,
-	CDXLPhysicalIndexScan *physical_idx_scan_dxlop,
-	CDXLTranslateContext *output_context,
-	BOOL is_index_only_scan,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnIndexScan,
+	CDXLPhysicalIndexScan *pdxlopIndexScan,
+	CDXLTranslateContext *pdxltrctxOut,
+	BOOL fIndexOnlyScan,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// translation context for column mappings in the base relation
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
-	const CDXLIndexDescr *index_descr_dxl = NULL;
-	if (is_index_only_scan)
+	const CDXLIndexDescr *pdxlid = NULL;
+	if (fIndexOnlyScan)
 	{
-		index_descr_dxl = physical_idx_scan_dxlop->GetDXLIndexDescr();
+		pdxlid = pdxlopIndexScan->Pdxlid();
 	}
 
-	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(physical_idx_scan_dxlop->GetDXLTableDescr()->MDId());
+	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxlopIndexScan->Pdxltabdesc()->Pmdid());
 
-	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(physical_idx_scan_dxlop->GetDXLTableDescr(), index_descr_dxl, index, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
-	rte->requiredPerms |= ACL_SELECT;
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	RangeTblEntry *prte = PrteFromTblDescr(pdxlopIndexScan->Pdxltabdesc(), pdxlid, iRel, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
+	prte->requiredPerms |= ACL_SELECT;
+	m_pctxdxltoplstmt->AddRTE(prte);
 
-	IndexScan *index_scan = NULL;
-	GPOS_ASSERT(!is_index_only_scan);
-	index_scan = MakeNode(IndexScan);
-	index_scan->scan.scanrelid = index;
+	IndexScan *pis = NULL;
+	GPOS_ASSERT(!fIndexOnlyScan);
+	pis = MakeNode(IndexScan);
+	pis->scan.scanrelid = iRel;
 
-	CMDIdGPDB *mdid_index = CMDIdGPDB::CastMdid(physical_idx_scan_dxlop->GetDXLIndexDescr()->MDId());
-	const IMDIndex *md_index = m_md_accessor->RetrieveIndex(mdid_index);
-	Oid index_oid = mdid_index->Oid();
+	CMDIdGPDB *pmdidIndex = CMDIdGPDB::PmdidConvert(pdxlopIndexScan->Pdxlid()->Pmdid());
+	const IMDIndex *pmdindex = m_pmda->Pmdindex(pmdidIndex);
+	Oid oidIndex = pmdidIndex->OidObjectId();
 
-	GPOS_ASSERT(InvalidOid != index_oid);
-	index_scan->indexid = index_oid;
+	GPOS_ASSERT(InvalidOid != oidIndex);
+	pis->indexid = oidIndex;
 
-	Plan *plan = &(index_scan->scan.plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	Plan *pplan = &(pis->scan.plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(index_scan_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnIndexScan->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// an index scan node must have 3 children: projection list, filter and index condition list
-	GPOS_ASSERT(3 == index_scan_dxlnode->Arity());
+	GPOS_ASSERT(3 == pdxlnIndexScan->UlArity());
 
 	// translate proj list and filter
-	CDXLNode *project_list_dxlnode = (*index_scan_dxlnode)[EdxlisIndexProjList];
-	CDXLNode *filter_dxlnode = (*index_scan_dxlnode)[EdxlisIndexFilter];
-	CDXLNode *index_cond_list_dxlnode = (*index_scan_dxlnode)[EdxlisIndexCondition];
+	CDXLNode *pdxlnPrL = (*pdxlnIndexScan)[EdxlisIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnIndexScan)[EdxlisIndexFilter];
+	CDXLNode *pdxlnIndexCondList = (*pdxlnIndexScan)[EdxlisIndexCondition];
 
 	// translate proj list
-	plan->targetlist = TranslateDXLProjList(project_list_dxlnode, &base_table_context, NULL /*child_contexts*/, output_context);
+	pplan->targetlist = PlTargetListFromProjList(pdxlnPrL, &dxltrctxbt, NULL /*pdrgpdxltrctx*/, pdxltrctxOut);
 
 	// translate index filter
-	plan->qual = TranslateDXLIndexFilter
+	pplan->qual = PlTranslateIndexFilter
 					(
-					filter_dxlnode,
-					output_context,
-					&base_table_context,
-					ctxt_translation_prev_siblings
+					pdxlnFilter,
+					pdxltrctxOut,
+					&dxltrctxbt,
+					pdrgpdxltrctxPrevSiblings
 					);
 
-	index_scan->indexorderdir = CTranslatorUtils::GetScanDirection(physical_idx_scan_dxlop->GetIndexScanDir());
+	pis->indexorderdir = CTranslatorUtils::Scandirection(pdxlopIndexScan->EdxlScanDirection());
 
 	// translate index condition list
-	List *index_cond = NIL;
-	List *index_orig_cond = NIL;
-	List *index_strategy_list = NIL;
-	List *index_subtype_list = NIL;
+	List *plIndexConditions = NIL;
+	List *plIndexOrigConditions = NIL;
+	List *plIndexStratgey = NIL;
+	List *plIndexSubtype = NIL;
 
 	TranslateIndexConditions
 		(
-		index_cond_list_dxlnode,
-		physical_idx_scan_dxlop->GetDXLTableDescr(),
-		is_index_only_scan,
-		md_index,
-		md_rel,
-		output_context,
-		&base_table_context,
-		ctxt_translation_prev_siblings,
-		&index_cond,
-		&index_orig_cond,
-		&index_strategy_list,
-		&index_subtype_list
+		pdxlnIndexCondList, 
+		pdxlopIndexScan->Pdxltabdesc(), 
+		fIndexOnlyScan, 
+		pmdindex, 
+		pmdrel,
+		pdxltrctxOut,
+		&dxltrctxbt, 
+		pdrgpdxltrctxPrevSiblings,
+		&plIndexConditions, 
+		&plIndexOrigConditions, 
+		&plIndexStratgey, 
+		&plIndexSubtype
 		);
 
-	index_scan->indexqual = index_cond;
-	index_scan->indexqualorig = index_orig_cond;
+	pis->indexqual = plIndexConditions;
+	pis->indexqualorig = plIndexOrigConditions;
 	/*
 	 * As of 8.4, the indexstrategy and indexsubtype fields are no longer
 	 * available or needed in IndexScan. Ignore them.
 	 */
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) index_scan;
+	return (Plan *) pis;
 }
 
 //---------------------------------------------------------------------------
@@ -725,28 +725,28 @@ CTranslatorDXLToPlStmt::TranslateDXLIndexScan
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLIndexFilter
+CTranslatorDXLToPlStmt::PlTranslateIndexFilter
 	(
-	CDXLNode *filter_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	CDXLNode *pdxlnFilter,
+	CDXLTranslateContext *pdxltrctxOut,
+	CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	List *quals_list = NIL;
+	List *plQuals = NIL;
 
 	// build colid->var mapping
-	CMappingColIdVarPlStmt colid_var_mapping(m_mp, base_table_context, ctxt_translation_prev_siblings, output_context, m_dxl_to_plstmt_context);
+	CMappingColIdVarPlStmt mapcidvarplstmt(m_pmp, pdxltrctxbt, pdrgpdxltrctxPrevSiblings, pdxltrctxOut, m_pctxdxltoplstmt);
 
-	const ULONG arity = filter_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	const ULONG ulArity = pdxlnFilter->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *index_filter_dxlnode = (*filter_dxlnode)[ul];
-		Expr *index_filter_expr = m_translator_dxl_to_scalar->TranslateDXLToScalar(index_filter_dxlnode, &colid_var_mapping);
-		quals_list = gpdb::LAppend(quals_list, index_filter_expr);
+		CDXLNode *pdxlnIndexFilter = (*pdxlnFilter)[ul];
+		Expr *pexprIndexFilter = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnIndexFilter, &mapcidvarplstmt);
+		plQuals = gpdb::PlAppendElement(plQuals, pexprIndexFilter);
 	}
 
-	return quals_list;
+	return plQuals;
 }
 
 
@@ -761,1245 +761,1249 @@ CTranslatorDXLToPlStmt::TranslateDXLIndexFilter
 void 
 CTranslatorDXLToPlStmt::TranslateIndexConditions
 	(
-	CDXLNode *index_cond_list_dxlnode,
-	const CDXLTableDescr *dxl_tbl_descr,
-	BOOL is_index_only_scan,
-	const IMDIndex *index,
-	const IMDRelation *md_rel,
-	CDXLTranslateContext *output_context,
-	CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-	List **index_cond,
-	List **index_orig_cond,
-	List **index_strategy_list,
-	List **index_subtype_list
+	CDXLNode *pdxlnIndexCondList,
+	const CDXLTableDescr *pdxltd,
+	BOOL fIndexOnlyScan,
+	const IMDIndex *pmdindex,
+	const IMDRelation *pmdrel,
+	CDXLTranslateContext *pdxltrctxOut,
+	CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings,
+	List **pplIndexConditions,
+	List **pplIndexOrigConditions,
+	List **pplIndexStratgey,
+	List **pplIndexSubtype
 	)
 {
 	// array of index qual info
-	CIndexQualInfoArray *index_qual_info_array = GPOS_NEW(m_mp) CIndexQualInfoArray(m_mp);
+	DrgPindexqualinfo *pdrgpindexqualinfo = GPOS_NEW(m_pmp) DrgPindexqualinfo(m_pmp);
 
 	// build colid->var mapping
-	CMappingColIdVarPlStmt colid_var_mapping(m_mp, base_table_context, ctxt_translation_prev_siblings, output_context, m_dxl_to_plstmt_context);
+	CMappingColIdVarPlStmt mapcidvarplstmt(m_pmp, pdxltrctxbt, pdrgpdxltrctxPrevSiblings, pdxltrctxOut, m_pctxdxltoplstmt);
 
-	const ULONG arity = index_cond_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	const ULONG ulArity = pdxlnIndexCondList->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *index_cond_dxlnode = (*index_cond_list_dxlnode)[ul];
+		CDXLNode *pdxlnIndexCond = (*pdxlnIndexCondList)[ul];
 
-		Expr *original_index_cond_expr = m_translator_dxl_to_scalar->TranslateDXLToScalar(index_cond_dxlnode, &colid_var_mapping);
-		Expr *index_cond_expr = m_translator_dxl_to_scalar->TranslateDXLToScalar(index_cond_dxlnode, &colid_var_mapping);
-		GPOS_ASSERT((IsA(index_cond_expr, OpExpr) || IsA(index_cond_expr, ScalarArrayOpExpr))
+		Expr *pexprOrigIndexCond = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnIndexCond, &mapcidvarplstmt);
+		Expr *pexprIndexCond = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnIndexCond, &mapcidvarplstmt);
+		GPOS_ASSERT((IsA(pexprIndexCond, OpExpr) || IsA(pexprIndexCond, ScalarArrayOpExpr))
 				&& "expected OpExpr or ScalarArrayOpExpr in index qual");
 
-		if (IsA(index_cond_expr, ScalarArrayOpExpr) && IMDIndex::EmdindBitmap != index->IndexType())
+		if (IsA(pexprIndexCond, ScalarArrayOpExpr) && IMDIndex::EmdindBitmap != pmdindex->Emdindt())
 		{
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion, GPOS_WSZ_LIT("ScalarArrayOpExpr condition on index scan"));
 		}
 
 		// for indexonlyscan, we already have the attno referring to the index
-		if (!is_index_only_scan)
+		if (!fIndexOnlyScan)
 		{
 			// Otherwise, we need to perform mapping of Varattnos relative to column positions in index keys
-			SContextIndexVarAttno index_varattno_ctxt(md_rel, index);
-			SetIndexVarAttnoWalker((Node *) index_cond_expr, &index_varattno_ctxt);
+			SContextIndexVarAttno ctxtidxvarattno(pmdrel, pmdindex);
+			FSetIndexVarAttno((Node *) pexprIndexCond, &ctxtidxvarattno);
 		}
 		
 		// find index key's attno
-		List *args_list = NULL;
-		if (IsA(index_cond_expr, OpExpr))
+		List *plistArgs = NULL;
+		if (IsA(pexprIndexCond, OpExpr))
 		{
-			args_list = ((OpExpr *) index_cond_expr)->args;
+			plistArgs = ((OpExpr *) pexprIndexCond)->args;
 		}
 		else
 		{
-			args_list = ((ScalarArrayOpExpr *) index_cond_expr)->args;
+			plistArgs = ((ScalarArrayOpExpr *) pexprIndexCond)->args;
 		}
 
-		Node *left_arg = (Node *) lfirst(gpdb::ListHead(args_list));
-		Node *right_arg = (Node *) lfirst(gpdb::ListTail(args_list));
+		Node *pnodeFst = (Node *) lfirst(gpdb::PlcListHead(plistArgs));
+		Node *pnodeSnd = (Node *) lfirst(gpdb::PlcListTail(plistArgs));
 				
-		BOOL is_relabel_type = false;
-		if (IsA(left_arg, RelabelType) && IsA(((RelabelType *) left_arg)->arg, Var))
+		BOOL fRelabel = false;
+		if (IsA(pnodeFst, RelabelType) && IsA(((RelabelType *) pnodeFst)->arg, Var))
 		{
-			left_arg = (Node *) ((RelabelType *) left_arg)->arg;
-			is_relabel_type = true;
+			pnodeFst = (Node *) ((RelabelType *) pnodeFst)->arg;
+			fRelabel = true;
 		}
-		else if (IsA(right_arg, RelabelType) && IsA(((RelabelType *) right_arg)->arg, Var))
+		else if (IsA(pnodeSnd, RelabelType) && IsA(((RelabelType *) pnodeSnd)->arg, Var))
 		{
-			right_arg = (Node *) ((RelabelType *) right_arg)->arg;
-			is_relabel_type = true;
+			pnodeSnd = (Node *) ((RelabelType *) pnodeSnd)->arg;
+			fRelabel = true;
 		}
 		
-		if (is_relabel_type)
+		if (fRelabel)
 		{
-			List *new_args_list = ListMake2(left_arg, right_arg);
-			gpdb::GPDBFree(args_list);
-			if (IsA(index_cond_expr, OpExpr))
+			List *plNewArgs = ListMake2(pnodeFst, pnodeSnd);
+			gpdb::GPDBFree(plistArgs);
+			if (IsA(pexprIndexCond, OpExpr))
 			{
-				((OpExpr *) index_cond_expr)->args = new_args_list;
+				((OpExpr *) pexprIndexCond)->args = plNewArgs;
 			}
 			else
 			{
-				((ScalarArrayOpExpr *) index_cond_expr)->args = new_args_list;
+				((ScalarArrayOpExpr *) pexprIndexCond)->args = plNewArgs;
 			}
 		}
 		
-		GPOS_ASSERT((IsA(left_arg, Var) || IsA(right_arg, Var)) && "expected index key in index qual");
+		GPOS_ASSERT((IsA(pnodeFst, Var) || IsA(pnodeSnd, Var)) && "expected index key in index qual");
 
-		INT attno = 0;
-		if (IsA(left_arg, Var) && ((Var *) left_arg)->varno != OUTER_VAR)
+		INT iAttno = 0;
+		// GPDB_92_MERGE_FIXME: I don't believe we can have index key on the
+		// RHS of OpExpr for indexqual, so why do we have this conditional here
+		// at all?
+		if (IsA(pnodeFst, Var) && ((Var *) pnodeFst)->varno != OUTER_VAR)
 		{
 			// index key is on the left side
-			attno =  ((Var *) left_arg)->varattno;
+			iAttno =  ((Var *) pnodeFst)->varattno;
+
 			// GPDB_92_MERGE_FIXME: helluva hack
 			// Upstream commit a0185461 cleaned up how the varno of indices
 			// We are patching up varno here, but it seems this really should
 			// happen in CTranslatorDXLToScalar::PexprFromDXLNodeScalar .
 			// Furthermore, should we guard against nonsensical varno?
-			((Var *) left_arg)->varno = INDEX_VAR;
+			((Var *) pnodeFst)->varno = INDEX_VAR;
 		}
 		else
 		{
 			// index key is on the right side
-			GPOS_ASSERT(((Var *) right_arg)->varno != OUTER_VAR && "unexpected outer reference in index qual");
-			attno = ((Var *) right_arg)->varattno;
+			GPOS_ASSERT(((Var *) pnodeSnd)->varno != OUTER_VAR && "unexpected outer reference in index qual");
+			iAttno = ((Var *) pnodeSnd)->varattno;
 		}
 		
 		// retrieve index strategy and subtype
-		INT strategy_num = 0;
-		OID index_subtype_oid = InvalidOid;
+		INT iSN = 0;
+		OID oidIndexSubtype = InvalidOid;
 		
-		OID cmp_operator_oid = CTranslatorUtils::OidCmpOperator(index_cond_expr);
-		GPOS_ASSERT(InvalidOid != cmp_operator_oid);
-		OID op_family_oid = CTranslatorUtils::GetOpFamilyForIndexQual(attno, CMDIdGPDB::CastMdid(index->MDId())->Oid());
-		GPOS_ASSERT(InvalidOid != op_family_oid);
-		gpdb::IndexOpProperties(cmp_operator_oid, op_family_oid, &strategy_num, &index_subtype_oid);
+		OID oidCmpOperator = CTranslatorUtils::OidCmpOperator(pexprIndexCond);
+		GPOS_ASSERT(InvalidOid != oidCmpOperator);
+		OID oidOpFamily = CTranslatorUtils::OidIndexQualOpFamily(iAttno, CMDIdGPDB::PmdidConvert(pmdindex->Pmdid())->OidObjectId());
+		GPOS_ASSERT(InvalidOid != oidOpFamily);
+		gpdb::IndexOpProperties(oidCmpOperator, oidOpFamily, &iSN, &oidIndexSubtype);
 		
 		// create index qual
-		index_qual_info_array->Append(GPOS_NEW(m_mp) CIndexQualInfo(attno, index_cond_expr, original_index_cond_expr, (StrategyNumber) strategy_num, index_subtype_oid));
+		pdrgpindexqualinfo->Append(GPOS_NEW(m_pmp) CIndexQualInfo(iAttno, pexprIndexCond, pexprOrigIndexCond, (StrategyNumber) iSN, oidIndexSubtype));
 	}
 
 	// the index quals much be ordered by attribute number
-	index_qual_info_array->Sort(CIndexQualInfo::IndexQualInfoCmp);
+	pdrgpindexqualinfo->Sort(CIndexQualInfo::IIndexQualInfoCmp);
 
-	ULONG length = index_qual_info_array->Size();
-	for (ULONG ul = 0; ul < length; ul++)
+	ULONG ulLen = pdrgpindexqualinfo->UlLength();
+	for (ULONG ul = 0; ul < ulLen; ul++)
 	{
-		CIndexQualInfo *index_qual_info = (*index_qual_info_array)[ul];
-		*index_cond = gpdb::LAppend(*index_cond, index_qual_info->m_expr);
-		*index_orig_cond = gpdb::LAppend(*index_orig_cond, index_qual_info->m_original_expr);
-		*index_strategy_list = gpdb::LAppendInt(*index_strategy_list, index_qual_info->m_index_subtype_oid);
-		*index_subtype_list = gpdb::LAppendOid(*index_subtype_list, index_qual_info->m_index_subtype_oid);
+		CIndexQualInfo *pindexqualinfo = (*pdrgpindexqualinfo)[ul];
+		*pplIndexConditions = gpdb::PlAppendElement(*pplIndexConditions, pindexqualinfo->m_pexpr);
+		*pplIndexOrigConditions = gpdb::PlAppendElement(*pplIndexOrigConditions, pindexqualinfo->m_pexprOriginal);
+		*pplIndexStratgey = gpdb::PlAppendInt(*pplIndexStratgey, pindexqualinfo->m_sn);
+		*pplIndexSubtype = gpdb::PlAppendOid(*pplIndexSubtype, pindexqualinfo->m_oidIndexSubtype);
 	}
 
 	// clean up
-	index_qual_info_array->Release();
+	pdrgpindexqualinfo->Release();
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLAssertConstraints
+//		CTranslatorDXLToPlStmt::PlTranslateAssertConstraints
 //
 //	@doc:
 //		Translate the constraints from an Assert node into a list of quals
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLAssertConstraints
+CTranslatorDXLToPlStmt::PlTranslateAssertConstraints
 	(
-	CDXLNode *assert_contraint_list_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *child_contexts
+	CDXLNode *pdxlnAssertConstraintList,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctx
 	)
 {
-	List *quals_list = NIL;
+	List *plQuals = NIL;
 
 	// build colid->var mapping
-	CMappingColIdVarPlStmt colid_var_mapping(m_mp, NULL /*base_table_context*/, child_contexts, output_context, m_dxl_to_plstmt_context);
+	CMappingColIdVarPlStmt mapcidvarplstmt(m_pmp, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut, m_pctxdxltoplstmt);
 
-	const ULONG arity = assert_contraint_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	const ULONG ulArity = pdxlnAssertConstraintList->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *assert_contraint_dxlnode = (*assert_contraint_list_dxlnode)[ul];
-		Expr *assert_contraint_expr = m_translator_dxl_to_scalar->TranslateDXLToScalar((*assert_contraint_dxlnode)[0], &colid_var_mapping);
-		quals_list = gpdb::LAppend(quals_list, assert_contraint_expr);
+		CDXLNode *pdxlnpdxlnAssertConstraint = (*pdxlnAssertConstraintList)[ul];
+		Expr *pexprAssertConstraint = m_pdxlsctranslator->PexprFromDXLNodeScalar((*pdxlnpdxlnAssertConstraint)[0], &mapcidvarplstmt);
+		plQuals = gpdb::PlAppendElement(plQuals, pexprAssertConstraint);
 	}
 
-	return quals_list;
+	return plQuals;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLLimit
+//		CTranslatorDXLToPlStmt::PlimitFromDXLLimit
 //
 //	@doc:
 //		Translates a DXL Limit node into a Limit node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLLimit
+CTranslatorDXLToPlStmt::PlimitFromDXLLimit
 	(
-	const CDXLNode *limit_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnLimit,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create limit node
-	Limit *limit = MakeNode(Limit);
+	Limit *plimit = MakeNode(Limit);
 
-	Plan *plan = &(limit->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(plimit->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(limit_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnLimit->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	GPOS_ASSERT(4 == limit_dxlnode->Arity());
+	GPOS_ASSERT(4 == pdxlnLimit->UlArity());
 
-	CDXLTranslateContext left_dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxLeft(m_pmp, false, pdxltrctxOut->PhmColParam());
 
 	// translate proj list
-	CDXLNode *project_list_dxlnode = (*limit_dxlnode)[EdxllimitIndexProjList];
-	CDXLNode *child_plan_dxlnode = (*limit_dxlnode)[EdxllimitIndexChildPlan];
-	CDXLNode *limit_count_dxlnode = (*limit_dxlnode)[EdxllimitIndexLimitCount];
-	CDXLNode *limit_offset_dxlnode = (*limit_dxlnode)[EdxllimitIndexLimitOffset];
+	CDXLNode *pdxlnPrL = (*pdxlnLimit)[EdxllimitIndexProjList];
+	CDXLNode *pdxlnChildPlan = (*pdxlnLimit)[EdxllimitIndexChildPlan];
+	CDXLNode *pdxlnLimitCount = (*pdxlnLimit)[EdxllimitIndexLimitCount];
+	CDXLNode *pdxlnLimitOffset = (*pdxlnLimit)[EdxllimitIndexLimitOffset];
 
 	// NOTE: Limit node has only the left plan while the right plan is left empty
-	Plan *left_plan = TranslateDXLOperatorToPlan(child_plan_dxlnode, &left_dxl_translate_ctxt, ctxt_translation_prev_siblings);
+	Plan *pplanLeft = PplFromDXL(pdxlnChildPlan, &dxltrctxLeft, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(&left_dxl_translate_ctxt);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(&dxltrctxLeft);
 
-	plan->targetlist = TranslateDXLProjList
+	pplan->targetlist = PlTargetListFromProjList
 								(
-								project_list_dxlnode,
+								pdxlnPrL,
 								NULL,		// base table translation context
-								child_contexts,
-								output_context
+								pdrgpdxltrctx,
+								pdxltrctxOut
 								);
 
-	plan->lefttree = left_plan;
+	pplan->lefttree = pplanLeft;
 
-	if(NULL != limit_count_dxlnode && limit_count_dxlnode->Arity() >0)
+	if(NULL != pdxlnLimitCount && pdxlnLimitCount->UlArity() >0)
 	{
-		CMappingColIdVarPlStmt colid_var_mapping(m_mp, NULL, child_contexts, output_context, m_dxl_to_plstmt_context);
-		Node *limit_count = (Node *) m_translator_dxl_to_scalar->TranslateDXLToScalar((*limit_count_dxlnode)[0], &colid_var_mapping);
-		limit->limitCount = limit_count;
+		CMappingColIdVarPlStmt mapcidvarplstmt(m_pmp, NULL, pdrgpdxltrctx, pdxltrctxOut, m_pctxdxltoplstmt);
+		Node *pnodeLimitCount = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar((*pdxlnLimitCount)[0], &mapcidvarplstmt);
+		plimit->limitCount = pnodeLimitCount;
 	}
 
-	if(NULL != limit_offset_dxlnode && limit_offset_dxlnode->Arity() >0)
+	if(NULL != pdxlnLimitOffset && pdxlnLimitOffset->UlArity() >0)
 	{
-		CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt(m_mp, NULL, child_contexts, output_context, m_dxl_to_plstmt_context);
-		Node *limit_offset = (Node *) m_translator_dxl_to_scalar->TranslateDXLToScalar((*limit_offset_dxlnode)[0], &colid_var_mapping);
-		limit->limitOffset = limit_offset;
+		CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt(m_pmp, NULL, pdrgpdxltrctx, pdxltrctxOut, m_pctxdxltoplstmt);
+		Node *pexprLimitOffset = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar((*pdxlnLimitOffset)[0], &mapcidvarplstmt);
+		plimit->limitOffset = pexprLimitOffset;
 	}
 
-	plan->nMotionNodes = left_plan->nMotionNodes;
-	SetParamIds(plan);
+	pplan->nMotionNodes = pplanLeft->nMotionNodes;
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return  (Plan *) limit;
+	return  (Plan *) plimit;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLHashJoin
+//		CTranslatorDXLToPlStmt::PhjFromDXLHJ
 //
 //	@doc:
 //		Translates a DXL hash join node into a HashJoin node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLHashJoin
+CTranslatorDXLToPlStmt::PhjFromDXLHJ
 	(
-	const CDXLNode *hj_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnHJ,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	GPOS_ASSERT(hj_dxlnode->GetOperator()->GetDXLOperator() == EdxlopPhysicalHashJoin);
-	GPOS_ASSERT(hj_dxlnode->Arity() == EdxlhjIndexSentinel);
+	GPOS_ASSERT(pdxlnHJ->Pdxlop()->Edxlop() == EdxlopPhysicalHashJoin);
+	GPOS_ASSERT(pdxlnHJ->UlArity() == EdxlhjIndexSentinel);
 
 	// create hash join node
-	HashJoin *hashjoin = MakeNode(HashJoin);
+	HashJoin *phj = MakeNode(HashJoin);
 
-	Join *join = &(hashjoin->join);
-	Plan *plan = &(join->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Join *pj = &(phj->join);
+	Plan *pplan = &(pj->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalHashJoin *hashjoin_dxlop = CDXLPhysicalHashJoin::Cast(hj_dxlnode->GetOperator());
+	CDXLPhysicalHashJoin *pdxlopHashJoin = CDXLPhysicalHashJoin::PdxlopConvert(pdxlnHJ->Pdxlop());
 
 	// set join type
-	join->jointype = GetGPDBJoinTypeFromDXLJoinType(hashjoin_dxlop->GetJoinType());
-	join->prefetch_inner = true;
+	pj->jointype = JtFromEdxljt(pdxlopHashJoin->Edxltype());
+	pj->prefetch_inner = true;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(hj_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnHJ->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate join children
-	CDXLNode *left_tree_dxlnode = (*hj_dxlnode)[EdxlhjIndexHashLeft];
-	CDXLNode *right_tree_dxlnode = (*hj_dxlnode)[EdxlhjIndexHashRight];
-	CDXLNode *project_list_dxlnode = (*hj_dxlnode)[EdxlhjIndexProjList];
-	CDXLNode *filter_dxlnode = (*hj_dxlnode)[EdxlhjIndexFilter];
-	CDXLNode *join_filter_dxlnode = (*hj_dxlnode)[EdxlhjIndexJoinFilter];
-	CDXLNode *hash_cond_list_dxlnode = (*hj_dxlnode)[EdxlhjIndexHashCondList];
+	CDXLNode *pdxlnLeft = (*pdxlnHJ)[EdxlhjIndexHashLeft];
+	CDXLNode *pdxlnRight = (*pdxlnHJ)[EdxlhjIndexHashRight];
+	CDXLNode *pdxlnPrL = (*pdxlnHJ)[EdxlhjIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnHJ)[EdxlhjIndexFilter];
+	CDXLNode *pdxlnJoinFilter = (*pdxlnHJ)[EdxlhjIndexJoinFilter];
+	CDXLNode *pdxlnHashCondList = (*pdxlnHJ)[EdxlhjIndexHashCondList];
 
-	CDXLTranslateContext left_dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
-	CDXLTranslateContext right_dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxLeft(m_pmp, false, pdxltrctxOut->PhmColParam());
+	CDXLTranslateContext dxltrctxRight(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *left_plan = TranslateDXLOperatorToPlan(left_tree_dxlnode, &left_dxl_translate_ctxt, ctxt_translation_prev_siblings);
+	Plan *pplanLeft = PplFromDXL(pdxlnLeft, &dxltrctxLeft, pdrgpdxltrctxPrevSiblings);
 
 	// the right side of the join is the one where the hash phase is done
-	CDXLTranslationContextArray *translation_context_arr_with_siblings = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	translation_context_arr_with_siblings->Append(&left_dxl_translate_ctxt);
-	translation_context_arr_with_siblings->AppendArray(ctxt_translation_prev_siblings);
-	Plan *right_plan = (Plan*) TranslateDXLHash(right_tree_dxlnode, &right_dxl_translate_ctxt, translation_context_arr_with_siblings);
+	DrgPdxltrctx *pdrgpdxltrctxWithSiblings = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctxWithSiblings->Append(&dxltrctxLeft);
+	pdrgpdxltrctxWithSiblings->AppendArray(pdrgpdxltrctxPrevSiblings);
+	Plan *pplanRight = (Plan*) PhhashFromDXL(pdxlnRight, &dxltrctxRight, pdrgpdxltrctxWithSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&left_dxl_translate_ctxt));
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&right_dxl_translate_ctxt));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxLeft));
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxRight));
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
 	// translate join filter
-	join->joinqual = TranslateDXLFilterToQual
+	pj->joinqual = PlQualFromFilter
 					(
-					join_filter_dxlnode,
+					pdxlnJoinFilter,
 					NULL,			// translate context for the base table
-					child_contexts,
-					output_context
+					pdrgpdxltrctx,
+					pdxltrctxOut
 					);
 
 	// translate hash cond
-	List *hash_conditions_list = NIL;
+	List *plHashConditions = NIL;
 
-	BOOL has_is_not_distinct_from_cond = false;
+	BOOL fHasINDFCond = false;
 
-	const ULONG arity = hash_cond_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	const ULONG ulArity = pdxlnHashCondList->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *hash_cond_dxlnode = (*hash_cond_list_dxlnode)[ul];
+		CDXLNode *pdxlnHashCond = (*pdxlnHashCondList)[ul];
 
-		List *hash_cond_list = TranslateDXLScCondToQual
+		List *plHashCond = PlQualFromScalarCondNode
 				(
-				hash_cond_dxlnode,
+				pdxlnHashCond,
 				NULL,			// base table translation context
-				child_contexts,
-				output_context
+				pdrgpdxltrctx,
+				pdxltrctxOut
 				);
 
-		GPOS_ASSERT(1 == gpdb::ListLength(hash_cond_list));
+		GPOS_ASSERT(1 == gpdb::UlListLength(plHashCond));
 
-		Expr *expr = (Expr *) LInitial(hash_cond_list);
-		if (IsA(expr, BoolExpr) && ((BoolExpr *) expr)->boolop == NOT_EXPR)
+		Expr *pexpr = (Expr *) LInitial(plHashCond);
+		if (IsA(pexpr, BoolExpr) && ((BoolExpr *) pexpr)->boolop == NOT_EXPR)
 		{
 			// INDF test
-			GPOS_ASSERT(gpdb::ListLength(((BoolExpr *) expr)->args) == 1 &&
-						(IsA((Expr *) LInitial(((BoolExpr *) expr)->args), DistinctExpr)));
-			has_is_not_distinct_from_cond = true;
+			GPOS_ASSERT(gpdb::UlListLength(((BoolExpr *) pexpr)->args) == 1 &&
+						(IsA((Expr *) LInitial(((BoolExpr *) pexpr)->args), DistinctExpr)));
+			fHasINDFCond = true;
 		}
-		hash_conditions_list = gpdb::ListConcat(hash_conditions_list, hash_cond_list);
+		plHashConditions = gpdb::PlConcat(plHashConditions, plHashCond);
 	}
 
-	if (!has_is_not_distinct_from_cond)
+	if (!fHasINDFCond)
 	{
 		// no INDF conditions in the hash condition list
-		hashjoin->hashclauses = hash_conditions_list;
+		phj->hashclauses = plHashConditions;
 	}
 	else
 	{
 		// hash conditions contain INDF clauses -> extract equality conditions to
 		// construct the hash clauses list
-		List *hash_clauses_list = NIL;
+		List *plHashClauses = NIL;
 
-		for (ULONG ul = 0; ul < arity; ul++)
+		for (ULONG ul = 0; ul < ulArity; ul++)
 		{
-			CDXLNode *hash_cond_dxlnode = (*hash_cond_list_dxlnode)[ul];
+			CDXLNode *pdxlnHashCond = (*pdxlnHashCondList)[ul];
 
 			// condition can be either a scalar comparison or a NOT DISTINCT FROM expression
-			GPOS_ASSERT(EdxlopScalarCmp == hash_cond_dxlnode->GetOperator()->GetDXLOperator() ||
-						EdxlopScalarBoolExpr == hash_cond_dxlnode->GetOperator()->GetDXLOperator());
+			GPOS_ASSERT(EdxlopScalarCmp == pdxlnHashCond->Pdxlop()->Edxlop() ||
+						EdxlopScalarBoolExpr == pdxlnHashCond->Pdxlop()->Edxlop());
 
-			if (EdxlopScalarBoolExpr == hash_cond_dxlnode->GetOperator()->GetDXLOperator())
+			if (EdxlopScalarBoolExpr == pdxlnHashCond->Pdxlop()->Edxlop())
 			{
 				// clause is a NOT DISTINCT FROM check -> extract the distinct comparison node
-				GPOS_ASSERT(Edxlnot == CDXLScalarBoolExpr::Cast(hash_cond_dxlnode->GetOperator())->GetDxlBoolTypeStr());
-				hash_cond_dxlnode = (*hash_cond_dxlnode)[0];
-				GPOS_ASSERT(EdxlopScalarDistinct == hash_cond_dxlnode->GetOperator()->GetDXLOperator());
+				GPOS_ASSERT(Edxlnot == CDXLScalarBoolExpr::PdxlopConvert(pdxlnHashCond->Pdxlop())->EdxlBoolType());
+				pdxlnHashCond = (*pdxlnHashCond)[0];
+				GPOS_ASSERT(EdxlopScalarDistinct == pdxlnHashCond->Pdxlop()->Edxlop());
 			}
 
-			CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt
+			CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
 														(
-														m_mp,
+														m_pmp,
 														NULL,
-														child_contexts,
-														output_context,
-														m_dxl_to_plstmt_context
+														pdrgpdxltrctx,
+														pdxltrctxOut,
+														m_pctxdxltoplstmt
 														);
 
 			// translate the DXL scalar or scalar distinct comparison into an equality comparison
 			// to store in the hash clauses
-			Expr *hash_clause_expr = (Expr *) m_translator_dxl_to_scalar->TranslateDXLScalarCmpToScalar
+			Expr *pexpr2 = (Expr *) m_pdxlsctranslator->PopexprFromDXLNodeScCmp
 									(
-									hash_cond_dxlnode,
-									&colid_var_mapping
+									pdxlnHashCond,
+									&mapcidvarplstmt
 									);
 
-			hash_clauses_list = gpdb::LAppend(hash_clauses_list, hash_clause_expr);
+			plHashClauses = gpdb::PlAppendElement(plHashClauses, pexpr2);
 		}
 
-		hashjoin->hashclauses = hash_clauses_list;
-		hashjoin->hashqualclauses = hash_conditions_list;
+		phj->hashclauses = plHashClauses;
+		phj->hashqualclauses = plHashConditions;
 	}
 
-	GPOS_ASSERT(NIL != hashjoin->hashclauses);
+	GPOS_ASSERT(NIL != phj->hashclauses);
 
-	plan->lefttree = left_plan;
-	plan->righttree = right_plan;
-	plan->nMotionNodes = left_plan->nMotionNodes + right_plan->nMotionNodes;
-	SetParamIds(plan);
+	pplan->lefttree = pplanLeft;
+	pplan->righttree = pplanRight;
+	pplan->nMotionNodes = pplanLeft->nMotionNodes + pplanRight->nMotionNodes;
+	SetParamIds(pplan);
 
 	// cleanup
-	translation_context_arr_with_siblings->Release();
-	child_contexts->Release();
+	pdrgpdxltrctxWithSiblings->Release();
+	pdrgpdxltrctx->Release();
 
-	return  (Plan *) hashjoin;
+	return  (Plan *) phj;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLTvf
+//		CTranslatorDXLToPlStmt::PplanFunctionScanFromDXLTVF
 //
 //	@doc:
 //		Translates a DXL TVF node into a GPDB Function scan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLTvf
+CTranslatorDXLToPlStmt::PplanFunctionScanFromDXLTVF
 	(
-	const CDXLNode *tvf_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnTVF,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// translation context for column mappings
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
 	// create function scan node
-	FunctionScan *func_scan = MakeNode(FunctionScan);
-	Plan *plan = &(func_scan->scan.plan);
+	FunctionScan *pfuncscan = MakeNode(FunctionScan);
+	Plan *pplan = &(pfuncscan->scan.plan);
 
-	RangeTblEntry *rte = TranslateDXLTvfToRangeTblEntry(tvf_dxlnode, output_context, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
+	RangeTblEntry *prte = PrteFromDXLTVF(pdxlnTVF, pdxltrctxOut, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
 
-	func_scan->funcexpr = rte->funcexpr;
-	func_scan->funccolnames = rte->eref->colnames;
+	pfuncscan->funcexpr = prte->funcexpr;
+	pfuncscan->funccolnames = prte->eref->colnames;
 
 	// we will add the new range table entry as the last element of the range table
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
-	base_table_context.SetRelIndex(index);
-	func_scan->scan.scanrelid = index;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
+	dxltrctxbt.SetIdx(iRel);
+	pfuncscan->scan.scanrelid = iRel;
 
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	m_pctxdxltoplstmt->AddRTE(prte);
 
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(tvf_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnTVF->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// a table scan node must have at least 1 child: projection list
-	GPOS_ASSERT(1 <= tvf_dxlnode->Arity());
+	GPOS_ASSERT(1 <= pdxlnTVF->UlArity());
 
-	CDXLNode *project_list_dxlnode = (*tvf_dxlnode)[EdxltsIndexProjList];
+	CDXLNode *pdxlnPrL = (*pdxlnTVF)[EdxltsIndexProjList];
 
 	// translate proj list
-	List *target_list = TranslateDXLProjList
+	List *plTargetList = PlTargetListFromProjList
 						(
-						project_list_dxlnode,
-						&base_table_context,
+						pdxlnPrL,
+						&dxltrctxbt,
 						NULL,
-						output_context
+						pdxltrctxOut
 						);
 
-	plan->targetlist = target_list;
+	pplan->targetlist = plTargetList;
 
-	ListCell *lc_target_entry = NULL;
+	ListCell *plcTe = NULL;
 
-	ForEach (lc_target_entry, target_list)
+	ForEach (plcTe, plTargetList)
 	{
-		TargetEntry *target_entry = (TargetEntry *) lfirst(lc_target_entry);
-		OID oid_type = gpdb::ExprType((Node*) target_entry->expr);
-		GPOS_ASSERT(InvalidOid != oid_type);
+		TargetEntry *pte = (TargetEntry *) lfirst(plcTe);
+		OID oidType = gpdb::OidExprType((Node*) pte->expr);
+		GPOS_ASSERT(InvalidOid != oidType);
 
-		INT typ_mod = gpdb::ExprTypeMod((Node*) target_entry->expr);
-		Oid collation_type_oid = gpdb::TypeCollation(oid_type);
+		INT typMod = gpdb::IExprTypeMod((Node*) pte->expr);
+		Oid typCollation = gpdb::OidTypeCollation(oidType);
 
-		func_scan->funccoltypes = gpdb::LAppendOid(func_scan->funccoltypes, oid_type);
-		func_scan->funccoltypmods = gpdb::LAppendInt(func_scan->funccoltypmods, typ_mod);
-		// GDPB_91_MERGE_FIXME: collation
-		func_scan->funccolcollations = gpdb::LAppendOid(func_scan->funccolcollations, collation_type_oid);
+		pfuncscan->funccoltypes = gpdb::PlAppendOid(pfuncscan->funccoltypes, oidType);
+		pfuncscan->funccoltypmods = gpdb::PlAppendInt(pfuncscan->funccoltypmods, typMod);
+		// GPORCA currently does not support collations, so infer them using type defaults
+		pfuncscan->funccolcollations = gpdb::PlAppendOid(pfuncscan->funccolcollations, typCollation);
 	}
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) func_scan;
+	return (Plan *) pfuncscan;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLTvfToRangeTblEntry
+//		CTranslatorDXLToPlStmt::PrteFromDXLTVF
 //
 //	@doc:
 //		Create a range table entry from a CDXLPhysicalTVF node
 //
 //---------------------------------------------------------------------------
 RangeTblEntry *
-CTranslatorDXLToPlStmt::TranslateDXLTvfToRangeTblEntry
+CTranslatorDXLToPlStmt::PrteFromDXLTVF
 	(
-	const CDXLNode *tvf_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslateContextBaseTable *base_table_context
+	const CDXLNode *pdxlnTVF,
+	CDXLTranslateContext *pdxltrctxOut,
+	CDXLTranslateContextBaseTable *pdxltrctxbt
 	)
 {
-	CDXLPhysicalTVF *dxlop = CDXLPhysicalTVF::Cast(tvf_dxlnode->GetOperator());
+	CDXLPhysicalTVF *pdxlop = CDXLPhysicalTVF::PdxlopConvert(pdxlnTVF->Pdxlop());
 
-	RangeTblEntry *rte = MakeNode(RangeTblEntry);
-	rte->rtekind = RTE_FUNCTION;
+	RangeTblEntry *prte = MakeNode(RangeTblEntry);
+	prte->rtekind = RTE_FUNCTION;
 
-	FuncExpr *func_expr = MakeNode(FuncExpr);
+	FuncExpr *pfuncexpr = MakeNode(FuncExpr);
 
-	func_expr->funcid = CMDIdGPDB::CastMdid(dxlop->FuncMdId())->Oid();
-	func_expr->funcretset = true;
+	pfuncexpr->funcid = CMDIdGPDB::PmdidConvert(pdxlop->PmdidFunc())->OidObjectId();
+	pfuncexpr->funcretset = true;
 	// this is a function call, as opposed to a cast
-	func_expr->funcformat = COERCE_EXPLICIT_CALL;
-	func_expr->funcresulttype = CMDIdGPDB::CastMdid(dxlop->ReturnTypeMdId())->Oid();
+	pfuncexpr->funcformat = COERCE_EXPLICIT_CALL;
+	pfuncexpr->funcresulttype = CMDIdGPDB::PmdidConvert(pdxlop->PmdidRetType())->OidObjectId();
 
-	Alias *alias = MakeNode(Alias);
-	alias->colnames = NIL;
+	Alias *palias = MakeNode(Alias);
+	palias->colnames = NIL;
 
 	// get function alias
-	alias->aliasname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(dxlop->Pstr()->GetBuffer());
+	palias->aliasname = CTranslatorUtils::SzFromWsz(pdxlop->Pstr()->Wsz());
 
 	// project list
-	CDXLNode *project_list_dxlnode = (*tvf_dxlnode)[EdxltsIndexProjList];
+	CDXLNode *pdxlnPrL = (*pdxlnTVF)[EdxltsIndexProjList];
 
 	// get column names
-	const ULONG num_of_cols = project_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < num_of_cols; ul++)
+	const ULONG ulCols = pdxlnPrL->UlArity();
+	for (ULONG ul = 0; ul < ulCols; ul++)
 	{
-		CDXLNode *proj_elem_dxlnode = (*project_list_dxlnode)[ul];
-		CDXLScalarProjElem *dxl_proj_elem = CDXLScalarProjElem::Cast(proj_elem_dxlnode->GetOperator());
+		CDXLNode *pdxlnPrElem = (*pdxlnPrL)[ul];
+		CDXLScalarProjElem *pdxlopPrEl = CDXLScalarProjElem::PdxlopConvert(pdxlnPrElem->Pdxlop());
 
-		CHAR *col_name_char_array = CTranslatorUtils::CreateMultiByteCharStringFromWCString(dxl_proj_elem->GetMdNameAlias()->GetMDName()->GetBuffer());
+		CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlopPrEl->PmdnameAlias()->Pstr()->Wsz());
 
-		Value *val_colname = gpdb::MakeStringValue(col_name_char_array);
-		alias->colnames = gpdb::LAppend(alias->colnames, val_colname);
+		Value *pvalColName = gpdb::PvalMakeString(szColName);
+		palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalColName);
 
 		// save mapping col id -> index in translate context
-		(void) base_table_context->InsertMapping(dxl_proj_elem->Id(), ul+1 /*attno*/);
+		(void) pdxltrctxbt->FInsertMapping(pdxlopPrEl->UlId(), ul+1 /*iAttno*/);
 	}
 
 	// function arguments
-	const ULONG num_of_child = tvf_dxlnode->Arity();
-	for (ULONG ul = 1; ul < num_of_child; ++ul)
+	const ULONG ulChildren = pdxlnTVF->UlArity();
+	for (ULONG ul = 1; ul < ulChildren; ++ul)
 	{
-		CDXLNode *func_arg_dxlnode = (*tvf_dxlnode)[ul];
+		CDXLNode *pdxlnFuncArg = (*pdxlnTVF)[ul];
 
-		CMappingColIdVarPlStmt colid_var_mapping
+		CMappingColIdVarPlStmt mapcidvarplstmt
 									(
-									m_mp,
-									base_table_context,
+									m_pmp,
+									pdxltrctxbt,
 									NULL,
-									output_context,
-									m_dxl_to_plstmt_context
+									pdxltrctxOut,
+									m_pctxdxltoplstmt
 									);
 
-		Expr *pexprFuncArg = m_translator_dxl_to_scalar->TranslateDXLToScalar(func_arg_dxlnode, &colid_var_mapping);
-		func_expr->args = gpdb::LAppend(func_expr->args, pexprFuncArg);
+		Expr *pexprFuncArg = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnFuncArg, &mapcidvarplstmt);
+		pfuncexpr->args = gpdb::PlAppendElement(pfuncexpr->args, pexprFuncArg);
 	}
 
 	// GDPB_91_MERGE_FIXME: collation
-	func_expr->inputcollid = gpdb::ExprCollation((Node *) func_expr->args);
-	func_expr->funccollid = gpdb::TypeCollation(func_expr->funcresulttype);
+	pfuncexpr->inputcollid = gpdb::OidExprCollation((Node *) pfuncexpr->args);
+	pfuncexpr->funccollid = gpdb::OidTypeCollation(pfuncexpr->funcresulttype);
 
-	rte->funcexpr = (Node *)func_expr;
-	rte->inFromCl = true;
-	rte->eref = alias;
+	prte->funcexpr = (Node *)pfuncexpr;
+	prte->inFromCl = true;
+	prte->eref = palias;
 	// GDPB_91_MERGE_FIXME: collation
-	// set rte->funccoltypemods & rte->funccolcollations?
+	// set prte->funccoltypemods & prte->funccolcollations?
 
-	return rte;
+	return prte;
 }
 
 
 // create a range table entry from a CDXLPhysicalValuesScan node
 RangeTblEntry *
-CTranslatorDXLToPlStmt::TranslateDXLValueScanToRangeTblEntry
+CTranslatorDXLToPlStmt::PrteFromDXLValueScan
 	(
-	const CDXLNode *value_scan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslateContextBaseTable *base_table_context
+	const CDXLNode *pdxlnValueScan,
+	CDXLTranslateContext *pdxltrctxOut,
+	CDXLTranslateContextBaseTable *pdxltrctxbt
 	)
 {
-	CDXLPhysicalValuesScan *phy_values_scan_dxlop = CDXLPhysicalValuesScan::Cast(value_scan_dxlnode->GetOperator());
+	CDXLPhysicalValuesScan *pdxlop = CDXLPhysicalValuesScan::PdxlopConvert(pdxlnValueScan->Pdxlop());
 
-	RangeTblEntry *rte = MakeNode(RangeTblEntry);
+	RangeTblEntry *prte = MakeNode(RangeTblEntry);
 
-	rte->relid = InvalidOid;
-	rte->subquery = NULL;
-	rte->rtekind = RTE_VALUES;
-	rte->inh = false;			/* never true for values RTEs */
-	rte->inFromCl = true;
-	rte->requiredPerms = 0;
-	rte->checkAsUser = InvalidOid;
+	prte->relid = InvalidOid;
+	prte->subquery = NULL;
+	prte->rtekind = RTE_VALUES;
+	prte->inh = false;			/* never true for values RTEs */
+	prte->inFromCl = true;
+	prte->requiredPerms = 0;
+	prte->checkAsUser = InvalidOid;
 
-	Alias *alias = MakeNode(Alias);
-	alias->colnames = NIL;
+	Alias *palias = MakeNode(Alias);
+	palias->colnames = NIL;
 
 	// get value alias
-	alias->aliasname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(phy_values_scan_dxlop->GetOpNameStr()->GetBuffer());
+	palias->aliasname = CTranslatorUtils::SzFromWsz(pdxlop->PstrOpName()->Wsz());
 
 	// project list
-	CDXLNode *project_list_dxlnode = (*value_scan_dxlnode)[EdxltsIndexProjList];
+	CDXLNode *pdxlnPrL = (*pdxlnValueScan)[EdxltsIndexProjList];
 
 	// get column names
-	const ULONG num_of_cols = project_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < num_of_cols; ul++)
+	const ULONG ulCols = pdxlnPrL->UlArity();
+	for (ULONG ul = 0; ul < ulCols; ul++)
 	{
-		CDXLNode *proj_elem_dxlnode = (*project_list_dxlnode)[ul];
-		CDXLScalarProjElem *dxl_proj_elem = CDXLScalarProjElem::Cast(proj_elem_dxlnode->GetOperator());
+		CDXLNode *pdxlnPrElem = (*pdxlnPrL)[ul];
+		CDXLScalarProjElem *pdxlopPrEl = CDXLScalarProjElem::PdxlopConvert(pdxlnPrElem->Pdxlop());
 
-		CHAR *col_name_char_array = CTranslatorUtils::CreateMultiByteCharStringFromWCString(dxl_proj_elem->GetMdNameAlias()->GetMDName()->GetBuffer());
+		CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlopPrEl->PmdnameAlias()->Pstr()->Wsz());
 
-		Value *val_colname = gpdb::MakeStringValue(col_name_char_array);
-		alias->colnames = gpdb::LAppend(alias->colnames, val_colname);
+		Value *pvalColName = gpdb::PvalMakeString(szColName);
+		palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalColName);
 
 		// save mapping col id -> index in translate context
-		(void) base_table_context->InsertMapping(dxl_proj_elem->Id(), ul+1 /*attno*/);
+		(void) pdxltrctxbt->FInsertMapping(pdxlopPrEl->UlId(), ul+1 /*iAttno*/);
 	}
 
-	CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt(m_mp, base_table_context, NULL, output_context, m_dxl_to_plstmt_context);
-	const ULONG num_of_child = value_scan_dxlnode->Arity();
+	CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt(m_pmp, pdxltrctxbt, NULL, pdxltrctxOut, m_pctxdxltoplstmt);
+	const ULONG ulChildren = pdxlnValueScan->UlArity();
 	List *values_lists = NIL;
 	List *values_collations = NIL;
 
-	for (ULONG ulValue = EdxlValIndexConstStart; ulValue < num_of_child; ulValue++)
+	for (ULONG ulValue = EdxlValIndexConstStart; ulValue < ulChildren; ulValue++)
 	{
-		CDXLNode *value_list_dxlnode = (*value_scan_dxlnode)[ulValue];
-		const ULONG num_of_cols = value_list_dxlnode->Arity();
+		CDXLNode *pdxlnValueList = (*pdxlnValueScan)[ulValue];
+		const ULONG ulCols = pdxlnValueList->UlArity();
 		List *value = NIL;
-		for (ULONG ulCol = 0; ulCol < num_of_cols ; ulCol++)
+		for (ULONG ulCol = 0; ulCol < ulCols ; ulCol++)
 		{
-			Expr *const_expr = m_translator_dxl_to_scalar->TranslateDXLToScalar((*value_list_dxlnode)[ulCol], &colid_var_mapping);
-			value = gpdb::LAppend(value, const_expr);
+			Expr *pconst = m_pdxlsctranslator->PexprFromDXLNodeScalar((*pdxlnValueList)[ulCol], &mapcidvarplstmt);
+			value = gpdb::PlAppendElement(value, pconst);
 
 		}
-		values_lists = gpdb::LAppend(values_lists, value);
+		values_lists = gpdb::PlAppendElement(values_lists, value);
 
 		// GPDB_91_MERGE_FIXME: collation
 		if (NIL == values_collations)
 		{
 			// Set collation based on the first list of values
-			for (ULONG ulCol = 0; ulCol < num_of_cols ; ulCol++)
+			for (ULONG ulCol = 0; ulCol < ulCols ; ulCol++)
 			{
-				values_collations = gpdb::LAppendOid(values_collations, gpdb::ExprCollation((Node *) value));
+				values_collations = gpdb::PlAppendOid(values_collations, gpdb::OidExprCollation((Node *) value));
 			}
 		}
 	}
 
-	rte->values_lists = values_lists;
-	rte->values_collations = values_collations;
-	rte->eref = alias;
+	prte->values_lists = values_lists;
+	prte->values_collations = values_collations;
+	prte->eref = palias;
 
-	return rte;
+	return prte;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLNLJoin
+//		CTranslatorDXLToPlStmt::PnljFromDXLNLJ
 //
 //	@doc:
 //		Translates a DXL nested loop join node into a NestLoop plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLNLJoin
+CTranslatorDXLToPlStmt::PnljFromDXLNLJ
 	(
-	const CDXLNode *nl_join_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnNLJ,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	GPOS_ASSERT(nl_join_dxlnode->GetOperator()->GetDXLOperator() == EdxlopPhysicalNLJoin);
-	GPOS_ASSERT(nl_join_dxlnode->Arity() == EdxlnljIndexSentinel);
+	GPOS_ASSERT(pdxlnNLJ->Pdxlop()->Edxlop() == EdxlopPhysicalNLJoin);
+	GPOS_ASSERT(pdxlnNLJ->UlArity() == EdxlnljIndexSentinel);
 
 	// create hash join node
-	NestLoop *nested_loop = MakeNode(NestLoop);
+	NestLoop *pnlj = MakeNode(NestLoop);
 
-	Join *join = &(nested_loop->join);
-	Plan *plan = &(join->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Join *pj = &(pnlj->join);
+	Plan *pplan = &(pj->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalNLJoin *dxl_nlj = CDXLPhysicalNLJoin::PdxlConvert(nl_join_dxlnode->GetOperator());
+	CDXLPhysicalNLJoin *pdxlnlj = CDXLPhysicalNLJoin::PdxlConvert(pdxlnNLJ->Pdxlop());
 
 	// set join type
-	join->jointype = GetGPDBJoinTypeFromDXLJoinType(dxl_nlj->GetJoinType());
+	pj->jointype = JtFromEdxljt(pdxlnlj->Edxltype());
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(nl_join_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnNLJ->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate join children
-	CDXLNode *left_tree_dxlnode = (*nl_join_dxlnode)[EdxlnljIndexLeftChild];
-	CDXLNode *right_tree_dxlnode = (*nl_join_dxlnode)[EdxlnljIndexRightChild];
+	CDXLNode *pdxlnLeft = (*pdxlnNLJ)[EdxlnljIndexLeftChild];
+	CDXLNode *pdxlnRight = (*pdxlnNLJ)[EdxlnljIndexRightChild];
 
-	CDXLNode *project_list_dxlnode = (*nl_join_dxlnode)[EdxlnljIndexProjList];
-	CDXLNode *filter_dxlnode = (*nl_join_dxlnode)[EdxlnljIndexFilter];
-	CDXLNode *join_filter_dxlnode = (*nl_join_dxlnode)[EdxlnljIndexJoinFilter];
+	CDXLNode *pdxlnPrL = (*pdxlnNLJ)[EdxlnljIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnNLJ)[EdxlnljIndexFilter];
+	CDXLNode *pdxlnJoinFilter = (*pdxlnNLJ)[EdxlnljIndexJoinFilter];
 
-	CDXLTranslateContext left_dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
-	CDXLTranslateContext right_dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxLeft(m_pmp, false, pdxltrctxOut->PhmColParam());
+	CDXLTranslateContext dxltrctxRight(m_pmp, false, pdxltrctxOut->PhmColParam());
 
 	// setting of prefetch_inner to true except for the case of index NLJ where we cannot prefetch inner
 	// because inner child depends on variables coming from outer child
-	join->prefetch_inner = !dxl_nlj->IsIndexNLJ();
+	pj->prefetch_inner = !pdxlnlj->FIndexNLJ();
 
-	CDXLTranslationContextArray *translation_context_arr_with_siblings = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	Plan *left_plan = NULL;
-	Plan *right_plan = NULL;
-	if (dxl_nlj->IsIndexNLJ())
+	DrgPdxltrctx *pdrgpdxltrctxWithSiblings = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	Plan *pplanLeft = NULL;
+	Plan *pplanRight = NULL;
+	if (pdxlnlj->FIndexNLJ())
 	{
-		const CDXLColRefArray *pdrgdxlcrOuterRefs = dxl_nlj->GetNestLoopParamsColRefs();
-		const ULONG ulLen = pdrgdxlcrOuterRefs->Size();
+		const DrgPdxlcr *pdrgdxlcrOuterRefs = pdxlnlj->GetNestLoopParamsColRefs();
+		const ULONG ulLen = pdrgdxlcrOuterRefs->UlLength();
 		for (ULONG ul = 0; ul < ulLen; ul++)
 		{
 			CDXLColRef *pdxlcr = (*pdrgdxlcrOuterRefs)[ul];
-			IMDId *pmdid = pdxlcr->MdidType();
-			ULONG ulColid = pdxlcr->Id();
-			INT iTypeModifier = pdxlcr->TypeModifier();
+			IMDId *pmdid = pdxlcr->PmdidType();
+			ULONG ulColid = pdxlcr->UlID();
+			INT iTypeModifier = pdxlcr->ITypeModifier();
 
-			if (NULL == right_dxl_translate_ctxt.GetParamIdMappingElement(ulColid))
+			if (NULL == dxltrctxRight.Pmecolidparamid(ulColid))
 			{
-				CMappingElementColIdParamId *pmecolidparamid = GPOS_NEW(m_mp) CMappingElementColIdParamId(ulColid, m_dxl_to_plstmt_context->GetNextParamId(), pmdid, iTypeModifier);
+				CMappingElementColIdParamId *pmecolidparamid = GPOS_NEW(m_pmp) CMappingElementColIdParamId(ulColid, m_pctxdxltoplstmt->UlNextParamId(), pmdid, iTypeModifier);
 #ifdef GPOS_DEBUG
 					BOOL fInserted =
 #endif
-						right_dxl_translate_ctxt.FInsertParamMapping(ulColid, pmecolidparamid);
+						dxltrctxRight.FInsertParamMapping(ulColid, pmecolidparamid);
 					GPOS_ASSERT(fInserted);
 			}
 		}
 		// right child (the index scan side) has references to left child's columns,
 		// we need to translate left child first to load its columns into translation context
-		left_plan = TranslateDXLOperatorToPlan(left_tree_dxlnode, &left_dxl_translate_ctxt, ctxt_translation_prev_siblings);
+		pplanLeft = PplFromDXL(pdxlnLeft, &dxltrctxLeft, pdrgpdxltrctxPrevSiblings);
 
-		translation_context_arr_with_siblings->Append(&left_dxl_translate_ctxt);
-		 translation_context_arr_with_siblings->AppendArray(ctxt_translation_prev_siblings);
+		pdrgpdxltrctxWithSiblings->Append(&dxltrctxLeft);
+		 pdrgpdxltrctxWithSiblings->AppendArray(pdrgpdxltrctxPrevSiblings);
 
 		 // translate right child after left child translation is complete
-		right_plan = TranslateDXLOperatorToPlan(right_tree_dxlnode, &right_dxl_translate_ctxt, translation_context_arr_with_siblings);
+		pplanRight = PplFromDXL(pdxlnRight, &dxltrctxRight, pdrgpdxltrctxWithSiblings);
 	}
 	else
 	{
 		// left child may include a PartitionSelector with references to right child's columns,
 		// we need to translate right child first to load its columns into translation context
-		right_plan = TranslateDXLOperatorToPlan(right_tree_dxlnode, &right_dxl_translate_ctxt, ctxt_translation_prev_siblings);
+		pplanRight = PplFromDXL(pdxlnRight, &dxltrctxRight, pdrgpdxltrctxPrevSiblings);
 
-		translation_context_arr_with_siblings->Append(&right_dxl_translate_ctxt);
-		translation_context_arr_with_siblings->AppendArray(ctxt_translation_prev_siblings);
+		pdrgpdxltrctxWithSiblings->Append(&dxltrctxRight);
+		pdrgpdxltrctxWithSiblings->AppendArray(pdrgpdxltrctxPrevSiblings);
 
 		// translate left child after right child translation is complete
-		left_plan = TranslateDXLOperatorToPlan(left_tree_dxlnode, &left_dxl_translate_ctxt, translation_context_arr_with_siblings);
+		pplanLeft = PplFromDXL(pdxlnLeft, &dxltrctxLeft, pdrgpdxltrctxWithSiblings);
 	}
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(&left_dxl_translate_ctxt);
-	child_contexts->Append(&right_dxl_translate_ctxt);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(&dxltrctxLeft);
+	pdrgpdxltrctx->Append(&dxltrctxRight);
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
 	// translate join condition
-	join->joinqual = TranslateDXLFilterToQual
+	pj->joinqual = PlQualFromFilter
 					(
-					join_filter_dxlnode,
+					pdxlnJoinFilter,
 					NULL,			// translate context for the base table
-					child_contexts,
-					output_context
+					pdrgpdxltrctx,
+					pdxltrctxOut
 					);
 
 	// create nest loop params for index nested loop joins
-	if (dxl_nlj->IsIndexNLJ())
+	if (pdxlnlj->FIndexNLJ())
 	{
-		((NestLoop *)plan)->nestParams = TranslateNestLoopParamList(dxl_nlj->GetNestLoopParamsColRefs(), &left_dxl_translate_ctxt, &right_dxl_translate_ctxt);
+		((NestLoop *)pplan)->nestParams = TranslateNestLoopParamList(pdxlnlj->GetNestLoopParamsColRefs(), &dxltrctxLeft, &dxltrctxRight);
 	}
-	plan->lefttree = left_plan;
-	plan->righttree = right_plan;
-	plan->nMotionNodes = left_plan->nMotionNodes + right_plan->nMotionNodes;
-	SetParamIds(plan);
+	pplan->lefttree = pplanLeft;
+	pplan->righttree = pplanRight;
+	pplan->nMotionNodes = pplanLeft->nMotionNodes + pplanRight->nMotionNodes;
+	SetParamIds(pplan);
 
 	// cleanup
-	translation_context_arr_with_siblings->Release();
-	child_contexts->Release();
+	pdrgpdxltrctxWithSiblings->Release();
+	pdrgpdxltrctx->Release();
 
-	return  (Plan *) nested_loop;
+	return  (Plan *) pnlj;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLMergeJoin
+//		CTranslatorDXLToPlStmt::PmjFromDXLMJ
 //
 //	@doc:
 //		Translates a DXL merge join node into a MergeJoin node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLMergeJoin
+CTranslatorDXLToPlStmt::PmjFromDXLMJ
 	(
-	const CDXLNode *merge_join_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnMJ,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	GPOS_ASSERT(merge_join_dxlnode->GetOperator()->GetDXLOperator() == EdxlopPhysicalMergeJoin);
-	GPOS_ASSERT(merge_join_dxlnode->Arity() == EdxlmjIndexSentinel);
+	GPOS_ASSERT(pdxlnMJ->Pdxlop()->Edxlop() == EdxlopPhysicalMergeJoin);
+	GPOS_ASSERT(pdxlnMJ->UlArity() == EdxlmjIndexSentinel);
 
 	// create merge join node
-	MergeJoin *merge_join = MakeNode(MergeJoin);
+	MergeJoin *pmj = MakeNode(MergeJoin);
 
-	Join *join = &(merge_join->join);
-	Plan *plan = &(join->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Join *pj = &(pmj->join);
+	Plan *pplan = &(pj->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalMergeJoin *merge_join_dxlop = CDXLPhysicalMergeJoin::Cast(merge_join_dxlnode->GetOperator());
+	CDXLPhysicalMergeJoin *pdxlopMergeJoin = CDXLPhysicalMergeJoin::PdxlopConvert(pdxlnMJ->Pdxlop());
 
 	// set join type
-	join->jointype = GetGPDBJoinTypeFromDXLJoinType(merge_join_dxlop->GetJoinType());
+	pj->jointype = JtFromEdxljt(pdxlopMergeJoin->Edxltype());
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(merge_join_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnMJ->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate join children
-	CDXLNode *left_tree_dxlnode = (*merge_join_dxlnode)[EdxlmjIndexLeftChild];
-	CDXLNode *right_tree_dxlnode = (*merge_join_dxlnode)[EdxlmjIndexRightChild];
+	CDXLNode *pdxlnLeft = (*pdxlnMJ)[EdxlmjIndexLeftChild];
+	CDXLNode *pdxlnRight = (*pdxlnMJ)[EdxlmjIndexRightChild];
 
-	CDXLNode *project_list_dxlnode = (*merge_join_dxlnode)[EdxlmjIndexProjList];
-	CDXLNode *filter_dxlnode = (*merge_join_dxlnode)[EdxlmjIndexFilter];
-	CDXLNode *join_filter_dxlnode = (*merge_join_dxlnode)[EdxlmjIndexJoinFilter];
-	CDXLNode *merge_cond_list_dxlnode = (*merge_join_dxlnode)[EdxlmjIndexMergeCondList];
+	CDXLNode *pdxlnPrL = (*pdxlnMJ)[EdxlmjIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnMJ)[EdxlmjIndexFilter];
+	CDXLNode *pdxlnJoinFilter = (*pdxlnMJ)[EdxlmjIndexJoinFilter];
+	CDXLNode *pdxlnMergeCondList = (*pdxlnMJ)[EdxlmjIndexMergeCondList];
 
-	CDXLTranslateContext left_dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
-	CDXLTranslateContext right_dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxLeft(m_pmp, false, pdxltrctxOut->PhmColParam());
+	CDXLTranslateContext dxltrctxRight(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *left_plan = TranslateDXLOperatorToPlan(left_tree_dxlnode, &left_dxl_translate_ctxt, ctxt_translation_prev_siblings);
+	Plan *pplanLeft = PplFromDXL(pdxlnLeft, &dxltrctxLeft, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *translation_context_arr_with_siblings = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	translation_context_arr_with_siblings->Append(&left_dxl_translate_ctxt);
-	translation_context_arr_with_siblings->AppendArray(ctxt_translation_prev_siblings);
+	DrgPdxltrctx *pdrgpdxltrctxWithSiblings = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctxWithSiblings->Append(&dxltrctxLeft);
+	pdrgpdxltrctxWithSiblings->AppendArray(pdrgpdxltrctxPrevSiblings);
 
-	Plan *right_plan = TranslateDXLOperatorToPlan(right_tree_dxlnode, &right_dxl_translate_ctxt, translation_context_arr_with_siblings);
+	Plan *pplanRight = PplFromDXL(pdxlnRight, &dxltrctxRight, pdrgpdxltrctxWithSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&left_dxl_translate_ctxt));
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&right_dxl_translate_ctxt));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxLeft));
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxRight));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
 	// translate join filter
-	join->joinqual = TranslateDXLFilterToQual
+	pj->joinqual = PlQualFromFilter
 					(
-					join_filter_dxlnode,
+					pdxlnJoinFilter,
 					NULL,			// translate context for the base table
-					child_contexts,
-					output_context
+					pdrgpdxltrctx,
+					pdxltrctxOut
 					);
 
 	// translate merge cond
-	List *merge_conditions_list = NIL;
+	List *plMergeConditions = NIL;
 
-	const ULONG arity = merge_cond_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	const ULONG ulArity = pdxlnMergeCondList->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *merge_condition_dxlnode = (*merge_cond_list_dxlnode)[ul];
-		List *merge_condition_list = TranslateDXLScCondToQual
+		CDXLNode *pdxlnMergeCond = (*pdxlnMergeCondList)[ul];
+		List *plMergeCond = PlQualFromScalarCondNode
 				(
-				merge_condition_dxlnode,
+				pdxlnMergeCond,
 				NULL,			// base table translation context
-				child_contexts,
-				output_context
+				pdrgpdxltrctx,
+				pdxltrctxOut
 				);
 
-		GPOS_ASSERT(1 == gpdb::ListLength(merge_condition_list));
-		merge_conditions_list = gpdb::ListConcat(merge_conditions_list, merge_condition_list);
+		GPOS_ASSERT(1 == gpdb::UlListLength(plMergeCond));
+		plMergeConditions = gpdb::PlConcat(plMergeConditions, plMergeCond);
 	}
 
-	GPOS_ASSERT(NIL != merge_conditions_list);
+	GPOS_ASSERT(NIL != plMergeConditions);
 
-	merge_join->mergeclauses = merge_conditions_list;
+	pmj->mergeclauses = plMergeConditions;
 
-	plan->lefttree = left_plan;
-	plan->righttree = right_plan;
-	plan->nMotionNodes = left_plan->nMotionNodes + right_plan->nMotionNodes;
-	SetParamIds(plan);
+	pplan->lefttree = pplanLeft;
+	pplan->righttree = pplanRight;
+	pplan->nMotionNodes = pplanLeft->nMotionNodes + pplanRight->nMotionNodes;
+	SetParamIds(pplan);
 
 	// GDPB_91_MERGE_FIXME: collation
-	// Need to set merge_join->mergeCollations, but ORCA does not produce plans with
+	// Need to set pmj->mergeCollations, but ORCA does not produce plans with
 	// Merge Joins.
 
 	// cleanup
-	translation_context_arr_with_siblings->Release();
-	child_contexts->Release();
+	pdrgpdxltrctxWithSiblings->Release();
+	pdrgpdxltrctx->Release();
 
-	return  (Plan *) merge_join;
+	return  (Plan *) pmj;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLHash
+//		CTranslatorDXLToPlStmt::PhhashFromDXL
 //
 //	@doc:
 //		Translates a DXL physical operator node into a Hash node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLHash
+CTranslatorDXLToPlStmt::PhhashFromDXL
 	(
-	const CDXLNode *dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxln,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	Hash *hash = MakeNode(Hash);
+	Hash *ph = MakeNode(Hash);
 
-	Plan *plan = &(hash->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(ph->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// translate dxl node
-	CDXLTranslateContext dxl_translate_ctxt(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctx(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *left_plan = TranslateDXLOperatorToPlan(dxlnode, &dxl_translate_ctxt, ctxt_translation_prev_siblings);
+	Plan *pplanLeft = PplFromDXL(pdxln, &dxltrctx, pdrgpdxltrctxPrevSiblings);
 
-	GPOS_ASSERT(0 < dxlnode->Arity());
+	GPOS_ASSERT(0 < pdxln->UlArity());
 
 	// create a reference to each entry in the child project list to create the target list of
 	// the hash node
-	CDXLNode *project_list_dxlnode = (*dxlnode)[0];
-	List *target_list = TranslateDXLProjectListToHashTargetList(project_list_dxlnode, &dxl_translate_ctxt, output_context);
+	CDXLNode *pdxlnPrL = (*pdxln)[0];
+	List *plTargetList = PlTargetListForHashNode(pdxlnPrL, &dxltrctx, pdxltrctxOut);
 
 	// copy costs from child node; the startup cost for the hash node is the total cost
 	// of the child plan, see make_hash in createplan.c
-	plan->startup_cost = left_plan->total_cost;
-	plan->total_cost = left_plan->total_cost;
-	plan->plan_rows = left_plan->plan_rows;
-	plan->plan_width = left_plan->plan_width;
+	pplan->startup_cost = pplanLeft->total_cost;
+	pplan->total_cost = pplanLeft->total_cost;
+	pplan->plan_rows = pplanLeft->plan_rows;
+	pplan->plan_width = pplanLeft->plan_width;
 
-	plan->targetlist = target_list;
-	plan->lefttree = left_plan;
-	plan->righttree = NULL;
-	plan->nMotionNodes = left_plan->nMotionNodes;
-	plan->qual = NIL;
-	hash->rescannable = false;
+	pplan->targetlist = plTargetList;
+	pplan->lefttree = pplanLeft;
+	pplan->righttree = NULL;
+	pplan->nMotionNodes = pplanLeft->nMotionNodes;
+	pplan->qual = NIL;
+	ph->rescannable = false;
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) hash;
+	return (Plan *) ph;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLDuplicateSensitiveMotion
+//		CTranslatorDXLToPlStmt::PplanTranslateDXLMotion
 //
 //	@doc:
 //		Translate DXL motion node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLDuplicateSensitiveMotion
+CTranslatorDXLToPlStmt::PplanTranslateDXLMotion
 	(
-	const CDXLNode *motion_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnMotion,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalMotion *motion_dxlop = CDXLPhysicalMotion::Cast(motion_dxlnode->GetOperator());
-	if (CTranslatorUtils::IsDuplicateSensitiveMotion(motion_dxlop))
+	CDXLPhysicalMotion *pdxlopMotion = CDXLPhysicalMotion::PdxlopConvert(pdxlnMotion->Pdxlop());
+	if (CTranslatorUtils::FDuplicateSensitiveMotion(pdxlopMotion))
 	{
-		return TranslateDXLRedistributeMotionToResultHashFilters(motion_dxlnode, output_context, ctxt_translation_prev_siblings);
+		return PplanResultHashFilters(pdxlnMotion, pdxltrctxOut, pdrgpdxltrctxPrevSiblings);
 	}
 	
-	return TranslateDXLMotion(motion_dxlnode, output_context, ctxt_translation_prev_siblings);
+	return PplanMotionFromDXLMotion(pdxlnMotion, pdxltrctxOut, pdrgpdxltrctxPrevSiblings);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLMotion
+//		CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion
 //
 //	@doc:
 //		Translate DXL motion node into GPDB Motion plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLMotion
+CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion
 	(
-	const CDXLNode *motion_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnMotion,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalMotion *motion_dxlop = CDXLPhysicalMotion::Cast(motion_dxlnode->GetOperator());
+	CDXLPhysicalMotion *pdxlopMotion = CDXLPhysicalMotion::PdxlopConvert(pdxlnMotion->Pdxlop());
 
 	// create motion node
-	Motion *motion = MakeNode(Motion);
+	Motion *pmotion = MakeNode(Motion);
 
-	Plan *plan = &(motion->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(pmotion->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(motion_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnMotion->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	CDXLNode *project_list_dxlnode = (*motion_dxlnode)[EdxlgmIndexProjList];
-	CDXLNode *filter_dxlnode = (*motion_dxlnode)[EdxlgmIndexFilter];
-	CDXLNode *sort_col_list_dxl = (*motion_dxlnode)[EdxlgmIndexSortColList];
+	CDXLNode *pdxlnPrL = (*pdxlnMotion)[EdxlgmIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnMotion)[EdxlgmIndexFilter];
+	CDXLNode *pdxlnSortColList = (*pdxlnMotion)[EdxlgmIndexSortColList];
 
 	// translate motion child
 	// child node is in the same position in broadcast and gather motion nodes
 	// but different in redistribute motion nodes
 
-	ULONG child_index = motion_dxlop->GetRelationChildIdx();
+	ULONG ulChildIndex = pdxlopMotion->UlChildIndex();
 
-	CDXLNode *child_dxlnode = (*motion_dxlnode)[child_index];
+	CDXLNode *pdxlnChild = (*pdxlnMotion)[ulChildIndex];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
 	// translate sorting info
-	ULONG num_sort_cols = sort_col_list_dxl->Arity();
-	if (0 < num_sort_cols)
+	ULONG ulNumSortCols = pdxlnSortColList->UlArity();
+	if (0 < ulNumSortCols)
 	{
-		motion->sendSorted = true;
-		motion->numSortCols = num_sort_cols;
-		motion->sortColIdx = (AttrNumber *) gpdb::GPDBAlloc(num_sort_cols * sizeof(AttrNumber));
-		motion->sortOperators = (Oid *) gpdb::GPDBAlloc(num_sort_cols * sizeof(Oid));
-		motion->collations = (Oid *) gpdb::GPDBAlloc(num_sort_cols * sizeof(Oid));
-		motion->nullsFirst = (bool *) gpdb::GPDBAlloc(num_sort_cols * sizeof(bool));
+		pmotion->sendSorted = true;
+		pmotion->numSortCols = ulNumSortCols;
+		pmotion->sortColIdx = (AttrNumber *) gpdb::GPDBAlloc(ulNumSortCols * sizeof(AttrNumber));
+		pmotion->sortOperators = (Oid *) gpdb::GPDBAlloc(ulNumSortCols * sizeof(Oid));
+		pmotion->collations = (Oid *) gpdb::GPDBAlloc(ulNumSortCols * sizeof(Oid));
+		pmotion->nullsFirst = (bool *) gpdb::GPDBAlloc(ulNumSortCols * sizeof(bool));
 
-		TranslateSortCols(sort_col_list_dxl, output_context, motion->sortColIdx, motion->sortOperators, motion->collations, motion->nullsFirst);
+		TranslateSortCols(pdxlnSortColList, pdxltrctxOut, pmotion->sortColIdx, pmotion->sortOperators, pmotion->collations, pmotion->nullsFirst);
 	}
 	else
 	{
 		// not a sorting motion
-		motion->sendSorted = false;
-		motion->numSortCols = 0;
-		motion->sortColIdx = NULL;
-		motion->sortOperators = NULL;
-		motion->nullsFirst = NULL;
+		pmotion->sendSorted = false;
+		pmotion->numSortCols = 0;
+		pmotion->sortColIdx = NULL;
+		pmotion->sortOperators = NULL;
+		pmotion->nullsFirst = NULL;
 	}
 
-	if (motion_dxlop->GetDXLOperator() == EdxlopPhysicalMotionRedistribute ||
-		motion_dxlop->GetDXLOperator() == EdxlopPhysicalMotionRoutedDistribute ||
-		motion_dxlop->GetDXLOperator() == EdxlopPhysicalMotionRandom)
+	if (pdxlopMotion->Edxlop() == EdxlopPhysicalMotionRedistribute ||
+		pdxlopMotion->Edxlop() == EdxlopPhysicalMotionRoutedDistribute ||
+		pdxlopMotion->Edxlop() == EdxlopPhysicalMotionRandom)
 	{
 		// translate hash expr list
-		List *hash_expr_list = NIL;
-		List *hash_expr_types_list = NIL;
+		List *plHashExpr = NIL;
+		List *plHashExprTypes = NIL;
 
-		if (EdxlopPhysicalMotionRedistribute == motion_dxlop->GetDXLOperator())
+		if (EdxlopPhysicalMotionRedistribute == pdxlopMotion->Edxlop())
 		{
-			CDXLNode *hash_expr_list_dxlnode = (*motion_dxlnode)[EdxlrmIndexHashExprList];
+			CDXLNode *pdxlnHashExprList = (*pdxlnMotion)[EdxlrmIndexHashExprList];
 
 			TranslateHashExprList
 				(
-				hash_expr_list_dxlnode,
-				&child_context,
-				&hash_expr_list,
-				&hash_expr_types_list,
-				output_context
+				pdxlnHashExprList,
+				&dxltrctxChild,
+				&plHashExpr,
+				&plHashExprTypes,
+				pdxltrctxOut
 				);
 		}
-		GPOS_ASSERT(gpdb::ListLength(hash_expr_list) == gpdb::ListLength(hash_expr_types_list));
+		GPOS_ASSERT(gpdb::UlListLength(plHashExpr) == gpdb::UlListLength(plHashExprTypes));
 
-		motion->hashExpr = hash_expr_list;
-		motion->hashDataTypes = hash_expr_types_list;
+		pmotion->hashExpr = plHashExpr;
+		pmotion->hashDataTypes = plHashExprTypes;
 	}
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
 	// create flow for child node to distinguish between singleton flows and all-segment flows
-	Flow *flow = MakeNode(Flow);
+	Flow *pflow = MakeNode(Flow);
 
-	const IntPtrArray *input_segids_array = motion_dxlop->GetInputSegIdsArray();
+	const DrgPi *pdrgpiInputSegmentIds = pdxlopMotion->PdrgpiInputSegIds();
 
 
 	// only one sender
-	if (1 == input_segids_array->Size())
+	if (1 == pdrgpiInputSegmentIds->UlLength())
 	{
-		flow->segindex = *((*input_segids_array)[0]);
+		pflow->segindex = *((*pdrgpiInputSegmentIds)[0]);
 
 		// only one segment in total
-		if (1 == gpdb::GetGPSegmentCount())
+		if (1 == gpdb::UlSegmentCountGP())
 		{
-			if (flow->segindex == MASTER_CONTENT_ID)
+			if (pflow->segindex == MASTER_CONTENT_ID)
 				// sender is on master, must be singleton flow
-				flow->flotype = FLOW_SINGLETON;
+				pflow->flotype = FLOW_SINGLETON;
 			else
 				// sender is on segment, can not tell it's singleton or
 				// all-segment flow, just treat it as all-segment flow so
 				// it can be promoted to writer gang later if needed.
-				flow->flotype = FLOW_UNDEFINED;
+				pflow->flotype = FLOW_UNDEFINED;
 		}
 		else
 		{
 			// multiple segments, must be singleton flow
-			flow->flotype = FLOW_SINGLETON;
+			pflow->flotype = FLOW_SINGLETON;
 		}
 	}
 	else
 	{
-		flow->flotype = FLOW_UNDEFINED;
+		pflow->flotype = FLOW_UNDEFINED;
 	}
 
-	child_plan->flow = flow;
+	pplanChild->flow = pflow;
 
-	motion->motionID = m_dxl_to_plstmt_context->GetNextMotionId();
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes + 1;
+	pmotion->motionID = m_pctxdxltoplstmt->UlNextMotionId();
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes + 1;
 
 	// translate properties of the specific type of motion operator
 
-	switch (motion_dxlop->GetDXLOperator())
+	switch (pdxlopMotion->Edxlop())
 	{
 		case EdxlopPhysicalMotionGather:
 		{
-			motion->motionType = MOTIONTYPE_FIXED;
+			pmotion->motionType = MOTIONTYPE_FIXED;
 			// get segment id
-			INT segid = CDXLPhysicalGatherMotion::Cast(motion_dxlop)->IOutputSegIdx();
-			motion->numOutputSegs = 1;
-			motion->outputSegIdx = (INT *) gpdb::GPDBAlloc(sizeof(INT));
-			*(motion->outputSegIdx) = segid;
+			INT iSegId = CDXLPhysicalGatherMotion::PdxlopConvert(pdxlopMotion)->IOutputSegIdx();
+			pmotion->numOutputSegs = 1;
+			pmotion->outputSegIdx = (INT *) gpdb::GPDBAlloc(sizeof(INT));
+			*(pmotion->outputSegIdx) = iSegId;
 			break;
 		}
 		case EdxlopPhysicalMotionRedistribute:
 		case EdxlopPhysicalMotionRandom:
 		{
-			motion->motionType = MOTIONTYPE_HASH;
+			pmotion->motionType = MOTIONTYPE_HASH;
 			// translate output segment ids
-			const IntPtrArray *output_segids_array = CDXLPhysicalMotion::Cast(motion_dxlop)->GetOutputSegIdsArray();
+			const DrgPi *pdrgpiSegIds = CDXLPhysicalMotion::PdxlopConvert(pdxlopMotion)->PdrgpiOutputSegIds();
 
-			GPOS_ASSERT(NULL != output_segids_array && 0 < output_segids_array->Size());
-			ULONG segid_count = output_segids_array->Size();
-			motion->outputSegIdx = (INT *) gpdb::GPDBAlloc (segid_count * sizeof(INT));
-			motion->numOutputSegs = segid_count;
+			GPOS_ASSERT(NULL != pdrgpiSegIds && 0 < pdrgpiSegIds->UlLength());
+			ULONG ulSegIdCount = pdrgpiSegIds->UlLength();
+			pmotion->outputSegIdx = (INT *) gpdb::GPDBAlloc (ulSegIdCount * sizeof(INT));
+			pmotion->numOutputSegs = ulSegIdCount;
 
-			for(ULONG ul = 0; ul < segid_count; ul++)
+			for(ULONG ul = 0; ul < ulSegIdCount; ul++)
 			{
-				INT segid = *((*output_segids_array)[ul]);
-				motion->outputSegIdx[ul] = segid;
+				INT iSegId = *((*pdrgpiSegIds)[ul]);
+				pmotion->outputSegIdx[ul] = iSegId;
 			}
 
 			break;
 		}
 		case EdxlopPhysicalMotionBroadcast:
 		{
-			motion->motionType = MOTIONTYPE_FIXED;
-			motion->numOutputSegs = 0;
-			motion->outputSegIdx = NULL;
+			pmotion->motionType = MOTIONTYPE_FIXED;
+			pmotion->numOutputSegs = 0;
+			pmotion->outputSegIdx = NULL;
 			break;
 		}
 		case EdxlopPhysicalMotionRoutedDistribute:
 		{
-			motion->motionType = MOTIONTYPE_EXPLICIT;
-			motion->numOutputSegs = 0;
-			motion->outputSegIdx = NULL;
-			ULONG segid_col = CDXLPhysicalRoutedDistributeMotion::Cast(motion_dxlop)->SegmentIdCol();
-			const TargetEntry *te_sort_col = child_context.GetTargetEntry(segid_col);
-			motion->segidColIdx = te_sort_col->resno;
+			pmotion->motionType = MOTIONTYPE_EXPLICIT;
+			pmotion->numOutputSegs = 0;
+			pmotion->outputSegIdx = NULL;
+			ULONG ulSegIdCol = CDXLPhysicalRoutedDistributeMotion::PdxlopConvert(pdxlopMotion)->UlSegmentIdCol();
+			const TargetEntry *pteSortCol = dxltrctxChild.Pte(ulSegIdCol);
+			pmotion->segidColIdx = pteSortCol->resno;
 
 			break;
 			
@@ -2009,14 +2013,14 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 			return NULL;
 	}
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) motion;
+	return (Plan *) pmotion;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLRedistributeMotionToResultHashFilters
+//		CTranslatorDXLToPlStmt::PplanResultHashFilters
 //
 //	@doc:
 //		Translate DXL duplicate sensitive redistribute motion node into 
@@ -2024,73 +2028,73 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLRedistributeMotionToResultHashFilters
+CTranslatorDXLToPlStmt::PplanResultHashFilters
 	(
-	const CDXLNode *motion_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnMotion,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create motion node
-	Result *result = MakeNode(Result);
+	Result *presult = MakeNode(Result);
 
-	Plan *plan = &(result->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(presult->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalMotion *motion_dxlop = CDXLPhysicalMotion::Cast(motion_dxlnode->GetOperator());
+	CDXLPhysicalMotion *pdxlopMotion = CDXLPhysicalMotion::PdxlopConvert(pdxlnMotion->Pdxlop());
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(motion_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnMotion->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	CDXLNode *project_list_dxlnode = (*motion_dxlnode)[EdxlrmIndexProjList];
-	CDXLNode *filter_dxlnode = (*motion_dxlnode)[EdxlrmIndexFilter];
-	CDXLNode *child_dxlnode = (*motion_dxlnode)[motion_dxlop->GetRelationChildIdx()];
+	CDXLNode *pdxlnPrL = (*pdxlnMotion)[EdxlrmIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnMotion)[EdxlrmIndexFilter];
+	CDXLNode *pdxlnChild = (*pdxlnMotion)[pdxlopMotion->UlChildIndex()];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
 	// translate hash expr list
-	result->hashFilter = true;
+	presult->hashFilter = true;
 
-	if (EdxlopPhysicalMotionRedistribute == motion_dxlop->GetDXLOperator())
+	if (EdxlopPhysicalMotionRedistribute == pdxlopMotion->Edxlop())
 	{
-		CDXLNode *hash_expr_list_dxlnode = (*motion_dxlnode)[EdxlrmIndexHashExprList];
-		const ULONG length = hash_expr_list_dxlnode->Arity();
-		GPOS_ASSERT(0 < length);
+		CDXLNode *pdxlnHashExprList = (*pdxlnMotion)[EdxlrmIndexHashExprList];
+		const ULONG ulLength = pdxlnHashExprList->UlArity();
+		GPOS_ASSERT(0 < ulLength);
 		
-		for (ULONG ul = 0; ul < length; ul++)
+		for (ULONG ul = 0; ul < ulLength; ul++)
 		{
-			CDXLNode *hash_expr_dxlnode = (*hash_expr_list_dxlnode)[ul];
-			CDXLNode *expr_dxlnode = (*hash_expr_dxlnode)[0];
+			CDXLNode *pdxlnHashExpr = (*pdxlnHashExprList)[ul];
+			CDXLNode *pdxlnExpr = (*pdxlnHashExpr)[0];
 			
-			INT resno = gpos::int_max;
-			if (EdxlopScalarIdent == expr_dxlnode->GetOperator()->GetDXLOperator())
+			INT iResno = gpos::int_max;
+			if (EdxlopScalarIdent == pdxlnExpr->Pdxlop()->Edxlop())
 			{
-				ULONG colid = CDXLScalarIdent::Cast(expr_dxlnode->GetOperator())->GetDXLColRef()->Id();
-				resno = output_context->GetTargetEntry(colid)->resno;
+				ULONG ulColId = CDXLScalarIdent::PdxlopConvert(pdxlnExpr->Pdxlop())->Pdxlcr()->UlID();
+				iResno = pdxltrctxOut->Pte(ulColId)->resno;
 			}
 			else
 			{
@@ -2098,345 +2102,345 @@ CTranslatorDXLToPlStmt::TranslateDXLRedistributeMotionToResultHashFilters
 				// Rather, it is an expresssion that is evaluated by the hash filter such as CAST(a) or a+b.
 				// We therefore, create a corresponding GPDB scalar expression and add it to the project list
 				// of the hash filter
-				CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt
+				CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
 															(
-															m_mp,
+															m_pmp,
 															NULL, // translate context for the base table
-															child_contexts,
-															output_context,
-															m_dxl_to_plstmt_context
+															pdrgpdxltrctx,
+															pdxltrctxOut,
+															m_pctxdxltoplstmt
 															);
 				
-				Expr *expr = m_translator_dxl_to_scalar->TranslateDXLToScalar(expr_dxlnode, &colid_var_mapping);
-				GPOS_ASSERT(NULL != expr);
+				Expr *pexpr = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnExpr, &mapcidvarplstmt);
+				GPOS_ASSERT(NULL != pexpr);
 
 				// create a target entry for the hash filter
-				CWStringConst str_unnamed_col(GPOS_WSZ_LIT("?column?"));
-				TargetEntry *target_entry = gpdb::MakeTargetEntry
+				CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+				TargetEntry *pte = gpdb::PteMakeTargetEntry
 											(
-											expr,
-											gpdb::ListLength(plan->targetlist) + 1,
-											CTranslatorUtils::CreateMultiByteCharStringFromWCString(str_unnamed_col.GetBuffer()),
+											pexpr, 
+											gpdb::UlListLength(pplan->targetlist) + 1, 
+											CTranslatorUtils::SzFromWsz(strUnnamedCol.Wsz()), 
 											false /* resjunk */
 											);
-				plan->targetlist = gpdb::LAppend(plan->targetlist, target_entry);
+				pplan->targetlist = gpdb::PlAppendElement(pplan->targetlist, pte);
 
-				resno = target_entry->resno;
+				iResno = pte->resno;
 			}
-			GPOS_ASSERT(gpos::int_max != resno);
+			GPOS_ASSERT(gpos::int_max != iResno);
 			
-			result->hashList = gpdb::LAppendInt(result->hashList, resno);
+			presult->hashList = gpdb::PlAppendInt(presult->hashList, iResno);
 		}
 	}
 	
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) result;
+	return (Plan *) presult;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLAgg
+//		CTranslatorDXLToPlStmt::PaggFromDXLAgg
 //
 //	@doc:
 //		Translate DXL aggregate node into GPDB Agg plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLAgg
+CTranslatorDXLToPlStmt::PaggFromDXLAgg
 	(
-	const CDXLNode *agg_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnAgg,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create aggregate plan node
-	Agg *agg = MakeNode(Agg);
+	Agg *pagg = MakeNode(Agg);
 
-	Plan *plan = &(agg->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(pagg->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalAgg *dxl_phy_agg_dxlop = CDXLPhysicalAgg::Cast(agg_dxlnode->GetOperator());
+	CDXLPhysicalAgg *pdxlopAgg = CDXLPhysicalAgg::PdxlopConvert(pdxlnAgg->Pdxlop());
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(agg_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnAgg->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate agg child
-	CDXLNode *child_dxlnode = (*agg_dxlnode)[EdxlaggIndexChild];
+	CDXLNode *pdxlnChild = (*pdxlnAgg)[EdxlaggIndexChild];
 
-	CDXLNode *project_list_dxlnode = (*agg_dxlnode)[EdxlaggIndexProjList];
-	CDXLNode *filter_dxlnode = (*agg_dxlnode)[EdxlaggIndexFilter];
+	CDXLNode *pdxlnPrL = (*pdxlnAgg)[EdxlaggIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnAgg)[EdxlaggIndexFilter];
 
-	CDXLTranslateContext child_context(m_mp, true, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, true, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,			// pdxltrctxRight,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,			// pdxltrctxRight,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
 	// translate aggregation strategy
-	switch (dxl_phy_agg_dxlop->GetAggStrategy())
+	switch (pdxlopAgg->Edxlaggstr())
 	{
 		case EdxlaggstrategyPlain:
-			agg->aggstrategy = AGG_PLAIN;
+			pagg->aggstrategy = AGG_PLAIN;
 			break;
 		case EdxlaggstrategySorted:
-			agg->aggstrategy = AGG_SORTED;
+			pagg->aggstrategy = AGG_SORTED;
 			break;
 		case EdxlaggstrategyHashed:
-			agg->aggstrategy = AGG_HASHED;
+			pagg->aggstrategy = AGG_HASHED;
 			break;
 		default:
 			GPOS_ASSERT(!"Invalid aggregation strategy");
 	}
 
-	agg->streaming = dxl_phy_agg_dxlop->IsStreamSafe();
+	pagg->streaming = pdxlopAgg->FStreamSafe();
 
 	// translate grouping cols
-	const ULongPtrArray *grouping_colid_array = dxl_phy_agg_dxlop->GetGroupingColidArray();
-	agg->numCols = grouping_colid_array->Size();
-	if (agg->numCols > 0)
+	const DrgPul *pdrpulGroupingCols = pdxlopAgg->PdrgpulGroupingCols();
+	pagg->numCols = pdrpulGroupingCols->UlLength();
+	if (pagg->numCols > 0)
 	{
-		agg->grpColIdx = (AttrNumber *) gpdb::GPDBAlloc(agg->numCols * sizeof(AttrNumber));
-		agg->grpOperators = (Oid *) gpdb::GPDBAlloc(agg->numCols * sizeof(Oid));
+		pagg->grpColIdx = (AttrNumber *) gpdb::GPDBAlloc(pagg->numCols * sizeof(AttrNumber));
+		pagg->grpOperators = (Oid *) gpdb::GPDBAlloc(pagg->numCols * sizeof(Oid));
 	}
 	else
 	{
-		agg->grpColIdx = NULL;
-		agg->grpOperators = NULL;
+		pagg->grpColIdx = NULL;
+		pagg->grpOperators = NULL;
 	}
 
-	const ULONG length = grouping_colid_array->Size();
-	for (ULONG ul = 0; ul < length; ul++)
+	const ULONG ulLen = pdrpulGroupingCols->UlLength();
+	for (ULONG ul = 0; ul < ulLen; ul++)
 	{
-		ULONG grouping_colid = *((*grouping_colid_array)[ul]);
-		const TargetEntry *target_entry_grouping_col = child_context.GetTargetEntry(grouping_colid);
-		if (NULL  == target_entry_grouping_col)
+		ULONG ulGroupingColId = *((*pdrpulGroupingCols)[ul]);
+		const TargetEntry *pteGroupingCol = dxltrctxChild.Pte(ulGroupingColId);
+		if (NULL  == pteGroupingCol)
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, grouping_colid);
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, ulGroupingColId);
 		}
-		agg->grpColIdx[ul] = target_entry_grouping_col->resno;
+		pagg->grpColIdx[ul] = pteGroupingCol->resno;
 
 		// Also find the equality operators to use for each grouping col.
-		Oid typeId = gpdb::ExprType((Node *) target_entry_grouping_col->expr);
-		agg->grpOperators[ul] = gpdb::GetEqualityOp(typeId);
-		Assert(agg->grpOperators[ul] != 0);
+		Oid typeId = gpdb::OidExprType((Node *) pteGroupingCol->expr);
+		pagg->grpOperators[ul] = gpdb::OidEqualityOp(typeId);
+		Assert(pagg->grpOperators[ul] != 0);
 	}
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) agg;
+	return (Plan *) pagg;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLWindow
+//		CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 //
 //	@doc:
 //		Translate DXL window node into GPDB window plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLWindow
+CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 	(
-	const CDXLNode *window_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnWindow,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create a WindowAgg plan node
-	WindowAgg *window = MakeNode(WindowAgg);
+	WindowAgg *pwindow = MakeNode(WindowAgg);
 
-	Plan *plan = &(window->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(pwindow->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalWindow *window_dxlop = CDXLPhysicalWindow::Cast(window_dxlnode->GetOperator());
+	CDXLPhysicalWindow *pdxlopWindow = CDXLPhysicalWindow::PdxlopConvert(pdxlnWindow->Pdxlop());
 
 	// translate the operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(window_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnWindow->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate children
-	CDXLNode *child_dxlnode = (*window_dxlnode)[EdxlwindowIndexChild];
-	CDXLNode *project_list_dxlnode = (*window_dxlnode)[EdxlwindowIndexProjList];
-	CDXLNode *filter_dxlnode = (*window_dxlnode)[EdxlwindowIndexFilter];
+	CDXLNode *pdxlnChild = (*pdxlnWindow)[EdxlwindowIndexChild];
+	CDXLNode *pdxlnPrL = (*pdxlnWindow)[EdxlwindowIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnWindow)[EdxlwindowIndexFilter];
 
-	CDXLTranslateContext child_context(m_mp, true, output_context->GetColIdToParamIdMap());
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	CDXLTranslateContext dxltrctxChild(m_pmp, true, pdxltrctxOut->PhmColParam());
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,			// pdxltrctxRight,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,			// pdxltrctxRight,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
-	ListCell *lc;
+	ListCell *plc;
 
-	foreach (lc, plan->targetlist)
+	foreach (plc, pplan->targetlist)
 	{
-		TargetEntry *target_entry = (TargetEntry *) lfirst(lc);
-		if (IsA(target_entry->expr, WindowFunc))
+		TargetEntry *pte = (TargetEntry *) lfirst(plc);
+		if (IsA(pte->expr, WindowFunc))
 		{
-			WindowFunc *window_func = (WindowFunc *) target_entry->expr;
-			window->winref = window_func->winref;
+			WindowFunc *pwinfunc = (WindowFunc *) pte->expr;
+			pwindow->winref = pwinfunc->winref;
 			break;
 		}
 	}
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
 	// translate partition columns
-	const ULongPtrArray *part_by_cols_array = window_dxlop->GetPartByColsArray();
-	window->partNumCols = part_by_cols_array->Size();
-	window->partColIdx = NULL;
-	window->partOperators = NULL;
+	const DrgPul *pdrpulPartCols = pdxlopWindow->PrgpulPartCols();
+	pwindow->partNumCols = pdrpulPartCols->UlLength();
+	pwindow->partColIdx = NULL;
+	pwindow->partOperators = NULL;
 
-	if (window->partNumCols > 0)
+	if (pwindow->partNumCols > 0)
 	{
-		window->partColIdx = (AttrNumber *) gpdb::GPDBAlloc(window->partNumCols * sizeof(AttrNumber));
-		window->partOperators = (Oid *) gpdb::GPDBAlloc(window->partNumCols * sizeof(Oid));
+		pwindow->partColIdx = (AttrNumber *) gpdb::GPDBAlloc(pwindow->partNumCols * sizeof(AttrNumber));
+		pwindow->partOperators = (Oid *) gpdb::GPDBAlloc(pwindow->partNumCols * sizeof(Oid));
 	}
 
-	const ULONG num_of_part_cols = part_by_cols_array->Size();
-	for (ULONG ul = 0; ul < num_of_part_cols; ul++)
+	const ULONG ulPartCols = pdrpulPartCols->UlLength();
+	for (ULONG ul = 0; ul < ulPartCols; ul++)
 	{
-		ULONG part_colid = *((*part_by_cols_array)[ul]);
-		const TargetEntry *te_part_colid = child_context.GetTargetEntry(part_colid);
-		if (NULL  == te_part_colid)
+		ULONG ulPartColId = *((*pdrpulPartCols)[ul]);
+		const TargetEntry *ptePartCol = dxltrctxChild.Pte(ulPartColId);
+		if (NULL  == ptePartCol)
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, part_colid);
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, ulPartColId);
 		}
-		window->partColIdx[ul] = te_part_colid->resno;
+		pwindow->partColIdx[ul] = ptePartCol->resno;
 
 		// Also find the equality operators to use for each partitioning key col.
-		Oid type_id = gpdb::ExprType((Node *) te_part_colid->expr);
-		window->partOperators[ul] = gpdb::GetEqualityOp(type_id);
-		Assert(window->partOperators[ul] != 0);
+		Oid typeId = gpdb::OidExprType((Node *) ptePartCol->expr);
+		pwindow->partOperators[ul] = gpdb::OidEqualityOp(typeId);
+		Assert(pwindow->partOperators[ul] != 0);
 	}
 
 	// translate window keys
-	const ULONG size = window_dxlop->WindowKeysCount();
-	if (size > 1)
+	const ULONG ulSize = pdxlopWindow->UlWindowKeys();
+	if (ulSize > 1)
 	  {
 	    GpdbEreport(ERRCODE_INTERNAL_ERROR,
 			ERROR,
 			"ORCA produced a plan with more than one window key",
 			NULL);
 	  }
-	GPOS_ASSERT(size <= 1 && "cannot have more than one window key");
+	GPOS_ASSERT(ulSize <= 1 && "cannot have more than one window key");
 
-	if (size == 1)
+	if (ulSize == 1)
 	{
 		// translate the sorting columns used in the window key
-		const CDXLWindowKey *window_key = window_dxlop->GetDXLWindowKeyAt(0);
-		const CDXLWindowFrame *window_frame = window_key->GetWindowFrame();
-		const CDXLNode *sort_col_list_dxlnode = window_key->GetSortColListDXL();
+		const CDXLWindowKey *pdxlwindowkey = pdxlopWindow->PdxlWindowKey(0);
+		const CDXLWindowFrame *pdxlwf = pdxlwindowkey->Pdxlwf();
+		const CDXLNode *pdxlnSortColList = pdxlwindowkey->PdxlnSortColList();
 
-		const ULONG num_of_cols = sort_col_list_dxlnode->Arity();
+		const ULONG ulNumCols = pdxlnSortColList->UlArity();
 
-		window->ordNumCols = num_of_cols;
-		window->ordColIdx = (AttrNumber *) gpdb::GPDBAlloc(num_of_cols * sizeof(AttrNumber));
-		window->ordOperators = (Oid *) gpdb::GPDBAlloc(num_of_cols * sizeof(Oid));
-		bool *is_nulls_first = (bool *) gpdb::GPDBAlloc(num_of_cols * sizeof(bool));
-		TranslateSortCols(sort_col_list_dxlnode, &child_context, window->ordColIdx, window->ordOperators, NULL, is_nulls_first);
+		pwindow->ordNumCols = ulNumCols;
+		pwindow->ordColIdx = (AttrNumber *) gpdb::GPDBAlloc(ulNumCols * sizeof(AttrNumber));
+		pwindow->ordOperators = (Oid *) gpdb::GPDBAlloc(ulNumCols * sizeof(Oid));
+		bool *pNullsFirst = (bool *) gpdb::GPDBAlloc(ulNumCols * sizeof(bool));
+		TranslateSortCols(pdxlnSortColList, &dxltrctxChild, pwindow->ordColIdx, pwindow->ordOperators, NULL, pNullsFirst);
 
 		// The firstOrder* fields are separate from just picking the first of ordCol*,
 		// because the Postgres planner might omit columns that are redundant with the
 		// PARTITION BY from ordCol*. But ORCA doesn't do that, so we can just copy
 		// the first entry of ordColIdx/ordOperators into firstOrder* fields.
-		if (num_of_cols > 0)
+		if (ulNumCols > 0)
 		{
-			window->firstOrderCol = window->ordColIdx[0];
-			window->firstOrderCmpOperator = window->ordOperators[0];
-			window->firstOrderNullsFirst = is_nulls_first[0];
+			pwindow->firstOrderCol = pwindow->ordColIdx[0];
+			pwindow->firstOrderCmpOperator = pwindow->ordOperators[0];
+			pwindow->firstOrderNullsFirst = pNullsFirst[0];
 		}
-		gpdb::GPDBFree(is_nulls_first);
+		gpdb::GPDBFree(pNullsFirst);
 
 		// The ordOperators array is actually supposed to contain equality operators,
 		// not ordering operators (< or >). So look up the corresponding equality
 		// operator for each ordering operator.
-		for (ULONG i = 0; i < num_of_cols; i++)
+		for (ULONG i = 0; i < ulNumCols; i++)
 		{
-			window->ordOperators[i] = gpdb::GetEqualityOpForOrderingOp(window->ordOperators[i], NULL);
+			pwindow->ordOperators[i] = gpdb::OidEqualityOpForOrderingOp(pwindow->ordOperators[i], NULL);
 		}
 
 		// translate the window frame specified in the window key
-		if (NULL != window_key->GetWindowFrame())
+		if (NULL != pdxlwindowkey->Pdxlwf())
 		{
-			window->frameOptions = FRAMEOPTION_NONDEFAULT;
-			if (EdxlfsRow == window_frame->ParseDXLFrameSpec())
+			pwindow->frameOptions = FRAMEOPTION_NONDEFAULT;
+			if (EdxlfsRow == pdxlwf->Edxlfs())
 			{
-				window->frameOptions |= FRAMEOPTION_ROWS;
+				pwindow->frameOptions |= FRAMEOPTION_ROWS;
 			}
 			else
 			{
-				window->frameOptions |= FRAMEOPTION_RANGE;
+				pwindow->frameOptions |= FRAMEOPTION_RANGE;
 			}
 
-			if (window_frame->ParseFrameExclusionStrategy() != EdxlfesNulls)
+			if (pdxlwf->Edxlfes() != EdxlfesNulls)
 			{
 				GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 					   GPOS_WSZ_LIT("EXCLUDE clause in window frame"));
 			}
 
 			// translate the CDXLNodes representing the leading and trailing edge
-			CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-			child_contexts->Append(&child_context);
+			DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+			pdrgpdxltrctx->Append(&dxltrctxChild);
 
-			CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt
+			CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
 			(
-			 m_mp,
+			 m_pmp,
 			 NULL,
-			 child_contexts,
-			 output_context,
-			 m_dxl_to_plstmt_context
+			 pdrgpdxltrctx,
+			 pdxltrctxOut,
+			 m_pctxdxltoplstmt
 			);
 
 			// Translate lead boundary
@@ -2445,816 +2449,816 @@ CTranslatorDXLToPlStmt::TranslateDXLWindow
 			// versions beoynd this point. Executor will make that decision
 			// without our help.
 			//
-			CDXLNode *win_frame_leading_dxlnode = window_frame->PdxlnLeading();
-			EdxlFrameBoundary lead_boundary_type = CDXLScalarWindowFrameEdge::Cast(win_frame_leading_dxlnode->GetOperator())->ParseDXLFrameBoundary();
-			if (lead_boundary_type == EdxlfbUnboundedPreceding)
-				window->frameOptions |= FRAMEOPTION_END_UNBOUNDED_PRECEDING;
-			if (lead_boundary_type == EdxlfbBoundedPreceding)
-				window->frameOptions |= FRAMEOPTION_END_VALUE_PRECEDING;
-			if (lead_boundary_type == EdxlfbCurrentRow)
-				window->frameOptions |= FRAMEOPTION_END_CURRENT_ROW;
-			if (lead_boundary_type == EdxlfbBoundedFollowing)
-				window->frameOptions |= FRAMEOPTION_END_VALUE_FOLLOWING;
-			if (lead_boundary_type == EdxlfbUnboundedFollowing)
-				window->frameOptions |= FRAMEOPTION_END_UNBOUNDED_FOLLOWING;
-			if (lead_boundary_type == EdxlfbDelayedBoundedPreceding)
-				window->frameOptions |= FRAMEOPTION_END_VALUE_PRECEDING;
-			if (lead_boundary_type == EdxlfbDelayedBoundedFollowing)
-				window->frameOptions |= FRAMEOPTION_END_VALUE_FOLLOWING;
-			if (0 != win_frame_leading_dxlnode->Arity())
+			CDXLNode *pdxlnLead = pdxlwf->PdxlnLeading();
+			EdxlFrameBoundary leadBoundary = CDXLScalarWindowFrameEdge::PdxlopConvert(pdxlnLead->Pdxlop())->Edxlfb();
+			if (leadBoundary == EdxlfbUnboundedPreceding)
+				pwindow->frameOptions |= FRAMEOPTION_END_UNBOUNDED_PRECEDING;
+			if (leadBoundary == EdxlfbBoundedPreceding)
+				pwindow->frameOptions |= FRAMEOPTION_END_VALUE_PRECEDING;
+			if (leadBoundary == EdxlfbCurrentRow)
+				pwindow->frameOptions |= FRAMEOPTION_END_CURRENT_ROW;
+			if (leadBoundary == EdxlfbBoundedFollowing)
+				pwindow->frameOptions |= FRAMEOPTION_END_VALUE_FOLLOWING;
+			if (leadBoundary == EdxlfbUnboundedFollowing)
+				pwindow->frameOptions |= FRAMEOPTION_END_UNBOUNDED_FOLLOWING;
+			if (leadBoundary == EdxlfbDelayedBoundedPreceding)
+				pwindow->frameOptions |= FRAMEOPTION_END_VALUE_PRECEDING;
+			if (leadBoundary == EdxlfbDelayedBoundedFollowing)
+				pwindow->frameOptions |= FRAMEOPTION_END_VALUE_FOLLOWING;
+			if (0 != pdxlnLead->UlArity())
 			{
-				window->endOffset = (Node *) m_translator_dxl_to_scalar->TranslateDXLToScalar((*win_frame_leading_dxlnode)[0], &colid_var_mapping);
+				pwindow->endOffset = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar((*pdxlnLead)[0], &mapcidvarplstmt);
 			}
 
 			// And the same for the trail boundary
-			CDXLNode *win_frame_trailing_dxlnode = window_frame->PdxlnTrailing();
-			EdxlFrameBoundary trail_boundary_type = CDXLScalarWindowFrameEdge::Cast(win_frame_trailing_dxlnode->GetOperator())->ParseDXLFrameBoundary();
-			if (trail_boundary_type == EdxlfbUnboundedPreceding)
-				window->frameOptions |= FRAMEOPTION_START_UNBOUNDED_PRECEDING;
-			if (trail_boundary_type == EdxlfbBoundedPreceding)
-				window->frameOptions |= FRAMEOPTION_START_VALUE_PRECEDING;
-			if (trail_boundary_type == EdxlfbCurrentRow)
-				window->frameOptions |= FRAMEOPTION_START_CURRENT_ROW;
-			if (trail_boundary_type == EdxlfbBoundedFollowing)
-				window->frameOptions |= FRAMEOPTION_START_VALUE_FOLLOWING;
-			if (trail_boundary_type == EdxlfbUnboundedFollowing)
-				window->frameOptions |= FRAMEOPTION_START_UNBOUNDED_FOLLOWING;
-			if (trail_boundary_type == EdxlfbDelayedBoundedPreceding)
-				window->frameOptions |= FRAMEOPTION_START_VALUE_PRECEDING;
-			if (trail_boundary_type == EdxlfbDelayedBoundedFollowing)
-				window->frameOptions |= FRAMEOPTION_START_VALUE_FOLLOWING;
-			if (0 != win_frame_trailing_dxlnode->Arity())
+			CDXLNode *pdxlnTrail = pdxlwf->PdxlnTrailing();
+			EdxlFrameBoundary trailBoundary = CDXLScalarWindowFrameEdge::PdxlopConvert(pdxlnTrail->Pdxlop())->Edxlfb();
+			if (trailBoundary == EdxlfbUnboundedPreceding)
+				pwindow->frameOptions |= FRAMEOPTION_START_UNBOUNDED_PRECEDING;
+			if (trailBoundary == EdxlfbBoundedPreceding)
+				pwindow->frameOptions |= FRAMEOPTION_START_VALUE_PRECEDING;
+			if (trailBoundary == EdxlfbCurrentRow)
+				pwindow->frameOptions |= FRAMEOPTION_START_CURRENT_ROW;
+			if (trailBoundary == EdxlfbBoundedFollowing)
+				pwindow->frameOptions |= FRAMEOPTION_START_VALUE_FOLLOWING;
+			if (trailBoundary == EdxlfbUnboundedFollowing)
+				pwindow->frameOptions |= FRAMEOPTION_START_UNBOUNDED_FOLLOWING;
+			if (trailBoundary == EdxlfbDelayedBoundedPreceding)
+				pwindow->frameOptions |= FRAMEOPTION_START_VALUE_PRECEDING;
+			if (trailBoundary == EdxlfbDelayedBoundedFollowing)
+				pwindow->frameOptions |= FRAMEOPTION_START_VALUE_FOLLOWING;
+			if (0 != pdxlnTrail->UlArity())
 			{
-				window->startOffset = (Node *) m_translator_dxl_to_scalar->TranslateDXLToScalar((*win_frame_trailing_dxlnode)[0], &colid_var_mapping);
+				pwindow->startOffset = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar((*pdxlnTrail)[0], &mapcidvarplstmt);
 			}
 
 			// cleanup
-			child_contexts->Release();
+			pdrgpdxltrctx->Release();
 		}
 		else
-			window->frameOptions = FRAMEOPTION_DEFAULTS;
+			pwindow->frameOptions = FRAMEOPTION_DEFAULTS;
 	}
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) window;
+	return (Plan *) pwindow;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLSort
+//		CTranslatorDXLToPlStmt::PsortFromDXLSort
 //
 //	@doc:
 //		Translate DXL sort node into GPDB Sort plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLSort
+CTranslatorDXLToPlStmt::PsortFromDXLSort
 	(
-	const CDXLNode *sort_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnSort,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create sort plan node
-	Sort *sort = MakeNode(Sort);
+	Sort *psort = MakeNode(Sort);
 
-	Plan *plan = &(sort->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(psort->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalSort *sort_dxlop = CDXLPhysicalSort::Cast(sort_dxlnode->GetOperator());
+	CDXLPhysicalSort *pdxlopSort = CDXLPhysicalSort::PdxlopConvert(pdxlnSort->Pdxlop());
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(sort_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnSort->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate sort child
-	CDXLNode *child_dxlnode = (*sort_dxlnode)[EdxlsortIndexChild];
-	CDXLNode *project_list_dxlnode = (*sort_dxlnode)[EdxlsortIndexProjList];
-	CDXLNode *filter_dxlnode = (*sort_dxlnode)[EdxlsortIndexFilter];
+	CDXLNode *pdxlnChild = (*pdxlnSort)[EdxlsortIndexChild];
+	CDXLNode *pdxlnPrL = (*pdxlnSort)[EdxlsortIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnSort)[EdxlsortIndexFilter];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
 	// set sorting info
-	sort->noduplicates = sort_dxlop->FDiscardDuplicates();
+	psort->noduplicates = pdxlopSort->FDiscardDuplicates();
 
 	// translate sorting columns
 
-	const CDXLNode *sort_col_list_dxl = (*sort_dxlnode)[EdxlsortIndexSortColList];
+	const CDXLNode *pdxlnSortColList = (*pdxlnSort)[EdxlsortIndexSortColList];
 
-	const ULONG num_of_cols = sort_col_list_dxl->Arity();
-	sort->numCols = num_of_cols;
-	sort->sortColIdx = (AttrNumber *) gpdb::GPDBAlloc(num_of_cols * sizeof(AttrNumber));
-	sort->sortOperators = (Oid *) gpdb::GPDBAlloc(num_of_cols * sizeof(Oid));
-	sort->collations = (Oid *) gpdb::GPDBAlloc(num_of_cols * sizeof(Oid));
-	sort->nullsFirst = (bool *) gpdb::GPDBAlloc(num_of_cols * sizeof(bool));
+	const ULONG ulNumCols = pdxlnSortColList->UlArity();
+	psort->numCols = ulNumCols;
+	psort->sortColIdx = (AttrNumber *) gpdb::GPDBAlloc(ulNumCols * sizeof(AttrNumber));
+	psort->sortOperators = (Oid *) gpdb::GPDBAlloc(ulNumCols * sizeof(Oid));
+	psort->collations = (Oid *) gpdb::GPDBAlloc(ulNumCols * sizeof(Oid));
+	psort->nullsFirst = (bool *) gpdb::GPDBAlloc(ulNumCols * sizeof(bool));
 
-	TranslateSortCols(sort_col_list_dxl, &child_context, sort->sortColIdx, sort->sortOperators, sort->collations, sort->nullsFirst);
+	TranslateSortCols(pdxlnSortColList, &dxltrctxChild, psort->sortColIdx, psort->sortOperators, psort->collations, psort->nullsFirst);
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) sort;
+	return (Plan *) psort;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLSubQueryScan
+//		CTranslatorDXLToPlStmt::PsubqscanFromDXLSubqScan
 //
 //	@doc:
 //		Translate DXL subquery scan node into GPDB SubqueryScan plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLSubQueryScan
+CTranslatorDXLToPlStmt::PsubqscanFromDXLSubqScan
 	(
-	const CDXLNode *subquery_scan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnSubqScan,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create sort plan node
-	SubqueryScan *subquery_scan = MakeNode(SubqueryScan);
+	SubqueryScan *psubqscan = MakeNode(SubqueryScan);
 
-	Plan *plan = &(subquery_scan->scan.plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(psubqscan->scan.plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalSubqueryScan *subquery_scan_dxlop = CDXLPhysicalSubqueryScan::Cast(subquery_scan_dxlnode->GetOperator());
+	CDXLPhysicalSubqueryScan *pdxlopSubqscan = CDXLPhysicalSubqueryScan::PdxlopConvert(pdxlnSubqScan->Pdxlop());
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(subquery_scan_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnSubqScan->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate subplan
-	CDXLNode *child_dxlnode = (*subquery_scan_dxlnode)[EdxlsubqscanIndexChild];
-	CDXLNode *project_list_dxlnode = (*subquery_scan_dxlnode)[EdxlsubqscanIndexProjList];
-	CDXLNode *filter_dxlnode = (*subquery_scan_dxlnode)[EdxlsubqscanIndexFilter];
+	CDXLNode *pdxlnChild = (*pdxlnSubqScan)[EdxlsubqscanIndexChild];
+	CDXLNode *pdxlnPrL = (*pdxlnSubqScan)[EdxlsubqscanIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnSubqScan)[EdxlsubqscanIndexFilter];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
 	// create an rtable entry for the subquery scan
-	RangeTblEntry *rte = MakeNode(RangeTblEntry);
-	rte->rtekind = RTE_SUBQUERY;
+	RangeTblEntry *prte = MakeNode(RangeTblEntry);
+	prte->rtekind = RTE_SUBQUERY;
 
-	Alias *alias = MakeNode(Alias);
-	alias->colnames = NIL;
+	Alias *palias = MakeNode(Alias);
+	palias->colnames = NIL;
 
 	// get table alias
-	alias->aliasname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(subquery_scan_dxlop->MdName()->GetMDName()->GetBuffer());
+	palias->aliasname = CTranslatorUtils::SzFromWsz(pdxlopSubqscan->Pmdname()->Pstr()->Wsz());
 
 	// get column names from child project list
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
-	(subquery_scan->scan).scanrelid = index;
-	base_table_context.SetRelIndex(index);
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
+	(psubqscan->scan).scanrelid = iRel;
+	dxltrctxbt.SetIdx(iRel);
 
-	ListCell *lc_tgtentry = NULL;
+	ListCell *plcTE = NULL;
 
-	CDXLNode *child_proj_list_dxlnode = (*child_dxlnode)[0];
+	CDXLNode *pdxlnChildProjList = (*pdxlnChild)[0];
 
 	ULONG ul = 0;
 
-	ForEach (lc_tgtentry, child_plan->targetlist)
+	ForEach (plcTE, pplanChild->targetlist)
 	{
-		TargetEntry *target_entry = (TargetEntry *) lfirst(lc_tgtentry);
+		TargetEntry *pte = (TargetEntry *) lfirst(plcTE);
 
 		// non-system attribute
-		CHAR *col_name_char_array = PStrDup(target_entry->resname);
-		Value *val_colname = gpdb::MakeStringValue(col_name_char_array);
-		alias->colnames = gpdb::LAppend(alias->colnames, val_colname);
+		CHAR *szColName = PStrDup(pte->resname);
+		Value *pvalColName = gpdb::PvalMakeString(szColName);
+		palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalColName);
 
 		// get corresponding child project element
-		CDXLScalarProjElem *sc_proj_elem_dxlop = CDXLScalarProjElem::Cast((*child_proj_list_dxlnode)[ul]->GetOperator());
+		CDXLScalarProjElem *pdxlopPrel = CDXLScalarProjElem::PdxlopConvert((*pdxlnChildProjList)[ul]->Pdxlop());
 
 		// save mapping col id -> index in translate context
-		(void) base_table_context.InsertMapping(sc_proj_elem_dxlop->Id(), target_entry->resno);
+		(void) dxltrctxbt.FInsertMapping(pdxlopPrel->UlId(), pte->resno);
 		ul++;
 	}
 
-	rte->eref = alias;
+	prte->eref = palias;
 
 	// add range table entry for the subquery to the list
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	m_pctxdxltoplstmt->AddRTE(prte);
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
-		&base_table_context,		// translate context for the base table
+		pdxlnPrL,
+		pdxlnFilter,
+		&dxltrctxbt,		// translate context for the base table
 		NULL,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
-	subquery_scan->subplan = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
+	psubqscan->subplan = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
-	SetParamIds(plan);
-	return (Plan *) subquery_scan;
+	SetParamIds(pplan);
+	return (Plan *) psubqscan;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLResult
+//		CTranslatorDXLToPlStmt::PresultFromDXLResult
 //
 //	@doc:
 //		Translate DXL result node into GPDB result plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLResult
+CTranslatorDXLToPlStmt::PresultFromDXLResult
 	(
-	const CDXLNode *result_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnResult,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create result plan node
-	Result *result = MakeNode(Result);
+	Result *presult = MakeNode(Result);
 
-	Plan *plan = &(result->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(presult->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(result_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnResult->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	plan->nMotionNodes = 0;
+	pplan->nMotionNodes = 0;
 
-	CDXLNode *child_dxlnode = NULL;
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLNode *pdxlnChild = NULL;
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	if (result_dxlnode->Arity() - 1 == EdxlresultIndexChild)
+	if (pdxlnResult->UlArity() - 1 == EdxlresultIndexChild)
 	{
 		// translate child plan
-		child_dxlnode = (*result_dxlnode)[EdxlresultIndexChild];
+		pdxlnChild = (*pdxlnResult)[EdxlresultIndexChild];
 
-		Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+		Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-		GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
+		GPOS_ASSERT(NULL != pplanChild && "child plan cannot be NULL");
 
-		result->plan.lefttree = child_plan;
+		presult->plan.lefttree = pplanChild;
 
-		plan->nMotionNodes = child_plan->nMotionNodes;
+		pplan->nMotionNodes = pplanChild->nMotionNodes;
 	}
 
-	CDXLNode *project_list_dxlnode = (*result_dxlnode)[EdxlresultIndexProjList];
-	CDXLNode *filter_dxlnode = (*result_dxlnode)[EdxlresultIndexFilter];
-	CDXLNode *one_time_filter_dxlnode = (*result_dxlnode)[EdxlresultIndexOneTimeFilter];
+	CDXLNode *pdxlnPrL = (*pdxlnResult)[EdxlresultIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnResult)[EdxlresultIndexFilter];
+	CDXLNode *pdxlnOneTimeFilter = (*pdxlnResult)[EdxlresultIndexOneTimeFilter];
 
-	List *quals_list = NULL;
+	List *plQuals = NULL;
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,		// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&quals_list,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&plQuals,
+		pdxltrctxOut
 		);
 
 	// translate one time filter
-	List *one_time_quals_list = TranslateDXLFilterToQual
+	List *plOneTimeQuals = PlQualFromFilter
 							(
-							one_time_filter_dxlnode,
+							pdxlnOneTimeFilter,
 							NULL,			// base table translation context
-							child_contexts,
-							output_context
+							pdrgpdxltrctx,
+							pdxltrctxOut
 							);
 
-	plan->qual = quals_list;
+	pplan->qual = plQuals;
 
-	result->resconstantqual = (Node *) one_time_quals_list;
+	presult->resconstantqual = (Node *) plOneTimeQuals;
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) result;
+	return (Plan *) presult;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLPartSelector
+//		CTranslatorDXLToPlStmt::PplanPartitionSelector
 //
 //	@doc:
 //		Translate DXL PartitionSelector into a GPDB PartitionSelector node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLPartSelector
+CTranslatorDXLToPlStmt::PplanPartitionSelector
 	(
-	const CDXLNode *partition_selector_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnPartitionSelector,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	PartitionSelector *partition_selector = MakeNode(PartitionSelector);
+	PartitionSelector *ppartsel = MakeNode(PartitionSelector);
 
-	Plan *plan = &(partition_selector->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(ppartsel->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalPartitionSelector *partition_selector_dxlop = CDXLPhysicalPartitionSelector::Cast(partition_selector_dxlnode->GetOperator());
-	const ULONG num_of_levels = partition_selector_dxlop->GetPartitioningLevel();
-	partition_selector->nLevels = num_of_levels;
-	partition_selector->scanId = partition_selector_dxlop->ScanId();
-	partition_selector->relid = CMDIdGPDB::CastMdid(partition_selector_dxlop->GetRelMdId())->Oid();
-	partition_selector->selectorId = m_partition_selector_counter++;
+	CDXLPhysicalPartitionSelector *pdxlopPartSel = CDXLPhysicalPartitionSelector::PdxlopConvert(pdxlnPartitionSelector->Pdxlop());
+	const ULONG ulLevels = pdxlopPartSel->UlLevels();
+	ppartsel->nLevels = ulLevels;
+	ppartsel->scanId = pdxlopPartSel->UlScanId();
+	ppartsel->relid = CMDIdGPDB::PmdidConvert(pdxlopPartSel->PmdidRel())->OidObjectId();
+	ppartsel->selectorId = m_ulPartitionSelectorCounter++;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(partition_selector_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnPartitionSelector->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	plan->nMotionNodes = 0;
+	pplan->nMotionNodes = 0;
 
-	CDXLNode *child_dxlnode = NULL;
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
+	CDXLNode *pdxlnChild = NULL;
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	BOOL has_childs = (EdxlpsIndexChild == partition_selector_dxlnode->Arity() - 1);
-	if (has_childs)
+	BOOL fHasChild = (EdxlpsIndexChild == pdxlnPartitionSelector->UlArity() - 1);
+	if (fHasChild)
 	{
 		// translate child plan
-		child_dxlnode = (*partition_selector_dxlnode)[EdxlpsIndexChild];
+		pdxlnChild = (*pdxlnPartitionSelector)[EdxlpsIndexChild];
 
-		Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
-		GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
+		Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
+		GPOS_ASSERT(NULL != pplanChild && "child plan cannot be NULL");
 
-		partition_selector->plan.lefttree = child_plan;
-		plan->nMotionNodes = child_plan->nMotionNodes;
+		ppartsel->plan.lefttree = pplanChild;
+		pplan->nMotionNodes = pplanChild->nMotionNodes;
 	}
 
-	child_contexts->Append(&child_context);
+	pdrgpdxltrctx->Append(&dxltrctxChild);
 
-	CDXLNode *project_list_dxlnode = (*partition_selector_dxlnode)[EdxlpsIndexProjList];
-	CDXLNode *eq_filters_dxlnode = (*partition_selector_dxlnode)[EdxlpsIndexEqFilters];
-	CDXLNode *filters_dxlnode = (*partition_selector_dxlnode)[EdxlpsIndexFilters];
-	CDXLNode *residual_filter_dxlnode = (*partition_selector_dxlnode)[EdxlpsIndexResidualFilter];
-	CDXLNode *proj_expr_dxlnode = (*partition_selector_dxlnode)[EdxlpsIndexPropExpr];
+	CDXLNode *pdxlnPrL = (*pdxlnPartitionSelector)[EdxlpsIndexProjList];
+	CDXLNode *pdxlnEqFilters = (*pdxlnPartitionSelector)[EdxlpsIndexEqFilters];
+	CDXLNode *pdxlnFilters = (*pdxlnPartitionSelector)[EdxlpsIndexFilters];
+	CDXLNode *pdxlnResidualFilter = (*pdxlnPartitionSelector)[EdxlpsIndexResidualFilter];
+	CDXLNode *pdxlnPropExpr = (*pdxlnPartitionSelector)[EdxlpsIndexPropExpr];
 
 	// translate proj list
-	plan->targetlist = TranslateDXLProjList(project_list_dxlnode, NULL /*base_table_context*/, child_contexts, output_context);
+	pplan->targetlist = PlTargetListFromProjList(pdxlnPrL, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut);
 
 	// translate filter lists
-	GPOS_ASSERT(eq_filters_dxlnode->Arity() == num_of_levels);
-	partition_selector->levelEqExpressions = TranslateDXLFilterList(eq_filters_dxlnode, NULL /*base_table_context*/, child_contexts, output_context);
+	GPOS_ASSERT(pdxlnEqFilters->UlArity() == ulLevels);
+	ppartsel->levelEqExpressions = PlFilterList(pdxlnEqFilters, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut);
 
-	GPOS_ASSERT(filters_dxlnode->Arity() == num_of_levels);
-	partition_selector->levelExpressions = TranslateDXLFilterList(filters_dxlnode, NULL /*base_table_context*/, child_contexts, output_context);
+	GPOS_ASSERT(pdxlnFilters->UlArity() == ulLevels);
+	ppartsel->levelExpressions = PlFilterList(pdxlnFilters, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut);
 
 	//translate residual filter
-	CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt(m_mp, NULL /*base_table_context*/, child_contexts, output_context, m_dxl_to_plstmt_context);
-	if (!m_translator_dxl_to_scalar->HasConstTrue(residual_filter_dxlnode, m_md_accessor))
+	CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt(m_pmp, NULL /*pdxltrctxbt*/, pdrgpdxltrctx, pdxltrctxOut, m_pctxdxltoplstmt);
+	if (!m_pdxlsctranslator->FConstTrue(pdxlnResidualFilter, m_pmda))
 	{
-		partition_selector->residualPredicate = (Node *) m_translator_dxl_to_scalar->TranslateDXLToScalar(residual_filter_dxlnode, &colid_var_mapping);
+		ppartsel->residualPredicate = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnResidualFilter, &mapcidvarplstmt);
 	}
 
 	//translate propagation expression
-	if (!m_translator_dxl_to_scalar->HasConstNull(proj_expr_dxlnode))
+	if (!m_pdxlsctranslator->FConstNull(pdxlnPropExpr))
 	{
-		partition_selector->propagationExpression = (Node *) m_translator_dxl_to_scalar->TranslateDXLToScalar(proj_expr_dxlnode, &colid_var_mapping);
+		ppartsel->propagationExpression = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnPropExpr, &mapcidvarplstmt);
 	}
 
 	// no need to translate printable filter - since it is not needed by the executor
 
-	partition_selector->staticPartOids = NIL;
-	partition_selector->staticScanIds = NIL;
-	partition_selector->staticSelection = !has_childs;
+	ppartsel->staticPartOids = NIL;
+	ppartsel->staticScanIds = NIL;
+	ppartsel->staticSelection = !fHasChild;
 
-	if (partition_selector->staticSelection)
+	if (ppartsel->staticSelection)
 	{
-		SelectedParts *sp = gpdb::RunStaticPartitionSelection(partition_selector);
-		partition_selector->staticPartOids = sp->partOids;
-		partition_selector->staticScanIds = sp->scanIds;
+		SelectedParts *sp = gpdb::SpStaticPartitionSelection(ppartsel);
+		ppartsel->staticPartOids = sp->partOids;
+		ppartsel->staticScanIds = sp->scanIds;
 		gpdb::GPDBFree(sp);
 	}
 	else
 	{
 		// if we cannot do static elimination then add this partitioned table oid
 		// to the planned stmt so we can ship the constraints with the plan
-		m_dxl_to_plstmt_context->AddPartitionedTable(partition_selector->relid);
+		m_pctxdxltoplstmt->AddPartitionedTable(ppartsel->relid);
 	}
 
 	// increment the number of partition selectors for the given scan id
-	m_dxl_to_plstmt_context->IncrementPartitionSelectors(partition_selector->scanId);
+	m_pctxdxltoplstmt->IncrementPartitionSelectors(ppartsel->scanId);
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) partition_selector;
+	return (Plan *) ppartsel;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLFilterList
+//		CTranslatorDXLToPlStmt::PlFilterList
 //
 //	@doc:
 //		Translate DXL filter list into GPDB filter list
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLFilterList
+CTranslatorDXLToPlStmt::PlFilterList
 	(
-	const CDXLNode *filter_list_dxlnode,
-	const CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *child_contexts,
-	CDXLTranslateContext *output_context
+	const CDXLNode *pdxlnFilterList,
+	const CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctx,
+	CDXLTranslateContext *pdxltrctxOut
 	)
 {
-	GPOS_ASSERT(EdxlopScalarOpList == filter_list_dxlnode->GetOperator()->GetDXLOperator());
+	GPOS_ASSERT(EdxlopScalarOpList == pdxlnFilterList->Pdxlop()->Edxlop());
 
-	List *filters_list = NIL;
+	List *plFilters = NIL;
 
-	CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt(m_mp, base_table_context, child_contexts, output_context, m_dxl_to_plstmt_context);
-	const ULONG arity = filter_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt(m_pmp, pdxltrctxbt, pdrgpdxltrctx, pdxltrctxOut, m_pctxdxltoplstmt);
+	const ULONG ulArity = pdxlnFilterList->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *child_filter_dxlnode = (*filter_list_dxlnode)[ul];
+		CDXLNode *pdxlnChildFilter = (*pdxlnFilterList)[ul];
 
-		if (m_translator_dxl_to_scalar->HasConstTrue(child_filter_dxlnode, m_md_accessor))
+		if (m_pdxlsctranslator->FConstTrue(pdxlnChildFilter, m_pmda))
 		{
-			filters_list = gpdb::LAppend(filters_list, NULL /*datum*/);
+			plFilters = gpdb::PlAppendElement(plFilters, NULL /*datum*/);
 			continue;
 		}
 
-		Expr *filter_expr = m_translator_dxl_to_scalar->TranslateDXLToScalar(child_filter_dxlnode, &colid_var_mapping);
-		filters_list = gpdb::LAppend(filters_list, filter_expr);
+		Expr *pexprFilter = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnChildFilter, &mapcidvarplstmt);
+		plFilters = gpdb::PlAppendElement(plFilters, pexprFilter);
 	}
 
-	return filters_list;
+	return plFilters;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLAppend
+//		CTranslatorDXLToPlStmt::PappendFromDXLAppend
 //
 //	@doc:
 //		Translate DXL append node into GPDB Append plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLAppend
+CTranslatorDXLToPlStmt::PappendFromDXLAppend
 	(
-	const CDXLNode *append_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnAppend,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create append plan node
-	Append *append = MakeNode(Append);
+	Append *pappend = MakeNode(Append);
 
-	Plan *plan = &(append->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(pappend->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(append_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnAppend->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	const ULONG arity = append_dxlnode->Arity();
-	GPOS_ASSERT(EdxlappendIndexFirstChild < arity);
-	plan->nMotionNodes = 0;
-	append->appendplans = NIL;
+	const ULONG ulArity = pdxlnAppend->UlArity();
+	GPOS_ASSERT(EdxlappendIndexFirstChild < ulArity);
+	pplan->nMotionNodes = 0;
+	pappend->appendplans = NIL;
 	
 	// translate children
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
-	for (ULONG ul = EdxlappendIndexFirstChild; ul < arity; ul++)
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
+	for (ULONG ul = EdxlappendIndexFirstChild; ul < ulArity; ul++)
 	{
-		CDXLNode *child_dxlnode = (*append_dxlnode)[ul];
+		CDXLNode *pdxlnChild = (*pdxlnAppend)[ul];
 
-		Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+		Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-		GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
+		GPOS_ASSERT(NULL != pplanChild && "child plan cannot be NULL");
 
-		append->appendplans = gpdb::LAppend(append->appendplans, child_plan);
-		plan->nMotionNodes += child_plan->nMotionNodes;
+		pappend->appendplans = gpdb::PlAppendElement(pappend->appendplans, pplanChild);
+		pplan->nMotionNodes += pplanChild->nMotionNodes;
 	}
 
-	CDXLNode *project_list_dxlnode = (*append_dxlnode)[EdxlappendIndexProjList];
-	CDXLNode *filter_dxlnode = (*append_dxlnode)[EdxlappendIndexFilter];
+	CDXLNode *pdxlnPrL = (*pdxlnAppend)[EdxlappendIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnAppend)[EdxlappendIndexFilter];
 
-	plan->targetlist = NIL;
-	const ULONG length = project_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < length; ++ul)
+	pplan->targetlist = NIL;
+	const ULONG ulLen = pdxlnPrL->UlArity();
+	for (ULONG ul = 0; ul < ulLen; ++ul)
 	{
-		CDXLNode *proj_elem_dxlnode = (*project_list_dxlnode)[ul];
-		GPOS_ASSERT(EdxlopScalarProjectElem == proj_elem_dxlnode->GetOperator()->GetDXLOperator());
+		CDXLNode *pdxlnPrEl = (*pdxlnPrL)[ul];
+		GPOS_ASSERT(EdxlopScalarProjectElem == pdxlnPrEl->Pdxlop()->Edxlop());
 
-		CDXLScalarProjElem *sc_proj_elem_dxlop = CDXLScalarProjElem::Cast(proj_elem_dxlnode->GetOperator());
-		GPOS_ASSERT(1 == proj_elem_dxlnode->Arity());
+		CDXLScalarProjElem *pdxlopPrel = CDXLScalarProjElem::PdxlopConvert(pdxlnPrEl->Pdxlop());
+		GPOS_ASSERT(1 == pdxlnPrEl->UlArity());
 
 		// translate proj element expression
-		CDXLNode *expr_dxlnode = (*proj_elem_dxlnode)[0];
-		CDXLScalarIdent *sc_ident_dxlop = CDXLScalarIdent::Cast(expr_dxlnode->GetOperator());
+		CDXLNode *pdxlnExpr = (*pdxlnPrEl)[0];
+		CDXLScalarIdent *pdxlopScIdent = CDXLScalarIdent::PdxlopConvert(pdxlnExpr->Pdxlop());
 
 		Index idxVarno = OUTER_VAR;
 		AttrNumber attno = (AttrNumber) (ul + 1);
 
-		Var *var = gpdb::MakeVar
+		Var *pvar = gpdb::PvarMakeVar
 							(
 							idxVarno,
 							attno,
-							CMDIdGPDB::CastMdid(sc_ident_dxlop->MdidType())->Oid(),
-							sc_ident_dxlop->TypeModifier(),
+							CMDIdGPDB::PmdidConvert(pdxlopScIdent->PmdidType())->OidObjectId(),
+							pdxlopScIdent->ITypeModifier(),
 							0	// varlevelsup
 							);
 
-		TargetEntry *target_entry = MakeNode(TargetEntry);
-		target_entry->expr = (Expr *) var;
-		target_entry->resname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(sc_proj_elem_dxlop->GetMdNameAlias()->GetMDName()->GetBuffer());
-		target_entry->resno = attno;
+		TargetEntry *pte = MakeNode(TargetEntry);
+		pte->expr = (Expr *) pvar;
+		pte->resname = CTranslatorUtils::SzFromWsz(pdxlopPrel->PmdnameAlias()->Pstr()->Wsz());
+		pte->resno = attno;
 
 		// add column mapping to output translation context
-		output_context->InsertMapping(sc_proj_elem_dxlop->Id(), target_entry);
+		pdxltrctxOut->InsertMapping(pdxlopPrel->UlId(), pte);
 
-		plan->targetlist = gpdb::LAppend(plan->targetlist, target_entry);
+		pplan->targetlist = gpdb::PlAppendElement(pplan->targetlist, pte);
 	}
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(output_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(pdxltrctxOut));
 
 	// translate filter
-	plan->qual = TranslateDXLFilterToQual
+	pplan->qual = PlQualFromFilter
 					(
-					filter_dxlnode,
+					pdxlnFilter,
 					NULL, // translate context for the base table
-					child_contexts,
-					output_context
+					pdrgpdxltrctx,
+					pdxltrctxOut
 					);
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) append;
+	return (Plan *) pappend;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLMaterialize
+//		CTranslatorDXLToPlStmt::PmatFromDXLMaterialize
 //
 //	@doc:
 //		Translate DXL materialize node into GPDB Material plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLMaterialize
+CTranslatorDXLToPlStmt::PmatFromDXLMaterialize
 	(
-	const CDXLNode *materialize_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnMaterialize,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create materialize plan node
-	Material *materialize = MakeNode(Material);
+	Material *pmat = MakeNode(Material);
 
-	Plan *plan = &(materialize->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(pmat->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalMaterialize *materialize_dxlop = CDXLPhysicalMaterialize::Cast(materialize_dxlnode->GetOperator());
+	CDXLPhysicalMaterialize *pdxlopMat = CDXLPhysicalMaterialize::PdxlopConvert(pdxlnMaterialize->Pdxlop());
 
-	materialize->cdb_strict = materialize_dxlop->IsEager();
+	pmat->cdb_strict = pdxlopMat->FEager();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(materialize_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnMaterialize->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate materialize child
-	CDXLNode *child_dxlnode = (*materialize_dxlnode)[EdxlmatIndexChild];
+	CDXLNode *pdxlnChild = (*pdxlnMaterialize)[EdxlmatIndexChild];
 
-	CDXLNode *project_list_dxlnode = (*materialize_dxlnode)[EdxlmatIndexProjList];
-	CDXLNode *filter_dxlnode = (*materialize_dxlnode)[EdxlmatIndexFilter];
+	CDXLNode *pdxlnPrL = (*pdxlnMaterialize)[EdxlmatIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnMaterialize)[EdxlmatIndexFilter];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list and filter
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
+		pdxlnPrL,
+		pdxlnFilter,
 		NULL,			// translate context for the base table
-		child_contexts,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdrgpdxltrctx,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
 	// set spooling info
-	if (materialize_dxlop->IsSpooling())
+	if (pdxlopMat->FSpooling())
 	{
-		materialize->share_id = materialize_dxlop->GetSpoolingOpId();
-		materialize->driver_slice = materialize_dxlop->GetExecutorSlice();
-		materialize->nsharer_xslice = materialize_dxlop->GetNumConsumerSlices();
-		materialize->share_type = (0 < materialize_dxlop->GetNumConsumerSlices()) ?
+		pmat->share_id = pdxlopMat->UlSpoolId();
+		pmat->driver_slice = pdxlopMat->IExecutorSlice();
+		pmat->nsharer_xslice = pdxlopMat->UlConsumerSlices();
+		pmat->share_type = (0 < pdxlopMat->UlConsumerSlices()) ?
 							SHARE_MATERIAL_XSLICE : SHARE_MATERIAL;
 	}
 	else
 	{
-		materialize->share_type = SHARE_NOTSHARED;
+		pmat->share_type = SHARE_NOTSHARED;
 	}
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) materialize;
+	return (Plan *) pmat;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
+//		CTranslatorDXLToPlStmt::PshscanFromDXLCTEProducer
 //
 //	@doc:
 //		Translate DXL CTE Producer node into GPDB share input scan plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
+CTranslatorDXLToPlStmt::PshscanFromDXLCTEProducer
 	(
-	const CDXLNode *cte_producer_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnCTEProducer,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalCTEProducer *cte_prod_dxlop = CDXLPhysicalCTEProducer::Cast(cte_producer_dxlnode->GetOperator());
-	ULONG cte_id = cte_prod_dxlop->Id();
+	CDXLPhysicalCTEProducer *pdxlopCTEProducer = CDXLPhysicalCTEProducer::PdxlopConvert(pdxlnCTEProducer->Pdxlop());
+	ULONG ulCTEId = pdxlopCTEProducer->UlId();
 
 	// create the shared input scan representing the CTE Producer
-	ShareInputScan *shared_input_scan = MakeNode(ShareInputScan);
-	shared_input_scan->share_id = cte_id;
-	Plan *plan = &(shared_input_scan->scan.plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	ShareInputScan *pshscanCTEProducer = MakeNode(ShareInputScan);
+	pshscanCTEProducer->share_id = ulCTEId;
+	Plan *pplan = &(pshscanCTEProducer->scan.plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// store share scan node for the translation of CTE Consumers
-	m_dxl_to_plstmt_context->AddCTEConsumerInfo(cte_id, shared_input_scan);
+	m_pctxdxltoplstmt->AddCTEConsumerInfo(ulCTEId, pshscanCTEProducer);
 
 	// translate cost of the producer
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(cte_producer_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnCTEProducer->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// translate child plan
-	CDXLNode *project_list_dxlnode = (*cte_producer_dxlnode)[0];
-	CDXLNode *child_dxlnode = (*cte_producer_dxlnode)[1];
+	CDXLNode *pdxlnPrL = (*pdxlnCTEProducer)[0];
+	CDXLNode *pdxlnChild = (*pdxlnCTEProducer)[1];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
-	GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
+	GPOS_ASSERT(NULL != pplanChild && "child plan cannot be NULL");
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(&child_context);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(&dxltrctxChild);
 	// translate proj list
-	plan->targetlist = TranslateDXLProjList
+	pplan->targetlist = PlTargetListFromProjList
 							(
-							project_list_dxlnode,
+							pdxlnPrL,
 							NULL,		// base table translation context
-							child_contexts,
-							output_context
+							pdrgpdxltrctx,
+							pdxltrctxOut
 							);
 
 	// if the child node is neither a sort or materialize node then add a materialize node
-	if (!IsA(child_plan, Material) && !IsA(child_plan, Sort))
+	if (!IsA(pplanChild, Material) && !IsA(pplanChild, Sort))
 	{
-		Material *materialize = MakeNode(Material);
-		materialize->cdb_strict = false; // eager-free
+		Material *pmat = MakeNode(Material);
+		pmat->cdb_strict = false; // eager-free
 
-		Plan *materialize_plan = &(materialize->plan);
-		materialize_plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+		Plan *pplanMat = &(pmat->plan);
+		pplanMat->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 		TranslatePlanCosts
 			(
-			CDXLPhysicalProperties::PdxlpropConvert(cte_producer_dxlnode->GetProperties())->GetDXLOperatorCost(),
-			&(materialize_plan->startup_cost),
-			&(materialize_plan->total_cost),
-			&(materialize_plan->plan_rows),
-			&(materialize_plan->plan_width)
+			CDXLPhysicalProperties::PdxlpropConvert(pdxlnCTEProducer->Pdxlprop())->Pdxlopcost(),
+			&(pplanMat->startup_cost),
+			&(pplanMat->total_cost),
+			&(pplanMat->plan_rows),
+			&(pplanMat->plan_width)
 			);
 
 		// create a target list for the newly added materialize
-		ListCell *lc_target_entry = NULL;
-		materialize_plan->targetlist = NIL;
-		ForEach (lc_target_entry, plan->targetlist)
+		ListCell *plcTe = NULL;
+		pplanMat->targetlist = NIL;
+		ForEach (plcTe, pplan->targetlist)
 		{
-			TargetEntry *target_entry = (TargetEntry *) lfirst(lc_target_entry);
-			Expr *expr = target_entry->expr;
-			GPOS_ASSERT(IsA(expr, Var));
+			TargetEntry *pte = (TargetEntry *) lfirst(plcTe);
+			Expr *pexpr = pte->expr;
+			GPOS_ASSERT(IsA(pexpr, Var));
 
-			Var *var = (Var *) expr;
-			Var *var_new = gpdb::MakeVar(OUTER_VAR, var->varattno, var->vartype, var->vartypmod,	0 /* varlevelsup */);
-			var_new->varnoold = var->varnoold;
-			var_new->varoattno = var->varoattno;
+			Var *pvar = (Var *) pexpr;
+			Var *pvarNew = gpdb::PvarMakeVar(OUTER_VAR, pvar->varattno, pvar->vartype, pvar->vartypmod, 0 /* varlevelsup */);
+			pvarNew->varnoold = pvar->varnoold;
+			pvarNew->varoattno = pvar->varoattno;
 
-			TargetEntry *te_new = gpdb::MakeTargetEntry((Expr *) var_new, var->varattno, PStrDup(target_entry->resname), target_entry->resjunk);
-			materialize_plan->targetlist = gpdb::LAppend(materialize_plan->targetlist, te_new);
+			TargetEntry *pteNew = gpdb::PteMakeTargetEntry((Expr *) pvarNew, pvar->varattno, PStrDup(pte->resname), pte->resjunk);
+			pplanMat->targetlist = gpdb::PlAppendElement(pplanMat->targetlist, pteNew);
 		}
 
-		materialize_plan->lefttree = child_plan;
-		materialize_plan->nMotionNodes = child_plan->nMotionNodes;
+		pplanMat->lefttree = pplanChild;
+		pplanMat->nMotionNodes = pplanChild->nMotionNodes;
 
-		child_plan = materialize_plan;
+		pplanChild = pplanMat;
 	}
 
-	InitializeSpoolingInfo(child_plan, cte_id);
+	InitializeSpoolingInfo(pplanChild, ulCTEId);
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
-	plan->qual = NIL;
-	SetParamIds(plan);
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
+	pplan->qual = NIL;
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) shared_input_scan;
+	return (Plan *) pshscanCTEProducer;
 }
 
 //---------------------------------------------------------------------------
@@ -3269,62 +3273,62 @@ CTranslatorDXLToPlStmt::TranslateDXLCTEProducerToSharedScan
 void
 CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 	(
-	Plan *plan,
-	ULONG share_id
+	Plan *pplan,
+	ULONG ulShareId
 	)
 {
-	List *shared_scan_cte_consumer_list = m_dxl_to_plstmt_context->GetCTEConsumerList(share_id);
-	GPOS_ASSERT(NULL != shared_scan_cte_consumer_list);
+	List *plshscanCTEConsumer = m_pctxdxltoplstmt->PshscanCTEConsumer(ulShareId);
+	GPOS_ASSERT(NULL != plshscanCTEConsumer);
 
-	Flow *flow = GetFlowCTEConsumer(shared_scan_cte_consumer_list);
+	Flow *pflow = PflowCTEConsumer(plshscanCTEConsumer);
 
-	const ULONG num_of_shared_scan = gpdb::ListLength(shared_scan_cte_consumer_list);
+	const ULONG ulLenSis = gpdb::UlListLength(plshscanCTEConsumer);
 
 	ShareType share_type = SHARE_NOTSHARED;
 
-	if (IsA(plan, Material))
+	if (IsA(pplan, Material))
 	{
-		Material *materialize = (Material *) plan;
-		materialize->share_id = share_id;
-		materialize->nsharer = num_of_shared_scan;
+		Material *pmat = (Material *) pplan;
+		pmat->share_id = ulShareId;
+		pmat->nsharer = ulLenSis;
 		share_type = SHARE_MATERIAL;
 		// the share_type is later reset to SHARE_MATERIAL_XSLICE (if needed) by the apply_shareinput_xslice
-		materialize->share_type = share_type;
-		GPOS_ASSERT(NULL == (materialize->plan).flow);
-		(materialize->plan).flow = flow;
+		pmat->share_type = share_type;
+		GPOS_ASSERT(NULL == (pmat->plan).flow);
+		(pmat->plan).flow = pflow;
 	}
 	else
 	{
-		GPOS_ASSERT(IsA(plan, Sort));
-		Sort *sort = (Sort *) plan;
-		sort->share_id = share_id;
-		sort->nsharer = num_of_shared_scan;
+		GPOS_ASSERT(IsA(pplan, Sort));
+		Sort *psort = (Sort *) pplan;
+		psort->share_id = ulShareId;
+		psort->nsharer = ulLenSis;
 		share_type = SHARE_SORT;
 		// the share_type is later reset to SHARE_SORT_XSLICE (if needed) the apply_shareinput_xslice
-		sort->share_type = share_type;
-		GPOS_ASSERT(NULL == (sort->plan).flow);
-		(sort->plan).flow = flow;
+		psort->share_type = share_type;
+		GPOS_ASSERT(NULL == (psort->plan).flow);
+		(psort->plan).flow = pflow;
 	}
 
 	GPOS_ASSERT(SHARE_NOTSHARED != share_type);
 
 	// set the share type of the consumer nodes based on the producer
-	ListCell *lc_sh_scan_cte_consumer = NULL;
-	ForEach (lc_sh_scan_cte_consumer, shared_scan_cte_consumer_list)
+	ListCell *plcShscanCTEConsumer = NULL;
+	ForEach (plcShscanCTEConsumer, plshscanCTEConsumer)
 	{
-		ShareInputScan *share_input_scan_consumer = (ShareInputScan *) lfirst(lc_sh_scan_cte_consumer);
-		share_input_scan_consumer->share_type = share_type;
-		share_input_scan_consumer->driver_slice = -1; // default
-		if (NULL == (share_input_scan_consumer->scan.plan).flow)
+		ShareInputScan *pshscanConsumer = (ShareInputScan *) lfirst(plcShscanCTEConsumer);
+		pshscanConsumer->share_type = share_type;
+		pshscanConsumer->driver_slice = -1; // default
+		if (NULL == (pshscanConsumer->scan.plan).flow)
 		{
-			(share_input_scan_consumer->scan.plan).flow = (Flow *) gpdb::CopyObject(flow);
+			(pshscanConsumer->scan.plan).flow = (Flow *) gpdb::PvCopyObject(pflow);
 		}
 	}
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::GetFlowCTEConsumer
+//		CTranslatorDXLToPlStmt::PflowCTEConsumer
 //
 //	@doc:
 //		Retrieve the flow of the shared input scan of the cte consumers. If
@@ -3332,423 +3336,423 @@ CTranslatorDXLToPlStmt::InitializeSpoolingInfo
 //		same type
 //---------------------------------------------------------------------------
 Flow *
-CTranslatorDXLToPlStmt::GetFlowCTEConsumer
+CTranslatorDXLToPlStmt::PflowCTEConsumer
 	(
-	List *shared_scan_cte_consumer_list
+	List *plshscanCTEConsumer
 	)
 {
-	Flow *flow = NULL;
+	Flow *pflow = NULL;
 
-	ListCell *lc_sh_scan_cte_consumer = NULL;
-	ForEach (lc_sh_scan_cte_consumer, shared_scan_cte_consumer_list)
+	ListCell *plcShscanCTEConsumer = NULL;
+	ForEach (plcShscanCTEConsumer, plshscanCTEConsumer)
 	{
-		ShareInputScan *share_input_scan_consumer = (ShareInputScan *) lfirst(lc_sh_scan_cte_consumer);
-		Flow *flow_cte = (share_input_scan_consumer->scan.plan).flow;
-		if (NULL != flow_cte)
+		ShareInputScan *pshscanConsumer = (ShareInputScan *) lfirst(plcShscanCTEConsumer);
+		Flow *pflowCte = (pshscanConsumer->scan.plan).flow;
+		if (NULL != pflowCte)
 		{
-			if (NULL == flow)
+			if (NULL == pflow)
 			{
-				flow = (Flow *) gpdb::CopyObject(flow_cte);
+				pflow = (Flow *) gpdb::PvCopyObject(pflowCte);
 			}
 			else
 			{
-				GPOS_ASSERT(flow->flotype == flow_cte->flotype);
+				GPOS_ASSERT(pflow->flotype == pflowCte->flotype);
 			}
 		}
 	}
 
-	if (NULL == flow)
+	if (NULL == pflow)
 	{
-		flow = MakeNode(Flow);
-		flow->flotype = FLOW_UNDEFINED; // default flow
+		pflow = MakeNode(Flow);
+		pflow->flotype = FLOW_UNDEFINED; // default flow
 	}
 
-	return flow;
+	return pflow;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLCTEConsumerToSharedScan
+//		CTranslatorDXLToPlStmt::PshscanFromDXLCTEConsumer
 //
 //	@doc:
 //		Translate DXL CTE Consumer node into GPDB share input scan plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLCTEConsumerToSharedScan
+CTranslatorDXLToPlStmt::PshscanFromDXLCTEConsumer
 	(
-	const CDXLNode *cte_consumer_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnCTEConsumer,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalCTEConsumer *cte_consumer_dxlop = CDXLPhysicalCTEConsumer::Cast(cte_consumer_dxlnode->GetOperator());
-	ULONG cte_id = cte_consumer_dxlop->Id();
+	CDXLPhysicalCTEConsumer *pdxlopCTEConsumer = CDXLPhysicalCTEConsumer::PdxlopConvert(pdxlnCTEConsumer->Pdxlop());
+	ULONG ulCTEId = pdxlopCTEConsumer->UlId();
 
-	ShareInputScan *share_input_scan_cte_consumer = MakeNode(ShareInputScan);
-	share_input_scan_cte_consumer->share_id = cte_id;
+	ShareInputScan *pshscanCTEConsumer = MakeNode(ShareInputScan);
+	pshscanCTEConsumer->share_id = ulCTEId;
 
-	Plan *plan = &(share_input_scan_cte_consumer->scan.plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(pshscanCTEConsumer->scan.plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(cte_consumer_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnCTEConsumer->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 #ifdef GPOS_DEBUG
-	ULongPtrArray *output_colids_array = cte_consumer_dxlop->GetOutputColIdsArray();
+	DrgPul *pdrgpulCTEColId = pdxlopCTEConsumer->PdrgpulColIds();
 #endif
 
 	// generate the target list of the CTE Consumer
-	plan->targetlist = NIL;
-	CDXLNode *project_list_dxlnode = (*cte_consumer_dxlnode)[0];
-	const ULONG num_of_proj_list_elem = project_list_dxlnode->Arity();
-	GPOS_ASSERT(num_of_proj_list_elem == output_colids_array->Size());
-	for (ULONG ul = 0; ul < num_of_proj_list_elem; ul++)
+	pplan->targetlist = NIL;
+	CDXLNode *pdxlnPrL = (*pdxlnCTEConsumer)[0];
+	const ULONG ulLenPrL = pdxlnPrL->UlArity();
+	GPOS_ASSERT(ulLenPrL == pdrgpulCTEColId->UlLength());
+	for (ULONG ul = 0; ul < ulLenPrL; ul++)
 	{
-		CDXLNode *proj_elem_dxlnode = (*project_list_dxlnode)[ul];
-		CDXLScalarProjElem *sc_proj_elem_dxlop = CDXLScalarProjElem::Cast(proj_elem_dxlnode->GetOperator());
-		ULONG colid = sc_proj_elem_dxlop->Id();
-		GPOS_ASSERT(colid == *(*output_colids_array)[ul]);
+		CDXLNode *pdxlnPrE = (*pdxlnPrL)[ul];
+		CDXLScalarProjElem *pdxlopPrE = CDXLScalarProjElem::PdxlopConvert(pdxlnPrE->Pdxlop());
+		ULONG ulColId = pdxlopPrE->UlId();
+		GPOS_ASSERT(ulColId == *(*pdrgpulCTEColId)[ul]);
 
-		CDXLNode *sc_ident_dxlnode = (*proj_elem_dxlnode)[0];
-		CDXLScalarIdent *sc_ident_dxlop = CDXLScalarIdent::Cast(sc_ident_dxlnode->GetOperator());
-		OID oid_type = CMDIdGPDB::CastMdid(sc_ident_dxlop->MdidType())->Oid();
+		CDXLNode *pdxlnScIdent = (*pdxlnPrE)[0];
+		CDXLScalarIdent *pdxlopScIdent = CDXLScalarIdent::PdxlopConvert(pdxlnScIdent->Pdxlop());
+		OID oidType = CMDIdGPDB::PmdidConvert(pdxlopScIdent->PmdidType())->OidObjectId();
 
-		Var *var = gpdb::MakeVar(OUTER_VAR, (AttrNumber) (ul + 1), oid_type, sc_ident_dxlop->TypeModifier(),  0	/* varlevelsup */);
+		Var *pvar = gpdb::PvarMakeVar(OUTER_VAR, (AttrNumber) (ul + 1), oidType, pdxlopScIdent->ITypeModifier(),  0	/* varlevelsup */);
 
-		CHAR *resname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(sc_proj_elem_dxlop->GetMdNameAlias()->GetMDName()->GetBuffer());
-		TargetEntry *target_entry = gpdb::MakeTargetEntry((Expr *) var, (AttrNumber) (ul + 1), resname, false /* resjunk */);
-		plan->targetlist = gpdb::LAppend(plan->targetlist, target_entry);
+		CHAR *szResname = CTranslatorUtils::SzFromWsz(pdxlopPrE->PmdnameAlias()->Pstr()->Wsz());
+		TargetEntry *pte = gpdb::PteMakeTargetEntry((Expr *) pvar, (AttrNumber) (ul + 1), szResname, false /* resjunk */);
+		pplan->targetlist = gpdb::PlAppendElement(pplan->targetlist, pte);
 
-		output_context->InsertMapping(colid, target_entry);
+		pdxltrctxOut->InsertMapping(ulColId, pte);
 	}
 
-	plan->qual = NULL;
+	pplan->qual = NULL;
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// store share scan node for the translation of CTE Consumers
-	m_dxl_to_plstmt_context->AddCTEConsumerInfo(cte_id, share_input_scan_cte_consumer);
+	m_pctxdxltoplstmt->AddCTEConsumerInfo(ulCTEId, pshscanCTEConsumer);
 
-	return (Plan *) share_input_scan_cte_consumer;
+	return (Plan *) pshscanCTEConsumer;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLSequence
+//		CTranslatorDXLToPlStmt::PplanSequence
 //
 //	@doc:
 //		Translate DXL sequence node into GPDB Sequence plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLSequence
+CTranslatorDXLToPlStmt::PplanSequence
 	(
-	const CDXLNode *sequence_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnSequence,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create append plan node
 	Sequence *psequence = MakeNode(Sequence);
 
-	Plan *plan = &(psequence->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(psequence->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(sequence_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnSequence->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	ULONG arity = sequence_dxlnode->Arity();
+	ULONG ulArity = pdxlnSequence->UlArity();
 	
 	// translate last child
 	// since last child may be a DynamicIndexScan with outer references,
 	// we pass the context received from parent to translate outer refs here
 
-	CDXLNode *last_child_dxlnode = (*sequence_dxlnode)[arity - 1];
+	CDXLNode *pdxlnLastChild = (*pdxlnSequence)[ulArity - 1];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *last_child_plan = TranslateDXLOperatorToPlan(last_child_dxlnode, &child_context, ctxt_translation_prev_siblings);
-	plan->nMotionNodes = last_child_plan->nMotionNodes;
+	Plan *pplanLastChild = PplFromDXL(pdxlnLastChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
+	pplan->nMotionNodes = pplanLastChild->nMotionNodes;
 
-	CDXLNode *project_list_dxlnode = (*sequence_dxlnode)[0];
+	CDXLNode *pdxlnPrL = (*pdxlnSequence)[0];
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list
-	plan->targetlist = TranslateDXLProjList
+	pplan->targetlist = PlTargetListFromProjList
 						(
-						project_list_dxlnode,
+						pdxlnPrL,
 						NULL,		// base table translation context
-						child_contexts,
-						output_context
+						pdrgpdxltrctx,
+						pdxltrctxOut
 						);
 
 	// translate the rest of the children
-	for (ULONG ul = 1; ul < arity - 1; ul++)
+	for (ULONG ul = 1; ul < ulArity - 1; ul++)
 	{
-		CDXLNode *child_dxlnode = (*sequence_dxlnode)[ul];
+		CDXLNode *pdxlnChild = (*pdxlnSequence)[ul];
 
-		Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+		Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-		psequence->subplans = gpdb::LAppend(psequence->subplans, child_plan);
-		plan->nMotionNodes += child_plan->nMotionNodes;
+		psequence->subplans = gpdb::PlAppendElement(psequence->subplans, pplanChild);
+		pplan->nMotionNodes += pplanChild->nMotionNodes;
 	}
 
-	psequence->subplans = gpdb::LAppend(psequence->subplans, last_child_plan);
+	psequence->subplans = gpdb::PlAppendElement(psequence->subplans, pplanLastChild);
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
 	return (Plan *) psequence;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLDynTblScan
+//		CTranslatorDXLToPlStmt::PplanDTS
 //
 //	@doc:
 //		Translates a DXL dynamic table scan node into a DynamicTableScan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLDynTblScan
+CTranslatorDXLToPlStmt::PplanDTS
 	(
-	const CDXLNode *dyn_tbl_scan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnDTS,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// translate table descriptor into a range table entry
-	CDXLPhysicalDynamicTableScan *dyn_tbl_scan_dxlop = CDXLPhysicalDynamicTableScan::Cast(dyn_tbl_scan_dxlnode->GetOperator());
+	CDXLPhysicalDynamicTableScan *pdxlop = CDXLPhysicalDynamicTableScan::PdxlopConvert(pdxlnDTS->Pdxlop());
 
 	// translation context for column mappings in the base relation
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
 	// add the new range table entry as the last element of the range table
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
-	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(dyn_tbl_scan_dxlop->GetDXLTableDescr(), NULL /*index_descr_dxl*/, index, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
-	rte->requiredPerms |= ACL_SELECT;
+	RangeTblEntry *prte = PrteFromTblDescr(pdxlop->Pdxltabdesc(), NULL /*pdxlid*/, iRel, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
+	prte->requiredPerms |= ACL_SELECT;
 
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	m_pctxdxltoplstmt->AddRTE(prte);
 
 	// create dynamic scan node
-	DynamicTableScan *dyn_tbl_scan = MakeNode(DynamicTableScan);
+	DynamicTableScan *pdts = MakeNode(DynamicTableScan);
 
-	dyn_tbl_scan->scanrelid = index;
-	dyn_tbl_scan->partIndex = dyn_tbl_scan_dxlop->GetPartIndexId();
-	dyn_tbl_scan->partIndexPrintable = dyn_tbl_scan_dxlop->GetPartIndexIdPrintable();
+	pdts->scanrelid = iRel;
+	pdts->partIndex = pdxlop->UlPartIndexId();
+	pdts->partIndexPrintable = pdxlop->UlPartIndexIdPrintable();
 
-	Plan *plan = &(dyn_tbl_scan->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	Plan *pplan = &(pdts->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(dyn_tbl_scan_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnDTS->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	GPOS_ASSERT(2 == dyn_tbl_scan_dxlnode->Arity());
+	GPOS_ASSERT(2 == pdxlnDTS->UlArity());
 
 	// translate proj list and filter
-	CDXLNode *project_list_dxlnode = (*dyn_tbl_scan_dxlnode)[EdxltsIndexProjList];
-	CDXLNode *filter_dxlnode = (*dyn_tbl_scan_dxlnode)[EdxltsIndexFilter];
+	CDXLNode *pdxlnPrL = (*pdxlnDTS)[EdxltsIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnDTS)[EdxltsIndexFilter];
 
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
-		&base_table_context,	// translate context for the base table
-		NULL,			// translate_ctxt_left and pdxltrctxRight,
-		&plan->targetlist,
-		&plan->qual,
-		output_context
+		pdxlnPrL,
+		pdxlnFilter,
+		&dxltrctxbt,	// translate context for the base table
+		NULL,			// pdxltrctxLeft and pdxltrctxRight,
+		&pplan->targetlist,
+		&pplan->qual,
+		pdxltrctxOut
 		);
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) dyn_tbl_scan;
+	return (Plan *) pdts;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLDynIdxScan
+//		CTranslatorDXLToPlStmt::PplanDIS
 //
 //	@doc:
 //		Translates a DXL dynamic index scan node into a DynamicIndexScan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLDynIdxScan
+CTranslatorDXLToPlStmt::PplanDIS
 	(
-	const CDXLNode *dyn_idx_scan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnDIS,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalDynamicIndexScan *dyn_index_scan_dxlop = CDXLPhysicalDynamicIndexScan::Cast(dyn_idx_scan_dxlnode->GetOperator());
+	CDXLPhysicalDynamicIndexScan *pdxlop = CDXLPhysicalDynamicIndexScan::PdxlopConvert(pdxlnDIS->Pdxlop());
 	
 	// translation context for column mappings in the base relation
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
-	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(dyn_index_scan_dxlop->GetDXLTableDescr()->MDId());
-	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(dyn_index_scan_dxlop->GetDXLTableDescr(), NULL /*index_descr_dxl*/, index, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
-	rte->requiredPerms |= ACL_SELECT;
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxlop->Pdxltabdesc()->Pmdid());
+	RangeTblEntry *prte = PrteFromTblDescr(pdxlop->Pdxltabdesc(), NULL /*pdxlid*/, iRel, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
+	prte->requiredPerms |= ACL_SELECT;
+	m_pctxdxltoplstmt->AddRTE(prte);
 
-	DynamicIndexScan *dyn_idx_scan = MakeNode(DynamicIndexScan);
+	DynamicIndexScan *pdis = MakeNode(DynamicIndexScan);
 
-	dyn_idx_scan->indexscan.scan.scanrelid = index;
-	dyn_idx_scan->indexscan.scan.partIndex = dyn_index_scan_dxlop->GetPartIndexId();
-	dyn_idx_scan->indexscan.scan.partIndexPrintable = dyn_index_scan_dxlop->GetPartIndexIdPrintable();
+	pdis->indexscan.scan.scanrelid = iRel;
+	pdis->indexscan.scan.partIndex = pdxlop->UlPartIndexId();
+	pdis->indexscan.scan.partIndexPrintable = pdxlop->UlPartIndexIdPrintable();
 
-	CMDIdGPDB *mdid_index = CMDIdGPDB::CastMdid(dyn_index_scan_dxlop->GetDXLIndexDescr()->MDId());
-	const IMDIndex *md_index = m_md_accessor->RetrieveIndex(mdid_index);
-	Oid index_oid = mdid_index->Oid();
+	CMDIdGPDB *pmdidIndex = CMDIdGPDB::PmdidConvert(pdxlop->Pdxlid()->Pmdid());
+	const IMDIndex *pmdindex = m_pmda->Pmdindex(pmdidIndex);
+	Oid oidIndex = pmdidIndex->OidObjectId();
 
-	GPOS_ASSERT(InvalidOid != index_oid);
-	dyn_idx_scan->indexscan.indexid = index_oid;
-	dyn_idx_scan->logicalIndexInfo = gpdb::GetLogicalIndexInfo(rte->relid, index_oid);
+	GPOS_ASSERT(InvalidOid != oidIndex);
+	pdis->indexscan.indexid = oidIndex;
+	pdis->logicalIndexInfo = gpdb::Plgidxinfo(prte->relid, oidIndex);
 
-	Plan *plan = &(dyn_idx_scan->indexscan.scan.plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	Plan *pplan = &(pdis->indexscan.scan.plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(dyn_idx_scan_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnDIS->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
 	// an index scan node must have 3 children: projection list, filter and index condition list
-	GPOS_ASSERT(3 == dyn_idx_scan_dxlnode->Arity());
+	GPOS_ASSERT(3 == pdxlnDIS->UlArity());
 
 	// translate proj list and filter
-	CDXLNode *project_list_dxlnode = (*dyn_idx_scan_dxlnode)[CDXLPhysicalDynamicIndexScan::EdxldisIndexProjList];
-	CDXLNode *filter_dxlnode = (*dyn_idx_scan_dxlnode)[CDXLPhysicalDynamicIndexScan::EdxldisIndexFilter];
-	CDXLNode *index_cond_list_dxlnode = (*dyn_idx_scan_dxlnode)[CDXLPhysicalDynamicIndexScan::EdxldisIndexCondition];
+	CDXLNode *pdxlnPrL = (*pdxlnDIS)[CDXLPhysicalDynamicIndexScan::EdxldisIndexProjList];
+	CDXLNode *pdxlnFilter = (*pdxlnDIS)[CDXLPhysicalDynamicIndexScan::EdxldisIndexFilter];
+	CDXLNode *pdxlnIndexCondList = (*pdxlnDIS)[CDXLPhysicalDynamicIndexScan::EdxldisIndexCondition];
 
 	// translate proj list
-	plan->targetlist = TranslateDXLProjList(project_list_dxlnode, &base_table_context, NULL /*child_contexts*/, output_context);
+	pplan->targetlist = PlTargetListFromProjList(pdxlnPrL, &dxltrctxbt, NULL /*pdrgpdxltrctx*/, pdxltrctxOut);
 
 	// translate index filter
-	plan->qual = TranslateDXLIndexFilter
+	pplan->qual = PlTranslateIndexFilter
 					(
-					filter_dxlnode,
-					output_context,
-					&base_table_context,
-					ctxt_translation_prev_siblings
+					pdxlnFilter,
+					pdxltrctxOut,
+					&dxltrctxbt,
+					pdrgpdxltrctxPrevSiblings
 					);
 
-	dyn_idx_scan->indexscan.indexorderdir = CTranslatorUtils::GetScanDirection(dyn_index_scan_dxlop->GetIndexScanDir());
+	pdis->indexscan.indexorderdir = CTranslatorUtils::Scandirection(pdxlop->EdxlScanDirection());
 
 	// translate index condition list
-	List *index_cond = NIL;
-	List *index_orig_cond = NIL;
-	List *index_strategy_list = NIL;
-	List *index_subtype_list = NIL;
+	List *plIndexConditions = NIL;
+	List *plIndexOrigConditions = NIL;
+	List *plIndexStratgey = NIL;
+	List *plIndexSubtype = NIL;
 
 	TranslateIndexConditions
 		(
-		index_cond_list_dxlnode,
-		dyn_index_scan_dxlop->GetDXLTableDescr(),
-		false, // is_index_only_scan
-		md_index,
-		md_rel,
-		output_context,
-		&base_table_context,
-		ctxt_translation_prev_siblings,
-		&index_cond,
-		&index_orig_cond,
-		&index_strategy_list,
-		&index_subtype_list
+		pdxlnIndexCondList, 
+		pdxlop->Pdxltabdesc(), 
+		false, // fIndexOnlyScan 
+		pmdindex, 
+		pmdrel,
+		pdxltrctxOut,
+		&dxltrctxbt,
+		pdrgpdxltrctxPrevSiblings,
+		&plIndexConditions, 
+		&plIndexOrigConditions, 
+		&plIndexStratgey, 
+		&plIndexSubtype
 		);
 
 
-	dyn_idx_scan->indexscan.indexqual = index_cond;
-	dyn_idx_scan->indexscan.indexqualorig = index_orig_cond;
+	pdis->indexscan.indexqual = plIndexConditions;
+	pdis->indexscan.indexqualorig = plIndexOrigConditions;
 	/*
 	 * As of 8.4, the indexstrategy and indexsubtype fields are no longer
 	 * available or needed in IndexScan. Ignore them.
 	 */
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) dyn_idx_scan;
+	return (Plan *) pdis;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLDml
+//		CTranslatorDXLToPlStmt::PplanDML
 //
 //	@doc:
 //		Translates a DXL DML node 
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLDml
+CTranslatorDXLToPlStmt::PplanDML
 	(
-	const CDXLNode *dml_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnDML,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// translate table descriptor into a range table entry
-	CDXLPhysicalDML *phy_dml_dxlop = CDXLPhysicalDML::Cast(dml_dxlnode->GetOperator());
+	CDXLPhysicalDML *pdxlop = CDXLPhysicalDML::PdxlopConvert(pdxlnDML->Pdxlop());
 
 	// create DML node
-	DML *dml = MakeNode(DML);
-	Plan *plan = &(dml->plan);
-	AclMode acl_mode = ACL_NO_RIGHTS;
+	DML *pdml = MakeNode(DML);
+	Plan *pplan = &(pdml->plan);
+	AclMode aclmode = ACL_NO_RIGHTS;
 	
-	switch (phy_dml_dxlop->GetDmlOpType())
+	switch (pdxlop->EdxlDmlOpType())
 	{
 		case gpdxl::Edxldmldelete:
 		{
-			m_cmd_type = CMD_DELETE;
-			acl_mode = ACL_DELETE;
+			m_cmdtype = CMD_DELETE;
+			aclmode = ACL_DELETE;
 			break;
 		}
 		case gpdxl::Edxldmlupdate:
 		{
-			m_cmd_type = CMD_UPDATE;
-			acl_mode = ACL_UPDATE;
+			m_cmdtype = CMD_UPDATE;
+			aclmode = ACL_UPDATE;
 			break;
 		}
 		case gpdxl::Edxldmlinsert:
 		{
-			m_cmd_type = CMD_INSERT;
-			acl_mode = ACL_INSERT;
+			m_cmdtype = CMD_INSERT;
+			aclmode = ACL_INSERT;
 			break;
 		}
 		case gpdxl::EdxldmlSentinel:
@@ -3760,461 +3764,461 @@ CTranslatorDXLToPlStmt::TranslateDXLDml
 		}
 	}
 	
-	IMDId *mdid_target_table = phy_dml_dxlop->GetDXLTableDescr()->MDId();
-	if (IMDRelation::EreldistrMasterOnly != m_md_accessor->RetrieveRel(mdid_target_table)->GetRelDistribution())
+	IMDId *pmdidTargetTable = pdxlop->Pdxltabdesc()->Pmdid();
+	if (IMDRelation::EreldistrMasterOnly != m_pmda->Pmdrel(pmdidTargetTable)->Ereldistribution())
 	{
-		m_is_tgt_tbl_distributed = true;
+		m_fTargetTableDistributed = true;
 	}
 	
 	// translation context for column mappings in the base relation
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
 	// add the new range table entry as the last element of the range table
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
-	dml->scanrelid = index;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
+	pdml->scanrelid = iRel;
 	
-	m_result_rel_list = gpdb::LAppendInt(m_result_rel_list, index);
+	m_plResultRelations = gpdb::PlAppendInt(m_plResultRelations, iRel);
 
-	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(phy_dml_dxlop->GetDXLTableDescr()->MDId());
+	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxlop->Pdxltabdesc()->Pmdid());
 
-	CDXLTableDescr *table_descr = phy_dml_dxlop->GetDXLTableDescr();
-	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(table_descr, NULL /*index_descr_dxl*/, index, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
-	rte->requiredPerms |= acl_mode;
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	CDXLTableDescr *pdxltabdesc = pdxlop->Pdxltabdesc();
+	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, iRel, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
+	prte->requiredPerms |= aclmode;
+	m_pctxdxltoplstmt->AddRTE(prte);
 	
-	CDXLNode *project_list_dxlnode = (*dml_dxlnode)[0];
-	CDXLNode *child_dxlnode = (*dml_dxlnode)[1];
+	CDXLNode *pdxlnPrL = (*pdxlnDML)[0];
+	CDXLNode *pdxlnChild = (*pdxlnDML)[1];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(&child_context);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(&dxltrctxChild);
 
 	// translate proj list
-	List *dml_target_list = TranslateDXLProjList
+	List *plTargetListDML = PlTargetListFromProjList
 		(
-		project_list_dxlnode,
+		pdxlnPrL,
 		NULL,			// translate context for the base table
-		child_contexts,
-		output_context
+		pdrgpdxltrctx,
+		pdxltrctxOut
 		);
 	
-	if (md_rel->HasDroppedColumns())
+	if (pmdrel->FHasDroppedColumns())
 	{
 		// pad DML target list with NULLs for dropped columns for all DML operator types
-		List *target_list_with_dropped_cols = CreateTargetListWithNullsForDroppedCols(dml_target_list, md_rel);
-		gpdb::GPDBFree(dml_target_list);
-		dml_target_list = target_list_with_dropped_cols;
+		List *plTargetListWithDroppedCols = PlTargetListWithDroppedCols(plTargetListDML, pmdrel);
+		gpdb::GPDBFree(plTargetListDML);
+		plTargetListDML = plTargetListWithDroppedCols;
 	}
 
 	// Extract column numbers of the action and ctid columns from the
 	// target list. ORCA also includes a third similar column for
 	// partition Oid to the target list, but we don't use it for anything
 	// in GPDB.
-	dml->actionColIdx = AddTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->ActionColId(), true /*is_resjunk*/);
-	dml->ctidColIdx = AddTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->GetCtIdColId(), true /*is_resjunk*/);
-	if (phy_dml_dxlop->IsOidsPreserved())
+	pdml->actionColIdx = UlAddTargetEntryForColId(&plTargetListDML, &dxltrctxChild, pdxlop->UlAction(), true /*fResjunk*/);
+	pdml->ctidColIdx = UlAddTargetEntryForColId(&plTargetListDML, &dxltrctxChild, pdxlop->UlCtid(), true /*fResjunk*/);
+	if (pdxlop->FPreserveOids())
 	{
-		dml->tupleoidColIdx = AddTargetEntryForColId(&dml_target_list, &child_context, phy_dml_dxlop->GetTupleOid(), true /*is_resjunk*/);
+		pdml->tupleoidColIdx = UlAddTargetEntryForColId(&plTargetListDML, &dxltrctxChild, pdxlop->UlTupleOid(), true /*fResjunk*/);
 	}
 	else
 	{
-		dml->tupleoidColIdx = 0;
+		pdml->tupleoidColIdx = 0;
 	}
 
-	GPOS_ASSERT(0 != dml->actionColIdx);
+	GPOS_ASSERT(0 != pdml->actionColIdx);
 
-	plan->targetlist = dml_target_list;
+	pplan->targetlist = plTargetListDML;
 	
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	if (CMD_INSERT == m_cmd_type && 0 == plan->nMotionNodes)
+	if (CMD_INSERT == m_cmdtype && 0 == pplan->nMotionNodes)
 	{
-		List *direct_dispatch_segids = TranslateDXLDirectDispatchInfo(phy_dml_dxlop->GetDXLDirectDispatchInfo());
-		plan->directDispatch.contentIds = direct_dispatch_segids;
-		plan->directDispatch.isDirectDispatch = (NIL != direct_dispatch_segids);
+		List *plDirectDispatchSegIds = PlDirectDispatchSegIds(pdxlop->Pdxlddinfo());
+		pplan->directDispatch.contentIds = plDirectDispatchSegIds;
+		pplan->directDispatch.isDirectDispatch = (NIL != plDirectDispatchSegIds);
 	}
 	
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(dml_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnDML->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	return (Plan *) dml;
+	return (Plan *) pdml;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLDirectDispatchInfo
+//		CTranslatorDXLToPlStmt::PlDirectDispatchSegIds
 //
 //	@doc:
 //		Translate the direct dispatch info
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLDirectDispatchInfo
+CTranslatorDXLToPlStmt::PlDirectDispatchSegIds
 	(
-	CDXLDirectDispatchInfo *dxl_direct_dispatch_info
+	CDXLDirectDispatchInfo *pdxlddinfo
 	)
 {
-	if (!optimizer_enable_direct_dispatch || NULL == dxl_direct_dispatch_info)
+	if (!optimizer_enable_direct_dispatch || NULL == pdxlddinfo)
 	{
 		return NIL;
 	}
 	
-	CDXLDatum2dArray *dispatch_identifier_datum_arrays = dxl_direct_dispatch_info->GetDispatchIdentifierDatumArray();
+	DrgPdrgPdxldatum *pdrgpdrgpdxldatum = pdxlddinfo->Pdrgpdrgpdxldatum();
 	
-	if (dispatch_identifier_datum_arrays == NULL || 0 == dispatch_identifier_datum_arrays->Size())
+	if (pdrgpdrgpdxldatum == NULL || 0 == pdrgpdrgpdxldatum->UlLength())
 	{
 		return NIL;
 	}
 	
-	CDXLDatumArray *dxl_datum_array = (*dispatch_identifier_datum_arrays)[0];
-	GPOS_ASSERT(0 < dxl_datum_array->Size());
+	DrgPdxldatum *pdrgpdxldatum = (*pdrgpdrgpdxldatum)[0];
+	GPOS_ASSERT(0 < pdrgpdxldatum->UlLength());
 		
-	ULONG hash_code = GetDXLDatumGPDBHash(dxl_datum_array);
-	const ULONG length = dispatch_identifier_datum_arrays->Size();
-	for (ULONG ul = 0; ul < length; ul++)
+	ULONG ulHashCode = UlCdbHash(pdrgpdxldatum);
+	const ULONG ulLength = pdrgpdrgpdxldatum->UlLength();
+	for (ULONG ul = 0; ul < ulLength; ul++)
 	{
-		CDXLDatumArray *dispatch_identifier_datum_array = (*dispatch_identifier_datum_arrays)[ul];
-		GPOS_ASSERT(0 < dispatch_identifier_datum_array->Size());
-		ULONG hash_code_new = GetDXLDatumGPDBHash(dispatch_identifier_datum_array);
+		DrgPdxldatum *pdrgpdxldatumDisj = (*pdrgpdrgpdxldatum)[ul];
+		GPOS_ASSERT(0 < pdrgpdxldatumDisj->UlLength());
+		ULONG ulHashCodeNew = UlCdbHash(pdrgpdxldatumDisj);
 		
-		if (hash_code != hash_code_new)
+		if (ulHashCode != ulHashCodeNew)
 		{
 			// values don't hash to the same segment
 			return NIL;
 		}
 	}
 	
-	List *segids_list = gpdb::LAppendInt(NIL, hash_code);
-	return segids_list;
+	List *plSegIds = gpdb::PlAppendInt(NIL, ulHashCode);
+	return plSegIds;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::GetDXLDatumGPDBHash
+//		CTranslatorDXLToPlStmt::UlCdbHash
 //
 //	@doc:
 //		Hash a DXL datum
 //
 //---------------------------------------------------------------------------
 ULONG
-CTranslatorDXLToPlStmt::GetDXLDatumGPDBHash
+CTranslatorDXLToPlStmt::UlCdbHash
 	(
-	CDXLDatumArray *dxl_datum_array
+	DrgPdxldatum *pdrgpdxldatum
 	)
 {
-	List *consts_list = NIL;
+	List *plConsts = NIL;
 	
-	const ULONG length = dxl_datum_array->Size();
+	const ULONG ulLength = pdrgpdxldatum->UlLength();
 	
-	for (ULONG ul = 0; ul < length; ul++)
+	for (ULONG ul = 0; ul < ulLength; ul++)
 	{
-		CDXLDatum *datum_dxl = (*dxl_datum_array)[ul];
+		CDXLDatum *pdxldatum = (*pdrgpdxldatum)[ul];
 		
-		Const *const_expr = (Const *) m_translator_dxl_to_scalar->TranslateDXLDatumToScalar(datum_dxl);
-		consts_list = gpdb::LAppend(consts_list, const_expr);
+		Const *pconst = (Const *) m_pdxlsctranslator->PconstFromDXLDatum(pdxldatum);
+		plConsts = gpdb::PlAppendElement(plConsts, pconst);
 	}
 
-	ULONG hash = gpdb::CdbHashConstList(consts_list, m_num_of_segments);
+	ULONG ulHash = gpdb::ICdbHashList(plConsts, m_ulSegments);
 
-	gpdb::ListFreeDeep(consts_list);
+	gpdb::FreeListDeep(plConsts);
 	
-	return hash;
+	return ulHash;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLSplit
+//		CTranslatorDXLToPlStmt::PplanSplit
 //
 //	@doc:
 //		Translates a DXL Split node 
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLSplit
+CTranslatorDXLToPlStmt::PplanSplit
 	(
-	const CDXLNode *split_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnSplit,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalSplit *phy_split_dxlop = CDXLPhysicalSplit::Cast(split_dxlnode->GetOperator());
+	CDXLPhysicalSplit *pdxlop = CDXLPhysicalSplit::PdxlopConvert(pdxlnSplit->Pdxlop());
 
 	// create SplitUpdate node
-	SplitUpdate *split = MakeNode(SplitUpdate);
-	Plan *plan = &(split->plan);
+	SplitUpdate *psplit = MakeNode(SplitUpdate);
+	Plan *pplan = &(psplit->plan);
 	
-	CDXLNode *project_list_dxlnode = (*split_dxlnode)[0];
-	CDXLNode *child_dxlnode = (*split_dxlnode)[1];
+	CDXLNode *pdxlnPrL = (*pdxlnSplit)[0];
+	CDXLNode *pdxlnChild = (*pdxlnSplit)[1];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(&child_context);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(&dxltrctxChild);
 
 	// translate proj list and filter
-	plan->targetlist = TranslateDXLProjList
+	pplan->targetlist = PlTargetListFromProjList
 		(
-		project_list_dxlnode,
+		pdxlnPrL,
 		NULL,			// translate context for the base table
-		child_contexts,
-		output_context
+		pdrgpdxltrctx,
+		pdxltrctxOut
 		);
 
 	// translate delete and insert columns
-	ULongPtrArray *deletion_colid_array = phy_split_dxlop->GetDeletionColIdArray();
-	ULongPtrArray *insertion_colid_array = phy_split_dxlop->GetInsertionColIdArray();
+	DrgPul *pdrgpulDeleteCols = pdxlop->PdrgpulDelete();
+	DrgPul *pdrgpulInsertCols = pdxlop->PdrgpulInsert();
 		
-	GPOS_ASSERT(insertion_colid_array->Size() == deletion_colid_array->Size());
+	GPOS_ASSERT(pdrgpulInsertCols->UlLength() == pdrgpulDeleteCols->UlLength());
 	
-	split->deleteColIdx = CTranslatorUtils::ConvertColidToAttnos(deletion_colid_array, &child_context);
-	split->insertColIdx = CTranslatorUtils::ConvertColidToAttnos(insertion_colid_array, &child_context);
+	psplit->deleteColIdx = CTranslatorUtils::PlAttnosFromColids(pdrgpulDeleteCols, &dxltrctxChild);
+	psplit->insertColIdx = CTranslatorUtils::PlAttnosFromColids(pdrgpulInsertCols, &dxltrctxChild);
 	
-	const TargetEntry *te_action_col = output_context->GetTargetEntry(phy_split_dxlop->ActionColId());
-	const TargetEntry *te_ctid_col = output_context->GetTargetEntry(phy_split_dxlop->GetCtIdColId());
-	const TargetEntry *te_tuple_oid_col = output_context->GetTargetEntry(phy_split_dxlop->GetTupleOid());
+	const TargetEntry *pteActionCol = pdxltrctxOut->Pte(pdxlop->UlAction());
+	const TargetEntry *pteCtidCol = pdxltrctxOut->Pte(pdxlop->UlCtid());
+	const TargetEntry *pteTupleOidCol = pdxltrctxOut->Pte(pdxlop->UlTupleOid());
 
-	if (NULL  == te_action_col)
+	if (NULL  == pteActionCol)
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, phy_split_dxlop->ActionColId());
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, pdxlop->UlAction());
 	}
-	if (NULL  == te_ctid_col)
+	if (NULL  == pteCtidCol)
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, phy_split_dxlop->GetCtIdColId());
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, pdxlop->UlCtid());
 	}	 
 	
-	split->actionColIdx = te_action_col->resno;
-	split->ctidColIdx = te_ctid_col->resno;
+	psplit->actionColIdx = pteActionCol->resno;
+	psplit->ctidColIdx = pteCtidCol->resno;
 	
-	split->tupleoidColIdx = FirstLowInvalidHeapAttributeNumber;
-	if (NULL != te_tuple_oid_col)
+	psplit->tupleoidColIdx = FirstLowInvalidHeapAttributeNumber;
+	if (NULL != pteTupleOidCol)
 	{
-		split->tupleoidColIdx = te_tuple_oid_col->resno;
+		psplit->tupleoidColIdx = pteTupleOidCol->resno;
 	}
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(split_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnSplit->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	return (Plan *) split;
+	return (Plan *) psplit;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLAssert
+//		CTranslatorDXLToPlStmt::PplanAssert
 //
 //	@doc:
 //		Translate DXL assert node into GPDB assert plan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLAssert
+CTranslatorDXLToPlStmt::PplanAssert
 	(
-	const CDXLNode *assert_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnAssert,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// create assert plan node
-	AssertOp *assert_node = MakeNode(AssertOp);
+	AssertOp *passert = MakeNode(AssertOp);
 
-	Plan *plan = &(assert_node->plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	Plan *pplan = &(passert->plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	CDXLPhysicalAssert *assert_dxlop = CDXLPhysicalAssert::Cast(assert_dxlnode->GetOperator());
+	CDXLPhysicalAssert *pdxlopAssert = CDXLPhysicalAssert::PdxlopConvert(pdxlnAssert->Pdxlop());
 
 	// translate error code into the its internal GPDB representation
-	const CHAR *error_code = assert_dxlop->GetSQLState();
-	GPOS_ASSERT(GPOS_SQLSTATE_LENGTH == clib::Strlen(error_code));
+	const CHAR *szErrorCode = pdxlopAssert->SzSQLState();
+	GPOS_ASSERT(GPOS_SQLSTATE_LENGTH == clib::UlStrLen(szErrorCode));
 	
-	assert_node->errcode = MAKE_SQLSTATE(error_code[0], error_code[1], error_code[2], error_code[3], error_code[4]);
-	CDXLNode *filter_dxlnode = (*assert_dxlnode)[CDXLPhysicalAssert::EdxlassertIndexFilter];
+	passert->errcode = MAKE_SQLSTATE(szErrorCode[0], szErrorCode[1], szErrorCode[2], szErrorCode[3], szErrorCode[4]);
+	CDXLNode *pdxlnFilter = (*pdxlnAssert)[CDXLPhysicalAssert::EdxlassertIndexFilter];
 
-	assert_node->errmessage = CTranslatorUtils::GetAssertErrorMsgs(filter_dxlnode);
+	passert->errmessage = CTranslatorUtils::PlAssertErrorMsgs(pdxlnFilter);
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(assert_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnAssert->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
 	// translate child plan
-	CDXLNode *child_dxlnode = (*assert_dxlnode)[CDXLPhysicalAssert::EdxlassertIndexChild];
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	CDXLNode *pdxlnChild = (*pdxlnAssert)[CDXLPhysicalAssert::EdxlassertIndexChild];
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	GPOS_ASSERT(NULL != child_plan && "child plan cannot be NULL");
+	GPOS_ASSERT(NULL != pplanChild && "child plan cannot be NULL");
 
-	assert_node->plan.lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
+	passert->plan.lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
-	CDXLNode *project_list_dxlnode = (*assert_dxlnode)[CDXLPhysicalAssert::EdxlassertIndexProjList];
+	CDXLNode *pdxlnPrL = (*pdxlnAssert)[CDXLPhysicalAssert::EdxlassertIndexProjList];
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(const_cast<CDXLTranslateContext*>(&child_context));
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(const_cast<CDXLTranslateContext*>(&dxltrctxChild));
 
 	// translate proj list
-	plan->targetlist = TranslateDXLProjList
+	pplan->targetlist = PlTargetListFromProjList
 				(
-				project_list_dxlnode,
+				pdxlnPrL,
 				NULL,			// translate context for the base table
-				child_contexts,
-				output_context
+				pdrgpdxltrctx,
+				pdxltrctxOut
 				);
 
 	// translate assert constraints
-	plan->qual = TranslateDXLAssertConstraints
+	pplan->qual = PlTranslateAssertConstraints
 					(
-					filter_dxlnode,
-					output_context,
-					child_contexts
+					pdxlnFilter,
+					pdxltrctxOut,
+					pdrgpdxltrctx
 					);
 	
-	GPOS_ASSERT(gpdb::ListLength(plan->qual) == gpdb::ListLength(assert_node->errmessage));
-	SetParamIds(plan);
+	GPOS_ASSERT(gpdb::UlListLength(pplan->qual) == gpdb::UlListLength(passert->errmessage));
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
-	return (Plan *) assert_node;
+	return (Plan *) passert;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLRowTrigger
+//		CTranslatorDXLToPlStmt::PplanRowTrigger
 //
 //	@doc:
 //		Translates a DXL Row Trigger node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLRowTrigger
+CTranslatorDXLToPlStmt::PplanRowTrigger
 	(
-	const CDXLNode *row_trigger_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnRowTrigger,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalRowTrigger *phy_row_trigger_dxlop = CDXLPhysicalRowTrigger::Cast(row_trigger_dxlnode->GetOperator());
+	CDXLPhysicalRowTrigger *pdxlop = CDXLPhysicalRowTrigger::PdxlopConvert(pdxlnRowTrigger->Pdxlop());
 
 	// create RowTrigger node
-	RowTrigger *row_trigger = MakeNode(RowTrigger);
-	Plan *plan = &(row_trigger->plan);
+	RowTrigger *prowtrigger = MakeNode(RowTrigger);
+	Plan *pplan = &(prowtrigger->plan);
 
-	CDXLNode *project_list_dxlnode = (*row_trigger_dxlnode)[0];
-	CDXLNode *child_dxlnode = (*row_trigger_dxlnode)[1];
+	CDXLNode *pdxlnPrL = (*pdxlnRowTrigger)[0];
+	CDXLNode *pdxlnChild = (*pdxlnRowTrigger)[1];
 
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *child_plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplanChild = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(&child_context);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(&dxltrctxChild);
 
 	// translate proj list and filter
-	plan->targetlist = TranslateDXLProjList
+	pplan->targetlist = PlTargetListFromProjList
 		(
-		project_list_dxlnode,
+		pdxlnPrL,
 		NULL,			// translate context for the base table
-		child_contexts,
-		output_context
+		pdrgpdxltrctx,
+		pdxltrctxOut
 		);
 
-	Oid relid_oid = CMDIdGPDB::CastMdid(phy_row_trigger_dxlop->GetRelMdId())->Oid();
-	GPOS_ASSERT(InvalidOid != relid_oid);
-	row_trigger->relid = relid_oid;
-	row_trigger->eventFlags = phy_row_trigger_dxlop->GetType();
+	Oid oidRelid = CMDIdGPDB::PmdidConvert(pdxlop->PmdidRel())->OidObjectId();
+	GPOS_ASSERT(InvalidOid != oidRelid);
+	prowtrigger->relid = oidRelid;
+	prowtrigger->eventFlags = pdxlop->IType();
 
 	// translate old and new columns
-	ULongPtrArray *colids_old_array = phy_row_trigger_dxlop->GetColIdsOld();
-	ULongPtrArray *colids_new_array = phy_row_trigger_dxlop->GetColIdsNew();
+	DrgPul *pdrgpulOldCols = pdxlop->PdrgpulOld();
+	DrgPul *pdrgpulNewCols = pdxlop->PdrgpulNew();
 
-	GPOS_ASSERT_IMP(NULL != colids_old_array && NULL != colids_new_array,
-					colids_new_array->Size() == colids_old_array->Size());
+	GPOS_ASSERT_IMP(NULL != pdrgpulOldCols && NULL != pdrgpulNewCols,
+					pdrgpulNewCols->UlLength() == pdrgpulOldCols->UlLength());
 
-	if (NULL == colids_old_array)
+	if (NULL == pdrgpulOldCols)
 	{
-		row_trigger->oldValuesColIdx = NIL;
+		prowtrigger->oldValuesColIdx = NIL;
 	}
 	else
 	{
-		row_trigger->oldValuesColIdx = CTranslatorUtils::ConvertColidToAttnos(colids_old_array, &child_context);
+		prowtrigger->oldValuesColIdx = CTranslatorUtils::PlAttnosFromColids(pdrgpulOldCols, &dxltrctxChild);
 	}
 
-	if (NULL == colids_new_array)
+	if (NULL == pdrgpulNewCols)
 	{
-		row_trigger->newValuesColIdx = NIL;
+		prowtrigger->newValuesColIdx = NIL;
 	}
 	else
 	{
-		row_trigger->newValuesColIdx = CTranslatorUtils::ConvertColidToAttnos(colids_new_array, &child_context);
+		prowtrigger->newValuesColIdx = CTranslatorUtils::PlAttnosFromColids(pdrgpulNewCols, &dxltrctxChild);
 	}
 
-	plan->lefttree = child_plan;
-	plan->nMotionNodes = child_plan->nMotionNodes;
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+	pplan->lefttree = pplanChild;
+	pplan->nMotionNodes = pplanChild->nMotionNodes;
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
 
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(row_trigger_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnRowTrigger->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	return (Plan *) row_trigger;
+	return (Plan *) prowtrigger;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLTblDescrToRangeTblEntry
+//		CTranslatorDXLToPlStmt::PrteFromTblDescr
 //
 //	@doc:
 //		Translates a DXL table descriptor into a range table entry. If an index
@@ -4223,216 +4227,216 @@ CTranslatorDXLToPlStmt::TranslateDXLRowTrigger
 //
 //---------------------------------------------------------------------------
 RangeTblEntry *
-CTranslatorDXLToPlStmt::TranslateDXLTblDescrToRangeTblEntry
+CTranslatorDXLToPlStmt::PrteFromTblDescr
 	(
-	const CDXLTableDescr *table_descr,
-	const CDXLIndexDescr *index_descr_dxl, // should be NULL unless we have an index-only scan
-	Index index,
-	CDXLTranslateContextBaseTable *base_table_context
+	const CDXLTableDescr *pdxltabdesc,
+	const CDXLIndexDescr *pdxlid, // should be NULL unless we have an index-only scan
+	Index iRel,
+	CDXLTranslateContextBaseTable *pdxltrctxbtOut
 	)
 {
-	GPOS_ASSERT(NULL != table_descr);
+	GPOS_ASSERT(NULL != pdxltabdesc);
 
-	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(table_descr->MDId());
-	const ULONG num_of_non_sys_cols = CTranslatorUtils::GetNumNonSystemColumns(md_rel);
+	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
+	const ULONG ulRelColumns = CTranslatorUtils::UlNonSystemColumns(pmdrel);
 
-	RangeTblEntry *rte = MakeNode(RangeTblEntry);
-	rte->rtekind = RTE_RELATION;
+	RangeTblEntry *prte = MakeNode(RangeTblEntry);
+	prte->rtekind = RTE_RELATION;
 
 	// get the index if given
-	const IMDIndex *md_index = NULL;
-	if (NULL != index_descr_dxl)
+	const IMDIndex *pmdindex = NULL;
+	if (NULL != pdxlid)
 	{
-		md_index = m_md_accessor->RetrieveIndex(index_descr_dxl->MDId());
+		pmdindex = m_pmda->Pmdindex(pdxlid->Pmdid());
 	}
 
 	// get oid for table
-	Oid oid = CMDIdGPDB::CastMdid(table_descr->MDId())->Oid();
+	Oid oid = CMDIdGPDB::PmdidConvert(pdxltabdesc->Pmdid())->OidObjectId();
 	GPOS_ASSERT(InvalidOid != oid);
 
-	rte->relid = oid;
-	rte->checkAsUser = table_descr->GetExecuteAsUserId();
-	rte->requiredPerms |= ACL_NO_RIGHTS;
+	prte->relid = oid;
+	prte->checkAsUser = pdxltabdesc->UlExecuteAsUser();
+	prte->requiredPerms |= ACL_NO_RIGHTS;
 
 	// save oid and range index in translation context
-	base_table_context->SetOID(oid);
-	base_table_context->SetRelIndex(index);
+	pdxltrctxbtOut->SetOID(oid);
+	pdxltrctxbtOut->SetIdx(iRel);
 
-	Alias *alias = MakeNode(Alias);
-	alias->colnames = NIL;
+	Alias *palias = MakeNode(Alias);
+	palias->colnames = NIL;
 
 	// get table alias
-	alias->aliasname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(table_descr->MdName()->GetMDName()->GetBuffer());
+	palias->aliasname = CTranslatorUtils::SzFromWsz(pdxltabdesc->Pmdname()->Pstr()->Wsz());
 
 	// get column names
-	const ULONG arity = table_descr->Arity();
+	const ULONG ulArity = pdxltabdesc->UlArity();
 	
-	INT last_attno = 0;
+	INT iLastAttno = 0;
 	
-	for (ULONG ul = 0; ul < arity; ++ul)
+	for (ULONG ul = 0; ul < ulArity; ++ul)
 	{
-		const CDXLColDescr *dxl_col_descr = table_descr->GetColumnDescrAt(ul);
-		GPOS_ASSERT(NULL != dxl_col_descr);
+		const CDXLColDescr *pdxlcd = pdxltabdesc->Pdxlcd(ul);
+		GPOS_ASSERT(NULL != pdxlcd);
 
-		INT attno = dxl_col_descr->AttrNum();
+		INT iAttno = pdxlcd->IAttno();
 
-		GPOS_ASSERT(0 != attno);
+		GPOS_ASSERT(0 != iAttno);
 
-		if (0 < attno)
+		if (0 < iAttno)
 		{
-			// if attno > last_attno + 1, there were dropped attributes
+			// if iAttno > iLastAttno + 1, there were dropped attributes
 			// add those to the RTE as they are required by GPDB
-			for (INT dropped_col_attno = last_attno + 1; dropped_col_attno < attno; dropped_col_attno++)
+			for (INT iDroppedColAttno = iLastAttno + 1; iDroppedColAttno < iAttno; iDroppedColAttno++)
 			{
-				Value *val_dropped_colname = gpdb::MakeStringValue(PStrDup(""));
-				alias->colnames = gpdb::LAppend(alias->colnames, val_dropped_colname);
+				Value *pvalDroppedColName = gpdb::PvalMakeString(PStrDup(""));
+				palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalDroppedColName);
 			}
 			
 			// non-system attribute
-			CHAR *col_name_char_array = CTranslatorUtils::CreateMultiByteCharStringFromWCString(dxl_col_descr->MdName()->GetMDName()->GetBuffer());
-			Value *val_colname = gpdb::MakeStringValue(col_name_char_array);
+			CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlcd->Pmdname()->Pstr()->Wsz());
+			Value *pvalColName = gpdb::PvalMakeString(szColName);
 
-			alias->colnames = gpdb::LAppend(alias->colnames, val_colname);
-			last_attno = attno;
+			palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalColName);
+			iLastAttno = iAttno;
 		}
 
 		// get the attno from the index, in case of indexonlyscan
-		if (NULL != md_index)
+		if (NULL != pmdindex)
 		{
-			attno = 1 + md_index->GetKeyPos((ULONG) attno - 1);
+			iAttno = 1 + pmdindex->UlPosInKey((ULONG) iAttno - 1);
 		}
 
 		// save mapping col id -> index in translate context
-		(void) base_table_context->InsertMapping(dxl_col_descr->Id(), attno);
+		(void) pdxltrctxbtOut->FInsertMapping(pdxlcd->UlID(), iAttno);
 	}
 
 	// if there are any dropped columns at the end, add those too to the RangeTblEntry
-	for (ULONG ul = last_attno + 1; ul <= num_of_non_sys_cols; ul++)
+	for (ULONG ul = iLastAttno + 1; ul <= ulRelColumns; ul++)
 	{
-		Value *val_dropped_colname = gpdb::MakeStringValue(PStrDup(""));
-		alias->colnames = gpdb::LAppend(alias->colnames, val_dropped_colname);
+		Value *pvalDroppedColName = gpdb::PvalMakeString(PStrDup(""));
+		palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalDroppedColName);
 	}
 	
-	rte->eref = alias;
+	prte->eref = palias;
 
-	return rte;
+	return prte;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLProjList
+//		CTranslatorDXLToPlStmt::PlTargetListFromProjList
 //
 //	@doc:
 //		Translates a DXL projection list node into a target list.
 //		For base table projection lists, the caller should provide a base table
 //		translation context with table oid, rtable index and mappings for the columns.
-//		For other nodes translate_ctxt_left and pdxltrctxRight give
+//		For other nodes pdxltrctxLeft and pdxltrctxRight give
 //		the mappings of column ids to target entries in the corresponding child nodes
 //		for resolving the origin of the target entries
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLProjList
+CTranslatorDXLToPlStmt::PlTargetListFromProjList
 	(
-	const CDXLNode *project_list_dxlnode,
-	const CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *child_contexts,
-	CDXLTranslateContext *output_context
+	const CDXLNode *pdxlnPrL,
+	const CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctx,
+	CDXLTranslateContext *pdxltrctxOut
 	)
 {
-	if (NULL == project_list_dxlnode)
+	if (NULL == pdxlnPrL)
 	{
 		return NULL;
 	}
 
-	List *target_list = NIL;
+	List *plTargetList = NIL;
 
 	// translate each DXL project element into a target entry
-	const ULONG arity = project_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ++ul)
+	const ULONG ulArity = pdxlnPrL->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ++ul)
 	{
-		CDXLNode *proj_elem_dxlnode = (*project_list_dxlnode)[ul];
-		GPOS_ASSERT(EdxlopScalarProjectElem == proj_elem_dxlnode->GetOperator()->GetDXLOperator());
-		CDXLScalarProjElem *sc_proj_elem_dxlop = CDXLScalarProjElem::Cast(proj_elem_dxlnode->GetOperator());
-		GPOS_ASSERT(1 == proj_elem_dxlnode->Arity());
+		CDXLNode *pdxlnPrEl = (*pdxlnPrL)[ul];
+		GPOS_ASSERT(EdxlopScalarProjectElem == pdxlnPrEl->Pdxlop()->Edxlop());
+		CDXLScalarProjElem *pdxlopPrel = CDXLScalarProjElem::PdxlopConvert(pdxlnPrEl->Pdxlop());
+		GPOS_ASSERT(1 == pdxlnPrEl->UlArity());
 
 		// translate proj element expression
-		CDXLNode *expr_dxlnode = (*proj_elem_dxlnode)[0];
+		CDXLNode *pdxlnExpr = (*pdxlnPrEl)[0];
 
-		CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt
+		CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
 																(
-																m_mp,
-																base_table_context,
-																child_contexts,
-																output_context,
-																m_dxl_to_plstmt_context
+																m_pmp,
+																pdxltrctxbt,
+																pdrgpdxltrctx,
+																pdxltrctxOut,
+																m_pctxdxltoplstmt
 																);
 
-		Expr *expr = m_translator_dxl_to_scalar->TranslateDXLToScalar(expr_dxlnode, &colid_var_mapping);
+		Expr *pexpr = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnExpr, &mapcidvarplstmt);
 
-		GPOS_ASSERT(NULL != expr);
+		GPOS_ASSERT(NULL != pexpr);
 
-		TargetEntry *target_entry = MakeNode(TargetEntry);
-		target_entry->expr = expr;
-		target_entry->resname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(sc_proj_elem_dxlop->GetMdNameAlias()->GetMDName()->GetBuffer());
-		target_entry->resno = (AttrNumber) (ul + 1);
+		TargetEntry *pte = MakeNode(TargetEntry);
+		pte->expr = pexpr;
+		pte->resname = CTranslatorUtils::SzFromWsz(pdxlopPrel->PmdnameAlias()->Pstr()->Wsz());
+		pte->resno = (AttrNumber) (ul + 1);
 
-		if (IsA(expr, Var))
+		if (IsA(pexpr, Var))
 		{
 			// check the origin of the left or the right side
 			// of the current operator and if it is derived from a base relation,
 			// set resorigtbl and resorigcol appropriately
 
-			if (NULL != base_table_context)
+			if (NULL != pdxltrctxbt)
 			{
 				// translating project list of a base table
-				target_entry->resorigtbl = base_table_context->GetOid();
-				target_entry->resorigcol = ((Var *) expr)->varattno;
+				pte->resorigtbl = pdxltrctxbt->OidRel();
+				pte->resorigcol = ((Var *) pexpr)->varattno;
 			}
 			else
 			{
 				// not translating a base table proj list: variable must come from
 				// the left or right child of the operator
 
-				GPOS_ASSERT(NULL != child_contexts);
-				GPOS_ASSERT(0 != child_contexts->Size());
-				ULONG colid = CDXLScalarIdent::Cast(expr_dxlnode->GetOperator())->GetDXLColRef()->Id();
+				GPOS_ASSERT(NULL != pdrgpdxltrctx);
+				GPOS_ASSERT(0 != pdrgpdxltrctx->UlLength());
+				ULONG ulColId = CDXLScalarIdent::PdxlopConvert(pdxlnExpr->Pdxlop())->Pdxlcr()->UlID();
 
-				const CDXLTranslateContext *translate_ctxt_left = (*child_contexts)[0];
-				GPOS_ASSERT(NULL != translate_ctxt_left);
-				const TargetEntry *pteOriginal = translate_ctxt_left->GetTargetEntry(colid);
+				const CDXLTranslateContext *pdxltrctxLeft = (*pdrgpdxltrctx)[0];
+				GPOS_ASSERT(NULL != pdxltrctxLeft);
+				const TargetEntry *pteOriginal = pdxltrctxLeft->Pte(ulColId);
 
 				if (NULL == pteOriginal)
 				{
 					// variable not found on the left side
-					GPOS_ASSERT(2 == child_contexts->Size());
-					const CDXLTranslateContext *pdxltrctxRight = (*child_contexts)[1];
+					GPOS_ASSERT(2 == pdrgpdxltrctx->UlLength());
+					const CDXLTranslateContext *pdxltrctxRight = (*pdrgpdxltrctx)[1];
 
 					GPOS_ASSERT(NULL != pdxltrctxRight);
-					pteOriginal = pdxltrctxRight->GetTargetEntry(colid);
+					pteOriginal = pdxltrctxRight->Pte(ulColId);
 				}
 
 				if (NULL  == pteOriginal)
 				{
-					GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, colid);
+					GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, ulColId);
 				}	
-				target_entry->resorigtbl = pteOriginal->resorigtbl;
-				target_entry->resorigcol = pteOriginal->resorigcol;
+				pte->resorigtbl = pteOriginal->resorigtbl;
+				pte->resorigcol = pteOriginal->resorigcol;
 			}
 		}
 
 		// add column mapping to output translation context
-		output_context->InsertMapping(sc_proj_elem_dxlop->Id(), target_entry);
+		pdxltrctxOut->InsertMapping(pdxlopPrel->UlId(), pte);
 
-		target_list = gpdb::LAppend(target_list, target_entry);
+		plTargetList = gpdb::PlAppendElement(plTargetList, pte);
 	}
 
-	return target_list;
+	return plTargetList;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::CreateTargetListWithNullsForDroppedCols
+//		CTranslatorDXLToPlStmt::PlTargetListWithDroppedCols
 //
 //	@doc:
 //		Construct the target list for a DML statement by adding NULL elements
@@ -4440,57 +4444,57 @@ CTranslatorDXLToPlStmt::TranslateDXLProjList
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::CreateTargetListWithNullsForDroppedCols
+CTranslatorDXLToPlStmt::PlTargetListWithDroppedCols
 	(
-	List *target_list,
-	const IMDRelation *md_rel
+	List *plTargetList,
+	const IMDRelation *pmdrel
 	)
 {
-	GPOS_ASSERT(NULL != target_list);
-	GPOS_ASSERT(gpdb::ListLength(target_list) <= md_rel->ColumnCount());
+	GPOS_ASSERT(NULL != plTargetList);
+	GPOS_ASSERT(gpdb::UlListLength(plTargetList) <= pmdrel->UlColumns());
 
-	List *result_list = NIL;
-	ULONG last_tgt_elem = 0;
-	ULONG resno = 1;
+	List *plResult = NIL;
+	ULONG ulLastTLElem = 0;
+	ULONG ulResno = 1;
 	
-	const ULONG num_of_rel_cols = md_rel->ColumnCount();
+	const ULONG ulRelCols = pmdrel->UlColumns();
 	
-	for (ULONG ul = 0; ul < num_of_rel_cols; ul++)
+	for (ULONG ul = 0; ul < ulRelCols; ul++)
 	{
-		const IMDColumn *md_col = md_rel->GetMdCol(ul);
+		const IMDColumn *pmdcol = pmdrel->Pmdcol(ul);
 		
-		if (md_col->IsSystemColumn())
+		if (pmdcol->FSystemColumn())
 		{
 			continue;
 		}
 		
-		Expr *expr = NULL;
-		if (md_col->IsDropped())
+		Expr *pexpr = NULL;	
+		if (pmdcol->FDropped())
 		{
 			// add a NULL element
-			OID oid_type = CMDIdGPDB::CastMdid(m_md_accessor->PtMDType<IMDTypeInt4>()->MDId())->Oid();
+			OID oidType = CMDIdGPDB::PmdidConvert(m_pmda->PtMDType<IMDTypeInt4>()->Pmdid())->OidObjectId();
 
-			expr = (Expr *) gpdb::MakeNULLConst(oid_type);
+			pexpr = (Expr *) gpdb::PnodeMakeNULLConst(oidType);
 		}
 		else
 		{
-			TargetEntry *target_entry = (TargetEntry *) gpdb::ListNth(target_list, last_tgt_elem);
-			expr = (Expr *) gpdb::CopyObject(target_entry->expr);
-			last_tgt_elem++;
+			TargetEntry *pte = (TargetEntry *) gpdb::PvListNth(plTargetList, ulLastTLElem);
+			pexpr = (Expr *) gpdb::PvCopyObject(pte->expr);
+			ulLastTLElem++;
 		}
 		
-		CHAR *name_str = CTranslatorUtils::CreateMultiByteCharStringFromWCString(md_col->Mdname().GetMDName()->GetBuffer());
-		TargetEntry *te_new = gpdb::MakeTargetEntry(expr, resno, name_str, false /*resjunk*/);
-		result_list = gpdb::LAppend(result_list, te_new);
-		resno++;
+		CHAR *szName = CTranslatorUtils::SzFromWsz(pmdcol->Mdname().Pstr()->Wsz());
+		TargetEntry *pteNew = gpdb::PteMakeTargetEntry(pexpr, ulResno, szName, false /*resjunk*/);
+		plResult = gpdb::PlAppendElement(plResult, pteNew);
+		ulResno++;
 	}
 	
-	return result_list;
+	return plResult;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLProjectListToHashTargetList
+//		CTranslatorDXLToPlStmt::PlTargetListForHashNode
 //
 //	@doc:
 //		Create a target list for the hash node of a hash join plan node by creating a list
@@ -4498,150 +4502,150 @@ CTranslatorDXLToPlStmt::CreateTargetListWithNullsForDroppedCols
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLProjectListToHashTargetList
+CTranslatorDXLToPlStmt::PlTargetListForHashNode
 	(
-	const CDXLNode *project_list_dxlnode,
-	CDXLTranslateContext *child_context,
-	CDXLTranslateContext *output_context
+	const CDXLNode *pdxlnPrL,
+	CDXLTranslateContext *pdxltrctxChild,
+	CDXLTranslateContext *pdxltrctxOut
 	)
 {
-	List *target_list = NIL;
-	const ULONG arity = project_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	List *plTargetList = NIL;
+	const ULONG ulArity = pdxlnPrL->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *proj_elem_dxlnode = (*project_list_dxlnode)[ul];
-		CDXLScalarProjElem *sc_proj_elem_dxlop = CDXLScalarProjElem::Cast(proj_elem_dxlnode->GetOperator());
+		CDXLNode *pdxlnPrEl = (*pdxlnPrL)[ul];
+		CDXLScalarProjElem *pdxlopPrel = CDXLScalarProjElem::PdxlopConvert(pdxlnPrEl->Pdxlop());
 
-		const TargetEntry *te_child = child_context->GetTargetEntry(sc_proj_elem_dxlop->Id());
-		if (NULL  == te_child)
+		const TargetEntry *pteChild = pdxltrctxChild->Pte(pdxlopPrel->UlId());
+		if (NULL  == pteChild)
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, sc_proj_elem_dxlop->Id());
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, pdxlopPrel->UlId());
 		}	
 
 		// get type oid for project element's expression
-		GPOS_ASSERT(1 == proj_elem_dxlnode->Arity());
+		GPOS_ASSERT(1 == pdxlnPrEl->UlArity());
 
 		// find column type
-		OID oid_type = gpdb::ExprType((Node*) te_child->expr);
-		INT type_modifier = gpdb::ExprTypeMod((Node *) te_child->expr);
+		OID oidType = gpdb::OidExprType((Node*) pteChild->expr);
+		INT iTypeModifier = gpdb::IExprTypeMod((Node *) pteChild->expr);
 
 		// find the original varno and attno for this column
-		Index idx_varnoold = 0;
-		AttrNumber attno_old = 0;
+		Index idxVarnoold = 0;
+		AttrNumber attnoOld = 0;
 
-		if (IsA(te_child->expr, Var))
+		if (IsA(pteChild->expr, Var))
 		{
-			Var *pv = (Var*) te_child->expr;
-			idx_varnoold = pv->varnoold;
-			attno_old = pv->varoattno;
+			Var *pv = (Var*) pteChild->expr;
+			idxVarnoold = pv->varnoold;
+			attnoOld = pv->varoattno;
 		}
 		else
 		{
-			idx_varnoold = OUTER_VAR;
-			attno_old = te_child->resno;
+			idxVarnoold = OUTER_VAR;
+			attnoOld = pteChild->resno;
 		}
 
 		// create a Var expression for this target list entry expression
-		Var *var = gpdb::MakeVar
+		Var *pvar = gpdb::PvarMakeVar
 					(
 					OUTER_VAR,
-					te_child->resno,
-					oid_type,
-					type_modifier,
+					pteChild->resno,
+					oidType,
+					iTypeModifier,
 					0	// varlevelsup
 					);
 
 		// set old varno and varattno since makeVar does not set them
-		var->varnoold = idx_varnoold;
-		var->varoattno = attno_old;
+		pvar->varnoold = idxVarnoold;
+		pvar->varoattno = attnoOld;
 
-		CHAR *resname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(sc_proj_elem_dxlop->GetMdNameAlias()->GetMDName()->GetBuffer());
+		CHAR *szResname = CTranslatorUtils::SzFromWsz(pdxlopPrel->PmdnameAlias()->Pstr()->Wsz());
 
-		TargetEntry *target_entry = gpdb::MakeTargetEntry
+		TargetEntry *pte = gpdb::PteMakeTargetEntry
 							(
-							(Expr *) var,
+							(Expr *) pvar,
 							(AttrNumber) (ul + 1),
-							resname,
+							szResname,
 							false		// resjunk
 							);
 
-		target_list = gpdb::LAppend(target_list, target_entry);
-		output_context->InsertMapping(sc_proj_elem_dxlop->Id(), target_entry);
+		plTargetList = gpdb::PlAppendElement(plTargetList, pte);
+		pdxltrctxOut->InsertMapping(pdxlopPrel->UlId(), pte);
 	}
 
-	return target_list;
+	return plTargetList;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLFilterToQual
+//		CTranslatorDXLToPlStmt::PlQualFromFilter
 //
 //	@doc:
 //		Translates a DXL filter node into a Qual list.
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLFilterToQual
+CTranslatorDXLToPlStmt::PlQualFromFilter
 	(
-	const CDXLNode * filter_dxlnode,
-	const CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *child_contexts,
-	CDXLTranslateContext *output_context
+	const CDXLNode * pdxlnFilter,
+	const CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctx,
+	CDXLTranslateContext *pdxltrctxOut
 	)
 {
-	const ULONG arity = filter_dxlnode->Arity();
-	if (0 == arity)
+	const ULONG ulArity = pdxlnFilter->UlArity();
+	if (0 == ulArity)
 	{
 		return NIL;
 	}
 
-	GPOS_ASSERT(1 == arity);
+	GPOS_ASSERT(1 == ulArity);
 
-	CDXLNode *filter_cond_dxlnode = (*filter_dxlnode)[0];
-	GPOS_ASSERT(CTranslatorDXLToScalar::HasBoolResult(filter_cond_dxlnode, m_md_accessor));
+	CDXLNode *pdxlnFilterCond = (*pdxlnFilter)[0];
+	GPOS_ASSERT(CTranslatorDXLToScalar::FBoolean(pdxlnFilterCond, m_pmda));
 
-	return TranslateDXLScCondToQual(filter_cond_dxlnode, base_table_context, child_contexts, output_context);
+	return PlQualFromScalarCondNode(pdxlnFilterCond, pdxltrctxbt, pdrgpdxltrctx, pdxltrctxOut);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLScCondToQual
+//		CTranslatorDXLToPlStmt::PlQualFromScalarCondNode
 //
 //	@doc:
 //		Translates a DXL scalar condition node node into a Qual list.
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLScCondToQual
+CTranslatorDXLToPlStmt::PlQualFromScalarCondNode
 	(
-	const CDXLNode *condition_dxlnode,
-	const CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *child_contexts,
-	CDXLTranslateContext *output_context
+	const CDXLNode *pdxlnCond,
+	const CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctx,
+	CDXLTranslateContext *pdxltrctxOut
 	)
 {
-	List *quals_list = NIL;
+	List *plQuals = NIL;
 
-	GPOS_ASSERT(CTranslatorDXLToScalar::HasBoolResult(const_cast<CDXLNode*>(condition_dxlnode), m_md_accessor));
+	GPOS_ASSERT(CTranslatorDXLToScalar::FBoolean(const_cast<CDXLNode*>(pdxlnCond), m_pmda));
 
-	CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt
+	CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
 															(
-															m_mp,
-															base_table_context,
-															child_contexts,
-															output_context,
-															m_dxl_to_plstmt_context
+															m_pmp,
+															pdxltrctxbt,
+															pdrgpdxltrctx,
+															pdxltrctxOut,
+															m_pctxdxltoplstmt
 															);
 
-	Expr *expr = m_translator_dxl_to_scalar->TranslateDXLToScalar
+	Expr *pexpr = m_pdxlsctranslator->PexprFromDXLNodeScalar
 					(
-					condition_dxlnode,
-					&colid_var_mapping
+					pdxlnCond,
+					&mapcidvarplstmt
 					);
 
-	quals_list = gpdb::LAppend(quals_list, expr);
+	plQuals = gpdb::PlAppendElement(plQuals, pexpr);
 
-	return quals_list;
+	return plQuals;
 }
 
 //---------------------------------------------------------------------------
@@ -4655,17 +4659,17 @@ CTranslatorDXLToPlStmt::TranslateDXLScCondToQual
 void
 CTranslatorDXLToPlStmt::TranslatePlanCosts
 	(
-	const CDXLOperatorCost *dxl_operator_cost,
-	Cost *startup_cost_out,
-	Cost *total_cost_out,
-	Cost *cost_rows_out,
-	INT * width_out
+	const CDXLOperatorCost *pdxlopcost,
+	Cost *pcostStartupOut,
+	Cost *pcostTotalOut,
+	Cost *pcostRowsOut,
+	INT * piWidthOut
 	)
 {
-	*startup_cost_out = CostFromStr(dxl_operator_cost->GetStartUpCostStr());
-	*total_cost_out = CostFromStr(dxl_operator_cost->GetTotalCostStr());
-	*cost_rows_out = CostFromStr(dxl_operator_cost->GetRowsOutStr());
-	*width_out = CTranslatorUtils::GetIntFromStr(dxl_operator_cost->GetWidthStr());
+	*pcostStartupOut = CostFromStr(pdxlopcost->PstrStartupCost());
+	*pcostTotalOut = CostFromStr(pdxlopcost->PstrTotalCost());
+	*pcostRowsOut = CostFromStr(pdxlopcost->PstrRows());
+	*piWidthOut = CTranslatorUtils::IFromStr(pdxlopcost->PstrWidth());
 }
 
 //---------------------------------------------------------------------------
@@ -4680,31 +4684,31 @@ CTranslatorDXLToPlStmt::TranslatePlanCosts
 void
 CTranslatorDXLToPlStmt::TranslateProjListAndFilter
 	(
-	const CDXLNode *project_list_dxlnode,
-	const CDXLNode *filter_dxlnode,
-	const CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *child_contexts,
-	List **targetlist_out,
-	List **qual_out,
-	CDXLTranslateContext *output_context
+	const CDXLNode *pdxlnPrL,
+	const CDXLNode *pdxlnFilter,
+	const CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctx,
+	List **pplTargetListOut,
+	List **pplQualOut,
+	CDXLTranslateContext *pdxltrctxOut
 	)
 {
 	// translate proj list
-	*targetlist_out = TranslateDXLProjList
+	*pplTargetListOut = PlTargetListFromProjList
 						(
-						project_list_dxlnode,
-						base_table_context,		// base table translation context
-						child_contexts,
-						output_context
+						pdxlnPrL,
+						pdxltrctxbt,		// base table translation context
+						pdrgpdxltrctx,
+						pdxltrctxOut
 						);
 
 	// translate filter
-	*qual_out = TranslateDXLFilterToQual
+	*pplQualOut = PlQualFromFilter
 					(
-					filter_dxlnode,
-					base_table_context,			// base table translation context
-					child_contexts,
-					output_context
+					pdxlnFilter,
+					pdxltrctxbt,			// base table translation context
+					pdrgpdxltrctx,
+					pdxltrctxOut
 					);
 }
 
@@ -4721,62 +4725,62 @@ CTranslatorDXLToPlStmt::TranslateProjListAndFilter
 void
 CTranslatorDXLToPlStmt::TranslateHashExprList
 	(
-	const CDXLNode *hash_expr_list_dxlnode,
-	const CDXLTranslateContext *child_context,
-	List **hash_expr_out_list,
-	List **hash_expr_types_out_list,
-	CDXLTranslateContext *output_context
+	const CDXLNode *pdxlnHashExprList,
+	const CDXLTranslateContext *pdxltrctxChild,
+	List **pplHashExprOut,
+	List **pplHashExprTypesOut,
+	CDXLTranslateContext *pdxltrctxOut
 	)
 {
-	GPOS_ASSERT(NIL == *hash_expr_out_list);
-	GPOS_ASSERT(NIL == *hash_expr_types_out_list);
+	GPOS_ASSERT(NIL == *pplHashExprOut);
+	GPOS_ASSERT(NIL == *pplHashExprTypesOut);
 
-	List *hash_expr_list = NIL;
-	List *hash_expr_types_list = NIL;
+	List *plHashExpr = NIL;
+	List *plHashExprTypes = NIL;
 
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(child_context);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(pdxltrctxChild);
 
-	const ULONG arity = hash_expr_list_dxlnode->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	const ULONG ulArity = pdxlnHashExprList->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *hash_expr_dxlnode = (*hash_expr_list_dxlnode)[ul];
-		CDXLScalarHashExpr *hash_expr_dxlop = CDXLScalarHashExpr::Cast(hash_expr_dxlnode->GetOperator());
+		CDXLNode *pdxlnHashExpr = (*pdxlnHashExprList)[ul];
+		CDXLScalarHashExpr *pdxlopHashExpr = CDXLScalarHashExpr::PdxlopConvert(pdxlnHashExpr->Pdxlop());
 
 		// the type of the hash expression in GPDB is computed as the left operand 
 		// of the equality operator of the actual hash expression type
-		const IMDType *md_type = m_md_accessor->RetrieveType(hash_expr_dxlop->MdidType());
-		const IMDScalarOp *md_scalar_op = m_md_accessor->RetrieveScOp(md_type->GetMdidForCmpType(IMDType::EcmptEq));
+		const IMDType *pmdtype = m_pmda->Pmdtype(pdxlopHashExpr->PmdidType());
+		const IMDScalarOp *pmdscop = m_pmda->Pmdscop(pmdtype->PmdidCmp(IMDType::EcmptEq));
 		
-		const IMDId *mdid_hash_type = md_scalar_op->GetLeftMdid();
+		const IMDId *pmdidHashType = pmdscop->PmdidTypeLeft();
 		
-		hash_expr_types_list = gpdb::LAppendOid(hash_expr_types_list, CMDIdGPDB::CastMdid(mdid_hash_type)->Oid());
+		plHashExprTypes = gpdb::PlAppendOid(plHashExprTypes, CMDIdGPDB::PmdidConvert(pmdidHashType)->OidObjectId());
 
-		GPOS_ASSERT(1 == hash_expr_dxlnode->Arity());
-		CDXLNode *expr_dxlnode = (*hash_expr_dxlnode)[0];
+		GPOS_ASSERT(1 == pdxlnHashExpr->UlArity());
+		CDXLNode *pdxlnExpr = (*pdxlnHashExpr)[0];
 
-		CMappingColIdVarPlStmt colid_var_mapping = CMappingColIdVarPlStmt
+		CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
 																(
-																m_mp,
+																m_pmp,
 																NULL,
-																child_contexts,
-																output_context,
-																m_dxl_to_plstmt_context
+																pdrgpdxltrctx,
+																pdxltrctxOut,
+																m_pctxdxltoplstmt
 																);
 
-		Expr *expr = m_translator_dxl_to_scalar->TranslateDXLToScalar(expr_dxlnode, &colid_var_mapping);
+		Expr *pexpr = m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnExpr, &mapcidvarplstmt);
 
-		hash_expr_list = gpdb::LAppend(hash_expr_list, expr);
+		plHashExpr = gpdb::PlAppendElement(plHashExpr, pexpr);
 
-		GPOS_ASSERT((ULONG) gpdb::ListLength(hash_expr_list) == ul + 1);
+		GPOS_ASSERT((ULONG) gpdb::UlListLength(plHashExpr) == ul + 1);
 	}
 
 
-	*hash_expr_out_list = hash_expr_list;
-	*hash_expr_types_out_list = hash_expr_types_list;
+	*pplHashExprOut = plHashExpr;
+	*pplHashExprTypesOut = plHashExprTypes;
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -4792,34 +4796,34 @@ CTranslatorDXLToPlStmt::TranslateHashExprList
 void
 CTranslatorDXLToPlStmt::TranslateSortCols
 	(
-	const CDXLNode *sort_col_list_dxl,
-	const CDXLTranslateContext *child_context,
-	AttrNumber *att_no_sort_colids,
-	Oid *sort_op_oids,
-	Oid *sort_collations_oids,
-	bool *is_nulls_first
+	const CDXLNode *pdxlnSortColList,
+	const CDXLTranslateContext *pdxltrctxChild,
+	AttrNumber *pattnoSortColIds,
+	Oid *poidSortOpIds,
+	Oid *poidSortCollations,
+	bool *pboolNullsFirst
 	)
 {
-	const ULONG arity = sort_col_list_dxl->Arity();
-	for (ULONG ul = 0; ul < arity; ul++)
+	const ULONG ulArity = pdxlnSortColList->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-		CDXLNode *sort_col_dxlnode = (*sort_col_list_dxl)[ul];
-		CDXLScalarSortCol *sc_sort_col_dxlop = CDXLScalarSortCol::Cast(sort_col_dxlnode->GetOperator());
+		CDXLNode *pdxlnSortCol = (*pdxlnSortColList)[ul];
+		CDXLScalarSortCol *pdxlopSortCol = CDXLScalarSortCol::PdxlopConvert(pdxlnSortCol->Pdxlop());
 
-		ULONG sort_colid = sc_sort_col_dxlop->GetColId();
-		const TargetEntry *te_sort_col = child_context->GetTargetEntry(sort_colid);
-		if (NULL  == te_sort_col)
+		ULONG ulSortColId = pdxlopSortCol->UlColId();
+		const TargetEntry *pteSortCol = pdxltrctxChild->Pte(ulSortColId);
+		if (NULL  == pteSortCol)
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, sort_colid);
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, ulSortColId);
 		}	
 
-		att_no_sort_colids[ul] = te_sort_col->resno;
-		sort_op_oids[ul] = CMDIdGPDB::CastMdid(sc_sort_col_dxlop->GetMdIdSortOp())->Oid();
-		if (sort_collations_oids)
+		pattnoSortColIds[ul] = pteSortCol->resno;
+		poidSortOpIds[ul] = CMDIdGPDB::PmdidConvert(pdxlopSortCol->PmdidSortOp())->OidObjectId();
+		if (poidSortCollations)
 		{
-			sort_collations_oids[ul] = gpdb::ExprCollation((Node *) te_sort_col->expr);
+			poidSortCollations[ul] = gpdb::OidExprCollation((Node *) pteSortCol->expr);
 		}
-		is_nulls_first[ul] = sc_sort_col_dxlop->IsSortedNullsFirst();
+		pboolNullsFirst[ul] = pdxlopSortCol->FSortNullsFirst();
 	}
 }
 
@@ -4834,37 +4838,37 @@ CTranslatorDXLToPlStmt::TranslateSortCols
 Cost
 CTranslatorDXLToPlStmt::CostFromStr
 	(
-	const CWStringBase *str
+	const CWStringBase *pstr
 	)
 {
-	CHAR *sz = CTranslatorUtils::CreateMultiByteCharStringFromWCString(str->GetBuffer());
-	return gpos::clib::Strtod(sz);
+	CHAR *sz = CTranslatorUtils::SzFromWsz(pstr->Wsz());
+	return gpos::clib::DStrToD(sz);
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::IsTgtTblDistributed
+//		CTranslatorDXLToPlStmt::FTargetTableDistributed
 //
 //	@doc:
 //		Check if given operator is a DML on a distributed table
 //
 //---------------------------------------------------------------------------
 BOOL
-CTranslatorDXLToPlStmt::IsTgtTblDistributed
+CTranslatorDXLToPlStmt::FTargetTableDistributed
 	(
-	CDXLOperator *dxlop
+	CDXLOperator *pdxlop
 	)
 {
-	if (EdxlopPhysicalDML != dxlop->GetDXLOperator())
+	if (EdxlopPhysicalDML != pdxlop->Edxlop())
 	{
 		return false;
 	}
 
-	CDXLPhysicalDML *phy_dml_dxlop = CDXLPhysicalDML::Cast(dxlop);
-	IMDId *mdid = phy_dml_dxlop->GetDXLTableDescr()->MDId();
+	CDXLPhysicalDML *pdxlopDML = CDXLPhysicalDML::PdxlopConvert(pdxlop);
+	IMDId *pmdid = pdxlopDML->Pdxltabdesc()->Pmdid();
 
-	return IMDRelation::EreldistrMasterOnly != m_md_accessor->RetrieveRel(mdid)->GetRelDistribution();
+	return IMDRelation::EreldistrMasterOnly != m_pmda->Pmdrel(pmdid)->Ereldistribution();
 }
 
 //---------------------------------------------------------------------------
@@ -4877,19 +4881,19 @@ CTranslatorDXLToPlStmt::IsTgtTblDistributed
 //
 //---------------------------------------------------------------------------
 ULONG
-CTranslatorDXLToPlStmt::AddTargetEntryForColId
+CTranslatorDXLToPlStmt::UlAddTargetEntryForColId
 	(
-	List **target_list,
-	CDXLTranslateContext *dxl_translate_ctxt,
-	ULONG colid,
-	BOOL is_resjunk
+	List **pplTargetList,
+	CDXLTranslateContext *pdxltrctx,
+	ULONG ulColId,
+	BOOL fResjunk
 	)
 {
-	GPOS_ASSERT(NULL != target_list);
+	GPOS_ASSERT(NULL != pplTargetList);
 	
-	const TargetEntry *target_entry = dxl_translate_ctxt->GetTargetEntry(colid);
+	const TargetEntry *pte = pdxltrctx->Pte(ulColId);
 	
-	if (NULL == target_entry)
+	if (NULL == pte)
 	{
 		// colid not found in translate context
 		return 0;
@@ -4897,43 +4901,43 @@ CTranslatorDXLToPlStmt::AddTargetEntryForColId
 	
 	// TODO: Oct 29, 2012; see if entry already exists in the target list
 	
-	OID expr_oid = gpdb::ExprType((Node*) target_entry->expr);
-	INT type_modifier = gpdb::ExprTypeMod((Node *) target_entry->expr);
-	Var *var = gpdb::MakeVar
+	OID oidExpr = gpdb::OidExprType((Node*) pte->expr);
+	INT iTypeModifier = gpdb::IExprTypeMod((Node *) pte->expr);
+	Var *pvar = gpdb::PvarMakeVar
 						(
 						OUTER_VAR,
-						target_entry->resno,
-						expr_oid,
-						type_modifier,
+						pte->resno,
+						oidExpr,
+						iTypeModifier,
 						0	// varlevelsup
 						);
-	ULONG resno = gpdb::ListLength(*target_list) + 1;
-	CHAR *resname_str = PStrDup(target_entry->resname);
-	TargetEntry *te_new = gpdb::MakeTargetEntry((Expr*) var, resno, resname_str, is_resjunk);
-	*target_list = gpdb::LAppend(*target_list, te_new);
+	ULONG ulResNo = gpdb::UlListLength(*pplTargetList) + 1;
+	CHAR *szResName = PStrDup(pte->resname);
+	TargetEntry *pteNew = gpdb::PteMakeTargetEntry((Expr*) pvar, ulResNo, szResName, fResjunk);
+	*pplTargetList = gpdb::PlAppendElement(*pplTargetList, pteNew);
 	
-	return target_entry->resno;
+	return pte->resno;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::GetGPDBJoinTypeFromDXLJoinType
+//		CTranslatorDXLToPlStmt::JtFromEdxljt
 //
 //	@doc:
 //		Translates the join type from its DXL representation into the GPDB one
 //
 //---------------------------------------------------------------------------
 JoinType
-CTranslatorDXLToPlStmt::GetGPDBJoinTypeFromDXLJoinType
+CTranslatorDXLToPlStmt::JtFromEdxljt
 	(
-	EdxlJoinType join_type
+	EdxlJoinType edxljt
 	)
 {
-	GPOS_ASSERT(EdxljtSentinel > join_type);
+	GPOS_ASSERT(EdxljtSentinel > edxljt);
 
 	JoinType jt = JOIN_INNER;
 
-	switch (join_type)
+	switch (edxljt)
 	{
 		case EdxljtInner:
 			jt = JOIN_INNER;
@@ -4965,7 +4969,7 @@ CTranslatorDXLToPlStmt::GetGPDBJoinTypeFromDXLJoinType
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLCtas
+//		CTranslatorDXLToPlStmt::PplanCTAS
 //
 //	@doc:
 //		Sets the vartypmod fields in the target entries of the given target list
@@ -4974,26 +4978,26 @@ CTranslatorDXLToPlStmt::GetGPDBJoinTypeFromDXLJoinType
 void
 CTranslatorDXLToPlStmt::SetVarTypMod
 	(
-	const CDXLPhysicalCTAS *phy_ctas_dxlop,
-	List *target_list
+	const CDXLPhysicalCTAS *pdxlop,
+	List *plTargetList
 	)
 {
-	GPOS_ASSERT(NULL != target_list);
+	GPOS_ASSERT(NULL != plTargetList);
 
-	IntPtrArray *var_type_mod_array = phy_ctas_dxlop->GetVarTypeModArray();
-	GPOS_ASSERT(var_type_mod_array->Size() == gpdb::ListLength(target_list));
+	DrgPi *pdrgpi = pdxlop->PdrgpiVarTypeMod();
+	GPOS_ASSERT(pdrgpi->UlLength() == gpdb::UlListLength(plTargetList));
 
 	ULONG ul = 0;
-	ListCell *lc = NULL;
-	ForEach (lc, target_list)
+	ListCell *plc = NULL;
+	ForEach (plc, plTargetList)
 	{
-		TargetEntry *target_entry = (TargetEntry *) lfirst(lc);
-		GPOS_ASSERT(IsA(target_entry, TargetEntry));
+		TargetEntry *pte = (TargetEntry *) lfirst(plc);
+		GPOS_ASSERT(IsA(pte, TargetEntry));
 
-		if (IsA(target_entry->expr, Var))
+		if (IsA(pte->expr, Var))
 		{
-			Var *var = (Var*) target_entry->expr;
-			var->vartypmod = *(*var_type_mod_array)[ul];
+			Var *var = (Var*) pte->expr;
+			var->vartypmod = *(*pdrgpi)[ul];
 		}
 		++ul;
 	}
@@ -5001,356 +5005,356 @@ CTranslatorDXLToPlStmt::SetVarTypMod
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLCtas
+//		CTranslatorDXLToPlStmt::PplanCTAS
 //
 //	@doc:
 //		Translates a DXL CTAS node 
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLCtas
+CTranslatorDXLToPlStmt::PplanCTAS
 	(
-	const CDXLNode *ctas_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnCTAS,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	CDXLPhysicalCTAS *phy_ctas_dxlop = CDXLPhysicalCTAS::Cast(ctas_dxlnode->GetOperator());
-	CDXLNode *project_list_dxlnode = (*ctas_dxlnode)[0];
-	CDXLNode *child_dxlnode = (*ctas_dxlnode)[1];
+	CDXLPhysicalCTAS *pdxlop = CDXLPhysicalCTAS::PdxlopConvert(pdxlnCTAS->Pdxlop());
+	CDXLNode *pdxlnPrL = (*pdxlnCTAS)[0];
+	CDXLNode *pdxlnChild = (*pdxlnCTAS)[1];
 
-	GPOS_ASSERT(NULL == phy_ctas_dxlop->GetDxlCtasStorageOption()->GetDXLCtasOptionArray());
+	GPOS_ASSERT(NULL == pdxlop->Pdxlctasopt()->Pdrgpctasopt());
 	
-	CDXLTranslateContext child_context(m_mp, false, output_context->GetColIdToParamIdMap());
+	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
-	Plan *plan = TranslateDXLOperatorToPlan(child_dxlnode, &child_context, ctxt_translation_prev_siblings);
+	Plan *pplan = PplFromDXL(pdxlnChild, &dxltrctxChild, pdrgpdxltrctxPrevSiblings);
 	
 	// fix target list to match the required column names
-	CDXLTranslationContextArray *child_contexts = GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
-	child_contexts->Append(&child_context);
+	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
+	pdrgpdxltrctx->Append(&dxltrctxChild);
 	
-	List *target_list = TranslateDXLProjList
+	List *plTargetList = PlTargetListFromProjList
 						(
-						project_list_dxlnode,
-						NULL,		// base_table_context
-						child_contexts,
-						output_context
+						pdxlnPrL,
+						NULL,		// pdxltrctxbt
+						pdrgpdxltrctx,
+						pdxltrctxOut
 						);
-	SetVarTypMod(phy_ctas_dxlop, target_list);
+	SetVarTypMod(pdxlop, plTargetList);
 	
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	// cleanup
-	child_contexts->Release();
+	pdrgpdxltrctx->Release();
 
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(ctas_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnCTAS->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	//IntoClause *into_clause = TranslateDXLPhyCtasToIntoClause(phy_ctas_dxlop);
-	IntoClause *into_clause = NULL;
-	GpPolicy *distr_policy = TranslateDXLPhyCtasToDistrPolicy(phy_ctas_dxlop);
-	m_dxl_to_plstmt_context->AddCtasInfo(into_clause, distr_policy);
+//	IntoClause *pintocl = PintoclFromCtas(pdxlop);
+	IntoClause *pintocl = NULL;
+	GpPolicy *pdistrpolicy = PdistrpolicyFromCtas(pdxlop);
+	m_pctxdxltoplstmt->AddCtasInfo(pintocl, pdistrpolicy);
 	
-	GPOS_ASSERT(IMDRelation::EreldistrMasterOnly != phy_ctas_dxlop->Ereldistrpolicy());
+	GPOS_ASSERT(IMDRelation::EreldistrMasterOnly != pdxlop->Ereldistrpolicy());
 	
-	m_is_tgt_tbl_distributed = true;
+	m_fTargetTableDistributed = true;
 	
 	// Add a result node on top with the correct projection list
-	Result *result = MakeNode(Result);
-	Plan *result_plan = &(result->plan);
-	result_plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	result_plan->nMotionNodes = plan->nMotionNodes;
-	result_plan->lefttree = plan;
+	Result *presult = MakeNode(Result);
+	Plan *pplanResult = &(presult->plan);
+	pplanResult->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplanResult->nMotionNodes = pplan->nMotionNodes;
+	pplanResult->lefttree = pplan;
 
-	result_plan->targetlist = target_list;
-	SetParamIds(result_plan);
+	pplanResult->targetlist = plTargetList;
+	SetParamIds(pplanResult);
 
-	plan = (Plan *) result;
+	pplan = (Plan *) presult;
 
-	return (Plan *) plan;
+	return (Plan *) pplan;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLPhyCtasToIntoClause
+//		CTranslatorDXLToPlStmt::PintoclFromCtas
 //
 //	@doc:
 //		Translates a DXL CTAS into clause 
 //
 //---------------------------------------------------------------------------
 IntoClause *
-CTranslatorDXLToPlStmt::TranslateDXLPhyCtasToIntoClause
+CTranslatorDXLToPlStmt::PintoclFromCtas
 	(
-	const CDXLPhysicalCTAS *phy_ctas_dxlop
+	const CDXLPhysicalCTAS *pdxlop
 	)
 {
-	IntoClause *into_clause = MakeNode(IntoClause);
-	into_clause->rel = MakeNode(RangeVar);
+	IntoClause *pintocl = MakeNode(IntoClause);
+	pintocl->rel = MakeNode(RangeVar);
 	/* GPDB_91_MERGE_FIXME: what about unlogged? */
-	into_clause->rel->relpersistence = phy_ctas_dxlop->IsTemporary() ? RELPERSISTENCE_TEMP : RELPERSISTENCE_PERMANENT;
-	into_clause->rel->relname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(phy_ctas_dxlop->MdName()->GetMDName()->GetBuffer());
-	into_clause->rel->schemaname = NULL;
-	if (NULL != phy_ctas_dxlop->GetMdNameSchema())
+	pintocl->rel->relpersistence = pdxlop->FTemporary() ? RELPERSISTENCE_TEMP : RELPERSISTENCE_PERMANENT;
+	pintocl->rel->relname = CTranslatorUtils::SzFromWsz(pdxlop->Pmdname()->Pstr()->Wsz());
+	pintocl->rel->schemaname = NULL;
+	if (NULL != pdxlop->PmdnameSchema())
 	{
-		into_clause->rel->schemaname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(phy_ctas_dxlop->GetMdNameSchema()->GetMDName()->GetBuffer());
+		pintocl->rel->schemaname = CTranslatorUtils::SzFromWsz(pdxlop->PmdnameSchema()->Pstr()->Wsz());
 	}
 	
-	CDXLCtasStorageOptions *dxl_ctas_storage_option = phy_ctas_dxlop->GetDxlCtasStorageOption();
-	if (NULL != dxl_ctas_storage_option->GetMdNameTableSpace())
+	CDXLCtasStorageOptions *pdxlctasopt = pdxlop->Pdxlctasopt();
+	if (NULL != pdxlctasopt->PmdnameTablespace())
 	{
-		into_clause->tableSpaceName = CTranslatorUtils::CreateMultiByteCharStringFromWCString(phy_ctas_dxlop->GetDxlCtasStorageOption()->GetMdNameTableSpace()->GetMDName()->GetBuffer());
+		pintocl->tableSpaceName = CTranslatorUtils::SzFromWsz(pdxlop->Pdxlctasopt()->PmdnameTablespace()->Pstr()->Wsz());
 	}
 	
-	into_clause->onCommit = (OnCommitAction) dxl_ctas_storage_option->GetOnCommitAction();
-	into_clause->options = TranslateDXLCtasStorageOptions(dxl_ctas_storage_option->GetDXLCtasOptionArray());
+	pintocl->onCommit = (OnCommitAction) pdxlctasopt->Ectascommit(); 
+	pintocl->options = PlCtasOptions(pdxlctasopt->Pdrgpctasopt());
 	
 	// get column names
-	CDXLColDescrArray *dxl_col_descr_array = phy_ctas_dxlop->GetDXLColumnDescrArray();
-	const ULONG num_of_cols = dxl_col_descr_array->Size();
-	into_clause->colNames = NIL;
-	for (ULONG ul = 0; ul < num_of_cols; ++ul)
+	DrgPdxlcd *pdrgpdxlcd = pdxlop->Pdrgpdxlcd();
+	const ULONG ulCols = pdrgpdxlcd->UlLength();
+	pintocl->colNames = NIL;
+	for (ULONG ul = 0; ul < ulCols; ++ul)
 	{
-		const CDXLColDescr *dxl_col_descr = (*dxl_col_descr_array)[ul];
+		const CDXLColDescr *pdxlcd = (*pdrgpdxlcd)[ul];
 
-		CHAR *col_name_char_array = CTranslatorUtils::CreateMultiByteCharStringFromWCString(dxl_col_descr->MdName()->GetMDName()->GetBuffer());
+		CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlcd->Pmdname()->Pstr()->Wsz());
 		
-		ColumnDef *col_def = MakeNode(ColumnDef);
-		col_def->colname = col_name_char_array;
-		col_def->is_local = true;
+		ColumnDef *pcoldef = MakeNode(ColumnDef);
+		pcoldef->colname = szColName;
+		pcoldef->is_local = true;
 
 		// GDPB_91_MERGE_FIXME: collation
-		col_def->collClause = NULL;
-		col_def->collOid = gpdb::TypeCollation(CMDIdGPDB::CastMdid(dxl_col_descr->MdidType())->Oid());
-		into_clause->colNames = gpdb::LAppend(into_clause->colNames, col_def);
+		pcoldef->collClause = NULL;
+		pcoldef->collOid = gpdb::OidTypeCollation(CMDIdGPDB::PmdidConvert(pdxlcd->PmdidType())->OidObjectId());
+		pintocl->colNames = gpdb::PlAppendElement(pintocl->colNames, pcoldef);
 
 	}
 
-	return into_clause;
+	return pintocl;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLPhyCtasToDistrPolicy
+//		CTranslatorDXLToPlStmt::PdistrpolicyFromCtas
 //
 //	@doc:
 //		Translates distribution policy given by a physical CTAS operator 
 //
 //---------------------------------------------------------------------------
 GpPolicy *
-CTranslatorDXLToPlStmt::TranslateDXLPhyCtasToDistrPolicy
+CTranslatorDXLToPlStmt::PdistrpolicyFromCtas
 	(
-	const CDXLPhysicalCTAS *dxlop
+	const CDXLPhysicalCTAS *pdxlop
 	)
 {
-	ULongPtrArray *distr_col_pos_array = dxlop->GetDistrColPosArray();
+	DrgPul *pdrgpulDistrCols = pdxlop->PdrgpulDistr();
 
-	const ULONG num_of_distr_cols = (distr_col_pos_array == NULL) ? 0 : distr_col_pos_array->Size();
+	const ULONG ulDistrCols = (pdrgpulDistrCols == NULL) ? 0 : pdrgpulDistrCols->UlLength();
 
-	ULONG num_of_distr_cols_alloc = 1;
-	if (0 < num_of_distr_cols)
+	ULONG ulDistrColsAlloc = 1;
+	if (0 < ulDistrCols)
 	{
-		num_of_distr_cols_alloc = num_of_distr_cols;
+		ulDistrColsAlloc = ulDistrCols;
 	}
 	
-	GpPolicy *distr_policy = gpdb::MakeGpPolicy(NULL, POLICYTYPE_PARTITIONED, num_of_distr_cols_alloc);
+	GpPolicy *pdistrpolicy = gpdb::PMakeGpPolicy(NULL, POLICYTYPE_PARTITIONED, ulDistrColsAlloc);
 
-	GPOS_ASSERT(IMDRelation::EreldistrHash == dxlop->Ereldistrpolicy() ||
-				IMDRelation::EreldistrRandom == dxlop->Ereldistrpolicy());
+	GPOS_ASSERT(IMDRelation::EreldistrHash == pdxlop->Ereldistrpolicy() ||
+				IMDRelation::EreldistrRandom == pdxlop->Ereldistrpolicy());
 	
-	distr_policy->ptype = POLICYTYPE_PARTITIONED;
-	distr_policy->nattrs = 0;
-	if (IMDRelation::EreldistrHash == dxlop->Ereldistrpolicy())
+	pdistrpolicy->ptype = POLICYTYPE_PARTITIONED;
+	pdistrpolicy->nattrs = 0;
+	if (IMDRelation::EreldistrHash == pdxlop->Ereldistrpolicy())
 	{
 		
-		GPOS_ASSERT(0 < num_of_distr_cols);
-		distr_policy->nattrs = num_of_distr_cols;
+		GPOS_ASSERT(0 < ulDistrCols);
+		pdistrpolicy->nattrs = ulDistrCols;
 		
-		for (ULONG ul = 0; ul < num_of_distr_cols; ul++)
+		for (ULONG ul = 0; ul < ulDistrCols; ul++)
 		{
-			ULONG col_pos_idx = *((*distr_col_pos_array)[ul]);
-			distr_policy->attrs[ul] = col_pos_idx + 1;
+			ULONG ulColPos = *((*pdrgpulDistrCols)[ul]);
+			pdistrpolicy->attrs[ul] = ulColPos + 1;
 		}
 	}
-	return distr_policy;
+	return pdistrpolicy;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLCtasStorageOptions
+//		CTranslatorDXLToPlStmt::PlCtasOptions
 //
 //	@doc:
 //		Translates CTAS options
 //
 //---------------------------------------------------------------------------
 List *
-CTranslatorDXLToPlStmt::TranslateDXLCtasStorageOptions
+CTranslatorDXLToPlStmt::PlCtasOptions
 	(
-	CDXLCtasStorageOptions::CDXLCtasOptionArray *ctas_storage_options
+	CDXLCtasStorageOptions::DrgPctasOpt *pdrgpctasopt
 	)
 {
-	if (NULL == ctas_storage_options)
+	if (NULL == pdrgpctasopt)
 	{
 		return NIL;
 	}
 	
-	const ULONG num_of_options = ctas_storage_options->Size();
-	List *options = NIL;
-	for (ULONG ul = 0; ul < num_of_options; ul++)
+	const ULONG ulOptions = pdrgpctasopt->UlLength();
+	List *plOptions = NIL;
+	for (ULONG ul = 0; ul < ulOptions; ul++)
 	{
-		CDXLCtasStorageOptions::CDXLCtasOption *pdxlopt = (*ctas_storage_options)[ul];
-		CWStringBase *str_name = pdxlopt->m_str_name;
-		CWStringBase *str_value = pdxlopt->m_str_value;
-		DefElem *def_elem = MakeNode(DefElem);
-		def_elem->defname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(str_name->GetBuffer());
+		CDXLCtasStorageOptions::CDXLCtasOption *pdxlopt = (*pdrgpctasopt)[ul];
+		CWStringBase *pstrName = pdxlopt->m_pstrName;
+		CWStringBase *pstrValue = pdxlopt->m_pstrValue;
+		DefElem *pdefelem = MakeNode(DefElem);
+		pdefelem->defname = CTranslatorUtils::SzFromWsz(pstrName->Wsz());
 
-		if (!pdxlopt->m_is_null)
+		if (!pdxlopt->m_fNull)
 		{
-			NodeTag arg_type = (NodeTag) pdxlopt->m_type;
+			NodeTag argType = (NodeTag) pdxlopt->m_ulType;
 
-			GPOS_ASSERT(T_Integer == arg_type || T_String == arg_type);
-			if (T_Integer == arg_type)
+			GPOS_ASSERT(T_Integer == argType || T_String == argType);
+			if (T_Integer == argType)
 			{
-				def_elem->arg = (Node *) gpdb::MakeIntegerValue(CTranslatorUtils::GetLongFromStr(str_value));
+				pdefelem->arg = (Node *) gpdb::PvalMakeInteger(CTranslatorUtils::LFromStr(pstrValue));
 			}
 			else
 			{
-				def_elem->arg = (Node *) gpdb::MakeStringValue(CTranslatorUtils::CreateMultiByteCharStringFromWCString(str_value->GetBuffer()));
+				pdefelem->arg = (Node *) gpdb::PvalMakeString(CTranslatorUtils::SzFromWsz(pstrValue->Wsz()));
 			}
 		}
 
-		options = gpdb::LAppend(options, def_elem);
+		plOptions = gpdb::PlAppendElement(plOptions, pdefelem);
 	}
 	
-	return options;
+	return plOptions;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan
+//		CTranslatorDXLToPlStmt::PplanBitmapTableScan
 //
 //	@doc:
 //		Translates a DXL bitmap table scan node into a BitmapTableScan node
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan
+CTranslatorDXLToPlStmt::PplanBitmapTableScan
 	(
-	const CDXLNode *bitmapscan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnBitmapScan,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
-	ULONG part_index_id = INVALID_PART_INDEX;
-	ULONG part_idx_printable_id = INVALID_PART_INDEX;
-	const CDXLTableDescr *table_descr = NULL;
-	BOOL is_dynamic = false;
+	ULONG ulPartIndex = INVALID_PART_INDEX;
+	ULONG ulPartIndexPrintable = INVALID_PART_INDEX;
+	const CDXLTableDescr *pdxltabdesc = NULL;
+	BOOL fDynamic = false;
 
-	CDXLOperator *dxl_operator = bitmapscan_dxlnode->GetOperator();
-	if (EdxlopPhysicalBitmapTableScan == dxl_operator->GetDXLOperator())
+	CDXLOperator *pdxlop = pdxlnBitmapScan->Pdxlop();
+	if (EdxlopPhysicalBitmapTableScan == pdxlop->Edxlop())
 	{
-		table_descr = CDXLPhysicalBitmapTableScan::Cast(dxl_operator)->GetDXLTableDescr();
+		pdxltabdesc = CDXLPhysicalBitmapTableScan::PdxlopConvert(pdxlop)->Pdxltabdesc();
 	}
 	else
 	{
-		GPOS_ASSERT(EdxlopPhysicalDynamicBitmapTableScan == dxl_operator->GetDXLOperator());
-		CDXLPhysicalDynamicBitmapTableScan *phy_dyn_bitmap_tblscan_dxlop =
-				CDXLPhysicalDynamicBitmapTableScan::Cast(dxl_operator);
-		table_descr = phy_dyn_bitmap_tblscan_dxlop->GetDXLTableDescr();
+		GPOS_ASSERT(EdxlopPhysicalDynamicBitmapTableScan == pdxlop->Edxlop());
+		CDXLPhysicalDynamicBitmapTableScan *pdxlopDynamic =
+				CDXLPhysicalDynamicBitmapTableScan::PdxlopConvert(pdxlop);
+		pdxltabdesc = pdxlopDynamic->Pdxltabdesc();
 
-		part_index_id = phy_dyn_bitmap_tblscan_dxlop->GetPartIndexId();
-		part_idx_printable_id = phy_dyn_bitmap_tblscan_dxlop->GetPartIndexIdPrintable();
-		is_dynamic = true;
+		ulPartIndex = pdxlopDynamic->UlPartIndexId();
+		ulPartIndexPrintable = pdxlopDynamic->UlPartIndexIdPrintable();
+		fDynamic = true;
 	}
 
 	// translation context for column mappings in the base relation
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
 	// add the new range table entry as the last element of the range table
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
-	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(table_descr->MDId());
+	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
 
-	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(table_descr, NULL /*index_descr_dxl*/, index, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
-	rte->requiredPerms |= ACL_SELECT;
+	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, iRel, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
+	prte->requiredPerms |= ACL_SELECT;
 
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	m_pctxdxltoplstmt->AddRTE(prte);
 
-	BitmapTableScan *bitmap_tbl_scan = MakeNode(BitmapTableScan);
-	bitmap_tbl_scan->scan.scanrelid = index;
-	bitmap_tbl_scan->scan.partIndex = part_index_id;
-	bitmap_tbl_scan->scan.partIndexPrintable = part_idx_printable_id;
+	BitmapTableScan *pdbts = MakeNode(BitmapTableScan);
+	pdbts->scan.scanrelid = iRel;
+	pdbts->scan.partIndex = ulPartIndex;
+	pdbts->scan.partIndexPrintable = ulPartIndexPrintable;
 
-	Plan *plan = &(bitmap_tbl_scan->scan.plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	Plan *pplan = &(pdbts->scan.plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
 		(
-		CDXLPhysicalProperties::PdxlpropConvert(bitmapscan_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnBitmapScan->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 		);
 
-	GPOS_ASSERT(4 == bitmapscan_dxlnode->Arity());
+	GPOS_ASSERT(4 == pdxlnBitmapScan->UlArity());
 
 	// translate proj list and filter
-	CDXLNode *project_list_dxlnode = (*bitmapscan_dxlnode)[0];
-	CDXLNode *filter_dxlnode = (*bitmapscan_dxlnode)[1];
-	CDXLNode *recheck_cond_dxlnode = (*bitmapscan_dxlnode)[2];
-	CDXLNode *bitmap_access_path_dxlnode = (*bitmapscan_dxlnode)[3];
+	CDXLNode *pdxlnPrL = (*pdxlnBitmapScan)[0];
+	CDXLNode *pdxlnFilter = (*pdxlnBitmapScan)[1];
+	CDXLNode *pdxlnRecheckCond = (*pdxlnBitmapScan)[2];
+	CDXLNode *pdxlnBitmapAccessPath = (*pdxlnBitmapScan)[3];
 
-	List *quals_list = NULL;
+	List *plQuals = NULL;
 	TranslateProjListAndFilter
 		(
-		project_list_dxlnode,
-		filter_dxlnode,
-		&base_table_context,	// translate context for the base table
-		ctxt_translation_prev_siblings,
-		&plan->targetlist,
-		&quals_list,
-		output_context
+		pdxlnPrL,
+		pdxlnFilter,
+		&dxltrctxbt,	// translate context for the base table
+		pdrgpdxltrctxPrevSiblings,
+		&pplan->targetlist,
+		&plQuals,
+		pdxltrctxOut
 		);
-	plan->qual = quals_list;
+	pplan->qual = plQuals;
 
-	bitmap_tbl_scan->bitmapqualorig = TranslateDXLFilterToQual
+	pdbts->bitmapqualorig = PlQualFromFilter
 							(
-							recheck_cond_dxlnode,
-							&base_table_context,
-							ctxt_translation_prev_siblings,
-							output_context
+							pdxlnRecheckCond,
+							&dxltrctxbt,
+							pdrgpdxltrctxPrevSiblings,
+							pdxltrctxOut
 							);
 
-	bitmap_tbl_scan->scan.plan.lefttree = TranslateDXLBitmapAccessPath
+	pdbts->scan.plan.lefttree = PplanBitmapAccessPath
 								(
-								bitmap_access_path_dxlnode,
-								output_context,
-								md_rel,
-								table_descr,
-								&base_table_context,
-								ctxt_translation_prev_siblings,
-								bitmap_tbl_scan
+								pdxlnBitmapAccessPath,
+								pdxltrctxOut,
+								pmdrel,
+								pdxltabdesc,
+								&dxltrctxbt,
+								pdrgpdxltrctxPrevSiblings,
+								pdbts
 								);
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
-	return (Plan *) bitmap_tbl_scan;
+	return (Plan *) pdbts;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLBitmapAccessPath
+//		CTranslatorDXLToPlStmt::PplanBitmapAccessPath
 //
 //	@doc:
 //		Translate the tree of bitmap index operators that are under the given
@@ -5358,121 +5362,121 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLBitmapAccessPath
+CTranslatorDXLToPlStmt::PplanBitmapAccessPath
 	(
-	const CDXLNode *bitmap_access_path_dxlnode,
-	CDXLTranslateContext *output_context,
-	const IMDRelation *md_rel,
-	const CDXLTableDescr *table_descr,
-	CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-	BitmapTableScan *bitmap_tbl_scan
+	const CDXLNode *pdxlnBitmapAccessPath,
+	CDXLTranslateContext *pdxltrctxOut,
+	const IMDRelation *pmdrel,
+	const CDXLTableDescr *pdxltabdesc,
+	CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings,
+	BitmapTableScan *pdbts
 	)
 {
-	Edxlopid dxl_op_id = bitmap_access_path_dxlnode->GetOperator()->GetDXLOperator();
-	if (EdxlopScalarBitmapIndexProbe == dxl_op_id)
+	Edxlopid edxlopid = pdxlnBitmapAccessPath->Pdxlop()->Edxlop();
+	if (EdxlopScalarBitmapIndexProbe == edxlopid)
 	{
-		return TranslateDXLBitmapIndexProbe
+		return PplanBitmapIndexProbe
 				(
-				bitmap_access_path_dxlnode,
-				output_context,
-				md_rel,
-				table_descr,
-				base_table_context,
-				ctxt_translation_prev_siblings,
-				bitmap_tbl_scan
+				pdxlnBitmapAccessPath,
+				pdxltrctxOut,
+				pmdrel,
+				pdxltabdesc,
+				pdxltrctxbt,
+				pdrgpdxltrctxPrevSiblings,
+				pdbts
 				);
 	}
-	GPOS_ASSERT(EdxlopScalarBitmapBoolOp == dxl_op_id);
+	GPOS_ASSERT(EdxlopScalarBitmapBoolOp == edxlopid);
 
-	return TranslateDXLBitmapBoolOp
+	return PplanBitmapBoolOp
 			(
-			bitmap_access_path_dxlnode,
-			output_context,
-			md_rel,
-			table_descr,
-			base_table_context,
-			ctxt_translation_prev_siblings,
-			bitmap_tbl_scan
+			pdxlnBitmapAccessPath, 
+			pdxltrctxOut, 
+			pmdrel, 
+			pdxltabdesc, 
+			pdxltrctxbt,
+			pdrgpdxltrctxPrevSiblings,
+			pdbts
 			);
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToScalar::TranslateDXLBitmapBoolOp
+//		CTranslatorDXLToScalar::PplanBitmapBoolOp
 //
 //	@doc:
 //		Translates a DML bitmap bool op expression 
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLBitmapBoolOp
+CTranslatorDXLToPlStmt::PplanBitmapBoolOp
 	(
-	const CDXLNode *bitmap_boolop_dxlnode,
-	CDXLTranslateContext *output_context,
-	const IMDRelation *md_rel,
-	const CDXLTableDescr *table_descr,
-	CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-	BitmapTableScan *bitmap_tbl_scan
+	const CDXLNode *pdxlnBitmapBoolOp,
+	CDXLTranslateContext *pdxltrctxOut,
+	const IMDRelation *pmdrel,
+	const CDXLTableDescr *pdxltabdesc,
+	CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings,
+	BitmapTableScan *pdbts
 	)
 {
-	GPOS_ASSERT(NULL != bitmap_boolop_dxlnode);
-	GPOS_ASSERT(EdxlopScalarBitmapBoolOp == bitmap_boolop_dxlnode->GetOperator()->GetDXLOperator());
+	GPOS_ASSERT(NULL != pdxlnBitmapBoolOp);
+	GPOS_ASSERT(EdxlopScalarBitmapBoolOp == pdxlnBitmapBoolOp->Pdxlop()->Edxlop());
 
-	CDXLScalarBitmapBoolOp *sc_bitmap_boolop_dxlop = CDXLScalarBitmapBoolOp::Cast(bitmap_boolop_dxlnode->GetOperator());
+	CDXLScalarBitmapBoolOp *pdxlop = CDXLScalarBitmapBoolOp::PdxlopConvert(pdxlnBitmapBoolOp->Pdxlop());
 	
-	CDXLNode *left_tree_dxlnode = (*bitmap_boolop_dxlnode)[0];
-	CDXLNode *right_tree_dxlnode = (*bitmap_boolop_dxlnode)[1];
+	CDXLNode *pdxlnLeft = (*pdxlnBitmapBoolOp)[0];
+	CDXLNode *pdxlnRight = (*pdxlnBitmapBoolOp)[1];
 	
-	Plan *left_plan = TranslateDXLBitmapAccessPath
+	Plan *pplanLeft = PplanBitmapAccessPath
 						(
-						left_tree_dxlnode,
-						output_context,
-						md_rel,
-						table_descr,
-						base_table_context,
-						ctxt_translation_prev_siblings,
-						bitmap_tbl_scan
+						pdxlnLeft,
+						pdxltrctxOut,
+						pmdrel,
+						pdxltabdesc,
+						pdxltrctxbt,
+						pdrgpdxltrctxPrevSiblings,
+						pdbts
 						);
-	Plan *right_plan = TranslateDXLBitmapAccessPath
+	Plan *pplanRight = PplanBitmapAccessPath
 						(
-						right_tree_dxlnode,
-						output_context,
-						md_rel,
-						table_descr,
-						base_table_context,
-						ctxt_translation_prev_siblings,
-						bitmap_tbl_scan
+						pdxlnRight,
+						pdxltrctxOut,
+						pmdrel,
+						pdxltabdesc,
+						pdxltrctxbt,
+						pdrgpdxltrctxPrevSiblings,
+						pdbts
 						);
-	List *child_plan_list = ListMake2(left_plan, right_plan);
+	List *plChildPlans = ListMake2(pplanLeft, pplanRight);
 
-	Plan *plan = NULL;
+	Plan *pplan = NULL;
 	
-	if (CDXLScalarBitmapBoolOp::EdxlbitmapAnd == sc_bitmap_boolop_dxlop->GetDXLBitmapOpType())
+	if (CDXLScalarBitmapBoolOp::EdxlbitmapAnd == pdxlop->Edxlbitmapboolop())
 	{
 		BitmapAnd *bitmapand = MakeNode(BitmapAnd);
-		bitmapand->bitmapplans = child_plan_list;
+		bitmapand->bitmapplans = plChildPlans;
 		bitmapand->plan.targetlist = NULL;
 		bitmapand->plan.qual = NULL;
-		plan = (Plan *) bitmapand;
+		pplan = (Plan *) bitmapand;
 	}
 	else
 	{
 		BitmapOr *bitmapor = MakeNode(BitmapOr);
-		bitmapor->bitmapplans = child_plan_list;
+		bitmapor->bitmapplans = plChildPlans;
 		bitmapor->plan.targetlist = NULL;
 		bitmapor->plan.qual = NULL;
-		plan = (Plan *) bitmapor;
+		pplan = (Plan *) bitmapor;
 	}
 	
 	
-	return plan;
+	return pplan;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToPlStmt::TranslateDXLBitmapIndexProbe
+//		CTranslatorDXLToPlStmt::PplanBitmapIndexProbe
 //
 //	@doc:
 //		Translate CDXLScalarBitmapIndexProbe into a BitmapIndexScan
@@ -5480,181 +5484,181 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapBoolOp
 //
 //---------------------------------------------------------------------------
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLBitmapIndexProbe
+CTranslatorDXLToPlStmt::PplanBitmapIndexProbe
 	(
-	const CDXLNode *bitmap_index_probe_dxlnode,
-	CDXLTranslateContext *output_context,
-	const IMDRelation *md_rel,
-	const CDXLTableDescr *table_descr,
-	CDXLTranslateContextBaseTable *base_table_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-	BitmapTableScan *bitmap_tbl_scan
+	const CDXLNode *pdxlnBitmapIndexProbe,
+	CDXLTranslateContext *pdxltrctxOut,
+	const IMDRelation *pmdrel,
+	const CDXLTableDescr *pdxltabdesc,
+	CDXLTranslateContextBaseTable *pdxltrctxbt,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings,
+	BitmapTableScan *pdbts
 	)
 {
-	CDXLScalarBitmapIndexProbe *sc_bitmap_idx_probe_dxlop =
-			CDXLScalarBitmapIndexProbe::Cast(bitmap_index_probe_dxlnode->GetOperator());
+	CDXLScalarBitmapIndexProbe *pdxlopScalar =
+			CDXLScalarBitmapIndexProbe::PdxlopConvert(pdxlnBitmapIndexProbe->Pdxlop());
 
-	BitmapIndexScan *bitmap_idx_scan;
-	DynamicBitmapIndexScan *dyn_bitmap_idx_scan;
+	BitmapIndexScan *pbis;
+	DynamicBitmapIndexScan *pdbis;
 
-	if (bitmap_tbl_scan->scan.partIndex)
+	if (pdbts->scan.partIndex)
 	{
 		/* It's a Dynamic Bitmap Index Scan */
-		dyn_bitmap_idx_scan = MakeNode(DynamicBitmapIndexScan);
-		bitmap_idx_scan = &(dyn_bitmap_idx_scan->biscan);
+		pdbis = MakeNode(DynamicBitmapIndexScan);
+		pbis = &(pdbis->biscan);
 	}
 	else
 	{
-		dyn_bitmap_idx_scan = NULL;
-		bitmap_idx_scan = MakeNode(BitmapIndexScan);
+		pdbis = NULL;
+		pbis = MakeNode(BitmapIndexScan);
 	}
-	bitmap_idx_scan->scan.scanrelid = bitmap_tbl_scan->scan.scanrelid;
-	bitmap_idx_scan->scan.partIndex = bitmap_tbl_scan->scan.partIndex;
+	pbis->scan.scanrelid = pdbts->scan.scanrelid;
+	pbis->scan.partIndex = pdbts->scan.partIndex;
 
-	CMDIdGPDB *mdid_index = CMDIdGPDB::CastMdid(sc_bitmap_idx_probe_dxlop->GetDXLIndexDescr()->MDId());
-	const IMDIndex *index = m_md_accessor->RetrieveIndex(mdid_index);
-	Oid index_oid = mdid_index->Oid();
+	CMDIdGPDB *pmdidIndex = CMDIdGPDB::PmdidConvert(pdxlopScalar->Pdxlid()->Pmdid());
+	const IMDIndex *pmdindex = m_pmda->Pmdindex(pmdidIndex);
+	Oid oidIndex = pmdidIndex->OidObjectId();
 
-	GPOS_ASSERT(InvalidOid != index_oid);
-	bitmap_idx_scan->indexid = index_oid;
-	OID oidRel = CMDIdGPDB::CastMdid(table_descr->MDId())->Oid();
-	Plan *plan = &(bitmap_idx_scan->scan.plan);
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	GPOS_ASSERT(InvalidOid != oidIndex);
+	pbis->indexid = oidIndex;
+	OID oidRel = CMDIdGPDB::PmdidConvert(pdxltabdesc->Pmdid())->OidObjectId();
+	Plan *pplan = &(pbis->scan.plan);
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
-	GPOS_ASSERT(1 == bitmap_index_probe_dxlnode->Arity());
-	CDXLNode *index_cond_list_dxlnode = (*bitmap_index_probe_dxlnode)[0];
-	List *index_cond = NIL;
-	List *index_orig_cond = NIL;
-	List *index_strategy_list = NIL;
-	List *index_subtype_list = NIL;
+	GPOS_ASSERT(1 == pdxlnBitmapIndexProbe->UlArity());
+	CDXLNode *pdxlnIndexCondList = (*pdxlnBitmapIndexProbe)[0];
+	List *plIndexConditions = NIL;
+	List *plIndexOrigConditions = NIL;
+	List *plIndexStratgey = NIL;
+	List *plIndexSubtype = NIL;
 
 	TranslateIndexConditions
 		(
-		index_cond_list_dxlnode,
-		table_descr,
-		false /*is_index_only_scan*/,
-		index,
-		md_rel,
-		output_context,
-		base_table_context,
-		ctxt_translation_prev_siblings,
-		&index_cond,
-		&index_orig_cond,
-		&index_strategy_list,
-		&index_subtype_list
+		pdxlnIndexCondList,
+		pdxltabdesc,
+		false /*fIndexOnlyScan*/,
+		pmdindex,
+		pmdrel,
+		pdxltrctxOut,
+		pdxltrctxbt,
+		pdrgpdxltrctxPrevSiblings,
+		&plIndexConditions,
+		&plIndexOrigConditions,
+		&plIndexStratgey,
+		&plIndexSubtype
 		);
 
-	bitmap_idx_scan->indexqual = index_cond;
-	bitmap_idx_scan->indexqualorig = index_orig_cond;
+	pbis->indexqual = plIndexConditions;
+	pbis->indexqualorig = plIndexOrigConditions;
 	/*
 	 * As of 8.4, the indexstrategy and indexsubtype fields are no longer
 	 * available or needed in IndexScan. Ignore them.
 	 */
-	SetParamIds(plan);
+	SetParamIds(pplan);
 
 	/*
 	 * If it's a Dynamic Bitmap Index Scan, also fill in the information
 	 * about the indexes on the partitions.
 	 */
-	if (dyn_bitmap_idx_scan)
+	if (pdbis)
 	{
-		dyn_bitmap_idx_scan->logicalIndexInfo = gpdb::GetLogicalIndexInfo(oidRel, index_oid);
+		pdbis->logicalIndexInfo = gpdb::Plgidxinfo(oidRel, oidIndex);
 	}
 
-	return plan;
+	return pplan;
 }
 
 // translates a DXL Value Scan node into a GPDB Value scan node
 Plan *
-CTranslatorDXLToPlStmt::TranslateDXLValueScan
+CTranslatorDXLToPlStmt::PplanValueScan
 	(
-	const CDXLNode *value_scan_dxlnode,
-	CDXLTranslateContext *output_context,
-	CDXLTranslationContextArray *ctxt_translation_prev_siblings
+	const CDXLNode *pdxlnValueScan,
+	CDXLTranslateContext *pdxltrctxOut,
+	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
 	)
 {
 	// translation context for column mappings
-	CDXLTranslateContextBaseTable base_table_context(m_mp);
+	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
 
 	// we will add the new range table entry as the last element of the range table
-	Index index = gpdb::ListLength(m_dxl_to_plstmt_context->GetRTableEntriesList()) + 1;
+	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
-	base_table_context.SetRelIndex(index);
+	dxltrctxbt.SetIdx(iRel);
 
 	// create value scan node
-	ValuesScan *value_scan = MakeNode(ValuesScan);
-	value_scan->scan.scanrelid = index;
-	Plan *plan = &(value_scan->scan.plan);
+	ValuesScan *pvaluescan = MakeNode(ValuesScan);
+	pvaluescan->scan.scanrelid = iRel;
+	Plan *pplan = &(pvaluescan->scan.plan);
 
-	RangeTblEntry *rte = TranslateDXLValueScanToRangeTblEntry(value_scan_dxlnode, output_context, &base_table_context);
-	GPOS_ASSERT(NULL != rte);
+	RangeTblEntry *prte = PrteFromDXLValueScan(pdxlnValueScan, pdxltrctxOut, &dxltrctxbt);
+	GPOS_ASSERT(NULL != prte);
 
-	value_scan->values_lists = (List *)gpdb::CopyObject(rte->values_lists);
+	pvaluescan->values_lists = (List *)gpdb::PvCopyObject(prte->values_lists);
 
-	m_dxl_to_plstmt_context->AddRTE(rte);
+	m_pctxdxltoplstmt->AddRTE(prte);
 
-	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-	plan->nMotionNodes = 0;
+	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
+	pplan->nMotionNodes = 0;
 
 	// translate operator costs
 	TranslatePlanCosts
 	(
-		CDXLPhysicalProperties::PdxlpropConvert(value_scan_dxlnode->GetProperties())->GetDXLOperatorCost(),
-		&(plan->startup_cost),
-		&(plan->total_cost),
-		&(plan->plan_rows),
-		&(plan->plan_width)
+		CDXLPhysicalProperties::PdxlpropConvert(pdxlnValueScan->Pdxlprop())->Pdxlopcost(),
+		&(pplan->startup_cost),
+		&(pplan->total_cost),
+		&(pplan->plan_rows),
+		&(pplan->plan_width)
 	);
 
 	// a table scan node must have at least 2 children: projection list and at least 1 value list
-	GPOS_ASSERT(2 <= value_scan_dxlnode->Arity());
+	GPOS_ASSERT(2 <= pdxlnValueScan->UlArity());
 
-	CDXLNode *project_list_dxlnode = (*value_scan_dxlnode)[EdxltsIndexProjList];
+	CDXLNode *pdxlnPrL = (*pdxlnValueScan)[EdxltsIndexProjList];
 
 	// translate proj list
-	List *target_list = TranslateDXLProjList
+	List *plTargetList = PlTargetListFromProjList
 							(
-							project_list_dxlnode,
-							&base_table_context,
+							pdxlnPrL,
+							&dxltrctxbt,
 							NULL,
-							output_context
+							pdxltrctxOut
 							);
 
-	plan->targetlist = target_list;
+	pplan->targetlist = plTargetList;
 
-	return (Plan *) value_scan;
+	return (Plan *) pvaluescan;
 }
 
 List *
 CTranslatorDXLToPlStmt::TranslateNestLoopParamList
 	(
-	CDXLColRefArray *pdrgdxlcrOuterRefs,
+	DrgPdxlcr *pdrgdxlcrOuterRefs,
 	CDXLTranslateContext *dxltrctxLeft,
 	CDXLTranslateContext *dxltrctxRight
 	)
 {
 	List *nest_params_list = NIL;
-	for (ULONG ul = 0; ul < pdrgdxlcrOuterRefs->Size(); ul++)
+	for (ULONG ul = 0; ul < pdrgdxlcrOuterRefs->UlLength(); ul++)
 	{
 		CDXLColRef *pdxlcr = (*pdrgdxlcrOuterRefs)[ul];
-		ULONG ulColid = pdxlcr->Id();
+		ULONG ulColid = pdxlcr->UlID();
 		// left child context contains the target entry for the nest params col refs
-		const TargetEntry *target_entry = dxltrctxLeft->GetTargetEntry(ulColid);
+		const TargetEntry *target_entry = dxltrctxLeft->Pte(ulColid);
 		GPOS_ASSERT(NULL != target_entry);
 		Var *old_var = (Var *) target_entry->expr;
 
-		Var *new_var = gpdb::MakeVar(OUTER_VAR, target_entry->resno, old_var->vartype, old_var->vartypmod, 0/*varlevelsup*/);
+		Var *new_var = gpdb::PvarMakeVar(OUTER_VAR, target_entry->resno, old_var->vartype, old_var->vartypmod, 0/*varlevelsup*/);
 		new_var->varnoold = old_var->varnoold;
 		new_var->varoattno = old_var->varoattno;
 
 		NestLoopParam *nest_params = MakeNode(NestLoopParam);
 		// right child context contains the param entry for the nest params col refs
-		const CMappingElementColIdParamId *colid_param_mapping = dxltrctxRight->GetParamIdMappingElement(ulColid);
+		const CMappingElementColIdParamId *colid_param_mapping = dxltrctxRight->Pmecolidparamid(ulColid);
 		GPOS_ASSERT(NULL != colid_param_mapping);
-		nest_params->paramno = colid_param_mapping->ParamId();
+		nest_params->paramno = colid_param_mapping->UlParamId();
 		nest_params->paramval = new_var;
-		nest_params_list = gpdb::LAppend(nest_params_list, (void *) nest_params);
+		nest_params_list = gpdb::PlAppendElement(nest_params_list, (void *) nest_params);
 	}
 	return nest_params_list;
 }

@@ -37,41 +37,41 @@ namespace gpdxl
 		private:
 
 			// gpdb att info
-			CGPDBAttInfo *m_gpdb_att_info;
+			CGPDBAttInfo *m_pgpdbattinfo;
 
 			// optimizer col info
-			COptColInfo *m_opt_col_info;
+			COptColInfo *m_poptcolinfo;
 
 			// copy c'tor
 			CGPDBAttOptCol(const CGPDBAttOptCol&);
 
 		public:
 			// ctor
-			CGPDBAttOptCol(CGPDBAttInfo *gpdb_att_info, COptColInfo *opt_col_info)
-				: m_gpdb_att_info(gpdb_att_info), m_opt_col_info(opt_col_info)
+			CGPDBAttOptCol(CGPDBAttInfo *pgpdbattinfo, COptColInfo *poptcolinfo)
+				: m_pgpdbattinfo(pgpdbattinfo), m_poptcolinfo(poptcolinfo)
 			{
-				GPOS_ASSERT(NULL != m_gpdb_att_info);
-				GPOS_ASSERT(NULL != m_opt_col_info);
+				GPOS_ASSERT(NULL != m_pgpdbattinfo);
+				GPOS_ASSERT(NULL != m_poptcolinfo);
 			}
 
 			// d'tor
 			virtual
 			~CGPDBAttOptCol()
 			{
-				m_gpdb_att_info->Release();
-				m_opt_col_info->Release();
+				m_pgpdbattinfo->Release();
+				m_poptcolinfo->Release();
 			}
 
 			// accessor
-			const CGPDBAttInfo *GetGPDBAttInfo() const
+			const CGPDBAttInfo *Pgpdbattinfo() const
 			{
-				return m_gpdb_att_info;
+				return m_pgpdbattinfo;
 			}
 
 			// accessor
-			const COptColInfo *GetOptColInfo() const
+			const COptColInfo *Poptcolinfo() const
 			{
-				return m_opt_col_info;
+				return m_poptcolinfo;
 			}
 
 	};

@@ -87,16 +87,16 @@ namespace gpdxl
 				OID m_oid;
 
 				// function stability
-				IMDFunction::EFuncStbl m_stability;
+				IMDFunction::EFuncStbl m_efs;
 
 				// function data access
-				IMDFunction::EFuncDataAcc m_access;
+				IMDFunction::EFuncDataAcc m_efda;
 
 				// is function strict?
-				BOOL m_is_strict;
+				BOOL m_fStrict;
 
 				// can the function return multiple rows?
-				BOOL m_returns_set;
+				BOOL m_fReturnsSet;
 
 			public:
 
@@ -104,17 +104,17 @@ namespace gpdxl
 				SFuncProps
 					(
 					OID oid,
-					IMDFunction::EFuncStbl stability,
-					IMDFunction::EFuncDataAcc access,
-					BOOL is_strict,
-					BOOL ReturnsSet
+					IMDFunction::EFuncStbl efs,
+					IMDFunction::EFuncDataAcc efda,
+					BOOL fStrict,
+					BOOL fReturnsSet
 					)
 					:
 					m_oid(oid),
-					m_stability(stability),
-					m_access(access),
-					m_is_strict(is_strict),
-					m_returns_set(ReturnsSet)
+					m_efs(efs),
+					m_efda(efda),
+					m_fStrict(fStrict),
+					m_fReturnsSet(fReturnsSet)
 				{}
 
 				// dtor
@@ -129,340 +129,340 @@ namespace gpdxl
 				}
 
 				// return function stability
-				IMDFunction::EFuncStbl GetStability() const
+				IMDFunction::EFuncStbl Efs() const
 				{
-					return m_stability;
+					return m_efs;
 				}
 
 				// return data access property
-				IMDFunction::EFuncDataAcc GetDataAccess() const
+				IMDFunction::EFuncDataAcc Efda() const
 				{
-					return m_access;
+					return m_efda;
 				}
 
 				// is function strict?
-				BOOL IsStrict() const
+				BOOL FStrict() const
 				{
-					return m_is_strict;
+					return m_fStrict;
 				}
 
 				// does function return set?
-				BOOL ReturnsSet() const
+				BOOL FReturnsSet() const
 				{
-					return m_returns_set;
+					return m_fReturnsSet;
 				}
 
 			}; // struct SFuncProps
 
 			// array of function properties map
 			static
-			const SFuncProps m_func_props[];
+			const SFuncProps m_rgfp[];
 
 			// lookup function properties
 			static
 			void LookupFuncProps
 				(
-				OID func_oid,
-				IMDFunction::EFuncStbl *stability, // output: function stability
-				IMDFunction::EFuncDataAcc *access, // output: function data access
-				BOOL *is_strict, // output: is function strict?
-				BOOL *ReturnsSet // output: does function return set?
+				OID oidFunc,
+				IMDFunction::EFuncStbl *pefs, // output: function stability
+				IMDFunction::EFuncDataAcc *pefda, // output: function data access
+				BOOL *fStrict, // output: is function strict?
+				BOOL *fReturnsSet // output: does function return set?
 				);
 
 			// check and fall back for unsupported relations
 			static
-			void CheckUnsupportedRelation(OID rel_oid);
+			void CheckUnsupportedRelation(OID oidRel);
 
 			// get type name from the relcache
 			static
-			CMDName *GetTypeName(IMemoryPool *mp, IMDId *mdid);
+			CMDName *PmdnameType(IMemoryPool *pmp, IMDId *pmdid);
 
 			// get function stability property from the GPDB character representation
 			static
-			CMDFunctionGPDB::EFuncStbl GetFuncStability(CHAR c);
+			CMDFunctionGPDB::EFuncStbl EFuncStability(CHAR c);
 
 			// get function data access property from the GPDB character representation
 			static
-			CMDFunctionGPDB::EFuncDataAcc GetEFuncDataAccess(CHAR c);
+			CMDFunctionGPDB::EFuncDataAcc EFuncDataAccess(CHAR c);
 
 			// get type of aggregate's intermediate result from the relcache
 			static
-			IMDId *RetrieveAggIntermediateResultType(IMemoryPool *mp, IMDId *mdid);
+			IMDId *PmdidAggIntermediateResultType(IMemoryPool *pmp, IMDId *pmdid);
 
 			// retrieve a GPDB metadata object from the relcache
 			static
-			IMDCacheObject *RetrieveObjectGPDB(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid);
+			IMDCacheObject *PimdobjGPDB(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid);
 
 			// retrieve relstats object from the relcache
 			static
-			IMDCacheObject *RetrieveRelStats(IMemoryPool *mp, IMDId *mdid);
+			IMDCacheObject *PimdobjRelStats(IMemoryPool *pmp, IMDId *pmdid);
 
 			// retrieve column stats object from the relcache
 			static
-			IMDCacheObject *RetrieveColStats(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid);
+			IMDCacheObject *PimdobjColStats(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid);
 
 			// retrieve cast object from the relcache
 			static
-			IMDCacheObject *RetrieveCast(IMemoryPool *mp, IMDId *mdid);
+			IMDCacheObject *PimdobjCast(IMemoryPool *pmp, IMDId *pmdid);
 			
 			// retrieve scalar comparison object from the relcache
 			static
-			IMDCacheObject *RetrieveScCmp(IMemoryPool *mp, IMDId *mdid);
+			IMDCacheObject *PmdobjScCmp(IMemoryPool *pmp, IMDId *pmdid);
 
 			// transform GPDB's MCV information to optimizer's histogram structure
 			static
-			CHistogram *TransformMcvToOrcaHistogram
+			CHistogram *PhistTransformGPDBMCV
 								(
-								IMemoryPool *mp,
-								const IMDType *md_type,
-								const Datum *mcv_values,
-								const float4 *mcv_frequencies,
-								ULONG num_mcv_values
+								IMemoryPool *pmp,
+								const IMDType *pmdtype,
+								const Datum *pdrgdatumMCVValues,
+								const float4 *pdrgfMCVFrequencies,
+								ULONG ulNumMCVValues
 								);
 
 			// transform GPDB's hist information to optimizer's histogram structure
 			static
-			CHistogram *TransformHistToOrcaHistogram
+			CHistogram *PhistTransformGPDBHist
 								(
-								IMemoryPool *mp,
-								const IMDType *md_type,
-								const Datum *hist_values,
-								ULONG num_hist_values,
-								CDouble num_distinct,
-								CDouble hist_freq
+								IMemoryPool *pmp,
+								const IMDType *pmdtype,
+								const Datum *pdrgdatumHistValues,
+								ULONG ulNumHistValues,
+								CDouble dDistinctHist,
+								CDouble dFreqHist
 								);
 
 			// histogram to array of dxl buckets
 			static
-			CDXLBucketArray *TransformHistogramToDXLBucketArray
+			DrgPdxlbucket *Pdrgpdxlbucket
 								(
-								IMemoryPool *mp,
-								const IMDType *md_type,
-								const CHistogram *hist
+								IMemoryPool *pmp,
+								const IMDType *pmdtype,
+								const CHistogram *phist
 								);
 
 			// transform stats from pg_stats form to optimizer's preferred form
 			static
-			CDXLBucketArray *TransformStatsToDXLBucketArray
+			DrgPdxlbucket *PdrgpdxlbucketTransformStats
 								(
-								IMemoryPool *mp,
-								OID att_type,
-								CDouble num_distinct,
-								CDouble null_freq,
-								const Datum *mcv_values,
-								const float4 *mcv_frequencies,
-								ULONG num_mcv_values,
-								const Datum *hist_values,
-								ULONG num_hist_values
+								IMemoryPool *pmp,
+								OID oidAttType,
+								CDouble dDistinct,
+								CDouble dNullFreq,
+								const Datum *pdrgdatumMCVValues,
+								const float4 *pdrgfMCVFrequencies,
+								ULONG ulNumMCVValues,
+								const Datum *pdrgdatumHistValues,
+								ULONG ulNumHistValues
 								);
 
 			// get partition keys and types for a relation
 			static
-			void RetrievePartKeysAndTypes(IMemoryPool *mp, Relation rel, OID oid, ULongPtrArray **part_keys, CharPtrArray **part_types);
+			void GetPartKeysAndTypes(IMemoryPool *pmp, Relation rel, OID oid, DrgPul **pdrgpulPartKeys, DrgPsz **pdrgpszPartTypes);
 
 			// get keysets for relation
 			static
-			ULongPtr2dArray *RetrieveRelKeysets(IMemoryPool *mp, OID oid, BOOL should_add_default_keys, BOOL is_partitioned, ULONG *attno_mapping);
+			DrgPdrgPul *PdrgpdrgpulKeys(IMemoryPool *pmp, OID oid, BOOL fAddDefaultKeys, BOOL fPartitioned, ULONG *pulMapping);
 
 			// storage type for a relation
 			static
-			IMDRelation::Erelstoragetype RetrieveRelStorageType(CHAR storage_type);
+			IMDRelation::Erelstoragetype Erelstorage(CHAR cStorageType);
 
 			// fix frequencies if they add up to more than 1.0
 			static
-			void NormalizeFrequencies(float4 *pdrgf, ULONG length, CDouble *null_freq);
+			void NormalizeFrequencies(float4 *pdrgf, ULONG ulLength, CDouble *pdNullFrequency);
 
 			// get the relation columns
 			static
-			CMDColumnArray *RetrieveRelColumns(IMemoryPool *mp, CMDAccessor *md_accessor, Relation rel, IMDRelation::Erelstoragetype rel_storage_type);
+			DrgPmdcol *Pdrgpmdcol(IMemoryPool *pmp, CMDAccessor *pmda, Relation rel, IMDRelation::Erelstoragetype erelstorage);
 
 			// return the dxl representation of the column's default value
 			static
-			CDXLNode *GetDefaultColumnValue(IMemoryPool *mp, CMDAccessor *md_accessor, TupleDesc rd_att, AttrNumber attrno);
+			CDXLNode *PdxlnDefaultColumnValue(IMemoryPool *pmp, CMDAccessor *pmda, TupleDesc rd_att, AttrNumber attrno);
 
 
 			// get the distribution columns
 			static
-			ULongPtrArray *RetrieveRelDistrbutionCols(IMemoryPool *mp, GpPolicy *gp_policy, CMDColumnArray *mdcol_array, ULONG size);
+			DrgPul *PdrpulDistrCols(IMemoryPool *pmp, GpPolicy *pgppolicy, DrgPmdcol *pdrgpmdcol, ULONG ulSize);
 
 			// construct a mapping GPDB attnos -> position in the column array
 			static
-			ULONG *ConstructAttnoMapping(IMemoryPool *mp, CMDColumnArray *mdcol_array, ULONG max_cols);
+			ULONG *PulAttnoMapping(IMemoryPool *pmp, DrgPmdcol *pdrgpmdcol, ULONG ulMaxCols);
 
 			// check if index is supported
 			static
-			BOOL IsIndexSupported(Relation index_rel);
+			BOOL FIndexSupported(Relation relIndex);
 			
 			// retrieve index info list of partitioned table
 			static
-			List *RetrievePartTableIndexInfo(Relation rel);
+			List *PlIndexInfoPartTable(Relation rel);
 			 
 			// compute the array of included columns
 			static
-			ULongPtrArray *ComputeIncludedCols(IMemoryPool *mp, const IMDRelation *md_rel);
+			DrgPul *PdrgpulIndexIncludedColumns(IMemoryPool *pmp, const IMDRelation *pmdrel);
 			
 			// is given level included in the default partitions
 			static 
-			BOOL LevelHasDefaultPartition(List *default_levels, ULONG level);
+			BOOL FDefaultPartition(List *plDefaultLevels, ULONG ulLevel);
 			
 			// retrieve part constraint for index
 			static
-			CMDPartConstraintGPDB *RetrievePartConstraintForIndex
+			CMDPartConstraintGPDB *PmdpartcnstrIndex
 				(
-				IMemoryPool *mp, 
-				CMDAccessor *md_accessor, 
-				const IMDRelation *md_rel, 
-				Node *part_constraint,
-				ULongPtrArray *level_with_default_part_array,
-				BOOL is_unbounded
+				IMemoryPool *pmp, 
+				CMDAccessor *pmda, 
+				const IMDRelation *pmdrel, 
+				Node *pnodePartCnstr,
+				DrgPul *pdrgpulDefaultParts,
+				BOOL fUnbounded
 				);
 
 			// retrieve part constraint for relation
 			static
-			CMDPartConstraintGPDB *RetrievePartConstraintForRel(IMemoryPool *mp, CMDAccessor *md_accessor, OID rel_oid, CMDColumnArray *mdcol_array, BOOL has_index);
+			CMDPartConstraintGPDB *PmdpartcnstrRelation(IMemoryPool *pmp, CMDAccessor *pmda, OID oidRel, DrgPmdcol *pdrgpmdcol, BOOL fhasIndex);
 
 			// retrieve part constraint from a GPDB node
 			static
-			CMDPartConstraintGPDB *RetrievePartConstraintFromNode
+			CMDPartConstraintGPDB *PmdpartcnstrFromNode
 				(
-				IMemoryPool *mp, 
-				CMDAccessor *md_accessor,
-				CDXLColDescrArray *dxl_col_descr_array, 
-				Node *part_constraint,
-				ULongPtrArray *level_with_default_part_array,
-				BOOL is_unbounded
+				IMemoryPool *pmp, 
+				CMDAccessor *pmda, 
+				DrgPdxlcd *pdrgpdxlcd, 
+				Node *pnodePartCnstr, 
+				DrgPul *pdrgpulDefaultParts,
+				BOOL fUnbounded
 				);
 	
 			// return relation name
 			static
-			CMDName *GetRelName(IMemoryPool *mp, Relation rel);
+			CMDName *PmdnameRel(IMemoryPool *pmp, Relation rel);
 
 			// return the index info list defined on the given relation
 			static
-			CMDIndexInfoArray *RetrieveRelIndexInfo(IMemoryPool *mp, Relation rel);
+			DrgPmdIndexInfo *PdrgpmdRelIndexInfo(IMemoryPool *pmp, Relation rel);
 
 			// return index info list of indexes defined on a partitoned table
 			static
-			CMDIndexInfoArray *RetrieveRelIndexInfoForPartTable(IMemoryPool *mp, Relation root_rel);
+			DrgPmdIndexInfo *PdrgpmdRelIndexInfoPartTable(IMemoryPool *pmp, Relation relRoot);
 
 			// return index info list of indexes defined on regular, external tables or leaf partitions
 			static
-			CMDIndexInfoArray *RetrieveRelIndexInfoForNonPartTable(IMemoryPool *mp, Relation rel);
+			DrgPmdIndexInfo *PdrgpmdRelIndexInfoNonPartTable(IMemoryPool *pmp, Relation rel);
 
 			// retrieve an index over a partitioned table from the relcache
 			static
-			IMDIndex *RetrievePartTableIndex(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid_index, const IMDRelation *md_rel, LogicalIndexes *logical_indexes);
+			IMDIndex *PmdindexPartTable(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdidIndex, const IMDRelation *pmdrel, LogicalIndexes *plind);
 			
 			// lookup an index given its id from the logical indexes structure
 			static
-			LogicalIndexInfo *LookupLogicalIndexById(LogicalIndexes *logical_indexes, OID oid);
+			LogicalIndexInfo *PidxinfoLookup(LogicalIndexes *plind, OID oid);
 			
 			// construct an MD cache index object given its logical index representation
 			static
-			IMDIndex *RetrievePartTableIndex(IMemoryPool *mp, CMDAccessor *md_accessor, LogicalIndexInfo *index_info, IMDId *mdid_index, const IMDRelation *md_rel);
+			IMDIndex *PmdindexPartTable(IMemoryPool *pmp, CMDAccessor *pmda, LogicalIndexInfo *pidxinfo, IMDId *pmdidIndex, const IMDRelation *pmdrel);
 
 			// return the triggers defined on the given relation
 			static
-			IMdIdArray *RetrieveRelTriggers(IMemoryPool *mp, Relation rel);
+			DrgPmdid *PdrgpmdidTriggers(IMemoryPool *pmp, Relation rel);
 
 			// return the check constraints defined on the relation with the given oid
 			static
-			IMdIdArray *RetrieveRelCheckConstraints(IMemoryPool *mp, OID oid);
+			DrgPmdid *PdrgpmdidCheckConstraints(IMemoryPool *pmp, OID oid);
 
 			// does attribute number correspond to a transaction visibility attribute
 			static 
-			BOOL IsTransactionVisibilityAttribute(INT attrnum);
+			BOOL FTransactionVisibilityAttribute(INT iAttNo);
 			
 			// does relation type have system columns
 			static
-			BOOL RelHasSystemColumns(char	rel_kind);
+			BOOL FHasSystemColumns(char	cRelKind);
 			
 			// translate Optimizer comparison types to GPDB
 			static
-			ULONG GetComparisonType(IMDType::ECmpType cmp_type);
+			ULONG UlCmpt(IMDType::ECmpType ecmpt);
 			
 			// retrieve the opfamilies mdids for the given scalar op
 			static
-			IMdIdArray *RetrieveScOpOpFamilies(IMemoryPool *mp, IMDId *mdid_scalar_op);
+			DrgPmdid *PdrgpmdidScOpOpFamilies(IMemoryPool *pmp, IMDId *pmdidScOp);
 			
 			// retrieve the opfamilies mdids for the given index
 			static
-			IMdIdArray *RetrieveIndexOpFamilies(IMemoryPool *mp, IMDId *mdid_index);
+			DrgPmdid *PdrgpmdidIndexOpFamilies(IMemoryPool *pmp, IMDId *pmdidIndex);
 
             // for non-leaf partition tables return the number of child partitions
             // else return 1
             static
-            ULONG RetrieveNumChildPartitions(OID rel_oid);
+            ULONG UlTableCount(OID oidRelation);
 
             // generate statistics for the system level columns
             static
-            CDXLColStats *GenerateStatsForSystemCols
+            CDXLColStats *PdxlcolstatsSystemColumn
                               (
-                              IMemoryPool *mp,
-                              OID rel_oid,
-                              CMDIdColStats *mdid_col_stats,
-                              CMDName *md_colname,
-                              OID att_type,
+                              IMemoryPool *pmp,
+                              OID oidRelation,
+                              CMDIdColStats *pmdidColStats,
+                              CMDName *pmdnameCol,
+                              OID oidAttType,
                               AttrNumber attrnum,
-                              CDXLBucketArray *dxl_stats_bucket_array,
-                              CDouble rows
+                              DrgPdxlbucket *pdrgpdxlbucket,
+                              CDouble dRows
                               );
 		public:
 			// retrieve a metadata object from the relcache
 			static
-			IMDCacheObject *RetrieveObject(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid);
+			IMDCacheObject *Pimdobj(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid);
 
 			// retrieve a relation from the relcache
 			static
-			IMDRelation *RetrieveRel(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid);
+			IMDRelation *Pmdrel(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid);
 
 			// add system columns (oid, tid, xmin, etc) in table descriptors
 			static
-			void AddSystemColumns(IMemoryPool *mp, CMDColumnArray *mdcol_array, Relation rel, BOOL is_ao_table);
+			void AddSystemColumns(IMemoryPool *pmp, DrgPmdcol *pdrgpmdcol, Relation rel, BOOL fAOTable);
 
 			// retrieve an index from the relcache
 			static
-			IMDIndex *RetrieveIndex(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid_index);
+			IMDIndex *Pmdindex(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdidIndex);
 
 			// retrieve a check constraint from the relcache
 			static
-			CMDCheckConstraintGPDB *RetrieveCheckConstraints(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid);
+			CMDCheckConstraintGPDB *Pmdcheckconstraint(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid);
 
 			// populate the attribute number to position mapping
 			static
-			ULONG *PopulateAttnoPositionMap(IMemoryPool *mp, const IMDRelation *md_rel, ULONG size);
+			ULONG *PulAttnoPositionMap(IMemoryPool *pmp, const IMDRelation *pmdrel, ULONG ulRgSize);
 
 			// return the position of a given attribute number
 			static
-			ULONG GetAttributePosition(INT attno, ULONG *attno_mapping);
+			ULONG UlPosition(INT iAttno, ULONG *pul);
 
 			// retrieve a type from the relcache
 			static
-			IMDType *RetrieveType(IMemoryPool *mp, IMDId *mdid);
+			IMDType *Pmdtype(IMemoryPool *pmp, IMDId *pmdid);
 
 			// retrieve a scalar operator from the relcache
 			static
-			CMDScalarOpGPDB *RetrieveScOp(IMemoryPool *mp, IMDId *mdid);
+			CMDScalarOpGPDB *Pmdscop(IMemoryPool *pmp, IMDId *pmdid);
 
 			// retrieve a function from the relcache
 			static
-			CMDFunctionGPDB *RetrieveFunc(IMemoryPool *mp, IMDId *mdid);
+			CMDFunctionGPDB *Pmdfunc(IMemoryPool *pmp, IMDId *pmdid);
 
 			// retrieve an aggregate from the relcache
 			static
-			CMDAggregateGPDB *RetrieveAgg(IMemoryPool *mp, IMDId *mdid);
+			CMDAggregateGPDB *Pmdagg(IMemoryPool *pmp, IMDId *pmdid);
 
 			// retrieve a trigger from the relcache
 			static
-			CMDTriggerGPDB *RetrieveTrigger(IMemoryPool *mp, IMDId *mdid);
+			CMDTriggerGPDB *Pmdtrigger(IMemoryPool *pmp, IMDId *pmdid);
 			
 			// translate GPDB comparison type
 			static
-			IMDType::ECmpType ParseCmpType(ULONG cmpt);
+			IMDType::ECmpType Ecmpt(ULONG ulCmpt);
 			
 			// get the distribution policy of the relation
 			static
-			IMDRelation::Ereldistrpolicy GetRelDistribution(GpPolicy *gp_policy);
+			IMDRelation::Ereldistrpolicy Ereldistribution(GpPolicy *pgppolicy);
 	};
 }
 

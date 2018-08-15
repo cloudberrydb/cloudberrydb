@@ -22,23 +22,23 @@
 class CCatalogUtils {
 
 	private:
-		// return list of relation oids_list in catalog
+		// return list of relation plOids in catalog
 		static
-		List *GetRelationOids();
+		List *PlRelationOids();
 
-		// return list of operator oids_list in catalog
+		// return list of operator plOids in catalog
 		static
-		List *GetOperatorOids();
+		List *PlOperatorOids();
 
-		// return list of function oids_list in catalog
+		// return list of function plOids in catalog
 		static
-		List *GetFunctionOids();
+		List *PlFunctionOids();
 
 	public:
 
-		// return list of all object oids_list in catalog
+		// return list of all object plOids in catalog
 		static
-		List *GetAllOids();
+		List *PlAllOids();
 };
 
 #endif // CCatalogUtils_H

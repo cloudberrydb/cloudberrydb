@@ -43,35 +43,35 @@ namespace gpdxl
 			AttrNumber m_attno;
 
 			// index qual expression tailored for GPDB
-			Expr *m_expr;
+			Expr *m_pexpr;
 
 			// original index qual expression
-			Expr *m_original_expr;
+			Expr *m_pexprOriginal;
 
 			// index strategy information
-			StrategyNumber m_strategy_num;
+			StrategyNumber m_sn;
 
 			// index subtype
-			OID m_index_subtype_oid;
+			OID m_oidIndexSubtype;
 			
 			// ctor
 			CIndexQualInfo
 				(
 				AttrNumber attno,
-				Expr *expr,
-				Expr *original_expr,
-				StrategyNumber strategy_number,
-				OID index_subtype_oid
+				Expr *pexpr,
+				Expr *pexprOriginal,
+				StrategyNumber sn,
+				OID oidIndexSubtype
 				)
 				:
 				m_attno(attno),
-				m_expr(expr),
-				m_original_expr(original_expr),
-				m_strategy_num(strategy_number),
-				m_index_subtype_oid(index_subtype_oid)
+				m_pexpr(pexpr),
+				m_pexprOriginal(pexprOriginal),
+				m_sn(sn),
+				m_oidIndexSubtype(oidIndexSubtype)
 				{
-					GPOS_ASSERT((IsA(m_expr, OpExpr) && IsA(m_original_expr, OpExpr)) ||
-						(IsA(m_expr, ScalarArrayOpExpr) && IsA(original_expr, ScalarArrayOpExpr)));
+					GPOS_ASSERT((IsA(m_pexpr, OpExpr) && IsA(m_pexprOriginal, OpExpr)) ||
+						(IsA(m_pexpr, ScalarArrayOpExpr) && IsA(m_pexprOriginal, ScalarArrayOpExpr)));
 				}
 
 				// dtor
@@ -80,20 +80,20 @@ namespace gpdxl
 
 				// comparison function for sorting index qualifiers
 				static
-				INT IndexQualInfoCmp
+				INT IIndexQualInfoCmp
 					(
-					const void *p1,
-					const void *p2
+					const void *pv1,
+					const void *pv2
 					)
 				{
-					const CIndexQualInfo *qual_info1 = *(const CIndexQualInfo **) p1;
-					const CIndexQualInfo *qual_info2 = *(const CIndexQualInfo **) p2;
+					const CIndexQualInfo *pidxqualinfo1 = *(const CIndexQualInfo **) pv1;
+					const CIndexQualInfo *pidxqualinfo2 = *(const CIndexQualInfo **) pv2;
 
-					return (INT) qual_info1->m_attno - (INT) qual_info2->m_attno;
+					return (INT) pidxqualinfo1->m_attno - (INT) pidxqualinfo2->m_attno;
 				}
 	};
 	// array of index qual info
-	typedef CDynamicPtrArray<CIndexQualInfo, CleanupDelete> CIndexQualInfoArray;
+	typedef CDynamicPtrArray<CIndexQualInfo, CleanupDelete> DrgPindexqualinfo;
 }
 
 #endif // !GPDXL_CIndexQualInfo_H

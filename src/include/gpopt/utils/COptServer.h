@@ -63,31 +63,31 @@ namespace gpoptudfs
 			struct SConnectionDescriptor
 			{
 				// ID
-				ULONG_PTR m_id;
+				ULONG_PTR m_ulpId;
 
 				// task
-				CTask *m_task;
+				CTask *m_ptsk;
 
 				// socket
-				CSocket *m_socket;
+				CSocket *m_psocket;
 
 				// link for hashtable
 				SLink m_link;
 
 				// invalid connection id
 				static
-				ULONG_PTR m_invalid_id;
+				ULONG_PTR m_ulpInvalid;
 
 				// ctor
 				SConnectionDescriptor
 					(
-					CTask *task,
-					CSocket *socket
+					CTask *ptsk,
+					CSocket *psocket
 					)
 					:
-					m_id((ULONG_PTR) task),
-					m_task(task),
-					m_socket(socket)
+					m_ulpId((ULONG_PTR) ptsk),
+					m_ptsk(ptsk),
+					m_psocket(psocket)
 				{}
 
 			};
@@ -105,21 +105,21 @@ namespace gpoptudfs
 				ConnectionIterAccessor;
 
 			// path where socket is initialized
-			const CHAR *m_socket_path;
+			const CHAR *m_szSocketPath;
 
 			// memory pool for connections
-			IMemoryPool *m_mp;
+			IMemoryPool *m_pmp;
 
 			// hashtable of connections
-			ConnectionHT *m_connections_ht;
+			ConnectionHT *m_pshtConnections;
 
 			// default id for the source system
 			static
-			const CSystemId m_default_id;
+			const CSystemId m_sysidDefault;
 
 			// ctor
 			explicit
-			COptServer(const CHAR *path);
+			COptServer(const CHAR *szPath);
 
 			// dtor
 			~COptServer();
@@ -131,43 +131,43 @@ namespace gpoptudfs
 			void InitHT();
 
 			// register connection for status checking
-			void TrackConnection(CTask *task, CSocket *socket);
+			void TrackConnection(CTask *ptsk, CSocket *psocket);
 
 			// release connection
-			void ReleaseConnection(CTask *task);
+			void ReleaseConnection(CTask *ptsk);
 
 			// connection check task
 			static
-			void * CheckConnections(void *ptr);
+			void * PvCheckConnections(void *pv);
 
 			// optimization task
 			static
-			void *Optimize(void *ptr);
+			void *PvOptimize(void *pv);
 
 			// receive optimization request and construct query context for it
 			static
-			CQueryContext *RecvQuery(IMemoryPool *mp, CCommunicator *communicator, CMDAccessor *md_accessor);
+			CQueryContext *PqcRecvQuery(IMemoryPool *pmp, CCommunicator *pcomm, CMDAccessor *pmda);
 
 			// extract query plan, serialize it and send it to client
 			static
 			void SendPlan
 				(
-				IMemoryPool *mp,
-				CCommunicator *communicator,
-				CMDAccessor *md_accessor,
-				CQueryContext *query_ctxt,
-				CExpression *plan_expr
+				IMemoryPool *pmp,
+				CCommunicator *pcomm,
+				CMDAccessor *pmda,
+				CQueryContext *pqc,
+				CExpression *pexprPlan
 				);
 
 			// dump collected artifacts to file
 			static
-			void FinalizeMinidump(CMiniDumperDXL *dump);
+			void FinalizeMinidump(CMiniDumperDXL *pmdmp);
 
 		public:
 
 			// invoke optimizer instance
 			static
-			void *Run(void *ptr);
+			void *PvRun(void *pv);
 
 	}; // class COptServer
 }

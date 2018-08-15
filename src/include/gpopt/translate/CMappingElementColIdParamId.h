@@ -38,46 +38,46 @@ namespace gpdxl
 		private:
 
 			// column identifier that is used as the key
-			ULONG m_colid;
+			ULONG m_ulColId;
 
 			// param identifier
-			ULONG m_paramid;
+			ULONG m_ulParamId;
 
 			// param type
-			IMDId *m_mdid;
+			IMDId *m_pmdid;
 
-			INT m_type_modifier;
+			INT m_iTypeModifier;
 
 		public:
 
 			// ctors and dtor
-			CMappingElementColIdParamId(ULONG colid, ULONG paramid, IMDId *mdid, INT type_modifier);
+			CMappingElementColIdParamId(ULONG ulColId, ULONG ulParamId, IMDId *pmdid, INT iTypeModifier);
 
 			virtual
 			~CMappingElementColIdParamId()
 			{}
 
 			// return the ColId
-			ULONG GetColId() const
+			ULONG UlColId() const
 			{
-				return m_colid;
+				return m_ulColId;
 			}
 
 			// return the ParamId
-			ULONG ParamId() const
+			ULONG UlParamId() const
 			{
-				return m_paramid;
+				return m_ulParamId;
 			}
 
 			// return the type
-			IMDId *MdidType() const
+			IMDId *PmdidType() const
 			{
-				return m_mdid;
+				return m_pmdid;
 			}
 
-			INT TypeModifier() const
+			INT ITypeModifier() const
 			{
-				return m_type_modifier;
+				return m_iTypeModifier;
 			}
 	};
 }
