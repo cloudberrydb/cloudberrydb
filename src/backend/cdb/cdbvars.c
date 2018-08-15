@@ -34,6 +34,7 @@
 #include "utils/resource_manager.h"
 #include "utils/resgroup-ops.h"
 #include "storage/proc.h"
+#include "storage/procarray.h"
 #include "cdb/memquota.h"
 
 /*
@@ -528,32 +529,31 @@ assign_gp_role(const char *newval, void *extra)
 
 	Gp_role = newrole;
 
-	// GPDB_91_MERGE_FIXME: we don't have access to 'source' anymore
-	//if (source != PGC_S_DEFAULT)
+	if (do_connect)
 	{
-		if (do_connect)
+		/* Only backend process will get here */
+		Assert(IsBackendPid(MyProcPid));
+
+		/*
+		 * In case there are problems with the Greenplum Database
+		 * tables or data, we catch any error coming out of
+		 * cdblink_setup so we can set the gp_role back to what it
+		 * was.  Otherwise we may be left with inappropriate
+		 * connections for the new role.
+		 */
+		PG_TRY();
 		{
-			/*
-			 * In case there are problems with the Greenplum Database
-			 * tables or data, we catch any error coming out of
-			 * cdblink_setup so we can set the gp_role back to what it
-			 * was.  Otherwise we may be left with inappropriate
-			 * connections for the new role.
-			 */
-			PG_TRY();
-			{
-				cdb_setup();
-			}
-			PG_CATCH();
-			{
-				cdb_cleanup(0, 0);
-				Gp_role = oldrole;
-				if (Gp_role != GP_ROLE_UTILITY)
-					cdb_setup();
-				PG_RE_THROW();
-			}
-			PG_END_TRY();
+			cdb_setup();
 		}
+		PG_CATCH();
+		{
+			cdb_cleanup(0, 0);
+			Gp_role = oldrole;
+			if (Gp_role != GP_ROLE_UTILITY)
+				cdb_setup();
+			PG_RE_THROW();
+		}
+		PG_END_TRY();
 	}
 }
 
