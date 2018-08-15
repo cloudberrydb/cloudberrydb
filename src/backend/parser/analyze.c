@@ -2103,8 +2103,7 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 	Assert(leftmostQuery != NULL);
 
 	/* Copy transformed distribution policy to query */
-//	if (qry->intoClause) /* GPDB_92_MERGE_FIXME */
-		qry->intoPolicy = leftmostQuery->intoPolicy;
+	qry->intoPolicy = leftmostQuery->intoPolicy;
 
 	/*
 	 * Generate dummy targetlist for outer query using column names of
