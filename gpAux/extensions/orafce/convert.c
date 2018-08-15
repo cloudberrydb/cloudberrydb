@@ -5,8 +5,9 @@
 #include "utils/builtins.h"
 #include "utils/numeric.h"
 #include "utils/pg_locale.h"
+#include "utils/formatting.h"
 
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 PG_FUNCTION_INFO_V1(orafce_to_char_int4);
@@ -14,8 +15,12 @@ PG_FUNCTION_INFO_V1(orafce_to_char_int8);
 PG_FUNCTION_INFO_V1(orafce_to_char_float4);
 PG_FUNCTION_INFO_V1(orafce_to_char_float8);
 PG_FUNCTION_INFO_V1(orafce_to_char_numeric);
+PG_FUNCTION_INFO_V1(orafce_to_char_timestamp);
 PG_FUNCTION_INFO_V1(orafce_to_number);
 PG_FUNCTION_INFO_V1(orafce_to_multi_byte);
+PG_FUNCTION_INFO_V1(orafce_to_single_byte);
+
+static int getindex(const char **map, char *mbchar, int mblen);
 
 Datum
 orafce_to_char_int4(PG_FUNCTION_ARGS)
@@ -80,14 +85,66 @@ orafce_to_char_numeric(PG_FUNCTION_ARGS)
 	StringInfo	buf = makeStringInfo();
 	struct lconv *lconv = PGLC_localeconv();
 	char	   *p;
+	char       *decimal = NULL;
 
 	appendStringInfoString(buf, DatumGetCString(DirectFunctionCall1(numeric_out, NumericGetDatum(arg0))));
 
 	for (p = buf->data; *p; p++)
 		if (*p == '.')
+		{
 			*p = lconv->decimal_point[0];
+			decimal = p; /* save decimal point position for the next loop */
+		}
+
+	/* Simulate the default Oracle to_char template (TM9 - Text Minimum)
+	   by removing unneeded digits after the decimal point;
+	   if no digits are left, then remove the decimal point too
+	*/
+	for (p = buf->data + buf->len - 1; decimal && p >= decimal; p--)
+	{
+		if (*p == '0' || *p == lconv->decimal_point[0])
+			*p = 0;
+		else
+			break; /* non-zero digit found, exit the loop */
+	}
 
 	PG_RETURN_TEXT_P(cstring_to_text(buf->data));
+}
+
+/********************************************************************
+ *
+ * orafec_to_char_timestamp
+ *
+ * Syntax:
+ *
+ * text to_date(timestamp date_txt)
+ *
+ * Purpose:
+ *
+ * Returns date and time format w.r.t NLS_DATE_FORMAT GUC
+ *
+ *********************************************************************/
+
+Datum
+orafce_to_char_timestamp(PG_FUNCTION_ARGS)
+{
+	Timestamp ts = PG_GETARG_TIMESTAMP(0);
+	text *result = NULL;
+
+	if(nls_date_format && strlen(nls_date_format) > 0)
+	{
+		/* it will return the DATE in nls_date_format*/
+		result = DatumGetTextP(DirectFunctionCall2(timestamp_to_char,
+							TimestampGetDatum(ts),
+								CStringGetDatum(cstring_to_text(nls_date_format))));
+	}
+	else
+	{
+		result = cstring_to_text(DatumGetCString(DirectFunctionCall1(timestamp_out,
+									TimestampGetDatum(ts))));
+	}
+
+	PG_RETURN_TEXT_P(result);
 }
 
 Datum
@@ -340,7 +397,17 @@ orafce_to_multi_byte(PG_FUNCTION_ARGS)
 	const char *s;
 	char	   *d;
 	int			srclen;
+
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(__amd64__))
+
+	__int64			dstlen;
+
+#else
+
 	int			dstlen;
+
+	#endif
+
 	int			i;
 	const char **map;
 
@@ -350,9 +417,7 @@ orafce_to_multi_byte(PG_FUNCTION_ARGS)
 			map = TO_MULTI_BYTE_UTF8;
 			break;
 		case PG_EUC_JP:
-#if PG_VERSION_NUM >= 80300
 		case PG_EUC_JIS_2004:
-#endif
 			map = TO_MULTI_BYTE_EUCJP;
 			break;
 		/*
@@ -382,6 +447,94 @@ orafce_to_multi_byte(PG_FUNCTION_ARGS)
 		else
 		{
 			*d++ = s[i];
+		}
+	}
+
+	dstlen = d - VARDATA(dst);
+	SET_VARSIZE(dst, VARHDRSZ + dstlen);
+
+	PG_RETURN_TEXT_P(dst);
+}
+
+static int
+getindex(const char **map, char *mbchar, int mblen)
+{
+	int		i;
+
+	for (i = 0; i < 95; i++)
+	{
+		if (!memcmp(map[i], mbchar, mblen))
+			return i;
+	}
+
+	return -1;
+}
+
+Datum
+orafce_to_single_byte(PG_FUNCTION_ARGS)
+{
+	text	   *src;
+	text	   *dst;
+	char	   *s;
+	char	   *d;
+	int			srclen;
+
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(__amd64__))
+
+	__int64			dstlen;
+
+#else
+	
+	int			dstlen;
+
+#endif
+
+	const char **map;
+
+	switch (GetDatabaseEncoding())
+	{
+		case PG_UTF8:
+			map = TO_MULTI_BYTE_UTF8;
+			break;
+		case PG_EUC_JP:
+		case PG_EUC_JIS_2004:
+			map = TO_MULTI_BYTE_EUCJP;
+			break;
+		/*
+		 * TODO: Add converter for encodings.
+		 */
+		default:	/* no need to convert */
+			PG_RETURN_DATUM(PG_GETARG_DATUM(0));
+	}
+
+	src = PG_GETARG_TEXT_PP(0);
+	s = VARDATA_ANY(src);
+	srclen = VARSIZE_ANY_EXHDR(src);
+
+	/* XXX - The output length should be <= input length */
+	dst = (text *) palloc0(VARHDRSZ + srclen);
+	d = VARDATA(dst);
+
+	while (*s && (s - VARDATA_ANY(src) < srclen))
+	{
+		char   *u = s;
+		int		clen;
+		int		mapindex;
+
+		clen = pg_mblen(u);
+		s += clen;
+
+		if (clen == 1)
+			*d++ = *u;
+		else if ((mapindex = getindex(map, u, clen)) >= 0)
+		{
+			const char m = 0x20 + mapindex;
+			*d++ = m;
+		}
+		else
+		{
+			memcpy(d, u, clen);
+			d += clen;
 		}
 	}
 

@@ -15,7 +15,7 @@
 #include <math.h>
 #include <errno.h>
 
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 PG_FUNCTION_INFO_V1(dbms_random_initialize);
@@ -72,12 +72,12 @@ static const double d[] =
 static double ltqnorm(double p);
 
 
-/* 
+/*
  * dbms_random.initialize (seed IN BINARY_INTEGER)
  *
  *     Initialize package with a seed value
  */
-Datum 
+Datum
 dbms_random_initialize(PG_FUNCTION_ARGS)
 {
 	int seed = PG_GETARG_INT32(0);
@@ -112,16 +112,16 @@ Datum
 dbms_random_random(PG_FUNCTION_ARGS)
 {
 	int result;
-	/* 
+	/*
 	 * Oracle generator generates numebers from -2^31 and +2^31,
-	 * ANSI C only from 0 .. RAND_MAX, 
-	 */ 
+	 * ANSI C only from 0 .. RAND_MAX,
+	 */
 	result = 2 * (rand() - RAND_MAX / 2);
 
 	PG_RETURN_INT32(result);
 }
 
-/* 
+/*
  * dbms_random.seed(val IN BINARY_INTEGER);
  * dbms_random.seed(val IN VARCHAR2);
  *
@@ -138,7 +138,7 @@ dbms_random_seed_int(PG_FUNCTION_ARGS)
 }
 
 /*
- * Atention! 
+ * Atention!
  *
  * Hash function should be changed between mayor pg versions,
  * don't use text based seed for regres tests!
@@ -152,13 +152,13 @@ dbms_random_seed_varchar(PG_FUNCTION_ARGS)
 	seed = hash_any((unsigned char *) VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key));
 	
 	srand((int) seed);
-					    
+					
 	PG_RETURN_VOID();
 }
 
 /*
  * dbms_random.string(opt IN CHAR, len IN NUMBER) RETURN VARCHAR2;
- * 
+ *
  *     Create Random Strings
  * opt seed values:
  * 'a','A'  alpha characters only (mixed case)
@@ -168,7 +168,7 @@ dbms_random_seed_varchar(PG_FUNCTION_ARGS)
  * 'x','X'  any alpha-numeric characters (upper)
  */
 static text *
-random_string(const char *charset, int chrset_size, int len)
+random_string(const char *charset, size_t chrset_size, int len)
 {
 	StringInfo	str;
 	int	i;
@@ -176,7 +176,7 @@ random_string(const char *charset, int chrset_size, int len)
 	str = makeStringInfo();
 	for (i = 0; i < len; i++)
 	{
-		int pos = (double) rand() / ((double) RAND_MAX + 1) * chrset_size;
+		int pos = (int) ((double) rand() / ((double) RAND_MAX + 1) * chrset_size);
 		
 		appendStringInfoChar(str, charset[pos]);
 	}
@@ -190,14 +190,19 @@ dbms_random_string(PG_FUNCTION_ARGS)
 	char *option;
 	int	len;
 	const char *charset;
-	int chrset_size;
+	size_t chrset_size;
 
 	const char *alpha_mixed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	const char *lower_only = "abcdefghijklmnopqrstuvwxyz";
 	const char *upper_only = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	const char *upper_alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	const char *printable = "`1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVVBNM<>? ";
-	
+
+	if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
+		ereport(ERROR,
+				(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+				 errmsg("an argument is NULL")));
+
 	option = text_to_cstring(PG_GETARG_TEXT_P(0));
 	len = PG_GETARG_INT32(1);
 	
@@ -230,8 +235,8 @@ dbms_random_string(PG_FUNCTION_ARGS)
 			break;
 			
 		default:
-			ereport(ERROR, 
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE), 
+			ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 errmsg("unknown option '%s'", option),
 				 errhint("available option \"aAlLuUxXpP\"")));
 			/* be compiler a quiete */
@@ -273,8 +278,8 @@ dbms_random_value(PG_FUNCTION_ARGS)
 /*
  * dbms_random.value(low  NUMBER, high NUMBER) RETURN NUMBER
  *
- *     Alternatively, you can get a random Oracle number x, 
- *     where x is greater than or equal to low and less than high 
+ *     Alternatively, you can get a random Oracle number x,
+ *     where x is greater than or equal to low and less than high
  */
 Datum
 dbms_random_value_range(PG_FUNCTION_ARGS)
@@ -282,12 +287,12 @@ dbms_random_value_range(PG_FUNCTION_ARGS)
 	float8 low = PG_GETARG_FLOAT8(0);
 	float8 high = PG_GETARG_FLOAT8(1);
 	float8 result;
-	
+
 	if (low > high)
 		PG_RETURN_NULL();
-	
+
 	result = ((double) rand() / ((double) RAND_MAX + 1)) * ( high -  low) + low;
-	
+
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -350,8 +355,8 @@ ltqnorm(double p)
 	else
 	{
 		/* Rational approximation for central region */
-    		q = p - 0.5;
-    		r = q*q;
+		q = p - 0.5;
+		r = q*q;
 		return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
 			(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
 	}

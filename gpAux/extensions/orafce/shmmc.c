@@ -9,7 +9,9 @@
 #include "shmmc.h"
 #include "stdlib.h"
 #include "string.h"
-#include "orafunc.h"
+#include "orafce.h"
+
+#include "stdint.h"
 
 
 #define LIST_ITEMS  512
@@ -25,7 +27,7 @@ typedef struct {
 
 typedef struct {
 	int list_c;
-	int max_size;
+	size_t max_size;
 	vardata data[1];	 /* flexible array member */
 } mem_desc;
 
@@ -51,16 +53,20 @@ int cycle = 0;
 static int
 ptr_comp(const void* a, const void* b)
 {
+	ptrdiff_t d;
+
 	list_item *_a = (list_item*) a;
 	list_item *_b = (list_item*) b;
 
-	return (long)_a->first_byte_ptr - (long)_b->first_byte_ptr;
+	d = (uintptr_t)_a->first_byte_ptr - (uintptr_t)_b->first_byte_ptr;
+
+	return d > 0 ? 1 : (d < 0 ? -1 : 0);
 }
 
 char *
 ora_sstrcpy(char *str)
 {
-	int len;
+	size_t len;
 	char *result;
 
 	len = strlen(str);
@@ -70,7 +76,7 @@ ora_sstrcpy(char *str)
 		ereport(ERROR,
 			(errcode(ERRCODE_OUT_OF_MEMORY),
 			errmsg("out of memory"),
-			errdetail("Failed while allocation block %d bytes in shared memory.", len+1),
+			errdetail("Failed while allocation block %d bytes in shared memory.", (int) len+1),
 			errhint("Increase SHMEMMSGSZ and recompile package.")));
 
 	return result;
@@ -93,7 +99,7 @@ ora_scstring(text *str)
 		ereport(ERROR,
 			(errcode(ERRCODE_OUT_OF_MEMORY),
 			errmsg("out of memory"),
-			errdetail("Failed while allocation block %d bytes in shared memory.", len+1),
+			errdetail("Failed while allocation block %d bytes in shared memory.", (int) len+1),
 			errhint("Increase SHMEMMSGSZ and recompile package.")));
 
 	return result;
@@ -152,7 +158,7 @@ align_size(size_t size)
 }
 
 /*
-  inicialize shared memory. It works in two modes, create and no create.
+  initialize shared memory. It works in two modes, create and no create.
   No create is used for mounting shared memory buffer. Top of memory is
   used for list_item array.
 */
@@ -170,7 +176,7 @@ ora_sinit(void *ptr, size_t size, bool create)
 		if (create)
 		{
 			list[0].size = size - sizeof(list_item)*LIST_ITEMS - sizeof(mem_desc);
-			list[0].first_byte_ptr = &m->data + sizeof(list_item)*LIST_ITEMS;
+			list[0].first_byte_ptr = ((char *) &m->data) + sizeof(list_item)*LIST_ITEMS;
 			list[0].dispossible = true;
 			*list_c = 1;
 		}
@@ -235,7 +241,7 @@ ora_salloc(size_t size)
 		/* list[select].context = context; */
 		ptr = list[select].first_byte_ptr;
 		*list_c += 1;
- 		break;
+		break;
 	}
 
 	return ptr;

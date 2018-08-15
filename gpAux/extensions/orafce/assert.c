@@ -8,8 +8,15 @@
 #include "catalog/namespace.h"
 #include "ctype.h"
 #include "string.h"
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
+
+#if PG_VERSION_NUM >=  100000
+
+#include "utils/regproc.h"
+
+#endif
+
 
 PG_FUNCTION_INFO_V1(dbms_assert_enquote_literal);
 PG_FUNCTION_INFO_V1(dbms_assert_enquote_name);
@@ -38,7 +45,6 @@ PG_FUNCTION_INFO_V1(dbms_assert_object_name);
 	CUSTOM_EXCEPTION(ISNOT_QUALIFIED_SQL_NAME, "string is not qualified SQL name")
 
 #define EMPTY_STR(str)		((VARSIZE(str) - VARHDRSZ) == 0)
-
 
 static bool check_sql_name(char *cp, int len);
 static bool ParseIdentifierString(char *rawstring);
@@ -160,19 +166,12 @@ dbms_assert_enquote_name(PG_FUNCTION_ARGS)
 {
 	Datum name  = PG_GETARG_DATUM(0);
 	bool loweralize = PG_GETARG_BOOL(1);
-#if PG_VERSION_NUM >= 90100
 	Oid collation = PG_GET_COLLATION();
-#endif
 
 	name = DirectFunctionCall1(quote_ident, name);
 
-#if PG_VERSION_NUM >= 90100
 	if (loweralize)
 		name = DirectFunctionCall1Coll(lower, collation, name);
-#else
-	if (loweralize)
-		name = DirectFunctionCall1(lower, name);
-#endif
 
 	PG_RETURN_DATUM(name);
 }
@@ -295,7 +294,7 @@ static bool
 check_sql_name(char *cp, int len)
 {
 	if (*cp == '"')
-    	{
+	{
 		for (cp++, len -= 2; len-- > 0; cp++)
 		{
 			/* all double quotes have to be paired */
@@ -376,6 +375,7 @@ dbms_assert_object_name(PG_FUNCTION_ARGS)
 		INVALID_OBJECT_NAME_EXCEPTION();
 
 	object_name = text_to_cstring(str);
+
 	names = stringToQualifiedNameList(object_name);
 
 	classId = RangeVarGetRelid(makeRangeVarFromNameList(names), NoLock, true);

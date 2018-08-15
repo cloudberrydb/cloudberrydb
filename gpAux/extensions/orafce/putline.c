@@ -1,9 +1,14 @@
 #include "postgres.h"
 #include "funcapi.h"
 #include "access/heapam.h"
+#if PG_VERSION_NUM >= 90300
+#include "access/htup_details.h"
+#endif
 #include "catalog/pg_type.h"
 #include "lib/stringinfo.h"
 
+#undef USE_SSL
+#undef ENABLE_GSS
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
 #include "utils/memutils.h"
@@ -11,7 +16,7 @@
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 extern PGDLLIMPORT ProtocolVersion FrontendProtocol;
@@ -79,25 +84,25 @@ add_newline(void)
 static void
 send_buffer()
 {
-    if (buffer_len > 0)
-    {
-	StringInfoData msgbuf;
-	char *cursor = buffer;
-
-	while (--buffer_len > 0)
+	if (buffer_len > 0)
 	{
-	    if (*cursor == '\0')
-		*cursor = '\n';
-	    cursor++;
-	}
+		StringInfoData msgbuf;
+		char *cursor = buffer;
 
-	if (*cursor != '\0')
-	        ereport(ERROR,
-		        (errcode(ERRCODE_INTERNAL_ERROR),
-			 errmsg("internal error"),
-		         errdetail("Wrong message format detected")));
+		while (--buffer_len > 0)
+		{
+			if (*cursor == '\0')
+				*cursor = '\n';
+			cursor++;
+		}
 
-	pq_beginmessage(&msgbuf, 'N');
+		if (*cursor != '\0')
+			ereport(ERROR,
+				    (errcode(ERRCODE_INTERNAL_ERROR),
+				     errmsg("internal error"),
+				     errdetail("Wrong message format detected")));
+
+		pq_beginmessage(&msgbuf, 'N');
 
 	if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 3)
 	{
@@ -112,9 +117,9 @@ send_buffer()
 		pq_sendstring(&msgbuf, buffer);
 	}
 
-	pq_endmessage(&msgbuf);
-	pq_flush();
-    }
+		pq_endmessage(&msgbuf);
+		pq_flush();
+	}
 }
 
 
@@ -186,13 +191,14 @@ PG_FUNCTION_INFO_V1(dbms_output_disable);
 Datum
 dbms_output_disable(PG_FUNCTION_ARGS)
 {
-    if (buffer)
-        pfree(buffer);
-    buffer = NULL;
-    buffer_size = 0;
-    buffer_len = 0;
-    buffer_get = 0;
-    PG_RETURN_VOID();
+	if (buffer)
+		pfree(buffer);
+
+	buffer = NULL;
+	buffer_size = 0;
+	buffer_len = 0;
+	buffer_get = 0;
+	PG_RETURN_VOID();
 }
 
 PG_FUNCTION_INFO_V1(dbms_output_serveroutput);
@@ -216,9 +222,9 @@ PG_FUNCTION_INFO_V1(dbms_output_put);
 Datum
 dbms_output_put(PG_FUNCTION_ARGS)
 {
-    if (buffer)
+	if (buffer)
 		add_text(PG_GETARG_TEXT_PP(0));
-    PG_RETURN_VOID();
+	PG_RETURN_VOID();
 }
 
 PG_FUNCTION_INFO_V1(dbms_output_put_line);
@@ -226,12 +232,12 @@ PG_FUNCTION_INFO_V1(dbms_output_put_line);
 Datum
 dbms_output_put_line(PG_FUNCTION_ARGS)
 {
-    if (buffer)
-    {
+	if (buffer)
+	{
 		add_text(PG_GETARG_TEXT_PP(0));
 		add_newline();
-    }
-    PG_RETURN_VOID();
+	}
+	PG_RETURN_VOID();
 }
 
 PG_FUNCTION_INFO_V1(dbms_output_new_line);
@@ -239,9 +245,9 @@ PG_FUNCTION_INFO_V1(dbms_output_new_line);
 Datum
 dbms_output_new_line(PG_FUNCTION_ARGS)
 {
-    if (buffer)
+	if (buffer)
 		add_newline();
-    PG_RETURN_VOID();
+	PG_RETURN_VOID();
 }
 
 static text *
@@ -305,7 +311,7 @@ dbms_output_get_lines(PG_FUNCTION_ARGS)
 
 	int32		max_lines = PG_GETARG_INT32(0);
 	int32		n;
-    ArrayBuildState *astate = NULL;
+	ArrayBuildState *astate = NULL;
 
 	/* Build a tuple descriptor for our result type */
 	if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
@@ -330,9 +336,7 @@ dbms_output_get_lines(PG_FUNCTION_ARGS)
 		get_typlenbyvalalign(TEXTOID, &typlen, &typbyval, &typalign);
 		arr = construct_md_array(
 			NULL,
-#if PG_VERSION_NUM >= 80200
 			NULL,
-#endif
 			0, NULL, NULL, TEXTOID, typlen, typbyval, typalign);
 		values[0] = PointerGetDatum(arr);
 	}

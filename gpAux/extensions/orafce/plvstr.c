@@ -23,12 +23,11 @@
 
 #include "catalog/pg_type.h"
 #include "libpq/pqformat.h"
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 PG_FUNCTION_INFO_V1(plvstr_rvrs);
 PG_FUNCTION_INFO_V1(plvstr_normalize);
-PG_FUNCTION_INFO_V1(plvstr_is_prefix);
 PG_FUNCTION_INFO_V1(plvstr_is_prefix_text);
 PG_FUNCTION_INFO_V1(plvstr_is_prefix_int);
 PG_FUNCTION_INFO_V1(plvstr_is_prefix_int64);
@@ -94,26 +93,10 @@ typedef enum
 	LAST
 }  position_mode;
 
-
-#if PG_VERSION_NUM < 80400
-text *
-cstring_to_text_with_len(const char *c, int n)
-{
-	text *result;
-	result = palloc(n + VARHDRSZ);
-	SET_VARSIZE(result, n + VARHDRSZ);
-	memcpy(VARDATA(result), c, n);
-
-	return result;
-}
-#endif
-
 /*
  * Make substring, can handle negative start
  *
  */
-
-
 int
 ora_mb_strlen(text *str, char **sizes, int **positions)
 {
@@ -322,7 +305,18 @@ plvstr_normalize(PG_FUNCTION_ARGS)
 	text *str = PG_GETARG_TEXT_PP(0);
 	text *result;
 	char *aux, *aux_cur;
-	int i, l;
+	int i;
+
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(__amd64__))
+
+	__int64			l;
+
+#else
+
+	int				l;
+
+#endif
+
 	char c, *cur;
 	bool write_spc = false;
 	bool ignore_stsp = true;
@@ -570,10 +564,10 @@ plvstr_is_prefix_int64 (PG_FUNCTION_ARGS)
 Datum
 plvstr_rvrs(PG_FUNCTION_ARGS)
 {
-	text *str = PG_GETARG_TEXT_PP(0);
-	int start = PG_GETARG_INT32(1);
-	int end = PG_GETARG_INT32(2);
-	int len, aux;
+	text *str;
+	int start;
+	int end;
+	int len;
 	int i;
 	int new_len;
 	text *result;
@@ -585,6 +579,8 @@ plvstr_rvrs(PG_FUNCTION_ARGS)
 	if (PG_ARGISNULL(0))
 		PG_RETURN_NULL();
 
+	str = PG_GETARG_TEXT_PP(0);
+
 	mb_encode = pg_database_encoding_max_length() > 1;
 
 	if (!mb_encode)
@@ -592,22 +588,27 @@ plvstr_rvrs(PG_FUNCTION_ARGS)
 	else
 		len = ora_mb_strlen(str, &sizes, &positions);
 
-
-
-	start = PG_ARGISNULL(1) ? 1 : start;
-	end = PG_ARGISNULL(2) ? (start < 0 ? -len : len) : end;
+	start = PG_ARGISNULL(1) ? 1 : PG_GETARG_INT32(1);
+	end = PG_ARGISNULL(2) ? (start < 0 ? -len : len) : PG_GETARG_INT32(2);
 
 	if ((start > end && start > 0) || (start < end && start < 0))
 		PARAMETER_ERROR("Third parameter must be greater than second.");
 
 	if (start < 0)
 	{
-		aux = len + end + 1;
-		end = len + start + 1;
-		start = end;
+		int new_start, new_end;
+
+		new_start = len + start + 1;
+		new_end = len + end + 1;
+		start = new_end;
+		end = new_start;
 	}
 
+	start = start != 0 ? start : 1;
+	end = end < len ? end : len;
+
 	new_len = end - start + 1;
+	new_len = new_len >= 0 ? new_len : 0;
 
 	if (mb_encode)
 	{
@@ -1013,9 +1014,9 @@ is_kind(char c, int kind)
 	switch (kind)
 	{
 		case 1:
-			return c ==' ';
+			return c == ' ';
 		case 2:
-			return !!(isdigit((unsigned char)c));
+			return '0' <= c && c <= '9';
 		case 3:
 			return c == '\'';
 		case 4:
@@ -1024,7 +1025,7 @@ is_kind(char c, int kind)
 				(58 <= c && c <= 64) ||
 				(91 <= c && c <= 96) || (123 <= c && c <= 126);
 		case 5:
-			return !!(isalpha((unsigned char)c));
+			return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
 		default:
 			PARAMETER_ERROR("Second parameter isn't in enum {1,2,3,4,5}");
 			return false;

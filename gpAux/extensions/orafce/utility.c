@@ -27,7 +27,7 @@
 #include "utils/memutils.h"
 #include "utils/lsyscache.h"
 #include "access/tupmacs.h"
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 #include "utils/elog.h"
@@ -43,15 +43,7 @@ dbms_utility_format_call_stack(char mode)
 	ErrorContextCallback *econtext;
 	StringInfo   sinfo;
 
-#ifdef GP_VERSION_NUM
 	errstart(ERROR, __FILE__, __LINE__, PG_FUNCNAME_MACRO, TEXTDOMAIN);
-#else
-#if PG_VERSION_NUM >= 80400
-	errstart(ERROR, __FILE__, __LINE__, PG_FUNCNAME_MACRO, TEXTDOMAIN);
-#else
-	errstart(ERROR, __FILE__, __LINE__, PG_FUNCNAME_MACRO);
-#endif
-#endif
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -128,7 +120,7 @@ dbms_utility_format_call_stack(char mode)
 
 				if ((p1 = strstr(start, "line ")))
 				{
-					int p2i;
+					size_t p2i;
 					char c;
 
 					p1 += strlen("line ");
@@ -140,8 +132,6 @@ dbms_utility_format_call_stack(char mode)
 					p1[p2i] = '\0';
 					line = pstrdup(p1);
 					p1[p2i] = c;
-
-					start = p1 + p2i;
 				}
 			}
 
@@ -179,7 +169,7 @@ Datum
 dbms_utility_format_call_stack0(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_TEXT_P(cstring_to_text(dbms_utility_format_call_stack('o')));
-};
+}
 
 Datum
 dbms_utility_format_call_stack1(PG_FUNCTION_ARGS)

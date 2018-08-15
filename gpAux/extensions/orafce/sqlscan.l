@@ -4,60 +4,26 @@
 */
 
 #include "postgres.h"
+
+#if PG_VERSION_NUM >= 90600
+
+#include "common/keywords.h"
+
+#else
+
 #include "parser/keywords.h"
 
-#ifdef GP_VERSION_NUM
-#define YY_NO_INPUT 1
 #endif
 
-#undef yyparse  /* don't need it now and solve problems with 8.1 */
-
-#include "parser/gramparse.h"                                                                                               
-#include "parser/keywords.h"                                                                                                
-/* Not needed now that this file is compiled as part of gram.y */                                                           
-/* #include "parser/parse.h" */                                                                                             
-#include "parser/scansup.h"      
+#include "parser/gramparse.h"
+/* Not needed now that this file is compiled as part of gram.y */
+/* #include "parser/parse.h" */
+#include "parser/scansup.h"
 #include "mb/pg_wchar.h"
 
-#define unify_version(a,b,c) ((a<<16)+(b<<8)+c)
-
-/* simplified current version */
-#define YY_FLEX_FULL_VERSION \
-  unify_version(YY_FLEX_MAJOR_VERSION,YY_FLEX_MINOR_VERSION,YY_FLEX_SUBMINOR_VERSION)
-
-/* 
- * Need to define these prototypes to shut GCC up. Flex fixes this from
- * > 2.5.35
- */
-#if YY_FLEX_FULL_VERSION < unify_version(2,5,35)
-int orafce_sql_yyget_lineno  (void);
-FILE *orafce_sql_yyget_in  (void);
-FILE *orafce_sql_yyget_out  (void);
-char *orafce_sql_yyget_text  (void);
-void orafce_sql_yyset_lineno (int  line_number );
-void orafce_sql_yyset_in (FILE *  in_str );
-void orafce_sql_yyset_out (FILE *  out_str );
-int orafce_sql_yyget_debug  (void);
-void orafce_sql_yyset_debug (int  bdebug );
-int orafce_sql_yylex_destroy  (void);
-int orafce_sql_yyget_leng(void);
-#endif
-
-#if PG_VERSION_NUM >= 80500
 extern PGDLLIMPORT const ScanKeyword ScanKeywords[];
 extern PGDLLIMPORT const int	NumScanKeywords;
 #define ScanKeywordLookupArgs	, ScanKeywords, NumScanKeywords
-#else
-#define ScanKeywordLookupArgs
-#endif
-
-static int		xcdepth = 0;	/* depth of nesting in slash-star comments */
-static char    *dolqstart;      /* current $foo$ quote start string */
-static bool extended_string = false;
-
-
-/* No reason to constrain amount of data slurped */
-#define YY_READ_BUF_SIZE 16777216
 
 /* Avoid exit() on fatal scanner errors (a bit ugly -- see yy_fatal_error) */
 #undef fprintf
@@ -69,13 +35,20 @@ fprintf_to_ereport(const char *fmt, const char *msg)
 	ereport(ERROR, (errmsg_internal("%s", msg)));
 }
 
+static int		xcdepth = 0;	/* depth of nesting in slash-star comments */
+static char    *dolqstart;      /* current $foo$ quote start string */
+static bool extended_string = false;
+
+
+/* No reason to constrain amount of data slurped */
+#define YY_READ_BUF_SIZE 16777216
 
 /* Handles to the buffer that the lexer uses internally */
 
 
 static YY_BUFFER_STATE scanbufhandle;
 
-#define SET_YYLLOC()  (yylval.val.lloc = yylloc = yytext - scanbuf)                                                                                              
+#define SET_YYLLOC()  (orafce_sql_yylval.val.lloc = yytext - scanbuf)
                                                                                                                                                
 /* Handles to the buffer that the lexer uses internally */                                                                                     
 static char *scanbuf;       
@@ -83,8 +56,6 @@ static char *scanbuf;
 /* flex 2.5.4 doesn't bother with a decl for this */
 
 int orafce_sql_yylex(void);
-
-extern YYSTYPE yylval;
 
 void orafce_sql_scanner_init(const char *str);
 void orafce_sql_scanner_finish(void);
@@ -128,6 +99,7 @@ static unsigned char unescape_single_char(unsigned char c);
 %option 8bit
 %option never-interactive
 %option nodefault
+%option noinput
 %option nounput
 %option noyywrap
 %option prefix="orafce_sql_yy"
@@ -912,7 +884,7 @@ lexer_errposition(void)
 	int		pos;
 
 	/* Convert byte offset to character number */
-	pos = _pg_mbstrlen_with_len(scanbuf, yylloc) + 1;
+	pos = _pg_mbstrlen_with_len(scanbuf, orafce_sql_yylval.val.lloc) + 1;
 	/* And pass it to the ereport mechanism */
 	return errposition(pos);
 }
@@ -928,15 +900,14 @@ lexer_errposition(void)
  * be misleading!
  */
 void
-yyerror(List **result, const char *message)
+orafce_sql_yyerror(List **result, const char *message)
 {
-	const char *loc = scanbuf + yylloc;
+	const char *loc = scanbuf + orafce_sql_yylval.val.lloc;
 
 	if (*loc == YY_END_OF_BUFFER_CHAR)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 /* translator: %s is typically "syntax error" */
 				 errmsg("%s at end of input", _(message)),
 				 lexer_errposition()));
 	}
@@ -944,7 +915,6 @@ yyerror(List **result, const char *message)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 /* translator: first %s is typically "syntax error" */
 				 errmsg("%s at or near \"%s\"", _(message), loc),
 				 lexer_errposition()));
 	}

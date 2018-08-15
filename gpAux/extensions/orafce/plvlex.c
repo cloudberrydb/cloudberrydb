@@ -11,20 +11,20 @@
     1.0. first public version 13. March 2006
 */
 
+#include <sys/time.h>
+#include <stdlib.h>
+
 #include "postgres.h"
+#include "catalog/pg_type.h"
+#include "lib/stringinfo.h"
+#include "nodes/pg_list.h"
 #include "utils/date.h"
 #include "utils/builtins.h"
 #include "utils/nabstime.h"
-#include <sys/time.h>
-#include <stdlib.h>
-#include "lib/stringinfo.h"
-
 #include "plvlex.h"
 #include "sqlparse.h"
-#include "nodes/pg_list.h"
 #include "funcapi.h"
-#include "catalog/pg_type.h"
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 typedef struct {
@@ -181,8 +181,15 @@ filterList(List *list, bool skip_spaces, bool qnames)
 	return result;
 }
 
-Datum plvlex_tokens(PG_FUNCTION_ARGS)
+Datum
+plvlex_tokens(PG_FUNCTION_ARGS)
 {
+#ifdef _MSC_VER
+	ereport(ERROR,
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			 errmsg("plvlex.tokens is not available in the built")));
+	PG_RETURN_VOID();
+#else
 	FuncCallContext	   *funcctx;
 	TupleDesc			tupdesc;
 	TupleTableSlot	   *slot;
@@ -286,5 +293,5 @@ Datum plvlex_tokens(PG_FUNCTION_ARGS)
 	}
 
 	SRF_RETURN_DONE (funcctx);
+#endif
 }
-

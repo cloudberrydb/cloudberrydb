@@ -1,6 +1,9 @@
 #include "postgres.h"
 #include "funcapi.h"
 #include "fmgr.h"
+#if PG_VERSION_NUM >= 90300
+#include "access/htup_details.h"
+#endif
 #include "storage/shmem.h"
 #include "utils/memutils.h"
 #include "utils/timestamp.h"
@@ -15,7 +18,7 @@
 
 #include "shmmc.h"
 #include "pipe.h"
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 /*
@@ -37,7 +40,6 @@
 #define RESULT_DATA	0
 #define RESULT_WAIT	1
 
-#define NOT_INITIALIZED -1
 #define ONE_YEAR (60*60*24*365)
 
 PG_FUNCTION_INFO_V1(dbms_pipe_pack_message_text);
@@ -120,7 +122,16 @@ typedef struct PipesFctx {
 
 typedef struct
 {
-	LWLockId shmem_lock;
+#if PG_VERSION_NUM >= 90600
+
+	int tranche_id;
+	LWLock shmem_lock;
+#else
+
+	LWLockId shmem_lockid;
+
+#endif
+
 	pipe *pipes;
 	alert_event *events;
 	alert_lock *locks;
@@ -135,12 +146,23 @@ message_buffer *output_buffer = NULL;
 message_buffer *input_buffer = NULL;
 
 pipe* pipes = NULL;
-LWLockId shmem_lock = NOT_INITIALIZED;
-unsigned int sid;                                 /* session id */
-Oid uid;
 
-extern alert_event *events;
-extern alert_lock  *locks;
+#if PG_VERSION_NUM >= 90400
+
+#define NOT_INITIALIZED		NULL
+
+#else
+
+#define NOT_INITIALIZED		-1
+
+#endif
+
+LWLockId shmem_lockid = NOT_INITIALIZED;;
+
+unsigned int sid;                                 /* session id */
+
+alert_event *events;
+alert_lock  *locks;
 
 /*
  * write on writer size bytes from ptr
@@ -218,17 +240,48 @@ ora_lock_shmem(size_t size, int max_pipes, int max_events, int max_locks, bool r
 	if (pipes == NULL)
 	{
 		sh_mem = ShmemInitStruct("dbms_pipe", size, &found);
-		uid = GetUserId();
 		if (sh_mem == NULL)
-			ereport(ERROR,
+			ereport(FATAL,
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 					 errmsg("out of memory"),
 					 errdetail("Failed while allocation block %lu bytes in shared memory.", (unsigned long) size)));
 
 		if (!found)
 		{
-			shmem_lock = sh_mem->shmem_lock = LWLockAssign();
-			LWLockAcquire(sh_mem->shmem_lock, LW_EXCLUSIVE);
+
+#if PG_VERSION_NUM >= 90600
+
+			sh_mem->tranche_id = LWLockNewTrancheId();
+			LWLockInitialize(&sh_mem->shmem_lock, sh_mem->tranche_id);
+
+			{
+
+#if PG_VERSION_NUM >= 100000
+
+				LWLockRegisterTranche(sh_mem->tranche_id, "orafce");
+
+#else
+
+				static LWLockTranche tranche;
+
+				tranche.name = "orafce";
+				tranche.array_base = &sh_mem->shmem_lock;
+				tranche.array_stride = sizeof(LWLock);
+				LWLockRegisterTranche(sh_mem->tranche_id, &tranche);
+
+#endif
+
+				shmem_lockid = &sh_mem->shmem_lock;
+			}
+
+#else
+
+			shmem_lockid = sh_mem->shmem_lockid = LWLockAssign();
+
+#endif
+
+			LWLockAcquire(shmem_lockid, LW_EXCLUSIVE);
+
 			sh_mem->size = size - sh_memory_size;
 			ora_sinit(sh_mem->data, size, true);
 			pipes = sh_mem->pipes = ora_salloc(max_pipes*sizeof(pipe));
@@ -253,11 +306,38 @@ ora_lock_shmem(size_t size, int max_pipes, int max_events, int max_locks, bool r
 			}
 
 		}
-		else if (sh_mem->shmem_lock != 0)
+		else if (pipes == NULL)
 		{
+
+#if PG_VERSION_NUM >= 90600
+
+
+#if PG_VERSION_NUM >= 100000
+
+			LWLockRegisterTranche(sh_mem->tranche_id, "orafce");
+
+#else
+
+			static LWLockTranche tranche;
+
+			tranche.name = "orafce";
+			tranche.array_base = &sh_mem->shmem_lock;
+			tranche.array_stride = sizeof(LWLock);
+			LWLockRegisterTranche(sh_mem->tranche_id, &tranche);
+
+#endif
+
+			shmem_lockid = &sh_mem->shmem_lock;
+
+#else
+
+			shmem_lockid = sh_mem->shmem_lockid;
+
+#endif
+
 			pipes = sh_mem->pipes;
-			shmem_lock = sh_mem->shmem_lock;
-			LWLockAcquire(sh_mem->shmem_lock, LW_EXCLUSIVE);
+			LWLockAcquire(shmem_lockid, LW_EXCLUSIVE);
+
 			ora_sinit(sh_mem->data, sh_mem->size, reset);
 			sid = ++(sh_mem->sid);
 			events = sh_mem->events;
@@ -266,12 +346,8 @@ ora_lock_shmem(size_t size, int max_pipes, int max_events, int max_locks, bool r
 	}
 	else
 	{
-		LWLockAcquire(shmem_lock, LW_EXCLUSIVE);
+		LWLockAcquire(shmem_lockid, LW_EXCLUSIVE);
 	}
-/*
-	if (reset && pipes == NULL)
-		elog(ERROR, "Can't purge memory");
-*/
 
 	return pipes != NULL;
 }
@@ -296,9 +372,9 @@ find_pipe(text* pipe_name, bool* created, bool only_check)
 		{
 			/* check owner if non public pipe */
 
-			if (pipes[i].creator != NULL && pipes[i].uid != uid)
+			if (pipes[i].creator != NULL && pipes[i].uid != GetUserId())
 			{
-				LWLockRelease(shmem_lock);
+				LWLockRelease(shmem_lockid);
 				ereport(ERROR,
 						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 						 errmsg("insufficient privilege"),
@@ -425,7 +501,7 @@ get_from_pipe(text *pipe_name, bool *found)
 		}
 	}
 
-	LWLockRelease(shmem_lock);
+	LWLockRelease(shmem_lockid);
 
 	return result;
 }
@@ -482,7 +558,7 @@ add_to_pipe(text *pipe_name, message_buffer *ptr, int limit, bool limit_is_valid
 		}
 		break;
 	}
-	LWLockRelease(shmem_lock);
+	LWLockRelease(shmem_lockid);
 	return result;
 }
 
@@ -637,11 +713,7 @@ dbms_pipe_pack_message_record(PG_FUNCTION_ARGS)
 	 * using fcinfo->flinfo->fn_extra.  So we need to pass it our own
 	 * flinfo parameter.
 	 */
-#if PG_VERSION_NUM >= 90100
 	InitFunctionCallInfoData(info, fcinfo->flinfo, 3, InvalidOid, NULL, NULL);
-#else
-	InitFunctionCallInfoData(info, fcinfo->flinfo, 3, NULL, NULL);
-#endif
 
 	info.arg[0] = PointerGetDatum(rec);
 	info.arg[1] = ObjectIdGetDatum(tupType);
@@ -716,11 +788,7 @@ dbms_pipe_unpack_message(PG_FUNCTION_ARGS, message_data_type dtype)
 			 * using fcinfo->flinfo->fn_extra.  So we need to pass it our own
 			 * flinfo parameter.
 			 */
-#if PG_VERSION_NUM >= 90100
 			InitFunctionCallInfoData(info, fcinfo->flinfo, 3, InvalidOid, NULL, NULL);
-#else
-			InitFunctionCallInfoData(info, fcinfo->flinfo, 3, NULL, NULL);
-#endif
 
 			info.arg[0] = PointerGetDatum(&buf);
 			info.arg[1] = ObjectIdGetDatum(tupType);
@@ -911,7 +979,7 @@ dbms_pipe_unique_session_name (PG_FUNCTION_ARGS)
 
 		result = cstring_to_text_with_len(strbuf.data, strbuf.len);
 		pfree(strbuf.data);
-		LWLockRelease(shmem_lock);
+		LWLockRelease(shmem_lockid);
 
 		PG_RETURN_TEXT_P(result);
 	}
@@ -1022,7 +1090,7 @@ dbms_pipe_list_pipes(PG_FUNCTION_ARGS)
 		fctx->pipe_nth += 1;
 	}
 
-	LWLockRelease(shmem_lock);
+	LWLockRelease(shmem_lockid);
 	SRF_RETURN_DONE(funcctx);
 }
 
@@ -1071,7 +1139,7 @@ dbms_pipe_create_pipe (PG_FUNCTION_ARGS)
 		{
 			if (!created)
 			{
-				LWLockRelease(shmem_lock);
+				LWLockRelease(shmem_lockid);
 				ereport(ERROR,
 						(errcode(ERRCODE_DUPLICATE_OBJECT),
 						 errmsg("pipe creation error"),
@@ -1083,7 +1151,12 @@ dbms_pipe_create_pipe (PG_FUNCTION_ARGS)
 
 				p->uid = GetUserId();
 #ifdef GP_VERSION_NUM
-				user = (GetUserNameFromId(p->uid)); 
+				user = (GetUserNameFromId(p->uid));
+#elif PG_VERSION_NUM >= 90500
+
+				user = (char*)DirectFunctionCall1(namein,
+					    CStringGetDatum(GetUserNameFromId(p->uid, false)));
+
 #else
 				user = (char*)DirectFunctionCall1(namein, CStringGetDatum(GetUserNameFromId(p->uid)));
 #endif
@@ -1093,7 +1166,7 @@ dbms_pipe_create_pipe (PG_FUNCTION_ARGS)
 			p->limit = limit_is_valid ? limit : -1;
 			p->registered = true;
 
-			LWLockRelease(shmem_lock);
+			LWLockRelease(shmem_lockid);
 			PG_RETURN_VOID();
 		}
 	}
@@ -1146,7 +1219,7 @@ dbms_pipe_purge (PG_FUNCTION_ARGS)
 	{
 
 		remove_pipe(pipe_name, true);
-		LWLockRelease(shmem_lock);
+		LWLockRelease(shmem_lockid);
 
 		PG_RETURN_VOID();
 	}
@@ -1174,7 +1247,7 @@ dbms_pipe_remove_pipe (PG_FUNCTION_ARGS)
 	{
 
 		remove_pipe(pipe_name, false);
-		LWLockRelease(shmem_lock);
+		LWLockRelease(shmem_lockid);
 
 		PG_RETURN_VOID();
 	}
@@ -1192,12 +1265,23 @@ dbms_pipe_remove_pipe (PG_FUNCTION_ARGS)
 Datum
 dbms_pipe_create_pipe_2 (PG_FUNCTION_ARGS)
 {
-	Datum arg1 = PG_GETARG_DATUM(0);
-	Datum arg2 = PG_GETARG_DATUM(1);
+	Datum	arg1;
+	int		limit = -1;
+
+	if (PG_ARGISNULL(0))
+		ereport(ERROR,
+				(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+				 errmsg("pipe name is NULL"),
+				 errdetail("Pipename may not be NULL.")));
+
+	arg1 = PG_GETARG_DATUM(0);
+
+	if (!PG_ARGISNULL(1))
+		limit = PG_GETARG_INT32(1);
 
 	DirectFunctionCall3(dbms_pipe_create_pipe,
 						arg1,
-						arg2,
+						Int32GetDatum(limit),
 						BoolGetDatum(false));
 
 	PG_RETURN_VOID();
@@ -1206,11 +1290,19 @@ dbms_pipe_create_pipe_2 (PG_FUNCTION_ARGS)
 Datum
 dbms_pipe_create_pipe_1 (PG_FUNCTION_ARGS)
 {
-	Datum arg1 = PG_GETARG_DATUM(0);
+	Datum	arg1;
+
+	if (PG_ARGISNULL(0))
+		ereport(ERROR,
+				(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+				 errmsg("pipe name is NULL"),
+				 errdetail("Pipename may not be NULL.")));
+
+	arg1 = PG_GETARG_DATUM(0);
 
 	DirectFunctionCall3(dbms_pipe_create_pipe,
 						arg1,
-						(Datum)0,
+						(Datum) -1,
 						BoolGetDatum(false));
 
 	PG_RETURN_VOID();
@@ -1234,5 +1326,4 @@ dbms_pipe_pack_message_bigint(PG_FUNCTION_ARGS)
 				DirectFunctionCall1(int8_numeric, PG_GETARG_DATUM(0)));
 
 	PG_RETURN_VOID();
-
 }

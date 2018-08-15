@@ -1,3 +1,20 @@
+/*
+ * This functionality doesn't work on Microsoft Windows. Probably, there are more
+ * than one issue:
+ *
+ *  functions fwrite, fclose, .. fails on segfault when file is locked. Probably
+ *  PostgreSQL process and extension is not fully initialized and these "safe"
+ *  functions crashes. Possible solution is nolock thread unsafe functions like
+ *  _fwrite_nolock, It doesn't crash, but doesn't work. Returned file - file handler
+ *  is not valid (although fileptr is not NULL).
+ *
+ *  From these reasons, this functionality is blocked on MS Windows.
+ */
+
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_DEPRECATE
+#endif
+
 #include "postgres.h"
 
 #include <unistd.h>
@@ -5,6 +22,9 @@
 
 #include "executor/spi.h"
 
+#if PG_VERSION_NUM >= 90300
+#include "access/htup_details.h"
+#endif
 #include "catalog/pg_type.h"
 #include "fmgr.h"
 #include "funcapi.h"
@@ -14,7 +34,7 @@
 #include "storage/fd.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
-#include "orafunc.h"
+#include "orafce.h"
 #include "builtins.h"
 
 #ifndef ERRCODE_NO_DATA_FOUND
@@ -50,8 +70,8 @@ PG_FUNCTION_INFO_V1(utl_file_tmpdir);
 #define CUSTOM_EXCEPTION(msg, detail) \
 	ereport(ERROR, \
 		(errcode(ERRCODE_RAISE_EXCEPTION), \
-		 errmsg("%s",msg), \
-		 errdetail("%s",detail)))
+		 errmsg("%s", msg), \
+		 errdetail("%s", detail)))
 
 #define INVALID_FILEHANDLE_EXCEPTION()	CUSTOM_EXCEPTION(INVALID_FILEHANDLE, "Used file handle isn't valid.")
 
@@ -303,7 +323,6 @@ get_line(FILE *f, int max_linesize, int encoding, bool *iseof)
 	char *bpt;
 	int csize = 0;
 	text *result = NULL;
-
 	bool eof = true;
 
 	buffer = palloc(max_linesize + 2);
@@ -336,7 +355,7 @@ get_line(FILE *f, int max_linesize, int encoding, bool *iseof)
 	if (!eof)
 	{
 		char   *decoded;
-		int		len;
+		size_t		len;
 
 		pg_verify_mbstr(encoding, buffer, csize, false);
 		decoded = (char *) pg_do_encoding_conversion((unsigned char *) buffer,
@@ -385,8 +404,8 @@ get_line(FILE *f, int max_linesize, int encoding, bool *iseof)
 Datum
 utl_file_get_line(PG_FUNCTION_ARGS)
 {
-	int		max_linesize = 0;
-	int		encoding = 0;
+	int		max_linesize = 0;	/* keep compiler quiet */
+	int		encoding = 0;		/* keep compiler quiet */
 	FILE   *f;
 	text   *result;
 	bool	iseof;
@@ -427,8 +446,8 @@ utl_file_get_line(PG_FUNCTION_ARGS)
 Datum
 utl_file_get_nextline(PG_FUNCTION_ARGS)
 {
-	int		max_linesize = 0;
-	int		encoding = 0;
+	int		max_linesize = 0;		/* keep compiler quiet */
+	int		encoding = 0;			/* keep compiler quiet */
 	FILE   *f;
 	text   *result;
 	bool	iseof;
@@ -481,7 +500,7 @@ do_flush(FILE *f)
 
 /* encode(t, encoding) */
 static char *
-encode_text(int encoding, text *t, int *length)
+encode_text(int encoding, text *t, size_t *length)
 {
 	char	   *src = VARDATA_ANY(t);
 	char	   *encoded;
@@ -494,12 +513,12 @@ encode_text(int encoding, text *t, int *length)
 }
 
 /* fwrite(encode(args[n], encoding), f) */
-static int
-do_write(PG_FUNCTION_ARGS, int n, FILE *f, int max_linesize, int encoding)
+static size_t
+do_write(PG_FUNCTION_ARGS, int n, FILE *f, size_t max_linesize, int encoding)
 {
 	text	   *arg = PG_GETARG_TEXT_P(n);
 	char	   *str;
-	int			len;
+	size_t			len;
 
 	str = encode_text(encoding, arg, &len);
 	CHECK_LENGTH(len);
@@ -518,8 +537,8 @@ static FILE *
 do_put(PG_FUNCTION_ARGS)
 {
 	FILE   *f;
-	int		max_linesize = 0;
-	int		encoding = 0;
+	int		max_linesize = 0;		/* keep compiler quiet */
+	int		encoding = 0;			/* keep compiler quiet */
 
 	CHECK_FILE_HANDLE();
 	f = get_stream(PG_GETARG_INT32(0), &max_linesize, &encoding);
@@ -607,10 +626,10 @@ utl_file_putf(PG_FUNCTION_ARGS)
 	char   *format;
 	int		max_linesize = 0;
 	int		encoding = 0;
-	int		format_length;
+	size_t		format_length;
 	char   *fpt;
 	int		cur_par = 0;
-	int		cur_len = 0;
+	size_t		cur_len = 0;
 
 	CHECK_FILE_HANDLE();
 	f = get_stream(PG_GETARG_INT32(0), &max_linesize, &encoding);
@@ -771,15 +790,15 @@ check_secure_locality(const char *path)
 	Datum	values[1];
 	char	nulls[1] = {' '};
 
-	/* hack for availbility regress test */
-	if (strcmp(path, "/tmp/regress_orafce") == 0)
-		return;
-
 	values[0] = CStringGetTextDatum(path);
 
 	/*
 	 * SELECT 1 FROM utl_file.utl_file_dir
-	 *   WHERE substring($1, 1, length(dir) + 1) = dir || '/'
+	 *   WHERE CASE WHEN substring(dir from '.$') = '/' THEN
+	 *     substring($1, 1, length(dir)) = dir
+	 *   ELSE
+	 *     substring($1, 1, length(dir) + 1) = dir || '/'
+	 *   END
 	 */
 
 	if (SPI_connect() < 0)
@@ -792,7 +811,11 @@ check_secure_locality(const char *path)
 		/* Don't use LIKE not to escape '_' and '%' */
 		SPIPlanPtr p = SPI_prepare(
 		    "SELECT 1 FROM utl_file.utl_file_dir"
-			" WHERE substring($1, 1, length(dir) + 1) = dir || '/'",
+	 	        " WHERE CASE WHEN substring(dir from '.$') = '/' THEN"
+	 	        "  substring($1, 1, length(dir)) = dir"
+	 	        " ELSE"
+	 	        "  substring($1, 1, length(dir) + 1) = dir || '/'"
+	 	        " END",
 		    1, argtypes);
 
 		if (p == NULL || (plan = SPI_saveplan(p)) == NULL)
@@ -1072,7 +1095,7 @@ utl_file_tmpdir(PG_FUNCTION_ARGS)
 	char		tmpdir[MAXPGPATH];
 	int			ret;
 
-	ret = GetTempPath(MAXPGPATH, tmpdir);
+	ret = GetTempPathA(MAXPGPATH, tmpdir);
 	if (ret == 0 || ret > MAXPGPATH)
 		CUSTOM_EXCEPTION(INVALID_PATH, strerror(errno));
 
