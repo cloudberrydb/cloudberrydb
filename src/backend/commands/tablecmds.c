@@ -10477,7 +10477,8 @@ ATPrepAlterColumnType(List **wqueue,
 	CheckAttributeType(colName, targettype, targetcollid,
 					   list_make1_oid(rel->rd_rel->reltype),
 					   false);
-	if (tab->relkind == RELKIND_RELATION)
+	if (tab->relkind == RELKIND_RELATION &&
+		rel->rd_rel->relstorage != RELSTORAGE_EXTERNAL)
 	{
 		/*
 		 * Set up an expression to transform the old data value to the new
@@ -10561,6 +10562,14 @@ ATPrepAlterColumnType(List **wqueue,
 		tab->newvals = lappend(tab->newvals, newval);
 		if (ATColumnChangeRequiresRewrite(transform, attnum))
 			tab->rewrite = true;
+	}
+	else if (transform &&
+			 rel->rd_rel->relstorage == RELSTORAGE_EXTERNAL)
+	{
+		/* Just to give a better error message than "foo is not a table" */
+		ereport(ERROR,
+				(errcode(ERRCODE_DATATYPE_MISMATCH),
+				 errmsg("cannot specify a USING expression when altering an external table")));
 	}
 	else if (transform)
 		ereport(ERROR,
