@@ -4087,7 +4087,7 @@ prepSplitCmd(Relation rel, PgPartRule *prule, bool is_at)
 			 && (pNode->default_part->children))
 		{
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						errmsg("SPLIT PARTITION is not "
 								"currently supported when leaf partition is "
 								"list partitioned in multi level partition table")));
@@ -17139,7 +17139,7 @@ ATPExecPartSplit(Relation *rel,
 								if (!IsA(lfirst(parvals), List))
 								{
 									ereport(ERROR,
-											(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+											(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 											 errmsg("split partition is not "
 													"currently supported when the "
 													"lowest level is list partitioned")));

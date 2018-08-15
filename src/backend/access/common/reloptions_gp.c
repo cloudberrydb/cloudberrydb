@@ -883,7 +883,7 @@ validate_and_adjust_options(StdRdOptions *result,
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("invalid option 'blocksize' for base relation. "
 							"Only valid for Append Only relations")));
 
@@ -915,7 +915,7 @@ validate_and_adjust_options(StdRdOptions *result,
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("invalid option \"compresstype\" for base relation."
 							" Only valid for Append Only relations")));
 
@@ -940,7 +940,7 @@ validate_and_adjust_options(StdRdOptions *result,
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("invalid option 'compresslevel' for base "
 							"relation. Only valid for Append Only relations")));
 
@@ -1050,7 +1050,7 @@ validate_and_adjust_options(StdRdOptions *result,
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("invalid option \"checksum\" for base relation. "
 							"Only valid for Append Only relations")));
 		result->checksum = checksum_opt->values.bool_val;
@@ -1071,7 +1071,7 @@ validate_and_adjust_options(StdRdOptions *result,
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("invalid option \"orientation\" for base relation. "
 							"Only valid for Append Only relations")));
 
@@ -1171,17 +1171,17 @@ validateAppendOnlyRelOptions(bool ao,
 	{
 		if (ao)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("appendonly may only be specified for base relations")));
 
 		if (checksum)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("checksum may only be specified for base relations")));
 
 		if (comptype)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("compresstype may only be specified for base relations")));
 	}
 

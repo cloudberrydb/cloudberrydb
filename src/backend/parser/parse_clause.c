@@ -3542,7 +3542,7 @@ transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause,
 
 			if (con->constisnull)
 				ereport(ERROR,
-						(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+						(errcode(ERRCODE_WINDOWING_ERROR),
 						 errmsg("RANGE parameter cannot be NULL"),
 						 parser_errposition(pstate, con->location)));
 		}
@@ -3658,7 +3658,7 @@ transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause,
 
 				if (result)
 					ereport(ERROR,
-							(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+							(errcode(ERRCODE_WINDOWING_ERROR),
 							 errmsg("RANGE parameter cannot be negative"),
 							 parser_errposition(pstate, con->location)));
 

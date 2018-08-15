@@ -857,7 +857,7 @@ currval_oid(PG_FUNCTION_ARGS)
 	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE)
 	{
 		ereport(ERROR,
-				(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("currval() not supported")));
 	}
 
@@ -894,7 +894,7 @@ lastval(PG_FUNCTION_ARGS)
 	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE)
 	{
 		ereport(ERROR,
-				(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("lastval() not supported")));
 	}
 
@@ -952,7 +952,7 @@ do_setval(Oid relid, int64 next, bool iscalled)
 	if (Gp_role == GP_ROLE_EXECUTE)
 	{
 		ereport(ERROR,
-				(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("setval() not supported in this context")));
 	}
 

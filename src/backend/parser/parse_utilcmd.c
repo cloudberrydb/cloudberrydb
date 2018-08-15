@@ -1858,7 +1858,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 					oldTablePolicy->ptype == POLICYTYPE_ENTRY) &&
 					!IsBinaryUpgrade)
 			{
-				ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+				ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						errmsg("cannot inherit from catalog table \"%s\" "
 							   "to create table \"%s\".",
 							   parent->relname, cxt->relation->relname),
@@ -1871,7 +1871,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 					GpPolicyIsReplicated(oldTablePolicy)) &&
 					!IsBinaryUpgrade)
 			{
-				ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+				ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						errmsg("cannot inherit from replicated table \"%s\" "
 							   "to create table \"%s\".",
 							   parent->relname, cxt->relation->relname),
@@ -2133,7 +2133,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 						if (!isGreenplumDbHashable(typeOid))
 						{
 							ereport(ERROR,
-									(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 									 errmsg("type \"%s\" can't be a part of a "
 										 "distribution key",
 										 format_type_be(typeOid))));

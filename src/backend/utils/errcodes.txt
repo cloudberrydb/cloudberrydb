@@ -124,9 +124,6 @@ Section: Class 09 - Triggered Action Exception
 Section: Class 0A - Feature Not Supported
 
 0A000    E    ERRCODE_FEATURE_NOT_SUPPORTED                                  feature_not_supported
-# GPDB_91_MERGE_FIXME: Do we really need these GPDB-specific codes?
-# Can't we just use ERRCODE_FEATURE_NOT_SUPPORTED?
-0AM00    E    ERRCODE_GP_FEATURE_NOT_SUPPORTED                               gp_feature_not_supported
 0AM01    E    ERRCODE_GP_FEATURE_NOT_YET                                     gp_feature_not_yet
 0AM02    E    ERRCODE_GP_FEATURE_NOT_CONFIGURED                              gp_feature_not_configured
 
@@ -216,8 +213,6 @@ Section: Class 22 - Data Exception
 2200N    E    ERRCODE_INVALID_XML_CONTENT                                    invalid_xml_content
 2200S    E    ERRCODE_INVALID_XML_COMMENT                                    invalid_xml_comment
 2200T    E    ERRCODE_INVALID_XML_PROCESSING_INSTRUCTION                     invalid_xml_processing_instruction
-# GPDB_91_MERGE_FIXME: Do we really need this code? Why ERROR_ prefix, instead of ERRCODE_ ?
-22013    E    ERROR_INVALID_WINDOW_FRAME_PARAMETER                           invalid_window_frame_parameter
 22M01    E    ERRCODE_NO_PARTITION_FOR_PARTITIONING_KEY                      no_partition_for_partitioning_key
 
 Section: Class 23 - Integrity Constraint Violation

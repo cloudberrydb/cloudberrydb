@@ -52,7 +52,7 @@ pg_start_backup(PG_FUNCTION_ARGS)
 	char		startxlogstr[MAXFNAMELEN];
 
 	ereport(NOTICE,
-			(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			 errmsg("pg_start_backup() is not supported in Greenplum Database"),
 			 errhint("Contact support to get more information and resolve the issue")));
 
@@ -83,7 +83,7 @@ pg_stop_backup(PG_FUNCTION_ARGS)
 	char		stopxlogstr[MAXFNAMELEN];
 
 	ereport(NOTICE,
-			(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			 errmsg("pg_stop_backup() is not supported in Greenplum Database"),
 			 errhint("Contact support to get more information and resolve the issue")));
 

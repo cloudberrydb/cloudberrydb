@@ -1596,7 +1596,7 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 				 CdbPathLocus_IsPartitioned(projectedlocus))
 			CdbPathLocus_MakeStrewn(&pathnode->locus);
 		else
-			ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+			ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							errmsg_internal("cannot append paths with incompatible distribution")));
 
 		pathnode->sameslice_relids = bms_union(pathnode->sameslice_relids, subpath->sameslice_relids);

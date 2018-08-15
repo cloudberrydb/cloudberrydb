@@ -943,7 +943,7 @@ DoCopy(const CopyStmt *stmt, const char *queryString)
 
 	if (stmt->sreh && !is_from)
 		ereport(ERROR,
-				(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("COPY single row error handling only available using COPY FROM")));
 
 /* GPDB_91_MERGE_FIXME: this should probably be done earlier, e.g. in parser */
@@ -1028,7 +1028,7 @@ DoCopy(const CopyStmt *stmt, const char *queryString)
 
 		if (stmt->sreh && Gp_role != GP_ROLE_EXECUTE && !rel->rd_cdbpolicy)
 			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("COPY single row error handling only available for distributed user tables")));
 
 		/* check read-only transaction */
