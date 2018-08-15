@@ -688,10 +688,6 @@ set_append_rel_size(PlannerInfo *root, RelOptInfo *rel,
 
 		if (childrel->rows > 0)
 		{
-			/*
-			 * GPDB_92_MERGE_FIXME:
-			 * The path for childrel hasn't been created by here.
-			 */
 			parent_rows += childrel->rows;
 			parent_size += childrel->width * childrel->rows;
 
