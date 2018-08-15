@@ -91,3 +91,10 @@ select * from returning_parttab;
        2 |      19 | multi2 3
 (11 rows)
 
+--
+-- DELETE RETURNING is currently not supported on AO tables.
+--
+CREATE TEMP TABLE returning_aotab (id int4) WITH (appendonly=true);
+INSERT INTO returning_aotab VALUES (1);
+DELETE FROM returning_aotab RETURNING *;
+ERROR:  DELETE RETURNING is not supported on appendonly tables

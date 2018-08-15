@@ -804,8 +804,6 @@ ldelete:;
 		HeapTupleData deltuple;
 		Buffer		delbuffer;
 
-		// GPDB_91_MERGE_FIXME: What if it's an AO table?
-
 		if (oldtuple != NULL)
 		{
 			deltuple.t_data = oldtuple;
@@ -815,6 +813,19 @@ ldelete:;
 		}
 		else
 		{
+			/*
+			 * If it's an AO table, we cannot fetch the old tuple. Punt.
+			 *
+			 * We could use the same AO fetcher mechanism that we use for
+			 * (bitmap) index scans on AO tables, but that only works if
+			 * the AO table has a block directory, which it might not have,
+			 * if there are no indexes on it.
+			 */
+			if (!RelationIsHeap(resultRelationDesc))
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("DELETE RETURNING is not supported on appendonly tables")));
+
 			deltuple.t_self = *tupleid;
 			if (!heap_fetch(resultRelationDesc, SnapshotAny,
 							&deltuple, &delbuffer, false, NULL))

@@ -40,3 +40,10 @@ delete from returning_parttab where partkey = 14 returning *;
 
 -- Check table contents, to be sure that all the commands did what they claimed.
 select * from returning_parttab;
+
+--
+-- DELETE RETURNING is currently not supported on AO tables.
+--
+CREATE TEMP TABLE returning_aotab (id int4) WITH (appendonly=true);
+INSERT INTO returning_aotab VALUES (1);
+DELETE FROM returning_aotab RETURNING *;
