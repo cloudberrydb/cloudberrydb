@@ -169,7 +169,15 @@ adjust_setop_arguments(PlannerInfo *root, List *planlist, GpSetOpType setop_type
 						break;
 
 					case CdbLocusType_SingleQE:
-						Assert(subplanflow->flotype == FLOW_SINGLETON && subplanflow->segindex == 0);
+						Assert(subplanflow->flotype == FLOW_SINGLETON);
+
+						/*
+						 * The input was focused on a single QE, but we need it in the QD.
+						 * It's bit silly to add a Motion to just move the whole result from
+						 * single QE to QD, it would be better to produce the result in the
+						 * QD in the first place, and avoid the Motion. But it's too late
+						 * to modify the subplan.
+						 */
 						adjusted_plan = (Plan *) make_motion_gather_to_QD(root, subplan, NULL);
 						break;
 
@@ -328,7 +336,7 @@ make_motion_gather(PlannerInfo *root, Plan *subplan, int segindex, List *sortPat
 
 	Assert(subplan->flow != NULL);
 	Assert(subplan->flow->flotype == FLOW_PARTITIONED ||
-		   (subplan->flow->flotype == FLOW_SINGLETON && subplan->flow->segindex == 0));
+		   subplan->flow->flotype == FLOW_SINGLETON);
 
 	if (sortPathKeys)
 	{
