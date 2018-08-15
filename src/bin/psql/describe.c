@@ -22,8 +22,7 @@
 #include "settings.h"
 #include "variables.h"
 
-
-#define SYM_POLICYTYPE_REPLICATED 'r'
+#include "catalog/gp_policy.h"
 
 static bool describeOneTableDetails(const char *schemaname,
 						const char *relationname,
@@ -2966,11 +2965,22 @@ add_distributed_by_footer(printTableContent *const cont, const char *oid)
 	initPQExpBuffer(&buf);
 	initPQExpBuffer(&tempbuf);
 
-	printfPQExpBuffer(&tempbuf,
-			 "SELECT attrnums, policytype \n"
-					  "FROM pg_catalog.gp_distribution_policy t\n"
-					  "WHERE localoid = '%s' ",
-					  oid);
+	if (isGPDB6000OrLater())
+	{
+		printfPQExpBuffer(&tempbuf,
+						  "SELECT attrnums, policytype \n"
+						  "FROM pg_catalog.gp_distribution_policy t\n"
+						  "WHERE localoid = '%s'",
+						  oid);
+	}
+	else
+	{
+		printfPQExpBuffer(&tempbuf,
+						  "SELECT attrnums, '%c' as policytype \n"
+						  "FROM pg_catalog.gp_distribution_policy t\n"
+						  "WHERE localoid = '%s'",
+						  SYM_POLICYTYPE_PARTITIONED, oid);
+	}
 
 	result1 = PSQLexec(tempbuf.data, false);
 	if (!result1)
