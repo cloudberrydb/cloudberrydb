@@ -330,6 +330,7 @@ Follow the steps below to open a PR:
 1. Fork the project’s repository
 1. Create your own feature branch (e.g. `git checkout -b better_orca`) and make changes on this branch.
     * Follow the previous sections on this page to setup and build in your environment.
+1. Follow the naming and formatting style guide described [here](StyleGuide.md).
 1. Run through all the [tests](#test) in your feature branch and ensure they are successful.
     * Follow the [Add tests](#addtest) section to add new tests.
 1. Push your local branch to your fork (e.g. `git push origin better_orca`) and [submit a pull request](https://help.github.com/articles/creating-a-pull-request)
