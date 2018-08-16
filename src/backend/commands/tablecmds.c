@@ -3939,6 +3939,7 @@ ATController(Relation rel, List *cmds, bool recurse, LOCKMODE lockmode)
 	List	   *wqueue = NIL;
 	ListCell   *lcmd;
 	bool is_partition = false;
+	bool is_external = RelationIsExternal(rel);
 
 	cdb_sync_oid_to_segments();
 
@@ -4043,7 +4044,7 @@ ATController(Relation rel, List *cmds, bool recurse, LOCKMODE lockmode)
 	 * ATRewriteTables() and ATAddToastIfNeeded(), we keep it that way to align
 	 * with upstream.
 	 */
-	if (!RelationIsExternal(rel))
+	if (!is_external)
 	{
 		ATRewriteTables(&wqueue, lockmode);
 
