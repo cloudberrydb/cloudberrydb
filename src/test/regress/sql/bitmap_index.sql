@@ -235,3 +235,18 @@ select * from oversize_test where c1 < 'z';
 drop index oversize_test_idx;
 insert into oversize_test values (array_to_string(array(select generate_series(1, 10000)), '123456789'));
 CREATE INDEX oversize_test_idx ON oversize_test USING BITMAP (c1);
+
+
+--
+-- Test unlogged table
+--
+set enable_seqscan=off;
+set enable_indexscan=on;
+set optimizer_enable_bitmapscan=on;
+create unlogged table unlogged_test(c1 int); 
+insert into unlogged_test select * from generate_series(1,1000);
+CREATE INDEX unlogged_test_idx ON unlogged_test USING BITMAP (c1);
+analyze unlogged_test;
+explain select * from unlogged_test where c1 = 100;
+select * from unlogged_test where c1 = 100;
+drop table unlogged_test;
