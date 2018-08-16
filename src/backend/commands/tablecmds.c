@@ -3939,7 +3939,6 @@ ATController(Relation rel, List *cmds, bool recurse, LOCKMODE lockmode)
 	List	   *wqueue = NIL;
 	ListCell   *lcmd;
 	bool is_partition = false;
-	bool is_data_remote = RelationIsExternal(rel);
 
 	cdb_sync_oid_to_segments();
 
@@ -4039,10 +4038,12 @@ ATController(Relation rel, List *cmds, bool recurse, LOCKMODE lockmode)
 	/* 
 	 * Phase 3: scan/rewrite tables as needed. If the data is in an external
 	 * table, no need to rewrite it or to add toast.
-	 * GPDB_91_MERGE_FIXME: How do we handle FOREIGN TABLEs? Should handle
-	 * external tables the same..
+	 *
+	 * We should skip this for foreign table as well, but it's handled inside of
+	 * ATRewriteTables() and ATAddToastIfNeeded(), we keep it that way to align
+	 * with upstream.
 	 */
-	if (!is_data_remote)
+	if (!RelationIsExternal(rel))
 	{
 		ATRewriteTables(&wqueue, lockmode);
 
