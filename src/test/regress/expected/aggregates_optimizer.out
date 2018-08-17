@@ -519,8 +519,8 @@ explain (costs off)
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
-               ->  Table Scan on tenk1
-                     Filter: unique1 > 42
+               ->  Index Scan using tenk1_unique1 on tenk1
+                     Index Cond: unique1 > 42
  Optimizer: PQO version 2.55.21
 (6 rows)
 
