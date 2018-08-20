@@ -5025,10 +5025,8 @@ retry:
 							(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
 							 errmsg("unexpected EOF in COPY data")));
 			}
-			else
+			else if (attr[attnum - 1]->attlen == -1)
 			{
-				Assert (attr[attnum - 1]->attlen == -1);
-
 				/* For simplicity, varlen's are always transmitted in "long" format */
 				if (CopyGetData(cstate, &len, sizeof(len)) != sizeof(len))
 					ereport(ERROR,
@@ -5042,6 +5040,29 @@ retry:
 					ereport(ERROR,
 							(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
 							 errmsg("unexpected EOF in COPY data")));
+			}
+			else if (attr[attnum - 1]->attlen == -2)
+			{
+				/*
+				 * Like the varlen case above, cstrings are sent with a length
+				 * prefix and no terminator, so we have to NULL-terminate in
+				 * memory after reading them in.
+				 */
+				if (CopyGetData(cstate, &len, sizeof(len)) != sizeof(len))
+					ereport(ERROR,
+							(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
+							 errmsg("unexpected EOF in COPY data")));
+				p = palloc(len + 1);
+				if (CopyGetData(cstate, p, len) != len)
+					ereport(ERROR,
+							(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
+							 errmsg("unexpected EOF in COPY data")));
+				p[len] = '\0';
+			}
+			else
+			{
+				elog(ERROR, "attribute %d has invalid length %d",
+					 attnum, attr[attnum - 1]->attlen);
 			}
 			value = PointerGetDatum(p);
 		}
@@ -5165,7 +5186,7 @@ SendCopyFromForwardedTuple(CopyState cstate,
 				{
 					appendBinaryStringInfo(msgbuf, DatumGetPointer(values[i]), attr[i]->attlen);
 				}
-				else
+				else if (attr[attnum - 1]->attlen == -1)
 				{
 					int32		len;
 					char	   *ptr;
@@ -5176,7 +5197,6 @@ SendCopyFromForwardedTuple(CopyState cstate,
 					 * in the master, and the default value comes from another table as a toast
 					 * pointer.
 					 */
-					Assert (attr[attnum - 1]->attlen == -1);
 
 					/* For simplicity, varlen's are always transmitted in "long" format */
 					len = VARSIZE(values[i]);
@@ -5184,6 +5204,36 @@ SendCopyFromForwardedTuple(CopyState cstate,
 
 					appendBinaryStringInfo(msgbuf, &len, sizeof(int32));
 					appendBinaryStringInfo(msgbuf, ptr, len - VARHDRSZ);
+				}
+				else if (attr[attnum - 1]->attlen == -2)
+				{
+					/*
+					 * These attrs are NULL-terminated in memory, but we send
+					 * them length-prefixed (like the varlen case above) so that
+					 * the receiver can preallocate a data buffer.
+					 */
+					int32		len;
+					size_t		slen;
+					char	   *ptr;
+
+					ptr = DatumGetPointer(values[i]);
+					slen = strlen(ptr);
+
+					if (slen > PG_INT32_MAX)
+					{
+						elog(ERROR, "attribute %d is too long (%lld bytes)",
+							 attnum, (long long) slen);
+					}
+
+					len = (int32) slen;
+
+					appendBinaryStringInfo(msgbuf, &len, sizeof(len));
+					appendBinaryStringInfo(msgbuf, ptr, len);
+				}
+				else
+				{
+					elog(ERROR, "attribute %d has invalid length %d",
+						 attnum, attr[attnum - 1]->attlen);
 				}
 			}
 

@@ -178,6 +178,16 @@ COPY testnull FROM stdin WITH NULL AS E'\\0';
 
 SELECT * FROM testnull;
 
+-- "unknown" types can be dumped and restored: these attributes are
+-- NULL-terminated in memory (attlen == -2), so the COPY code needs to handle
+-- them explicitly.
+CREATE TEMP TABLE type_unknown ( a unknown );
+
+COPY type_unknown FROM stdin;
+unknown
+\.
+
+COPY type_unknown TO stdout;
 
 DROP TABLE x, y;
 DROP FUNCTION fn_x_before();
