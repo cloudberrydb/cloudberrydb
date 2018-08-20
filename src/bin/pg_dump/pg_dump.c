@@ -13105,13 +13105,13 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 				PQExpBuffer 	partquery = createPQExpBuffer();
 				PGresult	   *partres;
 
-				appendPQExpBuffer(partquery, "SELECT c.oid "
-											 "FROM pg_catalog.pg_class pp "
-											 "     JOIN pg_catalog.pg_partitions p ON ( "
-											 "       pp.relname = p.tablename AND "
-											 "       pp.oid = '%u'::pg_catalog.oid) "
-											 "     JOIN pg_catalog.pg_class c ON ( "
-											 "       p.partitiontablename = c.relname)",
+				appendPQExpBuffer(partquery, "SELECT DISTINCT(child.oid) "
+											 "FROM pg_catalog.pg_partition part, "
+											 "     pg_catalog.pg_partition_rule rule, "
+											 "     pg_catalog.pg_class child "
+											 "WHERE part.parrelid = '%u'::pg_catalog.oid "
+											 "  AND rule.paroid = part.oid "
+											 "  AND child.oid = rule.parchildrelid",
 											 tbinfo->dobj.catId.oid);
 				partres = ExecuteSqlQuery(fout, partquery->data, PGRES_TUPLES_OK);
 
