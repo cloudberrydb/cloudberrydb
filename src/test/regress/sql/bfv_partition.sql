@@ -871,7 +871,7 @@ CREATE TABLE LINEITEM (
                 )
 partition by range (l_discount) 
 subpartition by range (l_quantity) 
-,subpartition by range (l_tax) subpartition template (start('0') end('1.08') every 6 (1))
+subpartition by range (l_tax) subpartition template (start('0') end('1.08') every 6 (1))
 ,subpartition by range (l_receiptdate) subpartition template (subpartition sp1 start('1992-01-03') end('1999-01-01'), subpartition sp2 start('1993-01-03') end ('1997-01-01'))
 (
 partition p1 start('0') end('1.1') 

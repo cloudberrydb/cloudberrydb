@@ -64,7 +64,7 @@ create table mpp3137_region
                     )
 partition by list (r_regionkey)
 subpartition by list (r_name)
-,subpartition by list (r_comment) subpartition template (
+subpartition by list (r_comment) subpartition template (
         values('ges. thinly even pinto beans ca'),
         values('uickly special accounts cajole carefully blithely close requests. carefully final asymptotes haggle furiousl','lar deposits. blithely final packages cajole. regular waters are final requests. regular accounts are according to','hs use ironic, even requests. s'),
         values('ly final courts cajole furiously final excuse'),
@@ -144,7 +144,7 @@ PS_COMMENT VARCHAR(199)
 )
 partition by range (ps_suppkey)
 subpartition by range (ps_partkey)
-,subpartition by range (ps_supplycost) subpartition template (start('1') end('1001') every(500))
+subpartition by range (ps_supplycost) subpartition template (start('1') end('1001') every(500))
 (
 partition p1 start('1') end('10001') every(5000)
 (subpartition sp1 start('1') end('200001') every(66666)
@@ -227,7 +227,7 @@ partition by range (c_custkey)
 subpartition by range (c_acctbal) 
 subpartition template (start('-999.99') end('10000.99') every(11000)
 )
-,subpartition by range (c_nationkey) 
+subpartition by range (c_nationkey) 
 subpartition template (start('0') end('25') every(5))
 (
 partition p1 start('1') end('150001') every(50000)
@@ -392,30 +392,30 @@ drop table mpp3265;
 CREATE TABLE MULTI_PART2(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 distributed by (a)
 partition by range (a)
-subpartition by range (b) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (c) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (d) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (e) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (f) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (g) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (h) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (i) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (j) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (k) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (l) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (m) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (n) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (o) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (p) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (q) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (r) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (s) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (t) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (u) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (v) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (w) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (x) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (y) subpartition template ( start (1) end (2) every (1)),
+subpartition by range (b) subpartition template ( start (1) end (2) every (1))
+subpartition by range (c) subpartition template ( start (1) end (2) every (1))
+subpartition by range (d) subpartition template ( start (1) end (2) every (1))
+subpartition by range (e) subpartition template ( start (1) end (2) every (1))
+subpartition by range (f) subpartition template ( start (1) end (2) every (1))
+subpartition by range (g) subpartition template ( start (1) end (2) every (1))
+subpartition by range (h) subpartition template ( start (1) end (2) every (1))
+subpartition by range (i) subpartition template ( start (1) end (2) every (1))
+subpartition by range (j) subpartition template ( start (1) end (2) every (1))
+subpartition by range (k) subpartition template ( start (1) end (2) every (1))
+subpartition by range (l) subpartition template ( start (1) end (2) every (1))
+subpartition by range (m) subpartition template ( start (1) end (2) every (1))
+subpartition by range (n) subpartition template ( start (1) end (2) every (1))
+subpartition by range (o) subpartition template ( start (1) end (2) every (1))
+subpartition by range (p) subpartition template ( start (1) end (2) every (1))
+subpartition by range (q) subpartition template ( start (1) end (2) every (1))
+subpartition by range (r) subpartition template ( start (1) end (2) every (1))
+subpartition by range (s) subpartition template ( start (1) end (2) every (1))
+subpartition by range (t) subpartition template ( start (1) end (2) every (1))
+subpartition by range (u) subpartition template ( start (1) end (2) every (1))
+subpartition by range (v) subpartition template ( start (1) end (2) every (1))
+subpartition by range (w) subpartition template ( start (1) end (2) every (1))
+subpartition by range (x) subpartition template ( start (1) end (2) every (1))
+subpartition by range (y) subpartition template ( start (1) end (2) every (1))
 subpartition by range (z) subpartition template ( start (1) end (2) every (1))
 ( start (1) end (2) every (1));
 alter table multi_part2 rename to multi_part2_0000000;
@@ -2936,3 +2936,19 @@ partition by range (f1)
   default partition default_part
 );
 ERROR:  cannot create partition inherited from temporary relation
+-- MPP-26829
+-- negative test for when SUBPARTITION TEMPLATE shows up before any SUBPARTITION BY
+CREATE TABLE MPP_26829
+(a integer, b integer NOT NULL, c integer)
+DISTRIBUTED BY (a)
+PARTITION BY RANGE (b)
+SUBPARTITION TEMPLATE (START (1) END (12) EVERY (1), DEFAULT SUBPARTITION other_months )
+SUBPARTITION BY LIST (c)
+SUBPARTITION TEMPLATE (
+SUBPARTITION p027 VALUES ('027'),
+SUBPARTITION p141 VALUES ('141'),
+SUBPARTITION p037 VALUES ('037'));
+ERROR:  syntax error at or near "TEMPLATE"
+LINE 5: SUBPARTITION TEMPLATE (START (1) END (12) EVERY (1), DEFAULT...
+                     ^
+-- MPP-26829

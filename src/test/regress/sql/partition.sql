@@ -652,7 +652,7 @@ PS_COMMENT VARCHAR(199)
 )
 partition by range (ps_suppkey)
 subpartition by range (ps_partkey)
-,subpartition by range (ps_supplycost) subpartition template (start('1')
+subpartition by range (ps_supplycost) subpartition template (start('1')
 end('1001') every(500))
 (
 partition p1 start('1') end('10001') every(5000)
@@ -734,7 +734,7 @@ PS_COMMENT VARCHAR(199)
 )
 partition by range (ps_suppkey)
 subpartition by range (ps_partkey)
-,subpartition by range (ps_supplycost) subpartition template (start('1')
+subpartition by range (ps_supplycost) subpartition template (start('1')
 end('1001') every(500))
 (
 partition p1 start('1') end('10001') every(5000)
@@ -762,7 +762,7 @@ subpartition jan02 start (date '2002-01-01'),
 subpartition jan03 start (date '2003-01-01'),
 subpartition jan04 start (date '2004-01-01'),
 subpartition jan05 start (date '2005-01-01')
-),
+)
 subpartition by list (usstate)
 subpartition template (
 subpartition mass values ('MA'),
@@ -780,7 +780,7 @@ year date, gender char(1),
 usstate char(2))
 DISTRIBUTED BY (id, gender, year, usstate)
 partition by list (gender)
-subpartition by range (year),
+subpartition by range (year)
 subpartition by list (usstate)
 (
   partition boys values ('M') 
@@ -815,8 +815,8 @@ subpartition mass values ('MA'),
 subpartition cali values ('CA'),
 subpartition ohio values ('OH')
 )
-)
-,
+),
+
   partition girls values ('F')
 (
 subpartition jan01 start (date '2001-01-01')
@@ -1654,7 +1654,7 @@ partition a start('a') end('f'),
 partition b start('e') end('g')
 );
 
--- MPP-5159
+-- MPP-5159 MPP-26829
 -- Should fail -- missing partition spec and subpartition template follows the
 -- partition declaration.
 CREATE TABLE list_sales (trans_id int, date date, amount
@@ -1667,7 +1667,7 @@ SUBPARTITION TEMPLATE
   SUBPARTITION europe VALUES ('europe')
 );
 
--- MPP-5185
+-- MPP-5185 MPP-26829
 -- Should work
 CREATE TABLE rank_settemp (id int, rank int, year date, gender
 char(1)) DISTRIBUTED BY (id, gender, year)
@@ -1829,11 +1829,11 @@ partition by range (b)
 subpartition by list (a) 
 subpartition template ( 
 subpartition l1 values (1,2,3,4,5), 
-subpartition l2 values (6,7,8,9,10) ),
+subpartition l2 values (6,7,8,9,10) )
 subpartition by list (e) 
 subpartition template ( 
 subpartition ll1 values ('Engineering'), 
-subpartition ll2 values ('QA') ),
+subpartition ll2 values ('QA') )
 subpartition by list (c) 
 subpartition template ( 
 subpartition lll1 values ('M'), 
@@ -2412,11 +2412,11 @@ partition by range (b)
 subpartition by list (a)
 subpartition template (
 subpartition l1 values (1,2,3,4,5),
-subpartition l2 values (6,7,8,9,10) ),
+subpartition l2 values (6,7,8,9,10) )
 subpartition by list (e)
 subpartition template (
 subpartition ll1 values ('Engineering'),
-subpartition ll2 values ('QA') ),
+subpartition ll2 values ('QA') )
 subpartition by list (c)
 subpartition template (
 subpartition lll1 values ('M'),

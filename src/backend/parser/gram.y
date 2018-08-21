@@ -508,9 +508,9 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <str>		OptTableSpace OptConsTableSpace OptTableSpaceOwner
 %type <node>    DistributedBy OptDistributedBy 
 %type <ival>	TabPartitionByType OptTabPartitionRangeInclusive
-%type <node>	OptTabPartitionBy TabSubPartitionBy 
+%type <node>	OptTabPartitionBy TabSubPartitionBy TabSubPartition
 				tab_part_val tab_part_val_no_paran
-%type <node>	list_subparts opt_list_subparts
+%type <node>	opt_list_subparts
 %type <list>	opt_check_option
 %type <node>	OptTabPartitionSpec OptTabSubPartitionSpec TabSubPartitionTemplate      /* PartitionSpec */
 %type <list>	TabPartitionElemList TabSubPartitionElemList /* list of PartitionElem */
@@ -526,7 +526,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <str> 	TabPartitionNameDecl TabSubPartitionNameDecl
 				TabPartitionDefaultNameDecl TabSubPartitionDefaultNameDecl 
 %type <node>	opt_table_partition_split_into
-%type <boolean>	opt_comma
 %type <node> 	OptTabPartitionStorageAttr
 %type <node>	opt_time
 
@@ -4945,8 +4944,8 @@ OptTabPartitionBy:
 		;
 
 TabSubPartitionTemplate:
-			SUBPARTITION TEMPLATE 
-            '(' TabSubPartitionElemList ')' 
+			SUBPARTITION TEMPLATE
+			'(' TabSubPartitionElemList ')'
 				{
 					PartitionSpec *n = makeNode(PartitionSpec); 
 					n->partElem  = $4;
@@ -4981,57 +4980,49 @@ TabSubPartitionTemplate:
 				}
 		;
 
-opt_list_subparts: list_subparts { $$ = $1; }
+opt_list_subparts: TabSubPartition { $$ = $1; }
 			| /*EMPTY*/ { $$ = NULL; }
 		;
 
-opt_comma: ',' { $$ = true; }
-			| /*EMPTY*/ { $$ = false; }
-		;
 
-list_subparts: TabSubPartitionBy { $$ = $1; }
-			| list_subparts opt_comma TabSubPartitionBy
+TabSubPartitionBy: SUBPARTITION BY
+			TabPartitionByType '(' columnList ')'
+				{
+					PartitionBy *n = makeNode(PartitionBy);
+					n->partType = $3;
+					n->keys = $5;
+					n->subPart  = NULL;
+					n->partSpec = NULL;
+					n->partDepth = 0;
+					n->partQuiet = PART_VERBO_NODISTRO;
+					n->location  = @3;
+					n->partDefault = NULL;
+					$$ = (Node *)n;
+				}
+			;
+
+TabSubPartition:
+			TabSubPartitionBy TabSubPartitionTemplate
 				{
 					PartitionBy *pby = (PartitionBy *)$1;
+
+					((PartitionBy *)pby)->partSpec = $2;
+
 					$$ = $1;
-
-					while (pby->subPart)
-						pby = (PartitionBy *)pby->subPart;
-
-					if (IsA($3, PartitionSpec))
-					{
-						Assert(((PartitionSpec *)$3)->istemplate);
-						Assert(IsA(pby, PartitionBy));
-
-						/* find deepesh subpart and add it there */
-						if (((PartitionBy *)pby)->partSpec != NULL)
-							parser_yyerror("syntax error");
-
-						((PartitionBy *)pby)->partSpec = $3;
-					}
-					else
-						((PartitionBy *)pby)->subPart = $3;
 				}
-		;
-
-TabSubPartitionBy:
-			SUBPARTITION BY 
-            TabPartitionByType '(' columnList ')'
+			| TabSubPartitionBy { $$ = $1; }
+			|  TabSubPartitionBy TabSubPartition
 				{
-                        PartitionBy *n = makeNode(PartitionBy); 
-                        n->partType = $3;
-                        n->keys     = $5;
-                        n->subPart  = NULL;
-                        n->partSpec = NULL;
-                        n->partDepth = 0;
-						n->partQuiet = PART_VERBO_NODISTRO;
-                        n->location  = @3;
-                        n->partDefault = NULL;
-                        $$ = (Node *)n;
+					PartitionBy *pby = (PartitionBy *)$1;
+					pby->subPart = $2;
+					$$ = (Node *)pby;
 				}
-			| TabSubPartitionTemplate
+			| TabSubPartitionBy TabSubPartitionTemplate TabSubPartition
 				{
-					$$ = $1;
+					PartitionBy *pby = (PartitionBy *)$1;
+					pby->partSpec = $2;
+					pby->subPart = $3;
+					$$ = (Node *)pby;
 				}
 		;
 /* END PARTITION RULES */
