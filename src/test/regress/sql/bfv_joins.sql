@@ -213,7 +213,7 @@ ANALYZE member_group;
 ANALYZE region;
 ANALYZE member_subgroup;
 --end_ignore
-EXPLAIN SELECT member.member_id
+EXPLAIN(COSTS OFF) SELECT member.member_id
 FROM member
 INNER JOIN member_group
 ON member.group_id = member_group.group_id
