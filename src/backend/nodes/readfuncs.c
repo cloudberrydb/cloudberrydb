@@ -2608,6 +2608,7 @@ _readCreateOpClassItem(void)
 	READ_NODE_FIELD(name);
 	READ_NODE_FIELD(args);
 	READ_INT_FIELD(number);
+	READ_NODE_FIELD(order_family);
 	READ_NODE_FIELD(class_args);
 	READ_NODE_FIELD(storedtype);
 
