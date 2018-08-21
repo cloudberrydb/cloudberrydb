@@ -509,12 +509,12 @@ rel_has_appendonly_partition(Oid relid)
 	{
 		Relation	rel = heap_open(lfirst_oid(lc), NoLock);
 
-		heap_close(rel, NoLock);
-
 		if (RelationIsAppendOptimized(rel))
 		{
+			heap_close(rel, NoLock);
 			return true;
 		}
+		heap_close(rel, NoLock);
 	}
 
 	return false;
