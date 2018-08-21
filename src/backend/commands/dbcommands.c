@@ -2095,18 +2095,10 @@ get_database_hash_method(Oid dbid)
 	int         result;
 
 	dbtuple = SearchSysCache1(DATABASEOID, ObjectIdGetDatum(dbid));
-	if (HeapTupleIsValid(dbtuple))
-	{
-		result = ((Form_pg_database) GETSTRUCT(dbtuple))->hashmethod;
-		ReleaseSysCache(dbtuple);
-	}
-	else
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_DATABASE),
-				 errmsg("database id(\"%d\) does not exist",
-						dbid)));
-	}
+	if (!HeapTupleIsValid(dbtuple))
+		elog(ERROR, "cache lookup failed for database %u", dbid);
+	result = ((Form_pg_database) GETSTRUCT(dbtuple))->hashmethod;
+	ReleaseSysCache(dbtuple);
 
 	return result;
 }
