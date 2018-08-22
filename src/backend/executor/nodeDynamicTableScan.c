@@ -319,13 +319,3 @@ ExecDynamicTableRestrPos(DynamicTableScanState *node)
 {
 	MarkRestrNotAllowed((ScanState *)node);
 }
-
-/*
- * XXX: We have backported the PostgreSQL patch that made these functions
- * obsolete. The returned value isn't used for anything, so just return 0.
- */
-int
-ExecCountSlotsDynamicTableScan(DynamicTableScan *node)
-{
-	return 0;
-}

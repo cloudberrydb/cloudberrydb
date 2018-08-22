@@ -572,8 +572,6 @@ ExecInitBitmapAppendOnlyScan(BitmapAppendOnlyScan *node, EState *estate, int efl
 		ExecInitExpr((Expr *) node->bitmapqualorig,
 					 (PlanState *) scanstate);
 
-#define BITMAPAPPENDONLYSCAN_NSLOTS 2
-
 	/*
 	 * tuple table initialization
 	 */
