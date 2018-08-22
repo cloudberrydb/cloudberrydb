@@ -33,7 +33,7 @@ AlterTableCreateAoBlkdirTable(Oid relOid, bool is_part_child, bool is_part_paren
 	int16		coloptions[3];
 	List	   *indexColNames;
 
-	SIMPLE_FAULT_INJECTOR(BeforeAquireLockDuringCreateAoBlkdirTable);
+	SIMPLE_FAULT_INJECTOR(BeforeAcquireLockDuringCreateAoBlkdirTable);
 
 	/*
 	 * Grab an exclusive lock on the target table, which we will NOT release
