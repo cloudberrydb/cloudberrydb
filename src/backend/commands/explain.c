@@ -2227,16 +2227,20 @@ show_windowagg_keys(WindowAggState *waggstate, List *ancestors, ExplainState *es
 {
 	WindowAgg *window = (WindowAgg *) waggstate->ss.ps.plan;
 
+	/* The key columns refer to the tlist of the child plan */
+	ancestors = lcons(window, ancestors);
 	if ( window->partNumCols > 0 )
 	{
-		show_sort_group_keys((PlanState *) waggstate, "Partition By",
+		show_sort_group_keys((PlanState *) outerPlanState(waggstate), "Partition By",
 							 window->partNumCols, window->partColIdx,
 							 ancestors, es);
 	}
 
-	show_sort_group_keys((PlanState *) waggstate, "Order By",
+	show_sort_group_keys((PlanState *) outerPlanState(waggstate), "Order By",
 						 window->ordNumCols, window->ordColIdx,
 						 ancestors, es);
+	ancestors = list_delete_first(ancestors);
+
 	/* XXX don't show framing for now */
 }
 
