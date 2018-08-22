@@ -894,7 +894,7 @@ ExecProcNode(PlanState *node)
 {
 	TupleTableSlot *result = NULL;
 
-	START_MEMORY_ACCOUNT(node->plan->memoryAccountId);
+	START_MEMORY_ACCOUNT(node->memoryAccountId);
 	{
 
 	CHECK_FOR_INTERRUPTS();
@@ -1190,7 +1190,7 @@ MultiExecProcNode(PlanState *node)
 
 	Assert(NULL != node->plan);
 
-	START_MEMORY_ACCOUNT(node->plan->memoryAccountId);
+	START_MEMORY_ACCOUNT(node->memoryAccountId);
 {
 	TRACE_POSTGRESQL_EXECPROCNODE_ENTER(GpIdentity.segindex, currentSliceId, nodeTag(node), node->plan->plan_node_id);
 

@@ -138,9 +138,6 @@ typedef struct PlannedStmt
 	/* What is the memory reserved for this query's execution? */
 	uint64		query_mem;
 
-	/* The overall memory consumption account (i.e., outside of an operator) */
-	MemoryAccountIdType memoryAccountId;
-
 	/*
 	 * GPDB: Used to keep target information for CTAS and it is needed
 	 * to be dispatched to QEs.
@@ -273,9 +270,6 @@ typedef struct Plan
 	 * How much memory (in KB) should be used to execute this plan node?
 	 */
 	uint64 operatorMemKB;
-
-	/* MemoryAccount to use for recording the memory usage of different plan nodes. */
-	MemoryAccountIdType memoryAccountId;
 
 	/*
 	 * The parent motion node of a plan node.

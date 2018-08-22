@@ -1442,6 +1442,9 @@ typedef struct PlanState
 	gpmon_packet_t gpmon_pkt;
 
 	bool		fHadSentNodeStart;
+
+	/* MemoryAccount to use for recording the memory usage of different plan nodes. */
+	MemoryAccountIdType memoryAccountId;
 } PlanState;
 
 /* Gpperfmon helper functions defined in execGpmon.c */

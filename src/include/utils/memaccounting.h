@@ -194,21 +194,17 @@ extern MemoryAccountIdType ActiveMemoryAccountId;
  * that will not be executed in current slice
  */
 #define CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, planNode, NodeType) \
-		(MEMORY_OWNER_TYPE_Undefined != planNode->memoryAccountId) ?\
-			planNode->memoryAccountId : \
-			(isAlienPlanNode ? MEMORY_OWNER_TYPE_Exec_AlienShared : \
-				MemoryAccounting_CreateAccount(((Plan*)node)->operatorMemKB == 0 ? \
-				work_mem : ((Plan*)node)->operatorMemKB, MEMORY_OWNER_TYPE_Exec_##NodeType));
+		isAlienPlanNode ? MEMORY_OWNER_TYPE_Exec_AlienShared : \
+			MemoryAccounting_CreateAccount(((Plan*)node)->operatorMemKB == 0 ? \
+			work_mem : ((Plan*)node)->operatorMemKB, MEMORY_OWNER_TYPE_Exec_##NodeType);
 
 /*
  * SAVE_EXECUTOR_MEMORY_ACCOUNT saves an operator specific memory account
  * into the PlanState of that operator
  */
 #define SAVE_EXECUTOR_MEMORY_ACCOUNT(execState, curMemoryAccountId)\
-		Assert(MEMORY_OWNER_TYPE_Undefined == ((PlanState *)execState)->plan->memoryAccountId || \
-		MEMORY_OWNER_TYPE_Undefined == ((PlanState *)execState)->plan->memoryAccountId || \
-		curMemoryAccountId == ((PlanState *)execState)->plan->memoryAccountId);\
-		((PlanState *)execState)->plan->memoryAccountId = curMemoryAccountId;
+		Assert(MEMORY_OWNER_TYPE_Undefined == ((PlanState *)execState)->memoryAccountId); \
+		((PlanState *)execState)->memoryAccountId = curMemoryAccountId;
 
 extern MemoryAccountIdType
 MemoryAccounting_CreateAccount(long maxLimit, enum MemoryOwnerType ownerType);

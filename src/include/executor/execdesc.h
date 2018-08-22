@@ -264,6 +264,9 @@ typedef struct QueryDesc
 
 	/* This is always set NULL by the core system, but plugins can change it */
 	struct Instrumentation *totaltime;	/* total time spent in ExecutorRun */
+
+	/* The overall memory consumption account (i.e., outside of an operator) */
+	MemoryAccountIdType memoryAccountId;
 } QueryDesc;
 
 /* in pquery.c */

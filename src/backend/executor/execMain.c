@@ -263,15 +263,13 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	Assert(queryDesc != NULL);
 	Assert(queryDesc->estate == NULL);
 	Assert(queryDesc->plannedstmt != NULL);
+	Assert(queryDesc->memoryAccountId == MEMORY_OWNER_TYPE_Undefined);
 
 	PlannedStmt *plannedStmt = queryDesc->plannedstmt;
 
-	if (MEMORY_OWNER_TYPE_Undefined == plannedStmt->memoryAccountId)
-	{
-		plannedStmt->memoryAccountId = MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_EXECUTOR);
-	}
+	queryDesc->memoryAccountId = MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_EXECUTOR);
 
-	START_MEMORY_ACCOUNT(plannedStmt->memoryAccountId);
+	START_MEMORY_ACCOUNT(queryDesc->memoryAccountId);
 
 	Assert(plannedStmt->intoPolicy == NULL ||
 		GpPolicyIsPartitioned(plannedStmt->intoPolicy) ||
@@ -864,9 +862,9 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	Assert(estate != NULL);
 	Assert(!(estate->es_top_eflags & EXEC_FLAG_EXPLAIN_ONLY));
 
-	Assert(NULL != queryDesc->plannedstmt && MEMORY_OWNER_TYPE_Undefined != queryDesc->plannedstmt->memoryAccountId);
+	Assert(NULL != queryDesc->plannedstmt && MEMORY_OWNER_TYPE_Undefined != queryDesc->memoryAccountId);
 
-	START_MEMORY_ACCOUNT(queryDesc->plannedstmt->memoryAccountId);
+	START_MEMORY_ACCOUNT(queryDesc->memoryAccountId);
 
 	/*
 	 * Switch into per-query memory context
@@ -1148,9 +1146,9 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
 
 	Assert(estate != NULL);
 
-	Assert(NULL != queryDesc->plannedstmt && MEMORY_OWNER_TYPE_Undefined != queryDesc->plannedstmt->memoryAccountId);
+	Assert(NULL != queryDesc->plannedstmt && MEMORY_OWNER_TYPE_Undefined != queryDesc->memoryAccountId);
 
-	START_MEMORY_ACCOUNT(queryDesc->plannedstmt->memoryAccountId);
+	START_MEMORY_ACCOUNT(queryDesc->memoryAccountId);
 
 	if (DEBUG1 >= log_min_messages)
 	{
@@ -1313,9 +1311,9 @@ ExecutorRewind(QueryDesc *queryDesc)
 
 	Assert(estate != NULL);
 
-	Assert(NULL != queryDesc->plannedstmt && MEMORY_OWNER_TYPE_Undefined != queryDesc->plannedstmt->memoryAccountId);
+	Assert(NULL != queryDesc->plannedstmt && MEMORY_OWNER_TYPE_Undefined != queryDesc->memoryAccountId);
 
-	START_MEMORY_ACCOUNT(queryDesc->plannedstmt->memoryAccountId);
+	START_MEMORY_ACCOUNT(queryDesc->memoryAccountId);
 
 	/* It's probably not sensible to rescan updating queries */
 	Assert(queryDesc->operation == CMD_SELECT);
