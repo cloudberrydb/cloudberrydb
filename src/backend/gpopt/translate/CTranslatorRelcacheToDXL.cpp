@@ -1149,9 +1149,9 @@ CTranslatorRelcacheToDXL::RetrieveIndex
 		// extract the position of the key columns
 		index_key_cols_array = GPOS_NEW(mp) ULongPtrArray(mp);
 
-		for (ULONG ul = 0; ul < form_pg_index->indnatts; ul++)
+		for (int i = 0; i < form_pg_index->indnatts; i++)
 		{
-			INT attno = form_pg_index->indkey.values[ul];
+			INT attno = form_pg_index->indkey.values[i];
 			GPOS_ASSERT(0 != attno && "Index expressions not supported");
 
 			index_key_cols_array->Append(GPOS_NEW(mp) ULONG(GetAttributePosition(attno, attno_mapping)));
@@ -1306,9 +1306,9 @@ CTranslatorRelcacheToDXL::RetrievePartTableIndex
 	// extract the position of the key columns
 	ULongPtrArray *index_key_cols_array = GPOS_NEW(mp) ULongPtrArray(mp);
 
-	for (ULONG ul = 0; ul < index_info->nColumns; ul++)
+	for (int i = 0; i < index_info->nColumns; i++)
 	{
-		INT attno = index_info->indexKeys[ul];
+		INT attno = index_info->indexKeys[i];
 		GPOS_ASSERT(0 != attno && "Index expressions not supported");
 
 		index_key_cols_array->Append(GPOS_NEW(mp) ULONG(GetAttributePosition(attno, attno_mapping)));
