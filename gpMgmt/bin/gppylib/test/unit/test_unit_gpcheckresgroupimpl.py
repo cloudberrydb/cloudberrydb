@@ -243,10 +243,10 @@ class GpCheckResGroupImplCGroup(unittest.TestCase):
         if gpver.version >= [6, 0, 0]:
             with self.assertRaisesRegexp(AssertionError, "directory '.*/cpuset/gpdb/' permission denied: require permission 'rwx'"):
                 self.cgroup.validate_all()
-            # restore permission for the dir to be removed in tearDown()
-            os.chmod(os.path.join(self.cgroup_mntpnt, "cpuset", "gpdb"), 0700)
         else:
             self.cgroup.validate_all()
+        # restore permission for the dir to be removed in tearDown()
+        os.chmod(os.path.join(self.cgroup_mntpnt, "cpuset", "gpdb"), 0700)
 
     def test_when_cpuset_gpdb_cgroup_procs_missing(self):
         os.unlink(os.path.join(self.cgroup_mntpnt, "cpuset", "gpdb", "cgroup.procs"))
