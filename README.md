@@ -341,3 +341,8 @@ Note: All contributions must be sent using GitHub Pull Requests.
 **Your pull request is much more likely to be accepted if it is small and focused with a clear message that conveys the intent of your change.**
 
 Overall we follow GPDB's comprehensive contribution policy. Please refer to it [here](https://github.com/greenplum-db/gpdb#contributing) for details.
+
+### Bumping ORCA version
+
+Bump the `GPORCA_VERSION_MINOR` in `CMakeLists.txt` whenever your changes affect the ORCA functionality. `GPORCA_VERSION_PATCH` is bumped only in case where
+the changes do not affect ORCA functionality e.g. updating the `README.md`, adding a test case, fixing comments etc.
