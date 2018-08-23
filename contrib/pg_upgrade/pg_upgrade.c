@@ -156,6 +156,22 @@ main(int argc, char **argv)
 
 		stop_postmaster(false);
 	}
+	else
+	{
+		/*
+		 * In a segment, the data directory already contains all the objects,
+		 * because the segment is initialized by taking a physical copy of the
+		 * upgraded QD data directory. The auxiliary AO tables - containing
+		 * information about the segment files, are different in each server,
+		 * however. So we still need to restore those separately on each
+		 * server.
+		 */
+		start_postmaster(&new_cluster, true);
+
+		restore_aosegment_tables();
+
+		stop_postmaster(false);
+	}
 
 	/*
 	 * Most failures happen in create_new_objects(), which has completed at
@@ -569,8 +585,6 @@ create_new_objects(void)
 
 	end_progress_output();
 	check_ok();
-
-	restore_aosegment_tables();
 
 	/*
 	 * We don't have minmxids for databases or relations in pre-9.3
