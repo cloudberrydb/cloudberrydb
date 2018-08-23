@@ -68,14 +68,18 @@ jobs:
     params:
       path: orca_src
       status: pending
-  - task: build_and_test_release
-    file: orca_src/concourse/build_and_test_centos5_release.yml
+  - aggregate:
+    - task: build_and_test_release
+      file: orca_src/concourse/build_and_test_centos5_release.yml
+      timeout: 30m
+    - task: build_and_test_debug
+      file: orca_src/concourse/build_and_test_centos5_debug.yml
+      timeout: 30m
     on_failure: &pr_failure
       put: orca_pr
       params:
         path: orca_src
         status: failure
-    timeout: 30m
   - put: report_pr_success
     resource: orca_pr
     params:
