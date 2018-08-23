@@ -368,7 +368,6 @@ CheckIndexCompatible(Oid oldId,
 	return ret;
 }
 
-
 /*
  * DefineIndex
  *		Creates a new index.
@@ -488,11 +487,7 @@ DefineIndex(RangeVar *heapRelation,
 	 * index build; but for concurrent builds we allow INSERT/UPDATE/DELETE
 	 * (but not VACUUM).
 	 */
-	if (RangeVarIsAppendOptimizedTable(heapRelation))
-		heap_lockmode = ShareRowExclusiveLock;
-	else
-		heap_lockmode = concurrent ? ShareUpdateExclusiveLock : ShareLock;
-
+	heap_lockmode = concurrent ? ShareUpdateExclusiveLock : ShareLock;
 	rel = heap_openrv(heapRelation, heap_lockmode);
 
 	relationId = RelationGetRelid(rel);

@@ -21,7 +21,6 @@
 #include "catalog/aocatalog.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
-#include "utils/faultinjector.h"
 
 void
 AlterTableCreateAoBlkdirTable(Oid relOid, bool is_part_child, bool is_part_parent)
@@ -32,8 +31,6 @@ AlterTableCreateAoBlkdirTable(Oid relOid, bool is_part_child, bool is_part_paren
 	Oid			classObjectId[3];
 	int16		coloptions[3];
 	List	   *indexColNames;
-
-	SIMPLE_FAULT_INJECTOR(BeforeAcquireLockDuringCreateAoBlkdirTable);
 
 	/*
 	 * Grab an exclusive lock on the target table, which we will NOT release
