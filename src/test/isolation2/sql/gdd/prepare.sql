@@ -37,7 +37,7 @@ $$ LANGUAGE sql;
 -- It's implemented with sleep now, but should at least work.
 CREATE OR REPLACE FUNCTION barrier()
 RETURNS void AS $$
-  SELECT pg_sleep(2)
+  SELECT pg_sleep(4)
 $$ LANGUAGE sql;
 
 -- verify the function
@@ -51,5 +51,8 @@ SELECT segid(1,2);
 ! gpconfig -c gp_global_deadlock_detector_period -v 10;
 ! gpstop -u;
 -- end_ignore
+
+-- the new setting need some time to be loaded
+SELECT pg_sleep(2);
 
 SHOW gp_global_deadlock_detector_period;
