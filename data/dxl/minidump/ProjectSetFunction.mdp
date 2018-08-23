@@ -1,44 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-CREATE TABLE table1(
-a int,
-b int,
-c int,
-text_col text,
-toast_col text,
-non_toast_col numeric,
-bigint_col bigint,
-char_vary_col character varying(30),
-numeric_col numeric,
-int_col int4,
-float_col float4,
-int_array_col int[],
-before_rename_col int4,
-change_datatype_col numeric,
-a_ts_without timestamp without time zone,
-b_ts_with timestamp with time zone,
-date_column date,
-col_set_default numeric,
-col_with_default_text character varying(30) DEFAULT 'test1')
-  distributed randomly;
-
-explain insert into table1 values (1,10,generate_series(1,1000000));
-
--->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
+    <dxl:Comment><![CDATA[
+    Objective: A redistribute motion must be added before insert is performed on
+    randomly distributed table t1_random. Bottom most Result node (i.e CPhysicalConstTableGet
+    below) has Universal Distribution Spec which will enforce a
+    CPhysicalRandomMotion with duplicate hazard to be inserted on top of it. This
+    random motion node inserted immediately on top of CPhysicalComputeScalar is converted to a
+    result node with hash filter so that duplicates are not inserted.  With no
+    explicit redistribute motion existing, data will be inserted to only one
+    segment, thus a redistribute motion is added.
+
+    CREATE TABLE t1_random(a int, b int) distributed randomly;
+    explain insert into t1_random values (1,generate_series(1,1000000));
+
+    Physical plan:
+    +--CPhysicalDML (Insert, "t1_random"), Source Columns: ["a" (1), "b" (2)], Action: ("ColRef_0003" (3))   rows:1   width:1  rebinds:1   cost:0.015671   origin: [Grp:8, GrpExpr:2]
+       +--CPhysicalMotionRandom   rows:1   width:1  rebinds:1   cost:0.000046   origin: [Grp:11, GrpExpr:4] ==> Newly Added Random Motion
+          +--CPhysicalComputeScalar   rows:1   width:1  rebinds:1   cost:0.000034   origin: [Grp:11, GrpExpr:3]
+             |--CPhysicalMotionRandom   rows:1   width:1  rebinds:1   cost:0.000030   origin: [Grp:7, GrpExpr:2]  ==> Random Motion with Duplicate Hazard
+             |  +--CPhysicalComputeScalar   rows:1   width:1  rebinds:1   cost:0.000009   origin: [Grp:7, GrpExpr:1]
+             |     |--CPhysicalConstTableGet Columns: ["" (0)] Values: [(1)]   rows:1   width:1  rebinds:1   cost:0.000001   origin: [Grp:0, GrpExpr:1]
+             |     +--CScalarProjectList   origin: [Grp:6, GrpExpr:0]
+             |        |--CScalarProjectElement "a" (1)   origin: [Grp:2, GrpExpr:0]
+             |        |  +--CScalarConst (1)   origin: [Grp:1, GrpExpr:0]
+             |        +--CScalarProjectElement "b" (2)   origin: [Grp:5, GrpExpr:0]
+             |           +--CScalarFunc (generate_series)   origin: [Grp:4, GrpExpr:0]
+             |              |--CScalarConst (1)   origin: [Grp:1, GrpExpr:0]
+             |              +--CScalarConst (1000000)   origin: [Grp:3, GrpExpr:0]
+             +--CScalarProjectList   origin: [Grp:10, GrpExpr:0]
+                +--CScalarProjectElement "ColRef_0003" (3)   origin: [Grp:9, GrpExpr:0]
+                   +--CScalarConst (1)   origin: [Grp:1, GrpExpr:0]
+    ",
+                                           QUERY PLAN
+    -----------------------------------------------------------------------------------------
+     Insert  (cost=0.00..0.02 rows=1 width=8)
+       ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=12)
+             ->  Result  (cost=0.00..0.00 rows=1 width=12)
+                   ->  Result  (cost=0.00..0.00 rows=1 width=8)
+                         ->  Result  (cost=0.00..0.00 rows=1 width=8)
+                               ->  Result  (cost=0.00..0.00 rows=1 width=1)
+     Optimizer: PQO version 2.69.0
+    
+    ]]>
+    </dxl:Comment>
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/> 
-      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/>
+      <dxl:WindowOids RowNumber="3100" Rank="3101"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
         <dxl:CostParams>
-          <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
+          <dxl:CostParam Name="NLJFactor" Value="1024.000000" LowerBound="1023.500000" UpperBound="1024.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="103027,102024,102025,102115,102116,102117,102119,102121,103014,103015"/>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
+      <dxl:TraceFlags Value="101001,102074,102120,103001,103014,103015,103022,104003,104004,104005,105000,106000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
@@ -56,36 +73,6 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.1043.1.0" Name="varchar" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
-        <dxl:EqualityOp Mdid="0.98.1.0"/>
-        <dxl:InequalityOp Mdid="0.531.1.0"/>
-        <dxl:LessThanOp Mdid="0.664.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.665.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.666.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.667.1.0"/>
-        <dxl:ComparisonOp Mdid="0.360.1.0"/>
-        <dxl:ArrayType Mdid="0.1015.1.0"/>
-        <dxl:MinAgg Mdid="0.0.0.0"/>
-        <dxl:MaxAgg Mdid="0.0.0.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.20.1.0" Name="Int8" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.410.1.0"/>
-        <dxl:InequalityOp Mdid="0.411.1.0"/>
-        <dxl:LessThanOp Mdid="0.412.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.414.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.413.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.415.1.0"/>
-        <dxl:ComparisonOp Mdid="0.351.1.0"/>
-        <dxl:ArrayType Mdid="0.1016.1.0"/>
-        <dxl:MinAgg Mdid="0.2131.1.0"/>
-        <dxl:MaxAgg Mdid="0.2115.1.0"/>
-        <dxl:AvgAgg Mdid="0.2100.1.0"/>
-        <dxl:SumAgg Mdid="0.2107.1.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
       <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.96.1.0"/>
         <dxl:InequalityOp Mdid="0.518.1.0"/>
@@ -99,21 +86,6 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
         <dxl:MaxAgg Mdid="0.2116.1.0"/>
         <dxl:AvgAgg Mdid="0.2101.1.0"/>
         <dxl:SumAgg Mdid="0.2108.1.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
-        <dxl:EqualityOp Mdid="0.98.1.0"/>
-        <dxl:InequalityOp Mdid="0.531.1.0"/>
-        <dxl:LessThanOp Mdid="0.664.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.665.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.666.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.667.1.0"/>
-        <dxl:ComparisonOp Mdid="0.360.1.0"/>
-        <dxl:ArrayType Mdid="0.1009.1.0"/>
-        <dxl:MinAgg Mdid="0.2145.1.0"/>
-        <dxl:MaxAgg Mdid="0.2129.1.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -176,151 +148,16 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:GPDBFunc Mdid="0.669.1.0" Name="varchar" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
-        <dxl:ResultType Mdid="0.1043.1.0"/>
-      </dxl:GPDBFunc>
-      <dxl:Type Mdid="0.1184.1.0" Name="timestamptz" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.1320.1.0"/>
-        <dxl:InequalityOp Mdid="0.1321.1.0"/>
-        <dxl:LessThanOp Mdid="0.1322.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.1323.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.1324.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.1325.1.0"/>
-        <dxl:ComparisonOp Mdid="0.1314.1.0"/>
-        <dxl:ArrayType Mdid="0.1185.1.0"/>
-        <dxl:MinAgg Mdid="0.2143.1.0"/>
-        <dxl:MaxAgg Mdid="0.2127.1.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
-        <dxl:EqualityOp Mdid="0.1752.1.0"/>
-        <dxl:InequalityOp Mdid="0.1753.1.0"/>
-        <dxl:LessThanOp Mdid="0.1754.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.1755.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.1756.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.1757.1.0"/>
-        <dxl:ComparisonOp Mdid="0.1769.1.0"/>
-        <dxl:ArrayType Mdid="0.1231.1.0"/>
-        <dxl:MinAgg Mdid="0.2146.1.0"/>
-        <dxl:MaxAgg Mdid="0.2130.1.0"/>
-        <dxl:AvgAgg Mdid="0.2103.1.0"/>
-        <dxl:SumAgg Mdid="0.2114.1.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:GPDBFunc Mdid="0.1067.1.0" Name="generate_series" ReturnsSet="true" Stability="Volatile" DataAccess="NoSQL" IsStrict="true">
+      <dxl:GPDBFunc Mdid="0.1067.1.0" Name="generate_series" ReturnsSet="true" Stability="Immutable" DataAccess="ReadsSQLData" IsStrict="true">
         <dxl:ResultType Mdid="0.23.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:Type Mdid="0.1082.1.0" Name="date" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.1093.1.0"/>
-        <dxl:InequalityOp Mdid="0.1094.1.0"/>
-        <dxl:LessThanOp Mdid="0.1095.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.1096.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.1097.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.1098.1.0"/>
-        <dxl:ComparisonOp Mdid="0.1092.1.0"/>
-        <dxl:ArrayType Mdid="0.1182.1.0"/>
-        <dxl:MinAgg Mdid="0.2138.1.0"/>
-        <dxl:MaxAgg Mdid="0.2122.1.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.700.1.0" Name="float4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.620.1.0"/>
-        <dxl:InequalityOp Mdid="0.621.1.0"/>
-        <dxl:LessThanOp Mdid="0.622.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.624.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.623.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.625.1.0"/>
-        <dxl:ComparisonOp Mdid="0.354.1.0"/>
-        <dxl:ArrayType Mdid="0.1021.1.0"/>
-        <dxl:MinAgg Mdid="0.2135.1.0"/>
-        <dxl:MaxAgg Mdid="0.2119.1.0"/>
-        <dxl:AvgAgg Mdid="0.2104.1.0"/>
-        <dxl:SumAgg Mdid="0.2110.1.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Type Mdid="0.1114.1.0" Name="timestamp" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
-        <dxl:EqualityOp Mdid="0.2060.1.0"/>
-        <dxl:InequalityOp Mdid="0.2061.1.0"/>
-        <dxl:LessThanOp Mdid="0.2062.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.2063.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.2064.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.2065.1.0"/>
-        <dxl:ComparisonOp Mdid="0.2045.1.0"/>
-        <dxl:ArrayType Mdid="0.1115.1.0"/>
-        <dxl:MinAgg Mdid="0.2142.1.0"/>
-        <dxl:MaxAgg Mdid="0.2126.1.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.0.0.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
-      <dxl:Relation Mdid="0.28421727.1.1" Name="table1" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="25,19">
+      <dxl:Relation Mdid="0.16465.1.0" Name="t1_random" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="8,2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="b" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="c" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="text_col" Attno="4" Mdid="0.25.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="toast_col" Attno="5" Mdid="0.25.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="non_toast_col" Attno="6" Mdid="0.1700.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="bigint_col" Attno="7" Mdid="0.20.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="char_vary_col" Attno="8" Mdid="0.1043.1.0" Nullable="true" ColWidth="30">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="numeric_col" Attno="9" Mdid="0.1700.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="int_col" Attno="10" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="float_col" Attno="11" Mdid="0.700.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="int_array_col" Attno="12" Mdid="0.1007.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="before_rename_col" Attno="13" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="change_datatype_col" Attno="14" Mdid="0.1700.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="a_ts_without" Attno="15" Mdid="0.1114.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="b_ts_with" Attno="16" Mdid="0.1184.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="date_column" Attno="17" Mdid="0.1082.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="col_set_default" Attno="18" Mdid="0.1700.1.0" Nullable="true">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="col_with_default_text" Attno="19" Mdid="0.1043.1.0" Nullable="true" ColWidth="30">
-            <dxl:DefaultValue>
-              <dxl:FuncExpr FuncId="0.669.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
-                <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAACXRlc3Qx" LintValue="794436454"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="34"/>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
-              </dxl:FuncExpr>
-            </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
@@ -348,143 +185,54 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Type Mdid="0.1007.1.0" Name="_int4" IsRedistributable="true" IsHashable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
-        <dxl:EqualityOp Mdid="0.1070.1.0"/>
-        <dxl:InequalityOp Mdid="0.1071.1.0"/>
-        <dxl:LessThanOp Mdid="0.1072.1.0"/>
-        <dxl:LessThanEqualsOp Mdid="0.1074.1.0"/>
-        <dxl:GreaterThanOp Mdid="0.1073.1.0"/>
-        <dxl:GreaterThanEqualsOp Mdid="0.1075.1.0"/>
-        <dxl:ComparisonOp Mdid="0.382.1.0"/>
-        <dxl:ArrayType Mdid="0.0.0.0"/>
-        <dxl:MinAgg Mdid="0.0.0.0"/>
-        <dxl:MaxAgg Mdid="0.0.0.0"/>
-        <dxl:AvgAgg Mdid="0.0.0.0"/>
-        <dxl:SumAgg Mdid="0.3217.1.0"/>
-        <dxl:CountAgg Mdid="0.2147.1.0"/>
-      </dxl:Type>
     </dxl:Metadata>
     <dxl:Query>
       <dxl:OutputColumns>
         <dxl:Ident ColId="2" ColName="a" TypeMdid="0.23.1.0"/>
         <dxl:Ident ColId="3" ColName="b" TypeMdid="0.23.1.0"/>
-        <dxl:Ident ColId="4" ColName="c" TypeMdid="0.23.1.0"/>
-        <dxl:Ident ColId="5" ColName="col_with_default_text" TypeMdid="0.1043.1.0"/>
       </dxl:OutputColumns>
       <dxl:CTEList/>
-      <dxl:LogicalInsert InsertColumns="2,3,4,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,5">
-        <dxl:TableDescriptor Mdid="0.28421727.1.1" TableName="table1">
+      <dxl:LogicalInsert InsertColumns="2,3">
+        <dxl:TableDescriptor Mdid="0.16465.1.0" TableName="t1_random">
           <dxl:Columns>
-            <dxl:Column ColId="6" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="7" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="8" Attno="3" ColName="c" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="9" Attno="4" ColName="text_col" TypeMdid="0.25.1.0"/>
-            <dxl:Column ColId="10" Attno="5" ColName="toast_col" TypeMdid="0.25.1.0"/>
-            <dxl:Column ColId="11" Attno="6" ColName="non_toast_col" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="12" Attno="7" ColName="bigint_col" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="13" Attno="8" ColName="char_vary_col" TypeMdid="0.1043.1.0" ColWidth="30"/>
-            <dxl:Column ColId="14" Attno="9" ColName="numeric_col" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="15" Attno="10" ColName="int_col" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="16" Attno="11" ColName="float_col" TypeMdid="0.700.1.0"/>
-            <dxl:Column ColId="17" Attno="12" ColName="int_array_col" TypeMdid="0.1007.1.0"/>
-            <dxl:Column ColId="18" Attno="13" ColName="before_rename_col" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="19" Attno="14" ColName="change_datatype_col" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="20" Attno="15" ColName="a_ts_without" TypeMdid="0.1114.1.0"/>
-            <dxl:Column ColId="21" Attno="16" ColName="b_ts_with" TypeMdid="0.1184.1.0"/>
-            <dxl:Column ColId="22" Attno="17" ColName="date_column" TypeMdid="0.1082.1.0"/>
-            <dxl:Column ColId="23" Attno="18" ColName="col_set_default" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="24" Attno="19" ColName="col_with_default_text" TypeMdid="0.1043.1.0" ColWidth="30"/>
-            <dxl:Column ColId="25" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-            <dxl:Column ColId="26" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-            <dxl:Column ColId="27" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-            <dxl:Column ColId="28" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-            <dxl:Column ColId="29" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-            <dxl:Column ColId="30" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-            <dxl:Column ColId="31" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="4" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
+            <dxl:Column ColId="5" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
+            <dxl:Column ColId="6" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+            <dxl:Column ColId="7" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="8" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="9" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="10" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="11" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+            <dxl:Column ColId="12" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
         <dxl:LogicalProject>
           <dxl:ProjList>
-            <dxl:ProjElem ColId="32" Alias="text_col">
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
+            <dxl:ProjElem ColId="2" Alias="a">
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="33" Alias="toast_col">
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="34" Alias="non_toast_col">
-              <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="35" Alias="bigint_col">
-              <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="true" IsByValue="true"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="36" Alias="char_vary_col">
-              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="37" Alias="numeric_col">
-              <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="38" Alias="int_col">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="39" Alias="float_col">
-              <dxl:ConstValue TypeMdid="0.700.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="40" Alias="int_array_col">
-              <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="true" IsByValue="false"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="41" Alias="before_rename_col">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="42" Alias="change_datatype_col">
-              <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="43" Alias="a_ts_without">
-              <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="44" Alias="b_ts_with">
-              <dxl:ConstValue TypeMdid="0.1184.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="45" Alias="date_column">
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="46" Alias="col_set_default">
-              <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
+            <dxl:ProjElem ColId="3" Alias="b">
+              <dxl:FuncExpr FuncId="0.1067.1.0" FuncRetSet="true" TypeMdid="0.23.1.0">
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1000000"/>
+              </dxl:FuncExpr>
             </dxl:ProjElem>
           </dxl:ProjList>
-          <dxl:LogicalProject>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="2" Alias="a">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="3" Alias="b">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="4" Alias="c">
-                <dxl:FuncExpr FuncId="0.1067.1.0" FuncRetSet="true" TypeMdid="0.23.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1000000"/>
-                </dxl:FuncExpr>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="5" Alias="col_with_default_text">
-                <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAACXRlc3Qx" LintValue="794436454"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:LogicalConstTable>
-              <dxl:Columns>
-                <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
-              </dxl:Columns>
-              <dxl:ConstTuple>
-                <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              </dxl:ConstTuple>
-            </dxl:LogicalConstTable>
-          </dxl:LogicalProject>
+          <dxl:LogicalConstTable>
+            <dxl:Columns>
+              <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
+            </dxl:Columns>
+            <dxl:ConstTuple>
+              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            </dxl:ConstTuple>
+          </dxl:LogicalConstTable>
         </dxl:LogicalProject>
       </dxl:LogicalInsert>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="3">
-      <dxl:DMLInsert Columns="1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,4" ActionCol="20" OidCol="0" CtidCol="0" SegmentIdCol="0" InputSorted="false">
+    <dxl:Plan Id="0" SpaceSize="1">
+      <dxl:DMLInsert Columns="1,2" ActionCol="3" OidCol="0" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="0.167128" Rows="1.000000" Width="20"/>
+          <dxl:Cost StartupCost="0" TotalCost="0.015671" Rows="1.000000" Width="8"/>
         </dxl:Properties>
         <dxl:DirectDispatchInfo/>
         <dxl:ProjList>
@@ -494,91 +242,23 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
           <dxl:ProjElem ColId="2" Alias="b">
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="3" Alias="c">
-            <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="5" Alias="text_col">
-            <dxl:Ident ColId="5" ColName="text_col" TypeMdid="0.25.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="6" Alias="toast_col">
-            <dxl:Ident ColId="6" ColName="toast_col" TypeMdid="0.25.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="7" Alias="non_toast_col">
-            <dxl:Ident ColId="7" ColName="non_toast_col" TypeMdid="0.1700.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="8" Alias="bigint_col">
-            <dxl:Ident ColId="8" ColName="bigint_col" TypeMdid="0.20.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="9" Alias="char_vary_col">
-            <dxl:Ident ColId="9" ColName="char_vary_col" TypeMdid="0.1043.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="10" Alias="numeric_col">
-            <dxl:Ident ColId="10" ColName="numeric_col" TypeMdid="0.1700.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="11" Alias="int_col">
-            <dxl:Ident ColId="11" ColName="int_col" TypeMdid="0.23.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="12" Alias="float_col">
-            <dxl:Ident ColId="12" ColName="float_col" TypeMdid="0.700.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="13" Alias="int_array_col">
-            <dxl:Ident ColId="13" ColName="int_array_col" TypeMdid="0.1007.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="14" Alias="before_rename_col">
-            <dxl:Ident ColId="14" ColName="before_rename_col" TypeMdid="0.23.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="15" Alias="change_datatype_col">
-            <dxl:Ident ColId="15" ColName="change_datatype_col" TypeMdid="0.1700.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="16" Alias="a_ts_without">
-            <dxl:Ident ColId="16" ColName="a_ts_without" TypeMdid="0.1114.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="17" Alias="b_ts_with">
-            <dxl:Ident ColId="17" ColName="b_ts_with" TypeMdid="0.1184.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="18" Alias="date_column">
-            <dxl:Ident ColId="18" ColName="date_column" TypeMdid="0.1082.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="19" Alias="col_set_default">
-            <dxl:Ident ColId="19" ColName="col_set_default" TypeMdid="0.1700.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="4" Alias="col_with_default_text">
-            <dxl:Ident ColId="4" ColName="col_with_default_text" TypeMdid="0.1043.1.0"/>
-          </dxl:ProjElem>
         </dxl:ProjList>
-        <dxl:TableDescriptor Mdid="0.28421727.1.1" TableName="table1">
+        <dxl:TableDescriptor Mdid="0.16465.1.0" TableName="t1_random">
           <dxl:Columns>
-            <dxl:Column ColId="21" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="22" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="23" Attno="3" ColName="c" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="24" Attno="4" ColName="text_col" TypeMdid="0.25.1.0"/>
-            <dxl:Column ColId="25" Attno="5" ColName="toast_col" TypeMdid="0.25.1.0"/>
-            <dxl:Column ColId="26" Attno="6" ColName="non_toast_col" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="27" Attno="7" ColName="bigint_col" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="28" Attno="8" ColName="char_vary_col" TypeMdid="0.1043.1.0" ColWidth="30"/>
-            <dxl:Column ColId="29" Attno="9" ColName="numeric_col" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="30" Attno="10" ColName="int_col" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="31" Attno="11" ColName="float_col" TypeMdid="0.700.1.0"/>
-            <dxl:Column ColId="32" Attno="12" ColName="int_array_col" TypeMdid="0.1007.1.0"/>
-            <dxl:Column ColId="33" Attno="13" ColName="before_rename_col" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="34" Attno="14" ColName="change_datatype_col" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="35" Attno="15" ColName="a_ts_without" TypeMdid="0.1114.1.0"/>
-            <dxl:Column ColId="36" Attno="16" ColName="b_ts_with" TypeMdid="0.1184.1.0"/>
-            <dxl:Column ColId="37" Attno="17" ColName="date_column" TypeMdid="0.1082.1.0"/>
-            <dxl:Column ColId="38" Attno="18" ColName="col_set_default" TypeMdid="0.1700.1.0"/>
-            <dxl:Column ColId="39" Attno="19" ColName="col_with_default_text" TypeMdid="0.1043.1.0" ColWidth="30"/>
-            <dxl:Column ColId="40" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-            <dxl:Column ColId="41" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-            <dxl:Column ColId="42" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-            <dxl:Column ColId="43" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-            <dxl:Column ColId="44" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-            <dxl:Column ColId="45" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-            <dxl:Column ColId="46" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="4" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
+            <dxl:Column ColId="5" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
+            <dxl:Column ColId="6" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0" ColWidth="6"/>
+            <dxl:Column ColId="7" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="8" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="9" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0" ColWidth="4"/>
+            <dxl:Column ColId="10" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0" ColWidth="4"/>
+            <dxl:Column ColId="11" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0" ColWidth="4"/>
+            <dxl:Column ColId="12" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:RandomMotion InputSegments="-1" OutputSegments="0,1,2">
+        <dxl:RandomMotion InputSegments="0,1,2" OutputSegments="0,1,2">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="0.000461" Rows="1.000000" Width="128"/>
+            <dxl:Cost StartupCost="0" TotalCost="0.000046" Rows="1.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="1" Alias="a">
@@ -587,146 +267,74 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
             <dxl:ProjElem ColId="2" Alias="b">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="3" Alias="c">
-              <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="5" Alias="text_col">
-              <dxl:Ident ColId="5" ColName="text_col" TypeMdid="0.25.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="6" Alias="toast_col">
-              <dxl:Ident ColId="6" ColName="toast_col" TypeMdid="0.25.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="7" Alias="non_toast_col">
-              <dxl:Ident ColId="7" ColName="non_toast_col" TypeMdid="0.1700.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="8" Alias="bigint_col">
-              <dxl:Ident ColId="8" ColName="bigint_col" TypeMdid="0.20.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="9" Alias="char_vary_col">
-              <dxl:Ident ColId="9" ColName="char_vary_col" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="10" Alias="numeric_col">
-              <dxl:Ident ColId="10" ColName="numeric_col" TypeMdid="0.1700.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="11" Alias="int_col">
-              <dxl:Ident ColId="11" ColName="int_col" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="12" Alias="float_col">
-              <dxl:Ident ColId="12" ColName="float_col" TypeMdid="0.700.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="13" Alias="int_array_col">
-              <dxl:Ident ColId="13" ColName="int_array_col" TypeMdid="0.1007.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="14" Alias="before_rename_col">
-              <dxl:Ident ColId="14" ColName="before_rename_col" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="15" Alias="change_datatype_col">
-              <dxl:Ident ColId="15" ColName="change_datatype_col" TypeMdid="0.1700.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="16" Alias="a_ts_without">
-              <dxl:Ident ColId="16" ColName="a_ts_without" TypeMdid="0.1114.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="17" Alias="b_ts_with">
-              <dxl:Ident ColId="17" ColName="b_ts_with" TypeMdid="0.1184.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="18" Alias="date_column">
-              <dxl:Ident ColId="18" ColName="date_column" TypeMdid="0.1082.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="19" Alias="col_set_default">
-              <dxl:Ident ColId="19" ColName="col_set_default" TypeMdid="0.1700.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="4" Alias="col_with_default_text">
-              <dxl:Ident ColId="4" ColName="col_with_default_text" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="20" Alias="ColRef_0020">
-              <dxl:Ident ColId="20" ColName="ColRef_0020" TypeMdid="0.23.1.0"/>
+            <dxl:ProjElem ColId="3" Alias="ColRef_0003">
+              <dxl:Ident ColId="3" ColName="ColRef_0003" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:SortingColumnList/>
           <dxl:Result>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="0.000129" Rows="1.000000" Width="128"/>
+              <dxl:Cost StartupCost="0" TotalCost="0.000034" Rows="1.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="a">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="2" Alias="b">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="3" Alias="c">
-                <dxl:FuncExpr FuncId="0.1067.1.0" FuncRetSet="true" TypeMdid="0.23.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1000000"/>
-                </dxl:FuncExpr>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="5" Alias="text_col">
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="6" Alias="toast_col">
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="7" Alias="non_toast_col">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="8" Alias="bigint_col">
-                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="true" IsByValue="true"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="9" Alias="char_vary_col">
-                <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="10" Alias="numeric_col">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="11" Alias="int_col">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="12" Alias="float_col">
-                <dxl:ConstValue TypeMdid="0.700.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="13" Alias="int_array_col">
-                <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="true" IsByValue="false"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="14" Alias="before_rename_col">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="15" Alias="change_datatype_col">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="16" Alias="a_ts_without">
-                <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="17" Alias="b_ts_with">
-                <dxl:ConstValue TypeMdid="0.1184.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="18" Alias="date_column">
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="true" IsByValue="true" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="19" Alias="col_set_default">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="true" IsByValue="false" DoubleValue="0.000000"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="4" Alias="col_with_default_text">
-                <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAACXRlc3Qx" LintValue="794436454"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="20" Alias="ColRef_0020">
+              <dxl:ProjElem ColId="3" Alias="ColRef_0003">
                 <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
             <dxl:OneTimeFilter/>
-            <dxl:Result>
+            <dxl:RandomMotion InputSegments="0" OutputSegments="0,1,2" DuplicateSensitive="true">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="0.000001" Rows="1.000000" Width="1"/>
+                <dxl:Cost StartupCost="0" TotalCost="0.000030" Rows="1.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
-                <dxl:ProjElem ColId="0" Alias="">
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                <dxl:ProjElem ColId="1" Alias="a">
+                  <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="2" Alias="b">
+                  <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:OneTimeFilter/>
-            </dxl:Result>
+              <dxl:SortingColumnList/>
+              <dxl:Result>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="0.000009" Rows="1.000000" Width="8"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="1" Alias="a">
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="2" Alias="b">
+                    <dxl:FuncExpr FuncId="0.1067.1.0" FuncRetSet="true" TypeMdid="0.23.1.0">
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1000000"/>
+                    </dxl:FuncExpr>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:OneTimeFilter/>
+                <dxl:Result>
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="0.000001" Rows="1.000000" Width="1"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="0" Alias="">
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter/>
+                  <dxl:OneTimeFilter/>
+                </dxl:Result>
+              </dxl:Result>
+            </dxl:RandomMotion>
           </dxl:Result>
         </dxl:RandomMotion>
       </dxl:DMLInsert>

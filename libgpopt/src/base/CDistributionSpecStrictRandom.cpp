@@ -16,5 +16,5 @@ BOOL CDistributionSpecStrictRandom::Matches(const CDistributionSpec *pds) const
 
 BOOL CDistributionSpecStrictRandom::FSatisfies(const CDistributionSpec *pds) const
 {
-    return Matches(pds);
+    return Matches(pds) || EdtAny == pds->Edt() || EdtRandom == pds->Edt() || EdtNonSingleton == pds->Edt();
 }

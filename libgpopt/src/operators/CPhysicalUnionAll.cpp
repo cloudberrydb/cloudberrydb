@@ -3,6 +3,7 @@
 #include "gpopt/operators/CPhysicalUnionAll.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CHashedDistributions.h"
+#include "gpopt/base/CDistributionSpecStrictRandom.h"
 #include "gpopt/operators/CScalarIdent.h"
 
 using namespace gpopt;
@@ -615,8 +616,63 @@ const
 		return pds;
 	}
 
+	// derive strict random spec, if parallel union all enforces strict random
+	CDistributionSpecRandom *random_dist_spec = PdsStrictRandomParallelUnionAllChildren(mp, exprhdl);
+	if (NULL != random_dist_spec)
+	{
+		return random_dist_spec;
+	}
+
 	// output has unknown distribution on all segments
 	return GPOS_NEW(mp) CDistributionSpecRandom();
+}
+
+// Consider the below query:
+// insert into t1_x select a from t2_x union all select a from t2_x;
+// where t1_x and t2_x relations are randomly distributed
+// the physical plan is as below:
+// +--CPhysicalDML (Insert, "t1_x"), Source Columns: ["a" (0)], Action: ("ColRef_0016" (16))
+//    +--CPhysicalComputeScalar
+//    |--CPhysicalParallelUnionAll
+//    |  |--CPhysicalMotionRandom ==> Derives CDistributionSpecStrictRandom
+//    |  |  +--CPhysicalTableScan
+//    |  +--CPhysicalMotionRandom ==> Derives CDistributionSpecStrictRandom
+//    |     +--CPhysicalTableScan "t1_x" ("t1_x")
+//    +--CScalarProjectList
+//       +--CScalarProjectElement "ColRef_0016" (16)
+//          +--CScalarConst (1)
+//
+// in the above plan, the child of CPhysicalParallelUnionAll
+// enforces CDistributionSpecStrictRandom with CPhysicalMotionRandom
+// operator. Since, the data coming to CPhysicalParallelUnionAll
+// is already randomly distributed due to existence of motion,
+// there is no need to redistribute the data again before
+// inserting into t1_x. So, derive CDistributionSpecStrictRandom
+CDistributionSpecRandom *
+CPhysicalUnionAll::PdsStrictRandomParallelUnionAllChildren
+	(
+	IMemoryPool *mp,
+	CExpressionHandle &expr_handle
+	)
+	const
+{
+	if (COperator::EopPhysicalParallelUnionAll == expr_handle.Pop()->Eopid())
+	{
+		BOOL has_strict_random_spec = true;
+		BOOL has_motion_random = true;
+		for (ULONG idx = 0; has_motion_random && has_strict_random_spec && idx < expr_handle.Arity(); idx++)
+		{
+			CDistributionSpec *child_dist_spec = expr_handle.Pdpplan(idx /*child_index*/)->Pds();
+			CDistributionSpec::EDistributionType dist_spec_type = child_dist_spec->Edt();
+			has_motion_random = COperator::EopPhysicalMotionRandom == expr_handle.Pop(idx /*child_index*/)->Eopid();
+			has_strict_random_spec = CDistributionSpec::EdtStrictRandom == dist_spec_type;
+		}
+		if (has_motion_random && has_strict_random_spec)
+		{
+			return GPOS_NEW(mp) CDistributionSpecStrictRandom();
+		}
+	}
+	return NULL;
 }
 
 //---------------------------------------------------------------------------

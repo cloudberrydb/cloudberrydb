@@ -229,6 +229,21 @@ CPhysicalComputeScalar::PdsRequired
 		}
 	}
 
+	// in case of DML Insert on randomly distributed table, a motion operator
+	// must be enforced on top of compute scalar if the children does not provide
+	// strict random spec. strict random request is not pushed
+	// down through the physical childs of compute scalar as the scalar
+	// project list of the compute scalar can have TVF and if the request
+	// was pushed down through physical child, data projected by the scalar
+	// project list will not be redistributed and will be inserted into a single
+	// segment. random motion with non universal child delivers strict random spec,
+	// so in case a motion node was added it will satisfy the strict random
+	// requested by DML insert
+	if (CDistributionSpec::EdtStrictRandom == pdsRequired->Edt())
+	{
+		return GPOS_NEW(mp) CDistributionSpecRandom();
+	}
+
 	if (0 == ulOptReq)
 	{
 		// Req0: required distribution will be enforced on top of ComputeScalar
@@ -516,6 +531,5 @@ CPhysicalComputeScalar::EpetRewindability
 	// rewindability is enforced on operator's output
 	return CEnfdProp::EpetRequired;
 }
-
 // EOF
 

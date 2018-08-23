@@ -17,6 +17,7 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPhysicalMotion.h"
 #include "gpopt/search/CMemo.h"
+#include "gpopt/base/CDistributionSpecRandom.h"
 
 using namespace gpopt;
 
@@ -76,7 +77,7 @@ CPhysicalMotion::PdsRequired
 	(
 	IMemoryPool *mp,
 	CExpressionHandle &, // exprhdl
-	CDistributionSpec *, // pdsRequired
+	CDistributionSpec *pdsRequired,
 	ULONG
 #ifdef GPOS_DEBUG
 	child_index
@@ -88,6 +89,61 @@ CPhysicalMotion::PdsRequired
 	const
 {
 	GPOS_ASSERT(0 == child_index);
+
+	// if the required distribution is EdtStrictRandom, it indicates
+	// that this motion operator was enforced into the same
+	// group as that of CPhysicalComputeScalar just below CPhysicalDML(Insert)
+	// to enforce CDistributionSpecStrictRandom. So, it should request
+	// CDistributionSpecRandom from its child i.e CPhysicalComputeScalar
+	// which already delivers CDistributionSpecRandom. This will result in
+	// a valid plan enforcing the required specs.
+	//
+	// for the query: explain insert into t1_random select * from t1_random;
+	// below is the memo after optimization and physical plan
+	//
+	//	Group 5 (#GExprs: 3):
+	//	0: CLogicalProject [ 0 4 ]
+	//	1: CPhysicalComputeScalar [ 0 4 ]    ==> Derives CDistributionSpecRandom(false)
+	//	2: CPhysicalMotionRandom [ 5 ]       ==> Enforced CDistributionSpecStrictRandom
+	//	",
+	//
+	//	Group 4 ():
+	//	0: CScalarProjectList [ 3 ]
+	//	",
+	//
+	//	Group 3 ():
+	//	0: CScalarProjectElement "ColRef_0008" (8) [ 2 ]
+	//	",
+	//
+	//	Group 2 ():
+	//	0: CScalarConst (1) [ ]
+	//	",
+	//
+	//	ROOT
+	//	Group 1 (#GExprs: 3):
+	//	0: CLogicalInsert ("t1_random")
+	//	1: CLogicalDML (Insert, "t1_random")
+	//	2: CPhysicalDML (Insert, "t1_random")
+	//
+	//	Group 0 (#GExprs: 2):
+	//	0: CLogicalGet "t1_random" ("t1_random")
+	//	1: CPhysicalTableScan "t1_random" ("t1_random") ===> Derives CDistributionSpecRandom(false)
+	//	",
+	//
+	//	Physical plan:
+	//	+--CPhysicalDML (Insert, "t1_random"), Source Columns: ["a" (0)], Action: ("ColRef_0008" (8))
+	//	   +--CPhysicalMotionRandom
+	//	      +--CPhysicalComputeScalar
+	//	      |--CPhysicalTableScan "t1_random"
+	//	      +--CScalarProjectList
+	//	         +--CScalarProjectElement "ColRef_0008"
+	//	            +--CScalarConst (1)
+	if (CDistributionSpec::EdtStrictRandom == pdsRequired->Edt())
+	{
+		GPOS_ASSERT(COperator::EopPhysicalMotionRandom == Eopid());
+		GPOS_ASSERT(CDistributionSpec::EdtStrictRandom == Pds()->Edt());
+		return GPOS_NEW(mp) CDistributionSpecRandom();
+	}
 
 	// any motion operator is distribution-establishing and does not require
 	// child to deliver any specific distribution

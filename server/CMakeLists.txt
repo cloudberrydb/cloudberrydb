@@ -231,6 +231,11 @@ MotionHazard-NoMaterializeHashAggUnderResult;
 CInvalidCostContextTest:
 SpoolShouldInvalidateUnresolvedDynamicScans;
 
+CRandomDataInsertionTest:
+AddRedistributeBeforeInsert-1 AddRedistributeBeforeInsert-2 AddRedistributeBeforeInsert-3
+AddRedistributeBeforeInsert-4 AddRedistributeBeforeInsert-5 DontAddRedistributeBeforeInsert-1
+DontAddRedistributeBeforeInsert-2;
+
 CGistIndexTest:
 Gist-AOCOTable-NonLossy-BitmapIndexPlan Gist-NonPart-Lossy-BitmapIndexPlan Gist-NonPart-Lossy-IndexPlan
 Gist-PartTable-Lossy-IndexPlan Gist-PartTable-NonLossy-BitmapIndexPlan Gist-PartialIndex-TableScan

@@ -179,7 +179,7 @@
         </dxl:LogicalGet>
       </dxl:LogicalCTAS>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="2">
+    <dxl:Plan Id="0" SpaceSize="1">
       <dxl:PhysicalCTAS Name="r" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" InsertColumns="4" VarTypeModList="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="3.027344" Rows="1.000000" Width="4"/>

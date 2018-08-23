@@ -1,38 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Comment><![CDATA[
-  Objective: A redundant redistribute motion should not be added before insert is performed
-  on randomly distributed table rr from a hash distributed table r. 
-  Insert requests for a Random Distribution Spec, and since the table t1_hash is
-  hash distributed a redistribute motion already exists.
+  Setup: 
+  CREATE TABLE t1_random(a int, b int) DISTRIBUTED RANDOMLY;
+  CREATE TABLE t2_random(a int, b int) DISTRIBUTED RANDOMLY;
+       	
+  Expectation: 
+  Random distribution motion must exists prior to INSERT on t1_random.
+  t2_random delivers random distribution spec due to its distribution policy.
+  Since, its not enforced by a motion and DML Insert requested strict random, a
+  redistribute motion is added to ensure randomness of data inserted in
+  t1_random.
   
-  create table rr (a int, b int) distributed randomly;
-  create table r (a int, b int) distributed by (b);
-  explain insert into rr select * from r;
+  Results: 
+  EXPLAIN INSERT INTO t1_random SELECT * FROM t2_random;
+  Physical plan:
+     +--CPhysicalDML (Insert, "t1_random"), Source Columns: ["a" (0), "b" (1)], Action: ("ColRef_0009" (9))   rows:1   width:38  rebinds:1   cost:431.023480   origin: [Grp:1, GrpExpr:2]
+        +--CPhysicalMotionRandom   rows:1   width:1  rebinds:1   cost:431.000043   origin: [Grp:5, GrpExpr:2] ()
+           +--CPhysicalComputeScalar   rows:1   width:1  rebinds:1   cost:431.000024   origin: [Grp:5, GrpExpr:1]
+              |--CPhysicalTableScan "t2_random" ("t2_random")   rows:1   width:38  rebinds:1   cost:431.000010   origin: [Grp:0, GrpExpr:1]
+              +--CScalarProjectList   origin: [Grp:4, GrpExpr:0]
+                 +--CScalarProjectElement "ColRef_0009" (9)   origin: [Grp:3, GrpExpr:0]
+                    +--CScalarConst (1)   origin: [Grp:2, GrpExpr:0]
+     ",
                                              QUERY PLAN
-  ------------------------------------------------------------------------------------------------
-   Insert  (cost=0.00..431.02 rows=1 width=8)
-     ->  Result  (cost=0.00..431.00 rows=1 width=12)
-           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8) ===> Already exists
-                 ->  Table Scan on r  (cost=0.00..431.00 rows=1 width=8)
-   Optimizer: PQO version 2.69.0
+     -------------------------------------------------------------------------------------------
+      Insert  (cost=0.00..431.02 rows=1 width=8)
+        ->  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=1 width=12)
+              ->  Result  (cost=0.00..431.00 rows=1 width=12)
+                    ->  Table Scan on t2_random  (cost=0.00..431.00 rows=1 width=8)
   ]]>
-  </dxl:Comment>
+  </dxl:Comment>								
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:WindowOids RowNumber="3100" Rank="3101"/>
-      <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3">
+      <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2">
         <dxl:CostParams>
           <dxl:CostParam Name="NLJFactor" Value="1024.000000" LowerBound="1023.500000" UpperBound="1024.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
-      <dxl:TraceFlags Value="102074,102120,103001,103014,103015,103022,104003,104004,104005,105000,106000"/>
+      <dxl:TraceFlags Value="101001,102074,102120,103001,103014,103015,103022,104003,104004,104005,105000,106000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
+      <dxl:Relation Mdid="0.16391.1.0" Name="t1_random" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="8,2" NumberLeafPartitions="0">
+        <dxl:Columns>
+          <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="b" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+        </dxl:Columns>
+        <dxl:IndexInfoList/>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
         <dxl:EqualityOp Mdid="0.91.1.0"/>
         <dxl:InequalityOp Mdid="0.85.1.0"/>
@@ -123,43 +170,8 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.16471.1.0.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:RelationStatistics Mdid="2.16471.1.0" Name="r" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.16471.1.0" Name="r" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="1" Keys="8,2" NumberLeafPartitions="0">
-        <dxl:Columns>
-          <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="b" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
-            <dxl:DefaultValue/>
-          </dxl:Column>
-        </dxl:Columns>
-        <dxl:IndexInfoList/>
-        <dxl:Triggers/>
-        <dxl:CheckConstraints/>
-      </dxl:Relation>
-      <dxl:Relation Mdid="0.16468.1.0" Name="rr" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="8,2" NumberLeafPartitions="0">
+      <dxl:RelationStatistics Mdid="2.16464.1.0" Name="t2_random" Rows="0.000000" EmptyRelation="true"/>
+      <dxl:Relation Mdid="0.16464.1.0" Name="t2_random" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="8,2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
@@ -201,7 +213,7 @@
       </dxl:OutputColumns>
       <dxl:CTEList/>
       <dxl:LogicalInsert InsertColumns="1,2">
-        <dxl:TableDescriptor Mdid="0.16468.1.0" TableName="rr">
+        <dxl:TableDescriptor Mdid="0.16391.1.0" TableName="t1_random">
           <dxl:Columns>
             <dxl:Column ColId="10" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
             <dxl:Column ColId="11" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
@@ -215,7 +227,7 @@
           </dxl:Columns>
         </dxl:TableDescriptor>
         <dxl:LogicalGet>
-          <dxl:TableDescriptor Mdid="0.16471.1.0" TableName="r">
+          <dxl:TableDescriptor Mdid="0.16464.1.0" TableName="t2_random">
             <dxl:Columns>
               <dxl:Column ColId="1" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
               <dxl:Column ColId="2" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
@@ -231,10 +243,10 @@
         </dxl:LogicalGet>
       </dxl:LogicalInsert>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1">
+    <dxl:Plan Id="0" SpaceSize="2">
       <dxl:DMLInsert Columns="0,1" ActionCol="9" OidCol="0" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.015649" Rows="1.000000" Width="8"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.023480" Rows="1.000000" Width="8"/>
         </dxl:Properties>
         <dxl:DirectDispatchInfo/>
         <dxl:ProjList>
@@ -245,7 +257,7 @@
             <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
-        <dxl:TableDescriptor Mdid="0.16468.1.0" TableName="rr">
+        <dxl:TableDescriptor Mdid="0.16391.1.0" TableName="t1_random">
           <dxl:Columns>
             <dxl:Column ColId="10" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
             <dxl:Column ColId="11" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
@@ -258,9 +270,9 @@
             <dxl:Column ColId="18" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0" ColWidth="4"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:Result>
+        <dxl:RandomMotion InputSegments="0,1" OutputSegments="0,1">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.000024" Rows="1.000000" Width="12"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.000043" Rows="1.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -270,14 +282,14 @@
               <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="9" Alias="ColRef_0009">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:Ident ColId="9" ColName="ColRef_0009" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:OneTimeFilter/>
-          <dxl:RandomMotion InputSegments="0,1,2" OutputSegments="0,1,2">
+          <dxl:SortingColumnList/>
+          <dxl:Result>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000020" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000024" Rows="1.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="a">
@@ -286,12 +298,15 @@
               <dxl:ProjElem ColId="1" Alias="b">
                 <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
+              <dxl:ProjElem ColId="9" Alias="ColRef_0009">
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
-            <dxl:SortingColumnList/>
+            <dxl:OneTimeFilter/>
             <dxl:TableScan>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000007" Rows="1.000000" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000010" Rows="1.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="a">
@@ -302,7 +317,7 @@
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:TableDescriptor Mdid="0.16471.1.0" TableName="r">
+              <dxl:TableDescriptor Mdid="0.16464.1.0" TableName="t2_random">
                 <dxl:Columns>
                   <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0" ColWidth="4"/>
                   <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0" ColWidth="4"/>
@@ -316,8 +331,8 @@
                 </dxl:Columns>
               </dxl:TableDescriptor>
             </dxl:TableScan>
-          </dxl:RandomMotion>
-        </dxl:Result>
+          </dxl:Result>
+        </dxl:RandomMotion>
       </dxl:DMLInsert>
     </dxl:Plan>
   </dxl:Thread>

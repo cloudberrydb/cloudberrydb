@@ -17,6 +17,7 @@
 #include "gpopt/base/CDistributionSpecAny.h"
 #include "gpopt/base/CDistributionSpecHashed.h"
 #include "gpopt/base/CDistributionSpecRouted.h"
+#include "gpopt/base/CDistributionSpecStrictRandom.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/operators/CPhysicalDML.h"
@@ -230,11 +231,20 @@ CPhysicalDML::PdsRequired
 {
 	GPOS_ASSERT(0 == child_index);
 	
-	if (CDistributionSpec::EdtRandom == m_pds->Edt() && CLogicalDML::EdmlInsert != m_edmlop)
+	if (CDistributionSpec::EdtRandom == m_pds->Edt())
 	{
+		// if insert is performed on a randomly distributed table,
+		// request strict random spec to ensure that CPhysicalMotionRandom
+		// exists prior to CPhysicalDML (Insert),
+		// CPhysicalMotionRandom ensures that there is no skew in the
+		// data inserted
+		if (CLogicalDML::EdmlInsert == m_edmlop)
+		{
+			return GPOS_NEW(mp) CDistributionSpecStrictRandom();
+		}
 		return GPOS_NEW(mp) CDistributionSpecRouted(m_pcrSegmentId);
 	}
-	
+
 	m_pds->AddRef();
 	return m_pds;
 }
@@ -348,7 +358,7 @@ CPhysicalDML::FProvidesReqdCols
 CDistributionSpec *
 CPhysicalDML::PdsDerive
 	(
-	IMemoryPool *, // mp
+	IMemoryPool *,//mp,
 	CExpressionHandle &exprhdl
 	)
 	const
