@@ -36,14 +36,14 @@ resources:
     region_name: us-west-2
     secret_access_key: {{s3_secret_access_key}}
     versioned_file: regression.out
-- name: bin_gpdb_centos6_assert
+- name: bin_gpdb_centos6
   type: s3
   source:
     access_key_id: {{s3_access_key_id}}
     bucket: {{gporca-concourse-bucket-dev}}
     region_name: us-west-2
     secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_gpdb_assert_with_orca_centos6.tar.gz
+    versioned_file: bin_gpdb_with_orca_centos6.tar.gz
 - name: gpdb_main_src
   type: git
   source:
@@ -174,7 +174,7 @@ jobs:
     - put: gpdb_tarball
       params:
         from: package_tarball/gpdb_src.tar.gz
-- name: build_gpdb_assert
+- name: build_gpdb
   max_in_flight: 1
   plan:
   - aggregate:
@@ -201,40 +201,40 @@ jobs:
       - clone_repos_to_test
     - get: gpdb_main_src
   - task: build_with_orca
-    file: gpdb_main_src/concourse/tasks/untar_build_with_orca_assert.yml
-  - put: bin_gpdb_centos6_assert
+    file: gpdb_main_src/concourse/tasks/untar_build_with_orca.yml
+  - put: bin_gpdb_centos6
     params:
       from: package_tarball/bin_gpdb.tar.gz
-- name: gpdb_icg_with_orca_assert
+- name: gpdb_icg_with_orca
   max_in_flight: 1
   plan:
   - aggregate:
     - get: gporca-commits-to-test
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       trigger: true
     - get: bin_orca
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       resource: bin_orca_centos5_release
     - get: bin_xerces
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       resource: bin_xerces_centos5
     - get: bin_gpdb
       passed:
-      - build_gpdb_assert
-      resource: bin_gpdb_centos6_assert
+      - build_gpdb
+      resource: bin_gpdb_centos6
     - get: gpdb_main_src
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       params:
         submodules: none
     - get: gpdb_tarball
       passed:
-      - build_gpdb_assert
+      - build_gpdb
   - task: icg_with_orca
-    file: gpdb_main_src/concourse/tasks/untar_test_with_orca_assert.yml
+    file: gpdb_main_src/concourse/tasks/untar_test_with_orca.yml
     on_failure:
       aggregate:
       - put: regression_diffs
@@ -244,36 +244,36 @@ jobs:
         params:
           file: icg_output/regression.out
     timeout: 90m
-- name: gpdb_icg_with_planner_assert
+- name: gpdb_icg_with_planner
   max_in_flight: 1
   plan:
   - aggregate:
     - get: gporca-commits-to-test
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       trigger: true
     - get: bin_orca
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       resource: bin_orca_centos5_release
     - get: bin_xerces
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       resource: bin_xerces_centos5
     - get: bin_gpdb
       passed:
-      - build_gpdb_assert
-      resource: bin_gpdb_centos6_assert
+      - build_gpdb
+      resource: bin_gpdb_centos6
     - get: gpdb_main_src
       passed:
-      - build_gpdb_assert
+      - build_gpdb
       params:
         submodules: none
     - get: gpdb_tarball
       passed:
-      - build_gpdb_assert
+      - build_gpdb
   - task: icg_with_planner
-    file: gpdb_main_src/concourse/tasks/untar_test_with_planner_assert.yml
+    file: gpdb_main_src/concourse/tasks/untar_test_with_planner.yml
     on_failure:
       aggregate:
       - put: regression_diffs
