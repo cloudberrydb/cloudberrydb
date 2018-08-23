@@ -482,16 +482,16 @@ ExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into, ExplainState *es,
 	int			eflags;
 	int			instrument_option = 0;
 
-	if (es->analyze)
-	{
-		/*
-		 * GPDB_90_MERGE_FIXME: we need to backport more from the 9.2 timeframe
-		 * to deal with each separate INSTRUMENT_ flag correctly.
-		 */
-		instrument_option |= (INSTRUMENT_ALL & ~INSTRUMENT_BUFFERS);
-	}
+	if (es->analyze && es->timing)
+		instrument_option |= INSTRUMENT_TIMER;
+	else if (es->analyze)
+		instrument_option |= INSTRUMENT_ROWS;
+
 	if (es->buffers)
 		instrument_option |= INSTRUMENT_BUFFERS;
+
+	if (es->analyze)
+		instrument_option |= INSTRUMENT_CDB;
 
 	/*
 	 * Start timing.
