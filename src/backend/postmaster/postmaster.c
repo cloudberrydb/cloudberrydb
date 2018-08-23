@@ -324,7 +324,7 @@ typedef enum
 	PM_RUN,						/* normal "database is alive" state */
 	PM_WAIT_BACKUP,				/* waiting for online backup mode to end */
 	PM_WAIT_READONLY,			/* waiting for read only backends to exit */
-	PM_WAIT_BACKENDS,			/* waiting for live backends to exit (including seqserver) */
+	PM_WAIT_BACKENDS,			/* waiting for live backends to exit */
 	PM_SHUTDOWN,				/* waiting for checkpointer to do shutdown
 								 * ckpt */
 	PM_SHUTDOWN_2,				/* waiting for archiver and walsenders to
