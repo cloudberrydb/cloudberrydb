@@ -20,9 +20,6 @@
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 
 DROP TABLE IF EXISTS foo;
-CREATE TABLE foo AS SELECT i a, i b FROM generate_series(1, 10) i;
-
-DROP TABLE IF EXISTS foo;
 CREATE TABLE foo (c1 int, c2 int) DISTRIBUTED BY (c1);
 
 10: BEGIN;
@@ -40,4 +37,6 @@ SELECT pg_terminate_backend(pid) FROM pg_stat_activity
 SELECT gp_inject_fault('create_gang_in_progress', 'resume', 1);
 
 10<:
-10q
+10q:
+
+DROP TABLE foo;
