@@ -74,6 +74,35 @@ MemoryAccountIdType liveAccountStartId = MEMORY_OWNER_TYPE_START_SHORT_LIVING;
 MemoryAccountIdType nextAccountId = MEMORY_OWNER_TYPE_START_SHORT_LIVING;
 
 /*
+ * The memory account for the primary executor account. This will be assigned to the
+ * first executor created during query execution.
+ */
+MemoryAccountIdType mainExecutorAccount = MEMORY_OWNER_TYPE_Undefined;
+
+/*
+ * MemoryAccountId for the 'X_NestedExecutor' account. This account is a direct
+ * child of the mainExecutorAccount. This is intended for accounts created
+ * during a "nested" ExecutorStart (indirectly called by ExecutorRun), anything
+ * that would normally create another account should instead collapse into the
+ * mainNestedExecutorAccount.
+ *
+ * You would think that it would be okay to create short living memory accounts
+ * then roll them over to the X_NestedExecutor account in the same way that we
+ * use the Rollover account. Unfortunately, this does not work because we need
+ * a way to to keep track of which account IDs have been rolled over. In the
+ * case of the Rollover account, we 'retire' any old memory account by calling
+ * AdvanceMemoryAccountingGeneration() to retire all accounts older than the
+ * liveAccountStartId, but when using live accounts the problem is a lot more
+ * complicated. Keeping a list of 'retired' shortLivingMemoryAccounts does not
+ * solve the problem, because the list of retired accounts is unbounded. Even
+ * if we store the list of accounts as a vector, it does not necessarily
+ * resolve the issue, because it is possible to have a 'hole' in the list of
+ * accounts, and we shouldn't assume that all of the retired accounts are
+ * contiguous.
+ */
+MemoryAccountIdType mainNestedExecutorAccount= MEMORY_OWNER_TYPE_Undefined;
+
+/*
  ******************************************************
  * Internal methods declarations
  */
@@ -1188,6 +1217,8 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "X_WorkTableScan";
 	case MEMORY_OWNER_TYPE_Exec_ForeignScan:
 		return "X_ForeignScan";
+	case MEMORY_OWNER_TYPE_Exec_NestedExecutor:
+		return "X_NestedExecutor";
 	default:
 		Assert(false);
 		break;
@@ -1431,6 +1462,16 @@ AdvanceMemoryAccountingGeneration()
 
 	liveAccountStartId = nextAccountId;
 
+	/*
+	 * Currently this is the only place where we reset the mainExecutorAccount.
+	 * XXX: We have a flawed assumption that the first "executor" account is
+	 * the main one and that all subsequently created "executor" accounts are
+	 * nested. Rewrite rules and constant folding during planning are examples
+	 * of false detection of nested executor.
+	 */
+	mainExecutorAccount = MEMORY_OWNER_TYPE_Undefined;
+	mainNestedExecutorAccount = MEMORY_OWNER_TYPE_Undefined;
+
 	Assert(RolloverMemoryAccount->peak >= MemoryAccountingPeakBalance);
 }
 
@@ -1471,4 +1512,67 @@ SaveMemoryBufToDisk(struct StringInfoData *memoryBuf, char *prefix)
 		elog(ERROR, "Could not write memory usage information. Attempted to write %d", memoryBuf->len);
 
 	fclose(file);
+}
+
+/*
+ * CreateMainExecutor
+ *    Creates the mainExecutorAccount
+ */
+MemoryAccountIdType
+MemoryAccounting_CreateMainExecutor()
+{
+	Assert(mainExecutorAccount == MEMORY_OWNER_TYPE_Undefined);
+	mainExecutorAccount = MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_EXECUTOR);
+
+	return mainExecutorAccount;
+}
+
+
+/*
+ * GetOrCreateNestedExecutorAccount
+ *    Returns the MemoryAccountId for the 'X_NestedExecutor' account. Creates the
+ *    mainNestedExecutorAccount if it does not already exist.
+ */
+MemoryAccountIdType
+MemoryAccounting_GetOrCreateNestedExecutorAccount()
+{
+	if (mainNestedExecutorAccount == MEMORY_OWNER_TYPE_Undefined)
+	{
+		Assert(mainExecutorAccount != MEMORY_OWNER_TYPE_Undefined);
+		START_MEMORY_ACCOUNT(mainExecutorAccount);
+		mainNestedExecutorAccount = MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_Exec_NestedExecutor);
+		END_MEMORY_ACCOUNT();
+	}
+	return mainNestedExecutorAccount;
+}
+
+/*
+ *  IsUnderNestedExecutor
+ *    Return weather the currently active memory account is 'X_NestedExecutor'.
+ */
+bool
+MemoryAccounting_IsUnderNestedExecutor()
+{
+	return ActiveMemoryAccountId == mainNestedExecutorAccount;
+}
+
+/*
+ * IsMainExecutorCreated
+ *    Returns whether the top level executor account has been created.
+ */
+bool
+MemoryAccounting_IsMainExecutorCreated()
+{
+	return mainExecutorAccount != MEMORY_OWNER_TYPE_Undefined;
+}
+
+MemoryAccountIdType
+MemoryAccounting_CreatePlanningMemoryAccount(MemoryOwnerType type)
+{
+	if (explain_memory_verbosity >= EXPLAIN_MEMORY_VERBOSITY_DEBUG)
+		return MemoryAccounting_CreateAccount(0, type);
+	else if (MemoryAccounting_IsMainExecutorCreated())
+		return MemoryAccounting_GetOrCreateNestedExecutorAccount();
+	else
+		return MemoryAccounting_CreateAccount(0, type);
 }

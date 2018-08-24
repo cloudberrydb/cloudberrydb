@@ -528,6 +528,7 @@ static const struct config_enum_entry explain_memory_verbosity_options[] = {
 	{"suppress", EXPLAIN_MEMORY_VERBOSITY_SUPPRESS},
 	{"summary", EXPLAIN_MEMORY_VERBOSITY_SUMMARY},
 	{"detail", EXPLAIN_MEMORY_VERBOSITY_DETAIL},
+	{"debug", EXPLAIN_MEMORY_VERBOSITY_DEBUG},
 	{NULL, 0}
 };
 
@@ -4937,7 +4938,7 @@ struct config_enum ConfigureNamesEnum_gp[] =
 	{
 		{"explain_memory_verbosity", PGC_USERSET, RESOURCES_MEM,
 			gettext_noop("Experimental feature: show memory account usage in EXPLAIN ANALYZE."),
-			gettext_noop("Valid values are SUPPRESS, SUMMARY, and DETAIL."),
+			gettext_noop("Valid values are SUPPRESS, SUMMARY, DETAIL, and DEBUG."),
 			GUC_GPDB_ADDOPT
 		},
 		&explain_memory_verbosity,
