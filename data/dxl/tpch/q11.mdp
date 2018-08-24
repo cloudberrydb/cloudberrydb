@@ -1945,7 +1945,7 @@
               </dxl:HashJoin>
             </dxl:Aggregate>
           </dxl:Sort>
-          <dxl:Materialize Eager="true">
+          <dxl:Materialize Eager="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="5180.731445" Rows="1.000000" Width="8"/>
             </dxl:Properties>

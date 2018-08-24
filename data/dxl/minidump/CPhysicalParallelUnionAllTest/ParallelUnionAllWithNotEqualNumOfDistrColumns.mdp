@@ -18,7 +18,7 @@ EXPLAIN SELECT a,b FROM foo UNION ALL SELECT c,d FROM bar;
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10"/>
-      <dxl:TraceFlags Value="102120,103001,103015,103022,103025,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,102120,103001,103015,103022,103025,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.1803331.1.1" Name="foo" Rows="0.000000" EmptyRelation="true"/>

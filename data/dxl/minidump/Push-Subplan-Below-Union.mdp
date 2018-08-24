@@ -76,7 +76,7 @@ union
           <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="101013,102024,102025,102115,102116,102119,102120,102128,102130,102131,102132,102133,102134,102135,102136,103001,103014,103015"/>
+      <dxl:TraceFlags Value="103027,101013,102024,102025,102115,102116,102119,102120,102128,102130,102131,102132,102133,102134,102135,102136,103001,103014,103015"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.521.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
@@ -650,7 +650,7 @@ union
         </dxl:LogicalSelect>
       </dxl:LogicalCTEAnchor>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1586040">
+    <dxl:Plan Id="0" SpaceSize="8686320">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="7327.003324" Rows="2.000000" Width="36"/>
@@ -823,7 +823,7 @@ union
                       </dxl:Columns>
                     </dxl:TableDescriptor>
                   </dxl:TableScan>
-                  <dxl:Materialize Eager="true">
+                  <dxl:Materialize Eager="false">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="0" TotalCost="431.000261" Rows="2.000000" Width="8"/>
                     </dxl:Properties>
@@ -1232,7 +1232,7 @@ union
                                       <dxl:SubPlan TypeMdid="0.23.1.0" SubPlanType="ScalarSubPlan">
                                         <dxl:TestExpr/>
                                         <dxl:ParamList/>
-                                        <dxl:Materialize Eager="true">
+                                        <dxl:Materialize Eager="false">
                                           <dxl:Properties>
                                             <dxl:Cost StartupCost="0" TotalCost="431.000227" Rows="2.000000" Width="8"/>
                                           </dxl:Properties>
@@ -1475,7 +1475,7 @@ union
                                       <dxl:SubPlan TypeMdid="0.23.1.0" SubPlanType="ScalarSubPlan">
                                         <dxl:TestExpr/>
                                         <dxl:ParamList/>
-                                        <dxl:Materialize Eager="true">
+                                        <dxl:Materialize Eager="false">
                                           <dxl:Properties>
                                             <dxl:Cost StartupCost="0" TotalCost="431.000227" Rows="2.000000" Width="8"/>
                                           </dxl:Properties>

@@ -31,7 +31,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
           <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="102115,102116,102120,102128,102134,102135,102136,103001,103014,103015"/>
+      <dxl:TraceFlags Value="103027,102115,102116,102120,102128,102134,102135,102136,103001,103014,103015"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.525.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">

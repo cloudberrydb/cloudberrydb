@@ -6,7 +6,7 @@
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/> 
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
-      <dxl:TraceFlags Value="101013,102007,103001"/>
+      <dxl:TraceFlags Value="103027,101013,102007,103001"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
@@ -865,7 +865,7 @@
         </dxl:LogicalProject>
       </dxl:LogicalLimit>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="2350">
+    <dxl:Plan Id="0" SpaceSize="3126">
       <dxl:Limit>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="274377996010803.593750" Rows="100.000000" Width="128"/>
@@ -1907,7 +1907,7 @@
                             </dxl:Columns>
                           </dxl:TableDescriptor>
                         </dxl:TableScan>
-                        <dxl:Materialize Eager="true">
+                        <dxl:Materialize Eager="false">
                           <dxl:Properties>
                             <dxl:Cost StartupCost="0" TotalCost="18503.362305" Rows="20.000000" Width="541297"/>
                           </dxl:Properties>

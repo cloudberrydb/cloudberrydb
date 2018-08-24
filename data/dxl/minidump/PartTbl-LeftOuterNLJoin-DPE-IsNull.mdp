@@ -21,7 +21,7 @@ select * from t2 left outer join t1 on t1.b = t2.d where t1.b is null;
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="25"/>
-      <dxl:TraceFlags Value="101013,102046,102120,103001,103014,103015,103022,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,101013,102046,102120,103001,103014,103015,103022,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.507276.1.1" Name="t1" Rows="0.000000" EmptyRelation="true"/>
@@ -363,7 +363,7 @@ select * from t2 left outer join t1 on t1.b = t2.d where t1.b is null;
                 </dxl:Columns>
               </dxl:TableDescriptor>
             </dxl:TableScan>
-            <dxl:Materialize Eager="true">
+            <dxl:Materialize Eager="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.000166" Rows="3.000000" Width="8"/>
               </dxl:Properties>

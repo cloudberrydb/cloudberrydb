@@ -13,7 +13,7 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/> 
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
-      <dxl:TraceFlags Value="102024,102025,102115,102116,102117,102119,102121,103001,103026"/>
+      <dxl:TraceFlags Value="103027,102024,102025,102115,102116,102117,102119,102121,103001,103026"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.25472.1.1" Name="store_sales" Rows="737331968.000000" EmptyRelation="false"/>
@@ -10888,7 +10888,7 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
         </dxl:LogicalJoin>
       </dxl:LogicalGroupBy>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="164">
+    <dxl:Plan Id="0" SpaceSize="188">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="4370028.691641" Rows="13.696861" Width="127"/>

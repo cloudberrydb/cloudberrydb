@@ -319,7 +319,7 @@ PvExec
 	BOOL fMinidump = false;
 	BOOL fUnittest = false;
 	ULLONG ullPlanId = 0;
-	
+
 	while (pma->Getopt(&ch))
 	{
 		CHAR *szTestName = NULL;

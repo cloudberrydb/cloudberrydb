@@ -17,7 +17,7 @@ SELECT * FROM bitmap_test WHERE a in (1, 47);
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="25"/>
-      <dxl:TraceFlags Value="101013,102120,103001,103014,103015,103022,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,101013,102120,103001,103014,103015,103022,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Index Mdid="0.4513675.1.0" Name="bitmap_index" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7">

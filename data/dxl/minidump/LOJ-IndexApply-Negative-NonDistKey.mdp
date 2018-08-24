@@ -34,7 +34,7 @@ explain select * from foo left join bar on foo.a=bar.a and foo.b=bar.b;
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
-      <dxl:TraceFlags Value="101013,102029,102046,102048,102053,102054,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,101013,102029,102046,102048,102053,102054,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.24579.1.0" Name="foo" Rows="0.000000" EmptyRelation="true"/>
@@ -352,7 +352,7 @@ explain select * from foo left join bar on foo.a=bar.a and foo.b=bar.b;
               </dxl:Columns>
             </dxl:TableDescriptor>
           </dxl:TableScan>
-          <dxl:Materialize Eager="true">
+          <dxl:Materialize Eager="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="431.000473" Rows="3.000000" Width="8"/>
             </dxl:Properties>

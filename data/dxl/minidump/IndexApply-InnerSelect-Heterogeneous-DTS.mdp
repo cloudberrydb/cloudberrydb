@@ -48,7 +48,7 @@ WHERE tt.event_ts >= tq.ets AND
           <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="101013,102024,102029,102115,102116,102130,102131,103014,103015"/>
+      <dxl:TraceFlags Value="103027,101013,102024,102029,102115,102116,102130,102131,103014,103015"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.521.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
@@ -569,7 +569,7 @@ WHERE tt.event_ts >= tq.ets AND
         </dxl:And>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="3" SpaceSize="12">
+    <dxl:Plan Id="3" SpaceSize="13">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="2598.013706" Rows="1.000000" Width="12"/>
@@ -1565,7 +1565,7 @@ WHERE tt.event_ts >= tq.ets AND
                       </dxl:Columns>
                     </dxl:TableDescriptor>
                   </dxl:DynamicTableScan>
-                  <dxl:Materialize Eager="true">
+                  <dxl:Materialize Eager="false">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="0" TotalCost="431.003369" Rows="3.000000" Width="59"/>
                     </dxl:Properties>

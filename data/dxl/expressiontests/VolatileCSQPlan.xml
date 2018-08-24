@@ -23,7 +23,7 @@
             <dxl:ParamList>
               <dxl:Param ColId="1" ColName="t2" TypeMdid="0.23.1.0"/>
             </dxl:ParamList>
-            <dxl:Materialize Eager="true">
+            <dxl:Materialize Eager="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="10" TotalCost="100" Rows="0" Width="8"/>
               </dxl:Properties>
@@ -62,7 +62,7 @@
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:OneTimeFilter/>
-                  <dxl:Materialize Eager="true">
+                  <dxl:Materialize Eager="false">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="10" TotalCost="100" Rows="0" Width="16"/>
                     </dxl:Properties>

@@ -34,7 +34,7 @@
         </dxl:ProjList>
         <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
       </dxl:TableValuedFunction>
-      <dxl:Materialize Eager="true">
+      <dxl:Materialize Eager="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="10" TotalCost="100" Rows="0" Width="24"/>
         </dxl:Properties>

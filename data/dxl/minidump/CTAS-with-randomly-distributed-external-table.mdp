@@ -18,7 +18,7 @@ EXPLAIN CREATE TABLE Test AS SELECT * FROM test_ext DISTRIBUTED RANDOMLY;
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000"/>
-      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,102120,103001,103014,103015,103022,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:ColumnStatistics Mdid="1.514019.1.1.9" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="3.000000" FreqRemain="1.000000" ColStatsMissing="false"/>

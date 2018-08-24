@@ -24,7 +24,7 @@ select (select distinct tint.c from tint as tt)  x from tint;
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10"/>
-      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,102120,103001,103014,103015,103022,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.32778.1.1" Name="tint" Rows="7.000000" EmptyRelation="false"/>
@@ -278,7 +278,7 @@ select (select distinct tint.c from tint as tt)  x from tint;
                       </dxl:ProjElem>
                     </dxl:ProjList>
                     <dxl:Filter/>
-                    <dxl:Materialize Eager="true">
+                    <dxl:Materialize Eager="false">
                       <dxl:Properties>
                         <dxl:Cost StartupCost="0" TotalCost="431.000047" Rows="112.000000" Width="1"/>
                       </dxl:Properties>

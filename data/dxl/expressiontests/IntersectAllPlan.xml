@@ -55,7 +55,7 @@
             </dxl:Columns>
           </dxl:TableDescriptor>
         </dxl:TableScan>
-        <dxl:Materialize Eager="true">
+        <dxl:Materialize Eager="false">
           <dxl:Properties>
             <dxl:Cost StartupCost="10" TotalCost="100" Rows="8" Width="8"/>
           </dxl:Properties>

@@ -13,7 +13,7 @@
       <dxl:CTEConfig CTEInliningCutoff="0"/> 
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="0" SegmentsForCosting="3"/>
-      <dxl:TraceFlags Value="0,101000,101001"/>
+      <dxl:TraceFlags Value="103027,0,101000,101001"/>
     </dxl:OptimizerConfig>
     <dxl:Query>
       <dxl:OutputColumns>

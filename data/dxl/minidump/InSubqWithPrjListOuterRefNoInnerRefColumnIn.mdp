@@ -22,7 +22,7 @@ SELECT * FROM foo WHERE a IN (SELECT b+1 FROM bar);
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000"/>
-      <dxl:TraceFlags Value="101000,101013,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,101000,101013,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.90119.1.0" Name="foo" Rows="100.000000" EmptyRelation="false"/>
@@ -605,7 +605,7 @@ SELECT * FROM foo WHERE a IN (SELECT b+1 FROM bar);
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="92">
+    <dxl:Plan Id="0" SpaceSize="99">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1293.005496" Rows="40.000000" Width="8"/>
@@ -671,7 +671,7 @@ SELECT * FROM foo WHERE a IN (SELECT b+1 FROM bar);
               </dxl:Columns>
             </dxl:TableDescriptor>
           </dxl:TableScan>
-          <dxl:Materialize Eager="true">
+          <dxl:Materialize Eager="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="431.000745" Rows="3.000000" Width="1"/>
             </dxl:Properties>

@@ -25,7 +25,7 @@ select * from bar where c not in (select distinct a from foo);
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="7" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
-      <dxl:TraceFlags Value="101013,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,101013,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.65536.1.0" Name="bar" Rows="0.000000" EmptyRelation="true"/>
@@ -468,7 +468,7 @@ select * from bar where c not in (select distinct a from foo);
         </dxl:LogicalSelect>
       </dxl:UnionAll>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="3145716">
+    <dxl:Plan Id="0" SpaceSize="3991680">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="4310.001444" Rows="4.000000" Width="8"/>
@@ -539,7 +539,7 @@ select * from bar where c not in (select distinct a from foo);
                 </dxl:Columns>
               </dxl:TableDescriptor>
             </dxl:TableScan>
-            <dxl:Materialize Eager="true">
+            <dxl:Materialize Eager="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.000067" Rows="3.000000" Width="1"/>
               </dxl:Properties>
@@ -710,7 +710,7 @@ select * from bar where c not in (select distinct a from foo);
                 </dxl:Columns>
               </dxl:TableDescriptor>
             </dxl:TableScan>
-            <dxl:Materialize Eager="true">
+            <dxl:Materialize Eager="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.000026" Rows="3.000000" Width="1"/>
               </dxl:Properties>

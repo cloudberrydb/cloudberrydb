@@ -14,7 +14,7 @@ SQL: select * from t1 where not exists(select a from t2 where t2.b<>t1.b group b
           <dxl:CostParam Name="NLJFactor" Value="1.000000" LowerBound="0.500000" UpperBound="1.500000"/>
         </dxl:CostParams>
       </dxl:CostModelConfig>
-      <dxl:TraceFlags Value="103001,103002"/>
+      <dxl:TraceFlags Value="103027,103001,103002"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.518.1.0" Name="&lt;&gt;" ComparisonType="NEq" ReturnsNullOnNullInput="true">
@@ -607,7 +607,7 @@ SQL: select * from t1 where not exists(select a from t2 where t2.b<>t1.b group b
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="19">
+    <dxl:Plan Id="0" SpaceSize="20">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1293.403971" Rows="44.400000" Width="8"/>
@@ -668,7 +668,7 @@ SQL: select * from t1 where not exists(select a from t2 where t2.b<>t1.b group b
               </dxl:Columns>
             </dxl:TableDescriptor>
           </dxl:TableScan>
-          <dxl:Materialize Eager="true">
+          <dxl:Materialize Eager="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="431.012287" Rows="200.000000" Width="4"/>
             </dxl:Properties>

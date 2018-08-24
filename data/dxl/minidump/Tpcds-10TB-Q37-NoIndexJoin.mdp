@@ -25,7 +25,7 @@ select  i_item_id
       <dxl:CTEConfig CTEInliningCutoff="0"/> 
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="96"/>
-      <dxl:TraceFlags Value="101013,102120,103001,103014,103015,103026"/>
+      <dxl:TraceFlags Value="103027,101013,102120,103001,103014,103015,103026"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Index Mdid="0.42129794.1.0" Name="item_idx03" IsClustered="false" IndexType="B-tree" KeyColumns="11" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28">
@@ -20527,7 +20527,7 @@ select  i_item_id
         </dxl:LogicalGroupBy>
       </dxl:LogicalLimit>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="3059265">
+    <dxl:Plan Id="0" SpaceSize="4214353">
       <dxl:Limit>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="52385.226068" Rows="4.196915" Width="127"/>

@@ -2,7 +2,7 @@
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:Stacktrace/>
-    <dxl:TraceFlags Value="103001"/>
+    <dxl:TraceFlags Value="103027,103001"/>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBFunc Mdid="0.188485.1.0" Name="gp_partition_propagation" ReturnsSet="false" Stability="Volatile" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.2278.1.0"/>
@@ -216,7 +216,7 @@
         </dxl:Comparison>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="15">
+    <dxl:Plan Id="0" SpaceSize="19">
       <dxl:HashJoin JoinType="Inner">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="5.226562" Rows="1.000000" Width="28"/>

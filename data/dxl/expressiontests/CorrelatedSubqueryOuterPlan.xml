@@ -86,7 +86,7 @@
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:OneTimeFilter/>
-                  <dxl:Materialize Eager="true">
+                  <dxl:Materialize Eager="false">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="10" TotalCost="100" Rows="8" Width="16"/>
                     </dxl:Properties>

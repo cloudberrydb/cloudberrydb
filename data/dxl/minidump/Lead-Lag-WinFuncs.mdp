@@ -8,7 +8,7 @@
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="0" SegmentsForCosting="2"/>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647"/>
-      <dxl:TraceFlags Value="101001,101013,103001"/>
+      <dxl:TraceFlags Value="103027,101001,101013,103001"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBFunc Mdid="0.7565.1.0" Name="lag" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="false">

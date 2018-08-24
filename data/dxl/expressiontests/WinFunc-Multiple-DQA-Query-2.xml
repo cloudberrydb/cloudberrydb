@@ -323,7 +323,7 @@ SQL: select count(distinct a) over(), sum(distinct a) over(), avg(distinct a) ov
                 </dxl:CTEConsumer>
               </dxl:Aggregate>
             </dxl:BroadcastMotion>
-            <dxl:Materialize Eager="true">
+            <dxl:Materialize Eager="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.056473" Rows="10013.000000" Width="1"/>
               </dxl:Properties>

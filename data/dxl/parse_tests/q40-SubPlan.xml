@@ -77,7 +77,7 @@
                     </dxl:And>
                   </dxl:Filter>
                   <dxl:OneTimeFilter/>
-                  <dxl:Materialize Eager="true">
+                  <dxl:Materialize Eager="false">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="2.61" TotalCost="2.68" Rows="7.70" Width="4"/>
                     </dxl:Properties>

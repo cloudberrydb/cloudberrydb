@@ -50,7 +50,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/> 
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
-      <dxl:TraceFlags Value="101013,102024,102025,102029"/>
+      <dxl:TraceFlags Value="103027,101013,102024,102025,102029"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.521.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
@@ -512,7 +512,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
         </dxl:And>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="1" SpaceSize="12">
+    <dxl:Plan Id="1" SpaceSize="13">
       <dxl:Sequence>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="8700.178385" Rows="1.000000" Width="8"/>
@@ -1517,7 +1517,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
                       </dxl:Columns>
                     </dxl:TableDescriptor>
                   </dxl:DynamicTableScan>
-                  <dxl:Materialize Eager="true">
+                  <dxl:Materialize Eager="false">
                     <dxl:Properties>
                       <dxl:Cost StartupCost="0" TotalCost="2.302734" Rows="2.000000" Width="62"/>
                     </dxl:Properties>

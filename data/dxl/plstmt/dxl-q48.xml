@@ -65,7 +65,7 @@
             </dxl:TableDescriptor>
           </dxl:TableScan>
         </dxl:GatherMotion>
-        <dxl:Materialize Eager="true">
+        <dxl:Materialize Eager="false">
           <dxl:Properties>
             <dxl:Cost StartupCost="0.02" TotalCost="0.04" Rows="2.00" Width="4"/>
           </dxl:Properties>

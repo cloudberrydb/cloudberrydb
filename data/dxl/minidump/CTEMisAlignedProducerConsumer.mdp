@@ -16,7 +16,7 @@ SELECT 1 FROM (SELECT * FROM foo) t2 FULL JOIN (SELECT 1) t1 ON true;
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000"/>
-      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.16385.1.0" Name="foo" Rows="0.000000" EmptyRelation="true"/>
@@ -599,7 +599,7 @@ SELECT 1 FROM (SELECT * FROM foo) t2 FULL JOIN (SELECT 1) t1 ON true;
                             </dxl:ProjElem>
                           </dxl:ProjList>
                         </dxl:CTEConsumer>
-                        <dxl:Materialize Eager="true">
+                        <dxl:Materialize Eager="false">
                           <dxl:Properties>
                             <dxl:Cost StartupCost="0" TotalCost="431.000006" Rows="1.000000" Width="1"/>
                           </dxl:Properties>

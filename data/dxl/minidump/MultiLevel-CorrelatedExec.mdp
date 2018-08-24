@@ -6,7 +6,7 @@
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/> 
       <dxl:WindowOids RowNumber="7000" Rank="7001"/>
-      <dxl:TraceFlags Value="103001,103002"/>
+      <dxl:TraceFlags Value="103027,103001,103002"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
@@ -706,7 +706,7 @@
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="28">
+    <dxl:Plan Id="0" SpaceSize="49">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="78355635.599609" Rows="1000.000000" Width="12"/>
@@ -873,7 +873,7 @@
                         </dxl:Comparison>
                       </dxl:Filter>
                       <dxl:OneTimeFilter/>
-                      <dxl:Materialize Eager="true">
+                      <dxl:Materialize Eager="false">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="15.685547" Rows="2002.000000" Width="4"/>
                         </dxl:Properties>

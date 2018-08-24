@@ -18,7 +18,7 @@ select * from bar, (select * from foo where foo.a in (select h.a from bar h, bar
         </dxl:CostParams>
       </dxl:CostModelConfig>
       <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="18" ArrayExpansionThreshold="100" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
-      <dxl:TraceFlags Value="102074,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
+      <dxl:TraceFlags Value="103027,102074,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.525.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
@@ -400,7 +400,7 @@ select * from bar, (select * from foo where foo.a in (select h.a from bar h, bar
         </dxl:Comparison>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="14959">
+    <dxl:Plan Id="0" SpaceSize="23295">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1324469.354741" Rows="1.000000" Width="16"/>
@@ -636,7 +636,7 @@ select * from bar, (select * from foo where foo.a in (select h.a from bar h, bar
                   </dxl:Columns>
                 </dxl:TableDescriptor>
               </dxl:TableScan>
-              <dxl:Materialize Eager="true">
+              <dxl:Materialize Eager="false">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000247" Rows="3.000000" Width="4"/>
                 </dxl:Properties>

@@ -336,7 +336,7 @@ SQL: select count(distinct a) over(), sum(distinct a) over(), avg(distinct b) ov
                     </dxl:ProjList>
                   </dxl:CTEConsumer>
                 </dxl:Aggregate>
-                <dxl:Materialize Eager="true">
+                <dxl:Materialize Eager="false">
                   <dxl:Properties>
                     <dxl:Cost StartupCost="0" TotalCost="431.101019" Rows="1.000000" Width="8"/>
                   </dxl:Properties>
@@ -400,7 +400,7 @@ SQL: select count(distinct a) over(), sum(distinct a) over(), avg(distinct b) ov
                 </dxl:Materialize>
               </dxl:NestedLoopJoin>
             </dxl:BroadcastMotion>
-            <dxl:Materialize Eager="true">
+            <dxl:Materialize Eager="false">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.056473" Rows="10013.000000" Width="1"/>
               </dxl:Properties>
