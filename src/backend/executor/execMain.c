@@ -267,7 +267,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 
 	PlannedStmt *plannedStmt = queryDesc->plannedstmt;
 
-	queryDesc->memoryAccountId = MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_EXECUTOR);
+	queryDesc->memoryAccountId = MemoryAccounting_CreateExecutorMemoryAccount();
 
 	START_MEMORY_ACCOUNT(queryDesc->memoryAccountId);
 
