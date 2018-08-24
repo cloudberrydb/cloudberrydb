@@ -3532,6 +3532,23 @@ get_distkey_by_name(char *key, IntoClause *into, Query *qry, bool *found)
 	return 0;
 }
 
+/*
+ * Set Query->intoPolicy based on the DISTRIBUTED BY clause, in a
+ * CREATE TABLE AS statement.
+ *
+ * This performs some of the same checks and processing that
+ * transformDistributedBy() does for a regular CREATE TABLE. There are some
+ * differences, however:
+ *
+ * 1. We form a GpPolicy to represent the DISTRIBUTED BY clause. In a regular
+ * CREATE TABLE, we must delay doing that until DefineRelation, after we have
+ * merged inherited columns into the table definition, but with CREATE TABLE
+ * AS, it's OK, because there is no inheritance.
+ *
+ * 2. If no DISTRIBUTED BY was given explicitly, we don't try to deduce a
+ * default here. We delay that into the planner because we'll have more
+ * information available at that point (see apply_motion()).
+ */
 static void
 setQryDistributionPolicy(IntoClause *into, Query *qry)
 {

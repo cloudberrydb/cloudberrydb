@@ -1120,11 +1120,16 @@ typedef enum SetOperation
 	SETOP_EXCEPT
 } SetOperation;
 
+/*
+ * In raw parser output, this represents what the user wrote in the
+ * DISTRIBUTED BY clause. In parse analysis, if no distributed by
+ * wa given, we add implicit columns. XXX
+ */
 typedef struct DistributedBy
 {
 	NodeTag		type;
-	GpPolicyType	ptype;
-	List		*keys; /* valid when ptype is POLICYTYPE_PARTITIONED */
+	GpPolicyType ptype;
+	List	   *keys; /* valid when ptype is POLICYTYPE_PARTITIONED */
 } DistributedBy;
 
 typedef struct SelectStmt
@@ -1686,7 +1691,6 @@ typedef struct CreateStmt
 	Node       *partitionBy;     /* what columns we partition the data by */
 	char	    relKind;         /* CDB: force relkind to this */
 	char		relStorage;
-	GpPolicy   *policy;
 	Node       *postCreate;      /* CDB: parse and process after the CREATE */
 	List	   *deferredStmts;	/* CDB: Statements, e.g., partial indexes, that can't be
 								 * analyzed until after CREATE (until the target table
@@ -1739,7 +1743,6 @@ typedef struct CreateExternalStmt
 	List	   *encoding;		/* List (size 1 max) of DefElem nodes for
 								   data encoding */
 	DistributedBy *distributedBy;   /* what columns we distribute the data by */
-	struct GpPolicy  *policy;	/* used for writable tables */
 
 } CreateExternalStmt;
 

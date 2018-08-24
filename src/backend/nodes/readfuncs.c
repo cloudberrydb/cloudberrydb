@@ -2249,7 +2249,6 @@ _readCreateStmt(void)
 	READ_NODE_FIELD(partitionBy);
 	READ_CHAR_FIELD(relKind);
 	READ_CHAR_FIELD(relStorage);
-	READ_NODE_FIELD(policy);
 	/* postCreate omitted */
 	READ_NODE_FIELD(deferredStmts);
 	READ_BOOL_FIELD(is_part_child);
@@ -2378,7 +2377,6 @@ _readCreateExternalStmt(void)
 	READ_NODE_FIELD(extOptions);
 	READ_NODE_FIELD(encoding);
 	READ_NODE_FIELD(distributedBy);
-	local_node->policy = NULL;
 
 	READ_DONE();
 }

@@ -174,7 +174,7 @@ static bool range_partition_walker(Node *node, void *context);
  */
 void
 transformPartitionBy(CreateStmtContext *cxt,
-					 CreateStmt *stmt, Node *partitionBy, GpPolicy *policy)
+					 CreateStmt *stmt, Node *partitionBy)
 {
 	Oid			snamespaceid;
 	char	   *snamespace;
