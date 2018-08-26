@@ -1,6 +1,7 @@
 -- start_ignore
 DROP DATABASE IF EXISTS incrementalanalyze;
 CREATE DATABASE incrementalanalyze;
+ALTER DATABASE incrementalanalyze SET lc_monetary TO 'C';
 \c incrementalanalyze
 DROP SCHEMA IF EXISTS incremental_analyze;
 CREATE SCHEMA incremental_analyze;
@@ -560,6 +561,7 @@ ANALYZE foo;
 ALTER TABLE foo ADD partition new_part START (6) INCLUSIVE END (9) EXCLUSIVE;
 INSERT INTO foo SELECT i, i%3+6 FROM generate_series(1,500)i;
 ANALYZE foo_1_prt_new_part;
+SET log_statement='none';
 SET client_min_messages = 'log';
 ANALYZE MERGE foo;
 -- Insert a new column that is not analyzed in the leaf partitions.
