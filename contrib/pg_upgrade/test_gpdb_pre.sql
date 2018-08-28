@@ -50,6 +50,74 @@ $$ LANGUAGE plpgsql;
 SELECT drop_indexes();
 DROP FUNCTION drop_indexes();
 
+-- Missing toast tables/indexes in new cluster
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_11_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_17_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_196_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_19_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_1_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_1_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_23_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_32_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_3_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_4_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_4_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_char_variable_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_11_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_17_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_196_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_19_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_1_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_1_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_23_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_32_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_3_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_4_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_4_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_double_variable_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_11_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_17_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_196_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_19_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_1_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_1_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_23_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_32_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_3_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_4_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_4_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int2_variable_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_11_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_17_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_196_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_19_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_1_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_1_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_23_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_32_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_3_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_4_false_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_4_true_false CASCADE;
+DROP TABLE IF EXISTS adp_dropped.alter_distpol_g_int4_variable_false_false CASCADE;
+DROP TABLE IF EXISTS public.distrib_part_test CASCADE;
+DROP TABLE IF EXISTS public.dml_ao_s CASCADE;
+DROP TABLE IF EXISTS public.dml_co_s CASCADE;
+DROP TABLE IF EXISTS public.dml_heap_s CASCADE;
+DROP TABLE IF EXISTS public.test_tsvector CASCADE;
+DROP TABLE IF EXISTS stat_heap3.stat_heap_t3 CASCADE;
+DROP TABLE IF EXISTS stat_heap3.stat_part_heap_t3 CASCADE;
+DROP TABLE IF EXISTS stat_heap4.stat_heap_t4 CASCADE;
+DROP TABLE IF EXISTS stat_heap4.stat_part_heap_t4 CASCADE;
+DROP TABLE IF EXISTS stat_heap5.stat_heap_t5 CASCADE;
+DROP TABLE IF EXISTS stat_heap5.stat_part_heap_t5 CASCADE;
+DROP TABLE IF EXISTS stat_heap6.stat_heap_t6 CASCADE;
+DROP TABLE IF EXISTS stat_heap6.stat_part_heap_t6 CASCADE;
+
+-- This one's interesting:
+--    No match found in new cluster for old relation with OID 173472 in database "regression": "public.sales_1_prt_bb_pkey" which is an index on "public.newpart"
+--    No match found in old cluster for new relation with OID 556718 in database "regression": "public.newpart_pkey" which is an index on "public.newpart"
+DROP TABLE IF EXISTS public.newpart CASCADE;
+
 \c dsp1;
 
 -- drop all AO tables
