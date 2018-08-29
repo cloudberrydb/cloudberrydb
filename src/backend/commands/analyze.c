@@ -3759,7 +3759,7 @@ merge_leaf_stats(VacAttrStatsP stats,
 		get_parts(stats->attr->attrelid, 0 /*level*/, 0 /*parent*/,
 				  false /* inctemplate */, true /*includesubparts*/);
 	Assert(pn);
-	elog(LOG, "Merging leaf stats");
+	elog(LOG, "Merging leaf stats  column %d", stats->attr->attnum);
 	List *oid_list = all_leaf_partition_relids(pn); /* all leaves */
 	StdAnalyzeData *mystats = (StdAnalyzeData *) stats->extra_data;
 	int numPartitions = list_length(oid_list);
