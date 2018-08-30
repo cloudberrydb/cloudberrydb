@@ -1456,27 +1456,25 @@ CExpressionPreprocessor::PexprFromConstraints
 			continue;
 		}
 
+		// process child
+		CExpression *pexprChildNew = PexprFromConstraints(mp, pexprChild, pcrsProcessed);
+
 		// we already called derive at the beginning, so child properties are already derived
 		CDrvdPropRelational *pdprelChild = CDrvdPropRelational::GetRelationalProperties(pexprChild->Pdp(DrvdPropArray::EptRelational));
 
 		CColRefSet *pcrsOutChild = GPOS_NEW(mp) CColRefSet(mp);
+
+		// output columns on which predicates must be inferred
 		pcrsOutChild->Include(pdprelChild->PcrsOutput());
-		// Duplicated predicates will not be generated if parent operators already contains the predicates.
-		// if pexpr is a logical limit operator, the pcrsProcessed may contain columns that
-		// we still need to infer predicates on these columns. so don't exclude these columns.
-		// In other words, if we see a limit operator, then always generate all the predicates based on its constraint, since there won't
-		// be any predicates pushed down through limit.
-		if (COperator::EopLogicalLimit != pexpr->Pop()->Eopid())
-		{
-			pcrsOutChild->Exclude(pcrsProcessed);
-		}
+
+		// exclude column references on which predicates had been already inferred,
+		// this avoids generating duplicate predicates on the parent node if a
+		// predicate has already been placed on the child.
+		pcrsOutChild->Exclude(pcrsProcessed);
 
 		// generate predicates for the output columns of child
 		CExpression *pexprPred = PexprScalarPredicates(mp, ppc, pcrsNotNull, pcrsOutChild, pcrsProcessed);
 		pcrsOutChild->Release();
-
-		// process child
-		CExpression *pexprChildNew = PexprFromConstraints(mp, pexprChild, pcrsProcessed);
 
 		if (NULL != pexprPred)
 		{

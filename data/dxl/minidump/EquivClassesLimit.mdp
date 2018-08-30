@@ -463,13 +463,13 @@
                   <dxl:Ident ColId="0" ColName="x" TypeMdid="0.23.1.0"/>
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="30"/>
                 </dxl:Comparison>
-                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                  <dxl:Ident ColId="0" ColName="x" TypeMdid="0.23.1.0"/>
-                  <dxl:Ident ColId="1" ColName="y" TypeMdid="0.23.1.0"/>
-                </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                   <dxl:Ident ColId="1" ColName="y" TypeMdid="0.23.1.0"/>
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="30"/>
+                </dxl:Comparison>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                  <dxl:Ident ColId="0" ColName="x" TypeMdid="0.23.1.0"/>
+                  <dxl:Ident ColId="1" ColName="y" TypeMdid="0.23.1.0"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:Filter>
