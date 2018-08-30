@@ -104,7 +104,8 @@ CColRefSetArray *
 CLogicalProject::PdrgpcrsEquivClassFromScIdent
 	(
 	IMemoryPool *mp,
-	CExpression *pexprPrEl
+	CExpression *pexprPrEl,
+	CColRefSet *not_null_columns
 	)
 {
 	GPOS_ASSERT(NULL != pexprPrEl);
@@ -129,11 +130,12 @@ CLogicalProject::PdrgpcrsEquivClassFromScIdent
 		return NULL;
 	}
 
+	BOOL non_nullable = not_null_columns->FMember(pcrScIdent);
+
 	// only add renamed columns to equivalent class if the column is not null-able
 	// this is because equality predicates will be inferred from the equivalent class
 	// during preprocessing
-	if (CColRef::EcrtTable == pcrScIdent->Ecrt() &&
-			!CColRefTable::PcrConvert(const_cast<CColRef*>(pcrScIdent))->IsNullable())
+	if (CColRef::EcrtTable == pcrScIdent->Ecrt() && non_nullable)
 	{
 		// equivalence class
 		CColRefSetArray *pdrgpcrs = GPOS_NEW(mp) CColRefSetArray(mp);
@@ -246,7 +248,8 @@ CLogicalProject::PpcDeriveConstraint
 		}
 		else
 		{
-			CColRefSetArray *pdrgpcrsChild = PdrgpcrsEquivClassFromScIdent(mp, pexprPrEl);
+			CColRefSet *not_null_columns = exprhdl.GetRelationalProperties(0 /*ulChild*/)->PcrsNotNull();
+			CColRefSetArray *pdrgpcrsChild = PdrgpcrsEquivClassFromScIdent(mp, pexprPrEl, not_null_columns);
 
 			if (NULL != pdrgpcrsChild)
 			{

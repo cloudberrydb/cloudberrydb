@@ -132,7 +132,7 @@ ArrayConcat ArrayRef FoldedArrayCmp IN-ArrayCmp NOT-IN-ArrayCmp ArrayCmpAll UDA-
 CastedInClauseWithMCV FilterScalarCast;
 
 CProjectTest:
-ProjectWithConstant ProjectWithTextConstant ProjectSetFunction;
+ProjectWithConstant ProjectWithTextConstant ProjectSetFunction Equivalence-class-project-over-LOJ;
 
 CPartTbl1Test:
 NoPartConstraint-WhenNoDefaultPartsAndIndices
