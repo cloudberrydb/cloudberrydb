@@ -3,10 +3,11 @@
 -- exist at the time of running upgrades. If objects are to be manipulated
 -- in other databases, make sure to change to the correct database first.
 
-DROP DATABASE regression;
-DROP DATABASE dsp3;
-DROP DATABASE isolation2test;
+DROP DATABASE IF EXISTS regression;
+DROP DATABASE IF EXISTS dsp3;
+DROP DATABASE IF EXISTS isolation2test;
 
+DROP DATABASE IF EXISTS pgutest;
 CREATE DATABASE pgutest;
 \c pgutest;
 

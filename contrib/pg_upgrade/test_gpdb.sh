@@ -263,7 +263,10 @@ fi
 
 # Run any pre-upgrade tasks to prep the cluster
 if [ -f "test_gpdb_pre.sql" ]; then
-	psql -f test_gpdb_pre.sql postgres
+	if ! psql -f test_gpdb_pre.sql -v ON_ERROR_STOP=1 postgres; then
+		echo "ERROR: unable to execute pre-upgrade cleanup"
+		exit 1
+	fi
 fi
 
 # Ensure that the catalog is sane before attempting an upgrade. While there is
