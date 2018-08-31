@@ -22,4 +22,5 @@ as <codeph>ORDERED</codeph>.</entry></row>
 <row><entry colname="col1"><codeph>aggsortop</codeph></entry><entry colname="col2">oid</entry><entry colname="col3">pg_operator.oid</entry><entry colname="col4">Associated sort operator OID (zero if none)</entry></row>
 <row><entry colname="col1"><codeph>aggtranstype</codeph></entry><entry colname="col2">oid</entry><entry colname="col3">pg_type.oid</entry><entry colname="col4">Data type of the aggregate function's internal
 transition (state) data</entry></row>
+<row><entry colname="col1"><codeph>aggtransspace</codeph></entry><entry colname="col2">int4</entry><entry colname="col3">pg_type.int4</entry><entry colname="col4">Estimated size of state data (0 for default estimate)</entry></row>
 </tbody></tgroup></table></body></topic>

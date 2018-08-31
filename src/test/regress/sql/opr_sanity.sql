@@ -632,7 +632,7 @@ WHERE aggfnoid = 0 OR aggtransfn = 0 OR
     aggkind NOT IN ('n', 'o', 'h') OR
     aggnumdirectargs < 0 OR
     (aggkind = 'n' AND aggnumdirectargs > 0) OR
-    aggtranstype = 0;
+    aggtranstype = 0 OR aggtransspace < 0;
 
 -- Make sure the matching pg_proc entry is sensible, too.
 
