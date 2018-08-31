@@ -553,7 +553,7 @@ gpdb::ExprCollation
 	{
 		if (expr && IsA(expr, List))
 		{
-			// GDPB_91_MERGE_FIXME: collation
+			// GPDB_91_MERGE_FIXME: collation
 			List *exprlist = (List *) expr;
 			ListCell   *lc;
 

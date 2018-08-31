@@ -732,7 +732,7 @@ typedef enum JoinType
 	JOIN_UNIQUE_INNER,			/* RHS path must be made unique */
 
 	/*
-	 * GDPB: Like JOIN_UNIQUE_OUTER/INNER, these codes are used internally
+	 * GPDB: Like JOIN_UNIQUE_OUTER/INNER, these codes are used internally
 	 * in the planner, but are not supported by the executor or by most of the
 	 * planner. A JOIN_DEDUP_SEMI join indicates a semi-join, but to be
 	 * implemented by performing a normal inner join, and eliminating the

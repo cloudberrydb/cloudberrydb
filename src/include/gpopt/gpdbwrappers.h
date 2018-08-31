@@ -153,7 +153,7 @@ namespace gpdb {
 	// expression collation
 	Oid	ExprCollation(Node *expr);
 
-	// expression collation - GDPB_91_MERGE_FIXME
+	// expression collation - GPDB_91_MERGE_FIXME
 	Oid	TypeCollation(Oid type);
 
 	// extract nodes with specific tag from a plan tree
@@ -590,7 +590,7 @@ namespace gpdb {
 	// the first one found, or -1 if there are none
 	int FindNodes(Node *node, List *nodeTags);
 
-	// GDPB_91_MERGE_FIXME: collation
+	// GPDB_91_MERGE_FIXME: collation
 	// look for nodes with non-default collation; returns 1 if any exist, -1 otherwise
 	int CheckCollation(Node *node);
 
