@@ -64,9 +64,14 @@ CREATE TABLE toast_chunk_test (a bytea);
 ALTER TABLE toast_chunk_test ALTER COLUMN a SET STORAGE EXTERNAL;
 
 -- Alter our TOAST_MAX_CHUNK_SIZE and insert a value we know will be toasted.
-SET gp_test_toast_max_chunk_size_override = 7993;
+CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
+SELECT DISTINCT gp_inject_fault('decrease_toast_max_chunk_size', 'skip', dbid)
+	   FROM pg_catalog.gp_segment_configuration
+	   WHERE role = 'p';
 INSERT INTO toast_chunk_test VALUES (repeat('abcdefghijklmnopqrstuvwxyz', 1000)::bytea);
-RESET gp_test_toast_max_chunk_size_override;
+SELECT DISTINCT gp_inject_fault('decrease_toast_max_chunk_size', 'reset', dbid)
+	   FROM pg_catalog.gp_segment_configuration
+	   WHERE role = 'p';
 
 -- The toasted value should still be read correctly.
 SELECT * FROM toast_chunk_test WHERE a <> repeat('abcdefghijklmnopqrstuvwxyz', 1000)::bytea;

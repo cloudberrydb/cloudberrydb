@@ -251,6 +251,8 @@ FI_IDENT(BeforeFtsNotify, "before_fts_notify")
 FI_IDENT(BeforeAcquireLockDuringCreateAoBlkdirTable, "before_acquire_lock_during_create_ao_blkdir_table")
 /* inject fault during gang creation, before check for interrupts */
 FI_IDENT(CreateGangInProgress, "create_gang_in_progress")
+/* inject fault when creating new TOAST tables, to modify the chunk size */
+FI_IDENT(DecreaseToastMaxChunkSize, "decrease_toast_max_chunk_size")
 #endif
 
 /*

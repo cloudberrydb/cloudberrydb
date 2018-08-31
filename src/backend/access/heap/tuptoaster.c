@@ -42,7 +42,7 @@
 #include "utils/tqual.h"
 
 /* GPDB additions */
-#include "utils/guc.h"
+#include "utils/faultinjector.h"
 
 #undef TOAST_DEBUG
 
@@ -1497,7 +1497,7 @@ toast_save_datum(Relation rel, Datum value,
 	int32		data_todo;
 	Pointer		dval = DatumGetPointer(value);
 
-	int32		max_chunk_size;
+	int32		max_chunk_size = TOAST_MAX_CHUNK_SIZE;
 
 	/*
 	 * Open the toast relation and its index.  We can use the index to check
@@ -1664,15 +1664,20 @@ toast_save_datum(Relation rel, Datum value,
 	t_isnull[1] = false;
 	t_isnull[2] = false;
 
+#ifdef FAULT_INJECTOR
 	/*
 	 * GPDB: for upgrade testing purposes, allow the maximum chunk size to be
-	 * overridden via GUC. The result must still fit into TOAST_MAX_CHUNK_SIZE
-	 * so that it doesn't overflow our chunk_data struct.
+	 * modified (here, we decrease it by one). The result must still fit into
+	 * TOAST_MAX_CHUNK_SIZE so that it doesn't overflow our chunk_data struct.
 	 */
-	max_chunk_size = (gp_test_toast_max_chunk_size_override ?
-					  gp_test_toast_max_chunk_size_override :
-					  TOAST_MAX_CHUNK_SIZE);
-	Assert(max_chunk_size <= TOAST_MAX_CHUNK_SIZE);
+	if (FaultInjector_InjectFaultIfSet(DecreaseToastMaxChunkSize,
+									   DDLNotSpecified,
+									   "", /* databaseName */
+									   ""  /* tableName */) != FaultInjectorTypeNotSpecified)
+	{
+		max_chunk_size--;
+	}
+#endif
 
 	/*
 	 * Split up the item into chunks
