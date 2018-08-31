@@ -4320,6 +4320,7 @@ _outCreatePLangStmt(StringInfo str, const CreatePLangStmt *node)
 {
 	WRITE_NODE_TYPE("CREATEPLANGSTMT");
 
+	WRITE_BOOL_FIELD(replace);
 	WRITE_STRING_FIELD(plname);
 	WRITE_NODE_FIELD(plhandler);
 	WRITE_NODE_FIELD(plinline);
