@@ -3142,7 +3142,10 @@ generate_three_tlists(List *tlist,
 							 0);
 
 			new_aggref->aggfnoid = aggref->aggfnoid;
-			new_aggref->aggtype = aggref->aggtype;
+			if (aggref->aggtype == INTERNALOID)
+				new_aggref->aggtype = BYTEAOID;
+			else
+				new_aggref->aggtype = aggref->aggtype;
 			new_aggref->aggcollid = aggref->aggcollid;
 			new_aggref->inputcollid = aggref->inputcollid;
 			new_aggref->args =
@@ -3203,6 +3206,8 @@ generate_three_tlists(List *tlist,
 			Aggref	   *aggref = (Aggref *) tle->expr;
 
 			aggref->aggstage = AGGSTAGE_INTERMEDIATE;
+			if (aggref->aggtype == INTERNALOID)
+				aggref->aggtype = BYTEAOID;
 		}
 	}
 }
@@ -4118,6 +4123,8 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 			pref = (Aggref *) copyObject(aggref);
 			pref->aggtype = transtype;
 			pref->aggstage = AGGSTAGE_PARTIAL;
+			if (pref->aggtype == INTERNALOID)
+				pref->aggtype = BYTEAOID;
 
 			attrno = 1 + list_length(ctx->prefs_tlist);
 			prelim_tle = makeTargetEntry((Expr *) pref, attrno, NULL, false);
@@ -4139,7 +4146,10 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 
 				iref = makeNode(Aggref);
 				iref->aggfnoid = pref->aggfnoid;
-				iref->aggtype = transtype;
+				if (transtype == INTERNALOID)
+					iref->aggtype = BYTEAOID;
+				else
+					iref->aggtype = transtype;
 				iref->aggcollid = aggref->aggcollid;
 				iref->inputcollid = aggref->inputcollid;
 				iref->args = list_make1((Expr *) makeTargetEntry(copyObject(args), 1, NULL, false));

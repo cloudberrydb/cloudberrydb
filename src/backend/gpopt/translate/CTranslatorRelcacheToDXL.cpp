@@ -2242,9 +2242,22 @@ CTranslatorRelcacheToDXL::RetrieveAggIntermediateResultType
 	)
 {
 	OID agg_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
+	OID intermediate_type_oid;
 
 	GPOS_ASSERT(InvalidOid != agg_oid);
-	return GPOS_NEW(mp) CMDIdGPDB(gpdb::GetAggIntermediateResultType(agg_oid));
+	intermediate_type_oid = gpdb::GetAggIntermediateResultType(agg_oid);
+
+	/*
+	 * If the transition type is 'internal', we will use the
+	 * serial/deserial type to convert it to a bytea, for transfer
+	 * between the segments. Therefore return 'bytea' as the
+	 * intermediate type, so that any Motion nodes in between use the
+	 * right datatype.
+	 */
+	if (intermediate_type_oid == INTERNALOID)
+		intermediate_type_oid = BYTEAOID;
+
+	return GPOS_NEW(mp) CMDIdGPDB(intermediate_type_oid);
 }
 
 //---------------------------------------------------------------------------

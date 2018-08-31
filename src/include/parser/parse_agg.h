@@ -46,11 +46,12 @@ extern void build_aggregate_fnexprs(Oid *agg_input_types,
 						Expr **invtransfnexpr,
 						Expr **finalfnexpr,
 						Expr **combinefnexpr);
-extern void build_aggregate_serialfn_expr(Oid agg_state_type,
-										  Oid agg_serial_type,
-										  Oid agg_input_collation,
-										  Oid serialfn_oid,
-										  Expr **serialfnexpr);
+
+extern void build_aggregate_serialfn_expr(Oid serialfn_oid,
+							  Expr **serialfnexpr);
+
+extern void build_aggregate_deserialfn_expr(Oid deserialfn_oid,
+								Expr **deserialfnexpr);
 
 extern bool checkExprHasGroupExtFuncs(Node *node);
 
