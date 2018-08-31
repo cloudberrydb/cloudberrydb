@@ -1064,6 +1064,12 @@ extern Datum numeric_var_pop(PG_FUNCTION_ARGS);
 extern Datum numeric_var_samp(PG_FUNCTION_ARGS);
 extern Datum numeric_stddev_pop(PG_FUNCTION_ARGS);
 extern Datum numeric_stddev_samp(PG_FUNCTION_ARGS);
+extern Datum numeric_poly_sum(PG_FUNCTION_ARGS);
+extern Datum numeric_poly_avg(PG_FUNCTION_ARGS);
+extern Datum numeric_poly_var_pop(PG_FUNCTION_ARGS);
+extern Datum numeric_poly_var_samp(PG_FUNCTION_ARGS);
+extern Datum numeric_poly_stddev_pop(PG_FUNCTION_ARGS);
+extern Datum numeric_poly_stddev_samp(PG_FUNCTION_ARGS);
 extern Datum int2_sum(PG_FUNCTION_ARGS);
 extern Datum int4_sum(PG_FUNCTION_ARGS);
 extern Datum int8_sum(PG_FUNCTION_ARGS);
@@ -1072,6 +1078,7 @@ extern Datum int4_avg_accum(PG_FUNCTION_ARGS);
 extern Datum int8_avg_accum(PG_FUNCTION_ARGS);
 extern Datum int2_avg_accum_inv(PG_FUNCTION_ARGS);
 extern Datum int4_avg_accum_inv(PG_FUNCTION_ARGS);
+extern Datum int8_avg_accum_inv(PG_FUNCTION_ARGS);
 extern Datum float4_avg_accum(PG_FUNCTION_ARGS);
 extern Datum float8_avg_accum(PG_FUNCTION_ARGS);
 extern Datum numeric_avg_accum(PG_FUNCTION_ARGS);
@@ -1080,9 +1087,6 @@ extern Datum float8_avg(PG_FUNCTION_ARGS);
 extern Datum int2int4_sum(PG_FUNCTION_ARGS);
 extern Datum width_bucket_numeric(PG_FUNCTION_ARGS);
 extern Datum hash_numeric(PG_FUNCTION_ARGS);
-
-extern Datum int8_avg_amalg(PG_FUNCTION_ARGS); /* MPP */
-extern Datum float8_avg_amalg(PG_FUNCTION_ARGS); /* MPP */
 
 /* complex_type.c */
 extern Datum complex_cmp(PG_FUNCTION_ARGS);

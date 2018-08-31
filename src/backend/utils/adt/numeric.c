@@ -404,16 +404,18 @@ static char *get_str_from_var_sci(NumericVar *var, int rscale);
  * CAUTION: These routines perform a  free_var(var)
  */
 static Numeric make_result(NumericVar *var);
-static int make_result_inplace(NumericVar *var, Numeric result, int in_len);
-static bool numericvar_to_int8(NumericVar *var, int64 *result);
-static int32 numericvar_to_int4(NumericVar *var);
 /*
  * ----------
  */
 
 static void apply_typmod(NumericVar *var, int32 typmod);
 
-static void int8_to_numericvar(int64 val, NumericVar *var);
+static int32 numericvar_to_int32(NumericVar *var);
+static bool numericvar_to_int64(NumericVar *var, int64 *result);
+static void int64_to_numericvar(int64 val, NumericVar *var);
+#ifdef HAVE_INT128
+static void int128_to_numericvar(int128 val, NumericVar *var);
+#endif
 static double numericvar_to_double_no_overflow(NumericVar *var);
 
 static int	cmp_var(NumericVar *var1, NumericVar *var2);
@@ -1262,7 +1264,7 @@ width_bucket_numeric(PG_FUNCTION_ARGS)
 	quick_init_var(&count_var);
 
 	/* Convert 'count' to a numeric, for ease of use later */
-	int8_to_numericvar((int64) count, &count_var);
+	int64_to_numericvar((int64) count, &count_var);
 
 	switch (cmp_numerics(bound1, bound2))
 	{
@@ -1295,7 +1297,7 @@ width_bucket_numeric(PG_FUNCTION_ARGS)
 	}
 
 	/* if result exceeds the range of a legal int4, we ereport here */
-	result = numericvar_to_int4(&result_var);
+	result = numericvar_to_int32(&result_var);
 
 	free_var(&count_var);
 	free_var(&result_var);
@@ -1970,14 +1972,14 @@ numeric_fac(PG_FUNCTION_ARGS)
 	quick_init_var(&fact);
 	quick_init_var(&result);
 
-	int8_to_numericvar(num, &result);
+	int64_to_numericvar(num, &result);
 
 	for (num = num - 1; num > 1; num--)
 	{
 		/* this loop can take awhile, so allow it to be interrupted */
 		CHECK_FOR_INTERRUPTS();
 
-		int8_to_numericvar(num, &fact);
+		int64_to_numericvar(num, &fact);
 
 		mul_var(&result, &fact, &result, 0);
 	}
@@ -2311,7 +2313,7 @@ numeric_interval_bound_common(Numeric value, Numeric width,
 	/* result = result + shift * width */
 	if (shift != 0)
 	{
-		int8_to_numericvar((int64) shift, &wrkvar);
+		int64_to_numericvar((int64) shift, &wrkvar);
 		mul_var(&wrkvar, &widvar, &wrkvar, wrkvar.dscale + widvar.dscale);
 		add_var(&result, &wrkvar, &result);
 	}
@@ -2514,7 +2516,7 @@ int4_numeric(PG_FUNCTION_ARGS)
 
 	quick_init_var(&result);
 
-	int8_to_numericvar((int64) val, &result);
+	int64_to_numericvar((int64) val, &result);
 
 	res = make_result(&result);
 
@@ -2537,8 +2539,7 @@ numeric_int4(PG_FUNCTION_ARGS)
 
 	/* Convert to variable format, then convert to int4 */
 	init_var_from_num(num, &x);
-	result = numericvar_to_int4(&x);
-
+	result = numericvar_to_int32(&x);
 	PG_RETURN_INT32(result);
 }
 
@@ -2548,12 +2549,12 @@ numeric_int4(PG_FUNCTION_ARGS)
  * ereport(). The input NumericVar is *not* free'd.
  */
 static int32
-numericvar_to_int4(NumericVar *var)
+numericvar_to_int32(NumericVar *var)
 {
 	int32		result;
 	int64		val = 0;
 
-	if (!numericvar_to_int8(var, &val))
+	if (!numericvar_to_int64(var, &val))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("integer out of range")));
@@ -2579,7 +2580,7 @@ int8_numeric(PG_FUNCTION_ARGS)
 
 	quick_init_var(&result);
 
-	int8_to_numericvar(val, &result);
+	int64_to_numericvar(val, &result);
 
 	res = make_result(&result);
 
@@ -2603,7 +2604,7 @@ numeric_int8(PG_FUNCTION_ARGS)
 	/* Convert to variable format and thence to int8 */
 	init_var_from_num(num, &x);
 
-	if (!numericvar_to_int8(&x, &result))
+	if (!numericvar_to_int64(&x, &result))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("bigint out of range")));
@@ -2621,7 +2622,7 @@ int2_numeric(PG_FUNCTION_ARGS)
 
 	quick_init_var(&result);
 
-	int8_to_numericvar((int64) val, &result);
+	int64_to_numericvar((int64) val, &result);
 
 	res = make_result(&result);
 
@@ -2646,7 +2647,7 @@ numeric_int2(PG_FUNCTION_ARGS)
 	/* Convert to variable format and thence to int8 */
 	init_var_from_num(num, &x);
 
-	if (!numericvar_to_int8(&x, &val))
+	if (!numericvar_to_int64(&x, &val))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("smallint out of range")));
@@ -2772,6 +2773,9 @@ numeric_float4(PG_FUNCTION_ARGS)
  * The transition datatype for all these aggregates is declared as INTERNAL.
  * Actually, it's a pointer to a NumericAggState allocated in the aggregate
  * context.  The digit buffers for the NumericVars will be there too.
+ *
+ * On platforms which support 128-bit integers some aggregates instead use a
+ * 128-bit integer based transition datatype to speed up calculations.
  *
  * ----------------------------------------------------------------------
  */
@@ -3035,32 +3039,109 @@ numeric_accum_inv(PG_FUNCTION_ARGS)
 
 
 /*
- * Integer data types all use Numeric accumulators to share code and
- * avoid risk of overflow.	For int2 and int4 inputs, Numeric accumulation
- * is overkill for the N and sum(X) values, but definitely not overkill
- * for the sum(X*X) value.	Hence, we use int2_accum and int4_accum only
- * for stddev/variance --- there are faster special-purpose accumulator
- * routines for SUM and AVG of these datatypes.
+ * Integer data types in general use Numeric accumulators to share code
+ * and avoid risk of overflow.
+ *
+ * However for performance reasons optimized special-purpose accumulator
+ * routines are used when possible.
+ *
+ * On platforms with 128-bit integer support, the 128-bit routines will be
+ * used when sum(X) or sum(X*X) fit into 128-bit.
+ *
+ * For 16 and 32 bit inputs, the N and sum(X) fit into 64-bit so the 64-bit
+ * accumulators will be used for SUM and AVG of these data types.
  */
+
+#ifdef HAVE_INT128
+typedef struct Int128AggState
+{
+	bool		calcSumX2;		/* if true, calculate sumX2 */
+	int64		N;				/* count of processed numbers */
+	int128		sumX;			/* sum of processed numbers */
+	int128		sumX2;			/* sum of squares of processed numbers */
+} Int128AggState;
+
+/*
+ * Prepare state data for a 128-bit aggregate function that needs to compute
+ * sum, count and optionally sum of squares of the input.
+ */
+static Int128AggState *
+makeInt128AggState(FunctionCallInfo fcinfo, bool calcSumX2)
+{
+	Int128AggState *state;
+	MemoryContext agg_context;
+	MemoryContext old_context;
+
+	if (!AggCheckCallContext(fcinfo, &agg_context))
+		elog(ERROR, "aggregate function called in non-aggregate context");
+
+	old_context = MemoryContextSwitchTo(agg_context);
+
+	state = (Int128AggState *) palloc0(sizeof(Int128AggState));
+	state->calcSumX2 = calcSumX2;
+
+	MemoryContextSwitchTo(old_context);
+
+	return state;
+}
+
+/*
+ * Accumulate a new input value for 128-bit aggregate functions.
+ */
+static void
+do_int128_accum(Int128AggState *state, int128 newval)
+{
+	if (state->calcSumX2)
+		state->sumX2 += newval * newval;
+
+	state->sumX += newval;
+	state->N++;
+}
+
+/*
+ * Remove an input value from the aggregated state.
+ */
+static void
+do_int128_discard(Int128AggState *state, int128 newval)
+{
+	if (state->calcSumX2)
+		state->sumX2 -= newval * newval;
+
+	state->sumX -= newval;
+	state->N--;
+}
+
+typedef Int128AggState PolyNumAggState;
+#define makePolyNumAggState makeInt128AggState
+#define makePolyNumAggStateCurrentContext makeInt128AggStateCurrentContext
+#else
+typedef NumericAggState PolyNumAggState;
+#define makePolyNumAggState makeNumericAggState
+#define makePolyNumAggStateCurrentContext makeNumericAggStateCurrentContext
+#endif
 
 Datum
 int2_accum(PG_FUNCTION_ARGS)
 {
-	NumericAggState *state;
+	PolyNumAggState *state;
 
-	state = PG_ARGISNULL(0) ? NULL : (NumericAggState *) PG_GETARG_POINTER(0);
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
 
 	/* Create the state data on the first call */
 	if (state == NULL)
-		state = makeNumericAggState(fcinfo, true);
+		state = makePolyNumAggState(fcinfo, true);
 
 	if (!PG_ARGISNULL(1))
 	{
+#ifdef HAVE_INT128
+		do_int128_accum(state, (int128) PG_GETARG_INT16(1));
+#else
 		Numeric		newval;
 
 		newval = DatumGetNumeric(DirectFunctionCall1(int2_numeric,
 													 PG_GETARG_DATUM(1)));
 		do_numeric_accum(state, newval);
+#endif
 	}
 
 	PG_RETURN_POINTER(state);
@@ -3069,21 +3150,25 @@ int2_accum(PG_FUNCTION_ARGS)
 Datum
 int4_accum(PG_FUNCTION_ARGS)
 {
-	NumericAggState *state;
+	PolyNumAggState *state;
 
-	state = PG_ARGISNULL(0) ? NULL : (NumericAggState *) PG_GETARG_POINTER(0);
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
 
 	/* Create the state data on the first call */
 	if (state == NULL)
-		state = makeNumericAggState(fcinfo, true);
+		state = makePolyNumAggState(fcinfo, true);
 
 	if (!PG_ARGISNULL(1))
 	{
+#ifdef HAVE_INT128
+		do_int128_accum(state, (int128) PG_GETARG_INT32(1));
+#else
 		Numeric		newval;
 
 		newval = DatumGetNumeric(DirectFunctionCall1(int4_numeric,
 													 PG_GETARG_DATUM(1)));
 		do_numeric_accum(state, newval);
+#endif
 	}
 
 	PG_RETURN_POINTER(state);
@@ -3118,21 +3203,25 @@ int8_accum(PG_FUNCTION_ARGS)
 Datum
 int8_avg_accum(PG_FUNCTION_ARGS)
 {
-	NumericAggState *state;
+	PolyNumAggState *state;
 
-	state = PG_ARGISNULL(0) ? NULL : (NumericAggState *) PG_GETARG_POINTER(0);
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
 
 	/* Create the state data on the first call */
 	if (state == NULL)
-		state = makeNumericAggState(fcinfo, false);
+		state = makePolyNumAggState(fcinfo, false);
 
 	if (!PG_ARGISNULL(1))
 	{
+#ifdef HAVE_INT128
+		do_int128_accum(state, (int128) PG_GETARG_INT64(1));
+#else
 		Numeric		newval;
 
 		newval = DatumGetNumeric(DirectFunctionCall1(int8_numeric,
 													 PG_GETARG_DATUM(1)));
 		do_numeric_accum(state, newval);
+#endif
 	}
 
 	PG_RETURN_POINTER(state);
@@ -3146,9 +3235,9 @@ int8_avg_accum(PG_FUNCTION_ARGS)
 Datum
 int2_accum_inv(PG_FUNCTION_ARGS)
 {
-	NumericAggState *state;
+	PolyNumAggState *state;
 
-	state = PG_ARGISNULL(0) ? NULL : (NumericAggState *) PG_GETARG_POINTER(0);
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
 
 	/* Should not get here with no state */
 	if (state == NULL)
@@ -3156,6 +3245,9 @@ int2_accum_inv(PG_FUNCTION_ARGS)
 
 	if (!PG_ARGISNULL(1))
 	{
+#ifdef HAVE_INT128
+		do_int128_discard(state, (int128) PG_GETARG_INT16(1));
+#else
 		Numeric		newval;
 
 		newval = DatumGetNumeric(DirectFunctionCall1(int2_numeric,
@@ -3164,6 +3256,7 @@ int2_accum_inv(PG_FUNCTION_ARGS)
 		/* Should never fail, all inputs have dscale 0 */
 		if (!do_numeric_discard(state, newval))
 			elog(ERROR, "do_numeric_discard failed unexpectedly");
+#endif
 	}
 
 	PG_RETURN_POINTER(state);
@@ -3172,9 +3265,9 @@ int2_accum_inv(PG_FUNCTION_ARGS)
 Datum
 int4_accum_inv(PG_FUNCTION_ARGS)
 {
-	NumericAggState *state;
+	PolyNumAggState *state;
 
-	state = PG_ARGISNULL(0) ? NULL : (NumericAggState *) PG_GETARG_POINTER(0);
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
 
 	/* Should not get here with no state */
 	if (state == NULL)
@@ -3182,6 +3275,9 @@ int4_accum_inv(PG_FUNCTION_ARGS)
 
 	if (!PG_ARGISNULL(1))
 	{
+#ifdef HAVE_INT128
+		do_int128_discard(state, (int128) PG_GETARG_INT32(1));
+#else
 		Numeric		newval;
 
 		newval = DatumGetNumeric(DirectFunctionCall1(int4_numeric,
@@ -3190,6 +3286,7 @@ int4_accum_inv(PG_FUNCTION_ARGS)
 		/* Should never fail, all inputs have dscale 0 */
 		if (!do_numeric_discard(state, newval))
 			elog(ERROR, "do_numeric_discard failed unexpectedly");
+#endif
 	}
 
 	PG_RETURN_POINTER(state);
@@ -3219,6 +3316,95 @@ int8_accum_inv(PG_FUNCTION_ARGS)
 	}
 
 	PG_RETURN_POINTER(state);
+}
+
+Datum
+int8_avg_accum_inv(PG_FUNCTION_ARGS)
+{
+	PolyNumAggState *state;
+
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
+
+	/* Should not get here with no state */
+	if (state == NULL)
+		elog(ERROR, "int8_avg_accum_inv called with NULL state");
+
+	if (!PG_ARGISNULL(1))
+	{
+#ifdef HAVE_INT128
+		do_int128_discard(state, (int128) PG_GETARG_INT64(1));
+#else
+		Numeric		newval;
+
+		newval = DatumGetNumeric(DirectFunctionCall1(int8_numeric,
+													 PG_GETARG_DATUM(1)));
+
+		/* Should never fail, all inputs have dscale 0 */
+		if (!do_numeric_discard(state, newval))
+			elog(ERROR, "do_numeric_discard failed unexpectedly");
+#endif
+	}
+
+	PG_RETURN_POINTER(state);
+}
+
+Datum
+numeric_poly_sum(PG_FUNCTION_ARGS)
+{
+#ifdef HAVE_INT128
+	PolyNumAggState *state;
+	Numeric		res;
+	NumericVar	result;
+
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
+
+	/* If there were no non-null inputs, return NULL */
+	if (state == NULL || state->N == 0)
+		PG_RETURN_NULL();
+
+	init_var(&result);
+
+	int128_to_numericvar(state->sumX, &result);
+
+	res = make_result(&result);
+
+	free_var(&result);
+
+	PG_RETURN_NUMERIC(res);
+#else
+	return numeric_sum(fcinfo);
+#endif
+}
+
+Datum
+numeric_poly_avg(PG_FUNCTION_ARGS)
+{
+#ifdef HAVE_INT128
+	PolyNumAggState *state;
+	NumericVar	result;
+	Datum		countd,
+				sumd;
+
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
+
+	/* If there were no non-null inputs, return NULL */
+	if (state == NULL || state->N == 0)
+		PG_RETURN_NULL();
+
+	init_var(&result);
+
+	int128_to_numericvar(state->sumX, &result);
+
+	countd = DirectFunctionCall1(int8_numeric,
+								 Int64GetDatumFast(state->N));
+	sumd = NumericGetDatum(make_result(&result));
+
+	free_var(&result);
+
+	PG_RETURN_DATUM(DirectFunctionCall2(numeric_div, sumd, countd));
+#else
+	return numeric_avg(fcinfo);
+#endif
 }
 
 Datum
@@ -3300,7 +3486,7 @@ numeric_stddev_internal(NumericAggState *state,
 	init_var(&vsumX);
 	init_var(&vsumX2);
 
-	int8_to_numericvar(state->N, &vN);
+	int64_to_numericvar(state->N, &vN);
 	set_var_from_var(&(state->sumX), &vsumX);
 	set_var_from_var(&(state->sumX2), &vsumX2);
 
@@ -3423,6 +3609,124 @@ numeric_stddev_pop(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 	else
 		PG_RETURN_NUMERIC(res);
+}
+
+#ifdef HAVE_INT128
+static Numeric
+numeric_poly_stddev_internal(Int128AggState *state,
+							 bool variance, bool sample,
+							 bool *is_null)
+{
+	NumericAggState numstate;
+	Numeric		res;
+
+	init_var(&numstate.sumX);
+	init_var(&numstate.sumX2);
+	numstate.NaNcount = 0;
+	numstate.agg_context = NULL;
+
+	if (state)
+	{
+		numstate.N = state->N;
+		int128_to_numericvar(state->sumX, &numstate.sumX);
+		int128_to_numericvar(state->sumX2, &numstate.sumX2);
+	}
+	else
+	{
+		numstate.N = 0;
+	}
+
+	res = numeric_stddev_internal(&numstate, variance, sample, is_null);
+
+	free_var(&numstate.sumX);
+	free_var(&numstate.sumX2);
+
+	return res;
+}
+#endif
+
+Datum
+numeric_poly_var_samp(PG_FUNCTION_ARGS)
+{
+#ifdef HAVE_INT128
+	PolyNumAggState *state;
+	Numeric		res;
+	bool		is_null;
+
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
+
+	res = numeric_poly_stddev_internal(state, true, true, &is_null);
+
+	if (is_null)
+		PG_RETURN_NULL();
+	else
+		PG_RETURN_NUMERIC(res);
+#else
+	return numeric_var_samp(fcinfo);
+#endif
+}
+
+Datum
+numeric_poly_stddev_samp(PG_FUNCTION_ARGS)
+{
+#ifdef HAVE_INT128
+	PolyNumAggState *state;
+	Numeric		res;
+	bool		is_null;
+
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
+
+	res = numeric_poly_stddev_internal(state, false, true, &is_null);
+
+	if (is_null)
+		PG_RETURN_NULL();
+	else
+		PG_RETURN_NUMERIC(res);
+#else
+	return numeric_stddev_samp(fcinfo);
+#endif
+}
+
+Datum
+numeric_poly_var_pop(PG_FUNCTION_ARGS)
+{
+#ifdef HAVE_INT128
+	PolyNumAggState *state;
+	Numeric		res;
+	bool		is_null;
+
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
+
+	res = numeric_poly_stddev_internal(state, true, false, &is_null);
+
+	if (is_null)
+		PG_RETURN_NULL();
+	else
+		PG_RETURN_NUMERIC(res);
+#else
+	return numeric_var_pop(fcinfo);
+#endif
+}
+
+Datum
+numeric_poly_stddev_pop(PG_FUNCTION_ARGS)
+{
+#ifdef HAVE_INT128
+	PolyNumAggState *state;
+	Numeric		res;
+	bool		is_null;
+
+	state = PG_ARGISNULL(0) ? NULL : (PolyNumAggState *) PG_GETARG_POINTER(0);
+
+	res = numeric_poly_stddev_internal(state, false, false, &is_null);
+
+	if (is_null)
+		PG_RETURN_NULL();
+	else
+		PG_RETURN_NUMERIC(res);
+#else
+	return numeric_stddev_pop(fcinfo);
+#endif
 }
 
 /*
@@ -3590,122 +3894,67 @@ int8_sum(PG_FUNCTION_ARGS)
  * we need to count the inputs.
  */
 
-typedef struct IntFloatAvgTransdata
+typedef struct Int8TransTypeData
 {
-	int32   _len; /* len for varattrib, do not touch directly */
-#if 1
-	int32   pad;  /* pad so int64 and float64 will be 8 bytes aligned */
-#endif
-	int64 	count;
-	float8 sum;
-} IntFloatAvgTransdata;
-
-static inline Datum
-intfloat_avg_accum(IntFloatAvgTransdata *transdata, float8 newval)
-{
-	if(transdata == NULL || VARSIZE(transdata) != sizeof(IntFloatAvgTransdata))
-	{
-		/* If first time execution, need to allocate memory for this */
-		transdata = (IntFloatAvgTransdata *) palloc(sizeof(IntFloatAvgTransdata));
-		SET_VARSIZE(transdata, sizeof(IntFloatAvgTransdata));
-		transdata->count = 0;
-		transdata->sum = 0;
-	}
-	else
-	{
-		Assert(VARSIZE(transdata) == sizeof(IntFloatAvgTransdata));
-	}
-
-	++transdata->count;
-	transdata->sum += newval;
-
-	return PointerGetDatum(transdata); 
-}
-
-static inline Datum
-intfloat_avg_amalg(IntFloatAvgTransdata* tr0,
-				   IntFloatAvgTransdata *tr1)
-{
-	if(tr0 == NULL || VARSIZE(tr0) != sizeof(IntFloatAvgTransdata))
-	{
-		tr0 = (IntFloatAvgTransdata *) palloc(sizeof(IntFloatAvgTransdata));
-		SET_VARSIZE(tr0, sizeof(IntFloatAvgTransdata));
-		tr0->count = 0;
-		tr0->sum = 0;
-	}
-
-	if(tr1 == NULL || VARSIZE(tr1) != sizeof(IntFloatAvgTransdata))
-		return PointerGetDatum(tr0);
-
-	Assert(VARSIZE(tr0) == sizeof(IntFloatAvgTransdata));
-	Assert(VARSIZE(tr1) == sizeof(IntFloatAvgTransdata));
-
-	tr0->count += tr1->count;
-	tr0->sum += tr1->sum;
-
-	return PointerGetDatum(tr0);
-}
+	int64		count;
+	int64		sum;
+} Int8TransTypeData;
 
 Datum
 int2_avg_accum(PG_FUNCTION_ARGS)
 {
-	IntFloatAvgTransdata *tr = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
+	ArrayType  *transarray;
 	int16		newval = PG_GETARG_INT16(1);
+	Int8TransTypeData *transdata;
 
-	Assert(fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context));
-	return intfloat_avg_accum(tr, newval);
+	/*
+	 * If we're invoked as an aggregate, we can cheat and modify our first
+	 * parameter in-place to reduce palloc overhead. Otherwise we need to make
+	 * a copy of it before scribbling on it.
+	 */
+	if (AggCheckCallContext(fcinfo, NULL))
+		transarray = PG_GETARG_ARRAYTYPE_P(0);
+	else
+		transarray = PG_GETARG_ARRAYTYPE_P_COPY(0);
+
+	if (ARR_HASNULL(transarray) ||
+		ARR_SIZE(transarray) != ARR_OVERHEAD_NONULLS(1) + sizeof(Int8TransTypeData))
+		elog(ERROR, "expected 2-element int8 array");
+
+	transdata = (Int8TransTypeData *) ARR_DATA_PTR(transarray);
+	transdata->count++;
+	transdata->sum += newval;
+
+	PG_RETURN_ARRAYTYPE_P(transarray);
 }
-		
+
 Datum
 int4_avg_accum(PG_FUNCTION_ARGS)
 {
-	IntFloatAvgTransdata *tr = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
+	ArrayType  *transarray;
 	int32		newval = PG_GETARG_INT32(1);
+	Int8TransTypeData *transdata;
 
-	Assert(fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context));
-	return intfloat_avg_accum(tr, newval);
+	/*
+	 * If we're invoked as an aggregate, we can cheat and modify our first
+	 * parameter in-place to reduce palloc overhead. Otherwise we need to make
+	 * a copy of it before scribbling on it.
+	 */
+	if (AggCheckCallContext(fcinfo, NULL))
+		transarray = PG_GETARG_ARRAYTYPE_P(0);
+	else
+		transarray = PG_GETARG_ARRAYTYPE_P_COPY(0);
+
+	if (ARR_HASNULL(transarray) ||
+		ARR_SIZE(transarray) != ARR_OVERHEAD_NONULLS(1) + sizeof(Int8TransTypeData))
+		elog(ERROR, "expected 2-element int8 array");
+
+	transdata = (Int8TransTypeData *) ARR_DATA_PTR(transarray);
+	transdata->count++;
+	transdata->sum += newval;
+
+	PG_RETURN_ARRAYTYPE_P(transarray);
 }
-
-Datum
-float4_avg_accum(PG_FUNCTION_ARGS)
-{
-	IntFloatAvgTransdata *tr = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
-	float4		newval = PG_GETARG_FLOAT4(1);
-
-	Assert(fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context));
-	return intfloat_avg_accum(tr, newval);
-}
-
-Datum
-float8_avg_accum(PG_FUNCTION_ARGS)
-{
-	IntFloatAvgTransdata *tr = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
-	float8		newval = PG_GETARG_FLOAT8(1);
-
-	Assert(fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context));
-	return intfloat_avg_accum(tr, newval);
-}
-
-Datum 
-int8_avg_amalg(PG_FUNCTION_ARGS)
-{
-	IntFloatAvgTransdata* d0 = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
-	IntFloatAvgTransdata* d1 = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(1);
-
-	Assert(fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context));
-	return intfloat_avg_amalg(d0, d1);
-}
-
-Datum 
-float8_avg_amalg(PG_FUNCTION_ARGS)
-{
-	IntFloatAvgTransdata* d0 = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
-	IntFloatAvgTransdata* d1 = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(1);
-
-	Assert(fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context));
-	return intfloat_avg_amalg(d0, d1);
-}
-
 
 Datum
 int2_avg_accum_inv(PG_FUNCTION_ARGS)
@@ -3766,15 +4015,26 @@ int4_avg_accum_inv(PG_FUNCTION_ARGS)
 Datum
 int8_avg(PG_FUNCTION_ARGS)
 {
-	IntFloatAvgTransdata *tr0 = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
-	float8 avg = 0;
+	ArrayType  *transarray = PG_GETARG_ARRAYTYPE_P(0);
+	Int8TransTypeData *transdata;
+	Datum		countd,
+				sumd;
 
-	/* SQL92 defines AVG of no values to be NULL */
-	if(!tr0 || VARSIZE(tr0) < sizeof(IntFloatAvgTransdata) || tr0->count == 0) 
+	if (ARR_HASNULL(transarray) ||
+		ARR_SIZE(transarray) != ARR_OVERHEAD_NONULLS(1) + sizeof(Int8TransTypeData))
+		elog(ERROR, "expected 2-element int8 array");
+	transdata = (Int8TransTypeData *) ARR_DATA_PTR(transarray);
+
+	/* SQL defines AVG of no values to be NULL */
+	if (transdata->count == 0)
 		PG_RETURN_NULL();
 
-	avg = tr0->sum / tr0->count;
-	PG_RETURN_DATUM(DirectFunctionCall1(float8_numeric, Float8GetDatum(avg)));
+	countd = DirectFunctionCall1(int8_numeric,
+								 Int64GetDatumFast(transdata->count));
+	sumd = DirectFunctionCall1(int8_numeric,
+							   Int64GetDatumFast(transdata->sum));
+
+	PG_RETURN_DATUM(DirectFunctionCall2(numeric_div, sumd, countd));
 }
 
 /*
@@ -3797,20 +4057,6 @@ int2int4_sum(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	PG_RETURN_DATUM(Int64GetDatumFast(transdata->sum));
-}
-
-Datum
-float8_avg(PG_FUNCTION_ARGS)
-{
-	IntFloatAvgTransdata *tr0 = (IntFloatAvgTransdata *) PG_GETARG_BYTEA_P(0);
-	float8 avg = 0;
-
-	/* SQL92 defines AVG of no values to be NULL */
-	if(!tr0 || VARSIZE(tr0) < sizeof(IntFloatAvgTransdata) || tr0->count == 0) 
-		PG_RETURN_NULL();
-
-	avg = tr0->sum / tr0->count;
-	return Float8GetDatum(avg);
 }
 
 /* ----------------------------------------------------------------------
@@ -4101,7 +4347,7 @@ init_var_from_str(const char *str, const char *cp, NumericVar *dest)
  *
  *	Convert the packed db format into a variable
  */
-/*
+#if 0
 static void
 set_var_from_num(Numeric num, NumericVar *dest)
 {
@@ -4117,7 +4363,7 @@ set_var_from_num(Numeric num, NumericVar *dest)
 
 	memcpy(dest->digits, NUMERIC_DIGITS(num), ndigits * sizeof(NumericDigit));
 }
-*/
+#endif
 
 /*
  * init_var_from_num() -
@@ -4438,7 +4684,7 @@ get_str_from_var_sci(NumericVar *var, int rscale)
 	init_var(&denominator);
 	init_var(&significand);
 
-	int8_to_numericvar((int64) 10, &denominator);
+	int64_to_numericvar((int64) 10, &denominator);
 	power_var_int(&denominator, exponent, &denominator, denom_scale);
 	div_var(var, &denominator, &significand, rscale, true);
 	sig_out = get_str_from_var(&significand, rscale);
@@ -4557,85 +4803,6 @@ make_result(NumericVar *var)
 	return result;
 }
 
-/* Make a var in place.  
- * return 0 if succeed (len is long enough), otherwisse, return bytes needed.
- */
-static int
-make_result_inplace(NumericVar *var, Numeric result, int in_len)
-{
-	NumericDigit *digits = var->digits;
-	int weight = var->weight;
-	int sign = var->sign;
-	int n;
-	Size len;
-
-	if(sign == NUMERIC_NAN)
-	{
-		if(in_len < NUMERIC_HDRSZ)
-			return NUMERIC_HDRSZ;
-
-		Assert(result);
-		SET_VARSIZE(result, NUMERIC_HDRSZ);
-		result->choice.n_header = NUMERIC_NAN;
-		/* the header word is all we need */
-
-		return 0;
-	}
-
-	n = var->ndigits;
-
-	/* truncate leading zeroes */
-	while (n > 0 && *digits == 0)
-	{
-		digits++;
-		weight--;
-		n--;
-	}
-	/* truncate trailing zeroes */
-	while (n > 0 && digits[n - 1] == 0)
-		n--;
-
-	/* If zero result, force to weight=0 and positive sign */
-	if (n == 0)
-	{
-		weight = 0;
-		sign = NUMERIC_POS;
-	}
-
-	/* Build the result */
-	len = NUMERIC_HDRSZ + n * sizeof(NumericDigit);
-
-	if(in_len < len)
-		return len;
-
-	/* GPDB_91_MERGE_FIXME: this always uses the "long" format. Is that good? */
-	Assert(result);
-	SET_VARSIZE(result, len);
-	result->choice.n_long.n_sign_dscale =
-		sign | (var->dscale & NUMERIC_DSCALE_MASK);
-	result->choice.n_long.n_weight = weight;
-
-	memcpy(NUMERIC_DIGITS(result), digits, n * sizeof(NumericDigit));
-
-	/* Check for overflow of int16 fields */
-	if (NUMERIC_WEIGHT(result) != weight ||
-		NUMERIC_DSCALE(result) != var->dscale)
-	{
-		char *ntp = get_str_from_var(var, var->dscale);
-
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("value overflows numeric format"),
-				 errdetail("Overflowing value: %s", ntp)
-				));
-	}
-
-	free_var(var);
-
-	return 0;
-}
-
-
 /*
  * apply_typmod() -
  *
@@ -4727,7 +4894,7 @@ apply_typmod(NumericVar *var, int32 typmod)
  *	CAUTION: we free_var(var) here!
  */
 static bool
-numericvar_to_int8(NumericVar *var, int64 *result)
+numericvar_to_int64(NumericVar *var, int64 *result)
 {
 	NumericDigit *digits;
 	int			ndigits;
@@ -4794,14 +4961,14 @@ numericvar_to_int8(NumericVar *var, int64 *result)
  * Convert int8 value to numeric.
  */
 static void
-int8_to_numericvar(int64 val, NumericVar *var)
+int64_to_numericvar(int64 val, NumericVar *var)
 {
 	uint64		uval,
 				newuval;
 	NumericDigit *ptr;
 	int			ndigits;
 
-	/* int8 can require at most 19 decimal digits; add one for safety */
+	/* int64 can require at most 19 decimal digits; add one for safety */
 	alloc_var(var, 20 / DEC_DIGITS);
 	if (val < 0)
 	{
@@ -4834,6 +5001,53 @@ int8_to_numericvar(int64 val, NumericVar *var)
 	var->ndigits = ndigits;
 	var->weight = ndigits - 1;
 }
+
+#ifdef HAVE_INT128
+/*
+ * Convert 128 bit integer to numeric.
+ */
+static void
+int128_to_numericvar(int128 val, NumericVar *var)
+{
+	uint128			uval,
+					newuval;
+	NumericDigit   *ptr;
+	int				ndigits;
+
+	/* int128 can require at most 39 decimal digits; add one for safety */
+	alloc_var(var, 40 / DEC_DIGITS);
+	if (val < 0)
+	{
+		var->sign = NUMERIC_NEG;
+		uval = -val;
+	}
+	else
+	{
+		var->sign = NUMERIC_POS;
+		uval = val;
+	}
+	var->dscale = 0;
+	if (val == 0)
+	{
+		var->ndigits = 0;
+		var->weight = 0;
+		return;
+	}
+	ptr = var->digits + var->ndigits;
+	ndigits = 0;
+	do
+	{
+		ptr--;
+		ndigits++;
+		newuval = uval / NBASE;
+		*ptr = uval - newuval * NBASE;
+		uval = newuval;
+	} while (uval);
+	var->digits = ptr;
+	var->ndigits = ndigits;
+	var->weight = ndigits - 1;
+}
+#endif
 
 /*
  * Convert numeric to float8; if out of range, return +/- HUGE_VAL
@@ -6453,7 +6667,7 @@ power_var(NumericVar *base, NumericVar *exp, NumericVar *result)
 
 		/* must copy because numericvar_to_int8() scribbles on input */
 		init_var_from_var(exp, &x);
-		if (numericvar_to_int8(&x, &expval64))
+		if (numericvar_to_int64(&x, &expval64))
 		{
 			int			expval = (int) expval64;
 

@@ -41,6 +41,7 @@
 #error -ffast-math is known to break this code
 #endif
 
+#define SAMESIGN(a,b)	(((a) < 0) == ((b) < 0))
 
 /* Set at postmaster start */
 TimestampTz PgStartTime;

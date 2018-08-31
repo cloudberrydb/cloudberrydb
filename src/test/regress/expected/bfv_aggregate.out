@@ -1604,6 +1604,15 @@ EXPLAIN SELECT count(unnest(foo)) FROM tbl_agg_srf;
 
 SELECT count(unnest(foo)) FROM tbl_agg_srf;
 ERROR:  set-valued function called in context that cannot accept a set  (seg0 slice1 127.0.0.1:25432 pid=43830)
+-- Test that integer AVG() aggregate is accurate with large values. We used to
+-- use float8 to hold the running sums, which did not have enough precision
+-- for this.
+select avg('1000000000000000000'::int8) from generate_series(1, 100000);
+         avg         
+---------------------
+ 1000000000000000000
+(1 row)
+
 -- CLEANUP
 set client_min_messages='warning';
 drop schema bfv_aggregate cascade;

@@ -1389,6 +1389,12 @@ CREATE TABLE tbl_agg_srf (foo int[]) DISTRIBUTED RANDOMLY;
 INSERT INTO tbl_agg_srf VALUES (array[1,2,3]);
 EXPLAIN SELECT count(unnest(foo)) FROM tbl_agg_srf;
 SELECT count(unnest(foo)) FROM tbl_agg_srf;
+
+-- Test that integer AVG() aggregate is accurate with large values. We used to
+-- use float8 to hold the running sums, which did not have enough precision
+-- for this.
+select avg('1000000000000000000'::int8) from generate_series(1, 100000);
+
 -- CLEANUP
 set client_min_messages='warning';
 drop schema bfv_aggregate cascade;

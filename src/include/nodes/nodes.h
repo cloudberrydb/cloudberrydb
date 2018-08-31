@@ -798,16 +798,6 @@ typedef enum DispatchMethod
 } DispatchMethod;
 
 /*
- * Inside the executor, if a caller to some data type manipulation functions
- * (e.g., int8inc()) is doing aggregate or window function work, we want to
- * avoid copying the input datum and just write directly over the input. This
- * isn't legal if the function is being used outside this context.
- */
-#define IS_AGG_EXECUTION_NODE(node) \
-	((IsA((Node *)(node), AggState) || IsA((Node *)(node), WindowAggState)) ? \
-	 true : false)
-
-/*
  * If the partIndex in Scan set to 0 then we don't have
  * any dynamic partition scanning
  */

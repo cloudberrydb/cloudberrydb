@@ -8557,12 +8557,12 @@ select sum(f1.a+1)+sum(f1.a+1) from orca.fooh1 f1 group by f1.a+1;
 (4 rows)
 
 select sum(f1.a+1)+avg(f1.a+1), sum(f1.a), sum(f1.a+1) from orca.fooh1 f1 group by f1.a+1;
- ?column? | sum | sum 
-----------+-----+-----
-       24 |  15 |  20
-       18 |  10 |  15
-        6 |   0 |   5
-       12 |   5 |  10
+        ?column?        | sum | sum 
+------------------------+-----+-----
+    24.0000000000000000 |  15 |  20
+    18.0000000000000000 |  10 |  15
+ 6.00000000000000000000 |   0 |   5
+    12.0000000000000000 |   5 |  10
 (4 rows)
 
 create table orca.t77(C952 text) WITH (compresstype=zlib,compresslevel=2,appendonly=true,blocksize=393216,checksum=true);

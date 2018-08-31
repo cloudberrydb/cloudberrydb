@@ -1979,6 +1979,26 @@ float4_accum(PG_FUNCTION_ARGS)
 }
 
 Datum
+float8_avg(PG_FUNCTION_ARGS)
+{
+	ArrayType  *transarray = PG_GETARG_ARRAYTYPE_P(0);
+	float8	   *transvalues;
+	float8		N,
+				sumX;
+
+	transvalues = check_float8_array(transarray, "float8_avg", 3);
+	N = transvalues[0];
+	sumX = transvalues[1];
+	/* ignore sumX2 */
+
+	/* SQL defines AVG of no values to be NULL */
+	if (N == 0.0)
+		PG_RETURN_NULL();
+
+	PG_RETURN_FLOAT8(sumX / N);
+}
+
+Datum
 float8_var_pop(PG_FUNCTION_ARGS)
 {
 	ArrayType  *transarray = PG_GETARG_ARRAYTYPE_P(0);
