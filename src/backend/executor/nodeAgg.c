@@ -3,15 +3,28 @@
  * nodeAgg.c
  *	  Routines to handle aggregate nodes.
  *
- *	  ExecAgg evaluates each aggregate in the following steps:
+ *	  ExecAgg normally evaluates each aggregate in the following steps:
  *
  *		 transvalue = initcond
  *		 foreach input_tuple do
  *			transvalue = transfunc(transvalue, input_value(s))
  *		 result = finalfunc(transvalue, direct_argument(s))
  *
- *	  If a finalfunc is not supplied then the result is just the ending
- *	  value of transvalue.
+ *	  If a finalfunc is not supplied or finalizeAggs is false, then the result
+ *	  is just the ending value of transvalue.
+ *
+ *	  The transition function might actually be a "combine" function, if this
+ *	  Aggregate node is part of a multi-stage aggregate. Note that although
+ *	  we use the same "combine" functions and catalogs as PostgrSQL 9.4,
+ *	  the implementation in this file is quite different. TODO: refactor
+ *	  this to not be so different.
+ *
+ *	  Combine functions which use pass-by-ref states should be careful to
+ *	  always update the 1st state parameter by adding the 2nd parameter to it,
+ *	  rather than the other way around. If the 1st state is NULL, then it's not
+ *	  sufficient to simply return the 2nd state, as the memory context is
+ *	  incorrect. Instead a new state should be created in the correct aggregate
+ *	  memory context and the 2nd state should be copied over.
  *
  *	  If a normal aggregate call specifies DISTINCT or ORDER BY, we sort the
  *	  input tuples and eliminate duplicates (if required) before performing
@@ -1914,7 +1927,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 					finalfn_oid = InvalidOid;
 		Expr	   *transfnexpr = NULL,
 				   *finalfnexpr = NULL,
-				   *prelimfnexpr = NULL;
+				   *combinefnexpr = NULL;
 		Datum		textInitVal;
 		int			i;
 		ListCell   *lc;
@@ -1977,17 +1990,17 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 				break;
 
 			case AGGSTAGE_INTERMEDIATE:
-				peraggstate->transfn_oid = transfn_oid = aggform->aggprelimfn;
+				peraggstate->transfn_oid = transfn_oid = aggform->aggcombinefn;
 				peraggstate->finalfn_oid = finalfn_oid = InvalidOid;
 				break;
 
 			case AGGSTAGE_FINAL:		/* Two-stage aggregation - final stage */
-				peraggstate->transfn_oid = transfn_oid = aggform->aggprelimfn;
+				peraggstate->transfn_oid = transfn_oid = aggform->aggcombinefn;
 				peraggstate->finalfn_oid = finalfn_oid = aggform->aggfinalfn;
 				break;
 		}
 
-		peraggstate->prelimfn_oid = aggform->aggprelimfn;
+		peraggstate->combinefn_oid = aggform->aggcombinefn;
 
 		/* Check that aggregate owner has permission to call component fns */
 		{
@@ -2015,13 +2028,13 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 					aclcheck_error(aclresult, ACL_KIND_PROC,
 								   get_func_name(finalfn_oid));
 			}
-			if (OidIsValid(peraggstate->prelimfn_oid))
+			if (OidIsValid(peraggstate->combinefn_oid))
 			{
-				aclresult = pg_proc_aclcheck(peraggstate->prelimfn_oid, aggOwner,
+				aclresult = pg_proc_aclcheck(peraggstate->combinefn_oid, aggOwner,
 											 ACL_EXECUTE);
 				if (aclresult != ACLCHECK_OK)
 					aclcheck_error(aclresult, ACL_KIND_PROC,
-								   get_func_name(peraggstate->prelimfn_oid));
+								   get_func_name(peraggstate->combinefn_oid));
 			}
 		}
 
@@ -2069,10 +2082,10 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 								aggref->inputcollid,
 								transfn_oid,
 								finalfn_oid,
-								peraggstate->prelimfn_oid /* prelim */ ,
+								peraggstate->combinefn_oid,
 								&transfnexpr,
 								&finalfnexpr,
-								&prelimfnexpr);
+								&combinefnexpr);
 
 		fmgr_info(transfn_oid, &peraggstate->transfn);
 		fmgr_info_set_expr((Node *) transfnexpr, &peraggstate->transfn);
@@ -2083,10 +2096,10 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 			fmgr_info_set_expr((Node *) finalfnexpr, &peraggstate->finalfn);
 		}
 
-		if (OidIsValid(peraggstate->prelimfn_oid))
+		if (OidIsValid(peraggstate->combinefn_oid))
 		{
-			fmgr_info(peraggstate->prelimfn_oid, &peraggstate->prelimfn);
-			peraggstate->prelimfn.fn_expr = (Node *) prelimfnexpr;
+			fmgr_info(peraggstate->combinefn_oid, &peraggstate->combinefn);
+			fmgr_info_set_expr((Node *) combinefnexpr, &peraggstate->combinefn);
 		}
 
 		peraggstate->aggCollation = aggref->inputcollid;

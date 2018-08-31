@@ -777,7 +777,7 @@ gpdb::IsOrderedAgg
 }
 
 bool
-gpdb::AggHasPrelimFunc
+gpdb::AggHasCombineFunc
 	(
 	Oid aggid
 	)
@@ -785,7 +785,7 @@ gpdb::AggHasPrelimFunc
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_aggregate */
-		return has_agg_prelimfunc(aggid);
+		return has_agg_combinefunc(aggid);
 	}
 	GP_WRAP_END;
 	return false;

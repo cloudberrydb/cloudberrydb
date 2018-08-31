@@ -477,8 +477,8 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 		Form_pg_aggregate aggform;
 		Oid			aggtransfn;
 		Oid			aggfinalfn;
+		Oid			aggcombinefn;
 		Oid			aggtranstype;
-		Oid			aggprelimfn;
 		QualCost	argcosts;
 		Oid			inputTypes[FUNC_MAX_ARGS];
 		int			numArguments;
@@ -494,8 +494,8 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 		aggform = (Form_pg_aggregate) GETSTRUCT(aggTuple);
 		aggtransfn = aggform->aggtransfn;
 		aggfinalfn = aggform->aggfinalfn;
+		aggcombinefn = aggform->aggcombinefn;
 		aggtranstype = aggform->aggtranstype;
-		aggprelimfn = aggform->aggprelimfn;
 		ReleaseSysCache(aggTuple);
 
 		/* count it; note ordered-set aggs always have nonempty aggorder */
@@ -517,9 +517,9 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 		}
 
 		/* CDB wants to know whether the function can do 2-stage aggregation */
-		if ( aggprelimfn == InvalidOid )
+		if ( aggcombinefn == InvalidOid )
 		{
-			costs->missing_prelimfunc = true; /* Nope! */
+			costs->missing_combinefunc = true; /* Nope! */
 		}
 
 		/* add component function execution costs to appropriate totals */

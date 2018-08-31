@@ -104,12 +104,29 @@ alter aggregate my_rank(VARIADIC "any" ORDER BY VARIADIC "any")
 
 \da test_*
 
+-- Test aggregate combine function
+
+-- ensure create aggregate works.
+CREATE AGGREGATE mysum (int)
+(
+	stype = int,
+	sfunc = int4pl,
+	combinefunc = int4pl
+);
+
+-- Ensure all these functions made it into the catalog
+SELECT aggfnoid,aggtransfn,aggcombinefn,aggtranstype
+FROM pg_aggregate
+WHERE aggfnoid = 'mysum'::REGPROC;
+
+DROP AGGREGATE mysum (int);
+
 
 -- Negative test: "ordered aggregate prefunc is not supported"
 create ordered aggregate should_error(integer,integer,text) (
    stype = aggtype[],
    sfunc = aggfns_trans, 
-   prefunc = array_cat,
+   combinefunc = array_cat,
    initcond = '{}'
 );
 
@@ -120,7 +137,7 @@ $$
     select $1 || $2;
 $$ language sql CONTAINS SQL;
 
-CREATE AGGREGATE string_concat (sfunc = str_concat, prefunc=str_concat, basetype = 'text', stype = text,initcond = '');
+CREATE AGGREGATE string_concat (sfunc = str_concat, combinefunc=str_concat, basetype = 'text', stype = text,initcond = '');
 
 create table aggtest2(i int, t text) DISTRIBUTED BY (i);
 insert into aggtest2 values(1, 'hello');

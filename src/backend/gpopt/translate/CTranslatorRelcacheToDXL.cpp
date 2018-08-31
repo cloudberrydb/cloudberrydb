@@ -1945,12 +1945,12 @@ CTranslatorRelcacheToDXL::RetrieveAgg
 	BOOL is_ordered = gpdb::IsOrderedAgg(agg_oid);
 	
 	// GPDB does not support splitting of ordered aggs and aggs without a
-	// preliminary function
-	BOOL is_splittable = !is_ordered && gpdb::AggHasPrelimFunc(agg_oid);
+	// combine function
+	BOOL is_splittable = !is_ordered && gpdb::AggHasCombineFunc(agg_oid);
 	
-	// cannot use hash agg for ordered aggs or aggs without a prelim func
+	// cannot use hash agg for ordered aggs or aggs without a combine func
 	// due to the fact that hashAgg may spill
-	BOOL is_hash_agg_capable = !is_ordered && gpdb::AggHasPrelimFunc(agg_oid);
+	BOOL is_hash_agg_capable = !is_ordered && gpdb::AggHasCombineFunc(agg_oid);
 
 	CMDAggregateGPDB *pmdagg = GPOS_NEW(mp) CMDAggregateGPDB
 											(

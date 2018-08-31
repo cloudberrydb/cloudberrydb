@@ -56,8 +56,8 @@ AggregateCreate(const char *aggName,
 				List *parameterDefaults,
 				Oid variadicArgType,
 				List *aggtransfnName,
-				List *aggprelimfnName,
 				List *aggfinalfnName,
+				List *aggcombinefnName,
 				bool finalfnExtraArgs,
 				List *aggsortopName,
 				Oid aggTransType,
@@ -69,15 +69,14 @@ AggregateCreate(const char *aggName,
 	Datum		values[Natts_pg_aggregate];
 	Form_pg_proc proc;
 	Oid			transfn;
-	Oid			prelimfn = InvalidOid;	/* if omitted, disables MPP 2-stage for this aggregate */
 	Oid			finalfn = InvalidOid;	/* can be omitted */
+	Oid			combinefn = InvalidOid;	/* can be omitted */
 	Oid			sortop = InvalidOid;	/* can be omitted */
 	Oid		   *aggArgTypes = parameterTypes->values;
 	bool		hasPolyArg;
 	bool		hasInternalArg;
 	Oid			rettype;
 	Oid			finaltype;
-	Oid			prelimrettype;
 	Oid			fnArgs[FUNC_MAX_ARGS];
 	int			nargs_transfn;
 	int			nargs_finalfn;
@@ -240,42 +239,6 @@ AggregateCreate(const char *aggName,
 	}
 	ReleaseSysCache(tup);
 	
-	/* handle prelimfn, if supplied */
-	if (aggprelimfnName)
-	{
-		/* 
-		 * The preliminary state function (pfunc) input arguments are the results of the 
-		 * state transition function (sfunc) and therefore must be of the same types.
-		 */
-		fnArgs[0] = rettype;
-		fnArgs[1] = rettype;
-		
-		/*
-		 * Check that such a function name and prototype exists in the catalog.
-		 */		
-		prelimfn = lookup_agg_function(aggprelimfnName, 2,
-									   fnArgs, variadicArgType,
-									   &prelimrettype);
-		
-		elog(DEBUG5,"AggregateCreateWithOid: successfully located preliminary "
-					"function %s with return type %d", 
-			 func_signature_string(aggprelimfnName, 2, NIL, fnArgs), 
-					prelimrettype);
-		
-		Assert(OidIsValid(prelimrettype));
-		
-		/*
-		 * The preliminary return type must be of the same type as the internal 
-		 * state. (See similar error checking for transition types above)
-		 */
-		if (prelimrettype != rettype)
-			ereport(ERROR,
-					(errcode(ERRCODE_DATATYPE_MISMATCH),
-					 errmsg("return type of preliminary function %s is not %s",
-							NameListToString(aggprelimfnName),
-							format_type_be(rettype))));		
-	}
-
 	/* handle finalfn, if supplied */
 	if (aggfinalfnName)
 	{
@@ -325,6 +288,30 @@ AggregateCreate(const char *aggName,
 		finaltype = aggTransType;
 	}
 	Assert(OidIsValid(finaltype));
+
+	/* handle the combinefn, if supplied */
+	if (aggcombinefnName)
+	{
+		Oid combineType;
+
+		/*
+		 * Combine function must have 2 argument, each of which is the
+		 * trans type
+		 */
+		fnArgs[0] = aggTransType;
+		fnArgs[1] = aggTransType;
+
+		combinefn = lookup_agg_function(aggcombinefnName, 2, fnArgs,
+										variadicArgType, &combineType);
+
+		/* Ensure the return type matches the aggregates trans type */
+		if (combineType != aggTransType)
+			ereport(ERROR,
+					(errcode(ERRCODE_DATATYPE_MISMATCH),
+			errmsg("return type of combine function %s is not %s",
+				   NameListToString(aggcombinefnName),
+				   format_type_be(aggTransType))));
+	}
 
 	/*
 	 * If finaltype (i.e. aggregate return type) is polymorphic, inputs must
@@ -436,8 +423,8 @@ AggregateCreate(const char *aggName,
 	values[Anum_pg_aggregate_aggkind - 1] = CharGetDatum(aggKind);
 	values[Anum_pg_aggregate_aggnumdirectargs - 1] = Int16GetDatum(numDirectArgs);
 	values[Anum_pg_aggregate_aggtransfn - 1] = ObjectIdGetDatum(transfn);
-	values[Anum_pg_aggregate_aggprelimfn - 1] = ObjectIdGetDatum(prelimfn);
 	values[Anum_pg_aggregate_aggfinalfn - 1] = ObjectIdGetDatum(finalfn);
+	values[Anum_pg_aggregate_aggcombinefn - 1] = ObjectIdGetDatum(combinefn);
 	values[Anum_pg_aggregate_aggfinalextra - 1] = BoolGetDatum(finalfnExtraArgs);
 	values[Anum_pg_aggregate_aggsortop - 1] = ObjectIdGetDatum(sortop);
 	values[Anum_pg_aggregate_aggtranstype - 1] = ObjectIdGetDatum(aggTransType);
@@ -471,20 +458,20 @@ AggregateCreate(const char *aggName,
 	referenced.objectSubId = 0;
 	recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
 
-	/* Depends on preliminary aggregation function, if any */
-	if (OidIsValid(prelimfn))
-	{
-		referenced.classId = ProcedureRelationId;
-		referenced.objectId = prelimfn;
-		referenced.objectSubId = 0;
-		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
-	}
-
 	/* Depends on final function, if any */
 	if (OidIsValid(finalfn))
 	{
 		referenced.classId = ProcedureRelationId;
 		referenced.objectId = finalfn;
+		referenced.objectSubId = 0;
+		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+	}
+
+	/* Depends on combine function, if any */
+	if (OidIsValid(combinefn))
+	{
+		referenced.classId = ProcedureRelationId;
+		referenced.objectId = combinefn;
 		referenced.objectSubId = 0;
 		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
 	}
@@ -500,7 +487,12 @@ AggregateCreate(const char *aggName,
 }
 
 /*
- * lookup_agg_function -- common code for finding transfn, prelimfn and finalfn
+ * lookup_agg_function
+ * common code for finding transfn, finalfn, and combinefn
+ *
+ * Returns OID of function, and stores its return type into *rettype
+ *
+ * NB: must not scribble on input_types[], as we may re-use those
  */
 static Oid
 lookup_agg_function(List *fnName,

@@ -403,7 +403,9 @@ DATA(insert OID = 220 (  float8um		   PGNSP PGUID 12 1 0 0 0 f f f f t f i 1 0 7
 DATA(insert OID = 221 (  float8abs		   PGNSP PGUID 12 1 0 0 0 f f f f t f i 1 0 701 "701" _null_ _null_ _null_ _null_	float8abs _null_ _null_ _null_ ));
 DATA(insert OID = 222 (  float8_accum	   PGNSP PGUID 12 1 0 0 0 f f f f t f i 2 0 1022 "1022 701" _null_ _null_ _null_ _null_ float8_accum _null_ _null_ _null_ ));
 DESCR("aggregate transition function");
-DATA(insert OID = 223 (  float8larger	   PGNSP PGUID 12 1 0 0 0 f f f f t f i 2 0 701 "701 701" _null_ _null_ _null_ _null_	float8larger _null_ _null_ _null_ ));
+DATA(insert OID = 276 (  float8_combine		   PGNSP PGUID 12 1 0 0 0 f f f f t f i 2 0 1022 "1022 1022" _null_ _null_ _null_ _null_ float8_combine _null_ _null_ _null_ ));
+DESCR("aggregate combine function");
+DATA(insert OID = 223 (  float8larger	   PGNSP PGUID 12 1 0 0 0 f f f f t f i 2 0 701 "701 701" _null_ _null_ _null_ _null_ 	float8larger _null_ _null_ _null_ ));
 DESCR("larger of two");
 DATA(insert OID = 224 (  float8smaller	   PGNSP PGUID 12 1 0 0 0 f f f f t f i 2 0 701 "701 701" _null_ _null_ _null_ _null_	float8smaller _null_ _null_ _null_ ));
 DESCR("smaller of two");
@@ -576,7 +578,7 @@ DATA(insert OID = 332 (  btbulkdelete	   PGNSP PGUID 12 1 0 0 0 f f f f t f v 4 
 DESCR("btree(internal)");
 DATA(insert OID = 972 (  btvacuumcleanup   PGNSP PGUID 12 1 0 0 0 f f f f t f v 2 0 2281 "2281 2281" _null_ _null_ _null_ _null_ btvacuumcleanup _null_ _null_ _null_ ));
 DESCR("btree(internal)");
-DATA(insert OID = 276 (  btcanreturn	   PGNSP PGUID 12 1 0 0 0 f f f f t f s 1 0 16 "2281" _null_ _null_ _null_ _null_ btcanreturn _null_ _null_ _null_ ));
+DATA(insert OID = 6276 (  btcanreturn	   PGNSP PGUID 12 1 0 0 0 f f f f t f s 1 0 16 "2281" _null_ _null_ _null_ _null_ btcanreturn _null_ _null_ _null_ ));
 DESCR("btree(internal)");
 DATA(insert OID = 1268 (  btcostestimate   PGNSP PGUID 12 1 0 0 0 f f f f t f v 7 0 2278 "2281 2281 2281 2281 2281 2281 2281" _null_ _null_ _null_ _null_ btcostestimate _null_ _null_ _null_ ));
 DESCR("btree(internal)");
@@ -2483,6 +2485,8 @@ DATA(insert OID = 2805 (  int8inc_float8_float8		PGNSP PGUID 12 1 0 0 0 f f f f 
 DESCR("aggregate transition function");
 DATA(insert OID = 2806 (  float8_regr_accum			PGNSP PGUID 12 1 0 0 0 f f f f t f i 3 0 1022 "1022 701 701" _null_ _null_ _null_ _null_ float8_regr_accum _null_ _null_ _null_ ));
 DESCR("aggregate transition function");
+DATA(insert OID = 3342 (  float8_regr_combine		PGNSP PGUID 12 1 0 0 0 f f f f t f i 2 0 1022 "1022 1022" _null_ _null_ _null_ _null_ float8_regr_combine _null_ _null_ _null_ ));
+DESCR("aggregate combine function");
 DATA(insert OID = 2807 (  float8_regr_sxx			PGNSP PGUID 12 1 0 0 0 f f f f t f i 1 0 701 "1022" _null_ _null_ _null_ _null_ float8_regr_sxx _null_ _null_ _null_ ));
 DESCR("aggregate final function");
 DATA(insert OID = 2808 (  float8_regr_syy			PGNSP PGUID 12 1 0 0 0 f f f f t f i 1 0 701 "1022" _null_ _null_ _null_ _null_ float8_regr_syy _null_ _null_ _null_ ));

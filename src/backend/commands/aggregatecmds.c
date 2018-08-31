@@ -61,8 +61,8 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	AclResult	aclresult;
 	char		aggKind = AGGKIND_NORMAL;
 	List	   *transfuncName = NIL;
-	List	   *prelimfuncName = NIL; /* MPP */
 	List	   *finalfuncName = NIL;
+	List	   *combinefuncName = NIL;
 	bool		finalfuncExtraArgs = false;
 	List	   *sortoperatorName = NIL;
 	TypeName   *baseType = NULL;
@@ -116,6 +116,8 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 			transfuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "finalfunc") == 0)
 			finalfuncName = defGetQualifiedName(defel);
+		else if (pg_strcasecmp(defel->defname, "combinefunc") == 0)
+			combinefuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "finalfunc_extra") == 0)
 			finalfuncExtraArgs = defGetBoolean(defel);
 		else if (pg_strcasecmp(defel->defname, "sortop") == 0)
@@ -141,8 +143,6 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 			initval = defGetString(defel);
 		else if (pg_strcasecmp(defel->defname, "initcond1") == 0)
 			initval = defGetString(defel);
-		else if (pg_strcasecmp(defel->defname, "prefunc") == 0) /* MPP */
-			prelimfuncName = defGetQualifiedName(defel);
 		else
 			ereport(WARNING,
 					(errcode(ERRCODE_SYNTAX_ERROR),
@@ -163,12 +163,12 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 				 errmsg("aggregate sfunc must be specified")));
 
 	/*
-	 * MPP: Ordered aggregates do not support prefuncs
+	 * MPP: Ordered aggregates do not support combine functions.
 	 */
-	if (aggKind == AGGKIND_ORDERED_SET && prelimfuncName != NIL)
+	if (aggKind == AGGKIND_ORDERED_SET && combinefuncName != NIL)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
-				 errmsg("ordered aggregate prefunc is not supported")));
+				 errmsg("ordered aggregate combine function is not supported")));
 
 	/*
 	 * look up the aggregate's input datatype(s).
@@ -276,8 +276,8 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 					parameterDefaults,
 					variadicArgType,
 					transfuncName,		/* step function name */
-					prelimfuncName,		/* prelim function name */
 					finalfuncName,		/* final function name */
+					combinefuncName,		/* combine function name */
 					finalfuncExtraArgs,
 					sortoperatorName,	/* sort operator name */
 					transTypeId,	/* transition data type */

@@ -742,8 +742,8 @@ select 1 where 22 not in (SELECT generate_series(1,10));
 
 -- UDAs
 CREATE FUNCTION sum_sfunc(anyelement,anyelement) returns anyelement AS 'select $1+$2' LANGUAGE SQL STRICT;
-CREATE FUNCTION sum_prefunc(anyelement,anyelement) returns anyelement AS 'select $1+$2' LANGUAGE SQL STRICT;
-CREATE AGGREGATE myagg1(anyelement) (SFUNC = sum_sfunc, PREFUNC = sum_prefunc, STYPE = anyelement, INITCOND = '0');
+CREATE FUNCTION sum_combinefunc(anyelement,anyelement) returns anyelement AS 'select $1+$2' LANGUAGE SQL STRICT;
+CREATE AGGREGATE myagg1(anyelement) (SFUNC = sum_sfunc, COMBINEFUNC = sum_combinefunc, STYPE = anyelement, INITCOND = '0');
 SELECT myagg1(i) FROM orca.tab1;
 
 CREATE FUNCTION sum_sfunc2(anyelement,anyelement,anyelement) returns anyelement AS 'select $1+$2+$3' LANGUAGE SQL STRICT;

@@ -675,11 +675,11 @@ cdb_grouping_planner(PlannerInfo *root,
 			allowed_agg &= AGG_SINGLEPHASE;
 
 		/*
-		 * This prohibition could be relaxed if we tracked missing preliminary
+		 * This prohibition could be relaxed if we tracked missing combine
 		 * functions per DQA and were willing to plan some DQAs as single and
 		 * some as multiple phases.  Not currently, however.
 		 */
-		if (agg_costs->missing_prelimfunc)
+		if (agg_costs->missing_combinefunc)
 			allowed_agg &= ~AGG_MULTIPHASE;
 
 		/*

@@ -1236,10 +1236,10 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 						Oid agg_input_collation,
 						Oid transfn_oid,
 						Oid finalfn_oid,
-						Oid prelimfn_oid,
+						Oid combinefn_oid,
 						Expr **transfnexpr,
 						Expr **finalfnexpr,
-						Expr **prelimfnexpr)
+						Expr **combinefnexpr)
 {
 	Param	   *argp;
 	List	   *args;
@@ -1321,11 +1321,11 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 											 COERCE_DONTCARE);
 	}
 
-	/* prelim function */
-	if (OidIsValid(prelimfn_oid))
+	/* combine function */
+	if (OidIsValid(combinefn_oid))
 	{
 		/*
-		 * Build expr tree for inverse transition function
+		 * Build expr tree for combine function
 		 */
 		argp = makeNode(Param);
 		argp->paramkind = PARAM_EXEC;
@@ -1336,12 +1336,12 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 		args = list_make1(argp);
 
 		/* XXX: is agg_state_type correct here? */
-		*prelimfnexpr = (Expr *) makeFuncExpr(prelimfn_oid,
-											  agg_state_type,
-											  args,
-											  InvalidOid,
-											  agg_input_collation,
-											  COERCE_DONTCARE);
+		*combinefnexpr = (Expr *) makeFuncExpr(combinefn_oid,
+											   agg_state_type,
+											   args,
+											   InvalidOid,
+											   agg_input_collation,
+											   COERCE_DONTCARE);
 	}
 }
 
