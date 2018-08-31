@@ -29,6 +29,8 @@ CREATE AGGREGATE <replaceable class="parameter">name</replaceable> ( [ <replacea
     [ , FINALFUNC = <replaceable class="PARAMETER">ffunc</replaceable> ]
     [ , FINALFUNC_EXTRA ]
     [ , COMBINEFUNC = <replaceable class="PARAMETER">combinefunc</replaceable> ]
+    [ , SERIALFUNC = <replaceable class="PARAMETER">serialfunc</replaceable> ]
+    [ , DESERIALFUNC = <replaceable class="PARAMETER">deserialfunc</replaceable> ]
     [ , INITCOND = <replaceable class="PARAMETER">initial_condition</replaceable> ]
     [ , MSFUNC = <replaceable class="PARAMETER">msfunc</replaceable> ]
     [ , MINVFUNC = <replaceable class="PARAMETER">minvfunc</replaceable> ]
@@ -47,6 +49,8 @@ CREATE AGGREGATE <replaceable class="parameter">name</replaceable> ( [ [ <replac
     [ , FINALFUNC = <replaceable class="PARAMETER">ffunc</replaceable> ]
     [ , FINALFUNC_EXTRA ]
     [ , COMBINEFUNC = <replaceable class="PARAMETER">combinefunc</replaceable> ]
+    [ , SERIALFUNC = <replaceable class="PARAMETER">serialfunc</replaceable> ]
+    [ , DESERIALFUNC = <replaceable class="PARAMETER">deserialfunc</replaceable> ]
     [ , INITCOND = <replaceable class="PARAMETER">initial_condition</replaceable> ]
     [ , HYPOTHETICAL ]
 )
@@ -61,6 +65,8 @@ CREATE AGGREGATE <replaceable class="PARAMETER">name</replaceable> (
     [ , FINALFUNC = <replaceable class="PARAMETER">ffunc</replaceable> ]
     [ , FINALFUNC_EXTRA ]
     [ , COMBINEFUNC = <replaceable class="PARAMETER">combinefunc</replaceable> ]
+    [ , SERIALFUNC = <replaceable class="PARAMETER">serialfunc</replaceable> ]
+    [ , DESERIALFUNC = <replaceable class="PARAMETER">deserialfunc</replaceable> ]
     [ , INITCOND = <replaceable class="PARAMETER">initial_condition</replaceable> ]
     [ , MSFUNC = <replaceable class="PARAMETER">sfunc</replaceable> ]
     [ , MINVFUNC = <replaceable class="PARAMETER">invfunc</replaceable> ]
@@ -390,6 +396,37 @@ SELECT col FROM tab ORDER BY col USING sortop LIMIT 1;
       (aggregated) arguments.  This is mainly useful to allow correct
       resolution of the aggregate result type when a polymorphic aggregate
       is being defined.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><replaceable class="parameter">serialfunc</replaceable></term>
+    <listitem>
+     <para>
+      An aggregate function
+      whose <replaceable class="parameter">state_data_type</replaceable>
+      is <type>internal</type> can participate in parallel aggregation only if it
+      has a <replaceable class="parameter">serialfunc</replaceable> function,
+      which must serialize the aggregate state into a <type>bytea</type> value for
+      transmission to another process.  This function must take a single
+      argument of type <type>internal</type> and return type <type>bytea</type>.  A
+      corresponding <replaceable class="parameter">deserialfunc</replaceable>
+      is also required.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><replaceable class="parameter">deserialfunc</replaceable></term>
+    <listitem>
+     <para>
+      Deserialize a previously serialized aggregate state back into
+      <replaceable class="parameter">state_data_type</replaceable>. This
+      function must take two arguments of types <type>bytea</type>
+      and <type>internal</type>, and produce a result of type <type>internal</type>.
+      (Note: the second, <type>internal</type> argument is unused, but is required
+      for type safety reasons.)
      </para>
     </listitem>
    </varlistentry>

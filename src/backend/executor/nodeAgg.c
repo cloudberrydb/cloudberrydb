@@ -26,6 +26,12 @@
  *	  incorrect. Instead a new state should be created in the correct aggregate
  *	  memory context and the 2nd state should be copied over.
  *
+ *	  The 'serialStates' option can be used to allow multi-stage aggregation
+ *	  for aggregates with an INTERNAL state type. When this mode is disabled
+ *	  only a pointer to the INTERNAL aggregate states are passed around the
+ *	  executor.  When enabled, INTERNAL states are serialized and deserialized
+ *	  as required; this is useful when data must be passed between processes.
+ *
  *	  If a normal aggregate call specifies DISTINCT or ORDER BY, we sort the
  *	  input tuples and eliminate duplicates (if required) before performing
  *	  the above-depicted process.  (However, we don't do that for ordered-set
@@ -1925,6 +1931,8 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		AclResult	aclresult;
 		Oid			transfn_oid = InvalidOid,
 					finalfn_oid = InvalidOid;
+		Oid			serialfn_oid,
+					deserialfn_oid;
 		Expr	   *transfnexpr = NULL,
 				   *finalfnexpr = NULL,
 				   *combinefnexpr = NULL;
@@ -2002,6 +2010,38 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 
 		peraggstate->combinefn_oid = aggform->aggcombinefn;
 
+		serialfn_oid = InvalidOid;
+		deserialfn_oid = InvalidOid;
+
+		/*
+		 * Check if serialization/deserialization is required.  We only do it
+		 * for aggregates that have transtype INTERNAL.
+		 */
+		if (aggtranstype == INTERNALOID)
+		{
+			/*
+			 * The planner should only have generated a serialize agg node if
+			 * every aggregate with an INTERNAL state has a serialization
+			 * function.  Verify that.
+			 */
+			if (aggref->aggstage == AGGSTAGE_PARTIAL ||
+				aggref->aggstage == AGGSTAGE_INTERMEDIATE)
+			{
+				if (!OidIsValid(aggform->aggserialfn))
+					elog(ERROR, "serialfunc not provided for serialization aggregation");
+				serialfn_oid = aggform->aggserialfn;
+			}
+
+			/* Likewise for deserialization functions */
+			if (aggref->aggstage == AGGSTAGE_INTERMEDIATE ||
+				aggref->aggstage == AGGSTAGE_FINAL)
+			{
+				if (!OidIsValid(aggform->aggdeserialfn))
+					elog(ERROR, "deserialfunc not provided for deserialization aggregation");
+				deserialfn_oid = aggform->aggdeserialfn;
+			}
+		}
+
 		/* Check that aggregate owner has permission to call component fns */
 		{
 			HeapTuple	procTuple;
@@ -2035,6 +2075,22 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 				if (aclresult != ACLCHECK_OK)
 					aclcheck_error(aclresult, ACL_KIND_PROC,
 								   get_func_name(peraggstate->combinefn_oid));
+			}
+			if (OidIsValid(serialfn_oid))
+			{
+				aclresult = pg_proc_aclcheck(serialfn_oid, aggOwner,
+											 ACL_EXECUTE);
+				if (aclresult != ACLCHECK_OK)
+					aclcheck_error(aclresult, ACL_KIND_PROC,
+								   get_func_name(serialfn_oid));
+			}
+			if (OidIsValid(deserialfn_oid))
+			{
+				aclresult = pg_proc_aclcheck(deserialfn_oid, aggOwner,
+											 ACL_EXECUTE);
+				if (aclresult != ACLCHECK_OK)
+					aclcheck_error(aclresult, ACL_KIND_PROC,
+								   get_func_name(deserialfn_oid));
 			}
 		}
 

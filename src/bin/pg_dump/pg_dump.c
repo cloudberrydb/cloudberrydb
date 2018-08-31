@@ -10958,6 +10958,8 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 	int			i_aggtransfn;
 	int			i_aggfinalfn;
 	int			i_aggcombinefn;
+	int			i_aggserialfn;
+	int			i_aggdeserialfn;
 	int			i_aggmtransfn;
 	int			i_aggminvtransfn;
 	int			i_aggmfinalfn;
@@ -10975,6 +10977,8 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 	const char *aggtransfn;
 	const char *aggfinalfn;
 	const char *aggcombinefn;
+	const char *aggserialfn;
+	const char *aggdeserialfn;
 	const char *aggmtransfn;
 	const char *aggminvtransfn;
 	const char *aggmfinalfn;
@@ -11008,7 +11012,7 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 	{
 		appendPQExpBuffer(query, "SELECT aggtransfn, "
 						  "aggfinalfn, aggtranstype::pg_catalog.regtype, "
-						  "aggcombinefn, aggmtransfn, "
+					"aggcombinefn, aggserialfn, aggdeserialfn, aggmtransfn, "
 						  "aggminvtransfn, aggmfinalfn, aggmtranstype::pg_catalog.regtype, "
 						  "aggfinalextra, aggmfinalextra, "
 						  "aggsortop::pg_catalog.regoperator, "
@@ -11027,9 +11031,10 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 	{
 		appendPQExpBuffer(query, "SELECT aggtransfn, "
 						  "aggfinalfn, aggtranstype::pg_catalog.regtype, "
-						  "aggprelimfn AS aggcombinefn, "
-						  "'-' AS aggmtransfn, '-' AS aggminvtransfn, "
-						  "'-' AS aggmfinalfn, 0 AS aggmtranstype, "
+						  "aggprelimfn AS aggcombinefn, '-' AS aggserialfn, "
+						  "'-' AS aggdeserialfn, '-' AS aggmtransfn, "
+						  "'-' AS aggminvtransfn, '-' AS aggmfinalfn, "
+						  "0 AS aggmtranstype, "
 						  "false AS aggfinalextra, "
 						  "false AS aggmfinalextra, "
 						  "aggsortop::pg_catalog.regoperator, "
@@ -11054,6 +11059,8 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 	i_aggtransfn = PQfnumber(res, "aggtransfn");
 	i_aggfinalfn = PQfnumber(res, "aggfinalfn");
 	i_aggcombinefn = PQfnumber(res, "aggcombinefn");
+	i_aggserialfn = PQfnumber(res, "aggserialfn");
+	i_aggdeserialfn = PQfnumber(res, "aggdeserialfn");
 	i_aggmtransfn = PQfnumber(res, "aggmtransfn");
 	i_aggminvtransfn = PQfnumber(res, "aggminvtransfn");
 	i_aggmfinalfn = PQfnumber(res, "aggmfinalfn");
@@ -11072,6 +11079,8 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 	aggtransfn = PQgetvalue(res, 0, i_aggtransfn);
 	aggfinalfn = PQgetvalue(res, 0, i_aggfinalfn);
 	aggcombinefn = PQgetvalue(res, 0, i_aggcombinefn);
+	aggserialfn = PQgetvalue(res, 0, i_aggserialfn);
+	aggdeserialfn = PQgetvalue(res, 0, i_aggdeserialfn);
 	aggmtransfn = PQgetvalue(res, 0, i_aggmtransfn);
 	aggminvtransfn = PQgetvalue(res, 0, i_aggminvtransfn);
 	aggmfinalfn = PQgetvalue(res, 0, i_aggmfinalfn);
@@ -11144,9 +11153,13 @@ dumpAgg(Archive *fout, AggInfo *agginfo)
 	}
 
 	if (strcmp(aggcombinefn, "-") != 0)
-	{
 		appendPQExpBuffer(details, ",\n    COMBINEFUNC = %s",	aggcombinefn);
-	}
+
+	if (strcmp(aggserialfn, "-") != 0)
+		appendPQExpBuffer(details, ",\n    SERIALFUNC = %s", aggserialfn);
+
+	if (strcmp(aggdeserialfn, "-") != 0)
+		appendPQExpBuffer(details, ",\n    DESERIALFUNC = %s", aggdeserialfn);
 
 	if (strcmp(aggmtransfn, "-") != 0)
 	{

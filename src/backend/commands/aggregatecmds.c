@@ -63,6 +63,8 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	List	   *transfuncName = NIL;
 	List	   *finalfuncName = NIL;
 	List	   *combinefuncName = NIL;
+	List	   *serialfuncName = NIL;
+	List	   *deserialfuncName = NIL;
 	List	   *mtransfuncName = NIL;
 	List	   *minvtransfuncName = NIL;
 	List	   *mfinalfuncName = NIL;
@@ -129,6 +131,10 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 			finalfuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "combinefunc") == 0)
 			combinefuncName = defGetQualifiedName(defel);
+		else if (pg_strcasecmp(defel->defname, "serialfunc") == 0)
+			serialfuncName = defGetQualifiedName(defel);
+		else if (pg_strcasecmp(defel->defname, "deserialfunc") == 0)
+			deserialfuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "msfunc") == 0)
 			mtransfuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "minvfunc") == 0)
@@ -329,6 +335,27 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 							format_type_be(transTypeId))));
 	}
 
+	if (serialfuncName && deserialfuncName)
+	{
+		/*
+		 * Serialization is only needed/allowed for transtype INTERNAL.
+		 */
+		if (transTypeId != INTERNALOID)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
+					 errmsg("serialization functions may be specified only when the aggregate transition data type is %s",
+							format_type_be(INTERNALOID))));
+	}
+	else if (serialfuncName || deserialfuncName)
+	{
+		/*
+		 * Cannot specify one function without the other.
+		 */
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
+				 errmsg("must specify both or neither of serialization and deserialization functions")));
+	}
+
 	/*
 	 * If a moving-aggregate transtype is specified, look that up.  Same
 	 * restrictions as for transtype.
@@ -367,6 +394,8 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 					transfuncName,		/* step function name */
 					finalfuncName,		/* final function name */
 					combinefuncName,		/* combine function name */
+					serialfuncName,		/* serial function name */
+					deserialfuncName,	/* deserial function name */
 					mtransfuncName,	/* fwd trans function name */
 					minvtransfuncName,	/* inv trans function name */
 					mfinalfuncName,	/* final function name */
