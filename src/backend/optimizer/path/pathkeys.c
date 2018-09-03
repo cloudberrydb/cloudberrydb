@@ -20,6 +20,7 @@
 #include "postgres.h"
 
 #include "access/skey.h"
+#include "cdb/cdbhash.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
 #include "nodes/plannodes.h"
@@ -1360,6 +1361,57 @@ make_pathkeys_for_sortclauses(PlannerInfo *root,
 			pathkeys = lappend(pathkeys, pathkey);
 	}
 	return pathkeys;
+}
+
+/****************************************************************************
+ *		DISTRIBUTION KEYS
+ ****************************************************************************/
+
+/*
+ * Make a list of PathKeys, and a list of plain expressions, to represent a
+ * distribution key that is suitable for implementing grouping on the given
+ * grouping clause. Only expressions that are GPDB-hashable are included,
+ * so the resulting lists can be shorter than 'groupclause', or even empty.
+ *
+ * The result is stored in *partition_dist_keys and *partition_dist_exprs.
+ * *partition_dist_keys is set to a list of PathKeys, and
+ * *partition_dist_exprs to a corresponding list of plain expressions.
+ */
+void
+make_distribution_keys_for_groupclause(PlannerInfo *root, List *groupclause, List *tlist,
+									   List **partition_dist_keys,
+									   List **partition_dist_exprs)
+{
+	List	   *pathkeys = NIL;
+	List	   *exprs = NIL;
+	ListCell   *l;
+
+	foreach(l, groupclause)
+	{
+		SortGroupClause *sortcl = (SortGroupClause *) lfirst(l);
+		Expr	   *expr;
+		PathKey    *pathkey;
+
+		expr = (Expr *) get_sortgroupclause_expr(sortcl, tlist);
+
+		if (!isGreenplumDbHashable(exprType((Node *) expr)))
+			continue;
+
+		Assert(OidIsValid(sortcl->sortop));
+		pathkey = make_pathkey_from_sortop(root,
+										   expr,
+										   sortcl->sortop,
+										   sortcl->nulls_first,
+										   sortcl->tleSortGroupRef,
+										   true,
+										   false);
+
+		pathkeys = lappend(pathkeys, pathkey);
+		exprs = lappend(exprs, expr);
+	}
+
+	*partition_dist_keys = pathkeys;
+	*partition_dist_exprs = exprs;
 }
 
 /****************************************************************************

@@ -1395,6 +1395,23 @@ SELECT count(unnest(foo)) FROM tbl_agg_srf;
 -- for this.
 select avg('1000000000000000000'::int8) from generate_series(1, 100000);
 
+-- Test cases where the planner would like to distribute on a column, to implement
+-- grouping or distinct, but can't because the datatype isn't GPDB-hashable.
+-- These are all variants of the the same issue; all of these used to miss the
+-- check on whether the column is GPDB_hashble, producing an assertion failure.
+create table int2vectortab (distkey int, t int2vector) distributed by (distkey);
+insert into int2vectortab values
+  (1, '1'),
+  (2, '1 2'),
+  (3, '1 2 3'),
+  (22,'22'),
+  (22,'1 2');
+
+select distinct t from int2vectortab group by distkey, t;
+select * from int2vectortab union select * from int2vectortab;
+select count(*) over (partition by t) from int2vectortab;
+
+
 -- CLEANUP
 set client_min_messages='warning';
 drop schema bfv_aggregate cascade;

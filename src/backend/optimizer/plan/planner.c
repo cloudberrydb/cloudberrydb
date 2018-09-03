@@ -1436,6 +1436,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	bool		tested_hashed_distinct = false;
 	double		numDistinct = 1;
 	List	   *distinctExprs = NIL;
+	List	   *distinct_dist_keys = NIL;
+	List	   *distinct_dist_exprs = NIL;
 	bool		must_gather;
 
 	double		motion_cost_per_row =
@@ -2265,6 +2267,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				int			firstOrderCol = 0;
 				Oid			firstOrderCmpOperator = InvalidOid;
 				bool		firstOrderNullsFirst = false;
+				bool		need_gather_for_partitioning;
 
 				/*
 				 * Unless the PARTITION BY in the window happens to match the
@@ -2276,28 +2279,35 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				 * node. But we'll do that after the Sort, so that the Sort
 				 * is parallelized.
 				 */
-				if (wc->partitionClause && !CdbPathLocus_IsGeneral(current_locus))
+				if (CdbPathLocus_IsGeneral(current_locus))
+					need_gather_for_partitioning = false;
+				else
 				{
-					List	   *dist_pathkeys;
+					List	   *partition_dist_keys;
+					List	   *partition_dist_exprs;
 
-					dist_pathkeys =
-						make_pathkeys_for_sortclauses(root, wc->partitionClause,
-													  tlist, false);
-
-					if (!cdbpathlocus_collocates(root, current_locus, dist_pathkeys, false))
+					make_distribution_keys_for_groupclause(root,
+														   wc->partitionClause,
+														   tlist,
+														   &partition_dist_keys,
+														   &partition_dist_exprs);
+					if (!partition_dist_keys)
 					{
-						List	   *dist_exprs = NIL;
-						ListCell   *lc;
-
-						foreach (lc, wc->partitionClause)
-						{
-							SortGroupClause *sc = (SortGroupClause *) lfirst(lc);
-							TargetEntry *tle = get_sortgroupclause_tle(sc, tlist);
-
-							dist_exprs = lappend(dist_exprs, tle->expr);
-						}
-
-						result_plan = (Plan *) make_motion_hash(root, result_plan, dist_exprs);
+						/*
+						 * There is no PARTITION BY, or none of the PARTITION BY
+						 * expressions can be used as a distribution key. Have to
+						 * gather everything to a single node.
+						 */
+						need_gather_for_partitioning = true;
+					}
+					else if (cdbpathlocus_collocates(root, current_locus, partition_dist_keys, false))
+					{
+						need_gather_for_partitioning = false;
+					}
+					else
+					{
+						result_plan = (Plan *) make_motion_hash(root, result_plan,
+																partition_dist_exprs);
 						result_plan->total_cost += motion_cost_per_row * result_plan->plan_rows;
 						current_pathkeys = NIL; /* no longer sorted */
 						Assert(result_plan->flow);
@@ -2306,7 +2316,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 						 * Change current_locus based on the new distribution
 						 * pathkeys.
 						 */
-						CdbPathLocus_MakeHashed(&current_locus, dist_pathkeys);
+						CdbPathLocus_MakeHashed(&current_locus, partition_dist_keys);
+						need_gather_for_partitioning = false;
 					}
 				}
 
@@ -2389,9 +2400,9 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				}
 
 				/*
-				 * If there was no PARTITION BY, gather the result.
+				 * If the input's locus doesn't match the PARTITION BY, gather the result.
 				 */
-				if (!wc->partitionClause &&
+				if (need_gather_for_partitioning &&
 					!CdbPathLocus_IsGeneral(current_locus) &&
 					result_plan->flow->flotype != FLOW_SINGLETON)
 				{
@@ -2523,6 +2534,9 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 									   dNumDistinctRows);
 		}
 
+		if (CdbPathLocus_IsNull(current_locus))
+			current_locus = cdbpathlocus_from_flow(result_plan->flow);
+
 		/*
 		 * MPP: If there's a DISTINCT clause and we're not collocated on the
 		 * distinct key, we need to redistribute on that key.  In addition, we
@@ -2533,20 +2547,23 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 * the cost of an extra Redistribute-Sort-Unique on the pre-uniqued
 		 * (reduced) input.
 		 */
+		make_distribution_keys_for_groupclause(root,
+											   parse->distinctClause,
+											   result_plan->targetlist,
+											   &distinct_dist_keys,
+											   &distinct_dist_exprs);
+
 		distinctExprs = get_sortgrouplist_exprs(parse->distinctClause,
 												result_plan->targetlist);
 		numDistinct = estimate_num_groups(root, distinctExprs,
 										  result_plan->plan_rows);
 
-		if (CdbPathLocus_IsNull(current_locus))
-		{
-			current_locus = cdbpathlocus_from_flow(result_plan->flow);
-		}
-
 		if (Gp_role == GP_ROLE_DISPATCH && CdbPathLocus_IsPartitioned(current_locus))
 		{
-			bool		needMotion = !cdbpathlocus_collocates(root, current_locus,
-															  root->distinct_pathkeys, false /* exact_match */ );
+			bool		needMotion;
+
+			needMotion = !cdbpathlocus_collocates(root, current_locus,
+												  distinct_dist_keys, false /* exact_match */ );
 
 			/* Apply the preunique optimization, if enabled and worthwhile. */
 			/* GPDB_84_MERGE_FIXME: pre-unique for hash distinct not implemented. */
@@ -2613,9 +2630,16 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 
 			if (needMotion)
 			{
-				result_plan = (Plan *) make_motion_hash(root, result_plan, distinctExprs);
+				if (distinct_dist_exprs)
+				{
+					result_plan = (Plan *) make_motion_hash(root, result_plan, distinct_dist_exprs);
+					current_pathkeys = NIL;		/* Any pre-existing order now lost. */
+				}
+				else
+				{
+					result_plan = (Plan *) make_motion_gather(root, result_plan, -1, current_pathkeys);
+				}
 				result_plan->total_cost += motion_cost_per_row * result_plan->plan_rows;
-				current_pathkeys = NIL;		/* Any pre-existing order now lost. */
 			}
 		}
 		else if ( result_plan->flow->flotype == FLOW_SINGLETON )
