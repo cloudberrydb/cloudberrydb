@@ -25,7 +25,6 @@ CREATE AGGREGATE <replaceable class="parameter">name</replaceable> ( [ <replacea
     SFUNC = <replaceable class="PARAMETER">sfunc</replaceable>,
     STYPE = <replaceable class="PARAMETER">state_data_type</replaceable>
     [ , SSPACE = <replaceable class="PARAMETER">state_data_size</replaceable> ]
-    [ , PREFUNC = <replaceable class="PARAMETER">prefunc</replaceable> ]
     [ , FINALFUNC = <replaceable class="PARAMETER">ffunc</replaceable> ]
     [ , FINALFUNC_EXTRA ]
     [ , COMBINEFUNC = <replaceable class="PARAMETER">combinefunc</replaceable> ]

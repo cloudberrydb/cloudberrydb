@@ -131,6 +131,10 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 			finalfuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "combinefunc") == 0)
 			combinefuncName = defGetQualifiedName(defel);
+		/* Alias for COMBINEFUNC, for backwards-compatibility with
+		 * GPDB 5 and below */
+		else if (pg_strcasecmp(defel->defname, "prefunc") == 0)
+			combinefuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "serialfunc") == 0)
 			serialfuncName = defGetQualifiedName(defel);
 		else if (pg_strcasecmp(defel->defname, "deserialfunc") == 0)

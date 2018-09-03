@@ -146,6 +146,10 @@ ordered aggregate, using the syntax:
 <p>The <codeph>ORDERED</codeph> keyword is accepted for backwards compatibility, but
   is ignored.</p>
 
+<p>In previous versions of Greenplum Database, the <codeph>COMBINEFUNC</codeph> option was called
+<codeph>PREFUNC</codeph>. It is still accepted for backwards compatibility, as a synonym for
+<codeph>COMBINEFUNC</codeph>.</p>
+
 </section><section id="section7"><title>Example</title><p>The following simple example creates an aggregate function that computes
 the sum of two columns. </p><p>Before creating the aggregate function, create two functions that
 are used as the <codeph>SFUNC</codeph> and <codeph>COMBINEFUNC</codeph> functions

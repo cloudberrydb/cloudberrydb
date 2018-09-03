@@ -98,3 +98,22 @@ select max(unique2), generate_series(1,3) as g from tenk1 order by g desc;
 -- Same test with avg(), so that the optimization doesn't apply. Fails,
 -- currently.
 select avg(unique2), generate_series(1,3) as g from tenk1 order by g desc;
+
+
+--
+-- "PREFUNC" is accepted as an alias for "COMBINEFUNC", for compatibility with
+-- GPDB 5 and below.
+--
+create function int8pl_with_notice(int8, int8) returns int8
+AS $$
+begin
+  raise notice 'combinefunc called';
+  return $1 + $2;
+end;
+$$ language plpgsql strict;
+create aggregate mysum_prefunc(int4) (
+  sfunc = int4_sum,
+  stype=bigint,
+  prefunc=int8pl_with_notice
+);
+select mysum_prefunc(a::int4) from aggtest;
