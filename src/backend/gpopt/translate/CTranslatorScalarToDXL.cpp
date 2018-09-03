@@ -1537,30 +1537,10 @@ CTranslatorScalarToDXL::TranslateWindowFuncToDXL
 
 	const WindowFunc *window_func = (WindowFunc *) expr;
 
-	static ULONG mapping[][2] =
-		{
-		{WINSTAGE_IMMEDIATE, EdxlwinstageImmediate},
-		{WINSTAGE_PRELIMINARY, EdxlwinstagePreliminary},
-		{WINSTAGE_ROWKEY, EdxlwinstageRowKey},
-		};
-
 	// ORCA doesn't support the FILTER clause yet.
 	if (window_func->aggfilter)
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Aggregate functions with FILTER"));
-	}
-
-	const ULONG arity = GPOS_ARRAY_SIZE(mapping);
-	EdxlWinStage dxl_win_stage = EdxlwinstageSentinel;
-
-	for (ULONG ul = 0; ul < arity; ul++)
-	{
-		ULONG *elem = mapping[ul];
-		if ((ULONG) window_func->winstage == elem[0])
-		{
-			dxl_win_stage = (EdxlWinStage) elem[1];
-			break;
-		}
 	}
 
 	ULONG win_spec_pos = (ULONG) 0;
@@ -1568,8 +1548,6 @@ CTranslatorScalarToDXL::TranslateWindowFuncToDXL
 	{
 		win_spec_pos = (ULONG) window_func->winref - 1;
 	}
-
-	GPOS_ASSERT(EdxlwinstageSentinel != dxl_win_stage && "Invalid window stage");
 
 	/*
 	 * ORCA's ScalarWindowRef object doesn't have fields for the 'winstar'
@@ -1585,7 +1563,7 @@ CTranslatorScalarToDXL::TranslateWindowFuncToDXL
 													window_func->windistinct,
 													window_func->winstar,
 													window_func->winagg,
-													dxl_win_stage,
+													EdxlwinstageImmediate,
 													win_spec_pos
 													);
 

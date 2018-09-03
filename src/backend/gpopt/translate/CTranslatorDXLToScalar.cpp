@@ -573,26 +573,8 @@ CTranslatorDXLToScalar::TranslateDXLScalarWindowRefToScalar
 	window_func->winstar = dxlop->IsStarArg();
 	window_func->winagg = dxlop->IsSimpleAgg();
 
-	EdxlWinStage dxl_win_stage = dxlop->GetDxlWinStage();
-	GPOS_ASSERT(dxl_win_stage != EdxlwinstageSentinel);
-
-	ULONG mapping[][2] =
-			{
-			{WINSTAGE_IMMEDIATE, EdxlwinstageImmediate},
-			{WINSTAGE_PRELIMINARY, EdxlwinstagePreliminary},
-			{WINSTAGE_ROWKEY, EdxlwinstageRowKey},
-			};
-
-	const ULONG arity = GPOS_ARRAY_SIZE(mapping);
-	for (ULONG ul = 0; ul < arity; ul++)
-	{
-		ULONG *elem = mapping[ul];
-		if ((ULONG) dxl_win_stage == elem[1])
-		{
-			window_func->winstage = (WinStage) elem[0];
-			break;
-		}
-	}
+	if (dxlop->GetDxlWinStage() != EdxlwinstageImmediate)
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLError, GPOS_WSZ_LIT("Unsupported window function stage"));
 
 	// translate the arguments of the window function
 	window_func->args = TranslateScalarChildren(window_func->args, scalar_winref_node, colid_var);

@@ -240,8 +240,6 @@ _equalWindowFunc(const WindowFunc *a, const WindowFunc *b)
 	COMPARE_SCALAR_FIELD(winstar);
 	COMPARE_SCALAR_FIELD(winagg);
 	COMPARE_SCALAR_FIELD(windistinct);
-	COMPARE_SCALAR_FIELD(winindex);
-	COMPARE_SCALAR_FIELD(winstage);
 	COMPARE_LOCATION_FIELD(location);
 
 	return true;

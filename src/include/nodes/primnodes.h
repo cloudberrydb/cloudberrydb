@@ -336,16 +336,6 @@ typedef struct GroupId
 	Expr      xpr;
 } GroupId;
 
-/* WinStage enumeration indicates what stage of the evaluation of a
- * window function is expressed by a WindowRef.
- */
-typedef enum WinStage
-{
-	WINSTAGE_IMMEDIATE = 0, /* Evaluate window function. */
-	WINSTAGE_PRELIMINARY, /* Evaluate preliminary function. */
-	WINSTAGE_ROWKEY /* WINSTAGE_IMMEDIATE for row key generation. */
-} WinStage;
-
 /*
  * WindowFunc: describes a window function call
  *
@@ -367,9 +357,6 @@ typedef struct WindowFunc
 	bool		winstar;		/* TRUE if argument list was really '*' */
 	bool		winagg;			/* is function a simple aggregate? */
 	bool		windistinct;	/* TRUE if it's agg(DISTINCT ...) */
-	/* Following fields are significant only in a Plan tree. */
-	Index		winindex;		/* RefInfo index during planning. */
-	WinStage	winstage;		/* Stage of execution. */
 	int			location;		/* token location, or -1 if unknown */
 } WindowFunc;
 

@@ -1426,8 +1426,6 @@ _outWindowFunc(StringInfo str, const WindowFunc *node)
 	WRITE_BOOL_FIELD(winstar);
 	WRITE_BOOL_FIELD(winagg);
 	WRITE_BOOL_FIELD(windistinct);
-	WRITE_UINT_FIELD(winindex);
-	WRITE_ENUM_FIELD(winstage, WinStage);
 	WRITE_LOCATION_FIELD(location);
 }
 
