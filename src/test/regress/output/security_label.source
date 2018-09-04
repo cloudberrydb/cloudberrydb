@@ -15,6 +15,10 @@ CREATE TABLE seclabel_tbl2 (x int, y text);
 CREATE VIEW seclabel_view1 AS SELECT * FROM seclabel_tbl2;
 CREATE FUNCTION seclabel_four() RETURNS integer AS $$SELECT 4$$ language sql;
 CREATE DOMAIN seclabel_domain AS text;
+CREATE AGGREGATE seclabel_agg(int4) (
+    SFUNC = int4larger,
+    STYPE = int4
+);
 ALTER TABLE seclabel_tbl1 OWNER TO seclabel_user1;
 ALTER TABLE seclabel_tbl2 OWNER TO seclabel_user2;
 RESET client_min_messages;
@@ -36,6 +40,8 @@ ERROR:  security label provider "dummy" is not loaded
 SECURITY LABEL ON ROLE seclabel_user1 IS '...invalid label...';		-- fail
 ERROR:  no security label providers have been loaded
 SECURITY LABEL ON ROLE seclabel_user3 IS 'unclassified';			-- fail
+ERROR:  no security label providers have been loaded
+SECURITY LABEL ON AGGREGATE seclabel_agg(int4) IS 'classified';
 ERROR:  no security label providers have been loaded
 -- Load dummy external security provider
 LOAD '@abs_builddir@/dummy_seclabel@DLSUFFIX@';
@@ -90,20 +96,22 @@ SECURITY LABEL ON FUNCTION seclabel_four() IS 'classified';		-- OK
 SECURITY LABEL ON DOMAIN seclabel_domain IS 'classified';		-- OK
 CREATE SCHEMA seclabel_test;
 SECURITY LABEL ON SCHEMA seclabel_test IS 'unclassified';		-- OK
+SECURITY LABEL ON AGGREGATE seclabel_agg(int4) IS 'classified';
 SELECT objtype, objname, provider, label FROM pg_seclabels
 	ORDER BY objtype, objname;
- objtype  |     objname     | provider |    label     
-----------+-----------------+----------+--------------
- column   | seclabel_tbl1.a | dummy    | unclassified
- domain   | seclabel_domain | dummy    | classified
- function | seclabel_four() | dummy    | classified
- role     | seclabel_user1  | dummy    | classified
- role     | seclabel_user2  | dummy    | unclassified
- schema   | seclabel_test   | dummy    | unclassified
- table    | seclabel_tbl1   | dummy    | top secret
- table    | seclabel_tbl2   | dummy    | classified
- view     | seclabel_view1  | dummy    | classified
-(9 rows)
+  objtype  |        objname        | provider |    label     
+-----------+-----------------------+----------+--------------
+ aggregate | seclabel_agg(integer) | dummy    | classified
+ column    | seclabel_tbl1.a       | dummy    | unclassified
+ domain    | seclabel_domain       | dummy    | classified
+ function  | seclabel_four()       | dummy    | classified
+ role      | seclabel_user1        | dummy    | classified
+ role      | seclabel_user2        | dummy    | unclassified
+ schema    | seclabel_test         | dummy    | unclassified
+ table     | seclabel_tbl1         | dummy    | top secret
+ table     | seclabel_tbl2         | dummy    | classified
+ view      | seclabel_view1        | dummy    | classified
+(10 rows)
 
 -- clean up objects
 DROP FUNCTION seclabel_four();
@@ -114,6 +122,7 @@ DROP TABLE seclabel_tbl2;
 DROP USER seclabel_user1;
 DROP USER seclabel_user2;
 DROP SCHEMA seclabel_test;
+DROP AGGREGATE seclabel_agg(int4);
 -- make sure we don't have any leftovers
 SELECT objtype, objname, provider, label FROM pg_seclabels
 	ORDER BY objtype, objname;

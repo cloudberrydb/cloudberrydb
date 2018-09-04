@@ -21,6 +21,11 @@ CREATE VIEW seclabel_view1 AS SELECT * FROM seclabel_tbl2;
 CREATE FUNCTION seclabel_four() RETURNS integer AS $$SELECT 4$$ language sql;
 CREATE DOMAIN seclabel_domain AS text;
 
+CREATE AGGREGATE seclabel_agg(int4) (
+    SFUNC = int4larger,
+    STYPE = int4
+);
+
 ALTER TABLE seclabel_tbl1 OWNER TO seclabel_user1;
 ALTER TABLE seclabel_tbl2 OWNER TO seclabel_user2;
 
@@ -38,6 +43,8 @@ SECURITY LABEL ON ROLE seclabel_user1 IS 'classified';			-- fail
 SECURITY LABEL FOR 'dummy' ON ROLE seclabel_user1 IS 'classified';		-- fail
 SECURITY LABEL ON ROLE seclabel_user1 IS '...invalid label...';		-- fail
 SECURITY LABEL ON ROLE seclabel_user3 IS 'unclassified';			-- fail
+
+SECURITY LABEL ON AGGREGATE seclabel_agg(int4) IS 'classified';
 
 -- Load dummy external security provider
 LOAD '@libdir@/dummy_seclabel@DLSUFFIX@';
@@ -90,6 +97,8 @@ SECURITY LABEL ON DOMAIN seclabel_domain IS 'classified';		-- OK
 CREATE SCHEMA seclabel_test;
 SECURITY LABEL ON SCHEMA seclabel_test IS 'unclassified';		-- OK
 
+SECURITY LABEL ON AGGREGATE seclabel_agg(int4) IS 'classified';
+
 SELECT objtype, objname, provider, label FROM pg_seclabels
 	ORDER BY objtype, objname;
 
@@ -102,6 +111,7 @@ DROP TABLE seclabel_tbl2;
 DROP USER seclabel_user1;
 DROP USER seclabel_user2;
 DROP SCHEMA seclabel_test;
+DROP AGGREGATE seclabel_agg(int4);
 
 -- make sure we don't have any leftovers
 SELECT objtype, objname, provider, label FROM pg_seclabels
