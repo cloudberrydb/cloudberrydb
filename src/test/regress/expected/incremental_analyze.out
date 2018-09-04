@@ -1067,10 +1067,10 @@ SET client_min_messages = 'log';
 ALTER TABLE foo ADD COLUMN c int;
 INSERT INTO foo SELECT i, i%9, i%100 FROM generate_series(1,500)i;
 ANALYZE rootpartition foo;
-LOG:  Needs sample for foo
-LOG:  Merging leaf stats  column 1
-LOG:  Merging leaf stats  column 2
-LOG:  Computing Scalar Stats  column 3
+LOG:  column c of partition foo_1_prt_1 is not analyzed, so ANALYZE will collect sample for stats calculation
+LOG:  Merging leaf partition stats to calculate root partition stats : column a
+LOG:  Merging leaf partition stats to calculate root partition stats : column b
+LOG:  Computing Scalar Stats : column c
 -- Testing auto merging root statistics for all columns
 -- where column attnums are differents due to dropped columns
 -- and split partitions.
@@ -1086,34 +1086,33 @@ NOTICE:  CREATE TABLE will create partition "foo_1_prt_3" for table "foo"
 INSERT INTO foo SELECT i%13, i, 'something'||i::text, i%121 FROM generate_series(1,1000)i;
 ALTER TABLE foo DROP COLUMN b;
 ALTER TABLE foo SPLIT DEFAULT PARTITION START (8) END (12) INTO (PARTITION new_part, default PARTITION);
-NOTICE:  exchanged partition "def_part" of relation "foo" with relation "pg_temp_57769"
+NOTICE:  exchanged partition "def_part" of relation "foo" with relation "pg_temp_106969"
 NOTICE:  dropped partition "def_part" for relation "foo"
 NOTICE:  CREATE TABLE will create partition "foo_1_prt_new_part" for table "foo"
 NOTICE:  CREATE TABLE will create partition "foo_1_prt_def_part" for table "foo"
 set client_min_messages to 'log';
 ANALYZE foo_1_prt_2;
-LOG:  Needs sample for foo_1_prt_2
-LOG:  Computing Scalar Stats  column 1
-LOG:  Computing Scalar Stats  column 3
-LOG:  Computing Scalar Stats  column 4
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column a of partition foo_1_prt_3 is not analyzed
+LOG:  Computing Scalar Stats : column a
+LOG:  Computing Scalar Stats : column c
+LOG:  Computing Scalar Stats : column d
 ANALYZE foo_1_prt_3;
-LOG:  Needs sample for foo_1_prt_3
-LOG:  Computing Scalar Stats  column 1
-LOG:  Computing Scalar Stats  column 3
-LOG:  Computing Scalar Stats  column 4
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column a of partition foo_1_prt_new_part is not analyzed
+LOG:  Computing Scalar Stats : column a
+LOG:  Computing Scalar Stats : column c
+LOG:  Computing Scalar Stats : column d
 ANALYZE foo_1_prt_new_part;
-LOG:  Needs sample for foo_1_prt_new_part
-LOG:  Computing Scalar Stats  column 1
-LOG:  Computing Scalar Stats  column 2
-LOG:  Computing Scalar Stats  column 3
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column a of partition foo_1_prt_def_part is not analyzed
+LOG:  Computing Scalar Stats : column a
+LOG:  Computing Scalar Stats : column c
+LOG:  Computing Scalar Stats : column d
 ANALYZE foo_1_prt_def_part;
-LOG:  Needs sample for foo_1_prt_def_part
-LOG:  Computing Scalar Stats  column 1
-LOG:  Computing Scalar Stats  column 2
-LOG:  Computing Scalar Stats  column 3
-LOG:  Merging leaf stats  column 1
-LOG:  Merging leaf stats  column 3
-LOG:  Merging leaf stats  column 4
+LOG:  Computing Scalar Stats : column a
+LOG:  Computing Scalar Stats : column c
+LOG:  Computing Scalar Stats : column d
+LOG:  Merging leaf partition stats to calculate root partition stats : column a
+LOG:  Merging leaf partition stats to calculate root partition stats : column c
+LOG:  Merging leaf partition stats to calculate root partition stats : column d
 reset client_min_messages;
 SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
      tablename      | attname | null_frac | n_distinct | most_common_vals |           most_common_freqs           |                          histogram_bounds                           
@@ -1150,24 +1149,23 @@ NOTICE:  CREATE TABLE will create partition "foo_1_prt_3" for table "foo"
 INSERT INTO foo SELECT i%13, i, 'something'||i::text, i%121 FROM generate_series(1,1000)i;
 ALTER TABLE foo DROP COLUMN b;
 ALTER TABLE foo SPLIT DEFAULT PARTITION START (8) END (12) INTO (PARTITION new_part, default PARTITION);
-NOTICE:  exchanged partition "def_part" of relation "foo" with relation "pg_temp_57948"
+NOTICE:  exchanged partition "def_part" of relation "foo" with relation "pg_temp_107148"
 NOTICE:  dropped partition "def_part" for relation "foo"
 NOTICE:  CREATE TABLE will create partition "foo_1_prt_new_part" for table "foo"
 NOTICE:  CREATE TABLE will create partition "foo_1_prt_def_part" for table "foo"
 set client_min_messages to 'log';
 ANALYZE foo_1_prt_2(a);
-LOG:  Needs sample for foo_1_prt_2
-LOG:  Computing Scalar Stats  column 1
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column a of partition foo_1_prt_3 is not analyzed
+LOG:  Computing Scalar Stats : column a
 ANALYZE foo_1_prt_3(a);
-LOG:  Needs sample for foo_1_prt_3
-LOG:  Computing Scalar Stats  column 1
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column a of partition foo_1_prt_new_part is not analyzed
+LOG:  Computing Scalar Stats : column a
 ANALYZE foo_1_prt_new_part(a);
-LOG:  Needs sample for foo_1_prt_new_part
-LOG:  Computing Scalar Stats  column 1
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column a of partition foo_1_prt_def_part is not analyzed
+LOG:  Computing Scalar Stats : column a
 ANALYZE foo_1_prt_def_part(a);
-LOG:  Needs sample for foo_1_prt_def_part
-LOG:  Computing Scalar Stats  column 1
-LOG:  Merging leaf stats  column 1
+LOG:  Computing Scalar Stats : column a
+LOG:  Merging leaf partition stats to calculate root partition stats : column a
 reset client_min_messages;
 SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
      tablename      | attname | null_frac | n_distinct | most_common_vals |           most_common_freqs           | histogram_bounds 
@@ -1194,24 +1192,23 @@ NOTICE:  CREATE TABLE will create partition "foo_1_prt_3" for table "foo"
 INSERT INTO foo SELECT i%13, i, 'something'||i::text, i%121 FROM generate_series(1,1000)i;
 ALTER TABLE foo DROP COLUMN b;
 ALTER TABLE foo SPLIT DEFAULT PARTITION START (8) END (12) INTO (PARTITION new_part, default PARTITION);
-NOTICE:  exchanged partition "def_part" of relation "foo" with relation "pg_temp_58127"
+NOTICE:  exchanged partition "def_part" of relation "foo" with relation "pg_temp_107327"
 NOTICE:  dropped partition "def_part" for relation "foo"
 NOTICE:  CREATE TABLE will create partition "foo_1_prt_new_part" for table "foo"
 NOTICE:  CREATE TABLE will create partition "foo_1_prt_def_part" for table "foo"
 set client_min_messages to 'log';
 ANALYZE foo_1_prt_2(d);
-LOG:  Needs sample for foo_1_prt_2
-LOG:  Computing Scalar Stats  column 4
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column d of partition foo_1_prt_3 is not analyzed
+LOG:  Computing Scalar Stats : column d
 ANALYZE foo_1_prt_3(d);
-LOG:  Needs sample for foo_1_prt_3
-LOG:  Computing Scalar Stats  column 4
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column d of partition foo_1_prt_new_part is not analyzed
+LOG:  Computing Scalar Stats : column d
 ANALYZE foo_1_prt_new_part(d);
-LOG:  Needs sample for foo_1_prt_new_part
-LOG:  Computing Scalar Stats  column 3
+LOG:  Auto merging of leaf partition stats to calculate root partition stats is not possible because column d of partition foo_1_prt_def_part is not analyzed
+LOG:  Computing Scalar Stats : column d
 ANALYZE foo_1_prt_def_part(d);
-LOG:  Needs sample for foo_1_prt_def_part
-LOG:  Computing Scalar Stats  column 3
-LOG:  Merging leaf stats  column 4
+LOG:  Computing Scalar Stats : column d
+LOG:  Merging leaf partition stats to calculate root partition stats : column d
 reset client_min_messages;
 SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
      tablename      | attname | null_frac | n_distinct | most_common_vals | most_common_freqs | histogram_bounds 
@@ -1239,10 +1236,12 @@ set client_min_messages to 'log';
 -- ANALYZE ROOTPARTITION will sample the table and compute statistics since there
 -- is not stats to be merged in the leaf partitions
 ANALYZE ROOTPARTITION foo;
-LOG:  Needs sample for foo
-LOG:  Computing Scalar Stats  column 1
-LOG:  Computing Scalar Stats  column 2
-LOG:  Computing Scalar Stats  column 3
+LOG:  column a of partition foo_1_prt_1 is not analyzed, so ANALYZE will collect sample for stats calculation
+LOG:  column b of partition foo_1_prt_1 is not analyzed, so ANALYZE will collect sample for stats calculation
+LOG:  column c of partition foo_1_prt_1 is not analyzed, so ANALYZE will collect sample for stats calculation
+LOG:  Computing Scalar Stats : column a
+LOG:  Computing Scalar Stats : column b
+LOG:  Computing Scalar Stats : column c
 reset client_min_messages;
 SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
  tablename | attname | null_frac | n_distinct | most_common_vals | most_common_freqs |                         histogram_bounds                         
@@ -1257,9 +1256,9 @@ ANALYZE foo_1_prt_2;
 set client_min_messages to 'log';
 -- ANALYZE ROOT PARTITION will piggyback on the stats collected from the leaf and merge them
 ANALYZE ROOTPARTITION foo;
-LOG:  Merging leaf stats  column 1
-LOG:  Merging leaf stats  column 2
-LOG:  Merging leaf stats  column 3
+LOG:  Merging leaf partition stats to calculate root partition stats : column a
+LOG:  Merging leaf partition stats to calculate root partition stats : column b
+LOG:  Merging leaf partition stats to calculate root partition stats : column c
 reset client_min_messages;
 reset optimizer_analyze_root_partition;
 SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;

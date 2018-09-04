@@ -641,7 +641,6 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 												&totalrows, &totaldeadrows);
 	else
 #endif
-		elog (LOG,"Needs sample for %s " , RelationGetRelationName(onerel));
 		rows = NULL;
 		numrows = (*acquirefunc) (onerel, elevel, attr_cnt, vacattrstats, &rows, targrows,
 								  &totalrows, &totaldeadrows, &totalpages,
@@ -2819,7 +2818,7 @@ compute_minimal_stats(VacAttrStatsP stats,
 
 	stats->stahll = (bytea *)hyperloglog_init_def();
 
-	elog(LOG, "Computing Minimal Stats column %d", stats->attr->attnum);
+	elog(LOG, "Computing Minimal Stats : column %s", get_attname(stats->attr->attrelid, stats->attr->attnum));
 
 	for (i = 0; i < samplerows; i++)
 	{
@@ -3128,7 +3127,7 @@ compute_very_minimal_stats(VacAttrStatsP stats,
 	bool		is_varwidth = (!stats->attr->attbyval &&
 							   stats->attr->attlen < 0);
 
-	elog(LOG, "Computing Very Minimal Stats for  column %d", stats->attr->attnum);
+	elog(LOG, "Computing Very Minimal Stats : column %s", get_attname(stats->attr->attrelid, stats->attr->attnum));
 
 	for (i = 0; i < samplerows; i++)
 	{
@@ -3247,7 +3246,7 @@ compute_scalar_stats(VacAttrStatsP stats,
 	// Initialize HLL counter to be stored in stats
 	stats->stahll = (bytea *)hyperloglog_init_def();
 
-	elog(LOG, "Computing Scalar Stats  column %d", stats->attr->attnum);
+	elog(LOG, "Computing Scalar Stats : column %s", get_attname(stats->attr->attrelid, stats->attr->attnum));
 
 	/* Initial scan to find sortable values */
 	for (i = 0; i < samplerows; i++)
@@ -3766,7 +3765,7 @@ merge_leaf_stats(VacAttrStatsP stats,
 		get_parts(stats->attr->attrelid, 0 /*level*/, 0 /*parent*/,
 				  false /* inctemplate */, true /*includesubparts*/);
 	Assert(pn);
-	elog(LOG, "Merging leaf stats  column %d", stats->attr->attnum);
+	elog(LOG, "Merging leaf partition stats to calculate root partition stats : column %s", get_attname(stats->attr->attrelid, stats->attr->attnum));
 	List *oid_list = all_leaf_partition_relids(pn); /* all leaves */
 	StdAnalyzeData *mystats = (StdAnalyzeData *) stats->extra_data;
 	int numPartitions = list_length(oid_list);
