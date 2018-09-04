@@ -123,7 +123,6 @@ gen_implied_qual(PlannerInfo *root,
 	Relids		new_qualscope;
 	ListCell   *lc;
 	RestrictInfo *new_rinfo;
-	Relids		required_relids;
 
 	/* Expression types must match */
 	Assert(exprType(old_expr) == exprType(new_expr)
@@ -172,13 +171,11 @@ gen_implied_qual(PlannerInfo *root,
 	 * equivalence class machinery, because it's derived from a clause that
 	 * wasn't either.
 	 */
-	required_relids = bms_union(new_qualscope, old_rinfo->ojscope_relids);
-
 	new_rinfo = make_restrictinfo((Expr *) new_clause,
 								  old_rinfo->is_pushed_down,
 								  old_rinfo->outerjoin_delayed,
 								  old_rinfo->pseudoconstant,
-								  required_relids,
+								  new_qualscope,
 								  old_rinfo->outer_relids, /* GPDB_92_MERGE_FIXME */
 								  old_rinfo->nullable_relids,
 								  old_rinfo->ojscope_relids);
@@ -197,7 +194,7 @@ gen_implied_qual(PlannerInfo *root,
 										   PVC_RECURSE_AGGREGATES,
 										   PVC_INCLUDE_PLACEHOLDERS);
 
-		add_vars_to_targetlist(root, vars, required_relids, false);
+		add_vars_to_targetlist(root, vars, new_qualscope, false);
 		list_free(vars);
 	}
 
