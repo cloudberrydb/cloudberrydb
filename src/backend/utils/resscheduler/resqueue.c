@@ -193,7 +193,7 @@ ResLockAcquire(LOCKTAG *locktag, ResPortalIncrement *incrementSet)
 		ereport(ERROR,
 				(errcode(ERRCODE_OUT_OF_MEMORY),
 				 errmsg("out of shared memory"),
-				 errhint("You may need to increase max_resource_qeueues.")));
+				 errhint("You may need to increase max_resource_queues.")));
 	}
 
 	/*
@@ -258,7 +258,7 @@ ResLockAcquire(LOCKTAG *locktag, ResPortalIncrement *incrementSet)
 		ereport(ERROR,
 				(errcode(ERRCODE_OUT_OF_MEMORY),
 				 errmsg("out of shared memory"),
-				 errhint("You may need to increase max_resource_qeueues.")));
+				 errhint("You may need to increase max_resource_queues.")));
 	}
 
 	/*
