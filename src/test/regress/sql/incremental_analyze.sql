@@ -604,3 +604,37 @@ ANALYZE foo_1_prt_new_part(d);
 ANALYZE foo_1_prt_def_part(d);
 reset client_min_messages;
 SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
+-- Testing ANALYZE ROOTPARTITION and when optimizer_analyze_root_partition is off
+-- for incremental analyze.
+DROP TABLE IF EXISTS foo;
+CREATE TABLE foo (a int, b int, c text)
+	PARTITION BY RANGE (b) 
+		(START (0) END (8) EVERY (4));
+INSERT INTO foo SELECT i%130, i%8, 'something'||i::text FROM generate_series(1,1000)i;
+set optimizer_analyze_root_partition=off;
+set client_min_messages to 'log';
+-- ANALYZE ROOTPARTITION will sample the table and compute statistics since there
+-- is not stats to be merged in the leaf partitions
+ANALYZE ROOTPARTITION foo;
+reset client_min_messages;
+SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
+ANALYZE foo_1_prt_1;
+ANALYZE foo_1_prt_2;
+set client_min_messages to 'log';
+-- ANALYZE ROOT PARTITION will piggyback on the stats collected from the leaf and merge them
+ANALYZE ROOTPARTITION foo;
+reset client_min_messages;
+reset optimizer_analyze_root_partition;
+SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
+-- Testing that auto merge will be disabled when optimizer_analyze_root_partition
+-- is off for incremental analyze. 
+DROP TABLE IF EXISTS foo;
+CREATE TABLE foo (a int, b int, c text)
+	PARTITION BY RANGE (b) 
+		(START (0) END (8) EVERY (4));
+INSERT INTO foo SELECT i%130, i%8, 'something'||i::text FROM generate_series(1,1000)i;
+set optimizer_analyze_root_partition=off;
+ANALYZE foo_1_prt_1;
+ANALYZE foo_1_prt_2;
+SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename like 'foo%' ORDER BY attname,tablename;
+reset optimizer_analyze_root_partition;
