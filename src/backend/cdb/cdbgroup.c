@@ -408,6 +408,7 @@ static Cost incremental_agg_cost(double rows, int width, AggStrategy strategy,
 static Cost incremental_motion_cost(double sendrows, double recvrows);
 
 static bool contain_aggfilters(Node *node);
+static bool areAllGreenplumDbHashable(List *exprs);
 
 /*---------------------------------------------
  * WITHIN stuff
@@ -723,10 +724,17 @@ cdb_grouping_planner(PlannerInfo *root,
 					possible_agg |= AGG_2PHASE;
 					break;
 				case 1:
-					possible_agg |= AGG_2PHASE_DQA | AGG_3PHASE;
+					/*
+					 * The DQA-planning code works by redistributing data based on
+					 * the DQA argument. That only works if the datatype is GDPB-
+					 * hashable.
+					 */
+					if (areAllGreenplumDbHashable(agg_costs->dqaArgs))
+						possible_agg |= AGG_2PHASE_DQA | AGG_3PHASE;
 					break;
 				default:		/* > 1 */
-					possible_agg |= AGG_3PHASE;
+					if (areAllGreenplumDbHashable(agg_costs->dqaArgs))
+						possible_agg |= AGG_3PHASE;
 					break;
 			}
 		}
@@ -5707,4 +5715,17 @@ static bool
 contain_aggfilters(Node *node)
 {
 	return contain_aggfilters_walker(node, NULL);
+}
+
+static bool
+areAllGreenplumDbHashable(List *exprs)
+{
+	ListCell   *lc;
+
+	foreach (lc, exprs)
+	{
+		if (!isGreenplumDbHashable(exprType(lfirst(lc))))
+			return false;
+	}
+	return true;
 }
