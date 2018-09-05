@@ -556,7 +556,7 @@ CloseWritableFileSeg(AppendOnlyInsertDesc aoInsertDesc)
 
 	elogif(Debug_appendonly_print_insert, LOG,
 		   "Append-only scan closed write file segment #%d for table %s "
-		   "(file length " INT64_FORMAT ", insert count %f, VarBlock count %f",
+		   "(file length " INT64_FORMAT ", insert count " INT64_FORMAT ", VarBlock count " INT64_FORMAT,
 		   aoInsertDesc->cur_segno,
 		   NameStr(aoInsertDesc->aoi_rel->rd_rel->relname),
 		   fileLen,

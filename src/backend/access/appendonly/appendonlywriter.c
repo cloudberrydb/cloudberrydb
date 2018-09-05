@@ -30,6 +30,7 @@
 #include "miscadmin.h"
 #include "storage/lmgr.h"
 #include "utils/builtins.h"
+#include "utils/int8.h"
 #include "utils/lsyscache.h"
 #include "utils/snapmgr.h"
 
@@ -1370,8 +1371,7 @@ GetTotalTupleCountFromSegments(Relation parentrel,
 							 i, sqlstmt.data);
 
 					value = PQgetvalue(pgresult, j, 0);
-					tupcount = DatumGetFloat8(
-											  DirectFunctionCall1(float8in, CStringGetDatum(value)));
+					tupcount = DatumGetInt64(DirectFunctionCall1(int8in, CStringGetDatum(value)));
 					value = PQgetvalue(pgresult, j, 1);
 					segno = pg_atoi(value, sizeof(int32), 0);
 					total_tupcount[segno] += tupcount;

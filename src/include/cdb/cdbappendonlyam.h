@@ -35,7 +35,6 @@
 
 #include "access/appendonlytid.h"
 
-#include "cdb/cdbvarblock.h"
 #include "cdb/cdbbufferedappend.h"
 #include "cdb/cdbbufferedread.h"
 #include "cdb/cdbvarblock.h"
@@ -66,8 +65,8 @@ typedef struct AppendOnlyInsertDescData
 	File			appendFile;
 	int				appendFilePathNameMaxLen;
 	char			*appendFilePathName;
-	float8			insertCount;
-	float8			varblockCount;
+	int64			insertCount;
+	int64			varblockCount;
 	int64           rowCount; /* total row count before insert */
 	int64           numSequences; /* total number of available sequences */
 	int64           lastSequence; /* last used sequence */
