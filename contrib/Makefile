@@ -83,10 +83,6 @@ else
 ALWAYS_SUBDIRS += sepgsql
 endif
 
-ifeq ($(enable_orca),yes)
-SUBDIRS += orca_debug
-endif
-
 SUBDIRS += gp_replica_check
 
 # Missing:

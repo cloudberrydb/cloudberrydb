@@ -204,9 +204,6 @@ extern void free_attstatsslot(AttStatsSlot *sslot);
 extern char *get_namespace_name(Oid nspid);
 extern Oid	get_range_subtype(Oid rangeOid);
 
-extern List *relation_oids(void);
-extern List *operator_oids(void);
-extern List *function_oids(void);
 extern bool relation_exists(Oid oid);
 extern bool index_exists(Oid oid);
 extern bool type_exists(Oid oid);

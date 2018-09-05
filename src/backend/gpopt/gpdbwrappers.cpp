@@ -718,18 +718,6 @@ gpdb::FunctionExists
 	return false;
 }
 
-List *
-gpdb::FunctionOids(void)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_proc */
-		return function_oids();
-	}
-	GP_WRAP_END;
-	return NIL;
-}
-
 Oid
 gpdb::GetAggIntermediateResultType
 	(
@@ -2417,18 +2405,6 @@ gpdb::RelationExists
 	}
 	GP_WRAP_END;
 	return false;
-}
-
-List *
-gpdb::GetAllRelationOids(void)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_class */
-		return relation_oids();
-	}
-	GP_WRAP_END;
-	return NIL;
 }
 
 void

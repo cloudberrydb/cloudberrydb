@@ -101,7 +101,7 @@ CGPOptimizer::GPOPTOptimizedPlan
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CGPOptimizer::SzDXL
+//		CGPOptimizer::SerializeDXLPlan
 //
 //	@doc:
 //		Serialize planned statement into DXL

@@ -195,9 +195,6 @@ namespace gpdb {
 	// attribute statistics
 	HeapTuple GetAttStats(Oid relid, AttrNumber attnum);
 
-	// function oids
-	List *FunctionOids(void);
-
 	// does a function exist with the given oid
 	bool FunctionExists(Oid oid);
 
@@ -516,9 +513,6 @@ namespace gpdb {
 
 	// does a relation exist with the given oid
 	bool RelationExists(Oid oid);
-
-	// extract all relation oids from the catalog
-	List *GetAllRelationOids(void);
 
 	// estimate the relation size using the real number of blocks and tuple density
 	void EstimateRelationSize(Relation rel,	int32 *attr_widths,	BlockNumber *pages,	double *tuples, double *allvisfrac);
