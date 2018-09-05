@@ -684,7 +684,8 @@ void check_greenplum(void);
 
 /* reporting.c */
 
-void report_progress(ClusterInfo *cluster, progress_type op, char *fmt,...);
+void report_progress(ClusterInfo *cluster, progress_type op, char *fmt,...)
+__attribute__((format(PG_PRINTF_ATTRIBUTE, 3, 4)));
 void close_progress(void);
 
 /*
