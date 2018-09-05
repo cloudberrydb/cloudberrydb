@@ -59,7 +59,7 @@ select cn, vn, pn, sum(qty*prc) from sale group by cube (cn, vn, pn);
 select cn, vn, pn, sum(qty*prc) from sale group by grouping sets ((), (cn), (vn), (pn), (cn,vn), (cn,pn), (vn,pn), (cn,vn,pn));
 --end_equiv
 
--- start_equiv
+--start_equiv
 select cn, vn, pn, count(distinct dt) from sale group by cn, vn, pn
 union all
 select cn, vn, null, count(distinct dt) from sale group by cn, vn
@@ -69,7 +69,7 @@ union all
 select null, null, null, count(distinct dt) from sale;    --mvd 1,2,3->4
 select cn, vn, pn, count(distinct dt) from sale group by rollup(cn,vn,pn);--mvd 1,2,3->4
 select cn, vn, pn, count(distinct dt) from sale group by grouping sets((), (cn), (cn,vn), (cn,vn,pn));--mvd 1,2,3->4
--- end_equiv
+--end_equiv
 
 --start_equiv order 1,2,3
 select cn, vn, pn, count(distinct dt) from sale group by cn, vn, pn
