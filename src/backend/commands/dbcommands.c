@@ -1550,17 +1550,16 @@ AlterDatabase(AlterDatabaseStmt *stmt, bool isTopLevel)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		StringInfoData buffer;
+		char	   *cmd;
 
-		initStringInfo(&buffer);
-		appendStringInfo(&buffer, "ALTER DATABASE \"%s\" CONNECTION LIMIT %d",
-						 stmt->dbname, connlimit);
+		cmd = psprintf("ALTER DATABASE %s CONNECTION LIMIT %d",
+					   quote_identifier(stmt->dbname), connlimit);
 
-		CdbDispatchCommand(buffer.data,
-							DF_NEED_TWO_PHASE|
-							DF_WITH_SNAPSHOT,
-							NULL);
-		pfree(buffer.data);
+		CdbDispatchCommand(cmd,
+						   DF_NEED_TWO_PHASE|
+						   DF_WITH_SNAPSHOT,
+						   NULL);
+		pfree(cmd);
 	}
 }
 
