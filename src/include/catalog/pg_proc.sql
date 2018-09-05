@@ -133,14 +133,6 @@
 
 -- 3241-324? reserved for unpivot, see pivot.c 
 
- CREATE FUNCTION gpaotidin(cstring) RETURNS gpaotid LANGUAGE internal IMMUTABLE STRICT AS 'gpaotidin' WITH (OID=3302, DESCRIPTION="I/O");
-
- CREATE FUNCTION gpaotidout(gpaotid) RETURNS cstring LANGUAGE internal IMMUTABLE STRICT AS 'gpaotidout' WITH (OID=3303, DESCRIPTION="I/O");
-
- CREATE FUNCTION gpaotidrecv(internal) RETURNS gpaotid LANGUAGE internal IMMUTABLE STRICT AS 'gpaotidrecv' WITH (OID=3304, DESCRIPTION="I/O");
-
- CREATE FUNCTION gpaotidsend(gpaotid) RETURNS bytea LANGUAGE internal IMMUTABLE STRICT AS 'gpaotidsend' WITH (OID=3305, DESCRIPTION="I/O");
-
  CREATE FUNCTION gpxloglocin(cstring) RETURNS gpxlogloc LANGUAGE internal IMMUTABLE STRICT AS 'gpxloglocin' WITH (OID=3312, DESCRIPTION="I/O");
 
  CREATE FUNCTION gpxloglocout(gpxlogloc) RETURNS cstring LANGUAGE internal IMMUTABLE STRICT AS 'gpxloglocout' WITH (OID=3313, DESCRIPTION="I/O");

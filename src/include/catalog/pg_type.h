@@ -645,11 +645,6 @@ DATA(insert OID = 3926 ( int8range		PGNSP PGUID  -1 f r R f t \054 0 0 3927 rang
 DESCR("range of bigints");
 DATA(insert OID = 3927 ( _int8range		PGNSP PGUID  -1 f b A f t \054 0 3926 0 array_in array_out array_recv array_send - - array_typanalyze d x f 0 -1 0 0 _null_ _null_ _null_ ));
 
-DATA(insert OID = 3300 (	gpaotid	   PGNSP PGUID 6 f b N f t \054 0	0 3301 gpaotidin gpaotidout gpaotidrecv gpaotidsend - - - s p f 0 -1 0 0 _null_ _null_ _null_ ));
-DESCR("(segment file num, row number), logical location of append-only tuple");
-#define AOTIDOID	3300
-DATA(insert OID = 3301 (	_gpaotid	   PGNSP PGUID -1 f b A f t \054 0	3300 0 array_in array_out array_recv array_send - - - i x f 0 -1 0 0 _null_ _null_ _null_ ));
-
 DATA(insert OID = 3310 (	gpxlogloc	   PGNSP PGUID 8 f b N f t \054 0	0 3311 gpxloglocin gpxloglocout gpxloglocrecv gpxloglocsend - - - i p f 0 -1 0 0 _null_ _null_ _null_ ));
 DESCR("(h/h) -- the hexadecimal xlogid and xrecoff of an XLOG location");
 #define XLOGLOCOID	3310

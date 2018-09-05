@@ -81,7 +81,6 @@ AOTupleIdInit_rowNum(AOTupleId *h, uint64 e)
 }
 
 #define AOTupleId_MaxRowNum            INT64CONST(1099511627775) 		// 40 bits, or 1099511627775 (1099 trillion).
-#define AOTupleId_MaxRowNum_CommaStr  "1,099,511,627,775"
 
 #define AOTupleId_MaxSegmentFileNum    			127
 #define AOTupleId_MultiplierSegmentFileNum    	128	// Next up power of 2 as multiplier.

@@ -381,8 +381,4 @@ DATA(insert (1700 7198 7597 i f));
  */
 DATA(insert (   27   20 6021 e f ));
 
-/* GP: Allow explicit cast between tid and aotid. */
-DATA(insert (	27 3300    0 e b ));
-DATA(insert ( 3300	 27    0 e b ));
-
 #endif   /* PG_CAST_H */

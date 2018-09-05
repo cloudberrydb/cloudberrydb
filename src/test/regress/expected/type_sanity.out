@@ -429,11 +429,10 @@ ORDER BY 1;
 ------+------------------------+------------
    22 | int2vector             | -
    30 | oidvector              | -
- 3301 | _gpaotid               | -
  3311 | _gpxlogloc             | -
  7165 | _hyperloglog_estimator | -
  7199 | _complex               | -
-(6 rows)
+(5 rows)
 
 -- **************** pg_class ****************
 -- Look for illegal values in pg_class fields
