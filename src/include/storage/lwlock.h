@@ -100,7 +100,6 @@ typedef enum LWLockId
 	FirstPredicateLockMgrLock = FirstLockMgrLock + NUM_LOCK_PARTITIONS,
 	SessionStateLock = FirstPredicateLockMgrLock + NUM_LOCK_PARTITIONS,
 	RelfilenodeGenLock,
-	FilespaceHashLock,
 	TablespaceHashLock,
 	GpReplicationConfigFileLock,
 	/* must be last except for MaxDynamicLWLock: */
