@@ -3233,6 +3233,8 @@ gpdb::IsAbortRequested
 	void
 	)
 {
+	// No GP_WRAP_START/END needed here. We just check these global flags,
+	// it cannot throw an ereport().
 	return (QueryCancelPending || ProcDiePending);
 }
 
@@ -3244,6 +3246,10 @@ gpdb::MakeGpPolicy
                int nattrs
        )
 {
-       return makeGpPolicy(mcxt, ptype, nattrs);
+	GP_WRAP_START;
+	{
+		return makeGpPolicy(mcxt, ptype, nattrs);
+	}
+	GP_WRAP_END;
 }
 // EOF
