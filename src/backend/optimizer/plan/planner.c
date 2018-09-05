@@ -537,6 +537,7 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	root->init_plans = NIL;
 	root->cte_plan_ids = NIL;
 	root->eq_classes = NIL;
+	root->non_eq_clauses = NIL;
 	root->init_plans = NIL;
 
 	root->list_cteplaninfo = NIL;

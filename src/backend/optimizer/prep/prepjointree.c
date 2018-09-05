@@ -963,6 +963,7 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	subroot->init_plans = NIL;
 	subroot->cte_plan_ids = NIL;
 	subroot->eq_classes = NIL;
+	subroot->non_eq_clauses = NIL;
 	subroot->append_rel_list = NIL;
 	subroot->rowMarks = NIL;
 	subroot->hasRecursion = false;

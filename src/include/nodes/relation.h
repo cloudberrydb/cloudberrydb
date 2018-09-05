@@ -216,7 +216,7 @@ typedef struct PlannerInfo
 
 	List	   *eq_classes;		/* list of active EquivalenceClasses */
 
-	List	   *non_eq_clauses;
+	List	   *non_eq_clauses;	/* list of non-equivalence clauses */
 
 	List	   *canon_pathkeys; /* list of "canonical" PathKeys */
 
