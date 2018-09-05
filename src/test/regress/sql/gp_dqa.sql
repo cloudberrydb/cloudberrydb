@@ -13,30 +13,49 @@ set gp_eager_agg_distinct_pruning=on;
 set enable_hashagg=on;
 set enable_groupagg=off;
 
+-- Also run EXPLAIN on each of these queries, to make sure you get an efficient plan,
+-- and not e.g. a naive one that just pulls all the rows to the QD.
+
 -- Distinct keys are distribution keys
 select count(distinct d) from dqa_t1;
+explain (costs off) select count(distinct d) from dqa_t1;
 select count(distinct d) from dqa_t1 group by i;
+explain (costs off) select count(distinct d) from dqa_t1 group by i;
 
 select count(distinct d), count(distinct dt) from dqa_t1;
+explain (costs off) select count(distinct d), count(distinct dt) from dqa_t1;
 select count(distinct d), count(distinct c), count(distinct dt) from dqa_t1;
+explain (costs off) select count(distinct d), count(distinct c), count(distinct dt) from dqa_t1;
 
 select count(distinct d), count(distinct dt) from dqa_t1 group by c;
+explain (costs off) select count(distinct d), count(distinct dt) from dqa_t1 group by c;
 select count(distinct d), count(distinct dt) from dqa_t1 group by d;
+explain (costs off) select count(distinct d), count(distinct dt) from dqa_t1 group by d;
 
 select count(distinct dqa_t1.d) from dqa_t1, dqa_t2 where dqa_t1.d = dqa_t2.d;
+explain (costs off) select count(distinct dqa_t1.d) from dqa_t1, dqa_t2 where dqa_t1.d = dqa_t2.d;
 select count(distinct dqa_t1.d) from dqa_t1, dqa_t2 where dqa_t1.d = dqa_t2.d group by dqa_t2.dt;
+explain (costs off) select count(distinct dqa_t1.d) from dqa_t1, dqa_t2 where dqa_t1.d = dqa_t2.d group by dqa_t2.dt;
 
 -- Distinct keys are not distribution keys
 select count(distinct c) from dqa_t1;
+explain (costs off) select count(distinct c) from dqa_t1;
 select count(distinct c) from dqa_t1 group by dt;
+explain (costs off) select count(distinct c) from dqa_t1 group by dt;
 select count(distinct c) from dqa_t1 group by d;
+explain (costs off) select count(distinct c) from dqa_t1 group by d;
 
 select count(distinct c), count(distinct dt) from dqa_t1;
+explain (costs off) select count(distinct c), count(distinct dt) from dqa_t1;
 select count(distinct c), count(distinct dt), i from dqa_t1 group by i;
+explain (costs off) select count(distinct c), count(distinct dt), i from dqa_t1 group by i;
 select count(distinct i), count(distinct c), d from dqa_t1 group by d;
+explain (costs off) select count(distinct i), count(distinct c), d from dqa_t1 group by d;
 
 select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where dqa_t1.c = dqa_t2.c;
+explain (costs off) select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where dqa_t1.c = dqa_t2.c;
 select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where dqa_t1.c = dqa_t2.c group by dqa_t2.dt;
+explain (costs off) select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where dqa_t1.c = dqa_t2.c group by dqa_t2.dt;
 
 
 -- MPP-19037

@@ -16,11 +16,13 @@
 #ifndef CDBPLAN_H
 #define CDBPLAN_H
 
+#include "nodes/relation.h"
 #include "optimizer/walkers.h"
 
 extern Node * plan_tree_mutator(Node *node, Node *(*mutator) (), void *context);
 
-extern RangeTblEntry *package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys);
+extern RangeTblEntry *package_plan_as_rte(PlannerInfo *root, Query *query, Plan *plan,
+					Alias *eref, List *pathkeys, PlannerInfo **subroot_p);
 
 extern Value *get_tle_name(TargetEntry *tle, List *rtable, const char *default_name);
 

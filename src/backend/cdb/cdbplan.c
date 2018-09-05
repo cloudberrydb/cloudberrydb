@@ -1043,17 +1043,24 @@ mutate_join_fields(Join *newjoin, Join *oldjoin, Node *(*mutator) (), void *cont
  * SubqueryScan node.
  */
 RangeTblEntry *
-package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys)
+package_plan_as_rte(PlannerInfo *root, Query *query, Plan *plan, Alias *eref, List *pathkeys,
+					PlannerInfo **subroot_p)
 {
 	Query *subquery;
 	RangeTblEntry *rte;
-	
-	
+	PlannerInfo *subroot;
+
 	Assert( query != NULL );
 	Assert( plan != NULL );
 	Assert( eref != NULL );
 	Assert( plan->flow != NULL ); /* essential in a pre-planned RTE */
-	
+
+	subroot = makeNode(PlannerInfo);
+	/* shallow copy from root at first. */
+	memcpy(subroot, root, sizeof(PlannerInfo));
+	/* deep copy if needed. */
+	subroot->parse = copyObject(query);
+
 	/* Make a plausible subquery for the RTE we'll produce. */
 	subquery = makeNode(Query);
 	memcpy(subquery, query, sizeof(Query));
@@ -1083,6 +1090,7 @@ package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys)
 	rte->subquery_rtable = subquery->rtable;
 	rte->subquery_pathkeys = pathkeys;
 
+	*subroot_p = subroot;
 	return rte;
 }
 

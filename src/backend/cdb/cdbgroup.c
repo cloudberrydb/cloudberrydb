@@ -426,7 +426,7 @@ typedef struct
 	List	   *rtable;			/* outer/inner RTE of the output */
 } WithinAggContext;
 
-static void rebuild_simple_rel_and_rte(PlannerInfo *root);
+static void rebuild_simple_rel_and_rte(PlannerInfo *root, List *coplans, List *coroots);
 
 /*
  * add_motion_to_dqa_plan
@@ -471,7 +471,7 @@ cdb_grouping_planner(PlannerInfo *root,
 	List	   *sub_tlist = NIL;
 	bool		has_groups = root->parse->groupClause != NIL;
 	bool		has_aggs = agg_costs->numAggs > 0;
-	bool		has_ordered_aggs = agg_costs->numOrderedAggs > 0;
+	bool		has_ordered_aggs = agg_costs->numPureOrderedAggs > 0;
 	ListCell   *lc;
 
 	bool		is_grpext = false;
@@ -689,12 +689,6 @@ cdb_grouping_planner(PlannerInfo *root,
 		 */
 		if (has_ordered_aggs)
 			allowed_agg &= ~AGG_MULTIPHASE;
-
-		/*
-		 * Same with DISTINCT aggregates (they are not counted as ordered aggs)
-		 */
-		if (agg_costs->numOrderedAggs > 0)
-			allowed_agg &= ~ AGG_MULTIPHASE;
 
 		/*
 		 * We are currently unwilling to redistribute a gathered intermediate
@@ -1730,6 +1724,8 @@ make_three_stage_agg_plan(PlannerInfo *root, MppGroupContext *ctx)
 		List	   *share_partners;
 		int			i;
 		List	   *rtable = NIL;
+		List	   *coplans = NIL;
+		List	   *coroots = NIL;
 
 		if (ctx->use_sharing)
 		{
@@ -1754,6 +1750,7 @@ make_three_stage_agg_plan(PlannerInfo *root, MppGroupContext *ctx)
 			Alias	   *eref;
 			Plan	   *coplan;
 			Query	   *coquery;
+			PlannerInfo *coroot;
 
 			coplan = (Plan *) list_nth(share_partners, i);
 			coplan = make_plan_for_one_dqa(root, ctx, i,
@@ -1774,8 +1771,11 @@ make_three_stage_agg_plan(PlannerInfo *root, MppGroupContext *ctx)
 			}
 
 			rtable = lappend(rtable,
-							 package_plan_as_rte(coquery, coplan, eref, NIL));
+							 package_plan_as_rte(root, coquery, coplan, eref, NIL, &coroot));
 			ctx->dqaArgs[i].coplan = add_subqueryscan(root, NULL, i + 1, coquery, coplan);
+
+			coplans = lappend(coplans, coplan);
+			coroots = lappend(coroots, coroot);
 		}
 
 		/* Begin with the first coplan, then join in each suceeding coplan. */
@@ -1806,10 +1806,11 @@ make_three_stage_agg_plan(PlannerInfo *root, MppGroupContext *ctx)
 
 		/* We modified the parse tree, signal that to the caller */
 		ctx->querynode_changed = true;
+
+		/* Rebuild arrays for RelOptInfo and RangeTblEntry for the PlannerInfo */
+		/* since the underlying range tables have been transformed */
+		rebuild_simple_rel_and_rte(root, coplans, coroots);
 	}
-	/* Rebuild arrays for RelOptInfo and RangeTblEntry for the PlannerInfo */
-	/* since the underlying range tables have been transformed */
-	rebuild_simple_rel_and_rte(root);
 
 	return result_plan;
 }
@@ -3992,7 +3993,9 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 		arg_tle = NULL;
 		if (list_length(aggref->args) == 1) /* safer than Assert */
 		{
-			arg_tle = tlist_member(linitial(aggref->args), ctx->dqa_tlist);
+			TargetEntry *firstarg = (TargetEntry *) linitial(aggref->args);
+
+			arg_tle = tlist_member((Node *) firstarg->expr, ctx->dqa_tlist);
 		}
 		if (arg_tle == NULL)
 			elog(ERROR, "Unexpected use of DISTINCT-qualified aggregation");
@@ -4031,16 +4034,17 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 			 */
 			Var		   *arg_var;
 			Aggref	   *dqa_aggref;
+			TargetEntry *firstarg = (TargetEntry *) linitial(aggref->args);
 
 			arg_var = makeVar(ctx->final_varno, ctx->numGroupCols + 1,
-							  exprType(linitial(aggref->args)),
-							  exprTypmod(linitial(aggref->args)),
-							  exprCollation(linitial(aggref->args)),
+							  exprType((Node *) firstarg->expr),
+							  exprTypmod((Node *) firstarg->expr),
+							  exprCollation((Node *) firstarg->expr),
 							  0);
 
 			dqa_aggref = makeNode(Aggref);
 			memcpy(dqa_aggref, aggref, sizeof(Aggref)); /* flat copy */
-			dqa_aggref->args = list_make1(arg_var);
+			dqa_aggref->args = list_make1(makeTargetEntry((Expr *) arg_var, 1, firstarg->resname, false));
 			dqa_aggref->aggdistinct = NIL;
 
 			dqa_tle = makeTargetEntry((Expr*)dqa_aggref, dqa_attno, NULL, false);
@@ -4178,7 +4182,7 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 			fref->agglevelsup = 0;
 			fref->aggstar = false;
 			fref->aggkind = aggref->aggkind;
-			fref->aggdistinct = aggref->aggdistinct;
+			fref->aggdistinct = false; /* handled in preliminary aggregation */
 			fref->aggstage = AGGSTAGE_FINAL;
 			fref->location = -1;
 			final_tle = makeTargetEntry((Expr *) fref, attrno, NULL, false);
@@ -4443,8 +4447,6 @@ add_second_stage_agg(PlannerInfo *root,
 	RangeTblEntry *newrte;
 	RangeTblRef *newrtref;
 	Plan	   *agg_node;
-
-	RelOptInfo *rel;
 	PlannerInfo *subroot;
 
 	subroot = makeNode(PlannerInfo);
@@ -4591,16 +4593,9 @@ add_second_stage_agg(PlannerInfo *root,
 	 * Since the rtable has changed, we had better recreate a RelOptInfo entry
 	 * for it.
 	 */
-	rebuild_simple_rel_and_rte(root);
-
-	/*
-	 * Assign subroot and subplan for rel. They are needed in
-	 * function set_subqueryscan_references().
-	 */
-	Assert(IsA(result_plan, SubqueryScan));
-	rel = find_base_rel(root, 1);
-	rel->subroot = subroot;
-	rel->subplan = ((SubqueryScan *)result_plan)->subplan;
+	rebuild_simple_rel_and_rte(root,
+							   list_make1(((SubqueryScan *) result_plan)->subplan),
+							   list_make1(subroot));
 
 	return agg_node;
 }
@@ -5611,13 +5606,19 @@ incremental_motion_cost(double sendrows, double recvrows)
  * parse->rtable, and will be used in later than here by processes like
  * distinctClause planning.  We never pfree the original array, since
  * it's potentially used by other PlannerInfo which this is copied from.
+ *
+ * This function assumes that every range table entry is RTE_SUBQUERY kind.
+ * The 'subplan' and 'subroot' fields for each RelOptInfo are filled from
+ * the 'subplans' and 'subroots' lists.
  */
 static void
-rebuild_simple_rel_and_rte(PlannerInfo *root)
+rebuild_simple_rel_and_rte(PlannerInfo *root, List *subplans, List *subroots)
 {
 	int			i;
 	int			array_size;
 	ListCell   *l;
+	ListCell   *lp;
+	ListCell   *lr;
 
 	array_size = list_length(root->parse->rtable) + 1;
 	root->simple_rel_array_size = array_size;
@@ -5632,9 +5633,21 @@ rebuild_simple_rel_and_rte(PlannerInfo *root)
 		i++;
 	}
 	i = 1;
-	foreach(l, root->parse->rtable)
+
+	Assert(list_length(root->parse->rtable) == list_length(subplans));
+	Assert(list_length(root->parse->rtable) == list_length(subroots));
+	forthree(l, root->parse->rtable, lp, subplans, lr, subroots)
 	{
-		(void) build_simple_rel(root, i, RELOPT_BASEREL);
+		RelOptInfo *rel = build_simple_rel(root, i, RELOPT_BASEREL);
+
+		/*
+		 * Assign subroots and subplans for subquery rels. They are needed in
+		 * function set_subqueryscan_references().
+		 */
+		Assert(rel->rtekind == RTE_SUBQUERY);
+		rel->subroot = lfirst(lr);
+		rel->subplan = lfirst(lp);
+
 		i++;
 	}
 }

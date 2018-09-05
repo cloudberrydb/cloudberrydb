@@ -509,6 +509,15 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 		if (aggref->aggorder != NIL || aggref->aggdistinct != NIL)
 			costs->numOrderedAggs++;
 
+		/*
+		 * The PostgreSQL 'numOrderedAggs' field includes DISTINCT aggregates,
+		 * too, but cdbgroup.c handles DISTINCT aggregates differently, and
+		 * needs to know if there are any purely ordered aggs, not counting
+		 * DISTINCT aggs.
+		 */
+		if (aggref->aggorder != NIL)
+			costs->numPureOrderedAggs++;
+
 		if (aggref->aggdistinct != NIL)
 		{
 			ListCell *lc;

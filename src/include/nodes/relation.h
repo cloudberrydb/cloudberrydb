@@ -65,6 +65,7 @@ typedef struct AggClauseCosts
 {
 	int			numAggs;		/* total number of aggregate functions */
 	int			numOrderedAggs; /* number that use DISTINCT or ORDER BY */
+	int			numPureOrderedAggs; /* CDB: number that use ORDER BY, not counting DISTINCT */
 	QualCost	transCost;		/* total per-input-row execution costs */
 	Cost		finalCost;		/* total costs of agg final functions */
 	Size		transitionSpace;	/* space for pass-by-ref transition data */
