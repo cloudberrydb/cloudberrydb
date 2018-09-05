@@ -12,56 +12,6 @@ use VSObjectFactory;
 
 sub _new
 {
-<<<<<<< HEAD
-    my $junk = shift;
-    my $options = shift;
-    die "Pthreads is required by Greenplum DB.\n" unless $options->{pthread};
-    die "zlib is required by Greenplum DB.\n" unless $options->{zlib};
-    die "libbz2 is required by Greenplum DB.\n" unless $options->{bz2};
-    my $self = {
-        projects => {},
-        options  => $options,
-        numver   => '',
-        strver   => '',
-        vcver    => undef,
-        platform => undef,
-    };
-    bless $self;
-
-    # integer_datetimes is now the default
-    $options->{integer_datetimes} = 1
-	unless exists $options->{integer_datetimes};
-    $options->{float4byval} = 1
-        unless exists $options->{float4byval};
-    $options->{float8byval} = 1
-        unless exists $options->{float8byval};
-
-
-    if ($options->{xml})
-    {
-        if (!($options->{xslt} && $options->{iconv}))
-        {
-            die "XML requires both XSLT and ICONV\n";
-        }
-    }
-    $options->{blocksize} = 8
-      unless $options->{blocksize}; # undef or 0 means default
-    die "Bad blocksize $options->{blocksize}"
-      unless grep {$_ == $options->{blocksize}} (1,2,4,8,16,32);
-    $options->{segsize} = 1
-      unless $options->{segsize}; # undef or 0 means default
-    # only allow segsize 1 for now, as we can't do large files yet in windows
-    die "Bad segsize $options->{segsize}"
-      unless $options->{segsize} == 1;
-    $options->{wal_blocksize} = 8
-      unless $options->{wal_blocksize}; # undef or 0 means default
-    die "Bad wal_blocksize $options->{wal_blocksize}"
-      unless grep {$_ == $options->{wal_blocksize}} (1,2,4,8,16,32,64);
-    $options->{wal_segsize} = 16
-      unless $options->{wal_segsize}; # undef or 0 means default
-    die "Bad wal_segsize $options->{wal_segsize}"
-      unless grep {$_ == $options->{wal_segsize}} (1,2,4,8,16,32,64);
-=======
 	my $classname = shift;
 	my $options = shift;
 	my $self = {
@@ -103,7 +53,6 @@ sub _new
 	  unless $options->{wal_segsize}; # undef or 0 means default
 	die "Bad wal_segsize $options->{wal_segsize}"
 	  unless grep {$_ == $options->{wal_segsize}} (1,2,4,8,16,32,64);
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 	$self->DeterminePlatform();
 
@@ -171,26 +120,6 @@ sub GenerateFiles
 	my $self = shift;
 	my $bits = $self->{platform} eq 'Win32' ? 32 : 64;
 
-<<<<<<< HEAD
-    # Parse configure.in to get version numbers
-    open(C,"configure.in") || confess("Could not open configure.in for reading\n");
-    while (<C>)
-    {
-        if (/^AC_INIT\(\[Greenplum Database\], \[([^\]]+)\]/)
-        {
-            $self->{strver} = $1;
-            if ($self->{strver} !~ /^(\d+)\.(\d+)(?:\.(\d+))?/)
-            {
-                confess "Bad format of version: $self->{strver}\n";
-            }
-            $self->{numver} = sprintf("%d%02d%02d", $1, $2, $3?$3:0);
-            $self->{majorver} = sprintf("%d.%d", $1, $2);
-        }
-    }
-    close(C);
-    confess "Unable to parse configure.in for all variables!"
-      if ($self->{strver} eq '' || $self->{numver} eq '');
-=======
 	# Parse configure.in to get version numbers
 	open(C,"configure.in") || confess("Could not open configure.in for reading\n");
 	while (<C>)
@@ -209,7 +138,6 @@ sub GenerateFiles
 	close(C);
 	confess "Unable to parse configure.in for all variables!"
 	  if ($self->{strver} eq '' || $self->{numver} eq '');
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 	if (IsNewer("src\\include\\pg_config_os.h","src\\include\\port\\win32.h"))
 	{
@@ -228,26 +156,6 @@ sub GenerateFiles
 			s{PG_VERSION "[^"]+"}{PG_VERSION "$self->{strver}"};
 			s{PG_VERSION_NUM \d+}{PG_VERSION_NUM $self->{numver}};
 s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY(z)\n#define PG_VERSION_STR "PostgreSQL $self->{strver}, compiled by Visual C++ build " __STRINGIFY2(_MSC_VER) ", $bits-bit"};
-<<<<<<< HEAD
-            print O;
-        }
-        print O "#define GP_VERSION \"unknown\"\n";
-        print O "#define PG_MAJORVERSION \"$self->{majorver}\"\n";
-        print O "#define LOCALEDIR \"/share/locale\"\n" if ($self->{options}->{nls});
-	if ($self->{options}->{xml}) {
-	    print O "#define HAVE_LIBXML2\n";
-	    print O "#define USE_LIBXML\n";
-	}
-        print O "/* defines added by config steps */\n";
-        print O "#ifndef IGNORE_CONFIGURED_SETTINGS\n";
-        print O "#define USE_ASSERT_CHECKING 1\n" if ($self->{options}->{asserts});
-        print O "#define USE_INTEGER_DATETIMES 1\n" if ($self->{options}->{integer_datetimes});
-        print O "#define USE_LDAP 1\n" if ($self->{options}->{ldap});
-        print O "#define HAVE_LIBZ 1\n" if ($self->{options}->{zlib});
-        print O "#define HAVE_LIBBZ2 1\n" if ($self->{options}->{bz2});
-        print O "#define USE_SSL 1\n" if ($self->{options}->{openssl});
-        print O "#define ENABLE_NLS 1\n" if ($self->{options}->{nls});
-=======
 			print O;
 		}
 		print O "#define PG_MAJORVERSION \"$self->{majorver}\"\n";
@@ -261,7 +169,6 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 		print O "#define HAVE_LIBZ 1\n" if ($self->{options}->{zlib});
 		print O "#define USE_SSL 1\n" if ($self->{options}->{openssl});
 		print O "#define ENABLE_NLS 1\n" if ($self->{options}->{nls});
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 		print O "#define BLCKSZ ",1024 * $self->{options}->{blocksize},"\n";
 		print O "#define RELSEG_SIZE ",
@@ -289,58 +196,6 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 			print O "#define FLOAT8PASSBYVAL false\n";
 		}
 
-<<<<<<< HEAD
-        print O "#define BLCKSZ ",1024 * $self->{options}->{blocksize},"\n";
-	#	print O "#define RELSEG_SIZE ",
-	#		(1024 / $self->{options}->{blocksize}) * 
-	#			$self->{options}->{segsize} * 1024, "\n";
-	#	print O "#define XLOG_BLCKSZ ",
-	#		1024 * $self->{options}->{wal_blocksize},"\n";
-		#print O "#define XLOG_SEG_SIZE (",
-		#	$self->{options}->{wal_segsize}," * 1024 * 1024)\n";
-        
-        if ($self->{options}->{float4byval}) 
-        {
-            print O "#define USE_FLOAT4_BYVAL 1\n";
-            print O "#define FLOAT4PASSBYVAL true\n";
-        }
-        else
-        {
-            print O "#define FLOAT4PASSBYVAL false\n";
-        }
-        if ($self->{options}->{float8byval})
-        {
-            print O "#define USE_FLOAT8_BYVAL 1\n";
-            print O "#define FLOAT8PASSBYVAL true\n";
-        }
-        else
-        {
-            print O "#define FLOAT8PASSBYVAL false\n";
-        }
-
-        if ($self->{options}->{uuid})
-        {
-            print O "#define HAVE_UUID_H\n";
-        }
-        if ($self->{options}->{xml})
-        {
-            print O "#define HAVE_LIBXML2\n";
-            print O "#define USE_LIBXML\n";
-        }
-        if ($self->{options}->{xslt})
-        {
-            print O "#define HAVE_LIBXSLT\n";
-            print O "#define USE_LIBXSLT\n";
-        }
-        if ($self->{options}->{krb5})
-        {
-            print O "#define KRB5 1\n";
-            print O "#define HAVE_KRB5_ERROR_TEXT_DATA 1\n";
-            print O "#define HAVE_KRB5_TICKET_ENC_PART2 1\n";
-            print O "#define HAVE_KRB5_FREE_UNPARSED_NAME 1\n";
-            print O "#define ENABLE_GSS 1\n";
-        }
-=======
 		if ($self->{options}->{uuid})
 		{
 			print O "#define HAVE_UUID_H\n";
@@ -363,7 +218,6 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 			print O "#define HAVE_KRB5_FREE_UNPARSED_NAME 1\n";
 			print O "#define ENABLE_GSS 1\n";
 		}
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 		if (my $port = $self->{options}->{"--with-pgport"})
 		{
 			print O "#undef DEF_PGPORT\n";
@@ -371,19 +225,11 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 			print O "#define DEF_PGPORT $port\n";
 			print O "#define DEF_PGPORT_STR \"$port\"\n";
 		}
-<<<<<<< HEAD
-        print O "#define VAL_CONFIGURE \"" . $self->GetFakeConfigure() . "\"\n";
-        print O "#endif /* IGNORE_CONFIGURED_SETTINGS */\n";
-        close(O);
-        close(I);
-    }
-=======
 		print O "#define VAL_CONFIGURE \"" . $self->GetFakeConfigure() . "\"\n";
 		print O "#endif /* IGNORE_CONFIGURED_SETTINGS */\n";
 		close(O);
 		close(I);
 	}
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 	$self->GenerateDefFile("src\\interfaces\\libpq\\libpqdll.def",
 		"src\\interfaces\\libpq\\exports.txt","LIBPQ");
@@ -403,16 +249,6 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 		"LIBPGTYPES"
 	);
 
-<<<<<<< HEAD
-    if (IsNewer('src\backend\utils\fmgrtab.c','src\include\catalog\pg_proc.h'))
-    {
-        print "Generating fmgrtab.c and fmgroids.h...\n";
-        chdir('src\backend\utils');
-        system("perl -I ../catalog Gen_fmgrtab.pl ../../../src/include/catalog/pg_proc.h");
-        chdir('..\..\..');
-        copyFile('src\backend\utils\fmgroids.h','src\include\utils\fmgroids.h');
-        }
-=======
 	if (IsNewer('src\backend\utils\fmgrtab.c','src\include\catalog\pg_proc.h'))
 	{
 		print "Generating fmgrtab.c and fmgroids.h...\n";
@@ -421,7 +257,6 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 		chdir('..\..\..');
 		copyFile('src\backend\utils\fmgroids.h','src\include\utils\fmgroids.h');
 	}
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 	if (IsNewer('src\include\utils\probes.h','src\backend\utils\probes.d'))
 	{
@@ -487,41 +322,6 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 		close(O);
 	}
 
-<<<<<<< HEAD
-    if (IsNewer('src\include\catalog\gp_version.h','src\include\catalog\gp_version.in'))
-    {
-        print "Generating gp_versions.h...\n";
-        copyFile("src\\include\\catalog\\gp_version.in","src\\include\\catalog\\gp_version.h");
-    }
-    
-    if (IsNewer('src\backend\catalog\cdb_schema.sql','src\backend\catalog\cdb_schema.in'))
-    {
-        print "Generating cdb_schema.sql...\n";
-        copyFile("src\\backend\\catalog\\cdb_schema.in","src\\backend\\catalog\\cdb_schema.sql");
-    } 
-
-    if (IsNewer('src\interfaces\ecpg\preproc\preproc.y','src\backend\parser\gram.y'))
-    {
-        print "Generating preproc.y...\n";
-        chdir('src\interfaces\ecpg\preproc');
-        system('attrib -r preproc.y');
-        system('perl parse.pl < ..\..\..\backend\parser\gram.y > preproc.y');
-        chdir('..\..\..\..');
-    }
-
-    if (
-        IsNewer(
-            'src\interfaces\ecpg\preproc\preproc.y',
-            'src\backend\parser\gram.y'
-        )
-      )
-    {
-        print "Generating preproc.y...\n";
-        chdir('src\interfaces\ecpg\preproc');
-        system('perl parse.pl < ..\..\..\backend\parser\gram.y > preproc.y');
-        chdir('..\..\..\..');
-    }
-=======
 	if (IsNewer('src\bin\psql\sql_help.h','src\bin\psql\create_help.pl'))
 	{
 		print "Generating sql_help.h...\n";
@@ -529,7 +329,6 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
 		system("perl create_help.pl ../../../doc/src/sgml/ref sql_help");
 		chdir('..\..\..');
 	}
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 	if (IsNewer('src\interfaces\ecpg\preproc\preproc.y','src\backend\parser\gram.y'))
 	{
@@ -582,22 +381,6 @@ EOF
 		close(O);
 	}
 
-<<<<<<< HEAD
-    my $mf = Project::read_file('src\backend\catalog\Makefile');
-    $mf =~ s{\\s*[\r\n]+}{}mg;
-    $mf =~ /^POSTGRES_BKI_SRCS\s*:?=[^,]+,(.*)\)\s*$/gm
-      || croak "Could not find POSTGRES_BKI_SRCS in Makefile\n";
-    my @allbki = split /\s+/, $1;
-    foreach my $bki (@allbki)
-    {
-        next if $bki eq "";
-        if (IsNewer('src/backend/catalog/postgres.bki', "src/include/catalog/$bki"))
-        {
-            print "Generating postgres.bki and schemapg.h...\n";
-            chdir('src\backend\catalog');
-            my $bki_srcs = join(' ../../../src/include/catalog/', @allbki);
-            system(
-=======
 	my $mf = Project::read_file('src\backend\catalog\Makefile');
 	$mf =~ s{\\s*[\r\n]+}{}mg;
 	$mf =~ /^POSTGRES_BKI_SRCS\s*:?=[^,]+,(.*)\)$/gm
@@ -612,7 +395,6 @@ EOF
 			chdir('src\backend\catalog');
 			my $bki_srcs = join(' ../../../src/include/catalog/', @allbki);
 			system(
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 "perl genbki.pl -I../../../src/include/catalog --set-version=$self->{majorver} $bki_srcs"
 			);
 			chdir('..\..\..');
@@ -656,57 +438,6 @@ sub AddProject
 {
 	my ($self, $name, $type, $folder, $initialdir) = @_;
 
-<<<<<<< HEAD
-    my $proj = new Project($name, $type, $self);
-    push @{$self->{projects}->{$folder}}, $proj;
-    $proj->AddDir($initialdir) if ($initialdir);
-    if ($self->{options}->{zlib})
-    {
-        $proj->AddIncludeDir($self->{options}->{zlib} . '\include');
-        $proj->AddLibrary($self->{options}->{zlib} . '\lib\zlib.lib');
-        #$proj->AddLibrary($self->{options}->{zlib} . '\lib\zdll.lib');
-        $proj->AddLibrary($self->{options}->{curl} . '\lib\libcurl.lib');
-    }
-	if ($self->{options}->{bz2})
-    {
-        $proj->AddIncludeDir($self->{options}->{bz2} . '\include');
-        $proj->AddLibrary($self->{options}->{bz2} . '\lib\libbz2.lib');
-    }
-    if ($self->{options}->{openssl})
-    {
-        $proj->AddIncludeDir($self->{options}->{openssl} . '\include');
-        $proj->AddLibrary($self->{options}->{openssl} . '\lib\VC\ssleay32.lib', 1);
-        $proj->AddLibrary($self->{options}->{openssl} . '\lib\VC\libeay32.lib', 1);
-    }
-    if ($self->{options}->{nls})
-    {
-        $proj->AddIncludeDir($self->{options}->{nls} . '\include');
-        $proj->AddLibrary($self->{options}->{nls} . '\lib\libintl.lib');
-    }
-    if ($self->{options}->{krb5})
-    {
-        $proj->AddIncludeDir($self->{options}->{krb5} . '\inc\krb5');
-        $proj->AddLibrary($self->{options}->{krb5} . '\lib\i386\krb5_32.lib');
-        $proj->AddLibrary($self->{options}->{krb5} . '\lib\i386\comerr32.lib');
-        $proj->AddLibrary($self->{options}->{krb5} . '\lib\i386\gssapi32.lib');
-    }
-    if ($self->{options}->{iconv})
-    {
-        $proj->AddIncludeDir($self->{options}->{iconv} . '\include');
-        $proj->AddLibrary($self->{options}->{iconv} . '\lib\iconv.lib');
-    }
-    if ($self->{options}->{xml})
-    {
-        $proj->AddIncludeDir($self->{options}->{xml} . '\include');
-        $proj->AddLibrary($self->{options}->{xml} . '\lib\libxml2.lib');
-    }
-    if ($self->{options}->{xslt})
-    {
-        $proj->AddIncludeDir($self->{options}->{xslt} . '\include');
-        $proj->AddLibrary($self->{options}->{xslt} . '\lib\libxslt.lib');
-    }
-    return $proj;
-=======
 	my $proj = VSObjectFactory::CreateProject($self->{vcver}, $name, $type, $self);
 	push @{$self->{projects}->{$folder}}, $proj;
 	$proj->AddDir($initialdir) if ($initialdir);
@@ -749,7 +480,6 @@ sub AddProject
 		$proj->AddLibrary($self->{options}->{xslt} . '\lib\libxslt.lib');
 	}
 	return $proj;
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 }
 
 sub Save

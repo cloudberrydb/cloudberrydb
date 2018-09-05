@@ -28,9 +28,7 @@ my $postgres;
 my $libpq;
 
 my $contrib_defines = {'refint' => 'REFINT_VERBOSE'};
-# for GPDB, I've added xlogdump
-my @contrib_uselibpq = ('dblink', 'oid2name', 'pgbench', 'pg_upgrade', 
-						'vacuumlo', 'xlogdump');
+my @contrib_uselibpq = ('dblink', 'oid2name', 'pgbench', 'pg_upgrade','vacuumlo');
 my @contrib_uselibpgport =(
 	'oid2name', 'pgbench', 'pg_standby','pg_archivecleanup',
 	'pg_test_fsync', 'pg_test_timing', 'pg_upgrade', 'vacuumlo'
@@ -41,7 +39,7 @@ my $contrib_extrasource = {
 	'cube' => ['cubescan.l','cubeparse.y'],
 	'seg' => ['segscan.l','segparse.y']
 };
-my @contrib_excludes = ('pgcrypto','intagg','uuid-ossp', 'hstore', 'gp_filedump', 'tsearch2', 'dblink', 'xlogdump', 'gp_sparse_vector','xml2','adminpack','sepgsql');
+my @contrib_excludes = ('pgcrypto','intagg','sepgsql');
 
 sub mkvcbuild
 {
@@ -68,8 +66,6 @@ sub mkvcbuild
 
 	$postgres = $solution->AddProject('postgres','exe','','src\backend');
 	$postgres->AddIncludeDir('src\backend');
-	$postgres->AddIncludeDir('src\interface\libpq');
-	$postgres->AddIncludeDir('src\port');
 	$postgres->AddDir('src\backend\port\win32');
 	$postgres->AddFile('src\backend\utils\fmgrtab.c');
 	$postgres->ReplaceFile('src\backend\port\dynloader.c','src\backend\port\dynloader\win32.c');
@@ -77,7 +73,6 @@ sub mkvcbuild
 	$postgres->ReplaceFile('src\backend\port\pg_shmem.c','src\backend\port\win32_shmem.c');
 	$postgres->ReplaceFile('src\backend\port\pg_latch.c','src\backend\port\win32_latch.c');
 	$postgres->AddFiles('src\port',@pgportfiles);
-	$postgres->AddFile('src\backend\port\pipe.c');
 	$postgres->AddDir('src\timezone');
 	$postgres->AddFiles('src\backend\parser','scan.l','gram.y');
 	$postgres->AddFiles('src\backend\bootstrap','bootscanner.l','bootparse.y');
@@ -88,10 +83,6 @@ sub mkvcbuild
 	$postgres->AddLibrary('ws2_32.lib');
 	$postgres->AddLibrary('secur32.lib');
 	$postgres->AddLibrary('wldap32.lib') if ($solution->{options}->{ldap});
-
-	# GPDB actually requires pthreads, can't run without.
-	$postgres->AddLibrary($config->{'pthread'} . '\pthreadVC2.lib');
-
 	$postgres->FullExportDLL('postgres.lib');
 
 	my $snowball = $solution->AddProject('dict_snowball','dll','','src\backend\snowball');
@@ -107,8 +98,6 @@ sub mkvcbuild
 	my $plpgsql = $solution->AddProject('plpgsql','dll','PLs','src\pl\plpgsql\src');
 	$plpgsql->AddFiles('src\pl\plpgsql\src', 'gram.y');
 	$plpgsql->AddReference($postgres);
-        $plpgsql->AddLibrary('wsock32.lib');
-        $plpgsql->AddLibrary('ws2_32.lib');
 
 	if ($solution->{options}->{perl})
 	{
@@ -271,7 +260,6 @@ sub mkvcbuild
 	$libecpg->AddIncludeDir('src\port');
 	$libecpg->UseDef('src\interfaces\ecpg\ecpglib\ecpglib.def');
 	$libecpg->AddLibrary('wsock32.lib');
-        $libecpg->AddLibrary($config->{'pthread'} . '\pthreadVC2.lib');
 	$libecpg->AddReference($libpq,$pgtypes,$libpgport);
 
 	my $libecpgcompat =$solution->AddProject('libecpg_compat','dll','interfaces',
@@ -292,14 +280,14 @@ sub mkvcbuild
 	$ecpg->AddDefine('ECPG_COMPILE');
 	$ecpg->AddReference($libpgport);
 
-	#my $pgregress_ecpg = $solution->AddProject('pg_regress_ecpg','exe','misc');
-	#$pgregress_ecpg->AddFile('src\interfaces\ecpg\test\pg_regress_ecpg.c');
-	#$pgregress_ecpg->AddFile('src\test\regress\pg_regress.c');
-	#$pgregress_ecpg->AddIncludeDir('src\port');
-	#$pgregress_ecpg->AddIncludeDir('src\test\regress');
-	#$pgregress_ecpg->AddDefine('HOST_TUPLE="i686-pc-win32vc"');
-	#$pgregress_ecpg->AddDefine('FRONTEND');
-	#$pgregress_ecpg->AddReference($libpgport);
+	my $pgregress_ecpg = $solution->AddProject('pg_regress_ecpg','exe','misc');
+	$pgregress_ecpg->AddFile('src\interfaces\ecpg\test\pg_regress_ecpg.c');
+	$pgregress_ecpg->AddFile('src\test\regress\pg_regress.c');
+	$pgregress_ecpg->AddIncludeDir('src\port');
+	$pgregress_ecpg->AddIncludeDir('src\test\regress');
+	$pgregress_ecpg->AddDefine('HOST_TUPLE="i686-pc-win32vc"');
+	$pgregress_ecpg->AddDefine('FRONTEND');
+	$pgregress_ecpg->AddReference($libpgport);
 
 	my $isolation_tester = $solution->AddProject('isolationtester','exe','misc');
 	$isolation_tester->AddFile('src\test\isolation\isolationtester.c');
@@ -359,12 +347,6 @@ sub mkvcbuild
 	my $psql = AddSimpleFrontend('psql', 1);
 	$psql->AddIncludeDir('src\bin\pg_dump');
 	$psql->AddIncludeDir('src\backend');
-        if ($solution->{options}->{readline})
-        {
-	        $psql->AddIncludeDir($solution->{options}->{readline} . '\include');
-	        $psql->AddLibrary($solution->{options}->{readline} . '\lib\readline.lib');
-	        $psql->AddLibrary($solution->{options}->{readline} . '\lib\history.lib');
-	}
 	$psql->AddFile('src\bin\psql\psqlscan.l');
 
 	my $pgdump = AddSimpleFrontend('pg_dump', 1);
@@ -510,11 +492,6 @@ sub mkvcbuild
 			{
 				$proj->AddFile('src\bin\pg_dump\keywords.c');
 			}
-                        elsif ($f eq '$(top_builddir)/src/backend/parser/keywords.c')
-                        {
-                                $proj->AddFile('src\backend\parser\keywords.c');
-                                $proj->AddIncludeDir('src\backend');
-                        }
 			elsif ($f eq 'kwlookup.c')
 			{
 				$proj->AddFile('src\backend\parser\kwlookup.c');
@@ -542,8 +519,6 @@ sub mkvcbuild
 	# Regression DLL and EXE
 	my $regress = $solution->AddProject('regress','dll','misc');
 	$regress->AddFile('src\test\regress\regress.c');
-        $regress->AddLibrary('wsock32.lib');
-        $regress->AddLibrary('ws2_32.lib');
 	$regress->AddReference($postgres);
 
 	my $pgregress = $solution->AddProject('pg_regress','exe','misc');
@@ -551,14 +526,10 @@ sub mkvcbuild
 	$pgregress->AddFile('src\test\regress\pg_regress_main.c');
 	$pgregress->AddIncludeDir('src\port');
 	$pgregress->AddDefine('HOST_TUPLE="i686-pc-win32vc"');
-        $pgregress->AddDefine('FRONTEND');
-        $pgregress->AddLibrary('wsock32.lib');
-        $pgregress->AddLibrary('ws2_32.lib');
 	$pgregress->AddReference($libpgport);
 
 	$solution->Save();
-
-        return $solution->{vcver};
+	return $solution->{vcver};
 }
 
 #####################
@@ -573,7 +544,6 @@ sub AddSimpleFrontend
 
 	my $p = $solution->AddProject($n,'exe','bin');
 	$p->AddDir('src\bin\\' . $n);
-        $p->AddDefine('FRONTEND');
 	$p->AddReference($libpgport);
 	if ($uselibpq)
 	{
@@ -587,12 +557,11 @@ sub AddSimpleFrontend
 sub AddContrib
 {
 	my $n = shift;
-        my $mf = Project::read_file('contrib\\' . $n . '\Makefile');
+	my $mf = Project::read_file('contrib\\' . $n . '\Makefile');
 
 	if ($mf =~ /^MODULE_big\s*=\s*(.*)$/mg)
 	{
 		my $dn = $1;
-
 		$mf =~ s{\\\s*[\r\n]+}{}mg;
 		my $proj = $solution->AddProject($dn, 'dll', 'contrib');
 		$mf =~ /^OBJS\s*=\s*(.*)$/gm
@@ -742,8 +711,6 @@ sub AdjustContribProj
 	{
 		$proj->AddFiles('contrib\\' . $n, @{$contrib_extrasource->{$n}});
 	}
-        $proj->AddLibrary('wsock32.lib');
-        $proj->AddLibrary('ws2_32.lib');
 }
 
 1;

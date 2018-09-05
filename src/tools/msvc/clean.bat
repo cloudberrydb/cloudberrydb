@@ -58,7 +58,6 @@ if exist src\port\pg_config_paths.h del /q src\port\pg_config_paths.h
 if exist src\pl\plperl\spi.c del /q src\pl\plperl\spi.c
 if %DIST%==1 if exist src\pl\plpgsql\src\pl_gram.c del /q src\pl\plpgsql\src\pl_gram.c
 if %DIST%==1 if exist src\pl\plpgsql\src\pl_gram.h del /q src\pl\plpgsql\src\pl_gram.h
-if %DIST%==1 if exist src\pl\plpgsql\src\pl.tab.h del /q src\pl\plpgsql\src\pl.tab.h
 
 if %DIST%==1 if exist src\bin\psql\psqlscan.c del /q src\bin\psql\psqlscan.c
 

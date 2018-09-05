@@ -12,32 +12,6 @@ use File::Basename;
 
 sub _new
 {
-<<<<<<< HEAD
-    my ($junk, $name, $type, $solution) = @_;
-    my $good_types = {
-        lib => 1,
-        exe => 1,
-        dll => 1,
-    };
-    confess("Bad project type: $type\n") unless exists $good_types->{$type};
-    my $self = {
-        name            => $name,
-        type            => $type,
-        guid            => Win32::GuidGen(),
-        files           => {},
-        references      => [],
-        libraries       => [],
-        suffixlib       => [],
-        includes        => '',
-        prefixincludes  => '',
-        defines         => ';',
-        solution        => $solution,
-        disablewarnings => '4003;4018;4244;4273;4102;4090;4267;',
-        disablelinkerwarnings => '',
-        vcver           => $solution->{vcver},
-        platform        => $solution->{platform},
-    };
-=======
 	my ($classname, $name, $type, $solution) = @_;
 	my $good_types = {
 		lib => 1,
@@ -61,7 +35,6 @@ sub _new
 		disablelinkerwarnings => '',
 		platform              => $solution->{platform},
 	};
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 	bless($self, $classname);
 	return $self;
@@ -332,13 +305,8 @@ sub AddResourceFile
 {
 	my ($self, $dir, $desc, $ico) = @_;
 
-<<<<<<< HEAD
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-    my $d = sprintf("%02d%03d", ($year - 100), $yday);
-=======
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 	my $d = ($year - 100) . "$yday";
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 
 	if (Solution::IsNewer("$dir\\win32ver.rc",'src\port\win32ver.rc'))
 	{
@@ -373,223 +341,6 @@ sub DisableLinkerWarnings
 
 sub Save
 {
-<<<<<<< HEAD
-    my ($self) = @_;
-
-    # If doing DLL and haven't specified a DEF file, do a full export of all symbols
-    # in the project.
-    if ($self->{type} eq "dll" && !$self->{def})
-    {
-        $self->FullExportDLL($self->{name} . ".lib");
-    }
-
-    # Warning 4197 is about double exporting, disable this per
-    # http://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx?FeedbackID=99193
-    $self->DisableLinkerWarnings('4197') if ($self->{platform} eq 'x64');
-
-    # Dump the project
-    open(F, ">$self->{name}.vcproj") || croak("Could not write to $self->{name}.vcproj\n");
-    $self->WriteHeader(*F);
-    $self->WriteReferences(*F);
-    print F <<EOF;
- <Files>
-EOF
-    my @dirstack = ();
-    my %uniquefiles;
-    foreach my $f (sort keys %{ $self->{files} })
-    {
-        confess "Bad format filename '$f'\n" unless ($f =~ /^(.*)\\([^\\]+)\.[r]?[cyl]$/);
-        my $dir = $1;
-        my $file = $2;
-
-        # Walk backwards down the directory stack and close any dirs we're done with
-        while ($#dirstack >= 0)
-        {
-            if (join('\\',@dirstack) eq substr($dir, 0, length(join('\\',@dirstack))))
-            {
-                last if (length($dir) == length(join('\\',@dirstack)));
-                last if (substr($dir, length(join('\\',@dirstack)),1) eq '\\');
-            }
-            print F ' ' x $#dirstack . "  </Filter>\n";
-            pop @dirstack;
-        }
-
-        # Now walk forwards and create whatever directories are needed
-        while (join('\\',@dirstack) ne $dir)
-        {
-            my $left = substr($dir, length(join('\\',@dirstack)));
-            $left =~ s/^\\//;
-            my @pieces = split /\\/, $left;
-            push @dirstack, $pieces[0];
-            print F ' ' x $#dirstack . "  <Filter Name=\"$pieces[0]\" Filter=\"\">\n";
-        }
-
-        print F ' ' x $#dirstack . "   <File RelativePath=\"$f\"";
-        if ($f =~ /\.y$/)
-        {
-            my $of = $f;
-            $of =~ s/\.y$/.c/;
-            $of =~ s{^src\\pl\\plpgsql\\src\\gram.c$}{src\\pl\\plpgsql\\src\\pl_gram.c};
-            print F '>'
-              . $self->GenerateCustomTool('Running bison on ' . $f,
-                'cmd /V:ON /c src\tools\msvc\pgbison.bat ' . $f, $of)
-              . '</File>' . "\n";
-        }
-        elsif ($f =~ /\.l$/)
-        {
-            my $of = $f;
-            $of =~ s/\.l$/.c/;
-            print F '>'
-              . $self->GenerateCustomTool('Running flex on ' . $f,
-                'src\tools\msvc\pgflex.bat ' . $f,$of)
-              . '</File>' . "\n";
-        }
-        elsif (defined($uniquefiles{$file}))
-        {
-
-            # File already exists, so fake a new name
-            my $obj = $dir;
-            $obj =~ s/\\/_/g;
-            print F
-"><FileConfiguration Name=\"Debug|$self->{platform}\"><Tool Name=\"VCCLCompilerTool\" ObjectFile=\".\\debug\\$self->{name}\\$obj"
-              . "_$file.obj\" /></FileConfiguration><FileConfiguration Name=\"Release|$self->{platform}\"><Tool Name=\"VCCLCompilerTool\" ObjectFile=\".\\release\\$self->{name}\\$obj"
-              . "_$file.obj\" /></FileConfiguration></File>\n";
-        }
-        else
-        {
-            $uniquefiles{$file} = 1;
-            print F " />\n";
-        }
-    }
-    while ($#dirstack >= 0)
-    {
-        print F ' ' x $#dirstack . "  </Filter>\n";
-        pop @dirstack;
-    }
-    $self->Footer(*F);
-    close(F);
-}
-
-sub GenerateCustomTool
-{
-    my ($self, $desc, $tool, $output, $cfg) = @_;
-    if (!defined($cfg))
-    {
-        return $self->GenerateCustomTool($desc, $tool, $output, 'Debug')
-          .$self->GenerateCustomTool($desc, $tool, $output, 'Release');
-    }
-    return
-"<FileConfiguration Name=\"$cfg|$self->{platform}\"><Tool Name=\"VCCustomBuildTool\" Description=\"$desc\" CommandLine=\"$tool\" AdditionalDependencies=\"\" Outputs=\"$output\" /></FileConfiguration>";
-}
-
-sub WriteReferences
-{
-    my ($self, $f) = @_;
-    print $f " <References>\n";
-    foreach my $ref (@{$self->{references}})
-    {
-        print $f
-"  <ProjectReference ReferencedProjectIdentifier=\"$ref->{guid}\" Name=\"$ref->{name}\" />\n";
-    }
-    print $f " </References>\n";
-}
-
-sub WriteHeader
-{
-    my ($self, $f) = @_;
-
-    print $f <<EOF;
-<?xml version="1.0" encoding="Windows-1252"?>
-<VisualStudioProject ProjectType="Visual C++" Version="$self->{vcver}" Name="$self->{name}" ProjectGUID="$self->{guid}">
- <Platforms><Platform Name="$self->{platform}"/></Platforms>
- <Configurations>
-EOF
-    $self->WriteConfiguration($f, 'Debug',
-        { defs=>'_DEBUG;DEBUG=1;', wholeopt=>0, opt=>0, strpool=>'false', runtime=>3 });
-    $self->WriteConfiguration($f, 'Release',
-        { defs=>'', wholeopt=>0, opt=>3, strpool=>'true', runtime=>2 });
-    print $f <<EOF;
- </Configurations>
-EOF
-}
-
-sub WriteConfiguration
-{
-    my ($self, $f, $cfgname, $p) = @_;
-    my $cfgtype = ($self->{type} eq "exe")?1:($self->{type} eq "dll"?2:4);
-    my $libcfg = (uc $cfgname eq "RELEASE")?"MD":"MDd";
-    my $libs = '';
-    foreach my $lib (@{$self->{libraries}})
-    {
-        my $xlib = $lib;
-        foreach my $slib (@{$self->{suffixlib}})
-        {
-            if ($slib eq $lib)
-            {
-                $xlib =~ s/\.lib$/$libcfg.lib/;
-                last;
-            }
-        }
-        $libs .= $xlib . " ";
-    }
-    $libs =~ s/ $//;
-    $libs =~ s/__CFGNAME__/$cfgname/g;
-
-    my $targetmachine = $self->{platform} eq 'Win32' ? 1 : 17;
-
-    print $f <<EOF;
-  <Configuration Name="$cfgname|$self->{platform}" OutputDirectory=".\\$cfgname\\$self->{name}" IntermediateDirectory=".\\$cfgname\\$self->{name}"
-	ConfigurationType="$cfgtype" UseOfMFC="0" ATLMinimizesCRunTimeLibraryUsage="FALSE" CharacterSet="2" WholeProgramOptimization="$p->{wholeopt}">
-	<Tool Name="VCCLCompilerTool" Optimization="$p->{opt}"
-		AdditionalIncludeDirectories="$self->{prefixincludes}src/include;src/include/port/win32;src/include/port/win32_msvc;$self->{solution}->{options}->{pthread};$self->{includes};src/include"
-		PreprocessorDefinitions="WIN32;_WINDOWS;__WINDOWS__;__WIN32__;EXEC_BACKEND;WIN32_STACK_RLIMIT=4194304;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE$self->{defines}$p->{defs}"
-		StringPooling="$p->{strpool}"
-		RuntimeLibrary="$p->{runtime}" DisableSpecificWarnings="$self->{disablewarnings}"
-		AdditionalOptions="/MP"
-EOF
-    print $f <<EOF;
-		AssemblerOutput="0" AssemblerListingLocation=".\\$cfgname\\$self->{name}\\" ObjectFile=".\\$cfgname\\$self->{name}\\"
-		ProgramDataBaseFileName=".\\$cfgname\\$self->{name}\\" BrowseInformation="0"
-		WarningLevel="3" SuppressStartupBanner="TRUE" DebugInformationFormat="3" CompileAs="0"/>
-	<Tool Name="VCLinkerTool" OutputFile=".\\$cfgname\\$self->{name}\\$self->{name}.$self->{type}"
-		AdditionalDependencies="$libs"
-		LinkIncremental="0" SuppressStartupBanner="TRUE" AdditionalLibraryDirectories="" IgnoreDefaultLibraryNames="libc"
-		StackReserveSize="4194304" DisableSpecificWarnings="$self->{disablewarnings}"
-		GenerateDebugInformation="TRUE" ProgramDatabaseFile=".\\$cfgname\\$self->{name}\\$self->{name}.pdb"
-		GenerateMapFile="FALSE" MapFileName=".\\$cfgname\\$self->{name}\\$self->{name}.map"
-		SubSystem="1" TargetMachine="$targetmachine"
-EOF
-    if ($self->{disablelinkerwarnings})
-    {
-        print $f "\t\tAdditionalOptions=\"/ignore:$self->{disablelinkerwarnings}\"\n";
-    }
-    if ($self->{implib})
-    {
-        my $l = $self->{implib};
-        $l =~ s/__CFGNAME__/$cfgname/g;
-        print $f "\t\tImportLibrary=\"$l\"\n";
-    }
-    if ($self->{def})
-    {
-        my $d = $self->{def};
-        $d =~ s/__CFGNAME__/$cfgname/g;
-        print $f "\t\tModuleDefinitionFile=\"$d\"\n";
-    }
-
-    print $f "\t/>\n";
-    print $f
-"\t<Tool Name=\"VCLibrarianTool\" OutputFile=\".\\$cfgname\\$self->{name}\\$self->{name}.lib\" IgnoreDefaultLibraryNames=\"libc\" />\n";
-    print $f
-      "\t<Tool Name=\"VCResourceCompilerTool\" AdditionalIncludeDirectories=\"src\\include\" />\n";
-    if ($self->{builddef})
-    {
-        print $f
-"\t<Tool Name=\"VCPreLinkEventTool\" Description=\"Generate DEF file\" CommandLine=\"perl src\\tools\\msvc\\gendef.pl $cfgname\\$self->{name} $self->{platform}\" />\n";
-    }
-    print $f <<EOF;
-  </Configuration>
-EOF
-=======
 	my ($self) = @_;
 
 	# If doing DLL and haven't specified a DEF file, do a full export of all symbols
@@ -610,7 +361,6 @@ EOF
 	$self->WriteFiles(*F);
 	$self->Footer(*F);
 	close(F);
->>>>>>> 80edfd76591fdb9beec061de3c05ef4e9d96ce56
 }
 
 sub GetAdditionalLinkerDependencies
