@@ -1361,3 +1361,30 @@ CREATE TABLE ao_copy(c int) WITH (appendonly=true);
 COPY ao_copy TO '/tmp/ao<SEGID>.txt' ON SEGMENT;
 COPY ao_copy FROM '/tmp/ao<SEGID>.txt' ON SEGMENT;
 DROP TABLE ao_copy;
+--
+-- Test row counts
+--
+-- We have to disable QUIET mode for these, so that we get the command tags,
+-- like "COPY 10", in the output.
+\set QUIET off
+copy (select generate_series(1, 10)) to '/tmp/a';
+COPY 10
+create temp table t (id int4);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+CREATE TABLE
+copy t from '/tmp/a';
+COPY 10
+copy t to '/tmp/b';
+COPY 10
+copy t to '/tmp/b<SEGID>' on segment;
+COPY 10
+copy t from '/tmp/b<SEGID>' on segment;
+COPY 10
+select count(*) from t;
+ count 
+-------
+    20
+(1 row)
+
+\set QUIET on

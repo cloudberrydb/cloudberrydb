@@ -6698,6 +6698,7 @@ copy_dest_receive(TupleTableSlot *slot, DestReceiver *self)
 
 	/* And send the data */
 	CopyOneRowTo(cstate, InvalidOid, slot_get_values(slot), slot_get_isnull(slot));
+	myState->processed++;
 }
 
 /*
