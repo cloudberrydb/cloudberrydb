@@ -912,10 +912,6 @@ standard_ProcessUtility(Node *parsetree,
 					case OBJECT_FOREIGN_TABLE:
 						RemoveRelations((DropStmt *) parsetree);
 						break;
-					case OBJECT_EXTPROTOCOL:
-						/* GPDB_92_MERGE_FIXME: Could we move it to RemoveObjects()? */
-						RemoveExtProtocols(stmt);
-						break;
 					default:
 						RemoveObjects((DropStmt *) parsetree);
 						break;

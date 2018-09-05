@@ -28,6 +28,7 @@
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_extension.h"
+#include "catalog/pg_extprotocol.h"
 #include "catalog/pg_foreign_data_wrapper.h"
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_language.h"
@@ -239,6 +240,16 @@ static ObjectPropertyType ObjectProperty[] =
 		TYPEOID,
 		Anum_pg_type_typnamespace
 	}
+
+
+	/* GPDB additions */
+	,
+	{
+		ExtprotocolRelationId,
+		ExtprotocolOidIndexId,
+		-1,
+		InvalidAttrNumber
+	},
 };
 
 static ObjectAddress get_object_address_unqualified(ObjectType objtype,
@@ -331,6 +342,7 @@ get_object_address(ObjectType objtype, List *objname, List *objargs,
 			case OBJECT_LANGUAGE:
 			case OBJECT_FDW:
 			case OBJECT_FOREIGN_SERVER:
+			case OBJECT_EXTPROTOCOL:
 				address = get_object_address_unqualified(objtype,
 														 objname, missing_ok);
 				break;
@@ -562,6 +574,9 @@ get_object_address_unqualified(ObjectType objtype,
 			case OBJECT_FOREIGN_SERVER:
 				msg = gettext_noop("server name cannot be qualified");
 				break;
+			case OBJECT_EXTPROTOCOL:
+				msg = gettext_noop("protocol name cannot be qualified");
+				break;
 			default:
 				elog(ERROR, "unrecognized objtype: %d", (int) objtype);
 				msg = NULL;		/* placate compiler */
@@ -615,6 +630,11 @@ get_object_address_unqualified(ObjectType objtype,
 		case OBJECT_FOREIGN_SERVER:
 			address.classId = ForeignServerRelationId;
 			address.objectId = get_foreign_server_oid(name, missing_ok);
+			address.objectSubId = 0;
+			break;
+		case OBJECT_EXTPROTOCOL:
+			address.classId = ExtprotocolRelationId;
+			address.objectId = get_extprotocol_oid(name, missing_ok);
 			address.objectSubId = 0;
 			break;
 		default:
@@ -1073,6 +1093,11 @@ check_object_ownership(Oid roleid, ObjectType objtype, ObjectAddress address,
 							(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 							 errmsg("must have CREATEROLE privilege")));
 			}
+			break;
+		case OBJECT_EXTPROTOCOL:
+			if (!pg_extprotocol_ownercheck(address.objectId, roleid))
+				aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_EXTPROTOCOL,
+							   NameListToString(objname));
 			break;
 		case OBJECT_TSPARSER:
 		case OBJECT_TSTEMPLATE:

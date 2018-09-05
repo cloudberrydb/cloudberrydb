@@ -182,40 +182,6 @@ ExtProtocolCreate(const char *protocolName,
 	return protOid;
 }
 
-void
-ExtProtocolDeleteByOid(Oid	protOid)
-{
-	Relation	rel;
-	ScanKeyData skey;
-	SysScanDesc scan;
-	HeapTuple	tup;
-	bool		found = false;
-
-	/*
-	 * Search pg_extprotocol.
-	 */
-	rel = heap_open(ExtprotocolRelationId, RowExclusiveLock);
-
-	ScanKeyInit(&skey,
-				ObjectIdAttributeNumber,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(protOid));
-	scan = systable_beginscan(rel, ExtprotocolOidIndexId, true,
-							  SnapshotNow, 1, &skey);
-
-	while (HeapTupleIsValid(tup = systable_getnext(scan)))
-	{
-		simple_heap_delete(rel, &tup->t_self);
-		found = true;
-	}
-	systable_endscan(scan);
-
-	if (!found)
-		elog(ERROR, "protocol %u could not be found", protOid);
-
-	heap_close(rel, NoLock);
-}
-
 /*
  * ValidateProtocolFunction -- common code for finding readfn, writefn or validatorfn
  */
@@ -370,7 +336,7 @@ LookupExtProtocolFunction(const char *prot_name,
  * protocol Oid.
  */
 Oid
-LookupExtProtocolOid(const char *prot_name, bool missing_ok)
+get_extprotocol_oid(const char *prot_name, bool missing_ok)
 {
 	Oid			protOid = InvalidOid;
 	Relation	rel;

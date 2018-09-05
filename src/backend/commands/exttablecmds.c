@@ -256,7 +256,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 				{
 					Oid			ownerId = GetUserId();
 					char	   *protname = uri->customprotocol;
-					Oid			ptcId = LookupExtProtocolOid(protname, false);
+					Oid			ptcId = get_extprotocol_oid(protname, false);
 					AclResult	aclresult;
 
 					/* Check we have the right permissions on this protocol */

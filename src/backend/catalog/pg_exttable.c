@@ -158,7 +158,7 @@ InsertExtTableEntry(Oid 	tbloid,
 			myself.objectSubId = 0;
 
 			referenced.classId = ExtprotocolRelationId;
-			referenced.objectId = LookupExtProtocolOid(protocol, true);
+			referenced.objectId = get_extprotocol_oid(protocol, true);
 			referenced.objectSubId = 0;
 
 			/*

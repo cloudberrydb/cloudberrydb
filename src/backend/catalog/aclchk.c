@@ -868,7 +868,7 @@ objectNamesToOids(GrantObjectType objtype, List *objnames)
 			foreach(cell, objnames)
 			{
 				char	   *ptcname = strVal(lfirst(cell));
-				Oid			ptcid = LookupExtProtocolOid(ptcname, false);
+				Oid			ptcid = get_extprotocol_oid(ptcname, false);
 
 				objects = lappend_oid(objects, ptcid);
 			}

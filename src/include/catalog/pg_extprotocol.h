@@ -82,16 +82,12 @@ ExtProtocolCreate(const char *protocolName,
 				  List *validatorfuncName,
 				  bool trusted);
 
-extern void
-ExtProtocolDeleteByOid(Oid	protOid);
-
 extern Oid
 LookupExtProtocolFunction(const char *prot_name, 
 						  ExtPtcFuncType prot_type,
 						  bool error);
 
-extern Oid
-LookupExtProtocolOid(const char *prot_name, bool error_if_missing);
+extern Oid get_extprotocol_oid(const char *prot_name, bool error_if_missing);
 
 extern char *
 ExtProtocolGetNameByOid(Oid	protOid);

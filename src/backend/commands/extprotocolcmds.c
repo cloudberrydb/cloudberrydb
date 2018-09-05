@@ -107,75 +107,6 @@ DefineExtProtocol(List *name, List *parameters, bool trusted)
 	}
 }
 
-
-/*
- * RemoveExtProtocols
- *		Implements DROP EXTERNAL PROTOCOL
- */
-void
-RemoveExtProtocols(DropStmt *drop)
-{
-	ObjectAddresses *objects;
-	ListCell		*cell;
-
-	/*
-	 * First we identify all the objects, then we delete them in a single
-	 * performMultipleDeletions() call.  This is to avoid unwanted
-	 * DROP RESTRICT errors if one of the objects depends on another.
-	 */
-	objects = new_object_addresses();
-
-	foreach(cell, drop->objects)
-	{
-		List		*names = (List *) lfirst(cell);
-		char	   *protocolName;
-		Oid			protocolOid;
-		ObjectAddress object;
-
-		if (list_length(names) != 1)
-			ereport(ERROR,
-					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("protocol name may not be qualified")));
-		protocolName = strVal(linitial(names));
-
-		protocolOid = LookupExtProtocolOid(protocolName, drop->missing_ok);
-
-		if (!OidIsValid(protocolOid))
-		{
-			if (!drop->missing_ok)
-			{
-				ereport(ERROR,
-						(errcode(ERRCODE_UNDEFINED_OBJECT),
-						 errmsg("protocol \"%s\" does not exist",
-								protocolName)));
-			}
-			else
-			{
-				if (Gp_role != GP_ROLE_EXECUTE)
-					ereport(NOTICE,
-							(errcode(ERRCODE_UNDEFINED_OBJECT),
-							 errmsg("protocol \"%s\" does not exist, skipping",
-									protocolName)));
-			}
-			continue;
-		}
-
-		/* Permission check: must own protocol */
-		if (!pg_extprotocol_ownercheck(protocolOid, GetUserId()))
-			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_EXTPROTOCOL, protocolName);
-
-		object.classId = ExtprotocolRelationId;
-		object.objectId = protocolOid;
-		object.objectSubId = 0;
-
-		add_exact_object_address(&object, objects);
-	}
-
-	performMultipleDeletions(objects, drop->behavior, 0);
-
-	free_object_addresses(objects);
-}
-
 /*
  * Drop PROTOCOL by OID. This is the guts of deletion.
  * This is called to clean up dependencies.
@@ -183,7 +114,35 @@ RemoveExtProtocols(DropStmt *drop)
 void
 RemoveExtProtocolById(Oid protOid)
 {
-	ExtProtocolDeleteByOid(protOid);
+	Relation	rel;
+	ScanKeyData skey;
+	SysScanDesc scan;
+	HeapTuple	tup;
+	bool		found = false;
+
+	/*
+	 * Search pg_extprotocol.
+	 */
+	rel = heap_open(ExtprotocolRelationId, RowExclusiveLock);
+
+	ScanKeyInit(&skey,
+				ObjectIdAttributeNumber,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(protOid));
+	scan = systable_beginscan(rel, ExtprotocolOidIndexId, true,
+							  SnapshotNow, 1, &skey);
+
+	while (HeapTupleIsValid(tup = systable_getnext(scan)))
+	{
+		simple_heap_delete(rel, &tup->t_self);
+		found = true;
+	}
+	systable_endscan(scan);
+
+	if (!found)
+		elog(ERROR, "protocol %u could not be found", protOid);
+
+	heap_close(rel, NoLock);
 }
 
 /*
