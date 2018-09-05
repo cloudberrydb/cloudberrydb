@@ -1122,10 +1122,10 @@ inheritance_planner(PlannerInfo *root)
 				 * SubqueryScan for each CTE. Unlike in upstream, we will insert
 				 * the plan for a subquery scan into the RelOptInfo for the
 				 * CTE. As of b3aaf9081a1a95c245fd605dcf02c91b3a5c3a29, we
-				 * expect that the every SubqueryScan node that references the
+				 * expect that every SubqueryScan node that references the
 				 * global RangeTable will match the corresponding entry in the
 				 * rte.
-				 * GPDB_9_2_MERGE_FIXME: Is treating CTE references like
+				 * GPDB_92_MERGE_FIXME: Is treating CTE references like
 				 * SubQueries sufficient here? Do we lose an opportunity to use
 				 * shared scan here? Is there a way to treat it similarly with
 				 * gp_cte_sharing turned on?
