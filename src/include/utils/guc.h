@@ -322,8 +322,6 @@ extern int	temp_file_limit;
 
 extern int	num_temp_buffers;
 
-extern bool gp_cancel_query_print_log;
-extern int gp_cancel_query_delay_time;
 extern bool vmem_process_interrupt;
 extern bool execute_pruned_plan;
 

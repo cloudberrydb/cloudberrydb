@@ -2372,23 +2372,6 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 		QueryCancelCleanup)
 	{			
 		gpmon_qlog_query_canceling(queryDesc->gpmon_pkt);
-
-		if (gp_cancel_query_print_log)
-		{
-			elog(LOG, "canceling query (%d, %d)",
-				 queryDesc->gpmon_pkt->u.qlog.key.ssid,
-				 queryDesc->gpmon_pkt->u.qlog.key.ccnt);
-		}
-	}
-
-	/*
-	 * Delaying the cancellation for a specified time.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH &&
-		QueryCancelCleanup &&
-		gp_cancel_query_delay_time > 0)
-	{
-		pg_usleep(gp_cancel_query_delay_time * 1000);
 	}
 
 	/*

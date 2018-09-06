@@ -280,9 +280,6 @@ int			gp_test_time_slice_report_level = ERROR;
 bool		gp_test_deadlock_hazard;
 int			gp_test_deadlock_hazard_report_level = ERROR;
 
-/* query cancellation GUC */
-bool		gp_cancel_query_print_log;
-int			gp_cancel_query_delay_time;
 bool		vmem_process_interrupt = false;
 bool		execute_pruned_plan = false;
 
@@ -1983,17 +1980,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_cancel_query_print_log", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print out debugging info for a canceled query"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_cancel_query_print_log,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"gp_partitioning_dynamic_selection_log", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Print out debugging info for GPDB dynamic partition selection"),
 			NULL,
@@ -3075,17 +3061,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&writable_external_table_bufsize,
 		64, 32, 131072,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_cancel_query_delay_time", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("The time in milliseconds to delay a query cancellation."),
-			NULL,
-			GUC_UNIT_MS | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_cancel_query_delay_time,
-		0, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 

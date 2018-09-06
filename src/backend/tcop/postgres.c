@@ -1558,16 +1558,7 @@ exec_simple_query(const char *query_string)
 	char		msec_str[32];
 
 	if (Gp_role != GP_ROLE_EXECUTE)
-	{
 		increment_command_count();
-
-		MyProc->queryCommandId = gp_command_count;
-		if (gp_cancel_query_print_log)
-		{
-			elog(NOTICE, "running query (sessionId, commandId): (%d, %d)",
-				 MyProc->mppSessionId, gp_command_count);
-		}
-	}
 
 	/*
 	 * Report query to various monitoring facilities.
@@ -2621,24 +2612,7 @@ exec_execute_message(const char *portal_name, int64 max_rows)
 			}
 		}
 		if (is_utility_stmt)
-		{
 			increment_command_count();
-
-			MyProc->queryCommandId = gp_command_count;
-			if (gp_cancel_query_print_log)
-			{
-				elog(NOTICE, "running query (sessionId, commandId): (%d, %d)",
-						MyProc->mppSessionId, gp_command_count);
-				elog(LOG, "In exec_execute_message found utility statement, incrementing command_count");
-			}
-		}
-		else
-		{
-			if (gp_cancel_query_print_log)
-			{
-				elog(LOG, "In exec_execute_message found non-utility statement, NOT incrementing command count");
-			}
-		}
 	}
 
 	/* Does the portal contain a transaction command? */

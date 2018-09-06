@@ -90,8 +90,6 @@ extern void updateSharedLocalSnapshot(struct DtxContextInfo *dtxContextInfo, str
 
 extern void GetSlotTableDebugInfo(void **snapshotArray, int *maxSlots);
 
-extern bool FindAndSignalProcess(int sessionId, int commandId);
-
 extern void getDtxCheckPointInfo(char **result, int *result_size);
 
 extern List *ListAllGxid(void);

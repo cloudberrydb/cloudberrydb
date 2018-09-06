@@ -114,17 +114,8 @@ CreateQueryDesc(PlannedStmt *plannedstmt,
 	qd->gpmon_pkt = NULL;
 	
 	if (Gp_role != GP_ROLE_EXECUTE)
-	{
 		increment_command_count();
 
-		MyProc->queryCommandId = gp_command_count;
-		if (gp_cancel_query_print_log)
-		{
-			elog(NOTICE, "running query (sessionId, commandId): (%d, %d)",
-				 MyProc->mppSessionId, gp_command_count);
-		}
-	}
-	
 	if(gp_enable_gpperfmon && Gp_role == GP_ROLE_DISPATCH)
 	{
 		qd->gpmon_pkt = (gpmon_packet_t *) palloc0(sizeof(gpmon_packet_t));

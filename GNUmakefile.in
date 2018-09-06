@@ -22,7 +22,6 @@ all:
 	$(MAKE) -C contrib/gp_distribution_policy all
 	$(MAKE) -C contrib/gp_inject_fault all
 	$(MAKE) -C contrib/gp_internal_tools all
-	$(MAKE) -C contrib/gp_cancel_query all
 	$(MAKE) -C contrib/indexscan all
 	$(MAKE) -C contrib/pg_upgrade_support all
 	$(MAKE) -C contrib/pg_upgrade all
@@ -58,7 +57,6 @@ install:
 	$(MAKE) -C contrib/gp_distribution_policy $@
 	$(MAKE) -C contrib/gp_inject_fault $@
 	$(MAKE) -C contrib/gp_internal_tools $@
-	$(MAKE) -C contrib/gp_cancel_query $@
 	$(MAKE) -C contrib/indexscan $@ 
 	$(MAKE) -C contrib/pg_upgrade_support $@
 	$(MAKE) -C contrib/pg_upgrade $@

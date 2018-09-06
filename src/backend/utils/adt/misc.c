@@ -220,60 +220,6 @@ pg_terminate_backend_msg(PG_FUNCTION_ARGS)
 }
 
 /*
- * gp_cancel_query_internal
- *    Cancel the query that is identified by (sessionId, commandId) pair.
- *
- * This function errors out if this is called by non-super user.
- * This function prints a warning and returns false when (sessionId, commandId) does not
- * exist.
- *
- * In all other cases, this function finds the process id from procArray, and sends
- * an interrupt signal to the process.
- */
-static bool
-gp_cancel_query_internal(int sessionId, int commandId)
-{
-	if (!superuser())
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to cancel a query"))));
-	}
-
-	if (!(sessionId > 0 && commandId > 0))
-	{
-		ereport(WARNING, 
-				(errcode(ERRCODE_WARNING),
-				 errmsg("invalid session_id or command_id for query (session_id, command_id): (%d, %d)",
-						DatumGetInt32(sessionId), DatumGetInt32(commandId))));
-		return false;
-	}
-
-	bool succeed = FindAndSignalProcess(sessionId, commandId);
-	if (!succeed)
-	{
-		ereport(WARNING, 
-				(errcode(ERRCODE_WARNING),
-				 errmsg("failed to cancel query (session_id, command_id): (%d, %d)",
-						DatumGetInt32(sessionId), DatumGetInt32(commandId))));
-		return false;
-	}
-
-	return true;
-}
-
-/*
- * gp_cancel_query
- *    Cancel the query that is identified by (sessionId, commandId) pair.
- */
-Datum
-gp_cancel_query(PG_FUNCTION_ARGS)
-{
-	PG_RETURN_BOOL(gp_cancel_query_internal(PG_GETARG_INT32(0),
-											PG_GETARG_INT32(1)));
-}
-
-/*
  * Signal to reload the database configuration
  */
 Datum

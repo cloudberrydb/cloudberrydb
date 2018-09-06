@@ -3672,55 +3672,6 @@ FindProcByGpSessionId(long gp_session_id)
 	return NULL;
 }
 
-/*
- * FindAndSignalProcess
- *     Find the PGPROC entry in procArray which contains the given sessionId and commandId,
- *     and send the corresponding process an interrupt signal.
- *
- * This function returns false if not such an entry found in procArray or the interrupt
- * signal can not be sent to the process.
- */
-bool
-FindAndSignalProcess(int sessionId, int commandId)
-{
-	Assert(sessionId > 0 && commandId > 0);
-	bool queryCancelled = false;
-	int pid = 0;
-
-	LWLockAcquire(ProcArrayLock, LW_SHARED);
-
-	for (int index = 0; index < procArray->numProcs; index++)
-	{
-		PGPROC *proc = &allProcs[procArray->pgprocnos[index]];
-		
-		if (proc->mppSessionId == sessionId &&
-			proc->queryCommandId == commandId)
-		{
-			/* If we have setsid(), signal the backend's whole process group */
-#ifdef HAVE_SETSID
-			if (kill(-proc->pid, SIGINT) == 0)
-#else
-			if (kill(proc->pid, SIGINT) == 0)
-#endif
-			{
-				pid = proc->pid;
-				queryCancelled = true;
-			}
-			
-			break;
-		}
-	}
-
-	LWLockRelease(ProcArrayLock);
-
-	if (gp_cancel_query_print_log && queryCancelled)
-	{
-		elog(NOTICE, "sent an interrupt to process %d", pid);
-	}
-
-	return queryCancelled;
-}
-
 /* ----------------------------------------------
  *		KnownAssignedTransactions sub-module
  * ----------------------------------------------
