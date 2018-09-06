@@ -22,12 +22,15 @@
 #include <math.h>
 #include <unistd.h>
 
+#include "libpq-fe.h"
 #include "pgstat.h"
 #include "access/transam.h"
 #include "access/xact.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_type.h"
 #include "cdb/memquota.h"
+#include "cdb/cdbdisp_query.h"
+#include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbgang.h"
 #include "cdb/cdbvars.h"
 #include "cdb/ml_ipc.h"
@@ -88,6 +91,7 @@ extern Datum check_auth_time_constraints(PG_FUNCTION_ARGS);
 
 /* XID wraparound */
 extern Datum test_consume_xids(PG_FUNCTION_ARGS);
+extern Datum gp_execute_on_server(PG_FUNCTION_ARGS);
 
 /* Triggers */
 
@@ -1956,4 +1960,59 @@ test_consume_xids(PG_FUNCTION_ARGS)
 	}
 
 	PG_RETURN_VOID();
+}
+
+/*
+ * Function to execute a DML/DDL command on segment with specified content id.
+ * Returns true on success or error on failure.
+ */
+PG_FUNCTION_INFO_V1(gp_execute_on_server);
+Datum
+gp_execute_on_server(PG_FUNCTION_ARGS)
+{
+	int16	content = PG_GETARG_INT16(0);
+	char *query = PG_GETARG_CSTRING(1);
+	int ret;
+	int proc;
+	if (GpIdentity.segindex == content)
+	{
+		if ((ret = SPI_connect()) < 0)
+			/* internal error */
+			elog(ERROR, "SPI_connect returned %d", ret);
+
+		/* Retrieve the desired rows */
+		ret = SPI_execute(query, false, 0);
+		proc = SPI_processed;
+		if (ret != SPI_OK_SELECT || proc <= 0)
+		{
+			SPI_finish();
+			elog(ERROR, "SPI failed on segment %d, return code %d",
+				 GpIdentity.segindex, ret);
+		}
+		SPI_finish();
+		PG_RETURN_BOOL(true);
+	}
+	else if (IS_QUERY_DISPATCHER())
+	{
+		proc = 0;
+		CdbPgResults cdb_pgresults;
+		int i;
+		CdbDispatchCommand(query, DF_CANCEL_ON_ERROR | DF_WITH_SNAPSHOT, &cdb_pgresults);
+		for (i = 0; i < cdb_pgresults.numResults; i++)
+		{
+			struct pg_result *pgresult = cdb_pgresults.pg_results[i];
+
+			if (PQresultStatus(pgresult) != PGRES_TUPLES_OK &&
+				PQresultStatus(pgresult) != PGRES_COMMAND_OK)
+			{
+				cdbdisp_clearCdbPgResults(&cdb_pgresults);
+				elog(ERROR, "execution failed with status %d", PQresultStatus(pgresult));
+			}
+		}
+
+		cdbdisp_clearCdbPgResults(&cdb_pgresults);
+		PG_RETURN_BOOL(true);
+	}
+	else
+		PG_RETURN_BOOL(true);
 }
