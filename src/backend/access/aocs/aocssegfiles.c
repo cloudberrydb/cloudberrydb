@@ -789,7 +789,7 @@ UpdateAOCSFileSegInfo(AOCSInsertDesc idesc)
 		 * to be recorded in aoseg table has to be greater than currently
 		 * stored EOF value, as new writes must move it forward only. If new
 		 * end-of-file value is less than currently stored end-of-file
-		 * something is incorrect and updating the same will yeild incorrect
+		 * something is incorrect and updating the same will yield incorrect
 		 * result during reads. Hence abort the write transaction trying to
 		 * update the incorrect EOF value.
 		 */
