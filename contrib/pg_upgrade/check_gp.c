@@ -11,6 +11,7 @@
  *
  *	Copyright (c) 2010, PostgreSQL Global Development Group
  *	Copyright (c) 2017-Present Pivotal Software, Inc
+ *	contrib/pg_upgrade/check_gp.c
  */
 
 #include "pg_upgrade.h"

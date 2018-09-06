@@ -1,10 +1,11 @@
 /*
- *	file.c
+ *	file_gp.c
  *
  *	Greenplum specific file system operations
  *
  *	Portions Copyright (c) 2010, PostgreSQL Global Development Group
  *	Portions Copyright (c) 2016-Present, Pivotal Software Inc
+ *	contrib/pg_upgrade/file_gp.c
  */
 
 #include "pg_upgrade.h"

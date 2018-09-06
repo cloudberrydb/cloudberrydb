@@ -1,9 +1,10 @@
 /*
- *	version_old_gpdb4.c
+ *	version_gp.c
  *
- *	GPDB-version-specific routines for upgrades from Greenplum 4.3.x
+ *	Greenplum version-specific routines for upgrades
  *
  *	Copyright (c) 2016-Present Pivotal Software, Inc
+ *	contrib/pg_upgrade/version_gp.c
  */
 #include "pg_upgrade.h"
 
