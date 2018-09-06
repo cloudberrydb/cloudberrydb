@@ -406,8 +406,8 @@ if (RelationIsHeap(rel))
 {
 	/* Ordinary relation, including heap and index.
 	 * They take form of relationpath, or relationpath.%d
-	 * There will be no holes, therefore, we can stop we
-	 * we reach the first non-exist file.
+	 * There will be no holes, therefore, we can stop when
+	 * we reach the first non-existing file.
 	 */
 	for (segcount = 0;; segcount++)
 	{
