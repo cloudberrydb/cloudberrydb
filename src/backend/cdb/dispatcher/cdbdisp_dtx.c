@@ -81,7 +81,6 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 {
 	CdbDispatcherState *ds;
 	CdbDispatchResults *pr;
-	MemoryContext oldContext;
 	CdbPgResults cdb_pgresults = {NULL, 0};
 
 	DispatchCommandDtxProtocolParms dtxProtocolParms;
@@ -110,10 +109,13 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	dtxProtocolParms.serializedDtxContextInfoLen = serializedDtxContextInfoLen;
 
 	/*
-	 * Allocate a primary QE for every available segDB in the system.
+	 * Dispatch the command.
 	 */
-	primaryGang = AllocateWriterGang();
+	ds = cdbdisp_makeDispatcherState(false);
 
+	queryText = buildGpDtxProtocolCommand(&dtxProtocolParms, &queryTextLen);
+
+	primaryGang = AllocateWriterGang(ds);
 	Assert(primaryGang);
 
 	if (primaryGang->dispatcherActive)
@@ -124,16 +126,8 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 				 errhint("dispatching DTX commands to a busy gang")));
 	}
 
-	/*
-	 * Dispatch the command.
-	 */
-	ds = cdbdisp_makeDispatcherState();
-	oldContext = MemoryContextSwitchTo(DispatcherContext);
-	queryText = buildGpDtxProtocolCommand(&dtxProtocolParms, &queryTextLen);
-	ds->primaryResults = cdbdisp_makeDispatchResults(1, false);
-	ds->dispatchParams = cdbdisp_makeDispatchParams (1, queryText, queryTextLen);
-	ds->primaryResults->writer_gang = primaryGang;
-	MemoryContextSwitchTo(oldContext);
+	cdbdisp_makeDispatchResults(ds, 1, false);
+	cdbdisp_makeDispatchParams(ds, 1, queryText, queryTextLen);
 
 	cdbdisp_dispatchToGang(ds, primaryGang, -1, direct);
 
@@ -272,6 +266,9 @@ buildGpDtxProtocolCommand(DispatchCommandDtxProtocolParms *pDtxProtocolParms,
 	char	   *shared_query = NULL;
 	char	   *pos = NULL;
 
+	/* Allocate query text within DispatcherContext */
+	Assert(DispatcherContext);
+	MemoryContext oldContext = MemoryContextSwitchTo(DispatcherContext);
 	shared_query = palloc0(total_query_len);
 	pos = shared_query;
 
@@ -326,5 +323,6 @@ buildGpDtxProtocolCommand(DispatchCommandDtxProtocolParms *pDtxProtocolParms,
 	if (finalLen)
 		*finalLen = len + 1;
 
+	MemoryContextSwitchTo(oldContext);
 	return shared_query;
 }

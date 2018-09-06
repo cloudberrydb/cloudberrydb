@@ -309,12 +309,6 @@ cdbdisp_dispatchToGang_async(struct CdbDispatcherState *ds,
 		qeResult = cdbdisp_makeResult(ds->primaryResults, segdbDesc, sliceIndex);
 		if (qeResult == NULL)
 		{
-			/*
-			 * writer_gang could be NULL if this is an extended query.
-			 */
-			if (ds->primaryResults->writer_gang)
-				ds->primaryResults->writer_gang->dispatcherActive = true;
-
 			elog(FATAL, "could not allocate resources for segworker communication");
 		}
 		pParms->dispatchResultPtrArray[pParms->dispatchCount++] = qeResult;

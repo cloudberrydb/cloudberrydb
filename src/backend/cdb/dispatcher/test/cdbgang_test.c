@@ -145,6 +145,8 @@ test__createWriterGang(void **state)
 	uint32		motionListener = 10000;
 	int			qePid = 2000;
 	int			i = 0;
+	CdbDispatcherState ds;
+	ds.allocatedGangs = NIL;
 
 	will_return(IsTransactionOrTransactionBlock, true);
 	will_return(getCdbComponentDatabases, s_cdb);
@@ -161,7 +163,7 @@ test__createWriterGang(void **state)
 
 	cdbgang_setAsync(false);
 
-	Gang	   *gang = AllocateWriterGang();
+	Gang	   *gang = AllocateWriterGang(&ds);
 
 	/* validate gang */
 	assert_int_equal(gang->size, TOTOAL_SEGMENTS);
@@ -198,8 +200,9 @@ test__createReaderGang(void **state)
 	uint32		motionListener = 10000;
 	int			qePid = 2000;
 	int			i = 0;
+	CdbDispatcherState ds;
+	ds.allocatedGangs = NIL;
 
-	will_return(IsTransactionOrTransactionBlock, true);
 	will_return_count(getgpsegmentCount, segmentCount, -1);
 	will_return_count(getFtsVersion, ftsVersion, 1);
 
@@ -211,7 +214,7 @@ test__createReaderGang(void **state)
 	mockLibpq(conn, motionListener, qePid);
 
 	cdbgang_setAsync(false);
-	Gang	   *gang = AllocateReaderGang(GANGTYPE_PRIMARY_READER, portalName);
+	Gang	   *gang = AllocateReaderGang(&ds, GANGTYPE_PRIMARY_READER, portalName);
 
 	/* validate gang */
 	assert_int_equal(gang->size, TOTOAL_SEGMENTS);
@@ -271,6 +274,12 @@ main(int argc, char *argv[])
 	unit_test(test__createReaderGang),};
 
 	MemoryContextInit();
+	DispatcherContext = AllocSetContextCreate(TopMemoryContext,
+											  "Dispatch Context",
+											  ALLOCSET_DEFAULT_MINSIZE,
+											  ALLOCSET_DEFAULT_INITSIZE,
+											  ALLOCSET_DEFAULT_MAXSIZE);
+
 	CurrentResourceOwner = ResourceOwnerCreate(NULL, "gang test");
 	Gp_role = GP_ROLE_DISPATCH;
 	GpIdentity.numsegments = TOTOAL_SEGMENTS;

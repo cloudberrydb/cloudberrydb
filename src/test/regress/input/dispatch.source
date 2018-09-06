@@ -8,6 +8,8 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 -- s/^ \(seg\d .*:\d+\)//
 -- m/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/
 -- s/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/DETAIL:  Internal error: No motion listener port/
+-- m/WARNING:.*Any temporary tables for this session have been dropped because the gang was disconnected/
+-- s/session id \=\s*\d+/session id \= DUMMY/gm
 -- end_matchsubs
 
 -- skip FTS probes always
@@ -374,6 +376,25 @@ end;
 \connect
 begin isolation level read uncommitted;
 end;
+
+-- Test session will be reset if the writer gang of current global
+-- transaction is lost
+begin;
+create temp table disp_temp_test (c1 int, c2 int);
+insert into disp_temp_test values (1, 2);
+savepoint s1;
+create temp table disp_temp_test1 (c1 int, c2 int);
+insert into disp_temp_test1 values (1, 2);
+select gp_inject_fault('cleanup_gang', 'skip', 1);
+-- Let cleanupGang return false and writer gang be destroyed
+select * from disp_temp_test1 where c1 / 0 = 9;
+rollback to savepoint s1;
+rollback;
+-- session is reset, temp table is dropped.
+select * from disp_temp_test;
+select * from disp_temp_test1;
+-- reset fault
+select gp_inject_fault('cleanup_gang', 'reset', 1);
 
 -- resume FTS probes
 select gp_inject_fault('fts_probe', 'reset', 1);

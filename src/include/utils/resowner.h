@@ -64,6 +64,7 @@ typedef void (*ResourceReleaseCallback) (ResourceReleasePhase phase,
 													 bool isTopLevel,
 													 void *arg);
 
+typedef void (*ResourceWalkerCallback) (const ResourceOwner owner);
 
 /*
  * Functions in resowner.c
@@ -140,5 +141,8 @@ extern void ResourceOwnerRememberFile(ResourceOwner owner,
 						  File file);
 extern void ResourceOwnerForgetFile(ResourceOwner owner,
 						File file);
+
+extern void CdbResourceOwnerWalker(ResourceOwner owner,
+							ResourceWalkerCallback callback);
 
 #endif   /* RESOWNER_H */

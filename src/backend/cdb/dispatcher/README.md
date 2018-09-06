@@ -22,6 +22,7 @@ For a query/plan, QD would build one `GANGTYPE_PRIMARY_WRITER` Gang, and several
 	* `AllocateReaderGang`: create Gang of type `GANGTYPE_ENTRYDB_READER`, `GANGTYPE_SINGLETON_READER`, `GANGTYPE_PRIMARY_READER` by specification. Gang reuage logic is included.
 	* `AllocateWriterGang`: create Gang of type `GANGTYPE_PRIMARY_WRITER`
 	* `DisconnectAndDestroyGang`: tear down a Gang of any type, but make sure no reader Gang exist before calling this routine for writer Gang
+	* `RecycleGang`: put a gang to reusable gang list if gang can be cleanup correctly including discarding results, connection status check.
 	* `DisconnectAndDestroyAllGangs`: tear down all existing Gangs of this session
 * Gang status check:
 	* `GangOK`: check if a created Gang is healthy
@@ -35,3 +36,15 @@ For a query/plan, QD would build one `GANGTYPE_PRIMARY_WRITER` Gang, and several
 	
 ### Dispatcher Mode:
 To improve parallelism, Dispatcher has two different implementations internally, one is using threads, the other leverages asynchronous network programming. When GUC `gp_connections_per_thread` is 0, async dispatcher is used, which is the default configuration
+
+### Dispatcher routines:
+All dispatcher routines contains few standard steps:
+* CdbDispatchPlan/CdbDispatchUtilityStatement/CdbDispatchCommand/CdbDispatchSetCommand/CdbDispDtxProtocolCommand
+	* `cdbdisp_makeDispatcherState`: create a dispatcher state and register it in the resource owner release callback.
+	* `buildGpQueryString/buildGpDtxProtocolCommand`: serialize Plan/Utility/Command to raw text QEs can recognize, must allocate it within DispatcherContex.
+	* `AllocateWriterGang/AssignGangs`: allocate a gang or a bunch of gangs (for Plan) and prepare for execution, gangs are tracked by dispatcher state
+	* `cdbdisp_dispatchToGang`: send serialized raw query to QEs in unblocking mode which means the data in connection is not guaranteed being flushed, this is very usefull if a plan contains multiple slices, so dispatcher don't block when libpq connections is congested 
+	* `cdbdisp_waitDispatchFinish`: as described above, this function will poll on libpq connections and flush the data in bunches 
+	* `cdbdisp_checkDispatchResult`: block until QEs report a command OK response or an error etc
+	* `cdbdisp_getDispatchResults`: fetch results from dispatcher state or error data if an error occurs
+	* `cdbdisp_destroyDispatcherState`: destroy current dispatcher state and recycle gangs allocated by it.

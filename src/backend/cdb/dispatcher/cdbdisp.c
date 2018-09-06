@@ -31,6 +31,7 @@
 #include "cdb/cdbgang.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
+#include "utils/resowner.h"
 
 typedef struct dispatcher_handle_t
 {
@@ -42,23 +43,17 @@ typedef struct dispatcher_handle_t
 } dispatcher_handle_t;
 
 static dispatcher_handle_t *open_dispatcher_handles;
-static bool dispatcher_resowner_callback_registered;
-static void dispatcher_abort_callback(ResourceReleasePhase phase,
-								   bool isCommit,
-								   bool isTopLevel,
-								   void *arg);
 static void cleanup_dispatcher_handle(dispatcher_handle_t *h);
 
 static dispatcher_handle_t *find_dispatcher_handle(CdbDispatcherState *ds);
 static dispatcher_handle_t *allocate_dispatcher_handle(void);
 static void destroy_dispatcher_handle(dispatcher_handle_t *h);
+static void cleanupDispatcherHandle(ResourceOwner owner);
 
 /*
  * default directed-dispatch parameters: don't direct anything.
  */
 CdbDispatchDirectDesc default_dispatch_direct_desc = {false, 0, {0}};
-
-static void cdbdisp_clearGangActiveFlag(CdbDispatcherState *ds);
 
 static DispatcherInternalFuncs *pDispatchFuncs = NULL;
 
@@ -103,25 +98,6 @@ cdbdisp_dispatchToGang(struct CdbDispatcherState *ds,
 	Assert(gp && gp->size > 0);
 	Assert(dispatchResults && dispatchResults->resultArray);
 
-	if (dispatchResults->writer_gang)
-	{
-		/*
-		 * Are we dispatching to the writer-gang when it is already busy ?
-		 */
-		if (gp == dispatchResults->writer_gang)
-		{
-			if (dispatchResults->writer_gang->dispatcherActive)
-			{
-				ereport(ERROR,
-						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("query plan with multiple segworker groups is not supported"),
-						 errhint("likely caused by a function that reads or modifies data in a distributed table")));
-			}
-
-			dispatchResults->writer_gang->dispatcherActive = true;
-		}
-	}
-
 	/*
 	 * WIP: will use a function pointer for implementation later, currently
 	 * just use an internal function to move dispatch thread related code into
@@ -154,18 +130,7 @@ void
 cdbdisp_checkDispatchResult(struct CdbDispatcherState *ds,
 					   DispatchWaitMode waitMode)
 {
-	PG_TRY();
-	{
-		(pDispatchFuncs->checkResults) (ds, waitMode);
-	}
-	PG_CATCH();
-	{
-		cdbdisp_clearGangActiveFlag(ds);
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-
-	cdbdisp_clearGangActiveFlag(ds);
+	(pDispatchFuncs->checkResults) (ds, waitMode);
 
 	if (log_dispatch_stats)
 		ShowUsage("DISPATCH STATISTICS");
@@ -326,22 +291,34 @@ CdbDispatchHandleError(struct CdbDispatcherState *ds)
  * Allocate memory and initialize CdbDispatcherState.
  *
  * Call cdbdisp_destroyDispatcherState to free it.
- *
- *	 maxSlices: max number of slices of the query/command.
  */
 CdbDispatcherState *
-cdbdisp_makeDispatcherState(void)
+cdbdisp_makeDispatcherState(bool isExtendedQuery)
 {
 	dispatcher_handle_t *handle = allocate_dispatcher_handle();
+	handle->dispatcherState->recycleGang = true;
+	handle->dispatcherState->isExtendedQuery = isExtendedQuery;
+	handle->dispatcherState->allocatedGangs = NIL;
 	return handle->dispatcherState;
 }
 
-void *
-cdbdisp_makeDispatchParams(int maxSlices,
-						  char *queryText,
-						  int queryTextLen)
+void
+cdbdisp_makeDispatchParams(CdbDispatcherState *ds,
+							int maxSlices,
+							char *queryText,
+							int queryTextLen)
 {
-	return (pDispatchFuncs->makeDispatchParams) (maxSlices, queryText, queryTextLen);
+	MemoryContext oldContext;
+	void *dispatchParams;
+
+	Assert(DispatcherContext);
+	oldContext = MemoryContextSwitchTo(DispatcherContext);
+
+	dispatchParams = (pDispatchFuncs->makeDispatchParams) (maxSlices, queryText, queryTextLen);
+
+	ds->dispatchParams = dispatchParams;
+
+	MemoryContextSwitchTo(oldContext);
 }
 
 /*
@@ -352,6 +329,8 @@ cdbdisp_makeDispatchParams(int maxSlices,
 void
 cdbdisp_destroyDispatcherState(CdbDispatcherState *ds)
 {
+	ListCell *lc;
+
 	if (!ds)
 		return;
 
@@ -369,6 +348,23 @@ cdbdisp_destroyDispatcherState(CdbDispatcherState *ds)
 		results->resultArray = NULL;
 	}
 
+	/* Recycle or destroy gang accordingly */
+	foreach(lc, ds->allocatedGangs)
+	{
+		Gang *gp = lfirst(lc);
+
+		if (gp->type == GANGTYPE_PRIMARY_WRITER)
+			cdbgang_resetPrimaryWriterGang();
+		else
+			cdbgang_decreaseNumReaderGang();
+
+		if (ds->recycleGang)
+			RecycleGang(gp);
+		else
+			DisconnectAndDestroyGang(gp);
+	}
+
+	ds->allocatedGangs = NIL;
 	ds->dispatchParams = NULL;
 	ds->primaryResults = NULL;
 
@@ -380,19 +376,6 @@ void
 cdbdisp_cancelDispatch(CdbDispatcherState *ds)
 {
 	cdbdisp_checkDispatchResult(ds, DISPATCH_WAIT_CANCEL);
-}
-
-/*
- * Clear our "active" flags; so that we know that the writer gangs are busy -- and don't stomp on
- * internal dispatcher structures.
- */
-static void
-cdbdisp_clearGangActiveFlag(CdbDispatcherState *ds)
-{
-	if (ds && ds->primaryResults && ds->primaryResults->writer_gang)
-	{
-		ds->primaryResults->writer_gang->dispatcherActive = false;
-	}
 }
 
 bool
@@ -464,11 +447,6 @@ allocate_dispatcher_handle(void)
 		open_dispatcher_handles->prev = h;
 	open_dispatcher_handles = h;
 
-	if (!dispatcher_resowner_callback_registered)
-	{
-		RegisterResourceReleaseCallback(dispatcher_abort_callback, NULL);
-		dispatcher_resowner_callback_registered = true;
-	}
 	return h;
 }
 
@@ -517,17 +495,61 @@ cleanup_dispatcher_handle(dispatcher_handle_t *h)
 	cdbdisp_destroyDispatcherState(h->dispatcherState);
 }
 
+/*
+ * Cleanup all dispatcher state that belong to
+ * current resource owner and its childrens
+ */
+void
+AtAbort_DispatcherState(void)
+{
+	if (Gp_role != GP_ROLE_DISPATCH)
+		return;
+
+	if (CurrentGangCreating != NULL)
+	{
+		DisconnectAndDestroyGang(CurrentGangCreating);
+		CurrentGangCreating = NULL;
+	}
+
+	/*
+	 * Cleanup all outbound dispatcher states belong to
+	 * current resource owner and its children
+	 */
+	CdbResourceOwnerWalker(CurrentResourceOwner, cleanupDispatcherHandle);
+
+	Assert(open_dispatcher_handles == NULL);
+
+	/*
+	 * If primary writer gang is destroyed in current Gxact
+	 * reset session and drop temp files
+	 */
+	if (currentGxactWriterGangLost())
+	{
+		DisconnectAndDestroyAllGangs(true);
+		CheckForResetSession();
+	}
+}
+
+void
+AtSubAbort_DispatcherState(void)
+{
+	if (Gp_role != GP_ROLE_DISPATCH)
+		return;
+
+	if (CurrentGangCreating != NULL)
+	{
+		DisconnectAndDestroyGang(CurrentGangCreating);
+		CurrentGangCreating = NULL;
+	}
+
+	CdbResourceOwnerWalker(CurrentResourceOwner, cleanupDispatcherHandle);
+}
+
 static void
-dispatcher_abort_callback(ResourceReleasePhase phase,
-					   bool isCommit,
-					   bool isTopLevel,
-					   void *arg)
+cleanupDispatcherHandle(const ResourceOwner owner)
 {
 	dispatcher_handle_t *curr;
 	dispatcher_handle_t *next;
-
-	if (phase != RESOURCE_RELEASE_AFTER_LOCKS)
-		return;
 
 	next = open_dispatcher_handles;
 	while (next)
@@ -535,12 +557,51 @@ dispatcher_abort_callback(ResourceReleasePhase phase,
 		curr = next;
 		next = curr->next;
 
-		if (curr->owner == CurrentResourceOwner)
+		if (curr->owner == owner)
 		{
-			if (isCommit)
-				elog(WARNING, "dispatcher reference leak: %p still referenced", curr);
-
 			cleanup_dispatcher_handle(curr);
 		}
+	}
+}
+
+/*
+ * Called by CdbDispatchSetCommand(), SET command can not be dispatched
+ * to named portal (like CURSOR). On the one hand, it might be in a busy
+ * status, on the other hand, SET command should not affect running CURSOR
+ * like 'search_path' etc; 
+ *
+ * Meanwhile when a dispatcher state of named portal is destroyed, its
+ * gang should not be recycled because its guc was not set, so need to
+ * mark those gangs destroyed when dispatcher state is destroyed.
+ */
+void
+cdbdisp_markNamedPortalGangsDestroyed(void)
+{
+	dispatcher_handle_t *head = open_dispatcher_handles;
+	while (head != NULL)
+	{
+		if (!head->dispatcherState->isExtendedQuery)
+			head->dispatcherState->recycleGang = false;
+		head = head->next;
+	}
+}
+
+/*
+ * Unlike dispatcher_abort_callback(), this function will
+ * force destroy active dispatcher states
+ */
+void
+cdbdisp_cleanupAllDispatcherState(void)
+{
+	dispatcher_handle_t *curr;
+	dispatcher_handle_t *next;
+
+	next = open_dispatcher_handles;
+	while (next)
+	{
+		curr = next;
+		next = curr->next;
+
+		cleanup_dispatcher_handle(curr);
 	}
 }

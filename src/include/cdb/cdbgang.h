@@ -29,6 +29,7 @@ struct QueryDesc;
 struct DirectDispatchInfo;
 struct EState;
 struct PQExpBufferData;
+struct CdbDispatcherState;
 
 /*
  * A gang represents a single group of workers on each connected segDB
@@ -72,9 +73,11 @@ extern Gang *CurrentGangCreating;
 
 extern const char *gangTypeToString(GangType type);
 
-extern Gang *AllocateReaderGang(GangType type, char *portal_name);
+extern Gang *AllocateReaderGang(struct CdbDispatcherState *ds, GangType type, char *portal_name);
 
-extern Gang *AllocateWriterGang(void);
+extern Gang *AllocateWriterGang(struct CdbDispatcherState *ds);
+
+extern void AllocateAllIdleReaderGangs(struct CdbDispatcherState *ds);
 
 extern List *getCdbProcessList(Gang *gang, int sliceIndex, struct DirectDispatchInfo *directDispatch);
 
@@ -84,15 +87,14 @@ extern List *getCdbProcessesForQD(int isPrimary);
 
 extern void freeGangsForPortal(char *portal_name);
 
+extern void RecycleGang(Gang *gp);
 extern void DisconnectAndDestroyGang(Gang *gp);
 extern void DisconnectAndDestroyAllGangs(bool resetSession);
 extern void DisconnectAndDestroyUnusedGangs(void);
 
 extern void CheckForResetSession(void);
 
-extern List *getAllIdleReaderGangs(void);
-
-extern List *getAllAllocatedReaderGangs(void);
+extern List *getAllIdleReaderGangs(struct CdbDispatcherState *ds);
 
 extern CdbComponentDatabases *getComponentDatabases(void);
 
@@ -178,5 +180,7 @@ typedef struct CdbProcess
 typedef Gang *(*CreateGangFunc)(GangType type, int gang_id, int size, int content);
 
 extern void cdbgang_setAsync(bool async);
-
+extern void cdbgang_resetPrimaryWriterGang(void);
+extern void cdbgang_decreaseNumReaderGang(void);
+extern void AvailableWriterGangValidation(void);
 #endif   /* _CDBGANG_H_ */

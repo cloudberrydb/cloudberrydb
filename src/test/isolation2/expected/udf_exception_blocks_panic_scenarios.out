@@ -70,8 +70,7 @@ DROP TABLE IF EXISTS employees;
 DROP
 select test_protocol_allseg(1, 2,'f');
 ERROR:  PANIC for debug_dtm_action = 4, debug_dtm_action_protocol =  Begin Internal Subtransaction (postgres.c:1490)  (seg1 127.0.1.1:25433 pid=27784)
-CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 8 during statement block entry
-ERROR:  could not connect to segment: initialization of segworker group failed
+CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 9 during statement block entry
 -- make sure segment recovery is complete after panic.
 0U: select 1;
 ?column?
@@ -98,9 +97,8 @@ SET
 DROP TABLE IF EXISTS employees;
 DROP
 select test_protocol_allseg(1, 2,'f');
-ERROR:  could not connect to segment: initialization of segworker group failed
-CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 18 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed
+ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
+CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 19 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
 ?column?
@@ -127,9 +125,8 @@ SET
 DROP TABLE IF EXISTS employees;
 DROP
 select test_protocol_allseg(1, 2,'f');
-ERROR:  could not connect to segment: initialization of segworker group failed
-CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 18 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed
+ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
+CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 19 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
 ?column?
@@ -156,9 +153,8 @@ SET
 DROP TABLE IF EXISTS employees;
 DROP
 select test_protocol_allseg(1, 2,'f');
-ERROR:  could not connect to segment: initialization of segworker group failed
-CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed
+ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
+CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 18 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
 ?column?
@@ -185,9 +181,8 @@ SET
 DROP TABLE IF EXISTS employees;
 DROP
 select test_protocol_allseg(1, 2,'f');
-ERROR:  could not connect to segment: initialization of segworker group failed
-CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed
+ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
+CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 18 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
 ?column?
@@ -214,9 +209,8 @@ SET
 DROP TABLE IF EXISTS employees;
 DROP
 select test_protocol_allseg(1, 2,'f');
-ERROR:  could not connect to segment: initialization of segworker group failed
-CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed
+ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
+CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 18 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
 ?column?

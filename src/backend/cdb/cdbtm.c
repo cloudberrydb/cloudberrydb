@@ -594,6 +594,12 @@ doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType)
 	bool		badGangs,
 				succeeded = false;
 
+	if (currentGxactWriterGangLost())
+	{
+		ereport(WARNING, (errmsg("Writer gang of current global transaction is lost")));
+		return false;
+	}
+
 	if (cmdType == DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL &&
 		currentGxact->state == DTX_STATE_ACTIVE_NOT_DISTRIBUTED)
 		setCurrentGxactState(DTX_STATE_ACTIVE_DISTRIBUTED);
@@ -1521,8 +1527,6 @@ initTM(void)
 		}
 
 		RestoreToUser(olduser);
-
-		freeGangsForPortal(NULL);
 	}
 }
 
@@ -2088,6 +2092,12 @@ dispatchDtxCommand(const char *cmd)
 
 	elog(DTM_DEBUG5, "dispatchDtxCommand: '%s'", cmd);
 
+	if (currentGxactWriterGangLost())
+	{
+		ereport(WARNING, (errmsg("Writer gang of current global transaction is lost")));
+		return false;
+	}
+
 	CdbDispatchCommand(cmd, DF_NONE, &cdb_pgresults);
 
 	if (cdb_pgresults.numResults == 0)
@@ -2158,6 +2168,7 @@ initGxact(TMGXACT *gxact)
 
 	gxact->directTransaction = false;
 	gxact->directTransactionContentId = 0;
+	gxact->writerGangLost = false;
 }
 
 bool
@@ -3400,4 +3411,17 @@ performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 			break;
 	}
 	elog(DTM_DEBUG5, "performDtxProtocolCommand successful return for distributed transaction %s", gid);
+}
+
+void
+markCurrentGxactWriterGangLost(void)
+{
+	if (currentGxact)
+		currentGxact->writerGangLost = true;
+}
+
+bool
+currentGxactWriterGangLost(void)
+{
+	return currentGxact == NULL ? false : currentGxact->writerGangLost;
 }

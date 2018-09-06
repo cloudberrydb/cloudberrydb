@@ -578,26 +578,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 
 		Assert(queryDesc->planstate);
 
-		if (Gp_role == GP_ROLE_DISPATCH &&
-			(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
-			 queryDesc->plannedstmt->nMotionNodes > 0))
-		{
-			if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
-			{
-				/*
-				 * Since we intend to execute the plan, inventory the slice tree,
-				 * allocate gangs, and associate them with slices.
-				 *
-				 * For now, always use segment 'gp_singleton_segindex' for
-				 * singleton gangs.
-				 *
-				 * On return, gangs have been allocated and CDBProcess lists have
-				 * been filled in in the slice table.)
-				 */
-				AssignGangs(queryDesc);
-			}
-		}
-
 #ifdef USE_ASSERT_CHECKING
 		AssertSliceTableIsValid((struct SliceTable *) estate->es_sliceTable, queryDesc->plannedstmt);
 #endif
@@ -1247,14 +1227,6 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
 	ExecEndPlan(queryDesc->planstate, estate);
 
 	WorkfileQueryspace_ReleaseEntry();
-
-	/*
-	 * Release any gangs we may have assigned.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH && 
-		(queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL ||
-		 queryDesc->plannedstmt->nMotionNodes > 0))
-		ReleaseGangs(queryDesc);
 
 	/*
 	 * Remove our own query's motion layer.

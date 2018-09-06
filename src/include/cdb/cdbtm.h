@@ -232,6 +232,7 @@ typedef struct TMGXACT
 
 	bool						directTransaction;
 	uint16						directTransactionContentId;
+	bool						writerGangLost;
 }	TMGXACT;
 
 typedef struct TMGXACTSTATUS
@@ -347,4 +348,7 @@ extern void UtilityModeCloseDtmRedoFile(void);
 
 extern bool doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType);
 
+extern void markCurrentGxactWriterGangLost(void);
+
+extern bool currentGxactWriterGangLost(void);
 #endif   /* CDBTM_H */

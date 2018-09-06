@@ -35,6 +35,15 @@
 
 #include <poll.h>
 
+static Gang *
+getCdbCopyPrimaryGang(CdbCopy *c)
+{
+	if (!c || !c->dispatcherState)
+		return NULL;
+
+	return (Gang *)linitial(c->dispatcherState->allocatedGangs);
+}
+
 /*
  * Create a cdbCopy object that includes all the cdb
  * information and state needed by the backend COPY.
@@ -140,7 +149,9 @@ cdbCopyStart(CdbCopy *c, CopyStmt *stmt, struct GpPolicy *policy)
 void
 cdbCopySendDataToAll(CdbCopy *c, const char *buffer, int nbytes)
 {
-	Gang	   *gp = c->dispatcherState->primaryResults->writer_gang;
+	Gang	   *gp = getCdbCopyPrimaryGang(c);
+
+	Assert(gp);
 
 	for (int i = 0; i < gp->size; ++i)
 	{
@@ -172,8 +183,8 @@ cdbCopySendData(CdbCopy *c, int target_seg, const char *buffer,
 	 * code above. I didn't do it because it's broken right now
 	 */
 
-	gp = c->dispatcherState->primaryResults->writer_gang;
-
+	gp = getCdbCopyPrimaryGang(c);
+	Assert(gp);
 	q = getSegmentDescriptorFromGang(gp, target_seg);
 
 	/* transmit the COPY data */
@@ -219,7 +230,7 @@ cdbCopyGetData(CdbCopy *c, bool copy_cancel, uint64 *rows_processed)
 	c->copy_out_buf.data[0] = '\0';
 	c->copy_out_buf.cursor = 0;
 
-	gp = c->dispatcherState->primaryResults->writer_gang;
+	gp = getCdbCopyPrimaryGang(c);
 
 	/*
 	 * MPP-7712: we used to issue the cancel-requests for each *row* we got
@@ -628,7 +639,8 @@ cdbCopyEndAndFetchRejectNum(CdbCopy *c, int64 *total_rows_completed, char *abort
 	 * GPDB_91_MERGE_FIXME: ugh, this is nasty. We shouldn't be calling
 	 * cdbCopyEnd twice on the same CdbCopy in the first place!
 	 */
-	if (!c->dispatcherState || !c->dispatcherState->primaryResults->writer_gang)
+	gp = getCdbCopyPrimaryGang(c);
+	if (!gp)
 		return -1;
 
 	/* clean err message */
@@ -639,7 +651,6 @@ cdbCopyEndAndFetchRejectNum(CdbCopy *c, int64 *total_rows_completed, char *abort
 	/* allocate a failed segment database pointer array */
 	failedSegDBs = (SegmentDatabaseDescriptor **) palloc(c->total_segs * 2 * sizeof(SegmentDatabaseDescriptor *));
 
-	gp = c->dispatcherState->primaryResults->writer_gang;
 	db_descriptors = gp->db_descriptors;
 	size = gp->size;
 
@@ -685,3 +696,4 @@ cdbCopyEndAndFetchRejectNum(CdbCopy *c, int64 *total_rows_completed, char *abort
 
 	return total_rows_rejected;
 }
+
