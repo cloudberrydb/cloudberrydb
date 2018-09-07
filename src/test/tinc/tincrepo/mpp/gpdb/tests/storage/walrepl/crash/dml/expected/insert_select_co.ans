@@ -18,7 +18,7 @@ CREATE TABLE
  col001 | character(1)                | default 'z'::bpchar                          | extended |              | none             | 0                 | 32768      | 
  col002 | numeric                     |                                              | main     |              | none             | 0                 | 32768      | 
  col003 | boolean                     | default false                                | plain    |              | none             | 0                 | 32768      | 
- col004 | bit(3)                      | default B'111'::"bit"                        | extended |              | none             | 0                 | 32768      | 
+ col004 | bit(3)                      | default '111'::"bit"                         | extended |              | none             | 0                 | 32768      | 
  col005 | text                        | default 'pookie'::text                       | extended |              | none             | 0                 | 32768      | 
  col006 | integer[]                   | default '{5,4,3,2,1}'::integer[]             | extended |              | none             | 0                 | 32768      | 
  col007 | character varying(512)      | default 'Now is the time'::character varying | extended |              | none             | 0                 | 32768      | 
@@ -76,7 +76,7 @@ CREATE TABLE
  col001 | character(1)                | default 'z'::bpchar                          | extended |              | none             | 0                 | 32768      | 
  col002 | numeric                     |                                              | main     |              | none             | 0                 | 32768      | 
  col003 | boolean                     | default false                                | plain    |              | none             | 0                 | 32768      | 
- col004 | bit(3)                      | default B'111'::"bit"                        | extended |              | none             | 0                 | 32768      | 
+ col004 | bit(3)                      | default '111'::"bit"                         | extended |              | none             | 0                 | 32768      | 
  col005 | text                        | default 'pookie'::text                       | extended |              | none             | 0                 | 32768      | 
  col006 | integer[]                   | default '{5,4,3,2,1}'::integer[]             | extended |              | none             | 0                 | 32768      | 
  col007 | character varying(512)      | default 'Now is the time'::character varying | extended |              | none             | 0                 | 32768      | 

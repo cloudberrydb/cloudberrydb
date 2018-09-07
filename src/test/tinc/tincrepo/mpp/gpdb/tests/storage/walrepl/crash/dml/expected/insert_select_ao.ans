@@ -16,7 +16,7 @@ CREATE TABLE
  col001 | character(1)                | default 'z'::bpchar                          | extended |              | 
  col002 | numeric                     |                                              | main     |              | 
  col003 | boolean                     | default false                                | plain    |              | 
- col004 | bit(3)                      | default B'111'::"bit"                        | extended |              | 
+ col004 | bit(3)                      | default '111'::"bit"                         | extended |              | 
  col005 | text                        | default 'pookie'::text                       | extended |              | 
  col006 | integer[]                   | default '{5,4,3,2,1}'::integer[]             | extended |              | 
  col007 | character varying(512)      | default 'Now is the time'::character varying | extended |              | 
@@ -77,7 +77,7 @@ CREATE TABLE
  col001 | character(1)                | default 'z'::bpchar                          | extended |              | 
  col002 | numeric                     |                                              | main     |              | 
  col003 | boolean                     | default false                                | plain    |              | 
- col004 | bit(3)                      | default B'111'::"bit"                        | extended |              | 
+ col004 | bit(3)                      | default '111'::"bit"                         | extended |              | 
  col005 | text                        | default 'pookie'::text                       | extended |              | 
  col006 | integer[]                   | default '{5,4,3,2,1}'::integer[]             | extended |              | 
  col007 | character varying(512)      | default 'Now is the time'::character varying | extended |              | 
