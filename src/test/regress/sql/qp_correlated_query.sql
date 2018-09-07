@@ -107,6 +107,12 @@ select A.i, B.i, C.j from A, B, C where A.j = any(select sum(C.j) from C where C
 select A.i, B.i, C.j from A, B, C where A.j in ( select C.j from C where exists(select C.i from C,A where C.i = A.i and C.i =10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j in (select C.j from C where C.j = A.j and not exists (select sum(B.i) from B where C.i = B.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
 
+
+-- Test for sublink pull-up based on both left-hand and right-hand input
+explain (costs off)
+select * from A where exists (select * from B where A.i in (select C.i from C where C.i = B.i));
+select * from A where exists (select * from B where A.i in (select C.i from C where C.i = B.i));
+
 -- -- -- --
 -- Basic queries with NOT IN clause
 -- -- -- --

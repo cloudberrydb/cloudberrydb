@@ -167,6 +167,35 @@ select A.i, B.i, C.j from A, B, C where A.j in (select C.j from C where C.j = A.
 ---+---+---
 (0 rows)
 
+-- Test for sublink pull-up based on both left-hand and right-hand input
+explain (costs off)
+select * from A where exists (select * from B where A.i in (select C.i from C where C.i = B.i));
+                        QUERY PLAN                         
+-----------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Hash Join
+         Hash Cond: a.i = c.i
+         ->  Table Scan on a
+         ->  Hash
+               ->  GroupAggregate
+                     Group Key: c.i
+                     ->  Sort
+                           Sort Key: c.i
+                           ->  Hash Join
+                                 Hash Cond: c.i = b.i
+                                 ->  Table Scan on c
+                                 ->  Hash
+                                       ->  Table Scan on b
+ Optimizer: PQO version 2.70.0
+(15 rows)
+
+select * from A where exists (select * from B where A.i in (select C.i from C where C.i = B.i));
+ i | j 
+---+---
+ 1 | 1
+ 1 | 1
+(2 rows)
+
 -- -- -- --
 -- Basic queries with NOT IN clause
 -- -- -- --
