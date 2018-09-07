@@ -5472,14 +5472,12 @@ end $$ language plpgsql volatile;
 --ctas with sirv in select list
 create table sirv_test1_result1 as select sirv_test1() as res distributed by (res);
 
---workaround
+--workaround, should return the same result
 create table sirv_test1_result2 as select (select sirv_test1()) as res distributed by (res);
 
---start_equiv
 select * from sirv_test1_result1;
 
 select * from sirv_test1_result2;
---end_equiv
 
 -- ----------------------------------------------------------------------
 -- Test: test2_ctas_from_clause.sql
@@ -5530,14 +5528,11 @@ $$
 
 create table sirv_test2_result1 as select * from sirv_test2(2,1000,1000) as res distributed by(res);
 
---workaround
+--workaround, should return the same result
 create table sirv_test2_result2 as select * from (select (select sirv_test2(2,1000,1000)) as res) as foo distributed by(res);
 
---start_equiv
 select * from sirv_test2_result1;
-
 select * from sirv_test2_result2;
---end_equiv
 
 -- ----------------------------------------------------------------------
 -- Test: test3_insert_select_list.sql
@@ -5591,14 +5586,11 @@ create table sirv_test3_result2(id int, country_index text) distributed by(id);
 --insert with sirv in the select list
 insert into sirv_test3_result1 select 1,sirv_test3(2,1000,1000);
 
---workaround
+--workaround, should return the same result
 insert into sirv_test3_result2 select 1,(select sirv_test3(2,1000,1000));
 
---start_equiv
 select * from sirv_test3_result1;
-
 select * from sirv_test3_result2;
---end_equiv
 
 -- ----------------------------------------------------------------------
 -- Test: test4_insert_from_clause.sql
@@ -5667,17 +5659,14 @@ insert into sirv_test4_result1 select * from sirv_test4(30000,0);
 insert into sirv_test4_result1 select * from sirv_test4(35000,1);
 
 
---workaround
+--workaround, should return the same result
 insert into sirv_test4_result2 select * from (select (select sirv_test4(20000,0))) AS FOO;
 insert into sirv_test4_result2 select * from (select (select sirv_test4(25000,1))) AS FOO;
 insert into sirv_test4_result2 select * from (select (select sirv_test4(30000,0))) AS FOO;
 insert into sirv_test4_result2 select * from (select (select sirv_test4(35000,1))) AS FOO;
 
---start_equiv
 select * from sirv_test4_result1 order by res;
-
 select * from sirv_test4_result2 order by res;
---end_equiv
 
 -- ----------------------------------------------------------------------
 -- Test: test5_ctas_multiple_sirv.sql

@@ -147,26 +147,13 @@ my $glob_init_file = [];
 sub gpdiff_files
 {
     my ($f1, $f2, $d2d) = @_;
-    my $need_equiv = 0;
     my @tmpfils;
     my $newf1;
     my $newf2;
 
-    if (defined($d2d) && exists($d2d->{equiv}))
-    {
-        # assume f1 and f2 are the same...
-        atmsort::atmsort_init(%glob_atmsort_args, DO_EQUIV => 'compare');
-        $newf1 = atmsort::run($f1);
-
-        atmsort::atmsort_init(%glob_atmsort_args, DO_EQUIV => 'make');
-        $newf2 = atmsort::run($f2);
-    }
-    else
-    {
-        atmsort::atmsort_init(%glob_atmsort_args);
-        $newf1 = atmsort::run($f1);
-        $newf2 = atmsort::run($f2);
-    }
+    atmsort::atmsort_init(%glob_atmsort_args);
+    $newf1 = atmsort::run($f1);
+    $newf2 = atmsort::run($f2);
 
     my $args = join(' ', @ARGV, $newf1, $newf2);
 
@@ -176,33 +163,11 @@ sub gpdiff_files
 
     my $stat = $? >> 8; # diff status
 
-    unless (defined($d2d) && exists($d2d->{equiv}))
-    {
-        # check if the file contains any "start_equiv" directives, unless
-        # already doing equiv check
-        open(FILE, $f1);
-        $need_equiv = (grep{/start_equiv/} <FILE>);
-        close FILE;
-
-        if ($need_equiv)
-        {
-            $d2d = {} unless (defined($d2d));
-            $d2d->{dir} = 1;
-        }
-    }
-
     # prefix the diff output with the files names for a "directory to
     # directory" diff
     if (defined($d2d) && length($outi))
     {
-        if (exists($d2d->{equiv}))
-        {
-            $outi = "diff $f1 $f2" . ".equiv\n" . $outi;
-        }
-        else
-        {
-            $outi = "diff $f1 $f2\n" . $outi;
-        }
+	$outi = "diff $f1 $f2\n" . $outi;
     }
 
     # replace temp file name references with actual file names
@@ -215,20 +180,6 @@ sub gpdiff_files
 
     unlink $newf1;
     unlink $newf2;
-
-    if ($need_equiv)
-    {
-        my $new_d2d = {};
-        $new_d2d->{equiv} = 1;
-
-        # call recursively if need to perform equiv comparison.
-
-        my $stat1 = gpdiff_files($f1, $f1, $new_d2d);
-        my $stat2 = gpdiff_files($f2, $f2, $new_d2d);
-
-        $stat = $stat1 if ($stat1);
-        $stat = $stat2 if ($stat2);
-    }
 
     return ($stat);
 }

@@ -35,8 +35,6 @@ my $bpref = '';
 my $cpref = '';
 my $dpref = '';
 
-my $glob_compare_equiv;
-my $glob_make_equiv_expected;
 my $glob_ignore_plans;
 my $glob_ignore_whitespace;
 my @glob_init;
@@ -47,9 +45,6 @@ my $glob_fqo;
 
 my $atmsort_outfh;
 
-# array of "expected" rows from first query of equiv region
-my $equiv_expected_rows;
-
 sub atmsort_init
 {
     my %args = (
@@ -57,7 +52,6 @@ sub atmsort_init
         IGNORE_HEADERS  => 0,
         IGNORE_PLANS    => 0,
         INIT_FILES      => [],
-        DO_EQUIV        => 'ignore',    # can be 'ignore', 'compare', or 'make'
         ORDER_WARN      => 0,
         VERBOSE         => 0,
 
@@ -65,8 +59,6 @@ sub atmsort_init
         @_
     );
 
-    $glob_compare_equiv       = 0;
-    $glob_make_equiv_expected = 0;
     $glob_ignore_plans        = 0;
     $glob_ignore_whitespace   = 0;
     @glob_init                = ();
@@ -75,35 +67,11 @@ sub atmsort_init
     $glob_verbose             = 0;
     $glob_fqo                 = {count => 0};
 
-    my $compare_equiv = 0;
-    my $make_equiv_expected = 0;
-    my $do_equiv;
     my $ignore_headers;
     my $ignore_plans;
     my @init_file;
     my $verbose;
     my $orderwarn;
-
-    if ($args{DO_EQUIV} =~ m/^ignore/i)
-    {
-        # ignore all - default
-    }
-    elsif ($args{DO_EQUIV} =~ m/^compare/i)
-    {
-        # compare equiv region
-        $compare_equiv = 1;
-    }
-    elsif ($args{DO_EQUIV} =~ m/^make/i)
-    {
-        # make equiv expected output
-        $make_equiv_expected = 1;
-    }
-    else
-    {
-        die "unknown do_equiv option: $do_equiv\nvalid options are:\n\tdo_equiv=compare\n\tdo_equiv=make";
-    }
-    $glob_compare_equiv       = $compare_equiv;
-    $glob_make_equiv_expected = $make_equiv_expected;
 
     $glob_ignore_plans        = $args{IGNORE_PLANS};
 
@@ -580,45 +548,7 @@ sub format_query_output
         print $atmsort_outfh "GP_IGNORE: start fqo $fqostate->{count}\n";
     }
 
-    if (exists($directive->{make_equiv_expected}))
-    {
-        # special case for EXPLAIN PLAN as first "query"
-        if (exists($directive->{explain}))
-        {
-            my $stat = format_explain($outarr, $directive);
-
-            # save the first query output from equiv as "expected rows"
-
-            if ($stat)
-            {
-                push @{$equiv_expected_rows}, @{$stat};
-            }
-            else
-            {
-                push @{$equiv_expected_rows}, @{$outarr};
-            }
-
-            if ($glob_verbose)
-            {
-                print $atmsort_outfh "GP_IGNORE: end fqo $fqostate->{count}\n";
-            }
-
-            return ;
-
-        }
-
-        # save the first query output from equiv as "expected rows"
-        push @{$equiv_expected_rows}, @{$outarr};
-    }
-    elsif (defined($equiv_expected_rows)
-           && scalar(@{$equiv_expected_rows}))
-    {
-        # reuse equiv expected rows if you have them
-        $outarr = [];
-        push @{$outarr}, @{$equiv_expected_rows};
-    }
-
-    # EXPLAIN (if not in an equivalence region).
+    # EXPLAIN
     #
     # EXPLAIN (COSTS OFF) output is *not* processed. The output with COSTS OFF
     # shouldn't contain anything that varies across runs, and shouldn't need
@@ -1115,8 +1045,6 @@ sub atmsort_bigloop
 
     print $atmsort_outfh "GP_IGNORE: formatted by atmsort.pm\n";
 
-    my $do_equiv = $glob_compare_equiv || $glob_make_equiv_expected;
-
   L_bigwhile:
     while (<$infh>) # big while
     {
@@ -1184,20 +1112,12 @@ sub atmsort_bigloop
 
         if ($big_ignore > 0)
         {
-            if (!$do_equiv && $ini =~ m/\-\-\s*end\_equiv\s*$/)
-            {
-                $big_ignore--;
-            }
             if ($ini =~ m/\-\-\s*end\_ignore\s*$/)
             {
                 $big_ignore--;
             }
             print $atmsort_outfh "GP_IGNORE:", $ini;
             next;
-        }
-        elsif ($do_equiv && $ini =~ m/\-\-\s*end\_equiv\s*$/)
-        {
-            $equiv_expected_rows = undef;
         }
 
         if ($getrows) # getting rows from SELECT output
@@ -1295,8 +1215,7 @@ sub atmsort_bigloop
                 $define_match_expression{"expr"} = $ini;
                 goto L_push_outarr;
             }
-            if ($has_comment && (($ini =~ m/\-\-\s*start\_ignore\s*$/) ||
-                (!$do_equiv && ($ini =~ m/\-\-\s*start\_equiv\s*$/))))
+            if ($has_comment && ($ini =~ m/\-\-\s*start\_ignore\s*$/))
             {
                 $big_ignore += 1;
 
@@ -1308,11 +1227,6 @@ sub atmsort_bigloop
 
                 print $atmsort_outfh 'GP_IGNORE:', $ini;
                 next;
-            }
-            elsif ($has_comment && ($glob_make_equiv_expected && $ini =~ m/\-\-\s*start\_equiv\s*$/))
-            {
-                $equiv_expected_rows = [];
-                $directive->{make_equiv_expected} = 1;
             }
 
             # EXPLAIN (COSTS OFF) ...

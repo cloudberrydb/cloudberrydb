@@ -1275,7 +1275,7 @@ select * from multiset_2( TABLE( SELECT distinct a.a, b.b from example a join ex
  4 |  value4.1/1
 (10 rows)
 
--- end_equivalent
+-- end equivalent
 -- Support for different backend code
 -- this function always returns a single scalar null value
 -- begin equivalent
@@ -1291,7 +1291,7 @@ SELECT * FROM multiset_scalar_null( TABLE(SELECT 1) );
                      
 (1 row)
 
--- end_equivalent
+-- end equivalent
 -- this function always returns a single scalar value of 42
 -- begin equivalent
 SELECT 42 as fortytwo;
@@ -1306,7 +1306,7 @@ SELECT * FROM multiset_scalar_value( TABLE(SELECT 42) ) fortytwo;
        42
 (1 row)
 
--- end_equivalent
+-- end equivalent
 -- This function always returns a single "(1,Example)" tuple
 -- begin equivalent
 SELECT 1 as a, 'Example' as b;
@@ -1321,7 +1321,7 @@ SELECT * from multiset_scalar_tuple( TABLE(SELECT 1) );
  1 | Example
 (1 row)
 
--- end_equivalent
+-- end equivalent
 -- ERROR: functions returning SETOF x cannot return null
 SELECT * FROM multiset_setof_null( TABLE(SELECT 1) );
 ERROR:  function returning set of rows cannot return null value
@@ -2519,7 +2519,6 @@ ERROR:  a column definition list is only allowed for functions returning "record
 LINE 2: FROM sessionize_dynamic(
              ^
 -- Otherwise results should match
--- start_equiv
 SELECT *
 FROM sessionize_plain(
     TABLE
@@ -2684,7 +2683,6 @@ ORDER BY id, time;
   3 | Sat Aug 20 10:17:42 2011 |          5
 (18 rows)
 
--- end_equiv
 -- ===================================
 -- Dynamic type interaction with VIEWS
 --

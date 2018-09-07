@@ -25,8 +25,10 @@ CREATE TABLE weibull
 	y DOUBLE PRECISION
 ) DISTRIBUTED BY (id);
 COPY weibull (id, x1, x2, y) FROM stdin;
+--
 -- Testing of basic single linear regression code
--- start_equiv
+--
+-- these queries should produce the same result.
 select 
     regr_count(y, x1)::real as count,
     regr_avgx(y, x1)::real as avgx,
@@ -60,9 +62,7 @@ from weibull;
     17 | 55.3529 | 288.4 | 2182.86 | 5230.02 | 13239.7 |   155.777 | 2.39595 | 0.946458
 (1 row)
 
--- end_equiv
 -- Single linear and multivariate should match for a single independent variable
--- start_equiv
 select 
     array[regr_intercept(y, x1), regr_slope(y, x1)]::real[] as coef,
     regr_r2(y,x1)::real as r2
@@ -72,8 +72,6 @@ from weibull;
  {155.777,2.39595} | 0.946458
 (1 row)
 
--- end_equiv
--- start_equiv
 select 
     array[regr_intercept(y, x2), regr_slope(y, x2)]::real[] as coef,
     regr_r2(y,x2)::real as r2
@@ -83,9 +81,8 @@ from weibull;
  {-449.025,23.8649} | 0.945513
 (1 row)
 
--- end_equiv
--- Accumulation/combination order shouldn't matter to the result.
--- start_equiv
+-- Accumulation/combination order shouldn't matter to the result. These should
+-- produce the same result.
 select float8_regr_accum(float8_regr_accum(array[0,0,0,0,0,0], 1, 2),  2, 1);
  float8_regr_accum 
 -------------------
@@ -98,7 +95,6 @@ select float8_regr_accum(float8_regr_accum(array[0,0,0,0,0,0], 2, 1),  1, 2);
  {2,3,5,3,5,4}
 (1 row)
 
--- end_equiv
 -- Component testing of the individual aggregate callback functions
 --  * null handling
 --  * malformed state
