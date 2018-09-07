@@ -1150,8 +1150,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 									 pseudoconstant,
 									 relids,
 									 outerjoin_nonnullable,
-									 nullable_relids,
-									 ojscope);
+									 nullable_relids);
 
 	/*
 	 * If it's a join clause (either naturally, or because delayed by
@@ -1658,8 +1657,7 @@ build_implied_join_equality(Oid opno,
 									 false,		/* pseudoconstant */
 									 qualscope,	/* required_relids */
 									 NULL,		/* outer_relids */
-									 nullable_relids,	/* nullable_relids */
-									 qualscope); /* ojscope_relids */
+									 nullable_relids);	/* nullable_relids */
 
 	/* Set mergejoinability/hashjoinability flags */
 	check_mergejoinable(restrictinfo);

@@ -27,16 +27,14 @@ static RestrictInfo *make_restrictinfo_internal(Expr *clause,
 						   bool pseudoconstant,
 						   Relids required_relids,
 						   Relids outer_relids,
-						   Relids nullable_relids,
-						   Relids ojscope_relids);
+						   Relids nullable_relids);
 static Expr *make_sub_restrictinfos(Expr *clause,
 					   bool is_pushed_down,
 					   bool outerjoin_delayed,
 					   bool pseudoconstant,
 					   Relids required_relids,
 					   Relids outer_relids,
-					   Relids nullable_relids,
-					   Relids ojscope_relids);
+					   Relids nullable_relids);
 
 
 /*
@@ -61,8 +59,7 @@ make_restrictinfo(Expr *clause,
 				  bool pseudoconstant,
 				  Relids required_relids,
 				  Relids outer_relids,
-				  Relids nullable_relids,
-				  Relids ojscope_relids)
+				  Relids nullable_relids)
 {
 	/*
 	 * If it's an OR clause, build a modified copy with RestrictInfos inserted
@@ -75,8 +72,7 @@ make_restrictinfo(Expr *clause,
 													   pseudoconstant,
 													   required_relids,
 													   outer_relids,
-													   nullable_relids,
-													   ojscope_relids);
+													   nullable_relids);
 
 	/* Shouldn't be an AND clause, else AND/OR flattening messed up */
 	Assert(!and_clause((Node *) clause));
@@ -88,8 +84,7 @@ make_restrictinfo(Expr *clause,
 									  pseudoconstant,
 									  required_relids,
 									  outer_relids,
-									  nullable_relids,
-									  ojscope_relids);
+									  nullable_relids);
 }
 
 /*
@@ -237,7 +232,6 @@ make_restrictinfo_from_bitmapqual(Path *bitmapqual,
 													  false,
 													  NULL,
 													  NULL,
-													  NULL,
 													  NULL));
 		}
 	}
@@ -264,7 +258,6 @@ make_restrictinfo_from_bitmapqual(Path *bitmapqual,
 													   is_pushed_down,
 													   false,
 													   false,
-													   NULL,
 													   NULL,
 													   NULL,
 													   NULL));
@@ -327,7 +320,6 @@ make_restrictinfos_from_actual_clauses(PlannerInfo *root,
 								  pseudoconstant,
 								  NULL,
 								  NULL,
-								  NULL,
 								  NULL);
 		result = lappend(result, rinfo);
 	}
@@ -347,8 +339,7 @@ make_restrictinfo_internal(Expr *clause,
 						   bool pseudoconstant,
 						   Relids required_relids,
 						   Relids outer_relids,
-						   Relids nullable_relids,
-						   Relids ojscope_relids)
+						   Relids nullable_relids)
 {
 	RestrictInfo *restrictinfo = makeNode(RestrictInfo);
 
@@ -360,7 +351,6 @@ make_restrictinfo_internal(Expr *clause,
 	restrictinfo->can_join = false;		/* may get set below */
 	restrictinfo->outer_relids = outer_relids;
 	restrictinfo->nullable_relids = nullable_relids;
-	restrictinfo->ojscope_relids = ojscope_relids;
 
 	/**
 	 * If this is a IS NOT FALSE boolean test, we can peek underneath.
@@ -473,8 +463,7 @@ make_sub_restrictinfos(Expr *clause,
 					   bool pseudoconstant,
 					   Relids required_relids,
 					   Relids outer_relids,
-					   Relids nullable_relids,
-					   Relids ojscope_relids)
+					   Relids nullable_relids)
 {
 	if (or_clause((Node *) clause))
 	{
@@ -489,8 +478,7 @@ make_sub_restrictinfos(Expr *clause,
 													pseudoconstant,
 													NULL,
 													outer_relids,
-													nullable_relids,
-													ojscope_relids));
+													nullable_relids));
 		return (Expr *) make_restrictinfo_internal(clause,
 												   make_orclause(orlist),
 												   is_pushed_down,
@@ -498,8 +486,7 @@ make_sub_restrictinfos(Expr *clause,
 												   pseudoconstant,
 												   required_relids,
 												   outer_relids,
-												   nullable_relids,
-												   ojscope_relids);
+												   nullable_relids);
 	}
 	else if (and_clause((Node *) clause))
 	{
@@ -514,8 +501,7 @@ make_sub_restrictinfos(Expr *clause,
 													 pseudoconstant,
 													 required_relids,
 													 outer_relids,
-													 nullable_relids,
-													 ojscope_relids));
+													 nullable_relids));
 		return make_andclause(andlist);
 	}
 	else
@@ -526,8 +512,7 @@ make_sub_restrictinfos(Expr *clause,
 												   pseudoconstant,
 												   required_relids,
 												   outer_relids,
-												   nullable_relids,
-												   ojscope_relids);
+												   nullable_relids);
 }
 
 /*
