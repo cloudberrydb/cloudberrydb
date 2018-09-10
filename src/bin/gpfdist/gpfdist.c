@@ -3929,7 +3929,7 @@ static SSL_CTX *initialize_ctx(void)
 		gfatal(NULL,"Can't generate random seed for SSL");
 
 	/* The size of the string will consist of the path and the filename (the longest one) */
-	// +1 for the '/' charachter (/filename)
+	// +1 for the '/' character (/filename)
 	// +1 for the \0,
 	stringSize = find_max( strlen(CertificateFilename), find_max(strlen(PrivateKeyFilename),strlen(TrustedCaFilename)) ) + strlen(opt.ssl) + 2;
 	/* Allocate the memory for the file name */
