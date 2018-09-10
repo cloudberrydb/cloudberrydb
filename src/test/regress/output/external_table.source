@@ -128,6 +128,38 @@ select * from check_env;
 (55 rows)
 
 -- end_ignore
+-- table to get shell command "env" output which list all environment variable
+CREATE EXTERNAL WEB TABLE table_env (val TEXT)
+  EXECUTE E'env' ON SEGMENT 0
+  FORMAT 'TEXT' (ESCAPE 'OFF');
+SELECT * FROM table_env WHERE val LIKE 'GP_QUERY%' ORDER BY val ASC;
+                                         val                                          
+--------------------------------------------------------------------------------------
+ GP_QUERY_STRING=SELECT * FROM table_env WHERE val LIKE 'GP_QUERY%' ORDER BY val ASC;
+(1 row)
+
+SELECT * FROM table_env WHERE val LIKE 'GP_QUERY%\%' ESCAPE '&' ORDER BY val ASC;
+                                                val                                                
+---------------------------------------------------------------------------------------------------
+ GP_QUERY_STRING=SELECT * FROM table_env WHERE val LIKE 'GP_QUERY%\%' ESCAPE '&' ORDER BY val ASC;
+(1 row)
+
+-- echo will behave differently on different platforms, force to use bash with -E option
+CREATE EXTERNAL WEB TABLE table_qry (val TEXT)
+  EXECUTE E'/usr/bin/env bash -c ''echo -E "$GP_QUERY_STRING"''' ON SEGMENT 0
+  FORMAT 'TEXT' (ESCAPE 'OFF');
+SELECT * FROM table_qry WHERE val LIKE '%\\%' ORDER BY val ASC;
+                               val                               
+-----------------------------------------------------------------
+ SELECT * FROM table_qry WHERE val LIKE '%\\%' ORDER BY val ASC;
+(1 row)
+
+SELECT * FROM table_qry WHERE val LIKE '%\%' ESCAPE '&' ORDER BY val ASC;
+                                    val                                    
+---------------------------------------------------------------------------
+ SELECT * FROM table_qry WHERE val LIKE '%\%' ESCAPE '&' ORDER BY val ASC;
+(1 row)
+
 -- --------------------------------------
 -- some negative tests
 -- --------------------------------------

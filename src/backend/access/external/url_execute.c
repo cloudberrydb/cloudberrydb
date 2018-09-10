@@ -177,12 +177,25 @@ make_export(char *name, const char *value, StringInfo buf)
 {
 	char		ch;
 
+	/*
+	 * Shell-quote the value so that we don't need to escape other special char
+	 * except single quote and backslash. (We assume the variable name doesn't contain
+	 * funny characters.
+	 *
+	 * Every single-quote is replaced with '\''. For example, value
+	 * foo'bar becomes 'foo'\''bar'.
+	 *
+	 * Don't need to escape backslash, although using echo will behave differently on
+	 * different platforms. It's better to write as: /usr/bin/env bash -c 'echo -E "$VAR"'.
+	 */
 	appendStringInfo(buf, "%s='", name);
 
 	for ( ; 0 != (ch = *value); value++)
 	{
-		if (ch == '\'' || ch == '\\')
-			appendStringInfoChar(buf, '\\');
+		if(ch == '\'')
+		{
+			appendStringInfo(buf, "\'\\\'");
+		}
 
 		appendStringInfoChar(buf, ch);
 	}
@@ -279,6 +292,7 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 	/* Restore process interval timers */
 	restoreTimers(&savetimers);
 
+	elog(DEBUG5, "EXTERNAL TABLE EXECUTE Command: %s", file->shexec);
 	if (file->handle->pid == -1)
 	{
 		errno = save_errno;
