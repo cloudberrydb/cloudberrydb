@@ -21,6 +21,7 @@
 #include "parser/parse_expr.h"	/* for expr_type() */
 #include "parser/parse_oper.h"	/* for compatible_oper_opid() */
 #include "utils/relcache.h"		/* RelationGetPartitioningKey() */
+#include "optimizer/cost.h"
 #include "optimizer/tlist.h"	/* get_sortgroupclause_tle() */
 #include "optimizer/planmain.h"
 #include "optimizer/predtest.h"
@@ -1236,10 +1237,6 @@ add_absent_targetlist_mutator(Plan *plan,
 
 	Assert(is_plan_node(node));
 
-	/*
-	 * GPDB_90_MERGE_FIXME: We also need to change width and cost here. But since the plan has been
-	 * generated at this stage, it is not clear how we could recalculate the cost.
-	 */
 	if (node->type >= T_SeqScan && node->type <=T_WorkTableScan)
 	{
 		Scan		*scan;
@@ -1724,11 +1721,14 @@ make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntr
 
 	/*
 	 * Now the plan tree has been determined, we have no choice, so use the
-	 * cost of lower plan node directly.
+	 * cost of lower plan node directly, plus the cpu_tuple_cost of each row.
+	 * GPDB_96_MERGE_FIXME: width here is incorrect, until we merge
+	 * upstream commit 3fc6e2d
 	 */
 	splitupdate->plan.startup_cost = subplan->startup_cost;
 	splitupdate->plan.total_cost = subplan->total_cost;
 	splitupdate->plan.plan_rows = 2 * subplan->plan_rows;
+	splitupdate->plan.total_cost += (splitupdate->plan.plan_rows * cpu_tuple_cost);
 	splitupdate->plan.plan_width = subplan->plan_width;
 
 	/* we need an motion node above the SplitUpdate, so mark it as strewn */
