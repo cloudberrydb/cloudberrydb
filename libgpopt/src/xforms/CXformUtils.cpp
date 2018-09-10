@@ -2853,8 +2853,18 @@ CXformUtils::PexprBuildIndexPlan
 	CExpressionArray *pdrgpexprIndex = GPOS_NEW(mp) CExpressionArray(mp);
 	CExpressionArray *pdrgpexprResidual = GPOS_NEW(mp) CExpressionArray(mp);
 	CPredicateUtils::ExtractIndexPredicates(mp, md_accessor, pdrgpexprConds, pmdindex, pdrgppcrIndexCols, pdrgpexprIndex, pdrgpexprResidual, outer_refs);
+	CColRefSet *outer_refs_in_index_get = CUtils::PcrsExtractColumns(mp, pdrgpexprIndex);
+	outer_refs_in_index_get->Intersection(outer_refs);
 
-	if (0 == pdrgpexprIndex->Size())
+	// exit early if:
+	// (1) there are no index-able predicates or
+	// (2) there are no outer references in index-able predicates
+	//
+	// (2) is valid only for Join2IndexApply xform wherein the index-get
+	// expression must include outer references for it to be an alternative
+	// worth considering. Otherwise it has the same effect as a regular NLJ
+	// with an index lookup.
+	if (0 == pdrgpexprIndex->Size() || outer_refs_in_index_get->Size() == 0)
 	{
 		// clean up
 		GPOS_DELETE(alias);
@@ -2862,6 +2872,7 @@ CXformUtils::PexprBuildIndexPlan
 		pdrgpexprResidual->Release();
 		pdrgpexprIndex->Release();
 		CRefCount::SafeRelease(ppartcnstrIndex);
+		outer_refs_in_index_get->Release();
 
 		return NULL;
 	}
@@ -2921,6 +2932,7 @@ CXformUtils::PexprBuildIndexPlan
 	// clean up
 	GPOS_DELETE(alias);
 	pdrgppcrIndexCols->Release();
+	outer_refs_in_index_get->Release();
 
 	CExpression *pexprIndexCond = CPredicateUtils::PexprConjunction(mp, pdrgpexprIndex);
 	CExpression *pexprResidualCond = CPredicateUtils::PexprConjunction(mp, pdrgpexprResidual);

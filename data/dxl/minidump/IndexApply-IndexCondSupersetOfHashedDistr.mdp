@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+ <dxl:Comment><![CDATA[
+	create table x (i int, j int);
+	create table r (i int, j int);
+	create index index_ri on r using btree(i);
+	create index index_rj on r using btree(j);
+	select * from x,r where x.i = r.i and x.j = r.j;
+  ]]>
+  </dxl:Comment>
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>

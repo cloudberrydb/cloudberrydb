@@ -471,6 +471,11 @@ CBitSet::Intersection
 	const CBitSet *pbsOther
 	)
 {
+	if (NULL == pbsOther)
+	{
+		return;
+	}
+
 	CBitSetLink *bsl_other = NULL;
 	CBitSetLink *bsl = m_bsllist.First();
 	
