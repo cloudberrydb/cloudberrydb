@@ -678,25 +678,28 @@ select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where dqa_t1.c = dqa_t2.c g
 (56 rows)
 
 explain (costs off) select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where dqa_t1.c = dqa_t2.c group by dqa_t2.dt;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice4; segments: 3)
    ->  HashAggregate
          Group Key: dqa_t2.dt
          ->  HashAggregate
                Group Key: dqa_t2.dt, dqa_t1.dt
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)
                      Hash Key: dqa_t2.dt
                      ->  HashAggregate
                            Group Key: dqa_t2.dt, dqa_t1.dt
                            ->  Hash Join
                                  Hash Cond: dqa_t1.c = dqa_t2.c
-                                 ->  Seq Scan on dqa_t1
+                                 ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                       Hash Key: dqa_t1.c
+                                       ->  Seq Scan on dqa_t1
                                  ->  Hash
-                                       ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                                       ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                             Hash Key: dqa_t2.c
                                              ->  Seq Scan on dqa_t2
  Optimizer: legacy query optimizer
-(16 rows)
+(19 rows)
 
 -- MPP-19037
 drop table if exists fact_route_aggregation;
