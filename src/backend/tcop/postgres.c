@@ -3327,7 +3327,6 @@ drop_unnamed_stmt(void)
 void
 quickdie(SIGNAL_ARGS)
 {
-	SIMPLE_FAULT_INJECTOR(QuickDie);
 	quickdie_impl();
 }
 

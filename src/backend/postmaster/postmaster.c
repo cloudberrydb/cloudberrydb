@@ -2208,10 +2208,20 @@ retry1:
 			break;
 	}
 
-	if (!am_ftshandler && !am_walsender)
+#ifdef FAULT_INJECTOR
+	if (!am_ftshandler && !am_walsender &&
+		FaultInjector_InjectFaultIfSet(ProcessStartupPacketFault,
+									   DDLNotSpecified,
+									   port->database_name /* databaseName */,
+									   "" /* tableName */) == FaultInjectorTypeSkip)
 	{
-		SIMPLE_FAULT_INJECTOR(ProcessStartupPacketFault);
+		ereport(FATAL,
+				(errcode(ERRCODE_CANNOT_CONNECT_NOW),
+				 errSendAlert(true),
+				 errmsg(POSTMASTER_IN_RECOVERY_MSG),
+				 errdetail(POSTMASTER_IN_RECOVERY_DETAIL_MSG " dummy location")));
 	}
+#endif
 
 	return STATUS_OK;
 }

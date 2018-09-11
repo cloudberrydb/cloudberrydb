@@ -1,4 +1,6 @@
 -- Misc tests related to dispatching queries to segments.
+CREATE DATABASE dispatch_test_db;
+\c dispatch_test_db;
 
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 
@@ -75,7 +77,7 @@ CREATE TABLE "my table" (id integer);
 DROP TABLE "my table";
 
 -- Clean up
-\c regression
+\c dispatch_test_db
 DROP DATABASE "dispatch test db";
 
 -- Test gp_max_plan_size limit
@@ -93,12 +95,13 @@ select gp_inject_fault('send_qe_details_init_backend', 'reset', 2);
 select gp_inject_fault('send_qe_details_init_backend', 'skip', 2);
 
 -- terminate exiting QEs first
-\c
+\c dispatch_test_db
 -- verify failure will be reported
 SELECT 1 FROM gp_dist_random('gp_id');
 
 -- reset fault injector
 select gp_inject_fault('send_qe_details_init_backend', 'reset', 2);
+
 
 --
 -- Test suit : test gang creation and commands dispatching 
@@ -145,13 +148,9 @@ set gp_gang_creation_retry_timer to 1000;
 
 select cleanupAllGangs();
 
--- trigger fault and put segment 0 into recovery mode
-select gp_inject_fault('process_startup_packet', 'segv', 2);
+-- trigger fault and report segment 0 in recovery for 5 times
+select gp_inject_fault('process_startup_packet', 'skip', '', 'dispatch_test_db', '', 1, 5, 0, 2::smallint);
 select cleanupAllGangs();
---start_ignore
-select 'trigger fault' from gp_dist_random('gp_id');
---end_ignore
-select pg_sleep(1); -- small delay to make sure the postmaster has noticed the child death.
 
 -- should success after retry
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
@@ -168,24 +167,19 @@ set gp_gang_creation_retry_timer to 200;
 select cleanupAllGangs();
 
 -- trigger fault and put segment 0 into recovery mode
-select gp_inject_fault('process_startup_packet', 'segv', 2);
-select gp_inject_fault('quickdie', 'sleep', '', '', '', 1, 1, 5, 2::smallint);
+select gp_inject_fault('process_startup_packet', 'skip', '', 'dispatch_test_db', '', 1, 5, 0, 2::smallint);
 select cleanupAllGangs();
---start_ignore
-select 'trigger fault' from gp_dist_random('gp_id');
---end_ignore
-select pg_sleep(1); -- small delay to make sure the postmaster has noticed the child death.
 
 -- should fail after 2 retries
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
 where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
 
--- Wait for the quickdie() sleep to time out, and the server to restart.
-select pg_sleep(5);
+set gp_gang_creation_retry_count to 10;
+-- should success and process_startup_packet will be invalid after this query
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
 
-set gp_gang_creation_retry_count to 100;
 select gp_inject_fault('process_startup_packet', 'reset', 2);
-select gp_inject_fault('quickdie', 'reset', 2);
 
 --start_ignore
 -- enlarge the retry count
@@ -251,7 +245,7 @@ select gp_inject_fault('send_qe_details_init_backend', 'reset', 2);
 -- gp_segment_connect_timeout = 1 : wait 1 second
 
 set gp_segment_connect_timeout to 1;
-select gp_inject_fault('process_startup_packet', 'suspend', 2);
+select gp_inject_fault('process_startup_packet', 'suspend', '', 'dispatch_test_db', '', 1, 1, 0, 2::smallint);
 
 select cleanupAllGangs();
 
@@ -344,7 +338,7 @@ DROP TABLE foo_test;
 --
 -- Test dangling Gang would be destroyed if interrupted during the creation
 --
-\c
+select cleanupAllGangs();
 select gp_inject_fault('gang_created', 'reset', 1);
 select gp_inject_fault('gang_created', 'error', 1);
 select 1 from gp_dist_random('gp_id') limit 1;
@@ -400,3 +394,6 @@ select gp_inject_fault('cleanup_gang', 'reset', 1);
 select gp_inject_fault('fts_probe', 'reset', 1);
 -- resume GDD scan 
 select gp_inject_fault('gdd_probe', 'reset', 1);
+
+\c regression
+DROP DATABASE dispatch_test_db;
