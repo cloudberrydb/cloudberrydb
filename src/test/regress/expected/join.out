@@ -2770,49 +2770,55 @@ select * from tenk1 t1 left join
   (tenk1 t2 join tenk1 t3 on t2.thousand = t3.unique2)
   on t1.hundred = t2.hundred and t1.ten = t3.ten
 where t1.unique1 = 1;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice4; segments: 3)
    ->  Hash Right Join
          Hash Cond: t2.hundred = t1.hundred AND t3.ten = t1.ten
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)
+         ->  Redistribute Motion 3:3  (slice3; segments: 3)
                Hash Key: 1
                ->  Hash Join
                      Hash Cond: t2.thousand = t3.unique2
-                     ->  Seq Scan on tenk1 t2
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                           Hash Key: t2.thousand
+                           ->  Seq Scan on tenk1 t2
                      ->  Hash
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                 Hash Key: t3.unique2
                                  ->  Seq Scan on tenk1 t3
          ->  Hash
                ->  Index Scan using tenk1_unique1 on tenk1 t1
                      Index Cond: unique1 = 1
  Optimizer: legacy query optimizer
-(15 rows)
+(18 rows)
 
 explain (costs off)
 select * from tenk1 t1 left join
   (tenk1 t2 join tenk1 t3 on t2.thousand = t3.unique2)
   on t1.hundred = t2.hundred and t1.ten + t2.ten = t3.ten
 where t1.unique1 = 1;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice4; segments: 3)
    ->  Hash Right Join
          Hash Cond: t2.hundred = t1.hundred
          Join Filter: (t1.ten + t2.ten) = t3.ten
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)
+         ->  Redistribute Motion 3:3  (slice3; segments: 3)
                Hash Key: 1
                ->  Hash Join
                      Hash Cond: t2.thousand = t3.unique2
-                     ->  Seq Scan on tenk1 t2
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                           Hash Key: t2.thousand
+                           ->  Seq Scan on tenk1 t2
                      ->  Hash
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                 Hash Key: t3.unique2
                                  ->  Seq Scan on tenk1 t3
          ->  Hash
                ->  Index Scan using tenk1_unique1 on tenk1 t1
                      Index Cond: unique1 = 1
  Optimizer: legacy query optimizer
-(16 rows)
+(19 rows)
 
 explain (costs off)
 select count(*) from
@@ -3101,3 +3107,31 @@ SELECT * FROM
 (5 rows)
 
 rollback;
+-- github issue 5370 cases
+drop table if exists t5370;
+NOTICE:  table "t5370" does not exist, skipping
+drop table if exists t5370_2;
+NOTICE:  table "t5370_2" does not exist, skipping
+create table t5370(id int,name text) distributed by(id);
+insert into t5370 select i,i from  generate_series(1,1000) i;
+create table t5370_2 as select * from t5370 distributed by (id);
+analyze t5370_2;
+analyze t5370;
+explain select * from t5370 a , t5370_2 b where a.name=b.name;
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=45.50..92.25 rows=1000 width=14)
+   ->  Hash Join  (cost=45.50..92.25 rows=334 width=14)
+         Hash Cond: a.name = b.name
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..33.00 rows=334 width=7)
+               Hash Key: a.name
+               ->  Seq Scan on t5370 a  (cost=0.00..13.00 rows=334 width=7)
+         ->  Hash  (cost=33.00..33.00 rows=334 width=7)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..33.00 rows=334 width=7)
+                     Hash Key: b.name
+                     ->  Seq Scan on t5370_2 b  (cost=0.00..13.00 rows=334 width=7)
+ Optimizer: legacy query optimizer
+(11 rows)
+
+drop table t5370;
+drop table t5370_2;

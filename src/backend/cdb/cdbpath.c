@@ -710,13 +710,22 @@ cdbpath_partkeys_from_preds(PlannerInfo *root,
 		if (!b_partkey && rinfo->left_ec == rinfo->right_ec)
 		{
 			ListCell   *i;
+			bool        found = false;
 
 			foreach(i, a_partkey)
 			{
 				PathKey    *pathkey = (PathKey *) lfirst(i);
 
 				if (pathkey->pk_eclass == rinfo->left_ec)
-					a_partkey = lappend(a_partkey, rinfo->left_ec);
+				{
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+			{
+				PathKey    *a_pk = makePathKeyForEC(rinfo->left_ec);
+				a_partkey = lappend(a_partkey, a_pk);
 			}
 		}
 
@@ -1066,7 +1075,10 @@ cdbpath_motion_for_join(PlannerInfo *root,
 
 		/* If the bottlenecked rel can't be moved, bring the other rel to it. */
 		if (single_immovable)
+		{
+			Assert(!other_immovable);
 			other->move_to = single->locus;
+		}
 
 		/* Redistribute single rel if joining on other rel's partitioning key */
 		else if (cdbpath_match_preds_to_partkey(root,
@@ -1082,7 +1094,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 			CdbPathLocus_MakeReplicated(&single->move_to);
 
 		/* Redistribute both rels on equijoin cols. */
-		else if (!other->require_existing_order &&
+		else if (!other_immovable &&
 				 cdbpath_partkeys_from_preds(root,
 											 redistribution_clauses,
 											 single->path,
@@ -1162,7 +1174,9 @@ cdbpath_motion_for_join(PlannerInfo *root,
 
 		/* Redistribute both rels on equijoin cols. */
 		else if (!small->require_existing_order &&
+				 !small->has_wts &&
 				 !large->require_existing_order &&
+				 !large->has_wts &&
 				 cdbpath_partkeys_from_preds(root,
 											 redistribution_clauses,
 											 large->path,
