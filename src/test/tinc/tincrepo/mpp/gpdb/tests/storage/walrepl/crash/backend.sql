@@ -10,7 +10,7 @@ CREATE TABLE heap_hybrid_part (
                 )   
  partition by range (ps_supplycost) 
  subpartition by range (ps_suppkey)
-,subpartition by range (ps_partkey) subpartition template (start('1') end('200001') every(66666)
+ subpartition by range (ps_partkey) subpartition template (start('1') end('200001') every(66666)
 
 )
 (
