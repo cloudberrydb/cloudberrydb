@@ -247,8 +247,6 @@ FI_IDENT(CreateResourceGroupFail, "create_resource_group_fail")
 FI_IDENT(AutoVacWorkerBeforeDoAutovacuum, "auto_vac_worker_before_do_autovacuum")
 /* inject fault when search DNS cache */
 FI_IDENT(GetDnsCachedAddress, "get_dns_cached_address")
-/* inject fault before notify fts probe */
-FI_IDENT(BeforeFtsNotify, "before_fts_notify")
 /* inject fault before aquiring lock during AlterTableCreateAoBlkdirTable */
 FI_IDENT(BeforeAcquireLockDuringCreateAoBlkdirTable, "before_acquire_lock_during_create_ao_blkdir_table")
 /* inject fault during gang creation, before check for interrupts */

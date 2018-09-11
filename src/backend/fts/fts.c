@@ -512,12 +512,6 @@ void FtsLoop()
 
 		probe_start_time = time(NULL);
 
-		if (cdbs != NULL)
-		{
-			cdbcomponent_destroyCdbComponents();
-			cdbs = NULL;
-		}
-
 		/* Need a transaction to access the catalogs */
 		StartTransactionCommand();
 
@@ -543,6 +537,7 @@ void FtsLoop()
 			elogif(gp_log_fts >= GPVARS_VERBOSITY_VERBOSE, LOG,
 				   "skipping FTS probes due to %s",
 				   !has_mirrors ? "no mirrors" : "fts_probe fault");
+
 		}
 		else
 		{
@@ -563,12 +558,15 @@ void FtsLoop()
 
 			/* free any pallocs we made inside probeSegments() */
 			MemoryContextReset(probeContext);
-			cdbs = NULL;
 
 			/* Bump the version if configuration was updated. */
 			if (updated_probe_state)
 				ftsProbeInfo->fts_statusVersion++;
 		}
+
+		/* free current components info and free ip addr caches */	
+		cdbcomponent_destroyCdbComponents();
+
 		/* Notify any waiting backends about probe cycle completion. */
 		ftsProbeInfo->probeTick++;
 

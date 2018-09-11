@@ -581,15 +581,6 @@ cdbcomponent_getCdbComponents(bool DNSLookupAsError)
 	}
 	PG_CATCH();
 	{
-#ifdef FAULT_INJECTOR
-		const char *dbname = NULL;
-		if (MyProcPort)
-			dbname = MyProcPort->database_name;
-
-		FaultInjector_InjectFaultIfSet(BeforeFtsNotify, DDLNotSpecified,
-								   dbname?dbname: "", "");
-#endif
-
 		FtsNotifyProber();
 
 		PG_RE_THROW();
