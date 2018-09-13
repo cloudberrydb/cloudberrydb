@@ -49,6 +49,7 @@
 #define CGROUP_CONFIG_ERROR(...) \
 	CGROUP_ERROR("cgroup is not properly configured: " __VA_ARGS__)
 
+#define FALLBACK_COMP_DIR ""
 #define PROC_MOUNTS "/proc/self/mounts"
 #define MAX_INT_STRING_LEN 20
 #define MAX_RETRY 10
@@ -69,7 +70,7 @@ typedef struct PermList PermList;
 
 struct PermItem
 {
-	const char	*comp;
+	ResGroupCompType comp;
 	const char	*prop;
 	int			perm;
 };
@@ -85,18 +86,31 @@ struct PermList
 	for ((i) = 0; (lists)[(i)].items; (i)++)
 
 #define foreach_perm_item(i, items) \
-	for ((i) = 0; (items)[(i)].comp; (i)++)
+	for ((i) = 0; (items)[(i)].comp != RESGROUP_COMP_TYPE_UNKNOWN; (i)++)
 
-static char * buildPath(Oid group, const char *base, const char *comp, const char *prop, char *path, size_t pathsize);
+#define foreach_comp_type(comp) \
+	for ((comp) = RESGROUP_COMP_TYPE_FIRST; \
+		 (comp) < RESGROUP_COMP_TYPE_COUNT; \
+		 (comp)++)
+
+static const char *compGetName(ResGroupCompType comp);
+static ResGroupCompType compByName(const char *name);
+static const char *compGetDir(ResGroupCompType comp);
+static void compSetDir(ResGroupCompType comp, const char *dir);
+static void detectCompDirs(void);
+static bool validateCompDir(ResGroupCompType comp);
+static void dumpCompDirs(void);
+
+static char *buildPath(Oid group, const char *base, ResGroupCompType comp, const char *prop, char *path, size_t pathsize);
 static int lockDir(const char *path, bool block);
-static void unassignGroup(Oid group, const char *comp, int fddir);
-static bool createDir(Oid group, const char *comp);
-static bool removeDir(Oid group, const char *comp, const char *prop, bool unassign);
+static void unassignGroup(Oid group, ResGroupCompType comp, int fddir);
+static bool createDir(Oid group, ResGroupCompType comp);
+static bool removeDir(Oid group, ResGroupCompType comp, const char *prop, bool unassign);
 static int getCpuCores(void);
 static size_t readData(const char *path, char *data, size_t datasize);
 static void writeData(const char *path, const char *data, size_t datasize);
-static int64 readInt64(Oid group, const char *base, const char *comp, const char *prop);
-static void writeInt64(Oid group, const char *base, const char *comp, const char *prop, int64 x);
+static int64 readInt64(Oid group, const char *base, ResGroupCompType comp, const char *prop);
+static void writeInt64(Oid group, const char *base, ResGroupCompType comp, const char *prop, int64 x);
 static bool permListCheck(const PermList *permlist, Oid group, bool report);
 static bool checkPermission(Oid group, bool report);
 static bool checkCpuSetPermission(Oid group, bool report);
@@ -120,42 +134,42 @@ static char cgdir[MAXPGPATH];
  */
 static const PermItem perm_items_cpu[] =
 {
-	{ "cpu", "", R_OK | W_OK | X_OK },
-	{ "cpu", "cgroup.procs", R_OK | W_OK },
-	{ "cpu", "cpu.cfs_period_us", R_OK | W_OK },
-	{ "cpu", "cpu.cfs_quota_us", R_OK | W_OK },
-	{ "cpu", "cpu.shares", R_OK | W_OK },
-	{ NULL, NULL, 0 }
+	{ RESGROUP_COMP_TYPE_CPU, "", R_OK | W_OK | X_OK },
+	{ RESGROUP_COMP_TYPE_CPU, "cgroup.procs", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_CPU, "cpu.cfs_period_us", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_CPU, "cpu.cfs_quota_us", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_CPU, "cpu.shares", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_UNKNOWN, NULL, 0 }
 };
 static const PermItem perm_items_cpu_acct[] =
 {
-	{ "cpuacct", "", R_OK | W_OK | X_OK },
-	{ "cpuacct", "cgroup.procs", R_OK | W_OK },
-	{ "cpuacct", "cpuacct.usage", R_OK },
-	{ "cpuacct", "cpuacct.stat", R_OK },
-	{ NULL, NULL, 0 }
+	{ RESGROUP_COMP_TYPE_CPUACCT, "", R_OK | W_OK | X_OK },
+	{ RESGROUP_COMP_TYPE_CPUACCT, "cgroup.procs", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_CPUACCT, "cpuacct.usage", R_OK },
+	{ RESGROUP_COMP_TYPE_CPUACCT, "cpuacct.stat", R_OK },
+	{ RESGROUP_COMP_TYPE_UNKNOWN, NULL, 0 }
 };
 static const PermItem perm_items_cpuset[] =
 {
-	{ "cpuset", "", R_OK | W_OK | X_OK },
-	{ "cpuset", "cgroup.procs", R_OK | W_OK },
-	{ "cpuset", "cpuset.cpus", R_OK | W_OK },
-	{ "cpuset", "cpuset.mems", R_OK | W_OK },
-	{ NULL, NULL, 0 }
+	{ RESGROUP_COMP_TYPE_CPUSET, "", R_OK | W_OK | X_OK },
+	{ RESGROUP_COMP_TYPE_CPUSET, "cgroup.procs", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_CPUSET, "cpuset.cpus", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_CPUSET, "cpuset.mems", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_UNKNOWN, NULL, 0 }
 };
 static const PermItem perm_items_memory[] =
 {
-	{ "memory", "", R_OK | W_OK | X_OK },
-	{ "memory", "memory.limit_in_bytes", R_OK | W_OK },
-	{ "memory", "memory.usage_in_bytes", R_OK },
-	{ NULL, NULL, 0 }
+	{ RESGROUP_COMP_TYPE_MEMORY, "", R_OK | W_OK | X_OK },
+	{ RESGROUP_COMP_TYPE_MEMORY, "memory.limit_in_bytes", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_MEMORY, "memory.usage_in_bytes", R_OK },
+	{ RESGROUP_COMP_TYPE_UNKNOWN, NULL, 0 }
 };
 static const PermItem perm_items_swap[] =
 {
-	{ "memory", "", R_OK | W_OK | X_OK },
-	{ "memory", "memory.memsw.limit_in_bytes", R_OK | W_OK },
-	{ "memory", "memory.memsw.usage_in_bytes", R_OK },
-	{ NULL, NULL, 0 }
+	{ RESGROUP_COMP_TYPE_MEMORY, "", R_OK | W_OK | X_OK },
+	{ RESGROUP_COMP_TYPE_MEMORY, "memory.memsw.limit_in_bytes", R_OK | W_OK },
+	{ RESGROUP_COMP_TYPE_MEMORY, "memory.memsw.usage_in_bytes", R_OK },
+	{ RESGROUP_COMP_TYPE_UNKNOWN, NULL, 0 }
 };
 
 /*
@@ -212,6 +226,230 @@ static const PermList permlists[] =
 };
 
 /*
+ * Comp names.
+ */
+const char *compnames[RESGROUP_COMP_TYPE_COUNT] =
+{
+	"cpu", "cpuacct", "memory", "cpuset"
+};
+
+/*
+ * Comp dirs.
+ */
+char compdirs[RESGROUP_COMP_TYPE_COUNT][MAXPGPATH] =
+{
+	FALLBACK_COMP_DIR, FALLBACK_COMP_DIR, FALLBACK_COMP_DIR, FALLBACK_COMP_DIR
+};
+
+/*
+ * Get the name of comp.
+ */
+static const char *
+compGetName(ResGroupCompType comp)
+{
+	Assert(comp > RESGROUP_COMP_TYPE_UNKNOWN);
+	Assert(comp < RESGROUP_COMP_TYPE_COUNT);
+
+	return compnames[comp];
+}
+
+/*
+ * Get the comp type from name.
+ */
+static ResGroupCompType
+compByName(const char *name)
+{
+	ResGroupCompType comp;
+
+	for (comp = 0; comp < RESGROUP_COMP_TYPE_COUNT; comp++)
+		if (strcmp(name, compGetName(comp)) == 0)
+			return comp;
+
+	return RESGROUP_COMP_TYPE_UNKNOWN;
+}
+
+/*
+ * Get the comp dir of comp.
+ */
+static const char *
+compGetDir(ResGroupCompType comp)
+{
+	Assert(comp > RESGROUP_COMP_TYPE_UNKNOWN);
+	Assert(comp < RESGROUP_COMP_TYPE_COUNT);
+
+	return compdirs[comp];
+}
+
+/*
+ * Set the comp dir of comp.
+ */
+static void
+compSetDir(ResGroupCompType comp, const char *dir)
+{
+	Assert(comp > RESGROUP_COMP_TYPE_UNKNOWN);
+	Assert(comp < RESGROUP_COMP_TYPE_COUNT);
+	Assert(strlen(dir) < MAXPGPATH);
+
+	strcpy(compdirs[comp], dir);
+}
+
+/*
+ * Detect gpdb cgroup component dirs.
+ *
+ * Take cpu for example, by default we expect gpdb dir to locate at
+ * cgroup/cpu/gpdb.  But we'll also check for the cgroup dirs of init process
+ * (pid 1), e.g. cgroup/cpu/custom, then we'll look for gpdb dir at
+ * cgroup/cpu/custom/gpdb, if it's found and has good permissions, it can be
+ * used instead of the default one.
+ *
+ * If any of the gpdb cgroup component dir can not be found under init process'
+ * cgroup dirs or has bad permissions we'll fallback all the gpdb cgroup
+ * component dirs to the default ones.
+ *
+ * NOTE: This auto detection will look for memory & cpuset gpdb dirs even on
+ * 5X.
+ */
+static void
+detectCompDirs(void)
+{
+	ResGroupCompType comp;
+	FILE	   *f;
+	char		buf[MAXPGPATH * 2];
+	int			maskAll = (1 << RESGROUP_COMP_TYPE_COUNT) - 1;
+	int			maskDetected = 0;
+
+	f = fopen("/proc/1/cgroup", "r");
+	if (!f)
+		goto fallback;
+
+	/*
+	 * format: id:comps:path, e.g.:
+	 *
+	 *     10:cpuset:/
+	 *     4:cpu,cpuacct:/
+	 *     1:name=systemd:/init.scope
+	 *     0::/init.scope
+	 */
+	while (fscanf(f, "%*d:%s", buf) != EOF)
+	{
+		ResGroupCompType comps[RESGROUP_COMP_TYPE_COUNT];
+		int			ncomps = 0;
+		char	   *ptr;
+		char	   *tmp;
+		char		sep = '\0';
+		int			i;
+
+		/* buf is stored with "comps:path" */
+
+		if (buf[0] == ':')
+			continue; /* ignore empty comp */
+
+		/* split comps */
+		for (ptr = buf; sep != ':'; ptr = tmp)
+		{
+			tmp = strpbrk(ptr, ":,=");
+
+			sep = *tmp;
+			*tmp++ = 0;
+
+			/* for name=comp case there is nothing to do with the name */
+			if (sep == '=')
+				continue;
+
+			comp = compByName(ptr);
+
+			if (comp == RESGROUP_COMP_TYPE_UNKNOWN)
+				continue; /* not used by us */
+
+			/*
+			 * push the comp to the comps stack, but if the stack is already
+			 * full (which is unlikely to happen in real world), simply ignore
+			 * it.
+			 */
+			if (ncomps < RESGROUP_COMP_TYPE_COUNT)
+				comps[ncomps++] = comp;
+		}
+
+		/* now ptr point to the path */
+		Assert(strlen(ptr) < MAXPGPATH);
+
+		/* if the path is "/" then use empty string "" instead of it */
+		if (strcmp(ptr, "/") == 0)
+			ptr[0] = '\0';
+
+		/* validate and set path for the comps */
+		for (i = 0; i < ncomps; i++)
+		{
+			comp = comps[i];
+			compSetDir(comp, ptr);
+
+			if (!validateCompDir(comp))
+				goto fallback; /* dir missing or bad permissions */
+
+			if (maskDetected & (1 << comp))
+				goto fallback; /* comp are detected more than once */
+
+			maskDetected |= 1 << comp;
+		}
+	}
+
+	if (maskDetected != maskAll)
+		goto fallback; /* not all the comps are detected */
+
+	dumpCompDirs();
+
+	fclose(f);
+	return;
+
+fallback:
+	/* set the fallback dirs for all the comps */
+	foreach_comp_type(comp)
+	{
+		compSetDir(comp, FALLBACK_COMP_DIR);
+	}
+
+	dumpCompDirs();
+
+	fclose(f);
+}
+
+/*
+ * Validate a comp dir.
+ *
+ * Return True if it exists and has good permissions,
+ * return False otherwise.
+ */
+static bool
+validateCompDir(ResGroupCompType comp)
+{
+	char		path[MAXPGPATH];
+	size_t		pathsize = sizeof(path);
+
+	buildPath(RESGROUP_ROOT_ID, NULL, comp, "", path, pathsize);
+
+	return access(path, R_OK | W_OK | X_OK) == 0;
+}
+
+/*
+ * Dump comp dirs.
+ */
+static void
+dumpCompDirs(void)
+{
+	ResGroupCompType comp;
+	char		path[MAXPGPATH];
+	size_t		pathsize = sizeof(path);
+
+	foreach_comp_type(comp)
+	{
+		buildPath(RESGROUP_ROOT_ID, NULL, comp, "", path, pathsize);
+
+		elog(LOG, "gpdb dir for cgroup component \"%s\": %s",
+			 compGetName(comp), path);
+	}
+}
+
+/*
  * Build path string with parameters.
  * - if base is NULL, use default value "gpdb"
  * - if group is RESGROUP_ROOT_ID then the path is for the gpdb toplevel cgroup;
@@ -220,11 +458,14 @@ static const PermList permlists[] =
 static char *
 buildPath(Oid group,
 		  const char *base,
-		  const char *comp,
+		  ResGroupCompType comp,
 		  const char *prop,
 		  char *path,
 		  size_t pathsize)
 {
+	const char *compname = compGetName(comp);
+	const char *compdir = compGetDir(comp);
+
 	Assert(cgdir[0] != 0);
 
 	if (!base)
@@ -232,15 +473,18 @@ buildPath(Oid group,
 
 	if (group == RESGROUP_COMPROOT_ID)
 	{
-		snprintf(path, pathsize, "%s/%s/%s", cgdir, comp, prop);
+		snprintf(path, pathsize, "%s/%s%s/%s",
+				 cgdir, compname, compdir, prop);
 	}
 	else if (group != RESGROUP_ROOT_ID)
 	{
-		snprintf(path, pathsize, "%s/%s/%s/%d/%s", cgdir, comp, base, group, prop);
+		snprintf(path, pathsize, "%s/%s%s/%s/%d/%s",
+				 cgdir, compname, compdir, base, group, prop);
 	}
 	else
 	{
-		snprintf(path, pathsize, "%s/%s/%s/%s", cgdir, comp, base, prop);
+		snprintf(path, pathsize, "%s/%s%s/%s/%s",
+				 cgdir, compname, compdir, base, prop);
 	}
 
 	return path;
@@ -256,7 +500,7 @@ buildPath(Oid group,
  * (and unlocked implicitly) then an error is raised.
  */
 static void
-unassignGroup(Oid group, const char *comp, int fddir)
+unassignGroup(Oid group, ResGroupCompType comp, int fddir)
 {
 	char path[MAXPGPATH];
 	size_t pathsize = sizeof(path);
@@ -448,7 +692,7 @@ lockDir(const char *path, bool block)
  * Create the cgroup dir for group.
  */
 static bool
-createDir(Oid group, const char *comp)
+createDir(Oid group, ResGroupCompType comp)
 {
 	char path[MAXPGPATH];
 	size_t pathsize = sizeof(path);
@@ -467,7 +711,7 @@ createDir(Oid group, const char *comp)
  * - if unassign is true then unassign all the processes first before removal;
  */
 static bool
-removeDir(Oid group, const char *comp, const char *prop, bool unassign)
+removeDir(Oid group, ResGroupCompType comp, const char *prop, bool unassign)
 {
 	char path[MAXPGPATH];
 	size_t pathsize = sizeof(path);
@@ -617,7 +861,7 @@ writeData(const char *path, const char *data, size_t datasize)
  * Read an int64 value from a cgroup interface file.
  */
 static int64
-readInt64(Oid group, const char *base, const char *comp, const char *prop)
+readInt64(Oid group, const char *base, ResGroupCompType comp, const char *prop)
 {
 	int64 x;
 	char data[MAX_INT_STRING_LEN];
@@ -639,7 +883,8 @@ readInt64(Oid group, const char *base, const char *comp, const char *prop)
  * Write an int64 value to a cgroup interface file.
  */
 static void
-writeInt64(Oid group, const char *base, const char *comp, const char *prop, int64 x)
+writeInt64(Oid group, const char *base,
+		   ResGroupCompType comp, const char *prop, int64 x)
 {
 	char data[MAX_INT_STRING_LEN];
 	size_t datasize = sizeof(data);
@@ -656,7 +901,8 @@ writeInt64(Oid group, const char *base, const char *comp, const char *prop, int6
  * Read a string value from a cgroup interface file.
  */
 static void
-readStr(Oid group, const char *base, const char *comp, const char *prop, char *str, int len)
+readStr(Oid group, const char *base,
+		ResGroupCompType comp, const char *prop, char *str, int len)
 {
 	char data[MAX_INT_STRING_LEN];
 	size_t datasize = sizeof(data);
@@ -674,8 +920,8 @@ readStr(Oid group, const char *base, const char *comp, const char *prop, char *s
  * Write an string value to a cgroup interface file.
  */
 static void
-writeStr(Oid group, const char *base, const char *comp, const char *prop,
-		 const char *strValue)
+writeStr(Oid group, const char *base,
+		 ResGroupCompType comp, const char *prop, const char *strValue)
 {
 	char path[MAXPGPATH];
 	size_t pathsize = sizeof(path);
@@ -704,7 +950,7 @@ permListCheck(const PermList *permlist, Oid group, bool report)
 
 	foreach_perm_item(i, permlist->items)
 	{
-		const char	*comp = permlist->items[i].comp;
+		ResGroupCompType comp = permlist->items[i].comp;
 		const char	*prop = permlist->items[i].prop;
 		int			perm = permlist->items[i].perm;
 
@@ -786,12 +1032,14 @@ getMemoryInfo(unsigned long *ram, unsigned long *swap)
 static void
 getCgMemoryInfo(uint64 *cgram, uint64 *cgmemsw)
 {
-	*cgram = readInt64(RESGROUP_ROOT_ID, "", "memory", "memory.limit_in_bytes");
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_MEMORY;
+
+	*cgram = readInt64(RESGROUP_ROOT_ID, "", comp, "memory.limit_in_bytes");
 
 	if (gp_resource_group_enable_cgroup_swap)
 	{
 		*cgmemsw = readInt64(RESGROUP_ROOT_ID, "",
-							 "memory", "memory.memsw.limit_in_bytes");
+							 comp, "memory.memsw.limit_in_bytes");
 	}
 	else
 	{
@@ -884,6 +1132,8 @@ ResGroupOps_Probe(void)
 	if (!detectCgroupMountPoint())
 		return false;
 
+	detectCompDirs();
+
 	/*
 	 * Probe for optional features like the 'cgroup' memory auditor,
 	 * do not raise any errors.
@@ -940,7 +1190,7 @@ ResGroupOps_Init(void)
 
 	int64 cfs_period_us;
 	int ncores = getCpuCores();
-	const char *comp = "cpu";
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_CPU;
 
 	cfs_period_us = readInt64(RESGROUP_ROOT_ID, NULL, comp, "cpu.cfs_period_us");
 	writeInt64(RESGROUP_ROOT_ID, NULL, comp, "cpu.cfs_quota_us",
@@ -957,12 +1207,15 @@ ResGroupOps_Init(void)
 		 * parent directory
 		 */
 		char buffer[MaxCpuSetLength];
-		readStr(RESGROUP_COMPROOT_ID, NULL, "cpuset", "cpuset.mems",
+
+		comp = RESGROUP_COMP_TYPE_CPUSET;
+
+		readStr(RESGROUP_COMPROOT_ID, NULL, comp, "cpuset.mems",
 				buffer, sizeof(buffer));
-		writeStr(RESGROUP_ROOT_ID, NULL, "cpuset", "cpuset.mems", buffer);
-		readStr(RESGROUP_COMPROOT_ID, NULL, "cpuset", "cpuset.cpus",
+		writeStr(RESGROUP_ROOT_ID, NULL, comp, "cpuset.mems", buffer);
+		readStr(RESGROUP_COMPROOT_ID, NULL, comp, "cpuset.cpus",
 				buffer, sizeof(buffer));
-		writeStr(RESGROUP_ROOT_ID, NULL, "cpuset", "cpuset.cpus", buffer);
+		writeStr(RESGROUP_ROOT_ID, NULL, comp, "cpuset.cpus", buffer);
 
 		createDefaultCpuSetGroup();
 	}
@@ -997,12 +1250,12 @@ ResGroupOps_CreateGroup(Oid group)
 {
 	int retry = 0;
 
-	if (!createDir(group, "cpu")
-		|| !createDir(group, "cpuacct")
-		|| (gp_resource_group_enable_cgroup_cpuset &&
-			!createDir(group, "cpuset"))
-		|| (gp_resource_group_enable_cgroup_memory &&
-			!createDir(group, "memory")))
+	if (!createDir(group, RESGROUP_COMP_TYPE_CPU) ||
+		!createDir(group, RESGROUP_COMP_TYPE_CPUACCT) ||
+		(gp_resource_group_enable_cgroup_cpuset &&
+		 !createDir(group, RESGROUP_COMP_TYPE_CPUSET)) ||
+		(gp_resource_group_enable_cgroup_memory &&
+		 !createDir(group, RESGROUP_COMP_TYPE_MEMORY)))
 	{
 		CGROUP_ERROR("can't create cgroup for resgroup '%d': %s",
 					 group, strerror(errno));
@@ -1029,23 +1282,16 @@ ResGroupOps_CreateGroup(Oid group)
 		/*
 		 * Initialize cpuset.mems and cpuset.cpus values as its parent directory
 		 */
+		ResGroupCompType comp = RESGROUP_COMP_TYPE_CPUSET;
 		char buffer[MaxCpuSetLength];
 
-		readStr(RESGROUP_ROOT_ID,
-				NULL,
-				"cpuset",
-				"cpuset.mems",
-				buffer,
-				sizeof(buffer));
-		writeStr(group, NULL, "cpuset", "cpuset.mems", buffer);
+		readStr(RESGROUP_ROOT_ID, NULL, comp, "cpuset.mems",
+				buffer, sizeof(buffer));
+		writeStr(group, NULL, comp, "cpuset.mems", buffer);
 
-		readStr(RESGROUP_ROOT_ID,
-				NULL,
-				"cpuset",
-				"cpuset.cpus",
-				buffer,
-				sizeof(buffer));
-		writeStr(group, NULL, "cpuset", "cpuset.cpus", buffer);
+		readStr(RESGROUP_ROOT_ID, NULL, comp, "cpuset.cpus",
+				buffer, sizeof(buffer));
+		writeStr(group, NULL, comp, "cpuset.cpus", buffer);
 	}
 }
 
@@ -1056,9 +1302,10 @@ ResGroupOps_CreateGroup(Oid group)
 static void
 createDefaultCpuSetGroup(void)
 {
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_CPUSET;
 	int retry = 0;
 
-	if (!createDir(DEFAULT_CPUSET_GROUP_ID, "cpuset"))
+	if (!createDir(DEFAULT_CPUSET_GROUP_ID, comp))
 	{
 		CGROUP_ERROR("can't create cpuset cgroup for resgroup '%d': %s",
 					 DEFAULT_CPUSET_GROUP_ID, strerror(errno));
@@ -1087,21 +1334,13 @@ createDefaultCpuSetGroup(void)
 	 */
 	char buffer[MaxCpuSetLength];
 
-	readStr(RESGROUP_ROOT_ID,
-			NULL,
-			"cpuset",
-			"cpuset.mems",
-			buffer,
-			sizeof(buffer));
-	writeStr(DEFAULT_CPUSET_GROUP_ID, NULL, "cpuset", "cpuset.mems", buffer);
+	readStr(RESGROUP_ROOT_ID, NULL, comp, "cpuset.mems",
+			buffer, sizeof(buffer));
+	writeStr(DEFAULT_CPUSET_GROUP_ID, NULL, comp, "cpuset.mems", buffer);
 
-	readStr(RESGROUP_ROOT_ID,
-			NULL,
-			"cpuset",
-			"cpuset.cpus",
-			buffer,
-			sizeof(buffer));
-	writeStr(DEFAULT_CPUSET_GROUP_ID, NULL, "cpuset", "cpuset.cpus", buffer);
+	readStr(RESGROUP_ROOT_ID, NULL, comp, "cpuset.cpus",
+			buffer, sizeof(buffer));
+	writeStr(DEFAULT_CPUSET_GROUP_ID, NULL, comp, "cpuset.cpus", buffer);
 }
 
 /*
@@ -1113,12 +1352,12 @@ createDefaultCpuSetGroup(void)
 void
 ResGroupOps_DestroyGroup(Oid group, bool migrate)
 {
-	if (!removeDir(group, "cpu", "cpu.shares", migrate)
-		|| !removeDir(group, "cpuacct", NULL, migrate)
-		|| (gp_resource_group_enable_cgroup_cpuset &&
-			!removeDir(group, "cpuset", NULL, migrate))
-		|| (gp_resource_group_enable_cgroup_memory &&
-			!removeDir(group, "memory", "memory.limit_in_bytes", migrate)))
+	if (!removeDir(group, RESGROUP_COMP_TYPE_CPU, "cpu.shares", migrate) ||
+		!removeDir(group, RESGROUP_COMP_TYPE_CPUACCT, NULL, migrate) ||
+		(gp_resource_group_enable_cgroup_cpuset &&
+		 !removeDir(group, RESGROUP_COMP_TYPE_CPUSET, NULL, migrate)) ||
+		(gp_resource_group_enable_cgroup_memory &&
+		 !removeDir(group, RESGROUP_COMP_TYPE_MEMORY, "memory.limit_in_bytes", migrate)))
 	{
 		CGROUP_ERROR("can't remove cgroup for resgroup '%d': %s",
 			 group, strerror(errno));
@@ -1148,19 +1387,21 @@ ResGroupOps_AssignGroup(Oid group, ResGroupCaps *caps, int pid)
 		)
 		return;
 
-	writeInt64(group, NULL, "cpu", "cgroup.procs", pid);
-	writeInt64(group, NULL, "cpuacct", "cgroup.procs", pid);
+	writeInt64(group, NULL, RESGROUP_COMP_TYPE_CPU, "cgroup.procs", pid);
+	writeInt64(group, NULL, RESGROUP_COMP_TYPE_CPUACCT, "cgroup.procs", pid);
 
 	if (gp_resource_group_enable_cgroup_cpuset)
 	{
 		if (caps == NULL || !curViaCpuset)
 		{
 			/* add pid to default group */
-			writeInt64(DEFAULT_CPUSET_GROUP_ID, NULL, "cpuset", "cgroup.procs", pid);
+			writeInt64(DEFAULT_CPUSET_GROUP_ID, NULL,
+					   RESGROUP_COMP_TYPE_CPUSET, "cgroup.procs", pid);
 		}
 		else
 		{
-			writeInt64(group, NULL, "cpuset", "cgroup.procs", pid);
+			writeInt64(group, NULL,
+					   RESGROUP_COMP_TYPE_CPUSET, "cgroup.procs", pid);
 		}
 	}
 
@@ -1184,10 +1425,10 @@ ResGroupOps_AssignGroup(Oid group, ResGroupCaps *caps, int pid)
  * immediately.
  *
  * On success it return a fd to the OS group, pass it to
- * ResGroupOps_UnLockGroup() to unblock it.
+ * ResGroupOps_UnLockGroup() to unlock it.
  */
 int
-ResGroupOps_LockGroup(Oid group, const char *comp, bool block)
+ResGroupOps_LockGroup(Oid group, ResGroupCompType comp, bool block)
 {
 	char path[MAXPGPATH];
 	size_t pathsize = sizeof(path);
@@ -1217,7 +1458,7 @@ ResGroupOps_UnLockGroup(Oid group, int fd)
 void
 ResGroupOps_SetCpuRateLimit(Oid group, int cpu_rate_limit)
 {
-	const char *comp = "cpu";
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_CPU;
 
 	/* SUB/shares := TOP/shares * cpu_rate_limit */
 
@@ -1233,13 +1474,14 @@ ResGroupOps_SetCpuRateLimit(Oid group, int cpu_rate_limit)
 void
 ResGroupOps_SetMemoryLimit(Oid group, int memory_limit)
 {
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_MEMORY;
 	int fd;
 	int32 memory_limit_in_chunks;
 
 	memory_limit_in_chunks = ResGroupGetVmemLimitChunks() * memory_limit / 100;
 	memory_limit_in_chunks *= ResGroupGetSegmentNum();
 
-	fd = ResGroupOps_LockGroup(group, "memory", true);
+	fd = ResGroupOps_LockGroup(group, comp, true);
 	ResGroupOps_SetMemoryLimitByValue(group, memory_limit_in_chunks);
 	ResGroupOps_UnLockGroup(group, fd);
 }
@@ -1255,7 +1497,7 @@ ResGroupOps_SetMemoryLimit(Oid group, int memory_limit)
 void
 ResGroupOps_SetMemoryLimitByValue(Oid group, int32 memory_limit)
 {
-	const char *comp = "memory";
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_MEMORY;
 	int64 memory_limit_in_bytes;
 
 	if (!gp_resource_group_enable_cgroup_memory)
@@ -1310,7 +1552,7 @@ ResGroupOps_SetMemoryLimitByValue(Oid group, int32 memory_limit)
 int64
 ResGroupOps_GetCpuUsage(Oid group)
 {
-	const char *comp = "cpuacct";
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_CPUACCT;
 
 	return readInt64(group, NULL, comp, "cpuacct.usage");
 }
@@ -1323,7 +1565,7 @@ ResGroupOps_GetCpuUsage(Oid group)
 int32
 ResGroupOps_GetMemoryUsage(Oid group)
 {
-	const char *comp = "memory";
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_MEMORY;
 	int64 memory_usage_in_bytes;
 	char *prop;
 
@@ -1348,7 +1590,7 @@ ResGroupOps_GetMemoryUsage(Oid group)
 int32
 ResGroupOps_GetMemoryLimit(Oid group)
 {
-	const char *comp = "memory";
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_MEMORY;
 	int64 memory_limit_in_bytes;
 
 	/* Report unlimited (max int32) if cgroup memory is not enabled */
@@ -1417,9 +1659,11 @@ ResGroupOps_GetTotalMemory(void)
 void
 ResGroupOps_SetCpuSet(Oid group, const char *cpuset)
 {
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_CPUSET;
+
 	if (!gp_resource_group_enable_cgroup_cpuset)
 		return ;
-	const char *comp = "cpuset";
+
 	writeStr(group, NULL, comp, "cpuset.cpus", cpuset);
 }
 
@@ -1432,8 +1676,10 @@ ResGroupOps_SetCpuSet(Oid group, const char *cpuset)
 void
 ResGroupOps_GetCpuSet(Oid group, char *cpuset, int len)
 {
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_CPUSET;
+
 	if (!gp_resource_group_enable_cgroup_cpuset)
 		return ;
-	const char *comp = "cpuset";
+
 	readStr(group, NULL, comp, "cpuset.cpus", cpuset, len);
 }

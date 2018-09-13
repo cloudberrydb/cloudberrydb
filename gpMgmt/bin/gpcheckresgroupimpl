@@ -9,29 +9,26 @@ import psutil
 from gppylib.commands import gp
 from gppylib import gpversion
 
+gpverstr = gp.GpVersion.local("", os.getenv("GPHOME"))
+gpver = gpversion.GpVersion(gpverstr)
+
 class dummy(object):
 
     def validate_all(self):
         exit("resource group is not supported on this platform")
 
 
-def detectCgroupMountPoint():
-    proc_mounts_path = "/proc/self/mounts"
-    if os.path.exists(proc_mounts_path):
-        with open(proc_mounts_path) as f:
-            for line in f:
-                mntent = line.split()
-                if mntent[2] != "cgroup": continue
-                mount_point = os.path.dirname(mntent[1])
-                return mount_point
-    return ""
-
 class cgroup(object):
 
-    mount_point = detectCgroupMountPoint()
-    tab = { 'r': os.R_OK, 'w': os.W_OK, 'x': os.X_OK, 'f': os.F_OK }
-    impl = "cgroup"
-    error_prefix = " is not properly configured: "
+    def __init__(self):
+        self.mount_point = self.detect_cgroup_mount_point()
+        self.tab = { 'r': os.R_OK, 'w': os.W_OK, 'x': os.X_OK, 'f': os.F_OK }
+        self.impl = "cgroup"
+        self.error_prefix = " is not properly configured: "
+
+        self.compdirs = self.detect_comp_dirs()
+        if not self.validate_comp_dirs():
+            self.compdirs = self.fallback_comp_dirs()
 
     def validate_all(self):
         """
@@ -44,44 +41,49 @@ class cgroup(object):
         if not self.mount_point:
             self.die("failed to detect cgroup mount point.")
 
-        self.validate_permission("cpu/gpdb/", "rwx")
-        self.validate_permission("cpu/gpdb/cgroup.procs", "rw")
-        self.validate_permission("cpu/gpdb/cpu.cfs_period_us", "rw")
-        self.validate_permission("cpu/gpdb/cpu.cfs_quota_us", "rw")
-        self.validate_permission("cpu/gpdb/cpu.shares", "rw")
+        if not self.compdirs:
+            self.die("failed to detect cgroup component dirs.")
 
-        self.validate_permission("cpuacct/gpdb/", "rwx")
-        self.validate_permission("cpuacct/gpdb/cgroup.procs", "rw")
-        self.validate_permission("cpuacct/gpdb/cpuacct.usage", "r")
-        self.validate_permission("cpuacct/gpdb/cpuacct.stat", "r")
+        self.validate_permission("cpu", "gpdb/", "rwx")
+        self.validate_permission("cpu", "gpdb/cgroup.procs", "rw")
+        self.validate_permission("cpu", "gpdb/cpu.cfs_period_us", "rw")
+        self.validate_permission("cpu", "gpdb/cpu.cfs_quota_us", "rw")
+        self.validate_permission("cpu", "gpdb/cpu.shares", "rw")
 
-        self.validate_permission("memory/memory.limit_in_bytes", "r")
+        self.validate_permission("cpuacct", "gpdb/", "rwx")
+        self.validate_permission("cpuacct", "gpdb/cgroup.procs", "rw")
+        self.validate_permission("cpuacct", "gpdb/cpuacct.usage", "r")
+        self.validate_permission("cpuacct", "gpdb/cpuacct.stat", "r")
+
+        self.validate_permission("memory", "memory.limit_in_bytes", "r")
 
         # resgroup memory auditor is introduced in 6.0 devel and backported
         # to 5.x branch since 5.6.1.  To provide backward compatibilities
         # memory permissions are only checked since 6.0.
-        gpverstr = gp.GpVersion.local("", os.getenv("GPHOME"))
-        gpver = gpversion.GpVersion(gpverstr)
         if gpver.version >= [6, 0, 0]:
-            self.validate_permission("memory/gpdb/", "rwx")
-            self.validate_permission("memory/gpdb/memory.limit_in_bytes", "rw")
-            self.validate_permission("memory/gpdb/memory.usage_in_bytes", "r")
+            self.validate_permission("memory", "gpdb/", "rwx")
+            self.validate_permission("memory", "gpdb/memory.limit_in_bytes", "rw")
+            self.validate_permission("memory", "gpdb/memory.usage_in_bytes", "r")
 
-            self.validate_permission("cpuset/gpdb/", "rwx")
-            self.validate_permission("cpuset/gpdb/cgroup.procs", "rw")
-            self.validate_permission("cpuset/gpdb/cpuset.cpus", "rw")
-            self.validate_permission("cpuset/gpdb/cpuset.mems", "rw")
+            self.validate_permission("cpuset", "gpdb/", "rwx")
+            self.validate_permission("cpuset", "gpdb/cgroup.procs", "rw")
+            self.validate_permission("cpuset", "gpdb/cpuset.cpus", "rw")
+            self.validate_permission("cpuset", "gpdb/cpuset.mems", "rw")
 
     def die(self, msg):
         exit(self.impl + self.error_prefix + msg)
 
-    def validate_permission(self, path, mode):
+    def validate_permission(self, comp, path, mode):
         """
         Validate permission on path.
         If path is a dir it must ends with '/'.
         """
         try:
-            fullpath = os.path.join(self.mount_point, path)
+            if comp not in self.compdirs:
+                self.die("can't find dir of cgroup component '%s'" % (comp))
+
+            compdir = self.compdirs[comp]
+            fullpath = os.path.join(self.mount_point, comp, compdir, path)
             pathtype = path[-1] == "/" and "directory" or "file"
             modebits = reduce(lambda x, y: x | y,
                               map(lambda x: self.tab[x], mode), 0)
@@ -95,6 +97,70 @@ class cgroup(object):
         except IOError, e:
             self.die("can't check permission on %s '%s': %s" \
                      % (pathtype, fullpath, str(e)))
+
+    def validate_comp_dirs(self):
+        """
+        Validate existance of cgroup component dirs.
+
+        Return True if all the components dir exist and have good permission,
+        otherwise return False.
+        """
+
+        comps = ['cpu', 'cpuacct']
+        if gpver.version >= [6, 0, 0]:
+            comps.extend(['cpuset', 'memory'])
+
+        for comp in comps:
+            if comp not in self.compdirs:
+                return False
+
+            compdir = self.compdirs[comp]
+            fullpath = os.path.join(self.mount_point, comp, compdir, 'gpdb')
+
+            if not os.access(fullpath, os.R_OK | os.W_OK | os.X_OK):
+                return False
+
+        return True
+
+    def detect_cgroup_mount_point(self):
+        proc_mounts_path = "/proc/self/mounts"
+        if os.path.exists(proc_mounts_path):
+            with open(proc_mounts_path) as f:
+                for line in f:
+                    mntent = line.split()
+                    if mntent[2] != "cgroup": continue
+                    mount_point = os.path.dirname(mntent[1])
+                    return mount_point
+        return ""
+
+    def detect_comp_dirs(self):
+        compdirs = {}
+        path = "/proc/1/cgroup"
+
+        if not os.path.exists(path):
+            return compdirs
+
+        for line in open(path):
+            line = line.strip()
+            compid, compnames, comppath = line.split(":")
+            if not compnames or '=' in compnames:
+                continue
+            for compname in compnames.split(','):
+                compdirs[compname] = comppath.strip(os.path.sep)
+
+        return compdirs
+
+    def required_comps(self):
+        comps = ['cpu', 'cpuacct']
+        if gpver.version >= [6, 0, 0]:
+            comps.extend(['cpuset', 'memory'])
+        return comps
+
+    def fallback_comp_dirs(self):
+        compdirs = {}
+        for comp in self.required_comps():
+            compdirs[comp] = ''
+        return compdirs
 
 if __name__ == '__main__':
     if sys.platform.startswith('linux'):
