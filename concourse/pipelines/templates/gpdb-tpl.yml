@@ -419,6 +419,13 @@ resources:
     - gpdb-doc/*
     - README*
 
+- name: gpaddon_src_binary_swap
+  type: git
+  source:
+    branch: {{gpaddon-binary-swap-git-branch}}
+    private_key: {{gpaddon-git-key}}
+    uri: {{gpaddon-binary-swap-git-remote}}
+
 {% endif %}
 - name: gpaddon_src
   type: git
@@ -1004,6 +1011,7 @@ jobs:
       resource: gpdb_src_binary_swap
       trigger: true
     - get: gpaddon_src
+      resource: gpaddon_src_binary_swap
     - get: centos-gpdb-dev-6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
