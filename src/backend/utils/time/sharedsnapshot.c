@@ -900,18 +900,18 @@ AtEOXact_SharedSnapshot(void)
 void
 LogDistributedSnapshotInfo(Snapshot snapshot, const char *prefix)
 {
-	static const int MESSAGE_LEN = 500;
-
 	if (!IsMVCCSnapshot(snapshot))
 		return;
+
+	StringInfoData buf;
+	initStringInfo(&buf);
 
 	DistributedSnapshotWithLocalMapping *mapping =
 		&(snapshot->distribSnapshotWithLocalMapping);
 
 	DistributedSnapshot *ds = &mapping->ds;
 
-	char message[MESSAGE_LEN];
-	snprintf(message, MESSAGE_LEN, "%s Distributed snapshot info: "
+	appendStringInfo(&buf, "%s Distributed snapshot info: "
 			 "xminAllDistributedSnapshots=%d, distribSnapshotId=%d"
 			 ", xmin=%d, xmax=%d, count=%d",
 			 prefix,
@@ -921,18 +921,23 @@ LogDistributedSnapshotInfo(Snapshot snapshot, const char *prefix)
 			 ds->xmax,
 			 ds->count);
 
-	snprintf(message, MESSAGE_LEN, "%s, In progress array: {",
-			 message);
+	appendStringInfoString(&buf, ", In progress array: {");
 
 	for (int no = 0; no < ds->count; no++)
 	{
 		if (no != 0)
-			snprintf(message, MESSAGE_LEN, "%s, (dx%d)",
-					 message, ds->inProgressXidArray[no]);
+		{
+			appendStringInfo(&buf, ", (dx%d)",
+					 ds->inProgressXidArray[no]);
+		}
 		else
-			snprintf(message, MESSAGE_LEN, "%s (dx%d)",
-					 message, ds->inProgressXidArray[no]);
+		{
+			appendStringInfo(&buf, " (dx%d)",
+					 ds->inProgressXidArray[no]);
+		}
 	}
+	appendStringInfoString(&buf, "}");
 
-	elog(LOG, "%s}", message);
+	elog(LOG, "%s", buf.data);
+	pfree(buf.data);
 }
