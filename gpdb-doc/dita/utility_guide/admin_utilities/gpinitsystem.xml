@@ -490,8 +490,8 @@ declare -a MIRROR_ARRAY=(
                             <codeph>gpinitsystem</codeph> uses IP addresses or host names in the
                             <codeph>pg_hba.conf</codeph> file when updating the file with addresses
                         that can connect to Greenplum Database. The default value is
-                            <codeph>0</codeph>, the utility use IP addresses when updating the file.
-                        When initializing a Greenplum Database system, specify
+                            <codeph>0</codeph>, the utility uses IP addresses when updating the
+                        file. When initializing a Greenplum Database system, specify
                             <codeph>HBA_HOSTNAMES=1</codeph> to have the utility use host names in
                         the <codeph>pg_hba.conf</codeph> file. </pd>
                     <pd>For information about how Greenplum Database resolves host names in the
