@@ -66,4 +66,7 @@ extern int numeric_len(Numeric num);
 int32		numeric_maximum_size(int32 typmod);
 extern char *numeric_out_sci(Numeric num, int scale);
 
+/* GPDB-specific additions */
+extern Numeric numeric_force_long_format(Numeric num);
+
 #endif   /* _PG_NUMERIC_H_ */

@@ -21,8 +21,12 @@ CREATE
 
 INSERT INTO ao_upgrade_test (SELECT a, convert_to_v4((a + 5) !) FROM generate_series(1, 10) a);
 INSERT 10
+INSERT INTO ao_upgrade_test VALUES(11, convert_to_v4('NaN'));
+INSERT 1
 INSERT INTO aocs_upgrade_test (SELECT a, convert_to_v4((a + 5) !) FROM generate_series(1, 10) a);
 INSERT 10
+INSERT INTO aocs_upgrade_test VALUES(11, convert_to_v4('NaN'));
+INSERT 1
 
 -- For the RLE test case, insert a bunch of identical numerics so they will be
 -- run-length compressed.
@@ -42,9 +46,10 @@ rowid|n
 8    |62.27 
 9    |871.78
 10   |1.308 
+11   |0     
 1    |720   
 2    |5040  
-(10 rows)
+(11 rows)
 SELECT * FROM aocs_upgrade_test;
 rowid|n     
 -----+------
@@ -56,9 +61,10 @@ rowid|n
 8    |62.27 
 9    |871.78
 10   |1.308 
+11   |0     
 1    |720   
 2    |5040  
-(10 rows)
+(11 rows)
 SELECT * FROM aocs_rle_upgrade_test;
 rowid|n   
 -----+----
@@ -145,6 +151,7 @@ rowid|n
 8    |6227020800   
 9    |87178291200  
 10   |1307674368000
+11   |NaN          
 1    |720          
 2    |5040         
 3    |40320        
@@ -152,7 +159,7 @@ rowid|n
 5    |3628800      
 6    |39916800     
 7    |479001600    
-(10 rows)
+(11 rows)
 SELECT * FROM aocs_upgrade_test;
 rowid|n            
 -----+-------------
@@ -166,7 +173,8 @@ rowid|n
 8    |6227020800   
 9    |87178291200  
 10   |1307674368000
-(10 rows)
+11   |NaN          
+(11 rows)
 SELECT * FROM aocs_rle_upgrade_test;
 rowid|n     
 -----+------

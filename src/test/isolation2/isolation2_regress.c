@@ -6,6 +6,7 @@
 #include "access/aocssegfiles.h"
 #include "access/heapam.h"
 #include "storage/bufmgr.h"
+#include "utils/numeric.h"
 
 PG_MODULE_MAGIC;
 
@@ -32,14 +33,24 @@ convertNumericToGPDB4(PG_FUNCTION_ARGS)
 {
 	Datum	numeric = PG_GETARG_DATUM(0);
 	void   *varlena = DatumGetPointer(numeric);
-	size_t	datalen;
 	void   *newvarlena;
 	char  *newdata;
 	uint16	tmp;
 
-	datalen = VARSIZE_ANY(varlena);
-	newvarlena = palloc(datalen);
-	memcpy(newvarlena, varlena, datalen);
+	/*
+	 * Postgres 9.1 added the short format to numeric types. To convert to 8.2,
+	 * we must force the use of the long format. This has the useful side effect
+	 * of making a copy for us that we can scratch over.
+	 */
+	newvarlena = numeric_force_long_format(DatumGetNumeric(numeric));
+	if (newvarlena == varlena)
+	{
+		/* Already in long format; we have to manually copy ourselves. */
+		size_t datalen = VARSIZE_ANY(varlena);
+
+		newvarlena = palloc(datalen);
+		memcpy(newvarlena, varlena, datalen);
+	}
 
 	newdata = VARDATA_ANY(newvarlena);
 

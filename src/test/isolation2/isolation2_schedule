@@ -23,6 +23,7 @@ test: vacuum_recently_dead_tuple_due_to_distributed_snapshot
 test: invalidated_toast_index
 test: distributed_snapshot
 test: gp_collation
+test: ao_upgrade
 
 test: setup
 # Tests on Append-Optimized tables (row-oriented).

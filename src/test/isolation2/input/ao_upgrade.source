@@ -21,7 +21,9 @@ CREATE TABLE aocs_upgrade_test (rowid int, n numeric) WITH (appendonly=true, ori
 CREATE TABLE aocs_rle_upgrade_test (rowid int, n numeric) WITH (appendonly=true, orientation=column, compresstype=RLE_TYPE);
 
 INSERT INTO ao_upgrade_test (SELECT a, convert_to_v4((a + 5) !) FROM generate_series(1, 10) a);
+INSERT INTO ao_upgrade_test VALUES(11, convert_to_v4('NaN'));
 INSERT INTO aocs_upgrade_test (SELECT a, convert_to_v4((a + 5) !) FROM generate_series(1, 10) a);
+INSERT INTO aocs_upgrade_test VALUES(11, convert_to_v4('NaN'));
 
 -- For the RLE test case, insert a bunch of identical numerics so they will be
 -- run-length compressed.
