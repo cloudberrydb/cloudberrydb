@@ -3794,6 +3794,7 @@ groupMemOnAlterForCgroup(Oid groupId, ResGroupData *group)
 static void
 groupApplyCgroupMemInc(ResGroupData *group)
 {
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_MEMORY;
 	int32 memory_limit;
 	int32 memory_inc;
 	int fd;
@@ -3806,7 +3807,7 @@ groupApplyCgroupMemInc(ResGroupData *group)
 	if (memory_inc <= 0)
 		return;
 
-	fd = ResGroupOps_LockGroup(group->groupId, "memory", true);
+	fd = ResGroupOps_LockGroup(group->groupId, comp, true);
 	memory_limit = ResGroupOps_GetMemoryLimit(group->groupId);
 	ResGroupOps_SetMemoryLimitByValue(group->groupId, memory_limit + memory_inc);
 	ResGroupOps_UnLockGroup(group->groupId, fd);
@@ -3822,6 +3823,7 @@ groupApplyCgroupMemInc(ResGroupData *group)
 static void
 groupApplyCgroupMemDec(ResGroupData *group)
 {
+	ResGroupCompType comp = RESGROUP_COMP_TYPE_MEMORY;
 	int32 memory_limit;
 	int32 memory_dec;
 	int fd;
@@ -3829,7 +3831,7 @@ groupApplyCgroupMemDec(ResGroupData *group)
 	Assert(LWLockHeldExclusiveByMe(ResGroupLock));
 	Assert(group->memGap > 0);
 
-	fd = ResGroupOps_LockGroup(group->groupId, "memory", true);
+	fd = ResGroupOps_LockGroup(group->groupId, comp, true);
 	memory_limit = ResGroupOps_GetMemoryLimit(group->groupId);
 	Assert(memory_limit > group->memGap);
 

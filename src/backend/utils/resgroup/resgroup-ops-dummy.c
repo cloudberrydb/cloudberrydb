@@ -112,10 +112,10 @@ ResGroupOps_AssignGroup(Oid group, ResGroupCaps *caps, int pid)
  * immediately.
  *
  * On success it return a fd to the OS group, pass it to
- * ResGroupOps_UnLockGroup() to unblock it.
+ * ResGroupOps_UnLockGroup() to unlock it.
  */
 int
-ResGroupOps_LockGroup(Oid group, const char *comp, bool block)
+ResGroupOps_LockGroup(Oid group, ResGroupCompType comp, bool block)
 {
 	unsupported_system();
 	return -1;

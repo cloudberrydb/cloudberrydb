@@ -16,13 +16,12 @@ import gpcheckresgroupimpl
 
 from gppylib.commands import gp
 from gppylib import gpversion
+
 gpverstr = gp.GpVersion.local("", os.getenv("GPHOME"))
 gpver = gpversion.GpVersion(gpverstr)
 
 @unittest.skipUnless(sys.platform.startswith("linux"), "requires linux")
 class GpCheckResGroupImplCGroup(unittest.TestCase):
-    cgroup_mntpnt = None
-    cgroup_default_mntpnt = gpcheckresgroupimpl.detectCgroupMountPoint()
 
     def setUp(self):
         self.cgroup_mntpnt = tempfile.mkdtemp(prefix='fake-cgroup-mnt-')
@@ -35,6 +34,9 @@ class GpCheckResGroupImplCGroup(unittest.TestCase):
         self.cgroup = gpcheckresgroupimpl.cgroup()
         self.cgroup.mount_point = self.cgroup_mntpnt
         self.cgroup.die = self.mock_cgroup_die
+        self.cgroup.compdirs = self.cgroup.fallback_comp_dirs()
+
+        self.cgroup_default_mntpnt = self.cgroup.detect_cgroup_mount_point()
 
         os.mkdir(os.path.join(self.cgroup_mntpnt, "cpu", "gpdb"), 0700)
         self.touch(os.path.join(self.cgroup_mntpnt, "cpu", "gpdb", "cgroup.procs"), 0600)
@@ -73,7 +75,82 @@ class GpCheckResGroupImplCGroup(unittest.TestCase):
             pass
         os.chmod(path, mode)
 
+    def test_comp_lists(self):
+        # this looks like redundant as it's just a copy of required_comps(),
+        # however it is necessary to verify this unit test is up-to-date.
+        comps = ['cpu', 'cpuacct']
+        if gpver.version >= [6, 0, 0]:
+            comps.extend(['cpuset', 'memory'])
+        self.assertEqual(self.cgroup.required_comps(), comps)
+
+    def test_comp_dirs_validation(self):
+        self.assertTrue(self.cgroup.validate_comp_dirs())
+
+    def test_comp_dirs_validation_when_cpu_gpdb_dir_bad_permission(self):
+        os.chmod(os.path.join(self.cgroup_mntpnt, "cpu", "gpdb"), 0100)
+        self.assertFalse(self.cgroup.validate_comp_dirs())
+        os.chmod(os.path.join(self.cgroup_mntpnt, "cpu", "gpdb"), 0700)
+
+    def test_comp_dirs_validation_when_cpu_gpdb_dir_missing(self):
+        shutil.rmtree(os.path.join(self.cgroup_mntpnt, "cpu", "gpdb"))
+        self.assertFalse(self.cgroup.validate_comp_dirs())
+
+    def test_comp_dirs_validation_when_cpuacct_gpdb_dir_bad_permission(self):
+        os.chmod(os.path.join(self.cgroup_mntpnt, "cpuacct", "gpdb"), 0100)
+        self.assertFalse(self.cgroup.validate_comp_dirs())
+        os.chmod(os.path.join(self.cgroup_mntpnt, "cpuacct", "gpdb"), 0700)
+
+    def test_comp_dirs_validation_when_cpuacct_gpdb_dir_missing(self):
+        shutil.rmtree(os.path.join(self.cgroup_mntpnt, "cpuacct", "gpdb"))
+        self.assertFalse(self.cgroup.validate_comp_dirs())
+
+    def test_comp_dirs_validation_when_cpuset_gpdb_dir_bad_permission(self):
+        os.chmod(os.path.join(self.cgroup_mntpnt, "cpuset", "gpdb"), 0100)
+        if gpver.version >= [6, 0, 0]:
+            self.assertFalse(self.cgroup.validate_comp_dirs())
+        else:
+            self.assertTrue(self.cgroup.validate_comp_dirs())
+        os.chmod(os.path.join(self.cgroup_mntpnt, "cpuset", "gpdb"), 0700)
+
+    def test_comp_dirs_validation_when_cpuset_gpdb_dir_missing(self):
+        shutil.rmtree(os.path.join(self.cgroup_mntpnt, "cpuset", "gpdb"))
+        if gpver.version >= [6, 0, 0]:
+            self.assertFalse(self.cgroup.validate_comp_dirs())
+        else:
+            self.assertTrue(self.cgroup.validate_comp_dirs())
+
+    def test_comp_dirs_validation_when_memory_gpdb_dir_bad_permission(self):
+        os.chmod(os.path.join(self.cgroup_mntpnt, "memory", "gpdb"), 0100)
+        if gpver.version >= [6, 0, 0]:
+            self.assertFalse(self.cgroup.validate_comp_dirs())
+        else:
+            self.assertTrue(self.cgroup.validate_comp_dirs())
+        os.chmod(os.path.join(self.cgroup_mntpnt, "memory", "gpdb"), 0700)
+
+    def test_comp_dirs_validation_when_memory_gpdb_dir_missing(self):
+        shutil.rmtree(os.path.join(self.cgroup_mntpnt, "memory", "gpdb"))
+        if gpver.version >= [6, 0, 0]:
+            self.assertFalse(self.cgroup.validate_comp_dirs())
+        else:
+            self.assertTrue(self.cgroup.validate_comp_dirs())
+
     def test_proper_setup(self):
+        self.cgroup.validate_all()
+
+    def test_proper_setup_with_non_default_cgroup_comp_dirs(self):
+        # set comp dir to comp.dir
+        compdirs = self.cgroup.compdirs
+        self.cgroup.compdirs = {}
+        for comp in compdirs.keys():
+            self.cgroup.compdirs[comp] = comp + '.dir'
+        # move /sys/fs/cgroup/comp to /sys/fs/cgroup/comp/comp.dir
+        for comp in self.cgroup.compdirs.keys():
+            compdir = self.cgroup.compdirs[comp]
+            olddir = os.path.join(self.cgroup_mntpnt, comp)
+            tmpdir = os.path.join(self.cgroup_mntpnt, compdir)
+            shutil.move(olddir, tmpdir)
+            os.mkdir(olddir, 0700)
+            shutil.move(tmpdir, olddir)
         self.cgroup.validate_all()
 
     def test_when_cpu_gpdb_dir_missing(self):
