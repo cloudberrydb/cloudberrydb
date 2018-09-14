@@ -1,0 +1,65 @@
+-- Test to validate that AWAITING_DROP segment files are never chosen
+-- for inserts.
+
+-- start_matchsubs
+-- s/\s+\(.*\.[ch]:\d+\)/ (SOMEFILE:SOMEFUNC)/
+-- m/relid \d+/
+-- s/relid \d+/relid /
+-- end_matchsubs
+create extension if not exists gp_inject_fault;
+
+select gp_inject_fault('all', 'reset', 1);
+
+create or replace function remove_ao_entry_from_hash_table(oid)
+returns void as '@abs_builddir@/isolation2_regress@DLSUFFIX@'
+language c immutable strict no sql;
+
+-- Given an append only table that is ready to be compacted
+
+drop table if exists test_table_@orientation@;
+create table test_table_@orientation@ (a int, b int) with(appendonly=true);
+insert into test_table_@orientation@ select i,i from generate_series(1,12)i;
+update test_table_@orientation@ set b = -b;
+
+select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
+
+select gp_inject_fault('before_creating_an_ao_hash_entry', 'suspend', 1);
+
+-- And an insert transaction is blocked before assigning a segment
+-- file for insertion
+1&: INSERT INTO test_table_@orientation@ VALUES (1,1);
+
+select gp_wait_until_triggered_fault('before_creating_an_ao_hash_entry', 1, 1);
+
+select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'suspend', 1);
+2&: VACUUM test_table_@orientation@;
+
+select gp_wait_until_triggered_fault('vacuum_relation_open_relation_during_drop_phase', 1, 1);
+
+-- Then vacuum should have completed compaction leaving segment file 1
+-- in default state on QD but in awaiting drop state on QEs
+select segno, state from gp_ao_or_aocs_seg_name('test_table_@orientation@');
+0U: select segno, state from gp_ao_or_aocs_seg_name('test_table_@orientation@');
+
+-- And the append only hash table no longer holds a record for test_table_@orientation@
+select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
+
+-- And the insert fails
+select gp_inject_fault('before_creating_an_ao_hash_entry', 'reset', 1);
+1<:
+
+-- And the vacuum completes
+select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'reset', 1);
+2<:
+
+-- Then inserts into test table should not be visible
+select count(1) from test_table_@orientation@;
+
+-- And additional inserts should continue to fail
+insert into test_table_@orientation@ values (1,1);
+
+-- When the appendonly hash entry is removed
+select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
+
+-- Then inserts should begin to succeed
+insert into test_table_@orientation@ values (1,1);

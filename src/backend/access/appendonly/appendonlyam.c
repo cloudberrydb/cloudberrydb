@@ -471,7 +471,9 @@ SetCurrentFileSegForWrite(AppendOnlyInsertDesc aoInsertDesc)
 	}
 
 	/* Never insert into a segment that is awaiting a drop */
-	Assert(aoInsertDesc->fsInfo->state != AOSEG_STATE_AWAITING_DROP);
+	elogif(aoInsertDesc->fsInfo->state == AOSEG_STATE_AWAITING_DROP,
+		   ERROR, "cannot insert into segno (%d) from AO relid %d that is in state AOSEG_STATE_AWAITING_DROP",
+		   aoInsertDesc->cur_segno, RelationGetRelid(aoInsertDesc->aoi_rel));
 
 	fsinfo = aoInsertDesc->fsInfo;
 	Assert(fsinfo);

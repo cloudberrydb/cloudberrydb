@@ -1,0 +1,127 @@
+-- Test to validate that AWAITING_DROP segment files are never chosen
+-- for inserts.
+
+-- start_matchsubs
+-- s/\s+\(.*\.[ch]:\d+\)/ (SOMEFILE:SOMEFUNC)/
+-- m/relid \d+/
+-- s/relid \d+/relid /
+-- end_matchsubs
+create extension if not exists gp_inject_fault;
+CREATE
+
+select gp_inject_fault('all', 'reset', 1);
+gp_inject_fault
+---------------
+t              
+(1 row)
+
+create or replace function remove_ao_entry_from_hash_table(oid) returns void as '@abs_builddir@/isolation2_regress@DLSUFFIX@' language c immutable strict no sql;
+CREATE
+
+-- Given an append only table that is ready to be compacted
+
+drop table if exists test_table_@orientation@;
+DROP
+create table test_table_@orientation@ (a int, b int) with(appendonly=true);
+CREATE
+insert into test_table_@orientation@ select i,i from generate_series(1,12)i;
+INSERT 12
+update test_table_@orientation@ set b = -b;
+UPDATE 12
+
+select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
+remove_ao_entry_from_hash_table
+-------------------------------
+                               
+(1 row)
+
+select gp_inject_fault('before_creating_an_ao_hash_entry', 'suspend', 1);
+gp_inject_fault
+---------------
+t              
+(1 row)
+
+-- And an insert transaction is blocked before assigning a segment
+-- file for insertion
+1&: INSERT INTO test_table_@orientation@ VALUES (1,1);  <waiting ...>
+
+select gp_wait_until_triggered_fault('before_creating_an_ao_hash_entry', 1, 1);
+gp_wait_until_triggered_fault
+-----------------------------
+t                            
+(1 row)
+
+select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'suspend', 1);
+gp_inject_fault
+---------------
+t              
+(1 row)
+2&: VACUUM test_table_@orientation@;  <waiting ...>
+
+select gp_wait_until_triggered_fault('vacuum_relation_open_relation_during_drop_phase', 1, 1);
+gp_wait_until_triggered_fault
+-----------------------------
+t                            
+(1 row)
+
+-- Then vacuum should have completed compaction leaving segment file 1
+-- in default state on QD but in awaiting drop state on QEs
+select segno, state from gp_ao_or_aocs_seg_name('test_table_@orientation@');
+segno|state
+-----+-----
+1    |1    
+2    |1    
+(2 rows)
+0U: select segno, state from gp_ao_or_aocs_seg_name('test_table_@orientation@');
+segno|state
+-----+-----
+1    |2    
+2    |1    
+(2 rows)
+
+-- And the append only hash table no longer holds a record for test_table_@orientation@
+select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
+remove_ao_entry_from_hash_table
+-------------------------------
+                               
+(1 row)
+
+-- And the insert fails
+select gp_inject_fault('before_creating_an_ao_hash_entry', 'reset', 1);
+gp_inject_fault
+---------------
+t              
+(1 row)
+1<:  <... completed>
+ERROR:  cannot insert into segno (1) from AO relid 41063 that is in state AOSEG_STATE_AWAITING_DROP (appendonlyam.c:476)  (seg2 127.0.1.1:25434 pid=9708) (appendonlyam.c:476)
+
+-- And the vacuum completes
+select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'reset', 1);
+gp_inject_fault
+---------------
+t              
+(1 row)
+2<:  <... completed>
+ERROR:  expected segno (1) from AO relid 41063 in state COMPACTED_AWAITING_DROP but found in state 1 (appendonlywriter.c:768)
+
+-- Then inserts into test table should not be visible
+select count(1) from test_table_@orientation@;
+count
+-----
+12   
+(1 row)
+
+-- And additional inserts should continue to fail
+insert into test_table_@orientation@ values (1,1);
+ERROR:  cannot insert into segno (1) from AO relid 41063 that is in state AOSEG_STATE_AWAITING_DROP (appendonlyam.c:476)  (seg2 127.0.1.1:25434 pid=9657) (appendonlyam.c:476)
+
+-- When the appendonly hash entry is removed
+select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
+remove_ao_entry_from_hash_table
+-------------------------------
+                               
+(1 row)
+
+-- Then inserts should begin to succeed
+insert into test_table_@orientation@ values (1,1);
+INSERT 1

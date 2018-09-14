@@ -30,6 +30,7 @@
 #include "miscadmin.h"
 #include "storage/lmgr.h"
 #include "utils/builtins.h"
+#include "utils/faultinjector.h"
 #include "utils/int8.h"
 #include "utils/lsyscache.h"
 #include "utils/snapmgr.h"
@@ -57,7 +58,6 @@ static bool appendOnlyInsertXact = false;
  */
 static bool AOHashTableInit(void);
 static AORelHashEntry AppendOnlyRelHashNew(Oid relid, bool *exists);
-static AORelHashEntry AORelGetHashEntry(Oid relid);
 static AORelHashEntry AORelLookupHashEntry(Oid relid);
 static bool AORelCreateHashEntry(Oid relid);
 static bool *GetFileSegStateInfoFromSegments(Relation parentrel);
@@ -189,6 +189,8 @@ AORelCreateHashEntry(Oid relid)
 	 * system catalog (i.e. without risking a deadlock).
 	 */
 	LWLockRelease(AOSegFileLock);
+
+	SIMPLE_FAULT_INJECTOR(BeforeCreatingAnAOHashEntry);
 
 	/*
 	 * Now get all the segment files information for this relation from the QD
@@ -330,7 +332,7 @@ AORelCreateHashEntry(Oid relid)
 }
 
 /*
- * AORelRemoveEntry -- remove the hash entry for a given relation.
+ * AORelRemoveHashEntry -- remove the hash entry for a given relation.
  *
  * Notes
  *	The append only lightweight lock (AOSegFileLock) *must* be held for
@@ -390,7 +392,7 @@ AORelLookupHashEntry(Oid relid)
  * AORelGetEntry -- Same as AORelLookupEntry but here the caller is expecting
  *					an entry to exist. We error out if it doesn't.
  */
-static AORelHashEntry
+AORelHashEntry
 AORelGetHashEntry(Oid relid)
 {
 	AORelHashEntryData *aoentry = AORelLookupHashEntry(relid);
@@ -760,9 +762,11 @@ RegisterSegnoForCompactionDrop(Oid relid, List *compactedSegmentFileList)
 							  "relation \"%s\" (%d)", i,
 							  get_rel_name(relid), relid)));
 
-			Assert(segfilestat->state == COMPACTED_AWAITING_DROP);
-			segfilestat->xid = CurrentXid;
 			appendOnlyInsertXact = true;
+			segfilestat->xid = CurrentXid;
+			elogif(segfilestat->state != COMPACTED_AWAITING_DROP,
+				   ERROR, "expected segno (%d) from AO relid %d in state COMPACTED_AWAITING_DROP but found in state %d",
+				   i, relid, segfilestat->state);
 			segfilestat->state = DROP_USE;
 		}
 	}
@@ -1846,12 +1850,6 @@ AtAbort_AppendOnly(void)
 			}
 			/* bingo! */
 
-			Assert(segfilestat->state == INSERT_USE ||
-				   segfilestat->state == COMPACTION_USE ||
-				   segfilestat->state == DROP_USE ||
-				   segfilestat->state == PSEUDO_COMPACTION_USE ||
-				   segfilestat->state == COMPACTED_DROP_SKIPPED);
-
 			ereportif(Debug_appendonly_print_segfile_choice, LOG,
 					  (errmsg("AtAbort_AppendOnly: found a segno that inserted in our txn for "
 							  "table %d. Cleaning segno %d tupcount: old "
@@ -1885,7 +1883,8 @@ AtEOXact_AppendOnly_StateTransition(AORelHashEntry aoentry, int segno,
 	AOSegfileState oldstate;
 
 	Assert(segfilestat);
-	Assert(segfilestat->state == INSERT_USE ||
+	Assert(segfilestat->aborted ||
+		   segfilestat->state == INSERT_USE ||
 		   segfilestat->state == COMPACTION_USE ||
 		   segfilestat->state == DROP_USE ||
 		   segfilestat->state == PSEUDO_COMPACTION_USE ||
@@ -1935,7 +1934,7 @@ AtEOXact_AppendOnly_StateTransition(AORelHashEntry aoentry, int segno,
 	}
 	else
 	{
-		Assert(false);
+		Assert(segfilestat->aborted);
 	}
 
 	ereportif(Debug_appendonly_print_segfile_choice, LOG,
