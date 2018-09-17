@@ -1026,8 +1026,9 @@ select java_substring(a, 1, 5) from temp;</codeblock>
     <body>
       <p>The PL/Java Github wiki page - <xref href="https://github.com/tada/pljava/wiki"
           format="html" scope="external">https://github.com/tada/pljava/wiki</xref>.</p>
-      <p> PL/Java 1.4.0 release - <xref href="https://github.com/tada/pljava/tree/B1_4"
-          format="html" scope="external">https://github.com/tada/pljava/tree/B1_4</xref>.</p>
+      <p> PL/Java 1.5.0 release - <xref href="https://github.com/tada/pljava/tree/REL1_5_STABLE"
+          format="html" scope="external"
+        >https://github.com/tada/pljava/tree/REL1_5_STABLE</xref>.</p>
     </body>
   </topic>
 </topic>
