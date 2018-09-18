@@ -44,7 +44,7 @@ select segno, state from gp_ao_or_aocs_seg_name('test_table_@orientation@');
 -- And the append only hash table no longer holds a record for test_table_@orientation@
 select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
 
--- And the insert fails
+-- And the insert succeeds
 select gp_inject_fault('before_creating_an_ao_hash_entry', 'reset', 1);
 1<:
 
@@ -52,14 +52,17 @@ select gp_inject_fault('before_creating_an_ao_hash_entry', 'reset', 1);
 select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'reset', 1);
 2<:
 
--- Then inserts into test table should not be visible
+-- Then inserts into test table should be visible
 select count(1) from test_table_@orientation@;
 
--- And additional inserts should continue to fail
+-- And additional inserts should continue to succeed
 insert into test_table_@orientation@ values (1,1);
 
 -- When the appendonly hash entry is removed
 select remove_ao_entry_from_hash_table('test_table_@orientation@'::regclass::oid);
 
--- Then inserts should begin to succeed
+-- Then inserts should continue to succeed
 insert into test_table_@orientation@ values (1,1);
+
+-- And inserted data should be visible
+select count(1) from test_table_@orientation@;

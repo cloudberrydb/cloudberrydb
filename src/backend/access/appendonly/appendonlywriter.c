@@ -1456,7 +1456,23 @@ GetFileSegStateInfoFromSegments(Relation parentrel)
 
 	PG_TRY();
 	{
-		CdbDispatchCommand(sqlstmt.data, DF_WITH_SNAPSHOT, &cdb_pgresults);
+		/*
+		 * DF_NONE causes QEs to use SnapshotNow instead of our MVCC snapshot
+		 * to scan the aoseg table.  A lot can happen between the time we
+		 * acquired the MVCC snapshot and now.  Specifically, a transaction
+		 * that changed the state of an appendonly segment file may commit.  If
+		 * MVCC snapshot is used, effects of such a transaction may not be
+		 * visible.  SnapshotNow ensures the latest committed value of segment
+		 * file state is obtained from QEs.
+		 *
+		 * Note that the status is fetched from the segments only if the
+		 * AppendOnlyHash does not contain an entry for the table. As long as a
+		 * transaction that updates the state of an appendonly segment file on
+		 * segments (e.g. vacuum compaction) is in-progress, the AppendOnlyHash
+		 * is guaranteed to contain an entry for the AO table. Fetching the
+		 * state from segments is not needed in such a case.
+		 */
+		CdbDispatchCommand(sqlstmt.data, DF_NONE, &cdb_pgresults);
 
 		/* Restore userid */
 		SetUserIdAndContext(save_userid, save_secdefcxt);
