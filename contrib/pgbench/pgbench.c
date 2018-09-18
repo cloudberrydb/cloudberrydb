@@ -1341,11 +1341,11 @@ init(void)
 		if (ddl->declare_fillfactor)
 			snprintf(opts + strlen(opts), 256 - strlen(opts),
 					 " with (fillfactor=%d, %s) DISTRIBUTED BY (%s)",
-					 fillfactor, storage_clause, ddl->declare_fillfactor);
+					 fillfactor, storage_clause, ddl->distributed_col);
 		else
 			snprintf(opts + strlen(opts), 256 - strlen(opts),
 					 " with (%s) DISTRIBUTED BY (%s)",
-					 storage_clause, ddl->declare_fillfactor);
+					 storage_clause, ddl->distributed_col);
 		if (tablespace != NULL)
 		{
 			char	   *escape_tablespace;
@@ -1940,7 +1940,7 @@ main(int argc, char **argv)
 	state = (CState *) xmalloc(sizeof(CState));
 	memset(state, 0, sizeof(CState));
 
-	while ((c = getopt(argc, argv, "ih:nvp:dSNc:Crs:t:T:U:lf:D:F:M:j:x:q")) != -1)
+	while ((c = getopt_long(argc, argv, "ih:nvp:dSNc:Crs:t:T:U:lf:D:F:M:j:x:q", long_options, &optindex)) != -1)
 	{
 		switch (c)
 		{
