@@ -1059,7 +1059,7 @@ AOCSFileSegInfoAddCount(Relation prel, int32 segno,
 	d[Anum_pg_aocs_varblockcount - 1] = fastgetattr(oldtup, Anum_pg_aocs_varblockcount, tupdesc, &null[Anum_pg_aocs_varblockcount - 1]);
 	Assert(!null[Anum_pg_aocs_varblockcount - 1]);
 	d[Anum_pg_aocs_varblockcount - 1] += varblockadded;
-	repl[Anum_pg_aocs_tupcount - 1] = true;
+	repl[Anum_pg_aocs_varblockcount - 1] = true;
 
 	d[Anum_pg_aocs_modcount - 1] = fastgetattr(oldtup, Anum_pg_aocs_modcount, tupdesc, &null[Anum_pg_aocs_modcount - 1]);
 	Assert(!null[Anum_pg_aocs_modcount - 1]);
