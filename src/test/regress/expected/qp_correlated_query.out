@@ -3646,18 +3646,21 @@ INSERT INTO qp_non_eq_a VALUES (1, '0'), (2, '-0');
 INSERT INTO qp_non_eq_b VALUES (3, '0'), (1, '-0');
 -- end_ignore
 EXPLAIN SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.f = qp_non_eq_b.f AND qp_non_eq_a.f::text <> '-0';
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=1.04..3.17 rows=4 width=24)
-   ->  Hash Join  (cost=1.04..3.17 rows=2 width=24)
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=1.08..3.18 rows=4 width=24)
+   ->  Hash Join  (cost=1.08..3.18 rows=2 width=24)
          Hash Cond: qp_non_eq_a.f = qp_non_eq_b.f
-         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.08 rows=1 width=12)
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.06 rows=1 width=12)
+               Hash Key: qp_non_eq_a.f
                ->  Seq Scan on qp_non_eq_a  (cost=0.00..2.04 rows=1 width=12)
                      Filter: f::text <> '-0'::text
-         ->  Hash  (cost=1.02..1.02 rows=1 width=12)
-               ->  Seq Scan on qp_non_eq_b  (cost=0.00..1.02 rows=1 width=12)
+         ->  Hash  (cost=1.06..1.06 rows=1 width=12)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..1.06 rows=1 width=12)
+                     Hash Key: qp_non_eq_b.f
+                     ->  Seq Scan on qp_non_eq_b  (cost=0.00..1.02 rows=1 width=12)
  Optimizer: legacy query optimizer
-(9 rows)
+(12 rows)
 
 SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.f = qp_non_eq_b.f AND qp_non_eq_a.f::text <> '-0';
  i | f | i | f  
@@ -3669,16 +3672,19 @@ SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.f = qp_non_eq_b.f AND q
 EXPLAIN SELECT * FROM qp_non_eq_a INNER JOIN qp_non_eq_b ON qp_non_eq_a.f = qp_non_eq_b.f AND CASE WHEN qp_non_eq_b.f::text = '-0' THEN 1 ELSE -1::float8 END < '0';
                                                                    QUERY PLAN                                                                    
 -------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=1.12..3.18 rows=4 width=24)
-   ->  Hash Join  (cost=1.12..3.18 rows=2 width=24)
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=1.07..3.17 rows=4 width=24)
+   ->  Hash Join  (cost=1.07..3.17 rows=2 width=24)
          Hash Cond: qp_non_eq_a.f = qp_non_eq_b.f
-         ->  Seq Scan on qp_non_eq_a  (cost=0.00..2.02 rows=1 width=12)
-         ->  Hash  (cost=1.08..1.08 rows=1 width=12)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.08 rows=1 width=12)
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.06 rows=1 width=12)
+               Hash Key: qp_non_eq_a.f
+               ->  Seq Scan on qp_non_eq_a  (cost=0.00..2.02 rows=1 width=12)
+         ->  Hash  (cost=1.06..1.06 rows=1 width=12)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..1.06 rows=1 width=12)
+                     Hash Key: qp_non_eq_b.f
                      ->  Seq Scan on qp_non_eq_b  (cost=0.00..1.04 rows=1 width=12)
                            Filter: CASE WHEN f::text = '-0'::text THEN 1::double precision ELSE (-1)::double precision END < 0::double precision
  Optimizer: legacy query optimizer
-(9 rows)
+(12 rows)
 
 SELECT * FROM qp_non_eq_a INNER JOIN qp_non_eq_b ON qp_non_eq_a.f = qp_non_eq_b.f AND CASE WHEN qp_non_eq_b.f::text = '-0' THEN 1 ELSE -1::float8 END < '0';
  i | f  | i | f 
