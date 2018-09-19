@@ -30,6 +30,9 @@
 #include "fmgr.h"
 #include "funcapi.h"
 
+#include "cdb/cdbvars.h"
+#include "access/appendonlywriter.h"
+
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
 #endif
@@ -64,6 +67,12 @@ gp_aovisimap_hidden_info(PG_FUNCTION_ARGS);
 extern Datum
 gp_aovisimap_hidden_info_name(PG_FUNCTION_ARGS);
 
+extern void
+gp_remove_ao_entry_from_cache(PG_FUNCTION_ARGS);
+
+extern Datum
+gp_get_ao_entry_from_cache(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(gp_aoseg_history_wrapper);
 PG_FUNCTION_INFO_V1(gp_aoseg_name_wrapper);
 PG_FUNCTION_INFO_V1(gp_aocsseg_name_wrapper);
@@ -75,6 +84,8 @@ PG_FUNCTION_INFO_V1(gp_aovisimap_entry_wrapper);
 PG_FUNCTION_INFO_V1(gp_aovisimap_entry_name_wrapper);
 PG_FUNCTION_INFO_V1(gp_aovisimap_hidden_info_wrapper);
 PG_FUNCTION_INFO_V1(gp_aovisimap_hidden_info_name_wrapper);
+PG_FUNCTION_INFO_V1(gp_remove_ao_entry_from_cache);
+PG_FUNCTION_INFO_V1(gp_get_ao_entry_from_cache);
 
 extern Datum
 gp_aoseg_history_wrapper(PG_FUNCTION_ARGS);
@@ -351,3 +362,138 @@ gp_aovisimap_entry_name_wrapper(PG_FUNCTION_ARGS)
 	PG_RETURN_DATUM(returnValue);
 }
 
+/*
+ * Interface to remove an entry from AppendOnlyHash cache.
+ */
+void
+gp_remove_ao_entry_from_cache(PG_FUNCTION_ARGS)
+{
+	Oid relid = PG_GETARG_OID(0);
+
+	if (!IS_QUERY_DISPATCHER())
+		elog(ERROR, "ao entries are maintained only on query dispatcher");
+
+	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	AORelHashEntry aoentry = AORelGetHashEntry(relid);
+	if (aoentry->txns_using_rel != 0)
+		elog(ERROR, "relid %d is used by %d transactions, cannot remove it yet",
+			 relid, aoentry->txns_using_rel);
+
+	if (AORelRemoveHashEntry(relid))
+		elog(NOTICE, "AO entry removed from cache for %d", relid);
+	else
+		elog(NOTICE, "AO entry does not exist in cache for %d", relid);
+
+	LWLockRelease(AOSegFileLock);
+}
+
+/*
+ * Interface to obtain details of an entry from AppendOnlyHash cache.
+ */
+struct GetAOEntryContext
+{
+	int segno;
+	AORelHashEntryData aoentry;
+};
+
+Datum
+gp_get_ao_entry_from_cache(PG_FUNCTION_ARGS)
+{
+	Oid relid = PG_GETARG_OID(0);
+
+	if (!IS_QUERY_DISPATCHER())
+		elog(ERROR, "ao entries are maintained only on query dispatcher");
+
+	FuncCallContext *funcctx;
+	struct GetAOEntryContext *context;
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		TupleDesc	tupdesc;
+		MemoryContext oldcontext;
+
+		/* create a function context for cross-call persistence */
+		funcctx = SRF_FIRSTCALL_INIT();
+
+		/*
+		 * switch to memory context appropriate for multiple function
+		 * calls
+		 */
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		/* build tupdesc for result tuples */
+#define NUM_ATTRS 9
+		tupdesc = CreateTemplateTupleDesc(NUM_ATTRS, false);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "segno",
+						   INT2OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "total_tupcount",
+						   INT8OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "tuples_added",
+						   INT8OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "inserting_transaction",
+						   XIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "latest_committed_inserting_dxid",
+						   XIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "state",
+						   INT2OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "format_version",
+						   INT2OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "is_full",
+						   BOOLOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "aborted",
+						   BOOLOID, -1, 0);
+
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+		context = palloc(sizeof(struct GetAOEntryContext));
+		context->segno = 0;
+
+		LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+		AORelHashEntry aoentry = AORelGetHashEntry(relid);
+		memcpy(&context->aoentry, aoentry, sizeof(AORelHashEntryData));
+		LWLockRelease(AOSegFileLock);
+
+		funcctx->user_fctx = (void *) context;
+
+		MemoryContextSwitchTo(oldcontext);
+		elog(NOTICE, "transactions using relid %d: %d",
+			 relid, aoentry->txns_using_rel);
+	}
+
+	funcctx = SRF_PERCALL_SETUP();
+	context = (struct GetAOEntryContext *) funcctx->user_fctx;
+
+	if (context->segno < MAX_AOREL_CONCURRENCY)
+	{
+		Datum		values[NUM_ATTRS];
+		bool		nulls[NUM_ATTRS];
+		HeapTuple	tuple;
+		Datum		result;
+
+		AOSegfileStatus *aosegfile =
+			&(context->aoentry.relsegfiles[context->segno]);
+
+		/*
+		 * Form tuple with appropriate data.
+		 */
+		MemSet(values, 0, sizeof(values));
+		MemSet(nulls, false, sizeof(nulls));
+
+		values[0] = Int16GetDatum(context->segno);
+		values[1] = Int64GetDatum(aosegfile->total_tupcount);
+		values[2] = Int64GetDatum(aosegfile->tupsadded);
+		values[3] = TransactionIdGetDatum(aosegfile->xid);
+		values[4] = TransactionIdGetDatum(aosegfile->latestWriteXid);
+		values[5] = Int16GetDatum(aosegfile->state);
+		values[6] = Int16GetDatum(aosegfile->formatversion);
+		values[7] = BoolGetDatum(aosegfile->isfull);
+		values[8] = BoolGetDatum(aosegfile->aborted);
+
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+		result = HeapTupleGetDatum(tuple);
+
+		context->segno++;
+		SRF_RETURN_NEXT(funcctx, result);
+	}
+	SRF_RETURN_DONE(funcctx);
+}
