@@ -585,8 +585,6 @@ ExecInitRowTrigger(RowTrigger *node, EState *estate, int eflags)
 	        rowTriggerState->ps.cdbexplainfun = ExecRowTriggerExplainEnd;
 	}
 
-	initGpmonPktForRowTrigger((Plan *)node, &rowTriggerState->ps.gpmon_pkt, estate);
-
 	return rowTriggerState;
 }
 
@@ -597,13 +595,4 @@ ExecEndRowTrigger(RowTriggerState *node)
 	ExecFreeExprContext(&node->ps);
 	ExecEndNode(outerPlanState(node));
 	EndPlanStateGpmonPkt(&node->ps);
-}
-
-/* Tracing execution for GP Monitor. */
-void
-initGpmonPktForRowTrigger(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, RowTrigger));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }

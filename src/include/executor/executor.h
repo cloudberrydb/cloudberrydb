@@ -440,7 +440,6 @@ extern void BitmapAOScanReScan(ScanState *scanState);
 /*
  * prototypes from functions in execBitmapTableScan.c
  */
-extern void initGpmonPktForBitmapTableScan(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
 extern TupleTableSlot *BitmapTableScanNext(BitmapTableScanState *scanState);
 extern void BitmapTableScanBegin(BitmapTableScanState *scanState, Plan *plan, EState *estate, int eflags);
 extern void BitmapTableScanEnd(BitmapTableScanState *scanState);

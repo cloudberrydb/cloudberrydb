@@ -21,8 +21,6 @@ extern TupleTableSlot* ExecRowTrigger(RowTriggerState *node);
 extern RowTriggerState* ExecInitRowTrigger(RowTrigger *node, EState *estate, int eflags);
 extern void ExecEndRowTrigger(RowTriggerState *node);
 
-extern void initGpmonPktForRowTrigger(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
-
 #endif   /* NODEROWTRIGGER_H */
 
 

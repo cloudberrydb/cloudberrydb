@@ -49,9 +49,6 @@
 
 static void setupFunctionArguments(TableFunctionState *node);
 static TupleTableSlot *TableFunctionNext(TableFunctionState *node);
-static void initGpmonPktForTableFunction(Plan *planNode,
-										 gpmon_packet_t *gpmon_pkt, 
-										 EState *estate);
 
 /* Private structure forward declared in tablefuncapi.h */
 typedef struct AnyTableData
@@ -453,9 +450,6 @@ ExecInitTableFunction(TableFunctionScan *node, EState *estate, int eflags)
 	/* Initialize result tuple type and projection info */
 	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
 	ExecAssignScanProjectionInfo(&scanstate->ss);
-
-	initGpmonPktForTableFunction((Plan *)node, 
-								 &scanstate->ss.ps.gpmon_pkt, estate);
 	
 	return scanstate;
 }
@@ -480,19 +474,6 @@ ExecReScanTableFunction(TableFunctionState *node)
 {
 	/* TableFunction Planner marks TableFunction nodes as not rescannable */
 	elog(ERROR, "invalid rescan of TableFunctionScan");
-}
-
-
-void
-initGpmonPktForTableFunction(Plan *planNode, 
-							 gpmon_packet_t *gpmon_pkt, 
-							 EState *estate)
-{
-	Assert(planNode != NULL);
-	Assert(gpmon_pkt != NULL);
-	Assert(IsA(planNode, TableFunctionScan));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }
 
 

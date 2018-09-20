@@ -192,8 +192,6 @@ ExecInitSplitUpdate(SplitUpdate *node, EState *estate, int eflags)
 			splitupdatestate->ps.cdbexplainfun = ExecSplitUpdateExplainEnd;
 	}
 
-	initGpmonPktForSplitUpdate((Plan *)node, &splitupdatestate->ps.gpmon_pkt, estate);
-
 	return splitupdatestate;
 }
 
@@ -207,14 +205,5 @@ ExecEndSplitUpdate(SplitUpdateState *node)
 	ExecClearTuple(node->deleteTuple);
 	ExecEndNode(outerPlanState(node));
 	EndPlanStateGpmonPkt(&node->ps);
-}
-
-/* Tracing execution for GP Monitor. */
-void
-initGpmonPktForSplitUpdate(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, SplitUpdate));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }
 

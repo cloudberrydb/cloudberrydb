@@ -32,14 +32,6 @@ static void LogPartitionSelection(EState *estate, int32 selectorId);
 static void
 partition_propagation(EState *estate, List *partOids, List *scanIds, int32 selectorId);
 
-void
-initGpmonPktForPartitionSelector(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, PartitionSelector));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
-}
-
 /* ----------------------------------------------------------------
  *		ExecInitPartitionSelector
  *
@@ -87,8 +79,6 @@ ExecInitPartitionSelector(PartitionSelector *node, EState *estate, int eflags)
 													   psstate->partTabSlot,
 													   ExecGetResultType(&psstate->ps));
 	}
-
-	initGpmonPktForPartitionSelector((Plan *)node, &psstate->ps.gpmon_pkt, estate);
 
 	return psstate;
 }

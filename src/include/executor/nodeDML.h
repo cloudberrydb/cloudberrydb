@@ -21,7 +21,5 @@ extern TupleTableSlot* ExecDML(DMLState *node);
 extern DMLState* ExecInitDML(DML *node, EState *estate, int eflags);
 extern void ExecEndDML(DMLState *node);
 
-extern void initGpmonPktForDML(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
-
 #endif   /* NODEDML_H */
 

@@ -164,8 +164,6 @@ ExecInitAssertOp(AssertOp *node, EState *estate, int eflags)
 	        assertOpState->ps.cdbexplainfun = ExecAssertOpExplainEnd;
 	}
 
-	initGpmonPktForAssertOp((Plan *)node, &assertOpState->ps.gpmon_pkt, estate);
-
 	return assertOpState;
 }
 
@@ -190,13 +188,3 @@ ExecEndAssertOp(AssertOpState *node)
 	ExecEndNode(outerPlanState(node));
 	EndPlanStateGpmonPkt(&node->ps);
 }
-
-/* Tracing execution for GP Monitor. */
-void
-initGpmonPktForAssertOp(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, AssertOp));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
-}
-
