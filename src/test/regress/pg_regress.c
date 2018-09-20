@@ -1665,8 +1665,16 @@ results_differ(const char *testname, const char *resultsfile, const char *defaul
 	/*
 	 * fall back on the canonical results file if we haven't tried it yet and
 	 * haven't found a complete match yet.
+	 *
+	 * In GPDB, platform_expectfile is used for determining ORCA/planner/resgroup
+	 * expect files, wheras in upstream that is not the case and it is based on
+	 * the underlying platform. Thus, it is unnecessary and confusing to compare
+	 * against default answer file even when platform_expect file exists. It gets
+	 * confusing because the below block chooses the best expect file based on
+	 * the number of lines in diff file.
 	 */
 
+#if 0
 	if (platform_expectfile)
 	{
 		snprintf(cmd, sizeof(cmd),
@@ -1688,7 +1696,7 @@ results_differ(const char *testname, const char *resultsfile, const char *defaul
 			strlcpy(best_expect_file, default_expectfile, sizeof(best_expect_file));
 		}
 	}
-
+#endif
 	/*
 	 * Use the best comparison file to generate the "pretty" diff, which we
 	 * append to the diffs summary file.
