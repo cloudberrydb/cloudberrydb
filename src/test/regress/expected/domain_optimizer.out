@@ -589,7 +589,7 @@ begin
 end$$ language plpgsql;
 select array_elem_check(121.00);
 ERROR:  numeric field overflow
-DETAIL:  A field with precision 4, scale 2 must round to an absolute value less than 10^2. Rounded overflowing value: 121.00
+DETAIL:  A field with precision 4, scale 2 must round to an absolute value less than 10^2.
 CONTEXT:  PL/pgSQL function array_elem_check(numeric) line 5 at assignment
 select array_elem_check(1.23456);
  array_elem_check 
@@ -607,7 +607,7 @@ begin
 end$$ language plpgsql;
 select array_elem_check(121.00);
 ERROR:  numeric field overflow
-DETAIL:  A field with precision 4, scale 2 must round to an absolute value less than 10^2. Rounded overflowing value: 121.00
+DETAIL:  A field with precision 4, scale 2 must round to an absolute value less than 10^2.
 CONTEXT:  PL/pgSQL function "array_elem_check" line 5 at assignment
 select array_elem_check(1.23456);
  array_elem_check 
@@ -625,7 +625,7 @@ begin
 end$$ language plpgsql;
 select array_elem_check(121.00);
 ERROR:  numeric field overflow
-DETAIL:  A field with precision 4, scale 2 must round to an absolute value less than 10^2. Rounded overflowing value: 121.00
+DETAIL:  A field with precision 4, scale 2 must round to an absolute value less than 10^2.
 CONTEXT:  PL/pgSQL function array_elem_check(numeric) line 5 at assignment
 select array_elem_check(1.23456);
  array_elem_check 

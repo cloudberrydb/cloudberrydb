@@ -5574,15 +5574,9 @@ make_result(NumericVar *var)
 	/* Check for overflow of int16 fields */
 	if (NUMERIC_WEIGHT(result) != weight ||
 		NUMERIC_DSCALE(result) != var->dscale)
-	{
-		char *ntp = get_str_from_var(var, var->dscale);
-
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("value overflows numeric format"),
-				 errdetail("Overflowing value: %s", ntp)
-				));
-	}
+				 errmsg("value overflows numeric format")));
 
 	free_var(var);
 	dump_numeric("make_result()", result);
@@ -5650,20 +5644,15 @@ apply_typmod(NumericVar *var, int32 typmod)
 #error unsupported NBASE
 #endif
 				if (ddigits > maxdigits)
-				{
-					char *ntp = get_str_from_var(var, scale);
-
 					ereport(ERROR,
 							(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 							 errmsg("numeric field overflow"),
-							 errdetail("A field with precision %d, scale %d must round to an absolute value less than %s%d. Rounded overflowing value: %s",
+							 errdetail("A field with precision %d, scale %d must round to an absolute value less than %s%d.",
 									   precision, scale,
 					/* Display 10^0 as 1 */
 									   maxdigits ? "10^" : "",
-									   maxdigits ? maxdigits : 1,
-									   ntp
+									   maxdigits ? maxdigits : 1
 									   )));
-				}
 				break;
 			}
 			ddigits -= DEC_DIGITS;

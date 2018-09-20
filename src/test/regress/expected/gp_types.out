@@ -170,7 +170,7 @@ SELECT * FROM dml_numeric2 ORDER BY 1;
 -- out of range values
 INSERT  INTO  dml_numeric2 VALUES (1.00e+3);
 ERROR:  numeric field overflow
-DETAIL:  A field with precision 5, scale 2 must round to an absolute value less than 10^3. Rounded overflowing value: 1000.00
+DETAIL:  A field with precision 5, scale 2 must round to an absolute value less than 10^3.
 SELECT * FROM dml_numeric2 ORDER BY 1;
    a   
 -------
@@ -179,7 +179,7 @@ SELECT * FROM dml_numeric2 ORDER BY 1;
 
 UPDATE dml_numeric2 SET a = 1.00e+3;
 ERROR:  numeric field overflow
-DETAIL:  A field with precision 5, scale 2 must round to an absolute value less than 10^3. Rounded overflowing value: 1000.00
+DETAIL:  A field with precision 5, scale 2 must round to an absolute value less than 10^3.
 SELECT * FROM dml_numeric2 ORDER BY 1;
    a   
 -------
