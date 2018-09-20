@@ -130,9 +130,6 @@ DROP PROTOCOL IF EXISTS demoprot_untrusted;
 -- drop all AO tables
 \ir pre_drop_ao.sql
 
--- h1 seems to switch AO storage options after upgrade.
-DROP TABLE IF EXISTS public.h1 CASCADE;
-
 \c dsp2;
 
 -- drop all AO tables

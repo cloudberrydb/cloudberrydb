@@ -2582,6 +2582,16 @@ _tocEntryIsACL(TocEntry *te)
 static void
 _doSetFixedOutputState(ArchiveHandle *AH)
 {
+	/*
+	 * SET gp_default_storage_options GUC to built-in default values (similar
+	 * to resetAOStorageOpts function) to prevent restoring a table into a
+	 * different storage format. Note that this works assuming the built-in
+	 * default values dictated by resetAOStorageOpts function are the same
+	 * between database versions that the data is being dumped from and
+	 * restored to.
+	 */
+	ahprintf(AH, "SET gp_default_storage_options = '';\n");
+
 	/* Disable statement_timeout since restore is probably slow */
 	ahprintf(AH, "SET statement_timeout = 0;\n");
 
