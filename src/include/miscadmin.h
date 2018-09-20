@@ -504,8 +504,6 @@ extern void process_local_preload_libraries(void);
 extern void pg_bindtextdomain(const char *domain);
 extern bool is_authenticated_user_replication_role(void);
 
-extern int64 db_dir_size(const char *path); /* implemented in dbsize.c */
-
 /*
  * Auxiliary-process type identifiers.  These used to be in bootstrap.h
  * but it seems saner to have them here, with the ProcessingMode stuff.

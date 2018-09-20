@@ -15,8 +15,6 @@
 #include <sys/stat.h>
 #include <glob.h>
 
-#include "lib/stringinfo.h"
-
 #include "access/heapam.h"
 #include "access/appendonlywriter.h"
 #include "access/aocssegfiles.h"
@@ -40,82 +38,65 @@
 #include "utils/relmapper.h"
 #include "utils/syscache.h"
 
+#include "libpq-fe.h"
+#include "cdb/cdbdisp_query.h"
+#include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbvars.h"
 
 static int64 calculate_total_relation_size(Relation rel);
 
+/*
+ * Helper function to dispatch a size-returning command.
+ *
+ * Dispatches the given SQL query to segments, and sums up the results.
+ * The query is expected to return one int8 value.
+ */
 static int64
-get_size_from_segDBs(const char * cmd)
+get_size_from_segDBs(const char *cmd)
 {
-	int			spiresult;
-	bool		succeeded = false;
-	int64		result = 0;
-	volatile bool connected = false;
+	int64		result;
+	CdbPgResults cdb_pgresults = {NULL, 0};
+	int			i;
 
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 
-	PG_TRY();
-	{
-		HeapTuple	tup;
-		TupleDesc	tupdesc;
-		bool		isnull;
-		Datum		size;
+	CdbDispatchCommand(cmd, DF_WITH_SNAPSHOT, &cdb_pgresults);
 
-		do
+	result = 0;
+	for (i = 0; i < cdb_pgresults.numResults; i++)
+	{
+		Datum		value;
+		struct pg_result *pgresult = cdb_pgresults.pg_results[i];
+
+		if (PQresultStatus(pgresult) != PGRES_TUPLES_OK)
 		{
-			/* Establish an SPI session as a client of myself. */
-			if (SPI_connect() != SPI_OK_CONNECT)
-				break;
-
-			connected = true;
-
-			/* Do the query. */
-			spiresult = SPI_execute(cmd, false, 0);
-
-			/* Did the query succeed? */
-			if (spiresult != SPI_OK_SELECT)
-				break;
-
-			if (SPI_processed < 1)
-				break;
-
-			tup = SPI_tuptable->vals[0];
-			tupdesc = SPI_tuptable->tupdesc;
-
-			size = heap_getattr(SPI_tuptable->vals[0], 1, SPI_tuptable->tupdesc, &isnull);
-			if (isnull)
-				break;
-
-			result = DatumGetInt64(size);
-
-			succeeded = true;
+			cdbdisp_clearCdbPgResults(&cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected result from segment: %d",
+							PQresultStatus(pgresult))));
 		}
-		while (0);
-
-		/* End recursive session. */
-		connected = false;
-		SPI_finish();
-
-		if (!succeeded)
-			elog(ERROR, "Unable to get sizes from segments");
+		if (PQntuples(pgresult) != 1 || PQnfields(pgresult) != 1)
+		{
+			cdbdisp_clearCdbPgResults(&cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected shape of result from segment (%d rows, %d cols)",
+							PQntuples(pgresult), PQnfields(pgresult))));
+		}
+		if (PQgetisnull(pgresult, 0, 0))
+			value = 0;
+		else
+			value = DirectFunctionCall1(int8in,
+										CStringGetDatum(PQgetvalue(pgresult, 0, 0)));
+		result += value;
 	}
-	/* Clean up in case of error. */
-	PG_CATCH();
-	{
-		/* End recursive session. */
-		if (connected)
-			SPI_finish();
 
-		/* Carry on with error handling. */
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
+	cdbdisp_clearCdbPgResults(&cdb_pgresults);
 
 	return result;
 }
 
 /* Return physical size of directory contents, or 0 if dir doesn't exist */
-int64
+static int64
 db_dir_size(const char *path)
 {
 	int64		dirsize = 0;
@@ -211,20 +192,18 @@ calculate_database_size(Oid dbOid)
 Datum
 pg_database_size_oid(PG_FUNCTION_ARGS)
 {
-	int64		size;
 	Oid			dbOid = PG_GETARG_OID(0);
+	int64		size;
 
 	size = calculate_database_size(dbOid);
-	
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		StringInfoData buffer;
-		
-		initStringInfo(&buffer);
+		char	   *sql;
 
-		appendStringInfo(&buffer, "select sum(pg_database_size(%u))::int8 from gp_dist_random('gp_id');", dbOid);
+		sql = psprintf("select pg_catalog.pg_database_size(%u)", dbOid);
 
-		size += get_size_from_segDBs(buffer.data);
+		size += get_size_from_segDBs(sql);
 	}
 
 	if (size == 0)
@@ -236,21 +215,20 @@ pg_database_size_oid(PG_FUNCTION_ARGS)
 Datum
 pg_database_size_name(PG_FUNCTION_ARGS)
 {
-	int64		size;
 	Name		dbName = PG_GETARG_NAME(0);
 	Oid			dbOid = get_database_oid(NameStr(*dbName), false);
-						
+	int64		size;
+
 	size = calculate_database_size(dbOid);
-	
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		StringInfoData buffer;
-		
-		initStringInfo(&buffer);
+		char	   *sql;
 
-		appendStringInfo(&buffer, "select sum(pg_database_size('%s'))::int8 from gp_dist_random('gp_id');", NameStr(*dbName));
+		sql = psprintf("select pg_catalog.pg_database_size(%s)",
+					   quote_literal_cstr(NameStr(*dbName)));
 
-		size += get_size_from_segDBs(buffer.data);
+		size += get_size_from_segDBs(sql);
 	}
 
 	if (size == 0)
@@ -340,16 +318,14 @@ pg_tablespace_size_oid(PG_FUNCTION_ARGS)
 	int64		size;
 
 	size = calculate_tablespace_size(tblspcOid);
-	
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		StringInfoData buffer;
-		
-		initStringInfo(&buffer);
+		char	   *sql;
 
-		appendStringInfo(&buffer, "select sum(pg_tablespace_size(%u))::int8 from gp_dist_random('gp_id');", tblspcOid);
+		sql = psprintf("select pg_catalog.pg_tablespace_size(%u)", tblspcOid);
 
-		size += get_size_from_segDBs(buffer.data);
+		size += get_size_from_segDBs(sql);
 	}
 
 	if (size < 0)
@@ -366,16 +342,15 @@ pg_tablespace_size_name(PG_FUNCTION_ARGS)
 	int64		size;
 
 	size = calculate_tablespace_size(tblspcOid);
-	
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		StringInfoData buffer;
-		
-		initStringInfo(&buffer);
+		char	   *sql;
 
-		appendStringInfo(&buffer, "select sum(pg_tablespace_size('%s'))::int8 from gp_dist_random('gp_id');", NameStr(*tblspcName));
+		sql = psprintf("select pg_catalog.pg_tablespace_size(%s)",
+					   quote_literal_cstr(NameStr(*tblspcName)));
 
-		size += get_size_from_segDBs(buffer.data);
+		size += get_size_from_segDBs(sql);
 	}
 
 	if (size < 0)
@@ -384,13 +359,14 @@ pg_tablespace_size_name(PG_FUNCTION_ARGS)
 	PG_RETURN_INT64(size);
 }
 
+
 /*
  * calculate size of (one fork of) a relation
  *
  * Iterator over all files belong to the relation and do stat.
  * The obviously better way is to use glob.  For whatever reason,
  * glob is extremely slow if there are lots of relations in the
- * database.  So we handle all cases, instead. 
+ * database.  So we handle all cases, instead.
  */
 static int64
 calculate_relation_size(Relation rel, ForkNumber forknum)
@@ -447,8 +423,8 @@ else if (forknum == MAIN_FORKNUM)
 	}
 }
 
-    /* RELSTORAGE_VIRTUAL has no space usage */
-    return totalsize;
+	/* RELSTORAGE_VIRTUAL has no space usage */
+	return totalsize;
 }
 
 Datum
@@ -495,22 +471,11 @@ pg_relation_size(PG_FUNCTION_ARGS)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		StringInfoData buffer;
-		char *schemaName;
-		char *relName;
+		char	   *sql;
 
-		schemaName = get_namespace_name(get_rel_namespace(relOid));
-		if (schemaName == NULL)
-			elog(ERROR, "Cannot find schema for oid %d", relOid);
-		relName = get_rel_name(relOid);
-		if (relName == NULL)
-			elog(ERROR, "Cannot find relation for oid %d", relOid);
+		sql = psprintf("select pg_catalog.pg_relation_size(%u)", relOid);
 
-		initStringInfo(&buffer);
-
-		appendStringInfo(&buffer, "select sum(pg_relation_size('%s.%s'))::int8 from gp_dist_random('gp_id');", quote_identifier(schemaName), quote_identifier(relName));
-
-		size += get_size_from_segDBs(buffer.data);
+		size += get_size_from_segDBs(sql);
 	}
 
 	relation_close(rel, AccessShareLock);
@@ -662,6 +627,15 @@ pg_table_size(PG_FUNCTION_ARGS)
 
 	size = calculate_table_size(rel);
 
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		char	   *sql;
+
+		sql = psprintf("select pg_catalog.pg_table_size(%u)", relOid);
+
+		size += get_size_from_segDBs(sql);
+	}
+
 	relation_close(rel, AccessShareLock);
 
 	PG_RETURN_INT64(size);
@@ -680,6 +654,15 @@ pg_indexes_size(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	size = calculate_indexes_size(rel);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		char	   *sql;
+
+		sql = psprintf("select pg_catalog.pg_indexes_size(%u)", relOid);
+
+		size += get_size_from_segDBs(sql);
+	}
 
 	relation_close(rel, AccessShareLock);
 
@@ -730,31 +713,15 @@ pg_total_relation_size(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	size = calculate_total_relation_size(rel);
-	
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		StringInfoData buffer;
-		char *schemaName;
-		char *relName;
+		char	   *sql;
 
-		schemaName = get_namespace_name(get_rel_namespace(relOid));
-		if (schemaName == NULL)
-		{
-			elog(ERROR, "Cannot find schema for oid %d", relOid);
-		}
+		sql = psprintf("select pg_catalog.pg_total_relation_size(%u)",
+					   relOid);
 
-		relName = get_rel_name(relOid);
-		if (relName == NULL)
-		{
-			elog(ERROR, "Cannot find relation for oid %d", relOid);
-		}
-
-		initStringInfo(&buffer);
-
-		appendStringInfo(&buffer, "select pg_catalog.sum(pg_catalog.pg_total_relation_size('%s.%s'))::int8 from gp_dist_random('gp_id');",
-						 quote_identifier(schemaName), quote_identifier(relName));
-
-		size += get_size_from_segDBs(buffer.data);
+		size += get_size_from_segDBs(sql);
 	}
 
 	relation_close(rel, AccessShareLock);
