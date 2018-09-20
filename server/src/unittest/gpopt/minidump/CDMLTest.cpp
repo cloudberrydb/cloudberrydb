@@ -74,6 +74,20 @@ const CHAR *rgszDMLFileNames[] =
 	"../data/dxl/minidump/UpdateZeroRows.mdp",
 	"../data/dxl/minidump/InsertNoEnforceConstraints.mdp",
 	"../data/dxl/minidump/UpdateNoEnforceConstraints.mdp",
+	"../data/dxl/minidump/Insert-With-HJ-CTE-Agg.mdp",
+	"../data/dxl/minidump/CTAS-with-Limit.mdp",
+	"../data/dxl/minidump/CTAS-With-Global-Local-Agg.mdp",
+	"../data/dxl/minidump/Delete-With-Limit-In-Subquery.mdp",
+	"../data/dxl/minidump/DML-With-WindowFunc-OuterRef.mdp",
+	"../data/dxl/minidump/DML-Filter-With-OuterRef.mdp",
+	"../data/dxl/minidump/DML-UnionAll-With-OuterRef.mdp",
+	"../data/dxl/minidump/DML-ComputeScalar-With-Outerref.mdp",
+	"../data/dxl/minidump/DML-UnionAll-With-Universal-Child.mdp",
+	"../data/dxl/minidump/DML-With-MasterOnlyTable-1.mdp",
+	"../data/dxl/minidump/DML-With-HJ-And-UniversalChild.mdp",
+	"../data/dxl/minidump/DML-With-Join-With-Universal-Child.mdp",
+	"../data/dxl/minidump/DML-With-CorrelatedNLJ-With-Universal-Child.mdp",
+	"../data/dxl/minidump/DML-Function-With-SQL-Access.mdp",
 	};
 
 //---------------------------------------------------------------------------

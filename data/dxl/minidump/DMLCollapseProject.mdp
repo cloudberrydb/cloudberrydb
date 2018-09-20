@@ -398,7 +398,7 @@
             <dxl:Column ColId="26" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:RedistributeMotion InputSegments="-1" OutputSegments="0,1">
+        <dxl:RedistributeMotion InputSegments="0" OutputSegments="0,1">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="862.000327" Rows="1.000000" Width="32"/>
           </dxl:Properties>
@@ -514,7 +514,7 @@
                       </dxl:ProjElem>
                     </dxl:ProjList>
                     <dxl:Filter/>
-                    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+                    <dxl:GatherMotion InputSegments="0,1" OutputSegments="0">
                       <dxl:Properties>
                         <dxl:Cost StartupCost="0" TotalCost="431.000100" Rows="1.000000" Width="8"/>
                       </dxl:Properties>

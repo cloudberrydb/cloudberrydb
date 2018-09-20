@@ -257,7 +257,7 @@
             <dxl:Column ColId="12" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:RedistributeMotion InputSegments="-1" OutputSegments="0,1">
+        <dxl:RedistributeMotion InputSegments="0" OutputSegments="0,1">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="3.060547" Rows="1.000000" Width="12"/>
           </dxl:Properties>
