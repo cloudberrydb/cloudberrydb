@@ -214,13 +214,13 @@ CPhysicalLimit::PdsRequired
 		}
 
 		// otherwise, require a singleton explicitly
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
-	// if expression has to execute on master then we need a gather
-	if (exprhdl.FMasterOnly())
+	// if expression has to execute on a single host then we need a gather
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return PdsEnforceMaster(mp, exprhdl, pdsInput, child_index);
+		return PdsRequireSingleton(mp, exprhdl, pdsInput, child_index);
 	}
 
 	// no local limits are generated if there are outer references, so if this

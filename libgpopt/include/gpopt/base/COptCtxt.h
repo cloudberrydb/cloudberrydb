@@ -19,6 +19,7 @@
 #include "gpopt/base/CCTEInfo.h"
 #include "gpopt/base/IComparator.h"
 #include "gpopt/mdcache/CMDAccessor.h"
+#include "naucrates/traceflags/traceflags.h"
 
 namespace gpopt
 {
@@ -91,6 +92,12 @@ namespace gpopt
 			static
 			ULONG m_ulFirstValidPartId;
 
+			// if there are master only tables in the query
+			BOOL m_has_master_only_tables;
+
+			// does the query contain any functions that read/modify SQL data
+			BOOL m_has_function_with_SQL_access;
+
 		public:
 
 			// ctor
@@ -132,6 +139,41 @@ namespace gpopt
 				)
 			{
 				m_fDMLQuery = fDMLQuery;
+			}
+
+			void SetHasMasterOnlyTables()
+			{
+				m_has_master_only_tables = true;
+			}
+
+			void SetHasFunctionWithSQLAccess()
+			{
+				m_has_function_with_SQL_access = true;
+			}
+
+			BOOL HasMasterOnlyTables() const
+			{
+				return m_has_master_only_tables;
+			}
+
+			BOOL HasFunctionWithSQLAccess() const
+			{
+				return m_has_function_with_SQL_access;
+			}
+
+			BOOL OptimizeDMLQueryWithSingletonSegment() const
+			{
+				// A DML statement can be optimized by enforcing a gather motion on segment instead of master,
+				// whenever a singleton execution is needed.
+				// This optmization can not be applied if the query contains any of the following:
+				// (1). master-only tables
+				// (2). a function with a SQL dataaccess: EfdaContainsSQL or EfdaReadsSQLData or EfdaModifiesSQLData
+				//      In such cases, it is safe to *always* enforce gather motion on master as there is no way to determine
+				//      if the SQL contains any master-only tables.
+				return !GPOS_FTRACE(EopttraceDisableNonMasterGatherForDML) &&
+					FDMLQuery() &&
+					!HasMasterOnlyTables() &&
+					!HasFunctionWithSQLAccess();
 			}
 
 			// column factory accessor

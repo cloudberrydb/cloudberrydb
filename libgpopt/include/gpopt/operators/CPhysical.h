@@ -269,10 +269,10 @@ namespace gpopt
 				ULONG child_index
 				);
 			
-			// helper for computing child's required distribution when Master-Only/Replicated
+			// helper for computing child's required distribution when Singleton/Replicated
 			// distributions must be requested
 			static
-			CDistributionSpec *PdsMasterOnlyOrReplicated
+			CDistributionSpec *PdsRequireSingletonOrReplicated
 				(
 				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
@@ -380,9 +380,9 @@ namespace gpopt
 			static
 			CPartIndexMap *PpimDeriveCombineRelational(IMemoryPool *mp, CExpressionHandle &exprhdl);
 
-			// enforce an operator to be executed on the master
+			// Generate a singleton distribution spec request
 			static
-			CDistributionSpec *PdsEnforceMaster
+			CDistributionSpec *PdsRequireSingleton
 				(
 				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,

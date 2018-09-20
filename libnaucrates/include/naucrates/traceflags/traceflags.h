@@ -169,6 +169,9 @@ namespace gpos
 		// enable motion hazard handling during NLJ optimization
 		EopttraceMotionHazardHandling = 103027,
 
+		// non-master gather enforcement for DML queries
+		EopttraceDisableNonMasterGatherForDML = 103028,
+
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

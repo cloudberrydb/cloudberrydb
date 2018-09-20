@@ -243,10 +243,10 @@ namespace gpopt
 				return (0 < GetRelationalProperties()->PcrsOuter()->Size());
 			}
 
-			// check if attached expression must execute on the master
-			BOOL FMasterOnly() const
+			// check if attached expression must execute on a single host
+			BOOL NeedsSingletonExecution() const
 			{
-				return GetRelationalProperties()->Pfp()->FMasterOnly();
+				return GetRelationalProperties()->Pfp()->NeedsSingletonExecution();
 			}
 
 			// check for outer references in the given child

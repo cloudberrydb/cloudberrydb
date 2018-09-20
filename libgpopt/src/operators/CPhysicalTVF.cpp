@@ -295,9 +295,9 @@ CPhysicalTVF::PdsDerive
 	)
 	const
 {
-	if (exprhdl.FMasterOnly())
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	return GPOS_NEW(mp) CDistributionSpecUniversal();

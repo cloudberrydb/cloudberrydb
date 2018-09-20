@@ -90,10 +90,10 @@ CPhysicalInnerNLJoin::PdsRequired
 	GPOS_ASSERT(2 > child_index);
 	GPOS_ASSERT(ulOptReq < UlDistrRequests());
 
-	// if expression has to execute on master then we need a gather
-	if (exprhdl.FMasterOnly())
+	// if expression has to execute on a single host then we need a gather
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return PdsEnforceMaster(mp, exprhdl, pdsRequired, child_index);
+		return PdsRequireSingleton(mp, exprhdl, pdsRequired, child_index);
 	}
 
 	if (exprhdl.HasOuterRefs())
@@ -121,8 +121,8 @@ CPhysicalInnerNLJoin::PdsRequired
 	CDistributionSpec *pdsOuter = CDrvdPropPlan::Pdpplan((*pdrgpdpCtxt)[0])->Pds();
 	if (CDistributionSpec::EdtUniversal == pdsOuter->Edt())
 	{
-		// first child is universal, request second child to execute on the master to avoid duplicates
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		// first child is universal, request second child to execute on a single host to avoid duplicates
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	return GPOS_NEW(mp) CDistributionSpecNonSingleton();

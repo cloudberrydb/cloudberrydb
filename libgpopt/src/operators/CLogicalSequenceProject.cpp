@@ -478,8 +478,9 @@ CLogicalSequenceProject::PopRemoveLocalOuterRefs
 		pds = CDistributionSpecHashed::PdsConvert(m_pds)->PdshashedExcludeColumns(mp, outer_refs);
 		if (NULL == pds)
 		{
-			// eliminate Partition clause
-			pds = GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+			// if the hashed distribution spec is empty after excluding the outer ref columns,
+			// eliminate Partition clause by creating a singleton spec
+			pds = GPOS_NEW(mp) CDistributionSpecSingleton();
 		}
 	}
 	else

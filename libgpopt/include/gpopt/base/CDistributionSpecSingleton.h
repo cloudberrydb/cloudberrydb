@@ -59,7 +59,9 @@ namespace gpopt
 			// ctor
 			explicit 
 			CDistributionSpecSingleton(ESegmentType esegtype);
-			
+
+			CDistributionSpecSingleton();
+
 			// distribution type accessor
 			virtual 
 			EDistributionType Edt() const

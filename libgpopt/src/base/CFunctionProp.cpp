@@ -55,16 +55,16 @@ CFunctionProp::~CFunctionProp()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CFunctionProp::FMasterOnly
+//		CFunctionProp::SingletonExecution
 //
 //	@doc:
-//		Check if must execute on the master based on function properties
+//		Check if must execute on a single host based on function properties
 //
 //---------------------------------------------------------------------------
 BOOL
-CFunctionProp::FMasterOnly() const
+CFunctionProp::NeedsSingletonExecution() const
 {
-	// a function needs to execute on the master if any of the following holds:
+	// a function needs to execute on a single host if any of the following holds:
 	// a) it reads or modifies SQL data
 	// b) it is volatile and used as a scan operator (i.e. in the from clause)
 

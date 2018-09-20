@@ -220,10 +220,10 @@ CPhysicalAgg::PdsRequiredAgg
 		return PdsRequiredIntermediateAgg(mp, ulOptReq);
 	}
 
-	// if expression has to execute on master then we need a gather
-	if (exprhdl.FMasterOnly())
+	// if expression has to execute on a single host then we need a gather
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return PdsEnforceMaster(mp, exprhdl, pdsInput, child_index);
+		return PdsRequireSingleton(mp, exprhdl, pdsInput, child_index);
 	}
 
 	if (COperator::EgbaggtypeLocal == m_egbaggtype && m_pdrgpcrArgDQA != NULL && 0 != m_pdrgpcrArgDQA->Size())
@@ -274,7 +274,7 @@ CPhysicalAgg::PdsMaximalHashed
 	}
 
 	// otherwise, require a singleton explicitly
-	return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+	return GPOS_NEW(mp) CDistributionSpecSingleton();
 }
 
 
@@ -318,14 +318,14 @@ CPhysicalAgg::PdsRequiredGlobalAgg
 		}
 
 		// otherwise, require a singleton explicitly
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	if (0 == ulOptReq &&
 		(IMDFunction::EfsVolatile == exprhdl.GetRelationalProperties(0)->Pfp()->Efs()))
 	{
 		// request a singleton distribution if child has volatile functions
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	// if there are grouping columns, require a hash distribution explicitly

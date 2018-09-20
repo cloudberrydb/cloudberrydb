@@ -122,8 +122,8 @@ CPhysicalInnerIndexNLJoin::PdsRequired
 		CDistributionSpec::EdtStrictSingleton == edtInner ||
 		CDistributionSpec::EdtUniversal == edtInner)
 	{
-		// enforce executing on the master
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		// enforce executing on a single host
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	if (CDistributionSpec::EdtHashed == edtInner)

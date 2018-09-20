@@ -178,7 +178,7 @@ CXformUtils::FInlinableCTE
 	GPOS_ASSERT(NULL != ppartinfoCTEProducer);
 	
 	return IMDFunction::EfsVolatile > pfp->Efs() && 
-			!pfp->FMasterOnly() &&
+			!pfp->NeedsSingletonExecution() &&
 			(0 == ppartinfoCTEProducer->UlConsumers() || 1 == pcteinfo->UlConsumers(ulCTEId));
 }
 

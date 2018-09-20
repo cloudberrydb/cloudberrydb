@@ -292,10 +292,10 @@ CPhysicalJoin::PdsRequired
 {
 	GPOS_ASSERT(2 > child_index);
 
-	// if expression has to execute on master then we need a gather
-	if (exprhdl.FMasterOnly())
+	// if expression has to execute on a single host then we need a gather
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return PdsEnforceMaster(mp, exprhdl, pdsRequired, child_index);
+		return PdsRequireSingleton(mp, exprhdl, pdsRequired, child_index);
 	}
 
 	if (exprhdl.HasOuterRefs())
@@ -315,8 +315,8 @@ CPhysicalJoin::PdsRequired
 
 		if (CDistributionSpec::EdtUniversal == pdsOuter->Edt())
 		{
-			// first child is universal, request second child to execute on the master to avoid duplicates
-			return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+			// first child is universal, request second child to execute on a single host to avoid duplicates
+			return GPOS_NEW(mp) CDistributionSpecSingleton();
 		}
 
 		if (CDistributionSpec::EdtSingleton == pdsOuter->Edt() || 
@@ -988,7 +988,7 @@ CPhysicalJoin::PdsRequiredCorrelatedJoin
 	{
 		// if the inner child has a volatile TVF and has outer refs then request
 		// gather from both children
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	if (1 == child_index)
@@ -999,7 +999,7 @@ CPhysicalJoin::PdsRequiredCorrelatedJoin
 			// if outer child delivers a universal distribution, request inner child
 			// to match Singleton distribution to detect more than one row generated
 			// at runtime, for example: 'select (select 1 union select 2)'
-			return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+			return GPOS_NEW(mp) CDistributionSpecSingleton();
 		}
 	}
 

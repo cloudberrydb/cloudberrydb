@@ -44,6 +44,15 @@ CDistributionSpecSingleton::CDistributionSpecSingleton
 	GPOS_ASSERT(EstSentinel != est);
 }
 
+CDistributionSpecSingleton::CDistributionSpecSingleton()
+{
+	m_est = EstMaster;
+
+	if (COptCtxt::PoctxtFromTLS()->OptimizeDMLQueryWithSingletonSegment())
+	{
+		m_est = EstSegment;
+	}
+}
 
 //---------------------------------------------------------------------------
 //	@function:

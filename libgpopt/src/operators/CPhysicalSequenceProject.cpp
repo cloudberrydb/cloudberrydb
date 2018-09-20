@@ -326,10 +326,10 @@ CPhysicalSequenceProject::PdsRequired
 {
 	GPOS_ASSERT(0 == child_index);
 
-	// if expression has to execute on master then we need a gather
-	if (exprhdl.FMasterOnly())
+	// if expression has to execute on a single host then we need a gather
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return PdsEnforceMaster(mp, exprhdl, pdsRequired, child_index);
+		return PdsRequireSingleton(mp, exprhdl, pdsRequired, child_index);
 	}
 
 	// if there are outer references, then we need a broadcast (or a gather)
@@ -352,7 +352,7 @@ CPhysicalSequenceProject::PdsRequired
 		return m_pds;
 	}
 
-	return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+	return GPOS_NEW(mp) CDistributionSpecSingleton();
 }
 
 

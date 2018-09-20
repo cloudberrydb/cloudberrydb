@@ -1354,7 +1354,7 @@ CPredicateUtils::PexprPartPruningPredicate
 			CScalarCmp *popCmp = CScalarCmp::PopConvert(pexpr->Pop());
 			CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
 			
-			if (!pdpscalar->Pfp()->FMasterOnly() && FRangeComparison(popCmp->ParseCmpType()))
+			if (!pdpscalar->Pfp()->NeedsSingletonExecution() && FRangeComparison(popCmp->ParseCmpType()))
 			{
 				pexpr->AddRef();
 				pdrgpexprResult->Append(pexpr);

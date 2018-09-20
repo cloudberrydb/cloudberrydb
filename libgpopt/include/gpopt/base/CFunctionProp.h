@@ -83,8 +83,8 @@ namespace gpopt
 				return m_fHasVolatileFunctionScan;
 			}
 
-			// check if must execute on the master
-			BOOL FMasterOnly() const;
+			// check if must execute on a single host
+			BOOL NeedsSingletonExecution() const;
 
 			// print
 			IOstream &OsPrint(IOstream &os) const;

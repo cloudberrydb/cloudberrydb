@@ -373,15 +373,17 @@ CPhysical::PdsPassThru
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysical::PdsMasterOnlyOrReplicated
+//		CPhysical::PdsSingletonExecutionOrReplicated
 //
 //	@doc:
-//		Helper for computing child's required distribution when Master-Only/Replicated
-//		distributions must be requested
+//		Helper for computing child's required distribution - Singleton or Replicated
+//		1. If the expression must execute on single host - require Singleton
+//		2. If the expression has outer references        - require Singleton or Replicated
+//		                                                   based on the optimization request
 //
 //---------------------------------------------------------------------------
 CDistributionSpec *
-CPhysical::PdsMasterOnlyOrReplicated
+CPhysical::PdsRequireSingletonOrReplicated
 	(
 	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
@@ -392,10 +394,10 @@ CPhysical::PdsMasterOnlyOrReplicated
 {
 	GPOS_ASSERT(2 > ulOptReq);
 
-	// if expression has to execute on master then we need a gather
-	if (exprhdl.FMasterOnly())
+	// if expression has to execute on a single host then we need a gather motion
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return PdsEnforceMaster(mp, exprhdl, pdsRequired, child_index);
+		return PdsRequireSingleton(mp, exprhdl, pdsRequired, child_index);
 	}
 
 	// if there are outer references, then we need a broadcast (or a gather)
@@ -406,7 +408,7 @@ CPhysical::PdsMasterOnlyOrReplicated
 			return GPOS_NEW(mp) CDistributionSpecReplicated();
 		}
 
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	return NULL;
@@ -435,8 +437,8 @@ CPhysical::PdsUnary
 	GPOS_ASSERT(0 == child_index);
 	GPOS_ASSERT(2 > ulOptReq);
 
-	// check if master-only/replicated distribution needs to be requested
-	CDistributionSpec *pds = PdsMasterOnlyOrReplicated(mp, exprhdl, pdsRequired, child_index, ulOptReq);
+	// check if singleton/replicated distribution needs to be requested
+	CDistributionSpec *pds = PdsRequireSingletonOrReplicated(mp, exprhdl, pdsRequired, child_index, ulOptReq);
 	if (NULL != pds)
 	{
 		return pds;
@@ -1218,16 +1220,9 @@ CPhysical::EpetPartitionPropagation
 	return CEnfdProp::EpetProhibited;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPhysical::PdsEnforceMaster
-//
-//	@doc:
-//		Enforce an operator to be executed on the master
-//
-//---------------------------------------------------------------------------
+// Generate a singleton distribution spec request
 CDistributionSpec *
-CPhysical::PdsEnforceMaster
+CPhysical::PdsRequireSingleton
 		(
 		IMemoryPool *mp,
 		CExpressionHandle &exprhdl,
@@ -1237,15 +1232,11 @@ CPhysical::PdsEnforceMaster
 {
 	if (CDistributionSpec::EdtSingleton == pds->Edt())
 	{
-		CDistributionSpecSingleton *pdss = CDistributionSpecSingleton::PdssConvert(pds);
-		if (CDistributionSpecSingleton::EstMaster == pdss->Est())
-		{
-			return PdsPassThru(mp, exprhdl, pds, child_index);
-		}
+		return PdsPassThru(mp, exprhdl, pds, child_index);
 	}
-	return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
-}
 
+	return GPOS_NEW(mp) CDistributionSpecSingleton();
+}
 
 //---------------------------------------------------------------------------
 //	@function:

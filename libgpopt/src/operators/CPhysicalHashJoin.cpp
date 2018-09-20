@@ -263,8 +263,8 @@ CPhysicalHashJoin::PdsMatch
 	switch (pds->Edt())
 	{
 		case CDistributionSpec::EdtUniversal:
-			// first child is universal, request second child to execute on the master to avoid duplicates
-			return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+			// first child is universal, request second child to execute on a single host to avoid duplicates
+			return GPOS_NEW(mp) CDistributionSpecSingleton();
 
 		case CDistributionSpec::EdtSingleton:
 		case CDistributionSpec::EdtStrictSingleton:
@@ -399,7 +399,7 @@ CPhysicalHashJoin::PdsRequiredSingleton
 	if (FFirstChildToOptimize(child_index))
 	{
 		// require first child to be singleton
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	// require a matching distribution from second child
@@ -409,12 +409,23 @@ CPhysicalHashJoin::PdsRequiredSingleton
 
 	if (CDistributionSpec::EdtUniversal == pdsFirst->Edt())
 	{
-		// first child is universal, request second child to execute on the master to avoid duplicates
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		// first child is universal, request second child to execute on a single host to avoid duplicates
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
+	}
+
+	if (COptCtxt::PoctxtFromTLS()->OptimizeDMLQueryWithSingletonSegment() &&
+	    CDistributionSpec::EdtReplicated == pdsFirst->Edt())
+	{
+		// For a DML query that can be optimized by enforcing a non-master gather motion,
+		// we request singleton-segment distribution on the outer child. If the outer child
+		// is replicated, no enforcer gets added; in which case pdsFirst is EdtReplicated.
+		// Hence handle this scenario here and require a singleton-segment on the
+		// inner child to produce a singleton execution alternavtive for the HJ.
+		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstSegment);
 	}
 
 	GPOS_ASSERT(CDistributionSpec::EdtSingleton == pdsFirst->Edt() ||
-		CDistributionSpec::EdtStrictSingleton == pdsFirst->Edt());
+		    CDistributionSpec::EdtStrictSingleton == pdsFirst->Edt());
 
 	// require second child to have matching singleton distribution
 	return CPhysical::PdssMatching(mp, CDistributionSpecSingleton::PdssConvert(pdsFirst));
@@ -463,8 +474,8 @@ CPhysicalHashJoin::PdsRequiredReplicate
 
 	if (CDistributionSpec::EdtUniversal == pdsInner->Edt())
 	{
-		// first child is universal, request second child to execute on the master to avoid duplicates
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		// first child is universal, request second child to execute on a single host to avoid duplicates
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	if (ulOptReq == m_pdrgpdsRedistributeRequests->Size() &&
@@ -644,10 +655,10 @@ CPhysicalHashJoin::PdsRequired
 	GPOS_ASSERT(2 > child_index);
 	GPOS_ASSERT(ulOptReq < UlDistrRequests());
 
-	// if expression has to execute on master then we need a gather
-	if (exprhdl.FMasterOnly())
+	// if expression has to execute on a single host then we need a gather
+	if (exprhdl.NeedsSingletonExecution())
 	{
-		return PdsEnforceMaster(mp, exprhdl, pdsInput, child_index);
+		return PdsRequireSingleton(mp, exprhdl, pdsInput, child_index);
 	}
 
 	if (exprhdl.HasOuterRefs())

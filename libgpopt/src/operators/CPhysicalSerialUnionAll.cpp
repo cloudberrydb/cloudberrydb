@@ -91,7 +91,7 @@ CPhysicalSerialUnionAll::PdsRequired
 	GPOS_ASSERT(child_index < PdrgpdrgpcrInput()->Size());
 	GPOS_ASSERT(2 > ulOptReq);
 
-	CDistributionSpec *pds = PdsMasterOnlyOrReplicated(mp, exprhdl, pdsRequired, child_index, ulOptReq);
+	CDistributionSpec *pds = PdsRequireSingletonOrReplicated(mp, exprhdl, pdsRequired, child_index, ulOptReq);
 	if (NULL != pds)
 	{
 		return pds;
@@ -125,10 +125,10 @@ CPhysicalSerialUnionAll::PdsRequired
 
 	if (CDistributionSpec::EdtUniversal == pdsOuter->Edt())
 	{
-		// require inner child to be on the master segment in order to avoid
+		// require inner child to be on a single host in order to avoid
 		// duplicate values when doing UnionAll operation with Universal outer child
 		// Example: select 1 union all select i from x;
-		return GPOS_NEW(mp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+		return GPOS_NEW(mp) CDistributionSpecSingleton();
 	}
 
 	if (CDistributionSpec::EdtReplicated == pdsOuter->Edt())

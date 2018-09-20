@@ -182,8 +182,8 @@ CPhysicalComputeScalar::PdsRequired
 	GPOS_ASSERT(0 == child_index);
 	GPOS_ASSERT(2 > ulOptReq);
 
-	// check if master-only/replicated distribution needs to be requested
-	CDistributionSpec *pds = PdsMasterOnlyOrReplicated(mp, exprhdl, pdsRequired, child_index, ulOptReq);
+	// check if singleton/replicated distribution needs to be requested
+	CDistributionSpec *pds = PdsRequireSingletonOrReplicated(mp, exprhdl, pdsRequired, child_index, ulOptReq);
 	if (NULL != pds)
 	{
 		return pds;
@@ -414,6 +414,10 @@ CPhysicalComputeScalar::PdsDerive
 	if (CDistributionSpec::EdtUniversal == pds->Edt() && 
 		IMDFunction::EfsVolatile == exprhdl.GetDrvdScalarProps(1 /*child_index*/)->Pfp()->Efs())
 	{
+		if (COptCtxt::PoctxtFromTLS()->OptimizeDMLQueryWithSingletonSegment())
+		{
+			return GPOS_NEW(mp) CDistributionSpecStrictSingleton(CDistributionSpecSingleton::EstSegment);
+		}
 		return GPOS_NEW(mp) CDistributionSpecStrictSingleton(CDistributionSpecSingleton::EstMaster);
 	}
 	

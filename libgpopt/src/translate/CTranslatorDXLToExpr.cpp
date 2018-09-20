@@ -2165,6 +2165,11 @@ CTranslatorDXLToExpr::Ptabdesc
 	phmiulAttnoColMapping->Release();
 	phmululColMapping->Release();
 
+	if(IMDRelation::EreldistrMasterOnly == rel_distr_policy)
+	{
+		COptCtxt::PoctxtFromTLS()->SetHasMasterOnlyTables();
+	}
+
 	return ptabdesc;
 }
 
@@ -2952,7 +2957,12 @@ CTranslatorDXLToExpr::PexprScalarFunc
 	{
 		pexprFunc = GPOS_NEW(m_mp) CExpression(m_mp, pop);
 	}
-	
+
+	if(IMDFunction::EfdaNoSQL != pmdfunc->GetFuncDataAccess())
+	{
+		COptCtxt::PoctxtFromTLS()->SetHasFunctionWithSQLAccess();
+	}
+
 	return pexprFunc;
 }
 
