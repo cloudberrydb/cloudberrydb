@@ -1346,15 +1346,6 @@ _outNode(StringInfo str, void *obj)
 			case T_SeqScan:
 				_outSeqScan(str, obj);
 				break;
-			case T_AppendOnlyScan:
-				_outAppendOnlyScan(str, obj);
-				break;
-			case T_AOCSScan:
-				_outAOCSScan(str, obj);
-				break;
-			case T_TableScan:
-				_outTableScan(str, obj);
-				break;
 			case T_DynamicTableScan:
 				_outDynamicTableScan(str, obj);
 				break;

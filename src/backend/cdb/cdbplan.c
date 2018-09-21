@@ -335,46 +335,6 @@ plan_tree_mutator(Node *node,
 			}
 			break;
 
-		case T_AppendOnlyScan:
-			{
-				AppendOnlyScan *appendonlyscan = (AppendOnlyScan *) node;
-				AppendOnlyScan *newappendonlyscan;
-
-				FLATCOPY(newappendonlyscan, appendonlyscan, AppendOnlyScan);
-				SCANMUTATE(newappendonlyscan, appendonlyscan);
-
-				/*
-				 * (for now) A AppendOnlyScan is really just a Scan, so we're
-				 * done.
-				 */
-				return (Node *) newappendonlyscan;
-			}
-			break;
-
-		case T_AOCSScan:
-			{
-				AOCSScan   *aocs = (AOCSScan *) node;
-				AOCSScan   *newaocs;
-
-				FLATCOPY(newaocs, aocs, AOCSScan);
-				SCANMUTATE(newaocs, aocs);
-				/* (for now) A AOCSScan is really just a Scan, so we're done. */
-				return (Node *) newaocs;
-			}
-			break;
-
-		case T_TableScan:
-			{
-				TableScan  *tableScan = (TableScan *) node;
-				TableScan  *newTableScan = NULL;
-
-				FLATCOPY(newTableScan, tableScan, TableScan);
-				SCANMUTATE(newTableScan, tableScan);
-
-				return (Node *) newTableScan;
-			}
-			break;
-
 		case T_DynamicTableScan:
 			{
 				DynamicTableScan *tableScan = (DynamicTableScan *) node;

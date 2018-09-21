@@ -411,9 +411,6 @@ InitScanStateInternal(ScanState *scanState, Plan *plan, EState *estate,
 		int eflags, bool initCurrentRelation)
 {
 	Assert(IsA(plan, SeqScan) ||
-		   IsA(plan, AppendOnlyScan) ||
-		   IsA(plan, AOCSScan) ||
-		   IsA(plan, TableScan) ||
 		   IsA(plan, DynamicTableScan) ||
 		   IsA(plan, BitmapTableScan));
 

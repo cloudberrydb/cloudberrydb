@@ -434,13 +434,7 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 			return;
 
 		case RELSTORAGE_AOROWS:
-			seqpath = (Path *) create_appendonly_path(root, rel, required_outer);
-			break;
-
 		case RELSTORAGE_AOCOLS:
-			seqpath = (Path *) create_aocs_path(root, rel, required_outer);
-			break;
-
 		case RELSTORAGE_HEAP:
 			seqpath = create_seqscan_path(root, rel, required_outer);
 			break;

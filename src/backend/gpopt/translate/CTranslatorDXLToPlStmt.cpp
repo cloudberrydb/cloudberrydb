@@ -476,11 +476,11 @@ CTranslatorDXLToPlStmt::TranslateDXLTblScan
 	}
 	else
 	{
-		// create table scan node
-		TableScan *table_scan = MakeNode(TableScan);
-		table_scan->scanrelid = index;
-		plan = &(table_scan->plan);
-		plan_return = (Plan *) table_scan;
+		// create seq scan node
+		SeqScan *seq_scan = MakeNode(SeqScan);
+		seq_scan->scanrelid = index;
+		plan = &(seq_scan->plan);
+		plan_return = (Plan *) seq_scan;
 	}
 
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();

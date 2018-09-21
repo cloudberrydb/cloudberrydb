@@ -2782,8 +2782,6 @@ finalize_plan(PlannerInfo *root, Plan *plan, Bitmapset *valid_params,
 
 		case T_Hash:
 		case T_Agg:
-		case T_AppendOnlyScan:
-		case T_AOCSScan:
 		case T_ExternalScan:
 		case T_Material:
 		case T_Sort:

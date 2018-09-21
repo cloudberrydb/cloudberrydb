@@ -495,47 +495,6 @@ _copySeqScan(const SeqScan *from)
 	return newnode;
 }
 
-/*
- * _copyAppendOnlyScan
- */
-static AppendOnlyScan *
-_copyAppendOnlyScan(const AppendOnlyScan *from)
-{
-	AppendOnlyScan    *newnode = makeNode(AppendOnlyScan);
-
-	/*
-	 * copy node superclass fields
-	 */
-	CopyScanFields((Scan *) from, (Scan *) newnode);
-
-	return newnode;
-}
-
-/*
- * _copyAppendOnlyScan
- */
-static AOCSScan *
-_copyAOCSScan(const AOCSScan *from)
-{
-	AOCSScan    *newnode = makeNode(AOCSScan);
-
-	/*
-	 * copy node superclass fields
-	 */
-	CopyScanFields((Scan *) from, (Scan *) newnode);
-
-	return newnode;
-}
-
-static TableScan *
-_copyTableScan(const TableScan *from)
-{
-	TableScan *newnode = makeNode(TableScan);
-	CopyScanFields((Scan *) from, (Scan *) newnode);
-
-	return newnode;
-}
-
 static DynamicTableScan *
 _copyDynamicTableScan(const DynamicTableScan *from)
 {
@@ -5093,15 +5052,6 @@ copyObject(const void *from)
 			break;
 		case T_SeqScan:
 			retval = _copySeqScan(from);
-			break;
-		case T_AppendOnlyScan:
-			retval = _copyAppendOnlyScan(from);
-			break;
-		case T_AOCSScan:
-			retval = _copyAOCSScan(from);
-			break;
-		case T_TableScan:
-			retval = _copyTableScan(from);
 			break;
 		case T_DynamicTableScan:
 			retval = _copyDynamicTableScan(from);

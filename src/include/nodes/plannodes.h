@@ -812,26 +812,6 @@ typedef struct ExternalScan
 } ExternalScan;
 
 /* ----------------
- * AppendOnly Scan node
- *
- * Field scan.scanrelid is the index of the append only relation for
- * this node.
- *
- * ----------------
- */
-typedef struct AppendOnlyScan
-{
-	Scan		scan;
-	/* nothing for now... */
-} AppendOnlyScan;
-
-typedef struct AOCSScan
-{
-	Scan		scan;
-	/* nothing for now... */
-} AOCSScan;
-
-/* ----------------
  *		ForeignScan node
  *
  * fdw_exprs and fdw_private are both under the control of the foreign-data

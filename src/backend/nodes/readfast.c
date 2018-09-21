@@ -1610,40 +1610,6 @@ _readSeqScan(void)
 	READ_DONE();
 }
 
-/*
- * _readAppendOnlyScan
- */
-static AppendOnlyScan *
-_readAppendOnlyScan(void)
-{
-	READ_LOCALS(AppendOnlyScan);
-
-	readScanInfo((Scan *)local_node);
-
-	READ_DONE();
-}
-
-/*
- * _readAOCSScan
- */
-static AOCSScan *
-_readAOCSScan(void)
-{
-	READ_LOCALS(AOCSScan);
-
-	readScanInfo((Scan *)local_node);
-
-	READ_DONE();
-}
-
-static TableScan *
-_readTableScan(void)
-{
-	READ_LOCALS(TableScan);
-	readScanInfo((Scan *)local_node);
-	READ_DONE();
-}
-
 static DynamicTableScan *
 _readDynamicTableScan(void)
 {
@@ -3090,15 +3056,6 @@ readNodeBinary(void)
 				break;
 			case T_SeqScan:
 				return_value = _readSeqScan();
-				break;
-			case T_AppendOnlyScan:
-				return_value = _readAppendOnlyScan();
-				break;
-			case T_AOCSScan:
-				return_value = _readAOCSScan();
-				break;
-			case T_TableScan:
-				return_value = _readTableScan();
 				break;
 			case T_DynamicTableScan:
 				return_value = _readDynamicTableScan();

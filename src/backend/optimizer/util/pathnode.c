@@ -163,8 +163,6 @@ pathnode_walk_kids(Path            *path,
 		case T_SeqScan:
 		case T_ExternalScan:
 		case T_ForeignScan:
-		case T_AppendOnlyScan:
-		case T_AOCSScan:
 		case T_IndexScan:
 		case T_IndexOnlyScan:
 		case T_TidScan:
@@ -964,52 +962,6 @@ create_seqscan_path(PlannerInfo *root, RelOptInfo *rel, Relids required_outer)
 	return pathnode;
 }
 
-/*
- * Create a path for scanning an append-only table
- */
-AppendOnlyPath *
-create_appendonly_path(PlannerInfo *root, RelOptInfo *rel, Relids required_outer)
-{
-	AppendOnlyPath *pathnode = makeNode(AppendOnlyPath);
-
-	pathnode->path.pathtype = T_AppendOnlyScan;
-	pathnode->path.parent = rel;
-	pathnode->path.param_info = get_baserel_parampathinfo(root, rel,
-													 required_outer);
-	pathnode->path.pathkeys = NIL;	/* seqscan has unordered result */
-
-	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-	pathnode->path.motionHazard = false;
-	pathnode->path.rescannable = true;
-	pathnode->path.sameslice_relids = rel->relids;
-
-	cost_appendonlyscan(pathnode, root, rel, pathnode->path.param_info);
-
-	return pathnode;
-}
-
-/*
- * Create a path for scanning an append-only table
- */
-AOCSPath *
-create_aocs_path(PlannerInfo *root, RelOptInfo *rel, Relids required_outer)
-{
-	AOCSPath   *pathnode = makeNode(AOCSPath);
-
-	pathnode->path.pathtype = T_AOCSScan;
-	pathnode->path.parent = rel;
-	pathnode->path.param_info = get_baserel_parampathinfo(root, rel,
-													 required_outer);
-	pathnode->path.pathkeys = NIL;	/* seqscan has unordered result */
-
-	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-	pathnode->path.motionHazard = false;
-	pathnode->path.rescannable = true;
-	pathnode->path.sameslice_relids = rel->relids;
-
-	cost_aocsscan(pathnode, root, rel, pathnode->path.param_info);
-	return pathnode;
-}
 /*
 * Create a path for scanning an external table
  */

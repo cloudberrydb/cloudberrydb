@@ -577,29 +577,6 @@ _outSeqScan(StringInfo str, const SeqScan *node)
 }
 
 static void
-_outAppendOnlyScan(StringInfo str, const AppendOnlyScan *node)
-{
-	WRITE_NODE_TYPE("APPENDONLYSCAN");
-
-	_outScanInfo(str, (Scan *) node);
-}
-
-static void
-_outAOCSScan(StringInfo str, const AOCSScan *node)
-{
-	WRITE_NODE_TYPE("AOCSSCAN");
-
-	_outScanInfo(str, (Scan *) node);
-}
-
-static void
-_outTableScan(StringInfo str, const TableScan *node)
-{
-	WRITE_NODE_TYPE("TABLESCAN");
-	_outScanInfo(str, (Scan *)node);
-}
-
-static void
 _outDynamicTableScan(StringInfo str, const DynamicTableScan *node)
 {
 	WRITE_NODE_TYPE("DYNAMICTABLESCAN");
@@ -4668,15 +4645,6 @@ _outNode(StringInfo str, const void *obj)
 				break;
 			case T_SeqScan:
 				_outSeqScan(str, obj);
-				break;
-			case T_AppendOnlyScan:
-				_outAppendOnlyScan(str, obj);
-				break;
-			case T_AOCSScan:
-				_outAOCSScan(str, obj);
-				break;
-			case T_TableScan:
-				_outTableScan(str, obj);
 				break;
 			case T_DynamicTableScan:
 				_outDynamicTableScan(str, obj);

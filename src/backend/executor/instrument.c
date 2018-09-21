@@ -307,9 +307,6 @@ shouldPickInstrInShmem(NodeTag tag)
 	switch (tag)
 	{
 		case T_SeqScan:
-		case T_AppendOnlyScan:
-		case T_AOCSScan:
-		case T_TableScan:
 
 			/*
 			 * If table has many partitions, legacy planner will generate a

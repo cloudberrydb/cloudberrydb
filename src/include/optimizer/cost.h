@@ -97,10 +97,6 @@ extern void cost_bitmap_heap_scan(Path *path, PlannerInfo *root, RelOptInfo *bas
 /* GPDB_92_MERGE_FIXME: Suspect we need to add ParamPathInfo for some scans below. */
 extern void cost_externalscan(ExternalPath *path, PlannerInfo *root, RelOptInfo *baserel,
 					  ParamPathInfo *param_info);
-extern void cost_appendonlyscan(AppendOnlyPath *path, PlannerInfo *root, RelOptInfo *baserel,
-					  ParamPathInfo *param_info);
-extern void cost_aocsscan(AOCSPath *path, PlannerInfo *root, RelOptInfo *baserel,
-					  ParamPathInfo *param_info);
 extern void cost_bitmap_appendonly_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 					  ParamPathInfo *param_info,
 					  Path *bitmapqual, double loop_count);

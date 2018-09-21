@@ -363,10 +363,7 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			 * scan nodes
 			 */
 		case T_SeqScan:
-		case T_AppendOnlyScan:
-		case T_AOCSScan:
-		case T_TableScan:
-			/* SeqScan, AppendOnlyScan and AOCSScan are defunct */
+			/* SeqScan is defunct */
 			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, TableScan);
 
 			START_MEMORY_ACCOUNT(curMemoryAccountId);
@@ -1427,9 +1424,7 @@ ExecEndNode(PlanState *node)
 			 * scan nodes
 			 */
 		case T_SeqScanState:
-		case T_AppendOnlyScanState:
-		case T_AOCSScanState:
-			insist_log(false, "SeqScan/AppendOnlyScan/AOCSScan are defunct");
+			elog(ERROR, "SeqScan is defunct");
 			break;
 
 		case T_TableScanState:
