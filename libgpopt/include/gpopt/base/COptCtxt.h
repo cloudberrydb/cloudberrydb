@@ -95,8 +95,9 @@ namespace gpopt
 			// if there are master only tables in the query
 			BOOL m_has_master_only_tables;
 
-			// does the query contain any functions that read/modify SQL data
-			BOOL m_has_function_with_SQL_access;
+			// does the query contain any volatile functions or
+			// functions that read/modify SQL data
+			BOOL m_has_volatile_or_SQL_func;
 
 		public:
 
@@ -146,9 +147,9 @@ namespace gpopt
 				m_has_master_only_tables = true;
 			}
 
-			void SetHasFunctionWithSQLAccess()
+			void SetHasVolatileOrSQLFunc()
 			{
-				m_has_function_with_SQL_access = true;
+				m_has_volatile_or_SQL_func = true;
 			}
 
 			BOOL HasMasterOnlyTables() const
@@ -156,9 +157,9 @@ namespace gpopt
 				return m_has_master_only_tables;
 			}
 
-			BOOL HasFunctionWithSQLAccess() const
+			BOOL HasVolatileOrSQLFunc() const
 			{
-				return m_has_function_with_SQL_access;
+				return m_has_volatile_or_SQL_func;
 			}
 
 			BOOL OptimizeDMLQueryWithSingletonSegment() const
@@ -167,13 +168,14 @@ namespace gpopt
 				// whenever a singleton execution is needed.
 				// This optmization can not be applied if the query contains any of the following:
 				// (1). master-only tables
-				// (2). a function with a SQL dataaccess: EfdaContainsSQL or EfdaReadsSQLData or EfdaModifiesSQLData
+				// (2). a volatile function
+				// (3). a function SQL dataaccess: EfdaContainsSQL or EfdaReadsSQLData or EfdaModifiesSQLData
 				//      In such cases, it is safe to *always* enforce gather motion on master as there is no way to determine
 				//      if the SQL contains any master-only tables.
 				return !GPOS_FTRACE(EopttraceDisableNonMasterGatherForDML) &&
 					FDMLQuery() &&
 					!HasMasterOnlyTables() &&
-					!HasFunctionWithSQLAccess();
+					!HasVolatileOrSQLFunc();
 			}
 
 			// column factory accessor

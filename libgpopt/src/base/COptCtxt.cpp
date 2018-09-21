@@ -55,7 +55,7 @@ COptCtxt::COptCtxt
 	m_optimizer_config(optimizer_config),
 	m_fDMLQuery(false),
 	m_has_master_only_tables(false),
-	m_has_function_with_SQL_access(false)
+	m_has_volatile_or_SQL_func(false)
 {
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != col_factory);
