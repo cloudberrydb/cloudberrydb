@@ -110,7 +110,6 @@ lseg, a488 point, a489 double precision, a490 circle, a491 int4, a492
 numeric(8), a493 polygon, a494 date, a495 real, a496 money, a497 cidr,
 a498 inet, a499 time, a500 text)  with (appendonly=true)
  DISTRIBUTED BY (id);
-NOTICE:  CREATE TABLE will create implicit sequence "sto_uao_500cols_id_seq" for serial column "sto_uao_500cols.id"
 SELECT 1 AS VisimapPresent FROM pg_appendonly WHERE visimaprelid is not NULL AND
  visimapidxid is not NULL AND relid='sto_uao_500cols'::regclass;
  visimappresent 

@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -20,8 +20,10 @@
  */
 #include "postgres.h"
 
+#include <limits.h>
 #include <math.h>
 
+#include "access/htup_details.h"
 #include "executor/executor.h"
 #include "executor/nodeSubplan.h"
 #include "nodes/makefuncs.h"
@@ -1141,10 +1143,23 @@ PG_TRY();
 		int			paramid = linitial_int(subplan->setParam);
 		ParamExecData *prm = &(econtext->ecxt_param_exec_vals[paramid]);
 
-		Assert(astate != NULL);
+		/*
+		 * We build the result array in query context so it won't disappear;
+		 * to avoid leaking memory across repeated calls, we have to remember
+		 * the latest value, much as for curTuple above.
+		 */
+		if (node->curArray != PointerGetDatum(NULL))
+			pfree(DatumGetPointer(node->curArray));
+		if (astate != NULL)
+			node->curArray = makeArrayResult(astate,
+											 econtext->ecxt_per_query_memory);
+		else
+		{
+			MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
+			node->curArray = PointerGetDatum(construct_empty_array(subplan->firstColType));
+		}
 		prm->execPlan = NULL;
-		/* We build the result in query context so it won't disappear */
-		prm->value = makeArrayResult(astate, econtext->ecxt_per_query_memory);
+		prm->value = node->curArray;
 		prm->isnull = false;
 	}
 

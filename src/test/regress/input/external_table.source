@@ -106,6 +106,9 @@ format 'text';
 select * from check_ps;
 select * from check_env;
 
+drop external table check_ps;
+drop external table check_env;
+
 -- end_ignore
 -- --------------------------------------
 -- some negative tests
@@ -251,10 +254,6 @@ create writable external web table wet_pos5(a text, b text) execute 'some comman
 
 -- cannot read from a WRITABLE external table.
 select * from wet_pos4;
-
-drop external table check_ps;
-drop external table check_env;
-drop external table wet_pos4;
 
 -- Dropping an external table, both via DROP EXTERNAL TABLE and as a result
 -- from a cascading deletion must result in the deletion of the relation
@@ -3516,3 +3515,9 @@ LOCATION (
 FORMAT 'CUSTOM' (formatter='gpformatter');
 
 SELECT * FROM tbl_ext_gpformatter;
+
+
+--
+-- Test information_schema views for external tables
+--
+SELECT * FROM information_schema.tables WHERE table_name IN ('wet_pos4', 'exttab_basic_1');

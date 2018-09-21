@@ -14,7 +14,6 @@ create table customer
 	primary key (cn)
 	
 ) distributed by (cn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "customer_pkey" for table "customer"
 create table vendor 
 (
 	vn int not null,
@@ -24,7 +23,6 @@ create table vendor
 	primary key (vn)
 	
 ) distributed by (vn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "vendor_pkey" for table "vendor"
 create table product 
 (
 	pn int not null,
@@ -34,7 +32,6 @@ create table product
 	primary key (pn)
 	
 ) distributed by (pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "product_pkey" for table "product"
 create table sale
 (
 	cn int not null,
@@ -47,7 +44,6 @@ create table sale
 	primary key (cn, vn, pn)
 	
 ) distributed by (cn,vn,pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sale_pkey" for table "sale"
 create table sale_ord
 (
         ord int not null,
@@ -61,7 +57,6 @@ create table sale_ord
 	primary key (cn, vn, pn)
 	
 ) distributed by (cn,vn,pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sale_ord_pkey" for table "sale_ord"
 -- Customers
 insert into customer values 
   ( 1, 'Macbeth', 'Inverness'),

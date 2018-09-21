@@ -27,7 +27,7 @@
  * always be so; try to be careful to maintain the distinction.)
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/pg_list.h
@@ -73,6 +73,7 @@ struct ListCell
  * them as macros, since we want to avoid double-evaluation of macro
  * arguments. Therefore, we implement them using static inline functions
  * if supported by the compiler, or as regular functions otherwise.
+ * See STATIC_IF_INLINE in c.h.
  */
 static inline ListCell *
 list_head(const List *l)

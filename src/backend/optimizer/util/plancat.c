@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,10 +21,14 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/htup_details.h"
+#include "access/nbtree.h"
 #include "access/sysattr.h"
 #include "access/transam.h"
+#include "access/xlog.h"
 #include "catalog/catalog.h"
 #include "catalog/heap.h"
+#include "foreign/fdwapi.h"
 #include "miscadmin.h"
 #include "commands/tablecmds.h"
 #include "nodes/makefuncs.h"
@@ -74,6 +78,7 @@ static void get_external_relation_info(Relation relation, RelOptInfo *rel);
  *	min_attr	lowest valid AttrNumber
  *	max_attr	highest valid AttrNumber
  *	indexlist	list of IndexOptInfos for relation's indexes
+ *	fdwroutine	if it's a foreign table, the FDW function pointers
  *	pages		number of pages
  *	tuples		number of tuples
  *
@@ -378,6 +383,17 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 				info->tuples > rel->tuples)
 				info->tuples = rel->tuples;
 
+			if (info->relam == BTREE_AM_OID)
+			{
+				/* For btrees, get tree height while we have the index open */
+				info->tree_height = _bt_getrootheight(indexRelation);
+			}
+			else
+			{
+				/* For other index types, just set it to "unknown" for now */
+				info->tree_height = -1;
+			}
+
 			index_close(indexRelation, needs_longlock ? NoLock : lmode);
 
 			indexinfos = lcons(info, indexinfos);
@@ -387,6 +403,12 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	}
 
 	rel->indexlist = indexinfos;
+
+	/* Grab the fdwroutine info using the relcache, while we have it */
+	if (relation->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+		rel->fdwroutine = GetFdwRoutineForRelation(relation, true);
+	else
+		rel->fdwroutine = NULL;
 
 	heap_close(relation, NoLock);
 
@@ -564,6 +586,7 @@ estimate_rel_size(Relation rel, int32 *attr_widths,
 	{
 		case RELKIND_RELATION:
 		case RELKIND_INDEX:
+		case RELKIND_MATVIEW:
 		case RELKIND_TOASTVALUE:
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOBLOCKDIR:
@@ -858,12 +881,6 @@ get_relation_constraints(PlannerInfo *root,
 			cexpr = eval_const_expressions(root, cexpr);
 
 			cexpr = (Node *) canonicalize_qual((Expr *) cexpr);
-
-			/*
-			 * Also mark any coercion format fields as "don't care", so that
-			 * we can match to both explicit and implicit coercions.
-			 */
-			set_coercionform_dontcare(cexpr);
 
 			/* Fix Vars to have the desired varno */
 			if (varno != 1)

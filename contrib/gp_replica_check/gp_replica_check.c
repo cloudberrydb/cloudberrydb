@@ -1,6 +1,7 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "access/heapam_xlog.h"
 #include "access/nbtree.h"
 #include "access/gist_private.h"
 #include "access/gin.h"
@@ -225,7 +226,7 @@ sync_wait(void)
 		{
 			if (WalSndCtl->walsnds[i].pid == 0
 				|| WalSndCtl->walsnds[i].state != WALSNDSTATE_STREAMING
-				|| !XLByteLE(ckpt_lsn, WalSndCtl->walsnds[i].apply))
+				|| WalSndCtl->walsnds[i].apply < ckpt_lsn)
 				break;
 		}
 		LWLockRelease(SyncRepLock);

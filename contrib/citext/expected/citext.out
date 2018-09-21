@@ -220,7 +220,6 @@ CREATE TEMP TABLE try (
    name citext,
    UNIQUE (a, name)
 ) DISTRIBUTED BY (a);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "try_a_key" for table "try"
 INSERT INTO try (a, name)
 VALUES ('a', 'a'), ('a','ab'), ('â','â'), ('aba','aba'), ('b','b'), ('ba','ba'), ('bab','bab'), ('AZ','AZ');
 SELECT name, 'a' = name AS eq_a   FROM try WHERE name <> 'â';

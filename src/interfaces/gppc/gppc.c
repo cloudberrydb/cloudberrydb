@@ -58,7 +58,7 @@ PG_MODULE_MAGIC;
 
 typedef struct GppcReportCallbackStateData
 {
-	ErrorContextCallback		errcontext;
+	ErrorContextCallback		errcontext_cb;
 	void	   (*func)(GppcReportInfo, void *);
 	void	   *arg;
 } GppcReportCallbackStateData;
@@ -1378,31 +1378,31 @@ GppcReportCallbackState
 GppcInstallReportCallback(void (*func)(GppcReportInfo, void *), void *arg)
 {
 	GppcReportCallbackState		cbstate;
-	ErrorContextCallback	   *errcontext;
+	ErrorContextCallback	   *errcontext_cb;
 
-	errcontext = error_context_stack;
-	while (errcontext)
+	errcontext_cb = error_context_stack;
+	while (errcontext_cb)
 	{
 		/* If found, just return it. */
-		if (errcontext->callback == ReportCallbackInvoker &&
-			((GppcReportCallbackState) errcontext->arg)->func == func &&
-			((GppcReportCallbackState) errcontext->arg)->arg == arg)
-			return (GppcReportCallbackState) errcontext;
-		errcontext = errcontext->previous;
+		if (errcontext_cb->callback == ReportCallbackInvoker &&
+			((GppcReportCallbackState) errcontext_cb->arg)->func == func &&
+			((GppcReportCallbackState) errcontext_cb->arg)->arg == arg)
+			return (GppcReportCallbackState) errcontext_cb;
+		errcontext_cb = errcontext_cb->previous;
 	}
 	/*
 	 * Allocate it in ErrorContext as the caller may expect it to live longer.
 	 */
 	cbstate = (GppcReportCallbackState)
 		MemoryContextAlloc(ErrorContext, sizeof(GppcReportCallbackStateData));
-	errcontext = (ErrorContextCallback *) cbstate;
+	errcontext_cb = (ErrorContextCallback *) cbstate;
 	cbstate->func = func;
 	cbstate->arg = arg;
 
-	errcontext->callback = ReportCallbackInvoker;
-	errcontext->arg = cbstate;
-	errcontext->previous = error_context_stack;
-	error_context_stack = errcontext;
+	errcontext_cb->callback = ReportCallbackInvoker;
+	errcontext_cb->arg = cbstate;
+	errcontext_cb->previous = error_context_stack;
+	error_context_stack = errcontext_cb;
 
 	return cbstate;
 }
@@ -1417,25 +1417,25 @@ GppcInstallReportCallback(void (*func)(GppcReportInfo, void *), void *arg)
 void
 GppcUninstallReportCallback(GppcReportCallbackState cbstate)
 {
-	ErrorContextCallback	   *errcontext, *next;
+	ErrorContextCallback	   *errcontext_cb, *next;
 
-	errcontext = error_context_stack;
+	errcontext_cb = error_context_stack;
 	next = NULL;
-	while (errcontext)
+	while (errcontext_cb)
 	{
-		if (errcontext == (ErrorContextCallback *) cbstate)
+		if (errcontext_cb == (ErrorContextCallback *) cbstate)
 			break;
-		next = errcontext;
-		errcontext = errcontext->previous;
+		next = errcontext_cb;
+		errcontext_cb = errcontext_cb->previous;
 	}
-	if (errcontext)
+	if (errcontext_cb)
 	{
 		if (next)
-			next->previous = errcontext->previous;
+			next->previous = errcontext_cb->previous;
 		else
-			error_context_stack = errcontext->previous;
+			error_context_stack = errcontext_cb->previous;
 
-		pfree(errcontext);
+		pfree(errcontext_cb);
 	}
 }
 

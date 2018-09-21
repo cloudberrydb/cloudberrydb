@@ -93,7 +93,7 @@ typedef struct PartitionIndexNode
 static void recordIndexesOnLeafPart(PartitionIndexNode **pNodePtr,
 						Oid partOid, Oid rootOid);
 static void recordIndexes(PartitionIndexNode **partIndexTree);
-static void getPartitionIndexNode(Oid rootOid, int2 level,
+static void getPartitionIndexNode(Oid rootOid, int16 level,
 					  Oid parent, PartitionIndexNode **n,
 					  bool isDefault, List *defaultLevels);
 static void indexParts(PartitionIndexNode **np, bool isDefault);
@@ -295,7 +295,7 @@ BuildLogicalIndexInfo(Oid relid)
  */
 static void
 getPartitionIndexNode(Oid rootOid,
-					  int2 level,
+					  int16 level,
 					  Oid parent,
 					  PartitionIndexNode **n,
 					  bool isDefault,

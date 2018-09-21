@@ -1,12 +1,7 @@
 --
--- Drop existing table
---
-DROP TABLE IF EXISTS t;
-
---
 -- Create new table t
 --
-CREATE TABLE t(pid INT, wid INT, state CHARACTER VARYING(30));
+CREATE TEMPORARY TABLE t(pid INT, wid INT, state CHARACTER VARYING(30));
 
 --
 -- Insert a row and keep state as empty

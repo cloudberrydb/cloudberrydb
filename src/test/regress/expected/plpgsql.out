@@ -2325,7 +2325,6 @@ PL/pgSQL function test_variable_storage() line 8 at PERFORM
 -- test foreign key error trapping
 --
 create temp table master(f1 int primary key);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "master_pkey" for table "master"
 create temp table slave(f1 int references master deferrable);
 WARNING:  Referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced.
 insert into master values(1);
@@ -2389,7 +2388,6 @@ drop function trap_foreign_key_2();
 -- Test proper snapshot handling in simple expressions
 --
 create temp table users(login text, id serial);
-NOTICE:  CREATE TABLE will create implicit sequence "users_id_seq" for serial column "users.id"
 create function sp_id_user(a_login text) returns int as $$
 declare x int;
 begin
@@ -2582,7 +2580,7 @@ begin
     open c1(param2 := 20, 21);
 end
 $$ language plpgsql;
-ERROR:  duplicate value for cursor "c1" parameter "param2"
+ERROR:  value for parameter "param2" of cursor "c1" specified more than once
 LINE 5:     open c1(param2 := 20, 21);
                                   ^
 -- mixing named and positional: same as previous test, but param1 is duplicated
@@ -2593,7 +2591,7 @@ begin
     open c1(20, param1 := 21);
 end
 $$ language plpgsql;
-ERROR:  duplicate value for cursor "c1" parameter "param1"
+ERROR:  value for parameter "param1" of cursor "c1" specified more than once
 LINE 5:     open c1(20, param1 := 21);
                         ^
 -- duplicate named parameter, should throw an error at parse time
@@ -2605,7 +2603,7 @@ begin
   open c1 (p2 := 77, p2 := 42);
 end
 $$ language plpgsql;
-ERROR:  duplicate value for cursor "c1" parameter "p2"
+ERROR:  value for parameter "p2" of cursor "c1" specified more than once
 LINE 6:   open c1 (p2 := 77, p2 := 42);
                              ^
 -- not enough parameters, should throw an error at parse time
@@ -2904,7 +2902,6 @@ NOTICE:  {10,20,30}; 20; xyz; xyzabc; (10,aaa,,30); <NULL>
 drop function raise_exprs();
 -- continue statement
 create table conttesttbl(idx serial, v integer);
-NOTICE:  CREATE TABLE will create implicit sequence "conttesttbl_idx_seq" for serial column "conttesttbl.idx"
 insert into conttesttbl(v) values(10);
 insert into conttesttbl(v) values(20);
 insert into conttesttbl(v) values(30);
@@ -3841,7 +3838,139 @@ select * from returnqueryf();
 
 drop function returnqueryf();
 drop table tabwithcols;
+--
+-- Tests for composite-type results
+--
+create type footype as (x int, y varchar);
+-- test: use of variable of composite type in return statement
+create or replace function foo() returns footype as $$
+declare
+  v footype;
+begin
+  v := (1, 'hello');
+  return v;
+end;
+$$ language plpgsql;
+select foo();
+    foo    
+-----------
+ (1,hello)
+(1 row)
+
+-- test: use of variable of record type in return statement
+create or replace function foo() returns footype as $$
+declare
+  v record;
+begin
+  v := (1, 'hello'::varchar);
+  return v;
+end;
+$$ language plpgsql;
+select foo();
+    foo    
+-----------
+ (1,hello)
+(1 row)
+
+-- test: use of row expr in return statement
+create or replace function foo() returns footype as $$
+begin
+  return (1, 'hello'::varchar);
+end;
+$$ language plpgsql;
+select foo();
+    foo    
+-----------
+ (1,hello)
+(1 row)
+
+-- this does not work currently (no implicit casting)
+create or replace function foo() returns footype as $$
+begin
+  return (1, 'hello');
+end;
+$$ language plpgsql;
+select foo();
+ERROR:  returned record type does not match expected record type
+DETAIL:  Returned type unknown does not match expected type character varying in column 2.
+CONTEXT:  PL/pgSQL function foo() while casting return value to function's return type
+-- ... but this does
+create or replace function foo() returns footype as $$
+begin
+  return (1, 'hello')::footype;
+end;
+$$ language plpgsql;
+select foo();
+    foo    
+-----------
+ (1,hello)
+(1 row)
+
+drop function foo();
+-- test: return a row expr as record.
+create or replace function foorec() returns record as $$
+declare
+  v record;
+begin
+  v := (1, 'hello');
+  return v;
+end;
+$$ language plpgsql;
+select foorec();
+  foorec   
+-----------
+ (1,hello)
+(1 row)
+
+-- test: return row expr in return statement.
+create or replace function foorec() returns record as $$
+begin
+  return (1, 'hello');
+end;
+$$ language plpgsql;
+select foorec();
+  foorec   
+-----------
+ (1,hello)
+(1 row)
+
+drop function foorec();
+-- test: row expr in RETURN NEXT statement.
+create or replace function foo() returns setof footype as $$
+begin
+  for i in 1..3
+  loop
+    return next (1, 'hello'::varchar);
+  end loop;
+  return next null::footype;
+  return next (2, 'goodbye')::footype;
+end;
+$$ language plpgsql;
+select * from foo();
+ x |    y    
+---+---------
+ 1 | hello
+ 1 | hello
+ 1 | hello
+   | 
+ 2 | goodbye
+(5 rows)
+
+drop function foo();
+-- test: use invalid expr in return statement.
+create or replace function foo() returns footype as $$
+begin
+  return 1 + 1;
+end;
+$$ language plpgsql;
+select foo();
+ERROR:  cannot return non-composite value from function returning composite type
+CONTEXT:  PL/pgSQL function foo() line 3 at RETURN
+drop function foo();
+drop type footype;
+--
 -- Tests for 8.4's new RAISE features
+--
 create or replace function raise_test() returns void as $$
 begin
   raise notice '% % %', 1, 2, 3
@@ -4473,6 +4602,21 @@ select error2('public.stuffs');
 rollback;
 drop function error2(p_name_table text);
 drop function error1(text);
+-- Test for consistent reporting of error context
+create function fail() returns int language plpgsql as $$
+begin
+  return 1/0;
+end
+$$;
+select fail();
+ERROR:  division by zero
+CONTEXT:  SQL statement "SELECT 1/0"
+PL/pgSQL function fail() line 3 at RETURN
+select fail();
+ERROR:  division by zero
+CONTEXT:  SQL statement "SELECT 1/0"
+PL/pgSQL function fail() line 3 at RETURN
+drop function fail();
 -- Test handling of string literals.
 set standard_conforming_strings = off;
 create or replace function strtest() returns text as $$

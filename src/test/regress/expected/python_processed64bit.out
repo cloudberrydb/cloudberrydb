@@ -9,8 +9,6 @@ NOTICE:  function public.test_bigint_python() does not exist, skipping
 DROP TABLE IF EXISTS public.spi64bittestpython;
 NOTICE:  table "spi64bittestpython" does not exist, skipping
 CREATE TABLE public.spi64bittestpython (id BIGSERIAL PRIMARY KEY, data BIGINT);
-NOTICE:  CREATE TABLE will create implicit sequence "spi64bittestpython_id_seq" for serial column "spi64bittestpython.id"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "spi64bittestpython_pkey" for table "spi64bittestpython"
 -- Insert 1 ~ 40000 here can guarantee each segment's processing more than 10000 rows
 -- and less then 1000000(under jump hash or old module hash). This is the condition
 -- that will trigger the faultinjection.

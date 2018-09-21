@@ -205,10 +205,12 @@ checkIfFailedDueToRecoveryInProgress(fts_segment_info *ftsInfo)
 		XLogRecPtr tmpptr;
 		char *ptr = strstr(PQerrorMessage(ftsInfo->conn),
 				_(POSTMASTER_IN_RECOVERY_DETAIL_MSG));
+		uint32		tmp_xlogid;
+		uint32		tmp_xrecoff;
 
 		if ((ptr == NULL) ||
 		    sscanf(ptr, POSTMASTER_IN_RECOVERY_DETAIL_MSG " %X/%X\n",
-		    &tmpptr.xlogid, &tmpptr.xrecoff) != 2)
+		    &tmp_xlogid, &tmp_xrecoff) != 2)
 		{
 #ifdef USE_ASSERT_CHECKING
 			elog(ERROR,
@@ -223,6 +225,7 @@ checkIfFailedDueToRecoveryInProgress(fts_segment_info *ftsInfo)
 				ftsInfo->state);
 			return;
 		}
+		tmpptr = ((uint64) tmp_xlogid) << 32 | (uint64) tmp_xrecoff;
 
 		/*
 		 * If the xlog record returned from the primary is less than or
@@ -233,7 +236,7 @@ checkIfFailedDueToRecoveryInProgress(fts_segment_info *ftsInfo)
 		 * these cases of rolling panic or recovery hung we want to
 		 * mark the primary as down.
 		 */
-		if (XLByteLE(tmpptr, ftsInfo->xlogrecptr))
+		if (tmpptr <= ftsInfo->xlogrecptr)
 		{
 			elog(LOG, "FTS: detected segment is in recovery mode and not making progress (content=%d) "
 				 "primary dbid=%d, mirror dbid=%d",
@@ -244,12 +247,11 @@ checkIfFailedDueToRecoveryInProgress(fts_segment_info *ftsInfo)
 		else
 		{
 			ftsInfo->recovery_making_progress = true;
-			ftsInfo->xlogrecptr.xlogid = tmpptr.xlogid;
-			ftsInfo->xlogrecptr.xrecoff = tmpptr.xrecoff;
+			ftsInfo->xlogrecptr = tmpptr;
 			elogif(gp_log_fts >= GPVARS_VERBOSITY_VERBOSE, LOG,
 				 "FTS: detected segment is in recovery mode replayed (%s) (content=%d) "
 				 "primary dbid=%d, mirror dbid=%d",
-				 XLogLocationToString(&tmpptr),
+				 XLogLocationToString(tmpptr),
 				 ftsInfo->primary_cdbinfo->segindex,
 				 ftsInfo->mirror_cdbinfo->dbid,
 				 ftsInfo->mirror_cdbinfo->dbid);
@@ -1231,8 +1233,7 @@ FtsWalRepInitProbeContext(CdbComponentDatabases *cdbs, fts_context *context)
 		ftsInfo->result.dbid = primary->dbid;
 		ftsInfo->state = FTS_PROBE_SEGMENT;
 		ftsInfo->recovery_making_progress = false;
-		ftsInfo->xlogrecptr.xlogid = 0;
-		ftsInfo->xlogrecptr.xrecoff = 0;
+		ftsInfo->xlogrecptr = InvalidXLogRecPtr;
 
 		ftsInfo->primary_cdbinfo = primary;
 		ftsInfo->mirror_cdbinfo = mirror;

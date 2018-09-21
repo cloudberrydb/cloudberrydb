@@ -37,6 +37,7 @@
 #include "utils/resowner.h"
 #include "utils/ps_status.h"
 
+#include "gpmon/gpmon.h"
 #include "miscadmin.h"
 #include "libpq/pqsignal.h"
 #include "tcop/tcopprot.h"

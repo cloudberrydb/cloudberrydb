@@ -343,11 +343,12 @@ select (select (a.*)::text) from view_a a;
 -- Check that whole-row Vars reading the result of a subselect don't include
 -- any junk columns therein
 --
-
-select q from (select max(f1) from int4_tbl group by f1 order by f1) q
-  order by max;
+-- In GPDB, the ORDER BY in the subquery or CTE doesn't force an ordering
+-- for the whole query. Mark these with the "order none" gpdiff directive,
+-- so that differences in result order are ignored.
+select q from (select max(f1) from int4_tbl group by f1 order by f1) q;  -- order none
 with q as (select max(f1) from int4_tbl group by f1 order by f1)
-  select q from q;
+  select q from q;  -- order none
 
 --
 -- Test case for sublinks pushed down into subselects via join alias expansion

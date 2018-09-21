@@ -511,8 +511,6 @@ ALTER TABLE main_table DROP COLUMN b;
 rollback;
 -- Test enable/disable triggers
 create table trigtest (i serial primary key);
-NOTICE:  CREATE TABLE will create implicit sequence "trigtest_i_seq" for serial column "trigtest.i"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "trigtest_pkey" for table "trigtest"
 -- test that disabling RI triggers works
 create table trigtest2 (i int references trigtest(i) on delete cascade);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
@@ -808,20 +806,6 @@ DROP TABLE min_updates_test_oids;
 -- Test triggers on views
 --
 CREATE VIEW main_view AS SELECT a, b FROM main_table;
--- Updates should fail without rules or triggers
-INSERT INTO main_view VALUES (1,2);
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
-UPDATE main_view SET b = 20 WHERE a = 50;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
-DELETE FROM main_view WHERE a = 50;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
--- Should fail even when there are no matching rows
-DELETE FROM main_view WHERE a = 51;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
 -- VIEW trigger function
 CREATE OR REPLACE FUNCTION view_trigger() RETURNS trigger
 LANGUAGE plpgsql AS $$
@@ -949,38 +933,57 @@ FOR EACH STATEMENT EXECUTE PROCEDURE view_trigger('after_view_del_stmt');
 \set QUIET false
 -- Insert into view using trigger
 INSERT INTO main_view VALUES (20, 30);
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+INSERT 0 1
 INSERT INTO main_view VALUES (21, 31) RETURNING a, b;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+ a  | b  
+----+----
+ 21 | 31
+(1 row)
+
+INSERT 0 1
 -- Table trigger will prevent updates
 UPDATE main_view SET b = 31 WHERE a = 20;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+UPDATE 2
 UPDATE main_view SET b = 32 WHERE a = 21 AND b = 31 RETURNING a, b;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg0 slice1 127.0.0.1:25432 pid=18626)
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg0 slice1 127.0.0.1:25432 pid=18626)
+ a  | b  
+----+----
+ 21 | 32
+(1 row)
+
+UPDATE 1
 -- Remove table trigger to allow updates
 DROP TRIGGER before_upd_a_row_trig ON main_table;
 DROP TRIGGER
 UPDATE main_view SET b = 31 WHERE a = 20;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_a_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+NOTICE:  trigger_func(after_upd_b_row) called: action = UPDATE, when = AFTER, level = ROW  (seg1 127.0.0.1:25433 pid=18627)
+UPDATE 2
 UPDATE main_view SET b = 32 WHERE a = 21 AND b = 31 RETURNING a, b;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+ a | b 
+---+---
+(0 rows)
+
+UPDATE 0
 -- Before and after stmt triggers should fire even when no rows are affected
 UPDATE main_view SET b = 0 WHERE false;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+UPDATE 0
 -- Delete from view using trigger
 DELETE FROM main_view WHERE a IN (20,21);
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+DELETE 3
 DELETE FROM main_view WHERE a = 31 RETURNING a, b;
-ERROR:  cannot change view "main_view"
-HINT:  changing views is not supported in Greenplum
+ a | b 
+---+---
+(0 rows)
+
+DELETE 0
 \set QUIET true
 -- Describe view should list triggers
 \d main_view
@@ -1009,7 +1012,8 @@ ERROR:  trigger "instead_of_delete_trig" for table "main_view" does not exist
  a      | integer |           | plain   | 
  b      | integer |           | plain   | 
 View definition:
- SELECT main_table.a, main_table.b
+ SELECT main_table.a, 
+    main_table.b
    FROM main_table;
 Triggers:
     after_del_stmt_trig AFTER DELETE ON main_view FOR EACH STATEMENT EXECUTE PROCEDURE view_trigger('after_view_del_stmt')
@@ -1029,8 +1033,6 @@ CREATE TABLE country_table (
     country_name    text not null,
     continent        text not null
 );
-NOTICE:  CREATE TABLE will create implicit sequence "country_table_country_id_seq" for serial column "country_table.country_id"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "country_table_pkey" for table "country_table"
 INSERT INTO country_table (country_name, continent)
     VALUES ('Japan', 'Asia'),
            ('UK', 'Europe'),
@@ -1049,8 +1051,6 @@ CREATE TABLE city_table (
     population    bigint,
     country_id    int references country_table
 );
-NOTICE:  CREATE TABLE will create implicit sequence "city_table_city_id_seq" for serial column "city_table.city_id"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "city_table_pkey" for table "city_table"
 WARNING:  Referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced.
 CREATE VIEW city_view AS
     SELECT city_id, city_name, population, country_name, continent
@@ -1127,50 +1127,64 @@ ERROR:  INSTEAD OF triggers are not supported in Greenplum
 \set QUIET false
 -- INSERT .. RETURNING
 INSERT INTO city_view(city_name) VALUES('Tokyo') RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot insert into view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
 INSERT INTO city_view(city_name, population) VALUES('London', 7556900) RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot insert into view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
 INSERT INTO city_view(city_name, country_name) VALUES('Washington DC', 'USA') RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot insert into view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
 INSERT INTO city_view(city_id, city_name) VALUES(123456, 'New York') RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot insert into view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
 INSERT INTO city_view VALUES(234567, 'Birmingham', 1016800, 'UK', 'EU') RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot insert into view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
 -- UPDATE .. RETURNING
 UPDATE city_view SET country_name = 'Japon' WHERE city_name = 'Tokyo'; -- error
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE city_view SET country_name = 'Japan' WHERE city_name = 'Takyo'; -- no match
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE city_view SET country_name = 'Japan' WHERE city_name = 'Tokyo' RETURNING *; -- OK
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE city_view SET population = 13010279 WHERE city_name = 'Tokyo' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE city_view SET country_name = 'UK' WHERE city_name = 'New York' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE city_view SET country_name = 'USA', population = 8391881 WHERE city_name = 'New York' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE city_view SET continent = 'EU' WHERE continent = 'Europe' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE city_view v1 SET country_name = v2.country_name FROM city_view v2
     WHERE v2.city_name = 'Birmingham' AND v1.city_name = 'London' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 -- DELETE .. RETURNING
 DELETE FROM city_view WHERE city_name = 'Birmingham' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot delete from view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
 \set QUIET true
 -- read-only view with WHERE clause
 CREATE VIEW european_city_view AS
@@ -1188,14 +1202,17 @@ ON european_city_view FOR EACH ROW EXECUTE PROCEDURE no_op_trig_fn();
 ERROR:  INSTEAD OF triggers are not supported in Greenplum
 \set QUIET false
 INSERT INTO european_city_view VALUES (0, 'x', 10000, 'y', 'z');
-ERROR:  cannot change view "european_city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot insert into view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
 UPDATE european_city_view SET population = 10000;
-ERROR:  cannot change view "european_city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 DELETE FROM european_city_view;
-ERROR:  cannot change view "european_city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot delete from view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
 \set QUIET true
 -- rules bypassing no-op triggers
 CREATE RULE european_city_insert_rule AS ON INSERT TO european_city_view
@@ -1215,27 +1232,33 @@ DO INSTEAD DELETE FROM city_view WHERE city_id = OLD.city_id RETURNING *;
 -- INSERT not limited by view's WHERE clause, but UPDATE AND DELETE are
 INSERT INTO european_city_view(city_name, country_name)
     VALUES ('Cambridge', 'USA') RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot insert into view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view insertable, provide an unconditional ON INSERT DO INSTEAD rule or an INSTEAD OF INSERT trigger.
 UPDATE european_city_view SET country_name = 'UK'
     WHERE city_name = 'Cambridge';
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 DELETE FROM european_city_view WHERE city_name = 'Cambridge';
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot delete from view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
 -- UPDATE and DELETE via rule and trigger
 UPDATE city_view SET country_name = 'UK'
     WHERE city_name = 'Cambridge' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 UPDATE european_city_view SET population = 122800
     WHERE city_name = 'Cambridge' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 DELETE FROM european_city_view WHERE city_name = 'Cambridge' RETURNING *;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot delete from view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON DELETE DO INSTEAD rule or an INSTEAD OF DELETE trigger.
 -- join UPDATE test
 UPDATE city_view v SET population = 599657
     FROM city_table ci, country_table co
@@ -1243,8 +1266,9 @@ UPDATE city_view v SET population = 599657
     AND v.city_id = ci.city_id AND v.country_name = co.country_name
     RETURNING co.country_id, v.country_name,
               v.city_id, v.city_name, v.population;
-ERROR:  cannot change view "city_view"
-HINT:  changing views is not supported in Greenplum
+ERROR:  cannot update view "city_view"
+DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+HINT:  To make the view updatable, provide an unconditional ON UPDATE DO INSTEAD rule or an INSTEAD OF UPDATE trigger.
 \set QUIET true
 SELECT * FROM city_view;
  city_id | city_name | population | country_name | continent 
@@ -1259,11 +1283,8 @@ DROP TABLE country_table;
 -- Test pg_trigger_depth()
 -- GPDB ignore this test: execute insert in trigger function
 create table depth_a (id int not null primary key);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "depth_a_pkey" for table "depth_a"
 create table depth_b (id int not null primary key);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "depth_b_pkey" for table "depth_b"
 create table depth_c (id int not null primary key);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "depth_c_pkey" for table "depth_c"
 create function depth_a_tf() returns trigger
   language plpgsql as $$
 begin

@@ -31,7 +31,7 @@
 CATALOG(pg_attribute_encoding,3231) BKI_WITHOUT_OIDS
 {
 	Oid		attrelid;		
-	int2	attnum;			
+	int16	attnum;			
 	text	attoptions[1];	
 } FormData_pg_attribute_encoding;
 

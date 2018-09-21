@@ -591,8 +591,10 @@ mkheap_putAndGet_impl(MKHeap *mkheap, MKEntry *e)
 				 errmsg("could not create unique index \"%s\"",
 						RelationGetRelationName(mkheap->mkctxt->indexRel)),
 				 errdetail("Key %s is duplicated.",
-						 BuildIndexValueDescription(mkheap->mkctxt->indexRel,
-													values, isnull))));
+						   BuildIndexValueDescription(mkheap->mkctxt->indexRel,
+													  values, isnull)),
+				 errtableconstraint(mkheap->mkctxt->heapRel,
+								 RelationGetRelationName(mkheap->mkctxt->indexRel))));
 	}
 
 	if (mke_is_empty(e))

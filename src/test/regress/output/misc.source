@@ -655,6 +655,7 @@ SELECT user_relns() AS user_relns
  point_tbl
  polygon_tbl
  quad_point_tbl
+ radix_text_tbl
  ramp
  random_tbl
  real_city
@@ -666,12 +667,12 @@ SELECT user_relns() AS user_relns
  stud_emp
  student
  subselect_tbl
- suffix_text_tbl
  tenk1
  tenk1
  tenk2
  test_range_excl
  test_range_gist
+ test_range_spgist
  test_tsvector
  text_tbl
  time_tbl
@@ -682,7 +683,7 @@ SELECT user_relns() AS user_relns
  toyemp
  usr_define_type
  varchar_tbl
-(167 rows)
+(168 rows)
 
 SELECT name(equipment(hobby_construct(text 'skywalking', text 'mer')));
  name 

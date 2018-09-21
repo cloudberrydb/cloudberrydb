@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/execnodes.h
@@ -293,7 +293,8 @@ typedef struct ProjectionInfo
  *	  resultSlot:		tuple slot used to hold cleaned tuple.
  *	  junkAttNo:		not used by junkfilter code.  Can be used by caller
  *						to remember the attno of a specific junk attribute
- *						(execMain.c stores the "ctid" attno here).
+ *						(nodeModifyTable.c keeps the "ctid" or "wholerow"
+ *						attno here).
  * ----------------
  */
 typedef struct JunkFilter
@@ -326,6 +327,8 @@ typedef void *RelationDeleteDesc;
  *		TrigFunctions			cached lookup info for trigger functions
  *		TrigWhenExprs			array of trigger WHEN expr states
  *		TrigInstrument			optional runtime measurements for triggers
+ *		FdwRoutine				FDW callback functions, if foreign table
+ *		FdwState				available to save private state of FDW
  *		ConstraintExprs			array of constraint-checking expr states
  *		junkFilter				for removing junk attributes from tuples
  *		projectReturning		for computing a RETURNING list
@@ -354,6 +357,8 @@ typedef struct ResultRelInfo
 	FmgrInfo   *ri_TrigFunctions;
 	List	  **ri_TrigWhenExprs;
 	Instrumentation *ri_TrigInstrument;
+	struct FdwRoutine *ri_FdwRoutine;
+	void	   *ri_FdwState;
 	List	  **ri_ConstraintExprs;
 	JunkFilter *ri_junkFilter;
 	ProjectionInfo *ri_projectReturning;
@@ -693,9 +698,9 @@ extern void SliceLeafMotionStateAreValid(struct MotionState *ms);
 
 /*
  * ExecRowMark -
- *	   runtime representation of FOR UPDATE/SHARE clauses
+ *	   runtime representation of FOR [KEY] UPDATE/SHARE clauses
  *
- * When doing UPDATE, DELETE, or SELECT FOR UPDATE/SHARE, we should have an
+ * When doing UPDATE, DELETE, or SELECT FOR [KEY] UPDATE/SHARE, we should have an
  * ExecRowMark for each non-target relation in the query (except inheritance
  * parent RTEs, which can be ignored at runtime).  See PlanRowMark for details
  * about most of the fields.  In addition to fields directly derived from
@@ -716,7 +721,7 @@ typedef struct ExecRowMark
 
 /*
  * ExecAuxRowMark -
- *	   additional runtime representation of FOR UPDATE/SHARE clauses
+ *	   additional runtime representation of FOR [KEY] UPDATE/SHARE clauses
  *
  * Each LockRows and ModifyTable node keeps a list of the rowmarks it needs to
  * deal with.  In addition to a pointer to the related entry in es_rowMarks,
@@ -809,18 +814,6 @@ typedef struct MemoryManagerContainer
 	 */
 	int realloc_ratio;
 } MemoryManagerContainer;
-
-static inline void *cxt_alloc(void *manager, Size len)
-{
-	return MemoryContextAlloc((MemoryContext)manager, len);
-}
-
-static inline void cxt_free(void *manager, void *pointer)
-{
-    UnusedArg(manager);
-	if (pointer != NULL)
-		pfree(pointer);
-}
 
 /* ----------------------------------------------------------------
  *				 Expression State Trees
@@ -1138,7 +1131,7 @@ typedef struct SubPlanState
 	struct PlanState *planstate;	/* subselect plan's state tree */
 	ExprState  *testexpr;		/* state of combining expression */
 	List	   *args;			/* states of argument expression(s) */
-	struct MemTupleData *curTuple;                /* copy of most recent tuple from subplan */
+	struct MemTupleData *curTuple; /* copy of most recent tuple from subplan */
 	Datum		curArray;		/* most recent array from ARRAY() subplan */
 	/* these are used when hashing the subselect's output: */
 	ProjectionInfo *projLeft;	/* for projecting lefthand exprs */
@@ -1591,10 +1584,8 @@ typedef struct SequenceState
  *		nkeys			number of sort key columns
  *		sortkeys		sort keys in SortSupport representation
  *		slots			current output tuple of each subplan
- *		heap			heap of active tuples (represented as array indexes)
- *		heap_size		number of active heap entries
+ *		heap			heap of active tuples
  *		initialized		true if we have fetched first tuple from each subplan
- *		last_slot		last subplan fetched from (which must be re-called)
  * ----------------
  */
 typedef struct MergeAppendState
@@ -1605,10 +1596,8 @@ typedef struct MergeAppendState
 	int			ms_nkeys;
 	SortSupport ms_sortkeys;	/* array of length ms_nkeys */
 	TupleTableSlot **ms_slots;	/* array of length ms_nplans */
-	int		   *ms_heap;		/* array of length ms_nplans */
-	int			ms_heap_size;	/* current active length of ms_heap[] */
+	struct binaryheap *ms_heap; /* binary heap of slot indices */
 	bool		ms_initialized; /* are subplans started? */
-	int			ms_last_slot;	/* last subplan slot we returned from */
 } MergeAppendState;
 
 /* ----------------
@@ -2799,7 +2788,7 @@ typedef struct SetOpState
 /* ----------------
  *	 LockRowsState information
  *
- *		LockRows nodes are used to enforce FOR UPDATE/FOR SHARE locking.
+ *		LockRows nodes are used to enforce FOR [KEY] UPDATE/SHARE locking.
  * ----------------
  */
 typedef struct LockRowsState

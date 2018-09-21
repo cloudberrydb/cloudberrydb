@@ -872,6 +872,9 @@ create rule "_RETURN" as on select to fooview do instead
 select * from fooview;
 select xmin, * from fooview;  -- fail, views don't have such a column
 
+select reltoastrelid, reltoastidxid, relkind, relfrozenxid
+  from pg_class where oid = 'fooview'::regclass;
+
 drop view fooview;
 
 --
@@ -948,3 +951,52 @@ select * from only t1_2;
 select pg_get_viewdef('shoe'::regclass) as unpretty;
 select pg_get_viewdef('shoe'::regclass,true) as pretty;
 select pg_get_viewdef('shoe'::regclass,0) as prettier;
+
+--
+-- check multi-row VALUES in rules
+--
+
+create table rules_src(f1 int, f2 int);
+create table rules_log(f1 int, f2 int, tag text);
+insert into rules_src values(1,2), (11,12);
+create rule r1 as on update to rules_src do also
+  insert into rules_log values(old.*, 'old'), (new.*, 'new');
+update rules_src set f2 = f2 + 1;
+update rules_src set f2 = f2 * 10;
+select * from rules_src;
+select * from rules_log;
+create rule r2 as on update to rules_src do also
+  values(old.*, 'old'), (new.*, 'new');
+update rules_src set f2 = f2 / 10;
+select * from rules_src;
+select * from rules_log;
+create rule r3 as on delete to rules_src do notify rules_src_deletion;
+\d+ rules_src
+
+--
+-- check alter rename rule
+--
+CREATE TABLE rule_t1 (a INT);
+CREATE VIEW rule_v1 AS SELECT * FROM rule_t1;
+
+CREATE RULE InsertRule AS
+    ON INSERT TO rule_v1
+    DO INSTEAD
+        INSERT INTO rule_t1 VALUES(new.a);
+
+ALTER RULE InsertRule ON rule_v1 RENAME to NewInsertRule;
+
+INSERT INTO rule_v1 VALUES(1);
+SELECT * FROM rule_v1;
+
+\d+ rule_v1
+
+--
+-- error conditions for alter rename rule
+--
+ALTER RULE InsertRule ON rule_v1 RENAME TO NewInsertRule; -- doesn't exist
+ALTER RULE NewInsertRule ON rule_v1 RENAME TO "_RETURN"; -- already exists
+ALTER RULE "_RETURN" ON rule_v1 RENAME TO abc; -- ON SELECT rule cannot be renamed
+
+DROP VIEW rule_v1;
+DROP TABLE rule_t1;

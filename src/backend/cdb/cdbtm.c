@@ -1951,32 +1951,6 @@ redoDistributedForgetCommitRecord(TMGXACT_LOG *gxact_log)
 
 }
 
-static void
-descGxactLog(StringInfo buf, TMGXACT_LOG *gxact_log)
-{
-	appendStringInfo(buf, " gid = %s, gxid = %u",
-					 gxact_log->gid, gxact_log->gxid);
-}
-
-/*
- * Describe redo transaction commit log record.
- */
-void
-descDistributedCommitRecord(StringInfo buf, TMGXACT_LOG *gxact_log)
-{
-	descGxactLog(buf, gxact_log);
-}
-
-/*
- * Describe redo transaction forget commit log record.
- */
-void
-descDistributedForgetCommitRecord(StringInfo buf, TMGXACT_LOG *gxact_log)
-{
-	descGxactLog(buf, gxact_log);
-}
-
-
 /*=========================================================================
  * HELPER FUNCTIONS
  */

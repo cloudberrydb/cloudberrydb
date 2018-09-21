@@ -3,7 +3,7 @@
  * parse_agg.c
  *	  handle aggregates in parser
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -63,7 +63,6 @@ static int check_agg_arguments(ParseState *pstate,
 					Expr *filter);
 static bool check_agg_arguments_walker(Node *node,
 						   check_agg_arguments_context *context);
-
 static void check_ungrouped_columns(Node *node, ParseState *pstate, Query *qry,
 						List *groupClauses, bool have_non_var_grouping,
 						List **func_grouped_rels);
@@ -266,7 +265,7 @@ transformAggregateCall(ParseState *pstate, Aggref *agg,
 			break;
 		case EXPR_KIND_FROM_SUBSELECT:
 			/* Should only be possible in a LATERAL subquery */
-			//Assert(pstate->p_lateral_active);
+			Assert(pstate->p_lateral_active);
 			/* Aggregate scope rules make it worth being explicit here */
 			err = _("aggregate functions are not allowed in FROM clause of their own query level");
 			break;
@@ -380,8 +379,17 @@ transformAggregateCall(ParseState *pstate, Aggref *agg,
  *	  one is its parent, etc).
  *
  * The aggregate's level is the same as the level of the lowest-level variable
- * or aggregate in its arguments; or if it contains no variables at all, we
- * presume it to be local.
+ * or aggregate in its aggregated arguments (including any ORDER BY columns)
+ * or filter expression; or if it contains no variables at all, we presume it
+ * to be local.
+ *
+ * Vars/Aggs in direct arguments are *not* counted towards determining the
+ * agg's level, as those arguments aren't evaluated per-row but only
+ * per-group, and so in some sense aren't really agg arguments.  However,
+ * this can mean that we decide an agg is upper-level even when its direct
+ * args contain lower-level Vars/Aggs, and that case has to be disallowed.
+ * (This is a little strange, but the SQL standard seems pretty definite that
+ * direct args are not to be considered when setting the agg's level.)
  *
  * We also take this opportunity to detect any aggregates or window functions
  * nested within the arguments.  We can throw error immediately if we find
@@ -540,6 +548,17 @@ check_agg_arguments_walker(Node *node,
 								  (void *) context);
 }
 
+/*
+ * transformWindowFuncCall -
+ *		Finish initial transformation of a window function call
+ *
+ * parse_func.c has recognized the function as a window function, and has set
+ * up all the fields of the WindowFunc except winref.  Here we must (1) add
+ * the WindowDef to the pstate (if not a duplicate of one already present) and
+ * set winref to link to it; and (2) mark p_hasWindowFuncs true in the pstate.
+ * Unlike aggregates, only the most closely nested pstate level need be
+ * considered --- there are no "outer window functions" per SQL spec.
+ */
 void
 transformWindowFuncCall(ParseState *pstate, WindowFunc *wfunc,
 						WindowDef *windef)
@@ -1284,7 +1303,7 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 						 args,
 						 InvalidOid,
 						 agg_input_collation,
-						 COERCE_DONTCARE);
+						 COERCE_EXPLICIT_CALL);
 	fexpr->funcvariadic = agg_variadic;
 	*transfnexpr = (Expr *) fexpr;
 
@@ -1343,7 +1362,7 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 											 args,
 											 InvalidOid,
 											 agg_input_collation,
-											 COERCE_DONTCARE);
+											 COERCE_EXPLICIT_CALL);
 	}
 
 	/* combine function */
@@ -1366,7 +1385,7 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 											   args,
 											   InvalidOid,
 											   agg_input_collation,
-											   COERCE_DONTCARE);
+											   COERCE_EXPLICIT_CALL);
 	}
 }
 

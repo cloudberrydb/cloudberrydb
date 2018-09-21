@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -66,8 +66,7 @@
 /* And a few guys need only the pg_strtok support fields */
 #define READ_TEMP_LOCALS()	\
 	char	   *token;		\
-	int			length;		\
-	(void) token				/* possibly unused */
+	int			length
 
 /* ... but most need both */
 #define READ_LOCALS(nodeTypeName)			\
@@ -154,6 +153,7 @@ inline static char extended_char(char* token, size_t length)
 #define READ_NODE_FIELD(fldname) \
     do { \
 	    token = pg_strtok(&length);		/* skip :fldname */ \
+		(void) token;				/* in case not used elsewhere */ \
 	    local_node->fldname = nodeRead(NULL, 0); \
     } while (0)
 
@@ -556,7 +556,7 @@ _readRowMarkClause(void)
 	READ_LOCALS(RowMarkClause);
 
 	READ_UINT_FIELD(rti);
-	READ_BOOL_FIELD(forUpdate);
+	READ_ENUM_FIELD(strength, LockClauseStrength);
 	READ_BOOL_FIELD(noWait);
 	READ_BOOL_FIELD(pushedDown);
 
@@ -664,6 +664,7 @@ _readIntoClause(void)
 	READ_NODE_FIELD(options);
 	READ_ENUM_FIELD(onCommit, OnCommitAction);
 	READ_STRING_FIELD(tableSpaceName);
+	READ_NODE_FIELD(viewQuery);
 	READ_BOOL_FIELD(skipData);
 	READ_NODE_FIELD(distributedBy);
 
@@ -835,8 +836,10 @@ _readIndexStmt(void)
 	READ_STRING_FIELD(tableSpace);
 	READ_NODE_FIELD(indexParams);
 	READ_NODE_FIELD(options);
+
 	READ_NODE_FIELD(whereClause);
 	READ_NODE_FIELD(excludeOpNames);
+	READ_STRING_FIELD(idxcomment);
 	READ_OID_FIELD(indexOid);
 	READ_OID_FIELD(oldNode);
 	READ_BOOL_FIELD(is_part_child);
@@ -1104,7 +1107,6 @@ _readAlterObjectSchemaStmt(void)
 	READ_NODE_FIELD(relation);
 	READ_NODE_FIELD(object);
 	READ_NODE_FIELD(objarg);
-	READ_STRING_FIELD(addname);
 	READ_STRING_FIELD(newschema);
 	READ_BOOL_FIELD(missing_ok);
 	READ_ENUM_FIELD(objectType,ObjectType);
@@ -1123,7 +1125,6 @@ _readAlterOwnerStmt(void)
 	READ_NODE_FIELD(relation);
 	READ_NODE_FIELD(object);
 	READ_NODE_FIELD(objarg);
-	READ_STRING_FIELD(addname);
 	READ_STRING_FIELD(newowner);
 
 	READ_DONE();
@@ -2141,8 +2142,6 @@ _readTypeCast(void)
 	READ_DONE();
 }
 
-
-#ifndef COMPILING_BINARY_FUNCS
 /*
  * _readRangeTblEntry
  */
@@ -2182,10 +2181,7 @@ _readRangeTblEntry(void)
 			READ_NODE_FIELD(funccoltypes);
 			READ_NODE_FIELD(funccoltypmods);
 			READ_NODE_FIELD(funccolcollations);
-			if (pg_strtok_peek_fldname("funcuserdata"))
-			{
-				READ_BYTEA_FIELD(funcuserdata);
-			}
+			/* 'funcuserdata' is not serialized */
 			break;
 		case RTE_VALUES:
 			READ_NODE_FIELD(values_lists);
@@ -2207,6 +2203,7 @@ _readRangeTblEntry(void)
 			break;
 	}
 
+	READ_BOOL_FIELD(lateral);
 	READ_BOOL_FIELD(inh);
 	READ_BOOL_FIELD(inFromCl);
 	READ_UINT_FIELD(requiredPerms);
@@ -2218,7 +2215,6 @@ _readRangeTblEntry(void)
 	/* 'pseudocols' is intentionally missing, see out function */
 	READ_DONE();
 }
-#endif /* COMPILING_BINARY_FUNCS */
 
 /*
  * Greenplum Database additions for serialization support
@@ -2273,7 +2269,7 @@ _readPartition(void)
 	READ_INT_FIELD(parlevel);
 	READ_BOOL_FIELD(paristemplate);
 	READ_INT_FIELD(parnatts);
-	READ_INT_ARRAY(paratts, parnatts, int2);
+	READ_INT_ARRAY(paratts, parnatts, int16);
 	READ_OID_ARRAY(parclass, parnatts);
 
 	READ_DONE();

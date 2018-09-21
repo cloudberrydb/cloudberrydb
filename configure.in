@@ -21,14 +21,14 @@ dnl The PACKAGE_VERSION from upstream PostgreSQL is maintained in the
 dnl PG_PACKAGE_VERSION variable, when merging make sure to update this
 dnl variable with the merge conflict from the AC_INIT() statement.
 AC_INIT([Greenplum Database], [6.0.0-alpha.0], [support@greenplum.org])
-[PG_PACKAGE_VERSION=9.2beta2]
+[PG_PACKAGE_VERSION=9.3beta1]
 AC_SUBST(PG_PACKAGE_VERSION)
 
 dnl m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.69], [], [m4_fatal([Autoconf version 2.69 is required.
 dnl Untested combinations of 'autoconf' and PostgreSQL versions are not
 dnl recommended.  You can remove the check from 'configure.in' but it is then
 dnl your responsibility whether the result works or not.])])
-AC_COPYRIGHT([Copyright (c) 1996-2012, PostgreSQL Global Development Group])
+AC_COPYRIGHT([Copyright (c) 1996-2013, PostgreSQL Global Development Group])
 AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
 AC_CONFIG_AUX_DIR(config)
 AC_PREFIX_DEFAULT(/usr/local/gpdb)
@@ -179,13 +179,6 @@ but it's convenient if your clients have the right default compiled in.
 AC_DEFINE_UNQUOTED(DEF_PGPORT_STR, "${default_port}",
                    [Define to the default TCP port number as a string constant.])
 AC_SUBST(default_port)
-
-#
-# Option to disable shared libraries
-#
-PGAC_ARG_BOOL(enable, shared, yes,
-              [do not build shared libraries])
-AC_SUBST(enable_shared)
 
 #
 # '-rpath'-like feature can be disabled
@@ -1162,6 +1155,16 @@ if test "$PORTNAME" = "win32"; then
   AC_CHECK_TOOL(WINDRES, windres, windres)
 fi
 
+AC_PROG_INSTALL
+# When Autoconf chooses install-sh as install program it tries to generate
+# a relative path to it in each makefile where it subsitutes it. This clashes
+# with our Makefile.global concept. This workaround helps.
+case $INSTALL in
+  *install-sh*) install_bin='';;
+  *) install_bin=$INSTALL;;
+esac
+AC_SUBST(install_bin)
+
 AC_PATH_PROG(TAR, tar)
 AC_PROG_LN_S
 AC_PROG_AWK
@@ -1379,8 +1382,8 @@ fi
 
 # for contrib/sepgsql
 if test "$with_selinux" = yes; then
-  AC_CHECK_LIB(selinux, selinux_status_open, [],
-               [AC_MSG_ERROR([library 'libselinux', version 2.0.99 or newer, is required for SELinux support])])
+  AC_CHECK_LIB(selinux, security_compute_create_name, [],
+               [AC_MSG_ERROR([library 'libselinux', version 2.1.10 or newer, is required for SELinux support])])
 fi
 
 # for contrib/uuid-ossp
@@ -1723,7 +1726,7 @@ LIBS=`echo "$LIBS" | sed -e 's/-ledit//g' -e 's/-lreadline//g'`
 # net-snmp has the same problem..
 LIBS=`echo "$LIBS" | sed -e 's/-lnetsnmp//g'`
 
-AC_CHECK_FUNCS([cbrt dlopen fcvt fdatasync getifaddrs getpeerucred getrlimit memmove poll pstat readlink setproctitle setsid sigprocmask symlink towlower utime utimes waitpid wcstombs wcstombs_l])
+AC_CHECK_FUNCS([cbrt dlopen fdatasync getifaddrs getpeerucred getrlimit mbstowcs_l memmove poll pstat readlink setproctitle setsid sigprocmask symlink sync_file_range towlower utime utimes wcstombs wcstombs_l])
 
 AC_REPLACE_FUNCS(fseeko)
 case $host_os in
@@ -1957,6 +1960,15 @@ if test x"$pgac_cv_gcc_int_atomics" = x"yes"; then
   AC_DEFINE(HAVE_GCC_INT_ATOMICS, 1, [Define to 1 if you have __sync_lock_test_and_set(int *) and friends.])
 fi
 
+# Lastly, restore full LIBS list and check for readline/libedit symbols
+LIBS="$LIBS_including_readline"
+
+if test "$with_readline" = yes; then
+  PGAC_VAR_RL_COMPLETION_APPEND_CHARACTER
+  AC_CHECK_FUNCS([rl_completion_matches rl_filename_completion_function])
+  AC_CHECK_FUNCS([append_history history_truncate_file])
+fi
+
 
 AC_CACHE_CHECK([for builtin locking functions], pgac_cv_gcc_int_atomics,
 [AC_TRY_LINK([],
@@ -2061,23 +2073,6 @@ AC_SUBST(LDAP_LIBS_FE)
 AC_SUBST(LDAP_LIBS_BE)
 
 
-# Older versions of libxml2 lack the xmlStructuredErrorContext variable
-# (which could be a macro referring to a function, if threading is enabled)
-if test "$with_libxml" = yes ; then
-  AC_CACHE_CHECK([for xmlStructuredErrorContext], pgac_cv_libxml_structerrctx,
-  [AC_TRY_LINK([#include <libxml/globals.h>
-                void *globptr;],
-               [globptr = xmlStructuredErrorContext],
-               [pgac_cv_libxml_structerrctx=yes],
-               [pgac_cv_libxml_structerrctx=no])])
-  if test x"$pgac_cv_libxml_structerrctx" = x"yes"; then
-    AC_DEFINE(HAVE_XMLSTRUCTUREDERRORCONTEXT,
-             1,
-             [Define to 1 if your libxml has xmlStructuredErrorContext.])
-  fi
-fi
-
-
 # This test makes sure that run tests work at all.  Sometimes a shared
 # library is found by the linker, but the runtime linker can't find it.
 # This check should come after all modifications of compiler or linker
@@ -2137,7 +2132,6 @@ fi
 
 AC_DEFINE_UNQUOTED(PG_INT64_TYPE, $pg_int64_type,
   [Define to the name of a signed 64-bit integer type.])
-
 
 dnl If we need to use "long long int", figure out whether nnnLL notation works.
 
@@ -2343,6 +2337,30 @@ if test "$with_tcl" = yes; then
     CPPFLAGS="$TCL_INCLUDE_SPEC $CPPFLAGS"
     AC_CHECK_HEADER(tcl.h, [], [AC_MSG_ERROR([header file <tcl.h> is required for Tcl])])
     CPPFLAGS=$ac_save_CPPFLAGS
+fi
+
+# check for <perl.h>
+if test "$with_perl" = yes; then
+  ac_save_CPPFLAGS=$CPPFLAGS
+  CPPFLAGS="$CPPFLAGS -I$perl_archlibexp/CORE"
+  AC_CHECK_HEADER(perl.h, [], [AC_MSG_ERROR([header file <perl.h> is required for Perl])],
+                  [#include <EXTERN.h>])
+  # While we're at it, check that we can link to libperl.
+  # On most platforms, if perl.h is there then libperl.so will be too, but at
+  # this writing Debian packages them separately.  There is no known reason to
+  # waste cycles on separate probes for the Tcl or Python libraries, though.
+  pgac_save_LIBS=$LIBS
+  LIBS="$perl_embed_ldflags"
+  AC_MSG_CHECKING([for libperl])
+  AC_TRY_LINK([
+#include <EXTERN.h>
+#include <perl.h>
+],  [perl_alloc();],
+    [AC_MSG_RESULT(yes)],
+    [AC_MSG_RESULT(no)
+     AC_MSG_ERROR([libperl library is required for Perl])])
+  LIBS=$pgac_save_LIBS
+  CPPFLAGS=$ac_save_CPPFLAGS
 fi
 
 # check for <Python.h>
@@ -2576,6 +2594,12 @@ AC_CONFIG_HEADERS([src/include/pg_config.h],
 [
 # Update timestamp for pg_config.h (see Makefile.global)
 echo >src/include/stamp-h
+])
+
+AC_CONFIG_HEADERS([src/include/pg_config_ext.h],
+[
+# Update timestamp for pg_config_ext.h (see Makefile.global)
+echo >src/include/stamp-ext-h
 ])
 
 AC_CONFIG_HEADERS([src/interfaces/ecpg/include/ecpg_config.h],

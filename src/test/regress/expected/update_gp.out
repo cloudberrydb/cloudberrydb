@@ -100,7 +100,7 @@ WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
      ->  Aggregate
            InitPlan 2 (returns $1)  (slice8)
              ->  Gather Motion 3:1  (slice3; segments: 3)
-                   ->  Seq Scan on keo4
+                   ->  Seq Scan on keo4 keo4_1
                          Filter: keo_para_budget_date::text = $0
                          InitPlan 1 (returns $0)  (slice7)
                            ->  Aggregate
@@ -153,17 +153,17 @@ EXPLAIN (COSTS OFF) DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS
      ->  Limit
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  ->  Limit
-                       ->  Seq Scan on keo5
+                       ->  Seq Scan on keo5 keo5_2
                              Filter: x < 2
    ->  Result
          One-Time Filter: $0
          ->  Hash Join
-               Hash Cond: public.keo5.x = public.keo5.x
+               Hash Cond: keo5.x = keo5_1.x
                ->  Seq Scan on keo5
                ->  Hash
                      ->  HashAggregate
-                           Group Key: public.keo5.x
-                           ->  Seq Scan on keo5
+                           Group Key: keo5_1.x
+                           ->  Seq Scan on keo5 keo5_1
  Optimizer: legacy query optimizer
 (17 rows)
 

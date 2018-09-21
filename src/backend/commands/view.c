@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -44,57 +44,6 @@
 
 
 static void checkViewTupleDesc(TupleDesc newdesc, TupleDesc olddesc);
-static bool isViewOnTempTable_walker(Node *node, void *context);
-
-/*---------------------------------------------------------------------
- * isViewOnTempTable
- *
- * Returns true iff any of the relations underlying this view are
- * temporary tables.
- *---------------------------------------------------------------------
- */
-static bool
-isViewOnTempTable(Query *viewParse)
-{
-	return isViewOnTempTable_walker((Node *) viewParse, NULL);
-}
-
-static bool
-isViewOnTempTable_walker(Node *node, void *context)
-{
-	if (node == NULL)
-		return false;
-
-	if (IsA(node, Query))
-	{
-		Query	   *query = (Query *) node;
-		ListCell   *rtable;
-
-		foreach(rtable, query->rtable)
-		{
-			RangeTblEntry *rte = lfirst(rtable);
-
-			if (rte->rtekind == RTE_RELATION)
-			{
-				Relation	rel = heap_open(rte->relid, AccessShareLock);
-				char		relpersistence = rel->rd_rel->relpersistence;
-
-				heap_close(rel, AccessShareLock);
-				if (relpersistence == RELPERSISTENCE_TEMP)
-					return true;
-			}
-		}
-
-		return query_tree_walker(query,
-								 isViewOnTempTable_walker,
-								 context,
-								 QTW_IGNORE_JOINALIASES);
-	}
-
-	return expression_tree_walker(node,
-								  isViewOnTempTable_walker,
-								  context);
-}
 
 /*---------------------------------------------------------------------
  * DefineVirtualRelation
@@ -271,7 +220,6 @@ DefineVirtualRelation(RangeVar *relation, List *tlist, bool replace,
 		createStmt->parentOidCount = 0;
 		createStmt->constraints = NIL;
 		createStmt->options = options;
-		createStmt->options = lappend(options, defWithOids(false));
 		createStmt->oncommit = ONCOMMIT_NOOP;
 		createStmt->tablespacename = NULL;
 		createStmt->relKind = RELKIND_VIEW;
@@ -433,7 +381,7 @@ UpdateRangeTableOfViewParse(Oid viewOid, Query *viewParse)
  * DefineView
  *		Execute a CREATE VIEW command.
  */
-void
+Oid
 DefineView(ViewStmt *stmt, const char *queryString)
 {
 	Query	   *viewParse_orig;
@@ -538,7 +486,7 @@ DefineView(ViewStmt *stmt, const char *queryString)
 	 */
 	view = copyObject(stmt->view);		/* don't corrupt original command */
 	if (view->relpersistence == RELPERSISTENCE_PERMANENT
-		&& isViewOnTempTable(viewParse))
+		&& isQueryUsingTempRelation(viewParse))
 	{
 		view->relpersistence = RELPERSISTENCE_TEMP;
 		if (Gp_role != GP_ROLE_EXECUTE)
@@ -563,16 +511,7 @@ DefineView(ViewStmt *stmt, const char *queryString)
 	 */
 	CommandCounterIncrement();
 
-	/*
-	 * The range table of 'viewParse' does not contain entries for the "OLD"
-	 * and "NEW" relations. So... add them!
-	 */
-	viewParse = UpdateRangeTableOfViewParse(viewOid, viewParse);
-
-	/*
-	 * Now create the rules associated with the view.
-	 */
-	DefineViewRules(viewOid, viewParse, stmt->replace);
+	StoreViewQuery(viewOid, viewParse, stmt->replace);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -585,4 +524,26 @@ DefineView(ViewStmt *stmt, const char *queryString)
 									GetAssignedOidsForDispatch(),
 									NULL);
 	}
+
+	return viewOid;
+}
+
+/*
+ * Use the rules system to store the query for the view.
+ */
+void
+StoreViewQuery(Oid viewOid, Query *viewParse, bool replace)
+{
+	/*
+	 * The range table of 'viewParse' does not contain entries for the "OLD"
+	 * and "NEW" relations. So... add them!
+	 */
+	viewParse = UpdateRangeTableOfViewParse(viewOid, viewParse);
+
+	/*
+	 * Now create the rules associated with the view.
+	 */
+	DefineViewRules(viewOid, viewParse, replace);
+
+
 }

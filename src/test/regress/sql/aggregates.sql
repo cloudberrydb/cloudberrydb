@@ -301,6 +301,11 @@ explain (costs off)
 select min(f1), max(f1) from minmaxtest;
 reset enable_seqscan;
 
+-- DISTINCT doesn't do anything useful here, but it shouldn't fail
+explain (costs off)
+  select distinct min(f1), max(f1) from minmaxtest;
+select distinct min(f1), max(f1) from minmaxtest;
+
 drop table minmaxtest cascade;
 
 -- check for correct detection of nested-aggregate errors

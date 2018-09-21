@@ -23,6 +23,8 @@ PostgreSQL documentation
 <synopsis>
 CREATE SCHEMA <replaceable class="parameter">schema_name</replaceable> [ AUTHORIZATION <replaceable class="parameter">user_name</replaceable> ] [ <replaceable class="parameter">schema_element</replaceable> [ ... ] ]
 CREATE SCHEMA AUTHORIZATION <replaceable class="parameter">user_name</replaceable> [ <replaceable class="parameter">schema_element</replaceable> [ ... ] ]
+CREATE SCHEMA IF NOT EXISTS <replaceable class="parameter">schema_name</replaceable> [ AUTHORIZATION <replaceable class="parameter">user_name</replaceable> ]
+CREATE SCHEMA IF NOT EXISTS AUTHORIZATION <replaceable class="parameter">user_name</replaceable>
 </synopsis>
  </refsynopsisdiv>
 
@@ -66,7 +68,7 @@ CREATE SCHEMA AUTHORIZATION <replaceable class="parameter">user_name</replaceabl
       <listitem>
        <para>
         The name of a schema to be created.  If this is omitted, the
-        <replaceable class="parameter">username</replaceable>
+        <replaceable class="parameter">user_name</replaceable>
         is used as the schema name.  The name cannot
         begin with <literal>pg_</literal>, as such names
         are reserved for system schemas.
@@ -100,6 +102,17 @@ CREATE SCHEMA AUTHORIZATION <replaceable class="parameter">user_name</replaceabl
        </para>
       </listitem>
      </varlistentry>
+
+     <varlistentry>
+      <term><literal>IF NOT EXISTS</literal></term>
+      <listitem>
+       <para>
+        Do nothing (except issuing a notice) if a schema with the same name
+        already exists.  <replaceable class="parameter">schema_element</>
+        subcommands cannot be included when this option is used.
+       </para>
+      </listitem>
+     </varlistentry>
     </variablelist>
  </refsect1>
 
@@ -128,6 +141,15 @@ CREATE SCHEMA myschema;
    named <literal>joe</>:
 <programlisting>
 CREATE SCHEMA AUTHORIZATION joe;
+</programlisting>
+  </para>
+
+  <para>
+   Create a schema named <literal>test</> that will be owned by user
+   <literal>joe</>, unless there already is a schema named <literal>test</>.
+   (It does not matter whether <literal>joe</> owns the pre-existing schema.)
+<programlisting>
+CREATE SCHEMA IF NOT EXISTS test AUTHORIZATION joe;
 </programlisting>
   </para>
 
@@ -179,6 +201,11 @@ CREATE VIEW hollywood.winners AS
    schema owner.  This can happen only if the schema owner grants the
    <literal>CREATE</> privilege on his schema to someone else, or a
    superuser chooses to create objects in it.
+  </para>
+
+  <para>
+   The <literal>IF NOT EXISTS</literal> option is a
+   <productname>PostgreSQL</productname> extension.
   </para>
  </refsect1>
 

@@ -584,7 +584,7 @@ ExecInitBitmapAppendOnlyScan(BitmapAppendOnlyScan *node, EState *estate, int efl
 	/*
 	 * open the base relation and acquire appropriate lock on it.
 	 */
-	currentRelation = ExecOpenScanRelation(estate, node->scan.scanrelid);
+	currentRelation = ExecOpenScanRelation(estate, node->scan.scanrelid, 0 /* eflags */);
 
 	scanstate->ss.ss_currentRelation = currentRelation;
 

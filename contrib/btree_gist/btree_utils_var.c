@@ -56,7 +56,6 @@ gbt_var_decompress(PG_FUNCTION_ARGS)
 GBT_VARKEY_R
 gbt_var_key_readable(const GBT_VARKEY *k)
 {
-
 	GBT_VARKEY_R r;
 
 	r.lower = (bytea *) &(((char *) k)[VARHDRSZ]);
@@ -108,14 +107,12 @@ gbt_var_leaf2node(GBT_VARKEY *leaf, const gbtree_vinfo *tinfo)
 static int32
 gbt_var_node_cp_len(const GBT_VARKEY *node, const gbtree_vinfo *tinfo)
 {
-
 	GBT_VARKEY_R r = gbt_var_key_readable(node);
 	int32		i = 0;
 	int32		l = 0;
 	int32		t1len = VARSIZE(r.lower) - VARHDRSZ;
 	int32		t2len = VARSIZE(r.upper) - VARHDRSZ;
 	int32		ml = Min(t1len, t2len);
-
 	char	   *p1 = VARDATA(r.lower);
 	char	   *p2 = VARDATA(r.upper);
 
@@ -126,7 +123,6 @@ gbt_var_node_cp_len(const GBT_VARKEY *node, const gbtree_vinfo *tinfo)
 	{
 		if (tinfo->eml > 1 && l == 0)
 		{
-
 			if ((l = pg_mblen(p1)) != pg_mblen(p2))
 			{
 				return i;
@@ -225,13 +221,13 @@ void
 gbt_var_bin_union(Datum *u, GBT_VARKEY *e, Oid collation,
 				  const gbtree_vinfo *tinfo)
 {
-	GBT_VARKEY *nk = NULL;
-	GBT_VARKEY *tmp = NULL;
-	GBT_VARKEY_R nr;
 	GBT_VARKEY_R eo = gbt_var_key_readable(e);
+	GBT_VARKEY_R nr;
 
 	if (eo.lower == eo.upper)	/* leaf */
 	{
+		GBT_VARKEY *tmp;
+
 		tmp = gbt_var_leaf2node(e, tinfo);
 		if (tmp != e)
 			eo = gbt_var_key_readable(tmp);
@@ -239,25 +235,26 @@ gbt_var_bin_union(Datum *u, GBT_VARKEY *e, Oid collation,
 
 	if (DatumGetPointer(*u))
 	{
-
 		GBT_VARKEY_R ro = gbt_var_key_readable((GBT_VARKEY *) DatumGetPointer(*u));
+		bool		update = false;
+
+		nr.lower = ro.lower;
+		nr.upper = ro.upper;
 
 		if ((*tinfo->f_cmp) (ro.lower, eo.lower, collation) > 0)
 		{
 			nr.lower = eo.lower;
-			nr.upper = ro.upper;
-			nk = gbt_var_key_copy(&nr, TRUE);
+			update = true;
 		}
 
 		if ((*tinfo->f_cmp) (ro.upper, eo.upper, collation) < 0)
 		{
 			nr.upper = eo.upper;
-			nr.lower = ro.lower;
-			nk = gbt_var_key_copy(&nr, TRUE);
+			update = true;
 		}
 
-		if (nk)
-			*u = PointerGetDatum(nk);
+		if (update)
+			*u = PointerGetDatum(gbt_var_key_copy(&nr, TRUE));
 	}
 	else
 	{
@@ -272,7 +269,6 @@ gbt_var_bin_union(Datum *u, GBT_VARKEY *e, Oid collation,
 GISTENTRY *
 gbt_var_compress(GISTENTRY *entry, const gbtree_vinfo *tinfo)
 {
-
 	GISTENTRY  *retval;
 
 	if (entry->leafkey)
@@ -301,7 +297,6 @@ GBT_VARKEY *
 gbt_var_union(const GistEntryVector *entryvec, int32 *size, Oid collation,
 			  const gbtree_vinfo *tinfo)
 {
-
 	int			i = 0,
 				numranges = entryvec->n;
 	GBT_VARKEY *cur;
@@ -368,13 +363,14 @@ gbt_var_penalty(float *res, const GISTENTRY *o, const GISTENTRY *n,
 	GBT_VARKEY *newe = (GBT_VARKEY *) DatumGetPointer(n->key);
 	GBT_VARKEY_R ok,
 				nk;
-	GBT_VARKEY *tmp = NULL;
 
 	*res = 0.0;
 
 	nk = gbt_var_key_readable(newe);
 	if (nk.lower == nk.upper)	/* leaf */
 	{
+		GBT_VARKEY *tmp;
+
 		tmp = gbt_var_leaf2node(newe, tinfo);
 		if (tmp != newe)
 			nk = gbt_var_key_readable(tmp);
@@ -389,7 +385,7 @@ gbt_var_penalty(float *res, const GISTENTRY *o, const GISTENTRY *n,
 				gbt_bytea_pf_match(ok.upper, nk.upper, tinfo))))
 	{
 		Datum		d = PointerGetDatum(0);
-		double		dres = 0.0;
+		double		dres;
 		int32		ol,
 					ul;
 
@@ -400,20 +396,18 @@ gbt_var_penalty(float *res, const GISTENTRY *o, const GISTENTRY *n,
 
 		if (ul < ol)
 		{
-			dres = (ol - ul);	/* lost of common prefix len */
+			dres = (ol - ul);	/* reduction of common prefix len */
 		}
 		else
 		{
 			GBT_VARKEY_R uk = gbt_var_key_readable((GBT_VARKEY *) DatumGetPointer(d));
+			unsigned char tmp[4];
 
-			char		tmp[4];
-
-			tmp[0] = ((VARSIZE(ok.lower) - VARHDRSZ) == ul) ? (CHAR_MIN) : (VARDATA(ok.lower)[ul]);
-			tmp[1] = ((VARSIZE(uk.lower) - VARHDRSZ) == ul) ? (CHAR_MIN) : (VARDATA(uk.lower)[ul]);
-			tmp[2] = ((VARSIZE(ok.upper) - VARHDRSZ) == ul) ? (CHAR_MIN) : (VARDATA(ok.upper)[ul]);
-			tmp[3] = ((VARSIZE(uk.upper) - VARHDRSZ) == ul) ? (CHAR_MIN) : (VARDATA(uk.upper)[ul]);
-			dres = (tmp[0] - tmp[1]) +
-				(tmp[3] - tmp[2]);
+			tmp[0] = (unsigned char) (((VARSIZE(ok.lower) - VARHDRSZ) <= ul) ? 0 : (VARDATA(ok.lower)[ul]));
+			tmp[1] = (unsigned char) (((VARSIZE(uk.lower) - VARHDRSZ) <= ul) ? 0 : (VARDATA(uk.lower)[ul]));
+			tmp[2] = (unsigned char) (((VARSIZE(ok.upper) - VARHDRSZ) <= ul) ? 0 : (VARDATA(ok.upper)[ul]));
+			tmp[3] = (unsigned char) (((VARSIZE(uk.upper) - VARHDRSZ) <= ul) ? 0 : (VARDATA(uk.upper)[ul]));
+			dres = Abs(tmp[0] - tmp[1]) + Abs(tmp[3] - tmp[2]);
 			dres /= 256.0;
 		}
 

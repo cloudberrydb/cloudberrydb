@@ -1265,7 +1265,6 @@ CREATE TABLE customer (
        dist_key int default 1,
        unique (dist_key, cid)
 ) DISTRIBUTED BY (dist_key);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "customer_dist_key_cid_key" for table "customer"
 CREATE TABLE credit_card (
        cid      int,
        cnum     text,
@@ -1441,10 +1440,10 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_usage_normal
                      ->  Subquery Scan on l
                            Filter: f_leak(l.cnum)
                            ->  Hash Join
-                                 Hash Cond: r.cid = l.cid AND r.dist_key = l.dist_key
-                                 ->  Seq Scan on credit_card r
+                                 Hash Cond: r_1.cid = l_1.cid AND r_1.dist_key = l_1.dist_key
+                                 ->  Seq Scan on credit_card r_1
                                  ->  Hash
-                                       ->  Seq Scan on customer l
+                                       ->  Seq Scan on customer l_1
                                              Filter: name = 'regress_alice'::text
  Optimizer: legacy query optimizer
 (16 rows)
@@ -1475,8 +1474,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_usage_secure
                ->  Hash
                      ->  Broadcast Motion 3:3  (slice1; segments: 3)
                            ->  Hash Join
-                                 Hash Cond: r.cid = l.cid AND r.dist_key = l.dist_key
-                                 ->  Seq Scan on credit_card r
+                                 Hash Cond: r_1.cid = l.cid AND r_1.dist_key = l.dist_key
+                                 ->  Seq Scan on credit_card r_1
                                  ->  Hash
                                        ->  Seq Scan on customer l
                                              Filter: name = 'regress_alice'::text

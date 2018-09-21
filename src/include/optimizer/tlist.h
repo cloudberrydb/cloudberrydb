@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2007-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/tlist.h
@@ -34,6 +34,9 @@ extern List *add_to_flat_tlist_junk(List *tlist, List *exprs, bool resjunk);
 extern List *add_to_flat_tlist(List *tlist, List *exprs);
 
 extern List *get_tlist_exprs(List *tlist, bool includeJunk);
+
+extern bool tlist_same_exprs(List *tlist1, List *tlist2);
+
 extern bool tlist_same_datatypes(List *tlist, List *colTypes, bool junkOK);
 extern bool tlist_same_collations(List *tlist, List *colCollations, bool junkOK);
 

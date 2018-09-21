@@ -87,7 +87,6 @@ select verify('co_t');
 
 -- Serial type
 create table t_serial(a serial, b varchar default 'xyz');
-NOTICE:  CREATE TABLE will create implicit sequence "t_serial_a_seq" for serial column "t_serial.a"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select verify('t_serial');
@@ -97,7 +96,6 @@ select verify('t_serial');
 (1 row)
 
 create table ao_serial(a serial, b varchar default 'xyz') with(appendonly=true);
-NOTICE:  CREATE TABLE will create implicit sequence "ao_serial_a_seq" for serial column "ao_serial.a"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select verify('ao_serial');
@@ -107,7 +105,6 @@ select verify('ao_serial');
 (1 row)
 
 create table co_serial(a serial, b varchar default 'xyz') with(appendonly=true, orientation=column);
-NOTICE:  CREATE TABLE will create implicit sequence "co_serial_a_seq" for serial column "co_serial.a"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select verify('co_serial');
@@ -578,8 +575,8 @@ Check constraints:
     "constraint_pt3_month_check" CHECK (month > 0)
 Inherits: constraint_pt3_1_prt_2_2_prt_3
 Has OIDs: no
-Options: appendonly=true
 Distributed by: (id)
+Options: appendonly=true
 
 CREATE DOMAIN const_domain1 AS TEXT
       CONSTRAINT cons_check1 check (char_length(VALUE) = 5);
@@ -601,7 +598,6 @@ create table contest (
 	a int constraint contest_primary primary key,
 	name varchar(40) constraint contest_check check (a > 99 AND name <> '')
 ) distributed by (a);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "contest_pkey" for table "contest"
 select verify('contest');
  verify 
 --------

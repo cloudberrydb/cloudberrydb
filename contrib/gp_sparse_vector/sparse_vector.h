@@ -18,8 +18,8 @@
 //#include "float_specials.h"
 
 typedef struct {
-	int4 vl_len_;
-	int4 dimension; /* Number of elements in this vector, special case is
+	int32 vl_len_;
+	int32 dimension; /* Number of elements in this vector, special case is
 			   -1 indicates a scalar */
 	char data[1]; /*
 		       * We store the serialized SparseData representing the
@@ -38,7 +38,11 @@ typedef struct {
  *
  * All macros take an (SvecType *) as argument
  */
-#define SVECHDRSIZE	(VARHDRSZ + sizeof(int4))
+/*
+ * GPDB_93_MERGE_FIXME: Shouldn't this just be sizeof(int32) + sizeof(int32). OR
+ * use similar to other header routines use offset of data.
+ */
+#define SVECHDRSIZE	(VARHDRSZ + sizeof(int32))
 /* Beginning of the serialized SparseData */
 #define SVEC_SDATAPTR(x)	((char *)(x)+SVECHDRSIZE)
 #define SVEC_SIZEOFSERIAL(x)	(SVECHDRSIZE+SIZEOF_SPARSEDATASERIAL((SparseData)SVEC_SDATAPTR(x)))

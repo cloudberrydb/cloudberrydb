@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -110,6 +110,8 @@ build_simple_rel(PlannerInfo *root, int relid, RelOptKind reloptkind)
 	rel->relids = bms_make_singleton(relid);
 	rel->rows = 0;
 	rel->width = 0;
+	/* cheap startup cost is interesting iff not all tuples to be retrieved */
+	rel->consider_startup = (root->tuple_fraction > 0);
 	rel->reltargetlist = NIL;
 	rel->pathlist = NIL;
 	rel->ppilist = NIL;
@@ -121,6 +123,8 @@ build_simple_rel(PlannerInfo *root, int relid, RelOptKind reloptkind)
 	rel->relid = relid;
 	rel->rtekind = rte->rtekind;
 	/* min_attr, max_attr, attr_needed, attr_widths are set below */
+	rel->lateral_vars = NIL;
+	rel->lateral_relids = NULL;
 	rel->indexlist = NIL;
 	rel->pages = 0;
 	rel->tuples = 0;
@@ -128,6 +132,7 @@ build_simple_rel(PlannerInfo *root, int relid, RelOptKind reloptkind)
 	rel->subplan = NULL;
 	rel->extEntry = NULL;
 	rel->subroot = NULL;
+	rel->subplan_params = NIL;
 	rel->fdwroutine = NULL;
 	rel->fdw_private = NULL;
 	rel->baserestrictinfo = NIL;
@@ -389,6 +394,8 @@ build_join_rel(PlannerInfo *root,
 	joinrel->relids = bms_copy(joinrelids);
 	joinrel->rows = 0;
 	joinrel->width = 0;
+	/* cheap startup cost is interesting iff not all tuples to be retrieved */
+	joinrel->consider_startup = (root->tuple_fraction > 0);
 	joinrel->reltargetlist = NIL;
 	joinrel->pathlist = NIL;
 	joinrel->ppilist = NIL;
@@ -403,12 +410,15 @@ build_join_rel(PlannerInfo *root,
 	joinrel->max_attr = 0;
 	joinrel->attr_needed = NULL;
 	joinrel->attr_widths = NULL;
+	joinrel->lateral_vars = NIL;
+	joinrel->lateral_relids = NULL;
 	joinrel->indexlist = NIL;
 	joinrel->pages = 0;
 	joinrel->tuples = 0;
 	joinrel->allvisfrac = 0;
 	joinrel->subplan = NULL;
 	joinrel->subroot = NULL;
+	joinrel->subplan_params = NIL;
 	joinrel->fdwroutine = NULL;
 	joinrel->fdw_private = NULL;
 	joinrel->baserestrictinfo = NIL;
@@ -517,8 +527,7 @@ build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
 
 	foreach(vars, input_tlist)
 	{
-		Node	   *origvar = (Node *) lfirst(vars);
-		Var		   *var;
+		Var		   *var = (Var *) lfirst(vars);
 		RelOptInfo *baserel;
 		int			ndx;
 
@@ -526,22 +535,17 @@ build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
 		 * Ignore PlaceHolderVars in the input tlists; we'll make our own
 		 * decisions about whether to copy them.
 		 */
-		if (IsA(origvar, PlaceHolderVar))
+		if (IsA(var, PlaceHolderVar))
 			continue;
 
 		/*
-		 * We can't run into any child RowExprs here, but we could find a
-		 * whole-row Var with a ConvertRowtypeExpr atop it.
+		 * Otherwise, anything in a baserel or joinrel targetlist ought to be
+		 * a Var.  (More general cases can only appear in appendrel child
+		 * rels, which will never be seen here.)
 		 */
-		var = (Var *) origvar;
-		while (!IsA(var, Var))
-		{
-			if (IsA(var, ConvertRowtypeExpr))
-				var = (Var *) ((ConvertRowtypeExpr *) var)->arg;
-			else
-				elog(ERROR, "unexpected node type in reltargetlist: %d",
-					 (int) nodeTag(var));
-		}
+		if (!IsA(var, Var))
+			elog(ERROR, "unexpected node type in reltargetlist: %d",
+				 (int) nodeTag(var));
 
         /* Pseudo column? */
         if (var->varattno <= FirstLowInvalidHeapAttributeNumber)
@@ -550,7 +554,7 @@ build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
 
 		    if (bms_nonempty_difference(rci->where_needed, relids))
 		    {
-			    joinrel->reltargetlist = lappend(joinrel->reltargetlist, origvar);
+			    joinrel->reltargetlist = lappend(joinrel->reltargetlist, var);
 			    joinrel->width += rci->attr_width;
 		    }
             continue;
@@ -568,7 +572,7 @@ build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
 		if (bms_nonempty_difference(baserel->attr_needed[ndx], relids))
 		{
 			/* Yup, add it to the output */
-			joinrel->reltargetlist = lappend(joinrel->reltargetlist, origvar);
+			joinrel->reltargetlist = lappend(joinrel->reltargetlist, var);
 			joinrel->width += baserel->attr_widths[ndx];
 		}
 	}

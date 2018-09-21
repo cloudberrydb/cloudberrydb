@@ -172,7 +172,6 @@ DROP TABLE sreh_constr;
 -- constraint errors - data is rolled back from target table (UNIQUE)
 --
 CREATE TABLE sreh_constr(a int unique);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "sreh_constr_a_key" for table "sreh_constr"
 COPY sreh_constr FROM STDIN DELIMITER '|' LOG ERRORS SEGMENT REJECT LIMIT 1000;
 ERROR:  duplicate key value violates unique constraint "sreh_constr_a_key"  (seg0 @hostname@:11001 pid=68456)
 DETAIL:  Key (a)=(9) already exists.

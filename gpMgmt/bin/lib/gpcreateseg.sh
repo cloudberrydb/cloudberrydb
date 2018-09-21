@@ -104,36 +104,33 @@ PROCESS_QE () {
     LOG_MSG "[INFO][$INST_COUNT]:-Start Function $FUNCNAME"
     LOG_MSG "[INFO][$INST_COUNT]:-Processing segment $GP_HOSTADDRESS"
 
-    MIRROR_ONLY_INITDB_OPTION=
-    if [ x"" != x"$COPY_FROM_PRIMARY_HOSTADDRESS" ]; then
-	MIRROR_ONLY_INITDB_OPTION=-m
-    fi
+    # do primary stuff
+    if [ x"" = x"$COPY_FROM_PRIMARY_HOSTADDRESS" ]; then
+	# build initdb command, capturing output in ${GP_DIR}.initdb
+	cmd="$EXPORT_LIB_PATH;$INITDB"
+	cmd="$cmd -E $ENCODING"
+	cmd="$cmd -D $GP_DIR"
+	cmd="$cmd --locale=$LOCALE_SETTING"
+	cmd="$cmd $LC_ALL_SETTINGS"
+	cmd="$cmd --max_connections=$QE_MAX_CONNECT"
+	cmd="$cmd --shared_buffers=$QE_SHARED_BUFFERS"
+	if [ x"$HEAP_CHECKSUM" == x"on" ]; then
+            cmd="$cmd --data-checksums"
+	fi
+	cmd="$cmd --backend_output=$GP_DIR.initdb"
 
-    # build initdb command, capturing output in ${GP_DIR}.initdb
-    cmd="$EXPORT_LIB_PATH;$INITDB"
-    cmd="$cmd $MIRROR_ONLY_INITDB_OPTION"
-    cmd="$cmd -E $ENCODING"
-    cmd="$cmd -D $GP_DIR"
-    cmd="$cmd --locale=$LOCALE_SETTING"
-    cmd="$cmd $LC_ALL_SETTINGS"
-    cmd="$cmd --max_connections=$QE_MAX_CONNECT"
-    cmd="$cmd --shared_buffers=$QE_SHARED_BUFFERS"
-    if [ x"$HEAP_CHECKSUM" == x"on" ]; then
-        cmd="$cmd --data-checksums"
-    fi
-    cmd="$cmd --backend_output=$GP_DIR.initdb"
+	$TRUSTED_SHELL ${GP_HOSTADDRESS} $cmd >> $LOG_FILE 2>&1
+	RETVAL=$?
 
-    $TRUSTED_SHELL ${GP_HOSTADDRESS} $cmd >> $LOG_FILE 2>&1
-    RETVAL=$?
-
-    # if there was an error, copy ${GP_DIR}.initdb to the log before cleaning it up
-    if [ $RETVAL -ne 0 ]; then
-	$TRUSTED_SHELL ${GP_HOSTADDRESS} "cat $GP_DIR.initdb" >> $LOG_FILE 2>&1
+	# if there was an error, copy ${GP_DIR}.initdb to the log before cleaning it up
+	if [ $RETVAL -ne 0 ]; then
+	    $TRUSTED_SHELL ${GP_HOSTADDRESS} "cat $GP_DIR.initdb" >> $LOG_FILE 2>&1
+	fi
+	$TRUSTED_SHELL ${GP_HOSTADDRESS} "rm -f $GP_DIR.initdb" >> $LOG_FILE 2>&1
+	BACKOUT_COMMAND "$TRUSTED_SHELL ${GP_HOSTADDRESS} \"$RM -rf $GP_DIR > /dev/null 2>&1\""
+	BACKOUT_COMMAND "$ECHO \"removing directory $GP_DIR on $GP_HOSTADDRESS\""
+	PARA_EXIT $RETVAL "to start segment instance database $GP_HOSTADDRESS $GP_DIR"
     fi
-    $TRUSTED_SHELL ${GP_HOSTADDRESS} "rm -f $GP_DIR.initdb" >> $LOG_FILE 2>&1
-    BACKOUT_COMMAND "$TRUSTED_SHELL ${GP_HOSTADDRESS} \"$RM -rf $GP_DIR > /dev/null 2>&1\""
-    BACKOUT_COMMAND "$ECHO \"removing directory $GP_DIR on $GP_HOSTADDRESS\""
-    PARA_EXIT $RETVAL "to start segment instance database $GP_HOSTADDRESS $GP_DIR"
 
     # on mirror, copy data from primary
     if [ x"" != x"$COPY_FROM_PRIMARY_HOSTADDRESS" ]; then

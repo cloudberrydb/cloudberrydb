@@ -3,7 +3,7 @@
  * postgres.c
  *	  POSTGRES C Backend Interface
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -82,6 +82,7 @@
 #include "utils/ps_status.h"
 #include "utils/datum.h"
 #include "utils/snapmgr.h"
+#include "utils/timeout.h"
 #include "utils/timestamp.h"
 #include "mb/pg_wchar.h"
 
@@ -447,9 +448,6 @@ SocketBackend(StringInfo inBuf)
 	 * Get message type code from the frontend.
 	 */
 	qtype = pq_getbyte();
-
-	if (!disable_sig_alarm(false))
-			elog(FATAL, "could not disable timer for client wait timeout");
 
 	if (qtype == EOF)			/* frontend disconnected */
 	{
@@ -3174,9 +3172,6 @@ start_xact_command(void)
 {
 	if (!xact_started)
 	{
-		/* Cancel any active statement timeout before committing */
-		disable_sig_alarm(true);
-
 		/* Now commit the command */
 		ereport(DEBUG3,
 				(errmsg_internal("StartTransactionCommand")));
@@ -3185,9 +3180,9 @@ start_xact_command(void)
 		/* Set statement timeout running, if any */
 		/* NB: this mustn't be enabled until we are within an xact */
 		if (StatementTimeout > 0 && Gp_role != GP_ROLE_EXECUTE)
-			enable_sig_alarm(StatementTimeout, true);
+			enable_timeout_after(STATEMENT_TIMEOUT, StatementTimeout);
 		else
-			cancel_from_timeout = false;
+			disable_timeout(STATEMENT_TIMEOUT, false);
 
 		xact_started = true;
 	}
@@ -3199,7 +3194,7 @@ finish_xact_command(void)
 	if (xact_started)
 	{
 		/* Cancel any active statement timeout before committing */
-		disable_sig_alarm(true);
+		disable_timeout(STATEMENT_TIMEOUT, false);
 
 		/* Now commit the command */
 		ereport(DEBUG3,
@@ -3789,7 +3784,22 @@ ProcessInterrupts(const char* filename, int lineno)
 					(errcode(ERRCODE_QUERY_CANCELED),
 					 errmsg("canceling authentication due to timeout")));
 		}
-		if (cancel_from_timeout)
+
+		/*
+		 * If LOCK_TIMEOUT and STATEMENT_TIMEOUT indicators are both set, we
+		 * prefer to report the former; but be sure to clear both.
+		 */
+		if (get_timeout_indicator(LOCK_TIMEOUT, true))
+		{
+			ImmediateInterruptOK = false;		/* not idle anymore */
+			(void) get_timeout_indicator(STATEMENT_TIMEOUT, true);
+			DisableNotifyInterrupt();
+			DisableCatchupInterrupt();
+			ereport(ERROR,
+					(errcode(ERRCODE_QUERY_CANCELED),
+					 errmsg("canceling statement due to lock timeout")));
+		}
+		if (get_timeout_indicator(STATEMENT_TIMEOUT, true))
 		{
 			ImmediateInterruptOK = false;		/* not idle anymore */
 			DisableNotifyInterrupt();
@@ -4327,7 +4337,7 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 				break;
 
 			case 'k':
-				SetConfigOption("unix_socket_directory", optarg, ctx, gucsource);
+				SetConfigOption("unix_socket_directories", optarg, ctx, gucsource);
 				break;
 
 			case 'l':
@@ -4549,11 +4559,12 @@ check_forbidden_in_fts_handler(char firstchar)
  *
  * argc/argv are the command line arguments to be used.  (When being forked
  * by the postmaster, these are not the original argv array of the process.)
- * username is the (possibly authenticated) PostgreSQL user name to be used
- * for the session.
+ * dbname is the name of the database to connect to, or NULL if the database
+ * name should be extracted from the command line arguments or defaulted.
+ * username is the PostgreSQL user name to be used for the session.
  * ----------------------------------------------------------------
  */
-int
+void
 PostgresMain(int argc, char *argv[],
 			 const char *dbname,
 			 const char *username)
@@ -4692,7 +4703,7 @@ PostgresMain(int argc, char *argv[],
 			pqsignal(SIGQUIT, quickdie);		/* hard crash time */
 		else
 			pqsignal(SIGQUIT, die);		/* cancel current query and exit */
-		pqsignal(SIGALRM, handle_sig_alarm);	/* timeout conditions */
+		InitializeTimeouts();	/* establishes SIGALRM handler */
 
 		/*
 		 * Ignore failure to write to frontend. Note: if frontend closes
@@ -4750,6 +4761,9 @@ PostgresMain(int argc, char *argv[],
 		 * Create lockfile for data directory.
 		 */
 		CreateDataDirLockFile(false);
+
+		/* Initialize MaxBackends (if under postmaster, was done already) */
+		InitializeMaxBackends();
 	}
 
 	/* Early initialization */
@@ -4822,7 +4836,7 @@ PostgresMain(int argc, char *argv[],
 	if (IsUnderPostmaster && Log_disconnections)
 		on_proc_exit(log_disconnections, 0);
 
-	/* If this is a WAL sender process, we're done with initialization. */
+	/* Perform initialization specific to a WAL sender process. */
 	if (am_walsender)
 		InitWalSender();
 
@@ -4910,10 +4924,10 @@ PostgresMain(int argc, char *argv[],
 
 		/*
 		 * Forget any pending QueryCancel request, since we're returning to
-		 * the idle loop anyway, and cancel the statement timer if running.
+		 * the idle loop anyway, and cancel any active timeout requests.
 		 */
 		QueryCancelPending = false;
-		disable_sig_alarm(true);
+		disable_all_timeouts(false);
 		QueryCancelPending = false;		/* again in case timeout occurred */
 		QueryFinishPending = false;
 
@@ -5106,6 +5120,9 @@ PostgresMain(int argc, char *argv[],
 		 * (3) read a command (loop blocks here)
 		 */
 		firstchar = ReadCommand(&input_message);
+
+		if (Gp_role == GP_ROLE_DISPATCH)
+			CancelIdleResourceCleanupTimers();
 
 		/*
 		 * Reset QueryFinishPending flag, so that if we received a delayed
@@ -5462,6 +5479,8 @@ PostgresMain(int argc, char *argv[],
 
 					forbidden_in_wal_sender(firstchar);
 
+					forbidden_in_wal_sender(firstchar);
+
 					/* Set statement_timestamp() */
 					SetCurrentStatementStartTimestamp();
 
@@ -5478,7 +5497,6 @@ PostgresMain(int argc, char *argv[],
 				break;
 
 			case 'F':			/* fastpath function call */
-
 				forbidden_in_wal_sender(firstchar);
 
 				/* Set statement_timestamp() */
@@ -5657,11 +5675,6 @@ PostgresMain(int argc, char *argv[],
 								firstchar)));
 		}
 	}							/* end of input-reading loop */
-
-	/* can't get here because the above loop never exits */
-	Assert(false);
-
-	return 1;					/* keep compiler quiet */
 }
 
 /*

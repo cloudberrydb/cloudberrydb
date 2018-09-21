@@ -14,7 +14,7 @@ override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
 SUBDIRS := motion dispatcher
 
 
-OBJS = cdbappendonlystorage.o cdbappendonlystorageformat.o \
+OBJS = cdbappendonlystorageformat.o \
        cdbappendonlystorageread.o cdbappendonlystoragewrite.o \
 	   cdbbufferedappend.o cdbbufferedread.o \
 	   cdbcat.o cdbcopy.o \

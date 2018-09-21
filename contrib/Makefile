@@ -33,22 +33,23 @@ SUBDIRS = \
 		pgcrypto	\
 		pgrowlocks	\
 		pgstattuple	\
+		pg_xlogdump	\
+		postgres_fdw	\
+		seg		\
 		spi		\
 		tcn		\
 		test_parser	\
 		tsearch2	\
 		unaccent
-
-
 # GPDB_92_MERGE_FIXME: Why some files (especially Makefile) are missing under
 # these directories?
-#       seg         \
-		tablefunc	\
-		vacuumlo
+#               seg         \
+#		tablefunc	\
+#		vacuumlo
+#		worker_spi 
 
 # Greenplum-specific additions (to ease merge pain).
 SUBDIRS += \
-		xlogdump \
 		formatter \
 		formatter_fixedwidth \
 		extprotocol \

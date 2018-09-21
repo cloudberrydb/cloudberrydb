@@ -1365,7 +1365,6 @@ ALTER TABLE public.distrib_part_test SET with (reorganize=false) DISTRIBUTED RAN
 -- ALTER TABLE set distribution key should check compatible with unique index.
 -- case 1
 CREATE TABLE t_dist1(col1 INTEGER, col2 INTEGER, CONSTRAINT pk_t_dist1 PRIMARY KEY(col2)) DISTRIBUTED BY(col2);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "t_dist1_pkey" for table "t_dist1"
 ALTER TABLE t_dist1 SET DISTRIBUTED BY(col1);
 ERROR:  UNIQUE INDEX and DISTRIBUTED BY definitions incompatible
 HINT:  the DISTRIBUTED BY columns must be equal to or a left-subset of the UNIQUE INDEX columns.

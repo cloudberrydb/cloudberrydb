@@ -3,7 +3,7 @@
  * transam.c
  *	  postgres transaction log interface routines
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -24,9 +24,6 @@
 #include "access/transam.h"
 #include "cdb/cdbvars.h"
 #include "utils/snapmgr.h"
-
-/* Handy constant for an invalid xlog recptr */
-const XLogRecPtr InvalidXLogRecPtr = {0, 0};
 
 /*
  * Single-item cache for results of TransactionLogFetch.  It's worth having

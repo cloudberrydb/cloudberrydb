@@ -128,7 +128,7 @@ GetTupleVisibilitySummary(HeapTuple tuple,
 		tupleVisibilitySummary->xminStatus =
 			GetTupleVisibilityCLogStatus(tupleVisibilitySummary->xmin);
 	}
-	tupleVisibilitySummary->xmax = HeapTupleHeaderGetXmax(tuple->t_data);
+	tupleVisibilitySummary->xmax = HeapTupleHeaderGetRawXmax(tuple->t_data);
 	if (!TransactionIdIsNormal(tupleVisibilitySummary->xmax))
 	{
 		if (tupleVisibilitySummary->xmax == FrozenTransactionId)
@@ -290,7 +290,7 @@ GetTupleVisibilityInfoMaskSet(int16 infomask, int16 infomask2)
 
 	TupleVisibilityAddFlagName(&buf, infomask & HEAP_COMBOCID, "HEAP_COMBOCID", &atLeastOne);
 	TupleVisibilityAddFlagName(&buf, infomask & HEAP_XMAX_EXCL_LOCK, "HEAP_XMAX_EXCL_LOCK", &atLeastOne);
-	TupleVisibilityAddFlagName(&buf, infomask & HEAP_XMAX_SHARED_LOCK, "HEAP_XMAX_SHARED_LOCK", &atLeastOne);
+	TupleVisibilityAddFlagName(&buf, infomask & HEAP_XMAX_LOCK_ONLY, "HEAP_XMAX_LOCK_ONLY", &atLeastOne);
 	TupleVisibilityAddFlagName(&buf, infomask & HEAP_XMIN_COMMITTED, "HEAP_XMIN_COMMITTED", &atLeastOne);
 	TupleVisibilityAddFlagName(&buf, infomask & HEAP_XMIN_INVALID, "HEAP_XMIN_INVALID", &atLeastOne);
 	TupleVisibilityAddFlagName(&buf, infomask & HEAP_XMAX_COMMITTED, "HEAP_XMAX_COMMITTED", &atLeastOne);

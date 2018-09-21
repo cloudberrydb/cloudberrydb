@@ -20,7 +20,6 @@ NOTICE:  table "foo" does not exist, skipping
 CREATE TABLE foo(
   fooid int, foosubid int, fooname text, primary key(fooid,foosubid)
   ) DISTRIBUTED BY (fooid, foosubid);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "foo_pkey" for table "foo"
 INSERT INTO foo VALUES
   (1,1,'Joe'),
   (1,2,'Ed'),
@@ -102,11 +101,14 @@ select * from foo2, foost(3) z where foo2.f2 = z.f2;
      1 | 11 |     3 | 11
 (1 row)
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, foost(foo2.fooid) z where foo2.f2 = z.f2;
-ERROR:  function expression in FROM cannot refer to other relations of same query level
-LINE 1: select * from foo2, foost(foo2.fooid) z where foo2.f2 = z.f2...
-                                  ^
+ fooid | f2 | fooid | f2 
+-------+----+-------+----
+     1 | 11 |     1 | 11
+(1 row)
+
 -- function in subselect, without correlation
 select * from foo2 
 where f2 in (select f2 from foost(1) z where z.fooid = foo2.fooid) 
@@ -203,12 +205,15 @@ select * from foo2, foor(3) z(fooid int, f2 int) where foo2.f2 = z.f2;
      1 | 11 |     3 | 11
 (1 row)
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, foor(foo2.fooid) z(fooid int, f2 int) 
 where foo2.f2 = z.f2;
-ERROR:  function expression in FROM cannot refer to other relations of same query level
-LINE 1: select * from foo2, foor(foo2.fooid) z(fooid int, f2 int) 
-                                 ^
+ fooid | f2 | fooid | f2 
+-------+----+-------+----
+     1 | 11 |     1 | 11
+(1 row)
+
 -- function in subselect, without correlation
 select * from foo2 
 where f2 in (select f2 from foor(1) z(fooid int, f2 int) 
@@ -315,11 +320,14 @@ select * from foo2, fooro(3) z where foo2.f2 = z.f2;
      1 | 11 |     3 | 11
 (1 row)
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, fooro(foo2.fooid) z where foo2.f2 = z.f2;
-ERROR:  function expression in FROM cannot refer to other relations of same query level
-LINE 1: select * from foo2, fooro(foo2.fooid) z where foo2.f2 = z.f2...
-                                  ^
+ fooid | f2 | fooid | f2 
+-------+----+-------+----
+     1 | 11 |     1 | 11
+(1 row)
+
 -- function in subselect, without correlation
 select * from foo2 
 where f2 in (select f2 from fooro(1) z where z.fooid = foo2.fooid) 
@@ -423,11 +431,14 @@ select * from foo2, foot(3) z where foo2.f2 = z.f2;
      1 | 11 |     3 | 11
 (1 row)
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, foot(foo2.fooid) z where foo2.f2 = z.f2;
-ERROR:  function expression in FROM cannot refer to other relations of same query level
-LINE 1: select * from foo2, foot(foo2.fooid) z where foo2.f2 = z.f2;
-                                 ^
+ fooid | f2 | fooid | f2 
+-------+----+-------+----
+     1 | 11 |     1 | 11
+(1 row)
+
 -- function in subselect, without correlation
 select * from foo2 
 where f2 in (select f2 from foot(1) z where z.fooid = foo2.fooid) 

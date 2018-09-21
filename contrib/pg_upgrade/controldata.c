@@ -40,11 +40,9 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 	bool		got_xid = false;
 	bool		got_oid = false;
 	bool		got_nextxlogfile = false;
-	/* GPDB_93_MERGE_FIXME
 	bool		got_multi = false;
 	bool		got_mxoff = false;
 	bool		got_oldestmulti = false;
-	*/
 	bool		got_log_id = false;
 	bool		got_log_seg = false;
 	bool		got_tli = false;
@@ -215,7 +213,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 
 			p++;				/* removing ':' char */
 			logid = str2uint(p);
-			cluster->controldata.logid = logid;
 			got_log_id = true;
 		}
 		else if ((p = strstr(bufin, "First log file segment after reset:")) != NULL)
@@ -227,7 +224,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 
 			p++;				/* removing ':' char */
 			segno = str2uint(p);
-			cluster->controldata.nxtlogseg = segno;
 			got_log_seg = true;
 		}
 		/* GPDB 4.3 (and PostgreSQL 8.2) wording of the above two. */
@@ -240,7 +236,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 
 			p++;				/* removing ':' char */
 			logid = str2uint(p);
-			cluster->controldata.logid = logid;
 			got_log_id = true;
 		}
 		else if ((p = strstr(bufin, "Next log file segment:")) != NULL)
@@ -252,7 +247,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 
 			p++;				/* removing ':' char */
 			segno = str2uint(p);
-			cluster->controldata.nxtlogseg = segno;
 			got_log_seg = true;
 		}
 		/*---*/
@@ -296,8 +290,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 			cluster->controldata.chkpnt_nxtoid = str2uint(p);
 			got_oid = true;
 		}
-		/* GPDB_93_MERGE_FIXME */
-#if 0
 		else if ((p = strstr(bufin, "Latest checkpoint's NextMultiXactId:")) != NULL)
 		{
 			p = strchr(p, ':');
@@ -331,7 +323,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 			cluster->controldata.chkpnt_nxtmxoff = str2uint(p);
 			got_mxoff = true;
 		}
-#endif
 		else if ((p = strstr(bufin, "Maximum data alignment:")) != NULL)
 		{
 			p = strchr(p, ':');
@@ -531,9 +522,9 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 
 	/* verify that we got all the mandatory pg_control data */
 	if (!got_xid || !got_oid ||
-		/*!got_multi || GPDB_93_MERGE_FIXME !got_mxoff ||
+		!got_multi || !got_mxoff ||
 		(!got_oldestmulti &&
-		 cluster->controldata.cat_ver >= MULTIXACT_FORMATCHANGE_CAT_VER) || */
+		 cluster->controldata.cat_ver >= MULTIXACT_FORMATCHANGE_CAT_VER) ||
 		(!live_check && !got_nextxlogfile) ||
 		!got_align || !got_blocksz || !got_largesz || !got_walsz ||
 		!got_walseg || !got_ident || !got_index || /* !got_toast || */
@@ -549,7 +540,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 		if (!got_oid)
 			pg_log(PG_REPORT, "  latest checkpoint next OID\n");
 
-		/* GPDB_93_MERGE_FIXME
 		if (!got_multi)
 			pg_log(PG_REPORT, "  latest checkpoint next MultiXactId\n");
 
@@ -559,7 +549,6 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 		if (!got_oldestmulti &&
 			cluster->controldata.cat_ver >= MULTIXACT_FORMATCHANGE_CAT_VER)
 			pg_log(PG_REPORT, "  latest checkpoint oldest MultiXactId\n");
-		*/
 
 		if (!live_check && !got_nextxlogfile)
 			pg_log(PG_REPORT, "  first WAL segment after reset\n");

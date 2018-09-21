@@ -113,6 +113,13 @@
      </varlistentry>
 
      <varlistentry>
+      <term><option>-j</option></term>
+      <term><option>--jobs</option></term>
+      <listitem><para>number of simultaneous processes or threads to use
+      </para></listitem>
+     </varlistentry>
+
+     <varlistentry>
       <term><option>-k</option></term>
       <term><option>--link</option></term>
       <listitem><para>use hard links instead of copying files to the new cluster</para></listitem>
@@ -199,7 +206,7 @@
     <para>
      If you are using a version-specific installation directory, e.g.
      <filename>/opt/PostgreSQL/9.1</>, you do not need to move the old cluster. The
-     one-click installers all use version-specific installation directories.
+     graphical installers all use version-specific installation directories.
     </para>
 
     <para>
@@ -331,10 +338,16 @@ NET STOP pgsql-8.3  (<productname>PostgreSQL</> 8.3 and older used a different s
      requires that the old and new cluster data directories be in the
      same file system.  See <literal>pg_upgrade --help</> for a full
      list of options.
-   </para>
+    </para>
 
-   <para>
-   </para>
+    <para>
+     The <option>--jobs</> option allows multiple CPU cores to be used
+     for copying/linking of files and to dump and reload database schemas
+     in parallel;  a good place to start is the maximum of the number of
+     CPU cores and tablespaces.  This option can dramatically reduce the
+     time to upgrade a multi-database server running on a multiprocessor
+     machine.
+    </para>
 
     <para>
      For Windows users, you must be logged into an administrative account, and
@@ -359,7 +372,9 @@ pg_upgrade.exe
      and then do the upgrade. You can use <command>pg_upgrade --check</>
      to perform only the checks, even if the old server is still
      running. <command>pg_upgrade --check</> will also outline any
-     manual adjustments you will need to make after the upgrade.
+     manual adjustments you will need to make after the upgrade.  If you
+     are going to be using link mode, you should use the <option>--link</>
+     option with <option>--check</option> to enable link-mode-specific checks.
      <command>pg_upgrade</> requires write permission in the current directory.
     </para>
 
@@ -367,8 +382,10 @@ pg_upgrade.exe
      Obviously, no one should be accessing the clusters during the
      upgrade.  <application>pg_upgrade</> defaults to running servers
      on port 50432 to avoid unintended client connections.
-     You can use the same port numbers for both clusters because the
-     old and new clusters will not be running at the same time.
+     You can use the same port number for both clusters when doing an
+     upgrade because the old and new clusters will not be running at the
+     same time.  However, when checking an old running server, the old
+     and new port numbers must be different.
     </para>
 
     <para>
@@ -387,7 +404,9 @@ pg_upgrade.exe
 
     <para>
      If you modified <filename>pg_hba.conf</> to use <literal>trust</>,
-     restore its original authentication settings.
+     restore its original authentication settings.  It might also be
+     necessary to adjust other configurations files in the new cluster to
+     match the old cluster, e.g. <filename>postgresql.conf</>.
     </para>
    </step>
 
@@ -425,7 +444,8 @@ psql --username postgres --file script.sql postgres
     <para>
      Because optimizer statistics are not transferred by <command>pg_upgrade</>, you will
      be instructed to run a command to regenerate that information at the end
-     of the upgrade.
+     of the upgrade.  You might need to set connection parameters to
+     match your new cluster.
     </para>
    </step>
 
@@ -501,7 +521,11 @@ psql --username postgres --file script.sql postgres
    All failure, rebuild, and reindex cases will be reported by
    <application>pg_upgrade</> if they affect your installation;
    post-upgrade scripts to rebuild tables and indexes will be
-   generated automatically.
+   generated automatically.  If you are trying to automate the upgrade
+   of many clusters, you should find that clusters with identical database
+   schemas require the same post-upgrade steps for all cluster upgrades;
+   this is because the post-upgrade steps are based on the database
+   schemas, and not user data.
   </para>
 
   <para>
@@ -518,13 +542,31 @@ psql --username postgres --file script.sql postgres
   </para>
 
   <para>
+   If using a pre-9.1 old server that is using a non-default Unix-domain
+   socket directory or a default that differs from the default of the
+   new cluster, set <envar>PGHOST</> to point to the old server's socket
+   location.  (This is not relevant on Windows.)
+  </para>
+
+  <para>
+   A Log-Shipping Standby Server (<xref linkend="warm-standby">) cannot
+   be upgraded because the server must allow writes.  The simplest way
+   is to upgrade the primary and use <command>rsync</> to rebuild the
+   standbys.  You can run <command>rsync</> while the primary is down,
+   or as part of a base backup (<xref linkend="backup-base-backup">)
+   which overwrites the old standby cluster.
+  </para>
+
+  <para>
    If you want to use link mode and you do not want your old cluster
    to be modified when the new cluster is started, make a copy of the
    old cluster and upgrade that in link mode. To make a valid copy
    of the old cluster, use <command>rsync</> to create a dirty
    copy of the old cluster while the server is running, then shut down
    the old server and run <command>rsync</> again to update the copy with any
-   changes to make it consistent.
+   changes to make it consistent.  You might want to exclude some
+   files, e.g. <filename>postmaster.pid</>, as documented in <xref
+   linkend="backup-lowlevel-base-backup">.
   </para>
 
  <refsect2>
@@ -594,10 +636,10 @@ psql --username postgres --file script.sql postgres
 
   <para>
    For Windows users, note that due to different integer datetimes settings
-   used by the one-click installer and the MSI installer, it is only
-   possible to upgrade from version 8.3 of the one-click distribution to
-   version 8.4 or later of the one-click distribution. It is not
-   possible to upgrade from the MSI installer to the one-click installer.
+   used by the graphical installer and the MSI installer, it is only
+   possible to upgrade from version 8.3 of the installer distribution to
+   version 8.4 or later of the installer distribution. It is not
+   possible to upgrade from the MSI installer to the new graphical installer.
   </para>
 
  </refsect2>

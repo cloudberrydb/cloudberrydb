@@ -32,7 +32,7 @@ CATALOG(pg_partition_rule,5011)
 	Oid			parparentrule;		
 	NameData	parname;			
 	bool		parisdefault;		
-	int2		parruleord;			
+	int16		parruleord;			
 	bool		parrangestartincl;	
 	bool		parrangeendincl;	
 	pg_node_tree parrangestart;

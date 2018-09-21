@@ -3,7 +3,7 @@
  * pruneheap.c
  *	  heap page pruning and HOT-chain management code
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,7 +15,9 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "access/heapam_xlog.h"
 #include "access/transam.h"
+#include "access/htup_details.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/bufmgr.h"
@@ -178,7 +180,7 @@ heap_page_prune(Relation relation, Buffer buffer, TransactionId OldestXmin,
 	 * initialize the rest of our working state.
 	 */
 	prstate.new_prune_xid = InvalidTransactionId;
-	prstate.latestRemovedXid = InvalidTransactionId;
+	prstate.latestRemovedXid = *latestRemovedXid;
 	prstate.nredirected = prstate.ndead = prstate.nunused = 0;
 	memset(prstate.marked, 0, sizeof(prstate.marked));
 
@@ -297,9 +299,6 @@ heap_page_prune(Relation relation, Buffer buffer, TransactionId OldestXmin,
 	 *
 	 * One possibility is to leave "fillfactor" worth of space in this page
 	 * and update FSM with the remaining space.
-	 *
-	 * In any case, the current FSM implementation doesn't accept
-	 * one-page-at-a-time updates, so this is all academic for now.
 	 */
 
 	return ndeleted;
@@ -470,7 +469,7 @@ heap_prune_chain(Relation relation, Buffer buffer, OffsetNumber rootoffnum,
 				 * that the page is reconsidered for pruning in future.
 				 */
 				heap_prune_record_prunable(prstate,
-										   HeapTupleHeaderGetXmax(htup));
+										   HeapTupleHeaderGetUpdateXid(htup));
 				break;
 
 			case HEAPTUPLE_DELETE_IN_PROGRESS:
@@ -480,7 +479,7 @@ heap_prune_chain(Relation relation, Buffer buffer, OffsetNumber rootoffnum,
 				 * that the page is reconsidered for pruning in future.
 				 */
 				heap_prune_record_prunable(prstate,
-										   HeapTupleHeaderGetXmax(htup));
+										   HeapTupleHeaderGetUpdateXid(htup));
 				break;
 
 			case HEAPTUPLE_LIVE:
@@ -528,7 +527,7 @@ heap_prune_chain(Relation relation, Buffer buffer, OffsetNumber rootoffnum,
 		Assert(ItemPointerGetBlockNumber(&htup->t_ctid) ==
 			   BufferGetBlockNumber(buffer));
 		offnum = ItemPointerGetOffsetNumber(&htup->t_ctid);
-		priorXmax = HeapTupleHeaderGetXmax(htup);
+		priorXmax = HeapTupleHeaderGetUpdateXid(htup);
 	}
 
 	/*
@@ -753,7 +752,7 @@ heap_get_root_tuples(Page page, OffsetNumber *root_offsets)
 
 			/* Set up to scan the HOT-chain */
 			nextoffnum = ItemPointerGetOffsetNumber(&htup->t_ctid);
-			priorXmax = HeapTupleHeaderGetXmax(htup);
+			priorXmax = HeapTupleHeaderGetUpdateXid(htup);
 		}
 		else
 		{
@@ -794,7 +793,7 @@ heap_get_root_tuples(Page page, OffsetNumber *root_offsets)
 				break;
 
 			nextoffnum = ItemPointerGetOffsetNumber(&htup->t_ctid);
-			priorXmax = HeapTupleHeaderGetXmax(htup);
+			priorXmax = HeapTupleHeaderGetUpdateXid(htup);
 		}
 	}
 }

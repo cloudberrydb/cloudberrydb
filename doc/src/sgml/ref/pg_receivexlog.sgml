@@ -96,7 +96,7 @@ PostgreSQL documentation
     <variablelist>
      <varlistentry>
       <term><option>-n</option></term>
-      <term><option>--noloop</option></term>
+      <term><option>--no-loop</option></term>
       <listitem>
        <para>
         Don't loop on connection errors. Instead, exit right away with
@@ -123,14 +123,18 @@ PostgreSQL documentation
 
     <variablelist>
      <varlistentry>
-      <term><option>-s <replaceable class="parameter">interval</replaceable></option></term>
-      <term><option>--statusint=<replaceable class="parameter">interval</replaceable></option></term>
+      <term><option>-d <replaceable class="parameter">connstr</replaceable></option></term>
+      <term><option>--dbname=<replaceable class="parameter">connstr</replaceable></option></term>
       <listitem>
        <para>
-        Specifies the number of seconds between status packets sent back to the
-        server. This is required if replication timeout is configured on the
-        server, and allows for easier monitoring. A value of zero disables the
-        status updates completely. The default value is 10 seconds.
+        Specifies parameters used to connect to the server, as a connection
+        string. See <xref linkend="libpq-connstring"> for more information.
+       </para>
+       <para>
+        The option is called <literal>--dbname</> for consistency with other
+        client applications, but because <application>pg_basebackup</application>
+        doesn't connect to any particular database in the cluster, database
+        name in the connection string will be ignored.
        </para>
       </listitem>
      </varlistentry>
@@ -158,6 +162,20 @@ PostgreSQL documentation
         extension on which the server is listening for connections.
         Defaults to the <envar>PGPORT</envar> environment variable, if
         set, or a compiled-in default.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-s <replaceable class="parameter">interval</replaceable></option></term>
+      <term><option>--status-interval=<replaceable class="parameter">interval</replaceable></option></term>
+      <listitem>
+       <para>
+        Specifies the number of seconds between status packets sent back to the
+        server. This allows for easier monitoring of the progress from server.
+        A value of zero disables the periodic status updates completely,
+        although an update will still be sent when requested by the server, to
+        avoid timeout disconnect. The default value is 10 seconds.
        </para>
       </listitem>
      </varlistentry>
@@ -211,7 +229,7 @@ PostgreSQL documentation
    </para>
 
    <para>
-    Other, less commonly used, options are also available:
+    Other options are also available:
 
     <variablelist>
      <varlistentry>

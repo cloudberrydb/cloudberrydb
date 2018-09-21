@@ -43,7 +43,7 @@ extern MCVFreqPair **aggregate_leaf_partition_MCVs(Oid relationOid,
 												   void **result);
 extern bool datumCompare(Datum d1, Datum d2, Oid opFuncOid);
 extern float4 get_rel_reltuples(Oid relid);
-extern int4 get_rel_relpages(Oid relid);
+extern int32 get_rel_relpages(Oid relid);
 extern int aggregate_leaf_partition_histograms(Oid relationOid,
 											   AttrNumber attnum,
 											   HeapTuple *heaptupleStats,

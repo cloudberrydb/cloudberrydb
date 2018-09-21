@@ -157,6 +157,7 @@
 #include "miscadmin.h"
 #include "lib/stringinfo.h"
 #include "storage/buffile.h"
+#include "storage/proc.h"
 #include "storage/procarray.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
@@ -207,8 +208,8 @@ static Size xipEntryCount = 0;
 static List *shared_snapshot_files = NIL;
 
 /* prototypes for internal functions */
-static SharedSnapshotSlot *SharedSnapshotAdd(int4 slotId);
-static SharedSnapshotSlot *SharedSnapshotLookup(int4 slotId);
+static SharedSnapshotSlot *SharedSnapshotAdd(int32 slotId);
+static SharedSnapshotSlot *SharedSnapshotLookup(int32 slotId);
 
 /*
  * Report shared-memory space needed by CreateSharedSnapshot.
@@ -349,7 +350,7 @@ SharedSnapshotDump(void)
  * this slot.
  */
 static SharedSnapshotSlot *
-SharedSnapshotAdd(int4 slotId)
+SharedSnapshotAdd(int32 slotId)
 {
 	SharedSnapshotSlot *slot;
 	volatile SharedSnapshotStruct *arrayP = sharedSnapshotArray;
@@ -469,7 +470,7 @@ GetSlotTableDebugInfo(void **snapshotArray, int *maxSlots)
  * MPP-4599: retry in the same pattern as the writer.
  */
 static SharedSnapshotSlot *
-SharedSnapshotLookup(int4 slotId)
+SharedSnapshotLookup(int32 slotId)
 {
 	SharedSnapshotSlot *slot = NULL;
 	volatile SharedSnapshotStruct *arrayP = sharedSnapshotArray;

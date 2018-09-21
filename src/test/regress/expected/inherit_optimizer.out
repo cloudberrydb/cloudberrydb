@@ -2,7 +2,6 @@
 -- Test inheritance features
 --
 CREATE TABLE a (dummy serial, aa TEXT);
-NOTICE:  CREATE TABLE will create implicit sequence "a_dummy_seq" for serial column "a.dummy"
 CREATE TABLE b (bb TEXT) INHERITS (a);
 CREATE TABLE c (cc TEXT) INHERITS (a);
 CREATE TABLE d (dd TEXT) INHERITS (b,c,a);
@@ -539,7 +538,6 @@ SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid;
 
 -- Confirm PRIMARY KEY adds NOT NULL constraint to child table
 CREATE TEMP TABLE z (b TEXT, PRIMARY KEY(aa, b)) inherits (a);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "z_pkey" for table "z"
 INSERT INTO z VALUES (NULL, 'text'); -- should fail
 ERROR:  null value in column "dummy" violates not-null constraint  (seg1 172.17.0.2:25433 pid=366731)
 DETAIL:  Failing row contains (null, text, null).
@@ -603,7 +601,7 @@ select * from d;
 
 -- Test non-inheritable parent constraints
 create table p1(ff1 int);
-alter table p1 add constraint p1chk check no inherit (ff1 > 0);
+alter table p1 add constraint p1chk check (ff1 > 0) no inherit;
 alter table p1 add constraint p2chk check (ff1 > 10);
 -- connoinherit should be true for NO INHERIT constraint
 select pc.relname, pgc.conname, pgc.contype, pgc.conislocal, pgc.coninhcount, pgc.connoinherit from pg_class as pc inner join pg_constraint as pgc on (pgc.conrelid = pc.oid) where pc.relname = 'p1' order by 1,2;
@@ -621,7 +619,7 @@ create table c1 () inherits (p1);
 --------+---------+-----------
  ff1    | integer | 
 Check constraints:
-    "p1chk" CHECK NO INHERIT (ff1 > 0)
+    "p1chk" CHECK (ff1 > 0) NO INHERIT
     "p2chk" CHECK (ff1 > 10)
 Number of child tables: 1 (Use \d+ to list them.)
 Distributed by: (ff1)
@@ -987,6 +985,133 @@ DETAIL:  drop cascades to table inht2
 drop cascades to table inhts
 drop cascades to table inht3
 drop cascades to table inht4
+-- Test non-inheritable indices [UNIQUE, EXCLUDE] contraints
+CREATE TABLE test_constraints (id int, val1 varchar, val2 int, UNIQUE(val1, val2));
+CREATE TABLE test_constraints_inh () INHERITS (test_constraints);
+\d+ test_constraints
+                        Table "public.test_constraints"
+ Column |       Type        | Modifiers | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+--------------+-------------
+ id     | integer           |           | plain    |              | 
+ val1   | character varying |           | extended |              | 
+ val2   | integer           |           | plain    |              | 
+Indexes:
+    "test_constraints_val1_val2_key" UNIQUE CONSTRAINT, btree (val1, val2)
+Child tables: test_constraints_inh
+Has OIDs: no
+Distributed by: (val1, val2)
+
+ALTER TABLE ONLY test_constraints DROP CONSTRAINT test_constraints_val1_val2_key;
+\d+ test_constraints
+                        Table "public.test_constraints"
+ Column |       Type        | Modifiers | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+--------------+-------------
+ id     | integer           |           | plain    |              | 
+ val1   | character varying |           | extended |              | 
+ val2   | integer           |           | plain    |              | 
+Child tables: test_constraints_inh
+Has OIDs: no
+Distributed by: (val1, val2)
+
+\d+ test_constraints_inh
+                      Table "public.test_constraints_inh"
+ Column |       Type        | Modifiers | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+--------------+-------------
+ id     | integer           |           | plain    |              | 
+ val1   | character varying |           | extended |              | 
+ val2   | integer           |           | plain    |              | 
+Inherits: test_constraints
+Has OIDs: no
+Distributed by: (val1, val2)
+
+DROP TABLE test_constraints_inh;
+DROP TABLE test_constraints;
+CREATE TABLE test_ex_constraints (
+    c circle,
+    EXCLUDE USING gist (c WITH &&)
+);
+CREATE TABLE test_ex_constraints_inh () INHERITS (test_ex_constraints);
+\d+ test_ex_constraints
+                 Table "public.test_ex_constraints"
+ Column |  Type  | Modifiers | Storage | Stats target | Description 
+--------+--------+-----------+---------+--------------+-------------
+ c      | circle |           | plain   |              | 
+Indexes:
+    "test_ex_constraints_c_excl" EXCLUDE USING gist (c WITH &&)
+Child tables: test_ex_constraints_inh
+Has OIDs: no
+Distributed randomly
+
+ALTER TABLE test_ex_constraints DROP CONSTRAINT test_ex_constraints_c_excl;
+\d+ test_ex_constraints
+                 Table "public.test_ex_constraints"
+ Column |  Type  | Modifiers | Storage | Stats target | Description 
+--------+--------+-----------+---------+--------------+-------------
+ c      | circle |           | plain   |              | 
+Child tables: test_ex_constraints_inh
+Has OIDs: no
+Distributed randomly
+
+\d+ test_ex_constraints_inh
+               Table "public.test_ex_constraints_inh"
+ Column |  Type  | Modifiers | Storage | Stats target | Description 
+--------+--------+-----------+---------+--------------+-------------
+ c      | circle |           | plain   |              | 
+Inherits: test_ex_constraints
+Has OIDs: no
+Distributed randomly
+
+DROP TABLE test_ex_constraints_inh;
+DROP TABLE test_ex_constraints;
+-- Test non-inheritable foreign key contraints
+CREATE TABLE test_primary_constraints(id int PRIMARY KEY);
+CREATE TABLE test_foreign_constraints(id1 int REFERENCES test_primary_constraints(id));
+CREATE TABLE test_foreign_constraints_inh () INHERITS (test_foreign_constraints);
+\d+ test_primary_constraints
+               Table "public.test_primary_constraints"
+ Column |  Type   | Modifiers | Storage | Stats target | Description 
+--------+---------+-----------+---------+--------------+-------------
+ id     | integer | not null  | plain   |              | 
+Indexes:
+    "test_primary_constraints_pkey" PRIMARY KEY, btree (id)
+Referenced by:
+    TABLE "test_foreign_constraints" CONSTRAINT "test_foreign_constraints_id1_fkey" FOREIGN KEY (id1) REFERENCES test_primary_constraints(id)
+Has OIDs: no
+Distributed by: (id)
+
+\d+ test_foreign_constraints
+               Table "public.test_foreign_constraints"
+ Column |  Type   | Modifiers | Storage | Stats target | Description 
+--------+---------+-----------+---------+--------------+-------------
+ id1    | integer |           | plain   |              | 
+Foreign-key constraints:
+    "test_foreign_constraints_id1_fkey" FOREIGN KEY (id1) REFERENCES test_primary_constraints(id)
+Child tables: test_foreign_constraints_inh
+Has OIDs: no
+Distributed by: (id1)
+
+ALTER TABLE test_foreign_constraints DROP CONSTRAINT test_foreign_constraints_id1_fkey;
+\d+ test_foreign_constraints
+               Table "public.test_foreign_constraints"
+ Column |  Type   | Modifiers | Storage | Stats target | Description 
+--------+---------+-----------+---------+--------------+-------------
+ id1    | integer |           | plain   |              | 
+Child tables: test_foreign_constraints_inh
+Has OIDs: no
+Distributed by: (id1)
+
+\d+ test_foreign_constraints_inh
+             Table "public.test_foreign_constraints_inh"
+ Column |  Type   | Modifiers | Storage | Stats target | Description 
+--------+---------+-----------+---------+--------------+-------------
+ id1    | integer |           | plain   |              | 
+Inherits: test_foreign_constraints
+Has OIDs: no
+Distributed by: (id1)
+
+DROP TABLE test_foreign_constraints_inh;
+DROP TABLE test_foreign_constraints;
+DROP TABLE test_primary_constraints;
 --
 -- Test parameterized append plans for inheritance trees
 --
@@ -1013,11 +1138,11 @@ select * from patest0 join (select f1 from int4_tbl where f1 < 10 and f1 > -10 l
 ----------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)
    ->  Hash Join
-         Hash Cond: pg_temp_317.patest0.id = int4_tbl.f1
+         Hash Cond: patest0.id = int4_tbl.f1
          ->  Append
                ->  Index Scan using patest0i on patest0
-               ->  Index Scan using patest1i on patest1 patest0
-               ->  Index Scan using patest2i on patest2 patest0
+               ->  Index Scan using patest1i on patest1
+               ->  Index Scan using patest2i on patest2
          ->  Hash
                ->  Redistribute Motion 1:3  (slice2; segments: 1)
                      Hash Key: int4_tbl.f1
@@ -1044,11 +1169,11 @@ select * from patest0 join (select f1 from int4_tbl where f1 < 10 and f1 > -10 l
 ----------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)
    ->  Hash Join
-         Hash Cond: pg_temp_665.patest0.id = int4_tbl.f1
+         Hash Cond: patest0.id = int4_tbl.f1
          ->  Append
                ->  Index Scan using patest0i on patest0
-               ->  Index Scan using patest1i on patest1 patest0
-               ->  Seq Scan on patest2 patest0
+               ->  Index Scan using patest1i on patest1
+               ->  Seq Scan on patest2
          ->  Hash
                ->  Redistribute Motion 1:3  (slice2; segments: 1)
                      Hash Key: int4_tbl.f1
@@ -1078,17 +1203,12 @@ drop cascades to table patest2
 -- Test merge-append plans for inheritance trees
 --
 create table matest0 (id serial primary key, name text);
-NOTICE:  CREATE TABLE will create implicit sequence "matest0_id_seq" for serial column "matest0.id"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "matest0_pkey" for table "matest0"
 create table matest1 (id integer primary key) inherits (matest0);
 NOTICE:  merging column "id" with inherited definition
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "matest1_pkey" for table "matest1"
 create table matest2 (id integer primary key) inherits (matest0);
 NOTICE:  merging column "id" with inherited definition
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "matest2_pkey" for table "matest2"
 create table matest3 (id integer primary key) inherits (matest0);
 NOTICE:  merging column "id" with inherited definition
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "matest3_pkey" for table "matest3"
 create index matest0i on matest0 ((1-id));
 create index matest1i on matest1 ((1-id));
 -- create index matest2i on matest2 ((1-id));  -- intentionally missing
@@ -1101,25 +1221,25 @@ insert into matest3 (name) values ('Test 5');
 insert into matest3 (name) values ('Test 6');
 set enable_indexscan = off;  -- force use of seqscan/sort, so no merge
 explain (verbose, costs off) select * from matest0 order by 1-id;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: public.matest0.id, public.matest0.name, ((1 - public.matest0.id))
-   Merge Key: (1 - public.matest0.id)
+   Output: matest0.id, matest0.name, ((1 - matest0.id))
+   Merge Key: (1 - matest0.id)
    ->  Sort
-         Output: public.matest0.id, public.matest0.name, ((1 - public.matest0.id))
-         Sort Key: (1 - public.matest0.id)
+         Output: matest0.id, matest0.name, ((1 - matest0.id))
+         Sort Key: (1 - matest0.id)
          ->  Result
-               Output: public.matest0.id, public.matest0.name, (1 - public.matest0.id)
+               Output: matest0.id, matest0.name, (1 - matest0.id)
                ->  Append
                      ->  Seq Scan on public.matest0
-                           Output: public.matest0.id, public.matest0.name
-                     ->  Seq Scan on public.matest1 matest0
-                           Output: public.matest0.id, public.matest0.name
-                     ->  Seq Scan on public.matest2 matest0
-                           Output: public.matest0.id, public.matest0.name
-                     ->  Seq Scan on public.matest3 matest0
-                           Output: public.matest0.id, public.matest0.name
+                           Output: matest0.id, matest0.name
+                     ->  Seq Scan on public.matest1
+                           Output: matest1.id, matest1.name
+                     ->  Seq Scan on public.matest2
+                           Output: matest2.id, matest2.name
+                     ->  Seq Scan on public.matest3
+                           Output: matest3.id, matest3.name
  Optimizer: legacy query optimizer
  Settings: enable_indexscan=off, optimizer=on
 (19 rows)
@@ -1142,24 +1262,24 @@ set enable_seqscan = off;  -- plan with fewest seqscans should be merge
 -- of append with bitmapscan + sort
 set enable_bitmapscan = off; 
 explain (verbose, costs off) select * from matest0 order by 1-id;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: public.matest0.id, public.matest0.name, ((1 - public.matest0.id))
-   Merge Key: (1 - public.matest0.id)
+   Output: matest0.id, matest0.name, ((1 - matest0.id))
+   Merge Key: (1 - matest0.id)
    ->  Merge Append
-         Sort Key: (1 - public.matest0.id)
+         Sort Key: (1 - matest0.id)
          ->  Index Scan using matest0i on public.matest0
-               Output: public.matest0.id, public.matest0.name, (1 - public.matest0.id)
-         ->  Index Scan using matest1i on public.matest1 matest0
-               Output: public.matest0.id, public.matest0.name, (1 - public.matest0.id)
+               Output: matest0.id, matest0.name, (1 - matest0.id)
+         ->  Index Scan using matest1i on public.matest1
+               Output: matest1.id, matest1.name, (1 - matest1.id)
          ->  Sort
-               Output: public.matest0.id, public.matest0.name, ((1 - public.matest0.id))
-               Sort Key: (1 - public.matest0.id)
-               ->  Seq Scan on public.matest2 matest0
-                     Output: public.matest0.id, public.matest0.name, (1 - public.matest0.id)
-         ->  Index Scan using matest3i on public.matest3 matest0
-               Output: public.matest0.id, public.matest0.name, (1 - public.matest0.id)
+               Output: matest2.id, matest2.name, ((1 - matest2.id))
+               Sort Key: (1 - matest2.id)
+               ->  Seq Scan on public.matest2
+                     Output: matest2.id, matest2.name, (1 - matest2.id)
+         ->  Index Scan using matest3i on public.matest3
+               Output: matest3.id, matest3.name, (1 - matest3.id)
  Optimizer: legacy query optimizer
  Settings: enable_bitmapscan=off, enable_seqscan=off, optimizer=on
 (18 rows)
@@ -1194,16 +1314,16 @@ SELECT thousand, tenthous FROM tenk1
 UNION ALL
 SELECT thousand, thousand FROM tenk1
 ORDER BY thousand, tenthous;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                    QUERY PLAN                    
+--------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: public.tenk1.thousand, public.tenk1.tenthous
+   Merge Key: tenk1.thousand, tenk1.tenthous
    ->  Sort
-         Sort Key: public.tenk1.thousand, public.tenk1.tenthous
+         Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
                ->  Table Scan on tenk1
-               ->  Table Scan on tenk1
- Optimizer: PQO version 2.64.0
+               ->  Table Scan on tenk1 tenk1_1
+ Optimizer: PQO version 2.74.0
 (8 rows)
 
 explain (costs off)
@@ -1211,18 +1331,18 @@ SELECT thousand, tenthous, thousand+tenthous AS x FROM tenk1
 UNION ALL
 SELECT 42, 42, hundred FROM tenk1
 ORDER BY thousand, tenthous;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: public.tenk1.thousand, public.tenk1.tenthous
+   Merge Key: tenk1.thousand, tenk1.tenthous
    ->  Sort
-         Sort Key: public.tenk1.thousand, public.tenk1.tenthous
+         Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
                ->  Result
                      ->  Table Scan on tenk1
                ->  Result
-                     ->  Table Scan on tenk1
- Optimizer: PQO version 2.64.0
+                     ->  Table Scan on tenk1 tenk1_1
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 explain (costs off)
@@ -1230,17 +1350,17 @@ SELECT thousand, tenthous FROM tenk1
 UNION ALL
 SELECT thousand, random()::integer FROM tenk1
 ORDER BY thousand, tenthous;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: public.tenk1.thousand, public.tenk1.tenthous
+   Merge Key: tenk1.thousand, tenk1.tenthous
    ->  Sort
-         Sort Key: public.tenk1.thousand, public.tenk1.tenthous
+         Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
                ->  Table Scan on tenk1
                ->  Result
-                     ->  Table Scan on tenk1
- Optimizer: PQO version 2.64.0
+                     ->  Table Scan on tenk1 tenk1_1
+ Optimizer: PQO version 2.74.0
 (9 rows)
 
 -- Check min/max aggregate optimization
@@ -1251,15 +1371,15 @@ SELECT min(x) FROM
   (SELECT unique1 AS x FROM tenk1 a
    UNION ALL
    SELECT unique2 AS x FROM tenk1 b) s;
-                   QUERY PLAN                   
-------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Append
                      ->  Table Scan on tenk1
-                     ->  Table Scan on tenk1
- Optimizer: PQO version 2.64.0
+                     ->  Table Scan on tenk1 tenk1_1
+ Optimizer: PQO version 2.74.0
 (7 rows)
 
 explain (costs off)
@@ -1267,16 +1387,16 @@ SELECT min(y) FROM
   (SELECT unique1 AS x, unique1 AS y FROM tenk1 a
    UNION ALL
    SELECT unique2 AS x, unique2 AS y FROM tenk1 b) s;
-                    QUERY PLAN                     
----------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Append
                      ->  Result
                            ->  Table Scan on tenk1
-                     ->  Table Scan on tenk1
- Optimizer: PQO version 2.64.0
+                     ->  Table Scan on tenk1 tenk1_1
+ Optimizer: PQO version 2.74.0
 (8 rows)
 
 -- XXX planner doesn't recognize that index on unique2 is sufficiently sorted
@@ -1286,16 +1406,16 @@ SELECT x, y FROM
    UNION ALL
    SELECT unique2 AS x, unique2 AS y FROM tenk1 b) s
 ORDER BY x, y;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                    QUERY PLAN                    
+--------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: public.tenk1.thousand, public.tenk1.tenthous
+   Merge Key: tenk1.thousand, tenk1.tenthous
    ->  Sort
-         Sort Key: public.tenk1.thousand, public.tenk1.tenthous
+         Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
                ->  Table Scan on tenk1
-               ->  Table Scan on tenk1
- Optimizer: PQO version 2.64.0
+               ->  Table Scan on tenk1 tenk1_1
+ Optimizer: PQO version 2.74.0
 (8 rows)
 
 reset enable_seqscan;

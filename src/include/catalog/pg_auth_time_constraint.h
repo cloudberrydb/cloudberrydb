@@ -40,9 +40,9 @@
 CATALOG(pg_auth_time_constraint,6070) BKI_SHARED_RELATION BKI_WITHOUT_OIDS BKI_ROWTYPE_OID(6071) BKI_SCHEMA_MACRO
 {
 	Oid		authid;		/* foreign key to pg_authid.oid, */
-	int2	start_day;	/* [0,6] denoting start of interval */
+	int16	start_day;	/* [0,6] denoting start of interval */
 	time	start_time;	/* optional time denoting start of interval */
-	int2	end_day;	/* [0,6] denoting end of interval */
+	int16	end_day;	/* [0,6] denoting end of interval */
 	time	end_time;	/* optional time denoting end of interval */
 } FormData_pg_auth_time_constraint;
 

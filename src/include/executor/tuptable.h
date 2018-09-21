@@ -4,7 +4,7 @@
  *	  tuple table support stuff
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/tuptable.h
@@ -15,8 +15,10 @@
 #define TUPTABLE_H
 
 #include "access/htup.h"
+#include "access/htup_details.h"
 #include "access/heapam.h"
 #include "access/memtup.h"
+#include "access/tupdesc.h"
 #include "storage/buf.h"
 
 /*----------
@@ -149,6 +151,8 @@ typedef struct TupleTableSlot
     /* System attributes */
     Oid         tts_tableOid;
 } TupleTableSlot;
+
+#ifndef FRONTEND
 
 static inline bool TupIsNull(TupleTableSlot *slot)
 {
@@ -425,5 +429,7 @@ extern HeapTuple ExecMaterializeSlot(TupleTableSlot *slot);
 extern TupleTableSlot *ExecCopySlot(TupleTableSlot *dstslot, TupleTableSlot *srcslot);
 
 extern void ExecModifyMemTuple(TupleTableSlot *slot, Datum *values, bool *isnull, bool *doRepl);
+
+#endif /* !FRONTEND */
 
 #endif   /* TUPTABLE_H */

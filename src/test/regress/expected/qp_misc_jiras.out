@@ -148,7 +148,6 @@ CREATE TABLE qp_misc_jiras.tbl1544
   pval TEXT
 )
 ;
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "tbl1544_pid_key" for table "tbl1544"
 -- 
 -- Child tables
 -- 
@@ -411,7 +410,6 @@ CREATE SEQUENCE qp_misc_jiras.satelliteupdatelog_id_seq
 ALTER SEQUENCE qp_misc_jiras.satelliteupdatelog_id_seq OWNED BY qp_misc_jiras.satelliteupdatelog.id;
 ALTER TABLE qp_misc_jiras.satelliteupdatelog ALTER COLUMN id SET DEFAULT nextval('qp_misc_jiras.satelliteupdatelog_id_seq'::regclass);
 ALTER TABLE ONLY qp_misc_jiras.satelliteupdatelog ADD CONSTRAINT satelliteupdatelog_pk PRIMARY KEY (id);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "satelliteupdatelog_pkey" for table "satelliteupdatelog"
 CREATE INDEX fki_satelliteupdatelog_idadvertiser_fk ON qp_misc_jiras.satelliteupdatelog USING btree (idadvertiser);
 CREATE INDEX fki_satelliteupdatelog_idaffiliate_fk ON qp_misc_jiras.satelliteupdatelog USING btree (idaffiliate);
 CREATE INDEX fki_satelliteupdatelog_idrep_fk ON qp_misc_jiras.satelliteupdatelog USING btree (idrep);
@@ -423,7 +421,6 @@ CREATE TABLE qp_misc_jiras.satelliteupdatelogkey (
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'idsatelliteupdatelog' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ALTER TABLE ONLY qp_misc_jiras.satelliteupdatelogkey ADD CONSTRAINT satelliteupdatelogkey_pk PRIMARY KEY (idsatelliteupdatelog, columnname);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "satelliteupdatelogkey_pkey" for table "satelliteupdatelogkey"
 ALTER TABLE ONLY qp_misc_jiras.satelliteupdatelogkey ADD CONSTRAINT satelliteupdatelogkey_idsatelliteupdatelog_fk FOREIGN KEY (idsatelliteupdatelog) REFERENCES qp_misc_jiras.satelliteupdatelog(id);
 WARNING:  Referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced.
 CREATE TABLE qp_misc_jiras.satellite (
@@ -453,7 +450,6 @@ CREATE TABLE qp_misc_jiras.satelliteupdatelogserver (
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'idsatelliteupdatelog' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ALTER TABLE ONLY qp_misc_jiras.satelliteupdatelogserver ADD CONSTRAINT satelliteupdatelogserver_pk PRIMARY KEY (idsatelliteupdatelog, idsatellite); 
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "satelliteupdatelogserver_pkey" for table "satelliteupdatelogserver"
 CREATE INDEX fki_satelliteupdatelogserver_idsatelliteupdatelog_fk ON qp_misc_jiras.satelliteupdatelogserver USING btree (idsatelliteupdatelog);
 ALTER TABLE ONLY qp_misc_jiras.satelliteupdatelogserver ADD CONSTRAINT satelliteupdatelogserver_idsatellite_fk FOREIGN KEY (idsatellite) REFERENCES qp_misc_jiras.satellite(id);
 ERROR:  there is no unique constraint matching given keys for referenced table "satellite"
@@ -1189,7 +1185,6 @@ create table qp_misc_jiras.tbl5246_sale
         primary key (cn, vn, pn)
         
 ) distributed by (cn,vn,pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl5246_sale_pkey" for table "tbl5246_sale"
 insert into qp_misc_jiras.tbl5246_sale values
   ( 2, 40, 100, '1401-1-1', 1100, 2400),
   ( 1, 10, 200, '1401-3-1', 1, 0),
@@ -1225,7 +1220,6 @@ create table qp_misc_jiras.tbl4896_customer
         cloc text,
         primary key (cn)
 ) distributed by (cn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl4896_customer_pkey" for table "tbl4896_customer"
 create table qp_misc_jiras.tbl4896_sale
 (
         cn int not null,
@@ -1238,7 +1232,6 @@ create table qp_misc_jiras.tbl4896_sale
         primary key (cn, vn, pn)
         
 ) distributed by (cn,vn,pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl4896_sale_pkey" for table "tbl4896_sale"
 insert into qp_misc_jiras.tbl4896_customer values
   ( 1, 'Macbeth', 'Inverness'),
   ( 2, 'Duncan', 'Forres'),
@@ -1684,15 +1677,14 @@ NOTICE:  CREATE TABLE will create partition "tbl6833_anl_1_prt_bb_1" for table "
 NOTICE:  CREATE TABLE will create partition "tbl6833_anl_1_prt_bb_2" for table "tbl6833_anl"
 analyze qp_misc_jiras.tbl6833_anl;
 explain select * from qp_misc_jiras.tbl6833_anl; -- should not hit cdbRelSize();
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.00 rows=2 width=12)
-   ->  Append  (cost=0.00..2.00 rows=1 width=12)
-         ->  Seq Scan on tbl6833_anl_1_prt_bb_1 tbl6833_anl  (cost=0.00..1.00 rows=1 width=12)
-         ->  Seq Scan on tbl6833_anl_1_prt_bb_2 tbl6833_anl  (cost=0.00..1.00 rows=1 width=12)
- Settings:  enable_indexscan=off; enable_nestloop=on; enable_seqscan=off; optimizer=off
- Optimizer status: legacy query optimizer
-(6 rows)
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..20000000002.00 rows=2 width=12)
+   ->  Append  (cost=10000000000.00..20000000002.00 rows=1 width=12)
+         ->  Seq Scan on tbl6833_anl_1_prt_bb_1  (cost=10000000000.00..10000000001.00 rows=1 width=12)
+         ->  Seq Scan on tbl6833_anl_1_prt_bb_2  (cost=10000000000.00..10000000001.00 rows=1 width=12)
+ Optimizer: legacy query optimizer
+(5 rows)
 
 select relname, reltuples, relpages from pg_class where relname like 'tbl6833_anl%'; -- should show relpages = 1.0
         relname         | reltuples | relpages 
@@ -1707,15 +1699,14 @@ NOTICE:  CREATE TABLE will create partition "tbl6833_vac_1_prt_bb_1" for table "
 NOTICE:  CREATE TABLE will create partition "tbl6833_vac_1_prt_bb_2" for table "tbl6833_vac"
 vacuum qp_misc_jiras.tbl6833_vac;
 explain select * from qp_misc_jiras.tbl6833_vac; -- should not hit cdbRelSize();
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.00 rows=2 width=12)
-   ->  Append  (cost=0.00..2.00 rows=1 width=12)
-         ->  Seq Scan on tbl6833_vac_1_prt_bb_1 tbl6833_vac  (cost=0.00..1.00 rows=1 width=12)
-         ->  Seq Scan on tbl6833_vac_1_prt_bb_2 tbl6833_vac  (cost=0.00..1.00 rows=1 width=12)
- Settings:  enable_indexscan=off; enable_nestloop=on; enable_seqscan=off; optimizer=off
- Optimizer status: legacy query optimizer
-(6 rows)
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..20000000002.00 rows=2 width=12)
+   ->  Append  (cost=10000000000.00..20000000002.00 rows=1 width=12)
+         ->  Seq Scan on tbl6833_vac_1_prt_bb_1  (cost=10000000000.00..10000000001.00 rows=1 width=12)
+         ->  Seq Scan on tbl6833_vac_1_prt_bb_2  (cost=10000000000.00..10000000001.00 rows=1 width=12)
+ Optimizer: legacy query optimizer
+(5 rows)
 
 select relname, reltuples, relpages from pg_class where relname like 'tbl6833_vac%'; -- should show relpages = 1.0
         relname         | reltuples | relpages 
@@ -2365,7 +2356,6 @@ CREATE TABLE qp_misc_jiras.one_of_every_data_type (
     ) 
  DISTRIBUTED BY (id)
  ;
-NOTICE:  CREATE TABLE will create implicit sequence "one_of_every_data_type_serial_col_seq" for serial column "one_of_every_data_type.serial_col"
 CREATE FUNCTION TO_LSEG(TEXT) RETURNS LSEG AS
   $$
     SELECT lseg_in(textout($1))
@@ -2393,25 +2383,24 @@ NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into qp_misc_jiras.tbl7553_test values(1,2);
 explain select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a));
-                                                                       QUERY PLAN                                                                       
---------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=116.12..139.79 rows=2367 width=20)
-   ->  HashAggregate  (cost=116.12..139.79 rows=789 width=20)
-         Group By: "rollup".a, "rollup".a, "rollup"."grouping", "rollup"."group_id"
-         ->  Subquery Scan on "rollup"  (cost=51.58..109.67 rows=215 width=20)
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=51.58..103.22 rows=215 width=20)
-                     Hash Key: "rollup".a, "rollup".a, "grouping", group_id()
-                     ->  GroupAggregate  (cost=51.58..90.32 rows=215 width=20)
-                           Group By: "rollup".a, "rollup"."grouping", "rollup"."group_id"
-                           ->  Subquery Scan on "rollup"  (cost=51.58..75.26 rows=287 width=20)
-                                 ->  GroupAggregate  (cost=51.58..66.65 rows=287 width=20)
-                                       Group By: tbl7553_test.i, tbl7553_test.i
-                                       ->  Sort  (cost=51.58..53.74 rows=287 width=4)
+                                                             QUERY PLAN                                                             
+------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=10000008731.75..10000008759.25 rows=2750 width=20)
+   ->  HashAggregate  (cost=10000008731.75..10000008759.25 rows=917 width=20)
+         Group Key: "rollup".a, "rollup".a_1, "rollup"."grouping", "rollup"."group_id"
+         ->  Subquery Scan on "rollup"  (cost=10000008018.50..10000008724.25 rows=250 width=20)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=10000008018.50..10000008716.75 rows=250 width=20)
+                     Hash Key: rollup_1.a, rollup_1.a_1, (Grouping), group_id()
+                     ->  GroupAggregate  (cost=10000008018.50..10000008701.75 rows=250 width=20)
+                           Group Key: rollup_1.a, rollup_1."grouping", rollup_1."group_id"
+                           ->  Subquery Scan on rollup_1  (cost=10000008018.50..10000008684.25 rows=334 width=20)
+                                 ->  GroupAggregate  (cost=10000008018.50..10000008674.25 rows=334 width=20)
+                                       Group Key: tbl7553_test.i, tbl7553_test.i
+                                       ->  Sort  (cost=10000008018.50..10000008233.75 rows=28700 width=4)
                                              Sort Key: tbl7553_test.i, tbl7553_test.i
-                                             ->  Seq Scan on tbl7553_test  (cost=0.00..9.61 rows=287 width=4)
- Settings:  enable_indexscan=off; enable_nestloop=on; enable_seqscan=off; gp_enable_agg_distinct=off; gp_enable_agg_distinct_pruning=off; optimizer=off
- Optimizer status: legacy query optimizer
-(16 rows)
+                                             ->  Seq Scan on tbl7553_test  (cost=10000000000.00..10000000961.00 rows=28700 width=4)
+ Optimizer: legacy query optimizer
+(15 rows)
 
 select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
  a | b 
@@ -3150,7 +3139,7 @@ explain analyze select reltablespace  from pg_class where oid = (select reltoast
    Index Cond: oid = $0
    Rows out:  1 rows with 0.025 ms to first row, 0.026 ms to end, start offset by 0.042 ms.
    InitPlan 1 (returns $0)
-     ->  Index Scan using pg_class_relname_nsp_index on pg_class  (cost=0.00..200.27 rows=1 width=4)
+     ->  Index Scan using pg_class_relname_nsp_index on pg_class pg_class_1  (cost=0.00..200.27 rows=1 width=4)
            Index Cond: relname = 'tbl_8205'::name
            Rows out:  1 rows with 0.010 ms to first row, 0.012 ms to end of 2 scans, start offset by 0.044 ms.
  Slice statistics:
@@ -3675,9 +3664,6 @@ partition d_2010_09_28 start (date '2010-09-28') end (date '2010-09-29')
 );
 NOTICE:  CREATE TABLE will create partition "tbl1_tbl_11257_1_prt_default_partition" for table "tbl1_tbl_11257"
 NOTICE:  CREATE TABLE will create partition "tbl1_tbl_11257_1_prt_d_2010_09_28" for table "tbl1_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl1_tbl_11257_pkey" for table "tbl1_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl1_tbl_11257_1_prt_default_partition_pkey" for table "tbl1_tbl_11257_1_prt_default_partition"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl1_tbl_11257_1_prt_d_2010_09_28_pkey" for table "tbl1_tbl_11257_1_prt_d_2010_09_28"
 select relname, attrnums as distribution_attributes from gp_distribution_policy p, pg_class c where p.localoid = c.oid and relname like 'tbl1_tbl_11257%' ;
                 relname                 | distribution_attributes 
 ----------------------------------------+-------------------------
@@ -3694,9 +3680,7 @@ into (partition d_2010_09_27, partition default_partition);
 NOTICE:  exchanged partition "default_partition" of relation "tbl1_tbl_11257" with relation "pg_temp_37266"
 NOTICE:  dropped partition "default_partition" for relation "tbl1_tbl_11257"
 NOTICE:  CREATE TABLE will create partition "tbl1_tbl_11257_1_prt_d_2010_09_27" for table "tbl1_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl1_tbl_11257_1_prt_d_2010_09_27_pkey" for table "tbl1_tbl_11257_1_prt_d_2010_09_27"
 NOTICE:  CREATE TABLE will create partition "tbl1_tbl_11257_1_prt_default_partition" for table "tbl1_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl1_tbl_11257_1_prt_default_partition_pkey1" for table "tbl1_tbl_11257_1_prt_default_partition"
 -- end_ignore
 select relname, attrnums as distribution_attributes from gp_distribution_policy p, pg_class c where p.localoid = c.oid and relname like 'tbl1_tbl_11257%' ;
                 relname                 | distribution_attributes 
@@ -3721,9 +3705,6 @@ partition p1 start (1) end (2)
  );
 NOTICE:  CREATE TABLE will create partition "tbl2_tbl_11257_1_prt_default_partition" for table "tbl2_tbl_11257"
 NOTICE:  CREATE TABLE will create partition "tbl2_tbl_11257_1_prt_p1" for table "tbl2_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl2_tbl_11257_pkey" for table "tbl2_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl2_tbl_11257_1_prt_default_partition_pkey" for table "tbl2_tbl_11257_1_prt_default_partition"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl2_tbl_11257_1_prt_p1_pkey" for table "tbl2_tbl_11257_1_prt_p1"
 insert into qp_misc_jiras.tbl2_tbl_11257 values(1,2,3);
 select * from qp_misc_jiras.tbl2_tbl_11257;
  a | b | c 
@@ -3754,9 +3735,7 @@ into (partition p2, partition default_partition);
 NOTICE:  exchanged partition "default_partition" of relation "tbl2_tbl_11257" with relation "pg_temp_37629"
 NOTICE:  dropped partition "default_partition" for relation "tbl2_tbl_11257"
 NOTICE:  CREATE TABLE will create partition "tbl2_tbl_11257_1_prt_p2" for table "tbl2_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl2_tbl_11257_1_prt_p2_pkey" for table "tbl2_tbl_11257_1_prt_p2"
 NOTICE:  CREATE TABLE will create partition "tbl2_tbl_11257_1_prt_default_partition" for table "tbl2_tbl_11257"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tbl2_tbl_11257_1_prt_default_partition_pkey1" for table "tbl2_tbl_11257_1_prt_default_partition"
 -- end_ignore
 select relname, attrnums as distribution_attributes from gp_distribution_policy p, pg_class c where p.localoid = c.oid and relname like 'tbl2_tbl_11257%' ;
                 relname                 | distribution_attributes 

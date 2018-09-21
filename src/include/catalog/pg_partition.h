@@ -29,9 +29,9 @@ CATALOG(pg_partition,5010)
 {
 	Oid			parrelid;		
 	char		parkind;		
-	int2		parlevel;		
+	int16		parlevel;
 	bool		paristemplate;	
-	int2		parnatts;		
+	int16		parnatts;
 	int2vector	paratts;		
 	oidvector	parclass;		
 } FormData_pg_partition;

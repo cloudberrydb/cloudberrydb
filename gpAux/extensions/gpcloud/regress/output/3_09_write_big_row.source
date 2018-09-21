@@ -1,6 +1,5 @@
 CREATE WRITABLE EXTERNAL TABLE s3write_bigrow_write (id serial, content text)
         LOCATION('s3://s3-us-west-2.amazonaws.com/@write_prefix@/bigrow/ config=@config_file@') FORMAT 'csv';
-NOTICE:  CREATE EXTERNAL TABLE will create implicit sequence "s3write_bigrow_write_id_seq" for serial column "s3write_bigrow_write.id"
 -- Pangram: 'Pack my box with five dozen liquor jugs.' 40 chars, 32 letters
 -- Total 40KB
 INSERT INTO s3write_bigrow_write VALUES (DEFAULT,

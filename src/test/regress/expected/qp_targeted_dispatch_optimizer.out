@@ -1053,7 +1053,7 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a);
                            ->  Aggregate  (cost=0.00..431.00 rows=1 width=4)
                                  ->  Table Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Table Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
+               ->  Table Scan on table_a table_a_1  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
 (13 rows)
@@ -1094,7 +1094,7 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a where a0
                                  ->  Table Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
                                        Filter: a0 = 1
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Table Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
+               ->  Table Scan on table_a table_a_1  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
 (14 rows)

@@ -3,7 +3,7 @@
  * spi.h
  *				Server Programming Interface public declarations
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/spi.h
@@ -102,6 +102,9 @@ extern int	SPI_getargcount(SPIPlanPtr plan);
 extern bool SPI_is_cursor_plan(SPIPlanPtr plan);
 extern bool SPI_plan_is_valid(SPIPlanPtr plan);
 extern const char *SPI_result_code_string(int code);
+
+extern List *SPI_plan_get_plan_sources(SPIPlanPtr plan);
+extern CachedPlan *SPI_plan_get_cached_plan(SPIPlanPtr plan);
 
 extern HeapTuple SPI_copytuple(HeapTuple tuple);
 extern HeapTupleHeader SPI_returntuple(HeapTuple tuple, TupleDesc tupdesc);

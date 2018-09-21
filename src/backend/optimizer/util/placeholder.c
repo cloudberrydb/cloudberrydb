@@ -5,7 +5,7 @@
  *
  *
  * Portions Copyright (c) 2017, Pivotal Software Inc
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -252,6 +252,8 @@ void
 mark_placeholder_maybe_needed(PlannerInfo *root, PlaceHolderInfo *phinfo,
 							  Relids relids)
 {
+	Relids		est_eval_level;
+
 	/* Mark the PHV as possibly needed at the given syntactic level */
 	phinfo->ph_may_need = bms_add_members(phinfo->ph_may_need, relids);
 
@@ -260,11 +262,18 @@ mark_placeholder_maybe_needed(PlannerInfo *root, PlaceHolderInfo *phinfo,
 	 * lower-level PHVs.  We need to get those into the PlaceHolderInfo list,
 	 * but they aren't going to be needed where the outer PHV is referenced.
 	 * Rather, they'll be needed where the outer PHV is evaluated.  We can
-	 * estimate that (conservatively) as the syntactic location of the PHV's
-	 * expression.	Recurse to take care of any such PHVs.
+	 * estimate that conservatively as the syntactic location of the PHV's
+	 * expression, but not less than the level of any Vars it contains.
+	 * (Normally the Vars would come from below the syntactic location anyway,
+	 * but this might not be true if the PHV contains any LATERAL references.)
 	 */
+	est_eval_level = bms_union(phinfo->ph_var->phrels, phinfo->ph_eval_at);
+
+	/* Now recurse to take care of any such PHVs */
 	mark_placeholders_in_expr(root, (Node *) phinfo->ph_var->phexpr,
-							  phinfo->ph_var->phrels);
+							  est_eval_level);
+
+	bms_free(est_eval_level);
 }
 
 /*
@@ -414,14 +423,14 @@ add_placeholders_to_base_rels(PlannerInfo *root)
 		PlaceHolderInfo *phinfo = (PlaceHolderInfo *) lfirst(lc);
 		Relids		eval_at = phinfo->ph_eval_at;
 
-		if (bms_membership(eval_at) == BMS_SINGLETON)
+		if (bms_membership(eval_at) == BMS_SINGLETON &&
+			bms_nonempty_difference(phinfo->ph_needed, eval_at))
 		{
 			int			varno = bms_singleton_member(eval_at);
 			RelOptInfo *rel = find_base_rel(root, varno);
 
-			if (bms_nonempty_difference(phinfo->ph_needed, rel->relids))
-				rel->reltargetlist = lappend(rel->reltargetlist,
-											 copyObject(phinfo->ph_var));
+			rel->reltargetlist = lappend(rel->reltargetlist,
+										 copyObject(phinfo->ph_var));
 		}
 	}
 }

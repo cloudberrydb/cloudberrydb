@@ -3,7 +3,7 @@
  * nodeModifyTable.c
  *	  routines to handle ModifyTable nodes.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -37,10 +37,12 @@
 
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "access/xact.h"
 #include "commands/trigger.h"
 #include "executor/executor.h"
 #include "executor/nodeModifyTable.h"
+#include "foreign/fdwapi.h"
 #include "miscadmin.h"
 #include "nodes/nodeFuncs.h"
 #include "storage/bufmgr.h"
@@ -390,6 +392,21 @@ ExecInsert(TupleTableSlot *parentslot,
 
 		newId = InvalidOid;
 	}
+	else if (resultRelInfo->ri_FdwRoutine)
+	{
+		/*
+		 * insert into foreign table: let the FDW do it
+		 */
+		slot = resultRelInfo->ri_FdwRoutine->ExecForeignInsert(estate,
+															   resultRelInfo,
+															   slot,
+															   planSlot);
+
+		if (slot == NULL)		/* "do nothing" */
+			return NULL;
+
+		newId = InvalidOid;
+	}
 	else
 	{
 		/*
@@ -522,7 +539,9 @@ ExecInsert(TupleTableSlot *parentslot,
  *		When deleting from a table, tupleid identifies the tuple to
  *		delete and oldtuple is NULL.  When deleting from a view,
  *		oldtuple is passed to the INSTEAD OF triggers and identifies
- *		what to delete, and tupleid is invalid.
+ *		what to delete, and tupleid is invalid.  When deleting from a
+ *		foreign table, both tupleid and oldtuple are NULL; the FDW has
+ *		to figure out which row to delete using data from the planSlot.
  *
  *		In GPDB, DELETE can be part of an update operation when
  *		there is a preceding SplitUpdate node.
@@ -543,8 +562,8 @@ ExecDelete(ItemPointer tupleid,
 	ResultRelInfo *resultRelInfo;
 	Relation	resultRelationDesc;
 	HTSU_Result result;
-	ItemPointerData update_ctid;
-	TransactionId update_xmax = InvalidTransactionId;
+	HeapUpdateFailureData hufd;
+	TupleTableSlot *slot = NULL;
 
 	/*
 	 * get information on the (current) result relation
@@ -620,6 +639,27 @@ ExecDelete(ItemPointer tupleid,
 		if (!dodelete)			/* "do nothing" */
 			return NULL;
 	}
+	else if (resultRelInfo->ri_FdwRoutine)
+	{
+		/*
+		 * delete from foreign table: let the FDW do it
+		 *
+		 * We offer the trigger tuple slot as a place to store RETURNING data,
+		 * although the FDW can return some other slot if it wants.  Set up
+		 * the slot's tupdesc so the FDW doesn't need to do that for itself.
+		 */
+		slot = estate->es_trig_tuple_slot;
+		if (slot->tts_tupleDescriptor != RelationGetDescr(resultRelationDesc))
+			ExecSetSlotDescriptor(slot, RelationGetDescr(resultRelationDesc));
+
+		slot = resultRelInfo->ri_FdwRoutine->ExecForeignDelete(estate,
+															   resultRelInfo,
+															   slot,
+															   planSlot);
+
+		if (slot == NULL)		/* "do nothing" */
+			return NULL;
+	}
 	else
 	{
 		/*
@@ -635,10 +675,10 @@ ldelete:;
 		if (isHeapTable)
 		{
 			result = heap_delete(resultRelationDesc, tupleid,
-								 &update_ctid, &update_xmax,
 								 estate->es_output_cid,
 								 estate->es_crosscheck_snapshot,
-								 true /* wait for commit */ );
+								 true /* wait for commit */ ,
+								 &hufd);
 		}
 		else if (isAORowsTable)
 		{
@@ -693,7 +733,44 @@ ldelete:;
 		switch (result)
 		{
 			case HeapTupleSelfUpdated:
-				/* already deleted by self; nothing to do */
+
+				/*
+				 * The target tuple was already updated or deleted by the
+				 * current command, or by a later command in the current
+				 * transaction.  The former case is possible in a join DELETE
+				 * where multiple tuples join to the same target tuple. This
+				 * is somewhat questionable, but Postgres has always allowed
+				 * it: we just ignore additional deletion attempts.
+				 *
+				 * The latter case arises if the tuple is modified by a
+				 * command in a BEFORE trigger, or perhaps by a command in a
+				 * volatile function used in the query.  In such situations we
+				 * should not ignore the deletion, but it is equally unsafe to
+				 * proceed.  We don't want to discard the original DELETE
+				 * while keeping the triggered actions based on its deletion;
+				 * and it would be no better to allow the original DELETE
+				 * while discarding updates that it triggered.	The row update
+				 * carries some information that might be important according
+				 * to business rules; so throwing an error is the only safe
+				 * course.
+				 *
+				 * If a trigger actually intends this type of interaction, it
+				 * can re-execute the DELETE and then return NULL to cancel
+				 * the outer delete.
+				 *
+				 * In GPDB, for AO tables HeapTupleSelfUpdated is returned only
+				 * in case of same command tuple update based on visimap dirty
+				 * list checking. Also, hufd is not initialized and can't be for
+				 * AO case, as visimap update within same command happens at end
+				 * of command.
+				 */
+				if (!isAORowsTable && !isAOColsTable && hufd.cmax != estate->es_output_cid)
+					ereport(ERROR,
+							(errcode(ERRCODE_TRIGGERED_DATA_CHANGE_VIOLATION),
+							 errmsg("tuple to be updated was already modified by an operation triggered by the current command"),
+							 errhint("Consider using an AFTER trigger instead of a BEFORE trigger to propagate changes to other rows.")));
+
+				/* Else, already deleted by self; nothing to do */
 
 				/*-------
 				 * In an scenario in which R(a,b) and S(a,b) have
@@ -732,7 +809,7 @@ ldelete:;
 					ereport(ERROR,
 							(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
 							 errmsg("could not serialize access due to concurrent update")));
-				if (!ItemPointerEquals(tupleid, &update_ctid))
+				if (!ItemPointerEquals(tupleid, &hufd.ctid))
 				{
 					TupleTableSlot *epqslot;
 
@@ -740,11 +817,12 @@ ldelete:;
 										   epqstate,
 										   resultRelationDesc,
 										   resultRelInfo->ri_RangeTableIndex,
-										   &update_ctid,
-										   update_xmax);
+										   LockTupleExclusive,
+										   &hufd.ctid,
+										   hufd.xmax);
 					if (!TupIsNull(epqslot))
 					{
-						*tupleid = update_ctid;
+						*tupleid = hufd.ctid;
 						goto ldelete;
 					}
 				}
@@ -799,16 +877,14 @@ ldelete:;
 		 * We have to put the target tuple into a slot, which means first we
 		 * gotta fetch it.	We can use the trigger tuple slot.
 		 */
-		TupleTableSlot *slot = estate->es_trig_tuple_slot;
 		TupleTableSlot *rslot;
 		HeapTupleData deltuple;
 		Buffer		delbuffer;
 
-		if (oldtuple != NULL)
+		if (resultRelInfo->ri_FdwRoutine)
 		{
-			deltuple.t_data = oldtuple;
-			deltuple.t_len = HeapTupleHeaderGetDatumLength(oldtuple);
-			ItemPointerSetInvalid(&(deltuple.t_self));
+			/* FDW must have provided a slot containing the deleted row */
+			Assert(!TupIsNull(slot));
 			delbuffer = InvalidBuffer;
 		}
 		else
@@ -826,15 +902,26 @@ ldelete:;
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						 errmsg("DELETE RETURNING is not supported on appendonly tables")));
 
-			deltuple.t_self = *tupleid;
-			if (!heap_fetch(resultRelationDesc, SnapshotAny,
-							&deltuple, &delbuffer, false, NULL))
-				elog(ERROR, "failed to fetch deleted tuple for DELETE RETURNING");
-		}
+			slot = estate->es_trig_tuple_slot;
+			if (oldtuple != NULL)
+			{
+				deltuple.t_data = oldtuple;
+				deltuple.t_len = HeapTupleHeaderGetDatumLength(oldtuple);
+				ItemPointerSetInvalid(&(deltuple.t_self));
+				delbuffer = InvalidBuffer;
+			}
+			else
+			{
+				deltuple.t_self = *tupleid;
+				if (!heap_fetch(resultRelationDesc, SnapshotAny,
+								&deltuple, &delbuffer, false, NULL))
+					elog(ERROR, "failed to fetch deleted tuple for DELETE RETURNING");
+			}
 
-		if (slot->tts_tupleDescriptor != RelationGetDescr(resultRelationDesc))
-			ExecSetSlotDescriptor(slot, RelationGetDescr(resultRelationDesc));
-		ExecStoreHeapTuple(&deltuple, slot, InvalidBuffer, false);
+			if (slot->tts_tupleDescriptor != RelationGetDescr(resultRelationDesc))
+				ExecSetSlotDescriptor(slot, RelationGetDescr(resultRelationDesc));
+			ExecStoreHeapTuple(&deltuple, slot, InvalidBuffer, false);
+		}
 
 		rslot = ExecProcessReturning(resultRelInfo->ri_projectReturning,
 									 slot, planSlot);
@@ -1045,7 +1132,9 @@ checkPartitionUpdate(EState *estate, TupleTableSlot *partslot,
  *		When updating a table, tupleid identifies the tuple to
  *		update and oldtuple is NULL.  When updating a view, oldtuple
  *		is passed to the INSTEAD OF triggers and identifies what to
- *		update, and tupleid is invalid.
+ *		update, and tupleid is invalid.  When updating a foreign table,
+ *		both tupleid and oldtuple are NULL; the FDW has to figure out
+ *		which row to update using data from the planSlot.
  *
  *		Returns RETURNING result if any, otherwise NULL.
  * ----------------------------------------------------------------
@@ -1062,8 +1151,7 @@ ExecUpdate(ItemPointer tupleid,
 	ResultRelInfo *resultRelInfo;
 	Relation	resultRelationDesc;
 	HTSU_Result result;
-	ItemPointerData update_ctid;
-	TransactionId update_xmax = InvalidTransactionId;
+	HeapUpdateFailureData hufd;
 	List	   *recheckIndexes = NIL;
 	ItemPointerData lastTid;
 	bool		wasHotUpdate;
@@ -1145,8 +1233,25 @@ ExecUpdate(ItemPointer tupleid,
 
 		/* trigger might have changed tuple */
 	}
+	else if (resultRelInfo->ri_FdwRoutine)
+	{
+		/*
+		 * update in foreign table: let the FDW do it
+		 */
+		slot = resultRelInfo->ri_FdwRoutine->ExecForeignUpdate(estate,
+															   resultRelInfo,
+															   slot,
+															   planSlot);
+
+		if (slot == NULL)		/* "do nothing" */
+			return NULL;
+
+		/* FDW might have changed tuple */
+	}
 	else
 	{
+		LockTupleMode lockmode;
+
 		/*
 		 * Check the constraints of the tuple
 		 *
@@ -1176,10 +1281,10 @@ lreplace:;
 			tuple = ExecMaterializeSlot(slot);
 
 			result = heap_update(resultRelationDesc, tupleid, tuple,
-							 &update_ctid, &update_xmax,
 							 estate->es_output_cid,
 							 estate->es_crosscheck_snapshot,
-							 true /* wait for commit */ );
+							 true /* wait for commit */ ,
+							 &hufd, &lockmode);
 
 			lastTid = tuple->t_self;
 			wasHotUpdate = HeapTupleIsHeapOnly(tuple) != 0;
@@ -1237,7 +1342,43 @@ lreplace:;
 		switch (result)
 		{
 			case HeapTupleSelfUpdated:
-				/* already deleted by self; nothing to do */
+
+				/*
+				 * The target tuple was already updated or deleted by the
+				 * current command, or by a later command in the current
+				 * transaction.  The former case is possible in a join UPDATE
+				 * where multiple tuples join to the same target tuple. This
+				 * is pretty questionable, but Postgres has always allowed it:
+				 * we just execute the first update action and ignore
+				 * additional update attempts.
+				 *
+				 * The latter case arises if the tuple is modified by a
+				 * command in a BEFORE trigger, or perhaps by a command in a
+				 * volatile function used in the query.  In such situations we
+				 * should not ignore the update, but it is equally unsafe to
+				 * proceed.  We don't want to discard the original UPDATE
+				 * while keeping the triggered actions based on it; and we
+				 * have no principled way to merge this update with the
+				 * previous ones.  So throwing an error is the only safe
+				 * course.
+				 *
+				 * If a trigger actually intends this type of interaction, it
+				 * can re-execute the UPDATE (assuming it can figure out how)
+				 * and then return NULL to cancel the outer update.
+				 *
+				 * In GPDB, for AO tables HeapTupleSelfUpdated is returned only
+				 * in case of same command tuple update based on visimap dirty
+				 * list checking. Also, hufd is not initialized and can't be for
+				 * AO case, as visimap update within same command happens at end
+				 * of command.
+				 */
+				if (!rel_is_aorows && !rel_is_aocols && hufd.cmax != estate->es_output_cid)
+					ereport(ERROR,
+							(errcode(ERRCODE_TRIGGERED_DATA_CHANGE_VIOLATION),
+							 errmsg("tuple to be updated was already modified by an operation triggered by the current command"),
+							 errhint("Consider using an AFTER trigger instead of a BEFORE trigger to propagate changes to other rows.")));
+
+				/* Else, already updated by self; nothing to do */
 				return NULL;
 
 			case HeapTupleMayBeUpdated:
@@ -1248,7 +1389,7 @@ lreplace:;
 					ereport(ERROR,
 							(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
 							 errmsg("could not serialize access due to concurrent update")));
-				if (!ItemPointerEquals(tupleid, &update_ctid))
+				if (!ItemPointerEquals(tupleid, &hufd.ctid))
 				{
 					TupleTableSlot *epqslot;
 
@@ -1256,11 +1397,12 @@ lreplace:;
 										   epqstate,
 										   resultRelationDesc,
 										   resultRelInfo->ri_RangeTableIndex,
-										   &update_ctid,
-										   update_xmax);
+										   lockmode,
+										   &hufd.ctid,
+										   hufd.xmax);
 					if (!TupIsNull(epqslot))
 					{
-						*tupleid = update_ctid;
+						*tupleid = hufd.ctid;
 						slot = ExecFilterJunk(resultRelInfo->ri_junkFilter, epqslot);
 						goto lreplace;
 					}
@@ -1483,10 +1625,12 @@ ExecModifyTable(ModifyTableState *node)
 			 */
 			if (operation == CMD_UPDATE || operation == CMD_DELETE)
 			{
+				char		relkind;
 				Datum		datum;
 				bool		isNull;
 
-				if (resultRelInfo->ri_RelationDesc->rd_rel->relkind == RELKIND_RELATION)
+				relkind = resultRelInfo->ri_RelationDesc->rd_rel->relkind;
+				if (relkind == RELKIND_RELATION)
 				{
 					datum = ExecGetJunkAttribute(slot,
 												 junkfilter->jf_junkAttNo,
@@ -1499,6 +1643,10 @@ ExecModifyTable(ModifyTableState *node)
 					tuple_ctid = *tupleid;		/* be sure we don't free
 												 * ctid!! */
 					tupleid = &tuple_ctid;
+				}
+				else if (relkind == RELKIND_FOREIGN_TABLE)
+				{
+					/* do nothing; FDW must fetch any junk attrs it wants */
 				}
 				else
 				{
@@ -1722,6 +1870,19 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 		estate->es_result_relation_info = resultRelInfo;
 		mtstate->mt_plans[i] = ExecInitNode(subplan, estate, eflags);
 
+		/* Also let FDWs init themselves for foreign-table result rels */
+		if (resultRelInfo->ri_FdwRoutine != NULL &&
+			resultRelInfo->ri_FdwRoutine->BeginForeignModify != NULL)
+		{
+			List	   *fdw_private = (List *) list_nth(node->fdwPrivLists, i);
+
+			resultRelInfo->ri_FdwRoutine->BeginForeignModify(mtstate,
+															 resultRelInfo,
+															 fdw_private,
+															 i,
+															 eflags);
+		}
+
 		resultRelInfo++;
 		i++;
 	}
@@ -1908,11 +2069,18 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 				if (operation == CMD_UPDATE || operation == CMD_DELETE)
 				{
 					/* For UPDATE/DELETE, find the appropriate junk attr now */
-					if (resultRelInfo->ri_RelationDesc->rd_rel->relkind == RELKIND_RELATION)
+					char		relkind;
+
+					relkind = resultRelInfo->ri_RelationDesc->rd_rel->relkind;
+					if (relkind == RELKIND_RELATION)
 					{
 						j->jf_junkAttNo = ExecFindJunkAttribute(j, "ctid");
 						if (!AttributeNumberIsValid(j->jf_junkAttNo))
 							elog(ERROR, "could not find junk ctid column");
+					}
+					else if (relkind == RELKIND_FOREIGN_TABLE)
+					{
+						/* FDW must fetch any junk attrs it wants */
 					}
 					else
 					{
@@ -1978,6 +2146,19 @@ void
 ExecEndModifyTable(ModifyTableState *node)
 {
 	int			i;
+
+	/*
+	 * Allow any FDWs to shut down
+	 */
+	for (i = 0; i < node->mt_nplans; i++)
+	{
+		ResultRelInfo *resultRelInfo = node->resultRelInfo + i;
+
+		if (resultRelInfo->ri_FdwRoutine != NULL &&
+			resultRelInfo->ri_FdwRoutine->EndForeignModify != NULL)
+			resultRelInfo->ri_FdwRoutine->EndForeignModify(node->ps.state,
+														   resultRelInfo);
+	}
 
 	/*
 	 * Free the exprcontext

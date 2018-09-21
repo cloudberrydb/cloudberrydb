@@ -103,8 +103,8 @@ static uint32
 static int
 			constrNodeMatch(const void *keyPtr1, const void *keyPtr2, Size keysize);
 
-static void parruleord_open_gap(Oid partid, int2 level, Oid parent,
-					int2 ruleord, int2 stopkey, bool closegap);
+static void parruleord_open_gap(Oid partid, int16 level, Oid parent,
+					int16 ruleord, int16 stopkey, bool closegap);
 static bool has_external_partition(List *rules);
 
 /*
@@ -1714,7 +1714,7 @@ add_part_to_catalog(Oid relid, PartitionBy *pby,
 		Node	   *rangeevery = NULL;
 		bool		rangestartinc = false;
 		bool		rangeendinc = false;
-		int2		parruleord = 0;
+		int16		parruleord = 0;
 		PartitionRule *rule = makeNode(PartitionRule);
 		PartitionElem *el;
 		char	   *parname = NULL;
@@ -1936,8 +1936,8 @@ add_part_to_catalog(Oid relid, PartitionBy *pby,
  * gap in parruleord sequence.
  */
 static void
-parruleord_open_gap(Oid partid, int2 level, Oid parent, int2 ruleord,
-					int2 stopkey, bool closegap)
+parruleord_open_gap(Oid partid, int16 level, Oid parent, int16 ruleord,
+					int16 stopkey, bool closegap)
 {
 	Relation	rel;
 	Relation	irel;
@@ -2169,10 +2169,10 @@ partMakePartition(HeapTuple tuple)
 														 &isnull));
 	Assert(!isnull);
 
-	p->paratts = palloc(sizeof(int2) * p->parnatts);
+	p->paratts = palloc(sizeof(int16) * p->parnatts);
 	p->parclass = palloc(sizeof(Oid) * p->parnatts);
 
-	memcpy(p->paratts, atts->values, sizeof(int2) * p->parnatts);
+	memcpy(p->paratts, atts->values, sizeof(int16) * p->parnatts);
 	memcpy(p->parclass, oids->values, sizeof(Oid) * p->parnatts);
 
 	return p;
@@ -2192,7 +2192,7 @@ partMakePartition(HeapTuple tuple)
  *    includesubparts	--	whether or not to include sub partitions
  */
 PartitionNode *
-get_parts(Oid relid, int2 level, Oid parent, bool inctemplate,
+get_parts(Oid relid, int16 level, Oid parent, bool inctemplate,
 		  bool includesubparts)
 {
 	PartitionNode *pnode = NULL;
@@ -2365,7 +2365,7 @@ get_partition_key_bitmapset(Oid relid)
 	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
 		int			i;
-		int2		natts;
+		int16		natts;
 		int2vector *atts;
 		bool		isnull;
 		Form_pg_partition partrow = (Form_pg_partition) GETSTRUCT(tuple);
@@ -3414,8 +3414,8 @@ L_rel_get_part_path_match:
 			ListCell   *lc3;
 			List	   *l1 = (List *) prule->parlistvalues;
 			StringInfoData sid1;
-			int2		nkeys = part->parnatts;
-			int2		parcol = 0;
+			int16		nkeys = part->parnatts;
+			int16		parcol = 0;
 
 			initStringInfo(&sid1);
 
@@ -6926,8 +6926,8 @@ atpxPartAddList(Relation rel,
 			if (!bSetTemplate)
 				ProcessUtility(q,
 							   synthetic_sql,
+							   PROCESS_UTILITY_SUBCOMMAND,
 							   NULL,
-							   false,	/* not top level */
 							   dest,
 							   NULL);
 			else
@@ -8428,7 +8428,8 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 									  consrc,
 									  con->conislocal,
 									  con->coninhcount,
-									  false);
+									  false, /* conNoInherit */
+									  false /* is_internal */); /* GPDB_93_MERGE_FIXME: should this be considered internal? */
 				break;
 			}
 
@@ -8482,7 +8483,8 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 									  NULL,
 									  con->conislocal,
 									  con->coninhcount,
-									  true);
+									  true, /* conNoInherit */
+									  false /* is_internal */); /* GPDB_93_MERGE_FIXME: should this be considered internal? */
 
 				heap_close(frel, AccessExclusiveLock);
 				break;

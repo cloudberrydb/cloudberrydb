@@ -1198,40 +1198,28 @@ NOTICE:  CREATE TABLE will create partition "mpp8031_1_prt_2" for table "mpp8031
 NOTICE:  CREATE TABLE will create partition "mpp8031_1_prt_3" for table "mpp8031"
 NOTICE:  CREATE TABLE will create partition "mpp8031_1_prt_4" for table "mpp8031"
 explain analyze select a.* from mpp8031 a, mpp8031 b where a.oid = b.oid;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16)
-   Rows out:  0 rows at destination with 5.797 ms to end, start offset by 0.322 ms.
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=16)
-         Hash Cond: bfv_partition.mpp8031.oid = bfv_partition.mpp8031.oid
-         Rows out:  0 rows (seg0) with 5.403 ms to end, start offset by 0.666 ms.
-         ->  Sequence  (cost=0.00..431.00 rows=1 width=16)
-               Rows out:  (No row requested) 0 rows (seg0) with 0 ms to end.
-               ->  Partition Selector for mpp8031 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
+                                                                             QUERY PLAN                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16) (actual time=2.131..2.131 rows=0 loops=2)
+   ->  Hash Join  (cost=0.00..862.00 rows=1 width=16) (actual time=0.000..3.889 rows=0 loops=1)
+         Hash Cond: mpp8031.oid = mpp8031_1.oid
+         ->  Sequence  (cost=0.00..431.00 rows=1 width=16) (never executed)
+               ->  Partition Selector for mpp8031 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4) (never executed)
                      Partitions selected: 4 (out of 4)
-                     Rows out:  (No row requested) 0 rows (seg0) with 0 ms to end.
-               ->  Dynamic Table Scan on mpp8031 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
-                     Rows out:  (No row requested) 0 rows (seg0) with 0 ms to end.
+               ->  Dynamic Table Scan on mpp8031 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16) (never executed)
                      Partitions scanned:  0 (out of 4).
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               Rows in:  0 rows (seg0) with 0.417 ms to end, start offset by 3.443 ms.
-               ->  Sequence  (cost=0.00..431.00 rows=1 width=4)
-                     Rows out:  0 rows (seg0) with 0.416 ms to end, start offset by 3.444 ms.
-                     ->  Partition Selector for mpp8031 (dynamic scan id: 2)  (cost=10.00..100.00 rows=34 width=4)
+         ->  Hash  (cost=431.00..431.00 rows=1 width=4) (actual time=0.000..0.978 rows=0 loops=1)
+               ->  Sequence  (cost=0.00..431.00 rows=1 width=4) (actual time=0.000..0.976 rows=0 loops=1)
+                     ->  Partition Selector for mpp8031 (dynamic scan id: 2)  (cost=10.00..100.00 rows=34 width=4) (actual time=0.000..0.017 rows=0 loops=1)
                            Partitions selected: 4 (out of 4)
-                           Rows out:  0 rows (seg0) with 0.022 ms to end, start offset by 3.573 ms.
-                     ->  Dynamic Table Scan on mpp8031 (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=4)
-                           Rows out:  0 rows (seg0) with 0.392 ms to end, start offset by 3.467 ms.
+                     ->  Dynamic Table Scan on mpp8031 mpp8031_1 (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=4) (actual time=0.000..0.957 rows=0 loops=1)
                            Partitions scanned:  Avg 4.0 (out of 4) x 3 workers.  Max 4 parts (seg0).
- Slice statistics:
-   (slice0)    Executor memory: 382K bytes.
-   (slice1)    Executor memory: 8400K bytes avg x 3 workers, 8400K bytes max (seg0).
- Statement statistics:
-   Memory used: 128000K bytes
- Settings:  optimizer=on
- Optimizer status: PQO version 2.5.0
- Total runtime: 6.993 ms
-(31 rows)
+   (slice0)    Executor memory: 386K bytes.
+   (slice1)    Executor memory: 4234K bytes avg x 3 workers, 4234K bytes max (seg0).
+ Memory used:  128000kB
+ Optimizer: PQO version 2.74.0
+ Total runtime: 5.260 ms
+(19 rows)
 
 drop table mpp8031;
 -- Partitioned tables with default partitions and indexes on all parts,
@@ -1344,18 +1332,16 @@ explain select * from r_part r1, r_part r2 where r1.a=1; -- should eliminate par
          ->  Sequence  (cost=0.00..431.00 rows=1 width=8)
                ->  Partition Selector for r_part (dynamic scan id: 2)  (cost=10.00..100.00 rows=34 width=4)
                      Partitions selected: 9 (out of 9)
-               ->  Dynamic Table Scan on r_part (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=8)
+               ->  Dynamic Table Scan on r_part r_part_1 (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=8)
          ->  Materialize  (cost=0.00..431.00 rows=1 width=8)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
                      ->  Sequence  (cost=0.00..431.00 rows=1 width=8)
                            ->  Partition Selector for r_part (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
-                                 Filter: bfv_partition.r_part.a = 1
                                  Partitions selected: 1 (out of 9)
                            ->  Dynamic Table Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                                  Filter: a = 1
- Settings:  optimizer=on
- Optimizer status: PQO version 2.47.1
-(17 rows)
+ Optimizer: PQO version 2.74.0
+(15 rows)
 
 explain select * from r_part where a in (1,2); -- should eliminate partitions
                                               QUERY PLAN                                              

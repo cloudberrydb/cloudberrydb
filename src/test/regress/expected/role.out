@@ -47,7 +47,7 @@ ALTER ROLE role_setting_test_5 RESET ALL;
 ALTER ROLE role_setting_test_6 IN DATABASE regression RESET ALL;
 \drds role_setting_test_*
                        List of settings
-        role         |  database  |         settings          
+        Role         |  Database  |         Settings          
 ---------------------+------------+---------------------------
  role_setting_test_1 |            | statement_mem=150MB      +
                      |            | search_path=common_schema

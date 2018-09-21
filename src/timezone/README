@@ -15,7 +15,6 @@ we should endeavor to update the data files before each PostgreSQL
 release.  The code need not be updated as often, but we must track
 changes that might affect interpretation of the data files.
 
-
 Time Zone data
 ==============
 

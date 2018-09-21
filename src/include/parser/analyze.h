@@ -4,7 +4,7 @@
  *		parse analysis for optimizable statements
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/analyze.h
@@ -41,7 +41,7 @@ extern bool analyze_requires_snapshot(Node *parseTree);
 
 extern void CheckSelectLocking(Query *qry);
 extern void applyLockingClause(Query *qry, Index rtindex,
-				   bool forUpdate, bool noWait, bool pushedDown);
+				   LockClauseStrength strength, bool noWait, bool pushedDown);
 
 /* State shared by transformCreateStmt and its subroutines */
 typedef struct
@@ -52,6 +52,7 @@ typedef struct
 	Relation	rel;			/* opened/locked rel, if ALTER */
 	List	   *inhRelations;	/* relations to inherit from */
 	bool		hasoids;		/* does relation have an OID column? */
+	bool		isforeign;		/* true if CREATE/ALTER FOREIGN TABLE */
 	bool		isalter;		/* true if altering existing table */
 	bool		iscreatepart;	/* true if create in service of creating a part */
 	bool		issplitpart;
@@ -71,8 +72,6 @@ typedef struct
 
 	MemoryContext tempCtx;
 } CreateStmtContext;
-
-#define MaxPolicyAttributeNumber MaxHeapAttributeNumber
 
 extern int validate_partition_spec(CreateStmtContext *cxt, 
 							CreateStmt 			*stmt, 

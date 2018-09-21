@@ -1,16 +1,18 @@
 /*-------------------------------------------------------------------------
  *
  * createas.c
- *	  Execution of CREATE TABLE ... AS, a/k/a SELECT INTO
+ *	  Execution of CREATE TABLE ... AS, a/k/a SELECT INTO.
+ *	  Since CREATE MATERIALIZED VIEW shares syntax and most behaviors,
+ *	  we implement that here, too.
  *
  * We implement this by diverting the query's normal output to a
  * specialized DestReceiver type.
  *
- * Formerly, this command was implemented as a variant of SELECT, which led
+ * Formerly, CTAS was implemented as a variant of SELECT, which led
  * to assorted legacy behaviors that we still try to preserve, notably that
  * we must return a tuples-processed count in the completionTag.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -22,12 +24,15 @@
 #include "postgres.h"
 
 #include "access/reloptions.h"
+#include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "access/xact.h"
 #include "catalog/toasting.h"
 #include "commands/createas.h"
+#include "commands/matview.h"
 #include "commands/prepare.h"
 #include "commands/tablecmds.h"
+#include "commands/view.h"
 #include "parser/parse_clause.h"
 #include "postmaster/autostats.h"
 #include "rewrite/rewriteHandler.h"
@@ -119,7 +124,7 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 	 * the case that CTAS is in a portal or plpgsql function and is executed
 	 * repeatedly.	(See also the same hack in EXPLAIN and PREPARE.)
 	 */
-	rewritten = QueryRewrite((Query *) copyObject(stmt->query));
+	rewritten = QueryRewrite((Query *) copyObject(query));
 
 	/* SELECT should never rewrite to more or less than one SELECT query */
 	if (list_length(rewritten) != 1)
@@ -208,15 +213,25 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 int
 GetIntoRelEFlags(IntoClause *intoClause)
 {
+	int			flags;
+
 	/*
 	 * We need to tell the executor whether it has to produce OIDs or not,
 	 * because it doesn't have enough information to do so itself (since we
 	 * can't build the target relation until after ExecutorStart).
+	 *
+	 * Disallow the OIDS option for materialized views.
 	 */
-	if (interpretOidsOption(intoClause->options))
-		return EXEC_FLAG_WITH_OIDS;
+	if (interpretOidsOption(intoClause->options,
+							(intoClause->viewQuery == NULL)))
+		flags = EXEC_FLAG_WITH_OIDS;
 	else
-		return EXEC_FLAG_WITHOUT_OIDS;
+		flags = EXEC_FLAG_WITHOUT_OIDS;
+
+	if (intoClause->skipData)
+		flags |= EXEC_FLAG_WITH_NO_DATA;
+
+	return flags;
 }
 
 /*
@@ -270,6 +285,8 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	DR_intorel *myState;
 	/* Get 'into' from the dispatched plan */
 	IntoClause *into = queryDesc->plannedstmt->intoClause;
+	bool		is_matview;
+	char		relkind;
 	CreateStmt *create;
 	Oid			intoRelationId;
 	Relation	intoRelationDesc;
@@ -287,6 +304,10 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	if ((eflags & EXEC_FLAG_EXPLAIN_ONLY) ||
 		(Gp_role == GP_ROLE_EXECUTE && !Gp_is_writer))
 		return;
+
+	/* This code supports both CREATE TABLE AS and CREATE MATERIALIZED VIEW */
+	is_matview = (into->viewQuery != NULL);
+	relkind = is_matview ? RELKIND_MATVIEW : RELKIND_RELATION;
 
 	/*
 	 * Create the target relation by faking up a CREATE TABLE parsetree and
@@ -385,7 +406,7 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	if (lc != NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("CREATE TABLE AS specifies too many column names")));
+				 errmsg("too many column names were specified")));
 
 	/* Parse and validate any reloptions */
 	reloptions = transformRelOptions((Datum) 0,
@@ -428,7 +449,7 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	 * Pass the policy that was computed by the planner.
 	 */
 	intoRelationId = DefineRelation(create,
-									RELKIND_RELATION,
+									relkind,
 									InvalidOid,
 									relstorage,
 									false,
@@ -455,6 +476,16 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	AlterTableCreateAoSegTable(intoRelationId, false, false);
 	/* don't create AO block directory here, it'll be created when needed. */
 	AlterTableCreateAoVisimapTable(intoRelationId, false, false);
+
+	/* Create the "view" part of a materialized view. */
+	if (is_matview)
+	{
+		/* StoreViewQuery scribbles on tree, so make a copy */
+		Query	   *query = (Query *) copyObject(into->viewQuery);
+
+		StoreViewQuery(intoRelationId, query, false);
+		CommandCounterIncrement();
+	}
 
 	/*
 	 * Finally we can open the target table
@@ -483,7 +514,7 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	rte = makeNode(RangeTblEntry);
 	rte->rtekind = RTE_RELATION;
 	rte->relid = intoRelationId;
-	rte->relkind = RELKIND_RELATION;
+	rte->relkind = relkind;
 	rte->requiredPerms = ACL_INSERT;
 
 	for (attnum = 1; attnum <= intoRelationDesc->rd_att->natts; attnum++)
@@ -491,6 +522,13 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 								attnum - FirstLowInvalidHeapAttributeNumber);
 
 	ExecCheckRTPerms(list_make1(rte), true);
+
+	/*
+	 * Tentatively mark the target as populated, if it's a matview and we're
+	 * going to fill it; otherwise, no change needed.
+	 */
+	if (is_matview && !into->skipData)
+		SetMatViewPopulatedState(intoRelationDesc, true);
 
 	/*
 	 * Fill private fields of myState for use by later routines

@@ -5,7 +5,6 @@ CREATE TEMP TABLE x (
 	d text,
 	e text
 ) WITH OIDS;
-NOTICE:  CREATE TABLE will create implicit sequence "x_a_seq" for serial column "x.a"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 CREATE FUNCTION fn_x_before () RETURNS TRIGGER AS '
   BEGIN
@@ -177,15 +176,136 @@ SELECT * FROM testnull;
     | 
 (4 rows)
 
--- "unknown" types can be dumped and restored: these attributes are
--- NULL-terminated in memory (attlen == -2), so the COPY code needs to handle
--- them explicitly.
-CREATE TEMP TABLE type_unknown ( a unknown );
-WARNING:  column "a" has type "unknown"
-DETAIL:  Proceeding with relation creation anyway.
-COPY type_unknown FROM stdin;
-COPY type_unknown TO stdout;
-unknown
+BEGIN;
+CREATE TABLE vistest (LIKE testeoc);
+COPY vistest FROM stdin CSV;
+COMMIT;
+SELECT * FROM vistest;
+ a  
+----
+ a0
+ b
+(2 rows)
+
+BEGIN;
+TRUNCATE vistest;
+COPY vistest FROM stdin CSV;
+SELECT * FROM vistest;
+ a  
+----
+ a1
+ b
+(2 rows)
+
+SAVEPOINT s1;
+TRUNCATE vistest;
+COPY vistest FROM stdin CSV;
+SELECT * FROM vistest;
+ a  
+----
+ d1
+ e
+(2 rows)
+
+COMMIT;
+SELECT * FROM vistest;
+ a  
+----
+ d1
+ e
+(2 rows)
+
+BEGIN;
+TRUNCATE vistest;
+COPY vistest FROM stdin CSV FREEZE;
+SELECT * FROM vistest;
+ a  
+----
+ a2
+ b
+(2 rows)
+
+SAVEPOINT s1;
+TRUNCATE vistest;
+COPY vistest FROM stdin CSV FREEZE;
+SELECT * FROM vistest;
+ a  
+----
+ d2
+ e
+(2 rows)
+
+COMMIT;
+SELECT * FROM vistest;
+ a  
+----
+ d2
+ e
+(2 rows)
+
+BEGIN;
+TRUNCATE vistest;
+COPY vistest FROM stdin CSV FREEZE;
+SELECT * FROM vistest;
+ a 
+---
+ x
+ y
+(2 rows)
+
+COMMIT;
+TRUNCATE vistest;
+COPY vistest FROM stdin CSV FREEZE;
+ERROR:  cannot perform FREEZE because the table was not created or truncated in the current subtransaction
+BEGIN;
+TRUNCATE vistest;
+SAVEPOINT s1;
+COPY vistest FROM stdin CSV FREEZE;
+ERROR:  cannot perform FREEZE because the table was not created or truncated in the current subtransaction
+COMMIT;
+BEGIN;
+INSERT INTO vistest VALUES ('z');
+SAVEPOINT s1;
+TRUNCATE vistest;
+ROLLBACK TO SAVEPOINT s1;
+COPY vistest FROM stdin CSV FREEZE;
+ERROR:  cannot perform FREEZE because the table was not created or truncated in the current subtransaction
+COMMIT;
+CREATE FUNCTION truncate_in_subxact() RETURNS VOID AS
+$$
+BEGIN
+	TRUNCATE vistest;
+EXCEPTION
+  WHEN OTHERS THEN
+	INSERT INTO vistest VALUES ('subxact failure');
+END;
+$$ language plpgsql;
+BEGIN;
+INSERT INTO vistest VALUES ('z');
+SELECT truncate_in_subxact();
+ truncate_in_subxact 
+---------------------
+ 
+(1 row)
+
+COPY vistest FROM stdin CSV FREEZE;
+SELECT * FROM vistest;
+ a  
+----
+ d4
+ e
+(2 rows)
+
+COMMIT;
+SELECT * FROM vistest;
+ a  
+----
+ d4
+ e
+(2 rows)
+
+DROP TABLE vistest;
+DROP FUNCTION truncate_in_subxact();
 DROP TABLE x, y;
 DROP FUNCTION fn_x_before();
 DROP FUNCTION fn_x_after();

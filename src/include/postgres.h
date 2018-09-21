@@ -7,7 +7,7 @@
  * Client-side code should include postgres_fe.h instead.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1995, Regents of the University of California
  *
  * src/include/postgres.h
@@ -25,7 +25,7 @@
  *	  -------	------------------------------------------------
  *		1)		variable-length datatypes (TOAST support)
  *		2)		datum type + support macros
- *		3)		exception handling definitions
+ *		3)		exception handling backend support
  *
  *	 NOTES
  *
@@ -386,6 +386,9 @@ static inline Datum ObjectIdGetDatum(Oid oid) { return (Datum) oid; }
 static inline TransactionId DatumGetTransactionId(Datum d) { return (TransactionId) d; } 
 static inline Datum TransactionIdGetDatum(TransactionId tid) { return (Datum) tid; } 
 
+static inline TransactionId DatumGetMultiXactId(Datum d) { return (TransactionId) d; } 
+static inline Datum MultiXactIdGetDatum(TransactionId tid) { return (Datum) tid; } 
+
 static inline CommandId DatumGetCommandId(Datum d) { return (CommandId) d; } 
 static inline Datum CommandIdGetDatum(CommandId cid) { return (Datum) cid; } 
 
@@ -433,80 +436,20 @@ static inline bool IsAligned(void *p, int align)
 }
 
 /* ----------------------------------------------------------------
- *				Section 3:	exception handling definitions
- *							Assert, Trap, etc macros
+ *				Section 3:	exception handling backend support
  * ----------------------------------------------------------------
  */
 
 #define COMPILE_ASSERT(e) ((void)sizeof(char[1-2*!(e)]))
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
 
+/*
+ * These declarations supports the assertion-related macros in c.h.
+ * assert_enabled is here because that file doesn't have PGDLLIMPORT in the
+ * right place, and ExceptionalCondition must be present, for the backend only,
+ * even when assertions are not enabled.
+ */
 extern PGDLLIMPORT bool assert_enabled;
-
-/*
- * USE_ASSERT_CHECKING, if defined, turns on all the assertions.
- * - plai  9/5/90
- *
- * It should _NOT_ be defined in releases or in benchmark copies
- */
-
-/*
- * Trap
- *		Generates an exception if the given condition is true.
- */
-#define Trap(condition, errorType) \
-	do { \
-		if ((assert_enabled) && (condition)) \
-			ExceptionalCondition(CppAsString(condition), (errorType), \
-								 __FILE__, __LINE__); \
-	} while (0)
-/*
- *	TrapMacro is the same as Trap but it's intended for use in macros:
- *
- *		#define foo(x) (AssertMacro(x != 0), bar(x))
- *
- *	Isn't CPP fun?
- */
-#define TrapMacro(condition, errorType) \
-	((bool) ((! assert_enabled) || ! (condition) || \
-			 (ExceptionalCondition(CppAsString(condition), (errorType), \
-								   __FILE__, __LINE__), 0)))
-
-#ifndef USE_ASSERT_CHECKING
-#define Assert(condition)
-#define AssertMacro(condition)	((void)true)
-#define AssertArg(condition)
-#define AssertState(condition)
-#define AssertImply(condition1, condition2)
-#define AssertEquivalent(cond1, cond2)
-#define AssertPointerAlignment(ptr, bndr)	((void)true)
-#else
-#define Assert(condition) \
-		Trap(!(condition), "FailedAssertion")
-
-#define AssertMacro(condition) \
-		((void) TrapMacro(!(condition), "FailedAssertion"))
-
-#define AssertArg(condition) \
-		Trap(!(condition), "BadArgument")
-
-#define AssertState(condition) \
-		Trap(!(condition), "BadState")
-
-#define AssertImply(cond1, cond2) \
-		Trap(!(!(cond1) || (cond2)), "AssertImply failed")
-
-#define AssertEquivalent(cond1, cond2) \
-		Trap(!((bool)(cond1) == (bool)(cond2)), "AssertEquivalent failed")
-
-/*
- * Check that `ptr' is `bndr' aligned.
- */
-#define AssertPointerAlignment(ptr, bndr) \
-	Trap(TYPEALIGN(bndr, (uintptr_t)(ptr)) != (uintptr_t)(ptr), \
-		 "UnalignedPointer")
-
-#endif   /* USE_ASSERT_CHECKING */
 
 extern void ExceptionalCondition(const char *conditionName,
 					 const char *errorType,

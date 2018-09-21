@@ -3,7 +3,7 @@
  * foreigncmds.c
  *	  foreign-data wrapper/server creation/manipulation commands
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -14,6 +14,7 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "access/htup_details.h"
 #include "access/xact.h"
 #include "access/reloptions.h"
 #include "catalog/dependency.h"
@@ -203,83 +204,6 @@ GetUserOidFromMapping(const char *username, bool missing_ok)
 	return get_role_oid(username, missing_ok);
 }
 
-
-/*
- * Rename foreign-data wrapper
- */
-void
-RenameForeignDataWrapper(const char *oldname, const char *newname)
-{
-	HeapTuple	tup;
-	Relation	rel;
-
-	rel = heap_open(ForeignDataWrapperRelationId, RowExclusiveLock);
-
-	tup = SearchSysCacheCopy1(FOREIGNDATAWRAPPERNAME, CStringGetDatum(oldname));
-	if (!HeapTupleIsValid(tup))
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_OBJECT),
-			 errmsg("foreign-data wrapper \"%s\" does not exist", oldname)));
-
-	/* make sure the new name doesn't exist */
-	if (SearchSysCacheExists1(FOREIGNDATAWRAPPERNAME, CStringGetDatum(newname)))
-		ereport(ERROR,
-				(errcode(ERRCODE_DUPLICATE_OBJECT),
-			 errmsg("foreign-data wrapper \"%s\" already exists", newname)));
-
-	/* must be owner of FDW */
-	if (!pg_foreign_data_wrapper_ownercheck(HeapTupleGetOid(tup), GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_FDW,
-					   oldname);
-
-	/* rename */
-	namestrcpy(&(((Form_pg_foreign_data_wrapper) GETSTRUCT(tup))->fdwname), newname);
-	simple_heap_update(rel, &tup->t_self, tup);
-	CatalogUpdateIndexes(rel, tup);
-
-	heap_close(rel, NoLock);
-	heap_freetuple(tup);
-}
-
-
-/*
- * Rename foreign server
- */
-void
-RenameForeignServer(const char *oldname, const char *newname)
-{
-	HeapTuple	tup;
-	Relation	rel;
-
-	rel = heap_open(ForeignServerRelationId, RowExclusiveLock);
-
-	tup = SearchSysCacheCopy1(FOREIGNSERVERNAME, CStringGetDatum(oldname));
-	if (!HeapTupleIsValid(tup))
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_OBJECT),
-				 errmsg("server \"%s\" does not exist", oldname)));
-
-	/* make sure the new name doesn't exist */
-	if (SearchSysCacheExists1(FOREIGNSERVERNAME, CStringGetDatum(newname)))
-		ereport(ERROR,
-				(errcode(ERRCODE_DUPLICATE_OBJECT),
-				 errmsg("server \"%s\" already exists", newname)));
-
-	/* must be owner of server */
-	if (!pg_foreign_server_ownercheck(HeapTupleGetOid(tup), GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_FOREIGN_SERVER,
-					   oldname);
-
-	/* rename */
-	namestrcpy(&(((Form_pg_foreign_server) GETSTRUCT(tup))->srvname), newname);
-	simple_heap_update(rel, &tup->t_self, tup);
-	CatalogUpdateIndexes(rel, tup);
-
-	heap_close(rel, NoLock);
-	heap_freetuple(tup);
-}
-
-
 /*
  * Internal workhorse for changing a data wrapper's owner.
  *
@@ -321,6 +245,9 @@ AlterForeignDataWrapperOwner_internal(Relation rel, HeapTuple tup, Oid newOwnerI
 								HeapTupleGetOid(tup),
 								newOwnerId);
 	}
+
+	InvokeObjectPostAlterHook(ForeignDataWrapperRelationId,
+							  HeapTupleGetOid(tup), 0);
 }
 
 /*
@@ -328,9 +255,10 @@ AlterForeignDataWrapperOwner_internal(Relation rel, HeapTuple tup, Oid newOwnerI
  *
  * Note restrictions in the "_internal" function, above.
  */
-void
+Oid
 AlterForeignDataWrapperOwner(const char *name, Oid newOwnerId)
 {
+	Oid			fdwId;
 	HeapTuple	tup;
 	Relation	rel;
 
@@ -343,11 +271,15 @@ AlterForeignDataWrapperOwner(const char *name, Oid newOwnerId)
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("foreign-data wrapper \"%s\" does not exist", name)));
 
+	fdwId = HeapTupleGetOid(tup);
+
 	AlterForeignDataWrapperOwner_internal(rel, tup, newOwnerId);
 
 	heap_freetuple(tup);
 
 	heap_close(rel, RowExclusiveLock);
+
+	return fdwId;
 }
 
 /*
@@ -424,14 +356,18 @@ AlterForeignServerOwner_internal(Relation rel, HeapTuple tup, Oid newOwnerId)
 		changeDependencyOnOwner(ForeignServerRelationId, HeapTupleGetOid(tup),
 								newOwnerId);
 	}
+
+	InvokeObjectPostAlterHook(ForeignServerRelationId,
+							  HeapTupleGetOid(tup), 0);
 }
 
 /*
  * Change foreign server owner -- by name
  */
-void
+Oid
 AlterForeignServerOwner(const char *name, Oid newOwnerId)
 {
+	Oid			servOid;
 	HeapTuple	tup;
 	Relation	rel;
 
@@ -444,11 +380,15 @@ AlterForeignServerOwner(const char *name, Oid newOwnerId)
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("server \"%s\" does not exist", name)));
 
+	servOid = HeapTupleGetOid(tup);
+
 	AlterForeignServerOwner_internal(rel, tup, newOwnerId);
 
 	heap_freetuple(tup);
 
 	heap_close(rel, RowExclusiveLock);
+
+	return servOid;
 }
 
 /*
@@ -566,7 +506,7 @@ parse_func_options(List *func_options,
 /*
  * Create a foreign-data wrapper
  */
-void
+Oid
 CreateForeignDataWrapper(CreateFdwStmt *stmt)
 {
 	Relation	rel;
@@ -669,8 +609,7 @@ CreateForeignDataWrapper(CreateFdwStmt *stmt)
 	recordDependencyOnCurrentExtension(&myself, false);
 
 	/* Post creation hook for new foreign data wrapper */
-	InvokeObjectAccessHook(OAT_POST_CREATE,
-						   ForeignDataWrapperRelationId, fdwId, 0, NULL);
+	InvokeObjectPostCreateHook(ForeignDataWrapperRelationId, fdwId, 0);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -681,13 +620,15 @@ CreateForeignDataWrapper(CreateFdwStmt *stmt)
 	}
 
 	heap_close(rel, RowExclusiveLock);
+
+	return fdwId;
 }
 
 
 /*
  * Alter foreign-data wrapper
  */
-void
+Oid
 AlterForeignDataWrapper(AlterFdwStmt *stmt)
 {
 	Relation	rel;
@@ -848,8 +789,11 @@ AlterForeignDataWrapper(AlterFdwStmt *stmt)
 									GetAssignedOidsForDispatch(),
 									NULL);
 	}
+	InvokeObjectPostAlterHook(ForeignDataWrapperRelationId, fdwId, 0);
 
 	heap_close(rel, RowExclusiveLock);
+
+	return fdwId;
 }
 
 
@@ -880,7 +824,7 @@ RemoveForeignDataWrapperById(Oid fdwId)
 /*
  * Create a foreign server
  */
-void
+Oid
 CreateForeignServer(CreateForeignServerStmt *stmt)
 {
 	Relation	rel;
@@ -982,8 +926,7 @@ CreateForeignServer(CreateForeignServerStmt *stmt)
 	recordDependencyOnCurrentExtension(&myself, false);
 
 	/* Post creation hook for new foreign server */
-	InvokeObjectAccessHook(OAT_POST_CREATE,
-						   ForeignServerRelationId, srvId, 0, NULL);
+	InvokeObjectPostCreateHook(ForeignServerRelationId, srvId, 0);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -994,13 +937,15 @@ CreateForeignServer(CreateForeignServerStmt *stmt)
 	}
 
 	heap_close(rel, RowExclusiveLock);
+
+	return srvId;
 }
 
 
 /*
  * Alter foreign server
  */
-void
+Oid
 AlterForeignServer(AlterForeignServerStmt *stmt)
 {
 	Relation	rel;
@@ -1084,6 +1029,8 @@ AlterForeignServer(AlterForeignServerStmt *stmt)
 	simple_heap_update(rel, &tp->t_self, tp);
 	CatalogUpdateIndexes(rel, tp);
 
+	InvokeObjectPostAlterHook(ForeignServerRelationId, srvId, 0);
+
 	heap_freetuple(tp);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
@@ -1095,6 +1042,8 @@ AlterForeignServer(AlterForeignServerStmt *stmt)
 	}
 
 	heap_close(rel, RowExclusiveLock);
+
+	return srvId;
 }
 
 
@@ -1152,7 +1101,7 @@ user_mapping_ddl_aclcheck(Oid umuserid, Oid serverid, const char *servername)
 /*
  * Create user mapping
  */
-void
+Oid
 CreateUserMapping(CreateUserMappingStmt *stmt)
 {
 	Relation	rel;
@@ -1239,8 +1188,7 @@ CreateUserMapping(CreateUserMappingStmt *stmt)
 	recordDependencyOnCurrentExtension(&myself, false);
 
 	/* Post creation hook for new user mapping */
-	InvokeObjectAccessHook(OAT_POST_CREATE,
-						   UserMappingRelationId, umId, 0, NULL);
+	InvokeObjectPostCreateHook(UserMappingRelationId, umId, 0);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -1251,13 +1199,15 @@ CreateUserMapping(CreateUserMappingStmt *stmt)
 	}
 
 	heap_close(rel, RowExclusiveLock);
+
+	return umId;
 }
 
 
 /*
  * Alter user mapping
  */
-void
+Oid
 AlterUserMapping(AlterUserMappingStmt *stmt)
 {
 	Relation	rel;
@@ -1345,13 +1295,15 @@ AlterUserMapping(AlterUserMappingStmt *stmt)
 	}
 
 	heap_close(rel, RowExclusiveLock);
+
+	return umId;
 }
 
 
 /*
  * Drop user mapping
  */
-void
+Oid
 RemoveUserMapping(DropUserMappingStmt *stmt)
 {
 	ObjectAddress object;
@@ -1369,7 +1321,7 @@ RemoveUserMapping(DropUserMappingStmt *stmt)
 		 * leave.
 		 */
 		elog(NOTICE, "role \"%s\" does not exist, skipping", stmt->username);
-		return;
+		return InvalidOid;
 	}
 
 	if (!srv)
@@ -1381,7 +1333,7 @@ RemoveUserMapping(DropUserMappingStmt *stmt)
 							stmt->servername)));
 		/* IF EXISTS, just note it */
 		ereport(NOTICE, (errmsg("server does not exist, skipping")));
-		return;
+		return InvalidOid;
 	}
 
 	umId = GetSysCacheOid2(USERMAPPINGUSERSERVER,
@@ -1400,7 +1352,7 @@ RemoveUserMapping(DropUserMappingStmt *stmt)
 		ereport(NOTICE,
 		(errmsg("user mapping \"%s\" does not exist for the server, skipping",
 				MappingUserName(useId))));
-		return;
+		return InvalidOid;
 	}
 
 	user_mapping_ddl_aclcheck(useId, srv->serverid, srv->servername);
@@ -1421,6 +1373,7 @@ RemoveUserMapping(DropUserMappingStmt *stmt)
 									GetAssignedOidsForDispatch(),
 									NULL);
 	}
+	return umId;
 }
 
 

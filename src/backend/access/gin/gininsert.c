@@ -4,7 +4,7 @@
  *	  insert routines for the postgres inverted index access method.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -15,6 +15,7 @@
 #include "postgres.h"
 
 #include "access/gin_private.h"
+#include "access/heapam_xlog.h"
 #include "catalog/index.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
@@ -517,20 +518,14 @@ ginbuildempty(PG_FUNCTION_ARGS)
 		ReadBufferExtended(index, INIT_FORKNUM, P_NEW, RBM_NORMAL, NULL);
 	LockBuffer(RootBuffer, BUFFER_LOCK_EXCLUSIVE);
 
-	/* Initialize both pages, mark them dirty, unlock and release buffer. */
+	/* Initialize and xlog metabuffer and root buffer. */
 	START_CRIT_SECTION();
 	GinInitMetabuffer(MetaBuffer);
 	MarkBufferDirty(MetaBuffer);
+	log_newpage_buffer(MetaBuffer);
 	GinInitBuffer(RootBuffer, GIN_LEAF);
 	MarkBufferDirty(RootBuffer);
-
-	/* XLOG the new pages */
-	log_newpage_rel(index, INIT_FORKNUM,
-				BufferGetBlockNumber(MetaBuffer),
-				BufferGetPage(MetaBuffer));
-	log_newpage_rel(index, INIT_FORKNUM,
-				BufferGetBlockNumber(RootBuffer),
-				BufferGetPage(RootBuffer));
+	log_newpage_buffer(RootBuffer);
 	END_CRIT_SECTION();
 
 	/* Unlock and release the buffers. */

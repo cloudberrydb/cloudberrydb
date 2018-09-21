@@ -102,7 +102,7 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	 * pre- and post-processing steps do.
 	 */
 	glob = makeNode(PlannerGlobal);
-	glob->paramlist = NIL;
+	glob->subplans = NIL;
 	glob->subroots = NIL;
 	glob->rewindPlanIDs = NULL;
 	glob->transientPlan = false;
@@ -119,6 +119,7 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	glob->subplans = NIL;
 	glob->relationOids = NIL;
 	glob->invalItems = NIL;
+	glob->nParamExec = 0;
 
 	root = makeNode(PlannerInfo);
 	root->parse = parse;

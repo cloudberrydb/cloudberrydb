@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -23,6 +23,7 @@
 #include "nodes/nodeFuncs.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
+#include "optimizer/planner.h"
 #include "optimizer/tlist.h"
 #include "parser/parse_relation.h"
 #include "parser/parsetree.h"
@@ -97,6 +98,10 @@ typedef struct
 #define fix_scan_list(root, lst, rtoffset) \
 	((List *) fix_scan_expr(root, (Node *) (lst), rtoffset))
 
+static void add_rtes_to_flat_rtable(PlannerInfo *root, bool recursing);
+static void flatten_unplanned_rtes(PlannerGlobal *glob, RangeTblEntry *rte);
+static bool flatten_rtes_walker(Node *node, PlannerGlobal *glob);
+static void add_rte_to_flat_rtable(PlannerGlobal *glob, RangeTblEntry *rte);
 static Plan *set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset);
 static Plan *set_indexonlyscan_references(PlannerInfo *root,
 							 IndexOnlyScan *plan,
@@ -219,6 +224,10 @@ static void set_plan_references_input_asserts(PlannerGlobal *glob, Plan *plan, L
 	/* Ensure that all params that the plan refers to has a corresponding subplan */
 	allParams = extract_nodes(glob, (Node *) plan, T_Param);
 
+	// GPDB_93_MERGE_FIXME: this stopped working, when 'paramlist' was removed from
+	// PlannerGlobal. I think list_length(glob->paramlist) should now be glob->nParamExec,
+	// but how do you get the individal params? In boundParams perhaps?
+#if 0
 	foreach (lc, allParams)
 	{
 		Param *param = lfirst(lc);
@@ -242,9 +251,9 @@ static void set_plan_references_input_asserts(PlannerGlobal *glob, Plan *plan, L
 			{
 				Assert("Global PlannerParamItem is not a var or an aggref node");
 			}
-
 		}
 	}
+#endif
 
 }
 
@@ -282,6 +291,22 @@ static void set_plan_references_output_asserts(PlannerGlobal *glob, Plan *plan)
 				&& "Plan contains var that refer outside the rtable.");
 		Assert(var->varattno > FirstLowInvalidHeapAttributeNumber && "Invalid attribute number in plan");
 
+		/*
+		 * GPDB_93_MERGE_FIXME: The code blow will fail with this query.
+		 *
+		 * postgres=# SELECT pid FROM pg_stat_activity WHERE pid != pg_backend_pid();
+		 * ERROR:  function in FROM has unsupported return type (parse_relation.c:2065)
+		 *
+		 * This is because that we change to flat copy of RTE (see
+		 * add_rte_to_flat_rtable()) during PG 9.3 merge, following PG upstream,
+		 * although we are not sure whether the modification is correct or not
+		 * at this moment (we are trying to boot up gpdb cluster).
+		 *
+		 * We do not fix in add_rte_to_flat_rtable(), etc but comment out these
+		 * sanity check code instead. Let's remove this FIXME and the code
+		 * if the code below is really useless later.
+		 */
+#if 0
 		if (var->varno > 0 && var->varno <= list_length(glob->finalrtable))
 		{
 			List *colNames = NULL;
@@ -294,7 +319,7 @@ static void set_plan_references_output_asserts(PlannerGlobal *glob, Plan *plan)
 
 			AssertImply(var->varattno >= 0, var->varattno <= list_length(colNames) + list_length(rte->pseudocols)); /* Only asserting on non-system attributes */
 		}
-
+#endif
 	}
 
 	/** All subquery scan nodes should have their scanrelids point to a subquery entry in the finalrtable */
@@ -385,54 +410,11 @@ set_plan_references(PlannerInfo *root, Plan *plan)
 #endif
 
 	/*
-	 * In the flat rangetable, we zero out substructure pointers that are not
-	 * needed by the executor; this reduces the storage space and copying cost
-	 * for cached plans.  We keep only the alias and eref Alias fields, which
-	 * are needed by EXPLAIN, and the selectedCols and modifiedCols bitmaps,
-	 * which are needed for executor-startup permissions checking and for
-	 * trigger event checking.
+	 * Add all the query's RTEs to the flattened rangetable.  The live ones
+	 * will have their rangetable indexes increased by rtoffset.  (Additional
+	 * RTEs, not referenced by the Plan tree, might get added after those.)
 	 */
-	foreach(lc, root->parse->rtable)
-	{
-		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
-		RangeTblEntry *newrte;
-
-		/* flat copy to duplicate all the scalar fields */
-		newrte = copyObject(rte);
-
-		/** Need to fix up some of the references in the newly created newrte */
-		fix_scan_expr(root, (Node *) newrte->funcexpr, rtoffset);
-		fix_scan_expr(root, (Node *) newrte->joinaliasvars, rtoffset);
-		fix_scan_expr(root, (Node *) newrte->values_lists, rtoffset);
-
-		glob->finalrtable = lappend(glob->finalrtable, newrte);
-
-		/*
-		 * If it's a plain relation RTE, add the table to relationOids.
-		 *
-		 * We do this even though the RTE might be unreferenced in the plan
-		 * tree; this would correspond to cases such as views that were
-		 * expanded, child tables that were eliminated by constraint
-		 * exclusion, etc.	Schema invalidation on such a rel must still force
-		 * rebuilding of the plan.
-		 *
-		 * Note we don't bother to avoid duplicate list entries.  We could,
-		 * but it would probably cost more cycles than it would save.
-		 */
-		if (newrte->rtekind == RTE_RELATION)
-			glob->relationOids = lappend_oid(glob->relationOids,
-											 newrte->relid);
-	}
-
-	/*
-	 * Check for RT index overflow; it's very unlikely, but if it did happen,
-	 * the executor would get confused by varnos that match the special varno
-	 * values.
-	 */
-	if (IS_SPECIAL_VARNO(list_length(glob->finalrtable)))
-		ereport(ERROR,
-				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-				 errmsg("too many range table entries")));
+	add_rtes_to_flat_rtable(root, false);
 
 	/*
 	 * Adjust RT indexes of PlanRowMarks and add to final rowmarks list
@@ -466,6 +448,193 @@ set_plan_references(PlannerInfo *root, Plan *plan)
 #endif
 
 	return retPlan;
+}
+
+/*
+ * Extract RangeTblEntries from the plan's rangetable, and add to flat rtable
+ *
+ * This can recurse into subquery plans; "recursing" is true if so.
+ */
+static void
+add_rtes_to_flat_rtable(PlannerInfo *root, bool recursing)
+{
+	PlannerGlobal *glob = root->glob;
+	Index		rti;
+	ListCell   *lc;
+
+	/*
+	 * Add the query's own RTEs to the flattened rangetable.
+	 *
+	 * At top level, we must add all RTEs so that their indexes in the
+	 * flattened rangetable match up with their original indexes.  When
+	 * recursing, we only care about extracting relation RTEs.
+	 */
+	foreach(lc, root->parse->rtable)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+
+		if (!recursing || rte->rtekind == RTE_RELATION)
+			add_rte_to_flat_rtable(glob, rte);
+	}
+
+	/*
+	 * If there are any dead subqueries, they are not referenced in the Plan
+	 * tree, so we must add RTEs contained in them to the flattened rtable
+	 * separately.	(If we failed to do this, the executor would not perform
+	 * expected permission checks for tables mentioned in such subqueries.)
+	 *
+	 * Note: this pass over the rangetable can't be combined with the previous
+	 * one, because that would mess up the numbering of the live RTEs in the
+	 * flattened rangetable.
+	 */
+	rti = 1;
+	foreach(lc, root->parse->rtable)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+
+		/*
+		 * We should ignore inheritance-parent RTEs: their contents have been
+		 * pulled up into our rangetable already.  Also ignore any subquery
+		 * RTEs without matching RelOptInfos, as they likewise have been
+		 * pulled up.
+		 */
+		if (rte->rtekind == RTE_SUBQUERY && !rte->inh)
+		{
+			RelOptInfo *rel = root->simple_rel_array[rti];
+
+			if (rel != NULL)
+			{
+				Assert(rel->relid == rti);		/* sanity check on array */
+
+				/*
+				 * The subquery might never have been planned at all, if it
+				 * was excluded on the basis of self-contradictory constraints
+				 * in our query level.	In this case apply
+				 * flatten_unplanned_rtes.
+				 *
+				 * If it was planned but the plan is dummy, we assume that it
+				 * has been omitted from our plan tree (see
+				 * set_subquery_pathlist), and recurse to pull up its RTEs.
+				 *
+				 * Otherwise, it should be represented by a SubqueryScan node
+				 * somewhere in our plan tree, and we'll pull up its RTEs when
+				 * we process that plan node.
+				 *
+				 * However, if we're recursing, then we should pull up RTEs
+				 * whether the subplan is dummy or not, because we've found
+				 * that some upper query level is treating this one as dummy,
+				 * and so we won't scan this level's plan tree at all.
+				 */
+				if (rel->subplan == NULL)
+					flatten_unplanned_rtes(glob, rte);
+				else if (recursing || is_dummy_plan(rel->subplan))
+				{
+					Assert(rel->subroot != NULL);
+					add_rtes_to_flat_rtable(rel->subroot, true);
+				}
+			}
+		}
+		rti++;
+	}
+}
+
+/*
+ * Extract RangeTblEntries from a subquery that was never planned at all
+ */
+static void
+flatten_unplanned_rtes(PlannerGlobal *glob, RangeTblEntry *rte)
+{
+	/* Use query_tree_walker to find all RTEs in the parse tree */
+	(void) query_tree_walker(rte->subquery,
+							 flatten_rtes_walker,
+							 (void *) glob,
+							 QTW_EXAMINE_RTES);
+}
+
+static bool
+flatten_rtes_walker(Node *node, PlannerGlobal *glob)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, RangeTblEntry))
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) node;
+
+		/* As above, we need only save relation RTEs */
+		if (rte->rtekind == RTE_RELATION)
+			add_rte_to_flat_rtable(glob, rte);
+		return false;
+	}
+	if (IsA(node, Query))
+	{
+		/* Recurse into subselects */
+		return query_tree_walker((Query *) node,
+								 flatten_rtes_walker,
+								 (void *) glob,
+								 QTW_EXAMINE_RTES);
+	}
+	return expression_tree_walker(node, flatten_rtes_walker,
+								  (void *) glob);
+}
+
+/*
+ * Add (a copy of) the given RTE to the final rangetable
+ *
+ * In the flat rangetable, we zero out substructure pointers that are not
+ * needed by the executor; this reduces the storage space and copying cost
+ * for cached plans.  We keep only the alias and eref Alias fields, which
+ * are needed by EXPLAIN, and the selectedCols and modifiedCols bitmaps,
+ * which are needed for executor-startup permissions checking and for
+ * trigger event checking.
+ */
+static void
+add_rte_to_flat_rtable(PlannerGlobal *glob, RangeTblEntry *rte)
+{
+	RangeTblEntry *newrte;
+
+	/* flat copy to duplicate all the scalar fields */
+	newrte = (RangeTblEntry *) palloc(sizeof(RangeTblEntry));
+	memcpy(newrte, rte, sizeof(RangeTblEntry));
+
+	/* zap unneeded sub-structure */
+	newrte->subquery = NULL;
+	newrte->joinaliasvars = NIL;
+	newrte->funcexpr = NULL;
+	newrte->funccoltypes = NIL;
+	newrte->funccoltypmods = NIL;
+	newrte->funccolcollations = NIL;
+	newrte->funcuserdata = NULL;
+	newrte->values_lists = NIL;
+	newrte->values_collations = NIL;
+	newrte->ctecoltypes = NIL;
+	newrte->ctecoltypmods = NIL;
+	newrte->ctecolcollations = NIL;
+
+	glob->finalrtable = lappend(glob->finalrtable, newrte);
+
+	/*
+	 * Check for RT index overflow; it's very unlikely, but if it did happen,
+	 * the executor would get confused by varnos that match the special varno
+	 * values.
+	 */
+	if (IS_SPECIAL_VARNO(list_length(glob->finalrtable)))
+		ereport(ERROR,
+				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+				 errmsg("too many range table entries")));
+
+	/*
+	 * If it's a plain relation RTE, add the table to relationOids.
+	 *
+	 * We do this even though the RTE might be unreferenced in the plan tree;
+	 * this would correspond to cases such as views that were expanded, child
+	 * tables that were eliminated by constraint exclusion, etc. Schema
+	 * invalidation on such a rel must still force rebuilding of the plan.
+	 *
+	 * Note we don't bother to avoid making duplicate list entries.  We could,
+	 * but it would probably cost more cycles than it would save.
+	 */
+	if (newrte->rtekind == RTE_RELATION)
+		glob->relationOids = lappend_oid(glob->relationOids, newrte->relid);
 }
 
 /*
@@ -587,6 +756,12 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 				splan->scan.scanrelid += rtoffset;
 
 #ifdef USE_ASSERT_CHECKING
+				/*
+				 * GPDB_93_MERGE_FIXME: This is a requirement of enhancement,
+				 * instead of fixing. The code and assert below is confusing
+				 * people who do not know the context. In all, maybe for ao/co
+				 * bitmapHeap code should go here?
+				 */
 				RangeTblEntry *rte = rt_fetch(splan->scan.scanrelid, root->glob->finalrtable);
 				char relstorage = get_rel_relstorage(rte->relid);
 				Assert(relstorage != RELSTORAGE_AOROWS &&
@@ -699,6 +874,8 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 					fix_scan_list(root, tplan->scan.plan.targetlist, rtoffset);
 				tplan->scan.plan.qual =
 					fix_scan_list(root, tplan->scan.plan.qual, rtoffset);
+				tplan->funcexpr =
+					fix_scan_expr(root, tplan->funcexpr, rtoffset);
 
 				return plan;
 			}
@@ -2598,7 +2775,7 @@ extract_query_dependencies_walker(Node *node, PlannerInfo *context)
 		Query	   *query = (Query *) node;
 		ListCell   *lc;
 
-		while (query->commandType == CMD_UTILITY)
+		if (query->commandType == CMD_UTILITY)
 		{
 			/*
 			 * Ignore utility statements, except those (such as EXPLAIN) that

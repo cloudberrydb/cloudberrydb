@@ -59,7 +59,7 @@
 #include "utils/visibility_summary.h"
 
 AOCSFileSegInfo *
-NewAOCSFileSegInfo(int4 segno, int4 nvp)
+NewAOCSFileSegInfo(int32 segno, int32 nvp)
 {
 	AOCSFileSegInfo *seginfo;
 
@@ -75,7 +75,7 @@ NewAOCSFileSegInfo(int4 segno, int4 nvp)
 }
 
 void
-InsertInitialAOCSFileSegInfo(Relation prel, int4 segno, int4 nvp)
+InsertInitialAOCSFileSegInfo(Relation prel, int32 segno, int32 nvp)
 {
 	bool	   *nulls = palloc0(sizeof(bool) * Natts_pg_aocsseg);
 	Datum	   *values = palloc0(sizeof(Datum) * Natts_pg_aocsseg);

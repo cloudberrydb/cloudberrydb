@@ -40,9 +40,9 @@ select gp_inject_fault('workfile_creation_failure', 'status', 2);
 -- Reset faultinjectors
 select gp_inject_fault('workfile_creation_failure', 'reset', 2);
 
-create table t (i int, j text);
-insert into t select i, i from generate_series(1,1000000) as i;
-create table t1(i int, j int);
+create table test_zlib (i int, j text);
+insert into test_zlib select i, i from generate_series(1,1000000) as i;
+create table test_zlib_t1(i int, j int);
 
 set gp_workfile_compress_algorithm ='zlib';
 set statement_mem='10MB';
@@ -51,10 +51,10 @@ create or replace function FuncA()
 returns void as
 $body$
 begin
- 	insert into t values(2387283, 'a');
- 	insert into t1 values(1, 2);
+ 	insert into test_zlib values(2387283, 'a');
+ 	insert into test_zlib_t1 values(1, 2);
     CREATE TEMP table TMP_Q_QR_INSTM_ANL_01 WITH(APPENDONLY=true,COMPRESSLEVEL=5,ORIENTATION=row,COMPRESSTYPE=zlib) on commit drop as
-    SELECT t1.i from t as t1 join t as t2 on t1.i = t2.i;
+    SELECT t1.i from test_zlib as t1 join test_zlib as t2 on t1.i = t2.i;
 EXCEPTION WHEN others THEN
  -- do nothing
 end
@@ -65,12 +65,12 @@ select gp_inject_fault('workfile_creation_failure', 'reset', 2);
 select gp_inject_fault('workfile_creation_failure', 'error', 2);
 
 select FuncA();
-select * from t1;
+select * from test_zlib_t1;
 
 select gp_inject_fault('workfile_creation_failure', 'status', 2);
 
 drop function FuncA();
-drop table t;
-drop table t1;
+drop table test_zlib;
+drop table test_zlib_t1;
 
 select gp_inject_fault('workfile_creation_failure', 'reset', 2);

@@ -3,7 +3,7 @@
  * hash.c
  *	  Implementation of Margo Seltzer's Hashing package for postgres.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -86,7 +86,7 @@ hashbuild(PG_FUNCTION_ARGS)
 	 * one page.
 	 */
 	if (num_buckets >= (uint32) NBuffers)
-		buildstate.spool = _h_spoolinit(index, num_buckets);
+		buildstate.spool = _h_spoolinit(heap, index, num_buckets);
 	else
 		buildstate.spool = NULL;
 
@@ -287,7 +287,7 @@ hashgettuple(PG_FUNCTION_ARGS)
 			/*
 			 * Since this can be redone later if needed, mark as a hint.
 			 */
-			MarkBufferDirtyHint(so->hashso_curbuf);
+			MarkBufferDirtyHint(buf);
 		}
 
 		/*
@@ -718,9 +718,4 @@ void
 hash_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __attribute__((unused)), XLogRecord *record __attribute__((unused)))
 {
 	elog(PANIC, "hash_redo: unimplemented");
-}
-
-void
-hash_desc(StringInfo buf __attribute__((unused)), XLogRecord *record __attribute__((unused)))
-{
 }

@@ -43,6 +43,7 @@
 #include "utils/resscheduler.h"
 #include "cdb/memquota.h"
 #include "commands/queue.h"
+#include "storage/proc.h"
 
 static void ResCleanUpLock(LOCK *lock, PROCLOCK *proclock, uint32 hashcode, bool wakeupNeeded);
 

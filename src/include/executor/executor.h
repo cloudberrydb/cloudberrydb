@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/executor.h
@@ -63,6 +63,7 @@ struct ChunkTransportState;             /* #include "cdb/cdbinterconnect.h" */
 #define EXEC_FLAG_SKIP_TRIGGERS 0x0010	/* skip AfterTrigger calls */
 #define EXEC_FLAG_WITH_OIDS		0x0020	/* force OIDs in returned tuples */
 #define EXEC_FLAG_WITHOUT_OIDS	0x0040	/* force no OIDs in returned tuples */
+#define EXEC_FLAG_WITH_NO_DATA	0x0080	/* rel scannability doesn't matter */
 
 
 /*
@@ -259,7 +260,7 @@ extern void ExecConstraints(ResultRelInfo *resultRelInfo,
 extern ExecRowMark *ExecFindRowMark(EState *estate, Index rti);
 extern ExecAuxRowMark *ExecBuildAuxRowMark(ExecRowMark *erm, List *targetlist);
 extern TupleTableSlot *EvalPlanQual(EState *estate, EPQState *epqstate,
-			 Relation relation, Index rti,
+			 Relation relation, Index rti, int lockmode,
 			 ItemPointer tid, TransactionId priorXmax);
 extern HeapTuple EvalPlanQualFetch(EState *estate, Relation relation,
 				  int lockmode, ItemPointer tid, TransactionId priorXmax);
@@ -378,7 +379,7 @@ extern TupleTableSlot *ExecScan(ScanState *node, ExecScanAccessMtd accessMtd,
 		 ExecScanRecheckMtd recheckMtd);
 extern void ExecAssignScanProjectionInfo(ScanState *node);
 extern void ExecScanReScan(ScanState *node);
-extern void InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate);
+extern void InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate, int eflags);
 extern void InitScanStateInternal(ScanState *scanState, Plan *plan,
 	EState *estate, int eflags, bool initCurrentRelation);
 extern void FreeScanRelationInternal(ScanState *scanState, bool closeCurrentRelation);
@@ -534,7 +535,7 @@ extern void ExecAssignScanTypeFromOuterPlan(ScanState *scanstate);
 
 extern bool ExecRelationIsTargetRelation(EState *estate, Index scanrelid);
 
-extern Relation ExecOpenScanRelation(EState *estate, Index scanrelid);
+extern Relation ExecOpenScanRelation(EState *estate, Index scanrelid, int eflags);
 extern Relation ExecOpenScanExternalRelation(EState *estate, Index scanrelid);
 extern void ExecCloseScanRelation(Relation scanrel);
 extern void ExecCloseScanAppendOnlyRelation(Relation scanrel);

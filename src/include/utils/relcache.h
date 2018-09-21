@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/relcache.h
@@ -46,7 +46,7 @@ extern List *RelationGetIndexList(Relation relation);
 extern Oid	RelationGetOidIndex(Relation relation);
 extern List *RelationGetIndexExpressions(Relation relation);
 extern List *RelationGetIndexPredicate(Relation relation);
-extern Bitmapset *RelationGetIndexAttrBitmap(Relation relation);
+extern Bitmapset *RelationGetIndexAttrBitmap(Relation relation, bool keyAttrs);
 extern void RelationGetExclusionInfo(Relation indexRelation,
 						 Oid **operators,
 						 Oid **procs,
@@ -56,6 +56,14 @@ extern void RelationSetIndexList(Relation relation,
 					 List *indexIds, Oid oidIndex);
 
 extern void RelationInitIndexAccessInfo(Relation relation);
+
+/*
+ * Routines to support ereport() reports of relation-related errors
+ */
+extern int	errtable(Relation rel);
+extern int	errtablecol(Relation rel, int attnum);
+extern int	errtablecolname(Relation rel, const char *colname);
+extern int	errtableconstraint(Relation rel, const char *conname);
 
 /*
  * Routines for backend startup
@@ -73,16 +81,16 @@ extern Relation RelationBuildLocalRelation(const char *relname,
 						   Oid relid,
 						   Oid relfilenode,
 						   Oid reltablespace,
-			               char relkind,            /*CDB*/
 						   bool shared_relation,
 						   bool mapped_relation,
-						   char relpersistence);
+						   char relpersistence,
+						   char relkind);
 
 /*
  * Routine to manage assignment of new relfilenode to a relation
  */
 extern void RelationSetNewRelfilenode(Relation relation,
-						  TransactionId freezeXid);
+						  TransactionId freezeXid, MultiXactId minmulti);
 
 /*
  * Routines for flushing/rebuilding relcache entries in various scenarios

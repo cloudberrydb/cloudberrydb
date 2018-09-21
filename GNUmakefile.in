@@ -11,7 +11,6 @@ include $(top_builddir)/src/Makefile.global
 $(call recurse,all install,src config)
 
 all:
-	$(MAKE) -C contrib/xlogdump all
 	$(MAKE) -C contrib/file_fdw all
 	$(MAKE) -C contrib/formatter all
 	$(MAKE) -C contrib/formatter_fixedwidth all
@@ -25,6 +24,7 @@ all:
 	$(MAKE) -C contrib/indexscan all
 	$(MAKE) -C contrib/pg_upgrade_support all
 	$(MAKE) -C contrib/pg_upgrade all
+	$(MAKE) -C contrib/pg_xlogdump all
 	$(MAKE) -C contrib/hstore all
 	$(MAKE) -C contrib/pgcrypto all
 	$(MAKE) -C gpAux/extensions all
@@ -46,7 +46,6 @@ html man:
 	$(MAKE) -C doc $@
 
 install:
-	$(MAKE) -C contrib/xlogdump $@
 	#$(MAKE) -C contrib/file_fdw $@ # GPDB_91_MERGE_FIXME: disable installation until it's officially supported.
 	$(MAKE) -C contrib/formatter $@
 	$(MAKE) -C contrib/formatter_fixedwidth $@
@@ -60,6 +59,7 @@ install:
 	$(MAKE) -C contrib/indexscan $@ 
 	$(MAKE) -C contrib/pg_upgrade_support $@
 	$(MAKE) -C contrib/pg_upgrade $@
+	$(MAKE) -C contrib/pg_xlogdump $@
 	$(MAKE) -C contrib/hstore $@
 	$(MAKE) -C contrib/pgcrypto $@
 	$(MAKE) -C gpMgmt $@
@@ -78,7 +78,7 @@ install-world:
 # build src/ before contrib/
 install-world-contrib-recurse: install-world-src-recurse
 
-$(call recurse,installdirs uninstall coverage,doc src config contrib)
+$(call recurse,installdirs uninstall coverage,doc src config)
 
 $(call recurse,distprep,doc src config contrib)
 

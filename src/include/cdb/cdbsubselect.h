@@ -22,7 +22,8 @@ extern JoinExpr *convert_EXPR_to_join(PlannerInfo *root, OpExpr *opexp);
 extern void cdbsubselect_drop_orderby(Query *subselect);
 extern void cdbsubselect_drop_distinct(Query *subselect);
 extern bool has_correlation_in_funcexpr_rte(List *rtable);
-extern bool is_simple_subquery(PlannerInfo *root, Query *subquery);
+extern bool is_simple_subquery(PlannerInfo *root, Query *subquery, RangeTblEntry *rte,
+				   JoinExpr *lowest_outer_join);
 extern JoinExpr *convert_IN_to_antijoin(PlannerInfo *root, SubLink *sublink, Relids available_rels);
 
 #endif   /* CDBSUBSELECT_H */

@@ -341,7 +341,8 @@ struct Tuplesortstate_mk
 	 * These variables are specific to the IndexTuple case; they are set by
 	 * tuplesort_begin_index and used only by the IndexTuple routines.
 	 */
-	Relation	indexRel;
+	Relation	heapRel;		/* table the index is being built on */
+	Relation	indexRel;		/* index being built */
 
 	/*
 	 * These variables are specific to the Datum case; they are set by
@@ -897,7 +898,8 @@ tuplesort_begin_cluster_mk(TupleDesc tupDesc,
 }
 
 Tuplesortstate_mk *
-tuplesort_begin_index_mk(Relation indexRel,
+tuplesort_begin_index_mk(Relation heapRel,
+						 Relation indexRel,
 						 bool enforceUnique,
 						 int workMem, bool randomAccess)
 {
@@ -916,6 +918,7 @@ tuplesort_begin_index_mk(Relation indexRel,
 	state->writetup = writetup_index;
 	state->readtup = readtup_index;
 
+	state->heapRel = heapRel;
 	state->indexRel = indexRel;
 	state->cmpScanKey = _bt_mkscankey_nodata(indexRel);
 
@@ -930,6 +933,7 @@ tuplesort_begin_index_mk(Relation indexRel,
 
 	state->mkctxt.enforceUnique = enforceUnique;
 	state->mkctxt.indexname = RelationGetRelationName(indexRel);
+	state->mkctxt.heapRel = heapRel;
 	state->mkctxt.indexRel = indexRel;
 	MemoryContextSwitchTo(oldcontext);
 

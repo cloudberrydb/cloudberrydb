@@ -575,16 +575,22 @@ SELECT cte2.e,cte.f FROM cte,cte2 where cte.e = cte2.e
  f      | integer |           | plain   | 
 View definition:
  WITH cte(e, f) AS (
-         SELECT foo.a, bar.d
-           FROM bar, foo
+         SELECT foo.a, 
+            bar.d
+           FROM bar, 
+            foo
           WHERE foo.a = bar.d
         ), cte2(e, f) AS (
-         SELECT cte.e, bar.d
-           FROM bar, cte
-          WHERE cte.e = bar.c
+         SELECT cte_1.e, 
+            bar.d
+           FROM bar, 
+            cte cte_1
+          WHERE cte_1.e = bar.c
         )
- SELECT cte2.e, cte.f
-   FROM cte, cte2
+ SELECT cte2.e, 
+    cte.f
+   FROM cte, 
+    cte2
   WHERE cte.e = cte2.e;
 
 SELECT * FROM cte_view ORDER BY 1;

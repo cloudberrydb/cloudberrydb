@@ -36,7 +36,7 @@
  * to look like NO SCROLL cursors.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/portal.h
@@ -48,6 +48,7 @@
 
 #include "datatype/timestamp.h"
 #include "executor/execdesc.h"
+#include "utils/plancache.h"
 #include "utils/resowner.h"
 
 /*
@@ -235,6 +236,8 @@ extern void PortalDefineQuery(Portal portal,
 extern Node *PortalListGetPrimaryStmt(List *stmts);
 extern void PortalCreateHoldStore(Portal portal);
 extern void PortalHashTableDeleteAll(void);
+extern bool ThereAreNoReadyPortals(void);
+
 extern void AtExitCleanup_ResPortals(void);
 extern void TotalResPortalIncrements(int pid, Oid queueid,
 									 Cost *totalIncrements, int *num);

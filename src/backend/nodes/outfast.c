@@ -765,8 +765,8 @@ _outPartition(StringInfo str, Partition *node)
 	WRITE_CHAR_FIELD(parkind);
 	WRITE_INT_FIELD(parlevel);
 	WRITE_BOOL_FIELD(paristemplate);
-	WRITE_BINARY_FIELD(parnatts, sizeof(int2));
-	WRITE_INT_ARRAY(paratts, node->parnatts, int2);
+	WRITE_BINARY_FIELD(parnatts, sizeof(int16));
+	WRITE_INT_ARRAY(paratts, node->parnatts, int16);
 	WRITE_OID_ARRAY(parclass, node->parnatts);
 }
 
@@ -787,7 +787,7 @@ _outPartitionRule(StringInfo str, PartitionRule *node)
 	WRITE_BOOL_FIELD(parrangeendincl);
 	WRITE_NODE_FIELD(parrangeevery);
 	WRITE_NODE_FIELD(parlistvalues);
-	WRITE_BINARY_FIELD(parruleord, sizeof(int2));
+	WRITE_BINARY_FIELD(parruleord, sizeof(int16));
 	WRITE_NODE_FIELD(parreloptions);
 	WRITE_OID_FIELD(partemplatespaceId);
 	WRITE_NODE_FIELD(children);
@@ -908,76 +908,6 @@ _outQuery(StringInfo str, Query *node)
 	WRITE_BOOL_FIELD(isCTAS);
 
 	/* Don't serialize policy */
-}
-
-static void
-_outRangeTblEntry(StringInfo str, RangeTblEntry *node)
-{
-	WRITE_NODE_TYPE("RTE");
-
-	/* put alias + eref first to make dump more legible */
-	WRITE_NODE_FIELD(alias);
-	WRITE_NODE_FIELD(eref);
-	WRITE_ENUM_FIELD(rtekind, RTEKind);
-
-	switch (node->rtekind)
-	{
-		case RTE_RELATION:
-			WRITE_OID_FIELD(relid);
-			WRITE_CHAR_FIELD(relkind);
-			break;
-		case RTE_SUBQUERY:
-			WRITE_NODE_FIELD(subquery);
-			break;
-		case RTE_JOIN:
-			WRITE_ENUM_FIELD(jointype, JoinType);
-			WRITE_NODE_FIELD(joinaliasvars);
-			break;
-		case RTE_FUNCTION:
-			WRITE_NODE_FIELD(funcexpr);
-			WRITE_NODE_FIELD(funccoltypes);
-			WRITE_NODE_FIELD(funccoltypmods);
-			WRITE_NODE_FIELD(funccolcollations);
-			break;
-		case RTE_TABLEFUNCTION:
-			WRITE_NODE_FIELD(subquery);
-			WRITE_NODE_FIELD(funcexpr);
-			WRITE_NODE_FIELD(funccoltypes);
-			WRITE_NODE_FIELD(funccoltypmods);
-			WRITE_NODE_FIELD(funccolcollations);
-			WRITE_BYTEA_FIELD(funcuserdata);
-			break;
-		case RTE_VALUES:
-			WRITE_NODE_FIELD(values_lists);
-			WRITE_NODE_FIELD(values_collations);
-			break;
-		case RTE_CTE:
-			WRITE_STRING_FIELD(ctename);
-			WRITE_INT_FIELD(ctelevelsup);
-			WRITE_BOOL_FIELD(self_reference);
-			WRITE_NODE_FIELD(ctecoltypes);
-			WRITE_NODE_FIELD(ctecoltypmods);
-			WRITE_NODE_FIELD(ctecolcollations);
-			break;
-        case RTE_VOID:                                                  /*CDB*/
-            break;
-		default:
-			elog(ERROR, "unrecognized RTE kind: %d", (int) node->rtekind);
-			break;
-	}
-
-	WRITE_BOOL_FIELD(inh);
-	WRITE_BOOL_FIELD(inFromCl);
-	WRITE_UINT_FIELD(requiredPerms);
-	WRITE_OID_FIELD(checkAsUser);
-	WRITE_BITMAPSET_FIELD(selectedCols);
-	WRITE_BITMAPSET_FIELD(modifiedCols);
-
-	WRITE_BOOL_FIELD(forceDistRandom);
-	/*
-	 * pseudocols is intentionally not serialized. It's only used in the planning
-	 * stage, so no need to transfer it to the QEs.
-	 */
 }
 
 static void
@@ -1250,6 +1180,7 @@ _outAlterEnumStmt(StringInfo str, AlterEnumStmt *node)
 	WRITE_STRING_FIELD(newVal);
 	WRITE_STRING_FIELD(newValNeighbor);
 	WRITE_BOOL_FIELD(newValIsAfter);
+	WRITE_BOOL_FIELD(skipIfExists);
 }
 
 static void
@@ -1763,6 +1694,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_SpecialJoinInfo:
 				_outSpecialJoinInfo(str, obj);
+				break;
+			case T_LateralJoinInfo:
+				_outLateralJoinInfo(str, obj);
 				break;
 			case T_AppendRelInfo:
 				_outAppendRelInfo(str, obj);

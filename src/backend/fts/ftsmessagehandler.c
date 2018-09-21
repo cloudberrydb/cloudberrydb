@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "access/xlog.h"
 #include "libpq/pqformat.h"
 #include "libpq/libpq.h"
 #include "postmaster/fts.h"
@@ -279,8 +280,12 @@ HandleFtsWalRepProbe(void)
 		 * this segment starts acting as mirror or gets copied over using
 		 * pg_basebackup.
 		 */
-		if (CheckPromoteSignal(true))
+		// GPDB_93_MERGE_FIXME: should we check for FALLBACK_PROMOTE_SIGNAL_FILE, too?
+		if (CheckPromoteSignal())
+		{
+			unlink(PROMOTE_SIGNAL_FILE);
 			elog(LOG, "found and hence deleted '%s' file", PROMOTE_SIGNAL_FILE);
+		}
 	}
 
 	/*

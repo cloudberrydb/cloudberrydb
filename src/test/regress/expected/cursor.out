@@ -383,7 +383,6 @@ CREATE TABLE films (
     kind        varchar(10),
     len         interval hour to minute
 ) distributed by (code);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "films_pkey" for table "films"
 INSERT INTO films VALUES
     ('UA502', 'Bananas', 105, '1971-07-13', 'Comedy', '82 minutes');
 INSERT INTO films (code, title, did, date_prod, kind)

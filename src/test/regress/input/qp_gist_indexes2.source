@@ -69,7 +69,7 @@ SELECT owner, property FROM GistTable1
  WHERE property ~= ' ( ( 7052, 250 ) , (6050, 20) )';
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
 
@@ -86,7 +86,7 @@ SELECT owner, property FROM GistTable1
  WHERE property ~= ' ( ( 7052, 250 ) , (6050, 20) )';
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-EXPLAIN
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
 
@@ -369,7 +369,7 @@ ANALYZE GistTable13;
 -- AREA, are the same.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 VACUUM GistTable13;
@@ -378,7 +378,7 @@ ANALYZE GistTable13;
 
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 TRUNCATE TABLE GistTable13;
@@ -393,7 +393,7 @@ ANALYZE GistTable13;
 -- same AREA.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 
@@ -417,7 +417,7 @@ set optimizer_enable_tablescan = FALSE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -426,7 +426,7 @@ REINDEX INDEX propertyBoxIndex;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -438,7 +438,7 @@ set optimizer_enable_tablescan = TRUE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -508,7 +508,7 @@ SELECT owner, property FROM GistTable1
  WHERE property ~= ' ( ( 7052, 250 ) , (6050, 20) )';
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
 
@@ -681,7 +681,7 @@ set optimizer_enable_tablescan = FALSE;
 -- to the same internal representation.
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL;
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
@@ -767,7 +767,7 @@ ANALYZE GistTable13;
 -- AREA, are the same.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 VACUUM GistTable13;
@@ -776,7 +776,7 @@ ANALYZE GistTable13;
 
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 TRUNCATE TABLE GistTable13;
@@ -791,7 +791,7 @@ ANALYZE GistTable13;
 -- same AREA.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 
@@ -815,7 +815,7 @@ set optimizer_enable_tablescan = FALSE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -824,7 +824,7 @@ REINDEX INDEX propertyBoxIndex;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -836,7 +836,7 @@ SET optimizer_enable_tablescan = TRUE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -907,7 +907,7 @@ SELECT owner, property FROM GistTable1
  WHERE property ~= ' ( ( 7052, 250 ) , (6050, 20) )';
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
 
@@ -1081,7 +1081,7 @@ set optimizer_enable_tablescan = FALSE;
 -- to the same internal representation.
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL;
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
@@ -1167,7 +1167,7 @@ ANALYZE GistTable13;
 -- AREA, are the same.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 VACUUM GistTable13;
@@ -1176,7 +1176,7 @@ ANALYZE GistTable13;
 
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 TRUNCATE TABLE GistTable13;
@@ -1191,7 +1191,7 @@ ANALYZE GistTable13;
 -- same AREA.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 
@@ -1215,7 +1215,7 @@ set optimizer_enable_tablescan = FALSE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -1224,7 +1224,7 @@ REINDEX INDEX propertyBoxIndex;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -1236,7 +1236,7 @@ set optimizer_enable_tablescan = TRUE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -1307,7 +1307,7 @@ SELECT owner, property FROM GistTable1
  WHERE property ~= ' ( ( 7052, 250 ) , (6050, 20) )';
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
 
@@ -1481,7 +1481,7 @@ set optimizer_enable_tablescan = FALSE;
 -- to the same internal representation.
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL;
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
@@ -1567,7 +1567,7 @@ ANALYZE GistTable13;
 -- AREA, are the same.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 VACUUM GistTable13;
@@ -1576,7 +1576,7 @@ ANALYZE GistTable13;
 
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 TRUNCATE TABLE GistTable13;
@@ -1591,7 +1591,7 @@ ANALYZE GistTable13;
 -- same AREA.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 
@@ -1615,7 +1615,7 @@ set optimizer_enable_tablescan = FALSE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -1624,7 +1624,7 @@ REINDEX INDEX propertyBoxIndex;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -1636,7 +1636,7 @@ set optimizer_enable_tablescan = TRUE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -1708,7 +1708,7 @@ SELECT owner, property FROM GistTable1
  WHERE property ~= ' ( ( 7052, 250 ) , (6050, 20) )';
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
 
@@ -1882,7 +1882,7 @@ set optimizer_enable_tablescan = FALSE;
 -- to the same internal representation.
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL;
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
@@ -1968,7 +1968,7 @@ ANALYZE GistTable13;
 -- AREA, are the same.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 VACUUM GistTable13;
@@ -1977,7 +1977,7 @@ ANALYZE GistTable13;
 
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 TRUNCATE TABLE GistTable13;
@@ -1992,7 +1992,7 @@ ANALYZE GistTable13;
 -- same AREA.
 SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
 
 
@@ -2016,7 +2016,7 @@ set optimizer_enable_tablescan = FALSE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -2025,7 +2025,7 @@ REINDEX INDEX propertyBoxIndex;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 
@@ -2037,7 +2037,7 @@ set optimizer_enable_tablescan = TRUE;
 SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
 

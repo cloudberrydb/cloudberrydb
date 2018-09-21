@@ -198,9 +198,7 @@ addRemoteExecParamsToParamList(PlannedStmt *stmt, ParamListInfo extPrm, ParamExe
 	ParamWalkerContext context;
 	int			i;
 	int			nParams;
-	ListCell   *lc;
 	Plan	   *plan = stmt->planTree;
-	List	   *rtable = stmt->rtable;
 	int			nIntPrm = stmt->nParamExec;
 
 	if (nIntPrm == 0)
@@ -232,26 +230,6 @@ addRemoteExecParamsToParamList(PlannedStmt *stmt, ParamListInfo extPrm, ParamExe
 	context.wtParams = NULL;
 	context.epqParams = NULL;
 	param_walker((Node *) plan, &context);
-
-	/*
-	 * This code, unfortunately, duplicates code in the param_walker case for
-	 * T_SubPlan.  That code checks for Param nodes in Function RTEs in the
-	 * range table.  The outer range table is in the parsetree, though, so we
-	 * check it specially here.
-	 */
-	foreach(lc, rtable)
-	{
-		RangeTblEntry *rte = lfirst(lc);
-
-		if (rte->rtekind == RTE_FUNCTION || rte->rtekind == RTE_TABLEFUNCTION)
-		{
-			FuncExpr   *fexpr = (FuncExpr *) rte->funcexpr;
-
-			param_walker((Node *) fexpr, &context);
-		}
-		else if (rte->rtekind == RTE_VALUES)
-			param_walker((Node *) rte->values_lists, &context);
-	}
 
 	/*
 	 * mpp-25490: subplanX may is within subplan Y, try to param_walker the

@@ -3,7 +3,7 @@
  *
  * repl_gram.y				- Parser for the replication commands
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -56,6 +56,7 @@ Node *replication_parse_result;
 %union {
 		char					*str;
 		bool					boolval;
+		int32					intval;
 
 		XLogRecPtr				recptr;
 		Node					*node;
@@ -65,25 +66,27 @@ Node *replication_parse_result;
 
 /* Non-keyword tokens */
 %token <str> SCONST
+%token <intval> ICONST
 %token <recptr> RECPTR
 
 /* Keyword tokens. */
 %token K_BASE_BACKUP
 %token K_IDENTIFY_SYSTEM
+%token K_START_REPLICATION
+%token K_TIMELINE_HISTORY
 %token K_LABEL
 %token K_PROGRESS
 %token K_FAST
 %token K_NOWAIT
 %token K_EXCLUDE
 %token K_WAL
-%token K_START_REPLICATION
-%token K_SYNC
+%token K_TIMELINE
 
 %type <node>	command
-%type <node>	base_backup start_replication identify_system
+%type <node>	base_backup start_replication identify_system timeline_history
 %type <list>	base_backup_opt_list
 %type <defelt>	base_backup_opt
-%type <boolval> sync_opt
+%type <intval>	opt_timeline
 %%
 
 firstcmd: command opt_semicolon
@@ -100,6 +103,7 @@ command:
 			identify_system
 			| base_backup
 			| start_replication
+			| timeline_history
 			;
 
 /*
@@ -161,25 +165,52 @@ base_backup_opt:
 			;
 
 /*
- * START_REPLICATION %X/%X
+ * START_REPLICATION %X/%X [TIMELINE %d]
  */
 start_replication:
-			K_START_REPLICATION RECPTR sync_opt
+			K_START_REPLICATION RECPTR opt_timeline
 				{
 					StartReplicationCmd *cmd;
 
 					cmd = makeNode(StartReplicationCmd);
 					cmd->startpoint = $2;
-					cmd->sync = $3;
+					cmd->timeline = $3;
 
 					$$ = (Node *) cmd;
 				}
 			;
 
-sync_opt:
-		K_SYNC				{ $$ = true; }
-		| /* EMPTY */		{ $$ = false; }
-		;
+opt_timeline:
+			K_TIMELINE ICONST
+				{
+					if ($2 <= 0)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 (errmsg("invalid timeline %d", $2))));
+					$$ = $2;
+				}
+				| /* nothing */			{ $$ = 0; }
+			;
+
+/*
+ * TIMELINE_HISTORY %d
+ */
+timeline_history:
+			K_TIMELINE_HISTORY ICONST
+				{
+					TimeLineHistoryCmd *cmd;
+
+					if ($2 <= 0)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 (errmsg("invalid timeline %d", $2))));
+
+					cmd = makeNode(TimeLineHistoryCmd);
+					cmd->timeline = $2;
+
+					$$ = (Node *) cmd;
+				}
+			;
 %%
 
 #include "repl_scanner.c"

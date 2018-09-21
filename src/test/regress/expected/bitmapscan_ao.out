@@ -157,7 +157,6 @@ CREATE TABLE bmcrash (
     dist_col serial
 )
 WITH (appendonly=true, compresslevel=5, compresstype=zlib) DISTRIBUTED BY (dist_col);
-NOTICE:  CREATE TABLE will create implicit sequence "bmcrash_dist_col_seq" for serial column "bmcrash.dist_col"
 CREATE INDEX bm_idx ON bmcrash USING bitmap (bitmap_col);
 CREATE INDEX bt_idx ON bmcrash USING btree (btree_col1);
 CREATE INDEX bt_idx_2 ON bmcrash USING btree (btree_col2);

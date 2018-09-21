@@ -44,7 +44,7 @@ XGETTEXT += -ctranslator --copyright-holder='Greenplum Projec' --msgid-bugs-addr
 endif
 
 ifdef MSGMERGE
-MSGMERGE += --no-wrap --sort-by-file
+MSGMERGE += --no-wrap --previous --sort-by-file
 endif
 
 # _ is defined in c.h, so it's global

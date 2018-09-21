@@ -148,6 +148,7 @@
 typedef short color;			/* colors of characters */
 typedef int pcolor;				/* what color promotes to */
 
+#define MAX_COLOR	32767		/* max color (must fit in 'color' datatype) */
 #define COLORLESS	(-1)		/* impossible color */
 #define WHITE		0			/* default color, parent of all others */
 
@@ -203,16 +204,17 @@ struct colordesc
 	int			flags;			/* bit values defined next */
 #define  FREECOL 01				/* currently free */
 #define  PSEUDO  02				/* pseudocolor, no real chars */
-#define  UNUSEDCOLOR(cd) ((cd)->flags&FREECOL)
+#define  UNUSEDCOLOR(cd) ((cd)->flags & FREECOL)
 	union tree *block;			/* block of solid color, if any */
 };
 
 /*
  * The color map itself
  *
- * Only the "tree" part is used at execution time, and that only via the
- * GETCOLOR() macro.  Possibly that should be separated from the compile-time
- * data.
+ * Much of the data in the colormap struct is only used at compile time.
+ * However, the bulk of the space usage is in the "tree" structure, so it's
+ * not clear that there's much point in converting the rest to a more compact
+ * form when compilation is finished.
  */
 struct colormap
 {

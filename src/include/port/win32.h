@@ -66,12 +66,14 @@
 
 #define USES_WINSOCK
 
-/* defines for dynamic linking on Win32 platform */
-#if defined(WIN32) || defined(__CYGWIN__)
+/* defines for dynamic linking on Win32 platform
+ *
+ *	http://support.microsoft.com/kb/132044
+ *	http://msdn.microsoft.com/en-us/library/8fskxacy(v=vs.80).aspx
+ *	http://msdn.microsoft.com/en-us/library/a90k134d(v=vs.80).aspx
+ */
 
-#if __GNUC__ && ! defined (__declspec)
-#error You need egcs 1.1 or newer for compiling!
-#endif
+#if defined(WIN32) || defined(__CYGWIN__)
 
 #ifdef BUILDING_DLL
 #define PGDLLIMPORT __declspec (dllexport)

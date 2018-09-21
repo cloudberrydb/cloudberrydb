@@ -4,7 +4,7 @@
  *	  implementation of insert algorithm
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -19,6 +19,7 @@
 #include "access/spgist_private.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
+#include "utils/rel.h"
 
 
 /*
@@ -1835,9 +1836,13 @@ spgSplitNodeAction(Relation index, SpGistState *state,
 }
 
 /*
- * Insert one item into the index
+ * Insert one item into the index.
+ *
+ * Returns true on success, false if we failed to complete the insertion
+ * because of conflict with a concurrent insert.  In the latter case,
+ * caller should re-call spgdoinsert() with the same args.
  */
-void
+bool
 spgdoinsert(Relation index, SpGistState *state,
 			ItemPointer heapPtr, Datum datum, bool isnull)
 {
@@ -1846,6 +1851,14 @@ spgdoinsert(Relation index, SpGistState *state,
 	int			leafSize;
 	SPPageDesc	current,
 				parent;
+	FmgrInfo   *procinfo = NULL;
+
+	/*
+	 * Look up FmgrInfo of the user-defined choose function once, to save
+	 * cycles in the loop below.
+	 */
+	if (!isnull)
+		procinfo = index_getprocinfo(index, 1, SPGIST_CHOOSE_PROC);
 
 	/*
 	 * Since we don't use index_form_tuple in this AM, we have to make sure
@@ -1918,11 +1931,31 @@ spgdoinsert(Relation index, SpGistState *state,
 								&isNew);
 			current.blkno = BufferGetBlockNumber(current.buffer);
 		}
-		else if (parent.buffer == InvalidBuffer ||
-				 current.blkno != parent.blkno)
+		else if (parent.buffer == InvalidBuffer)
 		{
+			/* we hold no parent-page lock, so no deadlock is possible */
 			current.buffer = ReadBuffer(index, current.blkno);
 			LockBuffer(current.buffer, BUFFER_LOCK_EXCLUSIVE);
+		}
+		else if (current.blkno != parent.blkno)
+		{
+			/* descend to a new child page */
+			current.buffer = ReadBuffer(index, current.blkno);
+
+			/*
+			 * Attempt to acquire lock on child page.  We must beware of
+			 * deadlock against another insertion process descending from that
+			 * page to our parent page (see README).  If we fail to get lock,
+			 * abandon the insertion and tell our caller to start over.  XXX
+			 * this could be improved; perhaps it'd be worth sleeping a bit
+			 * before giving up?
+			 */
+			if (!ConditionalLockBuffer(current.buffer))
+			{
+				ReleaseBuffer(current.buffer);
+				UnlockReleaseBuffer(parent.buffer);
+				return false;
+			}
 		}
 		else
 		{
@@ -1992,7 +2025,6 @@ spgdoinsert(Relation index, SpGistState *state,
 			SpGistInnerTuple innerTuple;
 			spgChooseIn in;
 			spgChooseOut out;
-			FmgrInfo   *procinfo;
 
 			/*
 			 * spgAddNode and spgSplitTuple cases will loop back to here to
@@ -2020,7 +2052,6 @@ spgdoinsert(Relation index, SpGistState *state,
 			if (!isnull)
 			{
 				/* use user-defined choose method */
-				procinfo = index_getprocinfo(index, 1, SPGIST_CHOOSE_PROC);
 				FunctionCall2Coll(procinfo,
 								  index->rd_indcollation[0],
 								  PointerGetDatum(&in),
@@ -2124,4 +2155,6 @@ spgdoinsert(Relation index, SpGistState *state,
 		SpGistSetLastUsedPage(index, parent.buffer);
 		UnlockReleaseBuffer(parent.buffer);
 	}
+
+	return true;
 }

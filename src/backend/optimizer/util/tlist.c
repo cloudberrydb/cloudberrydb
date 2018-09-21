@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -204,6 +204,43 @@ get_tlist_exprs(List *tlist, bool includeJunk)
 		result = lappend(result, tle->expr);
 	}
 	return result;
+}
+
+
+/*
+ * tlist_same_exprs
+ *		Check whether two target lists contain the same expressions
+ *
+ * Note: this function is used to decide whether it's safe to jam a new tlist
+ * into a non-projection-capable plan node.  Obviously we can't do that unless
+ * the node's tlist shows it already returns the column values we want.
+ * However, we can ignore the TargetEntry attributes resname, ressortgroupref,
+ * resorigtbl, resorigcol, and resjunk, because those are only labelings that
+ * don't affect the row values computed by the node.  (Moreover, if we didn't
+ * ignore them, we'd frequently fail to make the desired optimization, since
+ * the planner tends to not bother to make resname etc. valid in intermediate
+ * plan nodes.)  Note that on success, the caller must still jam the desired
+ * tlist into the plan node, else it won't have the desired labeling fields.
+ */
+bool
+tlist_same_exprs(List *tlist1, List *tlist2)
+{
+	ListCell   *lc1,
+			   *lc2;
+
+	if (list_length(tlist1) != list_length(tlist2))
+		return false;			/* not same length, so can't match */
+
+	forboth(lc1, tlist1, lc2, tlist2)
+	{
+		TargetEntry *tle1 = (TargetEntry *) lfirst(lc1);
+		TargetEntry *tle2 = (TargetEntry *) lfirst(lc2);
+
+		if (!equal(tle1->expr, tle2->expr))
+			return false;
+	}
+
+	return true;
 }
 
 

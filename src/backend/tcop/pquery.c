@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -1128,9 +1128,7 @@ PortalRunSelect(Portal portal,
 	if (forward)
 	{
 		if (portal->atEnd || count <= 0)
-		{
 			direction = NoMovementScanDirection;
-                }
 		else
 			direction = ForwardScanDirection;
 
@@ -1166,9 +1164,7 @@ PortalRunSelect(Portal portal,
 					 errhint("Declare it with SCROLL option to enable backward scan.")));
 
 		if (portal->atStart || count <= 0)
-                {
 			direction = NoMovementScanDirection;
-                }
 		else
 			direction = BackwardScanDirection;
 
@@ -1377,8 +1373,8 @@ PortalRunUtility(Portal portal, Node *utilityStmt, bool isTopLevel,
 
 	ProcessUtility(utilityStmt,
 				   portal->sourceText ? portal->sourceText : "(Source text for portal is not available)",
+			   isTopLevel ? PROCESS_UTILITY_TOPLEVEL : PROCESS_UTILITY_QUERY,
 				   portal->portalParams,
-				   isTopLevel,
 				   dest,
 				   completionTag);
 
@@ -1848,7 +1844,7 @@ DoPortalRunFetch(Portal portal,
 	forward = (fdirection == FETCH_FORWARD);
 
 	/*
-	 * Zero count means to re-fetch the current row, if any (per SQL92)
+	 * Zero count means to re-fetch the current row, if any (per SQL)
 	 */
 	if (count == 0)
 	{

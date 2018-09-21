@@ -14,7 +14,9 @@
  */
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "catalog/pg_operator.h"
+#include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/clauses.h"
 #include "optimizer/subselect.h"	/* convert_testexpr() */
@@ -784,10 +786,16 @@ add_notin_subquery_rte(Query *parse, Query *subselect)
 	RangeTblEntry *subq_rte;
 	int			subq_indx;
 
+	/*
+	 * Create a RTE entry in the parent query for the subquery.
+	 * It is marked as lateral, because any correlation quals will
+	 * refer to other RTEs in the parent query.
+	 */
 	subselect->targetList = mutate_targetlist(subselect->targetList);
 	subq_rte = addRangeTableEntryForSubquery(NULL,	/* pstate */
 											 subselect,
 											 makeAlias("NotIn_SUBQUERY", NIL),
+											 false, /* not lateral */
 											 false /* inFromClause */ );
 	parse->rtable = lappend(parse->rtable, subq_rte);
 
@@ -827,9 +835,15 @@ add_expr_subquery_rte(Query *parse, Query *subselect)
 		teNum++;
 	}
 
+	/*
+	 * Create a RTE entry in the parent query for the subquery.
+	 * It is marked as lateral, because any correlation quals will
+	 * refer to other RTEs in the parent query.
+	 */
 	subq_rte = addRangeTableEntryForSubquery(NULL,	/* pstate */
 											 subselect,
 											 makeAlias("Expr_SUBQUERY", NIL),
+											 true, /* lateral */
 											 false /* inFromClause */ );
 	parse->rtable = lappend(parse->rtable, subq_rte);
 

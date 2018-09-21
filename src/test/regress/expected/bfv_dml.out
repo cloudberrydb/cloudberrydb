@@ -96,7 +96,6 @@ alter table m add column b int;
 -- generate data for m
 insert into m select i, i%5 from generate_series(1,10)i;
 create table zzz(a int primary key, b int) distributed by (a);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
 insert into zzz select a,b from m;
 select * from zzz order by 1, 2;
  a  | b 
@@ -121,7 +120,6 @@ select * from zzz order by 1, 2;
 
 drop table zzz;
 create table zzz(a int primary key, b int) distributed by (a);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
 insert into zzz select a,b from m;
 delete from zzz where b in (select a from m);
 select * from zzz order by 1, 2;
@@ -133,7 +131,6 @@ select * from zzz order by 1, 2;
 
 drop table zzz;
 create table zzz(a int primary key, b int) distributed by (a);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
 insert into zzz select a,b from m;
 -- This update fails with duplicate key error, but it varies which segment
 -- reports it first, i.e. it varies which row it complaints first. Silence
@@ -158,7 +155,6 @@ select * from zzz order by 1, 2;
 
 drop table zzz;
 create table zzz(a int primary key, b int) distributed by (a);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
 insert into zzz select a,b from m;
 update zzz set b=m.b from m where m.a=zzz.a;
 select * from zzz order by 1, 2;
@@ -183,7 +179,6 @@ drop table m;
 -- Aside from testing that bug, this also tests EXPLAIN of an DMLActionExpr
 -- that ORCA generates for plans that update the primary key.
 create table update_pk_test (a int primary key, b int) distributed by (a);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "update_pk_test_pkey" for table "update_pk_test"
 insert into update_pk_test values(1,1);
 explain update update_pk_test set b = 5;
                              QUERY PLAN                              

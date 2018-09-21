@@ -47,7 +47,7 @@ begin
         return;
     end if;
 end
-$$ language plpgsql READS SQL DATA;
+$$ language plpgsql READS SQL DATA ROWS 10;
 
 select * from (select refcursor (1, 10)) t1, test;
 

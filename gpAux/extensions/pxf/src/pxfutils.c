@@ -1,4 +1,6 @@
 #include "pxfutils.h"
+#include "access/htup_details.h"
+#include "catalog/pg_type.h"
 #include "utils/formatting.h"
 #include "utils/syscache.h"
 

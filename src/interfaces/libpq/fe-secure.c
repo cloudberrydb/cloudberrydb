@@ -6,7 +6,7 @@
  *	  message integrity and endpoint authentication.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -37,7 +37,6 @@
 
 #include "libpq-fe.h"
 #include "fe-auth.h"
-#include "pqsignal.h"
 #include "libpq-int.h"
 
 #ifdef WIN32

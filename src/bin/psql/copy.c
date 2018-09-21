@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2013, PostgreSQL Global Development Group
  *
  * src/bin/psql/copy.c
  */
@@ -19,7 +19,6 @@
 
 #include "libpq-fe.h"
 #include "pqexpbuffer.h"
-#include "pqsignal.h"
 #include "dumputils.h"
 
 #include "settings.h"
@@ -37,7 +36,7 @@
  *	\copy ( select stmt ) to filename [options]
  *
  * where 'filename' can be one of the following:
- *  '<file path>' | PROGRAM '<command>' | stdin | stdout | pstdout | pstdout
+ *	'<file path>' | PROGRAM '<command>' | stdin | stdout | pstdout | pstdout
  *
  * An undocumented fact is that you can still write BINARY before the
  * tablename; this is a hangover from the pre-7.3 syntax.  The options
@@ -47,7 +46,7 @@
  * table name can be double-quoted and can have a schema part.
  * column names can be double-quoted.
  * filename can be single-quoted like SQL literals.
- * command must be single-quoted like SQL literals
+ * command must be single-quoted like SQL literals.
  *
  * returns a malloc'ed structure with the options, or NULL on parsing error
  */
@@ -103,7 +102,7 @@ parse_slash_copy(const char *args)
 		return NULL;
 	}
 
-	result = pg_calloc(1, sizeof(struct copy_options));
+	result = pg_malloc0(sizeof(struct copy_options));
 
 	result->before_tofrom = pg_strdup("");		/* initialize for appending */
 
@@ -205,7 +204,7 @@ parse_slash_copy(const char *args)
 
 	if (pg_strcasecmp(token, "program") == 0)
 	{
-		int toklen;
+		int			toklen;
 
 		token = strtokx(NULL, whitespace, NULL, "'",
 						0, false, false, pset.encoding);
@@ -213,8 +212,8 @@ parse_slash_copy(const char *args)
 			goto error;
 
 		/*
-		 * The shell command must be quoted. This isn't fool-proof, but catches
-		 * most quoting errors.
+		 * The shell command must be quoted. This isn't fool-proof, but
+		 * catches most quoting errors.
 		 */
 		toklen = strlen(token);
 		if (token[0] != '\'' || toklen < 2 || token[toklen - 1] != '\'')
@@ -226,7 +225,7 @@ parse_slash_copy(const char *args)
 		result->file = pg_strdup(token);
 	}
 	else if (pg_strcasecmp(token, "stdin") == 0 ||
-		pg_strcasecmp(token, "stdout") == 0)
+			 pg_strcasecmp(token, "stdout") == 0)
 	{
 		result->file = NULL;
 	}
@@ -312,9 +311,9 @@ is_on_segment(char * after_tofrom)
 
 
 /*
- * Execute a \copy command (frontend copy). We have to open a file, then
- * submit a COPY query to the backend and either feed it data from the
- * file or route its response into the file.
+ * Execute a \copy command (frontend copy). We have to open a file (or execute
+ * a command), then submit a COPY query to the backend and either feed it data
+ * from the file or route its response into the file.
  */
 bool
 do_copy(const char *args)
@@ -393,10 +392,10 @@ do_copy(const char *args)
 	{
 		if (options->program)
 			psql_error("could not execute command \"%s\": %s\n",
-					options->file, strerror(errno));
+					   options->file, strerror(errno));
 		else
 			psql_error("%s: %s\n",
-					options->file, strerror(errno));
+					   options->file, strerror(errno));
 		free_copy_options(options);
 		return false;
 	}
@@ -437,7 +436,8 @@ do_copy(const char *args)
 	{
 		if (options->program)
 		{
-			int pclose_rc = pclose(copystream);
+			int			pclose_rc = pclose(copystream);
+
 			if (pclose_rc != 0)
 			{
 				if (pclose_rc < 0)
@@ -445,7 +445,8 @@ do_copy(const char *args)
 							   strerror(errno));
 				else
 				{
-					char *reason = wait_result_to_str(pclose_rc);
+					char	   *reason = wait_result_to_str(pclose_rc);
+
 					psql_error("%s: %s\n", options->file,
 							   reason ? reason : "");
 					if (reason)

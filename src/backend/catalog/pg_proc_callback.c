@@ -20,6 +20,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/htup_details.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_proc_callback.h"
 #include "utils/fmgroids.h"

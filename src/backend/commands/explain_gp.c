@@ -2343,7 +2343,8 @@ show_motion_keys(PlanState *planstate, List *hashExpr, int nkeys, AttrNumber *ke
 	/* Set up deparse context */
 	context = deparse_context_for_planstate((Node *) planstate,
 											ancestors,
-											es->rtable);
+											es->rtable,
+											es->rtable_names);
 
     /* Merge Receive ordering key */
     for (keyno = 0; keyno < nkeys; keyno++)
@@ -2395,7 +2396,8 @@ explain_partition_selector(PartitionSelector *ps, PlanState *parentstate,
 		/* Set up deparsing context */
 		context = deparse_context_for_planstate((Node *) parentstate,
 												ancestors,
-												es->rtable);
+												es->rtable,
+												es->rtable_names);
 		useprefix = list_length(es->rtable) > 1;
 
 		/* Deparse the expression */
@@ -2437,7 +2439,8 @@ show_grouping_keys(PlanState *planstate, int nkeys, AttrNumber *subplanColIdx,
 	/* Set up deparse context */
 	context = deparse_context_for_planstate((Node *) subplanstate,
 											ancestors,
-											es->rtable);
+											es->rtable,
+											es->rtable_names);
 	useprefix = (list_length(es->rtable) > 1 || es->verbose);
 
 	if (IsA(plan, Agg))

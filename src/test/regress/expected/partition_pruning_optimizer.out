@@ -746,13 +746,6 @@ DROP INDEX idx1_1_prt_part5;
 -- same as the previous case, but the columns are the other way 'round, and we
 -- do this on the table with default partition.
 ALTER TABLE pt_lt_tab_df ADD CONSTRAINT col2_col1_unique unique(col2,col1);
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "pt_lt_tab_df_col2_col1_key" for table "pt_lt_tab_df"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "pt_lt_tab_df_1_prt_part1_col2_col1_key" for table "pt_lt_tab_df_1_prt_part1"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "pt_lt_tab_df_1_prt_part2_col2_col1_key" for table "pt_lt_tab_df_1_prt_part2"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "pt_lt_tab_df_1_prt_part3_col2_col1_key" for table "pt_lt_tab_df_1_prt_part3"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "pt_lt_tab_df_1_prt_part4_col2_col1_key" for table "pt_lt_tab_df_1_prt_part4"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "pt_lt_tab_df_1_prt_part5_col2_col1_key" for table "pt_lt_tab_df_1_prt_part5"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "pt_lt_tab_df_1_prt_def_col2_col1_key" for table "pt_lt_tab_df_1_prt_def"
 SELECT * FROM pt_lt_tab_df WHERE col1 < 10 ORDER BY col2,col3 LIMIT 5;
  col1 | col2 | col3 | col4 
 ------+------+------+------
@@ -1726,33 +1719,32 @@ SELECT * FROM pt_complex WHERE i = 1 AND j = 1;
 (1 row)
 
 EXPLAIN SELECT * FROM pt_complex WHERE i = 1 AND j = 1;
-                                                         QUERY PLAN                                                         
-----------------------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=100.84..6406.56 rows=9 width=20)
-   ->  Append  (cost=100.84..6406.56 rows=3 width=20)
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p11 pt_complex  (cost=100.84..1601.64 rows=1 width=20)
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=100.65..6405.82 rows=9 width=20)
+   ->  Append  (cost=100.65..6405.82 rows=3 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p11  (cost=100.65..1601.46 rows=1 width=20)
                Recheck Cond: i = 1
                Filter: j = 1
-               ->  Bitmap Index Scan on i_pt_complex_1_prt_p1_2_prt_p11_3_prt_p11  (cost=0.00..100.84 rows=22 width=0)
+               ->  Bitmap Index Scan on i_pt_complex_1_prt_p1_2_prt_p11_3_prt_p11  (cost=0.00..100.65 rows=22 width=0)
                      Index Cond: i = 1
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p12 pt_complex  (cost=100.84..1601.64 rows=1 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p12  (cost=100.65..1601.46 rows=1 width=20)
                Recheck Cond: i = 1
                Filter: j = 1
-               ->  Bitmap Index Scan on i_pt_complex_1_prt_p1_2_prt_p11_3_prt_p12  (cost=0.00..100.84 rows=22 width=0)
+               ->  Bitmap Index Scan on i_pt_complex_1_prt_p1_2_prt_p11_3_prt_p12  (cost=0.00..100.65 rows=22 width=0)
                      Index Cond: i = 1
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p11 pt_complex  (cost=100.84..1601.64 rows=1 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p11  (cost=100.65..1601.46 rows=1 width=20)
                Recheck Cond: i = 1
                Filter: j = 1
-               ->  Bitmap Index Scan on i_pt_complex_1_prt_p2_2_prt_p11_3_prt_p11  (cost=0.00..100.84 rows=22 width=0)
+               ->  Bitmap Index Scan on i_pt_complex_1_prt_p2_2_prt_p11_3_prt_p11  (cost=0.00..100.65 rows=22 width=0)
                      Index Cond: i = 1
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p12 pt_complex  (cost=100.84..1601.64 rows=1 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p12  (cost=100.65..1601.46 rows=1 width=20)
                Recheck Cond: i = 1
                Filter: j = 1
-               ->  Bitmap Index Scan on i_pt_complex_1_prt_p2_2_prt_p11_3_prt_p12  (cost=0.00..100.84 rows=22 width=0)
+               ->  Bitmap Index Scan on i_pt_complex_1_prt_p2_2_prt_p11_3_prt_p12  (cost=0.00..100.65 rows=22 width=0)
                      Index Cond: i = 1
- Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
- Optimizer status: legacy query optimizer
-(24 rows)
+ Optimizer: legacy query optimizer
+(23 rows)
 
 --
 -- See MPP-6861

@@ -30,7 +30,7 @@
  * destroyed at the end of each transaction.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -41,7 +41,7 @@
 
 #include "postgres.h"
 
-#include "access/htup.h"
+#include "access/htup_details.h"
 #include "access/xact.h"
 #include "cdb/cdbvars.h"
 #include "utils/combocid.h"
@@ -53,6 +53,7 @@
 #include "access/twophase.h"  /* max_prepared_xacts */
 
 #include "storage/buffile.h"
+#include "storage/proc.h"
 
 /*
  * We now maintain two hashtables.
@@ -149,13 +150,13 @@ HeapTupleHeaderGetCmax(HeapTupleHeader tup)
 {
 	CommandId	cid = HeapTupleHeaderGetRawCommandId(tup);
 
-	/* We do not store cmax when locking a tuple */
-	Assert(!(tup->t_infomask & (HEAP_MOVED | HEAP_IS_LOCKED)));
+	Assert(!(tup->t_infomask & HEAP_MOVED));
 
 	/*
 	 * MPP-8317: cursors can't always *tell* that this is the current transaction.
 	 */
-	Assert(QEDtxContextInfo.cursorContext || TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmax(tup)));
+	Assert(QEDtxContextInfo.cursorContext ||
+		   TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetUpdateXid(tup)));
 
 	if (tup->t_infomask & HEAP_COMBOCID)
 		return GetRealCmax(HeapTupleHeaderGetXmin(tup), cid);

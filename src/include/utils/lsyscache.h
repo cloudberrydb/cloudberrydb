@@ -3,7 +3,7 @@
  * lsyscache.h
  *	  Convenience routines for common queries in the system catalog cache.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/lsyscache.h
@@ -13,11 +13,12 @@
 #ifndef LSYSCACHE_H
 #define LSYSCACHE_H
 
+#include "access/attnum.h"
 #include "access/htup.h"
 #include "catalog/gp_policy.h"
 #include "nodes/pg_list.h"
-#include "utils/relcache.h"
 #include "parser/parse_coerce.h"
+#include "utils/relcache.h"
 
 /* Result list element for get_op_btree_interpretation */
 typedef struct OpBtreeInterpretation

@@ -4,7 +4,7 @@
  *	  routines to search and manipulate one FSM page.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -284,9 +284,7 @@ restart:
 				exclusive_lock_held = true;
 			}
 			fsm_rebuild_page(page);
-			/* GPDB_84_MERGE_FIXME: upstream calls MarkBufferDirtyHint instead.
-			 * Backport commit 20723ce80 to fix. */
-			MarkBufferDirty(buf);
+			MarkBufferDirtyHint(buf);
 			goto restart;
 		}
 	}

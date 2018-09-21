@@ -20,6 +20,7 @@
 #include "pxfheaders.h"
 #include "access/fileam.h"
 #include "catalog/pg_exttable.h"
+#include "utils/timestamp.h"
 
 /* helper function declarations */
 static void add_alignment_size_httpheader(CHURL_HEADERS headers);

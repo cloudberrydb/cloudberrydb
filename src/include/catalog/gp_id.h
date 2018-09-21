@@ -44,9 +44,9 @@
 CATALOG(gp_id,5001) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
 {
 	NameData	gpname;
-	int2		numsegments;
-	int2		dbid;
-	int2		content;
+	int16		numsegments;
+	int16		dbid;
+	int16		content;
 } FormData_gp_id;
 
 /* no foreign keys */

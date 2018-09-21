@@ -30,7 +30,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/tuplesort.h
@@ -135,10 +135,12 @@ extern Tuplesortstate *tuplesort_begin_heap(ScanState *ss, TupleDesc tupDesc,
 extern Tuplesortstate *tuplesort_begin_cluster(TupleDesc tupDesc,
 						Relation indexRel,
 						int workMem, bool randomAccess);
-extern Tuplesortstate *tuplesort_begin_index_btree(Relation indexRel,
+extern Tuplesortstate *tuplesort_begin_index_btree(Relation heapRel,
+							Relation indexRel,
 							bool enforceUnique,
 							int workMem, bool randomAccess);
-extern Tuplesortstate *tuplesort_begin_index_hash(Relation indexRel,
+extern Tuplesortstate *tuplesort_begin_index_hash(Relation heapRel,
+						   Relation indexRel,
 						   uint32 hash_mask,
 						   int workMem, bool randomAccess);
 extern Tuplesortstate *tuplesort_begin_datum(ScanState *ss, Oid datumType,
@@ -320,7 +322,8 @@ switcheroo_tuplesort_begin_cluster(TupleDesc tupDesc,
 }
 
 static inline switcheroo_Tuplesortstate *
-switcheroo_tuplesort_begin_index_btree(Relation indexRel,
+switcheroo_tuplesort_begin_index_btree(Relation heapRel,
+							Relation indexRel,
 							bool enforceUnique,
 							int workMem, bool randomAccess)
 {
@@ -329,18 +332,19 @@ switcheroo_tuplesort_begin_index_btree(Relation indexRel,
 	if (gp_enable_mk_sort)
 	{
 		state = (switcheroo_Tuplesortstate *)
-			tuplesort_begin_index_mk(indexRel, enforceUnique, workMem, randomAccess);
+			tuplesort_begin_index_mk(heapRel, indexRel, enforceUnique, workMem, randomAccess);
 	}
 	else
 	{
 		state = (switcheroo_Tuplesortstate *)
-			tuplesort_begin_index_btree_pg(indexRel, enforceUnique, workMem, randomAccess);
+			tuplesort_begin_index_btree_pg(heapRel, indexRel, enforceUnique, workMem, randomAccess);
 	}
 	state->is_mk_tuplesortstate = gp_enable_mk_sort;
 	return state;
 }
 static inline switcheroo_Tuplesortstate *
-switcheroo_tuplesort_begin_index_hash(Relation indexRel,
+switcheroo_tuplesort_begin_index_hash(Relation heapRel,
+							Relation indexRel,
 							uint32 hash_mask,
 							int workMem, bool randomAccess)
 {
@@ -348,7 +352,7 @@ switcheroo_tuplesort_begin_index_hash(Relation indexRel,
 
 	/* There is no MK variant of this */
 	state = (switcheroo_Tuplesortstate *)
-		tuplesort_begin_index_hash_pg(indexRel, hash_mask, workMem, randomAccess);
+		tuplesort_begin_index_hash_pg(heapRel, indexRel, hash_mask, workMem, randomAccess);
 	state->is_mk_tuplesortstate = false;
 	return state;
 }

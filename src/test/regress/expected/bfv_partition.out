@@ -1521,27 +1521,11 @@ NOTICE:  CREATE TABLE will create partition "mpp3742_1_prt_10" for table "mpp374
 NOTICE:  CREATE TABLE will create partition "mpp3742_1_prt_11" for table "mpp3742"
 NOTICE:  CREATE TABLE will create partition "mpp3742_1_prt_12" for table "mpp3742"
 NOTICE:  CREATE TABLE will create partition "mpp3742_1_prt_13" for table "mpp3742"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_pkey" for table "mpp3742"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_default_part_pkey" for table "mpp3742_1_prt_default_part"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_2_pkey" for table "mpp3742_1_prt_2"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_3_pkey" for table "mpp3742_1_prt_3"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_4_pkey" for table "mpp3742_1_prt_4"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_5_pkey" for table "mpp3742_1_prt_5"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_6_pkey" for table "mpp3742_1_prt_6"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_7_pkey" for table "mpp3742_1_prt_7"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_8_pkey" for table "mpp3742_1_prt_8"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_9_pkey" for table "mpp3742_1_prt_9"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_10_pkey" for table "mpp3742_1_prt_10"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_11_pkey" for table "mpp3742_1_prt_11"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_12_pkey" for table "mpp3742_1_prt_12"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_13_pkey" for table "mpp3742_1_prt_13"
 alter table mpp3742 split default partition start ('2009-01-01') end ('2009-02-01') into (partition a3, default partition);
 NOTICE:  exchanged partition "default_part" of relation "mpp3742" with relation "pg_temp_1286524"
 NOTICE:  dropped partition "default_part" for relation "mpp3742"
 NOTICE:  CREATE TABLE will create partition "mpp3742_1_prt_a3" for table "mpp3742"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_a3_pkey" for table "mpp3742_1_prt_a3"
 NOTICE:  CREATE TABLE will create partition "mpp3742_1_prt_default_part" for table "mpp3742"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3742_1_prt_default_part_pkey1" for table "mpp3742_1_prt_default_part"
 drop table mpp3742;
 create table mpp3597 (i int) partition by list(i) (partition a values(1, 2, 3, 4),
 partition b values(5, 6, 7, 8), default partition default_part);
@@ -1685,7 +1669,6 @@ CREATE TABLE mpp3762_cities (
         city     varchar(80) primary key,
         location point
 );
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3762_cities_pkey" for table "mpp3762_cities"
 CREATE TABLE mpp3762_weather (
         city      varchar(80) references mpp3762_cities(city),
         temp_lo   int,
@@ -1702,9 +1685,6 @@ CREATE TABLE mpp3762_cities_partition (
 )  partition by list (city) ( partition a values ('Los Angeles'), partition b values ('San Mateo') );
 NOTICE:  CREATE TABLE will create partition "mpp3762_cities_partition_1_prt_a" for table "mpp3762_cities_partition"
 NOTICE:  CREATE TABLE will create partition "mpp3762_cities_partition_1_prt_b" for table "mpp3762_cities_partition"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3762_cities_partition_pkey" for table "mpp3762_cities_partition"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3762_cities_partition_1_prt_a_pkey" for table "mpp3762_cities_partition_1_prt_a"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3762_cities_partition_1_prt_b_pkey" for table "mpp3762_cities_partition_1_prt_b"
 CREATE TABLE mpp3762_weather_partition (
         city      varchar(80) references mpp3762_cities_partition(city),
         temp_lo   int,
@@ -1741,18 +1721,6 @@ NOTICE:  CREATE TABLE will create partition "mpp3754a_1_prt_8" for table "mpp375
 NOTICE:  CREATE TABLE will create partition "mpp3754a_1_prt_9" for table "mpp3754a"
 NOTICE:  CREATE TABLE will create partition "mpp3754a_1_prt_10" for table "mpp3754a"
 NOTICE:  CREATE TABLE will create partition "mpp3754a_1_prt_11" for table "mpp3754a"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_pkey" for table "mpp3754a"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_1_pkey" for table "mpp3754a_1_prt_1"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_2_pkey" for table "mpp3754a_1_prt_2"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_3_pkey" for table "mpp3754a_1_prt_3"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_4_pkey" for table "mpp3754a_1_prt_4"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_5_pkey" for table "mpp3754a_1_prt_5"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_6_pkey" for table "mpp3754a_1_prt_6"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_7_pkey" for table "mpp3754a_1_prt_7"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_8_pkey" for table "mpp3754a_1_prt_8"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_9_pkey" for table "mpp3754a_1_prt_9"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_10_pkey" for table "mpp3754a_1_prt_10"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754a_1_prt_11_pkey" for table "mpp3754a_1_prt_11"
 create table mpp3754b ( i int, d date, constraint prim_tr primary key (d)) partition by range(d) ( start ('2008-01-01')  inclusive end ('2008-12-01')  exclusive every (interval '1 month'));
 NOTICE:  CREATE TABLE will create partition "mpp3754b_1_prt_1" for table "mpp3754b"
 NOTICE:  CREATE TABLE will create partition "mpp3754b_1_prt_2" for table "mpp3754b"
@@ -1765,18 +1733,6 @@ NOTICE:  CREATE TABLE will create partition "mpp3754b_1_prt_8" for table "mpp375
 NOTICE:  CREATE TABLE will create partition "mpp3754b_1_prt_9" for table "mpp3754b"
 NOTICE:  CREATE TABLE will create partition "mpp3754b_1_prt_10" for table "mpp3754b"
 NOTICE:  CREATE TABLE will create partition "mpp3754b_1_prt_11" for table "mpp3754b"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_pkey" for table "mpp3754b"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_1_pkey" for table "mpp3754b_1_prt_1"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_2_pkey" for table "mpp3754b_1_prt_2"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_3_pkey" for table "mpp3754b_1_prt_3"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_4_pkey" for table "mpp3754b_1_prt_4"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_5_pkey" for table "mpp3754b_1_prt_5"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_6_pkey" for table "mpp3754b_1_prt_6"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_7_pkey" for table "mpp3754b_1_prt_7"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_8_pkey" for table "mpp3754b_1_prt_8"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_9_pkey" for table "mpp3754b_1_prt_9"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_10_pkey" for table "mpp3754b_1_prt_10"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp3754b_1_prt_11_pkey" for table "mpp3754b_1_prt_11"
 drop table mpp3754a;
 drop table mpp3754b;
 create table mpp4172 (a char(1), b int)
@@ -5157,9 +5113,6 @@ PARTITION BY RANGE (date)
 NOTICE:  CREATE TABLE will create partition "mpp6573_1_prt_1" for table "mpp6573"
 NOTICE:  CREATE TABLE will create partition "mpp6573_1_prt_2" for table "mpp6573"
 alter table mpp6573 add primary key (id, date) ;
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_pkey" for table "mpp6573"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_1_prt_1_pkey" for table "mpp6573_1_prt_1"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_1_prt_2_pkey" for table "mpp6573_1_prt_2"
 \d mpp6573*
    Table "bfv_partition.mpp6573"
  Column |     Type      | Modifiers 
@@ -5237,16 +5190,12 @@ select 1 as foobar;
 create table mpp6724 ( c1 int, dt DATE, c2 varchar, PRIMARY KEY ( c1,dt ) ) distributed by (c1) partition by range ( dt ) ( start ( date '2009-01-01' ) inclusive end ( date '2009-01-03' ) EXCLUSIVE EVERY ( INTERVAL '1 day' ) );
 NOTICE:  CREATE TABLE will create partition "mpp6724_1_prt_1" for table "mpp6724"
 NOTICE:  CREATE TABLE will create partition "mpp6724_1_prt_2" for table "mpp6724"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp6724_pkey" for table "mpp6724"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp6724_1_prt_1_pkey" for table "mpp6724_1_prt_1"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp6724_1_prt_2_pkey" for table "mpp6724_1_prt_2"
 insert into mpp6724 values ( 1,'2009-01-01','One'), (2,'2009-01-02','Two'),(3,'2009-01-01','three'), (3,'2009-01-02', 'three`');
 insert into mpp6724 values ( 1,'2009-01-01','One'); -- This violate the primary key, expected to fail
 ERROR:  duplicate key value violates unique constraint "mpp6724_1_prt_1_pkey"  (seg0 127.0.0.1:40000 pid=32487)
 DETAIL:  Key (c1, dt)=(1, 01-01-2009) already exists.
 alter table mpp6724 add partition start ( date '2009-01-03' ) inclusive end ( date '2009-01-04' ) ;
 NOTICE:  CREATE TABLE will create partition "mpp6724_1_prt_r1600720188" for table "mpp6724"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp6724_1_prt_r1600720188_pkey" for table "mpp6724_1_prt_r1600720188"
 insert into mpp6724 values ( 4,'2009-01-03','Four');
 -- Should fail because violates the primary key
 insert into mpp6724 values ( 4,'2009-01-03','Four');

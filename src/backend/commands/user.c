@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/commands/user.c
@@ -16,6 +16,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/htup_details.h"
 #include "access/xact.h"
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
@@ -103,7 +104,7 @@ have_createrole_privilege(void)
 /*
  * CREATE ROLE
  */
-void
+Oid
 CreateRole(CreateRoleStmt *stmt)
 {
 	Relation	pg_authid_rel;
@@ -616,8 +617,7 @@ CreateRole(CreateRoleStmt *stmt)
 				GetUserId(), false);
 
 	/* Post creation hook for new role */
-	InvokeObjectAccessHook(OAT_POST_CREATE,
-						   AuthIdRelationId, roleid, 0, NULL);
+	InvokeObjectPostCreateHook(AuthIdRelationId, roleid, 0);
 
 	/*
 	 * Populate pg_auth_time_constraint with intervals for which this
@@ -654,6 +654,8 @@ CreateRole(CreateRoleStmt *stmt)
 						   GetUserId(),
 						   "CREATE", "ROLE");
 	}
+
+	return roleid;
 }
 
 
@@ -664,7 +666,7 @@ CreateRole(CreateRoleStmt *stmt)
  * backwards-compatible ALTER GROUP syntax.  Although it will work to say
  * "ALTER ROLE role ROLE rolenames", we don't document it.
  */
-void
+Oid
 AlterRole(AlterRoleStmt *stmt)
 {
 	Datum		new_record[Natts_pg_authid];
@@ -1237,6 +1239,8 @@ AlterRole(AlterRoleStmt *stmt)
 	/* Update indexes */
 	CatalogUpdateIndexes(pg_authid_rel, new_tuple);
 
+	InvokeObjectPostAlterHook(AuthIdRelationId, roleid, 0);
+
 	ReleaseSysCache(tuple);
 	heap_freetuple(new_tuple);
 
@@ -1326,49 +1330,59 @@ AlterRole(AlterRoleStmt *stmt)
 									NIL,
 									NULL);
 	}
+
+	return roleid;
 }
 
 
 /*
  * ALTER ROLE ... SET
  */
-void
+Oid
 AlterRoleSet(AlterRoleSetStmt *stmt)
 {
 	HeapTuple	roletuple;
 	Oid			databaseid = InvalidOid;
+	Oid			roleid = InvalidOid;
 
-	roletuple = SearchSysCache1(AUTHNAME, PointerGetDatum(stmt->role));
-
-	if (!HeapTupleIsValid(roletuple))
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_OBJECT),
-				 errmsg("role \"%s\" does not exist", stmt->role)));
-
-	/*
-	 * Obtain a lock on the role and make sure it didn't go away in the
-	 * meantime.
-	 */
-	shdepLockAndCheckObject(AuthIdRelationId, HeapTupleGetOid(roletuple));
-
-	/*
-	 * To mess with a superuser you gotta be superuser; else you need
-	 * createrole, or just want to change your own settings
-	 */
-	if (((Form_pg_authid) GETSTRUCT(roletuple))->rolsuper)
+	if (stmt->role)
 	{
-		if (!superuser())
+		roletuple = SearchSysCache1(AUTHNAME, PointerGetDatum(stmt->role));
+
+		if (!HeapTupleIsValid(roletuple))
 			ereport(ERROR,
-					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-					 errmsg("must be superuser to alter superusers")));
-	}
-	else
-	{
-		if (!have_createrole_privilege() &&
-			HeapTupleGetOid(roletuple) != GetUserId())
-			ereport(ERROR,
-					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-					 errmsg("permission denied")));
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("role \"%s\" does not exist", stmt->role)));
+
+		roleid = HeapTupleGetOid(roletuple);
+
+		/*
+		 * Obtain a lock on the role and make sure it didn't go away in the
+		 * meantime.
+		 */
+		shdepLockAndCheckObject(AuthIdRelationId, HeapTupleGetOid(roletuple));
+
+		/*
+		 * To mess with a superuser you gotta be superuser; else you need
+		 * createrole, or just want to change your own settings
+		 */
+		if (((Form_pg_authid) GETSTRUCT(roletuple))->rolsuper)
+		{
+			if (!superuser())
+				ereport(ERROR,
+						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+						 errmsg("must be superuser to alter superusers")));
+		}
+		else
+		{
+			if (!have_createrole_privilege() &&
+				HeapTupleGetOid(roletuple) != GetUserId())
+				ereport(ERROR,
+						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+						 errmsg("permission denied")));
+		}
+
+		ReleaseSysCache(roletuple);
 	}
 
 	/* look up and lock the database, if specified */
@@ -1376,10 +1390,31 @@ AlterRoleSet(AlterRoleSetStmt *stmt)
 	{
 		databaseid = get_database_oid(stmt->database, false);
 		shdepLockAndCheckObject(DatabaseRelationId, databaseid);
+
+		if (!stmt->role)
+		{
+			/*
+			 * If no role is specified, then this is effectively the same as
+			 * ALTER DATABASE ... SET, so use the same permission check.
+			 */
+			if (!pg_database_ownercheck(databaseid, GetUserId()))
+				aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_DATABASE,
+							   stmt->database);
+		}
 	}
 
-	AlterSetting(databaseid, HeapTupleGetOid(roletuple), stmt->setstmt);
-	ReleaseSysCache(roletuple);
+	if (!stmt->role && !stmt->database)
+	{
+		/* Must be superuser to alter settings globally. */
+		if (!superuser())
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+					 errmsg("must be superuser to alter settings globally")));
+	}
+
+	AlterSetting(databaseid, roleid, stmt->setstmt);
+
+	return roleid;
 }
 
 
@@ -1462,14 +1497,7 @@ DropRole(DropRoleStmt *stmt)
 					 errmsg("must be superuser to drop superusers")));
 
 		/* DROP hook for the role being removed */
-		if (object_access_hook)
-		{
-			ObjectAccessDrop drop_arg;
-
-			memset(&drop_arg, 0, sizeof(ObjectAccessDrop));
-			InvokeObjectAccessHook(OAT_DROP,
-								   AuthIdRelationId, roleid, 0, &drop_arg);
-		}
+		InvokeObjectDropHook(AuthIdRelationId, roleid, 0);
 
 		/*
 		 * Lock the role, so nobody can add dependencies to her while we drop
@@ -1583,7 +1611,7 @@ DropRole(DropRoleStmt *stmt)
 /*
  * Rename role
  */
-void
+Oid
 RenameRole(const char *oldname, const char *newname)
 {
 	HeapTuple	oldtuple,
@@ -1684,6 +1712,8 @@ RenameRole(const char *oldname, const char *newname)
 
 	CatalogUpdateIndexes(rel, newtuple);
 
+	InvokeObjectPostAlterHook(AuthIdRelationId, roleid, 0);
+
 	ReleaseSysCache(oldtuple);
 
 	/*
@@ -1698,6 +1728,8 @@ RenameRole(const char *oldname, const char *newname)
 						   GetUserId(),
 						   "ALTER", "RENAME"
 				);
+
+	return roleid;
 }
 
 /*

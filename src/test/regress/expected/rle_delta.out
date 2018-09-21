@@ -47,8 +47,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a7     | text                        |           | extended |              | rle_type         | 4                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_all select i/5, i/12, date '2012-02-02' + i/5,
     case when i/10=1 then time '20:13:14.343536' when i/10=2 then time '20:13:11.232421' when i/10=3 then time '20:12:13.241122' else '20:02:03' end,
@@ -125,7 +125,6 @@ Create table delta_alter(
     a6 timestamp with time zone ENCODING (compresstype=rle_type, compresslevel=1),
     a7 text ENCODING (compresstype=rle_type,compresslevel=4)
     ) with(appendonly=true, orientation=column);
-NOTICE:  CREATE TABLE will create implicit sequence "delta_alter_id_seq" for serial column "delta_alter.id"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_attribute_encoding e  where c.relname = 'delta_alter'  and c.oid=e.attrelid  order by relname, attnum;
@@ -155,8 +154,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a7     | text                        |                                                          | extended |              | rle_type         | 4                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (id)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_alter(a1,a2,a3,a4,a5,a6,a7)  select                                                                                                                                           
     i/5, i/12, date '2012-02-02' + i/5,
@@ -204,8 +203,8 @@ Alter table delta_alter Alter column a4 Type interval;
  a7     | text                        |                                                          | extended |              | rle_type         | 4                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (id)
+Options: appendonly=true, orientation=column, checksum=false
 
 select 'compression_ratio' as compr_ratio, get_ao_compression_ratio('delta_alter');
     compr_ratio    | get_ao_compression_ratio 
@@ -246,8 +245,8 @@ Alter table delta_alter Alter column a5 Type timestamp with time zone;
  a7     | text                        |                                                          | extended |              | rle_type         | 4                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (id)
+Options: appendonly=true, orientation=column, checksum=false
 
 select 'compression_ratio' as compr_ratio, get_ao_compression_ratio('delta_alter');
     compr_ratio    | get_ao_compression_ratio 
@@ -312,8 +311,8 @@ Checksum: f
 Indexes:
     "dl_ix_bt" bitmap (a1)
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_bitmap_ins select
     i/5, i/12, date '2012-02-02' + i/5,
@@ -393,8 +392,8 @@ Checksum: f
 Indexes:
     "dl_ix_br" btree (a1)
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_btree_ins select
     i/5, i/12, date '2012-02-02' + i/5,
@@ -471,8 +470,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a7     | text                        |           | extended |              | rle_type         | 4                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_ins_bitmap select
     i/5, i/12, date '2012-02-02' + i/5,
@@ -506,8 +505,8 @@ Checksum: f
 Indexes:
     "dl_ins_bt_ix" bitmap (a3)
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 select 'compression_ratio' as compr_ratio, get_ao_compression_ratio('delta_ins_bitmap');
     compr_ratio    | get_ao_compression_ratio 
@@ -568,8 +567,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a7     | text                        |           | extended |              | rle_type         | 4                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_ins_btree select
     i/5, i/12, date '2012-02-02' + i/5,
@@ -603,8 +602,8 @@ Checksum: f
 Indexes:
     "dl_br_ix" btree (a3)
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 select 'compression_ratio' as compr_ratio, get_ao_compression_ratio('delta_ins_btree');
     compr_ratio    | get_ao_compression_ratio 
@@ -677,8 +676,8 @@ Indexes:
     "dl_bt_ix" bitmap (a1)
     "dl_ix" btree (a3)
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=1, blocksize=8192, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=1, blocksize=8192, checksum=false
 
 Select a1,a2,a6 from delta_blocks where a4 = '20:13:11.232421' order by a1 limit 10;
  a1 | a2 |              a6               
@@ -740,8 +739,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a9     | text                        |           | extended |              | rle_type         | 2                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_none select
     i/5, i/12, date '2012-02-02' + i/5,
@@ -810,8 +809,8 @@ DISTRIBUTED BY (b);
  c      | character(100) |           | extended |              | rle_type         | 1                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, checksum=false
 Distributed by: (b)
+Options: appendonly=true, orientation=column, compresstype=rle_type, checksum=false
 
 INSERT INTO delta_one SELECT i as a, 1 as b, '' as c FROM generate_series(1, 100000) AS i;
 INSERT INTO delta_one SELECT i as a, 2 as b, '' as c FROM generate_series(1, 100000) AS i;
@@ -1105,8 +1104,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a9     | text                        |           | extended |              | rle_type         | 2                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, checksum=false
 
 Insert into delta_zlib select 
     i/20, 12/i, date '2012-02-02' + i/5,
@@ -1203,8 +1202,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a6     | timestamp with time zone    |           | plain   |              | rle_type         | 1                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=1, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=1, checksum=false
 
 Insert into rle_type_1_delta_null values
     (1, 2147483648, '2014-07-29', '14:22:23.776890', '2014-07-30 14:22:58.356229', '2014-07-30 14:22:23.776892-07'),
@@ -1302,8 +1301,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a6     | timestamp with time zone    |           | plain   |              | rle_type         | 2                 | 32768      | 
 Checksum: t
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=2, checksum=true
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=2, checksum=true
 
 Insert into rle_type_2_delta_chkt values
     (1, 2147483648, '2014-07-29', '14:22:23.776890', '2014-07-30 14:22:58.356229', '2014-07-30 14:22:23.776892-07'),
@@ -1368,8 +1367,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a6     | timestamp with time zone    |           | plain   |              | rle_type         | 2                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=2, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=2, checksum=false
 
 Insert into rle_type_2_delta_chkf values
     (1, 2147483648, '2014-07-29', '14:22:23.776890', '2014-07-30 14:22:58.356229', '2014-07-30 14:22:23.776892-07'),
@@ -1437,8 +1436,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a6     | timestamp with time zone    |           | plain   |              | rle_type         | 2                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=2, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=2, checksum=false
 
 Insert into rle_type_2_delta_null values
     (1, 2147483648, '2014-07-29', '14:22:23.776890', '2014-07-30 14:22:58.356229', '2014-07-30 14:22:23.776892-07'),
@@ -1560,8 +1559,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a6     | timestamp with time zone    |           | plain   |              | rle_type         | 3                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=3, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=3, checksum=false
 
 Insert into rle_type_3_delta_null values
     (1, 2147483648, '2014-07-29', '14:22:23.776890', '2014-07-30 14:22:58.356229', '2014-07-30 14:22:23.776892-07'),
@@ -1659,8 +1658,8 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  a6     | timestamp with time zone    |           | plain   |              | rle_type         | 4                 | 32768      | 
 Checksum: f
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=4, checksum=false
 Distributed by: (a1)
+Options: appendonly=true, orientation=column, compresstype=rle_type, compresslevel=4, checksum=false
 
 Insert into rle_type_4_delta_null values
     (1, 2147483648, '2014-07-29', '14:22:23.776890', '2014-07-30 14:22:58.356229', '2014-07-30 14:22:23.776892-07'),

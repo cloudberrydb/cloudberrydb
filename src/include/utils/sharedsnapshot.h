@@ -13,14 +13,15 @@
 #ifndef SHAREDSNAPSHOT_H
 #define SHAREDSNAPSHOT_H
 
+#include "storage/proc.h"
 #include "utils/combocid.h"
 #include "utils/tqual.h"
 
 /* MPP Shared Snapshot */
 typedef struct SharedSnapshotSlot
 {
-	int4			slotindex;  /* where in the array this one is. */
-	int4	 		slotid;
+	int32			slotindex;  /* where in the array this one is. */
+	int32	 		slotid;
 	pid_t	 		pid; /* pid of writer seg */
 	PGPROC			*writer_proc;
 	PGXACT			*writer_xact;

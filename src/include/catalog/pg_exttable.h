@@ -39,10 +39,10 @@ CATALOG(pg_exttable,6040) BKI_WITHOUT_OIDS
 	text	fmtopts;			/* the data format options */
 	text	options[1];			/* the array of external table options */
 	text	command;			/* the command string to EXECUTE */
-	int4	rejectlimit;		/* error count reject limit per segment */
+	int32	rejectlimit;		/* error count reject limit per segment */
 	char	rejectlimittype;	/* 'r' (rows) or 'p' (percent) */
 	bool	logerrors;			/* 't' to log errors into file */
-	int4	encoding;			/* character encoding of this external table */
+	int32	encoding;			/* character encoding of this external table */
 	bool	writable;			/* 't' if writable, 'f' if readable */
 } FormData_pg_exttable;
 

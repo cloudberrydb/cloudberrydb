@@ -4,7 +4,6 @@ create table dupconstr (
 						j int constraint test CHECK (j > 10),
 						CONSTRAINT test UNIQUE (i,j))
 						distributed by (i);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "dupconstr_i_j_key" for table "dupconstr"
 ERROR:  constraint "test" for relation "dupconstr" already exists
 -- MPP-2764: distributed randomly is not compatible with primary key or unique
 -- constraints
@@ -25,7 +24,6 @@ ERROR:  UNIQUE and DISTRIBUTED RANDOMLY are incompatible
 -- this should work though
 create table distrand(i int, j int, constraint "test" unique (i, j)) 
    distributed by(i, j);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "distrand_i_j_key" for table "distrand"
 drop table distrand;
 create table distrand(i int, j int) distributed randomly;
 create unique index distrand_idx on distrand(i);
@@ -54,7 +52,6 @@ drop table distpol;
 create table distpol (i int, j int, k int) distributed by (i);
 alter table distpol add primary key (j);
 NOTICE:  updating distribution policy to match new primary key
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "distpol_pkey" for table "distpol"
 select attrnums from gp_distribution_policy where 
   localoid = 'distpol'::regclass;
  attrnums 
@@ -96,9 +93,7 @@ create table distpol_no_pk (i int, j int, k int);
 NOTICE:  Using default RANDOM distribution since no distribution was specified.
 HINT:  Consider including the 'DISTRIBUTED BY' clause to determine the distribution of rows.
 create table distpol_with_pk (i int, j int, k int, PRIMARY KEY (i));
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "distpol_with_pk_pkey" for table "distpol_with_pk"
 create table distpol_with_unique (i int, j int, k int, CONSTRAINT uconn UNIQUE (i, j));
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "distpol_with_unique_i_j_key" for table "distpol_with_unique"
 select localoid::regclass, attrnums from gp_distribution_policy where
   localoid IN ('distpol_no_pk'::regclass,
                'distpol_with_pk'::regclass,
@@ -173,7 +168,6 @@ col_with_default numeric DEFAULT 0,
 col_with_default_drop_default character varying(30) DEFAULT 'test1',
 col_with_constraint numeric UNIQUE
 ) DISTRIBUTED BY (col_with_constraint);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "foo_col_with_constraint_key" for table "foo"
 CREATE TABLE bar AS SELECT * FROM foo distributed by (col_with_constraint);
 select attrnums from gp_distribution_policy where localoid='bar'::regclass;
  attrnums 

@@ -412,6 +412,7 @@ SELECT q1 FROM int8_tbl EXCEPT SELECT q2 FROM int8_tbl ORDER BY q2 LIMIT 1;
 ERROR:  column "q2" does not exist
 LINE 1: ... int8_tbl EXCEPT SELECT q2 FROM int8_tbl ORDER BY q2 LIMIT 1...
                                                              ^
+HINT:  There is a column named "q2" in table "*SELECT* 2", but it cannot be referenced from this part of the query.
 -- But this should work:
 SELECT q1 FROM int8_tbl EXCEPT (((SELECT q2 FROM int8_tbl ORDER BY q2 LIMIT 1))) ORDER BY 1;
         q1        
@@ -462,7 +463,6 @@ LINE 1: SELECT '3.4'::numeric UNION SELECT 'foo';
 CREATE TEMP TABLE t1 (a text, b text);
 CREATE INDEX t1_ab_idx on t1 ((a || b));
 CREATE TEMP TABLE t2 (ab text primary key);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "t2_pkey" for table "t2"
 INSERT INTO t1 VALUES ('a', 'b'), ('x', 'y');
 INSERT INTO t2 VALUES ('ab'), ('xy');
 set enable_seqscan = off;
@@ -525,4 +525,100 @@ explain (costs off)
          ->  Seq Scan on tenk1 b
  Optimizer: legacy query optimizer
 (4 rows)
+
+-- Test that we push quals into UNION sub-selects only when it's safe
+explain (costs off)
+SELECT * FROM
+  (SELECT 1 AS t, 2 AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4;
+                    QUERY PLAN                     
+---------------------------------------------------
+ Unique
+   Group Key: "outer".t, "outer".x
+   ->  Sort
+         Sort Key (Distinct): "outer".t, "outer".x
+         ->  Append
+               ->  Result
+               ->  Result
+                     One-Time Filter: false
+ Optimizer: legacy query optimizer
+(9 rows)
+
+SELECT * FROM
+  (SELECT 1 AS t, 2 AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4;
+ t | x 
+---+---
+ 1 | 2
+(1 row)
+
+explain (costs off)
+SELECT * FROM
+  (SELECT 1 AS t, generate_series(1,10) AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4
+ORDER BY x;
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Sort
+   Sort Key: ss.x
+   ->  Subquery Scan on ss
+         Filter: ss.x < 4
+         ->  HashAggregate
+               Group Key: "outer".t, (generate_series(1, 10))
+               ->  Append
+                     ->  Result
+                     ->  Result
+ Optimizer: legacy query optimizer
+(10 rows)
+
+SELECT * FROM
+  (SELECT 1 AS t, generate_series(1,10) AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4
+ORDER BY x;
+ t | x 
+---+---
+ 1 | 1
+ 1 | 2
+ 1 | 3
+(3 rows)
+
+explain (costs off)
+SELECT * FROM
+  (SELECT 1 AS t, (random()*3)::int AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x > 3;
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Subquery Scan on ss
+   Filter: ss.x > 3
+   ->  Unique
+         Group Key: "outer".t, (($0 * 3::double precision)::integer)
+         ->  Sort
+               Sort Key (Distinct): "outer".t, (($0 * 3::double precision)::integer)
+               ->  Append
+                     ->  Result
+                           InitPlan 1 (returns $0)
+                             ->  Result
+                     ->  Result
+ Optimizer: legacy query optimizer
+(12 rows)
+
+SELECT * FROM
+  (SELECT 1 AS t, (random()*3)::int AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x > 3;
+ t | x 
+---+---
+ 2 | 4
+(1 row)
 

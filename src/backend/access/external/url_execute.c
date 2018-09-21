@@ -372,7 +372,13 @@ url_execute_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen)
 		 * Read one byte less than the maximum size to ensure zero
 		 * termination of the buffer.
 		 */
+reread:
 		nread = read(efile->handle->pipes[EXEC_ERR_P], ebuf, ebuflen -1);
+		if(nread == -1 && errno == EINTR)
+		{
+			CHECK_FOR_INTERRUPTS();
+			goto reread;
+		}
 
 		if(nread != -1)
 			ebuf[nread] = 0;
@@ -387,8 +393,22 @@ size_t
 url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
 {
 	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
+	ssize_t		n;
+	bool        rerun;
 
-	return read(efile->handle->pipes[EXEC_DATA_P], ptr, size);
+	do {
+		n = read(efile->handle->pipes[EXEC_DATA_P], ptr, size);
+
+		if (n == -1 && errno == EINTR)
+		{
+			CHECK_FOR_INTERRUPTS();
+			rerun = true;
+		}
+		else
+			rerun = false;
+	} while (rerun);
+
+	return n;
 }
 
 size_t
@@ -405,7 +425,15 @@ url_execute_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
     {
         n = write(fd,p,size - offset);
 
-        if(n == -1) return -1;
+		if (n == -1)
+		{
+			if (errno == EINTR)
+			{
+				CHECK_FOR_INTERRUPTS();
+				continue;
+			}
+			return -1;
+		}
 
         if(n == 0) break;
 

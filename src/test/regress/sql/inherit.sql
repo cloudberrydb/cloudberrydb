@@ -140,7 +140,7 @@ select * from d;
 
 -- Test non-inheritable parent constraints
 create table p1(ff1 int);
-alter table p1 add constraint p1chk check no inherit (ff1 > 0);
+alter table p1 add constraint p1chk check (ff1 > 0) no inherit;
 alter table p1 add constraint p2chk check (ff1 > 10);
 -- connoinherit should be true for NO INHERIT constraint
 select pc.relname, pgc.conname, pgc.contype, pgc.conislocal, pgc.coninhcount, pgc.connoinherit from pg_class as pc inner join pg_constraint as pgc on (pgc.conrelid = pc.oid) where pc.relname = 'p1' order by 1,2;
@@ -290,6 +290,42 @@ SELECT a.attrelid::regclass, a.attname, a.attinhcount, e.expected
   ORDER BY a.attrelid::regclass::name, a.attnum;
 
 DROP TABLE inht1, inhs1 CASCADE;
+
+
+-- Test non-inheritable indices [UNIQUE, EXCLUDE] contraints
+CREATE TABLE test_constraints (id int, val1 varchar, val2 int, UNIQUE(val1, val2));
+CREATE TABLE test_constraints_inh () INHERITS (test_constraints);
+\d+ test_constraints
+ALTER TABLE ONLY test_constraints DROP CONSTRAINT test_constraints_val1_val2_key;
+\d+ test_constraints
+\d+ test_constraints_inh
+DROP TABLE test_constraints_inh;
+DROP TABLE test_constraints;
+
+CREATE TABLE test_ex_constraints (
+    c circle,
+    EXCLUDE USING gist (c WITH &&)
+);
+CREATE TABLE test_ex_constraints_inh () INHERITS (test_ex_constraints);
+\d+ test_ex_constraints
+ALTER TABLE test_ex_constraints DROP CONSTRAINT test_ex_constraints_c_excl;
+\d+ test_ex_constraints
+\d+ test_ex_constraints_inh
+DROP TABLE test_ex_constraints_inh;
+DROP TABLE test_ex_constraints;
+
+-- Test non-inheritable foreign key contraints
+CREATE TABLE test_primary_constraints(id int PRIMARY KEY);
+CREATE TABLE test_foreign_constraints(id1 int REFERENCES test_primary_constraints(id));
+CREATE TABLE test_foreign_constraints_inh () INHERITS (test_foreign_constraints);
+\d+ test_primary_constraints
+\d+ test_foreign_constraints
+ALTER TABLE test_foreign_constraints DROP CONSTRAINT test_foreign_constraints_id1_fkey;
+\d+ test_foreign_constraints
+\d+ test_foreign_constraints_inh
+DROP TABLE test_foreign_constraints_inh;
+DROP TABLE test_foreign_constraints;
+DROP TABLE test_primary_constraints;
 
 --
 -- Test parameterized append plans for inheritance trees

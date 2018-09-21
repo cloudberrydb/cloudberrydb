@@ -100,6 +100,18 @@ FROM rows q;
 
 SELECT row_to_json(row((select array_agg(x) as d from generate_series(5,10) x)),false);
 
+--json_agg
+
+SELECT json_agg(q)
+  FROM ( SELECT $$a$$ || x AS b, y AS c,
+               ARRAY[ROW(x.*,ARRAY[1,2,3]),
+               ROW(y.*,ARRAY[4,5,6])] AS z
+         FROM generate_series(1,2) x,
+              generate_series(4,5) y) q;
+
+SELECT json_agg(q order by q)
+  FROM rows q;
+
 -- non-numeric output
 SELECT row_to_json(q)
 FROM (SELECT 'NaN'::float8 AS "float8field") q;
@@ -127,15 +139,15 @@ INSERT INTO test_json VALUES
 ('array','["zero", "one","two",null,"four","five"]'),
 ('object','{"field1":"val1","field2":"val2","field3":null}');
 
-SELECT test_json -> 'x' 
+SELECT test_json -> 'x'
 FROM test_json
 WHERE json_type = 'scalar';
 
-SELECT test_json -> 'x' 
+SELECT test_json -> 'x'
 FROM test_json
 WHERE json_type = 'array';
 
-SELECT test_json -> 'x' 
+SELECT test_json -> 'x'
 FROM test_json
 WHERE json_type = 'object';
 
@@ -143,15 +155,15 @@ SELECT test_json->'field2'
 FROM test_json
 WHERE json_type = 'object';
 
-SELECT test_json->>'field2' 
+SELECT test_json->>'field2'
 FROM test_json
 WHERE json_type = 'object';
 
-SELECT test_json -> 2 
+SELECT test_json -> 2
 FROM test_json
 WHERE json_type = 'scalar';
 
-SELECT test_json -> 2 
+SELECT test_json -> 2
 FROM test_json
 WHERE json_type = 'array';
 
@@ -284,6 +296,20 @@ select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":
 select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
 select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
 select * from json_populate_recordset(row('def',99,null)::jpop,'[{"c":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
+
+-- handling of unicode surrogate pairs
+
+select json '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a' as correct_in_utf8;
+select json '{ "a":  "\ud83d\ud83d" }' -> 'a'; -- 2 high surrogates in a row
+select json '{ "a":  "\ude04\ud83d" }' -> 'a'; -- surrogates in wrong order
+select json '{ "a":  "\ud83dX" }' -> 'a'; -- orphan high surrogate
+select json '{ "a":  "\ude04X" }' -> 'a'; -- orphan low surrogate
+
+--handling of simple unicode escapes
+
+select json '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8;
+select json '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere;
+select json '{ "a":  "null \u0000 escape" }' ->> 'a' as not_unescaped;
 
 -- checking proisstrict settings
 

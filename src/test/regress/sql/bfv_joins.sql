@@ -1,12 +1,8 @@
 --
 -- Set up
 --
-drop table if exists x;
-drop table if exists y;
-drop table if exists z;
-drop table if exists t;
-drop table if exists t1;
-drop table if exists t2;
+create schema bfv_joins;
+set search_path='bfv_joins';
 
 create table x (a int, b int, c int);
 insert into x values (generate_series(1,10), generate_series(1,10), generate_series(1,10));
@@ -118,20 +114,6 @@ select * from x_part left join x_non_part on (a > e);
 select * from x_part right join x_non_part on (a > e);
 select * from x_part join x_non_part on (my_equality(a,e));
 
---
--- Clean up
---
-drop table if exists x;
-drop table if exists y;
-drop function func_x(int);
-drop table if exists z;
-drop table if exists bfv_joins_foo;
-drop table if exists bfv_joins_bar;
-drop table if exists t;
-drop table if exists x_non_part;
-drop table if exists x_part;
-drop function my_equality(int, int);
-
 
 -- Bug-fix verification for MPP-25537: PANIC when bitmap index used in ORCA select
 CREATE TABLE mpp25537_facttable1 (
@@ -194,11 +176,6 @@ select * from
 full outer join fjtest_c on (s.aid = cid);
 
 -- Do not push down any implied predicates to the Left Outer Join
-DROP TABLE IF EXISTS member;
-DROP TABLE IF EXISTS member_group;
-DROP TABLE IF EXISTS member_subgroup;
-DROP TABLE IF EXISTS region;
-
 CREATE TABLE member(member_id int NOT NULL, group_id int NOT NULL) DISTRIBUTED BY(member_id);
 CREATE TABLE member_group(group_id int NOT NULL) DISTRIBUTED BY(group_id);
 CREATE TABLE region(region_id char(4), county_name varchar(25)) DISTRIBUTED BY(region_id);
@@ -223,7 +200,7 @@ LEFT OUTER JOIN region
 ON (member_group.group_id IN (12,13,14,15) AND member_subgroup.subgroup_name = region.county_name);
 
 
-DROP TABLE member;
-DROP TABLE member_group;
-DROP TABLE member_subgroup;
-DROP TABLE region;
+-- Clean up. None of the objects we create are very interesting to keep around.
+reset search_path;
+set client_min_messages='warning';
+drop schema bfv_joins cascade;

@@ -16,6 +16,7 @@
 #include <locale.h>
 
 /* postgreSQL stuff */
+#include "access/htup_details.h"
 #include "access/xact.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_proc.h"
@@ -98,7 +99,7 @@ typedef struct plperl_interp_desc
  *
  * The refcount field counts the struct's reference from the hash table shown
  * below, plus one reference for each function call level that is using the
- * struct.  We can release the struct, and the associated Perl sub, when the
+ * struct.	We can release the struct, and the associated Perl sub, when the
  * refcount goes to zero.
  **********************************************************************/
 typedef struct plperl_proc_desc
@@ -882,7 +883,16 @@ pp_require_safe(pTHX)
 		RETPUSHYES;
 
 	DIE(aTHX_ "Unable to load %s into plperl", name);
-	return NULL;				/* keep compiler quiet */
+
+	/*
+	 * In most Perl versions, DIE() expands to a return statement, so the next
+	 * line is not necessary.  But in versions between but not including
+	 * 5.11.1 and 5.13.3 it does not, so the next line is necessary to avoid a
+	 * "control reaches end of non-void function" warning from gcc.  Other
+	 * compilers such as Solaris Studio will, however, issue a "statement not
+	 * reached" warning instead.
+	 */
+	return NULL;
 }
 
 

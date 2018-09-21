@@ -160,8 +160,8 @@ PQconnectStartParams      157
 PQping                    158
 PQpingParams              159
 PQlibVersion              160
-PQsetRowProcessor         161
-PQgetRowProcessor         162
-PQskipResult              163
-PQsetSingleRowMode        164
+PQsetSingleRowMode        161
+lo_lseek64                162
+lo_tell64                 163
+lo_truncate64             164
 PQconninfo                165

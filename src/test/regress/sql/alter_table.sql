@@ -218,7 +218,7 @@ ALTER TABLE ONLY constraint_rename_test RENAME CONSTRAINT con1 TO con1foo; -- fa
 ALTER TABLE constraint_rename_test RENAME CONSTRAINT con1 TO con1foo; -- ok
 \d constraint_rename_test
 \d constraint_rename_test2
-ALTER TABLE constraint_rename_test ADD CONSTRAINT con2 CHECK NO INHERIT (b > 0);
+ALTER TABLE constraint_rename_test ADD CONSTRAINT con2 CHECK (b > 0) NO INHERIT;
 ALTER TABLE ONLY constraint_rename_test RENAME CONSTRAINT con2 TO con2foo; -- ok
 ALTER TABLE constraint_rename_test RENAME CONSTRAINT con2foo TO con2bar; -- ok
 \d constraint_rename_test
@@ -507,14 +507,14 @@ drop table atacc1;
 create table atacc1 (test int);
 create table atacc2 (test2 int) inherits (atacc1);
 -- ok:
-alter table atacc1 add constraint foo check no inherit (test>0);
+alter table atacc1 add constraint foo check (test>0) no inherit;
 -- check constraint is not there on child
 insert into atacc2 (test) values (-3);
 -- check constraint is there on parent
 insert into atacc1 (test) values (-3);
 insert into atacc1 (test) values (3);
 -- fail, violating row:
-alter table atacc2 add constraint foo check no inherit (test>0);
+alter table atacc2 add constraint foo check (test>0) no inherit;
 drop table atacc2;
 drop table atacc1;
 
@@ -1250,6 +1250,13 @@ alter table test_storage alter a set storage extended; -- re-add TOAST table
 select reltoastrelid <> 0 as has_toast_table
 from pg_class
 where oid = 'test_storage'::regclass;
+
+-- ALTER TYPE with a check constraint and a child table (bug before Nov 2012)
+CREATE TABLE test_inh_check (a float check (a > 10.2));
+CREATE TABLE test_inh_check_child() INHERITS(test_inh_check);
+ALTER TABLE test_inh_check ALTER COLUMN a TYPE numeric;
+\d test_inh_check
+\d test_inh_check_child
 
 --
 -- lock levels

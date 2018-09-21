@@ -5,8 +5,6 @@ DROP TABLE IF EXISTS public.spi64bittest;
 NOTICE:  table "spi64bittest" does not exist, skipping
 -- use a sequence as primary key, so we can update the data later on
 CREATE TABLE public.spi64bittest (id BIGSERIAL PRIMARY KEY, data BIGINT);
-NOTICE:  CREATE TABLE will create implicit sequence "spi64bittest_id_seq" for serial column "spi64bittest.id"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "spi64bittest_pkey" for table "spi64bittest"
 -- general test case first, user test case afterwards
 -- Pretend that the INSERT below inserted more than 4 billion rows in a plpgsql function
 --

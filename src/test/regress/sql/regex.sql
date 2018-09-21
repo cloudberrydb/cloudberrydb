@@ -24,3 +24,37 @@ select 'abc abc abd' ~ '^(.+)( \1)+$' as f;
 select substring('asd TO foo' from ' TO (([a-z0-9._]+|"([^"]+|"")+")+)');
 select substring('a' from '((a))+');
 select substring('a' from '((a)+)');
+
+-- Test conversion of regex patterns to indexable conditions
+-- start_ignore
+-- GPDB_93_MERGE_FIXME: the statistics and/or cost estimation code
+-- in GPDB, combined with the much higher default random_page_cost
+-- setting than PostgreSQL's, means that the planner chooses a seq scan
+-- rather than an index scan for these. Force index scans, so that
+-- the test tests what it's supposed to test. But we should investigate
+-- why exactly the cost estimates are so different. There should be no
+-- difference in the true cost of scans on catalog tables - they're not
+-- even distributed.
+set enable_seqscan=off;
+set enable_bitmapscan=off;
+-- end_ignore
+explain (costs off) select * from pg_proc where proname ~ 'abc';
+explain (costs off) select * from pg_proc where proname ~ '^abc';
+explain (costs off) select * from pg_proc where proname ~ '^abc$';
+explain (costs off) select * from pg_proc where proname ~ '^abcd*e';
+explain (costs off) select * from pg_proc where proname ~ '^abc+d';
+explain (costs off) select * from pg_proc where proname ~ '^(abc)(def)';
+explain (costs off) select * from pg_proc where proname ~ '^(abc)$';
+explain (costs off) select * from pg_proc where proname ~ '^(abc)?d';
+
+-- start_ignore
+reset enable_seqscan;
+reset enable_bitmapscan;
+-- end_ignore
+
+-- Test for infinite loop in pullback() (CVE-2007-4772)
+select 'a' ~ '($|^)*';
+
+-- Test for infinite loop in fixempties() (Tcl bugs 3604074, 3606683)
+select 'a' ~ '((((((a)*)*)*)*)*)*';
+select 'a' ~ '((((((a+|)+|)+|)+|)+|)+|)';

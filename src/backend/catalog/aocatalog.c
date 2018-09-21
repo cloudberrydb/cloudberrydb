@@ -149,6 +149,7 @@ CreateAOAuxiliaryTable(
 											     (Datum) 0,
 												 /* use_user_acl */ false,
 											     true,
+												 true,
 												 /* valid_opts */ false,
 												 /* is_part_child */ false,
 												 is_part_parent);
@@ -177,7 +178,7 @@ CreateAOAuxiliaryTable(
 										 rel->rd_rel->reltablespace,
 										 collationObjectId, classObjectId, coloptions, (Datum) 0,
 										 true, false, false, false,
-										 true, false, false, NULL);
+										 true, false, false, true, NULL);
 
 		/* Unlock target table -- no one can see it */
 		heap_close(aoauxiliary_rel, ShareLock);

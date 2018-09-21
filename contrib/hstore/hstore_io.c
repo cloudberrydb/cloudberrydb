@@ -5,9 +5,13 @@
 
 #include <ctype.h>
 
+#include "access/htup_details.h"
 #include "catalog/pg_type.h"
 #include "funcapi.h"
+#include "lib/stringinfo.h"
 #include "libpq/pqformat.h"
+#include "utils/builtins.h"
+#include "utils/json.h"
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
 
@@ -36,7 +40,7 @@ typedef struct
 do { \
 		if ( state->cur - state->word + 1 >= state->wordlen ) \
 		{ \
-				int4 clen = state->cur - state->word; \
+				int32 clen = state->cur - state->word; \
 				state->wordlen *= 2; \
 				state->word = (char*)repalloc( (void*)state->word, state->wordlen ); \
 				state->cur = state->word + clen; \
@@ -74,7 +78,7 @@ get_val(HSParser *state, bool ignoreeq, bool *escaped)
 			}
 			else if (*(state->ptr) == '=' && !ignoreeq)
 			{
-				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int32) (state->ptr - state->begin));
 			}
 			else if (*(state->ptr) == '\\')
 			{
@@ -163,8 +167,6 @@ get_val(HSParser *state, bool ignoreeq, bool *escaped)
 
 		state->ptr++;
 	}
-
-	return false;
 }
 
 #define WKEY	0
@@ -215,7 +217,7 @@ parse_hstore(HSParser *state)
 			}
 			else if (!isspace((unsigned char) *(state->ptr)))
 			{
-				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int32) (state->ptr - state->begin));
 			}
 		}
 		else if (st == WGT)
@@ -230,7 +232,7 @@ parse_hstore(HSParser *state)
 			}
 			else
 			{
-				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int32) (state->ptr - state->begin));
 			}
 		}
 		else if (st == WVAL)
@@ -263,7 +265,7 @@ parse_hstore(HSParser *state)
 			}
 			else if (!isspace((unsigned char) *(state->ptr)))
 			{
-				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int32) (state->ptr - state->begin));
 			}
 		}
 		else
@@ -304,7 +306,7 @@ comparePairs(const void *a, const void *b)
  * and (b) who knows whether they might be needed by some caller.
  */
 int
-hstoreUniquePairs(Pairs *a, int4 l, int4 *buflen)
+hstoreUniquePairs(Pairs *a, int32 l, int32 *buflen)
 {
 	Pairs	   *ptr,
 			   *res;
@@ -367,14 +369,14 @@ hstoreCheckValLen(size_t len)
 
 
 HStore *
-hstorePairs(Pairs *pairs, int4 pcount, int4 buflen)
+hstorePairs(Pairs *pairs, int32 pcount, int32 buflen)
 {
 	HStore	   *out;
 	HEntry	   *entry;
 	char	   *ptr;
 	char	   *buf;
-	int4		len;
-	int4		i;
+	int32		len;
+	int32		i;
 
 	len = CALCDATASIZE(pcount, buflen);
 	out = palloc(len);
@@ -402,7 +404,7 @@ Datum
 hstore_in(PG_FUNCTION_ARGS)
 {
 	HSParser	state;
-	int4		buflen;
+	int32		buflen;
 	HStore	   *out;
 
 	state.begin = PG_GETARG_CSTRING(0);
@@ -422,11 +424,11 @@ Datum		hstore_recv(PG_FUNCTION_ARGS);
 Datum
 hstore_recv(PG_FUNCTION_ARGS)
 {
-	int4		buflen;
+	int32		buflen;
 	HStore	   *out;
 	Pairs	   *pairs;
-	int4		i;
-	int4		pcount;
+	int32		i;
+	int32		pcount;
 	StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
 
 	pcount = pq_getmsgint(buf, 4);
@@ -518,7 +520,7 @@ Datum		hstore_from_arrays(PG_FUNCTION_ARGS);
 Datum
 hstore_from_arrays(PG_FUNCTION_ARGS)
 {
-	int4		buflen;
+	int32		buflen;
 	HStore	   *out;
 	Pairs	   *pairs;
 	Datum	   *key_datums;
@@ -632,7 +634,7 @@ hstore_from_array(PG_FUNCTION_ARGS)
 	ArrayType  *in_array = PG_GETARG_ARRAYTYPE_P(0);
 	int			ndims = ARR_NDIM(in_array);
 	int			count;
-	int4		buflen;
+	int32		buflen;
 	HStore	   *out;
 	Pairs	   *pairs;
 	Datum	   *in_datums;
@@ -737,7 +739,7 @@ Datum
 hstore_from_record(PG_FUNCTION_ARGS)
 {
 	HeapTupleHeader rec;
-	int4		buflen;
+	int32		buflen;
 	HStore	   *out;
 	Pairs	   *pairs;
 	Oid			tupType;
@@ -1209,4 +1211,225 @@ hstore_send(PG_FUNCTION_ARGS)
 	}
 
 	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+}
+
+
+/*
+ * hstore_to_json_loose
+ *
+ * This is a heuristic conversion to json which treats
+ * 't' and 'f' as booleans and strings that look like numbers as numbers,
+ * as long as they don't start with a leading zero followed by another digit
+ * (think zip codes or phone numbers starting with 0).
+ */
+PG_FUNCTION_INFO_V1(hstore_to_json_loose);
+Datum		hstore_to_json_loose(PG_FUNCTION_ARGS);
+Datum
+hstore_to_json_loose(PG_FUNCTION_ARGS)
+{
+	HStore	   *in = PG_GETARG_HS(0);
+	int			buflen,
+				i;
+	int			count = HS_COUNT(in);
+	char	   *out,
+			   *ptr;
+	char	   *base = STRPTR(in);
+	HEntry	   *entries = ARRPTR(in);
+	bool		is_number;
+	StringInfo	src,
+				dst;
+
+	if (count == 0)
+	{
+		out = palloc(1);
+		*out = '\0';
+		PG_RETURN_TEXT_P(cstring_to_text(out));
+	}
+
+	buflen = 3;
+
+	/*
+	 * Formula adjusted slightly from the logic in hstore_out. We have to take
+	 * account of out treatment of booleans to be a bit more pessimistic about
+	 * the length of values.
+	 */
+
+	for (i = 0; i < count; i++)
+	{
+		/* include "" and colon-space and comma-space */
+		buflen += 6 + 2 * HS_KEYLEN(entries, i);
+		/* include "" only if nonnull */
+		buflen += 3 + (HS_VALISNULL(entries, i)
+					   ? 1
+					   : 2 * HS_VALLEN(entries, i));
+	}
+
+	out = ptr = palloc(buflen);
+
+	src = makeStringInfo();
+	dst = makeStringInfo();
+
+	*ptr++ = '{';
+
+	for (i = 0; i < count; i++)
+	{
+		resetStringInfo(src);
+		resetStringInfo(dst);
+		appendBinaryStringInfo(src, HS_KEY(entries, base, i), HS_KEYLEN(entries, i));
+		escape_json(dst, src->data);
+		strncpy(ptr, dst->data, dst->len);
+		ptr += dst->len;
+		*ptr++ = ':';
+		*ptr++ = ' ';
+		resetStringInfo(dst);
+		if (HS_VALISNULL(entries, i))
+			appendStringInfoString(dst, "null");
+		/* guess that values of 't' or 'f' are booleans */
+		else if (HS_VALLEN(entries, i) == 1 && *(HS_VAL(entries, base, i)) == 't')
+			appendStringInfoString(dst, "true");
+		else if (HS_VALLEN(entries, i) == 1 && *(HS_VAL(entries, base, i)) == 'f')
+			appendStringInfoString(dst, "false");
+		else
+		{
+			is_number = false;
+			resetStringInfo(src);
+			appendBinaryStringInfo(src, HS_VAL(entries, base, i), HS_VALLEN(entries, i));
+
+			/*
+			 * don't treat something with a leading zero followed by another
+			 * digit as numeric - could be a zip code or similar
+			 */
+			if (src->len > 0 &&
+				!(src->data[0] == '0' &&
+				  isdigit((unsigned char) src->data[1])) &&
+				strspn(src->data, "+-0123456789Ee.") == src->len)
+			{
+				/*
+				 * might be a number. See if we can input it as a numeric
+				 * value. Ignore any actual parsed value.
+				 */
+				char	   *endptr = "junk";
+				long		lval;
+
+				lval = strtol(src->data, &endptr, 10);
+				(void) lval;
+				if (*endptr == '\0')
+				{
+					/*
+					 * strol man page says this means the whole string is
+					 * valid
+					 */
+					is_number = true;
+				}
+				else
+				{
+					/* not an int - try a double */
+					double		dval;
+
+					dval = strtod(src->data, &endptr);
+					(void) dval;
+					if (*endptr == '\0')
+						is_number = true;
+				}
+			}
+			if (is_number)
+				appendBinaryStringInfo(dst, src->data, src->len);
+			else
+				escape_json(dst, src->data);
+		}
+		strncpy(ptr, dst->data, dst->len);
+		ptr += dst->len;
+
+		if (i + 1 != count)
+		{
+			*ptr++ = ',';
+			*ptr++ = ' ';
+		}
+	}
+	*ptr++ = '}';
+	*ptr = '\0';
+
+	PG_RETURN_TEXT_P(cstring_to_text(out));
+}
+
+PG_FUNCTION_INFO_V1(hstore_to_json);
+Datum		hstore_to_json(PG_FUNCTION_ARGS);
+Datum
+hstore_to_json(PG_FUNCTION_ARGS)
+{
+	HStore	   *in = PG_GETARG_HS(0);
+	int			buflen,
+				i;
+	int			count = HS_COUNT(in);
+	char	   *out,
+			   *ptr;
+	char	   *base = STRPTR(in);
+	HEntry	   *entries = ARRPTR(in);
+	StringInfo	src,
+				dst;
+
+	if (count == 0)
+	{
+		out = palloc(1);
+		*out = '\0';
+		PG_RETURN_TEXT_P(cstring_to_text(out));
+	}
+
+	buflen = 3;
+
+	/*
+	 * Formula adjusted slightly from the logic in hstore_out. We have to take
+	 * account of out treatment of booleans to be a bit more pessimistic about
+	 * the length of values.
+	 */
+
+	for (i = 0; i < count; i++)
+	{
+		/* include "" and colon-space and comma-space */
+		buflen += 6 + 2 * HS_KEYLEN(entries, i);
+		/* include "" only if nonnull */
+		buflen += 3 + (HS_VALISNULL(entries, i)
+					   ? 1
+					   : 2 * HS_VALLEN(entries, i));
+	}
+
+	out = ptr = palloc(buflen);
+
+	src = makeStringInfo();
+	dst = makeStringInfo();
+
+	*ptr++ = '{';
+
+	for (i = 0; i < count; i++)
+	{
+		resetStringInfo(src);
+		resetStringInfo(dst);
+		appendBinaryStringInfo(src, HS_KEY(entries, base, i), HS_KEYLEN(entries, i));
+		escape_json(dst, src->data);
+		strncpy(ptr, dst->data, dst->len);
+		ptr += dst->len;
+		*ptr++ = ':';
+		*ptr++ = ' ';
+		resetStringInfo(dst);
+		if (HS_VALISNULL(entries, i))
+			appendStringInfoString(dst, "null");
+		else
+		{
+			resetStringInfo(src);
+			appendBinaryStringInfo(src, HS_VAL(entries, base, i), HS_VALLEN(entries, i));
+			escape_json(dst, src->data);
+		}
+		strncpy(ptr, dst->data, dst->len);
+		ptr += dst->len;
+
+		if (i + 1 != count)
+		{
+			*ptr++ = ',';
+			*ptr++ = ' ';
+		}
+	}
+	*ptr++ = '}';
+	*ptr = '\0';
+
+	PG_RETURN_TEXT_P(cstring_to_text(out));
 }

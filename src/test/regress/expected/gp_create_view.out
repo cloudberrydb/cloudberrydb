@@ -21,7 +21,6 @@ create table sourcetable
         prc float not null,
         primary key (cn, vn, pn)
 ) distributed by (cn,vn,pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sourcetable_pkey" for table "sourcetable"
 insert into sourcetable values
   ( 2, 41, 100, '1401-1-1', 1100, 2400),
   ( 1, 10, 200, '1401-3-1', 10, 0),

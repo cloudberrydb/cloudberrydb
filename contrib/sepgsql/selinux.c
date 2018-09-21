@@ -5,7 +5,7 @@
  * Interactions between userspace and selinux in kernelspace,
  * using libselinux api.
  *
- * Copyright (c) 2010-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2013, PostgreSQL Global Development Group
  *
  * -------------------------------------------------------------------------
  */
@@ -836,7 +836,8 @@ sepgsql_compute_avd(const char *scontext,
 char *
 sepgsql_compute_create(const char *scontext,
 					   const char *tcontext,
-					   uint16 tclass)
+					   uint16 tclass,
+					   const char *objname)
 {
 	security_context_t ncontext;
 	security_class_t tclass_ex;
@@ -853,9 +854,11 @@ sepgsql_compute_create(const char *scontext,
 	 * Ask SELinux what is the default context for the given object class on a
 	 * pair of security contexts
 	 */
-	if (security_compute_create_raw((security_context_t) scontext,
-									(security_context_t) tcontext,
-									tclass_ex, &ncontext) < 0)
+	if (security_compute_create_name_raw((security_context_t) scontext,
+										 (security_context_t) tcontext,
+										 tclass_ex,
+										 objname,
+										 &ncontext) < 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_INTERNAL_ERROR),
 				 errmsg("SELinux could not compute a new context: "
@@ -893,7 +896,7 @@ sepgsql_compute_create(const char *scontext,
  * tclass: class code (SEPG_CLASS_*) of the object being referenced
  * required: a mask of required permissions (SEPG_<class>__<perm>)
  * audit_name: a human readable object name for audit logs, or NULL.
- * abort: true, if caller wants to raise an error on access violation
+ * abort_on_violation: true, if error shall be raised on access violation
  */
 bool
 sepgsql_check_perms(const char *scontext,
@@ -901,7 +904,7 @@ sepgsql_check_perms(const char *scontext,
 					uint16 tclass,
 					uint32 required,
 					const char *audit_name,
-					bool abort)
+					bool abort_on_violation)
 {
 	struct av_decision avd;
 	uint32		denied;
@@ -937,7 +940,7 @@ sepgsql_check_perms(const char *scontext,
 						  audit_name);
 	}
 
-	if (!result && abort)
+	if (!result && abort_on_violation)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("SELinux: security policy violation")));

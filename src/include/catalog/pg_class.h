@@ -5,7 +5,7 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_class.h
@@ -44,9 +44,9 @@ CATALOG(pg_class,1259) BKI_BOOTSTRAP BKI_ROWTYPE_OID(83) BKI_SCHEMA_MACRO
 
 	/* relfilenode == 0 means it is a "mapped" relation, see relmapper.c */
 	Oid			reltablespace;	/* identifier of table space for relation */
-	int4		relpages;		/* # of blocks (not always up-to-date) */
+	int32		relpages;		/* # of blocks (not always up-to-date) */
 	float4		reltuples;		/* # of tuples (not always up-to-date) */
-	int4		relallvisible;	/* # of all-visible blocks (not always
+	int32		relallvisible;	/* # of all-visible blocks (not always
 								 * up-to-date) */
 	Oid			reltoastrelid;	/* OID of toast table; 0 if none */
 	Oid			reltoastidxid;	/* if toast table, OID of chunk_id index */
@@ -55,20 +55,23 @@ CATALOG(pg_class,1259) BKI_BOOTSTRAP BKI_ROWTYPE_OID(83) BKI_SCHEMA_MACRO
 	char		relpersistence; /* see RELPERSISTENCE_xxx constants below */
 	char		relkind;		/* see RELKIND_xxx constants below */
 	char		relstorage;		/* see RELSTORAGE_xxx constants below */
-	int2		relnatts;		/* number of user attributes */
+	int16		relnatts;		/* number of user attributes */
 
 	/*
 	 * Class pg_attribute must contain exactly "relnatts" user attributes
 	 * (with attnums ranging from 1 to relnatts) for this class.  It may also
 	 * contain entries with negative attnums for system attributes.
 	 */
-	int2		relchecks;		/* # of CHECK constraints for class */
+	int16		relchecks;		/* # of CHECK constraints for class */
 	bool		relhasoids;		/* T if we generate OIDs for rows of rel */
 	bool		relhaspkey;		/* has (or has had) PRIMARY KEY index */
 	bool		relhasrules;	/* has (or has had) any rules */
 	bool		relhastriggers; /* has (or has had) any TRIGGERs */
 	bool		relhassubclass; /* has (or has had) derived classes */
+	bool		relispopulated; /* matview currently holds query results */
 	TransactionId relfrozenxid; /* all Xids < this are frozen in this rel */
+	TransactionId relminmxid;	/* all multixacts in this rel are >= this.
+								 * this is really a MultiXactId */
 
 #ifdef CATALOG_VARLEN			/* variable-length fields start here */
 	/* NOTE: These fields are not present in a relcache entry's rd_rel field. */
@@ -88,7 +91,7 @@ FOREIGN_KEY(reltoastidxid REFERENCES pg_class(oid));
 
 /* Size of fixed part of pg_class tuples, not counting var-length fields */
 #define CLASS_TUPLE_SIZE \
-	 (offsetof(FormData_pg_class,relfrozenxid) + sizeof(TransactionId))
+	 (offsetof(FormData_pg_class,relminmxid) + sizeof(TransactionId))
 
 /* ----------------
  *		Form_pg_class corresponds to a pointer to a tuple with
@@ -102,7 +105,7 @@ typedef FormData_pg_class *Form_pg_class;
  * ----------------
  */
 
-#define Natts_pg_class					28
+#define Natts_pg_class					30
 #define Anum_pg_class_relname			1
 #define Anum_pg_class_relnamespace		2
 #define Anum_pg_class_reltype			3
@@ -128,9 +131,12 @@ typedef FormData_pg_class *Form_pg_class;
 #define Anum_pg_class_relhasrules		23
 #define Anum_pg_class_relhastriggers	24
 #define Anum_pg_class_relhassubclass	25
-#define Anum_pg_class_relfrozenxid		26
-#define Anum_pg_class_relacl			27
-#define Anum_pg_class_reloptions		28
+#define Anum_pg_class_relispopulated	26
+#define Anum_pg_class_relfrozenxid		27
+#define Anum_pg_class_relminmxid		28
+#define Anum_pg_class_relacl			29
+#define Anum_pg_class_reloptions		30
+
 
 /* ----------------
  *		initial contents of pg_class
@@ -141,14 +147,17 @@ typedef FormData_pg_class *Form_pg_class;
  * ----------------
  */
 
-/* Note: "3" in the relfrozenxid column stands for FirstNormalTransactionId */
-DATA(insert OID = 1247 (  pg_type		PGNSP 71 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 30 0 t f f f f 3 _null_ _null_ ));
+/*
+ * Note: "3" in the relfrozenxid column stands for FirstNormalTransactionId;
+ * similarly, "1" in relminmxid stands for FirstMultiXactId
+ */
+DATA(insert OID = 1247 (  pg_type		PGNSP 71 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 30 0 t f f f f t 3 1 _null_ _null_ ));
 DESCR("");
-DATA(insert OID = 1249 (  pg_attribute	PGNSP 75 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 21 0 f f f f f 3 _null_ _null_ ));
+DATA(insert OID = 1249 (  pg_attribute	PGNSP 75 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 21 0 f f f f f t 3 1 _null_ _null_ ));
 DESCR("");
-DATA(insert OID = 1255 (  pg_proc		PGNSP 81 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 29 0 t f f f f 3 _null_ _null_ ));
+DATA(insert OID = 1255 (  pg_proc		PGNSP 81 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 29 0 t f f f f t 3 1 _null_ _null_ ));
 DESCR("");
-DATA(insert OID = 1259 (  pg_class		PGNSP 83 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 28 0 t f f f f 3 _null_ _null_ ));
+DATA(insert OID = 1259 (  pg_class		PGNSP 83 0 PGUID 0 0 0 0 0 0 0 0 f f p r h 30 0 t f f f f t 3 1 _null_ _null_ ));
 DESCR("");
 
 
@@ -160,9 +169,14 @@ DESCR("");
 #define		  RELKIND_COMPOSITE_TYPE  'c'		/* composite type */
 #define		  RELKIND_FOREIGN_TABLE   'f'		/* foreign table */
 #define		  RELKIND_UNCATALOGED	  'u'		/* not yet cataloged */
+#define		  RELKIND_MATVIEW		  'm'		/* materialized view */
 #define		  RELKIND_AOSEGMENTS	  'o'		/* AO segment files and eof's */
 #define		  RELKIND_AOBLOCKDIR	  'b'		/* AO block directory */
-#define		  RELKIND_AOVISIMAP		  'm'		/* AO visibility map */
+#define		  RELKIND_AOVISIMAP		  'M'		/* AO visibility map */
+// GPDB_93_MERGE_FIXME: RELKIND_AOVISIMAP used to be 'm', but that means MATVIEW now.
+// Find all the places where it might be referred to using just 'm', without using this
+// macro. E.g. pg_dump and psql. They might need to also work differently depending
+// on version.
 
 #define		  RELPERSISTENCE_PERMANENT	'p'		/* regular table */
 #define		  RELPERSISTENCE_UNLOGGED	'u'		/* unlogged permanent table */

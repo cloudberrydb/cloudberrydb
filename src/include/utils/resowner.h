@@ -9,7 +9,7 @@
  * See utils/resowner/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/resowner.h
@@ -24,7 +24,6 @@
 #include "utils/catcache.h"
 #include "utils/plancache.h"
 #include "utils/snapshot.h"
-
 
 /*
  * ResourceOwner objects are an opaque data structure known only within

@@ -4,7 +4,7 @@
  *	  prototypes for parse_relation.c.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/parse_relation.h
@@ -59,16 +59,19 @@ extern RangeTblEntry *addRangeTableEntryForRelation(ParseState *pstate,
 extern RangeTblEntry *addRangeTableEntryForSubquery(ParseState *pstate,
 							  Query *subquery,
 							  Alias *alias,
+							  bool lateral,
 							  bool inFromCl);
 extern RangeTblEntry *addRangeTableEntryForFunction(ParseState *pstate,
 							  char *funcname,
 							  Node *funcexpr,
 							  RangeFunction *rangefunc,
+							  bool lateral,
 							  bool inFromCl);
 extern RangeTblEntry *addRangeTableEntryForValues(ParseState *pstate,
 							List *exprs,
 							List *collations,
 							Alias *alias,
+							bool lateral,
 							bool inFromCl);
 extern RangeTblEntry *addRangeTableEntryForJoin(ParseState *pstate,
 						  List *colnames,
@@ -85,7 +88,9 @@ extern LockingClause *getLockedRefname(ParseState *pstate, const char *refname);
 extern void addRTEtoQuery(ParseState *pstate, RangeTblEntry *rte,
 			  bool addToJoinList,
 			  bool addToRelNameSpace, bool addToVarNameSpace);
-extern void errorMissingRTE(ParseState *pstate, RangeVar *relation);
+extern void errorMissingRTE(ParseState *pstate, RangeVar *relation) __attribute__((noreturn));
+extern void errorMissingColumn(ParseState *pstate,
+	   char *relname, char *colname, int location) __attribute__((noreturn));
 extern void expandRTE(RangeTblEntry *rte, int rtindex, int sublevels_up,
 		  int location, bool include_dropped,
 		  List **colnames, List **colvars);
@@ -95,6 +100,7 @@ extern int	attnameAttNum(Relation rd, const char *attname, bool sysColOK);
 extern Name attnumAttName(Relation rd, int attid);
 extern Oid	attnumTypeId(Relation rd, int attid);
 extern Oid	attnumCollationId(Relation rd, int attid);
+extern bool isQueryUsingTempRelation(Query *query);
 
 extern bool isSimplyUpdatableRelation(Oid relid, bool noerror);
 extern Index extractSimplyUpdatableRTEIndex(List *rtable);

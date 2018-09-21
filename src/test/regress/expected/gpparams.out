@@ -78,10 +78,8 @@ COPY module_job_parameters (mod_job_id, key, value) FROM stdin;
 COPY module_targets (mod_job_id, alias_id, target) FROM stdin;
 ALTER TABLE ONLY in_product
     ADD CONSTRAINT in_product_pkey PRIMARY KEY (alias_id, product_id, date_inserted);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "in_product_pkey" for table "in_product"
 ALTER TABLE ONLY module_job_parameters
     ADD CONSTRAINT module_job_parameters_pkey PRIMARY KEY (mod_job_id, key);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "module_job_parameters_pkey" for table "module_job_parameters"
 --
 -- Name: create_target_list(integer, integer); Type: FUNCTION; Schema: public; Owner: gpadmin
 --

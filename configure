@@ -11,7 +11,7 @@
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
 #
-# Copyright (c) 1996-2012, PostgreSQL Global Development Group
+# Copyright (c) 1996-2013, PostgreSQL Global Development Group
 ## -------------------- ##
 ## M4sh Initialization. ##
 ## -------------------- ##
@@ -677,11 +677,11 @@ apr_includes
 APR_1_CONFIG
 ADDON_DIR
 ZIC
+python_enable_shared
 python_additional_libs
 python_libspec
 python_libdir
 python_includespec
-python_configdir
 python_version
 python_majorversion
 PYTHON
@@ -698,6 +698,10 @@ MKDIR_P
 AWK
 LN_S
 TAR
+install_bin
+INSTALL_DATA
+INSTALL_SCRIPT
+INSTALL_PROGRAM
 WINDRES
 DLLWRAP
 DLLTOOL
@@ -771,7 +775,6 @@ enable_gphdfs
 enable_pxf
 enable_gpfdist
 enable_rpath
-enable_shared
 default_port
 PORTNAME
 host_os
@@ -833,7 +836,6 @@ with_libraries
 with_libs
 enable_integer_datetimes
 with_pgport
-enable_shared
 enable_rpath
 enable_spinlocks
 enable_atomics
@@ -1520,7 +1522,6 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --disable-integer-datetimes
                           disable 64-bit integer date/time support
-  --disable-shared        do not build shared libraries
   --disable-rpath         do not embed shared library search path in
                           executables
   --disable-spinlocks     do not use spinlocks
@@ -1684,7 +1685,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
 
-Copyright (c) 1996-2012, PostgreSQL Global Development Group
+Copyright (c) 1996-2013, PostgreSQL Global Development Group
 _ACEOF
   exit
 fi
@@ -2990,7 +2991,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-PG_PACKAGE_VERSION=9.2beta2
+PG_PACKAGE_VERSION=9.3beta1
 
 
 
@@ -3399,34 +3400,6 @@ _ACEOF
 cat >>confdefs.h <<_ACEOF
 #define DEF_PGPORT_STR "${default_port}"
 _ACEOF
-
-
-
-#
-# Option to disable shared libraries
-#
-
-
-# Check whether --enable-shared was given.
-if test "${enable_shared+set}" = set; then :
-  enableval=$enable_shared;
-  case $enableval in
-    yes)
-      :
-      ;;
-    no)
-      :
-      ;;
-    *)
-      as_fn_error $? "no argument expected for --enable-shared option" "$LINENO" 5
-      ;;
-  esac
-
-else
-  enable_shared=yes
-
-fi
-
 
 
 
@@ -8696,10 +8669,21 @@ $as_echo_n "checking whether it is possible to strip libraries... " >&6; }
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
   else
-    STRIP_STATIC_LIB=:
-    STRIP_SHARED_LIB=:
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+    case $host_os in
+      darwin*)
+        STRIP="$STRIP -x"
+        STRIP_STATIC_LIB=$STRIP
+        STRIP_SHARED_LIB=$STRIP
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+        ;;
+      *)
+        STRIP_STATIC_LIB=:
+        STRIP_SHARED_LIB=:
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+        ;;
+    esac
   fi
 
 
@@ -9074,6 +9058,108 @@ else
 fi
 
 fi
+
+# Find a good install program.  We prefer a C program (faster),
+# so one script is as good as another.  But avoid the broken or
+# incompatible versions:
+# SysV /etc/install, /usr/sbin/install
+# SunOS /usr/etc/install
+# IRIX /sbin/install
+# AIX /bin/install
+# AmigaOS /C/install, which installs bootblocks on floppy discs
+# AIX 4 /usr/bin/installbsd, which doesn't work without a -g flag
+# AFS /usr/afsws/bin/install, which mishandles nonexistent args
+# SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
+# OS/2's system install, which has a completely different semantic
+# ./install, which can be erroneously created by make from ./install.sh.
+# Reject install programs that cannot install multiple files.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a BSD-compatible install" >&5
+$as_echo_n "checking for a BSD-compatible install... " >&6; }
+if test -z "$INSTALL"; then
+if ${ac_cv_path_install+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    # Account for people who put trailing slashes in PATH elements.
+case $as_dir/ in #((
+  ./ | .// | /[cC]/* | \
+  /etc/* | /usr/sbin/* | /usr/etc/* | /sbin/* | /usr/afsws/bin/* | \
+  ?:[\\/]os2[\\/]install[\\/]* | ?:[\\/]OS2[\\/]INSTALL[\\/]* | \
+  /usr/ucb/* ) ;;
+  *)
+    # OSF1 and SCO ODT 3.0 have their own names for install.
+    # Don't use installbsd from OSF since it installs stuff as root
+    # by default.
+    for ac_prog in ginstall scoinst install; do
+      for ac_exec_ext in '' $ac_executable_extensions; do
+	if as_fn_executable_p "$as_dir/$ac_prog$ac_exec_ext"; then
+	  if test $ac_prog = install &&
+	    grep dspmsg "$as_dir/$ac_prog$ac_exec_ext" >/dev/null 2>&1; then
+	    # AIX install.  It has an incompatible calling convention.
+	    :
+	  elif test $ac_prog = install &&
+	    grep pwplus "$as_dir/$ac_prog$ac_exec_ext" >/dev/null 2>&1; then
+	    # program-specific install script used by HP pwplus--don't use.
+	    :
+	  else
+	    rm -rf conftest.one conftest.two conftest.dir
+	    echo one > conftest.one
+	    echo two > conftest.two
+	    mkdir conftest.dir
+	    if "$as_dir/$ac_prog$ac_exec_ext" -c conftest.one conftest.two "`pwd`/conftest.dir" &&
+	      test -s conftest.one && test -s conftest.two &&
+	      test -s conftest.dir/conftest.one &&
+	      test -s conftest.dir/conftest.two
+	    then
+	      ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
+	      break 3
+	    fi
+	  fi
+	fi
+      done
+    done
+    ;;
+esac
+
+  done
+IFS=$as_save_IFS
+
+rm -rf conftest.one conftest.two conftest.dir
+
+fi
+  if test "${ac_cv_path_install+set}" = set; then
+    INSTALL=$ac_cv_path_install
+  else
+    # As a last resort, use the slow shell script.  Don't cache a
+    # value for INSTALL within a source directory, because that will
+    # break other packages using the cache if that directory is
+    # removed, or if the value is a relative name.
+    INSTALL=$ac_install_sh
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $INSTALL" >&5
+$as_echo "$INSTALL" >&6; }
+
+# Use test -z because SunOS4 sh mishandles braces in ${var-val}.
+# It thinks the first close brace ends the variable substitution.
+test -z "$INSTALL_PROGRAM" && INSTALL_PROGRAM='${INSTALL}'
+
+test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
+
+test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
+
+# When Autoconf chooses install-sh as install program it tries to generate
+# a relative path to it in each makefile where it subsitutes it. This clashes
+# with our Makefile.global concept. This workaround helps.
+case $INSTALL in
+  *install-sh*) install_bin='';;
+  *) install_bin=$INSTALL;;
+esac
+
 
 # Extract the first word of "tar", so it can be a program name with args.
 set dummy tar; ac_word=$2
@@ -9462,24 +9548,32 @@ if test "$with_perl" = yes; then
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Perl archlibexp" >&5
 $as_echo_n "checking for Perl archlibexp... " >&6; }
 perl_archlibexp=`$PERL -MConfig -e 'print $Config{archlibexp}'`
+test "$PORTNAME" = "win32" && perl_archlibexp=`echo $perl_archlibexp | sed 's,\\\\,/,g'`
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $perl_archlibexp" >&5
 $as_echo "$perl_archlibexp" >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Perl privlibexp" >&5
 $as_echo_n "checking for Perl privlibexp... " >&6; }
 perl_privlibexp=`$PERL -MConfig -e 'print $Config{privlibexp}'`
+test "$PORTNAME" = "win32" && perl_privlibexp=`echo $perl_privlibexp | sed 's,\\\\,/,g'`
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $perl_privlibexp" >&5
 $as_echo "$perl_privlibexp" >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Perl useshrplib" >&5
 $as_echo_n "checking for Perl useshrplib... " >&6; }
 perl_useshrplib=`$PERL -MConfig -e 'print $Config{useshrplib}'`
+test "$PORTNAME" = "win32" && perl_useshrplib=`echo $perl_useshrplib | sed 's,\\\\,/,g'`
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $perl_useshrplib" >&5
 $as_echo "$perl_useshrplib" >&6; }
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for flags to link embedded Perl" >&5
 $as_echo_n "checking for flags to link embedded Perl... " >&6; }
+if test "$PORTNAME" = "win32" ; then
+perl_lib=`basename $perl_archlibexp/CORE/perl[5-9]*.lib .lib`
+test -e "$perl_archlibexp/CORE/$perl_lib.lib" && perl_embed_ldflags="-L$perl_archlibexp/CORE -l$perl_lib"
+else
 pgac_tmp1=`$PERL -MExtUtils::Embed -e ldopts`
 pgac_tmp2=`$PERL -MConfig -e 'print $Config{ccdlflags}'`
 perl_embed_ldflags=`echo X"$pgac_tmp1" | sed -e "s/^X//" -e "s%$pgac_tmp2%%" -e "s/ -arch [-a-zA-Z0-9_]*//g"`
+fi
 if test -z "$perl_embed_ldflags" ; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -9562,9 +9656,6 @@ else
 fi
 python_includespec=`${PYTHON} -c "import distutils.sysconfig; print('-I'+distutils.sysconfig.get_python_inc())"`
 
-# This should be enough of a message.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $python_configdir" >&5
-$as_echo "$python_configdir" >&6; }
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to link an embedded Python application" >&5
@@ -9573,8 +9664,14 @@ $as_echo_n "checking how to link an embedded Python application... " >&6; }
 python_libdir=`${PYTHON} -c "import distutils.sysconfig; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('LIBDIR'))))"`
 python_ldlibrary=`${PYTHON} -c "import distutils.sysconfig; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('LDLIBRARY'))))"`
 ldlibrary=`echo "${python_ldlibrary}" | sed -e 's/\.so$//' -e 's/\.dll$//' -e 's/\.dylib$//' -e 's/\.sl$//'`
+python_framework=`${PYTHON} -c "import distutils.sysconfig; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('PYTHONFRAMEWORK'))))"`
+python_enable_shared=`${PYTHON} -c "import distutils.sysconfig; print(distutils.sysconfig.get_config_vars().get('Py_ENABLE_SHARED',0))"`
 
-if test x"${python_libdir}" != x"" -a x"${python_ldlibrary}" != x"" -a x"${python_ldlibrary}" != x"${ldlibrary}"
+if test -n "$python_framework"; then
+	python_frameworkprefix=`${PYTHON} -c "import distutils.sysconfig; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('PYTHONFRAMEWORKPREFIX'))))"`
+	python_libspec="-F${python_frameworkprefix} -framework $python_framework"
+	python_enable_shared=1
+elif test x"${python_libdir}" != x"" -a x"${python_ldlibrary}" != x"" -a x"${python_ldlibrary}" != x"${ldlibrary}"
 then
 	# New way: use the official shared library
 	ldlibrary=`echo "${ldlibrary}" | sed "s/^lib//"`
@@ -9595,7 +9692,9 @@ else
 	python_libspec="-L${python_libdir} -lpython${python_ldversion}"
 fi
 
-python_additional_libs=`${PYTHON} -c "import distutils.sysconfig; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('LIBS','LIBC','LIBM','BASEMODLIBS'))))"`
+if test -z "$python_framework"; then
+	python_additional_libs=`${PYTHON} -c "import distutils.sysconfig; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('LIBS','LIBC','LIBM','BASEMODLIBS'))))"`
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${python_libspec} ${python_additional_libs}" >&5
 $as_echo "${python_libspec} ${python_additional_libs}" >&6; }
@@ -12065,9 +12164,9 @@ fi
 
 # for contrib/sepgsql
 if test "$with_selinux" = yes; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for selinux_status_open in -lselinux" >&5
-$as_echo_n "checking for selinux_status_open in -lselinux... " >&6; }
-if ${ac_cv_lib_selinux_selinux_status_open+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for security_compute_create_name in -lselinux" >&5
+$as_echo_n "checking for security_compute_create_name in -lselinux... " >&6; }
+if ${ac_cv_lib_selinux_security_compute_create_name+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -12081,27 +12180,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char selinux_status_open ();
+char security_compute_create_name ();
 int
 main ()
 {
-return selinux_status_open ();
+return security_compute_create_name ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_selinux_selinux_status_open=yes
+  ac_cv_lib_selinux_security_compute_create_name=yes
 else
-  ac_cv_lib_selinux_selinux_status_open=no
+  ac_cv_lib_selinux_security_compute_create_name=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_selinux_selinux_status_open" >&5
-$as_echo "$ac_cv_lib_selinux_selinux_status_open" >&6; }
-if test "x$ac_cv_lib_selinux_selinux_status_open" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_selinux_security_compute_create_name" >&5
+$as_echo "$ac_cv_lib_selinux_security_compute_create_name" >&6; }
+if test "x$ac_cv_lib_selinux_security_compute_create_name" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBSELINUX 1
 _ACEOF
@@ -12109,7 +12208,7 @@ _ACEOF
   LIBS="-lselinux $LIBS"
 
 else
-  as_fn_error $? "library 'libselinux', version 2.0.99 or newer, is required for SELinux support" "$LINENO" 5
+  as_fn_error $? "library 'libselinux', version 2.1.10 or newer, is required for SELinux support" "$LINENO" 5
 fi
 
 fi
@@ -15391,7 +15490,7 @@ LIBS=`echo "$LIBS" | sed -e 's/-ledit//g' -e 's/-lreadline//g'`
 # net-snmp has the same problem..
 LIBS=`echo "$LIBS" | sed -e 's/-lnetsnmp//g'`
 
-for ac_func in cbrt dlopen fcvt fdatasync getifaddrs getpeerucred getrlimit memmove poll pstat readlink setproctitle setsid sigprocmask symlink towlower utime utimes waitpid wcstombs wcstombs_l
+for ac_func in cbrt dlopen fdatasync getifaddrs getpeerucred getrlimit mbstowcs_l memmove poll pstat readlink setproctitle setsid sigprocmask symlink sync_file_range towlower utime utimes wcstombs wcstombs_l
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16303,6 +16402,73 @@ $as_echo "#define HAVE_GCC_INT_ATOMICS 1" >>confdefs.h
 
 fi
 
+# Lastly, restore full LIBS list and check for readline/libedit symbols
+LIBS="$LIBS_including_readline"
+
+if test "$with_readline" = yes; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rl_completion_append_character" >&5
+$as_echo_n "checking for rl_completion_append_character... " >&6; }
+if ${pgac_cv_var_rl_completion_append_character+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <stdio.h>
+#ifdef HAVE_READLINE_READLINE_H
+# include <readline/readline.h>
+#elif defined(HAVE_READLINE_H)
+# include <readline.h>
+#endif
+
+int
+main ()
+{
+rl_completion_append_character = 'x';
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  pgac_cv_var_rl_completion_append_character=yes
+else
+  pgac_cv_var_rl_completion_append_character=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pgac_cv_var_rl_completion_append_character" >&5
+$as_echo "$pgac_cv_var_rl_completion_append_character" >&6; }
+if test x"$pgac_cv_var_rl_completion_append_character" = x"yes"; then
+
+$as_echo "#define HAVE_RL_COMPLETION_APPEND_CHARACTER 1" >>confdefs.h
+
+fi
+  for ac_func in rl_completion_matches rl_filename_completion_function
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+  for ac_func in append_history history_truncate_file
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for builtin locking functions" >&5
 $as_echo_n "checking for builtin locking functions... " >&6; }
@@ -17101,44 +17267,6 @@ fi
 
 
 
-# Older versions of libxml2 lack the xmlStructuredErrorContext variable
-# (which could be a macro referring to a function, if threading is enabled)
-if test "$with_libxml" = yes ; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for xmlStructuredErrorContext" >&5
-$as_echo_n "checking for xmlStructuredErrorContext... " >&6; }
-if ${pgac_cv_libxml_structerrctx+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <libxml/globals.h>
-                void *globptr;
-int
-main ()
-{
-globptr = xmlStructuredErrorContext
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  pgac_cv_libxml_structerrctx=yes
-else
-  pgac_cv_libxml_structerrctx=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pgac_cv_libxml_structerrctx" >&5
-$as_echo "$pgac_cv_libxml_structerrctx" >&6; }
-  if test x"$pgac_cv_libxml_structerrctx" = x"yes"; then
-
-$as_echo "#define HAVE_XMLSTRUCTUREDERRORCONTEXT 1" >>confdefs.h
-
-  fi
-fi
-
-
 # This test makes sure that run tests work at all.  Sometimes a shared
 # library is found by the linker, but the runtime linker can't find it.
 # This check should come after all modifications of compiler or linker
@@ -17393,7 +17521,6 @@ fi
 cat >>confdefs.h <<_ACEOF
 #define PG_INT64_TYPE $pg_int64_type
 _ACEOF
-
 
 
 
@@ -18883,6 +19010,55 @@ fi
     CPPFLAGS=$ac_save_CPPFLAGS
 fi
 
+# check for <perl.h>
+if test "$with_perl" = yes; then
+  ac_save_CPPFLAGS=$CPPFLAGS
+  CPPFLAGS="$CPPFLAGS -I$perl_archlibexp/CORE"
+  ac_fn_c_check_header_compile "$LINENO" "perl.h" "ac_cv_header_perl_h" "#include <EXTERN.h>
+"
+if test "x$ac_cv_header_perl_h" = xyes; then :
+
+else
+  as_fn_error $? "header file <perl.h> is required for Perl" "$LINENO" 5
+fi
+
+
+  # While we're at it, check that we can link to libperl.
+  # On most platforms, if perl.h is there then libperl.so will be too, but at
+  # this writing Debian packages them separately.  There is no known reason to
+  # waste cycles on separate probes for the Tcl or Python libraries, though.
+  pgac_save_LIBS=$LIBS
+  LIBS="$perl_embed_ldflags"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libperl" >&5
+$as_echo_n "checking for libperl... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <EXTERN.h>
+#include <perl.h>
+
+int
+main ()
+{
+perl_alloc();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+     as_fn_error $? "libperl library is required for Perl" "$LINENO" 5
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  LIBS=$pgac_save_LIBS
+  CPPFLAGS=$ac_save_CPPFLAGS
+fi
+
 # check for <Python.h>
 if test "$with_python" = yes; then
   ac_save_CPPFLAGS=$CPPFLAGS
@@ -19732,6 +19908,9 @@ fi
 ac_config_headers="$ac_config_headers src/include/pg_config.h"
 
 
+ac_config_headers="$ac_config_headers src/include/pg_config_ext.h"
+
+
 ac_config_headers="$ac_config_headers src/interfaces/ecpg/include/ecpg_config.h"
 
 
@@ -20322,6 +20501,7 @@ gives unlimited permission to copy, distribute and modify it."
 
 ac_pwd='$ac_pwd'
 srcdir='$srcdir'
+INSTALL='$INSTALL'
 MKDIR_P='$MKDIR_P'
 AWK='$AWK'
 test -n "\$AWK" || AWK=awk
@@ -20447,6 +20627,7 @@ do
     "src/Makefile.port") CONFIG_LINKS="$CONFIG_LINKS src/Makefile.port:src/makefiles/Makefile.${template}" ;;
     "check_win32_symlinks") CONFIG_COMMANDS="$CONFIG_COMMANDS check_win32_symlinks" ;;
     "src/include/pg_config.h") CONFIG_HEADERS="$CONFIG_HEADERS src/include/pg_config.h" ;;
+    "src/include/pg_config_ext.h") CONFIG_HEADERS="$CONFIG_HEADERS src/include/pg_config_ext.h" ;;
     "src/interfaces/ecpg/include/ecpg_config.h") CONFIG_HEADERS="$CONFIG_HEADERS src/interfaces/ecpg/include/ecpg_config.h" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
@@ -20893,6 +21074,10 @@ ac_abs_srcdir=$ac_abs_top_srcdir$ac_dir_suffix
   # CONFIG_FILE
   #
 
+  case $INSTALL in
+  [\\/$]* | ?:[\\/]* ) ac_INSTALL=$INSTALL ;;
+  *) ac_INSTALL=$ac_top_build_prefix$INSTALL ;;
+  esac
   ac_MKDIR_P=$MKDIR_P
   case $MKDIR_P in
   [\\/$]* | ?:[\\/]* ) ;;
@@ -20951,6 +21136,7 @@ s&@abs_top_srcdir@&$ac_abs_top_srcdir&;t t
 s&@builddir@&$ac_builddir&;t t
 s&@abs_builddir@&$ac_abs_builddir&;t t
 s&@abs_top_builddir@&$ac_abs_top_builddir&;t t
+s&@INSTALL@&$ac_INSTALL&;t t
 s&@MKDIR_P@&$ac_MKDIR_P&;t t
 $ac_datarootdir_hack
 "
@@ -21049,6 +21235,10 @@ $as_echo "$as_me: WARNING: *** link for $FILE -- please fix by hand" >&2;}
     "src/include/pg_config.h":H)
 # Update timestamp for pg_config.h (see Makefile.global)
 echo >src/include/stamp-h
+ ;;
+    "src/include/pg_config_ext.h":H)
+# Update timestamp for pg_config_ext.h (see Makefile.global)
+echo >src/include/stamp-ext-h
  ;;
     "src/interfaces/ecpg/include/ecpg_config.h":H) echo >src/interfaces/ecpg/include/stamp-h ;;
 

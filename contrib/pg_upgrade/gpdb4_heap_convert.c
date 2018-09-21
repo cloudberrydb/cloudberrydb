@@ -3,9 +3,11 @@
  *
  *	Support for convertion heap tables from GPDB4 format.
  */
+#include "postgres_fe.h"
 
 #include "pg_upgrade.h"
 
+#include "access/htup_details.h"
 #include "access/xlogdefs.h"
 #include "storage/bufpage.h"
 #include "storage/checksum.h"

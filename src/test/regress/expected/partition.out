@@ -4177,9 +4177,6 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 (0 rows)
 
 alter table it add constraint it_unique_i unique (i);
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "it_i_key" for table "it"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "it_1_prt_1_i_key" for table "it_1_prt_1"
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "it_1_prt_2_i_key" for table "it_1_prt_2"
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename  |    indexname     
 ------------+------------+------------------
@@ -4205,9 +4202,6 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 (0 rows)
 
 alter table it add primary key(i);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_pkey" for table "it"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_1_prt_1_pkey" for table "it_1_prt_1"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_1_prt_2_pkey" for table "it_1_prt_2"
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename  |    indexname    
 ------------+------------+-----------------
@@ -4232,9 +4226,6 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 (0 rows)
 
 alter table it add primary key(i);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_pkey" for table "it"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_1_prt_1_pkey" for table "it_1_prt_1"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_1_prt_2_pkey" for table "it_1_prt_2"
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename  |    indexname    
 ------------+------------+-----------------
@@ -5599,26 +5590,6 @@ NOTICE:  CREATE TABLE will create partition "mpp10223pk_1_prt_daypart_2_prt_p201
 NOTICE:  CREATE TABLE will create partition "mpp10223pk_1_prt_daypart_2_prt_p20100625" for table "mpp10223pk_1_prt_daypart"
 NOTICE:  CREATE TABLE will create partition "mpp10223pk_1_prt_daypart_2_prt_p20100626" for table "mpp10223pk_1_prt_daypart"
 NOTICE:  CREATE TABLE will create partition "mpp10223pk_1_prt_daypart_2_prt_p_endpart" for table "mpp10223pk_1_prt_daypart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_pkey" for table "mpp10223pk"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_min15part_pkey" for table "mpp10223pk_1_prt_min15part"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_min15part_2_prt_p_future_pkey" for table "mpp10223pk_1_prt_min15part_2_prt_p_future"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_min15part_2_prt_p_endpart_pkey" for table "mpp10223pk_1_prt_min15part_2_prt_p_endpart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_pkey" for table "mpp10223pk_1_prt_hourpart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_2_prt_p_future_pkey" for table "mpp10223pk_1_prt_hourpart_2_prt_p_future"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_2_prt_p20100622_pkey" for table "mpp10223pk_1_prt_hourpart_2_prt_p20100622"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_2_prt_p20100623_pkey" for table "mpp10223pk_1_prt_hourpart_2_prt_p20100623"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_2_prt_p20100624_pkey" for table "mpp10223pk_1_prt_hourpart_2_prt_p20100624"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_2_prt_p20100625_pkey" for table "mpp10223pk_1_prt_hourpart_2_prt_p20100625"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_2_prt_p20100626_pkey" for table "mpp10223pk_1_prt_hourpart_2_prt_p20100626"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_hourpart_2_prt_p_endpart_pkey" for table "mpp10223pk_1_prt_hourpart_2_prt_p_endpart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_pkey" for table "mpp10223pk_1_prt_daypart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_2_prt_p_future_pkey" for table "mpp10223pk_1_prt_daypart_2_prt_p_future"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_2_prt_p20100622_pkey" for table "mpp10223pk_1_prt_daypart_2_prt_p20100622"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_2_prt_p20100623_pkey" for table "mpp10223pk_1_prt_daypart_2_prt_p20100623"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_2_prt_p20100624_pkey" for table "mpp10223pk_1_prt_daypart_2_prt_p20100624"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_2_prt_p20100625_pkey" for table "mpp10223pk_1_prt_daypart_2_prt_p20100625"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_2_prt_p20100626_pkey" for table "mpp10223pk_1_prt_daypart_2_prt_p20100626"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_daypart_2_prt_p_endpart_pkey" for table "mpp10223pk_1_prt_daypart_2_prt_p_endpart"
 -- MPP-10421: works -- can re-use name for non-DEFAULT partitions, and
 -- primary key problems fixed
 ALTER TABLE MPP10223pk
@@ -5628,9 +5599,7 @@ INTO (PARTITION P20010101, PARTITION P_FUTURE);
 NOTICE:  exchanged partition "p_future" of partition "min15part" of relation "mpp10223pk" with relation "pg_temp_530246"
 NOTICE:  dropped partition "p_future" for partition "min15part" of relation "mpp10223pk"
 NOTICE:  CREATE TABLE will create partition "mpp10223pk_1_prt_min15part_2_prt_p20010101" for table "mpp10223pk_1_prt_min15part"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_min15part_2_prt_p20010101_pkey" for table "mpp10223pk_1_prt_min15part_2_prt_p20010101"
 NOTICE:  CREATE TABLE will create partition "mpp10223pk_1_prt_min15part_2_prt_p_future" for table "mpp10223pk_1_prt_min15part"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10223pk_1_prt_min15part_2_prt_p_future_pkey1" for table "mpp10223pk_1_prt_min15part_2_prt_p_future"
 drop table mpp10223pk;
 -- rebuild the table without a primary key
 CREATE TABLE MPP10223
@@ -5954,13 +5923,6 @@ NOTICE:  CREATE TABLE will create partition "mpp10321a_1_prt_min15part_2_prt_p_f
 NOTICE:  CREATE TABLE will create partition "mpp10321a_1_prt_min15part_2_prt_p_endpart" for table "mpp10321a_1_prt_min15part"
 NOTICE:  CREATE TABLE will create partition "mpp10321a_1_prt_hourpart_2_prt_p20100622" for table "mpp10321a_1_prt_hourpart"
 NOTICE:  CREATE TABLE will create partition "mpp10321a_1_prt_hourpart_2_prt_p_endpart" for table "mpp10321a_1_prt_hourpart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_pkey" for table "mpp10321a"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_min15part_pkey" for table "mpp10321a_1_prt_min15part"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_min15part_2_prt_p_future_pkey" for table "mpp10321a_1_prt_min15part_2_prt_p_future"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_min15part_2_prt_p_endpart_pkey" for table "mpp10321a_1_prt_min15part_2_prt_p_endpart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_hourpart_pkey" for table "mpp10321a_1_prt_hourpart"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_hourpart_2_prt_p20100622_pkey" for table "mpp10321a_1_prt_hourpart_2_prt_p20100622"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_hourpart_2_prt_p_endpart_pkey" for table "mpp10321a_1_prt_hourpart_2_prt_p_endpart"
 ALTER TABLE mpp10321a
 ALTER PARTITION min15part
 SPLIT PARTITION  P_FUTURE AT ('2010-06-25')
@@ -5968,9 +5930,7 @@ INTO (PARTITION P20010101, PARTITION P_FUTURE);
 NOTICE:  exchanged partition "p_future" of partition "min15part" of relation "mpp10321a" with relation "pg_temp_4055957"
 NOTICE:  dropped partition "p_future" for partition "min15part" of relation "mpp10321a"
 NOTICE:  CREATE TABLE will create partition "mpp10321a_1_prt_min15part_2_prt_p20010101" for table "mpp10321a_1_prt_min15part"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_min15part_2_prt_p20010101_pkey" for table "mpp10321a_1_prt_min15part_2_prt_p20010101"
 NOTICE:  CREATE TABLE will create partition "mpp10321a_1_prt_min15part_2_prt_p_future" for table "mpp10321a_1_prt_min15part"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mpp10321a_1_prt_min15part_2_prt_p_future_pkey1" for table "mpp10321a_1_prt_min15part_2_prt_p_future"
 DROP TABLE mpp10321a;
 -- test for default partition with boundary spec
 create table bhagp_range (a int, b int) 
@@ -6110,9 +6070,6 @@ partition by range (b)
 );
 NOTICE:  CREATE TABLE will create partition "test_table_1_prt_default_partition" for table "test_table"
 NOTICE:  CREATE TABLE will create partition "test_table_1_prt_p1" for table "test_table"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "test_table_pkey" for table "test_table"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "test_table_1_prt_default_partition_pkey" for table "test_table_1_prt_default_partition"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "test_table_1_prt_p1_pkey" for table "test_table_1_prt_p1"
 insert into test_table values(1,2,3);
 select * from test_table; -- expected: (1,2,3)
  a | b | c 
@@ -6145,9 +6102,7 @@ alter table test_table split default partition
 NOTICE:  exchanged partition "default_partition" of relation "test_table" with relation "pg_temp_4057318"
 NOTICE:  dropped partition "default_partition" for relation "test_table"
 NOTICE:  CREATE TABLE will create partition "test_table_1_prt_p2" for table "test_table"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "test_table_1_prt_p2_pkey" for table "test_table_1_prt_p2"
 NOTICE:  CREATE TABLE will create partition "test_table_1_prt_default_partition" for table "test_table"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "test_table_1_prt_default_partition_pkey1" for table "test_table_1_prt_default_partition"
 select relname, attrnums as distribution_attributes from
 gp_distribution_policy p, pg_class c where p.localoid = c.oid and 
 relname like 'test_table%' order by p.localoid;
@@ -6168,7 +6123,6 @@ select * from test_table; -- expected, no rows! But we see the row. Wrong result
 alter table test_table drop partition default_partition;
 alter table test_table add partition foo start(10) end(20);
 NOTICE:  CREATE TABLE will create partition "test_table_1_prt_foo" for table "test_table"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "test_table_1_prt_foo_pkey" for table "test_table_1_prt_foo"
 select relname, attrnums as distribution_attributes from
 gp_distribution_policy p, pg_class c where p.localoid = c.oid and
 relname like 'test_table%' order by p.localoid;
@@ -6757,7 +6711,6 @@ CREATE TABLE dim_phone_numbers (
 ) DISTRIBUTED BY (dim_phone_number_key);
 ALTER TABLE ONLY dim_phone_numbers
     ADD CONSTRAINT dim_phone_numbers_pk1 PRIMARY KEY (dim_phone_number_key);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "dim_phone_numbers_pkey" for table "dim_phone_numbers"
 INSERT INTO dim_phone_numbers VALUES (999902, 'test', '800-123-4568', '8001234568', '2012-09-25 13:34:35.037637');
 INSERT INTO dim_phone_numbers VALUES (999904, 'test', '(800) 123-4570', '8001234570', '2012-09-25 13:34:35.148104');
 INSERT INTO dim_phone_numbers VALUES (999903, 'test', '(800) 123-4569', '8001234569', '2012-09-25 13:34:35.093523');
@@ -6869,17 +6822,17 @@ explain select foo_p.b, foo_p.t from foo_p left outer join bar on foo_p.a = bar.
                      Filter: k = ('{1}'::integer[])[1]
          ->  Hash  (cost=28.50..28.50 rows=2 width=35)
                ->  Append  (cost=0.00..28.50 rows=2 width=35)
-                     ->  Seq Scan on foo_p_1_prt_other foo_p  (cost=0.00..1.00 rows=1 width=40)
+                     ->  Seq Scan on foo_p_1_prt_other  (cost=0.00..1.00 rows=1 width=40)
                            Filter: t IS NOT NULL AND a = ('{1}'::integer[])[1]
-                     ->  Seq Scan on foo_p_1_prt_2 foo_p  (cost=0.00..5.50 rows=1 width=34)
+                     ->  Seq Scan on foo_p_1_prt_2  (cost=0.00..5.50 rows=1 width=34)
                            Filter: t IS NOT NULL AND a = ('{1}'::integer[])[1]
-                     ->  Seq Scan on foo_p_1_prt_3 foo_p  (cost=0.00..5.50 rows=1 width=34)
+                     ->  Seq Scan on foo_p_1_prt_3  (cost=0.00..5.50 rows=1 width=34)
                            Filter: t IS NOT NULL AND a = ('{1}'::integer[])[1]
-                     ->  Seq Scan on foo_p_1_prt_4 foo_p  (cost=0.00..5.50 rows=1 width=34)
+                     ->  Seq Scan on foo_p_1_prt_4  (cost=0.00..5.50 rows=1 width=34)
                            Filter: t IS NOT NULL AND a = ('{1}'::integer[])[1]
-                     ->  Seq Scan on foo_p_1_prt_5 foo_p  (cost=0.00..5.50 rows=1 width=34)
+                     ->  Seq Scan on foo_p_1_prt_5  (cost=0.00..5.50 rows=1 width=34)
                            Filter: t IS NOT NULL AND a = ('{1}'::integer[])[1]
-                     ->  Seq Scan on foo_p_1_prt_6 foo_p  (cost=0.00..5.50 rows=1 width=34)
+                     ->  Seq Scan on foo_p_1_prt_6  (cost=0.00..5.50 rows=1 width=34)
                            Filter: t IS NOT NULL AND a = ('{1}'::integer[])[1]
  Optimizer: legacy query optimizer
 (21 rows)
@@ -8060,11 +8013,6 @@ distributed by (pkid) partition by range (option3)
 	partition bb start(101) end(200),
 	partition cc start(201) end (300)
 );
-NOTICE:  CREATE TABLE will create implicit sequence "sales_pkid_seq" for serial column "sales.pkid"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sales_pkey" for table "sales"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sales_1_prt_aa_pkey" for table "sales_1_prt_aa"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sales_1_prt_bb_pkey" for table "sales_1_prt_bb"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sales_1_prt_cc_pkey" for table "sales_1_prt_cc"
 -- root partition (and only root) should have relfrozenxid as 0
 select relname from pg_class where relkind = 'r' and relname like 'sales%' and relfrozenxid=0;
  relname 
@@ -8099,11 +8047,8 @@ select gp_segment_id, relname from gp_dist_random('pg_class') where relkind = 'r
 alter table sales drop column tax;
 create table newpart(like sales);
 alter table newpart add constraint partable_pkey primary key(pkid, option3);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "newpart_pkey" for table "newpart"
 alter table sales split partition for(1) at (50) into (partition aa1, partition aa2);
 NOTICE:  dropped partition "aa" for relation "sales"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sales_1_prt_aa1_pkey" for table "sales_1_prt_aa1"
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "sales_1_prt_aa2_pkey" for table "sales_1_prt_aa2"
 select table_schema, table_name, constraint_name, constraint_type
 	from information_schema.table_constraints
 	where table_name in ('sales', 'newpart')

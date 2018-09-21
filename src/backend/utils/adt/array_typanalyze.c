@@ -3,7 +3,7 @@
  * array_typanalyze.c
  *	  Functions for gathering statistics from array columns
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -388,8 +388,8 @@ compute_array_stats(VacAttrStats *stats, AnalyzeAttrFetchFunc fetchfunc,
 
 				/*
 				 * If element type is pass-by-reference, we must copy it into
-				 * palloc'd space, so that we can release the array below.
-				 * (We do this so that the space needed for element values is
+				 * palloc'd space, so that we can release the array below. (We
+				 * do this so that the space needed for element values is
 				 * limited by the size of the hashtable; if we kept all the
 				 * array values around, it could be much more.)
 				 */

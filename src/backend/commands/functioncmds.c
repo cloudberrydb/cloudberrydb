@@ -5,7 +5,7 @@
  *	  Routines for CREATE and DROP FUNCTION commands and CREATE and DROP
  *	  CAST commands.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -34,6 +34,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
@@ -48,6 +49,7 @@
 #include "catalog/pg_proc_fn.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_type_fn.h"
+#include "commands/alter.h"
 #include "commands/defrem.h"
 #include "commands/proclang.h"
 #include "miscadmin.h"
@@ -70,8 +72,6 @@
 #include "cdb/cdbdisp_query.h"
 
 
-static void AlterFunctionOwner_internal(Relation rel, HeapTuple tup,
-							Oid newOwnerId);
 static void CheckForModifySystemFunc(Oid funcOid, List *funcName);
 
 
@@ -170,8 +170,7 @@ compute_return_type(TypeName *returnType, Oid languageOid,
 
 	aclresult = pg_type_aclcheck(rettype, GetUserId(), ACL_USAGE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_TYPE,
-					   format_type_be(rettype));
+		aclcheck_error_type(aclresult, rettype);
 
 	*prorettype_p = rettype;
 	*returnsSet_p = returnType->setof;
@@ -288,8 +287,7 @@ interpret_function_parameter_list(List *parameters,
 
 		aclresult = pg_type_aclcheck(toid, GetUserId(), ACL_USAGE);
 		if (aclresult != ACLCHECK_OK)
-			aclcheck_error(aclresult, ACL_KIND_TYPE,
-						   format_type_be(toid));
+			aclcheck_error_type(aclresult, toid);
 
 		if (t->setof)
 		{
@@ -417,13 +415,28 @@ interpret_function_parameter_list(List *parameters,
 			assign_expr_collations(pstate, def);
 
 			/*
-			 * Make sure no variables are referred to.
+			 * Make sure no variables are referred to (this is probably dead
+			 * code now that add_missing_from is history).
 			 */
 			if (list_length(pstate->p_rtable) != 0 ||
 				contain_var_clause(def))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
 						 errmsg("cannot use table references in parameter default value")));
+
+			/*
+			 * transformExpr() should have already rejected subqueries,
+			 * aggregates, and window functions, based on the EXPR_KIND_ for a
+			 * default expression.
+			 *
+			 * It can't return a set either --- but coerce_to_specific_type
+			 * already checked that for us.
+			 *
+			 * Note: the point of these restrictions is to ensure that an
+			 * expression that, on its face, hasn't got subplans, aggregates,
+			 * etc cannot suddenly have them after function default arguments
+			 * are inserted.
+			 */
 
 			*parameterDefaults = lappend(*parameterDefaults, def);
 			have_defaults = true;
@@ -1123,7 +1136,7 @@ validate_describe_callback(List *describeQualName,
  * CreateFunction
  *	 Execute a CREATE FUNCTION utility statement.
  */
-void
+Oid
 CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 {
 	char	   *probin_str;
@@ -1337,32 +1350,32 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	 * so, go ahead and create the function.
 	 */
 	funcOid = ProcedureCreate(funcname,
-					namespaceId,
-					stmt->replace,
-					returnsSet,
-					prorettype,
-					GetUserId(),
-					languageOid,
-					languageValidator,
-					describeFuncOid,
-					prosrc_str, /* converted to text later */
-					probin_str, /* converted to text later */
-					false,		/* not an aggregate */
-					isWindowFunc,
-					security,
-					isLeakProof,
-					isStrict,
-					volatility,
-					parameterTypes,
-					PointerGetDatum(allParameterTypes),
-					PointerGetDatum(parameterModes),
-					PointerGetDatum(parameterNames),
-					parameterDefaults,
-					PointerGetDatum(proconfig),
-					procost,
-					prorows,
-					dataAccess,
-					execLocation);
+						   namespaceId,
+						   stmt->replace,
+						   returnsSet,
+						   prorettype,
+						   GetUserId(),
+						   languageOid,
+						   languageValidator,
+						   describeFuncOid,
+						   prosrc_str,	/* converted to text later */
+						   probin_str,	/* converted to text later */
+						   false,		/* not an aggregate */
+						   isWindowFunc,
+						   security,
+						   isLeakProof,
+						   isStrict,
+						   volatility,
+						   parameterTypes,
+						   PointerGetDatum(allParameterTypes),
+						   PointerGetDatum(parameterModes),
+						   PointerGetDatum(parameterNames),
+						   parameterDefaults,
+						   PointerGetDatum(proconfig),
+						   procost,
+						   prorows,
+						   dataAccess,
+						   execLocation);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -1373,6 +1386,8 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 									GetAssignedOidsForDispatch(),
 									NULL);
 	}
+
+	return funcOid;
 }
 
 /*
@@ -1427,217 +1442,12 @@ RemoveFunctionById(Oid funcOid)
 	}
 }
 
-
-/*
- * Rename function
- */
-void
-RenameFunction(List *name, List *argtypes, const char *newname)
-{
-	Oid			procOid;
-	Oid			namespaceOid;
-	HeapTuple	tup;
-	Form_pg_proc procForm;
-	Relation	rel;
-	AclResult	aclresult;
-
-	rel = heap_open(ProcedureRelationId, RowExclusiveLock);
-
-	procOid = LookupFuncNameTypeNames(name, argtypes, false);
-
-	tup = SearchSysCacheCopy1(PROCOID, ObjectIdGetDatum(procOid));
-	if (!HeapTupleIsValid(tup)) /* should not happen */
-		elog(ERROR, "cache lookup failed for function %u", procOid);
-	procForm = (Form_pg_proc) GETSTRUCT(tup);
-
-	if (procForm->proisagg)
-		ereport(ERROR,
-				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is an aggregate function",
-						NameListToString(name)),
-			 errhint("Use ALTER AGGREGATE to rename aggregate functions.")));
-
-	namespaceOid = procForm->pronamespace;
-
-	/* make sure the new name doesn't exist */
-	if (SearchSysCacheExists3(PROCNAMEARGSNSP,
-							  CStringGetDatum(newname),
-							  PointerGetDatum(&procForm->proargtypes),
-							  ObjectIdGetDatum(namespaceOid)))
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_DUPLICATE_FUNCTION),
-				 errmsg("function %s already exists in schema \"%s\"",
-						funcname_signature_string(newname,
-												  procForm->pronargs,
-												  NIL,
-											   procForm->proargtypes.values),
-						get_namespace_name(namespaceOid))));
-	}
-
-	/* must be owner */
-	if (!pg_proc_ownercheck(procOid, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_PROC,
-					   NameListToString(name));
-
-	/* must have CREATE privilege on namespace */
-	aclresult = pg_namespace_aclcheck(namespaceOid, GetUserId(), ACL_CREATE);
-	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
-					   get_namespace_name(namespaceOid));
-
-	/* check bootstrap object */
-	CheckForModifySystemFunc(procOid, name);
-
-	/* rename */
-	namestrcpy(&(procForm->proname), newname);
-	simple_heap_update(rel, &tup->t_self, tup);
-	CatalogUpdateIndexes(rel, tup);
-
-	heap_close(rel, NoLock);
-	heap_freetuple(tup);
-}
-
-/*
- * Change function owner by name and args
- */
-void
-AlterFunctionOwner(List *name, List *argtypes, Oid newOwnerId)
-{
-	Relation	rel;
-	Oid			procOid;
-	HeapTuple	tup;
-
-	rel = heap_open(ProcedureRelationId, RowExclusiveLock);
-
-	procOid = LookupFuncNameTypeNames(name, argtypes, false);
-
-	tup = SearchSysCache1(PROCOID, ObjectIdGetDatum(procOid));
-	if (!HeapTupleIsValid(tup)) /* should not happen */
-		elog(ERROR, "cache lookup failed for function %u", procOid);
-
-	if (((Form_pg_proc) GETSTRUCT(tup))->proisagg)
-		ereport(ERROR,
-				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is an aggregate function",
-						NameListToString(name)),
-				 errhint("Use ALTER AGGREGATE to change owner of aggregate functions.")));
-
-	/* check bootstrap object */
-	CheckForModifySystemFunc(procOid, name);
-
-	AlterFunctionOwner_internal(rel, tup, newOwnerId);
-
-	heap_close(rel, NoLock);
-}
-
-/*
- * Change function owner by Oid
- */
-void
-AlterFunctionOwner_oid(Oid procOid, Oid newOwnerId)
-{
-	Relation	rel;
-	HeapTuple	tup;
-
-	rel = heap_open(ProcedureRelationId, RowExclusiveLock);
-
-	tup = SearchSysCache1(PROCOID, ObjectIdGetDatum(procOid));
-	if (!HeapTupleIsValid(tup)) /* should not happen */
-		elog(ERROR, "cache lookup failed for function %u", procOid);
-	AlterFunctionOwner_internal(rel, tup, newOwnerId);
-
-	heap_close(rel, NoLock);
-}
-
-static void
-AlterFunctionOwner_internal(Relation rel, HeapTuple tup, Oid newOwnerId)
-{
-	Form_pg_proc procForm;
-	AclResult	aclresult;
-	Oid			procOid;
-
-	Assert(RelationGetRelid(rel) == ProcedureRelationId);
-
-	procForm = (Form_pg_proc) GETSTRUCT(tup);
-	procOid = HeapTupleGetOid(tup);
-
-	/*
-	 * If the new owner is the same as the existing owner, consider the
-	 * command to have succeeded.  This is for dump restoration purposes.
-	 */
-	if (procForm->proowner != newOwnerId)
-	{
-		Datum		repl_val[Natts_pg_proc];
-		bool		repl_null[Natts_pg_proc];
-		bool		repl_repl[Natts_pg_proc];
-		Acl		   *newAcl;
-		Datum		aclDatum;
-		bool		isNull;
-		HeapTuple	newtuple;
-
-		/* Superusers can always do it */
-		if (!superuser())
-		{
-			/* Otherwise, must be owner of the existing object */
-			if (!pg_proc_ownercheck(procOid, GetUserId()))
-				aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_PROC,
-							   NameStr(procForm->proname));
-
-			/* Must be able to become new owner */
-			check_is_member_of_role(GetUserId(), newOwnerId);
-
-			/* New owner must have CREATE privilege on namespace */
-			aclresult = pg_namespace_aclcheck(procForm->pronamespace,
-											  newOwnerId,
-											  ACL_CREATE);
-			if (aclresult != ACLCHECK_OK)
-				aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
-							   get_namespace_name(procForm->pronamespace));
-		}
-
-		memset(repl_null, false, sizeof(repl_null));
-		memset(repl_repl, false, sizeof(repl_repl));
-
-		repl_repl[Anum_pg_proc_proowner - 1] = true;
-		repl_val[Anum_pg_proc_proowner - 1] = ObjectIdGetDatum(newOwnerId);
-
-		/*
-		 * Determine the modified ACL for the new owner.  This is only
-		 * necessary when the ACL is non-null.
-		 */
-		aclDatum = SysCacheGetAttr(PROCOID, tup,
-								   Anum_pg_proc_proacl,
-								   &isNull);
-		if (!isNull)
-		{
-			newAcl = aclnewowner(DatumGetAclP(aclDatum),
-								 procForm->proowner, newOwnerId);
-			repl_repl[Anum_pg_proc_proacl - 1] = true;
-			repl_val[Anum_pg_proc_proacl - 1] = PointerGetDatum(newAcl);
-		}
-
-		newtuple = heap_modify_tuple(tup, RelationGetDescr(rel), repl_val,
-									 repl_null, repl_repl);
-
-		simple_heap_update(rel, &newtuple->t_self, newtuple);
-		CatalogUpdateIndexes(rel, newtuple);
-
-		heap_freetuple(newtuple);
-
-		/* Update owner dependency reference */
-		changeDependencyOnOwner(ProcedureRelationId, procOid, newOwnerId);
-	}
-
-	ReleaseSysCache(tup);
-}
-
 /*
  * Implements the ALTER FUNCTION utility command (except for the
  * RENAME and OWNER clauses, which are handled as part of the generic
  * ALTER framework).
  */
-void
+Oid
 AlterFunction(AlterFunctionStmt *stmt)
 {
 	HeapTuple	tup;
@@ -1820,6 +1630,8 @@ AlterFunction(AlterFunctionStmt *stmt)
 	simple_heap_update(rel, &tup->t_self, tup);
 	CatalogUpdateIndexes(rel, tup);
 
+	InvokeObjectPostAlterHook(ProcedureRelationId, funcOid, 0);
+
 	heap_close(rel, NoLock);
 	heap_freetuple(tup);
 	
@@ -1832,6 +1644,8 @@ AlterFunction(AlterFunctionStmt *stmt)
 									NIL,
 									NULL);
 	}
+
+	return funcOid;
 }
 
 /*
@@ -1909,7 +1723,7 @@ SetFunctionArgType(Oid funcOid, int argIndex, Oid newArgType)
 /*
  * CREATE CAST
  */
-void
+Oid
 CreateCast(CreateCastStmt *stmt)
 {
 	Oid			sourcetypeid;
@@ -1958,13 +1772,11 @@ CreateCast(CreateCastStmt *stmt)
 
 	aclresult = pg_type_aclcheck(sourcetypeid, GetUserId(), ACL_USAGE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_TYPE,
-					   format_type_be(sourcetypeid));
+		aclcheck_error_type(aclresult, sourcetypeid);
 
 	aclresult = pg_type_aclcheck(targettypeid, GetUserId(), ACL_USAGE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_TYPE,
-					   format_type_be(targettypeid));
+		aclcheck_error_type(aclresult, targettypeid);
 
 	/* Domains are allowed for historical reasons, but we warn */
 	if (sourcetyptype == TYPTYPE_DOMAIN)
@@ -2219,13 +2031,12 @@ CreateCast(CreateCastStmt *stmt)
 	recordDependencyOnCurrentExtension(&myself, false);
 
 	/* Post creation hook for new cast */
-	InvokeObjectAccessHook(OAT_POST_CREATE,
-						   CastRelationId, castid, 0, NULL);
+	InvokeObjectPostCreateHook(CastRelationId, castid, 0);
 
 	heap_freetuple(tuple);
 
 	heap_close(relation, RowExclusiveLock);
-	
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
@@ -2235,7 +2046,8 @@ CreateCast(CreateCastStmt *stmt)
 									GetAssignedOidsForDispatch(),
 									NULL);
 	}
-	
+
+	return castid;
 }
 
 /*
@@ -2288,84 +2100,26 @@ DropCastById(Oid castOid)
 }
 
 /*
- * Execute ALTER FUNCTION/AGGREGATE SET SCHEMA
+ * Subroutine for ALTER FUNCTION/AGGREGATE SET SCHEMA/RENAME
  *
- * These commands are identical except for the lookup procedure, so share code.
+ * Is there a function with the given name and signature already in the given
+ * namespace?  If so, raise an appropriate error message.
  */
 void
-AlterFunctionNamespace(List *name, List *argtypes, bool isagg,
-					   const char *newschema)
+IsThereFunctionInNamespace(const char *proname, int pronargs,
+						   oidvector *proargtypes, Oid nspOid)
 {
-	Oid			procOid;
-	Oid			nspOid;
-
-	/* get function OID */
-	if (isagg)
-		procOid = LookupAggNameTypeNames(name, argtypes, false);
-	else
-		procOid = LookupFuncNameTypeNames(name, argtypes, false);
-
-	/* get schema OID and check its permissions */
-	nspOid = LookupCreationNamespace(newschema);
-
-	AlterFunctionNamespace_oid(procOid, nspOid);
-}
-
-Oid
-AlterFunctionNamespace_oid(Oid procOid, Oid nspOid)
-{
-	Oid			oldNspOid;
-	HeapTuple	tup;
-	Relation	procRel;
-	Form_pg_proc proc;
-
-	procRel = heap_open(ProcedureRelationId, RowExclusiveLock);
-
-	tup = SearchSysCacheCopy1(PROCOID, ObjectIdGetDatum(procOid));
-	if (!HeapTupleIsValid(tup))
-		elog(ERROR, "cache lookup failed for function %u", procOid);
-	proc = (Form_pg_proc) GETSTRUCT(tup);
-
-	/* check permissions on function */
-	if (!pg_proc_ownercheck(procOid, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_PROC,
-					   NameStr(proc->proname));
-
-	oldNspOid = proc->pronamespace;
-
-	/* common checks on switching namespaces */
-	CheckSetNamespace(oldNspOid, nspOid, ProcedureRelationId, procOid);
-
 	/* check for duplicate name (more friendly than unique-index failure) */
 	if (SearchSysCacheExists3(PROCNAMEARGSNSP,
-							  CStringGetDatum(NameStr(proc->proname)),
-							  PointerGetDatum(&proc->proargtypes),
+							  CStringGetDatum(proname),
+							  PointerGetDatum(proargtypes),
 							  ObjectIdGetDatum(nspOid)))
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_FUNCTION),
-				 errmsg("function \"%s\" already exists in schema \"%s\"",
-						NameStr(proc->proname),
+				 errmsg("function %s already exists in schema \"%s\"",
+						funcname_signature_string(proname, pronargs,
+												  NIL, proargtypes->values),
 						get_namespace_name(nspOid))));
-
-	/* OK, modify the pg_proc row */
-
-	/* tup is a copy, so we can scribble directly on it */
-	proc->pronamespace = nspOid;
-
-	simple_heap_update(procRel, &tup->t_self, tup);
-	CatalogUpdateIndexes(procRel, tup);
-
-	/* Update dependency on schema */
-	if (changeDependencyFor(ProcedureRelationId, procOid,
-							NamespaceRelationId, oldNspOid, nspOid) != 1)
-		elog(ERROR, "failed to change schema dependency for function \"%s\"",
-			 NameStr(proc->proname));
-
-	heap_freetuple(tup);
-
-	heap_close(procRel, RowExclusiveLock);
-
-	return oldNspOid;
 }
 
 /*

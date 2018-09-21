@@ -2918,6 +2918,11 @@ CTranslatorQueryToDXL::TranslateFromClauseToDXL
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("gp_dist_random"));
 		}
 
+		if (rte->lateral)
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("LATERAL"));
+		}
+
 		static const SRTETranslator dxlop_translator_func_mapping_array[] =
 		{
 			{RTE_RELATION, &CTranslatorQueryToDXL::TranslateRTEToDXLLogicalGet},

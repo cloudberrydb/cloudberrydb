@@ -32,8 +32,8 @@ else
 BE_DLLLIBS= -Wl,-bI:$(top_builddir)/src/backend/$(POSTGRES_IMP)
 endif
 
-MKLDEXPORT=$(top_srcdir)/src/backend/port/aix/mkldexport.sh
-EXPSUFF=.exp
+MKLDEXPORT_DIR=src/backend/port/aix
+MKLDEXPORT=$(top_srcdir)/$(MKLDEXPORT_DIR)/mkldexport.sh
 
 %.exp: %.o
 	$(MKLDEXPORT) $^ >$@

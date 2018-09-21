@@ -22,6 +22,7 @@
 #include "miscadmin.h"
 #include "cdb/cdbvars.h"
 #include "nodes/print.h"
+#include "storage/fd.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
 

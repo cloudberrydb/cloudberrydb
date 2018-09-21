@@ -202,7 +202,6 @@ drop table mdt_part_tbl_split_list;
           name varchar(40)
           ) DISTRIBUTED BY (name);
           ALTER TABLE mdt_distributors ADD UNIQUE(name);
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "mdt_distributors_name_key" for table "mdt_distributors"
 --DROP CONSTRAINT constraint_name [ RESTRICT | CASCADE ]
           CREATE TABLE mdt_films (
           code char(5),
@@ -213,7 +212,6 @@ NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "mdt_distributors_n
           len interval hour to minute,
           CONSTRAINT production UNIQUE(date_prod)
           ) distributed by (date_prod);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_films_date_prod_key" for table "mdt_films"
           ALTER TABLE mdt_films DROP CONSTRAINT production RESTRICT;
           CREATE TABLE mdt_films1 (
           code char(5),
@@ -224,7 +222,6 @@ NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_films_date_prod_k
           len interval hour to minute,
           CONSTRAINT production UNIQUE(date_prod)
           ) distributed by (date_prod);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_films1_date_prod_key" for table "mdt_films1"
           ALTER TABLE mdt_films1 DROP CONSTRAINT production CASCADE;
 drop table mdt_distributors;
 drop table mdt_films;
@@ -246,7 +243,6 @@ CREATE TABLE mdt_test_column(
     col_with_constraint numeric UNIQUE,
     col_with_default_text character varying(30) DEFAULT 'test1'
     ) distributed by (col_with_constraint);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_test_column_col_with_constraint_key" for table "mdt_test_column"
     ALTER TABLE mdt_test_column DROP COLUMN toast_col ;
 --drop non toast column
     CREATE TABLE mdt_test_column1(
@@ -264,7 +260,6 @@ NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_test_column_col_w
     col_with_constraint numeric UNIQUE,
     col_with_default_text character varying(30) DEFAULT 'test1'
     ) distributed by (col_with_constraint);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_test_column1_col_with_constraint_key" for table "mdt_test_column1"
     ALTER TABLE mdt_test_column1 DROP COLUMN non_toast_col ;
 drop table mdt_test_column;
 drop table mdt_test_column1;
@@ -369,7 +364,6 @@ drop table mdt_table_set_storage_parameters2;
           price NUMERIC(9,2),
           UNIQUE (apn, effective)
           ) distributed by (apn, effective);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_price_change_apn_effective_key" for table "mdt_price_change"
           CREATE TABLE mdt_stock(
           mdt_stock_apn CHARACTER(15) NOT NULL,
           mdt_stock_effective TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -769,8 +763,6 @@ CREATE TABLE mdt_all_types( bit1 bit(1), bit2 bit varying(50), boolean1 boolean,
 varchar1 varchar(50),date1 date,dp1 double precision,int1 integer,interval1 interval,numeric1 numeric,real1 real,smallint1 smallint,time1 time,bigint1 bigint,
 bigserial1 bigserial,bytea1 bytea,cidr1 cidr,decimal1 decimal,inet1 inet,macaddr1 macaddr,money1 money,serial1 serial,text1 text,time2 time without time zone,
 time3 time with time zone,time4 timestamp without time zone,time5 timestamp with time zone) distributed randomly;
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_bigserial1_seq" for serial column "mdt_all_types.bigserial1"
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_serial1_seq" for serial column "mdt_all_types.serial1"
 drop table mdt_all_types;
 --
 --th CO
@@ -855,14 +847,12 @@ drop table mdt_table_local;
     col_with_default_text character varying(30) DEFAULT 'test1',
     col_with_constraint numeric UNIQUE
     ) DISTRIBUTED BY (col_with_constraint);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_table_with_default_constraint_col_with_constraint_key" for table "mdt_table_with_default_constraint"
 --Table with column constraint
     CREATE TABLE mdt_table_with_default_constraint1 (
     col_with_default_numeric numeric PRIMARY KEY,
     col_with_default_text character varying(30) DEFAULT 'test1',
     col_with_constraint numeric
     ) DISTRIBUTED BY (col_with_default_numeric);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "mdt_table_with_default_constraint1_pkey" for table "mdt_table_with_default_constraint1"
 drop table mdt_table_constraint ;
 drop table mdt_table_with_default_constraint;
 drop table mdt_table_with_default_constraint1;
@@ -873,7 +863,6 @@ drop table mdt_table_with_default_constraint1;
     col_with_default_drop_default character varying(30) DEFAULT 'test1',
     col_with_constraint numeric UNIQUE
     ) DISTRIBUTED BY (col_with_constraint);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "mdt_table_distributed_by_col_with_constraint_key" for table "mdt_table_distributed_by"
     CREATE TABLE mdt_table_distributed_randomly (
     text_col text,
     bigint_col bigint,
@@ -1163,8 +1152,6 @@ drop user mdt_user1;
 drop group mdt_group1;
 --
 CREATE TABLE mdt_all_types ( a int,col001 char DEFAULT 'z',col002 numeric,col003 boolean DEFAULT false,col004 bit(3) DEFAULT '111',col005 text DEFAULT 'pookie', col006 integer[] DEFAULT '{5, 4, 3, 2, 1}', col007 character varying(512) DEFAULT 'Now is the time', col008 character varying DEFAULT 'Now is the time', col009 character varying(512)[], col010 numeric(8),col011 int,col012 double precision, col013 bigint, col014 char(8), col015 bytea,col016 timestamp with time zone,col017 interval, col018 cidr, col019 inet, col020 macaddr,col021 serial, col022 money, col023 bigserial, col024 timetz,col025 circle, col026 box, col027 name,col028 path, col029 int2, col031 bit varying(256),col032 date, col034 lseg,col035 point,col036 polygon,col037 real,col039 time, col040 timestamp )with (appendonly=true);
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_col021_seq" for serial column "mdt_all_types.col021"
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_col023_seq" for serial column "mdt_all_types.col023"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mdt_all_types VALUES (1,'a',11,true,'111', '1_one', '{1,2,3,4,5}', 'Hello .. how are you 1', 'Hello .. how are you 1',    '{one,two,three,four,five}',  12345678, 1, 111.1111,  11,  '1_one_11',   'd',  '2001-12-13 01:51:15+1359',  '11',   '0.0.0.0', '0.0.0.0', 'AA:AA:AA:AA:AA:AA', 1,  '34.23',   1,'00:00:00+1359',  '((2,2),1)',   '((1,2),(2,1))',   'hello', '((1,2),(2,1))', 11,   '010101',   '2001-12-13', '((1,1),(2,2))', '(1,1)', '((1,2),(2,3),(3,4),(4,3),(3,2),(2,1))',    111111, '23:00:00',   '2001-12-13 01:51:15');
@@ -1215,8 +1202,6 @@ drop schema myschema_diff;
 drop table mdt_all_types;
 --
 CREATE TABLE mdt_all_types ( a int,col001 char DEFAULT 'z',col002 numeric,col003 boolean DEFAULT false,col004 bit(3) DEFAULT '111',col005 text DEFAULT 'pookie', col006 integer[] DEFAULT '{5, 4, 3, 2, 1}', col007 character varying(512) DEFAULT 'Now is the time', col008 character varying DEFAULT 'Now is the time', col009 character varying(512)[], col010 numeric(8),col011 int,col012 double precision, col013 bigint, col014 char(8), col015 bytea,col016 timestamp with time zone,col017 interval, col018 cidr, col019 inet, col020 macaddr,col021 serial, col022 money, col023 bigserial, col024 timetz,col025 circle, col026 box, col027 name,col028 path, col029 int2, col031 bit varying(256),col032 date, col034 lseg,col035 point,col036 polygon,col037 real,col039 time, col040 timestamp )with (appendonly=true);
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_col021_seq" for serial column "mdt_all_types.col021"
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_col023_seq" for serial column "mdt_all_types.col023"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mdt_all_types VALUES (1,'a',11,true,'111', '1_one', '{1,2,3,4,5}', 'Hello .. how are you 1', 'Hello .. how are you 1',    '{one,two,three,four,five}',  12345678, 1, 111.1111,  11,  '1_one_11',   'd',  '2001-12-13 01:51:15+1359',  '11',   '0.0.0.0', '0.0.0.0', 'AA:AA:AA:AA:AA:AA', 1,  '34.23',   1,'00:00:00+1359',  '((2,2),1)',   '((1,2),(2,1))',   'hello', '((1,2),(2,1))', 11,   '010101',   '2001-12-13', '((1,1),(2,2))', '(1,1)', '((1,2),(2,3),(3,4),(4,3),(3,2),(2,1))',    111111, '23:00:00',   '2001-12-13 01:51:15');
@@ -1225,8 +1210,6 @@ vacuum full analyse mdt_all_types(col002);
 drop table mdt_all_types;
 --
 CREATE TABLE mdt_all_types ( a int,col001 char DEFAULT 'z',col002 numeric,col003 boolean DEFAULT false,col004 bit(3) DEFAULT '111',col005 text DEFAULT 'pookie', col006 integer[] DEFAULT '{5, 4, 3, 2, 1}', col007 character varying(512) DEFAULT 'Now is the time', col008 character varying DEFAULT 'Now is the time', col009 character varying(512)[], col010 numeric(8),col011 int,col012 double precision, col013 bigint, col014 char(8), col015 bytea,col016 timestamp with time zone,col017 interval, col018 cidr, col019 inet, col020 macaddr,col021 serial, col022 money, col023 bigserial, col024 timetz,col025 circle, col026 box, col027 name,col028 path, col029 int2, col031 bit varying(256),col032 date, col034 lseg,col035 point,col036 polygon,col037 real,col039 time, col040 timestamp )with (appendonly=true);
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_col021_seq" for serial column "mdt_all_types.col021"
-NOTICE:  CREATE TABLE will create implicit sequence "mdt_all_types_col023_seq" for serial column "mdt_all_types.col023"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mdt_all_types VALUES (1,'a',11,true,'111', '1_one', '{1,2,3,4,5}', 'Hello .. how are you 1', 'Hello .. how are you 1',    '{one,two,three,four,five}',  12345678, 1, 111.1111,  11,  '1_one_11',   'd',  '2001-12-13 01:51:15+1359',  '11',   '0.0.0.0', '0.0.0.0', 'AA:AA:AA:AA:AA:AA', 1,  '34.23',   1,'00:00:00+1359',  '((2,2),1)',   '((1,2),(2,1))',   'hello', '((1,2),(2,1))', 11,   '010101',   '2001-12-13', '((1,1),(2,2))', '(1,1)', '((1,2),(2,3),(3,4),(4,3),(3,2),(2,1))',    111111, '23:00:00',   '2001-12-13 01:51:15');

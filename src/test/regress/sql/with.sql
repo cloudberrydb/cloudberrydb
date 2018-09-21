@@ -35,6 +35,21 @@ UNION ALL
 )
 SELECT * FROM t;
 
+-- recursive view
+CREATE RECURSIVE VIEW nums (n) AS
+    VALUES (1)
+UNION ALL
+    SELECT n+1 FROM nums WHERE n < 5;
+
+SELECT * FROM nums;
+
+CREATE OR REPLACE RECURSIVE VIEW nums (n) AS
+    VALUES (1)
+UNION ALL
+    SELECT n+1 FROM nums WHERE n < 6;
+
+SELECT * FROM nums;
+
 -- This is an infinite loop with UNION ALL, but not with UNION
 WITH RECURSIVE t(n) AS (
     SELECT 1
@@ -185,6 +200,17 @@ SELECT * FROM vsubdepartment ORDER BY name;
 -- Check reverse listing
 SELECT pg_get_viewdef('vsubdepartment'::regclass);
 SELECT pg_get_viewdef('vsubdepartment'::regclass, true);
+
+-- Another reverse-listing example
+CREATE VIEW sums_1_100 AS
+WITH RECURSIVE t(n) AS (
+    VALUES (1)
+UNION ALL
+    SELECT n+1 FROM t WHERE n < 100
+)
+SELECT sum(n) FROM t;
+
+\d+ sums_1_100
 
 -- corner case in which sub-WITH gets initialized first
 with recursive q as (
@@ -598,6 +624,115 @@ WITH RECURSIVE t(j) AS (
     SELECT j+1 FROM t WHERE j < 10
 )
 SELECT * FROM t;
+
+--
+-- test WITH attached to intermediate-level set operation
+--
+
+WITH outermost(x) AS (
+  SELECT 1
+  UNION (WITH innermost as (SELECT 2)
+         SELECT * FROM innermost
+         UNION SELECT 3)
+)
+SELECT * FROM outermost;
+
+WITH outermost(x) AS (
+  SELECT 1
+  UNION (WITH innermost as (SELECT 2)
+         SELECT * FROM outermost  -- fail
+         UNION SELECT * FROM innermost)
+)
+SELECT * FROM outermost;
+
+WITH RECURSIVE outermost(x) AS (
+  SELECT 1
+  UNION (WITH innermost as (SELECT 2)
+         SELECT * FROM outermost
+         UNION SELECT * FROM innermost)
+)
+SELECT * FROM outermost;
+
+WITH RECURSIVE outermost(x) AS (
+  WITH innermost as (SELECT 2 FROM outermost) -- fail
+    SELECT * FROM innermost
+    UNION SELECT * from outermost
+)
+SELECT * FROM outermost;
+
+--
+-- This test will fail with the old implementation of PARAM_EXEC parameter
+-- assignment, because the "q1" Var passed down to A's targetlist subselect
+-- looks exactly like the "A.id" Var passed down to C's subselect, causing
+-- the old code to give them the same runtime PARAM_EXEC slot.  But the
+-- lifespans of the two parameters overlap, thanks to B also reading A.
+--
+
+with
+A as ( select q2 as id, (select q1) as x from int8_tbl ),
+B as ( select id, row_number() over (partition by id) as r from A ),
+C as ( select A.id, array(select B.id from B where B.id = A.id) from A )
+select * from C;
+
+--
+-- Test CTEs read in non-initialization orders
+-- gpdb
+-- Remove window funtions from Recursive CTE's test case.
+-- Currently Recursive CTE's do not support the Window Functions,
+-- So we remove it from the test cases.
+--
+
+WITH RECURSIVE
+  tab(id_key,link) AS (VALUES (1,17), (2,17), (3,17), (4,17), (6,17), (5,17)),
+  iter (id_key, row_type, link) AS (
+      SELECT 0, 'base', 17
+    UNION ALL (
+      WITH remaining(id_key, row_type, link, min) AS (
+        SELECT tab.id_key, 'true'::text, iter.link, tab.id_key
+        FROM tab INNER JOIN iter USING (link)
+        WHERE tab.id_key > iter.id_key
+      ),
+      first_remaining AS (
+        SELECT id_key, row_type, link
+        FROM remaining
+        WHERE id_key=min
+      ),
+      effect AS (
+        SELECT tab.id_key, 'new'::text, tab.link
+        FROM first_remaining e INNER JOIN tab ON e.id_key=tab.id_key
+        WHERE e.row_type = 'false'
+      )
+      SELECT * FROM first_remaining
+      UNION ALL SELECT * FROM effect
+    )
+  )
+SELECT * FROM iter;
+
+WITH RECURSIVE
+  tab(id_key,link) AS (VALUES (1,17), (2,17), (3,17), (4,17), (6,17), (5,17)),
+  iter (id_key, row_type, link) AS (
+      SELECT 0, 'base', 17
+    UNION (
+      WITH remaining(id_key, row_type, link, min) AS (
+        SELECT tab.id_key, 'true'::text, iter.link, tab.id_key
+        FROM tab INNER JOIN iter USING (link)
+        WHERE tab.id_key > iter.id_key
+      ),
+      first_remaining AS (
+        SELECT id_key, row_type, link
+        FROM remaining
+        WHERE id_key=min
+      ),
+      effect AS (
+        SELECT tab.id_key, 'new'::text, tab.link
+        FROM first_remaining e INNER JOIN tab ON e.id_key=tab.id_key
+        WHERE e.row_type = 'false'
+      )
+      SELECT * FROM first_remaining
+      UNION ALL SELECT * FROM effect
+    )
+  )
+SELECT * FROM iter;
 
 --
 -- Data-modifying statements in WITH

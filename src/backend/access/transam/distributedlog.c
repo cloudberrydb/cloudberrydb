@@ -1006,27 +1006,3 @@ DistributedLog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	else
 		elog(PANIC, "DistributedLog_redo: unknown op code %u", info);
 }
-
-void
-DistributedLog_desc(StringInfo buf, XLogRecord *record)
-{
-	uint8		info = record->xl_info & ~XLR_INFO_MASK;
-	char		*rec = XLogRecGetData(record);
-
-	if (info == DISTRIBUTEDLOG_ZEROPAGE)
-	{
-		int			page;
-
-		memcpy(&page, rec, sizeof(int));
-		appendStringInfo(buf, "zeropage: %d", page);
-	}
-	else if (info == DISTRIBUTEDLOG_TRUNCATE)
-	{
-		int			page;
-
-		memcpy(&page, rec, sizeof(int));
-		appendStringInfo(buf, "truncate before: %d", page);
-	}
-	else
-		appendStringInfo(buf, "UNKNOWN");
-}

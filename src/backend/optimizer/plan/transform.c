@@ -14,6 +14,7 @@
  */
 
 #include "postgres.h"
+
 #include "nodes/parsenodes.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/clauses.h"
@@ -21,6 +22,7 @@
 #include "optimizer/var.h"
 #include "utils/lsyscache.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_type.h"
 #include "catalog/namespace.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_coerce.h"

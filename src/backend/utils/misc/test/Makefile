@@ -10,5 +10,4 @@ include $(top_builddir)/src/backend/mock.mk
 
 guc_gp.t: \
     $(MOCK_DIR)/backend/utils/misc/superuser_mock.o \
-    $(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o \
-    $(MOCK_DIR)/backend/utils/mmgr/mcxt_mock.o
+    $(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o

@@ -43,7 +43,7 @@
  * HAVE_CBRT, HAVE_FUNCNAME_FUNC, HAVE_FUNCNAME_FUNCTION, HAVE_GETOPT,
  * HAVE_GETOPT_H, HAVE_GETOPT_LONG, HAVE_LOCALE_T, HAVE_RINT, HAVE_STRINGS_H,
  * HAVE_STRTOLL, HAVE_STRTOULL, HAVE_STRUCT_OPTION, ENABLE_THREAD_SAFETY,
- * USE_INLINE, inline, USE_SSE42_CRC32C_WITH_RUNTIME_CHECK
+ * PG_USE_INLINE, inline, USE_SSE42_CRC32C_WITH_RUNTIME_CHECK
  *
  */
 
@@ -286,6 +286,9 @@
 #define HAVE_LONG_LONG_INT_64
 #endif
 
+/* Define to 1 if you have the `mbstowcs_l' function. */
+#define HAVE_MBSTOWCS_L 1
+
 /* Define to 1 if you have the `memmove' function. */
 #define HAVE_MEMMOVE 1
 
@@ -460,6 +463,9 @@
 /* Define to 1 if you have the `symlink' function. */
 #define HAVE_SYMLINK 1
 
+/* Define to 1 if you have the `sync_file_range' function. */
+/* #undef HAVE_SYNC_FILE_RANGE */
+
 /* Define to 1 if you have the `sysconf' function. */
 /* #undef HAVE_SYSCONF */
 
@@ -545,9 +551,6 @@
 /* Define to 1 if you have the `vsnprintf' function. */
 #define HAVE_VSNPRINTF 1
 
-/* Define to 1 if you have the `waitpid' function. */
-/* #undef HAVE_WAITPID */
-
 /* Define to 1 if you have the <wchar.h> header file. */
 #define HAVE_WCHAR_H 1
 
@@ -612,16 +615,19 @@
 #define PACKAGE_STRING "Greenplum Database 6.0.0-alpha"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "9.2beta2"
+#define PACKAGE_VERSION "9.3beta1"
+
+/* Define to the name of a signed 64-bit integer type. */
+#define PG_INT64_TYPE long long int
 
 /* Define to the name of a signed 128-bit integer type. */
 #undef PG_INT128_TYPE
 
 /* PostgreSQL version as a string */
-#define PG_VERSION "9.2beta2"
+#define PG_VERSION "9.3beta1"
 
 /* PostgreSQL version as a number */
-#define PG_VERSION_NUM 90200
+#define PG_VERSION_NUM 90300
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "greenplum"
@@ -675,7 +681,7 @@
 
 /* Define to 1 if "static inline" works without unwanted warnings from
    compilations where static inline functions are defined but not called. */
-#define USE_INLINE 1
+#define PG_USE_INLINE 1
 
 /* Define to 1 if you want 64-bit integer timestamp and interval support.
    (--enable-integer-datetimes) */

@@ -729,33 +729,32 @@ INFO:  Dispatch command to SINGLE content
 (1 row)
 
 explain select count(*) from mpp7638 where a =1;
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Aggregate  (cost=59.42..59.43 rows=1 width=8)
-   ->  Gather Motion 1:1  (slice1; segments: 1)  (cost=59.35..59.40 rows=1 width=8)
-         ->  Aggregate  (cost=59.35..59.36 rows=1 width=8)
-               ->  Append  (cost=0.00..59.33 rows=3 width=0)
-                     ->  Seq Scan on mpp7638_1_prt_1 mpp7638  (cost=0.00..0.00 rows=1 width=0)
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Aggregate  (cost=8900.41..8900.42 rows=1 width=8)
+   ->  Gather Motion 1:1  (slice1; segments: 1)  (cost=8900.35..8900.40 rows=1 width=8)
+         ->  Aggregate  (cost=8900.35..8900.36 rows=1 width=8)
+               ->  Append  (cost=0.00..8898.75 rows=214 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_1  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_2 mpp7638  (cost=0.00..0.00 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_2  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_3 mpp7638  (cost=0.00..0.00 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_3  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_4 mpp7638  (cost=0.00..9.89 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_4  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_5 mpp7638  (cost=0.00..9.89 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_5  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_6 mpp7638  (cost=0.00..9.89 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_6  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_7 mpp7638  (cost=0.00..9.89 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_7  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_8 mpp7638  (cost=0.00..9.89 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_8  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
-                     ->  Seq Scan on mpp7638_1_prt_9 mpp7638  (cost=0.00..9.89 rows=1 width=0)
+                     ->  Seq Scan on mpp7638_1_prt_9  (cost=0.00..988.75 rows=24 width=0)
                            Filter: a = 1
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
-(24 rows)
+ Optimizer: legacy query optimizer
+(23 rows)
 
 alter table mpp7638 set distributed by (a, b, c);
 INFO:  Dispatch command to ALL contents
@@ -1051,22 +1050,21 @@ explain select * from table_a where a0=3;
 (5 rows)
 
 explain select a0 from table_a where a0 in (select max(a1) from table_a);
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=1.13..2.18 rows=4 width=4)
-   ->  Hash Semi Join  (cost=1.13..2.18 rows=2 width=4)
-         Hash Cond: public.table_a.a0 = "IN_subquery".max
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=1.13..2.17 rows=4 width=4)
+   ->  Hash Semi Join  (cost=1.13..2.17 rows=2 width=4)
+         Hash Cond: table_a.a0 = (max((max(table_a_1.a1))))
          ->  Seq Scan on table_a  (cost=0.00..1.01 rows=1 width=4)
-         ->  Hash  (cost=1.12..1.12 rows=1 width=4)
-               ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=1.08..1.12 rows=1 width=4)
-                     Hash Key: "IN_subquery".max
-                     ->  Aggregate  (cost=1.08..1.09 rows=1 width=4)
+         ->  Hash  (cost=1.11..1.11 rows=1 width=4)
+               ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=1.07..1.11 rows=1 width=4)
+                     Hash Key: (max((max(table_a_1.a1))))
+                     ->  Aggregate  (cost=1.07..1.08 rows=1 width=4)
                            ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.01..1.06 rows=1 width=4)
                                  ->  Aggregate  (cost=1.01..1.02 rows=1 width=4)
-                                       ->  Seq Scan on table_a  (cost=0.00..1.01 rows=1 width=4)
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
-(13 rows)
+                                       ->  Seq Scan on table_a table_a_1  (cost=0.00..1.01 rows=1 width=4)
+ Optimizer: legacy query optimizer
+(12 rows)
 
 select a0 from table_a where a0 in (select max(a1) from table_a);
 INFO:  Dispatch command to ALL contents
@@ -1091,23 +1089,22 @@ INFO:  Dispatch command to SINGLE content
 (1 row)
 
 explain select a0 from table_a where a0 in (select max(a1) from table_a where a0=1);
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)  (cost=1.13..2.18 rows=4 width=4)
    ->  Hash Semi Join  (cost=1.13..2.18 rows=2 width=4)
-         Hash Cond: public.table_a.a0 = "IN_subquery".max
+         Hash Cond: table_a.a0 = (max((max(table_a_1.a1))))
          ->  Seq Scan on table_a  (cost=0.00..1.01 rows=1 width=4)
          ->  Hash  (cost=1.12..1.12 rows=1 width=4)
                ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=1.08..1.12 rows=1 width=4)
-                     Hash Key: "IN_subquery".max
+                     Hash Key: (max((max(table_a_1.a1))))
                      ->  Aggregate  (cost=1.08..1.09 rows=1 width=4)
-                           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.02..1.07 rows=1 width=4)
-                                 ->  Aggregate  (cost=1.02..1.03 rows=1 width=4)
-                                       ->  Seq Scan on table_a  (cost=0.00..1.01 rows=1 width=4)
+                           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.01..1.06 rows=1 width=4)
+                                 ->  Aggregate  (cost=1.01..1.02 rows=1 width=4)
+                                       ->  Seq Scan on table_a table_a_1  (cost=0.00..1.01 rows=1 width=4)
                                              Filter: a0 = 1
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
-(14 rows)
+ Optimizer: legacy query optimizer
+(13 rows)
 
 --start_ignore
 drop table table_a cascade;

@@ -227,7 +227,6 @@ gp_get_physical_index_relid(PG_FUNCTION_ARGS)
 		/* Perform the same normalization as relcache.c does. */
 		indPred = eval_const_expressions(NULL, indPred);
 		indPred = (Node *) canonicalize_qual((Expr *) indPred);
-		set_coercionform_dontcare(indPred);
 		indPred = (Node *) make_ands_implicit((Expr *) indPred);
 		fix_opfuncids(indPred);
 
@@ -244,7 +243,6 @@ gp_get_physical_index_relid(PG_FUNCTION_ARGS)
 
 		/* Perform the same normalization as relcache.c does. */
 		indExprs = eval_const_expressions(NULL, indExprs);
-		set_coercionform_dontcare(indExprs);
 		fix_opfuncids(indExprs);
 
 		logicalIndexInfo.indExprs = (List *) indExprs;

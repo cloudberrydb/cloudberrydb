@@ -26,7 +26,7 @@
  * restart needs to be forced.)
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -41,6 +41,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "access/xlog.h"
 #include "access/xlog_internal.h"
 #include "libpq/pqsignal.h"
 #include "miscadmin.h"
@@ -110,7 +111,7 @@
  */
 typedef struct
 {
-	RelFileNode	rnode;
+	RelFileNode rnode;
 	ForkNumber	forknum;
 	BlockNumber segno;			/* see md.c for special values */
 	/* might add a real request-type field later; not needed yet */
@@ -299,6 +300,7 @@ CheckpointerMain(void)
 							 false, true);
 		/* we needn't bother with the other ResourceOwnerRelease phases */
 		AtEOXact_Buffers(false);
+		AtEOXact_SMgr();
 		AtEOXact_Files();
 		AtEOXact_HashTables(false);
 
@@ -351,12 +353,6 @@ CheckpointerMain(void)
 	 * Unblock signals (they were blocked when the postmaster forked us)
 	 */
 	PG_SETMASK(&UnBlockSig);
-
-	/*
-	 * Use the recovery target timeline ID during recovery
-	 */
-	if (RecoveryInProgress())
-		ThisTimeLineID = GetRecoveryTargetTLI();
 
 	/*
 	 * Ensure all shared memory values are set correctly for the config. Doing
@@ -637,7 +633,7 @@ CheckArchiveTimeout(void)
 		 * If the returned pointer points exactly to a segment boundary,
 		 * assume nothing happened.
 		 */
-		if ((switchpoint.xrecoff % XLogSegSize) != 0)
+		if ((switchpoint % XLogSegSize) != 0)
 			ereport(DEBUG1,
 				(errmsg("transaction log switch forced (archive_timeout=%d)",
 						XLogArchiveTimeout)));
@@ -784,10 +780,7 @@ IsCheckpointOnSchedule(double progress)
 	if (!RecoveryInProgress())
 	{
 		recptr = GetInsertRecPtr();
-		elapsed_xlogs =
-			(((double) (int32) (recptr.xlogid - ckpt_start_recptr.xlogid)) * XLogSegsPerFile +
-			 ((double) recptr.xrecoff - (double) ckpt_start_recptr.xrecoff) / XLogSegSize) /
-			CheckPointSegments;
+		elapsed_xlogs = (((double) (recptr - ckpt_start_recptr)) / XLogSegSize) / CheckPointSegments;
 
 		if (progress < elapsed_xlogs)
 		{
@@ -901,17 +894,22 @@ CheckpointerShmemSize(void)
 void
 CheckpointerShmemInit(void)
 {
+	Size		size = CheckpointerShmemSize();
 	bool		found;
 
 	CheckpointerShmem = (CheckpointerShmemStruct *)
 		ShmemInitStruct("Checkpointer Data",
-						CheckpointerShmemSize(),
+						size,
 						&found);
 
 	if (!found)
 	{
-		/* First time through, so initialize */
-		MemSet(CheckpointerShmem, 0, sizeof(CheckpointerShmemStruct));
+		/*
+		 * First time through, so initialize.  Note that we zero the whole
+		 * requests array; this is so that CompactCheckpointerRequestQueue can
+		 * assume that any pad bytes in the request structs are zeroes.
+		 */
+		MemSet(CheckpointerShmem, 0, size);
 		SpinLockInit(&CheckpointerShmem->ckpt_lck);
 		CheckpointerShmem->max_requests = NBuffers;
 	}
@@ -1068,10 +1066,14 @@ RequestCheckpoint(int flags)
  *		Forward a file-fsync request from a backend to the checkpointer
  *
  * Whenever a backend is compelled to write directly to a relation
- * (which should be seldom, if the checkpointer is getting its job done),
+ * (which should be seldom, if the background writer is getting its job done),
  * the backend calls this routine to pass over knowledge that the relation
  * is dirty and must be fsync'd before next checkpoint.  We also use this
  * opportunity to count such writes for statistical purposes.
+ *
+ * This functionality is only supported for regular (not backend-local)
+ * relations, so the rnode argument is intentionally RelFileNode not
+ * RelFileNodeBackend.
  *
  * segno specifies which segment (not block!) of the relation needs to be
  * fsync'd.  (Since the valid range is much less than BlockNumber, we can

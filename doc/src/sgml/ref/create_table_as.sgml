@@ -21,12 +21,13 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-CREATE [ [GLOBAL | LOCAL] {TEMPORARY | TEMP} | UNLOGGED ] TABLE table_name
-   [(column_name [, ...] )]
-   [ WITH ( storage_parameter=value [, ... ] )
-   [ON COMMIT {PRESERVE ROWS | DELETE ROWS | DROP}]
-   [TABLESPACE tablespace]
-   AS query
+CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE <replaceable>table_name</replaceable>
+    [ (<replaceable>column_name</replaceable> [, ...] ) ]
+    [ WITH ( <replaceable class="PARAMETER">storage_parameter</replaceable> [= <replaceable class="PARAMETER">value</replaceable>] [, ... ] ) | WITH OIDS | WITHOUT OIDS ]
+    [ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]
+    [ TABLESPACE <replaceable class="PARAMETER">tablespace_name</replaceable> ]
+    AS <replaceable>query</replaceable>
+    [ WITH [ NO ] DATA ]
    [DISTRIBUTED BY (column, [ ... ] ) | DISTRIBUTED RANDOMLY | DISTRIBUTED REPLICATED]
 where storage_parameter is:
    APPENDONLY={TRUE|FALSE}
@@ -194,10 +195,10 @@ where storage_parameter is:
    </varlistentry>
 
    <varlistentry>
-    <term><literal>TABLESPACE <replaceable class="PARAMETER">tablespace</replaceable></literal></term>
+    <term><literal>TABLESPACE <replaceable class="PARAMETER">tablespace_name</replaceable></literal></term>
     <listitem>
      <para>
-      The <replaceable class="PARAMETER">tablespace</replaceable> is the name
+      The <replaceable class="PARAMETER">tablespace_name</replaceable> is the name
       of the tablespace in which the new table is to be created.
       If not specified,
       <xref linkend="guc-default-tablespace"> is consulted, or
@@ -350,6 +351,7 @@ CREATE TEMP TABLE films_recent WITH (OIDS) ON COMMIT DROP AS
   <title>See Also</title>
 
   <simplelist type="inline">
+   <member><xref linkend="sql-creatematerializedview"></member>
    <member><xref linkend="sql-createtable"></member>
    <member><xref linkend="sql-execute"></member>
    <member><xref linkend="sql-select"></member>

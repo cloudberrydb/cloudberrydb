@@ -236,43 +236,9 @@ cdb_build_distribution_pathkeys(PlannerInfo *root,
 		Var		   *expr = find_indexkey_var(root, rel, attrs[i]);
 
 		/*
-		 * Find or create a pathkey. We distinguish two cases for performance
-		 * reasons: 1) If the relation in question is a child relation under
-		 * an append node, we don't care about ensuring that we return a
-		 * canonicalized version of its pathkey item. Co-location of
-		 * joins/group-bys happens at the append relation level. In
-		 * create_append_path(), the call to
-		 * cdbpathlocus_pull_above_projection() ensures that canonicalized
-		 * pathkeys are created at the append relation level. (see MPP-3536).
-		 *
-		 * 2) For regular relations, we create a canonical pathkey so that we
-		 * may identify co-location for joins/group-bys.
+		 * Find or create a pathkey.
 		 */
-		if (isAppendChildRelation)
-		{
-			/**
-        	 * Append child relation.
-        	 */
-#ifdef DISTRIBUTION_PATHKEYS_DEBUG
-			PathKey    *canonicalPathKeyList = cdb_make_pathkey_for_expr(root, (Node *) expr, eq, true);
-
-			/*
-			 * This assert ensures that we should not really find any
-			 * equivalent keys during canonicalization for append child
-			 * relations.
-			 */
-			Assert(list_length(canonicalPathKeyList) == 1);
-#endif
-			cpathkey = cdb_make_pathkey_for_expr(root, (Node *) expr, eq, false);
-		}
-		else
-		{
-			/**
-        	 * Regular relation.
-        	 */
-			cpathkey = cdb_make_pathkey_for_expr(root, (Node *) expr, eq, true);
-		}
-		Assert(cpathkey);
+		cpathkey = cdb_make_pathkey_for_expr(root, (Node *) expr, eq);
 
 		/* Append to list of pathkeys. */
 		retval = lappend(retval, cpathkey);
@@ -348,7 +314,7 @@ cdbpathlocus_from_exprs(struct PlannerInfo *root,
 		Node	   *expr = (Node *) lfirst(cell);
 		PathKey    *pathkey;
 
-		pathkey = cdb_make_pathkey_for_expr(root, expr, eq, true);
+		pathkey = cdb_make_pathkey_for_expr(root, expr, eq);
 		partkey = lappend(partkey, pathkey);
 	}
 
@@ -427,7 +393,7 @@ cdbpathlocus_from_subquery(struct PlannerInfo *root,
 								  exprTypmod((Node *) tle->expr),
 								  exprCollation((Node *) tle->expr),
 								  0);
-					pathkey = cdb_make_pathkey_for_expr(root, (Node *) var, eq, true);
+					pathkey = cdb_make_pathkey_for_expr(root, (Node *) var, eq);
 					partkey = lappend(partkey, pathkey);
 				}
 				if (partkey &&

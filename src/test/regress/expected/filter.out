@@ -560,9 +560,10 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- TEST filter from outside scope => error
 select * from (select i from filter_test where j = 1) x1, 
               (select sum(i) filter (where i < x1.i) from filter_test where j = 2) x2;
-ERROR:  subquery in FROM cannot refer to other relations of same query level
+ERROR:  invalid reference to FROM-clause entry for table "x1"
 LINE 2:               (select sum(i) filter (where i < x1.i) from fi...
                                                        ^
+HINT:  There is an entry for table "x1", but it cannot be referenced from this part of the query.
 -- TEST against user defined aggregation function
 create or replace function _maxodd(oldmax int, newval int) returns int as $$
   SELECT CASE WHEN $1 is NULL 
@@ -649,9 +650,10 @@ SELECT j, maxodd(i) FILTER (WHERE TRUE) from filter_test group by j order by j;
 -- TEST view deparsing of FILTER expressions.
 CREATE VIEW filter_view AS SELECT count(*) FILTER (WHERE TRUE) FROM filter_test;
 SELECT definition from pg_views WHERE viewname='filter_view';
-                           definition                           
-----------------------------------------------------------------
- SELECT count(*) FILTER (WHERE true) AS count FROM filter_test;
+                  definition                   
+-----------------------------------------------
+  SELECT count(*) FILTER (WHERE true) AS count+
+    FROM filter_test;
 (1 row)
 
 drop aggregate maxodd(int);

@@ -33,6 +33,7 @@
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
+#include "utils/timestamp.h"
 
 /*
  * Forward declarations.

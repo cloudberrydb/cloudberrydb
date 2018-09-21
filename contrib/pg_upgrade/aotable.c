@@ -5,6 +5,7 @@
  *
  *	Copyright (c) 2016-Present, Pivotal Software Inc
  */
+#include "postgres_fe.h"
 
 #include "pg_upgrade.h"
 #include "pqexpbuffer.h"

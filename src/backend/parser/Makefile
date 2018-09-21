@@ -18,8 +18,6 @@ OBJS= analyze.o gram.o scan.o keywords.o kwlookup.o parser.o \
       parse_relation.o parse_target.o parse_type.o parse_utilcmd.o scansup.o
 OBJS+= parse_partition.o
 
-FLEXFLAGS = -CF -b -p -p
-
 include $(top_srcdir)/src/backend/common.mk
 
 
@@ -38,22 +36,12 @@ endif
 
 gram.h: gram.c ;
 
-gram.c: gram.y
-	$(PERL) $(top_srcdir)/src/tools/check_keywords.pl $(top_srcdir)
-ifdef BISON
-	$(BISON) -d $(BISONFLAGS) -o $@ $<
-else
-	@$(missing) bison $< $@
-endif
+gram.c: BISONFLAGS += -d
+gram.c: BISON_CHECK_CMD = $(PERL) $(srcdir)/check_keywords.pl $< $(top_srcdir)/src/include/parser/kwlist.h
 
 
-scan.c: scan.l
-ifdef FLEX
-	$(FLEX) $(FLEXFLAGS) -o'$@' $<
-	@if [ `wc -l <lex.backup` -eq 1 ]; then rm lex.backup; else echo "Scanner requires backup, see lex.backup."; exit 1; fi
-else
-	@$(missing) flex $< $@
-endif
+scan.c: FLEXFLAGS = -CF -p -p
+scan.c: FLEX_NO_BACKUP=yes
 
 
 # Force these dependencies to be known even without dependency info built:
@@ -64,7 +52,3 @@ gram.o scan.o keywords.o parser.o: gram.h
 # are not cleaned here.
 clean distclean maintainer-clean:
 	rm -f lex.backup
-
-
-maintainer-check:
-	$(PERL) $(top_srcdir)/src/tools/check_keywords.pl $(top_srcdir)

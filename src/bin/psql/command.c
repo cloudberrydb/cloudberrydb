@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2013, PostgreSQL Global Development Group
  *
  * src/bin/psql/command.c
  */
@@ -13,6 +13,7 @@
 #endif
 
 #include <ctype.h>
+#include <time.h>
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
@@ -60,6 +61,7 @@ static bool do_edit(const char *filename_arg, PQExpBuffer query_buf,
 		int lineno, bool *edited);
 static bool do_connect(char *dbname, char *user, char *host, char *port);
 static bool do_shell(const char *command);
+static bool do_watch(PQExpBuffer query_buf, long sleep);
 static bool lookup_function_oid(PGconn *conn, const char *desc, Oid *foid);
 static bool get_create_function_cmd(PGconn *conn, Oid oid, PQExpBuffer buf);
 static int	strip_lineno_from_funcdesc(char *func);
@@ -99,7 +101,7 @@ HandleSlashCmds(PsqlScanState scan_state,
 	char	   *cmd;
 	char	   *arg;
 
-	psql_assert(scan_state);
+	Assert(scan_state != NULL);
 
 	/* Parse off the command name */
 	cmd = psql_scan_slash_command(scan_state);
@@ -110,7 +112,7 @@ HandleSlashCmds(PsqlScanState scan_state,
 	if (status == PSQL_CMD_UNKNOWN)
 	{
 		if (pset.cur_cmd_interactive)
-			fprintf(stderr, _("Invalid command \\%s. Try \\? for help.\n"), cmd);
+			psql_error("Invalid command \\%s. Try \\? for help.\n", cmd);
 		else
 			psql_error("invalid command \\%s\n", cmd);
 		status = PSQL_CMD_ERROR;
@@ -314,6 +316,7 @@ exec_command(const char *cmd,
 			else
 				printf(_("You are connected to database \"%s\" as user \"%s\" on host \"%s\" at port \"%s\".\n"),
 					   db, PQuser(pset.db), host, PQport(pset.db));
+			printSSLInfo();
 		}
 	}
 
@@ -354,7 +357,7 @@ exec_command(const char *cmd,
 					success = describeTableDetails(pattern, show_verbose, show_system);
 				else
 					/* standard listing of interesting things */
-					success = listTables("tvsE", NULL, show_verbose, show_system);
+					success = listTables("tvmsE", NULL, show_verbose, show_system);
 				break;
 			case 'a':
 				success = describeAggregates(pattern, show_verbose, show_system);
@@ -421,6 +424,7 @@ exec_command(const char *cmd,
 				break;
 			case 't':
 			case 'v':
+			case 'm':
 			case 'i':
 			case 's':
 			case 'E':	/* PostgreSQL use dx for extension, change to dE for foreign table */
@@ -490,6 +494,9 @@ exec_command(const char *cmd,
 					success = listExtensionContents(pattern);
 				else
 					success = listExtensions(pattern);
+				break;
+			case 'y':			/* Event Triggers */
+				success = listEventTriggers(pattern, show_verbose);
 				break;
 			default:
 				status = PSQL_CMD_UNKNOWN;
@@ -729,7 +736,7 @@ exec_command(const char *cmd,
 		free(fname);
 	}
 
-	/* \g means send query */
+	/* \g [filename] -- send query, optionally with output to file/pipe */
 	else if (strcmp(cmd, "g") == 0)
 	{
 		char	   *fname = psql_scan_slash_option(scan_state,
@@ -743,6 +750,22 @@ exec_command(const char *cmd,
 			pset.gfname = pg_strdup(fname);
 		}
 		free(fname);
+		status = PSQL_CMD_SEND;
+	}
+
+	/* \gset [prefix] -- send query and store result into variables */
+	else if (strcmp(cmd, "gset") == 0)
+	{
+		char	   *prefix = psql_scan_slash_option(scan_state,
+													OT_NORMAL, NULL, false);
+
+		if (prefix)
+			pset.gset_prefix = prefix;
+		else
+		{
+			/* we must set a non-NULL prefix to trigger storing */
+			pset.gset_prefix = pg_strdup("");
+		}
 		status = PSQL_CMD_SEND;
 	}
 
@@ -802,10 +825,22 @@ exec_command(const char *cmd,
 	}
 
 	/* \l is list databases */
-	else if (strcmp(cmd, "l") == 0 || strcmp(cmd, "list") == 0)
-		success = listAllDbs(false);
-	else if (strcmp(cmd, "l+") == 0 || strcmp(cmd, "list+") == 0)
-		success = listAllDbs(true);
+	else if (strcmp(cmd, "l") == 0 || strcmp(cmd, "list") == 0 ||
+			 strcmp(cmd, "l+") == 0 || strcmp(cmd, "list+") == 0)
+	{
+		char	   *pattern;
+		bool		show_verbose;
+
+		pattern = psql_scan_slash_option(scan_state,
+										 OT_NORMAL, NULL, true);
+
+		show_verbose = strchr(cmd, '+') ? true : false;
+
+		success = listAllDbs(pattern, show_verbose);
+
+		if (pattern)
+			free(pattern);
+	}
 
 	/*
 	 * large object things
@@ -902,7 +937,7 @@ exec_command(const char *cmd,
 
 		if (strcmp(pw1, pw2) != 0)
 		{
-			fprintf(stderr, _("Passwords didn't match.\n"));
+			psql_error("Passwords didn't match.\n");
 			success = false;
 		}
 		else
@@ -920,7 +955,7 @@ exec_command(const char *cmd,
 
 			if (!encrypted_password)
 			{
-				fprintf(stderr, _("Password encryption failed.\n"));
+				psql_error("Password encryption failed.\n");
 				success = false;
 			}
 			else
@@ -1402,6 +1437,29 @@ exec_command(const char *cmd,
 		free(fname);
 	}
 
+	/* \watch -- execute a query every N seconds */
+	else if (strcmp(cmd, "watch") == 0)
+	{
+		char	   *opt = psql_scan_slash_option(scan_state,
+												 OT_NORMAL, NULL, true);
+		long		sleep = 2;
+
+		/* Convert optional sleep-length argument */
+		if (opt)
+		{
+			sleep = strtol(opt, NULL, 10);
+			if (sleep <= 0)
+				sleep = 1;
+			free(opt);
+		}
+
+		success = do_watch(query_buf, sleep);
+
+		/* Reset the query buffer as though for \r */
+		resetPQExpBuffer(query_buf);
+		psql_scan_reset(scan_state);
+	}
+
 	/* \x -- set or toggle expanded table representation */
 	else if (strcmp(cmd, "x") == 0)
 	{
@@ -1450,7 +1508,7 @@ exec_command(const char *cmd,
 		while ((value = psql_scan_slash_option(scan_state,
 											   OT_NORMAL, NULL, true)))
 		{
-			fprintf(stderr, "+ opt(%d) = |%s|\n", i++, value);
+			psql_error("+ opt(%d) = |%s|\n", i++, value);
 			free(value);
 		}
 	}
@@ -1481,7 +1539,7 @@ prompt_for_password(const char *username)
 	{
 		char	   *prompt_text;
 
-		prompt_text = malloc(strlen(username) + 100);
+		prompt_text = pg_malloc(strlen(username) + 100);
 		snprintf(prompt_text, strlen(username) + 100,
 				 _("Password for user %s: "), username);
 		result = simple_prompt(prompt_text, 100, false);
@@ -1521,6 +1579,18 @@ do_connect(char *dbname, char *user, char *host, char *port)
 			   *n_conn;
 	char	   *password = NULL;
 
+	if (!o_conn && (!dbname || !user || !host || !port))
+	{
+		/*
+		 * We don't know the supplied connection parameters and don't want to
+		 * connect to the wrong database by using defaults, so require all
+		 * parameters to be specified.
+		 */
+		psql_error("All connection parameters must be supplied because no "
+				   "database connection exists\n");
+		return false;
+	}
+
 	if (!dbname)
 		dbname = PQdb(o_conn);
 	if (!user)
@@ -1546,7 +1616,7 @@ do_connect(char *dbname, char *user, char *host, char *port)
 	}
 	else if (o_conn && user && strcmp(PQuser(o_conn), user) == 0)
 	{
-		password = strdup(PQpass(o_conn));
+		password = pg_strdup(PQpass(o_conn));
 	}
 
 	while (true)
@@ -1606,7 +1676,7 @@ do_connect(char *dbname, char *user, char *host, char *port)
 
 			/* pset.db is left unmodified */
 			if (o_conn)
-				fputs(_("Previous connection kept\n"), stderr);
+				psql_error("Previous connection kept\n");
 		}
 		else
 		{
@@ -1665,7 +1735,7 @@ connection_warnings(bool in_startup)
 {
 	if (!pset.quiet && !pset.notty)
 	{
-		int			client_ver = parse_version(PG_VERSION);
+		int			client_ver = PG_VERSION_NUM;
 
 		if (pset.sversion != client_ver)
 		{
@@ -1691,8 +1761,8 @@ connection_warnings(bool in_startup)
 		else if (in_startup)
 			printf("%s (%s)\n", pset.progname, PG_VERSION);
 
-		if (pset.sversion / 100 != client_ver / 100)
-			printf(_("WARNING: %s version %d.%d, server version %d.%d.\n"
+		if (pset.sversion / 100 > client_ver / 100)
+			printf(_("WARNING: %s major version %d.%d, server major version %d.%d.\n"
 					 "         Some psql features might not work.\n"),
 				 pset.progname, client_ver / 10000, (client_ver / 100) % 100,
 				   pset.sversion / 10000, (pset.sversion / 100) % 100);
@@ -1816,7 +1886,7 @@ editFile(const char *fname, int lineno)
 	char	   *sys;
 	int			result;
 
-	psql_assert(fname);
+	Assert(fname != NULL);
 
 	/* Find an editor to use */
 	editorName = getenv("PSQL_EDITOR");
@@ -2052,9 +2122,11 @@ process_file(char *filename, bool single_txn, bool use_relative_path)
 	PGresult   *res;
 
 	if (!filename)
-		return EXIT_FAILURE;
-
-	if (strcmp(filename, "-") != 0)
+	{
+		fd = stdin;
+		filename = NULL;
+	}
+	else if (strcmp(filename, "-") != 0)
 	{
 		canonicalize_path(filename);
 
@@ -2064,10 +2136,10 @@ process_file(char *filename, bool single_txn, bool use_relative_path)
 		 * relative pathname, then prepend all but the last pathname component
 		 * of the current script to this pathname.
 		 */
-		if (use_relative_path && pset.inputfile && !is_absolute_path(filename)
-			&& !has_drive_prefix(filename))
+		if (use_relative_path && pset.inputfile &&
+			!is_absolute_path(filename) && !has_drive_prefix(filename))
 		{
-			snprintf(relpath, MAXPGPATH, "%s", pset.inputfile);
+			strlcpy(relpath, pset.inputfile, sizeof(relpath));
 			get_parent_directory(relpath);
 			join_path_components(relpath, relpath, filename);
 			canonicalize_path(relpath);
@@ -2159,6 +2231,9 @@ _align2string(enum printFormat in)
 		case PRINT_LATEX:
 			return "latex";
 			break;
+		case PRINT_LATEX_LONGTABLE:
+			return "latex-longtable";
+			break;
 		case PRINT_TROFF_MS:
 			return "troff-ms";
 			break;
@@ -2172,7 +2247,7 @@ do_pset(const char *param, const char *value, printQueryOpt *popt, bool quiet)
 {
 	size_t		vallen = 0;
 
-	psql_assert(param);
+	Assert(param != NULL);
 
 	if (value)
 		vallen = strlen(value);
@@ -2192,6 +2267,8 @@ do_pset(const char *param, const char *value, printQueryOpt *popt, bool quiet)
 			popt->topt.format = PRINT_HTML;
 		else if (pg_strncasecmp("latex", value, vallen) == 0)
 			popt->topt.format = PRINT_LATEX;
+		else if (pg_strncasecmp("latex-longtable", value, vallen) == 0)
+			popt->topt.format = PRINT_LATEX_LONGTABLE;
 		else if (pg_strncasecmp("troff-ms", value, vallen) == 0)
 			popt->topt.format = PRINT_TROFF_MS;
 		else
@@ -2502,6 +2579,127 @@ do_shell(const char *command)
 		psql_error("\\!: failed\n");
 		return false;
 	}
+	return true;
+}
+
+/*
+ * do_watch -- handler for \watch
+ *
+ * We break this out of exec_command to avoid having to plaster "volatile"
+ * onto a bunch of exec_command's variables to silence stupider compilers.
+ */
+static bool
+do_watch(PQExpBuffer query_buf, long sleep)
+{
+	printQueryOpt myopt = pset.popt;
+	char		title[50];
+
+	if (!query_buf || query_buf->len <= 0)
+	{
+		psql_error(_("\\watch cannot be used with an empty query\n"));
+		return false;
+	}
+
+	/*
+	 * Set up rendering options, in particular, disable the pager, because
+	 * nobody wants to be prompted while watching the output of 'watch'.
+	 */
+	myopt.nullPrint = NULL;
+	myopt.topt.pager = 0;
+
+	for (;;)
+	{
+		PGresult   *res;
+		time_t		timer;
+		long		i;
+
+		/*
+		 * Prepare title for output.  XXX would it be better to use the time
+		 * of completion of the command?
+		 */
+		timer = time(NULL);
+		snprintf(title, sizeof(title), _("Watch every %lds\t%s"),
+				 sleep, asctime(localtime(&timer)));
+		myopt.title = title;
+
+		/*
+		 * Run the query.  We use PSQLexec, which is kind of cheating, but
+		 * SendQuery doesn't let us suppress autocommit behavior.
+		 */
+		res = PSQLexec(query_buf->data, false);
+
+		/* PSQLexec handles failure results and returns NULL */
+		if (res == NULL)
+			break;
+
+		/*
+		 * If SIGINT is sent while the query is processing, PSQLexec will
+		 * consume the interrupt.  The user's intention, though, is to cancel
+		 * the entire watch process, so detect a sent cancellation request and
+		 * exit in this case.
+		 */
+		if (cancel_pressed)
+		{
+			PQclear(res);
+			break;
+		}
+
+		switch (PQresultStatus(res))
+		{
+			case PGRES_TUPLES_OK:
+				printQuery(res, &myopt, pset.queryFout, pset.logfile);
+				break;
+
+			case PGRES_COMMAND_OK:
+				fprintf(pset.queryFout, "%s\n%s\n\n", title, PQcmdStatus(res));
+				break;
+
+			case PGRES_EMPTY_QUERY:
+				psql_error(_("\\watch cannot be used with an empty query\n"));
+				PQclear(res);
+				return false;
+
+			case PGRES_COPY_OUT:
+			case PGRES_COPY_IN:
+			case PGRES_COPY_BOTH:
+				psql_error(_("\\watch cannot be used with COPY\n"));
+				PQclear(res);
+				return false;
+
+			default:
+				/* other cases should have been handled by PSQLexec */
+				psql_error(_("unexpected result status for \\watch\n"));
+				PQclear(res);
+				return false;
+		}
+
+		PQclear(res);
+
+		fflush(pset.queryFout);
+
+		/*
+		 * Set up cancellation of 'watch' via SIGINT.  We redo this each time
+		 * through the loop since it's conceivable something inside PSQLexec
+		 * could change sigint_interrupt_jmp.
+		 */
+		if (sigsetjmp(sigint_interrupt_jmp, 1) != 0)
+			break;
+
+		/*
+		 * Enable 'watch' cancellations and wait a while before running the
+		 * query again.  Break the sleep into short intervals since pg_usleep
+		 * isn't interruptible on some platforms.
+		 */
+		sigint_interrupt_enabled = true;
+		for (i = 0; i < sleep; i++)
+		{
+			pg_usleep(1000000L);
+			if (cancel_pressed)
+				break;
+		}
+		sigint_interrupt_enabled = false;
+	}
+
 	return true;
 }
 

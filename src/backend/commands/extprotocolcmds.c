@@ -148,7 +148,7 @@ RemoveExtProtocolById(Oid protOid)
 /*
  * Change external protocol owner
  */
-void
+Oid
 AlterExtProtocolOwner(const char *name, Oid newOwnerId)
 {
 	HeapTuple	tup;
@@ -276,12 +276,14 @@ AlterExtProtocolOwner(const char *name, Oid newOwnerId)
 
 	systable_endscan(scan);
 	heap_close(rel, NoLock);
+
+	return ptcId;
 }
 
 /*
  * Change external protocol owner
  */
-void
+Oid
 RenameExtProtocol(const char *oldname, const char *newname)
 {
 	HeapTuple	tup;
@@ -359,4 +361,6 @@ RenameExtProtocol(const char *oldname, const char *newname)
 	systable_endscan(scan);
 
 	heap_close(rel, NoLock);
+
+	return ptcId;
 }

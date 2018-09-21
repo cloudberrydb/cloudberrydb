@@ -15,6 +15,7 @@
 
 #include "postgres.h"
 
+#include "common/relpath.h"
 #include "access/aocssegfiles.h"
 #include "access/aomd.h"
 #include "access/appendonlytid.h"

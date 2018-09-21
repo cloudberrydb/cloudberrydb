@@ -3,7 +3,7 @@
  * execQual.c
  *	  Routines to evaluate qualification and targetlist expressions
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -36,9 +36,11 @@
 
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "access/nbtree.h"
 #include "access/tuptoaster.h"
 #include "access/tupconvert.h"
+#include "catalog/objectaccess.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/partitionselection.h"
@@ -779,13 +781,15 @@ ExecEvalScalarVarFast(ExprState *exprstate, ExprContext *econtext,
 	/* Get the input slot and attribute number we want */
 	switch (variable->varno)
 	{
-		case INNER_VAR:				/* get the tuple from the inner node */
+		case INNER_VAR: /* get the tuple from the inner node */
 			slot = econtext->ecxt_innertuple;
 			break;
 
-		case OUTER_VAR:				/* get the tuple from the outer node */
+		case OUTER_VAR: /* get the tuple from the outer node */
 			slot = econtext->ecxt_outertuple;
 			break;
+
+			/* INDEX_VAR is handled by default case */
 
 		default:				/* get the tuple from the relation being
 								 * scanned */
@@ -817,6 +821,7 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 {
 	Var		   *variable = (Var *) wrvstate->xprstate.expr;
 	TupleTableSlot *slot;
+	TupleDesc	slot_tupdesc;
 	bool		needslow = false;
 
 	if (isDone)
@@ -826,9 +831,23 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	Assert(variable->varattno == InvalidAttrNumber);
 
 	/* Get the input slot we want */
-	Assert(variable->varno != INNER_VAR);
-	Assert(variable->varno != OUTER_VAR);
-	slot = econtext->ecxt_scantuple;
+	switch (variable->varno)
+	{
+		case INNER_VAR: /* get the tuple from the inner node */
+			slot = econtext->ecxt_innertuple;
+			break;
+
+		case OUTER_VAR: /* get the tuple from the outer node */
+			slot = econtext->ecxt_outertuple;
+			break;
+
+			/* INDEX_VAR is handled by default case */
+
+		default:				/* get the tuple from the relation being
+								 * scanned */
+			slot = econtext->ecxt_scantuple;
+			break;
+	}
 
 	/*
 	 * If the input tuple came from a subquery, it might contain "resjunk"
@@ -850,6 +869,9 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 		{
 			case T_SubqueryScanState:
 				subplan = ((SubqueryScanState *) wrvstate->parent)->subplan;
+				break;
+			case T_CteScanState:
+				subplan = ((CteScanState *) wrvstate->parent)->cteplanstate;
 				break;
 			default:
 				break;
@@ -881,7 +903,7 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 				wrvstate->wrv_junkFilter =
 					ExecInitJunkFilter(subplan->plan->targetlist,
 									   ExecGetResultType(subplan)->tdhasoid,
-									   NULL);
+							ExecInitExtraTupleSlot(wrvstate->parent->state));
 				MemoryContextSwitchTo(oldcontext);
 			}
 		}
@@ -891,14 +913,25 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	if (wrvstate->wrv_junkFilter != NULL)
 		slot = ExecFilterJunk(wrvstate->wrv_junkFilter, slot);
 
+	slot_tupdesc = slot->tts_tupleDescriptor;
+
 	/*
+	 * If it's a RECORD Var, we'll use the slot's type ID info.  It's likely
+	 * that the slot's type is also RECORD; if so, make sure it's been
+	 * "blessed", so that the Datum can be interpreted later.
+	 *
 	 * If the Var identifies a named composite type, we must check that the
 	 * actual tuple type is compatible with it.
 	 */
-	if (variable->vartype != RECORDOID)
+	if (variable->vartype == RECORDOID)
+	{
+		if (slot_tupdesc->tdtypeid == RECORDOID &&
+			slot_tupdesc->tdtypmod < 0)
+			assign_record_type_typmod(slot_tupdesc);
+	}
+	else
 	{
 		TupleDesc	var_tupdesc;
-		TupleDesc	slot_tupdesc;
 		int			i;
 
 		/*
@@ -914,8 +947,6 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 		 * ExecEvalWholeRowSlow to check (2) for each row.
 		 */
 		var_tupdesc = lookup_rowtype_tupdesc(variable->vartype, -1);
-
-		slot_tupdesc = slot->tts_tupleDescriptor;
 
 		if (var_tupdesc->natts != slot_tupdesc->natts)
 			ereport(ERROR,
@@ -1005,8 +1036,6 @@ ExecEvalWholeRowFast(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	if (wrvstate->wrv_junkFilter != NULL)
 		slot = ExecFilterJunk(wrvstate->wrv_junkFilter, slot);
 
-	tuple = ExecFetchSlotHeapTuple(slot);
-
 	/*
 	 * If it's a RECORD Var, we'll use the slot's type ID info.  It's likely
 	 * that the slot's type is also RECORD; if so, make sure it's been
@@ -1024,6 +1053,7 @@ ExecEvalWholeRowFast(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	/*
 	 * Copy the slot tuple and make sure any toasted fields get detoasted.
 	 */
+	tuple = ExecFetchSlotHeapTuple(slot);
 	dtuple = (HeapTupleHeader) palloc(tuple->t_len);
 	memcpy((char *) dtuple, (char *) tuple->t_data, tuple->t_len);
 
@@ -1050,7 +1080,7 @@ ExecEvalWholeRowFast(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 /* ----------------------------------------------------------------
  *		ExecEvalWholeRowSlow
  *
- *		Returns a Datum for a whole-row variable, in the "slow" cases where
+ *		Returns a Datum for a whole-row variable, in the "slow" case where
  *		we can't just copy the subplan's output.
  * ----------------------------------------------------------------
  */
@@ -1102,13 +1132,6 @@ ExecEvalWholeRowSlow(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 	tuple = ExecFetchSlotHeapTuple(slot);
 	tupleDesc = slot->tts_tupleDescriptor;
 
-	/*
-	 * Currently, the only data modification case handled here is stripping of
-	 * trailing resjunk fields, which we do in a slightly chintzy way by just
-	 * adjusting the tuple's natts header field.  Possibly there will someday
-	 * be a need for more-extensive rearrangements, in which case we'd
-	 * probably use tupconvert.c.
-	 */
 	Assert(variable->vartype != RECORDOID);
 	var_tupdesc = lookup_rowtype_tupdesc(variable->vartype, -1);
 
@@ -1400,6 +1423,7 @@ init_fcache(Oid foid, Oid input_collation, FuncExprState *fcache,
 	aclresult = pg_proc_aclcheck(foid, GetUserId(), ACL_EXECUTE);
 	if (aclresult != ACLCHECK_OK)
 		aclcheck_error(aclresult, ACL_KIND_PROC, get_func_name(foid));
+	InvokeFunctionExecuteHook(foid);
 
 	/*
 	 * Safety check on nargs.  Under normal circumstances this should never
@@ -1910,11 +1934,19 @@ restart:
 				pgstat_end_function_usage(&fcusage,
 										rsinfo.isDone != ExprMultipleResult);
 			}
-			else
+			else if (fcache->func.fn_retset)
 			{
+				/* for a strict SRF, result for NULL is an empty set */
 				result = (Datum) 0;
 				*isNull = true;
 				*isDone = ExprEndResult;
+			}
+			else
+			{
+				/* for a strict non-SRF, result for NULL is a NULL */
+				result = (Datum) 0;
+				*isNull = true;
+				*isDone = ExprSingleResult;
 			}
 
 			/* Which protocol does function want to use? */
@@ -2809,7 +2841,7 @@ static void FastPathScalarArrayOp(ScalarArrayOpExpr *opexpr, ScalarArrayOpExprSt
 
 	Oid fnoid = InvalidOid;
 
-	static int4 optimize_func_oid[] = {
+	static Oid optimize_func_oid[] = {
 		INT2EQ_OID,
 		INT4EQ_OID,
 		TEXTEQ_OID,
@@ -4402,7 +4434,8 @@ ExecEvalCoerceToDomain(CoerceToDomainState *cstate, ExprContext *econtext,
 					ereport(ERROR,
 							(errcode(ERRCODE_NOT_NULL_VIOLATION),
 							 errmsg("domain %s does not allow null values",
-									format_type_be(ctest->resulttype))));
+									format_type_be(ctest->resulttype)),
+							 errdatatype(ctest->resulttype)));
 				break;
 			case DOM_CONSTRAINT_CHECK:
 				{
@@ -4432,7 +4465,9 @@ ExecEvalCoerceToDomain(CoerceToDomainState *cstate, ExprContext *econtext,
 								(errcode(ERRCODE_CHECK_VIOLATION),
 								 errmsg("value for domain %s violates check constraint \"%s\"",
 										format_type_be(ctest->resulttype),
-										con->name)));
+										con->name),
+								 errdomainconstraint(ctest->resulttype,
+													 con->name)));
 					econtext->domainValue_datum = save_datum;
 					econtext->domainValue_isNull = save_isNull;
 
@@ -4981,58 +5016,6 @@ static Datum ExecEvalPartListNullTestExpr(PartListNullTestExprState *exprstate,
 }
 
 /* ----------------------------------------------------------------
- *    ExecEvalCurrentOfExpr
- *
- *    Evaluate CURRENT OF
- *
- *    Constant folding must have bound observed values of
- * 	gp_segment_id, ctid, and tableoid into the CurrentOfExpr for
- *	this function's consumption.
- * ----------------------------------------------------------------
- */
-static Datum
-ExecEvalCurrentOfExpr(ExprState *exprstate, ExprContext *econtext,
-						bool *isNull, ExprDoneCond *isDone)
-{
-	CurrentOfExpr 	*cexpr = (CurrentOfExpr *) exprstate->expr;
-	bool 			result = false;
-	TupleTableSlot	*slot;
-
-	if (isDone)
-		*isDone = ExprSingleResult;
-	*isNull = false;
-
-	Assert(cexpr->cvarno != INNER_VAR);
-	Assert(cexpr->cvarno != OUTER_VAR);
-
-	slot = econtext->ecxt_scantuple;
-	Assert(!TupIsNull(slot));
-
-	/*
-	 * The currently scanned tuple must use heap storage for it to possibly
-	 * satisfy the CURRENT OF qualification. Despite our grand attempts during
-	 * parsing and constant folding to demand heap storage, the scanning of an
-	 * AO part is still possible, when the current row uses heap storage, but the
-	 * CURRENT OF invocation uses an unpruned scan of the partition table, yielding
-	 * tuples from the AO parts before the desired heap tuple.
-	 */
-	if (TupHasHeapTuple(slot))
-	{
-		ItemPointerData cursor_tid;
-
-		if (execCurrentOf(cexpr, econtext,
-						  slot->tts_tableOid,
-						  &cursor_tid))
-		{
-			if (ItemPointerEquals(&cursor_tid, slot_get_ctid(slot)))
-				result = true;
-		}
-	}
-
-	return BoolGetDatum(result);
-}
-
-/* ----------------------------------------------------------------
  *		ExecEvalCoerceViaIO
  *
  *		Evaluate a CoerceViaIO node.
@@ -5115,6 +5098,7 @@ ExecEvalArrayCoerceExpr(ArrayCoerceExprState *astate,
 		if (aclresult != ACLCHECK_OK)
 			aclcheck_error(aclresult, ACL_KIND_PROC,
 						   get_func_name(acoerce->elemfuncid));
+		InvokeFunctionExecuteHook(acoerce->elemfuncid);
 
 		/* Set up the primary fmgr lookup information */
 		fmgr_info_cxt(acoerce->elemfuncid, &(astate->elemfunc),
@@ -5143,6 +5127,57 @@ ExecEvalArrayCoerceExpr(ArrayCoerceExprState *astate,
 					 astate->amstate);
 }
 
+/* ----------------------------------------------------------------
+ *    ExecEvalCurrentOfExpr
+ *
+ *    Evaluate CURRENT OF
+ *
+ *    Constant folding must have bound observed values of
+ * 	gp_segment_id, ctid, and tableoid into the CurrentOfExpr for
+ *	this function's consumption.
+ * ----------------------------------------------------------------
+ */
+static Datum
+ExecEvalCurrentOfExpr(ExprState *exprstate, ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone)
+{
+	CurrentOfExpr 	*cexpr = (CurrentOfExpr *) exprstate->expr;
+	bool 			result = false;
+	TupleTableSlot	*slot;
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+	*isNull = false;
+
+	Assert(cexpr->cvarno != INNER_VAR);
+	Assert(cexpr->cvarno != OUTER_VAR);
+
+	slot = econtext->ecxt_scantuple;
+	Assert(!TupIsNull(slot));
+
+	/*
+	 * The currently scanned tuple must use heap storage for it to possibly
+	 * satisfy the CURRENT OF qualification. Despite our grand attempts during
+	 * parsing and constant folding to demand heap storage, the scanning of an
+	 * AO part is still possible, when the current row uses heap storage, but the
+	 * CURRENT OF invocation uses an unpruned scan of the partition table, yielding
+	 * tuples from the AO parts before the desired heap tuple.
+	 */
+	if (TupHasHeapTuple(slot))
+	{
+		ItemPointerData cursor_tid;
+
+		if (execCurrentOf(cexpr, econtext,
+						  slot->tts_tableOid,
+						  &cursor_tid))
+		{
+			if (ItemPointerEquals(&cursor_tid, slot_get_ctid(slot)))
+				result = true;
+		}
+	}
+
+	return BoolGetDatum(result);
+}
 
 /*
  * ExecEvalExprSwitchContext

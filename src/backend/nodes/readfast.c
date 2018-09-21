@@ -38,6 +38,7 @@
 #include "catalog/heap.h"
 #include "cdb/cdbgang.h"
 
+static Bitmapset *bitmapsetRead(void);
 
 /*
  * Macros to simplify reading of different kinds of fields.  Use these
@@ -615,7 +616,6 @@ _readAlterObjectSchemaStmt(void)
 	READ_NODE_FIELD(relation);
 	READ_NODE_FIELD(object);
 	READ_NODE_FIELD(objarg);
-	READ_STRING_FIELD(addname);
 	READ_STRING_FIELD(newschema);
 	READ_BOOL_FIELD(missing_ok);
 	READ_ENUM_FIELD(objectType,ObjectType); Assert(local_node->objectType <= OBJECT_VIEW);
@@ -632,7 +632,6 @@ _readAlterOwnerStmt(void)
 	READ_NODE_FIELD(relation);
 	READ_NODE_FIELD(object);
 	READ_NODE_FIELD(objarg);
-	READ_STRING_FIELD(addname);
 	READ_STRING_FIELD(newowner);
 
 	READ_DONE();
@@ -651,13 +650,13 @@ _readSelectStmt(void)
 	READ_NODE_FIELD(groupClause);
 	READ_NODE_FIELD(havingClause);
 	READ_NODE_FIELD(windowClause);
-	READ_NODE_FIELD(withClause);
 	READ_NODE_FIELD(valuesLists);
 	READ_NODE_FIELD(sortClause);
 	READ_NODE_FIELD(scatterClause);
 	READ_NODE_FIELD(limitOffset);
 	READ_NODE_FIELD(limitCount);
 	READ_NODE_FIELD(lockingClause);
+	READ_NODE_FIELD(withClause);
 	READ_ENUM_FIELD(op, SetOperation);
 	READ_BOOL_FIELD(all);
 	READ_NODE_FIELD(larg);
@@ -1005,8 +1004,6 @@ _readJoinExpr(void)
  *	Stuff from parsenodes.h.
  */
 
-static Bitmapset *bitmapsetRead(void);
-
 
 /*
  * _readCollateClause
@@ -1020,77 +1017,6 @@ _readCollateClause(void)
 	READ_NODE_FIELD(collname);
 	READ_INT_FIELD(location);
 
-	READ_DONE();
-}
-/*
- * _readRangeTblEntry
- */
-static RangeTblEntry *
-_readRangeTblEntry(void)
-{
-	READ_LOCALS(RangeTblEntry);
-
-	/* put alias + eref first to make dump more legible */
-	READ_NODE_FIELD(alias);
-	READ_NODE_FIELD(eref);
-	READ_ENUM_FIELD(rtekind, RTEKind);
-
-	switch (local_node->rtekind)
-	{
-		case RTE_RELATION:
-			READ_OID_FIELD(relid);
-			READ_CHAR_FIELD(relkind);
-			break;
-		case RTE_SUBQUERY:
-			READ_NODE_FIELD(subquery);
-			break;
-		case RTE_JOIN:
-			READ_ENUM_FIELD(jointype, JoinType);
-			READ_NODE_FIELD(joinaliasvars);
-			break;
-		case RTE_FUNCTION:
-			READ_NODE_FIELD(funcexpr);
-			READ_NODE_FIELD(funccoltypes);
-			READ_NODE_FIELD(funccoltypmods);
-			READ_NODE_FIELD(funccolcollations);
-			break;
-		case RTE_TABLEFUNCTION:
-			READ_NODE_FIELD(subquery);
-			READ_NODE_FIELD(funcexpr);
-			READ_NODE_FIELD(funccoltypes);
-			READ_NODE_FIELD(funccoltypmods);
-			READ_NODE_FIELD(funccolcollations);
-			READ_BYTEA_FIELD(funcuserdata);
-			break;
-		case RTE_VALUES:
-			READ_NODE_FIELD(values_lists);
-			READ_NODE_FIELD(values_collations);
-			break;
-		case RTE_CTE:
-			READ_STRING_FIELD(ctename);
-			READ_INT_FIELD(ctelevelsup);
-			READ_BOOL_FIELD(self_reference);
-			READ_NODE_FIELD(ctecoltypes);
-			READ_NODE_FIELD(ctecoltypmods);
-			READ_NODE_FIELD(ctecolcollations);
-			break;
-        case RTE_VOID:                                                  /*CDB*/
-            break;
-		default:
-			elog(ERROR, "unrecognized RTE kind: %d",
-				 (int) local_node->rtekind);
-			break;
-	}
-
-	READ_BOOL_FIELD(inh);
-	READ_BOOL_FIELD(inFromCl);
-	READ_UINT_FIELD(requiredPerms);
-	READ_OID_FIELD(checkAsUser);
-	READ_BITMAPSET_FIELD(selectedCols);
-	READ_BITMAPSET_FIELD(modifiedCols);
-
-	READ_BOOL_FIELD(forceDistRandom);
-	/* 'pseudocols' is intentionally missing, see out function */
 	READ_DONE();
 }
 
@@ -1305,8 +1231,8 @@ _readPartition(void)
 	READ_CHAR_FIELD(parkind);
 	READ_INT_FIELD(parlevel);
 	READ_BOOL_FIELD(paristemplate);
-	READ_BINARY_FIELD(parnatts, sizeof(int2));
-	READ_INT_ARRAY(paratts, local_node->parnatts, int2);
+	READ_BINARY_FIELD(parnatts, sizeof(int16));
+	READ_INT_ARRAY(paratts, local_node->parnatts, int16);
 	READ_OID_ARRAY(parclass, local_node->parnatts);
 
 	READ_DONE();
@@ -1329,7 +1255,7 @@ _readPartitionRule(void)
 	READ_BOOL_FIELD(parrangeendincl);
 	READ_NODE_FIELD(parrangeevery);
 	READ_NODE_FIELD(parlistvalues);
-	READ_BINARY_FIELD(parruleord, sizeof(int2));
+	READ_BINARY_FIELD(parruleord, sizeof(int16));
 	READ_NODE_FIELD(parreloptions);
 	READ_OID_FIELD(partemplatespaceId);
 	READ_NODE_FIELD(children);
@@ -1449,7 +1375,7 @@ _readPlannerParamItem(void)
 {
 	READ_LOCALS(PlannerParamItem);
 	READ_NODE_FIELD(item);
-	READ_UINT_FIELD(abslevel);
+	READ_INT_FIELD(paramId);
 
 	READ_DONE();
 }
@@ -2123,6 +2049,12 @@ _readTableFunctionScan(void)
 	READ_LOCALS(TableFunctionScan);
 
 	readScanInfo((Scan *)local_node);
+	READ_NODE_FIELD(funcexpr);
+	READ_NODE_FIELD(funccolnames);
+	READ_NODE_FIELD(funccoltypes);
+	READ_NODE_FIELD(funccoltypmods);
+	READ_NODE_FIELD(funccolcollations);
+	READ_BYTEA_FIELD(funcuserdata);
 
 	READ_DONE();
 }
@@ -2830,6 +2762,7 @@ _readAlterEnumStmt(void)
 	READ_STRING_FIELD(newVal);
 	READ_STRING_FIELD(newValNeighbor);
 	READ_BOOL_FIELD(newValIsAfter);
+	READ_BOOL_FIELD(skipIfExists);
 
 	READ_DONE();
 }
@@ -2955,6 +2888,7 @@ _readModifyTable(void)
 	READ_INT_FIELD(resultRelIndex);
 	READ_NODE_FIELD(plans);
 	READ_NODE_FIELD(returningLists);
+	READ_NODE_FIELD(fdwPrivLists);
 	READ_NODE_FIELD(rowMarks);
 	READ_INT_FIELD(epqParam);
 	READ_NODE_FIELD(action_col_idxes);

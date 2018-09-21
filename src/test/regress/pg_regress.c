@@ -8,7 +8,7 @@
  *
  * This code is released under the terms of the PostgreSQL License.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/test/regress/pg_regress.c
@@ -928,10 +928,14 @@ load_resultmap(void)
  */
 static
 const char *
-get_expectfile(const char *testname, const char *file)
+get_expectfile(const char *testname, const char *file, const char *default_expectfile)
 {
+	char		expectpath[MAXPGPATH];
 	char	   *file_type;
+	char	   *file_name;
+	char		base_file[MAXPGPATH];
 	_resultmap *rm;
+	char		buf[MAXPGPATH];
 
 	/*
 	 * Determine the file type from the file name. This is just what is
@@ -942,12 +946,58 @@ get_expectfile(const char *testname, const char *file)
 
 	file_type++;
 
+	/*
+	 * Also determine the base file name from the result full path.
+	 */
+	if (!(file_name = strrchr(file, '/')))
+		return NULL;
+
+	file_name ++;
+
+	if (file_type < file_name)
+		return NULL;
+	strlcpy(base_file, file_name, (file_type) - file_name);
+
+	/*
+	 * Find the directory the default expected file is in. That is, everything
+	 * up to the last slash.
+	 */
+	{
+		char	   *p = strrchr(default_expectfile, '/');
+
+		if (!p)
+			return NULL;
+
+		strlcpy(expectpath, default_expectfile, p - default_expectfile + 1);
+	}
+
 	for (rm = resultmap; rm != NULL; rm = rm->next)
 	{
 		if (strcmp(testname, rm->test) == 0 && strcmp(file_type, rm->type) == 0)
 		{
-			return rm->resultfile;
+			snprintf(buf, sizeof(buf), "%s/%s", expectpath, rm->resultfile);
+			return strdup(buf);
 		}
+	}
+
+	/* Use ORCA or resgroup expected outputs, if available */
+	if  (optimizer_enabled && resgroup_enabled)
+	{
+		snprintf(buf, sizeof(buf), "%s/%s_optimizer_resgroup.%s", expectpath, base_file, file_type);
+		if (file_exists(buf))
+			return strdup(buf);
+	}
+	if  (optimizer_enabled)
+	{
+		snprintf(buf, sizeof(buf), "%s/%s_optimizer.%s", expectpath, base_file, file_type);
+		if (file_exists(buf))
+			return strdup(buf);
+	}
+	if  (resgroup_enabled)
+	{
+		snprintf(buf, sizeof(buf), "%s/%s_resgroup.%s", expectpath, base_file, file_type);
+		if (file_exists(buf))
+			return strdup(buf);
 	}
 
 	return NULL;
@@ -1540,20 +1590,12 @@ results_differ(const char *testname, const char *resultsfile, const char *defaul
 	 * We can pass either the resultsfile or the expectfile, they should have
 	 * the same type (filename.type) anyway.
 	 */
-	platform_expectfile = get_expectfile(testname, resultsfile);
+	platform_expectfile = get_expectfile(testname, resultsfile, default_expectfile);
 
-	strlcpy(expectfile, default_expectfile, sizeof(expectfile));
 	if (platform_expectfile)
-	{
-		/*
-		 * Replace everything afer the last slash in expectfile with what the
-		 * platform_expectfile contains.
-		 */
-		char	   *p = strrchr(expectfile, '/');
-
-		if (p)
-			strcpy(++p, platform_expectfile);
-	}
+		strlcpy(expectfile, platform_expectfile, sizeof(expectfile));
+	else
+		strlcpy(expectfile, default_expectfile, sizeof(expectfile));
 
 	/* Name to use for temporary diff file */
 	snprintf(diff, sizeof(diff), "%s.diff", resultsfile);
@@ -2424,13 +2466,6 @@ help(void)
 int
 regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc)
 {
-	_stringlist *sl;
-	int			c;
-	int			i;
-	int			option_index;
-	char		buf[MAXPGPATH * 4];
-	char		buf2[MAXPGPATH * 4];
-
 	static struct option long_options[] = {
 		{"help", no_argument, NULL, 'h'},
 		{"version", no_argument, NULL, 'V'},
@@ -2463,6 +2498,13 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		{NULL, 0, NULL, 0}
 	};
 
+	_stringlist *sl;
+	int			c;
+	int			i;
+	int			option_index;
+	char		buf[MAXPGPATH * 4];
+	char		buf2[MAXPGPATH * 4];
+
 	progname = get_progname(argv[0]);
 	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("pg_regress"));
 
@@ -2478,6 +2520,9 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 	 * default parameters and let them be overwritten by the commandline.
 	 */
 	ifunc();
+
+	if (getenv("PG_REGRESS_DIFF_OPTS"))
+		pretty_diff_opts = getenv("PG_REGRESS_DIFF_OPTS");
 
 	while ((c = getopt_long(argc, argv, "hV", long_options, &option_index)) != -1)
 	{
@@ -2685,7 +2730,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		/* initdb */
 		header(_("initializing database system"));
 		snprintf(buf, sizeof(buf),
-				 SYSTEMQUOTE "\"%s/initdb\" -D \"%s/data\" -L \"%s\" --noclean%s%s > \"%s/log/initdb.log\" 2>&1" SYSTEMQUOTE,
+				 SYSTEMQUOTE "\"%s/initdb\" -D \"%s/data\" -L \"%s\" --noclean --nosync%s%s > \"%s/log/initdb.log\" 2>&1" SYSTEMQUOTE,
 				 bindir, temp_install, datadir,
 				 debug ? " --debug" : "",
 				 nolocale ? " --no-locale" : "",

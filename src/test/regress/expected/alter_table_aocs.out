@@ -329,7 +329,6 @@ WHERE relname='addcol6'));
 
 -- add column with default value as sequence
 alter table addcol6 add column d serial;
-NOTICE:  ALTER TABLE will create implicit sequence "addcol6_d_seq" for serial column "addcol6.d"
 -- select, insert, update after 'add column'
 select c,d from addcol6 where d > 15 order by d;
   c  | d  

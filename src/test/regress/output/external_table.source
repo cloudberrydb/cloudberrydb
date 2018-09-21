@@ -312,9 +312,6 @@ ERROR:  ON clause may not be used with a writable external table
 select * from wet_pos4;
 ERROR:  cannot read from a WRITABLE external table
 HINT:  Create the table as READABLE instead.
-drop external table check_ps;
-drop external table check_env;
-drop external table wet_pos4;
 -- Dropping an external table, both via DROP EXTERNAL TABLE and as a result
 -- from a cascading deletion must result in the deletion of the relation
 -- pg_exttable row.
@@ -774,7 +771,6 @@ SELECT COUNT(*) from gp_read_error_log('exttab_constraints_1');
 CREATE TABLE exttab_constraints_insert_1 (LIKE exttab_constraints_1) distributed by (i);
 ALTER TABLE exttab_constraints_insert_1 ADD CONSTRAINT exttab_uniq_constraint_1 UNIQUE (j);
 NOTICE:  updating distribution policy to match new unique index
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "exttab_constraints_insert_1_j_key" for table "exttab_constraints_insert_1"
 -- This should fail
 select gp_truncate_error_log('exttab_constraints_1');
  gp_truncate_error_log 
@@ -2920,7 +2916,6 @@ DROP PROTOCOL if exists demoprot2;
 CREATE EXTERNAL TABLE SERIAL (a serial, x text)
 LOCATION ('file://@hostname@@abs_srcdir@/data/no/such/place/serial.tbl')
 FORMAT 'csv';
-NOTICE:  CREATE EXTERNAL TABLE will create implicit sequence "serial_a_seq" for serial column "serial.a"
 -- drop temp external table
 DROP EXTERNAL TABLE IF EXISTS serial;
 -- External table query within plpgSQL function get error
@@ -4865,5 +4860,15 @@ CONTEXT:  External table tbl_ext_gpformatter
 ----
  0
  1
+(2 rows)
+
+--
+-- Test information_schema views for external tables
+--
+SELECT * FROM information_schema.tables WHERE table_name IN ('wet_pos4', 'exttab_basic_1');
+ table_catalog | table_schema |   table_name   | table_type | self_referencing_column_name | reference_generation | user_defined_type_catalog | user_defined_type_schema | user_defined_type_name | is_insertable_into | is_typed | commit_action 
+---------------+--------------+----------------+------------+------------------------------+----------------------+---------------------------+--------------------------+------------------------+--------------------+----------+---------------
+ regression    | public       | exttab_basic_1 | BASE TABLE |                              |                      |                           |                          |                        | NO                 | NO       | 
+ regression    | public       | wet_pos4       | BASE TABLE |                              |                      |                           |                          |                        | YES                | NO       | 
 (2 rows)
 

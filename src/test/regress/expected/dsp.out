@@ -50,8 +50,8 @@ create table t1 (a int, b int) distributed by (a);
  b      | integer |           | plain   |              | none             | 0                 | 32768      | 
 Checksum: t
 Has OIDs: no
-Options: appendonly=true, orientation=column
 Distributed by: (a)
+Options: appendonly=true, orientation=column
 
 insert into t1 select i, i from generate_series(1,5)i;
 update t1 set b = 50 where a < 50;
@@ -73,8 +73,8 @@ create table t2 (a int, b varchar, c text) distributed by (a);
  c      | text              |           | extended |              | none             | 0                 | 8192       | 
 Checksum: t
 Has OIDs: no
-Options: appendonly=true, blocksize=8192, orientation=column
 Distributed by: (a)
+Options: appendonly=true, blocksize=8192, orientation=column
 
 create table t3 (a int, b float) with (appendonly=false)
 	distributed by (a);
@@ -85,8 +85,8 @@ create table t3 (a int, b float) with (appendonly=false)
  a      | integer          |           | plain   |              | 
  b      | double precision |           | plain   |              | 
 Has OIDs: no
-Options: appendonly=false
 Distributed by: (a)
+Options: appendonly=false
 
 create table t4 (a int, b float, c text) with
 	(appendonly=true,orientation=row) distributed by (a);
@@ -158,8 +158,8 @@ Compression Level: 2
 Block Size: 32768
 Checksum: t
 Has OIDs: no
-Options: appendonly=true, compresslevel=2
 Distributed by: (a)
+Options: appendonly=true, compresslevel=2
 
 -- should fail because current default orientation is row
 create table t2 (
@@ -186,8 +186,8 @@ create table t2 (
  d      | text             |           | extended |              | zlib             | 2                 | 32768      | 
 Checksum: t
 Has OIDs: no
-Options: orientation=column, appendonly=true, compresslevel=2
 Distributed by: (a)
+Options: orientation=column, appendonly=true, compresslevel=2
 
 insert into t2 select i, 71/i, 2*i, 'abc'||2*i from generate_series(1,5)i;
 select * from t2 order by 1;
@@ -261,7 +261,6 @@ subpartition template
    subpartition sp2 start(11) end(20) with(appendonly=true,orientation=column,checksum=true,compresstype=none))
 (partition p1 values('val1'),
  partition p2 values('val2'));
-NOTICE:  CREATE TABLE will create implicit sequence "alter_part_tab1_id_seq" for serial column "alter_part_tab1.id"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 NOTICE:  CREATE TABLE will create partition "alter_part_tab1_1_prt_p1" for table "alter_part_tab1"
@@ -576,8 +575,8 @@ create table co8 (a int, b float) distributed by (a);
  b      | double precision |           | plain   |              | none             | 0                 | 32768      | 
 Checksum: t
 Has OIDs: no
-Options: appendonly=true, orientation=column
 Distributed by: (a)
+Options: appendonly=true, orientation=column
 
 -- ensure that set_config() has propagated to segments by insert and
 -- select into a column oriented table.
@@ -614,8 +613,8 @@ Compression Level: 2
 Block Size: 32768
 Checksum: t
 Has OIDs: no
-Options: appendonly=true, compresslevel=2
 Distributed by: (a)
+Options: appendonly=true, compresslevel=2
 
 insert into ao1 select i, i from generate_series(1,100)i;
 select count(*) from ao1;
@@ -642,8 +641,8 @@ create table co9 (x int, y float) distributed by (x);
  y      | double precision |           | plain   |              | none             | 0                 | 32768      | 
 Checksum: t
 Has OIDs: no
-Options: appendonly=true, orientation=column
 Distributed by: (x)
+Options: appendonly=true, orientation=column
 
 -- ensure that set_config() has propagated to segments by insert and
 -- select into a column oriented table.

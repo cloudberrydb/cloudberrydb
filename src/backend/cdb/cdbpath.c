@@ -1407,7 +1407,7 @@ cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx
 
 				if (!eq)
 					eq = list_make1(makeString("="));
-				cpathkey = cdb_make_pathkey_for_expr(ctx->root, (Node *) var, eq, false);
+				cpathkey = cdb_make_pathkey_for_expr(ctx->root, (Node *) var, eq);
 				partkey = lappend(partkey, cpathkey);
 			}
 		}

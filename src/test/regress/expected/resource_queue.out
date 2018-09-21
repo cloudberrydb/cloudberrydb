@@ -338,7 +338,6 @@ create table rq_product (
 	pcolor text,
 	primary key (pn)
 ) distributed by (pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "rq_product_pkey" for table "rq_product"
 -- Products
 insert into rq_product values 
   ( 100, 'Sword', 'Black'),

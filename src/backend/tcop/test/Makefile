@@ -2,7 +2,12 @@ subdir=src/backend/tcop
 top_builddir=../../../..
 include $(top_builddir)/src/Makefile.global
 
-TARGETS=postgres idle_resource_cleaner
+TARGETS=postgres
+
+# GPDB_93_MERGE_FIXME: idle_resource_cleaner target is removed from unit tests
+# because the support for idle session and gang hooks was removed during merge
+# conflict resolution. If those hooks are needed then bring it back and then
+# enable the tests or delete the tests.
 
 include $(top_builddir)/src/backend/mock.mk
 

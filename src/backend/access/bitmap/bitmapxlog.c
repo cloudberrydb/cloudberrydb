@@ -113,7 +113,7 @@ _bitmap_xlog_newpage(XLogRecPtr lsn, XLogRecord *record)
 	page = BufferGetPage(buffer);
 	Assert(PageIsNew(page));
 
-	if (XLByteLT(PageGetLSN(page), lsn))
+	if (PageGetLSN(page) < lsn)
 	{
 		switch (info)
 		{
@@ -164,7 +164,7 @@ _bitmap_xlog_insert_lovitem(XLogRecPtr lsn, XLogRecord *record)
 	elog(DEBUG1, "In redo, processing a lovItem: (blockno, offset)=(%d,%d)",
 		 xlrec->bm_lov_blkno, xlrec->bm_lov_offset);
 
-	if (XLByteLT(PageGetLSN(lovPage), lsn))
+	if (PageGetLSN(lovPage) < lsn)
 	{
 		OffsetNumber	newOffset, itemSize;
 
@@ -217,7 +217,7 @@ _bitmap_xlog_insert_lovitem(XLogRecPtr lsn, XLogRecord *record)
 		LockBuffer(metabuf, BUFFER_LOCK_EXCLUSIVE);
  		metapage = (BMMetaPage) PageGetContents(BufferGetPage(metabuf));
  		
- 		if (XLByteLT(PageGetLSN(BufferGetPage(metabuf)), lsn))
+ 		if (PageGetLSN(BufferGetPage(metabuf)) < lsn)
  		{
  			metapage->bm_lov_lastpage = xlrec->bm_lov_blkno;
  			
@@ -251,7 +251,7 @@ _bitmap_xlog_insert_meta(XLogRecPtr lsn, XLogRecord *record)
 	if (PageIsNew(mp))
 		PageInit(mp, BufferGetPageSize(metabuf), 0);
 
-	if (XLByteLT(PageGetLSN(mp), lsn))
+	if (PageGetLSN(mp) < lsn)
 	{
 		metapage = (BMMetaPage)PageGetContents(mp);
 
@@ -289,7 +289,7 @@ _bitmap_xlog_insert_bitmap_lastwords(XLogRecPtr lsn,
 	{
 		lovPage = BufferGetPage(lovBuffer);
 
-		if (XLByteLT(PageGetLSN(lovPage), lsn))
+		if (PageGetLSN(lovPage) < lsn)
 		{
 			ItemId item = PageGetItemId(lovPage, xlrec->bm_lov_offset);
 
@@ -345,7 +345,7 @@ _bitmap_xlog_insert_bitmapwords(XLogRecPtr lsn, XLogRecord *record)
 	bitmapPageOpaque =
 		(BMBitmapOpaque)PageGetSpecialPointer(bitmapPage);
 
-	if (XLByteLT(PageGetLSN(bitmapPage), lsn))
+	if (PageGetLSN(bitmapPage) < lsn)
 	{
 		uint64      *last_tids;
 		BM_HRL_WORD *cwords;
@@ -439,7 +439,7 @@ _bitmap_xlog_insert_bitmapwords(XLogRecPtr lsn, XLogRecord *record)
  		PageGetItem(lovPage, 
  					PageGetItemId(lovPage, xlrec->bm_lov_offset));
  	
- 	if (xlrec->bm_is_last && XLByteLT(PageGetLSN(lovPage), lsn))
+ 	if (xlrec->bm_is_last && PageGetLSN(lovPage) < lsn)
  	{
  		lovItem->bm_last_compword = xlrec->bm_last_compword;
  		lovItem->bm_last_word = xlrec->bm_last_word;
@@ -457,7 +457,7 @@ _bitmap_xlog_insert_bitmapwords(XLogRecPtr lsn, XLogRecord *record)
  		
  	}
  	
- 	else if (xlrec->bm_is_first && XLByteLT(PageGetLSN(lovPage), lsn))
+ 	else if (xlrec->bm_is_first && PageGetLSN(lovPage) < lsn)
  	{
  		lovItem->bm_lov_head = xlrec->bm_blkno;
  		lovItem->bm_lov_tail = lovItem->bm_lov_head;
@@ -498,7 +498,7 @@ _bitmap_xlog_updateword(XLogRecPtr lsn, XLogRecord *record)
 			(BMBitmapOpaque)PageGetSpecialPointer(bitmapPage);
 		bitmap = (BMBitmap) PageGetContentsMaxAligned(bitmapPage);
 
-		if (XLByteLT(PageGetLSN(bitmapPage), lsn))
+		if (PageGetLSN(bitmapPage) < lsn)
 		{
 			Assert(bitmapOpaque->bm_hrl_words_used > xlrec->bm_word_no);
 
@@ -544,7 +544,7 @@ _bitmap_xlog_updatewords(XLogRecPtr lsn, XLogRecord *record)
 			(BMBitmapOpaque)PageGetSpecialPointer(firstPage);
 		firstBitmap = (BMBitmap) PageGetContentsMaxAligned(firstPage);
 
-		if (XLByteLT(PageGetLSN(firstPage), lsn))
+		if (PageGetLSN(firstPage) < lsn)
 		{
 			memcpy(firstBitmap->cwords, xlrec->bm_first_cwords,
 				   BM_NUM_OF_HRL_WORDS_PER_PAGE * sizeof(BM_HRL_WORD));
@@ -576,7 +576,7 @@ _bitmap_xlog_updatewords(XLogRecPtr lsn, XLogRecord *record)
  		secondOpaque = (BMBitmapOpaque)PageGetSpecialPointer(secondPage);
  		secondBitmap = (BMBitmap) PageGetContentsMaxAligned(secondPage);
  
- 		if (XLByteLT(PageGetLSN(secondPage), lsn))
+ 		if (PageGetLSN(secondPage) < lsn)
  		{
  			memcpy(secondBitmap->cwords, xlrec->bm_second_cwords,
  				   BM_NUM_OF_HRL_WORDS_PER_PAGE * sizeof(BM_HRL_WORD));
@@ -609,7 +609,7 @@ _bitmap_xlog_updatewords(XLogRecPtr lsn, XLogRecord *record)
  		
  		lovPage = BufferGetPage(lovBuffer);
  		
- 		if (XLByteLT(PageGetLSN(lovPage), lsn))
+ 		if (PageGetLSN(lovPage) < lsn)
  		{
  			lovItem = (BMLOVItem)
  				PageGetItem(lovPage, 
@@ -658,86 +658,6 @@ bitmap_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			break;
 		default:
 			elog(PANIC, "bitmap_redo: unknown op code %u", info);
-	}
-}
-
-static void
-out_target(StringInfo buf, RelFileNode *node)
-{
-	appendStringInfo(buf, "rel %u/%u/%u",
-			node->spcNode, node->dbNode, node->relNode);
-}
-
-void
-bitmap_desc(StringInfo buf, XLogRecord *record)
-{
-	uint8		info = record->xl_info & ~XLR_INFO_MASK;
-	char		*rec = XLogRecGetData(record);
-
-	switch (info)
-	{
-		case XLOG_BITMAP_INSERT_NEWLOV:
-		{
-			xl_bm_newpage *xlrec = (xl_bm_newpage *)rec;
-
-			appendStringInfo(buf, "insert a new LOV page: ");
-			out_target(buf, &(xlrec->bm_node));
-			break;
-		}
-		case XLOG_BITMAP_INSERT_LOVITEM:
-		{
-			xl_bm_lovitem *xlrec = (xl_bm_lovitem *)rec;
-
-			appendStringInfo(buf, "insert a new LOV item: ");
-			out_target(buf, &(xlrec->bm_node));
-			break;
-		}
-		case XLOG_BITMAP_INSERT_META:
-		{
-			xl_bm_metapage *xlrec = (xl_bm_metapage *)rec;
-
-			appendStringInfo(buf, "update the metapage: ");
-			out_target(buf, &(xlrec->bm_node));
-			break;
-		}
-
-		case XLOG_BITMAP_INSERT_BITMAP_LASTWORDS:
-		{
-			xl_bm_bitmap_lastwords *xlrec = (xl_bm_bitmap_lastwords *)rec;
-
-			appendStringInfo(buf, "update the last two words in a bitmap: ");
-			out_target(buf, &(xlrec->bm_node));
-			break;
-		}
-
-		case XLOG_BITMAP_INSERT_WORDS:
-		{
-			xl_bm_bitmapwords *xlrec = (xl_bm_bitmapwords *)rec;
-
-			appendStringInfo(buf, "insert words in a not-last bitmap page: ");
-			out_target(buf, &(xlrec->bm_node));
-			break;
-		}
-
-		case XLOG_BITMAP_UPDATEWORD:
-		{
-			xl_bm_updateword *xlrec = (xl_bm_updateword *)rec;
-
-			appendStringInfo(buf, "update a word in a bitmap page: ");
-			out_target(buf, &(xlrec->bm_node));
-			break;
-		}
-		case XLOG_BITMAP_UPDATEWORDS:
-		{
-			xl_bm_updatewords *xlrec = (xl_bm_updatewords*)rec;
-
-			appendStringInfo(buf, "update words in bitmap pages: ");
-			out_target(buf, &(xlrec->bm_node));
-			break;
-		}
-		default:
-			appendStringInfo(buf, "UNKNOWN");
-			break;
 	}
 }
 

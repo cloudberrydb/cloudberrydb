@@ -175,9 +175,6 @@
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
 
-/* Define to 1 if you have the `fcvt' function. */
-#undef HAVE_FCVT
-
 /* Define to 1 if you have the `fdatasync' function. */
 #undef HAVE_FDATASYNC
 
@@ -429,6 +426,9 @@
 /* Define to 1 if you have the <mbarrier.h> header file. */
 #undef HAVE_MBARRIER_H
 
+/* Define to 1 if you have the `mbstowcs_l' function. */
+#undef HAVE_MBSTOWCS_L
+
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE
 
@@ -616,6 +616,9 @@
 /* Define to 1 if you have the `symlink' function. */
 #undef HAVE_SYMLINK
 
+/* Define to 1 if you have the `sync_file_range' function. */
+#undef HAVE_SYNC_FILE_RANGE
+
 /* Define to 1 if you have the syslog interface. */
 #undef HAVE_SYSLOG
 
@@ -725,9 +728,6 @@
 /* Define to 1 if you have the `vsnprintf' function. */
 #undef HAVE_VSNPRINTF
 
-/* Define to 1 if you have the `waitpid' function. */
-#undef HAVE_WAITPID
-
 /* Define to 1 if you have the <wchar.h> header file. */
 #undef HAVE_WCHAR_H
 
@@ -745,9 +745,6 @@
 
 /* Define to 1 if you have the <winsock2.h> header file. */
 #undef HAVE_WINSOCK2_H
-
-/* Define to 1 if your libxml has xmlStructuredErrorContext. */
-#undef HAVE_XMLSTRUCTUREDERRORCONTEXT
 
 /* Define to 1 if you have the <yaml.h> header file. */
 #undef HAVE_YAML_H

@@ -3,7 +3,7 @@
  * reinit.c
  *	  Reinitialization of unlogged relations
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -17,6 +17,8 @@
 #include <unistd.h>
 
 #include "catalog/catalog.h"
+#include "catalog/pg_tablespace.h"
+#include "common/relpath.h"
 #include "storage/copydir.h"
 #include "storage/fd.h"
 #include "storage/reinit.h"
@@ -337,7 +339,6 @@ ResetUnloggedRelationsInDbspaceDir(const char *dbspacedirname, int op)
 			copy_file(srcpath, dstpath);
 		}
 
-		/* Done with the first pass. */
 		FreeDir(dbspace_dir);
 	}
 }

@@ -44,19 +44,21 @@
 
 CATALOG(gp_segment_configuration,5036) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
 {
-	int2		dbid;				/* up to 32767 segment databases */
-	int2		content;			/* up to 32767 contents -- only 16384 usable with mirroring (see dbid) */
+	int16		dbid;				/* up to 32767 segment databases */
+	int16		content;			/* up to 32767 contents -- only 16384 usable with mirroring (see dbid) */
 
 	char		role;
 	char		preferred_role;
 	char		mode;
 	char		status;
-	int4		port;
+	int32		port;
 
+#ifdef CATALOG_VARLEN
 	text		hostname;
 	text		address;
 
 	text		datadir;
+#endif
 } FormData_gp_segment_configuration;
 
 /* no foreign keys */

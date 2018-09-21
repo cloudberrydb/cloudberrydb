@@ -22,18 +22,19 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
-#include "access/aomd.h"
-#include "catalog/catalog.h"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
 
-#include "utils/guc.h"
-#include "cdb/cdbappendonlystorage.h"
+#include "access/aomd.h"
 #include "access/appendonlytid.h"
 #include "access/appendonlywriter.h"
+#include "catalog/catalog.h"
+#include "cdb/cdbappendonlystorage.h"
 #include "cdb/cdbappendonlyxlog.h"
+#include "common/relpath.h"
+#include "utils/guc.h"
 
 int
 AOSegmentFilePathNameLen(Relation rel)

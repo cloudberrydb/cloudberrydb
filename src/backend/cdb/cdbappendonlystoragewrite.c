@@ -30,6 +30,7 @@
 #include "cdb/cdbappendonlystorageformat.h"
 #include "cdb/cdbappendonlystoragewrite.h"
 #include "cdb/cdbappendonlyxlog.h"
+#include "common/relpath.h"
 #include "utils/faultinjector.h"
 #include "utils/guc.h"
 

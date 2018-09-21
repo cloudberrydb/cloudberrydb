@@ -394,27 +394,26 @@ explain select x,y from l1 where (x,y) not in
 	(select distinct y, sum(x) from l1 group by y having y < 4 order by y) order by 1,2;
                                                          QUERY PLAN                                                          
 -----------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=8.96..8.98 rows=10 width=8)
-   Merge Key: notin.l1.x, notin.l1.y
-   ->  Sort  (cost=8.96..8.98 rows=4 width=8)
-         Sort Key: notin.l1.x, notin.l1.y
-         ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=3.44..8.79 rows=4 width=8)
-               Join Filter: notin.l1.x = "NotIn_SUBQUERY".y AND notin.l1.y = "NotIn_SUBQUERY".sum
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=10000000008.02..10000000008.03 rows=4 width=8)
+   Merge Key: l1.x, l1.y
+   ->  Sort  (cost=10000000008.02..10000000008.03 rows=2 width=8)
+         Sort Key: l1.x, l1.y
+         ->  Nested Loop Left Anti Semi (Not-In) Join  (cost=10000000003.25..10000000007.99 rows=2 width=8)
+               Join Filter: l1.x = "NotIn_SUBQUERY".y AND l1.y = "NotIn_SUBQUERY".sum
                ->  Seq Scan on l1  (cost=0.00..3.10 rows=4 width=8)
-               ->  Materialize  (cost=3.44..3.53 rows=3 width=12)
+               ->  Materialize  (cost=3.25..3.47 rows=3 width=12)
                      ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=3.25..3.43 rows=3 width=12)
                            ->  Subquery Scan on "NotIn_SUBQUERY"  (cost=3.25..3.31 rows=1 width=12)
                                  ->  HashAggregate  (cost=3.25..3.28 rows=1 width=16)
-                                       Group By: notin.l1.y
+                                       Group Key: l1_1.y
                                        ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=3.14..3.20 rows=1 width=12)
-                                             Hash Key: notin.l1.y
+                                             Hash Key: l1_1.y
                                              ->  HashAggregate  (cost=3.14..3.14 rows=1 width=12)
-                                                   Group By: notin.l1.y
-                                                   ->  Seq Scan on l1  (cost=0.00..3.12 rows=2 width=8)
+                                                   Group Key: l1_1.y
+                                                   ->  Seq Scan on l1 l1_1  (cost=0.00..3.12 rows=2 width=8)
                                                          Filter: y < 4
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
-(20 rows)
+ Optimizer: legacy query optimizer
+(19 rows)
 
 select x,y from l1 where (x,y) not in
 	(select distinct y, sum(x) from l1 group by y having y < 4 order by y) order by 1,2;
@@ -641,29 +640,29 @@ explain select (case when c1%2 = 0
  else (select sum(c3) from t3 where c3 not in (select c4 from t4)) end) as foo from t1;
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice5; segments: 3)  (cost=7.81..10.96 rows=10 width=4)
-   ->  Seq Scan on t1  (cost=7.81..10.96 rows=4 width=4)
+ Gather Motion 3:1  (slice5; segments: 3)  (cost=9.80..12.95 rows=10 width=4)
+   ->  Seq Scan on t1  (cost=9.80..12.95 rows=4 width=4)
          InitPlan 1 (returns $0)  (slice6)
-           ->  Aggregate  (cost=4.46..4.47 rows=1 width=8)
-                 ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=4.39..4.44 rows=1 width=8)
-                       ->  Aggregate  (cost=4.39..4.40 rows=1 width=8)
-                             ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..4.38 rows=2 width=4)
-                                   Hash Cond: t2.c2 = notin.t3.c3
-                                   ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
+           ->  Aggregate  (cost=5.45..5.46 rows=1 width=8)
+                 ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=5.39..5.44 rows=1 width=8)
+                       ->  Aggregate  (cost=5.39..5.40 rows=1 width=8)
+                             ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..5.38 rows=2 width=4)
+                                   Hash Cond: t2.c2 = t3.c3
+                                   ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
                                    ->  Hash  (cost=2.15..2.15 rows=3 width=4)
                                          ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                                ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
          InitPlan 2 (returns $1)  (slice7)
-           ->  Aggregate  (cost=3.34..3.35 rows=1 width=8)
-                 ->  Gather Motion 3:1  (slice4; segments: 3)  (cost=3.27..3.32 rows=1 width=8)
-                       ->  Aggregate  (cost=3.27..3.28 rows=1 width=8)
-                             ->  Hash Left Anti Semi (Not-In) Join  (cost=1.18..3.26 rows=2 width=4)
-                                   Hash Cond: notin.t3.c3 = t4.c4
-                                   ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
-                                   ->  Hash  (cost=1.10..1.10 rows=2 width=4)
-                                         ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..1.10 rows=2 width=4)
-                                               ->  Seq Scan on t4  (cost=0.00..1.02 rows=1 width=4)
- Optimizer status: legacy query optimizer
+           ->  Aggregate  (cost=4.33..4.34 rows=1 width=8)
+                 ->  Gather Motion 3:1  (slice4; segments: 3)  (cost=4.27..4.32 rows=1 width=8)
+                       ->  Aggregate  (cost=4.27..4.28 rows=1 width=8)
+                             ->  Hash Left Anti Semi (Not-In) Join  (cost=2.18..4.26 rows=2 width=4)
+                                   Hash Cond: t3_1.c3 = t4.c4
+                                   ->  Seq Scan on t3 t3_1  (cost=0.00..2.03 rows=1 width=4)
+                                   ->  Hash  (cost=2.10..2.10 rows=2 width=4)
+                                         ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..2.10 rows=2 width=4)
+                                               ->  Seq Scan on t4  (cost=0.00..2.02 rows=1 width=4)
+ Optimizer: legacy query optimizer
 (23 rows)
 
 select (case when c1%2 = 0 
@@ -710,16 +709,15 @@ select c1 from t1 where not c1 >= some (select c2 from t2);
 explain select c2 from t2 where not c2 < all (select c2 from t2);
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.27..6.00 rows=9 width=4)
-   ->  Nested Loop Semi Join  (cost=2.27..6.00 rows=3 width=4)
-         Join Filter: notin.t2.c2 >= notin.t2.c2
-         ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
-         ->  Materialize  (cost=2.27..2.42 rows=5 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.25 rows=5 width=4)
-                     ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
-(9 rows)
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=10000000000.00..10000000007.10 rows=4 width=4)
+   ->  Nested Loop Semi Join  (cost=10000000000.00..10000000007.10 rows=2 width=4)
+         Join Filter: t2.c2 >= t2_1.c2
+         ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
+         ->  Materialize  (cost=0.00..3.33 rows=5 width=4)
+               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.25 rows=5 width=4)
+                     ->  Seq Scan on t2 t2_1  (cost=0.00..3.05 rows=2 width=4)
+ Optimizer: legacy query optimizer
+(8 rows)
 
 select c2 from t2 where not c2 < all (select c2 from t2);
  c2 
@@ -1034,26 +1032,25 @@ select c1 from t1 where not exists (select c2 from t2 where c2 not in (select c3
 explain select c1 from t1 where not exists (select c2 from t2 where exists (select c3 from t3) and c2 <>all (select c3 from t3) and c2 = c1);
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=5.12..8.35 rows=10 width=4)
-   ->  Hash Anti Join  (cost=5.12..8.35 rows=4 width=4)
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=6.12..9.28 rows=4 width=4)
+   ->  Hash Anti Join  (cost=6.12..9.28 rows=2 width=4)
          Hash Cond: t1.c1 = t2.c2
          Join Filter: $0
          InitPlan 1 (returns $0)  (slice4)
            ->  Limit  (cost=0.00..0.70 rows=1 width=0)
                  ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..0.70 rows=1 width=0)
                        ->  Limit  (cost=0.00..0.68 rows=1 width=0)
-                             ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=0)
+                             ->  Seq Scan on t3 t3_1  (cost=0.00..2.03 rows=1 width=0)
          ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
-         ->  Hash  (cost=4.38..4.38 rows=2 width=4)
-               ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..4.38 rows=2 width=4)
-                     Hash Cond: t2.c2 = notin.t3.c3
-                     ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
+         ->  Hash  (cost=5.38..5.38 rows=2 width=4)
+               ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..5.38 rows=2 width=4)
+                     Hash Cond: t2.c2 = t3.c3
+                     ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
                      ->  Hash  (cost=2.15..2.15 rows=3 width=4)
                            ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
                                  ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
-(19 rows)
+ Optimizer: legacy query optimizer
+(18 rows)
 
 select c1 from t1 where not exists (select c2 from t2 where exists (select c3 from t3) and c2 <>all (select c3 from t3) and c2 = c1);
  c1 

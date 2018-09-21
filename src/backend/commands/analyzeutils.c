@@ -124,10 +124,10 @@ get_rel_reltuples(Oid relid)
 	return relTuples;
 }
 
-int4
+int32
 get_rel_relpages(Oid relid)
 {
-	int4 relPages = 0.0;
+	int32		relPages = 0.0;
 
 	HeapTuple	tp;
 
@@ -1127,7 +1127,7 @@ leaf_parts_analyzed(Oid attrelid, Oid relid_exclude, List *va_cols)
 			continue;
 
 		float4 relTuples = get_rel_reltuples(partRelid);
-		int4 relpages = get_rel_relpages(partRelid);
+		int32 relpages = get_rel_relpages(partRelid);
 
 		// Partition is analyzed and we detect it is empty
 		if (relTuples == 0.0 && relpages == 1)

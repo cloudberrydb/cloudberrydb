@@ -5,7 +5,7 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_aggregate.h
@@ -55,7 +55,7 @@ CATALOG(pg_aggregate,2600) BKI_WITHOUT_OIDS
 {
 	regproc		aggfnoid;
 	char		aggkind;
-	int2		aggnumdirectargs;
+	int16		aggnumdirectargs;
 	regproc		aggtransfn;
 	regproc		aggfinalfn;
 	regproc		aggcombinefn;
@@ -68,9 +68,9 @@ CATALOG(pg_aggregate,2600) BKI_WITHOUT_OIDS
 	bool		aggmfinalextra;
 	Oid			aggsortop;
 	Oid			aggtranstype;
-	int4		aggtransspace;
+	int32		aggtransspace;
 	Oid			aggmtranstype;
-	int4		aggmtransspace;
+	int32		aggmtransspace;
 
 #ifdef CATALOG_VARLEN			/* variable-length fields start here */
 	text		agginitval;
@@ -351,10 +351,13 @@ DATA(insert ( 3545	n 0 bytea_string_agg_transfn		bytea_string_agg_finalfn				-	-
 /* hyperloglog */
 DATA(insert ( 7164	n 0 hyperloglog_add_item_agg_default hyperloglog_comp		hyperloglog_merge	-	-	-		-		-		f f 0	7157	0	0		0	_null_ _null_ ));
 
+/* json */
+DATA(insert ( 3175	n 0 json_agg_transfn				json_agg_finalfn						-	-	-	-		-		-		f f 0	2281	0	0		0	_null_ _null_ ));
+
 /*
  * prototypes for functions in pg_aggregate.c
  */
-extern void AggregateCreate(const char *aggName,
+extern Oid AggregateCreate(const char *aggName,
 				Oid aggNamespace,
 				char aggKind,
 				int numArgs,

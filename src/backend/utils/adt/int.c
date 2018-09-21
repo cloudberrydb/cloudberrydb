@@ -3,7 +3,7 @@
  * int.c
  *	  Functions for the built-in integer types (except int8).
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -39,6 +39,8 @@
 
 
 #define SAMESIGN(a,b)	(((a) < 0) == ((b) < 0))
+
+#define Int2VectorSize(n)	(offsetof(int2vector, values) + (n) * sizeof(int16))
 
 typedef struct
 {
@@ -107,14 +109,14 @@ int2send(PG_FUNCTION_ARGS)
  * If int2s is NULL then caller must fill values[] afterward
  */
 int2vector *
-buildint2vector(const int2 *int2s, int n)
+buildint2vector(const int16 *int2s, int n)
 {
 	int2vector *result;
 
 	result = (int2vector *) palloc0(Int2VectorSize(n));
 
 	if (n > 0 && int2s)
-		memcpy(result->values, int2s, n * sizeof(int2));
+		memcpy(result->values, int2s, n * sizeof(int16));
 
 	/*
 	 * Attach standard array header.  For historical reasons, we set the index
@@ -264,7 +266,7 @@ int2vectoreq(PG_FUNCTION_ARGS)
 
 	if (a->dim1 != b->dim1)
 		PG_RETURN_BOOL(false);
-	PG_RETURN_BOOL(memcmp(a->values, b->values, a->dim1 * sizeof(int2)) == 0);
+	PG_RETURN_BOOL(memcmp(a->values, b->values, a->dim1 * sizeof(int16)) == 0);
 }
 
 

@@ -1758,7 +1758,7 @@ order by 1,2;
          Sort Key: (NULL::integer), (NULL::integer)
          ->  Aggregate
                ->  Gather Motion 3:1  (slice2; segments: 3)
-                     ->  Seq Scan on mergeappend_test r
+                     ->  Seq Scan on mergeappend_test r_1
  Optimizer: legacy query optimizer
 (15 rows)
 

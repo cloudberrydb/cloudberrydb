@@ -27,7 +27,7 @@ drop table if exists testsort;
 create table testsort (i1 int, i2 int, i3 int, i4 int); 
 insert into testsort select i, i % 1000, i % 100000, i % 75 from generate_series(0,199999) i; 
 
-set statement_mem="5MB";
+set statement_mem="2MB";
 set gp_resqueue_print_operator_memory_limits=on;
 set gp_enable_mk_sort=off; 
 

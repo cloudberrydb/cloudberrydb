@@ -145,7 +145,7 @@ partition_get_policies_attrs(PartitionNode *pn,
 							             List **cols);
 
 /* RelationBuildPartitionDesc is built from get_parts */
-extern PartitionNode *get_parts(Oid relid, int2 level, Oid parent, bool inctemplate,
+extern PartitionNode *get_parts(Oid relid, int16 level, Oid parent, bool inctemplate,
 		  bool includesubparts);
 
 extern PartitionNode *RelationBuildPartitionDesc(Relation rel,

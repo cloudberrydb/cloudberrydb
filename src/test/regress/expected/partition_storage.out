@@ -114,8 +114,8 @@ Indexes:
 Check constraints:
     "pt_heap_tab_1_prt_pqr_check" CHECK (b = 'pqr'::text OR b = 'pqr1'::text OR b = 'pqr2'::text)
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresslevel=5
 Distributed by: (a)
+Options: appendonly=true, orientation=column, compresslevel=5
 
  \d+ co_can
                    Append-Only Table "public.co_can"
@@ -137,8 +137,8 @@ Indexes:
 Check constraints:
     "pt_heap_tab_1_prt_def_check" CHECK (b = 'def'::text OR b = 'def1'::text OR b = 'def3'::text)
 Has OIDs: no
-Options: appendonly=true, compresslevel=1
 Distributed by: (a)
+Options: appendonly=true, compresslevel=1
 
  \d+ ao_can
                          Table "public.ao_can"
@@ -156,8 +156,8 @@ Indexes:
 Check constraints:
     "pt_heap_tab_1_prt_abc1_check" CHECK (b = 'abc'::text OR b = 'abc2'::text)
 Has OIDs: no
-Options: appendonly=false
 Distributed by: (a)
+Options: appendonly=false
 
 --Further operations
  alter table pt_heap_tab drop partition jkl;
@@ -315,8 +315,8 @@ Indexes:
 Check constraints:
     "pt_ao_tab_1_prt_pqr_check" CHECK (b = 'pqr'::text OR b = 'pqr1'::text OR b = 'pqr2'::text)
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresslevel=5
 Distributed by: (a)
+Options: appendonly=true, orientation=column, compresslevel=5
 
  \d+ co_can
                    Append-Only Table "public.co_can"
@@ -338,8 +338,8 @@ Indexes:
 Check constraints:
     "pt_ao_tab_1_prt_def_check" CHECK (b = 'def'::text OR b = 'def1'::text OR b = 'def3'::text)
 Has OIDs: no
-Options: appendonly=true, compresslevel=1
 Distributed by: (a)
+Options: appendonly=true, compresslevel=1
 
  \d+ ao_can
                          Table "public.ao_can"
@@ -357,8 +357,8 @@ Indexes:
 Check constraints:
     "pt_ao_tab_1_prt_stu_check" CHECK (b = 'stu'::text OR b = 'stu1'::text OR b = 'stu2'::text)
 Has OIDs: no
-Options: appendonly=false
 Distributed by: (a)
+Options: appendonly=false
 
 --Further operations
  alter table pt_ao_tab drop partition jkl;
@@ -527,8 +527,8 @@ Indexes:
 Check constraints:
     "pt_co_tab_1_prt_xyz2_check" CHECK (b = 'xyz1'::text)
 Has OIDs: no
-Options: appendonly=true, orientation=column, compresslevel=5
 Distributed by: (a)
+Options: appendonly=true, orientation=column, compresslevel=5
 
  \d+ co_can
                    Append-Only Table "public.co_can"
@@ -550,8 +550,8 @@ Indexes:
 Check constraints:
     "pt_co_tab_1_prt_pqr_check" CHECK (b = 'pqr'::text OR b = 'pqr1'::text OR b = 'pqr2'::text)
 Has OIDs: no
-Options: appendonly=true, compresslevel=5
 Distributed by: (a)
+Options: appendonly=true, compresslevel=5
 
  \d+ ao_can
                          Table "public.ao_can"
@@ -569,8 +569,8 @@ Indexes:
 Check constraints:
     "pt_co_tab_1_prt_stu_check" CHECK (b = 'stu'::text OR b = 'stu1'::text OR b = 'stu2'::text)
 Has OIDs: no
-Options: appendonly=false
 Distributed by: (a)
+Options: appendonly=false
 
 -- Further operations
  alter table pt_co_tab drop partition jkl;
@@ -720,8 +720,8 @@ Indexes:
 Check constraints:
     "pt_heap_tab_rng_1_prt_heap1_check" CHECK (a >= 21 AND a < 23)
 Has OIDs: no
-Options: appendonly=false
 Distributed by: (a)
+Options: appendonly=false
 
  \d+ co_can
                    Append-Only Table "public.co_can"
@@ -743,8 +743,8 @@ Indexes:
 Check constraints:
     "pt_heap_tab_rng_1_prt_newao_check" CHECK (a >= 40 AND a < 45)
 Has OIDs: no
-Options: appendonly=true
 Distributed by: (a)
+Options: appendonly=true
 
  \d+ heap_can
                                        Append-Only Columnar Table "public.heap_can"
@@ -763,8 +763,8 @@ Indexes:
 Check constraints:
     "pt_heap_tab_rng_1_prt_newco_check" CHECK (a >= 36 AND a < 40)
 Has OIDs: no
-Options: appendonly=true, orientation=column
 Distributed by: (a)
+Options: appendonly=true, orientation=column
 
 -- Create more index indexes
  create index heap_rng_idx3 on pt_heap_tab_rng(c,d) where a = 40 OR a = 50; -- multicol indx
@@ -915,8 +915,8 @@ Indexes:
 Check constraints:
     "pt_ao_tab_rng_1_prt_newheap_check" CHECK (a >= 40 AND a < 45)
 Has OIDs: no
-Options: appendonly=false
 Distributed by: (a)
+Options: appendonly=false
 
  \d+ co_can
                    Append-Only Table "public.co_can"
@@ -938,8 +938,8 @@ Indexes:
 Check constraints:
     "pt_ao_tab_rng_1_prt_ao1_check" CHECK (a >= 25 AND a < 27)
 Has OIDs: no
-Options: appendonly=true
 Distributed by: (a)
+Options: appendonly=true
 
  \d+ heap_can
                                        Append-Only Columnar Table "public.heap_can"
@@ -958,8 +958,8 @@ Indexes:
 Check constraints:
     "pt_ao_tab_rng_1_prt_newco_check" CHECK (a >= 36 AND a < 40)
 Has OIDs: no
-Options: appendonly=true, orientation=column
 Distributed by: (a)
+Options: appendonly=true, orientation=column
 
 -- Create more index indexes
  create index ao_rng_idx3 on pt_ao_tab_rng(c,d) where a = 40 OR a = 50; -- multicol indx
@@ -1110,8 +1110,8 @@ Indexes:
 Check constraints:
     "pt_co_tab_rng_1_prt_newheap_check" CHECK (a >= 40 AND a < 45)
 Has OIDs: no
-Options: appendonly=false
 Distributed by: (a)
+Options: appendonly=false
 
  \d+ co_can
                    Append-Only Table "public.co_can"
@@ -1133,8 +1133,8 @@ Indexes:
 Check constraints:
     "pt_co_tab_rng_1_prt_newao_check" CHECK (a >= 36 AND a < 40)
 Has OIDs: no
-Options: appendonly=true
 Distributed by: (a)
+Options: appendonly=true
 
  \d+ heap_can
                                        Append-Only Columnar Table "public.heap_can"
@@ -1153,8 +1153,8 @@ Indexes:
 Check constraints:
     "pt_co_tab_rng_1_prt_co1_check" CHECK (a >= 31 AND a < 33)
 Has OIDs: no
-Options: appendonly=true, orientation=column
 Distributed by: (a)
+Options: appendonly=true, orientation=column
 
 -- Create more index indexes
  create index co_rng_idx3 on pt_co_tab_rng(c,d) where a = 40 OR a = 50; -- multicol indx

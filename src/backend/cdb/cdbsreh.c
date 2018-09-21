@@ -38,6 +38,7 @@
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
 #include "miscadmin.h"
+#include "storage/fd.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/bytea.h"

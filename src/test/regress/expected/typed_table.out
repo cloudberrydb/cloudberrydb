@@ -56,7 +56,6 @@ ERROR:  Greenplum Database does not allow having both PRIMARY KEY and UNIQUE con
 CREATE TABLE gppersons1 OF person_type (
     id WITH OPTIONS PRIMARY KEY
 );
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "gppersons1_pkey" for table "gppersons1"
 \d gppersons1
   Table "public.gppersons1"
  Column |  Type   | Modifiers 
@@ -71,7 +70,6 @@ Distributed by: (id)
 CREATE TABLE gppersons2 OF person_type (
     UNIQUE (name)
 );
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "gppersons2_name_key" for table "gppersons2"
 \d gppersons2
   Table "public.gppersons2"
  Column |  Type   | Modifiers 
@@ -87,7 +85,6 @@ CREATE TABLE persons3 OF person_type (
     PRIMARY KEY (id),
     name WITH OPTIONS DEFAULT ''
 );
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "persons3_pkey" for table "persons3"
 \d persons3
        Table "public.persons3"
  Column |  Type   |    Modifiers     

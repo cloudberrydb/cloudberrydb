@@ -48,16 +48,10 @@ static PGresult *libpqrcv_PQexec(const char *query);
 /*
  * Establish the connection to the primary server for XLOG streaming
  */
-bool
-walrcv_connect(char *conninfo, XLogRecPtr startpoint)
+void
+walrcv_connect(char *conninfo)
 {
 	char		conninfo_repl[MAXCONNINFO + 75];
-	char	   *primary_sysid;
-	char		standby_sysid[32];
-	TimeLineID	primary_tli;
-	TimeLineID	standby_tli;
-	PGresult   *res;
-	char		cmd[64];
 
 	/*
 	 * Connect using deliberately undocumented parameter: replication. The
@@ -74,6 +68,18 @@ walrcv_connect(char *conninfo, XLogRecPtr startpoint)
 				(errmsg("could not connect to the primary server: %s",
 						PQerrorMessage(streamConn)),
 				 errSendAlert(true)));
+}
+
+/*
+ * Check that primary's system identifier matches ours, and fetch the current
+ * timeline ID of the primary.
+ */
+void
+walrcv_identify_system(TimeLineID *primary_tli)
+{
+	PGresult   *res;
+	char	   *primary_sysid;
+	char		standby_sysid[32];
 
 	/*
 	 * Get the system identifier and timeline ID as a DataRow message from the
@@ -102,7 +108,7 @@ walrcv_connect(char *conninfo, XLogRecPtr startpoint)
 				 errSendAlert(true)));
 	}
 	primary_sysid = PQgetvalue(res, 0, 0);
-	primary_tli = pg_atoi(PQgetvalue(res, 0, 1), 4, 0);
+	*primary_tli = pg_atoi(PQgetvalue(res, 0, 1), 4, 0);
 
 	/*
 	 * Confirm that the system identifier of the primary is the same as ours.
@@ -118,50 +124,149 @@ walrcv_connect(char *conninfo, XLogRecPtr startpoint)
 						   primary_sysid, standby_sysid),
 				 errSendAlert(true)));
 	}
-
-	/*
-	 * Confirm that the current timeline of the primary is the same as the
-	 * recovery target timeline.
-	 */
-	standby_tli = GetRecoveryTargetTLI();
 	PQclear(res);
-	if (primary_tli != standby_tli)
-		ereport(ERROR,
-				(errmsg("timeline %u of the primary does not match recovery target timeline %u",
-						primary_tli, standby_tli),
-				 errSendAlert(true)));
-	ThisTimeLineID = primary_tli;
+}
 
-	/*
-	 * Start streaming from the point requested by startup process.
-	 * We want this connection to be synchronous.
-	 */
-	snprintf(cmd, sizeof(cmd), "START_REPLICATION %X/%X SYNC",
-			 startpoint.xlogid, startpoint.xrecoff);
+/*
+ * Start streaming WAL data from given startpoint and timeline.
+ *
+ * Returns true if we switched successfully to copy-both mode. False
+ * means the server received the command and executed it successfully, but
+ * didn't switch to copy-mode.  That means that there was no WAL on the
+ * requested timeline and starting point, because the server switched to
+ * another timeline at or before the requested starting point. On failure,
+ * throws an ERROR.
+ */
+bool
+walrcv_startstreaming(TimeLineID tli, XLogRecPtr startpoint)
+{
+	char		cmd[64];
+	PGresult   *res;
+
+	/* Start streaming from the point requested by startup process */
+	snprintf(cmd, sizeof(cmd), "START_REPLICATION %X/%X TIMELINE %u",
+			 (uint32) (startpoint >> 32), (uint32) startpoint,
+			 tli);
 	res = libpqrcv_PQexec(cmd);
-	if (PQresultStatus(res) != PGRES_COPY_BOTH)
+
+	if (PQresultStatus(res) == PGRES_COMMAND_OK)
+	{
+		PQclear(res);
+		return false;
+	}
+	else if (PQresultStatus(res) != PGRES_COPY_BOTH)
 	{
 		PQclear(res);
 		ereport(ERROR,
 				(errmsg("could not start WAL streaming: %s",
-						PQerrorMessage(streamConn)),
-				 errSendAlert(true)));
+						PQerrorMessage(streamConn))));
 	}
 	PQclear(res);
-
-	elogif(debug_walrepl_rcv, LOG,
-			"walrcv handshake -- "
-			"connection = %s, "
-			"sysid = %s, "
-			"timelineid = %d",
-			conninfo_repl, standby_sysid, standby_tli);
 
 	ereport(LOG,
 		(errmsg("streaming replication successfully connected to primary, "
 				"starting replication at %X/%X",
-				startpoint.xlogid, startpoint.xrecoff)));
+				(uint32) (startpoint >> 32), (uint32) startpoint)));
 
 	return true;
+}
+
+/*
+ * Stop streaming WAL data. Returns the next timeline's ID in *next_tli, as
+ * reported by the server, or 0 if it did not report it.
+ */
+void
+walrcv_endstreaming(TimeLineID *next_tli)
+{
+	PGresult   *res;
+
+	if (PQputCopyEnd(streamConn, NULL) <= 0 || PQflush(streamConn))
+		ereport(ERROR,
+			(errmsg("could not send end-of-streaming message to primary: %s",
+					PQerrorMessage(streamConn))));
+
+	/*
+	 * After COPY is finished, we should receive a result set indicating the
+	 * next timeline's ID, or just CommandComplete if the server was shut
+	 * down.
+	 *
+	 * If we had not yet received CopyDone from the backend, PGRES_COPY_IN
+	 * would also be possible. However, at the moment this function is only
+	 * called after receiving CopyDone from the backend - the walreceiver
+	 * never terminates replication on its own initiative.
+	 */
+	res = PQgetResult(streamConn);
+	if (PQresultStatus(res) == PGRES_TUPLES_OK)
+	{
+		/*
+		 * Read the next timeline's ID. The server also sends the timeline's
+		 * starting point, but it is ignored.
+		 */
+		if (PQnfields(res) < 2 || PQntuples(res) != 1)
+			ereport(ERROR,
+					(errmsg("unexpected result set after end-of-streaming")));
+		*next_tli = pg_atoi(PQgetvalue(res, 0, 0), sizeof(uint32), 0);
+		PQclear(res);
+
+		/* the result set should be followed by CommandComplete */
+		res = PQgetResult(streamConn);
+	}
+	else
+		*next_tli = 0;
+
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		ereport(ERROR,
+				(errmsg("error reading result of streaming command: %s",
+						PQerrorMessage(streamConn))));
+
+	/* Verify that there are no more results */
+	res = PQgetResult(streamConn);
+	if (res != NULL)
+		ereport(ERROR,
+				(errmsg("unexpected result after CommandComplete: %s",
+						PQerrorMessage(streamConn))));
+}
+
+/*
+ * Fetch the timeline history file for 'tli' from primary.
+ */
+void
+walrcv_readtimelinehistoryfile(TimeLineID tli,
+								 char **filename, char **content, int *len)
+{
+	PGresult   *res;
+	char		cmd[64];
+
+	/*
+	 * Request the primary to send over the history file for given timeline.
+	 */
+	snprintf(cmd, sizeof(cmd), "TIMELINE_HISTORY %u", tli);
+	res = libpqrcv_PQexec(cmd);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		PQclear(res);
+		ereport(ERROR,
+				(errmsg("could not receive timeline history file from "
+						"the primary server: %s",
+						PQerrorMessage(streamConn))));
+	}
+	if (PQnfields(res) != 2 || PQntuples(res) != 1)
+	{
+		int			ntuples = PQntuples(res);
+		int			nfields = PQnfields(res);
+
+		PQclear(res);
+		ereport(ERROR,
+				(errmsg("invalid response from primary server"),
+				 errdetail("Expected 1 tuple with 2 fields, got %d tuples with %d fields.",
+						   ntuples, nfields)));
+	}
+	*filename = pstrdup(PQgetvalue(res, 0, 0));
+
+	*len = PQgetlength(res, 0, 1);
+	*content = palloc(*len);
+	memcpy(*content, PQgetvalue(res, 0, 1), *len);
+	PQclear(res);
 }
 
 /*
@@ -320,20 +425,19 @@ walrcv_disconnect(void)
  *
  * Returns:
  *
- *	 True if data was received. *type, *buffer and *len are set to
- *	 the type of the received data, buffer holding it, and length,
- *	 respectively.
+ *	 If data was received, returns the length of the data. *buffer is set to
+ *	 point to a buffer holding the received message. The buffer is only valid
+ *	 until the next libpqrcv_* call.
  *
- *	 False if no data was available within timeout, or wait was interrupted
+ *	 0 if no data was available within timeout, or wait was interrupted
  *	 by signal.
  *
- * The buffer returned is only valid until the next call of this function or
- * libpq_connect/disconnect.
+ *	 -1 if the server ended the COPY.
  *
  * ereports on error.
  */
-bool
-walrcv_receive(int timeout, unsigned char *type, char **buffer, int *len)
+int
+walrcv_receive(int timeout, char **buffer)
 {
 	int			rawlen;
 
@@ -355,7 +459,7 @@ walrcv_receive(int timeout, unsigned char *type, char **buffer, int *len)
 			{
 				elogif(debug_walrepl_rcv, LOG,
 					   "walrcv receive -- No data available yet even after timeout period. ")
-				return false;
+				return 0;
 			}
 		}
 
@@ -372,7 +476,7 @@ walrcv_receive(int timeout, unsigned char *type, char **buffer, int *len)
 			elogif(debug_walrepl_rcv, LOG,
 				   "walrcv receive -- No data available.")
 
-			return false;
+			return 0;
 		}
 	}
 	if (rawlen == -1)			/* end-of-streaming or error */
@@ -380,18 +484,20 @@ walrcv_receive(int timeout, unsigned char *type, char **buffer, int *len)
 		PGresult   *res;
 
 		res = PQgetResult(streamConn);
-		if (PQresultStatus(res) == PGRES_COMMAND_OK)
+		if (PQresultStatus(res) == PGRES_COMMAND_OK ||
+			PQresultStatus(res) == PGRES_COPY_IN)
+		{
+			PQclear(res);
+			return -1;
+		}
+		else
 		{
 			PQclear(res);
 			ereport(ERROR,
-					(errmsg("replication terminated by primary server"),
+					(errmsg("could not receive data from WAL stream: %s",
+							PQerrorMessage(streamConn)),
 					 errSendAlert(true)));
 		}
-		PQclear(res);
-		ereport(ERROR,
-				(errmsg("could not receive data from WAL stream: %s",
-						PQerrorMessage(streamConn)),
-				 errSendAlert(true)));
 	}
 	if (rawlen < -1)
 		ereport(ERROR,
@@ -400,15 +506,8 @@ walrcv_receive(int timeout, unsigned char *type, char **buffer, int *len)
 				 errSendAlert(true)));
 
 	/* Return received messages to caller */
-	*type = *((unsigned char *) recvBuf);
-	*buffer = recvBuf + sizeof(*type);
-	*len = rawlen - sizeof(*type);
-
-	elogif(debug_walrepl_rcv, LOG,
-		   "walrcv receive -- Received data with type = %c, length = %d ",
-		   *type, *len);
-
-	return true;
+	*buffer = recvBuf;
+	return rawlen;
 }
 
 /*

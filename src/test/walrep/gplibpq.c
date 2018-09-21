@@ -8,10 +8,11 @@
 #include "fmgr.h"
 #include "miscadmin.h"
 #include "access/xlog_internal.h"
-#include "replication/walprotocol.h"
 #include "replication/walreceiver.h"
 #include "cdb/cdbappendonlyam.h"
+#include "cdb/cdbappendonlyxlog.h"
 #include "funcapi.h"
+#include "libpq/pqformat.h"
 
 PG_MODULE_MAGIC;
 
@@ -59,29 +60,26 @@ PG_FUNCTION_INFO_V1(test_xlog_ao);
 static void
 string_to_xlogrecptr(text *location, XLogRecPtr *rec)
 {
+	uint32 hi, lo;
 	char *locationstr = DatumGetCString(
 		DirectFunctionCall1(textout,
 							PointerGetDatum(location)));
 
-	if (sscanf(locationstr, "%X/%X", &rec->xlogid, &rec->xrecoff) != 2)
+	if (sscanf(locationstr, "%X/%X", &hi, &lo) != 2)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 errmsg("could not parse transaction log location \"%s\"",
 						locationstr)));
+	*rec = ((uint64) hi) << 32 | lo;
 }
 
 Datum
 test_connect(PG_FUNCTION_ARGS)
 {
 	char *conninfo = TextDatumGetCString(PG_GETARG_DATUM(0));
-	text *location = PG_GETARG_TEXT_P(1);
-	bool result;
-	XLogRecPtr startpoint;
 
-	string_to_xlogrecptr(location, &startpoint);
-
-	result = walrcv_connect(conninfo, startpoint);
-	PG_RETURN_BOOL(result);
+	walrcv_connect(conninfo);
+	PG_RETURN_BOOL(true);
 }
 
 Datum
@@ -95,14 +93,12 @@ test_disconnect(PG_FUNCTION_ARGS)
 Datum
 test_receive(PG_FUNCTION_ARGS)
 {
-	bool		result;
-	unsigned char type;
+	int		result;
 	char	   *buf;
-	int			len;
 
-	result = walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len);
+	result = walrcv_receive(NAPTIME_PER_CYCLE, &buf);
 
-	PG_RETURN_BOOL(result);
+	PG_RETURN_INT32(result);
 }
 
 Datum
@@ -122,37 +118,41 @@ test_receive_and_verify(PG_FUNCTION_ARGS)
 	text       *end_location = PG_GETARG_TEXT_P(1);
 	XLogRecPtr startpoint;
 	XLogRecPtr endpoint;
-	unsigned char type;
 	char   *buf;
 	int     len;
+	TimeLineID  startpointTLI;
 
 	string_to_xlogrecptr(start_location, &startpoint);
 	string_to_xlogrecptr(end_location, &endpoint);
 
+	/* For now hard-coding it to 1 */
+	startpointTLI = 1;
+	walrcv_startstreaming(startpointTLI, startpoint);
+
 	for (int i=0; i < NUM_RETRIES; i++)
 	{
-		if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
+		len = walrcv_receive(NAPTIME_PER_CYCLE, &buf);
+		if (len > 0)
 		{
-			XLogRecPtr logStreamStart = {};
+			XLogRecPtr logStreamStart = InvalidXLogRecPtr;
+
 			/* Accept the received data, and process it */
-			test_XLogWalRcvProcessMsg(type, buf, len, &logStreamStart);
+			test_XLogWalRcvProcessMsg(buf[0], &buf[1], len-1, &logStreamStart);
 
 			/* Compare received everthing from start */
-			if (startpoint.xlogid != logStreamStart.xlogid ||
-				startpoint.xrecoff != logStreamStart.xrecoff)
+			if (startpoint != logStreamStart)
 			{
 				elog(ERROR, "Start point (%X/%X) differs from expected (%X/%X)",
-					 logStreamStart.xlogid, logStreamStart.xrecoff,
-					 startpoint.xlogid, startpoint.xrecoff);
+					 (uint32) (logStreamStart >> 32), (uint32) logStreamStart,
+					 (uint32) (startpoint >> 32), (uint32) startpoint);
 			}
 
 			/* Compare received everything till end */
-			if (endpoint.xlogid != LogstreamResult.Write.xlogid ||
-				endpoint.xrecoff != LogstreamResult.Write.xrecoff)
+			if (endpoint != LogstreamResult.Write)
 			{
 				elog(ERROR, "End point (%X/%X) differs from expected (%X/%X)",
-					 LogstreamResult.Write.xlogid, LogstreamResult.Write.xrecoff,
-					 endpoint.xlogid, endpoint.xrecoff);
+					 (uint32) (LogstreamResult.Write >> 32), (uint32) LogstreamResult.Write,
+					 (uint32) (endpoint >> 32), (uint32) endpoint);
 			}
 
 			PG_RETURN_BOOL(true);
@@ -164,63 +164,75 @@ test_receive_and_verify(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(false);
 }
 
-/*
- * Accept the message from XLOG stream, and process it.
- */
 static void
-test_XLogWalRcvProcessMsg(unsigned char type, char *buf,
-						  Size len, XLogRecPtr *logStreamStart)
+test_XLogWalRcvProcessMsg(unsigned char type, char *buf, Size len,
+						  XLogRecPtr *logStreamStart)
 {
+	int			hdrlen;
+	XLogRecPtr	dataStart;
+	XLogRecPtr	walEnd;
+	TimestampTz sendTime;
+	bool		replyRequested;
+	StringInfoData incoming_message;
+	initStringInfo(&incoming_message);
+
 	switch (type)
 	{
 		case 'w':				/* WAL records */
 			{
-				WalDataMessageHeader msghdr;
-
-				if (len < sizeof(WalDataMessageHeader))
+				/* copy message to StringInfo */
+				hdrlen = sizeof(int64) + sizeof(int64) + sizeof(int64);
+				if (len < hdrlen)
 					ereport(ERROR,
 							(errcode(ERRCODE_PROTOCOL_VIOLATION),
-							 errmsg_internal("invalid WAL message received from primary")));
-				/* memcpy is required here for alignment reasons */
-				memcpy(&msghdr, buf, sizeof(WalDataMessageHeader));
-				logStreamStart->xlogid = msghdr.dataStart.xlogid;
-				logStreamStart->xrecoff = msghdr.dataStart.xrecoff;
+							 errmsg_internal("invalid WAL message received from primary"),
+							 errSendAlert(true)));
+				appendBinaryStringInfo(&incoming_message, buf, hdrlen);
 
-				test_PrintLog("wal start records",
-							  msghdr.dataStart, msghdr.sendTime);
-				test_PrintLog("wal end records",
-							  msghdr.walEnd, msghdr.sendTime);
+				/* read the fields */
+				dataStart = pq_getmsgint64(&incoming_message);
+				walEnd = pq_getmsgint64(&incoming_message);
+				sendTime = IntegerTimestampToTimestampTz(
+										  pq_getmsgint64(&incoming_message));
+				*logStreamStart = dataStart;
 
-				buf += sizeof(WalDataMessageHeader);
-				len -= sizeof(WalDataMessageHeader);
+				test_PrintLog("wal start records", dataStart, sendTime);
+				test_PrintLog("wal end records", walEnd, sendTime);
 
-				test_XLogWalRcvWrite(buf, len, msghdr.dataStart);
+				buf += hdrlen;
+				len -= hdrlen;
+				test_XLogWalRcvWrite(buf, len, dataStart);
 				break;
 			}
 		case 'k':				/* Keepalive */
 			{
-				PrimaryKeepaliveMessage keepalive;
-
-				if (len != sizeof(PrimaryKeepaliveMessage))
+				/* copy message to StringInfo */
+				hdrlen = sizeof(int64) + sizeof(int64) + sizeof(char);
+				if (len != hdrlen)
 					ereport(ERROR,
 							(errcode(ERRCODE_PROTOCOL_VIOLATION),
-							 errmsg_internal("invalid keepalive message received from primary")));
-				/* memcpy is required here for alignment reasons */
-				memcpy(&keepalive, buf, sizeof(PrimaryKeepaliveMessage));
+							 errmsg_internal("invalid keepalive message received from primary"),
+							 errSendAlert(true)));
+				appendBinaryStringInfo(&incoming_message, buf, hdrlen);
+
+				/* read the fields */
+				walEnd = pq_getmsgint64(&incoming_message);
+				sendTime = IntegerTimestampToTimestampTz(
+										  pq_getmsgint64(&incoming_message));
+				replyRequested = pq_getmsgbyte(&incoming_message);
 
 				elog(INFO, "keep alive: %X/%X at %s",
-						keepalive.walEnd.xlogid,
-						keepalive.walEnd.xrecoff,
-						timestamptz_to_str(keepalive.sendTime));
-				test_PrintLog("keep alive",
-							  keepalive.walEnd, keepalive.sendTime);
+					 (uint32) (walEnd >> 32), (uint32) walEnd,
+						timestamptz_to_str(sendTime));
+				test_PrintLog("keep alive", walEnd, sendTime);
+
 				break;
 			}
 		default:
 			ereport(ERROR,
 					(errcode(ERRCODE_PROTOCOL_VIOLATION),
 					 errmsg_internal("invalid replication message type %d",
-									 type)));
+									 type),	errSendAlert(true)));
 	}
 }
 
@@ -230,31 +242,15 @@ test_XLogWalRcvProcessMsg(unsigned char type, char *buf,
 static void
 test_XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 {
-	static char		   *recvFilePath = NULL;
-	static TimeLineID recvFileTLI = 1;
-	static uint32 recvId = 0;
-	static uint32 recvSeg = 0;
+	static XLogSegNo recvSegNo = 0;
+	int			startoff;
+	int			byteswritten;
 
 	while (nbytes > 0)
 	{
 		int			segbytes;
-		int			startoff;
-		int			byteswritten;
 
-		if (recvFilePath == NULL || !XLByteInSeg(recptr, recvId, recvSeg))
-		{
-			if (recvFilePath == NULL)
-			{
-				recvFilePath = palloc0(MAXFNAMELEN);
-			}
-
-			XLByteToSeg(recptr, recvId, recvSeg);
-			XLogFileName(recvFilePath, recvFileTLI, recvId, recvSeg);
-			elog(DEBUG1, "would open: %s", recvFilePath);
-			recvFileTLI = 1;
-		}
-
-		startoff = recptr.xrecoff % XLogSegSize;
+		startoff = recptr % XLogSegSize;
 
 		if (startoff + nbytes > XLogSegSize)
 			segbytes = XLogSegSize - startoff;
@@ -263,8 +259,7 @@ test_XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 
 		/* Assuming segbytes are written */
 		byteswritten = segbytes;
-
-		XLByteAdvance(recptr, byteswritten);
+		recptr += byteswritten;
 
 		nbytes -= byteswritten;
 		buf += byteswritten;
@@ -278,29 +273,17 @@ test_XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 static void
 test_XLogWalRcvSendReply(void)
 {
-	char		buf[sizeof(StandbyReplyMessage) + 1];
-	TimestampTz now;
-	static StandbyReplyMessage reply_message;
+	StringInfoData reply_message;
+	initStringInfo(&reply_message);
 
-	now = GetCurrentTimestamp();
+	pq_sendbyte(&reply_message, 'r');
+	pq_sendint64(&reply_message, LogstreamResult.Write);
+	pq_sendint64(&reply_message, LogstreamResult.Flush);
+	pq_sendint64(&reply_message, LogstreamResult.Flush);
+	pq_sendint64(&reply_message, GetCurrentIntegerTimestamp());
+	pq_sendbyte(&reply_message, false);
 
-	reply_message.write = LogstreamResult.Write;
-	reply_message.flush = LogstreamResult.Flush;
-	reply_message.apply = LogstreamResult.Flush;
-	reply_message.sendTime = now;
-
-	elog(DEBUG1, "sending: write = %X/%X, flush = %X/%X, apply = %X/%X at %s",
-			reply_message.write.xlogid,
-			reply_message.write.xrecoff,
-			reply_message.flush.xlogid,
-			reply_message.flush.xrecoff,
-			reply_message.apply.xlogid,
-			reply_message.apply.xrecoff,
-			timestamptz_to_str(now));
-
-	buf[0] = 'r';
-	memcpy(&buf[1], &reply_message, sizeof(StandbyReplyMessage));
-	walrcv_send(buf, sizeof(StandbyReplyMessage) + 1);
+	walrcv_send(reply_message.data, reply_message.len);
 }
 
 /*
@@ -310,7 +293,7 @@ static void
 test_PrintLog(char *type, XLogRecPtr walPtr,
 						   TimestampTz sendTime)
 {
-	elog(DEBUG1, "%s: %X/%X at %s", type, walPtr.xlogid, walPtr.xrecoff,
+	elog(DEBUG1, "%s: %X/%X at %s", type, (uint32) (walPtr >> 32), (uint32) walPtr,
 		 timestamptz_to_str(sendTime));
 }
 
@@ -362,22 +345,27 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 		text         *start_location = PG_GETARG_TEXT_P(1);
 
 		XLogRecPtr    startpoint;
-		unsigned char type;
+		TimeLineID  startpointTLI;
 		char         *buf;
 		int           len;
 		uint32        xrecoff;
 
 		string_to_xlogrecptr(start_location, &startpoint);
-		xrecoff = startpoint.xrecoff;
+		xrecoff = (uint32)startpoint;
 
-		if (!walrcv_connect(conninfo, startpoint))
-			elog(ERROR, "could not connect");
+		walrcv_connect(conninfo);
+		/* For now hard-coding it to 1 */
+		startpointTLI = 1;
+		walrcv_startstreaming(startpointTLI, startpoint);
 
 		for (int i = 0; i < NUM_RETRIES; i++)
 		{
-			if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
+			len = walrcv_receive(NAPTIME_PER_CYCLE, &buf);
+			if (len > 0)
 			{
-				funcctx->max_calls = check_ao_record_present(type, buf, len, xrecoff, aorecordresults);
+				funcctx->max_calls = check_ao_record_present(buf[0], &buf[1],
+															 len -1, xrecoff,
+															 aorecordresults);
 				break;
 			}
 			else
@@ -426,36 +414,43 @@ static uint32
 check_ao_record_present(unsigned char type, char *buf, Size len,
 						uint32 xrecoff,	CheckAoRecordResult *aorecordresults)
 {
-	WalDataMessageHeader msghdr;
 	uint32               i = 0;
 	int                  num_found = 0;
+	XLogRecPtr  dataStart;
+	XLogRecPtr  walEnd;
+	TimestampTz sendTime;
 	MemSet(aorecordresults, 0, sizeof(CheckAoRecordResult));
+	int         hdrlen = sizeof(int64) + sizeof(int64) + sizeof(int64);
+	StringInfoData incoming_message;
+	initStringInfo(&incoming_message);
 
 	if (type != 'w')
 		return num_found;
 
-	if (len < sizeof(WalDataMessageHeader))
+	if (len < hdrlen)
 		ereport(ERROR,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg_internal("invalid WAL message received from primary")));
 
 	Assert(buf != NULL);
+	appendBinaryStringInfo(&incoming_message, buf, hdrlen);
 
-	/* memcpy is required here for alignment reasons */
-	memcpy(&msghdr, buf, sizeof(WalDataMessageHeader));
+	/* read the fields */
+	dataStart = pq_getmsgint64(&incoming_message);
+	walEnd = pq_getmsgint64(&incoming_message);
+	sendTime = IntegerTimestampToTimestampTz(
+		pq_getmsgint64(&incoming_message));
+	buf += hdrlen;
+	len -= hdrlen;
 
-	test_PrintLog("wal start record", msghdr.dataStart, msghdr.sendTime);
-	test_PrintLog("wal end record", msghdr.walEnd, msghdr.sendTime);
-
-	buf += sizeof(WalDataMessageHeader);
-	len -= sizeof(WalDataMessageHeader);
+	test_PrintLog("wal start record", dataStart, sendTime);
+	test_PrintLog("wal end record", walEnd, sendTime);
 
 	/* process the xlog records one at a time and check if it is an AO/AOCO record */
 	while (i < len)
 	{
 		XLogRecord 		   *xlrec = (XLogRecord *)(buf + i);
 		XLogPageHeaderData *hdr = (XLogPageHeaderData *)xlrec;
-		XLogContRecord     *contrecord;
 		uint8	            info = xlrec->xl_info & ~XLR_INFO_MASK;
 		uint32 			    avail_in_block = XLOG_BLCKSZ - ((xrecoff + i) % XLOG_BLCKSZ);
 
@@ -472,17 +467,14 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 			 */
 			if (hdr->xlp_info & XLP_FIRST_IS_CONTRECORD)
 			{
-				contrecord = (XLogContRecord *)((char *)hdr + XLogPageHeaderSize(hdr));
-				elog(DEBUG1, "remaining length of record = %u", contrecord->xl_rem_len);
-				i += MAXALIGN(XLogPageHeaderSize(hdr) + SizeOfXLogContRecord +
-							  contrecord->xl_rem_len);
+				elog(DEBUG1, "remaining length of record = %u", hdr->xlp_rem_len);
+				i += MAXALIGN(XLogPageHeaderSize(hdr) + hdr->xlp_rem_len);
 			}
 			else
 			{
 				i += XLogPageHeaderSize(hdr);
 				elog(DEBUG1, "XLOG_PAGE_MAGIC else, i:%u", i);
 			}
-
 		}
 		else if (xlrec->xl_rmid == RM_APPEND_ONLY_ID)
 		{
@@ -506,8 +498,8 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 
 				/* Construct the continuation record to get the remaining length */
 				XLogPageHeaderData *hdr_cont = (XLogPageHeaderData *)(buf + i);
-				contrecord = (XLogContRecord *)((char *)hdr_cont + XLogPageHeaderSize(hdr_cont));
-				elog(DEBUG1, "combining AO record split with XLogContRecord xl_rem_len %u", contrecord->xl_rem_len);
+				elog(DEBUG1, "combining AO record split with XLogContRecord xl_rem_len %u",
+					 hdr_cont->xlp_rem_len);
 
 				/*
 				 * Move on to the second part of the split AO record and copy
@@ -515,17 +507,17 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 				 * does not contain a header and is directly after the
 				 * continuation record (no MAXALIGN padding).
 				 */
-				i += XLogPageHeaderSize(hdr_cont) + SizeOfXLogContRecord;
+				i += XLogPageHeaderSize(hdr_cont);
 				memcpy(tmpbuffer + avail_in_block,
 					   buf + i,
-					   contrecord->xl_rem_len);
+					   hdr_cont->xlp_rem_len);
 
 				/*
 				 * Our split AO record is now combined back. Set the i to the
 				 * next XLog record (may need MAXALIGN padding).
 				 */
 				xlrec = (XLogRecord *) tmpbuffer;
-				i = MAXALIGN(i + contrecord->xl_rem_len);
+				i = MAXALIGN(i + hdr_cont->xlp_rem_len);
 			}
 			else
 			{

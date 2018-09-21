@@ -27,7 +27,7 @@
 CATALOG(pg_partition_encoding,9903) BKI_WITHOUT_OIDS
 {
 	Oid		parencoid;				
-	int2	parencattnum;			
+	int16	parencattnum;			
 	text	parencattoptions[1];	
 } FormData_pg_partition_encoding;
 

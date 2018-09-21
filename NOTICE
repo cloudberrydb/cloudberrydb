@@ -574,7 +574,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 =================================================================
   For: PostgreSQL Database Management System
        (formerly known as Postgres, then as Postgres95),
-       pgcrypto, xlogdump, PL/Perl
+       pgcrypto, PL/Perl
 
 ---------------------- PostgreSQL License -----------------------
 =================================================================

@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2006 - present, EMC/Greenplum
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -385,7 +385,7 @@ ExecScanReScan(ScanState *node)
  *   Opens a relation and sets various relation specific ScanState fields.
  */
 void
-InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate)
+InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate, int eflags)
 {
 	Assert(NULL != scanState);
 	PlanState *planState = &scanState->ps;
@@ -394,7 +394,7 @@ InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate)
 	planState->targetlist = (List *)ExecInitExpr((Expr *)plan->targetlist, planState);
 	planState->qual = (List *)ExecInitExpr((Expr *)plan->qual, planState);
 
-	Relation currentRelation = ExecOpenScanRelation(estate, ((Scan *)plan)->scanrelid);
+	Relation currentRelation = ExecOpenScanRelation(estate, ((Scan *)plan)->scanrelid, eflags);
 	scanState->ss_currentRelation = currentRelation;
 	ExecAssignScanType(scanState, RelationGetDescr(currentRelation));
 	ExecAssignScanProjectionInfo(scanState);
@@ -437,7 +437,7 @@ InitScanStateInternal(ScanState *scanState, Plan *plan, EState *estate,
 	 */
 	if (initCurrentRelation)
 	{
-		InitScanStateRelationDetails(scanState, plan, estate);
+		InitScanStateRelationDetails(scanState, plan, estate, eflags);
 	}
 
 	/* Initialize result tuple type. */

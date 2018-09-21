@@ -52,7 +52,7 @@
 CATALOG(gp_configuration_history,5006) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
 {
 	timestamptz	time;	
-	int2		dbid;	
+	int16		dbid;	
 	text		desc;	
 } FormData_gp_configuration_history;
 

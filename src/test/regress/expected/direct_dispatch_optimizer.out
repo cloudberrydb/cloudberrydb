@@ -432,26 +432,26 @@ INFO:  Dispatch command to ALL contents
 INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents
 EXPLAIN SELECT a.* FROM MPP_22019_a a INNER JOIN MPP_22019_b b ON a.i = b.i WHERE a.j NOT IN (SELECT j FROM MPP_22019_a a2 where a2.j = b.j) and a.i = 1;
-                                                   QUERY PLAN                                                    
------------------------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..1765377.40 rows=1 width=16)
-   ->  Result  (cost=0.00..1765377.40 rows=1 width=16)
-         ->  Result  (cost=0.00..1765377.40 rows=1 width=16)
-               Filter: (subplan)
-               ->  Hash Join  (cost=0.00..862.00 rows=1 width=24)
-                     Hash Cond: public.mpp_22019_a.i = mpp_22019_b.i
-                     ->  Table Scan on mpp_22019_a  (cost=0.00..431.00 rows=1 width=16)
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1765376.88 rows=1 width=8)
+   ->  Result  (cost=0.00..1765376.88 rows=1 width=8)
+         ->  Result  (cost=0.00..1765376.88 rows=1 width=8)
+               Filter: (SubPlan 1)
+               ->  Hash Join  (cost=0.00..862.00 rows=1 width=12)
+                     Hash Cond: mpp_22019_a.i = mpp_22019_b.i
+                     ->  Table Scan on mpp_22019_a  (cost=0.00..431.00 rows=1 width=8)
                            Filter: i = 1
-                     ->  Hash  (cost=431.00..431.00 rows=1 width=16)
-                           ->  Table Scan on mpp_22019_b  (cost=0.00..431.00 rows=1 width=16)
+                     ->  Hash  (cost=431.00..431.00 rows=1 width=8)
+                           ->  Table Scan on mpp_22019_b  (cost=0.00..431.00 rows=1 width=8)
                                  Filter: i = 1
-               SubPlan 1
-                 ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                       Filter: public.mpp_22019_a.j = $1
-                       ->  Materialize  (cost=0.00..431.00 rows=1 width=8)
-                             ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=1 width=8)
-                                   ->  Table Scan on mpp_22019_a  (cost=0.00..431.00 rows=1 width=8)
- Settings:  optimizer=on
+               SubPlan 1  (slice2; segments: 3)
+                 ->  Result  (cost=0.00..431.00 rows=1 width=4)
+                       Filter: mpp_22019_a_1.j = mpp_22019_b.j
+                       ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                             ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                   ->  Table Scan on mpp_22019_a mpp_22019_a_1  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: PQO version 2.74.0
 (18 rows)
 
 SELECT a.* FROM MPP_22019_a a INNER JOIN MPP_22019_b b ON a.i = b.i WHERE a.j NOT IN (SELECT j FROM MPP_22019_a a2 where a2.j = b.j) and a.i = 1;

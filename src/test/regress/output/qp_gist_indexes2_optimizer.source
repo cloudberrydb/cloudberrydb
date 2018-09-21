@@ -75,16 +75,16 @@ SELECT owner, property FROM GistTable1
   Patty  | (7052,250),(6050,20)
 (2 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=8 width=47)
-   ->  Index Scan using propertyboxindex on gisttable1  (cost=0.00..6.00 rows=3 width=47)
+                         QUERY PLAN                          
+-------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Index Scan using propertyboxindex on gisttable1
          Index Cond: property ~= '(7052,250),(6050,20)'::box
          Filter: property ~= '(7052,250),(6050,20)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (5 rows)
 
 SELECT id, property FROM GistTable1 
@@ -121,16 +121,16 @@ SELECT owner, property FROM GistTable1
   Patty  | (7052,250),(6050,20)
 (2 rows)
 
-EXPLAIN
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=8 width=47)
-   ->  Index Scan using propertyboxindex on gisttable1  (cost=0.00..6.00 rows=3 width=47)
+                         QUERY PLAN                          
+-------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Index Scan using propertyboxindex on gisttable1
          Index Cond: property ~= '(7052,250),(6050,20)'::box
          Filter: property ~= '(7052,250),(6050,20)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (5 rows)
 
 SELECT id, property FROM GistTable1 
@@ -568,15 +568,15 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1600.61 rows=800 width=36)
-   ->  Index Scan using gistindex13 on gisttable13  (cost=0.00..1600.50 rows=267 width=36)
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Index Scan using gistindex13 on gisttable13
          Index Cond: property ~= '(999,999),(998,998)'::box
          Filter: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (5 rows)
 
 VACUUM GistTable13;
@@ -588,15 +588,15 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1600.61 rows=800 width=36)
-   ->  Index Scan using gistindex13 on gisttable13  (cost=0.00..1600.50 rows=267 width=36)
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Index Scan using gistindex13 on gisttable13
          Index Cond: property ~= '(999,999),(998,998)'::box
          Filter: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (5 rows)
 
 TRUNCATE TABLE GistTable13;
@@ -618,15 +618,15 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..800.31 rows=400 width=36)
-   ->  Index Scan using gistindex13 on gisttable13  (cost=0.00..800.25 rows=134 width=36)
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Index Scan using gistindex13 on gisttable13
          Index Cond: property ~= '(999,999),(998,998)'::box
          Filter: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (5 rows)
 
 -- ----------------------------------------------------------------------
@@ -653,20 +653,20 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=8 width=4)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..6.00 rows=3 width=4)
-         ->  Sort  (cost=0.00..6.00 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Index Scan using propertyboxindex on gisttable1  (cost=0.00..6.00 rows=3 width=4)
+               ->  Index Scan using propertyboxindex on gisttable1
                      Index Cond: property ~= '(3,4),(1,2)'::box
                      Filter: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (9 rows)
 
 REINDEX INDEX propertyBoxIndex;
@@ -680,20 +680,20 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=8 width=4)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..6.00 rows=3 width=4)
-         ->  Sort  (cost=0.00..6.00 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Index Scan using propertyboxindex on gisttable1  (cost=0.00..6.00 rows=3 width=4)
+               ->  Index Scan using propertyboxindex on gisttable1
                      Index Cond: property ~= '(3,4),(1,2)'::box
                      Filter: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (9 rows)
 
 DROP INDEX propertyBoxIndex;
@@ -709,18 +709,18 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=8 width=4)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=0.00..431.00 rows=3 width=4)
+   ->  Sort
          Sort Key: id
-         ->  Table Scan on gisttable1  (cost=0.00..431.00 rows=3 width=4)
+         ->  Table Scan on gisttable1
                Filter: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (7 rows)
 
 -- ----------------------------------------------------------------------
@@ -799,17 +799,17 @@ SELECT owner, property FROM GistTable1
  Hypatia | (7052,250),(6050,20)
 (2 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.57 rows=8 width=47)
-   ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.57 rows=3 width=47)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable1
          Recheck Cond: property ~= '(7052,250),(6050,20)'::box
-         ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on propertyboxindex
                Index Cond: property ~= '(7052,250),(6050,20)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 SELECT id, property FROM GistTable1 
@@ -1086,20 +1086,20 @@ SELECT owner, property FROM GistTable1
  A. Gent                     | 
 (4 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
  ;
-                                              QUERY PLAN                                               
--------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=701.28..701.28 rows=2 width=51)
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=701.28..701.28 rows=1 width=51)
+   ->  Sort
          Sort Key: id
-         ->  Bitmap Append-Only Row-Oriented Scan on gisttable1  (cost=601.26..701.27 rows=1 width=51)
+         ->  Bitmap Append-Only Row-Oriented Scan on gisttable1
                Recheck Cond: property IS NULL
-               ->  Bitmap Index Scan on propertyisnullindex  (cost=0.00..601.26 rows=1 width=0)
+               ->  Bitmap Index Scan on propertyisnullindex
                      Index Cond: property IS NULL
  Optimizer: legacy query optimizer
 (9 rows)
@@ -1189,16 +1189,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 VACUUM GistTable13;
@@ -1210,16 +1210,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 TRUNCATE TABLE GistTable13;
@@ -1241,16 +1241,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..33281.85 rows=400 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..33281.78 rows=134 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 -- ----------------------------------------------------------------------
@@ -1277,21 +1277,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 REINDEX INDEX propertyBoxIndex;
@@ -1305,21 +1305,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 DROP INDEX propertyBoxIndex;
@@ -1335,18 +1335,18 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=8 width=4)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=0.00..431.00 rows=3 width=4)
+   ->  Sort
          Sort Key: id
-         ->  Table Scan on gisttable1  (cost=0.00..431.00 rows=3 width=4)
+         ->  Table Scan on gisttable1
                Filter: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (7 rows)
 
 -- ----------------------------------------------------------------------
@@ -1425,17 +1425,17 @@ SELECT owner, property FROM GistTable1
   Patty  | (7052,250),(6050,20)
 (2 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.57 rows=8 width=47)
-   ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.57 rows=3 width=47)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable1
          Recheck Cond: property ~= '(7052,250),(6050,20)'::box
-         ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on propertyboxindex
                Index Cond: property ~= '(7052,250),(6050,20)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 SELECT id, property FROM GistTable1 
@@ -1712,20 +1712,20 @@ SELECT owner, property FROM GistTable1
  FelDon Adams                | 
 (4 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
  ;
-                                              QUERY PLAN                                               
--------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=701.28..701.28 rows=2 width=51)
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=701.28..701.28 rows=1 width=51)
+   ->  Sort
          Sort Key: id
-         ->  Bitmap Append-Only Row-Oriented Scan on gisttable1  (cost=601.26..701.27 rows=1 width=51)
+         ->  Bitmap Append-Only Row-Oriented Scan on gisttable1
                Recheck Cond: property IS NULL
-               ->  Bitmap Index Scan on propertyisnullindex  (cost=0.00..601.26 rows=1 width=0)
+               ->  Bitmap Index Scan on propertyisnullindex
                      Index Cond: property IS NULL
  Optimizer: legacy query optimizer
 (9 rows)
@@ -1815,16 +1815,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 VACUUM GistTable13;
@@ -1836,16 +1836,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 TRUNCATE TABLE GistTable13;
@@ -1867,16 +1867,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..33281.85 rows=400 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..33281.78 rows=134 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 -- ----------------------------------------------------------------------
@@ -1903,21 +1903,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 REINDEX INDEX propertyBoxIndex;
@@ -1931,21 +1931,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 DROP INDEX propertyBoxIndex;
@@ -1961,18 +1961,18 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=8 width=4)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=0.00..431.00 rows=3 width=4)
+   ->  Sort
          Sort Key: id
-         ->  Table Scan on gisttable1  (cost=0.00..431.00 rows=3 width=4)
+         ->  Table Scan on gisttable1
                Filter: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (7 rows)
 
 -- ----------------------------------------------------------------------
@@ -2051,17 +2051,17 @@ SELECT owner, property FROM GistTable1
   Patty  | (7052,250),(6050,20)
 (2 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.57 rows=8 width=47)
-   ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.57 rows=3 width=47)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable1
          Recheck Cond: property ~= '(7052,250),(6050,20)'::box
-         ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on propertyboxindex
                Index Cond: property ~= '(7052,250),(6050,20)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 SELECT id, property FROM GistTable1 
@@ -2338,20 +2338,20 @@ SELECT owner, property FROM GistTable1
  FelDon Adams                | 
 (4 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
  ;
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=701.28..701.28 rows=2 width=51)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=701.28..701.28 rows=1 width=51)
+   ->  Sort
          Sort Key: id
-         ->  Bitmap Append-Only Column-Oriented Scan on gisttable1  (cost=601.26..701.27 rows=1 width=51)
+         ->  Bitmap Append-Only Column-Oriented Scan on gisttable1
                Recheck Cond: property IS NULL
-               ->  Bitmap Index Scan on propertyisnullindex  (cost=0.00..601.26 rows=1 width=0)
+               ->  Bitmap Index Scan on propertyisnullindex
                      Index Cond: property IS NULL
  Optimizer: legacy query optimizer
 (9 rows)
@@ -2441,16 +2441,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 VACUUM GistTable13;
@@ -2462,16 +2462,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 TRUNCATE TABLE GistTable13;
@@ -2493,16 +2493,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..33281.85 rows=400 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..33281.78 rows=134 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 -- ----------------------------------------------------------------------
@@ -2529,21 +2529,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 REINDEX INDEX propertyBoxIndex;
@@ -2557,21 +2557,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 DROP INDEX propertyBoxIndex;
@@ -2587,18 +2587,18 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=8 width=4)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=0.00..431.00 rows=3 width=4)
+   ->  Sort
          Sort Key: id
-         ->  Table Scan on gisttable1  (cost=0.00..431.00 rows=3 width=4)
+         ->  Table Scan on gisttable1
                Filter: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (7 rows)
 
 -- ----------------------------------------------------------------------
@@ -2677,17 +2677,17 @@ SELECT owner, property FROM GistTable1
   Patty  | (7052,250),(6050,20)
 (2 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1
  WHERE property ~= '( (6050, 20), (7052, 250) )';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.57 rows=8 width=47)
-   ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.57 rows=3 width=47)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable1
          Recheck Cond: property ~= '(7052,250),(6050,20)'::box
-         ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on propertyboxindex
                Index Cond: property ~= '(7052,250),(6050,20)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 SELECT id, property FROM GistTable1 
@@ -2964,20 +2964,20 @@ SELECT owner, property FROM GistTable1
  FelDon Adams                | 
 (4 rows)
 
-EXPLAIN 
+EXPLAIN (COSTS OFF)
 SELECT owner, property FROM GistTable1 
  WHERE property IS NULL
  ORDER BY id
  ;
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=701.28..701.28 rows=2 width=51)
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=701.28..701.28 rows=1 width=51)
+   ->  Sort
          Sort Key: id
-         ->  Bitmap Append-Only Column-Oriented Scan on gisttable1  (cost=601.26..701.27 rows=1 width=51)
+         ->  Bitmap Append-Only Column-Oriented Scan on gisttable1
                Recheck Cond: property IS NULL
-               ->  Bitmap Index Scan on propertyisnullindex  (cost=0.00..601.26 rows=1 width=0)
+               ->  Bitmap Index Scan on propertyisnullindex
                      Index Cond: property IS NULL
  Optimizer: legacy query optimizer
 (9 rows)
@@ -3067,16 +3067,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 VACUUM GistTable13;
@@ -3088,16 +3088,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..66595.18 rows=800 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..66595.06 rows=267 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 TRUNCATE TABLE GistTable13;
@@ -3119,16 +3119,16 @@ SELECT id, property AS "ProperTee" FROM GistTable13
  999 | (999,999),(998,998)
 (1 row)
 
-EXPLAIN SELECT id, property AS "ProperTee" FROM GistTable13 
+EXPLAIN (COSTS OFF) SELECT id, property AS "ProperTee" FROM GistTable13 
  WHERE property ~= '( (999,999), (998,998) )';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..33281.85 rows=400 width=36)
-   ->  Bitmap Table Scan on gisttable13  (cost=0.00..33281.78 rows=134 width=36)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Bitmap Table Scan on gisttable13
          Recheck Cond: property ~= '(999,999),(998,998)'::box
-         ->  Bitmap Index Scan on gistindex13  (cost=0.00..0.00 rows=0 width=0)
+         ->  Bitmap Index Scan on gistindex13
                Index Cond: property ~= '(999,999),(998,998)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (6 rows)
 
 -- ----------------------------------------------------------------------
@@ -3155,21 +3155,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 REINDEX INDEX propertyBoxIndex;
@@ -3183,21 +3183,21 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1471.55 rows=8 width=4)
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Result  (cost=0.00..1471.55 rows=3 width=4)
-         ->  Sort  (cost=0.00..1471.55 rows=3 width=4)
+   ->  Result
+         ->  Sort
                Sort Key: id
-               ->  Bitmap Table Scan on gisttable1  (cost=0.00..1471.55 rows=3 width=4)
+               ->  Bitmap Table Scan on gisttable1
                      Recheck Cond: property ~= '(3,4),(1,2)'::box
-                     ->  Bitmap Index Scan on propertyboxindex  (cost=0.00..0.00 rows=0 width=0)
+                     ->  Bitmap Index Scan on propertyboxindex
                            Index Cond: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (10 rows)
 
 DROP INDEX propertyBoxIndex;
@@ -3213,18 +3213,18 @@ SELECT id FROM GistTable1
  82
 (3 rows)
 
-EXPLAIN SELECT id FROM GistTable1 
+EXPLAIN (COSTS OFF) SELECT id FROM GistTable1 
  WHERE property ~= '( (1,2), (3,4) )'
  ORDER BY id;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=8 width=4)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: id
-   ->  Sort  (cost=0.00..431.00 rows=3 width=4)
+   ->  Sort
          Sort Key: id
-         ->  Table Scan on gisttable1  (cost=0.00..431.00 rows=3 width=4)
+         ->  Table Scan on gisttable1
                Filter: property ~= '(3,4),(1,2)'::box
- Optimizer: PQO version 2.68.0
+ Optimizer: PQO version 2.74.0
 (7 rows)
 
 -- ----------------------------------------------------------------------

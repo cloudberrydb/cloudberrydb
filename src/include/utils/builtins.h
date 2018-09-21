@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/builtins.h
@@ -150,7 +150,10 @@ extern Datum char_text(PG_FUNCTION_ARGS);
 /* domains.c */
 extern Datum domain_in(PG_FUNCTION_ARGS);
 extern Datum domain_recv(PG_FUNCTION_ARGS);
-extern void domain_check(Datum value, bool isnull, Oid domainType, void **extra, MemoryContext mcxt);
+extern void domain_check(Datum value, bool isnull, Oid domainType,
+			 void **extra, MemoryContext mcxt);
+extern int	errdatatype(Oid datatypeOid);
+extern int	errdomainconstraint(Oid datatypeOid, const char *conname);
 
 /* encode.c */
 extern Datum binary_encode(PG_FUNCTION_ARGS);
@@ -269,7 +272,7 @@ extern Datum int2shl(PG_FUNCTION_ARGS);
 extern Datum int2shr(PG_FUNCTION_ARGS);
 extern Datum generate_series_int4(PG_FUNCTION_ARGS);
 extern Datum generate_series_step_int4(PG_FUNCTION_ARGS);
-extern int2vector *buildint2vector(const int2 *int2s, int n);
+extern int2vector *buildint2vector(const int16 *int2s, int n);
 
 /* name.c */
 extern Datum namein(PG_FUNCTION_ARGS);
@@ -511,6 +514,8 @@ extern Datum pg_sleep(PG_FUNCTION_ARGS);
 extern Datum pg_get_keywords(PG_FUNCTION_ARGS);
 extern Datum pg_typeof(PG_FUNCTION_ARGS);
 extern Datum pg_collation_for(PG_FUNCTION_ARGS);
+extern Datum pg_relation_is_updatable(PG_FUNCTION_ARGS);
+extern Datum pg_column_is_updatable(PG_FUNCTION_ARGS);
 
 /* oid.c */
 extern Datum oidin(PG_FUNCTION_ARGS);
@@ -580,6 +585,8 @@ extern Datum void_recv(PG_FUNCTION_ARGS);
 extern Datum void_send(PG_FUNCTION_ARGS);
 extern Datum trigger_in(PG_FUNCTION_ARGS);
 extern Datum trigger_out(PG_FUNCTION_ARGS);
+extern Datum event_trigger_in(PG_FUNCTION_ARGS);
+extern Datum event_trigger_out(PG_FUNCTION_ARGS);
 extern Datum language_handler_in(PG_FUNCTION_ARGS);
 extern Datum language_handler_out(PG_FUNCTION_ARGS);
 extern Datum fdw_handler_in(PG_FUNCTION_ARGS);
@@ -619,7 +626,7 @@ extern Datum regexp_split_to_table_no_flags(PG_FUNCTION_ARGS);
 extern Datum regexp_split_to_array(PG_FUNCTION_ARGS);
 extern Datum regexp_split_to_array_no_flags(PG_FUNCTION_ARGS);
 extern char *regexp_fixed_prefix(text *text_re, bool case_insensitive,
-								 Oid collation, bool *exact);
+					Oid collation, bool *exact);
 
 /* regproc.c */
 extern Datum regprocin(PG_FUNCTION_ARGS);
@@ -657,7 +664,9 @@ extern Datum regdictionarysend(PG_FUNCTION_ARGS);
 extern Datum text_regclass(PG_FUNCTION_ARGS);
 extern List *stringToQualifiedNameList(const char *string);
 extern char *format_procedure(Oid procedure_oid);
+extern char *format_procedure_qualified(Oid procedure_oid);
 extern char *format_operator(Oid operator_oid);
+extern char *format_operator_qualified(Oid operator_oid);
 
 /* rowtypes.c */
 extern Datum record_in(PG_FUNCTION_ARGS);
@@ -705,7 +714,9 @@ extern char *deparse_expr_sweet(Node *expr, List *dpcontext,
 				   bool forceprefix, bool showimplicit);                /*CDB*/
 extern List *deparse_context_for(const char *aliasname, Oid relid);
 extern List *deparse_context_for_planstate(Node *planstate, List *ancestors,
-							  List *rtable);
+							  List *rtable, List *rtable_names);
+extern List *select_rtable_names_for_explain(List *rtable,
+								Bitmapset *rels_used);
 extern const char *quote_identifier(const char *ident);
 extern char *quote_qualified_identifier(const char *qualifier,
 						   const char *ident);
@@ -830,6 +841,8 @@ extern int	varstr_cmp(char *arg1, int len1, char *arg2, int len2, Oid collid);
 extern List *textToQualifiedNameList(text *textval);
 extern bool SplitIdentifierString(char *rawstring, char separator,
 					  List **namelist);
+extern bool SplitDirectoriesString(char *rawstring, char separator,
+					   List **namelist);
 extern Datum replace_text(PG_FUNCTION_ARGS);
 extern text *replace_text_regexp(text *src_text, void *regexp,
 					text *replace_text, bool glob);
@@ -1139,6 +1152,7 @@ extern Datum pg_encoding_max_length_sql(PG_FUNCTION_ARGS);
 /* format_type.c */
 extern Datum format_type(PG_FUNCTION_ARGS);
 extern char *format_type_be(Oid type_oid);
+extern char *format_type_be_qualified(Oid type_oid);
 extern char *format_type_with_typemod(Oid type_oid, int32 typemod);
 extern Datum oidvectortypes(PG_FUNCTION_ARGS);
 extern int32 type_maximum_size(Oid type_oid, int32 typemod);
@@ -1250,11 +1264,18 @@ extern Datum ginarrayconsistent(PG_FUNCTION_ARGS);
 /* access/transam/twophase.c */
 extern Datum pg_prepared_xact(PG_FUNCTION_ARGS);
 
+/* access/transam/multixact.c */
+extern Datum pg_get_multixact_members(PG_FUNCTION_ARGS);
+
 /* catalogs/dependency.c */
 extern Datum pg_describe_object(PG_FUNCTION_ARGS);
+extern Datum pg_identify_object(PG_FUNCTION_ARGS);
 
 /* commands/constraint.c */
 extern Datum unique_key_recheck(PG_FUNCTION_ARGS);
+
+/* commands/event_trigger.c */
+extern Datum pg_event_trigger_dropped_objects(PG_FUNCTION_ARGS);
 
 /* commands/extension.c */
 extern Datum pg_available_extensions(PG_FUNCTION_ARGS);

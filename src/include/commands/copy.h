@@ -4,7 +4,7 @@
  *	  Definitions for using the POSTGRES copy command.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/commands/copy.h
@@ -136,6 +136,7 @@ typedef struct CopyStateData
 	copy_data_source_cb data_source_cb; /* function for reading data */
 	void	   *data_source_cb_extra;
 	bool		oids;			/* include OIDs? */
+	bool		freeze;			/* freeze rows on loading? */
 	bool        binary;         /* binary format */
 	bool		csv_mode;		/* Comma Separated Value format? */
 	bool		header_line;	/* CSV header line? */
@@ -150,6 +151,9 @@ typedef struct CopyStateData
 	bool	   *force_quote_flags;		/* per-column CSV FQ flags */
 	List	   *force_notnull;	/* list of column names */
 	bool	   *force_notnull_flags;	/* per-column CSV FNN flags */
+	bool		convert_selectively;	/* do selective binary conversion? */
+	List	   *convert_select; /* list of column names (can be NIL) */
+	bool	   *convert_select_flags;	/* per-column CSV/TEXT CS flags */
 	bool		fill_missing;	/* missing attrs at end of line are NULL */
 
 	SingleRowErrorDesc *sreh;
@@ -223,6 +227,7 @@ typedef struct CopyStateData
 	int		   *attr_offsets;
 
 	bool		line_buf_converted;		/* converted to server encoding? */
+	bool		line_buf_valid; /* contains the row being processed? */
 
 	/*
 	 * Finally, raw_buf holds raw data read from the data source (file or
@@ -287,7 +292,8 @@ typedef struct CopyStateData
 #define ntohll(x) ((1==ntohl(1)) ? (x) : ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
 #endif
 
-extern uint64 DoCopy(const CopyStmt *stmt, const char *queryString);
+extern Oid DoCopy(const CopyStmt *stmt, const char *queryString,
+	   uint64 *processed);
 
 extern void ProcessCopyOptions(CopyState cstate, bool is_from, List *options,
 				   int num_columns, bool is_copy);

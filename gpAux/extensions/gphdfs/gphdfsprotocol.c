@@ -28,6 +28,7 @@
 #include "catalog/pg_exttable.h"
 #include "utils/guc.h"
 #include "miscadmin.h"
+#include "storage/fd.h"
 
 #include "utils/lsyscache.h"
 

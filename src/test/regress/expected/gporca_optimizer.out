@@ -8199,21 +8199,20 @@ set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_date where user_id=9;
-                                                   QUERY PLAN
-----------------------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..437.00 rows=1 width=28)
-   ->  Sequence  (cost=0.00..437.00 rows=1 width=28)
-         ->  Partition Selector for t_date (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-               Partitions selected:  6 (out of 6)
-         ->  Result  (cost=0.00..437.00 rows=1 width=28)
-               ->  Append  (cost=0.00..437.00 rows=1 width=28)
-                     ->  Dynamic Index Scan on t_date (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=58)
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..437.00 rows=2 width=20)
+   ->  Sequence  (cost=0.00..437.00 rows=1 width=20)
+         ->  Partition Selector for t_date (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
+               Partitions selected: 6 (out of 6)
+         ->  Result  (cost=0.00..437.00 rows=1 width=20)
+               ->  Append  (cost=0.00..437.00 rows=1 width=20)
+                     ->  Dynamic Index Scan on t_date (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=50)
                            Index Cond: user_id = 9::numeric
-                     ->  Dynamic Table Scan on t_date (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=58)
+                     ->  Dynamic Table Scan on t_date t_date_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=50)
                            Filter: user_id = 9::numeric
- Settings:  optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.602
-(12 rows)
+ Optimizer: PQO version 2.74.0
+(11 rows)
 
 select * from orca.t_date where user_id=9;
    timest   | user_id | tag1  | tag2  
@@ -8254,21 +8253,20 @@ set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_text where user_id=9;
-                                                   QUERY PLAN
-----------------------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..437.00 rows=1 width=28)
-   ->  Sequence  (cost=0.00..437.00 rows=1 width=28)
-         ->  Partition Selector for t_text (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-               Partitions selected:  3 (out of 3)
-         ->  Result  (cost=0.00..437.00 rows=1 width=28)
-               ->  Append  (cost=0.00..437.00 rows=1 width=28)
-                     ->  Dynamic Index Scan on t_text (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=58)
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..437.00 rows=2 width=20)
+   ->  Sequence  (cost=0.00..437.00 rows=1 width=20)
+         ->  Partition Selector for t_text (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
+               Partitions selected: 3 (out of 3)
+         ->  Result  (cost=0.00..437.00 rows=1 width=20)
+               ->  Append  (cost=0.00..437.00 rows=1 width=20)
+                     ->  Dynamic Index Scan on t_text (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=50)
                            Index Cond: user_id = 9::numeric
-                     ->  Dynamic Table Scan on t_text (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=58)
+                     ->  Dynamic Table Scan on t_text t_text_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=50)
                            Filter: user_id = 9::numeric
- Settings:  optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.602
-(12 rows)
+ Optimizer: PQO version 2.74.0
+(11 rows)
 
 select * from orca.t_text where user_id=9;
    timest   | user_id | tag1  | tag2  
@@ -8364,21 +8362,20 @@ set optimizer_use_external_constant_expression_evaluation_for_ints = on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_ceeval_ints where user_id=4;
-                                                      QUERY PLAN
------------------------------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..437.00 rows=1 width=28)
-   ->  Sequence  (cost=0.00..437.00 rows=1 width=28)
-         ->  Partition Selector for t_ceeval_ints (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-               Partitions selected:  3 (out of 3)
-         ->  Result  (cost=0.00..437.00 rows=1 width=28)
-               ->  Append  (cost=0.00..437.00 rows=1 width=28)
-                     ->  Dynamic Index Scan on t_ceeval_ints (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=58)
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..437.00 rows=1 width=21)
+   ->  Sequence  (cost=0.00..437.00 rows=1 width=21)
+         ->  Partition Selector for t_ceeval_ints (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
+               Partitions selected: 3 (out of 3)
+         ->  Result  (cost=0.00..437.00 rows=1 width=21)
+               ->  Append  (cost=0.00..437.00 rows=1 width=21)
+                     ->  Dynamic Index Scan on t_ceeval_ints (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=51)
                            Index Cond: user_id = 4::numeric
-                     ->  Dynamic Table Scan on t_ceeval_ints (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=58)
+                     ->  Dynamic Table Scan on t_ceeval_ints t_ceeval_ints_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=51)
                            Filter: user_id = 4::numeric
- Settings:  optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.602
-(12 rows)
+ Optimizer: PQO version 2.74.0
+(11 rows)
 
 select * from orca.t_ceeval_ints where user_id=4;
  user_id | category_id | tag1  | tag2  
@@ -9639,25 +9636,24 @@ set optimizer_enable_dynamictablescan = off;
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
 INFO:  GPORCA failed to produce a plan, falling back to planner
-                                                           QUERY PLAN
----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..48.03 rows=6 width=40)
-   ->  Append  (cost=0.00..48.03 rows=3 width=40)
-         ->  Append-only Columnar Scan on bm_dyn_test_onepart_1_prt_part0 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..13.52 rows=13 width=10)
+   ->  Append  (cost=0.00..13.52 rows=5 width=10)
+         ->  Append-only Columnar Scan on bm_dyn_test_onepart_1_prt_part0  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Append-only Scan on bm_dyn_test_onepart_1_prt_part2 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
+         ->  Append-only Scan on bm_dyn_test_onepart_1_prt_part2  (cost=0.00..3.30 rows=3 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part4 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part4  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part5 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part5  (cost=0.00..1.01 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
- Settings:  optimizer=on
- Optimizer status: legacy query optimizer
-(16 rows)
+ Optimizer: legacy query optimizer
+(15 rows)
 
 select * from orca.bm_dyn_test_onepart where i=2 and t='2';
 INFO:  GPORCA failed to produce a plan, falling back to planner
@@ -9924,7 +9920,6 @@ id serial,
 code character varying(25),
 name character varying(40)
 );
-NOTICE:  CREATE TABLE will create implicit sequence "outer_tab_id_seq" for serial column "outer_tab.id"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into bm.outer_tab select i % 10, i % 5, i % 2 from generate_series(1, 100) i;
@@ -10049,15 +10044,15 @@ ORDER BY 1 asc ;
                                                                      ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=62)
                                                                ->  Dynamic Index Scan on my_tq_agg_opt_part (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=70)
                                                                      Index Cond: ets <= share0_ref2.event_ts AND end_ts > share0_ref2.event_ts
-                                                                     Filter: sym::bpchar = share0_ref2.symbol AND plusone(bid_price) < share0_ref2.trade_price
+                                                                     Filter: sym::bpchar = share0_ref2.symbol AND bid_price::numeric < share0_ref2.trade_price
                                                          ->  Nested Loop  (cost=0.00..437.00 rows=1 width=132)
                                                                Join Filter: true
                                                                ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=62)
                                                                      ->  Shared Scan (share slice:id 2:0)  (cost=0.00..431.00 rows=1 width=62)
-                                                               ->  Dynamic Index Scan on my_tq_agg_opt_part (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=70)
+                                                               ->  Dynamic Index Scan on my_tq_agg_opt_part my_tq_agg_opt_part_1 (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=70)
                                                                      Index Cond: ets <= share0_ref3.event_ts
-                                                                     Filter: sym::bpchar = share0_ref3.symbol AND plusone(bid_price) < share0_ref3.trade_price AND share0_ref3.event_ts < end_ts
- Optimizer: PQO version 2.64.0
+                                                                     Filter: sym::bpchar = share0_ref3.symbol AND bid_price::numeric < share0_ref3.trade_price AND share0_ref3.event_ts < end_ts
+ Optimizer: PQO version 2.74.0
 (34 rows)
 
 reset optimizer_segments;
@@ -10099,7 +10094,6 @@ id serial,
 code character varying(25),
 name character varying(40)
 );
-NOTICE:  CREATE TABLE will create implicit sequence "idxscan_outer_id_seq" for serial column "idxscan_outer.id"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table if exists idxscan_inner;
@@ -10110,7 +10104,6 @@ ordernum int unique,
 productid int,
 comment character varying(40)
 );
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "idxscan_inner_ordernum_key" for table "idxscan_inner"
 -- Have more rows in one table, so that the planner will
 -- choose to make that the outer side of the join.
 insert into idxscan_outer values (1, 'a', 'aaa');
@@ -10184,7 +10177,6 @@ select to_char(c1, 'YYYY-MM-DD HH24:MI:SS') from orca.t3 where c1 = '2015-07-03'
 
 -- MPP-25806: multi-column index
 create table orca.index_test (a int, b int, c int, d int, e int, constraint index_test_pkey PRIMARY KEY (a, b, c, d));
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "index_test_pkey" for table "index_test"
 insert into orca.index_test select i,i%2,i%3,i%4,i%5 from generate_series(1,100) i;
 -- force_explain
 explain select * from orca.index_test where a = 5;
@@ -10430,29 +10422,29 @@ LOG:  Planner produced plan :0
                Group Key: "rollup".unnamed_attr_2, "rollup".unnamed_attr_1, "rollup"."grouping", "rollup"."group_id"
                ->  Subquery Scan on "rollup"  (cost=8552.10..10074.98 rows=1435 width=28)
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=8552.10..10031.93 rows=1435 width=28)
-                           Hash Key: "rollup".unnamed_attr_2, "rollup".unnamed_attr_1, (Grouping), group_id()
+                           Hash Key: rollup_1.unnamed_attr_2, rollup_1.unnamed_attr_1, (Grouping), group_id()
                            ->  GroupAggregate  (cost=8552.10..9945.83 rows=1435 width=28)
-                                 Group Key: "rollup"."grouping", "rollup"."group_id"
-                                 ->  Subquery Scan on "rollup"  (cost=8552.10..9822.06 rows=2153 width=28)
+                                 Group Key: rollup_1."grouping", rollup_1."group_id"
+                                 ->  Subquery Scan on rollup_1  (cost=8552.10..9822.06 rows=2153 width=28)
                                        ->  GroupAggregate  (cost=8552.10..9757.49 rows=2153 width=28)
-                                             Group Key: "rollup".unnamed_attr_2, "rollup"."grouping", "rollup"."group_id"
-                                             ->  Subquery Scan on "rollup"  (cost=8552.10..9585.30 rows=2870 width=28)
+                                             Group Key: rollup_2.unnamed_attr_2, rollup_2."grouping", rollup_2."group_id"
+                                             ->  Subquery Scan on rollup_2  (cost=8552.10..9585.30 rows=2870 width=28)
                                                    ->  GroupAggregate  (cost=8552.10..9499.20 rows=2870 width=28)
-                                                         Group Key: share0_ref1.b, share0_ref1.a
+                                                         Group Key: b, a
                                                          ->  Sort  (cost=8552.10..8767.35 rows=28700 width=8)
-                                                               Sort Key: share0_ref1.b, share0_ref1.a
+                                                               Sort Key: b, a
                                                                ->  Shared Scan (share slice:id 1:0)  (cost=1391.50..1494.60 rows=28700 width=8)
                                                                      ->  Materialize  (cost=0.00..1391.50 rows=28700 width=8)
                                                                            ->  Seq Scan on foo  (cost=0.00..961.00 rows=28700 width=8)
          ->  HashAggregate  (cost=9639.11..9768.26 rows=4305 width=28)
-               Group Key: "rollup".unnamed_attr_1, "rollup".unnamed_attr_2, "rollup"."grouping", "rollup"."group_id"
-               ->  Subquery Scan on "rollup"  (cost=8552.10..9585.30 rows=1435 width=28)
+               Group Key: rollup_3.unnamed_attr_1, rollup_3.unnamed_attr_2, rollup_3."grouping", rollup_3."group_id"
+               ->  Subquery Scan on rollup_3  (cost=8552.10..9585.30 rows=1435 width=28)
                      ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=8552.10..9542.25 rows=1435 width=28)
-                           Hash Key: share0_ref2.a, share0_ref2.b, (Grouping), group_id()
+                           Hash Key: a, b, (Grouping), group_id()
                            ->  GroupAggregate  (cost=8552.10..9456.15 rows=1435 width=28)
-                                 Group Key: share0_ref2.a
+                                 Group Key: a
                                  ->  Sort  (cost=8552.10..8767.35 rows=28700 width=8)
-                                       Sort Key: share0_ref2.a, share0_ref2.b
+                                       Sort Key: a, b
                                        ->  Shared Scan (share slice:id 2:0)  (cost=1391.50..1494.60 rows=28700 width=8)
  Optimizer: legacy query optimizer
 (31 rows)

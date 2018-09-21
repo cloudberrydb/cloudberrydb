@@ -1038,7 +1038,6 @@ relname='tenk_renamed'));
 
 ALTER TABLE tenk_renamed ALTER COLUMN twothousand SET NOT NULL;
 ALTER TABLE tenk_renamed ADD COLUMN sercol serial; -- MPP-10015
-NOTICE:  ALTER TABLE will create implicit sequence "tenk_renamed_sercol_seq" for serial column "tenk_renamed.sercol"
 ALTER TABLE tenk_renamed ADD COLUMN newcol2 int NOT NULL; -- should fail
 ERROR:  column "newcol2" contains null values
 SELECT count(*) FROM tenk_renamed;

@@ -3,7 +3,7 @@
  * storage.c
  *	  code to create and destroy physical storage for relations
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -24,6 +24,8 @@
 #include "access/xlogutils.h"
 #include "catalog/catalog.h"
 #include "catalog/storage.h"
+#include "catalog/storage_xlog.h"
+#include "common/relpath.h"
 #include "storage/freespace.h"
 #include "storage/smgr.h"
 #include "utils/memutils.h"
@@ -59,30 +61,6 @@ typedef struct PendingRelDelete
 } PendingRelDelete;
 
 static PendingRelDelete *pendingDeletes = NULL; /* head of linked list */
-
-/*
- * Declarations for smgr-related XLOG records
- *
- * Note: we log file creation and truncation here, but logging of deletion
- * actions is handled by xact.c, because it is part of transaction commit.
- */
-
-/* XLOG gives us high 4 bits */
-#define XLOG_SMGR_CREATE	0x10
-#define XLOG_SMGR_TRUNCATE	0x20
-
-typedef struct xl_smgr_create
-{
-	RelFileNode rnode;
-	ForkNumber	forkNum;
-} xl_smgr_create;
-
-typedef struct xl_smgr_truncate
-{
-	BlockNumber blkno;
-	RelFileNode rnode;
-} xl_smgr_truncate;
-
 
 /*
  * RelationCreateStorage
@@ -337,6 +315,11 @@ smgrDoPendingDeletes(bool isCommit)
 	PendingRelDelete *pending;
 	PendingRelDelete *prev;
 	PendingRelDelete *next;
+	int			nrels = 0,
+				i = 0,
+				maxrels = 8;
+	SMgrRelation *srels = palloc(maxrels * sizeof(SMgrRelation));
+	char	   *relstorages = palloc(maxrels * sizeof(char));
 
 	prev = NULL;
 	for (pending = pendingDeletes; pending != NULL; pending = next)
@@ -358,17 +341,35 @@ smgrDoPendingDeletes(bool isCommit)
 			if (pending->atCommit == isCommit)
 			{
 				SMgrRelation srel;
-
 				srel = smgropen(pending->relnode.node, pending->backend);
 
-				smgrdounlink(srel, false, pending->relnode.relstorage);
-				smgrclose(srel);
+				/* extend the array if needed (double the size) */
+				if (maxrels <= nrels)
+				{
+					maxrels *= 2;
+					srels = repalloc(srels, sizeof(SMgrRelation) * maxrels);
+					relstorages = repalloc(relstorages, sizeof(char) * maxrels);
+				}
+
+				relstorages[nrels] = pending->relnode.relstorage;
+				srels[nrels++] = srel;
 			}
 			/* must explicitly free the list entry */
 			pfree(pending);
 			/* prev does not change */
 		}
 	}
+
+	if (nrels > 0)
+	{
+		smgrdounlinkall(srels, nrels, false, relstorages);
+
+		for (i = 0; i < nrels; i++)
+			smgrclose(srels[i]);
+	}
+
+	pfree(srels);
+
 }
 
 /*
@@ -525,13 +526,12 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		smgrcreate(reln, MAIN_FORKNUM, true);
 
 		/*
-		 * Before we perform the truncation, update minimum recovery point
-		 * to cover this WAL record. Once the relation is truncated, there's
-		 * no going back. The buffer manager enforces the WAL-first rule
-		 * for normal updates to relation files, so that the minimum recovery
-		 * point is always updated before the corresponding change in the
-		 * data file is flushed to disk. We have to do the same manually
-		 * here.
+		 * Before we perform the truncation, update minimum recovery point to
+		 * cover this WAL record. Once the relation is truncated, there's no
+		 * going back. The buffer manager enforces the WAL-first rule for
+		 * normal updates to relation files, so that the minimum recovery
+		 * point is always updated before the corresponding change in the data
+		 * file is flushed to disk. We have to do the same manually here.
 		 *
 		 * Doing this before the truncation means that if the truncation fails
 		 * for some reason, you cannot start up the system even after restart,
@@ -559,31 +559,4 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	}
 	else
 		elog(PANIC, "smgr_redo: unknown op code %u", info);
-}
-
-void
-smgr_desc(StringInfo buf, XLogRecord *record)
-{
-	uint8           info = record->xl_info & ~XLR_INFO_MASK;
-	char            *rec = XLogRecGetData(record);
-
-	if (info == XLOG_SMGR_CREATE)
-	{
-		xl_smgr_create *xlrec = (xl_smgr_create *) rec;
-		char	   *path = relpathperm(xlrec->rnode, xlrec->forkNum);
-
-		appendStringInfo(buf, "file create: %s", path);
-		pfree(path);
-	}
-	else if (info == XLOG_SMGR_TRUNCATE)
-	{
-		xl_smgr_truncate *xlrec = (xl_smgr_truncate *) rec;
-		char	   *path = relpathperm(xlrec->rnode, MAIN_FORKNUM);
-
-		appendStringInfo(buf, "file truncate: %s to %u blocks", path,
-						 xlrec->blkno);
-		pfree(path);
-	}
-	else
-		appendStringInfo(buf, "UNKNOWN");
 }

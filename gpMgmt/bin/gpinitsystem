@@ -1637,7 +1637,7 @@ SCAN_LOG () {
 	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 	LOG_MSG "[INFO]:-Scanning utility log file for any warning messages" 1
 	SCAN_STRING="\[WARN\]|invalid|warning:|fatal|error"
-	if [ `$EGREP -i "$SCAN_STRING" $LOG_FILE|$GREP -v "\[INFO\]"|$GREP -v "[Start|End] Function ERROR_CHK"|$GREP -v "WARNING: enabling \"trust\" authentication for local connections"|$GREP -v "to the list of known hosts"|$WC -w` -ne 0 ];then
+	if [ `$EGREP -i -w "$SCAN_STRING" $LOG_FILE|$GREP -v "\[INFO\]"|$GREP -v "[Start|End] Function ERROR_CHK"|$GREP -v "WARNING: enabling \"trust\" authentication for local connections"|$GREP -v "to the list of known hosts"|$GREP -v "LOG"|$WC -w` -ne 0 ];then
 		LOG_MSG "[WARN]:-*******************************************************" 1
 		LOG_MSG "[WARN]:-Scan of log file indicates that some warnings or errors" 1
 		LOG_MSG "[WARN]:-were generated during the array creation" 1

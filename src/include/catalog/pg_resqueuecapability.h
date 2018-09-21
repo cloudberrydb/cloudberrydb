@@ -31,7 +31,7 @@
 CATALOG(pg_resqueuecapability,6060) BKI_SHARED_RELATION
 {
 	Oid		resqueueid;	/* OID of the queue with this capability  */
-	int2	restypid;	/* resource type id (key to pg_resourcetype)  */
+	int16	restypid;	/* resource type id (key to pg_resourcetype)  */
 	text	ressetting;	/* resource setting (opaque type)  */
 } FormData_pg_resqueuecapability;
 

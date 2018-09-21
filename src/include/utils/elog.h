@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/elog.h
@@ -190,7 +190,7 @@ void elog_internalerror(const char *filename, int lineno, const char *funcname)
 		if (__builtin_constant_p(elevel) && (elevel) >= ERROR) \
 			pg_unreachable(); \
 	} while(0)
-#else /* !HAVE__BUILTIN_CONSTANT_P */
+#else							/* !HAVE__BUILTIN_CONSTANT_P */
 #define ereport_domain(elevel, domain, rest)	\
 	do { \
 		const int elevel_ = (elevel); \
@@ -199,7 +199,7 @@ void elog_internalerror(const char *filename, int lineno, const char *funcname)
 		if (elevel_ >= ERROR) \
 			pg_unreachable(); \
 	} while(0)
-#endif /* HAVE__BUILTIN_CONSTANT_P */
+#endif   /* HAVE__BUILTIN_CONSTANT_P */
 
 #define ereport(elevel, rest)	\
 	ereport_domain(elevel, TEXTDOMAIN, rest)
@@ -282,8 +282,19 @@ errhint(const char *fmt,...)
    the supplied arguments. */
 __attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
 
+/*
+ * errcontext() is typically called in error context callback functions, not
+ * within an ereport() invocation. The callback function can be in a different
+ * module than the ereport() call, so the message domain passed in errstart()
+ * is not usually the correct domain for translating the context message.
+ * set_errcontext_domain() first sets the domain to be used, and
+ * errcontext_msg() passes the actual message.
+ */
+#define errcontext	set_errcontext_domain(TEXTDOMAIN),	errcontext_msg
+
+extern int	set_errcontext_domain(const char *domain);
 extern int
-errcontext(const char *fmt,...)
+errcontext_msg(const char *fmt,...)
 /* This extension allows gcc to check the format string for consistency with
    the supplied arguments. */
 __attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
@@ -297,6 +308,8 @@ extern int	errprintstack(bool printstack);
 
 extern int	internalerrposition(int cursorpos);
 extern int	internalerrquery(const char *query);
+
+extern int	err_generic_string(int field, const char *str);
 
 extern int	geterrcode(void);
 extern int	geterrposition(void);
@@ -326,7 +339,7 @@ extern int errSendAlert(bool sendAlert);		/* GPDB: Send alert via e-mail or SNMP
 		if (__builtin_constant_p(elevel) && (elevel) >= ERROR) \
 			pg_unreachable(); \
 	} while(0)
-#else /* !HAVE__BUILTIN_CONSTANT_P */
+#else							/* !HAVE__BUILTIN_CONSTANT_P */
 #define elog(elevel, ...)  \
 	do { \
 		int		elevel_; \
@@ -336,12 +349,12 @@ extern int errSendAlert(bool sendAlert);		/* GPDB: Send alert via e-mail or SNMP
 		if (elevel_ >= ERROR) \
 			pg_unreachable(); \
 	} while(0)
-#endif /* HAVE__BUILTIN_CONSTANT_P */
-#else /* !HAVE__VA_ARGS */
+#endif   /* HAVE__BUILTIN_CONSTANT_P */
+#else							/* !HAVE__VA_ARGS */
 #define elog  \
 	elog_start(__FILE__, __LINE__, PG_FUNCNAME_MACRO), \
 	elog_finish
-#endif /* HAVE__VA_ARGS */
+#endif   /* HAVE__VA_ARGS */
 
 extern void elog_start(const char *filename, int lineno, const char *funcname);
 extern void
@@ -473,12 +486,18 @@ typedef struct ErrorData
 	int			lineno;			/* __LINE__ of ereport() call */
 	const char *funcname;		/* __func__ of ereport() call */
 	const char *domain;			/* message domain */
+	const char *context_domain; /* message domain for context message */
 	int			sqlerrcode;		/* encoded ERRSTATE */
 	char	   *message;		/* primary error message */
 	char	   *detail;			/* detail error message */
 	char	   *detail_log;		/* detail error message for server log only */
 	char	   *hint;			/* hint message */
 	char	   *context;		/* context message */
+	char	   *schema_name;	/* name of schema */
+	char	   *table_name;		/* name of table */
+	char	   *column_name;	/* name of column */
+	char	   *datatype_name;	/* name of datatype */
+	char	   *constraint_name;	/* name of constraint */
 	int			cursorpos;		/* cursor index into query string */
 	int			internalpos;	/* cursor index into internalquery */
 	char	   *internalquery;	/* text of internally-generated query */

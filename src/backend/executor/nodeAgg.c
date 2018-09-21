@@ -110,7 +110,7 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -121,6 +121,8 @@
 
 #include "postgres.h"
 
+#include "access/htup_details.h"
+#include "catalog/objectaccess.h"
 #include "catalog/pg_aggregate.h"
 #include "catalog/pg_proc.h"
 #include "executor/executor.h"
@@ -191,6 +193,20 @@ static void clear_agg_object(AggState *aggstate);
 static TupleTableSlot *agg_retrieve_direct(AggState *aggstate);
 static TupleTableSlot *agg_retrieve_hash_table(AggState *aggstate);
 static void ExecAggExplainEnd(PlanState *planstate, struct StringInfoData *buf);
+
+static void *
+cxt_alloc(void *manager, Size len)
+{
+	return MemoryContextAlloc((MemoryContext)manager, len);
+}
+
+static void
+cxt_free(void *manager, void *pointer)
+{
+    UnusedArg(manager);
+	if (pointer != NULL)
+		pfree(pointer);
+}
 
 
 Datum
@@ -2063,6 +2079,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		if (aclresult != ACLCHECK_OK)
 			aclcheck_error(aclresult, ACL_KIND_PROC,
 						   get_func_name(aggref->aggfnoid));
+		InvokeFunctionExecuteHook(aggref->aggfnoid);
 
 		switch (aggref->aggstage)		/* MPP */
 		{
@@ -2109,6 +2126,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 			if (aclresult != ACLCHECK_OK)
 				aclcheck_error(aclresult, ACL_KIND_PROC,
 							   get_func_name(transfn_oid));
+			InvokeFunctionExecuteHook(transfn_oid);
 			if (OidIsValid(finalfn_oid))
 			{
 				aclresult = pg_proc_aclcheck(finalfn_oid, aggOwner,
@@ -2116,6 +2134,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 				if (aclresult != ACLCHECK_OK)
 					aclcheck_error(aclresult, ACL_KIND_PROC,
 								   get_func_name(finalfn_oid));
+				InvokeFunctionExecuteHook(finalfn_oid);
 			}
 			if (OidIsValid(peraggstate->combinefn_oid))
 			{

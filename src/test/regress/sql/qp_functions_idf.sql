@@ -248,7 +248,7 @@ select DISTINCT percentile_cont(0.7) within group (order by a) from perct group 
 create view idf_v1 as select median (( select median((select median(a) from perct)) from perct ));
 -- end_ignore
 select pg_get_viewdef('idf_v1');  
- 
+
 -- VIEW with IDF and its definition -- Percentile function with wrong input
 -- start_ignore
 create view idf_v4 as select percentile_disc(1.5) within group (order by a) as percentile_disc_a, percentile_disc( 0.9) within group (order by b) as percentile_disc_b  from perct;

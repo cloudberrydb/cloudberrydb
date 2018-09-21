@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/heap.h
@@ -87,6 +87,7 @@ extern Oid heap_create_with_catalog(const char *relname,
 									Datum reloptions,
 									bool use_user_acl,
 									bool allow_system_table_mods,
+									bool is_internal,
 									bool valid_opts,
 									bool is_part_child,
 									bool is_part_parent);
@@ -117,12 +118,14 @@ extern List *AddRelationNewConstraints(Relation rel,
 						  List *newColDefaults,
 						  List *newConstraints,
 						  bool allow_merge,
-						  bool is_local);
+						  bool is_local,
+						  bool is_internal);
 extern List *AddRelationConstraints(Relation rel,
 						  List *rawColDefaults,
 						  List *constraints);
 
-extern void StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr);
+extern void StoreAttrDefault(Relation rel, AttrNumber attnum,
+				 Node *expr, bool is_internal);
 
 extern Node *cookDefault(ParseState *pstate,
 			Node *raw_default,
@@ -132,6 +135,7 @@ extern Node *cookDefault(ParseState *pstate,
 
 extern void DeleteRelationTuple(Oid relid);
 extern void DeleteAttributeTuples(Oid relid);
+extern void DeleteSystemAttributeTuples(Oid relid);
 extern void RemoveAttributeById(Oid relid, AttrNumber attnum);
 extern void RemoveAttrDefault(Oid relid, AttrNumber attnum,
 				  DropBehavior behavior, bool complain, bool internal);

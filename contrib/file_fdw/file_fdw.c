@@ -3,7 +3,7 @@
  * file_fdw.c
  *		  foreign-data wrapper for server-side flat files.
  *
- * Copyright (c) 2010-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2013, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/file_fdw/file_fdw.c
@@ -15,7 +15,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "access/htup_details.h"
 #include "access/reloptions.h"
+#include "access/sysattr.h"
 #include "catalog/pg_foreign_table.h"
 #include "commands/copy.h"
 #include "commands/defrem.h"
@@ -29,6 +31,7 @@
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
+#include "optimizer/var.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
@@ -136,6 +139,9 @@ static bool is_valid_option(const char *option, Oid context);
 static void fileGetOptions(Oid foreigntableid,
 			   char **filename, List **other_options);
 static List *get_file_fdw_attribute_options(Oid relid);
+static bool check_selective_binary_conversion(RelOptInfo *baserel,
+								  Oid foreigntableid,
+								  List **columns);
 static void estimate_size(PlannerInfo *root, RelOptInfo *baserel,
 			  FileFdwPlanState *fdw_private);
 static void estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
@@ -457,12 +463,25 @@ fileGetForeignPaths(PlannerInfo *root,
 	FileFdwPlanState *fdw_private = (FileFdwPlanState *) baserel->fdw_private;
 	Cost		startup_cost;
 	Cost		total_cost;
+	List	   *columns;
+	List	   *coptions = NIL;
+
+	/* Decide whether to selectively perform binary conversion */
+	if (check_selective_binary_conversion(baserel,
+										  foreigntableid,
+										  &columns))
+		coptions = list_make1(makeDefElem("convert_selectively",
+										  (Node *) columns));
 
 	/* Estimate costs */
 	estimate_costs(root, baserel, fdw_private,
 				   &startup_cost, &total_cost);
 
-	/* Create a ForeignPath node and add it as only possible path */
+	/*
+	 * Create a ForeignPath node and add it as only possible path.	We use the
+	 * fdw_private list of the path to carry the convert_selectively option;
+	 * it will be propagated into the fdw_private list of the Plan node.
+	 */
 	add_path(baserel, (Path *)
 			 create_foreignscan_path(root, baserel,
 									 baserel->rows,
@@ -470,7 +489,7 @@ fileGetForeignPaths(PlannerInfo *root,
 									 total_cost,
 									 NIL,		/* no pathkeys */
 									 NULL,		/* no outer rel either */
-									 NIL));		/* no fdw_private data */
+									 coptions));
 
 	/*
 	 * If data file was sorted, and we knew it somehow, we could insert
@@ -507,7 +526,7 @@ fileGetForeignPlan(PlannerInfo *root,
 							scan_clauses,
 							scan_relid,
 							NIL,	/* no expressions to evaluate */
-							NIL);		/* no private state either */
+							best_path->fdw_private);
 }
 
 /*
@@ -544,6 +563,7 @@ fileExplainForeignScan(ForeignScanState *node, ExplainState *es)
 static void
 fileBeginForeignScan(ForeignScanState *node, int eflags)
 {
+	ForeignScan *plan = (ForeignScan *) node->ss.ps.plan;
 	char	   *filename;
 	List	   *options;
 	CopyState	cstate;
@@ -558,6 +578,9 @@ fileBeginForeignScan(ForeignScanState *node, int eflags)
 	/* Fetch options of foreign table */
 	fileGetOptions(RelationGetRelid(node->ss.ss_currentRelation),
 				   &filename, &options);
+
+	/* Add any options from the plan (currently only convert_selectively) */
+	options = list_concat(options, plan->fdw_private);
 
 	/*
 	 * Create CopyState from FDW options.  We always acquire all columns, so
@@ -595,13 +618,13 @@ fileIterateForeignScan(ForeignScanState *node)
 	FileFdwExecutionState *festate = (FileFdwExecutionState *) node->fdw_state;
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 	bool		found;
-	ErrorContextCallback errcontext;
+	ErrorContextCallback errcallback;
 
 	/* Set up callback to identify error line number. */
-	errcontext.callback = CopyFromErrorCallback;
-	errcontext.arg = (void *) festate->cstate;
-	errcontext.previous = error_context_stack;
-	error_context_stack = &errcontext;
+	errcallback.callback = CopyFromErrorCallback;
+	errcallback.arg = (void *) festate->cstate;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
 
 	/*
 	 * The protocol for loading a virtual tuple into a slot is first
@@ -623,7 +646,7 @@ fileIterateForeignScan(ForeignScanState *node)
 		ExecStoreVirtualTuple(slot);
 
 	/* Remove error callback. */
-	error_context_stack = errcontext.previous;
+	error_context_stack = errcallback.previous;
 
 	return slot;
 }
@@ -698,6 +721,125 @@ fileAnalyzeForeignTable(Relation relation,
 		*totalpages = 1;
 
 	*func = file_acquire_sample_rows;
+
+	return true;
+}
+
+/*
+ * check_selective_binary_conversion
+ *
+ * Check to see if it's useful to convert only a subset of the file's columns
+ * to binary.  If so, construct a list of the column names to be converted,
+ * return that at *columns, and return TRUE.  (Note that it's possible to
+ * determine that no columns need be converted, for instance with a COUNT(*)
+ * query.  So we can't use returning a NIL list to indicate failure.)
+ */
+static bool
+check_selective_binary_conversion(RelOptInfo *baserel,
+								  Oid foreigntableid,
+								  List **columns)
+{
+	ForeignTable *table;
+	ListCell   *lc;
+	Relation	rel;
+	TupleDesc	tupleDesc;
+	AttrNumber	attnum;
+	Bitmapset  *attrs_used = NULL;
+	bool		has_wholerow = false;
+	int			numattrs;
+	int			i;
+
+	*columns = NIL;				/* default result */
+
+	/*
+	 * Check format of the file.  If binary format, this is irrelevant.
+	 */
+	table = GetForeignTable(foreigntableid);
+	foreach(lc, table->options)
+	{
+		DefElem    *def = (DefElem *) lfirst(lc);
+
+		if (strcmp(def->defname, "format") == 0)
+		{
+			char	   *format = defGetString(def);
+
+			if (strcmp(format, "binary") == 0)
+				return false;
+			break;
+		}
+	}
+
+	/* Collect all the attributes needed for joins or final output. */
+	pull_varattnos((Node *) baserel->reltargetlist, baserel->relid,
+				   &attrs_used);
+
+	/* Add all the attributes used by restriction clauses. */
+	foreach(lc, baserel->baserestrictinfo)
+	{
+		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+
+		pull_varattnos((Node *) rinfo->clause, baserel->relid,
+					   &attrs_used);
+	}
+
+	/* Convert attribute numbers to column names. */
+	rel = heap_open(foreigntableid, AccessShareLock);
+	tupleDesc = RelationGetDescr(rel);
+
+	while ((attnum = bms_first_member(attrs_used)) >= 0)
+	{
+		/* Adjust for system attributes. */
+		attnum += FirstLowInvalidHeapAttributeNumber;
+
+		if (attnum == 0)
+		{
+			has_wholerow = true;
+			break;
+		}
+
+		/* Ignore system attributes. */
+		if (attnum < 0)
+			continue;
+
+		/* Get user attributes. */
+		if (attnum > 0)
+		{
+			Form_pg_attribute attr = tupleDesc->attrs[attnum - 1];
+			char	   *attname = NameStr(attr->attname);
+
+			/* Skip dropped attributes (probably shouldn't see any here). */
+			if (attr->attisdropped)
+				continue;
+			*columns = lappend(*columns, makeString(pstrdup(attname)));
+		}
+	}
+
+	/* Count non-dropped user attributes while we have the tupdesc. */
+	numattrs = 0;
+	for (i = 0; i < tupleDesc->natts; i++)
+	{
+		Form_pg_attribute attr = tupleDesc->attrs[i];
+
+		if (attr->attisdropped)
+			continue;
+		numattrs++;
+	}
+
+	heap_close(rel, AccessShareLock);
+
+	/* If there's a whole-row reference, fail: we need all the columns. */
+	if (has_wholerow)
+	{
+		*columns = NIL;
+		return false;
+	}
+
+	/* If all the user attributes are needed, fail. */
+	if (numattrs == list_length(*columns))
+	{
+		*columns = NIL;
+		return false;
+	}
 
 	return true;
 }
@@ -843,7 +985,7 @@ file_acquire_sample_rows(Relation onerel, int elevel,
 	char	   *filename;
 	List	   *options;
 	CopyState	cstate;
-	ErrorContextCallback errcontext;
+	ErrorContextCallback errcallback;
 	MemoryContext oldcontext = CurrentMemoryContext;
 	MemoryContext tupcontext;
 
@@ -879,10 +1021,10 @@ file_acquire_sample_rows(Relation onerel, int elevel,
 	rstate = anl_init_selection_state(targrows);
 
 	/* Set up callback to identify error line number. */
-	errcontext.callback = CopyFromErrorCallback;
-	errcontext.arg = (void *) cstate;
-	errcontext.previous = error_context_stack;
-	error_context_stack = &errcontext;
+	errcallback.callback = CopyFromErrorCallback;
+	errcallback.arg = (void *) cstate;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
 
 	*totalrows = 0;
 	*totaldeadrows = 0;
@@ -942,7 +1084,7 @@ file_acquire_sample_rows(Relation onerel, int elevel,
 	}
 
 	/* Remove error callback. */
-	error_context_stack = errcontext.previous;
+	error_context_stack = errcallback.previous;
 
 	/* Clean up. */
 	MemoryContextDelete(tupcontext);

@@ -109,6 +109,8 @@
       <listitem>
        <para>
         Clean (drop) database objects before recreating them.
+        (This might generate some harmless error messages, if any objects
+        were not present in the destination database.)
        </para>
       </listitem>
      </varlistentry>
@@ -118,11 +120,16 @@
       <term><option>--create</option></term>
       <listitem>
        <para>
-        Create the database before restoring into it.  (When this
-        option is used, the database named with <option>-d</option> is
-        used only to issue the initial <command>CREATE DATABASE</>
-        command.  All data is restored into the database name that
-        appears in the archive.)
+        Create the database before restoring into it.
+        If <option>--clean</option> is also specified, drop and
+        recreate the target database before connecting to it.
+       </para>
+
+       <para>
+        When this option is used, the database named with <option>-d</option>
+        is used only to issue the initial <command>DROP DATABASE</> and
+        <command>CREATE DATABASE</> commands.  All data is restored into the
+        database name that appears in the archive.
        </para>
       </listitem>
      </varlistentry>
@@ -383,7 +390,7 @@
       <listitem>
        <para>
         Specify the superuser user name to use when disabling triggers.
-        This is only relevant if <option>--disable-triggers</> is used.
+        This is relevant only if <option>--disable-triggers</> is used.
        </para>
       </listitem>
      </varlistentry>
@@ -393,7 +400,8 @@
       <term><option>--table=<replaceable class="parameter">table</replaceable></option></term>
       <listitem>
        <para>
-        Restore definition and/or data of named table only.  This can be
+        Restore definition and/or data of named table only. Multiple tables
+        may be specified with multiple <option>-t</> switches. This can be
         combined with the <option>-n</option> option to specify a schema.
        </para>
       </listitem>
@@ -458,7 +466,7 @@
       <term><option>--disable-triggers</></term>
       <listitem>
        <para>
-        This option is only relevant when performing a data-only restore.
+        This option is relevant only when performing a data-only restore.
         It instructs <application>pg_restore</application> to execute commands
         to temporarily disable triggers on the target tables while
         the data is reloaded.  Use this if you have referential
@@ -468,9 +476,9 @@
 
        <para>
         Presently, the commands emitted for
-        <option>--disable-triggers</> must be done as superuser.  So, you
-        should also specify a superuser name with <option>-S</>, or
-        preferably run <application>pg_restore</application> as a
+        <option>--disable-triggers</> must be done as superuser.  So you
+        should also specify a superuser name with <option>-S</> or,
+        preferably, run <application>pg_restore</application> as a
         <productname>PostgreSQL</> superuser.
        </para>
       </listitem>
@@ -686,7 +694,8 @@
   <para>
    This utility, like most other <productname>PostgreSQL</> utilities,
    also uses the environment variables supported by <application>libpq</>
-   (see <xref linkend="libpq-envars">).
+   (see <xref linkend="libpq-envars">).  However, it does not read
+   <envar>PGDATABASE</envar> when a database name is not supplied.
   </para>
 
  </refsect1>

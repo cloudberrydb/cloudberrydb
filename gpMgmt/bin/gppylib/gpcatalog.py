@@ -299,19 +299,19 @@ class GPCatalog():
         
         # pg_class:
         #   - relfilenode should generally be consistent, but may not be (jira?)
-        #   - relpages/reltuples/relfrozenxid are all vacumm/analyze related
+        #   - relpages/reltuples/relfrozenxid/relminmxid are all vacumm/analyze related
         #   - relhasindex/relhaspkey are only cleared when vacuum completes
         #   - relowner has its own checks:
         #       => may want to separate out "owner" columns like acl and oid
         self._tables['pg_class']._setKnownDifferences(
-            "relfilenode relpages reltuples relhasindex relhaspkey relowner relfrozenxid relallvisible")
+            "relfilenode relpages reltuples relhasindex relhaspkey relowner relfrozenxid relminmxid relallvisible")
 
         # pg_type: typowner has its own checks:
         #       => may want to separate out "owner" columns like acl and oid
         self._tables['pg_type']._setKnownDifferences("typowner")
 
-        # pg_database: datfrozenxid = vacuum related
-        self._tables['pg_database']._setKnownDifferences("datfrozenxid")
+        # pg_database: datfrozenxid and datminmxid are vacuum related
+        self._tables['pg_database']._setKnownDifferences("datfrozenxid datminmxid")
 
         # -------------
         # Issues still present in the product

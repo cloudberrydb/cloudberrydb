@@ -4,7 +4,7 @@
  *	  XML data type support.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/utils/adt/xml.c
@@ -52,11 +52,22 @@
 #include <libxml/tree.h>
 #include <libxml/uri.h>
 #include <libxml/xmlerror.h>
+#include <libxml/xmlversion.h>
 #include <libxml/xmlwriter.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
+
+/*
+ * We used to check for xmlStructuredErrorContext via a configure test; but
+ * that doesn't work on Windows, so instead use this grottier method of
+ * testing the library version number.
+ */
+#if LIBXML_VERSION >= 20704
+#define HAVE_XMLSTRUCTUREDERRORCONTEXT 1
+#endif
 #endif   /* USE_LIBXML */
 
+#include "access/htup_details.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "commands/dbcommands.h"
@@ -975,7 +986,7 @@ pg_xml_init(PgXmlStrictness strictness)
 	 *
 	 * The only known situation in which this test fails is if we compile with
 	 * headers from a libxml2 that doesn't track the structured error context
-	 * separately (<= 2.7.3), but at runtime use a version that does, or vice
+	 * separately (< 2.7.4), but at runtime use a version that does, or vice
 	 * versa.  The libxml2 authors did not treat that change as constituting
 	 * an ABI break, so the LIBXML_TEST_VERSION test in pg_xml_init_library
 	 * fails to protect us from this.
@@ -994,6 +1005,13 @@ pg_xml_init(PgXmlStrictness strictness)
 						errhint("This probably indicates that the version of libxml2"
 								" being used is not compatible with the libxml2"
 								" header files that PostgreSQL was built with.")));
+
+	/*
+	 * Also, install an entity loader to prevent unwanted fetches of external
+	 * files and URLs.
+	 */
+	errcxt->saved_entityfunc = xmlGetExternalEntityLoader();
+	xmlSetExternalEntityLoader(xmlPgEntityLoader);
 
 	/*
 	 * Also, install an entity loader to prevent unwanted fetches of external
@@ -1492,7 +1510,7 @@ xml_pstrdup(const char *string)
 /*
  * xmlPgEntityLoader --- entity loader callback function
  *
- * Silently prevent any external entity URL from being loaded.  We don't want
+ * Silently prevent any external entity URL from being loaded.	We don't want
  * to throw an error, so instead make the entity appear to expand to an empty
  * string.
  *
@@ -1602,6 +1620,7 @@ xml_errorHandler(void *data, xmlErrorPtr error)
 		case XML_FROM_NONE:
 		case XML_FROM_MEMORY:
 		case XML_FROM_IO:
+
 			/*
 			 * Suppress warnings about undeclared entities.  We need to do
 			 * this to avoid problems due to not loading DTD definitions.
@@ -1995,6 +2014,12 @@ map_sql_value_to_xml_value(Datum value, Oid type, bool xml_escape_strings)
 		char	   *str;
 
 		/*
+		 * Flatten domains; the special-case treatments below should apply to,
+		 * eg, domains over boolean not just boolean.
+		 */
+		type = getBaseType(type);
+
+		/*
 		 * Special XSD formatting for some data types
 		 */
 		switch (type)
@@ -2278,7 +2303,7 @@ schema_get_xml_visible_tables(Oid nspid)
 	StringInfoData query;
 
 	initStringInfo(&query);
-	appendStringInfo(&query, "SELECT oid FROM pg_catalog.pg_class WHERE relnamespace = %u AND relkind IN ('r', 'v') AND pg_catalog.has_table_privilege (oid, 'SELECT') ORDER BY relname;", nspid);
+	appendStringInfo(&query, "SELECT oid FROM pg_catalog.pg_class WHERE relnamespace = %u AND relkind IN ('r', 'm', 'v') AND pg_catalog.has_table_privilege (oid, 'SELECT') ORDER BY relname;", nspid);
 
 	return query_to_oid_list(query.data);
 }
@@ -2304,7 +2329,7 @@ static List *
 database_get_xml_visible_tables(void)
 {
 	/* At the moment there is no order required here. */
-	return query_to_oid_list("SELECT oid FROM pg_catalog.pg_class WHERE relkind IN ('r', 'v') AND pg_catalog.has_table_privilege (pg_class.oid, 'SELECT') AND relnamespace IN (" XML_VISIBLE_SCHEMAS ");");
+	return query_to_oid_list("SELECT oid FROM pg_catalog.pg_class WHERE relkind IN ('r', 'm', 'v') AND pg_catalog.has_table_privilege (pg_class.oid, 'SELECT') AND relnamespace IN (" XML_VISIBLE_SCHEMAS ");");
 }
 
 
@@ -2426,7 +2451,7 @@ xmldata_root_element_start(StringInfo result, const char *eltname,
 		else
 			appendStringInfo(result, " xsi:noNamespaceSchemaLocation=\"#\"");
 	}
-	appendStringInfo(result, ">\n\n");
+	appendStringInfo(result, ">\n");
 }
 
 
@@ -2460,8 +2485,11 @@ query_to_xml_internal(const char *query, char *tablename,
 				 errmsg("invalid query")));
 
 	if (!tableforest)
+	{
 		xmldata_root_element_start(result, xmltn, xmlschema,
 								   targetns, top_level);
+		appendStringInfoString(result, "\n");
+	}
 
 	if (xmlschema)
 		appendStringInfo(result, "%s\n\n", xmlschema);
@@ -2624,6 +2652,7 @@ schema_to_xml_internal(Oid nspid, const char *xmlschema, bool nulls,
 	result = makeStringInfo();
 
 	xmldata_root_element_start(result, xmlsn, xmlschema, targetns, top_level);
+	appendStringInfoString(result, "\n");
 
 	if (xmlschema)
 		appendStringInfo(result, "%s\n\n", xmlschema);
@@ -2667,7 +2696,7 @@ schema_to_xml(PG_FUNCTION_ARGS)
 	Oid			nspid;
 
 	schemaname = NameStr(*name);
-	nspid = LookupExplicitNamespace(schemaname);
+	nspid = LookupExplicitNamespace(schemaname, false);
 
 	PG_RETURN_XML_P(stringinfo_to_xmltype(schema_to_xml_internal(nspid, NULL,
 									   nulls, tableforest, targetns, true)));
@@ -2713,7 +2742,7 @@ schema_to_xmlschema_internal(const char *schemaname, bool nulls,
 
 	result = makeStringInfo();
 
-	nspid = LookupExplicitNamespace(schemaname);
+	nspid = LookupExplicitNamespace(schemaname, false);
 
 	xsd_schema_element_start(result, targetns);
 
@@ -2771,7 +2800,7 @@ schema_to_xml_and_xmlschema(PG_FUNCTION_ARGS)
 	StringInfo	xmlschema;
 
 	schemaname = NameStr(*name);
-	nspid = LookupExplicitNamespace(schemaname);
+	nspid = LookupExplicitNamespace(schemaname, false);
 
 	xmlschema = schema_to_xmlschema_internal(schemaname, nulls,
 											 tableforest, targetns);
@@ -2801,6 +2830,7 @@ database_to_xml_internal(const char *xmlschema, bool nulls,
 	result = makeStringInfo();
 
 	xmldata_root_element_start(result, xmlcn, xmlschema, targetns, true);
+	appendStringInfoString(result, "\n");
 
 	if (xmlschema)
 		appendStringInfo(result, "%s\n\n", xmlschema);

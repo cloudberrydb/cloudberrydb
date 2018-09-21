@@ -1049,7 +1049,6 @@ CREATE TABLE bmheapcrash (
     dist_col serial
 )
 DISTRIBUTED BY (dist_col);
-NOTICE:  CREATE TABLE will create implicit sequence "bmheapcrash_dist_col_seq" for serial column "bmheapcrash.dist_col"
 CREATE INDEX bm_heap_idx ON bmheapcrash USING bitmap (bitmap_col);
 CREATE INDEX bt_heap_idx ON bmheapcrash USING btree (btree_col1);
 CREATE INDEX bt_heap_idx_2 ON bmheapcrash USING btree (btree_col2);

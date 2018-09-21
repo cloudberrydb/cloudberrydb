@@ -91,9 +91,7 @@ DROP TABLE copy_regression_hash7;
 -- ######################################################
 CREATE TABLE copy_regression_default1(a text not null default 'a default data', b text not null default 'b default data') distributed by(a);
 CREATE TABLE copy_regression_default2(a text, b serial, c text) distributed by(a);
-NOTICE:  CREATE TABLE will create implicit sequence "copy_regression_default2_b_seq" for serial column "copy_regression_default2.b"
 CREATE TABLE copy_regression_default3(a serial, b text, c text) distributed by(a);
-NOTICE:  CREATE TABLE will create implicit sequence "copy_regression_default3_a_seq" for serial column "copy_regression_default3.a"
 -- constant defaults on key and non key attributes
 COPY copy_regression_default1(a) from stdin;
 COPY copy_regression_default1(b) from stdin;
@@ -708,6 +706,8 @@ COPY segment_reject_limit_from from STDIN on segment;
 ERROR:  STDIN is not supported by 'COPY ON SEGMENT'
 COPY segment_reject_limit_from from PROGRAM STDIN;
 ERROR:  STDIN/STDOUT not allowed with PROGRAM
+LINE 1: COPY segment_reject_limit_from from PROGRAM STDIN;
+                                                    ^
 SELECT * FROM segment_reject_limit_from;
  a | b 
 ---+---
@@ -720,6 +720,8 @@ COPY segment_reject_limit_from to STDOUT on segment;
 ERROR:  STDOUT is not supported by 'COPY ON SEGMENT'
 COPY segment_reject_limit_from to PROGRAM STDOUT;
 ERROR:  STDIN/STDOUT not allowed with PROGRAM
+LINE 1: COPY segment_reject_limit_from to PROGRAM STDOUT;
+                                                  ^
 -- 'COPY (SELECT ...) TO' doesn't support 'ON SEGMENT'
 COPY (SELECT * FROM segment_reject_limit_from) TO '/tmp/segment_reject_limit<SEGID>.csv' ON SEGMENT;
 ERROR:  'COPY (SELECT ...) TO' doesn't support 'ON SEGMENT'.
@@ -1361,6 +1363,15 @@ CREATE TABLE ao_copy(c int) WITH (appendonly=true);
 COPY ao_copy TO '/tmp/ao<SEGID>.txt' ON SEGMENT;
 COPY ao_copy FROM '/tmp/ao<SEGID>.txt' ON SEGMENT;
 DROP TABLE ao_copy;
+-- "unknown" types can be dumped and restored: these attributes are
+-- NULL-terminated in memory (attlen == -2), so the COPY code needs to handle
+-- them explicitly.
+CREATE TEMP TABLE type_unknown ( a unknown );
+WARNING:  column "a" has type "unknown"
+DETAIL:  Proceeding with relation creation anyway.
+COPY type_unknown FROM stdin;
+COPY type_unknown TO stdout;
+unknown
 --
 -- Test row counts
 --

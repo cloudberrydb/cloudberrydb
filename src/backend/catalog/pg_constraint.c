@@ -3,7 +3,7 @@
  * pg_constraint.c
  *	  routines to support manipulation of the pg_constraint relation
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,6 +16,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/htup_details.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/objectaccess.h"
@@ -70,7 +71,8 @@ CreateConstraintEntry(const char *constraintName,
 					  const char *conSrc,
 					  bool conIsLocal,
 					  int conInhCount,
-					  bool conNoInherit)
+					  bool conNoInherit,
+					  bool is_internal)
 {
 	Relation	conDesc;
 	Oid			conOid;
@@ -369,8 +371,8 @@ CreateConstraintEntry(const char *constraintName,
 	}
 
 	/* Post creation hook for new constraint */
-	InvokeObjectAccessHook(OAT_POST_CREATE,
-						   ConstraintRelationId, conOid, 0, NULL);
+	InvokeObjectPostCreateHookArg(ConstraintRelationId, conOid, 0,
+								  is_internal);
 
 	return conOid;
 }
@@ -691,6 +693,8 @@ RenameConstraintById(Oid conId, const char *newname)
 	/* update the system catalog indexes */
 	CatalogUpdateIndexes(conDesc, tuple);
 
+	InvokeObjectPostAlterHook(ConstraintRelationId, conId, 0);
+
 	heap_freetuple(tuple);
 	heap_close(conDesc, RowExclusiveLock);
 }
@@ -704,7 +708,7 @@ RenameConstraintById(Oid conId, const char *newname)
  */
 void
 AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
-						  Oid newNspId, bool isType, ObjectAddresses *objsMoved)
+					   Oid newNspId, bool isType, ObjectAddresses *objsMoved)
 {
 	Relation	conRel;
 	ScanKeyData key[1];
@@ -737,7 +741,7 @@ AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 	while (HeapTupleIsValid((tup = systable_getnext(scan))))
 	{
 		Form_pg_constraint conform = (Form_pg_constraint) GETSTRUCT(tup);
-		ObjectAddress	thisobj;
+		ObjectAddress thisobj;
 
 		thisobj.classId = ConstraintRelationId;
 		thisobj.objectId = HeapTupleGetOid(tup);
@@ -762,6 +766,8 @@ AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 			 * changeDependencyFor().
 			 */
 		}
+
+		InvokeObjectPostAlterHook(ConstraintRelationId, thisobj.objectId, 0);
 
 		add_exact_object_address(&thisobj, objsMoved);
 	}

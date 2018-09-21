@@ -3,7 +3,7 @@
  * postinit.c
  *	  postgres initialization utilities
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,6 +21,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
@@ -49,12 +50,13 @@
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "storage/lmgr.h"
-#include "storage/proc.h"
 #include "storage/procarray.h"
 #include "storage/procsignal.h"
+#include "storage/proc.h"
 #include "storage/sinvaladt.h"
 #include "storage/smgr.h"
 #include "tcop/tcopprot.h"
+#include "tcop/idle_resource_cleaner.h"
 #include "utils/acl.h"
 #include "utils/backend_cancel.h"
 #include "utils/fmgroids.h"
@@ -67,6 +69,7 @@
 #include "utils/sharedsnapshot.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
+#include "utils/timeout.h"
 #include "utils/tqual.h"
 
 #include "utils/session_state.h"
@@ -78,6 +81,8 @@ static void PerformAuthentication(Port *port);
 static void CheckMyDatabase(const char *name, bool am_superuser);
 static void InitCommunication(void);
 static void ShutdownPostgres(int code, Datum arg);
+static void StatementTimeoutHandler(void);
+static void LockTimeoutHandler(void);
 static bool ThereIsAtLeastOneRole(void);
 static void process_startup_options(Port *port, bool am_superuser);
 static void process_settings(Oid databaseid, Oid roleid);
@@ -228,9 +233,7 @@ PerformAuthentication(Port *port)
 
 	/*
 	 * In EXEC_BACKEND case, we didn't inherit the contents of pg_hba.conf
-	 * etcetera from the postmaster, and have to load them ourselves.  Note we
-	 * are loading them into the startup transaction's memory context, not
-	 * PostmasterContext, but that shouldn't matter.
+	 * etcetera from the postmaster, and have to load them ourselves.
 	 *
 	 * FIXME: [fork/exec] Ugh.	Is there a way around this overhead?
 	 */
@@ -244,7 +247,16 @@ PerformAuthentication(Port *port)
 		ereport(FATAL,
 				(errmsg("could not load pg_hba.conf")));
 	}
-	load_ident();
+
+	if (!load_ident())
+	{
+		/*
+		 * It is ok to continue if we fail to load the IDENT file, although it
+		 * means that you cannot log in using any of the authentication
+		 * methods that need a user name mapping. load_ident() already logged
+		 * the details of error to the log.
+		 */
+	}
 #endif
 
 	/*
@@ -252,8 +264,7 @@ PerformAuthentication(Port *port)
 	 * during authentication.  Since we're inside a transaction and might do
 	 * database access, we have to use the statement_timeout infrastructure.
 	 */
-	if (!enable_sig_alarm(AuthenticationTimeout * 1000, true))
-		elog(FATAL, "could not set timer for authorization timeout");
+	enable_timeout_after(STATEMENT_TIMEOUT, AuthenticationTimeout * 1000);
 
 	/*
 	 * Now perform authentication exchange.
@@ -263,8 +274,7 @@ PerformAuthentication(Port *port)
 	/*
 	 * Done with authentication.  Disable the timeout, and log if needed.
 	 */
-	if (!disable_sig_alarm(true))
-		elog(FATAL, "could not disable timer for authorization timeout");
+	disable_timeout(STATEMENT_TIMEOUT, false);
 
 	if (Log_connections)
 	{
@@ -484,6 +494,31 @@ pg_split_opts(char **argv, int *argcp, char *optstr)
 	resetStringInfo(&s);
 }
 
+/*
+ * Initialize MaxBackends value from config options.
+ *
+ * This must be called after modules have had the chance to register background
+ * workers in shared_preload_libraries, and before shared memory size is
+ * determined.
+ *
+ * Note that in EXEC_BACKEND environment, the value is passed down from
+ * postmaster to subprocesses via BackendParameters in SubPostmasterMain; only
+ * postmaster itself and processes not under postmaster control should call
+ * this.
+ */
+void
+InitializeMaxBackends(void)
+{
+	Assert(MaxBackends == 0);
+
+	/* the extra unit accounts for the autovacuum launcher */
+	MaxBackends = MaxConnections + autovacuum_max_workers + 1 +
+		GetNumShmemAttachedBgworkers();
+
+	/* internal error because the values were all checked previously */
+	if (MaxBackends > MAX_BACKENDS)
+		elog(ERROR, "too many backends configured");
+}
 
 /*
  * Early initialization of a backend (either standalone or under postmaster).
@@ -594,6 +629,18 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	ProcSignalInit(MyBackendId);
 
 	/*
+	 * Also set up timeout handlers needed for backend operation.  We need
+	 * these in every case except bootstrap.
+	 */
+	if (!bootstrap)
+	{
+		RegisterTimeout(DEADLOCK_TIMEOUT, CheckDeadLock);
+		RegisterTimeout(STATEMENT_TIMEOUT, StatementTimeoutHandler);
+		RegisterTimeout(LOCK_TIMEOUT, LockTimeoutHandler);
+		RegisterTimeout(GANG_TIMEOUT, IdleGangTimeoutHandler);
+	}
+
+	/*
 	 * bufmgr needs another initialization call too
 	 */
 	InitBufferPoolBackend();
@@ -678,6 +725,15 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 		/* statement_timestamp must be set for timeouts to work correctly */
 		SetCurrentStatementStartTimestamp();
 		StartTransactionCommand();
+
+		/*
+		 * transaction_isolation will have been set to the default by the
+		 * above.  If the default is "serializable", and we are in hot
+		 * standby, we will fail if we don't change it to something lower.
+		 * Fortunately, "read committed" is plenty good enough.
+		 */
+		XactIsoLevel = XACT_READ_COMMITTED;
+
 		(void) GetTransactionSnapshot();
 	}
 
@@ -703,6 +759,19 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 					 errmsg("no roles are defined in this database system"),
 					 errhint("You should immediately run CREATE USER \"%s\" SUPERUSER;.",
 							 username)));
+	}
+	else if (IsBackgroundWorker)
+	{
+		if (username == NULL)
+		{
+			InitializeSessionUserIdStandalone();
+			am_superuser = true;
+		}
+		else
+		{
+			InitializeSessionUserId(username);
+			am_superuser = superuser();
+		}
 	}
 	else if (am_mirror)
 	{
@@ -792,10 +861,10 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 		 *
 		 * In Greenplum, this code path is overloaded for handling FTS messages
 		 * on primary as well as mirror.
-		 * is_authenticated_user_replication_role() performs a syscache lookup,
+		 * has_rolreplication() performs a syscache lookup,
 		 * which cannot happen on mirror/standby.
 		 */
-		if (am_walsender && !superuser() && !is_authenticated_user_replication_role())
+		if (am_walsender && !superuser() && !has_rolreplication(GetUserId()))
 			ereport(FATAL,
 					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 					 errmsg("must be superuser or replication role to start walsender")));
@@ -1159,6 +1228,7 @@ process_settings(Oid databaseid, Oid roleid)
 	ApplySetting(databaseid, roleid, relsetting, PGC_S_DATABASE_USER);
 	ApplySetting(InvalidOid, roleid, relsetting, PGC_S_USER);
 	ApplySetting(databaseid, InvalidOid, relsetting, PGC_S_DATABASE);
+	ApplySetting(InvalidOid, InvalidOid, relsetting, PGC_S_GLOBAL);
 
 	heap_close(relsetting, AccessShareLock);
 }
@@ -1203,6 +1273,36 @@ ShutdownPostgres(int code, Datum arg)
 	 * them explicitly.
 	 */
 	LockReleaseAll(USER_LOCKMETHOD, true);
+}
+
+
+/*
+ * STATEMENT_TIMEOUT handler: trigger a query-cancel interrupt.
+ */
+static void
+StatementTimeoutHandler(void)
+{
+#ifdef HAVE_SETSID
+	/* try to signal whole process group */
+	kill(-MyProcPid, SIGINT);
+#endif
+	kill(MyProcPid, SIGINT);
+}
+
+/*
+ * LOCK_TIMEOUT handler: trigger a query-cancel interrupt.
+ *
+ * This is identical to StatementTimeoutHandler, but since it's so short,
+ * we might as well keep the two functions separate for clarity.
+ */
+static void
+LockTimeoutHandler(void)
+{
+#ifdef HAVE_SETSID
+	/* try to signal whole process group */
+	kill(-MyProcPid, SIGINT);
+#endif
+	kill(MyProcPid, SIGINT);
 }
 
 

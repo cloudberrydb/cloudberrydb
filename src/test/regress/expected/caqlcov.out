@@ -79,7 +79,6 @@ select pg_get_viewdef('tview');
 (1 row)
 
 create table ttable_seq (a int, b serial);
-NOTICE:  CREATE TABLE will create implicit sequence "ttable_seq_b_seq" for serial column "ttable_seq.b"
 select pg_get_serial_sequence('ttable_seq', 'b');
  pg_get_serial_sequence  
 -------------------------

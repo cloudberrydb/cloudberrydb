@@ -8,7 +8,6 @@
 #include <stdlib.h>
 
 #include "cmockery.h"
-
 #include "../guc_gp.c"
 
 static bool check_result(const char *expected_result);
@@ -198,5 +197,7 @@ main(int argc, char* argv[])
 		unit_test(test__set_gp_replication_config_new_guc_to_null),
 		unit_test(test__validate_gp_replication_conf_option)
 	};
+
+	MemoryContextInit();
 	return run_tests(tests);
 }

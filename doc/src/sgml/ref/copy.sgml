@@ -22,14 +22,14 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-COPY <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ]
+COPY <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column_name</replaceable> [, ...] ) ]
     FROM { '<replaceable class="parameter">filename</replaceable>' | PROGRAM '<replaceable class="parameter">command</replaceable>' | STDIN }
     [ [ WITH ] ( <replaceable class="parameter">option</replaceable> [, ...] ) ]
     [ ON SEGMENT ]
     [ FILL MISSING FIELDS ]
     [ [LOG ERRORS] SEGMENT REJECT LIMIT <replaceable class="parameter">count</replaceable> [ [ROWS] | PERCENT ] ]
 
-COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ] | ( <replaceable class="parameter">query</replaceable> ) }
+COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column_name</replaceable> [, ...] ) ] | ( <replaceable class="parameter">query</replaceable> ) }
     TO { '<replaceable class="parameter">filename</replaceable>' | PROGRAM '<replaceable class="parameter">command</replaceable>' | STDOUT }
     [ [ WITH ] ( <replaceable class="parameter">option</replaceable> [, ...] ) ]
     [ ON SEGMENT ]
@@ -39,14 +39,15 @@ COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable 
 
     FORMAT '<replaceable class="parameter">format_name</replaceable>'
     OIDS [ <replaceable class="parameter">boolean</replaceable> ]
+    FREEZE [ <replaceable class="parameter">boolean</replaceable> ]
     DELIMITER '<replaceable class="parameter">delimiter_character</replaceable>'
     NULL '<replaceable class="parameter">null_string</replaceable>'
     HEADER [ <replaceable class="parameter">boolean</replaceable> ]
     QUOTE '<replaceable class="parameter">quote_character</replaceable>'
     ESCAPE '<replaceable class="parameter">escape_character</replaceable>'
     NEWLINE '<replaceable class="parameter">newline_character</replaceable>'
-    FORCE_QUOTE { ( <replaceable class="parameter">column</replaceable> [, ...] ) | * }
-    FORCE_NOT_NULL ( <replaceable class="parameter">column</replaceable> [, ...] )
+    FORCE_QUOTE { ( <replaceable class="parameter">column_name</replaceable> [, ...] ) | * }
+    FORCE_NOT_NULL ( <replaceable class="parameter">column_name</replaceable> [, ...] ) |
     ENCODING '<replaceable class="parameter">encoding_name</replaceable>'
 </synopsis>
  </refsynopsisdiv>
@@ -101,7 +102,7 @@ COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable 
    </varlistentry>
 
    <varlistentry>
-    <term><replaceable class="parameter">column</replaceable></term>
+    <term><replaceable class="parameter">column_name</replaceable></term>
      <listitem>
      <para>
       An optional list of columns to be copied.  If no column list is
@@ -126,9 +127,29 @@ COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable 
     <term><replaceable class="parameter">filename</replaceable></term>
     <listitem>
      <para>
-      The absolute path name of the input or output file.  Windows users
-      might need to use an <literal>E''</> string and double any backslashes
-      used in the path name.
+      The path name of the input or output file.  An input file name can be
+      an absolute or relative path, but an output file name must be an absolute
+      path.  Windows users might need to use an <literal>E''</> string and
+      double any backslashes used in the path name.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><literal>PROGRAM</literal></term>
+    <listitem>
+     <para>
+      A command to execute. In <command>COPY FROM</command>, the input is
+      read from standard output of the command, and in <command>COPY TO</>,
+      the output is written to the standard input of the command.
+     </para>
+     <para>
+      Note that the command is invoked by the shell, so if you need to pass
+      any arguments to shell command that come from an untrusted source, you
+      must be careful to strip or escape any special characters that might
+      have a special meaning for the shell. For security reasons, it is best
+      to use a fixed command string, or at least avoid passing any user input
+      in it.
      </para>
     </listitem>
    </varlistentry>
@@ -205,6 +226,26 @@ COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable 
       <literal>OIDS</literal> is specified for a table that does not
       have OIDs, or in the case of copying a <replaceable
       class="parameter">query</replaceable>.)
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><literal>FREEZE</literal></term>
+    <listitem>
+     <para>
+      Requests copying the data with rows already frozen, just as they
+      would be after running the <command>VACUUM FREEZE</> command.
+      This is intended as a performance option for initial data loading.
+      Rows will be frozen only if the table being loaded has been created
+      or truncated in the current subtransaction, there are no cursors
+      open and there are no older snapshots held by this transaction.
+     </para>
+     <para>
+      Note that all other sessions will immediately be able to see the data
+      once it has been successfully loaded. This violates the normal rules
+      of MVCC visibility and users specifying should be aware of the
+      potential problems this might cause.
      </para>
     </listitem>
    </varlistentry>
@@ -397,7 +438,7 @@ COPY <replaceable class="parameter">count</replaceable>
    <para>
     Do not confuse <command>COPY</command> with the
     <application>psql</application> instruction
-    <command>\copy</command>. <command>\copy</command> invokes
+    <command><link linkend="APP-PSQL-meta-commands-copy">\copy</link></command>. <command>\copy</command> invokes
     <command>COPY FROM STDIN</command> or <command>COPY TO
     STDOUT</command>, and then fetches/stores the data in a file
     accessible to the <application>psql</application> client. Thus,
@@ -417,7 +458,7 @@ COPY <replaceable class="parameter">count</replaceable>
 
    <para>
     Executing a command with <literal>PROGRAM</literal> might be restricted
-    by operating system's access control mechanisms, such as the SELinux.
+    by the operating system's access control mechanisms, such as SELinux.
    </para>
 
    <para>
@@ -921,7 +962,7 @@ ZW      ZIMBABWE
    version 9.0 and is still supported:
 
 <synopsis>
-COPY <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ]
+COPY <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column_name</replaceable> [, ...] ) ]
     FROM { '<replaceable class="parameter">filename</replaceable>' | STDIN }
     [ [ WITH ]
           [ BINARY ]
@@ -931,9 +972,9 @@ COPY <replaceable class="parameter">table_name</replaceable> [ ( <replaceable cl
           [ CSV [ HEADER ]
                 [ QUOTE [ AS ] '<replaceable class="parameter">quote</replaceable>' ]
                 [ ESCAPE [ AS ] '<replaceable class="parameter">escape</replaceable>' ]
-                [ FORCE NOT NULL <replaceable class="parameter">column</replaceable> [, ...] ] ] ]
+                [ FORCE NOT NULL <replaceable class="parameter">column_name</replaceable> [, ...] ] ] ]
 
-COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ] | ( <replaceable class="parameter">query</replaceable> ) }
+COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column_name</replaceable> [, ...] ) ] | ( <replaceable class="parameter">query</replaceable> ) }
     TO { '<replaceable class="parameter">filename</replaceable>' | STDOUT }
     [ [ WITH ]
           [ BINARY ]
@@ -943,7 +984,7 @@ COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable 
           [ CSV [ HEADER ]
                 [ QUOTE [ AS ] '<replaceable class="parameter">quote</replaceable>' ]
                 [ ESCAPE [ AS ] '<replaceable class="parameter">escape</replaceable>' ]
-                [ FORCE QUOTE { <replaceable class="parameter">column</replaceable> [, ...] | * } ] ] ]
+                [ FORCE QUOTE { <replaceable class="parameter">column_name</replaceable> [, ...] | * } ] ] ]
 </synopsis>
 
    Note that in this syntax, <literal>BINARY</> and <literal>CSV</> are

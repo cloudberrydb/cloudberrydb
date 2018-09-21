@@ -536,14 +536,6 @@ associated with the N'th distinct buffer ID seen in the "rdata" array, and
 per the above discussion, fully-rewritable buffers shouldn't be mentioned in
 "rdata".)
 
-Note that we must only use PageSetLSN/PageGetLSN() when we know the action
-is serialised. Only Startup process may modify data blocks during recovery,
-so Startup process may execute PageGetLSN() without fear of serialisation
-problems. All other processes must only call PageSet/GetLSN when holding
-either an exclusive buffer lock or a shared lock plus buffer header lock,
-or be writing the data block directly rather than through shared buffers
-while holding AccessExclusiveLock on the relation.
-
 When replaying a WAL record that describes changes on multiple pages, you
 must be careful to lock the pages properly to prevent concurrent Hot Standby
 queries from seeing an inconsistent state.  If this requires that two
@@ -572,6 +564,14 @@ something like
 	/* and now we can release the lock on the first page */
 	if (BufferIsValid(buffer0))
 		UnlockReleaseBuffer(buffer0);
+
+Note that we must only use PageSetLSN/PageGetLSN() when we know the action
+is serialised. Only Startup process may modify data blocks during recovery,
+so Startup process may execute PageGetLSN() without fear of serialisation
+problems. All other processes must only call PageSet/GetLSN when holding
+either an exclusive buffer lock or a shared lock plus buffer header lock,
+or be writing the data block directly rather than through shared buffers
+while holding AccessExclusiveLock on the relation.
 
 Due to all these constraints, complex changes (such as a multilevel index
 insertion) normally need to be described by a series of atomic-action WAL
@@ -815,10 +815,10 @@ parent transaction to complete.
 
 Not all transactional behaviour is emulated, for example we do not insert
 a transaction entry into the lock table, nor do we maintain the transaction
-stack in memory. Clog entries are made normally. Multitrans is not maintained
+stack in memory. Clog entries are made normally. Multixact is not maintained
 because its purpose is to record tuple level locks that an application has
-requested to prevent write locks. Since write locks cannot be obtained at all,
-there is never any conflict and so there is no reason to update multitrans.
+requested to prevent other tuple locks. Since tuple locks cannot be obtained at
+all, there is never any conflict and so there is no reason to update multixact.
 Subtrans is maintained during recovery but the details of the transaction
 tree are ignored and all subtransactions reference the top-level TransactionId
 directly. Since commit is atomic this provides correct lock wait behaviour

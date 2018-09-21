@@ -4,12 +4,13 @@
  *
  * Routines to handle DML permission checks
  *
- * Copyright (c) 2010-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2013, PostgreSQL Global Development Group
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "access/tupdesc.h"
 #include "catalog/catalog.h"
@@ -148,7 +149,7 @@ check_relation_privileges(Oid relOid,
 						  Bitmapset *selected,
 						  Bitmapset *modified,
 						  uint32 required,
-						  bool abort)
+						  bool abort_on_violation)
 {
 	ObjectAddress object;
 	char	   *audit_name;
@@ -186,7 +187,7 @@ check_relation_privileges(Oid relOid,
 	object.classId = RelationRelationId;
 	object.objectId = relOid;
 	object.objectSubId = 0;
-	audit_name = getObjectDescription(&object);
+	audit_name = getObjectIdentity(&object);
 	switch (relkind)
 	{
 		case RELKIND_RELATION:
@@ -194,7 +195,7 @@ check_relation_privileges(Oid relOid,
 											 SEPG_CLASS_DB_TABLE,
 											 required,
 											 audit_name,
-											 abort);
+											 abort_on_violation);
 			break;
 
 		case RELKIND_SEQUENCE:
@@ -205,7 +206,7 @@ check_relation_privileges(Oid relOid,
 												 SEPG_CLASS_DB_SEQUENCE,
 												 SEPG_DB_SEQUENCE__GET_VALUE,
 												 audit_name,
-												 abort);
+												 abort_on_violation);
 			break;
 
 		case RELKIND_VIEW:
@@ -213,7 +214,7 @@ check_relation_privileges(Oid relOid,
 											 SEPG_CLASS_DB_VIEW,
 											 SEPG_DB_VIEW__EXPAND,
 											 audit_name,
-											 abort);
+											 abort_on_violation);
 			break;
 
 		default:
@@ -264,7 +265,7 @@ check_relation_privileges(Oid relOid,
 										 SEPG_CLASS_DB_COLUMN,
 										 column_perms,
 										 audit_name,
-										 abort);
+										 abort_on_violation);
 		pfree(audit_name);
 
 		if (!result)
@@ -279,7 +280,7 @@ check_relation_privileges(Oid relOid,
  * Entrypoint of the DML permission checks
  */
 bool
-sepgsql_dml_privileges(List *rangeTabls, bool abort)
+sepgsql_dml_privileges(List *rangeTabls, bool abort_on_violation)
 {
 	ListCell   *lr;
 
@@ -351,7 +352,7 @@ sepgsql_dml_privileges(List *rangeTabls, bool abort)
 			if (!check_relation_privileges(tableOid,
 										   selectedCols,
 										   modifiedCols,
-										   required, abort))
+										   required, abort_on_violation))
 				return false;
 		}
 		list_free(tableIds);

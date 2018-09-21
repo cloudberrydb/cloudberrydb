@@ -26,9 +26,9 @@
 CATALOG(pg_appendonly,6105) BKI_WITHOUT_OIDS
 {
 	Oid				relid;				/* relation id */
-	int4			blocksize;			/* the max block size of this relation */
-	int4			safefswritesize;	/* min write size in bytes to prevent torn-write */
-	int2			compresslevel;		/* the (per seg) total number of varblocks */
+	int32			blocksize;			/* the max block size of this relation */
+	int32			safefswritesize;	/* min write size in bytes to prevent torn-write */
+	int16			compresslevel;		/* the (per seg) total number of varblocks */
 	bool			checksum;			/* true if checksum is stored with data and checked */
 	NameData		compresstype;		/* the compressor used (zlib, or quicklz) */
     bool            columnstore;        /* true if orientation is column */ 

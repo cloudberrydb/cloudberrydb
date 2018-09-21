@@ -7,6 +7,7 @@
  *	Portions Copyright (c) 2016-Present, Pivotal Software Inc
  *	contrib/pg_upgrade/file_gp.c
  */
+#include "postgres_fe.h"
 
 #include "pg_upgrade.h"
 

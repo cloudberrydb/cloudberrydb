@@ -1348,7 +1348,7 @@ PartitionNode *
 gpdb::GetParts
 	(
 	Oid relid,
-	int2 level,
+	int16 level,
 	Oid parent,
 	bool inctemplate,
 	bool includesubparts
@@ -1881,72 +1881,45 @@ gpdb::MakeVar
 }
 
 void *
-gpdb::MemCtxtAllocImpl
+gpdb::MemCtxtAllocZeroAligned
 	(
 	MemoryContext context,
-	Size size,
-	const char* file,
-	const char * func,
-	int line
+	Size size
 	)
 {
 	GP_WRAP_START;
 	{
-		return MemoryContextAllocImpl(context, size, file, func, line);
+		return MemoryContextAllocZeroAligned(context, size);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 void *
-gpdb::MemCtxtAllocZeroAlignedImpl
+gpdb::MemCtxtAllocZero
 	(
 	MemoryContext context,
-	Size size,
-	const char* file,
-	const char * func,
-	int line
+	Size size
 	)
 {
 	GP_WRAP_START;
 	{
-		return MemoryContextAllocZeroAlignedImpl(context, size, file, func, line);
+		return MemoryContextAllocZero(context, size);
 	}
 	GP_WRAP_END;
 	return NULL;
 }
 
 void *
-gpdb::MemCtxtAllocZeroImpl
-	(
-	MemoryContext context,
-	Size size,
-	const char* file,
-	const char * func,
-	int line
-	)
-{
-	GP_WRAP_START;
-	{
-		return MemoryContextAllocZeroImpl(context, size, file, func, line);
-	}
-	GP_WRAP_END;
-	return NULL;
-}
-
-void *
-gpdb::MemCtxtReallocImpl
+gpdb::MemCtxtRealloc
 	(
 	void *pointer,
-	Size size,
-	const char* file,
-	const char * func,
-	int line
+	Size size
 	)
 {
 	GP_WRAP_START;
 	{
-		return MemoryContextReallocImpl(pointer, size, file, func, line);
+		return repalloc(pointer, size);
 	}
 	GP_WRAP_END;
 	return NULL;
@@ -2943,12 +2916,13 @@ gpdb::EvaluateExpr
 bool
 gpdb::InterpretOidsOption
 	(
-	List *options
+	List *options,
+	bool allowOids
 	)
 {
 	GP_WRAP_START;
 	{
-		return interpretOidsOption(options);
+		return interpretOidsOption(options, allowOids);
 	}
 	GP_WRAP_END;
 	return false;

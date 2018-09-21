@@ -542,14 +542,12 @@ close_file(FILE *stream, char const *dir, char const *name)
 static void
 usage(FILE *stream, int status)
 {
-	fprintf(stream,
-			_("%s: usage is %s [ --version ] [ --help ] [ -v ] [ -P ] \\\n"
-			  "\t[ -l localtime ] [ -p posixrules ] [ -d directory ] \\\n"
-			  "\t[ -t localtime-link ] [ -L leapseconds ] [ filename ... ]\n\n"
-			  "Report bugs to %s.\n"),
-			progname, progname, PACKAGE_BUGREPORT);
-	if (status == EXIT_SUCCESS)
-		close_file(stream, NULL, NULL);
+	(void) fprintf(stream, _("%s: usage is %s \
+[ --version ] [ --help ] [ -v ] [ -P ] [ -l localtime ] [ -p posixrules ] \\\n\
+\t[ -d directory ] [ -L leapseconds ] [ -y yearistype ] [ filename ... ]\n\
+\n\
+Report bugs to %s.\n"),
+				   progname, progname, PACKAGE_BUGREPORT);
 	exit(status);
 }
 

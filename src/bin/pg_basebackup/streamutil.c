@@ -4,20 +4,14 @@
  *
  * Author: Magnus Hagander <magnus@hagander.net>
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/streamutil.c
  *-------------------------------------------------------------------------
  */
 
-/*
- * We have to use postgres.h not postgres_fe.h here, because there's so much
- * backend-only stuff in the XLOG include files we need.  But we need a
- * frontend-ish environment otherwise.	Hence this ugly hack.
- */
-#define FRONTEND 1
-#include "postgres.h"
+#include "postgres_fe.h"
 #include "streamutil.h"
 
 #include <stdio.h>
@@ -31,40 +25,6 @@ char	   *dbport = NULL;
 int			dbgetpassword = 0;	/* 0=auto, -1=never, 1=always */
 static char *dbpassword = NULL;
 PGconn	   *conn = NULL;
-
-/*
- * strdup() and malloc() replacements that prints an error and exits
- * if something goes wrong. Can never return NULL.
- */
-char *
-xstrdup(const char *s)
-{
-	char	   *result;
-
-	result = strdup(s);
-	if (!result)
-	{
-		fprintf(stderr, _("%s: out of memory\n"), progname);
-		exit(1);
-	}
-	return result;
-}
-
-void *
-xmalloc0(int size)
-{
-	void	   *result;
-
-	result = malloc(size);
-	if (!result)
-	{
-		fprintf(stderr, _("%s: out of memory\n"), progname);
-		exit(1);
-	}
-	MemSet(result, 0, size);
-	return result;
-}
-
 
 /*
  * Connect to the server. Returns a valid PGconn pointer if connected,
@@ -106,8 +66,8 @@ GetConnection(void)
 				argcount++;
 		}
 
-		keywords = xmalloc0((argcount + 1) * sizeof(*keywords));
-		values = xmalloc0((argcount + 1) * sizeof(*values));
+		keywords = pg_malloc0((argcount + 1) * sizeof(*keywords));
+		values = pg_malloc0((argcount + 1) * sizeof(*values));
 
 		for (conn_opt = conn_opts; conn_opt->keyword != NULL; conn_opt++)
 		{
@@ -121,8 +81,8 @@ GetConnection(void)
 	}
 	else
 	{
-		keywords = xmalloc0((argcount + 1) * sizeof(*keywords));
-		values = xmalloc0((argcount + 1) * sizeof(*values));
+		keywords = pg_malloc0((argcount + 1) * sizeof(*keywords));
+		values = pg_malloc0((argcount + 1) * sizeof(*values));
 	}
 
 	keywords[i] = "dbname";
@@ -224,7 +184,8 @@ GetConnection(void)
 		tmpparam = PQparameterStatus(tmpconn, "integer_datetimes");
 		if (!tmpparam)
 		{
-			fprintf(stderr, _("%s: could not determine server setting for integer_datetimes\n"),
+			fprintf(stderr,
+					_("%s: could not determine server setting for integer_datetimes\n"),
 					progname);
 			PQfinish(tmpconn);
 			exit(1);
@@ -236,7 +197,8 @@ GetConnection(void)
 		if (strcmp(tmpparam, "off") != 0)
 #endif
 		{
-			fprintf(stderr, _("%s: integer_datetimes compile flag does not match server\n"),
+			fprintf(stderr,
+			 _("%s: integer_datetimes compile flag does not match server\n"),
 					progname);
 			PQfinish(tmpconn);
 			exit(1);

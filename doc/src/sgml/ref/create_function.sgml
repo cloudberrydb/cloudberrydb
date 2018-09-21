@@ -135,8 +135,9 @@ CREATE [ OR REPLACE ] FUNCTION
 
      <listitem>
       <para>
-       The name of an argument. Some languages (currently only PL/pgSQL) let
-       you use the name in the function body.  For other languages the
+       The name of an argument. Some languages (currently only SQL and
+       PL/pgSQL)
+       let you use the name in the function body.  For other languages the
        name of an input argument is just extra documentation, so far as
        the function itself is concerned; but you can use input argument names
        when calling a function to improve readability (see <xref
@@ -674,6 +675,11 @@ SELECT * FROM dup(42);
  <refsect1 id="sql-createfunction-security">
   <title>Writing <literal>SECURITY DEFINER</literal> Functions Safely</title>
 
+  <indexterm>
+   <primary><varname>search_path</varname> configuration parameter</>
+   <secondary>use in securing functions</>
+  </indexterm>
+
    <para>
     Because a <literal>SECURITY DEFINER</literal> function is executed
     with the privileges of the user that created it, care is needed to
@@ -685,7 +691,7 @@ SELECT * FROM dup(42);
     temporary-table schema, which is searched first by default, and
     is normally writable by anyone.  A secure arrangement can be had
     by forcing the temporary schema to be searched last.  To do this,
-    write <literal>pg_temp</> as the last entry in <varname>search_path</>.
+    write <literal>pg_temp</><indexterm><primary>pg_temp</><secondary>securing functions</></> as the last entry in <varname>search_path</>.
     This function illustrates safe usage:
    </para>
 
@@ -765,11 +771,9 @@ COMMIT;
   </para>
 
   <para>
-   The SQL standard does not specify parameter defaults.  The syntax
-   with the <literal>DEFAULT</literal> key word is from Oracle, and it
-   is somewhat in the spirit of the standard: SQL/PSM uses it for
-   variable default values.  The syntax with <literal>=</literal> is
-   used in T-SQL and Firebird.
+   For parameter defaults, the SQL standard specifies only the syntax with
+   the <literal>DEFAULT</literal> key word.  The syntax
+   with <literal>=</literal> is used in T-SQL and Firebird.
   </para>
  </refsect1>
 

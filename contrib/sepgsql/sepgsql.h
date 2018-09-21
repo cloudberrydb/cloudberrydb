@@ -4,7 +4,7 @@
  *
  * Definitions corresponding to SE-PostgreSQL
  *
- * Copyright (c) 2010-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2013, PostgreSQL Global Development Group
  *
  * -------------------------------------------------------------------------
  */
@@ -145,7 +145,6 @@
 #define SEPG_DB_TABLE__INSERT				(1<<8)
 #define SEPG_DB_TABLE__DELETE				(1<<9)
 #define SEPG_DB_TABLE__LOCK					(1<<10)
-#define SEPG_DB_TABLE__INDEXON				(1<<11)
 
 #define SEPG_DB_SEQUENCE__CREATE			(SEPG_DB_DATABASE__CREATE)
 #define SEPG_DB_SEQUENCE__DROP				(SEPG_DB_DATABASE__DROP)
@@ -240,14 +239,15 @@ extern void sepgsql_compute_avd(const char *scontext,
 
 extern char *sepgsql_compute_create(const char *scontext,
 					   const char *tcontext,
-					   uint16 tclass);
+					   uint16 tclass,
+					   const char *objname);
 
 extern bool sepgsql_check_perms(const char *scontext,
 					const char *tcontext,
 					uint16 tclass,
 					uint32 required,
 					const char *audit_name,
-					bool abort);
+					bool abort_on_violation);
 
 /*
  * uavc.c
@@ -257,12 +257,12 @@ extern bool sepgsql_avc_check_perms_label(const char *tcontext,
 							  uint16 tclass,
 							  uint32 required,
 							  const char *audit_name,
-							  bool abort);
+							  bool abort_on_violation);
 extern bool sepgsql_avc_check_perms(const ObjectAddress *tobject,
 						uint16 tclass,
 						uint32 required,
 						const char *audit_name,
-						bool abort);
+						bool abort_on_violation);
 extern char *sepgsql_avc_trusted_proc(Oid functionId);
 extern void sepgsql_avc_init(void);
 
@@ -285,7 +285,7 @@ extern Datum sepgsql_restorecon(PG_FUNCTION_ARGS);
 /*
  * dml.c
  */
-extern bool sepgsql_dml_privileges(List *rangeTabls, bool abort);
+extern bool sepgsql_dml_privileges(List *rangeTabls, bool abort_on_violation);
 
 /*
  * database.c
@@ -294,6 +294,7 @@ extern void sepgsql_database_post_create(Oid databaseId,
 							 const char *dtemplate);
 extern void sepgsql_database_drop(Oid databaseId);
 extern void sepgsql_database_relabel(Oid databaseId, const char *seclabel);
+extern void sepgsql_database_setattr(Oid databaseId);
 
 /*
  * schema.c
@@ -301,6 +302,11 @@ extern void sepgsql_database_relabel(Oid databaseId, const char *seclabel);
 extern void sepgsql_schema_post_create(Oid namespaceId);
 extern void sepgsql_schema_drop(Oid namespaceId);
 extern void sepgsql_schema_relabel(Oid namespaceId, const char *seclabel);
+extern void sepgsql_schema_setattr(Oid namespaceId);
+extern bool sepgsql_schema_search(Oid namespaceId, bool abort_on_violation);
+extern void sepgsql_schema_add_name(Oid namespaceId);
+extern void sepgsql_schema_remove_name(Oid namespaceId);
+extern void sepgsql_schema_rename(Oid namespaceId);
 
 /*
  * relation.c
@@ -309,9 +315,11 @@ extern void sepgsql_attribute_post_create(Oid relOid, AttrNumber attnum);
 extern void sepgsql_attribute_drop(Oid relOid, AttrNumber attnum);
 extern void sepgsql_attribute_relabel(Oid relOid, AttrNumber attnum,
 						  const char *seclabel);
+extern void sepgsql_attribute_setattr(Oid relOid, AttrNumber attnum);
 extern void sepgsql_relation_post_create(Oid relOid);
 extern void sepgsql_relation_drop(Oid relOid);
 extern void sepgsql_relation_relabel(Oid relOid, const char *seclabel);
+extern void sepgsql_relation_setattr(Oid relOid);
 
 /*
  * proc.c
@@ -319,5 +327,7 @@ extern void sepgsql_relation_relabel(Oid relOid, const char *seclabel);
 extern void sepgsql_proc_post_create(Oid functionId);
 extern void sepgsql_proc_drop(Oid functionId);
 extern void sepgsql_proc_relabel(Oid functionId, const char *seclabel);
+extern void sepgsql_proc_setattr(Oid functionId);
+extern void sepgsql_proc_execute(Oid functionId);
 
 #endif   /* SEPGSQL_H */

@@ -4,7 +4,7 @@
  *	  POSTGRES free space map for quickly finding free space in relations
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -23,7 +23,7 @@
  */
 #include "postgres.h"
 
-#include "access/htup.h"
+#include "access/htup_details.h"
 #include "access/xlogutils.h"
 #include "miscadmin.h"
 #include "storage/freespace.h"
@@ -216,9 +216,7 @@ XLogRecordPageWithFreeSpace(RelFileNode rnode, BlockNumber heapBlk,
 		PageInit(page, BLCKSZ, 0);
 
 	if (fsm_set_avail(page, slot, new_cat))
-		/* GPDB_84_MERGE_FIXME: upstream calls MarkBufferDirtyHint instead.
-		 * Backport commit 20723ce80 to fix. */
-		MarkBufferDirty(buf);
+		MarkBufferDirtyHint(buf);
 	UnlockReleaseBuffer(buf);
 }
 
@@ -288,9 +286,7 @@ FreeSpaceMapTruncateRel(Relation rel, BlockNumber nblocks)
 			return;				/* nothing to do; the FSM was already smaller */
 		LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
 		fsm_truncate_avail(BufferGetPage(buf), first_removed_slot);
-		/* GPDB_84_MERGE_FIXME: upstream calls MarkBufferDirtyHint instead.
-		 * Backport commit 20723ce80 to fix. */
-		MarkBufferDirty(buf);
+		MarkBufferDirtyHint(buf);
 		UnlockReleaseBuffer(buf);
 
 		new_nfsmblocks = fsm_logical_to_physical(first_removed_address) + 1;
@@ -642,9 +638,7 @@ fsm_set_and_search(Relation rel, FSMAddress addr, uint16 slot,
 	page = BufferGetPage(buf);
 
 	if (fsm_set_avail(page, slot, newValue))
-		/* GPDB_84_MERGE_FIXME: upstream calls MarkBufferDirtyHint instead.
-		 * Backport commit 20723ce80 to fix. */
-		MarkBufferDirty(buf);
+		MarkBufferDirtyHint(buf);
 
 	if (minValue != 0)
 	{
@@ -795,9 +789,7 @@ fsm_vacuum_page(Relation rel, FSMAddress addr, bool *eof_p)
 			{
 				LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
 				fsm_set_avail(BufferGetPage(buf), slot, child_avail);
-				/* GPDB_84_MERGE_FIXME: upstream calls MarkBufferDirtyHint instead.
-				 * Backport commit 20723ce80 to fix. */
-				MarkBufferDirty(buf);
+				MarkBufferDirtyHint(buf);
 				LockBuffer(buf, BUFFER_LOCK_UNLOCK);
 			}
 		}

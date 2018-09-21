@@ -326,7 +326,7 @@ DynamicScan_InitSingleRelation(ScanState *scanState, PartitionInitMethod *partit
 	if (NULL == scanState->ss_currentRelation)
 	{
 		/* Open the relation and initalize the expressions (targetlist, qual etc.) */
-		InitScanStateRelationDetails(scanState, scanState->ps.plan, scanState->ps.state);
+		InitScanStateRelationDetails(scanState, scanState->ps.plan, scanState->ps.state, 0 /* eflags */);
 		partitionInitMethod(scanState, NULL /* No dropped column mapping */);
 	}
 	else

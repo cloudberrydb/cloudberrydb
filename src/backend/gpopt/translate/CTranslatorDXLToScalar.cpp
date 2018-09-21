@@ -606,7 +606,7 @@ CTranslatorDXLToScalar::TranslateDXLScalarFuncExprToScalar
 	FuncExpr *func_expr = MakeNode(FuncExpr);
 	func_expr->funcid = CMDIdGPDB::CastMdid(dxlop->FuncMdId())->Oid();
 	func_expr->funcretset = dxlop->ReturnsSet();
-	func_expr->funcformat = COERCE_DONTCARE;
+	func_expr->funcformat = COERCE_EXPLICIT_CALL;
 	func_expr->funcresulttype = CMDIdGPDB::CastMdid(dxlop->ReturnTypeMdId())->Oid();
 	func_expr->args = TranslateScalarChildren(func_expr->args, scalar_func_expr_node, colid_var);
 
@@ -1176,7 +1176,7 @@ CTranslatorDXLToScalar::TranslateRelabelTypeOrFuncExprFromDXL(const CDXLScalarCa
 	relabel_type->arg = child_expr;
 	relabel_type->resulttypmod = -1;
 	relabel_type->location = -1;
-	relabel_type->relabelformat = COERCE_DONTCARE;
+	relabel_type->relabelformat = COERCE_IMPLICIT_CAST;
 	// GPDB_91_MERGE_FIXME: collation
 	relabel_type->resultcollid = gpdb::TypeCollation(relabel_type->resulttype);
 

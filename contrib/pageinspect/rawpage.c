@@ -5,7 +5,7 @@
  *
  * Access-method specific inspection functions are in separate files.
  *
- * Copyright (c) 2007-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2013, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/pageinspect/rawpage.c
@@ -15,6 +15,7 @@
 
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "catalog/catalog.h"
 #include "catalog/namespace.h"
 #include "funcapi.h"
@@ -205,8 +206,9 @@ page_header(PG_FUNCTION_ARGS)
 
 	/* Extract information from the page header */
 
-	lsn = PageGetLSN((Page) page);
-	snprintf(lsnchar, sizeof(lsnchar), "%X/%X", lsn.xlogid, lsn.xrecoff);
+	lsn = PageGetLSN(page);
+	snprintf(lsnchar, sizeof(lsnchar), "%X/%X",
+			 (uint32) (lsn >> 32), (uint32) lsn);
 
 	values[0] = CStringGetTextDatum(lsnchar);
 	values[1] = UInt16GetDatum(page->pd_checksum);

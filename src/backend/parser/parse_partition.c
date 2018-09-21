@@ -2763,7 +2763,7 @@ preprocess_range_spec(partValidationState *vstate)
 						if (rtypeId != newrtypeId)
 						{
 							Type		newetyp = typeidType(newrtypeId);
-							int4		typmod =
+							int32		typmod =
 							((Form_pg_type) GETSTRUCT(newetyp))->typtypmod;
 
 							ReleaseSysCache(newetyp);

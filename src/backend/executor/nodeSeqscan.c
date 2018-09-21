@@ -4,7 +4,7 @@
  * nodeSeqscan.c
  *	  Support routines for sequential scans of relations.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -30,7 +30,7 @@
 #include "executor/nodeSeqscan.h"
 #include "utils/rel.h"
 
-static void InitScanRelation(SeqScanState *node, EState *estate);
+static void InitScanRelation(SeqScanState *node, EState *estate, int eflags);
 static TupleTableSlot *SeqNext(SeqScanState *node);
 
 /* ----------------------------------------------------------------
@@ -119,12 +119,11 @@ ExecSeqScan(SeqScanState *node)
 /* ----------------------------------------------------------------
  *		InitScanRelation
  *
- *		This does the initialization for scan relations and
- *		subplans of scans.
+ *		Set up to access the scan relation.
  * ----------------------------------------------------------------
  */
 static void
-InitScanRelation(SeqScanState *node, EState *estate)
+InitScanRelation(SeqScanState *node, EState *estate, int eflags)
 {
 	Relation	currentRelation;
 	HeapScanDesc currentScanDesc;
@@ -134,8 +133,10 @@ InitScanRelation(SeqScanState *node, EState *estate)
 	 * open that relation and acquire appropriate lock on it.
 	 */
 	currentRelation = ExecOpenScanRelation(estate,
-									 ((SeqScan *) node->ps.plan)->scanrelid);
+									  ((SeqScan *) node->ps.plan)->scanrelid,
+										   eflags);
 
+	/* initialize a heapscan */
 	currentScanDesc = heap_beginscan(currentRelation,
 									 estate->es_snapshot,
 									 0,
@@ -144,6 +145,7 @@ InitScanRelation(SeqScanState *node, EState *estate)
 	node->ss_currentRelation = currentRelation;
 	node->ss_currentScanDesc = currentScanDesc;
 
+	/* and report the scan tuple slot's rowtype */
 	ExecAssignScanType(node, RelationGetDescr(currentRelation));
 }
 
@@ -197,7 +199,7 @@ ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
 	/*
 	 * initialize scan relation
 	 */
-	InitScanRelation(scanstate, estate);
+	InitScanRelation(scanstate, estate, eflags);
 
 	scanstate->ps.ps_TupFromTlist = false;
 

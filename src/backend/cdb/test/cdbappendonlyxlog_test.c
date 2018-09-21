@@ -8,6 +8,7 @@
 
 #include "../cdbappendonlyxlog.c"
 
+#include "catalog/pg_magic_oid.h"
 #include "catalog/pg_tablespace.h"
 
 static int

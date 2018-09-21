@@ -14,93 +14,66 @@
 #include "postgres.h"
 
 #include "cdb/cdbgang.h"
-#include "storage/proc.h"
+#include "commands/async.h"
+#include "storage/sinval.h"
 #include "tcop/idle_resource_cleaner.h"
+#include "utils/timeout.h"
 
 int			IdleSessionGangTimeout = 18000;
-int			IdleSessionTimeoutCached = IDLE_RESOURCES_NEVER_TIME_OUT;
 
-int			(*get_idle_session_timeout_hook) (void) = NULL;
-void		(*idle_session_timeout_action_hook) (void) = NULL;
+static volatile sig_atomic_t clientWaitTimeoutInterruptEnabled = 0;
+static volatile sig_atomic_t clientWaitTimeoutInterruptOccurred = 0;
 
-static enum
-{
-	GANG_TIMEOUT,
-	IDLE_SESSION_TIMEOUT
-}			NextTimeoutAction;
-
-static int
-get_idle_gang_timeout(void)
-{
-	if (IdleSessionGangTimeout <= 0 || !GangsExist())
-		return IDLE_RESOURCES_NEVER_TIME_OUT;
-
-	return IdleSessionGangTimeout;
-}
-
-static int
-get_idle_session_timeout(void)
-{
-	int idleSessionTimeout = IDLE_RESOURCES_NEVER_TIME_OUT;
-
-	if (get_idle_session_timeout_hook)
-	{
-		idleSessionTimeout = (*get_idle_session_timeout_hook)();
-		if (idleSessionTimeout <= 0) {
-			return IDLE_RESOURCES_NEVER_TIME_OUT;
-		}
-	}
-
-	return idleSessionTimeout;
-}
-
-static void
-idle_gang_timeout_action(void)
-{
-	DisconnectAndDestroyUnusedGangs();
-}
+static volatile sig_atomic_t idle_gang_timeout_occurred;
 
 /*
  * We want to check to see if our session goes "idle" (nobody sending us work to
  * do). We decide this is true if after waiting a while, we don't get a message
  * from the client.
- * We can then free resources. Currently, we only free gangs on the segDBs by
- * default, but extensions can implement their own functionality with the
- * idle_session_timeout_action_hook.
- *
- * A bit ugly:  We share the sig alarm timer with the deadlock detection.
- * We know which it is (deadlock detection needs to run or idle
- * session resource release) based on the DoingCommandRead flag.
- *
- * Note we don't need to worry about the statement timeout timer
- * because it can't be running when we are idle.
+ * We can then free resources. Currently, we only free gangs on the segDBs.
  *
  * We want the time value to be long enough so we don't free gangs prematurely.
  * This means giving the end user enough time to type in the next SQL statement
- *
- * GPDB_93_MERGE_FIXME: replace the enable_sig_alarm() calls with the
- * new functionality provided in timeout.c from PG 9.3.
  */
 void
 StartIdleResourceCleanupTimers()
 {
-	/* get_idle_session_timeout_hook() may return different values later */
-	IdleSessionTimeoutCached = get_idle_session_timeout();
-	const int	idleGangTimeout = get_idle_gang_timeout();
+	if (IdleSessionGangTimeout <= 0 || !GangsExist())
+		return;
 
-	if (idleGangTimeout != IDLE_RESOURCES_NEVER_TIME_OUT)
-	{
-		NextTimeoutAction = GANG_TIMEOUT;
-		if (!enable_sig_alarm(idleGangTimeout, false))
-			elog(FATAL, "could not set itimer for idle gang timeout");
-	}
-	else if (IdleSessionTimeoutCached != IDLE_RESOURCES_NEVER_TIME_OUT)
-	{
-		elog(DEBUG2, "Setting IdleSessionTimeout");
-		NextTimeoutAction = IDLE_SESSION_TIMEOUT;
-		if (!enable_sig_alarm(IdleSessionTimeoutCached, false))
-			elog(FATAL, "could not set itimer for idle session timeout");
-	}
+	enable_timeout_after(GANG_TIMEOUT, IdleSessionGangTimeout);
+}
+
+void
+CancelIdleResourceCleanupTimers()
+{
+	disable_timeout(GANG_TIMEOUT, false);
+}
+
+void
+EnableClientWaitTimeoutInterrupt(void)
+{
+	clientWaitTimeoutInterruptEnabled = 1;
+
+	/* If a timeout occurred while the interrupt was disabled, process it now */
+	if (idle_gang_timeout_occurred)
+		IdleGangTimeoutHandler();
+
+	/*
+	 * NOTE: This is simpler than the corresponding notify and catchup
+	 * interrupt code, because we don't expect the idle timeouts to fire again
+	 * during the same client wait.
+	 */
+}
+
+bool
+DisableClientWaitTimeoutInterrupt(void)
+{
+	bool		result = (clientWaitTimeoutInterruptEnabled != 0);
+
+	clientWaitTimeoutInterruptEnabled = 0;
+
+	return result;
 }
 
 /*
@@ -123,48 +96,26 @@ StartIdleResourceCleanupTimers()
  * think of anything.
  */
 void
-DoIdleResourceCleanup(void)
+IdleGangTimeoutHandler(void)
 {
-	/* cancel the itimer so it doesn't recur */
-	disable_sig_alarm(false);
-
-	switch (NextTimeoutAction)
+	if (clientWaitTimeoutInterruptEnabled)
 	{
-		case GANG_TIMEOUT:
-			elog(DEBUG2, "DoIdleResourceCleanup: idle gang timeout reached; killing gangs");
-			idle_gang_timeout_action();
+		bool		notify_enabled;
+		bool		catchup_enabled;
 
-			if (IdleSessionTimeoutCached == IDLE_RESOURCES_NEVER_TIME_OUT)
-				return;
+		/* Must prevent SIGUSR1 and SIGUSR2 interrupt while I am running */
+		notify_enabled = DisableNotifyInterrupt();
+		catchup_enabled = DisableCatchupInterrupt();
 
-			if (IdleSessionGangTimeout < IdleSessionTimeoutCached)
-			{					/* schedule the idle session timeout action */
-				NextTimeoutAction = IDLE_SESSION_TIMEOUT;
-				if (!enable_sig_alarm(IdleSessionTimeoutCached - IdleSessionGangTimeout, false))
-					elog(FATAL, "could not set itimer for idle session timeout after gang timeout");
-			}
-			else
-			{
-				elog(DEBUG2, "DoIdleResourceCleanup: idle session timeout reached as GANG_TIMEOUT");
+		idle_gang_timeout_occurred = 0;
 
-				/*
-				 * the idle session timeout action should have occurred
-				 * earlier, but we just do it now as it is a rare edge case
-				 * and hard to handle properly
-				 */
-				if (idle_session_timeout_action_hook)
-					(*idle_session_timeout_action_hook) ();
-			}
-			break;
+		DisconnectAndDestroyUnusedGangs();
 
-		case IDLE_SESSION_TIMEOUT:
-			elog(DEBUG2, "DoIdleResourceCleanup: idle session timeout reached as IDLE_SESSION_TIMEOUT");
-			if (idle_session_timeout_action_hook)
-				(*idle_session_timeout_action_hook) ();
-			break;
-
-		default:
-			elog(FATAL, "DoIdleResourceCleanup: unrecognized NextTimeoutAction: %d", NextTimeoutAction);
-
+		if (notify_enabled)
+			EnableNotifyInterrupt();
+		if (catchup_enabled)
+			EnableCatchupInterrupt();
 	}
+	else
+		idle_gang_timeout_occurred = 1;
 }

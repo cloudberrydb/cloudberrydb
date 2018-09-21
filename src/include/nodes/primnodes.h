@@ -9,7 +9,7 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/primnodes.h
@@ -84,7 +84,12 @@ typedef struct RangeVar
 } RangeVar;
 
 /*
- * IntoClause - target information for SELECT INTO and CREATE TABLE AS
+ * IntoClause - target information for SELECT INTO, CREATE TABLE AS, and
+ * CREATE MATERIALIZED VIEW
+ *
+ * For CREATE MATERIALIZED VIEW, viewQuery is the parsed-but-not-rewritten
+ * SELECT Query for the view; otherwise it's NULL.  (Although it's actually
+ * Query*, we declare it as Node* to avoid a forward reference.)
  */
 typedef struct IntoClause
 {
@@ -95,6 +100,7 @@ typedef struct IntoClause
 	List	   *options;		/* options from WITH clause */
 	OnCommitAction onCommit;	/* what do we do at COMMIT? */
 	char	   *tableSpaceName; /* table space to use, or NULL */
+	Node	   *viewQuery;		/* materialized view's SELECT query */
 	bool		skipData;		/* true for WITH NO DATA */
 	Node       *distributedBy;  /* GPDB: columns to distribubte the data on. */
 } IntoClause;
@@ -414,14 +420,19 @@ typedef enum CoercionContext
 } CoercionContext;
 
 /*
- * CoercionForm - information showing how to display a function-call node
+ * CoercionForm - how to display a node that could have come from a cast
+ *
+ * NB: equal() ignores CoercionForm fields, therefore this *must* not carry
+ * any semantically significant information.  We need that behavior so that
+ * the planner will consider equivalent implicit and explicit casts to be
+ * equivalent.	In cases where those actually behave differently, the coercion
+ * function's arguments will be different.
  */
 typedef enum CoercionForm
 {
 	COERCE_EXPLICIT_CALL,		/* display as a function call */
 	COERCE_EXPLICIT_CAST,		/* display as an explicit cast */
-	COERCE_IMPLICIT_CAST,		/* implicit cast, so hide it */
-	COERCE_DONTCARE				/* special case for planner */
+	COERCE_IMPLICIT_CAST		/* implicit cast, so hide it */
 } CoercionForm;
 
 /*
@@ -1078,7 +1089,7 @@ typedef struct MinMaxExpr
  * 'args' carries all other arguments.
  *
  * Note: result type/typmod/collation are not stored, but can be deduced
- * from the XmlExprOp.  The type/typmod fields are just used for display
+ * from the XmlExprOp.	The type/typmod fields are just used for display
  * purposes, and are NOT necessarily the true result type of the node.
  * (We also use type == InvalidOid to mark a not-yet-parse-analyzed XmlExpr.)
  */

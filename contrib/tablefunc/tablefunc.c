@@ -10,7 +10,7 @@
  * And contributors:
  * Nabil Sayegh <postgresql@e-trolley.de>
  *
- * Copyright (c) 2002-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2013, PostgreSQL Global Development Group
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation for any purpose, without fee, and without a written agreement
@@ -34,9 +34,11 @@
 
 #include <math.h>
 
+#include "access/htup_details.h"
 #include "catalog/pg_type.h"
-#include "funcapi.h"
 #include "executor/spi.h"
+#include "funcapi.h"
+#include "lib/stringinfo.h"
 #include "miscadmin.h"
 #include "utils/builtins.h"
 

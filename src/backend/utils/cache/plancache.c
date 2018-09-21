@@ -15,13 +15,15 @@
  * that matches the event is marked invalid, as is its generic CachedPlan
  * if it has one.  When (and if) the next demand for a cached plan occurs,
  * parse analysis and rewrite is repeated to build a new valid query tree,
- * and then planning is performed as normal.
+ * and then planning is performed as normal.  We also force re-analysis and
+ * re-planning if the active search_path is different from the previous time.
  *
  * Note that if the sinval was a result of user DDL actions, parse analysis
  * could throw an error, for example if a column referenced by the query is
- * no longer present.  The creator of a cached plan can specify whether it
- * is allowable for the query to change output tupdesc on replan (this
- * could happen with "SELECT *" for example) --- if so, it's up to the
+ * no longer present.  Another possibility is for the query's output tupdesc
+ * to change (for instance "SELECT *" might expand differently than before).
+ * The creator of a cached plan can specify whether it is allowable for the
+ * query to change output tupdesc on replan --- if so, it's up to the
  * caller to notice changes and cope with them.
  *
  * Currently, we track exactly the dependencies of plans on relations and
@@ -35,7 +37,7 @@
  * be infrequent enough that more-detailed tracking is not worth the effort.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -61,9 +63,18 @@
 #include "tcop/utility.h"
 #include "utils/inval.h"
 #include "utils/memutils.h"
+#include "utils/resowner_private.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 
+
+/*
+ * We must skip "overhead" operations that involve database access when the
+ * cached plan's subject statement is a transaction control command.
+ */
+#define IsTransactionStmtPlan(plansource)  \
+	((plansource)->raw_parse_tree && \
+	 IsA((plansource)->raw_parse_tree, TransactionStmt))
 
 /*
  * This is the head of the backend's list of "saved" CachedPlanSources (i.e.,
@@ -177,13 +188,14 @@ CreateCachedPlan(Node *raw_parse_tree,
 	plansource->cursor_options = 0;
 	plansource->fixed_result = false;
 	plansource->resultDesc = NULL;
-	plansource->search_path = NULL;
 	plansource->context = source_context;
 	plansource->query_list = NIL;
 	plansource->relationOids = NIL;
 	plansource->invalItems = NIL;
+	plansource->search_path = NULL;
 	plansource->query_context = NULL;
 	plansource->gplan = NULL;
+	plansource->is_oneshot = false;
 	plansource->is_complete = false;
 	plansource->is_saved = false;
 	plansource->is_valid = false;
@@ -194,6 +206,69 @@ CreateCachedPlan(Node *raw_parse_tree,
 	plansource->num_custom_plans = 0;
 
 	MemoryContextSwitchTo(oldcxt);
+
+	return plansource;
+}
+
+/*
+ * CreateOneShotCachedPlan: initially create a one-shot plan cache entry.
+ *
+ * This variant of CreateCachedPlan creates a plan cache entry that is meant
+ * to be used only once.  No data copying occurs: all data structures remain
+ * in the caller's memory context (which typically should get cleared after
+ * completing execution).  The CachedPlanSource struct itself is also created
+ * in that context.
+ *
+ * A one-shot plan cannot be saved or copied, since we make no effort to
+ * preserve the raw parse tree unmodified.	There is also no support for
+ * invalidation, so plan use must be completed in the current transaction,
+ * and DDL that might invalidate the querytree_list must be avoided as well.
+ *
+ * raw_parse_tree: output of raw_parser()
+ * query_string: original query text
+ * commandTag: compile-time-constant tag for query, or NULL if empty query
+ */
+CachedPlanSource *
+CreateOneShotCachedPlan(Node *raw_parse_tree,
+						const char *query_string,
+						const char *commandTag)
+{
+	CachedPlanSource *plansource;
+
+	Assert(query_string != NULL);		/* required as of 8.4 */
+
+	/*
+	 * Create and fill the CachedPlanSource struct within the caller's memory
+	 * context.  Most fields are just left empty for the moment.
+	 */
+	plansource = (CachedPlanSource *) palloc0(sizeof(CachedPlanSource));
+	plansource->magic = CACHEDPLANSOURCE_MAGIC;
+	plansource->raw_parse_tree = raw_parse_tree;
+	plansource->query_string = query_string;
+	plansource->commandTag = commandTag;
+	plansource->param_types = NULL;
+	plansource->num_params = 0;
+	plansource->parserSetup = NULL;
+	plansource->parserSetupArg = NULL;
+	plansource->cursor_options = 0;
+	plansource->fixed_result = false;
+	plansource->resultDesc = NULL;
+	plansource->context = CurrentMemoryContext;
+	plansource->query_list = NIL;
+	plansource->relationOids = NIL;
+	plansource->invalItems = NIL;
+	plansource->search_path = NULL;
+	plansource->query_context = NULL;
+	plansource->gplan = NULL;
+	plansource->is_oneshot = true;
+	plansource->is_complete = false;
+	plansource->is_saved = false;
+	plansource->is_valid = false;
+	plansource->generation = 0;
+	plansource->next_saved = NULL;
+	plansource->generic_cost = -1;
+	plansource->total_custom_cost = 0;
+	plansource->num_custom_plans = 0;
 
 	return plansource;
 }
@@ -224,6 +299,10 @@ CreateCachedPlan(Node *raw_parse_tree,
  * and it would often be inappropriate to do so anyway.  When using that
  * option, it is caller's responsibility that the referenced data remains
  * valid for as long as the CachedPlanSource exists.
+ *
+ * If the CachedPlanSource is a "oneshot" plan, then no querytree copying
+ * occurs at all, and querytree_context is ignored; it is caller's
+ * responsibility that the passed querytree_list is sufficiently long-lived.
  *
  * plansource: structure returned by CreateCachedPlan
  * querytree_list: analyzed-and-rewritten form of query (list of Query nodes)
@@ -258,9 +337,15 @@ CompleteCachedPlan(CachedPlanSource *plansource,
 	/*
 	 * If caller supplied a querytree_context, reparent it underneath the
 	 * CachedPlanSource's context; otherwise, create a suitable context and
-	 * copy the querytree_list into it.
+	 * copy the querytree_list into it.  But no data copying should be done
+	 * for one-shot plans; for those, assume the passed querytree_list is
+	 * sufficiently long-lived.
 	 */
-	if (querytree_context != NULL)
+	if (plansource->is_oneshot)
+	{
+		querytree_context = CurrentMemoryContext;
+	}
+	else if (querytree_context != NULL)
 	{
 		MemoryContextSetParent(querytree_context, source_context);
 		MemoryContextSwitchTo(querytree_context);
@@ -280,14 +365,27 @@ CompleteCachedPlan(CachedPlanSource *plansource,
 	plansource->query_context = querytree_context;
 	plansource->query_list = querytree_list;
 
-	/*
-	 * Use the planner machinery to extract dependencies.  Data is saved in
-	 * query_context.  (We assume that not a lot of extra cruft is created by
-	 * this call.)
-	 */
-	extract_query_dependencies((Node *) querytree_list,
-							   &plansource->relationOids,
-							   &plansource->invalItems);
+	if (!plansource->is_oneshot && !IsTransactionStmtPlan(plansource))
+	{
+		/*
+		 * Use the planner machinery to extract dependencies.  Data is saved
+		 * in query_context.  (We assume that not a lot of extra cruft is
+		 * created by this call.)  We can skip this for one-shot plans, and
+		 * transaction control commands have no such dependencies anyway.
+		 */
+		extract_query_dependencies((Node *) querytree_list,
+								   &plansource->relationOids,
+								   &plansource->invalItems);
+
+		/*
+		 * Also save the current search_path in the query_context.	(This
+		 * should not generate much extra cruft either, since almost certainly
+		 * the path is already valid.)	Again, we don't really need this for
+		 * one-shot plans; and we *must* skip this for transaction control
+		 * commands, because this could result in catalog accesses.
+		 */
+		plansource->search_path = GetOverrideSearchPath(querytree_context);
+	}
 
 	/*
 	 * Save the final parameter types (or other parameter specification data)
@@ -313,12 +411,6 @@ CompleteCachedPlan(CachedPlanSource *plansource,
 
 	MemoryContextSwitchTo(oldcxt);
 
-	/*
-	 * Fetch current search_path into dedicated context, but do any
-	 * recalculation work required in caller's context.
-	 */
-	plansource->search_path = GetOverrideSearchPath(source_context);
-
 	plansource->is_complete = true;
 	plansource->is_valid = true;
 }
@@ -331,7 +423,8 @@ CompleteCachedPlan(CachedPlanSource *plansource,
  * it to the list of cached plans that are checked for invalidation when an
  * sinval event occurs.
  *
- * This is guaranteed not to throw error; callers typically depend on that
+ * This is guaranteed not to throw error, except for the caller-error case
+ * of trying to save a one-shot plan.  Callers typically depend on that
  * since this is called just before or just after adding a pointer to the
  * CachedPlanSource to some permanent data structure of their own.	Up until
  * this is done, a CachedPlanSource is just transient data that will go away
@@ -344,6 +437,10 @@ SaveCachedPlan(CachedPlanSource *plansource)
 	Assert(plansource->magic == CACHEDPLANSOURCE_MAGIC);
 	Assert(plansource->is_complete);
 	Assert(!plansource->is_saved);
+
+	/* This seems worth a real test, though */
+	if (plansource->is_oneshot)
+		elog(ERROR, "cannot save one-shot cached plan");
 
 	/*
 	 * In typical use, this function would be called before generating any
@@ -407,11 +504,15 @@ DropCachedPlan(CachedPlanSource *plansource)
 	/* Decrement generic CachePlan's refcount and drop if no longer needed */
 	ReleaseGenericPlan(plansource);
 
+	/* Mark it no longer valid */
+	plansource->magic = 0;
+
 	/*
 	 * Remove the CachedPlanSource and all subsidiary data (including the
-	 * query_context if any).
+	 * query_context if any).  But if it's a one-shot we can't free anything.
 	 */
-	MemoryContextDelete(plansource->context);
+	if (!plansource->is_oneshot)
+		MemoryContextDelete(plansource->context);
 }
 
 /*
@@ -459,6 +560,36 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 	MemoryContext oldcxt;
 
 	/*
+	 * For one-shot plans, we do not support revalidation checking; it's
+	 * assumed the query is parsed, planned, and executed in one transaction,
+	 * so that no lock re-acquisition is necessary.  Also, there is never any
+	 * need to revalidate plans for transaction control commands (and we
+	 * mustn't risk any catalog accesses when handling those).
+	 */
+	if (plansource->is_oneshot || IsTransactionStmtPlan(plansource))
+	{
+		Assert(plansource->is_valid);
+		return NIL;
+	}
+
+	/*
+	 * If the query is currently valid, we should have a saved search_path ---
+	 * check to see if that matches the current environment.  If not, we want
+	 * to force replan.
+	 */
+	if (plansource->is_valid)
+	{
+		Assert(plansource->search_path != NULL);
+		if (!OverrideSearchPathMatchesCurrent(plansource->search_path))
+		{
+			/* Invalidate the querytree and generic plan */
+			plansource->is_valid = false;
+			if (plansource->gplan)
+				plansource->gplan->is_valid = false;
+		}
+	}
+
+	/*
 	 * If the query is currently valid, acquire locks on the referenced
 	 * objects; then check again.  We need to do it this way to cover the race
 	 * condition that an invalidation message arrives before we get the locks.
@@ -490,6 +621,7 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 	plansource->query_list = NIL;
 	plansource->relationOids = NIL;
 	plansource->invalItems = NIL;
+	plansource->search_path = NULL;
 
 	/*
 	 * Free the query_context.	We don't really expect MemoryContextDelete to
@@ -513,14 +645,6 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 	 * the locks we need to do planning safely.
 	 */
 	Assert(plansource->is_complete);
-
-	/*
-	 * Restore the search_path that was in use when the plan was made. See
-	 * comments for PushOverrideSearchPath about limitations of this.
-	 *
-	 * (XXX is there anything else we really need to restore?)
-	 */
-	PushOverrideSearchPath(plansource->search_path);
 
 	/*
 	 * If a snapshot is already set (the normal case), we can just use that
@@ -567,9 +691,6 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 	/* Release snapshot if we got one */
 	if (snapshot_set)
 		PopActiveSnapshot();
-
-	/* Now we can restore current search path */
-	PopOverrideSearchPath();
 
 	/*
 	 * Check or update the result tupdesc.	XXX should we use a weaker
@@ -626,6 +747,13 @@ RevalidateCachedQuery(CachedPlanSource *plansource, IntoClause *intoClause)
 							   &plansource->relationOids,
 							   &plansource->invalItems);
 
+	/*
+	 * Also save the current search_path in the query_context.	(This should
+	 * not generate much extra cruft either, since almost certainly the path
+	 * is already valid.)
+	 */
+	plansource->search_path = GetOverrideSearchPath(querytree_context);
+
 	MemoryContextSwitchTo(oldcxt);
 
 	/* Now reparent the finished query_context and save the links */
@@ -671,6 +799,8 @@ CheckCachedPlan(CachedPlanSource *plansource)
 		return false;
 
 	Assert(plan->magic == CACHEDPLAN_MAGIC);
+	/* Generic plans are never one-shot */
+	Assert(!plan->is_oneshot);
 
 	/*
 	 * If it appears valid, acquire locks and recheck; this is much the same
@@ -730,6 +860,8 @@ CheckCachedPlan(CachedPlanSource *plansource)
  * hint rather than a hard constant.
  *
  * Planning work is done in the caller's memory context.  The finished plan
+ * is in a child memory context, which typically should get reparented
+ * (unless this is a one-shot plan, in which case we don't copy the plan).
  * is in a child memory context, which typically should get reparented.
  *
  * GPDB: See GetCachedPlan() for why intoClause is added here.
@@ -743,7 +875,7 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	bool		snapshot_set;
 	bool		spi_pushed;
 	MemoryContext plan_context;
-	MemoryContext oldcxt;
+	MemoryContext oldcxt = CurrentMemoryContext;
 
 	/*
 	 * Normally the querytree should be valid already, but if it's not,
@@ -763,24 +895,16 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 
 	/*
 	 * If we don't already have a copy of the querytree list that can be
-	 * scribbled on by the planner, make one.
+	 * scribbled on by the planner, make one.  For a one-shot plan, we assume
+	 * it's okay to scribble on the original query_list.
 	 */
 	if (qlist == NIL)
-		qlist = (List *) copyObject(plansource->query_list);
-
-	/*
-	 * Restore the search_path that was in use when the plan was made. See
-	 * comments for PushOverrideSearchPath about limitations of this.
-	 *
-	 * (XXX is there anything else we really need to restore?)
-	 *
-	 * Note: it's a bit annoying to do this and snapshot-setting twice in the
-	 * case where we have to do both re-analysis and re-planning.  However,
-	 * until there's some evidence that the cost is actually meaningful
-	 * compared to parse analysis + planning, I'm not going to contort the
-	 * code enough to avoid that.
-	 */
-	PushOverrideSearchPath(plansource->search_path);
+	{
+		if (!plansource->is_oneshot)
+			qlist = (List *) copyObject(plansource->query_list);
+		else
+			qlist = plansource->query_list;
+	}
 
 	/*
 	 * If a snapshot is already set (the normal case), we can just use that
@@ -815,26 +939,30 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	if (snapshot_set)
 		PopActiveSnapshot();
 
-	/* Now we can restore current search path */
-	PopOverrideSearchPath();
-
 	/*
-	 * Make a dedicated memory context for the CachedPlan and its subsidiary
-	 * data.  It's probably not going to be large, but just in case, use the
-	 * default maxsize parameter.  It's transient for the moment.
+	 * Normally we make a dedicated memory context for the CachedPlan and its
+	 * subsidiary data.  (It's probably not going to be large, but just in
+	 * case, use the default maxsize parameter.  It's transient for the
+	 * moment.)  But for a one-shot plan, we just leave it in the caller's
+	 * memory context.
 	 */
-	plan_context = AllocSetContextCreate(CurrentMemoryContext,
-										 "CachedPlan",
-										 ALLOCSET_SMALL_MINSIZE,
-										 ALLOCSET_SMALL_INITSIZE,
-										 ALLOCSET_DEFAULT_MAXSIZE);
+	if (!plansource->is_oneshot)
+	{
+		plan_context = AllocSetContextCreate(CurrentMemoryContext,
+											 "CachedPlan",
+											 ALLOCSET_SMALL_MINSIZE,
+											 ALLOCSET_SMALL_INITSIZE,
+											 ALLOCSET_DEFAULT_MAXSIZE);
 
-	/*
-	 * Copy plan into the new context.
-	 */
-	oldcxt = MemoryContextSwitchTo(plan_context);
+		/*
+		 * Copy plan into the new context.
+		 */
+		MemoryContextSwitchTo(plan_context);
 
-	plist = (List *) copyObject(plist);
+		plist = (List *) copyObject(plist);
+	}
+	else
+		plan_context = CurrentMemoryContext;
 
 	/*
 	 * Create and fill the CachedPlan struct within the new context.
@@ -862,6 +990,7 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 		plan->saved_xmin = InvalidTransactionId;
 	plan->refcount = 0;
 	plan->context = plan_context;
+	plan->is_oneshot = plansource->is_oneshot;
 	plan->is_saved = false;
 	plan->is_valid = true;
 
@@ -887,8 +1016,15 @@ choose_custom_plan(CachedPlanSource *plansource, ParamListInfo boundParams, Into
 	if (intoClause != NULL)
 		return true;
 
-	/* Never any point in a custom plan if there's no parameters */
+	/* One-shot plans will always be considered custom */
+	if (plansource->is_oneshot)
+		return true;
+
+	/* Otherwise, never any point in a custom plan if there's no parameters */
 	if (boundParams == NULL)
+		return false;
+	/* ... nor for transaction control statements */
+	if (IsTransactionStmtPlan(plansource))
 		return false;
 
 	/* See if caller wants to force the decision */
@@ -1097,7 +1233,14 @@ ReleaseCachedPlan(CachedPlan *plan, bool useResOwner)
 	Assert(plan->refcount > 0);
 	plan->refcount--;
 	if (plan->refcount == 0)
-		MemoryContextDelete(plan->context);
+	{
+		/* Mark it no longer valid */
+		plan->magic = 0;
+
+		/* One-shot plans do not own their context, so we can't free them */
+		if (!plan->is_oneshot)
+			MemoryContextDelete(plan->context);
+	}
 }
 
 /*
@@ -1114,9 +1257,11 @@ CachedPlanSetParentContext(CachedPlanSource *plansource,
 	Assert(plansource->magic == CACHEDPLANSOURCE_MAGIC);
 	Assert(plansource->is_complete);
 
-	/* This seems worth a real test, though */
+	/* These seem worth real tests, though */
 	if (plansource->is_saved)
 		elog(ERROR, "cannot move a saved cached plan to another context");
+	if (plansource->is_oneshot)
+		elog(ERROR, "cannot move a one-shot cached plan to another context");
 
 	/* OK, let the caller keep the plan where he wishes */
 	MemoryContextSetParent(plansource->context, newcontext);
@@ -1153,6 +1298,13 @@ CopyCachedPlan(CachedPlanSource *plansource)
 	Assert(plansource->magic == CACHEDPLANSOURCE_MAGIC);
 	Assert(plansource->is_complete);
 
+	/*
+	 * One-shot plans can't be copied, because we haven't taken care that
+	 * parsing/planning didn't scribble on the raw parse tree or querytrees.
+	 */
+	if (plansource->is_oneshot)
+		elog(ERROR, "cannot copy a one-shot cached plan");
+
 	source_context = AllocSetContextCreate(CurrentMemoryContext,
 										   "CachedPlanSource",
 										   ALLOCSET_SMALL_MINSIZE,
@@ -1185,7 +1337,6 @@ CopyCachedPlan(CachedPlanSource *plansource)
 		newsource->resultDesc = CreateTupleDescCopy(plansource->resultDesc);
 	else
 		newsource->resultDesc = NULL;
-	newsource->search_path = CopyOverrideSearchPath(plansource->search_path);
 	newsource->context = source_context;
 
 	querytree_context = AllocSetContextCreate(source_context,
@@ -1197,10 +1348,13 @@ CopyCachedPlan(CachedPlanSource *plansource)
 	newsource->query_list = (List *) copyObject(plansource->query_list);
 	newsource->relationOids = (List *) copyObject(plansource->relationOids);
 	newsource->invalItems = (List *) copyObject(plansource->invalItems);
+	if (plansource->search_path)
+		newsource->search_path = CopyOverrideSearchPath(plansource->search_path);
 	newsource->query_context = querytree_context;
 
 	newsource->gplan = NULL;
 
+	newsource->is_oneshot = false;
 	newsource->is_complete = true;
 	newsource->is_saved = false;
 	newsource->is_valid = plansource->is_valid;
@@ -1592,6 +1746,10 @@ PlanCacheRelCallback(Datum arg, Oid relid)
 		if (!plansource->is_valid)
 			continue;
 
+		/* Never invalidate transaction control commands */
+		if (IsTransactionStmtPlan(plansource))
+			continue;
+
 		/*
 		 * Check the dependency list for the rewritten querytree.
 		 */
@@ -1654,6 +1812,10 @@ PlanCacheFuncCallback(Datum arg, int cacheid, uint32 hashvalue)
 
 		/* No work if it's already invalidated */
 		if (!plansource->is_valid)
+			continue;
+
+		/* Never invalidate transaction control commands */
+		if (IsTransactionStmtPlan(plansource))
 			continue;
 
 		/*
@@ -1745,6 +1907,11 @@ ResetPlanCache(void)
 		 * We *must not* mark transaction control statements as invalid,
 		 * particularly not ROLLBACK, because they may need to be executed in
 		 * aborted transactions when we can't revalidate them (cf bug #5269).
+		 */
+		if (IsTransactionStmtPlan(plansource))
+			continue;
+
+		/*
 		 * In general there is no point in invalidating utility statements
 		 * since they have no plans anyway.  So invalidate it only if it
 		 * contains at least one non-utility statement, or contains a utility

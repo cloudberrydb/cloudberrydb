@@ -3,7 +3,7 @@
  * nodeTidscan.c
  *	  Routines to support direct tid scans of relations
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -535,7 +535,7 @@ ExecInitTidScan(TidScan *node, EState *estate, int eflags)
 	/*
 	 * open the base relation and acquire appropriate lock on it.
 	 */
-	currentRelation = ExecOpenScanRelation(estate, node->scan.scanrelid);
+	currentRelation = ExecOpenScanRelation(estate, node->scan.scanrelid, eflags);
 
 	tidstate->ss.ss_currentRelation = currentRelation;
 

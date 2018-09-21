@@ -27,8 +27,9 @@
 #include "parser/parsetree.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
+#include "storage/bufpage.h"
 
-#define DatumGetXLogLoc(X)	     ((XLogRecPtr*) DatumGetPointer(X))
+#define DatumGetXLogLoc(X)	     ((PageXLogRecPtr *) DatumGetPointer(X))
 #define XLogLocGetDatum(X)	     PointerGetDatum(X)
 #define PG_GETARG_XLOGLOC(n)     DatumGetXLogLoc(PG_GETARG_DATUM(n))
 #define PG_RETURN_XLOGLOC(x)     return XLogLocGetDatum(x)
@@ -38,7 +39,7 @@
 #define DELIM			'/'
 #define NXLOGLOCARGS	2
 
-static int gpxlogloc_cmp_internal(XLogRecPtr *arg1, XLogRecPtr *arg2);
+static int gpxlogloc_cmp_internal(PageXLogRecPtr *arg1, PageXLogRecPtr *arg2);
 
 
 /* ----------------------------------------------------------------
@@ -52,7 +53,7 @@ gpxloglocin(PG_FUNCTION_ARGS)
 	char	   *p,
 			   *coord[NXLOGLOCARGS];
 	int			i;
-	XLogRecPtr	*result;
+	PageXLogRecPtr *result;
 	uint32		result_xlogid;
 	uint32		result_xrecoff;
 	char	   *badp;
@@ -82,7 +83,7 @@ gpxloglocin(PG_FUNCTION_ARGS)
 				 errmsg("invalid input syntax for type gpxlogloc: \"%s\"",
 						str)));
 
-	result = (XLogRecPtr*) palloc(sizeof(XLogRecPtr));
+	result = (PageXLogRecPtr*) palloc(sizeof(PageXLogRecPtr));
 
 	result->xlogid = result_xlogid;
 	result->xrecoff = result_xrecoff;
@@ -97,7 +98,7 @@ gpxloglocin(PG_FUNCTION_ARGS)
 Datum
 gpxloglocout(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *xlogLoc = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *xlogLoc = PG_GETARG_XLOGLOC(0);
 	char		buf[32];
 
 	snprintf(buf, sizeof(buf), "(%X/%X)", xlogLoc->xlogid, xlogLoc->xrecoff);
@@ -112,14 +113,14 @@ Datum
 gpxloglocrecv(PG_FUNCTION_ARGS)
 {
 	StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
-	XLogRecPtr	*result;
+	PageXLogRecPtr *result;
 	uint32		result_xlogid;
 	uint32		result_xrecoff;
 
 	result_xlogid = pq_getmsgint(buf, sizeof(result_xlogid));
 	result_xrecoff = pq_getmsgint(buf, sizeof(result_xrecoff));
 
-	result = (XLogRecPtr*) palloc(sizeof(XLogRecPtr));
+	result = (PageXLogRecPtr *) palloc(sizeof(PageXLogRecPtr));
 
 	result->xlogid = result_xlogid;
 	result->xrecoff = result_xrecoff;
@@ -133,7 +134,7 @@ gpxloglocrecv(PG_FUNCTION_ARGS)
 Datum
 gpxloglocsend(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *xlogLoc = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *xlogLoc = PG_GETARG_XLOGLOC(0);
 	uint32		send_xlogid;
 	uint32		send_xrecoff;
 	StringInfoData buf;
@@ -151,9 +152,9 @@ gpxloglocsend(PG_FUNCTION_ARGS)
 Datum
 gpxlogloclarger(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
-	XLogRecPtr *result;
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *result;
 	
 	if (gpxlogloc_cmp_internal(arg1, arg2) > 0)
 		result = arg1;
@@ -166,9 +167,9 @@ gpxlogloclarger(PG_FUNCTION_ARGS)
 Datum
 gpxloglocsmaller(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
-	XLogRecPtr *result;
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *result;
 	
 	if (gpxlogloc_cmp_internal(arg1, arg2) < 0)
 		result = arg1;
@@ -181,8 +182,8 @@ gpxloglocsmaller(PG_FUNCTION_ARGS)
 Datum
 gpxlogloceq(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
 
 	PG_RETURN_BOOL(gpxlogloc_cmp_internal(arg1, arg2) == 0);
 }
@@ -190,8 +191,8 @@ gpxlogloceq(PG_FUNCTION_ARGS)
 Datum
 gpxloglocne(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
 
 	PG_RETURN_BOOL(gpxlogloc_cmp_internal(arg1, arg2) != 0);
 }
@@ -199,8 +200,8 @@ gpxloglocne(PG_FUNCTION_ARGS)
 Datum
 gpxlogloclt(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
 
 	PG_RETURN_BOOL(gpxlogloc_cmp_internal(arg1, arg2) < 0);
 }
@@ -208,8 +209,8 @@ gpxlogloclt(PG_FUNCTION_ARGS)
 Datum
 gpxloglocle(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
 
 	PG_RETURN_BOOL(gpxlogloc_cmp_internal(arg1, arg2) <= 0);
 }
@@ -217,8 +218,8 @@ gpxloglocle(PG_FUNCTION_ARGS)
 Datum
 gpxloglocgt(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
 
 	PG_RETURN_BOOL(gpxlogloc_cmp_internal(arg1, arg2) > 0);
 }
@@ -226,8 +227,8 @@ gpxloglocgt(PG_FUNCTION_ARGS)
 Datum
 gpxloglocge(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
 
 	PG_RETURN_BOOL(gpxlogloc_cmp_internal(arg1, arg2) >= 0);
 }
@@ -235,14 +236,14 @@ gpxloglocge(PG_FUNCTION_ARGS)
 Datum
 btgpxlogloccmp(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
-	XLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
+	PageXLogRecPtr *arg1 = PG_GETARG_XLOGLOC(0);
+	PageXLogRecPtr *arg2 = PG_GETARG_XLOGLOC(1);
 
 	PG_RETURN_INT32(gpxlogloc_cmp_internal(arg1, arg2));
 }
 
 static int
-gpxlogloc_cmp_internal(XLogRecPtr *arg1, XLogRecPtr *arg2)
+gpxlogloc_cmp_internal(PageXLogRecPtr *arg1, PageXLogRecPtr *arg2)
 {
 	if(arg1->xlogid > arg2->xlogid)
 		return 1;

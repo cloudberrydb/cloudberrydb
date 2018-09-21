@@ -194,7 +194,7 @@ where t1.d = t2.d;
                            ->  HashAggregate  (cost=4.50..4.50 rows=7 width=12) (actual time=0.088..0.126 rows=10 loops=1)
                                  Group Key: public.smallt.d
                                  (seg1)   Hash chain length 1.1 avg, 2 max, using 9 of 32 buckets; total 0 expansions.
-                                 ->  Seq Scan on smallt  (cost=0.00..4.00 rows=34 width=8) (actual time=0.017..0.043 rows=50 loops=1)
+                                 ->  Seq Scan on smallt smallt_1  (cost=0.00..4.00 rows=34 width=8) (actual time=0.017..0.043 rows=50 loops=1)
    (slice0)    Executor memory: 514K bytes.
    (slice1)    Executor memory: 166K bytes avg x 3 workers, 166K bytes max (seg0).
    (slice2)    Executor memory: 166K bytes avg x 3 workers, 166K bytes max (seg0).
@@ -232,8 +232,8 @@ where t1.i = t2.i;
 explain analyze select t1.*, t2.* from
 (select i, count(*) from smallt group by i) as t1, (select i, sum(i) from smallt group by i) as t2
 where t1.i = t2.i;
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=9.00..10.92 rows=10 width=24) (actual time=0.691..0.711 rows=10 loops=1)
    ->  Nested Loop  (cost=9.00..10.92 rows=4 width=24) (actual time=0.263..0.341 rows=5 loops=1)
          Join Filter: public.smallt.i = public.smallt.i
@@ -245,7 +245,7 @@ where t1.i = t2.i;
                ->  HashAggregate  (cost=4.50..4.60 rows=4 width=12) (actual time=0.080..0.102 rows=5 loops=1)
                      Group Key: public.smallt.i
                      (seg1)   Hash chain length 1.0 avg, 1 max, using 5 of 32 buckets; total 0 expansions.
-                     ->  Seq Scan on smallt  (cost=0.00..4.00 rows=34 width=4) (actual time=0.012..0.030 rows=50 loops=1)
+                     ->  Seq Scan on smallt smallt_1  (cost=0.00..4.00 rows=34 width=4) (actual time=0.012..0.030 rows=50 loops=1)
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 278K bytes avg x 3 workers, 278K bytes max (seg0).
  Memory used:  128000kB
@@ -1820,22 +1820,23 @@ and smallt.d = '2011-01-04'::date;
 
 -- IndexOnlyScan
 explain analyze select *, exists(select 1 from pg_class where oid = c.oid) as dummy from pg_class c;
-                                                                     QUERY PLAN                                                                      
------------------------------------------------------------------------------------------------------------------------------------------------------
- Seq Scan on pg_class c  (cost=10000000000.00..10000003559.39 rows=429 width=204) (actual time=1.351..2.152 rows=440 loops=1)
+                                                                              QUERY PLAN                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Seq Scan on pg_class c  (cost=10000000000.00..10002979190.50 rows=14872 width=218) (actual time=5.660..10.184 rows=3030 loops=2)
    SubPlan 1
-     ->  Index Only Scan using pg_class_oid_index on pg_class  (cost=0.00..8.27 rows=1 width=0) (never executed)
+     ->  Index Only Scan using pg_class_oid_index on pg_class  (cost=0.29..200.30 rows=1 width=0) (never executed)
            Index Cond: oid = c.oid
            Heap Fetches: 0
    SubPlan 2
-     ->  Materialize  (cost=0.00..48.83 rows=429 width=4) (actual time=0.872..0.958 rows=440 loops=1)
-           ->  Index Only Scan using pg_class_oid_index on pg_class  (cost=0.00..46.69 rows=429 width=4) (actual time=0.130..0.581 rows=440 loops=1)
-                 Heap Fetches: 440
-   (slice0)    Executor memory: 338K bytes.
+     ->  Materialize  (cost=0.29..15397.73 rows=14872 width=4) (actual time=3.828..4.157 rows=3030 loops=2)
+           ->  Index Only Scan using pg_class_oid_index on pg_class pg_class_1  (cost=0.29..15323.36 rows=14872 width=4) (actual time=0.024..3.218 rows=3030 loops=2)
+                 Heap Fetches: 13752
+ * (slice0)    Executor memory: 1118K bytes.  Work_mem: 96K bytes max, 64K bytes wanted.
  Memory used:  128000kB
+ Memory wanted:  364kB
  Optimizer: legacy query optimizer
- Total runtime: 2.672 ms
-(13 rows)
+ Total runtime: 21.231 ms
+(14 rows)
 
 -- BitmapScan
 -- start_ignore

@@ -11,7 +11,7 @@
  * LWLocks to protect its shared state.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -108,6 +108,7 @@ static int	counts_for_pid = 0;
 static int *sh_acquire_counts;
 static int *ex_acquire_counts;
 static int *block_counts;
+static int *spin_delay_counts;
 #endif
 
 #ifdef LOCK_DEBUG
@@ -147,6 +148,7 @@ init_lwlock_stats(void)
 
 	sh_acquire_counts = calloc(numLocks, sizeof(int));
 	ex_acquire_counts = calloc(numLocks, sizeof(int));
+	spin_delay_counts = calloc(numLocks, sizeof(int));
 	block_counts = calloc(numLocks, sizeof(int));
 	counts_for_pid = MyProcPid;
 	on_shmem_exit(print_lwlock_stats, 0);
@@ -164,10 +166,10 @@ print_lwlock_stats(int code, Datum arg)
 
 	for (i = 0; i < numLocks; i++)
 	{
-		if (sh_acquire_counts[i] || ex_acquire_counts[i] || block_counts[i])
-			fprintf(stderr, "PID %d lwlock %d: shacq %u exacq %u blk %u\n",
+		if (sh_acquire_counts[i] || ex_acquire_counts[i] || block_counts[i] || spin_delay_counts[i])
+			fprintf(stderr, "PID %d lwlock %d: shacq %u exacq %u blk %u spindelay %u\n",
 					MyProcPid, i, sh_acquire_counts[i], ex_acquire_counts[i],
-					block_counts[i]);
+					block_counts[i], spin_delay_counts[i]);
 	}
 
 	LWLockRelease(0);
@@ -483,7 +485,11 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 		int			c;
 
 		/* Acquire mutex.  Time spent holding mutex should be short! */
+#ifdef LWLOCK_STATS
+		spin_delay_counts[lockid] += SpinLockAcquire(&lock->mutex);
+#else
 		SpinLockAcquire(&lock->mutex);
+#endif
 
 		/* If retrying, allow LWLockRelease to release waiters again */
 		if (retry)

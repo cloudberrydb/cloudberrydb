@@ -373,7 +373,7 @@ filter_fragments_for_segment(List *list)
 
 	int			index = 0;
 	int			frag_index = 1;
-	int4		shift = xid % GpIdentity.numsegments;
+	int32		shift = xid % GpIdentity.numsegments;
 
 	for (current = list_head(list); current != NULL; index++)
 	{

@@ -31,7 +31,7 @@
 CATALOG(gp_distribution_policy,5002) BKI_WITHOUT_OIDS
 {
 	Oid			localoid;
-	int2		attrnums[1];
+	int16		attrnums[1];
 	char		policytype; /* distribution policy type */
 } FormData_gp_policy;
 

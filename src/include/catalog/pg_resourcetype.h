@@ -64,7 +64,7 @@
 CATALOG(pg_resourcetype,6059) BKI_SHARED_RELATION
 {
 	NameData	resname;			/* name of resource type  */
-	int2		restypid;			/* resource type id  */
+	int16		restypid;			/* resource type id  */
 	bool		resrequired;		/* if required, user must specify during CREATE */
 	bool		reshasdefault;		/* create a default entry for optional type */
 	bool		reshasdisable;		/* whether the type can be removed or shut off */

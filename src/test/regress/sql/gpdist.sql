@@ -1,29 +1,25 @@
 -- Try to verify that rows end up in the right place.
 
-drop table if exists T;
-drop table if exists U;
-drop table if exists W;
+drop table if exists gpdist_T, gpdist_U, gpdist_W;
 
-create table T (a int, b int) distributed by (a);
-insert into T select i, 1 from generate_series(1, 5000) i;
+create table gpdist_T (a int, b int) distributed by (a);
+insert into gpdist_T select i, 1 from generate_series(1, 5000) i;
 
-create table U(segid int, a int, b int) distributed by (a);
-insert into U(segid, a, b) select gp_segment_id, * from T;
+create table gpdist_U(segid int, a int, b int) distributed by (a);
+insert into gpdist_U(segid, a, b) select gp_segment_id, * from gpdist_T;
 
-select * from U where segid <> gp_segment_id; -- should return 0 rows
+select * from gpdist_U where segid <> gp_segment_id; -- should return 0 rows
 
 -- Hash doesn't work quite like this.
 -- (numsegments can come from something like in jetpack.sql's __gp_number_of_segments view).
---select * from T where gp_segment_id <> a % numsegments; -- should return 0 rows
+--select * from gpdist_T where gp_segment_id <> a % numsegments; -- should return 0 rows
 
-create table W(segid int, a int) distributed by (a);
-insert into W(segid, a) select gp_segment_id, a*91 from T;
+create table gpdist_W(segid int, a int) distributed by (a);
+insert into gpdist_W(segid, a) select gp_segment_id, a*91 from gpdist_T;
 
-select * from T full join W on T.a = W.a/91 where T.gp_segment_id <> W.segid; -- should return 0 rows 
+select * from gpdist_T as T full join gpdist_W as W on T.a = W.a/91 where T.gp_segment_id <> W.segid; -- should return 0 rows 
 
-drop table T;
-drop table U;
-drop table W;
+drop table gpdist_T, gpdist_U, gpdist_W;
 
 drop table if exists customer_off;
 drop table if exists customer_on;

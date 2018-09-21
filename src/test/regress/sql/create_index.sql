@@ -110,15 +110,15 @@ CREATE TABLE kd_point_tbl AS SELECT * FROM quad_point_tbl;
 
 CREATE INDEX sp_kd_ind ON kd_point_tbl USING spgist (p kd_point_ops);
 
-CREATE TABLE suffix_text_tbl AS
+CREATE TABLE radix_text_tbl AS
     SELECT name AS t FROM road WHERE name !~ '^[0-9]';
 
-INSERT INTO suffix_text_tbl
+INSERT INTO radix_text_tbl
     SELECT 'P0123456789abcdef' FROM generate_series(1,1000);
-INSERT INTO suffix_text_tbl VALUES ('P0123456789abcde');
-INSERT INTO suffix_text_tbl VALUES ('P0123456789abcdefF');
+INSERT INTO radix_text_tbl VALUES ('P0123456789abcde');
+INSERT INTO radix_text_tbl VALUES ('P0123456789abcdefF');
 
-CREATE INDEX sp_suff_ind ON suffix_text_tbl USING spgist (t);
+CREATE INDEX sp_radix_ind ON radix_text_tbl USING spgist (t);
 
 --
 -- Test GiST and SP-GiST indexes
@@ -194,31 +194,31 @@ SELECT count(*) FROM quad_point_tbl WHERE p >^ '(5000, 4000)';
 
 SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdef';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcde';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdefF';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t <    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t >=   'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t >    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
 
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>~  'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
 
 -- Now check the results from plain indexscan
 SET enable_seqscan = OFF;
@@ -383,56 +383,56 @@ SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
 SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdef';
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdef';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcde';
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcde';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdefF';
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdefF';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t <    'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t <    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t <=   'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t >=   'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t >=   'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t >    'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t >    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>~  'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>~  'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
 
 -- Now check the results from bitmap indexscan
 SET enable_seqscan = OFF;
@@ -512,56 +512,56 @@ SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
 SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdef';
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdef';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcde';
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcde';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdefF';
-SELECT count(*) FROM suffix_text_tbl WHERE t = 'P0123456789abcdefF';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t <    'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t <    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t <=   'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Aztec                         Ct  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t =    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t >=   'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t >=   'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t >    'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t >    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
 
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>~  'Worth                         St  ';
-SELECT count(*) FROM suffix_text_tbl WHERE t ~>~  'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
 
 RESET enable_seqscan;
 RESET optimizer_enable_tablescan;
@@ -904,6 +904,30 @@ EXPLAIN (COSTS OFF)
     WHERE f1 > 'WA' and id < 1000 and f1 ~<~ 'YX';
 SELECT count(*) FROM dupindexcols
   WHERE f1 > 'WA' and id < 1000 and f1 ~<~ 'YX';
+
+--
+-- Check ordering of =ANY indexqual results (bug in 9.2.0)
+--
+
+vacuum analyze tenk1;		-- ensure we get consistent plans here
+
+explain (costs off)
+SELECT unique1 FROM tenk1
+WHERE unique1 IN (1,42,7)
+ORDER BY unique1;
+
+SELECT unique1 FROM tenk1
+WHERE unique1 IN (1,42,7)
+ORDER BY unique1;
+
+explain (costs off)
+SELECT thousand, tenthous FROM tenk1
+WHERE thousand < 2 AND tenthous IN (1001,3000)
+ORDER BY thousand;
+
+SELECT thousand, tenthous FROM tenk1
+WHERE thousand < 2 AND tenthous IN (1001,3000)
+ORDER BY thousand;
 
 RESET enable_seqscan;
 RESET optimizer_enable_tablescan;

@@ -214,7 +214,7 @@ DROP TABLE FKTABLE;
 DROP TABLE PKTABLE;
 
 
--- MATCH unspecified
+-- MATCH SIMPLE
 
 -- Base test restricting update/delete
 CREATE TABLE PKTABLE ( ptest1 int, ptest2 int, ptest3 int, ptest4 text, PRIMARY KEY(ptest1, ptest2, ptest3) );
@@ -367,7 +367,7 @@ DROP TABLE PKTABLE;
 
 -- set default update / set null delete
 CREATE TABLE PKTABLE ( ptest1 int, ptest2 int, ptest3 int, ptest4 text, PRIMARY KEY(ptest1, ptest2, ptest3) );
-CREATE TABLE FKTABLE ( ftest1 int DEFAULT 0, ftest2 int DEFAULT -1, ftest3 int, ftest4 int,  CONSTRAINT constrname3
+CREATE TABLE FKTABLE ( ftest1 int DEFAULT 0, ftest2 int DEFAULT -1, ftest3 int DEFAULT -2, ftest4 int, CONSTRAINT constrname3
 			FOREIGN KEY(ftest1, ftest2, ftest3) REFERENCES PKTABLE
 			ON DELETE SET NULL ON UPDATE SET DEFAULT);
 
@@ -397,7 +397,7 @@ SELECT * from FKTABLE;
 UPDATE PKTABLE set ptest2=5 where ptest2=2;
 
 -- Try to update something that will set default
-UPDATE PKTABLE set ptest1=0, ptest2=5, ptest3=10 where ptest2=2;
+UPDATE PKTABLE set ptest1=0, ptest2=-1, ptest3=-2 where ptest2=2;
 UPDATE PKTABLE set ptest2=10 where ptest2=4;
 
 -- Try to update something that should not set default
@@ -415,7 +415,7 @@ SELECT * from PKTABLE;
 SELECT * from FKTABLE;
 
 -- Try to delete something that should not set null
-DELETE FROM PKTABLE where ptest2=5;
+DELETE FROM PKTABLE where ptest2=-1 and ptest3=5;
 
 -- Show PKTABLE and FKTABLE
 SELECT * from PKTABLE;
@@ -943,3 +943,42 @@ begin;
     update selfref set a = 456 where a = 123;
     select a, b from selfref;
 commit;
+
+--
+-- Test that SET DEFAULT actions recognize updates to default values
+--
+create temp table defp (f1 int primary key);
+create temp table defc (f1 int default 0
+                        references defp on delete set default);
+insert into defp values (0), (1), (2);
+insert into defc values (2);
+select * from defc;
+delete from defp where f1 = 2;
+select * from defc;
+delete from defp where f1 = 0; -- fail
+alter table defc alter column f1 set default 1;
+delete from defp where f1 = 0;
+select * from defc;
+delete from defp where f1 = 1; -- fail
+
+--
+-- Test the difference between NO ACTION and RESTRICT
+--
+create temp table pp (f1 int primary key);
+create temp table cc (f1 int references pp on update no action);
+insert into pp values(12);
+insert into pp values(11);
+update pp set f1=f1+1;
+insert into cc values(13);
+update pp set f1=f1+1;
+update pp set f1=f1+1; -- fail
+drop table pp, cc;
+
+create temp table pp (f1 int primary key);
+create temp table cc (f1 int references pp on update restrict);
+insert into pp values(12);
+insert into pp values(11);
+update pp set f1=f1+1;
+insert into cc values(13);
+update pp set f1=f1+1; -- fail
+drop table pp, cc;

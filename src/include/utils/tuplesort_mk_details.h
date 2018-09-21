@@ -279,6 +279,7 @@ typedef struct MKContext {
     int strxfrmConstantFactor;
 
     TupleDesc tupdesc;
+    Relation heapRel;
     Relation indexRel;
     MemTupleBinding *mt_bind;
 

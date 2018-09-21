@@ -58,7 +58,8 @@ select foost(fooid), * from foo2;
 -- Joining with a table
 select * from foo2, foost(3) z where foo2.f2 = z.f2;
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, foost(foo2.fooid) z where foo2.f2 = z.f2;
 
 -- function in subselect, without correlation
@@ -124,7 +125,8 @@ select foor(fooid), * from foor(3) as (fooid int, f2 int);
 -- Joining with a table
 select * from foo2, foor(3) z(fooid int, f2 int) where foo2.f2 = z.f2;
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, foor(foo2.fooid) z(fooid int, f2 int) 
 where foo2.f2 = z.f2;
 
@@ -188,7 +190,8 @@ select fooro(fooid), * from fooro(3);
 -- Joining with a table
 select * from foo2, fooro(3) z where foo2.f2 = z.f2;
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, fooro(foo2.fooid) z where foo2.f2 = z.f2;
 
 -- function in subselect, without correlation
@@ -245,7 +248,8 @@ select foot(fooid), * from foot(3);
 -- Joining with a table
 select * from foo2, foot(3) z where foo2.f2 = z.f2;
 
--- supposed to fail with ERROR - requires LATERAL
+-- Lateral function. (If it was a subquery, this would require the LATERAL
+-- keyword, but for a function, we're more lenient.)
 select * from foo2, foot(foo2.fooid) z where foo2.f2 = z.f2;
 
 -- function in subselect, without correlation

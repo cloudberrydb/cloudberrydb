@@ -197,7 +197,7 @@ GlobalDeadLockDetectorMain(int argc, char *argv[])
 	pqsignal(SIGINT, StatementCancelHandler);
 	pqsignal(SIGTERM, die);
 	pqsignal(SIGQUIT, quickdie); /* we don't do any seq-server specific cleanup, just use the standard. */
-	pqsignal(SIGALRM, handle_sig_alarm);
+	pqsignal(SIGALRM, SIG_IGN);
 
 	pqsignal(SIGPIPE, SIG_IGN);
 	pqsignal(SIGUSR1, procsignal_sigusr1_handler);

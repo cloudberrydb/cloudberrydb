@@ -2,6 +2,7 @@
 #include "funcapi.h"
 
 #include <ctype.h>
+#include <math.h>
 
 #include "catalog/pg_type.h"
 #include "utils/array.h"

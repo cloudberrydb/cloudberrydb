@@ -35,7 +35,7 @@ typedef struct SegmentDatabaseDescriptor
 	 *
 	 * Identical to segment_database_info->segindex.
 	 */
-	int4         			segindex;
+	int32         			segindex;
 	
     /*
 	 * A non-NULL value points to the PGconn block of a successfully
@@ -60,7 +60,7 @@ typedef struct SegmentDatabaseDescriptor
      * NB: Use malloc/free, not palloc/pfree, for the items below.
      */
     uint32		            motionListener; /* interconnect listener port */
-    int4					backendPid;
+    int32					backendPid;
     char                   *whoami;         /* QE identifier for msgs */
 
 } SegmentDatabaseDescriptor;

@@ -16,8 +16,8 @@ Compression Level: 0
 Block Size: 32768
 Checksum: t
 Has OIDs: yes
-Options: appendonly=true
 Distributed randomly
+Options: appendonly=true
 
 insert into sto_alt_uao2_oid select i , 'aa' from generate_series(1,5) as i;
 select count(oid) = 5 as passed from sto_alt_uao2_oid;
@@ -76,8 +76,8 @@ Compression Level: 0
 Block Size: 32768
 Checksum: t
 Has OIDs: no
-Options: appendonly=true
 Distributed randomly
+Options: appendonly=true
 
 select * from sto_alt_uao2_oid order by 1;
  i |     j      

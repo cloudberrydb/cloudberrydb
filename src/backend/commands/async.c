@@ -3,7 +3,7 @@
  * async.c
  *	  Asynchronous notification: NOTIFY, LISTEN, UNLISTEN
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -134,6 +134,8 @@
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
 #include "utils/timestamp.h"
+
+#include "tcop/idle_resource_cleaner.h"
 
 
 /*
@@ -351,11 +353,11 @@ static volatile sig_atomic_t notifyInterruptOccurred = 0;
 /* True if we've registered an on_shmem_exit cleanup */
 static bool unlistenExitRegistered = false;
 
+/* True if we're currently registered as a listener in asyncQueueControl */
+static bool amRegisteredListener = false;
+
 /* has this backend sent notifications in the current transaction? */
 static bool backendHasSentNotifications = false;
-
-/* has this backend executed its first LISTEN in the current transaction? */
-static bool backendHasExecutedInitialListen = false;
 
 /* GUC parameter */
 bool		Trace_notify = false;
@@ -725,6 +727,7 @@ static void
 Async_UnlistenOnExit(int code, Datum arg)
 {
 	Exec_UnlistenAllCommit();
+	asyncQueueUnregister();
 }
 
 /*
@@ -768,8 +771,6 @@ PreCommit_Notify(void)
 
 	if (Trace_notify)
 		elog(DEBUG1, "PreCommit_Notify");
-
-	Assert(backendHasExecutedInitialListen == false);
 
 	/* Preflight for any pending listen/unlisten actions */
 	foreach(p, pendingActions)
@@ -893,11 +894,9 @@ AtCommit_Notify(void)
 		}
 	}
 
-	/*
-	 * If we did an initial LISTEN, listenChannels now has the entry, so we no
-	 * longer need or want the flag to be set.
-	 */
-	backendHasExecutedInitialListen = false;
+	/* If no longer listening to anything, get out of listener array */
+	if (amRegisteredListener && listenChannels == NIL)
+		asyncQueueUnregister();
 
 	/* And clean up */
 	ClearPendingActionsAndNotifies();
@@ -915,18 +914,11 @@ Exec_ListenPreCommit(void)
 	 * Nothing to do if we are already listening to something, nor if we
 	 * already ran this routine in this transaction.
 	 */
-	if (listenChannels != NIL || backendHasExecutedInitialListen)
+	if (amRegisteredListener)
 		return;
 
 	if (Trace_notify)
 		elog(DEBUG1, "Exec_ListenPreCommit(%d)", MyProcPid);
-
-	/*
-	 * We need this variable to detect an aborted initial LISTEN. In that case
-	 * we would set up our pointer but not listen on any channel. This flag
-	 * gets cleared in AtCommit_Notify or AtAbort_Notify().
-	 */
-	backendHasExecutedInitialListen = true;
 
 	/*
 	 * Before registering, make sure we will unlisten before dying. (Note:
@@ -950,6 +942,9 @@ Exec_ListenPreCommit(void)
 	QUEUE_BACKEND_POS(MyBackendId) = QUEUE_TAIL;
 	QUEUE_BACKEND_PID(MyBackendId) = MyProcPid;
 	LWLockRelease(AsyncQueueLock);
+
+	/* Now we are listed in the global array, so remember we're listening */
+	amRegisteredListener = true;
 
 	/*
 	 * Try to move our pointer forward as far as possible. This will skip over
@@ -1023,10 +1018,6 @@ Exec_UnlistenCommit(const char *channel)
 	 * We do not complain about unlistening something not being listened;
 	 * should we?
 	 */
-
-	/* If no longer listening to anything, get out of listener array */
-	if (listenChannels == NIL)
-		asyncQueueUnregister();
 }
 
 /*
@@ -1042,8 +1033,6 @@ Exec_UnlistenAllCommit(void)
 
 	list_free_deep(listenChannels);
 	listenChannels = NIL;
-
-	asyncQueueUnregister();
 }
 
 /*
@@ -1161,6 +1150,9 @@ asyncQueueUnregister(void)
 
 	Assert(listenChannels == NIL);		/* else caller error */
 
+	if (!amRegisteredListener)	/* nothing to do */
+		return;
+
 	LWLockAcquire(AsyncQueueLock, LW_SHARED);
 	/* check if entry is valid and oldest ... */
 	advanceTail = (MyProcPid == QUEUE_BACKEND_PID(MyBackendId)) &&
@@ -1168,6 +1160,9 @@ asyncQueueUnregister(void)
 	/* ... then mark it invalid */
 	QUEUE_BACKEND_PID(MyBackendId) = InvalidPid;
 	LWLockRelease(AsyncQueueLock);
+
+	/* mark ourselves as no longer listed in the global array */
+	amRegisteredListener = false;
 
 	/* If we were the laziest backend, try to advance the tail pointer */
 	if (advanceTail)
@@ -1286,6 +1281,7 @@ static ListCell *
 asyncQueueAddEntries(ListCell *nextNotify)
 {
 	AsyncQueueEntry qe;
+	QueuePosition queue_head;
 	int			pageno;
 	int			offset;
 	int			slotno;
@@ -1293,8 +1289,21 @@ asyncQueueAddEntries(ListCell *nextNotify)
 	/* We hold both AsyncQueueLock and AsyncCtlLock during this operation */
 	LWLockAcquire(AsyncCtlLock, LW_EXCLUSIVE);
 
+	/*
+	 * We work with a local copy of QUEUE_HEAD, which we write back to shared
+	 * memory upon exiting.  The reason for this is that if we have to advance
+	 * to a new page, SimpleLruZeroPage might fail (out of disk space, for
+	 * instance), and we must not advance QUEUE_HEAD if it does.  (Otherwise,
+	 * subsequent insertions would try to put entries into a page that slru.c
+	 * thinks doesn't exist yet.)  So, use a local position variable.  Note
+	 * that if we do fail, any already-inserted queue entries are forgotten;
+	 * this is okay, since they'd be useless anyway after our transaction
+	 * rolls back.
+	 */
+	queue_head = QUEUE_HEAD;
+
 	/* Fetch the current page */
-	pageno = QUEUE_POS_PAGE(QUEUE_HEAD);
+	pageno = QUEUE_POS_PAGE(queue_head);
 	slotno = SimpleLruReadPage(AsyncCtl, pageno, true, InvalidTransactionId);
 	/* Note we mark the page dirty before writing in it */
 	AsyncCtl->shared->page_dirty[slotno] = true;
@@ -1306,7 +1315,7 @@ asyncQueueAddEntries(ListCell *nextNotify)
 		/* Construct a valid queue entry in local variable qe */
 		asyncQueueNotificationToEntry(n, &qe);
 
-		offset = QUEUE_POS_OFFSET(QUEUE_HEAD);
+		offset = QUEUE_POS_OFFSET(queue_head);
 
 		/* Check whether the entry really fits on the current page */
 		if (offset + qe.length <= QUEUE_PAGESIZE)
@@ -1332,8 +1341,8 @@ asyncQueueAddEntries(ListCell *nextNotify)
 			   &qe,
 			   qe.length);
 
-		/* Advance QUEUE_HEAD appropriately, and note if page is full */
-		if (asyncQueueAdvance(&(QUEUE_HEAD), qe.length))
+		/* Advance queue_head appropriately, and detect if page is full */
+		if (asyncQueueAdvance(&(queue_head), qe.length))
 		{
 			/*
 			 * Page is full, so we're done here, but first fill the next page
@@ -1343,11 +1352,14 @@ asyncQueueAddEntries(ListCell *nextNotify)
 			 * asyncQueueIsFull() ensured that there is room to create this
 			 * page without overrunning the queue.
 			 */
-			slotno = SimpleLruZeroPage(AsyncCtl, QUEUE_POS_PAGE(QUEUE_HEAD));
+			slotno = SimpleLruZeroPage(AsyncCtl, QUEUE_POS_PAGE(queue_head));
 			/* And exit the loop */
 			break;
 		}
 	}
+
+	/* Success, so update the global QUEUE_HEAD */
+	QUEUE_HEAD = queue_head;
 
 	LWLockRelease(AsyncCtlLock);
 
@@ -1508,21 +1520,12 @@ void
 AtAbort_Notify(void)
 {
 	/*
-	 * If we LISTEN but then roll back the transaction we have set our pointer
-	 * but have not made any entry in listenChannels. In that case, remove our
-	 * pointer again.
+	 * If we LISTEN but then roll back the transaction after PreCommit_Notify,
+	 * we have registered as a listener but have not made any entry in
+	 * listenChannels.	In that case, deregister again.
 	 */
-	if (backendHasExecutedInitialListen)
-	{
-		/*
-		 * Checking listenChannels should be redundant but it can't hurt doing
-		 * it for safety reasons.
-		 */
-		if (listenChannels == NIL)
-			asyncQueueUnregister();
-
-		backendHasExecutedInitialListen = false;
-	}
+	if (amRegisteredListener && listenChannels == NIL)
+		asyncQueueUnregister();
 
 	/* And clean up */
 	ClearPendingActionsAndNotifies();

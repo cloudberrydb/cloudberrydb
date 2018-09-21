@@ -52,7 +52,6 @@ EXCL_OBJS+=\
 	src/backend/utils/adt/cash.o \
 	src/backend/utils/adt/char.o \
 	src/backend/utils/adt/complex_type.o \
-	src/backend/utils/adt/domains.o \
 	src/backend/utils/adt/enum.o \
 	src/backend/utils/adt/geo_selfuncs.o \
 	src/backend/utils/adt/gp_optimizer_functions.o \

@@ -202,6 +202,8 @@ CREATE VIEW atestv1 AS SELECT * FROM atest1; -- ok
 /* The next *should* fail, but it's not implemented that way yet. */
 CREATE VIEW atestv2 AS SELECT * FROM atest2;
 CREATE VIEW atestv3 AS SELECT * FROM atest3; -- ok
+/* Empty view is a corner case that failed in 9.2. */
+CREATE VIEW atestv0 AS SELECT 0 as x WHERE false; -- ok
 SELECT * FROM atestv1; -- ok
  a |  b  
 ---+-----
@@ -228,6 +230,23 @@ SELECT * FROM atestv3; -- ok
 -----+-----+-------
 (0 rows)
 
+SELECT * FROM atestv0; -- fail
+ERROR:  permission denied for relation atestv0
+-- Appendrels excluded by constraints failed to check permissions in 8.4-9.2.
+select * from
+  ((select a.q1 as x from int8_tbl a offset 0)
+   union all
+   (select b.q2 as x from int8_tbl b offset 0)) ss
+where false;
+ERROR:  permission denied for relation int8_tbl
+set constraint_exclusion = on;
+select * from
+  ((select a.q1 as x, random() from int8_tbl a where q1 > 0)
+   union all
+   (select b.q2 as x, random() from int8_tbl b where q2 > 0)) ss
+where x < 0;
+ERROR:  permission denied for relation int8_tbl
+reset constraint_exclusion;
 CREATE VIEW atestv4 AS SELECT * FROM atestv3; -- nested view
 SELECT * FROM atestv4; -- ok
  one | two | three 
@@ -554,7 +573,7 @@ ERROR:  permission denied for type testdomain1
 CREATE TABLE test6a OF testtype1;
 ERROR:  permission denied for type testtype1
 CREATE TABLE test10a (a int[], b testtype1[]);
-ERROR:  permission denied for type testtype1[]
+ERROR:  permission denied for type testtype1
 CREATE TABLE test9a (a int, b int);
 ALTER TABLE test9a ADD COLUMN c testdomain1;
 ERROR:  permission denied for type testdomain1
@@ -1442,6 +1461,7 @@ drop table dep_priv_test;
 drop sequence x_seq;
 DROP FUNCTION testfunc2(int);
 DROP FUNCTION testfunc4(boolean);
+DROP VIEW atestv0;
 DROP VIEW atestv1;
 DROP VIEW atestv2;
 -- this should cascade to drop atestv4

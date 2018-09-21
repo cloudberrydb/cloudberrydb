@@ -4,7 +4,7 @@
  *	  fetch tuples from a GiST scan.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -265,7 +265,7 @@ gistScanPage(IndexScanDesc scan, GISTSearchItem *pageItem, double *myDistances,
 	 */
 	if (!XLogRecPtrIsInvalid(pageItem->data.parentlsn) &&
 		(GistFollowRight(page) ||
-		 XLByteLT(pageItem->data.parentlsn, opaque->nsn)) &&
+		 pageItem->data.parentlsn < GistPageGetNSN(page)) &&
 		opaque->rightlink != InvalidBlockNumber /* sanity check */ )
 	{
 		/* There was a page split, follow right link to add pages */
@@ -364,7 +364,12 @@ gistScanPage(IndexScanDesc scan, GISTSearchItem *pageItem, double *myDistances,
 			{
 				/* Creating index-page GISTSearchItem */
 				item->blkno = ItemPointerGetBlockNumber(&it->t_tid);
-				/* lsn of current page is lsn of parent page for child */
+
+				/*
+				 * LSN of current page is lsn of parent page for child. We
+				 * only have a shared lock, so we need to get the LSN
+				 * atomically.
+				 */
 				item->data.parentlsn = BufferGetLSNAtomic(buffer);
 			}
 
@@ -537,8 +542,6 @@ gistgettuple(PG_FUNCTION_ARGS)
 			} while (so->nPageData == 0);
 		}
 	}
-
-	PG_RETURN_BOOL(false);		/* keep compiler quiet */
 }
 
 /*

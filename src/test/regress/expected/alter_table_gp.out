@@ -27,10 +27,8 @@ create table dupconstr (
 						distributed by (i);
 -- should fail because of duplicate constraint name
 alter table dupconstr add constraint test unique (i);
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "dupconstr_i_key" for table "dupconstr"
 ERROR:  constraint "test" for relation "dupconstr" already exists
 alter table dupconstr add constraint test primary key (i);
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "dupconstr_pkey" for table "dupconstr"
 ERROR:  constraint "test" for relation "dupconstr" already exists
 -- cleanup
 drop table dupconstr;

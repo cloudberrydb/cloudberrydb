@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,6 +21,7 @@
 
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "catalog/pg_aggregate.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_operator.h"
@@ -103,7 +104,6 @@ static bool contain_leaky_functions_walker(Node *node, void *context);
 static Relids find_nonnullable_rels_walker(Node *node, bool top_level);
 static List *find_nonnullable_vars_walker(Node *node, bool top_level);
 static bool is_strict_saop(ScalarArrayOpExpr *expr, bool falseOK);
-static bool set_coercionform_dontcare_walker(Node *node, void *context);
 static Node *eval_const_expressions_mutator(Node *node,
 							   eval_const_expressions_context *context);
 static List *simplify_or_arguments(List *args,
@@ -116,8 +116,7 @@ static Node *simplify_boolean_equality(Oid opno, List *args);
 static Expr *simplify_function(Oid funcid,
 				  Oid result_type, int32 result_typmod,
 				  Oid result_collid, Oid input_collid, List **args_p,
-				  bool funcvariadic, 
-				  bool process_args, bool allow_non_const,
+				  bool funcvariadic, bool process_args, bool allow_non_const,
 				  eval_const_expressions_context *context);
 static bool large_const(Expr *expr, Size max_size);
 static List *expand_function_arguments(List *args, Oid result_type,
@@ -761,10 +760,12 @@ find_window_functions_walker(Node *node, WindowFuncLists *lists)
 
 /*
  * expression_returns_set_rows
- *	  Estimate the number of rows in a set result.
+ *	  Estimate the number of rows returned by a set-returning expression.
+ *	  The result is 1 if there are no set-returning functions.
  *
  * We use the product of the rowcount estimates of all the functions in
- * the given tree.	The result is 1 if there are no set-returning functions.
+ * the given tree (this corresponds to the behavior of ExecMakeFunctionResult
+ * for nested set-returning functions).
  *
  * Note: keep this in sync with expression_returns_set() in nodes/nodeFuncs.c.
  */
@@ -774,7 +775,7 @@ expression_returns_set_rows(Node *clause)
 	double		result = 1;
 
 	(void) expression_returns_set_rows_walker(clause, &result);
-	return result;
+	return clamp_row_est(result);
 }
 
 static bool
@@ -834,6 +835,40 @@ expression_returns_set_rows_walker(Node *node, double *count)
 
 	return expression_tree_walker(node, expression_returns_set_rows_walker,
 								  (void *) count);
+}
+
+/*
+ * tlist_returns_set_rows
+ *	  Estimate the number of rows returned by a set-returning targetlist.
+ *	  The result is 1 if there are no set-returning functions.
+ *
+ * Here, the result is the largest rowcount estimate of any of the tlist's
+ * expressions, not the product as you would get from naively applying
+ * expression_returns_set_rows() to the whole tlist.  The behavior actually
+ * implemented by ExecTargetList produces a number of rows equal to the least
+ * common multiple of the expression rowcounts, so that the product would be
+ * a worst-case estimate that is typically not realistic.  Taking the max as
+ * we do here is a best-case estimate that might not be realistic either,
+ * but it's probably closer for typical usages.  We don't try to compute the
+ * actual LCM because we're working with very approximate estimates, so their
+ * LCM would be unduly noisy.
+ */
+double
+tlist_returns_set_rows(List *tlist)
+{
+	double		result = 1;
+	ListCell   *lc;
+
+	foreach(lc, tlist)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(lc);
+		double		colresult;
+
+		colresult = expression_returns_set_rows((Node *) tle->expr);
+		if (result < colresult)
+			result = colresult;
+	}
+	return result;
 }
 
 
@@ -2234,47 +2269,6 @@ strip_implicit_coercions(Node *node)
 }
 
 /*
- * set_coercionform_dontcare: set all CoercionForm fields to COERCE_DONTCARE
- *
- * This is used to make index expressions and index predicates more easily
- * comparable to clauses of queries.  CoercionForm is not semantically
- * significant (for cases where it does matter, the significant info is
- * coded into the coercion function arguments) so we can ignore it during
- * comparisons.  Thus, for example, an index on "foo::int4" can match an
- * implicit coercion to int4.
- *
- * Caution: the passed expression tree is modified in-place.
- */
-void
-set_coercionform_dontcare(Node *node)
-{
-	(void) set_coercionform_dontcare_walker(node, NULL);
-}
-
-static bool
-set_coercionform_dontcare_walker(Node *node, void *context)
-{
-	if (node == NULL)
-		return false;
-	if (IsA(node, FuncExpr))
-		((FuncExpr *) node)->funcformat = COERCE_DONTCARE;
-	else if (IsA(node, RelabelType))
-		((RelabelType *) node)->relabelformat = COERCE_DONTCARE;
-	else if (IsA(node, CoerceViaIO))
-		((CoerceViaIO *) node)->coerceformat = COERCE_DONTCARE;
-	else if (IsA(node, ArrayCoerceExpr))
-		((ArrayCoerceExpr *) node)->coerceformat = COERCE_DONTCARE;
-	else if (IsA(node, ConvertRowtypeExpr))
-		((ConvertRowtypeExpr *) node)->convertformat = COERCE_DONTCARE;
-	else if (IsA(node, RowExpr))
-		((RowExpr *) node)->row_format = COERCE_DONTCARE;
-	else if (IsA(node, CoerceToDomain))
-		((CoerceToDomain *) node)->coercionformat = COERCE_DONTCARE;
-	return expression_tree_walker(node, set_coercionform_dontcare_walker,
-								  context);
-}
-
-/*
  * Helper for eval_const_expressions: check that datatype of an attribute
  * is still what it was when the expression was parsed.  This is needed to
  * guard against improper simplification after ALTER COLUMN TYPE.  (XXX we
@@ -2586,7 +2580,7 @@ eval_const_expressions_mutator(Node *node,
 										   expr->funccollid,
 										   expr->inputcollid,
 										   &args,
-										   true,
+										   expr->funcvariadic,
 										   true,
 										   true,
 										   context);
@@ -2603,6 +2597,7 @@ eval_const_expressions_mutator(Node *node,
 				newexpr->funcid = expr->funcid;
 				newexpr->funcresulttype = expr->funcresulttype;
 				newexpr->funcretset = expr->funcretset;
+				newexpr->funcvariadic = expr->funcvariadic;
 				newexpr->funcformat = expr->funcformat;
 				newexpr->funccollid = expr->funccollid;
 				newexpr->inputcollid = expr->inputcollid;
@@ -2632,7 +2627,7 @@ eval_const_expressions_mutator(Node *node,
 										   expr->opcollid,
 										   expr->inputcollid,
 										   &args,
-										   true,
+										   false,
 										   true,
 										   true,
 										   context);
@@ -2940,7 +2935,7 @@ eval_const_expressions_mutator(Node *node,
 										   InvalidOid,
 										   InvalidOid,
 										   &args,
-										   true,
+										   false,
 										   true,
 										   true,
 										   context);
@@ -2973,7 +2968,7 @@ eval_const_expressions_mutator(Node *node,
 											   InvalidOid,
 											   &args,
 											   false,
-											   true,
+											   false,
 											   true,
 											   context);
 					if (simple) /* successfully simplified input fn */
@@ -3066,7 +3061,7 @@ eval_const_expressions_mutator(Node *node,
 					relabel->resulttype = exprType(arg);
 					relabel->resulttypmod = exprTypmod(arg);
 					relabel->resultcollid = collate->collOid;
-					relabel->relabelformat = COERCE_DONTCARE;
+					relabel->relabelformat = COERCE_IMPLICIT_CAST;
 					relabel->location = collate->location;
 
 					/* Don't create stacked RelabelTypes */
@@ -3906,8 +3901,7 @@ simplify_boolean_equality(Oid opno, List *args)
 static Expr *simplify_function(Oid funcid,
 				  Oid result_type, int32 result_typmod,
 				  Oid result_collid, Oid input_collid, List **args_p,
-				  bool funcvariadic, 
-				  bool process_args, bool allow_non_const,
+				  bool funcvariadic, bool process_args, bool allow_non_const,
 				  eval_const_expressions_context *context)
 {
 	List	   *args = *args_p;
@@ -3951,8 +3945,9 @@ static Expr *simplify_function(Oid funcid,
 	/* Now attempt simplification of the function call proper. */
 
 	newexpr = evaluate_function(funcid, result_type, result_typmod,
-								result_collid, input_collid, args,
-								funcvariadic, func_tuple, context);
+								result_collid, input_collid,
+								args, funcvariadic,
+								func_tuple, context);
 
 	if (large_const(newexpr, context->max_size))
 	{
@@ -3973,7 +3968,8 @@ static Expr *simplify_function(Oid funcid,
 		fexpr.funcid = funcid;
 		fexpr.funcresulttype = result_type;
 		fexpr.funcretset = func_form->proretset;
-		fexpr.funcformat = COERCE_DONTCARE;
+		fexpr.funcvariadic = funcvariadic;
+		fexpr.funcformat = COERCE_EXPLICIT_CALL;
 		fexpr.funccollid = result_collid;
 		fexpr.inputcollid = input_collid;
 		fexpr.args = args;
@@ -3986,8 +3982,8 @@ static Expr *simplify_function(Oid funcid,
 
 	if (!newexpr && allow_non_const)
 		newexpr = inline_function(funcid, result_type, result_collid,
-								  input_collid, args,
-								  funcvariadic, func_tuple, context);
+								  input_collid, args, funcvariadic,
+								  func_tuple, context);
 
 	ReleaseSysCache(func_tuple);
 
@@ -4352,7 +4348,7 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod,
 	newexpr->funcresulttype = result_type;
 	newexpr->funcretset = false;
 	newexpr->funcvariadic = funcvariadic;
-	newexpr->funcformat = COERCE_DONTCARE;		/* doesn't matter */
+	newexpr->funcformat = COERCE_EXPLICIT_CALL; /* doesn't matter */
 	newexpr->funccollid = result_collid;		/* doesn't matter */
 	newexpr->inputcollid = input_collid;
 	newexpr->args = args;
@@ -4483,7 +4479,8 @@ inline_function(Oid funcid, Oid result_type, Oid result_collid,
 	fexpr->funcid = funcid;
 	fexpr->funcresulttype = result_type;
 	fexpr->funcretset = false;
-	fexpr->funcformat = COERCE_DONTCARE;		/* doesn't matter */
+	fexpr->funcvariadic = funcvariadic;
+	fexpr->funcformat = COERCE_EXPLICIT_CALL;	/* doesn't matter */
 	fexpr->funccollid = result_collid;	/* doesn't matter */
 	fexpr->inputcollid = input_collid;
 	fexpr->args = args;
@@ -5198,13 +5195,13 @@ flatten_join_alias_var_optimizer(Query *query, int queryLevel)
 
 	root->glob = makeNode(PlannerGlobal);
 	root->glob->boundParams = NULL;
-	root->glob->paramlist = NIL;
 	root->glob->subplans = NIL;
 	root->glob->subroots = NIL;
 	root->glob->finalrtable = NIL;
 	root->glob->relationOids = NIL;
 	root->glob->invalItems = NIL;
 	root->glob->transientPlan = false;
+	root->glob->nParamExec = 0;
 
 	root->config = DefaultPlannerConfig();
 

@@ -18,6 +18,7 @@
 #include "access/itup.h"
 #include "access/relscan.h"
 #include "access/sdir.h"
+#include "access/xlog.h"
 #include "access/xlogutils.h"
 #include "storage/lock.h"
 #include "miscadmin.h"

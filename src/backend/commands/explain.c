@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  * IDENTIFICATION
@@ -69,6 +69,10 @@ static void ExplainDXL(Query *query, ExplainState *es,
 							ParamListInfo params);
 #endif
 static double elapsed_time(instr_time *starttime);
+static void ExplainPreScanNode(PlanState *planstate, Bitmapset **rels_used);
+static void ExplainPreScanMemberNodes(List *plans, PlanState **planstates,
+						  Bitmapset **rels_used);
+static void ExplainPreScanSubPlans(List *plans, Bitmapset **rels_used);
 static void ExplainNode(PlanState *planstate, List *ancestors,
 			const char *relationship, const char *plan_name,
 			ExplainState *es);
@@ -105,6 +109,7 @@ static void ExplainIndexScanDetails(Oid indexid, ScanDirection indexorderdir,
 static void ExplainScanTarget(Scan *plan, ExplainState *es);
 static void ExplainModifyTarget(ModifyTable *plan, ExplainState *es);
 static void ExplainTargetRel(Plan *plan, Index rti, ExplainState *es);
+static void show_modifytable_info(ModifyTableState *mtstate, ExplainState *es);
 static void ExplainMemberNodes(List *plans, PlanState **planstates,
 				   List *ancestors, ExplainState *es);
 static void ExplainSubPlans(List *plans, List *ancestors,
@@ -494,7 +499,8 @@ ExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into, ExplainState *es,
 		instrument_option |= INSTRUMENT_CDB;
 
 	/*
-	 * Start timing.
+	 * We always collect timing for the entire statement, even when node-level
+	 * timing is off, so we don't look at es->timing here.
 	 */
 	INSTR_TIME_SET_CURRENT(starttime);
 
@@ -701,6 +707,7 @@ void
 ExplainPrintPlan(ExplainState *es, QueryDesc *queryDesc)
 {
 	EState     *estate = queryDesc->estate;
+	Bitmapset  *rels_used = NULL;
 
 	Assert(queryDesc->plannedstmt != NULL);
 	es->pstmt = queryDesc->plannedstmt;
@@ -724,6 +731,8 @@ ExplainPrintPlan(ExplainState *es, QueryDesc *queryDesc)
                                      es->showstatctx);
 	}
 
+	ExplainPreScanNode(queryDesc->planstate, &rels_used);
+	es->rtable_names = select_rtable_names_for_explain(es->rtable, rels_used);
 	ExplainNode(queryDesc->planstate, NIL, NULL, NULL, es);
 }
 
@@ -875,6 +884,144 @@ show_dispatch_info(Slice *slice, ExplainState *es)
 		ExplainPropertyInteger("Slice", slice->sliceIndex, es);
 		ExplainPropertyInteger("Segments", segments, es);
 		ExplainPropertyText("Gang Type", gangTypeToString(slice->gangType), es);
+	}
+}
+
+/*
+ * ExplainPreScanNode -
+ *	  Prescan the planstate tree to identify which RTEs are referenced
+ *
+ * Adds the relid of each referenced RTE to *rels_used.  The result controls
+ * which RTEs are assigned aliases by select_rtable_names_for_explain.
+ * This ensures that we don't confusingly assign un-suffixed aliases to RTEs
+ * that never appear in the EXPLAIN output (such as inheritance parents).
+ */
+static void
+ExplainPreScanNode(PlanState *planstate, Bitmapset **rels_used)
+{
+	Plan	   *plan = planstate->plan;
+
+	switch (nodeTag(plan))
+	{
+		case T_SeqScan:
+		case T_ExternalScan:
+		case T_AppendOnlyScan:
+		case T_AOCSScan:
+		case T_TableScan:
+		case T_DynamicTableScan:
+		case T_DynamicIndexScan:
+		case T_ShareInputScan:
+		case T_IndexScan:
+		case T_IndexOnlyScan:
+		case T_BitmapHeapScan:
+		case T_TidScan:
+		case T_SubqueryScan:
+		case T_FunctionScan:
+		case T_ValuesScan:
+		case T_CteScan:
+		case T_WorkTableScan:
+		case T_ForeignScan:
+			*rels_used = bms_add_member(*rels_used,
+										((Scan *) plan)->scanrelid);
+			break;
+		case T_ModifyTable:
+			/* cf ExplainModifyTarget */
+			*rels_used = bms_add_member(*rels_used,
+					  linitial_int(((ModifyTable *) plan)->resultRelations));
+			break;
+		default:
+			break;
+	}
+
+	/* initPlan-s */
+	if (planstate->initPlan)
+		ExplainPreScanSubPlans(planstate->initPlan, rels_used);
+
+	/* lefttree */
+	if (outerPlanState(planstate))
+		ExplainPreScanNode(outerPlanState(planstate), rels_used);
+
+	/* righttree */
+	if (innerPlanState(planstate))
+		ExplainPreScanNode(innerPlanState(planstate), rels_used);
+
+	/* special child plans */
+	switch (nodeTag(plan))
+	{
+		case T_ModifyTable:
+			ExplainPreScanMemberNodes(((ModifyTable *) plan)->plans,
+								  ((ModifyTableState *) planstate)->mt_plans,
+									  rels_used);
+			break;
+		case T_Append:
+			ExplainPreScanMemberNodes(((Append *) plan)->appendplans,
+									((AppendState *) planstate)->appendplans,
+									  rels_used);
+			break;
+		case T_MergeAppend:
+			ExplainPreScanMemberNodes(((MergeAppend *) plan)->mergeplans,
+								((MergeAppendState *) planstate)->mergeplans,
+									  rels_used);
+			break;
+		case T_Sequence:
+			ExplainPreScanMemberNodes(((Sequence *) plan)->subplans,
+									((SequenceState *) planstate)->subplans,
+									  rels_used);
+			break;
+		case T_BitmapAnd:
+			ExplainPreScanMemberNodes(((BitmapAnd *) plan)->bitmapplans,
+								 ((BitmapAndState *) planstate)->bitmapplans,
+									  rels_used);
+			break;
+		case T_BitmapOr:
+			ExplainPreScanMemberNodes(((BitmapOr *) plan)->bitmapplans,
+								  ((BitmapOrState *) planstate)->bitmapplans,
+									  rels_used);
+			break;
+		case T_SubqueryScan:
+			ExplainPreScanNode(((SubqueryScanState *) planstate)->subplan,
+							   rels_used);
+			break;
+		default:
+			break;
+	}
+
+	/* subPlan-s */
+	if (planstate->subPlan)
+		ExplainPreScanSubPlans(planstate->subPlan, rels_used);
+}
+
+/*
+ * Prescan the constituent plans of a ModifyTable, Append, MergeAppend,
+ * BitmapAnd, or BitmapOr node.
+ *
+ * Note: we don't actually need to examine the Plan list members, but
+ * we need the list in order to determine the length of the PlanState array.
+ */
+static void
+ExplainPreScanMemberNodes(List *plans, PlanState **planstates,
+						  Bitmapset **rels_used)
+{
+	int			nplans = list_length(plans);
+	int			j;
+
+	for (j = 0; j < nplans; j++)
+		ExplainPreScanNode(planstates[j], rels_used);
+}
+
+/*
+ * Prescan a list of SubPlans (or initPlans, which also use SubPlan nodes).
+ */
+static void
+ExplainPreScanSubPlans(List *plans, Bitmapset **rels_used)
+{
+	ListCell   *lst;
+
+	foreach(lst, plans)
+	{
+		SubPlanState *sps = (SubPlanState *) lfirst(lst);
+
+		ExplainPreScanNode(sps->planstate, rels_used);
 	}
 }
 
@@ -1780,6 +1927,9 @@ ExplainNode(PlanState *planstate, List *ancestors,
 				show_instrumentation_count("Rows Removed by Filter", 1,
 										   planstate, es);
 			break;
+		case T_ModifyTable:
+			show_modifytable_info((ModifyTableState *) planstate, es);
+			break;
 		case T_Hash:
 			show_hash_info((HashState *) planstate, es);
 			break;
@@ -2051,7 +2201,8 @@ show_plan_tlist(PlanState *planstate, List *ancestors, ExplainState *es)
 	/* Set up deparsing context */
 	context = deparse_context_for_planstate((Node *) planstate,
 											ancestors,
-											es->rtable);
+											es->rtable,
+											es->rtable_names);
 	useprefix = list_length(es->rtable) > 1;
 
 	/* Deparse each result column (we now include resjunk ones) */
@@ -2082,7 +2233,8 @@ show_expression(Node *node, const char *qlabel,
 	/* Set up deparsing context */
 	context = deparse_context_for_planstate((Node *) planstate,
 											ancestors,
-											es->rtable);
+											es->rtable,
+											es->rtable_names);
 
 	/* Deparse the expression */
 	exprstr = deparse_expr_sweet(node, context, useprefix, false);
@@ -2290,7 +2442,8 @@ show_sort_group_keys(PlanState *planstate, const char *qlabel,
 	/* Set up deparsing context */
 	context = deparse_context_for_planstate((Node *) planstate,
 											ancestors,
-											es->rtable);
+											es->rtable,
+											es->rtable_names);
 	useprefix = (list_length(es->rtable) > 1 || es->verbose);
 
 	for (keyno = 0; keyno < nkeys; keyno++)
@@ -2393,7 +2546,8 @@ show_foreignscan_info(ForeignScanState *fsstate, ExplainState *es)
 	FdwRoutine *fdwroutine = fsstate->fdwroutine;
 
 	/* Let the FDW emit whatever fields it wants */
-	fdwroutine->ExplainForeignScan(fsstate, es);
+	if (fdwroutine->ExplainForeignScan != NULL)
+		fdwroutine->ExplainForeignScan(fsstate, es);
 }
 
 /*
@@ -2498,9 +2652,13 @@ ExplainTargetRel(Plan *plan, Index rti, ExplainState *es)
 	char	   *namespace = NULL;
 	const char *objecttag = NULL;
 	RangeTblEntry *rte;
+	char	   *refname;
 	int			dynamicScanId = 0;
 
 	rte = rt_fetch(rti, es->rtable);
+	refname = (char *) list_nth(es->rtable_names, rti - 1);
+	if (refname == NULL)
+		refname = rte->eref->aliasname;
 
 	switch (nodeTag(plan))
 	{
@@ -2574,8 +2732,9 @@ ExplainTargetRel(Plan *plan, Index rti, ExplainState *es)
 				 * Unlike RTE_FUNCTION there should be no cases where the
 				 * optimizer could have evaluated away the function call.
 				 */
-				Insist(rte->funcexpr && IsA(rte->funcexpr, FuncExpr));
-				funcexpr = (FuncExpr *) rte->funcexpr;
+				funcexpr = (FuncExpr *) ((TableFunctionScan *) plan)->funcexpr;
+				if (!funcexpr || !IsA(funcexpr, FuncExpr))
+					elog(ERROR, "unexpected expression in TableFunctionScan");
 				objectname = get_func_name(funcexpr->funcid);
 
 				if (es->verbose)
@@ -2615,10 +2774,8 @@ ExplainTargetRel(Plan *plan, Index rti, ExplainState *es)
 							 quote_identifier(objectname));
 		else if (objectname != NULL)
 			appendStringInfo(es->str, " %s", quote_identifier(objectname));
-		if (objectname == NULL ||
-			strcmp(rte->eref->aliasname, objectname) != 0)
-			appendStringInfo(es->str, " %s",
-							 quote_identifier(rte->eref->aliasname));
+		if (objectname == NULL || strcmp(refname, objectname) != 0)
+			appendStringInfo(es->str, " %s", quote_identifier(refname));
 
 		if (dynamicScanId != 0)
 			appendStringInfo(es->str, " (dynamic scan id: %d)",
@@ -2630,10 +2787,38 @@ ExplainTargetRel(Plan *plan, Index rti, ExplainState *es)
 			ExplainPropertyText(objecttag, objectname, es);
 		if (namespace != NULL)
 			ExplainPropertyText("Schema", namespace, es);
-		ExplainPropertyText("Alias", rte->eref->aliasname, es);
+		ExplainPropertyText("Alias", refname, es);
 
 		if (dynamicScanId != 0)
 			ExplainPropertyInteger("Dynamic Scan Id", dynamicScanId, es);
+	}
+}
+
+/*
+ * Show extra information for a ModifyTable node
+ */
+static void
+show_modifytable_info(ModifyTableState *mtstate, ExplainState *es)
+{
+	FdwRoutine *fdwroutine = mtstate->resultRelInfo->ri_FdwRoutine;
+
+	/*
+	 * If the first target relation is a foreign table, call its FDW to
+	 * display whatever additional fields it wants to.	For now, we ignore the
+	 * possibility of other targets being foreign tables, although the API for
+	 * ExplainForeignModify is designed to allow them to be processed.
+	 */
+	if (fdwroutine != NULL &&
+		fdwroutine->ExplainForeignModify != NULL)
+	{
+		ModifyTable *node = (ModifyTable *) mtstate->ps.plan;
+		List	   *fdw_private = (List *) linitial(node->fdwPrivLists);
+
+		fdwroutine->ExplainForeignModify(mtstate,
+										 mtstate->resultRelInfo,
+										 fdw_private,
+										 0,
+										 es);
 	}
 }
 

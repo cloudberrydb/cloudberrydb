@@ -182,14 +182,11 @@ main(int argc, char **argv)
 			  new_cluster.pgdata);
 	check_ok();
 
-/* GPDB_93_MERGE_FIXME */
-#if 0
 	prep_status("Sync data directory to disk");
 	exec_prog(UTILITY_LOG_FILE, NULL, true,
 			  "\"%s/initdb\" --sync-only \"%s\"", new_cluster.bindir,
 			  new_cluster.pgdata);
 	check_ok();
-#endif
 
 	create_script_for_cluster_analyze(&analyze_script_file_name);
 	create_script_for_old_cluster_deletion(&deletion_script_file_name);
@@ -572,11 +569,8 @@ create_new_objects(void)
 	 * We don't have minmxids for databases or relations in pre-9.3
 	 * clusters, so set those after we have restored the schema.
 	 */
-	/* GPDB_93_MERGE_FIXME
 	if (GET_MAJOR_VERSION(old_cluster.major_version) < 903)
 		set_frozenxids(true);
-	*/
-
 
 	/* regenerate now that we have objects in the databases */
 	get_db_and_rel_infos(&new_cluster);
@@ -663,8 +657,6 @@ copy_clog_xlog_xid(void)
 			  new_cluster.pgdata);
 	check_ok();
 
-/* GPDB_93_MERGE_FIXME */
-#if 0
 	/*
 	 * If the old server is before the MULTIXACT_FORMATCHANGE_CAT_VER change
 	 * (see pg_upgrade.h) and the new server is after, then we don't copy
@@ -719,14 +711,13 @@ copy_clog_xlog_xid(void)
 				  new_cluster.pgdata);
 		check_ok();
 	}
-#endif
 
 	/* now reset the wal archives in the new cluster */
 	prep_status("Resetting WAL archives");
 	exec_prog(UTILITY_LOG_FILE, NULL, true,
 			  /* use timeline 1 to match controldata and no WAL history file */
-			  "\"%s/pg_resetxlog\" -y -l 1,%u,%u \"%s\"", new_cluster.bindir,
-			  old_cluster.controldata.logid, old_cluster.controldata.nxtlogseg,
+			  "\"%s/pg_resetxlog\" -y -l 00000001%s \"%s\"", new_cluster.bindir,
+			  old_cluster.controldata.nextxlogfile + 8,
 			  new_cluster.pgdata);
 	check_ok();
 }
@@ -764,14 +755,10 @@ set_frozenxids(bool minmxid_only)
 	int			i_datname;
 	int			i_datallowconn;
 
-/* GPDB_93_MERGE_FIXME */
-	prep_status("Setting frozenxid counters in new cluster");
-#if 0
 	if (!minmxid_only)
 		prep_status("Setting frozenxid and minmxid counters in new cluster");
 	else
 		prep_status("Setting minmxid counter in new cluster");
-#endif
 
 	conn_template1 = connectToServer(&new_cluster, "template1");
 
@@ -788,14 +775,12 @@ set_frozenxids(bool minmxid_only)
 								  "UPDATE pg_catalog.pg_database "
 								  "SET	datfrozenxid = '%u'",
 								  old_cluster.controldata.chkpnt_nxtxid));
-/* GPDB_93_MERGE_FIXME */
-#if 0
+
 	/* set pg_database.datminmxid */
 	PQclear(executeQueryOrDie(conn_template1,
 							  "UPDATE pg_catalog.pg_database "
 							  "SET	datminmxid = '%u'",
 							  old_cluster.controldata.chkpnt_nxtmulti));
-#endif
 
 	/* get database names */
 	dbres = executeQueryOrDie(conn_template1,
@@ -850,8 +835,6 @@ set_frozenxids(bool minmxid_only)
 									  "OR (relkind IN ('t', 'o', 'b', 'm'))",
 									  old_cluster.controldata.chkpnt_nxtxid));
 
-/* GPDB_93_MERGE_FIXME */
-#if 0
 		/* set pg_class.relminmxid */
 		PQclear(executeQueryOrDie(conn,
 								  "UPDATE	pg_catalog.pg_class "
@@ -859,7 +842,6 @@ set_frozenxids(bool minmxid_only)
 		/* only heap, materialized view, and TOAST are vacuumed */
 								  "WHERE	relkind IN ('r', 'm', 't')",
 								  old_cluster.controldata.chkpnt_nxtmulti));
-#endif
 
 		PQfinish(conn);
 

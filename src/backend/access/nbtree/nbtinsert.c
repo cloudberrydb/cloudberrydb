@@ -3,7 +3,7 @@
  * nbtinsert.c
  *	  Item insertion in Lehman and Yao btrees for Postgres.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -504,7 +504,11 @@ _bt_check_unique(Relation rel, IndexTuple itup, Relation heapRel,
 						 */
 						ItemIdMarkDead(curitemid);
 						opaque->btpo_flags |= BTP_HAS_GARBAGE;
-						/* be sure to mark the proper buffer dirty... */
+
+						/*
+						 * Mark buffer with a dirty hint, since state is not
+						 * crucial. Be sure to mark the proper buffer dirty.
+						 */
 						if (nbuf != InvalidBuffer)
 							MarkBufferDirtyHint(nbuf);
 						else
@@ -555,7 +559,9 @@ _bt_check_unique(Relation rel, IndexTuple itup, Relation heapRel,
 				(errcode(ERRCODE_INTERNAL_ERROR),
 				 errmsg("failed to re-find tuple within index \"%s\"",
 						RelationGetRelationName(rel)),
-		errhint("This may be because of a non-immutable index expression.")));
+		 errhint("This may be because of a non-immutable index expression."),
+				 errtableconstraint(heapRel,
+									RelationGetRelationName(rel))));
 
 	if (nbuf != InvalidBuffer)
 		_bt_relbuf(rel, nbuf);
@@ -623,6 +629,8 @@ _bt_findinsertloc(Relation rel,
 	 * able to fit three items on every page, so restrict any one item to 1/3
 	 * the per-page available space. Note that at this point, itemsz doesn't
 	 * include the ItemId.
+	 *
+	 * NOTE: if you change this, see also the similar code in _bt_buildadd().
 	 */
 	if (itemsz > BTMaxItemSize(page))
 		ereport(ERROR,
@@ -633,7 +641,9 @@ _bt_findinsertloc(Relation rel,
 				   RelationGetRelationName(rel)),
 		errhint("Values larger than 1/3 of a buffer page cannot be indexed.\n"
 				"Consider a function index of an MD5 hash of the value, "
-				"or use full text indexing.")));
+				"or use full text indexing."),
+				 errtableconstraint(heapRel,
+									RelationGetRelationName(rel))));
 
 	/*----------
 	 * If we will need to split the page to put the item on this page,

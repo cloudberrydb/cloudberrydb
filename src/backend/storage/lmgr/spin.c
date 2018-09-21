@@ -11,7 +11,7 @@
  * is too slow to be very useful :-(
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -23,6 +23,7 @@
 #include "postgres.h"
 
 #include "miscadmin.h"
+#include "replication/walsender.h"
 #include "storage/lwlock.h"
 #include "storage/spin.h"
 
@@ -50,15 +51,22 @@ SpinlockSemas(void)
 int
 SpinlockSemas(void)
 {
+	int			nsemas;
+
 	/*
 	 * It would be cleaner to distribute this logic into the affected modules,
 	 * similar to the way shmem space estimation is handled.
 	 *
-	 * plus one for each LWLock and one for each buffer header,plus
-	 * NUM_ATOMICS_SEMAPHORES for atomic api(without sufficient spinlock
-	 * and/or atomics support)
+	 * For now, though, there are few enough users of spinlocks that we just
+	 * keep the knowledge here.
 	 */
-	return NumLWLocks() + NBuffers + 10 + NUM_ATOMICS_SEMAPHORES;
+	nsemas = NumLWLocks();		/* one for each lwlock */
+	nsemas += NBuffers;			/* one for each buffer header */
+	nsemas += max_wal_senders;	/* one for each wal sender process */
+	nsemas += 30;				/* plus a bunch for other small-scale use */
+	nsemas += NUM_ATOMICS_SEMAPHORES;
+
+	return nsemas;
 }
 
 /*

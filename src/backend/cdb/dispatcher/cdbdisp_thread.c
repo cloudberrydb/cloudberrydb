@@ -39,6 +39,7 @@
 #include "cdb/cdbpq.h"
 #include "miscadmin.h"
 #include "port/atomics.h"
+#include "utils/timestamp.h"
 
 #ifndef _WIN32
 #define mythread() ((unsigned long) pthread_self())

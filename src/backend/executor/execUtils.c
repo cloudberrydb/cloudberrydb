@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -610,8 +610,8 @@ ExecBuildProjectionInfo(List *targetList,
 	 * We separate the target list elements into simple Var references and
 	 * expressions which require the full ExecTargetList machinery.  To be a
 	 * simple Var, a Var has to be a user attribute and not mismatch the
-	 * inputDesc.  (Note: if there is a type mismatch then ExecEvalVar will
-	 * probably throw an error at runtime, but we leave that to it.)
+	 * inputDesc.  (Note: if there is a type mismatch then ExecEvalScalarVar
+	 * will probably throw an error at runtime, but we leave that to it.)
 	 */
 	exprlist = NIL;
 	numSimpleVars = 0;
@@ -901,8 +901,9 @@ ExecRelationIsTargetRelation(EState *estate, Index scanrelid)
  * ----------------------------------------------------------------
  */
 Relation
-ExecOpenScanRelation(EState *estate, Index scanrelid)
+ExecOpenScanRelation(EState *estate, Index scanrelid, int eflags)
 {
+	Relation	rel;
 	Oid			reloid;
 	LOCKMODE	lockmode;
 
@@ -930,12 +931,24 @@ ExecOpenScanRelation(EState *estate, Index scanrelid)
 		}
 	}
 
-	/* OK, open the relation and acquire lock as needed */
+	/* Open the relation and acquire lock as needed */
 	reloid = getrelid(scanrelid, estate->es_range_table);
+	rel = heap_open(reloid, lockmode);
 
-	Assert(reloid != InvalidOid);
-	
-	return heap_open(reloid, lockmode);
+	/*
+	 * Complain if we're attempting a scan of an unscannable relation, except
+	 * when the query won't actually be run.  This is a slightly klugy place
+	 * to do this, perhaps, but there is no better place.
+	 */
+	if ((eflags & (EXEC_FLAG_EXPLAIN_ONLY | EXEC_FLAG_WITH_NO_DATA)) == 0 &&
+		!RelationIsScannable(rel))
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("materialized view \"%s\" has not been populated",
+						RelationGetRelationName(rel)),
+				 errhint("Use the REFRESH MATERIALIZED VIEW command.")));
+
+	return rel;
 }
 
 /*
@@ -1431,14 +1444,18 @@ retry:
 					 errmsg("could not create exclusion constraint \"%s\"",
 							RelationGetRelationName(index)),
 					 errdetail("Key %s conflicts with key %s.",
-							   error_new, error_existing)));
+							   error_new, error_existing),
+					 errtableconstraint(heap,
+										RelationGetRelationName(index))));
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_EXCLUSION_VIOLATION),
 					 errmsg("conflicting key value violates exclusion constraint \"%s\"",
 							RelationGetRelationName(index)),
 					 errdetail("Key %s conflicts with existing key %s.",
-							   error_new, error_existing)));
+							   error_new, error_existing),
+					 errtableconstraint(heap,
+										RelationGetRelationName(index))));
 	}
 
 	index_endscan(index_scan);

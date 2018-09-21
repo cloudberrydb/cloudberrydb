@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 2007-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Copyright (c) 2000-2012, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2013, PostgreSQL Global Development Group
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
  * src/include/utils/guc.h
@@ -99,6 +99,7 @@ typedef enum
 	PGC_S_ENV_VAR,				/* postmaster environment variable */
 	PGC_S_FILE,					/* postgresql.conf */
 	PGC_S_ARGV,					/* postmaster command line */
+	PGC_S_GLOBAL,				/* global in-database setting */
 	PGC_S_DATABASE,				/* per-database setting */
 	PGC_S_USER,					/* per-user setting */
 	PGC_S_DATABASE_USER,		/* per-user-and-database setting */
@@ -129,6 +130,11 @@ extern bool ParseConfigFile(const char *config_file, const char *calling_file,
 extern bool ParseConfigFp(FILE *fp, const char *config_file,
 			  int depth, int elevel,
 			  ConfigVariable **head_p, ConfigVariable **tail_p);
+extern bool ParseConfigDirectory(const char *includedir,
+					 const char *calling_file,
+					 int depth, int elevel,
+					 ConfigVariable **head_p,
+					 ConfigVariable **tail_p);
 extern void FreeConfigVariables(ConfigVariable *list);
 
 /*

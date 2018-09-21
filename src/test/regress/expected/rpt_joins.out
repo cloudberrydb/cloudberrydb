@@ -2110,11 +2110,8 @@ from yy
 -- (as seen in early 8.2.x releases)
 --
 create temp table zt1 (f1 int primary key);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zt1_pkey" for table "zt1"
 create temp table zt2 (f2 int primary key);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zt2_pkey" for table "zt2"
 create temp table zt3 (f3 int primary key) distributed replicated;
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zt3_pkey" for table "zt3"
 insert into zt1 values(53);
 insert into zt2 values(53);
 select * from

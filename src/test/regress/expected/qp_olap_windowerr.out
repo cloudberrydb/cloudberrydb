@@ -22,7 +22,6 @@ create table cf_olap_windowerr_customer
 	primary key (cn)
 	
 ) distributed by (cn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "cf_olap_windowerr_customer_pkey" for table "cf_olap_windowerr_customer"
 create table cf_olap_windowerr_vendor 
 (
 	vn int not null,
@@ -32,7 +31,6 @@ create table cf_olap_windowerr_vendor
 	primary key (vn)
 	
 ) distributed by (vn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "cf_olap_windowerr_vendor_pkey" for table "cf_olap_windowerr_vendor"
 create table cf_olap_windowerr_product 
 (
 	pn int not null,
@@ -42,7 +40,6 @@ create table cf_olap_windowerr_product
 	primary key (pn)
 	
 ) distributed by (pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "cf_olap_windowerr_product_pkey" for table "cf_olap_windowerr_product"
 create table cf_olap_windowerr_sale
 (
 	cn int not null,
@@ -55,7 +52,6 @@ create table cf_olap_windowerr_sale
 	primary key (cn, vn, pn)
 	
 ) distributed by (cn,vn,pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "cf_olap_windowerr_sale_pkey" for table "cf_olap_windowerr_sale"
 create table cf_olap_windowerr_sale_ord
 (
         ord int not null,
@@ -69,7 +65,6 @@ create table cf_olap_windowerr_sale_ord
 	primary key (cn, vn, pn)
 	
 ) distributed by (cn,vn,pn);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "cf_olap_windowerr_sale_ord_pkey" for table "cf_olap_windowerr_sale_ord"
 -- cf_olap_windowerr_customers
 insert into cf_olap_windowerr_customer values 
   ( 1, 'Macbeth', 'Inverness'),

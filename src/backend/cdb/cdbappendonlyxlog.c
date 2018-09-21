@@ -24,7 +24,6 @@
 #include "catalog/catalog.h"
 
 #include "access/xlogutils.h"
-#include "cdb/cdbappendonlyam.h"
 
 /*
  * Insert an AO XLOG/AOCO record.
@@ -61,7 +60,7 @@ xlog_ao_insert(RelFileNode relFileNode, int32 segmentFileNum,
 	XLogInsert(RM_APPEND_ONLY_ID, XLOG_APPENDONLY_INSERT, rdata);
 }
 
-void
+static void
 ao_insert_replay(XLogRecord *record)
 {
 	char	   *dbPath;
@@ -147,7 +146,7 @@ void xlog_ao_truncate(RelFileNode relFileNode, int32 segmentFileNum, int64 offse
 	XLogInsert(RM_APPEND_ONLY_ID, XLOG_APPENDONLY_TRUNCATE, rdata);
 }
 
-void
+static void
 ao_truncate_replay(XLogRecord *record)
 {
 	char	   *dbPath;
@@ -180,4 +179,31 @@ ao_truncate_replay(XLogRecord *record)
 	}
 
 	FileClose(file);
+}
+
+void
+appendonly_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
+{
+	uint8         xl_info = record->xl_info;
+	uint8         info = xl_info & ~XLR_INFO_MASK;
+
+	/*
+	 * Perform redo of AO XLOG records only for standby mode. We do
+	 * not need to replay AO XLOG records in normal mode because fsync
+	 * is performed on file close.
+	 */
+	if (!IsStandbyMode())
+		return;
+
+	switch (info)
+	{
+		case XLOG_APPENDONLY_INSERT:
+			ao_insert_replay(record);
+			break;
+		case XLOG_APPENDONLY_TRUNCATE:
+			ao_truncate_replay(record);
+			break;
+		default:
+			elog(PANIC, "appendonly_redo: unknown code %u", info);
+	}
 }

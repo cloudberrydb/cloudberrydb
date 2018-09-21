@@ -8,7 +8,7 @@
  *
  * This code is released under the terms of the PostgreSQL License.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/test/regress/pg_regress_main.c
@@ -20,24 +20,6 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-
-static bool
-detect_answer_file(char *name,
-				   int namesize,
-				   const char *testname,
-				   const char *variant)
-{
-	snprintf(name, namesize, "%s/expected/%s%s.out",
-			 outputdir, testname, variant);
-
-	if (file_exists(name))
-		return true;
-
-	snprintf(name, namesize, "%s/expected/%s%s.out",
-			 inputdir, testname, variant);
-
-	return file_exists(name);
-}
 
 /*
  * start a psql test process for specified file (including redirection),
@@ -102,18 +84,11 @@ psql_start_test(const char *testname,
 		}
 	}
 
-	if      (optimizer_enabled && resgroup_enabled &&
-			 detect_answer_file(expectfile, sizeof(expectfile), testname, "_optimizer_resgroup")) ;
-	else if (optimizer_enabled &&
-			 detect_answer_file(expectfile, sizeof(expectfile), testname, "_optimizer")) ;
-	else if (resgroup_enabled &&
-			 detect_answer_file(expectfile, sizeof(expectfile), testname, "_resgroup")) ;
-	else if (detect_answer_file(expectfile, sizeof(expectfile), testname, "")) ;
-	else
-	{
-		fprintf(stderr, _("missing answer file for test \"%s\"\n"), testname);
-		exit_nicely(2);
-	}
+	snprintf(expectfile, sizeof(expectfile), "%s/expected/%s.out",
+			 outputdir, testname);
+	if (!file_exists(expectfile))
+		snprintf(expectfile, sizeof(expectfile), "%s/expected/%s.out",
+				 inputdir, testname);
 
 	add_stringlist_item(resultfiles, outfile);
 	add_stringlist_item(expectfiles, expectfile);

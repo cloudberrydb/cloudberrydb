@@ -126,9 +126,10 @@ extern char *output_files[];
  * version to this value.  pg_upgrade behavior depends on whether old and new
  * server versions are both newer than this, or only the new one is.
  *
- * GPDB_93_MERGE_FIXME
-#define MULTIXACT_FORMATCHANGE_CAT_VER 201301231
+ * In GPDB: that upstream change was merged into GPDB in the big 9.3 merge
+ * commit.
  */
+#define MULTIXACT_FORMATCHANGE_CAT_VER 301809211
 
 /*
  * Extra information stored for each Append-only table.
@@ -183,7 +184,7 @@ typedef struct
 	char		attalign;
 	bool		is_numeric;
 } AttInfo;
- 
+
 typedef enum
 {
 	HEAP,
@@ -313,12 +314,6 @@ typedef struct
 	char	   *lc_collate;
 	char	   *lc_ctype;
 	char	   *encoding;
-	/*
-	 * GPDB_93_MERGE_FIXME: the below two variables are replaced by
-	 * nextxlogfile in 9.3.
-	 */
-	uint32		nxtlogseg;
-	uint32		logid;
 } ControlData;
 
 /*
@@ -687,16 +682,3 @@ void check_greenplum(void);
 void report_progress(ClusterInfo *cluster, progress_type op, char *fmt,...)
 __attribute__((format(PG_PRINTF_ATTRIBUTE, 3, 4)));
 void close_progress(void);
-
-/*
- * GPDB_93_MERGE_FIXME: Remove these local definitions when 8396447cdbdff0b62
- * is merged.
- */
-
-/* fe_memutils.c (which is src/common/fe_memutils.c in 9.3) */
-void *pg_malloc(size_t size);
-void *pg_malloc0(size_t size);
-void *pg_realloc(void *ptr, size_t size);
-char *pg_strdup(const char *in);
-void pg_free(void *ptr);
-

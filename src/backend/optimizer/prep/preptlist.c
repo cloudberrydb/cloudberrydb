@@ -6,7 +6,8 @@
  * For INSERT and UPDATE queries, the targetlist must contain an entry for
  * each attribute of the target relation in the correct order.	For all query
  * types, we may need to add junk tlist entries for Vars used in the RETURNING
- * list and row ID information needed for EvalPlanQual checking.
+ * list and row ID information needed for SELECT FOR UPDATE locking and/or
+ * EvalPlanQual checking.
  *
  * NOTE: the rewriter's rewriteTargetListIU and rewriteTargetListUD
  * routines also do preprocessing of the targetlist.  The division of labor
@@ -15,7 +16,7 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION

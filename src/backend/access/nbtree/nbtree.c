@@ -8,7 +8,7 @@
  *	  This file contains only the public interface routines.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -18,6 +18,7 @@
  */
 #include "postgres.h"
 
+#include "access/heapam_xlog.h"
 #include "access/nbtree.h"
 #include "access/relscan.h"
 #include "catalog/index.h"
@@ -112,14 +113,14 @@ btbuild(PG_FUNCTION_ARGS)
 		elog(ERROR, "index \"%s\" already contains data",
 			 RelationGetRelationName(index));
 
-	buildstate.spool = _bt_spoolinit(index, indexInfo->ii_Unique, false);
+	buildstate.spool = _bt_spoolinit(heap, index, indexInfo->ii_Unique, false);
 
 	/*
 	 * If building a unique index, put dead tuples in a second spool to keep
 	 * them out of the uniqueness check.
 	 */
 	if (indexInfo->ii_Unique)
-		buildstate.spool2 = _bt_spoolinit(index, false, true);
+		buildstate.spool2 = _bt_spoolinit(heap, index, false, true);
 
 	/* do the heap scan */
 	reltuples = IndexBuildScan(heap, index, indexInfo, true,
@@ -363,8 +364,8 @@ _bt_validate_vacuum(Relation irel, Relation hrel, TransactionId oldest_xmin)
 				}
 				if (RelationGetNamespace(irel) == PG_AOSEGMENT_NAMESPACE)
 				{
-					int4 isegno = index_getattr(itup, 1, RelationGetDescr(irel), &isnull);
-					int4 hsegno = heap_getattr(&htup, 1, RelationGetDescr(hrel), &isnull);
+					int32 isegno = index_getattr(itup, 1, RelationGetDescr(irel), &isnull);
+					int32 hsegno = heap_getattr(&htup, 1, RelationGetDescr(hrel), &isnull);
 					if (isegno != hsegno)
 					{
 						elog(ERROR,
@@ -826,6 +827,10 @@ btmarkpos(PG_FUNCTION_ARGS)
 	else
 		so->markItemIndex = -1;
 
+	/* Also record the current positions of any array keys */
+	if (so->numArrayKeys)
+		_bt_mark_array_keys(scan);
+
 	PG_RETURN_VOID();
 }
 
@@ -837,6 +842,10 @@ btrestrpos(PG_FUNCTION_ARGS)
 {
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
+
+	/* Restore the marked positions of any array keys */
+	if (so->numArrayKeys)
+		_bt_restore_array_keys(scan);
 
 	if (so->markItemIndex >= 0)
 	{

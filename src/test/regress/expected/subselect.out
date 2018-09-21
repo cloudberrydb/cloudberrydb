@@ -497,17 +497,14 @@ select * from numeric_table
 -- Test case for bug #4290: bogus calculation of subplan param sets
 --
 create temp table ta (id int primary key, val int);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "ta_pkey" for table "ta"
 insert into ta values(1,1);
 insert into ta values(2,2);
 create temp table tb (id int primary key, aval int);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tb_pkey" for table "tb"
 insert into tb values(1,1);
 insert into tb values(2,1);
 insert into tb values(3,2);
 insert into tb values(4,2);
 create temp table tc (id int primary key, aid int);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tc_pkey" for table "tc"
 insert into tc values(1,1);
 insert into tc values(2,2);
 select
@@ -561,8 +558,10 @@ select (select (a.*)::text) from view_a a;
 -- Check that whole-row Vars reading the result of a subselect don't include
 -- any junk columns therein
 --
-select q from (select max(f1) from int4_tbl group by f1 order by f1) q
-  order by max;
+-- In GPDB, the ORDER BY in the subquery or CTE doesn't force an ordering
+-- for the whole query. Mark these with the "order none" gpdiff directive,
+-- so that differences in result order are ignored.
+select q from (select max(f1) from int4_tbl group by f1 order by f1) q;  -- order none
        q       
 ---------------
  (-2147483647)
@@ -573,7 +572,7 @@ select q from (select max(f1) from int4_tbl group by f1 order by f1) q
 (5 rows)
 
 with q as (select max(f1) from int4_tbl group by f1 order by f1)
-  select q from q;
+  select q from q;  -- order none
        q       
 ---------------
  (-2147483647)

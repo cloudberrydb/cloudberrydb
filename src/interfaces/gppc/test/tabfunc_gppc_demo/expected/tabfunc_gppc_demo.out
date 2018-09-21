@@ -2495,12 +2495,14 @@ HINT:  No operator matches the given name and argument type(s). You might need t
  a      | text    |           | extended | 
  b      | integer |           | plain    | 
 View definition:
- SELECT transform.a, transform.b
-   FROM transform(TABLE( SELECT t1.a, t1.e
+ SELECT transform.a, 
+    transform.b
+   FROM transform(TABLE( SELECT t1.a, 
+            t1.e
            FROM t1
           WHERE t1.a < 10
           ORDER BY t1.a
-          SCATTER BY t1.a)) transform(a, b);
+          SCATTER BY t1.a)) transform;
 
     -- directly using transform to create view
     CREATE VIEW t1viewetf AS
@@ -2529,11 +2531,13 @@ LINE 2:     transform(
  a      | text    |           | extended | 
  b      | integer |           | plain    | 
 View definition:
- SELECT transform.a, transform.b
-   FROM transform(TABLE( SELECT t1_view.a, t1_view.e
+ SELECT transform.a, 
+    transform.b
+   FROM transform(TABLE( SELECT t1_view.a, 
+            t1_view.e
            FROM t1_view
           ORDER BY t1_view.b
-          SCATTER RANDOMLY)) transform(a, b)
+          SCATTER RANDOMLY)) transform
   ORDER BY transform.a;
 
     -- Create temp table (CTAS) using ETF 

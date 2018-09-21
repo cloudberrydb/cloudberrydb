@@ -469,9 +469,9 @@ plan_grouping_extension(PlannerInfo *root,
 	if (context.numGroupCols != list_length(root->group_pathkeys))
 	{
 		root->group_pathkeys =
-			make_pathkeys_for_groupclause(root,
-										  root->parse->groupClause,
-										  tlist);
+			make_pathkeys_for_groupclause_noncanonical(root,
+													   root->parse->groupClause,
+													   tlist);
 
 		/* now they really should match. */
 		if (context.numGroupCols != list_length(root->group_pathkeys))
@@ -1106,8 +1106,6 @@ make_append_aggs_for_rollup(PlannerInfo *root,
 	double numGroups_for_gather = 0;
 	bool has_ordered_aggs = (context->agg_costs->numOrderedAggs > 0);
 
-	root->group_pathkeys = canonicalize_pathkeys(root, root->group_pathkeys);
-
 	/* Plan a list of plans, one for each rollup level. */
 	if (root->config->gp_enable_groupext_distinct_gather ||
 		!root->config->gp_enable_groupext_distinct_pruning ||
@@ -1227,7 +1225,7 @@ generate_dqa_plan(PlannerInfo *root,
 	Query *orig_query = root->parse;
 		
 	List *pathkeys = (List *)list_nth(context->pathkeys, subplan_no);
-	List *pathkeys_copy = canonicalize_pathkeys(root, copyObject(pathkeys));
+	List *pathkeys_copy = copyObject(pathkeys);
 	List *orig_groupClause = root->parse->groupClause;
 	
 	Plan *subplan = (Plan *)list_nth(subplans, subplan_no);
@@ -1280,7 +1278,7 @@ generate_dqa_plan(PlannerInfo *root,
 		root->group_pathkeys =
 			make_pathkeys_for_groupclause(root, root->parse->groupClause,
 										  context->sub_tlist);
-		root->group_pathkeys = canonicalize_pathkeys(root, root->group_pathkeys);
+		root->group_pathkeys = root->group_pathkeys;
 	}
 
 	root->parse->havingQual = (Node *)new_qual;
@@ -1738,7 +1736,8 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 			 */
 			newrte = addRangeTableEntryForSubquery(NULL, root->parse,
 												   makeAlias("rollup", NULL),
-												   TRUE);
+												   false, /* not lateral */
+												   true); /* inFromCl */
 			final_query->rtable = lappend(final_query->rtable, newrte);
 			subquery_tlist = generate_subquery_tlist(list_length(final_query->rtable),
 													 agg_plan->targetlist, true, &resno_map);
@@ -1903,9 +1902,12 @@ generate_list_subplans(PlannerInfo *root, int num_subplans,
 
 	for(group_no = 0; group_no < num_subplans; ++group_no)
 	{
-		List *pathkeys = copyObject(context->current_pathkeys);
-		pathkeys = canonicalize_pathkeys(root, pathkeys);
-		context->pathkeys = lappend(context->pathkeys, pathkeys);
+		/* GPDB_93_MERGE_FIXME: Check whether we could just use
+		 * context->current_pathkeys for the function's caller
+		 * since the list includes duplicates.
+		 */
+		context->pathkeys = lappend(context->pathkeys,
+									copyObject(context->current_pathkeys));
 	}
 
 	return subplans;
@@ -2496,7 +2498,8 @@ plan_list_rollup_plans(PlannerInfo *root,
 			 */
 			newrte = addRangeTableEntryForSubquery(NULL, root->parse,
 												   makeAlias("rollup", NULL),
-												   TRUE);
+												   false, /* not lateral */
+												   true); /* inFromCl */
 			final_query->rtable = lappend(final_query->rtable, newrte);
 			subquery_tlist = generate_subquery_tlist(list_length(final_query->rtable),
 													 rollup_plan->targetlist, true, &resno_map);

@@ -329,17 +329,17 @@ SELECT gp_segment_id, * FROM tab5;
 (10 rows)
 
 EXPLAIN (COSTS OFF ) UPDATE tab3 SET C1 = C1 + 1, C5 = C5+1;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Update
    ->  Result
          ->  Redistribute Motion 3:3  (slice1; segments: 3)
-               Hash Key: (public.tab3.c1 + 1), public.tab3.c2, public.tab3.c3
+               Hash Key: (tab3.c1 + 1), tab3.c2, tab3.c3
                ->  Result
                      ->  Split
                            ->  Result
                                  ->  Table Scan on tab3
- Optimizer: PQO version 2.72.0
+ Optimizer: PQO version 2.74.0
 (9 rows)
 
 -- clean up

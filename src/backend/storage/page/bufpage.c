@@ -3,7 +3,7 @@
  * bufpage.c
  *	  POSTGRES standard buffer page code.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,14 +14,15 @@
  */
 #include "postgres.h"
 
-#include "access/htup.h"
-#include "storage/bufpage.h"
+#include "access/htup_details.h"
 #include "access/xlog.h"
 #include "storage/checksum.h"
 #include "utils/memutils.h"
 
+
 /* GUC variable */
 bool		ignore_checksum_failure = false;
+
 
 /* ----------------------------------------------------------------
  *						Page support functions
@@ -99,16 +100,16 @@ PageIsVerified(Page page, BlockNumber blkno)
 		}
 
 		/*
-		 * The following checks don't prove the header is correct,
-		 * only that it looks sane enough to allow into the buffer pool.
-		 * Later usage of the block can still reveal problems,
-		 * which is why we offer the checksum option.
+		 * The following checks don't prove the header is correct, only that
+		 * it looks sane enough to allow into the buffer pool. Later usage of
+		 * the block can still reveal problems, which is why we offer the
+		 * checksum option.
 		 */
 		if ((p->pd_flags & ~PD_VALID_FLAG_BITS) == 0 &&
-			 p->pd_lower <= p->pd_upper &&
-			 p->pd_upper <= p->pd_special &&
-			 p->pd_special <= BLCKSZ &&
-			 p->pd_special == MAXALIGN(p->pd_special))
+			p->pd_lower <= p->pd_upper &&
+			p->pd_upper <= p->pd_special &&
+			p->pd_special <= BLCKSZ &&
+			p->pd_special == MAXALIGN(p->pd_special))
 			header_sane = true;
 
 		if (header_sane && !checksum_failure)

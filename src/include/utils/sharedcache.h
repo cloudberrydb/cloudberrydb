@@ -21,7 +21,7 @@
 #include "storage/lwlock.h"
 #include "storage/spin.h"
 #include "utils/syncrefhashtable.h"
-#include "lib/dllist.h"
+#include "nodes/pg_list.h"
 #include "portability/instr_time.h"
 
 
@@ -235,7 +235,7 @@ typedef struct Cache
 	Cache_ClientPopulateFunc populateEntry;
 
 	/* List of entries owned by client. Used for cleanup */
-	Dllist *ownedEntries;
+	List	   *ownedEntries;
 
 } Cache;
 

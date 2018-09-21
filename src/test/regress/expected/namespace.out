@@ -9,8 +9,6 @@ CREATE SCHEMA test_schema_1
               a serial,
               b int UNIQUE
        ) DISTRIBUTED BY (b);
-NOTICE:  CREATE TABLE will create implicit sequence "abc_a_seq" for serial column "abc.a"
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "abc_b_key" for table "abc"
 -- verify that the objects were created
 SELECT COUNT(*) FROM pg_class WHERE relnamespace =
     (SELECT oid FROM pg_namespace WHERE nspname = 'test_schema_1');
@@ -38,6 +36,19 @@ SELECT * FROM test_schema_1.abc_view;
  4 |  
 (3 rows)
 
+-- test IF NOT EXISTS cases
+CREATE SCHEMA test_schema_1; -- fail, already exists
+ERROR:  schema "test_schema_1" already exists
+CREATE SCHEMA IF NOT EXISTS test_schema_1; -- ok with notice
+NOTICE:  schema "test_schema_1" already exists, skipping
+CREATE SCHEMA IF NOT EXISTS test_schema_1 -- fail, disallowed
+       CREATE TABLE abc (
+              a serial,
+              b int UNIQUE
+       );
+ERROR:  CREATE SCHEMA IF NOT EXISTS cannot include schema elements
+LINE 2:        CREATE TABLE abc (
+               ^
 -- Test GRANT/REVOKE 
 CREATE SCHEMA test_schema_2;
 CREATE TABLE test_schema_2.abc as select * from test_schema_1.abc DISTRIBUTED BY (a);

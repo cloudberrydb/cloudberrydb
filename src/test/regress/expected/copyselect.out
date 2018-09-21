@@ -2,7 +2,6 @@
 -- Test cases for COPY (select) TO
 --
 create table copyselect_test1 (id serial, t text);
-NOTICE:  CREATE TABLE will create implicit sequence "copyselect_test1_id_seq" for serial column "copyselect_test1.id"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into copyselect_test1 (t) values ('a');
@@ -11,7 +10,6 @@ insert into copyselect_test1 (t) values ('c');
 insert into copyselect_test1 (t) values ('d');
 insert into copyselect_test1 (t) values ('e');
 create table copyselect_test2 (id serial, t text);
-NOTICE:  CREATE TABLE will create implicit sequence "copyselect_test2_id_seq" for serial column "copyselect_test2.id"
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into copyselect_test2 (t) values ('A');

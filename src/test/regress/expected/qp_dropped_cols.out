@@ -1870,7 +1870,6 @@ col3 char,
 col4 boolean,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a',True,1;
@@ -1907,7 +1906,6 @@ col3 char,
 col4 char,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a','z',1;
@@ -1943,7 +1941,6 @@ col3 char,
 col4 decimal,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a',2.00,1;
@@ -1979,7 +1976,6 @@ col3 char,
 col4 int4,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a',2000000000,1;
@@ -2015,7 +2011,6 @@ col3 char,
 col4 int8,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a',2000000000000000000,1;
@@ -2051,7 +2046,6 @@ col3 char,
 col4 interval,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a','1 day',1;
@@ -2087,7 +2081,6 @@ col3 char,
 col4 numeric,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a',2.000000,1;
@@ -2123,7 +2116,6 @@ col3 char,
 col4 text,
 col5 int
 ) WITH OIDS DISTRIBUTED by(col4);
-NOTICE:  CREATE TABLE will create implicit sequence "oidtab_col1_seq" for serial column "oidtab.col1"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 ALTER TABLE oidtab DROP COLUMN col2;
 INSERT INTO oidtab(col3,col4,col5) SELECT 'a','abcdefghijklmnop',1;

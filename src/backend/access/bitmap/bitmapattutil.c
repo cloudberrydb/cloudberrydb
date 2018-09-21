@@ -22,6 +22,8 @@
 #include "access/tupdesc.h"
 #include "access/bitmap.h"
 #include "access/heapam.h"
+#include "access/heapam_xlog.h"
+#include "access/multixact.h"
 #include "access/nbtree.h"
 #include "access/xact.h"
 #include "access/transam.h"
@@ -118,8 +120,8 @@ _bitmap_create_lov_heapandindex(Relation rel,
 		lovHeap = heap_open(heapid, AccessExclusiveLock);
 		lovIndex = index_open(idxid, AccessExclusiveLock);
 
-		RelationSetNewRelfilenode(lovHeap, RecentXmin);
-		RelationSetNewRelfilenode(lovIndex, InvalidTransactionId);
+		RelationSetNewRelfilenode(lovHeap, RecentXmin, GetOldestMultiXactId());
+		RelationSetNewRelfilenode(lovIndex, InvalidTransactionId, InvalidMultiXactId);
 
 		/*
 		 * After creating the new relfilenode for a btee index, this is not
@@ -179,6 +181,7 @@ _bitmap_create_lov_heapandindex(Relation rel,
 								 false, 0,
 								 ONCOMMIT_NOOP, NULL /* GP Policy */,
 								 (Datum)0, false, true,
+								 false, /* is_internal */
 								 /* valid_opts */ true,
 								 /* is_part_child */ false,
 								 /* is_part_parent */ false);
@@ -245,7 +248,10 @@ _bitmap_create_lov_heapandindex(Relation rel,
 						 /* deferrable */ false,
 						 /* initdeferred */ false,
 						 /* allow_system_table_mods */ true,
-						 false, false, NULL);
+						 /* skip_build */ false,
+						 /* concurrent */ false,
+						 /* is_internal */ false,	/* GPDB_93_MERGE_FIXME: What's the appropriate is_internal flag? */
+						 NULL);
 	*lovIndexOid = idxid;
 
 	heap_close(lov_heap_rel, NoLock);

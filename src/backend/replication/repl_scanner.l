@@ -4,7 +4,7 @@
  * repl_scanner.l
  *	  a lexical scanner for the replication commands
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,6 +14,8 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
+
+#include "utils/builtins.h"
 
 /* Avoid exit() on fatal scanner errors (a bit ugly -- see yy_fatal_error) */
 #undef fprintf
@@ -55,6 +57,7 @@ xqstart			{quote}
 xqdouble		{quote}{quote}
 xqinside		[^']+
 
+digit			[0-9]+
 hexdigit		[0-9A-Za-z]+
 
 quote			'
@@ -70,8 +73,9 @@ NOWAIT			{ return K_NOWAIT; }
 EXCLUDE			{ return K_EXCLUDE; }
 PROGRESS			{ return K_PROGRESS; }
 WAL			{ return K_WAL; }
+TIMELINE			{ return K_TIMELINE; }
 START_REPLICATION	{ return K_START_REPLICATION; }
-SYNC			{ return K_SYNC; }
+TIMELINE_HISTORY	{ return K_TIMELINE_HISTORY; }
 ","				{ return ','; }
 ";"				{ return ';'; }
 
@@ -79,9 +83,17 @@ SYNC			{ return K_SYNC; }
 [\t]			;
 " "				;
 
+{digit}+		{
+					yylval.intval = pg_atoi(yytext, sizeof(int32), 0);
+					return ICONST;
+				}
+
 {hexdigit}+\/{hexdigit}+		{
-					if (sscanf(yytext, "%X/%X", &yylval.recptr.xlogid, &yylval.recptr.xrecoff) != 2)
+					uint32	hi,
+							lo;
+					if (sscanf(yytext, "%X/%X", &hi, &lo) != 2)
 						yyerror("invalid streaming start location");
+					yylval.recptr = ((uint64) hi) << 32 | lo;
 					return RECPTR;
 				}
 
@@ -141,7 +153,7 @@ addlitchar(unsigned char ychar)
 	appendStringInfoChar(&litbuf, ychar);
 }
 
-void
+void __attribute__((noreturn))
 yyerror(const char *message)
 {
 	ereport(ERROR,

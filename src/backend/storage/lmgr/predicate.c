@@ -125,7 +125,7 @@
  *		- Protects both PredXact and SerializableXidHash.
  *
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -183,6 +183,7 @@
 
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "access/slru.h"
 #include "access/subtrans.h"
 #include "access/transam.h"
@@ -193,6 +194,7 @@
 #include "storage/bufmgr.h"
 #include "storage/predicate.h"
 #include "storage/predicate_internals.h"
+#include "storage/proc.h"
 #include "storage/procarray.h"
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
@@ -458,13 +460,14 @@ static void OnConflict_CheckForSerializationFailure(const SERIALIZABLEXACT *read
 
 /*
  * Does this relation participate in predicate locking? Temporary and system
- * relations are exempt.
+ * relations are exempt, as are materialized views.
  */
 static inline bool
 PredicateLockingNeededForRelation(Relation relation)
 {
 	return !(relation->rd_id < FirstBootstrapObjectId ||
-			 RelationUsesLocalBuffers(relation));
+			 RelationUsesLocalBuffers(relation) ||
+			 relation->rd_rel->relkind == RELKIND_MATVIEW);
 }
 
 /*
@@ -1569,6 +1572,19 @@ Snapshot
 GetSerializableTransactionSnapshot(Snapshot snapshot)
 {
 	Assert(IsolationIsSerializable());
+
+	/*
+	 * Can't use serializable mode while recovery is still active, as it is,
+	 * for example, on a hot standby.  We could get here despite the check in
+	 * check_XactIsoLevel() if default_transaction_isolation is set to
+	 * serializable, so phrase the hint accordingly.
+	 */
+	if (RecoveryInProgress())
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot use serializable mode in a hot standby"),
+				 errdetail("\"default_transaction_isolation\" is set to \"serializable\"."),
+				 errhint("You can use \"SET default_transaction_isolation = 'repeatable read'\" to change the default.")));
 
 	/*
 	 * A special optimization is available for SERIALIZABLE READ ONLY
@@ -3890,10 +3906,10 @@ CheckForSerializableConflictOut(bool visible, Relation relation,
 		case HEAPTUPLE_RECENTLY_DEAD:
 			if (!visible)
 				return;
-			xid = HeapTupleHeaderGetXmax(tuple->t_data);
+			xid = HeapTupleHeaderGetUpdateXid(tuple->t_data);
 			break;
 		case HEAPTUPLE_DELETE_IN_PROGRESS:
-			xid = HeapTupleHeaderGetXmax(tuple->t_data);
+			xid = HeapTupleHeaderGetUpdateXid(tuple->t_data);
 			break;
 		case HEAPTUPLE_INSERT_IN_PROGRESS:
 			xid = HeapTupleHeaderGetXmin(tuple->t_data);
