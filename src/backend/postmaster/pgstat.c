@@ -2764,6 +2764,27 @@ gpstat_report_waiting(char reason)
 }
 
 /* ----------
+ * pgstat_report_sessionid() -
+ *
+ * 	Called from cdbgang to report a session is reset.
+ *
+ * ----------
+ */
+void
+pgstat_report_sessionid(int new_sessionid)
+{
+	volatile PgBackendStatus *beentry = MyBEEntry;
+
+	if (!beentry)
+		return;
+
+	beentry->st_changecount++;
+	beentry->st_session_id = new_sessionid;
+	beentry->st_changecount++;
+	Assert((beentry->st_changecount & 1) == 0);
+}
+
+/* ----------
  * pgstat_read_current_status() -
  *
  *	Copy the current contents of the PgBackendStatus array to local memory,

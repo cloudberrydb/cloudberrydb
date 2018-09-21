@@ -209,6 +209,7 @@ test: vacuum_full_heap_bitmapindex
 test: ao_checksum_corruption AOCO_Compression2 table_statistics fts_error
 test: metadata_track
 test: workfile_mgr_test
+test: session_reset
 
 test: psql_gp_commands pg_resetxlog
 

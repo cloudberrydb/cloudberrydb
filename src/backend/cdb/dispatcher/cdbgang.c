@@ -20,6 +20,7 @@
 
 #include "libpq-fe.h"
 #include "miscadmin.h"			/* MyDatabaseId */
+#include "pgstat.h"			/* pgstat_report_sessionid() */
 #include "storage/proc.h"		/* MyProc */
 #include "storage/ipc.h"
 #include "utils/memutils.h"
@@ -1421,6 +1422,7 @@ CheckForResetSession(void)
 
 	gp_session_id = newSessionId;
 	gp_command_count = 0;
+	pgstat_report_sessionid(newSessionId);
 
 	/* Update the slotid for our singleton reader. */
 	if (SharedLocalSnapshotSlot != NULL)

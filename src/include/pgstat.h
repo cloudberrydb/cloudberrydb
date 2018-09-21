@@ -862,6 +862,7 @@ extern void pgstat_report_txn_timestamp(TimestampTz tstamp);
 extern void pgstat_report_waiting(bool waiting);
 #endif
 extern void gpstat_report_waiting(char reason);
+extern void pgstat_report_sessionid(int new_sessionid);
 
 extern void pgstat_report_activity(BackendState state, const char *cmd_str);
 extern void pgstat_report_tempfile(size_t filesize);
