@@ -7106,58 +7106,6 @@ ReadCheckpointRecord(XLogReaderState *xlogreader, XLogRecPtr RecPtr,
 }
 
 /*
- * NOTE: There's a copy of this in contrib/pg_xlogdump/compat.c. If you change
- * this, update the copy as well!
- *
- * GPDB_93_MERGE_FIXME: refactor this to avoid the duplication.
- */
-void
-UnpackCheckPointRecord(XLogRecord *record, CheckpointExtendedRecord *ckptExtended)
-{
-	char *current_record_ptr;
-	int remainderLen;
-
-	if (record->xl_len == sizeof(CheckPoint))
-	{
-		/* Special (for bootstrap, xlog switch, maybe others) */
-		ckptExtended->dtxCheckpoint = NULL;
-		ckptExtended->dtxCheckpointLen = 0;
-		ckptExtended->ptas = NULL;
-		return;
-	}
-
-	/* Normal checkpoint Record */
-	Assert(record->xl_len > sizeof(CheckPoint));
-
-	current_record_ptr = ((char*)XLogRecGetData(record)) + sizeof(CheckPoint);
-	remainderLen = record->xl_len - sizeof(CheckPoint);
-
-	/* Start of distributed transaction information */
-	ckptExtended->dtxCheckpoint = (TMGXACT_CHECKPOINT *)current_record_ptr;
-	ckptExtended->dtxCheckpointLen =
-		TMGXACT_CHECKPOINT_BYTES((ckptExtended->dtxCheckpoint)->committedCount);
-
-	/*
-	 * The master prepared transaction aggregate state (ptas) will be skipped
-	 * when gp_before_filespace_setup is ON.
-	 */
-	if (remainderLen > ckptExtended->dtxCheckpointLen)
-	{
-		current_record_ptr = current_record_ptr + ckptExtended->dtxCheckpointLen;
-		remainderLen -= ckptExtended->dtxCheckpointLen;
-
-		/* Finally, point to prepared transaction information */
-		ckptExtended->ptas = (prepared_transaction_agg_state *) current_record_ptr;
-		Assert(remainderLen == PREPARED_TRANSACTION_CHECKPOINT_BYTES(ckptExtended->ptas->count));
-	}
-	else
-	{
-		Assert(remainderLen == ckptExtended->dtxCheckpointLen);
-		ckptExtended->ptas = NULL;
-	}
-}
-
-/*
  * This must be called during startup of a backend process, except that
  * it need not be called in a standalone backend (which does StartupXLOG
  * instead).  We need to initialize the local copies of ThisTimeLineID and

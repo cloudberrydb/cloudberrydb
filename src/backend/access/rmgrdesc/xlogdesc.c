@@ -34,6 +34,57 @@ const struct config_enum_entry wal_level_options[] = {
 	{NULL, 0, false}
 };
 
+
+/*
+ * This is used also in the redo function, but must be defined here so that it
+ * can also be used in xlog_desc.
+ */
+void
+UnpackCheckPointRecord(XLogRecord *record, CheckpointExtendedRecord *ckptExtended)
+{
+	char *current_record_ptr;
+	int remainderLen;
+
+	if (record->xl_len == sizeof(CheckPoint))
+	{
+		/* Special (for bootstrap, xlog switch, maybe others) */
+		ckptExtended->dtxCheckpoint = NULL;
+		ckptExtended->dtxCheckpointLen = 0;
+		ckptExtended->ptas = NULL;
+		return;
+	}
+
+	/* Normal checkpoint Record */
+	Assert(record->xl_len > sizeof(CheckPoint));
+
+	current_record_ptr = ((char*)XLogRecGetData(record)) + sizeof(CheckPoint);
+	remainderLen = record->xl_len - sizeof(CheckPoint);
+
+	/* Start of distributed transaction information */
+	ckptExtended->dtxCheckpoint = (TMGXACT_CHECKPOINT *)current_record_ptr;
+	ckptExtended->dtxCheckpointLen =
+		TMGXACT_CHECKPOINT_BYTES((ckptExtended->dtxCheckpoint)->committedCount);
+
+	/*
+	 * The master prepared transaction aggregate state (ptas) will be skipped
+	 * when gp_before_filespace_setup is ON.
+	 */
+	if (remainderLen > ckptExtended->dtxCheckpointLen)
+	{
+		current_record_ptr = current_record_ptr + ckptExtended->dtxCheckpointLen;
+		remainderLen -= ckptExtended->dtxCheckpointLen;
+
+		/* Finally, point to prepared transaction information */
+		ckptExtended->ptas = (prepared_transaction_agg_state *) current_record_ptr;
+		Assert(remainderLen == PREPARED_TRANSACTION_CHECKPOINT_BYTES(ckptExtended->ptas->count));
+	}
+	else
+	{
+		Assert(remainderLen == ckptExtended->dtxCheckpointLen);
+		ckptExtended->ptas = NULL;
+	}
+}
+
 void
 xlog_desc(StringInfo buf, XLogRecord *record)
 {

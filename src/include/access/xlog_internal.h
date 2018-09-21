@@ -300,6 +300,4 @@ extern bool XLogArchiveCheckDone(const char *xlog);
 extern bool XLogArchiveIsBusy(const char *xlog);
 extern void XLogArchiveCleanup(const char *xlog);
 
-extern void UnpackCheckPointRecord(struct XLogRecord *record, CheckpointExtendedRecord *ckptExtended);
-
 #endif   /* XLOG_INTERNAL_H */
