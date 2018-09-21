@@ -54,9 +54,9 @@ EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT 
                            Hash Key: boxes.apple_id
                            ->  Table Scan on boxes  (cost=0.00..879.00 rows=25967 width=12)
                      ->  Index Scan using apples_pkey on apples  (cost=11.123..11.123 rows=0 width=1)
-                           Index Cond: id = boxes.apple_id
+                           Index Cond: (id = boxes.apple_id)
          ->  Index Scan using box_locations_pkey on box_locations  (cost=22.234..32.231 rows=1 width=0)
-               Index Cond: id = boxes.location_id
+               Index Cond: (id = boxes.location_id)
 (15 rows)
 
 -- explain_processing_on
@@ -76,9 +76,9 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
                            Hash Key: boxes.apple_id
                            ->  Table Scan on boxes  (cost=1.123..11.322 rows=1 width=0) (actual time=11.222..11.222 rows=1 loops=1)
                      ->  Index Scan using apples_pkey on apples  (cost=12.321..12.123 rows=3 width=3) (never executed)
-                           Index Cond: id = boxes.apple_id
+                           Index Cond: (id = boxes.apple_id)
          ->  Index Scan using box_locations_pkey on box_locations  (cost=12.123..12.321 rows=32 width=321) (never executed)
-               Index Cond: id = boxes.location_id
+               Index Cond: (id = boxes.location_id)
    (slice0)    Executor memory: 386K bytes.  Peak memory: 42342K bytes.  Vmem reserved: 123432K bytes.
    (slice1)    Executor memory: 59K bytes avg x 3 workers, 59K bytes max (seg0).  Peak memory: 1234532 bytes avg x 2 workers, 123 bytes max (seg0).  Vmem reserved: 100 bytes avg x 3 workers, 123k bytes max (seg0).
    (slice2)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).  Peak memory: 543 bytes avg x 2 workers, 312 bytes max (seg0).  Vmem reserved: 1234243 bytes avg x 1 workers, 312 bytes max (seg0).
@@ -224,7 +224,7 @@ QUERY PLAN
                     Total Cost: 1.00
                     Plan Rows: 13
                     Plan Width: 43213
-                    Index Cond: "id = boxes.apple_id"
+                    Index Cond: "(id = boxes.apple_id)"
           - Node Type: "Index Scan"
             Parent Relationship: "Inner"
             Slice: 3
@@ -238,7 +238,7 @@ QUERY PLAN
             Total Cost: 3.00
             Plan Rows: 2
             Plan Width: 56
-            Index Cond: "id = boxes.location_id"
+            Index Cond: "(id = boxes.location_id)"
   Settings: 
     Optimizer: "PQO version 2.1.0"
 (1 row)
@@ -362,7 +362,7 @@ QUERY PLAN
                     Actual Total Time: 0.030
                     Actual Rows: 10
                     Actual Loops: 11
-                    Index Cond: "id = boxes.apple_id"
+                    Index Cond: "(id = boxes.apple_id)"
                     Rows Removed by Index Recheck: 0
           - Node Type: "Index Scan"
             Parent Relationship: "Inner"
@@ -381,7 +381,7 @@ QUERY PLAN
             Actual Total Time: 2.000
             Actual Rows: 3
             Actual Loops: 4
-            Index Cond: "id = boxes.location_id"
+            Index Cond: "(id = boxes.location_id)"
             Rows Removed by Index Recheck: 0
   Triggers: 
   Slice statistics: 
@@ -581,7 +581,7 @@ QUERY PLAN
                       "Total Cost": 2.20,
                       "Plan Rows": 3,
                       "Plan Width": 4,
-                      "Index Cond": "id = boxes.apple_id"
+                      "Index Cond": "(id = boxes.apple_id)"
                     }
                   ]
                 }
@@ -601,7 +601,7 @@ QUERY PLAN
               "Total Cost": 2.20,
               "Plan Rows": 3,
               "Plan Width": 4,
-              "Index Cond": "id = boxes.location_id"
+              "Index Cond": "(id = boxes.location_id)"
             }
           ]
         }
@@ -745,7 +745,7 @@ QUERY PLAN
                       "Actual Total Time": 0.060,
                       "Actual Rows": 7,
                       "Actual Loops": 8,
-                      "Index Cond": "id = boxes.apple_id",
+                      "Index Cond": "(id = boxes.apple_id)",
                       "Rows Removed by Index Recheck": 0
                     }
                   ]
@@ -770,7 +770,7 @@ QUERY PLAN
               "Actual Total Time": 6.000,
               "Actual Rows": 7,
               "Actual Loops": 8,
-              "Index Cond": "id = boxes.location_id",
+              "Index Cond": "(id = boxes.location_id)",
               "Rows Removed by Index Recheck": 0
             }
           ]
@@ -1008,7 +1008,7 @@ QUERY PLAN
                       <Total-Cost>2.20</Total-Cost>
                       <Plan-Rows>3</Plan-Rows>
                       <Plan-Width>5</Plan-Width>
-                      <Index-Cond>id = boxes.apple_id</Index-Cond>
+                      <Index-Cond>(id = boxes.apple_id)</Index-Cond>
                     </Plan>
                   </Plans>
                 </Plan>
@@ -1028,7 +1028,7 @@ QUERY PLAN
               <Total-Cost>2.40</Total-Cost>
               <Plan-Rows>3</Plan-Rows>
               <Plan-Width>2</Plan-Width>
-              <Index-Cond>id = boxes.location_id</Index-Cond>
+              <Index-Cond>(id = boxes.location_id)</Index-Cond>
             </Plan>
           </Plans>
         </Plan>
@@ -1172,7 +1172,7 @@ QUERY PLAN
                       <Actual-Total-Time>0.300</Actual-Total-Time>
                       <Actual-Rows>2</Actual-Rows>
                       <Actual-Loops>1</Actual-Loops>
-                      <Index-Cond>id = boxes.apple_id</Index-Cond>
+                      <Index-Cond>(id = boxes.apple_id)</Index-Cond>
                       <Rows-Removed-by-Index-Recheck>0</Rows-Removed-by-Index-Recheck>
                     </Plan>
                   </Plans>
@@ -1197,7 +1197,7 @@ QUERY PLAN
               <Actual-Total-Time>0.010</Actual-Total-Time>
               <Actual-Rows>0</Actual-Rows>
               <Actual-Loops>0</Actual-Loops>
-              <Index-Cond>id = boxes.location_id</Index-Cond>
+              <Index-Cond>(id = boxes.location_id)</Index-Cond>
               <Rows-Removed-by-Index-Recheck>0</Rows-Removed-by-Index-Recheck>
             </Plan>
           </Plans>

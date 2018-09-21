@@ -106,10 +106,10 @@ select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
 WHERE mpp22263.unique1 = v.i and mpp22263.stringu1 = v.j;
   $$) as et
 WHERE et like '%Filter: %';
-                           et                            
----------------------------------------------------------
+                             et                              
+-------------------------------------------------------------
          Join Filter: true
-               Filter: stringu1::text = "Values".column2
+               Filter: ((stringu1)::text = "Values".column2)
 (2 rows)
 
 --
@@ -122,20 +122,20 @@ SELECT trim(et) et from
 get_explain_output($$ 
 	select * from (values (1)) as f(a) join (values(2)) b(b) on a = b join foo on true join foo as foo2 on true $$) as et
 WHERE et like '%Join Filter:%' or et like '%Hash Cond:%';
-                      et                      
-----------------------------------------------
+                       et                       
+------------------------------------------------
  Join Filter: true
  Join Filter: true
- Hash Cond: "outer".column1 = "outer".column1
+ Hash Cond: ("outer".column1 = "outer".column1)
 (3 rows)
 
 SELECT trim(et) et from
 get_explain_output($$
 	select * from (values (1)) as f(a) join (values(2)) b(b) on a = b$$) as et
 WHERE et like '%Hash Cond:%';
-              et              
-------------------------------
- Hash Cond: column1 = column1
+               et               
+--------------------------------
+ Hash Cond: (column1 = column1)
 (1 row)
 
 --

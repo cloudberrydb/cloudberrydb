@@ -2139,7 +2139,7 @@ explain (costs off) with t as (select * from with_test1) select * from t where i
 ------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)
    ->  Seq Scan on with_test1
-         Filter: i = 10
+         Filter: (i = 10)
  Optimizer: legacy query optimizer
 (4 rows)
 

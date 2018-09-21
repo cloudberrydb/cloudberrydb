@@ -2139,7 +2139,7 @@ explain (costs off) with t as (select * from with_test1) select * from t where i
 ------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)
    ->  Table Scan on with_test1
-         Filter: i = 10
+         Filter: (i = 10)
 (3 rows)
 
 -- Test to validate an old bug which caused incorrect results when a subquery

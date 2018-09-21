@@ -10537,7 +10537,7 @@ explain (costs off) select count(*), t2.c from input_tab1 t1 left join input_tab
                ->  HashAggregate
                      Group Key: t2.c
                      ->  Hash Right Join
-                           Hash Cond: t2.c = t1.a
+                           Hash Cond: (t2.c = t1.a)
                            ->  Seq Scan on input_tab2 t2
                            ->  Hash
                                  ->  Seq Scan on input_tab1 t1

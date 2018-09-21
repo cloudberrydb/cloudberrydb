@@ -632,12 +632,12 @@ select first_value(max(x)) over (), y
    ->  Gather Motion 3:1  (slice2; segments: 3)
          ->  Result
                ->  HashAggregate
-                     Group Key: (ten + four)
+                     Group Key: ((ten + four))
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                           Hash Key: (ten + four)
+                           Hash Key: ((ten + four))
                            ->  Result
                                  ->  HashAggregate
-                                       Group Key: ten + four
+                                       Group Key: (ten + four)
                                        ->  Result
                                              ->  Table Scan on tenk1
  Optimizer: PQO version 2.74.0

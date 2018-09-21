@@ -518,7 +518,7 @@ explain (costs off)
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan using tenk1_unique1 on tenk1
-                       Index Cond: unique1 IS NOT NULL
+                       Index Cond: (unique1 IS NOT NULL)
  Optimizer: legacy query optimizer
 (8 rows)
 
@@ -538,7 +538,7 @@ explain (costs off)
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
-                       Index Cond: unique1 IS NOT NULL
+                       Index Cond: (unique1 IS NOT NULL)
  Optimizer: legacy query optimizer
 (8 rows)
 
@@ -550,15 +550,15 @@ select max(unique1) from tenk1;
 
 explain (costs off)
   select max(unique1) from tenk1 where unique1 < 42;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Result
    InitPlan 1 (returns $0)  (slice2)
      ->  Limit
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
-                       Index Cond: unique1 IS NOT NULL AND unique1 < 42
+                       Index Cond: ((unique1 IS NOT NULL) AND (unique1 < 42))
  Optimizer: legacy query optimizer
 (8 rows)
 
@@ -570,15 +570,15 @@ select max(unique1) from tenk1 where unique1 < 42;
 
 explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Result
    InitPlan 1 (returns $0)  (slice2)
      ->  Limit
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
-                       Index Cond: unique1 IS NOT NULL AND unique1 > 42
+                       Index Cond: ((unique1 IS NOT NULL) AND (unique1 > 42))
  Optimizer: legacy query optimizer
 (8 rows)
 
@@ -592,15 +592,15 @@ set enable_seqscan=off;
 set enable_bitmapscan=off;
 explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42000;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Result
    InitPlan 1 (returns $0)  (slice2)
      ->  Limit
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique1
                  ->  Index Only Scan Backward using tenk1_unique1 on tenk1
-                       Index Cond: unique1 IS NOT NULL AND unique1 > 42000
+                       Index Cond: ((unique1 IS NOT NULL) AND (unique1 > 42000))
  Optimizer: legacy query optimizer
 (8 rows)
 
@@ -622,7 +622,7 @@ explain (costs off)
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.tenthous
                  ->  Index Only Scan Backward using tenk1_thous_tenthous on tenk1
-                       Index Cond: thousand = 33 AND tenthous IS NOT NULL
+                       Index Cond: ((thousand = 33) AND (tenthous IS NOT NULL))
  Optimizer: legacy query optimizer
 (8 rows)
 
@@ -634,15 +634,15 @@ select max(tenthous) from tenk1 where thousand = 33;
 
 explain (costs off)
   select min(tenthous) from tenk1 where thousand = 33;
-                                QUERY PLAN                                
---------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Result
    InitPlan 1 (returns $0)  (slice2)
      ->  Limit
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.tenthous
                  ->  Index Only Scan using tenk1_thous_tenthous on tenk1
-                       Index Cond: thousand = 33 AND tenthous IS NOT NULL
+                       Index Cond: ((thousand = 33) AND (tenthous IS NOT NULL))
  Optimizer: legacy query optimizer
 (8 rows)
 
@@ -665,7 +665,7 @@ explain (costs off)
          SubPlan 1  (slice2; segments: 3)
            ->  Aggregate
                  ->  Result
-                       Filter: tenk1.unique1 > int4_tbl.f1
+                       Filter: (tenk1.unique1 > int4_tbl.f1)
                        ->  Materialize
                              ->  Broadcast Motion 3:3  (slice1; segments: 3)
                                    ->  Seq Scan on tenk1
@@ -695,7 +695,7 @@ explain (costs off)
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
-                       Index Cond: unique2 IS NOT NULL
+                       Index Cond: (unique2 IS NOT NULL)
    ->  Result
  Optimizer: legacy query optimizer
 (10 rows)
@@ -717,7 +717,7 @@ explain (costs off)
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
-                       Index Cond: unique2 IS NOT NULL
+                       Index Cond: (unique2 IS NOT NULL)
    ->  Result
  Optimizer: legacy query optimizer
 (10 rows)
@@ -739,7 +739,7 @@ explain (costs off)
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
-                       Index Cond: unique2 IS NOT NULL
+                       Index Cond: (unique2 IS NOT NULL)
    ->  Result
  Optimizer: legacy query optimizer
 (10 rows)
@@ -755,13 +755,13 @@ explain (costs off)
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
  Sort
-   Sort Key: ($0 + 1)
+   Sort Key: (($0 + 1))
    InitPlan 1 (returns $0)  (slice2)
      ->  Limit
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
-                       Index Cond: unique2 IS NOT NULL
+                       Index Cond: (unique2 IS NOT NULL)
    ->  Result
  Optimizer: legacy query optimizer
 (10 rows)
@@ -783,7 +783,7 @@ explain (costs off)
            ->  Gather Motion 3:1  (slice1; segments: 3)
                  Merge Key: tenk1.unique2
                  ->  Index Only Scan Backward using tenk1_unique2 on tenk1
-                       Index Cond: unique2 IS NOT NULL
+                       Index Cond: (unique2 IS NOT NULL)
    ->  Result
  Optimizer: legacy query optimizer
 (10 rows)
@@ -822,13 +822,13 @@ explain (costs off)
                  ->  Merge Append
                        Sort Key: minmaxtest.f1
                        ->  Index Only Scan using minmaxtesti on minmaxtest
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest1i on minmaxtest1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan Backward using minmaxtest2i on minmaxtest2
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest3i on minmaxtest3
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
    InitPlan 2 (returns $1)  (slice4)
      ->  Limit
            ->  Gather Motion 3:1  (slice2; segments: 3)
@@ -836,13 +836,13 @@ explain (costs off)
                  ->  Merge Append
                        Sort Key: minmaxtest_1.f1
                        ->  Index Only Scan Backward using minmaxtesti on minmaxtest minmaxtest_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan Backward using minmaxtest1i on minmaxtest1 minmaxtest1_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest2i on minmaxtest2 minmaxtest2_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan Backward using minmaxtest3i on minmaxtest3 minmaxtest3_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
  Optimizer: legacy query optimizer
 (30 rows)
 

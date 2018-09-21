@@ -87,11 +87,11 @@ CREATE TABLE mpp22263 (
 create index mpp22263_idx1 on mpp22263 using btree(unique1);
 explain select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
 WHERE mpp22263.unique1 = v.i and mpp22263.stringu1 = v.j;
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.06..278.70 rows=14 width=280)
    ->  Hash Join  (cost=0.06..278.70 rows=5 width=280)
-         Hash Cond: mpp22263.unique1 = "*VALUES*".column1 AND mpp22263.stringu1::text = "*VALUES*".column2
+         Hash Cond: ((mpp22263.unique1 = "*VALUES*".column1) AND ((mpp22263.stringu1)::text = "*VALUES*".column2))
          ->  Seq Scan on mpp22263  (cost=0.00..219.00 rows=3967 width=244)
          ->  Hash  (cost=0.03..0.03 rows=1 width=36)
                ->  Values Scan on "*VALUES*"  (cost=0.00..0.03 rows=1 width=36)
@@ -121,18 +121,18 @@ SELECT trim(et) et from
 get_explain_output($$ 
 	select * from (values (1)) as f(a) join (values(2)) b(b) on a = b join foo on true join foo as foo2 on true $$) as et
 WHERE et like '%Join Filter:%' or et like '%Hash Cond:%';
-                          et                          
-------------------------------------------------------
- Hash Cond: "*VALUES*".column1 = "*VALUES*_1".column1
+                           et                           
+--------------------------------------------------------
+ Hash Cond: ("*VALUES*".column1 = "*VALUES*_1".column1)
 (1 row)
 
 SELECT trim(et) et from
 get_explain_output($$
 	select * from (values (1)) as f(a) join (values(2)) b(b) on a = b$$) as et
 WHERE et like '%Hash Cond:%';
-                          et                          
-------------------------------------------------------
- Hash Cond: "*VALUES*".column1 = "*VALUES*_1".column1
+                           et                           
+--------------------------------------------------------
+ Hash Cond: ("*VALUES*".column1 = "*VALUES*_1".column1)
 (1 row)
 
 --

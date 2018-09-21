@@ -710,8 +710,6 @@ extern Datum pg_get_function_identity_arguments(PG_FUNCTION_ARGS);
 extern Datum pg_get_function_result(PG_FUNCTION_ARGS);
 extern char *deparse_expression(Node *expr, List *dpcontext,
 				   bool forceprefix, bool showimplicit);
-extern char *deparse_expr_sweet(Node *expr, List *dpcontext,
-				   bool forceprefix, bool showimplicit);                /*CDB*/
 extern List *deparse_context_for(const char *aliasname, Oid relid);
 extern List *deparse_context_for_planstate(Node *planstate, List *ancestors,
 							  List *rtable, List *rtable_names);

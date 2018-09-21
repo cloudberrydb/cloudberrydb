@@ -292,7 +292,7 @@ EXPLAIN (costs off) UPDATE rw_view1 SET a=6 WHERE a=5;
                            ->  Split
                                  ->  Result
                                        ->  Index Scan using base_tbl_pkey on base_tbl
-                                             Index Cond: a = 5 AND a > 0
+                                             Index Cond: ((a = 5) AND (a > 0))
  Optimizer: PQO version 2.74.0
 (12 rows)
 
@@ -302,7 +302,7 @@ EXPLAIN (costs off) DELETE FROM rw_view1 WHERE a=5;
  Delete
    ->  Result
          ->  Index Scan using base_tbl_pkey on base_tbl
-               Index Cond: a = 5 AND a > 0
+               Index Cond: ((a = 5) AND (a > 0))
  Optimizer: PQO version 2.74.0
 (5 rows)
 
@@ -361,8 +361,8 @@ SELECT * FROM rw_view2;
 (3 rows)
 
 EXPLAIN (costs off) UPDATE rw_view2 SET aaa=5 WHERE aaa=4;
-                                      QUERY PLAN                                      
---------------------------------------------------------------------------------------
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
  Update
    ->  Result
          ->  Sort
@@ -373,17 +373,17 @@ EXPLAIN (costs off) UPDATE rw_view2 SET aaa=5 WHERE aaa=4;
                            ->  Split
                                  ->  Result
                                        ->  Index Scan using base_tbl_pkey on base_tbl
-                                             Index Cond: a = 4 AND a < 10 AND a > 0
+                                             Index Cond: ((a = 4) AND (a < 10) AND (a > 0))
  Optimizer: PQO version 2.74.0
 (12 rows)
 
 EXPLAIN (costs off) DELETE FROM rw_view2 WHERE aaa=4;
-                       QUERY PLAN                       
---------------------------------------------------------
+                          QUERY PLAN                          
+--------------------------------------------------------------
  Delete
    ->  Result
          ->  Index Scan using base_tbl_pkey on base_tbl
-               Index Cond: a = 4 AND a < 10 AND a > 0
+               Index Cond: ((a = 4) AND (a < 10) AND (a > 0))
  Optimizer: PQO version 2.74.0
 (5 rows)
 
@@ -570,14 +570,14 @@ EXPLAIN (costs off) UPDATE rw_view2 SET a=3 WHERE a=2;
    ->  Result
          ->  Split
                ->  Hash Join
-                     Hash Cond: base_tbl.a = base_tbl_1.a
+                     Hash Cond: (base_tbl.a = base_tbl_1.a)
                      ->  Index Scan using base_tbl_pkey on base_tbl
-                           Index Cond: a = 2
+                           Index Cond: (a = 2)
                      ->  Hash
                            ->  Result
-                                 Filter: base_tbl_1.a = 2 AND base_tbl_1.a < 10
+                                 Filter: ((base_tbl_1.a = 2) AND (base_tbl_1.a < 10))
                                  ->  Index Scan using base_tbl_pkey on base_tbl base_tbl_1
-                                       Index Cond: a > 0
+                                       Index Cond: (a > 0)
  Optimizer: PQO version 2.74.0
 (13 rows)
 
@@ -587,14 +587,14 @@ EXPLAIN (costs off) DELETE FROM rw_view2 WHERE a=2;
  Delete
    ->  Result
          ->  Hash Join
-               Hash Cond: base_tbl.a = base_tbl_1.a
+               Hash Cond: (base_tbl.a = base_tbl_1.a)
                ->  Index Scan using base_tbl_pkey on base_tbl
-                     Index Cond: a = 2
+                     Index Cond: (a = 2)
                ->  Hash
                      ->  Result
-                           Filter: base_tbl_1.a = 2 AND base_tbl_1.a < 10
+                           Filter: ((base_tbl_1.a = 2) AND (base_tbl_1.a < 10))
                            ->  Index Scan using base_tbl_pkey on base_tbl base_tbl_1
-                                 Index Cond: a > 0
+                                 Index Cond: (a > 0)
  Optimizer: PQO version 2.74.0
 (12 rows)
 
@@ -839,7 +839,7 @@ UPDATE rw_view1 v SET bb='Updated row 2' WHERE rw_view1_aa(v)=2
  Gather Motion 1:1  (slice1; segments: 1)
    ->  Update on base_tbl
          ->  Seq Scan on base_tbl
-               Filter: a = 2
+               Filter: (a = 2)
  Optimizer: legacy query optimizer
 (5 rows)
 

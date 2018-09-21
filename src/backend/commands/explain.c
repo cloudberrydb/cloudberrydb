@@ -2242,7 +2242,7 @@ show_expression(Node *node, const char *qlabel,
 											es->rtable_names);
 
 	/* Deparse the expression */
-	exprstr = deparse_expr_sweet(node, context, useprefix, false);
+	exprstr = deparse_expression(node, context, useprefix, false);
 
 	/* And add to es->str */
 	ExplainPropertyText(qlabel, exprstr, es);
@@ -2461,7 +2461,7 @@ show_sort_group_keys(PlanState *planstate, const char *qlabel,
 		if (!target)
 			elog(ERROR, "no tlist entry for key %d", keyresno);
 		/* Deparse the expression, showing any top-level cast */
-		exprstr = deparse_expr_sweet((Node *) target->expr, context,
+		exprstr = deparse_expression((Node *) target->expr, context,
 									 useprefix, true);
 		result = lappend(result, exprstr);
 	}

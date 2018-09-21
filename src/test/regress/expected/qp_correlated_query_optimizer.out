@@ -174,7 +174,7 @@ select * from A where exists (select * from B where A.i in (select C.i from C wh
 -----------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
-         Hash Cond: a.i = c.i
+         Hash Cond: (a.i = c.i)
          ->  Table Scan on a
          ->  Hash
                ->  GroupAggregate
@@ -182,7 +182,7 @@ select * from A where exists (select * from B where A.i in (select C.i from C wh
                      ->  Sort
                            Sort Key: c.i
                            ->  Hash Join
-                                 Hash Cond: c.i = b.i
+                                 Hash Cond: (c.i = b.i)
                                  ->  Table Scan on c
                                  ->  Hash
                                        ->  Table Scan on b

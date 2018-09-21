@@ -2342,19 +2342,6 @@ deparse_expression(Node *expr, List *dpcontext,
 }
 
 /* ----------
- * deparse_expr_sweet			- CDB: expression deparser for EXPLAIN
- *
- * calls deparse_expression_pretty with minimal parentheses but no indenting.
- */
-char *
-deparse_expr_sweet(Node *expr, List *dpcontext,
-				   bool forceprefix, bool showimplicit)
-{
-	return deparse_expression_pretty(expr, dpcontext, forceprefix,
-									 showimplicit, PRETTYFLAG_PAREN, 0);
-}
-
-/* ----------
  * deparse_expression_pretty	- General utility for deparsing expressions
  *
  * expr is the node tree to be deparsed.  It must be a transformed expression

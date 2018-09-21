@@ -2355,7 +2355,7 @@ show_motion_keys(PlanState *planstate, List *hashExpr, int nkeys, AttrNumber *ke
 
 	    /* Deparse the expression, showing any top-level cast */
 	    if (target)
-	        exprstr = deparse_expr_sweet((Node *) target->expr, context,
+	        exprstr = deparse_expression((Node *) target->expr, context,
 								         useprefix, true);
         else
         {
@@ -2374,7 +2374,7 @@ show_motion_keys(PlanState *planstate, List *hashExpr, int nkeys, AttrNumber *ke
     if (hashExpr)
     {
 	    /* Deparse the expression */
-	    exprstr = deparse_expr_sweet((Node *)hashExpr, context, useprefix, true);
+	    exprstr = deparse_expression((Node *)hashExpr, context, useprefix, true);
 		ExplainPropertyText("Hash Key", exprstr, es);
     }
 }
@@ -2401,7 +2401,7 @@ explain_partition_selector(PartitionSelector *ps, PlanState *parentstate,
 		useprefix = list_length(es->rtable) > 1;
 
 		/* Deparse the expression */
-		exprstr = deparse_expr_sweet(ps->printablePredicate, context, useprefix, false);
+		exprstr = deparse_expression(ps->printablePredicate, context, useprefix, false);
 
 		ExplainPropertyText("Filter", exprstr, es);
 	}
@@ -2470,7 +2470,7 @@ show_grouping_keys(PlanState *planstate, int nkeys, AttrNumber *subplanColIdx,
 		}
 		else
 			/* Deparse the expression, showing any top-level cast */
-			exprstr = deparse_expr_sweet((Node *) target->expr, context,
+			exprstr = deparse_expression((Node *) target->expr, context,
 										 useprefix, true);
 
 		result = lappend(result, exprstr);

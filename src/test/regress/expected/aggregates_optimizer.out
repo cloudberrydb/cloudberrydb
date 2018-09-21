@@ -563,7 +563,7 @@ explain (costs off)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Index Scan using tenk1_unique1 on tenk1
-                     Index Cond: unique1 < 42
+                     Index Cond: (unique1 < 42)
  Optimizer: PQO version 2.55.21
 (6 rows)
 
@@ -581,7 +581,7 @@ explain (costs off)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Index Scan using tenk1_unique1 on tenk1
-                     Index Cond: unique1 > 42
+                     Index Cond: (unique1 > 42)
  Optimizer: PQO version 2.55.21
 (6 rows)
 
@@ -601,7 +601,7 @@ explain (costs off)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Index Scan using tenk1_unique1 on tenk1
-                     Index Cond: unique1 > 42000
+                     Index Cond: (unique1 > 42000)
  Optimizer: PQO version 2.55.21
 (6 rows)
 
@@ -621,7 +621,7 @@ explain (costs off)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Index Scan using tenk1_thous_tenthous on tenk1
-                     Index Cond: thousand = 33
+                     Index Cond: (thousand = 33)
  Optimizer: PQO version 2.55.21
 (6 rows)
 
@@ -639,7 +639,7 @@ explain (costs off)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Index Scan using tenk1_thous_tenthous on tenk1
-                     Index Cond: thousand = 33
+                     Index Cond: (thousand = 33)
  Optimizer: PQO version 2.55.21
 (6 rows)
 
@@ -663,7 +663,7 @@ explain (costs off)
    SubPlan 1  (slice0)
      ->  Aggregate
            ->  Result
-                 Filter: tenk1.unique1 > int4_tbl.f1
+                 Filter: (tenk1.unique1 > int4_tbl.f1)
                  ->  Materialize
                        ->  Gather Motion 3:1  (slice2; segments: 3)
                              ->  Table Scan on tenk1
@@ -743,7 +743,7 @@ explain (costs off)
 ------------------------------------------------------------------
  Result
    ->  Sort
-         Sort Key: ((max((max(unique2)))) + 1)
+         Sort Key: (((max((max(unique2)))) + 1))
          ->  Result
                ->  Aggregate
                      ->  Gather Motion 3:1  (slice1; segments: 3)
@@ -813,13 +813,13 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
                  ->  Merge Append
                        Sort Key: minmaxtest.f1
                        ->  Index Only Scan using minmaxtesti on minmaxtest
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest1i on minmaxtest1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan Backward using minmaxtest2i on minmaxtest2
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest3i on minmaxtest3
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
    InitPlan 2 (returns $1)  (slice4)
      ->  Limit
            ->  Gather Motion 3:1  (slice2; segments: 3)
@@ -827,13 +827,13 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
                  ->  Merge Append
                        Sort Key: minmaxtest_1.f1
                        ->  Index Only Scan Backward using minmaxtesti on minmaxtest minmaxtest_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan Backward using minmaxtest1i on minmaxtest1 minmaxtest1_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan using minmaxtest2i on minmaxtest2 minmaxtest2_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
                        ->  Index Only Scan Backward using minmaxtest3i on minmaxtest3 minmaxtest3_1
-                             Index Cond: f1 IS NOT NULL
+                             Index Cond: (f1 IS NOT NULL)
  Optimizer: legacy query optimizer
 (30 rows)
 

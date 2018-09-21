@@ -476,16 +476,16 @@ explain (costs off)
   UNION ALL
   SELECT * FROM t2) t
  WHERE ab = 'ab';
-                    QUERY PLAN                     
----------------------------------------------------
+                      QUERY PLAN                       
+-------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Append
          ->  Result
-               Filter: (t1.a || t1.b) = 'ab'::text
+               Filter: (((t1.a || t1.b)) = 'ab'::text)
                ->  Result
                      ->  Table Scan on t1
          ->  Index Scan using t2_pkey on t2
-               Index Cond: ab = 'ab'::text
+               Index Cond: (ab = 'ab'::text)
  Optimizer: PQO version 2.74.0
 (9 rows)
 
@@ -495,26 +495,26 @@ explain (costs off)
   UNION
   SELECT * FROM t2) t
  WHERE ab = 'ab';
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  GroupAggregate
-         Group Key: (t1.a || t1.b)
+         Group Key: ((t1.a || t1.b))
          ->  Sort
-               Sort Key: (t1.a || t1.b)
+               Sort Key: ((t1.a || t1.b))
                ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                     Hash Key: (t1.a || t1.b)
+                     Hash Key: ((t1.a || t1.b))
                      ->  GroupAggregate
-                           Group Key: (t1.a || t1.b)
+                           Group Key: ((t1.a || t1.b))
                            ->  Sort
-                                 Sort Key: (t1.a || t1.b)
+                                 Sort Key: ((t1.a || t1.b))
                                  ->  Append
                                        ->  Result
-                                             Filter: (t1.a || t1.b) = 'ab'::text
+                                             Filter: (((t1.a || t1.b)) = 'ab'::text)
                                              ->  Result
                                                    ->  Table Scan on t1
                                        ->  Index Scan using t2_pkey on t2
-                                             Index Cond: ab = 'ab'::text
+                                             Index Cond: (ab = 'ab'::text)
  Optimizer: PQO version 2.74.0
 (19 rows)
 
@@ -536,7 +536,7 @@ explain (costs off)
                One-Time Filter: false
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Result
-               Filter: t = 2
+               Filter: (t = 2)
                ->  Result
                      ->  Table Scan on tenk1
  Optimizer: PQO version 2.74.0
@@ -553,7 +553,7 @@ WHERE x < 4;
 --------------------------------------
  Append
    ->  Result
-         Filter: x < 4
+         Filter: (x < 4)
          ->  Result
                ->  Result
    ->  Result
@@ -579,8 +579,8 @@ SELECT * FROM
    SELECT 2 AS t, 4 AS x) ss
 WHERE x < 4
 ORDER BY x;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  GroupAggregate
    Group Key: t, (generate_series(1, 10))
    ->  GroupAggregate
@@ -589,7 +589,7 @@ ORDER BY x;
                Sort Key: (generate_series(1, 10)), t
                ->  Append
                      ->  Result
-                           Filter: (generate_series(1, 10)) < 4
+                           Filter: ((generate_series(1, 10)) < 4)
                            ->  Result
                                  ->  Result
                      ->  Result
@@ -617,14 +617,14 @@ SELECT * FROM
    UNION
    SELECT 2 AS t, 4 AS x) ss
 WHERE x > 3;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Subquery Scan on ss
-   Filter: ss.x > 3
+   Filter: (ss.x > 3)
    ->  Unique
-         Group Key: "outer".t, (($0 * 3::double precision)::integer)
+         Group Key: "outer".t, ((($0 * 3::double precision))::integer)
          ->  Sort
-               Sort Key (Distinct): "outer".t, (($0 * 3::double precision)::integer)
+               Sort Key (Distinct): "outer".t, ((($0 * 3::double precision))::integer)
                ->  Append
                      ->  Result
                            InitPlan 1 (returns $0)
