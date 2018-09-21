@@ -1397,9 +1397,6 @@ RemoveLocalLock(LOCALLOCK *locallock)
 		if (locallock->lockOwners[i].owner != NULL)
 			ResourceOwnerForgetLock(locallock->lockOwners[i].owner, locallock);
 	}
-
-	// GPDB_93_MERGE_FIXME: where did this TODO come from? Action needed?
-	// TODO FIX_COMMTI^ does not have this check, why?
 	if (locallock->lockOwners != NULL)
 		pfree(locallock->lockOwners);
 	locallock->lockOwners = NULL;
