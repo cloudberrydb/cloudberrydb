@@ -48,40 +48,46 @@ EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT 
 EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
 -- explain_processing_on
 
+-- Unaligned output format is better for the YAML / XML / JSON outputs.
+-- In aligned format, you have end-of-line markers at the end of each line,
+-- and its position depends on the longest line. If the width changes, all
+-- lines need to be adjusted for the moved end-of-line-marker.
+\a
+
 -- YAML Required replaces for costs and time changes
 -- start_matchsubs
--- m/ Loops: \d+ /
--- s/ Loops: \d+\s+/ Loops: # /
--- m/ Cost: \d+\.\d+ /
--- s/ Cost: \d+\.\d+\s+/ Cost: ###.## /
--- m/ Rows: \d+ /
--- s/ Rows: \d+\s+/ Rows: ##### /
--- m/ Plan Width: \d+ /
--- s/ Plan Width: \d+\s+/ Plan Width: ## /
--- m/ Time: \d+\.\d+ /
--- s/ Time: \d+\.\d+\s+/ Time: ##.### /
+-- m/ Loops: \d+/
+-- s/ Loops: \d+/ Loops: #/
+-- m/ Cost: \d+\.\d+/
+-- s/ Cost: \d+\.\d+/ Cost: ###.##/
+-- m/ Rows: \d+/
+-- s/ Rows: \d+/ Rows: #####/
+-- m/ Plan Width: \d+/
+-- s/ Plan Width: \d+/ Plan Width: ##/
+-- m/ Time: \d+\.\d+/
+-- s/ Time: \d+\.\d+/ Time: ##.###/
 -- m/Total Runtime: \d+\.\d+/
 -- s/Total Runtime: \d+\.\d+/Total Runtime: ##.###/
--- m/Segments: \d+\s+/
--- s/Segments: \d+\s+/Segments: #/
--- m/PQO version \d+\.\d+\.\d+",?\s+/
--- s/PQO version \d+\.\d+\.\d+",?\s+/PQO version ##.##.##"/
--- m/Slice: [0-3]\s+/
--- s/Slice: [0-3]\s+/Slice: # /
--- m/ Memory: \d+\s+/
--- s/ Memory: \d+\s+/ Memory: ### /
--- m/Maximum Memory Used: \d+\s+/
--- s/Maximum Memory Used: \d+\s+/Maximum Memory Used: ### /
--- m/Work Maximum Memory: \d+\s+/
--- s/Work Maximum Memory: \d+\s+/Work Maximum Memory: ### /
--- m/Workers: \d+\s+/
--- s/Workers: \d+\s+/Workers: ## /
--- m/Average: \d+\s+/
--- s/Average: \d+\s+/Average: ## /
+-- m/Segments: \d+/
+-- s/Segments: \d+/Segments: #/
+-- m/PQO version \d+\.\d+\.\d+",?/
+-- s/PQO version \d+\.\d+\.\d+",?/PQO version ##.##.##"/
+-- m/Slice: [0-3]/
+-- s/Slice: [0-3]/Slice: # /
+-- m/ Memory: \d+/
+-- s/ Memory: \d+/ Memory: ###/
+-- m/Maximum Memory Used: \d+/
+-- s/Maximum Memory Used: \d+/Maximum Memory Used: ###/
+-- m/Work Maximum Memory: \d+/
+-- s/Work Maximum Memory: \d+/Work Maximum Memory: ###/
+-- m/Workers: \d+/
+-- s/Workers: \d+/Workers: ##/
+-- m/Average: \d+/
+-- s/Average: \d+/Average: ##/
 -- m/Total memory used across slices: \d+/
 -- s/Total memory used across slices: \d+\s*/Total memory used across slices: ###/
 -- m/Memory used: \d+/
--- s/Memory used: \d+\s+/Memory used: ###/
+-- s/Memory used: \d+/Memory used: ###/
 -- m/ORCA Memory Used \w+: \d+/
 -- s/ORCA Memory Used (\w+): \d+\s+/ORCA Memory Used $1: ##/
 -- end_matchsubs
@@ -95,42 +101,42 @@ EXPLAIN (ANALYZE, FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id
 
 -- JSON Required replaces for costs and time changes
 -- start_matchsubs
--- m/ Loops": \d+,?\s+/
--- s/ Loops": \d+,?\s+/ Loops": #, /
--- m/ Cost": \d+\.\d+, /
--- s/ Cost": \d+\.\d+,\s+/ Cost": ###.##, /
--- m/ Rows": \d+, /
--- s/ Rows": \d+,\s+/ Rows": #####, /
--- m/"Plan Width": \d+,? /
--- s/"Plan Width": \d+,?\s+/"Plan Width": ##, /
--- m/ Time": \d+\.\d+, /
--- s/ Time": \d+\.\d+,\s+/ Time": ##.###, /
--- m/Total Runtime": \d+\.\d+,?\s+/
--- s/Total Runtime": \d+\.\d+,?\s+/Total Runtime": ##.###,/
--- m/"Memory used": \d+,?\s+/
--- s/"Memory used": \d+,?\s+/"Memory used": ####,/
--- m/"Segments": \d+,\s+/
--- s/"Segments": \d+,\s+/"Segments": #,/
--- m/"Slice": [0-3],\s+/
--- s/"Slice": [0-3],\s+/"Slice": #, /
--- m/Executor Memory": \d+,?\s+/
--- s/Executor Memory": \d+,?\s+/Executor Memory": ### /
--- m/"Maximum Memory Used": \d+,?\s+/
--- s/"Maximum Memory Used": \d+,?\s+/"Maximum Memory Used": ###, /
--- m/"Work Maximum Memory": \d+,?\s+/
--- s/"Work Maximum Memory": \d+,?\s+/"Work Maximum Memory": ### /
--- m/"Workers": \d+,\s+/
--- s/"Workers": \d+,\s+/"Workers": ##, /
+-- m/ Loops": \d+,?/
+-- s/ Loops": \d+,?/ Loops": #,/
+-- m/ Cost": \d+\.\d+,/
+-- s/ Cost": \d+\.\d+,/ Cost": ###.##,/
+-- m/ Rows": \d+,/
+-- s/ Rows": \d+,/ Rows": #####,/
+-- m/"Plan Width": \d+,?/
+-- s/"Plan Width": \d+,?/"Plan Width": ##,/
+-- m/ Time": \d+\.\d+,/
+-- s/ Time": \d+\.\d+,/ Time": ##.###,/
+-- m/Total Runtime": \d+\.\d+,?/
+-- s/Total Runtime": \d+\.\d+,?/Total Runtime": ##.###,/
+-- m/"Memory used": \d+,?/
+-- s/"Memory used": \d+,?/"Memory used": ####,/
+-- m/"Segments": \d+,/
+-- s/"Segments": \d+,/"Segments": #,/
+-- m/"Slice": [0-3],/
+-- s/"Slice": [0-3],/"Slice": #,/
+-- m/Executor Memory": \d+,?/
+-- s/Executor Memory": \d+,?/Executor Memory": ###/
+-- m/"Maximum Memory Used": \d+,?/
+-- s/"Maximum Memory Used": \d+,?/"Maximum Memory Used": ###,/
+-- m/"Work Maximum Memory": \d+,?/
+-- s/"Work Maximum Memory": \d+,?/"Work Maximum Memory": ###/
+-- m/"Workers": \d+,/
+-- s/"Workers": \d+,/"Workers": ##,/
 -- m/Peak Memory": \d+,/
--- s/Peak Memory": \d+,\s+/Peak Memory": ###,/
+-- s/Peak Memory": \d+,/Peak Memory": ###,/
 -- m/Virtual Memory": \d+/
--- s/Virtual Memory": \d+\s+/Virtual Memory": ###/
--- m/"Average": \d+,\s+/
--- s/"Average": \d+,\s+/"Average": ##, /
+-- s/Virtual Memory": \d+/Virtual Memory": ###/
+-- m/"Average": \d+,/
+-- s/"Average": \d+,/"Average": ##, /
 -- m/"Total memory used across slices": \d+,/
 -- s/"Total memory used across slices": \d+,\s*/"Total memory used across slices": ###,/
 -- m/"ORCA Memory Used \w+": \d+,?/
--- s/"ORCA Memory Used (\w+)": \d+,?\s+/"ORCA Memory Used $1": ##/
+-- s/"ORCA Memory Used (\w+)": \d+,?/"ORCA Memory Used $1": ##/
 -- end_matchsubs
 -- explain_processing_off
 -- Check Explain JSON output
