@@ -169,9 +169,8 @@ static struct
 	const char* c; /* config file */
 	struct transform* trlist; /* transforms from config file */
 	const char* ssl; /* path to certificates in case we use gpfdist with ssl */
-	int 		sslclean; /* Defines the time to wait [sec] until cleanup the SSL resources (internal, not documented) */
 	int			w; /* The time used for session timeout in seconds */
-} opt = { 8080, 8080, 0, 0, 0, ".", 0, 0, -1, 5, 0, 32768, 0, 256, 0, 0, 0, 0, 0 };
+} opt = { 8080, 8080, 0, 0, 0, ".", 0, 0, -1, 5, 0, 32768, 0, 256, 0, 0, 0, 0 };
 
 
 typedef union address
@@ -363,7 +362,7 @@ static int gpfdist_SSL_send(const request_t *r, const void *buf, const size_t bu
 static int gpfdist_SSL_receive(const request_t *r, void *buf, const size_t buflen);
 static void free_SSL_resources(const request_t *r);
 static void setup_flush_ssl_buffer(request_t* r);
-static void request_cleanup_and_free_SSL_resources(int fd, short event, void* arg);
+static void request_cleanup_and_free_SSL_resources(request_t* r);
 #endif
 static int local_send(request_t *r, const char* buf, int buflen);
 
@@ -583,7 +582,6 @@ static void parse_command_line(int argc, const char* const argv[],
 	{ NULL, 'S', 0, "use O_SYNC when opening files for write" },
 	{ NULL, 'z', 1, "internal - queue size for listen call" },
 	{ "ssl", 257, 1, "ssl - certificates files under this directory" },
-	{ "sslclean", 258, 1, "Defines the time to wait [sec] until cleanup of the SSL resources" },
 #ifdef GPFXDIST
 	{ NULL, 'c', 1, "transform configuration file" },
 #endif
@@ -662,12 +660,8 @@ static void parse_command_line(int argc, const char* const argv[],
 		case 257:
 			opt.ssl = arg;
 			break;
-		case 258:
-			opt.sslclean = atoi(arg);
-			break;
 #else
 		case 257:
-		case 258:
 			usage_error("SSL is not supported by this build", 0);
 			break;
 #endif
@@ -808,10 +802,6 @@ static void parse_command_line(int argc, const char* const argv[],
 				"Please specify a valid directory for --ssl switch", opt.ssl), 0);
 		opt.ssl = p;
 	}
-
-	/* Validate opt.sslclean*/
-	if ( (opt.sslclean < 0) || (opt.sslclean > 300) )
-		usage_error("Error: -sslclean timeout must be between 0 and 300 [sec] (default is 0[sec])", 0);
 #endif
 
 #ifdef GPFXDIST
@@ -4146,20 +4136,8 @@ static void flush_ssl_buffer(int fd, short event, void* arg)
 	}
 	else
 	{
-		// Prepare and start a timer.
-		// While working with BIO_SSL, we are working with 3 buffers:
-		// [1] BIO layer buffer [2] SSL buffer [3] Socket buffer
-		// Sometimes we have a 5 sec delay somewhere between these buffers on Solaris (MPP-16402)
-		// So, even if the BIO_wpending() shows that there is no more pending data in the BIO_SSL buffer,
-		// we might still have data in the socket's buffer that wasn't sent yet.
-
-		gdebug(r, "SSL cleanup started");
-
-		event_del(&r->ev);
-		evtimer_set(&r->ev, request_cleanup_and_free_SSL_resources, r);
-		r->tm.tv_sec  = opt.sslclean;
-		r->tm.tv_usec = 0;
-		(void)evtimer_add(&r->ev, &r->tm);
+		// Do ssl cleanup immediately.
+		request_cleanup_and_free_SSL_resources(r);
 	}
 }
 
@@ -4167,7 +4145,7 @@ static void flush_ssl_buffer(int fd, short event, void* arg)
 /*
  * setup_flush_ssl_buffer
  *
- * Create event that will call to 'flush_ssl_buffer', with opt.sslclean seconds timeout
+ * Create event that will call to 'flush_ssl_buffer', with 5 seconds timeout
  */
 static void setup_flush_ssl_buffer(request_t* r)
 {
@@ -4300,11 +4278,9 @@ static void setup_do_close(request_t* r)
  * request_cleanup_and_free_SSL_resources
  *
  */
-static void request_cleanup_and_free_SSL_resources(int fd, short event, void* arg)
+static void request_cleanup_and_free_SSL_resources(request_t *r)
 {
-	request_t *r = (request_t *)arg;
-
-	gprintln(r, "SSL cleanup ended");
+	gprintln(r, "SSL cleanup and free");
 
 	/* Clean up request resources */
 	request_cleanup(r);
