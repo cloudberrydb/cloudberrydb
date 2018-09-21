@@ -312,6 +312,7 @@ SELECT COUNT(*) FROM dml_ao_check_s;
 
 INSERT INTO dml_ao_check_s values(default,1,'nn',1.0000);
 ERROR:  null value in column "a" violates not-null constraint  (seg0 127.0.0.1:40000 pid=18972)
+DETAIL:  Failing row contains (null, 1, nn, 1.0000).
 SELECT COUNT(*) FROM dml_ao_check_s;
  count 
 -------
@@ -1159,6 +1160,7 @@ SELECT COUNT(*) FROM dml_co_check_s;
 
 INSERT INTO dml_co_check_s values(default,1,'nn',1.0000);
 ERROR:  null value in column "a" violates not-null constraint  (seg0 127.0.0.1:40000 pid=18972)
+DETAIL:  Failing row contains (null, 1, nn, 1.0000).
 SELECT COUNT(*) FROM dml_co_check_s;
  count 
 -------
@@ -2028,6 +2030,7 @@ SELECT COUNT(*) FROM dml_heap_check_s;
 
 INSERT INTO dml_heap_check_s values(default,1,'nn',1.0000);
 ERROR:  null value in column "a" violates not-null constraint  (seg0 127.0.0.1:40000 pid=18972)
+DETAIL:  Failing row contains (null, 1, nn, 1.0000).
 SELECT COUNT(*) FROM dml_heap_check_s;
  count 
 -------

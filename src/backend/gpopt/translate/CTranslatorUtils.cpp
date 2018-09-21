@@ -2260,8 +2260,7 @@ CTranslatorUtils::HasProjElem
 //
 //	@doc:
 //		Create a DXL project element node with a Const NULL of type provided
-//		by the column descriptor. The function raises an exception if the
-//		column is not nullable.
+//		by the column descriptor.
 //
 //---------------------------------------------------------------------------
 CDXLNode *
@@ -2277,11 +2276,6 @@ CTranslatorUtils::CreateDXLProjElemConstNULL
 	GPOS_ASSERT(!md_col->IsSystemColumn());
 
 	const WCHAR *col_name = md_col->Mdname().GetMDName()->GetBuffer();
-	if (!md_col->IsNullable())
-	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLNotNullViolation, col_name);
-	}
-
 	ULONG colid = pidgtorCol->next_id();
 	CDXLNode *dxl_project_element = CreateDXLProjElemConstNULL(mp, md_accessor, md_col->MdidType(), colid, col_name);
 
