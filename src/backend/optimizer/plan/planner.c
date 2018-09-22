@@ -200,7 +200,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	PlannerConfig *config;
 	instr_time		starttime;
 	instr_time		endtime;
-	MemoryAccountIdType curMemoryAccountId;
 
 	/*
 	 * Use ORCA only if it is enabled and we are in a master QD process.
@@ -220,10 +219,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		if (gp_log_optimization_time)
 			INSTR_TIME_SET_CURRENT(starttime);
 
-		curMemoryAccountId = MemoryAccounting_CreatePlanningMemoryAccount(
-			MEMORY_OWNER_TYPE_Optimizer);
-
-		START_MEMORY_ACCOUNT(curMemoryAccountId);
+		START_MEMORY_ACCOUNT(MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_Optimizer));
 		{
 			result = optimize_query(parse, boundParams);
 		}
@@ -247,13 +243,11 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	if (gp_log_optimization_time)
 		INSTR_TIME_SET_CURRENT(starttime);
 
-	curMemoryAccountId =
-		MemoryAccounting_CreatePlanningMemoryAccount(MEMORY_OWNER_TYPE_Planner);
 	/*
 	 * Incorrectly indented on purpose to avoid re-indenting an entire upstream
 	 * function
 	 */
-	START_MEMORY_ACCOUNT(curMemoryAccountId);
+	START_MEMORY_ACCOUNT(MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_Planner));
 	{
 
 	/* Cursor options may come from caller or from DECLARE CURSOR stmt */
