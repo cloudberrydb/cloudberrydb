@@ -3137,7 +3137,7 @@ binary_upgrade_set_type_oids_by_rel_oid(Archive *fout,
 	appendPQExpBuffer(upgrade_query,
 					  "SELECT c.reltype AS crel, t.reltype AS trel, "
 					  "       ct.typnamespace, ct.typname, "
-					  "       tt.typnamespace AS trelns, tt.typname AS trelname "
+					  "       tt.typnamespace AS trelns "
 					  "FROM pg_catalog.pg_class c "
 					  "LEFT JOIN pg_catalog.pg_class t ON "
 					  "  (c.reltoastrelid = t.oid) "
@@ -3162,13 +3162,19 @@ binary_upgrade_set_type_oids_by_rel_oid(Archive *fout,
 											PQfnumber(upgrade_res, "trel")));
 		Oid			pg_type_toast_nsoid = atooid(PQgetvalue(upgrade_res, 0,
 											PQfnumber(upgrade_res, "trelns")));
-		char	   *pg_type_toast_name = PQgetvalue(upgrade_res, 0, PQfnumber(upgrade_res, "trelname"));
 
+		/*
+		 * GPDB: note that we compose the toast table name using the relation
+		 * OID, rather than using whatever name was in the old cluster. Some
+		 * operations can cause the old TOAST table name not to match its
+		 * owner's OID, but the new cluster will be using the correct name, and
+		 * it's the new cluster's name that we have to use in preassignment.
+		 */
 		appendPQExpBuffer(upgrade_buffer, "\n-- For binary upgrade, must preserve pg_type toast oid\n");
 		appendPQExpBuffer(upgrade_buffer,
 						  "SELECT binary_upgrade.set_next_toast_pg_type_oid('%u'::pg_catalog.oid, "
-						  "'%u'::pg_catalog.oid, $$%s$$::text);\n\n",
-						  pg_type_toast_oid, pg_type_toast_nsoid, pg_type_toast_name);
+						  "'%u'::pg_catalog.oid, $$pg_toast_%u$$::text);\n\n",
+						  pg_type_toast_oid, pg_type_toast_nsoid, pg_rel_oid);
 
 		toast_set = true;
 	}
@@ -3263,16 +3269,23 @@ binary_upgrade_set_pg_class_oids(Archive *fout,
 			 * loaded with wide data.  By setting the TOAST oid we force
 			 * creation of the TOAST heap and TOAST index by the backend so we
 			 * can cleanly copy the files during binary upgrade.
+			 *
+			 * GPDB: note that we compose the toast table name using the
+			 * relation OID, rather than using whatever name was in the old
+			 * cluster. Some operations can cause the old TOAST table name not
+			 * to match its owner's OID, but the new cluster will be using the
+			 * correct name, and it's the new cluster's name that we have to use
+			 * in preassignment.
 			 */
 
 			appendPQExpBuffer(upgrade_buffer,
-							  "SELECT binary_upgrade.set_next_toast_pg_class_oid('%u'::pg_catalog.oid, '%u'::pg_catalog.oid, $$%s$$::text);\n",
-							  pg_class_reltoastrelid, pg_class_reltoastnamespace, pg_class_reltoastname);
+							  "SELECT binary_upgrade.set_next_toast_pg_class_oid('%u'::pg_catalog.oid, '%u'::pg_catalog.oid, $$pg_toast_%u$$::text);\n",
+							  pg_class_reltoastrelid, pg_class_reltoastnamespace, pg_class_oid);
 
 			/* every toast table has an index */
 			appendPQExpBuffer(upgrade_buffer,
-							  "SELECT binary_upgrade.set_next_index_pg_class_oid('%u'::pg_catalog.oid, '%u'::pg_catalog.oid, $$%s$$::text);\n",
-							  pg_class_reltoastidxid, pg_class_reltidxnamespace, pg_class_reltidxname);
+							  "SELECT binary_upgrade.set_next_index_pg_class_oid('%u'::pg_catalog.oid, '%u'::pg_catalog.oid, $$pg_toast_%u_index$$::text);\n",
+							  pg_class_reltoastidxid, pg_class_reltidxnamespace, pg_class_oid);
 		}
 
 		/* Set up any AO auxiliary tables with preallocated OIDs as well. */
