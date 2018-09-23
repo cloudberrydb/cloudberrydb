@@ -871,7 +871,11 @@ ldelete:;
 	}
 
 	/* Process RETURNING if present */
-	if (resultRelInfo->ri_projectReturning)
+	/*
+	 * In a split update, the processed rows are returned by the INSERT
+	 * of the new row, not the DELETE of the old one.
+	 */
+	if (resultRelInfo->ri_projectReturning && !isUpdate)
 	{
 		/*
 		 * We have to put the target tuple into a slot, which means first we
@@ -1716,7 +1720,7 @@ ExecModifyTable(ModifyTableState *node)
 					}
 					else /* DML_DELETE */
 						slot = ExecDelete(tupleid, oldtuple, planSlot,
-										  &node->mt_epqstate, estate, node->canSetTag,
+										  &node->mt_epqstate, estate, false,
 										  PLANGEN_PLANNER, true /* isUpdate */);
 				}
 				break;
