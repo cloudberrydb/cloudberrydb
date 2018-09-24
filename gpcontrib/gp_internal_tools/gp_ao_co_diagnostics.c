@@ -362,29 +362,23 @@ gp_aovisimap_entry_name_wrapper(PG_FUNCTION_ARGS)
 	PG_RETURN_DATUM(returnValue);
 }
 
+static void not_query_dispatcher_error() {
+	elog(ERROR, "ao entries are maintained only on query dispatcher");
+}
+
+
 /*
  * Interface to remove an entry from AppendOnlyHash cache.
  */
 void
 gp_remove_ao_entry_from_cache(PG_FUNCTION_ARGS)
 {
+	if (!IS_QUERY_DISPATCHER())
+		not_query_dispatcher_error();
+
 	Oid relid = PG_GETARG_OID(0);
 
-	if (!IS_QUERY_DISPATCHER())
-		elog(ERROR, "ao entries are maintained only on query dispatcher");
-
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
-	AORelHashEntry aoentry = AORelGetHashEntry(relid);
-	if (aoentry->txns_using_rel != 0)
-		elog(ERROR, "relid %d is used by %d transactions, cannot remove it yet",
-			 relid, aoentry->txns_using_rel);
-
-	if (AORelRemoveHashEntry(relid))
-		elog(NOTICE, "AO entry removed from cache for %d", relid);
-	else
-		elog(NOTICE, "AO entry does not exist in cache for %d", relid);
-
-	LWLockRelease(AOSegFileLock);
+	GpRemoveEntryFromAppendOnlyHash(relid);
 }
 
 /*
@@ -399,11 +393,10 @@ struct GetAOEntryContext
 Datum
 gp_get_ao_entry_from_cache(PG_FUNCTION_ARGS)
 {
-	Oid relid = PG_GETARG_OID(0);
-
 	if (!IS_QUERY_DISPATCHER())
-		elog(ERROR, "ao entries are maintained only on query dispatcher");
+		not_query_dispatcher_error();
 
+	Oid relid = PG_GETARG_OID(0);
 	FuncCallContext *funcctx;
 	struct GetAOEntryContext *context;
 
@@ -447,17 +440,13 @@ gp_get_ao_entry_from_cache(PG_FUNCTION_ARGS)
 
 		context = palloc(sizeof(struct GetAOEntryContext));
 		context->segno = 0;
-
-		LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
-		AORelHashEntry aoentry = AORelGetHashEntry(relid);
-		memcpy(&context->aoentry, aoentry, sizeof(AORelHashEntryData));
-		LWLockRelease(AOSegFileLock);
+		GpFetchEntryFromAppendOnlyHash(relid, &context->aoentry);
 
 		funcctx->user_fctx = (void *) context;
 
 		MemoryContextSwitchTo(oldcontext);
 		elog(NOTICE, "transactions using relid %d: %d",
-			 relid, aoentry->txns_using_rel);
+			 relid, context->aoentry.txns_using_rel);
 	}
 
 	funcctx = SRF_PERCALL_SETUP();

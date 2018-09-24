@@ -58,6 +58,7 @@ static bool appendOnlyInsertXact = false;
  */
 static bool AOHashTableInit(void);
 static AORelHashEntry AppendOnlyRelHashNew(Oid relid, bool *exists);
+static AORelHashEntry AORelGetHashEntry(Oid relid);
 static AORelHashEntry AORelLookupHashEntry(Oid relid);
 static bool AORelCreateHashEntry(Oid relid);
 static bool *GetFileSegStateInfoFromSegments(Relation parentrel);
@@ -392,7 +393,7 @@ AORelLookupHashEntry(Oid relid)
  * AORelGetEntry -- Same as AORelLookupEntry but here the caller is expecting
  *					an entry to exist. We error out if it doesn't.
  */
-AORelHashEntry
+static AORelHashEntry
 AORelGetHashEntry(Oid relid)
 {
 	AORelHashEntryData *aoentry = AORelLookupHashEntry(relid);
@@ -2063,3 +2064,63 @@ AtEOXact_AppendOnly(void)
 
 	appendOnlyInsertXact = false;
 }
+
+/*
+ * Fetches a record from the in memory AO Rel Hash
+ *
+ * For external use. Use `AORelGetHashEntry` for
+ * internal access to an AO hash entry.
+ */
+void
+GpFetchEntryFromAppendOnlyHash(Oid relid, AORelHashEntry foundAoEntry) {
+	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	AORelHashEntry aoentry = AORelGetHashEntry(relid);
+	memcpy(foundAoEntry, aoentry, sizeof(AORelHashEntryData));
+	LWLockRelease(AOSegFileLock);
+}
+
+
+static void successfully_removed_ao_entry(Oid relid) {
+	elog(NOTICE, "AO entry removed from cache for %d", relid);
+}
+
+static void ao_entry_not_in_cache(Oid relid) {
+	elog(NOTICE, "AO entry does not exist in cache for %d", relid);
+}
+
+static void entry_in_use_error(Oid relid, int numberOfUsages) {
+	elog(ERROR, "relid %d is used by %d transactions, cannot remove it yet",
+	     relid, numberOfUsages);
+}
+
+/*
+ * Remove an entry from the Append-only hash
+ *
+ * For external use. Use `AORelRemoveHashEntry`
+ * for internal removal of an AO hash entry.
+ */
+void
+GpRemoveEntryFromAppendOnlyHash(Oid relid) {
+	bool removeWasSuccess;
+	AORelHashEntry aoentry;
+
+	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+
+	aoentry = AORelGetHashEntry(relid);
+
+	if (aoentry->txns_using_rel != 0) {
+		LWLockRelease(AOSegFileLock);
+		entry_in_use_error(relid, aoentry->txns_using_rel);
+		return;
+	}
+
+	removeWasSuccess = AORelRemoveHashEntry(relid);
+
+	LWLockRelease(AOSegFileLock);
+
+	if (removeWasSuccess)
+		successfully_removed_ao_entry(relid);
+	else
+		ao_entry_not_in_cache(relid);
+}
+
