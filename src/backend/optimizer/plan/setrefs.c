@@ -290,36 +290,6 @@ static void set_plan_references_output_asserts(PlannerGlobal *glob, Plan *plan)
 				|| (var->varno > 0 && var->varno <= list_length(glob->finalrtable)))
 				&& "Plan contains var that refer outside the rtable.");
 		Assert(var->varattno > FirstLowInvalidHeapAttributeNumber && "Invalid attribute number in plan");
-
-		/*
-		 * GPDB_93_MERGE_FIXME: The code blow will fail with this query.
-		 *
-		 * postgres=# SELECT pid FROM pg_stat_activity WHERE pid != pg_backend_pid();
-		 * ERROR:  function in FROM has unsupported return type (parse_relation.c:2065)
-		 *
-		 * This is because that we change to flat copy of RTE (see
-		 * add_rte_to_flat_rtable()) during PG 9.3 merge, following PG upstream,
-		 * although we are not sure whether the modification is correct or not
-		 * at this moment (we are trying to boot up gpdb cluster).
-		 *
-		 * We do not fix in add_rte_to_flat_rtable(), etc but comment out these
-		 * sanity check code instead. Let's remove this FIXME and the code
-		 * if the code below is really useless later.
-		 */
-#if 0
-		if (var->varno > 0 && var->varno <= list_length(glob->finalrtable))
-		{
-			List *colNames = NULL;
-			RangeTblEntry *rte = rt_fetch(var->varno, glob->finalrtable);
-			Assert(rte && "Invalid RTE");
-			Assert(rte->rtekind != RTE_VOID && "Var points to a void RTE!");
-
-			/* Make sure attnum refers to a column in the relation */
-			expandRTE(rte, var->varno, 0, -1, true, &colNames, NULL);
-
-			AssertImply(var->varattno >= 0, var->varattno <= list_length(colNames) + list_length(rte->pseudocols)); /* Only asserting on non-system attributes */
-		}
-#endif
 	}
 
 	/** All subquery scan nodes should have their scanrelids point to a subquery entry in the finalrtable */
