@@ -243,6 +243,20 @@ MemoryAccounting_CreateMainExecutor(void);
 extern MemoryAccountIdType
 MemoryAccounting_GetOrCreateNestedExecutorAccount(void);
 
+extern MemoryAccountIdType
+MemoryAccounting_GetOrCreateOptimizerAccount(void);
+
+/*
+ * MemoryAccounting_GetOrCreatePlannerAccount creates a memory account for
+ * query planning. If the planner is a direct child of the 'X_NestedExecutor'
+ * account, the planner account will also be assigned to 'X_NestedExecutor'.
+ *
+ * The planner account will always be created if the explain_memory_verbosity
+ * guc is set to 'debug' or above.
+ */
+extern MemoryAccountIdType
+MemoryAccounting_GetOrCreatePlannerAccount(void);
+
 extern bool
 MemoryAccounting_IsUnderNestedExecutor(void);
 
@@ -268,17 +282,6 @@ MemoryAccounting_CreateExecutorMemoryAccount(void)
 		else
 			return MemoryAccounting_CreateMainExecutor();
 }
-
-/*
- * MemoryAccounting_CreatePlanningMemoryAccount creates a memory account for
- * query planning. If the planner is a direct child of the 'X_NestedExecutor'
- * account, the planner account will also be assigned to 'X_NestedExecutor'.
- *
- * The planner account will always be created if the explain_memory_verbosity
- * guc is set to 'debug' or above.
- */
-extern MemoryAccountIdType
-MemoryAccounting_CreatePlanningMemoryAccount(MemoryOwnerType type);
 
 
 #endif   /* MEMACCOUNTING_H */

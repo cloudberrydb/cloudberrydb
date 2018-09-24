@@ -73,6 +73,8 @@ MemoryAccountIdType liveAccountStartId = MEMORY_OWNER_TYPE_START_SHORT_LIVING;
  */
 MemoryAccountIdType nextAccountId = MEMORY_OWNER_TYPE_START_SHORT_LIVING;
 
+MemoryAccountIdType mainOptimizerAccount = MEMORY_OWNER_TYPE_Undefined;
+
 /*
  * The memory account for the primary executor account. This will be assigned to the
  * first executor created during query execution.
@@ -1471,6 +1473,7 @@ AdvanceMemoryAccountingGeneration()
 	 */
 	mainExecutorAccount = MEMORY_OWNER_TYPE_Undefined;
 	mainNestedExecutorAccount = MEMORY_OWNER_TYPE_Undefined;
+	mainOptimizerAccount = MEMORY_OWNER_TYPE_Undefined;
 
 	Assert(RolloverMemoryAccount->peak >= MemoryAccountingPeakBalance);
 }
@@ -1547,6 +1550,39 @@ MemoryAccounting_GetOrCreateNestedExecutorAccount()
 }
 
 /*
+ * GetOrCreateOptimizerAccount
+ *    Returns the MemoryAccountId for the 'Optimizer' account. Creates the
+ *    mainOptimizerAccount if it does not already exist.
+ *
+ *    ORCA has a metadata cache that persists between calls to create a plan.
+ *    This memory is tracked in the memory accounting system using a global
+ *    OptimizerOutstandingMemoryBalance. Any time we create an Optimizer
+ *    account we initialize the memory to the
+ *    OptimizerOutstandingMemoryBalance, if we create more than one optimizer
+ *    account, this memory will be double accounted for. Therefore, restrict
+ *    the memory accounting system to only creating one Optimizer account.
+ */
+MemoryAccountIdType
+MemoryAccounting_GetOrCreateOptimizerAccount()
+{
+	if (mainOptimizerAccount == MEMORY_OWNER_TYPE_Undefined)
+		mainOptimizerAccount = MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_Optimizer);
+
+	return mainOptimizerAccount;
+}
+
+MemoryAccountIdType
+MemoryAccounting_GetOrCreatePlannerAccount()
+{
+	if (explain_memory_verbosity >= EXPLAIN_MEMORY_VERBOSITY_DEBUG)
+		return MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_Planner);
+	else if (MemoryAccounting_IsMainExecutorCreated())
+		return MemoryAccounting_GetOrCreateNestedExecutorAccount();
+	else
+		return MemoryAccounting_CreateAccount(0, MEMORY_OWNER_TYPE_Planner);
+}
+
+/*
  *  IsUnderNestedExecutor
  *    Return weather the currently active memory account is 'X_NestedExecutor'.
  */
@@ -1566,13 +1602,3 @@ MemoryAccounting_IsMainExecutorCreated()
 	return mainExecutorAccount != MEMORY_OWNER_TYPE_Undefined;
 }
 
-MemoryAccountIdType
-MemoryAccounting_CreatePlanningMemoryAccount(MemoryOwnerType type)
-{
-	if (explain_memory_verbosity >= EXPLAIN_MEMORY_VERBOSITY_DEBUG)
-		return MemoryAccounting_CreateAccount(0, type);
-	else if (MemoryAccounting_IsMainExecutorCreated())
-		return MemoryAccounting_GetOrCreateNestedExecutorAccount();
-	else
-		return MemoryAccounting_CreateAccount(0, type);
-}
