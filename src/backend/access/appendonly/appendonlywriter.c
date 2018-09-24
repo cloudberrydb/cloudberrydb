@@ -64,6 +64,16 @@ static bool AORelCreateHashEntry(Oid relid);
 static bool *get_awaiting_drop_status_from_segments(Relation parentrel);
 static int64 *GetTotalTupleCountFromSegments(Relation parentrel, int segno);
 
+static void
+acquire_lightweight_lock() {
+	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+}
+
+static void
+release_lightweight_lock() {
+	LWLockRelease(AOSegFileLock);
+}
+
 /*
  * AppendOnlyWriterShmemSize -- estimate size the append only writer structures
  * will need in shared memory.
@@ -189,7 +199,7 @@ AORelCreateHashEntry(Oid relid)
 	 * Momentarily release the AOSegFileLock so we can safely access the
 	 * system catalog (i.e. without risking a deadlock).
 	 */
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 
 	SIMPLE_FAULT_INJECTOR(BeforeCreatingAnAOHashEntry);
 
@@ -221,7 +231,7 @@ AORelCreateHashEntry(Oid relid)
 	 *
 	 * Note: Another session may have raced-in and created it.
 	 */
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	aoHashEntry = AppendOnlyRelHashNew(relid, &exists);
 
@@ -436,7 +446,7 @@ AORelGetOrCreateHashEntry(Oid relid)
 	 */
 	if (!AORelCreateHashEntry(relid))
 	{
-		LWLockRelease(AOSegFileLock);
+		release_lightweight_lock();
 		ereport(ERROR, (errmsg("can't have more than %d different append-only "
 							   "tables open for writing data at the same time. "
 							   "if tables are heavily partitioned or if your "
@@ -699,7 +709,7 @@ DeregisterSegnoForCompactionDrop(Oid relid, List *compactedSegmentFileList)
 		return;
 	}
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	aoentry = AORelGetOrCreateHashEntry(relid);
 	Assert(aoentry);
@@ -723,7 +733,7 @@ DeregisterSegnoForCompactionDrop(Oid relid, List *compactedSegmentFileList)
 		}
 	}
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 	return;
 }
 
@@ -745,7 +755,7 @@ RegisterSegnoForCompactionDrop(Oid relid, List *compactedSegmentFileList)
 		return;
 	}
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	aoentry = AORelGetOrCreateHashEntry(relid);
 	Assert(aoentry);
@@ -771,7 +781,7 @@ RegisterSegnoForCompactionDrop(Oid relid, List *compactedSegmentFileList)
 		}
 	}
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 	return;
 }
 
@@ -842,7 +852,7 @@ SetSegnoForCompaction(Relation rel,
 		pfree(total_tupcount);
 	}
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	aoentry = AORelGetOrCreateHashEntry(RelationGetRelid(rel));
 	Assert(aoentry);
@@ -954,7 +964,7 @@ SetSegnoForCompaction(Relation rel,
 						  RelationGetRelationName(rel), RelationGetRelid(rel))));
 	}
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 
 	Assert(usesegno >= 0 || usesegno == APPENDONLY_COMPACTION_SEGNO_INVALID);
 
@@ -1004,7 +1014,7 @@ SetSegnoForCompactionInsert(Relation rel,
 					  "relation \"%s\" (%d)",
 					  RelationGetRelationName(rel), RelationGetRelid(rel))));
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	aoentry = AORelGetOrCreateHashEntry(RelationGetRelid(rel));
 	Assert(aoentry);
@@ -1055,7 +1065,7 @@ SetSegnoForCompactionInsert(Relation rel,
 
 	if (!segno_chosen)
 	{
-		LWLockRelease(AOSegFileLock);
+		release_lightweight_lock();
 		ereport(ERROR, (errmsg("could not find segment file to use for "
 							   "inserting into relation %s (%d).",
 							   RelationGetRelationName(rel), RelationGetRelid(rel))));
@@ -1066,7 +1076,7 @@ SetSegnoForCompactionInsert(Relation rel,
 	aoentry->relsegfiles[usesegno].state = INSERT_USE;
 	aoentry->relsegfiles[usesegno].xid = CurrentXid;
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 	appendOnlyInsertXact = true;
 
 	Assert(usesegno >= 0);
@@ -1145,7 +1155,7 @@ SetSegnoForWrite(Relation rel, int existingsegno)
 							  "relation \"%s\" (%d) ",
 							  RelationGetRelationName(rel), RelationGetRelid(rel))));
 
-			LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+			acquire_lightweight_lock();
 
 			aoentry = AORelGetOrCreateHashEntry(RelationGetRelid(rel));
 			Assert(aoentry);
@@ -1214,7 +1224,7 @@ SetSegnoForWrite(Relation rel, int existingsegno)
 
 			if (!segno_chosen)
 			{
-				LWLockRelease(AOSegFileLock);
+				release_lightweight_lock();
 				ereport(ERROR, (errmsg("could not find segment file to use for "
 									   "inserting into relation %s (%d).",
 									   RelationGetRelationName(rel), RelationGetRelid(rel))));
@@ -1224,7 +1234,7 @@ SetSegnoForWrite(Relation rel, int existingsegno)
 			aoentry->relsegfiles[usesegno].state = INSERT_USE;
 			aoentry->relsegfiles[usesegno].xid = CurrentXid;
 
-			LWLockRelease(AOSegFileLock);
+			release_lightweight_lock();
 			appendOnlyInsertXact = true;
 
 			Assert(usesegno >= 0);
@@ -1746,7 +1756,7 @@ AtCommit_AppendOnly(void)
 	/* We should have an XID if we modified AO tables */
 	Assert(CurrentXid != InvalidTransactionId);
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	/*
 	 * for each AO table hash entry
@@ -1804,7 +1814,7 @@ AtCommit_AppendOnly(void)
 		}
 	}
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 }
 
 /*
@@ -1836,7 +1846,7 @@ AtAbort_AppendOnly(void)
 
 	hash_seq_init(&status, AppendOnlyHash);
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	/*
 	 * for each AO table hash entry
@@ -1883,7 +1893,7 @@ AtAbort_AppendOnly(void)
 		}
 	}
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 }
 
 /*
@@ -2049,7 +2059,7 @@ AtEOXact_AppendOnly(void)
 
 	hash_seq_init(&status, AppendOnlyHash);
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	/*
 	 * for each AO table hash entry
@@ -2059,10 +2069,11 @@ AtEOXact_AppendOnly(void)
 		AtEOXact_AppendOnly_Relation(aoentry, CurrentXid);
 	}
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 
 	appendOnlyInsertXact = false;
 }
+
 
 /*
  * Fetches a record from the in memory AO Rel Hash
@@ -2072,10 +2083,10 @@ AtEOXact_AppendOnly(void)
  */
 void
 GpFetchEntryFromAppendOnlyHash(Oid relid, AORelHashEntry foundAoEntry) {
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 	AORelHashEntry aoentry = AORelGetHashEntry(relid);
 	memcpy(foundAoEntry, aoentry, sizeof(AORelHashEntryData));
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 }
 
 
@@ -2103,19 +2114,19 @@ GpRemoveEntryFromAppendOnlyHash(Oid relid) {
 	bool removeWasSuccess;
 	AORelHashEntry aoentry;
 
-	LWLockAcquire(AOSegFileLock, LW_EXCLUSIVE);
+	acquire_lightweight_lock();
 
 	aoentry = AORelGetHashEntry(relid);
 
 	if (aoentry->txns_using_rel != 0) {
-		LWLockRelease(AOSegFileLock);
+		release_lightweight_lock();
 		entry_in_use_error(relid, aoentry->txns_using_rel);
 		return;
 	}
 
 	removeWasSuccess = AORelRemoveHashEntry(relid);
 
-	LWLockRelease(AOSegFileLock);
+	release_lightweight_lock();
 
 	if (removeWasSuccess)
 		successfully_removed_ao_entry(relid);
