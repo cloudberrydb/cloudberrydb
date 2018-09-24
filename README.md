@@ -170,7 +170,8 @@ make distclean
 ### Building GPDB with PXF
 
 PXF is an extension framework for GPDB to enable fast access to external hadoop datasets.
-Refer to [PXF extension](https://github.com/greenplum-db/gpdb/tree/master/gpAux/extensions/pxf) for more information.
+Refer to [PXF extension](gpAux/extensions/pxf/README.md) for more information.
+
 Currently, GPDB is built with PXF by default (--enable-pxf is on).
 In order to build GPDB without pxf, simply invoke `./configure` with additional option `--disable-pxf`.
 PXF requires curl, so `--enable-pxf` is not compatible with the `--without-libcurl` option.

@@ -45,7 +45,7 @@ PXF utilizes `log4j` for service-level logging. PXF-service-related log messages
 PXF provides more detailed logging when the `DEBUG` level is enabled.  To configure PXF `DEBUG` logging, uncomment the following line in `pxf-log4j.properties`:
 
 ``` shell
-#log4j.logger.org.apache.hawq.pxf=DEBUG
+#log4j.logger.org.greenplum.pxf=DEBUG
 ```
 
 Copy the `pxf-log4j.properties` file to each segment host and restart the PXF service on *each* Greenplum Database segment host. For example:
@@ -74,7 +74,7 @@ dbname=> SELECT * FROM hdfstest;
 Examine/collect the log messages from `pxf-service.log`.
 
 **Note**: `DEBUG` logging is quite verbose and has a performance impact.  Remember to turn off PXF service `DEBUG` logging after you have collected the desired information.
- 
+
 
 ### <a id="pxfdblogmsg"></a>Client-Level Logging
 

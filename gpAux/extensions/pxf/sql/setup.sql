@@ -13,22 +13,22 @@ CREATE EXTENSION pxf;
 
 CREATE EXTERNAL TABLE pxf_read_test (a TEXT, b TEXT, c TEXT)
 LOCATION ('pxf://tmp/dummy1'
-'?FRAGMENTER=org.apache.hawq.pxf.api.examples.DemoFragmenter'
-'&ACCESSOR=org.apache.hawq.pxf.api.examples.DemoAccessor'
-'&RESOLVER=org.apache.hawq.pxf.api.examples.DemoTextResolver')
+'?FRAGMENTER=org.greenplum.pxf.api.examples.DemoFragmenter'
+'&ACCESSOR=org.greenplum.pxf.api.examples.DemoAccessor'
+'&RESOLVER=org.greenplum.pxf.api.examples.DemoTextResolver')
 FORMAT 'TEXT' (DELIMITER ',');
 
 CREATE EXTERNAL TABLE pxf_readcustom_test (a TEXT, b TEXT, c TEXT)
 LOCATION ('pxf://tmp/dummy1'
-'?FRAGMENTER=org.apache.hawq.pxf.api.examples.DemoFragmenter'
-'&ACCESSOR=org.apache.hawq.pxf.api.examples.DemoAccessor'
-'&RESOLVER=org.apache.hawq.pxf.api.examples.DemoResolver')
+'?FRAGMENTER=org.greenplum.pxf.api.examples.DemoFragmenter'
+'&ACCESSOR=org.greenplum.pxf.api.examples.DemoAccessor'
+'&RESOLVER=org.greenplum.pxf.api.examples.DemoResolver')
 FORMAT 'CUSTOM' (formatter='pxfwritable_import');
 
 CREATE WRITABLE EXTERNAL TABLE pxf_write_test (a int, b TEXT)
 LOCATION ('pxf:///tmp/pxf?'
-'&ACCESSOR=org.apache.hawq.pxf.api.examples.DemoFileWritableAccessor'
-'&RESOLVER=org.apache.hawq.pxf.api.examples.DemoTextResolver')
+'&ACCESSOR=org.greenplum.pxf.api.examples.DemoFileWritableAccessor'
+'&RESOLVER=org.greenplum.pxf.api.examples.DemoTextResolver')
 FORMAT 'TEXT' (DELIMITER ',') DISTRIBUTED BY (a);
 
 CREATE TABLE origin (a int, b TEXT) DISTRIBUTED BY (a);
