@@ -74,6 +74,11 @@ release_lightweight_lock() {
 	LWLockRelease(AOSegFileLock);
 }
 
+static bool
+is_entry_in_use_by_other_transactions(AORelHashEntry aoentry) {
+	return aoentry->txns_using_rel != 0;
+}
+
 /*
  * AppendOnlyWriterShmemSize -- estimate size the append only writer structures
  * will need in shared memory.
@@ -1856,7 +1861,7 @@ AtAbort_AppendOnly(void)
 		/*
 		 * Only look at tables that are marked in use currently
 		 */
-		if (aoentry->txns_using_rel == 0)
+		if (!is_entry_in_use_by_other_transactions(aoentry))
 		{
 			continue;
 		}
@@ -1984,7 +1989,7 @@ AtEOXact_AppendOnly_Relation(AORelHashEntry aoentry, TransactionId currentXid)
 	/*
 	 * Only look at tables that are marked in use currently
 	 */
-	if (aoentry->txns_using_rel == 0)
+	if (!is_entry_in_use_by_other_transactions(aoentry))
 	{
 		return;
 	}
@@ -2024,7 +2029,7 @@ AtEOXact_AppendOnly_Relation(AORelHashEntry aoentry, TransactionId currentXid)
 		 * hash-table gets full. So perform the same here if the above GUC is
 		 * set.
 		 */
-		if (aoentry->txns_using_rel == 0)
+		if (!is_entry_in_use_by_other_transactions(aoentry))
 		{
 			AORelRemoveHashEntry(aoentry->relid);
 		}
@@ -2118,7 +2123,7 @@ GpRemoveEntryFromAppendOnlyHash(Oid relid) {
 
 	aoentry = AORelGetHashEntry(relid);
 
-	if (aoentry->txns_using_rel != 0) {
+	if (is_entry_in_use_by_other_transactions(aoentry)) {
 		release_lightweight_lock();
 		entry_in_use_error(relid, aoentry->txns_using_rel);
 		return;
