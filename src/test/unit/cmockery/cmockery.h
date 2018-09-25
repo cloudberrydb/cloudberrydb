@@ -276,6 +276,12 @@
 // Forces the test to fail immediately and quit.
 #define fail() _fail(__FILE__, __LINE__)
 
+// Write an error message and forces the test to fail immediately and quit
+#define fail_msg(msg, ...) do { \
+    print_error("ERROR: " msg "\n", ##__VA_ARGS__); \
+    fail(); \
+} while (0)
+
 // Generic method to kick off testing
 #define run_test(f) _run_test(#f, f, NULL, UNIT_TEST_FUNCTION_TYPE_TEST, NULL)
 
