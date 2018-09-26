@@ -4288,11 +4288,6 @@ BootStrapXLOG(void)
 
 	/* Insert the initial checkpoint record */
 	record = (XLogRecord *) ((char *) page + SizeOfXLogLongPHD);
-	/*
-	 * GPDB_93_MERGE_FIXME:
-	 * GPDB sets xlogid = 0 and xrecoff = XLogSegSize. why ?
-	 * Do we need to then setting xl_prev to match it ?
-	 */
 	record->xl_prev = 0;
 	record->xl_xid = InvalidTransactionId;
 	record->xl_tot_len = SizeOfXLogRecord + sizeof(checkPoint);
