@@ -437,12 +437,12 @@ resources:
     uri: {{gpaddon-git-remote}}
 
 {% if "UD" in test_sections %}
-- name: pxf_infra_src
+- name: pxf_src
   type: git
   source:
-    branch: {{pxf_infra-git-branch}}
-    private_key: {{pxf_infra-git-key}}
-    uri: {{pxf_infra-git-remote}}
+    branch: {{pxf-git-branch}}
+    private_key: {{pxf-git-key}}
+    uri: {{pxf-git-remote}}
 
 - name: centos6-gpdb-dev-pxf-hdp
   type: docker-image
@@ -2198,10 +2198,10 @@ jobs:
       trigger: [[ test_trigger ]]
     - get: pxf_tarball
       trigger: [[ test_trigger ]]
-    - get: pxf_infra_src
+    - get: pxf_src
     - get: centos6-gpdb-dev-pxf-hdp
   - task: test_pxf
-    file: pxf_infra_src/concourse/test_pxf.yml
+    file: pxf_src/concourse/tasks/test_pxf.yml
     image: centos6-gpdb-dev-pxf-hdp
     params:
       GROUP: smoke
