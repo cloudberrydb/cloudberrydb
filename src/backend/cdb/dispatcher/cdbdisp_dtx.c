@@ -87,6 +87,7 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	Gang	   *primaryGang;
 	char	   *queryText = NULL;
 	int			queryTextLen = 0;
+	List		*segments;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "CdbDispatchDtxProtocolCommand: %s for gid = %s, direct content #: %d",
@@ -108,6 +109,10 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	dtxProtocolParms.serializedDtxContextInfo = serializedDtxContextInfo;
 	dtxProtocolParms.serializedDtxContextInfoLen = serializedDtxContextInfoLen;
 
+	/* decide segments to dispatch */
+	segments = direct->directed_dispatch ?
+				list_make1_int(direct->content[0]) : cdbcomponent_getCdbComponentsList();
+
 	/*
 	 * Dispatch the command.
 	 */
@@ -115,7 +120,8 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 
 	queryText = buildGpDtxProtocolCommand(&dtxProtocolParms, &queryTextLen);
 
-	primaryGang = AllocateWriterGang(ds);
+	primaryGang = AllocateGang(ds, GANGTYPE_PRIMARY_WRITER, segments);
+
 	Assert(primaryGang);
 
 	if (primaryGang->dispatcherActive)
@@ -129,7 +135,7 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	cdbdisp_makeDispatchResults(ds, 1, false);
 	cdbdisp_makeDispatchParams(ds, 1, queryText, queryTextLen);
 
-	cdbdisp_dispatchToGang(ds, primaryGang, -1, direct);
+	cdbdisp_dispatchToGang(ds, primaryGang, -1);
 
 	cdbdisp_waitDispatchFinish(ds);
 

@@ -2253,8 +2253,8 @@ external_set_env_vars_ext(extvar_t *extvar, char *uri, bool csv, char *escape, c
 	}
 	else
 	{
-		CdbComponentDatabases *cdb_component_dbs = getCdbComponentDatabases();
-		CdbComponentDatabaseInfo *qdinfo = &cdb_component_dbs->entry_db_info[0];
+		CdbComponentDatabaseInfo *qdinfo = 
+				cdbcomponent_getComponentInfo(MASTER_CONTENT_ID); 
 
 		pg_ltoa(qdinfo->port, result);
 		extvar->GP_MASTER_PORT = result;
@@ -2263,8 +2263,6 @@ external_set_env_vars_ext(extvar_t *extvar, char *uri, bool csv, char *escape, c
 			extvar->GP_MASTER_HOST = pstrdup(qdinfo->hostip);
 		else
 			extvar->GP_MASTER_HOST = pstrdup(qdinfo->hostname);
-
-		freeCdbComponentDatabases(cdb_component_dbs);
 	}
 
 	if (MyProcPort)

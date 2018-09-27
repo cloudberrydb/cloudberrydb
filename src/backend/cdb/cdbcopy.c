@@ -155,7 +155,7 @@ cdbCopySendDataToAll(CdbCopy *c, const char *buffer, int nbytes)
 
 	for (int i = 0; i < gp->size; ++i)
 	{
-		int			seg = gp->db_descriptors[i].segindex;
+		int			seg = gp->db_descriptors[i]->segindex;
 
 		cdbCopySendData(c, seg, buffer, nbytes);
 	}
@@ -388,7 +388,7 @@ cdbCopyGetData(CdbCopy *c, bool copy_cancel, uint64 *rows_processed)
  */
 static ErrorData *
 processCopyEndResults(CdbCopy *c,
-					  SegmentDatabaseDescriptor *db_descriptors,
+					  SegmentDatabaseDescriptor **db_descriptors,
 					  int *results,
 					  int size,
 					  SegmentDatabaseDescriptor **failedSegDBs,
@@ -410,7 +410,7 @@ processCopyEndResults(CdbCopy *c,
 	{
 		int			result = results[seg];
 
-		q = &db_descriptors[seg];
+		q = db_descriptors[seg];
 
 		/* get command end status */
 		if (result == 0)
@@ -627,7 +627,7 @@ cdbCopyEndAndFetchRejectNum(CdbCopy *c, int64 *total_rows_completed, char *abort
 	int			total_rows_rejected = 0;	/* total num rows rejected by all
 											 * QEs */
 	bool		err_header = false;
-	struct SegmentDatabaseDescriptor *db_descriptors;
+	struct SegmentDatabaseDescriptor **db_descriptors;
 	int			size;
 	ErrorData *edata;
 
@@ -659,7 +659,7 @@ cdbCopyEndAndFetchRejectNum(CdbCopy *c, int64 *total_rows_completed, char *abort
 
 	for (seg = 0; seg < size; seg++)
 	{
-		q = &db_descriptors[seg];
+		q = db_descriptors[seg];
 		elog(DEBUG1, "PQputCopyEnd seg %d    ", q->segindex);
 		/* end this COPY command */
 		results[seg] = PQputCopyEnd(q->conn, abort_msg);

@@ -3164,13 +3164,13 @@ SetupUDPIFCInterconnect_Internal(SliceTable *sliceTable)
  * SetupUDPIFCInterconnect
  * 		setup UDP interconnect.
  */
-ChunkTransportState *
-SetupUDPIFCInterconnect(SliceTable *sliceTable)
+void
+SetupUDPIFCInterconnect(EState *estate)
 {
 	ChunkTransportState *icContext = NULL;
 	PG_TRY();
 	{
-		icContext = SetupUDPIFCInterconnect_Internal(sliceTable);
+		icContext = SetupUDPIFCInterconnect_Internal(estate->es_sliceTable);
 
 		/* Internal error if we locked the mutex but forgot to unlock it. */
 		Assert(pthread_mutex_unlock(&ic_control_info.lock) != 0);
@@ -3181,7 +3181,10 @@ SetupUDPIFCInterconnect(SliceTable *sliceTable)
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
-	return icContext;
+
+	icContext->estate = estate;
+	estate->interconnect_context = icContext;
+	estate->es_interconnect_is_setup = true;
 }
 
 

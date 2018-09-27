@@ -49,6 +49,7 @@
 #include "utils/fmgroids.h"
 #include "utils/sharedsnapshot.h"
 #include "utils/snapmgr.h"
+#include "catalog/namespace.h"
 
 extern bool Test_print_direct_dispatch_info;
 
@@ -953,7 +954,8 @@ doNotifyingAbort(void)
 
 	if (currentGxact->state == DTX_STATE_NOTIFYING_ABORT_NO_PREPARED)
 	{
-		if (GangsExist())
+		if (!currentGxact->writerGangLost &&
+				currentGxact->gxidDispatched)
 		{
 			succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED, /* flags */ 0,
 													 currentGxact->gid, currentGxact->gxid,
@@ -2143,6 +2145,7 @@ initGxact(TMGXACT *gxact)
 	gxact->directTransaction = false;
 	gxact->directTransactionContentId = 0;
 	gxact->writerGangLost = false;
+	gxact->gxidDispatched = false;
 }
 
 bool
@@ -3398,4 +3401,33 @@ bool
 currentGxactWriterGangLost(void)
 {
 	return currentGxact == NULL ? false : currentGxact->writerGangLost;
+}
+
+bool
+isSafeToRecreateWriter(void)
+{
+	/*
+	 * Can not recycle current writer because temp files will be
+	 * dropped in the segement, dispatcher will inform the segment
+	 * is down and report an error and reset the session.
+	 */
+	if (TempNamespaceOidIsValid())
+		return false;
+
+	/*
+	 * Can not recycle current writer if current global transaction
+	 * has been dispatched to the writer, otherwise new created
+	 * writer will miss gxid info. 
+	 */
+	if (currentGxact && currentGxact->gxidDispatched)
+		return false;
+
+	return true;
+}
+
+void
+markCurrentGxactDispatched(void)
+{
+	if (currentGxact && currentGxact->state >= DTX_STATE_ACTIVE_DISTRIBUTED)
+		currentGxact->gxidDispatched = true;
 }

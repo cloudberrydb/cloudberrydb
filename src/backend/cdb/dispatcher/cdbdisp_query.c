@@ -93,10 +93,6 @@ typedef struct DispatchCommandQueryParms
 	int			serializedDtxContextInfolen;
 
 	int			rootIdx;
-
-	/* the map from sliceIndex to gang_id, in array form */
-	int			numSlices;
-	int		   *sliceIndexGangIdMap;
 } DispatchCommandQueryParms;
 
 static int fillSliceVector(SliceTable *sliceTable,
@@ -119,10 +115,9 @@ cdbdisp_dispatchX(QueryDesc *queryDesc,
 			bool planRequiresTxn,
 			bool cancelOnError);
 
-static int *buildSliceIndexGangIdMap(SliceVec *sliceVec, int numSlices, int numTotalSlices);
-
 static char *serializeParamListInfo(ParamListInfo paramLI, int *len_p);
 
+static List * formIdleSegmentIdList(void);
 /*
  * Compose and dispatch the MPPEXEC commands corresponding to a plan tree
  * within a complete parallel plan. (A plan tree will correspond either
@@ -267,15 +262,16 @@ CdbDispatchSetCommand(const char *strCommand, bool cancelOnError)
 		 strCommand);
 
 	pQueryParms = cdbdisp_buildCommandQueryParms(strCommand, DF_NONE);
+
 	ds = cdbdisp_makeDispatcherState(false);
 
 	queryText = buildGpQueryString(pQueryParms, &queryTextLength);
 
-	AllocateWriterGang(ds);
+	AllocateGang(ds, GANGTYPE_PRIMARY_WRITER, cdbcomponent_getCdbComponentsList());
 
-	/* In case there are idle gangs */
-	AllocateAllIdleReaderGangs(ds);
-
+	/* put all idle segment to a gang so QD can send SET command to them */
+	AllocateGang(ds, GANGTYPE_PRIMARY_READER, formIdleSegmentIdList());
+	
 	cdbdisp_makeDispatchResults(ds, list_length(ds->allocatedGangs), cancelOnError);
 	cdbdisp_makeDispatchParams (ds, list_length(ds->allocatedGangs), queryText, queryTextLength);
 
@@ -283,7 +279,7 @@ CdbDispatchSetCommand(const char *strCommand, bool cancelOnError)
 	{
 		Gang	   *rg = lfirst(le);
 
-		cdbdisp_dispatchToGang(ds, rg, -1, DEFAULT_DISP_DIRECT);
+		cdbdisp_dispatchToGang(ds, rg, -1);
 	}
 
 	cdbdisp_waitDispatchFinish(ds);
@@ -398,13 +394,14 @@ cdbdisp_dispatchCommandInternal(DispatchCommandQueryParms *pQueryParms,
 	/*
 	 * Allocate a primary QE for every available segDB in the system.
 	 */
-	primaryGang = AllocateWriterGang(ds);
+	primaryGang = AllocateGang(ds, GANGTYPE_PRIMARY_WRITER,
+										cdbcomponent_getCdbComponentsList());
 	Assert(primaryGang);
 
 	cdbdisp_makeDispatchResults(ds, 1, flags & DF_CANCEL_ON_ERROR);
 	cdbdisp_makeDispatchParams (ds, 1, queryText, queryTextLength);
 
-	cdbdisp_dispatchToGang(ds, primaryGang, -1, DEFAULT_DISP_DIRECT);
+	cdbdisp_dispatchToGang(ds, primaryGang, -1);
 
 	cdbdisp_waitDispatchFinish(ds);
 
@@ -665,6 +662,13 @@ compare_slice_order(const void *aa, const void *bb)
 		return 1;
 	}
 
+	/* sort slice with larger size first because it has a bigger chance to contain writers */
+	if (a->slice->primaryGang->size > b->slice->primaryGang->size)
+		return -1;
+
+	if (a->slice->primaryGang->size < b->slice->primaryGang->size)
+		return 1;
+
 	if (a->children == b->children)
 		return 0;
 	else if (a->children > b->children)
@@ -800,8 +804,6 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	int			dtxContextInfo_len = pQueryParms->serializedDtxContextInfolen;
 	int			flags = 0;		/* unused flags */
 	int			rootIdx = pQueryParms->rootIdx;
-	int			numSlices = pQueryParms->numSlices;
-	int		   *sliceIndexGangIdMap = pQueryParms->sliceIndexGangIdMap;
 	int64		currentStatementStartTimestamp = GetCurrentStatementStartTimestamp();
 	Oid			sessionUserId = GetSessionUserId();
 	Oid			outerUserId = GetOuterUserId();
@@ -809,13 +811,18 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	StringInfoData resgroupInfo;
 
 	int			tmp,
-				len,
-				i;
+				len;
 	uint32		n32;
 	int			total_query_len;
 	char	   *shared_query,
 			   *pos;
 	MemoryContext oldContext;
+
+	/*
+	 * Must allocate query text within DispatcherContext,
+	 */
+	Assert(DispatcherContext);
+	oldContext = MemoryContextSwitchTo(DispatcherContext);
 
 	initStringInfo(&resgroupInfo);
 	if (IsResGroupActivated())
@@ -842,16 +849,8 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		plantree_len +
 		params_len +
 		sddesc_len +
-		sizeof(numSlices) +
-		sizeof(int) * numSlices +
 		sizeof(resgroupInfo.len) +
 		resgroupInfo.len;
-
-	/*
-	 * Must allocate query text within DispatcherContext,
-	 */
-	Assert(DispatcherContext);
-	oldContext = MemoryContextSwitchTo(DispatcherContext);
 
 	shared_query = palloc0(total_query_len);
 
@@ -958,20 +957,6 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		pos += sddesc_len;
 	}
 
-	tmp = htonl(numSlices);
-	memcpy(pos, &tmp, sizeof(tmp));
-	pos += sizeof(tmp);
-
-	if (numSlices > 0)
-	{
-		for (i = 0; i < numSlices; ++i)
-		{
-			tmp = htonl(sliceIndexGangIdMap[i]);
-			memcpy(pos, &tmp, sizeof(tmp));
-			pos += sizeof(tmp);
-		}
-	}
-
 	tmp = htonl(resgroupInfo.len);
 	memcpy(pos, &tmp, sizeof(resgroupInfo.len));
 	pos += sizeof(resgroupInfo.len);
@@ -1060,8 +1045,6 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 	nSlices = fillSliceVector(sliceTbl, rootIdx, sliceVector, nTotalSlices);
 
 	pQueryParms = cdbdisp_buildPlanQueryParms(queryDesc, planRequiresTxn);
-	pQueryParms->numSlices = nTotalSlices;
-	pQueryParms->sliceIndexGangIdMap = buildSliceIndexGangIdMap(sliceVector, nSlices, nTotalSlices);
 	queryText = buildGpQueryString(pQueryParms, &queryTextLength);
 
 	/*
@@ -1092,7 +1075,6 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 
 	for (iSlice = 0; iSlice < nSlices; iSlice++)
 	{
-		CdbDispatchDirectDesc direct;
 		Gang	   *primaryGang = NULL;
 		Slice	   *slice = NULL;
 		int			si = -1;
@@ -1121,17 +1103,6 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 
 		if (slice->directDispatch.isDirectDispatch)
 		{
-			direct.directed_dispatch = true;
-			Assert(list_length(slice->directDispatch.contentIds) == 1);
-			direct.count = 1;
-
-			/*
-			 * We only support single content right now. If this changes then
-			 * we need to change from a list to another structure to avoid n^2
-			 * cases
-			 */
-			direct.content[0] = linitial_int(slice->directDispatch.contentIds);
-
 			if (Test_print_direct_dispatch_info)
 			{
 				elog(INFO, "Dispatch command to SINGLE content");
@@ -1139,9 +1110,6 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 		}
 		else
 		{
-			direct.directed_dispatch = false;
-			direct.count = 0;
-
 			if (Test_print_direct_dispatch_info)
 			{
 				elog(INFO, "Dispatch command to ALL contents");
@@ -1158,8 +1126,9 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 			if (InterruptPending)
 				break;
 		}
+		SIMPLE_FAULT_INJECTOR(BeforeOneSliceDispatched);
 
-		cdbdisp_dispatchToGang(ds, primaryGang, si, &direct);
+		cdbdisp_dispatchToGang(ds, primaryGang, si);
 
 		SIMPLE_FAULT_INJECTOR(AfterOneSliceDispatched);
 	}
@@ -1221,30 +1190,6 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 	}
 
 	estate->dispatcherState = ds;
-}
-
-static int *
-buildSliceIndexGangIdMap(SliceVec *sliceVec, int numSlices, int numTotalSlices)
-{
-	Assert(sliceVec != NULL && numSlices > 0 && numTotalSlices > 0);
-
-	/* would be freed in buildGpQueryString */
-	int		   *sliceIndexGangIdMap = palloc0(numTotalSlices * sizeof(int));
-
-	Slice	   *slice = NULL;
-	int			index;
-
-	for (index = 0; index < numSlices; ++index)
-	{
-		slice = sliceVec[index].slice;
-
-		if (slice->primaryGang == NULL)
-			continue;
-
-		sliceIndexGangIdMap[slice->sliceIndex] = slice->primaryGang->gang_id;
-	}
-
-	return sliceIndexGangIdMap;
 }
 
 /*
@@ -1461,13 +1406,14 @@ CdbDispatchCopyStart(struct CdbCopy *cdbCopy, Node *stmt, int flags)
 	/*
 	 * Allocate a primary QE for every available segDB in the system.
 	 */
-	primaryGang = AllocateWriterGang(ds);
+	primaryGang = AllocateGang(ds, GANGTYPE_PRIMARY_WRITER,
+										cdbcomponent_getCdbComponentsList());
 	Assert(primaryGang);
 
 	cdbdisp_makeDispatchResults(ds, 1, flags & DF_CANCEL_ON_ERROR);
 	cdbdisp_makeDispatchParams (ds, 1, queryText, queryTextLength);
 
-	cdbdisp_dispatchToGang(ds, primaryGang, -1, DEFAULT_DISP_DIRECT);
+	cdbdisp_dispatchToGang(ds, primaryGang, -1);
 
 	cdbdisp_waitDispatchFinish(ds);
 
@@ -1495,4 +1441,33 @@ CdbDispatchCopyEnd(struct CdbCopy *cdbCopy)
 	ds = cdbCopy->dispatcherState;
 	cdbCopy->dispatcherState = NULL;
 	cdbdisp_destroyDispatcherState(ds);
+}
+
+/*
+ * Helper function only used by CdbDispatchSetCommand()
+ *
+ * Return a List of segment id who has idle segment dbs, the list
+ * may contain duplicated segment id. eg, if segment 0 has two
+ * idle segment dbs in freelist, the list looks like 0 -> 0.
+ */
+static List *
+formIdleSegmentIdList(void)
+{
+	CdbComponentDatabases	*cdbs;
+	List					*segments = NIL;
+	int						i, j;
+
+	cdbs = cdbcomponent_getCdbComponents(true);
+
+	if (cdbs->segment_db_info != NULL)
+	{
+		for (i = 0; i < cdbs->total_segment_dbs; i++)
+		{
+			CdbComponentDatabaseInfo *cdi = &cdbs->segment_db_info[i];
+			for (j = 0; j < cdi->numIdleQEs; j++)
+				segments = lappend_int(segments, cdi->segindex);
+		}
+	}
+
+	return segments;
 }

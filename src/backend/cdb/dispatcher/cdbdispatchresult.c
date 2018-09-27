@@ -942,7 +942,7 @@ cdbdisp_makeDispatchResults(CdbDispatcherState *ds,
 	Assert(DispatcherContext);
 	oldContext = MemoryContextSwitchTo(DispatcherContext);
 
-	resultCapacity = largestGangsize() * sliceCapacity;
+	resultCapacity = ds->largestGangSize * sliceCapacity;
 	nbytes = resultCapacity * sizeof(results->resultArray[0]);
 
 	results = palloc0(sizeof(*results));

@@ -35,6 +35,7 @@
 #include "cdb/tupchunklist.h"
 #include "cdb/ml_ipc.h"
 #include "cdb/cdbvars.h"
+#include "cdb/cdbdisp.h"
 
 #include <fcntl.h>
 #include <limits.h>
@@ -1382,8 +1383,8 @@ acceptIncomingConnection(void)
 }								/* acceptIncomingConnection */
 
 /* See ml_ipc.h */
-ChunkTransportState *
-SetupTCPInterconnect(SliceTable *sliceTable)
+void
+SetupTCPInterconnect(EState *estate)
 {
 	int			i,
 				index,
@@ -1392,11 +1393,13 @@ SetupTCPInterconnect(SliceTable *sliceTable)
 	Slice	   *mySlice;
 	Slice	   *aSlice;
 	MotionConn *conn;
+	SliceTable *sliceTable = estate->es_sliceTable;
 	int			incoming_count = 0;
 	int			outgoing_count = 0;
 	int			expectedTotalIncoming = 0;
 	int			expectedTotalOutgoing = 0;
 	int			iteration = 0;
+	int			retry = 0;
 	GpMonotonicTime startTime;
 	StringInfoData logbuf;
 	uint64		elapsed_ms = 0;
@@ -1410,6 +1413,7 @@ SetupTCPInterconnect(SliceTable *sliceTable)
 
 	/* initialize state variables */
 	Assert(interconnect_context->size == 0);
+	interconnect_context->estate = estate;
 	interconnect_context->size = CTS_INITIAL_SIZE;
 	interconnect_context->states = palloc0(CTS_INITIAL_SIZE * sizeof(ChunkTransportStateEntry));
 
@@ -1640,6 +1644,13 @@ SetupTCPInterconnect(SliceTable *sliceTable)
 								));
 			/* don't wait for more than 500ms */
 			timeout_ms = Min(500, Min(timeout_ms, to - elapsed_ms));
+		}
+
+		/* check if segments has errors already for every 2 seconds */
+		if (retry++ > 4 && Gp_role == GP_ROLE_DISPATCH)
+		{
+			retry = 0;
+			checkForCancelFromQD(interconnect_context);
 		}
 
 		/*
@@ -1930,7 +1941,9 @@ SetupTCPInterconnect(SliceTable *sliceTable)
 				 "%d outgoing routes.",
 				 elapsed_ms, incoming_count, outgoing_count);
 	}
-	return interconnect_context;
+
+	estate->interconnect_context = interconnect_context;
+	estate->es_interconnect_is_setup = true;
 }								/* SetupInterconnect */
 
 /* TeardownInterconnect() function is used to cleanup interconnect resources that

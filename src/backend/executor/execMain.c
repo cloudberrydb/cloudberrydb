@@ -108,6 +108,7 @@
 #include "cdb/cdbllize.h"
 #include "cdb/memquota.h"
 #include "cdb/cdbtargeteddispatch.h"
+#include "cdb/cdbutil.h"
 
 
 /* Hooks for plugins to get control in ExecutorStart/Run/Finish/End */
@@ -136,6 +137,7 @@ static char *ExecBuildSlotValueDescription(TupleTableSlot *slot,
 static void EvalPlanQualStart(EPQState *epqstate, EState *parentestate,
 				  Plan *planTree);
 
+static void FillSliceGangInfo(Slice *slice);
 static void FillSliceTable(EState *estate, PlannedStmt *stmt);
 
 static PartitionNode *BuildPartitionNodeFromRoot(Oid relid);
@@ -4378,6 +4380,39 @@ typedef struct
 	int			currentSliceId;
 } FillSliceTable_cxt;
 
+static void
+FillSliceGangInfo(Slice *slice)
+{
+	switch (slice->gangType)
+	{
+		case GANGTYPE_UNALLOCATED:
+			break;
+		case GANGTYPE_PRIMARY_WRITER:
+		case GANGTYPE_PRIMARY_READER:
+			if (slice->directDispatch.isDirectDispatch)
+			{
+				slice->gangSize = 1;
+				slice->segments = slice->directDispatch.contentIds;
+			}
+			else
+			{
+				slice->segments = cdbcomponent_getCdbComponentsList();
+				slice->gangSize = list_length(slice->segments);
+			}
+			break;
+		case GANGTYPE_ENTRYDB_READER:
+			slice->gangSize = 1;
+			slice->segments = list_make1_int(-1);
+			break;
+		case GANGTYPE_SINGLETON_READER:
+			slice->gangSize = 1;
+			slice->segments = list_make1_int(gp_singleton_segindex);
+			break;
+		default:
+			elog(ERROR, "unexpected gang type");
+	}
+}
+
 static bool
 FillSliceTable_walker(Node *node, void *context)
 {
@@ -4428,7 +4463,8 @@ FillSliceTable_walker(Node *node, void *context)
 				Slice	   *currentSlice = (Slice *) list_nth(sliceTable->slices, cxt->currentSliceId);
 
 				currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
-				currentSlice->gangSize = getgpsegmentCount();
+
+				FillSliceGangInfo(currentSlice);
 			}
 		}
 	}
@@ -4447,7 +4483,8 @@ FillSliceTable_walker(Node *node, void *context)
 			Slice	   *currentSlice = (Slice *) list_nth(sliceTable->slices, cxt->currentSliceId);
 
 			currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
-			currentSlice->gangSize = getgpsegmentCount();
+
+			FillSliceGangInfo(currentSlice);
 		}
 	}
 
@@ -4485,15 +4522,17 @@ FillSliceTable_walker(Node *node, void *context)
 
 		if (sendFlow->flotype != FLOW_SINGLETON)
 		{
-			sendSlice->gangSize = getgpsegmentCount();
 			sendSlice->gangType = GANGTYPE_PRIMARY_READER;
+
+			FillSliceGangInfo(sendSlice);
 		}
 		else
 		{
-			sendSlice->gangSize = 1;
 			sendSlice->gangType =
 				sendFlow->segindex == -1 ?
 				GANGTYPE_ENTRYDB_READER : GANGTYPE_SINGLETON_READER;
+
+			FillSliceGangInfo(sendSlice);
 		}
 
 		sendSlice->numGangMembersToBeActive =
@@ -4551,7 +4590,7 @@ FillSliceTable(EState *estate, PlannedStmt *stmt)
 		Slice	   *currentSlice = (Slice *) linitial(sliceTable->slices);
 
 		currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
-		currentSlice->gangSize = getgpsegmentCount();
+		FillSliceGangInfo(currentSlice);
 	}
 
 	/*

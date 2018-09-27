@@ -525,7 +525,6 @@ void
 SetupInterconnect(EState *estate)
 {
 	interconnect_handle_t *h;
-	ChunkTransportState *icContext = NULL;
 	MemoryContext oldContext;
 
 	if (estate->interconnect_context)
@@ -543,20 +542,15 @@ SetupInterconnect(EState *estate)
 	oldContext = MemoryContextSwitchTo(InterconnectContext);
 
 	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
-		icContext = SetupUDPIFCInterconnect(estate->es_sliceTable);
+		SetupUDPIFCInterconnect(estate);
 	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP)
-		icContext = SetupTCPInterconnect(estate->es_sliceTable);
+		SetupTCPInterconnect(estate);
 	else
 		Assert("unsupported expected interconnect type");
 
-	/* add back-pointer for dispatch check. */
-	icContext->estate = estate;
-
 	MemoryContextSwitchTo(oldContext);
 
-	h->interconnect_context = icContext;
-	estate->interconnect_context = icContext;
-	estate->es_interconnect_is_setup = true;
+	h->interconnect_context = estate->interconnect_context;
 }
 
 /*

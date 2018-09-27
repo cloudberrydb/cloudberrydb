@@ -63,7 +63,7 @@ typedef void (*ResourceReleaseCallback) (ResourceReleasePhase phase,
 													 bool isTopLevel,
 													 void *arg);
 
-typedef void (*ResourceWalkerCallback) (const ResourceOwner owner);
+typedef void (*ResourceWalkerCallback) (const struct ResourceOwnerData * owner);
 
 /*
  * Functions in resowner.c

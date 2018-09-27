@@ -41,13 +41,32 @@
 #include "libpq-fe.h"
 #include "libpq-int.h"
 #include "libpq/ip.h"
+#include "cdb/cdbconn.h"
 #include "cdb/cdbfts.h"
+#include "storage/ipc.h"
+
+#define MAX_CACHED_1_GANGS 1
+
+#define INCR_COUNT(cdbinfo, arg) \
+	(cdbinfo)->arg++; \
+	(cdbinfo)->cdbs->arg++;
+
+#define DECR_COUNT(cdbinfo, arg) \
+	(cdbinfo)->arg--; \
+	(cdbinfo)->cdbs->arg--; \
+	Assert((cdbinfo)->arg >= 0); \
+	Assert((cdbinfo)->cdbs->arg >= 0); \
+
+MemoryContext CdbComponentsContext = NULL;
+static CdbComponentDatabases *cdb_component_dbs = NULL;
 
 /*
  * Helper Functions
  */
+static CdbComponentDatabases *getCdbComponentInfo(bool DnsLookupFailureIsError);
+static void cleanupComponentIdleQEs(CdbComponentDatabaseInfo *cdi, bool includeWriter);
+
 static int	CdbComponentDatabaseInfoCompare(const void *p1, const void *p2);
-static void freeCdbComponentDatabaseInfo(CdbComponentDatabaseInfo *cdi);
 
 static void getAddressesForDBid(CdbComponentDatabaseInfo *c, int elevel);
 static HTAB *hostSegsHashTableInit(void);
@@ -67,15 +86,12 @@ typedef struct HostSegsEntry
 } HostSegsEntry;
 
 /*
- * getCdbComponentDatabases
- *
- *
- * Storage for the SegmentInstances block and all subsidiary
- * strucures are allocated from the caller's context.
+ *  Internal function to initialize each component info
  */
-CdbComponentDatabases *
+static CdbComponentDatabases *
 getCdbComponentInfo(bool DNSLookupAsError)
 {
+	MemoryContext oldContext;
 	CdbComponentDatabaseInfo *pOld = NULL;
 	CdbComponentDatabaseInfo *cdbInfo;
 	CdbComponentDatabases *component_databases = NULL;
@@ -114,6 +130,15 @@ getCdbComponentInfo(bool DNSLookupAsError)
 
 	bool		found;
 	HostSegsEntry *hsEntry;
+
+	if (!CdbComponentsContext)
+		CdbComponentsContext = AllocSetContextCreate(TopMemoryContext, "cdb components Context",
+								ALLOCSET_DEFAULT_MINSIZE,
+								ALLOCSET_DEFAULT_INITSIZE,
+								ALLOCSET_DEFAULT_MAXSIZE);
+
+	oldContext = MemoryContextSwitchTo(CdbComponentsContext);
+
 	HTAB	   *hostSegsHash = hostSegsHashTableInit();
 
 	/*
@@ -124,6 +149,10 @@ getCdbComponentInfo(bool DNSLookupAsError)
 	 * run out.
 	 */
 	component_databases = palloc0(sizeof(CdbComponentDatabases));
+
+	component_databases->numActiveQEs = 0;
+	component_databases->numIdleQEs = 0;
+	component_databases->qeCounter = 0;
 
 	component_databases->segment_db_info =
 		(CdbComponentDatabaseInfo *) palloc0(sizeof(CdbComponentDatabaseInfo) * segment_array_size);
@@ -229,12 +258,16 @@ getCdbComponentInfo(bool DNSLookupAsError)
 			component_databases->total_entry_dbs++;
 		}
 
+		pRow->cdbs = component_databases;
+		pRow->freelist = NIL;
 		pRow->dbid = dbid;
 		pRow->segindex = content;
 		pRow->role = role;
 		pRow->preferred_role = preferred_role;
 		pRow->mode = mode;
 		pRow->status = status;
+		pRow->numIdleQEs = 0;
+		pRow->numActiveQEs = 0;
 
 		/*
 		 * hostname
@@ -339,7 +372,7 @@ getCdbComponentInfo(bool DNSLookupAsError)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_EXCEPTION),
-				 errmsg("Greenplum Database number of segments inconsistency: count is %d from pg_catalog.%s table, but %d from getCdbComponentDatabases()",
+				 errmsg("Greenplum Database number of segments inconsistency: count is %d from pg_catalog.%s table, but %d from cdbcomponent_getCdbComponents()",
 						getgpsegmentCount(), GpIdRelationName, component_databases->total_segments)));
 	}
 
@@ -423,24 +456,128 @@ getCdbComponentInfo(bool DNSLookupAsError)
 
 	hash_destroy(hostSegsHash);
 
+	MemoryContextSwitchTo(oldContext);
+
 	return component_databases;
 }
 
 /*
- * getCdbComponentDatabases
+ * Helper function to clean up the idle segdbs list of
+ * a segment component.
+ */
+static void
+cleanupComponentIdleQEs(CdbComponentDatabaseInfo *cdi, bool includeWriter)
+{
+	SegmentDatabaseDescriptor	*segdbDesc;
+	MemoryContext				oldContext;
+	ListCell 					*curItem = NULL;
+	ListCell					*nextItem = NULL;
+	ListCell 					*prevItem = NULL;
+
+	Assert(CdbComponentsContext);
+	oldContext = MemoryContextSwitchTo(CdbComponentsContext);
+	curItem = list_head(cdi->freelist);
+
+	while (curItem != NULL)
+	{
+		segdbDesc = (SegmentDatabaseDescriptor *)lfirst(curItem);
+		nextItem = lnext(curItem);
+		Assert(segdbDesc);
+
+		if (segdbDesc->isWriter && !includeWriter)
+		{
+			prevItem = curItem;
+			curItem = nextItem;
+			continue;
+		}
+
+		cdi->freelist = list_delete_cell(cdi->freelist, curItem, prevItem); 
+		DECR_COUNT(cdi, numIdleQEs);
+
+		cdbconn_termSegmentDescriptor(segdbDesc);
+
+		curItem = nextItem;
+
+	}
+
+	MemoryContextSwitchTo(oldContext);
+}
+
+void
+cdbcomponent_cleanupIdleQEs(bool includeWriter)
+{
+	CdbComponentDatabases	*cdbs;
+	int						i;
+
+	/* use cdb_component_dbs directly */
+	cdbs = cdb_component_dbs;
+
+	if (cdbs == NULL)		
+		return;
+
+	if (cdbs->segment_db_info != NULL)
+	{
+		for (i = 0; i < cdbs->total_segment_dbs; i++)
+		{
+			CdbComponentDatabaseInfo *cdi = &cdbs->segment_db_info[i];
+			cleanupComponentIdleQEs(cdi, includeWriter);
+		}
+	}
+
+	if (cdbs->entry_db_info != NULL)
+	{
+		for (i = 0; i < cdbs->total_entry_dbs; i++)
+		{
+			CdbComponentDatabaseInfo *cdi = &cdbs->entry_db_info[i];
+			cleanupComponentIdleQEs(cdi, includeWriter);
+		}
+	}
+
+	return;
+}
+
+/*
+ * cdbcomponent_getCdbComponents 
  *
  *
  * Storage for the SegmentInstances block and all subsidiary
  * strucures are allocated from the caller's context.
  */
 CdbComponentDatabases *
-getCdbComponentDatabases(void)
+cdbcomponent_getCdbComponents(bool DNSLookupAsError)
 {
-	CdbComponentDatabases *cdbs;
+	uint8	ftsVersion = getFtsVersion();
 
 	PG_TRY();
 	{
-		cdbs = getCdbComponentInfo(true);
+		if (cdb_component_dbs == NULL)
+		{
+			cdb_component_dbs = getCdbComponentInfo(DNSLookupAsError);
+			cdb_component_dbs->fts_version = ftsVersion;
+		}
+		else if (cdb_component_dbs->fts_version != ftsVersion)
+		{
+			/*
+			 * A fts version change don't always means a segment is
+			 * down. A mirror InSync status change also change fts
+			 * version, so we need to be careful of destroying exist
+			 * cdb_component_dbs.
+			 *
+			 *
+			 * * A query should has a unique cdb_component_dbs between
+			 * 	 slices and inside slices. 
+			 * * If it's not safe to recycle current writer, use current
+			 *   cdb_component_dbs.
+			 */
+			if (cdb_component_dbs->numActiveQEs == 0 && isSafeToRecreateWriter())
+			{
+				ELOG_DISPATCHER_DEBUG("FTS rescanned, get new component databases info.");
+				cdbcomponent_destroyCdbComponents();
+				cdb_component_dbs = getCdbComponentInfo(DNSLookupAsError);
+				cdb_component_dbs->fts_version = ftsVersion;
+			}
+		}
+
 	}
 	PG_CATCH();
 	{
@@ -459,83 +596,259 @@ getCdbComponentDatabases(void)
 	}
 	PG_END_TRY();
 
-	return cdbs;
+	return cdb_component_dbs;
 }
 
-
 /*
- * freeCdbComponentDatabases
+ * cdbcomponet_destroyCdbComponents 
  *
- * Releases the storage occupied by the CdbComponentDatabases
- * struct pointed to by the argument.
+ * Disconnect and destroy all idle QEs, releases the memory
+ * occupied by the CdbComponentDatabases
+ *
+ * callers must clean up QEs used by dispatcher states.
  */
 void
-freeCdbComponentDatabases(CdbComponentDatabases *pDBs)
+cdbcomponent_destroyCdbComponents(void)
 {
-	int			i;
-
-	if (pDBs == NULL)
-		return;
+	/* caller must clean up all segdbs used by dispatcher states */
+	Assert(!cdbcomponent_activeQEsExist());
 
 	hash_destroy(segment_ip_cache_htab);
 	segment_ip_cache_htab = NULL;
 
-	if (pDBs->segment_db_info != NULL)
-	{
-		for (i = 0; i < pDBs->total_segment_dbs; i++)
-		{
-			CdbComponentDatabaseInfo *cdi = &pDBs->segment_db_info[i];
+	/* disconnect and destroy idle QEs include writers */
+	cdbcomponent_cleanupIdleQEs(true);
 
-			freeCdbComponentDatabaseInfo(cdi);
-		}
-
-		pfree(pDBs->segment_db_info);
-	}
-
-	if (pDBs->entry_db_info != NULL)
-	{
-		for (i = 0; i < pDBs->total_entry_dbs; i++)
-		{
-			CdbComponentDatabaseInfo *cdi = &pDBs->entry_db_info[i];
-
-			freeCdbComponentDatabaseInfo(cdi);
-		}
-
-		pfree(pDBs->entry_db_info);
-	}
-
-	pfree(pDBs);
+	/* delete the memory context */
+	if (CdbComponentsContext)
+		MemoryContextDelete(CdbComponentsContext);	
+	CdbComponentsContext = NULL;
+	cdb_component_dbs = NULL;
 }
 
 /*
- * freeCdbComponentDatabaseInfo:
- * Releases any storage allocated for members variables of a CdbComponentDatabaseInfo struct.
+ * Allocated a segdb
+ *
+ * If thers is idle segdb in the freelist, return it, otherwise, initialize
+ * a new segdb.
+ *
+ * idle segdbs has an established connection with segment, but new segdb is
+ * not setup yet, callers need to establish the connection by themselves.
  */
-static void
-freeCdbComponentDatabaseInfo(CdbComponentDatabaseInfo *cdi)
+SegmentDatabaseDescriptor *
+cdbcomponent_allocateIdleQE(int contentId, SegmentType segmentType)
 {
-	int			i;
+	SegmentDatabaseDescriptor	*segdbDesc = NULL;
+	CdbComponentDatabaseInfo	*cdbinfo;
+	ListCell 					*curItem = NULL;
+	ListCell 					*nextItem = NULL;
+	ListCell					*prevItem = NULL;
+	MemoryContext 				oldContext;
+	bool						isWriter;
 
-	if (cdi == NULL)
-		return;
+	cdbinfo = cdbcomponent_getComponentInfo(contentId);	
 
-	if (cdi->hostname != NULL)
-		pfree(cdi->hostname);
+	oldContext = MemoryContextSwitchTo(CdbComponentsContext);
 
-	if (cdi->address != NULL)
-		pfree(cdi->address);
-
-	if (cdi->hostip != NULL)
-		pfree(cdi->hostip);
-
-	for (i = 0; i < COMPONENT_DBS_MAX_ADDRS; i++)
+	curItem = list_head(cdbinfo->freelist);
+	while (curItem != NULL)
 	{
-		if (cdi->hostaddrs[i] != NULL)
+		SegmentDatabaseDescriptor *tmp =
+				(SegmentDatabaseDescriptor *)lfirst(curItem);
+
+		nextItem = lnext(curItem);
+		Assert(tmp);
+
+		if ((segmentType == SEGMENTTYPE_EXPLICT_WRITER && !tmp->isWriter) ||
+			(segmentType == SEGMENTTYPE_EXPLICT_READER && tmp->isWriter))
 		{
-			pfree(cdi->hostaddrs[i]);
-			cdi->hostaddrs[i] = NULL;
+			prevItem = curItem;
+			curItem = nextItem;
+			continue;
 		}
+
+		cdbinfo->freelist = list_delete_cell(cdbinfo->freelist, curItem, prevItem); 
+		/* update numIdleQEs */
+		DECR_COUNT(cdbinfo, numIdleQEs);
+
+		segdbDesc = tmp;
+		break;
 	}
+
+	if (!segdbDesc)
+	{
+		/*
+		 * 1. for entrydb, it's never be writer.
+		 * 2. for first QE, it must be a writer.
+		 */
+		isWriter = contentId == -1 ? false: (cdbinfo->numIdleQEs == 0 && cdbinfo->numActiveQEs == 0);
+		segdbDesc = cdbconn_createSegmentDescriptor(cdbinfo, cdbinfo->cdbs->qeCounter++, isWriter);
+	}
+
+	cdbconn_setQEIdentifier(segdbDesc, -1);
+
+	INCR_COUNT(cdbinfo, numActiveQEs);
+
+	MemoryContextSwitchTo(oldContext);
+
+	return segdbDesc;
+}
+
+static bool
+cleanupQE(SegmentDatabaseDescriptor *segdbDesc)
+{
+	Assert(segdbDesc != NULL);
+
+#ifdef FAULT_INJECTOR
+	if (SIMPLE_FAULT_INJECTOR(CleanupQE) == FaultInjectorTypeSkip)
+		return false;
+#endif
+
+	/*
+	 * if the process is in the middle of blowing up... then we don't do
+	 * anything here.  making libpq and other calls can definitely result in
+	 * things getting HUNG.
+	 */
+	if (proc_exit_inprogress)
+		return false;
+
+	if (cdbconn_isBadConnection(segdbDesc))
+		return false;
+
+	/* if segment is down, the gang can not be reused */
+	if (!FtsIsSegmentUp(segdbDesc->segment_database_info))
+		return false; 
+
+	/* If a reader exceed the cached memory limitation, destroy it */
+	if (!segdbDesc->isWriter &&
+		(segdbDesc->conn->mop_high_watermark >> 20) > gp_vmem_protect_gang_cache_limit)
+		return false;
+
+	/* Note, we cancel all "still running" queries */
+	if (!cdbconn_discardResults(segdbDesc, 20))
+		elog(FATAL, "cleanup called when a segworker is still busy");
+
+	/* QE is no longer associated with a slice. */
+	cdbconn_setQEIdentifier(segdbDesc, /* slice index */ -1);	
+
+	return true;
+}
+
+void
+cdbcomponent_recycleIdleQE(SegmentDatabaseDescriptor *segdbDesc, bool forceDestroy)
+{
+	CdbComponentDatabaseInfo	*cdbinfo;
+	MemoryContext				oldContext;	
+	int							maxLen;
+
+	Assert(cdb_component_dbs);
+	Assert(CdbComponentsContext);
+
+	cdbinfo = segdbDesc->segment_database_info;
+
+	/* update num of active QEs */
+	DECR_COUNT(cdbinfo, numActiveQEs);
+
+	oldContext = MemoryContextSwitchTo(CdbComponentsContext);
+
+	if (forceDestroy || !cleanupQE(segdbDesc))
+		goto destroy_segdb;
+
+	/* If freelist length exceed gp_cached_gang_threshold, destroy it */
+	maxLen = segdbDesc->segindex == -1 ?
+					MAX_CACHED_1_GANGS : gp_cached_gang_threshold;
+	if (!segdbDesc->isWriter && list_length(cdbinfo->freelist) >= maxLen)
+		goto destroy_segdb;
+
+	/* Recycle the QE, put it to freelist */
+	if (segdbDesc->isWriter)
+	{
+		/* writer is always the header of freelist */
+		segdbDesc->segment_database_info->freelist =
+			lcons(segdbDesc, segdbDesc->segment_database_info->freelist);
+	}
+	else
+	{
+		/* attatch reader to the tail of freelist */
+		segdbDesc->segment_database_info->freelist =
+			lappend(segdbDesc->segment_database_info->freelist, segdbDesc);
+	}
+
+	INCR_COUNT(cdbinfo, numIdleQEs);
+
+	MemoryContextSwitchTo(oldContext);
+
+	return;
+
+destroy_segdb:
+
+	cdbconn_termSegmentDescriptor(segdbDesc);
+
+	if (segdbDesc->isWriter)
+	{
+		markCurrentGxactWriterGangLost();
+	}
+
+	MemoryContextSwitchTo(oldContext);
+}
+
+bool
+cdbcomponent_qesExist(void)
+{
+	return !cdb_component_dbs ? false :
+			(cdb_component_dbs->numIdleQEs > 0 || cdb_component_dbs->numActiveQEs > 0);
+}
+
+bool
+cdbcomponent_activeQEsExist(void)
+{
+	return !cdb_component_dbs ? false : cdb_component_dbs->numActiveQEs > 0;
+}
+
+/*
+ * Find CdbComponentDatabaseInfo in the array by segment index.
+ */
+CdbComponentDatabaseInfo *
+cdbcomponent_getComponentInfo(int contentId)
+{
+	CdbComponentDatabaseInfo *cdbInfo = NULL;
+	CdbComponentDatabases *cdbs;
+
+	cdbs = cdbcomponent_getCdbComponents(true);
+
+	if (contentId < -1 || contentId >= cdbs->total_segments)
+		ereport(FATAL, (errcode(ERRCODE_DATA_EXCEPTION),
+						 errmsg("Unexpected content id %d, should be [-1, %d]",
+								contentId, cdbs->total_segments - 1)));
+	/* entry db */
+	if (contentId == -1)
+	{
+		cdbInfo = &cdbs->entry_db_info[0];	
+		return cdbInfo;
+	}
+
+	/* no mirror, segment_db_info is sorted by content id */
+	if (cdbs->total_segment_dbs == cdbs->total_segments)
+	{
+		cdbInfo = &cdbs->segment_db_info[contentId];
+		return cdbInfo;
+	}
+
+	/* with mirror, segment_db_info is sorted by content id */
+	if (cdbs->total_segment_dbs != cdbs->total_segments)
+	{
+		Assert(cdbs->total_segment_dbs == cdbs->total_segments * 2);
+		cdbInfo = &cdbs->segment_db_info[2 * contentId];
+
+		if (!SEGMENT_IS_ACTIVE_PRIMARY(cdbInfo))
+		{
+			cdbInfo = &cdbs->segment_db_info[2 * contentId + 1];
+		}
+
+		return cdbInfo;
+	}
+
+	return cdbInfo;
 }
 
 /*
@@ -574,7 +887,7 @@ cdb_setup(void)
  *
  */
 void
-			cdb_cleanup(int code __attribute__((unused)), Datum arg
+cdb_cleanup(int code __attribute__((unused)), Datum arg
 						__attribute__((unused)))
 {
 	elog(DEBUG1, "Cleaning up Greenplum components...");
@@ -1253,3 +1566,21 @@ getgpsegmentCount(void)
 	Assert(GpIdentity.numsegments > 0);
 	return GpIdentity.numsegments;
 }
+
+List *
+cdbcomponent_getCdbComponentsList(void)
+{
+	CdbComponentDatabases *cdbs;
+	List *segments = NIL;
+	int i;
+
+	cdbs = cdbcomponent_getCdbComponents(true);
+
+	for (i = 0; i < cdbs->total_segments; i++)
+	{
+		segments = lappend_int(segments, i);
+	}
+
+	return segments;
+}
+

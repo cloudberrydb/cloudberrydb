@@ -120,7 +120,7 @@ typedef struct CdbDispatchCmdThreads
  */
 static volatile int32 RunningThreadCount = 0;
 
-static int	getMaxThreadsPerGang(void);
+static int	getMaxThreadsPerGang(int largestGangSize);
 
 static bool shouldStillDispatchCommand(DispatchCommandParms *pParms,
 						   CdbDispatchResult *dispatchResult);
@@ -148,15 +148,14 @@ static void
 static bool
 			cdbdisp_shouldCancel(struct CdbDispatcherState *ds);
 
-static void *cdbdisp_makeDispatchThreads(int maxSlices, char *queryText, int queryTextLen);
+static void *cdbdisp_makeDispatchThreads(int maxSlices, int largestGangSize, char *queryText, int queryTextLen);
 
 static void CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 								DispatchWaitMode waitMode);
 
 static void cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 								struct Gang *gp,
-								int sliceIndex,
-								CdbDispatchDirectDesc *dispDirect);
+								int sliceIndex);
 
 DispatcherInternalFuncs DispatcherSyncFuncs =
 {
@@ -177,8 +176,7 @@ DispatcherInternalFuncs DispatcherSyncFuncs =
 static int
 cdbdisp_initDispatchParmsForGang(struct CdbDispatcherState *ds,
 								 struct Gang *gp,
-								 int sliceIndex,
-								 CdbDispatchDirectDesc *disp_direct)
+								 int sliceIndex)
 {
 	CdbDispatchCmdThreads *pThreads = NULL;
 	int			segdbsToDispatch = 0;
@@ -199,17 +197,9 @@ cdbdisp_initDispatchParmsForGang(struct CdbDispatcherState *ds,
 		CdbDispatchResult *qeResult = NULL;
 		DispatchCommandParms *pParms = NULL;
 		int			parmsIndex = 0;
-		SegmentDatabaseDescriptor *segdbDesc = &gp->db_descriptors[i];
+		SegmentDatabaseDescriptor *segdbDesc = gp->db_descriptors[i];
 
 		Assert(segdbDesc != NULL);
-
-		if (disp_direct->directed_dispatch)
-		{
-			/* currently we allow direct-to-one dispatch, only */
-			Assert(disp_direct->count == 1);
-			if (disp_direct->content[0] != segdbDesc->segindex)
-				continue;
-		}
 
 		/*
 		 * Initialize the QE's CdbDispatchResult object.
@@ -247,13 +237,12 @@ cdbdisp_initDispatchParmsForGang(struct CdbDispatcherState *ds,
 void
 cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 								struct Gang *gp,
-								int sliceIndex,
-								CdbDispatchDirectDesc *disp_direct)
+								int sliceIndex)
 {
 	int			i = 0;
 	CdbDispatchCmdThreads *pThreads = (CdbDispatchCmdThreads *) ds->dispatchParams;
 	int			threadStartIndex = pThreads->threadCount;
-	int			newThreads = cdbdisp_initDispatchParmsForGang(ds, gp, sliceIndex, disp_direct);
+	int			newThreads = cdbdisp_initDispatchParmsForGang(ds, gp, sliceIndex);
 
 	/*
 	 * Create the threads. (which also starts the dispatching).
@@ -440,9 +429,9 @@ cdbdisp_waitThreads(void)
  * memory context.
  */
 void *
-cdbdisp_makeDispatchThreads(int maxSlices, char *queryText, int queryTextLen)
+cdbdisp_makeDispatchThreads(int maxSlices, int largestGangSize, char *queryText, int queryTextLen)
 {
-	int			maxThreadsPerGang = getMaxThreadsPerGang();
+	int			maxThreadsPerGang = getMaxThreadsPerGang(largestGangSize);
 	int			maxThreads = maxThreadsPerGang * maxSlices;
 
 	int			maxConn = gp_connections_per_thread;
@@ -943,9 +932,9 @@ cdbdisp_checkSegmentDBAlive(DispatchCommandParms *pParms)
 }
 
 static int
-getMaxThreadsPerGang(void)
+getMaxThreadsPerGang(int largestGangSize)
 {
-	return 1 + (largestGangsize() - 1) / gp_connections_per_thread;
+	return 1 + (largestGangSize - 1) / gp_connections_per_thread;
 }
 
 /*

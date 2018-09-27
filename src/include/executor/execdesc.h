@@ -107,7 +107,11 @@ typedef struct Slice
 	 * The number of processes must agree with the the plan slice to be
 	 * implemented.
 	 */
-	List	   *primaryProcesses;
+	List		*primaryProcesses;
+	/* A bitmap to identify which QE should execute this slice */
+	Bitmapset	*processesMap;
+	/* A list of segment ids who will execute this slice */
+	List		*segments;
 } Slice;
 
 /*

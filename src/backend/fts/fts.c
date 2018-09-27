@@ -359,10 +359,7 @@ static
 CdbComponentDatabases *readCdbComponentInfoAndUpdateStatus(MemoryContext probeContext)
 {
 	int i;
-	MemoryContext save = MemoryContextSwitchTo(probeContext);
-	/* cdbs is free'd by FtsLoop(). */
-	CdbComponentDatabases *cdbs = getCdbComponentInfo(false);
-	MemoryContextSwitchTo(save);
+	CdbComponentDatabases *cdbs = cdbcomponent_getCdbComponents(false);
 
 	for (i=0; i < cdbs->total_segment_dbs; i++)
 	{
@@ -517,7 +514,7 @@ void FtsLoop()
 
 		if (cdbs != NULL)
 		{
-			freeCdbComponentDatabases(cdbs);
+			cdbcomponent_destroyCdbComponents();
 			cdbs = NULL;
 		}
 
