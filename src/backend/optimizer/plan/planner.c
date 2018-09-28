@@ -2204,33 +2204,16 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 													  tlist,
 													  activeWindows);
 
+			/* Add any Vars needed to compute the distribution key. */
+			window_tlist = add_to_flat_tlist_junk(window_tlist,
+												  result_plan->flow->hashExpr,
+												  true /* resjunk */);
+
 			/*
 			 * The copyObject steps here are needed to ensure that each plan
 			 * node has a separately modifiable tlist.	(XXX wouldn't a
 			 * shallow list copy do for that?)
 			 */
-
-			// -- GPDB_93_MERGE_FIXME: do we stll need this code? Or should it be in
-			// make_windowInputTargetList ? 
-			foreach(l, activeWindows)
-			{
-				WindowClause *wc = (WindowClause *) lfirst(l);
-				List	   *extravars;
-
-				extravars = pull_var_clause(wc->startOffset,
-											PVC_REJECT_AGGREGATES,
-											PVC_INCLUDE_PLACEHOLDERS);
-				window_tlist = add_to_flat_tlist(window_tlist, extravars);
-
-				extravars = pull_var_clause(wc->endOffset,
-											PVC_REJECT_AGGREGATES,
-											PVC_INCLUDE_PLACEHOLDERS);
-				window_tlist = add_to_flat_tlist(window_tlist, extravars);
-			}
-			// --
-			window_tlist = add_to_flat_tlist_junk(window_tlist,
-												  result_plan->flow->hashExpr,
-												  true /* resjunk */);
 			result_plan->targetlist = (List *) copyObject(window_tlist);
 
 			foreach(l, activeWindows)
@@ -4590,6 +4573,28 @@ make_windowInputTargetList(PlannerInfo *root,
 	/* clean up cruft */
 	list_free(flattenable_vars);
 	list_free(flattenable_cols);
+
+	/*
+	 * Add any Vars that appear in the start/end bounds. In PostgreSQL,
+	 * they're not allowed to contain any Vars of the same query level, but
+	 * we do allow it in GPDB. They shouldn't contain any aggregates, though.
+	 */
+	foreach(lc, activeWindows)
+	{
+		WindowClause *wc = (WindowClause *) lfirst(lc);
+
+		flattenable_vars = pull_var_clause(wc->startOffset,
+										   PVC_REJECT_AGGREGATES,
+										   PVC_INCLUDE_PLACEHOLDERS);
+		new_tlist = add_to_flat_tlist(new_tlist, flattenable_vars);
+		list_free(flattenable_vars);
+
+		flattenable_vars = pull_var_clause(wc->endOffset,
+										   PVC_REJECT_AGGREGATES,
+										   PVC_INCLUDE_PLACEHOLDERS);
+		new_tlist = add_to_flat_tlist(new_tlist, flattenable_vars);
+		list_free(flattenable_vars);
+	}
 
 	return new_tlist;
 }
