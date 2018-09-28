@@ -225,8 +225,9 @@ diff_and_exit() {
 		exit 0
 	fi
 
-	# To aid debugging in pipelines, print the diff to stdout
-	diff -du "$temp_root/dump1.sql" "$temp_root/dump2.sql" | tee regression.diffs
+	# To aid debugging in pipelines, print the diff to stdout. Ignore
+	# whitespace, as above, to avoid misdirecting the troubleshooter.
+	diff -wdu "$temp_root/dump1.sql" "$temp_root/dump2.sql" | tee regression.diffs
 	echo "Error: before and after dumps differ"
 	exit 1
 }
