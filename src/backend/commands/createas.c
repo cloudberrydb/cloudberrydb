@@ -187,7 +187,7 @@ ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
 
 	if (into->distributedBy &&
 		((DistributedBy *)(into->distributedBy))->ptype == POLICYTYPE_REPLICATED)
-		queryDesc->es_processed /= getgpsegmentCount();
+		queryDesc->es_processed /= ((DistributedBy *)(into->distributedBy))->numsegments;
 
 	/* MPP-14001: Running auto_stats */
 	if (Gp_role == GP_ROLE_DISPATCH)

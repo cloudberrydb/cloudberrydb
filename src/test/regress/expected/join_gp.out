@@ -8,7 +8,7 @@ insert into nhtest values(300000.19);
 explain select * from nhtest a join nhtest b using (i);
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- Gather Motion 2:1  (slice1; segments: 2)  (cost=1.02..2.07 rows=2 width=11)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1.02..2.07 rows=2 width=11)
    ->  Hash Join  (cost=1.02..2.07 rows=2 width=11)
          Hash Cond: (a.i = b.i)
          ->  Seq Scan on nhtest a  (cost=0.00..1.01 rows=1 width=11)
@@ -96,10 +96,10 @@ explain select count(*) from t1,t2 where t1.x = 100 and t1.x = t2.x;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
  Aggregate  (cost=6.60..6.61 rows=1 width=8)
-   ->  Gather Motion 2:1  (slice2; segments: 2)  (cost=6.54..6.58 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=6.54..6.58 rows=1 width=8)
          ->  Aggregate  (cost=6.54..6.55 rows=1 width=8)
                ->  Nested Loop  (cost=0.00..6.53 rows=2 width=0)
-                     ->  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=0.00..3.27 rows=1 width=4)
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.27 rows=1 width=4)
                            Hash Key: t1.x
                            ->  Seq Scan on t1  (cost=0.00..3.25 rows=1 width=4)
                                  Filter: (x = 100)
@@ -120,13 +120,13 @@ select count(*) from t1,t2 where t1.x = 100 and t1.x = t2.x;
 explain select * from t1,t2 where t1.x = 100 and t2.x >= t1.x;
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice2; segments: 2)  (cost=3.28..6.58 rows=2 width=24)
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=3.28..6.58 rows=2 width=24)
    ->  Nested Loop  (cost=3.28..6.58 rows=2 width=24)
          Join Filter: (t2.x >= t1.x)
          ->  Seq Scan on t1  (cost=0.00..3.25 rows=1 width=12)
                Filter: (x = 100)
          ->  Materialize  (cost=3.28..3.30 rows=1 width=12)
-               ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..3.28 rows=1 width=12)
+               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.28 rows=1 width=12)
                      ->  Seq Scan on t2  (cost=0.00..3.25 rows=1 width=12)
                            Filter: (x >= 100)
  Settings:  enable_hashjoin=on; enable_mergejoin=off; enable_nestloop=off

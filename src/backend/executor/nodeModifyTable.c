@@ -1575,6 +1575,21 @@ ExecModifyTable(ModifyTableState *node)
 	junkfilter = resultRelInfo->ri_junkFilter;
 
 	/*
+	 * Prevent replicated tables being updated on segments outside
+	 * the [0, numsegments-1] range.
+	 *
+	 * FIXME: remove this once the flexible gang size feature is ready.
+	 */
+	if (Gp_role == GP_ROLE_EXECUTE &&
+		resultRelInfo->ri_RelationDesc->rd_cdbpolicy->ptype == POLICYTYPE_REPLICATED &&
+		(GpIdentity.segindex >=
+		 resultRelInfo->ri_RelationDesc->rd_cdbpolicy->numsegments))
+	{
+		node->mt_done = true;
+		return NULL;
+	}
+
+	/*
 	 * es_result_relation_info must point to the currently active result
 	 * relation while we are within this ModifyTable node.	Even though
 	 * ModifyTable nodes can't be nested statically, they can be nested

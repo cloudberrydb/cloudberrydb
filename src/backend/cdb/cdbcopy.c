@@ -128,7 +128,8 @@ cdbCopyStart(CdbCopy *c, CopyStmt *stmt, struct GpPolicy *policy)
 	}
 	else
 	{
-		stmt->policy = createRandomPartitionedPolicy(NULL);
+		stmt->policy = createRandomPartitionedPolicy(NULL,
+													 GP_POLICY_ALL_NUMSEGMENTS);
 	}
 
 	CdbDispatchCopyStart(c, (Node *)stmt,

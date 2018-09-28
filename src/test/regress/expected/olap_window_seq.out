@@ -1610,7 +1610,7 @@ from sale_ord;
 ---------------------------------------------------------------------------
  WindowAgg  (cost=2.34..2.67 rows=12 width=12)
    Order By: ord, cn
-   ->  Gather Motion 2:1  (slice1)  (cost=2.34..2.61 rows=12 width=12)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=2.34..2.61 rows=12 width=12)
          Merge Key: ord, cn
          ->  Sort  (cost=2.34..2.37 rows=6 width=12)
                Sort Key: ord, cn
@@ -8099,7 +8099,7 @@ select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, bar wher
 explain select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, bar where foo.a = bar.a;
                                                    QUERY PLAN                                                   
 ----------------------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice2; segments: 2)  (cost=3.46..3.50 rows=5 width=12)
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=3.46..3.50 rows=5 width=12)
    ->  WindowAgg  (cost=3.46..3.50 rows=3 width=12)
          Partition By: bar.a
          Order By: bar.b
@@ -8109,7 +8109,7 @@ explain select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, 
                      Hash Cond: foo.a = bar.a
                      ->  Seq Scan on foo  (cost=0.00..2.10 rows=5 width=4)
                      ->  Hash  (cost=1.15..1.15 rows=3 width=8)
-                           ->  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=0.00..1.15 rows=3 width=8)
+                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..1.15 rows=3 width=8)
                                  Hash Key: bar.a
                                  ->  Seq Scan on bar  (cost=0.00..1.05 rows=3 width=8)
 (14 rows)

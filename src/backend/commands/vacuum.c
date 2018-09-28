@@ -1427,9 +1427,9 @@ vac_update_relstats_from_list(List *updated_stats)
 
 		if (GpPolicyIsReplicated(rel->rd_cdbpolicy))
 		{
-			stats->rel_pages = stats->rel_pages / getgpsegmentCount();
-			stats->rel_tuples = stats->rel_tuples / getgpsegmentCount();
-			stats->relallvisible = stats->relallvisible / getgpsegmentCount();
+			stats->rel_pages = stats->rel_pages / rel->rd_cdbpolicy->numsegments;
+			stats->rel_tuples = stats->rel_tuples / rel->rd_cdbpolicy->numsegments;
+			stats->relallvisible = stats->relallvisible / rel->rd_cdbpolicy->numsegments;
 		}
 
 		/*

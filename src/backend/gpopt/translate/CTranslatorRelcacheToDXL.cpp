@@ -565,6 +565,15 @@ CTranslatorRelcacheToDXL::RetrieveRel
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported, GPOS_WSZ_LIT("Foreign Data"));
 	}
 
+	if (NULL != rel->rd_cdbpolicy &&
+		gpdb::GetGPSegmentCount() != rel->rd_cdbpolicy->numsegments)
+	{
+		// GPORCA does not support partially distributed tables yet
+		gpdb::CloseRelation(rel);
+		GPOS_RAISE(gpdxl::ExmaMD,
+				   gpdxl::ExmiDXLInvalidAttributeValue,
+				   GPOS_WSZ_LIT("Partially Distributed Data"));
+	}
 
 	CMDName *mdname = NULL;
 	IMDRelation::Erelstoragetype rel_storage_type = IMDRelation::ErelstorageSentinel;

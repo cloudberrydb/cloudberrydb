@@ -6572,6 +6572,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 			   *lcp;
 	bool		all_subplans_entry = true,
 				all_subplans_replicated = true;
+	int			numsegments = -1;
 
 	if (node->operation == CMD_INSERT)
 	{
@@ -6589,10 +6590,34 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 			targetPolicy = GpPolicyFetch(CurrentMemoryContext, rte->relid);
 			targetPolicyType = targetPolicy->ptype;
 
+			if (numsegments >= 0)
+			{
+				/*
+				 * We require a table T's sub tables all have the same
+				 * numsegments with T
+				 */
+				Assert(numsegments == targetPolicy->numsegments);
+			}
+
+			numsegments = targetPolicy->numsegments;
+
 			if (targetPolicyType == POLICYTYPE_PARTITIONED)
 			{
 				all_subplans_entry = false;
 				all_subplans_replicated = false;
+
+				/*
+				 * A query to reach here: INSERT INTO t1 VALUES(1).
+				 * There is no need to add a motion from General, we could
+				 * simply put General on the same segments with target table.
+				 */
+				/* FIXME: also do this for other targetPolicyType? */
+				/* FIXME: also do this for all the subplans */
+				if (subplan->flow->locustype == CdbLocusType_General)
+				{
+					Assert(subplan->flow->numsegments >= numsegments);
+					subplan->flow->numsegments = numsegments;
+				}
 
 				if (gp_enable_fast_sri && IsA(subplan, Result))
 					sri_optimize_for_result(root, subplan, rte, &targetPolicy, &hashExpr);
@@ -6603,7 +6628,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 														 targetPolicy->attrs,
 														 false);
 
-				if (!repartitionPlan(subplan, false, false, hashExpr))
+				if (!repartitionPlan(subplan, false, false, hashExpr, numsegments))
 					ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 									errmsg("Cannot parallelize that INSERT yet")));
 			}
@@ -6622,6 +6647,8 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 					 * Ask for motion to a single QE.  Later, apply_motion
 					 * will override that to bring it to the QD instead.
 					 */
+					/* FIXME: why make below assertion? */
+					Assert(subplan->flow->numsegments == numsegments);
 					if (!focusPlan(subplan, false, false))
 						ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 										errmsg("Cannot parallelize that INSERT yet")));
@@ -6648,7 +6675,28 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 					subplan->flow->flotype == FLOW_SINGLETON &&
 					subplan->flow->locustype == CdbLocusType_SegmentGeneral &&
 					!contain_volatile_functions((Node *)subplan->targetlist))
-					break;
+				{
+					if (subplan->flow->numsegments >= numsegments)
+					{
+						/*
+						 * A query to reach here:
+						 *     INSERT INTO d1 SELECT * FROM d1;
+						 * There is no need to add a motion from General, we
+						 * could simply put General on the same segments with
+						 * target table.
+						 */
+						subplan->flow->numsegments = numsegments;
+						continue;
+					}
+
+					/*
+					 * Otherwise a broadcast motion is needed otherwise d2 will
+					 * only have data on segment 0.
+					 *
+					 * A query to reach here:
+					 *     INSERT INTO d2 SELECT * FROM d1;
+					 */
+				}
 
 				/* plan's data are available on all segment, no motion needed */
 				if (optimizer_replicated_table_insert &&
@@ -6657,10 +6705,24 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 					!contain_volatile_functions((Node *)subplan->targetlist))
 				{
 					subplan->dispatch = DISPATCH_PARALLEL;
-					break;
+					if (subplan->flow->numsegments >= numsegments)
+					{
+						/*
+						 * A query to reach here: INSERT INTO d1 VALUES(1).
+						 * There is no need to add a motion from General, we
+						 * could simply put General on the same segments with
+						 * target table.
+						 */
+						subplan->flow->numsegments = numsegments;
+					}
+					else
+					{
+						/* FIXME: is here reachable? */
+					}
+					continue;
 				}
 
-				if (!broadcastPlan(subplan, false, false))
+				if (!broadcastPlan(subplan, false, false, numsegments))
 					ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 								errmsg("Cannot parallelize that INSERT yet")));
 
@@ -6685,6 +6747,17 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 			targetPolicy = GpPolicyFetch(CurrentMemoryContext, rte->relid);
 			targetPolicyType = targetPolicy->ptype;
 
+			if (numsegments >= 0)
+			{
+				/*
+				 * We require a table T's sub tables all have the same
+				 * numsegments with T
+				 */
+				Assert(numsegments == targetPolicy->numsegments);
+			}
+
+			numsegments = targetPolicy->numsegments;
+
 			if (targetPolicyType == POLICYTYPE_PARTITIONED)
 			{
 				all_subplans_entry = false;
@@ -6708,7 +6781,8 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 														 targetPolicy->nattrs,
 														 targetPolicy->attrs,
 														 false);
-					if (!repartitionPlan(new_subplan, false, false, hashExpr))
+					if (!repartitionPlan(new_subplan, false, false, hashExpr,
+										 targetPolicy->numsegments))
 						ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 										errmsg("Cannot parallelize that UPDATE yet")));
 
@@ -6771,6 +6845,8 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 		}
 	}
 
+	Assert(numsegments >= 0);
+
 	/*
 	 * Set the distribution of the ModifyTable node itself. If there is only
 	 * one subplan, or all the subplans have a compatible distribution, then
@@ -6788,11 +6864,11 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 	}
 	else if (all_subplans_replicated)
 	{
-		mark_plan_replicated((Plan *) node);
+		mark_plan_replicated((Plan *) node, numsegments);
 	}
 	else
 	{
-		mark_plan_strewn((Plan *) node);
+		mark_plan_strewn((Plan *) node, numsegments);
 
 		if (list_length(node->plans) == 1)
 		{
@@ -7032,6 +7108,9 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 {
 	Motion	   *motion = NULL;
 	Path	   *subpath = path->subpath;
+	int			numsegments;
+
+	numsegments = CdbPathLocus_NumSegments(path->path.locus);
 
 	/* Send all tuples to a single process? */
 	if (CdbPathLocus_IsBottleneck(path->path.locus))
@@ -7089,14 +7168,16 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 												  collations,
 												  nullsFirst,
 												  destSegIndex,
-												  false /* useExecutorVarFormat */);
+												  false /* useExecutorVarFormat */,
+												  numsegments);
 			}
 			else
 			{
 				/* Degenerate ordering... build unordered Union Receive */
 				motion = make_union_motion(subplan,
 										   destSegIndex,
-										   false	/* useExecutorVarFormat */);
+										   false	/* useExecutorVarFormat */,
+										   numsegments);
 			}
 		}
 
@@ -7104,14 +7185,16 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 		else
 			motion = make_union_motion(subplan,
 									   destSegIndex,
-									   false	/* useExecutorVarFormat */
+									   false	/* useExecutorVarFormat */,
+									   numsegments
 				);
 	}
 
 	/* Send all of the tuples to all of the QEs in gang above... */
 	else if (CdbPathLocus_IsReplicated(path->path.locus))
 		motion = make_broadcast_motion(subplan,
-									   false	/* useExecutorVarFormat */
+									   false	/* useExecutorVarFormat */,
+									   numsegments
 			);
 
 	/* Hashed redistribution to all QEs in gang above... */
@@ -7142,7 +7225,8 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
         }
         motion = make_hashed_motion(subplan,
                                     hashExpr,
-                                    false /* useExecutorVarFormat */);
+                                    false /* useExecutorVarFormat */,
+									numsegments);
     }
     else
         Insist(0);

@@ -433,7 +433,7 @@ set optimizer_enable_bitmapscan=off;
 explain select * from bm_test where j = 1;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..400.28 rows=1 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..400.28 rows=1 width=8)
    ->  Index Scan using bm_test_j on bm_test  (cost=0.00..400.28 rows=1 width=8)
          Index Cond: j = 1
  Settings:  enable_bitmapscan=off; enable_indexscan=on; enable_seqscan=off

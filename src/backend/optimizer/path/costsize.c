@@ -4578,12 +4578,14 @@ page_size(double tuples, int width)
  * need it in contexts in which root is not defined may call this function to
  * derive it.
  */
-int planner_segment_count(void)
+int planner_segment_count(GpPolicy *policy)
 {
 	if ( Gp_role != GP_ROLE_DISPATCH )
 		return 1;
 	else if ( gp_segments_for_planner > 0 )
 		return gp_segments_for_planner;
+	else if (policy)
+		return policy->numsegments;
 	else
 		return getgpsegmentCount();
 }
@@ -4604,7 +4606,7 @@ double global_work_mem(PlannerInfo *root)
 		segment_count = root->config->cdbpath_segments;
 	}
 	else
-		segment_count = planner_segment_count();
+		segment_count = planner_segment_count(NULL);
 
 	return (double) planner_work_mem * 1024L * segment_count;	
 }

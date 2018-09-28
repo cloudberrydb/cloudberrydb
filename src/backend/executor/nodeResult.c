@@ -55,12 +55,13 @@
 #include "utils/lsyscache.h"
 
 #include "cdb/cdbhash.h"
+#include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "cdb/memquota.h"
 #include "executor/spi.h"
 
 static TupleTableSlot *NextInputSlot(ResultState *node);
-static bool TupleMatchesHashFilter(Result *resultNode, TupleTableSlot *resultSlot);
+static bool TupleMatchesHashFilter(ResultState *node, TupleTableSlot *resultSlot);
 
 /**
  * Returns the next valid input tuple from the left subtree
@@ -236,8 +237,7 @@ ExecResult(ResultState *node)
 
 		if (!TupIsNull(candidateOutputSlot))
 		{
-			Result *result = (Result *)node->ps.plan;
-			if (TupleMatchesHashFilter(result, candidateOutputSlot))
+			if (TupleMatchesHashFilter(node, candidateOutputSlot))
 			{
 				outputSlot = candidateOutputSlot;
 			}
@@ -262,8 +262,9 @@ ExecResult(ResultState *node)
 /**
  * Returns true if tuple matches hash filter.
  */
-static bool TupleMatchesHashFilter(Result *resultNode, TupleTableSlot *resultSlot)
+static bool TupleMatchesHashFilter(ResultState *node, TupleTableSlot *resultSlot)
 {
+	Result *resultNode = (Result *)node->ps.plan;
 	bool res = true;
 
 	Assert(resultNode);
@@ -273,8 +274,28 @@ static bool TupleMatchesHashFilter(Result *resultNode, TupleTableSlot *resultSlo
 	{
 		Assert(resultNode->hashFilter);
 		ListCell	*cell = NULL;
+		CdbHash		*hash;
 
-		CdbHash *hash = makeCdbHash(GpIdentity.numsegments);
+		if (node->ps.state->es_plannedstmt->planGen == PLANGEN_PLANNER)
+		{
+			Assert(resultNode->plan.flow);
+			Assert(resultNode->plan.flow->numsegments > 0);
+
+			/*
+			 * For planner generated plan the size of receiver slice can be
+			 * determined from flow.
+			 */
+			hash = makeCdbHash(resultNode->plan.flow->numsegments);
+		}
+		else
+		{
+			/*
+			 * For ORCA generated plan we could distribute to ALL as partially
+			 * distributed tables are not supported by ORCA yet.
+			 */
+			hash = makeCdbHash(GP_POLICY_ALL_NUMSEGMENTS);
+		}
+
 		cdbhashinit(hash);
 		foreach(cell, resultNode->hashList)
 		{

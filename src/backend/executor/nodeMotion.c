@@ -1014,7 +1014,25 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 		/*
 		 * Create hash API reference
 		 */
-		motionstate->cdbhash = makeCdbHash(node->numOutputSegs);
+		if (estate->es_plannedstmt->planGen == PLANGEN_PLANNER)
+		{
+			Assert(node->plan.flow);
+			Assert(node->plan.flow->numsegments > 0);
+
+			/*
+			 * For planner generated plan the size of receiver slice can be
+			 * determined from flow.
+			 */
+			motionstate->cdbhash = makeCdbHash(node->plan.flow->numsegments);
+		}
+		else
+		{
+			/*
+			 * For ORCA generated plan we could distribute to ALL as partially
+			 * distributed tables are not supported by ORCA yet.
+			 */
+			motionstate->cdbhash = makeCdbHash(node->numOutputSegs);
+		}
     }
 
 	/* Merge Receive: Set up the key comparator and priority queue. */
@@ -1448,8 +1466,6 @@ doSendTuple(Motion * motion, MotionState * node, TupleTableSlot *outerTupleSlot)
 
 		econtext->ecxt_outertuple = outerTupleSlot;
 
-		Assert(node->cdbhash->numsegs == motion->numOutputSegs);
-		
 		hval = evalHashKey(econtext, node->hashExpr,
 				motion->hashDataTypes, node->cdbhash);
 

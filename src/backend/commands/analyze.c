@@ -2197,8 +2197,8 @@ analyzeEstimateReltuplesRelpages(Oid relationOid, float4 *relTuples, float4 *rel
 
 		if (GpPolicyIsReplicated(policy))
 		{
-			*relTuples += DatumGetFloat4(values[0]) / getgpsegmentCount();
-			*relPages += DatumGetFloat4(values[1]) / getgpsegmentCount();
+			*relTuples += DatumGetFloat4(values[0]) / policy->numsegments;
+			*relPages += DatumGetFloat4(values[1]) / policy->numsegments;
 		}
 		else
 		{
@@ -2272,7 +2272,7 @@ analyzeEstimateIndexpages(Relation onerel, Relation indrel, BlockNumber *indexPa
     Assert(valuesLength == 2);
 
 	if (GpPolicyIsReplicated(policy))
-		*indexPages = DatumGetFloat4(values[1]) / getgpsegmentCount();
+		*indexPages = DatumGetFloat4(values[1]) / policy->numsegments;
 	else
 		*indexPages = DatumGetFloat4(values[1]);
 

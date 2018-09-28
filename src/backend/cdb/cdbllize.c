@@ -75,7 +75,8 @@ static bool adjustPlanFlow(Plan *plan,
 			   bool stable,
 			   bool rescannable,
 			   Movement req_move,
-			   List *hashExpr);
+			   List *hashExpr,
+			   int numsegments);
 
 static void motion_sanity_check(PlannerInfo *root, Plan *plan);
 static bool loci_compatible(List *hashExpr1, List *hashExpr2);
@@ -571,7 +572,8 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		 */
 		if (ctx->movement == MOVEMENT_BROADCAST)
 		{
-			broadcastPlan(scanPlan, false /* stable */ , false /* rescannable */ );
+			broadcastPlan(scanPlan, false /* stable */ , false /* rescannable */,
+						  scanPlan->flow->numsegments /* numsegments */);
 		}
 		else
 		{
@@ -736,7 +738,8 @@ ParallelizeSubplan(SubPlan *spExpr, PlanProfile *context)
 
 		if (containingPlanDistributed)
 		{
-			broadcastPlan(newPlan, false /* stable */ , false /* rescannable */ );
+			broadcastPlan(newPlan, false /* stable */ , false /* rescannable */,
+						  context->currentPlanFlow->numsegments /* numsegments */);
 		}
 		else
 		{
@@ -915,13 +918,20 @@ prescan_walker(Node *node, PlanProfile *context)
  * Construct a new Flow in the current memory context.
  */
 Flow *
-makeFlow(FlowType flotype)
+makeFlow(FlowType flotype, int numsegments)
 {
 	Flow	   *flow = makeNode(Flow);
+
+	Assert(numsegments > 0);
+	if (numsegments == __GP_POLICY_EVIL_NUMSEGMENTS)
+	{
+		Assert(!"what's the proper value of numsegments?");
+	}
 
 	flow->flotype = flotype;
 	flow->req_move = MOVEMENT_NONE;
 	flow->locustype = CdbLocusType_Null;
+	flow->numsegments = numsegments;
 
 	return flow;
 }
@@ -963,7 +973,7 @@ pull_up_Flow(Plan *plan, Plan *subplan)
 	else
 		Assert(subplan == plan->lefttree);
 
-	new_flow = makeFlow(model_flow->flotype);
+	new_flow = makeFlow(model_flow->flotype, model_flow->numsegments);
 
 	if (model_flow->flotype == FLOW_SINGLETON)
 		new_flow->segindex = model_flow->segindex;
@@ -1034,23 +1044,29 @@ focusPlan(Plan *plan, bool stable, bool rescannable)
 		plan->flow->locustype != CdbLocusType_SegmentGeneral)
 		return true;
 
-	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_FOCUS, NIL);
+	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_FOCUS, NIL,
+						  plan->flow->numsegments);
 }
 
 /*
  * Function: broadcastPlan
  */
 bool
-broadcastPlan(Plan *plan, bool stable, bool rescannable)
+broadcastPlan(Plan *plan, bool stable, bool rescannable, int numsegments)
 {
 	Assert(plan->flow && plan->flow->flotype != FLOW_UNDEFINED);
 
-	/* Already focused and flow is CdbLocusType_SegmentGeneral, do nothing. */
+	/*
+	 * Already focused and flow is CdbLocusType_SegmentGeneral and data
+	 * is replicated on every segment of target, do nothing.
+	 */
 	if (plan->flow->flotype == FLOW_SINGLETON &&
-		plan->flow->locustype == CdbLocusType_SegmentGeneral)
+		plan->flow->locustype == CdbLocusType_SegmentGeneral &&
+		plan->flow->numsegments >= numsegments)
 		return true;
 
-	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_BROADCAST, NIL);
+	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_BROADCAST, NIL,
+						  numsegments);
 }
 
 
@@ -1089,14 +1105,15 @@ loci_compatible(List *hashExpr1, List *hashExpr2)
  * Function: repartitionPlan
  */
 bool
-repartitionPlan(Plan *plan, bool stable, bool rescannable, List *hashExpr)
+repartitionPlan(Plan *plan, bool stable, bool rescannable,
+				List *hashExpr, int numsegments)
 {
 	Assert(plan->flow);
 	Assert(plan->flow->flotype == FLOW_PARTITIONED ||
 		   plan->flow->flotype == FLOW_SINGLETON);
 
 	/* Already partitioned on the given hashExpr?  Do nothing. */
-	if (hashExpr)
+	if (hashExpr && plan->flow->numsegments == numsegments)
 	{
 		if (equal(hashExpr, plan->flow->hashExpr))
 			return true;
@@ -1110,7 +1127,8 @@ repartitionPlan(Plan *plan, bool stable, bool rescannable, List *hashExpr)
 			return true;
 	}
 
-	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_REPARTITION, hashExpr);
+	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_REPARTITION,
+						  hashExpr, numsegments);
 }
 
 /*
@@ -1128,7 +1146,8 @@ adjustPlanFlow(Plan *plan,
 			   bool stable,
 			   bool rescannable,
 			   Movement req_move,
-			   List *hashExpr)
+			   List *hashExpr,
+			   int numsegments)
 {
 	Flow	   *flow = plan->flow;
 	bool		disorder = false;
@@ -1138,6 +1157,12 @@ adjustPlanFlow(Plan *plan,
 	Assert(flow && flow->flotype != FLOW_UNDEFINED);
 	Assert(flow->req_move == MOVEMENT_NONE);
 	Assert(flow->flow_before_req_move == NULL);
+
+	Assert(numsegments > 0);
+	if (numsegments == __GP_POLICY_EVIL_NUMSEGMENTS)
+	{
+		Assert(!"what's the proper value of numsegments?");
+	}
 
 	switch (req_move)
 	{
@@ -1225,7 +1250,8 @@ adjustPlanFlow(Plan *plan,
 							stable && !reorder,
 							rescannable,
 							req_move,
-							hashExpr))
+							hashExpr,
+							numsegments))
 			return false;
 
 		/* After updating subplan, bubble new distribution back up the tree. */
@@ -1234,6 +1260,7 @@ adjustPlanFlow(Plan *plan,
 		flow->flotype = kidflow->flotype;
 		flow->segindex = kidflow->segindex;
 		flow->hashExpr = copyObject(kidflow->hashExpr);
+		flow->numsegments = kidflow->numsegments;
 		plan->dispatch = plan->lefttree->dispatch;
 
 		return true;			/* success */
@@ -1285,18 +1312,21 @@ adjustPlanFlow(Plan *plan,
 			/* Converge to a single QE (or QD; that choice is made later). */
 			flow->flotype = FLOW_SINGLETON;
 			flow->hashExpr = NIL;
+			flow->numsegments = numsegments;
 			flow->segindex = 0;
 			break;
 
 		case MOVEMENT_BROADCAST:
 			flow->flotype = FLOW_REPLICATED;
 			flow->hashExpr = NIL;
+			flow->numsegments = numsegments;
 			flow->segindex = 0;
 			break;
 
 		case MOVEMENT_REPARTITION:
 			flow->flotype = FLOW_PARTITIONED;
 			flow->hashExpr = copyObject(hashExpr);
+			flow->numsegments = numsegments;
 			flow->segindex = 0;
 			break;
 

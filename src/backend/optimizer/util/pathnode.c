@@ -38,6 +38,7 @@
 #include "utils/selfuncs.h"
 
 #include "cdb/cdbpath.h"        /* cdb_create_motion_path() etc */
+#include "cdb/cdbutil.h"		/* getgpsegmentCount() */
 
 typedef enum
 {
@@ -1403,7 +1404,9 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 	/* If no subpath, any worker can execute this Append.  Result has 0 rows. */
 	if (!subpaths)
 	{
-		CdbPathLocus_MakeGeneral(&pathnode->locus);
+		/* FIXME: do not hard code to ALL */
+		CdbPathLocus_MakeGeneral(&pathnode->locus,
+								 GP_POLICY_ALL_NUMSEGMENTS);
 		return;
 	}
 
@@ -1462,7 +1465,25 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 				if (!CdbPathLocus_IsSingleQE(subpath->locus))
 				{
 					CdbPathLocus    singleQE;
-					CdbPathLocus_MakeSingleQE(&singleQE);
+					/*
+					 * It's important to ensure that all the subpaths can be
+					 * gathered to the SAME segment, we must set the same
+					 * numsegments for all the SingleQE, there are many
+					 * options:
+					 *
+					 * 1. a constant 1;
+					 * 2. Min(numsegments of all subpaths);
+					 * 3. Max(numsegments of all subpaths);
+					 * 4. ALL;
+					 *
+					 * Options 2 & 3 need to decide the value with an extra
+					 * scan, option 1 puts all the SingleQE on segment 0
+					 * which makes segment 0 a bottle neck.  So we choose
+					 * option 4, ALL helps to balance the load on all the
+					 * segments and no extra scan is needed.
+					 */
+					int			numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+					CdbPathLocus_MakeSingleQE(&singleQE, numsegments);
 
 					subpath = cdbpath_create_motion_path(root, subpath, subpath->pathkeys, false, singleQE);
 				}
@@ -1511,7 +1532,8 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 		}
 		else if (CdbPathLocus_IsPartitioned(pathnode->locus) &&
 				 CdbPathLocus_IsPartitioned(projectedlocus))
-			CdbPathLocus_MakeStrewn(&pathnode->locus);
+			CdbPathLocus_MakeStrewn(&pathnode->locus,
+									CdbPathLocus_NumSegments(projectedlocus));
 		else
 			ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							errmsg_internal("cannot append paths with incompatible distribution")));
@@ -1551,7 +1573,8 @@ create_result_path(List *quals)
 	pathnode->path.startup_cost = 0;
 	pathnode->path.total_cost = cpu_tuple_cost;
 
-	CdbPathLocus_MakeGeneral(&pathnode->path.locus);
+	/* Result can be on any segments */
+	CdbPathLocus_MakeGeneral(&pathnode->path.locus, GP_POLICY_ALL_NUMSEGMENTS);
 	pathnode->path.motionHazard = false;
 	pathnode->path.rescannable = true;
 
@@ -1793,7 +1816,19 @@ create_unique_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath,
 	if (!CdbPathLocus_IsBottleneck(subpath->locus) &&
 		!cdbpathlocus_is_hashed_on_exprs(subpath->locus, uniq_exprs))
 	{
-        locus = cdbpathlocus_from_exprs(root, uniq_exprs);
+		/*
+		 * We want to use numsegments from rel->cdbpolicy, however it might
+		 * be NULL.  Subpath is the cheapest path of rel, so it has the same
+		 * numsegments with rel.
+		 */
+		if (rel->cdbpolicy)
+		{
+			AssertEquivalent(rel->cdbpolicy->numsegments,
+							 subpath->locus.numsegments);
+		}
+		int			numsegments = CdbPathLocus_NumSegments(subpath->locus);
+
+        locus = cdbpathlocus_from_exprs(root, uniq_exprs, numsegments);
         subpath = cdbpath_create_motion_path(root, subpath, NIL, false, locus);
 		/*
 		 * We probably add agg/sort node above the added motion node, but it is
@@ -2227,7 +2262,8 @@ create_unique_rowid_path(PlannerInfo *root,
         pathnode->must_repartition = true;
 
         /* Set a fake locus.  Repartitioning key won't be built until later. */
-        CdbPathLocus_MakeStrewn(&pathnode->path.locus);
+        CdbPathLocus_MakeStrewn(&pathnode->path.locus,
+								CdbPathLocus_NumSegments(subpath->locus));
 		pathnode->path.sameslice_relids = NULL;
 
         /* Estimate repartitioning cost. */
@@ -2522,7 +2558,8 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 		switch (exec_location)
 		{
 			case PROEXECLOCATION_ANY:
-				CdbPathLocus_MakeGeneral(&pathnode->locus);
+				CdbPathLocus_MakeGeneral(&pathnode->locus,
+										 GP_POLICY_ALL_NUMSEGMENTS);
 
 				/*
 				 * If the function is ON ANY, we presumably could execute the
@@ -2534,13 +2571,15 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 				if (contain_mutable_functions(rte->funcexpr))
 					CdbPathLocus_MakeEntry(&pathnode->locus);
 				else
-					CdbPathLocus_MakeGeneral(&pathnode->locus);
+					CdbPathLocus_MakeGeneral(&pathnode->locus,
+											 GP_POLICY_ALL_NUMSEGMENTS);
 				break;
 			case PROEXECLOCATION_MASTER:
 				CdbPathLocus_MakeEntry(&pathnode->locus);
 				break;
 			case PROEXECLOCATION_ALL_SEGMENTS:
-				CdbPathLocus_MakeStrewn(&pathnode->locus);
+				CdbPathLocus_MakeStrewn(&pathnode->locus,
+										GP_POLICY_ALL_NUMSEGMENTS);
 				break;
 			default:
 				elog(ERROR, "unrecognized proexeclocation '%c'", exec_location);
@@ -2556,7 +2595,8 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 		if (contain_mutable_functions(rte->funcexpr))
 			CdbPathLocus_MakeEntry(&pathnode->locus);
 		else
-			CdbPathLocus_MakeGeneral(&pathnode->locus);
+			CdbPathLocus_MakeGeneral(&pathnode->locus,
+									 GP_POLICY_ALL_NUMSEGMENTS);
 	}
 
 	pathnode->motionHazard = false;
@@ -2605,7 +2645,8 @@ create_tablefunction_path(PlannerInfo *root, RelOptInfo *rel,
 
 	/* Mark the output as random if the input is partitioned */
 	if (CdbPathLocus_IsPartitioned(pathnode->locus))
-		CdbPathLocus_MakeStrewn(&pathnode->locus);
+		CdbPathLocus_MakeStrewn(&pathnode->locus,
+								CdbPathLocus_NumSegments(pathnode->locus));
 	pathnode->sameslice_relids = NULL;
 
 	cost_tablefunction(pathnode, root, rel, pathnode->param_info);
@@ -2639,7 +2680,10 @@ create_valuesscan_path(PlannerInfo *root, RelOptInfo *rel,
 	if (contain_mutable_functions((Node *)rte->values_lists))
 		CdbPathLocus_MakeEntry(&pathnode->locus);
 	else
-		CdbPathLocus_MakeGeneral(&pathnode->locus);
+		/*
+		 * ValuesScan can be on any segment.
+		 */
+		CdbPathLocus_MakeGeneral(&pathnode->locus, GP_POLICY_ALL_NUMSEGMENTS);
 
 	pathnode->motionHazard = false;
 	pathnode->rescannable = true;
@@ -2694,17 +2738,23 @@ create_worktablescan_path(PlannerInfo *root, RelOptInfo *rel,
 {
 	Path	   *pathnode = makeNode(Path);
 	CdbPathLocus result;
+	int			numsegments;
+
+	if (rel->cdbpolicy)
+		numsegments = rel->cdbpolicy->numsegments;
+	else
+		numsegments = GP_POLICY_ALL_NUMSEGMENTS; /* FIXME */
 
 	if (ctelocus == CdbLocusType_Entry)
 		CdbPathLocus_MakeEntry(&result);
 	else if (ctelocus == CdbLocusType_SingleQE)
-		CdbPathLocus_MakeSingleQE(&result);
+		CdbPathLocus_MakeSingleQE(&result, numsegments);
 	else if (ctelocus == CdbLocusType_General)
-		CdbPathLocus_MakeGeneral(&result);
+		CdbPathLocus_MakeGeneral(&result, numsegments);
 	else if (ctelocus == CdbLocusType_SegmentGeneral)
-		CdbPathLocus_MakeSegmentGeneral(&result);
+		CdbPathLocus_MakeSegmentGeneral(&result, numsegments);
 	else
-		CdbPathLocus_MakeStrewn(&result);
+		CdbPathLocus_MakeStrewn(&result, numsegments);
 
 	pathnode->pathtype = T_WorkTableScan;
 	pathnode->parent = rel;

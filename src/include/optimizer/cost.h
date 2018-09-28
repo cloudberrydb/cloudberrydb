@@ -234,7 +234,7 @@ extern Selectivity clause_selectivity(PlannerInfo *root,
 				   JoinType jointype,
 				   SpecialJoinInfo *sjinfo,
 				   bool use_damping);
-extern int planner_segment_count(void);
+extern int planner_segment_count(GpPolicy *policy);
 extern double global_work_mem(PlannerInfo *root);
 
 #endif   /* COST_H */

@@ -8112,7 +8112,7 @@ select * from orca.t order by 1,2;
 explain select * from orca.t order by 1,2;
                                              QUERY PLAN
 -----------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..431.00 rows=1 width=32)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=32)
    Merge Key: timest, user_id
    ->  Sequence  (cost=0.00..431.00 rows=1 width=32)
          ->  Partition Selector for t (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
@@ -9492,17 +9492,17 @@ where c.cid = s.cid and s.date_sk = d.date_sk and
       ((d.year = 2001 and lower(s.type) = 't1' and plusone(d.moy) = 5) or (d.moy = 4 and upper(s.type) = 'T2'));
                                                                                       QUERY PLAN
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice3; segments: 2)  (cost=0.00..1293.00 rows=1 width=24)
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1293.00 rows=1 width=24)
    ->  Hash Join  (cost=0.00..1293.00 rows=1 width=24)
          Hash Cond: cust.cid = sales.cid
          ->  Table Scan on cust  (cost=0.00..431.00 rows=1 width=20)
          ->  Hash  (cost=862.00..862.00 rows=1 width=8)
-               ->  Redistribute Motion 2:2  (slice2; segments: 2)  (cost=0.00..862.00 rows=1 width=8)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
                      Hash Key: sales.cid
                      ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
                            Hash Cond: sales.date_sk = datedim.date_sk
                            Join Filter: (datedim.year = 2001 AND lower(sales.type) = 't1'::text AND plusone(datedim.moy) = 5) OR (datedim.moy = 4 AND upper(sales.type) = 'T2'::text)
-                           ->  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=1 width=16)
+                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=16)
                                  Hash Key: sales.date_sk
                                  ->  Table Scan on sales  (cost=0.00..431.00 rows=1 width=16)
                                        Filter: lower(type) = 't1'::text OR upper(type) = 'T2'::text

@@ -49,7 +49,7 @@ extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp);
 
 /* Allocate GpPolicy struct from an ArrayType */
 static GpPolicy *
-set_distribution_policy (Datum array_distribution);
+set_distribution_policy (Datum array_distribution, Datum numsegments);
 
 /* Get base type OID */
 static Oid
@@ -83,7 +83,7 @@ extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp)
  * Allocate GpPolicy from a given distribution in an Array of OIDs 
  */
 static GpPolicy *
-set_distribution_policy (Datum array_distribution)
+set_distribution_policy (Datum array_distribution, Datum numsegments)
 {
 	GpPolicy  *policy = NULL;
 	
@@ -100,7 +100,13 @@ set_distribution_policy (Datum array_distribution)
 				errmsg("there is no distribution set in target table")));
 	}
 
-	policy = makeGpPolicy(NULL, POLICYTYPE_PARTITIONED, nattrs);
+	/*
+	 * FIXME_TABLE_EXPAND: set_distribution_policy function only used for checking
+	 * the distribution policy of the relation, we set the EVIL numbers for the
+	 * segment count simply, it need to be fixed in the future.
+	 */
+	policy = makeGpPolicy(NULL, POLICYTYPE_PARTITIONED, nattrs,
+						  DatumGetInt32(numsegments));
 	
 	for (int i = 0; i < nattrs; i++)
 	{
@@ -150,15 +156,17 @@ gp_distribution_policy_heap_table_check(PG_FUNCTION_ARGS)
 {
 	bool result = true;
 	
-	Assert(2 == PG_NARGS());
+	Assert(3 == PG_NARGS());
 
 	Oid relOid = PG_GETARG_OID(0);
 	Datum  array_distribution = PG_GETARG_DATUM(1);
+	Datum  numsegments = PG_GETARG_DATUM(2);
 
 	Assert(array_distribution);
 
 	/* Get distribution policy from arguments */
-	GpPolicy  *policy = set_distribution_policy(array_distribution);
+	GpPolicy  *policy = set_distribution_policy(array_distribution,
+												numsegments);
 
 	/* Open relation in segment */
 	Relation rel = heap_open(relOid, AccessShareLock);
@@ -179,7 +187,7 @@ gp_distribution_policy_heap_table_check(PG_FUNCTION_ARGS)
 		CHECK_FOR_INTERRUPTS();
 
 		/* Initialize hash function and structure */
-		CdbHash *hash = makeCdbHash(GpIdentity.numsegments);
+		CdbHash *hash = makeCdbHash(policy->numsegments);
 		cdbhashinit(hash);
 		
 		for(int i = 0; i < policy->nattrs; i++)

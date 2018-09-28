@@ -5175,7 +5175,10 @@ CTranslatorDXLToPlStmt::TranslateDXLPhyCtasToDistrPolicy
 		num_of_distr_cols_alloc = num_of_distr_cols;
 	}
 	
-	GpPolicy *distr_policy = gpdb::MakeGpPolicy(NULL, POLICYTYPE_PARTITIONED, num_of_distr_cols_alloc);
+	// always set numsegments to ALL for CTAS
+	GpPolicy *distr_policy = gpdb::MakeGpPolicy(NULL, POLICYTYPE_PARTITIONED,
+												num_of_distr_cols_alloc,
+												gpdb::GetGPSegmentCount());
 
 	GPOS_ASSERT(IMDRelation::EreldistrHash == dxlop->Ereldistrpolicy() ||
 				IMDRelation::EreldistrRandom == dxlop->Ereldistrpolicy());

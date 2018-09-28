@@ -765,6 +765,7 @@ _equalFlow(const Flow *a, const Flow *b)
 	COMPARE_SCALAR_FIELD(req_move);
 	COMPARE_SCALAR_FIELD(locustype);
 	COMPARE_SCALAR_FIELD(segindex);
+	COMPARE_SCALAR_FIELD(numsegments);
 	COMPARE_NODE_FIELD(hashExpr);
 
 	return true;
@@ -2639,6 +2640,7 @@ static bool
 _equalDistributedBy(const DistributedBy *a, const DistributedBy *b)
 {
 	COMPARE_SCALAR_FIELD(ptype);
+	COMPARE_SCALAR_FIELD(numsegments);
 	COMPARE_NODE_FIELD(keys);
 
 	return true;

@@ -278,9 +278,9 @@ GetContentIdsFromPlanForSingleRelation(List *rtable, Plan *plan, int rangeTableI
 		}
 		else if (totalCombinations > 0 &&
 			/* don't bother for ones which will likely hash to many segments */
-				 totalCombinations < GpIdentity.numsegments * 3)
+				 totalCombinations < policy->numsegments * 3)
 		{
-			CdbHash    *h = makeCdbHash(GpIdentity.numsegments);
+			CdbHash    *h = makeCdbHash(policy->numsegments);
 			long		index = 0;
 
 			result.dd.isDirectDispatch = true;

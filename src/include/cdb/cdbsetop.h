@@ -90,21 +90,21 @@ extern
 void mark_sort_locus(Plan *plan);
 
 extern
-void mark_plan_general(Plan* plan);
+void mark_plan_general(Plan* plan, int numsegments);
 
 extern
-void mark_plan_strewn(Plan* plan);
+void mark_plan_strewn(Plan* plan, int numsegments);
 
 extern
-void mark_plan_replicated(Plan* plan);
+void mark_plan_replicated(Plan* plan, int numsegments);
 
 extern
 void mark_plan_entry(Plan* plan);
 
 extern
-void mark_plan_singleQE(Plan* plan);
+void mark_plan_singleQE(Plan* plan, int numsegments);
 
 extern
-void mark_plan_segment_general(Plan* plan);
+void mark_plan_segment_general(Plan* plan, int numsegments);
 
 #endif   /* CDBSETOP_H */

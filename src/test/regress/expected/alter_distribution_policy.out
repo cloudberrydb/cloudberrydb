@@ -88,7 +88,7 @@ set enable_seqscan to off;
 explain select * from atsdb where i = 1;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Gather Motion 2:1  (slice1)  (cost=0.00..200.27 rows=1 width=6)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..200.27 rows=1 width=6)
    ->  Index Scan using atsdb_i_idx on atsdb  (cost=0.00..200.27 rows=1 width=6)
          Index Cond: i = 1
  Settings:  enable_seqscan=off
@@ -104,7 +104,7 @@ alter table atsdb set distributed by (i);
 explain select * from atsdb where i = 1;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Gather Motion 2:1  (slice1)  (cost=0.00..200.27 rows=1 width=6)
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..200.27 rows=1 width=6)
    ->  Index Scan using atsdb_i_idx on atsdb  (cost=0.00..200.27 rows=1 width=6)
          Index Cond: i = 1
  Settings:  enable_seqscan=off

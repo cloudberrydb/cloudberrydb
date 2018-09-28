@@ -1142,6 +1142,7 @@ typedef struct DistributedBy
 {
 	NodeTag		type;
 	GpPolicyType ptype;
+	int			numsegments;
 	List	   *keys; /* valid when ptype is POLICYTYPE_PARTITIONED */
 } DistributedBy;
 

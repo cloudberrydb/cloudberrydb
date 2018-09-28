@@ -1385,6 +1385,12 @@ sub prune_heavily
     return
         unless (exists($node->{short}));
 
+    # example: (slice1; segments: 3)
+    if ($node->{short} =~ m/.*\(.*segment.*:\s+(\d+).*\).*/)
+    {
+        $node->{segments} = int($1);
+    }
+
     if ($node->{short} =~ m/Delete\s*\(slice.*segment.*\)\s*\(row.*width.*\)/)
     {
         # QA-1309: fix strange DELETE operator formatting
@@ -1395,10 +1401,13 @@ sub prune_heavily
                 # QA-1309: fix strange UPDATE operator formatting
                 $node->{short} = "Update";
         }
-    elsif ($node->{short} =~ m/\d+\:\d+/)
+    elsif ($node->{short} =~ m/(\d+)\:(\d+)/)
     {
 
         # example: Gather Motion 8:1 (slice4);
+
+        $node->{sendsize} = int($1);
+        $node->{recvsize} = int($2);
 
         # strip the number of nodes and slice information
         $node->{short} =~ s/\s+\d+\:\d+.*//;

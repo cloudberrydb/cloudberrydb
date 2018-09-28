@@ -21,6 +21,7 @@
 struct Plan;                    /* defined in plannodes.h */
 struct RelOptInfo;              /* defined in relation.h */
 struct PlannerInfo;				/* defined in relation.h */
+struct Flow;
 
 
 /*
@@ -111,17 +112,40 @@ typedef enum CdbLocusType
  *
  * If the distribution is not partitioned, then the 'partkey' field is NIL
  *      and the CdbPathLocus_Degree() macro returns 0.
+ *
+ * The attribute numsegments specify how many segments are the tuples
+ * distributed on, from segment 0 to segment `numsegments-1`.  In the future
+ * we might further change it to a range or list so discontinuous segments
+ * can be described.  This numsegments has different meaning for different
+ * locustype:
+ * - Null: numsegments is usually meaningless in Null locus as it will be
+ *   remade to other locus types later.  But there is also cases that we set
+ *   a valid numsegments in Null locus, this value will be kept when remade
+ *   it to other locus types, and it becomes meaningful after that;
+ * - Entry: numsegments in Entry locus specify the candidate segments to put
+ *   the Entry node on, it's master and all the primary segments in current
+ *   implementation;
+ * - SingleQE: numsegments in SingleQE locus specify the candidate segments
+ *   to put the SingleQE node on, although SingleQE is always executed on one
+ *   segment but numsegments usually have a value > 1;
+ * - General: similar with Entry and SingleQE;
+ * - SegmentGeneral, Replicated, Hashed, HashedOJ, Strewn: numsegments in
+ *   these locus types specify the segments that contain the tuples;
  */
 typedef struct CdbPathLocus
 {
     CdbLocusType    locustype;
     List           *partkey_h;
     List           *partkey_oj;
+    int             numsegments;
 } CdbPathLocus;
 
 #define CdbPathLocus_Degree(locus)          \
 	(CdbPathLocus_IsHashed(locus) ? list_length((locus).partkey_h) :	\
 	 (CdbPathLocus_IsHashedOJ(locus) ? list_length((locus).partkey_oj) : 0))
+
+#define CdbPathLocus_NumSegments(locus)         \
+            ((locus).numsegments)
 
 /*
  * CdbPathLocus_IsEqual
@@ -131,8 +155,12 @@ typedef struct CdbPathLocus
  */
 #define CdbPathLocus_IsEqual(a, b)              \
             ((a).locustype == (b).locustype &&  \
+             (a).numsegments == (b).numsegments && \
              (a).partkey_h == (b).partkey_oj &&		  \
              (a).partkey_oj == (b).partkey_oj)        \
+
+#define CdbPathLocus_CommonSegments(a, b) \
+            Min((a).numsegments, (b).numsegments)
 
 /*
  * CdbPathLocus_IsBottleneck
@@ -175,49 +203,53 @@ typedef struct CdbPathLocus
 #define CdbPathLocus_IsSegmentGeneral(locus)        \
             ((locus).locustype == CdbLocusType_SegmentGeneral)
 
-#define CdbPathLocus_MakeSimple(plocus, _locustype) \
+#define CdbPathLocus_MakeSimple(plocus, _locustype, numsegments_) \
     do {                                                \
         CdbPathLocus *_locus = (plocus);                \
         _locus->locustype = (_locustype);               \
+        _locus->numsegments = (numsegments_);                        \
         _locus->partkey_h = NIL;                        \
         _locus->partkey_oj = NIL;                       \
     } while (0)
 
-#define CdbPathLocus_MakeNull(plocus)                   \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Null)
+#define CdbPathLocus_MakeNull(plocus, numsegments_)                   \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Null, (numsegments_))
 #define CdbPathLocus_MakeEntry(plocus)                  \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Entry)
-#define CdbPathLocus_MakeSingleQE(plocus)               \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_SingleQE)
-#define CdbPathLocus_MakeGeneral(plocus)                \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_General)
-#define CdbPathLocus_MakeSegmentGeneral(plocus)                \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_SegmentGeneral)
-#define CdbPathLocus_MakeReplicated(plocus)             \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Replicated)
-#define CdbPathLocus_MakeHashed(plocus, partkey_)       \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Entry, GP_POLICY_ENTRY_NUMSEGMENTS)
+#define CdbPathLocus_MakeSingleQE(plocus, numsegments_)               \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_SingleQE, (numsegments_))
+#define CdbPathLocus_MakeGeneral(plocus, numsegments_)                \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_General, (numsegments_))
+#define CdbPathLocus_MakeSegmentGeneral(plocus, numsegments_)                \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_SegmentGeneral, (numsegments_))
+#define CdbPathLocus_MakeReplicated(plocus, numsegments_)             \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Replicated, (numsegments_))
+#define CdbPathLocus_MakeHashed(plocus, partkey_, numsegments_)       \
     do {                                                \
         CdbPathLocus *_locus = (plocus);                \
         _locus->locustype = CdbLocusType_Hashed;		\
+        _locus->numsegments = (numsegments_);           \
         _locus->partkey_h = (partkey_);					\
         _locus->partkey_oj = NIL;                       \
         Assert(cdbpathlocus_is_valid(*_locus));         \
     } while (0)
-#define CdbPathLocus_MakeHashedOJ(plocus, partkey_)     \
+#define CdbPathLocus_MakeHashedOJ(plocus, partkey_, numsegments_)     \
     do {                                                \
         CdbPathLocus *_locus = (plocus);                \
         _locus->locustype = CdbLocusType_HashedOJ;		\
+        _locus->numsegments = (numsegments_);           \
         _locus->partkey_h = NIL;                        \
         _locus->partkey_oj = (partkey_);				\
         Assert(cdbpathlocus_is_valid(*_locus));         \
     } while (0)
-#define CdbPathLocus_MakeStrewn(plocus)                 \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Strewn)
+#define CdbPathLocus_MakeStrewn(plocus, numsegments_)                 \
+            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Strewn, (numsegments_))
 
 /************************************************************************/
 
 typedef enum
 {
+    /* locus a and b are Equal if all their attributes are equal */
     CdbPathLocus_Comparison_Equal,
     CdbPathLocus_Comparison_Contains
 } CdbPathLocus_Comparison;
@@ -234,7 +266,8 @@ cdbpathlocus_from_baserel(struct PlannerInfo   *root,
                           struct RelOptInfo    *rel);
 CdbPathLocus
 cdbpathlocus_from_exprs(struct PlannerInfo     *root,
-                        List                   *hash_on_exprs);
+                        List                   *hash_on_exprs,
+                        int                     numsegments);
 CdbPathLocus
 cdbpathlocus_from_subquery(struct PlannerInfo  *root,
                            struct Plan         *subqplan,

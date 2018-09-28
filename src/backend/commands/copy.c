@@ -2017,7 +2017,8 @@ CopyDispatchOnSegment(CopyState cstate, const CopyStmt *stmt)
 	}
 	else
 	{
-		dispatchStmt->policy = createRandomPartitionedPolicy(NULL);
+		dispatchStmt->policy = createRandomPartitionedPolicy(NULL,
+															 GP_POLICY_ALL_NUMSEGMENTS);
 	}
 
 	CdbDispatchUtilityStatement((Node *) dispatchStmt,
@@ -6972,7 +6973,6 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 	CdbHash *cdbHash = NULL;
 	AttrNumber h_attnum; /* hash key attribute number */
 	int p_index;
-	int total_segs = getgpsegmentCount();
 	int i = 0;
 
 	if (!multi_dist_policy)
@@ -6984,7 +6984,7 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 		else
 			p_nattrs = 0;
 		/* Create hash API reference */
-		cdbHash = makeCdbHash(total_segs);
+		cdbHash = makeCdbHash(policy->numsegments);
 	}
 	else
 	{
@@ -7013,7 +7013,8 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 		                      &hash_ctl,
 		                      HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 		p_nattrs = list_length(cols);
-		policy = createHashPartitionedPolicy(NULL, cols);
+		policy = createHashPartitionedPolicy(NULL, cols,
+											 cstate->rel->rd_cdbpolicy->numsegments);
 	}
 
 	/*
@@ -7200,7 +7201,7 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 			 * iteration.
 			 */
 			d->relid = relid;
-			part_hash = d->cdbHash = makeCdbHash(cstate->cdbCopy->total_segs);
+			part_hash = d->cdbHash = makeCdbHash(rel->rd_cdbpolicy->numsegments);
 			part_policy = d->policy = GpPolicyCopy(cstate->copycontext, rel->rd_cdbpolicy);
 			part_p_nattrs = part_policy->nattrs;
 			heap_close(rel, NoLock);

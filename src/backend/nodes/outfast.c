@@ -1271,6 +1271,7 @@ _outGpPolicy(StringInfo str, GpPolicy *node)
 	WRITE_NODE_TYPE("GPPOLICY");
 
 	WRITE_ENUM_FIELD(ptype, GpPolicyType);
+	WRITE_INT_FIELD(numsegments);
 	WRITE_INT_FIELD(nattrs);
 	WRITE_INT_ARRAY(attrs, node->nattrs, AttrNumber);
 }

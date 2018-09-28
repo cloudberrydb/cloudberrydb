@@ -33,6 +33,7 @@
 
 #include "catalog/pg_proc.h"
 #include "cdb/cdbpath.h"        /* cdbpath_rows() */
+#include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 
 static Bitmapset *distcols_in_groupclause(List *gc, Bitmapset *bms);
@@ -131,7 +132,8 @@ query_planner(PlannerInfo *root, List *tlist,
 			if (exec_location == PROEXECLOCATION_MASTER)
 				CdbPathLocus_MakeEntry(&(*cheapest_path)->locus);
 			else if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
-				CdbPathLocus_MakeStrewn(&(*cheapest_path)->locus);
+				CdbPathLocus_MakeStrewn(&(*cheapest_path)->locus,
+										GP_POLICY_ALL_NUMSEGMENTS);
 		}
 
 		return;
@@ -523,7 +525,7 @@ num_distcols_in_grouplist(List *gc)
 PlannerConfig *DefaultPlannerConfig(void)
 {
 	PlannerConfig *c1 = (PlannerConfig *) palloc(sizeof(PlannerConfig));
-	c1->cdbpath_segments = planner_segment_count();
+	c1->cdbpath_segments = planner_segment_count(NULL);
 	c1->enable_seqscan = enable_seqscan;
 	c1->enable_indexscan = enable_indexscan;
 	c1->enable_bitmapscan = enable_bitmapscan;

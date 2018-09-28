@@ -6,7 +6,7 @@
 SET search_path = public;
 
 -- This function validates the data distribution in a heap table in a segment.
-CREATE OR REPLACE FUNCTION gp_distribution_policy_heap_table_check(oid, smallint[]) RETURNS boolean
+CREATE OR REPLACE FUNCTION gp_distribution_policy_heap_table_check(oid, smallint[], integer) RETURNS boolean
 AS '$libdir/gp_distribution_policy','gp_distribution_policy_heap_table_check'
 LANGUAGE C IMMUTABLE STRICT;
 
@@ -18,7 +18,8 @@ $$
 SELECT gp_execution_segment(),
         gp_distribution_policy_heap_table_check(
                 (SELECT oid FROM pg_class WHERE relname =$1 AND relkind = 'r'),
-                (SELECT attrnums FROM gp_distribution_policy WHERE localoid = (SELECT oid FROM pg_class WHERE relname =$1 AND relkind = 'r'))
+                (SELECT attrnums FROM gp_distribution_policy WHERE localoid = (SELECT oid FROM pg_class WHERE relname =$1 AND relkind = 'r')),
+                (SELECT numsegments FROM gp_distribution_policy WHERE localoid = (SELECT oid FROM pg_class WHERE relname =$1 AND relkind = 'r'))
         ) AS is_distribution_correct
 $$
 LANGUAGE SQL
