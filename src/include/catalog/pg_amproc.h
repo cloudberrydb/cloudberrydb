@@ -409,8 +409,8 @@ DATA(insert (	7026	 21   21 1 350 ));		/* int2 */
 DATA(insert (	7026   21 23 1 2190 ));	/* int24 */
 DATA(insert (	7026   21 20 1 2192 ));	/* int28 */
 DATA(insert (	7027	 23   23 1 351 ));		/* int4 */
-DATA(insert (	7027   23 20 1 2191 ));	/* int42 */
-DATA(insert (	7027   23 21 1 2188 ));	/* int48 */
+DATA(insert (	7027   23 20 1 2188 ));	/* int48 */
+DATA(insert (	7027   23 21 1 2191 ));	/* int42 */
 DATA(insert (	7028	 20   20 1 842 ));		/* int8 */
 DATA(insert (	7028   20 21 1 2193 ));	/* int82 */
 DATA(insert (	7028   20 23 1 2189 ));	/* int84 */
