@@ -4471,7 +4471,6 @@ make_windowInputTargetList(PlannerInfo *root,
 	List	   *flattenable_cols;
 	List	   *flattenable_vars;
 	ListCell   *lc;
-	Bitmapset  *firstOrderColRefs = NULL;
 
 	Assert(parse->hasWindowFuncs);
 
@@ -4484,7 +4483,6 @@ make_windowInputTargetList(PlannerInfo *root,
 	{
 		WindowClause *wc = (WindowClause *) lfirst(lc);
 		ListCell   *lc2;
-		bool		firstOrderCol = true;
 
 		foreach(lc2, wc->partitionClause)
 		{
@@ -4497,10 +4495,6 @@ make_windowInputTargetList(PlannerInfo *root,
 			SortGroupClause *sortcl = (SortGroupClause *) lfirst(lc2);
 
 			sgrefs = bms_add_member(sgrefs, sortcl->tleSortGroupRef);
-
-			if (firstOrderCol)
-				firstOrderColRefs = bms_add_member(firstOrderColRefs, sortcl->tleSortGroupRef);
-			firstOrderCol = false;
 		}
 	}
 
@@ -4528,9 +4522,6 @@ make_windowInputTargetList(PlannerInfo *root,
 		 * that such items can't contain window functions, so it's okay to
 		 * compute them below the WindowAgg nodes.)
 		 */
-		// GPDB_93_MERGE_FIXME: lost this condition:
-		// (bms_is_member(tle->ressortgroupref, firstOrderColRefs) ||
-		// Do we still need it?
 		if (tle->ressortgroupref != 0 &&
 			bms_is_member(tle->ressortgroupref, sgrefs))
 		{
