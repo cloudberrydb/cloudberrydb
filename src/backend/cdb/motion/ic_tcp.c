@@ -1399,10 +1399,10 @@ SetupTCPInterconnect(EState *estate)
 	int			expectedTotalIncoming = 0;
 	int			expectedTotalOutgoing = 0;
 	int			iteration = 0;
-	int			retry = 0;
 	GpMonotonicTime startTime;
 	StringInfoData logbuf;
 	uint64		elapsed_ms = 0;
+	uint64		last_qd_check_ms = 0;
 
 	/* we can have at most one of these. */
 	ChunkTransportStateEntry *sendingChunkTransportState = NULL;
@@ -1646,10 +1646,10 @@ SetupTCPInterconnect(EState *estate)
 			timeout_ms = Min(500, Min(timeout_ms, to - elapsed_ms));
 		}
 
-		/* check if segments has errors already for every 2 seconds */
-		if (retry++ > 4 && Gp_role == GP_ROLE_DISPATCH)
+		/* check if segments have errors already for every 2 seconds */
+		if (Gp_role == GP_ROLE_DISPATCH && elapsed_ms - last_qd_check_ms > 2000)
 		{
-			retry = 0;
+			last_qd_check_ms = elapsed_ms;
 			checkForCancelFromQD(interconnect_context);
 		}
 
