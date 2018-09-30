@@ -8507,4 +8507,15 @@ LINE 1: select dt, pn, lead(distinct pn) over (partition by pn) from...
 -- not supported with aggregates with multiple arguments.
 select dt, pn, corr(distinct pn, pn) over (partition by dt), sum(pn) over (partition by dt) from sale;
 ERROR:  DISTINCT is supported only for single-argument window aggregates
+-- Test deparsing (for \d+ and pg_dump)
+create view distinct_windowagg_view as select sum(distinct g/2) OVER (partition by g/4) from generate_series (1, 5) g;
+\d+ distinct_windowagg_view
+   View "olap_window_seq.distinct_windowagg_view"
+ Column |  Type  | Modifiers | Storage | Description 
+--------+--------+-----------+---------+-------------
+ sum    | bigint |           | plain   | 
+View definition:
+ SELECT sum(DISTINCT g.g / 2) OVER (PARTITION BY g.g / 4) AS sum
+   FROM generate_series(1, 5) g(g);
+
 -- End of Test

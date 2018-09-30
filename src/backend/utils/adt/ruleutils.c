@@ -7905,10 +7905,11 @@ get_windowfunc_expr(WindowFunc *wfunc, deparse_context *context)
 		nargs++;
 	}
 
-	appendStringInfo(buf, "%s(",
+	appendStringInfo(buf, "%s(%s",
 					 generate_function_name(wfunc->winfnoid, nargs,
 											argnames, argtypes,
-											false, NULL));
+											false, NULL),
+					 wfunc->windistinct ? "DISTINCT " : "");
 	/* winstar can be set only in zero-argument aggregates */
 	if (wfunc->winstar)
 		appendStringInfoChar(buf, '*');

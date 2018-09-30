@@ -1689,5 +1689,9 @@ select dt, pn, lead(distinct pn) over (partition by pn) from sale;
 -- not supported with aggregates with multiple arguments.
 select dt, pn, corr(distinct pn, pn) over (partition by dt), sum(pn) over (partition by dt) from sale;
 
+-- Test deparsing (for \d+ and pg_dump)
+create view distinct_windowagg_view as select sum(distinct g/2) OVER (partition by g/4) from generate_series (1, 5) g;
+\d+ distinct_windowagg_view
+
 
 -- End of Test
