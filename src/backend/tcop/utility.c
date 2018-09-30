@@ -710,7 +710,6 @@ standard_ProcessUtility(Node *parsetree,
 			break;
 
 		case T_CommentStmt:
-			/* NOTE: Not currently dispatched to QEs */
 			CommentObject((CommentStmt *) parsetree);
 			break;
 
@@ -1801,8 +1800,12 @@ ExecDropStmt(DropStmt *stmt, bool isTopLevel)
 			break;
 	}
 
-	/* dispatch the original, unmodified statement */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	/*
+	 * Dispatch the original, unmodified statement.
+	 *
+	 * Event triggers are not stored in QE nodes, so skip those.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && stmt->removeType != OBJECT_EVENT_TRIGGER)
 	{
 		int			flags;
 

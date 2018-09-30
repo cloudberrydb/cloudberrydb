@@ -400,7 +400,11 @@ ExecRenameStmt(RenameStmt *stmt)
 
 	result = ExecRenameStmt_internal(stmt);
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	/*
+	 * Dispatch to the segments. Except for event triggers, they're only stored
+	 * in the QD node.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && stmt->renameType != OBJECT_EVENT_TRIGGER)
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
@@ -488,7 +492,12 @@ ExecAlterObjectSchemaStmt(AlterObjectSchemaStmt *stmt)
 
 	result = ExecAlterObjectSchemaStmt_internal(stmt);
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	/*
+	 * Dispatch to the segments. Except for event triggers, they're only stored
+	 * in the QD node. (Event triggers have no schema, so that exception doesn't
+	 * really apply here, but keep this consistent with all the other commands.)
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && stmt->objectType != OBJECT_EVENT_TRIGGER)
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
@@ -817,7 +826,11 @@ ExecAlterOwnerStmt(AlterOwnerStmt *stmt)
 
 	result = ExecAlterOwnerStmt_internal(stmt);
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	/*
+	 * Dispatch to the segments. Except for event triggers, they're only stored
+	 * in the QD node.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && stmt->objectType != OBJECT_EVENT_TRIGGER)
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|

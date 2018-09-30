@@ -88,6 +88,7 @@
 #include "catalog/pg_enum.h"
 #include "catalog/pg_extension.h"
 #include "catalog/pg_extprotocol.h"
+#include "catalog/pg_event_trigger.h"
 #include "catalog/pg_foreign_data_wrapper.h"
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_language.h"
@@ -447,6 +448,11 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 		case PartitionRuleRelationId:
 			*exempt = true;
 			 break;
+
+		 /* Event triggers are only stored and fired in the QD. */
+		case EventTriggerRelationId:
+			*exempt = true;
+			break;
 
 		/*
 		 * Large objects don't work very consistently in GPDB. They are not

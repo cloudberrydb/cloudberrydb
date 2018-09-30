@@ -132,11 +132,7 @@ test: alter_generic misc psql
 # enable it
 #test: rules
 # event triggers cannot run concurrently with any test that runs DDL
-# GPDB_93_MERGE_FIXME: The DROP EVENT TRIGGER currently fails in the event_trigger
-# test, leaving behind an event trigger that prints extra NOTICEs for all DDL
-# commands in the subsequent tests, causing them to fail. Disable, so that
-# the subsequent tests have a chance of succeeding, until we fix event triggers.
-#test: event_trigger
+test: event_trigger
 
 # ----------
 # Another group of parallel tests

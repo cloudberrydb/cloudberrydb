@@ -4983,6 +4983,14 @@ DESCR("import collations from operating system");
 
 
 /* event triggers */
+/*
+ * GPDB_93_MERGE_FIXME: The list of objects that this function returns is
+ * in backend private memory. It must therefore run in the QD process, but
+ * we have no way to tell the planner to do that. The best we can do is to
+ * force it to be run in the master, but it might still run in an entry DB
+ * worker process rather than the QD process.
+ */
+GPDB_EXTRA_COL(proexeclocation = m);
 DATA(insert OID = 3566 (  pg_event_trigger_dropped_objects		PGNSP PGUID 12 10 100 0 0 f f f f t t s 0 0 2249 "" "{26,26,23,25,25,25,25}" "{o,o,o,o,o,o,o}" "{classid, objid, objsubid, object_type, schema_name, object_name, object_identity}" _null_ pg_event_trigger_dropped_objects _null_ _null_ _null_ ));
 DESCR("list objects dropped by the current command");
 /*
