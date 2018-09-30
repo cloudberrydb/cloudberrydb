@@ -102,10 +102,8 @@ static event_trigger_support_data event_trigger_support[] = {
 	{"VIEW", true},
 
 	/* GPDB additions */
-	// GPDB_93_MERGE_FIXME: do these actually work? Needs testing, at least. I just
-	// added these to the list to silence "unexpected command tag" errors.
 	{"EXTERNAL TABLE", true},
-	{"PROTOCOL", true},
+	{"PROTOCOL", false},
 
 	{NULL, false}
 };
@@ -952,11 +950,14 @@ EventTriggerSupportsObjectType(ObjectType obtype)
 		case OBJECT_TYPE:
 		case OBJECT_VIEW:
 			return true;
+
+		/* GPDB additions */
 		case OBJECT_EXTTABLE:
+			return true;
 		case OBJECT_EXTPROTOCOL:
 		case OBJECT_RESQUEUE:
 		case OBJECT_RESGROUP:
-			return false; /*GPDB_93_MERGE_FIXME is these gp types support trigger? */
+			return false;
 	}
 	return true;
 }
