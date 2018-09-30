@@ -34,6 +34,9 @@ test: indexjoin as_alias regex_gp gpparams with_clause transient_types gp_rules
 # dispatch should always run seperately from other cases.
 test: dispatch
 
+# event triggers cannot run concurrently with any test that runs DDL
+test: event_trigger_gp
+
 # test partially distributed tables
 test: partial_table
 
