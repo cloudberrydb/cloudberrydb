@@ -386,3 +386,13 @@ SELECT dotproduct(ARRAY[COMPLEX(1,3),COMPLEX(5,7)], ARRAY[COMPLEX(2,4),NULL]) IS
 SELECT dotproduct(ARRAY[COMPLEX(1,3),COMPLEX(5,7)], ARRAY[COMPLEX(2,4),COMPLEX(6,8), COMPLEX(10,12)]);
 
 SELECT dotproduct(ARRAY[COMPLEX(1,3),COMPLEX(5,7)], ARRAY[ARRAY[COMPLEX(2,4)],ARRAY[COMPLEX(6,8)]]);
+
+
+-- GIN index on complex array
+CREATE TABLE complex_array_tab (complex_arr complex[]);
+CREATE INDEX ON complex_array_tab USING gin (complex_arr);
+
+INSERT INTO complex_array_tab VALUES (ARRAY[COMPLEX(1,3), COMPLEX(5,7)]);
+INSERT INTO complex_array_tab VALUES (ARRAY[COMPLEX(2,4), COMPLEX(6,8)]);
+
+SELECT * FROM complex_array_tab WHERE complex_arr @> ARRAY[COMPLEX(2,4)];

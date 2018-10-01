@@ -205,7 +205,7 @@ DATA(insert (	2742	_interval_ops		PGNSP PGUID 2745  1187 t 1186 ));
 DATA(insert (	2742	_macaddr_ops		PGNSP PGUID 2745  1040 t 829 ));
 DATA(insert (	2742	_name_ops			PGNSP PGUID 2745  1003 t 19 ));
 DATA(insert (	2742	_numeric_ops		PGNSP PGUID 2745  1231 t 1700 ));
-DATA(insert (	2742	_complex_ops		PGNSP PGUID 2745  7199 t 1700 ));
+DATA(insert (	2742	_complex_ops		PGNSP PGUID 2745  7199 t 7198 ));
 DATA(insert (	2742	_oid_ops			PGNSP PGUID 2745  1028 t 26 ));
 DATA(insert (	2742	_oidvector_ops		PGNSP PGUID 2745  1013 t 30 ));
 DATA(insert (	2742	_time_ops			PGNSP PGUID 2745  1183 t 1083 ));

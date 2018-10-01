@@ -1612,10 +1612,9 @@ WHERE am.amname = 'btree' OR am.amname = 'gist' OR am.amname = 'gin'
 GROUP BY amname, amsupport, opcname, amprocfamily
 HAVING (count(*) != amsupport AND count(*) != amsupport - 1)
     OR amprocfamily IS NULL;
- amname |   opcname    | count 
---------+--------------+-------
- gin    | _complex_ops |     1
-(1 row)
+ amname | opcname | count 
+--------+---------+-------
+(0 rows)
 
 -- Unfortunately, we can't check the amproc link very well because the
 -- signature of the function may be different for different support routines
