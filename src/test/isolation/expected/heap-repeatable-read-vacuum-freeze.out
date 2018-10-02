@@ -1,7 +1,7 @@
 Parsed test spec with 4 sessions
 
 starting permutation: s2begin s1delete s1setfreezeminage s1vacuumfreeze s2select s1select s2abort s3selectinvisible s3checkrelfrozenxidwithxmax s1vacuumfreeze s3selectinvisible s3checkrelfrozenxidwithxmax
-step s2begin: BEGIN ISOLATION LEVEL REPEATABLE READ;
+step s2begin: SET Debug_print_full_dtm=on; BEGIN ISOLATION LEVEL REPEATABLE READ;
 		 SELECT 123 AS "establish snapshot";
 establish snapshot
 
@@ -40,6 +40,7 @@ count
 0              
 step s2abort: ABORT;
 step s3selectinvisible: 
+    SET Debug_print_full_dtm=on; 
     SET gp_select_invisible=TRUE;
 
     SELECT CASE 
@@ -84,6 +85,7 @@ gp_segment_id  xmax           gp_segment_id  relfrozenxid
 
 step s1vacuumfreeze: VACUUM heaptest;
 step s3selectinvisible: 
+    SET Debug_print_full_dtm=on; 
     SET gp_select_invisible=TRUE;
 
     SELECT CASE 
@@ -118,7 +120,7 @@ gp_segment_id  xmax           gp_segment_id  relfrozenxid
 
 
 starting permutation: s4begin s4delete s4abort s1setfreezeminage s1vacuumfreeze s2select
-step s4begin: BEGIN;
+step s4begin: SET Debug_print_full_dtm=on; BEGIN;
 step s4delete: DELETE FROM heaptest;
 step s4abort: ABORT;
 step s1setfreezeminage: SET vacuum_freeze_min_age = 0;
@@ -150,12 +152,12 @@ FrozenXid      InvalidXid     8              8
 FrozenXid      InvalidXid     9              9              
 
 starting permutation: s2begin s1insert s1setfreezeminage s1vacuumfreeze s2select s1select s2abort s2select s3checkrelfrozenxidwithxmin s1vacuumfreeze s2select s3checkrelfrozenxidwithxmin
-step s2begin: BEGIN ISOLATION LEVEL REPEATABLE READ;
+step s2begin: SET Debug_print_full_dtm=on; BEGIN ISOLATION LEVEL REPEATABLE READ;
 		 SELECT 123 AS "establish snapshot";
 establish snapshot
 
 123            
-step s1insert: INSERT INTO heaptest SELECT i, i FROM generate_series(10, 19) i;
+step s1insert: SET Debug_print_full_dtm=on; INSERT INTO heaptest SELECT i, i FROM generate_series(10, 19) i;
 step s1setfreezeminage: SET vacuum_freeze_min_age = 0;
 step s1vacuumfreeze: VACUUM heaptest;
 step s2select: 

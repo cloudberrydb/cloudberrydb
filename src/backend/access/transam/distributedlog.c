@@ -302,6 +302,7 @@ DistributedLog_GetOldestXmin(TransactionId oldestLocalXmin)
 	LWLockRelease(DistributedLogControlLock);
 
 	Assert(TransactionIdFollowsOrEquals(oldestLocalXmin, result));
+	elogif(Debug_print_full_dtm, LOG, "oldestXmin is '%d'", result);
 
 	return result;
 }

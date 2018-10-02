@@ -7,24 +7,20 @@
 
 setup
 {
+    DROP TABLE IF EXISTS heaptest;
     CREATE TABLE heaptest (i INT, j INT);
     INSERT INTO heaptest SELECT i, i FROM generate_series(0, 9) i;
 }
 
-teardown
-{
-    DROP TABLE IF EXISTS heaptest;
-}
-
 session "s1"
-step "s1insert" { INSERT INTO heaptest SELECT i, i FROM generate_series(10, 19) i; }
+step "s1insert" { SET Debug_print_full_dtm=on; INSERT INTO heaptest SELECT i, i FROM generate_series(10, 19) i; }
 step "s1delete"	{ DELETE FROM heaptest; }
 step "s1setfreezeminage" { SET vacuum_freeze_min_age = 0; }
 step "s1vacuumfreeze" { VACUUM heaptest; }
 step "s1select" { SELECT COUNT(*) FROM heaptest; }
 
 session "s2"
-step "s2begin" { BEGIN ISOLATION LEVEL REPEATABLE READ;
+step "s2begin" { SET Debug_print_full_dtm=on; BEGIN ISOLATION LEVEL REPEATABLE READ;
 		 SELECT 123 AS "establish snapshot"; }
 step "s2select" {
     SELECT CASE 
@@ -43,6 +39,7 @@ step "s2abort" { ABORT; }
 
 session "s3"
 step "s3selectinvisible" { 
+    SET Debug_print_full_dtm=on; 
     SET gp_select_invisible=TRUE;
 
     SELECT CASE 
@@ -87,7 +84,7 @@ step "s3checkrelfrozenxidwithxmax" {
 }
 
 session "s4"
-step "s4begin"  { BEGIN; }
+step "s4begin"  { SET Debug_print_full_dtm=on; BEGIN; }
 step "s4delete" { DELETE FROM heaptest; }
 step "s4abort"  { ABORT; }
 
