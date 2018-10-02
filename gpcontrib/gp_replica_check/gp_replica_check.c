@@ -538,6 +538,8 @@ gp_replica_check(PG_FUNCTION_ARGS)
 	char *relation_types = TextDatumGetCString(PG_GETARG_DATUM(2));
 	struct dirent *dent = NULL;
 	bool dir_equal = true;
+	DIR		   *primarydir;
+	DIR		   *mirrordir;
 
 	init_relation_types(relation_types);
 
@@ -548,9 +550,6 @@ gp_replica_check(PG_FUNCTION_ARGS)
 	mirrordirpath = psprintf("%s/%s",
 							 mirrordirpath,
 							 GetDatabasePath(MyDatabaseId, DEFAULTTABLESPACE_OID));
-
-	DIR *primarydir = AllocateDir(primarydirpath);
-	DIR *mirrordir = AllocateDir(mirrordirpath);
 
 	/*
 	 * Checkpoint, so that all the changes are on disk.
@@ -572,6 +571,7 @@ gp_replica_check(PG_FUNCTION_ARGS)
 	 * For each relfilenode in primary, if it is of type specified from user
 	 * input, do comparison with its corresponding file on the mirror
 	 */
+	primarydir = AllocateDir(primarydirpath);
 	while ((dent = ReadDir(primarydir, primarydirpath)) != NULL)
 	{
 		char primaryfilename[MAXPGPATH] = {'\0'};
@@ -614,6 +614,7 @@ gp_replica_check(PG_FUNCTION_ARGS)
 	FreeDir(primarydir);
 
 	/* Open up mirrordirpath and verify each mirror file exist in the primary hash table */
+	mirrordir = AllocateDir(mirrordirpath);
 	while ((dent = ReadDir(mirrordir, mirrordirpath)) != NULL)
 	{
 		char *d_name_copy;
