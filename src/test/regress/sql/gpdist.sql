@@ -392,15 +392,38 @@ drop table mpp5746, mpp5746_2;
 -- constraints
 --
 create table distby_with_constraint (col1 int4 PRIMARY KEY, col2 int4) DISTRIBUTED RANDOMLY;
-create table distby_with_constraint (col1 int4 UNIQUE, col2 int4) DISTRIBUTED RANDOMLY;
+create table distby_with_constraint (col1 int4 UNIQUE,      col2 int4) DISTRIBUTED RANDOMLY;
 create table distby_with_constraint (col1 int4 PRIMARY KEY, col2 int4) DISTRIBUTED BY (col2);
-create table distby_with_constraint (col1 int4 UNIQUE, col2 int4) DISTRIBUTED BY (col2);
+create table distby_with_constraint (col1 int4 UNIQUE,      col2 int4) DISTRIBUTED BY (col2);
+
+create table distby_with_constraint (col1 int4, col2 int4, col3 int4, UNIQUE      (col1, col2)) distributed by (col3);
+create table distby_with_constraint (col1 int4, col2 int4, col3 int4, UNIQUE      (col1), UNIQUE (col2));
+create table distby_with_constraint (col1 int4, col2 int4, col3 int4, UNIQUE      (col1), PRIMARY KEY (col2));
 
 -- these are allowed
-create table distby_with_constraint1 (col1 int4 PRIMARY KEY, col2 int4) DISTRIBUTED BY (col1);
-create table distby_with_constraint2 (col1 int4 UNIQUE, col2 int4) DISTRIBUTED BY (col1);
-create table distby_with_constraint3 (col1 int4 PRIMARY KEY, col2 int4) DISTRIBUTED REPLICATED;
-create table distby_with_constraint4 (col1 int4 UNIQUE, col2 int4) DISTRIBUTED REPLICATED;
+create table distby_with_constraint01 (col1 int4 PRIMARY KEY, col2 int4) DISTRIBUTED BY (col1);
+create table distby_with_constraint02 (col1 int4 UNIQUE,      col2 int4) DISTRIBUTED BY (col1);
+create table distby_with_constraint03 (col1 int4 PRIMARY KEY, col2 int4) DISTRIBUTED REPLICATED;
+create table distby_with_constraint04 (col1 int4 UNIQUE,      col2 int4) DISTRIBUTED REPLICATED;
+
+-- More complicated cases. Allowed.
+create table distby_with_constraint11 (col1 int4, col2 int4, UNIQUE      (col1, col2)) distributed by (col1);
+create table distby_with_constraint12 (col1 int4, col2 int4, PRIMARY KEY (col1, col2)) distributed by (col1);
+create table distby_with_constraint13 (col1 int4, col2 int4, UNIQUE      (col1, col2)) distributed by (col2);
+create table distby_with_constraint14 (col1 int4, col2 int4, PRIMARY KEY (col1, col2)) distributed by (col2);
+
+create table distby_with_constraint15 (col1 int4, col2 int4, UNIQUE      (col1, col2)) distributed by (col2, col1);
+create table distby_with_constraint16 (col1 int4, col2 int4, PRIMARY KEY (col1, col2)) distributed by (col2, col1);
+create table distby_with_constraint17 (col1 int4, col2 int4, UNIQUE      (col1, col2)) distributed by (col1, col2);
+create table distby_with_constraint18 (col1 int4, col2 int4, PRIMARY KEY (col1, col2)) distributed by (col1, col2);
+
+-- Test deriving the distribution key from constraint columns.
+create table distby_with_constraint21 (col1 int4, col2 int4, col3 int4, UNIQUE      (col1, col2), UNIQUE (col3, col1));
+create table distby_with_constraint22 (col1 int4, col2 int4, col3 int4, UNIQUE      (col1, col2), PRIMARY KEY (col3, col1));
+
+-- Check what distribution key was chosen for all the cases above.
+select c.relname, policytype, attrnums from pg_class c, gp_distribution_policy p where c.oid = p.localoid and relname LIKE 'distby_with_%' order by relname;
+
 
 --
 -- Test that DISTRIBUTED BY is interpreted correctly with inheritance.

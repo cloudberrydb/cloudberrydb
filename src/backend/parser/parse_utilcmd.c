@@ -1730,8 +1730,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 	List		*distrkeys = NIL;
 	/* By default tables should be distributed on ALL segments */
 	int			numsegments = GP_POLICY_ALL_NUMSEGMENTS;
-	int		numUniqueIndexes = 0;
-	Constraint	*uniqueindex = NULL;
+	ListCell   *lc;
 
 	/*
 	 * utility mode creates can't have a policy.  Only the QD can have policies
@@ -1749,7 +1748,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 	/* Check replicated policy */
 	if (distributedBy && distributedBy->ptype == POLICYTYPE_REPLICATED)
 	{
-		if (cxt->inhRelations != NIL)	
+		if (cxt->inhRelations != NIL)
 			ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("INHERITS clause cannot be used with DISTRIBUTED REPLICATED clause")));
@@ -1767,93 +1766,78 @@ transformDistributedBy(CreateStmtContext *cxt,
 	 * If distributedBy is NIL, the user did not explicitly say what he
 	 * wanted for a distribution policy.  So, we need to assign one.
 	 */
-	if (distrkeys == NIL && cxt && cxt->pkey != NULL)
+	if (distrkeys == NIL)
 	{
 		/*
-		 * We have a PRIMARY KEY, so let's assign the default distribution
-		 * to be the key
+		 * If we have a PRIMARY KEY or UNIQUE constraints, derive the distribution key
+		 * from them.
+		 *
+		 * The distribution key chosen to be the largest common subset of columns, across
+		 * all the PRIMARY KEY / UNIQUE constraints.
 		 */
-
-		IndexStmt  *index = cxt->pkey;
-		List	   *indexParams;
-		ListCell   *ip = NULL;
-
-		Assert(index->indexParams != NULL);
-		indexParams = index->indexParams;
-
-		foreach(ip, indexParams)
+		/* begin with the PRIMARY KEY, if any */
+		if (cxt->pkey != NULL)
 		{
-			IndexElem  *iparam = lfirst(ip);
+			IndexStmt  *index = cxt->pkey;
+			List	   *indexParams;
+			ListCell   *ip;
 
-			if (iparam && iparam->name != 0)
+			Assert(index->indexParams != NULL);
+			indexParams = index->indexParams;
+
+			foreach(ip, indexParams)
 			{
-				distrkeys = lappend(distrkeys, (Node *) makeString(iparam->name));
-			}
-		}
-	}
+				IndexElem  *iparam = lfirst(ip);
 
-	if (cxt && cxt->ixconstraints != NULL)
-	{
-		ListCell   *lc = NULL;
-
-		foreach(lc, cxt->ixconstraints)
-		{
-			Constraint *cons = lfirst(lc);
-
-			if (cons->contype == CONSTR_UNIQUE)
-			{
-				if (uniqueindex == NULL)
-					uniqueindex = cons;
-
-				numUniqueIndexes++;
-
-				if (cxt->pkey)
+				if (iparam && iparam->name != 0)
 				{
-					ereport(ERROR,
-							(errcode(ERRCODE_SYNTAX_ERROR),
-							 errmsg("Greenplum Database does not allow having both PRIMARY KEY and UNIQUE constraints")));
+					distrkeys = lappend(distrkeys, (Node *) makeString(iparam->name));
 				}
 			}
 		}
-		if (numUniqueIndexes > 1)
-		{
-			ereport(ERROR,
-					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("Greenplum Database does not allow having multiple UNIQUE constraints")));
-		}
-	}
 
-	if (distrkeys == NIL && cxt && cxt->ixconstraints != NULL &&
-		numUniqueIndexes > 0)
-	{
-		/*
-		 * No explicit distributed by clause, and no primary key.
-		 * If there is a UNIQUE clause, let's use that
-		 */
-		ListCell   *lc;
-
+		/* walk through all UNIQUE constraints next. */
 		foreach(lc, cxt->ixconstraints)
 		{
+			Constraint *constraint = (Constraint *) lfirst(lc);
+			ListCell   *ip;
+			List	   *new_distrkeys = NIL;
 
-			Constraint *constraint = lfirst(lc);
+			if (constraint->contype != CONSTR_UNIQUE)
+				continue;
 
-			if (constraint->contype == CONSTR_UNIQUE)
+			if (distrkeys)
 			{
-
-				ListCell   *ip;
-
+				/*
+				 * We saw a PRIMARY KEY or UNIQUE constraint already. Find
+				 * the columns that are present in the key chosen so far,
+				 * and this constraint.
+				 */
 				foreach(ip, constraint->keys)
 				{
 					Value	   *v = lfirst(ip);
 
-					if (v && v->val.str != 0)
-					{
-						distrkeys = lappend(distrkeys, (Node *) makeString(v->val.str));
-					}
+					if (list_member(distrkeys, v))
+						new_distrkeys = lappend(new_distrkeys, v);
 				}
-			}
-		}
 
+				/* If there were no common columns, we're out of luck. */
+				if (new_distrkeys == NIL)
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+							 errmsg("UNIQUE or PRIMARY KEY definitions are incompatible with each other"),
+							 errhint("When there are multiple PRIMARY KEY / UNIQUE constraints, they must have at least one column in common.")));
+			}
+			else
+			{
+				/*
+				 * No distribution key chosen yet. Use this key as is.
+				 */
+				new_distrkeys = constraint->keys;
+			}
+
+			distrkeys = new_distrkeys;
+		}
 	}
 
 	/*
@@ -1979,7 +1963,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 	if (gp_create_table_random_default_distribution && NIL == distrkeys)
 	{
 		Assert(NULL == likeDistributedBy);
-		
+
 		if (!bQuiet)
 		{
 			ereport(NOTICE,
@@ -1987,7 +1971,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 				 errmsg("Using default RANDOM distribution since no distribution was specified."),
 				 errhint("Consider including the 'DISTRIBUTED BY' clause to determine the distribution of rows.")));
 		}
-		
+
 		/*
 		 * Create with default distribution policy and numsegments.
 		 */
@@ -2214,61 +2198,82 @@ transformDistributedBy(CreateStmtContext *cxt,
 	/*
 	 * Ok, we have decided on the distribution key columns now, and have the column
 	 * names in 'distrkeys'. Perform last cross-checks between UNIQUE and PRIMARY KEY
-	 * constraints and the chosen distribution key.
+	 * constraints and the chosen distribution key. (These tests should always pass,
+	 * if the distribution key was derived from the PRIMARY KEY or UNIQUE constraints,
+	 * but it doesn't hurt to check even in those cases.)
 	 */
-	if (cxt && cxt->pkey)	/* Primary key	specified.	Make sure
-								 * distribution columns match */
+	if (cxt && cxt->pkey)
 	{
+		/* The distribution key must be a subset of the primary key */
 		IndexStmt  *index = cxt->pkey;
-		List	   *indexParams = index->indexParams;
-		ListCell   *ip;
 		ListCell   *dk;
 
-		forboth(ip, indexParams, dk, distrkeys)
+		foreach(dk, distrkeys)
 		{
-			IndexElem  *iparam = lfirst(ip);
 			char	   *distcolname = strVal(lfirst(dk));
+			ListCell   *ip;
+			bool		found = false;
 
-			if (!iparam->name)
-				elog(ERROR, "PRIMARY KEY on an expresion index not supported");
+			foreach(ip, index->indexParams)
+			{
+				IndexElem  *iparam = lfirst(ip);
 
-			if (strcmp(iparam->name, distcolname) != 0)
+				if (!iparam->name)
+					elog(ERROR, "PRIMARY KEY on an expression index not supported");
+
+				if (strcmp(iparam->name, distcolname) == 0)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
 			{
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-						 errmsg("PRIMARY KEY and DISTRIBUTED BY definitions incompatible"),
-						 errhint("When there is both a PRIMARY KEY, and a "
-								 "DISTRIBUTED BY clause, the DISTRIBUTED BY "
-								 "clause must be equal to or a left-subset "
-								 "of the PRIMARY KEY")));
+						 errmsg("PRIMARY KEY and DISTRIBUTED BY definitions are incompatible"),
+						 errhint("When there is both a PRIMARY KEY and a DISTRIBUTED BY clause, the DISTRIBUTED BY clause must be a subset of the PRIMARY KEY.")));
 			}
 		}
 	}
 
-	if (uniqueindex) /* UNIQUE specified.  Make sure distribution
-								 * columns match */
+	/* Make sure distribution columns match any UNIQUE and PRIMARY KEY constraints. */
+	foreach (lc, cxt->ixconstraints)
 	{
-		List	   *keys = uniqueindex->keys;
-		ListCell   *ip;
+		Constraint *constraint = (Constraint *) lfirst(lc);
 		ListCell   *dk;
 
-		forboth(ip, keys, dk, distrkeys)
+		if (constraint->contype != CONSTR_PRIMARY &&
+			constraint->contype != CONSTR_UNIQUE)
+			continue;
+
+		foreach(dk, distrkeys)
 		{
-			IndexElem  *iparam = lfirst(ip);
 			char	   *distcolname = strVal(lfirst(dk));
+			ListCell   *ip;
+			bool		found = false;
 
-			if (!iparam->name)
-				elog(ERROR, "UNIQUE constraint on an expresion index not supported");
+			foreach (ip, constraint->keys)
+			{
+				IndexElem  *iparam = lfirst(ip);
 
-			if (strcmp(iparam->name, distcolname) != 0)
+				if (!iparam->name)
+					elog(ERROR, "UNIQUE constraint on an expression index not supported");
+
+				if (strcmp(iparam->name, distcolname) == 0)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
 			{
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-						 errmsg("UNIQUE constraint and DISTRIBUTED BY definitions incompatible"),
-						 errhint("When there is both a UNIQUE constraint, "
-								 "and a DISTRIBUTED BY clause, the "
-								 "DISTRIBUTED BY clause must be equal to "
-								 "or a left-subset of the UNIQUE columns")));
+						 errmsg("UNIQUE constraint and DISTRIBUTED BY definitions are incompatible"),
+						 errhint("When there is both a UNIQUE constraint and a DISTRIBUTED BY clause, the DISTRIBUTED BY clause must be a subset of the UNIQUE constraint.")));
 			}
 		}
 	}
