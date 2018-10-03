@@ -7,9 +7,13 @@
 
 setup
 {
-    DROP TABLE IF EXISTS heaptest;
     CREATE TABLE heaptest (i INT, j INT);
     INSERT INTO heaptest SELECT i, i FROM generate_series(0, 9) i;
+}
+
+teardown
+{
+    DROP TABLE IF EXISTS heaptest;
 }
 
 session "s1"
