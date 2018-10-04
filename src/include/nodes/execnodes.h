@@ -2632,6 +2632,13 @@ typedef struct AggState
 	/* set if the operator created workfiles */
 	bool		workfiles_created;
 
+	/*
+	 * Most executor nodes in GPDB don't support SRFs in target lists, the
+	 * planner tries to insulate them from SRFs by adding Result nodes. But
+	 * Agg needs to handle them, because a Result can't evaluate Aggrefs,
+	 * which an Agg's target list usually has.
+	 */
+	bool		ps_TupFromTlist;
 } AggState;
 
 /* ----------------

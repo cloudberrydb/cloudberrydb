@@ -1105,13 +1105,12 @@ hash_agg_entry_size(int numAggs)
 TupleTableSlot *
 ExecAgg(AggState *node)
 {
-#if 0
 	/*
 	 * Check to see if we're still projecting out tuples from a previous agg
 	 * tuple (because there is a function-returning-set in the projection
 	 * expressions).  If so, try to project another one.
 	 */
-	if (node->ss.ps.ps_TupFromTlist)
+	if (node->ps_TupFromTlist)
 	{
 		TupleTableSlot *result;
 		ExprDoneCond isDone;
@@ -1120,9 +1119,8 @@ ExecAgg(AggState *node)
 		if (isDone == ExprMultipleResult)
 			return result;
 		/* Done with that source tuple... */
-		node->ss.ps.ps_TupFromTlist = false;
+		node->ps_TupFromTlist = false;
 	}
-#endif
 
 	/*
 	 * Exit if nothing left to do.	(We must do the ps_TupFromTlist check
@@ -1687,10 +1685,16 @@ agg_retrieve_direct(AggState *aggstate)
 			 * and the representative input tuple.
 			 */
 			TupleTableSlot *result;
+			ExprDoneCond isDone;
 
-			result = ExecProject(aggstate->ss.ps.ps_ProjInfo, NULL);
+			result = ExecProject(aggstate->ss.ps.ps_ProjInfo, &isDone);
 
-			return result;
+			if (isDone != ExprEndResult)
+			{
+				aggstate->ps_TupFromTlist =
+					(isDone == ExprMultipleResult);
+				return result;
+			}
 		}
 		else
 			InstrCountFiltered1(aggstate, 1);
@@ -1810,10 +1814,16 @@ agg_retrieve_hash_table(AggState *aggstate)
 			 * and the representative input tuple.
 			 */
 			TupleTableSlot *result;
+			ExprDoneCond isDone;
 
-			result = ExecProject(aggstate->ss.ps.ps_ProjInfo, NULL);
+			result = ExecProject(aggstate->ss.ps.ps_ProjInfo, &isDone);
 
-			return result;
+			if (isDone != ExprEndResult)
+			{
+				aggstate->ps_TupFromTlist =
+					(isDone == ExprMultipleResult);
+				return result;
+			}
 		}
 		else
 			InstrCountFiltered1(aggstate, 1);

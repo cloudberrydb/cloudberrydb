@@ -90,13 +90,14 @@ reset enable_mergejoin;
 
 drop table l, ps;
 
--- This wouldn't work in GPDB, if the MIN/MAX optimization in the planner
--- didn't turn this into an index scan with a Limit.
--- This is the same test we have in the upstream 'aggregates' test.
-select max(unique2), generate_series(1,3) as g from tenk1 order by g desc;
-
--- Same test with avg(), so that the optimization doesn't apply. Fails,
--- currently.
+-- Test having a SRF in the targetlist, with an aggregate. GPDB used to not
+-- handle this, because the SRF-in-targetlist support was removed from Agg
+-- node, as an optimization. It's been put back since, so this works now.
+--
+-- We have this same test in the upstream 'aggregates' test, but with MAX().
+-- That's picked up by the MIN/MAX optimization, and turned into an
+-- LIMIT 1 query, however, and doesn't exercise from the SRF-in-targetlist
+-- support.
 select avg(unique2), generate_series(1,3) as g from tenk1 order by g desc;
 
 
