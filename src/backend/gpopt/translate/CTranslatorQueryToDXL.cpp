@@ -1598,10 +1598,6 @@ CTranslatorQueryToDXL::TranslateWindowToDXL
 		CDXLNode *project_elem_dxlnode =  TranslateExprToDXLProject(target_entry->expr, target_entry->resname);
 		ULONG colid = CDXLScalarProjElem::Cast(project_elem_dxlnode->GetOperator())->Id();
 
-		if (IsA(target_entry->expr, WindowFunc))
-		{
-			CTranslatorUtils::CheckAggregateWindowFn((Node*) target_entry->expr);
-		}
 		if (!target_entry->resjunk)
 		{
 			if (IsA(target_entry->expr, Var) || IsA(target_entry->expr, WindowFunc))
