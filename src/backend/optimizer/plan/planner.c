@@ -3777,9 +3777,10 @@ choose_hashed_grouping(PlannerInfo *root,
 	/*
 	 * CDB: The combine function is used to merge transient values during
 	 * hash reloading (see execHHashagg.c). So hash agg is not allowed if one
-	 * of the aggregates doesn't have a combine function.
+	 * of the aggregates doesn't have a combine function. Likewise, if a
+	 * transition value cannot be serialized, a hash agg is not allowed.
 	 */
-	if (agg_costs->missing_combinefunc)
+	if (agg_costs->hasNonCombine || agg_costs->hasNonSerial)
 		return false;
 
 	/*

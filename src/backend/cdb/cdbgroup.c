@@ -685,7 +685,7 @@ cdb_grouping_planner(PlannerInfo *root,
 		 * functions per DQA and were willing to plan some DQAs as single and
 		 * some as multiple phases.  Not currently, however.
 		 */
-		if (agg_costs->missing_combinefunc)
+		if (agg_costs->hasNonCombine || agg_costs->hasNonSerial)
 			allowed_agg &= ~AGG_MULTIPHASE;
 
 		/*

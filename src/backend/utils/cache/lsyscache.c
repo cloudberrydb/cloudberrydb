@@ -1789,26 +1789,39 @@ is_agg_ordered(Oid aggid)
 }
 
 /*
- * has_agg_combinefunc
- *		Given aggregate id, check if it is has a combine function
+ * is_agg_partial_capable
+ *		Given aggregate id, check if it can be used in 2-phase aggregation.
+ *
+ * It must have a combine function, and if the transition type is 'internal',
+ * also serial/deserial functions.
  */
 bool
-has_agg_combinefunc(Oid aggid)
+is_agg_partial_capable(Oid aggid)
 {
 	HeapTuple	aggTuple;
 	Form_pg_aggregate aggform;
-	bool		has_combinefunc;
+	bool		result = true;
 
 	aggTuple = SearchSysCache1(AGGFNOID,
 							   ObjectIdGetDatum(aggid));
 	if (!HeapTupleIsValid(aggTuple))
 		elog(ERROR, "cache lookup failed for aggregate %u", aggid);
 	aggform = (Form_pg_aggregate) GETSTRUCT(aggTuple);
-	has_combinefunc = (aggform->aggcombinefn != InvalidOid);
+
+	if (aggform->aggcombinefn == InvalidOid)
+		result = false;
+	else if (aggform->aggtranstype == INTERNALOID)
+	{
+		if (aggform->aggserialfn == InvalidOid ||
+			aggform->aggdeserialfn == InvalidOid)
+		{
+			result = false;
+		}
+	}
 
 	ReleaseSysCache(aggTuple);
 
-	return has_combinefunc;
+	return result;
 }
 
 /*

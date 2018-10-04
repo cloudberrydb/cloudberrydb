@@ -66,12 +66,13 @@ typedef struct AggClauseCosts
 	int			numAggs;		/* total number of aggregate functions */
 	int			numOrderedAggs; /* number that use DISTINCT or ORDER BY */
 	int			numPureOrderedAggs; /* CDB: number that use ORDER BY, not counting DISTINCT */
+	bool		hasNonCombine;	/* CDB: any agg func w/o a combine func? */
+	bool		hasNonSerial;	/* CDB: is any partial agg non-serializable? */
 	QualCost	transCost;		/* total per-input-row execution costs */
 	Cost		finalCost;		/* total costs of agg final functions */
 	Size		transitionSpace;	/* space for pass-by-ref transition data */
 
 	List   *dqaArgs;	/* CDB: List of distinct DQA argument exprs. */
-	bool	missing_combinefunc; /* CDB: any agg func w/o a prelim func? */
 } AggClauseCosts;
 
 

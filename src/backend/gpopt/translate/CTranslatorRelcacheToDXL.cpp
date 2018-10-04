@@ -1955,11 +1955,11 @@ CTranslatorRelcacheToDXL::RetrieveAgg
 	
 	// GPDB does not support splitting of ordered aggs and aggs without a
 	// combine function
-	BOOL is_splittable = !is_ordered && gpdb::AggHasCombineFunc(agg_oid);
+	BOOL is_splittable = !is_ordered && gpdb::IsAggPartialCapable(agg_oid);
 	
 	// cannot use hash agg for ordered aggs or aggs without a combine func
 	// due to the fact that hashAgg may spill
-	BOOL is_hash_agg_capable = !is_ordered && gpdb::AggHasCombineFunc(agg_oid);
+	BOOL is_hash_agg_capable = !is_ordered && gpdb::IsAggPartialCapable(agg_oid);
 
 	CMDAggregateGPDB *pmdagg = GPOS_NEW(mp) CMDAggregateGPDB
 											(

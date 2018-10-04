@@ -509,6 +509,8 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 		Oid			aggtransfn;
 		Oid			aggfinalfn;
 		Oid			aggcombinefn;
+		Oid			aggserialfn;
+		Oid			aggdeserialfn;
 		Oid			aggtranstype;
 		int32		aggtransspace;
 		QualCost	argcosts;
@@ -531,6 +533,8 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 		aggtransfn = aggform->aggtransfn;
 		aggfinalfn = aggform->aggfinalfn;
 		aggcombinefn = aggform->aggcombinefn;
+		aggserialfn = aggform->aggserialfn;
+		aggdeserialfn = aggform->aggdeserialfn;
 		aggtranstype = aggform->aggtranstype;
 		aggtransspace = aggform->aggtransspace;
 		ReleaseSysCache(aggTuple);
@@ -562,11 +566,24 @@ count_agg_clauses_walker(Node *node, count_agg_clauses_context *context)
 			}
 		}
 
-		/* CDB wants to know whether the function can do 2-stage aggregation */
-		if ( aggcombinefn == InvalidOid )
-		{
-			costs->missing_combinefunc = true; /* Nope! */
-		}
+		/*
+		 * If there is no combine function, then partial aggregation is
+		 * not possible. (Note: This is slightly different from the hasNonPartial
+		 * flag in upstream: hasNonPartial is set to 'false', also when there are
+		 * any distinct aggregates, but hasNonCombine is strictly about whether
+		 * every aggregate has a combine function.
+		 */
+		if (!OidIsValid(aggcombinefn))
+			costs->hasNonCombine = true; /* Nope! */
+
+		/*
+		 * If we have any aggs with transtype INTERNAL then we must check
+		 * whether they have serialization/deserialization functions; if
+		 * not, we can't serialize partial-aggregation results.
+		 */
+		if (aggtranstype == INTERNALOID &&
+				 (!OidIsValid(aggserialfn) || !OidIsValid(aggdeserialfn)))
+			costs->hasNonSerial = true;
 
 		/* add component function execution costs to appropriate totals */
 		costs->transCost.per_tuple += get_func_cost(aggtransfn) * cpu_operator_cost;

@@ -117,3 +117,19 @@ create aggregate mysum_prefunc(int4) (
   prefunc=int8pl_with_notice
 );
 select mysum_prefunc(a::int4) from aggtest;
+
+
+-- Test an aggregate with 'internal' transition type, and a combine function,
+-- but no serial/deserial functions. This is valid, but we have no use for
+-- the combine function in GPDB in that case.
+
+CREATE AGGREGATE my_numeric_avg(numeric) (
+  stype = internal,
+  sfunc = numeric_avg_accum,
+  finalfunc = numeric_avg,
+  combinefunc = numeric_avg_combine
+);
+
+create temp table numerictesttab as select g::numeric as n from generate_series(1,10) g;
+
+select my_numeric_avg(n) from numerictesttab;
