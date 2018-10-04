@@ -1281,10 +1281,6 @@ _outAlterTableSpaceOptionsStmt(StringInfo str, AlterTableSpaceOptionsStmt *node)
 {
 	WRITE_NODE_TYPE("ALTERTABLESPACEOPTIONS");
 
-	char	   *tablespacename;
-	List	   *options;
-	bool		isReset;
-
 	WRITE_STRING_FIELD(tablespacename);
 	WRITE_NODE_FIELD(options);
 	WRITE_BOOL_FIELD(isReset);
