@@ -737,6 +737,42 @@ DistributedLog_Startup(TransactionId oldestActiveXid,
 	DistributedLogCtl->shared->latest_page_number = endPage;
 
 	/*
+	 * In situations where new segments' data directories are copied from the
+	 * master (such as binary upgrade), the distributed logs inherited by the
+	 * segment will be incomplete. This is because master doesn't maintain these
+	 * logs past their initial creation. In these cases (and these cases only!),
+	 * we need to initialize and zero out log pages in memory for the range of
+	 * active XIDs.
+	 *
+	 * TODO: Turn off distributed logging during binary upgrade to avoid the
+	 * issue mentioned above.
+	 *
+	 * TODO: Do this same thing during the first segment startup after cluster
+	 * expansion, which has the same problem. Make sure that this code never
+	 * runs during regular segment operation.
+	 */
+	if (IsBinaryUpgrade)
+	{
+		int currentPage = startPage;
+
+		/*
+		 * The below loop has a defined exit condition as long as our pages are
+		 * within a sane range.
+		 */
+		Assert(currentPage <= TransactionIdToPage(MaxTransactionId));
+		Assert(endPage <= TransactionIdToPage(MaxTransactionId));
+
+		do
+		{
+			if (currentPage > TransactionIdToPage(MaxTransactionId))
+				currentPage = 0;
+
+			DistributedLog_ZeroPage(currentPage, false);
+		}
+		while (currentPage++ != endPage);
+	}
+
+	/*
 	 * Zero out the remainder of the current DistributedLog page.  Under normal
 	 * circumstances it should be zeroes already, but it seems at least
 	 * theoretically possible that XLOG replay will have settled on a nextXID
