@@ -15,39 +15,9 @@ ifneq (${ENV_JAVA_HOME},)
 	JAVA_HOME=${ENV_JAVA_HOME}
 endif
 
-.PHONY: all install clean distclean installcheck orafce
-
-#
-# targets built via top_builddir/GNUmakefile
-#
-
-all: orafce
-
-installcheck:
-	if [ "$(enable_orafce)" = "yes" ]; then $(MAKE) -C orafce installcheck; fi
-
-orafce:
-	@if [ "$(enable_orafce)" = "yes" ]; then \
-		echo "orafce enabled"; \
-		$(MAKE) -C orafce NO_PGXS=true; \
-	fi
-
-install:
-	@if [ "$(enable_orafce)" = "yes" ]; then \
-		$(MAKE) -C orafce NO_PGXS=true install; \
-	fi
-
-clean:
-	if [ "${enable_orafce}" = "yes" ]; then $(MAKE) -C orafce NO_PGXS=true clean; fi
-
-distclean:
-	if [ "${enable_orafce}" = "yes" ]; then $(MAKE) -C orafce NO_PGXS=true distclean; fi
-
-
 #
 # below targets will be built via top_builddir/gpAux/Makefile
 #
-
 
 # Use $JAVA_HOME if specified, otherwise look for java in the likely places.
 ifeq ($(wildcard "${JAVA_HOME}/bin/java"),)

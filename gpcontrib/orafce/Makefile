@@ -21,7 +21,7 @@ EXTRA_CLEAN = sqlparse.c sqlparse.h sqlscan.c y.tab.c y.tab.h
 
 ifdef NO_PGXS
 subdir = contrib/$(MODULE_big)
-top_builddir = ../../../
+top_builddir = ../../
 include $(top_builddir)/src/Makefile.global
 include $(top_srcdir)/contrib/contrib-global.mk
 else

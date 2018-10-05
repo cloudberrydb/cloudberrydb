@@ -151,7 +151,6 @@ $(call recurse,installcheck-world, \
 			   contrib/pgcrypto \
 			   gpcontrib \
 			   src/bin/ \
-			   gpAux/extensions \
 			   gpMgmt/bin,installcheck)
 .PHONY: installcheck-gpcheckcat
 installcheck-world: installcheck-gpcheckcat
