@@ -14040,7 +14040,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 	char	   *ftoptions = NULL;
 	int			j,
 				k;
-	bool		isPartitioned = false;
+	bool		hasExternalPartitions = false;
 
 	/* Make sure we are in proper schema */
 	selectSourceSchema(fout, tbinfo->dobj.namespace->dobj.name);
@@ -14404,6 +14404,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 		if (gp_partitioning_available)
 		{
 			bool		isTemplatesSupported = fout->remoteVersion >= 80214;
+			bool		isPartitioned = false;
 			PQExpBuffer query = createPQExpBuffer();
 			PGresult   *res;
 
@@ -14478,6 +14479,25 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 
 				PQclear(res);
 			}
+
+			if (isPartitioned)
+			{
+				/* Find out if there are any external partitions. */
+				resetPQExpBuffer(query);
+				appendPQExpBuffer(query, "SELECT EXISTS (SELECT 1 "
+										 "  FROM pg_class part "
+										 "  JOIN pg_partition_rule pr ON (part.oid = pr.parchildrelid) "
+										 "  JOIN pg_partition p ON (pr.paroid = p.oid) "
+										 "WHERE p.parrelid = '%u'::pg_catalog.oid "
+										 "  AND part.relstorage = '%c') "
+										 "AS has_external_partitions;",
+								  tbinfo->dobj.catId.oid, RELSTORAGE_EXTERNAL);
+
+				res = ExecuteSqlQueryForSingleRow(fout, query->data);
+				hasExternalPartitions = (PQgetvalue(res, 0, 0)[0] == 't');
+				PQclear(res);
+			}
+
 			destroyPQExpBuffer(query);
 		}
 
@@ -14503,8 +14523,11 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 		else
 			appendPQExpBufferStr(q, ";\n");
 
-		/* Exchange external partition */
-		if (isPartitioned)
+		/*
+		 * Exchange external partitions. This is an expensive process, so only
+		 * run it if we've found evidence of external partitions up above.
+		 */
+		if (hasExternalPartitions)
 		{
 			int i = 0;
 			int ntups = 0;
