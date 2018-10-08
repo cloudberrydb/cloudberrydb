@@ -16064,24 +16064,26 @@ static void
 setExtPartDependency(TableInfo *tblinfo, int numTables)
 {
 	int			i;
-	int			j;
 
 	for (i = 0; i < numTables; i++)
 	{
 		TableInfo  *tbinfo = &(tblinfo[i]);
+		TableInfo  *parent;
 		Oid parrelid = tbinfo->parrelid;
 
 		if (parrelid == 0)
 			continue;
 
-		for (j = 0; j < numTables; j++)
+		parent = findTableByOid(parrelid);
+		if (!parent)
 		{
-			TableInfo  *ti = &(tblinfo[j]);
-			if (ti->dobj.catId.oid != parrelid)
-				continue;
-			addObjectDependency(&ti->dobj, tbinfo->dobj.dumpId);
-			removeObjectDependency(&tbinfo->dobj, ti->dobj.dumpId);
+			write_msg(NULL, "parent table (OID %u) of partition \"%s\" (OID %u) not found\n",
+					  parrelid, tbinfo->dobj.name, tbinfo->dobj.catId.oid);
+			exit_nicely(1);
 		}
+
+		addObjectDependency(&parent->dobj, tbinfo->dobj.dumpId);
+		removeObjectDependency(&tbinfo->dobj, parent->dobj.dumpId);
 	}
 }
 
