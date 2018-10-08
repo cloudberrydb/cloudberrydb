@@ -793,38 +793,6 @@ _bitmap_begin_iterate(BMBatchWords *words, BMIterateResult *result)
 	result->nextTidLoc = 0;
 }
 
-
-/*
- * _bitmap_log_newpage() -- log a new page.
- *
- * This function is called before writing a new buffer.
- */
-void
-_bitmap_log_newpage(Relation rel, uint8 info, Buffer buf)
-{
-	Page page;
-
-	xl_bm_newpage		xlNewPage;
-	XLogRecPtr			recptr;
-	XLogRecData			rdata[1];
-
-	page = BufferGetPage(buf);
-
-	xlNewPage.bm_node = rel->rd_node;
-	xlNewPage.bm_new_blkno = BufferGetBlockNumber(buf);
-
-	elog(DEBUG1, "_bitmap_log_newpage: blkno=%d", xlNewPage.bm_new_blkno);
-
-	rdata[0].buffer = InvalidBuffer;
-	rdata[0].data = (char *)&xlNewPage;
-	rdata[0].len = sizeof(xl_bm_newpage);
-	rdata[0].next = NULL;
-			
-	recptr = XLogInsert(RM_BITMAP_ID, info, rdata);
-
-	PageSetLSN(page, recptr);
-}
-
 /*
  * _bitmap_log_metapage() -- log the changes to the metapage
  */

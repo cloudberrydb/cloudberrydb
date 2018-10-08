@@ -94,45 +94,6 @@ forget_incomplete_insert_bitmapwords(RelFileNode node,
 }
 
 /*
- * _bitmap_xlog_newpage() -- create a new page.
- */
-static void
-_bitmap_xlog_newpage(XLogRecPtr lsn, XLogRecord *record)
-{
-	xl_bm_newpage	*xlrec = (xl_bm_newpage *) XLogRecGetData(record);
-
-	Page			page;
-	uint8			info;
-	Buffer		buffer;
-
-	info = record->xl_info & ~XLR_INFO_MASK;
-
-	buffer = XLogReadBuffer(xlrec->bm_node, xlrec->bm_new_blkno, true);
-	Assert(BufferIsValid(buffer));
-
-	page = BufferGetPage(buffer);
-	Assert(PageIsNew(page));
-
-	if (PageGetLSN(page) < lsn)
-	{
-		switch (info)
-		{
-			case XLOG_BITMAP_INSERT_NEWLOV:
-				_bitmap_init_lovpage(NULL, buffer);
-				break;
-			default:
-				elog(PANIC, "_bitmap_xlog_newpage: unknown newpage op code %u",
-					 info);
-		}
-
-		PageSetLSN(page, lsn);
-		_bitmap_wrtbuf(buffer);
-	}
-	else
-		_bitmap_relbuf(buffer);
-}
-
-/*
  * _bitmap_xlog_insert_lovitem() -- insert a new lov item.
  */
 static void
@@ -690,9 +651,6 @@ bitmap_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 
 	switch (info)
 	{
-		case XLOG_BITMAP_INSERT_NEWLOV:
-			_bitmap_xlog_newpage(lsn, record);
-			break;
 		case XLOG_BITMAP_INSERT_LOVITEM:
 			_bitmap_xlog_insert_lovitem(lsn, record);
 			break;
