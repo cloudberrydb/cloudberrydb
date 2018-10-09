@@ -45,7 +45,7 @@
 #include "utils/numeric.h"
 #include "utils/visibility_summary.h"
 
-static Datum ao_compression_ratio_internal(Oid relid);
+static float8 aorow_compression_ratio_internal(Relation parentrel);
 static void UpdateFileSegInfo_internal(Relation parentrel,
 						   int segno,
 						   int64 eof,
@@ -1145,7 +1145,7 @@ gp_aoseg_history(PG_FUNCTION_ARGS)
 	SRF_RETURN_DONE(funcctx);
 }
 
-static Datum
+static int64
 gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot)
 {
 	StringInfoData sqlstmt;
@@ -1304,25 +1304,20 @@ gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 
 	pfree(sqlstmt.data);
 
-	PG_RETURN_INT64(total_count);
+	return total_count;
 }
 
-PG_FUNCTION_INFO_V1(gp_aoseg_name);
+PG_FUNCTION_INFO_V1(gp_aoseg);
 
-extern Datum gp_aoseg_name(PG_FUNCTION_ARGS);
+extern Datum gp_aoseg(PG_FUNCTION_ARGS);
 
 /*
- * UDF to get aoseg information by relation name
+ * UDF to get aoseg information by relation OID/name
  */
 Datum
-gp_aoseg_name(PG_FUNCTION_ARGS)
+gp_aoseg(PG_FUNCTION_ARGS)
 {
-	int			aoRelOid;
-	RangeVar   *parentrv;
-	text	   *relname = PG_GETARG_TEXT_P(0);
-
-	parentrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
-	aoRelOid = RangeVarGetRelid(parentrv, NoLock, false);
+	Oid			aoRelOid = PG_GETARG_OID(0);
 
 	typedef struct Context
 	{
@@ -1477,11 +1472,14 @@ gp_aoseg_name(PG_FUNCTION_ARGS)
  * segment. An example for this scenario is gp_restore. running this function
  * puts the QD aoseg table back in sync.
  */
-static Datum
-gp_update_ao_master_stats_internal(Oid relid, Snapshot appendOnlyMetaDataSnapshot)
+Datum
+gp_update_ao_master_stats(PG_FUNCTION_ARGS)
 {
+	Oid			relid = PG_GETARG_OID(0);
 	Relation	parentrel;
-	Datum		returnDatum;
+	int64		result;
+
+	Assert(Gp_role == GP_ROLE_DISPATCH);
 
 	/* open the parent (main) relation */
 	parentrel = heap_open(relid, RowExclusiveLock);
@@ -1493,48 +1491,13 @@ gp_update_ao_master_stats_internal(Oid relid, Snapshot appendOnlyMetaDataSnapsho
 						RelationGetRelationName(parentrel))));
 
 	if (RelationIsAoRows(parentrel))
-	{
-		returnDatum = gp_update_aorow_master_stats_internal(parentrel, appendOnlyMetaDataSnapshot);
-	}
+		result = gp_update_aorow_master_stats_internal(parentrel, SnapshotNow);
 	else
-	{
-		returnDatum = gp_update_aocol_master_stats_internal(parentrel, appendOnlyMetaDataSnapshot);
-	}
+		result = gp_update_aocol_master_stats_internal(parentrel, SnapshotNow);
 
 	heap_close(parentrel, RowExclusiveLock);
 
-	return returnDatum;
-}
-
-Datum
-gp_update_ao_master_stats_name(PG_FUNCTION_ARGS)
-{
-	RangeVar   *parentrv;
-	text	   *relname = PG_GETARG_TEXT_P(0);
-	Oid			relid;
-
-	Assert(Gp_role == GP_ROLE_DISPATCH);
-
-	parentrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
-	relid = RangeVarGetRelid(parentrv, NoLock, false);
-
-	return gp_update_ao_master_stats_internal(relid, SnapshotNow);
-}
-
-
-/*
- * get_ao_compression_ratio_oid
- *
- * same as get_ao_compression_ratio_name, but takes rel oid as argument.
- */
-Datum
-gp_update_ao_master_stats_oid(PG_FUNCTION_ARGS)
-{
-	Oid			relid = PG_GETARG_OID(0);
-
-	Assert(Gp_role == GP_ROLE_DISPATCH);
-
-	return gp_update_ao_master_stats_internal(relid, SnapshotNow);
+	PG_RETURN_INT64(result);
 }
 
 typedef struct
@@ -1547,20 +1510,15 @@ typedef struct
 
 
 /**************************************************************
- * get_ao_distribution_oid
- * get_ao_distribution_name
+ * get_ao_distribution
  *
  * given an AO table name or oid, show the total distribution
  * of rows across all segment databases in the system.
- *
- * TODO: for now these 2 functions are almost completely
- * duplicated. See how to factor out a common internal function
- * such as done in get_ao_compression_ratio below.
  **************************************************************/
-
 Datum
-get_ao_distribution_oid(PG_FUNCTION_ARGS)
+get_ao_distribution(PG_FUNCTION_ARGS)
 {
+	Oid			relid = PG_GETARG_OID(0);
 	FuncCallContext *funcctx;
 	MemoryContext oldcontext;
 	AclResult	aclresult;
@@ -1569,7 +1527,6 @@ get_ao_distribution_oid(PG_FUNCTION_ARGS)
 	Relation	parentrel;
 	Relation	aosegrel;
 	int			ret;
-	Oid			relid = PG_GETARG_OID(0);
 
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 
@@ -1740,225 +1697,43 @@ get_ao_distribution_oid(PG_FUNCTION_ARGS)
 	SRF_RETURN_DONE(funcctx);
 }
 
-Datum
-get_ao_distribution_name(PG_FUNCTION_ARGS)
-{
-	FuncCallContext *funcctx;
-	MemoryContext oldcontext;
-	AclResult	aclresult;
-	QueryInfo  *query_block = NULL;
-	StringInfoData sqlstmt;
-	RangeVar   *parentrv;
-	Relation	parentrel;
-	Relation	aosegrel;
-	int			ret;
-	text	   *relname = PG_GETARG_TEXT_P(0);
-	Oid			relid;
-
-	Assert(Gp_role == GP_ROLE_DISPATCH);
-
-	/*
-	 * stuff done only on the first call of the function. In here we execute
-	 * the query, gather the result rows and keep them in our context so that
-	 * we could return them in the next calls to this func.
-	 */
-	if (SRF_IS_FIRSTCALL())
-	{
-		bool		connected = false;
-		Oid			segrelid = InvalidOid;
-
-		funcctx = SRF_FIRSTCALL_INIT();
-
-		parentrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
-		relid = RangeVarGetRelid(parentrv, NoLock, false);
-
-		/* get the relid of the parent (main) relation */
-		parentrel = heap_openrv(parentrv, AccessShareLock);
-
-		/*
-		 * check permission to SELECT from this table (this function is
-		 * effectively a form of COUNT(*) FROM TABLE
-		 */
-		aclresult = pg_class_aclcheck(parentrel->rd_id, GetUserId(),
-									  ACL_SELECT);
-
-		if (aclresult != ACLCHECK_OK)
-			aclcheck_error(aclresult,
-						   ACL_KIND_CLASS,
-						   RelationGetRelationName(parentrel));
-
-		/*
-		 * verify this is an AO relation
-		 */
-		if (!RelationIsAppendOptimized(parentrel))
-			ereport(ERROR,
-					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("'%s' is not an append-only relation",
-							RelationGetRelationName(parentrel))));
-
-		GetAppendOnlyEntryAuxOids(RelationGetRelid(parentrel), SnapshotNow,
-								  &segrelid,
-								  NULL, NULL, NULL, NULL);
-		Assert(OidIsValid(segrelid));
-
-		/*
-		 * assemble our query string
-		 */
-		aosegrel = heap_open(segrelid, AccessShareLock);
-		initStringInfo(&sqlstmt);
-		appendStringInfo(&sqlstmt, "select gp_segment_id,sum(tupcount) "
-						 "from gp_dist_random('%s.%s') "
-						 "group by (gp_segment_id)",
-						 get_namespace_name(RelationGetNamespace(aosegrel)),
-						 RelationGetRelationName(aosegrel));
-
-		heap_close(aosegrel, AccessShareLock);
-
-		PG_TRY();
-		{
-
-			if (SPI_OK_CONNECT != SPI_connect())
-			{
-				ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
-								errmsg("Unable to obtain AO relation information from segment databases."),
-								errdetail("SPI_connect failed in get_ao_distribution")));
-			}
-			connected = true;
-
-			/* Do the query. */
-			ret = SPI_execute(sqlstmt.data, false, 0);
-
-			if (ret > 0 && SPI_tuptable != NULL)
-			{
-				QueryInfo  *query_block_state = NULL;
-
-				/*
-				 * switch to memory context appropriate for multiple function
-				 * calls
-				 */
-				oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
-
-				funcctx->tuple_desc = BlessTupleDesc(SPI_tuptable->tupdesc);
-
-				/*
-				 * Allocate cross-call state, so that we can keep track of
-				 * where we're at in the processing.
-				 */
-				query_block_state = (QueryInfo *) palloc0(sizeof(QueryInfo));
-				funcctx->user_fctx = (int *) query_block_state;
-
-				query_block_state->index = 0;
-				query_block_state->rows = SPI_processed;
-				MemoryContextSwitchTo(oldcontext);
-			}
-		}
-
-		/* Clean up in case of error. */
-		PG_CATCH();
-		{
-			if (connected)
-				SPI_finish();
-
-			/* Carry on with error handling. */
-			PG_RE_THROW();
-		}
-		PG_END_TRY();
-
-		pfree(sqlstmt.data);
-		heap_close(parentrel, AccessShareLock);
-	}
-
-	/*
-	 * Per-call operations
-	 */
-
-	funcctx = SRF_PERCALL_SETUP();
-
-	query_block = (QueryInfo *) funcctx->user_fctx;
-	if (query_block->index < query_block->rows)
-	{
-		/*
-		 * Get heaptuple from SPI, then deform it, and reform it using our
-		 * tuple desc. If we don't do this, but rather try to pass the tuple
-		 * from SPI directly back, we get an error because the tuple desc that
-		 * is associated with the SPI call has not been blessed.
-		 */
-		HeapTuple	tuple = SPI_tuptable->vals[query_block->index++];
-		TupleDesc	tupleDesc = funcctx->tuple_desc;
-
-		Datum	   *values = (Datum *) palloc(tupleDesc->natts * sizeof(Datum));
-		bool	   *nulls = (bool *) palloc(tupleDesc->natts * sizeof(bool));
-
-		HeapTuple	res = NULL;
-		Datum		result;
-
-		heap_deform_tuple(tuple, tupleDesc, values, nulls);
-
-		res = heap_form_tuple(tupleDesc, values, nulls);
-
-		pfree(values);
-		pfree(nulls);
-
-		/* make the tuple into a datum */
-		result = HeapTupleGetDatum(res);
-
-		SRF_RETURN_NEXT(funcctx, result);
-	}
-
-	/*
-	 * do when there is no more left
-	 */
-	pfree(query_block);
-
-	SPI_finish();
-
-	funcctx->user_fctx = NULL;
-
-	SRF_RETURN_DONE(funcctx);
-}
-
 /**************************************************************
- * get_ao_compression_ratio_oid
- * get_ao_compression_ratio_name
+ * get_ao_compression_ratio
  *
- * Given an append-only table name or oid calculate the effective
+ * Given an append-only table oid or name calculate the effective
  * compression ratio for this append only table stored data.
  * If this info is not available (pre 3.3 created tables) then
  * return -1.
  **************************************************************/
-
 Datum
-get_ao_compression_ratio_name(PG_FUNCTION_ARGS)
-{
-	RangeVar   *parentrv;
-	text	   *relname = PG_GETARG_TEXT_P(0);
-	Oid			relid;
-
-	Assert(Gp_role == GP_ROLE_DISPATCH);
-
-	parentrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
-	relid = RangeVarGetRelid(parentrv, NoLock, false);
-
-	return ao_compression_ratio_internal(relid);
-}
-
-
-/*
- * get_ao_compression_ratio_oid
- *
- * same as get_ao_compression_ratio_name, but takes rel oid as argument.
- */
-Datum
-get_ao_compression_ratio_oid(PG_FUNCTION_ARGS)
+get_ao_compression_ratio(PG_FUNCTION_ARGS)
 {
 	Oid			relid = PG_GETARG_OID(0);
+	Relation	parentrel;
+	float8		result;
 
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 
-	return ao_compression_ratio_internal(relid);
+	/* open the parent (main) relation */
+	parentrel = heap_open(relid, AccessShareLock);
+
+	if (!RelationIsAppendOptimized(parentrel))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("'%s' is not an append-only relation",
+						RelationGetRelationName(parentrel))));
+
+	if (RelationIsAoRows(parentrel))
+		result = aorow_compression_ratio_internal(parentrel);
+	else
+		result = aocol_compression_ratio_internal(parentrel);
+
+	heap_close(parentrel, AccessShareLock);
+
+	PG_RETURN_FLOAT8(result);
 }
 
-static Datum
+static float8
 aorow_compression_ratio_internal(Relation parentrel)
 {
 	StringInfoData sqlstmt;
@@ -2030,7 +1805,7 @@ aorow_compression_ratio_internal(Relation parentrel)
 			if (NULL == attr1 || NULL == attr2)
 			{
 				SPI_finish();
-				PG_RETURN_FLOAT8(1);
+				return 1;
 			}
 
 			if (scanint8(attr1, true, &eof) &&
@@ -2066,36 +1841,7 @@ aorow_compression_ratio_internal(Relation parentrel)
 
 	pfree(sqlstmt.data);
 
-	PG_RETURN_FLOAT8(compress_ratio);
-}
-
-static Datum
-ao_compression_ratio_internal(Oid relid)
-{
-	Relation	parentrel;
-	Datum		returnDatum;
-
-	/* open the parent (main) relation */
-	parentrel = heap_open(relid, AccessShareLock);
-
-	if (!RelationIsAppendOptimized(parentrel))
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("'%s' is not an append-only relation",
-						RelationGetRelationName(parentrel))));
-
-	if (RelationIsAoRows(parentrel))
-	{
-		returnDatum = aorow_compression_ratio_internal(parentrel);
-	}
-	else
-	{
-		returnDatum = aocol_compression_ratio_internal(parentrel);
-	}
-
-	heap_close(parentrel, AccessShareLock);
-
-	return returnDatum;
+	return compress_ratio;
 }
 
 void
