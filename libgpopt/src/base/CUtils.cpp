@@ -5142,11 +5142,11 @@ CUtils::PcrExtractFromScExpression
 }
 
 
-// search the given array of predicates for an equality predicate
-// that has one side equal to the given expression,
-// if found, return the other side of equality, otherwise return NULL
+// search the given array of predicates for predicates with equality or IS NOT
+// DISTINCT FROM operators that has one side equal to the given expression, if
+// found, return the other side of equality, otherwise return NULL
 CExpression *
-CUtils::PexprMatchEqualitySide
+CUtils::PexprMatchEqualityOrINDF
 	(
 	CExpression *pexprToMatch,
 	CExpressionArray *pdrgpexpr // array of predicates to inspect
@@ -5160,14 +5160,23 @@ CUtils::PexprMatchEqualitySide
 	for (ULONG ul = 0; ul < ulSize; ul++)
 	{
 		CExpression *pexprPred = (*pdrgpexpr)[ul];
-		if (!CPredicateUtils::IsEqualityOp(pexprPred))
+		CExpression *pexprPredOuter, *pexprPredInner;
+
+
+		if (CPredicateUtils::IsEqualityOp(pexprPred))
+		{
+			pexprPredOuter = (*pexprPred)[0];
+			pexprPredInner = (*pexprPred)[1];
+		}
+		else if (CPredicateUtils::FINDF(pexprPred))
+		{
+			pexprPredOuter = (*(*pexprPred)[0])[0];
+			pexprPredInner = (*(*pexprPred)[0])[1];
+		}
+		else
 		{
 			continue;
 		}
-
-		// extract equality sides
-		CExpression *pexprPredOuter = (*pexprPred)[0];
-		CExpression *pexprPredInner = (*pexprPred)[1];
 
 		IMDId *pmdidTypeOuter = CScalar::PopConvert(pexprPredOuter->Pop())->MdidType();
 		IMDId *pmdidTypeInner = CScalar::PopConvert(pexprPredInner->Pop())->MdidType();

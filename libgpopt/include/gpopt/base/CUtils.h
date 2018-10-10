@@ -1083,10 +1083,10 @@ namespace gpopt
 			CColRef *PcrExtractFromScExpression(CExpression *pexpr);
 
 
-			// search the given array of predicates for an equality predicate that has
-			// one side equal to given expression
+			// search the given array of predicates for predicates with equality or IS NOT
+			// DISTINCT FROM operators that has one side equal to the given expression
 			static
-			CExpression *PexprMatchEqualitySide
+			CExpression *PexprMatchEqualityOrINDF
 				(
 				CExpression *pexprToMatch,
 				CExpressionArray *pdrgpexpr // array of predicates to inspect

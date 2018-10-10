@@ -183,7 +183,7 @@ CPhysicalScan::PdshashedDeriveWithOuterRefs
 	for (ULONG ul = 0; fSuccess && ul < size; ul++)
 	{
 		CExpression *pexpr = (*pdrgpexprHashed)[ul];
-		CExpression *pexprMatching = CUtils::PexprMatchEqualitySide(pexpr, pdrgpexpr);
+		CExpression *pexprMatching = CUtils::PexprMatchEqualityOrINDF(pexpr, pdrgpexpr);
 		fSuccess = (NULL != pexprMatching);
 		if (fSuccess)
 		{

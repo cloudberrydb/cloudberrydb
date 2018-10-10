@@ -132,7 +132,7 @@ CPhysicalInnerNLJoin::PdsRequired
 					CExpression *pexpr = (*pdrgpexprHashed)[ul];
 					// get matching expression from predicate for the corresponding outer child
 					// to create CDistributionSpecHashed for inner child
-					CExpression *pexprMatching = CUtils::PexprMatchEqualitySide(pexpr, pdrgpexpr);
+					CExpression *pexprMatching = CUtils::PexprMatchEqualityOrINDF(pexpr, pdrgpexpr);
 					fSuccess = (NULL != pexprMatching);
 					if (fSuccess)
 					{
