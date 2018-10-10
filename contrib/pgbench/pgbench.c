@@ -1501,7 +1501,7 @@ init(bool is_no_vacuum)
 			"pgbench_branches",
 			"bid int not null,bbalance int,filler char(88)",
 			1
-			, "tid"
+			, "bid"
 		}
 	};
 	static char *DDLAFTERs[] = {
