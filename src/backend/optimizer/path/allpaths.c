@@ -1833,7 +1833,7 @@ standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
 	 * We should have a single rel at the final level.
 	 */
 	if (root->join_rel_level[levels_needed] == NIL)
-		return NULL;
+		elog(ERROR, "failed to build any %d-way joins", levels_needed);
 	Assert(list_length(root->join_rel_level[levels_needed]) == 1);
 
 	rel = (RelOptInfo *) linitial(root->join_rel_level[levels_needed]);
