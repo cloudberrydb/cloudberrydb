@@ -439,7 +439,6 @@ resources:
   type: git
   source:
     branch: {{pxf-git-branch}}
-    private_key: {{pxf-git-key}}
     uri: {{pxf-git-remote}}
 
 - name: centos6-gpdb-dev-pxf-hdp
