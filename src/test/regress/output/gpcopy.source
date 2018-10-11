@@ -1454,3 +1454,26 @@ drop type broken_int4 cascade; -- drops the I/O functions, too.
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to function broken_int4in(cstring)
 drop cascades to function broken_int4out(broken_int4)
+-- GPDB makes the database name, and many other things, available
+-- as environment variables to the program. Test those.
+--
+-- Perform these tests in a funnily named database, to test
+-- escaping
+set client_min_messages='warning';
+DROP DATABASE IF EXISTS "funny copy""db'with\\quotes";
+reset client_min_messages;
+CREATE DATABASE "funny copy""db'with\\quotes";
+\c "funny copy""db'with\\quotes"
+-- echo will behave differently on different platforms, force to use bash with -E option
+COPY (SELECT 'data1') TO PROGRAM 'cat > /tmp/gpcopyenvtest; /usr/bin/env bash -c ''echo -E database in COPY TO: $GP_DATABASE >> /tmp/gpcopyenvtest '' ' ESCAPE 'OFF';
+CREATE TABLE foo (t text);
+COPY foo FROM PROGRAM 'cat /tmp/gpcopyenvtest' ESCAPE 'OFF';
+COPY foo FROM PROGRAM '/usr/bin/env bash -c ''echo -E database in COPY FROM: $GP_DATABASE''' ESCAPE 'OFF';
+select * from foo;
+                         t                         
+---------------------------------------------------
+ data1
+ database in COPY FROM: funny copy"db'with\\quotes
+ database in COPY TO: funny copy"db'with\\quotes
+(3 rows)
+
