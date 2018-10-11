@@ -48,6 +48,8 @@
 #include "cdb/cdbcopy.h"
 #include "executor/execUtils.h"
 
+#define QUERY_STRING_TRUNCATE_SIZE (1024)
+
 extern bool Test_print_direct_dispatch_info;
 
 /*
@@ -791,7 +793,7 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 				   int *finalLen)
 {
 	const char *command = pQueryParms->strCommand;
-	int			command_len = strlen(pQueryParms->strCommand) + 1;
+	int			command_len;
 	const char *querytree = pQueryParms->serializedQuerytree;
 	int			querytree_len = pQueryParms->serializedQuerytreelen;
 	const char *plantree = pQueryParms->serializedPlantree;
@@ -823,6 +825,18 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	 */
 	Assert(DispatcherContext);
 	oldContext = MemoryContextSwitchTo(DispatcherContext);
+
+	/*
+	 * If either querytree or plantree is set then the query string is not so
+	 * important, dispatch a truncated version to increase the performance.
+	 *
+	 * Here we only need to determine the truncated size, the actual work is
+	 * done later when copying it to the result buffer.
+	 */
+	if (querytree || plantree)
+		command_len = strnlen(command, QUERY_STRING_TRUNCATE_SIZE - 1) + 1;
+	else
+		command_len = strlen(command) + 1;
 
 	initStringInfo(&resgroupInfo);
 	if (IsResGroupActivated())
@@ -931,6 +945,8 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	pos += sizeof(tmp);
 
 	memcpy(pos, command, command_len);
+	/* If command is truncated we need to set the terminating '\0' manually */
+	pos[command_len - 1] = '\0';
 	pos += command_len;
 
 	if (querytree_len > 0)
