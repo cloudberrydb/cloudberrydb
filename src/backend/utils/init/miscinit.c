@@ -45,6 +45,7 @@
 #include "storage/proc.h"
 #include "storage/procarray.h"
 #include "utils/builtins.h"
+#include "utils/gdd.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/resgroup.h"
@@ -538,7 +539,9 @@ InitializeSessionUserIdStandalone(void)
 	 * workers, and in background workers.
 	 */
 	AssertState(!IsUnderPostmaster || IsAutoVacuumWorkerProcess() || IsBackgroundWorker
-				|| am_startup || (am_ftshandler && am_mirror));
+				|| am_startup
+				|| (am_ftshandler && am_mirror)
+				|| am_global_deadlock_detector);
 
 	/* call only once */
 	AssertState(!OidIsValid(AuthenticatedUserId));
