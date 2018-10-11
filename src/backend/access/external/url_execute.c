@@ -177,19 +177,12 @@ make_export(char *name, const char *value, StringInfo buf)
 {
 	char		ch;
 
-	/*
-	 * Shell-quote the value. (We assume the variable name doesn't contain
-	 * funny characters.
-	 *
-	 * Every single-quote is replaced with '\''. For example, value
-	 * foo'bar becomes 'foo'\''bar'.
-	 */
 	appendStringInfo(buf, "%s='", name);
 
 	for ( ; 0 != (ch = *value); value++)
 	{
-		if (ch == '\'')
-			appendStringInfoString(buf, "\'\\\'");
+		if (ch == '\'' || ch == '\\')
+			appendStringInfoChar(buf, '\\');
 
 		appendStringInfoChar(buf, ch);
 	}

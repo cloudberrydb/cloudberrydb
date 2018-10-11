@@ -1199,23 +1199,3 @@ copy t from '/tmp/b<SEGID>' on segment;
 select count(*) from t;
 
 \set QUIET on
-
--- GPDB makes the database name, and many other things, available
--- as environment variables to the program. Test those.
---
--- Perform these tests in a funnily named database, to test
--- escaping
-set client_min_messages='warning';
-DROP DATABASE IF EXISTS "funny copy""db'with\\quotes";
-reset client_min_messages;
-CREATE DATABASE "funny copy""db'with\\quotes";
-
-\c "funny copy""db'with\\quotes"
-
-COPY (SELECT 'data1') TO PROGRAM 'cat > /tmp/gpcopyenvtest; echo database in COPY TO: $GP_DATABASE >> /tmp/gpcopyenvtest';
-
-CREATE TABLE foo (t text);
-COPY foo FROM PROGRAM 'cat /tmp/gpcopyenvtest';
-COPY foo FROM PROGRAM 'echo database in COPY FROM: $GP_DATABASE';
-
-select * from foo;
