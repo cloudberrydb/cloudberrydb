@@ -275,6 +275,13 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 		SPI_ReserveMemory(((Plan *)node)->operatorMemKB * 1024L);
 	}
 
+	/*
+	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
+	 * then this node is not eager free safe.
+	 */
+	scanstate->ss.ps.delayEagerFree =
+		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
+
 	return scanstate;
 }
 

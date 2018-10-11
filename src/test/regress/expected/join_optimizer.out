@@ -3435,46 +3435,43 @@ select count(*) from tenk1 a, lateral generate_series(1,two) g;
 
 explain (costs off)
   select count(*) from tenk1 a, lateral generate_series(1,two) g;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
-                     ->  Materialize
-                           ->  Function Scan on generate_series g
+                     ->  Function Scan on generate_series g
  Optimizer: legacy query optimizer
-(8 rows)
+(7 rows)
 
 explain (costs off)
   select count(*) from tenk1 a cross join lateral generate_series(1,two) g;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
-                     ->  Materialize
-                           ->  Function Scan on generate_series g
+                     ->  Function Scan on generate_series g
  Optimizer: legacy query optimizer
-(8 rows)
+(7 rows)
 
 -- don't need the explicit LATERAL keyword for functions
 explain (costs off)
   select count(*) from tenk1 a, generate_series(1,two) g;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
-                     ->  Materialize
-                           ->  Function Scan on generate_series g
+                     ->  Function Scan on generate_series g
  Optimizer: legacy query optimizer
-(8 rows)
+(7 rows)
 
 -- lateral with UNION ALL subselect
 explain (costs off)

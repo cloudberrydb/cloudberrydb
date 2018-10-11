@@ -2601,8 +2601,12 @@ create_functionscan_path(PlannerInfo *root, RelOptInfo *rel,
 
 	pathnode->motionHazard = false;
 
-	/* For now, be conservative. */
-	pathnode->rescannable = false;
+	/*
+	 * FunctionScan is always rescannable. It uses a tuplestore to
+	 * materialize the results all by itself.
+	 */
+	pathnode->rescannable = true;
+
 	pathnode->sameslice_relids = NULL;
 
 	cost_functionscan(pathnode, root, rel, pathnode->param_info);

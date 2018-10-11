@@ -2724,12 +2724,10 @@ where q1 = thousand or q2 = thousand;
                      ->  Hash
                            ->  Broadcast Motion 3:3  (slice1; segments: 3)
                                  ->  Seq Scan on int4_tbl
-               ->  Materialize
-                     ->  Function Scan on q1
-         ->  Materialize
-               ->  Function Scan on q2
+               ->  Function Scan on q1
+         ->  Function Scan on q2
  Optimizer: legacy query optimizer
-(15 rows)
+(13 rows)
 
 explain (costs off)
 select * from
@@ -2748,13 +2746,12 @@ where thousand = (q1 + q2);
                ->  Hash
                      ->  Nested Loop
                            ->  Function Scan on q1
-                           ->  Materialize
-                                 ->  Function Scan on q2
+                           ->  Function Scan on q2
          ->  Hash
                ->  Broadcast Motion 3:3  (slice1; segments: 3)
                      ->  Seq Scan on int4_tbl
  Optimizer: legacy query optimizer
-(15 rows)
+(14 rows)
 
 --
 -- test placement of movable quals in a parameterized join tree
@@ -3337,46 +3334,43 @@ select count(*) from tenk1 a, lateral generate_series(1,two) g;
 
 explain (costs off)
   select count(*) from tenk1 a, lateral generate_series(1,two) g;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
-                     ->  Materialize
-                           ->  Function Scan on generate_series g
+                     ->  Function Scan on generate_series g
  Optimizer: legacy query optimizer
-(8 rows)
+(7 rows)
 
 explain (costs off)
   select count(*) from tenk1 a cross join lateral generate_series(1,two) g;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
-                     ->  Materialize
-                           ->  Function Scan on generate_series g
+                     ->  Function Scan on generate_series g
  Optimizer: legacy query optimizer
-(8 rows)
+(7 rows)
 
 -- don't need the explicit LATERAL keyword for functions
 explain (costs off)
   select count(*) from tenk1 a, generate_series(1,two) g;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Nested Loop
                      ->  Seq Scan on tenk1 a
-                     ->  Materialize
-                           ->  Function Scan on generate_series g
+                     ->  Function Scan on generate_series g
  Optimizer: legacy query optimizer
-(8 rows)
+(7 rows)
 
 -- lateral with UNION ALL subselect
 explain (costs off)
