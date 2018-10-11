@@ -2134,7 +2134,7 @@ connectDatabase(const char *dbname, const char *connection_string,
 	 */
 	do
 	{
-		int			argcount = 6 + 1;	/* one extra GPDB option */
+		int			argcount = 6;
 		PQconninfoOption *conn_opt;
 		char	   *err_msg = NULL;
 		int			i = 0;
@@ -2217,10 +2217,6 @@ connectDatabase(const char *dbname, const char *connection_string,
 
 		keywords[i] = "fallback_application_name";
 		values[i] = progname;
-		i++;
-
-		keywords[i] = "options";
-		values[i] = "-c gp_session_role=utility";
 		i++;
 
 		new_pass = false;
