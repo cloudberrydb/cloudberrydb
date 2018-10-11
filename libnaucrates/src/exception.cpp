@@ -124,9 +124,9 @@ gpdxl::EresExceptionInit
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature),
 					CException::ExsevNotice,
-					GPOS_WSZ_WSZLEN("Feature not supported by the Pivotal Query Optimizer: %ls"),
+					GPOS_WSZ_WSZLEN("Feature not supported: %ls"),
 					1, //
-					GPOS_WSZ_WSZLEN("Feature not supported by the Pivotal Query Optimizer")),
+					GPOS_WSZ_WSZLEN("Feature not supported")),
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLMissingValue),
 					CException::ExsevError,
@@ -161,9 +161,9 @@ gpdxl::EresExceptionInit
 
 			CMessage(CException(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported),
 					 CException::ExsevNotice,
-					 GPOS_WSZ_WSZLEN("Feature not supported by the Pivotal Query Optimizer: %ls"),
+					 GPOS_WSZ_WSZLEN("Feature not supported: %ls"),
 					 1, // md obj
-					 GPOS_WSZ_WSZLEN("Feature not supported by the Pivotal Query Optimizer:")),
+					 GPOS_WSZ_WSZLEN("Feature not supported")),
 
 			CMessage(CException(gpdxl::ExmaComm, gpdxl::ExmiCommPropagateError),
 					 CException::ExsevError,
@@ -191,9 +191,9 @@ gpdxl::EresExceptionInit
 					
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiExpr2DXLUnsupportedFeature),
 					CException::ExsevError,
-					GPOS_WSZ_WSZLEN("Feature not supported by the Pivotal Query Optimizer: %ls"),
+					GPOS_WSZ_WSZLEN("Feature not supported: %ls"),
 					1, // feature name
-					GPOS_WSZ_WSZLEN("Feature not supported by the Pivotal Query Optimizer: %ls")),
+					GPOS_WSZ_WSZLEN("Feature not supported: %ls")),
 
 			CMessage(CException(gpdxl::ExmaConstExprEval, gpdxl::ExmiConstExprEvalNonConst),
 					 CException::ExsevError,
