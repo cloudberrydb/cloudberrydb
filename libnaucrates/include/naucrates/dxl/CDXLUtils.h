@@ -308,17 +308,6 @@ namespace gpdxl
 				BOOL serialize_document_header_footer,
 				BOOL indentation
 				);
-			
-			// serialize a metadata id into a MD request message
-			static 
-			void SerializeMDRequest
-				(
-				IMemoryPool *mp,
-				const IMDId *mdid,
-				IOstream &os,
-				BOOL serialize_document_header_footer,
-				BOOL indentation
-				);
 
 			// serialize a list of metadata objects into DXL
 			static 
@@ -477,15 +466,6 @@ namespace gpdxl
 				CMDAccessor *md_accessor,
 				const CDXLDatum *dxl_datum
 				);
-
-			// serialize Datum with given tag
-			static
-			void SerializeBound
-					(
-					IDatum *new_length,
-					const CWStringConst *dxl_string,
-					CXMLSerializer *xml_serializer
-					);
 
 #ifdef GPOS_DEBUG
 			// debug print of the metadata relation

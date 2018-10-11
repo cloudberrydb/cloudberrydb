@@ -1220,51 +1220,6 @@ CDXLUtils::SerializeMDRequest
 	return;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CDXLUtils::SerializeMDRequest
-//
-//	@doc:
-//		Serialize a list of mdids into a DXL MD Request document and write to
-//		to the provided output stream
-//
-//---------------------------------------------------------------------------
-void
-CDXLUtils::SerializeMDRequest
-	(
-	IMemoryPool *mp,
-	const IMDId *mdid,
-	IOstream &os,
-	BOOL serialize_header_footer,
-	BOOL indentation
-	)
-{
-	GPOS_ASSERT(NULL != mp);
-	GPOS_ASSERT(NULL != mdid);
-
-	CXMLSerializer xml_serializer(mp, os, indentation);
-
-	if (serialize_header_footer)
-	{
-		SerializeHeader(mp, &xml_serializer);
-	}
-
-	xml_serializer.OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenMDRequest));
-
-	xml_serializer.OpenElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
-	mdid->Serialize(&xml_serializer, CDXLTokens::GetDXLTokenStr(EdxltokenValue));
-	xml_serializer.CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenMdid));
-
-	xml_serializer.CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix), CDXLTokens::GetDXLTokenStr(EdxltokenMDRequest));
-
-	if (serialize_header_footer)
-	{
-		SerializeFooter(&xml_serializer);
-	}
-
-	return;
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1917,41 +1872,6 @@ CDXLUtils::Read
 	read_buffer[read_bytes] = '\0';
 		
 	return read_buffer.RgtReset();
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CDXLUtils::SerializeBound
-//
-//	@doc:
-//		Serialize a datum with a given tag. Result xml looks like
-// 		<tag>
-//			<const.../>
-//		</tag>
-//
-//---------------------------------------------------------------------------
-void
-CDXLUtils::SerializeBound
-	(
-	IDatum *new_length,
-	const CWStringConst *dxl_string,
-	CXMLSerializer *xml_serializer
-	)
-{
-	xml_serializer->OpenElement
-				(
-				CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
-				dxl_string
-				);
-
-	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-	const IMDType *md_type = md_accessor->RetrieveType(new_length->MDId());
-	CDXLScalarConstValue *scalar_const_value_dxl_operator = md_type->GetDXLOpScConst(xml_serializer->Pmp(), new_length);
-	scalar_const_value_dxl_operator->SerializeToDXL(xml_serializer, NULL);
-
-	xml_serializer->CloseElement(CDXLTokens::GetDXLTokenStr(EdxltokenNamespacePrefix),
-						dxl_string);
-	scalar_const_value_dxl_operator->Release();
 }
 
 #ifdef GPOS_DEBUG
