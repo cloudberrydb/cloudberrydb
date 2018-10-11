@@ -1018,15 +1018,16 @@ get_atttypetypmodcoll(Oid relid, AttrNumber attnum,
 	HeapTuple	tp;
 	Form_pg_attribute att_tup;
 
-    /* CDB: Get type for sysattr even if relid is no good (e.g. SubqueryScan) */
-    if (attnum < 0 &&
-        attnum > FirstLowInvalidHeapAttributeNumber)
-    {
-        att_tup = SystemAttributeDefinition(attnum, true);
-	    *typid = att_tup->atttypid;
-	    *typmod = att_tup->atttypmod;
-        return;
-    }
+	/* CDB: Get type for sysattr even if relid is no good (e.g. SubqueryScan) */
+	if (attnum < 0 &&
+		attnum > FirstLowInvalidHeapAttributeNumber)
+	{
+		att_tup = SystemAttributeDefinition(attnum, true);
+		*typid = att_tup->atttypid;
+		*typmod = att_tup->atttypmod;
+		*collid = att_tup->attcollation;
+		return;
+	}
 
 	tp = SearchSysCache2(ATTNUM,
 						 ObjectIdGetDatum(relid),
