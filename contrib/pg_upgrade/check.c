@@ -198,15 +198,17 @@ check_new_cluster(void)
 	 * error during pg_dump restore.
  	 *
  	 * However, in Greenplum, if we are upgrading a segment, its users have
- 	 * already been replicated to it from the master via gpupgrade. Hence,
- 	 * we only need to do this check for the QD.  In other words, the
- 	 * Greenplum cluster upgrade scheme will overwrite the QE's schema
+	 * already been replicated to it from the master via gpupgrade.  Hence,
+	 * we only need to do this check for the QD.  In other words, the
+	 * Greenplum cluster upgrade scheme will overwrite the QE's schema
  	 * with the QD's schema, making this check inappropriate for a QE upgrade.
- 	 */
-    if (user_opts.segment_mode == DISPATCHER)
-        if (new_cluster.role_count != 1)
-            pg_log(PG_FATAL, "Only the install user can be defined in the new cluster.\n");
-        
+	 */
+	if (user_opts.segment_mode == DISPATCHER)
+	{
+		if (new_cluster.role_count != 1)
+			pg_log(PG_FATAL, "Only the install user can be defined in the new cluster.\n");
+	}
+
 	check_for_prepared_transactions(&new_cluster);
 }
 
