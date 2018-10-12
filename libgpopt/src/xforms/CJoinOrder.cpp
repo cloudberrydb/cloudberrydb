@@ -72,10 +72,12 @@ CJoinOrder::SComponent::SComponent
 	)
 	:
 	m_pbs(NULL),
+	m_edge_set(NULL),
 	m_pexpr(pexpr),
 	m_fUsed(false)
 {	
 	m_pbs = GPOS_NEW(mp) CBitSet(mp);
+	m_edge_set = GPOS_NEW(mp) CBitSet(mp);
 }
 
 
@@ -90,10 +92,12 @@ CJoinOrder::SComponent::SComponent
 CJoinOrder::SComponent::SComponent
 	(
 	CExpression *pexpr,
-	CBitSet *pbs
+	CBitSet *pbs,
+	CBitSet *edge_set
 	)
 	:
 	m_pbs(pbs),
+	m_edge_set(edge_set),
 	m_pexpr(pexpr),
 	m_fUsed(false)
 {
@@ -112,6 +116,7 @@ CJoinOrder::SComponent::SComponent
 CJoinOrder::SComponent::~SComponent()
 {	
 	m_pbs->Release();
+	m_edge_set->Release();
 	CRefCount::SafeRelease(m_pexpr);
 }
 
@@ -285,7 +290,8 @@ CJoinOrder::~CJoinOrder()
 //		CJoinOrder::ComputeEdgeCover
 //
 //	@doc:
-//		Compute cover for each edge
+//		Compute cover for each edge and also the index of edges associated
+//		with each component
 //
 //---------------------------------------------------------------------------
 void
@@ -301,8 +307,10 @@ CJoinOrder::ComputeEdgeCover()
 			CExpression *pexprComp = m_rgpcomp[ulComp]->m_pexpr;
 			CColRefSet *pcrsOutput = CDrvdPropRelational::GetRelationalProperties(pexprComp->PdpDerive())->PcrsOutput();
 
+
 			if (!pcrsUsed->IsDisjoint(pcrsOutput))
 			{
+				(void) m_rgpcomp[ulComp]->m_edge_set->ExchangeSet(ulEdge);
 				(void) m_rgpedge[ulEdge]->m_pbs->ExchangeSet(ulComp);
 			}
 		}
@@ -326,8 +334,15 @@ CJoinOrder::PcompCombine
 	)
 {
 	CBitSet *pbs = GPOS_NEW(m_mp) CBitSet(m_mp);
+	CBitSet *edge_set = GPOS_NEW(m_mp) CBitSet(m_mp);
+
 	pbs->Union(pcompOuter->m_pbs);
 	pbs->Union(pcompInner->m_pbs);
+
+	// edges connecting with the current component
+	edge_set->Union(pcompOuter->m_edge_set);
+	edge_set->Union(pcompInner->m_edge_set);
+
 	CExpressionArray *pdrgpexpr = GPOS_NEW(m_mp) CExpressionArray(m_mp);
 	for (ULONG ul = 0; ul < m_ulEdges; ul++)
 	{
@@ -366,7 +381,7 @@ CJoinOrder::PcompCombine
 		pexpr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(m_mp, pexprOuter, pexprInner, pexprScalar);
 	}
 
-	return GPOS_NEW(m_mp) SComponent(pexpr, pbs);
+	return GPOS_NEW(m_mp) SComponent(pexpr, pbs, edge_set);
 }
 
 

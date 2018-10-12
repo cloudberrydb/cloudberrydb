@@ -47,7 +47,6 @@ CJoinOrderGreedy::CJoinOrderGreedy
 	CJoinOrder(pmp, pdrgpexprComponents, pdrgpexprConjuncts),
 	m_pcompResult(NULL)
 {
-	m_ulNumUsedEdges = m_ulEdges;
 #ifdef GPOS_DEBUG
 	for (ULONG ul = 0; ul < m_ulComps; ul++)
 	{
@@ -111,7 +110,6 @@ CJoinOrderGreedy::MarkUsedEdges()
 			if ((*pdrgpexpr)[ulPred] == pedge->m_pexpr)
 			{
 				pedge->m_fUsed = true;
-				m_ulNumUsedEdges--;
 			}
 		}
 	}
@@ -171,7 +169,6 @@ CJoinOrderGreedy::GetStartingJoins()
 
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CJoinOrderGreedy::PexprExpand
@@ -185,71 +182,144 @@ CJoinOrderGreedy::PexprExpand()
 {
 	GPOS_ASSERT(NULL == m_pcompResult && "join order is already expanded");
 
-	ULONG ulCoveredComps = 0;
 	m_pcompResult = GetStartingJoins();
 
 	if(NULL != m_pcompResult)
 	{
-		ulCoveredComps = 2;
+		// found atleast one non cross join
 		MarkUsedEdges();
 	}
 	else
 	{
+		// every join combination is a cross join
 		m_pcompResult = GPOS_NEW(m_mp) SComponent(m_mp, NULL /*pexpr*/);
 	}
-
-	while (ulCoveredComps < m_ulComps)
+	
+	// create a bitset for all the unused components
+	CBitSet *unused_components_set = GPOS_NEW(m_mp) CBitSet(m_mp);
+	for (ULONG ul = 0; ul < m_ulComps; ul++)
 	{
-		CDouble dMinRows(0.0);
-		SComponent *pcompBest = NULL; // best component to be added to current result
-		SComponent *pcompBestResult = NULL; // result after adding best component
-
-		for (ULONG ul = 0; ul < m_ulComps; ul++)
+		if (!m_rgpcomp[ul]->m_fUsed)
 		{
-			SComponent *pcompCurrent = m_rgpcomp[ul];
-			if (pcompCurrent->m_fUsed)
-			{
-				// used components are already included in current result
-				continue;
-			}
-
-			// combine component with current result and derive stats
-			CJoinOrder::SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
-			if(CUtils::FCrossJoin(pcompTemp->m_pexpr) && 1 < m_ulNumUsedEdges)
-			{
-				pcompTemp->Release();
-				continue;
-			}
-			DeriveStats(pcompTemp->m_pexpr);
-			CDouble dRows = pcompTemp->m_pexpr->Pstats()->Rows();
-
-			if (NULL == pcompBestResult || dRows < dMinRows)
-			{
-				pcompBest = pcompCurrent;
-				dMinRows = dRows;
-				pcompTemp->AddRef();
-				CRefCount::SafeRelease(pcompBestResult);
-				pcompBestResult = pcompTemp;
-			}
-			pcompTemp->Release();
+			unused_components_set->ExchangeSet(ul);
 		}
-		GPOS_ASSERT(NULL != pcompBestResult);
-
-		// mark best component as used
-		pcompBest->m_fUsed = true;
-		m_pcompResult->Release();
-		m_pcompResult = pcompBestResult;
-
-		// mark used edges to avoid including them multiple times
-		MarkUsedEdges();
-		ulCoveredComps++;
 	}
+	
+	while (unused_components_set->Size() > 0)
+	{
+		// get a set of components which can be joined with m_pcompResult
+		CBitSet *candidate_comp_set = GetAdjacentComponentsToJoinCandidate();
+
+		// index for the best component that we will pick
+		ULONG best_comp_idx = gpos::ulong_max;
+
+		// if there are components available which can be joined with m_pcompResult
+		// avoiding cross joins
+		if (candidate_comp_set->Size() > 0)
+		{
+			// continue iterating over all the candidate components until the
+			// entire set is evaluated
+			while (candidate_comp_set->Size() > 0)
+			{
+				best_comp_idx = PickBestJoin(candidate_comp_set);
+				
+				// remove the component picked in this iteration from the
+				// candidate component set
+				candidate_comp_set->ExchangeClear(best_comp_idx);
+				
+				// also remove the component from the unused component set so that
+				// it will not be considered for cross joins
+				unused_components_set->ExchangeClear(best_comp_idx);
+			}
+		}
+		else
+		{
+			// only cross joins are available. pick the unused component which will
+			// result in minimal cardinality
+			best_comp_idx = PickBestJoin(unused_components_set);
+			unused_components_set->ExchangeClear(best_comp_idx);
+		}
+		candidate_comp_set->Release();
+		GPOS_ASSERT(gpos::ulong_max != best_comp_idx);
+
+	}
+	unused_components_set->Release();
 	GPOS_ASSERT(NULL != m_pcompResult->m_pexpr);
 
 	CExpression *pexprResult = m_pcompResult->m_pexpr;
 	pexprResult->AddRef();
 
 	return pexprResult;
+}
+
+/*
+ * This function picks the component from the candidate_comp_set which will give
+ * the minimum cardinality when joined with the m_pcompResult component
+ * It then updates m_pcompResult with the best join and returns the index of
+ * the component which was picked
+ */
+ULONG
+CJoinOrderGreedy::PickBestJoin
+	(
+	 CBitSet *candidate_comp_set
+	)
+{
+
+	SComponent *pcompBestComponent = NULL; // the component which gives minimum cardinality when joined with m_pcompResult
+	CDouble dMinRows = 0.0;
+	ULONG best_comp_idx = gpos::ulong_max;
+	
+	CBitSetIter iter(*candidate_comp_set);
+	while (iter.Advance())
+	{
+		SComponent *pcompCurrent = m_rgpcomp[iter.Bit()];
+		SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
+		
+		DeriveStats(pcompTemp->m_pexpr);
+		CDouble dRows = pcompTemp->m_pexpr->Pstats()->Rows();
+		
+		// pick the component which will give the lowest cardinality
+		if (NULL == pcompBestComponent || dRows < dMinRows)
+		{
+			dMinRows = dRows;
+			best_comp_idx = iter.Bit();
+			pcompBestComponent = pcompCurrent;
+			m_pcompResult->Release();
+			m_pcompResult = pcompTemp;
+			m_pcompResult->AddRef();
+		}
+		pcompTemp->Release();
+	}
+
+	GPOS_ASSERT(gpos::ulong_max != best_comp_idx);
+	pcompBestComponent->m_fUsed = true;
+	MarkUsedEdges();
+	
+	return best_comp_idx;
+}
+
+/*
+ * Get components that are reachable from the result component by a single edge
+ */
+CBitSet*
+CJoinOrderGreedy::GetAdjacentComponentsToJoinCandidate()
+{
+	// iterator over index of edges in m_rgpedge array associated with this component
+	CBitSetIter edges_iter(*(m_pcompResult->m_edge_set));
+	CBitSet *candidate_component_set = GPOS_NEW(m_mp) CBitSet(m_mp);
+	
+	while (edges_iter.Advance())
+	{
+		SEdge *edge = m_rgpedge[edges_iter.Bit()];
+		if (!edge->m_fUsed)
+		{
+			// components connected via the edges
+			candidate_component_set->Union(edge->m_pbs);
+			candidate_component_set->Difference(m_pcompResult->m_pbs);
+		}
+	}
+	
+	return candidate_component_set;
 }
 
 // EOF

@@ -35,8 +35,6 @@ namespace gpopt
 			// result component
 			SComponent *m_pcompResult;
 
-			ULONG m_ulNumUsedEdges;
-
 			// mark edges used by result component
 			void MarkUsedEdges();
 
@@ -60,6 +58,15 @@ namespace gpopt
 			// main handler
 			virtual
 			CExpression *PexprExpand();
+		
+			ULONG
+			PickBestJoin
+				(
+				CBitSet *candidate_nodes
+				);
+		
+			CBitSet*
+			GetAdjacentComponentsToJoinCandidate();
 
 	}; // class CJoinOrderGreedy
 
