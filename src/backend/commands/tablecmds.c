@@ -14067,8 +14067,7 @@ static void checkUniqueIndexCompatible(Relation rel, GpPolicy *pol)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						 errmsg("UNIQUE INDEX and DISTRIBUTED BY definitions incompatible"),
-						 errhint("the DISTRIBUTED BY columns must be equal to "
-								 "or a left-subset of the UNIQUE INDEX columns.")));
+						 errhint("the DISTRIBUTED BY columns must be a subset of the UNIQUE INDEX columns.")));
 			}
 
 			bms_free(indbm);
