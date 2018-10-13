@@ -49,6 +49,11 @@ select count(*) from gp_segment_configuration where status = 'd';
 5:SAVEPOINT s1;
 5:CREATE TEMP TABLE tmp51 (c1 int, c2 int);
 
+-- probe to make sure when we call gp_request_fts_probe_scan() next
+-- time below, don't overlap with auto-trigger of FTS scans by FTS
+-- process. As if that happens, due to race condition will not trigger
+-- the fault and fail the test.
+select gp_request_fts_probe_scan();
 -- stop a primary in order to trigger a mirror promotion
 select pg_ctl((select datadir from gp_segment_configuration c
 where c.role='p' and c.content=0), 'stop');
