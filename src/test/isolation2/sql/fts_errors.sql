@@ -1,4 +1,8 @@
--- Tests FTS can handle DNS error.
+-- This test triggers failover of content 0 and content 1
+-- Content 0 is used to test if FTS can handle DNS errors
+-- Content 1 is used to test the gang interaction in various
+-- sessions when a failover is triggered and mirror is promoted
+-- to primary
 create extension if not exists gp_inject_fault;
 
 -- start_matchsubs
@@ -54,15 +58,21 @@ select count(*) from gp_segment_configuration where status = 'd';
 -- process. As if that happens, due to race condition will not trigger
 -- the fault and fail the test.
 select gp_request_fts_probe_scan();
--- stop a primary in order to trigger a mirror promotion
+-- stop a primary in order to trigger a mirror promotion for content 1
 select pg_ctl((select datadir from gp_segment_configuration c
-where c.role='p' and c.content=0), 'stop');
+where c.role='p' and c.content=1), 'stop');
+
+-- trigger a DNS error. This fault internally gets trigerred for content 0
+select gp_inject_fault_infinite('get_dns_cached_address', 'skip', 1);
 
 -- trigger failover
 select gp_request_fts_probe_scan();
 
+select gp_inject_fault_infinite('get_dns_cached_address', 'reset', 1);
+
 -- verify a segment is down
 select count(*) from gp_segment_configuration where status = 'd';
+
 -- session 1: in no transaction and no temp table created, it's safe to
 --            update cdb_component_dbs and use the new promoted primary 
 1:BEGIN;
@@ -97,7 +107,7 @@ select count(*) from gp_segment_configuration where status = 'd';
 do $$
 begin /* in func */
   for i in 1..120 loop /* in func */
-    if (select mode = 's' from gp_segment_configuration where content = 0 limit 1) then /* in func */
+    if (select count(*) = 2 from gp_segment_configuration where content in (0, 1) and mode = 's' and role = 'p') then /* in func */ 
       return; /* in func */
     end if; /* in func */
     perform gp_request_fts_probe_scan(); /* in func */
@@ -111,7 +121,7 @@ $$;
 do $$
 begin /* in func */
   for i in 1..120 loop /* in func */
-    if (select mode = 's' from gp_segment_configuration where content = 0 limit 1) then /* in func */
+    if (select count(*) = 2 from gp_segment_configuration where content in (0, 1) and mode = 's' and role = 'p') then /* in func */ 
       return; /* in func */
     end if; /* in func */
     perform gp_request_fts_probe_scan(); /* in func */
