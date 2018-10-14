@@ -566,8 +566,7 @@ typedef BMScanOpaqueData *BMScanOpaque;
 													in a bitmap */
 /* insert bitmap words into a bitmap page which is not the last one. */
 #define XLOG_BITMAP_INSERT_WORDS		0x50
-/* insert bitmap words to the last bitmap page and the lov buffer */
-#define XLOG_BITMAP_INSERT_LASTWORDS	0x60
+/* 0x60 is unused */
 #define XLOG_BITMAP_UPDATEWORD			0x70
 #define XLOG_BITMAP_UPDATEWORDS			0x80
 
