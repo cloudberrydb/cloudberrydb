@@ -168,3 +168,16 @@ getFtsVersion(void)
 {
 	return ftsProbeInfo->fts_statusVersion;
 }
+
+uint32
+FtsGetTotalSegments(void)
+{
+	/*
+	 * ftsProbeInfo is stored in shared memory, so check whether shared memory
+	 * has been initialized
+	 */
+	if (ftsProbeInfo)
+		return ftsProbeInfo->total_segment_dbs;
+	else
+		return GpIdentity.numsegments;
+}

@@ -130,6 +130,15 @@ extern int ftsprobe_start(void);
 extern bool FtsIsActive(void);
 
 /*
+ * Get the number of primary segments from FTS.
+ *
+ * This function should be declared in cdbfts.h, however that header file
+ * include "cdbconn.h" which should not be included in some source files,
+ * so we move this declaration here.
+ */
+extern uint32 FtsGetTotalSegments(void);
+
+/*
  * Interface for WALREP specific checking
  */
 extern void HandleFtsMessage(const char* query_string);

@@ -23,6 +23,7 @@ from time import sleep
 
 
 from gppylib.commands.gp import SegmentStart, GpStandbyStart, MasterStop
+from gppylib.commands import gp
 from gppylib.commands.unix import findCmdInPath, Scp
 from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
 from gppylib.operations.unix import ListRemoteFilesByPattern, CheckRemoteFile
@@ -30,7 +31,9 @@ from test.behave_utils.gpfdist_utils.gpfdist_mgmt import Gpfdist
 from test.behave_utils.utils import *
 from test.behave_utils.cluster_setup import TestCluster, reset_hosts
 from test.behave_utils.cluster_expand import Gpexpand
+from test.behave_utils.gpexpand_dml import TestDML
 from gppylib.commands.base import Command, REMOTE
+from gppylib import pgconf
 
 
 master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
@@ -276,6 +279,8 @@ def impl(context, command, gphome):
 @then('the user runs command "{command}"')
 def impl(context, command):
     run_command(context, command)
+    if has_exception(context):
+        raise context.exception
 
 
 @when('the user runs async command "{command}"')
@@ -1531,6 +1536,29 @@ def impl(context, file, dbname):
             dbname, host, port, query)
             Command(name='Running Remote command: %s' % psql_cmd, cmdStr=psql_cmd).run(validateAfter=True)
 
+@then('The user runs sql "{query}" in "{dbname}" on specified segment {host}:{port} in utility mode')
+@when('The user runs sql "{query}" in "{dbname}" on specified segment {host}:{port} in utility mode')
+@given('The user runs sql "{query}" in "{dbname}" on specified segment {host}:{port} in utility mode')
+def impl(context, query, dbname, host, port):
+    psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_session_role=utility\' psql -h %s -p %s -c \"%s\"; " % (
+    dbname, host, port, query)
+    cmd = Command(name='Running Remote command: %s' % psql_cmd, cmdStr=psql_cmd)
+    cmd.run(validateAfter=True)
+    context.stdout_message = cmd.get_stdout()
+
+@then('table {table_name} exists in "{dbname}" on specified segment {host}:{port}')
+@when('table {table_name} exists in "{dbname}" on specified segment {host}:{port}')
+@given('table {table_name} exists in "{dbname}" on specified segment {host}:{port}')
+def impl(context, table_name, dbname, host, port):
+    query = "SELECT COUNT(*) FROM pg_class WHERE relname = '%s'" % table_name
+    psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_session_role=utility\' psql -h %s -p %s -c \"%s\"; " % (
+    dbname, host, port, query)
+    cmd = Command(name='Running Remote command: %s' % psql_cmd, cmdStr=psql_cmd)
+    cmd.run(validateAfter=True)
+    keyword = "1 row"
+    if keyword not in cmd.get_stdout():
+        raise Exception(context.stdout_message)
+
 
 @then('The path "{path}" is removed from current working directory')
 @when('The path "{path}" is removed from current working directory')
@@ -1964,7 +1992,10 @@ def impl(context, working_directory):
     context.working_directory = working_directory
 
 def _create_cluster(context, master_host, segment_host_list):
-    segment_host_list = segment_host_list.split(",")
+    if segment_host_list == "":
+        segment_host_list = []
+    else:
+        segment_host_list = segment_host_list.split(",")
     del os.environ['MASTER_DATA_DIRECTORY']
     os.environ['MASTER_DATA_DIRECTORY'] = os.path.join(context.working_directory,
                                                        'data/master/gpseg-1')
@@ -2078,12 +2109,128 @@ sdw1:sdw1:21503:/tmp/gpexpand_behave/data/mirror/gpseg3:9:3:m"""
     gpexpand = Gpexpand(context, working_directory=context.working_directory, database='gptest')
     gpexpand.initialize_segments()
 
+@given('the master pid has been saved')
+def impl(context):
+    data_dir = os.path.join(context.working_directory,
+                            'data/master/gpseg-1')
+    context.master_pid = gp.get_postmaster_pid_locally(data_dir)
+
+@then('verify that the master pid has not been changed')
+def impl(context):
+    data_dir = os.path.join(context.working_directory,
+                            'data/master/gpseg-1')
+    current_master_pid = gp.get_postmaster_pid_locally(data_dir)
+    if context.master_pid == current_master_pid:
+        return
+
+    raise Exception("The master pid has been changed.\nprevious: %s\ncurrent: %s" % (context.master_pid, current_master_pid))
+
 @given('the number of segments have been saved')
 def impl(context):
     dbname = 'gptest'
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
         query = """SELECT count(*) from gp_segment_configuration where -1 < content"""
         context.start_data_segments = dbconn.execSQLForSingleton(conn, query)
+
+@given('user has created {table_name} table')
+def impl(context, table_name):
+    dbname = 'gptest'
+    with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
+        query = """CREATE TABLE %s(a INT)""" % table_name
+        dbconn.execSQL(conn, query)
+        conn.commit()
+
+@given('a long-run read-only transaction exists on {table_name}')
+def impl(context, table_name):
+    dbname = 'gptest'
+    conn = dbconn.connect(dbconn.DbURL(dbname=dbname))
+    context.long_run_select_only_conn = conn
+
+    query = """SELECT gp_segment_id, * from %s order by 1, 2""" % table_name
+    data_result = dbconn.execSQL(conn, query).fetchall()
+    context.long_run_select_only_data_result = data_result
+
+    query = """SELECT txid_current()"""
+    xid = dbconn.execSQLForSingleton(conn, query)
+    context.long_run_select_only_xid = xid
+
+@then('verify that long-run read-only transaction still exists on {table_name}')
+def impl(context, table_name):
+    dbname = 'gptest'
+    conn = context.long_run_select_only_conn
+
+    query = """SELECT gp_segment_id, * from %s order by 1, 2""" % table_name
+    data_result = dbconn.execSQL(conn, query).fetchall()
+
+    query = """SELECT txid_current()"""
+    xid = dbconn.execSQLForSingleton(conn, query)
+
+    if (xid != context.long_run_select_only_xid or
+        data_result != context.long_run_select_only_data_result):
+        error_str = "Incorrect xid or select result of long run read-only transaction: \
+                xid(before %s, after %), result(before %s, after %s)"
+        raise Exception(error_str % (context.long_run_select_only_xid, xid, context.long_run_select_only_data_result, data_result))
+
+@given('gp_num_contents_in_cluster in the long-run transaction has been saved')
+def impl(context):
+    dbname = 'gptest'
+    conn = context.long_run_select_only_conn
+
+    query = """show gp_num_contents_in_cluster"""
+    context.gp_num_contents_in_cluster = dbconn.execSQLForSingleton(conn, query)
+
+@then('verify that gp_num_contents_in_cluster is unchanged in the long-run transaction')
+def impl(context):
+    dbname = 'gptest'
+    conn = context.long_run_select_only_conn
+
+    query = """show gp_num_contents_in_cluster"""
+    gp_num_contents_in_cluster = dbconn.execSQLForSingleton(conn, query)
+
+    if context.gp_num_contents_in_cluster != gp_num_contents_in_cluster:
+        raise Exception("gp_num_contents_in_cluster has been changed in transaction.")
+
+@then('verify that gp_num_contents_in_cluster is {value} in a new transaction')
+def impl(context, value):
+    dbname = 'gptest'
+    conn = dbconn.connect(dbconn.DbURL(dbname=dbname))
+
+    query = """show gp_num_contents_in_cluster"""
+    gp_num_contents_in_cluster = dbconn.execSQLForSingleton(conn, query)
+
+    if int(value) != int(gp_num_contents_in_cluster):
+        raise Exception("gp_num_contents_in_cluster is not updated in a new transaction.")
+
+@given('a long-run transaction starts')
+def impl(context):
+    dbname = 'gptest'
+    conn = dbconn.connect(dbconn.DbURL(dbname=dbname))
+    context.long_run_conn = conn
+
+    query = """SELECT txid_current()"""
+    xid = dbconn.execSQLForSingleton(conn, query)
+    context.long_run_xid = xid
+
+@then('verify that long-run transaction aborted for changing the catalog by creating table {table_name}')
+def impl(context, table_name):
+    dbname = 'gptest'
+    conn = context.long_run_conn
+
+    query = """SELECT txid_current()"""
+    xid = dbconn.execSQLForSingleton(conn, query)
+    if context.long_run_xid != xid:
+        raise Exception("Incorrect xid of long run transaction: before %s, after %s" %
+                        (context.long_run_xid, xid));
+
+    query = """CREATE TABLE %s (a INT)""" % table_name
+    try:
+        data_result = dbconn.execSQL(conn, query)
+    except Exception, msg:
+        key_msg = "ERROR:  cluster size is changed"
+        if key_msg not in msg.__str__():
+            raise Exception("transaction not abort correctly, errmsg:%s" % msg)
+    else:
+        raise Exception("transaction not abort, result:%s" % data_result)
 
 @then('verify that the cluster has {num_of_segments} new segments')
 def impl(context, num_of_segments):
@@ -2248,3 +2395,74 @@ def impl(context, config_file):
 def impl(context, config_file):
     run_gpcommand(context, 'gpinitsystem -a -c ../gpAux/gpdemo/clusterConfigFile -O %s' % config_file)
     check_return_code(context, 0)
+
+@when('check segment conf: postgresql.conf pg_hba.conf')
+@then('check segment conf: postgresql.conf pg_hba.conf')
+def step_impl(context):
+    query = "select dbid, port, hostname, datadir from gp_segment_configuration where content >= 0"
+    conn = dbconn.connect(dbconn.DbURL(dbname='postgres'))
+    segments = dbconn.execSQL(conn, query).fetchall()
+    for segment in segments:
+        dbid = "'%s'" % segment[0]
+        port = "'%s'" % segment[1]
+        hostname = segment[2]
+        datadir = segment[3]
+
+        ## check postgresql.conf
+        remote_postgresql_conf = "%s/%s" % (datadir, 'postgresql.conf')
+        local_conf_copy = os.path.join(os.getenv("MASTER_DATA_DIRECTORY"), "%s.%s" % ('postgresql.conf', hostname))
+        cmd = Command(name="Copy remote conf to local to diff",
+                    cmdStr='scp %s:%s %s' % (hostname, remote_postgresql_conf, local_conf_copy))
+        cmd.run(validateAfter=True)
+
+        dic = pgconf.readfile(filename=local_conf_copy)
+        if str(dic['port']) != port:
+            raise Exception("port value in postgresql.conf of %s is incorrect. Expected:%s, given:%s" %
+                            (hostname, port, dic['port']))
+
+        ## check pg_hba.conf
+        remote_hba_conf = "%s/%s" % (datadir, 'pg_hba.conf')
+        local_hba_copy = os.path.join(os.getenv("MASTER_DATA_DIRECTORY"), "%s.%s" % ('pg_hba.conf', hostname))
+        cmd = Command(name="Copy remote conf to local to diff",
+                    cmdStr='scp %s:%s %s' % (hostname, remote_hba_conf, local_hba_copy))
+        cmd.run(validateAfter=True)
+
+        f = open(local_hba_copy, 'r')
+        hba_content = f.read()
+        f.close()
+
+        addrinfo = socket.getaddrinfo(hostname, None)
+        ipaddrlist = list(set([(ai[0], ai[4][0]) for ai in addrinfo]))
+        key_word = '# %s\n' % hostname
+        for addr in ipaddrlist:
+            key_word += 'host\tall\tall\t%s/%s\ttrust\n' % (addr[1], '32' if addr[0] == socket.AF_INET else '128')
+        if key_word not in hba_content:
+            raise Exception("Expected line not in pg_hba.conf,%s" % key_word)
+
+@given('the transactions are started for dml')
+def impl(context):
+    dbname = 'gptest'
+    context.dml_jobs = []
+    for dml in ['insert', 'update', 'delete']:
+        job = TestDML.create(dbname, dml)
+        job.start()
+        context.dml_jobs.append((dml, job))
+
+@then('verify the dml results and commit')
+def impl(context):
+    dbname = 'gptest'
+
+    for dml, job in context.dml_jobs:
+        code, message = job.stop()
+        if not code:
+            raise Exception(message)
+
+@then('verify the dml results again in a new transaction')
+def impl(context):
+    dbname = 'gptest'
+    conn = dbconn.connect(dbconn.DbURL(dbname=dbname))
+
+    for dml, job in context.dml_jobs:
+        code, message = job.reverify(conn)
+        if not code:
+            raise Exception(message)

@@ -36,6 +36,7 @@
 #include "storage/proc.h"
 #include "storage/procarray.h"
 #include "cdb/memquota.h"
+#include "postmaster/fts.h"
 
 /*
  * ----------------
@@ -788,4 +789,48 @@ Datum
 gp_execution_dbid(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_INT32(GpIdentity.dbid);
+}
+
+/*
+ * Get new numsegments from Shared Memory and update GpIdentity
+ * If the value has changed return true.
+ * This function must only be called by QD or QE process.
+ */
+bool
+updateGpIdentityNumsegments(void)
+{
+	/*
+	 * New segments can be added to the cluster when there are in-progress
+	 * transactions, however the new segments should not be visible to them.
+	 * So GpIdentity.numsegments should only be updated outside transactions.
+	 */
+	Assert(MyProc);
+	if (Gp_role == GP_ROLE_DISPATCH && MyProc->lxid == InvalidOid)
+	{
+		uint32 newnumsegments = FtsGetTotalSegments();
+		if (newnumsegments > GpIdentity.numsegments)
+		{
+			GpIdentity.numsegments = newnumsegments;
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+ * Same as updateGpIdentityNumsegments, for system process.
+ */
+bool
+updateSystemProcessGpIdentityNumsegments(void)
+{
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		uint32 newnumsegments = FtsGetTotalSegments();
+		if (newnumsegments > GpIdentity.numsegments)
+		{
+			GpIdentity.numsegments = newnumsegments;
+			return true;
+		}
+	}
+	return false;
 }

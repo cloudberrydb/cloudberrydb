@@ -187,7 +187,7 @@ installcheck-parallel: all tablespace-setup
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(EXTRA_TESTS)
 
 installcheck-good: all twophase_pqexecparams hooktest query_info_hook_test
-	$(pg_regress_installcheck) $(REGRESS_OPTS)  --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule --ao-dir=uao $(EXTRA_TESTS)
+	$(pg_regress_installcheck) $(REGRESS_OPTS)  --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule --exclude-tests=$(EXCLUDE_TESTS) --ao-dir=uao $(EXTRA_TESTS)
 
 testbouncer: all
 	bash -c "bouncer/setup.sh"

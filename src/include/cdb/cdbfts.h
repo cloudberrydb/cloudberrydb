@@ -34,6 +34,7 @@ typedef struct FtsProbeInfo
 {
 	volatile uint8		fts_statusVersion;
 	volatile uint8      probeTick;
+	volatile uint32		total_segment_dbs; /* number of primary segments */
 	volatile uint8		fts_status[FTS_MAX_DBS];
 } FtsProbeInfo;
 

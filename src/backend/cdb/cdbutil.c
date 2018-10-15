@@ -44,6 +44,7 @@
 #include "cdb/cdbconn.h"
 #include "cdb/cdbfts.h"
 #include "storage/ipc.h"
+#include "postmaster/fts.h"
 
 #define MAX_CACHED_1_GANGS 1
 
@@ -105,6 +106,12 @@ getCdbComponentInfo(bool DNSLookupAsError)
 	 */
 	int			segment_array_size = 500;
 	int			entry_array_size = 4;	/* we currently support a max of 2 */
+
+	/*
+	 * Count of primary and mirror segments.
+	 */
+	int			primary_count = 0;
+	int			mirror_count = 0;
 
 	/*
 	 * isNull and attr are used when getting the data for a specific column
@@ -221,6 +228,28 @@ getCdbComponentInfo(bool DNSLookupAsError)
 		 */
 		if (content >= 0)
 		{
+			/*
+			 * Only FTS can see all the segments, others can only see the old
+			 * segments during the transaction.  GpIdentity.numsegments is only
+			 * updated at beginning of a transaction, so we should see at most
+			 * GpIdentity.numsegments primaries / mirrors.
+			 */
+			if (!am_ftsprobe)
+			{
+				if (role == 'p')
+				{
+					if (primary_count == getgpsegmentCount())
+						continue; /* Ignore new primaries */
+					primary_count++;
+				}
+				else if (role == 'm')
+				{
+					if (mirror_count == getgpsegmentCount())
+						continue; /* Ignore new mirrors */
+					mirror_count++;
+				}
+			}
+
 			/*
 			 * if we have a dbid bigger than our array we'll have to grow the
 			 * array. (MPP-2104)
@@ -367,8 +396,10 @@ getCdbComponentInfo(bool DNSLookupAsError)
 
 	/*
 	 * Validate that gp_numsegments == segment_databases->total_segment_dbs
+	 * unless called by FTS.
 	 */
-	if (getgpsegmentCount() != component_databases->total_segments)
+	if (!am_ftsprobe &&
+		getgpsegmentCount() != component_databases->total_segments)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_EXCEPTION),

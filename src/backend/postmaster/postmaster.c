@@ -2738,6 +2738,8 @@ SIGHUP_handler(SIGNAL_ARGS)
 
 	PG_SETMASK(&BlockSig);
 
+	updateSystemProcessGpIdentityNumsegments();
+
 	if (Shutdown <= SmartShutdown)
 	{
 		ereport(LOG,

@@ -5157,6 +5157,14 @@ PostgresMain(int argc, char *argv[],
 		}
 
 		/*
+		 * (5.1) update GpIdentity.numsegments on QD to see newly added
+		 * segments, nothing will be changed if a transaction is already
+		 * started.
+		 */
+		if (updateGpIdentityNumsegments())
+			DisconnectAndDestroyAllGangs(false);
+
+		/*
 		 * (6) process the command.  But ignore it if we're skipping till
 		 * Sync.
 		 */
@@ -5281,6 +5289,10 @@ PostgresMain(int argc, char *argv[],
 					if (serializedQueryDispatchDesclen > 0)
 						serializedQueryDispatchDesc = pq_getmsgbytes(&input_message,serializedQueryDispatchDesclen);
 
+					/*
+					 * Always use the same GpIdentity.numsegments with QD on QEs
+					 */
+					GpIdentity.numsegments = pq_getmsgint(&input_message, 4);
 					resgroupInfoLen = pq_getmsgint(&input_message, 4);
 					if (resgroupInfoLen > 0)
 						resgroupInfoBuf = pq_getmsgbytes(&input_message, resgroupInfoLen);

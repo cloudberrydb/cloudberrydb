@@ -51,6 +51,7 @@ groups:
 {% if "centos7" in os_types %}
   - icw_gporca_centos7
   - icw_planner_centos7
+  - icw_planner_centos7_online_expand
 {% endif %}
 {% if "sles" in os_types %}
   - icw_gporca_sles11
@@ -190,6 +191,7 @@ groups:
 {% if "centos7" in os_types %}
   - icw_gporca_centos7
   - icw_planner_centos7
+  - icw_planner_centos7_online_expand
   - compile_gpdb_centos7
 {% endif %}
 {% if "sles" in os_types %}
@@ -1233,6 +1235,27 @@ jobs:
       TEST_OS: centos
       TEST_BINARY_SWAP: false
       CONFIGURE_FLAGS: {{configure_flags}}
+
+- name: icw_planner_centos7_online_expand
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos7]
+    - get: bin_gpdb
+      passed: [compile_gpdb_centos7]
+      resource: bin_gpdb_centos7
+      trigger: [[ test_trigger ]]
+    - get: centos-gpdb-test-7
+  - task: ic_gpdb
+    file: gpdb_src/concourse/tasks/ic_gpdb.yml
+    image: centos-gpdb-test-7
+    params:
+      MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' installcheck-world
+      TEST_OS: centos
+      TEST_BINARY_SWAP: false
+      CONFIGURE_FLAGS: {{configure_flags}}
+      EXCLUDE_TESTS: instr_in_shmem_setup,instr_in_shmem_terminate,segspace_setup,segspace,segspace_cleanup,cursor,instr_in_shmem,instr_in_shmem_verify
+      ONLINE_EXPAND: true
 
 {% endif %}
 {% if "sles" in os_types %}
@@ -2363,6 +2386,7 @@ jobs:
       - icw_gporca_centos6
       - icw_gporca_centos7
       - icw_planner_centos7
+      - icw_planner_centos7_online_expand
       - icw_gporca_sles11
       - icw_gporca_sles12
       - icw_planner_sles12
@@ -2432,6 +2456,7 @@ jobs:
       - compile_gpdb_centos7
       - icw_gporca_centos7
       - icw_planner_centos7
+      - icw_planner_centos7_online_expand
       - resource_group_centos7
       - MADlib_Test_orca_centos7
       - MADlib_Test_planner_centos7

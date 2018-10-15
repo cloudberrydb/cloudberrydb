@@ -6615,7 +6615,6 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 				/* FIXME: also do this for all the subplans */
 				if (subplan->flow->locustype == CdbLocusType_General)
 				{
-					Assert(subplan->flow->numsegments >= numsegments);
 					subplan->flow->numsegments = numsegments;
 				}
 
@@ -6647,8 +6646,6 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 					 * Ask for motion to a single QE.  Later, apply_motion
 					 * will override that to bring it to the QD instead.
 					 */
-					/* FIXME: why make below assertion? */
-					Assert(subplan->flow->numsegments == numsegments);
 					if (!focusPlan(subplan, false, false))
 						ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 										errmsg("Cannot parallelize that INSERT yet")));
