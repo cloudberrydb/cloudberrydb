@@ -97,7 +97,6 @@ static int cdbdisp_getWaitSocketFd_async(struct CdbDispatcherState *ds);
 
 DispatcherInternalFuncs DispatcherAsyncFuncs =
 {
-	NULL,
 	cdbdisp_checkForCancel_async,
 	cdbdisp_getWaitSocketFd_async,
 	cdbdisp_makeDispatchParams_async,

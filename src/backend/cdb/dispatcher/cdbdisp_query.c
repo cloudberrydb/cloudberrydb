@@ -41,8 +41,6 @@
 
 #include "cdb/cdbdisp.h"
 #include "cdb/cdbdisp_query.h"
-#include "cdb/cdbdisp_thread.h" /* for CdbDispatchCmdThreads and
-								 * DispatchCommandParms */
 #include "cdb/cdbdisp_dtx.h"	/* for qdSerializeDtxContextInfo() */
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbcopy.h"

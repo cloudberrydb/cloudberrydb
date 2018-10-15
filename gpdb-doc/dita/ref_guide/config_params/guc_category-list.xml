@@ -1464,10 +1464,6 @@
                   >gp_cached_segworkers_threshold</xref>
               </p>
               <p>
-                <xref href="guc-list.xml#gp_connections_per_thread" type="section"
-                  >gp_connections_per_thread</xref>
-              </p>
-              <p>
                 <xref href="guc-list.xml#gp_enable_direct_dispatch" type="section"
                   >gp_enable_direct_dispatch</xref>
               </p>

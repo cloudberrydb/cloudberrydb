@@ -3563,17 +3563,6 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
-		{"gp_connections_per_thread", PGC_BACKEND, GP_ARRAY_TUNING,
-			gettext_noop("Sets the number of client connections handled in each thread."),
-			NULL,
-			GUC_GPDB_ADDOPT
-		},
-		&gp_connections_per_thread,
-		0, 0, INT_MAX,
-		NULL, assign_gp_connections_per_thread, NULL
-	},
-
-	{
 		{"gp_subtrans_warn_limit", PGC_POSTMASTER, RESOURCES,
 			gettext_noop("Sets the warning limit on number of subtransactions in a transaction."),
 			NULL,

@@ -650,7 +650,6 @@ gp_interconnect_type=udpifc
 
 # - Worker Process Creation -
 
-gp_connections_per_thread = 0
 gp_segment_connect_timeout = 600s
 
 # - Resource limits -
