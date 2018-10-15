@@ -146,32 +146,26 @@ main(int argc, char **argv)
 	/* New now using xids of the old system */
 
 	/* -- NEW -- */
+	start_postmaster(&new_cluster, true);
+
 	if (user_opts.segment_mode == DISPATCHER)
 	{
-		start_postmaster(&new_cluster, true);
-
 		prepare_new_databases();
 
 		create_new_objects();
-
-		stop_postmaster(false);
 	}
-	else
-	{
-		/*
-		 * In a segment, the data directory already contains all the objects,
-		 * because the segment is initialized by taking a physical copy of the
-		 * upgraded QD data directory. The auxiliary AO tables - containing
-		 * information about the segment files, are different in each server,
-		 * however. So we still need to restore those separately on each
-		 * server.
-		 */
-		start_postmaster(&new_cluster, true);
 
-		restore_aosegment_tables();
+	/*
+	 * In a segment, the data directory already contains all the objects,
+	 * because the segment is initialized by taking a physical copy of the
+	 * upgraded QD data directory. The auxiliary AO tables - containing
+	 * information about the segment files, are different in each server,
+	 * however. So we still need to restore those separately on each
+	 * server.
+	 */
+	restore_aosegment_tables();
 
-		stop_postmaster(false);
-	}
+	stop_postmaster(false);
 
 	/*
 	 * Most failures happen in create_new_objects(), which has completed at

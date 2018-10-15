@@ -1909,8 +1909,16 @@ truncate_check_rel(Relation rel)
 {
 	AclResult	aclresult;
 
-	/* Only allow truncate on regular or append-only tables */
-	if (rel->rd_rel->relkind != RELKIND_RELATION)
+	/*
+	 * Only allow truncate on regular or append-only tables.
+	 *
+	 * In binary upgrade mode, we additionally allow TRUNCATE on AO auxiliary
+	 * tables so that they can be wiped and recreated by the upgrade machinery.
+	 */
+	if (rel->rd_rel->relkind != RELKIND_RELATION &&
+		!(IsBinaryUpgrade && (rel->rd_rel->relkind == RELKIND_AOSEGMENTS ||
+							  rel->rd_rel->relkind == RELKIND_AOBLOCKDIR ||
+							  rel->rd_rel->relkind == RELKIND_AOVISIMAP)))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a table",
