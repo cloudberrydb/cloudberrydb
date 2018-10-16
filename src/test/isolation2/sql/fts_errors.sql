@@ -100,6 +100,12 @@ select count(*) from gp_segment_configuration where status = 'd';
 4q:
 5q:
 
+-- immediate stop mirror for content 0. This is just to speed up the test, next
+-- step gprecovertseg will do the same but it uses gpstop fast mode and not
+-- immediate, which add time to tests.
+select pg_ctl((select datadir from gp_segment_configuration c
+where c.role='m' and c.content=0), 'stop');
+
 -- fully recover the failed primary as new mirror
 !\retcode gprecoverseg -aF;
 
