@@ -12,6 +12,8 @@
 #include "pg_upgrade.h"
 
 #include "catalog/pg_class.h"
+#include "access/appendonlytid.h"
+#include "access/htup_details.h"
 #include "access/transam.h"
 
 
@@ -19,6 +21,10 @@ static void transfer_single_new_db(pageCnvCtx *pageConverter,
 					   FileNameMap *maps, int size, char *old_tablespace);
 static void transfer_relfile(pageCnvCtx *pageConverter, FileNameMap *map,
 				 const char *suffix);
+
+static bool transfer_relfile_segment(int segno, pageCnvCtx *pageConverter,
+									 FileNameMap *map, const char *suffix);
+static void transfer_ao(pageCnvCtx *pageConverter, FileNameMap *map);
 
 
 /*
@@ -187,23 +193,31 @@ transfer_single_new_db(pageCnvCtx *pageConverter,
 		if (old_tablespace == NULL ||
 			strcmp(maps[mapnum].old_tablespace, old_tablespace) == 0)
 		{
-			/* transfer primary file */
-			transfer_relfile(pageConverter, &maps[mapnum], "");
+			RelType type = maps[mapnum].type;
 
-			/* fsm/vm files added in PG 8.4 */
-			if (GET_MAJOR_VERSION(old_cluster.major_version) >= 804)
+			if (type == AO || type == AOCS)
 			{
-				/*
-				 * Copy/link any fsm and vm files, if they exist
-				 */
-				transfer_relfile(pageConverter, &maps[mapnum], "_fsm");
-				if (vm_crashsafe_match)
-					transfer_relfile(pageConverter, &maps[mapnum], "_vm");
+				transfer_ao(pageConverter, &maps[mapnum]);
+			}
+			else
+			{
+				/* transfer primary file */
+				transfer_relfile(pageConverter, &maps[mapnum], "");
+
+				/* fsm/vm files added in PG 8.4 */
+				if (GET_MAJOR_VERSION(old_cluster.major_version) >= 804)
+				{
+					/*
+					 * Copy/link any fsm and vm files, if they exist
+					 */
+					transfer_relfile(pageConverter, &maps[mapnum], "_fsm");
+					if (vm_crashsafe_match)
+						transfer_relfile(pageConverter, &maps[mapnum], "_vm");
+				}
 			}
 		}
 	}
 }
-
 
 /*
  * transfer_relfile()
@@ -214,12 +228,7 @@ static void
 transfer_relfile(pageCnvCtx *pageConverter, FileNameMap *map,
 				 const char *type_suffix)
 {
-	const char *msg;
-	char		old_file[MAXPGPATH * 3];
-	char		new_file[MAXPGPATH * 3];
-	int			fd;
 	int			segno;
-	char		extent_suffix[65];
 
 	/*
 	 * Now copy/link any related segments as well. Remember, PG breaks large
@@ -228,6 +237,36 @@ transfer_relfile(pageCnvCtx *pageConverter, FileNameMap *map,
 	 */
 	for (segno = 0;; segno++)
 	{
+		if (!transfer_relfile_segment(segno, pageConverter, map, type_suffix))
+			break;
+	}
+}
+
+/*
+ * GPDB: the body of transfer_relfile(), above, has moved into this function to
+ * facilitate the implementation of transfer_ao().
+ *
+ * Returns true if the segment file was found, and false if it was not. Failures
+ * during transfer are fatal. The case where we cannot find the segment-zero
+ * file (the one without an extent suffix) for a relation is also fatal, since
+ * we expect that to exist for both heap and AO tables in any case.
+ *
+ * TODO: verify that AO tables must always have a segment zero.
+ */
+static bool
+transfer_relfile_segment(int segno, pageCnvCtx *pageConverter, FileNameMap *map,
+						 const char *type_suffix)
+{
+	const char *msg;
+	char		old_file[MAXPGPATH * 3];
+	char		new_file[MAXPGPATH * 3];
+	int			fd;
+	char		extent_suffix[65];
+
+	/*
+	 * Extra indentation is on purpose, to reduce merge conflicts with upstream.
+	 */
+
 		if (segno == 0)
 			extent_suffix[0] = '\0';
 		else
@@ -256,7 +295,7 @@ transfer_relfile(pageCnvCtx *pageConverter, FileNameMap *map,
 			{
 				/* File does not exist?  That's OK, just return */
 				if (errno == ENOENT)
-					return;
+					return false;
 				else
 					pg_log(PG_FATAL, "error while checking for file existence \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
 						   map->nspname, map->relname, old_file, new_file,
@@ -279,13 +318,17 @@ transfer_relfile(pageCnvCtx *pageConverter, FileNameMap *map,
 		{
 			pg_log(PG_VERBOSE, "copying and converting \"%s\" to \"%s\"\n",
 				   old_file, new_file);
-	
+
 			if ((msg = convert_gpdb4_heap_file(old_file, new_file,
 											   map->has_numerics, map->atts, map->natts)) != NULL)
 				pg_log(PG_FATAL, "error while copying and converting relation \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
 					   map->nspname, map->relname, old_file, new_file, msg);
-	
-			return;
+
+			/*
+			 * XXX before the split into transfer_relfile_segment(), this simply
+			 * returned from transfer_relfile() directly. Was that correct?
+			 */
+			return true;
 		}
 
 		if ((user_opts.transfer_mode == TRANSFER_MODE_LINK) && (pageConverter != NULL))
@@ -319,7 +362,71 @@ transfer_relfile(pageCnvCtx *pageConverter, FileNameMap *map,
 					   "error while creating link for relation \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
 					   map->nspname, map->relname, old_file, new_file, msg);
 		}
+
+	return true;
+}
+
+/*
+ * transfer_ao()
+ */
+static void
+transfer_ao(pageCnvCtx *pageConverter, FileNameMap *map)
+{
+	int		segno;
+	int		colnum;
+	int		segNumberArray[AOTupleId_MaxSegmentFileNum];
+	int		segNumberArraySize;
+
+	/*
+	 * The 0 based extensions such as .128, .256, ... for CO tables are
+	 * created by ALTER table or utility mode insert. These also need to be
+	 * copied; however, they may not exist hence are treated separately
+	 * here. Column 0 concurrency level 0 file is always present. (TODO: this
+	 * may not be true; double-check.) MaxHeapAttributeNumber is used as a
+	 * sanity check; we expect the loop to terminate based on the return value
+	 * of the transfer.
+	 */
+	for (colnum = 0; colnum <= MaxHeapAttributeNumber; colnum++)
+	{
+		segno = colnum * AOTupleId_MultiplierSegmentFileNum;
+		if (!transfer_relfile_segment(segno, pageConverter, map, ""))
+			break;
 	}
 
-	return;
+	segNumberArraySize = 0;
+	/* Collect all the segmentNumbers in [1..127]. */
+	/*
+	 * XXX We have the segment numbers in memory; we could stop at the highest
+	 * one instead of looping through 127 times for every table.
+	 */
+	for (segno = 1; segno < AOTupleId_MultiplierSegmentFileNum; segno++)
+	{
+		if (!transfer_relfile_segment(segno, pageConverter, map, ""))
+			continue;
+
+		segNumberArray[segNumberArraySize] = segno;
+		segNumberArraySize++;
+	}
+
+	/* XXX can we also exit here for row-oriented AO tables? */
+	if (segNumberArraySize == 0)
+		return;
+
+	for (colnum = 1; colnum <= MaxHeapAttributeNumber; colnum++)
+	{
+		bool finished = false;
+		int i;
+
+		for (i = 0; i < segNumberArraySize; i++)
+		{
+			segno =	colnum * AOTupleId_MultiplierSegmentFileNum + segNumberArray[i];
+			if (!transfer_relfile_segment(segno, pageConverter, map, ""))
+			{
+				finished = true;
+				break;
+			}
+		}
+		if (finished)
+			break;
+	}
 }
