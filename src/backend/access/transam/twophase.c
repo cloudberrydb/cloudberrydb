@@ -154,9 +154,9 @@ static TwoPhaseStateData *TwoPhaseState;
  */
 static HTAB *crashRecoverPostCheckpointPreparedTransactions_map_ht = NULL;
 
-static void add_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid, XLogRecPtr *m, char *caller);
+static void add_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid, XLogRecPtr *m);
 
-static void remove_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid, char *caller);
+static void remove_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid);
 
 static TwoPhaseStateData *TwoPhaseState;
 
@@ -210,7 +210,7 @@ init_hash(const char *name, Size keysize, Size entrysize, int initialSize)
  * Add a new mapping to the recover post checkpoint prepared transactions hash table.
  */
 static void
-add_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid, XLogRecPtr *m, char *caller)
+add_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid, XLogRecPtr *m)
 {
   prpt_map *entry = NULL;
   bool      found = false;
@@ -249,7 +249,7 @@ add_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid, X
  * Remove a mapping from the recover post checkpoint prepared transactions hash table.
  */
 static void
-remove_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid, char *caller)
+remove_recover_post_checkpoint_prepared_transactions_map_entry(TransactionId xid)
 {
   bool      found = false;;
 
@@ -1154,7 +1154,7 @@ EndPrepare(GlobalTransaction gxact)
 	gxact->prepare_begin_lsn = XLogLastInsertBeginLoc();
 
 	/* Add the prepared record to our global list */
-	add_recover_post_checkpoint_prepared_transactions_map_entry(xid, &gxact->prepare_begin_lsn, "EndPrepare");
+	add_recover_post_checkpoint_prepared_transactions_map_entry(xid, &gxact->prepare_begin_lsn);
 
 	XLogFlush(gxact->prepare_lsn);
 
@@ -1559,7 +1559,7 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	/*
 	 * And now we can clean up our mess.
 	 */
-	remove_recover_post_checkpoint_prepared_transactions_map_entry(xid, "FinishPreparedTransaction");
+	remove_recover_post_checkpoint_prepared_transactions_map_entry(xid);
 
 	RemoveGXact(gxact);
 	MyLockedGxact = NULL;
@@ -1611,8 +1611,7 @@ ProcessRecords(char *bufptr, TransactionId xid,
 void
 RemoveTwoPhaseFile(TransactionId xid, bool giveWarning)
 {
-	remove_recover_post_checkpoint_prepared_transactions_map_entry(xid,
-        "RemoveTwoPhaseFile: Removing from list");
+	remove_recover_post_checkpoint_prepared_transactions_map_entry(xid);
 }
 
 /*
@@ -1623,7 +1622,7 @@ void
 RecreateTwoPhaseFile(TransactionId xid, void *content, int len,
 					 XLogRecPtr *xlogrecptr)
 {
-	add_recover_post_checkpoint_prepared_transactions_map_entry(xid, xlogrecptr, "RecreateTwoPhaseFile: add entry to hash list");
+	add_recover_post_checkpoint_prepared_transactions_map_entry(xid, xlogrecptr);
 }
 
 /*
@@ -1849,7 +1848,7 @@ SetupCheckpointPreparedTransactionList(prepared_transaction_agg_state *ptas)
 
 		xid          = m[iPrep].xid;
 		tfXLogRecPtr = &(m[iPrep]).xlogrecptr;
-		add_recover_post_checkpoint_prepared_transactions_map_entry(xid, tfXLogRecPtr, "SetupCheckpointPreparedTransactionList: add entry to hash list");
+		add_recover_post_checkpoint_prepared_transactions_map_entry(xid, tfXLogRecPtr);
 	}
 }
 
@@ -2199,7 +2198,7 @@ RecordTransactionAbortPrepared(TransactionId xid,
  * and pass that information back to the caller.
  */
 void
-getTwoPhasePreparedTransactionData(prepared_transaction_agg_state **ptas, char *caller)
+getTwoPhasePreparedTransactionData(prepared_transaction_agg_state **ptas)
 {
 	int			numberOfPrepareXacts     = TwoPhaseState->numPrepXacts;
 	GlobalTransaction *globalTransactionArray   = TwoPhaseState->prepXacts;
@@ -2223,8 +2222,7 @@ getTwoPhasePreparedTransactionData(prepared_transaction_agg_state **ptas, char *
 		TwoPhaseAddPreparedTransaction(ptas,
 									   &maxCount,
 									   xid,
-									   recordPtr,
-									   caller);
+									   recordPtr);
     }
 }  /* end getTwoPhasePreparedTransactionData */
 
@@ -2254,8 +2252,7 @@ void
 TwoPhaseAddPreparedTransaction(prepared_transaction_agg_state **ptas,
 							   int *maxCount,
 							   TransactionId xid,
-							   XLogRecPtr *xlogPtr,
-							   char *caller)
+							   XLogRecPtr *xlogPtr)
 {
 	int			len;
 	int			count;

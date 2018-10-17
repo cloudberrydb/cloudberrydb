@@ -7621,7 +7621,7 @@ CreateCheckPoint(int flags)
 
 	prepared_transaction_agg_state *p = NULL;
 
-	getTwoPhasePreparedTransactionData(&p, "CreateCheckPoint");
+	getTwoPhasePreparedTransactionData(&p);
 	rdata[5].data = (char*)p;
 	rdata[5].buffer = InvalidBuffer;
 	rdata[5].len = PREPARED_TRANSACTION_CHECKPOINT_BYTES(p->count);
