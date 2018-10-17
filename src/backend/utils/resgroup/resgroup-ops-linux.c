@@ -1347,14 +1347,46 @@ ResGroupOps_Bless(void)
 	/* get system cpu cores */
 	ncores = getCpuCores();
 
-	/* calculate cpu rate limit of system */
-	cfs_period_us = readInt64(RESGROUP_ROOT_ID, BASETYPE_PARENT,
+	/*
+	 * calculate cpu rate limit of system.
+	 *
+	 * Ideally the cpu quota is calculated from parent infomation:
+	 *
+	 * system_cfs_quota_us := parent.cfs_period_us * ncores.
+	 *
+	 * However on centos6 we found parent.cfs_period_us can be 0 and is not
+	 * writable.  In the other side, gpdb.cfs_period_us should be equal to
+	 * parent.cfs_period_us because sub dirs inherit parent properties by
+	 * default, so we read it instead.
+	 */
+	cfs_period_us = readInt64(RESGROUP_ROOT_ID, BASETYPE_GPDB,
 							  comp, "cpu.cfs_period_us");
+	if (cfs_period_us == 0LL)
+	{
+		/*
+		 * if gpdb.cfs_period_us is also 0 try to correct it by setting the
+		 * default value 100000 (100ms).
+		 */
+		writeInt64(RESGROUP_ROOT_ID, BASETYPE_GPDB,
+				   comp, "cpu.cfs_period_us", 100000LL);
+
+		/* read again to verify the effect */
+		cfs_period_us = readInt64(RESGROUP_ROOT_ID, BASETYPE_GPDB,
+								  comp, "cpu.cfs_period_us");
+		if (cfs_period_us <= 0LL)
+			CGROUP_CONFIG_ERROR("invalid cpu.cfs_period_us value: "
+								INT64_FORMAT,
+								cfs_period_us);
+	}
 	system_cfs_quota_us = cfs_period_us * ncores;
 
 	/* read cpu rate limit of parent cgroup */
 	parent_cfs_quota_us = readInt64(RESGROUP_ROOT_ID, BASETYPE_PARENT,
 									comp, "cpu.cfs_quota_us");
+	if (parent_cfs_quota_us == 0LL)
+		CGROUP_CONFIG_ERROR("invalid parent cpu.cfs_quota_us value: "
+							INT64_FORMAT,
+							parent_cfs_quota_us);
 }
 
 /* Initialize the OS group */
