@@ -1188,7 +1188,11 @@ initCpu(void)
 	int64		cfs_quota_us;
 	int64		shares;
 
-	if (parent_cfs_quota_us < 0LL)
+	/*
+	 * CGroup promises that cfs_quota_us will never be 0, however on centos6
+	 * we ever noticed that it has the value 0.
+	 */
+	if (parent_cfs_quota_us <= 0LL)
 	{
 		/*
 		 * parent cgroup is unlimited, calculate gpdb's limitation based on
@@ -1383,10 +1387,6 @@ ResGroupOps_Bless(void)
 	/* read cpu rate limit of parent cgroup */
 	parent_cfs_quota_us = readInt64(RESGROUP_ROOT_ID, BASETYPE_PARENT,
 									comp, "cpu.cfs_quota_us");
-	if (parent_cfs_quota_us == 0LL)
-		CGROUP_CONFIG_ERROR("invalid parent cpu.cfs_quota_us value: "
-							INT64_FORMAT,
-							parent_cfs_quota_us);
 }
 
 /* Initialize the OS group */
@@ -1879,8 +1879,6 @@ ResGroupOps_ConvertCpuUsageToPercent(int64 usage, int64 duration)
 	Assert(usage >= 0LL);
 	Assert(duration > 0LL);
 
-	/* CGroup promises that cfs_quota_us will never be 0 */
-	Assert(parent_cfs_quota_us != 0);
 	/* There should always be at least one core on the system */
 	Assert(ncores > 0);
 
