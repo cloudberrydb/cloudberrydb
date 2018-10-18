@@ -16,7 +16,6 @@
 #include "access/xlogdefs.h"
 #include "storage/latch.h"
 #include "storage/spin.h"
-#include "utils/builtins.h"
 #include "pgtime.h"
 
 /* user-settable parameters */
@@ -117,21 +116,31 @@ typedef struct
 extern WalRcvData *WalRcv;
 
 /* libpqwalreceiver hooks */
-void walrcv_connect (char *conninfo);
+typedef void (*walrcv_connect_type) (char *conninfo);
+extern PGDLLIMPORT walrcv_connect_type walrcv_connect;
 
-void walrcv_identify_system (TimeLineID *primary_tli);
+typedef void (*walrcv_identify_system_type) (TimeLineID *primary_tli);
+extern PGDLLIMPORT walrcv_identify_system_type walrcv_identify_system;
 
-void walrcv_readtimelinehistoryfile (TimeLineID tli, char **filename, char **content, int *size);
+typedef void (*walrcv_readtimelinehistoryfile_type) (TimeLineID tli, char **filename, char **content, int *size);
+extern PGDLLIMPORT walrcv_readtimelinehistoryfile_type walrcv_readtimelinehistoryfile;
 
-bool walrcv_startstreaming (TimeLineID tli, XLogRecPtr startpoint);
+typedef bool (*walrcv_startstreaming_type) (TimeLineID tli, XLogRecPtr startpoint);
+extern PGDLLIMPORT walrcv_startstreaming_type walrcv_startstreaming;
 
-void walrcv_endstreaming (TimeLineID *next_tli);
+typedef void (*walrcv_endstreaming_type) (TimeLineID *next_tli);
+extern PGDLLIMPORT walrcv_endstreaming_type walrcv_endstreaming;
 
-int walrcv_receive (int timeout, char **buffer);
+typedef int (*walrcv_receive_type) (int timeout, char **buffer);
+extern PGDLLIMPORT walrcv_receive_type walrcv_receive;
 
-void walrcv_send (const char *buffer, int nbytes);
+typedef void (*walrcv_send_type) (const char *buffer, int nbytes);
+extern PGDLLIMPORT walrcv_send_type walrcv_send;
 
-void walrcv_disconnect (void);
+typedef void (*walrcv_disconnect_type) (void);
+extern PGDLLIMPORT walrcv_disconnect_type walrcv_disconnect;
+
+void		libpqwalreceiver_PG_init(void);
 
 /* prototypes for functions in walreceiver.c */
 extern void WalReceiverMain(void) __attribute__((noreturn));

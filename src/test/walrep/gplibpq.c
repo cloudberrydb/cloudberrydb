@@ -3,8 +3,8 @@
  * Small tests for gp_libpqwalreceiver
  *
  *-----------------------------------------------------------------------*/
-
 #include "postgres.h"
+
 #include "fmgr.h"
 #include "miscadmin.h"
 #include "access/xlog_internal.h"
@@ -13,6 +13,7 @@
 #include "cdb/cdbappendonlyxlog.h"
 #include "funcapi.h"
 #include "libpq/pqformat.h"
+#include "utils/builtins.h"
 
 PG_MODULE_MAGIC;
 
@@ -43,6 +44,8 @@ static void test_PrintLog(char *type, XLogRecPtr walPtr,
 static uint32 check_ao_record_present(unsigned char type, char *buf, Size len,
 									  uint32 xrecoff, CheckAoRecordResult *aorecordresults);
 
+void _PG_init(void);
+
 Datum test_connect(PG_FUNCTION_ARGS);
 Datum test_disconnect(PG_FUNCTION_ARGS);
 Datum test_receive(PG_FUNCTION_ARGS);
@@ -56,6 +59,19 @@ PG_FUNCTION_INFO_V1(test_receive);
 PG_FUNCTION_INFO_V1(test_send);
 PG_FUNCTION_INFO_V1(test_receive_and_verify);
 PG_FUNCTION_INFO_V1(test_xlog_ao);
+
+/*
+ * Module load callback.
+ *
+ * Initializes the libpqwalreceiver callbacks, by calling libpqwalreceiver's
+ * initialization routine. In a real walreceiver, this is done during
+ * the walreceiver process startup.
+ */
+void
+_PG_init(void)
+{
+	libpqwalreceiver_PG_init();
+}
 
 static void
 string_to_xlogrecptr(text *location, XLogRecPtr *rec)

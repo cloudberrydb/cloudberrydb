@@ -35,9 +35,13 @@
 #include <sys/select.h>
 #endif
 
-PG_MODULE_MAGIC;
-
-void		_PG_init(void);
+/*
+ * In PostgreSQL, this is a dynamically loaded module, because PostgreSQL
+ * doesn't want to link libpq statically into the backend.  In GPDB, we have
+ * a statically linked copy of libpq in the backend, anyway, so this is
+ * compiled and linked diretly as part of the postgres binary, like any
+ * other backend .c file.
+ */
 
 /* Current connection to the primary, if any */
 static PGconn *streamConn = NULL;
@@ -63,7 +67,7 @@ static PGresult *libpqrcv_PQexec(const char *query);
  * Module load callback
  */
 void
-_PG_init(void)
+libpqwalreceiver_PG_init(void)
 {
 	/* Tell walreceiver how to reach us */
 	if (walrcv_connect != NULL || walrcv_identify_system != NULL ||

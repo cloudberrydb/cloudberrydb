@@ -70,6 +70,16 @@ int			wal_receiver_status_interval = 10;
 int			wal_receiver_timeout;
 bool		hot_standby_feedback;
 
+/* libpqreceiver hooks to these when loaded */
+walrcv_connect_type walrcv_connect = NULL;
+walrcv_identify_system_type walrcv_identify_system = NULL;
+walrcv_startstreaming_type walrcv_startstreaming = NULL;
+walrcv_endstreaming_type walrcv_endstreaming = NULL;
+walrcv_readtimelinehistoryfile_type walrcv_readtimelinehistoryfile = NULL;
+walrcv_receive_type walrcv_receive = NULL;
+walrcv_send_type walrcv_send = NULL;
+walrcv_disconnect_type walrcv_disconnect = NULL;
+
 #define NAPTIME_PER_CYCLE 100	/* max sleep time between cycles (100ms) */
 
 /*
@@ -293,6 +303,16 @@ WalReceiverMain(void)
 
 	/* We allow SIGQUIT (quickdie) at all times */
 	sigdelset(&BlockSig, SIGQUIT);
+
+	/* Load the libpq-specific functions */
+	libpqwalreceiver_PG_init();
+	if (walrcv_connect == NULL || walrcv_startstreaming == NULL ||
+		walrcv_endstreaming == NULL ||
+		walrcv_identify_system == NULL ||
+		walrcv_readtimelinehistoryfile == NULL ||
+		walrcv_receive == NULL || walrcv_send == NULL ||
+		walrcv_disconnect == NULL)
+		elog(ERROR, "libpqwalreceiver didn't initialize correctly");
 
 	/*
 	 * Create a resource owner to keep track of our resources (not clear that
