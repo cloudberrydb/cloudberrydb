@@ -2163,9 +2163,9 @@ TeardownTCPInterconnect(ChunkTransportState *transportStates,
 		 * kernel sending buffer may be lost on some platform if sender close the
 		 * connection totally.
 		 *
-		 * The correct way is sender blocks on the connection until recievers
+		 * The correct way is sender blocks on the connection until receivers
 		 * get the EOS packets and close the peer, then it's safe for sender to
-		 * the connection totally.
+		 * close the connection totally.
 		 *
 		 * If some errors are happening, senders can skip this step to avoid hung
 		 * issues, QD will take care of the error handling.

@@ -268,7 +268,7 @@ typedef struct ParallelizeCorrelatedPlanWalkerContext
 } ParallelizeCorrelatedPlanWalkerContext;
 
 /**
- * Context information to map vars occuring in the Result node's targetlist
+ * Context information to map vars occurring in the Result node's targetlist
  * and quals to what is produced by the underlying SeqScan node.
  */
 typedef struct MapVarsMutatorContext
@@ -863,8 +863,8 @@ prescan_walker(Node *node, PlanProfile *context)
 				}
 
 				/*
-				 * Init plan and main plan are dispatched seperately,
-				 * so we need to set DISPATCH_PARALLEL flag seperately
+				 * Init plan and main plan are dispatched separately,
+				 * so we need to set DISPATCH_PARALLEL flag separately
 				 * for them.
 				 *
 				 * save the parallel state of main plan. init plan

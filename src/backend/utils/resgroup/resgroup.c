@@ -259,7 +259,7 @@ static ResGroupProcData *self = &__self;
 /* If we are waiting on a group, this points to the associated group */
 static ResGroupData *groupAwaited = NULL;
 
-/* the resource group self is running in in bypass mode */
+/* the resource group self is running in bypass mode */
 static ResGroupData *bypassedGroup = NULL;
 /* a fake slot used in bypass mode */
 static ResGroupSlotData bypassedSlot;

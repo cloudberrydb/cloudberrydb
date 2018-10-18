@@ -129,7 +129,7 @@ FtsIsSegmentUp(CdbComponentDatabaseInfo *dBInfo)
 	 * initialized yet, just return positively back.  This is mainly to avoid
 	 * queries incorrectly failing just after QD restarts if FTS process is yet
 	 * to start and complete initializing the cached status.  We shouldn't be
-	 * checking against uninitialzed variable.
+	 * checking against an uninitialized variable.
 	 */
 	return ftsProbeInfo->fts_statusVersion ?
 		FTS_STATUS_IS_UP(ftsProbeInfo->fts_status[dBInfo->dbid]) :

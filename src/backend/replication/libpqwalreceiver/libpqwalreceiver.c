@@ -39,7 +39,7 @@
  * In PostgreSQL, this is a dynamically loaded module, because PostgreSQL
  * doesn't want to link libpq statically into the backend.  In GPDB, we have
  * a statically linked copy of libpq in the backend, anyway, so this is
- * compiled and linked diretly as part of the postgres binary, like any
+ * compiled and linked directly as part of the postgres binary, like any
  * other backend .c file.
  */
 

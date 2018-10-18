@@ -541,7 +541,7 @@ GRANT SELECT ON TABLE gp_toolkit.gp_pgdatabase_invalid TO public;
 --        gp_toolkit.gp_skew_details_t
 --
 -- @doc:
---        Type to accomodate skew details
+--        Type to accommodate skew details
 --
 --------------------------------------------------------------------------------
 CREATE TYPE gp_toolkit.gp_skew_details_t
@@ -642,7 +642,7 @@ GRANT EXECUTE ON FUNCTION gp_toolkit.gp_skew_details(oid) TO public;
 --        gp_toolkit.gp_skew_analysis_t
 --
 -- @doc:
---        Type to accomodate skew analysis
+--        Type to accommodate skew analysis
 --
 --------------------------------------------------------------------------------
 CREATE TYPE gp_toolkit.gp_skew_analysis_t

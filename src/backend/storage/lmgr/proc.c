@@ -1803,7 +1803,7 @@ ProcSendSignal(int pid)
  *	This is merely a version of ProcSleep modified for resource locks.
  *	The logic here could have been merged into ProcSleep, however it was
  *	requested to keep as much as possible of this resource lock code 
- *	seperate from its standard lock relatives - in the interest of not
+ *	separate from its standard lock relatives - in the interest of not
  *	introducing new bugs or performance regressions into the lock code.
  */
 int

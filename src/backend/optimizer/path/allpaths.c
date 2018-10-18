@@ -2112,9 +2112,9 @@ check_output_expressions(Query *subquery, bool *unsafeColumns)
 
 		/* MPP-19244:
 		 * if subquery has WINDOW clause, it is safe to push-down quals that
-		 * use columns included in in the Partition-By clauses of every OVER
+		 * use columns included in the Partition-By clauses of every OVER
 		 * clause in the subquery
-		 * */
+		 */
 		if (subquery->windowClause != NIL)
 		{
 			ListCell   *lc;

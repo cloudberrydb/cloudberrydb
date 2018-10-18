@@ -44,7 +44,7 @@ extern Oid MyQueueId; /* resource queue for current role. */
  * Data structures
  *
  * TODO:
- * To add a equivalent of locallock to handle extensions to proclock
+ * To add an equivalent of locallock to handle extensions to proclock
  * and back out the changes to it.
  */
 

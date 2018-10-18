@@ -2633,7 +2633,8 @@ tuplesort_rescan(Tuplesortstate *state)
 }
 
 /*
- * Put pos at the begining of the tuplesort.  Create pos->work_tape if necessary
+ * Put pos at the beginning of the tuplesort.  Create pos->work_tape if
+ * necessary.
  */
 void
 tuplesort_rescan_pos(Tuplesortstate *state, TuplesortPos *pos)

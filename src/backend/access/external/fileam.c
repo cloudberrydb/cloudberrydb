@@ -876,7 +876,7 @@ externalgettup_defined(FileScanDesc scan)
 		PG_CATCH();
 		{
 			/*
-			 * got here? encoding conversion error occured on the
+			 * got here? encoding conversion error occurred on the
 			 * header line (first row).
 			 */
 			if (pstate->errMode == ALL_OR_NOTHING)

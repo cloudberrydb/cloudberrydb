@@ -347,7 +347,7 @@ _bitmap_findnexttids(BMBatchWords *words, BMIterateResult *result,
 /*
  * _bitmap_intesect() is dead code because streaming intersects
  * PagetableEntry structures, not raw batch words. It's possible we may
- * want to intersect batches later though -- it would definately improve
+ * want to intersect batches later though -- it would definitely improve
  * streaming of intersections.
  */
 
