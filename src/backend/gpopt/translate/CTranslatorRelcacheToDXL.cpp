@@ -2457,7 +2457,7 @@ CTranslatorRelcacheToDXL::RetrieveColStats
 	if (form_pg_stats->stadistinct < 0)
 	{
 		GPOS_ASSERT(form_pg_stats->stadistinct > -1.01);
-		num_distinct = num_rows * CDouble(-form_pg_stats->stadistinct);
+		num_distinct = num_rows * (1 - null_freq ) * CDouble(-form_pg_stats->stadistinct);
 	}
 	else
 	{
@@ -2597,9 +2597,9 @@ CTranslatorRelcacheToDXL::RetrieveColStats
 		// there will be remaining tuples if the merged histogram and the NULLS do not cover
 		// the total number of distinct values
 		if ((1 - CStatistics::Epsilon > num_freq_buckets + null_freq) &&
-			(0 < num_distinct - num_ndv_buckets - null_ndv))
+			(0 < num_distinct - num_ndv_buckets))
 		{
-			distinct_remaining = std::max(CDouble(0.0), (num_distinct - num_ndv_buckets - null_ndv));
+			distinct_remaining = std::max(CDouble(0.0), (num_distinct - num_ndv_buckets));
 			freq_remaining = std::max(CDouble(0.0), (1 - num_freq_buckets - null_freq));
 		}
 	}
