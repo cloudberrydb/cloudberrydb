@@ -25,18 +25,6 @@
 
 struct CdbDispatcherState;
 
-typedef enum SegDbState
-{
-	/*
-	 * (it is best to avoid names like OUT that are likely to be #define'd or
-	 * typedef'd in some platform-dependent runtime library header file)
-	 */
-	SEGDB_OUT,					/* Not participating in COPY (invalid etc...) */
-	SEGDB_IDLE,					/* Participating but COPY not yet started */
-	SEGDB_COPY,					/* COPY in progress */
-	SEGDB_DONE					/* COPY completed (with or without errors) */
-}	SegDbState;
-
 typedef struct CdbCopy
 {
 	int			total_segs;		/* total number of segments in cdb */
@@ -46,10 +34,7 @@ typedef struct CdbCopy
 								 * communicate with segDB's */
 	bool		skip_ext_partition;/* skip external partition */ 
 
-	SegDbState		**segdb_state;
-	
 	StringInfoData	err_msg;		/* error message for cdbcopy operations */
-	StringInfoData  err_context; /* error context from QE error */
 	StringInfoData	copy_out_buf;/* holds a chunk of data from the database */
 		
 	List			*outseglist;    /* segs that currently take part in copy out. 
