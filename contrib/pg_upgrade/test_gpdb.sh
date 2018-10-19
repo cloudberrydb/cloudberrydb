@@ -63,6 +63,8 @@ realpath()
 
 restore_cluster()
 {
+	status=$?
+
 	pushd $base_dir
 	# Reset the pg_control files from the old cluster which were renamed
 	# .old by pg_upgrade to avoid booting up an upgraded cluster.
@@ -77,8 +79,9 @@ restore_cluster()
 		rm -f lalshell
 	fi
 
-	# Remove the temporary cluster, and associated files, if requested
-	if (( !$retain_tempdir )) ; then
+	# Remove the temporary cluster, and associated files. Keep things around if
+	# there was a failure, or if -r is passed.
+	if (( ! $retain_tempdir && ! $status )) ; then
 		# If we are asked to blow away the temp root, echo any potential error
 		# files to the output channel to aid debugging
 		find ${temp_root} -type f -name "*.txt" | grep -v share |
@@ -184,7 +187,7 @@ usage()
 	echo " -k           Add checksums to new cluster"
 	echo " -K           Remove checksums during upgrade"
 	echo " -m           Upgrade mirrors"
-	echo " -r           Retain temporary installation after test"
+	echo " -r           Retain temporary installation after test, even on success"
 	exit 0
 }
 
