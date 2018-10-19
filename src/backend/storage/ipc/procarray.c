@@ -360,6 +360,14 @@ ProcArrayRemove(PGPROC *proc, TransactionId latestXid)
 		Assert(!TransactionIdIsValid(allPgXact[proc->pgprocno].xid));
 	}
 
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		DistributedTransactionId gxid = allTmGxact[proc->pgprocno].gxid;
+		if (InvalidDistributedTransactionId != gxid &&
+			TransactionIdPrecedes(ShmemVariableCache->latestCompletedDxid, gxid))
+			ShmemVariableCache->latestCompletedDxid = gxid;
+	}
+
 	for (index = 0; index < arrayP->numProcs; index++)
 	{
 		if (arrayP->pgprocnos[index] == proc->pgprocno)
@@ -385,6 +393,11 @@ void
 ProcArrayEndGxact(void)
 {
 	Assert(LWLockHeldByMe(ProcArrayLock));
+	DistributedTransactionId gxid = MyTmGxact->gxid;
+
+	if (InvalidDistributedTransactionId != gxid &&
+		TransactionIdPrecedes(ShmemVariableCache->latestCompletedDxid, gxid))
+		ShmemVariableCache->latestCompletedDxid = gxid;
 	initGxact(MyTmGxact);
 }
 
@@ -1781,14 +1794,7 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 	if (*shmNumCommittedGxacts != 0)
 		elog(ERROR, "Create distributed snapshot before DTM recovery finish");
 
-	xmin = LastDistributedTransactionId;
-
-	/*
-	 * This is analogous to the code in GetSnapshotData() (which calls
-	 * ReadNewTransactionId(), the distributed-xmax of a transaction is the
-	 * last distributed-xmax available
-	 */
-	xmax = getMaxDistributedXid();
+	xmin = xmax = ShmemVariableCache->latestCompletedDxid + 1;
 
 	/*
 	 * initialize for calculation with xmax, the calculation for this is on
