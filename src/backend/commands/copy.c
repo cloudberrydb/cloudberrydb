@@ -2410,7 +2410,6 @@ CopyToDispatch(CopyState cstate)
 	int			attr_count;
 	Form_pg_attribute *attr;
 	CdbCopy    *cdbCopy;
-	StringInfoData cdbcopy_err;
 	uint64		processed = 0;
 
 	tupDesc = cstate->rel->rd_att;
@@ -2427,9 +2426,6 @@ CopyToDispatch(CopyState cstate)
 	cdbCopy->hasReplicatedTable = GpPolicyIsReplicated(cstate->rel->rd_cdbpolicy);
 
 	/* XXX: lock all partitions */
-
-	/* allocate memory for error and copy strings */
-	initStringInfo(&cdbcopy_err);
 
 	/*
 	 * Start a COPY command in every db of every segment in Greenplum Database.
@@ -2531,6 +2527,8 @@ CopyToDispatch(CopyState cstate)
 			}
 		} while(!done);
 
+		cdbCopyEnd(cdbCopy, NULL, NULL);
+
 		/* now it's safe to destroy the whole dispatcher state */
 		CdbDispatchCopyEnd(cdbCopy);
 	}
@@ -2538,13 +2536,8 @@ CopyToDispatch(CopyState cstate)
 	PG_CATCH();
 	{
 		MemoryContext oldcontext = MemoryContextSwitchTo(cstate->copycontext);
-		appendBinaryStringInfo(&cdbcopy_err, cdbCopy->err_msg.data, cdbCopy->err_msg.len);
 
 		cdbCopyAbort(cdbCopy);
-
-		ereport(LOG,
-				(errcode(ERRCODE_INTERNAL_ERROR),
-				 errmsg("%s", cdbcopy_err.data)));
 
 		MemoryContextSwitchTo(oldcontext);
 		PG_RE_THROW();
@@ -2562,15 +2555,6 @@ CopyToDispatch(CopyState cstate)
 	/* we can throw the error now if QueryCancelPending was set previously */
 	CHECK_FOR_INTERRUPTS();
 
-	/*
-	 * report all accumulated errors back to the client.
-	 */
-	if (cdbCopy->io_errors)
-		ereport(ERROR,
-				(errcode(ERRCODE_IO_ERROR),
-				 errmsg("%s", cdbcopy_err.data)));
-
-	pfree(cdbcopy_err.data);
 	pfree(cdbCopy);
 
 	return processed;
@@ -3997,16 +3981,17 @@ CopyFrom(CopyState cstate)
 	 */
 	if (cstate->dispatch_mode == COPY_DISPATCH)
 	{
-		int64			total_completed_from_qes;
-		int			total_rejected_from_qes;
+		int64		total_completed_from_qes;
+		int64		total_rejected_from_qes;
 
-		total_rejected_from_qes = cdbCopyEndAndFetchRejectNum(cdbCopy, &total_completed_from_qes, NULL);
-
+		cdbCopyEnd(cdbCopy,
+				   &total_completed_from_qes,
+				   &total_rejected_from_qes);
 		if (cstate->cdbsreh)
 		{
 			/* emit a NOTICE with number of rejected rows */
-			int			total_rejected = 0;
-			int total_rejected_from_qd = cstate->cdbsreh->rejectcount;
+			int64		total_rejected = 0;
+			int64		total_rejected_from_qd = cstate->cdbsreh->rejectcount;
 
 			/*
 			 * If error log has been requested, then we send the row to the segment

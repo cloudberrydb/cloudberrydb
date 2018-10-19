@@ -30,13 +30,10 @@ typedef struct CdbCopy
 	int			total_segs;		/* total number of segments in cdb */
 	int		   *mirror_map;		/* indicates how many db's each segment has */
 	bool		copy_in;		/* direction: true for COPY FROM false for COPY TO */
-	bool		io_errors;		/* true if any I/O error occurred trying to
-								 * communicate with segDB's */
 	bool		skip_ext_partition;/* skip external partition */ 
 
-	StringInfoData	err_msg;		/* error message for cdbcopy operations */
 	StringInfoData	copy_out_buf;/* holds a chunk of data from the database */
-		
+
 	List			*outseglist;    /* segs that currently take part in copy out. 
 									 * Once a segment gave away all it's data rows
 									 * it is taken out of the list */
@@ -55,11 +52,9 @@ extern void cdbCopyStart(CdbCopy *cdbCopy, CopyStmt *stmt, struct GpPolicy *poli
 extern void cdbCopySendDataToAll(CdbCopy *c, const char *buffer, int nbytes);
 extern void cdbCopySendData(CdbCopy *c, int target_seg, const char *buffer, int nbytes);
 extern bool cdbCopyGetData(CdbCopy *c, bool cancel, uint64 *rows_processed);
-extern int cdbCopyAbort(CdbCopy *c);
-/*
- * GPDB_91_MERGE_FIXME: let's consistently use uint64 as type for counting rows
- * of any kind.
- */
-extern int cdbCopyEndAndFetchRejectNum(CdbCopy *c, int64 *total_rows_completed, char *abort_msg);
+extern void cdbCopyAbort(CdbCopy *c);
+extern void cdbCopyEnd(CdbCopy *c,
+		   int64 *total_rows_completed_p,
+		   int64 *total_rows_rejected_p);
 
 #endif   /* CDBCOPY_H */
