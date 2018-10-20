@@ -881,6 +881,7 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 									   list_make1_int(parse->resultRelation),
 											 list_make1(plan),
 											 returningLists,
+											 list_make1_int(root->is_split_update),
 											 rowMarks,
 											 SS_assign_special_param(root));
 		}
@@ -1097,6 +1098,7 @@ inheritance_planner(PlannerInfo *root)
 	RelOptInfo **save_rel_array = NULL;
 	List	   *subplans = NIL;
 	List	   *resultRelations = NIL;
+	List	   *is_split_updates = NIL;
 	List	   *returningLists = NIL;
 	List	   *rowMarks;
 	ListCell   *lc;
@@ -1341,6 +1343,12 @@ inheritance_planner(PlannerInfo *root)
 		if (parse->returningList)
 			returningLists = lappend(returningLists,
 									 subroot.parse->returningList);
+
+		/*
+		 * If this subplan requires a Split Update, pass that information
+		 * back to the top.
+		 */
+		is_split_updates = lappend_int(is_split_updates, subroot.is_split_update);
 	}
 
 	Assert(parentPolicy != NULL);
@@ -1394,6 +1402,7 @@ inheritance_planner(PlannerInfo *root)
 									 resultRelations,
 									 subplans,
 									 returningLists,
+									 is_split_updates,
 									 rowMarks,
 									 SS_assign_special_param(root));
 }

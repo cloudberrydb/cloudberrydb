@@ -43,7 +43,7 @@
 #include "utils/rel.h"
 
 
-static List *expand_targetlist(List *tlist, int command_type,
+static List *expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 				  Index result_relation, List *range_table);
 static List *supplement_simply_updatable_targetlist(List *range_table,
 													List *tlist);
@@ -83,7 +83,7 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 	 * 10/94
 	 */
 	if (command_type == CMD_INSERT || command_type == CMD_UPDATE)
-		tlist = expand_targetlist(tlist, command_type,
+		tlist = expand_targetlist(root, tlist, command_type,
 								  result_relation, range_table);
 
 	/* simply updatable cursors */
@@ -208,7 +208,7 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
  *	  non-junk attributes appear in proper field order.
  */
 static List *
-expand_targetlist(List *tlist, int command_type,
+expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 				  Index result_relation, List *range_table)
 {
 	List	   *new_tlist = NIL;
@@ -216,6 +216,7 @@ expand_targetlist(List *tlist, int command_type,
 	Relation	rel;
 	int			attrno,
 				numattrs;
+	Bitmapset  *changed_cols = NULL;
 
 	tlist_item = list_head(tlist);
 
@@ -246,6 +247,32 @@ expand_targetlist(List *tlist, int command_type,
 				new_tle = old_tle;
 				tlist_item = lnext(tlist_item);
 			}
+		}
+
+		/*
+		 * GPDB: If it's an UPDATE, keep track of which columns are being
+		 * updated, and which ones are just passed through from old relation.
+		 * We need that information later, to determine whether this UPDATE
+		 * can move tuples from one segment to another.
+		 */
+		if (new_tle && command_type == CMD_UPDATE)
+		{
+			bool		col_changed = true;
+
+			/*
+			 * The column is unchanged, if the new value is a Var that refers
+			 * directly to the same attribute in the same table.
+			 */
+			if (IsA(new_tle->expr, Var))
+			{
+				Var		   *var = (Var *) new_tle->expr;
+
+				if (var->varno == result_relation && var->varattno == attrno)
+					col_changed = false;
+			}
+
+			if (col_changed)
+				changed_cols = bms_add_member(changed_cols, attrno);
 		}
 
 		if (new_tle == NULL)
@@ -345,6 +372,97 @@ expand_targetlist(List *tlist, int command_type,
 		}
 
 		new_tlist = lappend(new_tlist, new_tle);
+	}
+
+	/*
+	 * If an UPDATE can move the tuples from one segment to another, we will
+	 * need to create a Split Update node for it. The node is created later
+	 * in the planning, but if it's needed, we must ensure that the target
+	 * list contains all the original values of each distribution key column,
+	 * because the Split Update needs them as input. The old distribution
+	 * key columns come in the target list after all the new values, and
+	 * before the 'ctid' and other resjunk columns. (The logic in
+	 * process_targetlist_for_splitupdate() relies on that order.)
+	 */
+	if (command_type == CMD_UPDATE)
+	{
+		GpPolicy   *targetPolicy;
+		bool		key_col_updated = false;
+
+		/* Was any distribution key column among the changed columns? */
+		targetPolicy = GpPolicyFetch(CurrentMemoryContext, RelationGetRelid(rel));
+		if (targetPolicy->ptype == POLICYTYPE_PARTITIONED)
+		{
+			int			i;
+
+			for (i = 0; i < targetPolicy->nattrs; i++)
+			{
+				if (bms_is_member(targetPolicy->attrs[i], changed_cols))
+				{
+					key_col_updated = true;
+					break;
+				}
+			}
+		}
+
+		if (key_col_updated)
+		{
+			/*
+			 * Yes, this is a split update.
+			 *
+			 * For each column that was changed, add the original column value
+			 * to the target list, if it's not there already.
+			 */
+			int			i;
+
+			for (i = 0; i < targetPolicy->nattrs; i++)
+			{
+				AttrNumber	keycolidx = targetPolicy->attrs[i];
+				Var		   *origvar;
+				Form_pg_attribute att_tup = rel->rd_att->attrs[keycolidx - 1];
+
+				origvar = makeVar(result_relation,
+								  keycolidx,
+								  att_tup->atttypid,
+								  att_tup->atttypmod,
+								  att_tup->attcollation,
+								  0);
+				TargetEntry *new_tle = makeTargetEntry((Expr *) origvar,
+													   attrno,
+													   NameStr(att_tup->attname),
+													   true);
+				new_tlist = lappend(new_tlist, new_tle);
+				attrno++;
+			}
+
+			/* Also add the old OID to the tlist, if the table has OIDs. */
+			if (rel->rd_rel->relhasoids)
+			{
+				TargetEntry *new_tle;
+				Var		   *oidvar;
+
+				oidvar = makeVar(result_relation,
+								 ObjectIdAttributeNumber,
+								 OIDOID,
+								 -1,
+								 InvalidOid,
+								 0);
+				new_tle = makeTargetEntry((Expr *) oidvar,
+										  attrno,
+										  "oid",
+										  true);
+				new_tlist = lappend(new_tlist, new_tle);
+				attrno++;
+			}
+
+			/*
+			 * Since we just went through a lot of work to determine whether a
+			 * Split Update is needed, memorize that in the PlannerInfo, so that
+			 * we don't need redo all that work later in the planner, when it's
+			 * time to actually create the ModifyTable, and SplitUpdate, node.
+			 */
+			root->is_split_update = true;
+		}
 	}
 
 	/*

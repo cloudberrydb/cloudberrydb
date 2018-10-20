@@ -177,7 +177,7 @@ static WorkTableScan *make_worktablescan(List *qptlist, List *qpqual,
 static BitmapAnd *make_bitmap_and(List *bitmapplans);
 static BitmapOr *make_bitmap_or(List *bitmapplans);
 static List *flatten_grouping_list(List *groupcls);
-static void adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node);
+static void adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_updates);
 static Plan *prepare_sort_from_pathkeys(PlannerInfo *root,
 						   Plan *lefttree, List *pathkeys,
 						   Relids relids,
@@ -6436,6 +6436,7 @@ make_modifytable(PlannerInfo *root,
 				 CmdType operation, bool canSetTag,
 				 List *resultRelations,
 				 List *subplans, List *returningLists,
+				 List *is_split_updates,
 				 List *rowMarks, int epqParam)
 {
 	ModifyTable *node = makeNode(ModifyTable);
@@ -6468,7 +6469,7 @@ make_modifytable(PlannerInfo *root,
 	node->ctid_col_idxes = NIL;
 	node->oid_col_idxes = NIL;
 
-	adjust_modifytable_flow(root, node);
+	adjust_modifytable_flow(root, node, is_split_updates);
 
 	/*
 	 * Compute cost as sum of subplan costs.
@@ -6550,13 +6551,14 @@ make_modifytable(PlannerInfo *root,
  * plans for that. Also set the Flow of the ModifyTable node itself.
  */
 static void
-adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
+adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_updates)
 {
 	/*
 	 * The input plans must be distributed correctly.
 	 */
 	ListCell   *lcr,
-			   *lcp;
+			   *lcp,
+			   *lci;
 	bool		all_subplans_entry = true,
 				all_subplans_replicated = true;
 	int			numsegments = -1;
@@ -6717,10 +6719,11 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 	}
 	else if (node->operation == CMD_UPDATE || node->operation == CMD_DELETE)
 	{
-		forboth(lcr, node->resultRelations, lcp, node->plans)
+		forthree(lcr, node->resultRelations, lcp, node->plans, lci, is_split_updates)
 		{
 			int			rti = lfirst_int(lcr);
 			Plan	   *subplan = (Plan *) lfirst(lcp);
+			bool		is_split_update = lfirst_int(lci) ? true : false;
 			RangeTblEntry *rte = rt_fetch(rti, root->parse->rtable);
 			GpPolicy   *targetPolicy;
 			GpPolicyType targetPolicyType;
@@ -6748,17 +6751,20 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 				all_subplans_replicated = false;
 
 				/*
-				 * The planner does not support updating any of the
-				 * partitioning columns.
+				 * If any of the distribution key columns are being changed,
+				 * the UPDATE might move tuples from one segment to another.
+				 * Create a Split Update node to deal with that.
+				 *
+				 * If the input is a dummy plan that cannot return any rows,
+				 * e.g. because the input was eliminated by constraint
+				 * exclusion, we can skip it.
 				 */
-				if (node->operation == CMD_UPDATE &&
-					isAnyColChangedByUpdate(root, rti, rte,
-											subplan->targetlist,
-											targetPolicy->nattrs,
-											targetPolicy->attrs))
+				if (is_split_update && !is_dummy_plan(subplan))
 				{
 					List	   *hashExpr;
 					Plan	*new_subplan;
+
+					Assert(node->operation == CMD_UPDATE);
 
 					if (Gp_role == GP_ROLE_UTILITY)
 					{
@@ -6778,12 +6784,14 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 										errmsg("Cannot parallelize that UPDATE yet")));
 
 					lcp->data.ptr_value = new_subplan;
-					continue;
 				}
-				node->action_col_idxes = lappend_int(node->action_col_idxes, -1);
-				node->ctid_col_idxes = lappend_int(node->ctid_col_idxes, -1);
-				node->oid_col_idxes = lappend_int(node->oid_col_idxes, 0);
-				request_explicit_motion(subplan, rti, root->glob->finalrtable);
+				else
+				{
+					node->action_col_idxes = lappend_int(node->action_col_idxes, -1);
+					node->ctid_col_idxes = lappend_int(node->ctid_col_idxes, -1);
+					node->oid_col_idxes = lappend_int(node->oid_col_idxes, 0);
+					request_explicit_motion(subplan, rti, root->glob->finalrtable);
+				}
 			}
 			else if (targetPolicyType == POLICYTYPE_ENTRY)
 			{
