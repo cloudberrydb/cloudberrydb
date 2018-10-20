@@ -86,54 +86,6 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 		tlist = expand_targetlist(tlist, command_type,
 								  result_relation, range_table);
 
-	/*
-	 * GPDB_91_MERGE_FIXME:
-	 * We seem to need to handle relkind other than RELKIND_RELATION.
-	 * Previously there is no RELKIND_RELATION checking below, and that causes
-	 * returning.sql test failure during pg 9.1 merging:
-	 * "no relation entry for relid 2 (relnode.c:199)"
-	 * That is because result_relation is the view relation while after
-	 * we call makeVar() below, the code will finally call into
-	 * add_vars_to_targetlist()->find_base_rel(), which accesses
-	 * simple_rel_array[result_relation], however apparently
-	 * simple_rel_array[] is not for a view relation.
-	 * The key point is that after previous pullup, we should not use
-	 * result_relation for varno in MakeVar(). It seems that we should move the
-	 * code below to rewriteTargetListUD() and thus we could have
-	 * the 'gp_segment_id' column with a correct varno in the Var.
-	 */
-	if ((command_type == CMD_UPDATE || command_type == CMD_DELETE) &&
-		(rte->relkind == RELKIND_RELATION))
-	{
-		TargetEntry *tleSegid = NULL;
-		Var 		*varSegid = NULL;
-		
-		/* Get type info for segid column */
-		Oid			reloid,
-					vartypeid;
-		int32		type_mod;
-		Oid			type_coll;
-
-		reloid = getrelid(result_relation, parse->rtable);
-		
-		get_atttypetypmodcoll(reloid, GpSegmentIdAttributeNumber, &vartypeid, &type_mod, &type_coll);
-
-		varSegid = makeVar(result_relation,
-						   GpSegmentIdAttributeNumber,
-						   vartypeid,
-						   type_mod,
-						   type_coll,
-						   0
-			);
-
-		tleSegid = makeTargetEntry((Expr *) varSegid,
-							  list_length(tlist) + 1,	/* resno */
-							  pstrdup("gp_segment_id"),	/* resname */
-							  true);					/* resjunk */
-		
-		tlist = lappend(tlist, tleSegid);
-	}
-
 	/* simply updatable cursors */
 	if (root->glob->simplyUpdatable)
 		tlist = supplement_simply_updatable_targetlist(range_table, tlist);
