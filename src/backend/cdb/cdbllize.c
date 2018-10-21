@@ -439,20 +439,26 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 
 	if (IsA(node, FunctionScan))
 	{
-		RangeTblEntry *rte = rt_fetch(((Scan *) node)->scanrelid,
-									  ctx->rtable);
+		RangeTblEntry *rte;
+		ListCell   *lc;
 
+		rte = rt_fetch(((Scan *) node)->scanrelid, ctx->rtable);
 		Assert(rte->rtekind == RTE_FUNCTION);
 
-		if (rte->funcexpr &&
-			ContainsParamWalker(rte->funcexpr, NULL /* ctx */ ) && ctx->subPlanDistributed)
+		foreach(lc, rte->functions)
 		{
-			ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
-							errmsg("Cannot parallelize that query yet."),
-							errdetail("In a subquery FROM clause, a "
-									  "function invocation cannot contain "
-									  "a correlated reference.")
+			RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(lc);
+
+			if (rtfunc->funcexpr &&
+				ContainsParamWalker(rtfunc->funcexpr, NULL /* ctx */ ) && ctx->subPlanDistributed)
+			{
+				ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
+								errmsg("Cannot parallelize that query yet."),
+								errdetail("In a subquery FROM clause, a "
+										  "function invocation cannot contain "
+										  "a correlated reference.")
 							));
+			}
 		}
 	}
 

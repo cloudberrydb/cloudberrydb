@@ -131,7 +131,7 @@ select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' a
 -- checkpoint and switch the xlog to avoid corrupting the xlog due to background processes
 checkpoint;
 -- substring() function is used to ignore the output, but not the error
-select substring(pg_switch_xlog(), 0, 0) from gp_dist_random('gp_id') where gp_segment_id = 0;
+select substring(pg_switch_xlog()::text, 0, 0) from gp_dist_random('gp_id') where gp_segment_id = 0;
 
 -- hide old xlog on segment 0
 select move_xlog((select datadir || '/pg_xlog' from gp_segment_configuration c where c.role='p' and c.content=0), '/tmp/missing_xlog');

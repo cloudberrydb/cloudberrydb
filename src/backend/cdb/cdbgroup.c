@@ -3406,7 +3406,7 @@ has_functional_dependency(Var *from, Var *to, List *rangeTable)
 				ObjectIdGetDatum(relid));
 
 	scan = systable_beginscan(pg_constraint, ConstraintRelidIndexId, true,
-							  SnapshotNow, 1, skey);
+							  NULL, 1, skey);
 
 	while (HeapTupleIsValid(tuple = systable_getnext(scan)))
 	{
@@ -4763,6 +4763,7 @@ reconstruct_pathkeys(PlannerInfo *root, List *pathkeys, int *resno_map,
 				 */
 				new_eclass = get_eclass_for_sort_expr(root,
 													  new_tle->expr,
+													  NULL, /* GPDB_94_MERGE_FIXME: required_outer. Is NULL ok? */
 													  pathkey->pk_eclass->ec_opfamilies,
 													  em->em_datatype,
 													  exprCollation((Node *) tle->expr),

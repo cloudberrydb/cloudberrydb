@@ -58,7 +58,7 @@ gp_aovisimap_entry(PG_FUNCTION_ARGS);
 extern Datum
 gp_aovisimap_hidden_info(PG_FUNCTION_ARGS);
 
-extern void
+extern Datum
 gp_remove_ao_entry_from_cache(PG_FUNCTION_ARGS);
 
 extern Datum
@@ -276,7 +276,7 @@ static void not_query_dispatcher_error() {
 /*
  * Interface to remove an entry from AppendOnlyHash cache.
  */
-void
+Datum
 gp_remove_ao_entry_from_cache(PG_FUNCTION_ARGS)
 {
 	if (!IS_QUERY_DISPATCHER())
@@ -285,6 +285,8 @@ gp_remove_ao_entry_from_cache(PG_FUNCTION_ARGS)
 	Oid relid = PG_GETARG_OID(0);
 
 	GpRemoveEntryFromAppendOnlyHash(relid);
+
+	PG_RETURN_DATUM(0);
 }
 
 /*

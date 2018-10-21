@@ -493,7 +493,7 @@ get_relfilenode_map()
 	relfilenodemap = hash_create("relfilenode map", 50000, &relfilenodectl, hash_flags);
 
 	pg_class = heap_open(RelationRelationId, AccessShareLock);
-	scan = heap_beginscan(pg_class, SnapshotNow, 0, NULL);
+	scan = heap_beginscan_catalog(pg_class, 0, NULL);
 	while((tup = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classtuple = (Form_pg_class) GETSTRUCT(tup);

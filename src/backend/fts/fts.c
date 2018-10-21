@@ -459,7 +459,7 @@ probeWalRepUpdateConfig(int16 dbid, int16 segindex, char role,
 					BTEqualStrategyNumber, F_INT2EQ,
 					Int16GetDatum(dbid));
 		sscan = systable_beginscan(configrel, GpSegmentConfigDbidIndexId,
-								   true, SnapshotNow, 1, &scankey);
+								   true, NULL, 1, &scankey);
 
 		configtuple = systable_getnext(sscan);
 

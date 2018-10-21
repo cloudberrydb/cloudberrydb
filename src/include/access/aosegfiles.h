@@ -154,8 +154,6 @@ extern FileSegInfo *GetFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDa
 
 extern FileSegInfo **GetAllFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot, int *totalsegs);
 
-extern FileSegInfo **GetAllFileSegInfo_pg_aoseg_rel(char *relationName, Relation pg_aoseg_rel, Snapshot appendOnlyMetaDataSnapshot, int *totalsegs);
-
 extern void UpdateFileSegInfo(Relation parentrel,
 				  int segno,
 				  int64 eof,

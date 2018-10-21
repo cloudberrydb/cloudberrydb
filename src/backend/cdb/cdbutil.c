@@ -169,7 +169,7 @@ getCdbComponentInfo(bool DNSLookupAsError)
 
 	gp_seg_config_rel = heap_open(GpSegmentConfigRelationId, AccessShareLock);
 
-	gp_seg_config_scan = heap_beginscan(gp_seg_config_rel, SnapshotNow, 0, NULL);
+	gp_seg_config_scan = heap_beginscan_catalog(gp_seg_config_rel, 0, NULL);
 
 	while (HeapTupleIsValid(gp_seg_config_tuple = heap_getnext(gp_seg_config_scan, ForwardScanDirection)))
 	{
@@ -1287,7 +1287,7 @@ master_standby_dbid(void)
 				CharGetDatum(GP_SEGMENT_CONFIGURATION_ROLE_MIRROR));
 	/* no index */
 	scan = systable_beginscan(rel, InvalidOid, false,
-							  SnapshotNow, 2, scankey);
+							  NULL, 2, scankey);
 
 	tup = systable_getnext(scan);
 
@@ -1330,7 +1330,7 @@ dbid_get_dbinfo(int16 dbid)
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
 	scan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
-							  SnapshotNow, 1, &scankey);
+							  NULL, 1, &scankey);
 
 	tuple = systable_getnext(scan);
 	if (HeapTupleIsValid(tuple))
@@ -1467,7 +1467,7 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 					BTEqualStrategyNumber, F_CHAREQ,
 					CharGetDatum(role));
 		scan = systable_beginscan(rel, GpSegmentConfigContentPreferred_roleIndexId, true,
-								  SnapshotNow, 2, scankey);
+								  NULL, 2, scankey);
 	}
 	else
 	{
@@ -1485,7 +1485,7 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 					CharGetDatum(role));
 		/* no index */
 		scan = systable_beginscan(rel, InvalidOid, false,
-								  SnapshotNow, 2, scankey);
+								  NULL, 2, scankey);
 	}
 
 	tup = systable_getnext(scan);

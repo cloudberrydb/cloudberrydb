@@ -2150,19 +2150,19 @@ SELECT * FROM v1 order by a, b;
  a      | integer |           | plain    | 
  b      | text    |           | extended | 
 View definition:
- SELECT tf.a, 
+ SELECT tf.a,
     tf.b
-   FROM multiset_2(TABLE( SELECT example.a, 
+   FROM multiset_2(TABLE( SELECT example.a,
             example.b
            FROM example)) tf;
 
 SELECT pg_get_viewdef('v1'::regclass);
-                pg_get_viewdef                
-----------------------------------------------
-  SELECT tf.a,                               +
-     tf.b                                    +
-    FROM multiset_2(TABLE( SELECT example.a, +
-             example.b                       +
+               pg_get_viewdef                
+---------------------------------------------
+  SELECT tf.a,                              +
+     tf.b                                   +
+    FROM multiset_2(TABLE( SELECT example.a,+
+             example.b                      +
             FROM example)) tf;
 (1 row)
 
@@ -2190,9 +2190,9 @@ SELECT * FROM v2 order by a, b;
  a      | integer |           | plain    | 
  b      | text    |           | extended | 
 View definition:
- SELECT tf.a, 
+ SELECT tf.a,
     tf.b
-   FROM multiset_2(TABLE( SELECT example.a, 
+   FROM multiset_2(TABLE( SELECT example.a,
             example.b
            FROM example
           SCATTER BY example.a || example.b, 5)) tf;
@@ -2232,21 +2232,21 @@ SELECT * FROM v3 order by a, b;
  a      | integer |           | plain    | 
  b      | text    |           | extended | 
 View definition:
- SELECT tf.a, 
+ SELECT tf.a,
     tf.b
-   FROM multiset_2(TABLE( SELECT example.a, 
+   FROM multiset_2(TABLE( SELECT example.a,
             example.b
            FROM example
           SCATTER RANDOMLY)) tf;
 
 SELECT pg_get_viewdef('v3'::regclass);
-                pg_get_viewdef                
-----------------------------------------------
-  SELECT tf.a,                               +
-     tf.b                                    +
-    FROM multiset_2(TABLE( SELECT example.a, +
-             example.b                       +
-            FROM example                     +
+               pg_get_viewdef                
+---------------------------------------------
+  SELECT tf.a,                              +
+     tf.b                                   +
+    FROM multiset_2(TABLE( SELECT example.a,+
+             example.b                      +
+            FROM example                    +
            SCATTER RANDOMLY)) tf;
 (1 row)
 
@@ -2530,8 +2530,8 @@ FROM sessionize_static(
     '1 minute' ) AS sessionize(id integer, "time" timestamp, sessionnum integer)
 ORDER BY id, time; -- FAIL, double qualified
 ERROR:  a column definition list is only allowed for functions returning "record"
-LINE 2: FROM sessionize_static(
-             ^
+LINE 10:     '1 minute' ) AS sessionize(id integer, "time" timestamp,...
+                                        ^
 -- Describe with qualification fails
 SELECT *
 FROM sessionize_dynamic(
@@ -2545,8 +2545,8 @@ FROM sessionize_dynamic(
     '1 minute' ) AS sessionize(id integer, "time" timestamp, sessionnum integer)
 ORDER BY id, time; -- FAIL, double qualified
 ERROR:  a column definition list is only allowed for functions returning "record"
-LINE 2: FROM sessionize_dynamic(
-             ^
+LINE 10:     '1 minute' ) AS sessionize(id integer, "time" timestamp,...
+                                        ^
 -- Otherwise results should match
 SELECT *
 FROM sessionize_plain(

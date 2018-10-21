@@ -107,6 +107,13 @@ check_vacuum_worked()
 	local datadir=$1
 	local contentid=$2
 
+
+	# GPDB_94_MERGE_FIXME: This test doesn't work in 9.4 anymore, because
+	# freezing no longer resets 'xmin', it just sets a new flag in the
+	# tuple header to indicate that the row is frozen. See upstream commit
+	# 37484ad2aa. Need to find a new way to verify this.
+	return 0;
+
 	echo "Verifying VACUUM FREEZE using gp_segment_configuration xmins..."
 
 	# Start the instance using the same pg_ctl invocation used by pg_upgrade.

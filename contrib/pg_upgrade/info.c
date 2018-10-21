@@ -3,7 +3,7 @@
  *
  *	information support functions
  *
- *	Copyright (c) 2010-2013, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2014, PostgreSQL Global Development Group
  *	contrib/pg_upgrade/info.c
  */
 
@@ -172,7 +172,7 @@ gen_db_file_maps(DbInfo *old_db, DbInfo *new_db,
 	}
 
 	if (!all_matched)
-		pg_log(PG_FATAL, "Failed to match up old and new tables in database \"%s\"\n",
+		pg_fatal("Failed to match up old and new tables in database \"%s\"\n",
 				 old_db->db_name);
 
 	*nmaps = num_maps;
@@ -198,33 +198,26 @@ create_rel_filename_map(const char *old_data, const char *new_data,
 		 * relation belongs to the default tablespace, hence relfiles should
 		 * exist in the data directories.
 		 */
-		strlcpy(map->old_tablespace, old_data, sizeof(map->old_tablespace));
-		strlcpy(map->old_tablespace_suffix, "/base", sizeof(map->old_tablespace_suffix));
+		map->old_tablespace = old_data;
+		map->old_tablespace_suffix = "/base";
 	}
 	else
 	{
 		/* relation belongs to a tablespace, so use the tablespace location */
-		strlcpy(map->old_tablespace, old_rel->tablespace, sizeof(map->old_tablespace));
-		strlcpy(map->old_tablespace_suffix, old_cluster.tablespace_suffix,
-				sizeof(map->old_tablespace_suffix));
+		map->old_tablespace = old_rel->tablespace;
+		map->old_tablespace_suffix = old_cluster.tablespace_suffix;
 	}
 
 	/* Do the same for new tablespaces */
 	if (strlen(new_rel->tablespace) == 0)
 	{
-		/*
-		 * relation belongs to the default tablespace, hence relfiles should
-		 * exist in the data directories.
-		 */
-		strlcpy(map->new_tablespace, new_data, sizeof(map->new_tablespace));
-		strlcpy(map->new_tablespace_suffix, "/base", sizeof(map->new_tablespace_suffix));
+		map->new_tablespace = new_data;
+		map->new_tablespace_suffix = "/base";
 	}
 	else
 	{
-		/* relation belongs to a tablespace, so use the tablespace location */
-		strlcpy(map->new_tablespace, new_rel->tablespace, sizeof(map->new_tablespace));
-		strlcpy(map->new_tablespace_suffix, new_cluster.tablespace_suffix,
-				sizeof(map->new_tablespace_suffix));
+		map->new_tablespace = new_rel->tablespace;
+		map->new_tablespace_suffix = new_cluster.tablespace_suffix;
 	}
 
 	map->old_db_oid = old_db->db_oid;
@@ -410,7 +403,7 @@ get_db_infos(ClusterInfo *cluster)
 	{
 		dbinfos[tupnum].db_oid = atooid(PQgetvalue(res, tupnum, i_oid));
 		dbinfos[tupnum].db_name = pg_strdup(PQgetvalue(res, tupnum, i_datname));
-		snprintf(dbinfos[tupnum].db_tblspace, sizeof(dbinfos[tupnum].db_tblspace), "%s",
+		snprintf(dbinfos[tupnum].db_tablespace, sizeof(dbinfos[tupnum].db_tablespace), "%s",
 				 PQgetvalue(res, tupnum, i_spclocation));
 	}
 	PQclear(res);
@@ -443,6 +436,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 	int			num_rels = 0;
 	char	   *nspname = NULL;
 	char	   *relname = NULL;
+	char	   *tablespace = NULL;
 	int			i_spclocation,
 				i_nspname,
 				i_relname,
@@ -452,6 +446,8 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 				i_relfilenode,
 				i_reltablespace;
 	char		query[QUERY_ALLOC];
+	char	   *last_namespace = NULL,
+			   *last_tablespace = NULL;
 
 	char		relstorage;
 	char		relkind;
@@ -581,12 +577,14 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 							  "INSERT INTO info_rels "
 							  "SELECT reltoastrelid, 0::oid, c.oid "
 							  "FROM info_rels i JOIN pg_catalog.pg_class c "
-							  "		ON i.reloid = c.oid"));
+							  "		ON i.reloid = c.oid "
+						  "		AND c.reltoastrelid != %u", InvalidOid));
 	PQclear(executeQueryOrDie(conn,
 							  "INSERT INTO info_rels "
-							  "SELECT reltoastidxid, c.oid, 0::oid "
-							  "FROM info_rels i JOIN pg_catalog.pg_class c "
-							  "		ON i.reloid = c.oid"));
+							  "SELECT indexrelid, ind.indrelid, 0::oid "
+							  "FROM info_rels i JOIN pg_catalog.pg_index ind "
+							  "     ON ind.indrelid = i.reloid "
+							  "WHERE indisvalid AND i.toastheap != %u", InvalidOid));
 
 	snprintf(query, sizeof(query),
 			 "SELECT i.*, n.nspname, c.relname, "
@@ -627,7 +625,6 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 	for (relnum = 0; relnum < ntups; relnum++)
 	{
 		RelInfo    *curr = &relinfos[num_rels++];
-		const char *tblspace;
 
 		curr->gpdb4_heap_conversion_needed = false;
 		curr->reloid = atooid(PQgetvalue(res, relnum, i_reloid));
@@ -644,21 +641,49 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 		curr->toastheap = atooid(PQgetvalue(res, relnum, i_toastheap));
 
 		nspname = PQgetvalue(res, relnum, i_nspname);
-		curr->nspname = pg_strdup(nspname);
+		curr->nsp_alloc = false;
+
+		/*
+		 * Many of the namespace and tablespace strings are identical, so we
+		 * try to reuse the allocated string pointers where possible to reduce
+		 * memory consumption.
+		 */
+		/* Can we reuse the previous string allocation? */
+		if (last_namespace && strcmp(nspname, last_namespace) == 0)
+			curr->nspname = last_namespace;
+		else
+		{
+			last_namespace = curr->nspname = pg_strdup(nspname);
+			curr->nsp_alloc = true;
+		}
 
 		relname = PQgetvalue(res, relnum, i_relname);
 		curr->relname = pg_strdup(relname);
 
 		curr->relfilenode = atooid(PQgetvalue(res, relnum, i_relfilenode));
+		curr->tblsp_alloc = false;
 
+		/* Is the tablespace oid non-zero? */
 		if (atooid(PQgetvalue(res, relnum, i_reltablespace)) != 0)
-			/* Might be "", meaning the cluster default location. */
-			tblspace = PQgetvalue(res, relnum, i_spclocation);
-		else
-			/* A zero reltablespace indicates the database tablespace. */
-			tblspace = dbinfo->db_tblspace;
+		{
+			/*
+			 * The tablespace location might be "", meaning the cluster
+			 * default location, i.e. pg_default or pg_global.
+			 */
+			tablespace = PQgetvalue(res, relnum, i_spclocation);
 
-		strlcpy(curr->tablespace, tblspace, sizeof(curr->tablespace));
+			/* Can we reuse the previous string allocation? */
+			if (last_tablespace && strcmp(tablespace, last_tablespace) == 0)
+				curr->tablespace = last_tablespace;
+			else
+			{
+				last_tablespace = curr->tablespace = pg_strdup(tablespace);
+				curr->tblsp_alloc = true;
+			}
+		}
+		else
+			/* A zero reltablespace oid indicates the database tablespace. */
+			curr->tablespace = dbinfo->db_tablespace;
 
 		/* Collect extra information about append-only tables */
 		relstorage = PQgetvalue(res, relnum, i_relstorage) [0];
@@ -1052,8 +1077,11 @@ free_rel_infos(RelInfoArr *rel_arr)
 
 	for (relnum = 0; relnum < rel_arr->nrels; relnum++)
 	{
-		pg_free(rel_arr->rels[relnum].nspname);
+		if (rel_arr->rels[relnum].nsp_alloc)
+			pg_free(rel_arr->rels[relnum].nspname);
 		pg_free(rel_arr->rels[relnum].relname);
+		if (rel_arr->rels[relnum].tblsp_alloc)
+			pg_free(rel_arr->rels[relnum].tablespace);
 	}
 	pg_free(rel_arr->rels);
 	rel_arr->nrels = 0;

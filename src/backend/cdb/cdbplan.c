@@ -826,18 +826,13 @@ plan_tree_mutator(Node *node,
 						newrte->joinaliasvars = copyObject(rte->joinaliasvars);
 						break;
 
-					case RTE_FUNCTION:	/* function in FROM */
-						MUTATE(newrte->funcexpr, rte->funcexpr, Node *);
-
-						/*
-						 * TODO is this right? //newrte->coldeflist = (List *)
-						 * copyObject(rte->coldeflist);
-						 */
+					case RTE_FUNCTION:	/* functions in FROM */
+						MUTATE(newrte->functions, rte->functions, List *);
 						break;
 
 					case RTE_TABLEFUNCTION:
 						newrte->subquery = copyObject(rte->subquery);
-						MUTATE(newrte->funcexpr, rte->funcexpr, Node *);
+						MUTATE(newrte->functions, rte->functions, List *);
 						break;
 
 					case RTE_VALUES:
@@ -845,6 +840,21 @@ plan_tree_mutator(Node *node,
 						break;
 				}
 				return (Node *) newrte;
+			}
+			break;
+
+		case T_RangeTblFunction:
+			{
+				RangeTblFunction *rtfunc = (RangeTblFunction *) node;
+				RangeTblFunction *newrtfunc;
+
+				FLATCOPY(newrtfunc, rtfunc, RangeTblFunction);
+				MUTATE(newrtfunc->funcexpr, rtfunc->funcexpr, Node *);
+
+				/*
+				 * TODO is this right? //newrte->coldeflist = (List *)
+				 * copyObject(rte->coldeflist);
+				 */
 			}
 			break;
 

@@ -42,8 +42,8 @@ SELECT test_disconnect();
 SELECT check_and_wait_for_replication(10);
 
 -- create table and store current_xlog_location.
-create TEMP table tmp(startpoint text);
-CREATE FUNCTION select_tmp() RETURNS text AS $$
+create TEMP table tmp(startpoint pg_lsn) distributed randomly;
+CREATE FUNCTION select_tmp() RETURNS pg_lsn AS $$
 select startpoint from tmp;
 $$ LANGUAGE SQL;
 insert into tmp select pg_current_xlog_location();

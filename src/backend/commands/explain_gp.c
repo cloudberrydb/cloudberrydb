@@ -355,10 +355,6 @@ static void show_motion_keys(PlanState *planstate, List *hashExpr, int nkeys,
 static void explain_partition_selector(PartitionSelector *ps,
 						   PlanState *parentstate,
 						   List *ancestors, ExplainState *es);
-static void show_grouping_keys(PlanState *planstate, int numCols,
-							   AttrNumber *subplanColIdx,
-							   const char  *qlabel,
-							   List *ancestors, ExplainState *es);
 static void
 gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                              struct EState *estate,
@@ -2404,74 +2400,4 @@ explain_partition_selector(PartitionSelector *ps, PlanState *parentstate,
 
 		ExplainPropertyStringInfo("Partitions selected", es, "%d (out of %d)", nPartsSelected, nPartsTotal);
 	}
-}
-
-/*
- * Show GROUP BY keys for an Agg or Group node.
- */
-static void
-show_grouping_keys(PlanState *planstate, int nkeys, AttrNumber *subplanColIdx,
-                   const char *qlabel, List *ancestors, ExplainState *es)
-{
-	Plan	   *plan = planstate->plan;
-	PlanState  *subplanstate = outerPlanState(planstate);
-	Plan	   *subplan = subplanstate->plan;
-    List	   *context;
-	List	   *result = NIL;
-    char	   *exprstr;
-    bool		useprefix;
-    int			keyno;
-	int         num_null_cols = 0;
-	int         rollup_gs_times = 0;
-
-    if (nkeys <= 0)
-		return;
-
-	/* Set up deparse context */
-	context = deparse_context_for_planstate((Node *) subplanstate,
-											ancestors,
-											es->rtable,
-											es->rtable_names);
-	useprefix = (list_length(es->rtable) > 1 || es->verbose);
-
-	if (IsA(plan, Agg))
-	{
-		num_null_cols = ((Agg*)plan)->numNullCols;
-		rollup_gs_times = ((Agg*)plan)->rollupGSTimes;
-	}
-
-    for (keyno = 0; keyno < nkeys - num_null_cols; keyno++)
-    {
-	    /* find key expression in tlist */
-	    AttrNumber      keyresno = subplanColIdx[keyno];
-	    TargetEntry    *target = get_tle_by_resno(subplan->targetlist, keyresno);
-
-	    if (!target)
-		    elog(ERROR, "no tlist entry for key %d", keyresno);
-
-		if (IsA(target->expr, Grouping))
-		{
-			/* Append "grouping" explicitly. */
-			exprstr = "grouping";
-		}
-		else if (IsA(target->expr, GroupId))
-		{
-			/* Append "groupid" explicitly. */
-			exprstr = "groupid";
-		}
-		else
-			/* Deparse the expression, showing any top-level cast */
-			exprstr = deparse_expression((Node *) target->expr, context,
-										 useprefix, true);
-
-		result = lappend(result, exprstr);
-    }
-
-	ExplainPropertyList(qlabel, result, es);
-
-	/*
-	 * GPDB_90_MERGE_FIXME: handle rollup times printing
-	 * if (rollup_gs_times > 1)
-	 *	appendStringInfo(es->str, " (%d times)", rollup_gs_times);
-	 */
 }

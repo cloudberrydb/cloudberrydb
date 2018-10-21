@@ -36,6 +36,7 @@
 #include "nodes/makefuncs.h"
 #include "utils/acl.h"
 #include "utils/lsyscache.h"
+#include "utils/snapmgr.h"
 #include "utils/syscache.h"
 #include "utils/numeric.h"
 #include "cdb/cdbappendonlyblockdirectory.h"
@@ -57,6 +58,14 @@
 #include "catalog/pg_type.h"
 #include "utils/builtins.h"
 #include "utils/visibility_summary.h"
+
+
+static AOCSFileSegInfo **GetAllAOCSFileSegInfo_pg_aocsseg_rel(
+									 int numOfColumsn,
+									 char *relationName,
+									 Relation pg_aocsseg_rel,
+									 Snapshot appendOnlyMetaDataSnapshot,
+									 int32 *totalseg);
 
 AOCSFileSegInfo *
 NewAOCSFileSegInfo(int32 segno, int32 nvp)
@@ -272,7 +281,7 @@ aocsFileSegInfoCmp(const void *left, const void *right)
 	return 0;
 }
 
-AOCSFileSegInfo **
+static AOCSFileSegInfo **
 GetAllAOCSFileSegInfo_pg_aocsseg_rel(int numOfColumns,
 									 char *relationName,
 									 Relation pg_aocsseg_rel,
@@ -527,7 +536,7 @@ SetAOCSFileSegInfoState(Relation prel,
 	 * Since we have the segment-file entry under lock (with
 	 * LockRelationAppendOnlySegmentFile) we can use SnapshotNow.
 	 */
-	scan = heap_beginscan(segrel, SnapshotNow, 0, NULL);
+	scan = heap_beginscan_catalog(segrel, 0, NULL);
 	while (segno != tuple_segno && (oldtup = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(oldtup, Anum_pg_aocs_segno, tupdesc, &isNull));
@@ -610,7 +619,7 @@ ClearAOCSFileSegInfo(Relation prel, int segno, FileSegInfoState newState)
 	 * Since we have the segment-file entry under lock (with
 	 * LockRelationAppendOnlySegmentFile) we can use SnapshotNow.
 	 */
-	scan = heap_beginscan(segrel, SnapshotNow, 0, NULL);
+	scan = heap_beginscan_catalog(segrel, 0, NULL);
 	while (segno != tuple_segno && (oldtup = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(oldtup, Anum_pg_aocs_segno, tupdesc, &isNull));
@@ -720,7 +729,7 @@ UpdateAOCSFileSegInfo(AOCSInsertDesc idesc)
 	 * Since we have the segment-file entry under lock (with
 	 * LockRelationAppendOnlySegmentFile) we can use SnapshotNow.
 	 */
-	scan = heap_beginscan(segrel, SnapshotNow, 0, NULL);
+	scan = heap_beginscan_catalog(segrel, 0, NULL);
 	while (idesc->cur_segno != tuple_segno && (oldtup = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(oldtup, Anum_pg_aocs_segno, tupdesc, &isNull));
@@ -897,7 +906,7 @@ AOCSFileSegInfoAddVpe(Relation prel, int32 segno,
 	 * Since we have the segment-file entry under lock (with
 	 * LockRelationAppendOnlySegmentFile) we can use SnapshotNow.
 	 */
-	scan = heap_beginscan(segrel, SnapshotNow, 0, NULL);
+	scan = heap_beginscan_catalog(segrel, 0, NULL);
 	while (segno != tuple_segno && (oldtup = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(oldtup, Anum_pg_aocs_segno, tupdesc, &isNull));
@@ -1027,7 +1036,7 @@ AOCSFileSegInfoAddCount(Relation prel, int32 segno,
 	 * Since we have the segment-file entry under lock (with
 	 * LockRelationAppendOnlySegmentFile) we can use SnapshotNow.
 	 */
-	scan = heap_beginscan(segrel, SnapshotNow, 0, NULL);
+	scan = heap_beginscan_catalog(segrel, 0, NULL);
 	while (segno != tuple_segno && (oldtup = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(oldtup, Anum_pg_aocs_segno, tupdesc, &isNull));
@@ -1135,6 +1144,7 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 		MemoryContext oldcontext;
 		Relation	aocsRel;
 		Relation	pg_aocsseg_rel;
+		Snapshot	appendOnlyMetaDataSnapshot = RegisterSnapshot(GetLatestSnapshot());
 
 		/* create a function context for cross-call persistence */
 		funcctx = SRF_FIRSTCALL_INIT();
@@ -1194,7 +1204,7 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 																		 aocsRel->rd_rel->relnatts,
 																		 RelationGetRelationName(aocsRel),
 																		 pg_aocsseg_rel,
-																		 SnapshotNow,
+																		 appendOnlyMetaDataSnapshot,
 																		 &context->totalAocsSegFiles);
 
 		heap_close(pg_aocsseg_rel, NoLock);
@@ -1206,6 +1216,7 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 
 		funcctx->user_fctx = (void *) context;
 
+		UnregisterSnapshot(appendOnlyMetaDataSnapshot);
 		MemoryContextSwitchTo(oldcontext);
 	}
 
@@ -1691,7 +1702,7 @@ aocol_compression_ratio_internal(Relation parentrel)
 
 	Oid			segrelid = InvalidOid;
 
-	GetAppendOnlyEntryAuxOids(RelationGetRelid(parentrel), SnapshotNow,
+	GetAppendOnlyEntryAuxOids(RelationGetRelid(parentrel), NULL,
 							  &segrelid, NULL, NULL, NULL, NULL);
 	Assert(OidIsValid(segrelid));
 

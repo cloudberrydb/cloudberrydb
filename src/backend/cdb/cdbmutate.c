@@ -106,8 +106,6 @@ static void add_slice_to_motion(Motion *motion,
 
 static Node *apply_motion_mutator(Node *node, ApplyMotionState *context);
 
-static AttrNumber find_segid_column(List *tlist, Index relid);
-
 static bool replace_shareinput_targetlists_walker(Node *node, PlannerInfo *root, bool fPop);
 
 static bool fixup_subplan_walker(Node *node, SubPlanWalkerContext *context);
@@ -1210,9 +1208,9 @@ request_explicit_motion(Plan *plan, Index resultRelationsIdx, List *rtable)
 	plan->flow->req_move = MOVEMENT_EXPLICIT;
 
 	/* find segid column in target list */
-	AttrNumber	segidColIdx = find_segid_column(plan->targetlist, resultRelationsIdx);
-
-	Assert(-1 != segidColIdx);
+	AttrNumber	segidColIdx = ExecFindJunkAttributeInTlist(plan->targetlist, "gp_segment_id");
+	if (segidColIdx == InvalidAttrNumber)
+		elog(ERROR, "could not find gp_segment_id column in target list");
 
 	plan->flow->segidColIdx = segidColIdx;
 }
@@ -1246,12 +1244,10 @@ failIfUpdateTriggers(Relation relation)
 				 errmsg("UPDATE on distributed key column not allowed on relation with update triggers")));
 }
 
-static void
-find_junk_tle(List *targetList, const char *junkAttrName, TargetEntry **targetEntry)
+static TargetEntry *
+find_junk_tle(List *targetList, const char *junkAttrName)
 {
 	ListCell	*lct;
-
-	*targetEntry = NULL;
 
 	foreach(lct, targetList)
 	{
@@ -1261,18 +1257,18 @@ find_junk_tle(List *targetList, const char *junkAttrName, TargetEntry **targetEn
 			continue;
 
 		if (strcmp(tle->resname, junkAttrName) == 0)
-			*targetEntry = tle;
+			return tle;
 	}
+	elog(ERROR, "could not find junk tle \"%s\"", junkAttrName);
 }
 
 static AttrNumber
-find_ctid_attribute_check(List *targetList, Index resultRelationsIdx)
+find_ctid_attribute_check(List *targetList)
 {
 	TargetEntry	*ctid;
 	Var			*var;
 
-	find_junk_tle(targetList, "ctid", &ctid);
-
+	ctid = find_junk_tle(targetList, "ctid");
 	if (!ctid)
 		elog(ERROR, "could not find \"ctid\" column in input to UPDATE");
 	Assert(IsA(ctid->expr, Var));
@@ -1280,22 +1276,18 @@ find_ctid_attribute_check(List *targetList, Index resultRelationsIdx)
 	var = (Var *) (ctid->expr);
 
 	/* Ctid should follow after normal attributes */
-	Assert((var->varno == resultRelationsIdx &&
-			var->varattno == SelfItemPointerAttributeNumber) ||
-		   (var->varnoold == resultRelationsIdx &&
-			var->varoattno == SelfItemPointerAttributeNumber));
+	Assert(var->vartype == TIDOID);
 
 	return ctid->resno;
 }
 
 static AttrNumber
-find_oid_attribute_check(List *targetList, Index resultRelationsIdx)
+find_oid_attribute_check(List *targetList)
 {
 	TargetEntry	*tle;
 	Var			*var;
 
-	find_junk_tle(targetList, "oid", &tle);
-
+	tle = find_junk_tle(targetList, "oid");
 	if (!tle)
 		elog(ERROR, "could not find \"oid\" column in input to UPDATE");
 	Assert(IsA(tle->expr, Var));
@@ -1303,10 +1295,7 @@ find_oid_attribute_check(List *targetList, Index resultRelationsIdx)
 	var = (Var *) (tle->expr);
 
 	/* OID should follow after normal attributes */
-	Assert((var->varno == resultRelationsIdx &&
-			var->varattno == ObjectIdAttributeNumber) ||
-		   (var->varnoold == resultRelationsIdx &&
-			var->varoattno == ObjectIdAttributeNumber));
+	Assert(var->vartype == OIDOID);
 
 	return tle->resno;
 }
@@ -1354,7 +1343,7 @@ copy_junk_attributes(List *src, List **dest, AttrNumber startAttrIdx)
  * deleteColIdx which contains placeholder, and value will be corrected later
  */
 static void
-process_targetlist_for_splitupdate(Relation resultRel, Index resultRelationsIdx, List *targetlist,
+process_targetlist_for_splitupdate(Relation resultRel, List *targetlist,
 								   List **splitUpdateTargetList, List **insertColIdx, List **deleteColIdx)
 {
 	TupleDesc	resultDesc = RelationGetDescr(resultRel);
@@ -1395,6 +1384,7 @@ process_targetlist_for_splitupdate(Relation resultRel, Index resultRelationsIdx,
 									   attr->atttypmod,
 									   attr->attcollation,
 									   0);
+			splitVar->varnoold = attrIdx;
 
 			splitTargetEntry = makeTargetEntry((Expr *) splitVar, tle->resno, tle->resname, tle->resjunk);
 			*splitUpdateTargetList = lappend(*splitUpdateTargetList, splitTargetEntry);
@@ -1477,8 +1467,7 @@ process_targetlist_for_splitupdate(Relation resultRel, Index resultRelationsIdx,
  * 'result_relation' is the RTI of the UPDATE target relation.
  */
 SplitUpdate *
-make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntry *rte,
-				 Index result_relation)
+make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntry *rte)
 {
 	AttrNumber		ctidColIdx = 0;
 	List			*deleteColIdx = NIL;
@@ -1508,13 +1497,12 @@ make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntr
 	 * insertColIdx and deleteColIdx.
 	 */
 	process_targetlist_for_splitupdate(resultRelation,
-									   result_relation,
 									   subplan->targetlist,
 									   &splitUpdateTargetList, &insertColIdx, &deleteColIdx);
-	ctidColIdx = find_ctid_attribute_check(subplan->targetlist, result_relation);
+	ctidColIdx = find_ctid_attribute_check(subplan->targetlist);
 
 	if (resultRelation->rd_rel->relhasoids)
-		oidColIdx = find_oid_attribute_check(subplan->targetlist, result_relation);
+		oidColIdx = find_oid_attribute_check(subplan->targetlist);
 
 	copy_junk_attributes(subplan->targetlist, &splitUpdateTargetList, resultDesc->natts);
 
@@ -1559,42 +1547,6 @@ make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan, RangeTblEntr
 	mt->oid_col_idxes = lappend_int(mt->oid_col_idxes, oidColIdx);
 
 	return splitupdate;
-}
-
-/*
- * Find the index of the segid column of the requested relation (relid) in the
- * target list
- */
-static AttrNumber
-find_segid_column(List *tlist, Index relid)
-{
-	if (NIL == tlist)
-	{
-		return -1;
-	}
-
-	ListCell   *lcte = NULL;
-
-	foreach(lcte, tlist)
-	{
-		TargetEntry *te = (TargetEntry *) lfirst(lcte);
-
-		Var		   *var = (Var *) te->expr;
-
-		if (!IsA(var, Var))
-		{
-			continue;
-		}
-
-		if ((var->varno == relid && var->varattno == GpSegmentIdAttributeNumber) ||
-			(var->varnoold == relid && var->varoattno == GpSegmentIdAttributeNumber))
-		{
-			return te->resno;
-		}
-	}
-
-	/* no segid column found */
-	return -1;
 }
 
 
@@ -2837,6 +2789,7 @@ rte_param_walker(List *rtable, ParamWalkerContext *context)
 {
 	ListCell   *lc;
 	int			rteid = 0;
+	ListCell   *func_lc;
 
 	foreach(lc, rtable)
 	{
@@ -2863,11 +2816,19 @@ rte_param_walker(List *rtable, ParamWalkerContext *context)
 				param_walker((Node *) rte->joinaliasvars, context);
 				break;
 			case RTE_FUNCTION:
-				param_walker(rte->funcexpr, context);
+				foreach(func_lc, rte->functions)
+				{
+					RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(func_lc);
+					param_walker(rtfunc->funcexpr, context);
+				}
 				break;
 			case RTE_TABLEFUNCTION:
 				param_walker((Node *) rte->subquery, context);
-				param_walker(rte->funcexpr, context);
+				foreach(func_lc, rte->functions)
+				{
+					RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(func_lc);
+					param_walker(rtfunc->funcexpr, context);
+				}
 				break;
 			case RTE_VALUES:
 				param_walker((Node *) rte->values_lists, context);

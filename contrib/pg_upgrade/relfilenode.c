@@ -3,7 +3,7 @@
  *
  *	relfilenode functions
  *
- *	Copyright (c) 2010-2013, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2014, PostgreSQL Global Development Group
  *	contrib/pg_upgrade/relfilenode.c
  */
 
@@ -113,8 +113,8 @@ transfer_all_new_dbs(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
 		}
 
 		if (new_dbnum >= new_db_arr->ndbs)
-			pg_log(PG_FATAL, "old database \"%s\" not found in the new cluster\n",
-				   old_db->db_name);
+			pg_fatal("old database \"%s\" not found in the new cluster\n",
+					 old_db->db_name);
 
 		n_maps = 0;
 		mappings = gen_db_file_maps(old_db, new_db, &n_maps, old_pgdata,
@@ -297,9 +297,9 @@ transfer_relfile_segment(int segno, pageCnvCtx *pageConverter, FileNameMap *map,
 				if (errno == ENOENT)
 					return false;
 				else
-					pg_log(PG_FATAL, "error while checking for file existence \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
-						   map->nspname, map->relname, old_file, new_file,
-						   getErrorText(errno));
+					pg_fatal("error while checking for file existence \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
+							 map->nspname, map->relname, old_file, new_file,
+							 getErrorText(errno));
 			}
 			close(fd);
 		}
@@ -332,8 +332,8 @@ transfer_relfile_segment(int segno, pageCnvCtx *pageConverter, FileNameMap *map,
 		}
 
 		if ((user_opts.transfer_mode == TRANSFER_MODE_LINK) && (pageConverter != NULL))
-			pg_log(PG_FATAL, "This upgrade requires page-by-page conversion, "
-				   "you must use copy mode instead of link mode.\n");
+			pg_fatal("This upgrade requires page-by-page conversion, "
+					 "you must use copy mode instead of link mode.\n");
 
 		if (user_opts.transfer_mode == TRANSFER_MODE_COPY)
 		{
@@ -349,8 +349,8 @@ transfer_relfile_segment(int segno, pageCnvCtx *pageConverter, FileNameMap *map,
 				pg_log(PG_VERBOSE, "copying \"%s\" to \"%s\"\n", old_file, new_file);
 
 				if ((msg = copyAndUpdateFile(pageConverter, old_file, new_file, true)) != NULL)
-					pg_log(PG_FATAL, "error while copying relation \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
-						   map->nspname, map->relname, old_file, new_file, msg);
+					pg_fatal("error while copying relation \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
+							 map->nspname, map->relname, old_file, new_file, msg);
 			}
 		}
 		else
@@ -358,9 +358,8 @@ transfer_relfile_segment(int segno, pageCnvCtx *pageConverter, FileNameMap *map,
 			pg_log(PG_VERBOSE, "linking \"%s\" to \"%s\"\n", old_file, new_file);
 
 			if ((msg = linkAndUpdateFile(pageConverter, old_file, new_file)) != NULL)
-				pg_log(PG_FATAL,
-					   "error while creating link for relation \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
-					   map->nspname, map->relname, old_file, new_file, msg);
+				pg_fatal("error while creating link for relation \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
+						 map->nspname, map->relname, old_file, new_file, msg);
 		}
 
 	return true;

@@ -777,6 +777,7 @@ doNotifyingCommitPrepared(void)
 	bool		badGangs;
 	int			retry = 0;
 	volatile int savedInterruptHoldoffCount;
+	MemoryContext oldcontext = CurrentMemoryContext;;
 
 	CdbDispatchDirectDesc direct = default_dispatch_direct_desc;
 
@@ -806,6 +807,7 @@ doNotifyingCommitPrepared(void)
 		/*
 		 * restore the previous value, which is reset to 0 in errfinish.
 		 */
+		MemoryContextSwitchTo(oldcontext);
 		InterruptHoldoffCount = savedInterruptHoldoffCount;
 		succeeded = false;
 		FlushErrorState();
@@ -855,6 +857,7 @@ doNotifyingCommitPrepared(void)
 			/*
 			 * restore the previous value, which is reset to 0 in errfinish.
 			 */
+			MemoryContextSwitchTo(oldcontext);
 			InterruptHoldoffCount = savedInterruptHoldoffCount;
 			succeeded = false;
 			FlushErrorState();
@@ -881,6 +884,7 @@ retryAbortPrepared(void)
 	bool		succeeded = false;
 	bool		badGangs = false;
 	volatile int savedInterruptHoldoffCount;
+	MemoryContext oldcontext = CurrentMemoryContext;;
 
 	CdbDispatchDirectDesc direct = default_dispatch_direct_desc;
 
@@ -920,6 +924,7 @@ retryAbortPrepared(void)
 			/*
 			 * restore the previous value, which is reset to 0 in errfinish.
 			 */
+			MemoryContextSwitchTo(oldcontext);
 			InterruptHoldoffCount = savedInterruptHoldoffCount;
 			succeeded = false;
 			FlushErrorState();
@@ -941,6 +946,7 @@ doNotifyingAbort(void)
 	bool		succeeded;
 	bool		badGangs;
 	volatile int savedInterruptHoldoffCount;
+	MemoryContext oldcontext = CurrentMemoryContext;
 
 	CdbDispatchDirectDesc direct = default_dispatch_direct_desc;
 
@@ -1027,6 +1033,7 @@ doNotifyingAbort(void)
 			/*
 			 * restore the previous value, which is reset to 0 in errfinish.
 			 */
+			MemoryContextSwitchTo(oldcontext);
 			InterruptHoldoffCount = savedInterruptHoldoffCount;
 			succeeded = false;
 			FlushErrorState();
@@ -1364,7 +1371,7 @@ getSuperuser(Oid *userOid)
 				BoolGetDatum(true));
 
 	auth_rel = heap_open(AuthIdRelationId, AccessShareLock);
-	auth_scan = heap_beginscan(auth_rel, SnapshotNow, 2, key);
+	auth_scan = heap_beginscan_catalog(auth_rel, 2, key);
 
 	while (HeapTupleIsValid(auth_tup = heap_getnext(auth_scan,
 													ForwardScanDirection)))

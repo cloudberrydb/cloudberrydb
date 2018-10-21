@@ -288,6 +288,13 @@ static Node *replace_sirv_functions_mutator(Node *node, void *context)
 		/**
 		 * Find sirv functions in the range table entries and replace them
 		 */
+
+		// GPDB_94_MERGE_FIXME: replace_sirvf_rte() is broken, it needs to be refactored
+		// for the change that a FunctionScan node can now contain multiple RangeTblFunctions.
+		// However, this will be obsoleted/changed also by PR:
+		// https://github.com/greenplum-db/gpdb/pull/5477.
+		// Let's come back to this after that PR has been pushed and merged to the merge
+		// iteration branch
 		if (safe_to_replace_sirvf_rte(query))
 		{
 			ListCell *lc;
@@ -334,23 +341,31 @@ static void replace_sirvf_tle(Query *query, int tleOffset)
 /**
  * Is a function expression a sirvf?
  */
-static bool is_sirv_funcexpr(FuncExpr *fe)
+static bool
+is_sirv_funcexpr(FuncExpr *fe)
 {
-	bool res = (!fe->funcretset /* Set returning functions cannot become initplans */
-			&& !fe->is_tablefunc /* Ignore table functions */
-			&& !contain_vars_of_level_or_above((Node *) fe->args, 0) /* Must be variable free */
-			&& !contain_subplans((Node *) fe->args) /* Must not contain sublinks */
-			&& func_volatile(fe->funcid) == PROVOLATILE_VOLATILE /* Must be a volatile function */
-			&& fe->funcresulttype != RECORDOID /* Record types cannot be handled currently */
-			);
+	if (fe->funcretset)
+		return false;	/* Set returning functions cannot become initplans */
 
-	/**
-	 * Function cannot be sequence related
-	 */
-	Oid funcid = fe->funcid;
-	res = res && !(funcid == F_NEXTVAL_OID || funcid == F_CURRVAL_OID || funcid == F_SETVAL_OID);
+	if (fe->is_tablefunc)
+		return false;	/* Ignore table functions */
 
-	return res;
+	if (contain_vars_of_level_or_above((Node *) fe->args, 0))
+		return false;	/* Must be variable free */
+
+	if (contain_subplans((Node *) fe->args))
+		return false;	/* Must not contain sublinks */
+
+	if (func_volatile(fe->funcid) != PROVOLATILE_VOLATILE)
+		return false;	/* Must be a volatile function */
+
+	if (fe->funcresulttype == RECORDOID)
+		return false;	/* Record types cannot be handled currently */
+
+	if (fe->funcid == F_NEXTVAL_OID || fe->funcid == F_CURRVAL_OID || fe-> funcid == F_SETVAL_OID)
+		return false;	/* Function cannot be sequence related */
+
+	return true;
 }
 
 /**
@@ -524,11 +539,29 @@ static bool single_row_query(Query *query)
 		{
 			case RTE_FUNCTION:
 			{
-				FuncExpr *fe = (FuncExpr *) rte->funcexpr;
-				if (fe->funcretset)
-				{
-					/* SRF in FROM clause */
+				ListCell *lcrtfunc;
+
+				/* GPDB_94_MERGE_FIXME: The SIRV transformation can't handle WITH ORDINALITY
+				 * currently */
+				if (rte->funcordinality)
 					return false;
+
+				foreach(lcrtfunc, rte->functions)
+				{
+					RangeTblFunction *rtfunc = (RangeTblFunction *) lfirst(lcrtfunc);
+
+					/*
+					 * This runs before const-evaluation, so the expressions should
+					 * be FuncExprs still. But better safe than sorry.
+					 */
+					if (!IsA(rtfunc->funcexpr, FuncExpr))
+						return false;
+
+					if (((FuncExpr *) rtfunc->funcexpr)->funcretset)
+					{
+						/* SRF in FROM clause */
+						return false;
+					}
 				}
 				break;
 			}
@@ -585,41 +618,45 @@ replace_sirvf_rte(Query *query, RangeTblEntry *rte)
 
 	if (rte->rtekind == RTE_FUNCTION)
 	{
-		FuncExpr *fe = (FuncExpr *) rte->funcexpr;
-		Assert(fe);
-
-		/**
-		 * Transform function expression's inputs
+		/*
+		 * We only deal with the simple cases, with a single function.
+		 * I.e. not ROWS FROM() with multiple functions.
 		 */
-		fe->args = (List *) replace_sirvf_tle_expr_mutator((Node *) fe->args, NULL);
-
-		/**
-		 * If the resulting targetlist entry has a sublink, the query's flag must be set
-		 */
-		if (contain_subplans((Node *) fe->args))
+		if (list_length(rte->functions) == 1)
 		{
-			query->hasSubLinks = true;
-		}
-
-		/**
-		 * If function expression is a SIRV, then further transformations
-		 * need to happen
-		 */
-		if (is_sirv_funcexpr(fe))
-		{
-			Query *subquery = make_sirvf_subquery(fe);
-
-			rte->funcexpr = NULL;
-			rte->funccoltypes = NIL;
-			rte->funcuserdata = NULL;
-			rte->funccoltypmods = NIL;
-			rte->funccolcollations = NIL;
+			RangeTblFunction *rtfunc = (RangeTblFunction *) linitial(rte->functions);
+			FuncExpr *fe = (FuncExpr *) rtfunc->funcexpr;
+			Assert(fe);
 
 			/**
-			 * Turn the range table entry to the kind RTE_SUBQUERY
+			 * Transform function expression's inputs
 			 */
-			rte->rtekind = RTE_SUBQUERY;
-			rte->subquery = subquery;
+			fe->args = (List *) replace_sirvf_tle_expr_mutator((Node *) fe->args, NULL);
+
+			/**
+			 * If the resulting targetlist entry has a sublink, the query's flag must be set
+			 */
+			if (contain_subplans((Node *) fe->args))
+			{
+				query->hasSubLinks = true;
+			}
+
+			/**
+			 * If function expression is a SIRV, then further transformations
+			 * need to happen
+			 */
+			if (is_sirv_funcexpr(fe))
+			{
+				Query *subquery = make_sirvf_subquery(fe);
+
+				rte->functions = NIL;
+
+				/**
+				 * Turn the range table entry to the kind RTE_SUBQUERY
+				 */
+				rte->rtekind = RTE_SUBQUERY;
+				rte->subquery = subquery;
+			}
 		}
 	}
 

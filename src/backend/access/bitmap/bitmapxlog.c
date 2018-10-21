@@ -736,6 +736,11 @@ bitmap_xlog_cleanup(void)
 	incomplete_actions = NIL;
 }
 
+/*
+ * GPDB_94_MERGE_FIXME: PostgreSQL 9.4 got rid of the "safe_restartpoint" and
+ * incomplete actions mechanism. See commits 631118fe1e and 40dae7ec53. We
+ * need to do the same for bitmap indexes.
+ */
 bool
 bitmap_safe_restartpoint(void)
 {

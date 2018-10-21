@@ -61,7 +61,6 @@
 #include "utils/resgroup-ops.h"
 #include "utils/resgroup.h"
 #include "utils/resource_manager.h"
-#include "utils/resowner.h"
 #include "utils/session_state.h"
 #include "utils/tqual.h"
 #include "utils/vmem_tracker.h"
@@ -530,12 +529,6 @@ InitResGroups(void)
 	 */
 	if (pResGroupControl->loaded)
 		return;
-	/*
-	 * Need a resource owner to keep the heapam code happy.
-	 */
-	Assert(CurrentResourceOwner == NULL);
-	ResourceOwner owner = ResourceOwnerCreate(NULL, "InitResGroups");
-	CurrentResourceOwner = owner;
 
 	if (Gp_role == GP_ROLE_DISPATCH && pResGroupControl->segmentsOnMaster == 0)
 	{
@@ -580,7 +573,7 @@ InitResGroups(void)
 	}
 
 	numGroups = 0;
-	sscan = systable_beginscan(relResGroup, InvalidOid, false, SnapshotNow, 0, NULL);
+	sscan = systable_beginscan(relResGroup, InvalidOid, false, NULL, 0, NULL);
 	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
 		ResGroupData	*group;
@@ -684,8 +677,6 @@ exit:
 	 */
 	heap_close(relResGroup, AccessShareLock);
 	heap_close(relResGroupCapability, AccessShareLock);
-	CurrentResourceOwner = NULL;
-	ResourceOwnerDelete(owner);
 }
 
 /*

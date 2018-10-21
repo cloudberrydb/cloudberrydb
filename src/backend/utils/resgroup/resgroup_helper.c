@@ -248,7 +248,7 @@ pg_resgroup_get_status(PG_FUNCTION_ARGS)
 			pg_resgroup_rel = heap_open(ResGroupRelationId, ExclusiveLock);
 
 			sscan = systable_beginscan(pg_resgroup_rel, InvalidOid, false,
-									   SnapshotNow, 0, NULL);
+									   NULL, 0, NULL);
 			while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 			{
 				Oid oid = ObjectIdGetDatum(HeapTupleGetOid(tuple));

@@ -38,8 +38,6 @@ extern int	MaxResourcePortalsPerXact;
 extern bool	ResourceSelectOnly;
 extern bool	ResourceCleanupIdleGangs;
 
-extern Oid MyQueueId; /* resource queue for current role. */
-
 /*
  * Data structures
  *

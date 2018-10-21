@@ -269,7 +269,7 @@ FormErrorTuple(CdbSreh *cdbsreh)
  * rows, and whether rows were ignored or logged into an error log file.
  */
 void
-ReportSrehResults(CdbSreh *cdbsreh, int64 total_rejected)
+ReportSrehResults(CdbSreh *cdbsreh, uint64 total_rejected)
 {
 	if (total_rejected > 0)
 	{

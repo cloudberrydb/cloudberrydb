@@ -2262,7 +2262,6 @@ create table qp_misc_jiras.tbl6874 (a int, b text) distributed by (a);
 --------+---------+-----------+----------+--------------+-------------
  a      | integer |           | plain    |              | 
  b      | text    |           | extended |              | 
-Has OIDs: no
 Distributed by: (a)
 
 insert into qp_misc_jiras.tbl6874 values (generate_series(1,10),'test_1');
@@ -2275,7 +2274,6 @@ create index tbl6874_a on qp_misc_jiras.tbl6874 using bitmap(a);
  b      | text    |           | extended |              | 
 Indexes:
     "tbl6874_a" bitmap (a)
-Has OIDs: no
 Distributed by: (a)
 
 drop index qp_misc_jiras.tbl6874_a;
@@ -2285,7 +2283,6 @@ drop index qp_misc_jiras.tbl6874_a;
 --------+---------+-----------+----------+--------------+-------------
  a      | integer |           | plain    |              | 
  b      | text    |           | extended |              | 
-Has OIDs: no
 Distributed by: (a)
 
 drop table qp_misc_jiras.tbl6874;
