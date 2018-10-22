@@ -237,7 +237,8 @@ gpinitsystem_for_upgrade
 # TODO: we need to switch the mode argument according to GPDB version
 echo "Upgrading master at mdw..."
 run_upgrade mdw "/data/gpdata/master/gpseg-1" --mode=dispatcher
-while read hostname datadir; do
+
+while read -u30 hostname datadir; do
     echo "Upgrading segment at '$hostname' ($datadir)..."
 
     newdatadir=$(sed -e 's|\(/data/gpdata/\w\+\)|\1-new|g' <<< "$datadir")
@@ -251,7 +252,7 @@ while read hostname datadir; do
         --exclude /gpperfmon/
 
     run_upgrade "$hostname" "$datadir" --mode=segment
-done < /tmp/segment_datadirs.txt
+done 30< /tmp/segment_datadirs.txt
 
 start_upgraded_cluster
 time apply_sql_fixups
