@@ -28,6 +28,7 @@ ULONG CAggTest::m_ulAggTestCounter = 0;  // start from first test
 // minidump files
 const CHAR *rgszAggFileNames[] =
 {
+	"../data/dxl/minidump/VolatileFunctionsBelowScalarAgg.mdp",
 	"../data/dxl/minidump/DQA-KeepOuterReference.mdp",
 	"../data/dxl/minidump/ScalarSubqueryCountStarInJoin.mdp",
 	"../data/dxl/minidump/ScalarCorrelatedSubqueryCountStar.mdp",

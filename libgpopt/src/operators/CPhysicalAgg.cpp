@@ -19,6 +19,7 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPhysicalAgg.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
+#include "gpopt/base/CDistributionSpecStrictSingleton.h"
 
 using namespace gpopt;
 
@@ -506,12 +507,21 @@ CPhysicalAgg::FProvidesReqdCols
 CDistributionSpec *
 CPhysicalAgg::PdsDerive
 	(
-	IMemoryPool *, // mp
+	IMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return PdsDerivePassThruOuter(exprhdl);
+	CDistributionSpec *pds = exprhdl.Pdpplan(0 /*child_index*/)->Pds();
+
+	if (CDistributionSpec::EdtUniversal == pds->Edt() &&
+		IMDFunction::EfsVolatile == exprhdl.GetDrvdScalarProps(1 /*child_index*/)->Pfp()->Efs())
+	{
+		return GPOS_NEW(mp) CDistributionSpecStrictSingleton(CDistributionSpecSingleton::EstMaster);
+	}
+
+	pds->AddRef();
+	return pds;
 }
 
 
