@@ -362,8 +362,6 @@ ExecReshuffle(ReshuffleState *node)
 ReshuffleState *
 ExecInitReshuffle(Reshuffle *node, EState *estate, int eflags) {
 	ReshuffleState *reshufflestate;
-	bool has_oids;
-	TupleDesc tupDesc;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_MARK | EXEC_FLAG_BACKWARD)) ||
