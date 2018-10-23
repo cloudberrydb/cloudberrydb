@@ -117,6 +117,7 @@ static _stringlist *extra_install = NULL;
 static char *initfile = NULL;
 static char *aodir = NULL;
 static char *resgroupdir = NULL;
+static bool ignore_plans = false;
 
 /* internal variables */
 static const char *progname;
@@ -1587,6 +1588,7 @@ results_differ(const char *testname, const char *resultsfile, const char *defaul
 	int			i;
 	int			l;
 	const char *platform_expectfile;
+	const char *ignore_plans_opts;
 
 	/*
 	 * We can pass either the resultsfile or the expectfile, they should have
@@ -1599,6 +1601,11 @@ results_differ(const char *testname, const char *resultsfile, const char *defaul
 	else
 		strlcpy(expectfile, default_expectfile, sizeof(expectfile));
 
+	if (ignore_plans)
+		ignore_plans_opts = " -gpd_ignore_plans";
+	else
+		ignore_plans_opts = "";
+
 	/* Name to use for temporary diff file */
 	snprintf(diff, sizeof(diff), "%s.diff", resultsfile);
     
@@ -1606,18 +1613,18 @@ results_differ(const char *testname, const char *resultsfile, const char *defaul
 	if (initfile)
 	{
 	  snprintf(diff_opts, sizeof(diff_opts),
-			   "%s --gpd_init %s", basic_diff_opts, initfile);
+			   "%s%s --gpd_init %s", basic_diff_opts, ignore_plans_opts, initfile);
 
 	  snprintf(m_pretty_diff_opts, sizeof(m_pretty_diff_opts),
-			   "%s --gpd_init %s", pretty_diff_opts, initfile);
+			   "%s%s --gpd_init %s", pretty_diff_opts, ignore_plans_opts, initfile);
 	}
 	else
 	{
 		snprintf(diff_opts, sizeof(diff_opts),
-			   "%s", basic_diff_opts);
+			   "%s%s", basic_diff_opts, ignore_plans_opts);
 
 		snprintf(m_pretty_diff_opts, sizeof(m_pretty_diff_opts),
-                 "%s", pretty_diff_opts);
+				 "%s%s", pretty_diff_opts, ignore_plans_opts);
 	}
 
 	/* OK, run the diff */
@@ -2438,6 +2445,7 @@ help(void)
 	printf(_("  --ao-dir=DIR              directory name prefix containing generic\n"));
 	printf(_("                            UAO row and column tests\n"));
 	printf(_("  --resgroup-dir=DIR        directory name prefix containing resgroup tests\n"));
+	printf(_("  --ignore-plans            ignore any explain plan diffs\n"));
 	printf(_("\n"));
 	printf(_("Options for \"temp-install\" mode:\n"));
 	printf(_("  --extra-install=DIR       additional directory to install (e.g., contrib)\n"));
@@ -2490,6 +2498,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
         {"ao-dir", required_argument, NULL, 26},
         {"resgroup-dir", required_argument, NULL, 27},
         {"exclude-tests", required_argument, NULL, 28},
+		{"ignore-plans", no_argument, NULL, 29},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -2616,6 +2625,9 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
             case 28:
                 split_to_stringlist(strdup(optarg), ", ", &exclude_tests);
                 break;
+			case 29:
+				ignore_plans = true;
+				break;
 			default:
 				/* getopt_long already emitted a complaint */
 				fprintf(stderr, _("\nTry \"%s -h\" for more information.\n"),
