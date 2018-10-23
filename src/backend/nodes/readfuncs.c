@@ -403,6 +403,7 @@ _readQuery(void)
 	READ_NODE_FIELD(setOperations);
 	READ_NODE_FIELD(constraintDeps);
 	READ_BOOL_FIELD(isCTAS);
+	READ_BOOL_FIELD(needReshuffle);
 
 	local_node->intoPolicy = NULL;
 
@@ -2899,7 +2900,22 @@ _readAlterTypeStmt(void)
 	READ_DONE();
 }
 
+
 #ifndef COMPILING_BINARY_FUNCS
+static ReshuffleExpr *
+_readReshuffleExpr(void)
+{
+	READ_LOCALS(ReshuffleExpr);
+
+	READ_INT_FIELD(newSegs);
+	READ_INT_FIELD(oldSegs);
+	READ_NODE_FIELD(hashKeys);
+	READ_NODE_FIELD(hashTypes);
+	READ_INT_FIELD(ptype);
+
+	READ_DONE();
+}
+
 /*
  * parseNodeString
  *
@@ -3206,6 +3222,8 @@ parseNodeString(void)
 		return_value = _readViewStmt();
 	else if (MATCHX("WITHCLAUSE"))
 		return_value = _readWithClause();
+	else if (MATCHX("RESHUFFLEEXPR"))
+		return_value = _readReshuffleExpr();
 	else
 	{
         ereport(ERROR,

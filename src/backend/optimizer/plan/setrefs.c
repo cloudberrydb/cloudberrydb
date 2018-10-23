@@ -1302,6 +1302,7 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 			 * when we make the target list for SplitUpdate node, we
 			 * have used the OUTER as the varno, so we can skip to fix the varno.
 			 */
+		case T_Reshuffle:
 			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d",

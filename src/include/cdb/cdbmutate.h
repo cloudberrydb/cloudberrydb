@@ -71,5 +71,7 @@ extern void sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry
 									GpPolicy **targetPolicy, List **hashExpr);
 extern SplitUpdate *make_splitupdate(PlannerInfo *root, ModifyTable *mt, Plan *subplan,
 				 RangeTblEntry *rte);
+extern Reshuffle *make_reshuffle(PlannerInfo *root, Plan *subplan, RangeTblEntry *rte, Index resultRelationsIdx);
+
 
 #endif   /* CDBMUTATE_H */

@@ -17,6 +17,7 @@
 #include "miscadmin.h"
 
 #include "cdb/cdbpartition.h"
+#include "cdb/cdbhash.h"
 #include "commands/tablecmds.h"
 #include "executor/execDML.h"
 #include "executor/instrument.h"
@@ -41,6 +42,7 @@ ExecSplitUpdateExplainEnd(PlanState *planstate, struct StringInfoData *buf)
 	/* Add memory size of context */
 	planstate->instrument->execmemused += SPLITUPDATE_MEM;
 }
+
 
 /* Split TupleTableSlot into a DELETE and INSERT TupleTableSlot */
 static void

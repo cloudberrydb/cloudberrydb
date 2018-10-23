@@ -572,6 +572,10 @@ plannode_type(Plan *p)
 			return "REPEAT";
 		case T_ForeignScan:
 			return "FOREIGNSCAN";
+		case T_SplitUpdate:
+			return "SPLITUPDATE";
+		case T_Reshuffle:
+			return "RESHUFFLE";
 		default:
 			return "UNKNOWN";
 	}

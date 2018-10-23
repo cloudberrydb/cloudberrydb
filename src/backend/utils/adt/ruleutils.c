@@ -7773,6 +7773,12 @@ get_rule_expr(Node *node, deparse_context *context,
 			}
 			break;
 
+		case T_ReshuffleExpr:
+			{
+				appendStringInfo(buf, "Reshuffle");
+			}
+			break;
+
 		default:
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));
 			break;

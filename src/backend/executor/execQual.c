@@ -43,7 +43,10 @@
 #include "catalog/objectaccess.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbpartition.h"
+#include "cdb/cdbhash.h"
+#include "cdb/cdbvars.h"
 #include "cdb/partitionselection.h"
+#include "cdb/cdbutil.h"
 #include "commands/typecmds.h"
 #include "executor/execdebug.h"
 #include "executor/nodeAgg.h"
@@ -5191,6 +5194,93 @@ ExecEvalCurrentOfExpr(ExprState *exprstate, ExprContext *econtext,
 
 	return BoolGetDatum(result);
 }
+ 
+/*
+ *		ExecEvalReshuffleExpr
+ *
+ *		Evaluate an Reshuffle expression node.
+ * ----------------------------------------------------------------
+ */
+static Datum
+ExecEvalReshuffleExpr(ReshuffleExprState *astate,
+					  ExprContext *econtext,
+					  bool *isNull,
+					  ExprDoneCond *isDone)
+{
+	ReshuffleExpr *sr = (ReshuffleExpr *) astate->xprstate.expr;
+	ListCell *k;
+	ListCell *t;
+	CdbHash *hnew = NULL;
+	uint32 newSeg;
+	bool result;
+
+	Assert(!IS_QUERY_DISPATCHER());
+
+	if(sr->ptype == POLICYTYPE_PARTITIONED)
+	{
+		if (NULL != sr->hashKeys)
+		{
+			/* For hash distributed tables */
+			hnew = makeCdbHash(sr->newSegs);
+			cdbhashinit(hnew);
+			forboth(k, astate->hashKeys, t, astate->hashTypes)
+			{
+				if (*isNull)
+				{
+					cdbhashnull(hnew);
+				}
+				else
+				{
+					ExprState *vstate = (ExprState *) lfirst(k);
+					Oid tp = lfirst_oid(t);
+					Datum val = ExecEvalExpr(vstate, econtext, isNull, isDone);
+					cdbhash(hnew, val, tp);
+				}
+			}
+
+			newSeg = cdbhashreduce(hnew);
+			result = (GpIdentity.segindex != newSeg);
+		}
+		else
+		{
+			/*
+			 * For random distributed tables
+			 *
+			 * We generate an random values [0, newSegs), when this
+			 * value is greater than oldSegs, it indicate that the
+			 * tuple need to reshuffle.
+			 */
+			int newSegs = getgpsegmentCount();
+			result = (cdb_randint((newSegs - 1), 0) >= sr->oldSegs);
+		}
+	}
+	else if(sr->ptype == POLICYTYPE_REPLICATED)
+	{
+		/*
+		 * For replicated tables:
+		 * if we have 3 old segments: 0 1 2
+		 * and we add 4 new segments: 3 4 5 6
+		 * The seg#0 is responsible for reshuffling data into seg#3 and seg#6
+		 * The seg#1 is responsible for reshuffling data into seg#4
+		 * The seg#2 is responsible for reshuffling data into seg#5
+		 *
+		 * 1. New segments need not reshuffle data
+		 * 2. if we have 3 old segments and only add 1 new segments,
+		 * 	  then the seg#1 and seg#2 need not reshuffle data
+		 */
+		if (GpIdentity.segindex >= sr->oldSegs ||
+			GpIdentity.segindex + sr->oldSegs >= sr->newSegs)
+			result = false;
+		else
+			result = true;
+	}
+	else
+		result = false;
+
+	return BoolGetDatum(result);
+
+}
+
 
 /*
  * ExecEvalExprSwitchContext
@@ -6050,6 +6140,17 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				state = (ExprState *) exprstate;
 			}
 			break;
+
+        case T_ReshuffleExpr:
+            {
+				ReshuffleExpr *sr = (ReshuffleExpr *) node;
+				ReshuffleExprState *exprstate = makeNode(ReshuffleExprState);
+                exprstate->hashKeys = ExecInitExpr(sr->hashKeys, parent);
+                exprstate->hashTypes = sr->hashTypes;
+                exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalReshuffleExpr;
+				state = (ExprState*)exprstate;
+            }
+		    break;
 
 		default:
 			elog(ERROR, "unrecognized node type: %d",

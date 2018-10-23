@@ -107,6 +107,7 @@ typedef enum NodeTag
 	T_RowTrigger,
 	T_AssertOp,
 	T_PartitionSelector,
+	T_Reshuffle,
 	T_Plan_End,
 	/* these aren't subclasses of Plan: */
 	T_NestLoopParam,
@@ -173,6 +174,7 @@ typedef enum NodeTag
 	T_RowTriggerState,
 	T_AssertOpState,
 	T_PartitionSelectorState,
+	T_ReshuffleState,
 
 	/*
 	 * TupleDesc and ParamListInfo are not Nodes as such, but you can wrap
@@ -243,6 +245,7 @@ typedef enum NodeTag
 	T_PartListRuleExpr,
 	T_PartListNullTestExpr,
 	T_TableOidInfo,
+    T_ReshuffleExpr,
 
 	/*
 	 * TAGS FOR EXPRESSION STATE NODES (execnodes.h)
@@ -285,6 +288,7 @@ typedef enum NodeTag
 	T_PartBoundOpenExprState,
 	T_PartListRuleExprState,
 	T_PartListNullTestExprState,
+    T_ReshuffleExprState,
 
 	/*
 	 * TAGS FOR PLANNER NODES (relation.h)
