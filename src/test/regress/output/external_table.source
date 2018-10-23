@@ -129,8 +129,8 @@ select * from check_env;
 
 -- end_ignore
 CREATE EXTERNAL WEB TABLE table_env (name TEXT, val TEXT )
-  EXECUTE E'env' ON SEGMENT 0
-  FORMAT 'TEXT' (DELIMITER '=');
+  EXECUTE E'env | sed ''s/=/|/''' ON SEGMENT 0
+  FORMAT 'TEXT' (DELIMITER '|');
 SELECT name, val FROM table_env WHERE name LIKE 'GP_QUERY%' ORDER BY name ASC;
       name       |                                      val                                       
 -----------------+--------------------------------------------------------------------------------
