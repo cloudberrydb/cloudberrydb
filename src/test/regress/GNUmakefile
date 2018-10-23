@@ -201,6 +201,9 @@ installcheck-parallel: all tablespace-setup
 installcheck-tests: all tablespace-setup
 	$(pg_regress_installcheck) $(REGRESS_OPTS) $(TESTS) $(EXTRA_TESTS)
 
+installcheck-icudp: all tablespace-setup
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/icudp_schedule --dbname=regression_icudp $(EXTRA_TESTS)
+
 testbouncer: all
 	bash -c "bouncer/setup.sh"
 	$(pg_regress_check)  --port=65432 --schedule=./minimal_schedule --host=`hostname` $(EXTRA_TESTS)

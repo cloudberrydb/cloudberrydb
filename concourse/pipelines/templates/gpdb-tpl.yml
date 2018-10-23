@@ -348,7 +348,6 @@ resources:
 {% if ("ICW"    in test_sections and "sles" in os_types) or
       "Replication"      in test_sections or
       "ResourceGroups"     in test_sections or
-      "Interconnect"     in test_sections or
       "CLI"      in test_sections or
       "UD"      in test_sections %}
 - name: ccp_src
@@ -819,12 +818,6 @@ replication_ccp_gen_cluster_params_anchor: &replication_ccp_gen_cluster_params
   file: ccp_src/ci/tasks/gen_cluster.yml
   params:
     <<: *ccp_gen_cluster_default_params
-
-replication_ccp_run_tests_params_anchor: &replication_ccp_run_tests_params
-  file: gpdb_src/concourse/tasks/run_tinc.yml
-  image: centos-gpdb-dev-6
-  on_success:
-    <<: *ccp_destroy
 
 ## ======================================================================
 ##    _       _
@@ -1559,45 +1552,17 @@ jobs:
   - aggregate:
     - get: gpdb_src
       passed: [compile_gpdb_centos6]
-    - get: gpdb_binary
-      resource: bin_gpdb_centos6
+    - get: bin_gpdb
       passed: [compile_gpdb_centos6]
+      resource: bin_gpdb_centos6
       trigger: [[ test_trigger ]]
-    - get: ccp_src
     - get: centos-gpdb-dev-6
-  - put: terraform
-    params:
-      <<: *ccp_default_params
-      vars:
-        <<: *ccp_default_vars
-  - task: gen_cluster
-    <<: *replication_ccp_gen_cluster_params
-  - task: gpinitsystem
-    file: ccp_src/ci/tasks/gpinitsystem.yml
-  - task: pre_run_test_setup
+  - task: ic_gpdb
+    file: gpdb_src/concourse/tasks/ic_gpdb.yml
     image: centos-gpdb-dev-6
-    config:
-      platform: linux
-      inputs:
-       - name: ccp_src
-       - name: cluster_env_files
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          set -ex
-          ccp_src/scripts/setup_ssh_to_cluster.sh
-          ssh -t centos@mdw << 'SSH_CMD'
-            sudo yum --cacheonly list installed kernel-devel-$(uname -r)
-          SSH_CMD
-  - task: run_tests
-    <<: *replication_ccp_run_tests_params
     params:
-      TINC_TARGET: mpp_interconnect
-    # ccp_destroy should be part of *replication_ccp_run_tests_params
-  ensure:
-    <<: *set_failed
+      MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' -C src/test/regress installcheck-icudp
+      TEST_OS: centos
 {% endif %}
 
 {% endif %}
