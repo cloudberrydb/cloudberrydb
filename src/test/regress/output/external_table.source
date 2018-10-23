@@ -132,7 +132,7 @@ CREATE EXTERNAL WEB TABLE table_env (name TEXT, val TEXT )
   EXECUTE E'env' ON SEGMENT 0
   FORMAT 'TEXT';
 SELECT * FROM table_env WHERE val LIKE 'GP_QUERY%' ORDER BY val ASC;
-                                         val••••••••••••••••••••••••••••••••••••••••••
+                                         val                                          
 --------------------------------------------------------------------------------------
  GP_QUERY_STRING=SELECT * FROM table_env WHERE val LIKE 'GP_QUERY%' ORDER BY val ASC;
 (1 row)
