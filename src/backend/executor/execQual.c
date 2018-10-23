@@ -6142,14 +6142,14 @@ ExecInitExpr(Expr *node, PlanState *parent)
 			break;
 
         case T_ReshuffleExpr:
-            {
+			{
 				ReshuffleExpr *sr = (ReshuffleExpr *) node;
 				ReshuffleExprState *exprstate = makeNode(ReshuffleExprState);
-                exprstate->hashKeys = ExecInitExpr(sr->hashKeys, parent);
-                exprstate->hashTypes = sr->hashTypes;
-                exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalReshuffleExpr;
+				exprstate->hashKeys = (List*) ExecInitExpr((Expr *) sr->hashKeys, parent);
+				exprstate->hashTypes = sr->hashTypes;
+				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalReshuffleExpr;
 				state = (ExprState*)exprstate;
-            }
+			}
 		    break;
 
 		default:
