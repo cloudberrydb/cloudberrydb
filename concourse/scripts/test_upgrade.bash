@@ -102,6 +102,17 @@ create_new_datadir() {
     '\'''
 }
 
+prep_new_cluster() {
+    # Install the new GPDB version on all nodes and create the new data
+    # directory.
+    local cluster_name=$(cat ./terraform*/name)
+
+    for ((i=0; i<${NUMBER_OF_NODES}; ++i)); do
+        extract_gpdb_tarball ccp-${cluster_name}-$i ${GPDB_TARBALL_DIR:-gpdb_binary}
+        create_new_datadir ccp-${cluster_name}-$i
+    done
+}
+
 gpinitsystem_for_upgrade() {
     # Stop the old cluster and init a new one.
     #
@@ -143,7 +154,7 @@ run_upgrade() {
         time pg_upgrade '"${upgrade_opts}"' '"$*"' \
             -b '"${OLD_GPHOME}"'/bin/ -B '"${NEW_GPHOME}"'/bin/ \
             -d '"$datadir"' \
-            -D '"$(sed -e 's|\('"${DATADIR_PREFIX}"'/\w\+\)|\1-new|g' <<< "$datadir")"
+            -D '"$(get_new_datadir "$datadir")"
 }
 
 dump_old_master_query() {
@@ -167,6 +178,13 @@ get_segment_datadirs() {
         q="SELECT hostname, fselocation FROM gp_segment_configuration JOIN pg_catalog.pg_filespace_entry ON (dbid = fsedbid) WHERE content <> -1"
         dump_old_master_query "$q"
     fi
+}
+
+get_new_datadir() {
+    # Given a data directory for the old cluster, generates a new data directory
+    # based on that path and prints it to stdout.
+    local datadir=$1
+    sed -e 's|\('"${DATADIR_PREFIX}"'/\w\+\)|\1-new|g' <<< "$datadir"
 }
 
 start_upgraded_cluster() {
@@ -215,8 +233,6 @@ compare_dumps() {
     "
 }
 
-CLUSTER_NAME=$(cat ./terraform*/name)
-
 GPDB_TARBALL_DIR=${1:-}
 
 if [ -z "${GPDB_TARBALL_DIR}" ]; then
@@ -245,10 +261,7 @@ set -v
 
 time load_old_db_data ${SQLDUMP_FILE:-sqldump/dump.sql.xz}
 
-for ((i=0; i<${NUMBER_OF_NODES}; ++i)); do
-  extract_gpdb_tarball ccp-${CLUSTER_NAME}-$i ${GPDB_TARBALL_DIR:-gpdb_binary}
-  create_new_datadir ccp-${CLUSTER_NAME}-$i
-done
+prep_new_cluster
 
 time dump_cluster "$old_dump"
 get_segment_datadirs > /tmp/segment_datadirs.txt
@@ -261,7 +274,7 @@ run_upgrade ${MASTER_HOST} "${OLD_MASTER_DATA_DIRECTORY}" --mode=dispatcher
 while read -u30 hostname datadir; do
     echo "Upgrading segment at '$hostname' ($datadir)..."
 
-    newdatadir=$(sed -e 's|\('"${DATADIR_PREFIX}"'/\w\+\)|\1-new|g' <<< "$datadir")
+    newdatadir=$(get_new_datadir "$datadir")
 
     # NOTE: the trailing slash on the rsync source directory is important! It
     # means to transfer the directory's contents and not the directory itself.
