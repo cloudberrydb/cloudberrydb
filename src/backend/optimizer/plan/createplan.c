@@ -6570,16 +6570,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 			targetPolicy = GpPolicyFetch(rte->relid);
 			targetPolicyType = targetPolicy->ptype;
 
-			if (numsegments >= 0)
-			{
-				/*
-				 * We require a table T's sub tables all have the same
-				 * numsegments with T
-				 */
-				Assert(numsegments == targetPolicy->numsegments);
-			}
-
-			numsegments = targetPolicy->numsegments;
+			numsegments = Max(targetPolicy->numsegments, numsegments);
 
 			if (targetPolicyType == POLICYTYPE_PARTITIONED)
 			{
@@ -6595,7 +6586,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 				/* FIXME: also do this for all the subplans */
 				if (subplan->flow->locustype == CdbLocusType_General)
 				{
-					subplan->flow->numsegments = numsegments;
+					subplan->flow->numsegments = targetPolicy->numsegments;
 				}
 
 				if (gp_enable_fast_sri && IsA(subplan, Result))
@@ -6607,7 +6598,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 														 targetPolicy->attrs,
 														 false);
 
-				if (!repartitionPlan(subplan, false, false, hashExpr, numsegments))
+				if (!repartitionPlan(subplan, false, false, hashExpr, targetPolicy->numsegments))
 					ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 									errmsg("Cannot parallelize that INSERT yet")));
 			}
@@ -6653,7 +6644,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 					subplan->flow->locustype == CdbLocusType_SegmentGeneral &&
 					!contain_volatile_functions((Node *)subplan->targetlist))
 				{
-					if (subplan->flow->numsegments >= numsegments)
+					if (subplan->flow->numsegments >= targetPolicy->numsegments)
 					{
 						/*
 						 * A query to reach here:
@@ -6662,7 +6653,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 						 * could simply put General on the same segments with
 						 * target table.
 						 */
-						subplan->flow->numsegments = numsegments;
+						subplan->flow->numsegments = targetPolicy->numsegments;
 						continue;
 					}
 
@@ -6682,7 +6673,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 					!contain_volatile_functions((Node *)subplan->targetlist))
 				{
 					subplan->dispatch = DISPATCH_PARALLEL;
-					if (subplan->flow->numsegments >= numsegments)
+					if (subplan->flow->numsegments >= targetPolicy->numsegments)
 					{
 						/*
 						 * A query to reach here: INSERT INTO d1 VALUES(1).
@@ -6690,7 +6681,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 						 * could simply put General on the same segments with
 						 * target table.
 						 */
-						subplan->flow->numsegments = numsegments;
+						subplan->flow->numsegments = targetPolicy->numsegments;
 					}
 					else
 					{
@@ -6699,7 +6690,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 					continue;
 				}
 
-				if (!broadcastPlan(subplan, false, false, numsegments))
+				if (!broadcastPlan(subplan, false, false, targetPolicy->numsegments))
 					ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 								errmsg("Cannot parallelize that INSERT yet")));
 
@@ -6725,16 +6716,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 			targetPolicy = GpPolicyFetch(rte->relid);
 			targetPolicyType = targetPolicy->ptype;
 
-			if (numsegments >= 0)
-			{
-				/*
-				 * We require a table T's sub tables all have the same
-				 * numsegments with T
-				 */
-				Assert(numsegments == targetPolicy->numsegments);
-			}
-
-			numsegments = targetPolicy->numsegments;
+			numsegments = Max(targetPolicy->numsegments, numsegments);
 
 			if (targetPolicyType == POLICYTYPE_PARTITIONED)
 			{

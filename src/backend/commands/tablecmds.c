@@ -14438,17 +14438,22 @@ ReshuffleRelationData(Relation rel)
 	Oid					relationOid = InvalidOid;
 	AutoStatsCmdType 	cmdType = AUTOSTATS_CMDTYPE_SENTINEL;
 
-	if (policy->numsegments >= getgpsegmentCount())
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						errmsg("Do not need to reshuffle")));
-
 	stmt->needReshuffle = true;
 	stmt->targetList = NIL;
 
 	/* make an RangeVar to indicate the result relation */
 	prelname = pstrdup(RelationGetRelationName(rel));
 	namespace_name = get_namespace_name(rel->rd_rel->relnamespace);
+
+	if (policy->numsegments >= getgpsegmentCount())
+	{
+		ereport(NOTICE,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						errmsg("Do not need to reshuffle %s.%s",
+							   namespace_name,prelname)));
+
+		return;
+	}
 
 	relation = makeRangeVar(namespace_name, prelname, -1);
 	stmt->relation = relation;

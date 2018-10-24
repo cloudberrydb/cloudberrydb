@@ -303,3 +303,23 @@ update table_with_update_trigger set a = a + 1;
 -- reshuffle should success and not hiting any triggers.
 Alter table table_with_update_trigger set with (reshuffle);
 select gp_segment_id, count(*) from table_with_update_trigger group by 1 order by 1;
+--
+-- Test reshuffle inheritance parent table, parent table has different numsegments with
+-- child tables.
+--
+create table mix_base_tbl (a int4, b int4) distributed by (a);
+update gp_distribution_policy  set numsegments=2 where localoid='mix_base_tbl'::regclass;
+insert into mix_base_tbl select g, g from generate_series(1, 3) g;
+create table mix_child_a (a int4, b int4) inherits (mix_base_tbl) distributed by (a);
+insert into mix_child_a select g, g from generate_series(11, 13) g;
+create table mix_child_b (a int4, b int4) inherits (mix_base_tbl) distributed by (b);
+update gp_distribution_policy  set numsegments=2 where localoid='mix_child_b'::regclass;
+insert into mix_child_b select g, g from generate_series(21, 23) g;
+select gp_segment_id, * from mix_base_tbl order by 2, 1;
+-- update distributed column, numsegments does not change
+update mix_base_tbl set a=a+1;
+select gp_segment_id, * from mix_base_tbl order by 2, 1;
+-- reshuffle the parent table, both parent and child table will be rebalanced to all
+-- segments
+Alter table mix_base_tbl set with (reshuffle);
+select gp_segment_id, * from mix_base_tbl order by 2, 1;
