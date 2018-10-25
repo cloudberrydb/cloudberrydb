@@ -201,8 +201,14 @@ installcheck-parallel: all tablespace-setup
 installcheck-tests: all tablespace-setup
 	$(pg_regress_installcheck) $(REGRESS_OPTS) $(TESTS) $(EXTRA_TESTS)
 
+ifeq ($(BUILD_TYPE),prod)
+.PHONY: installcheck-icudp
+installcheck-icudp:
+	+@echo "icudp tests can not run in production builds, skipped"
+else
 installcheck-icudp: all tablespace-setup
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/icudp_schedule --dbname=regression_icudp $(EXTRA_TESTS)
+endif
 
 testbouncer: all
 	bash -c "bouncer/setup.sh"

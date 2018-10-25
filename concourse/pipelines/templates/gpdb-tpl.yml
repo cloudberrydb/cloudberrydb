@@ -1561,7 +1561,8 @@ jobs:
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
     image: centos-gpdb-dev-6
     params:
-      MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' -C src/test/regress installcheck-icudp
+      MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off'
+        BUILD_TYPE=((rc-build-type)) -C src/test/regress installcheck-icudp
       TEST_OS: centos
 {% endif %}
 
