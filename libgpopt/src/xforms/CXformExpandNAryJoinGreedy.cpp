@@ -69,21 +69,6 @@ CXformExpandNAryJoinGreedy::Exfp
 	)
 	const
 {
-	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
-	const CHint *phint = poconf->GetHint();
-
-	const ULONG ulArity = exprhdl.Arity();
-
-	// since the last child of the join operator is a scalar child
-	// defining the join predicate, ignore it.
-	const ULONG ulRelChild = ulArity - 1;
-
-	// This transform is used only when DP is disabled
-	if (GPOPT_FENABLED_XFORM(CXform::ExfExpandNAryJoinDP) && ulRelChild < phint->UlJoinOrderDPLimit())
-	{
-		return CXform::ExfpNone;
-	}
-
 	return CXformUtils::ExfpExpandJoinOrder(exprhdl);
 }
 

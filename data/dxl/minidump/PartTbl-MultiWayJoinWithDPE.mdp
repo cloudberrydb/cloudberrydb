@@ -3255,10 +3255,10 @@
         </dxl:LogicalJoin>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="45420">
+    <dxl:Plan Id="0" SpaceSize="52093">
       <dxl:HashJoin JoinType="Inner">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1580699161.203015" Rows="2777513851522853.000000" Width="355"/>
+          <dxl:Cost StartupCost="0" TotalCost="1580699161.203015" Rows="386033891856.690247" Width="355"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
