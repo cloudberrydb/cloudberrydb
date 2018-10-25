@@ -292,7 +292,7 @@ ExecReshuffle(ReshuffleState *node)
 		int segIdx;
 
 		/* For replicated tables*/
-		if (GpIdentity.segindex >= reshuffle->oldSegs >=
+		if (GpIdentity.segindex + reshuffle->oldSegs >=
 			getgpsegmentCount())
 			return NULL;
 

@@ -316,6 +316,7 @@ _copyModifyTable(const ModifyTable *from)
 	COPY_NODE_FIELD(action_col_idxes);
 	COPY_NODE_FIELD(ctid_col_idxes);
 	COPY_NODE_FIELD(oid_col_idxes);
+	COPY_SCALAR_FIELD(isReshuffle);
 
 	return newnode;
 }

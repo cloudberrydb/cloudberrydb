@@ -6461,6 +6461,7 @@ make_modifytable(PlannerInfo *root,
 	node->action_col_idxes = NIL;
 	node->ctid_col_idxes = NIL;
 	node->oid_col_idxes = NIL;
+	node->isReshuffle = false;
 
 	adjust_modifytable_flow(root, node, is_split_updates);
 
@@ -6775,10 +6776,11 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 					 * if need reshuffle, add the Reshuffle node onto the
 					 * SplitUpdate node and Specify the explicit motion
 					 */
-                    if(qry->needReshuffle)
+					if(qry->needReshuffle)
 					{
 						new_subplan = (Plan *) make_reshuffle(root, new_subplan, rte, rti);
 						request_explicit_motion(new_subplan, rti, root->glob->finalrtable);
+						((ModifyTable *)node)->isReshuffle = true;
 					}
 					else
 					{
@@ -6851,6 +6853,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 					new_subplan = (Plan *) make_splitupdate(root, (ModifyTable *) node, subplan, rte);
 					new_subplan = (Plan *) make_reshuffle(root, new_subplan, rte, rti);
 					request_explicit_motion(new_subplan, rti, root->glob->finalrtable);
+					((ModifyTable *)node)->isReshuffle = true;
 
 					lcp->data.ptr_value = new_subplan;
 

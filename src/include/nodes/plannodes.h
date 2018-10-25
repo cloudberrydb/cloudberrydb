@@ -362,6 +362,7 @@ typedef struct ModifyTable
 	List	   *action_col_idxes;
 	List	   *ctid_col_idxes;
 	List	   *oid_col_idxes;
+	bool		isReshuffle;
 } ModifyTable;
 
 /* ----------------
