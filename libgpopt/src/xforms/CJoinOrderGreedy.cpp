@@ -265,36 +265,41 @@ CJoinOrderGreedy::PickBestJoin
 	)
 {
 
-	SComponent *pcompBestComponent = NULL; // the component which gives minimum cardinality when joined with m_pcompResult
+	SComponent *pcompBestComponent = NULL; // component which gives minimum cardinality when joined with m_pcompResult
+	SComponent *pcompBest = NULL; // resulting join component using pcompBestComponent and original m_pcompResult which gives minimum cardinality
 	CDouble dMinRows = 0.0;
 	ULONG best_comp_idx = gpos::ulong_max;
-	
+
 	CBitSetIter iter(*candidate_comp_set);
 	while (iter.Advance())
 	{
 		SComponent *pcompCurrent = m_rgpcomp[iter.Bit()];
 		SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
-		
+
 		DeriveStats(pcompTemp->m_pexpr);
 		CDouble dRows = pcompTemp->m_pexpr->Pstats()->Rows();
-		
+
 		// pick the component which will give the lowest cardinality
 		if (NULL == pcompBestComponent || dRows < dMinRows)
 		{
 			dMinRows = dRows;
 			best_comp_idx = iter.Bit();
 			pcompBestComponent = pcompCurrent;
-			m_pcompResult->Release();
-			m_pcompResult = pcompTemp;
-			m_pcompResult->AddRef();
+			pcompTemp->AddRef();
+			CRefCount::SafeRelease(pcompBest);
+			pcompBest = pcompTemp;
 		}
 		pcompTemp->Release();
 	}
 
 	GPOS_ASSERT(gpos::ulong_max != best_comp_idx);
+	GPOS_ASSERT(NULL != pcompBest);
+	GPOS_ASSERT(!pcompBestComponent->m_fUsed);
 	pcompBestComponent->m_fUsed = true;
+	m_pcompResult->Release();
+	m_pcompResult = pcompBest;
 	MarkUsedEdges();
-	
+
 	return best_comp_idx;
 }
 
