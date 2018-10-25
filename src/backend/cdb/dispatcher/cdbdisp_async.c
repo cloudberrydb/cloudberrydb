@@ -794,7 +794,7 @@ checkSegmentAlive(CdbDispatchCmdAsync *pParms)
 		ELOG_DISPATCHER_DEBUG("FTS testing connection %d of %d (%s)",
 							  i + 1, pParms->dispatchCount, segdbDesc->whoami);
 
-		if (!FtsIsSegmentUp(segdbDesc->segment_database_info))
+		if (FtsIsSegmentDown(segdbDesc->segment_database_info))
 		{
 			char	   *msg = PQerrorMessage(segdbDesc->conn);
 

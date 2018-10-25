@@ -96,8 +96,6 @@ cdbdisp_dispatchToGang(struct CdbDispatcherState *ds,
 	Assert(dispatchResults && dispatchResults->resultArray);
 
 	(pDispatchFuncs->dispatchToGang) (ds, gp, sliceIndex);
-
-	markCurrentGxactDispatched();
 }
 
 /*

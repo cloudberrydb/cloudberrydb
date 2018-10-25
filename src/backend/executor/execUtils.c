@@ -1794,7 +1794,7 @@ sliceCalculateNumSendingProcesses(Slice *slice)
 			if (slice->directDispatch.isDirectDispatch)
 				return list_length(slice->directDispatch.contentIds);
 			else
-				return getgpsegmentCount();
+				return slice->gangSize;
 
 		default:
 			Insist(false);

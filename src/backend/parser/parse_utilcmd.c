@@ -1738,6 +1738,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 	if (distributedBy &&
 		(distributedBy->ptype == POLICYTYPE_PARTITIONED && distributedBy->keys == NIL))
 	{
+		distributedBy->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
 		return distributedBy;
 	}
 
@@ -1749,14 +1750,12 @@ transformDistributedBy(CreateStmtContext *cxt,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("INHERITS clause cannot be used with DISTRIBUTED REPLICATED clause")));
 
+		distributedBy->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
 		return distributedBy;
 	}
 
 	if (distributedBy)
-	{
 		distrkeys = distributedBy->keys;
-		numsegments = distributedBy->numsegments;
-	}
 
 	/*
 	 * If distributedBy is NIL, the user did not explicitly say what he

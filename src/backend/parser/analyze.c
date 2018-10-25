@@ -50,6 +50,7 @@
 #include "utils/rel.h"
 
 #include "cdb/cdbvars.h"
+#include "cdb/cdbutil.h"
 #include "catalog/gp_policy.h"
 #include "access/htup_details.h"
 #include "optimizer/clauses.h"
@@ -3664,6 +3665,8 @@ setQryDistributionPolicy(IntoClause *into, Query *qry)
 	Assert(into->distributedBy != NULL);
 
 	dist = (DistributedBy *)into->distributedBy;
+
+	dist->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
 
 	/*
 	 * We have a DISTRIBUTED BY column list specified by the user

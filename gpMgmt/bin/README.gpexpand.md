@@ -36,27 +36,20 @@ added to the cluster.
 ### Add the new segments into the cluster:
 The general workflow is as below:
 - add the new segments into `gp_segment_configuration` with status 'u';
-- notify FTS about the changes and wait for FTS to finish the scan:
-  - FTS check the status of the new segments;
-  - FTS record the status in shared memory;
-- once FTS finished its scan notify other processes in the cluster about the
-  new segments via `gpstop -u`, `pg_hba.conf` and `postgres.conf` will be
-  reloaded at proper time by those processes;
+- bump the expand version so other backends can get newest `gp_segment_
+  confiuration`;
 - unlock catalog updates on master;
 
 New segments can't and shouldn't be visible to other processes (user
-connections and auxiliary processes) until:
-1. they are added to `gp_segment_configuration` so others can know about their
-   existance and information;
-2. they are scaned by FTS and their status are recorded in shared memory so
-   others can know about their status;
+connections and auxiliary processes) until they are added to `gp_segment_
+configuration` so others can know about their existance and information;
 
-After above 2 steps the new segments are ready to be used in any newly created
-transactions, but for existing transactions they will still work on old
-segments.  In other words, if a transaction begins with N segments then it
-will only see these N segments during the transaction.
-The gang-size is determined by GpIdentity.numsegment, it will be updated on QD
-main loop only when there is no active transaction.
+Each global transaction will fetch or update a snapshot of `gp_segment_
+configuration` at the beginning of transaction, so new segments can be used in
+any newly created transactions, but for transactions that have got snapshot
+of `gp_segment_configuration` they will still work on old segments. In other
+words, if a transaction begins with N segments then it will only see these N
+segments during the transaction.
 
 ### Data reorganization
 

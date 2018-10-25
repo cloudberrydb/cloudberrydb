@@ -359,7 +359,6 @@ static
 CdbComponentDatabases *readCdbComponentInfoAndUpdateStatus(MemoryContext probeContext)
 {
 	int i;
-	int primary = 0;
 	CdbComponentDatabases *cdbs = cdbcomponent_getCdbComponents(false);
 
 	for (i=0; i < cdbs->total_segment_dbs; i++)
@@ -367,21 +366,11 @@ CdbComponentDatabases *readCdbComponentInfoAndUpdateStatus(MemoryContext probeCo
 		CdbComponentDatabaseInfo *segInfo = &cdbs->segment_db_info[i];
 		uint8	segStatus = 0;
 
-		/*
-		 * cdbs->total_segment_dbs includes both primaries and mirrors,
-		 * count primaries separately.
-		 */
-		if (segInfo->role == 'p')
-			primary++;
-
-		if (SEGMENT_IS_ALIVE(segInfo))
-			FTS_STATUS_SET_UP(segStatus);
+		if (!SEGMENT_IS_ALIVE(segInfo))
+			FTS_STATUS_SET_DOWN(segStatus);
 
 		ftsProbeInfo->fts_status[segInfo->dbid] = segStatus;
 	}
-
-	ftsProbeInfo->total_segment_dbs = primary;
-	GpIdentity.numsegments = primary;
 
 	/*
 	 * Initialize fts_stausVersion after populating the config details in

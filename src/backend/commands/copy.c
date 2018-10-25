@@ -2737,7 +2737,7 @@ CopyTo(CopyState cstate)
 		/* For replicated table, choose only one segment to scan data */
 		if (Gp_role == GP_ROLE_EXECUTE && !cstate->on_segment &&
 				GpPolicyIsReplicated(cstate->rel->rd_cdbpolicy) &&
-				gp_session_id % GpIdentity.numsegments != GpIdentity.segindex)
+				gp_session_id % getgpsegmentCount() != GpIdentity.segindex)
 		{
 			MemoryContextDelete(cstate->rowcontext);
 			return 0;

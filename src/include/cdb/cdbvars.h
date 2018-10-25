@@ -863,7 +863,6 @@ extern int cdb_max_slices;
 
 typedef struct GpId
 {
-	int32		numsegments;	/* count of distinct segindexes */
 	int32		dbid;			/* the dbid of this database */
 	int32		segindex;		/* content indicator: -1 for entry database,
 								 * 0, ..., n-1 for segment database *
@@ -887,12 +886,8 @@ extern uint32 Gp_listener_port;
  */
 extern void write_log(const char *fmt,...) __attribute__((format(printf, 1, 2)));
 
-extern void verifyGpIdentityIsSet(void);
 
 extern void increment_command_count(void);
-
-extern bool updateGpIdentityNumsegments(void);
-extern bool updateSystemProcessGpIdentityNumsegments(void);
 
 /* default to RANDOM distribution for CREATE TABLE without DISTRIBUTED BY */
 extern bool gp_create_table_random_default_distribution;

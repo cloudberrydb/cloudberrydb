@@ -264,6 +264,8 @@
 
  CREATE FUNCTION gp_expand_lock_catalog() RETURNS void LANGUAGE internal VOLATILE AS 'gp_expand_lock_catalog' WITH (OID=5080, DESCRIPTION="Lock catalog changes for gpexpand");
 
+ CREATE FUNCTION gp_expand_bump_version() RETURNS void LANGUAGE internal VOLATILE AS 'gp_expand_bump_version' WITH (OID=5081, DESCRIPTION="bump gpexpand version");
+
  CREATE FUNCTION gp_remove_segment(int2) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_remove_segment' WITH (OID=5051, DESCRIPTION="Remove a primary segment from the system catalog");
 
  CREATE FUNCTION gp_request_fts_probe_scan() RETURNS bool LANGUAGE internal VOLATILE AS 'gp_request_fts_probe_scan' EXECUTE ON MASTER WITH (OID=5035, DESCRIPTION="Request a FTS probe scan and wait for response");

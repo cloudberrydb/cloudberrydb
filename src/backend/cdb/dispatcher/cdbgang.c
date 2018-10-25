@@ -823,7 +823,7 @@ GangOK(Gang *gp)
 
 		if (cdbconn_isBadConnection(segdbDesc))
 			return false;
-		if (!FtsIsSegmentUp(segdbDesc->segment_database_info))
+		if (FtsIsSegmentDown(segdbDesc->segment_database_info))
 			return false;
 	}
 

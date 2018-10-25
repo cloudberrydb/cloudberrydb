@@ -4685,7 +4685,7 @@ DistributedBy:   DISTRIBUTED BY  '(' columnListUnique ')'
 			{
 				DistributedBy *distributedBy = makeNode(DistributedBy);
 				distributedBy->ptype = POLICYTYPE_PARTITIONED;
-				distributedBy->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+				distributedBy->numsegments = -1;
 				distributedBy->keys = $4;
 				$$ = (Node *)distributedBy;
 			}
@@ -4693,7 +4693,7 @@ DistributedBy:   DISTRIBUTED BY  '(' columnListUnique ')'
 			{
 				DistributedBy *distributedBy = makeNode(DistributedBy);
 				distributedBy->ptype = POLICYTYPE_PARTITIONED;
-				distributedBy->numsegments = Max(1, getgpsegmentCount());
+				distributedBy->numsegments = -1;
 				distributedBy->keys = NIL;
 				$$ = (Node *)distributedBy;
 			}
@@ -4701,7 +4701,7 @@ DistributedBy:   DISTRIBUTED BY  '(' columnListUnique ')'
 			{
 				DistributedBy *distributedBy = makeNode(DistributedBy);
 				distributedBy->ptype = POLICYTYPE_REPLICATED;
-				distributedBy->numsegments = Max(1, getgpsegmentCount());
+				distributedBy->numsegments = -1;
 				distributedBy->keys = NIL;
 				$$ = (Node *)distributedBy;
 			}

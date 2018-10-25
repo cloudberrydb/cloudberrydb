@@ -305,7 +305,6 @@ Feature: expand the cluster by adding more segments
         And user has created test table
         And 20 rows are inserted into table "test" in schema "public" with column type list "int"
         And a long-run read-only transaction exists on "test"
-        And gp_num_contents_in_cluster in the long-run transaction has been saved
         And there are no gpexpand_inputfiles
         And the cluster is setup for an expansion on hosts "mdw"
         And the user runs gpexpand interview to add 1 new segment and 0 new host "ignore.host"
@@ -316,8 +315,6 @@ Feature: expand the cluster by adding more segments
         And all the segments are running
         And verify that the master pid has not been changed
         And verify that long-run read-only transaction still exists on "test"
-        And verify that gp_num_contents_in_cluster is unchanged in the long-run transaction
-        And verify that gp_num_contents_in_cluster is 3 in a new transaction
 
     @gpexpand_no_mirrors
     @gpexpand_no_restart

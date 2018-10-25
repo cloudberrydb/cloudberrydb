@@ -1523,13 +1523,10 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
         dbconn.execSQL(self.conn, "CHECKPOINT")
         self.conn.close()
 
-        # Trigger FTS to rescan the segments status
-        self.conn = dbconn.connect(self.dburl, encoding='UTF8')
-        dbconn.execSQL(self.conn, "SELECT gp_request_fts_probe_scan()")
+        # increase expand version 
+        self.conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
+        dbconn.execSQL(self.conn, "select gp_expand_bump_version()")
         self.conn.close()
-
-        cmd = GpStop('Notify all backends about the new segments', reload=True)
-        cmd.run(validateAfter=False)
 
         self.statusLogger.set_status('UPDATE_CATALOG_DONE')
 

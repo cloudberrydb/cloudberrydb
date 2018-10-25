@@ -533,6 +533,10 @@ DESCR("Perform the catalog operations necessary for adding a new segment");
 DATA(insert OID = 5080 ( gp_expand_lock_catalog  PGNSP PGUID 12 1 0 0 0 f f f f f f v 0 0 2278 "" _null_ _null_ _null_ _null_ gp_expand_lock_catalog _null_ _null_ _null_ n a ));
 DESCR("Lock catalog changes for gpexpand");
 
+/* gp_expand_bump_version() => void */
+DATA(insert OID = 5081 ( gp_expand_bump_version  PGNSP PGUID 12 1 0 0 0 f f f f f f v 0 0 2278 "" _null_ _null_ _null_ _null_ gp_expand_bump_version _null_ _null_ _null_ n a ));
+DESCR("Bump gpexpand version");
+
 /* gp_remove_segment(int2) => bool */
 DATA(insert OID = 5051 ( gp_remove_segment  PGNSP PGUID 12 1 0 0 0 f f f f f f v 1 0 16 "21" _null_ _null_ _null_ _null_ gp_remove_segment _null_ _null_ _null_ n a ));
 DESCR("Remove a primary segment from the system catalog");

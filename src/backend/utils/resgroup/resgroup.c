@@ -3479,8 +3479,6 @@ ResGroupDumpInfo(StringInfo str)
 	if (!IsResGroupEnabled())
 		return;
 
-	verifyGpIdentityIsSet();
-
 	appendStringInfo(str, "{\"segid\":%d,", GpIdentity.segindex);
 	/* dump fields in pResGroupControl. */
 	appendStringInfo(str, "\"segmentsOnMaster\":%d,", pResGroupControl->segmentsOnMaster);

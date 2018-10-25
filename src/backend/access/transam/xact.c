@@ -2494,6 +2494,14 @@ StartTransaction(void)
 	s->state = TRANS_INPROGRESS;
 
 	/*
+	 * update the snapshot of gp_segment_configuration, it's not changed
+	 * until the end of transaction, do this update inside a transaction
+	 * because it does a catalog lookup.
+	 */
+	if (DistributedTransactionContext == DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE)
+		cdbcomponent_updateCdbComponents();
+
+	/*
 	 * Acquire a resource group slot.
 	 *
 	 * Slot is successfully acquired when AssignResGroupOnMaster() is returned.

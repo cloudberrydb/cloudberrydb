@@ -1041,15 +1041,6 @@ PostmasterMain(int argc, char *argv[])
              )));
 	}
 
-	if ( GpIdentity.numsegments < 0 )
-	{
-	    ereport(FATAL,
-            (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-             errmsg("numContentsInCluster (from -z option) is not specified or is invalid.  This value must be >= 0.  "
-                "The value to pass can be determined by determining the number of primary segments in the cluster."
-             )));
-	}
-
 	/*
 	 * Other one-time internal sanity checks can go here, if they are fast.
 	 * (Put any slow processing further down, after postmaster.pid creation.)
@@ -2770,8 +2761,6 @@ SIGHUP_handler(SIGNAL_ARGS)
 	int			save_errno = errno;
 
 	PG_SETMASK(&BlockSig);
-
-	updateSystemProcessGpIdentityNumsegments();
 
 	if (Shutdown <= SmartShutdown)
 	{

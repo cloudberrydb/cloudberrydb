@@ -113,6 +113,7 @@ struct CdbComponentDatabases
 	int			my_segindex;	/* the content of this database */
 	bool		my_isprimary;	/* the isprimary flag of this database */
 	uint8		fts_version;	/* the version of fts */
+	int			expand_version;
 	int			numActiveQEs;
 	int			numIdleQEs;
 	int			qeCounter;
@@ -156,6 +157,7 @@ extern void cdb_cleanup(int code, Datum arg  __attribute__((unused)) );
 CdbComponentDatabases * cdbcomponent_getCdbComponents(bool DNSLookupAsError);
 void cdbcomponent_destroyCdbComponents(void);
 
+void cdbcomponent_updateCdbComponents(void);
 /*
  * cdbcomponent_cleanupIdleQEs()
  *
@@ -206,10 +208,11 @@ extern int16 master_standby_dbid(void);
 extern CdbComponentDatabaseInfo *dbid_get_dbinfo(int16 dbid);
 extern int16 contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRole);
 
+extern int numsegmentsFromQD;
 /*
  * Returns the number of segments
  */
-extern int	getgpsegmentCount(void);
+extern int getgpsegmentCount(void);
 
 #define ELOG_DISPATCHER_DEBUG(...) do { \
        if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG) elog(LOG, __VA_ARGS__); \

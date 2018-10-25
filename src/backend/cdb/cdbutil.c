@@ -45,6 +45,8 @@
 #include "cdb/cdbfts.h"
 #include "storage/ipc.h"
 #include "postmaster/fts.h"
+#include "catalog/namespace.h"
+#include "utils/gpexpand.h"
 
 #define MAX_CACHED_1_GANGS 1
 
@@ -73,6 +75,8 @@ static void getAddressesForDBid(CdbComponentDatabaseInfo *c, int elevel);
 static HTAB *hostSegsHashTableInit(void);
 
 static HTAB *segment_ip_cache_htab = NULL;
+
+int numsegmentsFromQD = -1;
 
 typedef struct SegIpEntry
 {
@@ -106,12 +110,6 @@ getCdbComponentInfo(bool DNSLookupAsError)
 	 */
 	int			segment_array_size = 500;
 	int			entry_array_size = 4;	/* we currently support a max of 2 */
-
-	/*
-	 * Count of primary and mirror segments.
-	 */
-	int			primary_count = 0;
-	int			mirror_count = 0;
 
 	/*
 	 * isNull and attr are used when getting the data for a specific column
@@ -228,28 +226,6 @@ getCdbComponentInfo(bool DNSLookupAsError)
 		 */
 		if (content >= 0)
 		{
-			/*
-			 * Only FTS can see all the segments, others can only see the old
-			 * segments during the transaction.  GpIdentity.numsegments is only
-			 * updated at beginning of a transaction, so we should see at most
-			 * GpIdentity.numsegments primaries / mirrors.
-			 */
-			if (!am_ftsprobe)
-			{
-				if (role == 'p')
-				{
-					if (primary_count == getgpsegmentCount())
-						continue; /* Ignore new primaries */
-					primary_count++;
-				}
-				else if (role == 'm')
-				{
-					if (mirror_count == getgpsegmentCount())
-						continue; /* Ignore new mirrors */
-					mirror_count++;
-				}
-			}
-
 			/*
 			 * if we have a dbid bigger than our array we'll have to grow the
 			 * array. (MPP-2104)
@@ -395,19 +371,6 @@ getCdbComponentInfo(bool DNSLookupAsError)
 	}
 
 	/*
-	 * Validate that gp_numsegments == segment_databases->total_segment_dbs
-	 * unless called by FTS.
-	 */
-	if (!am_ftsprobe &&
-		getgpsegmentCount() != component_databases->total_segments)
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_DATA_EXCEPTION),
-				 errmsg("Greenplum Database number of segments inconsistency: count is %d from pg_catalog.%s table, but %d from cdbcomponent_getCdbComponents()",
-						getgpsegmentCount(), GpIdRelationName, component_databases->total_segments)));
-	}
-
-	/*
 	 * Now validate that our identity is present in the entry databases
 	 */
 	for (i = 0; i < component_databases->total_entry_dbs; i++)
@@ -429,11 +392,11 @@ getCdbComponentInfo(bool DNSLookupAsError)
 
 	/*
 	 * Now validate that the segindexes for the segment databases are between
-	 * 0 and (GpIdentity.numsegments - 1) inclusive, and that we hit them all.
+	 * 0 and (numsegments - 1) inclusive, and that we hit them all.
 	 * Since it's sorted, this is relatively easy.
 	 */
 	x = 0;
-	for (i = 0; i < getgpsegmentCount(); i++)
+	for (i = 0; i < component_databases->total_segments; i++)
 	{
 		int			this_segindex = -1;
 
@@ -449,7 +412,7 @@ getCdbComponentInfo(bool DNSLookupAsError)
 				ereport(ERROR,
 						(errcode(ERRCODE_DATA_EXCEPTION),
 						 errmsg("Content values not valid in %s table.  They must be in the range 0 to %d inclusive",
-								GpSegmentConfigRelationName, getgpsegmentCount() - 1)));
+								GpSegmentConfigRelationName, component_databases->total_segments - 1)));
 			}
 		}
 		if (this_segindex != i)
@@ -457,7 +420,7 @@ getCdbComponentInfo(bool DNSLookupAsError)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATA_EXCEPTION),
 					 errmsg("Content values not valid in %s table.  They must be in the range 0 to %d inclusive",
-							GpSegmentConfigRelationName, getgpsegmentCount() - 1)));
+							GpSegmentConfigRelationName, component_databases->total_segments - 1)));
 		}
 	}
 
@@ -567,6 +530,56 @@ cdbcomponent_cleanupIdleQEs(bool includeWriter)
 	return;
 }
 
+/* 
+ * This function is called when current global transaction is set,
+ * the snapshot of segments info will not changed within a global
+ * transaction
+ */
+void
+cdbcomponent_updateCdbComponents(void)
+{
+	uint8 ftsVersion= getFtsVersion();
+	int expandVersion = GetGpExpandVersion();
+
+	PG_TRY();
+	{
+		if (cdb_component_dbs == NULL)
+		{
+			cdb_component_dbs = getCdbComponentInfo(true);
+			cdb_component_dbs->fts_version = ftsVersion;
+			cdb_component_dbs->expand_version = GetGpExpandVersion();
+		}
+		else if ((cdb_component_dbs->fts_version != ftsVersion ||
+				 cdb_component_dbs->expand_version != expandVersion))
+		{
+			if (TempNamespaceOidIsValid())
+			{
+				/*
+				 * Do not update here, otherwise, temp files will be lost 
+				 * in segments;
+				 */
+			}
+			else
+			{
+				ELOG_DISPATCHER_DEBUG("FTS rescanned, get new component databases info.");
+				cdbcomponent_destroyCdbComponents();
+				cdb_component_dbs = getCdbComponentInfo(true);
+				cdb_component_dbs->fts_version = ftsVersion;
+				cdb_component_dbs->expand_version = expandVersion;
+			}
+		}
+	}
+	PG_CATCH();
+	{
+		FtsNotifyProber();
+
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	Assert(cdb_component_dbs->numActiveQEs == 0);
+}
+
 /*
  * cdbcomponent_getCdbComponents 
  *
@@ -577,38 +590,14 @@ cdbcomponent_cleanupIdleQEs(bool includeWriter)
 CdbComponentDatabases *
 cdbcomponent_getCdbComponents(bool DNSLookupAsError)
 {
-	uint8	ftsVersion = getFtsVersion();
-
 	PG_TRY();
 	{
 		if (cdb_component_dbs == NULL)
 		{
 			cdb_component_dbs = getCdbComponentInfo(DNSLookupAsError);
-			cdb_component_dbs->fts_version = ftsVersion;
+			cdb_component_dbs->fts_version = getFtsVersion();
+			cdb_component_dbs->expand_version = GetGpExpandVersion();
 		}
-		else if (cdb_component_dbs->fts_version != ftsVersion)
-		{
-			/*
-			 * A fts version change don't always means a segment is
-			 * down. A mirror InSync status change also change fts
-			 * version, so we need to be careful of destroying exist
-			 * cdb_component_dbs.
-			 *
-			 *
-			 * * A query should has a unique cdb_component_dbs between
-			 * 	 slices and inside slices. 
-			 * * If it's not safe to recycle current writer, use current
-			 *   cdb_component_dbs.
-			 */
-			if (cdb_component_dbs->numActiveQEs == 0 && isSafeToRecreateWriter())
-			{
-				ELOG_DISPATCHER_DEBUG("FTS rescanned, get new component databases info.");
-				cdbcomponent_destroyCdbComponents();
-				cdb_component_dbs = getCdbComponentInfo(DNSLookupAsError);
-				cdb_component_dbs->fts_version = ftsVersion;
-			}
-		}
-
 	}
 	PG_CATCH();
 	{
@@ -738,7 +727,7 @@ cleanupQE(SegmentDatabaseDescriptor *segdbDesc)
 		return false;
 
 	/* if segment is down, the gang can not be reused */
-	if (!FtsIsSegmentUp(segdbDesc->segment_database_info))
+	if (FtsIsSegmentDown(segdbDesc->segment_database_info))
 		return false; 
 
 	/* If a reader exceed the cached memory limitation, destroy it */
@@ -1503,28 +1492,6 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 	return dbid;
 }
 
-/*
- * Returns the number of segments
- */
-int
-getgpsegmentCount(void)
-{
-	if (Gp_role == GP_ROLE_UTILITY)
-	{
-		if (GpIdentity.numsegments <= 0)
-		{
-			elog(DEBUG5, "getgpsegmentCount called when Gp_role == utility, returning zero segments.");
-			return 0;
-		}
-
-		elog(DEBUG1, "getgpsegmentCount called when Gp_role == utility, but is relying on gp_id info");
-	}
-
-	verifyGpIdentityIsSet();
-	Assert(GpIdentity.numsegments > 0);
-	return GpIdentity.numsegments;
-}
-
 List *
 cdbcomponent_getCdbComponentsList(void)
 {
@@ -1542,3 +1509,19 @@ cdbcomponent_getCdbComponentsList(void)
 	return segments;
 }
 
+/*
+ * return the number of total segments for current snapshot of
+ * segments info
+ */
+int
+getgpsegmentCount(void)
+{
+	int32 numsegments = -1;
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+		numsegments = cdbcomponent_getCdbComponents(true)->total_segments;
+	else if (Gp_role == GP_ROLE_EXECUTE)
+		numsegments = numsegmentsFromQD;
+
+	return numsegments;
+}

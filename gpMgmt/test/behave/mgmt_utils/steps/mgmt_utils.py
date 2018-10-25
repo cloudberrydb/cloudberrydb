@@ -2217,36 +2217,6 @@ def impl(context, table_name):
                 xid(before %s, after %), result(before %s, after %s)"
         raise Exception(error_str % (context.long_run_select_only_xid, xid, context.long_run_select_only_data_result, data_result))
 
-@given('gp_num_contents_in_cluster in the long-run transaction has been saved')
-def impl(context):
-    dbname = 'gptest'
-    conn = context.long_run_select_only_conn
-
-    query = """show gp_num_contents_in_cluster"""
-    context.gp_num_contents_in_cluster = dbconn.execSQLForSingleton(conn, query)
-
-@then('verify that gp_num_contents_in_cluster is unchanged in the long-run transaction')
-def impl(context):
-    dbname = 'gptest'
-    conn = context.long_run_select_only_conn
-
-    query = """show gp_num_contents_in_cluster"""
-    gp_num_contents_in_cluster = dbconn.execSQLForSingleton(conn, query)
-
-    if context.gp_num_contents_in_cluster != gp_num_contents_in_cluster:
-        raise Exception("gp_num_contents_in_cluster has been changed in transaction.")
-
-@then('verify that gp_num_contents_in_cluster is {value} in a new transaction')
-def impl(context, value):
-    dbname = 'gptest'
-    conn = dbconn.connect(dbconn.DbURL(dbname=dbname))
-
-    query = """show gp_num_contents_in_cluster"""
-    gp_num_contents_in_cluster = dbconn.execSQLForSingleton(conn, query)
-
-    if int(value) != int(gp_num_contents_in_cluster):
-        raise Exception("gp_num_contents_in_cluster is not updated in a new transaction.")
-
 @given('a long-run transaction starts')
 def impl(context):
     dbname = 'gptest'
@@ -2272,7 +2242,7 @@ def impl(context, table_name):
     try:
         data_result = dbconn.execSQL(conn, query)
     except Exception, msg:
-        key_msg = "ERROR:  cluster size is changed"
+        key_msg = "FATAL:  cluster is expaneded"
         if key_msg not in msg.__str__():
             raise Exception("transaction not abort correctly, errmsg:%s" % msg)
     else:

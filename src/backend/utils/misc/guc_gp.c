@@ -68,6 +68,8 @@
 #define S_PER_D (60 * 60 * 24)
 #define MS_PER_D (1000 * 60 * 60 * 24)
 
+/* FIXME: remove this once gp_num_contents_in_cluster is retired */
+static int dummy_segments = -1;
 /*
  * Assign/Show hook functions defined in this module
  */
@@ -3288,13 +3290,18 @@ struct config_int ConfigureNamesInt_gp[] =
 		NULL, NULL, NULL
 	},
 
+	/*
+	 * FIXME: gp_num_contents_in_cluster take no effect already, can remove it.
+	 * add GUC_NO_SHOW_ALL to avoid gp_num_contents_in_cluster being used by
+	 * others like pg_settings
+	 */
 	{
 		{"gp_num_contents_in_cluster", PGC_POSTMASTER, PRESET_OPTIONS,
 			gettext_noop("Sets the number of segments in the cluster."),
 			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
 		},
-		&GpIdentity.numsegments,
+		&dummy_segments,
 		UNINITIALIZED_GP_IDENTITY_VALUE, INT_MIN, INT_MAX,
 		NULL, NULL, NULL
 	},

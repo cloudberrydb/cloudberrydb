@@ -434,7 +434,7 @@ FinalizeDirectDispatchDataForSlice(Node *node, ContentIdAssignmentData *data, bo
 
 				if (ddcr->dd.contentIds == NULL)
 				{
-					ddcr->dd.contentIds = list_make1_int(cdb_randint(GpIdentity.numsegments - 1, 0));
+					ddcr->dd.contentIds = list_make1_int(cdb_randint(getgpsegmentCount() - 1, 0));
 					if (ShouldPrintTestMessages())
 						elog(INFO, "DDCR learned no content dispatch is required");
 				}

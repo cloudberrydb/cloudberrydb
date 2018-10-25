@@ -808,6 +808,7 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	Oid			sessionUserId = GetSessionUserId();
 	Oid			outerUserId = GetOuterUserId();
 	Oid			currentUserId = GetUserId();
+	int32		numsegments = getgpsegmentCount();
 	StringInfoData resgroupInfo;
 
 	int			tmp,
@@ -861,7 +862,7 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		plantree_len +
 		params_len +
 		sddesc_len +
-		sizeof(GpIdentity.numsegments) +
+		sizeof(numsegments) +
 		sizeof(resgroupInfo.len) +
 		resgroupInfo.len;
 
@@ -972,10 +973,9 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		pos += sddesc_len;
 	}
 
-	/* FIXME: this could be retired with the per-table numsegments */
-	tmp = htonl(GpIdentity.numsegments);
-	memcpy(pos, &tmp, sizeof(GpIdentity.numsegments));
-	pos += sizeof(GpIdentity.numsegments);
+	tmp = htonl(numsegments);
+	memcpy(pos, &tmp, sizeof(numsegments));
+	pos += sizeof(numsegments);
 
 	tmp = htonl(resgroupInfo.len);
 	memcpy(pos, &tmp, sizeof(resgroupInfo.len));

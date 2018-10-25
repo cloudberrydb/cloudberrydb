@@ -51,6 +51,7 @@
 #include "utils/resource_manager.h"
 #include "utils/faultinjector.h"
 #include "utils/sharedsnapshot.h"
+#include "utils/gpexpand.h"
 
 #include "libpq-fe.h"
 #include "libpq-int.h"
@@ -200,6 +201,9 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		/* size of Instrumentation slots */
 		size = add_size(size, InstrShmemSize());
 
+		/* size of expand version */
+		size = add_size(size, GpExpandVersionShmemSize());
+
 		elog(DEBUG3, "invoking IpcMemoryCreate(size=%zu)", size);
 
 		/*
@@ -344,6 +348,7 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 	if (!IsUnderPostmaster)
 		InstrShmemInit();
 
+	GpExpandVersionShmemInit();
 #ifdef EXEC_BACKEND
 
 	/*
