@@ -115,6 +115,9 @@ namespace gpopt
 			// in the given array
 			BOOL FContained(const CColRefSetArray *pdrgpcrs);
 
+			// check if current colrefset intersects with the given colrefset
+			BOOL FIntersects(const CColRefSet *pcrs);
+
 			// convert to array
 			CColRefArray *Pdrgpcr(IMemoryPool *mp) const;
 

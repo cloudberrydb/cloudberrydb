@@ -463,6 +463,21 @@ CColRefSet::FContained
 	return false;
 }
 
+BOOL
+CColRefSet::FIntersects
+	(
+	 const CColRefSet *pcrs
+	)
+{
+	GPOS_ASSERT(NULL != pcrs);
+	CColRefSet *intersecting_colrefset = GPOS_NEW(m_mp) CColRefSet(m_mp, *this);
+	intersecting_colrefset->Intersection(pcrs);
+
+	BOOL intersects = intersecting_colrefset->Size() > 0 ;
+	intersecting_colrefset->Release();
+
+	return intersects;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

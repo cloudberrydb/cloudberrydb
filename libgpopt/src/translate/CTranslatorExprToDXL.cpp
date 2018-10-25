@@ -1665,18 +1665,80 @@ CTranslatorExprToDXL::PdxlnResultFromFilter
 	// translate relational child expression
 	CDXLNode *child_dxlnode = CreateDXLNode(pexprRelational, NULL /* colref_array */, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
 
-	// translate scalar expression
-	CDXLNode *pdxlnCond = PdxlnScalar(pexprScalar);
+	// translate scalar expression in to filter and one time filter dxl nodes
+	CColRefSet *relational_child_colrefset = CDrvdPropRelational::GetRelationalProperties(pexprRelational->Pdp(DrvdPropArray::EptRelational))->PcrsOutput();
+	// get all the scalar conditions in an array
+	CExpressionArray *scalar_exprs = CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprScalar);
+	// array to hold scalar conditions which will qualify for filter condition
+	CExpressionArray *filter_quals_exprs = GPOS_NEW(m_mp) CExpressionArray(m_mp);
+	// array to hold scalar conditions which qualify for one time filter condition
+	CExpressionArray *one_time_filter_quals_exprs = GPOS_NEW(m_mp) CExpressionArray(m_mp);
+	for (ULONG ul=0; ul < scalar_exprs->Size(); ul++)
+	{
+		CExpression *scalar_child_expr = (*scalar_exprs)[ul];
+		CColRefSet *scalar_child_colrefset = CDrvdPropScalar::GetDrvdScalarProps(scalar_child_expr->Pdp(DrvdPropArray::EptScalar))->PcrsUsed();
 
-	// wrap condition in a DXL filter node
-	CDXLNode *filter_dxlnode = PdxlnFilter(pdxlnCond);
+		// What qualifies for a one time filter qual?
+		// 1. if there is no column in the scalar child of filter expression coming from its relational
+		// child
+		// and
+		// 2. if there is no volatile function in the scalar child
+		//
+		// Why quals are separated into one time filter vs filter quals?
+		// one time filter quals are evaluated once for each scan, and if the filter evaluates to false,
+		// the data from the nodes below is not requested, however in case of filter quals, they are
+		// evaluated for each tuple coming from the nodes below. So, if the filter does not depends on the tuple
+		// values coming from the nodes below, it could be a one time filter and we can save processing time on
+		// each tuple and evaluating it against the filter.
+		if (scalar_child_colrefset->FIntersects(relational_child_colrefset) || CPredicateUtils::FContainsVolatileFunction(scalar_child_expr))
+		{
+			scalar_child_expr->AddRef();
+			filter_quals_exprs->Append(scalar_child_expr);
+		}
+		else
+		{
+			scalar_child_expr->AddRef();
+			one_time_filter_quals_exprs->Append(scalar_child_expr);
+		}
+	}
+	scalar_exprs->Release();
+
+	// create an emtpy filter
+	CDXLNode *filter_dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarFilter(m_mp));
+	// create an empty one-time filter
+	CDXLNode *one_time_filter_dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarOneTimeFilter(m_mp));
+
+	if (filter_quals_exprs->Size() > 0)
+	{
+		// create scalar cmp expression for filter expression
+		CExpression *scalar_cmp_expr = CPredicateUtils::PexprConjunction(m_mp, filter_quals_exprs);
+		// create dxl node for the filter
+		CDXLNode *scalar_cmp_dxlnode = PdxlnScalar(scalar_cmp_expr);
+		filter_dxlnode->AddChild(scalar_cmp_dxlnode);
+		scalar_cmp_expr->Release();
+	}
+	else
+	{
+		filter_quals_exprs->Release();
+	}
+
+	if (one_time_filter_quals_exprs->Size() > 0)
+	{
+		// create scalar cmp expression for one time filter expression
+		CExpression *scalar_cmp_expr = CPredicateUtils::PexprConjunction(m_mp, one_time_filter_quals_exprs);
+		// create dxl node for one time filter
+		CDXLNode *scalar_cmp_dxlnode = PdxlnScalar(scalar_cmp_expr);
+		one_time_filter_dxlnode->AddChild(scalar_cmp_dxlnode);
+		scalar_cmp_expr->Release();
+	}
+	else
+	{
+		one_time_filter_quals_exprs->Release();
+	}
 
 	GPOS_ASSERT(NULL != pexprFilter->Prpp());
 
 	CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, colref_array);
-
-	// create an empty one-time filter
-	CDXLNode *one_time_filter = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarOneTimeFilter(m_mp));
 
 	return CTranslatorExprToDXLUtils::PdxlnResult
 											(
@@ -1684,7 +1746,7 @@ CTranslatorExprToDXL::PdxlnResultFromFilter
 											dxl_properties,
 											pdxlnPrL,
 											filter_dxlnode,
-											one_time_filter,
+											one_time_filter_dxlnode,
 											child_dxlnode
 											);
 }

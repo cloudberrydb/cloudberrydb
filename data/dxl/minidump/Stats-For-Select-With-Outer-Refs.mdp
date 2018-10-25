@@ -791,10 +791,11 @@
                         <dxl:Ident ColId="26" ColName="adnum" TypeMdid="0.21.1.0"/>
                         <dxl:Ident ColId="5" ColName="attnum" TypeMdid="0.21.1.0"/>
                       </dxl:Comparison>
-                      <dxl:Ident ColId="13" ColName="atthasdef" TypeMdid="0.16.1.0"/>
                     </dxl:And>
                   </dxl:Filter>
-                  <dxl:OneTimeFilter/>
+                  <dxl:OneTimeFilter>
+                    <dxl:Ident ColId="13" ColName="atthasdef" TypeMdid="0.16.1.0"/>
+                  </dxl:OneTimeFilter>
                   <dxl:TableScan>
                     <dxl:Properties>
                       <dxl:Cost StartupCost="0" TotalCost="1.070312" Rows="1.000000" Width="24"/>

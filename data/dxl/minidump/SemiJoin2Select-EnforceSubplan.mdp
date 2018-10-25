@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+create table x (i int, y int);
+create table y (i int, y int);
+explain select * from x where x.i in (select x.y from y)
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
@@ -325,13 +330,13 @@
                       <dxl:Cost StartupCost="0" TotalCost="397.042969" Rows="800.000000" Width="1"/>
                     </dxl:Properties>
                     <dxl:ProjList/>
-                    <dxl:Filter>
+                    <dxl:Filter/>
+                    <dxl:OneTimeFilter>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
                         <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
                       </dxl:Comparison>
-                    </dxl:Filter>
-                    <dxl:OneTimeFilter/>
+                    </dxl:OneTimeFilter>
                     <dxl:Materialize Eager="false">
                       <dxl:Properties>
                         <dxl:Cost StartupCost="0" TotalCost="5.417969" Rows="2000.000000" Width="1"/>
