@@ -150,6 +150,12 @@ gpinitsystem_for_upgrade() {
 
         source '"${NEW_GPHOME}"'/greenplum_path.sh
         sed -E -e '\''s|('"${DATADIR_PREFIX}"'/[[:alnum:]_-]+)|\1-new|g'\'' '"${GPINITSYSTEM_CONFIG}"' > gpinitsystem_config_new
+
+        # XXX Disable mirrors for now.
+        echo "unset MIRROR_DATA_DIRECTORY" >> gpinitsystem_config_new
+        echo "unset MIRROR_PORT_BASE" >> gpinitsystem_config_new
+        echo "unset MIRROR_REPLICATION_PORT_BASE" >> gpinitsystem_config_new
+
         # echo "HEAP_CHECKSUM=off" >> gpinitsystem_config_new
         # echo "standard_conforming_strings = off" >> upgrade_addopts
         # echo "escape_string_warning = off" >> upgrade_addopts
@@ -192,15 +198,16 @@ dump_old_master_query() {
 }
 
 get_segment_datadirs() {
-    # Prints the hostnames and data directories of each primary and mirror: one
-    # instance per line, with the hostname and data directory separated by a
-    # tab.
+    # Prints the hostnames and data directories of each primary: one instance
+    # per line, with the hostname and data directory separated by a tab.
+    #
+    # XXX For now we ignore mirrors; they don't upgrade correctly with GPDB 6.
 
     # First try dumping the 6.0 version...
-    local q="SELECT hostname, datadir FROM gp_segment_configuration WHERE content <> -1"
+    local q="SELECT hostname, datadir FROM gp_segment_configuration WHERE content <> -1 AND role = 'p'"
     if ! dump_old_master_query "$q" 2>/dev/null; then
         # ...and then fall back to pre-6.0.
-        q="SELECT hostname, fselocation FROM gp_segment_configuration JOIN pg_catalog.pg_filespace_entry ON (dbid = fsedbid) WHERE content <> -1"
+        q="SELECT hostname, fselocation FROM gp_segment_configuration JOIN pg_catalog.pg_filespace_entry ON (dbid = fsedbid) WHERE content <> -1 AND role = 'p'"
         dump_old_master_query "$q"
     fi
 }
