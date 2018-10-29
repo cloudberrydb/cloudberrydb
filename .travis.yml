@@ -67,20 +67,15 @@ env:
 
 ## ----------------------------------------------------------------------
 ## Perform build:
-##   GPDB
-##   orafce
 ## ----------------------------------------------------------------------
 
 script:
   - cd ${TRAVIS_BUILD_DIR}
-  - ./configure --with-openssl --with-ldap --with-libcurl --prefix=${TRAVIS_BUILD_DIR}/gpsql --disable-orca --disable-gpcloud --enable-pxf --enable-mapreduce --with-perl --enable-snmp
+  - ./configure --with-openssl --with-ldap --with-libcurl --prefix=${TRAVIS_BUILD_DIR}/gpsql --disable-orca --disable-gpcloud --enable-pxf --enable-mapreduce --with-perl --enable-snmp --enable-orafce
 
   - make
   - make install
   - source ${TRAVIS_BUILD_DIR}/gpsql/greenplum_path.sh
-  - cd ${TRAVIS_BUILD_DIR}/gpAux/extensions/orafce
-  - make install USE_PGXS=1
-  - cd ${TRAVIS_BUILD_DIR}/
   - make unittest-check
   - postgres --version
   - initdb --version
