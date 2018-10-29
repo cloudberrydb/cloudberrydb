@@ -467,7 +467,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 
 	result->nMotionNodes = top_plan->nMotionNodes;
 	result->nInitPlans = top_plan->nInitPlans;
-	result->intoPolicy = GpPolicyCopy(CurrentMemoryContext, parse->intoPolicy);
+	result->intoPolicy = GpPolicyCopy(parse->intoPolicy);
 	result->queryPartOids = NIL;
 	result->queryPartsMetadata = NIL;
 	result->numSelectorsPerScanId = NIL;
@@ -1160,7 +1160,7 @@ inheritance_planner(PlannerInfo *root)
 
 		if (!parentPolicy)
 		{
-			parentPolicy = GpPolicyFetch(NULL, appinfo->parent_reloid);
+			parentPolicy = GpPolicyFetch(appinfo->parent_reloid);
 			parentOid = appinfo->parent_reloid;
 
 			Assert(parentPolicy != NULL);

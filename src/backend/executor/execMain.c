@@ -4512,7 +4512,7 @@ FillSliceTable_walker(Node *node, void *context)
 			Oid			reloid = getrelid(idx, stmt->rtable);
 			GpPolicyType policyType;
 
-			policyType = GpPolicyFetch(CurrentMemoryContext, reloid)->ptype;
+			policyType = GpPolicyFetch(reloid)->ptype;
 
 #ifdef USE_ASSERT_CHECKING
 			{
@@ -4522,7 +4522,7 @@ FillSliceTable_walker(Node *node, void *context)
 					idx = lfirst_int(lc);
 					reloid = getrelid(idx, stmt->rtable);
 
-					if (policyType != GpPolicyFetch(CurrentMemoryContext, reloid)->ptype)
+					if (policyType != GpPolicyFetch(reloid)->ptype)
 						elog(ERROR, "ModifyTable mixes distributed and entry-only tables");
 
 				}
@@ -4547,7 +4547,7 @@ FillSliceTable_walker(Node *node, void *context)
 		Oid			reloid = getrelid(idx, stmt->rtable);
 		GpPolicyType policyType;
 
-		policyType = GpPolicyFetch(CurrentMemoryContext, reloid)->ptype;
+		policyType = GpPolicyFetch(reloid)->ptype;
 
 		if (policyType != POLICYTYPE_ENTRY)
 		{

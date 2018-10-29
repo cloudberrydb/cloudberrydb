@@ -21,7 +21,6 @@
 #include "access/attnum.h"
 #include "catalog/genbki.h"
 #include "nodes/pg_list.h"
-#include "utils/palloc.h"
 
 /*
  * Defines for gp_policy
@@ -109,14 +108,14 @@ typedef struct GpPolicy
  *
  * The copy is palloc'ed in the specified context.
  */
-GpPolicy *GpPolicyCopy(MemoryContext mcxt, const GpPolicy *src);
+extern GpPolicy *GpPolicyCopy(const GpPolicy *src);
 
 /* GpPolicyEqual
  *
  * A field-by-field comparison just to facilitate comparing IntoClause
  * (which embeds this) in equalFuncs.c
  */
-bool GpPolicyEqual(const GpPolicy *lft, const GpPolicy *rgt);
+extern bool GpPolicyEqual(const GpPolicy *lft, const GpPolicy *rgt);
 
 /*
  * GpPolicyFetch
@@ -130,27 +129,27 @@ bool GpPolicyEqual(const GpPolicy *lft, const GpPolicy *rgt);
  * function does not check and assigns a policy of type POLICYTYPE_ENTRY
  * for any oid not found in gp_distribution_policy.
  */
-GpPolicy *GpPolicyFetch(MemoryContext mcxt, Oid tbloid);
+extern GpPolicy *GpPolicyFetch(Oid tbloid);
 
 /*
  * GpPolicyStore: sets the GpPolicy for a table.
  */
-void GpPolicyStore(Oid tbloid, const GpPolicy *policy);
+extern void GpPolicyStore(Oid tbloid, const GpPolicy *policy);
 
-void GpPolicyReplace(Oid tbloid, const GpPolicy *policy);
+extern void GpPolicyReplace(Oid tbloid, const GpPolicy *policy);
 
-void GpPolicyRemove(Oid tbloid);
+extern void GpPolicyRemove(Oid tbloid);
 
-bool GpPolicyIsRandomPartitioned(const GpPolicy *policy);
-bool GpPolicyIsHashPartitioned(const GpPolicy *policy);
-bool GpPolicyIsPartitioned(const GpPolicy *policy);
-bool GpPolicyIsReplicated(const GpPolicy *policy);
-bool GpPolicyIsEntry(const GpPolicy *policy);
+extern bool GpPolicyIsRandomPartitioned(const GpPolicy *policy);
+extern bool GpPolicyIsHashPartitioned(const GpPolicy *policy);
+extern bool GpPolicyIsPartitioned(const GpPolicy *policy);
+extern bool GpPolicyIsReplicated(const GpPolicy *policy);
+extern bool GpPolicyIsEntry(const GpPolicy *policy);
 
-extern GpPolicy *makeGpPolicy(MemoryContext mcxt, GpPolicyType ptype, int nattrs, int numsegments);
-extern GpPolicy *createReplicatedGpPolicy(MemoryContext mcxt, int numsegments);
-extern GpPolicy *createRandomPartitionedPolicy(MemoryContext mcxt, int numsegments);
-extern GpPolicy *createHashPartitionedPolicy(MemoryContext mcxt, List *keys, int numsegments);
+extern GpPolicy *makeGpPolicy(GpPolicyType ptype, int nattrs, int numsegments);
+extern GpPolicy *createReplicatedGpPolicy(int numsegments);
+extern GpPolicy *createRandomPartitionedPolicy(int numsegments);
+extern GpPolicy *createHashPartitionedPolicy(List *keys, int numsegments);
 
 extern bool IsReplicatedTable(Oid relid);
 

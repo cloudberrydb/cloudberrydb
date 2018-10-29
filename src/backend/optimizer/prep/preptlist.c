@@ -391,7 +391,7 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 		bool		key_col_updated = false;
 
 		/* Was any distribution key column among the changed columns? */
-		targetPolicy = GpPolicyFetch(CurrentMemoryContext, RelationGetRelid(rel));
+		targetPolicy = GpPolicyFetch(RelationGetRelid(rel));
 		if (targetPolicy->ptype == POLICYTYPE_PARTITIONED)
 		{
 			int			i;

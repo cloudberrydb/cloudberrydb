@@ -262,7 +262,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 
 		Assert(rte->rtekind == RTE_RELATION);
 
-		targetPolicy = GpPolicyFetch(CurrentMemoryContext, rte->relid);
+		targetPolicy = GpPolicyFetch(rte->relid);
 		targetPolicyType = targetPolicy->ptype;
 	}
 
@@ -292,8 +292,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 				}
 				else if (gp_create_table_random_default_distribution)
 				{
-					targetPolicy = createRandomPartitionedPolicy(NULL,
-																 numsegments);
+					targetPolicy = createRandomPartitionedPolicy(numsegments);
 					ereport(NOTICE,
 							(errcode(ERRCODE_SUCCESSFUL_COMPLETION),
 							 errmsg("Using default RANDOM distribution since no distribution was specified."),
@@ -414,7 +413,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 						}
 					}
 
-					targetPolicy = createHashPartitionedPolicy(NULL, policykeys,
+					targetPolicy = createHashPartitionedPolicy(policykeys,
 															   numsegments);
 
 					if (query->intoPolicy == NULL)

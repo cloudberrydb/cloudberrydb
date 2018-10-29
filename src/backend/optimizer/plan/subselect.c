@@ -425,7 +425,7 @@ static bool QueryHasDistributedRelation(Query *q)
 		if (rte->relid != InvalidOid
 				&& rte->rtekind == RTE_RELATION)
 		{
-			GpPolicy *policy = GpPolicyFetch(CurrentMemoryContext, rte->relid);
+			GpPolicy *policy = GpPolicyFetch(rte->relid);
 			if (GpPolicyIsPartitioned(policy))
 			{
 				pfree(policy);

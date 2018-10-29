@@ -106,7 +106,7 @@ set_distribution_policy (Datum array_distribution, Datum numsegments)
 	 * the distribution policy of the relation, we set the EVIL numbers for the
 	 * segment count simply, it need to be fixed in the future.
 	 */
-	policy = makeGpPolicy(NULL, POLICYTYPE_PARTITIONED, nattrs,
+	policy = makeGpPolicy(POLICYTYPE_PARTITIONED, nattrs,
 						  DatumGetInt32(numsegments));
 	
 	for (int i = 0; i < nattrs; i++)

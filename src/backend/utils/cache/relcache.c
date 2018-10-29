@@ -1018,9 +1018,13 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
      * initialize Greenplum Database partitioning info
      */
     if ((relation->rd_rel->relkind == RELKIND_RELATION &&
-        !IsSystemRelation(relation)) ||
+		 !IsSystemRelation(relation)) ||
 		relation->rd_rel->relkind == RELKIND_MATVIEW)
-        relation->rd_cdbpolicy = GpPolicyFetch(CacheMemoryContext, targetRelId);
+	{
+		MemoryContext oldcontext = MemoryContextSwitchTo(CacheMemoryContext);
+		relation->rd_cdbpolicy = GpPolicyFetch(targetRelId);
+		MemoryContextSwitchTo(oldcontext);
+	}
 
     relation->rd_cdbDefaultStatsWarningIssued = false;
 
@@ -3811,7 +3815,7 @@ CheckConstraintFetch(Relation relation)
 GpPolicy*
 RelationGetPartitioningKey(Relation relation)
 {
-    return GpPolicyCopy(CurrentMemoryContext, relation->rd_cdbpolicy);
+	return GpPolicyCopy(relation->rd_cdbpolicy);
 }                                       /* RelationGetPartitioningKey */
 
 

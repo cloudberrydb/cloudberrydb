@@ -6570,7 +6570,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 
 			Assert(rte->rtekind == RTE_RELATION);
 
-			targetPolicy = GpPolicyFetch(CurrentMemoryContext, rte->relid);
+			targetPolicy = GpPolicyFetch(rte->relid);
 			targetPolicyType = targetPolicy->ptype;
 
 			if (numsegments >= 0)
@@ -6726,7 +6726,7 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 			Assert(rti > 0);
 			Assert(rte->rtekind == RTE_RELATION);
 
-			targetPolicy = GpPolicyFetch(CurrentMemoryContext, rte->relid);
+			targetPolicy = GpPolicyFetch(rte->relid);
 			targetPolicyType = targetPolicy->ptype;
 
 			if (numsegments >= 0)

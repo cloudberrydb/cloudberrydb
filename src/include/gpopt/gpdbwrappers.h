@@ -650,7 +650,7 @@ namespace gpdb {
 	// returns true if a query cancel is requested in GPDB
 	bool IsAbortRequested(void);
 
-	GpPolicy *MakeGpPolicy(MemoryContext mcxt, GpPolicyType ptype, int nattrs,
+	GpPolicy *MakeGpPolicy(GpPolicyType ptype, int nattrs,
 						   int numsegments);
 
 } //namespace gpdb

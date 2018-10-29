@@ -8275,7 +8275,7 @@ is_exchangeable(Relation rel, Relation oldrel, Relation newrel, bool throw)
 		{
 			int			i;
 
-			adjpol = GpPolicyCopy(CurrentMemoryContext, parpol);
+			adjpol = GpPolicyCopy(parpol);
 
 			for (i = 0; i < adjpol->nattrs; i++)
 			{

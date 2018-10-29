@@ -2179,7 +2179,7 @@ analyzeEstimateReltuplesRelpages(Oid relationOid, float4 *relTuples, float4 *rel
 
 		initStringInfo(&sqlstmt);
 
-		policy = GpPolicyFetch(CurrentMemoryContext, singleOid);
+		policy = GpPolicyFetch(singleOid);
 
 		if (policy->ptype == POLICYTYPE_ENTRY)
 		{
@@ -2254,7 +2254,7 @@ analyzeEstimateIndexpages(Relation onerel, Relation indrel, BlockNumber *indexPa
 
 	initStringInfo(&sqlstmt);
 
-	policy = GpPolicyFetch(CurrentMemoryContext, RelationGetRelid(onerel));
+	policy = GpPolicyFetch(RelationGetRelid(onerel));
 
 	if (policy->ptype == POLICYTYPE_ENTRY)
 	{

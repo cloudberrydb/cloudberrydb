@@ -3212,7 +3212,6 @@ gpdb::IsAbortRequested
 GpPolicy *
 gpdb::MakeGpPolicy
 		(
-			MemoryContext mcxt,
 			GpPolicyType ptype,
 			int nattrs,
 			int numsegments
@@ -3223,7 +3222,7 @@ gpdb::MakeGpPolicy
 		/*
 		 * FIXME_TABLE_EXPAND: it used by ORCA, help...
 		 */
-		return makeGpPolicy(mcxt, ptype, nattrs, numsegments);
+		return makeGpPolicy(ptype, nattrs, numsegments);
 	}
 	GP_WRAP_END;
 }

@@ -1076,7 +1076,9 @@ DoCopy(const CopyStmt *stmt, const char *queryString, uint64 *processed)
 		if (cstate->on_segment && Gp_role == GP_ROLE_EXECUTE)
 		{
 			/* data needs to get inserted locally */
-			rel->rd_cdbpolicy = GpPolicyCopy(CacheMemoryContext, stmt->policy);
+			MemoryContext oldcontext = MemoryContextSwitchTo(CacheMemoryContext);
+			rel->rd_cdbpolicy = GpPolicyCopy(stmt->policy);
+			MemoryContextSwitchTo(oldcontext);
 		}
 
 		/* We must be a QE if we received the partitioning config */
@@ -2052,13 +2054,11 @@ CopyDispatchOnSegment(CopyState cstate, const CopyStmt *stmt)
 
 	if (cstate->rel->rd_cdbpolicy)
 	{
-		dispatchStmt->policy = GpPolicyCopy(CurrentMemoryContext,
-											cstate->rel->rd_cdbpolicy);
+		dispatchStmt->policy = GpPolicyCopy(cstate->rel->rd_cdbpolicy);
 	}
 	else
 	{
-		dispatchStmt->policy = createRandomPartitionedPolicy(NULL,
-															 GP_POLICY_ALL_NUMSEGMENTS);
+		dispatchStmt->policy = createRandomPartitionedPolicy(GP_POLICY_ALL_NUMSEGMENTS);
 	}
 
 	CdbDispatchUtilityStatement((Node *) dispatchStmt,
@@ -7028,7 +7028,7 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 
 	if (!multi_dist_policy)
 	{
-		policy = GpPolicyCopy(CurrentMemoryContext, cstate->rel->rd_cdbpolicy);
+		policy = GpPolicyCopy(cstate->rel->rd_cdbpolicy);
 
 		if (policy)
 			p_nattrs = policy->nattrs; /* number of partitioning keys */
@@ -7064,7 +7064,7 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 		                      &hash_ctl,
 		                      HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 		p_nattrs = list_length(cols);
-		policy = createHashPartitionedPolicy(NULL, cols,
+		policy = createHashPartitionedPolicy(cols,
 											 cstate->rel->rd_cdbpolicy->numsegments);
 	}
 
@@ -7244,20 +7244,24 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 		}
 		else
 		{
-			MemoryContext oldcontext = MemoryContextSwitchTo(cstate->copycontext);
-			Relation rel = heap_open(relid, NoLock);
+			Relation rel;
+			MemoryContext oldcontext;
+
+			rel = heap_open(relid, NoLock);
 
 			/*
-			 * Make sure this all persists the current
-			 * iteration.
+			 * Make sure this all persists the current iteration.
 			 */
+			oldcontext = MemoryContextSwitchTo(cstate->copycontext);
+
 			d->relid = relid;
 			part_hash = d->cdbHash = makeCdbHash(rel->rd_cdbpolicy->numsegments);
-			part_policy = d->policy = GpPolicyCopy(cstate->copycontext, rel->rd_cdbpolicy);
+			part_policy = d->policy = GpPolicyCopy(rel->rd_cdbpolicy);
 			part_p_nattrs = part_policy->nattrs;
-			heap_close(rel, NoLock);
 
 			MemoryContextSwitchTo(oldcontext);
+
+			heap_close(rel, NoLock);
 		}
 	}
 	distData->policy = part_policy;

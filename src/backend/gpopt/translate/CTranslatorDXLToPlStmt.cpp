@@ -5184,7 +5184,7 @@ CTranslatorDXLToPlStmt::TranslateDXLPhyCtasToDistrPolicy
 	}
 	
 	// always set numsegments to ALL for CTAS
-	GpPolicy *distr_policy = gpdb::MakeGpPolicy(NULL, POLICYTYPE_PARTITIONED,
+	GpPolicy *distr_policy = gpdb::MakeGpPolicy(POLICYTYPE_PARTITIONED,
 												num_of_distr_cols_alloc,
 												gpdb::GetGPSegmentCount());
 

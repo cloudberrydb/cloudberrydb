@@ -146,12 +146,11 @@ cdbCopyStart(CdbCopy *c, CopyStmt *stmt, struct GpPolicy *policy)
 
 	if (policy)
 	{
-		stmt->policy = GpPolicyCopy(CurrentMemoryContext, policy);
+		stmt->policy = GpPolicyCopy(policy);
 	}
 	else
 	{
-		stmt->policy = createRandomPartitionedPolicy(NULL,
-													 GP_POLICY_ALL_NUMSEGMENTS);
+		stmt->policy = createRandomPartitionedPolicy(GP_POLICY_ALL_NUMSEGMENTS);
 	}
 
 	flags = DF_WITH_SNAPSHOT | DF_CANCEL_ON_ERROR;

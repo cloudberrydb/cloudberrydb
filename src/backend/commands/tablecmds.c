@@ -8545,9 +8545,16 @@ ATExecDropColumn(List **wqueue, Relation rel, const char *colName,
 		{
 			if (attnum == rel->rd_cdbpolicy->attrs[ia])
 			{
-				rel->rd_cdbpolicy->nattrs = 0;
+				MemoryContext oldcontext;
+				GpPolicy *policy;
+
 				/* force a random distribution */
-				GpPolicy *policy = GpPolicyCopy(GetMemoryChunkContext(rel), rel->rd_cdbpolicy);
+				rel->rd_cdbpolicy->nattrs = 0;
+
+				oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+				policy = GpPolicyCopy(rel->rd_cdbpolicy);
+				MemoryContextSwitchTo(oldcontext);
+
 				/*
 				 * replace policy first in catalog and then assign to
 				 * rd_cdbpolicy to make sure we have intended policy in relcache
@@ -14636,6 +14643,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 
 				if (pg_strcasecmp(reshuffle_str, def->defname) == 0)
 				{
+					MemoryContext oldcontext;
 					GpPolicy *newPolicy;
 
 					if (NULL != lsecond(lprime))
@@ -14646,12 +14654,15 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 					ReshuffleRelationData(rel);
 
 					policy = rel->rd_cdbpolicy;
-					newPolicy = GpPolicyCopy(GetMemoryChunkContext(rel), policy);
+					oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+					newPolicy = GpPolicyCopy(policy);
+					MemoryContextSwitchTo(oldcontext);
 					newPolicy->numsegments = getgpsegmentCount();
 
 					GpPolicyReplace(RelationGetRelid(rel), newPolicy);
-					rel->rd_cdbpolicy =
-							GpPolicyCopy(GetMemoryChunkContext(rel), newPolicy);
+					oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+					rel->rd_cdbpolicy = GpPolicyCopy(newPolicy);
+					MemoryContextSwitchTo(oldcontext);
 
 					heap_close(rel, NoLock);
 
@@ -14782,13 +14793,17 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 									 RelationGetRelationName(rel))));
 			}
 
-			policy = createRandomPartitionedPolicy(NULL, ldistro->numsegments);
+			policy = createRandomPartitionedPolicy(ldistro->numsegments);
 
 			/* always need to rebuild if changed from replicated policy */
 			if (!GpPolicyIsReplicated(rel->rd_cdbpolicy))
 			{
+				MemoryContext oldcontext;
+
 				GpPolicyReplace(RelationGetRelid(rel), policy);
-				rel->rd_cdbpolicy = GpPolicyCopy(GetMemoryChunkContext(rel), policy);
+				oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+				rel->rd_cdbpolicy = GpPolicyCopy(policy);
+				MemoryContextSwitchTo(oldcontext);
 
 				/* only need to rebuild if have new storage options */
 				if (!(DatumGetPointer(newOptions) || force_reorg))
@@ -14817,7 +14832,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 						 errhint("Use ALTER TABLE \"%s\" SET WITH (REORGANIZE=TRUE) DISTRIBUTED REPLICATED to force a replicated redistribution.",
 								 RelationGetRelationName(rel))));
 
-			policy = createReplicatedGpPolicy(NULL, ldistro->numsegments);
+			policy = createReplicatedGpPolicy(ldistro->numsegments);
 
 			/* rebuild if have new storage options or policy changed */
 			if (!DatumGetPointer(newOptions) &&
@@ -14852,8 +14867,12 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 
 					if (policy)
 					{
+						MemoryContext oldcontext;
+
 						GpPolicyReplace(RelationGetRelid(rel), policy);
-						rel->rd_cdbpolicy = GpPolicyCopy(GetMemoryChunkContext(rel), policy);
+						oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+						rel->rd_cdbpolicy = GpPolicyCopy(policy);
+						MemoryContextSwitchTo(oldcontext);
 					}
 
 					heap_close(rel, NoLock);
@@ -14921,7 +14940,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 				} /* end foreach */
 
 				Assert(policykeys != NIL);
-				policy = createHashPartitionedPolicy(NULL, policykeys,
+				policy = createHashPartitionedPolicy(policykeys,
 													 ldistro->numsegments);
 
 				/*
@@ -15024,8 +15043,8 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			 * is same as the original one, the query optimizer will generate
 			 * redistribute plan.
 			 */
-			GpPolicy *random_policy = createRandomPartitionedPolicy(NULL,
-																	ldistro->numsegments);
+			MemoryContext oldcontext;
+			GpPolicy *random_policy = createRandomPartitionedPolicy(ldistro->numsegments);
 
 			original_policy = rel->rd_cdbpolicy;
 			/*
@@ -15035,8 +15054,10 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			rel->rd_cdbpolicy = NULL;
 			/* update the catalog first and then assign the policy to rd_cdbpolicy */
 			GpPolicyReplace(RelationGetRelid(rel), random_policy);
-			rel->rd_cdbpolicy = GpPolicyCopy(GetMemoryChunkContext(rel),
-											 random_policy);
+
+			oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+			rel->rd_cdbpolicy = GpPolicyCopy(random_policy);
+			MemoryContextSwitchTo(oldcontext);
 		}
 
 		/* Step (b) - build CTAS */

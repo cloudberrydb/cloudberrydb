@@ -1846,8 +1846,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 		{
 			RangeVar   *parent = (RangeVar *) lfirst(entry);
 			Oid			relId = RangeVarGetRelid(parent, NoLock, false);
-			GpPolicy  *oldTablePolicy =
-				GpPolicyFetch(CurrentMemoryContext, relId);
+			GpPolicy  *oldTablePolicy = GpPolicyFetch(relId);
 
 			/*
 			 * Partitioned child must have partitioned parents. During binary
@@ -2321,7 +2320,7 @@ getPolicyForDistributedBy(DistributedBy *distributedBy, TupleDesc tupdesc)
 					elog(ERROR, "could not find DISTRIBUTED BY column \"%s\"", colname);
 			}
 
-			return createHashPartitionedPolicy(NULL, policykeys,
+			return createHashPartitionedPolicy(policykeys,
 											   distributedBy->numsegments);;
 
 		case POLICYTYPE_ENTRY:
@@ -2329,7 +2328,7 @@ getPolicyForDistributedBy(DistributedBy *distributedBy, TupleDesc tupdesc)
 			return NULL;
 
 		case POLICYTYPE_REPLICATED:
-			return createReplicatedGpPolicy(NULL, distributedBy->numsegments);
+			return createReplicatedGpPolicy(distributedBy->numsegments);
 	}
 	elog(ERROR, "unrecognized policy type %d", distributedBy->ptype);
 	return NULL;
@@ -4214,7 +4213,7 @@ getLikeDistributionPolicy(TableLikeClause *e)
 	GpPolicy*		oldTablePolicy;
 
 	relId = RangeVarGetRelid(e->relation, NoLock, false);
-	oldTablePolicy = GpPolicyFetch(CurrentMemoryContext, relId);
+	oldTablePolicy = GpPolicyFetch(relId);
 
 	if (oldTablePolicy != NULL && oldTablePolicy->ptype != POLICYTYPE_ENTRY)
 	{

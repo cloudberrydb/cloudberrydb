@@ -153,10 +153,9 @@ build_simple_rel(PlannerInfo *root, int relid, RelOptKind reloptkind)
 			/* if we've been asked to, force the dist-policy to be partitioned-randomly. */
 			if (rte->forceDistRandom)
 			{
-				GpPolicy   *origpolicy = GpPolicyFetch(NULL, rte->relid);
+				GpPolicy   *origpolicy = GpPolicyFetch(rte->relid);
 
-				rel->cdbpolicy = createRandomPartitionedPolicy(NULL,
-															   origpolicy->numsegments);
+				rel->cdbpolicy = createRandomPartitionedPolicy(origpolicy->numsegments);
 
 				/* Scribble the tuple number of rel to reflect the real size */
 				rel->tuples = rel->tuples * planner_segment_count(rel->cdbpolicy);

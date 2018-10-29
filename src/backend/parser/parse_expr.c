@@ -422,7 +422,7 @@ transformExprRecurse(ParseState *pstate, Node *expr)
 
 				relid = pstate->p_target_rangetblentry->relid;
 
-				policy = GpPolicyFetch(CurrentMemoryContext, relid);
+				policy = GpPolicyFetch(relid);
 
 				/*
 				 * Now we can assume that the relation was locked because

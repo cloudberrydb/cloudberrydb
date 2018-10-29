@@ -1781,8 +1781,13 @@ heap_create_with_catalog(const char *relname,
 			 Gp_role == GP_ROLE_EXECUTE ||
 			 IsBinaryUpgrade))
 	{
+		MemoryContext oldcontext;
+
 		Assert(relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW);
-		new_rel_desc->rd_cdbpolicy = GpPolicyCopy(GetMemoryChunkContext(new_rel_desc), policy);
+
+		oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(new_rel_desc));
+		new_rel_desc->rd_cdbpolicy = GpPolicyCopy(policy);
+		MemoryContextSwitchTo(oldcontext);
 		GpPolicyStore(relid, policy);
 	}
 
