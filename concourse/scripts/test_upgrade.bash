@@ -149,7 +149,7 @@ gpinitsystem_for_upgrade() {
         gpstop -a -d '"${OLD_MASTER_DATA_DIRECTORY}"'
 
         source '"${NEW_GPHOME}"'/greenplum_path.sh
-        sed -e '\''s|\('"${DATADIR_PREFIX}"'/\w\+\)|\1-new|g'\'' '"${GPINITSYSTEM_CONFIG}"' > gpinitsystem_config_new
+        sed -E -e '\''s|('"${DATADIR_PREFIX}"'/[[:alnum:]_-]+)|\1-new|g'\'' '"${GPINITSYSTEM_CONFIG}"' > gpinitsystem_config_new
         # echo "HEAP_CHECKSUM=off" >> gpinitsystem_config_new
         # echo "standard_conforming_strings = off" >> upgrade_addopts
         # echo "escape_string_warning = off" >> upgrade_addopts
@@ -209,7 +209,7 @@ get_new_datadir() {
     # Given a data directory for the old cluster, generates a new data directory
     # based on that path and prints it to stdout.
     local datadir=$1
-    sed -e 's|\('"${DATADIR_PREFIX}"'/\w\+\)|\1-new|g' <<< "$datadir"
+    sed -E -e 's|('"${DATADIR_PREFIX}"'/[[:alnum:]_-]+)|\1-new|g' <<< "$datadir"
 }
 
 start_upgraded_cluster() {
