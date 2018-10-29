@@ -1121,20 +1121,10 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 		primaryGang = slice->primaryGang;
 		Assert(primaryGang != NULL);
 
-		if (slice->directDispatch.isDirectDispatch)
-		{
-			if (Test_print_direct_dispatch_info)
-			{
-				elog(INFO, "Dispatch command to SINGLE content");
-			}
-		}
-		else
-		{
-			if (Test_print_direct_dispatch_info)
-			{
-				elog(INFO, "Dispatch command to ALL contents");
-			}
-		}
+		if (Test_print_direct_dispatch_info)
+			elog(INFO, "Dispatch command to %s",
+				 		segmentsToContentStr(slice->directDispatch.isDirectDispatch ?
+											slice->directDispatch.contentIds : NULL));
 
 		/*
 		 * Bail out if already got an error or cancellation request.

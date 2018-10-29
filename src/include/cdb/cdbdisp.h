@@ -45,9 +45,6 @@ typedef struct CdbDispatchDirectDesc
 	uint16 content[1];
 } CdbDispatchDirectDesc;
 
-extern CdbDispatchDirectDesc default_dispatch_direct_desc;
-#define DEFAULT_DISP_DIRECT (&default_dispatch_direct_desc)
-
 typedef struct CdbDispatcherState
 {
 	bool isExtendedQuery;
@@ -186,4 +183,8 @@ void cdbdisp_cleanupDispatcherHandle(const struct ResourceOwnerData * owner);
 void AtAbort_DispatcherState(void);
 
 void AtSubAbort_DispatcherState(void);
+
+char *
+segmentsToContentStr(List *segments);
+
 #endif   /* CDBDISP_H */

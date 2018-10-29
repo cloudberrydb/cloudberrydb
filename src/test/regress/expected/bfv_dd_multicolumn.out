@@ -54,7 +54,7 @@ INFO:  Distributed transaction command 'Distributed Prepare' to SINGLE content
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to SINGLE content
 -- negative cases: composite distr key
 select * from dd_multicol_1 where a in (1,3) and b in (1,3);
-INFO:  Dispatch command to ALL contents
+INFO:  Dispatch command to PARTIAL contents
  a | b 
 ---+---
  3 | 1
@@ -69,14 +69,14 @@ INFO:  Dispatch command to SINGLE content
 (1 row)
 
 select * from dd_multicol_1 where (a=1 and b=1) or (a=3 and b=3);
-INFO:  Dispatch command to ALL contents
+INFO:  Dispatch command to PARTIAL contents
  a | b 
 ---+---
  1 | 1
 (1 row)
 
 select * from dd_multicol_1 where (a=1 or a=3) and (b=1 or b=3);
-INFO:  Dispatch command to ALL contents
+INFO:  Dispatch command to PARTIAL contents
  a | b 
 ---+---
  1 | 1
@@ -100,14 +100,14 @@ INFO:  Dispatch command to ALL contents
 (0 rows)
 
 select * from dd_multicol_1 where (a,b) in ((1,2),(3,4)); 
-INFO:  Dispatch command to ALL contents
+INFO:  Dispatch command to PARTIAL contents
  a | b 
 ---+---
 (0 rows)
 
 -- negative cases: composite distr key: projections 
 select b from dd_multicol_1 where (a=1 or a=3) and (b=1 or b=3);
-INFO:  Dispatch command to ALL contents
+INFO:  Dispatch command to PARTIAL contents
  b 
 ---
  1

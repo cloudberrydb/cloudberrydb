@@ -318,16 +318,7 @@ GetContentIdsFromPlanForSingleRelation(List *rtable, Plan *plan, int rangeTableI
 
 				hashCode = cdbhashreduce(h);
 
-				/*
-				 * right now we only allow ONE contentid
-				 */
-				if (result.dd.contentIds == NULL)
-					result.dd.contentIds = list_make1_int(hashCode);
-				else if (linitial_int(result.dd.contentIds) != hashCode)
-				{
-					result.dd.isDirectDispatch = false;
-					break;
-				}
+				result.dd.contentIds = list_append_unique_int(result.dd.contentIds, hashCode);
 			}
 		}
 		else
@@ -370,20 +361,10 @@ MergeDirectDispatchCalculationInfo(DirectDispatchCalculationInfo *to, DirectDisp
 		/* to didn't even think it needed to run so accept from */
 		to->dd.contentIds = from->dd.contentIds;
 	}
-	else if (linitial_int(to->dd.contentIds) != linitial_int(from->dd.contentIds))
-	{
-		/*
-		 * we only support dispatch to single segment or all segments, so
-		 * can't support this right now
-		 */
-		/* but this needs to be a union of the segments */
-		to->dd.isDirectDispatch = false;
-	}
 	else
 	{
-		/* they matched -- no merge required! */
-
-		Assert(list_length(to->dd.contentIds) == list_length(from->dd.contentIds));
+		/* union to with from */
+		to->dd.contentIds = list_union_int(to->dd.contentIds, from->dd.contentIds);
 	}
 
 	to->haveProcessedAnyCalculations = true;

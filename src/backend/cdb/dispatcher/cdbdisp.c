@@ -96,6 +96,12 @@ cdbdisp_dispatchToGang(struct CdbDispatcherState *ds,
 	Assert(dispatchResults && dispatchResults->resultArray);
 
 	(pDispatchFuncs->dispatchToGang) (ds, gp, sliceIndex);
+
+	/*
+	 * If dtmPreCommand says we need two phase commit, record those segments
+	 * who actually get involved in current global transaction
+	 */
+	addToGxactTwophaseSegments(gp);
 }
 
 /*
@@ -580,4 +586,18 @@ cdbdisp_markNamedPortalGangsDestroyed(void)
 			head->dispatcherState->destroyGang = true;
 		head = head->next;
 	}
+}
+
+char*
+segmentsToContentStr(List *segments)
+{
+	int size = list_length(segments);
+	if (size == 0)
+		return "ALL contents";
+	else if (size == 1)
+		return "SINGLE content";
+	else if (size < getgpsegmentCount())
+		return "PARTIAL contents";
+	else
+		return "ALL contents";
 }

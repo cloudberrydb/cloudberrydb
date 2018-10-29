@@ -3732,7 +3732,7 @@ SELECT * FROM qp_non_eq_a INNER JOIN qp_non_eq_b ON qp_non_eq_a.f = qp_non_eq_b.
 EXPLAIN SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.i = qp_non_eq_b.i AND qp_non_eq_a.i = ANY('{1,2,3}'::integer[]);
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1.05..3.12 rows=4 width=24)
+ Gather Motion 2:1  (slice1; segments: 2)  (cost=1.05..3.12 rows=4 width=24)
    ->  Hash Join  (cost=1.05..3.12 rows=2 width=24)
          Hash Cond: qp_non_eq_a.i = qp_non_eq_b.i
          ->  Seq Scan on qp_non_eq_a  (cost=0.00..2.03 rows=1 width=12)
@@ -3741,7 +3741,7 @@ EXPLAIN SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.i = qp_non_eq_b
                ->  Seq Scan on qp_non_eq_b  (cost=0.00..1.03 rows=1 width=12)
                      Filter: i = ANY ('{1,2,3}'::integer[])
  Optimizer: legacy query optimizer
-(9 rows)
+(10 rows)
 
 SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.i = qp_non_eq_b.i AND qp_non_eq_a.i = ANY('{1,2,3}'::integer[]);
  i | f | i | f  

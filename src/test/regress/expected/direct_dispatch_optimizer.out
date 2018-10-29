@@ -390,6 +390,13 @@ INFO:  Dispatch command to SINGLE content
   1
 (1 row)
 
+-- main plan is direct dispatch and also has init plans
+update direct_dispatch_bar set id2 = 1 where id1 = 1 and exists (select * from direct_dispatch_foo where id = 2);
+INFO:  Dispatch command to ALL contents
+INFO:  Dispatch command to ALL contents
+INFO:  Dispatch command to ALL contents
+INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents
+INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents
 -- init plan to see how transaction escalation happens
 -- Known_opt_diff: MPP-21346
 delete from direct_dispatch_foo where id = (select max(id2) from direct_dispatch_bar where id1 = 5);
