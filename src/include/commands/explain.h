@@ -102,4 +102,6 @@ extern void ExplainOpenGroup(const char *objtype, const char *labelname,
 extern void ExplainCloseGroup(const char *objtype, const char *labelname,
 				  bool labeled, ExplainState *es);
 
+extern void ExplainPrintExecStatsEnd(ExplainState *es, QueryDesc *queryDesc);
+
 #endif							/* EXPLAIN_H */
