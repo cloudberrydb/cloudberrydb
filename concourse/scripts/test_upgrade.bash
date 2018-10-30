@@ -30,6 +30,53 @@ GPINITSYSTEM_HOSTFILE=
 
 DIRNAME=$(dirname "$0")
 
+validate_local_envvars() {
+    # For local (non-Concourse) runs, make sure we have the environment
+    # variables we need for the rest of the script to run.
+    #
+    # TODO: At the moment, we assume/require a gpdemo setup. That should change.
+    local missing=
+
+    if [ -z "${GPHOME:-}" ]; then
+        missing+='GPHOME '
+    fi
+    if [ -z "${MASTER_DATA_DIRECTORY:-}" ]; then
+        missing+='MASTER_DATA_DIRECTORY '
+    fi
+    if [ -z "${PGPORT:-}" ]; then
+        missing+='PGPORT '
+    fi
+
+    if [ -n "${missing}" ]; then
+        echo 'This script requires the following environment variables to be set:'
+        echo
+
+        for var in ${missing}; do
+            echo "    $var"
+        done
+
+        echo
+        echo 'Please source greenplum_path.sh and gpdemo-env.sh and try again.'
+
+        exit 1
+    fi
+
+    # Quickly check to see if this looks like a demo cluster; for now, it's the
+    # only thing we support.
+    local demodir=$(dirname $(dirname $(dirname ${MASTER_DATA_DIRECTORY})))
+    if [[ $demodir != */gpAux/gpdemo ]]; then
+        echo 'At the moment, this script only supports clusters that have been '
+        echo 'created using the gpdemo scripts in gpAux. Your master data '
+        echo 'directory does not appear to be part of a demo cluster:'
+        echo
+        echo "    ${MASTER_DATA_DIRECTORY}"
+        echo
+        echo 'Patches welcome!'
+
+        exit 1
+    fi
+}
+
 load_old_db_data() {
     # Copy the SQL dump over to the master host and load it into the database.
     local dumpfile=$1
@@ -326,6 +373,11 @@ if (( $CONCOURSE_MODE )); then
     GPINITSYSTEM_CONFIG=gpinitsystem_config
     GPINITSYSTEM_HOSTFILE=segment_host_list
 else
+    validate_local_envvars
+
+    # XXX Several of these variable assignments assume a standard gpdemo layout.
+    # If you'd like to change that, make sure you change the
+    # validate_local_envvars() implementation as well.
     MASTER_HOST=localhost
     OLD_GPHOME=${GPHOME}
     NEW_GPHOME=${GPHOME}
