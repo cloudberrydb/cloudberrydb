@@ -452,15 +452,17 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
 					const char *s;
 					char *p;
 					int len;
-					char *dptr = DatumGetPointer(attr);
-	
-					/* 
-					 * We called PG_DETOAST_DATUM up above, so we don't 
-					 * need to do it again
+					struct varlena *dptr;
+
+					/*
+					 * Detoast if needed. Packed, unaligned data is OK.
+					 * (This is a substitute for calling textout())
 					 */
+					dptr = PG_DETOAST_DATUM_PACKED(attr);
 					s = VARDATA_ANY(dptr);
 					len = VARSIZE_ANY_EXHDR(dptr);
 
+					/* inlined version of pq_sendcountedtext() */
 					p = pg_server_to_client(s, len);
 					if (p != s)				/* actual conversion has been done? */
 					{
@@ -476,10 +478,9 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
 						appendBinaryStringInfo(&buf, (char *) &n32, 4);
 						appendBinaryStringInfo(&buf, s, len);
 					}
-
 				}
 				break;
-				
+
 			default:
 				{
 					char *outputstr;
@@ -544,15 +545,17 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
 					const char *s;
 					char *p;
 					int len;
-					char *dptr = DatumGetPointer(attr);
-	
-					/* 
-					 * We called PG_DETOAST_DATUM up above, so we don't need
-					 * to do it again
+					struct varlena *dptr;
+
+					/*
+					 * Detoast if needed. Packed, unaligned data is OK.
+					 * (This is a substitute for calling textsend())
 					 */
+					dptr = PG_DETOAST_DATUM_PACKED(attr);
 					s = VARDATA_ANY(dptr);
 					len = VARSIZE_ANY_EXHDR(dptr);
 
+					/* inlined version of pq_sendtext(), as done by textsend() */
 					p = pg_server_to_client(s, len);
 					if (p != s)				/* actual conversion has been done? */
 					{
@@ -568,10 +571,9 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
 						appendBinaryStringInfo(&buf, (char *) &n32, 4);
 						appendBinaryStringInfo(&buf, s, len);
 					}
-
 				}
 				break;
-				
+
 			default:
 				{
 					bytea *outputbytes;
