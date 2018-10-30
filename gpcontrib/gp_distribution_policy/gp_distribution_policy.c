@@ -182,6 +182,7 @@ gp_distribution_policy_heap_table_check(PG_FUNCTION_ARGS)
 
 	HeapScanDesc scandesc = heap_beginscan(rel, GetActiveSnapshot(), 0, NULL);
 	HeapTuple    tuple = heap_getnext(scandesc, ForwardScanDirection);
+	TupleDesc	desc = RelationGetDescr(rel);
 
 	while (HeapTupleIsValid(tuple))
 	{
@@ -190,23 +191,25 @@ gp_distribution_policy_heap_table_check(PG_FUNCTION_ARGS)
 		/* Initialize hash function and structure */
 		CdbHash *hash = makeCdbHash(policy->numsegments);
 		cdbhashinit(hash);
-		
+
+		/* Add every attribute in the distribution policy to the hash */
 		for(int i = 0; i < policy->nattrs; i++)
 		{
-			bool            isNull;
-			Datum           attr;
-			TupleDesc desc = RelationGetDescr(rel);
-			
-			attr = heap_getattr(tuple, policy->attrs[i],
-							desc, &isNull);
-			
-			Oid att_type = get_base_dataType(desc->attrs[i]->atttypid);
-			/* Consider every attribute in the distribution policy
-			* as part of the hash computation */
-			cdbhash(hash, attr, att_type);
-			
+			int			attnum = policy->attrs[i];
+			bool		isNull;
+			Datum		attr;
+			Oid			att_type;
+
+			attr = heap_getattr(tuple, attnum, desc, &isNull);
+
+			att_type = get_base_dataType(desc->attrs[attnum - 1]->atttypid);
+
+			if (isNull)
+				cdbhashnull(hash);
+			else
+				cdbhash(hash, attr, att_type);
 		}
-		
+
 		/* End check if one tuple is in the wrong segment */
 		if (cdbhashreduce(hash) != GpIdentity.segindex)
 		{
