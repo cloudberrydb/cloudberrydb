@@ -24,15 +24,6 @@
 #define JUMP_HASH_METHOD         1
 
 /*
- * hashing algorithms.
- */
-typedef enum
-{
-	HASH_FNV_1 = 1,
-	HASH_FNV_1A
-} CdbHashAlg;
-
-/*
  * reduction methods.
  */
 typedef enum
