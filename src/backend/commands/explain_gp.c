@@ -1895,7 +1895,7 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
  *
  * This is an externally exposed wrapper for cdbexplain_showExecStatsEnd such
  * that extensions, such as auto_explain, can leverage the Greenplum specific
- * parts of the EXPLAIN machiner.
+ * parts of the EXPLAIN machinery.
  */
 void
 ExplainPrintExecStatsEnd(ExplainState *es, QueryDesc *queryDesc)
