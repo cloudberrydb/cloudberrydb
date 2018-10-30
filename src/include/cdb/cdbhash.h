@@ -55,12 +55,6 @@ typedef struct CdbHash
 
 } CdbHash;
 
-
-typedef void (*datumHashFunction)(void *clientData, void *buf, size_t len);
-
-extern void hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData);
-extern void hashNullDatum(datumHashFunction hashFn, void *clientData);
-
 /*
  * Create and initialize a CdbHash in the current memory context.
  * Parameter numsegs - number of segments in Greenplum Database.

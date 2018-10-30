@@ -167,27 +167,8 @@ cdbhashinit(CdbHash *h)
 }
 
 /*
- * Implements datumHashFunction
- */
-static void
-addToCdbHash(void *cdbHash, void *buf, size_t len)
-{
-	CdbHash    *h = (CdbHash *) cdbHash;
-
-	h->hash = fnv1_32_buf(buf, len, h->hash);
-}
-
-/*
  * Add an attribute to the CdbHash calculation.
- */
-void
-cdbhash(CdbHash *h, Datum datum, Oid type)
-{
-	hashDatum(datum, type, addToCdbHash, (void *) h);
-}
-
-/*
- * Add an attribute to the hash calculation.
+ *
  * **IMPORTANT: any new hard coded support for a data type in here
  * must be added to isGreenplumDbHashable() below!
  *
@@ -195,12 +176,9 @@ cdbhash(CdbHash *h, Datum datum, Oid type)
  * of a domain type. It is quite expensive to call get_typtype() and
  * getBaseType() here since this function gets called a lot for the
  * same set of Datums.
- *
- * @param hashFn called to update the hash value.
- * @param clientData passed to hashFn.
  */
 void
-hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
+cdbhash(CdbHash *h, Datum datum, Oid type)
 {
 	void	   *buf = NULL;		/* pointer to the data */
 	size_t		len = 0;		/* length for the data buffer */
@@ -634,7 +612,7 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 	}							/* switch(type) */
 
 	/* do the hash using the selected algorithm */
-	hashFn(clientData, buf, len);
+	h->hash = fnv1_32_buf(buf, len, h->hash);
 	if (tofree)
 		pfree(tofree);
 }
@@ -645,24 +623,12 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 void
 cdbhashnull(CdbHash *h)
 {
-	hashNullDatum(addToCdbHash, (void *) h);
-}
-
-/*
- * Update the hash value for a null Datum
- *
- * @param hashFn called to update the hash value.
- * @param clientData passed to hashFn.
- */
-void
-hashNullDatum(datumHashFunction hashFn, void *clientData)
-{
 	uint32		nullbuf = NULL_VAL; /* stores the constant value that
 									 * represents a NULL */
 	void	   *buf = &nullbuf; /* stores the address of the buffer					*/
 	size_t		len = sizeof(nullbuf);	/* length of the value								*/
 
-	hashFn(clientData, buf, len);
+	h->hash = fnv1_32_buf(buf, len, h->hash);
 }
 
 /*
