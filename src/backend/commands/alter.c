@@ -36,6 +36,7 @@
 #include "catalog/pg_ts_dict.h"
 #include "catalog/pg_ts_parser.h"
 #include "catalog/pg_ts_template.h"
+#include "catalog/pg_extprotocol.h"
 #include "commands/alter.h"
 #include "commands/collationcmds.h"
 #include "commands/conversioncmds.h"
@@ -90,6 +91,9 @@ report_name_conflict(Oid classId, const char *name)
 			break;
 		case LanguageRelationId:
 			msgfmt = gettext_noop("language \"%s\" already exists");
+			break;
+		case ExtprotocolRelationId:
+			msgfmt = gettext_noop("protocol \"%s\" already exists");
 			break;
 		default:
 			elog(ERROR, "unsupported object class %u", classId);
@@ -347,11 +351,6 @@ ExecRenameStmt_internal(RenameStmt *stmt)
 			return RenameType(stmt);
 
 		case OBJECT_EXTPROTOCOL:
-			// GPDB_93_MERGE_FIXME: this probably could be refactored to
-			// use the generic AlterObjectRename_internal() function, like
-			// below.
-			return RenameExtProtocol(stmt->subname, stmt->newname);
-
 		case OBJECT_AGGREGATE:
 		case OBJECT_COLLATION:
 		case OBJECT_CONVERSION:
