@@ -5311,7 +5311,7 @@ check_gp_default_storage_options(char **newval, void **extra, GucSource source)
 		}
 
 		/*
-		 * All validations succeeded, it is safe to udpate global
+		 * All validations succeeded, it is safe to update global
 		 * appendonly storage options.
 		 */
 		*extra = malloc(sizeof(StdRdOptions));
