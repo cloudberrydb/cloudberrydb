@@ -47,18 +47,18 @@ typedef struct
 	bool isAnyValuePossible;
 } PossibleValueSet;
 
-extern PossibleValueSet
-DeterminePossibleValueSet( Node *clause, Node *variable);
+extern PossibleValueSet DeterminePossibleValueSet(Node *clause, Node *variable);
 
 /* returns a newly allocated list */
-extern Node **
-GetPossibleValuesAsArray( PossibleValueSet *pvs, int *numValuesOut );
+extern Node **GetPossibleValuesAsArray(PossibleValueSet *pvs, int *numValuesOut);
 
-extern void
-DeletePossibleValueSetData(PossibleValueSet *pvs);
+extern void DeletePossibleValueSetData(PossibleValueSet *pvs);
 
-extern void
-InitPossibleValueSetData(PossibleValueSet *pvs);
+extern void InitPossibleValueSetData(PossibleValueSet *pvs);
+
+extern void AddUnmatchingValues(PossibleValueSet *pvs, PossibleValueSet *toCheck);
+extern void RemoveUnmatchingValues(PossibleValueSet *pvs, PossibleValueSet *toCheck);
+extern bool TryProcessEqualityNodeForPossibleValues(OpExpr *expr, Node *variable, PossibleValueSet *resultOut);
 
 /**
  * END functions and structures for determining set of possible values from a clause
