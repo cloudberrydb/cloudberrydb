@@ -30,7 +30,6 @@
 #include "catalog/pg_inherits_fn.h"
 #include "catalog/pg_namespace.h"
 #include "cdb/cdbappendonlyam.h"
-#include "cdb/cdbhash.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbtm.h"
 #include "cdb/cdbutil.h"
@@ -641,7 +640,7 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 	 */
 	SetUserIdAndSecContext(save_userid, save_sec_context);
 
-	if (vacstmt->options & VACOPT_FULLSCAN)
+	if ((vacstmt->options & VACOPT_FULLSCAN) != 0)
 	{
 		if(rel_part_status(RelationGetRelid(onerel)) != PART_STATUS_ROOT)
 		{
@@ -2743,7 +2742,7 @@ std_typanalyze(VacAttrStats *stats)
 	List *va_cols = list_make1_int(stats->attr->attnum);
 	if (rel_part_status(attr->attrelid) == PART_STATUS_ROOT &&
 		leaf_parts_analyzed(stats->attr->attrelid, InvalidOid, va_cols) &&
-		isGreenplumDbHashable(attr->atttypid))
+		op_hashjoinable(eqopr, stats->attrtypid))
 	{
 		stats->merge_stats = true;
 		stats->compute_stats = merge_leaf_stats;

@@ -10,7 +10,6 @@
  */
 #include "postgres.h"
 
-#include "access/hash.h"
 #include "access/heapam.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_statistic.h"
@@ -44,7 +43,6 @@ static Datum *buildMCVArrayForStatsEntry(MCVFreqPair **mcvpairArray, int *nEntri
 static float4 *buildFreqArrayForStatsEntry(MCVFreqPair **mcvpairArray, int nEntries, float4 reltuples);
 static int	datumHashTableMatch(const void *keyPtr1, const void *keyPtr2, Size keysize);
 static uint32 datumHashTableHash(const void *keyPtr, Size keysize);
-static void calculateHashWithHashAny(void *clientData, void *buf, size_t len);
 static HTAB *createDatumHashTable(unsigned int nEntries);
 static MCVFreqPair *MCVFreqPairCopy(MCVFreqPair *mcvFreqPair);
 static bool containsDatum(HTAB *datumHash, MCVFreqPair *mcvFreqPair);
@@ -179,9 +177,7 @@ aggregate_leaf_partition_MCVs(Oid relationOid,
 	for (int i = 0; i < numPartitions; i++)
 	{
 		if (!HeapTupleIsValid(heaptupleStats[i]))
-		{
 			continue;
-		}
 
 		addLeafPartitionMCVsToHashTable(datumHash, heaptupleStats[i], relTuples[i],
 										typInfo);
@@ -191,7 +187,7 @@ aggregate_leaf_partition_MCVs(Oid relationOid,
 	*rem_mcv = hash_get_num_entries(datumHash);
 	if (0 == *rem_mcv)
 	{
-		/* in the unlikely event of an emtpy hash table, return early */
+		/* in the unlikely event of an empty hash table, return early */
 		*result = NULL;
 		result++;
 		*result = NULL;
@@ -456,22 +452,6 @@ createDatumHashTable(unsigned int nEntries)
 }
 
 /**
- * A generic hash function
- * Input:
- * 	buf - pointer to hash key
- * 	len - number of bytes to be hashed
- * Output:
- * 	clientData - hash value as an unsigned integer
- */
-static void
-calculateHashWithHashAny(void *clientData, void *buf, size_t len)
-{
-	uint32	   *result = (uint32 *) clientData;
-
-	*result = hash_any((unsigned char *) buf, len);
-}
-
-/**
  * Hash function for MCVFreqPair struct pointer.
  * Input:
  * 	keyPtr - pointer to hash key
@@ -482,21 +462,11 @@ calculateHashWithHashAny(void *clientData, void *buf, size_t len)
 static uint32
 datumHashTableHash(const void *keyPtr, Size keysize)
 {
-	uint32		result = 0;
-	MCVFreqPair *mcvFreqPair = *((MCVFreqPair * *) keyPtr);
-	Oid			oidType = mcvFreqPair->typinfo->typOid;
+	uint32		result;
+	MCVFreqPair *mcvFreqPair = *((MCVFreqPair **)keyPtr);
+	FmgrInfo   *hashfunc = &mcvFreqPair->typinfo->hashfunc;
 
-	/*
-	 * if the incoming column type is an array, pass ANYARRAYOID as datumhash
-	 * function handles ANYARRAYOID instead of specific array oid to determine
-	 * the hash to be performed.
-	 */
-	if (typeIsArrayType(oidType))
-	{
-		oidType = ANYARRAYOID;
-	}
-
-	hashDatum(mcvFreqPair->mcv, oidType, calculateHashWithHashAny, &result);
+	result = DatumGetUInt32(FunctionCall1(hashfunc, mcvFreqPair->mcv));
 
 	return result;
 }
@@ -533,14 +503,20 @@ datumHashTableMatch(const void *keyPtr1, const void *keyPtr2, Size keysize)
 static void
 initTypInfo(TypInfo *typInfo, Oid typOid)
 {
+	Oid			ltOpr;
+	Oid			eqOpr;
+	Oid			hashFunc;
+
 	typInfo->typOid = typOid;
 	get_typlenbyval(typOid, &typInfo->typlen, &typInfo->typbyval);
-	get_sort_group_operators(typOid,
-							 false, true, false,
-							 &typInfo->ltFuncOp, &typInfo->eqFuncOp, NULL,
-							 NULL);
-	typInfo->eqFuncOp = get_opcode(typInfo->eqFuncOp);
-	typInfo->ltFuncOp = get_opcode(typInfo->ltFuncOp);
+
+	get_sort_group_operators(typOid, false, true, false, &ltOpr, &eqOpr, NULL, NULL);
+	typInfo->ltFuncOp = get_opcode(ltOpr);
+	typInfo->eqFuncOp = get_opcode(eqOpr);
+
+	if (!get_op_hash_functions(eqOpr, &hashFunc, NULL))
+		elog(ERROR, "could not find hash function for hash operator %u", eqOpr);
+	fmgr_info(hashFunc, &typInfo->hashfunc);
 }
 
 /*
