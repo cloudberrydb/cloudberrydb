@@ -9,56 +9,24 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
-#include "access/heapam.h"
+
 #include "access/hash.h"
+#include "access/heapam.h"
+#include "catalog/pg_collation.h"
 #include "catalog/pg_statistic.h"
-#include "utils/array.h"
-#include "utils/lsyscache.h"
-#include "utils/datum.h"
-#include "utils/dynahash.h"
-#include "utils/hsearch.h"
 #include "cdb/cdbhash.h"
 #include "cdb/cdbheap.h"
 #include "cdb/cdbpartition.h"
-#include "parser/parse_oper.h"
-#include "access/heapam.h"
-#include "access/transam.h"
-#include "access/tuptoaster.h"
-#include "access/xact.h"
-#include "catalog/heap.h"
-#include "catalog/index.h"
-#include "catalog/indexing.h"
-#include "catalog/namespace.h"
-#include "catalog/pg_namespace.h"
-#include "cdb/cdbpartition.h"
-#include "cdb/cdbtm.h"
-#include "cdb/cdbvars.h"
-#include "commands/dbcommands.h"
+#include "commands/analyzeutils.h"
 #include "commands/vacuum.h"
-#include "executor/executor.h"
-#include "executor/spi.h"
 #include "miscadmin.h"
-#include "nodes/nodeFuncs.h"
 #include "parser/parse_oper.h"
-#include "parser/parse_relation.h"
-#include "pgstat.h"
-#include "postmaster/autovacuum.h"
-#include "storage/bufmgr.h"
-#include "storage/proc.h"
-#include "storage/procarray.h"
-#include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/datum.h"
-#include "utils/elog.h"
-#include "utils/guc.h"
 #include "utils/lsyscache.h"
-#include "utils/memutils.h"
-#include "utils/pg_rusage.h"
 #include "utils/syscache.h"
-#include "utils/tuplesort.h"
-#include "utils/tqual.h"
+#include "utils/hsearch.h"
 
-#include "commands/analyzeutils.h"
 
 typedef struct MCVFreqEntry
 {
@@ -102,8 +70,6 @@ static void initDatumHeap(CdbHeap *hp, AttStatsSlot **histSlots, int *cursors, i
 float4 getBucketSizes(const HeapTuple *heaptupleStats, const float4 *relTuples, int nParts,
 					  MCVFreqPair **mcvPairRemaining, int rem_mcv,
 					  float4 *eachBucket);
-
-#define DEFAULT_COLLATION_OID	100
 
 float4
 get_rel_reltuples(Oid relid)
