@@ -627,27 +627,14 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 														 jtlink1, available_rels1,
 														 jtlink2, available_rels2);
 		}
-		/*
-		 * GPDB_91_MERGE_FIXME: The below enters an infinite recursion with
-		 * this query from the 'qp_subquery' test:
-		 *
-		 * select Tbl04.* from Tbl04 where not ((Tbl04.a,Tbl04.b) in (select Tbl06.a,Tbl06.b from Tbl06) or (Tbl04.a,Tbl04.b) in (select i3.a, i3.b from i3)); -- expected: (5,6)
-		 *
-		 * That's because canonicalize_qual() was changed in 9.1, to not "push
-		 * down" NOTs into an OR chain (commit 220e45bf32). I'm not sure if
-		 * this is optimization is still worthwhile, and we should fix it,
-		 * or we can just remove it. Commented it out for now, to avoid the
-		 * crash.
-		 */
-#if 0
 		else if (or_clause(arg))
 		{
 			/* NOT OR (expr1) (expr2) => (expr1) AND (expr2) */
 			return (Node *) pull_up_sublinks_qual_recurse(root,
-														 (Node *) canonicalize_qual((Expr *) node),
-														 available_rels, jtlink);
+														 negate_clause(arg),
+														 jtlink1, available_rels1,
+														 jtlink2, available_rels2);
 		}
-#endif
 
 		/* Else return it unmodified */
 		return node;
