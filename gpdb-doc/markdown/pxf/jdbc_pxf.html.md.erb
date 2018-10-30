@@ -73,9 +73,9 @@ The specific keywords and values used by the `pxf` protocol in the [CREATE EXTER
 
 | Keyword  | Value |
 |-------|-------------------------------------|
-| \<external-table-name\>    | The full name of the external table. Depends on the external SQL database, may include a schema name and a table name. |
+| \<external&#8209;table&#8209;name\>    | The full name of the external table. Depends on the external SQL database, may include a schema name and a table name. |
 | PROFILE    | The `PROFILE` keyword value must specify `Jdbc`. |
-| \<custom-option\>  | \<custom-option\> is profile-specific. `Jdbc` profile-specific options are discussed in the next section.|
+| \<custom&#8209;option\>  | \<custom-option\> is profile-specific. `Jdbc` profile-specific options are discussed in the next section.|
 | FORMAT 'CUSTOM' | The JDBC `CUSTOM` `FORMAT` supports the built-in `'pxfwritable_import'` `FORMATTER` function for read operations and the built-in `'pxfwritable_export'` function for write operations. |
 
 **Note**: You cannot use the `HEADER` option in your `FORMAT` specification when you create a PXF external table.

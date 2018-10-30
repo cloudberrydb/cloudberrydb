@@ -192,8 +192,8 @@ Hive connector-specific keywords and values used in the [CREATE EXTERNAL TABLE](
 
 | Keyword  | Value |
 |-------|-------------------------------------|
-| \<hive-db-name\>    | The name of the Hive database. If omitted, defaults to the Hive database named `default`. |
-| \<hive-table-name\>    | The name of the Hive table. |
+| \<hive&#8209;db&#8209;name\>    | The name of the Hive database. If omitted, defaults to the Hive database named `default`. |
+| \<hive&#8209;table&#8209;name\>    | The name of the Hive table. |
 | PROFILE    | The `PROFILE` keyword must specify one of the values `Hive`, `HiveText`, `HiveRC`, `HiveORC`, or `HiveVectorizedORC`. |
 | DELIMITER    | The custom options `DELIMITER` clause is required for both the `HiveText` and `HiveRC` profiles and identifies the field delimiter used in the Hive data set.  \<delim\> must be a single ascii character or specified in hexadecimal representation. |
 | FORMAT (`Hive`, `HiveORC`, and `HiveVectorizedORC` profiles)   | The `FORMAT` clause must specify `CUSTOM`. The `CUSTOM` format requires the built-in `pxfwritable_import` `formatter`.   |

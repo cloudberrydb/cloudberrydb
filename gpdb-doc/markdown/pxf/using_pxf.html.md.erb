@@ -205,11 +205,11 @@ Greenplum Database passes the parameters in the `LOCATION` string as headers to 
 
 | Keyword               | Value and Description                                                                                                                                                                                                                                                          |
 |-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| \<path\-to\-data\>        | A directory, file name, wildcard pattern, table name, etc. The syntax of \<path-to-data\> is dependent upon the profile currently in use.                                                                                                                                                                                                                    |
+| \<path&#8209;to&#8209;data\>        | A directory, file name, wildcard pattern, table name, etc. The syntax of \<path-to-data\> is dependent upon the profile currently in use.                                                                                                                                                                                                                    |
 | PROFILE              | The profile PXF uses to access the data. PXF supports HBase, HDFS, Hive, and JDBC connectors that expose profiles named `HBase`, `HdfsTextSimple`, `HdfsTextMulti`, `Avro`, `Json`, `SequenceWritable`, `Hive`, `HiveText`, `HiveRC`, `HiveORC`, `HiveVectorizedORC`, and `Jdbc`.                                                                                                                                                                                   |
-| \<custom-option\>=\<value\> | Additional options and values supported by the profile.                                                                  |
-| FORMAT  \<value\>| PXF profiles support the '`TEXT`', '`CSV`', and '`CUSTOM`' `FORMAT`s.  |
-| \<formatting-properties\> | Formatting properties supported by the profile; for example, the `formatter` or `delimiter`.                                                                   |
+| \<custom&#8209;option\>=\<value\> | Additional options and values supported by the profile.                                                                  |
+| FORMAT&nbsp;\<value\>| PXF profiles support the '`TEXT`', '`CSV`', and '`CUSTOM`' `FORMAT`s.  |
+| \<formatting&#8209;properties\> | Formatting properties supported by the profile; for example, the `formatter` or `delimiter`.                                                                   |
 
 **Note:** When you create a PXF external table, you cannot use the `HEADER` option in your `FORMAT` specification.
 
