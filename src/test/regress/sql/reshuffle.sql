@@ -57,6 +57,28 @@ Select count(*) from t1_reshuffle where gp_segment_id=2;
 select numsegments from gp_distribution_policy where localoid='t1_reshuffle'::regclass;
 drop table t1_reshuffle;
 
+-- Test NULLs.
+Create table t1_reshuffle(a int, b int, c int) distributed by (a,b,c);
+update gp_distribution_policy  set numsegments=2 where localoid='t1_reshuffle'::regclass;
+insert into t1_reshuffle values
+  (1,    1,    1   ),
+  (null, 2,    2   ),
+  (3,    null, 3   ),
+  (4,    4,    null),
+  (null, null, 5   ),
+  (null, 6,    null),
+  (7,    null, null),
+  (null, null, null);
+Select count(*) from t1_reshuffle where gp_segment_id=0;
+Select count(*) from t1_reshuffle where gp_segment_id=1;
+Select count(*) from t1_reshuffle where gp_segment_id=2;
+Alter table t1_reshuffle set with (reshuffle);
+Select count(*) from t1_reshuffle where gp_segment_id=0;
+Select count(*) from t1_reshuffle where gp_segment_id=1;
+Select count(*) from t1_reshuffle where gp_segment_id=2;
+select numsegments from gp_distribution_policy where localoid='t1_reshuffle'::regclass;
+drop table t1_reshuffle;
+
 Create table t1_reshuffle(a int, b int, c int) distributed by (a) partition by list(b) (partition t1_reshuffle_1 values(1), partition t1_reshuffle_2 values(2), default partition other);
 update gp_distribution_policy set numsegments = 1 where localoid='t1_reshuffle_1_prt_t1_reshuffle_1'::regclass;
 update gp_distribution_policy set numsegments = 1 where localoid='t1_reshuffle_1_prt_t1_reshuffle_2'::regclass;

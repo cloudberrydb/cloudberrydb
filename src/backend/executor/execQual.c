@@ -5208,11 +5208,11 @@ ExecEvalReshuffleExpr(ReshuffleExprState *astate,
 					  ExprDoneCond *isDone)
 {
 	ReshuffleExpr *sr = (ReshuffleExpr *) astate->xprstate.expr;
-	ListCell *k;
-	ListCell *t;
-	CdbHash *hnew = NULL;
-	uint32 newSeg;
-	bool result;
+	ListCell   *k;
+	ListCell   *t;
+	CdbHash	   *hnew;
+	uint32		newSeg;
+	bool		result;
 
 	Assert(!IS_QUERY_DISPATCHER());
 
@@ -5225,15 +5225,18 @@ ExecEvalReshuffleExpr(ReshuffleExprState *astate,
 			cdbhashinit(hnew);
 			forboth(k, astate->hashKeys, t, astate->hashTypes)
 			{
-				if (*isNull)
+				ExprState *vstate = (ExprState *) lfirst(k);
+				Oid			tp = lfirst_oid(t);
+				Datum		val;
+				bool		valnull;
+
+				val = ExecEvalExpr(vstate, econtext, &valnull, isDone);
+				if (valnull)
 				{
 					cdbhashnull(hnew);
 				}
 				else
 				{
-					ExprState *vstate = (ExprState *) lfirst(k);
-					Oid tp = lfirst_oid(t);
-					Datum val = ExecEvalExpr(vstate, econtext, isNull, isDone);
 					cdbhash(hnew, val, tp);
 				}
 			}
@@ -5277,6 +5280,7 @@ ExecEvalReshuffleExpr(ReshuffleExprState *astate,
 	else
 		result = false;
 
+	*isNull = false;
 	return BoolGetDatum(result);
 
 }
