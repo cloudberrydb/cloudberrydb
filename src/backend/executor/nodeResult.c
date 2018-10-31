@@ -144,9 +144,7 @@ ExecResult(ResultState *node)
 
 		node->rs_checkqual = false;
 		if (!qualResult)
-		{
 			return NULL;
-		}
 	}
 
 	TupleTableSlot *outputSlot = NULL;

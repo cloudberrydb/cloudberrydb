@@ -4617,6 +4617,9 @@ handleStopMsgs(ChunkTransportState *transportStates, ChunkTransportStateEntry *p
 static void
 sendBuffers(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntry, MotionConn *conn)
 {
+	if (!conn->stillActive)
+		return;
+
 	while (conn->capacity > 0 && icBufferListLength(&conn->sndQueue) > 0)
 	{
 		ICBuffer   *buf = NULL;
@@ -5284,6 +5287,7 @@ SendChunkUDPIFC(ChunkTransportState *transportStates,
 	bool		doCheckExpiration = false;
 	bool		gotStops = false;
 
+	Assert(conn->stillActive);
 	Assert(conn->msgSize > 0);
 
 #ifdef AMS_VERBOSE_LOGGING
@@ -5329,6 +5333,12 @@ SendChunkUDPIFC(ChunkTransportState *transportStates,
 	while (doCheckExpiration || (conn->curBuff = getSndBuffer(conn)) == NULL)
 	{
 		int			timeout = (doCheckExpiration ? 0 : computeTimeout(conn, retry));
+
+		if (QueryFinishPending)
+		{
+			conn->stillActive = false;
+			return;
+		}
 
 		if (pollAcks(transportStates, pEntry->txfd, timeout))
 		{
@@ -5475,6 +5485,12 @@ SendEosUDPIFC(ChunkTransportState *transportStates,
 			{
 				retry = 0;
 				ic_control_info.lastPacketSendTime = 0;
+
+				if (QueryFinishPending)
+				{
+					conn->stillActive = false;
+					continue;
+				}
 
 				/* wait until this queue is emptied */
 				while (icBufferListLength(&conn->unackQueue) > 0 ||
