@@ -146,7 +146,7 @@ public class HDFSReader
 	}
 
 	/** 
-	 * Either TEXT or GPDBWritable. Call the appropiate read method
+	 * Either TEXT or GPDBWritable. Call the appropriate read method
 	 * 
 	 * @throws Exception when something goes wrong
 	 */

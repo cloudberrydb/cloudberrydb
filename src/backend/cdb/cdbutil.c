@@ -323,7 +323,7 @@ getCdbComponentInfo(bool DNSLookupAsError)
 	}
 
 	/*
-	 * We're done with the catalog entries, cleanup them up, closing all the
+	 * We're done with the catalog entries, clean them up, closing all the
 	 * relations we opened.
 	 */
 	heap_endscan(gp_seg_config_scan);
@@ -585,7 +585,7 @@ cdbcomponent_updateCdbComponents(void)
  *
  *
  * Storage for the SegmentInstances block and all subsidiary
- * strucures are allocated from the caller's context.
+ * structures are allocated from the caller's context.
  */
 CdbComponentDatabases *
 cdbcomponent_getCdbComponents(bool DNSLookupAsError)

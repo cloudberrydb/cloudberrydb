@@ -2316,7 +2316,7 @@ select_setop_types(ParseState *pstate, setop_types_ctx *ctx, SetOperation op, Li
 			 * consistent cast for unions, which is generally better and
 			 * handles more cases.  However, in order to deal with backwards
 			 * compatibility we have to deliberately hamstring this code and
-			 * cast UNKNOWN to text if the other colums are STRING_TYPE
+			 * cast UNKNOWN to text if the other columns are STRING_TYPE
 			 * even when some other datatype (such as name) might actually
 			 * be more natural.  This captures the set of views that
 			 * we previously supported prior to the fix for MPP-11377 and

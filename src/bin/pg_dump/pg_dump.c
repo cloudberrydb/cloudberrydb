@@ -13724,7 +13724,7 @@ dumpExternal(Archive *fout, TableInfo *tbinfo, PQExpBuffer q, PQExpBuffer delq)
 		}
 		else
 		{
-			/* not SREH and encoding colums yet */
+			/* not SREH and encoding columns yet */
 			appendPQExpBuffer(query,
 					"SELECT x.location, "
 						   "CASE WHEN x.command <> '' THEN x.location "

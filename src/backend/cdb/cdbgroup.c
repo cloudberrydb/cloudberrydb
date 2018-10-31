@@ -337,7 +337,7 @@ static const Index dqa_base_varno = 3;	/* refers to one of the dref_tlists */
 static const double gp_coefficient_1phase_agg = 20.0;	/* penalty */
 static const double gp_coefficient_2phase_agg = 1.0;	/* normalized */
 static const double gp_coefficient_3phase_agg = 3.3;	/* increase systematic
-														 * under estimate */
+														 * underestimate */
 
 /* Forward declarations */
 
@@ -1394,7 +1394,7 @@ make_two_stage_agg_plan(PlannerInfo *root,
 				 * TODO -- Investigate WHY we might sort here!
 				 *
 				 * Good reasons would be that one of the grouping expressions
-				 * isn't "hashable" or that too may groups are anticipated.
+				 * isn't "hashable" or that too many groups are anticipated.
 				 *
 				 * A bad reason would be that the final result will be in
 				 * order of the grouping key.  (Redistribution will remove the
@@ -4912,7 +4912,7 @@ cost_1phase_aggregation(PlannerInfo *root, MppGroupContext *ctx, AggPlanInfo *in
 		/*
 		 * Beware: AGG_PLAIN and AGG_GROUPED may be used with DQAs, however,
 		 * the function cost_agg doesn't distinguish DQAs so it consistently
-		 * under estimates the cost in these cases.
+		 * underestimates the cost in these cases.
 		 */
 		if (ctx->numDistinctCols > 0)
 		{
@@ -5032,7 +5032,7 @@ cost_2phase_aggregation(PlannerInfo *root, MppGroupContext *ctx, AggPlanInfo *in
 		/*
 		 * Beware: AGG_PLAIN and AGG_GROUPED may be used with DQAs, however,
 		 * the function cost_agg doesn't distinguish DQAs so it consistently
-		 * under estimates the cost in these cases.
+		 * underestimates the cost in these cases.
 		 */
 		if (ctx->numDistinctCols > 0)
 		{

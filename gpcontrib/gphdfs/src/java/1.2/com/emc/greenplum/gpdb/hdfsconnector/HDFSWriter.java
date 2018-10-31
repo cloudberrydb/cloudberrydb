@@ -164,7 +164,7 @@ public class HDFSWriter
 
 
 	/** 
-	 * Either TEXT or GPDBWritable. Call the appropiate write method
+	 * Either TEXT or GPDBWritable. Call the appropriate write method
 	 */
 	public void doWrite() throws IOException, InterruptedException {
 		ConnectorUtil.loginSecureHadoop(conf);

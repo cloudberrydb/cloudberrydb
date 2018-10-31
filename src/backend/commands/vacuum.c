@@ -1784,7 +1784,7 @@ vac_update_datfrozenxid(void)
 #endif
 
 		/* GPDB_94_MERGE_FIXME: We have had this check here, instead of the above
-		 * check that upstrem has. I would be more comfortable if we would list
+		 * check that upstream has. I would be more comfortable if we would list
 		 * the relkinds here explicitly, like in upstream..
 		 */
 		if (!TransactionIdIsValid(classForm->relfrozenxid))

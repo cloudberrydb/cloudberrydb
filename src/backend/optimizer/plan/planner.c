@@ -600,7 +600,7 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	 * If there is a WITH list, process each WITH query and build an initplan
 	 * SubPlan structure for it.
 	 *
-	 * Unlike upstrem, we do not use initplan + CteScan, so SS_process_ctes
+	 * Unlike upstream, we do not use initplan + CteScan, so SS_process_ctes
 	 * will generate unused initplans. Commenting out the following two
 	 * lines.
 	 */
@@ -2051,7 +2051,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		/*
 		 * CDB:  For now, we either - construct a general parallel plan, - let
 		 * the sequential planner handle the situation, or - construct a
-		 * sequential plan using the mix-max index optimization.
+		 * sequential plan using the min-max index optimization.
 		 *
 		 * Eventually we should add a parallel version of the min-max
 		 * optimization.  For now, it's either-or.
