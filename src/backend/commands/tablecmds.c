@@ -14671,7 +14671,11 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 					heap_close(rel, NoLock);
 
 					lsecond(lprime) = makeNode(SetDistributionCmd);
-					lprime = lappend(lprime, newPolicy);
+					/*
+					 * Notice: reshuffle can not specify (Distribute By), so
+					 * we don't need to pass a policy info to segments like
+					 * lprime = lappend(lprime, newPolicy);
+					 */
 					goto l_distro_fini;
 				}
 				else if (pg_strcasecmp(reorg_str, def->defname) != 0)
@@ -14867,17 +14871,19 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 
 				if (pg_strcasecmp(reshuffle_str, def->defname) == 0)
 				{
-					policy = lthird(lprime);
+					MemoryContext oldcontext;
+					GpPolicy *newPolicy;
 
-					if (policy)
-					{
-						MemoryContext oldcontext;
+					policy = rel->rd_cdbpolicy;
+					oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+					newPolicy = GpPolicyCopy(policy);
+					MemoryContextSwitchTo(oldcontext);
+					newPolicy->numsegments = getgpsegmentCount();
 
-						GpPolicyReplace(RelationGetRelid(rel), policy);
-						oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
-						rel->rd_cdbpolicy = GpPolicyCopy(policy);
-						MemoryContextSwitchTo(oldcontext);
-					}
+					GpPolicyReplace(RelationGetRelid(rel), newPolicy);
+					oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+					rel->rd_cdbpolicy = GpPolicyCopy(newPolicy);
+					MemoryContextSwitchTo(oldcontext);
 
 					heap_close(rel, NoLock);
 					goto l_distro_fini;
