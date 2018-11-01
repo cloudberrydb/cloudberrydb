@@ -19,4 +19,4 @@ LANGUAGE C VOLATILE AS '$libdir/gp_zstd_compression.so', 'zstd_validator';
 COMMENT ON FUNCTION gp_zstd_validator(internal) IS 'zstdcompression validator';
 
 INSERT INTO pg_catalog.pg_compression (compname, compconstructor, compdestructor, compcompressor, compdecompressor, compvalidator, compowner)
-VALUES ('zstd', 'gp_zstd_constructor', 'gp_zstd_destructor', 'gp_zstd_compress', 'gp_zstd_decompress', 'gp_zstd_validator', 10 /* BOOSTRAP_SUPERUSERID */);
+VALUES ('zstd', 'gp_zstd_constructor', 'gp_zstd_destructor', 'gp_zstd_compress', 'gp_zstd_decompress', 'gp_zstd_validator', 10 /* BOOTSTRAP_SUPERUSERID */);

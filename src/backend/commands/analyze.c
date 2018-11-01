@@ -668,7 +668,7 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 								  (vacstmt->options & VACOPT_ROOTONLY) != 0,
 								  colLargeRowIndexes);
 
-		/* change the privilige back to the table owner */
+		/* change the privilege back to the table owner */
 		SetUserIdAndSecContext(onerel->rd_rel->relowner,
 							   save_sec_context | SECURITY_RESTRICTED_OPERATION);
 	}
