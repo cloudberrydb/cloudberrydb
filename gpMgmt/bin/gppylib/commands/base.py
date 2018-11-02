@@ -677,6 +677,7 @@ class Command(object):
         self.exec_context = createExecutionContext(ctxt, remoteHost, stdin=stdin, nakedExecutionInfo=nakedExecutionInfo,
                                                    gphome=gphome)
         self.remoteHost = remoteHost
+        self.logger = gplog.get_default_logger()
 
     def __str__(self):
         if self.results:
@@ -693,6 +694,7 @@ class Command(object):
             return self.exec_context.proc
 
     def run(self, validateAfter=False):
+        self.logger.debug("Running Command: %s" % self.cmdStr)
         faultPoint = os.getenv('GP_COMMAND_FAULT_POINT')
         if not faultPoint or (self.name and not self.name.startswith(faultPoint)):
             self.exec_context.execute(self)
@@ -748,6 +750,7 @@ class Command(object):
     def validate(self, expected_rc=0):
         """Plain vanilla validation which expects a 0 return code."""
         if self.results.rc != expected_rc:
+            self.logger.debug(self.results)
             raise ExecutionError("non-zero rc: %d" % self.results.rc, self)
 
 

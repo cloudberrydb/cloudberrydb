@@ -320,9 +320,11 @@ class GpMirrorListToBuild:
                                    targetSegment.getSegmentHostName(),
                                    targetSegment.getSegmentDataDirectory(),
                                    sourceHostName,
-                                   sourcePort)
+                                   sourcePort,
+                                   verbose=gplog.logging_is_verbose())
             try:
                 cmd.run(True)
+                self.__logger.debug('pg_rewind results: %s' % cmd.results)
             except base.ExecutionError as e:
                 self.__logger.debug("pg_rewind failed for target directory %s." % targetSegment.getSegmentDataDirectory())
                 self.__logger.warning("Incremental recovery failed for dbid %s. You must use gprecoverseg -F to recover the segment." % targetSegment.getSegmentDbId())
