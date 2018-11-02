@@ -407,6 +407,26 @@ class SegmentIsShutDown(Command):
         cmd=SegmentIsShutDown(name,directory)
         cmd.run(validateAfter=True)
 
+#-----------------------------------------------
+class SegmentRewind(Command):
+    """
+    SegmentRewind is used to run pg_rewind using source server.
+    """
+
+    def __init__(self, name, target_host, target_datadir,
+                 source_host, source_port, ctxt=REMOTE):
+
+        # Construct the source server libpq connection string
+        source_server = "host=%s port=%s dbname=template1" % (source_host, source_port)
+
+        # Build the pg_rewind command. Do not run pg_rewind if recovery.conf
+        # file exists in target data directory because the target instance can
+        # be started up normally as a mirror for WAL replication catch up.
+        rewind_cmd = '[ -f %s/recovery.conf ] || PGOPTIONS="-c gp_session_role=utility" $GPHOME/bin/pg_rewind --write-recovery-conf --source-server="%s" --target-pgdata=%s' % (target_datadir, source_server, target_datadir)
+
+        self.cmdStr = rewind_cmd + ' 2>&1'
+
+        Command.__init__(self, name, self.cmdStr, ctxt, target_host)
 
 #
 # list of valid segment statuses that can be requested
