@@ -3731,9 +3731,6 @@ ClosePortalStmt:
  *				where 'file' can be one of:
  *				{ PROGRAM 'command' | STDIN | STDOUT | 'filename' }
  *
- *				where 'file' can be one of:
- *				{ PROGRAM 'command' | STDIN | STDOUT | 'filename' }
- *
  *				In the preferred syntax the options are comma-separated
  *				and use generic identifiers instead of keywords.  The pre-9.0
  *				syntax had a hard-wired, space-separated set of options.
