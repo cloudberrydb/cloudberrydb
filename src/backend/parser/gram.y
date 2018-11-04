@@ -4559,7 +4559,7 @@ columnList:
 
 columnListUnique:
 			columnElem								{ $$ = list_make1($1); }
-			| columnList ',' columnElem
+			| columnListUnique ',' columnElem
 				{
 					if (list_member($1, $3))
 						ereport(ERROR,
