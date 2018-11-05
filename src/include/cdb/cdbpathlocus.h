@@ -247,17 +247,7 @@ typedef struct CdbPathLocus
 
 /************************************************************************/
 
-typedef enum
-{
-    /* locus a and b are Equal if all their attributes are equal */
-    CdbPathLocus_Comparison_Equal,
-    CdbPathLocus_Comparison_Contains
-} CdbPathLocus_Comparison;
-
-bool
-cdbpathlocus_compare(CdbPathLocus_Comparison    op,
-                     CdbPathLocus               a,
-                     CdbPathLocus               b);
+extern bool cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b);
 
 /************************************************************************/
 

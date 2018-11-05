@@ -86,7 +86,7 @@ list_contains_pathkey(List *list, List *pathkey)
 }
 
 /*
- * cdbpathlocus_compare
+ * cdbpathlocus_equal
  *
  *    - Returns false if locus a or locus b is "strewn", meaning that it
  *      cannot be determined whether it is equal to another partitioned
@@ -96,23 +96,17 @@ list_contains_pathkey(List *list, List *pathkey)
  *
  *    - Returns true if both a and b are hashed and the set of possible
  *      m-tuples of expressions (e1, e2, ..., em) produced by a's partkey
- *      is equal to (if op == CdbPathLocus_Equal) or a superset of (if
- *      op == CdbPathLocus_Contains) the set produced by b's partkey.
+ *      is equal to the set produced by b's partkey.
  *
  *    - Returns false otherwise.
  */
 bool
-cdbpathlocus_compare(CdbPathLocus_Comparison op,
-					 CdbPathLocus a,
-					 CdbPathLocus b)
+cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b)
 {
 	ListCell   *acell;
 	ListCell   *bcell;
 	ListCell   *aequivpathkeycell;
 	ListCell   *bequivpathkeycell;
-
-	Assert(op == CdbPathLocus_Comparison_Equal ||
-		   op == CdbPathLocus_Comparison_Contains);
 
 	/* Unless a and b have the same numsegments the result is always false */
 	if (CdbPathLocus_NumSegments(a) !=
@@ -150,15 +144,12 @@ cdbpathlocus_compare(CdbPathLocus_Comparison op,
 					if (!list_contains_pathkey(aequivpathkeylist, bpathkey))
 						return false;
 				}
-				if (op == CdbPathLocus_Comparison_Equal)
+				foreach(aequivpathkeycell, aequivpathkeylist)
 				{
-					foreach(aequivpathkeycell, aequivpathkeylist)
-					{
-						List	   *apathkey = (List *) lfirst(aequivpathkeycell);
+					List	   *apathkey = (List *) lfirst(aequivpathkeycell);
 
-						if (!list_contains_pathkey(bequivpathkeylist, apathkey))
-							return false;
-					}
+					if (!list_contains_pathkey(bequivpathkeylist, apathkey))
+						return false;
 				}
 			}
 			return true;
@@ -168,20 +159,7 @@ cdbpathlocus_compare(CdbPathLocus_Comparison op,
 	if (CdbPathLocus_IsHashedOJ(a) &&
 		CdbPathLocus_IsHashed(b))
 	{
-		if (op == CdbPathLocus_Comparison_Equal)
-			CdbSwap(CdbPathLocus, a, b);
-		else
-		{
-			forboth(acell, a.partkey_oj, bcell, b.partkey_h)
-			{
-				List	   *aequivpathkeylist = (List *) lfirst(acell);
-				List	   *bpathkey = (List *) lfirst(bcell);
-
-				if (!list_member_ptr(aequivpathkeylist, bpathkey))
-					return false;
-			}
-			return true;
-		}
+		CdbSwap(CdbPathLocus, a, b);
 	}
 
 	if (CdbPathLocus_IsHashed(a) &&
@@ -205,7 +183,7 @@ cdbpathlocus_compare(CdbPathLocus_Comparison op,
 
 	Assert(false);
 	return false;
-}								/* cdbpathlocus_compare */
+}								/* cdbpathlocus_equal */
 
 /*
  * cdb_build_distribution_pathkeys
@@ -639,7 +617,7 @@ cdbpathlocus_join(CdbPathLocus a, CdbPathLocus b)
 	Assert(cdbpathlocus_is_valid(b));
 
 	/* Do both input rels have same locus? */
-	if (cdbpathlocus_compare(CdbPathLocus_Comparison_Equal, a, b))
+	if (cdbpathlocus_equal(a, b))
 		return a;
 
 	numsegments = CdbPathLocus_CommonSegments(a, b);

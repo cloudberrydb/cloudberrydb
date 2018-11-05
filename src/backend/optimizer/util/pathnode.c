@@ -1516,8 +1516,7 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 		 */
 		if (l == list_head(subpaths))
 			pathnode->locus = projectedlocus;
-		else if (cdbpathlocus_compare(CdbPathLocus_Comparison_Equal,
-									  pathnode->locus, projectedlocus))
+		else if (cdbpathlocus_equal(pathnode->locus, projectedlocus))
 		{
 			/* compatible */
 		}
