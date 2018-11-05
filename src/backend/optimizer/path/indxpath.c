@@ -193,9 +193,6 @@ static List *network_prefix_quals(Node *leftop, Oid expr_op, Oid opfamily,
 static Datum string_to_datum(const char *str, Oid datatype);
 static Const *string_to_const(const char *str, Oid datatype);
 
-static void cdb_transform_appendrel_var(PlannerInfo *root,
-										RelOptInfo *rel,
-										List **index_pathkeys);
 
 /*
  * create_bitmap_scan_path()
@@ -1010,13 +1007,6 @@ build_index_paths(PlannerInfo *root, RelOptInfo *rel,
 	{
 		index_pathkeys = build_index_pathkeys(root, index,
 											  ForwardScanDirection);
-
-		/*
-		 * CDB: For appendrel child, pathkeys contain Var nodes in terms
-		 * of the child's baserel.  Transform the pathkey list to refer to
-		 * columns of the appendrel.
-		 */
-		cdb_transform_appendrel_var(root, rel, &index_pathkeys);
 
 		useful_pathkeys = truncate_useless_pathkeys(root, rel,
 													index_pathkeys);
@@ -4050,51 +4040,4 @@ string_to_const(const char *str, Oid datatype)
 
 	return makeConst(datatype, -1, collation, constlen,
 					 conval, false, false);
-}
-
-static void
-cdb_transform_appendrel_var(PlannerInfo *root, RelOptInfo *rel, List **index_pathkeys)
-{
-	if (index_pathkeys == NULL ||
-		*index_pathkeys == NULL ||
-		rel->reloptkind != RELOPT_OTHER_MEMBER_REL)
-		return;
-
-	AppendRelInfo *appinfo = NULL;
-	RelOptInfo *appendrel = NULL;
-	ListCell   *appcell;
-	CdbPathLocus notalocus;
-
-	/* Find the appendrel of which this baserel is a child. */
-	foreach(appcell, root->append_rel_list)
-	{
-		appinfo = (AppendRelInfo *) lfirst(appcell);
-		if (appinfo->child_relid == rel->relid)
-			break;
-	}
-	Assert(appinfo);
-	appendrel = find_base_rel(root, appinfo->parent_relid);
-
-	/*
-	 * The pathkey list happens to have the same format as the
-	 * partitioning key of a Hashed locus, so by disguising it we
-	 * can use cdbpathlocus_pull_above_projection() to do the
-	 * transformation.
-	 */
-	Assert(rel->cdbpolicy != NULL);
-	CdbPathLocus_MakeHashed(&notalocus, *index_pathkeys,
-							/* FIXME: rel or appendrel or other source? */
-							rel->cdbpolicy->numsegments);
-	notalocus =
-		cdbpathlocus_pull_above_projection(root,
-										   notalocus,
-										   rel->relids,
-										   rel->reltargetlist,
-										appendrel->reltargetlist,
-										   appendrel->relid);
-	if (CdbPathLocus_IsHashed(notalocus))
-		*index_pathkeys = truncate_useless_pathkeys(root, appendrel,
-											notalocus.partkey_h);
-	else
-		*index_pathkeys = NULL;
 }
