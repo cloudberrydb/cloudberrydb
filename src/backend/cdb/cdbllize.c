@@ -1125,14 +1125,6 @@ repartitionPlan(Plan *plan, bool stable, bool rescannable,
 	/* Already partitioned on the given hashExpr?  Do nothing. */
 	if (hashExpr && plan->flow->numsegments == numsegments)
 	{
-		if (equal(hashExpr, plan->flow->hashExpr))
-			return true;
-
-		/*
-		 * MPP-4922: The earlier check is very conservative and may result in
-		 * unnecessary motion nodes. Adding another check to avoid motion
-		 * nodes, if possible.
-		 */
 		if (loci_compatible(hashExpr, plan->flow->hashExpr))
 			return true;
 	}
