@@ -2806,7 +2806,7 @@ gpdb::CdbHashRandom
 {
 	GP_WRAP_START;
 	{
-		CdbHash    *pcdbhash = makeCdbHash(num_segments);
+		CdbHash    *pcdbhash = makeCdbHash(num_segments, 0, NULL);
 
 		cdbhashinit(pcdbhash);
 

@@ -110,24 +110,6 @@ typedef struct ContentIdAssignmentData
 static bool AssignContentIdsToPlanData_Walker(Node *node, void *context);
 
 /**
- * Add the given constant to the given hash, properly checking for null and
- *   using the constant's type and value otherwise
- */
-static
-void
-CdbHashConstValue(CdbHash *h, Const *c)
-{
-	if (c->constisnull)
-	{
-		cdbhashnull(h);
-	}
-	else
-	{
-		cdbhash(h, c->constvalue, typeIsArrayType(c->consttype) ? ANYARRAYOID : c->consttype);
-	}
-}
-
-/**
  * Initialize a DirectDispatchCalculationInfo.
  */
 static void
@@ -280,8 +262,10 @@ GetContentIdsFromPlanForSingleRelation(List *rtable, Plan *plan, int rangeTableI
 			/* don't bother for ones which will likely hash to many segments */
 				 totalCombinations < policy->numsegments * 3)
 		{
-			CdbHash    *h = makeCdbHash(policy->numsegments);
-			long		index = 0;
+			CdbHash    *h;
+			long		index;
+
+			h = makeCdbHashForRelation(relation);
 
 			result.dd.isDirectDispatch = true;
 			result.dd.contentIds = NULL;
@@ -303,7 +287,9 @@ GetContentIdsFromPlanForSingleRelation(List *rtable, Plan *plan, int rangeTableI
 
 					if (IsA(val, Const))
 					{
-						CdbHashConstValue(h, (Const *) val);
+						Const		*c = (Const *) val;
+
+						cdbhash(h, i + 1, c->constvalue, c->constisnull);
 					}
 					else
 					{

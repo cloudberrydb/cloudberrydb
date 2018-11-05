@@ -141,34 +141,43 @@ static int
 EvalHashSegID(Datum *values, bool *nulls, List *policyAttrs,
 			  List *targetlist, int nsegs)
 {
-	CdbHash *hnew = makeCdbHash(nsegs);
-	uint32 newSeg;
-	ListCell *lc;
+	CdbHash	   *hnew;
+	uint32		newSeg;
+	ListCell   *lc;
+	Oid		   *typeoids;
+	int			i;
 
 	Assert(policyAttrs);
 	Assert(targetlist);
 
+	typeoids = palloc(list_length(policyAttrs) * sizeof(Oid));
+
+	i = 0;
+	foreach(lc, policyAttrs)
+	{
+		AttrNumber attidx = lfirst_int(lc);
+		TargetEntry *entry = list_nth(targetlist, attidx - 1);
+
+		typeoids[i] = exprType((Node *) entry->expr);
+		i++;
+	}
+
+	hnew = makeCdbHash(nsegs, list_length(policyAttrs), typeoids);
+
 	cdbhashinit(hnew);
 
+	i = 0;
 	foreach(lc, policyAttrs)
 	{
 		AttrNumber attidx = lfirst_int(lc);
 
-		if (nulls[attidx - 1])
-		{
-			cdbhashnull(hnew);
-		}
-		else
-		{
-			TargetEntry *entry = list_nth(targetlist, attidx - 1);
-			cdbhash(hnew, values[attidx - 1], exprType((Node *) entry->expr));
-		}
+		cdbhash(hnew, i + 1, values[attidx - 1], nulls[attidx - 1]);
+		i++;
 	}
 
 	newSeg = cdbhashreduce(hnew);
 
 	return newSeg;
-
 }
 
 /* ----------------------------------------------------------------

@@ -7035,7 +7035,7 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 		else
 			p_nattrs = 0;
 		/* Create hash API reference */
-		cdbHash = makeCdbHash(policy->numsegments);
+		cdbHash = makeCdbHashForRelation(cstate->rel);
 	}
 	else
 	{
@@ -7255,7 +7255,7 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 			oldcontext = MemoryContextSwitchTo(cstate->copycontext);
 
 			d->relid = relid;
-			part_hash = d->cdbHash = makeCdbHash(rel->rd_cdbpolicy->numsegments);
+			part_hash = d->cdbHash = makeCdbHashForRelation(rel);
 			part_policy = d->policy = GpPolicyCopy(rel->rd_cdbpolicy);
 			part_p_nattrs = part_policy->nattrs;
 
@@ -7278,7 +7278,6 @@ GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls)
 	CdbHash *cdbHash = distData->cdbHash;
 	GpPolicy *policy = distData->policy; /* the partitioning policy for this table */
 	AttrNumber p_nattrs = distData->p_nattrs; /* num of attributes in the distribution policy */
-	Oid *p_attr_types = distData->p_attr_types;
 
 	if (!policy)
 	{
@@ -7302,17 +7301,14 @@ GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls)
 	cdbhashinit(cdbHash);
 
 	AttrNumber h_attnum;
-	Datum h_key;
 	for (int i = 0; i < p_nattrs; i++)
 	{
 		/* current attno from the policy */
 		h_attnum = policy->attrs[i];
 
-		h_key = baseValues[h_attnum - 1]; /* value of this attr */
-		if (!baseNulls[h_attnum - 1])
-			cdbhash(cdbHash, h_key, p_attr_types[h_attnum - 1]);
-		else
-			cdbhashnull(cdbHash);
+		cdbhash(cdbHash, i + 1,
+				baseValues[h_attnum - 1],
+				baseNulls[h_attnum - 1]);
 	}
 
 	/*

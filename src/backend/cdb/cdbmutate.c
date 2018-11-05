@@ -145,12 +145,16 @@ static void
 directDispatchCalculateHash(Plan *plan, GpPolicy *targetPolicy)
 {
 	int			i;
-	CdbHash    *h = NULL;
+	CdbHash    *h;
 	ListCell   *cell = NULL;
 	bool		directDispatch;
+	Oid		   *typeoids;
+	Datum	   *values;
+	bool	   *nulls;
 
-	h = makeCdbHash(targetPolicy->numsegments);
-	cdbhashinit(h);
+	typeoids = (Oid *) palloc(targetPolicy->nattrs * sizeof(Oid));
+	values = (Datum *) palloc(targetPolicy->nattrs * sizeof(Datum));
+	nulls = (bool *) palloc(targetPolicy->nattrs * sizeof(bool));
 
 	/*
 	 * the nested loops here seem scary -- especially since we've already
@@ -162,7 +166,7 @@ directDispatchCalculateHash(Plan *plan, GpPolicy *targetPolicy)
 	for (i = 0; i < targetPolicy->nattrs; i++)
 	{
 		Const	   *c;
-		TargetEntry *tle = NULL;
+		TargetEntry *tle;
 
 		foreach(cell, plan->targetlist)
 		{
@@ -181,16 +185,10 @@ directDispatchCalculateHash(Plan *plan, GpPolicy *targetPolicy)
 			}
 
 			c = (Const *) tle->expr;
-			if (c->constisnull)
-			{
-				cdbhashnull(h);
-			}
-			else
-			{
-				Assert(isGreenplumDbHashable(c->consttype));
-				cdbhash(h, c->constvalue, typeIsArrayType(c->consttype) ? ANYARRAYOID : c->consttype);
-			}
 
+			typeoids[i] = c->consttype;
+			values[i] = c->constvalue;
+			nulls[i] = c->constisnull;
 			break;
 		}
 
@@ -198,16 +196,28 @@ directDispatchCalculateHash(Plan *plan, GpPolicy *targetPolicy)
 			break;
 	}
 
-	/* We now have the hash-partition that this row belong to */
 	plan->directDispatch.isDirectDispatch = directDispatch;
 	if (directDispatch)
 	{
-		uint32		hashcode = cdbhashreduce(h);
+		uint32		hashcode;
 
+		h = makeCdbHash(targetPolicy->numsegments, targetPolicy->nattrs, typeoids);
+
+		cdbhashinit(h);
+		for (i = 0; i < targetPolicy->nattrs; i++)
+		{
+			cdbhash(h, i + 1, values[i], nulls[i]);
+		}
+
+		/* We now have the hash-partition that this row belong to */
+		hashcode = cdbhashreduce(h);
 		plan->directDispatch.contentIds = list_make1_int(hashcode);
 
 		elog(DEBUG1, "sending single row constant insert to content %d", hashcode);
 	}
+	pfree(typeoids);
+	pfree(values);
+	pfree(nulls);
 }
 
 /* -------------------------------------------------------------------------
@@ -2752,25 +2762,12 @@ assign_plannode_id(PlannedStmt *stmt)
 int32
 cdbhash_const(Const *pconst, int iSegments)
 {
-	CdbHash    *pcdbhash = makeCdbHash(iSegments);
+	CdbHash    *pcdbhash = makeCdbHash(iSegments, 1, &pconst->consttype);
 
 	cdbhashinit(pcdbhash);
 
-	if (pconst->constisnull)
-	{
-		cdbhashnull(pcdbhash);
-	}
-	else
-	{
-		Assert(isGreenplumDbHashable(pconst->consttype));
-		Oid			oidType = pconst->consttype;
+	cdbhash(pcdbhash, 1, pconst->constvalue, pconst->constisnull);
 
-		if (typeIsArrayType(oidType))
-		{
-			oidType = ANYARRAYOID;
-		}
-		cdbhash(pcdbhash, pconst->constvalue, oidType);
-	}
 	return cdbhashreduce(pcdbhash);
 }
 
@@ -2780,36 +2777,40 @@ cdbhash_const(Const *pconst, int iSegments)
 int32
 cdbhash_const_list(List *plConsts, int iSegments)
 {
+	ListCell   *lc;
+	CdbHash    *pcdbhash;
+	Oid		   *typeoids;
+	int			i;
+
 	Assert(0 < list_length(plConsts));
 
-	CdbHash    *pcdbhash = makeCdbHash(iSegments);
+	typeoids = palloc(list_length(plConsts) * sizeof(Oid));
 
-	cdbhashinit(pcdbhash);
-
-	ListCell   *lc = NULL;
-
+	i = 0;
 	foreach(lc, plConsts)
 	{
 		Const	   *pconst = (Const *) lfirst(lc);
 
 		Assert(IsA(pconst, Const));
 
-		if (pconst->constisnull)
-		{
-			cdbhashnull(pcdbhash);
-		}
-		else
-		{
-			Assert(isGreenplumDbHashable(pconst->consttype));
-			Oid			oidType = pconst->consttype;
-
-			if (typeIsArrayType(oidType))
-			{
-				oidType = ANYARRAYOID;
-			}
-			cdbhash(pcdbhash, pconst->constvalue, oidType);
-		}
+		typeoids[i] = pconst->consttype;
+		i++;
 	}
+
+	pcdbhash = makeCdbHash(iSegments, list_length(plConsts), typeoids);
+
+	cdbhashinit(pcdbhash);
+
+	i = 0;
+	foreach(lc, plConsts)
+	{
+		Const	   *pconst = (Const *) lfirst(lc);
+
+		cdbhash(pcdbhash, i + 1, pconst->constvalue, pconst->constisnull);
+		i++;
+	}
+
+	pfree(typeoids);
 
 	return cdbhashreduce(pcdbhash);
 }

@@ -117,7 +117,7 @@ static void execMotionSortedReceiverFirstTime(MotionState * node);
 
 static int
 CdbMergeComparator(void *lhs, void *rhs, void *context);
-static uint32 evalHashKey(ExprContext *econtext, List *hashkeys, List *hashtypes, CdbHash * h);
+static uint32 evalHashKey(ExprContext *econtext, List *hashkeys, List *hashtypes, CdbHash *h);
 
 static void doSendEndOfStream(Motion * motion, MotionState * node);
 static void doSendTuple(Motion * motion, MotionState * node, TupleTableSlot *outerTupleSlot);
@@ -1002,6 +1002,10 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 	if (motionstate->mstype == MOTIONSTATE_SEND && node->motionType == MOTIONTYPE_HASH) 
 	{
 		int			nkeys;
+		Oid		   *typeoids;
+		int			i;
+		int			numsegments;
+		ListCell   *ht;
 
 		Assert(node->numOutputSegs > 0);
 
@@ -1010,6 +1014,13 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 		if (nkeys > 0)
 			motionstate->hashExpr = (List *) ExecInitExpr((Expr *) node->hashExpr,
 							(PlanState *) motionstate);
+
+		typeoids = palloc(nkeys * sizeof(Oid));
+		i = 0;
+		foreach(ht, node->hashDataTypes)
+		{
+			typeoids[i++] = lfirst_oid(ht);
+		}
 
 		/*
 		 * Create hash API reference
@@ -1023,7 +1034,7 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 			 * For planner generated plan the size of receiver slice can be
 			 * determined from flow.
 			 */
-			motionstate->cdbhash = makeCdbHash(node->plan.flow->numsegments);
+			numsegments = node->plan.flow->numsegments;
 		}
 		else
 		{
@@ -1031,8 +1042,10 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 			 * For ORCA generated plan we could distribute to ALL as partially
 			 * distributed tables are not supported by ORCA yet.
 			 */
-			motionstate->cdbhash = makeCdbHash(node->numOutputSegs);
+			numsegments = node->numOutputSegs;
 		}
+
+		motionstate->cdbhash = makeCdbHash(numsegments, nkeys, typeoids);
     }
 
 	/* Merge Receive: Set up the key comparator and priority queue. */
@@ -1339,7 +1352,6 @@ uint32
 evalHashKey(ExprContext *econtext, List *hashkeys, List *hashtypes, CdbHash * h)
 {
 	ListCell   *hk;
-	ListCell   *ht;
 	MemoryContext oldContext;
 
 	ResetExprContext(econtext);
@@ -1356,25 +1368,26 @@ evalHashKey(ExprContext *econtext, List *hashkeys, List *hashtypes, CdbHash * h)
 	 * to assign a hash value for us.
 	 */
 	if (list_length(hashkeys) > 0)
-	{	
-		forboth(hk, hashkeys, ht, hashtypes)
+	{
+		int			i;
+
+		i = 0;
+		foreach(hk, hashkeys)
 		{
 			ExprState  *keyexpr = (ExprState *) lfirst(hk);
 			Datum		keyval;
 			bool		isNull;
-			
+
 			/*
 			 * Get the attribute value of the tuple
 			 */
 			keyval = ExecEvalExpr(keyexpr, econtext, &isNull, NULL);
-			
+
 			/*
 			 * Compute the hash function
 			 */
-			if (!isNull)			/* treat nulls as having hash key 0 */
-				cdbhash(h, keyval, lfirst_oid(ht));
-			else
-				cdbhashnull(h);
+			cdbhash(h, i + 1, keyval, isNull);
+			i++;
 		}
 	}
 	else

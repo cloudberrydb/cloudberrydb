@@ -15,6 +15,8 @@
 #ifndef CDBHASH_H
 #define CDBHASH_H
 
+#include "utils/rel.h"
+
 /*
  * Hash Method
  * if change here, please also change pg_database.h
@@ -44,13 +46,15 @@ typedef struct CdbHash
 	CdbHashReduce reducealg;	/* the algorithm used for reducing to buckets		*/
 	uint32		rrindex;		/* round robin index for empty policy tables		*/
 
+	int			natts;
+	Oid			typeoids[FLEXIBLE_ARRAY_MEMBER];
 } CdbHash;
 
 /*
  * Create and initialize a CdbHash in the current memory context.
- * Parameter numsegs - number of segments in Greenplum Database.
  */
-extern CdbHash *makeCdbHash(int numsegs);
+extern CdbHash *makeCdbHash(int numsegs, int natts, Oid *typeoids);
+extern CdbHash *makeCdbHashForRelation(Relation rel);
 
 /*
  * Initialize CdbHash for hashing the next tuple values.
@@ -60,12 +64,7 @@ extern void cdbhashinit(CdbHash *h);
 /*
  * Add an attribute to the hash calculation.
  */
-extern void cdbhash(CdbHash *h, Datum val, Oid typid);
-
-/*
- * Add a NULL attribute to the hash calculation.
- */
-extern void cdbhashnull(CdbHash *h);
+extern void cdbhash(CdbHash *h, int attno, Datum datum, bool isnull);
 
 /*
  * Hash a tuple for a relation with an empty (no hash keys) partitioning policy.
@@ -86,16 +85,5 @@ extern bool isGreenplumDbHashable(Oid typid);
  * Return true if the operator Oid is hashable internally in Greenplum Database.
  */
 extern bool isGreenplumDbOprRedistributable(Oid oprid);
-
-/*
- * Return true if the Oid is an array type.  This can be used prior
- *   to hashing the datum because array typeoids are expected to
- *   have been converted to any array oid.
- */
-extern bool typeIsArrayType(Oid typeoid);
-
-extern bool typeIsEnumType(Oid typeoid);
-
-extern bool typeIsRangeType(Oid typeoid);
 
 #endif   /* CDBHASH_H */

@@ -5213,6 +5213,7 @@ ExecEvalReshuffleExpr(ReshuffleExprState *astate,
 	CdbHash	   *hnew;
 	uint32		newSeg;
 	bool		result;
+	int			i;
 
 	Assert(!IS_QUERY_DISPATCHER());
 
@@ -5221,24 +5222,30 @@ ExecEvalReshuffleExpr(ReshuffleExprState *astate,
 		if (NULL != sr->hashKeys)
 		{
 			/* For hash distributed tables */
-			hnew = makeCdbHash(sr->newSegs);
+			Oid		   *typeoids;
+
+			typeoids = (Oid *) palloc(list_length(astate->hashTypes) * sizeof(Oid));
+
+			i = 0;
+			foreach(t, astate->hashTypes)
+			{
+				typeoids[i++] = lfirst_oid(t);
+			}
+
+			hnew = makeCdbHash(sr->newSegs, list_length(astate->hashTypes), typeoids);
+
 			cdbhashinit(hnew);
-			forboth(k, astate->hashKeys, t, astate->hashTypes)
+			i = 0;
+			foreach(k, astate->hashKeys)
 			{
 				ExprState *vstate = (ExprState *) lfirst(k);
-				Oid			tp = lfirst_oid(t);
 				Datum		val;
 				bool		valnull;
 
 				val = ExecEvalExpr(vstate, econtext, &valnull, isDone);
-				if (valnull)
-				{
-					cdbhashnull(hnew);
-				}
-				else
-				{
-					cdbhash(hnew, val, tp);
-				}
+
+				cdbhash(hnew, i + 1, val, valnull);
+				i++;
 			}
 
 			newSeg = cdbhashreduce(hnew);
