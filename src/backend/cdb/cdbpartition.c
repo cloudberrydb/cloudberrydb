@@ -6611,7 +6611,7 @@ atpxPartAddList(Relation rel,
 	ct->ownerid = ownerid;
 
 	if (!ct->distributedBy)
-		ct->distributedBy = make_dist_clause(rel);
+		ct->distributedBy = make_distributedby_for_rel(rel);
 
 	/* this function does transformExpr on the boundary specs */
 	(void) atpxPart_validate_spec(pBy, rel, ct, pelem, pNode, partName,

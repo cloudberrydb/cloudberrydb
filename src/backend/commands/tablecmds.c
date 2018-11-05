@@ -15008,7 +15008,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 		}
 
 		if (!ldistro)
-			ldistro = make_dist_clause(rel);
+			ldistro = make_distributedby_for_rel(rel);
 
 		/*
 		 * Force the use of legacy query optimizer, since PQO will not
@@ -17163,12 +17163,12 @@ split_rows(Relation intoa, Relation intob, Relation temprel)
 
 /* ALTER TABLE ... SPLIT PARTITION */
 
-/* Given a Relation, make a distributed by () clause for parser consumption. */
+/* Given a Relation, make a DISTRIBUTED BY (...) clause for parser consumption. */
 DistributedBy *
-make_dist_clause(Relation rel)
+make_distributedby_for_rel(Relation rel)
 {
-	int		i;
-	DistributedBy	*dist;
+	int			i;
+	DistributedBy *dist;
 	List 		*distro = NIL;
 
 	dist = makeNode(DistributedBy);
@@ -17522,7 +17522,7 @@ ATPExecPartSplit(Relation *rel,
 
 		existrel = heap_open(prule->topRule->parchildrelid, NoLock);
 		existstorage_opts = reloptions_list(RelationGetRelid(existrel));
-		distro = make_dist_clause(existrel);
+		distro = make_distributedby_for_rel(existrel);
 		colencs = rel_get_column_encodings(existrel);
 		orient = make_orientation_options(existrel);
 

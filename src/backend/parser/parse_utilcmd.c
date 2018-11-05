@@ -1845,8 +1845,11 @@ transformDistributedBy(CreateStmtContext *cxt,
 		foreach(entry, cxt->inhRelations)
 		{
 			RangeVar   *parent = (RangeVar *) lfirst(entry);
-			Oid			relId = RangeVarGetRelid(parent, NoLock, false);
-			GpPolicy  *oldTablePolicy = GpPolicyFetch(relId);
+			GpPolicy   *parentPolicy;
+			Relation	parentrel;
+
+			parentrel = heap_openrv(parent, AccessShareLock);
+			parentPolicy = parentrel->rd_cdbpolicy;
 
 			/*
 			 * Partitioned child must have partitioned parents. During binary
@@ -1854,26 +1857,24 @@ transformDistributedBy(CreateStmtContext *cxt,
 			 * segment in utility mode and the distribution policy isn't stored
 			 * in the segments.
 			 */
-			if ((oldTablePolicy == NULL ||
-					oldTablePolicy->ptype == POLICYTYPE_ENTRY) &&
+			if ((parentPolicy == NULL ||
+					parentPolicy->ptype == POLICYTYPE_ENTRY) &&
 					!IsBinaryUpgrade)
 			{
 				ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						errmsg("cannot inherit from catalog table \"%s\" "
-							   "to create table \"%s\".",
+						errmsg("cannot inherit from catalog table \"%s\" to create table \"%s\"",
 							   parent->relname, cxt->relation->relname),
 						errdetail("An inheritance hierarchy cannot contain a "
 								  "mixture of distributed and "
 								  "non-distributed tables.")));
 			}
 
-			if ((oldTablePolicy == NULL ||
-					GpPolicyIsReplicated(oldTablePolicy)) &&
+			if ((parentPolicy == NULL ||
+					GpPolicyIsReplicated(parentPolicy)) &&
 					!IsBinaryUpgrade)
 			{
 				ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						errmsg("cannot inherit from replicated table \"%s\" "
-							   "to create table \"%s\".",
+						errmsg("cannot inherit from replicated table \"%s\" to create table \"%s\".",
 							   parent->relname, cxt->relation->relname),
 						errdetail("An inheritance hierarchy cannot contain a "
 								  "mixture of distributed and "
@@ -1885,41 +1886,17 @@ transformDistributedBy(CreateStmtContext *cxt,
 			 * is an inherited table, set the distribution based on the
 			 * parent (or one of the parents)
 			 */
-			if (distrkeys == NIL && oldTablePolicy->nattrs >= 0)
+			if (distrkeys == NIL && parentPolicy->nattrs >= 0)
 			{
-				int ia;
-
 				if (!bQuiet)
-				 elog(NOTICE, "Table has parent, setting distribution columns "
-					 "to match parent table");
+					elog(NOTICE, "Table has parent, setting distribution columns to match parent table");
 
-				/*
-				 * Inherited tables must have the same numsegments with
-				 * parent table.
-				 */
-				numsegments = oldTablePolicy->numsegments;
+				distributedBy = make_distributedby_for_rel(parentrel);
+				heap_close(parentrel, AccessShareLock);
 
-				if (oldTablePolicy->nattrs > 0)
-				{
-					for (ia=0; ia<oldTablePolicy->nattrs; ia++)
-					{
-						char *attname =
-							get_attname(relId, oldTablePolicy->attrs[ia]);
-
-						distrkeys = lappend(distrkeys,
-												(Node *) makeString(attname));
-					}
-				}
-				else
-				{
-					pfree(oldTablePolicy);
-					distributedBy = makeNode(DistributedBy);
-					distributedBy->ptype = POLICYTYPE_PARTITIONED;
-					distributedBy->numsegments = numsegments;
-					return distributedBy;
-				}
+				return distributedBy;
 			}
-			pfree(oldTablePolicy);
+			heap_close(parentrel, AccessShareLock);
 		}
 	}
 
@@ -4208,40 +4185,17 @@ setSchemaName(char *context_schema, char **stmt_schema_name)
 static DistributedBy *
 getLikeDistributionPolicy(TableLikeClause *e)
 {
-	DistributedBy		*likeDistributedBy = NULL;
-	Oid				relId;
-	GpPolicy*		oldTablePolicy;
+	DistributedBy *likeDistributedBy = NULL;
+	Relation	rel;
 
-	relId = RangeVarGetRelid(e->relation, NoLock, false);
-	oldTablePolicy = GpPolicyFetch(relId);
+	rel = relation_openrv(e->relation, AccessShareLock);
 
-	if (oldTablePolicy != NULL && oldTablePolicy->ptype != POLICYTYPE_ENTRY)
+	if (rel->rd_cdbpolicy != NULL && rel->rd_cdbpolicy->ptype != POLICYTYPE_ENTRY)
 	{
-		likeDistributedBy = makeNode(DistributedBy);
-
-		if (GpPolicyIsReplicated(oldTablePolicy))
-		{
-			likeDistributedBy->ptype = POLICYTYPE_REPLICATED;
-			likeDistributedBy->numsegments = oldTablePolicy->numsegments;
-			likeDistributedBy->keys = NIL;
-		}
-		else
-		{
-			int ia;
-			List *keys = NIL;
-
-			for (ia = 0 ; ia < oldTablePolicy->nattrs ; ia++)
-			{
-				char *attname = get_attname(relId, oldTablePolicy->attrs[ia]);
-
-				keys = lappend(keys, (Node *) makeString(attname));
-			}
-
-			likeDistributedBy->ptype = POLICYTYPE_PARTITIONED;
-			likeDistributedBy->numsegments = oldTablePolicy->numsegments;
-			likeDistributedBy->keys = keys;
-		}
+		likeDistributedBy = make_distributedby_for_rel(rel);
 	}
+
+	relation_close(rel, AccessShareLock);
 
 	return likeDistributedBy;
 }
