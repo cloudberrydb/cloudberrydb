@@ -43,6 +43,8 @@ static void ensureCleanShutdown(const char *argv0);
 static ControlFileData ControlFile_target;
 static ControlFileData ControlFile_source;
 
+static bool writerecoveryconf = false;
+
 const char *progname;
 
 /* Configuration options */
@@ -63,6 +65,7 @@ usage(const char *progname)
 	printf(_("  -D, --target-pgdata=DIRECTORY  existing data directory to modify\n"));
 	printf(_("      --source-pgdata=DIRECTORY  source data directory to synchronize with\n"));
 	printf(_("      --source-server=CONNSTR    source server to synchronize with\n"));
+	printf(_("  -R, --write-recovery-conf      write recovery.conf after backup\n"));
 	printf(_("  -n, --dry-run                  stop before modifying anything\n"));
 	printf(_("  -P, --progress                 write progress messages\n"));
 	printf(_("      --debug                    write a lot of debug messages\n"));
@@ -78,6 +81,7 @@ main(int argc, char **argv)
 	static struct option long_options[] = {
 		{"help", no_argument, NULL, '?'},
 		{"target-pgdata", required_argument, NULL, 'D'},
+		{"write-recovery-conf", no_argument, NULL, 'R'},
 		{"source-pgdata", required_argument, NULL, 1},
 		{"source-server", required_argument, NULL, 2},
 		{"version", no_argument, NULL, 'V'},
@@ -118,7 +122,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	while ((c = getopt_long(argc, argv, "D:nP", long_options, &option_index)) != -1)
+	while ((c = getopt_long(argc, argv, "D:nPR", long_options, &option_index)) != -1)
 	{
 		switch (c)
 		{
@@ -132,6 +136,10 @@ main(int argc, char **argv)
 
 			case 'n':
 				dry_run = true;
+				break;
+
+			case 'R':
+				writerecoveryconf = true;
 				break;
 
 			case 3:
@@ -277,6 +285,13 @@ main(int argc, char **argv)
 	if (!rewind_needed)
 	{
 		printf(_("no rewind required\n"));
+
+		if (writerecoveryconf && connstr_source)
+		{
+			GenerateRecoveryConf();
+			WriteRecoveryConf();
+		}
+
 		exit(0);
 	}
 
@@ -366,6 +381,12 @@ main(int argc, char **argv)
 
 	pg_log(PG_PROGRESS, "syncing target data directory\n");
 	syncTargetDirectory(argv[0]);
+
+	if (writerecoveryconf && connstr_source)
+	{
+		GenerateRecoveryConf();
+		WriteRecoveryConf();
+	}
 
 	printf(_("Done!\n"));
 
