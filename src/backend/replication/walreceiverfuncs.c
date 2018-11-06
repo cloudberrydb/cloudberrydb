@@ -249,18 +249,6 @@ RequestXLogStreaming(TimeLineID tli, XLogRecPtr recptr, const char *conninfo,
 	pg_time_t	now = (pg_time_t) time(NULL);
 
 	/*
-	 * If it's not stopped, nothing to do.
-	 */
-	if (walrcv->walRcvState != WALRCV_STOPPED)
-	{
-		elogif(debug_xlog_record_read, LOG,
-			   "request streaming -- walreceiver state is %s. Hence, no need "
-			   "to request streaming.", WalRcvGetStateString(walrcv->walRcvState));
-
-		return;
-	}
-
-	/*
 	 * We always start at the beginning of the segment. That prevents a broken
 	 * segment (i.e., with no records in the first half of a segment) from
 	 * being created by XLOG streaming, which might cause trouble later on if
