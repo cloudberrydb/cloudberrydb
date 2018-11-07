@@ -675,10 +675,14 @@ apply_motion_mutator(Node *node, ApplyMotionState *context)
 		if (IsA(node, SubPlan) &&((SubPlan *) node)->is_initplan)
 		{
 			bool		saveContainMotionNodes = context->containMotionNodes;
+			int			saveSliceDepth = context->sliceDepth;
 
+			/* reset sliceDepth for each init plan */
+			context->sliceDepth = 0;
 			node = plan_tree_mutator(node, apply_motion_mutator, context);
 
 			context->containMotionNodes = saveContainMotionNodes;
+			context->sliceDepth = saveSliceDepth;
 
 			return node;
 		}
