@@ -2023,10 +2023,10 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
         /* Worker counts */
         slice = getCurrentSlice(estate, sliceIndex);
         if (slice &&
-            slice->numGangMembersToBeActive > 0 &&
-            slice->numGangMembersToBeActive != ss->dispatchSummary.nOk)
+            slice->gangSize > 0 &&
+            slice->gangSize != ss->dispatchSummary.nOk)
         {
-            int nNotDispatched = slice->numGangMembersToBeActive - ds->nResult + ds->nNotDispatched;
+            int nNotDispatched = slice->gangSize - ds->nResult + ds->nNotDispatched;
 
             es->str->data[flag] = (ss->dispatchSummary.nError > 0) ? 'X' : '_';
             StringInfoData workersInformationText;

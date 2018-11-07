@@ -464,7 +464,6 @@ _outModifyTable(StringInfo str, const ModifyTable *node)
 	WRITE_NODE_FIELD(action_col_idxes);
 	WRITE_NODE_FIELD(ctid_col_idxes);
 	WRITE_NODE_FIELD(oid_col_idxes);
-	WRITE_BOOL_FIELD(isReshuffle);
 }
 
 static void
@@ -1158,10 +1157,7 @@ _outMotion(StringInfo str, const Motion *node)
 	WRITE_NODE_FIELD(hashExpr);
 	WRITE_NODE_FIELD(hashDataTypes);
 
-	WRITE_INT_FIELD(numOutputSegs);
-	appendStringInfoLiteral(str, " :outputSegIdx");
-	for (i = 0; i < node->numOutputSegs; i++)
-		appendStringInfo(str, " %d", node->outputSegIdx[i]);
+	WRITE_INT_FIELD(isBroadcast);
 
 	WRITE_INT_FIELD(numSortCols);
 	appendStringInfoLiteral(str, " :sortColIdx");
@@ -4394,7 +4390,6 @@ _outSlice(StringInfo str, const Slice *node)
 	WRITE_NODE_FIELD(children); /* List of int index */
 	WRITE_ENUM_FIELD(gangType,GangType);
 	WRITE_INT_FIELD(gangSize);
-	WRITE_INT_FIELD(numGangMembersToBeActive);
 	WRITE_BOOL_FIELD(directDispatch.isDirectDispatch);
 	WRITE_NODE_FIELD(directDispatch.contentIds); /* List of int */
 	WRITE_DUMMY_FIELD(primaryGang);

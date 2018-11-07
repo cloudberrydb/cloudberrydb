@@ -582,13 +582,6 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	Assert(config);
 	root->config = config;
 
-	if (Gp_role == GP_ROLE_DISPATCH && gp_session_id > -1)
-	{
-		/* Choose a segdb to which our singleton gangs should be dispatched. */
-		/* FIXME: do not hard code to 0 */
-		gp_singleton_segindex = 0;
-	}
-
 	root->hasRecursion = hasRecursion;
 	if (hasRecursion)
 		root->wt_param_id = SS_assign_special_param(root);
@@ -2846,7 +2839,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				}
 				else
 				{
-					result_plan = (Plan *) make_motion_gather(root, result_plan, -1, current_pathkeys);
+					result_plan = (Plan *) make_motion_gather(root, result_plan, current_pathkeys);
 				}
 				result_plan->total_cost += motion_cost_per_row * result_plan->plan_rows;
 			}
@@ -2936,8 +2929,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				result_plan = (Plan *) make_unique(result_plan, parse->distinctClause);
 				result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 
-				result_plan = (Plan *) make_motion_gather(root, result_plan, -1,
-														  current_pathkeys);
+				result_plan = (Plan *) make_motion_gather(root, result_plan, current_pathkeys);
 			}
 
 			result_plan = (Plan *) make_unique(result_plan,
@@ -2976,8 +2968,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			 * handling below.
 			 */
 			current_pathkeys = root->sort_pathkeys;
-			result_plan = (Plan *) make_motion_gather(root, result_plan, -1,
-													  current_pathkeys);
+			result_plan = (Plan *) make_motion_gather(root, result_plan, current_pathkeys);
 		}
 	}
 

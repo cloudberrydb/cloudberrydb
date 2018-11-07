@@ -2235,8 +2235,7 @@ _readMotion(void)
 	READ_NODE_FIELD(hashExpr);
 	READ_NODE_FIELD(hashDataTypes);
 
-	READ_INT_FIELD(numOutputSegs);
-	READ_INT_ARRAY(outputSegIdx, local_node->numOutputSegs, int);
+	READ_INT_FIELD(isBroadcast);
 
 	READ_INT_FIELD(numSortCols);
 	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
@@ -2378,7 +2377,6 @@ _readSlice(void)
 	READ_ENUM_FIELD(gangType, GangType);
 	Assert(local_node->gangType <= GANGTYPE_PRIMARY_WRITER);
 	READ_INT_FIELD(gangSize);
-	READ_INT_FIELD(numGangMembersToBeActive);
 	READ_BOOL_FIELD(directDispatch.isDirectDispatch);
 	READ_NODE_FIELD(directDispatch.contentIds); /* List of int index */
 	READ_DUMMY_FIELD(primaryGang, NULL);
@@ -2903,7 +2901,6 @@ _readModifyTable(void)
 	READ_NODE_FIELD(action_col_idxes);
 	READ_NODE_FIELD(ctid_col_idxes);
 	READ_NODE_FIELD(oid_col_idxes);
-	READ_BOOL_FIELD(isReshuffle);
 
 	READ_DONE();
 }

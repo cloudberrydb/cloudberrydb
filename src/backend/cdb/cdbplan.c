@@ -717,7 +717,6 @@ plan_tree_mutator(Node *node,
 
 				MUTATE(newmotion->hashExpr, motion->hashExpr, List *);
 				MUTATE(newmotion->hashDataTypes, motion->hashDataTypes, List *);
-				COPYARRAY(newmotion, motion, numOutputSegs, outputSegIdx);
 
 				COPYARRAY(newmotion, motion, numSortCols, sortColIdx);
 				COPYARRAY(newmotion, motion, numSortCols, sortOperators);

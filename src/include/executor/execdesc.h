@@ -87,12 +87,6 @@ typedef struct Slice
 	int			gangSize;
 
 	/*
-	 * How many of the gang members will actually be used? This takes into
-	 * account directDispatch information.
-	 */
-	int			numGangMembersToBeActive;
-
-	/*
 	 * directDispatch->isDirectDispatch should ONLY be set for a slice
 	 * when it requires an n-gang.
 	 */

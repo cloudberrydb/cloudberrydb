@@ -573,8 +573,7 @@ make_agg_subplan(PlannerInfo *root, MinMaxAggInfo *mminfo)
 	}
 	else if (plan->flow->flotype == FLOW_PARTITIONED)
 	{
-		plan = (Plan *) make_motion_gather(subroot, plan, -1,
-										   subroot->sort_pathkeys);
+		plan = (Plan *) make_motion_gather(subroot, plan, subroot->sort_pathkeys);
 	}
 	else
 		elog(ERROR, "MIN/MAX subplan has unexpected flowtype: %d", plan->flow->type);

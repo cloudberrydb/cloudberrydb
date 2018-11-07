@@ -1966,63 +1966,34 @@ CTranslatorDXLToPlStmt::TranslateDXLMotion
 		case EdxlopPhysicalMotionGather:
 		{
 			motion->motionType = MOTIONTYPE_FIXED;
-			// get segment id
-			INT segid = CDXLPhysicalGatherMotion::Cast(motion_dxlop)->IOutputSegIdx();
+			motion->isBroadcast = false;
+			flow->numsegments = 1;
 
-			// if it's a gather on a segment, pick a segment from
-			// available segments using GPDB's hash function.
-			// This function outputs a segment index in a round
-			// robin fashion using a random segment index as the
-			// starting point.
-			// This ensures that concurrent DML queries issued via
-			// a same session, use a different output segment each
-			// time a gather on segment is needed.
-			if (segid >= 0)
-			{
-				segid = gpdb::CdbHashRandom(m_num_of_segments);
-				GPOS_ASSERT(segid >= 0);
-			}
-
-			motion->numOutputSegs = 1;
-			motion->outputSegIdx = (INT *) gpdb::GPDBAlloc(sizeof(INT));
-			*(motion->outputSegIdx) = segid;
 			break;
 		}
 		case EdxlopPhysicalMotionRedistribute:
 		case EdxlopPhysicalMotionRandom:
 		{
 			motion->motionType = MOTIONTYPE_HASH;
-			// translate output segment ids
-			const IntPtrArray *output_segids_array = CDXLPhysicalMotion::Cast(motion_dxlop)->GetOutputSegIdsArray();
-
-			GPOS_ASSERT(NULL != output_segids_array && 0 < output_segids_array->Size());
-			ULONG segid_count = output_segids_array->Size();
-			motion->outputSegIdx = (INT *) gpdb::GPDBAlloc (segid_count * sizeof(INT));
-			motion->numOutputSegs = segid_count;
-
-			for(ULONG ul = 0; ul < segid_count; ul++)
-			{
-				INT segid = *((*output_segids_array)[ul]);
-				motion->outputSegIdx[ul] = segid;
-			}
+			motion->isBroadcast = false;
 
 			break;
 		}
 		case EdxlopPhysicalMotionBroadcast:
 		{
 			motion->motionType = MOTIONTYPE_FIXED;
-			motion->numOutputSegs = 0;
-			motion->outputSegIdx = NULL;
+			motion->isBroadcast = true;
+
 			break;
 		}
 		case EdxlopPhysicalMotionRoutedDistribute:
 		{
-			motion->motionType = MOTIONTYPE_EXPLICIT;
-			motion->numOutputSegs = 0;
-			motion->outputSegIdx = NULL;
 			ULONG segid_col = CDXLPhysicalRoutedDistributeMotion::Cast(motion_dxlop)->SegmentIdCol();
 			const TargetEntry *te_sort_col = child_context.GetTargetEntry(segid_col);
+
+			motion->motionType = MOTIONTYPE_EXPLICIT;
 			motion->segidColIdx = te_sort_col->resno;
+			motion->isBroadcast = false;
 
 			break;
 			

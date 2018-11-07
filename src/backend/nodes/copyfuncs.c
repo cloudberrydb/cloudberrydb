@@ -316,7 +316,6 @@ _copyModifyTable(const ModifyTable *from)
 	COPY_NODE_FIELD(action_col_idxes);
 	COPY_NODE_FIELD(ctid_col_idxes);
 	COPY_NODE_FIELD(oid_col_idxes);
-	COPY_SCALAR_FIELD(isReshuffle);
 
 	return newnode;
 }
@@ -1309,8 +1308,7 @@ _copyMotion(const Motion *from)
 	COPY_NODE_FIELD(hashExpr);
 	COPY_NODE_FIELD(hashDataTypes);
 
-	COPY_SCALAR_FIELD(numOutputSegs);
-	COPY_POINTER_FIELD(outputSegIdx, from->numOutputSegs * sizeof(int));
+	COPY_SCALAR_FIELD(isBroadcast);
 
 	COPY_SCALAR_FIELD(numSortCols);
 	COPY_POINTER_FIELD(sortColIdx, from->numSortCols * sizeof(AttrNumber));
@@ -4835,7 +4833,6 @@ _copySlice(const Slice *from)
 	COPY_SCALAR_FIELD(rootIndex);
 	COPY_SCALAR_FIELD(gangType);
 	COPY_SCALAR_FIELD(gangSize);
-	COPY_SCALAR_FIELD(numGangMembersToBeActive);
 	COPY_SCALAR_FIELD(directDispatch.isDirectDispatch);
 	COPY_NODE_FIELD(directDispatch.contentIds);
 

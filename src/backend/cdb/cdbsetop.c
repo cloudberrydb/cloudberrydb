@@ -310,7 +310,7 @@ copyFlow(Flow *model_flow, bool withExprs, bool withSort)
 Motion *
 make_motion_gather_to_QD(PlannerInfo *root, Plan *subplan, List *sortPathKeys)
 {
-	return make_motion_gather(root, subplan, -1, sortPathKeys);
+	return make_motion_gather(root, subplan, sortPathKeys);
 }
 
 /*
@@ -322,7 +322,7 @@ make_motion_gather_to_QD(PlannerInfo *root, Plan *subplan, List *sortPathKeys)
 Motion *
 make_motion_gather_to_QE(PlannerInfo *root, Plan *subplan, List *sortPathKeys)
 {
-	return make_motion_gather(root, subplan, gp_singleton_segindex, sortPathKeys);
+	return make_motion_gather(root, subplan, sortPathKeys);
 }
 
 /*
@@ -332,7 +332,7 @@ make_motion_gather_to_QE(PlannerInfo *root, Plan *subplan, List *sortPathKeys)
  *      subplan.
  */
 Motion *
-make_motion_gather(PlannerInfo *root, Plan *subplan, int segindex, List *sortPathKeys)
+make_motion_gather(PlannerInfo *root, Plan *subplan, List *sortPathKeys)
 {
 	Motion	   *motion;
 
@@ -364,10 +364,8 @@ make_motion_gather(PlannerInfo *root, Plan *subplan, int segindex, List *sortPat
 										  sort->numCols,
 										  sort->sortColIdx,
 										  sort->sortOperators,
-										  sort->collations,
-										  sort->nullsFirst,
-										  segindex,
-										  false /* useExecutorVarFormat */,
+										  sort->collations,sort->nullsFirst,
+										  false,
 										  subplan->flow->numsegments);
 
 		/* throw away the Sort */
@@ -377,11 +375,7 @@ make_motion_gather(PlannerInfo *root, Plan *subplan, int segindex, List *sortPat
 	{
 		/* FIXME: numsegments */
 
-		motion = make_union_motion(
-								   subplan,
-								   segindex,
-								   false /* useExecutorVarFormat */,
-								   subplan->flow->numsegments);
+		motion = make_union_motion(subplan, false, subplan->flow->numsegments);
 	}
 
 	return motion;
@@ -435,7 +429,7 @@ make_motion_hash_all_targets(PlannerInfo *root, Plan *subplan)
 		 * produce a different plan, with Sorts in the segments, and an
 		 * order-preserving gather on the top.)
 		 */
-		return make_motion_gather(root, subplan, -1, NIL);
+		return make_motion_gather(root, subplan, NIL);
 	}
 }
 

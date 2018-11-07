@@ -14575,7 +14575,6 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 	bool				useExistingColumnAttributes = true;
 	SetDistributionCmd *qe_data = NULL; 
 	bool 				save_optimizer_replicated_table_insert;
-	int 				save_gp_singleton_segindex;
 	Oid					relationOid = InvalidOid;
 	AutoStatsCmdType 	cmdType = AUTOSTATS_CMDTYPE_SENTINEL;
 
@@ -15079,13 +15078,6 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 		 * will be able to access the table now.
 		 */
 		PushActiveSnapshot(GetLatestSnapshot());
-	
-		/*
-		 * For gpexpand: set gp_singleton_segindex to 0 so dispatcher don't
-		 * assign singleton segment to newly expanded segment. 
-		 */
-		save_gp_singleton_segindex = gp_singleton_segindex;
-		gp_singleton_segindex = 0;
 
 		/* Step (c) - run on all nodes */
 		queryDesc->ddesc = makeNode(QueryDispatchDesc);
@@ -15116,7 +15108,6 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 		PopActiveSnapshot();
 		optimizer = saveOptimizerGucValue;
 		optimizer_replicated_table_insert = save_optimizer_replicated_table_insert;
-		gp_singleton_segindex = save_gp_singleton_segindex;
 
 		CommandCounterIncrement(); /* see the effects of the command */
 

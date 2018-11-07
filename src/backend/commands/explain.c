@@ -927,7 +927,7 @@ show_dispatch_info(Slice *slice, ExplainState *es, Plan *plan)
 			}
 			else
 			{
-				segments = slice->numGangMembersToBeActive;
+				segments = slice->gangSize;
 			}
 			break;
 		}
@@ -1134,6 +1134,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 	int			motion_snd;
 	float		scaleFactor = 1.0; /* we will divide planner estimates by this factor to produce
 									  per-segment estimates */
+	Slice		*parentSlice = NULL;
 
 	/* Remember who called us. */
 	parentplanstate = es->parentPlanState;
@@ -1177,8 +1178,13 @@ ExplainNode(PlanState *planstate, List *ancestors,
 		SliceTable *sliceTable = planstate->state->es_sliceTable;
 
 		if (sliceTable)
+		{
 			es->currentSlice = (Slice *) list_nth(sliceTable->slices,
 												  pMotion->motionID);
+			parentSlice = es->currentSlice->parentIndex == -1 ? NULL :
+						  (Slice *) list_nth(sliceTable->slices,
+											 es->currentSlice->parentIndex);
+		}
 	}
 
 	switch (nodeTag(plan))
@@ -1390,13 +1396,13 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			break;
 		case T_Motion:
 			{
-				Motion	   *pMotion = (Motion *) plan;
+				Motion		*pMotion = (Motion *) plan;
 
 				Assert(plan->lefttree);
 				Assert(plan->lefttree->flow);
 
-				motion_snd = es->currentSlice->numGangMembersToBeActive;
-				motion_recv = 0;
+				motion_snd = es->currentSlice->gangSize;
+				motion_recv = (parentSlice == NULL ? 1 : parentSlice->gangSize);
 
 				/* scale the number of rows by the number of segments sending data */
 				scaleFactor = motion_snd;
@@ -1405,24 +1411,23 @@ ExplainNode(PlanState *planstate, List *ancestors,
 				{
 					case MOTIONTYPE_HASH:
 						sname = "Redistribute Motion";
-						motion_recv = pMotion->numOutputSegs;
 						break;
 					case MOTIONTYPE_FIXED:
-						motion_recv = pMotion->numOutputSegs;
-						if (motion_recv == 0)
+						if (pMotion->isBroadcast)
 						{
 							sname = "Broadcast Motion";
-							motion_recv = getgpsegmentCount();
 						}
 						else if (plan->lefttree->flow->locustype == CdbLocusType_Replicated)
 						{
 							sname = "Explicit Gather Motion";
 							scaleFactor = 1;
+							motion_recv = 1;
 						}
 						else
 						{
 							sname = "Gather Motion";
 							scaleFactor = 1;
+							motion_recv = 1;
 						}
 						break;
 					case MOTIONTYPE_EXPLICIT:
@@ -1455,7 +1460,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 					}
 
 					if (pMotion->motionType == MOTIONTYPE_FIXED &&
-						pMotion->numOutputSegs != 0)
+						!pMotion->isBroadcast)
 					{
 						/* In Gather Motion always display receiver size as 1 */
 						motion_recv = 1;

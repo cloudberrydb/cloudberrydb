@@ -49,6 +49,7 @@ static void cleanup_dispatcher_handle(dispatcher_handle_t *h);
 static dispatcher_handle_t *find_dispatcher_handle(CdbDispatcherState *ds);
 static dispatcher_handle_t *allocate_dispatcher_handle(void);
 static void destroy_dispatcher_handle(dispatcher_handle_t *h);
+static char * segmentsListToString(const char *prefix, List *segments);
 
 /*
  * default directed-dispatch parameters: don't direct anything.
@@ -588,16 +589,40 @@ cdbdisp_markNamedPortalGangsDestroyed(void)
 	}
 }
 
+/*
+ * segmentsListToString
+ *		Utility routine to convert a segment list into a string.
+ */
+static char *
+segmentsListToString(const char *prefix, List *segments)
+{
+	StringInfoData string;
+	ListCell   *l;
+
+	initStringInfo(&string);
+	appendStringInfo(&string, "%s: ", prefix);
+
+	foreach(l, segments)
+	{
+		int segID = lfirst_int(l);
+
+		appendStringInfo(&string, "%d ", segID);
+	}
+
+	return string.data;
+}
+
 char*
 segmentsToContentStr(List *segments)
 {
 	int size = list_length(segments);
+
 	if (size == 0)
 		return "ALL contents";
 	else if (size == 1)
 		return "SINGLE content";
 	else if (size < getgpsegmentCount())
-		return "PARTIAL contents";
+		return segmentsListToString("PARTIAL contents", segments);
 	else
-		return "ALL contents";
+		return segmentsListToString("ALL contents", segments);
 }

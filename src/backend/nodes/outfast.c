@@ -560,8 +560,7 @@ _outMotion(StringInfo str, Motion *node)
 	WRITE_NODE_FIELD(hashExpr);
 	WRITE_NODE_FIELD(hashDataTypes);
 
-	WRITE_INT_FIELD(numOutputSegs);
-	WRITE_INT_ARRAY(outputSegIdx, node->numOutputSegs, int);
+	WRITE_INT_FIELD(isBroadcast);
 
 	WRITE_INT_FIELD(numSortCols);
 	WRITE_INT_ARRAY(sortColIdx, node->numSortCols, AttrNumber);

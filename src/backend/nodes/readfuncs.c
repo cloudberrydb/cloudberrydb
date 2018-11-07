@@ -2825,7 +2825,6 @@ _readSlice(void)
 	READ_NODE_FIELD(children); /* List of int index */
 	READ_ENUM_FIELD(gangType, GangType);
 	READ_INT_FIELD(gangSize);
-	READ_INT_FIELD(numGangMembersToBeActive);
 	READ_BOOL_FIELD(directDispatch.isDirectDispatch);
 	READ_NODE_FIELD(directDispatch.contentIds); /* List of int index */
 	READ_DUMMY_FIELD(primaryGang, NULL);
