@@ -1531,8 +1531,16 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 		}
 		else if (CdbPathLocus_IsPartitioned(pathnode->locus) &&
 				 CdbPathLocus_IsPartitioned(projectedlocus))
+		{
+			/*
+			 * subpaths have different distributed policy, mark it as random
+			 * distributed and set the numsegments to the maximum of all
+			 * subpaths to not missing any tuples.
+			 */
 			CdbPathLocus_MakeStrewn(&pathnode->locus,
-									CdbPathLocus_NumSegments(projectedlocus));
+									Max(CdbPathLocus_NumSegments(pathnode->locus),
+										CdbPathLocus_NumSegments(projectedlocus)));
+		}
 		else
 			ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							errmsg_internal("cannot append paths with incompatible distribution")));
