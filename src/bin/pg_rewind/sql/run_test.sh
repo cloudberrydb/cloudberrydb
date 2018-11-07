@@ -81,6 +81,11 @@ standby_following_master
 # sleep a bit to make sure the standby has caught up.
 sleep 1
 
+# For some tests, we want to stop the master before standby promotion
+if [ "$STOP_MASTER_BEFORE_PROMOTE" == "true" ]; then
+    pg_ctl -w -D $TEST_MASTER stop -m $MASTER_PG_CTL_STOP_MODE >>$log_path 2>&1
+fi
+
 # Now promote slave and insert some new data on master, this will put
 # the master out-of-sync with the standby.
 
@@ -92,8 +97,10 @@ wait_until_standby_is_promoted >>$log_path 2>&1
 echo "Standby promoted."
 after_promotion
 
-# Stop the master and be ready to perform the rewind
-pg_ctl -w -D $TEST_MASTER stop -m $MASTER_PG_CTL_STOP_MODE >>$log_path 2>&1
+# For some tests, we want to stop the master after standby promotion
+if [ "$STOP_MASTER_BEFORE_PROMOTE" != "true" ]; then
+    pg_ctl -w -D $TEST_MASTER stop -m $MASTER_PG_CTL_STOP_MODE >>$log_path 2>&1
+fi
 
 # For a local test, source node need to be stopped as well.
 if [ $TEST_SUITE == "local" ]; then
