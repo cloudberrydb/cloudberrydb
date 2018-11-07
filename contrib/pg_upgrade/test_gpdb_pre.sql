@@ -60,6 +60,7 @@ DROP TABLE IF EXISTS public.newpart CASCADE;
 -- This view definition changes after upgrade.
 DROP VIEW IF EXISTS v_xpect_triangle_de CASCADE;
 
--- The dump location for this protocol changes sporadically and causes a false
+-- The dump locations for these protocols change sporadically and cause a false
 -- negative. This may indicate a bug in pg_dump's sort priority for PROTOCOLs.
 DROP PROTOCOL IF EXISTS demoprot_untrusted;
+DROP PROTOCOL IF EXISTS demoprot_untrusted2;
