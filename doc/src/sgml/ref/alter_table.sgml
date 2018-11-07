@@ -34,6 +34,7 @@ ALTER TABLE [ IF EXISTS ] [ONLY] name SET
      WITH (REORGANIZE=true|false) 
    | DISTRIBUTED BY (column_name, [ ... ] ) 
    | DISTRIBUTED RANDOMLY 
+   | DISTRIBUTED REPLICATED
 
 ALTER TABLE [ IF EXISTS ] [ONLY] name action [, ... ]
 
