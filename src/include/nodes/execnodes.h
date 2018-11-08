@@ -1355,10 +1355,10 @@ typedef struct CoerceToDomainState
  */
 typedef struct ReshuffleExprState
 {
-	ExprState xprstate;
+	ExprState	xprstate;
 	ExprState  *arg;
-	List *hashKeys;
-	List *hashTypes;
+	List	   *hashKeys;
+	struct CdbHash *cdbhash;	/* hash api object */
 } ReshuffleExprState;
 
 /*
@@ -3014,8 +3014,12 @@ typedef struct PartitionSelectorState
 typedef struct ReshuffleState
 {
 	PlanState ps;
-	List* destList;
-	int newTargetIdx;
+	List	   *destList;
+	int			newTargetIdx;
+
+	struct CdbHash *cdbhash;	/* hash api object for computing new segment */
+	struct CdbHash *oldcdbhash;	/* hash api object for computing old segment */
+
 	TupleTableSlot *savedSlot;
 } ReshuffleState;
 

@@ -1580,16 +1580,16 @@ typedef struct PartListNullTestExpr
 /*
  * ReshuffleExpr
  *
- * Represents the expression that which data need to be reshuffer when
- * we give an new count of segments.
+ * Represents the expression that determines which data needs to be
+ * reshuffled, when the number of segments is changed.
  */
 typedef struct ReshuffleExpr
 {
-	Expr xpr;
-	int newSegs;
-	int oldSegs;
-	List *hashKeys;
-	List *hashTypes;
+	Expr		xpr;
+	int			newSegs;
+	int			oldSegs;
+	List	   *hashKeys;
+	List	   *hashTypes;
 	GpPolicyType ptype;
 } ReshuffleExpr;
 

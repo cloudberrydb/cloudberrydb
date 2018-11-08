@@ -138,44 +138,26 @@
  * 	compute the Hash keys
  */
 static int
-EvalHashSegID(Datum *values, bool *nulls, List *policyAttrs,
-			  List *targetlist, int nsegs)
+EvalHashSegID(Datum *values, bool *nulls, List *policyAttrs, CdbHash *h)
 {
-	CdbHash	   *hnew;
 	uint32		newSeg;
 	ListCell   *lc;
-	Oid		   *typeoids;
 	int			i;
 
 	Assert(policyAttrs);
-	Assert(targetlist);
 
-	typeoids = palloc(list_length(policyAttrs) * sizeof(Oid));
-
-	i = 0;
-	foreach(lc, policyAttrs)
-	{
-		AttrNumber attidx = lfirst_int(lc);
-		TargetEntry *entry = list_nth(targetlist, attidx - 1);
-
-		typeoids[i] = exprType((Node *) entry->expr);
-		i++;
-	}
-
-	hnew = makeCdbHash(nsegs, list_length(policyAttrs), typeoids);
-
-	cdbhashinit(hnew);
+	cdbhashinit(h);
 
 	i = 0;
 	foreach(lc, policyAttrs)
 	{
 		AttrNumber attidx = lfirst_int(lc);
 
-		cdbhash(hnew, i + 1, values[attidx - 1], nulls[attidx - 1]);
+		cdbhash(h, i + 1, values[attidx - 1], nulls[attidx - 1]);
 		i++;
 	}
 
-	newSeg = cdbhashreduce(hnew);
+	newSeg = cdbhashreduce(h);
 
 	return newSeg;
 }
@@ -253,8 +235,7 @@ ExecReshuffle(ReshuffleState *node)
 						Int32GetDatum(EvalHashSegID(values,
 													nulls,
 													reshuffle->policyAttrs,
-													reshuffle->plan.targetlist,
-													getgpsegmentCount()));
+													node->cdbhash));
 			}
 			else
 			{
@@ -284,8 +265,7 @@ ExecReshuffle(ReshuffleState *node)
 						EvalHashSegID(values,
 									  nulls,
 									  reshuffle->policyAttrs,
-									  reshuffle->plan.targetlist,
-									  reshuffle->oldSegs));
+									  node->oldcdbhash));
 
 				Assert(oldSegID == newSegID);
 			}
@@ -358,7 +338,7 @@ ExecReshuffle(ReshuffleState *node)
 	}
 	else
 	{
-		/* Impossible case*/
+		/* Impossible case */
 		Assert(false);
 	}
 
@@ -371,8 +351,12 @@ ExecReshuffle(ReshuffleState *node)
  * ----------------------------------------------------------------
  */
 ReshuffleState *
-ExecInitReshuffle(Reshuffle *node, EState *estate, int eflags) {
+ExecInitReshuffle(Reshuffle *node, EState *estate, int eflags)
+{
 	ReshuffleState *reshufflestate;
+	Oid		   *typeoids;
+	int			i;
+	ListCell   *lc;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_MARK | EXEC_FLAG_BACKWARD)) ||
@@ -436,6 +420,22 @@ ExecInitReshuffle(Reshuffle *node, EState *estate, int eflags) {
 			}
 		}
 	}
+
+	/* Initialize cdbhash objects */
+	typeoids = palloc(list_length(node->policyAttrs) * sizeof(Oid));
+	i = 0;
+	foreach(lc, node->policyAttrs)
+	{
+		AttrNumber attidx = lfirst_int(lc);
+		TargetEntry *entry = list_nth(node->plan.targetlist, attidx - 1);
+
+		typeoids[i] = exprType((Node *) entry->expr);
+		i++;
+	}
+	reshufflestate->cdbhash = makeCdbHash(getgpsegmentCount(), list_length(node->policyAttrs), typeoids);
+#ifdef USE_ASSERT_CHECKING
+	reshufflestate->oldcdbhash = makeCdbHash(node->oldSegs, list_length(node->policyAttrs), typeoids);
+#endif
 
 	reshufflestate->newTargetIdx = INIT_IDX;
 	reshufflestate->savedSlot = NULL;
