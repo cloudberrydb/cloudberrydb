@@ -928,86 +928,96 @@ _bitmap_log_lovitem(Relation rel, ForkNumber fork, Buffer lovBuffer, OffsetNumbe
  * _bitmap_log_bitmapwords() -- log new bitmap words to be inserted.
  */
 void
-_bitmap_log_bitmapwords(Relation rel, Buffer bitmapBuffer, Buffer lovBuffer,
-						OffsetNumber lovOffset, BMTIDBuffer* buf,
-						uint64 words_written, uint64 tidnum, BlockNumber nextBlkno,
-						bool isLast, bool isFirst)
+_bitmap_log_bitmapwords(Relation rel,
+						BMTIDBuffer *buf,
+						bool init_first_page, List *xl_bm_bitmapword_pages, List *bitmapBuffers,
+						Buffer lovBuffer, OffsetNumber lovOffset, uint64 tidnum)
 {
-	Page				bitmapPage;
-	BMBitmapOpaque		bitmapPageOpaque;
-	xl_bm_bitmapwords  *xlBitmapWords;
-	XLogRecPtr			recptr;
-	XLogRecData			rdata[2];
-	uint64*				lastTids;
-	BM_HRL_WORD*		cwords;
-	BM_HRL_WORD*		hwords;
-	int					lastTids_size;
-	int					cwords_size;
-	int					hwords_size;
-	Page lovPage = BufferGetPage(lovBuffer);
+	XLogRecPtr	recptr;
+	XLogRecData rdata[2 + MAX_BITMAP_PAGES_PER_INSERT * 3];
+	int			rdata_no = 0;
+	Page		lovPage = BufferGetPage(lovBuffer);
+	xl_bm_bitmapwords xlBitmapWords;
+	ListCell   *lcp;
+	ListCell   *lcb;
+	bool		init_page;
+	int			num_bm_pages = list_length(xl_bm_bitmapword_pages);
 
-	lastTids_size = buf->curword * sizeof(uint64);
-	cwords_size = buf->curword * sizeof(BM_HRL_WORD);
-	hwords_size = (BM_CALC_H_WORDS(buf->curword)) *
-		sizeof(BM_HRL_WORD);
+	Assert(list_length(bitmapBuffers) == num_bm_pages);
+	if (num_bm_pages > MAX_BITMAP_PAGES_PER_INSERT)
+		elog(ERROR, "too many bitmap pages in one insert batch");
 
-	bitmapPage = BufferGetPage(bitmapBuffer);
-	bitmapPageOpaque =
-		(BMBitmapOpaque)PageGetSpecialPointer(bitmapPage);
+	MemSet(&xlBitmapWords, 0, sizeof(xlBitmapWords));
 
-	xlBitmapWords = (xl_bm_bitmapwords *)
-		palloc0(MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size) +
-				MAXALIGN(cwords_size) + MAXALIGN(hwords_size));
+	xlBitmapWords.bm_node = rel->rd_node;
+	xlBitmapWords.bm_num_pages = list_length(xl_bm_bitmapword_pages);
+	xlBitmapWords.bm_init_first_page = init_first_page;
 
-	xlBitmapWords->bm_node = rel->rd_node;
-	xlBitmapWords->bm_blkno = BufferGetBlockNumber(bitmapBuffer);
-	xlBitmapWords->bm_next_blkno = nextBlkno;
-	xlBitmapWords->bm_last_tid = bitmapPageOpaque->bm_last_tid_location;
-	xlBitmapWords->bm_lov_blkno = BufferGetBlockNumber(lovBuffer);
-	xlBitmapWords->bm_lov_offset = lovOffset;
-	xlBitmapWords->bm_last_compword = buf->last_compword;
-	xlBitmapWords->bm_last_word = buf->last_word;
-	xlBitmapWords->lov_words_header =
+	xlBitmapWords.bm_lov_blkno = BufferGetBlockNumber(lovBuffer);
+	xlBitmapWords.bm_lov_offset = lovOffset;
+	xlBitmapWords.bm_last_compword = buf->last_compword;
+	xlBitmapWords.bm_last_word = buf->last_word;
+	xlBitmapWords.lov_words_header =
 		(buf->is_last_compword_fill) ? 2 : 0;
-	xlBitmapWords->bm_last_setbit = tidnum;
-	xlBitmapWords->bm_is_last = isLast;
-	xlBitmapWords->bm_is_first = isFirst;
-
-	xlBitmapWords->bm_start_wordno = buf->start_wordno;
-	xlBitmapWords->bm_words_written = words_written;
-	xlBitmapWords->bm_num_cwords = buf->curword;
-	lastTids = (uint64*)(((char*)xlBitmapWords) +
-						 MAXALIGN(sizeof(xl_bm_bitmapwords)));
-	memcpy(lastTids, buf->last_tids,
-		   buf->curword * sizeof(uint64));
-
-	cwords = (BM_HRL_WORD*)(((char*)xlBitmapWords) +
-							MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size));
-	memcpy(cwords, buf->cwords, cwords_size);
-	hwords = (BM_HRL_WORD*)(((char*)xlBitmapWords) +
-						 MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size) +
-						 MAXALIGN(cwords_size));
-	memcpy(hwords, buf->hwords, hwords_size);
+	xlBitmapWords.bm_last_setbit = tidnum;
 
 	rdata[0].buffer = InvalidBuffer;
-	rdata[0].data = (char*)xlBitmapWords;
-	rdata[0].len = MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size) +
-					MAXALIGN(cwords_size) + MAXALIGN(hwords_size);
-    rdata[0].next =  &(rdata[1]);
+	rdata[0].data = (char *) &xlBitmapWords;
+	rdata[0].len = sizeof(xl_bm_bitmapwords);
 
+    rdata[0].next = &rdata[1];
     rdata[1].buffer = lovBuffer;
+    rdata[1].buffer_std = true;
     rdata[1].data = NULL;
     rdata[1].len = 0;
-    rdata[1].buffer_std = true;
-    rdata[1].next = NULL;
+
+	rdata_no = 2;
+
+	/* Write per-page structs */
+	init_page = init_first_page;
+	forboth(lcp, xl_bm_bitmapword_pages, lcb, bitmapBuffers)
+	{
+		xl_bm_bitmapwords_perpage *xlBitmapwordsPage = lfirst(lcp);
+		Buffer		bitmapBuffer = lfirst_int(lcb);
+		Page		bitmapPage = BufferGetPage(bitmapBuffer);
+		BMBitmap	bitmap;
+
+		bitmap = (BMBitmap) PageGetContentsMaxAligned(bitmapPage);
+
+		rdata[rdata_no - 1].next = &rdata[rdata_no];
+		rdata[rdata_no].buffer = init_page ? InvalidBuffer : bitmapBuffer;
+		rdata[rdata_no].buffer_std = false;
+		rdata[rdata_no].data = (char *) xlBitmapwordsPage;
+		rdata[rdata_no].len = sizeof(xl_bm_bitmapwords_perpage);
+		rdata_no++;
+
+		rdata[rdata_no - 1].next = &rdata[rdata_no];
+		rdata[rdata_no].buffer = init_page ? InvalidBuffer : bitmapBuffer;
+		rdata[rdata_no].buffer_std = false;
+		rdata[rdata_no].data = (char *) &bitmap->hwords[xlBitmapwordsPage->bmp_start_hword_no];
+		rdata[rdata_no].len = xlBitmapwordsPage->bmp_num_hwords * sizeof(BM_HRL_WORD);
+		rdata_no++;
+
+		rdata[rdata_no - 1].next = &rdata[rdata_no];
+		rdata[rdata_no].buffer = init_page ? InvalidBuffer : bitmapBuffer;
+		rdata[rdata_no].buffer_std = false;
+		rdata[rdata_no].data = (char *) &bitmap->cwords[xlBitmapwordsPage->bmp_start_cword_no];
+		rdata[rdata_no].len = xlBitmapwordsPage->bmp_num_cwords * sizeof(BM_HRL_WORD);
+		rdata_no++;
+
+		init_page = true;
+	}
+	rdata[rdata_no - 1].next = NULL;
 
 	recptr = XLogInsert(RM_BITMAP_ID, XLOG_BITMAP_INSERT_WORDS, rdata);
 
-	PageSetLSN(bitmapPage, recptr);
+	foreach(lcb, bitmapBuffers)
+	{
+		Buffer		bitmapBuffer = lfirst_int(lcb);
 
+		PageSetLSN(BufferGetPage(bitmapBuffer), recptr);
+	}
 	PageSetLSN(lovPage, recptr);
-
-	pfree(xlBitmapWords);
 }
 
 /*

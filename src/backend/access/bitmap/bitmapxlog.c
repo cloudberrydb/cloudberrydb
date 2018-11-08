@@ -17,81 +17,8 @@
 
 #include "postgres.h"
 
-#include <unistd.h>
-
 #include "access/bitmap.h"
 #include "access/xlogutils.h"
-#include "utils/guc.h"
-
-static void forget_incomplete_insert_bitmapwords(RelFileNode node,
-									 xl_bm_bitmapwords* newWords);
-/*
- * We must keep track of expected insertion of bitmap words when these
- * bitmap words are inserted into multiple bitmap pages. We need to manually
- * insert these words if they are not seen in the WAL log during replay.
- * This makes it safe for page insertion to be a multiple-WAL-action process.
- */
-typedef xl_bm_bitmapwords bm_incomplete_action;
-
-static List *incomplete_actions;
-
-static void
-log_incomplete_insert_bitmapwords(RelFileNode node,
-								  xl_bm_bitmapwords* newWords)
-{
-	int					lastTids_size;
-	int					cwords_size;
-	int					hwords_size;
-	int					total_size;
-	bm_incomplete_action *action;
-
-	/* Delete the previous entry */
-	forget_incomplete_insert_bitmapwords(node, newWords);	
-
-	lastTids_size = newWords->bm_num_cwords * sizeof(uint64);
-	cwords_size = newWords->bm_num_cwords * sizeof(BM_HRL_WORD);
-	hwords_size = (BM_CALC_H_WORDS(newWords->bm_num_cwords)) *
-		sizeof(BM_HRL_WORD);
-	total_size = MAXALIGN(sizeof(bm_incomplete_action)) + MAXALIGN(lastTids_size) +
-		MAXALIGN(cwords_size) + MAXALIGN(hwords_size);
-
-	action = palloc0(total_size);
-	memcpy(action, newWords, total_size);
-
-	/* Reset the following fields */
-	action->bm_blkno = newWords->bm_next_blkno;
-	action->bm_next_blkno = InvalidBlockNumber;
-	action->bm_start_wordno =
-		newWords->bm_start_wordno + newWords->bm_words_written;
-	action->bm_words_written = 0;
-
-	incomplete_actions = lappend(incomplete_actions, action);
-}
-
-static void
-forget_incomplete_insert_bitmapwords(RelFileNode node,
-									 xl_bm_bitmapwords* newWords)
-{
-	ListCell* l;
-
-	foreach (l, incomplete_actions)
-	{
-		bm_incomplete_action *action = (bm_incomplete_action *) lfirst(l);
-
-		if (RelFileNodeEquals(node, action->bm_node) &&
-			(action->bm_lov_blkno == newWords->bm_lov_blkno &&
-			 action->bm_lov_offset == newWords->bm_lov_offset &&
-			 action->bm_last_setbit == newWords->bm_last_setbit) &&
-			!action->bm_is_last)
-		{
-			Assert(action->bm_blkno == newWords->bm_blkno);
-
-			incomplete_actions = list_delete_ptr(incomplete_actions, action);
-			pfree(action);
-			break;
-		}		
-	}
-}
 
 /*
  * _bitmap_xlog_insert_lovitem() -- insert a new lov item.
@@ -302,162 +229,160 @@ static void
 _bitmap_xlog_insert_bitmapwords(XLogRecPtr lsn, XLogRecord *record)
 {
 	xl_bm_bitmapwords *xlrec;
+	Buffer		lovBuffer;
+	Buffer	   *bitmapBuffers;
+	int			bmpageno;
+	char	   *xlrecptr;
+	BlockNumber first_blkno = InvalidBlockNumber;
+	BlockNumber last_blkno = InvalidBlockNumber;
 
-	Buffer		bitmapBuffer;
-	Page		bitmapPage;
-	BMBitmapOpaque	bitmapPageOpaque;
-	BMTIDBuffer newWords;
-	uint64		words_written;
+	/*
+	 * Decode the WAL record.
+	 *
+	 * First comes the xl_bm_bitmapword_pages part
+	 */
+	xlrecptr = XLogRecGetData(record);
+	xlrec = (xl_bm_bitmapwords *) xlrecptr;
+	xlrecptr += sizeof(xl_bm_bitmapwords);
 
-	int					lastTids_size;
-	int					cwords_size;
-	int					hwords_size;
+	Assert(xlrec->bm_num_pages > 0);
 
-	Buffer lovBuffer;
-	Page lovPage;
-	BMLOVItem lovItem;
-	
-	xlrec = (xl_bm_bitmapwords *) XLogRecGetData(record);
+	bitmapBuffers = (Buffer *) palloc0(xlrec->bm_num_pages * sizeof(Buffer));
 
-	bitmapBuffer = XLogReadBuffer(xlrec->bm_node, xlrec->bm_blkno, true);
-	bitmapPage = BufferGetPage(bitmapBuffer);
-
-	if (PageIsNew(bitmapPage))
-		_bitmap_init_bitmappage(NULL, bitmapBuffer);
-
-	bitmapPageOpaque =
-		(BMBitmapOpaque)PageGetSpecialPointer(bitmapPage);
-
-	if (PageGetLSN(bitmapPage) < lsn)
+	/* Process the per-bitmap page data */
+	for (bmpageno = 0; bmpageno < xlrec->bm_num_pages; bmpageno++)
 	{
-		uint64      *last_tids;
+		xl_bm_bitmapwords_perpage *xlrec_perpage;
 		BM_HRL_WORD *cwords;
 		BM_HRL_WORD *hwords;
-
-		newWords.curword = xlrec->bm_num_cwords;
-		newWords.start_wordno = xlrec->bm_start_wordno;
-
-		lastTids_size = newWords.curword * sizeof(uint64);
-		cwords_size = newWords.curword * sizeof(BM_HRL_WORD);
-		hwords_size = (BM_CALC_H_WORDS(newWords.curword)) *
-			sizeof(BM_HRL_WORD);
-
-		newWords.last_tids = (uint64*)palloc0(lastTids_size);
-		newWords.cwords = (BM_HRL_WORD*)palloc0(cwords_size);
-
-		last_tids = 
-			(uint64*)(((char*)xlrec) + MAXALIGN(sizeof(xl_bm_bitmapwords)));
-		cwords =
-			(BM_HRL_WORD*)(((char*)xlrec) +
-						 MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size));
-		hwords =
-			(BM_HRL_WORD*)(((char*)xlrec) +
-						   MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size) +
-						   MAXALIGN(cwords_size));
-		memcpy(newWords.last_tids, last_tids, lastTids_size);
-		memcpy(newWords.cwords, cwords, cwords_size);
-		newWords.num_cwords = xlrec->bm_num_cwords;
-		memcpy(newWords.hwords, hwords, hwords_size);
+		Buffer		bitmapBuffer;
+		Page		bitmapPage;
+		BMBitmap	bitmap;
+		BMBitmapOpaque	bitmapPageOpaque;
 
 		/*
-		 * If no words are written to this bitmap page, it means
-		 * this bitmap page is full.
+		 * If this is the first page, and it was an existing page, then
+		 * we might have a backup block for it.
+		 *
+		 * Note that there is no perpage struct for the first page, in that
+		 * case, so we must check this before trying to read the struct.
 		 */
-		if (xlrec->bm_words_written == 0)
+		if (bmpageno == 0 && !xlrec->bm_init_first_page && record->xl_info & XLR_BKP_BLOCK(1))
 		{
-			Assert(BM_NUM_OF_HRL_WORDS_PER_PAGE -
-				   bitmapPageOpaque->bm_hrl_words_used == 0);
-			words_written = 0;
+			bitmapBuffer = RestoreBackupBlock(lsn, record, 1, false, true);
+			bitmapBuffers[bmpageno] = bitmapBuffer;
+			first_blkno = last_blkno = BufferGetBlockNumber(bitmapBuffer);
+			continue;
+		}
+
+		/*
+		 * Decode the xl_bm_bitmapwords_perpage struct, and the hwords and cwords,
+		 * for this bitmap page.
+		 */
+		xlrec_perpage = (xl_bm_bitmapwords_perpage *) xlrecptr;
+		xlrecptr += sizeof(xl_bm_bitmapwords_perpage);
+		if (bmpageno == 0)
+			first_blkno = xlrec_perpage->bmp_blkno;
+		last_blkno = xlrec_perpage->bmp_blkno;
+		hwords = (BM_HRL_WORD *) xlrecptr;
+		xlrecptr += xlrec_perpage->bmp_num_hwords * sizeof(BM_HRL_WORD);
+		cwords = (BM_HRL_WORD *) xlrecptr;
+		xlrecptr += xlrec_perpage->bmp_num_cwords * sizeof(BM_HRL_WORD);
+
+		/* Replay changes on this page (unless already applied). */
+		if (bmpageno == 0 && !xlrec->bm_init_first_page)
+		{
+			bitmapBuffer = XLogReadBuffer(xlrec->bm_node, xlrec_perpage->bmp_blkno, false);
+			if (!BufferIsValid(bitmapBuffer))
+				continue;
 		}
 		else
-			words_written =
-				_bitmap_write_bitmapwords(bitmapBuffer, &newWords);
-
-		Assert(words_written == xlrec->bm_words_written);
-
-		bitmapPageOpaque->bm_bitmap_next = xlrec->bm_next_blkno;
-		Assert(bitmapPageOpaque->bm_last_tid_location == xlrec->bm_last_tid);
-
-		if (xlrec->bm_is_last)
 		{
-			forget_incomplete_insert_bitmapwords(xlrec->bm_node, xlrec);
+			bitmapBuffer = XLogReadBuffer(xlrec->bm_node, xlrec_perpage->bmp_blkno, true);
+			_bitmap_init_bitmappage(BufferGetPage(bitmapBuffer));
 		}
+		bitmapBuffers[bmpageno] = bitmapBuffer;
 
-		else {
+		bitmapPage = BufferGetPage(bitmapBuffer);
+		if (PageGetLSN(bitmapPage) >= lsn)
+			continue;
 
-			Buffer	nextBuffer;
-			Page	nextPage;
+		bitmap = (BMBitmap) PageGetContentsMaxAligned(bitmapPage);
 
-			/* create a new bitmap page */
-			nextBuffer = XLogReadBuffer(xlrec->bm_node, xlrec->bm_next_blkno, true);
-			nextPage = BufferGetPage(nextBuffer);
+		/*
+		 * Copy the header and content words. Note: we WAL-log whole words only.
+		 * If the insertion only set some bits of the last word, the whole
+		 * word is included in the WAL record, anyway.
+		 */
+		memcpy(bitmap->hwords + xlrec_perpage->bmp_start_hword_no,
+			   hwords,
+			   xlrec_perpage->bmp_num_hwords * sizeof(BM_HRL_WORD));
+		memcpy(bitmap->cwords + xlrec_perpage->bmp_start_cword_no,
+			   cwords,
+			   xlrec_perpage->bmp_num_cwords * sizeof(BM_HRL_WORD));
 
-			_bitmap_init_bitmappage(NULL, nextBuffer);
-			
-			PageSetLSN(nextPage, lsn);
+		/* Update next pointer. Peek into the next struct to get its block number */
+		bitmapPageOpaque =
+			(BMBitmapOpaque) PageGetSpecialPointer(bitmapPage);
+		if (bmpageno + 1 < xlrec->bm_num_pages)
+		{
+			xl_bm_bitmapwords_perpage *next_xlrec_perpage;
 
-			_bitmap_wrtbuf(nextBuffer);
+			next_xlrec_perpage = (xl_bm_bitmapwords_perpage *) xlrecptr;
 
-			log_incomplete_insert_bitmapwords(xlrec->bm_node, xlrec);
+			bitmapPageOpaque->bm_bitmap_next = next_xlrec_perpage->bmp_blkno;
 		}
+		bitmapPageOpaque->bm_last_tid_location = xlrec_perpage->bmp_last_tid;
+		bitmapPageOpaque->bm_hrl_words_used = xlrec_perpage->bmp_start_cword_no + xlrec_perpage->bmp_num_cwords;
 
 		PageSetLSN(bitmapPage, lsn);
-
-		_bitmap_wrtbuf(bitmapBuffer);
-
-		_bitmap_free_tidbuf(&newWords);
+		MarkBufferDirty(bitmapBuffer);
 	}
 
-	else {
-		_bitmap_relbuf(bitmapBuffer);
-	}
-
- 	/* Update lovPage when needed */
+	/* The LOV page is in backup block # 0 */
 	if (record->xl_info & XLR_BKP_BLOCK(0))
 	{
-		(void) RestoreBackupBlock(lsn, record, 0, false, false);
-		return;
+		lovBuffer = RestoreBackupBlock(lsn, record, 0, false, true);
+	}
+	else
+	{
+		lovBuffer = XLogReadBuffer(xlrec->bm_node, xlrec->bm_lov_blkno, false);
+		if (BufferIsValid(lovBuffer))
+		{
+			Page		lovPage = BufferGetPage(lovBuffer);
+
+			if (PageGetLSN(lovPage) < lsn)
+			{
+				BMLOVItem	lovItem;
+
+				lovItem = (BMLOVItem)
+					PageGetItem(lovPage,
+								PageGetItemId(lovPage, xlrec->bm_lov_offset));
+				lovItem->bm_last_compword = xlrec->bm_last_compword;
+				lovItem->bm_last_word = xlrec->bm_last_word;
+				lovItem->lov_words_header = xlrec->lov_words_header;
+				lovItem->bm_last_setbit = xlrec->bm_last_setbit;
+				lovItem->bm_last_tid_location = xlrec->bm_last_setbit -
+					xlrec->bm_last_setbit % BM_HRL_WORD_SIZE;
+
+				lovItem->bm_lov_tail = last_blkno;
+
+				if (xlrec->bm_init_first_page)
+					lovItem->bm_lov_head = first_blkno;
+
+				PageSetLSN(lovPage, lsn);
+				MarkBufferDirty(lovBuffer);
+			}
+		}
 	}
 
- 	lovBuffer = XLogReadBuffer(xlrec->bm_node, xlrec->bm_lov_blkno, false);
- 	if (!BufferIsValid(lovBuffer))
- 		return;
- 	
- 	lovPage = BufferGetPage(lovBuffer);
- 	lovItem = (BMLOVItem)
- 		PageGetItem(lovPage, 
- 					PageGetItemId(lovPage, xlrec->bm_lov_offset));
- 	
- 	if (xlrec->bm_is_last && PageGetLSN(lovPage) < lsn)
- 	{
- 		lovItem->bm_last_compword = xlrec->bm_last_compword;
- 		lovItem->bm_last_word = xlrec->bm_last_word;
- 		lovItem->lov_words_header = xlrec->lov_words_header;
- 		lovItem->bm_last_setbit = xlrec->bm_last_setbit;
- 		lovItem->bm_last_tid_location = xlrec->bm_last_setbit -
- 			xlrec->bm_last_setbit % BM_HRL_WORD_SIZE;
- 		lovItem->bm_lov_tail = xlrec->bm_blkno;
- 		if (lovItem->bm_lov_head == InvalidBlockNumber)
- 			lovItem->bm_lov_head = lovItem->bm_lov_tail;
- 		
- 		PageSetLSN(lovPage, lsn);
- 		
- 		_bitmap_wrtbuf(lovBuffer);
- 		
- 	}
- 	else if (xlrec->bm_is_first && PageGetLSN(lovPage) < lsn)
- 	{
- 		lovItem->bm_lov_head = xlrec->bm_blkno;
- 		lovItem->bm_lov_tail = lovItem->bm_lov_head;
- 		
- 		PageSetLSN(lovPage, lsn);
- 		
- 		_bitmap_wrtbuf(lovBuffer);
- 	}
- 	else
- 	{
- 		_bitmap_relbuf(lovBuffer);
- 	}
+	/* Release buffers */
+	UnlockReleaseBuffer(lovBuffer);
+	for (bmpageno = 0; bmpageno < xlrec->bm_num_pages; bmpageno++)
+	{
+		if (BufferIsValid(bitmapBuffers[bmpageno]))
+			UnlockReleaseBuffer(bitmapBuffers[bmpageno]);
+	}
 }
 
 static void
@@ -578,7 +503,7 @@ _bitmap_xlog_updatewords(XLogRecPtr lsn, XLogRecord *record)
 			secondBuffer = XLogReadBuffer(xlrec->bm_node, xlrec->bm_second_blkno, true);
 			secondPage = BufferGetPage(secondBuffer);
 			if (PageIsNew(secondPage))
-				_bitmap_init_bitmappage(NULL, secondBuffer);
+				_bitmap_init_bitmappage(secondPage);
 
 			secondOpaque = (BMBitmapOpaque)PageGetSpecialPointer(secondPage);
 			secondBitmap = (BMBitmap) PageGetContentsMaxAligned(secondPage);
@@ -672,79 +597,4 @@ bitmap_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		default:
 			elog(PANIC, "bitmap_redo: unknown op code %u", info);
 	}
-}
-
-void
-bitmap_xlog_startup(void)
-{
-	incomplete_actions = NIL;
-	/* sleep(30); */
-}
-
-void
-bitmap_xlog_cleanup(void)
-{
-	ListCell* l;
-	foreach (l, incomplete_actions)
-	{
-		Buffer				lovBuffer;
-		BMTIDBuffer 	    newWords;
-
-		int					lastTids_size;
-		int					cwords_size;
-		int					hwords_size;
-		BM_HRL_WORD        *hwords;
-
-		bm_incomplete_action *action = (bm_incomplete_action *) lfirst(l);
-
-		lovBuffer = XLogReadBuffer(action->bm_node, action->bm_lov_blkno, false);
-
-		newWords.num_cwords = action->bm_num_cwords;
-		newWords.start_wordno = action->bm_start_wordno;
-
-		lastTids_size = newWords.num_cwords * sizeof(uint64);
-		cwords_size = newWords.num_cwords * sizeof(BM_HRL_WORD);
-		hwords_size = (BM_CALC_H_WORDS(newWords.num_cwords)) *
-			sizeof(BM_HRL_WORD);
-
-		newWords.last_tids =
-			(uint64*)(((char*)action) + MAXALIGN(sizeof(xl_bm_bitmapwords)));
-		newWords.cwords =
-			(BM_HRL_WORD*)(((char*)action) +
-						 MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size));
-		hwords =
-			(BM_HRL_WORD*)(((char*)action) +
-						   MAXALIGN(sizeof(xl_bm_bitmapwords)) + MAXALIGN(lastTids_size) +
-						   MAXALIGN(cwords_size));
-		memcpy(newWords.hwords, hwords, hwords_size);
-
-		newWords.last_compword = action->bm_last_compword;
-		newWords.last_word = action->bm_last_word;
-		newWords.is_last_compword_fill = (action->lov_words_header == 2);
-		newWords.last_tid = action->bm_last_setbit;
-
-		/* Finish an incomplete insert */
-		_bitmap_write_new_bitmapwords(RelationIdGetRelation(action->bm_node.relNode),
-							  lovBuffer, action->bm_lov_offset,
-							  &newWords, false);
-
- 		elog(DEBUG1, "finish incomplete insert of bitmap words: last_tid: " INT64_FORMAT
- 			 ", lov_blkno=%d, lov_offset=%d",
- 			 newWords.last_tids[newWords.num_cwords-1], action->bm_lov_blkno,
- 			 action->bm_lov_offset);
-	}
-	incomplete_actions = NIL;
-}
-
-/*
- * GPDB_94_MERGE_FIXME: PostgreSQL 9.4 got rid of the "safe_restartpoint" and
- * incomplete actions mechanism. See commits 631118fe1e and 40dae7ec53. We
- * need to do the same for bitmap indexes.
- */
-bool
-bitmap_safe_restartpoint(void)
-{
-	if (incomplete_actions)
-		return false;
-	return true;
 }
