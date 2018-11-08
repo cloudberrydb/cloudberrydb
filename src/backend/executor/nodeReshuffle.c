@@ -258,9 +258,11 @@ ExecReshuffle(ReshuffleState *node)
 			}
 			else
 			{
-				/* For random distributed tables*/
+				/* For random distributed tables */
 				int newSegs = getgpsegmentCount();
 				int oldSegs = reshuffle->oldSegs;
+
+				Assert(newSegs > oldSegs);
 
 				/*
 				 * Tuple with inserting action must be sent to other segments.
@@ -269,7 +271,7 @@ ExecReshuffle(ReshuffleState *node)
 				 * probability.
 				 */
 				values[reshuffle->tupleSegIdx - 1] =
-						Int32GetDatum(cdb_randint((newSegs - oldSegs - 1), 0) + oldSegs);
+					Int32GetDatum(oldSegs + random() % (newSegs - oldSegs));
 			}
 		}
 #ifdef USE_ASSERT_CHECKING
@@ -298,16 +300,16 @@ ExecReshuffle(ReshuffleState *node)
 	}
 	else if (reshuffle->ptype == POLICYTYPE_REPLICATED)
 	{
-		int segIdx;
+		int			segIdx;
 
-		/* For replicated tables*/
+		/* For replicated tables */
 		if (GpIdentity.segindex + reshuffle->oldSegs >=
 			getgpsegmentCount())
 			return NULL;
 
 		/*
-		 * Each old semgent cound be responsible to copy data to
-		 * more than one new segments
+		 * Each old segment can be responsible for copying data to
+		 * more than one new segment.
 		 */
 		while(1)
 		{

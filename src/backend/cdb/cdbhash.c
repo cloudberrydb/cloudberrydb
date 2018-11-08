@@ -59,9 +59,6 @@ static int MyDatabaseHashMethod = INVALID_HASH_METHOD;
 /* Constant used for hashing an invalid value  */
 #define INVALID_VAL ((uint32)0XD0D0D0D1)
 
-/* Constant used to help defining upper limit for random generator */
-#define UPPER_VAL ((uint32)0XA0B0C0D1)
-
 /* Fast mod using a bit mask, assuming that y is a power of 2 */
 #define FASTMOD(x,y)		((x) & ((y)-1))
 
@@ -139,17 +136,6 @@ makeCdbHash(int numsegs, int natts, Oid *typeoids)
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					 errmsg("invalid hash_method: %d", MyDatabaseHashMethod)));
 	}
-
-	/*
-	 * if we distribute into a relation with an empty partitioning policy, we
-	 * will round robin the tuples starting off from this index. Note that the
-	 * random number is created one per makeCdbHash. This means that commands
-	 * that create a cdbhash object only once for all tuples (like COPY,
-	 * INSERT-INTO-SELECT) behave more like a round-robin distribution, while
-	 * commands that create a cdbhash per row (like INSERT) behave more like a
-	 * random distribution.
-	 */
-	h->rrindex = cdb_randint(0, UPPER_VAL);
 
 	for (i = 0; i < natts; i++)
 	{
@@ -673,22 +659,14 @@ cdbhash(CdbHash *h, int attno, Datum datum, bool isnull)
 }
 
 /*
- * Hash a tuple of a relation with an empty policy (no hash
- * key exists) via round robin with a random initial value.
+ * Pick a random hash value, for a tuple in a relation with an empty
+ * policy (i.e. DISTRIBUTED RANDOMLY).
  */
 void
 cdbhashnokey(CdbHash *h)
 {
-	uint32		rrbuf = h->rrindex;
-	void	   *buf = &rrbuf;
-	size_t		len = sizeof(rrbuf);
-
-	/* compute the hash */
-	h->hash = fnv1_32_buf(buf, len, h->hash);
-
-	h->rrindex++;				/* increment for next time around */
+	h->hash = (uint32) random();
 }
-
 
 /*
  * Reduce the hash to a segment number.
@@ -725,6 +703,32 @@ cdbhashreduce(CdbHash *h)
 	}
 
 	return result;
+}
+
+/*
+ * Return a random segment number, for randomly distributed policy.
+ *
+ * This is functionally equivalent to calling makeCdbHash() + cdbhashnokey()
+ * + cdbhashreduce().
+ */
+unsigned int
+cdbhashrandomseg(int numsegs)
+{
+	/*
+	 * Note: Using modulo like this has a bias towards low values. But that's
+	 * accceptable for our use case.
+	 *
+	 * For example, if MAX_RANDOM_VALUE was 5, and you did "random() % 4",
+	 * value 0 would occur twice as often as others, because you would get 0
+	 * when random() returns 0 or 4, while other values would only be returned
+	 * with one return value of random(). But in reality, MAX_RANDOM_VALUE is
+	 * 2^31, and the effect is not significant when the upper bound is much
+	 * smaller than MAX_RANDOM_VALUE. This function is intended for choosing a
+	 * segment in random, and the number of segments is much smaller than
+	 * 2^31, so we're good. (The cdbhashnokey() + cdbhashreduce() method is
+	 * not susceptible to modulo bias, when jump consistent hash is used.)
+	 */
+	return random() % numsegs;
 }
 
 /*

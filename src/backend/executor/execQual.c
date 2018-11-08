@@ -5256,12 +5256,13 @@ ExecEvalReshuffleExpr(ReshuffleExprState *astate,
 			/*
 			 * For random distributed tables
 			 *
-			 * We generate an random values [0, newSegs), when this
-			 * value is greater than oldSegs, it indicate that the
-			 * tuple need to reshuffle.
+			 * We generate a random value between[0, newSegs). When this
+			 * value is greater than oldSegs, it indicates that the tuple
+			 * needs to be reshuffled.
 			 */
-			int newSegs = getgpsegmentCount();
-			result = (cdb_randint((newSegs - 1), 0) >= sr->oldSegs);
+			int			newSegs = getgpsegmentCount();
+
+			result = (cdbhashrandomseg(newSegs) >= sr->oldSegs);
 		}
 	}
 	else if(sr->ptype == POLICYTYPE_REPLICATED)

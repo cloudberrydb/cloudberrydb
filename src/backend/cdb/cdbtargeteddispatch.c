@@ -401,7 +401,10 @@ FinalizeDirectDispatchDataForSlice(Node *node, ContentIdAssignmentData *data, bo
 
 				if (ddcr->dd.contentIds == NULL)
 				{
-					ddcr->dd.contentIds = list_make1_int(cdb_randint(getgpsegmentCount() - 1, 0));
+					int			random_segno;
+
+					random_segno = cdbhashrandomseg(getgpsegmentCount());
+					ddcr->dd.contentIds = list_make1_int(random_segno);
 					if (ShouldPrintTestMessages())
 						elog(INFO, "DDCR learned no content dispatch is required");
 				}

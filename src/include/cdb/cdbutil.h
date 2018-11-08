@@ -17,20 +17,8 @@
 #ifndef CDBUTIL_H
 #define CDBUTIL_H
 
-/*
- * Copied from geqo_random.h (deprecated)
- */
-
-#include <math.h>
 #include "catalog/gp_segment_config.h"
 #include "nodes/pg_list.h"
-
-/* cdb_rand returns a random float value between 0 and 1 inclusive */
-#define cdb_rand() ((double) random() / (double) MAX_RANDOM_VALUE)
-
-/* cdb_randint returns integer value between lower and upper inclusive */
-#define cdb_randint(upper,lower) \
-	( (int) floor( cdb_rand()*(((upper)-(lower))+0.999999) ) + (lower) )
 
 struct SegmentDatabaseDescriptor;
 
