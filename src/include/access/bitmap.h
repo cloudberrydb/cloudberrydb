@@ -806,6 +806,10 @@ extern void _bitmap_log_updatewords(Relation rel,
 						bool new_lastpage);
 extern void _bitmap_log_updateword(Relation rel, Buffer bitmapBuffer, int word_no);
 
+#ifdef DUMP_BITMAPAM_INSERT_RECORDS
+extern void _dump_page(char *file, XLogRecPtr recptr, RelFileNode *relfilenode, Buffer buf);
+#endif
+
 /* bitmapsearch.c */
 extern bool _bitmap_first(IndexScanDesc scan, ScanDirection dir);
 extern bool _bitmap_next(IndexScanDesc scan, ScanDirection dir);

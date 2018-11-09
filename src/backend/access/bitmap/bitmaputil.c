@@ -859,6 +859,13 @@ _bitmap_log_bitmap_lastwords(Relation rel, Buffer lovBuffer,
 						rdata);
 
 	PageSetLSN(BufferGetPage(lovBuffer), recptr);
+
+	/*
+	 * WAL consistency checking
+	 */
+#ifdef DUMP_BITMAPAM_INSERT_RECORDS
+	_dump_page("insert", XactLastRecEnd, &rel->rd_node, lovBuffer);
+#endif
 }
 
 /*
@@ -1018,6 +1025,17 @@ _bitmap_log_bitmapwords(Relation rel,
 		PageSetLSN(BufferGetPage(bitmapBuffer), recptr);
 	}
 	PageSetLSN(lovPage, recptr);
+
+	/*
+	 * WAL consistency checking
+	 */
+#ifdef DUMP_BITMAPAM_INSERT_RECORDS
+	_dump_page("insert", XactLastRecEnd, &rel->rd_node, lovBuffer);
+	foreach(lcb, bitmapBuffers)
+	{
+		_dump_page("insert", XactLastRecEnd, &rel->rd_node, (Buffer) lfirst_int(lcb));
+	}
+#endif
 }
 
 /*
@@ -1206,3 +1224,93 @@ bmoptions(PG_FUNCTION_ARGS)
 		PG_RETURN_BYTEA_P(result);
 	PG_RETURN_NULL();
 }
+
+
+/*
+ * WAL consistency checking helper.
+ *
+ * This can be used to dump an image of a page to a file, after inserting
+ * or replaying a WAL record. The output is *extremely* voluminous, but
+ * it's a very useful tool for tracking WAL-related bugs. To use, create
+ * a cluster with mirroring enabled. Add _dump_page() calls in the routine
+ * that writes a certain WAL record type, and in the corresponding WAL
+ * replay routine. Run a test workload. This produces a bmdump_* file
+ * in the master and the mirror. Run 'diff' to compare them: if the WAL
+ * replay recreated the same changes that were made on the master, the
+ * files should be identical.
+ */
+#ifdef DUMP_BITMAPAM_INSERT_RECORDS
+#include "cdb/cdbvars.h"
+FILE *dump_file = NULL;
+void
+_dump_page(char *file, XLogRecPtr recptr, RelFileNode *relfilenode, Buffer buf)
+{
+	int			i;
+	unsigned char *p;
+	int			zerossince = 0;
+
+	if (!dump_file)
+	{
+		dump_file = fopen(psprintf("bmdump_%d_%s", GpIdentity.segindex, file), "a");
+		if (!dump_file)
+		{
+			elog(WARNING, "could not open dump file %s", file);
+			return;
+		}
+	}
+
+	fprintf(dump_file, "LSN %X/%08X relfilenode %u/%u/%u blk %u\n",
+			(uint32) (recptr >> 32), (uint32) recptr,
+			relfilenode->spcNode,
+			relfilenode->dbNode,
+			relfilenode->relNode,
+			BufferGetBlockNumber(buf));
+
+	p = (unsigned char *) BufferGetPage(buf);
+	zerossince = 0;
+	for (i = 0; i < BLCKSZ; i+=32)
+	{
+		int			j;
+		bool		allzeros;
+
+		allzeros = true;
+		for (j = 0; j < 32; j++)
+		{
+			if (p[i+j] != 0)
+			{
+				allzeros = false;
+				break;
+			}
+		}
+		if (allzeros)
+			continue;
+
+		if (zerossince < i)
+		{
+			fprintf(dump_file, "LSN %X/%08X %04x-%04x: zeros\n",
+					(uint32) (recptr >> 32), (uint32) recptr,
+					zerossince, i);
+		}
+		fprintf(dump_file,
+				"LSN %X/%08X %04x: "
+				"%02x%02x%02x%02x %02x%02x%02x%02x "
+				"%02x%02x%02x%02x %02x%02x%02x%02x "
+				"%02x%02x%02x%02x %02x%02x%02x%02x "
+				"%02x%02x%02x%02x %02x%02x%02x%02x\n",
+				(uint32) (recptr >> 32), (uint32) recptr, i,
+				p[i+ 0], p[i+ 1], p[i+ 2], p[i+ 3], p[i+ 4], p[i+ 5], p[i+ 6], p[i+ 7],
+				p[i+ 8], p[i+ 9], p[i+10], p[i+11], p[i+12], p[i+13], p[i+14], p[i+15],
+				p[i+16], p[i+17], p[i+18], p[i+19], p[i+20], p[i+21], p[i+22], p[i+23],
+				p[i+24], p[i+25], p[i+26], p[i+27], p[i+28], p[i+29], p[i+30], p[i+31]);
+		zerossince = i+32;
+	}
+	if (zerossince != BLCKSZ)
+	{
+		fprintf(dump_file, "LSN %X/%08X %02x-%02x: zeros\n",
+				(uint32) (recptr >> 32), (uint32) recptr,
+				zerossince, BLCKSZ);
+	}
+
+	fflush(dump_file);
+}
+#endif

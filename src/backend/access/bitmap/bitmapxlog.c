@@ -215,13 +215,13 @@ _bitmap_xlog_insert_bitmap_lastwords(XLogRecPtr lsn,
 				
 				PageSetLSN(lovPage, lsn);
 
-				_bitmap_wrtbuf(lovBuffer);
+				MarkBufferDirty(lovBuffer);
 			}
-			else
-				_bitmap_relbuf(lovBuffer);
 		}
-		else
-			_bitmap_relbuf(lovBuffer);
+#ifdef DUMP_BITMAPAM_INSERT_RECORDS
+		_dump_page("redo", lsn, &xlrec->bm_node, lovBuffer);
+#endif
+		UnlockReleaseBuffer(lovBuffer);
 	}
 }
 
@@ -375,6 +375,18 @@ _bitmap_xlog_insert_bitmapwords(XLogRecPtr lsn, XLogRecord *record)
 			}
 		}
 	}
+
+	/*
+	 * WAL consistency checking
+	 */
+#ifdef DUMP_BITMAPAM_INSERT_RECORDS
+	_dump_page("redo", lsn, &xlrec->bm_node, lovBuffer);
+	for (bmpageno = 0; bmpageno < xlrec->bm_num_pages; bmpageno++)
+	{
+		if (BufferIsValid(bitmapBuffers[bmpageno]))
+			_dump_page("redo", lsn, &xlrec->bm_node, bitmapBuffers[bmpageno]);
+	}
+#endif
 
 	/* Release buffers */
 	UnlockReleaseBuffer(lovBuffer);
