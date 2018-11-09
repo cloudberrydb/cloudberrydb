@@ -1482,6 +1482,12 @@ _bitmap_write_bitmapwords_on_page(Page bitmapPage, BMTIDBuffer *buf, int startWo
 	memcpy(bitmap->cwords + cwords,
 		   buf->cwords + startWordNo,
 		   words_written * sizeof(BM_HRL_WORD));
+	/* and make note of what we changed for the WAL record */
+	if (xlrec_perpage)
+	{
+		xlrec_perpage->bmp_start_cword_no = cwords;
+		xlrec_perpage->bmp_num_cwords = words_written;
+	}
 
 	/*
 	 * Shift the header words in 'words' to match with the bit positions
@@ -1531,6 +1537,12 @@ _bitmap_write_bitmapwords_on_page(Page bitmapPage, BMTIDBuffer *buf, int startWo
 		   hwords + 1,
 		   (final_end_hword_no - final_start_hword_no) *
 			sizeof(BM_HRL_WORD));
+	/* and make note of what we changed for the WAL record */
+	if (xlrec_perpage)
+	{
+		xlrec_perpage->bmp_start_hword_no = final_start_hword_no;
+		xlrec_perpage->bmp_num_hwords = (final_end_hword_no + 1) - final_start_hword_no;
+	}
 
 	bitmapPageOpaque->bm_hrl_words_used += words_written;
 
@@ -1558,15 +1570,8 @@ _bitmap_write_bitmapwords_on_page(Page bitmapPage, BMTIDBuffer *buf, int startWo
 
 	bitmapPageOpaque->bm_last_tid_location =
 		buf->last_tids[startWordNo + words_written-1];
-
 	if (xlrec_perpage)
-	{
 		xlrec_perpage->bmp_last_tid = bitmapPageOpaque->bm_last_tid_location;
-		xlrec_perpage->bmp_start_hword_no = final_start_hword_no;
-		xlrec_perpage->bmp_num_hwords = (final_end_hword_no + 1) - final_start_hword_no;
-		xlrec_perpage->bmp_start_cword_no = startWordNo;
-		xlrec_perpage->bmp_num_cwords = words_written;
-	}
 
 	return words_written;
 }
