@@ -9,10 +9,10 @@ SELECT state FROM pg_stat_replication;
 
 Running pg_rewind...
 Old master restarted after rewind.
+no rewind required
 SELECT state FROM pg_stat_replication;
    state   
 -----------
  streaming
 (1 row)
 
-no rewind required

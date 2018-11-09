@@ -6,7 +6,7 @@
 # extension, but we use a custom launcher script that runs the scripts using
 # a shell instead.
 
-TESTNAME=norewind
+TESTNAME=simple_no_rewind_required
 STOP_MASTER_BEFORE_PROMOTE=true
 
 . sql/config_test.sh
@@ -40,8 +40,9 @@ PGOPTIONS=${PGOPTIONS_UTILITY} $STANDBY_PSQL -c "SELECT state FROM pg_stat_repli
 # promoted mirror's new timeline history file.
 function after_rewind
 {
-PGOPTIONS=${PGOPTIONS_UTILITY} $STANDBY_PSQL -c "SELECT state FROM pg_stat_replication;"
 grep "no rewind required" $log_path
+wait_until_standby_streaming_state
+PGOPTIONS=${PGOPTIONS_UTILITY} $STANDBY_PSQL -c "SELECT state FROM pg_stat_replication;"
 }
 
 # Run the test

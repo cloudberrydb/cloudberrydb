@@ -86,3 +86,13 @@ function wait_until_standby_is_promoted {
       sleep 0.2
    done
 }
+
+function wait_until_standby_streaming_state {
+   retry=150
+   until [ $retry -le 0 ]
+   do
+      PGOPTIONS=${PGOPTIONS_UTILITY} $STANDBY_PSQL -c "SELECT state FROM pg_stat_replication;" | grep 'streaming' > /dev/null && break
+      retry=$[$retry-1]
+      sleep 0.2
+   done
+}
