@@ -760,6 +760,7 @@ extern Datum tidge(PG_FUNCTION_ARGS);
 extern Datum bttidcmp(PG_FUNCTION_ARGS);
 extern Datum tidlarger(PG_FUNCTION_ARGS);
 extern Datum tidsmaller(PG_FUNCTION_ARGS);
+extern Datum hashtid(PG_FUNCTION_ARGS);
 extern Datum currtid_byreloid(PG_FUNCTION_ARGS);
 extern Datum currtid_byrelname(PG_FUNCTION_ARGS);
 

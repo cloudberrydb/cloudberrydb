@@ -769,38 +769,37 @@ explain (verbose, costs off)
 select * from int4_tbl where
   (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in
   (select ten from tenk1 b);
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice4; segments: 3)
    Output: int4_tbl.f1
    ->  HashAggregate
          Output: int4_tbl.f1
-         Group Key: (int4_tbl.ctid)::bigint, int4_tbl.gp_segment_id
-         ->  Result
-               Output: int4_tbl.f1, int4_tbl.ctid, int4_tbl.gp_segment_id, (int4_tbl.ctid)::bigint
-               ->  Redistribute Motion 3:3  (slice3; segments: 3)
+         Group Key: int4_tbl.ctid, int4_tbl.gp_segment_id
+         ->  Redistribute Motion 3:3  (slice3; segments: 3)
+               Output: int4_tbl.f1, int4_tbl.ctid, int4_tbl.gp_segment_id
+               Hash Key: int4_tbl.ctid
+               ->  Hash Join
                      Output: int4_tbl.f1, int4_tbl.ctid, int4_tbl.gp_segment_id
-                     Hash Key: int4_tbl.ctid
-                     ->  Hash Join
+                     Hash Cond: (b.ten = CASE WHEN (hashed SubPlan 1) THEN int4_tbl.f1 ELSE NULL::integer END)
+                     ->  Seq Scan on public.tenk1 b
+                           Output: b.ten, b.unique1
+                     ->  Hash
                            Output: int4_tbl.f1, int4_tbl.ctid, int4_tbl.gp_segment_id
-                           Hash Cond: (b.ten = CASE WHEN (hashed SubPlan 1) THEN int4_tbl.f1 ELSE NULL::integer END)
-                           ->  Seq Scan on public.tenk1 b
-                                 Output: b.ten, b.unique1
-                           ->  Hash
+                           ->  Broadcast Motion 3:3  (slice1; segments: 3)
                                  Output: int4_tbl.f1, int4_tbl.ctid, int4_tbl.gp_segment_id
-                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)
+                                 ->  Seq Scan on public.int4_tbl
                                        Output: int4_tbl.f1, int4_tbl.ctid, int4_tbl.gp_segment_id
-                                       ->  Seq Scan on public.int4_tbl
-                                             Output: int4_tbl.f1, int4_tbl.ctid, int4_tbl.gp_segment_id
-                           SubPlan 1  (slice3; segments: 3)
-                             ->  Materialize
+                     SubPlan 1  (slice3; segments: 3)
+                       ->  Materialize
+                             Output: a.unique1
+                             ->  Broadcast Motion 3:3  (slice2; segments: 3)
                                    Output: a.unique1
-                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                                   ->  Seq Scan on public.tenk1 a
                                          Output: a.unique1
-                                         ->  Seq Scan on public.tenk1 a
-                                               Output: a.unique1
  Optimizer: legacy query optimizer
-(29 rows)
+ Settings: optimizer=off
+(28 rows)
 
 select * from int4_tbl where
   (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in

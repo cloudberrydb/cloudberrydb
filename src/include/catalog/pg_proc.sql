@@ -160,9 +160,6 @@
 -- Greenplum MPP exposed internally-defined functions. 
  CREATE FUNCTION gp_pgdatabase() RETURNS SETOF record LANGUAGE internal VOLATILE AS 'gp_pgdatabase__' WITH (OID=6007, DESCRIPTION="view mpp pgdatabase state");
 
- CREATE FUNCTION int8(tid) RETURNS int8 LANGUAGE internal IMMUTABLE STRICT AS 'tidtoi8' WITH (OID=6021, DESCRIPTION="convert tid to int8");
--- #define CDB_PROC_TIDTOI8    6021
-
  CREATE FUNCTION gp_execution_segment() RETURNS SETOF int4 LANGUAGE internal VOLATILE AS 'mpp_execution_segment' WITH (OID=6022, DESCRIPTION="segment executing function");
 -- #define MPP_EXECUTION_SEGMENT_OID 6022
 -- #define MPP_EXECUTION_SEGMENT_TYPE 23
@@ -456,3 +453,7 @@ CREATE FUNCTION hyperloglog_get_estimate(counter hyperloglog_estimator) RETURNS 
 CREATE FUNCTION hyperloglog_add_item_agg_default(counter hyperloglog_estimator, item anyelement) RETURNS hyperloglog_estimator  LANGUAGE internal IMMUTABLE AS 'hyperloglog_add_item_agg_default' WITH (OID=7163, DESCRIPTION="Includes a data value into a hyperloglog counter");
 
 CREATE FUNCTION hyperloglog_accum(anyelement) RETURNS hyperloglog_estimator LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=7164, proisagg="t", DESCRIPTION="Adds every data value to a hyperloglog counter and returns the counter");
+
+-- hash functions for a few built-in datatypes that are missing hash support
+-- in upstream for some reason.
+CREATE FUNCTION hashtid(tid) RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'hashtid' WITH (OID=6114, DESCRIPTION="hash function for tid");

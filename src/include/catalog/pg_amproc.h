@@ -493,5 +493,9 @@ DATA(insert (	7046	790  790 1  377 ));	/* money */
 DATA(insert (	7047	703  703 1 380 ));		/* reltime */
 DATA(insert (	7048	704  704 1 381 ));		/* tinterval */
 
+/*
+ * hash support for a few built-in datatypes that are missing it in upstream.
+ */
+DATA(insert (	7077   27 27 1 6114 ));
 
 #endif   /* PG_AMPROC_H */

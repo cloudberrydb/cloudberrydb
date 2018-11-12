@@ -282,4 +282,8 @@ DATA(insert (	7013	money_ops			PGNSP PGUID 7046 790 t 0 ));
 DATA(insert (	7013	reltime_ops			PGNSP PGUID 7047 703 t 0 ));
 DATA(insert (	7013	tinterval_ops		PGNSP PGUID 7048 704 t 0 ));
 
+/*
+ * hash support for a few built-in datatypes that are missing it in upstream.
+ */
+DATA(insert (	405		tid_ops	PGNSP PGUID 7077 27 t 0 ));
 #endif   /* PG_OPCLASS_H */

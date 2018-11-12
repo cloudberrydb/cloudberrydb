@@ -1633,28 +1633,12 @@ cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx
 		/* ctid? */
 		if (var->varattno == SelfItemPointerAttributeNumber)
 		{
-			/*
-			 * The tid type has a full set of comparison operators, but oddly
-			 * its "=" operator is not marked hashable.  So 'ctid' is directly
-			 * usable for sorted duplicate removal; but we cast it to 64-bit
-			 * integer for hashed duplicate removal.
-			 */
-			if (uniquePath->umethod == UNIQUE_PATH_HASH)
-			{
-				ctid_exprs = lappend(ctid_exprs,
-									 makeFuncExpr(CDB_PROC_TIDTOI8, INT8OID,
-												  list_make1(var),
-												  InvalidOid, InvalidOid,
-												  COERCE_EXPLICIT_CAST));
-				ctid_operators = lappend_oid(ctid_operators, Int8EqualOperator);
-			}
-			else
-			{
-				ctid_exprs = lappend(ctid_exprs, var);
-				ctid_operators = lappend_oid(ctid_operators, TIDEqualOperator);
-			}
+			Assert(var->vartype == TIDOID);
 
-			/* Add to repartitioning key.  Can use tid type without coercion. */
+			ctid_exprs = lappend(ctid_exprs, var);
+			ctid_operators = lappend_oid(ctid_operators, TIDEqualOperator);
+
+			/* Add to repartitioning key. */
 			if (uniquePath->must_repartition)
 			{
 				PathKey    *cpathkey;

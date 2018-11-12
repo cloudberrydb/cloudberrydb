@@ -22,6 +22,7 @@
 #include <math.h>
 #include <limits.h>
 
+#include "access/hash.h"
 #include "access/heapam.h"
 #include "access/sysattr.h"
 #include "catalog/namespace.h"
@@ -159,26 +160,6 @@ tidsend(PG_FUNCTION_ARGS)
 	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
-
-/* ----------------------------------------------------------------
- *	Conversion operators.
- * ----------------------------------------------------------------
- */
-
-Datum
-tidtoi8(PG_FUNCTION_ARGS)       /*CDB*/
-{
-    ItemPointer itemPtr = PG_GETARG_ITEMPOINTER(0);
-    BlockNumber blockNumber;
-    OffsetNumber offsetNumber;
-
-    blockNumber = BlockIdGetBlockNumber(&(itemPtr->ip_blkid));
-    offsetNumber = itemPtr->ip_posid;
-
-	PG_RETURN_INT64(((int64)blockNumber << 16) + offsetNumber);
-}
-
-
 /*****************************************************************************
  *	 PUBLIC ROUTINES														 *
  *****************************************************************************/
@@ -264,6 +245,14 @@ tidsmaller(PG_FUNCTION_ARGS)
 	PG_RETURN_ITEMPOINTER(ItemPointerCompare(arg1, arg2) <= 0 ? arg1 : arg2);
 }
 
+
+Datum
+hashtid(PG_FUNCTION_ARGS)
+{
+	ItemPointer arg1 = PG_GETARG_ITEMPOINTER(0);
+
+	return hash_any((unsigned char *) arg1, sizeof(ItemPointerData));
+}
 
 /*
  *	Functions to get latest tid of a specified tuple.

@@ -380,9 +380,4 @@ DATA(insert (600  7198 0 e b));
 DATA(insert (7198  600 0 e b));
 DATA(insert (1700 7198 7597 i f));
 
-/*
- * CDB: Allow explicit cast from tid to int8
- */
-DATA(insert (   27   20 6021 e f ));
-
 #endif   /* PG_CAST_H */

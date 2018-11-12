@@ -174,7 +174,7 @@ DESCR("equal");
 DATA(insert OID = 386 (  "="	   PGNSP PGUID b f t	22	22	16 386	 0 int2vectoreq eqsel eqjoinsel ));
 DESCR("equal");
 
-DATA(insert OID = 387 (  "="	   PGNSP PGUID b t f	27	27	16 387 402 tideq eqsel eqjoinsel ));
+DATA(insert OID = 387 (  "="	   PGNSP PGUID b t t	27	27	16 387 402 tideq eqsel eqjoinsel ));
 DESCR("equal");
 #define TIDEqualOperator   387
 DATA(insert OID = 402 (  "<>"	   PGNSP PGUID b f f	27	27	16 402 387 tidne neqsel neqjoinsel ));
