@@ -498,5 +498,7 @@ DATA(insert (	7048	704  704 1 381 ));		/* tinterval */
  * hash support for a few built-in datatypes that are missing it in upstream.
  */
 DATA(insert (	7077   27 27 1 6114 ));
+DATA(insert (	7078   1560 1560 1 6117 ));
+DATA(insert (	7079   1562 1562 1 6118 ));
 
 #endif   /* PG_AMPROC_H */

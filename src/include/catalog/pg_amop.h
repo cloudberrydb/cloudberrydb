@@ -1283,4 +1283,7 @@ DATA(insert (	7080	3310 3310 5 s 3328 403 0 ));
  * hash support for a few built-in datatypes that are missing it in upstream.
  */
 DATA(insert (	7077   27 27 1 s 387 405 0 ));
+DATA(insert (	7078   1560 1560 1 s 1784 405 0 ));
+DATA(insert (	7079   1562 1562 1 s 1804 405 0 ));
+
 #endif   /* PG_AMOP_H */

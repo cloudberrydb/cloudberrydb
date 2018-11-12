@@ -457,3 +457,5 @@ CREATE FUNCTION hyperloglog_accum(anyelement) RETURNS hyperloglog_estimator LANG
 -- hash functions for a few built-in datatypes that are missing hash support
 -- in upstream for some reason.
 CREATE FUNCTION hashtid(tid) RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'hashtid' WITH (OID=6114, DESCRIPTION="hash function for tid");
+CREATE FUNCTION bithash(bit) RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'bithash' WITH (OID=6117, DESCRIPTION="hash function for bit");
+CREATE FUNCTION bithash(varbit) RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'bithash' WITH (OID=6118, DESCRIPTION="hash function for bit varbit");

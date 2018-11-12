@@ -207,4 +207,7 @@ DATA(insert OID = 7048 (	7013	tinterval_ops	PGNSP PGUID ));
  * hash support for a few built-in datatypes that are missing it in upstream.
  */
 DATA(insert OID = 7077 (	405		tid_ops		PGNSP PGUID ));
+DATA(insert OID = 7078 (	405		bit_ops		PGNSP PGUID ));
+DATA(insert OID = 7079 (	405		varbit_ops	PGNSP PGUID ));
+
 #endif   /* PG_OPFAMILY_H */

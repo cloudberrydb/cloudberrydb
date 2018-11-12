@@ -287,4 +287,7 @@ DATA(insert (	7013	tinterval_ops		PGNSP PGUID 7048 704 t 0 ));
  * hash support for a few built-in datatypes that are missing it in upstream.
  */
 DATA(insert (	405		tid_ops	PGNSP PGUID 7077 27 t 0 ));
+DATA(insert (	405		bit_ops	PGNSP PGUID 7078 1560 t 0 ));
+DATA(insert (	405		varbit_ops	PGNSP PGUID 7079 1562 t 0 ));
+
 #endif   /* PG_OPCLASS_H */
