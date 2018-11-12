@@ -1871,7 +1871,7 @@ DATA(insert OID = 3330 (  ">="    PGNSP PGUID b f f 3310 3310	16 3329 3327 gpxlo
 DESCR("greater than or equal");
 
 /* operators for complex data type */
-DATA(insert OID = 6469 (  "="	   PGNSP PGUID b t f 7198 7198 16 6469 6470 complex_eq eqsel eqjoinsel)); 
+DATA(insert OID = 6469 (  "="	   PGNSP PGUID b t t 7198 7198 16 6469 6470 complex_eq eqsel eqjoinsel));
 DESCR("equal");
 #define ComplexEqualOperator 6469
 DATA(insert OID = 6470 (  "<>"	   PGNSP PGUID b f f 7198 7198 16 6470 6469 complex_ne  neqsel neqjoinsel)); 

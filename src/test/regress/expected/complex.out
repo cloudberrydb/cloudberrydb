@@ -1344,6 +1344,21 @@ SELECT COUNT(c) = 4 AS tr, COUNT(DISTINCT gp_segment_id) = 1 AS tr
  t  | t
 (1 row)
 
+-- Use a complex in GROUP BY, to test the hash function used in hash agg.
+set enable_groupagg = off;
+SELECT c, count(*) FROM complex_ttbl GROUP BY c;
+    c     | count 
+----------+-------
+ 0 + 0i   |     4
+ 11 + 12i |     1
+ 14 + 15i |     1
+ 17 + 18i |     1
+ 2 + 3i   |     1
+ 5 + 6i   |     1
+ 8 + 9i   |     1
+(7 rows)
+
+reset enable_groupagg;
 DROP TABLE complex_ttbl;
 DROP SEQUENCE complex_seq;
 -- dot product

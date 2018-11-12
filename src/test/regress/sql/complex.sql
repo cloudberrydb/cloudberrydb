@@ -375,6 +375,11 @@ SELECT COUNT(c) = 4 AS tr, COUNT(DISTINCT gp_segment_id) = 1 AS tr
 	FROM complex_ttbl 
 	WHERE re(c) = 0 AND im(c) = 0;
 
+-- Use a complex in GROUP BY, to test the hash function used in hash agg.
+set enable_groupagg = off;
+SELECT c, count(*) FROM complex_ttbl GROUP BY c;
+reset enable_groupagg;
+
 DROP TABLE complex_ttbl;
 DROP SEQUENCE complex_seq;
 

@@ -612,6 +612,9 @@ DATA(insert (	1998   1700 1700 1 s 1752 405 0 ));
 /* array_ops */
 DATA(insert (	627    2277 2277 1 s 1070 405 0 ));
 
+/* complex_ops */
+DATA(insert (	6224   7198 7198 1 s 6469 405 0 ));
+
 
 /*
  *	gist box_ops
