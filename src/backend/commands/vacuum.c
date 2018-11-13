@@ -2993,7 +2993,7 @@ vacuum_combine_stats(VacuumStatsContext *stats_context, CdbPgResults* cdb_pgresu
 		Assert(pgresult->extraslen > sizeof(int));
 
 		/*
-		 * Process the stats for pg_class. We simple compute the maximum
+		 * Process the stats for pg_class. We simply compute the maximum
 		 * number of rel_tuples and rel_pages.
 		 */
 		pgclass_stats = (VPgClassStats *) pgresult->extras;
