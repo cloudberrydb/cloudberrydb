@@ -5337,7 +5337,7 @@ SendChunkUDPIFC(ChunkTransportState *transportStates,
 		if (QueryFinishPending)
 		{
 			conn->stillActive = false;
-			return;
+			return false;
 		}
 
 		if (pollAcks(transportStates, pEntry->txfd, timeout))
