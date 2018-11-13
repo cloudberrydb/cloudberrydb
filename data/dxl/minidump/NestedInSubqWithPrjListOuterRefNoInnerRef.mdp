@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-  <!--
+    <dxl:Comment><![CDATA[
 CREATE TABLE foo (a int, b int);
 CREATE TABLE bar (c int);
 CREATE TABLE jank (d int);
@@ -11,8 +11,33 @@ INSERT INTO jank SELECT i FROM generate_series(1,100)i;
 
 ANALYZE;
 
-SELECT * FROM foo WHERE foo.a IN (SELECT foo.b + 1 FROM (SELECT * FROM bar WHERE bar.c IN (SELECT bar.c + 1 FROM jank)) i );
--->
+EXPLAIN SELECT * FROM foo WHERE foo.a IN (SELECT foo.b + 1 FROM (SELECT * FROM bar WHERE bar.c IN (SELECT bar.c + 1 FROM jank)) i );
+                                                                           QUERY PLAN
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice5; segments: 3)  (cost=0.00..1356694954.80 rows=100 width=8)
+   ->  Table Scan on foo  (cost=0.00..1356694954.80 rows=34 width=8)
+         Filter: ((a = (b + 1)) AND (SubPlan 2))
+         SubPlan 2  (slice5; segments: 3)
+           ->  Result  (cost=0.00..1324035.41 rows=1 width=8)
+                 ->  Materialize  (cost=0.00..1324035.41 rows=1 width=8)
+                       ->  Broadcast Motion 1:3  (slice4)  (cost=0.00..1324035.41 rows=3 width=8)
+                             ->  Result  (cost=0.00..1324035.41 rows=1 width=8)
+                                   Filter: ((count((count()))) > 0::bigint)
+                                   ->  Aggregate  (cost=0.00..1324035.41 rows=1 width=8)
+                                         ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1324035.41 rows=1 width=8)
+                                               ->  Aggregate  (cost=0.00..1324035.41 rows=1 width=8)
+                                                     ->  Table Scan on bar  (cost=0.00..1324035.41 rows=34 width=1)
+                                                           Filter: ((c = (c + 1)) AND (SubPlan 1))
+                                                           SubPlan 1  (slice3; segments: 3)
+                                                             ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                                                                   ->  Broadcast Motion 1:3  (slice2)  (cost=0.00..431.00 rows=3 width=4)
+                                                                         ->  Limit  (cost=0.00..431.00 rows=1 width=4)
+                                                                               ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                                                                     ->  Limit  (cost=0.00..431.00 rows=1 width=4)
+                                                                                           ->  Table Scan on jank  (cost=0.00..431.00 rows=34 width=4)
+  ]]>
+  </dxl:Comment>
+
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
@@ -677,7 +702,7 @@ SELECT * FROM foo WHERE foo.a IN (SELECT foo.b + 1 FROM (SELECT * FROM bar WHERE
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="9682">
+    <dxl:Plan Id="0" SpaceSize="6704">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="2155.006784" Rows="40.000000" Width="8"/>

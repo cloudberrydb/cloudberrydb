@@ -9,6 +9,31 @@
 	create table y(b int);
 	create table foo (a int, b int);
 	explain insert into x select * from x where exists (select * from x where exists ((select foo.a from foo where foo.a = x.a) union all (select * from y)));
+
+                                                                    QUERY PLAN
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Insert  (cost=0.00..1808628031.01 rows=1 width=4)
+   ->  Result  (cost=0.00..1808628031.00 rows=1 width=8)
+         ->  Nested Loop Semi Join  (cost=0.00..1808628031.00 rows=1 width=4)
+               Join Filter: true
+               ->  Table Scan on x x_1  (cost=0.00..431.00 rows=1 width=4)
+               ->  Materialize  (cost=0.00..1765376.31 rows=1 width=1)
+                     ->  Broadcast Motion 1:3  (slice4; segments: 1)  (cost=0.00..1765376.31 rows=3 width=1)
+                           ->  Limit  (cost=0.00..1765376.31 rows=1 width=1)
+                                 ->  Result  (cost=0.00..1765376.31 rows=1 width=1)
+                                       ->  Result  (cost=0.00..1765376.31 rows=1 width=1)
+                                             Filter: (SubPlan 1)
+                                             ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                                   ->  Table Scan on x  (cost=0.00..431.00 rows=1 width=4)
+                                             SubPlan 1  (slice4; segments: 1)
+                                               ->  Append  (cost=0.00..862.00 rows=1 width=4)
+                                                     ->  Result  (cost=0.00..431.00 rows=1 width=4)
+                                                           Filter: (foo.a = x.a)
+                                                           ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                                                                 ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                                                       ->  Table Scan on foo  (cost=0.00..431.00 rows=1 width=4)
+                                                     ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                                           ->  Table Scan on y  (cost=0.00..431.00 rows=1 width=4)
   ]]>
   </dxl:Comment>
   <dxl:Thread Id="0">
@@ -361,7 +386,7 @@
         </dxl:LogicalSelect>
       </dxl:LogicalInsert>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="398">
+    <dxl:Plan Id="0" SpaceSize="354">
       <dxl:DMLInsert Columns="0" ActionCol="41" OidCol="0" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1808628104.204098" Rows="1.000000" Width="4"/>

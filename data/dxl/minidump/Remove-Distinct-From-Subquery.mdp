@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Comment><![CDATA[
+  Objective: Convert SubqueryAny to SubqueryExists while removing distinct from the subquery
+
 create table foo(a int, b int);
 create table bar(c int, d int);
 
@@ -11,8 +14,49 @@ union all
 select * from bar where not exists (select distinct a from foo)
 union all
 select * from bar where c not in (select distinct a from foo);
--->
-<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+                                                      QUERY PLAN
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice6; segments: 3)  (cost=0.00..5296129.50 rows=1 width=8)
+   ->  Append  (cost=0.00..5296129.50 rows=1 width=8)
+         ->  Table Scan on bar  (cost=0.00..1324032.35 rows=1 width=8)
+               Filter: (SubPlan 1)
+               SubPlan 1  (slice6; segments: 3)
+                 ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                       ->  Broadcast Motion 1:3  (slice2)  (cost=0.00..431.00 rows=3 width=4)
+                             ->  Limit  (cost=0.00..431.00 rows=1 width=4)
+                                   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                         ->  Limit  (cost=0.00..431.00 rows=1 width=4)
+                                               ->  Table Scan on foo  (cost=0.00..431.00 rows=1 width=4)
+         ->  Table Scan on bar bar_1  (cost=0.00..1324032.58 rows=1 width=8)
+               Filter: (SubPlan 2)
+               SubPlan 2  (slice6; segments: 3)
+                 ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                       ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                             ->  Table Scan on foo foo_1  (cost=0.00..431.00 rows=1 width=4)
+         ->  Table Scan on bar bar_2  (cost=0.00..1324032.19 rows=1 width=8)
+               Filter: (SubPlan 3)
+               SubPlan 3  (slice6; segments: 3)
+                 ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                       ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                             ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=4)
+                                   Group Key: foo_2.a
+                                   ->  Sort  (cost=0.00..431.00 rows=1 width=4)
+                                         Sort Key: foo_2.a
+                                         ->  Table Scan on foo foo_2  (cost=0.00..431.00 rows=1 width=4)
+         ->  Table Scan on bar bar_3  (cost=0.00..1324032.37 rows=1 width=8)
+               Filter: (SubPlan 4)
+               SubPlan 4  (slice6; segments: 3)
+                 ->  Result  (cost=0.00..431.00 rows=1 width=1)
+                       ->  Result  (cost=0.00..431.00 rows=1 width=1)
+                             Filter: ((CASE WHEN ((sum((CASE WHEN (bar_3.c = foo_3.a) THEN 1 ELSE 0 END))) IS NULL) THEN true WHEN ((sum((CASE WHEN (foo_3.a IS NULL) THEN 1 ELSE 0 END))) > 0::bigint) THEN NULL::boolean WHEN (bar_3.c IS NULL) THEN NULL::boolean WHEN ((sum((CASE WHEN (bar_3.c = foo_3.a) THEN 1 ELSE 0 END))) = 0::bigint) THEN true ELSE false END) = true)
+                             ->  Result  (cost=0.00..431.00 rows=1 width=1)
+                                   ->  Aggregate  (cost=0.00..431.00 rows=1 width=16)
+                                         ->  Result  (cost=0.00..431.00 rows=1 width=8)
+                                               ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                                                     ->  Broadcast Motion 3:3  (slice5; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                                                           ->  Table Scan on foo foo_3  (cost=0.00..431.00 rows=1 width=4)
+  ]]>
+  </dxl:Comment>
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
@@ -468,7 +512,7 @@ select * from bar where c not in (select distinct a from foo);
         </dxl:LogicalSelect>
       </dxl:UnionAll>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="3991680">
+    <dxl:Plan Id="0" SpaceSize="3293136">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="4310.001444" Rows="4.000000" Width="8"/>

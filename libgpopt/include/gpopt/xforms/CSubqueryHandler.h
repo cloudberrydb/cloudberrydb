@@ -300,6 +300,15 @@ namespace gpopt
 				CExpression **ppexprResidualScalar
 				);
 
+			// add a limit 1 expression over given expression,
+			// removing any existing limits
+			static
+			CExpression* AddOrReplaceLimitOne
+				(
+				 IMemoryPool *mp,
+				 CExpression *pexpr
+				 );
+
 			// remove a subquery EXISTS/NOT EXISTS node from scalar tree
 			static
 			BOOL FRemoveExistentialSubquery
