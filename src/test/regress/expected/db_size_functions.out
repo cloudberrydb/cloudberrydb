@@ -16,7 +16,7 @@ select pg_database_size('template0'::name) between 40000000 and 200000000;
  t
 (1 row)
 
-select pg_database_size(12510::oid) = pg_database_size('template0'::name);
+select pg_database_size(1::oid) = pg_database_size('template1'::name);
  ?column? 
 ----------
  t

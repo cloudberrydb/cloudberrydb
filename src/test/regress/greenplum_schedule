@@ -101,6 +101,8 @@ test: sreh
 # vacuum from removing dead tuples.
 test: gp_toolkit
 
+test: db_size_functions
+
 # FIXME: These tests no longer work, because they try to set
 # gp_interconnect_type, which doesn't work:
 # ERROR:  parameter "gp_interconnect_type" cannot be set after connection start

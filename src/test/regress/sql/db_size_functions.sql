@@ -13,7 +13,7 @@
 -- As of this writing, the total size of template0 database, across three segments,
 -- is 67307536 bytes.
 select pg_database_size('template0'::name) between 40000000 and 200000000;
-select pg_database_size(12510::oid) = pg_database_size('template0'::name);
+select pg_database_size(1::oid) = pg_database_size('template1'::name);
 
 -- 19713632 bytes, as of this writing
 select pg_tablespace_size('pg_global'::name) between 10000000 and 50000000;
