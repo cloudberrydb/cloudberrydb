@@ -180,7 +180,7 @@ cdbparallelize(PlannerInfo *root,
 	{
 		case CMD_SELECT:
 			/* SELECT INTO / CREATE TABLE AS always created partitioned tables. */
-			if (query->isCTAS)
+			if (query->parentStmtType != PARENTSTMTTYPE_NONE)
 				context->resultSegments = true;
 			break;
 

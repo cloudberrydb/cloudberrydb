@@ -429,9 +429,13 @@ CTranslatorQueryToDXL::CheckSupportedCmdType
 		// refactoring commit 9dbf2b7d . We are temporarily *always* falling
 		// back. Detect CTAS harder when we get back to it.
 
-		if (!optimizer_enable_ctas && query->isCTAS)
+		if (!optimizer_enable_ctas && query->parentStmtType == PARENTSTMTTYPE_CTAS)
 		{
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("CTAS. Set optimizer_enable_ctas to on to enable CTAS with GPORCA"));
+		}
+		if (query->parentStmtType == PARENTSTMTTYPE_COPY)
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("COPY. Copy select statement to file on segment is not supported with GPORCA"));
 		}
 		
 		// supported: regular select or CTAS when it is enabled
@@ -681,7 +685,7 @@ CTranslatorQueryToDXL::TranslateQueryToDXL()
 	switch (m_query->commandType)
 	{
 		case CMD_SELECT:
-			if (!m_query->isCTAS)
+			if (m_query->parentStmtType == PARENTSTMTTYPE_NONE)
 			{
 				return TranslateSelectQueryToDXL();
 			}
