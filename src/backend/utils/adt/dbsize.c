@@ -463,14 +463,6 @@ pg_relation_size(PG_FUNCTION_ARGS)
 	if (rel == NULL)
 		PG_RETURN_NULL();
 
-	/*
-	 * While we scan pg_class with an MVCC snapshot,
- 	 * someone else might drop the table. It's better to return NULL for
-	 * already-dropped tables than throw an error and abort the whole query.
-	 */
-	if (!RelationIsValid(rel))
-  		PG_RETURN_NULL();
-
 	if (relOid == 0 || rel->rd_node.relNode == 0)
 		size = 0;
 	else
