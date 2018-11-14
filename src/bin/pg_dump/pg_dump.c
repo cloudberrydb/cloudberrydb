@@ -14766,9 +14766,17 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 					}
 
 					/*
-					 * GPDB_94_MERGE_FIXME: Upstream uses ALTER TABLE ONLY
-					 * below. Not sure if gpdb needs to use ONLY or not. For
-					 * now using the gpdb version of query.
+					 * GPDB: Upstream uses ALTER TABLE ONLY below. Because we
+					 * need to cascade the DROP down into partitions as well,
+					 * we use ALTER TABLE instead.
+					 *
+					 * At the moment, we believe this does not cause problems
+					 * for vanilla inherited tables, because the tables aren't
+					 * plugged into the inheritance hierarchy until after this
+					 * code is run (see the ALTER TABLE ... INHERIT below), and
+					 * therefore ALTER TABLE and ALTER TABLE ONLY are
+					 * effectively the same. If that changes, this will need to
+					 * be revisited.
 					 */
 					if (tbinfo->relkind == RELKIND_RELATION)
 						appendPQExpBuffer(q, "ALTER TABLE %s ",

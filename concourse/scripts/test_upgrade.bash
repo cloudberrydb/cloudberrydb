@@ -98,6 +98,14 @@ load_old_db_data() {
         source '"${OLD_GPHOME}"'/greenplum_path.sh
         unxz < /tmp/dump.sql.xz | '"${psql_env}"' psql '"${psql_opts}"' -f - postgres
     '
+
+    # There are some states, important for upgrade, that can't be reached
+    # by restoring from a dump file only, so we explicitly setup these cases here.
+    scp "${DIRNAME}"/../../src/test/regress/sql/gp_upgrade_cornercases.sql ${MASTER_HOST}:/tmp/
+    ssh -n ${MASTER_HOST} '
+        source '"${OLD_GPHOME}"'/greenplum_path.sh
+        '"${psql_env}"' psql '"${psql_opts}"' -d postgres -f /tmp/gp_upgrade_cornercases.sql
+    '
 }
 
 dump_cluster() {
