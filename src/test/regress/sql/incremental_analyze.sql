@@ -783,9 +783,9 @@ WITH (appendonly=true, compresslevel=5, orientation=row, compresstype=zlib) DIST
           (
           START ('2018-01-01'::date) END ('2018-01-02'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_1', appendonly=true, compresslevel=3, orientation=column, compresstype=ZLIB ),
           START ('2018-01-02'::date) END ('2018-01-03'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_2', appendonly=true, compresslevel=1, orientation=column, compresstype=RLE_TYPE ),
-          START ('2018-01-03'::date) END ('2018-01-04'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_3', appendonly=true, compresslevel=1, orientation=column, compresstype=QUICKLZ ),
+          START ('2018-01-03'::date) END ('2018-01-04'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_3', appendonly=true, compresslevel=1, orientation=column, compresstype=ZLIB ),
           START ('2018-01-04'::date) END ('2018-01-05'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_4', appendonly=true, compresslevel=1, orientation=row, compresstype=ZLIB ),
-          START ('2018-01-05'::date) END ('2018-01-06'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_5', appendonly=true, compresslevel=1, orientation=row, compresstype=QUICKLZ ),
+          START ('2018-01-05'::date) END ('2018-01-06'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_5', appendonly=true, compresslevel=1, orientation=row, compresstype=ZLIB ),
           START ('2018-01-06'::date) END ('2018-01-07'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_6', appendonly=false)
           );
 
