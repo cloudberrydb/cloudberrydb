@@ -1085,7 +1085,7 @@ needs_sample(VacAttrStats **vacattrstats, int attr_cnt)
  *  relid_exclude - it is the relid that is excluded to check for the stats.
  *  It is used when we are asked to auto merge statistics when analyzing a
  *  single leaf partition. As we are going to produce stats for that
- *  specific leaf partition, we should not check its stats availibility.
+ *  specific leaf partition, we should not check its stats availability.
  *  va_cols - column attnum list to be analyzed from root table's perspective.
  *  These attnum's needs to be translated for each leaf table as the attnums
  *  for different columns might be different due to the dropped columns and
@@ -1126,7 +1126,7 @@ leaf_parts_analyzed(Oid attrelid, Oid relid_exclude, List *va_cols)
 		foreach(lc_col, va_cols)
 		{
 			/*
-			 * Check stats availibility for each column that asked to be
+			 * Check stats availability for each column that asked to be
 			 * analyzed.
 			 */
 			AttrNumber	attnum = lfirst_int(lc_col);
