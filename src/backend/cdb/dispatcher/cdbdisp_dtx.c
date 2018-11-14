@@ -126,6 +126,7 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	cdbdisp_makeDispatchParams(ds, 1, queryText, queryTextLen);
 
 	cdbdisp_dispatchToGang(ds, primaryGang, -1);
+	addToGxactTwophaseSegments(primaryGang);
 
 	cdbdisp_waitDispatchFinish(ds);
 

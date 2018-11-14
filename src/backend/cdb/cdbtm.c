@@ -1798,7 +1798,7 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 
 	char	   *dtxProtocolCommandStr = 0;
 
-	struct pg_result **results = NULL;
+	struct pg_result **results;
 
 	Assert(twophaseSegments != NIL);
 
@@ -1809,10 +1809,10 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 			 								dtxProtocolCommandStr,
 											segmentsToContentStr(twophaseSegments));
 
-	elog(DTM_DEBUG5,
-		 "dispatchDtxProtocolCommand: %d ('%s'), direct content #: %d",
-		 dtxProtocolCommand, dtxProtocolCommandStr,
-		 list_length(twophaseSegments) ? linitial_int(twophaseSegments) : -1);
+	ereport(DTM_DEBUG5,
+			(errmsg("dispatchDtxProtocolCommand: %d ('%s'), direct content #: %s",
+					dtxProtocolCommand, dtxProtocolCommandStr,
+					segmentsToContentStr(twophaseSegments))));
 
 	ErrorData *qeError;
 	results = CdbDispatchDtxProtocolCommand(dtxProtocolCommand, flags,
@@ -1901,7 +1901,7 @@ dispatchDtxCommand(const char *cmd)
 		return false;
 	}
 
-	CdbDispatchCommand(cmd, DF_NONE, &cdb_pgresults);
+	CdbDispatchCommand(cmd, DF_NEED_TWO_PHASE, &cdb_pgresults);
 
 	if (cdb_pgresults.numResults == 0)
 	{

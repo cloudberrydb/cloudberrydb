@@ -379,3 +379,12 @@ insert into r2 (c1, c2) select c1, c2 from d2 returning c1, c2;
 insert into r2 (c1, c2) select c1, c2 from r1 returning c1, c2;
 insert into r2 (c1, c2) select c1, c2 from r2 returning c1, c2;
 rollback;
+
+--
+-- pg_relation_size() dispatches an internal query, to fetch the relation's
+-- size on each segment. The internal query doesn't need to be part of the
+-- distributed transactin. Test that we correctly issue two-phase commit in
+-- those segments that are affected by the INSERT, and that we don't try
+-- to perform distributed commit on the other segments.
+--
+insert into r1 (c4) values (pg_relation_size('r2'));

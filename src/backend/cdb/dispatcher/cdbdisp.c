@@ -97,12 +97,6 @@ cdbdisp_dispatchToGang(struct CdbDispatcherState *ds,
 	Assert(dispatchResults && dispatchResults->resultArray);
 
 	(pDispatchFuncs->dispatchToGang) (ds, gp, sliceIndex);
-
-	/*
-	 * If dtmPreCommand says we need two phase commit, record those segments
-	 * who actually get involved in current global transaction
-	 */
-	addToGxactTwophaseSegments(gp);
 }
 
 /*
