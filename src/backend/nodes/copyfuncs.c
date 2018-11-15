@@ -3611,6 +3611,21 @@ _copyPartitionValuesSpec(const PartitionValuesSpec *from)
 	return newnode;
 }
 
+static ExpandStmtSpec *
+_copyExpandStmtSpec(const ExpandStmtSpec *from)
+{
+	ExpandStmtSpec *newnode = makeNode(ExpandStmtSpec);
+
+	COPY_SCALAR_FIELD(method);
+	COPY_BITMAPSET_FIELD(ps_none);
+	COPY_BITMAPSET_FIELD(ps_root);
+	COPY_BITMAPSET_FIELD(ps_interior);
+	COPY_BITMAPSET_FIELD(ps_leaf);
+	COPY_SCALAR_FIELD(backendId);
+
+	return newnode;
+}
+
 static PartitionElem *
 _copyPartitionElem(const PartitionElem *from)
 {
@@ -5576,6 +5591,9 @@ copyObject(const void *from)
 			break;
 		case T_PartitionValuesSpec:
 			retval = _copyPartitionValuesSpec(from);
+			break;
+		case T_ExpandStmtSpec:
+			retval = _copyExpandStmtSpec(from);
 			break;
 		case T_PartitionElem:
 			retval = _copyPartitionElem(from);

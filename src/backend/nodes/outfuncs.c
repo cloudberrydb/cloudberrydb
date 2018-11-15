@@ -3087,6 +3087,19 @@ _outPartitionValuesSpec(StringInfo str, const PartitionValuesSpec *node)
 	WRITE_LOCATION_FIELD(location);
 }
 
+static void
+_outExpandStmtSpec(StringInfo str, const ExpandStmtSpec *node)
+{
+	WRITE_NODE_TYPE("EXPANDSTMTSPEC");
+	WRITE_ENUM_FIELD(method, ExpandMethod);
+	WRITE_BITMAPSET_FIELD(ps_none);
+	WRITE_BITMAPSET_FIELD(ps_root);
+	WRITE_BITMAPSET_FIELD(ps_interior);
+	WRITE_BITMAPSET_FIELD(ps_leaf);
+	WRITE_OID_FIELD(backendId);
+}
+
+
 #ifndef COMPILING_BINARY_FUNCS
 static void
 _outPartition(StringInfo str, const Partition *node)
@@ -5144,6 +5157,9 @@ _outNode(StringInfo str, const void *obj)
 				break;
 			case T_PartitionValuesSpec:
 				_outPartitionValuesSpec(str, obj);
+				break;
+			case T_ExpandStmtSpec:
+				_outExpandStmtSpec(str, obj);
 				break;
 			case T_SegfileMapNode:
 				_outSegfileMapNode(str, obj);

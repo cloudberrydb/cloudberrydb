@@ -1506,6 +1506,7 @@ typedef enum AlterTableType
 	AT_ReplicaIdentity,			/* REPLICA IDENTITY */
 	AT_GenericOptions,			/* OPTIONS (...) */
 	AT_SetDistributedBy,		/* SET DISTRIBUTED BY */
+	AT_ExpandTable,          /* EXPAND DISTRIBUTED */
 	/* CDB: Partitioned Tables */
 	AT_PartAdd,					/* Add */
 	AT_PartAddForSplit,			/* Add, as subcommand of a split */
@@ -1539,6 +1540,11 @@ typedef struct AlterTableCmd	/* one subcommand of an ALTER TABLE */
 	bool		part_expanded;	/* expands from another command, for partitioning */
 	List	   *partoids;		/* If applicable, OIDs of partition part tables */
 	bool		missing_ok;		/* skip error if missing? */
+	/* addition info for partition table */
+	Bitmapset	*ps_none;
+	Bitmapset	*ps_root;
+	Bitmapset	*ps_interior;
+	Bitmapset	*ps_leaf;
 } AlterTableCmd;
 
 
@@ -2105,6 +2111,31 @@ typedef struct PartitionSpec			/* a Partition Specification */
 	bool				istemplate;
 	int					location;		/* token location, or -1 if unknown */
 } PartitionSpec;
+
+typedef enum ExpandMethod
+{
+	EXPANDMETHOD_NONE = 0,
+	EXPANDMETHOD_CTAS,
+	EXPANDMETHOD_RESHUFFLE
+} ExpandMethod;
+
+typedef struct ExpandStmtSpec
+{
+	NodeTag				type;
+	/* method to move data internal */
+	ExpandMethod		method;
+	/*
+	 * QEs has empty pg_partition and pg_partitions
+	 * so we need to pass necessary partition related
+	 * info to QEs.
+	 */
+	Bitmapset			*ps_none;
+	Bitmapset			*ps_root;
+	Bitmapset			*ps_interior;
+	Bitmapset			*ps_leaf;
+	/* for ctas method */
+	Oid					backendId;
+} ExpandStmtSpec;
 
 /* ----------------------
  *		Create/Drop TableSpace Statements

@@ -67,6 +67,7 @@
 #include "utils/xml.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
+#include "cdb/cdbpartition.h"
 
 #include "utils/guc.h"
 
@@ -706,7 +707,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	DECODE DENY DISTRIBUTED DXL
 
-	ERRORS EVERY EXCHANGE
+	ERRORS EVERY EXCHANGE EXPAND
 
 	FIELDS FILL FORMAT
 
@@ -2928,6 +2929,13 @@ alter_table_cmd:
 			| alter_table_partition_cmd
 				{
 					$$ = $1;
+				}
+			/* ALTER TABLE <name> EXPAND TABLE*/
+			| EXPAND TABLE
+				{
+					AlterTableCmd *n = makeNode(AlterTableCmd);
+					n->subtype = AT_ExpandTable;
+					$$ = (Node *)n;
 				}
 			/* ALTER TABLE <name> OF <type_name> */
 			| OF any_name
@@ -15583,6 +15591,7 @@ unreserved_keyword:
 			| EXCLUDING
 			| EXCLUSIVE
 			| EXECUTE
+			| EXPAND
 			| EXPLAIN
 			| EXTENSION
 			| EXTERNAL

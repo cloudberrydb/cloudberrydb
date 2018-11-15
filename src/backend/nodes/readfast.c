@@ -1222,6 +1222,21 @@ _readPartitionValuesSpec(void)
 	READ_DONE();
 }
 
+static ExpandStmtSpec *
+_readExpandStmtSpec(void)
+{
+	READ_LOCALS(ExpandStmtSpec);
+
+	READ_ENUM_FIELD(method, ExpandMethod);
+	READ_BITMAPSET_FIELD(ps_none);
+	READ_BITMAPSET_FIELD(ps_root);
+	READ_BITMAPSET_FIELD(ps_interior);
+	READ_BITMAPSET_FIELD(ps_leaf);
+	READ_OID_FIELD(backendId);
+
+	READ_DONE();
+}
+
 static Partition *
 _readPartition(void)
 {
@@ -3422,6 +3437,9 @@ readNodeBinary(void)
 				break;
 			case T_PartitionValuesSpec:
 				return_value = _readPartitionValuesSpec();
+				break;
+			case T_ExpandStmtSpec:
+				return_value = _readExpandStmtSpec();
 				break;
 			case T_Partition:
 				return_value = _readPartition();

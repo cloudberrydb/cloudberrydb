@@ -1754,6 +1754,9 @@ _outNode(StringInfo str, void *obj)
 			case T_PartitionValuesSpec:
 				_outPartitionValuesSpec(str, obj);
 				break;
+			case T_ExpandStmtSpec:
+				_outExpandStmtSpec(str, obj);
+				break;
 			case T_Partition:
 				_outPartition(str, obj);
 				break;

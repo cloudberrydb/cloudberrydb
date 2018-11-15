@@ -494,6 +494,7 @@ typedef enum NodeTag
 	T_DenyLoginPoint,
 	T_AlterTypeStmt,
 	T_SetDistributionCmd,
+	T_ExpandStmtSpec,
 
 	/*
 	 * TAGS FOR PARSE TREE NODES (parsenodes.h)
