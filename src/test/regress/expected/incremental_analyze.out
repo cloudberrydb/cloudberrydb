@@ -1997,7 +1997,7 @@ SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_
 SELECT relname, relpages, reltuples FROM pg_class WHERE relname LIKE 'incr_analyze_test%' ORDER BY relname;
           relname          | relpages | reltuples 
 ---------------------------+----------+-----------
- incr_analyze_test         |        4 |      1001
+ incr_analyze_test         |        0 |         0
  incr_analyze_test_1_prt_1 |        1 |         1
  incr_analyze_test_1_prt_2 |        3 |      1000
  incr_analyze_test_1_prt_3 |        1 |         0

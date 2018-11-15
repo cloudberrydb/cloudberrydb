@@ -514,8 +514,8 @@ namespace gpdb {
 	bool RelationExists(Oid oid);
 
 	// estimate the relation size using the real number of blocks and tuple density
-	void EstimateRelationSize(Relation rel,	int32 *attr_widths,	BlockNumber *pages,	double *tuples, double *allvisfrac);
 	void CdbEstimateRelationSize (RelOptInfo *relOptInfo, Relation rel, int32 *attr_widths, BlockNumber *pages, double *tuples, double *allvisfrac);
+	double CdbEstimatePartitionedNumTuples (Relation rel, bool *stats_missing);
 
 	// close the given relation
 	void CloseRelation(Relation rel);

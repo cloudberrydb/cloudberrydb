@@ -460,6 +460,7 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 	int			save_sec_context;
 	int			save_nestlevel;
 	RowIndexes	**colLargeRowIndexes;
+	bool		sample_needed;
 
 	if (inh)
 		ereport(elevel,
@@ -649,7 +650,9 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 			elog (LOG,"HLL FULL SCAN ");
 		}
 	}
-	if (needs_sample(vacattrstats, attr_cnt))
+
+	sample_needed = needs_sample(vacattrstats, attr_cnt);
+	if (sample_needed)
 	{
 		/*
 		 * Acquire the sample rows
@@ -667,23 +670,21 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 								  &totalrows, &totaldeadrows, &totalpages,
 								  (vacstmt->options & VACOPT_ROOTONLY) != 0,
 								  colLargeRowIndexes);
-
-		/* change the privilege back to the table owner */
-		SetUserIdAndSecContext(onerel->rd_rel->relowner,
-							   save_sec_context | SECURITY_RESTRICTED_OPERATION);
 	}
 	else
 	{
-		float4 relTuples;
-		float4 relPages;
-		analyzeEstimateReltuplesRelpages(RelationGetRelid(onerel), &relTuples, &relPages,
-										 vacstmt->options & VACOPT_ROOTONLY, elevel);
-		totalrows = relTuples;
-		totalpages = relPages;
+		/* If we're just merging stats from leafs, these are not needed either */
+		totalrows = 0;
+		totalpages = 0;
 		totaldeadrows = 0;
 		numrows = 0;
 		rows = NULL;
 	}
+
+	/* change the privilege back to the table owner */
+	SetUserIdAndSecContext(onerel->rd_rel->relowner,
+						   save_sec_context | SECURITY_RESTRICTED_OPERATION);
+
 	/*
 	 * Compute the statistics.  Temporary results during the calculations for
 	 * each column are stored in a child context.  The calc routines are
@@ -697,7 +698,7 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 	 * optimizer_analyze_root_partition or ROOTPARTITION is specified in the
 	 * ANALYZE statement.
 	 */
-	if (numrows > 0 || ((optimizer_analyze_root_partition || (vacstmt->options & VACOPT_ROOTONLY)) && totalrows > 0.0))
+	if (numrows > 0 || ((optimizer_analyze_root_partition || (vacstmt->options & VACOPT_ROOTONLY)) && !sample_needed))
 	{
 		HeapTuple *validRows = (HeapTuple *) palloc(numrows * sizeof(HeapTuple));
 		MemoryContext col_context,
@@ -858,11 +859,8 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 	}
 
 	/*
-	 * Update pages/tuples stats in pg_class. In PostgreSQL, we don't do this
-	 * when we're building inherited stats, but in GPDB, we do. The reason is
-	 * mostly historical; the planner, or at least ORCA, expects the
-	 * relpages/reltuples on a partitioned table to represent the total across
-	 * all partitions.
+	 * Update pages/tuples stats in pg_class ... but not if we're doing
+	 * inherited stats.
 	 *
 	 * GPDB_92_MERGE_FIXME: In postgres it is sufficient to check the number of
 	 * pages that are visible with visibilitymap_count(), but in GPDB this
@@ -879,17 +877,6 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 							InvalidTransactionId,
 							InvalidMultiXactId,
 							false /* isvacuum */);
-	else
-	{
-		vac_update_relstats(onerel,
-							totalpages,
-							totalrows,
-							visibilitymap_count(onerel),
-							onerel->rd_rel->relhasindex,
-							InvalidTransactionId,
-							InvalidMultiXactId,
-							false /* isvacuum */);
-	}
 
 	/*
 	 * Same for indexes. Vacuum always scans all indexes, so if we're part of

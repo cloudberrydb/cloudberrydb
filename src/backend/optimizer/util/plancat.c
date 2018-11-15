@@ -49,6 +49,7 @@
 #include "cdb/cdbrelsize.h"
 #include "catalog/pg_appendonly_fn.h"
 #include "catalog/pg_exttable.h"
+#include "catalog/pg_inherits_fn.h"
 
 
 /* GUC parameter */
@@ -559,6 +560,86 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 
 	elog(DEBUG2, "cdb_estimate_rel_size estimated %g tuples, %d pages, and"
 		" %f allvisfrac", *tuples, (int) *pages, *allvisfrac);
+}
+
+/*
+ * Get the total size of a partitioned table, including all partitions.
+ *
+ * Only used with ORCA, currently. This is slightly different from
+ * cdb_estimate_rel_size(), in that if the relation is a partitioned table
+ * (or general inherited table, but ORCA doesn't deal with general general
+ * inheritance), this sums up the estimates from the child tables. Also, if
+ * gp_enable_relsize_collection is off, and none of the partitions have been
+ * analyzed, this returns 0 rather than the default constant estimate.
+ */
+double
+cdb_estimate_partitioned_numtuples(Relation rel, bool *stats_missing)
+{
+	List	   *inheritors;
+	ListCell   *lc;
+	double		totaltuples;
+
+	*stats_missing = false;
+
+	if (rel->rd_rel->reltuples > 0)
+		return rel->rd_rel->reltuples;
+
+	inheritors = find_all_inheritors(RelationGetRelid(rel),
+									 NoLock,
+									 NULL);
+	totaltuples = 0;
+	foreach(lc, inheritors)
+	{
+		Oid			childid = lfirst_oid(lc);
+		Relation	childrel;
+		double		childtuples;
+
+		if (childid != RelationGetRelid(rel))
+			childrel = try_heap_open(childid, NoLock, false);
+		else
+			childrel = rel;
+
+		childtuples = childrel->rd_rel->reltuples;
+
+		/*
+		 * relpages == 0 means stats are missing. There's a special
+		 * case in ANALYZE/VACUUM, to set relpages to 1 even if the
+		 * table is completely empty, so relpages is zero only if the
+		 * table hasn't been analyzed yet.
+		 */
+		if (childrel->rd_rel->relpages == 0)
+		{
+			/*
+			 * In the root partition of a partitioned table, though,
+			 * it's expected.
+			 */
+			if (childrel != rel)
+				*stats_missing = true;
+		}
+
+		if (gp_enable_relsize_collection && childtuples == 0)
+		{
+			RelOptInfo *dummy_reloptinfo;
+			BlockNumber	numpages;
+			double		allvisfrac;
+
+			dummy_reloptinfo = makeNode(RelOptInfo);
+			dummy_reloptinfo->cdbpolicy = rel->rd_cdbpolicy;
+
+			cdb_estimate_rel_size(dummy_reloptinfo,
+								  childrel,
+								  NULL,
+								  &numpages,
+								  &childtuples,
+								  &allvisfrac);
+			pfree(dummy_reloptinfo);
+		}
+		totaltuples += childtuples;
+
+		if (childrel != rel)
+			heap_close(childrel, NoLock);
+	}
+	return totaltuples;
 }
 
 

@@ -2381,24 +2381,6 @@ gpdb::RelationExists
 }
 
 void
-gpdb::EstimateRelationSize
-	(
-	Relation rel,
-	int32 *attr_widths,
-	BlockNumber *pages,
-	double *tuples,
-	double *allvisfrac
-	)
-{
-	GP_WRAP_START;
-	{
-		estimate_rel_size(rel, attr_widths, pages, tuples, allvisfrac);
-		return;
-	}
-	GP_WRAP_END;
-}
-
-void
 gpdb::CdbEstimateRelationSize
 	(
 	RelOptInfo   *relOptInfo,
@@ -2413,6 +2395,20 @@ gpdb::CdbEstimateRelationSize
 	{
 		cdb_estimate_rel_size(relOptInfo, rel, attr_widths, pages, tuples, allvisfrac);
 		return;
+	}
+	GP_WRAP_END;
+}
+
+double
+gpdb::CdbEstimatePartitionedNumTuples
+	(
+	Relation rel,
+	bool *stats_missing_p
+	)
+{
+	GP_WRAP_START;
+	{
+		return cdb_estimate_partitioned_numtuples(rel, stats_missing_p);
 	}
 	GP_WRAP_END;
 }
