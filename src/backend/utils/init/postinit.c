@@ -1115,7 +1115,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	/* 
      * MPP package setup 
      *
-     * Primary function is to establish connctions to the qExecs.
+     * Primary function is to establish connections to the qExecs.
      * This is SKIPPED when the database is in bootstrap mode or 
      * Is not UnderPostmaster.
      */
