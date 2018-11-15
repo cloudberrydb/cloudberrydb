@@ -326,24 +326,20 @@ ExecReScan(PlanState *node)
  * ExecMarkPos
  *
  * Marks the current scan position.
+ *
+ * NOTE: mark/restore capability is currently needed only for plan nodes
+ * that are the immediate inner child of a MergeJoin node.  Since MergeJoin
+ * requires sorted input, there is never any need to support mark/restore in
+ * node types that cannot produce sorted output.  There are some cases in
+ * which a node can pass through sorted data from its child; if we don't
+ * implement mark/restore for such a node type, the planner compensates by
+ * inserting a Material node above that node.
  */
 void
 ExecMarkPos(PlanState *node)
 {
 	switch (nodeTag(node))
 	{
-		case T_TableScanState:
-			ExecTableMarkPos((TableScanState *) node);
-			break;
-
-		case T_DynamicTableScanState:
-			ExecDynamicTableMarkPos((DynamicTableScanState *) node);
-			break;
-
-		case T_SeqScanState:
-			insist_log(false, "SeqScan/AppendOnlyScan/AOCSScan are defunct");
-			break;
-
 		case T_IndexScanState:
 			ExecIndexMarkPos((IndexScanState *) node);
 			break;
@@ -412,18 +408,6 @@ ExecRestrPos(PlanState *node)
 {
 	switch (nodeTag(node))
 	{
-		case T_TableScanState:
-			ExecTableRestrPos((TableScanState *) node);
-			break;
-
-		case T_DynamicTableScanState:
-			ExecDynamicTableRestrPos((DynamicTableScanState *) node);
-			break;
-
-		case T_SeqScanState:
-			elog(ERROR, "SeqScan is defunct");
-			break;
-
 		case T_IndexScanState:
 			ExecIndexRestrPos((IndexScanState *) node);
 			break;

@@ -369,12 +369,6 @@ typedef struct ScanMethod
 
 	/* Function that does rescan. */
 	void (*reScanMethod)(ScanState *scanState);
-
-	/* Function that does MarkPos in a scan. */
-	void (*markPosMethod)(ScanState *scanState);
-
-	/* Function that does RestroPos in a scan. */
-	void (*restrPosMethod)(ScanState *scanState);
 } ScanMethod;
 
 extern TupleTableSlot *ExecScan(ScanState *node, ExecScanAccessMtd accessMtd,
@@ -392,9 +386,6 @@ extern TupleTableSlot *ExecTableScanRelation(ScanState *scanState);
 extern void BeginTableScanRelation(ScanState *scanState);
 extern void EndTableScanRelation(ScanState *scanState);
 extern void ReScanRelation(ScanState *scanState);
-extern void MarkPosScanRelation(ScanState *scanState);
-extern void RestrPosScanRelation(ScanState *scanState);
-extern void MarkRestrNotAllowed(ScanState *scanState);
 
 /*
  * prototypes from functions in execHeapScan.c
@@ -404,8 +395,6 @@ extern bool HeapScanRecheck(ScanState *node, TupleTableSlot *slot);
 extern void BeginScanHeapRelation(ScanState *scanState);
 extern void EndScanHeapRelation(ScanState *scanState);
 extern void ReScanHeapRelation(ScanState *scanState);
-extern void MarkPosHeapRelation(ScanState *scanState);
-extern void RestrPosHeapRelation(ScanState *scanState);
 
 /*
  * prototypes from functions in execAppendOnlyScan.c

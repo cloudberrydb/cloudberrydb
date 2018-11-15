@@ -40,7 +40,7 @@ getScanMethod(int tableType)
 	{
 		{
 			&HeapScanNext, &HeapScanRecheck, &BeginScanHeapRelation, &EndScanHeapRelation,
-			&ReScanHeapRelation, &MarkPosHeapRelation, &RestrPosHeapRelation
+			&ReScanHeapRelation
 		},
 		/*
 		 * AO and AOCS tables don't need a recheck-method, because they never
@@ -50,11 +50,11 @@ getScanMethod(int tableType)
 		 */
 		{
 			&AppendOnlyScanNext, NULL, &BeginScanAppendOnlyRelation, &EndScanAppendOnlyRelation,
-			&ReScanAppendOnlyRelation, &MarkRestrNotAllowed, &MarkRestrNotAllowed
+			&ReScanAppendOnlyRelation
 		},
 		{
 			&AOCSScanNext, NULL, &BeginScanAOCSRelation, &EndScanAOCSRelation,
-			&ReScanAOCSRelation, &MarkRestrNotAllowed, &MarkRestrNotAllowed
+			&ReScanAOCSRelation
 		}
 	};
 	
@@ -567,59 +567,4 @@ ReScanRelation(ScanState *scanState)
 	}
 	
 	scanMethod->reScanMethod(scanState);
-}
-
-/*
- * MarkPosScanRelation
- *   Set a Mark position in the scan.
- */
-void
-MarkPosScanRelation(ScanState *scanState)
-{
-	getScanMethod(scanState->tableType)->markPosMethod(scanState);	
-}
-
-/*
- * RestrPosScanRelation
- *   Restore a marked position in the scan.
- */
-void
-RestrPosScanRelation(ScanState *scanState)
-{
-	getScanMethod(scanState->tableType)->restrPosMethod(scanState);	
-}
-
-/*
- * MarkRestrNotAllowed
- *   Errors when Mark/Restr is not implemented in the given scan.
- *
- * This function only supports AppendOnlyScan, AOCSScan, DynamicTableScan.
- */
-void
-MarkRestrNotAllowed(ScanState *scanState)
-{
-	Assert(scanState->tableType == TableTypeAppendOnly ||
-		   scanState->tableType == TableTypeAOCS ||
-		   IsA(scanState, DynamicTableScanState));
-	
-	const char *scan = NULL;
-	if (scanState->tableType == TableTypeAppendOnly)
-	{
-		scan = "AppendOnlyRowScan";
-	}
-	
-	else if (scanState->tableType == TableTypeAOCS)
-	{
-		scan = "AppendOnlyColumnarScan";
-	}
-	
-	else
-	{
-		Assert(IsA(scanState, DynamicTableScanState));
-		scan = "DynamicTableScan";
-	}
-
-	ereport(ERROR,
-			(errcode(ERRCODE_INTERNAL_ERROR),
-			 errmsg("Mark/Restore is not allowed in %s", scan)));
 }
