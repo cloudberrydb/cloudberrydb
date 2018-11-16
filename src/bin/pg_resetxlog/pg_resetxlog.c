@@ -290,7 +290,13 @@ main(int argc, char *argv[])
 				break;
 
 			case 1001: /* --system-identifier */
+#if SIZEOF_LONG >= 8
+				system_identifier = strtoul(optarg, &endptr, 0);
+#elif defined(HAVE_STRTOULL)
 				system_identifier = strtoull(optarg, &endptr, 0);
+#else
+#	error "The --system-identifier option requires 64-bit support."
+#endif
 				if (endptr == optarg || *endptr != '\0')
 				{
 					fprintf(stderr, _("%s: invalid argument for --system-identifier\n"), progname);
