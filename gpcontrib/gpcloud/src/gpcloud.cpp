@@ -6,8 +6,10 @@ extern "C" {
  * which is perfectly legal C but which generates a warning when compiled
  * as C++. Ignore this warning as it's a false positive in this case.
  */
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-register"
+#endif
 
 #include "access/extprotocol.h"
 #include "access/xact.h"
@@ -21,7 +23,9 @@ extern "C" {
 #include "utils/memutils.h"
 #include "utils/resowner.h"
 
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
 
 /* Do the module magic dance */
 PG_MODULE_MAGIC;
