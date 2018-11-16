@@ -473,7 +473,8 @@ postgresGetForeignRelSize(PlannerInfo *root,
 													 fpinfo->local_conds,
 													 baserel->relid,
 													 JOIN_INNER,
-													 NULL);
+													 NULL,
+													 false);
 
 	cost_qual_eval(&fpinfo->local_conds_cost, fpinfo->local_conds, root);
 
@@ -1013,7 +1014,7 @@ postgresIterateForeignScan(ForeignScanState *node)
 	/*
 	 * Return the next tuple.
 	 */
-	ExecStoreTuple(fsstate->tuples[fsstate->next_tuple++],
+	ExecStoreHeapTuple(fsstate->tuples[fsstate->next_tuple++],
 				   slot,
 				   InvalidBuffer,
 				   false);
@@ -1759,7 +1760,8 @@ estimate_path_cost_size(PlannerInfo *root,
 										   local_join_conds,
 										   baserel->relid,
 										   JOIN_INNER,
-										   NULL);
+										   NULL,
+										   false);
 		local_sel *= fpinfo->local_conds_sel;
 
 		rows = clamp_row_est(rows * local_sel);
@@ -2268,7 +2270,7 @@ store_returning_result(PgFdwModifyState *fmstate,
 											fmstate->retrieved_attrs,
 											fmstate->temp_cxt);
 		/* tuple will be deleted when it is cleared from the slot */
-		ExecStoreTuple(newtup, slot, InvalidBuffer, true);
+		ExecStoreHeapTuple(newtup, slot, InvalidBuffer, true);
 	}
 	PG_CATCH();
 	{

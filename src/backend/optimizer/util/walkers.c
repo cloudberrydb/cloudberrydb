@@ -244,8 +244,14 @@ plan_tree_walker(Node *node,
 		case T_BitmapAppendOnlyScan:
 		case T_BitmapTableScan:
 		case T_WorkTableScan:
+			if (walk_scan_node_fields((Scan *) node, walker, context))
+				return true;
+			break;
+
 		case T_ForeignScan:
 			if (walk_scan_node_fields((Scan *) node, walker, context))
+				return true;
+			if (walker(((ForeignScan *) node)->fdw_exprs, context))
 				return true;
 			break;
 
