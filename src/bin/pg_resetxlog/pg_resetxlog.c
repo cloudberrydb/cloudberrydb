@@ -334,6 +334,14 @@ main(int argc, char *argv[])
 	}
 #endif
 
+	/* GPDB: only allow setting --system-identifier during upgrade. */
+	if (!binary_upgrade && system_identifier)
+	{
+		fprintf(stderr, _("%s: setting --system-identifier is allowed only during binary upgrade\n"),
+				progname);
+		exit(1);
+	}
+
 	DataDir = argv[optind];
 
 	if (chdir(DataDir) < 0)
