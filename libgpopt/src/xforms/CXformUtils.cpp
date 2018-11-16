@@ -1850,6 +1850,21 @@ CXformUtils::FSplitAggXform
 		CXform::ExfSplitGbAggDedup == exfid;
 }
 
+BOOL
+CXformUtils::FAggGenBySplitDQAXform
+	(
+	CExpression *pexprAgg
+	)
+{
+	CGroupExpression *pgexprOrigin = pexprAgg->Pgexpr();
+	if(NULL != pgexprOrigin)
+	{
+		return CXform::ExfSplitDQA == pgexprOrigin->ExfidOrigin();
+	}
+
+	return false;
+	
+}
 
 
 // Check if given expression is a multi-stage Agg based on agg type

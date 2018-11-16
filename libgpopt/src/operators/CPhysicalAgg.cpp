@@ -18,7 +18,6 @@
 #include "gpopt/base/CDistributionSpecAny.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPhysicalAgg.h"
-#include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/base/CDistributionSpecStrictSingleton.h"
 
 using namespace gpopt;
@@ -40,12 +39,16 @@ CPhysicalAgg::CPhysicalAgg
 	COperator::EGbAggType egbaggtype,
 	BOOL fGeneratesDuplicates,
 	CColRefArray *pdrgpcrArgDQA,
-	BOOL fMultiStage
+	BOOL fMultiStage,
+	BOOL isAggFromSplitDQA,
+	CLogicalGbAgg::EAggStage aggStage
 	)
 	:
 	CPhysical(mp),
 	m_pdrgpcr(colref_array),
 	m_egbaggtype(egbaggtype),
+	m_isAggFromSplitDQA(isAggFromSplitDQA),
+	m_aggStage(aggStage),
 	m_pdrgpcrMinimal(NULL),
 	m_fGeneratesDuplicates(fGeneratesDuplicates),
 	m_pdrgpcrArgDQA(pdrgpcrArgDQA),
@@ -632,6 +635,7 @@ CPhysicalAgg::EpetDistribution
 
 	if (ped->FCompatible(pds))
 	{
+		
 		if (COperator::EgbaggtypeLocal != Egbaggtype())
 		{
 			return CEnfdProp::EpetUnnecessary;
@@ -675,7 +679,23 @@ CPhysicalAgg::EpetRewindability
 	return CEnfdProp::EpetRequired;
 }
 
+BOOL
+CPhysicalAgg::IsTwoStageScalarDQA() const
+{
+	return (m_aggStage == CLogicalGbAgg::EasTwoStageScalarDQA);
+}
 
+BOOL
+CPhysicalAgg::IsThreeStageScalarDQA() const
+{
+	return (m_aggStage == CLogicalGbAgg::EasThreeStageScalarDQA);
+}
+
+BOOL
+CPhysicalAgg::IsAggFromSplitDQA() const
+{
+	return m_isAggFromSplitDQA ;
+}
 //---------------------------------------------------------------------------
 //	@function:
 //		CPhysicalAgg::OsPrint
@@ -721,6 +741,17 @@ CPhysicalAgg::OsPrint
 		os	<< "]";
 	}
 	os	<< ", Generates Duplicates :[ " << FGeneratesDuplicates() << " ] ";
+
+	// note: 2-stage Scalar DQA and 3-stage scalar DQA are created by CXformSplitDQA only
+	if (IsTwoStageScalarDQA())
+	{
+		os	<< ", m_aggStage :[ Two Stage Scalar DQA ] ";
+	}
+
+	if (IsThreeStageScalarDQA())
+	{
+		os	<< ", m_aggStage :[ Three Stage Scalar DQA ] ";
+	}
 
 	return os;
 }

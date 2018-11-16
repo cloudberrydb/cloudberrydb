@@ -45,7 +45,9 @@ namespace gpopt
 				COperator::EGbAggType egbaggtype,
 				CColRefArray *pdrgpcrKeys,
 				BOOL fGeneratesDuplicates,
-				BOOL fMultiStage
+				BOOL fMultiStage,
+				BOOL isAggFromSplitDQA,
+				CLogicalGbAgg::EAggStage aggStage
 				);
 
 			// dtor

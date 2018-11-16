@@ -1082,6 +1082,10 @@ namespace gpopt
 			static
 			BOOL FSplitAggXform(CXform::EXformId exfid);
 
+			// check if given xform is an Agg CXformSplitDQA
+			static
+			BOOL FAggGenBySplitDQAXform(CExpression *pexprAgg);
+
 			// check if given expression is a multi-stage Agg based on origin xform
 			static
 			BOOL FMultiStageAgg(CExpression *pexprAgg);

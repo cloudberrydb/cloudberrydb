@@ -40,11 +40,12 @@ CLogicalGbAgg::CLogicalGbAgg
 	)
 	:
 	CLogicalUnary(mp),
+	m_fGeneratesDuplicates(true),
+	m_pdrgpcrArgDQA(NULL),
 	m_pdrgpcr(NULL),
 	m_pdrgpcrMinimal(NULL),
 	m_egbaggtype(COperator::EgbaggtypeSentinel),
-	m_fGeneratesDuplicates(true),
-	m_pdrgpcrArgDQA(NULL)
+	m_aggStage(EasOthers)
 {
 	m_fPattern = true;
 }
@@ -66,11 +67,12 @@ CLogicalGbAgg::CLogicalGbAgg
 	)
 	:
 	CLogicalUnary(mp),
+	m_fGeneratesDuplicates(false),
+	m_pdrgpcrArgDQA(NULL),
 	m_pdrgpcr(colref_array),
 	m_pdrgpcrMinimal(NULL),
 	m_egbaggtype(egbaggtype),
-	m_fGeneratesDuplicates(false),
-	m_pdrgpcrArgDQA(NULL)
+	m_aggStage(EasOthers)
 {
 	if (COperator::EgbaggtypeLocal == egbaggtype)
 	{
@@ -82,6 +84,35 @@ CLogicalGbAgg::CLogicalGbAgg
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
 	GPOS_ASSERT(COperator::EgbaggtypeIntermediate != egbaggtype);
 
+	m_pcrsLocalUsed->Include(m_pdrgpcr);
+}
+
+CLogicalGbAgg::CLogicalGbAgg
+	(
+	IMemoryPool *mp,
+	CColRefArray *colref_array,
+	COperator::EGbAggType egbaggtype,
+	EAggStage aggStage
+	)
+	:
+	CLogicalUnary(mp),
+	m_fGeneratesDuplicates(false),
+	m_pdrgpcrArgDQA(NULL),
+	m_pdrgpcr(colref_array),
+	m_pdrgpcrMinimal(NULL),
+	m_egbaggtype(egbaggtype),
+	m_aggStage(aggStage)
+{
+	if (COperator::EgbaggtypeLocal == egbaggtype)
+	{
+		// final and intermediate aggregates have to remove duplicates for a given group
+		m_fGeneratesDuplicates = true;
+	}
+	
+	GPOS_ASSERT(NULL != colref_array);
+	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
+	GPOS_ASSERT(COperator::EgbaggtypeIntermediate != egbaggtype);
+	
 	m_pcrsLocalUsed->Include(m_pdrgpcr);
 }
 
@@ -104,17 +135,44 @@ CLogicalGbAgg::CLogicalGbAgg
 	)
 	:
 	CLogicalUnary(mp),
+	m_fGeneratesDuplicates(fGeneratesDuplicates),
+	m_pdrgpcrArgDQA(pdrgpcrArgDQA),
 	m_pdrgpcr(colref_array),
 	m_pdrgpcrMinimal(NULL),
 	m_egbaggtype(egbaggtype),
-	m_fGeneratesDuplicates(fGeneratesDuplicates),
-	m_pdrgpcrArgDQA(pdrgpcrArgDQA)
+	m_aggStage(EasOthers)
 {
 	GPOS_ASSERT(NULL != colref_array);
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
 	GPOS_ASSERT_IMP(NULL == m_pdrgpcrArgDQA, COperator::EgbaggtypeIntermediate != egbaggtype);
 	GPOS_ASSERT_IMP(m_fGeneratesDuplicates, COperator::EgbaggtypeLocal == egbaggtype);
 
+	m_pcrsLocalUsed->Include(m_pdrgpcr);
+}
+
+CLogicalGbAgg::CLogicalGbAgg
+	(
+	IMemoryPool *mp,
+	CColRefArray *colref_array,
+	COperator::EGbAggType egbaggtype,
+	BOOL fGeneratesDuplicates,
+	CColRefArray *pdrgpcrArgDQA,
+	EAggStage aggStage
+	)
+	:
+	CLogicalUnary(mp),
+	m_fGeneratesDuplicates(fGeneratesDuplicates),
+	m_pdrgpcrArgDQA(pdrgpcrArgDQA),
+	m_pdrgpcr(colref_array),
+	m_pdrgpcrMinimal(NULL),
+	m_egbaggtype(egbaggtype),
+	m_aggStage(aggStage)
+{
+	GPOS_ASSERT(NULL != colref_array);
+	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
+	GPOS_ASSERT_IMP(NULL == m_pdrgpcrArgDQA, COperator::EgbaggtypeIntermediate != egbaggtype);
+	GPOS_ASSERT_IMP(m_fGeneratesDuplicates, COperator::EgbaggtypeLocal == egbaggtype);
+	
 	m_pcrsLocalUsed->Include(m_pdrgpcr);
 }
 
@@ -135,11 +193,12 @@ CLogicalGbAgg::CLogicalGbAgg
 	)
 	:
 	CLogicalUnary(mp),
+	m_fGeneratesDuplicates(true),
+	m_pdrgpcrArgDQA(NULL),
 	m_pdrgpcr(colref_array),
 	m_pdrgpcrMinimal(pdrgpcrMinimal),
 	m_egbaggtype(egbaggtype),
-	m_fGeneratesDuplicates(true),
-	m_pdrgpcrArgDQA(NULL)
+	m_aggStage(EasOthers)
 {
 	GPOS_ASSERT(NULL != colref_array);
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
@@ -176,11 +235,12 @@ CLogicalGbAgg::CLogicalGbAgg
 	)
 	:
 	CLogicalUnary(mp),
+	m_fGeneratesDuplicates(fGeneratesDuplicates),
+	m_pdrgpcrArgDQA(pdrgpcrArgDQA),
 	m_pdrgpcr(colref_array),
 	m_pdrgpcrMinimal(pdrgpcrMinimal),
 	m_egbaggtype(egbaggtype),
-	m_fGeneratesDuplicates(fGeneratesDuplicates),
-	m_pdrgpcrArgDQA(pdrgpcrArgDQA)
+	m_aggStage(EasOthers)
 {
 	GPOS_ASSERT(NULL != colref_array);
 	GPOS_ASSERT(COperator::EgbaggtypeSentinel > egbaggtype);
@@ -673,6 +733,18 @@ CLogicalGbAgg::PstatsDerive
 	return stats;
 }
 
+BOOL
+CLogicalGbAgg::IsTwoStageScalarDQA() const
+{
+	return (m_aggStage == EasTwoStageScalarDQA) ;
+}
+
+BOOL
+CLogicalGbAgg::IsThreeStageScalarDQA() const
+{
+	return (m_aggStage == EasThreeStageScalarDQA) ;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CLogicalGbAgg::OsPrint
@@ -717,7 +789,18 @@ CLogicalGbAgg::OsPrint
 		CUtils::OsPrintDrgPcr(os, m_pdrgpcrArgDQA);
 		os	<< "]";
 	}
+
 	os	<< ", Generates Duplicates :[ " << FGeneratesDuplicates() << " ] ";
+
+	if(IsTwoStageScalarDQA())
+	{
+		os	<< ", m_aggStage :[  Two Stage Scalar DQA  ] ";
+	}
+
+	if(IsThreeStageScalarDQA())
+	{
+		os	<< ", m_aggStage :[  Three Stage Scalar DQA  ] ";
+	}
 
 	return os;
 }

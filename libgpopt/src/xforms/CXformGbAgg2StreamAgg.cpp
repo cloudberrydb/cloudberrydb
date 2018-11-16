@@ -128,20 +128,22 @@ CXformGbAgg2StreamAgg::Transform
 	}
 
 	// create alternative expression
-	CExpression *pexprAlt = 
+	CExpression *pexprAlt =
 		GPOS_NEW(mp) CExpression
 			(
 			mp,
 			GPOS_NEW(mp) CPhysicalStreamAgg
-						(
-						mp,
-						colref_array,
-						popAgg->PdrgpcrMinimal(),
-						popAgg->Egbaggtype(),
-						popAgg->FGeneratesDuplicates(),
-						pdrgpcrArgDQA,
-						CXformUtils::FMultiStageAgg(pexpr)
-						),
+				(
+				mp,
+				colref_array,
+				popAgg->PdrgpcrMinimal(),
+				popAgg->Egbaggtype(),
+				popAgg->FGeneratesDuplicates(),
+				pdrgpcrArgDQA,
+				CXformUtils::FMultiStageAgg(pexpr),
+				CXformUtils::FAggGenBySplitDQAXform(pexpr),
+				popAgg->AggStage()
+				),
 			pexprRel,
 			pexprScalar
 			);

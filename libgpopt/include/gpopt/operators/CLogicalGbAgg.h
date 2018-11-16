@@ -20,6 +20,8 @@ namespace gpopt
 {
 	// fwd declaration
 	class CColRefSet;
+
+	class CLogicalGbAgg;
 	
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -31,20 +33,6 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CLogicalGbAgg : public CLogicalUnary
 	{
-		private:
-
-			// private copy ctor
-			CLogicalGbAgg(const CLogicalGbAgg &);
-			
-			// array of grouping columns
-			CColRefArray *m_pdrgpcr;
-
-			// minimal grouping columns based on FD's
-			CColRefArray *m_pdrgpcrMinimal;
-
-			// local / intermediate / global aggregate
-			COperator::EGbAggType m_egbaggtype;
-
 		protected:
 
 			// does local / intermediate / global aggregate generate duplicate values for the same group
@@ -67,6 +55,19 @@ namespace gpopt
 
 		public:
 
+			// the below enum specifically covers only 2 & 3 stage
+			// scalar dqa, as they are used to find the one having
+			// better cost context, rest of the aggs falls in others
+			// category.
+			enum EAggStage
+			{
+				EasTwoStageScalarDQA,
+				EasThreeStageScalarDQA,
+				EasOthers,
+
+				EasSentinel
+			};
+
 			// ctor
 			explicit
 			CLogicalGbAgg(IMemoryPool *mp);
@@ -76,9 +77,29 @@ namespace gpopt
 				(
 				IMemoryPool *mp,
 				CColRefArray *colref_array,
-				COperator::EGbAggType egbaggtype
+				COperator::EGbAggType egbaggtype,
+				EAggStage aggStage
 				);
 
+			// ctor
+			CLogicalGbAgg
+				(
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				COperator::EGbAggType egbaggtype,
+				BOOL fGeneratesDuplicates,
+				CColRefArray *pdrgpcrArgDQA,
+				EAggStage aggStage
+				);
+
+			// ctor
+			CLogicalGbAgg
+				(
+				IMemoryPool *mp,
+				CColRefArray *colref_array,
+				COperator::EGbAggType egbaggtype
+				);
+			
 			// ctor
 			CLogicalGbAgg
 				(
@@ -108,6 +129,18 @@ namespace gpopt
 				BOOL fGeneratesDuplicates,
 				CColRefArray *pdrgpcrArgDQA
 				);
+
+			// is this part of Two Stage Scalar DQA
+			BOOL IsTwoStageScalarDQA() const;
+
+			// is this part of Three Stage Scalar DQA
+			BOOL IsThreeStageScalarDQA() const;
+
+			// return the m_aggStage
+			EAggStage AggStage() const
+			{
+				return m_aggStage;
+			}
 
 			// dtor
 			virtual
@@ -281,6 +314,23 @@ namespace gpopt
 			// print group by aggregate type
 			static
 			IOstream &OsPrintGbAggType(IOstream &os, COperator::EGbAggType egbaggtype);
+
+		private:
+
+			// private copy ctor
+			CLogicalGbAgg(const CLogicalGbAgg &);
+
+			// array of grouping columns
+			CColRefArray *m_pdrgpcr;
+
+			// minimal grouping columns based on FD's
+			CColRefArray *m_pdrgpcrMinimal;
+
+			// local / intermediate / global aggregate
+			COperator::EGbAggType m_egbaggtype;
+
+			// which type of multi-stage agg it is
+			EAggStage m_aggStage;
 
 	}; // class CLogicalGbAgg
 

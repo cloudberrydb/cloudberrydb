@@ -34,6 +34,8 @@ const CHAR *rgszAggFileNames[] =
 	"../data/dxl/minidump/ScalarCorrelatedSubqueryCountStar.mdp",
 	"../data/dxl/minidump/ScalarSubqueryCountStar.mdp",
 	"../data/dxl/minidump/DQA-SplitScalarWithAggAndGuc.mdp",
+	"../data/dxl/minidump/DQA-SplitScalarOnDistCol.mdp",
+	"../data/dxl/minidump/ScalarDQAWithNonScalarAgg.mdp",
 	"../data/dxl/minidump/DQA-SplitScalarWithGuc.mdp",
 	"../data/dxl/minidump/DQA-SplitScalar.mdp",
 	"../data/dxl/minidump/Agg-NonSplittable.mdp",

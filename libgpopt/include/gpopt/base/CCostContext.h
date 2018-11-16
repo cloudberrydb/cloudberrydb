@@ -253,6 +253,12 @@ namespace gpopt
 			// is current context better than the given equivalent context based on cost?
 			BOOL FBetterThan(const CCostContext *pcc) const;
 
+			// is this cost context of a two stage scalar DQA created by CXformSplitDQA
+			BOOL IsTwoStageScalarDQACostCtxt(const CCostContext *pcc) const;
+
+			// is this cost context of a three stage scalar DQA created by CXformSplitDQA
+			BOOL IsThreeStageScalarDQACostCtxt(const CCostContext *pcc) const;
+
 			// equality function
 			static
 			BOOL Equals
