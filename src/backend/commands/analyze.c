@@ -188,6 +188,7 @@ static int acquire_sample_rows_dispatcher(Relation onerel, bool inh, int elevel,
 										  HeapTuple *rows, int targrows,
 										  double *totalrows, double *totaldeadrows);
 static BlockNumber acquire_number_of_blocks(Relation onerel);
+static BlockNumber acquire_index_number_of_blocks(Relation indexrel, Relation tablerel);
 
 static int	compare_rows(const void *a, const void *b);
 static void update_attstats(Oid relid, bool inh,
@@ -904,7 +905,7 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 				 * This does not hold for partial indexes. The number of tuples matching will be
 				 * derived in selfuncs.c using the base table statistics.
 				 */
-				estimatedIndexPages = acquire_number_of_blocks(Irel[ind]);
+				estimatedIndexPages = acquire_index_number_of_blocks(Irel[ind], onerel);
 				elog(elevel, "ANALYZE estimated relpages=%u for index %s",
 					 estimatedIndexPages, RelationGetRelationName(Irel[ind]));
 			}
@@ -2237,6 +2238,49 @@ acquire_number_of_blocks(Relation onerel)
 	}
 	else
 		elog(ERROR, "unsupported table type");
+}
+
+/*
+ * Compute index relation's size.
+ *
+ * Like acquire_number_of_blocks(), but for indexes. Indexes don't
+ * have a distribution policy, so we use the parent table's policy
+ * to determine whether we need to get the size on segments or
+ * locally.
+ */
+static BlockNumber
+acquire_index_number_of_blocks(Relation indexrel, Relation tablerel)
+{
+	int64		totalbytes;
+
+	if (Gp_role == GP_ROLE_DISPATCH &&
+		tablerel->rd_cdbpolicy && !GpPolicyIsEntry(tablerel->rd_cdbpolicy))
+	{
+		/* Query the segments using pg_relation_size(<rel>). */
+		char		relsize_sql[100];
+
+		snprintf(relsize_sql, sizeof(relsize_sql),
+				 "select pg_catalog.pg_relation_size(%u, 'main')", RelationGetRelid(indexrel));
+		totalbytes = get_size_from_segDBs(relsize_sql);
+		if (GpPolicyIsReplicated(tablerel->rd_cdbpolicy))
+		{
+			/*
+			 * pg_relation_size sums up the table size on each segment. That's
+			 * correct for hash and randomly distributed tables. But for a
+			 * replicated table, we want pg_class.relpages to count the data
+			 * only once.
+			 */
+			totalbytes = totalbytes / tablerel->rd_cdbpolicy->numsegments;
+		}
+
+		return RelationGuessNumberOfBlocks(totalbytes);
+	}
+	/* Check size on this server. */
+	else
+	{
+		Assert(RelationIsHeap(indexrel));
+		return RelationGetNumberOfBlocks(indexrel);
+	}
 }
 
 /*
