@@ -2406,14 +2406,13 @@ jobs:
       - resource_group_centos7
       - resource_group_sles12
       - segwalrep_mirrorless_centos6
-      - walrep_2
       - regression_tests_gphdfs_hadoop_centos
       - regression_tests_gphdfs_mapr_centos
 {% for test_name in CLI_1_suites +
-                    CLI_2_suites +
-                    CLI_gpexpand_suites %}
+                    CLI_2_suites %}
       - [[ test_name ]]
 {% endfor %}
+      - gpexpand_2
       - madlib_build_gppkg
       - MADlib_Test_orca_centos6
       - MADlib_Test_planner_centos6
@@ -2438,14 +2437,13 @@ jobs:
       - client_loader_remote_test_aix
       - resource_group_centos6
       - segwalrep_mirrorless_centos6
-      - walrep_2
       - regression_tests_gphdfs_hadoop_centos
       - regression_tests_gphdfs_mapr_centos
 {% for test_name in CLI_1_suites +
-                    CLI_2_suites +
-                    CLI_gpexpand_suites %}
+                    CLI_2_suites %}
       - [[ test_name ]]
 {% endfor %}
+      - gpexpand_2
       - MADlib_Test_orca_centos6
       - MADlib_Test_planner_centos6
       - gpexpand
