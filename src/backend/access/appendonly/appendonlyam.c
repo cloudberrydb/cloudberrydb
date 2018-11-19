@@ -3115,5 +3115,5 @@ BlockNumber
 RelationGuessNumberOfBlocks(double totalbytes)
 {
 	/* for now it's very simple */
-	return (BlockNumber) (totalbytes / BLCKSZ) + 1;
+	return (BlockNumber) ceil(totalbytes / BLCKSZ);
 }
