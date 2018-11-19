@@ -1176,6 +1176,7 @@ get_rel_oids(Oid relid, VacuumStmt *vacstmt, int stmttype)
 		HeapScanDesc scan;
 		HeapTuple	tuple;
 		Oid candidateOid;
+		List	   *rootParts = NIL;
 
 		pgclass = heap_open(RelationRelationId, AccessShareLock);
 
@@ -1216,9 +1217,23 @@ get_rel_oids(Oid relid, VacuumStmt *vacstmt, int stmttype)
 			}
 
 			oldcontext = MemoryContextSwitchTo(vac_context);
-			oid_list = lappend_oid(oid_list, candidateOid);
+			if (ps == PART_STATUS_ROOT)
+				rootParts = lappend_oid(rootParts, candidateOid);
+			else
+				oid_list = lappend_oid(oid_list, candidateOid);
 			MemoryContextSwitchTo(oldcontext);
 		}
+
+		/*
+		 * Schedule the root partitions to be analyzed after all the leaves.
+		 * A root partition can often be analyzed by combining the HLL
+		 * counters from all the leaves, which is much cheaper than scanning
+		 * the whole partitioned table, but that only works if the leaves
+		 * have already been analyzed.
+		 */
+		oldcontext = MemoryContextSwitchTo(vac_context);
+		oid_list = list_concat(oid_list, rootParts);
+		MemoryContextSwitchTo(oldcontext);
 
 		heap_endscan(scan);
 		heap_close(pgclass, AccessShareLock);
