@@ -8,6 +8,10 @@
 # of the test. Ignore the NOTICE if it exists already.
 m/^NOTICE:  extension "gp_inject_fault" already exists, skipping/
 
+# Some tests use the gp_debug_numsegments extension, and create it at the beginning
+# of the test. Ignore the NOTICE if it exists already.
+m/NOTICE:  extension "gp_debug_numsegments" already exists, skipping/
+
 # match ignore the gpmon WARNING message
 m/^WARNING:  gpmon:.*Connection refused.*/
 
