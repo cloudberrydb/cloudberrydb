@@ -396,3 +396,33 @@ INSERT INTO foo_stats values (repeat('b', 100000), 'bbbbb2', 'cccc2', 3);
 ANALYZE foo_stats;
 SELECT schemaname, tablename, attname, null_frac, avg_width, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename='foo_stats' ORDER BY attname;
 DROP TABLE IF EXISTS foo_stats;
+
+
+--
+-- Test statistics collection with a "partially distributed" table. That is, with a table
+-- that has a smaller 'numsegments' in the distribution policy than the segment count
+-- of the cluster.
+--
+set allow_system_table_mods=true;
+
+create table twoseg_table(a int, b int, c int) distributed by (a);
+update gp_distribution_policy set numsegments=2 where localoid='twoseg_table'::regclass;
+insert into twoseg_table select i, i % 10, 0 from generate_series(1, 50) I;
+analyze twoseg_table;
+
+select relname, reltuples, relpages from pg_class where relname ='twoseg_table' order by relname;
+select attname, null_frac, avg_width, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename='twoseg_table' ORDER BY attname;
+
+drop table twoseg_table;
+
+--
+-- Test statistics collection on a replicated table.
+--
+create table rep_table(a int, b int, c int) distributed replicated;
+insert into rep_table select i, i % 10, 0 from generate_series(1, 50) I;
+analyze rep_table;
+
+select relname, reltuples, relpages from pg_class where relname ='rep_table' order by relname;
+select attname, null_frac, avg_width, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename='rep_table' ORDER BY attname;
+
+drop table rep_table;
