@@ -2197,7 +2197,8 @@ acquire_number_of_blocks(Relation onerel)
 {
 	int64		totalbytes;
 
-	if (Gp_role == GP_ROLE_DISPATCH && !GpPolicyIsEntry(onerel->rd_cdbpolicy))
+	if (Gp_role == GP_ROLE_DISPATCH &&
+		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy))
 	{
 		/* Query the segments using pg_relation_size(<rel>). */
 		char		relsize_sql[100];
