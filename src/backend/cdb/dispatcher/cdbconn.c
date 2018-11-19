@@ -15,6 +15,7 @@
  */
 #include "postgres.h"
 
+#include "commands/dbcommands.h"
 #include "libpq-fe.h"
 #include "libpq-int.h"
 #include "miscadmin.h"
@@ -345,16 +346,35 @@ cdbconn_doConnectStart(SegmentDatabaseDescriptor *segdbDesc,
 	values[nkeywords] = portstr;
 	nkeywords++;
 
-	if (MyProcPort->database_name)
+	keywords[nkeywords] = "dbname";
+	if(MyProcPort && MyProcPort->database_name)
 	{
-		keywords[nkeywords] = "dbname";
-		values[nkeywords] = MyProcPort->database_name;
-		nkeywords++;
+		values[nkeywords] = MyProcPort->database_name;	
 	}
+	else
+	{
+		/*
+		 * get database name from MyDatabaseId, which is initialized
+		 * in InitPostgres()
+		 */
+		Assert(MyDatabaseId != InvalidOid);
+		values[nkeywords] = get_database_name(MyDatabaseId);
+	}
+	nkeywords++;
 
-	Assert(MyProcPort->user_name);
 	keywords[nkeywords] = "user";
-	values[nkeywords] = MyProcPort->user_name;
+	if (MyProcPort && MyProcPort->user_name)
+	{
+		values[nkeywords] = MyProcPort->user_name;
+	}
+	else
+	{
+		/*
+		 * get user name from AuthenticatedUserId which is initialized
+		 * in InitPostgres()
+		 */
+		values[nkeywords] = GetUserNameFromId(GetAuthenticatedUserId());
+	}
 	nkeywords++;
 
 	keywords[nkeywords] = NULL;
