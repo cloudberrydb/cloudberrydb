@@ -31,10 +31,6 @@ INFO:  (slice 0) Dispatch command to SINGLE content
 INFO:  Distributed transaction command 'Distributed Prepare' to SINGLE content
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to SINGLE content
 analyze dd_multicol_1;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
-CONTEXT:  SQL statement "select pg_catalog.sum(pg_catalog.gp_statistics_estimate_reltuples_relpages_oid(c.oid))::pg_catalog.float4[] from gp_dist_random('pg_catalog.pg_class') c where c.oid=145229"
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
-CONTEXT:  SQL statement "select Ta.a , Ta.b  from public.dd_multicol_1 as Ta  limit 30000 "
 insert into dd_multicol_2 select g, g%2 from generate_series(1, 100) g;
 INFO:  (slice 0) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 1) Dispatch command to SINGLE content

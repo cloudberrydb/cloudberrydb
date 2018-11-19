@@ -226,7 +226,7 @@ vacuum analyze;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        1
+ p3_sales                                                        |         0 |        0
  p3_sales_1_prt_2                                                |         0 |        0
  p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
  p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        1
@@ -256,7 +256,7 @@ select * from pg_stats where tablename like 'p3_sales%' order by tablename, attn
 select count(*) from pg_stat_last_operation pgl, pg_class pgc where pgl.objid=pgc.oid and pgc.relname like 'p3_sales%';
  count 
 -------
-    47
+    45
 (1 row)
 
 -- Case 6: Analyzing root table with ROOTPARTITION keyword should only update the stats of the root table when the GUC optimizer_analyze_root_partition and optimizer_analyze_midlevel_partition are set off

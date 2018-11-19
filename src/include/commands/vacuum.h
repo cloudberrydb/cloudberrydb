@@ -135,6 +135,20 @@ typedef struct VacAttrStats
 } VacAttrStats;
 
 /*
+ * To avoid consuming too much memory during analysis and/or too much space
+ * in the resulting pg_statistic rows, ANALYZE ignores varlena datums that are wider
+ * than WIDTH_THRESHOLD (after detoasting!).  This is legitimate for MCV
+ * and distinct-value calculations since a wide value is unlikely to be
+ * duplicated at all, much less be a most-common value.  For the same reason,
+ * ignoring wide values will not affect our estimates of histogram bin
+ * boundaries very much.
+ *
+ * NOTE: In upstream, this is private to analyze.c, but GPDB needs it in
+ * analyzefuncs.c
+ */
+#define WIDTH_THRESHOLD  1024
+
+/*
  * VPgClassStats is used to hold the stats information that are stored in
  * pg_class. It is sent from QE to QD in a special libpq message , when a
  * QE runs VACUUM on a table.
@@ -203,11 +217,20 @@ extern void vacuum_aocs_rel(Relation aorel, void *vacrelstats, bool isVacFull);
 extern void analyze_rel(Oid relid, VacuumStmt *vacstmt,
 			BufferAccessStrategy bstrategy);
 extern void analyzeStatement(VacuumStmt *vacstmt, List *relids, BufferAccessStrategy start, bool isTopLevel);
-//extern void analyzeStmt(VacuumStmt *vacstmt, List *relids);
-
 extern bool std_typanalyze(VacAttrStats *stats);
 extern double anl_random_fract(void);
 extern double anl_init_selection_state(int n);
 extern double anl_get_next_S(double t, int n, double *stateptr);
+
+extern int acquire_sample_rows(Relation onerel, int elevel,
+							   HeapTuple *rows, int targrows,
+							   double *totalrows, double *totaldeadrows);
+extern int acquire_inherited_sample_rows(Relation onerel, int elevel,
+							  HeapTuple *rows, int targrows,
+							  double *totalrows, double *totaldeadrows);
+
+/* in commands/analyzefuncs.c */
+extern Datum gp_acquire_sample_rows(PG_FUNCTION_ARGS);
+extern Oid gp_acquire_sample_rows_col_type(Oid typid);
 
 #endif   /* VACUUM_H */

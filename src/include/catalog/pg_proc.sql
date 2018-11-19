@@ -225,7 +225,7 @@
  CREATE FUNCTION gp_fault_inject(int4, int8) RETURNS int8 LANGUAGE internal VOLATILE STRICT AS 'gp_fault_inject' WITH (OID=9999, DESCRIPTION="Greenplum fault testing only");
 
 -- Analyze related
- CREATE FUNCTION gp_statistics_estimate_reltuples_relpages_oid(oid) RETURNS _float4 LANGUAGE internal VOLATILE STRICT AS 'gp_statistics_estimate_reltuples_relpages_oid' WITH (OID=5032, DESCRIPTION="Return reltuples/relpages information for relation.");
+ CREATE FUNCTION gp_acquire_sample_rows(oid, int4, bool) RETURNS SETOF record LANGUAGE internal VOLATILE STRICT EXECUTE ON ALL SEGMENTS AS 'gp_acquire_sample_rows' WITH (OID=6038, DESCRIPTION="Collect a random sample of rows from table" );
 
 -- Backoff related
  CREATE FUNCTION gp_adjust_priority(int4, int4, int4) RETURNS int4 LANGUAGE internal VOLATILE STRICT AS 'gp_adjust_priority_int' WITH (OID=5040, DESCRIPTION="change weight of all the backends for a given session id");

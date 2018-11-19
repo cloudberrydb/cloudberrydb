@@ -1104,7 +1104,8 @@ get_rel_oids(Oid relid, VacuumStmt *vacstmt, int stmttype)
 						oid_list = list_concat(oid_list, all_interior_partition_relids(pn)); /* interior partitions */
 					}
 				}
-				oid_list = lappend_oid(oid_list, relationOid); /* root partition */
+				if (optimizer_analyze_root_partition || (vacstmt->options & VACOPT_ROOTONLY))
+					oid_list = lappend_oid(oid_list, relationOid); /* root partition */
 			}
 			else if (ps == PART_STATUS_LEAF)
 			{
@@ -1142,8 +1143,11 @@ get_rel_oids(Oid relid, VacuumStmt *vacstmt, int stmttype)
 					}
 					RelationClose(onerel);
 				}
-				if(leaf_parts_analyzed(root_rel_oid, relationOid, va_root_attnums))
-					oid_list = lappend_oid(oid_list, root_rel_oid);
+				if (optimizer_analyze_root_partition || (vacstmt->options & VACOPT_ROOTONLY))
+				{
+					if (leaf_parts_analyzed(root_rel_oid, relationOid, va_root_attnums))
+						oid_list = lappend_oid(oid_list, root_rel_oid);
+				}
 			}
 			else if (ps == PART_STATUS_INTERIOR) /* analyze an interior partition directly */
 			{
@@ -1212,6 +1216,12 @@ get_rel_oids(Oid relid, VacuumStmt *vacstmt, int stmttype)
 			// skip mid-level partition tables if we have disabled collecting statistics for them
 			PartStatus ps = rel_part_status(candidateOid);
 			if (!optimizer_analyze_midlevel_partition && ps == PART_STATUS_INTERIOR)
+			{
+				continue;
+			}
+
+			// Likewise, skip root partition, if disabled.
+			if (!optimizer_analyze_root_partition && (vacstmt->options & VACOPT_ROOTONLY) == 0 && ps == PART_STATUS_ROOT)
 			{
 				continue;
 			}

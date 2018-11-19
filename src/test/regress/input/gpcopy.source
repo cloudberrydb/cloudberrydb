@@ -1297,6 +1297,9 @@ CREATE TYPE broken_int4 (
    passedbyvalue
 );
 
+-- avoid hitting the error when analyzing the table.
+set gp_autostats_mode = 'None';
+
 -- Create a table, using the funny datatype, and load it with integers
 -- 1-10000. The input function works normally, so this works, but if you
 -- try to select the row with value 1234 from it, the output function will

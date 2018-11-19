@@ -56,7 +56,7 @@ static int64 calculate_total_relation_size(Relation rel);
  * Dispatches the given SQL query to segments, and sums up the results.
  * The query is expected to return one int8 value.
  */
-static int64
+int64
 get_size_from_segDBs(const char *cmd)
 {
 	int64		result;

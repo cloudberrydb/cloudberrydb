@@ -483,7 +483,8 @@ extern Datum pg_indexes_size(PG_FUNCTION_ARGS);
 extern Datum pg_relation_filenode(PG_FUNCTION_ARGS);
 extern Datum pg_filenode_relation(PG_FUNCTION_ARGS);
 extern Datum pg_relation_filepath(PG_FUNCTION_ARGS);
-extern Datum gp_statistics_estimate_reltuples_relpages_oid(PG_FUNCTION_ARGS);
+
+extern int64 get_size_from_segDBs(const char *cmd);
 
 /* genfile.c */
 extern Datum pg_stat_file(PG_FUNCTION_ARGS);

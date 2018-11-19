@@ -920,10 +920,6 @@ Create table zoompp7620 as select * from mpp7620 where key=200;
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 INFO:  (slice 0) Dispatch command to ALL contents: 0 1 2
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
-CONTEXT:  SQL statement "select pg_catalog.sum(pg_catalog.gp_statistics_estimate_reltuples_relpages_oid(c.oid))::pg_catalog.float4[] from gp_dist_random('pg_catalog.pg_class') c where c.oid=140643"
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
-CONTEXT:  SQL statement "select Ta.key , (case when pg_column_size(Ta.value) > 1024 then NULL else Ta.value  end) as value, (case when Ta.value is NULL then false else true end) from public.zoompp7620 as Ta  limit 30000 "
 INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
 insert into mpp7620 values (200, 200);

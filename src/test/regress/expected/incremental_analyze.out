@@ -1981,7 +1981,7 @@ SELECT relname, relpages, reltuples FROM pg_class WHERE relname LIKE 'incr_analy
 ---------------------------+----------+-----------
  incr_analyze_test         |        0 |         0
  incr_analyze_test_1_prt_1 |        1 |         1
- incr_analyze_test_1_prt_2 |        3 |      1000
+ incr_analyze_test_1_prt_2 |        2 |      1000
  incr_analyze_test_1_prt_3 |        1 |         0
  incr_analyze_test_1_prt_4 |        1 |         0
  incr_analyze_test_1_prt_5 |        1 |         0
