@@ -106,17 +106,6 @@ typedef struct AnlIndexData
 	int			attr_cnt;
 } AnlIndexData;
 
-/*
- * Maintain the row index for large datums which must not be considered for
- * samples while calculating statistcs. The sample value at the row index for
- * a column are masked as NULL.
- */
-typedef struct RowIndexes
-{
-	bool* rows;
-	int toowide_cnt;
-} RowIndexes;
-
 typedef int (*AcquireSampleRowsByQueryFunc) (Relation onerel, int elevel, int nattrs,
 											 VacAttrStats **attrstats,
 											 HeapTuple **rows,
@@ -124,7 +113,7 @@ typedef int (*AcquireSampleRowsByQueryFunc) (Relation onerel, int elevel, int na
 											 double *totaldeadrows,
 											 BlockNumber *totalpages,
 											 bool rootonly,
-											 RowIndexes **colLargeRowIndexes /* Maintain information if the row of a column exceeds WIDTH_THRESHOLD */);
+											 Bitmapset **colLargeRowIndexes /* Maintain information if the row of a column exceeds WIDTH_THRESHOLD */);
 
 /* Default statistics target (GUC parameter) */
 int			default_statistics_target = 100;
@@ -151,7 +140,7 @@ static int acquire_sample_rows(Relation onerel, int elevel,
 							   HeapTuple *rows, int targrows,
 							   double *totalrows, double *totaldeadrows);
 static int acquire_sample_rows_by_query(Relation onerel, int elevel, int nattrs, VacAttrStats **attrstats, HeapTuple **rows,
-										int targrows, double *totalrows, double *totaldeadrows, BlockNumber *totalpages, bool rootonly,  RowIndexes **colLargeRowIndexes /* Maintain information if the row of a column exceeds WIDTH_THRESHOLD */);
+										int targrows, double *totalrows, double *totaldeadrows, BlockNumber *totalpages, bool rootonly,  Bitmapset **colLargeRowIndexes /* Maintain information if the row of a column exceeds WIDTH_THRESHOLD */);
 static int	compare_rows(const void *a, const void *b);
 #if 0
 static int acquire_inherited_sample_rows(Relation onerel, int elevel,
@@ -459,7 +448,7 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 	Oid			save_userid;
 	int			save_sec_context;
 	int			save_nestlevel;
-	RowIndexes	**colLargeRowIndexes;
+	Bitmapset **colLargeRowIndexes;
 	bool		sample_needed;
 
 	if (inh)
@@ -628,7 +617,7 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 	/*
 	 * Maintain information if the row of a column exceeds WIDTH_THRESHOLD
 	 */
-	colLargeRowIndexes = (RowIndexes **) palloc(sizeof(RowIndexes *) * attr_cnt);
+	colLargeRowIndexes = (Bitmapset **) palloc0(sizeof(Bitmapset *) * attr_cnt);
 
 	/*
 	 * switch back to the original user to collect sample rows, the security threat does
@@ -725,24 +714,25 @@ do_analyze_rel(Relation onerel, VacuumStmt *vacstmt,
 				MemoryContextResetAndDeleteChildren(col_context);
 				continue;
 			}
-			RowIndexes *rowIndexes = colLargeRowIndexes[i];
-			int validRowsLength = numrows - rowIndexes->toowide_cnt;
+			Bitmapset  *rowIndexes = colLargeRowIndexes[i];
+			int			validRowsLength;
 
 			/* If there are too wide rows in the sample, remove them
 			 * from the sample being sent for stats collection
 			 */
-			if (rowIndexes->toowide_cnt > 0)
+			if (rowIndexes)
 			{
-				int validRowsIdx = 0;
-				for (int rownum=0; rownum < numrows; rownum++)
+				validRowsLength = 0;
+				for (int rownum = 0; rownum < numrows; rownum++)
 				{
-					if (rowIndexes->rows[rownum]) // if row is too wide, ignore it from the sample
+					/* if row is too wide, leave it out of the sample */
+					if (bms_is_member(rownum, rowIndexes))
 						continue;
-					validRows[validRowsIdx] = rows[rownum];
-					validRowsIdx++;
+
+					validRows[validRowsLength] = rows[rownum];
+					validRowsLength++;
 				}
 				stats->rows = validRows;
-				validRowsLength = validRowsIdx;
 			}
 			else
 			{
@@ -1880,7 +1870,7 @@ acquire_hll_by_query(Relation onerel, int nattrs, VacAttrStats **attrstats, int 
 static int
 acquire_sample_rows_by_query(Relation onerel, int elevel, int nattrs, VacAttrStats **attrstats,
 							 HeapTuple **rows, int targrows,
-							 double *totalrows, double *totaldeadrows, BlockNumber *totalblocks, bool rootonly, RowIndexes **colLargeRowIndexes)
+							 double *totalrows, double *totaldeadrows, BlockNumber *totalblocks, bool rootonly, Bitmapset **colLargeRowIndexes)
 {
 	StringInfoData str;
 	StringInfoData columnStr;
@@ -2049,14 +2039,6 @@ acquire_sample_rows_by_query(Relation onerel, int elevel, int nattrs, VacAttrSta
 		nulls[i] = true;
 	}
 
-	/* Initialize the arrays to hold information about column width */
-	for (i = 0; i < nattrs; i++)
-	{
-		colLargeRowIndexes[i] = (RowIndexes *) palloc0(sizeof(RowIndexes));
-		colLargeRowIndexes[i]->rows = (bool *) palloc(sizeof(bool) * sampleTuples);
-		colLargeRowIndexes[i]->toowide_cnt = 0;
-	}
-
 	*rows = (HeapTuple *) palloc(sampleTuples * sizeof(HeapTuple));
 	for (i = 0; i < sampleTuples; i++)
 	{
@@ -2066,7 +2048,6 @@ acquire_sample_rows_by_query(Relation onerel, int elevel, int nattrs, VacAttrSta
 
 		for (j = 0; j < nattrs; j++)
 		{
-			colLargeRowIndexes[j]->rows[i] = false;
 			int	tupattnum = attrstats[j]->tupattnum;
 			Assert(tupattnum >= 1 && tupattnum <= RelationGetNumberOfAttributes(onerel));
 
@@ -2088,10 +2069,7 @@ acquire_sample_rows_by_query(Relation onerel, int elevel, int nattrs, VacAttrSta
 					 * and increase the too wide count
 					 */
 					if (DatumGetInt32(dummyVal))
-					{
-						colLargeRowIndexes[j]->rows[i] = true;
-						colLargeRowIndexes[j]->toowide_cnt++;
-					}
+						colLargeRowIndexes[j] = bms_add_member(colLargeRowIndexes[j], i);
 				}
 			}
 			index++; /* Move index to the next table attribute */
