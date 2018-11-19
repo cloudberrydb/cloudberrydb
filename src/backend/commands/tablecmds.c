@@ -14649,27 +14649,44 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 				{
 					MemoryContext oldcontext;
 					GpPolicy *newPolicy;
+					PartStatus targetRelPartStatus;
 
 					if (NULL != lsecond(lprime))
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 										errmsg("Can not set Distribute By")));
 
-					ReshuffleRelationData(rel);
+					/*
+					 * We generate a UpdateStmt when the relation is non-partition
+					 * table or root-partition table.
+					 */
+					targetRelPartStatus = rel_part_status(RelationGetRelid(rel));
 
+					if(PART_STATUS_LEAF == targetRelPartStatus ||
+					   PART_STATUS_NONE == targetRelPartStatus)
+					{
+						ReshuffleRelationData(rel);
+					}
+
+					/* Generate a new policy and adjust the numsegments */
 					policy = rel->rd_cdbpolicy;
 					oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
 					newPolicy = GpPolicyCopy(policy);
 					MemoryContextSwitchTo(oldcontext);
+
 					newPolicy->numsegments = getgpsegmentCount();
 
+					/* Update the numsegments in gp_distribution_policy */
 					GpPolicyReplace(RelationGetRelid(rel), newPolicy);
 					oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
 					rel->rd_cdbpolicy = GpPolicyCopy(newPolicy);
 					MemoryContextSwitchTo(oldcontext);
-
 					heap_close(rel, NoLock);
 
+					/*
+					 * Save the policy in the CMD, it would be dispatched in
+					 * next step.
+					 */
 					lsecond(lprime) = makeNode(SetDistributionCmd);
 					/*
 					 * Notice: reshuffle can not specify (Distribute By), so

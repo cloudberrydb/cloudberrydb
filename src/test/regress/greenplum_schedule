@@ -14,10 +14,6 @@
 #   to the segments, and therefore has to run in smaller groups to avoid
 #   hitting max_connections limit on segments.
 #
-# test reshuffle
-test: reshuffle_helper
-test: reshuffle reshuffle_ao reshuffle_aoco
-
 # enable query metrics cluster GUC
 test: instr_in_shmem_setup
 # run separately - because slot counter may influenced by other parallel queries
@@ -247,10 +243,15 @@ test: autovacuum-template0
 
 # Online expand introduce the partial tables, check them if they can run correctly
 test: gangsize
+
 # This test uses fault injectors in abort transaction workflow.  It
 # may be run in parallel with other tests as long as they don't abort
 # a transaction where mult-slice query was executed and the writer was
 # assigned a transaction ID.
 test: writer_aborts_reader
 
+# test reshuffle
+# It may affect the result of 'gp_explain', so keep it below the 'gp_explain'
+test: reshuffle_helper
+test: reshuffle reshuffle_ao reshuffle_aoco
 # end of tests
