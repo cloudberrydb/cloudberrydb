@@ -72,6 +72,7 @@
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
 #include "executor/executor.h"
+#include "executor/instrument.h"
 #include "foreign/foreign.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -110,6 +111,7 @@
 #include "utils/inval.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/metrics_utils.h"
 #include "utils/relcache.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
@@ -14123,10 +14125,9 @@ build_ctas_with_dist(Relation rel, DistributedBy *dist_clause,
 	dest = CreateDestReceiver(DestIntoRel);
 
 	/* Create a QueryDesc requesting no output */
-	queryDesc = CreateQueryDesc(stmt, pstrdup("(internal SELECT INTO query)"),
+	queryDesc = CreateQueryDesc(stmt, debug_query_string,
 								GetActiveSnapshot(), InvalidSnapshot,
-								dest, NULL, INSTRUMENT_NONE);
-
+								dest, NULL, GP_INSTRUMENT_OPTS);
 	PopActiveSnapshot();
 
 	return queryDesc;
@@ -15346,6 +15347,10 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 		/* Step (c) - run on all nodes */
 		queryDesc->ddesc = makeNode(QueryDispatchDesc);
 		queryDesc->ddesc->useChangedAOOpts = false;
+		
+		/* GPDB hook for collecting query info */
+		if (query_info_collect_hook)
+			(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
 		queryDesc->plannedstmt->query_mem =
 				ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
