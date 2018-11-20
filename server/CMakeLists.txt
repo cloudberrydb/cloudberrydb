@@ -207,7 +207,7 @@ CEquivClassTest:
 Equiv-HashedDistr-1 Equiv-HashedDistr-2 EquivClassesAndOr EquivClassesLimit IndexNLJoin_Cast_NoMotion;
 
 COuterJoinTest:
-LOJ-Condition-False FOJ-Condition-False FullOuterJoin FullOuterJoin2
+NaryWithLojAndNonLojChilds LOJ_bb_mpph LOJ-Condition-False FOJ-Condition-False FullOuterJoin FullOuterJoin2
 LeftJoin-With-Pred-On-Inner LeftJoin-With-Pred-On-Inner2
 LeftJoin-With-Col-Const-Pred LeftJoin-With-Coalesce LOJWithFalsePred
 LOJ-IsNullPred Select-Proj-OuterJoin OuterJoin-With-OuterRefs Join-Disj-Subqs

@@ -14,8 +14,6 @@
 #include "gpos/base.h"
 
 #include "gpopt/base/CUtils.h"
-#include "gpopt/engine/CHint.h"
-#include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/operators/ops.h"
 #include "gpopt/operators/CNormalizer.h"
 #include "gpopt/operators/CPredicateUtils.h"
@@ -47,7 +45,7 @@ CXformExpandNAryJoinGreedy::CXformExpandNAryJoinGreedy
 					(
 					pmp,
 					GPOS_NEW(pmp) CLogicalNAryJoin(pmp),
-					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternMultiLeaf(pmp)),
+					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternMultiTree(pmp)),
 					GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CPatternTree(pmp))
 					)
 		)

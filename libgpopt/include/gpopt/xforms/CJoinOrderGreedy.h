@@ -35,9 +35,6 @@ namespace gpopt
 			// result component
 			SComponent *m_pcompResult;
 
-			// mark edges used by result component
-			void MarkUsedEdges();
-
 			// returns starting joins with minimal cardinality
 			SComponent *GetStartingJoins();
 

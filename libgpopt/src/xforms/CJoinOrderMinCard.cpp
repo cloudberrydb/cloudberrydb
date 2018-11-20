@@ -43,7 +43,7 @@ CJoinOrderMinCard::CJoinOrderMinCard
 	CExpressionArray *pdrgpexprConjuncts
 	)
 	:
-	CJoinOrder(mp, pdrgpexprComponents, pdrgpexprConjuncts),
+	CJoinOrder(mp, pdrgpexprComponents, pdrgpexprConjuncts, true /* m_include_loj_childs */),
 	m_pcompResult(NULL)
 {
 #ifdef GPOS_DEBUG
@@ -67,52 +67,6 @@ CJoinOrderMinCard::CJoinOrderMinCard
 CJoinOrderMinCard::~CJoinOrderMinCard()
 {
 	CRefCount::SafeRelease(m_pcompResult);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderMinCard::MarkUsedEdges
-//
-//	@doc:
-//		Mark edges used by result component
-//
-//---------------------------------------------------------------------------
-void
-CJoinOrderMinCard::MarkUsedEdges()
-{
-	GPOS_ASSERT(NULL != m_pcompResult);
-
-	CExpression *pexpr = m_pcompResult->m_pexpr;
-	COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
-	if (0 == pexpr->Arity() ||
-		(COperator::EopLogicalSelect != op_id && COperator::EopLogicalInnerJoin != op_id))
-	{
-		// result component does not have a scalar child, e.g. a Get node
-		return;
-	}
-
-	CExpression *pexprScalar = (*pexpr) [pexpr->Arity() - 1];
-	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprScalar);
-	const ULONG size = pdrgpexpr->Size();
-
-	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
-	{
-		SEdge *pedge = m_rgpedge[ulEdge];
-		if (pedge->m_fUsed)
-		{
-			continue;
-		}
-
-		for (ULONG ulPred = 0; ulPred < size; ulPred++)
-		{
-			if ((*pdrgpexpr)[ulPred] == pedge->m_pexpr)
-			{
-				pedge->m_fUsed = true;
-			}
-		}
-	}
-	pdrgpexpr->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -145,6 +99,11 @@ CJoinOrderMinCard::PexprExpand()
 				continue;
 			}
 
+			if (!IsValidJoinCombination(m_pcompResult, pcompCurrent))
+			{
+				continue;
+			}
+
 			// combine component with current result and derive stats
 			CJoinOrder::SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
 			DeriveStats(pcompTemp->m_pexpr);
@@ -168,7 +127,7 @@ CJoinOrderMinCard::PexprExpand()
 		m_pcompResult = pcompBestResult;
 
 		// mark used edges to avoid including them multiple times
-		MarkUsedEdges();
+		MarkUsedEdges(m_pcompResult);
 		ulCoveredComps++;
 	}
 	GPOS_ASSERT(NULL != m_pcompResult->m_pexpr);

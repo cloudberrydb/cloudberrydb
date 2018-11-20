@@ -44,7 +44,7 @@ CXformExpandNAryJoinMinCard::CXformExpandNAryJoinMinCard
 					(
 					mp,
 					GPOS_NEW(mp) CLogicalNAryJoin(mp),
-					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiLeaf(mp)),
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiTree(mp)),
 					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))
 					)
 		)

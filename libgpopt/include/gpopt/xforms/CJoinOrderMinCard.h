@@ -37,9 +37,6 @@ namespace gpopt
 			// result component
 			SComponent *m_pcompResult;
 
-			// mark edges used by result component
-			void MarkUsedEdges();
-
 		public:
 
 			// ctor

@@ -44,7 +44,7 @@ CJoinOrderGreedy::CJoinOrderGreedy
 	CExpressionArray *pdrgpexprConjuncts
 	)
 	:
-	CJoinOrder(pmp, pdrgpexprComponents, pdrgpexprConjuncts),
+	CJoinOrder(pmp, pdrgpexprComponents, pdrgpexprConjuncts, true /* m_include_loj_childs */),
 	m_pcompResult(NULL)
 {
 #ifdef GPOS_DEBUG
@@ -71,52 +71,6 @@ CJoinOrderGreedy::~CJoinOrderGreedy()
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrder::MarkUsedEdges
-//
-//	@doc:
-//		Mark edges used by result component
-//
-//---------------------------------------------------------------------------
-void
-CJoinOrderGreedy::MarkUsedEdges()
-{
-	GPOS_ASSERT(NULL != m_pcompResult);
-
-	CExpression *pexpr = m_pcompResult->m_pexpr;
-	COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
-	if (0 == pexpr->Arity() ||
-		(COperator::EopLogicalSelect != eopid && COperator::EopLogicalInnerJoin != eopid))
-	{
-		// result component does not have a scalar child, e.g. a Get node
-		return;
-	}
-
-	CExpression *pexprScalar = (*pexpr) [pexpr->Arity() - 1];
-	CExpressionArray *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprScalar);
-	const ULONG ulSize = pdrgpexpr->Size();
-
-	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
-	{
-		SEdge *pedge = m_rgpedge[ulEdge];
-		if (pedge->m_fUsed)
-		{
-			continue;
-		}
-
-		for (ULONG ulPred = 0; ulPred < ulSize; ulPred++)
-		{
-			if ((*pdrgpexpr)[ulPred] == pedge->m_pexpr)
-			{
-				pedge->m_fUsed = true;
-			}
-		}
-	}
-	pdrgpexpr->Release();
-}
-
-
 // function to get the minimal cardinality join pair as the starting pair
 CJoinOrder::SComponent *
 CJoinOrderGreedy::GetStartingJoins()
@@ -131,25 +85,34 @@ CJoinOrderGreedy::GetStartingJoins()
 	{
 		for (ULONG ul2 = ul1+1; ul2 < m_ulComps; ul2++)
 		{
-			CJoinOrder::SComponent *pcompTemp = PcompCombine(m_rgpcomp[ul1], m_rgpcomp[ul2]);
-			// exclude cross joins to be considered as late as possible in the join order
-			if(CUtils::FCrossJoin(pcompTemp->m_pexpr))
+			SComponent *comp1 = m_rgpcomp[ul1];
+			SComponent *comp2 = m_rgpcomp[ul2];
+
+			if (!IsValidJoinCombination(comp1, comp2))
 			{
-				pcompTemp->Release();
 				continue;
 			}
-			DeriveStats(pcompTemp->m_pexpr);
-			CDouble dRows = pcompTemp->m_pexpr->Pstats()->Rows();
+
+			CJoinOrder::SComponent *compTemp = PcompCombine(comp1,comp2);
+
+			// exclude cross joins to be considered as late as possible in the join order
+			if(CUtils::FCrossJoin(compTemp->m_pexpr))
+			{
+				compTemp->Release();
+				continue;
+			}
+			DeriveStats(compTemp->m_pexpr);
+			CDouble dRows = compTemp->m_pexpr->Pstats()->Rows();
 			if (dMinRows <= 0 || dRows < dMinRows)
 			{
 				ul1Counter = ul1;
 				ul2Counter = ul2;
 				dMinRows = dRows;
-				pcompTemp->AddRef();
+				compTemp->AddRef();
 				CRefCount::SafeRelease(pcompBest);
-				pcompBest = pcompTemp;
+				pcompBest = compTemp;
 			}
-			pcompTemp->Release();
+			compTemp->Release();
 		}
 	}
 
@@ -187,7 +150,7 @@ CJoinOrderGreedy::PexprExpand()
 	if(NULL != m_pcompResult)
 	{
 		// found atleast one non cross join
-		MarkUsedEdges();
+		MarkUsedEdges(m_pcompResult);
 	}
 	else
 	{
@@ -274,8 +237,12 @@ CJoinOrderGreedy::PickBestJoin
 	while (iter.Advance())
 	{
 		SComponent *pcompCurrent = m_rgpcomp[iter.Bit()];
-		SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
+		if (!IsValidJoinCombination(m_pcompResult, pcompCurrent))
+		{
+			continue;
+		}
 
+		SComponent *pcompTemp = PcompCombine(m_pcompResult, pcompCurrent);
 		DeriveStats(pcompTemp->m_pexpr);
 		CDouble dRows = pcompTemp->m_pexpr->Pstats()->Rows();
 
@@ -298,7 +265,7 @@ CJoinOrderGreedy::PickBestJoin
 	pcompBestComponent->m_fUsed = true;
 	m_pcompResult->Release();
 	m_pcompResult = pcompBest;
-	MarkUsedEdges();
+	MarkUsedEdges(m_pcompResult);
 
 	return best_comp_idx;
 }

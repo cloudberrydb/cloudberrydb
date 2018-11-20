@@ -978,7 +978,7 @@ OR
         </dxl:And>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="23016">
+    <dxl:Plan Id="0" SpaceSize="39864">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="17244.738281" Rows="521.833333" Width="246"/>
