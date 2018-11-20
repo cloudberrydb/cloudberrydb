@@ -429,6 +429,9 @@ static volatile sig_atomic_t start_autovac_launcher = false;
 /* the launcher needs to be signalled to communicate some condition */
 static volatile bool avlauncher_needs_signal = false;
 
+/* received START_WALRECEIVER signal */
+static volatile sig_atomic_t WalReceiverRequested = false;
+
 /* set when there's a worker that needs to be started up */
 static volatile bool StartWorkerNeeded = true;
 static volatile bool HaveCrashedWorker = false;
@@ -506,6 +509,7 @@ static void maybe_start_bgworker(void);
 static bool CreateOptsFile(int argc, char *argv[], char *fullprogname);
 static pid_t StartChildProcess(AuxProcType type);
 static void StartAutovacuumWorker(void);
+static void MaybeStartWalReceiver(void);
 static void InitPostmasterDeathWatchHandle(void);
 
 static void setProcAffinity(int id);
@@ -1940,6 +1944,10 @@ ServerLoop(void)
 				kill(AutoVacPID, SIGUSR2);
 		}
 
+		/* If we need to start a WAL receiver, try to do that now */
+		if (WalReceiverRequested)
+			MaybeStartWalReceiver();
+
 		/* Get other worker processes running, if needed */
 		if (StartWorkerNeeded || HaveCrashedWorker)
 			maybe_start_bgworker();
@@ -3270,7 +3278,8 @@ reaper(SIGNAL_ARGS)
 		/*
 		 * Was it the wal receiver?  If exit status is zero (normal) or one
 		 * (FATAL exit), we assume everything is all right just like normal
-		 * backends.
+		 * backends.  (If we need a new wal receiver, we'll start one at the
+		 * next iteration of the postmaster's main loop.)
 		 */
 		if (pid == WalReceiverPID)
 		{
@@ -5526,17 +5535,12 @@ sigusr1_handler(SIGNAL_ARGS)
 		StartAutovacuumWorker();
 	}
 
-	if (CheckPostmasterSignal(PMSIGNAL_START_WALRECEIVER) &&
-		WalReceiverPID == 0 &&
-		(pmState == PM_STARTUP || pmState == PM_RECOVERY ||
-		 pmState == PM_HOT_STANDBY || pmState == PM_WAIT_READONLY) &&
-		Shutdown == NoShutdown)
+	if (CheckPostmasterSignal(PMSIGNAL_START_WALRECEIVER))
 	{
 		/* Startup Process wants us to start the walreceiver process. */
-		WalReceiverPID = StartWalReceiver();
-
-		/* wal receiver has been launched */
-		pm_launch_walreceiver = true;
+		/* Start immediately if possible, else remember request for later. */
+		WalReceiverRequested = true;
+		MaybeStartWalReceiver();
 	}
 
 	Assert(FTSSubProc->procType == FtsProbeProc);
@@ -5932,6 +5936,27 @@ StartAutovacuumWorker(void)
 		avlauncher_needs_signal = true;
 	}
 }
+
+/*
+ * MaybeStartWalReceiver
+ *		Start the WAL receiver process, if not running and our state allows.
+ */
+static void
+MaybeStartWalReceiver(void)
+{
+	if (WalReceiverPID == 0 &&
+		(pmState == PM_STARTUP || pmState == PM_RECOVERY ||
+		 pmState == PM_HOT_STANDBY || pmState == PM_WAIT_READONLY) &&
+		Shutdown == NoShutdown)
+	{
+		WalReceiverPID = StartWalReceiver();
+		WalReceiverRequested = false;
+
+		/* wal receiver has been launched */
+		pm_launch_walreceiver = true;
+	}
+}
+
 
 /*
  * Create the opts file
