@@ -3913,7 +3913,7 @@ merge_leaf_stats(VacAttrStatsP stats,
 	float nmultiple = 0; // number of values that appeared more than once
 	bool allDistinct = false;
 	int slot_idx = 0;
-	samplerows = 0;
+	int sampleCount = 0;
 	Oid ltopr = mystats->ltopr;
 	Oid eqopr = mystats->eqopr;
 
@@ -3925,9 +3925,8 @@ merge_leaf_stats(VacAttrStatsP stats,
 		totalTuples = totalTuples + relTuples[relNum];
 		relNum++;
 	}
-	totalrows = totalTuples;
 
-	if (totalrows == 0.0)
+	if (totalTuples == 0.0)
 		return;
 
 	MemoryContext old_context;
@@ -3992,7 +3991,7 @@ merge_leaf_stats(VacAttrStatsP stats,
 			hllcounters[i] = (HLLCounter) DatumGetByteaP(hllSlot.values[0]);
 			nDistincts[i] = (float) hllcounters[i]->ndistinct;
 			nMultiples[i] = (float) hllcounters[i]->nmultiples;
-			samplerows += hllcounters[i]->samplerows;
+			sampleCount += hllcounters[i]->samplerows;
 			hllcounters_copy[i] = hll_copy(hllcounters[i]);
 			finalHLL = hyperloglog_merge_counters(finalHLL, hllcounters[i]);
 			free_attstatsslot(&hllSlot);
@@ -4026,7 +4025,7 @@ merge_leaf_stats(VacAttrStatsP stats,
 			 * else the ndistinct value will provide the actual value and we do not ,
 			 * need to do any additional calculation for the nmultiple
 			 */
-			if ((fabs(totalrows - ndistinct) / (float) totalrows) < HLL_ERROR_MARGIN)
+			if ((fabs(totalTuples - ndistinct) / (float) totalTuples) < HLL_ERROR_MARGIN)
 			{
 				allDistinct = true;
 			}
@@ -4047,7 +4046,7 @@ merge_leaf_stats(VacAttrStatsP stats,
 			 * the number of distinct values for the table based on the estimator
 			 * proposed by Haas and Stokes, used later in the code.
 			 */
-			if ((fabs(samplerows - ndistinct) / (float) samplerows) < HLL_ERROR_MARGIN)
+			if ((fabs(sampleCount - ndistinct) / (float) sampleCount) < HLL_ERROR_MARGIN)
 			{
 				allDistinct = true;
 			}
@@ -4166,17 +4165,17 @@ merge_leaf_stats(VacAttrStatsP stats,
 		int d = f1 + nmultiple;
 		double numer, denom, stadistinct;
 
-		numer = (double) samplerows * (double) d;
+		numer = (double) sampleCount * (double) d;
 
-		denom = (double) (samplerows - f1) +
-				(double) f1 * (double) samplerows / totalrows;
+		denom = (double) (sampleCount - f1) +
+				(double) f1 * (double) sampleCount / totalTuples;
 
 		stadistinct = numer / denom;
 		/* Clamp to sane range in case of roundoff error */
 		if (stadistinct < (double) d)
 			stadistinct = (double) d;
-		if (stadistinct > totalrows)
-			stadistinct = totalrows;
+		if (stadistinct > totalTuples)
+			stadistinct = totalTuples;
 		ndistinct = floor(stadistinct + 0.5);
 	}
 
