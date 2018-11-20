@@ -30,6 +30,29 @@ select localoid::regclass, attrnums, policytype, numsegments
 		't1'::regclass, 'd1'::regclass, 'r1'::regclass,
 		't2'::regclass, 'd2'::regclass, 'r2'::regclass);
 
+analyze t1;
+analyze d1;
+analyze r1;
+analyze t2;
+analyze d2;
+analyze r2;
+
+--
+-- regression tests
+--
+
+-- a temp table is created during reorganization, its numsegments should be
+-- the same with original table, otherwise some data will be lost after the
+-- reorganization.
+begin;
+	insert into t1 select i, i from generate_series(1,10) i;
+	select gp_segment_id, * from t1;
+	alter table t1 set with (reorganize=true) distributed by (c1);
+	select gp_segment_id, * from t1;
+abort;
+-- restore the analyze information
+analyze t1;
+
 --
 -- create table
 --
