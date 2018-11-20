@@ -91,6 +91,7 @@ _stringlist *dblist = NULL;
 bool		debug = false;
 char	   *inputdir = ".";
 char	   *outputdir = ".";
+char	   *prehook = "";
 char	   *psqldir = PGBINDIR;
 char	   *launcher = NULL;
 bool 		optimizer_enabled = false;
@@ -2435,6 +2436,7 @@ help(void)
 	printf(_("  --max-connections=N       maximum number of concurrent connections\n"));
 	printf(_("                            (default is 0, meaning unlimited)\n"));
 	printf(_("  --outputdir=DIR           place output files in DIR (default \".\")\n"));
+	printf(_("  --prehook=NAME            pre-hook name (default \"\")\n"));
 	printf(_("  --schedule=FILE           use test ordering schedule from FILE\n"));
 	printf(_("                            (can be used multiple times to concatenate)\n"));
 	printf(_("  --temp-install=DIR        create a temporary installation in DIR\n"));
@@ -2499,6 +2501,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
         {"resgroup-dir", required_argument, NULL, 27},
         {"exclude-tests", required_argument, NULL, 28},
 		{"ignore-plans", no_argument, NULL, 29},
+		{"prehook", required_argument, NULL, 30},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -2628,6 +2631,9 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 			case 29:
 				ignore_plans = true;
 				break;
+			case 30:
+				prehook = strdup(optarg);
+				break;
 			default:
 				/* getopt_long already emitted a complaint */
 				fprintf(stderr, _("\nTry \"%s -h\" for more information.\n"),
@@ -2663,6 +2669,29 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 	 */
 	find_helper_programs(argv[0]);
 	open_result_files();
+
+	if (prehook[0])
+	{
+		char	   *fullname = malloc(strlen(inputdir) +
+									  strlen("/sql/hooks/") +
+									  strlen(prehook) +
+									  strlen(".sql") +
+									  1 /* '\0' */);
+		sprintf(fullname, "%s/sql/hooks/%s.sql", inputdir, prehook);
+		prehook = fullname;
+
+		if (!file_exists(prehook))
+		{
+			convert_sourcefiles_in("input/hooks", outputdir, "sql/hooks", "sql");
+
+			if (!file_exists(prehook))
+			{
+				fprintf(stderr, _("%s: could not open file \"%s\" for reading: %s\n"),
+						progname, prehook, strerror(errno));
+				exit(2);
+			}
+		}
+	}
 
 	initialize_environment();
 

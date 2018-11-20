@@ -41,6 +41,7 @@ extern _stringlist *dblist;
 extern bool debug;
 extern char *inputdir;
 extern char *outputdir;
+extern char *prehook;
 extern char *launcher;
 extern bool optimizer_enabled;
 extern bool resgroup_enabled;
