@@ -1746,19 +1746,34 @@ acquire_sample_rows_ao(Relation onerel, int elevel,
 		samplerows += 1;
 	}
 
+	/* Get the total tuple count in the table */
+	FileSegTotals *fstotal;
+	int64		hidden_tupcount = 0;
+
+	if (aoScanDesc)
+	{
+		fstotal = GetSegFilesTotals(onerel, SnapshotSelf);
+		hidden_tupcount = AppendOnlyVisimap_GetRelationHiddenTupleCount(&aoScanDesc->visibilityMap);
+	}
+	else
+	{
+		fstotal = GetAOCSSSegFilesTotals(onerel, SnapshotSelf);
+		hidden_tupcount = AppendOnlyVisimap_GetRelationHiddenTupleCount(&aocsScanDesc->visibilityMap);
+	}
+	*totalrows = (double) fstotal->totaltuples - hidden_tupcount;
+	/*
+	 * Currently, we always report 0 dead rows on an AO table. We could
+	 * perhaps get a better estimate using the AO visibility map. But this
+	 * will do for now.
+	 */
+	*totaldeadrows = 0;
+
 	ExecDropSingleTupleTableSlot(slot);
 	if (aoScanDesc)
 		appendonly_endscan(aoScanDesc);
 	if (aocsScanDesc)
 		aocs_endscan(aocsScanDesc);
 
-	/*
-	 * Currently, we always report 0 dead rows on an AO table. We could
-	 * perhaps get a better estimate using the AO visibility map. But this
-	 * will do for now.
-	 */
-	*totalrows = (double) numrows;
-	*totaldeadrows = 0;
 	return numrows;
 }
 

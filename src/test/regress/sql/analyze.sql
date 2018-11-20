@@ -426,3 +426,26 @@ select relname, reltuples, relpages from pg_class where relname ='rep_table' ord
 select attname, null_frac, avg_width, n_distinct, most_common_vals, most_common_freqs, histogram_bounds FROM pg_stats WHERE tablename='rep_table' ORDER BY attname;
 
 drop table rep_table;
+
+
+--
+-- Test relpages collection for AO tables.
+--
+
+-- use a lower target, so that the whole table doesn't fit in the sample.
+set default_statistics_target=10;
+
+create table ao_analyze_test (i int4) with (appendonly=true);
+insert into ao_analyze_test select g from generate_series(1, 100000) g;
+create index ao_analyze_test_idx on ao_analyze_test (i);
+analyze ao_analyze_test;
+select relname, reltuples from pg_class where relname like 'ao_analyze_test%' order by relname;
+
+-- and same for AOCS
+create table aocs_analyze_test (i int4) with (appendonly=true, orientation=column);
+insert into aocs_analyze_test select g from generate_series(1, 100000) g;
+create index aocs_analyze_test_idx on aocs_analyze_test (i);
+analyze aocs_analyze_test;
+select relname, reltuples from pg_class where relname like 'aocs_analyze_test%' order by relname;
+
+reset default_statistics_target;
