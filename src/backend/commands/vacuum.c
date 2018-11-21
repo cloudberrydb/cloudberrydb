@@ -1648,6 +1648,27 @@ vac_update_relstats(Relation relation,
 	 */
 	if (num_pages < 1.0)
 	{
+		/*
+		 * When running in utility mode in the QD node, we get the number of
+		 * tuples of an AO table from the pg_aoseg table, but we don't know
+		 * the file size, so that's always 0. Ignore the tuple count we got,
+		 * and set reltuples to 0 instead, to avoid storing a confusing
+		 * combination, and to avoid hitting the Assert below (which we
+		 * inherited from upstream).
+		 *
+		 * It's perhaps not such a great idea to overwrite perfectly good
+		 * relpages/reltuples estimates in utility mode, but that's what we
+		 * do for heap tables, too, because we don't have even a tuple count
+		 * for them. At least this is consistent.
+		 */
+		if (num_tuples >= 1.0)
+		{
+			Assert(Gp_role == GP_ROLE_UTILITY);
+			Assert(!IsSystemRelation(relation));
+			Assert(RelationIsAppendOptimized(relation));
+			num_tuples = 0;
+		}
+
 		Assert(num_tuples < 1.0);
 		num_pages = 1.0;
 	}

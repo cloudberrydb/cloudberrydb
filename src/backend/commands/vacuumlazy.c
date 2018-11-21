@@ -1694,6 +1694,10 @@ lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats)
  *	in pg_class. reltuples is the same as "pg_aoseg_<oid>:tupcount"
  *	column and we simulate relpages by subdividing the eof value
  *	("pg_aoseg_<oid>:eof") over the defined page size.
+ *
+ * Note: In QD, we don't track the file size across segments, so even
+ * though the tuple count is returned correctly, the number of pages is
+ * always 0.
  */
 void
 vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot,
@@ -1729,24 +1733,6 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot,
 	num_tuples = (double)fstotal->totaltuples;
 	totalbytes = eof;
 	nblocks = (uint32)RelationGuessNumberOfBlocks(totalbytes);
-
-	if (nblocks == 0 && num_tuples > 0)
-	{
-		/*
-		 * This can happen if you run VACUUM on an AO table from the QD in
-		 * utility mode. We can't get the file sizes from the segments in
-		 * utility mode, so there's not much we can do. We could return the
-		 * correct tuple count, but we'd have to make a guess on the relation
-		 * size. We can't return zero nblocks and and non-zero num_tuples,
-		 * because there's an assertion against that in vac_update_relstats(),
-		 * and it would be pretty confusing anyway.
-		 *
-		 * We choose to report the table as empty, because that's what happens
-		 * with heap tables.
-		 */
-		Assert(Gp_role == GP_ROLE_UTILITY);
-		num_tuples = 0;
-	}
 
 	AppendOnlyVisimap_Init(&visimap,
 						   aorel->rd_appendonly->visimaprelid,
