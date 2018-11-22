@@ -279,7 +279,7 @@ cdbpathlocus_from_subquery(struct PlannerInfo  *root,
                            Index                subqrelid);
 
 CdbPathLocus
-cdbpathlocus_join(CdbPathLocus a, CdbPathLocus b);
+cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b);
 
 /************************************************************************/
 

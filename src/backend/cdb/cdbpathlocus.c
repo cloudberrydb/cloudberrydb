@@ -599,12 +599,12 @@ cdbpathlocus_pull_above_projection(struct PlannerInfo *root,
  * already been applied to the sources.
  */
 CdbPathLocus
-cdbpathlocus_join(CdbPathLocus a, CdbPathLocus b)
+cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b)
 {
 	ListCell   *acell;
 	ListCell   *bcell;
 	List	   *equivpathkeylist;
-	CdbPathLocus ojlocus = {0};
+	CdbPathLocus resultlocus = {0};
 	int			numsegments;
 
 	Assert(cdbpathlocus_is_valid(a));
@@ -622,8 +622,8 @@ cdbpathlocus_join(CdbPathLocus a, CdbPathLocus b)
 	if (CdbPathLocus_IsSingleQE(a) &&
 		CdbPathLocus_IsSingleQE(b))
 	{
-		CdbPathLocus_MakeSingleQE(&ojlocus, numsegments);
-		return ojlocus;
+		CdbPathLocus_MakeSingleQE(&resultlocus, numsegments);
+		return resultlocus;
 	}
 
 	/*
@@ -663,71 +663,102 @@ cdbpathlocus_join(CdbPathLocus a, CdbPathLocus b)
 		return a;
 
 	/*
-	 * This is an outer join, or one or both inputs are outer join results.
-	 * And a and b are on the same segments.
+	 * Both sides must be Hashed (or HashedOJ), then. And the distribution
+	 * keys should be compatible; otherwise the caller should not be building
+	 * a join directly between these two rels (a Motion would be needed).
 	 */
-
+	Assert(CdbPathLocus_IsHashed(a) || CdbPathLocus_IsHashedOJ(a));
+	Assert(CdbPathLocus_IsHashed(b) || CdbPathLocus_IsHashedOJ(b));
 	Assert(CdbPathLocus_Degree(a) > 0 &&
 		   CdbPathLocus_NumSegments(a) == CdbPathLocus_NumSegments(b) &&
 		   CdbPathLocus_Degree(a) == CdbPathLocus_Degree(b));
 
-	if (CdbPathLocus_IsHashed(a) &&
-		CdbPathLocus_IsHashed(b))
+	/*
+	 * For a LEFT/RIGHT OUTER JOIN, we can use key of the outer, non-nullable
+	 * side as is. There should not be any more joins with the nullable side
+	 * above this join rel, so the inner side's keys are not interesting above
+	 * this.
+	 */
+	if (jointype == JOIN_LEFT ||
+		jointype == JOIN_LASJ_NOTIN ||
+		jointype == JOIN_ANTI)
 	{
-		/* Zip the two pathkey lists together to make a HashedOJ locus. */
-		List	   *partkey_oj = NIL;
-
-		forboth(acell, a.partkey_h, bcell, b.partkey_h)
-		{
-			PathKey    *apathkey = (PathKey *) lfirst(acell);
-			PathKey    *bpathkey = (PathKey *) lfirst(bcell);
-
-			equivpathkeylist = list_make2(apathkey, bpathkey);
-			partkey_oj = lappend(partkey_oj, equivpathkeylist);
-		}
-		CdbPathLocus_MakeHashedOJ(&ojlocus, partkey_oj, numsegments);
-		Assert(cdbpathlocus_is_valid(ojlocus));
-		return ojlocus;
+		resultlocus = a;
 	}
-
-	if (!CdbPathLocus_IsHashedOJ(a))
-		CdbSwap(CdbPathLocus, a, b);
-
-	Assert(CdbPathLocus_IsHashedOJ(a));
-	Assert(CdbPathLocus_IsHashed(b) ||
-		   CdbPathLocus_IsHashedOJ(b));
-
-	if (CdbPathLocus_IsHashed(b))
+	else if (jointype == JOIN_RIGHT)
 	{
-		List	   *partkey_oj = NIL;
-
-		forboth(acell, a.partkey_oj, bcell, b.partkey_h)
-		{
-			List	   *aequivpathkeylist = (List *) lfirst(acell);
-			PathKey    *bpathkey = (PathKey *) lfirst(bcell);
-
-			equivpathkeylist = lappend(list_copy(aequivpathkeylist), bpathkey);
-			partkey_oj = lappend(partkey_oj, equivpathkeylist);
-		}
-		CdbPathLocus_MakeHashedOJ(&ojlocus, partkey_oj, numsegments);
+		resultlocus = b;
 	}
-	else if (CdbPathLocus_IsHashedOJ(b))
+	else
 	{
-		List	   *partkey_oj = NIL;
-
-		forboth(acell, a.partkey_oj, bcell, b.partkey_oj)
+		/*
+		 * Not a LEFT/RIGHT JOIN. We don't usually get here with INNER JOINs
+		 * either, because if you have an INNER JOIN on a equality predicate,
+		 * they should form an EquivalenceClass, so that the distribution keys
+		 * on both sides of the join refer to the same EquivalenceClass, and
+		 * we exit already at the top of this function, at the
+		 * "if(cdbpathlocus_equal(a, b)" test. The usual case that we get here
+		 * is a FULL JOIN.
+		 *
+		 * I'm not sure what non-FULL corner cases there are that lead here.
+		 * But it's safe to create a HashedOJ locus for them, anyway, because
+		 * the promise of a HashedOJ is weaker than Hashed.
+		 */
+		if (CdbPathLocus_IsHashed(a) &&
+			CdbPathLocus_IsHashed(b))
 		{
-			List	   *aequivpathkeylist = (List *) lfirst(acell);
-			List	   *bequivpathkeylist = (List *) lfirst(bcell);
+			/* Zip the two pathkey lists together to make a HashedOJ locus. */
+			List	   *partkey_oj = NIL;
 
-			equivpathkeylist = list_union_ptr(aequivpathkeylist,
-											  bequivpathkeylist);
-			partkey_oj = lappend(partkey_oj, equivpathkeylist);
+			forboth(acell, a.partkey_h, bcell, b.partkey_h)
+			{
+				PathKey    *apathkey = (PathKey *) lfirst(acell);
+				PathKey    *bpathkey = (PathKey *) lfirst(bcell);
+
+				equivpathkeylist = list_make2(apathkey, bpathkey);
+				partkey_oj = lappend(partkey_oj, equivpathkeylist);
+			}
+			CdbPathLocus_MakeHashedOJ(&resultlocus, partkey_oj, numsegments);
+			Assert(cdbpathlocus_is_valid(resultlocus));
+			return resultlocus;
 		}
-		CdbPathLocus_MakeHashedOJ(&ojlocus, partkey_oj, numsegments);
+
+		/* Swap them so that the a (or both) is the OJ side. */
+		if (!CdbPathLocus_IsHashedOJ(a))
+			CdbSwap(CdbPathLocus, a, b);
+
+		if (CdbPathLocus_IsHashed(b))
+		{
+			List	   *partkey_oj = NIL;
+
+			forboth(acell, a.partkey_oj, bcell, b.partkey_h)
+			{
+				List	   *aequivpathkeylist = (List *) lfirst(acell);
+				PathKey    *bpathkey = (PathKey *) lfirst(bcell);
+
+				equivpathkeylist = lappend(list_copy(aequivpathkeylist), bpathkey);
+				partkey_oj = lappend(partkey_oj, equivpathkeylist);
+			}
+			CdbPathLocus_MakeHashedOJ(&resultlocus, partkey_oj, numsegments);
+		}
+		else if (CdbPathLocus_IsHashedOJ(b))
+		{
+			List	   *partkey_oj = NIL;
+
+			forboth(acell, a.partkey_oj, bcell, b.partkey_oj)
+			{
+				List	   *aequivpathkeylist = (List *) lfirst(acell);
+				List	   *bequivpathkeylist = (List *) lfirst(bcell);
+
+				equivpathkeylist = list_union_ptr(aequivpathkeylist,
+												  bequivpathkeylist);
+				partkey_oj = lappend(partkey_oj, equivpathkeylist);
+			}
+			CdbPathLocus_MakeHashedOJ(&resultlocus, partkey_oj, numsegments);
+		}
 	}
-	Assert(cdbpathlocus_is_valid(ojlocus));
-	return ojlocus;
+	Assert(cdbpathlocus_is_valid(resultlocus));
+	return resultlocus;
 }								/* cdbpathlocus_join */
 
 /*

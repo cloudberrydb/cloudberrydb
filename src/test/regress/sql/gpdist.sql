@@ -494,3 +494,17 @@ insert into insert_z
 
 select count(distinct gp_segment_id) from insert_z where a is null;
 select a from insert_z group by a;
+
+-- This doesn't need a Redistribute Motion.
+explain (costs off) select even.i from even left outer join odd on (even.i = odd.i) group by (even.i);
+
+-- But this does.
+explain (costs off) select even.i from even right outer join odd on (even.i = odd.i) group by (even.i);
+
+-- Check that we can track the distribution through multiple FULL OUTER JOINs.
+-- This query should not need Redistribute Motion.
+create temporary table a as select generate_series(1, 5) as i distributed by (i);
+create temporary table b as select generate_series(2, 6) as i distributed by (i);
+create temporary table c as select generate_series(3, 7) as i distributed by (i);
+explain (costs off) select * from a full join b on (a.i=b.i) full join c on (b.i=c.i);
+select * from a full join b on (a.i=b.i) full join c on (b.i=c.i);
