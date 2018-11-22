@@ -1123,7 +1123,8 @@ repartitionPlan(Plan *plan, bool stable, bool rescannable,
 		   plan->flow->flotype == FLOW_SINGLETON);
 
 	/* Already partitioned on the given hashExpr?  Do nothing. */
-	if (hashExpr && plan->flow->numsegments == numsegments)
+	if (hashExpr && plan->flow->numsegments == numsegments &&
+		plan->flow->locustype == CdbLocusType_Hashed)
 	{
 		if (loci_compatible(hashExpr, plan->flow->hashExpr))
 			return true;
