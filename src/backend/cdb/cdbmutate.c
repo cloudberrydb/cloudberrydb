@@ -28,6 +28,7 @@
 #include "optimizer/var.h"
 #include "parser/parse_relation.h"
 #include "utils/fmgroids.h"
+#include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/datum.h"
 #include "utils/syscache.h"
@@ -285,10 +286,10 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 
 				/*
 				 * In CTAS the source distribution policy is not inherited,
-				 * always set numsegments to ALL unless a DISTRIBUTED BY clause
-				 * is specified.
+				 * always set numsegments to DEFAULT unless a DISTRIBUTED BY
+				 * clause is specified.
 				 */
-				numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+				numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 
 				if (query->intoPolicy != NULL)
 				{

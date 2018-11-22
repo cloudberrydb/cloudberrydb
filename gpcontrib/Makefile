@@ -17,6 +17,7 @@ include $(top_builddir)/src/Makefile.global
 # targets built via top_builddir/GNUmakefile
 #
 recurse_targets = gp_sparse_vector \
+               gp_debug_numsegments \
                gp_distribution_policy \
                gp_internal_tools \
                gp_inject_fault

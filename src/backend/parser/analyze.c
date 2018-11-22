@@ -3667,7 +3667,7 @@ setQryDistributionPolicy(IntoClause *into, Query *qry)
 	dist = (DistributedBy *)into->distributedBy;
 
 	if (dist->numsegments < 0)
-		dist->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+		dist->numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 
 	/*
 	 * We have a DISTRIBUTED BY column list specified by the user

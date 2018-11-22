@@ -32,6 +32,21 @@
 #include "utils/tqual.h"
 #include "utils/syscache.h"
 
+/*
+ * The default numsegments when creating tables.  The value can be an integer
+ * between GP_POLICY_MINIMAL_NUMSEGMENTS and GP_POLICY_ALL_NUMSEGMENTS or one
+ * of below magic numbers:
+ *
+ * - GP_DEFAULT_NUMSEGMENTS_FULL: all the segments;
+ * - GP_DEFAULT_NUMSEGMENTS_RANDOM: pick a random set of segments each time;
+ * - GP_DEFAULT_NUMSEGMENTS_MINIMAL: the minimal set of segments;
+ *
+ * A wrapper macro GP_POLICY_DEFAULT_NUMSEGMENTS is defined to get the default
+ * numsegments according to the setting of this variable, always use that macro
+ * instead of this variable.
+ */
+int			gp_create_table_default_numsegments = GP_DEFAULT_NUMSEGMENTS_FULL;
+
 static void extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp);
 
 GpPolicy *

@@ -1672,7 +1672,7 @@ transformCreateExternalStmt(CreateExternalStmt *stmt, const char *queryString)
 			stmt->distributedBy = makeNode(DistributedBy);
 			stmt->distributedBy->ptype = POLICYTYPE_PARTITIONED;
 			stmt->distributedBy->keys = NIL;
-			stmt->distributedBy->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+			stmt->distributedBy->numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 		}
 		else
 		{
@@ -1725,7 +1725,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 	ListCell	*keys = NULL;
 	List		*distrkeys = NIL;
 	/* By default tables should be distributed on ALL segments */
-	int			numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+	int			numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 	ListCell   *lc;
 
 	/*
@@ -1738,7 +1738,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 	if (distributedBy &&
 		(distributedBy->ptype == POLICYTYPE_PARTITIONED && distributedBy->keys == NIL))
 	{
-		distributedBy->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+		distributedBy->numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 		return distributedBy;
 	}
 
@@ -1750,7 +1750,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("INHERITS clause cannot be used with DISTRIBUTED REPLICATED clause")));
 
-		distributedBy->numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+		distributedBy->numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 		return distributedBy;
 	}
 
@@ -1946,7 +1946,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 		/*
 		 * Create with default distribution policy and numsegments.
 		 */
-		numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+		numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 
 		distributedBy = makeNode(DistributedBy);
 		distributedBy->ptype = POLICYTYPE_PARTITIONED;
@@ -2056,7 +2056,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 			/*
 			 * Create with default distribution policy and numsegments.
 			 */
-			numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+			numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS;
 
 			distributedBy = makeNode(DistributedBy);
 			distributedBy->ptype = POLICYTYPE_PARTITIONED;

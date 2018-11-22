@@ -43,9 +43,6 @@ test: icudp/gp_interconnect_queue_depth icudp/gp_interconnect_queue_depth_longti
 # event triggers cannot run concurrently with any test that runs DDL
 test: event_trigger_gp
 
-# test partially distributed tables
-test: partial_table
-
 # deadlock tests run separately - because we don't know which one gets stuck.
 test: deadlock
 
@@ -77,7 +74,7 @@ test: dtm_retry
 
 # The appendonly test cannot be run concurrently with tests that have
 # serializable transactions (may conflict with AO vacuum operations).
-test: rangefuncs_cdb gp_dqa subselect_gp subselect_gp2 gp_transactions olap_group olap_window_seq sirv_functions appendonly create_table_distpol alter_distpol_dropped query_finish
+test: rangefuncs_cdb gp_dqa subselect_gp subselect_gp2 gp_transactions olap_group olap_window_seq sirv_functions appendonly create_table_distpol alter_distpol_dropped query_finish partial_table
 
 # 'partition' runs for a long time, so try to keep it together with other
 # long-running tests.
