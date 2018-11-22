@@ -332,6 +332,8 @@ SendTupleChunkToAMS(MotionLayerState *mlStates,
 		else
 		{
 			/* handle pt-to-pt message. Primary */
+			Assert(targetRoute >= 0);
+			Assert(targetRoute < pEntry->numConns);
 			conn = pEntry->conns + targetRoute;
 			/* only send to interested connections */
 			if (conn->stillActive)

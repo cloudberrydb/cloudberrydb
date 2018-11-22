@@ -1478,7 +1478,18 @@ doSendTuple(Motion * motion, MotionState * node, TupleTableSlot *outerTupleSlot)
 		hval = evalHashKey(econtext, node->hashExpr,
 				motion->hashDataTypes, node->cdbhash);
 
-		Assert(hval < getgpsegmentCount() && "redistribute destination outside segment array");
+#ifdef USE_ASSERT_CHECKING
+		if (node->ps.state->es_plannedstmt->planGen == PLANGEN_PLANNER)
+		{
+			Assert(hval < node->ps.plan->flow->numsegments &&
+				   "redistribute destination outside segment array");
+		}
+		else
+		{
+			Assert(hval < getgpsegmentCount() &&
+				   "redistribute destination outside segment array");
+		}
+#endif /* USE_ASSERT_CHECKING */
 		
 		/* hashSegIdx takes our uint32 and maps it to an int, and here
 		 * we assign it to an int16. See below. */

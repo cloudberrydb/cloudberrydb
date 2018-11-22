@@ -56,6 +56,23 @@ abort;
 analyze t1;
 
 --
+-- regression tests
+--
+
+-- append node should use the max numsegments of all the subpaths
+begin;
+	-- insert enough data to ensure executors got reached on segments
+	insert into t1 select i from generate_series(1,100) i;
+	insert into t2 select i from generate_series(1,100) i;
+
+	:explain  select * from t2 a join t2 b using(c2)
+	union all select * from t1 c join t1 d using(c2) ;
+
+	:explain  select * from t1 a join t1 b using(c2)
+	union all select * from t2 c join t2 d using(c2) ;
+abort;
+
+--
 -- create table
 --
 
