@@ -278,7 +278,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 	switch (query->commandType)
 	{
 		case CMD_SELECT:
-			/* If the query comes from 'CREAT TABLE AS' or 'SELECT INTO' */
+			/* If the query comes from 'CREATE TABLE AS' or 'SELECT INTO' */
 			if (query->parentStmtType != PARENTSTMTTYPE_NONE)
 			{
 				List	   *hashExpr;
@@ -425,33 +425,32 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 					targetPolicy = createHashPartitionedPolicy(policykeys,
 															   numsegments);
 
-					if (query->intoPolicy == NULL)
+					/* If we deduced the policy from the query, give a NOTICE */
+					if (query->parentStmtType == PARENTSTMTTYPE_CTAS)
 					{
-						char	   *columns;
+						StringInfoData columnsbuf;
 						int			i;
 
-						columns = palloc((NAMEDATALEN + 3) * targetPolicy->nattrs + 1);
-						columns[0] = '\0';
+						initStringInfo(&columnsbuf);
 						for (i = 0; i < targetPolicy->nattrs; i++)
 						{
 							TargetEntry *target = get_tle_by_resno(plan->targetlist, targetPolicy->attrs[i]);
 
 							if (i > 0)
-								strcat(columns, ", ");
+								appendStringInfoString(&columnsbuf, ", ");
 							if (target->resname)
-								strcat(columns, target->resname);
+								appendStringInfoString(&columnsbuf, target->resname);
 							else
-								strcat(columns, "???");
+								appendStringInfoString(&columnsbuf, "???");
 
 						}
-						if (query->parentStmtType == PARENTSTMTTYPE_CTAS)
-							ereport(NOTICE,
-									(errcode(ERRCODE_SUCCESSFUL_COMPLETION),
-									 errmsg("Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) "
-											"named '%s' as the Greenplum Database data distribution key for this "
-											"table. ", columns),
-									 errhint("The 'DISTRIBUTED BY' clause determines the distribution of data."
-											 " Make sure column(s) chosen are the optimal data distribution key to minimize skew.")));
+						ereport(NOTICE,
+								(errcode(ERRCODE_SUCCESSFUL_COMPLETION),
+								 errmsg("Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) "
+										"named '%s' as the Greenplum Database data distribution key for this "
+										"table. ", columnsbuf.data),
+								 errhint("The 'DISTRIBUTED BY' clause determines the distribution of data."
+										 " Make sure column(s) chosen are the optimal data distribution key to minimize skew.")));
 					}
 				}
 
@@ -468,45 +467,50 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 				if (GpPolicyIsReplicated(query->intoPolicy))
 				{
 					/*
-					 * CdbLocusType_SegmentGeneral is only used by replicated table right now,
-					 * so if both input and target are replicated table, no need to add a motion
+					 * CdbLocusType_SegmentGeneral is only used by replicated
+					 * table right now, so if both input and target are
+					 * replicated table, no need to add a motion
 					 */
 					if (plan->flow->flotype == FLOW_SINGLETON &&
-							plan->flow->locustype == CdbLocusType_SegmentGeneral)
+						plan->flow->locustype == CdbLocusType_SegmentGeneral)
 					{
 						/* do nothing */
 					}
 
-					/* plan's data are available on all segment, no motion needed */
+					/*
+					 * plan's data are available on all segment, no motion
+					 * needed
+					 */
 					if (plan->flow->flotype == FLOW_SINGLETON &&
-							plan->flow->locustype == CdbLocusType_General)
+						plan->flow->locustype == CdbLocusType_General)
 					{
 						/* do nothing */
 					}
 
 					if (!broadcastPlan(plan, false, false, numsegments))
 						ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
-									errmsg("Cannot parallelize that SELECT INTO yet")));
+										errmsg("Cannot parallelize that SELECT INTO yet")));
 
 				}
 				else
 				{
 					/*
 					 * Make sure the top level flow is partitioned on the
-					 * partitioning key of the target relation.	Since this is a
-					 * SELECT INTO (basically same as an INSERT) command, the
-					 * target list will correspond to the attributes of the target
-					 * relation in order.
+					 * partitioning key of the target relation.	Since this is
+					 * a SELECT INTO (basically same as an INSERT) command,
+					 * the target list will correspond to the attributes of
+					 * the target relation in order.
 					 */
+					List	   *hashExpr;
+
 					hashExpr = getExprListFromTargetList(plan->targetlist,
-							targetPolicy->nattrs,
-							targetPolicy->attrs,
-							true);
+														 targetPolicy->nattrs,
+														 targetPolicy->attrs,
+														 true);
 
 					if (!repartitionPlan(plan, false, false, hashExpr, numsegments))
 						ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
-									errmsg("Cannot parallelize that SELECT INTO yet")
-							       ));
+										errmsg("Cannot parallelize that SELECT INTO yet")));
 				}
 
 				Assert(query->intoPolicy->ptype != POLICYTYPE_ENTRY);
@@ -515,8 +519,8 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 			{
 				if (plan->flow->flotype == FLOW_PARTITIONED ||
 					(plan->flow->flotype == FLOW_SINGLETON &&
-					plan->flow->locustype == CdbLocusType_SegmentGeneral))
-				bringResultToDispatcher = true;
+					 plan->flow->locustype == CdbLocusType_SegmentGeneral))
+					bringResultToDispatcher = true;
 
 				needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch;
 			}
