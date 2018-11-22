@@ -189,10 +189,7 @@ cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b)
  * cdb_build_distribution_pathkeys
  *	  Build canonicalized pathkeys list for given columns of rel.
  *
- *    Returns a List, of length 'nattrs': each of its members is
- *    a List of one or more PathKey nodes.  The returned List
- *    might contain duplicate entries: this occurs when the
- *    corresponding columns are constrained to be equal.
+ *    Returns a List of PathKeys, of length 'nattrs'.
  *
  *    The caller receives ownership of the returned List, freshly
  *    palloc'ed in the caller's context.  The members of the returned
@@ -216,12 +213,9 @@ cdb_build_distribution_pathkeys(PlannerInfo *root,
 		/* Find or create a Var node that references the specified column. */
 		Var		   *expr = find_indexkey_var(root, rel, attrs[i]);
 
-		/*
-		 * Find or create a pathkey.
-		 */
+		/* Find or create a pathkey. */
 		cpathkey = cdb_make_pathkey_for_expr(root, (Node *) expr, eq);
 
-		/* Append to list of pathkeys. */
 		retval = lappend(retval, cpathkey);
 	}
 
