@@ -17,7 +17,6 @@ extern "C" {
 #include "catalog/pg_proc.h"
 #include "fmgr.h"
 #include "funcapi.h"
-#include "port.h"  //for pg_strncasecmp
 #include "utils/array.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"

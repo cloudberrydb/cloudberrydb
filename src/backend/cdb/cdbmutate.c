@@ -41,7 +41,6 @@
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
-#include "catalog/catalog.h"
 #include "catalog/gp_policy.h"
 #include "catalog/pg_type.h"
 
@@ -59,8 +58,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbtargeteddispatch.h"
-
-#include "nodes/print.h"
 
 #include "executor/executor.h"
 
