@@ -25,7 +25,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 (2 rows)
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -42,7 +42,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
              0 |    49
 (2 rows)
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -75,7 +75,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 (1 row)
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -91,7 +91,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
              0 |   100
 (1 row)
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -132,7 +132,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 (2 rows)
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -149,7 +149,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
              0 |     4
 (2 rows)
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -183,7 +183,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 (1 row)
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -199,7 +199,7 @@ Select gp_segment_id, count(*) from t1 group by gp_segment_id;
              0 |   100
 (1 row)
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -238,7 +238,7 @@ Select count(*) > 0 from r1 where gp_segment_id=2;
 (1 row)
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
  count 
 -------
@@ -264,7 +264,7 @@ Select count(*) > 0 from r1 where gp_segment_id=2;
  f
 (1 row)
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
  count 
 -------
@@ -307,7 +307,7 @@ Select count(*) > 0 from r1 where gp_segment_id=2;
 (1 row)
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
  count 
 -------
@@ -333,7 +333,7 @@ Select count(*) > 0 from r1 where gp_segment_id=2;
  f
 (1 row)
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
  count 
 -------
@@ -377,7 +377,7 @@ Select count(*) > 0 from r1 where gp_segment_id=2;
 (1 row)
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
  count 
 -------
@@ -403,7 +403,7 @@ Select count(*) > 0 from r1 where gp_segment_id=2;
  f
 (1 row)
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
  count 
 -------
@@ -439,7 +439,7 @@ Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 (1 row)
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -455,7 +455,7 @@ Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
              0 |   100
 (1 row)
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -488,7 +488,7 @@ Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 (1 row)
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -504,7 +504,7 @@ Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
              0 |   100
 (1 row)
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -584,7 +584,7 @@ Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
 (2 rows)
 
 begin;
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -601,7 +601,7 @@ Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
              0 |    49
 (2 rows)
 
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------
@@ -686,7 +686,7 @@ Select count(*) > 0 from part_t1 where gp_segment_id=2;
 (1 row)
 
 begin;
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 Select count(*) from part_t1;
  count 
 -------
@@ -712,7 +712,7 @@ Select count(*) > 0 from part_t1 where gp_segment_id=2;
  f
 (1 row)
 
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 Select count(*) from part_t1;
  count 
 -------
@@ -732,7 +732,7 @@ select numsegments from gp_distribution_policy where localoid='part_t1'::regclas
 (1 row)
 
 drop table part_t1;
--- only reshuffle leaf partitions
+-- only reshuffle leaf partitions, not allowed now
 select gp_debug_set_create_table_default_numsegments(2);
  gp_debug_set_create_table_default_numsegments 
 -----------------------------------------------
@@ -791,58 +791,33 @@ Update part_t1 set e = gp_segment_id;
 select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
  gp_segment_id | a  | b | c | d | e 
 ---------------+----+---+---+---+---
-             1 |  5 | 2 | 1 | 0 | 1
-             1 |  9 | 0 | 1 | 4 | 1
-             1 | 45 | 0 | 1 | 0 | 1
              0 | 29 | 2 | 1 | 4 | 0
              0 | 65 | 2 | 1 | 0 | 0
              0 | 69 | 0 | 1 | 4 | 0
              0 | 89 | 2 | 1 | 4 | 0
-(7 rows)
-
-begin;
-alter table part_t1_1_prt_other_b_2_prt_2_3_prt_others_d set with (reshuffle);
-select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
- gp_segment_id | a  | b | c | d | e 
----------------+----+---+---+---+---
              1 |  5 | 2 | 1 | 0 | 1
              1 |  9 | 0 | 1 | 4 | 1
              1 | 45 | 0 | 1 | 0 | 1
-             2 | 65 | 2 | 1 | 0 | 0
-             2 | 69 | 0 | 1 | 4 | 0
-             0 | 29 | 2 | 1 | 4 | 0
-             0 | 89 | 2 | 1 | 4 | 0
 (7 rows)
 
-abort;
+alter table part_t1_1_prt_other_b_2_prt_2_3_prt_others_d expand table;
+ERROR:  cannot expand leaf or interior partition "part_t1_1_prt_other_b_2_prt_2_3_prt_others_d"
+DETAIL:  root/leaf/interior partitions need to have same numsegments
+HINT:  use "ALTER TABLE part_t1 EXPAND TABLE" instead
 select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
  gp_segment_id | a  | b | c | d | e 
 ---------------+----+---+---+---+---
-             1 |  5 | 2 | 1 | 0 | 1
-             1 |  9 | 0 | 1 | 4 | 1
-             1 | 45 | 0 | 1 | 0 | 1
              0 | 29 | 2 | 1 | 4 | 0
              0 | 65 | 2 | 1 | 0 | 0
              0 | 69 | 0 | 1 | 4 | 0
              0 | 89 | 2 | 1 | 4 | 0
-(7 rows)
-
-alter table part_t1_1_prt_other_b_2_prt_2_3_prt_others_d set with (reshuffle);
-select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
- gp_segment_id | a  | b | c | d | e 
----------------+----+---+---+---+---
-             2 | 65 | 2 | 1 | 0 | 0
-             2 | 69 | 0 | 1 | 4 | 0
              1 |  5 | 2 | 1 | 0 | 1
              1 |  9 | 0 | 1 | 4 | 1
              1 | 45 | 0 | 1 | 0 | 1
-             0 | 29 | 2 | 1 | 4 | 0
-             0 | 89 | 2 | 1 | 4 | 0
 (7 rows)
 
--- try to reshuffle root partition, it will raise a notice
-Alter table part_t1 set with (reshuffle);
-NOTICE:  Do not need to reshuffle public.part_t1_1_prt_other_b_2_prt_2_3_prt_others_d
+-- try to reshuffle root partition, should success
+Alter table part_t1 expand table;
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
  gp_segment_id | count 
 ---------------+-------

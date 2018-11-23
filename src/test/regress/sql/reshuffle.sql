@@ -19,13 +19,13 @@ Update t1 set c = gp_segment_id;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 abort;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
@@ -41,13 +41,13 @@ Update t1 set c = gp_segment_id;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 abort;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
@@ -69,13 +69,13 @@ insert into t1 values
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 abort;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
@@ -89,13 +89,13 @@ insert into t1 select i,i,0 from generate_series(1,100) I;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
 begin;
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 abort;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
-Alter table t1 set with (reshuffle);
+Alter table t1 expand table;
 
 Select gp_segment_id, count(*) from t1 group by gp_segment_id;
 
@@ -112,7 +112,7 @@ Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 abort;
@@ -120,7 +120,7 @@ abort;
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
@@ -137,7 +137,7 @@ Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 abort;
@@ -145,7 +145,7 @@ abort;
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
@@ -161,7 +161,7 @@ Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 abort;
@@ -169,7 +169,7 @@ abort;
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 
 Select count(*) from r1;
 Select count(*) > 0 from r1 where gp_segment_id=2;
@@ -186,13 +186,13 @@ insert into r1 select i,i,0 from generate_series(1,100) I;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 abort;
 
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 
@@ -208,13 +208,13 @@ insert into r1 select i,i,0 from generate_series(1,100) I;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 
 begin;
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 abort;
 
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 
-Alter table r1 set with (reshuffle);
+Alter table r1 expand table;
 
 Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
 
@@ -248,7 +248,7 @@ FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func('before_stmt');
 -- update should fail
 update table_with_update_trigger set a = a + 1;
 -- reshuffle should success and not hiting any triggers.
-Alter table table_with_update_trigger set with (reshuffle);
+Alter table table_with_update_trigger expand table;
 select gp_segment_id, count(*) from table_with_update_trigger group by 1 order by 1;
 --
 -- Test reshuffle inheritance parent table, parent table has different numsegments with
@@ -269,7 +269,7 @@ update mix_base_tbl set a=a+1;
 select gp_segment_id, * from mix_base_tbl order by 2, 1;
 -- reshuffle the parent table, both parent and child table will be rebalanced to all
 -- segments
-Alter table mix_base_tbl set with (reshuffle);
+Alter table mix_base_tbl expand table;
 select gp_segment_id, * from mix_base_tbl order by 2, 1;
 
 -- multi-level partition tables
@@ -298,13 +298,13 @@ Update part_t1 set e = gp_segment_id;
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
 
 begin;
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
 abort;
 
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
 
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
 
@@ -338,7 +338,7 @@ Select count(*) from part_t1;
 Select count(*) > 0 from part_t1 where gp_segment_id=2;
 
 begin;
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 Select count(*) from part_t1;
 Select count(*) > 0 from part_t1 where gp_segment_id=2;
 abort;
@@ -346,7 +346,7 @@ abort;
 Select count(*) from part_t1;
 Select count(*) > 0 from part_t1 where gp_segment_id=2;
 
-Alter table part_t1 set with (reshuffle);
+Alter table part_t1 expand table;
 
 Select count(*) from part_t1;
 Select count(*) > 0 from part_t1 where gp_segment_id=2;
@@ -354,7 +354,7 @@ Select count(*) > 0 from part_t1 where gp_segment_id=2;
 select numsegments from gp_distribution_policy where localoid='part_t1'::regclass;
 drop table part_t1;
 
--- only reshuffle leaf partitions
+-- only reshuffle leaf partitions, not allowed now
 select gp_debug_set_create_table_default_numsegments(2);
 CREATE TABLE part_t1(a int, b int, c int, d int, e int)
 DISTRIBUTED BY(a)
@@ -379,17 +379,11 @@ Update part_t1 set e = gp_segment_id;
 
 select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
 
-begin;
-alter table part_t1_1_prt_other_b_2_prt_2_3_prt_others_d set with (reshuffle);
-select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
-abort;
-
-select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
-alter table part_t1_1_prt_other_b_2_prt_2_3_prt_others_d set with (reshuffle);
+alter table part_t1_1_prt_other_b_2_prt_2_3_prt_others_d expand table;
 select gp_segment_id, * from part_t1_1_prt_other_b_2_prt_2_3_prt_others_d;
 
--- try to reshuffle root partition, it will raise a notice
-Alter table part_t1 set with (reshuffle);
+-- try to reshuffle root partition, should success
+Alter table part_t1 expand table;
 Select gp_segment_id, count(*) from part_t1 group by gp_segment_id;
 
 drop table part_t1;
@@ -412,13 +406,13 @@ insert into inherit_t1_p5 select i,i from generate_series(1,10) i;
 select count(*) > 0 from inherit_t1_p1 where gp_segment_id = 2;
 
 begin;
-alter table inherit_t1_p1 set with(reshuffle);
+alter table inherit_t1_p1 expand table;
 select count(*) > 0 from inherit_t1_p1 where gp_segment_id = 2;
 abort;
 
 select count(*) > 0 from inherit_t1_p1 where gp_segment_id = 2;
 
-alter table inherit_t1_p1 set with(reshuffle);
+alter table inherit_t1_p1 expand table;
 
 select count(*) > 0 from inherit_t1_p1 where gp_segment_id = 2;
 
