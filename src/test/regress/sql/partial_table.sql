@@ -55,9 +55,8 @@ abort;
 -- restore the analyze information
 analyze t1;
 
---
--- regression tests
---
+-- append SingleQE of different sizes
+select max(c1) as v, 1 as r from t2 union all select 1 as v, 2 as r;
 
 -- append node should use the max numsegments of all the subpaths
 begin;

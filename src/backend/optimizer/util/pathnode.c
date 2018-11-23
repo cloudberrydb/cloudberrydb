@@ -1388,6 +1388,7 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 	ListCell   *l;
 	bool		fIsNotPartitioned = false;
 	bool		fIsPartitionInEntry = false;
+	int			numsegments;
 	List	   *subpaths;
 	List	  **subpaths_out;
 	List	   *new_subpaths;
@@ -1408,6 +1409,21 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 		CdbPathLocus_MakeGeneral(&pathnode->locus,
 								 GP_POLICY_ALL_NUMSEGMENTS);
 		return;
+	}
+
+	/* By default put Append node on all the segments */
+	numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+	foreach(l, subpaths)
+	{
+		Path	   *subpath = (Path *) lfirst(l);
+
+		/* If any subplan is SingleQE, align Append numsegments with it */
+		if (CdbPathLocus_IsSingleQE(subpath->locus))
+		{
+			/* When there are multiple SingleQE, use the common segments */
+			numsegments = Min(numsegments,
+							  CdbPathLocus_NumSegments(subpath->locus));
+		}
 	}
 
 	/*
@@ -1465,27 +1481,16 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 				if (!CdbPathLocus_IsSingleQE(subpath->locus))
 				{
 					CdbPathLocus    singleQE;
-					/*
-					 * It's important to ensure that all the subpaths can be
-					 * gathered to the SAME segment, we must set the same
-					 * numsegments for all the SingleQE, there are many
-					 * options:
-					 *
-					 * 1. a constant 1;
-					 * 2. Min(numsegments of all subpaths);
-					 * 3. Max(numsegments of all subpaths);
-					 * 4. ALL;
-					 *
-					 * Options 2 & 3 need to decide the value with an extra
-					 * scan, option 1 puts all the SingleQE on segment 0
-					 * which makes segment 0 a bottle neck.  So we choose
-					 * option 4, ALL helps to balance the load on all the
-					 * segments and no extra scan is needed.
-					 */
-					int			numsegments = GP_POLICY_ALL_NUMSEGMENTS;
+
+					/* Gather to SingleQE */
 					CdbPathLocus_MakeSingleQE(&singleQE, numsegments);
 
 					subpath = cdbpath_create_motion_path(root, subpath, subpath->pathkeys, false, singleQE);
+				}
+				else
+				{
+					/* Align all SingleQE to the common segments */
+					subpath->locus.numsegments = numsegments;
 				}
 			}
 		}
