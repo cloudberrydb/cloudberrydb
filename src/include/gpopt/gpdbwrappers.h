@@ -181,10 +181,6 @@ namespace gpdb {
 	// array type oid
 	Oid GetArrayType(Oid typid);
 
-	// deconstruct array
-	void DeconstructArray(struct ArrayType *array, Oid elmtype, int elmlen, bool elmbyval,
-			char elmalign, Datum **elemsp, bool **nullsp, int *nelemsp);
-
 	// attribute stats slot
 	bool GetAttrStatsSlot(AttStatsSlot *sslot, HeapTuple statstuple, int reqkind,
 			Oid reqop, int flags);
@@ -462,9 +458,6 @@ namespace gpdb {
 	// does an operator exist with the given oid
 	bool OperatorExists(Oid oid);
 
-	// fetch detoasted copies of toastable datatypes
-	struct varlena *DetoastDatum(struct varlena * datum);
-
 	// expression tree walker
 	bool WalkExpressionTree(Node *node, bool(*walker)(), void *context);
 
@@ -591,12 +584,6 @@ namespace gpdb {
 
 	// replace any polymorphic type with correct data type deduced from input arguments
 	bool ResolvePolymorphicArgType(int numargs, Oid *argtypes, char *argmodes, FuncExpr *call_expr);
-	
-	// hash a const value with GPDB's hash function
-	int32 CdbHashConst(Const *constant, int num_segments);
-
-	// pick a random segment from a pool of segments using GPDB's hash function
-	int32 CdbHashRandom(int num_segments);
 
 	// hash a list of const values with GPDB's hash function
 	int32 CdbHashConstList(List *constants, int num_segments);

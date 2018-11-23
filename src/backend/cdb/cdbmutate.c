@@ -2729,21 +2729,6 @@ assign_plannode_id(PlannedStmt *stmt)
 }
 
 /*
- * Hash a const value with GPDB's hash function
- */
-int32
-cdbhash_const(Const *pconst, int iSegments)
-{
-	CdbHash    *pcdbhash = makeCdbHash(iSegments, 1, &pconst->consttype);
-
-	cdbhashinit(pcdbhash);
-
-	cdbhash(pcdbhash, 1, pconst->constvalue, pconst->constisnull);
-
-	return cdbhashreduce(pcdbhash);
-}
-
-/*
  * Hash a list of const values with GPDB's hash function
  */
 int32

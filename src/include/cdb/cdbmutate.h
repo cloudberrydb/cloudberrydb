@@ -51,7 +51,6 @@ extern List *getExprListFromTargetList(List *tlist, int numCols, AttrNumber *col
 extern void remove_unused_initplans(Plan *plan, PlannerInfo *root);
 extern void remove_unused_subplans(PlannerInfo *root, SubPlanWalkerContext *context);
 
-extern int32 cdbhash_const(Const *pconst, int iSegments);
 extern int32 cdbhash_const_list(List *plConsts, int iSegments);
 
 extern Node *exec_make_plan_constant(struct PlannedStmt *stmt, EState *estate,

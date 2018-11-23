@@ -462,27 +462,6 @@ gpdb::DatumSize
 	return 0;
 }
 
-void
-gpdb::DeconstructArray
-	(
-	struct ArrayType *array,
-	Oid elmtype,
-	int elmlen,
-	bool elmbyval,
-	char elmalign,
-	Datum **elemsp,
-	bool **nullsp,
-	int *nelemsp
-	)
-{
-	GP_WRAP_START;
-	{
-		deconstruct_array(array, elmtype, elmlen, elmbyval, elmalign, elemsp, nullsp, nelemsp);
-		return;
-	}
-	GP_WRAP_END;
-}
-
 Node *
 gpdb::MutateExpressionTree
 	(
@@ -2164,20 +2143,6 @@ gpdb::GPDBFree
 	GP_WRAP_END;
 }
 
-struct varlena *
-gpdb::DetoastDatum
-	(
-	struct varlena * datum
-	)
-{
-	GP_WRAP_START;
-	{
-		return pg_detoast_datum(datum);
-	}
-	GP_WRAP_END;
-	return NULL;
-}
-
 bool
 gpdb::WalkQueryOrExpressionTree
 	(
@@ -2775,43 +2740,6 @@ gpdb::ResolvePolymorphicArgType
 	}
 	GP_WRAP_END;
 	return false;
-}
-
-// hash a const value with GPDB's hash function
-int32 
-gpdb::CdbHashConst
-	(
-	Const *constant,
-	int num_segments
-	)
-{
-	GP_WRAP_START;
-	{
-		return cdbhash_const(constant, num_segments);
-	}
-	GP_WRAP_END;
-	return 0;
-}
-
-// pick a segment randomly from a pool of segments using GPDB's hash function
-int32
-gpdb::CdbHashRandom
-	(
-	int num_segments
-	)
-{
-	GP_WRAP_START;
-	{
-		CdbHash    *pcdbhash = makeCdbHash(num_segments, 0, NULL);
-
-		cdbhashinit(pcdbhash);
-
-		cdbhashnokey(pcdbhash);
-
-		return cdbhashreduce(pcdbhash);
-	}
-	GP_WRAP_END;
-	return 0;
 }
 
 // hash a list of const values with GPDB's hash function
