@@ -15163,6 +15163,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 					char	   *colName = strVal((Value *)lfirst(lc));
 					HeapTuple	tuple;
 					AttrNumber	attnum;
+					Form_pg_attribute attform;
 
 					tuple = SearchSysCacheAttName(RelationGetRelid(rel), colName);
 
@@ -15172,8 +15173,8 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 								 errmsg("column \"%s\" of relation \"%s\" does not exist",
 										colName,
 										RelationGetRelationName(rel))));
-
-					attnum = ((Form_pg_attribute) GETSTRUCT(tuple))->attnum;
+					attform = (Form_pg_attribute) GETSTRUCT(tuple);
+					attnum = attform->attnum;
 
 					/* Prevent them from altering a system attribute */
 					if (attnum <= 0)
@@ -15181,6 +15182,15 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 								 errmsg("cannot distribute by system column \"%s\"",
 										colName)));
+
+					/* The attribute must be hashable. */
+					if (!isGreenplumDbHashable(attform->atttypid))
+					{
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("type \"%s\" cannot be a part of a distribution key",
+										format_type_be(attform->atttypid))));
+					}
 
 					policykeys = lappend_int(policykeys, attnum);
 

@@ -2141,8 +2141,7 @@ transformDistributedBy(CreateStmtContext *cxt,
 						{
 							ereport(ERROR,
 									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-									 errmsg("type \"%s\" can't be a part of a "
-										 "distribution key",
+									 errmsg("type \"%s\" cannot be a part of a distribution key",
 										 format_type_be(typeOid))));
 						}
 
