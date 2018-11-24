@@ -12,7 +12,14 @@
 /* This array will store all of the mutexes available to OpenSSL. */
 static MUTEX_TYPE* mutex_buf = NULL;
 
-static void locking_function(int mode, int n, const char* file, int line) {
+// These functions are not used outside this file. However, they are unused
+// when building with OpenSSL 1.1.0 and above, where CRYPTO_set_id_callback
+// and CRYPTO_set_locking_callbacks are no-ops. To avoid compiler warnings
+// about unused functions, don't mark them as 'static'.
+void gpcloud_locking_function(int mode, int n, const char* file, int line);
+unsigned long gpcloud_id_function(void);
+
+void gpcloud_locking_function(int mode, int n, const char* file, int line) {
     if (mode & CRYPTO_LOCK) {
         MUTEX_LOCK(mutex_buf[n]);
     } else {
@@ -20,7 +27,7 @@ static void locking_function(int mode, int n, const char* file, int line) {
     }
 }
 
-static unsigned long id_function(void) {
+unsigned long gpcloud_id_function(void) {
     return ((unsigned long)THREAD_ID);
 }
 
@@ -32,8 +39,8 @@ int thread_setup(void) {
     for (int i = 0; i < CRYPTO_num_locks(); i++) {
         MUTEX_SETUP(mutex_buf[i]);
     }
-    CRYPTO_set_id_callback(id_function);
-    CRYPTO_set_locking_callback(locking_function);
+    CRYPTO_set_id_callback(gpcloud_id_function);
+    CRYPTO_set_locking_callback(gpcloud_locking_function);
     return 1;
 }
 
