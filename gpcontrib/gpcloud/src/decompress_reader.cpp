@@ -86,7 +86,8 @@ void DecompressReader::decompress() {
             S3DEBUG(
                 "No more data to decompress: avail_in = %u, avail_out = %u, total_in = %u, "
                 "total_out = %u",
-                zstream.avail_in, zstream.avail_out, zstream.total_in, zstream.total_out);
+                zstream.avail_in, zstream.avail_out,
+		(unsigned int) zstream.total_in, (unsigned int) zstream.total_out);
             return;
         }
 

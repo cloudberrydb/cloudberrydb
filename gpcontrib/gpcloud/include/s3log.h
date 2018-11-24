@@ -16,15 +16,15 @@ enum LOGTYPE {
     STDERR_LOG     // use STDERR
 };
 
-void LogMessage(LOGLEVEL level, const char* fmt, ...);
+void LogMessage(LOGLEVEL level, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
 
 LOGTYPE getLogType(const char* v);
 LOGLEVEL getLogLevel(const char* v);
 
 #define PRINTFUNCTION(i, format, ...) LogMessage(i, format, __VA_ARGS__)
 
-#define LOG_FMT "[%s]#%d#(%0X)%s:%d  "
-#define LOG_ARGS(LOGLEVELSTR) LOGLEVELSTR, s3ext_segid, pthread_self(), __FILE__, __LINE__
+#define LOG_FMT "[%s]#%d#(%" PRIX64 ")%s:%d  "
+#define LOG_ARGS(LOGLEVELSTR) LOGLEVELSTR, s3ext_segid, (uint64_t) pthread_self(), __FILE__, __LINE__
 #define NEWLINE "\n"
 
 #define S3DEBUG(message, args...)    \

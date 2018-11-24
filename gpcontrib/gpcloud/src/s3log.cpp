@@ -12,37 +12,33 @@ void write_log(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 }
 #endif
 
-static void _LogMessage(const char* fmt, va_list args) {
-    char buf[MAX_MESSAGE_LINE_LENGTH];
-    vsnprintf(buf, sizeof(buf), fmt, args);
-#ifdef S3_STANDALONE
-    fprintf(stderr, "%s", buf);
-#else
-    write_log("%s", buf);
-#endif
-}
-
-static void _send_to_remote(const char* fmt, va_list args) {
-    char buf[MAX_MESSAGE_LINE_LENGTH];
-    size_t len = vsnprintf(buf, sizeof(buf), fmt, args);
-    sendto(s3ext_logsock_udp, buf, len, 0, (struct sockaddr*)&s3ext_logserveraddr,
-           sizeof(struct sockaddr_in));
-}
-
 void LogMessage(LOGLEVEL loglevel, const char* fmt, ...) {
     if (loglevel > s3ext_loglevel) return;
+    char buf[MAX_MESSAGE_LINE_LENGTH];
+    size_t len;
     va_list args;
     va_start(args, fmt);
-    switch (s3ext_logtype) {
+    switch (s3ext_logtype)
+    {
         case INTERNAL_LOG:
-            _LogMessage(fmt, args);
+            vsnprintf(buf, sizeof(buf), fmt, args);
+#ifdef S3_STANDALONE
+            fprintf(stderr, "%s", buf);
+#else
+            write_log("%s", buf);
+#endif
             break;
+
         case STDERR_LOG:
             vfprintf(stderr, fmt, args);
             break;
+
         case REMOTE_LOG:  // `socat UDP-RECV:[port] STDOUT` to listen
-            _send_to_remote(fmt, args);
+            len = vsnprintf(buf, sizeof(buf), fmt, args);
+            sendto(s3ext_logsock_udp, buf, len, 0, (struct sockaddr*)&s3ext_logserveraddr,
+                   sizeof(struct sockaddr_in));
             break;
+
         default:
             break;
     }

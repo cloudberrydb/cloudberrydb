@@ -89,8 +89,8 @@ void* S3KeyWriter::UploadThreadFunc(void* data) {
     S3KeyWriter* writer = params->keyWriter;
 
     try {
-        S3DEBUG("Upload thread start: %p, part number: %" PRIu64 ", data size: %" PRIu64,
-                pthread_self(), params->currentNumber, params->data.size());
+        S3DEBUG("Upload thread start: %" PRIX64 ", part number: %" PRIu64 ", data size: %" PRIu64,
+                (uint64_t) pthread_self(), params->currentNumber, params->data.size());
         string etag = writer->s3Interface->uploadPartOfData(
             params->data, writer->params.getS3Url(), params->currentNumber, writer->uploadId);
 
@@ -103,7 +103,7 @@ void* S3KeyWriter::UploadThreadFunc(void* data) {
         }
         writer->activeThreads--;
         pthread_cond_broadcast(&writer->cv);
-        S3DEBUG("Upload part finish: %p, eTag: %s, part number: %" PRIu64, pthread_self(),
+        S3DEBUG("Upload part finish: %" PRIX64 ", eTag: %s, part number: %" PRIu64, (uint64_t) pthread_self(),
                 etag.c_str(), params->currentNumber);
     } catch (S3Exception& e) {
         S3ERROR("Upload thread error: %s", e.getMessage().c_str());
