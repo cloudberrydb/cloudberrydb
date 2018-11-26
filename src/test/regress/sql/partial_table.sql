@@ -72,13 +72,74 @@ begin;
 abort;
 
 --
--- create table
+-- create table: LIKE, INHERITS and DISTRIBUTED BY
 --
+-- tables are always created with DEFAULT as numsegments,
+-- no matter there is LIKE, INHERITS or DISTRIBUTED BY.
 
-create table t (like t1);
+select gp_debug_set_create_table_default_numsegments(2);
+
+-- none of the clauses
+create table t ();
 select localoid::regclass, attrnums, policytype, numsegments
 	from gp_distribution_policy where localoid in ('t'::regclass);
 drop table t;
+
+-- DISTRIBUTED BY only
+create table t () distributed randomly;
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- INHERITS only
+create table t () inherits (t2);
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- LIKE only
+create table t (like d1);
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- DISTRIBUTED BY + INHERITS
+create table t () inherits (t2) distributed randomly;
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- DISTRIBUTED BY + LIKE
+create table t (like d1) distributed randomly;
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- INHERITS + LIKE
+create table t (like d1) inherits (t2);
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- DISTRIBUTED BY + INHERITS + LIKE
+create table t (like d1) inherits (t2) distributed randomly;
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- INHERITS from multiple parents
+create table t () inherits (r1, t2);
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+-- DISTRIBUTED BY + INHERITS from multiple parents
+create table t () inherits (r1, t2) distributed by (c1);
+select localoid::regclass, attrnums, policytype, numsegments
+	from gp_distribution_policy where localoid in ('t'::regclass);
+drop table t;
+
+select gp_debug_reset_create_table_default_numsegments();
 
 -- CTAS set numsegments with DEFAULT,
 -- let it be a fixed value to get stable output
@@ -119,6 +180,9 @@ select gp_debug_reset_create_table_default_numsegments();
 --
 -- alter table
 --
+-- numsegments should not be changed
+
+select gp_debug_set_create_table_default_numsegments(1);
 
 create table t (like t1);
 select localoid::regclass, attrnums, policytype, numsegments
@@ -145,6 +209,8 @@ select localoid::regclass, attrnums, policytype, numsegments
 	from gp_distribution_policy where localoid in ('t'::regclass);
 
 drop table t;
+
+select gp_debug_reset_create_table_default_numsegments();
 
 -- below join cases cover all the combinations of
 --
