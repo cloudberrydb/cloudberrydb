@@ -205,6 +205,7 @@
 				<topicref href="system_catalogs/pg_constraint.xml"/>
 				<topicref href="system_catalogs/pg_conversion.xml"/>
 				<topicref href="system_catalogs/pg_database.xml"/>
+				<topicref href="system_catalogs/pg_db_role_setting.xml"/>
 				<topicref href="system_catalogs/pg_depend.xml"/>
 				<topicref href="system_catalogs/pg_description.xml"/>
 				<topicref href="system_catalogs/pg_enum.xml"/>

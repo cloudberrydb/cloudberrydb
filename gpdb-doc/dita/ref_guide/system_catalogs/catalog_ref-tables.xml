@@ -78,6 +78,9 @@
       <li id="eu149898">
         <xref href="./pg_database.xml#topic1" type="topic" format="dita"/>
       </li>
+      <li id="eu1498999">
+        <xref href="./pg_db_role_setting.xml#topic1" type="topic" format="dita"/>
+      </li>
       <li id="eu149902">
         <xref href="./pg_depend.xml#topic1" type="topic" format="dita"/>
       </li>
