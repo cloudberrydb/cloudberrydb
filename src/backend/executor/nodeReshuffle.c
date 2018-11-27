@@ -206,9 +206,11 @@ ExecReshuffle(ReshuffleState *node)
 
 	Assert(splitUpdate->actionColIdx > 0);
 
-	/* New added segments have no data */
-	if (GpIdentity.segindex >= reshuffle->oldSegs)
-		return NULL;
+	/*
+	 * New segments contain no data, we do not
+	 * dispatch the reshuffle-slice to them.
+	 */
+	Assert(GpIdentity.segindex < reshuffle->oldSegs);
 
 	if (reshuffle->ptype == POLICYTYPE_PARTITIONED)
 	{
@@ -283,9 +285,10 @@ ExecReshuffle(ReshuffleState *node)
 	{
 		int			segIdx;
 
-		/* For replicated tables */
-		if (GpIdentity.segindex + reshuffle->oldSegs >=
-			getgpsegmentCount())
+		/*
+		 * This is an optimization for replicated tables.
+		 */
+		if (list_length(node->destList) == 0)
 			return NULL;
 
 		/*
@@ -406,11 +409,10 @@ ExecInitReshuffle(Reshuffle *node, EState *estate, int eflags)
 	}
 #endif
 
-	/* Setup the destination segment ID list */
-	if (!IS_QUERY_DISPATCHER())
+	/* Setup the destination segment ID list only for replicated table */
+	if (!IS_QUERY_DISPATCHER() && node->ptype == POLICYTYPE_REPLICATED)
 	{
-		if (GpIdentity.segindex < node->oldSegs &&
-			GpIdentity.segindex + node->oldSegs < getgpsegmentCount())
+		if (GpIdentity.segindex + node->oldSegs < getgpsegmentCount())
 		{
 			int segIdx = GpIdentity.segindex + node->oldSegs;
 			while (segIdx < getgpsegmentCount())
