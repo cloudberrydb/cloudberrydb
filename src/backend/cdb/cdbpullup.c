@@ -19,7 +19,7 @@
 #include "nodes/plannodes.h"	/* Plan */
 #include "optimizer/clauses.h"	/* expression_tree_walker/mutator */
 #include "optimizer/tlist.h"	/* tlist_member() */
-#include "parser/parse_expr.h"	/* exprType() and exprTypmod() */
+#include "nodes/nodeFuncs.h"	/* exprType() and exprTypmod() */
 #include "parser/parsetree.h"	/* get_tle_by_resno() */
 
 #include "cdb/cdbpullup.h"		/* me */
@@ -259,22 +259,19 @@ cdbpullup_exprHasSubplanRef(Expr *expr)
 
 
 /*
- * cdbpullup_findPathKeyExprInTargetList
+ * cdbpullup_findEclassInTargetList
  *
- * Searches the equivalence class of a given PathKey for a member that
- * uses no rels outside the 'relids' set, and either is a member of
- * 'targetlist', or uses no Vars that are not in 'targetlist'.
+ * Searches the given equivalence class for a member that uses no rels
+ * outside the 'relids' set, and either is a member of 'targetlist', or
+ * uses no Vars that are not in 'targetlist'.
  *
  * If found, returns the chosen member's expression, otherwise returns
- *  NULL
- *
- * 'item' is a PathKey.
- * 'targetlist' is a List of TargetEntry or merely a List of Expr.
+ * NULL.
  *
  * NB: We ignore the presence or absence of a RelabelType node atop either
- * expr in determining whether a PathKey expr matches a targetlist expr.
+ * expr in determining whether an EC member expr matches a targetlist expr.
  *
- * (A RelabelType node might have been placed atop a PathKey's expr to
+ * (A RelabelType node might have been placed atop an EC member's expr to
  * match its type to the sortop's input operand type, when the types are
  * binary compatible but not identical... such as VARCHAR and TEXT.  The
  * RelabelType node merely documents the representational equivalence but
@@ -283,10 +280,9 @@ cdbpullup_exprHasSubplanRef(Expr *expr)
  * targetlist expr.)
  */
 Expr *
-cdbpullup_findPathKeyExprInTargetList(PathKey *item, List *targetlist)
+cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *targetlist)
 {
 	ListCell   *lc;
-	EquivalenceClass *eclass = item->pk_eclass;
 
 	foreach(lc, eclass->ec_members)
 	{
@@ -382,7 +378,7 @@ cdbpullup_truncatePathKeysForTargetList(List *pathkeys, List *targetlist)
 	{
 		PathKey	   *pk = (PathKey *) lfirst(lc);
 
-		if (!cdbpullup_findPathKeyExprInTargetList(pk, targetlist))
+		if (!cdbpullup_findEclassInTargetList(pk->pk_eclass, targetlist))
 			break;
 
 		new_pathkeys = lappend(new_pathkeys, pk);

@@ -59,7 +59,7 @@ cdbpathtoplan_create_flow(PlannerInfo *root,
 			 CdbPathLocus_IsHashedOJ(locus))
 	{
 		flow = makeFlow(FLOW_PARTITIONED, locus.numsegments);
-		flow->hashExpr = cdbpathlocus_get_partkey_exprs(locus,
+		flow->hashExpr = cdbpathlocus_get_distkey_exprs(locus,
 														relids,
 														plan->targetlist);
 

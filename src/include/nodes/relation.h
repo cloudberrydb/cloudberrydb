@@ -831,6 +831,27 @@ typedef struct PathKey
 	bool		pk_nulls_first; /* do NULLs come before normal values? */
 } PathKey;
 
+/*
+ * DistributionKeys
+ *
+ * Like PathKey, but is used to represent data distribution by hash across
+ * segments (DISTRIBUTED BY), rather than sort ordering.
+ */
+typedef struct DistributionKey
+{
+	NodeTag		type;
+
+	List	   *dk_eclasses;	/* the value that is distributed */
+} DistributionKey;
+
+/*
+ * CdbEquivClassIsConstant
+ *      is true if the equivalence class represents a pseudo-constant
+ *
+ * This is copied from MUST_BE_REDUNDANT in pathkeys.c
+ */
+#define CdbEquivClassIsConstant(eclass)						\
+	((eclass)->ec_has_const && !(eclass)->ec_below_outer_join)
 
 /*
  * ParamPathInfo
@@ -854,25 +875,6 @@ typedef struct ParamPathInfo
 	double		ppi_rows;		/* estimated number of result tuples */
 	List	   *ppi_clauses;	/* join clauses available from outer rels */
 } ParamPathInfo;
-
-
-/*
- * CdbEquivClassIsConstant
- *      is true if the equivalence class represents a pseudo-constant
- *
- * This is copied from MUST_BE_REDUNDANT in pathkeys.c
- */
-#define CdbEquivClassIsConstant(eclass)						\
-	((eclass)->ec_has_const && !(eclass)->ec_below_outer_join)
-
-/*
- * CdbPathkeyEqualsConstant
- *      is true if there is a constant expr in a given set of
- *      equijoin-equivalent exprs represented by a PathKey
- */
-#define CdbPathkeyEqualsConstant(_pathkey) \
-    ((_pathkey) != NULL && \
-	 CdbEquivClassIsConstant((_pathkey)->pk_eclass))
 
 
 /*

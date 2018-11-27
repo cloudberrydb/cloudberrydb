@@ -1515,8 +1515,7 @@ plan_append_aggs_with_gather(PlannerInfo *root,
 	 * subplans to be used.
 	 */
 	context->subplan = gather_subplan;
-	context->path->locus.partkey_h = copyObject(context->input_locus.partkey_h);
-	context->path->locus.partkey_oj = copyObject(context->input_locus.partkey_oj);
+	context->path->locus.distkey = copyObject(context->input_locus.distkey);
 	context->pathkeys = NIL;
 
 	/* Compute how many number of subplans is needed. */
@@ -1639,8 +1638,7 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 	 * subplans to be used.
 	 */
 	context->subplan = lefttree;
-	context->path->locus.partkey_h = copyObject(context->input_locus.partkey_h);
-	context->path->locus.partkey_oj = copyObject(context->input_locus.partkey_oj);
+	context->path->locus.distkey = copyObject(context->input_locus.distkey);
 	context->pathkeys = NIL;
 
 	/* Compute how many subplans is needed. */
@@ -2378,8 +2376,7 @@ plan_list_rollup_plans(PlannerInfo *root,
 	/* Generate the shared input subplans for all rollups. */
 	context->subplan = lefttree;
 	context->input_locus = context->path->locus;
-	context->input_locus.partkey_h = copyObject(context->path->locus.partkey_h);
-	context->input_locus.partkey_oj = copyObject(context->path->locus.partkey_oj);
+	context->input_locus.distkey = copyObject(context->path->locus.distkey);
 	context->pathkeys = NIL;
 
 	if (list_length(context->canonical_rollups) > 1)

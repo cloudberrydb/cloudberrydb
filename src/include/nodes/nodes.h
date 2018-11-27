@@ -340,6 +340,7 @@ typedef enum NodeTag
     T_CdbMotionPath = 580,
 	T_PartitionSelectorPath,
     T_CdbRelColumnInfo,
+	T_DistributionKey,
 
 	/*
 	 * TAGS FOR MEMORY NODES (memnodes.h)

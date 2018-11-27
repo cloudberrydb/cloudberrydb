@@ -7190,7 +7190,7 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 	else if (CdbPathLocus_IsHashed(path->path.locus) ||
 			 CdbPathLocus_IsHashedOJ(path->path.locus))
 	{
-		List	   *hashExpr = cdbpathlocus_get_partkey_exprs(path->path.locus,
+		List	   *hashExpr = cdbpathlocus_get_distkey_exprs(path->path.locus,
 															  path->path.parent->relids,
 															  subplan->targetlist);
 		if (!hashExpr)

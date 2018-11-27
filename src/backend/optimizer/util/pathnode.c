@@ -1826,7 +1826,7 @@ create_unique_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath,
 
 	/* Repartition first if duplicates might be on different QEs. */
 	if (!CdbPathLocus_IsBottleneck(subpath->locus) &&
-		!cdbpathlocus_is_hashed_on_exprs(subpath->locus, uniq_exprs))
+		!cdbpathlocus_is_hashed_on_exprs(subpath->locus, uniq_exprs, false))
 	{
 		/*
 		 * We want to use numsegments from rel->cdbpolicy, however it might
