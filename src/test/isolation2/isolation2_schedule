@@ -165,3 +165,5 @@ test: reindex/vacuum_while_reindex_ao_bitmap reindex/vacuum_while_reindex_heap_b
 
 # Cancel test
 test: cancel_plpython
+
+test: concurrent_update

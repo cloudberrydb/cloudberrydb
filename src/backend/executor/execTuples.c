@@ -834,6 +834,14 @@ ExecMaterializeSlot(TupleTableSlot *slot)
 	}
 
 	slot->PRIVATE_tts_heaptuple = htup;
+
+	/*
+	 * Mark extracted state invalid.  This is important because the slot is
+	 * not supposed to depend any more on the previous external data; we
+	 * mustn't leave any dangling pass-by-reference datums in PRIVATE_tts_values.
+	 */
+	slot->PRIVATE_tts_nvalid = 0;
+
 	return htup;
 }
 
