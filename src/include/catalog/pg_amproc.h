@@ -137,7 +137,6 @@ DATA(insert (	2099   790 790 1  377 ));
 DATA(insert (	2233   703 703 1  380 ));
 DATA(insert (	2234   704 704 1  381 ));
 DATA(insert (	2789   27 27 1 2794 ));
-DATA(insert (	7080   3310 3310 1 7081 ));
 DATA(insert (	2968   2950 2950 1 2960 ));
 DATA(insert (	2994   2249 2249 1 2987 ));
 DATA(insert (	3194   2249 2249 1 3187 ));

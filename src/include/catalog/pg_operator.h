@@ -1855,21 +1855,6 @@ DESCR("exists all");
 DATA(insert OID = 3250 (  "<@"	   PGNSP PGUID b f f 3802 3802 16 0 3246 jsonb_contained contsel contjoinsel ));
 DESCR("contained");
 
-
-/* gpxlogloc operators */
-DATA(insert OID = 6325 (  "="     PGNSP PGUID b t f 3310 3310	16 6325 3326 gpxlogloceq eqsel eqjoinsel ));
-DESCR("equal");
-DATA(insert OID = 3326 (  "<>"    PGNSP PGUID b f f 3310 3310	16 3326 6325 gpxloglocne neqsel neqjoinsel ));
-DESCR("not equal");
-DATA(insert OID = 3327 (  "<"     PGNSP PGUID b f f 3310 3310	16 3328 3330 gpxlogloclt scalarltsel scalarltjoinsel ));
-DESCR("less than");
-DATA(insert OID = 3328 (  ">"     PGNSP PGUID b f f 3310 3310	16 3327 3329 gpxloglocgt scalargtsel scalargtjoinsel ));
-DESCR("greater than");
-DATA(insert OID = 3329 (  "<="    PGNSP PGUID b f f 3310 3310	16 3330 3328 gpxloglocle scalarltsel scalarltjoinsel ));
-DESCR("less than or equal");
-DATA(insert OID = 3330 (  ">="    PGNSP PGUID b f f 3310 3310	16 3329 3327 gpxloglocge scalargtsel scalargtjoinsel ));
-DESCR("greater than or equal");
-
 /* operators for complex data type */
 DATA(insert OID = 6469 (  "="	   PGNSP PGUID b t t 7198 7198 16 6469 6470 complex_eq eqsel eqjoinsel));
 DESCR("equal");

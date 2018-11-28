@@ -765,21 +765,6 @@ extern Datum hashtid(PG_FUNCTION_ARGS);
 extern Datum currtid_byreloid(PG_FUNCTION_ARGS);
 extern Datum currtid_byrelname(PG_FUNCTION_ARGS);
 
-/* xlog.c */
-extern Datum gpxloglocin(PG_FUNCTION_ARGS);
-extern Datum gpxloglocout(PG_FUNCTION_ARGS);
-extern Datum gpxloglocrecv(PG_FUNCTION_ARGS);
-extern Datum gpxloglocsend(PG_FUNCTION_ARGS);
-extern Datum gpxlogloclarger(PG_FUNCTION_ARGS);
-extern Datum gpxloglocsmaller(PG_FUNCTION_ARGS);
-extern Datum gpxlogloceq(PG_FUNCTION_ARGS);
-extern Datum gpxloglocne(PG_FUNCTION_ARGS);
-extern Datum gpxlogloclt(PG_FUNCTION_ARGS);
-extern Datum gpxloglocle(PG_FUNCTION_ARGS);
-extern Datum gpxloglocgt(PG_FUNCTION_ARGS);
-extern Datum gpxloglocge(PG_FUNCTION_ARGS);
-extern Datum btgpxlogloccmp(PG_FUNCTION_ARGS);
-
 /* varchar.c */
 extern Datum bpcharin(PG_FUNCTION_ARGS);
 extern Datum bpcharout(PG_FUNCTION_ARGS);

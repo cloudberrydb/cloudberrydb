@@ -166,8 +166,6 @@ DATA(insert OID = 4037 (	2742	jsonb_path_ops	PGNSP PGUID ));
 DATA(insert OID = 6221 (	403		complex_ops		PGNSP PGUID ));
 DATA(insert OID = 6224 (	405		complex_ops		PGNSP PGUID ));
 
-DATA(insert OID = 7080 (	403		xlogloc_ops		PGNSP PGUID ));
-
 /*
  * on-disk bitmap index opfamilies.
  */

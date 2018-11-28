@@ -243,8 +243,6 @@ DATA(insert (	405		jsonb_ops			PGNSP PGUID 4034  3802 t 0 ));
 DATA(insert (	2742	jsonb_ops			PGNSP PGUID 4036  3802 t 25 ));
 DATA(insert (	2742	jsonb_path_ops		PGNSP PGUID 4037  3802 f 23 ));
 
-DATA(insert (	403		xlogloc_ops			PGNSP PGUID 7080  3310 t 0 ));
-
 /*
  * the operators for the on-disk bitmap index.
  */
