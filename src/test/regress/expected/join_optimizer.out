@@ -2975,13 +2975,13 @@ select count(*) from
  Aggregate
    ->  Gather Motion 3:1  (slice5; segments: 3)
          ->  Aggregate
-               ->  Hash Join
-                     Hash Cond: (tenk1_1.thousand = int4_tbl.f1)
-                     ->  Hash Left Join
-                           Hash Cond: (tenk1.thousand = tenk1_2.thousand)
-                           Join Filter: (tenk1.unique2 = tenk1_1.unique1)
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                                 Hash Key: tenk1.thousand
+               ->  Hash Left Join
+                     Hash Cond: (tenk1.thousand = tenk1_2.thousand)
+                     Join Filter: (tenk1.unique2 = tenk1_1.unique1)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                           Hash Key: tenk1.thousand
+                           ->  Hash Join
+                                 Hash Cond: (tenk1_1.thousand = int4_tbl.f1)
                                  ->  Hash Join
                                        Hash Cond: (tenk1.unique1 = tenk1_1.unique2)
                                        ->  Table Scan on tenk1
@@ -2989,14 +2989,14 @@ select count(*) from
                                              ->  Redistribute Motion 3:3  (slice1; segments: 3)
                                                    Hash Key: tenk1_1.unique2
                                                    ->  Table Scan on tenk1 tenk1_1
-                           ->  Hash
-                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
-                                       Hash Key: tenk1_2.thousand
-                                       ->  Table Scan on tenk1 tenk1_2
+                                 ->  Hash
+                                       ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                                             ->  Table Scan on int4_tbl
                      ->  Hash
-                           ->  Broadcast Motion 3:3  (slice4; segments: 3)
-                                 ->  Table Scan on int4_tbl
- Optimizer: PQO version 2.74.0
+                           ->  Redistribute Motion 3:3  (slice4; segments: 3)
+                                 Hash Key: tenk1_2.thousand
+                                 ->  Table Scan on tenk1 tenk1_2
+ Optimizer: PQO version 3.10.0
 (25 rows)
 
 select count(*) from
@@ -3027,13 +3027,13 @@ select b.unique1 from
                ->  Hash
                      ->  Redistribute Motion 3:3  (slice5; segments: 3)
                            Hash Key: tenk1.tenthous
-                           ->  Hash Join
-                                 Hash Cond: (tenk1.thousand = int4_tbl_1.f1)
-                                 ->  Hash Left Join
-                                       Hash Cond: (tenk1_1.thousand = tenk1_2.thousand)
-                                       Join Filter: (tenk1.unique1 = 42)
-                                       ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                                             Hash Key: tenk1_1.thousand
+                           ->  Hash Left Join
+                                 Hash Cond: (tenk1_1.thousand = tenk1_2.thousand)
+                                 Join Filter: (tenk1.unique1 = 42)
+                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                                       Hash Key: tenk1_1.thousand
+                                       ->  Hash Join
+                                             Hash Cond: (tenk1.thousand = int4_tbl_1.f1)
                                              ->  Hash Join
                                                    Hash Cond: (tenk1.unique2 = tenk1_1.unique1)
                                                    ->  Redistribute Motion 3:3  (slice1; segments: 3)
@@ -3041,14 +3041,14 @@ select b.unique1 from
                                                          ->  Table Scan on tenk1
                                                    ->  Hash
                                                          ->  Table Scan on tenk1 tenk1_1
-                                       ->  Hash
-                                             ->  Redistribute Motion 3:3  (slice3; segments: 3)
-                                                   Hash Key: tenk1_2.thousand
-                                                   ->  Table Scan on tenk1 tenk1_2
+                                             ->  Hash
+                                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                                                         ->  Table Scan on int4_tbl int4_tbl_1
                                  ->  Hash
-                                       ->  Broadcast Motion 3:3  (slice4; segments: 3)
-                                             ->  Table Scan on int4_tbl int4_tbl_1
- Optimizer: PQO version 2.74.0
+                                       ->  Redistribute Motion 3:3  (slice4; segments: 3)
+                                             Hash Key: tenk1_2.thousand
+                                             ->  Table Scan on tenk1 tenk1_2
+ Optimizer: PQO version 3.10.0
 (32 rows)
 
 select b.unique1 from
