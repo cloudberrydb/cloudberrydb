@@ -2416,57 +2416,6 @@ get_partition_attrs(PartitionNode *pn)
 		return attrs;
 }
 
-void
-partition_get_policies_attrs(PartitionNode *pn, GpPolicy *master_policy,
-							 List **cols)
-{
-	if (!pn)
-		return;
-	else
-	{
-		ListCell   *lc;
-
-		/*
-		 * We use master_policy as a fast path. The assumption is that most
-		 * child partitions look like the master so we don't want to enter the
-		 * O(N^2) loop below if we can avoid it. Firstly, though, we must copy
-		 * the master policy into the list.
-		 */
-		if (*cols == NIL && master_policy->nattrs)
-		{
-			int			attno;
-
-			for (attno = 0; attno < master_policy->nattrs; attno++)
-				*cols = lappend_int(*cols, master_policy->attrs[attno]);
-		}
-
-		foreach(lc, pn->rules)
-		{
-			PartitionRule *rule = lfirst(lc);
-			Relation	rel = heap_open(rule->parchildrelid, NoLock);
-
-			if (master_policy->nattrs != rel->rd_cdbpolicy->nattrs ||
-				memcmp(master_policy->attrs, rel->rd_cdbpolicy->attrs,
-					   (master_policy->nattrs * sizeof(AttrNumber))))
-			{
-				int			attno;
-
-				for (attno = 0; attno < rel->rd_cdbpolicy->nattrs; attno++)
-				{
-					if (!list_member_int(*cols,
-										 rel->rd_cdbpolicy->attrs[attno]))
-						*cols = lappend_int(*cols,
-											rel->rd_cdbpolicy->attrs[attno]);
-				}
-			}
-			heap_close(rel, NoLock);
-
-			partition_get_policies_attrs(rule->children, master_policy,
-										 cols);
-		}
-	}
-}
-
 bool
 partition_policies_equal(GpPolicy *p, PartitionNode *pn)
 {

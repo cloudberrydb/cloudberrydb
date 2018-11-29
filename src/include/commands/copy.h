@@ -247,7 +247,6 @@ typedef struct CopyStateData
 	bool		is_copy_in;		/* copy in or out? */
 	bool		escape_off;		/* treat backslashes as non-special? */
 	bool		delimiter_off;  /* no delimiter. 1-column external tabs only */
-	int			last_hash_field;
 	bool		end_marker;
 	char	   *begloc;
 	char	   *endloc;

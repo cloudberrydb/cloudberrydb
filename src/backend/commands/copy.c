@@ -217,10 +217,7 @@ static void HandleQDErrorFrame(CopyState cstate);
 
 static void CopyInitDataParser(CopyState cstate);
 
-static GpDistributionData *
-InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
-                     AttrNumber num_phys_attrs,
-                     EState *estate, bool multi_dist_policy);
+static GpDistributionData *InitDistributionData(CopyState cstate, bool multi_dist_policy);
 static void FreeDistributionData(GpDistributionData *distData);
 static GpDistributionData *
 GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
@@ -3696,8 +3693,7 @@ CopyFrom(CopyState cstate)
 		bool multi_dist_policy = estate->es_result_partitions
 	        && !partition_policies_equal(cstate->rel->rd_cdbpolicy,
 	                                     estate->es_result_partitions);
-		distData = InitDistributionData(cstate, tupDesc->attrs, num_phys_attrs,
-										estate, multi_dist_policy);
+		distData = InitDistributionData(cstate, multi_dist_policy);
 	}
 	else if (is_check_distkey)
 	{
@@ -3709,8 +3705,7 @@ CopyFrom(CopyState cstate)
 		 * for different partitions, so this is a lot simpler than the dispatcher case
 		 * above.
 		 */
-		distData = InitDistributionData(cstate, tupDesc->attrs, num_phys_attrs,
-										estate, false);
+		distData = InitDistributionData(cstate, false);
 
 		/*
 		 * If this table is distributed randomly, there is nothing to check.
@@ -5241,9 +5236,16 @@ static bool
 NextCopyFromDispatch(CopyState cstate, ExprContext *econtext,
 					 Datum *values, bool *nulls, Oid *tupleOid)
 {
-	/* GPDB_91_MERGE_FIXME: The idea here would be to only call the
+	/*
+	 * GPDB_91_MERGE_FIXME: The idea here would be to only call the
 	 * input function for the fields we need in the QD. But for now,
-	 * screw performance. */
+	 * screw performance.
+	 *
+	 * Note: There used to be code in InitDistributionData(), to compute
+	 * the last field number that's needed for to determine which partition
+	 * a row belongs to. If you resurrect this optimization, you'll probably
+	 * need to resurrect that, too.
+	 */
 	return NextCopyFrom(cstate, econtext, values, nulls, tupleOid);
 }
 
@@ -7188,29 +7190,18 @@ CopyEolStrToType(CopyState cstate)
 }
 
 static GpDistributionData *
-InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
-                     AttrNumber num_phys_attrs,
-                     EState *estate, bool multi_dist_policy)
+InitDistributionData(CopyState cstate, bool multi_dist_policy)
 {
-	GpDistributionData *distData = palloc(sizeof(GpDistributionData));
-	/* Variables for cdbpolicy */
-	GpPolicy *policy; /* the partitioning policy for this table */
-	AttrNumber p_nattrs; /* num of attributes in the distribution policy */
-	HTAB *hashmap = NULL;
-	CdbHash *cdbHash = NULL;
-	int p_index;
-	int i = 0;
+	GpDistributionData *distData;
+	GpPolicy   *policy;
+	HTAB	   *hashmap;
+	CdbHash	   *cdbHash;
 
 	if (!multi_dist_policy)
 	{
 		policy = GpPolicyCopy(cstate->rel->rd_cdbpolicy);
-
-		if (policy)
-			p_nattrs = policy->nattrs; /* number of partitioning keys */
-		else
-			p_nattrs = 0;
-		/* Create hash API reference */
 		cdbHash = makeCdbHashForRelation(cstate->rel);
+		hashmap = NULL;
 	}
 	else
 	{
@@ -7225,17 +7216,9 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 		 * keys are different in different partitions, even if they were
 		 * specified with the same DISTRIBUTED BY columns, if some partitions
 		 * contain dropped columns.
-		 *
-		 * We build up a fake policy comprising the set of all columns used
-		 * to distribute all children in the partition configuration. That way
-		 * we're sure to parse all necessary columns in the input data and we
-		 * have all column types handy.
 		 */
-		List *cols = NIL;
-		HASHCTL hash_ctl;
+		HASHCTL		hash_ctl;
 
-		partition_get_policies_attrs(estate->es_result_partitions,
-		                             cstate->rel->rd_cdbpolicy, &cols);
 		MemSet(&hash_ctl, 0, sizeof(hash_ctl));
 		hash_ctl.keysize = sizeof(Oid);
 		hash_ctl.entrysize = sizeof(cdbhashdata);
@@ -7246,50 +7229,13 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 		                      100 /* XXX: need a better value, but what? */,
 		                      &hash_ctl,
 		                      HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
-		p_nattrs = list_length(cols);
-		policy = createHashPartitionedPolicy(cols,
-											 cstate->rel->rd_cdbpolicy->numsegments);
+
+		/* We will use the policies from individual partitions. */
+		policy = NULL;
+		cdbHash = NULL;
 	}
 
-	/*
-	 * for optimized parsing - get the last field number in the
-	 * file that we need to parse to have all values for the hash keys.
-	 * (If the table has an empty distribution policy, then we don't need
-	 * to parse any attributes really... just send the row away using
-	 * a special cdbhash function designed for this purpose).
-	 */
-	cstate->last_hash_field = 0;
-
-	for (p_index = 0; p_index < p_nattrs; p_index++)
-	{
-		i = 1;
-
-		/*
-		 * for this partitioning key, search for its location in the attr list.
-		 * (note that fields may be out of order).
-		 */
-		ListCell *cur;
-		foreach (cur, cstate->attnumlist)
-		{
-			int attnum = lfirst_int(cur);
-
-			if (attnum == policy->attrs[p_index])
-			{
-				if (i > cstate->last_hash_field)
-					cstate->last_hash_field = i;
-			}
-			if (estate->es_result_partitions)
-			{
-				if (attnum == estate->es_partition_state->max_partition_attr)
-				{
-					if (i > cstate->last_hash_field)
-						cstate->last_hash_field = i;
-				}
-			}
-			i++;
-		}
-	}
-
+	distData = palloc(sizeof(GpDistributionData));
 	distData->policy = policy;
 	distData->cdbHash = cdbHash;
 	distData->hashmap = hashmap;
