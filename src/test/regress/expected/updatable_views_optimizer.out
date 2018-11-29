@@ -2030,14 +2030,16 @@ EXPLAIN (costs off) INSERT INTO rw_view1 VALUES (2, 'New row 2');
                            Join Filter: true
                            ->  Index Scan using base_tbl_pkey on base_tbl base_tbl_1
                                  Index Cond: (id = 2)
-                           ->  Result
-                                 ->  Limit
-                                       ->  Materialize
-                                             ->  Broadcast Motion 3:3  (slice1; segments: 3)
-                                                   ->  Index Scan using base_tbl_pkey on base_tbl
-                                                         Index Cond: (id = 2)
- Optimizer: PQO version 3.1.0
-(36 rows)
+                           ->  Materialize
+                                 ->  Broadcast Motion 1:3  (slice2; segments: 1)
+                                       ->  Result
+                                             ->  Result
+                                                   ->  Limit
+                                                         ->  Gather Motion 3:1  (slice1; segments: 3)
+                                                               ->  Index Scan using base_tbl_pkey on base_tbl
+                                                                     Index Cond: (id = 2)
+ Optimizer: PQO version 3.11.0
+(38 rows)
 
 INSERT INTO rw_view1 VALUES (2, 'New row 2');
 SELECT * FROM base_tbl;
