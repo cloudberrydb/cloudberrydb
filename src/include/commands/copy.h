@@ -346,28 +346,6 @@ typedef struct GpDistributionData
 	HTAB *hashmap;
 } GpDistributionData;
 
-typedef struct PartitionData
-{
-	/* variables for partitioning */
-	Datum *part_values ;
-	Oid *part_typio ;
-	FmgrInfo *part_infuncs ;
-	AttrNumber *part_attnum ;
-	int part_attnums ;
-} PartitionData;
-
-typedef struct GetAttrContext
-{
-	TupleDesc tupDesc;
-	Form_pg_attribute *attr;
-	AttrNumber num_phys_attrs;
-	int *attr_offsets;
-	bool *nulls;
-	Datum *values;
-	CdbCopy *cdbCopy;
-	int original_lineno_for_qe;
-} GetAttrContext;
-
 typedef struct  cdbhashdata
 {
 	Oid relid;

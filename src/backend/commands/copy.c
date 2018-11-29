@@ -222,11 +222,9 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
                      AttrNumber num_phys_attrs,
                      EState *estate, bool multi_dist_policy);
 static void FreeDistributionData(GpDistributionData *distData);
-static PartitionData *InitPartitionData(EState *estate, Form_pg_attribute *attr,
-                  AttrNumber num_phys_attrs);
 static GpDistributionData *
 GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
-                                  PartitionData *partitionData, HTAB *hashmap,
+                                  HTAB *hashmap,
                                   TupleDesc tupDesc,
                                   Datum *values, bool *nulls);
 static unsigned int
@@ -3490,7 +3488,6 @@ CopyFrom(CopyState cstate)
 	int			i;
 	Datum	   *baseValues;
 	bool	   *baseNulls;
-	PartitionData *partitionData = NULL;
 	GpDistributionData *part_distData = NULL;
 	int			firstBufferedLineNo = 0;
 
@@ -3701,12 +3698,6 @@ CopyFrom(CopyState cstate)
 	                                     estate->es_result_partitions);
 		distData = InitDistributionData(cstate, tupDesc->attrs, num_phys_attrs,
 										estate, multi_dist_policy);
-
-		/* init partition routing data structure */
-		if (estate->es_result_partitions)
-		{
-			partitionData = InitPartitionData(estate, tupDesc->attrs, num_phys_attrs);
-		}
 	}
 	else if (is_check_distkey)
 	{
@@ -3921,7 +3912,7 @@ CopyFrom(CopyState cstate)
 				if (estate->es_result_partitions)
 				{
 					part_distData = GetDistributionPolicyForPartition(
-						cstate, estate, partitionData,
+						cstate, estate,
 						distData->hashmap,
 						tupDesc,
 						slot_get_values(slot), slot_get_isnull(slot));
@@ -7321,45 +7312,10 @@ FreeDistributionData(GpDistributionData *distData)
 	}
 }
 
-static PartitionData *
-InitPartitionData(EState *estate, Form_pg_attribute *attr,
-				  AttrNumber num_phys_attrs)
-{
-	PartitionNode *n = estate->es_result_partitions;
-	List	   *pattnums;
-	ListCell   *lc;
-	int			ii;
-
-	/* init partition data*/
-	PartitionData *partitionData = palloc(sizeof(PartitionData));
-	partitionData->part_values = palloc0(num_phys_attrs * sizeof(Datum));
-	partitionData->part_typio = palloc(num_phys_attrs * sizeof(Oid));
-	partitionData->part_infuncs = palloc(num_phys_attrs * sizeof(FmgrInfo));
-	partitionData->part_attnum = palloc(num_phys_attrs * sizeof(AttrNumber));
-
-	pattnums = get_partition_attrs(n);
-	
-	ii = 0;
-	foreach (lc, pattnums)
-	{
-		AttrNumber attnum = (AttrNumber) lfirst_int(lc);
-		Oid in_func_oid;
-
-		getTypeInputInfo(attr[attnum - 1]->atttypid, &in_func_oid,
-		                 &partitionData->part_typio[attnum - 1]);
-		fmgr_info(in_func_oid, &partitionData->part_infuncs[attnum - 1]);
-		partitionData->part_attnum[ii++] = attnum;
-	}
-	Assert(ii == list_length(pattnums));
-	partitionData->part_attnums = ii;
-
-	return partitionData;
-}
-
 /* Get distribution policy for specific part */
 static GpDistributionData *
 GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
-                                  PartitionData *partitionData, HTAB *hashmap,
+                                  HTAB *hashmap,
                                   TupleDesc tupDesc,
                                   Datum *values, bool *nulls)
 {
