@@ -338,18 +338,27 @@ extern void truncateEolStr(char *str, EolType eol_type);
 extern void setEncodingConversionProc(CopyState cstate, int encoding, bool iswritable);
 extern void CopyEolStrToType(CopyState cstate);
 
+/*
+ * This is used to hold information about the target's distribution policy,
+ * during COPY FROM.
+ *
+ * For a regular, non-partitioned table, 'policy' and 'cdbHash' are filled in,
+ * and 'relid' and 'hashmap' are unused.
+ *
+ * For a partitioned table, there is one "main" GpDistributionData for the
+ * whole operation, and a separate GpDistributionData object for each
+ * partition. The per-table objects are stored in the 'hashmap' of the main
+ * GpDistributionData object, keyed by the partition's OID. 'policy' and
+ * 'cdbHash' in the main GpDistributionData are unused.
+ */
 typedef struct GpDistributionData
 {
-	GpPolicy *policy;	/* the partitioning policy for this table */
-	CdbHash *cdbHash;
-	HTAB *hashmap;
-} GpDistributionData;
+	Oid			relid;		/* hash key, must be first */
 
-typedef struct  cdbhashdata
-{
-	Oid relid;
-	CdbHash *cdbHash; /* a CdbHash API object */
-	GpPolicy *policy; /* policy for this cdb hash */
-} cdbhashdata;
+	GpPolicy   *policy;		/* partitioning policy for this table */
+	CdbHash	   *cdbHash;	/* corresponding CdbHash object */
+
+	HTAB	   *hashmap;
+} GpDistributionData;
 
 #endif /* COPY_H */

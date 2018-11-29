@@ -219,11 +219,11 @@ static void CopyInitDataParser(CopyState cstate);
 
 static GpDistributionData *InitDistributionData(CopyState cstate, bool multi_dist_policy);
 static void FreeDistributionData(GpDistributionData *distData);
-static GpDistributionData *
-GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
-                                  HTAB *hashmap,
-                                  TupleDesc tupDesc,
-                                  Datum *values, bool *nulls);
+static GpDistributionData *GetDistributionPolicyForPartition(CopyState cstate,
+								  EState *estate,
+								  GpDistributionData *mainDistData,
+								  TupleDesc tupDesc,
+								  Datum *values, bool *nulls);
 static unsigned int
 GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls);
 static ProgramPipes *open_program_pipes(char *command, bool forwrite);
@@ -3903,29 +3903,13 @@ CopyFrom(CopyState cstate)
 
 			if (cstate->dispatch_mode == COPY_DISPATCH)
 			{
-				/* lock partition */
-				if (estate->es_result_partitions)
-				{
-					part_distData = GetDistributionPolicyForPartition(
-						cstate, estate,
-						distData->hashmap,
-						tupDesc,
-						slot_get_values(slot), slot_get_isnull(slot));
-
-					if (!part_distData->cdbHash)
-						part_distData = distData;
-				}
-				else
-					part_distData = distData;
+				part_distData = GetDistributionPolicyForPartition(
+					cstate, estate,
+					distData,
+					tupDesc,
+					slot_get_values(slot), slot_get_isnull(slot));
 
 				target_seg = GetTargetSeg(part_distData, slot_get_values(slot), slot_get_isnull(slot));
-
-				/*
-				 * policy should be PARTITIONED (normal tables) or
-				 * ENTRY
-				 */
-				if (!part_distData->policy)
-					elog(ERROR, "could not find distribution policy for partition");
 			}
 			else if (is_check_distkey)
 			{
@@ -7221,7 +7205,7 @@ InitDistributionData(CopyState cstate, bool multi_dist_policy)
 
 		MemSet(&hash_ctl, 0, sizeof(hash_ctl));
 		hash_ctl.keysize = sizeof(Oid);
-		hash_ctl.entrysize = sizeof(cdbhashdata);
+		hash_ctl.entrysize = sizeof(GpDistributionData);
 		hash_ctl.hash = oid_hash;
 		hash_ctl.hcxt = CurrentMemoryContext;
 
@@ -7261,44 +7245,32 @@ FreeDistributionData(GpDistributionData *distData)
 /* Get distribution policy for specific part */
 static GpDistributionData *
 GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
-                                  HTAB *hashmap,
+								  GpDistributionData *mainDistData,
                                   TupleDesc tupDesc,
                                   Datum *values, bool *nulls)
 {
-	ResultRelInfo *resultRelInfo;
-	Datum *values_for_partition;
-	GpPolicy *part_policy = NULL; /* policy for specific part */
-	AttrNumber part_p_nattrs = 0; /* partition policy max attno */
-	CdbHash *part_hash = NULL;
-
-	values_for_partition = values;
-
-	GpDistributionData *distData = palloc(sizeof(GpDistributionData));
-	resultRelInfo = values_get_partition(values_for_partition,
-	                                     nulls,
-	                                     tupDesc,
-										 estate,
-										 false); /* don't need indices in QD */
 
 	/*
 	 * If we are copying into a partitioned table whose partitions have
 	 * differing distribution policies, get the policy for this particular
 	 * child partition.
 	 */
-	if (hashmap)
+	if (mainDistData->hashmap)
 	{
-		bool found;
-		cdbhashdata *d;
-		Oid relid = resultRelInfo->ri_RelationDesc->rd_id;
+		Oid			relid;
+		ResultRelInfo *resultRelInfo;
+		GpDistributionData *d;
+		bool		found;
 
-		d = hash_search(hashmap, &(relid), HASH_ENTER, &found);
-		if (found)
-		{
-			part_policy = d->policy;
-			part_p_nattrs = part_policy->nattrs;
-			part_hash = d->cdbHash;
-		}
-		else
+		resultRelInfo = values_get_partition(values,
+											 nulls,
+											 tupDesc,
+											 estate,
+											 false); /* don't need indices in QD */
+		relid = resultRelInfo->ri_RelationDesc->rd_id;
+
+		d = hash_search(mainDistData->hashmap, &(relid), HASH_ENTER, &found);
+		if (!found)
 		{
 			Relation rel;
 			MemoryContext oldcontext;
@@ -7310,20 +7282,18 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 			 */
 			oldcontext = MemoryContextSwitchTo(cstate->copycontext);
 
-			d->relid = relid;
-			part_hash = d->cdbHash = makeCdbHashForRelation(rel);
-			part_policy = d->policy = GpPolicyCopy(rel->rd_cdbpolicy);
-			part_p_nattrs = part_policy->nattrs;
+			d->cdbHash = makeCdbHashForRelation(rel);
+			d->policy = GpPolicyCopy(rel->rd_cdbpolicy);
 
 			MemoryContextSwitchTo(oldcontext);
 
 			heap_close(rel, NoLock);
 		}
-	}
-	distData->policy = part_policy;
-	distData->cdbHash = part_hash;
 
-	return distData;
+		return d;
+	}
+	else
+		return mainDistData;
 }
 
 static unsigned int
