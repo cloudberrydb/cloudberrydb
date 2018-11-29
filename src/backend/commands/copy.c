@@ -16,7 +16,6 @@
  */
 #include "postgres.h"
 
-#include "libpq-fe.h"
 #include "libpq-int.h"
 
 #include <ctype.h>
@@ -25,7 +24,6 @@
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <commands/copy.h>
 
 #include "access/heapam.h"
 #include "access/htup_details.h"
@@ -67,7 +65,6 @@
 #include "cdb/cdbvars.h"
 #include "commands/queue.h"
 #include "executor/execDML.h"
-#include "libpq/pqsignal.h"
 #include "nodes/makefuncs.h"
 #include "postmaster/autostats.h"
 #include "utils/metrics_utils.h"
@@ -2822,7 +2819,6 @@ CopyTo(CopyState cstate)
 		tupDesc = RelationGetDescr(cstate->rel);
 	else
 		tupDesc = cstate->queryDesc->tupDesc;
-
 	attr = tupDesc->attrs;
 	num_phys_attrs = tupDesc->natts;
 	cstate->null_print_client = cstate->null_print;		/* default */
@@ -3487,7 +3483,7 @@ CopyFrom(CopyState cstate)
 	bool		is_check_distkey;
 	GpDistributionData	*distData = NULL; /* distribution data used to compute target seg */
 	uint64		processed = 0;
-    bool		useHeapMultiInsert;
+	bool		useHeapMultiInsert;
 #define MAX_BUFFERED_TUPLES 1000
 	int			nTotalBufferedTuples = 0;
 	Size		totalBufferedTuplesSize = 0;
@@ -3948,9 +3944,7 @@ CopyFrom(CopyState cstate)
 				 * ENTRY
 				 */
 				if (!part_distData->policy)
-				{
-					elog(FATAL, "Bad or undefined policy. (%p)", part_distData->policy);
-				}
+					elog(ERROR, "could not find distribution policy for partition");
 			}
 			else if (is_check_distkey)
 			{
@@ -4338,7 +4332,6 @@ CopyFrom(CopyState cstate)
 
 	MemoryContextSwitchTo(oldcontext);
 
-	/* free distribution data after switching oldcontext */
 	FreeDistributionData(distData);
 
 	FreeExecutorState(estate);
@@ -7357,18 +7350,14 @@ FreeDistributionData(GpDistributionData *distData)
 {
 	if (distData)
 	{
-		pfree(distData->policy);
-		pfree(distData->p_attr_types);
+		if (distData->policy)
+			pfree(distData->policy);
 		if (distData->cdbHash)
-		{
 			pfree(distData->cdbHash);
-		}
 		if (distData->hashmap)
-		{
-			pfree(distData->hashmap);
-		}
+			hash_destroy(distData->hashmap);
+		pfree(distData->p_attr_types);
 		pfree(distData);
-
 	}
 }
 
@@ -7481,15 +7470,21 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 static unsigned int
 GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls)
 {
-	unsigned int target_seg = 0;
-	CdbHash *cdbHash = distData->cdbHash;
-	GpPolicy *policy = distData->policy; /* the partitioning policy for this table */
-	AttrNumber p_nattrs = distData->p_nattrs; /* num of attributes in the distribution policy */
+	unsigned int target_seg;
+	CdbHash	   *cdbHash = distData->cdbHash;
+	GpPolicy   *policy = distData->policy; /* the partitioning policy for this table */
+	AttrNumber	p_nattrs = distData->p_nattrs; /* num of attributes in the distribution policy */
 
+	/*
+	 * These might be NULL, if we're called with a "main" GpDistributionData,
+	 * for a partitioned table with heterogenous partitions. The caller
+	 * should've used GetDistributionPolicyForPartition() to get the right
+	 * distdata object for the partition.
+	 */
 	if (!policy)
-	{
-		elog(FATAL, "Bad or undefined policy. (%p)", policy);
-	}
+		elog(ERROR, "missing distribution policy.");
+	if (!cdbHash)
+		elog(ERROR, "missing cdbhash");
 
 	/*
 	 * At this point in the code, baseValues[x] is final for this
@@ -7499,19 +7494,12 @@ GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls)
 	 * Perform a cdbhash on this data row. Perform a hash operation
 	 * on each attribute.
 	 */
-	Assert(PointerIsValid(cdbHash));
-	/* Assert does not activate in production build */
-	if (!cdbHash)
-	{
-		elog(FATAL, "Bad cdb_hash: %p", cdbHash);
-	}
 	cdbhashinit(cdbHash);
 
-	AttrNumber h_attnum;
 	for (int i = 0; i < p_nattrs; i++)
 	{
 		/* current attno from the policy */
-		h_attnum = policy->attrs[i];
+		AttrNumber h_attnum = policy->attrs[i];
 
 		cdbhash(cdbHash, i + 1,
 				baseValues[h_attnum - 1],
