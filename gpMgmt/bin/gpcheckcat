@@ -36,6 +36,7 @@ try:
     from gpcheckcat_modules.leaked_schema_dropper import LeakedSchemaDropper
     from gpcheckcat_modules.repair import Repair
     from gpcheckcat_modules.foreign_key_check import ForeignKeyCheck
+    from gpcheckcat_modules.orphaned_toast_tables_check import OrphanedToastTablesCheck, OrphanToastTableIssue, OrphanedTable
 
 
 except ImportError, e:
@@ -2908,6 +2909,59 @@ def log_unique_index_violations(violations):
     logger.error('\n'.join(log_output))
 
 
+# -------------------------------------------------------------------------------
+def checkOrphanedToastTables():
+    logger.info('-----------------------------------')
+    logger.info('Performing check: checking for orphaned TOAST tables')
+
+    db_connection = connect2(GV.cfg[1], utilityMode=False)
+    checker = OrphanedToastTablesCheck()
+    check_passed = checker.runCheck(db_connection)
+
+    checkname = 'orphaned toast table(s)'
+    if check_passed:
+        logger.info('[OK]  %s' % checkname)
+    else:
+        logger.info('[FAIL]  %s' % checkname)
+        GV.checkStatus = False
+        setError(ERROR_REMOVE)
+
+        # log raw orphan toast table query results only to the log file
+        log_output = ['Orphan toast tables detected for the following scenarios:']
+        for issue_type in checker.issue_types():
+            log_output.append('\n' + issue_type.header)
+            log_output.append('content_id | toast_table_oid | toast_table_name | expected_table_oid | expected_table_name | dependent_table_oid | dependent_table_name')
+            log_output.append('-----------+-----------------+------------------+--------------------+---------------------+---------------------+---------------------')
+            for row in checker.rows_of_type(issue_type):
+                log_output.append('{} | {} | {} | {} | {} | {} | {}'.format(
+                    row['content_id'],
+                    row['toast_table_oid'],
+                    row['toast_table_name'],
+                    row['expected_table_oid'],
+                    row['expected_table_name'],
+                    row['dependent_table_oid'],
+                    row['dependent_table_name']))
+        log_output = '\n'.join(log_output)
+        log_output = log_output + '\n'
+        logger.error(log_output)
+
+        # log fix instructions for the orphaned toast tables to stdout and log file
+        gplog.log_literal(logger, logging.CRITICAL, checker.get_fix_text())
+
+        # log per-orphan table issue and cause to stdout and log file
+        for issue, segments in checker.iterate_issues():
+            cat_issue_obj = CatOrphanToastTableIssue(issue.table.oid,
+                                                     issue.table.catname,
+                                                     issue,
+                                                     segments)
+            error_object = getGPObject(issue.table.oid, issue.table.catname)
+            error_object.addOrphanToastTableIssue(cat_issue_obj)
+
+        do_repair_for_segments(segments_to_repair_statements=checker.add_repair_statements(GV.cfg),
+                               issue_type="orphaned_toast_tables",
+                               description='Repairing orphaned TOAST tables')
+
+
 ############################################################################
 # Help populating repair part for all checked types
 # All functions dependent on results stored in global variable GV
@@ -3032,6 +3086,14 @@ all_checks = {
             "order": 13,
             "online": True
         },
+    "orphaned_toast_tables":
+        {
+            "description": "Check pg_class and pg_depend for orphaned TOAST tables",
+            "fn": checkOrphanedToastTables,
+            "version": 'main',
+            "order": 14,
+            "online": True
+        },
 }
 
 
@@ -3142,6 +3204,7 @@ def runAllChecks():
 
 
 def do_repair(sql_repair_contents, issue_type, description):
+    logger.info("Starting repair of %s with %d issues" % (description, len(sql_repair_contents)))
     if len(sql_repair_contents) == 0:
         return
 
@@ -3149,6 +3212,18 @@ def do_repair(sql_repair_contents, issue_type, description):
     try:
         repair_obj = Repair(context=GV, issue_type=issue_type, desc=description)
         repair_dir_path = repair_obj.create_repair(sql_repair_contents=sql_repair_contents)
+    except Exception, ex:
+        logger.fatal(str(ex))
+
+    print_repair_issues(repair_dir_path)
+
+def do_repair_for_segments(segments_to_repair_statements, issue_type, description):
+    logger.info("Starting repair of %s" % description)
+
+    repair_dir_path = ""
+    try:
+        repair_obj = Repair(context=GV, issue_type=issue_type, desc=description)
+        repair_dir_path = repair_obj.create_segment_repair_scripts(segments_to_repair_statements)
     except Exception, ex:
         logger.fatal(str(ex))
 
@@ -3163,7 +3238,8 @@ def do_repair_for_extra(catalog_issues):
             repair_obj = Repair(context=GV, issue_type="extra", desc="Removing extra entries")
             repair_dir_path = repair_obj.create_repair_for_extra_missing(catalog_table_obj=catalog_table_obj,
                                                                          issues=issues,
-                                                                         pk_name=pk_name)
+                                                                         pk_name=pk_name,
+                                                                         segments=GV.cfg)
         except Exception, ex:
             logger.fatal(str(ex))
 
@@ -3804,6 +3880,18 @@ class CatDependencyIssue:
         )
 
 # -------------------------------------------------------------------------------
+class CatOrphanToastTableIssue:
+    def __init__(self, oid, catname, issue, segments):
+        self.oid = oid
+        self.catname = catname
+        self.issue = issue
+        self.segments = segments
+
+    def report(self):
+        myprint('%s' % self.issue.description)
+        myprint('''On segment(s) %s table '%s' (oid: %s) %s''' % (', '.join(map(str, sorted(self.segments))), self.catname, self.oid, self.issue.cause))
+
+# -------------------------------------------------------------------------------
 class GPObject:
     def __init__(self, oid, catname):
         self.oid = oid
@@ -3814,6 +3902,7 @@ class GPObject:
         self.aclIssues = {}  # key=issue.catname, value=list of catACLIssue
         self.foreignkeyIssues = {}  # key=issue.catname, value=list of catForeignKeyIssue
         self.dependencyIssues = {} # key=issue.catname, value=list of catDependencyIssue
+        self.orphanToastTableIssues = {} # key=issue.catname, value=list of orphanToastTableIssues
 
     def addDependencyIssue(self, issue):
         if issue.catname in self.dependencyIssues:
@@ -3850,6 +3939,12 @@ class GPObject:
             self.foreignkeyIssues[issue.catname].append(issue)
         else:
             self.foreignkeyIssues[issue.catname] = [issue]
+
+    def addOrphanToastTableIssue(self, issue):
+        if issue.catname in self.orphanToastTableIssues:
+            self.orphanToastTableIssues[issue.catname].append(issue)
+        else:
+            self.orphanToastTableIssues[issue.catname] = [issue]
 
     def isTopLevel(self):
         return True
@@ -3939,6 +4034,13 @@ class GPObject:
         if len(self.aclIssues):
             for catname, issues in self.aclIssues.iteritems():
                 myprint('    Name of test which found this issue: acl_%s' % catname)
+                for each in issues:
+                    each.report()
+            myprint('')
+
+        # Report Orphan Toast Table issues
+        if len(self.orphanToastTableIssues):
+            for catname, issues in self.orphanToastTableIssues.iteritems():
                 for each in issues:
                     each.report()
             myprint('')
@@ -4168,7 +4270,7 @@ def checkcatReport():
             reportAllIssuesRecursive(child, graph)
 
     buildGraph()
-    reportedCheck = ['duplicate','missing_extraneous','inconsistent','foreign_key','acl']
+    reportedCheck = ['duplicate','missing_extraneous','inconsistent','foreign_key','acl', 'orphaned_toast_tables']
     myprint('')
     myprint('SUMMARY REPORT')
     myprint('===================================================================')
