@@ -227,7 +227,7 @@ static PartitionData *InitPartitionData(EState *estate, Form_pg_attribute *attr,
 static GpDistributionData *
 GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
                                   PartitionData *partitionData, HTAB *hashmap,
-                                  Oid *p_attr_types, TupleDesc tupDesc,
+                                  TupleDesc tupDesc,
                                   Datum *values, bool *nulls);
 static unsigned int
 GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls);
@@ -3695,17 +3695,12 @@ CopyFrom(CopyState cstate)
 	 */
 	if (cstate->dispatch_mode == COPY_DISPATCH)
 	{
-		AttrNumber	p_nattrs; /* num of attributes in the distribution policy */
-		Oid       *p_attr_types;	/* types for each policy attribute */
-
 		/* get data for distribution */
 		bool multi_dist_policy = estate->es_result_partitions
 	        && !partition_policies_equal(cstate->rel->rd_cdbpolicy,
 	                                     estate->es_result_partitions);
 		distData = InitDistributionData(cstate, tupDesc->attrs, num_phys_attrs,
 										estate, multi_dist_policy);
-		p_attr_types = distData->p_attr_types;
-		p_nattrs = distData->p_nattrs;
 
 		/* init partition routing data structure */
 		if (estate->es_result_partitions)
@@ -3729,7 +3724,7 @@ CopyFrom(CopyState cstate)
 		/*
 		 * If this table is distributed randomly, there is nothing to check.
 		 */
-		if (distData->p_nattrs == 0)
+		if (distData->policy == NULL || distData->policy->nattrs == 0)
 			is_check_distkey = false;
 	}
 
@@ -3928,7 +3923,7 @@ CopyFrom(CopyState cstate)
 					part_distData = GetDistributionPolicyForPartition(
 						cstate, estate, partitionData,
 						distData->hashmap,
-						distData->p_attr_types, tupDesc,
+						tupDesc,
 						slot_get_values(slot), slot_get_isnull(slot));
 
 					if (!part_distData->cdbHash)
@@ -7210,10 +7205,8 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 	/* Variables for cdbpolicy */
 	GpPolicy *policy; /* the partitioning policy for this table */
 	AttrNumber p_nattrs; /* num of attributes in the distribution policy */
-	Oid *p_attr_types; /* types for each policy attribute */
 	HTAB *hashmap = NULL;
 	CdbHash *cdbHash = NULL;
-	AttrNumber h_attnum; /* hash key attribute number */
 	int p_index;
 	int i = 0;
 
@@ -7268,36 +7261,6 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 	}
 
 	/*
-	 * Extract types for each partition key from the tuple descriptor,
-	 * and convert them when necessary. We don't want to do this
-	 * for each tuple since get_typtype() is quite expensive when called
-	 * lots of times.
-	 * The array key for p_attr_types is the attribute number of the attribute
-	 * in question.
-	 */
-	p_attr_types = (Oid *) palloc0(num_phys_attrs * sizeof(Oid));
-
-	for (i = 0; i < p_nattrs; i++)
-	{
-		h_attnum = policy->attrs[i];
-
-		/*
-		 * get the data type of this attribute. If it's an
-		 * array type use anyarray, or else just use as is.
-		 */
-		if (attr[h_attnum - 1]->attndims > 0)
-			p_attr_types[h_attnum - 1] = ANYARRAYOID;
-		else
-		{
-			/* If this type is a domain type, get its base type. */
-			p_attr_types[h_attnum - 1] = attr[h_attnum - 1]->atttypid;
-			if (get_typtype(p_attr_types[h_attnum - 1]) == 'd')
-				p_attr_types[h_attnum - 1] = getBaseType(
-				        p_attr_types[h_attnum - 1]);
-		}
-	}
-
-	/*
 	 * for optimized parsing - get the last field number in the
 	 * file that we need to parse to have all values for the hash keys.
 	 * (If the table has an empty distribution policy, then we don't need
@@ -7337,8 +7300,6 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 	}
 
 	distData->policy = policy;
-	distData->p_nattrs = p_nattrs;
-	distData->p_attr_types = p_attr_types;
 	distData->cdbHash = cdbHash;
 	distData->hashmap = hashmap;
 
@@ -7356,7 +7317,6 @@ FreeDistributionData(GpDistributionData *distData)
 			pfree(distData->cdbHash);
 		if (distData->hashmap)
 			hash_destroy(distData->hashmap);
-		pfree(distData->p_attr_types);
 		pfree(distData);
 	}
 }
@@ -7373,7 +7333,6 @@ InitPartitionData(EState *estate, Form_pg_attribute *attr,
 	/* init partition data*/
 	PartitionData *partitionData = palloc(sizeof(PartitionData));
 	partitionData->part_values = palloc0(num_phys_attrs * sizeof(Datum));
-	partitionData->part_attr_types = NULL;
 	partitionData->part_typio = palloc(num_phys_attrs * sizeof(Oid));
 	partitionData->part_infuncs = palloc(num_phys_attrs * sizeof(FmgrInfo));
 	partitionData->part_attnum = palloc(num_phys_attrs * sizeof(AttrNumber));
@@ -7401,7 +7360,7 @@ InitPartitionData(EState *estate, Form_pg_attribute *attr,
 static GpDistributionData *
 GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
                                   PartitionData *partitionData, HTAB *hashmap,
-                                  Oid *p_attr_types, TupleDesc tupDesc,
+                                  TupleDesc tupDesc,
                                   Datum *values, bool *nulls)
 {
 	ResultRelInfo *resultRelInfo;
@@ -7413,7 +7372,6 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 	values_for_partition = values;
 
 	GpDistributionData *distData = palloc(sizeof(GpDistributionData));
-	distData->p_attr_types = p_attr_types;
 	resultRelInfo = values_get_partition(values_for_partition,
 	                                     nulls,
 	                                     tupDesc,
@@ -7461,7 +7419,6 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 		}
 	}
 	distData->policy = part_policy;
-	distData->p_nattrs = part_p_nattrs;
 	distData->cdbHash = part_hash;
 
 	return distData;
@@ -7473,7 +7430,7 @@ GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls)
 	unsigned int target_seg;
 	CdbHash	   *cdbHash = distData->cdbHash;
 	GpPolicy   *policy = distData->policy; /* the partitioning policy for this table */
-	AttrNumber	p_nattrs = distData->p_nattrs; /* num of attributes in the distribution policy */
+	AttrNumber	p_nattrs;	/* num of attributes in the distribution policy */
 
 	/*
 	 * These might be NULL, if we're called with a "main" GpDistributionData,
@@ -7494,6 +7451,7 @@ GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls)
 	 * Perform a cdbhash on this data row. Perform a hash operation
 	 * on each attribute.
 	 */
+	p_nattrs = policy->nattrs;
 	cdbhashinit(cdbHash);
 
 	for (int i = 0; i < p_nattrs; i++)

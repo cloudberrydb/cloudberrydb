@@ -342,8 +342,6 @@ extern void CopyEolStrToType(CopyState cstate);
 typedef struct GpDistributionData
 {
 	GpPolicy *policy;	/* the partitioning policy for this table */
-	AttrNumber p_nattrs; /* num of attributes in the distribution policy */
-	Oid *p_attr_types;   /* types for each policy attribute */
 	CdbHash *cdbHash;
 	HTAB *hashmap;
 } GpDistributionData;
@@ -352,7 +350,6 @@ typedef struct PartitionData
 {
 	/* variables for partitioning */
 	Datum *part_values ;
-	Oid *part_attr_types; /* types for partitioning */
 	Oid *part_typio ;
 	FmgrInfo *part_infuncs ;
 	AttrNumber *part_attnum ;
