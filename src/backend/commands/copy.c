@@ -7241,6 +7241,14 @@ InitDistributionData(CopyState cstate, Form_pg_attribute *attr,
 		 * This is a partitioned table that has multiple, different
 		 * distribution policies.
 		 *
+		 * We don't support partitioned tables with arbitrary distribution
+		 * policies in the partitions. But we do support having randomly
+		 * distributed partitions, in a hash partitioned table. Also, it's
+		 * possible that the physical attribute numbers of the distribution
+		 * keys are different in different partitions, even if they were
+		 * specified with the same DISTRIBUTED BY columns, if some partitions
+		 * contain dropped columns.
+		 *
 		 * We build up a fake policy comprising the set of all columns used
 		 * to distribute all children in the partition configuration. That way
 		 * we're sure to parse all necessary columns in the input data and we
@@ -7424,8 +7432,9 @@ GetDistributionPolicyForPartition(CopyState cstate, EState *estate,
 										 false); /* don't need indices in QD */
 
 	/*
-	 * If we a partition set with differing policies,
-	 * get the policy for this particular child partition.
+	 * If we are copying into a partitioned table whose partitions have
+	 * differing distribution policies, get the policy for this particular
+	 * child partition.
 	 */
 	if (hashmap)
 	{
