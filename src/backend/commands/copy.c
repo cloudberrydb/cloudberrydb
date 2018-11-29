@@ -218,7 +218,6 @@ static bool NextCopyFromX(CopyState cstate, ExprContext *econtext,
 static void HandleCopyError(CopyState cstate);
 static void HandleQDErrorFrame(CopyState cstate);
 
-static void CopyInitPartitioningState(EState *estate);
 static void CopyInitDataParser(CopyState cstate);
 
 static GpDistributionData *
@@ -3632,9 +3631,20 @@ CopyFrom(CopyState cstate)
 	estate->es_result_relations = resultRelInfo;
 	estate->es_num_result_relations = 1;
 	estate->es_result_relation_info = resultRelInfo;
-	estate->es_result_partitions = cstate->partitions;
 
-	CopyInitPartitioningState(estate);
+	/*
+	 * Look up partition hierarchy of the target table.
+	 *
+	 * In the QE, this is received from the QD, as part of the CopyStmt.
+	 */
+	if (cstate->dispatch_mode == COPY_DISPATCH)
+		estate->es_result_partitions = RelationBuildPartitionDesc(cstate->rel, false);
+	else
+		estate->es_result_partitions = cstate->partitions;
+	if (estate->es_result_partitions)
+		estate->es_partition_state =
+			createPartitionState(estate->es_result_partitions,
+								 estate->es_num_result_relations);
 
 	/* Set up a tuple slot too */
 	baseSlot = ExecInitExtraTupleSlot(estate);
@@ -3683,26 +3693,14 @@ CopyFrom(CopyState cstate)
 
 	is_check_distkey = (cstate->on_segment && Gp_role == GP_ROLE_EXECUTE && gp_enable_segment_copy_checking) ? true : false;
 
+	/*
+	 * Initialize information about distribution keys, needed to compute target
+	 * segment for each row.
+	 */
 	if (cstate->dispatch_mode == COPY_DISPATCH)
 	{
-		/*
-		 * Variables for cdbpolicy
-		 */
 		AttrNumber	p_nattrs; /* num of attributes in the distribution policy */
 		Oid       *p_attr_types;	/* types for each policy attribute */
-
-		if (cstate->dispatch_mode == COPY_DISPATCH)
-		{
-			estate->es_result_partitions =
-				RelationBuildPartitionDesc(cstate->rel, false);
-		}
-		else
-		{
-			/* In QE, the dispatcher sent these as part of the CopyStmt, and it
-			 * was already copied into the EState earlier. */
-		}
-
-		CopyInitPartitioningState(estate);
 
 		/* get data for distribution */
 		bool multi_dist_policy = estate->es_result_partitions
@@ -7125,17 +7123,6 @@ CreateCopyDestReceiver(void)
 	self->processed = 0;
 
 	return (DestReceiver *) self;
-}
-
-
-static void CopyInitPartitioningState(EState *estate)
-{
-	if (estate->es_result_partitions)
-	{
-		estate->es_partition_state =
- 			createPartitionState(estate->es_result_partitions,
-								 estate->es_num_result_relations);
-	}
 }
 
 /*
