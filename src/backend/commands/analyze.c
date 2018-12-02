@@ -161,6 +161,7 @@ typedef struct AnlIndexData
 	int			attr_cnt;
 } AnlIndexData;
 
+
 /* Default statistics target (GUC parameter) */
 int			default_statistics_target = 100;
 

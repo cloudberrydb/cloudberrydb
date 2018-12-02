@@ -2023,10 +2023,10 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			best_path = sorted_path;
 
 		/*
-		 * Check to see if it's possible to optimize MIN/MAX aggregates.
-		 * If so, we will forget all the work we did so far to choose a
-		 * "regular" path ... but we had to do it anyway to be able to
-		 * tell which way is cheaper.
+		 * Check to see if it's possible to optimize MIN/MAX aggregates. If
+		 * so, we will forget all the work we did so far to choose a "regular"
+		 * path ... but we had to do it anyway to be able to tell which way is
+		 * cheaper.
 		 */
 		result_plan = optimize_minmax_aggregates(root,
 												 tlist,
@@ -2858,7 +2858,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		if (use_hashed_distinct)
 		{
 			/* Hashed aggregate plan --- no sort needed */
-
 			result_plan = (Plan *) make_agg(root,
 											result_plan->targetlist,
 											NIL,
@@ -5067,6 +5066,7 @@ expression_planner(Expr *expr)
 
 	return (Expr *) result;
 }
+
 
 /*
  * plan_cluster_use_sort

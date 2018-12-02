@@ -1081,7 +1081,6 @@ addRangeTableEntry(ParseState *pstate,
 	rte->relid = RelationGetRelid(rel);
 	rte->relkind = rel->rd_rel->relkind;
 
-
 	/*
 	 * Build the list of effective column names using user-supplied aliases
 	 * and/or actual column names.
@@ -2610,7 +2609,7 @@ get_rte_attribute_name(RangeTblEntry *rte, AttrNumber attnum)
 		return rci->colname;
 	}
 
-    /*
+	/*
 	 * If the RTE is a relation, go to the system catalogs not the
 	 * eref->colnames list.  This is a little slower but it will give the
 	 * right answer if the column has been renamed since the eref list was

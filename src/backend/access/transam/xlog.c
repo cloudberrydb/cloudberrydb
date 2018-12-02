@@ -799,7 +799,6 @@ static bool WaitForWALToBecomeAvailable(XLogRecPtr RecPtr, bool randAccess,
 							bool fetching_ckpt, XLogRecPtr tliRecPtr);
 static int	emode_for_corrupt_record(int emode, XLogRecPtr RecPtr);
 static void XLogFileClose(void);
-
 static void PreallocXlogFiles(XLogRecPtr endptr);
 static void RemoveOldXlogFiles(XLogSegNo segno, XLogRecPtr endptr);
 static void UpdateLastRemovedPtr(char *filename);
@@ -3533,6 +3532,7 @@ XLogFileRead(XLogSegNo segno, int emode, TimeLineID tli,
 			if (!restoredFromArchive)
 				return -1;
 			break;
+
 		case XLOG_FROM_PG_XLOG:
 		case XLOG_FROM_STREAM:
 			XLogFilePath(path, tli, segno);
@@ -4858,7 +4858,8 @@ XLOGShmemSize(void)
 void
 XLOGShmemInit(void)
 {
-	bool		foundCFile, foundXLog;
+	bool		foundCFile,
+				foundXLog;
 	char	   *allocptr;
 	int			i;
 

@@ -1234,8 +1234,8 @@ create_tidscan_path(PlannerInfo *root, RelOptInfo *rel, List *tidquals,
 AppendPath *
 create_append_path(PlannerInfo *root, RelOptInfo *rel, List *subpaths, Relids required_outer)
 {
-	ListCell *l;
 	AppendPath *pathnode = makeNode(AppendPath);
+	ListCell   *l;
 
 	pathnode->path.pathtype = T_Append;
 	pathnode->path.parent = rel;
@@ -1264,11 +1264,11 @@ create_append_path(PlannerInfo *root, RelOptInfo *rel, List *subpaths, Relids re
 
 	foreach(l, subpaths)
 	{
-		Path       *subpath = (Path *) lfirst(l);
+		Path	   *subpath = (Path *) lfirst(l);
 
 		pathnode->path.rows += subpath->rows;
 
-		if (l == list_head(subpaths))   /* first node? */
+		if (l == list_head(subpaths))	/* first node? */
 			pathnode->path.startup_cost = subpath->startup_cost;
 		pathnode->path.total_cost += subpath->total_cost;
 

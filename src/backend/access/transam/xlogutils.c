@@ -27,6 +27,7 @@
 #include "utils/hsearch.h"
 #include "utils/rel.h"
 
+
 /*
  * During XLOG replay, we may see XLOG records for incremental updates of
  * pages that no longer exist, because their relation was later dropped or

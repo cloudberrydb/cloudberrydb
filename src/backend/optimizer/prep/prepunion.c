@@ -119,7 +119,7 @@ static Node *adjust_appendrel_attrs_mutator(Node *node,
 							   adjust_appendrel_attrs_context *context);
 static Relids adjust_relid_set(Relids relids, Index oldrelid, Index newrelid);
 static List *adjust_inherited_tlist(List *tlist,
-					   AppendRelInfo *apprelinfo);
+					   AppendRelInfo *context);
 
 
 /*

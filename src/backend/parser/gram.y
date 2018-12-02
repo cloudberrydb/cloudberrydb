@@ -1791,7 +1791,6 @@ AlterRoleSetStmt:
 		;
 
 
-
 /*****************************************************************************
  *
  * Alter a postgresql DBMS user
@@ -13974,6 +13973,7 @@ func_application: func_name '(' ')'
 				}
 		;
 
+
 /*
  * func_expr and its cousin func_expr_windowless are split out from c_expr just
  * so that we have classifications for "everything that is a function call or
@@ -15489,6 +15489,7 @@ ColLabel:	IDENT									{ $$ = $1; }
 			| type_func_name_keyword				{ $$ = pstrdup($1); }
 			| reserved_keyword						{ $$ = pstrdup($1); }
 		;
+
 
 /*
  * Keyword category lists.  Generally, every keyword present in
