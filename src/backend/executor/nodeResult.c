@@ -262,21 +262,18 @@ TupleMatchesHashFilter(ResultState *node, TupleTableSlot *resultSlot)
 
 	if (node->hashFilter)
 	{
-		ListCell	*cell;
 		int			i;
 
 		cdbhashinit(node->hashFilter);
-		i = 0;
-		foreach(cell, resultNode->hashList)
+		for (i = 0; i < resultNode->numHashFilterCols; i++)
 		{
-			int			attnum = lfirst_int(cell);
+			int			attnum = resultNode->hashFilterColIdx[i];
 			Datum		hAttr;
 			bool		isnull;
 
 			hAttr = slot_getattr(resultSlot, attnum, &isnull);
 
 			cdbhash(node->hashFilter, i + 1, hAttr, isnull);
-			i++;
 		}
 
 		int targetSeg = cdbhashreduce(node->hashFilter);
@@ -391,12 +388,11 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 	/*
 	 * initialize hash filter
 	 */
-	if (node->hashList)
+	if (node->numHashFilterCols > 0)
 	{
 		TupleDesc	resultDesc = resstate->ps.ps_ResultTupleSlot->tts_tupleDescriptor;
 		int			numSegments;
 		Oid		   *typeoids;
-		ListCell   *cell;
 		int			i;
 
 		if (resstate->ps.state->es_plannedstmt->planGen == PLANGEN_PLANNER)
@@ -418,17 +414,16 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 			numSegments = GP_POLICY_ALL_NUMSEGMENTS;
 		}
 
-		typeoids = (Oid *) palloc(list_length(node->hashList) * sizeof(Oid));
-		i = 0;
-		foreach(cell, node->hashList)
+		typeoids = (Oid *) palloc(node->numHashFilterCols * sizeof(Oid));
+		for (i = 0; i < node->numHashFilterCols; i++)
 		{
-			int			attnum = lfirst_int(cell);
+			int			attnum = node->hashFilterColIdx[i];
 
 			Assert(attnum > 0);
-			typeoids[i++] = resultDesc->attrs[attnum - 1]->atttypid;
+			typeoids[i] = resultDesc->attrs[attnum - 1]->atttypid;
 		}
 
-		resstate->hashFilter = makeCdbHash(numSegments, list_length(node->hashList), typeoids);
+		resstate->hashFilter = makeCdbHash(numSegments, node->numHashFilterCols, typeoids);
 	}
 
 	if (!IsResManagerMemoryPolicyNone()

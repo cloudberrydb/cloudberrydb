@@ -6374,7 +6374,8 @@ make_result(PlannerInfo *root,
 	plan->righttree = NULL;
 	node->resconstantqual = resconstantqual;
 
-	node->hashList = NIL;
+	node->numHashFilterCols = 0;
+	node->hashFilterColIdx = NULL;
 
 	return node;
 }

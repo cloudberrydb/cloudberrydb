@@ -260,7 +260,9 @@ _copyResult(const Result *from)
 	 */
 	COPY_NODE_FIELD(resconstantqual);
 
-	COPY_NODE_FIELD(hashList);
+	COPY_SCALAR_FIELD(numHashFilterCols);
+	if (from->numHashFilterCols > 0)
+		COPY_POINTER_FIELD(hashFilterColIdx, from->numHashFilterCols * sizeof(AttrNumber));
 
 	return newnode;
 }

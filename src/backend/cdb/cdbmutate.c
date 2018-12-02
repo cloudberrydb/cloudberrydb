@@ -3628,7 +3628,6 @@ sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,
 	if (typesOK && allConstantValuesClause(plan))
 	{
 		Result	   *rNode = (Result *) plan;
-		List	   *hList = NIL;
 		int			i;
 
 		/*
@@ -3637,14 +3636,6 @@ sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,
 		 *
 		 * See partition check above.
 		 */
-
-		/* build our list */
-		for (i = 0; i < (*targetPolicy)->nattrs; i++)
-		{
-			Assert((*targetPolicy)->attrs[i] > 0);
-
-			hList = lappend_int(hList, (*targetPolicy)->attrs[i]);
-		}
 
 		if (root->config->gp_enable_direct_dispatch)
 		{
@@ -3656,7 +3647,15 @@ sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,
 			 */
 		}
 
-		rNode->hashList = hList;
+		/* Set a hash filter in the Result plan node */
+		rNode->numHashFilterCols = (*targetPolicy)->nattrs;
+		rNode->hashFilterColIdx = palloc((*targetPolicy)->nattrs * sizeof(AttrNumber));
+		for (i = 0; i < (*targetPolicy)->nattrs; i++)
+		{
+			Assert((*targetPolicy)->attrs[i] > 0);
+
+			rNode->hashFilterColIdx[i] = (*targetPolicy)->attrs[i];
+		}
 
 		/* Build a partitioned flow */
 		plan->flow->flotype = FLOW_PARTITIONED;

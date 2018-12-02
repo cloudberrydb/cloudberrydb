@@ -1491,7 +1491,8 @@ _readResult(void)
 
 	READ_NODE_FIELD(resconstantqual);
 
-	READ_NODE_FIELD(hashList);
+	READ_INT_FIELD(numHashFilterCols);
+	READ_INT_ARRAY(hashFilterColIdx, local_node->numHashFilterCols, AttrNumber);
 
 	READ_DONE();
 }

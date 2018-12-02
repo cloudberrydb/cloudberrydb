@@ -2072,7 +2072,9 @@ CTranslatorDXLToPlStmt::TranslateDXLRedistributeMotionToResultHashFilters
 		CDXLNode *hash_expr_list_dxlnode = (*motion_dxlnode)[EdxlrmIndexHashExprList];
 		const ULONG length = hash_expr_list_dxlnode->Arity();
 		GPOS_ASSERT(0 < length);
-		
+
+		result->numHashFilterCols = length;
+		result->hashFilterColIdx = (AttrNumber *) gpdb::GPDBAlloc(length * sizeof(AttrNumber));
 		for (ULONG ul = 0; ul < length; ul++)
 		{
 			CDXLNode *hash_expr_dxlnode = (*hash_expr_list_dxlnode)[ul];
@@ -2116,8 +2118,8 @@ CTranslatorDXLToPlStmt::TranslateDXLRedistributeMotionToResultHashFilters
 				resno = target_entry->resno;
 			}
 			GPOS_ASSERT(gpos::int_max != resno);
-			
-			result->hashList = gpdb::LAppendInt(result->hashList, resno);
+
+			result->hashFilterColIdx[ul] = resno;
 		}
 	}
 	else
