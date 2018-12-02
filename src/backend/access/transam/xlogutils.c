@@ -19,10 +19,6 @@
  */
 #include "postgres.h"
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include "access/xlog.h"
 #include "access/xlogutils.h"
 #include "catalog/catalog.h"

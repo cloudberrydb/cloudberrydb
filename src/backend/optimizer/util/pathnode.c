@@ -18,11 +18,6 @@
 
 #include <math.h>
 
-#include "catalog/pg_operator.h"
-#include "catalog/pg_proc.h"
-#include "executor/executor.h"
-#include "executor/nodeHash.h"
-#include "foreign/fdwapi.h"
 #include "miscadmin.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
@@ -32,13 +27,13 @@
 #include "optimizer/restrictinfo.h"
 #include "optimizer/tlist.h"
 #include "parser/parsetree.h"
-#include "utils/memutils.h"
-#include "utils/selfuncs.h"
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
 
+#include "catalog/pg_proc.h"
 #include "cdb/cdbpath.h"        /* cdb_create_motion_path() etc */
 #include "cdb/cdbutil.h"		/* getgpsegmentCount() */
+#include "executor/nodeHash.h"
 
 typedef enum
 {
