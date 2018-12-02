@@ -246,7 +246,7 @@ namespace gpdb {
 	bool GetCastFunc(Oid src_oid, Oid dest_oid, bool *is_binary_coercible, Oid *cast_fn_oid, CoercionPathType *pathtype);
 	
 	// get type of operator
-	unsigned int GetComparisonType(Oid op_oid, Oid left_oid, Oid right_oid);
+	unsigned int GetComparisonType(Oid op_oid);
 	
 	// get scalar comparison between given types
 	Oid GetComparisonOperator(Oid left_oid, Oid right_oid, unsigned int cmpt);

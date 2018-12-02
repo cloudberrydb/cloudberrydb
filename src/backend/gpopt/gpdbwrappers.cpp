@@ -1087,15 +1087,13 @@ gpdb::GetCastFunc
 unsigned int
 gpdb::GetComparisonType
 	(
-	Oid op_oid,
-	Oid left_oid,
-	Oid right_oid
+	Oid op_oid
 	)
 {
 	GP_WRAP_START;
 	{
 		/* catalog tables: pg_amop */
-		return get_comparison_type(op_oid, left_oid, right_oid);
+		return get_comparison_type(op_oid);
 	}
 	GP_WRAP_END;
 	return CmptOther;
