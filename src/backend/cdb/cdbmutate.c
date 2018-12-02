@@ -42,6 +42,7 @@
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
 #include "catalog/gp_policy.h"
+#include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
 
 #include "catalog/pg_proc.h"
@@ -2768,6 +2769,35 @@ cdbhash_const_list(List *plConsts, int iSegments)
 	return cdbhashreduce(pcdbhash);
 }
 
+/*
+ * Construct an expression that checks whether the current segment is
+ * 'segid'.
+ */
+Node *
+makeSegmentFilterExpr(int segid)
+{
+	/* Build an expression: gp_execution_segment() = <segid> */
+	return (Node *)
+		make_opclause(Int4EqualOperator,
+					  BOOLOID,
+					  false,	/* opretset */
+					  (Expr *) makeFuncExpr(F_MPP_EXECUTION_SEGMENT,
+											INT4OID,
+											NIL,	/* args */
+											InvalidOid,
+											InvalidOid,
+											COERCE_EXPLICIT_CALL),
+					  (Expr *) makeConst(INT4OID,
+										 -1,		/* consttypmod */
+										 InvalidOid, /* constcollid */
+										 sizeof(int32),
+										 Int32GetDatum(segid),
+										 false,		/* constisnull */
+										 true),		/* constbyval */
+					  InvalidOid,	/* opcollid */
+					  InvalidOid	/* inputcollid */
+			);
+}
 
 typedef struct ParamWalkerContext
 {
@@ -3626,7 +3656,6 @@ sri_optimize_for_result(PlannerInfo *root, Plan *plan, RangeTblEntry *rte,
 			 */
 		}
 
-		rNode->hashFilter = true;
 		rNode->hashList = hList;
 
 		/* Build a partitioned flow */

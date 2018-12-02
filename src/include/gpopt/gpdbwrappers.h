@@ -403,7 +403,10 @@ namespace gpdb {
 
 	// make a NULL constant of the given type
 	Node *MakeNULLConst(Oid type_oid);
-	
+
+	// make a NULL constant of the given type
+	Node *MakeSegmentFilterExpr(int segid);
+
 	// create a new target entry
 	TargetEntry *MakeTargetEntry(Expr *expr, AttrNumber resno, char *resname, bool resjunk);
 
@@ -587,7 +590,10 @@ namespace gpdb {
 
 	// hash a list of const values with GPDB's hash function
 	int32 CdbHashConstList(List *constants, int num_segments);
-	
+
+	// get a random segment number
+	unsigned int CdbHashRandomSeg(int num_segments);
+
 	// check permissions on range table 
 	void CheckRTPermissions(List *rtable);
 	

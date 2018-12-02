@@ -430,7 +430,6 @@ _outResult(StringInfo str, const Result *node)
 
 	WRITE_NODE_FIELD(resconstantqual);
 
-	WRITE_BOOL_FIELD(hashFilter);
 	WRITE_NODE_FIELD(hashList);
 }
 

@@ -305,7 +305,6 @@ typedef struct Result
 {
 	Plan		plan;
 	Node	   *resconstantqual;
-	bool		hashFilter;
 	List	   *hashList;
 } Result;
 

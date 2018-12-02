@@ -1820,6 +1820,16 @@ gpdb::MakeNULLConst
 	return NULL;
 }
 
+Node *
+gpdb::MakeSegmentFilterExpr(int segid)
+{
+	GP_WRAP_START;
+	{
+	  return (Node *) makeSegmentFilterExpr(segid);
+	}
+	GP_WRAP_END;
+}
+
 TargetEntry *
 gpdb::MakeTargetEntry
 	(
@@ -2751,6 +2761,20 @@ gpdb::CdbHashConstList
 	GP_WRAP_START;
 	{
 		return cdbhash_const_list(constants, num_segments);
+	}
+	GP_WRAP_END;
+	return 0;
+}
+
+unsigned int
+gpdb::CdbHashRandomSeg
+	(
+	int num_segments
+	)
+{
+	GP_WRAP_START;
+	{
+		return cdbhashrandomseg(num_segments);
 	}
 	GP_WRAP_END;
 	return 0;
