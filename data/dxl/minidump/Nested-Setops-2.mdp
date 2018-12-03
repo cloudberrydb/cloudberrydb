@@ -630,8 +630,12 @@
             <dxl:HashCondList>
               <dxl:Not>
                 <dxl:IsDistinctFrom OperatorMdid="0.98.1.0">
-                  <dxl:Ident ColId="13" ColName="name" TypeMdid="0.1043.1.0"/>
-                  <dxl:Ident ColId="57" ColName="name" TypeMdid="0.1043.1.0"/>
+                  <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                    <dxl:Ident ColId="13" ColName="name" TypeMdid="0.1043.1.0"/>
+                  </dxl:Cast>
+                  <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                    <dxl:Ident ColId="57" ColName="name" TypeMdid="0.1043.1.0"/>
+                  </dxl:Cast>
                 </dxl:IsDistinctFrom>
               </dxl:Not>
               <dxl:Not>

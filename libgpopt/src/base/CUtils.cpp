@@ -34,6 +34,7 @@
 #include "gpopt/exception.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 
+#include "naucrates/exception.h"
 #include "naucrates/base/IDatumInt2.h"
 #include "naucrates/base/IDatumInt4.h"
 #include "naucrates/base/IDatumInt8.h"
@@ -179,50 +180,6 @@ CUtils::PexprScalarProjectElement
 	return GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), pexpr);
 }
 
-// return the scalar comparison operator id between the two types
-IMDId *
-CUtils::GetScCmpMdId
-	(
-	IMemoryPool *mp,
-	CMDAccessor *md_accessor,
-	IMDId *left_mdid,
-	IMDId *right_mdid,
-	IMDType::ECmpType cmp_type
-	)
-{
-	GPOS_ASSERT(NULL != left_mdid);
-	GPOS_ASSERT(NULL != right_mdid);
-	GPOS_ASSERT(IMDType::EcmptOther > cmp_type);
-
-	if (left_mdid->Equals(right_mdid))
-	{
-		const IMDType *pmdtypeLeft = md_accessor->RetrieveType(left_mdid);
-		return pmdtypeLeft->GetMdidForCmpType(cmp_type);
-	}
-	
-	if (CMDAccessorUtils::FCmpExists(md_accessor, left_mdid, right_mdid, cmp_type))
-	{
-		return md_accessor->Pmdsccmp(left_mdid, right_mdid, cmp_type)->MdIdOp();
-	}
-	else if (CMDAccessorUtils::FCmpExists(md_accessor, right_mdid, right_mdid, cmp_type) && CMDAccessorUtils::FCastExists(md_accessor, left_mdid, right_mdid))
-	{
-		return md_accessor->Pmdsccmp(right_mdid, right_mdid, cmp_type)->MdIdOp();
-	}
-	else if (CMDAccessorUtils::FCmpExists(md_accessor, left_mdid, left_mdid, cmp_type) && CMDAccessorUtils::FCastExists(md_accessor, right_mdid, left_mdid))
-	{
-		return md_accessor->Pmdsccmp(left_mdid, left_mdid, cmp_type)->MdIdOp();
-	}
-	else
-	{
-		CWStringDynamic *str = GPOS_NEW(mp) CWStringDynamic(mp);
-		str->AppendFormat(GPOS_WSZ_LIT("Cannot generate metadata id for scaler comparison operator between %ls and %ls"), left_mdid->GetBuffer(), right_mdid->GetBuffer());
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, str->GetBuffer());
-	}
-
-	// Calling CMDAccessor to raise error on non-comparable data types
-	return md_accessor->Pmdsccmp(left_mdid, right_mdid, cmp_type)->MdIdOp();
-}
-
 // generate a comparison expression over two columns
 CExpression *
 CUtils::PexprScalarCmp
@@ -243,7 +200,7 @@ CUtils::PexprScalarCmp
 		IMDId *left_mdid = pcrLeft->RetrieveType()->MDId();
 		IMDId *right_mdid = pcrRight->RetrieveType()->MDId();
 
-		if (FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
+		if (CMDAccessorUtils::FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
 		{
 			CExpression *pexprScCmp = PexprScalarCmp(mp, pcrLeft, pcrRight, cmp_type);
 			mdid_op->Release();
@@ -259,36 +216,6 @@ CUtils::PexprScalarCmp
 						PexprScalarIdent(mp, pcrLeft),
 						PexprScalarIdent(mp, pcrRight)
 						);
-}
-
-// check is a comparison between given types or a comparison after casting
-// one side to an another exists
-BOOL
-CUtils::FCmpOrCastedCmpExists
-(
-	IMDId *left_mdid,
-	IMDId *right_mdid,
-	IMDType::ECmpType cmp_type
-	)
-{
-	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-	
-	if (CMDAccessorUtils::FCmpExists(md_accessor, left_mdid, right_mdid, cmp_type))
-	{
-		return true;
-	}
-	
-	if (CMDAccessorUtils::FCmpExists(md_accessor, right_mdid, right_mdid, cmp_type) && CMDAccessorUtils::FCastExists(md_accessor, left_mdid, right_mdid))
-	{
-		return true;
-	}
-	
-	if (CMDAccessorUtils::FCmpExists(md_accessor, left_mdid, left_mdid, cmp_type) && CMDAccessorUtils::FCastExists(md_accessor, right_mdid, left_mdid))
-	{
-		return true;
-	}
-	
-	return false;
 }
 
 // Generate a comparison expression between a column and an expression
@@ -311,7 +238,7 @@ CUtils::PexprScalarCmp
 		IMDId *left_mdid = pcrLeft->RetrieveType()->MDId();
 		IMDId *right_mdid = CScalar::PopConvert(pexprRight->Pop())->MdidType();
 
-		if (FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
+		if (CMDAccessorUtils::FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
 		{
 			CExpression *pexprScCmp = PexprScalarCmp(mp, pcrLeft, pexprRight, cmp_type);
 			mdid_op->Release();
@@ -407,7 +334,7 @@ CUtils::PexprScalarCmp
 		IMDId *left_mdid = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
 		IMDId *right_mdid = pcrRight->RetrieveType()->MDId();
 
-		if (FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
+		if (CMDAccessorUtils::FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
 		{
 			CExpression *pexprScCmp = PexprScalarCmp(mp, pexprLeft, pcrRight, cmp_type);
 			mdid_op->Release();
@@ -445,7 +372,7 @@ CUtils::PexprScalarCmp
 		IMDId *left_mdid = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
 		IMDId *right_mdid = CScalar::PopConvert(pexprRight->Pop())->MdidType();
 
-		if (FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
+		if (CMDAccessorUtils::FCmpOrCastedCmpExists(left_mdid, right_mdid, cmp_type))
 		{
 			CExpression *pexprScCmp = PexprScalarCmp(mp, pexprLeft, pexprRight, cmp_type);
 			mdid_op->Release();
@@ -479,43 +406,23 @@ CUtils::PexprScalarCmp
 	
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
-	IMDId *left_mdid = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
-	IMDId *right_mdid = CScalar::PopConvert(pexprRight->Pop())->MdidType();
-
 	CExpression *pexprNewLeft = pexprLeft;
 	CExpression *pexprNewRight = pexprRight;
 
-	IMDId *pmdidCmpOp = NULL;
+	IMDId *op_mdid = CMDAccessorUtils::GetScCmpMdIdApplyCasts(mp, md_accessor, pexprNewLeft, pexprNewRight, cmp_type);
 
-	if (CMDAccessorUtils::FCmpExists(md_accessor, left_mdid, right_mdid, cmp_type))
-	{
-		pmdidCmpOp = GetScCmpMdId(mp, md_accessor, left_mdid, right_mdid, cmp_type);
-	}
-	else if (CMDAccessorUtils::FCmpExists(md_accessor, left_mdid, left_mdid, cmp_type) && CMDAccessorUtils::FCastExists(md_accessor, right_mdid, left_mdid))
-	{
-		pexprNewRight = PexprCast(mp, md_accessor, pexprRight, left_mdid);
-		pmdidCmpOp = GetScCmpMdId(mp, md_accessor, left_mdid, left_mdid, cmp_type);
-	}
-	else if (CMDAccessorUtils::FCmpExists(md_accessor, right_mdid, right_mdid, cmp_type) && CMDAccessorUtils::FCastExists(md_accessor, left_mdid, right_mdid))
-	{
-		pexprNewLeft = PexprCast(mp, md_accessor, pexprLeft, right_mdid);
-		pmdidCmpOp = GetScCmpMdId(mp, md_accessor, right_mdid, right_mdid, cmp_type);
-	}
-	else
-	{
-		CWStringDynamic *str = GPOS_NEW(mp) CWStringDynamic(mp);
-		str->AppendFormat(GPOS_WSZ_LIT("Cannot generate a comparison expression between %ls and %ls"), left_mdid->GetBuffer(), right_mdid->GetBuffer());
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, str->GetBuffer());
-	}
+	GPOS_ASSERT(pexprNewLeft != NULL);
+	GPOS_ASSERT(pexprNewRight != NULL);
 
-	pmdidCmpOp->AddRef();
-	const CMDName mdname = md_accessor->RetrieveScOp(pmdidCmpOp)->Mdname();
+	op_mdid->AddRef();
+	const IMDScalarOp *op = md_accessor->RetrieveScOp(op_mdid);
+	const CMDName mdname = op->Mdname();
 	CWStringConst strCmpOpName(mdname.GetMDName()->GetBuffer());
 	
 	CExpression *pexprResult = GPOS_NEW(mp) CExpression
 					(
 					mp,
-					GPOS_NEW(mp) CScalarCmp(mp, pmdidCmpOp, GPOS_NEW(mp) CWStringConst(mp, strCmpOpName.GetBuffer()), cmp_type),
+					GPOS_NEW(mp) CScalarCmp(mp, op_mdid, GPOS_NEW(mp) CWStringConst(mp, strCmpOpName.GetBuffer()), cmp_type),
 					pexprNewLeft,
 					pexprNewRight
 					);
@@ -846,31 +753,12 @@ CUtils::PexprIDF
 	GPOS_ASSERT(NULL != pexprLeft);
 	GPOS_ASSERT(NULL != pexprRight);
 
-	IMDId *left_mdid = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
-	IMDId *right_mdid = CScalar::PopConvert(pexprRight->Pop())->MdidType();
-
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	CExpression *pexprNewLeft = pexprLeft;
 	CExpression *pexprNewRight = pexprRight;
 
-	IMDId *pmdidEqOp = NULL;
-	if (CMDAccessorUtils::FCmpExists(md_accessor, left_mdid, right_mdid, IMDType::EcmptEq))
-	{
-		pmdidEqOp = GetScCmpMdId(mp, md_accessor, left_mdid, right_mdid, IMDType::EcmptEq);
-	}
-	else if (CMDAccessorUtils::FCastExists(md_accessor, left_mdid, right_mdid))
-	{
-		pexprNewLeft = PexprCast(mp, md_accessor, pexprLeft, right_mdid);
-		pmdidEqOp = GetScCmpMdId(mp, md_accessor, right_mdid, right_mdid, IMDType::EcmptEq);
-	}
-	else
-	{
-		GPOS_ASSERT(CMDAccessorUtils::FCastExists(md_accessor, right_mdid, left_mdid));
-		pexprNewRight = PexprCast(mp, md_accessor, pexprRight, left_mdid);
-		pmdidEqOp = GetScCmpMdId(mp, md_accessor, left_mdid, left_mdid, IMDType::EcmptEq);
-	}
-
+	IMDId *pmdidEqOp = CMDAccessorUtils::GetScCmpMdIdApplyCasts(mp, md_accessor, pexprNewLeft, pexprNewRight, IMDType::EcmptEq);
 	pmdidEqOp->AddRef();
 	const CMDName mdname = md_accessor->RetrieveScOp(pmdidEqOp)->Mdname();
 	CWStringConst strEqOpName(mdname.GetMDName()->GetBuffer());

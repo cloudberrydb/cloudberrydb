@@ -112,15 +112,6 @@ namespace gpopt
 			// raises an exception if CTE Producer and CTE Consumer does not have the same locality
 			static
 			void ValidateCTEProducerConsumerLocality(IMemoryPool *mp, CExpression *pexpr, EExecLocalityType edt, UlongToUlongMap *phmulul);
-
-			// check is a comparison between given types or a comparison after casting
-			// one side to an another exists
-			static
-			BOOL FCmpOrCastedCmpExists(IMDId *left_mdid, IMDId *right_mdid, IMDType::ECmpType cmp_type);
-
-			// return the mdid of the given scalar comparison between the two types
-			static
-			IMDId *GetScCmpMdId(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *left_mdid, IMDId *right_mdid, IMDType::ECmpType cmp_type);
 			
 			// generate a comparison expression for two column references
 			static

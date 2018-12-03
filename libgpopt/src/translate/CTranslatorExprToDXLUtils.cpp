@@ -910,7 +910,7 @@ CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 {
 	IMDId *pmdidScCmp = NULL;
 
-	pmdidScCmp = CUtils::GetScCmpMdId(mp, md_accessor, pmdidTypeOther, pmdidTypePartKey, cmp_type);
+	pmdidScCmp = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, pmdidTypeOther, pmdidTypePartKey, cmp_type);
 
 	const IMDScalarOp *md_scalar_op = md_accessor->RetrieveScOp(pmdidScCmp);
 	const CWStringConst *pstrScCmp = md_scalar_op->Mdname().GetMDName();
@@ -1209,11 +1209,11 @@ CTranslatorExprToDXLUtils::PdxlnCmp
 
 	if (IMDId::IsValid(pmdidTypeCastExpr))
 	{
-		pmdidScCmp = CUtils::GetScCmpMdId(mp, md_accessor, pmdidTypeCastExpr, pmdidTypeExpr, cmp_type);
+		pmdidScCmp = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, pmdidTypeCastExpr, pmdidTypeExpr, cmp_type);
 	}
 	else
 	{
-		pmdidScCmp = CUtils::GetScCmpMdId(mp, md_accessor, pmdidTypePartKey, pmdidTypeExpr, cmp_type);
+		pmdidScCmp = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, pmdidTypePartKey, pmdidTypeExpr, cmp_type);
 	}
 	
 	const IMDScalarOp *md_scalar_op = md_accessor->RetrieveScOp(pmdidScCmp); 

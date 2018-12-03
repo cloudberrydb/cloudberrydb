@@ -11,6 +11,7 @@
 
 #include "gpos/base.h"
 
+#include "gpopt/base/CCastUtils.h"
 #include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/base/CConstraintDisjunction.h"
 #include "gpopt/base/CConstraintInterval.h"
@@ -419,12 +420,33 @@ CConstraintInterval::PciIntervalFromScalarCmp
 	{
 		// column
 #ifdef GPOS_DEBUG
-		CScalarIdent *popScId = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		CScalarIdent *popScId;
+		CExpression *pexprLeft = (*pexpr)[0];
+		if (CUtils::FScalarIdent((*pexpr)[0]))
+		{
+
+			popScId = CScalarIdent::PopConvert(pexprLeft->Pop());
+		}
+		else
+		{
+			GPOS_ASSERT(CCastUtils::FBinaryCoercibleCastedScId(pexprLeft));
+			popScId = CScalarIdent::PopConvert((*pexprLeft)[0]->Pop());
+		}
 		GPOS_ASSERT (colref == (CColRef *) popScId->Pcr());
 #endif // GPOS_DEBUG
 
 		// constant
-		CScalarConst *popScConst = CScalarConst::PopConvert((*pexpr)[1]->Pop());
+		CExpression *pexprRight = (*pexpr)[1];
+		CScalarConst *popScConst;
+		if (CUtils::FScalarConst(pexprRight))
+		{
+			popScConst = CScalarConst::PopConvert(pexprRight->Pop());
+		}
+		else
+		{
+			GPOS_ASSERT(CCastUtils::FBinaryCoercibleCastedConst(pexprRight));
+			popScConst = CScalarConst::PopConvert((*pexprRight)[0]->Pop());
+		}
 		CScalarCmp *popScCmp = CScalarCmp::PopConvert(pexpr->Pop());
 
 		return PciIntervalFromColConstCmp(mp, colref, popScCmp->ParseCmpType(), popScConst);

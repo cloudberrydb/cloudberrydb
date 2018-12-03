@@ -1109,13 +1109,16 @@ CPredicateUtils::FCompareIdentToConst
 	CExpression *pexprRight = (*pexpr)[1];
 
 	// left side must be scalar ident
-	if (COperator::EopScalarIdent != pexprLeft->Pop()->Eopid())
+
+	if (!(CUtils::FScalarIdent(pexprLeft) ||
+				CCastUtils::FBinaryCoercibleCastedScId(pexprLeft)))
 	{
 		return false;
 	}
 
 	// right side must be a constant
-	if (COperator::EopScalarConst != pexprRight->Pop()->Eopid())
+	if (!(CUtils::FScalarConst(pexprRight) ||
+		  CCastUtils::FBinaryCoercibleCastedConst(pexprRight)))
 	{
 		return false;
 	}

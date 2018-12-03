@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Metadata SystemIds="0.GPDB,2.GPDB">
-    <dxl:MDScalarComparison Mdid="4.23.1.0;20.1.0;0" Name="=" ComparisonType="Eq" LeftType="0.23.1.0" RightType="0.20.1.0" OperatorMdid="0.416.1.0" ReturnsNullOnNullInput="true"/>
+    <dxl:MDScalarComparison Mdid="4.23.1.0;20.1.0;0" Name="=" ComparisonType="Eq" LeftType="0.23.1.0" RightType="0.20.1.0" OperatorMdid="0.15.1.0"/>
     <dxl:RelationStatistics Mdid="2.1234.1.1" Name="T" Rows="1234.000000"/>
     <dxl:MDScalarComparison Mdid="4.23.1.0;20.1.0;4" Name="&gt;" ComparisonType="GT" LeftType="0.23.1.0" RightType="0.20.1.0" OperatorMdid="0.76.1.0"/>
     <dxl:MDScalarComparison Mdid="4.23.1.0;20.1.0;3" Name="&lt;=" ComparisonType="LEq" LeftType="0.23.1.0" RightType="0.20.1.0" OperatorMdid="0.80.1.0"/>
@@ -11,6 +11,14 @@
     <dxl:MDCast Mdid="3.23.1.0;1700.1.0" Name="numeric" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.1700.1.0" CastFuncId="0.1740.1.0"/>
     <dxl:MDCast Mdid="3.20.1.0;1700.1.0" Name="numeric" BinaryCoercible="false" SourceTypeId="0.20.1.0" DestinationTypeId="0.1700.1.0" CastFuncId="0.1781.1.0"/>
     <dxl:MDCast Mdid="3.23.1.0;25.1.1" Name="text" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.112.1.0"/>
+    <dxl:GPDBScalarOp Mdid="0.15.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
+      <dxl:LeftType Mdid="0.23.1.0"/>
+      <dxl:RightType Mdid="0.20.1.0"/>
+      <dxl:ResultType Mdid="0.16.1.0"/>
+      <dxl:OpFunc Mdid="0.852.1.0"/>
+      <dxl:Commutator Mdid="0.416.1.0"/>
+      <dxl:InverseOp Mdid="0.36.1.0"/>
+    </dxl:GPDBScalarOp>
     <dxl:GPDBScalarOp Mdid="0.36.1.0" Name="&lt;&gt;" ComparisonType="NEq" ReturnsNullOnNullInput="true">
       <dxl:LeftType Mdid="0.23.1.0"/>
       <dxl:RightType Mdid="0.20.1.0"/>
