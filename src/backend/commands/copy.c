@@ -7320,27 +7320,29 @@ GetTargetSeg(GpDistributionData *distData, Datum *baseValues, bool *baseNulls)
 	 * on each attribute.
 	 */
 	p_nattrs = policy->nattrs;
-	cdbhashinit(cdbHash);
-
-	for (int i = 0; i < p_nattrs; i++)
+	if (p_nattrs > 0)
 	{
-		/* current attno from the policy */
-		AttrNumber h_attnum = policy->attrs[i];
+		cdbhashinit(cdbHash);
 
-		cdbhash(cdbHash, i + 1,
-				baseValues[h_attnum - 1],
-				baseNulls[h_attnum - 1]);
+		for (int i = 0; i < p_nattrs; i++)
+		{
+			/* current attno from the policy */
+			AttrNumber h_attnum = policy->attrs[i];
+
+			cdbhash(cdbHash, i + 1,
+					baseValues[h_attnum - 1],
+					baseNulls[h_attnum - 1]);
+		}
+
+		target_seg = cdbhashreduce(cdbHash); /* hash result segment */
 	}
-
-	/*
-	 * If this is a relation with an empty policy, there is no
-	 * hash key to use, therefore use cdbhashnokey() to pick a
-	 * hash value for us.
-	 */
-	if (p_nattrs == 0)
-		cdbhashnokey(cdbHash);
-
-	target_seg = cdbhashreduce(cdbHash); /* hash result segment */
+	else
+	{
+		/*
+		 * Randomly distributed. Pick a segment at random.
+		 */
+		target_seg = cdbhashrandomseg(policy->numsegments);
+	}
 
 	return target_seg;
 }

@@ -1353,23 +1353,24 @@ evalHashKey(ExprContext *econtext, List *hashkeys, List *hashtypes, CdbHash * h)
 {
 	ListCell   *hk;
 	MemoryContext oldContext;
+	unsigned int target_seg;
 
 	ResetExprContext(econtext);
 
 	oldContext = MemoryContextSwitchTo(econtext->ecxt_per_tuple_memory);
 
-	cdbhashinit(h);
-
 	/*
 	 * If we have 1 or more distribution keys for this relation, hash
 	 * them. However, If this happens to be a relation with an empty
-	 * policy (partitioning policy with a NULL distribution key list)
-	 * then we have no hash key value to feed in, so use cdbhashnokey()
-	 * to assign a hash value for us.
+	 * policy (partitioning policy with a NULL distribution key list) then
+	 * we have no hash key value to feed in, so use cdbhashrandomseg() to
+	 * pick a segment at random.
 	 */
 	if (list_length(hashkeys) > 0)
 	{
 		int			i;
+
+		cdbhashinit(h);
 
 		i = 0;
 		foreach(hk, hashkeys)
@@ -1389,15 +1390,16 @@ evalHashKey(ExprContext *econtext, List *hashkeys, List *hashtypes, CdbHash * h)
 			cdbhash(h, i + 1, keyval, isNull);
 			i++;
 		}
+		target_seg = cdbhashreduce(h);
 	}
 	else
 	{
-		cdbhashnokey(h);
+		target_seg = cdbhashrandomseg(h->numsegs);
 	}
 
 	MemoryContextSwitchTo(oldContext);
 
-	return cdbhashreduce(h);
+	return target_seg;
 }
 
 
