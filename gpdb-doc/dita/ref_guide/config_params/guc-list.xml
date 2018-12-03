@@ -3435,21 +3435,11 @@
     <title>gp_enable_segment_copy_checking</title>
     <body>
       <p>Controls whether the distribution policy for a table (from the table
-          <codeph>DISTRIBUTED</codeph> clause) is checked when data is copied into the table with
-        the <codeph>COPY FROM...ON SEGMENT</codeph> command. The default is <codeph>true</codeph>,
-        check the policy when copying data into the table. An error is returned in these
-          situations.<ul id="ul_nmf_sqm_z1b">
-          <li>For a table that is not a partitioned table, an error is returned if the row of data
-            violates the distribution policy for a segment instance.</li>
-          <li>For a partitioned table, an error is returned if either of the following is true.<ul
-              id="ul_yqz_dsm_z1b">
-              <li>If the distribution policy of the child leaf partitioned table is the same as the
-                root table and the row of data violates the distribution policy for a segment
-                instance.</li>
-              <li>If the distribution policy of the child leaf partitioned table is not the same as
-                the root table. </li>
-            </ul></li>
-        </ul></p>
+      <codeph>DISTRIBUTED</codeph> clause) is checked when data is copied into the table with
+      the <codeph>COPY FROM...ON SEGMENT</codeph> command. If true, an error is returned if
+      a row of data violates the distribution policy for a segment instance.
+      The default is <codeph>true</codeph>.
+      </p>
       <p>If the value is <codeph>false</codeph>, the distribution policy is not checked. The data
         added to the table might violate the table distribution policy for the segment instance.
         Manual redistribution of table data might be required. See the <codeph>ALTER TABLE</codeph>

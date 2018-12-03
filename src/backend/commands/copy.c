@@ -217,7 +217,7 @@ static void HandleQDErrorFrame(CopyState cstate);
 
 static void CopyInitDataParser(CopyState cstate);
 
-static GpDistributionData *InitDistributionData(CopyState cstate, bool multi_dist_policy);
+static GpDistributionData *InitDistributionData(CopyState cstate, EState *estate);
 static void FreeDistributionData(GpDistributionData *distData);
 static GpDistributionData *GetDistributionPolicyForPartition(CopyState cstate,
 								  EState *estate,
@@ -2042,14 +2042,6 @@ CopyDispatchOnSegment(CopyState cstate, const CopyStmt *stmt)
 	{
 		if (rel_is_partitioned(RelationGetRelid(cstate->rel)))
 		{
-			if (gp_enable_segment_copy_checking &&
-				!partition_policies_equal(cstate->rel->rd_cdbpolicy, RelationBuildPartitionDesc(cstate->rel, false)))
-			{
-				ereport(ERROR,
-						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("COPY FROM ON SEGMENT doesn't support checking distribution key restriction when the distribution policy of the partition table is different from the main table"),
-						 errhint("\"SET gp_enable_segment_copy_checking=off\" can be used to disable distribution key checking.")));
-			}
 			PartitionNode *pn = RelationBuildPartitionDesc(cstate->rel, false);
 
 			all_relids = list_concat(all_relids, all_partition_relids(pn));
@@ -3681,36 +3673,29 @@ CopyFrom(CopyState cstate)
 	errcallback.previous = error_context_stack;
 	error_context_stack = &errcallback;
 
+	/*
+	 * Do we need to check the distribution keys? Normally, the QD computes the
+	 * target segment and sends the data to the correct segment. We don't need to
+	 * verify that in the QE anymore. But in ON SEGMENT, we're reading data
+	 * directly from a file, and there's no guarantee on what it contains, so we
+	 * need to do the checking in the QE.
+	 */
 	is_check_distkey = (cstate->on_segment && Gp_role == GP_ROLE_EXECUTE && gp_enable_segment_copy_checking) ? true : false;
 
 	/*
 	 * Initialize information about distribution keys, needed to compute target
 	 * segment for each row.
 	 */
-	if (cstate->dispatch_mode == COPY_DISPATCH)
+	if (cstate->dispatch_mode == COPY_DISPATCH || is_check_distkey)
 	{
-		/* get data for distribution */
-		bool multi_dist_policy = estate->es_result_partitions
-	        && !partition_policies_equal(cstate->rel->rd_cdbpolicy,
-	                                     estate->es_result_partitions);
-		distData = InitDistributionData(cstate, multi_dist_policy);
-	}
-	else if (is_check_distkey)
-	{
-		/*
-		 * We are executing COPY FROM ON SEGMENT, and we need to check that the row
-		 * we're about to load really belongs to this segment.
-		 *
-		 * We don't support partitioned tables where the distribution key is different
-		 * for different partitions, so this is a lot simpler than the dispatcher case
-		 * above.
-		 */
-		distData = InitDistributionData(cstate, false);
+		distData = InitDistributionData(cstate, estate);
 
 		/*
-		 * If this table is distributed randomly, there is nothing to check.
+		 * If this table is distributed randomly, there is nothing to check,
+		 * after all.
 		 */
-		if (distData->policy == NULL || distData->policy->nattrs == 0)
+		if (!distData->hashmap &&
+			(distData->policy == NULL || distData->policy->nattrs == 0))
 			is_check_distkey = false;
 	}
 
@@ -3903,6 +3888,7 @@ CopyFrom(CopyState cstate)
 
 			if (cstate->dispatch_mode == COPY_DISPATCH)
 			{
+				/* In QD, compute the target segment to send this row to. */
 				part_distData = GetDistributionPolicyForPartition(
 					cstate, estate,
 					distData,
@@ -3913,23 +3899,32 @@ CopyFrom(CopyState cstate)
 			}
 			else if (is_check_distkey)
 			{
-				target_seg = GetTargetSeg(distData, slot_get_values(slot), slot_get_isnull(slot));
+				/* In COPY FROM ON SEGMENT, check the distribution key in the QE. */
+				part_distData = GetDistributionPolicyForPartition(
+					cstate, estate,
+					distData,
+					tupDesc,
+					slot_get_values(slot), slot_get_isnull(slot));
 
-				/* check distribution key if COPY FROM ON SEGMENT */
-				if (GpIdentity.segindex != target_seg)
+				if (part_distData->policy->nattrs != 0)
 				{
-					PG_TRY();
+					target_seg = GetTargetSeg(part_distData, slot_get_values(slot), slot_get_isnull(slot));
+
+					if (GpIdentity.segindex != target_seg)
 					{
-						ereport(ERROR,
-								(errcode(ERRCODE_INTEGRITY_CONSTRAINT_VIOLATION),
-								 errmsg("value of distribution key doesn't belong to segment with ID %d, it belongs to segment with ID %d",
-										GpIdentity.segindex, target_seg)));
+						PG_TRY();
+						{
+							ereport(ERROR,
+									(errcode(ERRCODE_INTEGRITY_CONSTRAINT_VIOLATION),
+									 errmsg("value of distribution key doesn't belong to segment with ID %d, it belongs to segment with ID %d",
+											GpIdentity.segindex, target_seg)));
+						}
+						PG_CATCH();
+						{
+							HandleCopyError(cstate);
+						}
+						PG_END_TRY();
 					}
-					PG_CATCH();
-					{
-						HandleCopyError(cstate);
-					}
-					PG_END_TRY();
 				}
 			}
 		}
@@ -4625,13 +4620,6 @@ BeginCopyFrom(Relation rel,
 
 		if (rel_is_partitioned(relid))
 		{
-			if (cstate->on_segment && gp_enable_segment_copy_checking && !partition_policies_equal(cstate->rel->rd_cdbpolicy, RelationBuildPartitionDesc(cstate->rel, false)))
-			{
-				ereport(ERROR,
-						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("COPY FROM ON SEGMENT doesn't support checking distribution key restriction when the distribution policy of the partition table is different from the main table"),
-						 errhint("\"SET gp_enable_segment_copy_checking=off\" can be used to disable distribution key checking.")));
-			}
 			PartitionNode *pn = RelationBuildPartitionDesc(cstate->rel, false);
 			all_relids = list_concat(all_relids, all_partition_relids(pn));
 		}
@@ -7174,15 +7162,23 @@ CopyEolStrToType(CopyState cstate)
 }
 
 static GpDistributionData *
-InitDistributionData(CopyState cstate, bool multi_dist_policy)
+InitDistributionData(CopyState cstate, EState *estate)
 {
 	GpDistributionData *distData;
 	GpPolicy   *policy;
 	HTAB	   *hashmap;
 	CdbHash	   *cdbHash;
+	bool		multi_dist_policy;
 
+	multi_dist_policy = estate->es_result_partitions
+		&& !partition_policies_equal(cstate->rel->rd_cdbpolicy,
+									 estate->es_result_partitions);
 	if (!multi_dist_policy)
 	{
+		/*
+		 * A non-partitioned table, or all the partitions have identical
+		 * distribution policies.
+		 */
 		policy = GpPolicyCopy(cstate->rel->rd_cdbpolicy);
 		cdbHash = makeCdbHashForRelation(cstate->rel);
 		hashmap = NULL;
@@ -7210,7 +7206,7 @@ InitDistributionData(CopyState cstate, bool multi_dist_policy)
 		hash_ctl.hcxt = CurrentMemoryContext;
 
 		hashmap = hash_create("partition cdb hash map",
-		                      100 /* XXX: need a better value, but what? */,
+		                      100, /* initial guess */
 		                      &hash_ctl,
 		                      HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
