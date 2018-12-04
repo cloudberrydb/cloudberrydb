@@ -657,11 +657,21 @@ InitResGroups(void)
 		/*
 		 * set default cpuset
 		 */
-		BitsetToCpuset(bmsUnused, cpuset, MaxCpuSetLength);
-		if (CpusetIsEmpty(cpuset))
+
+		if (bms_is_empty(bmsUnused))
 		{
+			/* no unused core, assign default core to default group */
 			snprintf(cpuset, MaxCpuSetLength, "%d", defaultCore);
 		}
+		else
+		{
+			/* assign all unused cores to default group */
+			BitsetToCpuset(bmsUnused, cpuset, MaxCpuSetLength);
+		}
+
+		Assert(cpuset[0]);
+		Assert(!CpusetIsEmpty(cpuset));
+
 		ResGroupOps_SetCpuSet(DEFAULT_CPUSET_GROUP_ID, cpuset);
 	}
 	
@@ -4010,8 +4020,9 @@ void SetCpusetEmpty(char *cpuset, int cpusetSize)
 }
 
 /*
- * Transform bitset to cpuset
- * if the bit is set to 1, the corresponding core number must exist in cpuset
+ * Transform non-empty bitset to cpuset.
+ *
+ * This function does not check the cpu cores are available or not.
  */
 void
 BitsetToCpuset(const Bitmapset *bms,
@@ -4023,6 +4034,11 @@ BitsetToCpuset(const Bitmapset *bms,
 	int	intervalStart = -1;
 	int num;
 	char buffer[32] = {0};
+
+	Assert(!bms_is_empty(bms));
+
+	cpuset[0] = '\0';
+
 	bms_foreach(num, bms)
 	{
 		if (lastContinuousBit == -1)
@@ -4043,6 +4059,7 @@ BitsetToCpuset(const Bitmapset *bms,
 				}
 				if (len + strlen(buffer) >= cpusetSize)
 				{
+					Assert(cpuset[0]);
 					return ;
 				}
 				strcpy(cpuset + len, buffer);
@@ -4067,6 +4084,7 @@ BitsetToCpuset(const Bitmapset *bms,
 		}
 		if (len + strlen(buffer) >= cpusetSize)
 		{
+			Assert(cpuset[0]);
 			return ;
 		}
 		strcpy(cpuset + len, buffer);
@@ -4074,7 +4092,8 @@ BitsetToCpuset(const Bitmapset *bms,
 	}
 	else
 	{
-		cpuset[0] = '\0';
+		/* bms is non-empty, so it should never reach here */
+		pg_unreachable();
 	}
 }
 
