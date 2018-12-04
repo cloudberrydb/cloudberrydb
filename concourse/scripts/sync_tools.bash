@@ -41,10 +41,6 @@ function _main() {
   case "${TASK_OS}" in
     centos)
         case "${TASK_OS_VERSION}" in
-         6)
-           export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk.x86_64
-           ;;
-
          7)
            echo "Detecting java7 path ..."
            java7_packages=$(rpm -qa | grep -F java-1.7)
