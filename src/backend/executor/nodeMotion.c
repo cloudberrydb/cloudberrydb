@@ -88,6 +88,7 @@ typedef struct CdbTupleHeapInfo
 typedef struct CdbMergeComparatorContext
 {
 	FmgrInfo           *sortFunctions;
+	Oid		   *collations;
 	int                *cmpFlags;
 	int			        numSortCols;
 	AttrNumber         *sortColIdx;
@@ -100,6 +101,7 @@ CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
                                  int            numSortCols,
                                  AttrNumber    *sortColIdx,
                                  Oid           *sortOperators,
+								 Oid *collations,
 								 bool *nullsFirstFlags);
 
 static void
@@ -1059,10 +1061,11 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 
             /* Allocate context object for the key comparator. */
             mcContext = CdbMergeComparator_CreateContext(tupDesc,
-                    node->numSortCols,
-                    node->sortColIdx,
+														 node->numSortCols,
+														 node->sortColIdx,
 														 node->sortOperators,
-				node->nullsFirst);
+														 node->collations,
+														 node->nullsFirst);
 
             /* Create the priority queue structure. */
             motionstate->tupleheap = CdbHeap_Create(CdbMergeComparator,
@@ -1237,6 +1240,7 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
     GenericTuple ltup = linfo->tuple;
     GenericTuple rtup = rinfo->tuple;
     FmgrInfo           *sortFunctions;
+	Oid			*collations;
 	int				   *cmpFlags;
     int                 numSortCols;
     AttrNumber         *sortColIdx;
@@ -1246,6 +1250,7 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
     Assert(ltup && rtup);
 
     sortFunctions   = ctx->sortFunctions;
+	collations		= ctx->collations;
     cmpFlags        = ctx->cmpFlags;
     numSortCols     = ctx->numSortCols;
     sortColIdx      = ctx->sortColIdx;
@@ -1272,7 +1277,7 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
 
         compare = ApplySortFunction(&sortFunctions[nkey],
                                     cmpFlags[nkey],
-                                    InvalidOid, /* GPDB_91_MERGE_FIXME: collation */
+                                    collations[nkey],
                                     datum1, isnull1,
                                     datum2, isnull2);
         if (compare != 0)
@@ -1290,6 +1295,7 @@ CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
                                  int            numSortCols,
                                  AttrNumber    *sortColIdx,
                                  Oid           *sortOperators,
+								 Oid *collations,
 								 bool *nullsFirstFlags)
 {
     CdbMergeComparatorContext  *ctx;
@@ -1311,6 +1317,7 @@ CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
 
     /* Allocate the sort function arrays. */
     ctx->sortFunctions = (FmgrInfo *)palloc0(numSortCols * sizeof(FmgrInfo));
+    ctx->collations = (Oid *) palloc(numSortCols * sizeof(Oid));
     ctx->cmpFlags = (int *) palloc0(numSortCols * sizeof(int));
 
     /* Load the sort functions. */
@@ -1325,6 +1332,7 @@ CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
 						   nullsFirstFlags[i],
                            &sortFunction,
                            &ctx->cmpFlags[i]);
+		ctx->collations[i] = collations[i];
 
         fmgr_info(sortFunction, &ctx->sortFunctions[i]);
     }
