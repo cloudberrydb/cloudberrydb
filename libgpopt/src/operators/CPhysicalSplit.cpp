@@ -356,26 +356,68 @@ CPhysicalSplit::PdsDerive
 	// find out which columns of the target table get modified by the DML and check
 	// whether those participate in the derived hash distribution
 	CColRefSet *pcrsModified = GPOS_NEW(mp) CColRefSet(mp);
+	CColRefSet *pcrsDelete = GPOS_NEW(mp) CColRefSet(mp);
 	const ULONG num_cols = m_pdrgpcrDelete->Size();
-	
+
+	for (ULONG ul = 0; ul < num_cols; ul++)
+	{
+		CColRef *pcrOld = (*m_pdrgpcrDelete)[ul];
+		pcrsDelete->Include(pcrOld);
+	}
+
 	for (ULONG ul = 0; ul < num_cols; ul++)
 	{
 		CColRef *pcrOld = (*m_pdrgpcrDelete)[ul];
 		CColRef *new_colref = (*m_pdrgpcrInsert)[ul];
+		GPOS_ASSERT(m_pdrgpcrDelete->Size() == m_pdrgpcrInsert->Size());
+
 		if (pcrOld != new_colref)
 		{
-			pcrsModified->Include(pcrOld);
-			pcrsModified->Include(new_colref);
+			// if delete column (pcrOld) and insert (new_colref) column belong to same table,
+			// the decision to insert a motion should depend only on the delete column.
+			if(pcrsDelete->FMember(new_colref))
+			{
+				pcrsModified->Include(pcrOld);
+			}
+			// if delete column and insert column belong to different tables, in that case we should
+			// check both of them against the distribution spec of the split's outer child because
+			else
+			{
+				pcrsModified->Include(pcrOld);
+				pcrsModified->Include(new_colref);
+			}
 		}
 	}
 	
 	CDistributionSpecHashed *pdsHashed = CDistributionSpecHashed::PdsConvert(pdsOuter);
 	CColRefSet *pcrsHashed = CUtils::PcrsExtractColumns(mp, pdsHashed->Pdrgpexpr());
-	
+
+	// Consider the below case for updating the same table.:
+	// create table s (a int, b int) distributed by (a);
+	// where 0, 1 represent a, b respectively.
+	// Case 1:
+	// update s set a = b; (updating the distribution column)
+	//	
+	// So, delete array = {0,1} and insert array = {1,1}
+	// Here in pcrsModified, we will include 0, i.e pcrsModified = {0} (as delete column belongs to the table being updated)
+	//	
+	// So, pcrsModified is not disjoint with pdsHashed, and we will return a random spec,
+	// this random spec will not satisfy the spec requested by CPhysicalDML which should
+	// ask the child to be distributed by column a, and we will see a redistribute motion in this case.
+	//	
+	// Case 2:
+	// update s set b = a;
+	// So, delete array = {0,1}, insert array = {0,0}
+	// Here in pcrsModified, we will include 1, i.e pcrsModified = {1} (as delete column belongs to the table being updated)
+	// So, pcrsModified is disjoint with pdsHashed and we will return pdsHashed
+	// this will satisfy the spec requested by CPhysicalDML
+	// (which should ask the child to be distributed by column a), and we will not see a redistribute motion.
+
 	if (!pcrsModified->IsDisjoint(pcrsHashed))
 	{
 		pcrsModified->Release();
 		pcrsHashed->Release();
+		pcrsDelete->Release();
 		return GPOS_NEW(mp) CDistributionSpecRandom();
 	}
 		
@@ -387,6 +429,7 @@ CPhysicalSplit::PdsDerive
 			pcrsHashed->Release();
 			pcrsHashedEquiv->Release();
 			pcrsModified->Release();
+			pcrsDelete->Release();
 			return GPOS_NEW(mp) CDistributionSpecRandom();
 		}
 		pcrsHashedEquiv->Release();
@@ -394,6 +437,7 @@ CPhysicalSplit::PdsDerive
 	
 	pcrsModified->Release();
 	pcrsHashed->Release();
+	pcrsDelete->Release();
 	pdsHashed->AddRef();
 	return pdsHashed;
 }
