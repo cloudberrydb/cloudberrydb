@@ -2047,6 +2047,28 @@ ANALYZE onetimefilter2;
 EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilter1, onetimefilter2 WHERE onetimefilter1.a=onetimefilter2.a) SELECT (SELECT 1 FROM abc WHERE f1.b = f2.b LIMIT 1), COALESCE((SELECT 2 FROM abc WHERE f1.a=random() AND f1.a=2), 0), (SELECT b FROM abc WHERE b=f1.b) FROM onetimefilter1 f1, onetimefilter2 f2 WHERE f1.b = f2.b;
 WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilter1, onetimefilter2 WHERE onetimefilter1.a=onetimefilter2.a) SELECT (SELECT 1 FROM abc WHERE f1.b = f2.b LIMIT 1), COALESCE((SELECT 2 FROM abc WHERE f1.a=random() AND f1.a=2), 0), (SELECT b FROM abc WHERE b=f1.b) FROM onetimefilter1 f1, onetimefilter2 f2 WHERE f1.b = f2.b;
 
+-- Test predicate inference for certain cast exprs
+create table foid (a oid);
+create table infer_vc (a varchar);
+create table infer_txt (a text);
+CREATE TABLE infer_part_vc (id int, gender varchar(1)) 
+  DISTRIBUTED BY (id)
+  PARTITION BY LIST (gender)
+  ( PARTITION girls VALUES ('F'), 
+    PARTITION boys VALUES ('M'), 
+    DEFAULT PARTITION other );
+
+analyze foid;
+analyze infer_txt;
+analyze infer_vc;
+analyze infer_part_vc;
+
+explain select * from foid f1 inner join foid f2 on (f1.a = f2.a) where f2.a = 5;
+explain select * from infer_txt f1 inner join infer_txt f2 on (f1.a = f2.a) where f1.a = 'K';
+explain select * from infer_vc f1 inner join infer_txt f2 on (f1.a = f2.a) where f1.a = 'K';
+explain select * from infer_vc f1 inner join infer_vc f2 on (f1.a = f2.a) where f1.a = 'K';
+explain select * from infer_part_vc inner join infer_txt on (infer_part_vc.gender = infer_txt.a) and infer_txt.a = 'M';
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore

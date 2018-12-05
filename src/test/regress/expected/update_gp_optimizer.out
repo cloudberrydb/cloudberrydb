@@ -132,7 +132,7 @@ WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
                      ->  Split
                            ->  Result
                                  ->  Hash Join
-                                       Hash Cond: ((keo1.user_vie_project_code_pk)::text = (keo1_1.user_vie_project_code_pk)::text)
+                                       Hash Cond: (((keo1.user_vie_project_code_pk)::text = (keo1_1.user_vie_project_code_pk)::text) AND ((keo1.user_vie_project_code_pk)::text = (keo2.projects_pk)::text))
                                        ->  Table Scan on keo1
                                        ->  Hash
                                              ->  Broadcast Motion 3:3  (slice7; segments: 3)
