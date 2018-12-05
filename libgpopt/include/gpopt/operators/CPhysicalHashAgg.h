@@ -18,7 +18,7 @@ namespace gpopt
 {
 	// fwd declaration
 	class CDistributionSpec;
-	
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CPhysicalHashAgg
@@ -47,7 +47,12 @@ namespace gpopt
 				CColRefArray *pdrgpcrArgDQA,
 				BOOL fMultiStage,
 				BOOL isAggFromSplitDQA,
-				CLogicalGbAgg::EAggStage aggStage
+				CLogicalGbAgg::EAggStage aggStage,
+				BOOL should_enforce_distribution = true
+				// should_enforce_distribution should be set to false if
+				// 'local' and 'global' splits don't need to have different
+				// distributions. This flag is set to false if the local
+				// aggregate has been created by CXformEagerAgg.
 				);
 
 			// dtor
@@ -56,14 +61,14 @@ namespace gpopt
 
 
 			// ident accessors
-			virtual 
+			virtual
 			EOperatorId Eopid() const
 			{
 				return EopPhysicalHashAgg;
 			}
 
 			// return a string for operator name
-			virtual 
+			virtual
 			const CHAR *SzId() const
 			{
 				return "CPhysicalHashAgg";
@@ -85,7 +90,7 @@ namespace gpopt
 				ULONG ulOptReq
 				)
 				const;
-		
+
 			//-------------------------------------------------------------------------------------
 			// Derived Plan Properties
 			//-------------------------------------------------------------------------------------
@@ -104,7 +109,7 @@ namespace gpopt
 				(
 				CExpressionHandle &exprhdl,
 				const CEnfdOrder *peo
-				) 
+				)
 				const;
 
 			//-------------------------------------------------------------------------------------
@@ -124,7 +129,7 @@ namespace gpopt
 
 				return reinterpret_cast<CPhysicalHashAgg*>(pop);
 			}
-		
+
 	}; // class CPhysicalHashAgg
 
 }

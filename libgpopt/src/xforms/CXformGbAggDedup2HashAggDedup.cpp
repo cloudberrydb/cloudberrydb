@@ -94,7 +94,8 @@ CXformGbAggDedup2HashAggDedup::Transform
 						popAggDedup->FGeneratesDuplicates(),
 						CXformUtils::FMultiStageAgg(pexpr),
 						CXformUtils::FAggGenBySplitDQAXform(pexpr),
-						popAggDedup->AggStage()
+						popAggDedup->AggStage(),
+						!CXformUtils::FLocalAggCreatedByEagerAggXform(pexpr)
 						),
 			pexprRel,
 			pexprScalar

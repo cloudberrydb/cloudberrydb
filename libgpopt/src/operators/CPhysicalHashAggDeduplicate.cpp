@@ -38,7 +38,8 @@ CPhysicalHashAggDeduplicate::CPhysicalHashAggDeduplicate
 	BOOL fGeneratesDuplicates,
 	BOOL fMultiStage,
 	BOOL isAggFromSplitDQA,
-	CLogicalGbAgg::EAggStage aggStage
+	CLogicalGbAgg::EAggStage aggStage,
+	BOOL should_enforce_distribution
 	)
 	:
 	CPhysicalHashAgg
@@ -51,7 +52,8 @@ CPhysicalHashAggDeduplicate::CPhysicalHashAggDeduplicate
 	NULL /*pdrgpcrGbMinusDistinct*/,
 	fMultiStage,
 	isAggFromSplitDQA ,
-	aggStage
+	aggStage,
+	should_enforce_distribution
 	),
 	m_pdrgpcrKeys(pdrgpcrKeys)
 {

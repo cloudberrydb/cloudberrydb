@@ -325,15 +325,15 @@ CLogicalGbAgg::PcrsDeriveOutput
 	GPOS_ASSERT(2 == exprhdl.Arity());
 
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
-	
+
 	// include the intersection of the grouping columns and the child's output
 	pcrs->Include(Pdrgpcr());
 	CDrvdPropRelational *pdprel = exprhdl.GetRelationalProperties(0);
 	pcrs->Intersection(pdprel->PcrsOutput());
-	
+
 	// the scalar child defines additional columns
 	pcrs->Union(exprhdl.GetDrvdScalarProps(1 /*child_index*/)->PcrsDefined());
-	
+
 	return pcrs;
 }
 
@@ -556,11 +556,11 @@ CLogicalGbAgg::PkcDeriveKeys
 			CColRefSet *pcrs = exprhdl.GetDrvdScalarProps(1)->PcrsDefined();
 
 			if (0 == pcrs->Size())
-			{ 
+			{
 				// aggregate defines no columns, e.g. select 1 from r group by a
 				return NULL;
 			}
-			
+
 			pcrs->AddRef();
 			pkc = GPOS_NEW(mp) CKeyCollection(mp, pcrs);
 		}
@@ -591,7 +591,7 @@ CLogicalGbAgg::Maxcard
 	{
 		return CMaxCard(1 /*ull*/);
 	}
-	
+
 	// contradictions produce no rows
 	if (CDrvdPropRelational::GetRelationalProperties(exprhdl.Pdp())->Ppc()->FContradiction())
 	{
@@ -599,9 +599,9 @@ CLogicalGbAgg::Maxcard
 	}
 
 	return CMaxCard();
-}	
-	
-	
+}
+
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CLogicalGbAgg::Matches
@@ -643,11 +643,11 @@ CXformSet *
 CLogicalGbAgg::PxfsCandidates
 	(
 	IMemoryPool *mp
-	) 
+	)
 	const
 {
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
-	
+
 	(void) xform_set->ExchangeSet(CXform::ExfSimplifyGbAgg);
 	(void) xform_set->ExchangeSet(CXform::ExfGbAggWithMDQA2Join);
 	(void) xform_set->ExchangeSet(CXform::ExfCollapseGbAgg);
@@ -660,7 +660,7 @@ CLogicalGbAgg::PxfsCandidates
 	(void) xform_set->ExchangeSet(CXform::ExfGbAgg2HashAgg);
 	(void) xform_set->ExchangeSet(CXform::ExfGbAgg2StreamAgg);
 	(void) xform_set->ExchangeSet(CXform::ExfGbAgg2ScalarAgg);
-
+	(void) xform_set->ExchangeSet(CXform::ExfEagerAgg);
 	return xform_set;
 }
 
@@ -782,7 +782,7 @@ CLogicalGbAgg::OsPrint
 		CUtils::OsPrintDrgPcr(os, m_pdrgpcrMinimal);
 	}
 	os << "]";
-	
+
 	if (COperator::EgbaggtypeIntermediate == m_egbaggtype)
 	{
 		os	<< ", Distinct Cols:[";

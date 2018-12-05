@@ -123,7 +123,7 @@ namespace gpos
 
 		// Disable partition selection
 		EopttraceDisablePartSelection = 103012,
-		
+
 		// Disable outer-join To inner-join rewrite
 		EopttraceDisableOuterJoin2InnerJoinRewrite = 103013,
 
@@ -175,6 +175,8 @@ namespace gpos
 		// Force the optimizer to pick a plan that minimizes skew but adds an extra motion node when aggs are used
 		EopttraceForceAggSkewAvoidance = 103029,
 
+		// Eager Agg 
+		EopttraceEnableEagerAgg = 103030,
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

@@ -22,7 +22,7 @@ namespace gpopt
 	class CColRefSet;
 
 	class CLogicalGbAgg;
-	
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CLogicalGbAgg
@@ -33,6 +33,7 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CLogicalGbAgg : public CLogicalUnary
 	{
+
 		protected:
 
 			// does local / intermediate / global aggregate generate duplicate values for the same group
@@ -99,7 +100,7 @@ namespace gpopt
 				CColRefArray *colref_array,
 				COperator::EGbAggType egbaggtype
 				);
-			
+
 			// ctor
 			CLogicalGbAgg
 				(
@@ -147,14 +148,14 @@ namespace gpopt
 			~CLogicalGbAgg();
 
 			// ident accessors
-			virtual 
+			virtual
 			EOperatorId Eopid() const
 			{
 				return EopLogicalGbAgg;
 			}
-			
+
 			// return a string for operator name
-			virtual 
+			virtual
 			const CHAR *SzId() const
 			{
 				return "CLogicalGbAgg";
@@ -216,7 +217,7 @@ namespace gpopt
 			// derive output columns
 			virtual
 			CColRefSet *PcrsDeriveOutput(IMemoryPool *,CExpressionHandle &);
-			
+
 			// derive outer references
 			virtual
 			CColRefSet *PcrsDeriveOuter(IMemoryPool *mp, CExpressionHandle &exprhdl);
@@ -295,11 +296,10 @@ namespace gpopt
 				return dynamic_cast<CLogicalGbAgg*>(pop);
 			}
 
-		
 			// debug print
-			virtual 
+			virtual
 			IOstream &OsPrint(IOstream &os) const;
-		
+
 			// derive statistics
 			static
 			IStatistics *PstatsDerive

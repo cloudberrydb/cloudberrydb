@@ -85,7 +85,8 @@ namespace gpopt
 			BOOL FCompatible(CXform::EXformId exfid)
 			{
 				return ((CXform::ExfSplitDQA != exfid) &&
-						(CXform::ExfSplitGbAgg != exfid));
+						(CXform::ExfSplitGbAgg != exfid) &&
+						(CXform::ExfEagerAgg != exfid));
 			}
 
 			// compute xform promise for a given expression handle

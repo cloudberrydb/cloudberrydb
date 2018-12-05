@@ -38,7 +38,7 @@ CXformFactory::CXformFactory
 	m_pxfsImplementation(NULL)
 {
 	GPOS_ASSERT(NULL != mp);
-	
+
 	// null out array so dtor can be called prematurely
 	for (ULONG i = 0; i < CXform::ExfSentinel; i++)
 	{
@@ -71,7 +71,7 @@ CXformFactory::~CXformFactory()
 			// dtor called after failing to populate array
 			break;
 		}
-		
+
 		m_rgpxf[i]->Release();
 		m_rgpxf[i] = NULL;
 	}
@@ -96,10 +96,10 @@ CXformFactory::Add
 	(
 	CXform *pxform
 	)
-{	
+{
 	GPOS_ASSERT(NULL != pxform);
 	CXform::EXformId exfid = pxform->Exfid();
-	
+
 	GPOS_ASSERT_IMP(0 < exfid, m_rgpxf[exfid - 1] != NULL &&
 					"Incorrect order of instantiation");
 	GPOS_ASSERT(NULL == m_rgpxf[exfid]);
@@ -143,7 +143,7 @@ CXformFactory::Add
 //---------------------------------------------------------------------------
 void
 CXformFactory::Instantiate()
-{	
+{
 	Add(GPOS_NEW(m_mp) CXformProject2ComputeScalar(m_mp));
 	Add(GPOS_NEW(m_mp) CXformExpandNAryJoin(m_mp));
 	Add(GPOS_NEW(m_mp) CXformExpandNAryJoinMinCard(m_mp));
@@ -289,12 +289,13 @@ CXformFactory::Instantiate()
 	Add(GPOS_NEW(m_mp) CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply(m_mp));
 	Add(GPOS_NEW(m_mp) CXformLeftOuterJoinWithInnerSelect2IndexGetApply(m_mp));
 	Add(GPOS_NEW(m_mp) CXformExpandNAryJoinGreedy(m_mp));
+	Add(GPOS_NEW(m_mp) CXformEagerAgg(m_mp));
 
 	GPOS_ASSERT(NULL != m_rgpxf[CXform::ExfSentinel - 1] &&
 				"Not all xforms have been instantiated");
 }
 
-						  
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CXformFactory::Pxf
@@ -312,7 +313,7 @@ CXformFactory::Pxf
 {
 	CXform *pxf = m_rgpxf[exfid];
 	GPOS_ASSERT(pxf->Exfid() == exfid);
-	
+
 	return pxf;
 }
 
@@ -348,7 +349,7 @@ GPOS_RESULT
 CXformFactory::Init()
 {
 	GPOS_ASSERT(NULL == Pxff() &&
-			    "Xform factory was already initialized");
+				"Xform factory was already initialized");
 
 	GPOS_RESULT eres = GPOS_OK;
 
@@ -404,7 +405,7 @@ CXformFactory::Shutdown()
 	CXformFactory *pxff = CXformFactory::Pxff();
 
 	GPOS_ASSERT(NULL != pxff &&
-			    "Xform factory has not been initialized");
+				"Xform factory has not been initialized");
 
 	IMemoryPool *mp = pxff->m_mp;
 

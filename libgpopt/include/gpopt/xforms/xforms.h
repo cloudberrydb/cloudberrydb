@@ -164,6 +164,7 @@
 #include "gpopt/xforms/CXformSimplifyGbAgg.h"
 #include "gpopt/xforms/CXformCollapseGbAgg.h"
 #include "gpopt/xforms/CXformPushGbBelowJoin.h"
+#include "gpopt/xforms/CXformEagerAgg.h"
 #include "gpopt/xforms/CXformPushGbDedupBelowJoin.h"
 #include "gpopt/xforms/CXformPushGbWithHavingBelowJoin.h"
 #include "gpopt/xforms/CXformPushGbBelowUnion.h"

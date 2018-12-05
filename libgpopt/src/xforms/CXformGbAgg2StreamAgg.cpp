@@ -112,7 +112,7 @@ CXformGbAgg2StreamAgg::Transform
 	IMemoryPool *mp = pxfctxt->Pmp();
 	CColRefArray *colref_array = popAgg->Pdrgpcr();
 	colref_array->AddRef();
-	
+
 	// extract components
 	CExpression *pexprRel = (*pexpr)[0];
 	CExpression *pexprScalar = (*pexpr)[1];
@@ -142,7 +142,8 @@ CXformGbAgg2StreamAgg::Transform
 				pdrgpcrArgDQA,
 				CXformUtils::FMultiStageAgg(pexpr),
 				CXformUtils::FAggGenBySplitDQAXform(pexpr),
-				popAgg->AggStage()
+				popAgg->AggStage(),
+				!CXformUtils::FLocalAggCreatedByEagerAggXform(pexpr)
 				),
 			pexprRel,
 			pexprScalar
@@ -154,4 +155,3 @@ CXformGbAgg2StreamAgg::Transform
 
 
 // EOF
-

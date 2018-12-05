@@ -6,7 +6,7 @@
 //		CXform.h
 //
 //	@doc:
-//		Base class for all transformations: substitution, exploration, 
+//		Base class for all transformations: substitution, exploration,
 //		and implementation
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXform_H
@@ -38,7 +38,7 @@
 namespace gpopt
 {
 	using namespace gpos;
-	
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CXform
@@ -51,10 +51,10 @@ namespace gpopt
 	{
 
 		private:
-		
+
 			// pattern
 			CExpression *m_pexpr;
-		
+
 			// private copy ctor
 			CXform(CXform &);
 
@@ -215,6 +215,7 @@ namespace gpopt
 				ExfLeftOuterJoinWithInnerSelect2BitmapIndexGetApply,
 				ExfLeftOuterJoinWithInnerSelect2IndexGetApply,
 				ExfExpandNAryJoinGreedy,
+				ExfEagerAgg,
 				ExfInvalid,
 				ExfSentinel = ExfInvalid
 			};
@@ -239,9 +240,9 @@ namespace gpopt
 			// ident accessors
 			virtual
 			EXformId Exfid() const = 0;
-			
+
 			// return a string for xform name
-			virtual 
+			virtual
 			const CHAR *SzId() const = 0;
 
 			// the following functions check xform type
@@ -252,14 +253,14 @@ namespace gpopt
 			{
 				return false;
 			}
-			
+
 			// is xform exploration?
 			virtual
 			BOOL FExploration() const
 			{
 				return false;
 			}
-			
+
 			// is xform implementation?
 			virtual
 			BOOL FImplementation() const
@@ -275,7 +276,7 @@ namespace gpopt
 					CXformResult *pxfres,
 					CExpression *pexpr
 					) const = 0;
-			
+
 			// accessor
 			CExpression *PexprPattern() const
 			{
@@ -297,11 +298,11 @@ namespace gpopt
 			EXformPromise Exfp(CExpressionHandle &exprhdl) const = 0;
 
 			// print
-			virtual 
+			virtual
 			IOstream &OsPrint(IOstream &os) const;
 
 #ifdef GPOS_DEBUG
-			
+
 			// verify pattern against given expression
 			BOOL FCheckPattern(CExpression *pexpr) const;
 
@@ -355,7 +356,7 @@ namespace gpopt
 			BOOL IsApplyOnce();
 
 	}; // class CXform
-	
+
 	// shorthand for printing
 	inline
 	IOstream &operator <<
@@ -366,7 +367,7 @@ namespace gpopt
 	{
 		return xform.OsPrint(os);
 	}
-	
+
 	// shorthands for enum sets and iterators of xform ids
 	typedef CEnumSet<CXform::EXformId, CXform::ExfSentinel> CXformSet;
 	typedef CEnumSetIter<CXform::EXformId, CXform::ExfSentinel> CXformSetIter;

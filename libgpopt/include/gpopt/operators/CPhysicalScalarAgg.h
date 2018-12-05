@@ -18,7 +18,7 @@ namespace gpopt
 {
 	// fwd declaration
 	class CDistributionSpec;
-	
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CPhysicalScalarAgg
@@ -47,7 +47,8 @@ namespace gpopt
 				CColRefArray *pdrgpcrArgDQA,
 				BOOL fMultiStage,
 				BOOL isAggFromSplitDQA,
-				CLogicalGbAgg::EAggStage aggStage
+				CLogicalGbAgg::EAggStage aggStage,
+				BOOL should_enforce_distribution
 				);
 
 			// dtor
@@ -56,19 +57,19 @@ namespace gpopt
 
 
 			// ident accessors
-			virtual 
+			virtual
 			EOperatorId Eopid() const
 			{
 				return EopPhysicalScalarAgg;
 			}
 
 			// return a string for operator name
-			virtual 
+			virtual
 			const CHAR *SzId() const
 			{
 				return "CPhysicalScalarAgg";
 			}
-	
+
 			//-------------------------------------------------------------------------------------
 			// Required Plan Properties
 			//-------------------------------------------------------------------------------------
@@ -85,7 +86,7 @@ namespace gpopt
 				ULONG ulOptReq
 				)
 				const;
-		
+
 			//-------------------------------------------------------------------------------------
 			// Derived Plan Properties
 			//-------------------------------------------------------------------------------------
@@ -104,7 +105,7 @@ namespace gpopt
 				(
 				CExpressionHandle &exprhdl,
 				const CEnfdOrder *peo
-				) 
+				)
 				const;
 
 			//-------------------------------------------------------------------------------------
@@ -123,7 +124,7 @@ namespace gpopt
 
 				return reinterpret_cast<CPhysicalScalarAgg*>(pop);
 			}
-		
+
 	}; // class CPhysicalScalarAgg
 
 }
