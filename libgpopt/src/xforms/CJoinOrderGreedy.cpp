@@ -180,20 +180,18 @@ CJoinOrderGreedy::PexprExpand()
 		// avoiding cross joins
 		if (candidate_comp_set->Size() > 0)
 		{
-			// continue iterating over all the candidate components until the
-			// entire set is evaluated
-			while (candidate_comp_set->Size() > 0)
-			{
-				best_comp_idx = PickBestJoin(candidate_comp_set);
-				
-				// remove the component picked in this iteration from the
-				// candidate component set
-				candidate_comp_set->ExchangeClear(best_comp_idx);
-				
-				// also remove the component from the unused component set so that
-				// it will not be considered for cross joins
-				unused_components_set->ExchangeClear(best_comp_idx);
-			}
+			// find the best join component.
+			// once we find a best_comp_idx, we should re-evaluate the
+			// candidate_component_set, which is done in GetAdjacentComponentsToJoinCandidate.
+			// GetAdjacentComponentsToJoinCandidate identifies the connected
+			// components of the last m_pcompResult which is updated in PickBestJoin.
+			// also, it is guaranteed that PickBestJoin will find atleast one component
+			// with which the starting join can be combined, as we come here if
+			// there is atleast one component in candidate_comp_set
+			best_comp_idx = PickBestJoin(candidate_comp_set);
+
+			// remove the best component from the unused component set
+			unused_components_set->ExchangeClear(best_comp_idx);
 		}
 		else
 		{
@@ -258,6 +256,15 @@ CJoinOrderGreedy::PickBestJoin
 		}
 		pcompTemp->Release();
 	}
+
+#ifndef GPOS_DEBUG
+	if (gpos::ulong_max == best_comp_idx)
+	{
+		// ideally we should always find a best component, but fallback
+		// if not found.
+		GPOS_RAISE(CException::ExmaInvalid, CException::ExmiInvalid);
+	}
+#endif
 
 	GPOS_ASSERT(gpos::ulong_max != best_comp_idx);
 	GPOS_ASSERT(NULL != pcompBest);

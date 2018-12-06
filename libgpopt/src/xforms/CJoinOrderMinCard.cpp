@@ -119,9 +119,22 @@ CJoinOrderMinCard::PexprExpand()
 			}
 			pcompTemp->Release();
 		}
+
+#ifndef GPOS_DEBUG
+		if (pcompBest == NULL)
+		{
+			// ideally we should never have the best result as null
+			GPOS_RAISE(CException::ExmaInvalid, CException::ExmiInvalid);
+		}
+#endif
+
 		GPOS_ASSERT(NULL != pcompBestResult);
 
-		// mark best component as used
+		// mark best component as used.
+		// we will never have p_compBest as NULL, as
+		// we iterate over all the components to find the possible
+		// join alternative, thus there will be atleast one component
+		// marked as pcompBest
 		pcompBest->m_fUsed = true;
 		m_pcompResult->Release();
 		m_pcompResult = pcompBestResult;
