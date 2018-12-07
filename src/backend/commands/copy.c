@@ -216,6 +216,8 @@ static void HandleCopyError(CopyState cstate);
 static void HandleQDErrorFrame(CopyState cstate);
 
 static void CopyInitDataParser(CopyState cstate);
+static void setEncodingConversionProc(CopyState cstate, int encoding, bool iswritable);
+static void CopyEolStrToType(CopyState cstate);
 
 static GpDistributionData *InitDistributionData(CopyState cstate, EState *estate);
 static void FreeDistributionData(GpDistributionData *distData);
@@ -7077,7 +7079,8 @@ static void CopyInitDataParser(CopyState cstate)
  *
  * The code here mimics a part of SetClientEncoding() in mbutils.c
  */
-void setEncodingConversionProc(CopyState cstate, int encoding, bool iswritable)
+static void
+setEncodingConversionProc(CopyState cstate, int encoding, bool iswritable)
 {
 	Oid		conversion_proc;
 	
@@ -7103,7 +7106,7 @@ void setEncodingConversionProc(CopyState cstate, int encoding, bool iswritable)
 	}
 }
 
-void
+static void
 CopyEolStrToType(CopyState cstate)
 {
 	if (pg_strcasecmp(cstate->eol_str, "lf") == 0)
