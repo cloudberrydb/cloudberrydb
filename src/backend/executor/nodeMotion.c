@@ -87,11 +87,8 @@ typedef struct CdbTupleHeapInfo
  */
 typedef struct
 {
-	FmgrInfo   *sortFunctions;
-	Oid		   *collations;
-	int		   *cmpFlags;
 	int			numSortCols;
-	AttrNumber *sortColIdx;
+	SortSupport sortKeys;
 	TupleDesc	tupDesc;
 	MemTupleBinding *mt_bind;
 } CdbMergeComparatorContext;
@@ -100,7 +97,7 @@ static CdbMergeComparatorContext *CdbMergeComparator_CreateContext(TupleDesc tup
 								 int numSortCols,
 								 AttrNumber *sortColIdx,
 								 Oid *sortOperators,
-								 Oid *collations,
+								 Oid *sortCollations,
 								 bool *nullsFirstFlags);
 
 static void CdbMergeComparator_DestroyContext(CdbMergeComparatorContext *ctx);
@@ -1253,31 +1250,24 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
 	CdbTupleHeapInfo *rinfo = (CdbTupleHeapInfo *) rhs;
 	GenericTuple ltup = linfo->tuple;
 	GenericTuple rtup = rinfo->tuple;
-	FmgrInfo   *sortFunctions;
-	Oid		   *collations;
-	int		   *cmpFlags;
-	int			numSortCols;
-	AttrNumber *sortColIdx;
+	SortSupport sortKeys = ctx->sortKeys;
 	TupleDesc	tupDesc;
 	int			nkey;
+	int			numSortCols = ctx->numSortCols;
 
 	Assert(ltup && rtup);
 
-	sortFunctions = ctx->sortFunctions;
-	collations = ctx->collations;
-	cmpFlags = ctx->cmpFlags;
-	numSortCols = ctx->numSortCols;
-	sortColIdx = ctx->sortColIdx;
 	tupDesc = ctx->tupDesc;
 
 	for (nkey = 0; nkey < numSortCols; nkey++)
 	{
-		AttrNumber	attno = sortColIdx[nkey];
+		SortSupport ssup = &sortKeys[nkey];
+		AttrNumber	attno = ssup->ssup_attno;
 		Datum		datum1,
 					datum2;
 		bool		isnull1,
 					isnull2;
-		int32		compare;
+		int			compare;
 
 		if (is_memtuple(ltup))
 			datum1 = memtuple_getattr((MemTuple) ltup, ctx->mt_bind, attno, &isnull1);
@@ -1289,11 +1279,9 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
 		else
 			datum2 = heap_getattr((HeapTuple) rtup, attno, tupDesc, &isnull2);
 
-		compare = ApplySortFunction(&sortFunctions[nkey],
-									cmpFlags[nkey],
-									collations[nkey],
-									datum1, isnull1,
-									datum2, isnull2);
+		compare = ApplySortComparator(datum1, isnull1,
+									  datum2, isnull2,
+									  ssup);
 		if (compare != 0)
 			return compare;
 	}
@@ -1308,7 +1296,7 @@ CdbMergeComparator_CreateContext(TupleDesc tupDesc,
 								 int numSortCols,
 								 AttrNumber *sortColIdx,
 								 Oid *sortOperators,
-								 Oid *collations,
+								 Oid *sortCollations,
 								 bool *nullsFirstFlags)
 {
 	CdbMergeComparatorContext *ctx;
@@ -1323,30 +1311,25 @@ CdbMergeComparator_CreateContext(TupleDesc tupDesc,
 	ctx = (CdbMergeComparatorContext *) palloc0(sizeof(*ctx));
 
 	ctx->numSortCols = numSortCols;
-	ctx->sortColIdx = sortColIdx;
 	ctx->tupDesc = tupDesc;
 	ctx->mt_bind = create_memtuple_binding(tupDesc);
 
-	/* Allocate the sort function arrays. */
-	ctx->sortFunctions = (FmgrInfo *) palloc0(numSortCols * sizeof(FmgrInfo));
-	ctx->collations = (Oid *) palloc(numSortCols * sizeof(Oid));
-	ctx->cmpFlags = (int *) palloc0(numSortCols * sizeof(int));
+	/* Prepare SortSupport data for each column */
+	ctx->sortKeys = (SortSupport) palloc0(numSortCols * sizeof(SortSupportData));
 
-	/* Load the sort functions. */
 	for (i = 0; i < numSortCols; i++)
 	{
-		RegProcedure sortFunction;
+		SortSupport sortKey = ctx->sortKeys + i;
 
-		Assert(sortOperators[i] && sortColIdx[i]);
+		AssertArg(sortColIdx[i] != 0);
+		AssertArg(sortOperators[i] != 0);
 
-		/* select a function that implements the sort operator */
-		SelectSortFunction(sortOperators[i],
-						   nullsFirstFlags[i],
-						   &sortFunction,
-						   &ctx->cmpFlags[i]);
-		ctx->collations[i] = collations[i];
+		sortKey->ssup_cxt = CurrentMemoryContext;
+		sortKey->ssup_collation = sortCollations[i];
+		sortKey->ssup_nulls_first = nullsFirstFlags[i];
+		sortKey->ssup_attno = sortColIdx[i];
 
-		fmgr_info(sortFunction, &ctx->sortFunctions[i]);
+		PrepareSortSupportFromOrderingOp(sortOperators[i], sortKey);
 	}
 
 	return ctx;
@@ -1358,10 +1341,8 @@ CdbMergeComparator_DestroyContext(CdbMergeComparatorContext *ctx)
 {
 	if (!ctx)
 		return;
-	if (ctx->cmpFlags)
-		pfree(ctx->cmpFlags);
-	if (ctx->sortFunctions)
-		pfree(ctx->sortFunctions);
+	if (ctx->sortKeys)
+		pfree(ctx->sortKeys);
 }								/* CdbMergeComparator_DestroyContext */
 
 
