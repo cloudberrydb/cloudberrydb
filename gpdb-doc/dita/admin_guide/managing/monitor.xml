@@ -540,7 +540,6 @@ Distributed by: (sale_id)
           />.</p>
       </body>
     </topic>
-  </topic>
   <topic id="topic28" xml:lang="en">
     <title id="kj166926">Viewing the Database Server Log Files</title>
     <body>
@@ -807,7 +806,6 @@ Distributed by: (sale_id)
           <cite>Greenplum Database Reference Guide</cite>.</p>
     </body>
   </topic>
-  <topic id="topic_jx2_rqg_kp">
     <topic id="topic_pyh_sqg_kp">
       <title>SQL Standard Error Codes</title>
       <body>
@@ -1901,4 +1899,4 @@ Distributed by: (sale_id)
       </body>
     </topic>
   </topic>
-</topic>
+
