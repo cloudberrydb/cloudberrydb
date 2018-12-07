@@ -99,8 +99,6 @@ makeCdbCopy(bool is_copy_in)
 	c->total_segs = 0;
 	c->copy_in = is_copy_in;
 	c->outseglist = NIL;
-	c->partitions = NULL;
-	c->ao_segnos = NIL;
 	c->dispatcherState = NULL;
 	initStringInfo(&(c->copy_out_buf));
 
@@ -127,17 +125,18 @@ makeCdbCopy(bool is_copy_in)
  * may pg_throw via elog/ereport.
  */
 void
-cdbCopyStart(CdbCopy *c, CopyStmt *stmt, struct GpPolicy *policy)
+cdbCopyStart(CdbCopy *c, CopyStmt *stmt, struct GpPolicy *policy,
+			 PartitionNode *partitions, List *ao_segnos)
 {
 	int			flags;
 
 	stmt = copyObject(stmt);
 
 	/* add in partitions for dispatch */
-	stmt->partitions = c->partitions;
+	stmt->partitions = partitions;
 
 	/* add in AO segno map for dispatch */
-	stmt->ao_segnos = c->ao_segnos;
+	stmt->ao_segnos = ao_segnos;
 
 	if (policy)
 	{

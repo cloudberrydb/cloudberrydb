@@ -35,8 +35,6 @@ typedef struct CdbCopy
 	List			*outseglist;    /* segs that currently take part in copy out. 
 									 * Once a segment gave away all it's data rows
 									 * it is taken out of the list */
-	PartitionNode *partitions;
-	List		  *ao_segnos;
 	HTAB		  *aotupcounts; /* hash of ao relation id to processed tuple count */
 	struct CdbDispatcherState *dispatcherState;
 } CdbCopy;
@@ -45,7 +43,8 @@ typedef struct CdbCopy
 
 /* global function declarations */
 extern CdbCopy *makeCdbCopy(bool copy_in);
-extern void cdbCopyStart(CdbCopy *cdbCopy, CopyStmt *stmt, struct GpPolicy *policy);
+extern void cdbCopyStart(CdbCopy *cdbCopy, CopyStmt *stmt, struct GpPolicy *policy,
+						 PartitionNode *partitions, List *ao_segnos);
 extern void cdbCopySendDataToAll(CdbCopy *c, const char *buffer, int nbytes);
 extern void cdbCopySendData(CdbCopy *c, int target_seg, const char *buffer, int nbytes);
 extern bool cdbCopyGetData(CdbCopy *c, bool cancel, uint64 *rows_processed);

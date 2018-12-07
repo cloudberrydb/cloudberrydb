@@ -2639,7 +2639,6 @@ CopyToDispatch(CopyState cstate)
 	cstate->fe_msgbuf = makeStringInfo();
 
 	cdbCopy = makeCdbCopy(false);
-	cdbCopy->partitions = RelationBuildPartitionDesc(cstate->rel, false);
 
 	/* XXX: lock all partitions */
 
@@ -2658,7 +2657,9 @@ CopyToDispatch(CopyState cstate)
 	{
 		bool		done;
 
-		cdbCopyStart(cdbCopy, stmt, NULL);
+		cdbCopyStart(cdbCopy, stmt, NULL,
+					 RelationBuildPartitionDesc(cstate->rel, false),
+					 NIL);
 
 		if (cstate->binary)
 		{
@@ -3720,10 +3721,6 @@ CopyFrom(CopyState cstate)
 
 		((volatile CopyState) cstate)->cdbCopy = cdbCopy;
 
-		cdbCopy->partitions = estate->es_result_partitions;
-		if (list_length(cstate->ao_segnos) > 0)
-			cdbCopy->ao_segnos = cstate->ao_segnos;
-
 		/*
 		 * Dispatch the COPY command.
 		 *
@@ -3741,7 +3738,8 @@ CopyFrom(CopyState cstate)
 		 */
 		elog(DEBUG5, "COPY command sent to segdbs");
 
-		cdbCopyStart(cdbCopy, glob_copystmt, cstate->rel->rd_cdbpolicy);
+		cdbCopyStart(cdbCopy, glob_copystmt, cstate->rel->rd_cdbpolicy,
+					 estate->es_result_partitions, cstate->ao_segnos);
 
 		/*
 		 * Skip header processing if dummy file get from master for COPY FROM ON
