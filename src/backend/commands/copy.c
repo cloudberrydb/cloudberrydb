@@ -2001,16 +2001,6 @@ BeginCopy(bool is_from,
 	  cstate->encoding_embeds_ascii = PG_ENCODING_IS_CLIENT_ONLY(cstate->file_encoding);
   }
 
-	/*
-	 * some greenplum db specific vars
-	 */
-	cstate->is_copy_in = (is_from ? true : false);
-	if (is_from)
-	{
-		cstate->error_on_executor = false;
-		initStringInfo(&(cstate->executor_err_context));
-	}
-
 	cstate->copy_dest = COPY_FILE;		/* default */
 
 	MemoryContextSwitchTo(oldcontext);
@@ -3280,19 +3270,6 @@ CopyFromErrorCallback(void *arg)
 {
 	CopyState	cstate = (CopyState) arg;
 	char		buffer[20];
-
-	/*
-	 * If we saved the error context from a QE in cdbcopy.c append it here.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH && cstate->executor_err_context.len > 0)
-	{
-		errcontext("%s", cstate->executor_err_context.data);
-		return;
-	}
-
-	/* don't need to print out context if error wasn't local */
-	if (cstate->error_on_executor)
-		return;
 
 	if (cstate->binary)
 	{
@@ -7087,8 +7064,6 @@ static void CopyInitDataParser(CopyState cstate)
 
 	if (cstate->csv_mode)
 	{
-		cstate->in_quote = false;
-		cstate->last_was_esc = false;
 		cstate->num_consec_csv_err = 0;
 	}
 
