@@ -576,7 +576,7 @@ cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 				segment_rows_completed = res->numCompleted;
 
 			/* Get AO tuple counts */
-			c->aotupcounts = PQprocessAoTupCounts(c->partitions, c->aotupcounts,
+			c->aotupcounts = PQprocessAoTupCounts(c->aotupcounts,
 												  res->aotupcounts, res->naotupcounts);
 			/* free the PGresult object */
 			PQclear(res);
