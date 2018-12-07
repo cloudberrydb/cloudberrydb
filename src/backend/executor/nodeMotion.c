@@ -750,7 +750,7 @@ execMotionSortedReceiver(MotionState * node)
     node->numTuplesToParent++;
 
     /* Store tuple in our result slot. */
-    slot = outerPlanState(node)->ps_ResultTupleSlot;
+    slot = node->ps.ps_ResultTupleSlot;
     slot = ExecStoreGenericTuple(tuple, slot, true /* shouldFree */);
 
 #ifdef CDB_MOTION_DEBUG
