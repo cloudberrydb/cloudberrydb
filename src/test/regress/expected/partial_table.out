@@ -61,6 +61,8 @@ analyze r2;
 -- a temp table is created during reorganization, its numsegments should be
 -- the same with original table, otherwise some data will be lost after the
 -- reorganization.
+--
+-- in most cases the temp table is created with CTAS.
 begin;
 	insert into t1 select i, i from generate_series(1,10) i;
 	select gp_segment_id, * from t1;
@@ -77,6 +79,12 @@ begin;
              0 |  9 |  9 |    |   
              0 | 10 | 10 |    |   
 (10 rows)
+
+	select gp_debug_set_create_table_default_numsegments('full');
+ gp_debug_set_create_table_default_numsegments 
+-----------------------------------------------
+ FULL
+(1 row)
 
 	alter table t1 set with (reorganize=true) distributed by (c1);
 	select gp_segment_id, * from t1;
@@ -95,8 +103,158 @@ begin;
 (10 rows)
 
 abort;
+-- but there are also cases the temp table is created with CREATE + INSERT.
+-- case 1: with dropped columns
+begin;
+	insert into t1 select i, i from generate_series(1,10) i;
+	select gp_segment_id, * from t1;
+ gp_segment_id | c1 | c2 | c3 | c4 
+---------------+----+----+----+----
+             0 |  1 |  1 |    |   
+             0 |  2 |  2 |    |   
+             0 |  3 |  3 |    |   
+             0 |  4 |  4 |    |   
+             0 |  5 |  5 |    |   
+             0 |  6 |  6 |    |   
+             0 |  7 |  7 |    |   
+             0 |  8 |  8 |    |   
+             0 |  9 |  9 |    |   
+             0 | 10 | 10 |    |   
+(10 rows)
+
+	alter table t1 drop column c4;
+	select gp_debug_set_create_table_default_numsegments('full');
+ gp_debug_set_create_table_default_numsegments 
+-----------------------------------------------
+ FULL
+(1 row)
+
+	alter table t1 set with (reorganize=true) distributed by (c1);
+	select gp_segment_id, * from t1;
+ gp_segment_id | c1 | c2 | c3 
+---------------+----+----+----
+             0 |  1 |  1 |   
+             0 |  2 |  2 |   
+             0 |  3 |  3 |   
+             0 |  4 |  4 |   
+             0 |  5 |  5 |   
+             0 |  6 |  6 |   
+             0 |  7 |  7 |   
+             0 |  8 |  8 |   
+             0 |  9 |  9 |   
+             0 | 10 | 10 |   
+(10 rows)
+
+abort;
+-- case 2: AOCO
+begin;
+	select gp_debug_set_create_table_default_numsegments('minimal');
+ gp_debug_set_create_table_default_numsegments 
+-----------------------------------------------
+ MINIMAL
+(1 row)
+
+	create table t (c1 int, c2 int)
+	  with (appendonly=true, orientation=column)
+	  distributed by (c1, c2);
+	insert into t select i, i from generate_series(1,10) i;
+	select gp_segment_id, * from t;
+ gp_segment_id | c1 | c2 
+---------------+----+----
+             0 |  1 |  1
+             0 |  2 |  2
+             0 |  3 |  3
+             0 |  4 |  4
+             0 |  5 |  5
+             0 |  6 |  6
+             0 |  7 |  7
+             0 |  8 |  8
+             0 |  9 |  9
+             0 | 10 | 10
+(10 rows)
+
+	select gp_debug_set_create_table_default_numsegments('full');
+ gp_debug_set_create_table_default_numsegments 
+-----------------------------------------------
+ FULL
+(1 row)
+
+	alter table t set with (reorganize=true) distributed by (c1);
+	select gp_segment_id, * from t;
+ gp_segment_id | c1 | c2 
+---------------+----+----
+             0 |  1 |  1
+             0 |  2 |  2
+             0 |  3 |  3
+             0 |  4 |  4
+             0 |  5 |  5
+             0 |  6 |  6
+             0 |  7 |  7
+             0 |  8 |  8
+             0 |  9 |  9
+             0 | 10 | 10
+(10 rows)
+
+abort;
+-- case 3: AO + index
+begin;
+	select gp_debug_set_create_table_default_numsegments('minimal');
+ gp_debug_set_create_table_default_numsegments 
+-----------------------------------------------
+ MINIMAL
+(1 row)
+
+	create table t (c1 int, c2 int)
+	  with (appendonly=true, orientation=row)
+	  distributed by (c1, c2);
+	create index ti on t (c2);
+	insert into t select i, i from generate_series(1,10) i;
+	select gp_segment_id, * from t;
+ gp_segment_id | c1 | c2 
+---------------+----+----
+             0 |  1 |  1
+             0 |  2 |  2
+             0 |  3 |  3
+             0 |  4 |  4
+             0 |  5 |  5
+             0 |  6 |  6
+             0 |  7 |  7
+             0 |  8 |  8
+             0 |  9 |  9
+             0 | 10 | 10
+(10 rows)
+
+	select gp_debug_set_create_table_default_numsegments('full');
+ gp_debug_set_create_table_default_numsegments 
+-----------------------------------------------
+ FULL
+(1 row)
+
+	alter table t set with (reorganize=true) distributed by (c1);
+	select gp_segment_id, * from t;
+ gp_segment_id | c1 | c2 
+---------------+----+----
+             0 |  1 |  1
+             0 |  2 |  2
+             0 |  3 |  3
+             0 |  4 |  4
+             0 |  5 |  5
+             0 |  6 |  6
+             0 |  7 |  7
+             0 |  8 |  8
+             0 |  9 |  9
+             0 | 10 | 10
+(10 rows)
+
+abort;
 -- restore the analyze information
 analyze t1;
+select gp_debug_reset_create_table_default_numsegments();
+ gp_debug_reset_create_table_default_numsegments 
+-------------------------------------------------
+ 
+(1 row)
+
 -- append SingleQE of different sizes
 select max(c1) as v, 1 as r from t2 union all select 1 as v, 2 as r;
  v | r 

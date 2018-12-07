@@ -46,14 +46,53 @@ analyze r2;
 -- a temp table is created during reorganization, its numsegments should be
 -- the same with original table, otherwise some data will be lost after the
 -- reorganization.
+--
+-- in most cases the temp table is created with CTAS.
 begin;
 	insert into t1 select i, i from generate_series(1,10) i;
 	select gp_segment_id, * from t1;
+	select gp_debug_set_create_table_default_numsegments('full');
 	alter table t1 set with (reorganize=true) distributed by (c1);
 	select gp_segment_id, * from t1;
 abort;
+-- but there are also cases the temp table is created with CREATE + INSERT.
+-- case 1: with dropped columns
+begin;
+	insert into t1 select i, i from generate_series(1,10) i;
+	select gp_segment_id, * from t1;
+	alter table t1 drop column c4;
+	select gp_debug_set_create_table_default_numsegments('full');
+	alter table t1 set with (reorganize=true) distributed by (c1);
+	select gp_segment_id, * from t1;
+abort;
+-- case 2: AOCO
+begin;
+	select gp_debug_set_create_table_default_numsegments('minimal');
+	create table t (c1 int, c2 int)
+	  with (appendonly=true, orientation=column)
+	  distributed by (c1, c2);
+	insert into t select i, i from generate_series(1,10) i;
+	select gp_segment_id, * from t;
+	select gp_debug_set_create_table_default_numsegments('full');
+	alter table t set with (reorganize=true) distributed by (c1);
+	select gp_segment_id, * from t;
+abort;
+-- case 3: AO + index
+begin;
+	select gp_debug_set_create_table_default_numsegments('minimal');
+	create table t (c1 int, c2 int)
+	  with (appendonly=true, orientation=row)
+	  distributed by (c1, c2);
+	create index ti on t (c2);
+	insert into t select i, i from generate_series(1,10) i;
+	select gp_segment_id, * from t;
+	select gp_debug_set_create_table_default_numsegments('full');
+	alter table t set with (reorganize=true) distributed by (c1);
+	select gp_segment_id, * from t;
+abort;
 -- restore the analyze information
 analyze t1;
+select gp_debug_reset_create_table_default_numsegments();
 
 -- append SingleQE of different sizes
 select max(c1) as v, 1 as r from t2 union all select 1 as v, 2 as r;
