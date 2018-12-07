@@ -624,8 +624,7 @@ cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 		ereport(ERROR,
 				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 				 (errmsg("MPP detected %d segment failures, system is reconnected",
-						 num_bad_connections),
-				  errSendAlert(true))));
+						 num_bad_connections))));
 	}
 
 	/*
