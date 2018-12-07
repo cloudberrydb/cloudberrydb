@@ -62,10 +62,11 @@ typedef struct CdbTupleHeapInfo
 {
 	/* Next tuple from this sender */
 	GenericTuple tuple;
+	Datum		datum1;			/* value of first key column */
+	bool		isnull1;		/* is first key column NULL? */
 
 	/* Which sender did this tuple come from? */
 	int			sourceRouteId;
-
 }			CdbTupleHeapInfo;
 
 /*
@@ -698,10 +699,24 @@ execMotionSortedReceiver(MotionState *node)
 		/* Substitute it in the pq for its predecessor. */
 		if (recvRC == GOT_TUPLE)
 		{
+			CdbMergeComparatorContext *comparatorContext =
+			(CdbMergeComparatorContext *) hp->comparatorContext;
+			AttrNumber	key1_attno = motion->sortColIdx[0];
 			CdbTupleHeapInfo info;
 
 			info.tuple = inputTuple;
 			info.sourceRouteId = node->routeIdNext;
+
+			if (is_memtuple(inputTuple))
+				info.datum1 = memtuple_getattr((MemTuple) inputTuple,
+											   comparatorContext->mt_bind,
+											   key1_attno,
+											   &info.isnull1);
+			else
+				info.datum1 = heap_getattr((HeapTuple) inputTuple,
+										   key1_attno,
+										   comparatorContext->tupDesc,
+										   &info.isnull1);
 
 			CdbHeap_DeleteMinAndInsert(hp, &info);
 
@@ -793,6 +808,9 @@ execMotionSortedReceiverFirstTime(MotionState *node)
 	int			iSegIdx;
 	int			n = 0;
 	ListCell   *lcProcess;
+	CdbMergeComparatorContext *comparatorContext = (CdbMergeComparatorContext *) hp->comparatorContext;
+	AttrNumber	key1_attno = motion->sortColIdx[0];
+	CdbTupleHeapInfo *infoArray = (CdbTupleHeapInfo *) hp->slotArray;
 
 	ReceiveReturnCode recvRC;
 
@@ -818,13 +836,23 @@ execMotionSortedReceiverFirstTime(MotionState *node)
 
 		if (recvRC == GOT_TUPLE)
 		{
-			CdbTupleHeapInfo *infoArray = (CdbTupleHeapInfo *) hp->slotArray;
 			CdbTupleHeapInfo *info = &infoArray[n];
 
 			n++;
 
 			info->tuple = inputTuple;
 			info->sourceRouteId = iSegIdx;
+
+			if (is_memtuple(inputTuple))
+				info->datum1 = memtuple_getattr((MemTuple) inputTuple,
+												comparatorContext->mt_bind,
+												key1_attno,
+												&info->isnull1);
+			else
+				info->datum1 = heap_getattr((HeapTuple) inputTuple,
+											key1_attno,
+											comparatorContext->tupDesc,
+											&info->isnull1);
 
 			node->numTuplesFromAMS++;
 
@@ -1254,12 +1282,21 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
 	TupleDesc	tupDesc;
 	int			nkey;
 	int			numSortCols = ctx->numSortCols;
+	int			compare;
 
 	Assert(ltup && rtup);
 
 	tupDesc = ctx->tupDesc;
 
-	for (nkey = 0; nkey < numSortCols; nkey++)
+	/* First column. We have the Datum for that extracted already. */
+	compare = ApplySortComparator(linfo->datum1, linfo->isnull1,
+								  rinfo->datum1, rinfo->isnull1,
+								  &sortKeys[0]);
+	if (compare != 0)
+		return compare;
+
+	/* Rest of the columns. */
+	for (nkey = 1; nkey < numSortCols; nkey++)
 	{
 		SortSupport ssup = &sortKeys[nkey];
 		AttrNumber	attno = ssup->ssup_attno;
@@ -1267,7 +1304,6 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
 					datum2;
 		bool		isnull1,
 					isnull2;
-		int			compare;
 
 		if (is_memtuple(ltup))
 			datum1 = memtuple_getattr((MemTuple) ltup, ctx->mt_bind, attno, &isnull1);
@@ -1319,7 +1355,7 @@ CdbMergeComparator_CreateContext(TupleDesc tupDesc,
 
 	for (i = 0; i < numSortCols; i++)
 	{
-		SortSupport sortKey = ctx->sortKeys + i;
+		SortSupport sortKey = &ctx->sortKeys[i];
 
 		AssertArg(sortColIdx[i] != 0);
 		AssertArg(sortOperators[i] != 0);
