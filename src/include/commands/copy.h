@@ -197,7 +197,6 @@ typedef struct CopyStateData
 	CopyErrMode	errMode;
 	struct CdbSreh *cdbsreh; /* single row error handler */
 	int			lastsegid;
-	int			num_consec_csv_err; /* # of consecutive csv invalid format errs */
 
 	/*
 	 * These variables are used to reduce overhead in textual COPY FROM.

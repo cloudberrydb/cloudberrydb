@@ -4849,7 +4849,6 @@ HandleCopyError(CopyState cstate)
 
 		cdbsreh->is_server_enc = cstate->line_buf_converted;
 		cdbsreh->linenumber = cstate->cur_lineno;
-		cdbsreh->consec_csv_err = cstate->num_consec_csv_err;
 		if (cstate->cur_attname)
 		{
 			errormsg =  psprintf("%s, column %s",
@@ -7061,11 +7060,6 @@ static void CopyInitDataParser(CopyState cstate)
 	cstate->cur_lineno = 0;
 	cstate->cur_attname = NULL;
 	cstate->null_print_len = strlen(cstate->null_print);
-
-	if (cstate->csv_mode)
-	{
-		cstate->num_consec_csv_err = 0;
-	}
 
 	/* Set up data buffer to hold a chunk of data */
 	MemSet(cstate->raw_buf, ' ', RAW_BUF_SIZE * sizeof(char));

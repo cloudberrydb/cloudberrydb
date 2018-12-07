@@ -834,7 +834,6 @@ else \
 	pstate->cdbsreh->is_server_enc = pstate->line_buf_converted; \
 	pstate->cdbsreh->linenumber = pstate->cur_lineno; \
 	pstate->cdbsreh->processed++; \
-	pstate->cdbsreh->consec_csv_err = pstate->num_consec_csv_err; \
 \
 	/* set the error message. Use original msg and add column name if available */ \
 	if (pstate->cur_attname)\
@@ -1207,8 +1206,6 @@ InitParseState(CopyState pstate, Relation relation,
 									  logerrors);
 
 		pstate->cdbsreh->relid = RelationGetRelid(relation);
-
-		pstate->num_consec_csv_err = 0;
 	}
 
 	/* Initialize 'out_functions', like CopyTo() would. */
