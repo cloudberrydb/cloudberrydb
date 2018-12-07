@@ -1082,8 +1082,7 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 	UpdateMotionLayerNode(motionstate->ps.state->motionlayer_context, 
 			node->motionID, 
 			node->sendSorted, 
-			tupDesc, 
-			PlanStateOperatorMemKB((PlanState *) motionstate));
+			tupDesc);
 
 	
 #ifdef CDB_MOTION_DEBUG
@@ -1312,7 +1311,6 @@ CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
     ctx->numSortCols = numSortCols;
     ctx->sortColIdx = sortColIdx;
     ctx->tupDesc = tupDesc;
-
     ctx->mt_bind = create_memtuple_binding(tupDesc);
 
     /* Allocate the sort function arrays. */
