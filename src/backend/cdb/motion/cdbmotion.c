@@ -91,10 +91,12 @@ reconstructTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry, TupleRem
 	SerTupInfo *pSerInfo = &pMNEntry->ser_tup_info;
 
 	/*
-	 * Convert the list of chunks into a tuple, then stow it away. This frees
-	 * our TCList as a side-effect
+	 * Convert the list of chunks into a tuple, then stow it away.
 	 */
 	tup = CvtChunksToTup(&pCSEntry->chunk_list, pSerInfo, remapper);
+
+	/* We're done with the chunks now. */
+	clearTCList(NULL, &pCSEntry->chunk_list);
 
 	if (!tup)
 		return;
