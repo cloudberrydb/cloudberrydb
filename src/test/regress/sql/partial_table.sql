@@ -71,6 +71,26 @@ begin;
 	union all select * from t2 c join t2 d using(c2) ;
 abort;
 
+-- partitioned table should have the same numsegments for parent and children
+-- even in RANDOM mode.
+select gp_debug_set_create_table_default_numsegments('random');
+begin;
+	create table t (c1 int, c2 int) distributed by (c1)
+	partition by range(c2) (start(0) end(20) every(1));
+
+	-- verify that parent and children have the same numsegments
+	select count(a.localoid)
+	  from gp_distribution_policy a
+	  join pg_class c
+	    on a.localoid = c.oid
+	   and c.relname like 't_1_prt_%'
+	  join gp_distribution_policy b
+	    on a.numsegments = b.numsegments
+	   and b.localoid = 't'::regclass
+	;
+abort;
+select gp_debug_reset_create_table_default_numsegments();
+
 --
 -- create table: LIKE, INHERITS and DISTRIBUTED BY
 --

@@ -417,17 +417,33 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	 */
 	if (stmt->relKind == RELKIND_RELATION)
 	{
-		/* Parent is always created on DEFAULT numsegments */
-		AssertImply(stmt->distributedBy,
-					stmt->distributedBy->numsegments == -1 ||
-					stmt->distributedBy->numsegments == GP_POLICY_DEFAULT_NUMSEGMENTS);
+		int			numsegments = -1;
+
+		AssertImply(stmt->is_part_parent,
+					stmt->distributedBy == NULL);
+		AssertImply(stmt->is_part_child,
+					stmt->distributedBy != NULL);
+
+		/*
+		 * We want children have the same numsegments with parent.  As
+		 * transformDistributedBy() always set numsegments to DEFAULT, does
+		 * this meet our expectation?  No, because DEFAULT does not always
+		 * equal to DEFAULT itself.  When DEFAULT is set to RANDOM a different
+		 * value is returned each time.
+		 *
+		 * So we have to save the parent numsegments here.
+		 */
+		if (stmt->is_part_child)
+			numsegments = stmt->distributedBy->numsegments;
 
 		stmt->distributedBy = transformDistributedBy(&cxt, stmt->distributedBy,
 							   likeDistributedBy, bQuiet);
 
-		/* Partitions are always created on DEFAULT numsegments, too */
-		AssertImply(stmt->is_part_child,
-					stmt->distributedBy->numsegments == GP_POLICY_DEFAULT_NUMSEGMENTS);
+		/*
+		 * And forcely set it on children after transformDistributedBy().
+		 */
+		if (stmt->is_part_child)
+			stmt->distributedBy->numsegments = numsegments;
 	}
 
 	if (stmt->partitionBy != NULL &&
