@@ -19,8 +19,6 @@
 #include "utils/memutils.h"
 #include "cdb/htupfifo.h"
 
-#define HTF_FREELIST_MAX_LEN (10)
-
 static void htfifo_cleanup(htup_fifo htf);
 
 /*
@@ -37,7 +35,6 @@ htfifo_create(void)
 	htf->p_last = NULL;
 
 	htf->freelist = NULL;
-	htf->freelist_count = 0;
 
 	return htf;
 }
@@ -65,7 +62,6 @@ htfifo_cleanup(htup_fifo htf)
 
 		pfree(trash);
 	}
-	htf->freelist_count = 0;
 
 	htf->p_first = NULL;
 	htf->p_last = NULL;
@@ -111,7 +107,6 @@ htfifo_addtuple(htup_fifo htf, GenericTuple tup)
 	{
 		p_ent = htf->freelist;
 		htf->freelist = p_ent->p_next;
-		htf->freelist_count = htf->freelist_count - 1;
 	}
 	else
 	{
@@ -165,16 +160,8 @@ htfifo_gettuple(htup_fifo htf)
 		AssertState(tup != NULL);
 
 		/* Free the FIFO entry. */
-		if (htf->freelist_count > HTF_FREELIST_MAX_LEN)
-		{
-			pfree(p_ent);
-		}
-		else
-		{
-			p_ent->p_next = htf->freelist;
-			htf->freelist = p_ent;
-			htf->freelist_count = htf->freelist_count + 1;
-		}
+		p_ent->p_next = htf->freelist;
+		htf->freelist = p_ent;
 	}
 	else
 	{

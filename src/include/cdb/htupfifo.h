@@ -44,7 +44,6 @@ typedef struct htup_fifo_state
 	htf_entry	p_last;
 
 	htf_entry	freelist;
-	int			freelist_count;
 
 }	htup_fifo_state, *htup_fifo;
 
