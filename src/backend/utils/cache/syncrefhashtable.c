@@ -131,7 +131,8 @@ SyncHTPartLockId(SyncHT *syncHT, void *key)
 	Assert(NULL != key);
 
 	uint32 hashValue = get_hash_value(syncHT->ht, key);
-	return (syncHT->baseLWLockId + (hashValue % syncHT->numPartitions));
+	return &((LWLockPadded *)(syncHT->baseLWLockId) +
+			 (hashValue % syncHT->numPartitions))->lock;
 }
 
 /*
