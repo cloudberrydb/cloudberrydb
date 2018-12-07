@@ -2640,8 +2640,6 @@ CopyToDispatch(CopyState cstate)
 
 	cdbCopy = makeCdbCopy(false);
 	cdbCopy->partitions = RelationBuildPartitionDesc(cstate->rel, false);
-	cdbCopy->skip_ext_partition = cstate->skip_ext_partition;
-	cdbCopy->hasReplicatedTable = GpPolicyIsReplicated(cstate->rel->rd_cdbpolicy);
 
 	/* XXX: lock all partitions */
 

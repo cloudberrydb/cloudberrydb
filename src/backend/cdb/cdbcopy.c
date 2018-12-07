@@ -97,13 +97,10 @@ makeCdbCopy(bool is_copy_in)
 
 	/* fresh start */
 	c->total_segs = 0;
-	c->mirror_map = NULL;
 	c->copy_in = is_copy_in;
-	c->skip_ext_partition = false;
 	c->outseglist = NIL;
 	c->partitions = NULL;
 	c->ao_segnos = NIL;
-	c->hasReplicatedTable = false;
 	c->dispatcherState = NULL;
 	initStringInfo(&(c->copy_out_buf));
 
@@ -141,8 +138,6 @@ cdbCopyStart(CdbCopy *c, CopyStmt *stmt, struct GpPolicy *policy)
 
 	/* add in AO segno map for dispatch */
 	stmt->ao_segnos = c->ao_segnos;
-
-	stmt->skip_ext_partition = c->skip_ext_partition;
 
 	if (policy)
 	{

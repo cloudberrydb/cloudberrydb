@@ -28,9 +28,7 @@ struct CdbDispatcherState;
 typedef struct CdbCopy
 {
 	int			total_segs;		/* total number of segments in cdb */
-	int		   *mirror_map;		/* indicates how many db's each segment has */
 	bool		copy_in;		/* direction: true for COPY FROM false for COPY TO */
-	bool		skip_ext_partition;/* skip external partition */ 
 
 	StringInfoData	copy_out_buf;/* holds a chunk of data from the database */
 
@@ -40,7 +38,6 @@ typedef struct CdbCopy
 	PartitionNode *partitions;
 	List		  *ao_segnos;
 	HTAB		  *aotupcounts; /* hash of ao relation id to processed tuple count */
-	bool		hasReplicatedTable;
 	struct CdbDispatcherState *dispatcherState;
 } CdbCopy;
 
