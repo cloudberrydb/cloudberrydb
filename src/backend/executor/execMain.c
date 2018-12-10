@@ -1224,7 +1224,7 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
 		/*
 		 * Remove our own query's motion layer.
 		 */
-		RemoveMotionLayer(estate->motionlayer_context, true);
+		RemoveMotionLayer(estate->motionlayer_context);
 
 		/*
 		 * Release EState and per-query memory context.
@@ -1247,7 +1247,7 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
 	/*
 	 * Remove our own query's motion layer.
 	 */
-	RemoveMotionLayer(estate->motionlayer_context, true);
+	RemoveMotionLayer(estate->motionlayer_context);
 
 	/* do away with our snapshots */
 	UnregisterSnapshot(estate->es_snapshot);

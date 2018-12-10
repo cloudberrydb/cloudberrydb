@@ -2658,7 +2658,7 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState *transportStates,
 
 	getChunkTransportState(transportStates, motNodeID, &pEntry);
 	if (transportStates->estate && transportStates->estate->motionlayer_context)
-		pMNEntry = getMotionNodeEntry(transportStates->estate->motionlayer_context, motNodeID, "flushBuffer");
+		pMNEntry = getMotionNodeEntry(transportStates->estate->motionlayer_context, motNodeID);
 
 	int			retry = 0;
 
@@ -2838,7 +2838,7 @@ flushBuffer(ChunkTransportState *transportStates,
 #endif
 
 	if (transportStates->estate && transportStates->estate->motionlayer_context)
-		pMNEntry = getMotionNodeEntry(transportStates->estate->motionlayer_context, motionId, "flushBuffer");
+		pMNEntry = getMotionNodeEntry(transportStates->estate->motionlayer_context, motionId);
 
 	/* first set header length */
 	*(uint32 *) conn->pBuff = conn->msgSize;

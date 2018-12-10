@@ -118,7 +118,7 @@ reconstructTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry, TupleRem
  * execution.
  */
 void
-RemoveMotionLayer(MotionLayerState *mlStates, bool flushCommLayer __attribute__((unused)))
+RemoveMotionLayer(MotionLayerState *mlStates)
 {
 
 	if (Gp_role == GP_ROLE_UTILITY)
@@ -408,7 +408,7 @@ UpdateMotionExpectedReceivers(MotionLayerState *mlStates, SliceTable *sliceTable
 				activeNumProcs++;
 		}
 
-		pEntry = getMotionNodeEntry(mlStates, childId, "setExpectedReceivers");
+		pEntry = getMotionNodeEntry(mlStates, childId);
 		pEntry->num_senders = activeNumProcs;
 	}
 }
@@ -418,7 +418,7 @@ SendStopMessage(MotionLayerState *mlStates,
 				ChunkTransportState *transportStates,
 				int16 motNodeID)
 {
-	MotionNodeEntry *pEntry = getMotionNodeEntry(mlStates, motNodeID, "SendStopMessage");
+	MotionNodeEntry *pEntry = getMotionNodeEntry(mlStates, motNodeID);
 
 	pEntry->stopped = true;
 	if (transportStates != NULL && transportStates->doSendStopMessage != NULL)
@@ -459,7 +459,7 @@ CheckAndSendRecordCache(MotionLayerState *mlStates,
 	 * details that affect sending, such as whether the motion node needs to
 	 * include backup segment-dbs.
 	 */
-	pMNEntry = getMotionNodeEntry(mlStates, motNodeID, "SendRecordCache");
+	pMNEntry = getMotionNodeEntry(mlStates, motNodeID);
 
 	if (!ShouldSendRecordCache(conn, &pMNEntry->ser_tup_info))
 		return;
@@ -530,7 +530,7 @@ SendTuple(MotionLayerState *mlStates,
 	 * details that affect sending, such as whether the motion node needs to
 	 * include backup segment-dbs.
 	 */
-	pMNEntry = getMotionNodeEntry(mlStates, motNodeID, "SendTuple");
+	pMNEntry = getMotionNodeEntry(mlStates, motNodeID);
 
 #ifdef AMS_VERBOSE_LOGGING
 	elog(DEBUG5, "Serializing HeapTuple for sending.");
@@ -623,7 +623,7 @@ SendEndOfStream(MotionLayerState *mlStates,
 	 * details that affect sending, such as whether the motion node needs to
 	 * include backup segment-dbs.
 	 */
-	pMNEntry = getMotionNodeEntry(mlStates, motNodeID, "SendEndOfStream");
+	pMNEntry = getMotionNodeEntry(mlStates, motNodeID);
 
 	transportStates->SendEos(transportStates, motNodeID, s_eos_chunk_data);
 
@@ -654,7 +654,7 @@ RecvTupleFrom(MotionLayerState *mlStates,
 	elog(DEBUG5, "RecvTupleFrom( motNodeID = %d, srcRoute = %d )", motNodeID, srcRoute);
 #endif
 
-	pMNEntry = getMotionNodeEntry(mlStates, motNodeID, "RecvTupleFrom");
+	pMNEntry = getMotionNodeEntry(mlStates, motNodeID);
 
 	if (srcRoute == ANY_ROUTE)
 	{
@@ -833,7 +833,7 @@ EndMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool flushCommLa
 	ChunkSorterEntry *pCSEntry;
 	int			i;
 
-	pMNEntry = getMotionNodeEntry(mlStates, motNodeID, "EndMotionLayerNode");
+	pMNEntry = getMotionNodeEntry(mlStates, motNodeID);
 
 #ifdef AMS_VERBOSE_LOGGING
 	elog(DEBUG5, "Cleaning up Motion Layer details for motion node %d.",
@@ -961,7 +961,7 @@ EndMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool flushCommLa
  * is returned if the ID is unrecognized.
  */
 MotionNodeEntry *
-getMotionNodeEntry(MotionLayerState *mlStates, int16 motNodeID, char *errString __attribute__((unused)))
+getMotionNodeEntry(MotionLayerState *mlStates, int16 motNodeID)
 {
 	MotionNodeEntry *pMNEntry = NULL;
 

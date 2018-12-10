@@ -55,7 +55,7 @@ extern int Gp_max_tuple_chunk_size;
 
 /* API FUNCTION CALLS */
 
-extern MotionNodeEntry *getMotionNodeEntry(MotionLayerState *mlStates, int16 motNodeID, char *errString  __attribute__((unused)) );
+extern MotionNodeEntry *getMotionNodeEntry(MotionLayerState *mlStates, int16 motNodeID);
 
 /* Initialization of motion layer for this query */
 extern void initMotionLayerStructs(MotionLayerState **ml_states);
@@ -72,7 +72,7 @@ extern void EndMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool
 
 /* Reset the Motion Layer's state between query executions (normal termination
  * or error-cleanup). */
-extern void RemoveMotionLayer(MotionLayerState *ml_states, bool flushCommLayer  __attribute__((unused)) );
+extern void RemoveMotionLayer(MotionLayerState *ml_states);
 
 extern void CheckAndSendRecordCache(MotionLayerState *mlStates,
 									ChunkTransportState *transportStates,
