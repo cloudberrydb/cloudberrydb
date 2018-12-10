@@ -475,7 +475,7 @@ resources:
   type: docker-image
   source:
     repository: pivotaldata/centos7-build
-    tag: 'gpdb5-latest'
+    tag: 'gpdb6-latest'
 
 - name: centos-gpdb-test-7
   type: docker-image
