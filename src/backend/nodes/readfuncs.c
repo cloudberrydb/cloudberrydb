@@ -548,6 +548,9 @@ _readGroupId(void)
 	READ_DONE();
 }
 
+/*
+ * _readWindowClause
+ */
 static WindowClause *
 _readWindowClause(void)
 {
