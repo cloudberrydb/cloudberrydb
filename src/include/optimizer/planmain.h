@@ -268,11 +268,6 @@ extern bool has_redistributable_clause(RestrictInfo *restrictinfo);
 extern List *remove_useless_joins(PlannerInfo *root, List *joinlist);
 
 /*
- * prototypes for plan/analyzejoins.c
- */
-extern List *remove_useless_joins(PlannerInfo *root, List *joinlist);
-
-/*
  * prototypes for plan/setrefs.c
  */
 extern Plan *set_plan_references(PlannerInfo *root, Plan *plan);
