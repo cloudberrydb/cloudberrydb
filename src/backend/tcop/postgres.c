@@ -5490,8 +5490,6 @@ PostgresMain(int argc, char *argv[],
 
 					forbidden_in_wal_sender(firstchar);
 
-					forbidden_in_wal_sender(firstchar);
-
 					/* Set statement_timestamp() */
 					SetCurrentStatementStartTimestamp();
 
