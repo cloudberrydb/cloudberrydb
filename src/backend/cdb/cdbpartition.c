@@ -4601,9 +4601,6 @@ get_part_rule1(Relation rel,
 			{
 				snprintf(partIdStr, sizeof(partIdStr), " for specified rank");
 
-#ifdef WIN32
-#define round(x) (x+0.5)
-#endif
 				if (IsA(pid->partiddef, Integer))
 					idrank = intVal(pid->partiddef);
 				else if (IsA(pid->partiddef, Float))
