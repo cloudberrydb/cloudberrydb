@@ -2334,7 +2334,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				result_plan = plan_grouping_extension(root, best_path, tuple_fraction,
 													  use_hashed_grouping,
 													  &new_tlist, result_plan->targetlist,
-													  true, false,
+													  false,
 													  (List *) parse->havingQual,
 													  &numGroupCols,
 													  &groupColIdx,
