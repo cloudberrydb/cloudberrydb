@@ -518,9 +518,6 @@ SocketBackend(StringInfo inBuf)
 
 
 			break;
-		case 'G':				/* Greenplum Gang Management */
-			doing_extended_query_message = false;
-			break;
 
 		case 'F':				/* fastpath function call */
 			/* we let fastpath.c cope with old-style input of this */
@@ -567,10 +564,6 @@ SocketBackend(StringInfo inBuf)
 				ereport(FATAL,
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
 						 errmsg("invalid frontend message type %d", qtype)));
-			break;
-
-		case 'W':   /* Greenplum Database command for transmitting listener port. */
-
 			break;
 
 		default:
