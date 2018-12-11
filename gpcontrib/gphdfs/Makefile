@@ -19,9 +19,8 @@ else
 endif
 
 JAR_FILES = dist/hadoop-gnet-1.2.0.0.jar
-JAVADOC_TARS = gnet-1.2-javadoc.tar
 
-all: $(JAR_FILES) unittest $(JAVADOC_TARS)
+all: $(JAR_FILES) unittest
 
 dist/hadoop-gnet-1.2.0.0.jar:
 	$(ANT) clean
@@ -36,15 +35,10 @@ unittest: $(JAR_FILES)
 	ANT_OPTS=$(ANT_OPTS) $(ANT) test -Dgphdgnet.version=hadoop-gnet-1.2.0.0 \
                 -Dgpgnet.src=1.2 -Dgpgnet.configuration=ut
 
-gnet-1.2-javadoc.tar: $(JAR_FILES)
-	$(ANT) javadoc -Dgphdgnet.version=gnet-1.2 -Dgpgnet.src=1.2 -Dgpgnet.configuration=hadoop2
-	$(TAR) -cf gnet-1.2-javadoc.tar gnet-1.2-javadoc
-
-install-jars: $(JAR_FILES) $(JAVADOC_TARS)
+install-jars: $(JAR_FILES)
 	$(INSTALL_PROGRAM) dist/*.jar '$(DESTDIR)$(libdir)/hadoop/'
 	$(INSTALL_PROGRAM) hadoop_env.sh$(X) '$(DESTDIR)$(libdir)/hadoop/hadoop_env.sh$(X)'
 	$(INSTALL_PROGRAM) jaas.conf$(X) '$(DESTDIR)$(libdir)/hadoop/jaas.conf$(X)'
-	$(INSTALL_PROGRAM) *-javadoc.tar '$(DESTDIR)$(docdir)/javadoc'
 
 .PHONY: install-gphdfs
 install-gphdfs: gphdfs.so
@@ -55,7 +49,6 @@ install: install-jars install-gphdfs
 
 installdirs:
 	$(MKDIR_P) '$(DESTDIR)$(libdir)/hadoop'
-	$(MKDIR_P) '$(DESTDIR)$(docdir)/javadoc'
 
 uninstall:
 	rm -f '$(DESTDIR)$(bindir)/*.jar'
