@@ -49,6 +49,7 @@
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/resgroup.h"
+#include "utils/resource_manager.h"
 #include "utils/resscheduler.h"
 #include "utils/syscache.h"
 
