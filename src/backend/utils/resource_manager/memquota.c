@@ -936,8 +936,10 @@ PolicyEagerFreeAssignOperatorMemoryKB(PlannedStmt *stmt, uint64 memAvailableByte
 	 * Make sure there is enough operator memory in resource group mode.
 	 */
 	autoIncOpMemForResGroup(&ctx.groupTree->groupMemKB,
-							ctx.groupTree->numNonMemIntenseOps +
-							ctx.groupTree->numMemIntenseOps);
+							Max(ctx.groupTree->numNonMemIntenseOps,
+								ctx.groupTree->maxNumConcNonMemIntenseOps) +
+							Max(ctx.groupTree->numMemIntenseOps,
+								ctx.groupTree->maxNumConcMemIntenseOps));
 
 	/*
 	 * Check if memory exceeds the limit in the root group
