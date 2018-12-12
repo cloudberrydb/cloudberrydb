@@ -383,7 +383,8 @@ CdbDispatchUtilityStatement(struct Node *stmt,
 	bool needTwoPhase = flags & DF_NEED_TWO_PHASE;
 	bool withSnapshot = flags & DF_WITH_SNAPSHOT;
 
-	dtmPreCommand("CdbDispatchUtilityStatement", debug_query_string,
+	dtmPreCommand("CdbDispatchUtilityStatement",
+				  debug_query_string ? debug_query_string : "(none)",
 				  NULL, needTwoPhase, withSnapshot,
 				  false /* inCursor */ );
 
@@ -1425,7 +1426,8 @@ CdbDispatchCopyStart(struct CdbCopy *cdbCopy, Node *stmt, int flags)
 	bool needTwoPhase = flags & DF_NEED_TWO_PHASE;
 	bool withSnapshot = flags & DF_WITH_SNAPSHOT;
 
-	dtmPreCommand("CdbDispatchCopyStart", debug_query_string,
+	dtmPreCommand("CdbDispatchCopyStart",
+				  debug_query_string ? debug_query_string : "(none)",
 				  NULL, needTwoPhase, withSnapshot,
 				  false /* inCursor */ );
 
