@@ -1065,14 +1065,6 @@ DoCopy(const CopyStmt *stmt, const char *queryString, uint64 *processed)
 			cstate->errMode = ALL_OR_NOTHING; /* default */
 		}
 
-		if (cstate->on_segment && Gp_role == GP_ROLE_EXECUTE)
-		{
-			/* data needs to get inserted locally */
-			MemoryContext oldcontext = MemoryContextSwitchTo(CacheMemoryContext);
-			rel->rd_cdbpolicy = GpPolicyCopy(stmt->policy);
-			MemoryContextSwitchTo(oldcontext);
-		}
-
 		/* We must be a QE if we received the partitioning config */
 		if (stmt->partitions)
 		{
@@ -2044,15 +2036,6 @@ CopyDispatchOnSegment(CopyState cstate, const CopyStmt *stmt)
 
 	dispatchStmt->skip_ext_partition = cstate->skip_ext_partition;
 
-	if (cstate->rel->rd_cdbpolicy)
-	{
-		dispatchStmt->policy = GpPolicyCopy(cstate->rel->rd_cdbpolicy);
-	}
-	else
-	{
-		dispatchStmt->policy = createRandomPartitionedPolicy(GP_POLICY_ALL_NUMSEGMENTS);
-	}
-
 	CdbDispatchUtilityStatement((Node *) dispatchStmt,
 								DF_NEED_TWO_PHASE |
 								DF_WITH_SNAPSHOT |
@@ -2649,7 +2632,7 @@ CopyToDispatch(CopyState cstate)
 	{
 		bool		done;
 
-		cdbCopyStart(cdbCopy, stmt, NULL,
+		cdbCopyStart(cdbCopy, stmt,
 					 RelationBuildPartitionDesc(cstate->rel, false),
 					 NIL);
 
@@ -3722,7 +3705,7 @@ CopyFrom(CopyState cstate)
 		 */
 		elog(DEBUG5, "COPY command sent to segdbs");
 
-		cdbCopyStart(cdbCopy, glob_copystmt, cstate->rel->rd_cdbpolicy,
+		cdbCopyStart(cdbCopy, glob_copystmt,
 					 estate->es_result_partitions, cstate->ao_segnos);
 
 		/*
