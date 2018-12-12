@@ -166,6 +166,11 @@ static bool flushBuffer(ChunkTransportState *transportStates,
 
 static void doSendStopMessageTCP(ChunkTransportState *transportStates, int16 motNodeID);
 
+#ifdef AMS_VERBOSE_LOGGING
+static void dumpEntryConnections(int elevel, ChunkTransportStateEntry *pEntry);
+static void print_connection(ChunkTransportState *transportStates, int fd, const char *msg);
+#endif
+
 /*
  * setupTCPListeningSocket
  */
@@ -2214,6 +2219,32 @@ TeardownTCPInterconnect(ChunkTransportState *transportStates,
 
 #ifdef AMS_VERBOSE_LOGGING
 void
+dumpEntryConnections(int elevel, ChunkTransportStateEntry *pEntry)
+{
+	int			i;
+	MotionConn *conn;
+
+	for (i = 0; i < pEntry->numConns; i++)
+	{
+		conn = &pEntry->conns[i];
+		if (conn->sockfd == -1 &&
+			conn->state == mcsNull)
+			elog(elevel, "... motNodeId=%d conns[%d]:         not connected",
+				 pEntry->motNodeId, i);
+		else
+			elog(elevel, "... motNodeId=%d conns[%d]:  "
+				 "%s%d pid=%d sockfd=%d remote=%s local=%s",
+				 pEntry->motNodeId, i,
+				 (i < pEntry->numPrimaryConns) ? "seg" : "mir",
+				 conn->remoteContentId,
+				 conn->cdbProc ? conn->cdbProc->pid : 0,
+				 conn->sockfd,
+				 conn->remoteHostAndPort,
+				 conn->localHostAndPort);
+	}
+}
+
+static void
 print_connection(ChunkTransportState *transportStates, int fd, const char *msg)
 {
 	struct sockaddr_in local,
@@ -2241,7 +2272,7 @@ print_connection(ChunkTransportState *transportStates, int fd, const char *msg)
 }
 #endif
 
-void
+static void
 format_fd_set(StringInfo buf, int nfds, mpp_fd_set *fds, char *pfx, char *sfx)
 {
 	int			i;
@@ -2260,7 +2291,7 @@ format_fd_set(StringInfo buf, int nfds, mpp_fd_set *fds, char *pfx, char *sfx)
 	appendStringInfoString(buf, sfx);
 }
 
-char *
+static char *
 format_sockaddr(struct sockaddr *sa, char *buf, int bufsize)
 {
 	/* Save remote host:port string for error messages. */
@@ -2626,7 +2657,7 @@ RecvTupleChunkFromTCP(ChunkTransportState *transportStates,
 	ML_CHECK_FOR_INTERRUPTS(transportStates->teardownActive);
 
 #ifdef AMS_VERBOSE_LOGGING
-	elog(DEBUG5, "RecvTupleChunkFrom(motNodID=%d, srcpIncIdx %d srcRoute=%d)", motNodeID, srcpInc, srcRoute);
+	elog(DEBUG5, "RecvTupleChunkFrom(motNodID=%d, srcRoute=%d)", motNodeID, srcRoute);
 #endif
 
 	getChunkTransportState(transportStates, motNodeID, &pEntry);

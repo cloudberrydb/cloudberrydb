@@ -2146,7 +2146,7 @@ setXmitSocketOptions(int txfd)
 
 }
 
-#ifdef USE_ASSERT_CHECKING
+#if defined(USE_ASSERT_CHECKING) || defined(AMS_VERBOSE_LOGGING)
 
 /*
  * icBufferListLog
@@ -2173,7 +2173,9 @@ icBufferListLog(ICBufferList *list)
 		len--;
 	}
 }
+#endif
 
+#ifdef USE_ASSERT_CHECKING
 /*
  * icBufferListCheck
  * 		Buffer list sanity check.
@@ -4212,11 +4214,6 @@ handleAcks(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntr
 				continue;
 			}
 		}
-
-#ifdef AMS_VERBOSE_LOGGING
-		log_pkt("GOT ACK", pkt);
-#endif
-
 
 		/*
 		 * read packet, is this the ack we want ?

@@ -84,11 +84,6 @@ static interconnect_handle_t *allocate_interconnect_handle(void);
 static void destroy_interconnect_handle(interconnect_handle_t *h);
 static interconnect_handle_t *find_interconnect_handle(ChunkTransportState *icContext);
 
-#ifdef AMS_VERBOSE_LOGGING
-static void dumpEntryConnections(int elevel, ChunkTransportStateEntry *pEntry);
-static void print_connection(ChunkTransportState *transportStates, int fd, const char *msg);
-#endif
-
 static void
 logChunkParseDetails(MotionConn *conn)
 {
@@ -732,34 +727,6 @@ removeChunkTransportState(ChunkTransportState *transportStates,
 
 	return pEntry;
 }
-
-#ifdef AMS_VERBOSE_LOGGING
-void
-dumpEntryConnections(int elevel, ChunkTransportStateEntry *pEntry)
-{
-	int			i;
-	MotionConn *conn;
-
-	for (i = 0; i < pEntry->numConns; i++)
-	{
-		conn = &pEntry->conns[i];
-		if (conn->sockfd == -1 &&
-			conn->state == mcsNull)
-			elog(elevel, "... motNodeId=%d conns[%d]:         not connected",
-				 pEntry->motNodeId, i);
-		else
-			elog(elevel, "... motNodeId=%d conns[%d]:  "
-				 "%s%d pid=%d sockfd=%d remote=%s local=%s",
-				 pEntry->motNodeId, i,
-				 (i < pEntry->numPrimaryConns) ? "seg" : "mir",
-				 conn->remoteContentId,
-				 conn->cdbProc ? conn->cdbProc->pid : 0,
-				 conn->sockfd,
-				 conn->remoteHostAndPort,
-				 conn->localHostAndPort);
-	}
-}
-#endif
 
 /*
  * Set the listener address associated with the slice to
