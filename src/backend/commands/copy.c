@@ -3685,7 +3685,12 @@ CopyFrom(CopyState cstate)
 		 * instead, we determine the correct target segment for row,
 		 * and forward each to the correct segment.
 		 */
+
+		/*
+		 * pre-allocate buffer for constructing a message.
+		 */
 		cstate->dispatch_msgbuf = makeStringInfo();
+		enlargeStringInfo(cstate->dispatch_msgbuf, sizeof(copy_from_dispatch_row));
 
 		/*
 		 * prepare to COPY data into segDBs:
@@ -5447,6 +5452,33 @@ HandleQDErrorFrame(CopyState cstate)
 }
 
 /*
+ * Inlined versions of appendBinaryStringInfo and enlargeStringInfo, for
+ * speed.
+ *
+ * NOTE: These versions don't NULL-terminate the string. We don't need
+ * it here.
+ */
+#define APPEND_MSGBUF_NOCHECK(buf, ptr, datalen) \
+	do { \
+		memcpy((buf)->data + (buf)->len, ptr, (datalen)); \
+		(buf)->len += (datalen); \
+	} while(0)
+
+#define APPEND_MSGBUF(buf, ptr, datalen) \
+	do { \
+		if ((buf)->len + (datalen) >= (buf)->maxlen) \
+			enlargeStringInfo((buf), (datalen)); \
+		memcpy((buf)->data + (buf)->len, ptr, (datalen)); \
+		(buf)->len += (datalen); \
+	} while(0)
+
+#define ENLARGE_MSGBUF(buf, needed) \
+	do { \
+		if ((buf)->len + (needed) >= (buf)->maxlen) \
+			enlargeStringInfo((buf), (needed)); \
+	} while(0)
+
+/*
  * This is the sending counterpart of NextCopyFromExecute. Used in the QD,
  * to send a row to a QE.
  */
@@ -5467,7 +5499,7 @@ SendCopyFromForwardedTuple(CopyState cstate,
 	Form_pg_attribute *attr;
 	copy_from_dispatch_row *frame;
 	StringInfo	msgbuf;
-	int			num_sent_fields = 0;
+	int			num_sent_fields;
 	AttrNumber	num_phys_attrs;
 	int			i;
 
@@ -5478,77 +5510,101 @@ SendCopyFromForwardedTuple(CopyState cstate,
 	attr = tupDesc->attrs;
 	num_phys_attrs = tupDesc->natts;
 
+	/*
+	 * Reset the message buffer, and reserve space for the frame header.
+	 */
 	msgbuf = cstate->dispatch_msgbuf;
-	resetStringInfo(msgbuf);
-	enlargeStringInfo(msgbuf, sizeof(copy_from_dispatch_row));
+	Assert(msgbuf->maxlen >= sizeof(copy_from_dispatch_row));
 	msgbuf->len = sizeof(copy_from_dispatch_row);
 
+	/*
+	 * Append attributes to the buffer.
+	 */
+	num_sent_fields = 0;
 	for (i = 0; i < num_phys_attrs; i++)
 	{
 		int16		attnum = i + 1;
 
-		if (!nulls[i])
-		{
-			appendBinaryStringInfo(msgbuf, &attnum, sizeof(int16));
+		/* NULLs are simply left out of the message. */
+		if (nulls[i])
+			continue;
 
-			if (attr[i]->attbyval)
-				appendBinaryStringInfo(msgbuf, &values[i], sizeof(Datum));
+		/*
+		 * Make sure we have room for the attribute number. While we're at it,
+		 * also reserve room for the Datum, if it's a by-value datatype, or for
+		 * the length field, if it's a varlena. Allocating both in one call
+		 * saves one size-check.
+		 */
+		ENLARGE_MSGBUF(msgbuf, sizeof(int16) + sizeof(Datum));
+
+		/* attribute number comes first */
+		APPEND_MSGBUF_NOCHECK(msgbuf, &attnum, sizeof(int16));
+
+		if (attr[i]->attbyval)
+		{
+			/* we already reserved space for this above, so we can just memcpy */
+			APPEND_MSGBUF_NOCHECK(msgbuf, &values[i], sizeof(Datum));
+		}
+		else
+		{
+			if (attr[i]->attlen > 0)
+			{
+				APPEND_MSGBUF(msgbuf, DatumGetPointer(values[i]), attr[i]->attlen);
+			}
+			else if (attr[attnum - 1]->attlen == -1)
+			{
+				int32		len;
+				char	   *ptr;
+
+				/* For simplicity, varlen's are always transmitted in "long" format */
+				Assert(!VARATT_IS_SHORT(values[i]));
+				len = VARSIZE(values[i]);
+				ptr = VARDATA(values[i]);
+
+				/* we already reserved space for this int */
+				APPEND_MSGBUF_NOCHECK(msgbuf, &len, sizeof(int32));
+				APPEND_MSGBUF(msgbuf, ptr, len - VARHDRSZ);
+			}
+			else if (attr[attnum - 1]->attlen == -2)
+			{
+				/*
+				 * These attrs are NULL-terminated in memory, but we send
+				 * them length-prefixed (like the varlen case above) so that
+				 * the receiver can preallocate a data buffer.
+				 */
+				int32		len;
+				size_t		slen;
+				char	   *ptr;
+
+				ptr = DatumGetPointer(values[i]);
+				slen = strlen(ptr);
+
+				if (slen > PG_INT32_MAX)
+				{
+					elog(ERROR, "attribute %d is too long (%lld bytes)",
+						 attnum, (long long) slen);
+				}
+
+				len = (int32) slen;
+
+				APPEND_MSGBUF_NOCHECK(msgbuf, &len, sizeof(int32));
+				APPEND_MSGBUF(msgbuf, ptr, len);
+			}
 			else
 			{
-				if (attr[i]->attlen > 0)
-				{
-					appendBinaryStringInfo(msgbuf, DatumGetPointer(values[i]), attr[i]->attlen);
-				}
-				else if (attr[attnum - 1]->attlen == -1)
-				{
-					int32		len;
-					char	   *ptr;
-
-					/* For simplicity, varlen's are always transmitted in "long" format */
-					len = VARSIZE(values[i]);
-					ptr = VARDATA_ANY(values[i]);
-
-					appendBinaryStringInfo(msgbuf, &len, sizeof(int32));
-					appendBinaryStringInfo(msgbuf, ptr, len - VARHDRSZ);
-				}
-				else if (attr[attnum - 1]->attlen == -2)
-				{
-					/*
-					 * These attrs are NULL-terminated in memory, but we send
-					 * them length-prefixed (like the varlen case above) so that
-					 * the receiver can preallocate a data buffer.
-					 */
-					int32		len;
-					size_t		slen;
-					char	   *ptr;
-
-					ptr = DatumGetPointer(values[i]);
-					slen = strlen(ptr);
-
-					if (slen > PG_INT32_MAX)
-					{
-						elog(ERROR, "attribute %d is too long (%lld bytes)",
-							 attnum, (long long) slen);
-					}
-
-					len = (int32) slen;
-
-					appendBinaryStringInfo(msgbuf, &len, sizeof(len));
-					appendBinaryStringInfo(msgbuf, ptr, len);
-				}
-				else
-				{
-					elog(ERROR, "attribute %d has invalid length %d",
-						 attnum, attr[attnum - 1]->attlen);
-				}
+				elog(ERROR, "attribute %d has invalid length %d",
+					 attnum, attr[attnum - 1]->attlen);
 			}
-
-			num_sent_fields++;
 		}
+
+		num_sent_fields++;
 	}
 
+	/*
+	 * Fill in the header. We reserved room for this at the beginning of the
+	 * buffer.
+	 */
 	frame = (copy_from_dispatch_row *) msgbuf->data;
-
 	frame->relid = RelationGetRelid(rel);
 	frame->loaded_oid = tuple_oid;
 	frame->lineno = lineno;
