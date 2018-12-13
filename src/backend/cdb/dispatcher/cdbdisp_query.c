@@ -1470,7 +1470,7 @@ CdbDispatchCopyStart(struct CdbCopy *cdbCopy, Node *stmt, int flags)
 	}
 
 	/*
-	 * Notice: Do not call cdbdisp_finishCommand to destory dispatcher state,
+	 * Notice: Do not call cdbdisp_finishCommand to destroy dispatcher state,
 	 * following PQputCopyData/PQgetCopyData will be called on those connections
 	 */
 	cdbCopy->dispatcherState = ds;
