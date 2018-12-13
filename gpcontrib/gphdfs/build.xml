@@ -61,7 +61,9 @@
            nowarn="${compiler.generate.no.warnings}"
            fork="yes"
            verbose="${compiler.verbose}"
-           memoryMaximumSize="${compiler.max.memory}">
+           memoryMaximumSize="${compiler.max.memory}"
+           target="1.7"
+           source="1.7">
       <src path="${src.dir}" />
     </javac>
   </target>
