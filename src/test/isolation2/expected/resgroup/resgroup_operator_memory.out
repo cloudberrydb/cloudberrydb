@@ -12,6 +12,13 @@ DROP RESOURCE GROUP rg1_opmem_test;
 DROP RESOURCE GROUP rg2_opmem_test;
 --end_ignore
 
+CREATE LANGUAGE plpythonu;
+CREATE
+
+-- a helper function to run query via SPI
+CREATE OR REPLACE FUNCTION f1_opmem_test() RETURNS void AS $$ plpy.execute("""select * from gp_dist_random('gp_id')""") $$ LANGUAGE plpythonu;
+CREATE
+
 -- this view contains many operators in the plan, which is used to trigger
 -- the issue.  gp_toolkit.gp_resgroup_config is a large JOIN view of many
 -- relations, to prevent the source relations being optimized out from the plan
@@ -21,7 +28,11 @@ DROP RESOURCE GROUP rg2_opmem_test;
 CREATE OR REPLACE VIEW many_ops AS SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 UNION SELECT * FROM gp_toolkit.gp_resgroup_config WHERE groupid=6437 ;
 CREATE
 
-CREATE RESOURCE GROUP rg1_opmem_test WITH (cpu_rate_limit=10, memory_limit=20, memory_shared_quota=0, concurrency=20, memory_spill_ratio=0);
+-- we must ensure spill to be small enough but still > 0.
+-- - rg1's memory quota is 682 * 1% = 6;
+-- - per-xact quota is 6/3=2;
+-- - spill memory is 2 * 60% = 1;
+CREATE RESOURCE GROUP rg1_opmem_test WITH (cpu_rate_limit=10, memory_limit=1, memory_shared_quota=0, concurrency=3, memory_spill_ratio=60);
 CREATE
 
 CREATE ROLE r1_opmem_test RESOURCE GROUP rg1_opmem_test;
@@ -86,7 +97,7 @@ RESET
 
 -- rg1 has no group level shared memory, and most memory are granted to rg2,
 -- there is only very little global shared memory due to integer rounding.
-CREATE RESOURCE GROUP rg2_opmem_test WITH (cpu_rate_limit=10, memory_limit=40);
+CREATE RESOURCE GROUP rg2_opmem_test WITH (cpu_rate_limit=10, memory_limit=59);
 CREATE
 
 -- this query can execute but will raise OOM error.
@@ -125,7 +136,13 @@ RESET
 -- positive: there is enough group shared memory
 --
 
+ALTER RESOURCE GROUP rg2_opmem_test SET memory_limit 40;
+ALTER
+ALTER RESOURCE GROUP rg1_opmem_test SET memory_limit 20;
+ALTER
 ALTER RESOURCE GROUP rg1_opmem_test SET memory_shared_quota 100;
+ALTER
+ALTER RESOURCE GROUP rg1_opmem_test SET memory_spill_ratio 20;
 ALTER
 
 SET gp_resgroup_memory_policy TO none;
@@ -165,7 +182,7 @@ RESET role;
 RESET
 
 --
--- positive: increased group memory settings
+-- positive: the spill memory is large enough, no adjustment is needed
 --
 
 DROP RESOURCE GROUP rg2_opmem_test;
@@ -211,6 +228,64 @@ SELECT * FROM many_ops;
 groupid|groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota|memory_spill_ratio|proposed_memory_spill_ratio|memory_auditor|cpuset
 -------+-------------+-----------+--------------------+--------------+------------+---------------------+-------------------+----------------------------+------------------+---------------------------+--------------+------
 6437   |default_group|20         |20                  |30            |30          |30                   |50                 |50                          |20                |20                         |vmtracker     |-1    
+(1 row)
+RESET role;
+RESET
+
+--
+-- positive: when spill memory is zero, work memory is used
+--
+
+ALTER RESOURCE GROUP rg1_opmem_test SET memory_spill_ratio 0;
+ALTER
+
+SET gp_resgroup_memory_policy TO none;
+SET
+SET ROLE TO r1_opmem_test;
+SET
+SELECT * FROM many_ops;
+groupid|groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota|memory_spill_ratio|proposed_memory_spill_ratio|memory_auditor|cpuset
+-------+-------------+-----------+--------------------+--------------+------------+---------------------+-------------------+----------------------------+------------------+---------------------------+--------------+------
+6437   |default_group|20         |20                  |30            |30          |30                   |50                 |50                          |20                |20                         |vmtracker     |-1    
+(1 row)
+SELECT f1_opmem_test();
+f1_opmem_test
+-------------
+             
+(1 row)
+RESET role;
+RESET
+
+SET gp_resgroup_memory_policy TO eager_free;
+SET
+SET ROLE TO r1_opmem_test;
+SET
+SELECT * FROM many_ops;
+groupid|groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota|memory_spill_ratio|proposed_memory_spill_ratio|memory_auditor|cpuset
+-------+-------------+-----------+--------------------+--------------+------------+---------------------+-------------------+----------------------------+------------------+---------------------------+--------------+------
+6437   |default_group|20         |20                  |30            |30          |30                   |50                 |50                          |20                |20                         |vmtracker     |-1    
+(1 row)
+SELECT f1_opmem_test();
+f1_opmem_test
+-------------
+             
+(1 row)
+RESET role;
+RESET
+
+SET gp_resgroup_memory_policy TO auto;
+SET
+SET ROLE TO r1_opmem_test;
+SET
+SELECT * FROM many_ops;
+groupid|groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota|memory_spill_ratio|proposed_memory_spill_ratio|memory_auditor|cpuset
+-------+-------------+-----------+--------------------+--------------+------------+---------------------+-------------------+----------------------------+------------------+---------------------------+--------------+------
+6437   |default_group|20         |20                  |30            |30          |30                   |50                 |50                          |20                |20                         |vmtracker     |-1    
+(1 row)
+SELECT f1_opmem_test();
+f1_opmem_test
+-------------
+             
 (1 row)
 RESET role;
 RESET
