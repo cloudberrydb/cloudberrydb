@@ -30,28 +30,41 @@
         </thead>
         <tbody>
           <row>
+            <entry colname="col1"><codeph>oid</codeph></entry>
+            <entry colname="col2">oid</entry>
+            <entry colname="col3"></entry>
+            <entry colname="col4">Row identifier (hidden attribute; must be explicitly selected)</entry>
+          </row>
+          <row>
             <entry colname="col1"><codeph>amopfamily</codeph></entry>
             <entry colname="col2">oid</entry>
             <entry colname="col3">pg_opfamily.oid</entry>
             <entry colname="col4">The operator family that this entry is for</entry>
           </row>
-            <row>
-              <entry colname="col1"><codeph>amoplefttype</codeph></entry>
-              <entry colname="col2">oid</entry>
-              <entry colname="col3">pg_type.oid</entry>
-              <entry colname="col4">Left-hand input data type of operator</entry>
+          <row>
+            <entry colname="col1"><codeph>amoplefttype</codeph></entry>
+            <entry colname="col2">oid</entry>
+            <entry colname="col3">pg_type.oid</entry>
+            <entry colname="col4">Left-hand input data type of operator</entry>
           </row>
-            <row>
-              <entry colname="col1"><codeph>amoprighttype</codeph></entry>
-              <entry colname="col2">oid</entry>
-              <entry colname="col3">pg_type.oid</entry>
-              <entry colname="col4">Right-hand input data type of operator</entry>
+          <row>
+            <entry colname="col1"><codeph>amoprighttype</codeph></entry>
+            <entry colname="col2">oid</entry>
+            <entry colname="col3">pg_type.oid</entry>
+            <entry colname="col4">Right-hand input data type of operator</entry>
           </row>
           <row>
             <entry colname="col1"><codeph>amopstrategy</codeph></entry>
             <entry colname="col2">int2</entry>
             <entry colname="col3"/>
             <entry colname="col4">Operator strategy number</entry>
+          </row>
+          <row>
+            <entry colname="col1"><codeph>amoppurpose</codeph></entry>
+            <entry colname="col2">char</entry>
+            <entry colname="col3"/>
+            <entry colname="col4">Operator purpose, either <codeph>s</codeph> for search or
+             <codeph>o</codeph> for ordering</entry>
           </row>
           <row>
             <entry colname="col1"><codeph>amopopr</codeph></entry>
@@ -64,6 +77,13 @@
             <entry colname="col2">oid</entry>
             <entry colname="col3">pg_am.oid</entry>
             <entry colname="col4">Index access method for the operator family</entry>
+          </row>
+          <row>
+            <entry colname="col1"><codeph>amopsortfamily</codeph></entry>
+            <entry colname="col2">oid</entry>
+            <entry colname="col3">pg_opfamily.oid</entry>
+            <entry colname="col4">If an ordering operator, the B-tree operator family that this entry
+              sorts according to; zero if a search operator</entry>
           </row>
         </tbody>
       </tgroup>
