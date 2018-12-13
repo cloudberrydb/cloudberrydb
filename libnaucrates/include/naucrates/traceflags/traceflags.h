@@ -172,6 +172,9 @@ namespace gpos
 		// non-master gather enforcement for DML queries
 		EopttraceDisableNonMasterGatherForDML = 103028,
 
+		// Force the optimizer to pick a plan that minimizes skew but adds an extra motion node when aggs are used
+		EopttraceForceAggSkewAvoidance = 103029,
+
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

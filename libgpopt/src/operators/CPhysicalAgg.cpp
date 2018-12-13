@@ -98,7 +98,7 @@ CPhysicalAgg::CPhysicalAgg
 
 		ulDistrReqs = 2;
 
-		if (pdrgpcrArgDQA->Size() == colref_array->Size())
+		if (pdrgpcrArgDQA->Size() == colref_array->Size() || GPOS_FTRACE(EopttraceForceAggSkewAvoidance))
 		{
 			// scalar aggregates so we only request the first case
 			ulDistrReqs = 1;
