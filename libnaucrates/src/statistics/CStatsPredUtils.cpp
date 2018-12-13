@@ -592,30 +592,31 @@ CStatsPredUtils::AddSupportedStatsFilters
 		CStatsPredUtils::EPredicateType ept = GetPredTypeForExpr(mp, predicate_expr);
 		GPOS_ASSERT(CStatsPredUtils::EptSentinel != ept);
 
-		// array extract function mapping
-		SScStatsfilterMapping stats_filter_translators[] =
-		{
-			{CStatsPredUtils::EptDisj, &CStatsPredUtils::CreateStatsPredDisj},
-			{CStatsPredUtils::EptScIdent, &CStatsPredUtils::GetStatsPredFromBoolExpr},
-			{CStatsPredUtils::EptLike, &CStatsPredUtils::GetStatsPredLike},
-			{CStatsPredUtils::EptPoint, &CStatsPredUtils::GetStatsPredPoint},
-			{CStatsPredUtils::EptConj, &CStatsPredUtils::CreateStatsPredConj},
-			{CStatsPredUtils::EptNullTest, &CStatsPredUtils::GetStatsPredNullTest},
-		};
-
-		FuncPtrStatsFilterFromPredExpr *function_ptr = &CStatsPredUtils::CreateStatsPredUnsupported;
-		const ULONG translators_mapping_len = GPOS_ARRAY_SIZE(stats_filter_translators);
-		for (ULONG ul = 0; ul < translators_mapping_len; ul++)
-		{
-			SScStatsfilterMapping elem = stats_filter_translators[ul];
-			if (ept == elem.predicate_type)
-			{
-				function_ptr = elem.function_ptr;
+		CStatsPred *pred_stats;
+		switch (ept) {
+			case CStatsPredUtils::EptDisj:
+				pred_stats = CStatsPredUtils::CreateStatsPredDisj(mp, predicate_expr, outer_refs);
 				break;
-			}
+			case CStatsPredUtils::EptScIdent:
+				pred_stats = CStatsPredUtils::GetStatsPredFromBoolExpr(mp, predicate_expr, outer_refs);
+				break;
+			case CStatsPredUtils::EptLike:
+				pred_stats = CStatsPredUtils::GetStatsPredLike(mp, predicate_expr, outer_refs);
+				break;
+			case CStatsPredUtils::EptPoint:
+				pred_stats = CStatsPredUtils::GetStatsPredPoint(mp, predicate_expr, outer_refs);
+				break;
+			case CStatsPredUtils::EptConj:
+				pred_stats = CStatsPredUtils::CreateStatsPredConj(mp, predicate_expr, outer_refs);
+				break;
+			case CStatsPredUtils::EptNullTest:
+				pred_stats = CStatsPredUtils::GetStatsPredNullTest(mp, predicate_expr, outer_refs);
+				break;
+			default:
+				pred_stats = CStatsPredUtils::CreateStatsPredUnsupported(mp, predicate_expr, outer_refs);
+				break;
 		}
 
-		CStatsPred *pred_stats = function_ptr(mp, predicate_expr, outer_refs);
 		if (NULL != pred_stats)
 		{
 			pred_stats_array->Append(pred_stats);

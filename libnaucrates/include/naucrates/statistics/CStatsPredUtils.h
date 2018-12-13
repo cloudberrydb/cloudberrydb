@@ -49,19 +49,6 @@ namespace gpopt
 				EptSentinel
 			};
 
-			// shorthand for functions for extracting statistics filter from predicate expressions
-			typedef CStatsPred * (FuncPtrStatsFilterFromPredExpr)(IMemoryPool *mp, CExpression *predicate_expr, CColRefSet *outer_refs);
-
-			// pair of predicate type and the corresponding function to extracts is statistics filter
-			struct SScStatsfilterMapping
-			{
-				// type
-				CStatsPredUtils::EPredicateType predicate_type;
-
-				// extractor function pointer
-				FuncPtrStatsFilterFromPredExpr *function_ptr;
-			};
-
 			// return the comparison type of an operator for the purpose of statistics computation
 			static
 			CStatsPred::EStatsCmpType StatsCmpType(IMDId *mdid);

@@ -10,6 +10,7 @@
 //---------------------------------------------------------------------------
 
 #include "naucrates/base/IDatumStatisticsMappable.h"
+#include "naucrates/md/CMDTypeGenericGPDB.h"
 
 using namespace gpnaucrates;
 using namespace gpmd;
@@ -237,6 +238,13 @@ IDatumStatisticsMappable::StatsAreComparable
 
 	const IDatumStatisticsMappable *datum_cast = dynamic_cast<const IDatumStatisticsMappable*>(datum);
 
+	BOOL is_types_match = this->MDId()->Equals(datum_cast->MDId());
+	BOOL is_time_comparison = CMDTypeGenericGPDB::IsTimeRelatedType(this->MDId())
+			&& CMDTypeGenericGPDB::IsTimeRelatedType(datum_cast->MDId());
+	// the statistics for different time related types can't be directly compared, eg: timestamp vs timestamp with time zone.
+	// to prevent inaccurate statistics, mark as non-comparable
+	if (is_time_comparison && !is_types_match)
+		return false;
 	// datums can be compared based on either LINT or Doubles or BYTEA values
 	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
