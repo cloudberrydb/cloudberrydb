@@ -2,10 +2,9 @@ DROP ROLE IF EXISTS role_dumpinfo_test;
 DROP ROLE IF EXISTS role_permission;
 -- start_ignore
 DROP RESOURCE GROUP rg_dumpinfo_test;
-DROP LANGUAGE IF EXISTS plpythonu;
+CREATE LANGUAGE plpythonu;
 -- end_ignore
 
-CREATE LANGUAGE plpythonu;
 CREATE FUNCTION dump_test_check() RETURNS bool
 as $$
 import json
