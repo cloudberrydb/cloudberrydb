@@ -370,6 +370,13 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elements[] =
 		&optimizer_array_constraints,
 		false, // m_negate_param
 		GPOS_WSZ_LIT("Allows the constraint framework to derive array constraints in the optimizer.")
+		},
+
+		{
+		EopttraceForceAggSkewAvoidance,
+		&optimizer_force_agg_skew_avoidance,
+		false, // m_negate_param
+		GPOS_WSZ_LIT("Always pick a plan for aggregate distinct that minimizes skew.")
 		}
 };
 
