@@ -1553,7 +1553,6 @@ typedef struct SetDistributionCmd
 	NodeTag		type;
 	int	        backendId;     /* backend ID on QD */
 	List	   *relids;            /* oid of relations(partitions) which have related temporary table */
-	List	   *hiddenTypes;       /* the types need to build for dropped column */
 } SetDistributionCmd;
 
 

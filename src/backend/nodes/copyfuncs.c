@@ -3333,7 +3333,6 @@ _copySetDistributionCmd(const SetDistributionCmd *from)
 
 	COPY_SCALAR_FIELD(backendId);
 	COPY_NODE_FIELD(relids);
-	COPY_NODE_FIELD(hiddenTypes);
 
 	return newnode;
 }

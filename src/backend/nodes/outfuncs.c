@@ -2801,7 +2801,6 @@ _outSetDistributionCmd(StringInfo str, const SetDistributionCmd *node)
 
 	WRITE_INT_FIELD(backendId);
 	WRITE_NODE_FIELD(relids);
-	WRITE_NODE_FIELD(hiddenTypes);
 }
 
 static void
