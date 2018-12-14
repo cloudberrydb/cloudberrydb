@@ -39,7 +39,6 @@
 
 #include <pthread.h>
 
-#include "access/distributedlog.h"
 #include "access/printtup.h"
 #include "access/xact.h"
 #include "catalog/oid_dispatch.h"
@@ -79,7 +78,6 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
-#include "utils/datum.h"
 #include "utils/snapmgr.h"
 #include "utils/timeout.h"
 #include "utils/timestamp.h"
@@ -97,8 +95,6 @@
 #include "access/twophase.h"
 #include "postmaster/backoff.h"
 #include "utils/resource_manager.h"
-#include "pgstat.h"
-#include "executor/nodeFunctionscan.h"
 
 #include "utils/session_state.h"
 #include "utils/vmem_tracker.h"

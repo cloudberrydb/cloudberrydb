@@ -16,9 +16,7 @@
 #include "postgres.h"
 
 #include "access/xact.h"
-#include "parser/analyze.h"		/* for createRandomDistribution() */
 #include "parser/parsetree.h"	/* for rt_fetch() */
-#include "parser/parse_expr.h"	/* for expr_type() */
 #include "parser/parse_oper.h"	/* for compatible_oper_opid() */
 #include "utils/relcache.h"		/* RelationGetPartitioningKey() */
 #include "optimizer/cost.h"

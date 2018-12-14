@@ -16,8 +16,6 @@
 #ifndef CDBDISP_H
 #define CDBDISP_H
 
-#include "lib/stringinfo.h" /* StringInfo */
-
 #include "cdb/cdbtm.h"
 
 #define CDB_MOTION_LOST_CONTACT_STRING "Interconnect error master lost contact with segment."

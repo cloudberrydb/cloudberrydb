@@ -23,7 +23,6 @@
 #include "cdb/cdbexplain.h"		/* me */
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbpathlocus.h"
-#include "cdb/cdbpullup.h"              /* cdbpullup_targetlist() */
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"		/* GpIdentity.segindex */
 #include "cdb/memquota.h"

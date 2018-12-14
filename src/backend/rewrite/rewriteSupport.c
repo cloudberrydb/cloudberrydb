@@ -25,7 +25,6 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 #include "utils/tqual.h"
-#include "access/transam.h"
 
 
 /*

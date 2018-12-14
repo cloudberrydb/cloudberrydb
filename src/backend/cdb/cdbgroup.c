@@ -61,7 +61,6 @@
 #include "catalog/pg_aggregate.h"
 
 #include "cdb/cdbllize.h"
-#include "cdb/cdbpathtoplan.h"	/* cdbpathtoplan_create_flow() */
 #include "cdb/cdbpath.h"
 #include "cdb/cdbplan.h"
 #include "cdb/cdbpullup.h"

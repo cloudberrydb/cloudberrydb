@@ -26,17 +26,10 @@
 #include "executor/execdebug.h"
 #include "executor/execUtils.h"
 #include "executor/nodeMotion.h"
-#include "optimizer/clauses.h"
-#include "parser/parse_oper.h"
-#include "parser/parsetree.h"
-#include "utils/lsyscache.h"
 #include "utils/tuplesort.h"
 #include "utils/tuplesort_mk_details.h"
 #include "miscadmin.h"
-#include "nodes/makefuncs.h"
 #include "utils/memutils.h"
-#include "utils/typcache.h"
-
 
 
 /* #define MEASURE_MOTION_TIME */

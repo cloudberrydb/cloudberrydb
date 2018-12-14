@@ -17,7 +17,6 @@
 #include "access/heapam.h"
 #include "cdb/tupchunklist.h"
 #include "lib/stringinfo.h"
-#include "utils/lsyscache.h"
 #include "cdb/tupleremap.h"
 
 

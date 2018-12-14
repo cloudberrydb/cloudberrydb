@@ -15,7 +15,6 @@
 #ifndef CDBDISP_DTX_H
 #define CDBDISP_DTX_H
 
-#include "lib/stringinfo.h"         /* StringInfo */
 #include "cdb/cdbtm.h"
 
 struct pg_result;                   /* #include "libpq-fe.h" */

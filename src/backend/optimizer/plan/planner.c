@@ -54,7 +54,6 @@
 #include "cdb/cdbmutate.h"		/* apply_shareinput */
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbpath.h"		/* cdbpath_segments */
-#include "cdb/cdbpathtoplan.h"	/* cdbpathtoplan_create_flow() */
 #include "cdb/cdbpullup.h"
 #include "cdb/cdbgroup.h"		/* grouping_planner extensions */
 #include "cdb/cdbsetop.h"		/* motion utilities */

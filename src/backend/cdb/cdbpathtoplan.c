@@ -13,7 +13,7 @@
  */
 #include "postgres.h"
 
-#include "optimizer/tlist.h"
+#include "nodes/relation.h"
 
 #include "cdb/cdbpathlocus.h"
 #include "cdb/cdbllize.h"		/* makeFlow() */
