@@ -41,9 +41,6 @@ typedef struct Gang
 	 */
 	bool dispatcherActive;
 
-	/* the named portal that owns this gang, NULL if none */
-	char *portal_name;
-
 	/*
 	 * Array of QEs/segDBs that make up this gang. Sorted by segment index.
 	 */
@@ -78,8 +75,6 @@ extern void setupCdbProcessList(Slice *slice);
 extern bool GangOK(Gang *gp);
 
 extern List *getCdbProcessesForQD(int isPrimary);
-
-extern void freeGangsForPortal(char *portal_name);
 
 extern Gang *AllocateGang(struct CdbDispatcherState *ds, enum GangType type, List *segments);
 extern void RecycleGang(Gang *gp, bool forceDestroy);

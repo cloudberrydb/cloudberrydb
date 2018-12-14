@@ -219,7 +219,6 @@ buildGangDefinition(List *segments, SegmentType segmentType)
 	newGangDefinition->type = GANGTYPE_UNALLOCATED;
 	newGangDefinition->size = size;
 	newGangDefinition->allocated = false;
-	newGangDefinition->portal_name = NULL;
 	newGangDefinition->db_descriptors =
 		(SegmentDatabaseDescriptor **) palloc0(size * sizeof(SegmentDatabaseDescriptor*));
 
