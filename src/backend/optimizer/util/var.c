@@ -822,7 +822,7 @@ flatten_join_alias_vars_mutator(Node *node,
 		Node	   *newvar;
 
 		/* No change unless Var belongs to a JOIN of the target level */
-		if ((int)var->varlevelsup != context->sublevels_up)
+		if (var->varlevelsup != context->sublevels_up)
 			return node;		/* no need to copy, really */
 		rte = rt_fetch(var->varno, context->root->parse->rtable);
 		if (rte->rtekind != RTE_JOIN)
