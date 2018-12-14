@@ -47,16 +47,16 @@ extern int verbose;
 
 
 /* fatal & warning messages */
-extern int gpmon_print(const char* fmt, ...);
-extern int gpmon_fatal(const char* fline, const char* fmt, ...);
-extern int gpmon_fatalx(const char* fline, int e, const char* fmt, ...);
-extern int gpmon_warning(const char* fline, const char* fmt, ...);
-extern int gpmon_warningx(const char* fline, int e, const char* fmt, ...);
+extern int gpmon_print(const char* fmt, ...) pg_attribute_printf(1, 2);
+extern int gpmon_fatal(const char* fline, const char* fmt, ...)  pg_attribute_printf(2, 3);
+extern int gpmon_fatalx(const char* fline, int e, const char* fmt, ...)  pg_attribute_printf(3, 4);
+extern int gpmon_warning(const char* fline, const char* fmt, ...)  pg_attribute_printf(2, 3);
+extern int gpmon_warningx(const char* fline, int e, const char* fmt, ...)  pg_attribute_printf(3, 4);
 extern void gpmon_print_file(const char* header_line, FILE* fp);
 
 // fatal messages for smon -- go to stdout only
-extern int gpsmon_fatal(const char* fline, const char* fmt, ...);
-extern int gpsmon_fatalx(const char* fline, int e, const char* fmt, ...);
+extern int gpsmon_fatal(const char* fline, const char* fmt, ...)  pg_attribute_printf(2,3);
+extern int gpsmon_fatalx(const char* fline, int e, const char* fmt, ...) pg_attribute_printf(3, 4);
 
 /* convert packets to host order */
 extern apr_status_t gpmon_ntohpkt(apr_int32_t magic, apr_int16_t version, apr_int16_t pkttype);

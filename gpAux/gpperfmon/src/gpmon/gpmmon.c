@@ -701,7 +701,7 @@ static void* conm_main(apr_thread_t* thread_, void* arg_)
 					{
 						if (GPSMON_TIMEOUT_RESTART == h->connect_timeout)
 						{
-							gpmon_warning(FLINE, "Failed to reconnect gpsmon on %d, maybe network isolation or other process occupied the port", active_hostname);
+							gpmon_warning(FLINE, "Failed to reconnect gpsmon on %s, maybe network isolation or other process occupied the port", active_hostname);
 						}
 						else if (GPSMON_TIMEOUT_NONE == h->connect_timeout)
 						{
@@ -803,7 +803,7 @@ static void* harvest_main(apr_thread_t* thread_, void* arg_)
 
 			if (status != APR_SUCCESS)
 			{
-				gpmon_warningx(FLINE, 0, "harvest failure: accumulated tail file size is %llu bytes", ax._tail_buffer_bytes);
+				gpmon_warningx(FLINE, 0, "harvest failure: accumulated tail file size is %lu bytes", ax._tail_buffer_bytes);
 				consecutive_failures++;
 			}
 
@@ -845,7 +845,7 @@ static void* message_main(apr_thread_t* thread_, void* arg_)
 	apr_status_t status;
 
 	TR2(("In message_main: error_disk_space_percentage = %d, warning_disk_space_percentage = %d, disk_space_interval = %d, max_disk_space_messages_per_interval = %d\n",
-			opt.error_disk_space_percentage, opt.warning_disk_space_percentage, opt.disk_space_interval, opt.max_disk_space_messages_per_interval));
+		 opt.error_disk_space_percentage, opt.warning_disk_space_percentage, (int) opt.disk_space_interval, opt.max_disk_space_messages_per_interval));
 	while (1)
 	{
 		query = NULL;
@@ -869,7 +869,7 @@ static void* message_main(apr_thread_t* thread_, void* arg_)
 		{ // send the message
 			if (!gpdb_exec_search_for_at_least_one_row((const char *)query, NULL))
 			{
-				TR0(("message_main ERROR: query %s failed. Cannot send message\n", query));
+				TR0(("message_main ERROR: query %s failed. Cannot send message\n", (char *) query));
 			}
 			free(query);
 		}

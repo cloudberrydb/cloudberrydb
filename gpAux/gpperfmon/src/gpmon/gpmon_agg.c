@@ -331,7 +331,7 @@ static apr_status_t agg_put_query_metrics(agg_t* agg, const gpmon_qlog_t* qlog, 
 		node->last_updated_generation = generation;
 		node->num_metrics_packets++;
 		TR2(("Query Metrics: (host %s ssid %d ccnt %d) (cpuelapsed %d cpupct %f) / %d\n",
-			qlog->user, qlog->key.ssid, qlog->key.ccnt, node->qlog.cpu_elapsed, node->qlog.p_metrics.cpu_pct,
+			 qlog->user, qlog->key.ssid, qlog->key.ccnt, (int) node->qlog.cpu_elapsed, node->qlog.p_metrics.cpu_pct,
 			node->num_metrics_packets));
 	}
 	return 0;
@@ -346,7 +346,7 @@ static apr_status_t agg_put_qlog(agg_t* agg, const gpmon_qlog_t* qlog,
 	if (node) {
 		node->qlog = *qlog;
 		if (0 != strcmp(qlog->db, GPMON_DB)) {
-			TR2(("agg_put_qlog: found %d.%d.%d generation %d recorded %d\n", qlog->key.tmid, qlog->key.ssid, qlog->key.ccnt, generation, node->recorded));
+			TR2(("agg_put_qlog: found %d.%d.%d generation %d recorded %d\n", qlog->key.tmid, qlog->key.ssid, qlog->key.ccnt, (int) generation, node->recorded));
 		}
 	} else {
 		node = apr_pcalloc(agg->pool, sizeof(*node));
@@ -373,7 +373,7 @@ static apr_status_t agg_put_qlog(agg_t* agg, const gpmon_qlog_t* qlog,
 
 		apr_hash_set(agg->qtab, &node->qlog.key, sizeof(node->qlog.key), node);
 		if (0 != strcmp(qlog->db, GPMON_DB)) {
-			TR2(("agg_put: new %d.%d.%d generation %d recorded %d\n", qlog->key.tmid, qlog->key.ssid, qlog->key.ccnt, generation, node->recorded));
+			TR2(("agg_put: new %d.%d.%d generation %d recorded %d\n", qlog->key.tmid, qlog->key.ssid, qlog->key.ccnt, (int) generation, node->recorded));
 		}
 	}
 	node->last_updated_generation = generation;
@@ -526,7 +526,7 @@ apr_status_t agg_dup(agg_t** retagg, agg_t* oldagg, apr_pool_t* parent_pool, apr
 			dp->qlog.status = status;
 
 		if (0 != strcmp(dp->qlog.db, GPMON_DB)) {
-			TR2( ("agg_dup: add %d.%d.%d, generation %d, recorded %d:\n", dp->qlog.key.tmid, dp->qlog.key.ssid, dp->qlog.key.ccnt, dp->last_updated_generation, dp->recorded));
+			TR2( ("agg_dup: add %d.%d.%d, generation %d, recorded %d:\n", dp->qlog.key.tmid, dp->qlog.key.ssid, dp->qlog.key.ccnt, (int) dp->last_updated_generation, dp->recorded));
 		}
 
 		/* dup this entry */
@@ -703,8 +703,8 @@ apr_status_t agg_dump(agg_t* agg)
 		{
 			if (!qdnode->recorded && ((qdnode->qlog.tfin - qdnode->qlog.tstart) >= min_query_time))
 			{
-				TR1(("queries_tail: %x add query %d.%d.%d, status %d, generation %d, recorded %d\n",
-						agg->qtab, qdnode->qlog.key.tmid, qdnode->qlog.key.ssid, qdnode->qlog.key.ccnt, qdnode->qlog.status, qdnode->last_updated_generation, qdnode->recorded));
+				TR1(("queries_tail: %p add query %d.%d.%d, status %d, generation %d, recorded %d\n",
+					 agg->qtab, qdnode->qlog.key.tmid, qdnode->qlog.key.ssid, qdnode->qlog.key.ccnt, qdnode->qlog.status, (int) qdnode->last_updated_generation, qdnode->recorded));
 
 				temp_bytes_written += write_qlog_full(fp_queries_tail, qdnode, nowstr);
 				incremement_tail_bytes(temp_bytes_written);
@@ -1109,7 +1109,7 @@ static void _get_sum_seg_info(apr_hash_t* segtab, apr_int64_t* total_data_out, i
 		apr_hash_this(hi, 0, 0, &valptr);
 		seg_data_sum = (apr_int64_t*) valptr;
 		*total_data_out += *seg_data_sum;
-		TR2(("(SKEW) Segment resource usage: %d\n", *seg_data_sum));
+		TR2(("(SKEW) Segment resource usage: %d\n", (int) *seg_data_sum));
 		(*segcount_out)++;
 	}
 }
@@ -1127,7 +1127,7 @@ static void _get_sum_deviation_squared(apr_hash_t* segtab, const apr_int64_t dat
 		apr_hash_this(hi, NULL, NULL, &valptr);
 		seg_data_sum = (apr_int64_t*) valptr;
 		dev = *seg_data_sum - data_avg;
-		TR2(("(SKEW) Deviation: %d\n", dev));
+		TR2(("(SKEW) Deviation: %d\n", (int) dev));
 		*total_deviation_squared_out += dev * dev;
 	}
 }
