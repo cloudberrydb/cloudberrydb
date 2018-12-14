@@ -5200,13 +5200,10 @@ PostgresMain(int argc, char *argv[],
 					int serializedParamslen = 0;
 					int serializedQueryDispatchDesclen = 0;
 					int resgroupInfoLen = 0;
-					int rootIdx;
 					TimestampTz statementStart;
 					Oid suid;
 					Oid ouid;
 					Oid cuid;
-
-					int unusedFlags;
 
 					if (Gp_role != GP_ROLE_EXECUTE)
 						ereport(ERROR,
@@ -5226,8 +5223,6 @@ PostgresMain(int argc, char *argv[],
 					ouid = pq_getmsgint(&input_message, 4);
 					cuid = pq_getmsgint(&input_message, 4);
 
-					rootIdx = pq_getmsgint(&input_message, 4);
-
 					statementStart = pq_getmsgint64(&input_message);
 					query_string_len = pq_getmsgint(&input_message, 4);
 					serializedQuerytreelen = pq_getmsgint(&input_message, 4);
@@ -5243,9 +5238,6 @@ PostgresMain(int argc, char *argv[],
 						serializedDtxContextInfo = pq_getmsgbytes(&input_message,serializedDtxContextInfolen);
 
 					DtxContextInfo_Deserialize(serializedDtxContextInfo, serializedDtxContextInfolen, &TempDtxContextInfo);
-
-					/* get the transaction options */
-					unusedFlags = pq_getmsgint(&input_message, 4);
 
 					/* get the query string and kick off processing. */
 					if (query_string_len > 0)

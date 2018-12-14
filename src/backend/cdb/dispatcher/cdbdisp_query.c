@@ -91,8 +91,6 @@ typedef struct DispatchCommandQueryParms
 	 */
 	char	   *serializedDtxContextInfo;
 	int			serializedDtxContextInfolen;
-
-	int			rootIdx;
 } DispatchCommandQueryParms;
 
 static int fillSliceVector(SliceTable *sliceTable,
@@ -619,7 +617,6 @@ cdbdisp_buildPlanQueryParms(struct QueryDesc *queryDesc,
 	pQueryParms->serializedParamslen = sparams_len;
 	pQueryParms->serializedQueryDispatchDesc = sddesc;
 	pQueryParms->serializedQueryDispatchDesclen = sddesc_len;
-	pQueryParms->rootIdx = rootIdx;
 
 	/*
 	 * Serialize a version of our snapshot, and generate our transction
@@ -833,8 +830,6 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	int			sddesc_len = pQueryParms->serializedQueryDispatchDesclen;
 	const char *dtxContextInfo = pQueryParms->serializedDtxContextInfo;
 	int			dtxContextInfo_len = pQueryParms->serializedDtxContextInfolen;
-	int			flags = 0;		/* unused flags */
-	int			rootIdx = pQueryParms->rootIdx;
 	int64		currentStatementStartTimestamp = GetCurrentStatementStartTimestamp();
 	Oid			sessionUserId = GetSessionUserId();
 	Oid			outerUserId = GetOuterUserId();
@@ -878,7 +873,6 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		sizeof(sessionUserId) /* sessionUserIsSuper */ +
 		sizeof(outerUserId) /* outerUserIsSuper */ +
 		sizeof(currentUserId) +
-		sizeof(rootIdx) +
 		sizeof(n32) * 2 /* currentStatementStartTimestamp */ +
 		sizeof(command_len) +
 		sizeof(querytree_len) +
@@ -887,7 +881,6 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		sizeof(sddesc_len) +
 		sizeof(dtxContextInfo_len) +
 		dtxContextInfo_len +
-		sizeof(flags) +
 		command_len +
 		querytree_len +
 		plantree_len +
@@ -920,10 +913,6 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	tmp = htonl(currentUserId);
 	memcpy(pos, &tmp, sizeof(currentUserId));
 	pos += sizeof(currentUserId);
-
-	tmp = htonl(rootIdx);
-	memcpy(pos, &tmp, sizeof(rootIdx));
-	pos += sizeof(rootIdx);
 
 	/*
 	 * High order half first, since we're doing MSB-first
@@ -970,10 +959,6 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		memcpy(pos, dtxContextInfo, dtxContextInfo_len);
 		pos += dtxContextInfo_len;
 	}
-
-	tmp = htonl(flags);
-	memcpy(pos, &tmp, sizeof(tmp));
-	pos += sizeof(tmp);
 
 	memcpy(pos, command, command_len);
 	/* If command is truncated we need to set the terminating '\0' manually */
