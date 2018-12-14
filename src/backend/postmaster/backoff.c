@@ -1037,9 +1037,6 @@ gp_adjust_priority_value(PG_FUNCTION_ARGS)
 
 	priorityVal = TextDatumGetCString(dVal);
 
-	if (!priorityVal)
-		elog(ERROR, "Invalid priority value specified.");
-
 	wt = BackoffPriorityValueToInt(priorityVal);
 
 	Assert(wt > 0);
