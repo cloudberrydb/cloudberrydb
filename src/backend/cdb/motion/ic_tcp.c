@@ -2648,7 +2648,6 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState *transportStates,
 						 int16 *srcRoute)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionNodeEntry *pMNEntry = NULL;
 	MotionConn *conn;
 	TupleChunkListItem tcItem;
 	mpp_fd_set	rset;
@@ -2664,8 +2663,6 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState *transportStates,
 #endif
 
 	getChunkTransportState(transportStates, motNodeID, &pEntry);
-	if (transportStates->estate && transportStates->estate->motionlayer_context)
-		pMNEntry = getMotionNodeEntry(transportStates->estate->motionlayer_context, motNodeID);
 
 	int			retry = 0;
 
@@ -2711,8 +2708,6 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState *transportStates,
 			break;
 
 		n = select(pEntry->highReadSock + 1, (fd_set *) &rset, NULL, NULL, &timeout);
-		if (pMNEntry)
-			pMNEntry->sel_rd_wait += (tval.tv_sec - timeout.tv_sec) * 1000000 + (tval.tv_usec - timeout.tv_usec);
 		if (n < 0)
 		{
 			if (errno == EINTR)
@@ -2829,7 +2824,6 @@ flushBuffer(ChunkTransportState *transportStates,
 			ChunkTransportStateEntry *pEntry, MotionConn *conn, int16 motionId)
 {
 	char	   *sendptr;
-	MotionNodeEntry *pMNEntry = NULL;
 	int			n,
 				sent = 0;
 	mpp_fd_set	wset;
@@ -2844,9 +2838,6 @@ flushBuffer(ChunkTransportState *transportStates,
 			 __FILE__, __LINE__, (int) snapTime.tv_sec, (int) snapTime.tv_usec);
 	}
 #endif
-
-	if (transportStates->estate && transportStates->estate->motionlayer_context)
-		pMNEntry = getMotionNodeEntry(transportStates->estate->motionlayer_context, motionId);
 
 	/* first set header length */
 	*(uint32 *) conn->pBuff = conn->msgSize;
@@ -2898,8 +2889,6 @@ flushBuffer(ChunkTransportState *transportStates,
 					MPP_FD_SET(conn->sockfd, &wset);
 					MPP_FD_SET(conn->sockfd, &rset);
 					n = select(conn->sockfd + 1, (fd_set *) &rset, (fd_set *) &wset, NULL, &timeout);
-					if (pMNEntry)
-						pMNEntry->sel_wr_wait += (tval.tv_sec - timeout.tv_sec) * 1000000 + (tval.tv_usec - timeout.tv_usec);
 					if (n < 0)
 					{
 						if (errno == EINTR)

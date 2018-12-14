@@ -473,8 +473,6 @@ typedef struct MotionNodeEntry
 	uint64          stat_tuples_available;  /* Total tuples awaiting receive. */
 	uint64          stat_tuples_available_hwm;              /* High-water-mark of this
 		* value. */
-	uint64          sel_rd_wait;            /* Total time (usec) spent in select wait trying to read */
-	uint64          sel_wr_wait;            /* Total time spent (usec) in select wait trying to write */
 }       MotionNodeEntry;
 
 

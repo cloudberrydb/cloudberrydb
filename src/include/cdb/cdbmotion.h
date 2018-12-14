@@ -47,8 +47,6 @@ extern int Gp_max_tuple_chunk_size;
 
 /* API FUNCTION CALLS */
 
-extern MotionNodeEntry *getMotionNodeEntry(MotionLayerState *mlStates, int16 motNodeID);
-
 /* Initialization of motion layer for this query */
 extern void initMotionLayerStructs(MotionLayerState **ml_states);
 

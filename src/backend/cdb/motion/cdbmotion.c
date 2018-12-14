@@ -48,6 +48,7 @@ static TupleChunkListItem s_eos_chunk_data = (TupleChunkListItem) s_eos_buffer;
 /*
  * HELPER FUNCTION DECLARATIONS
  */
+static MotionNodeEntry *getMotionNodeEntry(MotionLayerState *mlStates, int16 motNodeID);
 static ChunkSorterEntry *getChunkSorterEntry(MotionLayerState *mlStates,
 					MotionNodeEntry *motNodeEntry,
 					int16 srcRoute);
@@ -364,8 +365,6 @@ UpdateMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool preserve
 	pEntry->stat_total_chunks_recvd = 0;
 	pEntry->stat_total_bytes_recvd = 0;
 	pEntry->stat_tuple_bytes_recvd = 0;
-	pEntry->sel_rd_wait = 0;
-	pEntry->sel_wr_wait = 0;
 
 	pEntry->cleanedUp = false;
 	pEntry->stopped = false;
@@ -872,35 +871,31 @@ EndMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool flushCommLa
 	/* Clean up the motion-node entry, then remove it from the hash table. */
 	if (gp_log_interconnect >= GPVARS_VERBOSITY_VERBOSE)
 	{
-		if (pMNEntry->stat_total_bytes_sent > 0 ||
-			pMNEntry->sel_wr_wait > 0)
+		if (pMNEntry->stat_total_bytes_sent > 0)
 		{
 			elog(LOG, "Interconnect seg%d slice%d sent " UINT64_FORMAT " tuples, "
 				 UINT64_FORMAT " total bytes, " UINT64_FORMAT " tuple bytes, "
-				 UINT64_FORMAT " chunks; waited " UINT64_FORMAT " usec.",
+				 UINT64_FORMAT " chunks.",
 				 GpIdentity.segindex,
 				 currentSliceId,
 				 pMNEntry->stat_total_sends,
 				 pMNEntry->stat_total_bytes_sent,
 				 pMNEntry->stat_tuple_bytes_sent,
-				 pMNEntry->stat_total_chunks_sent,
-				 pMNEntry->sel_wr_wait
+				 pMNEntry->stat_total_chunks_sent
 				);
 		}
-		if (pMNEntry->stat_total_bytes_recvd > 0 ||
-			pMNEntry->sel_rd_wait > 0)
+		if (pMNEntry->stat_total_bytes_recvd > 0)
 		{
 			elog(LOG, "Interconnect seg%d slice%d received from slice%d: " UINT64_FORMAT " tuples, "
 				 UINT64_FORMAT " total bytes, " UINT64_FORMAT " tuple bytes, "
-				 UINT64_FORMAT " chunks; waited " UINT64_FORMAT " usec.",
+				 UINT64_FORMAT " chunks.",
 				 GpIdentity.segindex,
 				 currentSliceId,
 				 motNodeID,
 				 pMNEntry->stat_total_recvs,
 				 pMNEntry->stat_total_bytes_recvd,
 				 pMNEntry->stat_tuple_bytes_recvd,
-				 pMNEntry->stat_total_chunks_recvd,
-				 pMNEntry->sel_rd_wait
+				 pMNEntry->stat_total_chunks_recvd
 				);
 		}
 	}
@@ -917,7 +912,7 @@ EndMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool flushCommLa
  * Helper function to get the motion node entry for a given ID.  NULL
  * is returned if the ID is unrecognized.
  */
-MotionNodeEntry *
+static MotionNodeEntry *
 getMotionNodeEntry(MotionLayerState *mlStates, int16 motNodeID)
 {
 	MotionNodeEntry *pMNEntry = NULL;
