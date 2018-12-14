@@ -235,6 +235,7 @@ sync_wait(void)
 				|| WalSndCtl->walsnds[i].state != WALSNDSTATE_STREAMING)
 			{
 				elog(NOTICE, "primary and mirror not in sync");
+				LWLockRelease(SyncRepLock);
 				return false;
 			}
 
