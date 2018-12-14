@@ -365,7 +365,6 @@ execMotionUnsortedReceiver(MotionState *node)
 	TupleTableSlot *slot;
 	GenericTuple tuple;
 	Motion	   *motion = (Motion *) node->ps.plan;
-	ReceiveReturnCode recvRC;
 
 	AssertState(motion->motionType == MOTIONTYPE_HASH ||
 				(motion->motionType == MOTIONTYPE_EXPLICIT && motion->segidColIdx > 0) ||
@@ -382,11 +381,11 @@ execMotionUnsortedReceiver(MotionState *node)
 		return NULL;
 	}
 
-	recvRC = RecvTupleFrom(node->ps.state->motionlayer_context,
-						   node->ps.state->interconnect_context,
-						   motion->motionID, &tuple, ANY_ROUTE);
+	tuple = RecvTupleFrom(node->ps.state->motionlayer_context,
+						  node->ps.state->interconnect_context,
+						  motion->motionID, ANY_ROUTE);
 
-	if (recvRC == END_OF_STREAM)
+	if (!tuple)
 	{
 #ifdef CDB_MOTION_DEBUG
 		if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
@@ -482,8 +481,6 @@ motion_mkhp_read(void *vpctxt, MKEntry *a)
 	GenericTuple inputTuple = NULL;
 	Motion	   *motion = (Motion *) node->ps.plan;
 
-	ReceiveReturnCode recvRC;
-
 	if (ctxt->srcRoute < 0)
 	{
 		/* routes have not been set yet so set them */
@@ -515,13 +512,12 @@ motion_mkhp_read(void *vpctxt, MKEntry *a)
 	MemSet(a, 0, sizeof(MKEntry));
 
 	/* Receive the successor of the tuple that we returned last time. */
-	recvRC = RecvTupleFrom(node->ps.state->motionlayer_context,
-						   node->ps.state->interconnect_context,
-						   motion->motionID,
-						   &inputTuple,
-						   ctxt->srcRoute);
+	inputTuple = RecvTupleFrom(node->ps.state->motionlayer_context,
+							   node->ps.state->interconnect_context,
+							   motion->motionID,
+							   ctxt->srcRoute);
 
-	if (recvRC == GOT_TUPLE)
+	if (inputTuple)
 	{
 		a->ptr = inputTuple;
 		return true;
@@ -644,7 +640,6 @@ execMotionSortedReceiver(MotionState *node)
 	GenericTuple tuple,
 				inputTuple;
 	Motion	   *motion = (Motion *) node->ps.plan;
-	ReceiveReturnCode recvRC;
 	CdbTupleHeapInfo *tupHeapInfo;
 
 	AssertState(motion->motionType == MOTIONTYPE_FIXED &&
@@ -683,14 +678,13 @@ execMotionSortedReceiver(MotionState *node)
 #endif
 
 		/* Receive the successor of the tuple that we returned last time. */
-		recvRC = RecvTupleFrom(node->ps.state->motionlayer_context,
-							   node->ps.state->interconnect_context,
-							   motion->motionID,
-							   &inputTuple,
-							   node->routeIdNext);
+		inputTuple = RecvTupleFrom(node->ps.state->motionlayer_context,
+								   node->ps.state->interconnect_context,
+								   motion->motionID,
+								   node->routeIdNext);
 
 		/* Substitute it in the pq for its predecessor. */
-		if (recvRC == GOT_TUPLE)
+		if (inputTuple)
 		{
 			CdbMergeComparatorContext *comparatorContext =
 			(CdbMergeComparatorContext *) hp->comparatorContext;
@@ -804,9 +798,6 @@ execMotionSortedReceiverFirstTime(MotionState *node)
 	CdbMergeComparatorContext *comparatorContext = (CdbMergeComparatorContext *) hp->comparatorContext;
 	AttrNumber	key1_attno = motion->sortColIdx[0];
 	CdbTupleHeapInfo *infoArray = (CdbTupleHeapInfo *) hp->slotArray;
-
-	ReceiveReturnCode recvRC;
-
 	Slice	   *sendSlice = (Slice *) list_nth(node->ps.state->es_sliceTable->slices, motion->motionID);
 
 	Assert(sendSlice->sliceIndex == motion->motionID);
@@ -823,11 +814,11 @@ execMotionSortedReceiverFirstTime(MotionState *node)
 		 * another place where we are mapping segid space to routeid space. so
 		 * route[x] = inputSegIdx[x] now.
 		 */
-		recvRC = RecvTupleFrom(node->ps.state->motionlayer_context,
-							   node->ps.state->interconnect_context,
-							   motion->motionID, &inputTuple, iSegIdx);
+		inputTuple = RecvTupleFrom(node->ps.state->motionlayer_context,
+								   node->ps.state->interconnect_context,
+								   motion->motionID, iSegIdx);
 
-		if (recvRC == GOT_TUPLE)
+		if (inputTuple)
 		{
 			CdbTupleHeapInfo *info = &infoArray[n];
 

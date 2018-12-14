@@ -71,9 +71,7 @@ static void statSendTuple(MotionLayerState *mlStates, MotionNodeEntry *pMNEntry,
 static void statSendEOS(MotionLayerState *mlStates, MotionNodeEntry *pMNEntry);
 static void statChunksProcessed(MotionLayerState *mlStates, MotionNodeEntry *pMNEntry, int chunksProcessed, int chunkBytes, int tupleBytes);
 static void statNewTupleArrived(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry);
-static void statRecvTuple(MotionNodeEntry *pMNEntry,
-			  ChunkSorterEntry *pCSEntry,
-			  ReceiveReturnCode recvRC);
+static void statRecvTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry);
 static bool ShouldSendRecordCache(MotionConn *conn, SerTupInfo *pSerInfo);
 static void UpdateSentRecordCache(MotionConn *conn);
 
@@ -638,17 +636,16 @@ SendEndOfStream(MotionLayerState *mlStates,
 }
 
 /* An unordered receiver will call this with srcRoute == ANY_ROUTE */
-ReceiveReturnCode
+GenericTuple
 RecvTupleFrom(MotionLayerState *mlStates,
 			  ChunkTransportState *transportStates,
 			  int16 motNodeID,
-			  GenericTuple *tup_i,
 			  int16 srcRoute)
 {
 	MotionNodeEntry *pMNEntry;
 	ChunkSorterEntry *pCSEntry;
-	ReceiveReturnCode recvRC = END_OF_STREAM;
 	htup_fifo	ReadyList;
+	GenericTuple tuple = NULL;
 
 #ifdef AMS_VERBOSE_LOGGING
 	elog(DEBUG5, "RecvTupleFrom( motNodeID = %d, srcRoute = %d )", motNodeID, srcRoute);
@@ -675,76 +672,36 @@ RecvTupleFrom(MotionLayerState *mlStates,
 		ReadyList = pCSEntry->ready_tuples;
 	}
 
-	/* Get the next HeapTuple, if one is available! */
-	*tup_i = htfifo_gettuple(ReadyList);
-
-	if (*tup_i != NULL)
+	for (;;)
 	{
-		recvRC = GOT_TUPLE;
-		statRecvTuple(pMNEntry, pCSEntry, recvRC);
-		return recvRC;
-	}
+		/* Get the next tuple from the FIFO, if one is available. */
+		tuple = htfifo_gettuple(ReadyList);
+		if (tuple)
+			break;
 
-	/* We need to get more chunks before we have a full tuple to return */
-	do
-	{
-		if (srcRoute == ANY_ROUTE)
-		{
-			if (!pMNEntry->moreNetWork)
-			{
-				recvRC = END_OF_STREAM;
-				statRecvTuple(pMNEntry, pCSEntry, recvRC);
-				return recvRC;
-			}
-		}
-		else
-		{
-			if (pCSEntry->end_of_stream)
-			{
-				recvRC = END_OF_STREAM;
-				statRecvTuple(pMNEntry, pCSEntry, recvRC);
-				return recvRC;
-			}
-		}
-
-		processIncomingChunks(mlStates, transportStates, pMNEntry, motNodeID, srcRoute);
-
-		if (srcRoute == ANY_ROUTE)
-			*tup_i = htfifo_gettuple(pMNEntry->ready_tuples);
-		else
-			*tup_i = htfifo_gettuple(pCSEntry->ready_tuples);
-
-		if (*tup_i != NULL)
-		{
-			/* We got a tuple. */
-			recvRC = GOT_TUPLE;
-		}
-		else if ((srcRoute == ANY_ROUTE && !pMNEntry->moreNetWork) ||
-				 (srcRoute != ANY_ROUTE && pCSEntry->end_of_stream))
+		/*
+		 * We need to get more chunks before we have a full tuple to return. Loop
+		 * until we get one, or we reach end-of-stream.
+		 */
+		if ((srcRoute == ANY_ROUTE && !pMNEntry->moreNetWork) ||
+			(srcRoute != ANY_ROUTE && pCSEntry->end_of_stream))
 		{
 			/*
 			 * No tuple was available (tuple-store was at EOF), and
 			 * end-of-stream has been marked.  No more tuples are going to
 			 * show up.
 			 */
-			recvRC = END_OF_STREAM;
+			break;
 		}
-		else
-		{
-			/*
-			 * No tuple was available (tuple-store was at EOF), but we have
-			 * not been sent an end-of-stream. We need to loop so that we
-			 * process more chunks to assemble a complete tuple.
-			 */
-			recvRC = NO_TUPLE;
-		}
+
+		processIncomingChunks(mlStates, transportStates, pMNEntry, motNodeID, srcRoute);
 	}
-	while (recvRC == NO_TUPLE);
 
 	/* Stats */
-	statRecvTuple(pMNEntry, pCSEntry, recvRC);
+	if (tuple)
+		statRecvTuple(pMNEntry, pCSEntry);
 
-	return recvRC;
+	return tuple;
 }
 
 
@@ -1363,23 +1320,19 @@ statNewTupleArrived(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry)
 }
 
 static void
-statRecvTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry,
-			  ReceiveReturnCode recvRC)
+statRecvTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry)
 {
 	AssertArg(pMNEntry != NULL);
 	AssertArg(pCSEntry != NULL || !pMNEntry->preserve_order);
 
-	if (recvRC == GOT_TUPLE)
-	{
-		/* Count tuples received. */
-		pMNEntry->stat_total_recvs++;
+	/* Count tuples received. */
+	pMNEntry->stat_total_recvs++;
 
-		/* Update "tuples available" counts for high watermark stats. */
-		pMNEntry->stat_tuples_available--;
+	/* Update "tuples available" counts for high watermark stats. */
+	pMNEntry->stat_tuples_available--;
 
-		if (pMNEntry->preserve_order)
-			pCSEntry->stat_tuples_available--;
-	}
+	if (pMNEntry->preserve_order)
+		pCSEntry->stat_tuples_available--;
 }
 
 /*

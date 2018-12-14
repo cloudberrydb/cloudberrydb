@@ -29,14 +29,6 @@ typedef enum SendReturnCode
 	STOP_SENDING
 }	SendReturnCode;
 
-
-typedef enum ReceiveReturnCode
-{
-	GOT_TUPLE,
-	NO_TUPLE,
-	END_OF_STREAM
-}	ReceiveReturnCode;
-
 /*
  * Struct describing the direct transmit buffer.  see:
  * getTransportDirectBuffer() (in ic_common.c) and
@@ -117,25 +109,19 @@ SendEndOfStream(MotionLayerState       *mlStates,
                 ChunkTransportState    *transportStates,
                 int                     motNodeID);
 
-/* Receive a tuple from the corresponding motion-node on any query-executor
- * in the process-group.  This function returns immediately without blocking;
+/*
+ * Receive a tuple from the corresponding motion-node on any query-executor
+ * in the process-group.
  *
  * To get an result for unordered receive (we used to provide a separate
  * RecvTuple() function, set the srcRoute to ANY_ROUTE
  *
- * RETURN: the return code is one of the following:
- *
- *		GOT_TUPLE - A tuple was received, and it data is stored in tup_in.
- *
- *		NO_TUPLE - No tuple was available, but more are still expected.
- *
- *		END_OF_STREAM - No tuple was received, and no more are expected.
+ * Returns the next tuple, or NULL if end-of-stream was reached.
  */
-extern ReceiveReturnCode RecvTupleFrom(MotionLayerState *mlStates,
-									   ChunkTransportState *transportStates,
-									   int16 motNodeID,
-									   GenericTuple *tup_i,
-									   int16 srcRoute);
+extern GenericTuple RecvTupleFrom(MotionLayerState *mlStates,
+								  ChunkTransportState *transportStates,
+								  int16 motNodeID,
+								  int16 srcRoute);
 
 extern void SendStopMessage(MotionLayerState *mlStates,
 							ChunkTransportState *transportStates,
