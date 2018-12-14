@@ -59,11 +59,6 @@
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
 
-#define SCANNED_SEGNO  \
-	(&scan->aos_segfile_arr[ \
-		(scan->aos_segfiles_processed == 0 ? 0 : scan->aos_segfiles_processed - 1) \
-		])->segno
-
 /*
  * AppendOnlyDeleteDescData is used for delete data from append-only
  * relations. It serves an equivalent purpose as AppendOnlyScanDescData

@@ -679,7 +679,6 @@ typedef struct EState
 	 */
 	int			rootSliceId;
 
-	struct PlanState *planstate;        /* plan's state tree */
 	/*
 	 * Information relevant to dynamic table scans.
 	 */

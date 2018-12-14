@@ -127,13 +127,6 @@ typedef struct FileSegTotals
 										 * values */
 } FileSegTotals;
 
-typedef enum
-{
-	SegfileNoLock,
-	SegfileTryLock,
-	SegfileForceLock
-}			SegfileLockStrategy;
-
 extern FileSegInfo *NewFileSegInfo(int segno);
 
 extern void InsertInitialSegnoEntry(Relation parentrel, int segno);

@@ -50,11 +50,6 @@ static dispatcher_handle_t *allocate_dispatcher_handle(void);
 static void destroy_dispatcher_handle(dispatcher_handle_t *h);
 static char * segmentsListToString(const char *prefix, List *segments);
 
-/*
- * default directed-dispatch parameters: don't direct anything.
- */
-CdbDispatchDirectDesc default_dispatch_direct_desc = {false, 0, {0}};
-
 static DispatcherInternalFuncs *pDispatchFuncs = &DispatcherAsyncFuncs;
 
 /*

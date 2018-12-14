@@ -72,13 +72,6 @@ typedef struct CdbDispatchResult
 	int errcode;
 
 	/*
-	 * index of first entry in resultbuf
-	 * that represents an error; or -1.
-	 * Pass to cdbconn_getResult().
-	 */
-	int errindex;
-
-	/*
 	 * index of last entry in resultbuf
 	 * with resultStatus == PGRES_TUPLES_OK
 	 * or PGRES_COMMAND_OK (command ended
