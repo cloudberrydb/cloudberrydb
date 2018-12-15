@@ -582,9 +582,9 @@ _outSeqScan(StringInfo str, const SeqScan *node)
 }
 
 static void
-_outDynamicTableScan(StringInfo str, const DynamicTableScan *node)
+_outDynamicSeqScan(StringInfo str, const DynamicSeqScan *node)
 {
-	WRITE_NODE_TYPE("DYNAMICTABLESCAN");
+	WRITE_NODE_TYPE("DYNAMICSEQSCAN");
 
 	_outScanInfo(str, (Scan *)node);
 	WRITE_INT_FIELD(partIndex);
@@ -4728,8 +4728,8 @@ _outNode(StringInfo str, const void *obj)
 			case T_SeqScan:
 				_outSeqScan(str, obj);
 				break;
-			case T_DynamicTableScan:
-				_outDynamicTableScan(str, obj);
+			case T_DynamicSeqScan:
+				_outDynamicSeqScan(str, obj);
 				break;
 			case T_ExternalScan:
 				_outExternalScan(str, obj);

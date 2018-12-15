@@ -29,7 +29,7 @@ isDynamicScan(const Plan *plan)
 {
 	switch (nodeTag(plan))
 	{
-		case T_DynamicTableScan:
+		case T_DynamicSeqScan:
 		case T_DynamicIndexScan:
 		case T_DynamicBitmapHeapScan:
 		case T_DynamicBitmapIndexScan:
@@ -50,8 +50,8 @@ DynamicScan_GetDynamicScanId(Plan *plan)
 {
 	switch (nodeTag(plan))
 	{
-		case T_DynamicTableScan:
-			return ((DynamicTableScan *) plan)->partIndex;
+		case T_DynamicSeqScan:
+			return ((DynamicSeqScan *) plan)->partIndex;
 
 		case T_DynamicIndexScan:
 			return ((DynamicIndexScan *) plan)->partIndex;
@@ -76,8 +76,8 @@ DynamicScan_GetDynamicScanIdPrintable(Plan *plan)
 {
 	switch (nodeTag(plan))
 	{
-		case T_DynamicTableScan:
-			return ((DynamicTableScan *) plan)->partIndexPrintable;
+		case T_DynamicSeqScan:
+			return ((DynamicSeqScan *) plan)->partIndexPrintable;
 
 		case T_DynamicIndexScan:
 			return ((DynamicIndexScan *) plan)->partIndexPrintable;

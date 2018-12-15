@@ -476,7 +476,7 @@ search_plan_tree(PlanState *node, Oid table_oid)
 		case T_AppendOnlyScanState:
 		case T_AOCSScanState:
 		case T_TableScanState:
-		case T_DynamicTableScanState:
+		case T_DynamicSeqScanState:
 		case T_IndexScanState:
 		case T_IndexOnlyScanState:
 		case T_BitmapHeapScanState:

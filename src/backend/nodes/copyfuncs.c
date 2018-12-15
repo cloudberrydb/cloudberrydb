@@ -496,10 +496,10 @@ _copySeqScan(const SeqScan *from)
 	return newnode;
 }
 
-static DynamicTableScan *
-_copyDynamicTableScan(const DynamicTableScan *from)
+static DynamicSeqScan *
+_copyDynamicSeqScan(const DynamicSeqScan *from)
 {
-	DynamicTableScan *newnode = makeNode(DynamicTableScan);
+	DynamicSeqScan *newnode = makeNode(DynamicSeqScan);
 
 	CopyScanFields((Scan *) from, (Scan *) newnode);
 	COPY_SCALAR_FIELD(partIndex);
@@ -5181,8 +5181,8 @@ copyObject(const void *from)
 		case T_SeqScan:
 			retval = _copySeqScan(from);
 			break;
-		case T_DynamicTableScan:
-			retval = _copyDynamicTableScan(from);
+		case T_DynamicSeqScan:
+			retval = _copyDynamicSeqScan(from);
 			break;
 		case T_ExternalScan:
 			retval = _copyExternalScan(from);

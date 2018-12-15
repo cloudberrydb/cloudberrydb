@@ -123,7 +123,7 @@
 #include "executor/nodeAssertOp.h"
 #include "executor/nodeDML.h"
 #include "executor/nodeDynamicIndexscan.h"
-#include "executor/nodeDynamicTableScan.h"
+#include "executor/nodeDynamicSeqscan.h"
 #include "executor/nodeExternalscan.h"
 #include "executor/nodeMotion.h"
 #include "executor/nodePartitionSelector.h"
@@ -402,12 +402,12 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			END_MEMORY_ACCOUNT();
 			break;
 
-		case T_DynamicTableScan:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, DynamicTableScan);
+		case T_DynamicSeqScan:
+			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, DynamicSeqScan);
 
 			START_MEMORY_ACCOUNT(curMemoryAccountId);
 			{
-			result = (PlanState *) ExecInitDynamicTableScan((DynamicTableScan *) node,
+			result = (PlanState *) ExecInitDynamicSeqScan((DynamicSeqScan *) node,
 												   estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
@@ -995,8 +995,8 @@ ExecProcNode(PlanState *node)
 			result = ExecSeqScan((SeqScanState *)node);
 			break;
 
-		case T_DynamicTableScanState:
-			result = ExecDynamicTableScan((DynamicTableScanState *) node);
+		case T_DynamicSeqScanState:
+			result = ExecDynamicSeqScan((DynamicSeqScanState *) node);
 			break;
 
 		case T_ExternalScanState:
@@ -1454,8 +1454,8 @@ ExecEndNode(PlanState *node)
 			ExecEndSeqScan((SeqScanState *) node);
 			break;
 
-		case T_DynamicTableScanState:
-			ExecEndDynamicTableScan((DynamicTableScanState *) node);
+		case T_DynamicSeqScanState:
+			ExecEndDynamicSeqScan((DynamicSeqScanState *) node);
 			break;
 
 		case T_IndexScanState:

@@ -238,8 +238,8 @@ plan_tree_walker(Node *node,
 			return walk_scan_node_fields((Scan *) node, walker, context);
 
 		case T_SeqScan:
+		case T_DynamicSeqScan:
 		case T_ExternalScan:
-		case T_DynamicTableScan:
 		case T_BitmapHeapScan:
 		case T_DynamicBitmapHeapScan:
 		case T_WorkTableScan:

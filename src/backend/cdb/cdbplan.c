@@ -335,16 +335,14 @@ plan_tree_mutator(Node *node,
 			}
 			break;
 
-		case T_DynamicTableScan:
+		case T_DynamicSeqScan:
 			{
-				DynamicTableScan *tableScan = (DynamicTableScan *) node;
-				DynamicTableScan *newTableScan = NULL;
+				DynamicSeqScan *dynamicSeqScan = (DynamicSeqScan *) node;
+				DynamicSeqScan *newDynamicSeqScan = NULL;
 
-				FLATCOPY(newTableScan, tableScan, DynamicTableScan);
-				SCANMUTATE(newTableScan, tableScan);
-				newTableScan->partIndex = tableScan->partIndex;
-				newTableScan->partIndexPrintable = tableScan->partIndexPrintable;
-				return (Node *) newTableScan;
+				FLATCOPY(newDynamicSeqScan, dynamicSeqScan, DynamicSeqScan);
+				SCANMUTATE(newDynamicSeqScan, dynamicSeqScan);
+				return (Node *) newDynamicSeqScan;
 			}
 			break;
 

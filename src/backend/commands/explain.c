@@ -972,8 +972,8 @@ ExplainPreScanNode(PlanState *planstate, Bitmapset **rels_used)
 	switch (nodeTag(plan))
 	{
 		case T_SeqScan:
+		case T_DynamicSeqScan:
 		case T_ExternalScan:
-		case T_DynamicTableScan:
 		case T_DynamicIndexScan:
 		case T_ShareInputScan:
 		case T_IndexScan:
@@ -1275,7 +1275,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 					pname = sname = "Seq Scan";
 			}
 			break;
-		case T_DynamicTableScan:
+		case T_DynamicSeqScan:
 			pname = sname = "Dynamic Table Scan";
 			break;
 		case T_ExternalScan:
@@ -1598,8 +1598,8 @@ ExplainNode(PlanState *planstate, List *ancestors,
 	switch (nodeTag(plan))
 	{
 		case T_SeqScan:
+		case T_DynamicSeqScan:
 		case T_ExternalScan:
-		case T_DynamicTableScan:
 		case T_DynamicIndexScan:
 		case T_BitmapHeapScan:
 		case T_DynamicBitmapHeapScan:
@@ -1921,8 +1921,8 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			break;
 		}
 		case T_SeqScan:
+		case T_DynamicSeqScan:
 		case T_ExternalScan:
-		case T_DynamicTableScan:
 		case T_ValuesScan:
 		case T_CteScan:
 		case T_WorkTableScan:
@@ -2882,7 +2882,9 @@ ExplainTargetRel(Plan *plan, Index rti, ExplainState *es)
 	switch (nodeTag(plan))
 	{
 		case T_SeqScan:
+		case T_DynamicSeqScan:
 		case T_IndexScan:
+		case T_DynamicIndexScan:
 		case T_IndexOnlyScan:
 		case T_BitmapHeapScan:
 		case T_DynamicBitmapHeapScan:
@@ -2890,8 +2892,6 @@ ExplainTargetRel(Plan *plan, Index rti, ExplainState *es)
 		case T_ForeignScan:
 		case T_ModifyTable:
 		case T_ExternalScan:
-		case T_DynamicTableScan:
-		case T_DynamicIndexScan:
 			/* Assert it's on a real relation */
 			Assert(rte->rtekind == RTE_RELATION);
 			objectname = get_rel_name(rte->relid);

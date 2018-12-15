@@ -3529,7 +3529,7 @@ CTranslatorDXLToPlStmt::TranslateDXLSequence
 //		CTranslatorDXLToPlStmt::TranslateDXLDynTblScan
 //
 //	@doc:
-//		Translates a DXL dynamic table scan node into a DynamicTableScan node
+//		Translates a DXL dynamic table scan node into a DynamicSeqScan node
 //
 //---------------------------------------------------------------------------
 Plan *
@@ -3556,13 +3556,13 @@ CTranslatorDXLToPlStmt::TranslateDXLDynTblScan
 	m_dxl_to_plstmt_context->AddRTE(rte);
 
 	// create dynamic scan node
-	DynamicTableScan *dyn_tbl_scan = MakeNode(DynamicTableScan);
+	DynamicSeqScan *dyn_seq_scan = MakeNode(DynamicSeqScan);
 
-	dyn_tbl_scan->seqscan.scanrelid = index;
-	dyn_tbl_scan->partIndex = dyn_tbl_scan_dxlop->GetPartIndexId();
-	dyn_tbl_scan->partIndexPrintable = dyn_tbl_scan_dxlop->GetPartIndexIdPrintable();
+	dyn_seq_scan->seqscan.scanrelid = index;
+	dyn_seq_scan->partIndex = dyn_tbl_scan_dxlop->GetPartIndexId();
+	dyn_seq_scan->partIndexPrintable = dyn_tbl_scan_dxlop->GetPartIndexIdPrintable();
 
-	Plan *plan = &(dyn_tbl_scan->seqscan.plan);
+	Plan *plan = &(dyn_seq_scan->seqscan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
 	plan->nMotionNodes = 0;
 
@@ -3595,7 +3595,7 @@ CTranslatorDXLToPlStmt::TranslateDXLDynTblScan
 
 	SetParamIds(plan);
 
-	return (Plan *) dyn_tbl_scan;
+	return (Plan *) dyn_seq_scan;
 }
 
 //---------------------------------------------------------------------------

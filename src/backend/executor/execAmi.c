@@ -50,7 +50,7 @@
 #include "executor/nodeWindowAgg.h"
 #include "executor/nodeWorktablescan.h"
 #include "executor/nodeAssertOp.h"
-#include "executor/nodeDynamicTableScan.h"
+#include "executor/nodeDynamicSeqscan.h"
 #include "executor/nodeDynamicIndexscan.h"
 #include "executor/nodeExternalscan.h"
 #include "executor/nodeMotion.h"
@@ -175,8 +175,8 @@ ExecReScan(PlanState *node)
 			ExecReScanExternal((ExternalScanState *) node);
 			break;			
 
-		case T_DynamicTableScanState:
-			ExecReScanDynamicTable((DynamicTableScanState *) node);
+		case T_DynamicSeqScanState:
+			ExecReScanDynamicSeqScan((DynamicSeqScanState *) node);
 			break;
 
 		case T_DynamicIndexScanState:
@@ -598,7 +598,7 @@ ExecEagerFree(PlanState *node)
 		case T_HashState:
 		case T_ValuesScanState:
 		case T_TableFunctionState:
-		case T_DynamicTableScanState:
+		case T_DynamicSeqScanState:
 		case T_DynamicIndexScanState:
 		case T_IndexOnlyScanState:
 		case T_SequenceState:
@@ -761,7 +761,7 @@ ExecEagerFreeChildNodes(PlanState *node, bool subplanDone)
 		case T_HashState:
 		case T_ValuesScanState:
 		case T_SeqScanState:
-		case T_DynamicTableScanState:
+		case T_DynamicSeqScanState:
 		case T_DynamicIndexScanState:
 		case T_IndexOnlyScanState:
 		case T_ExternalScanState:

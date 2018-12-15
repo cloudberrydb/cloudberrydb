@@ -94,7 +94,7 @@ ExecInitPartitionSelector(PartitionSelector *node, EState *estate, int eflags)
  *		Plan structure:
  *			Sequence
  *				|--PartitionSelector
- *				|--DynamicTableScan
+ *				|--DynamicSeqScan
  *		In this case, PartitionSelector evaluates constant partition
  *		constraints to compute and propagate partition table Oids.
  *		It only need to be called once.
@@ -102,12 +102,12 @@ ExecInitPartitionSelector(PartitionSelector *node, EState *estate, int eflags)
  *		2. Join partition elimination
  *		Plan structure:
  *			...:
- *				|--DynamicTableScan
+ *				|--DynamicSeqScan
  *				|--...
  *					|--PartitionSelector
  *						|--...
  *		In this case, PartitionSelector is in the same slice as
- *		DynamicTableScan, DynamicIndexScan or DynamicBitmapHeapScan.
+ *		DynamicSeqScan, DynamicIndexScan or DynamicBitmapHeapScan.
  *		It is executed for each tuple coming from its child node.
  *		It evaluates partition constraints with the input tuple and
  *		propagate matched partition table Oids.

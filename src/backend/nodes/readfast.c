@@ -1626,10 +1626,10 @@ _readSeqScan(void)
 	READ_DONE();
 }
 
-static DynamicTableScan *
-_readDynamicTableScan(void)
+static DynamicSeqScan *
+_readDynamicSeqScan(void)
 {
-	READ_LOCALS(DynamicTableScan);
+	READ_LOCALS(DynamicSeqScan);
 
 	readScanInfo((Scan *)local_node);
 	READ_INT_FIELD(partIndex);
@@ -3124,8 +3124,8 @@ readNodeBinary(void)
 			case T_SeqScan:
 				return_value = _readSeqScan();
 				break;
-			case T_DynamicTableScan:
-				return_value = _readDynamicTableScan();
+			case T_DynamicSeqScan:
+				return_value = _readDynamicSeqScan();
 				break;
 			case T_ExternalScan:
 				return_value = _readExternalScan();

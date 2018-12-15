@@ -1,11 +1,11 @@
 /*-------------------------------------------------------------------------
  *
- * nodeDynamicTableScan.c
+ * nodeDynamicSeqscan.c
  *	  Support routines for scanning one or more relations that are
  *	  determined at run time. The relations could be Heap, AppendOnly Row,
  *	  AppendOnly Columnar.
  *
- * DynamicTableScan node scans each relation one after the other. For each
+ * DynamicSeqScan node scans each relation one after the other. For each
  * relation, it opens the table, scans the tuple, and returns relevant tuples.
  *
  * Portions Copyright (c) 2012 - present, EMC/Greenplum
@@ -13,7 +13,7 @@
  *
  *
  * IDENTIFICATION
- *	    src/backend/executor/nodeDynamicTableScan.c
+ *	    src/backend/executor/nodeDynamicSeqscan.c
  *
  *-------------------------------------------------------------------------
  */
@@ -23,8 +23,8 @@
 #include "executor/instrument.h"
 #include "nodes/execnodes.h"
 #include "executor/execDynamicScan.h"
+#include "executor/nodeDynamicSeqscan.h"
 #include "executor/nodeSeqscan.h"
-#include "executor/nodeDynamicTableScan.h"
 #include "utils/hsearch.h"
 #include "parser/parsetree.h"
 #include "utils/memutils.h"
@@ -32,17 +32,17 @@
 #include "cdb/cdbvars.h"
 #include "cdb/partitionselection.h"
 
-static void CleanupOnePartition(DynamicTableScanState *node);
+static void CleanupOnePartition(DynamicSeqScanState *node);
 
-DynamicTableScanState *
-ExecInitDynamicTableScan(DynamicTableScan *node, EState *estate, int eflags)
+DynamicSeqScanState *
+ExecInitDynamicSeqScan(DynamicSeqScan *node, EState *estate, int eflags)
 {
-	DynamicTableScanState *state;
+	DynamicSeqScanState *state;
 	Oid			reloid;
 
 	Assert((eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) == 0);
 
-	state = makeNode(DynamicTableScanState);
+	state = makeNode(DynamicSeqScanState);
 	state->eflags = eflags;
 	state->ss.ps.plan = (Plan *) node;
 	state->ss.ps.state = estate;
@@ -75,7 +75,7 @@ ExecInitDynamicTableScan(DynamicTableScan *node, EState *estate, int eflags)
 	 * qual and targetlist allocations
 	 */
 	state->partitionMemoryContext = AllocSetContextCreate(CurrentMemoryContext,
-									 "DynamicTableScanPerPartition",
+									 "DynamicSeqScanPerPartition",
 									 ALLOCSET_DEFAULT_MINSIZE,
 									 ALLOCSET_DEFAULT_INITSIZE,
 									 ALLOCSET_DEFAULT_MAXSIZE);
@@ -93,10 +93,10 @@ ExecInitDynamicTableScan(DynamicTableScan *node, EState *estate, int eflags)
  * If no more table is found, this function returns false.
  */
 static bool
-initNextTableToScan(DynamicTableScanState *node)
+initNextTableToScan(DynamicSeqScanState *node)
 {
-	ScanState  *scanState = (ScanState *)node;
-	DynamicTableScan *plan = (DynamicTableScan *)scanState->ps.plan;
+	ScanState  *scanState = (ScanState *) node;
+	DynamicSeqScan *plan = (DynamicSeqScan *) scanState->ps.plan;
 	EState	   *estate = scanState->ps.state;
 	Relation	lastScannedRel;
 	TupleDesc	partTupDesc;
@@ -175,13 +175,13 @@ initNextTableToScan(DynamicTableScanState *node)
  *   Set the pid index for the given dynamic table.
  */
 static void
-setPidIndex(DynamicTableScanState *node)
+setPidIndex(DynamicSeqScanState *node)
 {
 	Assert(node->pidIndex == NULL);
 
 	ScanState *scanState = (ScanState *)node;
 	EState *estate = scanState->ps.state;
-	DynamicTableScan *plan = (DynamicTableScan *)scanState->ps.plan;
+	DynamicSeqScan *plan = (DynamicSeqScan *) scanState->ps.plan;
 	Assert(estate->dynamicTableScanInfo != NULL);
 
 	/*
@@ -198,7 +198,7 @@ setPidIndex(DynamicTableScanState *node)
 }
 
 TupleTableSlot *
-ExecDynamicTableScan(DynamicTableScanState *node)
+ExecDynamicSeqScan(DynamicSeqScanState *node)
 {
 	TupleTableSlot *slot = NULL;
 
@@ -245,7 +245,7 @@ ExecDynamicTableScan(DynamicTableScanState *node)
  *		Cleans up a partition's relation and releases all locks.
  */
 static void
-CleanupOnePartition(DynamicTableScanState *scanState)
+CleanupOnePartition(DynamicSeqScanState *scanState)
 {
 	Assert(NULL != scanState);
 
@@ -263,11 +263,11 @@ CleanupOnePartition(DynamicTableScanState *scanState)
 }
 
 /*
- * DynamicTableScanEndCurrentScan
+ * DynamicSeqScanEndCurrentScan
  *		Cleans up any ongoing scan.
  */
 static void
-DynamicTableScanEndCurrentScan(DynamicTableScanState *node)
+DynamicSeqScanEndCurrentScan(DynamicSeqScanState *node)
 {
 	CleanupOnePartition(node);
 
@@ -279,14 +279,14 @@ DynamicTableScanEndCurrentScan(DynamicTableScanState *node)
 }
 
 /*
- * ExecEndDynamicTableScan
- *		Ends the scanning of this DynamicTableScanNode and frees
+ * ExecEndDynamicSeqScan
+ *		Ends the scanning of this DynamicSeqScanNode and frees
  *		up all the resources.
  */
 void
-ExecEndDynamicTableScan(DynamicTableScanState *node)
+ExecEndDynamicSeqScan(DynamicSeqScanState *node)
 {
-	DynamicTableScanEndCurrentScan(node);
+	DynamicSeqScanEndCurrentScan(node);
 
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 
@@ -294,13 +294,13 @@ ExecEndDynamicTableScan(DynamicTableScanState *node)
 }
 
 /*
- * ExecDynamicTableReScan
+ * ExecReScanDynamicSeqScan
  *		Prepares the internal states for a rescan.
  */
 void
-ExecReScanDynamicTable(DynamicTableScanState *node)
+ExecReScanDynamicSeqScan(DynamicSeqScanState *node)
 {
-	DynamicTableScanEndCurrentScan(node);
+	DynamicSeqScanEndCurrentScan(node);
 
 	/* Force reloading the partition hash table */
 	node->pidIndex = NULL;

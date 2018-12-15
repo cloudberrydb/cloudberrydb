@@ -677,10 +677,10 @@ typedef struct DynamicBitmapHeapScan
 } DynamicBitmapHeapScan;
 
 /*
- * DynamicTableScan
+ * DynamicSeqScan
  *   Scan a list of tables that will be determined at run time.
  */
-typedef struct DynamicTableScan
+typedef struct DynamicSeqScan
 {
 	/* Fields shared with a normal SeqScan. Must be first! */
 	SeqScan		seqscan;
@@ -691,7 +691,7 @@ typedef struct DynamicTableScan
 	 */
 	int32 		partIndex;
 	int32 		partIndexPrintable;
-} DynamicTableScan;
+} DynamicSeqScan;
 
 /* ----------------
  *		tid scan node

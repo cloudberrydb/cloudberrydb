@@ -1971,7 +1971,7 @@ typedef struct DynamicBitmapHeapScanState
 	 * Should we call hash_seq_term()? This is required
 	 * to handle error condition, where we are required to explicitly
 	 * call hash_seq_term(). Also, if we don't have any partition, this
-	 * flag should prevent ExecEndDynamicTableScan from calling
+	 * flag should prevent ExecEndDynamicSeqScan from calling
 	 * hash_seq_term() on a NULL hash table.
 	 */
 	bool		shouldCallHashSeqTerm;
@@ -2194,9 +2194,9 @@ typedef struct ExternalScanState
 } ExternalScanState;
 
 /*
- * DynamicTableScanState
+ * DynamicSeqScanState
  */
-typedef struct DynamicTableScanState
+typedef struct DynamicSeqScanState
 {
 	ScanState	ss;
 
@@ -2220,7 +2220,7 @@ typedef struct DynamicTableScanState
 	 * Should we call hash_seq_term()? This is required
 	 * to handle error condition, where we are required to explicitly
 	 * call hash_seq_term(). Also, if we don't have any partition, this
-	 * flag should prevent ExecEndDynamicTableScan from calling
+	 * flag should prevent ExecEndDynamicSeqScan from calling
 	 * hash_seq_term() on a NULL hash table.
 	 */
 	bool		shouldCallHashSeqTerm;
@@ -2251,7 +2251,7 @@ typedef struct DynamicTableScanState
 	MemoryContext partitionMemoryContext;
 
 
-} DynamicTableScanState;
+} DynamicSeqScanState;
 
 /* ----------------------------------------------------------------
  *				 Join State Information
