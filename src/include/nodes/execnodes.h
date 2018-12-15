@@ -1699,16 +1699,6 @@ typedef struct SeqScanState
 	struct AppendOnlyScanDescData *ss_currentScanDesc_ao;
 	struct AOCSScanDescData *ss_currentScanDesc_aocs;
 
-	/* extra state for heap scans */
-	struct
-	{
-		HeapTupleData item[512];
-		int			bot;
-		int			top;
-		HeapTuple	last;
-		int			seen_EOS;
-	} ss_heapTupleData;
-
 	/* extra state for AOCS scans */
 	bool	   *ss_aocs_proj;
 	int			ss_aocs_ncol;

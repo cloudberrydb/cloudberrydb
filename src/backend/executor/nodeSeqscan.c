@@ -79,30 +79,7 @@ SeqNext(SeqScanState *node)
 	{
 		HeapScanDesc scandesc = node->ss_currentScanDesc_heap;
 
-		if (node->ss_heapTupleData.bot == node->ss_heapTupleData.top &&
-			!node->ss_heapTupleData.seen_EOS)
-		{
-			node->ss_heapTupleData.last = NULL;
-			node->ss_heapTupleData.bot = 0;
-			node->ss_heapTupleData.top = lengthof(node->ss_heapTupleData.item);
-			heap_getnextx(scandesc, direction, node->ss_heapTupleData.item,
-						  &node->ss_heapTupleData.top,
-						  &node->ss_heapTupleData.seen_EOS);
-
-			if (scandesc->rs_pageatatime)
-			{
-				CheckSendPlanStateGpmonPkt(&node->ss.ps);
-			}
-		}
-
-		node->ss_heapTupleData.last = NULL;
-		if (node->ss_heapTupleData.bot < node->ss_heapTupleData.top)
-		{
-			node->ss_heapTupleData.last =
-				&node->ss_heapTupleData.item[node->ss_heapTupleData.bot++];
-		}
-
-		tuple = node->ss_heapTupleData.last;
+		tuple = heap_getnext(scandesc, direction);
 
 		/*
 		 * save the tuple and the buffer returned to us by the access methods in
@@ -214,11 +191,6 @@ InitScanRelation(SeqScanState *node, EState *estate, int eflags, Relation curren
 										 estate->es_snapshot,
 										 0,
 										 NULL);
-
-		node->ss_heapTupleData.bot = 0;
-		node->ss_heapTupleData.top = 0;
-		node->ss_heapTupleData.seen_EOS = 0;
-		node->ss_heapTupleData.last = NULL;
 	}
 	node->ss.ss_currentRelation = currentRelation;
 
@@ -373,11 +345,6 @@ ExecReScanSeqScan(SeqScanState *node)
 
 		heap_rescan(scan,			/* scan desc */
 					NULL);			/* new scan keys */
-
-		node->ss_heapTupleData.bot = 0;
-		node->ss_heapTupleData.top = 0;
-		node->ss_heapTupleData.seen_EOS = 0;
-		node->ss_heapTupleData.last = NULL;
 	}
 	else
 		elog(ERROR, "rescan called without scandesc");
