@@ -606,7 +606,7 @@ generate_uao_sourcefiles(char *src_dir, char *dest_dir, char *suffix, replacemen
 
 		while (fgets(line, sizeof(line), infile))
 		{
-			strncpy(line_row, line, sizeof(line));
+			strlcpy(line_row, line, sizeof(line_row));
 			repls->orientation = "row";
 			convert_line(line_row, repls);
 			repls->orientation = "column";
