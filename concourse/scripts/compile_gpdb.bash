@@ -178,10 +178,6 @@ function _main() {
       # require `./configure --with-zlib`.
       unittest_check_gpdb
   fi
-  if [ "${EXTRACT_PXF}" == "true" ] ; then
-      # Bundle PXF server
-      tar -xzf pxf_tarball/pxf.tar.gz -C ${GREENPLUM_INSTALL_DIR}
-  fi
   export_gpdb
   export_gpdb_extensions
   export_gpdb_win32_ccl
