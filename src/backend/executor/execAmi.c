@@ -20,6 +20,7 @@
 #include "executor/nodeBitmapAnd.h"
 #include "executor/nodeBitmapHeapscan.h"
 #include "executor/nodeBitmapIndexscan.h"
+#include "executor/nodeDynamicBitmapHeapscan.h"
 #include "executor/nodeDynamicBitmapIndexscan.h"
 #include "executor/nodeBitmapOr.h"
 #include "executor/nodeCtescan.h"
@@ -38,6 +39,7 @@
 #include "executor/nodeNestloop.h"
 #include "executor/nodeRecursiveunion.h"
 #include "executor/nodeResult.h"
+#include "executor/nodeSeqscan.h"
 #include "executor/nodeSetOp.h"
 #include "executor/nodeSort.h"
 #include "executor/nodeSubplan.h"
@@ -48,16 +50,13 @@
 #include "executor/nodeWindowAgg.h"
 #include "executor/nodeWorktablescan.h"
 #include "executor/nodeAssertOp.h"
-#include "executor/nodeTableScan.h"
 #include "executor/nodeDynamicTableScan.h"
 #include "executor/nodeDynamicIndexscan.h"
 #include "executor/nodeExternalscan.h"
-#include "executor/nodeBitmapTableScan.h"
 #include "executor/nodeMotion.h"
 #include "executor/nodeSequence.h"
 #include "executor/nodeTableFunction.h"
 #include "executor/nodePartitionSelector.h"
-#include "executor/nodeBitmapAppendOnlyscan.h"
 #include "executor/nodeShareInputScan.h"
 #include "nodes/nodeFuncs.h"
 #include "utils/rel.h"
@@ -165,7 +164,7 @@ ExecReScan(PlanState *node)
 			break;
 
 		case T_SeqScanState:
-			elog(ERROR, "SeqScan is defunct");
+			ExecReScanSeqScan((SeqScanState *) node);
 			break;
 
 		case T_IndexScanState:
@@ -176,16 +175,8 @@ ExecReScan(PlanState *node)
 			ExecReScanExternal((ExternalScanState *) node);
 			break;			
 
-		case T_TableScanState:
-			ExecReScanTable((TableScanState *) node);
-			break;
-
 		case T_DynamicTableScanState:
 			ExecReScanDynamicTable((DynamicTableScanState *) node);
-			break;
-
-		case T_BitmapTableScanState:
-			ExecReScanBitmapTable((BitmapTableScanState *) node);
 			break;
 
 		case T_DynamicIndexScanState:
@@ -206,6 +197,10 @@ ExecReScan(PlanState *node)
 
 		case T_BitmapHeapScanState:
 			ExecReScanBitmapHeapScan((BitmapHeapScanState *) node);
+			break;
+
+		case T_DynamicBitmapHeapScanState:
+			ExecReScanDynamicBitmapHeapScan((DynamicBitmapHeapScanState *) node);
 			break;
 
 		case T_TidScanState:
@@ -238,10 +233,6 @@ ExecReScan(PlanState *node)
 
 		case T_ForeignScanState:
 			ExecReScanForeignScan((ForeignScanState *) node);
-			break;
-
-		case T_BitmapAppendOnlyScanState:
-			ExecReScanBitmapAppendOnly((BitmapAppendOnlyScanState *) node);
 			break;
 
 		case T_NestLoopState:
@@ -593,6 +584,7 @@ ExecEagerFree(PlanState *node)
 		case T_BitmapAndState:
 		case T_BitmapOrState:
 		case T_BitmapIndexScanState:
+		case T_DynamicBitmapHeapScanState:
 		case T_DynamicBitmapIndexScanState:
 		case T_LimitState:
 		case T_MotionState:
@@ -615,14 +607,10 @@ ExecEagerFree(PlanState *node)
 		case T_ForeignScanState:
 			break;
 
-		case T_TableScanState:
-			ExecEagerFreeTableScan((TableScanState *)node);
-			break;
-			
 		case T_SeqScanState:
-			elog(ERROR, "SeqScan is defunct");
+			ExecEagerFreeSeqScan((SeqScanState *)node);
 			break;
-			
+
 		case T_ExternalScanState:
 			ExecEagerFreeExternalScan((ExternalScanState *)node);
 			break;
@@ -633,14 +621,6 @@ ExecEagerFree(PlanState *node)
 			
 		case T_BitmapHeapScanState:
 			ExecEagerFreeBitmapHeapScan((BitmapHeapScanState *)node);
-			break;
-			
-		case T_BitmapAppendOnlyScanState:
-			ExecEagerFreeBitmapAppendOnlyScan((BitmapAppendOnlyScanState *)node);
-			break;
-			
-		case T_BitmapTableScanState:
-			ExecEagerFreeBitmapTableScan((BitmapTableScanState *)node);
 			break;
 
 		case T_FunctionScanState:
@@ -780,14 +760,14 @@ ExecEagerFreeChildNodes(PlanState *node, bool subplanDone)
 		case T_UniqueState:
 		case T_HashState:
 		case T_ValuesScanState:
-		case T_TableScanState:
+		case T_SeqScanState:
 		case T_DynamicTableScanState:
 		case T_DynamicIndexScanState:
 		case T_IndexOnlyScanState:
 		case T_ExternalScanState:
 		case T_IndexScanState:
 		case T_BitmapHeapScanState:
-		case T_BitmapAppendOnlyScanState:
+		case T_DynamicBitmapHeapScanState:
 		case T_FunctionScanState:
 		case T_MaterialState:
 		case T_SortState:
@@ -798,10 +778,6 @@ ExecEagerFreeChildNodes(PlanState *node, bool subplanDone)
 			planstate_walk_node(outerPlanState(node), EagerFreeWalker, &ctx);
 			break;
 		}
-
-		case T_SeqScanState:
-			elog(ERROR, "SeqScan is defunct");
-			break;
 
 		case T_NestLoopState:
 		case T_MergeJoinState:

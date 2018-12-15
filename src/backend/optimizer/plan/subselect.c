@@ -2489,16 +2489,6 @@ finalize_plan(PlannerInfo *root, Plan *plan, Bitmapset *valid_params,
 			context.paramids = bms_add_members(context.paramids, scan_params);
 			break;
 
-		case T_BitmapAppendOnlyScan:
-			finalize_primnode((Node *) ((BitmapAppendOnlyScan *) plan)->bitmapqualorig,
-							  &context);
-			break;
-
-		case T_BitmapTableScan:
-			finalize_primnode((Node *) ((BitmapTableScan *) plan)->bitmapqualorig,
-							  &context);
-			break;
-
 		case T_TidScan:
 			finalize_primnode((Node *) ((TidScan *) plan)->tidquals,
 							  &context);

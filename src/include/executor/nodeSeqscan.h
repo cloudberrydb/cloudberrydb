@@ -1,4 +1,3 @@
-#if 0
 /*-------------------------------------------------------------------------
  *
  * nodeSeqscan.h
@@ -18,9 +17,11 @@
 #include "nodes/execnodes.h"
 
 extern SeqScanState *ExecInitSeqScan(SeqScan *node, EState *estate, int eflags);
+extern SeqScanState *ExecInitSeqScanForPartition(SeqScan *node, EState *estate, int eflags,
+							Relation currentRelation);
 extern TupleTableSlot *ExecSeqScan(SeqScanState *node);
 extern void ExecEndSeqScan(SeqScanState *node);
 extern void ExecReScanSeqScan(SeqScanState *node);
+extern void ExecEagerFreeSeqScan(SeqScanState *node);
 
 #endif   /* NODESEQSCAN_H */
-#endif

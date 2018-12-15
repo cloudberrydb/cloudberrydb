@@ -394,9 +394,6 @@ _outScanInfo(StringInfo str, const Scan *node)
 	_outPlanInfo(str, (const Plan *) node);
 
 	WRITE_UINT_FIELD(scanrelid);
-
-	WRITE_INT_FIELD(partIndex);
-	WRITE_INT_FIELD(partIndexPrintable);
 }
 
 /*
@@ -588,6 +585,7 @@ static void
 _outDynamicTableScan(StringInfo str, const DynamicTableScan *node)
 {
 	WRITE_NODE_TYPE("DYNAMICTABLESCAN");
+
 	_outScanInfo(str, (Scan *)node);
 	WRITE_INT_FIELD(partIndex);
 	WRITE_INT_FIELD(partIndexPrintable);
@@ -672,6 +670,8 @@ _outDynamicIndexScan(StringInfo str, const DynamicIndexScan *node)
 	WRITE_NODE_TYPE("DYNAMICINDEXSCAN");
 
 	outIndexScanFields(str, &node->indexscan);
+	WRITE_INT_FIELD(partIndex);
+	WRITE_INT_FIELD(partIndexPrintable);
 	outLogicalIndexInfo(str, node->logicalIndexInfo);
 }
 
@@ -699,7 +699,17 @@ _outDynamicBitmapIndexScan(StringInfo str, const DynamicBitmapIndexScan *node)
 	WRITE_NODE_TYPE("DYNAMICBITMAPINDEXSCAN");
 
 	_outBitmapIndexScanFields(str, &node->biscan);
+	WRITE_INT_FIELD(partIndex);
+	WRITE_INT_FIELD(partIndexPrintable);
 	outLogicalIndexInfo(str, node->logicalIndexInfo);
+}
+
+static void
+outBitmapHeapScanFields(StringInfo str, const BitmapHeapScan *node)
+{
+	_outScanInfo(str, (const Scan *) node);
+
+	WRITE_NODE_FIELD(bitmapqualorig);
 }
 
 static void
@@ -707,30 +717,17 @@ _outBitmapHeapScan(StringInfo str, const BitmapHeapScan *node)
 {
 	WRITE_NODE_TYPE("BITMAPHEAPSCAN");
 
-	_outScanInfo(str, (const Scan *) node);
-
-	WRITE_NODE_FIELD(bitmapqualorig);
+	outBitmapHeapScanFields(str, node);
 }
 
 static void
-_outBitmapAppendOnlyScan(StringInfo str, const BitmapAppendOnlyScan *node)
+_outDynamicBitmapHeapScan(StringInfo str, const DynamicBitmapHeapScan *node)
 {
-	WRITE_NODE_TYPE("BITMAPAPPENDONLYSCAN");
+	WRITE_NODE_TYPE("DYNAMICBITMAPHEAPSCAN");
 
-	_outScanInfo(str, (Scan *) node);
-
-	WRITE_NODE_FIELD(bitmapqualorig);
-	WRITE_BOOL_FIELD(isAORow);
-}
-
-static void
-_outBitmapTableScan(StringInfo str, const BitmapTableScan *node)
-{
-	WRITE_NODE_TYPE("BITMAPTABLESCAN");
-
-	_outScanInfo(str, (Scan *) node);
-
-	WRITE_NODE_FIELD(bitmapqualorig);
+	outBitmapHeapScanFields(str, &node->bitmapheapscan);
+	WRITE_INT_FIELD(partIndex);
+	WRITE_INT_FIELD(partIndexPrintable);
 }
 
 static void
@@ -2046,17 +2043,6 @@ _outBitmapHeapPath(StringInfo str, const BitmapHeapPath *node)
 	_outPathInfo(str, (const Path *) node);
 
 	WRITE_NODE_FIELD(bitmapqual);
-}
-
-static void
-_outBitmapAppendOnlyPath(StringInfo str, const BitmapAppendOnlyPath *node)
-{
-	WRITE_NODE_TYPE("BITMAPAPPENDONLYPATH");
-
-	_outPathInfo(str, (Path *) node);
-
-	WRITE_NODE_FIELD(bitmapqual);
-	WRITE_BOOL_FIELD(isAORow);
 }
 
 static void
@@ -4766,11 +4752,8 @@ _outNode(StringInfo str, const void *obj)
 			case T_BitmapHeapScan:
 				_outBitmapHeapScan(str, obj);
 				break;
-			case T_BitmapAppendOnlyScan:
-				_outBitmapAppendOnlyScan(str, obj);
-				break;
-			case T_BitmapTableScan:
-				_outBitmapTableScan(str, obj);
+			case T_DynamicBitmapHeapScan:
+				_outDynamicBitmapHeapScan(str, obj);
 				break;
 			case T_TidScan:
 				_outTidScan(str, obj);
@@ -5021,9 +5004,6 @@ _outNode(StringInfo str, const void *obj)
 				break;
 			case T_BitmapHeapPath:
 				_outBitmapHeapPath(str, obj);
-				break;
-			case T_BitmapAppendOnlyPath:
-				_outBitmapAppendOnlyPath(str, obj);
 				break;
 			case T_BitmapAndPath:
 				_outBitmapAndPath(str, obj);

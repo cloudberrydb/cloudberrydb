@@ -51,7 +51,6 @@ cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath)
 	double		sendrows;
 
 	if (! IsA(subpath, BitmapHeapPath) &&
-		! IsA(subpath, BitmapAppendOnlyPath) && 
 		! IsA(subpath, IndexPath) && 
 		! IsA(subpath, UniquePath) &&
 		CdbPathLocus_IsReplicated(motionpath->path.locus))
@@ -1892,8 +1891,6 @@ cdbpath_dedup_fixup_walker(Path *path, void *context)
 		case T_ExternalScan:
 		case T_IndexScan:
 		case T_BitmapHeapScan:
-		case T_BitmapAppendOnlyScan:
-		case T_BitmapTableScan:
 		case T_TidScan:
 		case T_SubqueryScan:
 		case T_FunctionScan:

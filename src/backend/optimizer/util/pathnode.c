@@ -173,9 +173,6 @@ pathnode_walk_kids(Path            *path,
 		case T_BitmapHeapScan:
 			v = pathnode_walk_node(((BitmapHeapPath *)path)->bitmapqual, walker, context);
 			break;
-		case T_BitmapAppendOnlyScan:
-			v = pathnode_walk_node(((BitmapAppendOnlyPath *)path)->bitmapqual, walker, context);
-			break;
 		case T_BitmapAnd:
 			v = pathnode_walk_list(((BitmapAndPath *)path)->bitmapquals, walker, context);
 			break;
@@ -1097,49 +1094,6 @@ create_bitmap_heap_path(PlannerInfo *root,
 	pathnode->bitmapqual = bitmapqual;
 
 	cost_bitmap_heap_scan(&pathnode->path, root, rel,
-						  pathnode->path.param_info,
-						  bitmapqual, loop_count);
-
-	return pathnode;
-}
-
-/*
- * create_bitmap_appendonly_path
- *	  Creates a path node for a bitmap Append-Only row table scan.
- *
- * 'bitmapqual' is a tree of IndexPath, BitmapAndPath, and BitmapOrPath nodes.
- *
- * If this is a join inner indexscan path, 'outer_rel' is the outer relation,
- * and all the component IndexPaths should have been costed accordingly.
- *
- * NOTE: This is mostly the same as the create_bitmap_heap_path routine.
- */
-BitmapAppendOnlyPath *
-create_bitmap_appendonly_path(PlannerInfo *root,
-							  RelOptInfo *rel,
-							  Path *bitmapqual,
-							  Relids required_outer,
-							  double loop_count,
-							  bool isAORow)
-{
-	BitmapAppendOnlyPath *pathnode = makeNode(BitmapAppendOnlyPath);
-
-	pathnode->path.pathtype = T_BitmapAppendOnlyScan;
-	pathnode->path.parent = rel;
-	pathnode->path.param_info = get_baserel_parampathinfo(root, rel,
-														  required_outer);
-	pathnode->path.pathkeys = NIL;		/* always unordered */
-
-	/* Distribution is same as the base table. */
-	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-	pathnode->path.motionHazard = false;
-	pathnode->path.rescannable = true;
-	pathnode->path.sameslice_relids = rel->relids;
-
-	pathnode->bitmapqual = bitmapqual;
-	pathnode->isAORow = isAORow;
-
-	cost_bitmap_appendonly_scan(&pathnode->path, root, rel,
 						  pathnode->path.param_info,
 						  bitmapqual, loop_count);
 
@@ -2829,8 +2783,6 @@ path_contains_inner_index(Path *path)
 	if (IsA(path, IndexPath))
 		return true;
 	else if (IsA(path, BitmapHeapPath))
-		return true;
-	else if (IsA(path, BitmapAppendOnlyPath))
 		return true;
 	else if (IsA(path, AppendPath))
 	{

@@ -44,8 +44,8 @@ increaseScanArraySize(EState *estate, int newMaxPartIndex)
 		dynamicTableScanInfo->pidIndexes = (HTAB **)
 			palloc0(dynamicTableScanInfo->numScans * sizeof(HTAB*));
 
-		Assert(dynamicTableScanInfo->iterators == NULL);
-		dynamicTableScanInfo->iterators = palloc0(dynamicTableScanInfo->numScans * sizeof(DynamicPartitionIterator*));
+		Assert(dynamicTableScanInfo->curRelOids == NULL);
+		dynamicTableScanInfo->curRelOids = palloc0(dynamicTableScanInfo->numScans * sizeof(Oid));
 	}
 	else
 	{
@@ -53,13 +53,13 @@ increaseScanArraySize(EState *estate, int newMaxPartIndex)
 			repalloc(dynamicTableScanInfo->pidIndexes,
 					 dynamicTableScanInfo->numScans * sizeof(HTAB*));
 
-		dynamicTableScanInfo->iterators = repalloc(dynamicTableScanInfo->iterators,
-				dynamicTableScanInfo->numScans * sizeof(DynamicPartitionIterator*));
+		dynamicTableScanInfo->curRelOids = repalloc(dynamicTableScanInfo->curRelOids,
+				dynamicTableScanInfo->numScans * sizeof(Oid));
 
 		for (int scanNo = oldNumScans; scanNo < dynamicTableScanInfo->numScans; scanNo++)
 		{
 			dynamicTableScanInfo->pidIndexes[scanNo] = NULL;
-			dynamicTableScanInfo->iterators[scanNo] = NULL;
+			dynamicTableScanInfo->curRelOids[scanNo] = InvalidOid;
 		}
 	}
 }

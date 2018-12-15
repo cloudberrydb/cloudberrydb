@@ -720,59 +720,6 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 
 				splan->scan.scanrelid += rtoffset;
 
-#ifdef USE_ASSERT_CHECKING
-				/*
-				 * GPDB_93_MERGE_FIXME: This is a requirement of enhancement,
-				 * instead of fixing. The code and assert below is confusing
-				 * people who do not know the context. In all, maybe for ao/co
-				 * bitmapHeap code should go here?
-				 */
-				RangeTblEntry *rte = rt_fetch(splan->scan.scanrelid, root->glob->finalrtable);
-				char relstorage = get_rel_relstorage(rte->relid);
-				Assert(relstorage != RELSTORAGE_AOROWS &&
-					   relstorage != RELSTORAGE_AOCOLS);
-#endif
-				splan->scan.plan.targetlist =
-					fix_scan_list(root, splan->scan.plan.targetlist, rtoffset);
-				splan->scan.plan.qual =
-					fix_scan_list(root, splan->scan.plan.qual, rtoffset);
-				splan->bitmapqualorig =
-					fix_scan_list(root, splan->bitmapqualorig, rtoffset);
-			}
-			break;
-		case T_BitmapAppendOnlyScan:
-			{
-				BitmapAppendOnlyScan *splan = (BitmapAppendOnlyScan *) plan;
-
-				if (cdb_expr_requires_full_eval((Node *)plan->targetlist))
-					return cdb_insert_result_node(root, plan, rtoffset);
-
-				splan->scan.scanrelid += rtoffset;
-
-#ifdef USE_ASSERT_CHECKING
-				RangeTblEntry *rte = rt_fetch(splan->scan.scanrelid, root->glob->finalrtable);
-				char relstorage = get_rel_relstorage(rte->relid);
-				Assert(relstorage == RELSTORAGE_AOROWS ||
-					   relstorage == RELSTORAGE_AOCOLS);
-#endif
-
-				splan->scan.plan.targetlist =
-					fix_scan_list(root, splan->scan.plan.targetlist, rtoffset);
-				splan->scan.plan.qual =
-					fix_scan_list(root, splan->scan.plan.qual, rtoffset);
-				splan->bitmapqualorig =
-					fix_scan_list(root, splan->bitmapqualorig, rtoffset);
-			}
-			break;
-		case T_BitmapTableScan:
-			{
-				BitmapTableScan *splan = (BitmapTableScan *) plan;
-
-				if (cdb_expr_requires_full_eval((Node *)plan->targetlist))
-					return cdb_insert_result_node(root, plan, rtoffset);
-
-				splan->scan.scanrelid += rtoffset;
-
 				splan->scan.plan.targetlist =
 					fix_scan_list(root, splan->scan.plan.targetlist, rtoffset);
 				splan->scan.plan.qual =

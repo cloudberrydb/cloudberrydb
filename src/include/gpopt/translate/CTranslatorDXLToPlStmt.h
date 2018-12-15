@@ -568,7 +568,7 @@ namespace gpdxl
 				const CDXLTableDescr *table_descr,
 				CDXLTranslateContextBaseTable *base_table_context,
 				CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-				BitmapTableScan *bitmap_tbl_scan
+				BitmapHeapScan *bitmap_tbl_scan
 				);
 
 			// translate a bitmap bool op expression
@@ -580,7 +580,7 @@ namespace gpdxl
 				const CDXLTableDescr *table_descr,
 				CDXLTranslateContextBaseTable *base_table_context,
 				CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-				BitmapTableScan *bitmap_tbl_scan
+				BitmapHeapScan *bitmap_tbl_scan
 				);
 			
 			// translate CDXLScalarBitmapIndexProbe into BitmapIndexScan or DynamicBitmapIndexScan
@@ -592,7 +592,7 @@ namespace gpdxl
 				const CDXLTableDescr *table_descr,
 				CDXLTranslateContextBaseTable *base_table_context,
 				CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-				BitmapTableScan *bitmap_tbl_scan
+				BitmapHeapScan *bitmap_tbl_scan
 				);
 
 			void TranslateSortCols

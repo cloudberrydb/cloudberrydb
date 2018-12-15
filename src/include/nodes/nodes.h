@@ -77,8 +77,7 @@ typedef enum NodeTag
 	T_BitmapIndexScan,
 	T_DynamicBitmapIndexScan,
 	T_BitmapHeapScan,
-	T_BitmapAppendOnlyScan,
-	T_BitmapTableScan,
+	T_DynamicBitmapHeapScan,
 	T_TidScan,
 	T_SubqueryScan,
 	T_FunctionScan,
@@ -135,7 +134,6 @@ typedef enum NodeTag
 	T_BitmapAndState,
 	T_BitmapOrState,
 	T_SeqScanState,
-	T_TableScanState,
 	T_DynamicTableScanState,
 	T_ExternalScanState,
 	T_IndexScanState,
@@ -144,8 +142,7 @@ typedef enum NodeTag
 	T_BitmapIndexScanState,
 	T_DynamicBitmapIndexScanState,
 	T_BitmapHeapScanState,
-	T_BitmapAppendOnlyScanState,
-	T_BitmapTableScanState,
+	T_DynamicBitmapHeapScanState,
 	T_TidScanState,
 	T_SubqueryScanState,
 	T_FunctionScanState,
@@ -305,8 +302,6 @@ typedef enum NodeTag
 	T_ExternalPath,
 	T_IndexPath,
 	T_BitmapHeapPath,
-	T_BitmapAppendOnlyPath,
-	T_BitmapTableScanPath,
 	T_BitmapAndPath,
 	T_BitmapOrPath,
 	T_NestPath,
@@ -812,11 +807,5 @@ typedef enum DispatchMethod
 	DISPATCH_PARALLEL			/* Dispatch on query executor and entry processes. */
 
 } DispatchMethod;
-
-/*
- * If the partIndex in Scan set to 0 then we don't have
- * any dynamic partition scanning
- */
-#define INVALID_PART_INDEX 0
 
 #endif   /* NODES_H */

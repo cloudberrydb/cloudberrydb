@@ -1087,16 +1087,6 @@ typedef struct BitmapHeapPath
 } BitmapHeapPath;
 
 /*
- * NOTE: This is a copy of the BitmapHeapPath structure.
- */
-typedef struct BitmapAppendOnlyPath
-{
-	Path		path;
-	Path	   *bitmapqual;		/* IndexPath, BitmapAndPath, BitmapOrPath */
-	bool        isAORow;        /* If this is for AO Row tables */
-} BitmapAppendOnlyPath;
-
-/*
  * BitmapAndPath represents a BitmapAnd plan node; it can only appear as
  * part of the substructure of a BitmapHeapPath.  The Path structure is
  * a bit more heavyweight than we really need for this, but for simplicity

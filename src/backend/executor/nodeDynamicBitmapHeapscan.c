@@ -1,30 +1,35 @@
 /*-------------------------------------------------------------------------
  *
- * nodeDynamicTableScan.c
- *	  Support routines for scanning one or more relations that are
- *	  determined at run time. The relations could be Heap, AppendOnly Row,
- *	  AppendOnly Columnar.
+ * nodeDynamicBitmapHeapscan.c
+ *	  Routines to support bitmapped scans of relations
  *
- * DynamicTableScan node scans each relation one after the other. For each
- * relation, it opens the table, scans the tuple, and returns relevant tuples.
- *
- * Portions Copyright (c) 2012 - present, EMC/Greenplum
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1994, Regents of the University of California
+ * Portions Copyright (c) 2008-2009, Greenplum Inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  *
  *
  * IDENTIFICATION
- *	    src/backend/executor/nodeDynamicTableScan.c
+ *	  src/backend/executor/nodeDynamicBitmapHeapscan.c
  *
  *-------------------------------------------------------------------------
+ */
+/*
+ * INTERFACE ROUTINES
+ *		ExecDynamicBitmapHeapScan	scans a relation using bitmap info
+ *		ExecDynamicBitmapHeapNext	workhorse for above
+ *		ExecInitDynamicBitmapHeapScan		creates and initializes state info.
+ *		ExecReScanDynamicBitmapHeapScan	prepares to rescan the plan.
+ *		ExecEndDynamicBitmapHeapScan		releases all storage.
  */
 #include "postgres.h"
 
 #include "executor/executor.h"
 #include "executor/instrument.h"
-#include "nodes/execnodes.h"
 #include "executor/execDynamicScan.h"
-#include "executor/nodeSeqscan.h"
-#include "executor/nodeDynamicTableScan.h"
+#include "executor/nodeBitmapHeapscan.h"
+#include "executor/nodeDynamicBitmapHeapscan.h"
+#include "nodes/execnodes.h"
 #include "utils/hsearch.h"
 #include "parser/parsetree.h"
 #include "utils/memutils.h"
@@ -32,17 +37,17 @@
 #include "cdb/cdbvars.h"
 #include "cdb/partitionselection.h"
 
-static void CleanupOnePartition(DynamicTableScanState *node);
+static void CleanupOnePartition(DynamicBitmapHeapScanState *node);
 
-DynamicTableScanState *
-ExecInitDynamicTableScan(DynamicTableScan *node, EState *estate, int eflags)
+DynamicBitmapHeapScanState *
+ExecInitDynamicBitmapHeapScan(DynamicBitmapHeapScan *node, EState *estate, int eflags)
 {
-	DynamicTableScanState *state;
+	DynamicBitmapHeapScanState *state;
 	Oid			reloid;
 
 	Assert((eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) == 0);
 
-	state = makeNode(DynamicTableScanState);
+	state = makeNode(DynamicBitmapHeapScanState);
 	state->eflags = eflags;
 	state->ss.ps.plan = (Plan *) node;
 	state->ss.ps.state = estate;
@@ -60,7 +65,7 @@ ExecInitDynamicTableScan(DynamicTableScan *node, EState *estate, int eflags)
 	state->ss.ps.delayEagerFree =
 		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
 
-	reloid = getrelid(node->seqscan.scanrelid, estate->es_range_table);
+	reloid = getrelid(node->bitmapheapscan.scan.scanrelid, estate->es_range_table);
 	Assert(OidIsValid(reloid));
 
 	state->firstPartition = true;
@@ -68,17 +73,26 @@ ExecInitDynamicTableScan(DynamicTableScan *node, EState *estate, int eflags)
 	/* lastRelOid is used to remap varattno for heterogeneous partitions */
 	state->lastRelOid = reloid;
 
-	state->scanrelid = node->seqscan.scanrelid;
+	state->scanrelid = node->bitmapheapscan.scan.scanrelid;
 
 	/*
 	 * This context will be reset per-partition to free up per-partition
 	 * qual and targetlist allocations
 	 */
 	state->partitionMemoryContext = AllocSetContextCreate(CurrentMemoryContext,
-									 "DynamicTableScanPerPartition",
+									 "DynamicBitmapHeapScanPerPartition",
 									 ALLOCSET_DEFAULT_MINSIZE,
 									 ALLOCSET_DEFAULT_INITSIZE,
 									 ALLOCSET_DEFAULT_MAXSIZE);
+
+	/*
+	 * initialize child nodes.
+	 *
+	 * We will initialize the "sidecar" BitmapHeapScan for each partition, but
+	 * the child nodes, (i.e. Dynamic Bitmap Index Scan or a BitmapAnd/Or node)
+	 * we only rescan.
+	 */
+	outerPlanState(state) = ExecInitNode(outerPlan(node), estate, eflags);
 
 	return state;
 }
@@ -93,15 +107,16 @@ ExecInitDynamicTableScan(DynamicTableScan *node, EState *estate, int eflags)
  * If no more table is found, this function returns false.
  */
 static bool
-initNextTableToScan(DynamicTableScanState *node)
+initNextTableToScan(DynamicBitmapHeapScanState *node)
 {
 	ScanState  *scanState = (ScanState *)node;
-	DynamicTableScan *plan = (DynamicTableScan *)scanState->ps.plan;
+	DynamicBitmapHeapScan *plan = (DynamicBitmapHeapScan *) scanState->ps.plan;
 	EState	   *estate = scanState->ps.state;
 	Relation	lastScannedRel;
 	TupleDesc	partTupDesc;
 	TupleDesc	lastTupDesc;
 	AttrNumber *attMap;
+	Oid			currentPartitionOid;
 	Oid		   *pid;
 	Relation	currentRelation;
 
@@ -111,6 +126,7 @@ initNextTableToScan(DynamicTableScanState *node)
 		node->shouldCallHashSeqTerm = false;
 		return false;
 	}
+	currentPartitionOid = *pid;
 
 	/* Collect number of partitions scanned in EXPLAIN ANALYZE */
 	if (NULL != scanState->ps.instrument)
@@ -121,7 +137,7 @@ initNextTableToScan(DynamicTableScanState *node)
 
 	CleanupOnePartition(node);
 
-	currentRelation = scanState->ss_currentRelation = heap_open(*pid, AccessShareLock);
+	currentRelation = scanState->ss_currentRelation = heap_open(currentPartitionOid, AccessShareLock);
 	lastScannedRel = heap_open(node->lastRelOid, AccessShareLock);
 	lastTupDesc = RelationGetDescr(lastScannedRel);
 	partTupDesc = RelationGetDescr(scanState->ss_currentRelation);
@@ -138,7 +154,7 @@ initNextTableToScan(DynamicTableScanState *node)
 		 * Now that the varattno mapping has been changed, change the relation that
 		 * the new varnos correspond to
 		 */
-		node->lastRelOid = *pid;
+		node->lastRelOid = currentPartitionOid;
 	}
 
 	/*
@@ -164,9 +180,16 @@ initNextTableToScan(DynamicTableScanState *node)
 	if (attMap)
 		pfree(attMap);
 
-	DynamicScan_SetTableOid(&node->ss, *pid);
-	node->seqScanState = ExecInitSeqScanForPartition(&plan->seqscan, estate, node->eflags,
+	DynamicScan_SetTableOid(&node->ss, currentPartitionOid);
+	node->bhsState = ExecInitBitmapHeapScanForPartition(&plan->bitmapheapscan, estate, node->eflags,
 													 currentRelation);
+
+	/*
+	 * Rescan the child node, and attach it to the sidecar BitmapHeapScan.
+	 */
+	ExecReScan(outerPlanState(node));
+	outerPlanState(node->bhsState) = outerPlanState(node);
+
 	return true;
 }
 
@@ -175,13 +198,14 @@ initNextTableToScan(DynamicTableScanState *node)
  *   Set the pid index for the given dynamic table.
  */
 static void
-setPidIndex(DynamicTableScanState *node)
+setPidIndex(DynamicBitmapHeapScanState *node)
 {
 	Assert(node->pidIndex == NULL);
 
 	ScanState *scanState = (ScanState *)node;
 	EState *estate = scanState->ps.state;
-	DynamicTableScan *plan = (DynamicTableScan *)scanState->ps.plan;
+	DynamicBitmapHeapScan *plan = (DynamicBitmapHeapScan *) scanState->ps.plan;
+
 	Assert(estate->dynamicTableScanInfo != NULL);
 
 	/*
@@ -198,7 +222,7 @@ setPidIndex(DynamicTableScanState *node)
 }
 
 TupleTableSlot *
-ExecDynamicTableScan(DynamicTableScanState *node)
+ExecDynamicBitmapHeapScan(DynamicBitmapHeapScanState *node)
 {
 	TupleTableSlot *slot = NULL;
 
@@ -221,14 +245,14 @@ ExecDynamicTableScan(DynamicTableScanState *node)
 	 */
 	for (;;)
 	{
-		if (!node->seqScanState)
+		if (!node->bhsState)
 		{
 			/* No partition open. Open the next one, if any. */
 			if (!initNextTableToScan(node))
 				break;
 		}
 
-		slot = ExecSeqScan(node->seqScanState);
+		slot = ExecBitmapHeapScan(node->bhsState);
 
 		if (!TupIsNull(slot))
 			break;
@@ -245,14 +269,19 @@ ExecDynamicTableScan(DynamicTableScanState *node)
  *		Cleans up a partition's relation and releases all locks.
  */
 static void
-CleanupOnePartition(DynamicTableScanState *scanState)
+CleanupOnePartition(DynamicBitmapHeapScanState *scanState)
 {
 	Assert(NULL != scanState);
 
-	if (scanState->seqScanState)
+	if (scanState->bhsState)
 	{
-		ExecEndSeqScan(scanState->seqScanState);
-		scanState->seqScanState = NULL;
+		/*
+		 * Detach the child node, so that we end just the bitmap heap scan,
+		 * not the children.
+		 */
+		outerPlanState(scanState->bhsState) = NULL;
+		ExecEndBitmapHeapScan(scanState->bhsState);
+		scanState->bhsState = NULL;
 	}
 	if ((scanState->scan_state & SCAN_SCAN) != 0)
 	{
@@ -263,11 +292,11 @@ CleanupOnePartition(DynamicTableScanState *scanState)
 }
 
 /*
- * DynamicTableScanEndCurrentScan
+ * DynamicBitmapHeapScanEndCurrentScan
  *		Cleans up any ongoing scan.
  */
 static void
-DynamicTableScanEndCurrentScan(DynamicTableScanState *node)
+DynamicBitmapHeapScanEndCurrentScan(DynamicBitmapHeapScanState *node)
 {
 	CleanupOnePartition(node);
 
@@ -279,28 +308,33 @@ DynamicTableScanEndCurrentScan(DynamicTableScanState *node)
 }
 
 /*
- * ExecEndDynamicTableScan
- *		Ends the scanning of this DynamicTableScanNode and frees
+ * ExecEndDynamicBitmapHeapScan
+ *		Ends the scanning of this DynamicBitmapHeapScanNode and frees
  *		up all the resources.
  */
 void
-ExecEndDynamicTableScan(DynamicTableScanState *node)
+ExecEndDynamicBitmapHeapScan(DynamicBitmapHeapScanState *node)
 {
-	DynamicTableScanEndCurrentScan(node);
+	DynamicBitmapHeapScanEndCurrentScan(node);
 
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
+
+	/*
+	 * close down subplans
+	 */
+	ExecEndNode(outerPlanState(node));
 
 	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /*
- * ExecDynamicTableReScan
+ * ExecReScanDynamicBitmapHeapScan
  *		Prepares the internal states for a rescan.
  */
 void
-ExecReScanDynamicTable(DynamicTableScanState *node)
+ExecReScanDynamicBitmapHeapScan(DynamicBitmapHeapScanState *node)
 {
-	DynamicTableScanEndCurrentScan(node);
+	DynamicBitmapHeapScanEndCurrentScan(node);
 
 	/* Force reloading the partition hash table */
 	node->pidIndex = NULL;

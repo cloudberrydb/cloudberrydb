@@ -534,10 +534,6 @@ plannode_type(Plan *p)
 			return "FUNCTIONSCAN";
 		case T_ValuesScan:
 			return "VALUESSCAN";
-		case T_BitmapAppendOnlyScan:
-			return "BITMAPAPPENDONLYSCAN";
-		case T_BitmapTableScan:
-			return "BITMAPTABLESCAN";
 		case T_Join:
 			return "JOIN";
 		case T_NestLoop:
@@ -599,8 +595,7 @@ print_plan_recursive(Plan *p, Query *parsetree, int indentLevel, char *label)
 		   p->plan_rows, p->plan_width);
 	if (IsA(p, Scan) ||
 		IsA(p, SeqScan) ||
-		IsA(p, BitmapHeapScan) ||
-		IsA(p, BitmapAppendOnlyScan))
+		IsA(p, BitmapHeapScan))
 	{
 		RangeTblEntry *rte;
 

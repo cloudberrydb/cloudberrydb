@@ -9643,19 +9643,19 @@ insert into orca.bm_dyn_test values(2, 5, '2');
 set optimizer_enable_bitmapscan=on;
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test where i=2 and t='2';
-                                                QUERY PLAN
------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..0.00 rows=1 width=16)
-   ->  Sequence  (cost=0.00..0.00 rows=1 width=16)
-         ->  Partition Selector for bm_dyn_test (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-               Partitions selected:  6 (out of 6)
-         ->  Bitmap Table Scan on bm_dyn_test (dynamic scan id: 1)  (cost=0.00..0.00 rows=1 width=16)
-               Recheck Cond: i = 2
-               Filter: i = 2 AND t = '2'::text
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..204.40 rows=2 width=8)
+   ->  Sequence  (cost=0.00..204.40 rows=1 width=8)
+         ->  Partition Selector for bm_dyn_test (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
+               Partitions selected: 6 (out of 6)
+         ->  Dynamic Bitmap Table Scan on bm_dyn_test (dynamic scan id: 1)  (cost=0.00..204.40 rows=1 width=8)
+               Recheck Cond: (i = 2)
+               Filter: ((i = 2) AND (t = '2'::text))
                ->  Dynamic Bitmap Index Scan on bm_dyn_test_idx_1_prt_part0  (cost=0.00..0.00 rows=0 width=0)
-                     Index Cond: i = 2
- Settings:  optimizer=on
- Optimizer status: PQO version 1.602
+                     Index Cond: (i = 2)
+ Planning time: 26.274 ms
+ Optimizer: PQO version 3.9.0
 (11 rows)
 
 select * from orca.bm_dyn_test where i=2 and t='2';

@@ -1,8 +1,9 @@
-#if 0
 /*-------------------------------------------------------------------------
  *
  * nodeSeqscan.c
  *	  Support routines for sequential scans of relations.
+ *
+ * In GPDB, this also deals with AppendOnly and AOCS tables.
  *
  * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -28,8 +29,14 @@
 #include "executor/nodeSeqscan.h"
 #include "utils/rel.h"
 
-static void InitScanRelation(SeqScanState *node, EState *estate, int eflags);
+#include "cdb/cdbappendonlyam.h"
+#include "cdb/cdbaocsam.h"
+#include "utils/snapmgr.h"
+
+static void InitScanRelation(SeqScanState *node, EState *estate, int eflags, Relation currentRelation);
 static TupleTableSlot *SeqNext(SeqScanState *node);
+
+static void InitAOCSScanOpaque(SeqScanState *scanState, Relation currentRelation);
 
 /* ----------------------------------------------------------------
  *						Scan Support
@@ -46,7 +53,6 @@ static TupleTableSlot *
 SeqNext(SeqScanState *node)
 {
 	HeapTuple	tuple;
-	HeapScanDesc scandesc;
 	EState	   *estate;
 	ScanDirection direction;
 	TupleTableSlot *slot;
@@ -54,32 +60,67 @@ SeqNext(SeqScanState *node)
 	/*
 	 * get information from the estate and scan state
 	 */
-	scandesc = node->ss_currentScanDesc;
-	estate = node->ps.state;
+	estate = node->ss.ps.state;
 	direction = estate->es_direction;
-	slot = node->ss_ScanTupleSlot;
+	slot = node->ss.ss_ScanTupleSlot;
 
 	/*
 	 * get the next tuple from the table
 	 */
-	tuple = heap_getnext(scandesc, direction);
-
-	/*
-	 * save the tuple and the buffer returned to us by the access methods in
-	 * our scan tuple slot and return the slot.  Note: we pass 'false' because
-	 * tuples returned by heap_getnext() are pointers onto disk pages and were
-	 * not created with palloc() and so should not be pfree()'d.  Note also
-	 * that ExecStoreTuple will increment the refcount of the buffer; the
-	 * refcount will not be dropped until the tuple table slot is cleared.
-	 */
-	if (tuple)
-		ExecStoreTuple(tuple,	/* tuple to store */
-					   slot,	/* slot to store in */
-					   scandesc->rs_cbuf,		/* buffer associated with this
-												 * tuple */
-					   false);	/* don't pfree this pointer */
+	if (node->ss_currentScanDesc_ao)
+	{
+		appendonly_getnext(node->ss_currentScanDesc_ao, direction, slot);
+	}
+	else if (node->ss_currentScanDesc_aocs)
+	{
+		aocs_getnext(node->ss_currentScanDesc_aocs, direction, slot);
+	}
 	else
-		ExecClearTuple(slot);
+	{
+		HeapScanDesc scandesc = node->ss_currentScanDesc_heap;
+
+		if (node->ss_heapTupleData.bot == node->ss_heapTupleData.top &&
+			!node->ss_heapTupleData.seen_EOS)
+		{
+			node->ss_heapTupleData.last = NULL;
+			node->ss_heapTupleData.bot = 0;
+			node->ss_heapTupleData.top = lengthof(node->ss_heapTupleData.item);
+			heap_getnextx(scandesc, direction, node->ss_heapTupleData.item,
+						  &node->ss_heapTupleData.top,
+						  &node->ss_heapTupleData.seen_EOS);
+
+			if (scandesc->rs_pageatatime)
+			{
+				CheckSendPlanStateGpmonPkt(&node->ss.ps);
+			}
+		}
+
+		node->ss_heapTupleData.last = NULL;
+		if (node->ss_heapTupleData.bot < node->ss_heapTupleData.top)
+		{
+			node->ss_heapTupleData.last =
+				&node->ss_heapTupleData.item[node->ss_heapTupleData.bot++];
+		}
+
+		tuple = node->ss_heapTupleData.last;
+
+		/*
+		 * save the tuple and the buffer returned to us by the access methods in
+		 * our scan tuple slot and return the slot.  Note: we pass 'false' because
+		 * tuples returned by heap_getnext() are pointers onto disk pages and were
+		 * not created with palloc() and so should not be pfree()'d.  Note also
+		 * that ExecStoreTuple will increment the refcount of the buffer; the
+		 * refcount will not be dropped until the tuple table slot is cleared.
+		 */
+		if (tuple)
+			ExecStoreHeapTuple(tuple,	/* tuple to store */
+						   slot,	/* slot to store in */
+						   scandesc->rs_cbuf,		/* buffer associated with this
+													 * tuple */
+						   false);	/* don't pfree this pointer */
+		else
+			ExecClearTuple(slot);
+	}
 
 	return slot;
 }
@@ -121,30 +162,68 @@ ExecSeqScan(SeqScanState *node)
  * ----------------------------------------------------------------
  */
 static void
-InitScanRelation(SeqScanState *node, EState *estate, int eflags)
+InitScanRelation(SeqScanState *node, EState *estate, int eflags, Relation currentRelation)
 {
-	Relation	currentRelation;
-	HeapScanDesc currentScanDesc;
-
-	/*
-	 * get the relation object id from the relid'th entry in the range table,
-	 * open that relation and acquire appropriate lock on it.
-	 */
-	currentRelation = ExecOpenScanRelation(estate,
-									  ((SeqScan *) node->ps.plan)->scanrelid,
-										   eflags);
-
 	/* initialize a heapscan */
-	currentScanDesc = heap_beginscan(currentRelation,
-									 estate->es_snapshot,
-									 0,
-									 NULL);
+	if (RelationIsAoRows(currentRelation))
+	{
+		Snapshot appendOnlyMetaDataSnapshot;
 
-	node->ss_currentRelation = currentRelation;
-	node->ss_currentScanDesc = currentScanDesc;
+		appendOnlyMetaDataSnapshot = node->ss.ps.state->es_snapshot;
+		if (appendOnlyMetaDataSnapshot == SnapshotAny)
+		{
+			/*
+			 * the append-only meta data should never be fetched with
+			 * SnapshotAny as bogus results are returned.
+			 */
+			appendOnlyMetaDataSnapshot = GetTransactionSnapshot();
+		}
+
+		node->ss_currentScanDesc_ao = appendonly_beginscan(
+			currentRelation,
+			node->ss.ps.state->es_snapshot,
+			appendOnlyMetaDataSnapshot,
+			0, NULL);
+	}
+	else if (RelationIsAoCols(currentRelation))
+	{
+		Snapshot appendOnlyMetaDataSnapshot;
+
+		InitAOCSScanOpaque(node, currentRelation);
+
+		appendOnlyMetaDataSnapshot = node->ss.ps.state->es_snapshot;
+		if (appendOnlyMetaDataSnapshot == SnapshotAny)
+		{
+			/*
+			 * the append-only meta data should never be fetched with
+			 * SnapshotAny as bogus results are returned.
+			 */
+			appendOnlyMetaDataSnapshot = GetTransactionSnapshot();
+		}
+
+		node->ss_currentScanDesc_aocs =
+			aocs_beginscan(currentRelation,
+						   node->ss.ps.state->es_snapshot,
+						   appendOnlyMetaDataSnapshot,
+						   NULL /* relationTupleDesc */,
+						   node->ss_aocs_proj);
+	}
+	else
+	{
+		node->ss_currentScanDesc_heap = heap_beginscan(currentRelation,
+										 estate->es_snapshot,
+										 0,
+										 NULL);
+
+		node->ss_heapTupleData.bot = 0;
+		node->ss_heapTupleData.top = 0;
+		node->ss_heapTupleData.seen_EOS = 0;
+		node->ss_heapTupleData.last = NULL;
+	}
+	node->ss.ss_currentRelation = currentRelation;
 
 	/* and report the scan tuple slot's rowtype */
-	ExecAssignScanType(node, RelationGetDescr(currentRelation));
+	ExecAssignScanType(&node->ss, RelationGetDescr(currentRelation));
 }
 
 
@@ -155,7 +234,23 @@ InitScanRelation(SeqScanState *node, EState *estate, int eflags)
 SeqScanState *
 ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
 {
-	SeqScanState *scanstate;
+	Relation	currentRelation;
+
+	/*
+	 * get the relation object id from the relid'th entry in the range table,
+	 * open that relation and acquire appropriate lock on it.
+	 */
+	currentRelation = ExecOpenScanRelation(estate, node->scanrelid, eflags);
+
+	return ExecInitSeqScanForPartition(node, estate, eflags, currentRelation);
+}
+
+SeqScanState *
+ExecInitSeqScanForPartition(SeqScan *node, EState *estate, int eflags,
+							Relation currentRelation)
+{
+	SeqScanState *seqscanstate;
+	ScanState *scanstate;
 
 	/*
 	 * Once upon a time it was possible to have an outerPlan of a SeqScan, but
@@ -167,7 +262,8 @@ ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
 	/*
 	 * create state structure
 	 */
-	scanstate = makeNode(SeqScanState);
+	seqscanstate = makeNode(SeqScanState);
+	scanstate = (ScanState *) seqscanstate;
 	scanstate->ps.plan = (Plan *) node;
 	scanstate->ps.state = estate;
 
@@ -197,9 +293,7 @@ ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
 	/*
 	 * initialize scan relation
 	 */
-	InitScanRelation(scanstate, estate, eflags);
-
-	scanstate->ps.ps_TupFromTlist = false;
+	InitScanRelation(seqscanstate, estate, eflags, currentRelation);
 
 	/*
 	 * Initialize result tuple type and projection info.
@@ -207,7 +301,7 @@ ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&scanstate->ps);
 	ExecAssignScanProjectionInfo(scanstate);
 
-	return scanstate;
+	return seqscanstate;
 }
 
 /* ----------------------------------------------------------------
@@ -220,29 +314,27 @@ void
 ExecEndSeqScan(SeqScanState *node)
 {
 	Relation	relation;
-	HeapScanDesc scanDesc;
 
 	/*
 	 * get information from node
 	 */
-	relation = node->ss_currentRelation;
-	scanDesc = node->ss_currentScanDesc;
+	relation = node->ss.ss_currentRelation;
 
 	/*
 	 * Free the exprcontext
 	 */
-	ExecFreeExprContext(&node->ps);
+	ExecFreeExprContext(&node->ss.ps);
 
 	/*
 	 * clean out the tuple table
 	 */
-	ExecClearTuple(node->ps.ps_ResultTupleSlot);
-	ExecClearTuple(node->ss_ScanTupleSlot);
+	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
+	ExecClearTuple(node->ss.ss_ScanTupleSlot);
 
 	/*
 	 * close heap scan
 	 */
-	heap_endscan(scanDesc);
+	ExecEagerFreeSeqScan(node);
 
 	/*
 	 * close the heap relation.
@@ -264,13 +356,82 @@ ExecEndSeqScan(SeqScanState *node)
 void
 ExecReScanSeqScan(SeqScanState *node)
 {
-	HeapScanDesc scan;
+	if (node->ss_currentScanDesc_ao)
+	{
+		appendonly_rescan(node->ss_currentScanDesc_ao,
+						  NULL);			/* new scan keys */
+	}
+	else if (node->ss_currentScanDesc_aocs)
+	{
+		aocs_rescan(node->ss_currentScanDesc_aocs);
+	}
+	else if (node->ss_currentScanDesc_heap)
+	{
+		HeapScanDesc scan;
 
-	scan = node->ss_currentScanDesc;
+		scan = node->ss_currentScanDesc_heap;
 
-	heap_rescan(scan,			/* scan desc */
-				NULL);			/* new scan keys */
+		heap_rescan(scan,			/* scan desc */
+					NULL);			/* new scan keys */
 
+		node->ss_heapTupleData.bot = 0;
+		node->ss_heapTupleData.top = 0;
+		node->ss_heapTupleData.seen_EOS = 0;
+		node->ss_heapTupleData.last = NULL;
+	}
+	else
+		elog(ERROR, "rescan called without scandesc");
 	ExecScanReScan((ScanState *) node);
 }
-#endif
+
+static void
+InitAOCSScanOpaque(SeqScanState *scanstate, Relation currentRelation)
+{
+	/* Initialize AOCS projection info */
+	bool	   *proj;
+	int			ncol;
+	int			i;
+
+	Assert(currentRelation != NULL);
+
+	ncol = currentRelation->rd_att->natts;
+	proj = palloc0(ncol * sizeof(bool));
+	GetNeededColumnsForScan((Node *) scanstate->ss.ps.plan->targetlist, proj, ncol);
+	GetNeededColumnsForScan((Node *) scanstate->ss.ps.plan->qual, proj, ncol);
+
+	for (i = 0; i < ncol; i++)
+	{
+		if (proj[i])
+			break;
+	}
+
+	/*
+	 * In some cases (for example, count(*)), no columns are specified.
+	 * We always scan the first column.
+	 */
+	if (i == ncol)
+		proj[0] = true;
+
+	scanstate->ss_aocs_ncol = ncol;
+	scanstate->ss_aocs_proj = proj;
+}
+
+void
+ExecEagerFreeSeqScan(SeqScanState *node)
+{
+	if (node->ss_currentScanDesc_heap)
+	{
+		heap_endscan(node->ss_currentScanDesc_heap);
+		node->ss_currentScanDesc_heap = NULL;
+	}
+	if (node->ss_currentScanDesc_ao)
+	{
+		appendonly_endscan(node->ss_currentScanDesc_ao);
+		node->ss_currentScanDesc_ao = NULL;
+	}
+	if (node->ss_currentScanDesc_aocs)
+	{
+		aocs_endscan(node->ss_currentScanDesc_aocs);
+		node->ss_currentScanDesc_aocs = NULL;
+	}
+}

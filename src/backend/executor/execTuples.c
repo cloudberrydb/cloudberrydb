@@ -102,6 +102,7 @@
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
 
+#include "executor/execDynamicScan.h"
 #include "cdb/cdbvars.h"                    /* GpIdentity.segindex */
 
 static TupleDesc ExecTypeFromTLInternal(List *targetList,
@@ -1027,7 +1028,10 @@ ExecInitScanTupleSlot(EState *estate, ScanState *scanstate)
     {
         case RTE_RELATION:
             /* Set 'tableoid' sysattr to the Oid of baserel's pg_class row. */
-            slot->tts_tableOid = rtentry->relid;
+			if (isDynamicScan(&scan->plan))
+				slot->tts_tableOid = DynamicScan_GetTableOid(scanstate);
+			else
+				slot->tts_tableOid = rtentry->relid;
             break;
 
         default:

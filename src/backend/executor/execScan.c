@@ -1,7 +1,11 @@
 /*-------------------------------------------------------------------------
  *
  * execScan.c
- *    Support routines for scans on various table type.
+ *	  This code provides support for generalized relation scans. ExecScan
+ *	  is passed a node and a pointer to a function to "do the right thing"
+ *	  and return a tuple from the relation. ExecScan then does the tedious
+ *	  stuff - checking the qualification and projecting the tuple
+ *	  appropriately.
  *
  * Portions Copyright (c) 2006 - present, EMC/Greenplum
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
@@ -19,49 +23,6 @@
 #include "executor/executor.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
-
-/*
- * getScanMethod
- *   Return ScanMethod for a given table type.
- */
-static const ScanMethod *
-getScanMethod(int tableType)
-{
-	Assert(tableType >= TableTypeHeap && tableType < TableTypeInvalid);
-
-	/*
-	 * scanMethods
-	 *    Array that specifies different scan methods for various table types.
-	 *
-	 * The index in this array for a specific table type should match the enum value
-	 * defined in TableType.
-	 */
-	static const ScanMethod scanMethods[] =
-	{
-		{
-			&HeapScanNext, &HeapScanRecheck, &BeginScanHeapRelation, &EndScanHeapRelation,
-			&ReScanHeapRelation
-		},
-		/*
-		 * AO and AOCS tables don't need a recheck-method, because they never
-		 * participate in EvalPlanQual rechecks. (They don't have a ctid
-		 * field, so UPDATE in REPEATABLE READ mode cannot follow the chain
-		 * to the updated tuple.
-		 */
-		{
-			&AppendOnlyScanNext, NULL, &BeginScanAppendOnlyRelation, &EndScanAppendOnlyRelation,
-			&ReScanAppendOnlyRelation
-		},
-		{
-			&AOCSScanNext, NULL, &BeginScanAOCSRelation, &EndScanAOCSRelation,
-			&ReScanAOCSRelation
-		}
-	};
-	
-	COMPILE_ASSERT(ARRAY_SIZE(scanMethods) == TableTypeInvalid);
-
-	return &scanMethods[tableType];
-}
 
 
 static bool tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc);
@@ -173,7 +134,7 @@ ExecScan(ScanState *node,
 
 	/*
 	 * Reset per-tuple memory context to free any expression evaluation
-	 * storage allocated in the previous tuple cycle.  
+	 * storage allocated in the previous tuple cycle.
 	 */
 	ResetExprContext(econtext);
 
@@ -340,14 +301,15 @@ tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc
 		bool forceOids = ExecContextForcesOids(ps, &hasoid);
 
 		/* If Oid matters, and there are different requirement, then does not match */
-		if(forceOids && hasoid != tupdesc->tdhasoid)
+		if (forceOids && hasoid != tupdesc->tdhasoid)
 			return false;
 
-		/* If Oid does not matter, but old tupdesc has oids, does not match either. 
+		/*
+		 * If Oid does not matter, but old tupdesc has oids, does not match either.
 		 * XXX: Memtuple: tupleformat is different depends on if has oid, so we cannot
 		 * mismatch.
 		 */
-		if(!forceOids && tupdesc->tdhasoid)
+		if (!forceOids && tupdesc->tdhasoid)
 			return false;
 	}
 
@@ -377,194 +339,4 @@ ExecScanReScan(ScanState *node)
 
 		estate->es_epqScanDone[scanrelid - 1] = false;
 	}
-}
-
-
-/*
- * InitScanStateRelationDetails
- *   Opens a relation and sets various relation specific ScanState fields.
- */
-void
-InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate, int eflags)
-{
-	Assert(NULL != scanState);
-	PlanState *planState = &scanState->ps;
-
-	/* Initialize child expressions */
-	planState->targetlist = (List *)ExecInitExpr((Expr *)plan->targetlist, planState);
-	planState->qual = (List *)ExecInitExpr((Expr *)plan->qual, planState);
-
-	Relation currentRelation = ExecOpenScanRelation(estate, ((Scan *)plan)->scanrelid, eflags);
-	scanState->ss_currentRelation = currentRelation;
-	ExecAssignScanType(scanState, RelationGetDescr(currentRelation));
-	ExecAssignScanProjectionInfo(scanState);
-
-	scanState->tableType = getTableType(scanState->ss_currentRelation);
-}
-
-/*
- * InitScanStateInternal
- *   Initialize ScanState common variables for various Scan node.
- */
-void
-InitScanStateInternal(ScanState *scanState, Plan *plan, EState *estate,
-		int eflags, bool initCurrentRelation)
-{
-	Assert(IsA(plan, SeqScan) ||
-		   IsA(plan, DynamicTableScan) ||
-		   IsA(plan, BitmapTableScan));
-
-	PlanState *planState = &scanState->ps;
-
-	planState->plan = plan;
-	planState->state = estate;
-
-	/* Create expression evaluation context */
-	ExecAssignExprContext(estate, planState);
-	
-	/* Initialize tuple table slot */
-	ExecInitResultTupleSlot(estate, planState);
-	ExecInitScanTupleSlot(estate, scanState);
-	
-	/*
-	 * For dynamic table scan, We do not initialize expression states; instead
-	 * we wait until the first partition, and initialize the expression state
-	 * at that time. Also, for dynamic table scan, we do not need to open the
-	 * parent partition relation.
-	 */
-	if (initCurrentRelation)
-	{
-		InitScanStateRelationDetails(scanState, plan, estate, eflags);
-	}
-
-	/* Initialize result tuple type. */
-	ExecAssignResultTypeFromTL(planState);
-
-	/*
-	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
-	 * then this node is not eager free safe.
-	 */
-	scanState->ps.delayEagerFree =
-		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
-
-	/* Currently, only SeqScan supports Mark/Restore. */
-	AssertImply((eflags & EXEC_FLAG_MARK) != 0, IsA(plan, SeqScan));
-}
-
-/*
- * FreeScanRelationInternal
- *   Free ScanState common variables initialized in InitScanStateInternal.
- */
-void
-FreeScanRelationInternal(ScanState *scanState, bool closeCurrentRelation)
-{
-	ExecFreeExprContext(&scanState->ps);
-	ExecClearTuple(scanState->ps.ps_ResultTupleSlot);
-	ExecClearTuple(scanState->ss_ScanTupleSlot);
-
-	if (closeCurrentRelation)
-	{
-		ExecCloseScanRelation(scanState->ss_currentRelation);
-	}
-}
-
-/*
- * OpenScanRelationByOid
- *   Open the relation by the given Oid with AccessShareLock.
- */
-Relation
-OpenScanRelationByOid(Oid relid)
-{
-	return heap_open(relid, AccessShareLock);
-}
-
-/*
- * CloseScanRelation
- *  Close the relation that is opened through OpenScanRelationByOid.
- */
-void
-CloseScanRelation(Relation rel)
-{
-	heap_close(rel, AccessShareLock);
-}
-
-/*
- * getTableType
- *   Return the table type for a given relation.
- */
-int
-getTableType(Relation rel)
-{
-	Assert(rel != NULL && rel->rd_rel != NULL);
-	
-	if (RelationIsHeap(rel))
-	{
-		return TableTypeHeap;
-	}
-
-	if (RelationIsAoRows(rel))
-	{
-		return TableTypeAppendOnly;
-	}
-	
-	if (RelationIsAoCols(rel))
-	{
-		return TableTypeAOCS;
-	}
-	
-	elog(ERROR, "undefined table type for storage format: %c", rel->rd_rel->relstorage);
-	return TableTypeInvalid;
-}
-
-/*
- * ExecTableScanRelation
- *    Scan the relation and return the next qualifying tuple.
- *
- * This is a wrapper function for ExecScan. The access method is determined
- * based on the type of the table being scanned.
- */
-TupleTableSlot *
-ExecTableScanRelation(ScanState *scanState)
-{
-	const ScanMethod *scanMethods = getScanMethod(scanState->tableType);
-
-	return ExecScan(scanState, scanMethods->accessMethod, scanMethods->recheckMethod);
-}
-
-/*
- * BeginScanRelation
- *   Begin the relation scan.
- */
-void
-BeginTableScanRelation(ScanState *scanState)
-{
-	getScanMethod(scanState->tableType)->beginScanMethod(scanState);
-}
-
-/*
- * EndTableScanRelation
- *   Terminate the relation scan.
- */
-void
-EndTableScanRelation(ScanState *scanState)
-{
-	getScanMethod(scanState->tableType)->endScanMethod(scanState);
-}
-
-/*
- * ReScanRelation
- *   Rescan the relation.
- */
-void
-ReScanRelation(ScanState *scanState)
-{
-	const ScanMethod *scanMethod;
-
-	scanMethod = getScanMethod(scanState->tableType);
-	if ((scanState->scan_state & SCAN_SCAN) == 0)
-	{
-		scanMethod->beginScanMethod(scanState);
-	}
-	
-	scanMethod->reScanMethod(scanState);
 }

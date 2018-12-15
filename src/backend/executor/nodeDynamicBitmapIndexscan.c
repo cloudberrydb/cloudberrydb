@@ -59,8 +59,6 @@ ExecInitDynamicBitmapIndexScan(DynamicBitmapIndexScan *node, EState *estate, int
 	dynamicBitmapIndexScanState->ss.ps.state = estate;
 	dynamicBitmapIndexScanState->eflags = eflags;
 
-	dynamicBitmapIndexScanState->ss.scan_state = SCAN_INIT;
-
 	/*
 	 * This context will be reset per-partition to free up per-partition
 	 * copy of LogicalIndexInfo
@@ -139,7 +137,7 @@ beginCurrentBitmapIndexScan(DynamicBitmapIndexScanState *node, EState *estate,
 	 * We started at table level, and now we are fetching the oid of an index
 	 * partition.
 	 */
-	currentRelation = OpenScanRelationByOid(tableOid);
+	currentRelation = heap_open(tableOid, AccessShareLock);
 	indexOid = getPhysicalIndexRelid(currentRelation, dbiScan->logicalIndexInfo);
 	if (!OidIsValid(indexOid))
 		elog(ERROR, "failed to find index for partition \"%s\" in dynamic index scan",
@@ -194,7 +192,6 @@ MultiExecDynamicBitmapIndexScan(DynamicBitmapIndexScanState *node)
 	 * Fetch the OID of the current partition, and of the index on
 	 * that partition to scan.
 	 */
-	node->ss.scan_state = SCAN_FIRST;
 	tableOid = DynamicScan_GetTableOid(&node->ss);
 
 	/*
@@ -237,8 +234,6 @@ ExecReScanDynamicBitmapIndex(DynamicBitmapIndexScanState *node)
 		ExecEndBitmapIndexScan(node->bitmapIndexScanState);
 		node->bitmapIndexScanState = NULL;
 	}
-
-	node->ss.scan_state = SCAN_INIT;
 
 	CheckSendPlanStateGpmonPkt(&node->ss.ps);
 }

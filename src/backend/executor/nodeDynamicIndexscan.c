@@ -23,6 +23,7 @@
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbvars.h"
 #include "cdb/partitionselection.h"
+#include "executor/execDynamicScan.h"
 #include "executor/executor.h"
 #include "executor/instrument.h"
 #include "nodes/execnodes.h"
@@ -48,7 +49,7 @@ ExecInitDynamicIndexScan(DynamicIndexScan *node, EState *estate, int eflags)
 	dynamicIndexScanState->ss.ps.state = estate;
 	dynamicIndexScanState->eflags = eflags;
 
-	dynamicIndexScanState->ss.scan_state = SCAN_INIT;
+	dynamicIndexScanState->scan_state = SCAN_INIT;
 
 	/*
 	 * Initialize child expressions
@@ -144,7 +145,7 @@ beginCurrentIndexScan(DynamicIndexScanState *node, EState *estate,
 	/*
 	 * open the base relation and acquire appropriate lock on it.
 	 */
-	currentRelation = OpenScanRelationByOid(tableOid);
+	currentRelation = heap_open(tableOid, AccessShareLock);
 
 	save_tupletable = estate->es_tupleTable;
 	estate->es_tupleTable = NIL;
@@ -168,6 +169,7 @@ beginCurrentIndexScan(DynamicIndexScanState *node, EState *estate,
 		elog(ERROR, "failed to find index for partition \"%s\" in dynamic index scan",
 			 RelationGetRelationName(currentRelation));
 
+	DynamicScan_SetTableOid(&node->ss, tableOid);
 	node->indexScanState = ExecInitIndexScanForPartition(&dynamicIndexScan->indexscan, estate,
 														 node->eflags,
 														 currentRelation, indexOid);
@@ -202,8 +204,8 @@ initNextIndexToScan(DynamicIndexScanState *node)
 	EState *estate = node->ss.ps.state;
 
 	/* Load new index when the scanning of the previous index is done. */
-	if (node->ss.scan_state == SCAN_INIT ||
-		node->ss.scan_state == SCAN_DONE)
+	if (node->scan_state == SCAN_INIT ||
+		node->scan_state == SCAN_DONE)
 	{
 		/* This is the oid of a partition of the table (*not* index) */
 		Oid			tableOid;
@@ -226,7 +228,7 @@ initNextIndexToScan(DynamicIndexScanState *node)
 
 		beginCurrentIndexScan(node, estate, tableOid);
 
-		node->ss.scan_state = SCAN_SCAN;
+		node->scan_state = SCAN_SCAN;
 	}
 
 	return true;
@@ -242,7 +244,7 @@ setPidIndex(DynamicIndexScanState *node)
 	IndexScanState *indexState = (IndexScanState *)node;
 	DynamicIndexScan *plan = (DynamicIndexScan *) indexState->ss.ps.plan;
 	EState	   *estate = indexState->ss.ps.state;
-	int			partIndex = plan->indexscan.scan.partIndex;
+	int			partIndex = plan->partIndex;
 
 	Assert(node->pidxIndex == NULL);
 	Assert(estate->dynamicTableScanInfo != NULL);
@@ -294,7 +296,7 @@ ExecDynamicIndexScan(DynamicIndexScanState *node)
 		{
 			endCurrentIndexScan(node);
 
-			node->ss.scan_state = SCAN_INIT;
+			node->scan_state = SCAN_INIT;
 		}
 	}
 	return slot;
@@ -308,7 +310,7 @@ ExecEndDynamicIndexScan(DynamicIndexScanState *node)
 {
 	endCurrentIndexScan(node);
 
-	node->ss.scan_state = SCAN_END;
+	node->scan_state = SCAN_END;
 
 	if (node->shouldCallHashSeqTerm)
 	{
@@ -332,7 +334,7 @@ ExecReScanDynamicIndex(DynamicIndexScanState *node)
 		ExecEndIndexScan(node->indexScanState);
 		node->indexScanState = NULL;
 	}
-	node->ss.scan_state = SCAN_INIT;
+	node->scan_state = SCAN_INIT;
 
 	if (node->shouldCallHashSeqTerm)
 	{

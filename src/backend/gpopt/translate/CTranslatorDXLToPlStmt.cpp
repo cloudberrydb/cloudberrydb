@@ -3558,11 +3558,11 @@ CTranslatorDXLToPlStmt::TranslateDXLDynTblScan
 	// create dynamic scan node
 	DynamicTableScan *dyn_tbl_scan = MakeNode(DynamicTableScan);
 
-	dyn_tbl_scan->scanrelid = index;
+	dyn_tbl_scan->seqscan.scanrelid = index;
 	dyn_tbl_scan->partIndex = dyn_tbl_scan_dxlop->GetPartIndexId();
 	dyn_tbl_scan->partIndexPrintable = dyn_tbl_scan_dxlop->GetPartIndexIdPrintable();
 
-	Plan *plan = &(dyn_tbl_scan->plan);
+	Plan *plan = &(dyn_tbl_scan->seqscan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
 	plan->nMotionNodes = 0;
 
@@ -3630,8 +3630,8 @@ CTranslatorDXLToPlStmt::TranslateDXLDynIdxScan
 	DynamicIndexScan *dyn_idx_scan = MakeNode(DynamicIndexScan);
 
 	dyn_idx_scan->indexscan.scan.scanrelid = index;
-	dyn_idx_scan->indexscan.scan.partIndex = dyn_index_scan_dxlop->GetPartIndexId();
-	dyn_idx_scan->indexscan.scan.partIndexPrintable = dyn_index_scan_dxlop->GetPartIndexIdPrintable();
+	dyn_idx_scan->partIndex = dyn_index_scan_dxlop->GetPartIndexId();
+	dyn_idx_scan->partIndexPrintable = dyn_index_scan_dxlop->GetPartIndexIdPrintable();
 
 	CMDIdGPDB *mdid_index = CMDIdGPDB::CastMdid(dyn_index_scan_dxlop->GetDXLIndexDescr()->MDId());
 	const IMDIndex *md_index = m_md_accessor->RetrieveIndex(mdid_index);
@@ -5254,7 +5254,7 @@ CTranslatorDXLToPlStmt::TranslateDXLCtasStorageOptions
 //		CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan
 //
 //	@doc:
-//		Translates a DXL bitmap table scan node into a BitmapTableScan node
+//		Translates a DXL bitmap table scan node into a BitmapHeapScan node
 //
 //---------------------------------------------------------------------------
 Plan *
@@ -5265,10 +5265,10 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan
 	CDXLTranslationContextArray *ctxt_translation_prev_siblings
 	)
 {
-	ULONG part_index_id = INVALID_PART_INDEX;
-	ULONG part_idx_printable_id = INVALID_PART_INDEX;
-	const CDXLTableDescr *table_descr = NULL;
+	ULONG part_index_id = 0;
+	ULONG part_idx_printable_id = 0;
 	BOOL is_dynamic = false;
+	const CDXLTableDescr *table_descr = NULL;
 
 	CDXLOperator *dxl_operator = bitmapscan_dxlnode->GetOperator();
 	if (EdxlopPhysicalBitmapTableScan == dxl_operator->GetDXLOperator())
@@ -5301,10 +5301,22 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapTblScan
 
 	m_dxl_to_plstmt_context->AddRTE(rte);
 
-	BitmapTableScan *bitmap_tbl_scan = MakeNode(BitmapTableScan);
+	BitmapHeapScan *bitmap_tbl_scan;
+
+	if (is_dynamic)
+	{
+		DynamicBitmapHeapScan *dscan = MakeNode(DynamicBitmapHeapScan);
+
+		dscan->partIndex = part_index_id;
+		dscan->partIndexPrintable = part_idx_printable_id;
+
+		bitmap_tbl_scan = &dscan->bitmapheapscan;
+	}
+	else
+	{
+		bitmap_tbl_scan = MakeNode(BitmapHeapScan);
+	}
 	bitmap_tbl_scan->scan.scanrelid = index;
-	bitmap_tbl_scan->scan.partIndex = part_index_id;
-	bitmap_tbl_scan->scan.partIndexPrintable = part_idx_printable_id;
 
 	Plan *plan = &(bitmap_tbl_scan->scan.plan);
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
@@ -5382,7 +5394,7 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapAccessPath
 	const CDXLTableDescr *table_descr,
 	CDXLTranslateContextBaseTable *base_table_context,
 	CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-	BitmapTableScan *bitmap_tbl_scan
+	BitmapHeapScan *bitmap_tbl_scan
 	)
 {
 	Edxlopid dxl_op_id = bitmap_access_path_dxlnode->GetOperator()->GetDXLOperator();
@@ -5430,7 +5442,7 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapBoolOp
 	const CDXLTableDescr *table_descr,
 	CDXLTranslateContextBaseTable *base_table_context,
 	CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-	BitmapTableScan *bitmap_tbl_scan
+	BitmapHeapScan *bitmap_tbl_scan
 	)
 {
 	GPOS_ASSERT(NULL != bitmap_boolop_dxlnode);
@@ -5504,7 +5516,7 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapIndexProbe
 	const CDXLTableDescr *table_descr,
 	CDXLTranslateContextBaseTable *base_table_context,
 	CDXLTranslationContextArray *ctxt_translation_prev_siblings,
-	BitmapTableScan *bitmap_tbl_scan
+	BitmapHeapScan *bitmap_tbl_scan
 	)
 {
 	CDXLScalarBitmapIndexProbe *sc_bitmap_idx_probe_dxlop =
@@ -5513,10 +5525,13 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapIndexProbe
 	BitmapIndexScan *bitmap_idx_scan;
 	DynamicBitmapIndexScan *dyn_bitmap_idx_scan;
 
-	if (bitmap_tbl_scan->scan.partIndex)
+	if (IsA(bitmap_tbl_scan, DynamicBitmapHeapScan))
 	{
 		/* It's a Dynamic Bitmap Index Scan */
 		dyn_bitmap_idx_scan = MakeNode(DynamicBitmapIndexScan);
+		dyn_bitmap_idx_scan->partIndex = ((DynamicBitmapHeapScan *) bitmap_tbl_scan)->partIndex;
+		dyn_bitmap_idx_scan->partIndexPrintable = ((DynamicBitmapHeapScan *) bitmap_tbl_scan)->partIndexPrintable;
+
 		bitmap_idx_scan = &(dyn_bitmap_idx_scan->biscan);
 	}
 	else
@@ -5525,7 +5540,6 @@ CTranslatorDXLToPlStmt::TranslateDXLBitmapIndexProbe
 		bitmap_idx_scan = MakeNode(BitmapIndexScan);
 	}
 	bitmap_idx_scan->scan.scanrelid = bitmap_tbl_scan->scan.scanrelid;
-	bitmap_idx_scan->scan.partIndex = bitmap_tbl_scan->scan.partIndex;
 
 	CMDIdGPDB *mdid_index = CMDIdGPDB::CastMdid(sc_bitmap_idx_probe_dxlop->GetDXLIndexDescr()->MDId());
 	const IMDIndex *index = m_md_accessor->RetrieveIndex(mdid_index);

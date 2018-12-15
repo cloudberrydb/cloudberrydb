@@ -15,9 +15,15 @@
  * but with anything else we might return a tuple that doesn't meet the
  * required index qual conditions.
  *
+ * In GPDB, this also deals with AppendOnly and AOCS tables. The prefetching
+ * hasn't been implemented for them, though.
  *
- * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+ * This can also be used in "Dynamic" mode.
+ *
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
+ * Portions Copyright (c) 2008-2009, Greenplum Inc.
+ * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  *
  *
  * IDENTIFICATION
@@ -43,56 +49,175 @@
 #include "storage/bufmgr.h"
 #include "storage/predicate.h"
 #include "utils/memutils.h"
-#include "miscadmin.h"
 #include "parser/parsetree.h"
-#include "cdb/cdbvars.h" /* gp_select_invisible */
 #include "nodes/tidbitmap.h"
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
 #include "utils/tqual.h"
 
+#include "cdb/cdbappendonlyam.h"
+#include "cdb/cdbaocsam.h"
+#include "cdb/cdbvars.h" /* gp_select_invisible */
 
 static TupleTableSlot *BitmapHeapNext(BitmapHeapScanState *node);
+static TupleTableSlot *BitmapAppendOnlyNext(BitmapHeapScanState *node);
+static void bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres);
 
 /*
- * Initialize the heap scan descriptor if it is not initialized.
+ * Initialize the fetch descriptor, if it is not initialized.
  */
-static inline void
-initScanDesc(BitmapHeapScanState *scanstate)
+static void
+initFetchDesc(BitmapHeapScanState *scanstate)
 {
-	Relation currentRelation = scanstate->ss.ss_currentRelation;
-	EState *estate = scanstate->ss.ps.state;
+	BitmapHeapScan *node = (BitmapHeapScan *)(scanstate->ss.ps.plan);
+	Relation	currentRelation = scanstate->ss.ss_currentRelation;
+	EState	   *estate = scanstate->ss.ps.state;
 
-	if (scanstate->ss_currentScanDesc == NULL)
+	if (RelationIsAoRows(currentRelation))
 	{
-		/*
-		 * Even though we aren't going to do a conventional seqscan, it is useful
-		 * to create a HeapScanDesc --- most of the fields in it are usable.
-		 */
-		scanstate->ss_currentScanDesc = heap_beginscan_bm(currentRelation,
-														  estate->es_snapshot,
-														  0,
-														  NULL);
+		if (scanstate->bhs_currentAOFetchDesc == NULL)
+		{
+			Snapshot	appendOnlyMetaDataSnapshot;
+
+			appendOnlyMetaDataSnapshot = estate->es_snapshot;
+			if (appendOnlyMetaDataSnapshot == SnapshotAny)
+			{
+				/*
+				 * the append-only meta data should never be fetched with
+				 * SnapshotAny as bogus results are returned.
+				 */
+				appendOnlyMetaDataSnapshot = GetTransactionSnapshot();
+			}
+			scanstate->bhs_currentAOFetchDesc =
+				appendonly_fetch_init(currentRelation,
+									  estate->es_snapshot,
+									  appendOnlyMetaDataSnapshot);
+			scanstate->bhs_currentAOCSFetchDesc = NULL;
+			scanstate->bhs_currentAOCSLossyFetchDesc = NULL;
+		}
+	}
+	else if (RelationIsAoCols(currentRelation))
+	{
+		if (scanstate->bhs_currentAOCSFetchDesc == NULL)
+		{
+			bool	   *proj;
+			bool	   *projLossy;
+			int			colno;
+			Snapshot	appendOnlyMetaDataSnapshot;
+
+			appendOnlyMetaDataSnapshot = estate->es_snapshot;
+			if (appendOnlyMetaDataSnapshot == SnapshotAny)
+			{
+				/*
+				 * the append-only meta data should never be fetched with
+				 * SnapshotAny as bogus results are returned.
+				 */
+				appendOnlyMetaDataSnapshot = GetTransactionSnapshot();
+			}
+
+			/*
+			 * Obtain the projection.
+			 */
+			Assert(currentRelation->rd_att != NULL);
+
+			proj = (bool *) palloc0(currentRelation->rd_att->natts * sizeof(bool));
+			projLossy = (bool *) palloc0(currentRelation->rd_att->natts * sizeof(bool));
+
+			GetNeededColumnsForScan((Node *) node->scan.plan.targetlist, proj, currentRelation->rd_att->natts);
+			GetNeededColumnsForScan((Node *) node->scan.plan.qual, proj, currentRelation->rd_att->natts);
+
+			memcpy(projLossy,proj, currentRelation->rd_att->natts * sizeof(bool));
+
+			GetNeededColumnsForScan((Node *) node->bitmapqualorig, projLossy, currentRelation->rd_att->natts);
+
+			for (colno = 0; colno < currentRelation->rd_att->natts; colno++)
+			{
+				if (proj[colno])
+					break;
+			}
+
+			/*
+			 * At least project one column. Since the tids stored in the index may not have
+			 * a correponding tuple any more (because of previous crashes, for example), we
+			 * need to read the tuple to make sure.
+			 */
+			if (colno == currentRelation->rd_att->natts)
+				proj[0] = true;
+
+			scanstate->bhs_currentAOCSFetchDesc =
+				aocs_fetch_init(currentRelation, estate->es_snapshot, appendOnlyMetaDataSnapshot, proj);
+
+			for (colno = 0; colno < currentRelation->rd_att->natts; colno++)
+			{
+				if (projLossy[colno])
+					break;
+			}
+
+			/*
+			 * At least project one column. Since the tids stored in the index may not have
+			 * a correponding tuple any more (because of previous crashes, for example), we
+			 * need to read the tuple to make sure.
+			 */
+			if (colno == currentRelation->rd_att->natts)
+				projLossy[0] = true;
+
+			scanstate->bhs_currentAOCSLossyFetchDesc =
+				aocs_fetch_init(currentRelation, estate->es_snapshot, appendOnlyMetaDataSnapshot, projLossy);
+		}
+	}
+	else
+	{
+		if (scanstate->bhs_currentScanDesc_heap == NULL)
+		{
+			/*
+			 * Even though we aren't going to do a conventional seqscan, it is useful
+			 * to create a HeapScanDesc --- most of the fields in it are usable.
+			 */
+			scanstate->bhs_currentScanDesc_heap = heap_beginscan_bm(currentRelation,
+																	estate->es_snapshot,
+																	0,
+																	NULL);
+		}
 	}
 }
 
 /*
- * Free the heap scan descriptor.
+ * Free fetch descriptor.
  */
-static inline void
-freeScanDesc(BitmapHeapScanState *scanstate)
+static void
+freeFetchDesc(BitmapHeapScanState *scanstate)
 {
-	if (scanstate->ss_currentScanDesc != NULL)
+	if (scanstate->bhs_currentAOFetchDesc != NULL)
 	{
-		heap_endscan(scanstate->ss_currentScanDesc);
-		scanstate->ss_currentScanDesc = NULL;
+		appendonly_fetch_finish(scanstate->bhs_currentAOFetchDesc);
+		pfree(scanstate->bhs_currentAOFetchDesc);
+		scanstate->bhs_currentAOFetchDesc = NULL;
+	}
+
+	if (scanstate->bhs_currentAOCSFetchDesc != NULL)
+	{
+		aocs_fetch_finish(scanstate->bhs_currentAOCSFetchDesc);
+		pfree(scanstate->bhs_currentAOCSFetchDesc);
+		scanstate->bhs_currentAOCSFetchDesc = NULL;
+	}
+
+	if (scanstate->bhs_currentAOCSLossyFetchDesc != NULL)
+	{
+		aocs_fetch_finish(scanstate->bhs_currentAOCSLossyFetchDesc);
+		pfree(scanstate->bhs_currentAOCSLossyFetchDesc);
+		scanstate->bhs_currentAOCSLossyFetchDesc = NULL;
+	}
+	if (scanstate->bhs_currentScanDesc_heap != NULL)
+	{
+		heap_endscan(scanstate->bhs_currentScanDesc_heap);
+		scanstate->bhs_currentScanDesc_heap = NULL;
 	}
 }
 
 /*
  * Free the state relevant to bitmaps
  */
-static inline void
+static void
 freeBitmapState(BitmapHeapScanState *scanstate)
 {
 	/* BitmapIndexScan is the owner of the bitmap memory. Don't free it here */
@@ -129,15 +254,15 @@ BitmapHeapNext(BitmapHeapScanState *node)
 	OffsetNumber targoffset;
 	TupleTableSlot *slot;
 
+	initFetchDesc(node);
+
 	/*
 	 * extract necessary information from index scan node
 	 */
 	econtext = node->ss.ps.ps_ExprContext;
 	slot = node->ss.ss_ScanTupleSlot;
+	scan = node->bhs_currentScanDesc_heap;
 
-	initScanDesc(node);
-
-	scan = node->ss_currentScanDesc;
 	tbm = node->tbm;
 	tbmiterator = node->tbmiterator;
 	tbmres = node->tbmres;
@@ -385,7 +510,7 @@ BitmapHeapNext(BitmapHeapScanState *node)
  * builds an array indicating which tuples on the page are both potentially
  * interesting according to the bitmap, and visible according to the snapshot.
  */
-void
+static void
 bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres)
 {
 	BlockNumber page = tbmres->blockno;
@@ -481,6 +606,218 @@ bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres)
 	scan->rs_ntuples = ntup;
 }
 
+/* ----------------------------------------------------------------
+ *		BitmapAppendOnlyNext
+ *
+ *		Like BitmapHeapNext(), but used when the table is an AO or AOCS table.
+ * ----------------------------------------------------------------
+ */
+static TupleTableSlot *
+BitmapAppendOnlyNext(BitmapHeapScanState *node)
+{
+	EState	   *estate;
+	ExprContext *econtext;
+	AppendOnlyFetchDesc aoFetchDesc;
+	AOCSFetchDesc aocsFetchDesc;
+	AOCSFetchDesc aocsLossyFetchDesc;
+	Index		scanrelid;
+	GenericBMIterator *tbmiterator;
+	OffsetNumber psuedoHeapOffset;
+	ItemPointerData psudeoHeapTid;
+	AOTupleId	aoTid;
+	TupleTableSlot *slot;
+
+	/*
+	 * extract necessary information from index scan node
+	 */
+	estate = node->ss.ps.state;
+	econtext = node->ss.ps.ps_ExprContext;
+	slot = node->ss.ss_ScanTupleSlot;
+
+	initFetchDesc(node);
+
+	aoFetchDesc = node->bhs_currentAOFetchDesc;
+	aocsFetchDesc = node->bhs_currentAOCSFetchDesc;
+	aocsLossyFetchDesc = node->bhs_currentAOCSLossyFetchDesc;
+	scanrelid = ((BitmapHeapScan *) node->ss.ps.plan)->scan.scanrelid;
+	tbmiterator = node->tbmiterator;
+
+	/*
+	 * If we haven't yet performed the underlying index scan, or
+	 * we have used up the bitmaps from the previous scan, do the next scan,
+	 * and prepare the bitmap to be iterated over.
+	 */
+	if (tbmiterator == NULL)
+	{
+		Node *tbm = (Node *) MultiExecProcNode(outerPlanState(node));
+
+		if (!tbm || !(IsA(tbm, TIDBitmap) || IsA(tbm, StreamBitmap)))
+			elog(ERROR, "unrecognized result from subplan");
+
+		if (tbm == NULL)
+		{
+			ExecEagerFreeBitmapHeapScan(node);
+
+			return ExecClearTuple(slot);
+		}
+
+		node->tbmiterator = tbmiterator = tbm_generic_begin_iterate(tbm);
+	}
+
+	Assert(tbmiterator != NULL);
+
+	for (;;)
+	{
+		TBMIterateResult *tbmres = node->tbmres;
+		bool		need_recheck;
+
+		CHECK_FOR_INTERRUPTS();
+
+		if (QueryFinishPending)
+			return NULL;
+
+		if (!node->baos_gotpage)
+		{
+			/*
+			 * Obtain the next psuedo-heap-page-info with item bit-map.  Later, we'll
+			 * convert the (psuedo) heap block number and item number to an
+			 * Append-Only TID.
+			 */
+			node->tbmres = tbmres = tbm_generic_iterate(tbmiterator);
+
+			if (tbmres == NULL)
+			{
+				/* no more entries in the bitmap */
+				break;
+			}
+
+			/* If tbmres contains no tuples, continue. */
+			if (tbmres->ntuples == 0)
+				continue;
+
+			/* Make sure we never cross 15-bit offset number [MPP-24326] */
+			Assert(tbmres->ntuples <= INT16_MAX + 1);
+			CheckSendPlanStateGpmonPkt(&node->ss.ps);
+
+			node->baos_gotpage = true;
+
+			/*
+			 * Set cindex to first slot to examine
+			 */
+			node->baos_cindex = 0;
+
+			node->baos_lossy = (tbmres->ntuples < 0);
+			if (!node->baos_lossy)
+			{
+				node->baos_ntuples = tbmres->ntuples;
+			}
+			else
+			{
+				/* Iterate over the first 2^15 tuples [MPP-24326] */
+				node->baos_ntuples = INT16_MAX + 1;
+			}
+		}
+		else
+		{
+			/*
+			 * Continuing in previously obtained page; advance cindex
+			 */
+			node->baos_cindex++;
+		}
+
+		/*
+		 * Out of range?  If so, nothing more to look at on this page
+		 */
+		if (node->baos_cindex < 0 || node->baos_cindex >= node->baos_ntuples)
+		{
+			node->baos_gotpage = false;
+			continue;
+		}
+
+		if (node->baos_lossy || tbmres->recheck)
+			need_recheck = true;
+
+		/*
+		 * Must account for lossy page info...
+		 */
+		if (node->baos_lossy)
+		{
+			psuedoHeapOffset = node->baos_cindex;	// We are iterating through all items.
+		}
+		else
+		{
+			Assert(node->baos_cindex <= tbmres->ntuples);
+			psuedoHeapOffset = tbmres->offsets[node->baos_cindex];
+
+			/*
+			 * Ensure that the reserved 16-th bit is always ON for offsets from
+			 * lossless bitmap pages [MPP-24326].
+			 */
+			Assert(((uint16)(psuedoHeapOffset & 0x8000)) > 0);
+		}
+
+		/*
+		 * Okay to fetch the tuple
+		 */
+		ItemPointerSet(&psudeoHeapTid,
+					   tbmres->blockno,
+					   psuedoHeapOffset);
+
+		tbm_convert_appendonly_tid_out(&psudeoHeapTid, &aoTid);
+
+		if (aoFetchDesc != NULL)
+		{
+			appendonly_fetch(aoFetchDesc, &aoTid, slot);
+		}
+		else
+		{
+			if (need_recheck)
+			{
+				Assert(aocsLossyFetchDesc != NULL);
+				aocs_fetch(aocsLossyFetchDesc, &aoTid, slot);
+			}
+			else
+			{
+				Assert(aocsFetchDesc != NULL);
+				aocs_fetch(aocsFetchDesc, &aoTid, slot);
+			}
+		}
+
+		if (TupIsNull(slot))
+			continue;
+
+		pgstat_count_heap_fetch(node->ss.ss_currentRelation);
+
+		/*
+		 * If we are using lossy info, we have to recheck the qual
+		 * conditions at every tuple.
+		 */
+		if (need_recheck)
+		{
+			econtext->ecxt_scantuple = slot;
+			ResetExprContext(econtext);
+
+			if (!ExecQual(node->bitmapqualorig, econtext, false))
+			{
+				/* Fails recheck, so drop it and loop back for another */
+				ExecClearTuple(slot);
+				continue;
+			}
+		}
+
+		/* OK to return this tuple */
+		return slot;
+	}
+
+	/*
+	 * if we get here it means we are at the end of the scan..
+	 */
+	ExecEagerFreeBitmapHeapScan(node);
+
+	return ExecClearTuple(slot);
+}
+
+
 /*
  * BitmapHeapRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
@@ -509,9 +846,24 @@ BitmapHeapRecheck(BitmapHeapScanState *node, TupleTableSlot *slot)
 TupleTableSlot *
 ExecBitmapHeapScan(BitmapHeapScanState *node)
 {
-	return ExecScan(&node->ss,
-					(ExecScanAccessMtd) BitmapHeapNext,
-					(ExecScanRecheckMtd) BitmapHeapRecheck);
+	TupleTableSlot *slot = NULL;
+	Relation	currentRelation = node->ss.ss_currentRelation;
+
+	if (RelationIsAppendOptimized(currentRelation))
+		slot = ExecScan(&node->ss,
+						(ExecScanAccessMtd) BitmapAppendOnlyNext,
+						(ExecScanRecheckMtd) BitmapHeapRecheck);
+	else
+		slot = ExecScan(&node->ss,
+						(ExecScanAccessMtd) BitmapHeapNext,
+						(ExecScanRecheckMtd) BitmapHeapRecheck);
+
+	if (TupIsNull(slot))
+	{
+		/* next partition, if needed */
+	}
+
+	return slot;
 }
 
 /* ----------------------------------------------------------------
@@ -522,8 +874,8 @@ void
 ExecReScanBitmapHeapScan(BitmapHeapScanState *node)
 {
 	/* rescan to release any page pin */
-	if (node->ss_currentScanDesc)
-		heap_rescan(node->ss_currentScanDesc, NULL);
+	if (node->bhs_currentScanDesc_heap)
+		heap_rescan(node->bhs_currentScanDesc_heap, NULL);
 
 	freeBitmapState(node);
 
@@ -545,13 +897,11 @@ void
 ExecEndBitmapHeapScan(BitmapHeapScanState *node)
 {
 	Relation	relation;
-	HeapScanDesc scanDesc;
 
 	/*
 	 * extract information from the node
 	 */
 	relation = node->ss.ss_currentRelation;
-	scanDesc = node->ss_currentScanDesc;
 
 	/*
 	 * Free the exprcontext
@@ -577,7 +927,7 @@ ExecEndBitmapHeapScan(BitmapHeapScanState *node)
 	/*
 	 * close heap scan
 	 */
-	freeScanDesc(node);
+	freeFetchDesc(node);
 
 	/*
 	 * close the heap relation.
@@ -596,8 +946,35 @@ ExecEndBitmapHeapScan(BitmapHeapScanState *node)
 BitmapHeapScanState *
 ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 {
-	BitmapHeapScanState *scanstate;
 	Relation	currentRelation;
+	BitmapHeapScanState *bhsState;
+
+	/*
+	 * open the base relation and acquire appropriate lock on it.
+	 */
+	currentRelation = ExecOpenScanRelation(estate, node->scan.scanrelid, eflags);
+
+	bhsState =  ExecInitBitmapHeapScanForPartition(node, estate, eflags,
+												   currentRelation);
+
+	/*
+	 * initialize child nodes
+	 *
+	 * We do this last because the child nodes will open indexscans on our
+	 * relation's indexes, and we want to be sure we have acquired a lock on
+	 * the relation first.
+	 */
+	outerPlanState(bhsState) = ExecInitNode(outerPlan(node), estate, eflags);
+
+	return bhsState;
+}
+
+BitmapHeapScanState *
+ExecInitBitmapHeapScanForPartition(BitmapHeapScan *node, EState *estate, int eflags,
+								   Relation currentRelation)
+{
+
+	BitmapHeapScanState *scanstate;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));
@@ -627,6 +1004,11 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 	scanstate->prefetch_pages = 0;
 	scanstate->prefetch_target = 0;
 
+	scanstate->baos_gotpage = false;
+	scanstate->baos_lossy = false;
+	scanstate->baos_cindex = 0;
+	scanstate->baos_ntuples = 0;
+
 	/*
 	 * Miscellaneous initialization
 	 *
@@ -655,11 +1037,6 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
 	ExecInitScanTupleSlot(estate, &scanstate->ss);
 
-	/*
-	 * open the base relation and acquire appropriate lock on it.
-	 */
-	currentRelation = ExecOpenScanRelation(estate, node->scan.scanrelid, eflags);
-
 	scanstate->ss.ss_currentRelation = currentRelation;
 
 	/*
@@ -673,14 +1050,9 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
 	ExecAssignScanProjectionInfo(&scanstate->ss);
 
-	/*
-	 * initialize child nodes
-	 *
-	 * We do this last because the child nodes will open indexscans on our
-	 * relation's indexes, and we want to be sure we have acquired a lock on
-	 * the relation first.
-	 */
-	outerPlanState(scanstate) = ExecInitNode(outerPlan(node), estate, eflags);
+	scanstate->bhs_currentAOFetchDesc = NULL;
+	scanstate->bhs_currentAOCSFetchDesc = NULL;
+	scanstate->bhs_currentAOCSLossyFetchDesc = NULL;
 
 	/*
 	 * all done.
@@ -691,6 +1063,6 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 void
 ExecEagerFreeBitmapHeapScan(BitmapHeapScanState *node)
 {
-	freeScanDesc(node);
+	freeFetchDesc(node);
 	freeBitmapState(node);
 }

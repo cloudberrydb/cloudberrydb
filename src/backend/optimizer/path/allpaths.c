@@ -2595,12 +2595,6 @@ print_path(PlannerInfo *root, Path *path, int indent)
 		case T_BitmapHeapPath:
 			ptype = "BitmapHeapScan";
 			break;
-		case T_BitmapAppendOnlyPath:
-			if (((BitmapAppendOnlyPath *) path)->isAORow)
-				ptype = "BitmapAppendOnlyScan Row-oriented";
-			else
-				ptype = "BitmapAppendOnlyScan Column-oriented";
-			break;
 		case T_BitmapAndPath:
 			ptype = "BitmapAndPath";
 			break;

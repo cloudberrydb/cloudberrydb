@@ -1,4 +1,3 @@
-
 /*-------------------------------------------------------------------------
  *
  * plannodes.h
@@ -468,18 +467,6 @@ typedef struct Scan
 {
 	Plan		plan;
 	Index		scanrelid;		/* relid is index into the range table */
-
-	/*
-	 * The index to an internal array structure that
-	 * contains oids of the parts that need to be scanned.
-	 *
-	 * This internal structure is maintained in EState.
-	 *
-	 * Note: if the scan is not "dynamic" (i.e., not using optimizer),
-	 * we set it to INVALID_PART_INDEX.
-	 */
-	int32 		partIndex;
-	int32 		partIndexPrintable;
 } Scan;
 
 /* ----------------
@@ -487,12 +474,6 @@ typedef struct Scan
  * ----------------
  */
 typedef Scan SeqScan;
-
-/*
- * TableScan
- *   Scan node that captures different table types.
- */
-typedef Scan TableScan;
 
 /* ----------------
  *		index type information
@@ -572,6 +553,13 @@ typedef struct DynamicIndexScan
 	/* Fields shared with a normal IndexScan. Must be first! */
 	IndexScan	indexscan;
 
+	/*
+	 * Index to arrays in EState->dynamicTableScanInfo, that contain information
+	 * about the partitiones that need to be scanned.
+	 */
+	int32 		partIndex;
+	int32 		partIndexPrintable;
+
 	/* logical index to use */
 	LogicalIndexInfo *logicalIndexInfo;
 } DynamicIndexScan;
@@ -634,17 +622,22 @@ typedef struct BitmapIndexScan
 	List	   *indexqualorig;	/* the same in original form */
 } BitmapIndexScan;
 
-
 /*
  * DynamicBitmapIndexScan
  *   Scan a list of indexes that will be determined at run time.
- *   The primary application of this operator is to be used
- *   for partition tables.
+ *   For use with partitioned tables.
 */
 typedef struct DynamicBitmapIndexScan
 {
 	/* Fields shared with a normal BitmapIndexScan. Must be first! */
 	BitmapIndexScan biscan;
+
+	/*
+	 * Index to arrays in EState->dynamicTableScanInfo, that contain information
+	 * about the partitiones that need to be scanned.
+	 */
+	int32 		partIndex;
+	int32 		partIndexPrintable;
 
 	/* logical index to use */
 	LogicalIndexInfo *logicalIndexInfo;
@@ -665,32 +658,40 @@ typedef struct BitmapHeapScan
 	List	   *bitmapqualorig; /* index quals, in standard expr form */
 } BitmapHeapScan;
 
-/* ----------------
- *		bitmap append-only row-store scan node
+/*
+ * DynamicBitmapHeapScan
+ *   Scan a list of tables that will be determined at run time.
  *
- * NOTE: This is a copy of BitmapHeapScan.
- * ----------------
+ * Dynamic counterpart of a BitmapHeapScan, for use with partitioned tables.
  */
-typedef struct BitmapAppendOnlyScan
+typedef struct DynamicBitmapHeapScan
 {
-	Scan		scan;
-	List	   *bitmapqualorig; /* index quals, in standard expr form */
-	bool       isAORow; /* If this is for AO Row tables */
-} BitmapAppendOnlyScan;
+	BitmapHeapScan bitmapheapscan;
 
-/* ----------------
- *		bitmap table scan node
- *
- * This is a copy of BitmapHeapScan
- * ----------------
- */
-typedef BitmapHeapScan BitmapTableScan;
+	/*
+	 * Index to arrays in EState->dynamicTableScanInfo, that contain information
+	 * about the partitiones that need to be scanned.
+	 */
+	int32 		partIndex;
+	int32 		partIndexPrintable;
+} DynamicBitmapHeapScan;
 
 /*
  * DynamicTableScan
  *   Scan a list of tables that will be determined at run time.
  */
-typedef Scan DynamicTableScan;
+typedef struct DynamicTableScan
+{
+	/* Fields shared with a normal SeqScan. Must be first! */
+	SeqScan		seqscan;
+
+	/*
+	 * Index to arrays in EState->dynamicTableScanInfo, that contain information
+	 * about the partitiones that need to be scanned.
+	 */
+	int32 		partIndex;
+	int32 		partIndexPrintable;
+} DynamicTableScan;
 
 /* ----------------
  *		tid scan node
@@ -830,6 +831,7 @@ typedef struct ForeignScan
 	bool		fsSystemCol;	/* true if any "system column" is needed */
 } ForeignScan;
 
+
 /*
  * ==========
  * Join nodes
@@ -952,7 +954,6 @@ extern void set_plan_share_type_xslice(Plan *p);
 extern int get_plan_driver_slice(Plan *p);
 extern void set_plan_driver_slice(Plan *P, int slice);
 extern void incr_plan_nsharer_xslice(Plan *p);
-extern bool isDynamicScan(const Plan *p);
 
 /* ----------------
  *		shareinputscan node

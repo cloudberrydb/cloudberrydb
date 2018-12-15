@@ -697,16 +697,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 	{
-		{"force_bitmap_table_scan", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Forces bitmap table scan instead of bitmap heap/ao/aoco scan."),
-			NULL,
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&force_bitmap_table_scan,
-		false,
-		NULL, NULL, NULL
-	},
-	{
 		{"debug_print_prelim_plan", PGC_USERSET, LOGGING_WHAT,
 			gettext_noop("Prints the preliminary execution plan to server log."),
 			NULL

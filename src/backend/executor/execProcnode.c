@@ -86,6 +86,7 @@
 #include "executor/nodeBitmapAnd.h"
 #include "executor/nodeBitmapHeapscan.h"
 #include "executor/nodeBitmapIndexscan.h"
+#include "executor/nodeDynamicBitmapHeapscan.h"
 #include "executor/nodeDynamicBitmapIndexscan.h"
 #include "executor/nodeBitmapOr.h"
 #include "executor/nodeCtescan.h"
@@ -105,6 +106,7 @@
 #include "executor/nodeRecursiveunion.h"
 #include "executor/nodeReshuffle.h"
 #include "executor/nodeResult.h"
+#include "executor/nodeSeqscan.h"
 #include "executor/nodeSetOp.h"
 #include "executor/nodeSort.h"
 #include "executor/nodeSubplan.h"
@@ -119,8 +121,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/ml_ipc.h"			/* interconnect context */
 #include "executor/nodeAssertOp.h"
-#include "executor/nodeBitmapAppendOnlyscan.h"
-#include "executor/nodeBitmapTableScan.h"
 #include "executor/nodeDML.h"
 #include "executor/nodeDynamicIndexscan.h"
 #include "executor/nodeDynamicTableScan.h"
@@ -133,7 +133,6 @@
 #include "executor/nodeShareInputScan.h"
 #include "executor/nodeSplitUpdate.h"
 #include "executor/nodeTableFunction.h"
-#include "executor/nodeTableScan.h"
 #include "pg_trace.h"
 #include "tcop/tcopprot.h"
 #include "utils/metrics_utils.h"
@@ -301,25 +300,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	/* We cannot have alien nodes if we are eliminating aliens */
 	AssertImply(estate->eliminateAliens, !isAlienPlanNode);
 
-	/*
-	 * As of 03/28/2014, there is no support for BitmapTableScan
-	 * in the planner/optimizer. Therefore, for testing purpose
-	 * we treat Bitmap Heap/AO/AOCO as BitmapTableScan, if the guc
-	 * force_bitmap_table_scan is true.
-	 *
-	 * TODO rahmaf2 04/01/2014: remove all "fake" BitmapTableScan
-	 * once the planner/optimizer is capable of generating BitmapTableScan
-	 * nodes. [JIRA: MPP-23177]
-	 */
-	if (force_bitmap_table_scan)
-	{
-		if (IsA(node, BitmapHeapScan) ||
-				IsA(node, BitmapAppendOnlyScan))
-		{
-			node->type = T_BitmapTableScan;
-		}
-	}
-
 	switch (nodeTag(node))
 	{
 			/*
@@ -412,12 +392,11 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			 * scan nodes
 			 */
 		case T_SeqScan:
-			/* SeqScan is defunct */
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, TableScan);
+			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, SeqScan);
 
 			START_MEMORY_ACCOUNT(curMemoryAccountId);
 			{
-			result = (PlanState *) ExecInitTableScan((TableScan *) node,
+			result = (PlanState *) ExecInitSeqScan((SeqScan *) node,
 													 estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
@@ -511,24 +490,13 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			END_MEMORY_ACCOUNT();
 			break;
 
-		case T_BitmapAppendOnlyScan:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, BitmapAppendOnlyScan);
+		case T_DynamicBitmapHeapScan:
+			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, DynamicBitmapHeapScan);
 
 			START_MEMORY_ACCOUNT(curMemoryAccountId);
 			{
-			result = (PlanState *) ExecInitBitmapAppendOnlyScan((BitmapAppendOnlyScan*) node,
-														        estate, eflags);
-			}
-			END_MEMORY_ACCOUNT();
-			break;
-
-		case T_BitmapTableScan:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, BitmapTableScan);
-
-			START_MEMORY_ACCOUNT(curMemoryAccountId);
-			{
-			result = (PlanState *) ExecInitBitmapTableScan((BitmapTableScan*) node,
-														        estate, eflags);
+			result = (PlanState *) ExecInitDynamicBitmapHeapScan((DynamicBitmapHeapScan *) node,
+																 estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
 			break;
@@ -1023,8 +991,8 @@ ExecProcNode(PlanState *node)
 			/*
 			 * scan nodes
 			 */
-		case T_TableScanState:
-			result = ExecTableScan((TableScanState *)node);
+		case T_SeqScanState:
+			result = ExecSeqScan((SeqScanState *)node);
 			break;
 
 		case T_DynamicTableScanState:
@@ -1053,12 +1021,8 @@ ExecProcNode(PlanState *node)
 			result = ExecBitmapHeapScan((BitmapHeapScanState *) node);
 			break;
 
-		case T_BitmapAppendOnlyScanState:
-			result = ExecBitmapAppendOnlyScan((BitmapAppendOnlyScanState *) node);
-			break;
-
-		case T_BitmapTableScanState:
-			result = ExecBitmapTableScan((BitmapTableScanState *) node);
+		case T_DynamicBitmapHeapScanState:
+			result = ExecDynamicBitmapHeapScan((DynamicBitmapHeapScanState *) node);
 			break;
 
 		case T_TidScanState:
@@ -1487,11 +1451,7 @@ ExecEndNode(PlanState *node)
 			 * scan nodes
 			 */
 		case T_SeqScanState:
-			elog(ERROR, "SeqScan is defunct");
-			break;
-
-		case T_TableScanState:
-			ExecEndTableScan((TableScanState *) node);
+			ExecEndSeqScan((SeqScanState *) node);
 			break;
 
 		case T_DynamicTableScanState:
@@ -1526,12 +1486,8 @@ ExecEndNode(PlanState *node)
 			ExecEndBitmapHeapScan((BitmapHeapScanState *) node);
 			break;
 
-		case T_BitmapAppendOnlyScanState:
-			ExecEndBitmapAppendOnlyScan((BitmapAppendOnlyScanState *) node);
-			break;
-
-		case T_BitmapTableScanState:
-			ExecEndBitmapTableScan((BitmapTableScanState *) node);
+		case T_DynamicBitmapHeapScanState:
+			ExecEndDynamicBitmapHeapScan((DynamicBitmapHeapScanState *) node);
 			break;
 
 		case T_TidScanState:

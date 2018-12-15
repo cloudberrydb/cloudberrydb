@@ -64,12 +64,6 @@ extern BitmapHeapPath *create_bitmap_heap_path(PlannerInfo *root,
 						Path *bitmapqual,
 						Relids required_outer,
 						double loop_count);
-extern BitmapAppendOnlyPath *create_bitmap_appendonly_path(PlannerInfo *root,
-							  RelOptInfo *rel,
-							  Path *bitmapqual,
-							  Relids required_outer,
-							  double loop_count,
-							  bool isAORow);
 extern BitmapAndPath *create_bitmap_and_path(PlannerInfo *root,
 					   RelOptInfo *rel,
 					   List *bitmapquals);

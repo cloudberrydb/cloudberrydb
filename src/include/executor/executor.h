@@ -300,8 +300,8 @@ extern TupleTableSlot *ExecProcNode(PlanState *node);
 extern Node *MultiExecProcNode(PlanState *node);
 extern void ExecEndNode(PlanState *node);
 
-void ExecSquelchNode(PlanState *node);
-void ExecUpdateTransportState(PlanState *node, struct ChunkTransportState *state);
+extern void ExecSquelchNode(PlanState *node);
+extern void ExecUpdateTransportState(PlanState *node, struct ChunkTransportState *state);
 
 typedef enum
 {
@@ -352,91 +352,10 @@ extern bool isJoinExprNull(List *joinExpr, ExprContext *econtext);
 typedef TupleTableSlot *(*ExecScanAccessMtd) (ScanState *node);
 typedef bool (*ExecScanRecheckMtd) (ScanState *node, TupleTableSlot *slot);
 
-
-/*
- * ScanMethod
- *   Methods that are relevant to support scans on various table types.
- */
-typedef struct ScanMethod
-{
-	/* Function that scans the table. */
-	ExecScanAccessMtd accessMethod;
-	ExecScanRecheckMtd recheckMethod;
-
-	/* Functions that initiate or terminate a scan. */
-	void (*beginScanMethod)(ScanState *scanState);
-	void (*endScanMethod)(ScanState *scanState);
-
-	/* Function that does rescan. */
-	void (*reScanMethod)(ScanState *scanState);
-} ScanMethod;
-
 extern TupleTableSlot *ExecScan(ScanState *node, ExecScanAccessMtd accessMtd,
 		 ExecScanRecheckMtd recheckMtd);
 extern void ExecAssignScanProjectionInfo(ScanState *node);
 extern void ExecScanReScan(ScanState *node);
-extern void InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate, int eflags);
-extern void InitScanStateInternal(ScanState *scanState, Plan *plan,
-	EState *estate, int eflags, bool initCurrentRelation);
-extern void FreeScanRelationInternal(ScanState *scanState, bool closeCurrentRelation);
-extern Relation OpenScanRelationByOid(Oid relid);
-extern void CloseScanRelation(Relation rel);
-extern int getTableType(Relation rel);
-extern TupleTableSlot *ExecTableScanRelation(ScanState *scanState);
-extern void BeginTableScanRelation(ScanState *scanState);
-extern void EndTableScanRelation(ScanState *scanState);
-extern void ReScanRelation(ScanState *scanState);
-
-/*
- * prototypes from functions in execHeapScan.c
- */
-extern TupleTableSlot *HeapScanNext(ScanState *scanState);
-extern bool HeapScanRecheck(ScanState *node, TupleTableSlot *slot);
-extern void BeginScanHeapRelation(ScanState *scanState);
-extern void EndScanHeapRelation(ScanState *scanState);
-extern void ReScanHeapRelation(ScanState *scanState);
-
-/*
- * prototypes from functions in execAppendOnlyScan.c
- */
-extern TupleTableSlot *AppendOnlyScanNext(ScanState *scanState);
-extern void BeginScanAppendOnlyRelation(ScanState *scanState);
-extern void EndScanAppendOnlyRelation(ScanState *scanState);
-extern void ReScanAppendOnlyRelation(ScanState *scanState);
-
-/*
- * prototypes from functions in execAOCSScan.c
- */
-extern TupleTableSlot *AOCSScanNext(ScanState *scanState);
-extern void BeginScanAOCSRelation(ScanState *scanState);
-extern void EndScanAOCSRelation(ScanState *scanState);
-extern void ReScanAOCSRelation(ScanState *scanState);
-
-/*
- * prototypes from functions in execBitmapHeapScan.c
- */
-extern TupleTableSlot *BitmapHeapScanNext(ScanState *scanState);
-extern bool BitmapHeapScanRecheck(ScanState *node, TupleTableSlot *slot);
-extern void BitmapHeapScanBegin(ScanState *scanState);
-extern void BitmapHeapScanEnd(ScanState *scanState);
-extern void BitmapHeapScanReScan(ScanState *scanState);
-
-/*
- * prototypes from functions in execBitmapAOScan.c
- */
-extern TupleTableSlot *BitmapAOScanNext(ScanState *scanState);
-extern void BitmapAOScanBegin(ScanState *scanState);
-extern void BitmapAOScanEnd(ScanState *scanState);
-extern void BitmapAOScanReScan(ScanState *scanState);
-
-/*
- * prototypes from functions in execBitmapTableScan.c
- */
-extern TupleTableSlot *BitmapTableScanNext(BitmapTableScanState *scanState);
-extern void BitmapTableScanBegin(BitmapTableScanState *scanState, Plan *plan, EState *estate, int eflags);
-extern void BitmapTableScanEnd(BitmapTableScanState *scanState);
-extern void BitmapTableScanReScan(BitmapTableScanState *node);
-extern bool BitmapTableScanRecheckTuple(BitmapTableScanState *scanState, TupleTableSlot *slot);
 
 /*
  * prototypes from functions in execTuples.c

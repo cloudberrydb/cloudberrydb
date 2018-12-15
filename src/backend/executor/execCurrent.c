@@ -480,8 +480,7 @@ search_plan_tree(PlanState *node, Oid table_oid)
 		case T_IndexScanState:
 		case T_IndexOnlyScanState:
 		case T_BitmapHeapScanState:
-		case T_BitmapAppendOnlyScanState:
-		case T_BitmapTableScanState:
+		case T_DynamicBitmapHeapScanState:
 		case T_TidScanState:
 			{
 				ScanState  *sstate = (ScanState *) node;

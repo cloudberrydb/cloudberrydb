@@ -28,15 +28,15 @@ OBJS = execAmi.o execCurrent.o execGrouping.o execJunk.o execMain.o \
        nodeSubplan.o nodeSubqueryscan.o nodeTidscan.o \
        nodeForeignscan.o nodeWindowAgg.o tstoreReceiver.o spi.o
 
-OBJS += nodeBitmapTableScan.o \
-       nodeExternalscan.o \
+OBJS += nodeExternalscan.o \
        nodeDynamicIndexscan.o \
+       nodeDynamicBitmapHeapscan.o \
        nodeDynamicBitmapIndexscan.o \
        nodeMotion.o \
        nodeRepeat.o \
        nodeShareInputScan.o \
        nodeTableFunction.o \
-       nodeTableScan.o nodeDynamicTableScan.o \
+       nodeDynamicTableScan.o \
        nodeSequence.o \
        nodeRowTrigger.o \
        nodeAssertOp.o \
@@ -44,9 +44,7 @@ OBJS += nodeBitmapTableScan.o \
        nodeDML.o \
        execDML.o \
        nodePartitionSelector.o \
-       execBitmapTableScan.o execBitmapHeapScan.o execBitmapAOScan.o \
        execDynamicScan.o \
-       execHHashagg.o execGpmon.o execWorkfile.o execHeapScan.o execAOScan.o \
-       execAOCSScan.o nodeBitmapAppendOnlyscan.o
+       execHHashagg.o execGpmon.o execWorkfile.o
 
 include $(top_srcdir)/src/backend/common.mk

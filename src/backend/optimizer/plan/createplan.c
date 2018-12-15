@@ -101,9 +101,6 @@ static WorkTableScan *create_worktablescan_plan(PlannerInfo *root, Path *best_pa
 						  List *tlist, List *scan_clauses);
 static ForeignScan *create_foreignscan_plan(PlannerInfo *root, ForeignPath *best_path,
 						List *tlist, List *scan_clauses);
-static BitmapAppendOnlyScan *create_bitmap_appendonly_scan_plan(PlannerInfo *root,
-								   BitmapAppendOnlyPath *best_path,
-								   List *tlist, List *scan_clauses);
 static NestLoop *create_nestloop_plan(PlannerInfo *root, NestPath *best_path,
 					 Plan *outer_plan, Plan *inner_plan);
 static MergeJoin *create_mergejoin_plan(PlannerInfo *root, MergePath *best_path,
@@ -151,12 +148,6 @@ static BitmapHeapScan *make_bitmap_heapscan(List *qptlist,
 					 Plan *lefttree,
 					 List *bitmapqualorig,
 					 Index scanrelid);
-static BitmapAppendOnlyScan *make_bitmap_appendonlyscan(List *qptlist,
-						   List *qpqual,
-						   Plan *lefttree,
-						   List *bitmapqualorig,
-						   Index scanrelid,
-						   bool isAORow);
 static TidScan *make_tidscan(List *qptlist, List *qpqual, Index scanrelid,
 			 List *tidquals);
 static FunctionScan *make_functionscan(List *qptlist, List *qpqual,
@@ -284,8 +275,6 @@ create_plan_recurse(PlannerInfo *root, Path *best_path)
 		case T_ExternalScan:
 		case T_IndexOnlyScan:
 		case T_BitmapHeapScan:
-		case T_BitmapAppendOnlyScan:
-		case T_BitmapTableScan:
 		case T_TidScan:
 		case T_SubqueryScan:
 		case T_FunctionScan:
@@ -437,13 +426,6 @@ create_scan_plan(PlannerInfo *root, Path *best_path)
 												(BitmapHeapPath *) best_path,
 													tlist,
 													scan_clauses);
-			break;
-
-		case T_BitmapAppendOnlyScan:
-			plan = (Plan *) create_bitmap_appendonly_scan_plan(root,
-										  (BitmapAppendOnlyPath *) best_path,
-															   tlist,
-															   scan_clauses);
 			break;
 
 		case T_TidScan:
@@ -655,8 +637,6 @@ disuse_physical_tlist(PlannerInfo *root, Plan *plan, Path *path)
 		case T_IndexScan:
 		case T_IndexOnlyScan:
 		case T_BitmapHeapScan:
-		case T_BitmapAppendOnlyScan:
-		case T_BitmapTableScan:
 		case T_TidScan:
 		case T_SubqueryScan:
 		case T_FunctionScan:
@@ -2378,120 +2358,6 @@ create_bitmap_scan_plan(PlannerInfo *root,
 									 bitmapqualplan,
 									 bitmapqualorig,
 									 baserelid);
-
-	copy_path_costsize(root, &scan_plan->scan.plan, &best_path->path);
-
-	return scan_plan;
-}
-
-/*
- * create_bitmap_appendonly_scan_plan
- *
- * NOTE: Copy of create_bitmap_scan_plan routine.
- */
-static BitmapAppendOnlyScan *
-create_bitmap_appendonly_scan_plan(PlannerInfo *root,
-								   BitmapAppendOnlyPath *best_path,
-								   List *tlist,
-								   List *scan_clauses)
-{
-	Index		baserelid = best_path->path.parent->relid;
-	Plan	   *bitmapqualplan;
-	List	   *bitmapqualorig = NULL;
-	List	   *indexquals = NULL;
-	List       *indexECs;
-	List	   *qpqual;
-	ListCell   *l;
-	BitmapAppendOnlyScan *scan_plan;
-
-	/* it should be a base rel... */
-	Assert(baserelid > 0);
-	Assert(best_path->path.parent->rtekind == RTE_RELATION);
-
-	/* Process the bitmapqual tree into a Plan tree and qual lists */
-	bitmapqualplan = create_bitmap_subplan(root, best_path->bitmapqual,
-										   &bitmapqualorig, &indexquals,
-										   &indexECs);
-
-	/*
-	 * The qpqual list must contain all restrictions not automatically handled
-	 * by the index.  All the predicates in the indexquals will be checked
-	 * (either by the index itself, or by nodeBitmapHeapscan.c), but if there
-	 * are any "special" or lossy operators involved then they must be added
-	 * to qpqual.  The upshot is that qpqual must contain scan_clauses minus
-	 * whatever appears in indexquals.
-	 *
-	 * In normal cases simple equal() checks will be enough to spot duplicate
-	 * clauses, so we try that first.  In some situations (particularly with
-	 * OR'd index conditions) we may have scan_clauses that are not equal to,
-	 * but are logically implied by, the index quals; so we also try a
-	 * predicate_implied_by() check to see if we can discard quals that way.
-	 * (predicate_implied_by assumes its first input contains only immutable
-	 * functions, so we have to check that.)
-	 *
-	 * Unlike create_indexscan_plan(), we need take no special thought here
-	 * for partial index predicates; this is because the predicate conditions
-	 * are already listed in bitmapqualorig and indexquals.  Bitmap scans have
-	 * to do it that way because predicate conditions need to be rechecked if
-	 * the scan becomes lossy.
-	 */
-	qpqual = NIL;
-	foreach(l, scan_clauses)
-	{
-		RestrictInfo *rinfo = (RestrictInfo *) lfirst(l);
-		Node       *clause = (Node *) rinfo->clause;
-
-		Assert(IsA(rinfo, RestrictInfo));
-		if (rinfo->pseudoconstant)
-			continue;           /* we may drop pseudoconstants here */
-		if (list_member(indexquals, clause))
-			continue;			/* simple duplicate */
-		if (rinfo->parent_ec && list_member_ptr(indexECs, rinfo->parent_ec))
-			continue;           /* derived from same EquivalenceClass */
-		if (!contain_mutable_functions(clause))
-		{
-			List	   *clausel = list_make1(clause);
-
-			if (predicate_implied_by(clausel, indexquals))
-				continue;		/* provably implied by indexquals */
-		}
-		qpqual = lappend(qpqual, rinfo);
-	}
-
-	/* Sort clauses into best execution order */
-	qpqual = order_qual_clauses(root, qpqual);
-
-	/* Reduce RestrictInfo list to bare expressions; ignore pseudoconstants */
-	qpqual = extract_actual_clauses(qpqual, false);
-
-	/*
-	 * When dealing with special or lossy operators, we will at this point
-	 * have duplicate clauses in qpqual and bitmapqualorig.  We may as well
-	 * drop 'em from bitmapqualorig, since there's no point in making the
-	 * tests twice.
-	 */
-	bitmapqualorig = list_difference_ptr(bitmapqualorig, qpqual);
-
-	/*
-	 * We have to replace any outer-relation variables with nestloop params in
-	 * the qpqual and bitmapqualorig expressions.  (This was already done for
-	 * expressions attached to plan nodes in the bitmapqualplan tree.)
-	 */
-	if (best_path->path.param_info)
-	{
-		qpqual = (List *)
-			replace_nestloop_params(root, (Node *) qpqual);
-		bitmapqualorig = (List *)
-			replace_nestloop_params(root, (Node *) bitmapqualorig);
-	}
-
-	/* Finally ready to build the plan node */
-	scan_plan = make_bitmap_appendonlyscan(tlist,
-										   qpqual,
-										   bitmapqualplan,
-										   bitmapqualorig,
-										   baserelid,
-										   best_path->isAORow);
 
 	copy_path_costsize(root, &scan_plan->scan.plan, &best_path->path);
 
@@ -4684,30 +4550,6 @@ make_bitmap_heapscan(List *qptlist,
 	plan->righttree = NULL;
 	node->scan.scanrelid = scanrelid;
 	node->bitmapqualorig = bitmapqualorig;
-
-	return node;
-}
-
-static BitmapAppendOnlyScan *
-make_bitmap_appendonlyscan(List *qptlist,
-						   List *qpqual,
-						   Plan *lefttree,
-						   List *bitmapqualorig,
-						   Index scanrelid,
-						   bool isAORow)
-{
-	BitmapAppendOnlyScan *node = makeNode(BitmapAppendOnlyScan);
-	Plan	   *plan = &node->scan.plan;
-
-	/* cost should be inserted by caller */
-	plan->targetlist = qptlist;
-	plan->qual = qpqual;
-	plan->lefttree = lefttree;
-	plan->righttree = NULL;
-	node->scan.scanrelid = scanrelid;
-
-	node->bitmapqualorig = bitmapqualorig;
-	node->isAORow = isAORow;
 
 	return node;
 }

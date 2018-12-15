@@ -102,7 +102,7 @@ IndexNext(IndexScanState *node)
 
 		return slot;
 	}
-	
+
 	/*
 	 * if we get here it means the index scan failed so we are at the end of
 	 * the scan..

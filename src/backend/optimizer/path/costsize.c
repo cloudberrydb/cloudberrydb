@@ -114,7 +114,6 @@ bool		enable_seqscan = true;
 bool		enable_indexscan = true;
 bool		enable_indexonlyscan = true;
 bool		enable_bitmapscan = true;
-bool		force_bitmap_table_scan = false;
 bool		enable_tidscan = true;
 bool		enable_sort = true;
 bool		enable_hashagg = true;

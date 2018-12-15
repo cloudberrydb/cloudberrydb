@@ -16,34 +16,13 @@
 
 #include "access/attnum.h"
 #include "nodes/execnodes.h"
-#include "executor/tuptable.h"
 
-typedef void (PartitionInitMethod)(ScanState *scanState, AttrNumber *attMap);
-typedef void (PartitionEndMethod)(ScanState *scanState);
-typedef void (PartitionReScanMethod)(ScanState *scanState);
-typedef TupleTableSlot * (PartitionScanTupleMethod)(ScanState *scanState);
+extern bool isDynamicScan(const Plan *p);
+extern int DynamicScan_GetDynamicScanIdPrintable(Plan *plan);
 
-extern void
-DynamicScan_Begin(ScanState *scanState, Plan *plan, EState *estate, int eflags);
+extern Oid DynamicScan_GetTableOid(ScanState *scanState);
+extern void DynamicScan_SetTableOid(ScanState *scanState, Oid curRelOid);
 
-extern void
-DynamicScan_End(ScanState *scanState, PartitionEndMethod *partitionEndMethod);
-
-extern void
-DynamicScan_ReScan(ScanState *scanState);
-
-extern TupleTableSlot *
-DynamicScan_GetNextTuple(ScanState *scanState, PartitionInitMethod *partitionInitMethod,
-		PartitionEndMethod *partitionEndMethod, PartitionReScanMethod *partitionReScanMethod,
-		PartitionScanTupleMethod *partitionScanTupleMethod);
-
-extern MemoryContext
-DynamicScan_GetPartitionMemoryContext(ScanState *scanState);
-
-extern Oid
-DynamicScan_GetTableOid(ScanState *scanState);
-
-extern bool
-DynamicScan_RemapExpression(ScanState *scanState, AttrNumber *attMap, Node *expr);
+extern bool DynamicScan_RemapExpression(ScanState *scanState, AttrNumber *attMap, Node *expr);
 
 #endif   /* EXECDYNAMICSCAN_H */

@@ -462,34 +462,6 @@ typedef struct PartOidEntry
 } PartOidEntry;
 
 /*
- * DynamicPartitionIterator
- *   Defines the iterator state to iterate over a set of partitions.
- */
-typedef struct DynamicPartitionIterator
-{
-	/* An HTAB of partition oids to work on. */
-	HTAB	   *partitionOids;
-
-	/* The current HTAB iterator */
-	HASH_SEQ_STATUS *partitionIterator;
-
-	/*
-	 * If the HTAB is not completely iterated, we need to
-	 * call hash_seq_term.
-	 */
-	bool		shouldCallHashSeqTerm;
-
-	/* The relation oid at current iterator position. */
-	Oid			curRelOid;
-
-	/*
-	 * The per-partition memory context to prevent memory leak during
-	 * processing multiple partitions.
-	 */
-	MemoryContext partitionMemoryContext;
-} DynamicPartitionIterator;
-
-/*
  * DynamicTableScanInfo
  *   Encapsulate the information that is needed to maintain the pid indexes
  * for all dynamic table scans in a plan.
@@ -515,10 +487,11 @@ typedef struct DynamicTableScanInfo
 	HTAB	  **pidIndexes;
 
 	/*
-	 * An array of *pointers* to DynamicPartitionIterator to record the
-	 * current hash table iterator position.
+	 * An array of Oids, for the current partition being scanned in each
+	 *  dynamic scan. (XXX: Currently only used to pass the oid from
+	 * DynamicBitmapHeapScan to DynamicBitmapIndexScans.
 	 */
-	DynamicPartitionIterator **iterators;
+	Oid		   *curRelOids;
 
 	/*
 	 * Partitioning metadata for all relevant partition tables.
@@ -1679,14 +1652,8 @@ typedef struct BitmapOrState
 /* What stage the scan node is currently
  *
  * 	SCAN_INIT: we are initializing the scan state
- * 	SCAN_FIRST: part of the initialization is done and we are
- * 		ready to scan the first relation of possibly multiple
- * 		relations, if it is a dynamic scan.
  * 	SCAN_SCAN: all initializations for reading tuples are done
  * 		and we are either reading tuples, or ready to read tuples
- * 	SCAN_MARKPOS: we have marked a position in the scan state
- * 	SCAN_NEXT: we are done with the current relation and waiting
- * 		for the next relation (if multi-partition)
  * 	SCAN_DONE: we are done with all relations/partitions, but
  * 		the scan state is still valid for a ReScan (i.e., we
  * 		haven't destroyed our scan state yet)
@@ -1695,30 +1662,11 @@ typedef struct BitmapOrState
  */
 typedef enum
 {
-        SCAN_INIT           = 0,
-        SCAN_FIRST          = 1,
-        SCAN_SCAN           = 2,
-        SCAN_MARKPOS        = 4,
-        SCAN_NEXT           = 8,
-        SCAN_DONE           = 16,
-        SCAN_RESCAN         = 32,
-        SCAN_END            = 64,
+	SCAN_INIT,
+	SCAN_SCAN,
+	SCAN_DONE,
+	SCAN_END
 } ScanStatus;
-
-/*
- * TableType
- *   Enum for different types of tables. The code relies on the enum being
- *   unsigned so the minimum member value should be zero. Reordering and/or
- *   renumbering the enum will most likely break assumptions and should be
- *   refrained from.
- */
-typedef enum
-{
-	TableTypeHeap = 0,
-	TableTypeAppendOnly = 1,
-	TableTypeAOCS = 2,
-	TableTypeInvalid,
-} TableType;
 
 /* ----------------
  *	 ScanState information
@@ -1731,8 +1679,6 @@ typedef enum
  *
  *		currentRelation    relation being scanned (NULL if none)
  *		ScanTupleSlot	   pointer to slot in tuple table holding scan tuple
- *		scan_state		   the stage of scanning
- *		tableType		   the table type of the target relation
  * ----------------
  */
 typedef struct ScanState
@@ -1740,38 +1686,32 @@ typedef struct ScanState
 	PlanState	ps;				/* its first field is NodeTag */
 	Relation	ss_currentRelation;
 	TupleTableSlot *ss_ScanTupleSlot;
-
-	int			scan_state;
-
-	/* The type of the table that is being scanned */
-	TableType	tableType;
 } ScanState;
 
 /*
- * SeqScanOpaqueData
- *   Additional state data (in addition to ScanState) for scanning heap table.
- */
-typedef struct SeqScanOpaqueData
-{
-	struct HeapScanDescData * ss_currentScanDesc;
-
-	struct {
-		HeapTupleData item[512];
-		int bot, top;
-		HeapTuple last;
-		int seen_EOS;
-	} ss_heapTupleData;
-
-} SeqScanOpaqueData;
-
-/*
  * SeqScanState
- *   State data for scanning heap table.
+ *   State data for scanning heap/AO/AOCS table.
  */
 typedef struct SeqScanState
 {
 	ScanState ss;
-	SeqScanOpaqueData *opaque;
+	struct HeapScanDescData *ss_currentScanDesc_heap;
+	struct AppendOnlyScanDescData *ss_currentScanDesc_ao;
+	struct AOCSScanDescData *ss_currentScanDesc_aocs;
+
+	/* extra state for heap scans */
+	struct
+	{
+		HeapTupleData item[512];
+		int			bot;
+		int			top;
+		HeapTuple	last;
+		int			seen_EOS;
+	} ss_heapTupleData;
+
+	/* extra state for AOCS scans */
+	bool	   *ss_aocs_proj;
+	int			ss_aocs_ncol;
 } SeqScanState;
 
 /*
@@ -1840,6 +1780,8 @@ typedef struct IndexScanState
 typedef struct DynamicIndexScanState
 {
 	ScanState	ss;
+
+	int			scan_state; /* the stage of scanning */
 
 	int			eflags;
 	IndexScanState *indexScanState;
@@ -1980,7 +1922,12 @@ typedef struct DynamicBitmapIndexScanState
 typedef struct BitmapHeapScanState
 {
 	ScanState	ss;				/* its first field is NodeTag */
-	struct HeapScanDescData *ss_currentScanDesc;
+
+	struct HeapScanDescData *bhs_currentScanDesc_heap;
+	struct AppendOnlyFetchDescData *bhs_currentAOFetchDesc;
+	struct AOCSFetchDescData *bhs_currentAOCSFetchDesc;
+	struct AOCSFetchDescData *bhs_currentAOCSLossyFetchDesc;
+
 	List	   *bitmapqualorig;
 	Node	   *tbm;
 	GenericBMIterator *tbmiterator;
@@ -1990,60 +1937,71 @@ typedef struct BitmapHeapScanState
 	GenericBMIterator *prefetch_iterator;
 	int			prefetch_pages;
 	int			prefetch_target;
-} BitmapHeapScanState;
 
-/* ----------------
- *	 BitmapAppendOnlyScanState information
- *
- *		bitmapqualorig	   execution state for bitmapqualorig expressions
- *		tbm				   bitmap obtained from child index scan(s)
- *		tbmres			   current-page data
- * ----------------
- */
-typedef struct BitmapAppendOnlyScanState
-{
-	ScanState		 ss;     /* its first field is NodeTag */
-
-	struct AppendOnlyFetchDescData	*baos_currentAOFetchDesc;
-	struct AOCSFetchDescData *baos_currentAOCSFetchDesc;
-	struct AOCSFetchDescData *baos_currentAOCSLossyFetchDesc;
-	List	   *baos_bitmapqualorig;
-	GenericBMIterator *baos_iterator;
-	TBMIterateResult *baos_tbmres;
+	/* These are used by AO/AOCS scans, to work with lossy bitmap pages */
 	bool		baos_gotpage;
 	int			baos_cindex;
 	bool		baos_lossy;
 	int			baos_ntuples;
-	bool        isAORow; /* If this is for AO Row tables. */
-} BitmapAppendOnlyScanState;
 
-/* ----------------
- *	 BitmapTableScanState information
- *
- *		scanDesc			an opaque (scan method dependent) scan descriptor
- *		bitmapqualorig		execution state for bitmapqualorig expressions
- *		tbm					bitmap obtained from child index scan(s)
- *		tbmres				current bitmap-page data
- *		isLossyBitmapPage	is the current bitmap-page lossy?
- *		recheckTuples		should the tuples be rechecked for eligibility because of visibility issues
- *		needNewBitmapPage	are we done with current bitmap page and therefore need a new one?
- *		iterator			an opaque iterator object to iterate a bitmap page and the corresponding table data
- * ----------------
- */
-typedef struct BitmapTableScanState
+} BitmapHeapScanState;
+
+typedef struct DynamicBitmapHeapScanState
 {
-	ScanState        			ss;                                /* its first field is NodeTag */
+	ScanState	ss;				/* its first field is NodeTag */
 
-	void 						*scanDesc;
-	List           				*bitmapqualorig;
-	Node  						*tbm;
-	GenericBMIterator			*tbmiterator;
-	TBMIterateResult 	*tbmres;
-	bool						isLossyBitmapPage;
-	bool						recheckTuples;
-	bool						needNewBitmapPage;
-	void						*iterator;
-} BitmapTableScanState;
+	int			scan_state; /* the stage of scanning */
+
+	int			eflags;
+	BitmapHeapScanState *bhsState;
+
+
+	/*
+	 * Pid index that maintains all unique partition pids for this dynamic
+	 * table scan to scan.
+	 */
+	HTAB	   *pidIndex;
+
+	/*
+	 * The status of sequentially scan the pid index.
+	 */
+	HASH_SEQ_STATUS pidStatus;
+
+	/*
+	 * Should we call hash_seq_term()? This is required
+	 * to handle error condition, where we are required to explicitly
+	 * call hash_seq_term(). Also, if we don't have any partition, this
+	 * flag should prevent ExecEndDynamicTableScan from calling
+	 * hash_seq_term() on a NULL hash table.
+	 */
+	bool		shouldCallHashSeqTerm;
+
+	/*
+	 * The first partition requires initialization of expression states,
+	 * such as qual and targetlist, regardless of whether we need to re-map varattno
+	 */
+	bool		firstPartition;
+	/*
+	 * lastRelOid is the last relation that corresponds to the
+	 * varattno mapping of qual and target list. Each time we open a new partition, we will
+	 * compare the last relation with current relation by using varattnos_map()
+	 * and then convert the varattno to the new varattno
+	 */
+	Oid			lastRelOid;
+
+	/*
+	 * scanrelid is the RTE index for this scan node. It will be used to select
+	 * varno whose varattno will be remapped, if necessary
+	 */
+	Index		scanrelid;
+
+	/*
+	 * This memory context will be reset per-partition to free
+	 * up previous partition's memory
+	 */
+	MemoryContext partitionMemoryContext;
+	
+} DynamicBitmapHeapScanState;
 
 /* ----------------
  *	 TidScanState information
@@ -2235,76 +2193,23 @@ typedef struct ExternalScanState
 	ItemPointerData cdb_fake_ctid;
 } ExternalScanState;
 
-/* ----------------
- * AppendOnlyScanState information
- *
- *   AppendOnlyScan nodes are used to scan append only tables
- *
- *   aos_ScanDesc is the additional data that is needed for scanning
- * AppendOnly table.
- * ----------------
- */
-typedef struct AppendOnlyScanState
-{
-	ScanState	ss;
-	struct AppendOnlyScanDescData *aos_ScanDesc;
-} AppendOnlyScanState;
-
-/*
- * AOCSScanOpaqueData
- *    Additional data (in addition to ScanState) for scanning AppendOnly
- * columnar table.
- */
-typedef struct AOCSScanOpaqueData
-{
-	/*
-	 * The array to indicate columns that are involved in the scan.
-	 */
-	bool	   *proj;
-	int			ncol;
-
-	struct AOCSScanDescData *scandesc;
-} AOCSScanOpaqueData;
-
-/* -----------------------------------------------
- *      AOCSScanState
- * -----------------------------------------------
- */
-typedef struct AOCSScanState
-{
-	ScanState ss;
-	AOCSScanOpaqueData *opaque;
-} AOCSScanState;
-
-/*
- * TableScanState
- *   Encapsulate the scan state for different table type.
- *
- * During execution, the 'opaque' is mapped to different XXXOpaqueData
- * for different table type.
- */
-typedef struct TableScanState
-{
-	ScanState	ss;
-
-	/*
-	 * Opaque data that is associated with different table type.
-	 */
-	void	   *opaque;
-} TableScanState;
-
 /*
  * DynamicTableScanState
  */
 typedef struct DynamicTableScanState
 {
-	TableScanState tableScanState;
+	ScanState	ss;
+
+	int			scan_state; /* the stage of scanning */
+
+	int			eflags;
+	SeqScanState *seqScanState;
 
 	/*
 	 * Pid index that maintains all unique partition pids for this dynamic
 	 * table scan to scan.
 	 */
-	HTAB *pidIndex;
+	HTAB	   *pidIndex;
 
 	/*
 	 * The status of sequentially scan the pid index.
@@ -2318,26 +2223,26 @@ typedef struct DynamicTableScanState
 	 * flag should prevent ExecEndDynamicTableScan from calling
 	 * hash_seq_term() on a NULL hash table.
 	 */
-	bool shouldCallHashSeqTerm;
+	bool		shouldCallHashSeqTerm;
 
 	/*
 	 * The first partition requires initialization of expression states,
 	 * such as qual and targetlist, regardless of whether we need to re-map varattno
 	 */
-	bool firstPartition;
+	bool		firstPartition;
 	/*
 	 * lastRelOid is the last relation that corresponds to the
 	 * varattno mapping of qual and target list. Each time we open a new partition, we will
 	 * compare the last relation with current relation by using varattnos_map()
 	 * and then convert the varattno to the new varattno
 	 */
-	Oid lastRelOid;
+	Oid			lastRelOid;
 
 	/*
 	 * scanrelid is the RTE index for this scan node. It will be used to select
 	 * varno whose varattno will be remapped, if necessary
 	 */
-	Index scanrelid;
+	Index		scanrelid;
 
 	/*
 	 * This memory context will be reset per-partition to free

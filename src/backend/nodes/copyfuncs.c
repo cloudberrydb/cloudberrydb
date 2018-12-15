@@ -462,8 +462,6 @@ CopyScanFields(const Scan *from, Scan *newnode)
 	CopyPlanFields((const Plan *) from, (Plan *) newnode);
 
 	COPY_SCALAR_FIELD(scanrelid);
-	COPY_SCALAR_FIELD(partIndex);
-	COPY_SCALAR_FIELD(partIndexPrintable);
 }
 
 /*
@@ -502,6 +500,7 @@ static DynamicTableScan *
 _copyDynamicTableScan(const DynamicTableScan *from)
 {
 	DynamicTableScan *newnode = makeNode(DynamicTableScan);
+
 	CopyScanFields((Scan *) from, (Scan *) newnode);
 	COPY_SCALAR_FIELD(partIndex);
 	COPY_SCALAR_FIELD(partIndexPrintable);
@@ -577,6 +576,8 @@ _copyDynamicIndexScan(const DynamicIndexScan *from)
 
 	/* DynamicIndexScan has some content from IndexScan */
 	CopyIndexScanFields(&from->indexscan, &newnode->indexscan);
+	COPY_SCALAR_FIELD(partIndex);
+	COPY_SCALAR_FIELD(partIndexPrintable);
 	newnode->logicalIndexInfo = CopyLogicalIndexInfo(from->logicalIndexInfo);
 
 	return newnode;
@@ -640,9 +641,25 @@ _copyDynamicBitmapIndexScan(const DynamicBitmapIndexScan *from)
 	DynamicBitmapIndexScan *newnode = makeNode(DynamicBitmapIndexScan);
 
 	CopyBitmapIndexScanFields(&from->biscan, &newnode->biscan);
+	COPY_SCALAR_FIELD(partIndex);
+	COPY_SCALAR_FIELD(partIndexPrintable);
 	newnode->logicalIndexInfo = CopyLogicalIndexInfo(from->logicalIndexInfo);
 
 	return newnode;
+}
+
+static void
+CopyBitmapHeapScanFields(const BitmapHeapScan *from, BitmapHeapScan *newnode)
+{
+	/*
+	 * copy node superclass fields
+	 */
+	CopyScanFields((const Scan *) from, (Scan *) newnode);
+
+	/*
+	 * copy remainder of node
+	 */
+	COPY_NODE_FIELD(bitmapqualorig);
 }
 
 /*
@@ -653,58 +670,22 @@ _copyBitmapHeapScan(const BitmapHeapScan *from)
 {
 	BitmapHeapScan *newnode = makeNode(BitmapHeapScan);
 
-	/*
-	 * copy node superclass fields
-	 */
-	CopyScanFields((const Scan *) from, (Scan *) newnode);
-
-	/*
-	 * copy remainder of node
-	 */
-	COPY_NODE_FIELD(bitmapqualorig);
+	CopyBitmapHeapScanFields(from, newnode);
 
 	return newnode;
 }
 
 /*
- * _copyBitmapAppendOnlyScan
+ * _copyDynamicBitmapHeapScan
  */
-static BitmapAppendOnlyScan *
-_copyBitmapAppendOnlyScan(const BitmapAppendOnlyScan *from)
+static DynamicBitmapHeapScan *
+_copyDynamicBitmapHeapScan(const DynamicBitmapHeapScan *from)
 {
-	BitmapAppendOnlyScan *newnode = makeNode(BitmapAppendOnlyScan);
+	DynamicBitmapHeapScan *newnode = makeNode(DynamicBitmapHeapScan);
 
-	/*
-	 * copy node superclass fields
-	 */
-	CopyScanFields((Scan *) from, (Scan *) newnode);
-
-	/*
-	 * copy remainder of node
-	 */
-	COPY_NODE_FIELD(bitmapqualorig);
-	COPY_SCALAR_FIELD(isAORow);
-
-	return newnode;
-}
-
-/*
- * _copyBitmapTableScan
- */
-static BitmapTableScan *
-_copyBitmapTableScan(const BitmapTableScan *from)
-{
-	BitmapTableScan *newnode = makeNode(BitmapTableScan);
-
-	/*
-	 * copy node superclass fields
-	 */
-	CopyScanFields((Scan *) from, (Scan *) newnode);
-
-	/*
-	 * copy remainder of node
-	 */
-	COPY_NODE_FIELD(bitmapqualorig);
+	CopyBitmapHeapScanFields(&from->bitmapheapscan, &newnode->bitmapheapscan);
+	COPY_SCALAR_FIELD(partIndex);
+	COPY_SCALAR_FIELD(partIndexPrintable);
 
 	return newnode;
 }
@@ -5224,11 +5205,8 @@ copyObject(const void *from)
 		case T_BitmapHeapScan:
 			retval = _copyBitmapHeapScan(from);
 			break;
-		case T_BitmapAppendOnlyScan:
-			retval = _copyBitmapAppendOnlyScan(from);
-			break;
-		case T_BitmapTableScan:
-			retval = _copyBitmapTableScan(from);
+		case T_DynamicBitmapHeapScan:
+			retval = _copyDynamicBitmapHeapScan(from);
 			break;
 		case T_TidScan:
 			retval = _copyTidScan(from);

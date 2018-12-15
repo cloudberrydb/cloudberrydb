@@ -195,39 +195,6 @@ static Const *string_to_const(const char *str, Oid datatype);
 
 
 /*
- * create_bitmap_scan_path()
- *   Create either BitmapHeapScan, or BitmapAppendOnlyScan path based
- *   on the given relation storage option.
- */
-static Path *
-create_bitmap_scan_path(PlannerInfo *root,
-						RelOptInfo *rel,
-						Path *bitmapqual,
-						Relids required_outer,
-						double loop_count)
-{
-	Path	   *path = NULL;
-
-	switch (rel->relstorage)
-	{
-		case RELSTORAGE_HEAP:
-			path = (Path *) create_bitmap_heap_path(root, rel, bitmapqual, required_outer, loop_count);
-			break;
-		case RELSTORAGE_AOROWS:
-			path = (Path *) create_bitmap_appendonly_path(root, rel, bitmapqual, required_outer, loop_count, true);
-			break;
-		case RELSTORAGE_AOCOLS:
-			path = (Path *) create_bitmap_appendonly_path(root, rel, bitmapqual, required_outer, loop_count, false);
-			break;
-		default:
-			elog(ERROR, "unrecognized relstorage type %d for using bitmap scan path",
-				 rel->relstorage);
-	}
-
-	return path;
-}
-
-/*
  * create_index_paths()
  *	  Generate all interesting index paths for the given relation.
  *	  Candidate paths are added to the rel's pathlist (using add_path).
@@ -369,10 +336,10 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel)
 	if (bitindexpaths != NIL)
 	{
 		Path	   *bitmapqual;
-		Path *bpath;
+		BitmapHeapPath *bpath;
 
 		bitmapqual = choose_bitmap_and(root, rel, bitindexpaths);
-		bpath = create_bitmap_scan_path(root, rel, bitmapqual,
+		bpath = create_bitmap_heap_path(root, rel, bitmapqual,
 										rel->lateral_relids, 1.0);
 		add_path(rel, (Path *) bpath);
 	}
@@ -418,7 +385,7 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel)
 			Path	   *bitmapqual;
 			Relids		required_outer;
 			double		loop_count;
-			Path		*bpath;
+			BitmapHeapPath *bpath;
 			ListCell   *lcp;
 			ListCell   *lco;
 
@@ -445,7 +412,7 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel)
 			/* And push that path into the mix */
 			required_outer = get_bitmap_tree_required_outer(bitmapqual);
 			loop_count = get_loop_count(root, required_outer);
-			bpath = create_bitmap_scan_path(root, rel, bitmapqual,
+			bpath = create_bitmap_heap_path(root, rel, bitmapqual,
 											required_outer, loop_count);
 			add_path(rel, (Path *) bpath);
 		}
