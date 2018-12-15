@@ -3916,7 +3916,6 @@ merge_leaf_stats(VacAttrStatsP stats,
 	float *relTuples = (float *) palloc0(sizeof(float) * numPartitions);
 	float *nDistincts = (float *) palloc0(sizeof(float) * numPartitions);
 	float *nMultiples = (float *) palloc0(sizeof(float) * numPartitions);
-	float *nUniques = (float *) palloc0(sizeof(float) * numPartitions);
 	int relNum = 0;
 	float totalTuples = 0;
 	float nmultiple = 0; // number of values that appeared more than once
@@ -3952,7 +3951,7 @@ merge_leaf_stats(VacAttrStatsP stats,
 
 	HLLCounter finalHLL = NULL;
 	HLLCounter finalHLLFull = NULL;
-	int i = 0, j;
+	int i = 0;
 	double ndistinct = 0.0;
 	int fullhll_count = 0;
 	int samplehll_count = 0;
@@ -4094,39 +4093,92 @@ merge_leaf_stats(VacAttrStatsP stats,
 				 * we can get the nmultiples on the ROOT as seen below,
 				 * nmultiple(Root) = ndistinct(Root) - (sum of uniques in each partition)
 				 */
+				/*
+				 * hllcounters_left array stores the merged hll result of all the
+				 * hll counters towards the left of index i and excluding the hll
+				 * counter at index i
+				 */
+				HLLCounter *hllcounters_left = (HLLCounter *) palloc0(numPartitions * sizeof(HLLCounter));
+
+				/*
+				 * hllcounters_right array stores the merged hll result of all the
+				 * hll counters towards the right of index i and excluding the hll
+				 * counter at index i
+				 */
+				HLLCounter *hllcounters_right = (HLLCounter *) palloc0(numPartitions * sizeof(HLLCounter));
+
+				hllcounters_left[0] = hyperloglog_init_def();
+				hllcounters_right[numPartitions - 1] = hyperloglog_init_def();
+
+				/*
+				 * The following loop populates the left and right array by accumulating the merged
+				 * result of all the hll counters towards the left/right of the given index i excluding
+				 * the counter at index i.
+				 * Note that there might be empty values for some partitions, in which case the
+				 * corresponding element in the left/right arrays will simply be the value
+				 * of its neighbor.
+				 * For E.g If the hllcounters_copy array is 1, null, 2, 3, null, 4
+				 * the left and right arrays will be as follows:
+				 * hllcounters_left:  default, 1, 1, (1,2), (1,2,3), (1,2,3)
+				 * hllcounters_right: (2,3,4), (2,3,4), (3,4), 4, 4, default
+				 */
+				/*
+				 * The first and the last element in the left and right arrays
+				 * are default values since there is no element towards
+				 * the left or right of them
+				 */
+				for (i = 1; i < numPartitions; i++)
+				{
+					/* populate left array */
+					if (nDistincts[i - 1] == 0)
+					{
+						hllcounters_left[i] = hll_copy(hllcounters_left[i - 1]);
+					}
+					else
+					{
+						HLLCounter hllcounter_temp1 = hll_copy(hllcounters_copy[i - 1]);
+						HLLCounter hllcounter_temp2 = hll_copy(hllcounters_left[i - 1]);
+						hllcounters_left[i] = hyperloglog_merge_counters(hllcounter_temp1, hllcounter_temp2);
+						pfree(hllcounter_temp1);
+						pfree(hllcounter_temp2);
+					}
+
+					/* populate right array */
+					if (nDistincts[numPartitions - i] == 0)
+					{
+						hllcounters_right[numPartitions - i - 1] = hll_copy(hllcounters_right[numPartitions - i]);
+					}
+					else
+					{
+						HLLCounter hllcounter_temp1 = hll_copy(hllcounters_copy[numPartitions - i]);
+						HLLCounter hllcounter_temp2 = hll_copy(hllcounters_right[numPartitions - i]);
+						hllcounters_right[numPartitions - i - 1] = hyperloglog_merge_counters(hllcounter_temp1, hllcounter_temp2);
+						pfree(hllcounter_temp1);
+						pfree(hllcounter_temp2);
+					}
+				}
+
 				int nUnique = 0;
 				for (i = 0; i < numPartitions; i++)
 				{
-					// i -> partition number for which we wish
-					// to calculate the number of unique values
+					/* Skip if statistics are missing for the partition */
 					if (nDistincts[i] == 0)
 						continue;
 
-					HLLCounter finalHLL_NDV = NULL;
-					for (j = 0; j < numPartitions; j++)
+					HLLCounter hllcounter_temp1 = hll_copy(hllcounters_left[i]);
+					HLLCounter hllcounter_temp2 = hll_copy(hllcounters_right[i]);
+					HLLCounter final = NULL;
+					final = hyperloglog_merge_counters(hllcounter_temp1, hllcounter_temp2);
+
+					pfree(hllcounter_temp1);
+					pfree(hllcounter_temp2);
+
+					if (final != NULL)
 					{
-						// merge the HLL counters for each partition
-						// except the current partition (i)
-						if (i != j && hllcounters_copy[j] != NULL)
-						{
-							HLLCounter hllcounter_temp = hll_copy(hllcounters_copy[j]);
-							HLLCounter finalHLL_NDV_temp = finalHLL_NDV;
-							finalHLL_NDV = hyperloglog_merge_counters(finalHLL_NDV_temp, hllcounter_temp);
-							if (NULL != finalHLL_NDV_temp)
-							{
-								pfree(finalHLL_NDV_temp);
-							}
-							pfree(hllcounter_temp);
-						}
-					}
-					if (finalHLL_NDV != NULL)
-					{
-						// Calculating uniques in each partition
-						nUniques[i] =
-							ndistinct - hyperloglog_estimate(finalHLL_NDV);
-						nUnique += nUniques[i];
-						nmultiple += nMultiples[i] * (nUniques[i] / nDistincts[i]);
-						pfree(finalHLL_NDV);
+						float nUniques = ndistinct - hyperloglog_estimate(final);
+						nUnique += nUniques;
+						nmultiple += nMultiples[i] * (nUniques / nDistincts[i]);
+						pfree(final);
 					}
 					else
 					{
@@ -4139,14 +4191,21 @@ merge_leaf_stats(VacAttrStatsP stats,
 				nmultiple += ndistinct - nUnique;
 
 				if (nmultiple < 0)
-				{
 					nmultiple = 0;
-				}
+
+				pfree(hllcounters_left);
+				pfree(hllcounters_right);
 			}
 		}
 		else
 		{
 			/* Else error out due to incompatible leaf HLL counter merge */
+			pfree(hllcounters);
+			pfree(hllcounters_fullscan);
+			pfree(hllcounters_copy);
+			pfree(nDistincts);
+			pfree(nMultiples);
+
 			ereport(ERROR,
 					(errmsg("ANALYZE cannot merge since not all non-empty leaf partitions have consistent hyperloglog statistics for merge"),
 					 errhint("Re-run ANALYZE or ANALYZE FULLSCAN")));
@@ -4157,7 +4216,6 @@ merge_leaf_stats(VacAttrStatsP stats,
 	pfree(hllcounters_copy);
 	pfree(nDistincts);
 	pfree(nMultiples);
-	pfree(nUniques);
 
 	if (allDistinct || (!OidIsValid(eqopr) && !OidIsValid(ltopr)))
 	{
