@@ -1689,7 +1689,7 @@ acquire_sample_rows_ao(Relation onerel, int elevel,
 	for (;;)
 	{
 		if (aoScanDesc)
-			(void) appendonly_getnext(aoScanDesc, ForwardScanDirection, slot);
+			appendonly_getnext(aoScanDesc, ForwardScanDirection, slot);
 		else
 			aocs_getnext(aocsScanDesc, ForwardScanDirection, slot);
 

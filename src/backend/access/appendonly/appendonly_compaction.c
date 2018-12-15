@@ -267,13 +267,13 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel,
 }
 
 static void
-AppendOnlyMoveTuple(MemTuple tuple,
-					TupleTableSlot *slot,
+AppendOnlyMoveTuple(TupleTableSlot *slot,
 					MemTupleBinding *mt_bind,
 					AppendOnlyInsertDesc insertDesc,
 					ResultRelInfo *resultRelInfo,
 					EState *estate)
 {
+	MemTuple	tuple;
 	AOTupleId  *oldAoTupleId;
 	Oid			tupleOid;
 	AOTupleId	newAoTupleId;
@@ -287,6 +287,7 @@ AppendOnlyMoveTuple(MemTuple tuple,
 	/* Extract all the values of the tuple */
 	slot_getallattrs(slot);
 
+	tuple = TupGetMemTuple(slot);
 	tupleOid = MemTupleGetOid(tuple, mt_bind);
 	appendonly_insert(insertDesc,
 					  tuple,
@@ -308,10 +309,10 @@ AppendOnlyMoveTuple(MemTuple tuple,
 
 void
 AppendOnlyThrowAwayTuple(Relation rel,
-						 MemTuple tuple,
 						 TupleTableSlot *slot,
 						 MemTupleBinding *mt_bind)
 {
+	MemTuple	tuple;
 	AOTupleId  *oldAoTupleId;
 
 	Assert(slot);
@@ -321,6 +322,7 @@ AppendOnlyThrowAwayTuple(Relation rel,
 	/* Extract all the values of the tuple */
 	slot_getallattrs(slot);
 
+	tuple = TupGetMemTuple(slot);
 	if (MemTupleHasExternal(tuple, mt_bind))
 	{
 		toast_delete(rel, (GenericTuple) tuple, mt_bind);
@@ -346,7 +348,6 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 	AppendOnlyVisimap visiMap;
 	AppendOnlyScanDesc scanDesc;
 	TupleDesc	tupDesc;
-	MemTuple	tuple;
 	TupleTableSlot *slot;
 	MemTupleBinding *mt_bind;
 	int			compact_segno;
@@ -409,7 +410,7 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 	/*
 	 * Go through all visible tuples and move them to a new segfile.
 	 */
-	while ((tuple = appendonly_getnext(scanDesc, ForwardScanDirection, slot)) != NULL)
+	while (appendonly_getnext(scanDesc, ForwardScanDirection, slot))
 	{
 		/* Check interrupts as this may take time. */
 		CHECK_FOR_INTERRUPTS();
@@ -417,8 +418,7 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 		aoTupleId = (AOTupleId *) slot_get_ctid(slot);
 		if (AppendOnlyVisimap_IsVisible(&scanDesc->visibilityMap, aoTupleId))
 		{
-			AppendOnlyMoveTuple(tuple,
-								slot,
+			AppendOnlyMoveTuple(slot,
 								mt_bind,
 								insertDesc,
 								resultRelInfo,
@@ -429,7 +429,6 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 		{
 			/* Tuple is invisible and needs to be dropped */
 			AppendOnlyThrowAwayTuple(aorel,
-									 tuple,
 									 slot,
 									 mt_bind);
 		}

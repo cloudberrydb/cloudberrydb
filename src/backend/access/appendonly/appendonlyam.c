@@ -1044,7 +1044,7 @@ AppendOnlyExecutorReadBlock_ProcessTuple(AppendOnlyExecutorReadBlock *executorRe
 	return valid;
 }
 
-static MemTuple
+static bool
 AppendOnlyExecutorReadBlock_ScanNextTuple(AppendOnlyExecutorReadBlock *executorReadBlock,
 										  int nkeys,
 										  ScanKey key,
@@ -1076,7 +1076,7 @@ AppendOnlyExecutorReadBlock_ScanNextTuple(AppendOnlyExecutorReadBlock *executorR
 					/* no more items in the varblock, get new buffer */
 					AppendOnlyExecutionReadBlock_FinishedScanBlock(
 																   executorReadBlock);
-					return NULL;
+					return false;
 				}
 
 				executorReadBlock->currentItemCount++;
@@ -1098,7 +1098,7 @@ AppendOnlyExecutorReadBlock_ScanNextTuple(AppendOnlyExecutorReadBlock *executorR
 																 nkeys,
 																 key,
 																 slot))
-						return TupGetMemTuple(slot);
+						return true;
 				}
 
 			}
@@ -1119,7 +1119,7 @@ AppendOnlyExecutorReadBlock_ScanNextTuple(AppendOnlyExecutorReadBlock *executorR
 				{
 					AppendOnlyExecutionReadBlock_FinishedScanBlock(
 																   executorReadBlock);
-					return NULL;
+					return false;
 					/* Force fetching new block. */
 				}
 
@@ -1144,7 +1144,7 @@ AppendOnlyExecutorReadBlock_ScanNextTuple(AppendOnlyExecutorReadBlock *executorR
 															 nkeys,
 															 key,
 															 slot))
-					return TupGetMemTuple(slot);
+					return true;
 			}
 			break;
 
@@ -1156,7 +1156,7 @@ AppendOnlyExecutorReadBlock_ScanNextTuple(AppendOnlyExecutorReadBlock *executorR
 
 	AppendOnlyExecutionReadBlock_FinishedScanBlock(
 												   executorReadBlock);
-	return NULL;
+	return false;
 	/* No match. */
 }
 
@@ -1298,15 +1298,13 @@ getNextBlock(AppendOnlyScanDesc scan)
  * the scankeys.
  * ----------------
  */
-static MemTuple
+static bool
 appendonlygettup(AppendOnlyScanDesc scan,
 				 ScanDirection dir __attribute__((unused)),
 				 int nkeys,
 				 ScanKey key,
 				 TupleTableSlot *slot)
 {
-	MemTuple	tuple;
-
 	Assert(ScanDirectionIsForward(dir));
 	Assert(scan->usableBlockSize > 0);
 
@@ -1314,6 +1312,8 @@ appendonlygettup(AppendOnlyScanDesc scan,
 
 	for (;;)
 	{
+		bool		found;
+
 		if (scan->bufferDone)
 		{
 			/*
@@ -1325,18 +1325,17 @@ appendonlygettup(AppendOnlyScanDesc scan,
 			{
 				/* have we read all this relation's data. done! */
 				if (scan->aos_done_all_segfiles)
-					return NULL;
+					return false;
 			}
 
 			scan->bufferDone = false;
 		}
 
-		tuple = AppendOnlyExecutorReadBlock_ScanNextTuple(
-														  &scan->executorReadBlock,
+		found = AppendOnlyExecutorReadBlock_ScanNextTuple(&scan->executorReadBlock,
 														  nkeys,
 														  key,
 														  slot);
-		if (tuple != NULL)
+		if (found)
 		{
 
 			/*
@@ -1353,7 +1352,7 @@ appendonlygettup(AppendOnlyScanDesc scan,
 			else
 			{
 				/* The tuple is visible */
-				return tuple;
+				return true;
 			}
 		}
 		else
@@ -1361,9 +1360,7 @@ appendonlygettup(AppendOnlyScanDesc scan,
 			/* no more items in the varblock, get new buffer */
 			scan->bufferDone = true;
 		}
-
 	}
-
 }
 
 static void
@@ -1789,22 +1786,22 @@ appendonly_endscan(AppendOnlyScanDesc scan)
  *		appendonly_getnext	- retrieve next tuple in scan
  * ----------------
  */
-MemTuple
+bool
 appendonly_getnext(AppendOnlyScanDesc scan, ScanDirection direction, TupleTableSlot *slot)
 {
-	MemTuple	tup = appendonlygettup(scan, direction, scan->aos_nkeys, scan->aos_key, slot);
+	if (appendonlygettup(scan, direction, scan->aos_nkeys, scan->aos_key, slot))
+	{
+		pgstat_count_heap_getnext(scan->aos_rd);
 
-	if (tup == NULL)
+		return true;
+	}
+	else
 	{
 		if (slot)
 			ExecClearTuple(slot);
 
-		return NULL;
+		return false;
 	}
-
-	pgstat_count_heap_getnext(scan->aos_rd);
-
-	return tup;
 }
 
 static void

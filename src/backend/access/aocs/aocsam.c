@@ -612,7 +612,7 @@ static void upgrade_datum_fetch(AOCSFetchDesc fetch, int attno, Datum values[],
 					   values, isnull, formatversion);
 }
 
-void
+bool
 aocs_getnext(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot)
 {
 	int			ncol;
@@ -643,7 +643,7 @@ ReadNext:
 				/* No more seg, we are at the end */
 				ExecClearTuple(slot);
 				scan->cur_seg = -1;
-				return;
+				return false;
 			}
 			scan->cur_seg_row = 0;
 		}
@@ -720,11 +720,11 @@ ReadNext:
 
 		TupSetVirtualTupleNValid(slot, ncol);
 		slot_set_ctid(slot, &(scan->cdb_fake_ctid));
-		return;
+		return true;
 	}
 
 	Assert(!"Never here");
-	return;
+	return false;
 }
 
 

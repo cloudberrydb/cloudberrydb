@@ -211,7 +211,7 @@ extern AOCSScanDesc aocs_beginrangescan(Relation relation, Snapshot snapshot,
 extern void aocs_rescan(AOCSScanDesc scan);
 extern void aocs_endscan(AOCSScanDesc scan);
 
-extern void aocs_getnext(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot);
+extern bool aocs_getnext(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot);
 extern AOCSInsertDesc aocs_insert_init(Relation rel, int segno, bool update_mode);
 extern Oid aocs_insert_values(AOCSInsertDesc idesc, Datum *d, bool *null, AOTupleId *aoTupleId);
 static inline Oid aocs_insert(AOCSInsertDesc idesc, TupleTableSlot *slot)

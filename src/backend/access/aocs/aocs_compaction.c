@@ -353,16 +353,14 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	estate->es_num_result_relations = 1;
 	estate->es_result_relation_info = resultRelInfo;
 
-	aocs_getnext(scanDesc, ForwardScanDirection, slot);
-	while (!TupIsNull(slot))
+	while (aocs_getnext(scanDesc, ForwardScanDirection, slot))
 	{
 		CHECK_FOR_INTERRUPTS();
 
 		aoTupleId = (AOTupleId *) slot_get_ctid(slot);
 		if (AppendOnlyVisimap_IsVisible(&scanDesc->visibilityMap, aoTupleId))
 		{
-			AOCSMoveTuple(
-						  slot,
+			AOCSMoveTuple(slot,
 						  insertDesc,
 						  resultRelInfo,
 						  estate);
@@ -370,11 +368,8 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 		}
 		else
 		{
-			MemTuple	tuple = TupGetMemTuple(slot);
-
 			/* Tuple is invisible and needs to be dropped */
 			AppendOnlyThrowAwayTuple(aorel,
-									 tuple,
 									 slot,
 									 mt_bind);
 		}
@@ -387,9 +382,6 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 		{
 			vacuum_delay_point();
 		}
-
-		aocs_getnext(scanDesc, ForwardScanDirection, slot);
-
 	}
 
 	SetAOCSFileSegInfoState(aorel, compact_segno,

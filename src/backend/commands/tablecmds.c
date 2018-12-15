@@ -6587,8 +6587,10 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 			 */
 			oldCxt = MemoryContextSwitchTo(GetPerTupleMemoryContext(estate));
 
-			while ((mtuple = appendonly_getnext(aoscan, ForwardScanDirection, oldslot)) != NULL)
+			while (appendonly_getnext(aoscan, ForwardScanDirection, oldslot))
 			{
+				mtuple = TupGetMemTuple(oldslot);
+
 				if (newrel)
 				{
 					Oid			tupOid = InvalidOid;
@@ -6717,9 +6719,7 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 
 			sdesc = aocs_beginscan(oldrel, snapshot, snapshot, oldTupDesc, proj);
 
-			aocs_getnext(sdesc, ForwardScanDirection, oldslot);
-
-			while(!TupIsNull(oldslot))
+			while (aocs_getnext(sdesc, ForwardScanDirection, oldslot))
 			{
 				oldCxt = MemoryContextSwitchTo(GetPerTupleMemoryContext(estate));
 				econtext->ecxt_scantuple = oldslot;
@@ -6808,7 +6808,6 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 				CHECK_FOR_INTERRUPTS();
 
 				MemoryContextSwitchTo(oldCxt);
-				aocs_getnext(sdesc, ForwardScanDirection, oldslot);
 			}
 
 			aocs_endscan(sdesc);
@@ -17185,10 +17184,8 @@ split_rows(Relation intoa, Relation intob, Relation temprel)
 		}
 		else if (RelationIsAoRows(temprel))
 		{
-			MemTuple mtuple;
-
-			mtuple = appendonly_getnext(aoscan, ForwardScanDirection, slotT);
-			if (!PointerIsValid(mtuple))
+			appendonly_getnext(aoscan, ForwardScanDirection, slotT);
+			if (TupIsNull(slotT))
 				break;
 
 			TupClearShouldFree(slotT);

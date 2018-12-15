@@ -2969,24 +2969,32 @@ CopyTo(CopyState cstate)
 			}
 			else if (RelationIsAoRows(rel))
 			{
-				MemTuple		tuple;
 				TupleTableSlot	*slot = MakeSingleTupleTableSlot(tupDesc);
 				MemTupleBinding *mt_bind = create_memtuple_binding(tupDesc);
 
 				aoscandesc = appendonly_beginscan(rel, GetActiveSnapshot(),
 												  GetActiveSnapshot(), 0, NULL);
 
-				while ((tuple = appendonly_getnext(aoscandesc, ForwardScanDirection, slot)) != NULL)
+				while (appendonly_getnext(aoscandesc, ForwardScanDirection, slot))
 				{
+					MemTuple	tuple;
+					Oid			tupleOid = InvalidOid;
+
 					CHECK_FOR_INTERRUPTS();
 
-					/* Extract all the values of the  tuple */
+					/* Extract all the values of the tuple */
 					slot_getallattrs(slot);
 					values = slot_get_values(slot);
 					nulls = slot_get_isnull(slot);
 
+					if (mtbind_has_oid(mt_bind))
+					{
+						tuple = TupGetMemTuple(slot);
+						tupleOid = MemTupleGetOid(tuple, mt_bind);
+					}
+
 					/* Format and send the data */
-					CopyOneRowTo(cstate, MemTupleGetOid(tuple, mt_bind), values, nulls);
+					CopyOneRowTo(cstate, tupleOid, values, nulls);
 					processed++;
 				}
 
@@ -3016,13 +3024,9 @@ CopyTo(CopyState cstate)
 									  GetActiveSnapshot(),
 									  NULL /* relationTupleDesc */, proj);
 
-				for(;;)
+				while (aocs_getnext(scan, ForwardScanDirection, slot))
 				{
 				    CHECK_FOR_INTERRUPTS();
-
-				    aocs_getnext(scan, ForwardScanDirection, slot);
-				    if (TupIsNull(slot))
-				        break;
 
 				    slot_getallattrs(slot);
 				    values = slot_get_values(slot);

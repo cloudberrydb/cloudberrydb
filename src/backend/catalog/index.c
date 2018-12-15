@@ -2743,7 +2743,7 @@ IndexBuildAppendOnlyRowScan(Relation parentRelation,
 		blockDirectory = aoscan->blockDirectory;
 	}
 	
-	while (appendonly_getnext(aoscan, ForwardScanDirection, slot) != NULL)
+	while (appendonly_getnext(aoscan, ForwardScanDirection, slot))
 	{
 		CHECK_FOR_INTERRUPTS();
 
@@ -2878,18 +2878,14 @@ IndexBuildAppendOnlyColScan(Relation parentRelation,
 	}
 		
 
-	while (true)
+	while (aocs_getnext(aocsscan, ForwardScanDirection, slot))
 	{
 		CHECK_FOR_INTERRUPTS();
-		
-		aocs_getnext(aocsscan, ForwardScanDirection, slot);
-		if (TupIsNull(slot))
-			break;
 
 		reltuples++;
-		
+
 		MemoryContextReset(econtext->ecxt_per_tuple_memory);
-		
+
 		if (predicate != NIL)
 		{
 			if (!ExecQual(predicate, econtext, false))
@@ -2911,11 +2907,10 @@ IndexBuildAppendOnlyColScan(Relation parentRelation,
 
 		callback(indexRelation, slot_get_ctid(slot),
 				 values, isnull, true, callback_state);
-		
 	}
 
 	pfree(proj);
-	
+
 	aocs_endscan(aocsscan);
 
 	if (blockDirectory != NULL)
