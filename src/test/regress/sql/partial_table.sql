@@ -136,6 +136,25 @@ select gp_debug_reset_create_table_default_numsegments();
      and t2.c1 > any (select max(t1.c1) from t1 where t1.c2 = t2.c2);
 
 --
+-- It is used to test this case:
+--   A: replicated table, distributed on 2 segments
+--   B: replicated table, distributed on 1 segments
+--   UPDATE A SET XXX FROM B WHERE XXX;
+-- We have to add a broadcast motion on B so that A can update/delete correctly.
+--
+begin;
+    insert into d1 select i,i,i,i from generate_series(1,2) i;
+    insert into d2 select i,i,i,i from generate_series(1,3) i;
+    explain update d2 a set c3=b.c3 from d1 b returning *;
+    update d2 a set c3=b.c3 from d1 b returning *;
+    explain update d1 a set c3=b.c3 from d2 b returning *;
+    update d1 a set c3=b.c3 from d2 b returning *;
+abort;
+-- restore the analyze information
+analyze d1;
+analyze d2;
+
+--
 -- create table: LIKE, INHERITS and DISTRIBUTED BY
 --
 -- tables are always created with DEFAULT as numsegments,
