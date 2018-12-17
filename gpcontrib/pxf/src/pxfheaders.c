@@ -237,7 +237,7 @@ add_tuple_desc_httpheader(CHURL_HEADERS headers, Relation rel)
 }
 
 /*
- * The options in the LOCATION statement of "create extenal table"
+ * The options in the LOCATION statement of "create external table"
  * FRAGMENTER=HdfsDataFragmenter&ACCESSOR=SequenceFileAccessor...
  */
 static void

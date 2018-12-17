@@ -89,9 +89,9 @@ typedef struct
  * 4 byte		| 2 byte	1 byte	| 2 byte	   2 byte     2 byte	      ceil(#col/8) byte	 fixed length or var len
  *
  * For fixed length type, we know the length.
- * In the col val, we align pad according to the alignemnt requirement of the type.
+ * In the col val, we align pad according to the alignment requirement of the type.
  * For var length type, the alignment is always 4 byte.
- * For var legnth type, col val is <4 byte length><payload val>
+ * For var length type, col val is <4 byte length><payload val>
  */
 #define GPDBWRITABLE_VERSION 2
 /* for backward compatibility */
@@ -698,7 +698,7 @@ gpdbwritableformatter_import(PG_FUNCTION_ARGS)
 	 * forward and then raise the error. But then, the framework will still
 	 * call the formatter the function again. Now, the formatter function will
 	 * be provided with a zero length data buffer. In this case, we should not
-	 * raise an error again, but simply retruns "NEED MORE DATA". This is how
+	 * raise an error again, but simply return "NEED MORE DATA". This is how
 	 * the formatter framework works.
 	 */
 	if (remaining == 0 && FORMATTER_GET_SAW_EOF(fcinfo))

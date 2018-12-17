@@ -78,7 +78,7 @@ DROP TABLE some_other_table;
 -- Cleanup
 DROP TABLE APPENDONLY_TABLE;
 DROP TABLE some_table;
--- Check that the Extention is removed successfully
+-- Check that the Extension is removed successfully
 DROP EXTENSION gp_distribution_policy;
 SELECT gp_heap_distribution_check('appendonly_table');
 ERROR:  function gp_heap_distribution_check(unknown) does not exist
