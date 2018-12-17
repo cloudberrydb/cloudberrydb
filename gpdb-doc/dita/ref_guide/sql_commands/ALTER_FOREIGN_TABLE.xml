@@ -51,7 +51,7 @@ ALTER FOREIGN TABLE [ IF EXISTS ] <varname>name</varname>
                 <plentry>
                     <pt>IF EXISTS</pt>
                     <pd>
-                        <p>If you specify <codeph>IF EXISTS</codeph> and the foriegn table does not exist, no error is thrown. Greenplum Database issues a notice instead.</p>
+                        <p>If you specify <codeph>IF EXISTS</codeph> and the foreign table does not exist, no error is thrown. Greenplum Database issues a notice instead.</p>
                     </pd>
                 </plentry>
                 <plentry>

@@ -898,7 +898,7 @@ SELECT foo();
             <thead>
               <row>
                 <entry>Function</entry>
-                <entry>Agument Types</entry>
+                <entry>Argument Types</entry>
                 <entry>Return Type</entry>
                 <entry>Description</entry>
               </row>
