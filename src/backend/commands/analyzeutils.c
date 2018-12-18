@@ -14,10 +14,10 @@
 #include "catalog/pg_collation.h"
 #include "catalog/pg_statistic.h"
 #include "cdb/cdbhash.h"
-#include "cdb/cdbheap.h"
 #include "cdb/cdbpartition.h"
 #include "commands/analyzeutils.h"
 #include "commands/vacuum.h"
+#include "lib/binaryheap.h"
 #include "miscadmin.h"
 #include "parser/parse_oper.h"
 #include "utils/builtins.h"
@@ -53,14 +53,13 @@ static void addMCVToHashTable(HTAB *datumHash, MCVFreqPair *mcvFreqPair);
 static int	mcvpair_cmp(const void *a, const void *b);
 
 static void initTypInfo(TypInfo *typInfo, Oid typOid);
-static int	getNextPartDatum(CdbHeap * hp);
-static int	DatumHeapComparator(void *lhs, void *rhs, void *context);
+static int	DatumHeapComparator(Datum lhs, Datum rhs, void *context);
 static void advanceCursor(int pid, int *cursors, AttStatsSlot * *histSlots);
 static Datum getMinBound(AttStatsSlot * *histSlots, int *cursors, int nParts, Oid ltFuncOid);
 static Datum getMaxBound(AttStatsSlot * *histSlots, int nParts, Oid ltFuncOid);
 static void
 			getHistogramHeapTuple(AttStatsSlot * *histSlots, HeapTuple *heaptupleStats, int *numNotNullParts, int nParts);
-static void initDatumHeap(CdbHeap * hp, AttStatsSlot * *histSlots, int *cursors, int nParts);
+static void initDatumHeap(binaryheap *hp, AttStatsSlot * *histSlots, int *cursors, int nParts);
 
 static float4 getBucketSizes(const HeapTuple *heaptupleStats, const float4 *relTuples, int nParts,
 			   MCVFreqPair **mcvPairRemaining, int rem_mcv,
@@ -516,25 +515,6 @@ initTypInfo(TypInfo *typInfo, Oid typOid)
 }
 
 /*
- * Get the part id of the next PartDatum, which contains the minimum datum value, from the heap
- * Input:
- * 	hp - min heap containing PartDatum
- * Output:
- *  part id of the datum having minimum value in the heap. Return -1 if heap is empty.
- */
-static int
-getNextPartDatum(CdbHeap * hp)
-{
-	if (CdbHeap_Count(hp) > 0)
-	{
-		PartDatum  *minElement = CdbHeap_Min(PartDatum, hp);
-
-		return minElement->partId;
-	}
-	return -1;
-}
-
-/*
  * Comparator function of heap element PartDatum
  * Input:
  * 	lhs, rhs - pointers to heap elements
@@ -545,10 +525,10 @@ getNextPartDatum(CdbHeap * hp)
  *  1 if lhs > rhs
  */
 static int
-DatumHeapComparator(void *lhs, void *rhs, void *context)
+DatumHeapComparator(Datum lhs, Datum rhs, void *context)
 {
-	Datum		d1 = ((PartDatum *) lhs)->datum;
-	Datum		d2 = ((PartDatum *) rhs)->datum;
+	Datum		d1 = ((PartDatum *) DatumGetPointer(lhs))->datum;
+	Datum		d2 = ((PartDatum *) DatumGetPointer(rhs))->datum;
 	TypInfo    *typInfo = (TypInfo *) context;
 
 	if (datumCompare(d1, d2, typInfo->ltFuncOp))
@@ -741,20 +721,21 @@ getHistogramMCVTuple(AttStatsSlot * *histSlots, MCVFreqPair **mcvRemaining,
  * 	nParts - number of partitions
  */
 static void
-initDatumHeap(CdbHeap * hp, AttStatsSlot * *histSlots, int *cursors, int nParts)
+initDatumHeap(binaryheap *hp, AttStatsSlot * *histSlots, int *cursors, int nParts)
 {
+	PartDatum *pds = (PartDatum *) palloc(nParts * sizeof(PartDatum));
+
 	for (int pid = 0; pid < nParts; pid++)
 	{
 		/* do nothing if part histogram only has one element */
 		if (cursors[pid] > 0)
 		{
-			PartDatum	pd;
-
-			pd.partId = pid;
-			pd.datum = histSlots[pid]->values[cursors[pid]];
-			CdbHeap_Insert(hp, &pd);
+			pds[pid].partId = pid;
+			pds[pid].datum = histSlots[pid]->values[cursors[pid]];
+			binaryheap_add_unordered(hp, PointerGetDatum(&pds[pid]));
 		}
 	}
+	binaryheap_build(hp);
 }
 
 /*
@@ -908,14 +889,10 @@ aggregate_leaf_partition_histograms(Oid relationOid,
 		}
 	}
 
-	int			pid = 0;		/* part id */
-
 	/* we maintain a priority queue (min heap) of PartDatum */
-	CdbHeap    *dhp = CdbHeap_Create(DatumHeapComparator,
-									 &typInfo,
-									 nParts /* nSlotMax */ ,
-									 sizeof(PartDatum),
-									 NULL /* slotArray */ );
+	binaryheap *dhp = binaryheap_allocate(nParts,
+										  DatumHeapComparator,
+										  &typInfo);
 
 	List	   *ldatum = NIL;	/* list of pointers to the selected bounds */
 
@@ -937,22 +914,23 @@ aggregate_leaf_partition_histograms(Oid relationOid,
 	 * loop continues when DatumHeap is not empty yet and the number of
 	 * histogram boundaries has not reached nEntries
 	 */
-	while (((pid = getNextPartDatum(dhp)) >= 0) && list_length(ldatum) < nEntries)
+	while (!binaryheap_empty(dhp) && list_length(ldatum) < nEntries)
 	{
+		PartDatum  *pd = (PartDatum *) DatumGetPointer(binaryheap_first(dhp));
+		int			pid = pd->partId;
+
 		if (remainingSize[pid] < nTuplesToFill)
 		{
 			nTuplesToFill -= remainingSize[pid];
 			advanceCursor(pid, cursors, histSlots);
 			remainingSize[pid] = eachBucket[pid];
-			CdbHeap_DeleteMin(dhp);
 			if (cursors[pid] > 0)
 			{
-				PartDatum	pd;
-
-				pd.partId = pid;
-				pd.datum = histSlots[pid]->values[cursors[pid]];
-				CdbHeap_Insert(dhp, &pd);
+				pd->datum = histSlots[pid]->values[cursors[pid]];
+				binaryheap_replace_first(dhp, PointerGetDatum(pd));
 			}
+			else
+				(void) binaryheap_remove_first(dhp);
 		}
 		else
 		{
@@ -975,7 +953,7 @@ aggregate_leaf_partition_histograms(Oid relationOid,
 	Datum	   *out = buildHistogramEntryForStats(ldatum, &typInfo, &num_hist);
 
 	/* clean up */
-	CdbHeap_Destroy(dhp);
+	binaryheap_free(dhp);
 
 	*result = out;
 

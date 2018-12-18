@@ -17,7 +17,6 @@
 
 #include "access/heapam.h"
 #include "nodes/execnodes.h"	/* Slice, SliceTable */
-#include "cdb/cdbheap.h"
 #include "cdb/cdbmotion.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
@@ -26,6 +25,7 @@
 #include "executor/execdebug.h"
 #include "executor/execUtils.h"
 #include "executor/nodeMotion.h"
+#include "lib/binaryheap.h"
 #include "utils/tuplesort.h"
 #include "utils/tuplesort_mk_details.h"
 #include "miscadmin.h"
@@ -57,9 +57,6 @@ typedef struct CdbTupleHeapInfo
 	GenericTuple tuple;
 	Datum		datum1;			/* value of first key column */
 	bool		isnull1;		/* is first key column NULL? */
-
-	/* Which sender did this tuple come from? */
-	int			sourceRouteId;
 }			CdbTupleHeapInfo;
 
 /*
@@ -79,15 +76,18 @@ typedef struct CdbTupleHeapInfo
  * Used by sorted receiver (Merge Receive).  It is passed as the
  * context argument to the key comparator.
  */
-typedef struct
+typedef struct CdbMergeComparatorContext
 {
 	int			numSortCols;
 	SortSupport sortKeys;
 	TupleDesc	tupDesc;
 	MemTupleBinding *mt_bind;
+
+	CdbTupleHeapInfo *tupleheap_entries;
 } CdbMergeComparatorContext;
 
-static CdbMergeComparatorContext *CdbMergeComparator_CreateContext(TupleDesc tupDesc,
+static CdbMergeComparatorContext *CdbMergeComparator_CreateContext(CdbTupleHeapInfo *tupleheap_entries,
+								 TupleDesc tupDesc,
 								 int numSortCols,
 								 AttrNumber *sortColIdx,
 								 Oid *sortOperators,
@@ -107,7 +107,7 @@ static TupleTableSlot *execMotionSortedReceiver_mk(MotionState *node);
 
 static void execMotionSortedReceiverFirstTime(MotionState *node);
 
-static int	CdbMergeComparator(void *lhs, void *rhs, void *context);
+static int	CdbMergeComparator(Datum lhs, Datum rhs, void *context);
 static uint32 evalHashKey(ExprContext *econtext, List *hashkeys, List *hashtypes, CdbHash *h);
 
 static void doSendEndOfStream(Motion *motion, MotionState *node);
@@ -487,7 +487,7 @@ motion_mkhp_read(void *vpctxt, MKEntry *a)
 		ListCell   *lcProcess;
 		int			routeIndex,
 					readerIndex;
-		MotionMKHeapContext *ctxt = (MotionMKHeapContext *) node->tupleheap;
+		MotionMKHeapContext *ctxt = node->tupleheap_mk;
 		Slice	   *sendSlice = (Slice *) list_nth(node->ps.state->es_sliceTable->slices, motion->motionID);
 
 		Assert(sendSlice->sliceIndex == motion->motionID);
@@ -579,7 +579,7 @@ create_motion_mk_heap(MotionState *node)
 		ctxt->readers[i].mkhr_ctxt = hrctxt;
 	}
 
-	node->tupleheap = (void *) ctxt;
+	node->tupleheap_mk = ctxt;
 }
 
 static void
@@ -598,7 +598,7 @@ execMotionSortedReceiver_mk(MotionState *node)
 	MKEntry		e;
 
 	Motion	   *motion = (Motion *) node->ps.plan;
-	MotionMKHeapContext *ctxt = (MotionMKHeapContext *) node->tupleheap;
+	MotionMKHeapContext *ctxt = node->tupleheap_mk;
 
 	Assert(motion->motionType == MOTIONTYPE_FIXED &&
 		   motion->sendSorted &&
@@ -631,12 +631,12 @@ execMotionSortedReceiver_mk(MotionState *node)
 	return slot;
 }
 
-/* Sorted receiver using CdbHeap */
+/* Sorted receiver using binary heap */
 static TupleTableSlot *
 execMotionSortedReceiver(MotionState *node)
 {
 	TupleTableSlot *slot;
-	CdbHeap    *hp = (CdbHeap *) node->tupleheap;
+	binaryheap *hp = node->tupleheap;
 	GenericTuple tuple,
 				inputTuple;
 	Motion	   *motion = (Motion *) node->ps.plan;
@@ -668,14 +668,8 @@ execMotionSortedReceiver(MotionState *node)
 	 */
 	else
 	{
-#ifdef USE_ASSERT_CHECKING
-		CdbTupleHeapInfo *t;
-
 		/* Old element is still at the head of the pq. */
-		t = CdbHeap_Min(CdbTupleHeapInfo, hp);
-		Assert(t);
-		AssertState(t->tuple == NULL && t->sourceRouteId == node->routeIdNext);
-#endif
+		Assert(DatumGetInt32(binaryheap_first(hp)) == node->routeIdNext);
 
 		/* Receive the successor of the tuple that we returned last time. */
 		inputTuple = RecvTupleFrom(node->ps.state->motionlayer_context,
@@ -686,26 +680,23 @@ execMotionSortedReceiver(MotionState *node)
 		/* Substitute it in the pq for its predecessor. */
 		if (inputTuple)
 		{
-			CdbMergeComparatorContext *comparatorContext =
-			(CdbMergeComparatorContext *) hp->comparatorContext;
-			AttrNumber	key1_attno = motion->sortColIdx[0];
-			CdbTupleHeapInfo info;
+			CdbTupleHeapInfo *info = &node->tupleheap_entries[node->routeIdNext];
+			AttrNumber key1_attno = node->tupleheap_cxt->sortKeys[0].ssup_attno;
 
-			info.tuple = inputTuple;
-			info.sourceRouteId = node->routeIdNext;
+			info->tuple = inputTuple;
 
 			if (is_memtuple(inputTuple))
-				info.datum1 = memtuple_getattr((MemTuple) inputTuple,
-											   comparatorContext->mt_bind,
-											   key1_attno,
-											   &info.isnull1);
+				info->datum1 = memtuple_getattr((MemTuple) inputTuple,
+												node->tupleheap_cxt->mt_bind,
+												key1_attno,
+												&info->isnull1);
 			else
-				info.datum1 = heap_getattr((HeapTuple) inputTuple,
-										   key1_attno,
-										   comparatorContext->tupDesc,
-										   &info.isnull1);
+				info->datum1 = heap_getattr((HeapTuple) inputTuple,
+											key1_attno,
+											node->tupleheap_cxt->tupDesc,
+											&info->isnull1);
 
-			CdbHeap_DeleteMinAndInsert(hp, &info);
+			binaryheap_replace_first(hp, Int32GetDatum(node->routeIdNext));
 
 			node->numTuplesFromAMS++;
 
@@ -728,12 +719,12 @@ execMotionSortedReceiver(MotionState *node)
 		}
 
 		/* At EOS, drop this sender from the priority queue. */
-		else if (!CdbHeap_IsEmpty(hp))
-			CdbHeap_DeleteMin(hp);
+		else if (!binaryheap_empty(hp))
+			binaryheap_remove_first(hp);
 	}
 
 	/* Finished if all senders have returned EOS. */
-	if (CdbHeap_IsEmpty(hp))
+	if (binaryheap_empty(hp))
 	{
 		Assert(node->numTuplesFromAMS == node->numTuplesToParent);
 		Assert(node->numTuplesFromChild == 0);
@@ -750,9 +741,9 @@ execMotionSortedReceiver(MotionState *node)
 	 * are called, to avoid an unnecessary rearrangement of the priority
 	 * queue.
 	 */
-	tupHeapInfo = CdbHeap_Min(CdbTupleHeapInfo, hp);
+	node->routeIdNext = binaryheap_first(hp);
+	tupHeapInfo = &node->tupleheap_entries[node->routeIdNext];
 	tuple = tupHeapInfo->tuple;
-	node->routeIdNext = tupHeapInfo->sourceRouteId;
 
 	/* Zap dangling tuple ptr for safety. PQ element doesn't own it anymore. */
 	tupHeapInfo->tuple = NULL;
@@ -790,20 +781,18 @@ void
 execMotionSortedReceiverFirstTime(MotionState *node)
 {
 	GenericTuple inputTuple;
-	CdbHeap    *hp = (CdbHeap *) node->tupleheap;
+	binaryheap *hp = node->tupleheap;
 	Motion	   *motion = (Motion *) node->ps.plan;
 	int			iSegIdx;
-	int			n = 0;
 	ListCell   *lcProcess;
-	CdbMergeComparatorContext *comparatorContext = (CdbMergeComparatorContext *) hp->comparatorContext;
+	CdbMergeComparatorContext *comparatorContext = node->tupleheap_cxt;
 	AttrNumber	key1_attno = motion->sortColIdx[0];
-	CdbTupleHeapInfo *infoArray = (CdbTupleHeapInfo *) hp->slotArray;
 	Slice	   *sendSlice = (Slice *) list_nth(node->ps.state->es_sliceTable->slices, motion->motionID);
 
 	Assert(sendSlice->sliceIndex == motion->motionID);
 
 	/*
-	 * We need to get a tuple from every sender, and stick it into the heap.
+	 * Get the first tuple from every sender, and stick it into the heap.
 	 */
 	foreach_with_count(lcProcess, sendSlice->primaryProcesses, iSegIdx)
 	{
@@ -820,12 +809,11 @@ execMotionSortedReceiverFirstTime(MotionState *node)
 
 		if (inputTuple)
 		{
-			CdbTupleHeapInfo *info = &infoArray[n];
-
-			n++;
+			CdbTupleHeapInfo *info = &node->tupleheap_entries[iSegIdx];
 
 			info->tuple = inputTuple;
-			info->sourceRouteId = iSegIdx;
+
+			binaryheap_add_unordered(hp, iSegIdx);
 
 			if (is_memtuple(inputTuple))
 				info->datum1 = memtuple_getattr((MemTuple) inputTuple,
@@ -861,10 +849,11 @@ execMotionSortedReceiverFirstTime(MotionState *node)
 	Assert(iSegIdx == node->numInputSegs);
 
 	/*
-	 * Rearrange the infoArray to satisfy the heap property. This is quicker
-	 * than inserting the initial elements one by one.
+	 * Done adding the elements, now arrange the heap to satisfy the heap
+	 * property. This is quicker than inserting the initial elements one by
+	 * one.
 	 */
-	CdbHeap_Heapify(hp, n);
+	binaryheap_build(hp);
 
 	node->tupleheapReady = true;
 }								/* execMotionSortedReceiverFirstTime */
@@ -1079,22 +1068,22 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 			create_motion_mk_heap(motionstate);
 		else
 		{
-			CdbMergeComparatorContext *mcContext;
-
 			/* Allocate context object for the key comparator. */
-			mcContext = CdbMergeComparator_CreateContext(tupDesc,
-														 node->numSortCols,
-														 node->sortColIdx,
-														 node->sortOperators,
-														 node->collations,
-														 node->nullsFirst);
-
+			motionstate->tupleheap_entries =
+				palloc(motionstate->numInputSegs * sizeof(CdbTupleHeapInfo));
 			/* Create the priority queue structure. */
-			motionstate->tupleheap = CdbHeap_Create(CdbMergeComparator,
-													mcContext,
-													motionstate->numInputSegs,
-													sizeof(CdbTupleHeapInfo),
-													NULL);
+			motionstate->tupleheap_cxt =
+				CdbMergeComparator_CreateContext(motionstate->tupleheap_entries,
+												 tupDesc,
+												 node->numSortCols,
+												 node->sortColIdx,
+												 node->sortOperators,
+												 node->collations,
+												 node->nullsFirst);
+			motionstate->tupleheap =
+				binaryheap_allocate(motionstate->numInputSegs,
+									CdbMergeComparator,
+									motionstate->tupleheap_cxt);
 		}
 	}
 
@@ -1204,16 +1193,15 @@ ExecEndMotion(MotionState *node)
 	/* Merge Receive: Free the priority queue and associated structures. */
 	if (node->tupleheap != NULL)
 	{
-		if (gp_enable_motion_mk_sort)
-			destroy_motion_mk_heap(node);
-		else
-		{
-			CdbHeap    *hp = (CdbHeap *) node->tupleheap;
+		binaryheap_free(node->tupleheap);
 
-			CdbMergeComparator_DestroyContext(hp->comparatorContext);
-			CdbHeap_Destroy(hp);
-		}
+		CdbMergeComparator_DestroyContext(node->tupleheap_cxt);
 		node->tupleheap = NULL;
+	}
+	if (node->tupleheap_mk)
+	{
+		destroy_motion_mk_heap(node);
+		node->tupleheap_mk = NULL;
 	}
 
 	/* Free the slices and routes */
@@ -1255,14 +1243,16 @@ ExecEndMotion(MotionState *node)
  * Used to compare tuples for a sorted motion node.
  */
 static int
-CdbMergeComparator(void *lhs, void *rhs, void *context)
+CdbMergeComparator(Datum lhs, Datum rhs, void *context)
 {
+	int			lSegIdx = DatumGetInt32(lhs);
+	int			rSegIdx = DatumGetInt32(lhs);
 	CdbMergeComparatorContext *ctx = (CdbMergeComparatorContext *) context;
-	CdbTupleHeapInfo *linfo = (CdbTupleHeapInfo *) lhs;
-	CdbTupleHeapInfo *rinfo = (CdbTupleHeapInfo *) rhs;
+	CdbTupleHeapInfo *linfo = (CdbTupleHeapInfo *) &ctx->tupleheap_entries[lSegIdx];
+	CdbTupleHeapInfo *rinfo = (CdbTupleHeapInfo *) &ctx->tupleheap_entries[rSegIdx];
 	GenericTuple ltup = linfo->tuple;
 	GenericTuple rtup = rinfo->tuple;
-	SortSupport sortKeys = ctx->sortKeys;
+	SortSupport	sortKeys = ctx->sortKeys;
 	TupleDesc	tupDesc;
 	int			nkey;
 	int			numSortCols = ctx->numSortCols;
@@ -1312,7 +1302,8 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
 
 /* Create context object for use by CdbMergeComparator */
 static CdbMergeComparatorContext *
-CdbMergeComparator_CreateContext(TupleDesc tupDesc,
+CdbMergeComparator_CreateContext(CdbTupleHeapInfo *tupleheap_entries,
+								 TupleDesc tupDesc,
 								 int numSortCols,
 								 AttrNumber *sortColIdx,
 								 Oid *sortOperators,
@@ -1333,6 +1324,7 @@ CdbMergeComparator_CreateContext(TupleDesc tupDesc,
 	ctx->numSortCols = numSortCols;
 	ctx->tupDesc = tupDesc;
 	ctx->mt_bind = create_memtuple_binding(tupDesc);
+	ctx->tupleheap_entries = tupleheap_entries;
 
 	/* Prepare SortSupport data for each column */
 	ctx->sortKeys = (SortSupport) palloc0(numSortCols * sizeof(SortSupportData));

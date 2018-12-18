@@ -2853,11 +2853,17 @@ typedef struct MotionState
 	struct CdbHash *cdbhash;	/* hash api object */
 
 	/* For Motion recv */
-	void	   *tupleheap;		/* data structure for match merge in sorted motion node */
 	int			routeIdNext;	/* for a sorted motion node, the routeId to get next (same as
 								 * the routeId last returned ) */
 	bool		tupleheapReady; /* for a sorted motion node, false until we have a tuple from
 								 * each source segindex */
+
+	/* For sorted Motion recv */
+	struct MotionMKHeapContext *tupleheap_mk;		/* data structure for match merge in sorted motion node */
+
+	struct binaryheap *tupleheap;
+	struct CdbTupleHeapInfo *tupleheap_entries;
+	struct CdbMergeComparatorContext *tupleheap_cxt;
 
 	/* The following can be used for debugging, usage stats, etc.  */
 	int			numTuplesFromChild;	/* Number of tuples received from child */
