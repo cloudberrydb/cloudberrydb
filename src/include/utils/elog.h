@@ -132,20 +132,6 @@ extern pthread_t main_tid;
 			elog_internalerror(__FILE__, __LINE__, PG_FUNCNAME_MACRO);	\
 	} while(0)
 
-/*
- * Insist(bool assertion, const char * fmt, ... )
- * Similar to Insist() except it outputs a custom message using elog(LOG, ...)
- * before exiting.
- */
-#define insist_log(assertion, ... ) 	\
-	do {								\
-		if (!(assertion))				\
-		{								\
-			elog(LOG, __VA_ARGS__);		\
-			elog_internalerror(__FILE__, __LINE__, PG_FUNCNAME_MACRO); \
-		}								\
-	} while(0)
-
 #ifdef _MSC_VER
 __declspec(noreturn)
 #endif

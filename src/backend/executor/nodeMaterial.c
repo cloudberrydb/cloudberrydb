@@ -345,8 +345,8 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	 * index into range table, while the material may refer to the same relation as "outer" varno)
 	 * [JIRA: MPP-25365]
 	 */
-	insist_log(list_length(node->plan.targetlist) == list_length(outerPlan->targetlist),
-			"Material operator does not support projection");
+	if (list_length(node->plan.targetlist) != list_length(outerPlan->targetlist))
+		elog(ERROR, "Material operator does not support projection");
 	outerPlanState(matstate) = ExecInitNode(outerPlan, estate, eflags);
 
 	/*

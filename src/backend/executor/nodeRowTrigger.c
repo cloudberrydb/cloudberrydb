@@ -333,7 +333,7 @@ ExecTriggers(EState *estate, ResultRelInfo *relinfo,
 	}
 	else
 	{
-		insist_log(false, "unrecognized trigger type");
+		elog(ERROR, "unrecognized trigger type");
 	}
 
 	return originalTuple;

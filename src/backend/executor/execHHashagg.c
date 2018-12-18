@@ -447,7 +447,7 @@ lookup_agg_hash_entry(AggState *aggstate,
 					input_datum = memtuple_getattr((MemTuple)input_record, mt_bind, att, &input_isNull);
 					break;
 				default:
-					insist_log(false, "invalid record type %d", input_type);
+					elog(ERROR, "invalid record type %d", input_type);
 			}
 
 			entry_datum = memtuple_getattr(mtup, mt_bind, att, &entry_isNull);
@@ -479,7 +479,7 @@ lookup_agg_hash_entry(AggState *aggstate,
 				entry = makeHashAggEntryForGroup(aggstate, input_record, input_size, hashkey);
 				break;
 			default:
-				insist_log(false, "invalid record type %d", input_type);
+				elog(ERROR, "invalid record type %d", input_type);
 		}
 			
 		if (entry != NULL)
@@ -677,7 +677,7 @@ calcHashAggTableSizes(double memquota,	/* Memory quota in bytes. */
 	{
 		if (force)
 		{
-			insist_log(false, "too many passes or hash entries");
+			elog(ERROR, "too many passes or hash entries");
 		}
 		else
 		{

@@ -635,11 +635,11 @@ splitJoinQualExpr(NestLoopState *nlstate)
 				continue;
 			}
 
-			insist_log(false, "unexpected expression type in NestLoopJoin qual");
+			elog(ERROR, "unexpected expression type in NestLoopJoin qual");
 
 			break; /* Unreachable */
 		default:
-			insist_log(false, "unexpected expression type in NestLoopJoin qual");
+			elog(ERROR, "unexpected expression type in NestLoopJoin qual");
 		}
 	}
 	Assert(NIL == nlstate->nl_InnerJoinKeys && NIL == nlstate->nl_OuterJoinKeys);

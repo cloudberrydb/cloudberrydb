@@ -1286,14 +1286,15 @@ FtsWalRepMessageSegments(CdbComponentDatabases *cdbs)
 	 */
 	for (i = 0; i < context.num_pairs; i++)
 	{
-		insist_log((context.perSegInfos[i].conn == NULL),
-				   "FTS libpq connection left open (content=%d, dbid=%d)"
-				   " state=%d, retry_count=%d, conn->status=%d",
-				   context.perSegInfos[i].primary_cdbinfo->segindex,
-				   context.perSegInfos[i].primary_cdbinfo->dbid,
-				   context.perSegInfos[i].state,
-				   context.perSegInfos[i].retry_count,
-				   context.perSegInfos[i].conn->status);
+		if (context.perSegInfos[i].conn != NULL)
+			elog(ERROR,
+				 "FTS libpq connection left open (content=%d, dbid=%d)"
+				 " state=%d, retry_count=%d, conn->status=%d",
+				 context.perSegInfos[i].primary_cdbinfo->segindex,
+				 context.perSegInfos[i].primary_cdbinfo->dbid,
+				 context.perSegInfos[i].state,
+				 context.perSegInfos[i].retry_count,
+				 context.perSegInfos[i].conn->status);
 	}
 #endif
 	pfree(context.perSegInfos);

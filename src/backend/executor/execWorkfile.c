@@ -278,7 +278,7 @@ ExecWorkFile_Write(ExecWorkFile *workfile,
 
 			break;
 		default:
-			insist_log(false, "invalid work file type: %d", workfile->fileType);
+			elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 
 	return true;
@@ -312,7 +312,7 @@ ExecWorkFile_Read(ExecWorkFile *workfile,
 			bytes = bfz_scan_next((bfz_t *)workfile->file, data, size);
 			break;
 		default:
-			insist_log(false, "invalid work file type: %d", workfile->fileType);
+			elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 	
 	return bytes;
@@ -343,7 +343,7 @@ ExecWorkFile_ReadFromBuffer(ExecWorkFile *workfile,
 			data = bfz_scan_peek((bfz_t *)workfile->file, size);
 			break;
 		default:
-			insist_log(false, "invalid work file type: %d", workfile->fileType);
+			elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 
 	return data;
@@ -390,7 +390,7 @@ ExecWorkFile_Rewind(ExecWorkFile *workfile)
 			bfz_scan_begin((bfz_t *)workfile->file);
 			break;
 		default:
-			insist_log(false, "invalid work file type: %d", workfile->fileType);
+			elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 
 	return true;
@@ -416,7 +416,7 @@ ExecWorkFile_Tell64(ExecWorkFile *workfile)
 			bytes = bfz_totalbytes((bfz_t *)workfile->file);
 			break;
 		default:
-			insist_log(false, "invalid work file type: %d", workfile->fileType);
+			elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 
 	return bytes;
@@ -455,7 +455,7 @@ ExecWorkFile_Close(ExecWorkFile *workfile)
 			bfz_close(bfz_file);
 			break;
 		default:
-			insist_log(false, "invalid work file type: %d", workfile->fileType);
+			elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 
 	int64 size = ExecWorkFile_GetSize(workfile);
@@ -549,7 +549,7 @@ ExecWorkFile_Seek(ExecWorkFile *workfile, uint64 offset, int whence)
 		}
 		break;
 	default:
-		insist_log(false, "invalid work file type: %d", workfile->fileType);
+		elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 
 	if (additional_size > 0)
@@ -571,7 +571,7 @@ ExecWorkFile_Flush(ExecWorkFile *workfile)
 		BufFileFlush((BufFile *) workfile->file);
 		break;
 	default:
-		insist_log(false, "invalid work file type: %d", workfile->fileType);
+		elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 }
 
@@ -596,7 +596,7 @@ ExecWorkFile_Suspend(ExecWorkFile *workfile)
 		ExecWorkFile_AdjustBFZSize(workfile, size);
 		break;
 	default:
-		insist_log(false, "invalid work file type: %d", workfile->fileType);
+		elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 	return size;
 }
@@ -617,7 +617,7 @@ ExecWorkFile_Restart(ExecWorkFile *workfile)
 		bfz_scan_begin((bfz_t *) workfile->file);
 		break;
 	default:
-		insist_log(false, "invalid work file type: %d", workfile->fileType);
+		elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 }
 
@@ -664,7 +664,7 @@ ExecWorkFile_SetFlags(ExecWorkFile *workfile, bool delOnClose, bool created)
 		workfile->flags |= EXEC_WORKFILE_SUSPENDABLE;
 		break;
 	default:
-		insist_log(false, "invalid work file type: %d", workfile->fileType);
+		elog(ERROR, "invalid work file type: %d", workfile->fileType);
 	}
 
 	if (delOnClose)
