@@ -60,8 +60,6 @@ BufferedReadInit(
 				 int32 maxLargeReadLen,
 				 char *relationName)
 {
-	int			relationNameLen;
-
 	Assert(bufferedRead != NULL);
 	Assert(memory != NULL);
 	Assert(maxBufferLen > 0);
@@ -73,9 +71,7 @@ BufferedReadInit(
 	/*
 	 * Init level.
 	 */
-	relationNameLen = strlen(relationName);
-	bufferedRead->relationName = (char *) palloc(relationNameLen + 1);
-	memcpy(bufferedRead->relationName, relationName, relationNameLen + 1);
+	bufferedRead->relationName = pstrdup(relationName);
 
 	/*
 	 * Large-read memory level members.

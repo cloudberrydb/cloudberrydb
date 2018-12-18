@@ -63,7 +63,6 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 						   char *title,
 						   AppendOnlyStorageAttributes *storageAttributes)
 {
-	int			relationNameLen;
 	uint8	   *memory;
 	int32		memoryLen;
 	MemoryContext oldMemoryContext;
@@ -92,10 +91,7 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 		   storageAttributes,
 		   sizeof(AppendOnlyStorageAttributes));
 
-	relationNameLen = strlen(relationName);
-	storageRead->relationName = (char *) palloc(relationNameLen + 1);
-	memcpy(storageRead->relationName, relationName, relationNameLen + 1);
-
+	storageRead->relationName = pstrdup(relationName);
 	storageRead->title = title;
 
 	storageRead->minimumHeaderLen =
@@ -271,7 +267,6 @@ AppendOnlyStorageRead_FinishOpenFile(AppendOnlyStorageRead *storageRead,
 {
 	int64		seekResult;
 	MemoryContext oldMemoryContext;
-	int			segmentFileNameLen;
 
 	AORelationVersion_CheckValid(version);
 
@@ -302,9 +297,7 @@ AppendOnlyStorageRead_FinishOpenFile(AppendOnlyStorageRead *storageRead,
 	if (storageRead->segmentFileName != NULL)
 		pfree(storageRead->segmentFileName);
 
-	segmentFileNameLen = strlen(filePathName);
-	storageRead->segmentFileName = (char *) palloc(segmentFileNameLen + 1);
-	memcpy(storageRead->segmentFileName, filePathName, segmentFileNameLen + 1);
+	storageRead->segmentFileName = pstrdup(filePathName);
 
 	/* Allocation is done.  Go back to caller memory-context. */
 	MemoryContextSwitchTo(oldMemoryContext);

@@ -68,7 +68,6 @@ AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
 							char *title,
 							AppendOnlyStorageAttributes *storageAttributes)
 {
-	int			relationNameLen;
 	uint8	   *memory;
 	int32		memoryLen;
 	MemoryContext oldMemoryContext;
@@ -105,10 +104,7 @@ AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
 	if (storageWrite->storageAttributes.checksum)
 		storageWrite->regularHeaderLen += 2 * sizeof(pg_crc32);
 
-	relationNameLen = strlen(relationName);
-	storageWrite->relationName = (char *) palloc(relationNameLen + 1);
-	memcpy(storageWrite->relationName, relationName, relationNameLen + 1);
-
+	storageWrite->relationName = pstrdup(relationName);
 	storageWrite->title = title;
 
 	/*
@@ -303,7 +299,6 @@ AppendOnlyStorageWrite_OpenFile(AppendOnlyStorageWrite *storageWrite,
 	File		file;
 	int64		seekResult;
 	MemoryContext oldMemoryContext;
-	int			segmentFileNameLen;
 
 	Assert(storageWrite != NULL);
 	Assert(storageWrite->isActive);
@@ -368,9 +363,7 @@ AppendOnlyStorageWrite_OpenFile(AppendOnlyStorageWrite *storageWrite,
 	if (storageWrite->segmentFileName != NULL)
 		pfree(storageWrite->segmentFileName);
 
-	segmentFileNameLen = strlen(filePathName);
-	storageWrite->segmentFileName = (char *) palloc(segmentFileNameLen + 1);
-	memcpy(storageWrite->segmentFileName, filePathName, segmentFileNameLen + 1);
+	storageWrite->segmentFileName = pstrdup(filePathName);
 
 	/* Allocation is done.  Go back to caller memory-context. */
 	MemoryContextSwitchTo(oldMemoryContext);
