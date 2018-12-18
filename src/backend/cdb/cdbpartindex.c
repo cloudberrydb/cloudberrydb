@@ -772,8 +772,8 @@ indexParts(PartitionIndexNode **np, bool isDefault)
 	if (!n)
 		return;
 
-	x = bms_first_from(n->index, 0);
-	while (x >= 0)
+	x = -1;
+	while ((x = bms_next_member(n->index, x)) >= 0)
 	{
 		entry = (LogicalIndexInfoHashEntry *) hash_search(LogicalIndexInfoHash,
 														  (void *) &x, HASH_FIND, &found);
@@ -796,14 +796,13 @@ indexParts(PartitionIndexNode **np, bool isDefault)
 			numIndexesOnDefaultParts++;
 		}
 		else
-
+		{
 			/*
 			 * For regular non-default parts we just track the part oid which
 			 * will be used to get the part constraint.
 			 */
 			entry->partList = lappend_oid(entry->partList, n->parchildrelid);
-
-		x = bms_first_from(n->index, x + 1);
+		}
 	}
 
 	if (n->children)
@@ -1279,14 +1278,11 @@ dumpPartsIndexInfo(PartitionIndexNode *n, int level)
 
 	appendStringInfo(&logicalIndexes, "%d ", n->parchildrelid);
 
-	x = bms_first_from(n->index, 0);
 	appendStringInfo(&logicalIndexes, "%s ", " (");
 
-	while (x >= 0)
-	{
+	x = -1;
+	while ((x = bms_next_member(n->index, x)) >= 0)
 		appendStringInfo(&logicalIndexes, "%d ", x);
-		x = bms_first_from(n->index, x + 1);
-	}
 
 	appendStringInfo(&logicalIndexes, "%s ", " )");
 

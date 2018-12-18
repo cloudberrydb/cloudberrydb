@@ -2172,8 +2172,8 @@ append_colIdx(AttrNumber *colIdx, Oid *operators, int numcols, int colno,
 	Assert(colno + bms_num_members(bms) <= numcols);
 
 	/* x is the original tleSortGroupRef */
-	x = bms_first_from(bms, 0);
-	while (x >= 0)
+	x = -1;
+	while ((x = bms_next_member(bms, x)) >= 0)
 	{
 		Assert(x > 0 && x <= max_sortgroupref);
 
@@ -2191,7 +2191,6 @@ append_colIdx(AttrNumber *colIdx, Oid *operators, int numcols, int colno,
 		operators[colno] = grpOperators[pos];
 		grping_pos[colno] = numcols - 1 - pos;
 		colno++;
-		x = bms_first_from(bms, x + 1);
 	}
 }
 

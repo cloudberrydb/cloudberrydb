@@ -568,7 +568,7 @@ InitResGroups(void)
 		ResGroupOps_GetCpuSet(RESGROUP_ROOT_ID, cpuset, MaxCpuSetLength);
 		bmsUnused = CpusetToBitset(cpuset, MaxCpuSetLength);
 		/* get the minimum core number, in case of the zero core is not exist */
-		defaultCore = bms_first_from(bmsUnused, 0);
+		defaultCore = bms_next_member(bmsUnused, -1);
 		Assert(defaultCore >= 0);
 	}
 
@@ -4009,7 +4009,8 @@ BitsetToCpuset(const Bitmapset *bms,
 
 	cpuset[0] = '\0';
 
-	bms_foreach(num, bms)
+	num = -1;
+	while ((num = bms_next_member(bms, num)) >= 0)
 	{
 		if (lastContinuousBit == -1)
 		{
@@ -4098,7 +4099,7 @@ cpusetOperation(char *cpuset1, const char *cpuset2,
 		ResGroupOps_GetCpuSet(RESGROUP_ROOT_ID, cpuset, MaxCpuSetLength);
 		Bitmapset *bmsDefault = CpusetToBitset(cpuset, MaxCpuSetLength);
 		/* get the minimum core number, in case of the zero core is not exist */
-		defaultCore = bms_first_from(bmsDefault, 0);
+		defaultCore = bms_next_member(bmsDefault, -1);
 		Assert(defaultCore >= 0);
 		snprintf(cpuset1, MaxCpuSetLength, "%d", defaultCore);
 	}

@@ -621,10 +621,9 @@ AppendOnlyVisimapEntry_GetNextInvisible(
 											   AOTupleIdGet_rowNum(tupleId),
 											   &currentBitmapOffset);
 	}
-	currentBitmapOffset++;
 
-	offset = bms_first_from(visiMapEntry->bitmap,
-							currentBitmapOffset);
+	offset = bms_next_member(visiMapEntry->bitmap,
+							 currentBitmapOffset);
 	if (offset >= 0)
 	{
 		rowNum = visiMapEntry->firstRowNum + offset;

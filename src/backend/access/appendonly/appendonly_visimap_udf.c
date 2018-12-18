@@ -293,13 +293,12 @@ gp_aovisimap_encode_bitmap(char *bitmapBuffer, Bitmapset *bms)
 	memset(bitmapBuffer, '0', APPENDONLY_VISIMAP_MAX_RANGE + 1);
 	bitmapBuffer[APPENDONLY_VISIMAP_MAX_RANGE] = 0;
 
-	i = bms_first_from(bms, 0);
-	while (i >= 0)
+	i = -1;
+	while ((i = bms_next_member(bms, i)) >= 0)
 	{
 		last = i;
 		Assert(i < APPENDONLY_VISIMAP_MAX_RANGE);
 		bitmapBuffer[i] = '1';
-		i = bms_first_from(bms, i + 1);
 	}
 	bitmapBuffer[last + 1] = 0;
 }
