@@ -688,21 +688,16 @@ AppendOnlyStorageRead_PositionToNextBlock(AppendOnlyStorageRead *storageRead,
 char *
 AppendOnlyStorageRead_ContextStr(AppendOnlyStorageRead *storageRead)
 {
-	StringInfoData buf;
 	int64		headerOffsetInFile;
 
 	headerOffsetInFile =
 		BufferedReadCurrentPosition(&storageRead->bufferedRead);
 
-	initStringInfo(&buf);
-	appendStringInfo(&buf,
-					 "%s. Append-Only segment file '%s', block header offset in file = " INT64_FORMAT ", bufferCount " INT64_FORMAT,
-					 storageRead->title,
-					 storageRead->segmentFileName,
-					 headerOffsetInFile,
-					 storageRead->bufferCount);
-
-	return buf.data;
+	return psprintf("%s. Append-Only segment file '%s', block header offset in file = " INT64_FORMAT ", bufferCount " INT64_FORMAT,
+					storageRead->title,
+					storageRead->segmentFileName,
+					headerOffsetInFile,
+					storageRead->bufferCount);
 }
 
 /*

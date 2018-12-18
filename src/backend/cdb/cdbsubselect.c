@@ -825,14 +825,9 @@ add_expr_subquery_rte(Query *parse, Query *subselect)
 
 	foreach(lc, subselect->targetList)
 	{
-		StringInfoData si;
-
-		initStringInfo(&si);
-		appendStringInfo(&si, "csq_c%d", teNum);
-
 		TargetEntry *te = (TargetEntry *) lfirst(lc);
 
-		te->resname = si.data;
+		te->resname = psprintf("csq_c%d", teNum);
 		teNum++;
 	}
 

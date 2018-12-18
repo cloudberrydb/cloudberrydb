@@ -342,8 +342,6 @@ AppendOnlyStorageFormat_SmallContentHeaderStr(
 	pg_crc32   *headerChecksumPtr = NULL;
 	pg_crc32	headerChecksum;
 
-	StringInfoData buf;
-
 	Assert(headerPtr != NULL);
 
 	blockHeader = (AOSmallContentHeader *) headerPtr;
@@ -382,28 +380,23 @@ AppendOnlyStorageFormat_SmallContentHeaderStr(
 		headerChecksum = 0;
 	}
 
-	initStringInfo(&buf);
-	appendStringInfo(
-					 &buf,
-					 "Append-Only storage Small Content header: "
-					 "smallcontent_bytes_0_3 0x%X, smallcontent_bytes_4_7 0x%X, "
-					 "headerKind = %d, "
-					 "executorBlockKind = %d, "
-					 "rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
-					 "dataLength %d, compressedLength %d, overallBlockLen %d",
-					 blockHeader->smallcontent_bytes_0_3,
-					 blockHeader->smallcontent_bytes_4_7,
-					 aoHeaderKind,
-					 executorBlockKind,
-					 rowCount,
-					 (usingChecksums ? "true" : "false"),
-					 headerChecksum,
-					 blockChecksum,
-					 dataLength,
-					 compressedLength,
-					 overallBlockLen);
-
-	return buf.data;
+	return psprintf("Append-Only storage Small Content header: "
+					"smallcontent_bytes_0_3 0x%X, smallcontent_bytes_4_7 0x%X, "
+					"headerKind = %d, "
+					"executorBlockKind = %d, "
+					"rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
+					"dataLength %d, compressedLength %d, overallBlockLen %d",
+					blockHeader->smallcontent_bytes_0_3,
+					blockHeader->smallcontent_bytes_4_7,
+					aoHeaderKind,
+					executorBlockKind,
+					rowCount,
+					(usingChecksums ? "true" : "false"),
+					headerChecksum,
+					blockChecksum,
+					dataLength,
+					compressedLength,
+					overallBlockLen);
 }
 
 char *
@@ -427,8 +420,6 @@ AppendOnlyStorageFormat_LargeContentHeaderStr(
 	pg_crc32	blockChecksum;
 	pg_crc32   *headerChecksumPtr = NULL;
 	pg_crc32	headerChecksum;
-
-	StringInfoData buf;
 
 	Assert(headerPtr != NULL);
 
@@ -464,27 +455,22 @@ AppendOnlyStorageFormat_LargeContentHeaderStr(
 		headerChecksum = 0;
 	}
 
-	initStringInfo(&buf);
-	appendStringInfo(
-					 &buf,
-					 "Append-Only storage Large Content header: "
-					 "largecontent_bytes_0_3 0x%X, largecontent_bytes_4_7 0x%X, "
-					 "headerKind = %d, "
-					 "executorBlockKind = %d, "
-					 "rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
-					 "largeContentLength %d, overallBlockLen %d",
-					 blockHeader->largecontent_bytes_0_3,
-					 blockHeader->largecontent_bytes_4_7,
-					 aoHeaderKind,
-					 executorBlockKind,
-					 rowCount,
-					 (usingChecksums ? "true" : "false"),
-					 headerChecksum,
-					 blockChecksum,
-					 largeContentLength,
-					 overallBlockLen);
-
-	return buf.data;
+	return psprintf("Append-Only storage Large Content header: "
+					"largecontent_bytes_0_3 0x%X, largecontent_bytes_4_7 0x%X, "
+					"headerKind = %d, "
+					"executorBlockKind = %d, "
+					"rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
+					"largeContentLength %d, overallBlockLen %d",
+					blockHeader->largecontent_bytes_0_3,
+					blockHeader->largecontent_bytes_4_7,
+					aoHeaderKind,
+					executorBlockKind,
+					rowCount,
+					(usingChecksums ? "true" : "false"),
+					headerChecksum,
+					blockChecksum,
+					largeContentLength,
+					overallBlockLen);
 }
 
 char *
@@ -508,8 +494,6 @@ AppendOnlyStorageFormat_NonBulkDenseContentHeaderStr(
 	pg_crc32	blockChecksum;
 	pg_crc32   *headerChecksumPtr = NULL;
 	pg_crc32	headerChecksum;
-
-	StringInfoData buf;
 
 	Assert(headerPtr != NULL);
 
@@ -547,27 +531,22 @@ AppendOnlyStorageFormat_NonBulkDenseContentHeaderStr(
 		headerChecksum = 0;
 	}
 
-	initStringInfo(&buf);
-	appendStringInfo(
-					 &buf,
-					 "Append-Only storage Large Content header: "
-					 "nonbulkdensecontent_bytes_0_3 0x%X, nonbulkdensecontent_bytes_4_7 0x%X, "
-					 "headerKind = %d, "
-					 "executorBlockKind = %d, "
-					 "rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
-					 "dataLength %d, overallBlockLen %d",
-					 blockHeader->nonbulkdensecontent_bytes_0_3,
-					 blockHeader->nonbulkdensecontent_bytes_4_7,
-					 aoHeaderKind,
-					 executorBlockKind,
-					 rowCount,
-					 (usingChecksums ? "true" : "false"),
-					 headerChecksum,
-					 blockChecksum,
-					 dataLength,
-					 overallBlockLen);
-
-	return buf.data;
+	return psprintf("Append-Only storage Large Content header: "
+					"nonbulkdensecontent_bytes_0_3 0x%X, nonbulkdensecontent_bytes_4_7 0x%X, "
+					"headerKind = %d, "
+					"executorBlockKind = %d, "
+					"rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
+					"dataLength %d, overallBlockLen %d",
+					blockHeader->nonbulkdensecontent_bytes_0_3,
+					blockHeader->nonbulkdensecontent_bytes_4_7,
+					aoHeaderKind,
+					executorBlockKind,
+					rowCount,
+					(usingChecksums ? "true" : "false"),
+					headerChecksum,
+					blockChecksum,
+					dataLength,
+					overallBlockLen);
 }
 
 char *
@@ -594,8 +573,6 @@ AppendOnlyStorageFormat_BulkDenseContentHeaderStr(
 	pg_crc32	blockChecksum;
 	pg_crc32   *headerChecksumPtr = NULL;
 	pg_crc32	headerChecksum;
-
-	StringInfoData buf;
 
 	Assert(headerPtr != NULL);
 
@@ -645,31 +622,26 @@ AppendOnlyStorageFormat_BulkDenseContentHeaderStr(
 		headerChecksum = 0;
 	}
 
-	initStringInfo(&buf);
-	appendStringInfo(
-					 &buf,
-					 "Append-Only storage Bulk Dense Content header: "
-					 "bulkdensecontent_bytes_0_3 0x%X, bulkdensecontent_bytes_4_7 0x%X, "
-					 "bulkdensecontent_ext_bytes_0_3 0x%X, bulkdensecontent_ext_bytes_4_7 0x%X, "
-					 "headerKind = %d, "
-					 "executorBlockKind = %d, "
-					 "rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
-					 "dataLength %d, compressedLength %d, overallBlockLen %d",
-					 blockHeader->bulkdensecontent_bytes_0_3,
-					 blockHeader->bulkdensecontent_bytes_4_7,
-					 extHeader->bulkdensecontent_ext_bytes_0_3,
-					 extHeader->bulkdensecontent_ext_bytes_4_7,
-					 aoHeaderKind,
-					 executorBlockKind,
-					 rowCount,
-					 (usingChecksums ? "true" : "false"),
-					 headerChecksum,
-					 blockChecksum,
-					 dataLength,
-					 compressedLength,
-					 overallBlockLen);
-
-	return buf.data;
+	return psprintf("Append-Only storage Bulk Dense Content header: "
+					"bulkdensecontent_bytes_0_3 0x%X, bulkdensecontent_bytes_4_7 0x%X, "
+					"bulkdensecontent_ext_bytes_0_3 0x%X, bulkdensecontent_ext_bytes_4_7 0x%X, "
+					"headerKind = %d, "
+					"executorBlockKind = %d, "
+					"rowCount = %d, usingChecksums = %s, header checksum 0x%X, block checksum 0x%X, "
+					"dataLength %d, compressedLength %d, overallBlockLen %d",
+					blockHeader->bulkdensecontent_bytes_0_3,
+					blockHeader->bulkdensecontent_bytes_4_7,
+					extHeader->bulkdensecontent_ext_bytes_0_3,
+					extHeader->bulkdensecontent_ext_bytes_4_7,
+					aoHeaderKind,
+					executorBlockKind,
+					rowCount,
+					(usingChecksums ? "true" : "false"),
+					headerChecksum,
+					blockChecksum,
+					dataLength,
+					compressedLength,
+					overallBlockLen);
 }
 
 char *
@@ -717,17 +689,8 @@ AppendOnlyStorageFormat_BlockHeaderStr(
 			break;
 
 		default:
-			{
-				StringInfoData buf;
-
-				initStringInfo(&buf);
-				appendStringInfo(
-								 &buf,
-								 "Append-Only storage header kind %d unknown",
-								 aoHeaderKind);
-
-				str = buf.data;
-			}
+			str = psprintf("Append-Only storage header kind %d unknown",
+						   aoHeaderKind);
 			break;
 	}
 

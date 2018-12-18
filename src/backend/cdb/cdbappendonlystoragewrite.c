@@ -628,19 +628,12 @@ char *
 AppendOnlyStorageWrite_ContextStr(AppendOnlyStorageWrite *storageWrite)
 {
 	int64		headerOffsetInFile =
-	BufferedAppendCurrentBufferPosition(&storageWrite->bufferedAppend);
+		BufferedAppendCurrentBufferPosition(&storageWrite->bufferedAppend);
 
-	StringInfoData buf;
-
-	initStringInfo(&buf);
-	appendStringInfo(
-					 &buf,
-					 "%s. Append-Only segment file '%s', header offset in file " INT64_FORMAT,
-					 storageWrite->title,
-					 storageWrite->segmentFileName,
-					 headerOffsetInFile);
-
-	return buf.data;
+	return psprintf("%s. Append-Only segment file '%s', header offset in file " INT64_FORMAT,
+					storageWrite->title,
+					storageWrite->segmentFileName,
+					headerOffsetInFile);
 }
 
 static char *
