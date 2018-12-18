@@ -325,14 +325,20 @@ GPHDUri_verify_no_duplicate_options(GPHDUri *uri)
 
 	if (duplicateKeys && duplicateKeys->length > 0)
 	{
-		ListCell   *key = NULL;
+		ListCell   *key;
 		StringInfoData duplicates;
+		bool		first = true;
 
 		initStringInfo(&duplicates);
 		foreach(key, duplicateKeys)
-			appendStringInfo(&duplicates, "%s, ", strVal((Value *) lfirst(key)));
-		/* omit trailing ', ' */
-		truncateStringInfo(&duplicates, duplicates.len - strlen(", "));
+		{
+			char	   *keyname = strVal((Value *) lfirst(key));
+
+			if (!first)
+				appendStringInfoString(&duplicates, ", ");
+			first = false;
+			appendStringInfoString(&duplicates, keyname);
+		}
 
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
@@ -352,11 +358,13 @@ GPHDUri_verify_core_options_exist(GPHDUri *uri, List *coreOptions)
 {
 	ListCell   *coreOption = NULL;
 	StringInfoData missing;
+	bool		has_missing = false;
 
 	initStringInfo(&missing);
 
 	foreach(coreOption, coreOptions)
 	{
+		char	   *coreOptionStr = (char *) lfirst(coreOption);
 		bool		optExist = false;
 		ListCell   *option = NULL;
 
@@ -364,23 +372,24 @@ GPHDUri_verify_core_options_exist(GPHDUri *uri, List *coreOptions)
 		{
 			char	   *key = ((OptionData *) lfirst(option))->key;
 
-			if (pg_strcasecmp(key, lfirst(coreOption)) == 0)
+			if (pg_strcasecmp(key, coreOptionStr) == 0)
 			{
 				optExist = true;
 				break;
 			}
 		}
 		if (!optExist)
-			appendStringInfo(&missing, "%s and ", (char *) lfirst(coreOption));
+		{
+			if (has_missing)
+				appendStringInfoString(&missing, " and ");
+			appendStringInfoString(&missing, coreOptionStr);
+			has_missing = true;
+		}
 	}
 
-	if (missing.len > 0)
-	{
-		/* omit trailing ' and ' */
-		truncateStringInfo(&missing, missing.len - strlen(" and "));
+	if (has_missing)
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("invalid URI %s: %s option(s) missing", uri->uri, missing.data)));
-	}
 	pfree(missing.data);
 }

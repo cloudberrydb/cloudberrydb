@@ -1311,7 +1311,7 @@ cdbexplain_collectExtraText(PlanState *planstate, StringInfo notebuf)
 		appendBinaryStringInfo(notebuf, planstate->cdbexplainbuf->data,
 							   planstate->cdbexplainbuf->len);
 
-		truncateStringInfo(planstate->cdbexplainbuf, 0);
+		resetStringInfo(planstate->cdbexplainbuf);
 	}
 
 	return bnotes;

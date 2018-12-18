@@ -348,7 +348,7 @@ verifyExternalTableDefinition(int16 ncolumns_remote, AttrNumber ncolumns, TupleD
 {
 	StringInfoData errMsg;
 
-	memset(&errMsg, 0, sizeof(errMsg));
+	initStringInfo(&errMsg);
 
 	if (ncolumns_remote != ncolumns)
 		ereport(ERROR, (errcode(ERRCODE_INVALID_TABLE_DEFINITION),
@@ -367,14 +367,14 @@ verifyExternalTableDefinition(int16 ncolumns_remote, AttrNumber ncolumns, TupleD
 		if ((isBinaryFormatType(defined_type) || isBinaryFormatType(input_type)) &&
 			input_type != defined_type)
 		{
-			if (errMsg.len == 0)
-				initStringInfo(&errMsg);
-
 			char	   *intype = format_type_be(input_type);
 			char	   *deftype = format_type_be(defined_type);
 			char	   *attname = NameStr(tupdesc->attrs[i]->attname);
 
-			appendStringInfo(&errMsg, "column \"%s\" (type \"%s\", input data type \"%s\"), ",
+			if (errMsg.len > 0)
+				appendStringInfoString(&errMsg, ", ");
+
+			appendStringInfo(&errMsg, "column \"%s\" (type \"%s\", input data type \"%s\")",
 							 attname, deftype, intype);
 			pfree(intype);
 			pfree(deftype);
@@ -382,8 +382,6 @@ verifyExternalTableDefinition(int16 ncolumns_remote, AttrNumber ncolumns, TupleD
 	}
 	if (errMsg.len > 0)
 	{
-		/* omit trailing ', ' */
-		truncateStringInfo(&errMsg, errMsg.len - strlen(", "));
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 				 errmsg("external table definition did not match input data: %s",

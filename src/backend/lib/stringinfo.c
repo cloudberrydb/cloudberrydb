@@ -310,24 +310,6 @@ enlargeStringInfo(StringInfo str, int needed)
 	str->maxlen = newlen;
 }
 
-
-/*------------------------
- * truncateStringInfo
- * Make sure a StringInfo's string is no longer than 'nchars' characters.
- */
-void 
-truncateStringInfo(StringInfo str, int nchars)
-{
-    if (str &&
-        str->len > nchars)
-    {
-        Assert(str->data != NULL && 
-               str->len <= str->maxlen);
-        str->len = nchars;
-        str->data[nchars] = '\0';
-    }
-}                               /* truncateStringInfo */
-
 /*
  * Replace all occurrences of a string in a StringInfo with a different string.
  */

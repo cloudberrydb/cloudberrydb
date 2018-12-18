@@ -2252,17 +2252,19 @@ static void
 format_fd_set(StringInfo buf, int nfds, mpp_fd_set *fds, char *pfx, char *sfx)
 {
 	int			i;
+	bool		first = true;
 
 	appendStringInfoString(buf, pfx);
 	for (i = 1; i < nfds; i++)
 	{
 		if (MPP_FD_ISSET(i, fds))
-			appendStringInfo(buf, "%d,", i);
+		{
+			if (!first)
+				appendStringInfoChar(buf, ',');
+			appendStringInfo(buf, "%d", i);
+			first = false;
+		}
 	}
-
-	if (buf->len > 0 &&
-		buf->data[buf->len - 1] == ',')
-		truncateStringInfo(buf, buf->len - 1);
 
 	appendStringInfoString(buf, sfx);
 }

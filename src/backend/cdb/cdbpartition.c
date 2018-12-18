@@ -3458,7 +3458,7 @@ rel_get_part_path_pretty(Oid relid,
 		{
 			char	   *str = (char *) lfirst(lc2);
 
-			truncateStringInfo(&sid2, 0);
+			resetStringInfo(&sid2);
 
 			switch (lcnt)
 			{
@@ -4981,9 +4981,9 @@ get_part_rule(Relation rel,
 
 			appendStringInfo(&sid2, "partition%s of %s",
 							 prule2->partIdStr, sid1.data);
-			truncateStringInfo(&sid1, 0);
+			resetStringInfo(&sid1);
 			appendStringInfo(&sid1, "%s", sid2.data);
-			truncateStringInfo(&sid2, 0);
+			resetStringInfo(&sid2);
 		}						/* end foreach */
 
 		return prule2;

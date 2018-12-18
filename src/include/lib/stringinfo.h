@@ -167,12 +167,6 @@ extern void appendBinaryStringInfo(StringInfo str,
 extern void enlargeStringInfo(StringInfo str, int needed);
 
 /*------------------------
- * truncateStringInfo
- * Make sure a StringInfo's string is no longer than 'nchars' characters.
- */
-extern void truncateStringInfo(StringInfo str, int nchars);
-
-/*------------------------
  * replaceStringInfoString
  * Replace all occurrences of a string in a StringInfo with a different string.
  */
