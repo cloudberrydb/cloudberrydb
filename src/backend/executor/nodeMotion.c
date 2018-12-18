@@ -1246,7 +1246,7 @@ static int
 CdbMergeComparator(Datum lhs, Datum rhs, void *context)
 {
 	int			lSegIdx = DatumGetInt32(lhs);
-	int			rSegIdx = DatumGetInt32(lhs);
+	int			rSegIdx = DatumGetInt32(rhs);
 	CdbMergeComparatorContext *ctx = (CdbMergeComparatorContext *) context;
 	CdbTupleHeapInfo *linfo = (CdbTupleHeapInfo *) &ctx->tupleheap_entries[lSegIdx];
 	CdbTupleHeapInfo *rinfo = (CdbTupleHeapInfo *) &ctx->tupleheap_entries[rSegIdx];
@@ -1267,7 +1267,7 @@ CdbMergeComparator(Datum lhs, Datum rhs, void *context)
 								  rinfo->datum1, rinfo->isnull1,
 								  &sortKeys[0]);
 	if (compare != 0)
-		return compare;
+		return -compare;
 
 	/* Rest of the columns. */
 	for (nkey = 1; nkey < numSortCols; nkey++)
@@ -1293,7 +1293,7 @@ CdbMergeComparator(Datum lhs, Datum rhs, void *context)
 									  datum2, isnull2,
 									  ssup);
 		if (compare != 0)
-			return compare;
+			return -compare;
 	}
 
 	return 0;

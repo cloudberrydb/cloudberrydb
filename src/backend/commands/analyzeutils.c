@@ -533,7 +533,7 @@ DatumHeapComparator(Datum lhs, Datum rhs, void *context)
 
 	if (datumCompare(d1, d2, typInfo->ltFuncOp))
 	{
-		return -1;
+		return 1;
 	}
 
 	if (datumCompare(d1, d2, typInfo->eqFuncOp))
@@ -541,7 +541,7 @@ DatumHeapComparator(Datum lhs, Datum rhs, void *context)
 		return 0;
 	}
 
-	return 1;
+	return -1;
 }
 
 /* Advance the cursor of a partition by 1, set to -1 if the end is reached
