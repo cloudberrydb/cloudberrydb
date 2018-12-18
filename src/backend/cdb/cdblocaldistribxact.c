@@ -20,17 +20,17 @@
  */
 
 #include "postgres.h"
-#include "miscadmin.h"
+
 #include "access/transam.h"
 #include "access/twophase.h"
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbvars.h"
-#include "storage/proc.h"
-#include "utils/hsearch.h"
-#include "utils/guc.h"
+#include "lib/ilist.h"
 #include "miscadmin.h"
+#include "storage/proc.h"
+#include "utils/guc.h"
+#include "utils/hsearch.h"
 #include "utils/memutils.h"
-#include "cdb/cdbdoublylinked.h"
 
 /*  ***************************************************************************** */
 
@@ -174,7 +174,7 @@ typedef struct LocalDistribXactCacheEntry
 
 	int64		visits;
 
-	DoubleLinks lruDoubleLinks;
+	dlist_node	lruDoubleLinks;
 	/* list link for LRU */
 
 } LocalDistribXactCacheEntry;
@@ -186,14 +186,14 @@ static struct LocalDistribXactCache
 {
 	int32		count;
 
-	DoublyLinkedHead lruDoublyLinkedHead;
+	dlist_head	lruDoublyLinkedHead;
 
 	int64		hitCount;
 	int64		totalCount;
 	int64		addCount;
 	int64		removeCount;
 
-}			LocalDistribXactCache = {0, {NULL, NULL}, 0, 0, 0, 0};
+}			LocalDistribXactCache = {0, DLIST_STATIC_INIT(LocalDistribXactCache.lruDoublyLinkedHead), 0, 0, 0, 0};
 
 
 bool
@@ -234,7 +234,7 @@ LocalDistribXactCache_CommittedFind(
 											HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 		MemSet(&LocalDistribXactCache, 0, sizeof(LocalDistribXactCache));
-		DoublyLinkedHead_Init(&LocalDistribXactCache.lruDoublyLinkedHead);
+		dlist_init(&LocalDistribXactCache.lruDoublyLinkedHead);
 
 	}
 
@@ -249,14 +249,8 @@ LocalDistribXactCache_CommittedFind(
 		/*
 		 * Maintain LRU ordering.
 		 */
-		DoubleLinks_Remove(
-						   offsetof(LocalDistribXactCacheEntry, lruDoubleLinks),
-						   &LocalDistribXactCache.lruDoublyLinkedHead,
-						   entry);
-		DoublyLinkedHead_AddFirst(
-								  offsetof(LocalDistribXactCacheEntry, lruDoubleLinks),
-								  &LocalDistribXactCache.lruDoublyLinkedHead,
-								  entry);
+		dlist_delete(&entry->lruDoubleLinks);
+		dlist_push_head(&LocalDistribXactCache.lruDoublyLinkedHead, &entry->lruDoubleLinks);
 
 		*distribXid = entry->distribXid;
 
@@ -297,10 +291,11 @@ LocalDistribXactCache_AddCommitted(
 		 * Remove oldest.
 		 */
 		lastEntry = (LocalDistribXactCacheEntry *)
-			DoublyLinkedHead_RemoveLast(
-										offsetof(LocalDistribXactCacheEntry, lruDoubleLinks),
-										&LocalDistribXactCache.lruDoublyLinkedHead);
+			dlist_container(LocalDistribXactCacheEntry,
+							lruDoubleLinks,
+							dlist_tail_node(&LocalDistribXactCache.lruDoublyLinkedHead));
 		Assert(lastEntry != NULL);
+		dlist_delete(&lastEntry->lruDoubleLinks);
 
 		removedEntry = (LocalDistribXactCacheEntry *)
 			hash_search(LocalDistribCacheHtab, &lastEntry->localXid,
@@ -323,11 +318,8 @@ LocalDistribXactCache_AddCommitted(
 		elog(ERROR, "Add should not have found local xid = %x", localXid);
 	}
 
-	DoubleLinks_Init(&entry->lruDoubleLinks);
-	DoublyLinkedHead_AddFirst(
-							  offsetof(LocalDistribXactCacheEntry, lruDoubleLinks),
-							  &LocalDistribXactCache.lruDoublyLinkedHead,
-							  entry);
+	dlist_push_head(&LocalDistribXactCache.lruDoublyLinkedHead,
+					&entry->lruDoubleLinks);
 
 	entry->localXid = localXid;
 	entry->distribXid = distribXid;
