@@ -13,6 +13,7 @@
 #include "access/genam.h"
 #include "catalog/pg_compression.h"
 #include "fmgr.h"
+#include "storage/gp_compress.h"
 #include "utils/builtins.h"
 
 #include <zstd.h>
@@ -37,9 +38,9 @@ typedef struct zstd_state
 {
 	int			level;			/* Compression level */
 	bool		compress;		/* Compress if true, decompress otherwise */
-	ZSTD_CCtx  *zstd_compress_context;	/* ZSTD compression context */
-	ZSTD_DCtx  *zstd_decompress_context;	/* ZSTD decompression context */
-}			zstd_state;
+
+	zstd_context *ctx;			/* ZSTD compression/decompresion contexts */
+} zstd_state;
 
 Datum
 zstd_constructor(PG_FUNCTION_ARGS)
@@ -62,8 +63,10 @@ zstd_constructor(PG_FUNCTION_ARGS)
 
 	state->level = sa->complevel;
 	state->compress = compress;
-	state->zstd_compress_context = ZSTD_createCCtx();
-	state->zstd_decompress_context = ZSTD_createDCtx();
+
+	state->ctx = zstd_alloc_context();
+	state->ctx->cctx = ZSTD_createCCtx();
+	state->ctx->dctx = ZSTD_createDCtx();
 
 	PG_RETURN_POINTER(cs);
 }
@@ -72,13 +75,13 @@ Datum
 zstd_destructor(PG_FUNCTION_ARGS)
 {
 	CompressionState *cs = (CompressionState *) PG_GETARG_POINTER(0);
-	zstd_state *state = (zstd_state *) cs->opaque;
 
 	if (cs != NULL && cs->opaque != NULL)
 	{
-		ZSTD_freeCCtx(state->zstd_compress_context);
-		ZSTD_freeDCtx(state->zstd_decompress_context);
-		pfree(cs->opaque);
+		zstd_state *state = (zstd_state *) cs->opaque;
+
+		zstd_free_context(state->ctx);
+		pfree(state);
 	}
 
 	PG_RETURN_VOID();
@@ -104,7 +107,7 @@ zstd_compress(PG_FUNCTION_ARGS)
 
 	unsigned long dst_length_used;
 
-	dst_length_used = ZSTD_compressCCtx(state->zstd_compress_context,
+	dst_length_used = ZSTD_compressCCtx(state->ctx->cctx,
 										dst, dst_sz,
 										src, src_sz,
 										state->level);
@@ -148,7 +151,7 @@ zstd_decompress(PG_FUNCTION_ARGS)
 	if (dst_sz <= 0)
 		elog(ERROR, "invalid destination buffer size %d", dst_sz);
 
-	dst_length_used = ZSTD_decompressDCtx(state->zstd_decompress_context,
+	dst_length_used = ZSTD_decompressDCtx(state->ctx->dctx,
 										  dst, dst_sz,
 										  src, src_sz);
 

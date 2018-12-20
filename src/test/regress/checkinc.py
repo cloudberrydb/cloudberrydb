@@ -85,7 +85,8 @@ fileset = {
     # snowball/libstemmer/header.h includes "api.h", without specifying
     # a path. Don't be alarmed by that.
     'api.h':                 [],
-    'valgrind/memcheck.h':   []
+    'valgrind/memcheck.h':   [],
+    'zstd.h':                []
 }
 
 

@@ -14,7 +14,10 @@
  */
 
 #include "postgres.h"
-#include "fmgr.h"
+
+#ifdef HAVE_LIBZ
+#include <zlib.h>
+#endif
 
 #include "access/genam.h"
 #include "access/reloptions.h"
@@ -26,6 +29,7 @@
 #include "catalog/dependency.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbappendonlystoragelayer.h"
+#include "fmgr.h"
 #include "nodes/makefuncs.h"
 #include "parser/parse_type.h"
 #include "storage/gp_compress.h"

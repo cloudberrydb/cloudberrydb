@@ -16,13 +16,16 @@
 #ifndef GP_COMPRESS_H
 #define GP_COMPRESS_H
 
+#ifdef HAVE_LIBZSTD
+#include "zstd.h"
+#endif
+
 #include "fmgr.h"
 
 #include "catalog/pg_compression.h"
+#include "lib/ilist.h"
+#include "utils/resowner.h"
 
-#ifdef HAVE_LIBZ
-#include <zlib.h>
-#endif
 
 extern void gp_trycompress(
 		 uint8			*sourceData,
@@ -42,5 +45,39 @@ extern void gp_decompress(
 		PGFunction decompressor,
 		CompressionState *compressionState,
 		int64 bufferCount);
+
+/*
+ * We use ZStandard compression in a few different places. These functions
+ * provide support for tracking ZSTD compression/decompression contexts
+ * with ResourceOwners, so that they are not leaked on abort.
+ *
+ * To use:
+ *
+ * zstd_context *ctx = call zstd_alloc_context();
+ * ctx->cctx = ZSTD_createCCtx();
+ *
+ * <use the context using normal ZSTD functions>
+ *
+ * zsd_free_context(ctx);
+ *
+ * If the transaction is aborted, the handle will be automatically closed,
+ * when the resource owner is destroyed.
+ */
+#ifdef HAVE_LIBZSTD
+
+typedef struct
+{
+	ZSTD_CCtx  *cctx;
+	ZSTD_DCtx  *dctx;
+
+	ResourceOwner owner;
+	dlist_node	node;
+} zstd_context;
+
+extern void zstd_free_context(zstd_context *context);
+extern zstd_context *zstd_alloc_context(void);
+
+#endif	/* HAVE_LIBZSTD */
+
 
 #endif

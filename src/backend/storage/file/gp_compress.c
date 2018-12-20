@@ -20,6 +20,11 @@
 #include "cdb/cdbappendonlystoragelayer.h"
 #include "storage/gp_compress.h"
 #include "utils/guc.h"
+#include "utils/resowner.h"
+
+#ifdef HAVE_LIBZSTD
+#include <zstd.h>
+#endif
 
 /*
  * Using the provided compression function this method will try to compress the data.
@@ -110,3 +115,76 @@ void gp_decompress(
 			 uncompressedLen,
 			 bufferCount);
 }
+
+/*
+ * Support for tracking ZSTD handles with resource owners.
+ */
+#ifdef HAVE_LIBZSTD
+
+static dlist_head open_zstd_handles;
+static bool zstd_resowner_callback_registered;
+
+static void zstd_free_callback(ResourceReleasePhase phase,
+				   bool isCommit,
+				   bool isTopLevel,
+				   void *arg);
+
+zstd_context *
+zstd_alloc_context(void)
+{
+	zstd_context *ctx;
+
+	if (!zstd_resowner_callback_registered)
+	{
+		RegisterResourceReleaseCallback(zstd_free_callback, NULL);
+		zstd_resowner_callback_registered = true;
+	}
+
+	ctx = MemoryContextAlloc(TopMemoryContext, sizeof(zstd_context));
+	ctx->cctx = NULL;
+	ctx->dctx = NULL;
+	ctx->owner = CurrentResourceOwner;
+	dlist_push_head(&open_zstd_handles, &ctx->node);
+
+	return ctx;
+}
+
+void
+zstd_free_context(zstd_context *context)
+{
+	if (context->cctx)
+		ZSTD_freeCCtx(context->cctx);
+	if (context->dctx)
+		ZSTD_freeDCtx(context->dctx);
+
+	dlist_delete(&context->node);
+
+	pfree(context);
+}
+
+/* Close any open ZSTD handles on abort. */
+static void
+zstd_free_callback(ResourceReleasePhase phase,
+				   bool isCommit,
+				   bool isTopLevel,
+				   void *arg)
+{
+	dlist_mutable_iter miter;
+
+	if (phase != RESOURCE_RELEASE_AFTER_LOCKS)
+		return;
+
+	dlist_foreach_modify(miter, &open_zstd_handles)
+	{
+		zstd_context *context = dlist_container(zstd_context, node, miter.cur);
+
+		if (context->owner == CurrentResourceOwner)
+		{
+			if (isCommit)
+				elog(WARNING, "zstd context reference leak: context %p still referenced", context);
+			zstd_free_context(context);
+		}
+	}
+}
+
+#endif	/* HAVE_LIBZSTD */

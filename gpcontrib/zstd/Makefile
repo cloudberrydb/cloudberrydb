@@ -5,7 +5,7 @@ OBJS = zstd_compression.o
 CFLAGS_SL += -lzstd
 LDFLAGS_SL += -lzstd
 
-REGRESS = compression_zstd
+REGRESS = compression_zstd zstd_abort_leak
 
 ifdef USE_PGXS
   PGXS := $(shell pg_config --pgxs)
