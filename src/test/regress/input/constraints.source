@@ -463,28 +463,30 @@ CREATE TABLE circles (
     WHERE (circle_center(c1) <> '(0,0)')
 );
 
+-- start_ignore
+-- In Greenplum, exclusion constraints only enfore exclusion for rows that
+-- land in the same segment. Force all the rows to be stored on the same
+-- segment, so that the rest of this upstream test works unmodified.
+ALTER TABLE circles ADD COLUMN distkey integer;
+ALTER TABLE circles SET DISTRIBUTED BY (distkey);
+-- end_ignore
+
 -- these should succeed because they don't match the index predicate
 INSERT INTO circles VALUES('<(0,0), 5>', '<(0,0), 5>');
--- In the original version of the postgres test, they create a different set of
--- tuples for this. In Greenplum, we cannot support unique constraints on
--- non-distribution keys, and the version of the tuples from postgres end up on a
--- different segment, so we have to modify the original query here in order to
--- test these constraints. Alternatively, we could have set the distribution key
--- to be (c1, c2), but we don't support using CIRCLE type as a distribution key. 
-INSERT INTO circles VALUES('<(0,0), 5>', '<(0,0), 5>');
+INSERT INTO circles VALUES('<(0,0), 5>', '<(0,0), 4>');
 
 -- succeed
 INSERT INTO circles VALUES('<(10,10), 10>', '<(0,0), 5>');
 -- fail, overlaps
-INSERT INTO circles VALUES('<(20,20), 10>', '<(0,0), 5>');
+INSERT INTO circles VALUES('<(20,20), 10>', '<(0,0), 4>');
 -- succeed because c1 doesn't overlap
 INSERT INTO circles VALUES('<(20,20), 1>', '<(0,0), 5>');
--- succeed because c2 is not the same
-INSERT INTO circles VALUES('<(20,20), 10>', '<(1,1), 5>');
+-- succeed because c2 doesn't overlap
+INSERT INTO circles VALUES('<(20,20), 10>', '<(10,10), 5>');
 
 -- should fail on existing data without the WHERE clause
 ALTER TABLE circles ADD EXCLUDE USING gist
-  (c1 WITH &&, (c2::circle) WITH ~=);
+  (c1 WITH &&, (c2::circle) WITH &&);
 
 -- try reindexing an existing constraint
 REINDEX INDEX circles_c1_c2_excl;
