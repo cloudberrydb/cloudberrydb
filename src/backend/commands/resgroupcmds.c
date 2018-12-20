@@ -371,7 +371,7 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	ResGroupCaps		caps;
 	ResGroupCaps		oldCaps;
 	ResGroupCap			value = 0;
-	const char *cpuset;
+	const char *cpuset = NULL;
 	ResourceGroupCallbackContext	*callbackCtx;
 
 	/* Permission check - only superuser can alter resource groups. */
