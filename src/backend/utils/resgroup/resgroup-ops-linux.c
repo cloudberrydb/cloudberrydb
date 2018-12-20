@@ -1,13 +1,13 @@
 /*-------------------------------------------------------------------------
  *
- * resgroup-ops-cgroup.c
+ * resgroup-ops-linux.c
  *	  OS dependent resource group operations - cgroup implementation
  *
  * Copyright (c) 2017 Pivotal Software, Inc.
  *
  *
  * IDENTIFICATION
- *	    src/backend/utils/resgroup/resgroup-ops-cgroup.c
+ *	    src/backend/utils/resgroup/resgroup-ops-linux.c
  *
  *-------------------------------------------------------------------------
  */
@@ -648,7 +648,7 @@ unassignGroup(Oid group, ResGroupCompType comp, int fddir)
 		if (ptr == end)
 			break;
 
-		char str[16];
+		char str[22];
 		sprintf(str, "%ld", pid);
 		int n = write(fdw, str, strlen(str));
 		if (n < 0)
