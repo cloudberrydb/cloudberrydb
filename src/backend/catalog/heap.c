@@ -1430,7 +1430,10 @@ heap_create_with_catalog(const char *relname,
 		}
 	}
 	else
+	{
 		appendOnlyRel = false;
+		stdRdOptions = NULL;
+	}
 
 	/*
 	 * MPP-8058: disallow OIDS on column-oriented tables.
