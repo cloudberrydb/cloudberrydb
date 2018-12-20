@@ -58,7 +58,7 @@ extern void InitPossibleValueSetData(PossibleValueSet *pvs);
 
 extern void AddUnmatchingValues(PossibleValueSet *pvs, PossibleValueSet *toCheck);
 extern void RemoveUnmatchingValues(PossibleValueSet *pvs, PossibleValueSet *toCheck);
-extern bool TryProcessEqualityNodeForPossibleValues(OpExpr *expr, Node *variable, PossibleValueSet *resultOut);
+extern bool TryProcessExprForPossibleValues(Node *expr, Node *variable, PossibleValueSet *resultOut);
 
 /**
  * END functions and structures for determining set of possible values from a clause

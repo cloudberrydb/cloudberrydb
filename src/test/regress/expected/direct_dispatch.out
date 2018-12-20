@@ -124,11 +124,11 @@ INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 (1 row)
 
 -- DELETE with an IS NULL predicate
--- Doesn't do direct dispatch, currently.
+-- DO direct dispatch
 delete from direct_test where key is null;
-INFO:  (slice 0) Dispatch command to ALL contents: 0 1 2
-INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
-INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
+INFO:  (slice 0) Dispatch command to SINGLE content
+INFO:  Distributed transaction command 'Distributed Prepare' to SINGLE content
+INFO:  Distributed transaction command 'Distributed Commit Prepared' to SINGLE content
 -- Same single-row insert as above, but with DEFAULT instead of an explicit values.
 -- DO direct dispatch
 insert into direct_test values (default, 'cow');

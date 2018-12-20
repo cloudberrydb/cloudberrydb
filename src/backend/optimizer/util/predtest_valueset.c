@@ -33,6 +33,9 @@ static void AddValue(PossibleValueSet *pvs, Const *valueToCopy);
 static void RemoveValue(PossibleValueSet *pvs, Const *value);
 static bool ContainsValue(PossibleValueSet *pvs, Const *value);
 
+static bool TryProcessOpExprForPossibleValues(OpExpr *expr, Node *variable, PossibleValueSet *resultOut);
+static bool TryProcessNullTestForPossibleValues(NullTest *expr, Node *variable, PossibleValueSet *resultOut);
+
 typedef struct ConstHashValue
 {
 	Const * c;
@@ -298,14 +301,29 @@ RemoveUnmatchingValues(PossibleValueSet *pvs, PossibleValueSet *toCheck)
 }
 
 /**
- * Check to see if the given OpExpr is a valid equality between the listed variable and a constant.
+ * Check to see if the given expression is a valid equality between the listed variable and a constant.
  *
  * @param expr the expression to check for being a valid quality
  * @param variable the variable to look for
  * @param resultOut will be updated with the modified values
  */
 bool
-TryProcessEqualityNodeForPossibleValues(OpExpr *expr, Node *variable, PossibleValueSet *resultOut)
+TryProcessExprForPossibleValues(Node *expr, Node *variable, PossibleValueSet *resultOut)
+{
+	if (IsA(expr, OpExpr))
+	{
+		return TryProcessOpExprForPossibleValues((OpExpr *) expr, variable, resultOut);
+	}
+	else if (IsA(expr, NullTest))
+	{
+		return TryProcessNullTestForPossibleValues((NullTest *) expr, variable, resultOut);
+	}
+	else
+		return false;
+}
+
+static bool
+TryProcessOpExprForPossibleValues(OpExpr *expr, Node *variable, PossibleValueSet *resultOut)
 {
 	Node	   *leftop,
 			   *rightop,
@@ -493,5 +511,44 @@ TryProcessEqualityNodeForPossibleValues(OpExpr *expr, Node *variable, PossibleVa
 			pfree(newConst);
 		}
 		return true;
+	}
+}
+
+static bool
+TryProcessNullTestForPossibleValues(NullTest *expr, Node *variable, PossibleValueSet *resultOut)
+{
+	Node	   *varExpr;
+
+	InitPossibleValueSetData(resultOut);
+
+	varExpr = (Node *) expr->arg;
+
+	if (IsA(varExpr, RelabelType))
+	{
+		RelabelType *rt = (RelabelType *) varExpr;
+
+		varExpr = (Node *) rt->arg;
+	}
+
+	if (!equal(varExpr, variable))
+	{
+		/**
+		 * Not talking about our variable?  Learned nothing
+		 */
+		return false;
+	}
+
+	if (expr->nulltesttype == IS_NULL)
+	{
+		resultOut->isAnyValuePossible = false;
+		AddValue(resultOut, makeNullConst(exprType(varExpr),
+										  -1,
+										  exprCollation(varExpr)));
+		return true;
+	}
+	else
+	{
+		/* can't do anything with IS NOT NULL */
+		return false;
 	}
 }

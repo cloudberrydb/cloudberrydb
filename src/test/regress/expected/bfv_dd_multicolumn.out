@@ -90,7 +90,7 @@ INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
 (4 rows)
 
 select * from dd_multicol_1 where (a is null or a=1) and b=2;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to PARTIAL contents: 0 2
  a | b 
 ---+---
 (0 rows)
@@ -145,14 +145,14 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 (0 rows)
 
 select * from dd_multicol_1 where a is null and b=1;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to SINGLE content
  a | b 
 ---+---
    | 1
 (1 row)
 
 select * from dd_multicol_1 where a is null and b is null;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to SINGLE content
  a | b 
 ---+---
    |  
@@ -178,14 +178,14 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 (0 rows)
 
 select * from dd_multicol_2 where a is null and b=1;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to SINGLE content
  a | b 
 ---+---
    | 1
 (1 row)
 
 select * from dd_multicol_2 where a is null and b is null;
-INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
+INFO:  (slice 1) Dispatch command to SINGLE content
  a | b 
 ---+---
    |  

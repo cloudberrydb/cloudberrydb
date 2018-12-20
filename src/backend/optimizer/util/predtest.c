@@ -2041,8 +2041,7 @@ DeterminePossibleValueSet(Node *clause, Node *variable)
 		case CLASS_OR:
 			return ProcessOrClauseForPossibleValues(&clauseInfo, clause, variable);
 		case CLASS_ATOM:
-			if (IsA(clause, OpExpr) &&
-				TryProcessEqualityNodeForPossibleValues((OpExpr*)clause, variable, &result))
+			if (TryProcessExprForPossibleValues(clause, variable, &result))
 			{
 				return result;
 			}
