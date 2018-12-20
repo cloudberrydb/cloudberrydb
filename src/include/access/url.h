@@ -55,10 +55,10 @@ typedef struct extvar_t
 	char GP_XID[TMGIDSIZE];		/* global transaction id */
 	char GP_CID[10];		/* command id */
 	char GP_SN[10];		/* scan number */
-	char GP_SEGMENT_ID[6];  /*segments content id*/
-	char GP_SEG_PORT[10];
-	char GP_SESSION_ID[10];  /* session id */
- 	char GP_SEGMENT_COUNT[6]; /* total number of (primary) segs in the system */
+	char GP_SEGMENT_ID[11];  /*segments content id*/
+	char GP_SEG_PORT[11];
+	char GP_SESSION_ID[11];  /* session id */
+	char GP_SEGMENT_COUNT[11]; /* total number of (primary) segs in the system */
  	char GP_CSVOPT[13]; /* "m.x...q...h." former -q, -h and -x options for gpfdist.*/
 
  	/* Hadoop Specific env var */
@@ -68,7 +68,7 @@ typedef struct extvar_t
 
  	/* EOL vars */
  	char* GP_LINE_DELIM_STR;
- 	char GP_LINE_DELIM_LENGTH[8];
+	char GP_LINE_DELIM_LENGTH[11];
 	char *GP_QUERY_STRING;
 } extvar_t;
 
