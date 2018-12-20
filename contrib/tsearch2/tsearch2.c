@@ -396,13 +396,6 @@ tsa_rewrite_accum(PG_FUNCTION_ARGS)
 	MemoryContext aggcontext;
 	MemoryContext oldcontext;
 
-	/* 
-	 * GPDB_90_MERGE_FIXME: previously, if the fcinfo->context is a
-	 * WindowAggState, we would assign the partcontext to aggcontext, but
-	 * now AggCheckCallContext is assigning the aggcontext field of the
-	 * WindowAggState instead. Need to understand why this has changed, and
-	 * if it is correct to get the partcontext here.
-	 */
 	if (!AggCheckCallContext(fcinfo, &aggcontext))
 		elog(ERROR, "tsa_rewrite_accum called in non-aggregate context");
 
