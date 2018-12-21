@@ -1013,3 +1013,28 @@ $$ language plpgsql;
 create table stran_tt as select stran_func(b) from stran_foo;
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'stran_func' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+--
+-- Check quoting when dispatching savepoints. (Not really PL/pgSQL related,
+-- but here for lack of a better place.)
+--
+BEGIN;
+CREATE TEMPORARY TABLE savepointtest (t text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO savepointtest VALUES ('before savepoints');
+SAVEPOINT "evil""savepoint1";
+INSERT INTO savepointtest VALUES ('after sp 1');
+SAVEPOINT "evil""savepoint2";
+INSERT INTO savepointtest VALUES ('after sp 2');
+ROLLBACK TO SAVEPOINT "evil""savepoint2";
+RELEASE SAVEPOINT "evil""savepoint1";
+INSERT INTO savepointtest VALUES ('back to top transaction');
+COMMIT;
+SELECT * FROM savepointtest;
+            t            
+-------------------------
+ before savepoints
+ after sp 1
+ back to top transaction
+(3 rows)
+

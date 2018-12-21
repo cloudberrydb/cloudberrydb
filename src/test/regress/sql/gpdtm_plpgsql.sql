@@ -372,3 +372,21 @@ end;
 $$ language plpgsql;
 
 create table stran_tt as select stran_func(b) from stran_foo;
+
+
+--
+-- Check quoting when dispatching savepoints. (Not really PL/pgSQL related,
+-- but here for lack of a better place.)
+--
+BEGIN;
+CREATE TEMPORARY TABLE savepointtest (t text);
+INSERT INTO savepointtest VALUES ('before savepoints');
+SAVEPOINT "evil""savepoint1";
+INSERT INTO savepointtest VALUES ('after sp 1');
+SAVEPOINT "evil""savepoint2";
+INSERT INTO savepointtest VALUES ('after sp 2');
+ROLLBACK TO SAVEPOINT "evil""savepoint2";
+RELEASE SAVEPOINT "evil""savepoint1";
+INSERT INTO savepointtest VALUES ('back to top transaction');
+COMMIT;
+SELECT * FROM savepointtest;
