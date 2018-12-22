@@ -101,6 +101,10 @@ namespace gpopt
 			static
 			CExpression *PexprRemoveSuperfluousLimit(IMemoryPool *mp, CExpression *pexpr);
 
+			// remove superfluous distinct nodes
+			static
+			CExpression *PexprRemoveSuperfluousDistinctInDQA(IMemoryPool *mp, CExpression *pexpr);
+
 			// remove superfluous outer references from limit, group by and window operators
 			static
 			CExpression *PexprRemoveSuperfluousOuterRefs(IMemoryPool *mp, CExpression *pexpr);

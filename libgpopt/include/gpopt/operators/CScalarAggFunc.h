@@ -161,6 +161,11 @@ namespace gpopt
 				return m_is_distinct;
 			}
 
+			void SetIsDistinct(BOOL val)
+			{
+				m_is_distinct = val;
+			}
+
 			// stage of the aggregate function
 			EAggfuncStage Eaggfuncstage() const
 			{
@@ -202,6 +207,9 @@ namespace gpopt
 
 			// is function count(Any)?
 			BOOL FCountAny() const;
+
+			// is function either min() or max()?
+			BOOL IsMinMax(const IMDType *mdtype) const;
 
 			// print
 			virtual 

@@ -389,6 +389,63 @@ CExpressionPreprocessor::PexprRemoveSuperfluousLimit
 	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 }
 
+// distinct is removed from a DQA if it has a max or min agg
+// e.g. select max(distinct(a)) from tbl -> select max(a) from tbl
+CExpression *
+CExpressionPreprocessor::PexprRemoveSuperfluousDistinctInDQA
+	(
+	IMemoryPool *mp,
+	CExpression *pexpr
+	)
+{
+	// protect against stack overflow during recursion
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(NULL != pexpr);
+
+	COperator *pop = pexpr->Pop();
+	if (COperator::EopLogicalGbAgg == pop->Eopid())
+	{
+		const CExpression* const pexprProjectList = (*pexpr)[1];
+		GPOS_ASSERT(COperator::EopScalarProjectList == pexprProjectList->Pop()->Eopid());
+		const ULONG arity = pexprProjectList->Arity();
+
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+		for (ULONG ul = 0; ul < arity; ul++)
+		{
+			CExpression* const pexprPrjElem = (*pexprProjectList)[ul];
+			if (COperator::EopScalarAggFunc == (*pexprPrjElem)[0]->Pop()->Eopid())
+			{
+				CScalarAggFunc *popAggFunc = CScalarAggFunc::PopConvert((*pexprPrjElem)[0]->Pop());
+				IMDId *agg_child_mdid = CScalar::PopConvert((*pexprPrjElem)[0]->Pop())->MdidType();
+				const IMDType *agg_child_type = md_accessor->RetrieveType(agg_child_mdid);
+
+				if (popAggFunc->IsDistinct() && popAggFunc->IsMinMax(agg_child_type))
+				{
+					popAggFunc->SetIsDistinct(false);
+				}
+			}
+		}
+	}
+
+
+	// recursively process children
+	const ULONG arity = pexpr->Arity();
+	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+
+	for (ULONG ul = 0; ul < arity; ul++)
+	{
+		CExpression *pexprChild =
+		PexprRemoveSuperfluousDistinctInDQA(mp, (*pexpr)[ul]);
+
+		pdrgpexprChildren->Append(pexprChild);
+	}
+
+	pop->AddRef();
+	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+}
+
 //	Remove outer references from order spec inside limit, grouping columns
 //	in GbAgg, and Partition/Order columns in window operators
 //
@@ -2186,15 +2243,20 @@ CExpressionPreprocessor::PexprPreprocess
 	CExpression *pexprNoUnusedCTEs = PexprRemoveUnusedCTEs(mp, pexpr);
 	GPOS_CHECK_ABORT;
 
-	// (2) remove intermediate superfluous limit
-	CExpression *pexprSimplified = PexprRemoveSuperfluousLimit(mp, pexprNoUnusedCTEs);
+	// (2.a) remove intermediate superfluous limit
+	CExpression *pexprSimplifiedLimit = PexprRemoveSuperfluousLimit(mp, pexprNoUnusedCTEs);
 	GPOS_CHECK_ABORT;
 	pexprNoUnusedCTEs->Release();
 
-	// (3) trim unnecessary existential subqueries
-	CExpression * pexprTrimmed = PexprTrimExistentialSubqueries(mp, pexprSimplified);
+	// (2.b) remove intermediate superfluous distinct
+	CExpression *pexprSimplifiedDistinct = PexprRemoveSuperfluousDistinctInDQA(mp, pexprSimplifiedLimit);
 	GPOS_CHECK_ABORT;
-	pexprSimplified->Release();
+	pexprSimplifiedLimit->Release();
+
+	// (3) trim unnecessary existential subqueries
+	CExpression * pexprTrimmed = PexprTrimExistentialSubqueries(mp, pexprSimplifiedDistinct);
+	GPOS_CHECK_ABORT;
+	pexprSimplifiedDistinct->Release();
 
 	// (4) collapse cascaded union / union all
 	CExpression *pexprNaryUnionUnionAll = PexprCollapseUnionUnionAll(mp, pexprTrimmed);

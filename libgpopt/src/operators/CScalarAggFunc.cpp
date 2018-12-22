@@ -127,6 +127,13 @@ CScalarAggFunc::FCountAny() const
 	return m_pmdidAggFunc->Equals(&CMDIdGPDB::m_mdid_count_any);
 }
 
+// Is function either min() or max()?
+BOOL
+CScalarAggFunc::IsMinMax(const IMDType* mdtype) const
+{
+	return m_pmdidAggFunc->Equals(mdtype->GetMdidForAggType(IMDType::EaggMin)) ||
+	m_pmdidAggFunc->Equals(mdtype->GetMdidForAggType(IMDType::EaggMax));
+}
 
 //---------------------------------------------------------------------------
 //	@function:
