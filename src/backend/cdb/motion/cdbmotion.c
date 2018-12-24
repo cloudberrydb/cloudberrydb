@@ -506,7 +506,7 @@ SendReturnCode
 SendTuple(MotionLayerState *mlStates,
 		  ChunkTransportState *transportStates,
 		  int16 motNodeID,
-		  GenericTuple tuple,
+		  TupleTableSlot *slot,
 		  int16 targetRoute)
 {
 	MotionNodeEntry *pMNEntry;
@@ -514,7 +514,7 @@ SendTuple(MotionLayerState *mlStates,
 	MemoryContext oldCtxt;
 	SendReturnCode rc;
 
-	AssertArg(tuple != NULL);
+	AssertArg(!TupIsNull(slot));
 
 	/*
 	 * Analyze tools.  Do not send any thing if this slice is in the bit mask
@@ -533,40 +533,32 @@ SendTuple(MotionLayerState *mlStates,
 	elog(DEBUG5, "Serializing HeapTuple for sending.");
 #endif
 
+	struct directTransportBuffer b;
 	if (targetRoute != BROADCAST_SEGIDX)
-	{
-		struct directTransportBuffer b;
-
 		getTransportDirectBuffer(transportStates, motNodeID, targetRoute, &b);
 
-		if (b.pri != NULL && b.prilen > TUPLE_CHUNK_HEADER_SIZE)
-		{
-			int			sent = 0;
-
-			sent = SerializeTupleDirect(tuple, &pMNEntry->ser_tup_info, &b);
-			if (sent > 0)
-			{
-				putTransportDirectBuffer(transportStates, motNodeID, targetRoute, sent);
-
-				/* fill-in tcList fields to update stats */
-				tcList.num_chunks = 1;
-				tcList.serialized_data_length = sent;
-
-				/* update stats */
-				statSendTuple(mlStates, pMNEntry, &tcList);
-
-				return SEND_COMPLETE;
-			}
-		}
-		/* Otherwise fall-through */
-	}
+	int			sent = 0;
 
 	/* Create and store the serialized form, and some stats about it. */
 	oldCtxt = MemoryContextSwitchTo(mlStates->motion_layer_mctx);
 
-	SerializeTupleIntoChunks(tuple, &pMNEntry->ser_tup_info, &tcList);
+	sent = SerializeTuple(slot, &pMNEntry->ser_tup_info, &b, &tcList, targetRoute);
 
 	MemoryContextSwitchTo(oldCtxt);
+	if (sent > 0)
+	{
+		putTransportDirectBuffer(transportStates, motNodeID, targetRoute, sent);
+
+		/* fill-in tcList fields to update stats */
+		tcList.num_chunks = 1;
+		tcList.serialized_data_length = sent;
+
+		/* update stats */
+		statSendTuple(mlStates, pMNEntry, &tcList);
+
+		return SEND_COMPLETE;
+	}
+	/* Otherwise fall-through */
 
 #ifdef AMS_VERBOSE_LOGGING
 	elog(DEBUG5, "Serialized HeapTuple for sending:\n"
