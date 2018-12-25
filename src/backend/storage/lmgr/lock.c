@@ -214,9 +214,9 @@ static int	FastPathLocalUseCount = 0;
  * as fpLockBits.
  */
 #define FAST_PATH_SET_HOLD_TILL_END_XACT(proc, n, bits) \
-	 (proc)->fpHoldTillEndXactBits |= ((bits) & FAST_PATH_MASK) << (FAST_PATH_BITS_PER_SLOT * n)
+	 (proc)->fpHoldTillEndXactBits |= (((uint64) (bits)) & FAST_PATH_MASK) << (FAST_PATH_BITS_PER_SLOT * (n))
 #define FAST_PATH_GET_HOLD_TILL_END_XACT_BITS(proc, n) \
-	(((proc)->fpHoldTillEndXactBits >> (FAST_PATH_BITS_PER_SLOT * n)) & FAST_PATH_MASK)
+	(((proc)->fpHoldTillEndXactBits >> (FAST_PATH_BITS_PER_SLOT * (n))) & FAST_PATH_MASK)
 /*
  * The fast-path lock mechanism is concerned only with relation locks on
  * unshared relations by backends bound to a database.  The fast-path
