@@ -327,4 +327,6 @@ alter table qux set distributed replicated;
 drop view v_qux;
 alter table qux set distributed replicated;
 
+-- start_ignore
 drop schema rpt cascade;
+-- end_ignore

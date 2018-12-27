@@ -604,11 +604,6 @@ select * from gp_dist_random('foo');
  1 | 3
 (6 rows)
 
-drop schema rpt cascade;
-NOTICE:  drop cascades to 3 other objects
-DETAIL:  drop cascades to table foo
-drop cascades to table bar
-drop cascades to view v_foo
 -- Test gp_segment_id for replicated table
 -- gp_segment_id is ambiguous for replicated table, it's been disabled now.
 create table baz (c1 int, c2 int) distributed replicated;
@@ -661,9 +656,11 @@ DETAIL:  view v_qux depends on table qux column ctid
 HINT:  system columns of replicated table will be exposed to users after altering, resolve dependencies first
 drop view v_qux;
 alter table qux set distributed replicated;
+-- start_ignore
 drop schema rpt cascade;
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to table foo
 drop cascades to table bar
 drop cascades to table baz
 drop cascades to table qux
+-- end_ignore
