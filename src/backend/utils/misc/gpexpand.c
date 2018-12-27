@@ -95,7 +95,7 @@ gp_expand_bump_version(PG_FUNCTION_ARGS)
 Datum
 gp_expand_lock_catalog(PG_FUNCTION_ARGS)
 {
-	LockAcquire(&gp_expand_locktag, AccessExclusiveLock, false, false);
+	(void) LockAcquire(&gp_expand_locktag, AccessExclusiveLock, false, false);
 
 	PG_RETURN_VOID();
 }
