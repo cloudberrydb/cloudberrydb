@@ -302,5 +302,29 @@ abort;
 
 update v_foo set y = 3 from bar where bar.y = v_foo.y; 
 select * from gp_dist_random('foo');
+-- Test gp_segment_id for replicated table
+-- gp_segment_id is ambiguous for replicated table, it's been disabled now.
+create table baz (c1 int, c2 int) distributed replicated;
+create table qux (c1 int, c2 int);
+
+select gp_segment_id from baz;
+select xmin from baz;
+select xmax from baz;
+select ctid from baz;
+select * from baz where c2 = gp_segment_id;
+select * from baz, qux where baz.c1 = gp_segment_id;
+update baz set c2 = gp_segment_id;
+update baz set c2 = 1 where gp_segment_id = 1;
+update baz set c2 = 1 from qux where gp_segment_id = baz.c1;
+insert into baz select i, i from generate_series(1, 1000) i;
+vacuum baz;
+vacuum full baz;
+analyze baz;
+
+-- Test dependencies check when alter table to replicated table
+create view v_qux as select ctid from qux;
+alter table qux set distributed replicated;
+drop view v_qux;
+alter table qux set distributed replicated;
 
 drop schema rpt cascade;

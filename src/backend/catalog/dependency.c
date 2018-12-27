@@ -2409,3 +2409,96 @@ getObjectClass(const ObjectAddress *object)
 	elog(ERROR, "unrecognized object class: %u", object->classId);
 	return OCLASS_CLASS;		/* keep compiler quiet */
 }
+
+/* check if there are dependencies on the objects provides, error out if exists*/
+void
+checkDependencies(const ObjectAddresses *objects,
+				  const char *msg,
+				  const char *hint)
+{
+	Relation	depRel;
+	ObjectAddresses *targetObjects;
+	StringInfoData 	clientdetail;
+	bool	ok = true;
+	int		i;
+	int		numReportedClient = 0;
+
+	/*
+	 * We save some cycles by opening pg_depend just once and passing the
+	 * Relation pointer down to all the recursive deletion steps.
+	 */
+	depRel = heap_open(DependRelationId, RowExclusiveLock);
+
+	targetObjects = new_object_addresses();
+
+	for (i = 0; i < objects->numrefs; i++)
+	{
+		const ObjectAddress *thisobj = objects->refs + i;
+
+		/*
+		 * Acquire deletion lock on each target object.  (Ideally the caller
+		 * has done this already, but many places are sloppy about it.)
+		 */
+		AcquireDeletionLock(thisobj, 0);
+
+		findDependentObjects(thisobj,
+							 DEPFLAG_ORIGINAL,
+							 NULL,		/* empty stack */
+							 targetObjects,
+							 objects,
+							 &depRel);
+	}
+
+	/*
+	 * We limit the number of dependencies reported to the client to
+	 * MAX_REPORTED_DEPS, since client software may not deal well with
+	 * enormous error strings.  The server log always gets a full report.
+	 */
+#define MAX_REPORTED_DEPS 100
+
+	initStringInfo(&clientdetail);
+
+	for (i = targetObjects->numrefs - 1; i >= 0; i--)
+	{
+		const ObjectAddress *obj = &targetObjects->refs[i];
+		const ObjectAddressExtra *extra = &targetObjects->extras[i];
+		char	*otherDesc;
+		char	*objDesc;
+
+		if (extra->flags & (DEPFLAG_ORIGINAL |
+							DEPFLAG_AUTO |
+							DEPFLAG_INTERNAL |
+							DEPFLAG_EXTENSION))
+			continue;
+
+		objDesc = getObjectDescription(obj);
+		otherDesc = getObjectDescription(&extra->dependee);
+
+		if (numReportedClient < MAX_REPORTED_DEPS)
+		{
+			/* separate entries with a newline */
+			if (clientdetail.len != 0)
+				appendStringInfoChar(&clientdetail, '\n');
+			appendStringInfo(&clientdetail, _("%s depends on %s"),
+							 objDesc, otherDesc);
+			numReportedClient++;
+		}
+		pfree(objDesc);
+		pfree(otherDesc);
+		ok = false;
+	}
+
+	if (!ok)
+			ereport(ERROR,
+					(errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
+					 errmsg("%s", msg),
+					 errdetail("%s", clientdetail.data),
+					 errhint("%s", hint)));
+
+	pfree(clientdetail.data);
+
+	/* And clean up */
+	free_object_addresses(targetObjects);
+
+	heap_close(depRel, RowExclusiveLock);
+}

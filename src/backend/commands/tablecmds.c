@@ -15119,6 +15119,33 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 				lprime = lappend(lprime, policy);
 				goto l_distro_fini;
 			}
+
+			/*
+			 * system columns is not visiable to users for replicated table,
+			 * so if table is convertint to replicated table, check if there
+			 * are dependencies on the system columns.
+			 */
+			AttrNumber	attr;
+			ObjectAddresses *checkObjects = new_object_addresses();
+
+			for (attr = FirstLowInvalidHeapAttributeNumber + 1;
+				 attr != InvalidAttrNumber; attr++)
+			{
+				ObjectAddress obj;
+				obj.classId = RelationRelationId;
+				obj.objectId = RelationGetRelid(rel);
+				obj.objectSubId = attr;
+
+				add_exact_object_address(&obj, checkObjects);
+			}
+
+			checkDependencies(checkObjects,
+							  "cannot set distributed replicated because "
+							  "other object depend on its system columns",
+							  "system columns of replicated table will be exposed "
+							  "to users after altering, resolve dependencies first");
+
+			free_object_addresses(checkObjects);
 		}
 	}
 

@@ -430,37 +430,33 @@ select gp_debug_set_create_table_default_numsegments(1);
 
 Create table r1(a int, b int, c int) distributed replicated;
 insert into r1 select i,i,0 from generate_series(1,100) I;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             0 |   100
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   100
 (1 row)
 
 begin;
 Alter table r1 expand table;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             1 |   100
-             0 |   100
-             2 |   100
-(3 rows)
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   300
+(1 row)
 
 abort;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             0 |   100
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   100
 (1 row)
 
 Alter table r1 expand table;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             0 |   100
-             2 |   100
-             1 |   100
-(3 rows)
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   300
+(1 row)
 
 select numsegments from gp_distribution_policy where localoid='r1'::regclass;
  numsegments 
@@ -478,37 +474,33 @@ select gp_debug_set_create_table_default_numsegments(1);
 
 Create table r1(a int, b int, c int) with (OIDS=:has_oids) distributed replicated;
 insert into r1 select i,i,0 from generate_series(1,100) I;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             0 |   100
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   100
 (1 row)
 
 begin;
 Alter table r1 expand table;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             2 |   100
-             1 |   100
-             0 |   100
-(3 rows)
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   300
+(1 row)
 
 abort;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             0 |   100
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   100
 (1 row)
 
 Alter table r1 expand table;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
- gp_segment_id | count 
----------------+-------
-             0 |   100
-             1 |   100
-             2 |   100
-(3 rows)
+Select count(*) from gp_dist_random('r1');
+ count 
+-------
+   300
+(1 row)
 
 select numsegments from gp_distribution_policy where localoid='r1'::regclass;
  numsegments 

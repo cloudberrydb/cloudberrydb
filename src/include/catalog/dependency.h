@@ -260,4 +260,8 @@ extern void shdepDropOwned(List *relids, DropBehavior behavior);
 
 extern void shdepReassignOwned(List *relids, Oid newrole);
 
+extern void checkDependencies(const ObjectAddresses *objects,
+							  const char *msg,
+							  const char *hint);
+
 #endif   /* DEPENDENCY_H */

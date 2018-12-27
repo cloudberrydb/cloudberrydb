@@ -183,18 +183,18 @@ Create table r1(a int, b int, c int) distributed replicated;
 
 insert into r1 select i,i,0 from generate_series(1,100) I;
 
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 
 begin;
 Alter table r1 expand table;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 abort;
 
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 
 Alter table r1 expand table;
 
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 
 select numsegments from gp_distribution_policy where localoid='r1'::regclass;
 drop table r1;
@@ -205,18 +205,18 @@ Create table r1(a int, b int, c int) with (OIDS=:has_oids) distributed replicate
 
 insert into r1 select i,i,0 from generate_series(1,100) I;
 
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 
 begin;
 Alter table r1 expand table;
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 abort;
 
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 
 Alter table r1 expand table;
 
-Select gp_segment_id, count(*) from gp_dist_random('r1') group by gp_segment_id;
+Select count(*) from gp_dist_random('r1');
 
 select numsegments from gp_distribution_policy where localoid='r1'::regclass;
 drop table r1;
