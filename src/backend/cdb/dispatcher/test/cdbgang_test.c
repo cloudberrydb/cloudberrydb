@@ -52,9 +52,6 @@ makeTestCdb(int entryCnt, int segCnt)
 	cdb->total_entry_dbs = entryCnt;
 	cdb->total_segments = segCnt;
 	cdb->total_segment_dbs = TOTOAL_SEGMENTS * 2;	/* with mirror */
-	cdb->my_dbid = 1;
-	cdb->my_segindex = -1;
-	cdb->my_isprimary = true;
 	cdb->entry_db_info = palloc0(
 								 sizeof(CdbComponentDatabaseInfo) * cdb->total_entry_dbs);
 	cdb->segment_db_info = palloc0(

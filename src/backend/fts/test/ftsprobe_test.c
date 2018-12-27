@@ -72,9 +72,6 @@ InitTestCdb(int segCnt, bool has_mirrors, char default_mode)
 	cdb->total_entry_dbs = 1;
 	cdb->total_segment_dbs = segCnt * mirror_multiplier;	/* with mirror? */
 	cdb->total_segments = segCnt;
-	cdb->my_dbid = 1;
-	cdb->my_segindex = -1;
-	cdb->my_isprimary = true;
 	cdb->entry_db_info = palloc(
 		sizeof(CdbComponentDatabaseInfo) * cdb->total_entry_dbs);
 	cdb->segment_db_info = palloc(
