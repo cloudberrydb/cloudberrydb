@@ -292,14 +292,3 @@ PostmasterIsAlive(void)
 #endif   /* WIN32 */
 }
 
-
-/*
- * ParentIsAlive - check whether parent process is still alive;
- */
-bool
-ParentProcIsAlive()
-{
-	/* if parent exits, init process (PID 1) is reported as parent */
-	return (getppid() != 1);
-}
-

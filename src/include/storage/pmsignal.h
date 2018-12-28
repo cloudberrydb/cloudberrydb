@@ -54,6 +54,5 @@ extern void MarkPostmasterChildActive(void);
 extern void MarkPostmasterChildInactive(void);
 extern void MarkPostmasterChildWalSender(void);
 extern bool PostmasterIsAlive(void);
-extern bool ParentProcIsAlive(void);
 
 #endif   /* PMSIGNAL_H */
