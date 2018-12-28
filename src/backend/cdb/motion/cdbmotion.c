@@ -1293,17 +1293,6 @@ statNewTupleArrived(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry)
 		/* New high-watermark! */
 		pMNEntry->stat_tuples_available_hwm = tupsAvail;
 	}
-
-	if (pMNEntry->preserve_order)
-	{
-		/* Track per-sender high watermark. */
-		tupsAvail = ++(pCSEntry->stat_tuples_available);
-		if (pCSEntry->stat_tuples_available_hwm < tupsAvail)
-		{
-			/* New high-watermark! */
-			pCSEntry->stat_tuples_available_hwm = tupsAvail;
-		}
-	}
 }
 
 static void
@@ -1317,9 +1306,6 @@ statRecvTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry)
 
 	/* Update "tuples available" counts for high watermark stats. */
 	pMNEntry->stat_tuples_available--;
-
-	if (pMNEntry->preserve_order)
-		pCSEntry->stat_tuples_available--;
 }
 
 /*

@@ -281,9 +281,6 @@ struct MotionConn
 	int			pkt_q_tail;
 	uint8		**pkt_q;
 
-	/* Statistics info for this connection */
-	GpMonotonicTime ackWaitBeginTime;
-
 	uint64 stat_total_ack_time;
 	uint64 stat_count_acks;
 	uint64 stat_max_ack_time;
@@ -339,8 +336,6 @@ typedef struct ChunkTransportStateEntry
     struct Slice   *recvSlice;
 
 	/* setup info */
-	int			outgoingPortRetryCount;
-
 	int			txfd;
 	int			txfd_family;
 	unsigned short txport;
@@ -386,18 +381,6 @@ typedef struct ChunkSorterEntry
 	 * Flag recording whether end-of-stream has been reported from the source.
 	 */
 	bool		end_of_stream;
-
-	/*
-	 * PER-(MOTION NODE & SENDER) STATISTICS
-	 *
-	 * These are utilized primarily in order
-	 * preserving motion nodes.
-	 */
-	/* Total tuples awaiting receive. */
-	uint32		stat_tuples_available;
-
-	/* High-water-mark of this value. */
-	uint32		stat_tuples_available_hwm;
 }	ChunkSorterEntry;
 
 /* This is the entry data-structure for a motion node. */
