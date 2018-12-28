@@ -21,12 +21,8 @@
 #include "miscadmin.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
+#include "libpq/libpq.h"
 #include "libpq/libpq-be.h"
-
-extern int	pq_flush(void);
-extern int	pq_putmessage(char msgtype, const char *s, size_t len);
-
-static uint32 cdbconn_get_motion_listener_port(PGconn *conn);
 
 #include "cdb/cdbconn.h"		/* me */
 #include "cdb/cdbutil.h"		/* CdbComponentDatabaseInfo */
@@ -35,6 +31,7 @@ static uint32 cdbconn_get_motion_listener_port(PGconn *conn);
 
 int			gp_segment_connect_timeout = 180;
 
+static uint32 cdbconn_get_motion_listener_port(PGconn *conn);
 static void cdbconn_disconnect(SegmentDatabaseDescriptor *segdbDesc);
 
 static const char *
