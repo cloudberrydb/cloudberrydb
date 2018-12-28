@@ -6742,10 +6742,10 @@ dumpConnections(ChunkTransportStateEntry *pEntry, const char *fname)
 
 	FILE	   *ofile = fopen(fname, "w+");
 
-	fprintf(ofile, "Entry connections: conn num %d \n", pEntry->numPrimaryConns);
+	fprintf(ofile, "Entry connections: conn num %d \n", pEntry->numConns);
 	fprintf(ofile, "==================================\n");
 
-	for (i = 0; i < pEntry->numPrimaryConns; i++)
+	for (i = 0; i < pEntry->numConns; i++)
 	{
 		conn = &pEntry->conns[i];
 

@@ -122,7 +122,7 @@ getMotionConn(ChunkTransportStateEntry *pEntry, int iConn)
 {
 	Assert(pEntry);
 	Assert(pEntry->conns);
-	Assert(iConn < pEntry->numConns + pEntry->numPrimaryConns);
+	Assert(iConn < pEntry->numConns);
 
 	return pEntry->conns + iConn;
 }
@@ -592,8 +592,7 @@ startOutgoingConnections(ChunkTransportState *transportStates,
 
 	/*
 	 * Setup a MotionConn entry for each of our outbound connections. Request
-	 * a connection to each receiving backend's listening port. NB: Some
-	 * mirrors could be down & have no CdbProcess entry.
+	 * a connection to each receiving backend's listening port.
 	 */
 	conn = pEntry->conns;
 
@@ -2209,9 +2208,8 @@ dumpEntryConnections(int elevel, ChunkTransportStateEntry *pEntry)
 				 pEntry->motNodeId, i);
 		else
 			elog(elevel, "... motNodeId=%d conns[%d]:  "
-				 "%s%d pid=%d sockfd=%d remote=%s local=%s",
+				 "%d pid=%d sockfd=%d remote=%s local=%s",
 				 pEntry->motNodeId, i,
-				 (i < pEntry->numPrimaryConns) ? "seg" : "mir",
 				 conn->remoteContentId,
 				 conn->cdbProc ? conn->cdbProc->pid : 0,
 				 conn->sockfd,

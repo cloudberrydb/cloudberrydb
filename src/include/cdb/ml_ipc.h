@@ -299,7 +299,7 @@ extern void putTransportDirectBuffer(ChunkTransportState *transportStates,
 extern ChunkTransportStateEntry *createChunkTransportState(ChunkTransportState *transportStates,
 														   Slice *sendSlice,
 														   Slice *recvSlice,
-														   int numPrimaryConns);
+														   int numConns);
 
 extern ChunkTransportStateEntry *removeChunkTransportState(ChunkTransportState *transportStates,
 														   int16 motNodeID);

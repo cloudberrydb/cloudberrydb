@@ -612,7 +612,7 @@ TeardownInterconnect(ChunkTransportState *transportStates,
  *
  *	 motNodeID - motion node ID for this ChunkTransportState.
  *
- *	 numPrimaryConns  - number of primary connections for this motion node.
+ *	 numConns  - number of primary connections for this motion node.
  *               All are incoming if this is a receiving motion node.
  *               All are outgoing if this is a sending motion node.
  *
@@ -625,7 +625,7 @@ ChunkTransportStateEntry *
 createChunkTransportState(ChunkTransportState *transportStates,
 						  Slice *sendSlice,
 						  Slice *recvSlice,
-						  int numPrimaryConns)
+						  int numConns)
 {
 	ChunkTransportStateEntry *pEntry;
 	int			motNodeID;
@@ -667,8 +667,7 @@ createChunkTransportState(ChunkTransportState *transportStates,
 	pEntry->valid = true;
 
 	pEntry->motNodeId = motNodeID;
-	pEntry->numConns = numPrimaryConns;
-	pEntry->numPrimaryConns = numPrimaryConns;
+	pEntry->numConns = numConns;
 	pEntry->scanStart = 0;
 	pEntry->sendSlice = sendSlice;
 	pEntry->recvSlice = recvSlice;

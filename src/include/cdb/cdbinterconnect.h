@@ -317,10 +317,9 @@ typedef struct ChunkTransportStateEntry
 	int         motNodeId;
 	bool		valid;
 
-	/* Connection array: first the primaries, then the mirrors (if needed) */
+	/* Connection array */
     MotionConn *conns;
-	int			numConns;               /* all, including mirrors if present */
-    int         numPrimaryConns;        /* does not include mirrors */
+	int			numConns;
 
 	/*
 	 * used for receiving. to select() from a set of interesting MotionConns
