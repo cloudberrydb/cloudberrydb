@@ -12,15 +12,6 @@
  *-------------------------------------------------------------------------
  */
 
-#ifdef WIN32
-/*
- * Need this to get WSAPoll (poll). And it
- * has to be set before any header from the Win32 API is loaded.
- */
-#undef _WIN32_WINNT
-#define _WIN32_WINNT 0x0600
-#endif
-
 #include "postgres.h"
 
 #include "nodes/execnodes.h"	/* Slice, SliceTable */
@@ -54,65 +45,6 @@
 
 /* listener backlog is calculated at listener-creation time */
 int			listenerBacklog = 128;
-
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0600
-#endif
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#define SHUT_RDWR SD_BOTH
-#define SHUT_RD SD_RECEIVE
-#define SHUT_WR SD_SEND
-
-/* If we have old platform sdk headers, WSAPoll() might not be there */
-#ifndef POLLIN
-/* Event flag definitions for WSAPoll(). */
-
-#define POLLRDNORM  0x0100
-#define POLLRDBAND  0x0200
-#define POLLIN      (POLLRDNORM | POLLRDBAND)
-#define POLLPRI     0x0400
-
-#define POLLWRNORM  0x0010
-#define POLLOUT     (POLLWRNORM)
-#define POLLWRBAND  0x0020
-
-#define POLLERR     0x0001
-#define POLLHUP     0x0002
-#define POLLNVAL    0x0004
-
-typedef struct pollfd
-{
-
-	SOCKET		fd;
-	SHORT		events;
-	SHORT		revents;
-
-}			WSAPOLLFD, *PWSAPOLLFD, FAR * LPWSAPOLLFD;
-
-__control_entrypoint(DllExport)
-WINSOCK_API_LINKAGE
-int
-			WSAAPI
-WSAPoll(
-		IN OUT LPWSAPOLLFD fdArray,
-		IN ULONG fds,
-		IN INT timeout
-);
-#endif
-
-#define poll WSAPoll
-
-/*
- * Postgres normally uses its own custom select implementation
- * on Windows, but they haven't implemented execeptfds, which
- * we use here.  So, undef this to use the normal Winsock version
- * for now
- */
-#undef select
-#endif
 
 /* our timeout value for select() and other socket operations. */
 static struct timeval tval;

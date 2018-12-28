@@ -47,15 +47,6 @@
 
 #include "gdddetector.h"
 
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#define SHUT_RDWR SD_BOTH
-#define SHUT_RD SD_RECEIVE
-#define SHUT_WR SD_SEND
-#endif
-
 #define RET_STATUS_OK 0
 #define RET_STATUS_ERROR 1
 
