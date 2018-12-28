@@ -27,7 +27,6 @@
 
 /* Things defined in this header */
 typedef struct TMGXACT_LOG           TMGXACT_LOG;
-typedef struct CdbExplain_Agg        CdbExplain_Agg;
 
 /* From "cdb/cdbtm.h" */
 struct TMGXACT_LOG
@@ -35,8 +34,6 @@ struct TMGXACT_LOG
 	char						gid[TMGIDSIZE];
 	DistributedTransactionId	gxid;
 };
-
-
 
 typedef struct TMGXACT_CHECKPOINT
 {
@@ -47,16 +44,6 @@ typedef struct TMGXACT_CHECKPOINT
 
 #define TMGXACT_CHECKPOINT_BYTES(committedCount) \
 	(offsetof(TMGXACT_CHECKPOINT, committedGxactArray) + sizeof(TMGXACT_LOG) * (committedCount))
-
-
-/* From "cdb/cdbexplain.h" */
-struct CdbExplain_Agg
-{
-    double      vmax;           /* maximum value of statistic */
-    double      vsum;           /* sum of values */
-    int         vcnt;           /* count of values > 0 */
-    int         imax;           /* id of 1st observation having maximum value */
-};
 
 #endif
 

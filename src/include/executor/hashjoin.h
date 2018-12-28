@@ -18,7 +18,7 @@
 
 #include "nodes/execnodes.h"
 #include "executor/execWorkfile.h"
-#include "cdb/cdbpublic.h"                 /* CdbExplain_Agg */
+#include "cdb/cdbexplain.h"			/* CdbExplain_Agg */
 #include "utils/workfile_mgr.h"
 
 struct StringInfoData;                  /* #include "lib/stringinfo.h" */
