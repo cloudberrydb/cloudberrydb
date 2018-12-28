@@ -277,7 +277,6 @@ max_prepared_transactions = 250		# can be 0 or more
 #enable_hashjoin = on
 #enable_mergejoin = off
 #enable_nestloop = off
-#gp_enable_adaptive_nestloop = on
 
 #gp_enable_multiphase_agg = on
 #gp_enable_preunique = on
