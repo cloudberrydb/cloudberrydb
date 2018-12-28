@@ -16,7 +16,6 @@
  */
 
 #include "postgres.h"
-#include <limits.h>
 
 #ifdef HAVE_POLL_H
 #include <poll.h>

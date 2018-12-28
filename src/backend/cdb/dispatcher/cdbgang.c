@@ -14,13 +14,8 @@
  */
 #include "postgres.h"
 
-#include <unistd.h>				/* getpid() */
-#include <limits.h>
-
-#include "libpq-fe.h"
-#include "miscadmin.h"			/* MyDatabaseId */
+#include "miscadmin.h"			/* MyProcPid */
 #include "pgstat.h"			/* pgstat_report_sessionid() */
-#include "storage/proc.h"		/* MyProc */
 #include "utils/memutils.h"
 
 #include "access/xact.h"
@@ -30,7 +25,6 @@
 #include "postmaster/postmaster.h"
 #include "tcop/tcopprot.h"
 #include "utils/int8.h"
-#include "utils/portal.h"
 #include "utils/sharedsnapshot.h"
 #include "tcop/pquery.h"
 
@@ -42,11 +36,9 @@
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbgang.h"		/* me */
 #include "cdb/cdbgang_async.h"
-#include "cdb/cdbtm.h"			/* discardDtxTransaction() */
 #include "cdb/cdbutil.h"		/* CdbComponentDatabaseInfo */
 #include "cdb/cdbvars.h"		/* Gp_role, etc. */
-#include "cdb/cdbconn.h"		/* Gp_role, etc. */
-#include "storage/bfz.h"
+#include "cdb/cdbconn.h"		/* cdbconn_* */
 #include "libpq/libpq-be.h"
 #include "libpq/ip.h"
 

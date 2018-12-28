@@ -32,7 +32,6 @@
 #include "storage/lmgr.h"
 #include "utils/rel.h"
 #include "utils/tqual.h"
-#include "storage/gp_compress.h"
 
 #include "access/appendonlytid.h"
 

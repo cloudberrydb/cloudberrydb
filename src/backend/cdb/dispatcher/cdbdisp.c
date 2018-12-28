@@ -15,7 +15,6 @@
  */
 
 #include "postgres.h"
-#include <limits.h>
 
 #include "storage/ipc.h"		/* For proc_exit_inprogress */
 #include "tcop/tcopprot.h"

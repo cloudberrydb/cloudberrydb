@@ -26,6 +26,7 @@
 #include "cdb/cdbappendonlystoragelayer.h"
 #include "cdb/cdbappendonlystorageformat.h"
 #include "cdb/cdbappendonlystorageread.h"
+#include "storage/gp_compress.h"
 #include "utils/guc.h"
 
 

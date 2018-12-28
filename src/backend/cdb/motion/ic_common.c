@@ -26,7 +26,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdisp.h"
 
-#include <limits.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/time.h>

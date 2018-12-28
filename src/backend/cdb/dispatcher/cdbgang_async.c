@@ -1,4 +1,3 @@
-
 /*-------------------------------------------------------------------------
  *
  * cdbgang_async.c
@@ -15,7 +14,6 @@
  */
 
 #include "postgres.h"
-#include <limits.h>
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
@@ -33,7 +31,6 @@
 #include "cdb/cdbgang_async.h"
 #include "cdb/cdbvars.h"
 #include "miscadmin.h"
-#include "utils/resowner.h"
 
 static int	getPollTimeout(const struct timeval *startTS);
 

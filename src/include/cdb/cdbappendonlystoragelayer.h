@@ -14,8 +14,6 @@
 #ifndef CDBAPPENDONLYSTORAGELAYER_H
 #define CDBAPPENDONLYSTORAGELAYER_H
 
-#include "storage/gp_compress.h"
-
 /*
  *
  * General Discussion

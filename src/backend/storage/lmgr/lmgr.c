@@ -19,18 +19,17 @@
 
 #include "access/subtrans.h"
 #include "access/transam.h"
-#include "access/heapam.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
-#include "catalog/namespace.h"
 #include "miscadmin.h"
 #include "storage/lmgr.h"
 #include "storage/procarray.h"
 #include "utils/inval.h"
-#include "utils/lsyscache.h"        /* CDB: get_rel_name() */
 
-#include "catalog/gp_policy.h"     /* CDB: POLICYTYPE_PARTiITIONED */
+#include "access/heapam.h"
+#include "catalog/namespace.h"
 #include "cdb/cdbvars.h"
+#include "utils/lsyscache.h"        /* CDB: get_rel_namespace() */
 
 
 /*

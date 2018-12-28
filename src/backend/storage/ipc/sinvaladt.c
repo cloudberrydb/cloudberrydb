@@ -20,8 +20,6 @@
 #include "miscadmin.h"
 #include "storage/backendid.h"
 #include "storage/ipc.h"
-#include "storage/lock.h"
-#include "storage/lwlock.h"
 #include "storage/proc.h"
 #include "storage/procsignal.h"
 #include "storage/shmem.h"

@@ -31,6 +31,7 @@
 #include "cdb/cdbappendonlystoragewrite.h"
 #include "cdb/cdbappendonlyxlog.h"
 #include "common/relpath.h"
+#include "storage/gp_compress.h"
 #include "utils/faultinjector.h"
 #include "utils/guc.h"
 

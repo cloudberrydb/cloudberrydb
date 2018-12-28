@@ -17,6 +17,7 @@
 #include "postgres.h"
 
 #include <sys/stat.h>
+#include <sys/unistd.h>
 
 #include "access/reloptions.h"
 #include "access/transam.h"

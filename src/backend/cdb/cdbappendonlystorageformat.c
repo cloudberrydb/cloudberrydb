@@ -12,7 +12,7 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
-#include "storage/gp_compress.h"
+
 #include "cdb/cdbappendonlystorage_int.h"
 #include "cdb/cdbappendonlystorage.h"
 #include "cdb/cdbappendonlystorageformat.h"
