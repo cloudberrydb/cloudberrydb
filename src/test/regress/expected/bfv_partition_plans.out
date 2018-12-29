@@ -209,7 +209,7 @@ NOTICE:  CREATE TABLE will create partition "mpp23288_1_prt_plast" for table "mp
 insert into mpp23288(a) select generate_series(1,20);
 analyze mpp23288;
 -- TEST
-select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and t2.a =10) order by t2.a, t1.a;','Dynamic Table Scan');
+select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and t2.a =10) order by t2.a, t1.a;','Dynamic Seq Scan');
  count_operator 
 ----------------
               0
@@ -229,7 +229,7 @@ select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and t2
  10 | 9
 (9 rows)
 
-select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and (t2.a = 10 or t2.a = 5 or t2.a = 12)) order by t2.a, t1.a;','Dynamic Table Scan');
+select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and (t2.a = 10 or t2.a = 5 or t2.a = 12)) order by t2.a, t1.a;','Dynamic Seq Scan');
  count_operator 
 ----------------
               0
@@ -264,7 +264,7 @@ select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and (t
  12 | 11
 (24 rows)
 
-select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on t1.a < t2.a and t2.a = 1 or t2.a < 10 order by t2.a, t1.a;','Dynamic Table Scan');
+select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on t1.a < t2.a and t2.a = 1 or t2.a < 10 order by t2.a, t1.a;','Dynamic Seq Scan');
  count_operator 
 ----------------
               0
@@ -916,7 +916,7 @@ NOTICE:  building index for child partition "dbs_1_prt_8"
 NOTICE:  building index for child partition "dbs_1_prt_9"
 NOTICE:  building index for child partition "dbs_1_prt_10"
 -- TEST
-select find_operator('(select * from dts where c2 = 1) union (select * from dts where c2 = 2) union (select * from dts where c2 = 3) union (select * from dts where c2 = 4) union (select * from dts where c2 = 5) union (select * from dts where c2 = 6) union (select * from dts where c2 = 7) union (select * from dts where c2 = 8) union (select * from dts where c2 = 9) union (select * from dts where c2 = 10);', 'Dynamic Table Scan');
+select find_operator('(select * from dts where c2 = 1) union (select * from dts where c2 = 2) union (select * from dts where c2 = 3) union (select * from dts where c2 = 4) union (select * from dts where c2 = 5) union (select * from dts where c2 = 6) union (select * from dts where c2 = 7) union (select * from dts where c2 = 8) union (select * from dts where c2 = 9) union (select * from dts where c2 = 10);', 'Dynamic Seq Scan');
  find_operator 
 ---------------
  ['false']
@@ -957,7 +957,7 @@ select find_operator('(select * from dis where c3 = 1) union (select * from dis 
 ----+----+----
 (0 rows)
 
-select find_operator('select * from dbs where c2= 15 and c3 = 5;', 'Bitmap Table Scan');
+select find_operator('select * from dbs where c2= 15 and c3 = 5;', 'Bitmap Heap Scan');
  find_operator 
 ---------------
  ['false']
@@ -1424,11 +1424,11 @@ explain execute f2(2); -- should eliminate partitions
 insert into r_co values (1,1), (2,2), (3,3);
 analyze r_co; 
 explain select * from r_co where a=2; -- should eliminate partitions
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..1.01 rows=1 width=8)
    ->  Append  (cost=0.00..1.01 rows=1 width=8)
-         ->  Append-only Columnar Scan on r_co_1_prt_2  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_co_1_prt_2  (cost=0.00..1.01 rows=1 width=8)
                Filter: a = 2
  Optimizer: legacy query optimizer
 (5 rows)
@@ -1437,14 +1437,14 @@ explain select * from r_co where a=2; -- should eliminate partitions
 prepare f3(int) as select * from r_co where a = $1 order by a,b; 
 --force_explain
 explain execute f3(2); -- should eliminate partitions
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=1.02..1.03 rows=1 width=8)
    Merge Key: r_co_1_prt_2.b
    ->  Sort  (cost=1.02..1.03 rows=1 width=8)
          Sort Key: r_co_1_prt_2.b
          ->  Append  (cost=0.00..1.01 rows=1 width=8)
-               ->  Append-only Columnar Scan on r_co_1_prt_2  (cost=0.00..1.01 rows=1 width=8)
+               ->  Seq Scan on r_co_1_prt_2  (cost=0.00..1.01 rows=1 width=8)
                      Filter: a = 2
  Optimizer: legacy query optimizer
 (8 rows)

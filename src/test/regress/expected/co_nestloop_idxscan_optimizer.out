@@ -16,8 +16,8 @@ explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b wh
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
    ->  Nested Loop  (cost=0.00..862.00 rows=1 width=8)
          Join Filter: true
-         ->  Table Scan on bar  (cost=0.00..431.00 rows=1 width=8)
-         ->  Bitmap Table Scan on foo  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=8)
+         ->  Bitmap Heap Scan on foo  (cost=0.00..431.00 rows=1 width=8)
                Recheck Cond: id = bar.id
                ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
                      Index Cond: id = bar.id
@@ -40,8 +40,8 @@ explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b wh
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
    ->  Nested Loop  (cost=0.00..862.00 rows=1 width=8)
          Join Filter: true
-         ->  Table Scan on bar  (cost=0.00..431.00 rows=1 width=8)
-         ->  Bitmap Table Scan on foo  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=8)
+         ->  Bitmap Heap Scan on foo  (cost=0.00..431.00 rows=1 width=8)
                Recheck Cond: id = bar.id
                ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
                      Index Cond: id = bar.id
@@ -65,8 +65,8 @@ explain select f.id from co_nestloop_idxscan.bar b, co_nestloop_idxscan.foo f wh
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
    ->  Nested Loop  (cost=0.00..862.00 rows=1 width=8)
          Join Filter: true
-         ->  Table Scan on bar  (cost=0.00..431.00 rows=1 width=8)
-         ->  Bitmap Table Scan on foo  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=8)
+         ->  Bitmap Heap Scan on foo  (cost=0.00..431.00 rows=1 width=8)
                Recheck Cond: id = bar.id
                ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
                      Index Cond: id = bar.id

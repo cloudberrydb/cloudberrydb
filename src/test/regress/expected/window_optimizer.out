@@ -639,7 +639,7 @@ select first_value(max(x)) over (), y
                                  ->  HashAggregate
                                        Group Key: (ten + four)
                                        ->  Result
-                                             ->  Table Scan on tenk1
+                                             ->  Seq Scan on tenk1
  Optimizer: PQO version 2.74.0
 (13 rows)
 
@@ -1094,7 +1094,7 @@ WHERE depname = 'sales';
                            Order By: empno
                            ->  Sort
                                  Sort Key: depname, empno
-                                 ->  Table Scan on empsalary
+                                 ->  Seq Scan on empsalary
                                        Filter: ((depname)::text = 'sales'::text)
 (15 rows)
 
@@ -1118,7 +1118,7 @@ FROM empsalary;
                            Order By: salary, enroll_date
                            ->  Sort
                                  Sort Key: depname, salary, enroll_date
-                                 ->  Table Scan on empsalary
+                                 ->  Seq Scan on empsalary
 (14 rows)
 
 -- cleanup

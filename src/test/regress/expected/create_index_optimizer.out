@@ -3145,7 +3145,7 @@ explain (costs off)
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Table Scan on tenk1
+   ->  Seq Scan on tenk1
          Filter: (((thousand = 1) AND (tenthous = 1001)) OR NULL::boolean)
  Optimizer: PQO version 3.1.0
 (4 rows)

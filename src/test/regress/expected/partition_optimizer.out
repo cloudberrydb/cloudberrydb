@@ -6826,12 +6826,12 @@ explain select foo_p.b, foo_p.t from foo_p left outer join bar on foo_p.a = bar.
                ->  Sequence  (cost=0.00..431.07 rows=134 width=34)
                      ->  Partition Selector for foo_p (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                            Partitions selected: 6 (out of 6)
-                     ->  Dynamic Table Scan on foo_p (dynamic scan id: 1)  (cost=0.00..431.07 rows=134 width=34)
+                     ->  Dynamic Seq Scan on foo_p (dynamic scan id: 1)  (cost=0.00..431.07 rows=134 width=34)
                            Filter: NOT t IS NULL AND a = ('{1}'::integer[])[1]
          ->  Hash  (cost=431.36..431.36 rows=6700 width=4)
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.36 rows=6700 width=4)
                      Hash Key: bar.k
-                     ->  Table Scan on bar  (cost=0.00..431.22 rows=6700 width=4)
+                     ->  Seq Scan on bar  (cost=0.00..431.22 rows=6700 width=4)
  Settings:  optimizer=on; optimizer_nestloop_factor=1; optimizer_segments=3
  Optimizer status: PQO version 2.48.0
 (16 rows)

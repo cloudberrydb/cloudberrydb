@@ -187,7 +187,7 @@ explain update update_pk_test set b = 5;
    ->  Result  (cost=0.00..431.00 rows=1 width=26)
          ->  Split  (cost=0.00..431.00 rows=1 width=22)
                ->  Result  (cost=0.00..431.00 rows=1 width=22)
-                     ->  Table Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
+                     ->  Seq Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
  Optimizer: PQO version 2.74.0
 (6 rows)
 
@@ -199,8 +199,8 @@ select * from update_pk_test order by 1,2;
 (1 row)
 
 explain update update_pk_test set a = 5;
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
  Update  (cost=0.00..431.07 rows=1 width=1)
    ->  Result  (cost=0.00..431.00 rows=1 width=26)
          ->  Sort  (cost=0.00..431.00 rows=1 width=22)
@@ -210,7 +210,7 @@ explain update update_pk_test set a = 5;
                      ->  Result  (cost=0.00..431.00 rows=1 width=22)
                            ->  Split  (cost=0.00..431.00 rows=1 width=22)
                                  ->  Result  (cost=0.00..431.00 rows=1 width=22)
-                                       ->  Table Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
+                                       ->  Seq Scan on update_pk_test  (cost=0.00..431.00 rows=1 width=18)
  Optimizer: PQO version 2.74.0
 (11 rows)
 

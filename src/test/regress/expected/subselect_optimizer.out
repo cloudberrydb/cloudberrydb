@@ -791,7 +791,7 @@ select * from int4_tbl where
    Filter: (SubPlan 2)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Output: int4_tbl.f1
-         ->  Table Scan on public.int4_tbl
+         ->  Seq Scan on public.int4_tbl
                Output: int4_tbl.f1
    SubPlan 1  (slice0)
      ->  Result
@@ -802,14 +802,14 @@ select * from int4_tbl where
                        Output: tenk1.unique1
                        ->  Gather Motion 3:1  (slice2; segments: 3)
                              Output: tenk1.unique1
-                             ->  Table Scan on public.tenk1
+                             ->  Seq Scan on public.tenk1
                                    Output: tenk1.unique1
    SubPlan 2  (slice0)
      ->  Materialize
            Output: tenk1_1.ten
            ->  Gather Motion 3:1  (slice3; segments: 3)
                  Output: tenk1_1.ten
-                 ->  Table Scan on public.tenk1 tenk1_1
+                 ->  Seq Scan on public.tenk1 tenk1_1
                        Output: tenk1_1.ten
  Optimizer: PQO version 3.1.0
  Settings: optimizer=on

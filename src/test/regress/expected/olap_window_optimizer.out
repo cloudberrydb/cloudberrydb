@@ -1601,7 +1601,7 @@ from sale_ord;
                Merge Key: ord, cn
                ->  Sort  (cost=0.00..5.43 rows=6 width=12)
                      Sort Key: ord, cn
-                     ->  Table Scan on sale_ord  (cost=0.00..0.07 rows=6 width=12)
+                     ->  Seq Scan on sale_ord  (cost=0.00..0.07 rows=6 width=12)
  Settings:  optimizer=on
 (9 rows)
 

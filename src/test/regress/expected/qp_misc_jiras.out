@@ -3768,7 +3768,7 @@ explain select  * from qp_misc_jiras.test_ao where ctid='(33554432,32769)' and g
                                                              QUERY PLAN                                                             
 ------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..13.91 rows=1 width=8)
-   ->  Append-only Scan on test_ao  (cost=0.00..13.91 rows=1 width=8)
+   ->  Seq Scan on test_ao  (cost=0.00..13.91 rows=1 width=8)
          Filter: gp_segment_id >= 0 AND ctid = '(33554432,32769)'::tid
  Settings:  enable_bitmapscan=off; enable_groupagg=on; enable_indexscan=on; enable_seqscan=off; optimizer=off; optimizer_segments=3
  Optimizer status: legacy query optimizer
@@ -3791,7 +3791,7 @@ explain select  * from qp_misc_jiras.test_co where ctid='(33554432,32769)' and g
                                                              QUERY PLAN                                                             
 ------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..13.91 rows=1 width=8)
-   ->  Append-only Columnar Scan on test_co  (cost=0.00..13.91 rows=1 width=8)
+   ->  Seq Scan on test_co  (cost=0.00..13.91 rows=1 width=8)
          Filter: gp_segment_id >= 0 AND ctid = '(33554432,32769)'::tid
  Settings:  enable_bitmapscan=off; enable_groupagg=on; enable_indexscan=on; enable_seqscan=off; optimizer=off; optimizer_segments=3
  Optimizer status: legacy query optimizer

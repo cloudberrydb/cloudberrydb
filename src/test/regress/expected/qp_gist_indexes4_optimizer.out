@@ -197,7 +197,7 @@ EXPLAIN SELECT * FROM geometricTypes
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..436.30 rows=8013 width=129)
-   ->  Table Scan on geometrictypes  (cost=0.00..432.44 rows=2671 width=129)
+   ->  Seq Scan on geometrictypes  (cost=0.00..432.44 rows=2671 width=129)
          Filter: c ~= '<(1255,7955),1227>'::circle
  Optimizer: PQO version 2.68.0
 (4 rows)
@@ -214,7 +214,7 @@ EXPLAIN SELECT * FROM geometricTypes
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..436.30 rows=8013 width=129)
-   ->  Table Scan on geometrictypes  (cost=0.00..432.44 rows=2671 width=129)
+   ->  Seq Scan on geometrictypes  (cost=0.00..432.44 rows=2671 width=129)
          Filter: b ~= '(7352,7352),(7350,-3128)'::box
  Optimizer status: PQO version 2.64.0
 (4 rows)
@@ -231,7 +231,7 @@ EXPLAIN SELECT * FROM geometricTypes
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..436.30 rows=8013 width=129)
-   ->  Table Scan on geometrictypes  (cost=0.00..432.44 rows=2671 width=129)
+   ->  Seq Scan on geometrictypes  (cost=0.00..432.44 rows=2671 width=129)
          Filter: p ~= '((4679,8579),(4670,-3232))'::polygon
  Optimizer: PQO version 2.68.0
 (4 rows)
@@ -387,7 +387,7 @@ EXPLAIN SELECT * FROM gone
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..433.64 rows=4000 width=129)
-   ->  Table Scan on gone  (cost=0.00..431.72 rows=1334 width=129)
+   ->  Seq Scan on gone  (cost=0.00..431.72 rows=1334 width=129)
          Filter: already_gone ~= '<(-3176,7824),3174>'::circle
  Optimizer: PQO version 2.68.0
 (4 rows)
@@ -755,13 +755,13 @@ SELECT * FROM geometricTypesPartition
 
 EXPLAIN SELECT * FROM geometricTypesPartition 
  WHERE c ~= SeedToCircle(101);
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.01 rows=1 width=68)
    ->  Sequence  (cost=0.00..0.00 rows=1 width=68)
          ->  Partition Selector for geometrictypespartition (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Partitions selected: 2 (out of 2)
-         ->  Dynamic Bitmap Table Scan on geometrictypespartition (dynamic scan id: 1)  (cost=0.00..0.00 rows=1 width=68)
+         ->  Dynamic Bitmap Heap Scan on geometrictypespartition (dynamic scan id: 1)  (cost=0.00..0.00 rows=1 width=68)
                Recheck Cond: (c ~= '<(8479,-3121),8441>'::circle)
                ->  Dynamic Bitmap Index Scan on gt_index_c_part_1_prt_1  (cost=0.00..0.00 rows=0 width=0)
                      Index Cond: (c ~= '<(8479,-3121),8441>'::circle)
@@ -830,7 +830,7 @@ DROP TABLE IF EXISTS textSearch;
 --     commands, but a later part of the test checks that we used an index 
 --     scan rather than a sequential scan when executing the SELECT 
 --     statements. This test should not be taking longer than a couple of 
---     seconds. If it goes for a table scan/seq scan, then this query will take
+--     seconds. If it goes for a seq scan, then this query will take
 --     at least 70x times longer. 
 -- ----------------------------------------------------------------------------
 SET optimizer_enable_tablescan = TRUE;
@@ -864,7 +864,7 @@ EXPLAIN SELECT count(*) FROM gist_tbl, gist_tbl2
                ->  Nested Loop  (cost=0.00..570099.74 rows=335499869 width=1)
                      Join Filter: true
                      ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..525.76 rows=49997 width=101)
-                           ->  Table Scan on gist_tbl2  (cost=0.00..432.24 rows=16666 width=101)
+                           ->  Seq Scan on gist_tbl2  (cost=0.00..432.24 rows=16666 width=101)
                      ->  Index Scan using poly_index on gist_tbl  (cost=0.00..568396.66 rows=2685 width=1)
                            Index Cond: p <@ gist_tbl2.p
                            Filter: p <@ gist_tbl2.p

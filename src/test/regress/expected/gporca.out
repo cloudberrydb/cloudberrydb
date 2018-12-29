@@ -8158,18 +8158,18 @@ select * from orca.t order by 1,2;
 
 -- test EXPLAIN support of partition selection nodes, while we're at it.
 explain select * from orca.t order by 1,2;
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=15864.38..16260.38 rows=158400 width=94)
    Merge Key: t_1_prt_part201203.timest, t_1_prt_part201203.user_id
    ->  Sort  (cost=15864.38..16260.38 rows=52800 width=94)
          Sort Key: t_1_prt_part201203.timest, t_1_prt_part201203.user_id
          ->  Append  (cost=0.00..2184.00 rows=52800 width=94)
-               ->  Append-only Columnar Scan on t_1_prt_part201203  (cost=0.00..364.00 rows=8800 width=94)
-               ->  Append-only Scan on t_1_prt_part201204  (cost=0.00..364.00 rows=8800 width=94)
+               ->  Seq Scan on t_1_prt_part201203  (cost=0.00..364.00 rows=8800 width=94)
+               ->  Seq Scan on t_1_prt_part201204  (cost=0.00..364.00 rows=8800 width=94)
                ->  Seq Scan on t_1_prt_part201205  (cost=0.00..364.00 rows=8800 width=94)
-               ->  Append-only Columnar Scan on t_1_prt_part201206  (cost=0.00..364.00 rows=8800 width=94)
-               ->  Append-only Scan on t_1_prt_part201207  (cost=0.00..364.00 rows=8800 width=94)
+               ->  Seq Scan on t_1_prt_part201206  (cost=0.00..364.00 rows=8800 width=94)
+               ->  Seq Scan on t_1_prt_part201207  (cost=0.00..364.00 rows=8800 width=94)
                ->  Seq Scan on t_1_prt_part201208  (cost=0.00..364.00 rows=8800 width=94)
  Optimizer: legacy query optimizer
 (12 rows)
@@ -9611,15 +9611,15 @@ insert into orca.bm_dyn_test values(2, 5, '2');
 set optimizer_enable_bitmapscan=on;
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test where i=2 and t='2';
-                                                   QUERY PLAN                                                    
------------------------------------------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..13.52 rows=13 width=10)
    ->  Append  (cost=0.00..13.52 rows=5 width=10)
-         ->  Append-only Columnar Scan on bm_dyn_test_1_prt_part0  (cost=0.00..2.30 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_1_prt_part0  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_1_prt_part1  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Append-only Scan on bm_dyn_test_1_prt_part2  (cost=0.00..3.30 rows=3 width=10)
+         ->  Seq Scan on bm_dyn_test_1_prt_part2  (cost=0.00..3.30 rows=3 width=10)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_1_prt_part3  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
@@ -9671,15 +9671,15 @@ set optimizer_enable_bitmapscan=on;
 set optimizer_enable_dynamictablescan = off;
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..13.52 rows=13 width=10)
    ->  Append  (cost=0.00..13.52 rows=5 width=10)
-         ->  Append-only Columnar Scan on bm_dyn_test_onepart_1_prt_part0  (cost=0.00..2.30 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part0  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Append-only Scan on bm_dyn_test_onepart_1_prt_part2  (cost=0.00..3.30 rows=3 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part2  (cost=0.00..3.30 rows=3 width=10)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text

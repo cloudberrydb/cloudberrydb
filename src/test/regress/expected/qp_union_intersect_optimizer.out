@@ -1761,8 +1761,8 @@ select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
 union all
 select null, null, array_dims(array_agg(x)) from mergeappend_test r
 order by 1,2;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice3; segments: 3)
    Merge Key: mergeappend_test.a, mergeappend_test.b
    ->  Sort
@@ -1773,12 +1773,12 @@ order by 1,2;
                            Group Key: mergeappend_test.a, mergeappend_test.b
                            ->  Sort
                                  Sort Key: mergeappend_test.a, mergeappend_test.b
-                                 ->  Table Scan on mergeappend_test
+                                 ->  Seq Scan on mergeappend_test
                ->  Result
                      ->  Redistribute Motion 1:3  (slice2)
                            ->  Aggregate
                                  ->  Gather Motion 3:1  (slice1; segments: 3)
-                                       ->  Table Scan on mergeappend_test mergeappend_test_1
+                                       ->  Seq Scan on mergeappend_test mergeappend_test_1
  Optimizer: PQO version 2.74.0
 (17 rows)
 

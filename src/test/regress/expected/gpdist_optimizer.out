@@ -649,16 +649,16 @@ explain (costs off) select even.i from even left outer join odd on (even.i = odd
                Sort Key: even.i
                ->  Hash Left Join
                      Hash Cond: (even.i = odd.i)
-                     ->  Table Scan on even
+                     ->  Seq Scan on even
                      ->  Hash
-                           ->  Table Scan on odd
+                           ->  Seq Scan on odd
  Optimizer: PQO version 3.9.0
 (11 rows)
 
 -- But this does.
 explain (costs off) select even.i from even right outer join odd on (even.i = odd.i) group by (even.i);
-                             QUERY PLAN                             
---------------------------------------------------------------------
+                             QUERY PLAN                            
+-------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)
    ->  GroupAggregate
          Group Key: even.i
@@ -672,9 +672,9 @@ explain (costs off) select even.i from even right outer join odd on (even.i = od
                                  Sort Key: even.i
                                  ->  Hash Left Join
                                        Hash Cond: (odd.i = even.i)
-                                       ->  Table Scan on odd
+                                       ->  Seq Scan on odd
                                        ->  Hash
-                                             ->  Table Scan on even
+                                             ->  Seq Scan on even
  Optimizer: PQO version 3.9.0
 (17 rows)
 
@@ -694,11 +694,11 @@ explain (costs off) select * from a full join b on (a.i=b.i) full join c on (b.i
                            ->  Sequence
                                  ->  Shared Scan (share slice:id 3:4)
                                        ->  Materialize
-                                             ->  Table Scan on a
+                                             ->  Seq Scan on a
                                  ->  Sequence
                                        ->  Shared Scan (share slice:id 3:5)
                                              ->  Materialize
-                                                   ->  Table Scan on b
+                                                   ->  Seq Scan on b
                                        ->  Append
                                              ->  Hash Left Join
                                                    Hash Cond: (share4_ref2.i = share5_ref2.i)
@@ -714,7 +714,7 @@ explain (costs off) select * from a full join b on (a.i=b.i) full join c on (b.i
                ->  Sequence
                      ->  Shared Scan (share slice:id 3:3)
                            ->  Materialize
-                                 ->  Table Scan on c
+                                 ->  Seq Scan on c
                      ->  Append
                            ->  Hash Left Join
                                  Hash Cond: (share2_ref2.i_1 = share3_ref2.i)

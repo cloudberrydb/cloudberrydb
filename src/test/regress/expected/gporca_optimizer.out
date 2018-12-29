@@ -2400,11 +2400,11 @@ from orca.bar1 inner join orca.bar2 on (bar1.x2 = bar2.x2) order by bar1.x1;
                      Hash Cond: bar1.x2 = bar2.x2
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=8)
                            Hash Key: bar1.x2
-                           ->  Table Scan on bar1  (cost=0.00..431.00 rows=7 width=8)
+                           ->  Seq Scan on bar1  (cost=0.00..431.00 rows=7 width=8)
                      ->  Hash  (cost=431.00..431.00 rows=10 width=4)
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
                                  Hash Key: bar2.x2
-                                 ->  Table Scan on bar2  (cost=0.00..431.00 rows=10 width=4)
+                                 ->  Seq Scan on bar2  (cost=0.00..431.00 rows=10 width=4)
                SubPlan 1
                  ->  Result  (cost=0.00..431.02 rows=1 width=4)
                        ->  Result  (cost=0.00..431.02 rows=1 width=1)
@@ -2412,7 +2412,7 @@ from orca.bar1 inner join orca.bar2 on (bar1.x2 = bar2.x2) order by bar1.x1;
                              Filter: $0::double precision = random() AND foo.x2 = $1
                              ->  Materialize  (cost=0.00..431.00 rows=10 width=4)
                                    ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
-                                         ->  Table Scan on foo  (cost=0.00..431.00 rows=4 width=4)
+                                         ->  Seq Scan on foo  (cost=0.00..431.00 rows=4 width=4)
  Settings:  optimizer_segments=3
  Optimizer status: PQO version 3.9.0
 (23 rows)
@@ -3490,9 +3490,9 @@ explain  select * from orca.r, orca.s where r.a is not distinct from s.c;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.01 rows=30 width=16)
    ->  Hash Join  (cost=0.00..862.00 rows=10 width=16)
          Hash Cond: NOT s.c IS DISTINCT FROM r.a
-         ->  Table Scan on s  (cost=0.00..431.00 rows=10 width=8)
+         ->  Seq Scan on s  (cost=0.00..431.00 rows=10 width=8)
          ->  Hash  (cost=431.00..431.00 rows=7 width=8)
-               ->  Table Scan on r  (cost=0.00..431.00 rows=7 width=8)
+               ->  Seq Scan on r  (cost=0.00..431.00 rows=7 width=8)
  Optimizer: PQO version 2.64.0
 (7 rows)
 
@@ -3504,7 +3504,7 @@ explain select * from orca.r, orca.s where r.a = s.c;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..491.01 rows=30 width=16)
    ->  Nested Loop  (cost=0.00..491.00 rows=10 width=16)
          Join Filter: true
-         ->  Table Scan on s  (cost=0.00..431.00 rows=10 width=8)
+         ->  Seq Scan on s  (cost=0.00..431.00 rows=10 width=8)
          ->  Index Scan using r_a on r  (cost=0.00..60.00 rows=1 width=8)
                Index Cond: a = s.c
  Optimizer: PQO version 2.64.0
@@ -8170,8 +8170,8 @@ select * from orca.t order by 1,2;
 
 -- test EXPLAIN support of partition selection nodes, while we're at it.
 explain select * from orca.t order by 1,2;
-                                             QUERY PLAN
------------------------------------------------------------------------------------------------------
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=32)
    Merge Key: timest, user_id
    ->  Sequence  (cost=0.00..431.00 rows=1 width=32)
@@ -8179,7 +8179,7 @@ explain select * from orca.t order by 1,2;
                Partitions selected:  6 (out of 6)
          ->  Sort  (cost=0.00..431.00 rows=1 width=32)
                Sort Key: timest, user_id
-               ->  Dynamic Table Scan on t (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=32)
+               ->  Dynamic Seq Scan on t (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=32)
  Settings:  optimizer=on; optimizer_segments=3
  Optimizer status: PQO version 1.630
 (10 rows)
@@ -8259,8 +8259,8 @@ set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_date where user_id=9;
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..437.00 rows=2 width=20)
    ->  Sequence  (cost=0.00..437.00 rows=1 width=20)
          ->  Partition Selector for t_date (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
@@ -8269,7 +8269,7 @@ explain select * from orca.t_date where user_id=9;
                ->  Append  (cost=0.00..437.00 rows=1 width=20)
                      ->  Dynamic Index Scan on t_date (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=50)
                            Index Cond: user_id = 9::numeric
-                     ->  Dynamic Table Scan on t_date t_date_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=50)
+                     ->  Dynamic Seq Scan on t_date t_date_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=50)
                            Filter: user_id = 9::numeric
  Optimizer: PQO version 2.74.0
 (11 rows)
@@ -8313,8 +8313,8 @@ set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_text where user_id=9;
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..437.00 rows=2 width=20)
    ->  Sequence  (cost=0.00..437.00 rows=1 width=20)
          ->  Partition Selector for t_text (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
@@ -8323,7 +8323,7 @@ explain select * from orca.t_text where user_id=9;
                ->  Append  (cost=0.00..437.00 rows=1 width=20)
                      ->  Dynamic Index Scan on t_text (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=50)
                            Index Cond: user_id = 9::numeric
-                     ->  Dynamic Table Scan on t_text t_text_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=50)
+                     ->  Dynamic Seq Scan on t_text t_text_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=50)
                            Filter: user_id = 9::numeric
  Optimizer: PQO version 2.74.0
 (11 rows)
@@ -8422,8 +8422,8 @@ set optimizer_use_external_constant_expression_evaluation_for_ints = on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_ceeval_ints where user_id=4;
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..437.00 rows=1 width=21)
    ->  Sequence  (cost=0.00..437.00 rows=1 width=21)
          ->  Partition Selector for t_ceeval_ints (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
@@ -8432,7 +8432,7 @@ explain select * from orca.t_ceeval_ints where user_id=4;
                ->  Append  (cost=0.00..437.00 rows=1 width=21)
                      ->  Dynamic Index Scan on t_ceeval_ints (dynamic scan id: 1)  (cost=0.00..6.00 rows=1 width=51)
                            Index Cond: user_id = 4::numeric
-                     ->  Dynamic Table Scan on t_ceeval_ints t_ceeval_ints_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=51)
+                     ->  Dynamic Seq Scan on t_ceeval_ints t_ceeval_ints_1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=51)
                            Filter: user_id = 4::numeric
  Optimizer: PQO version 2.74.0
 (11 rows)
@@ -9559,7 +9559,7 @@ where c.cid = s.cid and s.date_sk = d.date_sk and
  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1293.00 rows=1 width=24)
    ->  Hash Join  (cost=0.00..1293.00 rows=1 width=24)
          Hash Cond: cust.cid = sales.cid
-         ->  Table Scan on cust  (cost=0.00..431.00 rows=1 width=20)
+         ->  Seq Scan on cust  (cost=0.00..431.00 rows=1 width=20)
          ->  Hash  (cost=862.00..862.00 rows=1 width=8)
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
                      Hash Key: sales.cid
@@ -9568,10 +9568,10 @@ where c.cid = s.cid and s.date_sk = d.date_sk and
                            Join Filter: (datedim.year = 2001 AND lower(sales.type) = 't1'::text AND plusone(datedim.moy) = 5) OR (datedim.moy = 4 AND upper(sales.type) = 'T2'::text)
                            ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=16)
                                  Hash Key: sales.date_sk
-                                 ->  Table Scan on sales  (cost=0.00..431.00 rows=1 width=16)
+                                 ->  Seq Scan on sales  (cost=0.00..431.00 rows=1 width=16)
                                        Filter: lower(type) = 't1'::text OR upper(type) = 'T2'::text
                            ->  Hash  (cost=431.00..431.00 rows=1 width=12)
-                                 ->  Table Scan on datedim  (cost=0.00..431.00 rows=1 width=12)
+                                 ->  Seq Scan on datedim  (cost=0.00..431.00 rows=1 width=12)
                                        Filter: year = 2001 OR moy = 4
  Settings:  optimizer=on; optimizer_segments=3
  Optimizer status: PQO version 1.602
@@ -9591,7 +9591,7 @@ explain select * from orca.bm_test where i=2 and t='2';
                                    QUERY PLAN
 --------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..204.39 rows=2 width=6)
-   ->  Bitmap Table Scan on bm_test  (cost=0.00..204.39 rows=1 width=6)
+   ->  Bitmap Heap Scan on bm_test  (cost=0.00..204.39 rows=1 width=6)
          Recheck Cond: i = 2
          Filter: t = '2'::text
          ->  Bitmap Index Scan on bm_test_idx  (cost=0.00..0.00 rows=0 width=0)
@@ -9649,7 +9649,7 @@ explain select * from orca.bm_dyn_test where i=2 and t='2';
    ->  Sequence  (cost=0.00..204.40 rows=1 width=8)
          ->  Partition Selector for bm_dyn_test (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Partitions selected: 6 (out of 6)
-         ->  Dynamic Bitmap Table Scan on bm_dyn_test (dynamic scan id: 1)  (cost=0.00..204.40 rows=1 width=8)
+         ->  Dynamic Bitmap Heap Scan on bm_dyn_test (dynamic scan id: 1)  (cost=0.00..204.40 rows=1 width=8)
                Recheck Cond: (i = 2)
                Filter: ((i = 2) AND (t = '2'::text))
                ->  Dynamic Bitmap Index Scan on bm_dyn_test_idx_1_prt_part0  (cost=0.00..0.00 rows=0 width=0)
@@ -9701,15 +9701,15 @@ set optimizer_enable_dynamictablescan = off;
 explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  No plan has been computed for required properties
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..13.52 rows=13 width=10)
    ->  Append  (cost=0.00..13.52 rows=5 width=10)
-         ->  Append-only Columnar Scan on bm_dyn_test_onepart_1_prt_part0  (cost=0.00..2.30 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part0  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
-         ->  Append-only Scan on bm_dyn_test_onepart_1_prt_part2  (cost=0.00..3.30 rows=3 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part2  (cost=0.00..3.30 rows=3 width=10)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3  (cost=0.00..2.30 rows=1 width=10)
                Filter: i = 2 AND t = '2'::text
@@ -10098,7 +10098,7 @@ ORDER BY 1 asc ;
                                  ->  Sequence  (cost=0.00..1305.01 rows=1 width=8)
                                        ->  Shared Scan (share slice:id 3:0)  (cost=0.00..431.00 rows=1 width=1)
                                              ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
-                                                   ->  Table Scan on my_tt_agg_opt  (cost=0.00..431.00 rows=1 width=62)
+                                                   ->  Seq Scan on my_tt_agg_opt  (cost=0.00..431.00 rows=1 width=62)
                                        ->  Sequence  (cost=0.00..874.01 rows=1 width=8)
                                              ->  Partition Selector for my_tq_agg_opt_part (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                                    Partitions selected: 2 (out of 2)
@@ -10194,7 +10194,7 @@ where ordernum between 10 and 20;
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..888833.21 rows=3 width=9)
    ->  Nested Loop  (cost=0.00..888833.21 rows=1 width=9)
          Join Filter: (idxscan_outer.id = idxscan_inner.productid)
-         ->  Table Scan on idxscan_outer  (cost=0.00..431.00 rows=3 width=4)
+         ->  Seq Scan on idxscan_outer  (cost=0.00..431.00 rows=3 width=4)
          ->  Materialize  (cost=0.00..6.00 rows=1 width=9)
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=9)
                      Hash Key: idxscan_inner.productid
@@ -10415,7 +10415,7 @@ EXPLAIN SELECT * FROM bitmap_test WHERE a in (1);
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..204.38 rows=1 width=4)
-   ->  Bitmap Table Scan on bitmap_test  (cost=0.00..204.38 rows=1 width=4)
+   ->  Bitmap Heap Scan on bitmap_test  (cost=0.00..204.38 rows=1 width=4)
          Recheck Cond: a = 1
          ->  Bitmap Index Scan on bitmap_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: a = 1
@@ -10427,7 +10427,7 @@ EXPLAIN SELECT * FROM bitmap_test WHERE a in (1, 47);
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..408.76 rows=3 width=4)
-   ->  Bitmap Table Scan on bitmap_test  (cost=0.00..408.76 rows=1 width=4)
+   ->  Bitmap Heap Scan on bitmap_test  (cost=0.00..408.76 rows=1 width=4)
          Recheck Cond: a = ANY ('{1,47}'::integer[])
          ->  Bitmap Index Scan on bitmap_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: a = ANY ('{1,47}'::integer[])
@@ -10439,7 +10439,7 @@ EXPLAIN SELECT * FROM bitmap_test WHERE a in ('2', 47);
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..408.76 rows=3 width=4)
-   ->  Bitmap Table Scan on bitmap_test  (cost=0.00..408.76 rows=1 width=4)
+   ->  Bitmap Heap Scan on bitmap_test  (cost=0.00..408.76 rows=1 width=4)
          Recheck Cond: a = ANY ('{2,47}'::integer[])
          ->  Bitmap Index Scan on bitmap_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: a = ANY ('{2,47}'::integer[])
@@ -10451,7 +10451,7 @@ EXPLAIN SELECT * FROM bitmap_test WHERE a in ('1', '2');
                                    QUERY PLAN
 ---------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..408.76 rows=3 width=4)
-   ->  Bitmap Table Scan on bitmap_test  (cost=0.00..408.76 rows=1 width=4)
+   ->  Bitmap Heap Scan on bitmap_test  (cost=0.00..408.76 rows=1 width=4)
          Recheck Cond: a = ANY ('{1,2}'::integer[])
          ->  Bitmap Index Scan on bitmap_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: a = ANY ('{1,2}'::integer[])
@@ -10463,7 +10463,7 @@ EXPLAIN SELECT * FROM bitmap_test WHERE a in ('1', '2', 47);
                                   QUERY PLAN
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=4 width=4)
-   ->  Table Scan on bitmap_test  (cost=0.00..431.00 rows=2 width=4)
+   ->  Seq Scan on bitmap_test  (cost=0.00..431.00 rows=2 width=4)
          Filter: a = ANY ('{1,2,47}'::integer[])
  Settings:  optimizer=on; optimizer_metadata_caching=on
  Optimizer status: PQO version 1.647
@@ -10643,7 +10643,7 @@ explain select * from foo where b in ('1', '2');
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
-   ->  Table Scan on foo  (cost=0.00..431.00 rows=1 width=12)
+   ->  Seq Scan on foo  (cost=0.00..431.00 rows=1 width=12)
          Filter: b::text = ANY ('{1,2}'::text[])
  Optimizer: PQO version 2.64.0
 (4 rows)
@@ -10692,9 +10692,9 @@ explain (costs off) select count(*), t2.c from input_tab1 t1 left join input_tab
                                        Sort Key: input_tab2.c
                                        ->  Hash Left Join
                                              Hash Cond: (input_tab1.a = input_tab2.c)
-                                             ->  Table Scan on input_tab1
+                                             ->  Seq Scan on input_tab1
                                              ->  Hash
-                                                   ->  Table Scan on input_tab2
+                                                   ->  Seq Scan on input_tab2
  Optimizer: PQO version 2.70.1
 (18 rows)
 
@@ -10745,13 +10745,13 @@ FROM   (SELECT *
                                  Hash Cond: tab_1.id::text = tab_2.id::text
                                  ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=5)
                                        Hash Key: tab_1.id
-                                       ->  Table Scan on tab_1  (cost=0.00..431.00 rows=1 width=5)
+                                       ->  Seq Scan on tab_1  (cost=0.00..431.00 rows=1 width=5)
                                  ->  Hash  (cost=431.00..431.00 rows=1 width=7)
                                        ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=7)
                                              Hash Key: tab_2.id::text
-                                             ->  Table Scan on tab_2  (cost=0.00..431.00 rows=1 width=7)
+                                             ->  Seq Scan on tab_2  (cost=0.00..431.00 rows=1 width=7)
                      ->  Result  (cost=0.00..431.00 rows=1 width=16)
-                           ->  Table Scan on tab_3  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Seq Scan on tab_3  (cost=0.00..431.00 rows=1 width=8)
  Optimizer: PQO version 2.70.2
 (17 rows)
 
@@ -10964,13 +10964,13 @@ EXPLAIN SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 TH
 -----------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324032.56 rows=2 width=4)
    ->  Result  (cost=0.00..1324032.56 rows=1 width=4)
-         ->  Table Scan on csq_cast_param_outer  (cost=0.00..1324032.56 rows=1 width=4)
+         ->  Seq Scan on csq_cast_param_outer  (cost=0.00..1324032.56 rows=1 width=4)
                Filter: (SubPlan 1)
                SubPlan 1  (slice2; segments: 3)
                  ->  Result  (cost=0.00..431.00 rows=2 width=4)
                        ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
                              ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
-                                   ->  Table Scan on csq_cast_param_inner  (cost=0.00..431.00 rows=1 width=4)
+                                   ->  Seq Scan on csq_cast_param_inner  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer_cte_inlining_bound=1000; optimizer_metadata_caching=on
  Optimizer status: PQO version 2.51.3
 (11 rows)
@@ -10990,13 +10990,13 @@ EXPLAIN SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 TH
 -----------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324032.56 rows=2 width=4)
    ->  Result  (cost=0.00..1324032.56 rows=1 width=4)
-         ->  Table Scan on csq_cast_param_outer  (cost=0.00..1324032.56 rows=1 width=4)
+         ->  Seq Scan on csq_cast_param_outer  (cost=0.00..1324032.56 rows=1 width=4)
                Filter: (SubPlan 1)
                SubPlan 1  (slice2; segments: 3)
                  ->  Result  (cost=0.00..431.00 rows=2 width=4)
                        ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
                              ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
-                                   ->  Table Scan on csq_cast_param_inner  (cost=0.00..431.00 rows=1 width=4)
+                                   ->  Seq Scan on csq_cast_param_inner  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer_cte_inlining_bound=1000; optimizer_metadata_caching=on
  Optimizer status: PQO version 2.51.3
 (11 rows)
@@ -11020,7 +11020,7 @@ EXPLAIN SELECT a FROM ggg WHERE a NOT IN (NULL, '');
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=2)
-   ->  Table Scan on ggg  (cost=0.00..431.00 rows=1 width=2)
+   ->  Seq Scan on ggg  (cost=0.00..431.00 rows=1 width=2)
          Filter: a <> ALL ('{NULL,""}'::bpchar[])
  Optimizer: PQO version 2.54.5
 (4 rows)
@@ -11029,7 +11029,7 @@ EXPLAIN SELECT a FROM ggg WHERE a IN (NULL, 'x');
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=2)
-   ->  Table Scan on ggg  (cost=0.00..431.00 rows=1 width=2)
+   ->  Seq Scan on ggg  (cost=0.00..431.00 rows=1 width=2)
          Filter: (a = ANY ('{NULL,x}'::bpchar[]))
  Planning time: 4.708 ms
  Optimizer: PQO version 3.9.0
@@ -11055,19 +11055,19 @@ EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilte
                ->  Materialize  (cost=0.00..862.00 rows=4 width=1)
                      ->  Hash Join  (cost=0.00..862.00 rows=4 width=8)
                            Hash Cond: (onetimefilter1_1.a = onetimefilter2_1.a)
-                           ->  Table Scan on onetimefilter1 onetimefilter1_1  (cost=0.00..431.00 rows=4 width=8)
+                           ->  Seq Scan on onetimefilter1 onetimefilter1_1  (cost=0.00..431.00 rows=4 width=8)
                            ->  Hash  (cost=431.00..431.00 rows=4 width=4)
-                                 ->  Table Scan on onetimefilter2 onetimefilter2_1  (cost=0.00..431.00 rows=4 width=4)
+                                 ->  Seq Scan on onetimefilter2 onetimefilter2_1  (cost=0.00..431.00 rows=4 width=4)
          ->  Result  (cost=0.00..1852062875785.47 rows=4 width=12)
                ->  Hash Join  (cost=0.00..862.00 rows=4 width=12)
                      Hash Cond: (onetimefilter1.b = onetimefilter2.b)
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=4 width=8)
                            Hash Key: onetimefilter1.b
-                           ->  Table Scan on onetimefilter1  (cost=0.00..431.00 rows=4 width=8)
+                           ->  Seq Scan on onetimefilter1  (cost=0.00..431.00 rows=4 width=8)
                      ->  Hash  (cost=431.00..431.00 rows=4 width=4)
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=4 width=4)
                                  Hash Key: onetimefilter2.b
-                                 ->  Table Scan on onetimefilter2  (cost=0.00..431.00 rows=4 width=4)
+                                 ->  Seq Scan on onetimefilter2  (cost=0.00..431.00 rows=4 width=4)
                SubPlan 1  (slice6; segments: 3)
                  ->  Result  (cost=0.00..431.01 rows=1 width=4)
                        ->  Limit  (cost=0.00..431.01 rows=1 width=1)
@@ -11136,30 +11136,30 @@ analyze infer_txt;
 analyze infer_vc;
 analyze infer_part_vc;
 explain select * from foid f1 inner join foid f2 on (f1.a = f2.a) where f2.a = 5;
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
    ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
          Hash Cond: (foid.a = foid_1.a)
-         ->  Table Scan on foid  (cost=0.00..431.00 rows=1 width=4)
+         ->  Seq Scan on foid  (cost=0.00..431.00 rows=1 width=4)
                Filter: (a = 5::oid)
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Table Scan on foid foid_1  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on foid foid_1  (cost=0.00..431.00 rows=1 width=4)
                      Filter: (a = 5::oid)
  Planning time: 183.805 ms
  Optimizer: PQO version 3.9.0
 (10 rows)
 
 explain select * from infer_txt f1 inner join infer_txt f2 on (f1.a = f2.a) where f1.a = 'K';
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16)
    ->  Hash Join  (cost=0.00..862.00 rows=1 width=16)
          Hash Cond: (infer_txt.a = infer_txt_1.a)
-         ->  Table Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
                Filter: (a = 'K'::text)
          ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-               ->  Table Scan on infer_txt infer_txt_1  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on infer_txt infer_txt_1  (cost=0.00..431.00 rows=1 width=8)
                      Filter: (a = 'K'::text)
  Planning time: 167.390 ms
  Optimizer: PQO version 3.9.0
@@ -11171,25 +11171,25 @@ explain select * from infer_vc f1 inner join infer_txt f2 on (f1.a = f2.a) where
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16)
    ->  Hash Join  (cost=0.00..862.00 rows=1 width=16)
          Hash Cond: ((infer_vc.a)::text = infer_txt.a)
-         ->  Table Scan on infer_vc  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on infer_vc  (cost=0.00..431.00 rows=1 width=8)
                Filter: ((a)::text = 'K'::text)
          ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-               ->  Table Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
                      Filter: (a = 'K'::text)
  Planning time: 172.337 ms
  Optimizer: PQO version 3.9.0
 (10 rows)
 
 explain select * from infer_vc f1 inner join infer_vc f2 on (f1.a = f2.a) where f1.a = 'K';
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16)
    ->  Hash Join  (cost=0.00..862.00 rows=1 width=16)
          Hash Cond: ((infer_vc.a)::text = (infer_vc_1.a)::text)
-         ->  Table Scan on infer_vc  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on infer_vc  (cost=0.00..431.00 rows=1 width=8)
                Filter: ((a)::text = 'K'::text)
          ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-               ->  Table Scan on infer_vc infer_vc_1  (cost=0.00..431.00 rows=1 width=8)
+               ->  Seq Scan on infer_vc infer_vc_1  (cost=0.00..431.00 rows=1 width=8)
                      Filter: ((a)::text = 'K'::text)
  Planning time: 172.441 ms
  Optimizer: PQO version 3.9.0
@@ -11201,7 +11201,7 @@ explain select * from infer_part_vc inner join infer_txt on (infer_part_vc.gende
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=20)
    ->  Hash Join  (cost=0.00..862.00 rows=1 width=20)
          Hash Cond: (infer_txt.a = (infer_part_vc.gender)::text)
-         ->  Table Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
                Filter: (a = 'M'::text)
          ->  Hash  (cost=431.00..431.00 rows=1 width=12)
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
@@ -11209,7 +11209,7 @@ explain select * from infer_part_vc inner join infer_txt on (infer_part_vc.gende
                      ->  Sequence  (cost=0.00..431.00 rows=1 width=12)
                            ->  Partition Selector for infer_part_vc (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Partitions selected: 1 (out of 3)
-                           ->  Dynamic Table Scan on infer_part_vc (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=12)
+                           ->  Dynamic Seq Scan on infer_part_vc (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=12)
                                  Filter: ((gender)::text = 'M'::text)
  Planning time: 235.596 ms
  Optimizer: PQO version 3.9.0

@@ -21,7 +21,7 @@ CREATE SCHEMA IF NOT EXISTS partition_with_user_defined_function;
 	select partition_with_user_defined_function.query_a_partition_table();
 
 -- Then I get the same result both times (no rows)
--- Note: We're using a cached plan that includes a Dynamic Table Scan.
+-- Note: We're using a cached plan that includes a Dynamic Seq Scan.
 -- Ensure the dynamic table scan information in the cached plan does not get freed.
 	select partition_with_user_defined_function.query_a_partition_table();
 

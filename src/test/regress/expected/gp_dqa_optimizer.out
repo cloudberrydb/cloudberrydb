@@ -30,7 +30,7 @@ explain (costs off) select count(distinct d) from dqa_t1;
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
-               ->  Table Scan on dqa_t1
+               ->  Seq Scan on dqa_t1
  Optimizer: PQO version 3.11.0
 (5 rows)
 
@@ -65,7 +65,7 @@ explain (costs off) select count(distinct d) from dqa_t1 group by i;
                                  Group Key: i
                                  ->  Sort
                                        Sort Key: i, d
-                                       ->  Table Scan on dqa_t1
+                                       ->  Seq Scan on dqa_t1
  Optimizer: PQO version 2.70.0
 (13 rows)
 
@@ -250,9 +250,9 @@ explain (costs off) select count(distinct dqa_t1.d) from dqa_t1, dqa_t2 where dq
          ->  Aggregate
                ->  Hash Join
                      Hash Cond: (dqa_t1.d = dqa_t2.d)
-                     ->  Table Scan on dqa_t1
+                     ->  Seq Scan on dqa_t1
                      ->  Hash
-                           ->  Table Scan on dqa_t2
+                           ->  Seq Scan on dqa_t2
  Optimizer: PQO version 3.11.0
 (9 rows)
 
@@ -333,9 +333,9 @@ explain (costs off) select count(distinct dqa_t1.d) from dqa_t1, dqa_t2 where dq
                                        Sort Key: dqa_t2.dt
                                        ->  Hash Join
                                              Hash Cond: (dqa_t2.d = dqa_t1.d)
-                                             ->  Table Scan on dqa_t2
+                                             ->  Seq Scan on dqa_t2
                                              ->  Hash
-                                                   ->  Table Scan on dqa_t1
+                                                   ->  Seq Scan on dqa_t1
  Optimizer: PQO version 2.70.0
 (17 rows)
 
@@ -361,7 +361,7 @@ explain (costs off) select count(distinct c) from dqa_t1;
                                  Group Key: c
                                  ->  Sort
                                        Sort Key: c
-                                       ->  Table Scan on dqa_t1
+                                       ->  Seq Scan on dqa_t1
  Optimizer: PQO version 2.70.0
 (14 rows)
 
@@ -420,7 +420,7 @@ explain (costs off) select count(distinct c) from dqa_t1 group by dt;
                                        Sort Key: dt, c
                                        ->  Redistribute Motion 3:3  (slice1; segments: 3)
                                              Hash Key: c
-                                             ->  Table Scan on dqa_t1
+                                             ->  Seq Scan on dqa_t1
  Optimizer: PQO version 2.70.0
 (15 rows)
 
@@ -468,7 +468,7 @@ explain (costs off) select count(distinct c) from dqa_t1 group by d;
                                        Sort Key: d, c
                                        ->  Redistribute Motion 3:3  (slice1; segments: 3)
                                              Hash Key: c
-                                             ->  Table Scan on dqa_t1
+                                             ->  Seq Scan on dqa_t1
  Optimizer: PQO version 2.70.0
 (15 rows)
 
@@ -629,11 +629,11 @@ explain (costs off) select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where d
                                        Hash Cond: (dqa_t1.c = dqa_t2.c)
                                        ->  Redistribute Motion 3:3  (slice1; segments: 3)
                                              Hash Key: dqa_t1.c
-                                             ->  Table Scan on dqa_t1
+                                             ->  Seq Scan on dqa_t1
                                        ->  Hash
                                              ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                                    Hash Key: dqa_t2.c
-                                                   ->  Table Scan on dqa_t2
+                                                   ->  Seq Scan on dqa_t2
  Optimizer: PQO version 2.70.0
 (20 rows)
 
@@ -718,11 +718,11 @@ explain (costs off) select count(distinct dqa_t1.dt) from dqa_t1, dqa_t2 where d
                                                    Hash Cond: (dqa_t1.c = dqa_t2.c)
                                                    ->  Redistribute Motion 3:3  (slice1; segments: 3)
                                                          Hash Key: dqa_t1.c
-                                                         ->  Table Scan on dqa_t1
+                                                         ->  Seq Scan on dqa_t1
                                                    ->  Hash
                                                          ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                                                Hash Key: dqa_t2.c
-                                                               ->  Table Scan on dqa_t2
+                                                               ->  Seq Scan on dqa_t2
  Optimizer: PQO version 2.70.0
 (23 rows)
 

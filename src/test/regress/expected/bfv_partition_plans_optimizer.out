@@ -208,7 +208,7 @@ NOTICE:  CREATE TABLE will create partition "mpp23288_1_prt_plast" for table "mp
 insert into mpp23288(a) select generate_series(1,20);
 analyze mpp23288;
 -- TEST
-select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and t2.a =10) order by t2.a, t1.a;','Dynamic Table Scan');
+select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and t2.a =10) order by t2.a, t1.a;','Dynamic Seq Scan');
  count_operator 
 ----------------
               2
@@ -228,7 +228,7 @@ select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and t2
  10 | 9
 (9 rows)
 
-select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and (t2.a = 10 or t2.a = 5 or t2.a = 12)) order by t2.a, t1.a;','Dynamic Table Scan');
+select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and (t2.a = 10 or t2.a = 5 or t2.a = 12)) order by t2.a, t1.a;','Dynamic Seq Scan');
  count_operator 
 ----------------
               2
@@ -263,7 +263,7 @@ select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on (t1.a < t2.a and (t
  12 | 11
 (24 rows)
 
-select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on t1.a < t2.a and t2.a = 1 or t2.a < 10 order by t2.a, t1.a;','Dynamic Table Scan');
+select count_operator('select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on t1.a < t2.a and t2.a = 1 or t2.a < 10 order by t2.a, t1.a;','Dynamic Seq Scan');
  count_operator 
 ----------------
               2
@@ -915,7 +915,7 @@ NOTICE:  building index for child partition "dbs_1_prt_8"
 NOTICE:  building index for child partition "dbs_1_prt_9"
 NOTICE:  building index for child partition "dbs_1_prt_10"
 -- TEST
-select find_operator('(select * from dts where c2 = 1) union (select * from dts where c2 = 2) union (select * from dts where c2 = 3) union (select * from dts where c2 = 4) union (select * from dts where c2 = 5) union (select * from dts where c2 = 6) union (select * from dts where c2 = 7) union (select * from dts where c2 = 8) union (select * from dts where c2 = 9) union (select * from dts where c2 = 10);', 'Dynamic Table Scan');
+select find_operator('(select * from dts where c2 = 1) union (select * from dts where c2 = 2) union (select * from dts where c2 = 3) union (select * from dts where c2 = 4) union (select * from dts where c2 = 5) union (select * from dts where c2 = 6) union (select * from dts where c2 = 7) union (select * from dts where c2 = 8) union (select * from dts where c2 = 9) union (select * from dts where c2 = 10);', 'Dynamic Seq Scan');
  find_operator 
 ---------------
  ['true']
@@ -956,7 +956,7 @@ select find_operator('(select * from dis where c3 = 1) union (select * from dis 
 ----+----+----
 (0 rows)
 
-select find_operator('select * from dbs where c2= 15 and c3 = 5;', 'Bitmap Table Scan');
+select find_operator('select * from dbs where c2= 15 and c3 = 5;', 'Bitmap Heap Scan');
  find_operator 
 ---------------
  ['false']
@@ -1161,7 +1161,7 @@ EXPLAIN SELECT b FROM bar GROUP BY b;
          ->  Sequence  (cost=0.00..431.01 rows=334 width=4)
                ->  Partition Selector for bar (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                      Partitions selected: 2 (out of 2)
-               ->  Dynamic Table Scan on bar (dynamic scan id: 1)  (cost=0.00..431.01 rows=334 width=4)
+               ->  Dynamic Seq Scan on bar (dynamic scan id: 1)  (cost=0.00..431.01 rows=334 width=4)
  Settings:  optimizer=on
  Optimizer status: PQO version 2.5.0
 (9 rows)
@@ -1200,13 +1200,13 @@ explain analyze select a.* from mpp8031 a, mpp8031 b where a.oid = b.oid;
          ->  Sequence  (cost=0.00..431.00 rows=1 width=16) (never executed)
                ->  Partition Selector for mpp8031 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4) (never executed)
                      Partitions selected: 4 (out of 4)
-               ->  Dynamic Table Scan on mpp8031 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16) (never executed)
+               ->  Dynamic Seq Scan on mpp8031 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16) (never executed)
                      Partitions scanned:  0 (out of 4).
          ->  Hash  (cost=431.00..431.00 rows=1 width=4) (actual time=0.000..0.978 rows=0 loops=1)
                ->  Sequence  (cost=0.00..431.00 rows=1 width=4) (actual time=0.000..0.976 rows=0 loops=1)
                      ->  Partition Selector for mpp8031 (dynamic scan id: 2)  (cost=10.00..100.00 rows=34 width=4) (actual time=0.000..0.017 rows=0 loops=1)
                            Partitions selected: 4 (out of 4)
-                     ->  Dynamic Table Scan on mpp8031 mpp8031_1 (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=4) (actual time=0.000..0.957 rows=0 loops=1)
+                     ->  Dynamic Seq Scan on mpp8031 mpp8031_1 (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=4) (actual time=0.000..0.957 rows=0 loops=1)
                            Partitions scanned:  Avg 4.0 (out of 4) x 3 workers.  Max 4 parts (seg0).
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 4234K bytes avg x 3 workers, 4234K bytes max (seg0).
@@ -1332,13 +1332,13 @@ explain select * from r_part r1, r_part r2 where r1.a=1; -- should eliminate par
          ->  Sequence  (cost=0.00..431.00 rows=1 width=8)
                ->  Partition Selector for r_part (dynamic scan id: 2)  (cost=10.00..100.00 rows=34 width=4)
                      Partitions selected: 9 (out of 9)
-               ->  Dynamic Table Scan on r_part r_part_1 (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=8)
+               ->  Dynamic Seq Scan on r_part r_part_1 (dynamic scan id: 2)  (cost=0.00..431.00 rows=1 width=8)
          ->  Materialize  (cost=0.00..431.00 rows=1 width=8)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
                      ->  Sequence  (cost=0.00..431.00 rows=1 width=8)
                            ->  Partition Selector for r_part (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Partitions selected: 1 (out of 9)
-                           ->  Dynamic Table Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Dynamic Seq Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                                  Filter: a = 1
  Optimizer: PQO version 2.74.0
 (15 rows)
@@ -1351,7 +1351,7 @@ explain select * from r_part where a in (7,8); -- should eliminate partitions
    ->  Sequence  (cost=0.00..431.00 rows=1 width=8)
          ->  Partition Selector for r_part (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Partitions selected: 2 (out of 9)
-         ->  Dynamic Table Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
+         ->  Dynamic Seq Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                Filter: a = ANY ('{7,8}'::integer[])
  Optimizer: PQO version 2.71.0
 (7 rows)
@@ -1388,7 +1388,7 @@ explain select * from r_part where a = 1 order by a,b; -- should eliminate parti
                ->  Partition Selector for r_part (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                      Filter: a = 1
                      Partitions selected: 1 (out of 9)
-               ->  Dynamic Table Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
+               ->  Dynamic Seq Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                      Filter: a = 1
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1406,7 +1406,7 @@ explain execute f1(1); -- should eliminate partitions
                ->  Partition Selector for r_part (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                      Filter: a = 1
                      Partitions selected: 1 (out of 9)
-               ->  Dynamic Table Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
+               ->  Dynamic Seq Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                      Filter: a = 1
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1424,7 +1424,7 @@ explain execute f2(2); -- should eliminate partitions
                ->  Partition Selector for r_part (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                      Filter: a = 2
                      Partitions selected: 1 (out of 9)
-               ->  Dynamic Table Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
+               ->  Dynamic Seq Scan on r_part (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                      Filter: a = 2
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1441,7 +1441,7 @@ explain select * from r_co where a=2; -- should eliminate partitions
          ->  Partition Selector for r_co (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Filter: a = 2
                Partitions selected: 1 (out of 9)
-         ->  Dynamic Table Scan on r_co (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
+         ->  Dynamic Seq Scan on r_co (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                Filter: a = 2
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1461,7 +1461,7 @@ explain execute f3(2); -- should eliminate partitions
                ->  Partition Selector for r_co (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                      Filter: a = 2
                      Partitions selected: 1 (out of 9)
-               ->  Dynamic Table Scan on r_co (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
+               ->  Dynamic Seq Scan on r_co (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=8)
                      Filter: a = 2
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1503,7 +1503,7 @@ explain select * from fact where dd < '2009-01-02'::date; -- partitions eliminat
          ->  Partition Selector for fact (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Filter: dd < '01-02-2009'::date
                Partitions selected: 1 (out of 4)
-         ->  Dynamic Table Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
+         ->  Dynamic Seq Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
                Filter: dd < '01-02-2009'::date
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1517,7 +1517,7 @@ explain select * from fact where dd < to_date('2009-01-02','YYYY-MM-DD'); -- par
          ->  Partition Selector for fact (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Filter: dd < '01-02-2009'::date
                Partitions selected: 1 (out of 4)
-         ->  Dynamic Table Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
+         ->  Dynamic Seq Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
                Filter: dd < '01-02-2009'::date
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1531,7 +1531,7 @@ explain select * from fact where dd < current_date; --partitions eliminated
          ->  Partition Selector for fact (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Filter: dd < '10-22-2017'::date
                Partitions selected: 1 (out of 4)
-         ->  Dynamic Table Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
+         ->  Dynamic Seq Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
                Filter: dd < '10-22-2017'::date
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1548,7 +1548,7 @@ explain execute f1('2009-01-02'::date); -- should eliminate partitions
          ->  Partition Selector for fact (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Filter: dd < '01-02-2009'::date
                Partitions selected: 1 (out of 4)
-         ->  Dynamic Table Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
+         ->  Dynamic Seq Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
                Filter: dd < '01-02-2009'::date
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1
@@ -1563,7 +1563,7 @@ explain execute f1(to_date('2009-01-02', 'YYYY-MM-DD')); -- should eliminate par
          ->  Partition Selector for fact (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Filter: dd < '01-02-2009'::date
                Partitions selected: 1 (out of 4)
-         ->  Dynamic Table Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
+         ->  Dynamic Seq Scan on fact (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=16)
                Filter: dd < '01-02-2009'::date
  Settings:  optimizer=on
  Optimizer status: PQO version 2.47.1

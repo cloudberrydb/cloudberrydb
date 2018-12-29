@@ -61,7 +61,7 @@ explain select i from foo where i > 10;
                                  QUERY PLAN
 -----------------------------------------------------------------------------
  Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..2.72 rows=45 width=4)
-   ->  Table Scan on foo  (cost=0.00..1.55 rows=45 width=4)
+   ->  Seq Scan on foo  (cost=0.00..1.55 rows=45 width=4)
          Filter: i > 10
  Settings:  optimizer=on
 (4 rows)
@@ -76,7 +76,7 @@ GP_IGNORE:  'child' => [
 GP_IGNORE:    {
 GP_IGNORE:      'id' => 2,
 GP_IGNORE:      'parent' => 1,
-GP_IGNORE:      'short' => 'Table Scan on foo'
+GP_IGNORE:      'short' => 'Seq Scan on foo'
 GP_IGNORE:    }
 GP_IGNORE:  ],
 GP_IGNORE:  'id' => 1,

@@ -1553,8 +1553,8 @@ ORDER BY thousand, tenthous;
    ->  Sort
          Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
-               ->  Table Scan on tenk1
-               ->  Table Scan on tenk1 tenk1_1
+               ->  Seq Scan on tenk1
+               ->  Seq Scan on tenk1 tenk1_1
  Optimizer: PQO version 2.74.0
 (8 rows)
 
@@ -1563,17 +1563,17 @@ SELECT thousand, tenthous, thousand+tenthous AS x FROM tenk1
 UNION ALL
 SELECT 42, 42, hundred FROM tenk1
 ORDER BY thousand, tenthous;
-                     QUERY PLAN                      
------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.thousand, tenk1.tenthous
    ->  Sort
          Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
                ->  Result
-                     ->  Table Scan on tenk1
+                     ->  Seq Scan on tenk1
                ->  Result
-                     ->  Table Scan on tenk1 tenk1_1
+                     ->  Seq Scan on tenk1 tenk1_1
  Optimizer: PQO version 2.74.0
 (10 rows)
 
@@ -1582,16 +1582,16 @@ SELECT thousand, tenthous FROM tenk1
 UNION ALL
 SELECT thousand, random()::integer FROM tenk1
 ORDER BY thousand, tenthous;
-                     QUERY PLAN                      
------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.thousand, tenk1.tenthous
    ->  Sort
          Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
-               ->  Table Scan on tenk1
+               ->  Seq Scan on tenk1
                ->  Result
-                     ->  Table Scan on tenk1 tenk1_1
+                     ->  Seq Scan on tenk1 tenk1_1
  Optimizer: PQO version 2.74.0
 (9 rows)
 
@@ -1603,14 +1603,14 @@ SELECT min(x) FROM
   (SELECT unique1 AS x FROM tenk1 a
    UNION ALL
    SELECT unique2 AS x FROM tenk1 b) s;
-                     QUERY PLAN                      
------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Append
-                     ->  Table Scan on tenk1
-                     ->  Table Scan on tenk1 tenk1_1
+                     ->  Seq Scan on tenk1
+                     ->  Seq Scan on tenk1 tenk1_1
  Optimizer: PQO version 2.74.0
 (7 rows)
 
@@ -1619,15 +1619,15 @@ SELECT min(y) FROM
   (SELECT unique1 AS x, unique1 AS y FROM tenk1 a
    UNION ALL
    SELECT unique2 AS x, unique2 AS y FROM tenk1 b) s;
-                     QUERY PLAN                      
------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
                ->  Append
                      ->  Result
-                           ->  Table Scan on tenk1
-                     ->  Table Scan on tenk1 tenk1_1
+                           ->  Seq Scan on tenk1
+                     ->  Seq Scan on tenk1 tenk1_1
  Optimizer: PQO version 2.74.0
 (8 rows)
 
@@ -1645,8 +1645,8 @@ ORDER BY x, y;
    ->  Sort
          Sort Key: tenk1.thousand, tenk1.tenthous
          ->  Append
-               ->  Table Scan on tenk1
-               ->  Table Scan on tenk1 tenk1_1
+               ->  Seq Scan on tenk1
+               ->  Seq Scan on tenk1 tenk1_1
  Optimizer: PQO version 2.74.0
 (8 rows)
 

@@ -6,14 +6,14 @@ create table nhtest (i numeric(10, 2)) distributed by (i);
 insert into nhtest values(100000.22);
 insert into nhtest values(300000.19);
 explain select * from nhtest a join nhtest b using (i);
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=9)
    ->  Hash Join  (cost=0.00..862.00 rows=1 width=9)
          Hash Cond: nhtest.i = nhtest_1.i
-         ->  Table Scan on nhtest  (cost=0.00..431.00 rows=1 width=9)
+         ->  Seq Scan on nhtest  (cost=0.00..431.00 rows=1 width=9)
          ->  Hash  (cost=431.00..431.00 rows=1 width=9)
-               ->  Table Scan on nhtest nhtest_1  (cost=0.00..431.00 rows=1 width=9)
+               ->  Seq Scan on nhtest nhtest_1  (cost=0.00..431.00 rows=1 width=9)
  Optimizer: PQO version 2.74.0
 (7 rows)
 
@@ -104,10 +104,10 @@ explain select count(*) from t1,t2 where t1.x = 100 and t1.x = t2.x;
                      Hash Cond: t1.x = t2.x
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                            Hash Key: t1.x
-                           ->  Table Scan on t1  (cost=0.00..431.00 rows=1 width=4)
+                           ->  Seq Scan on t1  (cost=0.00..431.00 rows=1 width=4)
                                  Filter: x = 100
                      ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-                           ->  Table Scan on t2  (cost=0.00..431.00 rows=1 width=4)
+                           ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
                                  Filter: x = 100
  Settings:  optimizer=on
  Optimizer status: PQO version 2.39.2
@@ -129,9 +129,9 @@ explain select * from t1,t2 where t1.x = 100 and t2.x >= t1.x;
    ->  Nested Loop  (cost=0.00..1324039.56 rows=12 width=24)
          Join Filter: t2.x >= t1.x
          ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
-               ->  Table Scan on t1  (cost=0.00..431.00 rows=1 width=12)
+               ->  Seq Scan on t1  (cost=0.00..431.00 rows=1 width=12)
                      Filter: x = 100
-         ->  Table Scan on t2  (cost=0.00..431.00 rows=34 width=12)
+         ->  Seq Scan on t2  (cost=0.00..431.00 rows=34 width=12)
  Settings:  optimizer=on
  Optimizer status: PQO version 2.39.2
 (9 rows)
@@ -155,12 +155,12 @@ explain select * from t1,t2 where t1.x = 100 and t1.x = t2.y and t1.x <= t2.x;
          Join Filter: t1.x <= t2.x
          ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
                Hash Key: t1.x
-               ->  Table Scan on t1  (cost=0.00..431.00 rows=1 width=12)
+               ->  Seq Scan on t1  (cost=0.00..431.00 rows=1 width=12)
                      Filter: x = 100
          ->  Hash  (cost=431.00..431.00 rows=1 width=12)
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
                      Hash Key: t2.y
-                     ->  Table Scan on t2  (cost=0.00..431.00 rows=1 width=12)
+                     ->  Seq Scan on t2  (cost=0.00..431.00 rows=1 width=12)
                            Filter: y = 100
  Settings:  optimizer=on; optimizer_segments=2
  Optimizer status: PQO version 2.39.2
@@ -503,12 +503,12 @@ explain (costs off) select X.a from input_table X full join (select a from input
                ->  Shared Scan (share slice:id 6:0)
                      ->  Materialize
                            ->  Redistribute Motion 3:3  (slice5; segments: 3)
-                                 ->  Table Scan on input_table input_table_1
+                                 ->  Seq Scan on input_table input_table_1
                ->  Sequence
                      ->  Shared Scan (share slice:id 6:1)
                            ->  Materialize
                                  ->  Redistribute Motion 3:3  (slice4; segments: 3)
-                                       ->  Table Scan on input_table
+                                       ->  Seq Scan on input_table
                      ->  Append
                            ->  Hash Left Join
                                  Hash Cond: ((share0_ref2.a)::text = (share1_ref2.a)::text)
@@ -553,11 +553,11 @@ explain select * from t5370 a , t5370_2 b where a.name=b.name;
          Hash Cond: t5370.name = t5370_2.name
          ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.02 rows=334 width=7)
                Hash Key: t5370.name
-               ->  Table Scan on t5370  (cost=0.00..431.01 rows=334 width=7)
+               ->  Seq Scan on t5370  (cost=0.00..431.01 rows=334 width=7)
          ->  Hash  (cost=431.02..431.02 rows=334 width=7)
                ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.02 rows=334 width=7)
                      Hash Key: t5370_2.name
-                     ->  Table Scan on t5370_2  (cost=0.00..431.01 rows=334 width=7)
+                     ->  Seq Scan on t5370_2  (cost=0.00..431.01 rows=334 width=7)
  Optimizer: PQO version 2.70.2
 (11 rows)
 
@@ -587,11 +587,11 @@ explain (costs off) select * from t6215 a full join t6215 b on true;
          ->  Sequence
                ->  Shared Scan (share slice:id 1:0)
                      ->  Materialize
-                           ->  Table Scan on t6215 t6215_1
+                           ->  Seq Scan on t6215 t6215_1
                ->  Sequence
                      ->  Shared Scan (share slice:id 1:1)
                            ->  Materialize
-                                 ->  Table Scan on t6215
+                                 ->  Seq Scan on t6215
                      ->  Append
                            ->  Nested Loop Left Join
                                  Join Filter: true

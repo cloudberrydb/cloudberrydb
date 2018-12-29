@@ -197,7 +197,7 @@ Gather Motion 2:1 (slice1; segments: 2) (cost=0.00..20.88 rows=1 width=13)
  Aggregate  (cost=0.00..296.14 rows=1 width=8)
    ->  Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..295.10 rows=1 width=8)
          ->  Aggregate  (cost=0.00..294.10 rows=1 width=8)
-               ->  Table Scan on part  (cost=0.00..97.69 rows=100040 width=1)
+               ->  Seq Scan on part  (cost=0.00..97.69 rows=100040 width=1)
  Settings:  <b>optimizer=on</b>
  Optimizer status: <b>PQO version 1.584</b>
 (5 rows)</codeblock>

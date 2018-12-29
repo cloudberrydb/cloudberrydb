@@ -481,7 +481,7 @@ explain select * from bm_test where j = 1;
                                    QUERY PLAN                                    
 -----------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.03 rows=1 width=8)
-   ->  Table Scan on bm_test  (cost=0.00..1.03 rows=1 width=8)
+   ->  Seq Scan on bm_test  (cost=0.00..1.03 rows=1 width=8)
          Filter: j = 1
  Settings:  enable_bitmapscan=off; enable_indexscan=on; enable_seqscan=off; optimizer=on
 (4 rows)
@@ -612,7 +612,7 @@ explain select * from unlogged_test where c1 = 100;
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..204.38 rows=1 width=4)
-   ->  Bitmap Table Scan on unlogged_test  (cost=0.00..204.38 rows=1 width=4)
+   ->  Bitmap Heap Scan on unlogged_test  (cost=0.00..204.38 rows=1 width=4)
          Recheck Cond: c1 = 100
          ->  Bitmap Index Scan on unlogged_test_idx  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: c1 = 100

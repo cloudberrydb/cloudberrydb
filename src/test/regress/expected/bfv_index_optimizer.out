@@ -157,7 +157,7 @@ AND ft.id = dt1.id;
          ->  Aggregate  (cost=0.00..1293.00 rows=1 width=8)
                ->  Hash Join  (cost=0.00..1293.00 rows=2 width=1)
                      Hash Cond: bfv_tab2_dimdate.wk_id = bfv_tab2_facttable1.wk_id
-                     ->  Table Scan on bfv_tab2_dimdate  (cost=0.00..431.00 rows=4 width=2)
+                     ->  Seq Scan on bfv_tab2_dimdate  (cost=0.00..431.00 rows=4 width=2)
                      ->  Hash  (cost=862.00..862.00 rows=3 width=2)
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=3 width=2)
                                  Hash Key: bfv_tab2_facttable1.wk_id
@@ -168,9 +168,9 @@ AND ft.id = dt1.id;
                                              ->  Sequence  (cost=0.00..431.00 rows=7 width=6)
                                                    ->  Partition Selector for bfv_tab2_facttable1 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                                          Partitions selected: 20 (out of 20)
-                                                   ->  Dynamic Table Scan on bfv_tab2_facttable1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=7 width=6)
+                                                   ->  Dynamic Seq Scan on bfv_tab2_facttable1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=7 width=6)
                                        ->  Hash  (cost=431.00..431.00 rows=3 width=4)
-                                             ->  Table Scan on bfv_tab2_dimtabl1  (cost=0.00..431.00 rows=3 width=4)
+                                             ->  Seq Scan on bfv_tab2_dimtabl1  (cost=0.00..431.00 rows=3 width=4)
  Optimizer: PQO version 2.55.21
 (20 rows)
 
@@ -491,7 +491,7 @@ explain select * from nestloop_x as x, nestloop_y as y where x.i + x.j < y.j;
    ->  Nested Loop  (cost=0.00..543.01 rows=19 width=16)
          Join Filter: true
          ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=20 width=8)
-               ->  Table Scan on nestloop_x  (cost=0.00..431.00 rows=7 width=8)
+               ->  Seq Scan on nestloop_x  (cost=0.00..431.00 rows=7 width=8)
          ->  Index Scan using nestloop_y_idx on nestloop_y  (cost=0.00..112.01 rows=1 width=8)
                Index Cond: j > (nestloop_x.i + nestloop_x.j)
  Optimizer: PQO version 2.64.0
@@ -518,7 +518,7 @@ explain select * from nestloop_x as x, nestloop_y as y where y.j > x.i + x.j + 2
    ->  Nested Loop  (cost=0.00..543.01 rows=19 width=16)
          Join Filter: true
          ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=20 width=8)
-               ->  Table Scan on nestloop_x  (cost=0.00..431.00 rows=7 width=8)
+               ->  Seq Scan on nestloop_x  (cost=0.00..431.00 rows=7 width=8)
          ->  Index Scan using nestloop_y_idx on nestloop_y  (cost=0.00..112.01 rows=1 width=8)
                Index Cond: j > (nestloop_x.i + nestloop_x.j + 2)
  Optimizer: PQO version 2.64.0
@@ -597,7 +597,7 @@ explain select * from shape_ao   where c && '<(5,5), 1>'::circle;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..204.38 rows=1 width=24)
-   ->  Bitmap Table Scan on shape_ao  (cost=0.00..204.38 rows=1 width=24)
+   ->  Bitmap Heap Scan on shape_ao  (cost=0.00..204.38 rows=1 width=24)
          Recheck Cond: c && '<(5,5),1>'::circle
          ->  Bitmap Index Scan on shape_ao_bb_idx  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: c && '<(5,5),1>'::circle
@@ -608,7 +608,7 @@ explain select * from shape_aocs where c && '<(5,5), 1>'::circle;
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..204.38 rows=1 width=24)
-   ->  Bitmap Table Scan on shape_aocs  (cost=0.00..204.38 rows=1 width=24)
+   ->  Bitmap Heap Scan on shape_aocs  (cost=0.00..204.38 rows=1 width=24)
          Recheck Cond: c && '<(5,5),1>'::circle
          ->  Bitmap Index Scan on shape_aocs_bb_idx  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: c && '<(5,5),1>'::circle

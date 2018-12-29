@@ -280,7 +280,7 @@ explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
-               ->  Table Scan on test_tsvector
+               ->  Seq Scan on test_tsvector
                      Filter: (a @@ '''wr'' | ''qh'''::tsquery)
  Optimizer: PQO version 3.9.0
 (6 rows)

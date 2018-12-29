@@ -270,7 +270,7 @@ select max(b) over (partition by a) from foo order by 1;
  ccc
 (3 rows)
 
-select count_operator('select max(b) over (partition by a) from foo order by 1;', 'Table Scan');
+select count_operator('select max(b) over (partition by a) from foo order by 1;', 'PQO');
  count_operator 
 ----------------
               0

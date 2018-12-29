@@ -174,7 +174,7 @@ select string_agg(b, '') over (partition by a) from foo order by 1;
 select string_agg(b, '') over (partition by a,b) from foo order by 1;
 -- should not fall back
 select max(b) over (partition by a) from foo order by 1;
-select count_operator('select max(b) over (partition by a) from foo order by 1;', 'Table Scan');
+select count_operator('select max(b) over (partition by a) from foo order by 1;', 'PQO');
 -- fall back
 select string_agg(b, '') over (partition by a+1) from foo order by 1;
 select string_agg(b || 'txt', '') over (partition by a) from foo order by 1;

@@ -128,7 +128,7 @@ CREATE EXTERNAL WEB TABLE dummy_ext_tab (x text) EXECUTE 'echo foo' FORMAT 'text
 -- External Table Scan
 explain (format json, costs off) SELECT * FROM dummy_ext_tab;
 
--- Append-only Scan
+-- Seq Scan on an append-only table
 CREATE TEMP TABLE dummy_aotab (x int4) WITH (appendonly=true);
 explain (format yaml, costs off) SELECT * FROM dummy_aotab;
 

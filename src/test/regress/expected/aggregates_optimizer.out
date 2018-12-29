@@ -619,7 +619,7 @@ explain (costs off)
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
-               ->  Table Scan on tenk1
+               ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (5 rows)
 
@@ -636,7 +636,7 @@ explain (costs off)
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
-               ->  Table Scan on tenk1
+               ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (5 rows)
 
@@ -750,14 +750,14 @@ explain (costs off)
 --------------------------------------------------------------------
  Result
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Table Scan on int4_tbl
+         ->  Seq Scan on int4_tbl
    SubPlan 1  (slice0)
      ->  Aggregate
            ->  Result
                  Filter: (tenk1.unique1 > int4_tbl.f1)
                  ->  Materialize
                        ->  Gather Motion 3:1  (slice2; segments: 3)
-                             ->  Table Scan on tenk1
+                             ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (11 rows)
 
@@ -780,7 +780,7 @@ explain (costs off)
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Aggregate
-               ->  Table Scan on tenk1
+               ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (5 rows)
 
@@ -799,7 +799,7 @@ explain (costs off)
    ->  Aggregate
          ->  Gather Motion 3:1  (slice1; segments: 3)
                ->  Aggregate
-                     ->  Table Scan on tenk1
+                     ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (7 rows)
 
@@ -818,7 +818,7 @@ explain (costs off)
    ->  Aggregate
          ->  Gather Motion 3:1  (slice1; segments: 3)
                ->  Aggregate
-                     ->  Table Scan on tenk1
+                     ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (7 rows)
 
@@ -839,7 +839,7 @@ explain (costs off)
                ->  Aggregate
                      ->  Gather Motion 3:1  (slice1; segments: 3)
                            ->  Aggregate
-                                 ->  Table Scan on tenk1
+                                 ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (9 rows)
 
@@ -859,7 +859,7 @@ explain (costs off)
          ->  Aggregate
                ->  Gather Motion 3:1  (slice1; segments: 3)
                      ->  Aggregate
-                           ->  Table Scan on tenk1
+                           ->  Seq Scan on tenk1
  Optimizer: PQO version 2.55.21
 (8 rows)
 

@@ -121,7 +121,7 @@ EXPLAIN EXECUTE prep_prune;
          ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Filter: col2 = 10::numeric
                Partitions selected: 1 (out of 5)
-         ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=14)
+         ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=14)
                Filter: col2 = 10::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
 (9 rows)
@@ -135,7 +135,7 @@ EXPLAIN EXECUTE prep_prune_param(10);
    ->  Sequence  (cost=0.00..431.00 rows=1 width=12)
          ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                Partitions selected: 1 (out of 5)
-         ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=12)
+         ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=12)
                Filter: col2 = 10::numeric
  Optimizer: PQO version 2.70.0
 (7 rows)
@@ -242,7 +242,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col1 <> 10 ORDER BY col2,col3 LIMIT 5;
                      ->  Sequence  (cost=0.00..431.00 rows=17 width=14)
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Partitions selected: 5 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=17 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=17 width=14)
                                  Filter: col1 <> 10
  Settings:  optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -298,7 +298,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col1 > 10 OR col1 = 25 ORDER BY col2,col3 
                      ->  Sequence  (cost=0.00..431.00 rows=14 width=14)
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Partitions selected: 5 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=14 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=14 width=14)
                                  Filter: col1 > 10 OR col1 = 25
  Settings:  optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -447,7 +447,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 <> 10 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 < 10::numeric OR col2 > 10::numeric
                                  Partitions selected: 5 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=17 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=17 width=14)
                                  Filter: col2 <> 10::numeric
  Settings:  optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -505,7 +505,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 10 OR col2 = 50 ORDER BY col2,col3 
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 > 10::numeric AND (col2 > 10::numeric OR col2 = 50::numeric)
                                  Partitions selected: 4 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=14 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=14 width=14)
                                  Filter: col2 > 10::numeric OR col2 = 50::numeric
  Settings:  optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -647,7 +647,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 <> 10 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 < 10::numeric OR col2 > 10::numeric
                                  Partitions selected: 5 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=17 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=17 width=14)
                                  Filter: col2 <> 10::numeric
  Settings:  optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -698,7 +698,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 10.00 OR col1 = 50 ORDER BY col2,co
                      ->  Sequence  (cost=0.00..431.00 rows=14 width=14)
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Partitions selected: 5 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=14 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=14 width=14)
                                  Filter: col2 > 10.00 OR col1 = 50
  Settings:  optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -849,7 +849,7 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 <> 10 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab_df (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 < 10::numeric OR col2 > 10::numeric
                                  Partitions selected: 6 (out of 6)
-                           ->  Dynamic Table Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=21 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=21 width=14)
                                  Filter: col2 <> 10::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.48.2
@@ -900,7 +900,7 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 > 10.00 OR col1 = 50 ORDER BY col2
                      ->  Sequence  (cost=0.00..431.00 rows=18 width=14)
                            ->  Partition Selector for pt_lt_tab_df (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Partitions selected: 6 (out of 6)
-                           ->  Dynamic Table Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=18 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=18 width=14)
                                  Filter: col2 > 10.00 OR col1 = 50
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.48.2
@@ -1238,7 +1238,7 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 <> 10 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab_df (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 < 10::numeric OR col2 > 10::numeric
                                  Partitions selected: 6 (out of 6)
-                           ->  Dynamic Table Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=21 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=21 width=14)
                                  Filter: col2 <> 10::numeric
  Settings:  optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -1338,7 +1338,7 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 > 51 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab_df (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 > 51::numeric
                                  Partitions selected: 1 (out of 6)
-                           ->  Dynamic Table Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=3 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=3 width=14)
                                  Filter: col2 > 51::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -1362,7 +1362,7 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 = 50 ORDER BY col2,col3 LIMIT 5;
                      ->  Partition Selector for pt_lt_tab_df (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                            Filter: col2 = 50::numeric
                            Partitions selected: 1 (out of 6)
-                     ->  Dynamic Table Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=14)
+                     ->  Dynamic Seq Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=14)
                            Filter: col2 = 50::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -1497,7 +1497,7 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 = 35 ORDER BY col2,col3 LIMIT 5;
                      ->  Partition Selector for pt_lt_tab_df (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
                            Filter: col2 = 35::numeric
                            Partitions selected: 1 (out of 6)
-                     ->  Dynamic Table Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=14)
+                     ->  Dynamic Seq Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=14)
                            Filter: col2 = 35::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -1533,7 +1533,7 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 > 15 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab_df (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
                                  Filter: col2 > 15::numeric
                                  Partitions selected: 5 (out of 6)
-                           ->  Dynamic Table Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=23 width=14)
+                           ->  Dynamic Seq Scan on pt_lt_tab_df (dynamic scan id: 1)  (cost=0.00..431.00 rows=23 width=14)
                                  Filter: col2 > 15::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.7.0
@@ -1581,7 +1581,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col4 is False ORDER BY col2,col3 LIMIT 5;
                      ->  Sequence  (cost=0.00..431.00 rows=7 width=10)
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Partitions selected: 5 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=7 width=10)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=7 width=10)
                                  Filter: col4 IS FALSE
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.48.2
@@ -1638,7 +1638,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 > 41::numeric
                                  Partitions selected: 1 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=4 width=10)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=4 width=10)
                                  Filter: col2 > 41::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.48.2
@@ -1668,7 +1668,7 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
                            ->  Partition Selector for pt_lt_tab (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                                  Filter: col2 > 41::numeric
                                  Partitions selected: 1 (out of 5)
-                           ->  Dynamic Table Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=4 width=9)
+                           ->  Dynamic Seq Scan on pt_lt_tab (dynamic scan id: 1)  (cost=0.00..431.00 rows=4 width=9)
                                  Filter: col2 > 41::numeric
  Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=on
  Optimizer status: PQO version 2.48.2
@@ -1788,7 +1788,7 @@ explain select * from ds_4 where month_id = '200800';
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
                Filter: month_id::text = '200800'::text
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: month_id::text = '200800'::text
  Settings:  optimizer=on
 (7 rows)
@@ -1803,7 +1803,7 @@ explain select * from ds_4 where month_id::int = 200800;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: int4(month_id) = 200800
  Settings:  optimizer=on
 (6 rows)
@@ -1818,7 +1818,7 @@ explain select * from ds_4 where month_id::int - 801 < 200000;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: (int4(month_id) - 801) < 200000
  Settings:  optimizer=on
 (6 rows)
@@ -1830,7 +1830,7 @@ explain select * from ds_4 where month_id::int - 801 < 200000 OR count_vas > 10;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: (int4(month_id) - 801) < 200000 OR count_vas > 10
  Settings:  optimizer=on
 (6 rows)
@@ -1845,7 +1845,7 @@ explain select * from ds_4 where month_id::int - 801 < 200000 AND count_vas > 10
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: (int4(month_id) - 801) < 200000 AND count_vas > 10
  Settings:  optimizer=on
 (6 rows)
@@ -1860,7 +1860,7 @@ explain select * from ds_4 where case when month_id = '200800' then 100 else 2 e
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: CASE WHEN month_id::text = '200800'::text THEN 100 ELSE 2 END = 100
  Settings:  optimizer=on
 (6 rows)
@@ -1875,7 +1875,7 @@ explain select * from ds_4 where case when month_id = '200800' then NULL else 2 
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: CASE WHEN month_id::text = '200800'::text THEN NULL::integer ELSE 2 END IS NULL
  Settings:  optimizer=on
 (6 rows)
@@ -1890,7 +1890,7 @@ explain select * from ds_4 where case when month_id::int = 200800 then count_vas
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: CASE WHEN int4(month_id) = 200800 THEN count_vas ELSE 2 END IS NULL
  Settings:  optimizer=on
 (6 rows)
@@ -1905,7 +1905,7 @@ explain select * from ds_4 where month_id::int in (200801, 1,55,6,6,6,6,66,565,6
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=80)
    ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
          ->  Partition Selector for ds_4 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-         ->  Dynamic Table Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+         ->  Dynamic Seq Scan on ds_4 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                Filter: int4(month_id) = ANY ('{200801,1,55,6,6,6,6,66,565,65,65,200803}'::integer[])
  Settings:  optimizer=on
 (6 rows)
@@ -1979,7 +1979,7 @@ explain select * from ds_2 where month_id::int in (200808, 1315) order by month_
          Sort Key: month_id
          ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
                ->  Partition Selector for ds_2 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-               ->  Dynamic Table Scan on ds_2 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+               ->  Dynamic Seq Scan on ds_2 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                      Filter: int4(month_id) = ANY ('{200808,1315}'::integer[])
  Settings:  optimizer=on; optimizer_segments=2
 (9 rows)
@@ -1996,7 +1996,7 @@ explain  select * from ds_2 where month_id::int in (200808, 200801, 2008010) ord
          Sort Key: month_id
          ->  Sequence  (cost=0.00..431.00 rows=1 width=80)
                ->  Partition Selector for ds_2 (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
-               ->  Dynamic Table Scan on ds_2 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
+               ->  Dynamic Seq Scan on ds_2 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=80)
                      Filter: int4(month_id) = ANY ('{200808,200801,2008010}'::integer[])
  Settings:  optimizer=on; optimizer_segments=2
 (9 rows)

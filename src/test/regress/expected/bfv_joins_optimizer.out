@@ -666,7 +666,7 @@ explain select 1 as mrs_t1 where 1 <= ALL (select x from z);
          ->  Result  (cost=0.00..0.00 rows=1 width=1)
          ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
                ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
-                     ->  Table Scan on z  (cost=0.00..431.00 rows=1 width=1)
+                     ->  Seq Scan on z  (cost=0.00..431.00 rows=1 width=1)
                            Filter: 1 > x
  Settings:  optimizer=on
  Optimizer status: PQO version 1.621
@@ -3081,16 +3081,16 @@ ON (member_group.group_id IN (12,13,14,15) AND member_subgroup.subgroup_name = r
                            Hash Key: member."group_id"
                            ->  Hash Join
                                  Hash Cond: (member."group_id" = member_subgroup."group_id")
-                                 ->  Table Scan on member
+                                 ->  Seq Scan on member
                                  ->  Hash
                                        ->  Broadcast Motion 3:3  (slice1; segments: 3)
-                                             ->  Table Scan on member_subgroup
+                                             ->  Seq Scan on member_subgroup
                      ->  Hash
-                           ->  Table Scan on member_group
+                           ->  Seq Scan on member_group
          ->  Hash
                ->  Redistribute Motion 3:3  (slice4; segments: 3)
                      Hash Key: (region.county_name)::text
-                     ->  Table Scan on region
+                     ->  Seq Scan on region
  Optimizer: PQO version 2.69.0
 (23 rows)
 
@@ -3104,9 +3104,9 @@ EXPLAIN (costs off) SELECT * FROM coercejoin a, coercejoin b WHERE a.a=b.a;
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
          Hash Cond: ((coercejoin.a)::text = (coercejoin_1.a)::text)
-         ->  Table Scan on coercejoin
+         ->  Seq Scan on coercejoin
          ->  Hash
-               ->  Table Scan on coercejoin coercejoin_1
+               ->  Seq Scan on coercejoin coercejoin_1
 (7 rows)
 
 -- Negative test, the join should not be colocated since the cast is a coercion
@@ -3120,11 +3120,11 @@ EXPLAIN (costs off) SELECT * FROM coercejoin a, coercejoin b WHERE a.a::numeric=
          Hash Cond: ((coercejoin.a)::numeric = (coercejoin_1.a)::numeric)
          ->  Redistribute Motion 3:3  (slice1; segments: 3)
                Hash Key: (coercejoin.a)::numeric
-               ->  Table Scan on coercejoin
+               ->  Seq Scan on coercejoin
          ->  Hash
                ->  Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: (coercejoin_1.a)::numeric
-                     ->  Table Scan on coercejoin coercejoin_1
+                     ->  Seq Scan on coercejoin coercejoin_1
 (11 rows)
 
 --
@@ -3146,8 +3146,8 @@ explain select * from nlj1, nlj2 where nlj1.a = nlj2.a;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1324032.38 rows=2 width=16)
    ->  Nested Loop  (cost=0.00..1324032.38 rows=1 width=16)
          Join Filter: (nlj1.a = nlj2.a)
-         ->  Table Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
-         ->  Table Scan on nlj2  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on nlj2  (cost=0.00..431.00 rows=1 width=8)
  Optimizer: PQO version 3.2.0
 (6 rows)
 
@@ -3163,8 +3163,8 @@ explain select * from nlj1, nlj2 where nlj1.a is not distinct from nlj2.a;
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1324032.40 rows=3 width=16)
    ->  Nested Loop  (cost=0.00..1324032.40 rows=1 width=16)
          Join Filter: (NOT (nlj1.a IS DISTINCT FROM nlj2.a))
-         ->  Table Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
-         ->  Table Scan on nlj2  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on nlj2  (cost=0.00..431.00 rows=1 width=8)
  Optimizer: PQO version 3.2.0
 (6 rows)
 
@@ -3181,13 +3181,13 @@ explain select * from nlj1, (select NULL a, b from nlj2) other where nlj1.a is n
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324032.53 rows=4 width=16)
    ->  Nested Loop  (cost=0.00..1324032.53 rows=2 width=16)
          Join Filter: (NOT (nlj1.a IS DISTINCT FROM "outer".a))
-         ->  Table Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
          ->  Materialize  (cost=0.00..431.00 rows=1 width=8)
                ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
                      Hash Key: "outer".a
                      ->  Result  (cost=0.00..431.00 rows=1 width=8)
                            ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                 ->  Table Scan on nlj2  (cost=0.00..431.00 rows=1 width=4)
+                                 ->  Seq Scan on nlj2  (cost=0.00..431.00 rows=1 width=4)
  Optimizer: PQO version 3.2.0
 (11 rows)
 
@@ -3204,10 +3204,10 @@ explain select * from nlj1, nlj2 where nlj1.a is distinct from nlj2.a;
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1324032.90 rows=2 width=16)
    ->  Nested Loop  (cost=0.00..1324032.90 rows=1 width=16)
          Join Filter: (nlj1.a IS DISTINCT FROM nlj2.a)
-         ->  Table Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
+         ->  Seq Scan on nlj1  (cost=0.00..431.00 rows=1 width=8)
          ->  Materialize  (cost=0.00..431.00 rows=2 width=8)
                ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=8)
-                     ->  Table Scan on nlj2  (cost=0.00..431.00 rows=1 width=8)
+                     ->  Seq Scan on nlj2  (cost=0.00..431.00 rows=1 width=8)
  Optimizer: PQO version 3.2.0
 (8 rows)
 

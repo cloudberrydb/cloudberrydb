@@ -485,7 +485,7 @@ explain (costs off)
          ->  Result
                Filter: (((t1.a || t1.b)) = 'ab'::text)
                ->  Result
-                     ->  Table Scan on t1
+                     ->  Seq Scan on t1
          ->  Index Scan using t2_pkey on t2
                Index Cond: (ab = 'ab'::text)
  Optimizer: PQO version 2.74.0
@@ -514,7 +514,7 @@ explain (costs off)
                                        ->  Result
                                              Filter: (((t1.a || t1.b)) = 'ab'::text)
                                              ->  Result
-                                                   ->  Table Scan on t1
+                                                   ->  Seq Scan on t1
                                        ->  Index Scan using t2_pkey on t2
                                              Index Cond: (ab = 'ab'::text)
  Optimizer: PQO version 2.74.0
@@ -619,7 +619,7 @@ explain (costs off)
          ->  Result
                Filter: (t = 2)
                ->  Result
-                     ->  Table Scan on tenk1
+                     ->  Seq Scan on tenk1
  Optimizer: PQO version 2.74.0
 (10 rows)
 
@@ -742,11 +742,11 @@ select * from
    ->  Hash Join
          Hash Cond: (expensivefunc(t3.x) = int4_tbl.f1)
          ->  Append
-               ->  Table Scan on t3
-               ->  Table Scan on t3 t3_1
+               ->  Seq Scan on t3
+               ->  Seq Scan on t3 t3_1
          ->  Hash
                ->  Broadcast Motion 3:3  (slice1; segments: 3)
-                     ->  Table Scan on int4_tbl
+                     ->  Seq Scan on int4_tbl
  Optimizer: PQO version 3.1.0
 (10 rows)
 

@@ -150,7 +150,7 @@ EXPLAIN SELECT id, property AS "Property" FROM GistTable3
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=36)
-   ->  Bitmap Table Scan on gisttable3  (cost=0.00..0.00 rows=1 width=36)
+   ->  Bitmap Heap Scan on gisttable3  (cost=0.00..0.00 rows=1 width=36)
          Recheck Cond: property ~= '(999,999),(998,998)'::box
          ->  Bitmap Index Scan on gistindex3a  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: property ~= '(999,999),(998,998)'::box

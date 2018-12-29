@@ -52,7 +52,7 @@ EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT 
                      Join Filter: true
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
                            Hash Key: boxes.apple_id
-                           ->  Table Scan on boxes  (cost=0.00..431.00 rows=1 width=12)
+                           ->  Seq Scan on boxes  (cost=0.00..431.00 rows=1 width=12)
                      ->  Index Scan using apples_pkey on apples  (cost=0.00..6.00 rows=1 width=4)
                            Index Cond: (id = boxes.apple_id)
          ->  Index Scan using box_locations_pkey on box_locations  (cost=0.00..12.00 rows=1 width=12)
@@ -76,7 +76,7 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
                      Join Filter: true
                      ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12) (actual time=0.000..1.122 rows=0 loops=1)
                            Hash Key: boxes.apple_id
-                           ->  Table Scan on boxes  (cost=0.00..431.00 rows=1 width=12) (actual time=0.000..0.016 rows=0 loops=1)
+                           ->  Seq Scan on boxes  (cost=0.00..431.00 rows=1 width=12) (actual time=0.000..0.016 rows=0 loops=1)
                      ->  Index Scan using apples_pkey on apples  (cost=0.00..6.00 rows=1 width=4) (never executed)
                            Index Cond: (id = boxes.apple_id)
          ->  Index Scan using box_locations_pkey on box_locations  (cost=0.00..12.00 rows=1 width=12) (never executed)
@@ -201,7 +201,7 @@ QUERY PLAN
                     Plan Width: 12
                     Hash Key: "boxes.apple_id"
                     Plans: 
-                      - Node Type: "Table Scan"
+                      - Node Type: "Seq Scan"
                         Parent Relationship: "Outer"
                         Slice: 1
                         Segments: 3
@@ -332,7 +332,7 @@ QUERY PLAN
                     Actual Loops: 1
                     Hash Key: "boxes.apple_id"
                     Plans: 
-                      - Node Type: "Table Scan"
+                      - Node Type: "Seq Scan"
                         Parent Relationship: "Outer"
                         Slice: 1
                         Segments: 3

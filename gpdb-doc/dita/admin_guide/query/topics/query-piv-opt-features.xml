@@ -186,7 +186,7 @@ Update  (cost=0.00..5.46 rows=1 width=1)
          ->  Result  (cost=0.00..3.23 rows=1 width=48)
                ->  <b>Split  (cost=0.00..2.13 rows=1 width=40)</b>
                      ->  Result  (cost=0.00..1.05 rows=1 width=40)
-                           ->  Table Scan on dmltest</codeblock></p></li>
+                           ->  Seq Scan on dmltest</codeblock></p></li>
           <li>New query plan operator <cmdname>Assert</cmdname> is used for constraints
               checking.<p>This example plan shows the <cmdname>Assert</cmdname>
               operator.<codeblock>QUERY PLAN
@@ -198,7 +198,7 @@ false
          ->  <b>Assert  (cost=0.00..2.25 rows=3 width=24)</b>
                <b>Assert Cond: NOT dmlsource.b IS NULL</b>
                ->  Result  (cost=0.00..1.14 rows=3 width=24)
-                     ->  Table Scan on dmlsource</codeblock></p></li>
+                     ->  Seq Scan on dmlsource</codeblock></p></li>
         </ul></p>
     </body>
   </topic>

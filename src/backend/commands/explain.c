@@ -1267,33 +1267,10 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			sname = "Hash Join";
 			break;
 		case T_SeqScan:
-			{
-				RangeTblEntry *rte;
-				char		relstorage;
-
-				rte = rt_fetch(((SeqScan *) plan)->scanrelid, es->rtable);
-
-				relstorage = get_rel_relstorage(rte->relid);
-
-				/*
-				 * For historical reasons, plans generated with ORCA use
-				 * "Table Scan" regardless of what kind of a table it is.
-				 * With the Postgres planner, the text depends on the kind
-				 * of table, even though it's really the same node type that
-				 * handles all of them.
-				 */
-				if (es->pstmt->planGen == PLANGEN_OPTIMIZER)
-					pname = sname = "Table Scan";
-				else if (relstorage == RELSTORAGE_AOROWS)
-					pname = sname = "Append-only Scan";
-				else if (relstorage == RELSTORAGE_AOCOLS)
-					pname = sname = "Append-only Columnar Scan";
-				else
-					pname = sname = "Seq Scan";
-			}
+			pname = sname = "Seq Scan";
 			break;
 		case T_DynamicSeqScan:
-			pname = sname = "Dynamic Table Scan";
+			pname = sname = "Dynamic Seq Scan";
 			break;
 		case T_ExternalScan:
 			pname = sname = "External Scan";
@@ -1314,33 +1291,15 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "Dynamic Bitmap Index Scan";
 			break;
 		case T_BitmapHeapScan:
-			{
-				RangeTblEntry *rte;
-				char		relstorage;
-
-				rte = rt_fetch(((BitmapHeapScan *) plan)->scan.scanrelid, es->rtable);
-
-				relstorage = get_rel_relstorage(rte->relid);
-
-				/*
-				 * For historical reasons, plans generated with ORCA use
-				 * "Table Scan" regardless of what kind of a table it is.
-				 * With the Postgres planner, the text depends on the kind
-				 * of table, even though it's really the same node type that
-				 * handles all of them.
-				 */
-				if (es->pstmt->planGen == PLANGEN_OPTIMIZER)
-					pname = sname = "Bitmap Table Scan";
-				else if (relstorage == RELSTORAGE_AOROWS)
-					pname = sname = "Bitmap Append-Only Row-Oriented Scan";
-				else if (relstorage == RELSTORAGE_AOCOLS)
-					pname = sname = "Bitmap Append-Only Column-Oriented Scan";
-				else
-					pname = sname = "Bitmap Heap Scan";
-			}
+			/*
+			 * We print "Bitmap Heap Scan", even for AO tables. It's a bit
+			 * confusing, but that's what the plan node is called, regardless
+			 * of the table type.
+			 */
+			pname = sname = "Bitmap Heap Scan";
 			break;
 		case T_DynamicBitmapHeapScan:
-			pname = sname = "Dynamic Bitmap Table Scan";
+			pname = sname = "Dynamic Bitmap Heap Scan";
 			break;
 		case T_TidScan:
 			pname = sname = "Tid Scan";

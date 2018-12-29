@@ -736,7 +736,7 @@ explain select count(*) from mpp7638 where a =1;
                ->  Sequence  (cost=0.00..431.00 rows=1 width=4)
                      ->  Partition Selector for mpp7638 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
                            Partitions selected: 9 (out of 9)
-                     ->  Dynamic Table Scan on mpp7638 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=4)
+                     ->  Dynamic Seq Scan on mpp7638 (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=4)
                            Filter: (a = 1)
  Planning time: 101.741 ms
  Optimizer: PQO version 3.6.0
@@ -956,7 +956,7 @@ explain select * from (select * from mpp7620 where key=200) ss where key =200;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..431.00 rows=1 width=10)
-   ->  Table Scan on mpp7620  (cost=0.00..431.00 rows=1 width=10)
+   ->  Seq Scan on mpp7620  (cost=0.00..431.00 rows=1 width=10)
          Filter: key = 200
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
@@ -968,7 +968,7 @@ explain insert into zoompp7620(key) select key from mpp7620 where mpp7620.key=20
  Insert  (cost=0.00..431.03 rows=1 width=4)
    ->  Result  (cost=0.00..431.00 rows=1 width=20)
          ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-               ->  Table Scan on mpp7620  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on mpp7620  (cost=0.00..431.00 rows=1 width=4)
                      Filter: key = 200
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
@@ -978,7 +978,7 @@ explain select key from mpp7620 where mpp7620.key=200;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..431.00 rows=1 width=4)
-   ->  Table Scan on mpp7620  (cost=0.00..431.00 rows=1 width=4)
+   ->  Seq Scan on mpp7620  (cost=0.00..431.00 rows=1 width=4)
          Filter: key = 200
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
@@ -1030,7 +1030,7 @@ explain select * from table_a where a0=3;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..431.00 rows=1 width=16)
-   ->  Table Scan on table_a  (cost=0.00..431.00 rows=1 width=16)
+   ->  Seq Scan on table_a  (cost=0.00..431.00 rows=1 width=16)
          Filter: a0 = 3
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
@@ -1047,9 +1047,9 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a);
                ->  Aggregate  (cost=0.00..431.00 rows=1 width=4)
                      ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                            ->  Aggregate  (cost=0.00..431.00 rows=1 width=4)
-                                 ->  Table Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
+                                 ->  Seq Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Table Scan on table_a table_a_1  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on table_a table_a_1  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
 (13 rows)
@@ -1087,10 +1087,10 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a where a0
                ->  Aggregate  (cost=0.00..431.00 rows=1 width=4)
                      ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                            ->  Aggregate  (cost=0.00..431.00 rows=1 width=4)
-                                 ->  Table Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
+                                 ->  Seq Scan on table_a  (cost=0.00..431.00 rows=1 width=4)
                                        Filter: a0 = 1
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Table Scan on table_a table_a_1  (cost=0.00..431.00 rows=1 width=4)
+               ->  Seq Scan on table_a table_a_1  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer=on
  Optimizer status: PQO version 1.624
 (14 rows)

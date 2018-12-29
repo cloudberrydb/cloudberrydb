@@ -439,25 +439,25 @@ INFO:  (slice 0) Dispatch command to ALL contents: 0 1 2
 INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
 EXPLAIN SELECT a.* FROM MPP_22019_a a INNER JOIN MPP_22019_b b ON a.i = b.i WHERE a.j NOT IN (SELECT j FROM MPP_22019_a a2 where a2.j = b.j) and a.i = 1;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1765376.88 rows=1 width=8)
    ->  Result  (cost=0.00..1765376.88 rows=1 width=8)
          ->  Result  (cost=0.00..1765376.88 rows=1 width=8)
                Filter: (SubPlan 1)
                ->  Hash Join  (cost=0.00..862.00 rows=1 width=12)
                      Hash Cond: mpp_22019_a.i = mpp_22019_b.i
-                     ->  Table Scan on mpp_22019_a  (cost=0.00..431.00 rows=1 width=8)
+                     ->  Seq Scan on mpp_22019_a  (cost=0.00..431.00 rows=1 width=8)
                            Filter: i = 1
                      ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-                           ->  Table Scan on mpp_22019_b  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Seq Scan on mpp_22019_b  (cost=0.00..431.00 rows=1 width=8)
                                  Filter: i = 1
                SubPlan 1  (slice2; segments: 3)
                  ->  Result  (cost=0.00..431.00 rows=1 width=4)
                        Filter: mpp_22019_a_1.j = mpp_22019_b.j
                        ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
                              ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-                                   ->  Table Scan on mpp_22019_a mpp_22019_a_1  (cost=0.00..431.00 rows=1 width=4)
+                                   ->  Seq Scan on mpp_22019_a mpp_22019_a_1  (cost=0.00..431.00 rows=1 width=4)
  Optimizer: PQO version 2.74.0
 (18 rows)
 
