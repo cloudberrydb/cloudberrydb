@@ -1608,8 +1608,7 @@ cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx
 		return CdbVisit_Walk;	/* onward to visit the kids */
 
 	/* No action needed if data is trivially unique. */
-	if (uniquePath->umethod == UNIQUE_PATH_NOOP ||
-		uniquePath->umethod == UNIQUE_PATH_LIMIT1)
+	if (uniquePath->umethod == UNIQUE_PATH_NOOP)
 		return CdbVisit_Walk;	/* onward to visit the kids */
 
 	/* Find set of relids for which subpath must produce row ids. */

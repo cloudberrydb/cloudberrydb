@@ -22,7 +22,6 @@
 #include <math.h>
 
 #include "catalog/pg_exttable.h"
-#include "catalog/pg_type.h"	/* INT8OID */
 #include "access/skey.h"
 #include "access/sysattr.h"
 #include "catalog/pg_class.h"
@@ -1051,26 +1050,6 @@ create_unique_plan(PlannerInfo *root, UniquePath *best_path)
 	/* Return naked subplan if we don't need to do any actual unique-ifying */
 	if (best_path->umethod == UNIQUE_PATH_NOOP)
 		return subplan;
-
-	/* CDB: Result will surely be unique if we produce only its first row. */
-	if (best_path->umethod == UNIQUE_PATH_LIMIT1)
-	{
-		Limit	   *limitplan;
-
-		/* Top off the subplan with a LIMIT 1 node. */
-		limitplan = makeNode(Limit);
-		copy_path_costsize(root, &limitplan->plan, &best_path->path);
-		limitplan->plan.targetlist = subplan->targetlist;
-		limitplan->plan.qual = NIL;
-		limitplan->plan.lefttree = subplan;
-		limitplan->plan.righttree = NULL;
-		limitplan->limitOffset = NULL;
-		limitplan->limitCount = (Node *) makeConst(INT8OID, -1, InvalidOid,
-												   sizeof(int64),
-												   Int64GetDatum(1),
-												   false, true);
-		return (Plan *) limitplan;
-	}
 
 	/*
 	 * As constructed, the subplan has a "flat" tlist containing just the Vars

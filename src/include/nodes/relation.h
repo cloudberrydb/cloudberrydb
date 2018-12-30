@@ -1234,8 +1234,7 @@ typedef enum
 {
 	UNIQUE_PATH_NOOP,			/* input is known unique already */
 	UNIQUE_PATH_HASH,			/* use hashing */
-	UNIQUE_PATH_SORT,			/* use sorting */
-    UNIQUE_PATH_LIMIT1          /* CDB: take at most one row from the subpath */
+	UNIQUE_PATH_SORT			/* use sorting */
 } UniquePathMethod;
 
 typedef struct UniquePath
