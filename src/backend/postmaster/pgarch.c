@@ -49,6 +49,7 @@
 #include "utils/guc.h"
 #include "utils/ps_status.h"
 
+
 /* ----------
  * Timer definitions.
  * ----------
@@ -223,8 +224,6 @@ PgArchiverMain(int argc, char *argv[])
 	IsUnderPostmaster = true;	/* we are a postmaster subprocess now */
 
 	MyProcPid = getpid();		/* reset MyProcPid */
-	
-	MyStartTime = time(NULL);	/* record Start Time for logging */
 
 	MyStartTime = time(NULL);	/* record Start Time for logging */
 
