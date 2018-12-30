@@ -408,8 +408,6 @@ ReadBuffer_common(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 	if (isExtend)
 		blockNum = smgrnblocks(smgr, forkNum);
 
-//	pgstat_count_buffer_read(smgr);
-
 	if (isLocalBuf)
 	{
 		bufHdr = LocalBufferAlloc(smgr, forkNum, blockNum, &found);
@@ -440,7 +438,6 @@ ReadBuffer_common(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 		if (!isExtend)
 		{
 			/* Just need to update stats before we exit */
-//			pgstat_count_buffer_hit(smgr);
 			*hit = true;
 			VacuumPageHit++;
 
