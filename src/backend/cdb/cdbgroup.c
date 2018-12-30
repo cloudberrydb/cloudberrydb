@@ -214,7 +214,6 @@ typedef struct AggPlanInfo
 	CdbPathLocus input_locus;
 	MppGroupPrep group_prep;
 	MppGroupType group_type;
-	CdbPathLocus output_locus;
 	bool		distinctkey_collocate;	/* Whether the input plan collocates
 										 * on the distinct key */
 
@@ -258,7 +257,6 @@ typedef struct MppGroupContext
 	DqaInfo    *dqaArgs;
 	bool		use_hashed_grouping;
 	CdbPathLocus input_locus;
-	CdbPathLocus output_locus;
 
 	/*
 	 * Indicate whether the input plan collocates on the distinct key if any.
@@ -535,7 +533,6 @@ cdb_grouping_planner(PlannerInfo *root,
 	{
 		/* Can use base plan with no motion yielding same locus. */
 		plan_1p.group_prep = MPP_GRP_PREP_NONE;
-		plan_1p.output_locus = plan_1p.input_locus;
 		plan_1p.distinctkey_collocate = true;
 	}
 	else if (has_groups)		/* and not single or replicated */
@@ -544,9 +541,6 @@ cdb_grouping_planner(PlannerInfo *root,
 			cdbpathlocus_collocates_pathkeys(root, plan_1p.input_locus, root->group_pathkeys, false /* exact_match */ ))
 		{
 			plan_1p.group_prep = MPP_GRP_PREP_NONE;
-			plan_1p.output_locus = plan_1p.input_locus; /* may be less
-														 * discriminating that
-														 * group locus */
 			plan_1p.distinctkey_collocate = true;
 		}
 		else
@@ -559,21 +553,14 @@ cdb_grouping_planner(PlannerInfo *root,
 				 * duplicates, but there is no key to hash on.
 				 */
 				plan_1p.group_prep = MPP_GRP_PREP_HASH_GROUPS;
-				CdbPathLocus_MakeGeneral(&plan_1p.output_locus,
-										 CdbPathLocus_NumSegments(plan_1p.input_locus));
 			}
 			else if (gp_hash_safe_grouping(root))
 			{
 				plan_1p.group_prep = MPP_GRP_PREP_HASH_GROUPS;
-				CdbPathLocus_MakeHashed(&plan_1p.output_locus,
-										cdbpathlocus_get_distkeys_for_pathkeys(root->group_pathkeys),
-										CdbPathLocus_NumSegments(plan_1p.input_locus));
 			}
 			else
 			{
 				plan_1p.group_prep = MPP_GRP_PREP_FOCUS_QE;
-				CdbPathLocus_MakeSingleQE(&plan_1p.output_locus,
-										  CdbPathLocus_NumSegments(plan_1p.input_locus));
 			}
 		}
 	}
@@ -581,8 +568,6 @@ cdb_grouping_planner(PlannerInfo *root,
 								 * replicated  */
 	{
 		plan_1p.group_prep = MPP_GRP_PREP_FOCUS_QE;
-		CdbPathLocus_MakeSingleQE(&plan_1p.output_locus,
-								  CdbPathLocus_NumSegments(plan_1p.input_locus));
 	}
 
 	/*
@@ -760,19 +745,10 @@ cdb_grouping_planner(PlannerInfo *root,
 		if (has_groups)
 		{
 			plan_2p.group_type = MPP_GRP_TYPE_GROUPED_2STAGE;
-			if (root->group_pathkeys == NIL)
-				CdbPathLocus_MakeGeneral(&plan_2p.output_locus,
-										 CdbPathLocus_NumSegments(plan_2p.input_locus));
-			else
-				CdbPathLocus_MakeHashed(&plan_2p.output_locus,
-										cdbpathlocus_get_distkeys_for_pathkeys(root->group_pathkeys),
-										CdbPathLocus_NumSegments(plan_2p.input_locus));
 		}
 		else
 		{
 			plan_2p.group_type = MPP_GRP_TYPE_PLAIN_2STAGE;
-			CdbPathLocus_MakeSingleQE(&plan_2p.output_locus,
-									  CdbPathLocus_NumSegments(plan_2p.input_locus));
 		}
 
 		if (consider_agg & AGG_2PHASE_DQA)
@@ -801,7 +777,6 @@ cdb_grouping_planner(PlannerInfo *root,
 			else
 			{
 				plan_2p.group_prep = MPP_GRP_PREP_HASH_DISTINCT;
-				plan_2p.output_locus = plan_2p.input_locus;
 				plan_2p.distinctkey_collocate = true;
 			}
 		}
@@ -815,19 +790,10 @@ cdb_grouping_planner(PlannerInfo *root,
 		if (has_groups)
 		{
 			plan_3p.group_type = MPP_GRP_TYPE_GROUPED_DQA_2STAGE;
-			if (root->group_pathkeys == NIL)
-				CdbPathLocus_MakeGeneral(&plan_3p.output_locus,
-										 CdbPathLocus_NumSegments(plan_3p.input_locus));
-			else
-				CdbPathLocus_MakeHashed(&plan_3p.output_locus,
-										cdbpathlocus_get_distkeys_for_pathkeys(root->group_pathkeys),
-										CdbPathLocus_NumSegments(plan_3p.input_locus));
 		}
 		else
 		{
 			plan_3p.group_type = MPP_GRP_TYPE_PLAIN_DQA_2STAGE;
-			CdbPathLocus_MakeSingleQE(&plan_3p.output_locus,
-									  CdbPathLocus_NumSegments(plan_3p.input_locus));
 		}
 	}
 
@@ -849,7 +815,6 @@ cdb_grouping_planner(PlannerInfo *root,
 	ctx.cheapest_path = group_context->cheapest_path;
 	ctx.subplan = group_context->subplan;
 	ctx.input_locus = plan_1p.input_locus;
-	ctx.output_locus = plan_1p.output_locus;
 	ctx.distinctkey_collocate = plan_1p.distinctkey_collocate;
 	ctx.agg_costs = agg_costs;
 	ctx.tuple_fraction = group_context->tuple_fraction;
@@ -928,11 +893,9 @@ cdb_grouping_planner(PlannerInfo *root,
 	ctx.prep = plan_info->group_prep;
 	ctx.type = plan_info->group_type;
 	ctx.input_locus = plan_info->input_locus;
-	ctx.output_locus = plan_info->output_locus;
 	ctx.distinctkey_collocate = plan_info->distinctkey_collocate;
 	ctx.join_strategy = plan_info->join_strategy;
 	ctx.use_sharing = plan_info->use_sharing;
-
 
 	/* Call appropriate planner. */
 	if (ctx.type == MPP_GRP_TYPE_BASEPLAN)
@@ -1435,7 +1398,7 @@ make_two_stage_agg_plan(PlannerInfo *root,
 										0,	/* rollup_gs_times */
 										result_plan);
 		/* May lose useful locus and sort. Unlikely, but could do better. */
-		mark_plan_strewn(result_plan, ctx->output_locus.numsegments);
+		mark_plan_strewn(result_plan, ctx->input_locus.numsegments);
 		current_pathkeys = NIL;
 	}
 
@@ -5415,7 +5378,6 @@ initAggPlanInfo(AggPlanInfo *info, Path *input_path, Plan *input_plan)
 
 	info->group_type = MPP_GRP_TYPE_BASEPLAN;
 	info->group_prep = MPP_GRP_PREP_NONE;
-	CdbPathLocus_MakeNull(&info->output_locus, __GP_POLICY_EVIL_NUMSEGMENTS);
 	info->distinctkey_collocate = false;
 
 	info->valid = false;
