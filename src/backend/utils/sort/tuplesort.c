@@ -3063,29 +3063,6 @@ markrunend(Tuplesortstate *state, int tapenum)
 }
 
 /*
- * Set up for an external caller of ApplySortFunction.  This function
- * basically just exists to localize knowledge of the encoding of sk_flags
- * used in this module.
- */
-void
-SelectSortFunction(Oid sortOperator,
-                   bool nulls_first,
-                   Oid *sortFunction,
-                   int *sortFlags)
-{
-    bool        reverse;
-
-    if (!get_compare_function_for_ordering_op(sortOperator,
-                                              sortFunction, &reverse))
-        elog(ERROR, "operator %u is not a valid ordering operator",
-             sortOperator);
-
-    *sortFlags = reverse ? SK_BT_DESC : 0;
-    if (nulls_first)
-        *sortFlags |= SK_BT_NULLS_FIRST;
-}
-
-/*
  * Inline-able copy of FunctionCall2Coll() to save some cycles in sorting.
  */
 static inline Datum
@@ -3150,21 +3127,6 @@ inlineApplySortFunction(FmgrInfo *sortFunction, int sk_flags, Oid collation,
 
 	return compare;
 }
-
-/*
- * Non-inline ApplySortFunction() --- this is needed only to conform to
- * C99's brain-dead notions about how to implement inline functions...
- */
-int32
-ApplySortFunction(FmgrInfo *sortFunction, int sortFlags, Oid collation,
-				  Datum datum1, bool isNull1,
-				  Datum datum2, bool isNull2)
-{
-	return inlineApplySortFunction(sortFunction, sortFlags, collation,
-								   datum1, isNull1,
-								   datum2, isNull2);
-}
-
 
 
 /*
