@@ -1442,7 +1442,6 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 	bool		pseudoconstant = false;
 	bool		maybe_equivalence;
 	bool		maybe_outer_join;
-	bool        maybe_local_equijoin;
 	Relids		nullable_relids;
 	RestrictInfo *restrictinfo;
 
@@ -1584,7 +1583,6 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 		nullable_relids = deduced_nullable_relids;
 		/* Don't feed it back for more deductions */
 		maybe_equivalence = false;
-		maybe_local_equijoin = false;
 		maybe_outer_join = false;
 	}
 	else if (bms_overlap(relids, outerjoin_nonnullable))
@@ -1667,7 +1665,6 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 			 * it appeared below that outer join (note that we can only get
 			 * here when the clause references only nullable-side rels).
 			 */
-			maybe_local_equijoin = true;
 			maybe_equivalence = true;
 			if (outerjoin_nonnullable != NULL)
 				below_outer_join = true;
@@ -1678,10 +1675,6 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 		 * set-aside OJ clause, even if it's in an OJ.
 		 */
 		maybe_outer_join = false;
-
-        /* the clause should always be considered a part of the set of
-           local equijoins managed by its closest RHS parent */
-		maybe_local_equijoin = true;
 	}
 
 	/*
