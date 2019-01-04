@@ -143,6 +143,10 @@ namespace gpnaucrates
 			static
 			GPOS_RESULT EresUnittest_CStatisticsBasic();
 
+			// statistics basic tests
+			static
+			GPOS_RESULT EresUnittest_CStatisticsBucketTest();
+
 			// exercise stats derivation during optimization
 			static
 			GPOS_RESULT EresUnittest_CStatisticsSelectDerivation();

@@ -516,7 +516,7 @@ CBucket::CompareLowerBounds
 	CPoint *point2 = bucket2->GetLowerBound();
 
 	BOOL is_closed_point1 = bucket1->IsLowerClosed();
-	BOOL is_closed_point2 = bucket1->IsLowerClosed();
+	BOOL is_closed_point2 = bucket2->IsLowerClosed();
 
 	if (point1->Equals(point2))
 	{
@@ -604,7 +604,7 @@ CBucket::CompareUpperBounds
 	CPoint *point2 = bucket2->GetUpperBound();
 
 	BOOL is_closed_point1 = bucket1->IsUpperClosed();
-	BOOL is_closed_point2 = bucket1->IsUpperClosed();
+	BOOL is_closed_point2 = bucket2->IsUpperClosed();
 
 	if (point1->Equals(point2))
 	{

@@ -349,6 +349,33 @@ CStatisticsTest::PtabdescTwoColumnSource
 	return ptabdesc;
 }
 
+
+// bucket statistics test
+GPOS_RESULT
+CStatisticsTest::EresUnittest_CStatisticsBucketTest()
+{
+	// create memory pool
+	CAutoMemoryPool amp;
+	IMemoryPool *mp = amp.Pmp();
+
+	CDouble frequency(0.1);
+	CDouble distinct(10.0);
+	CBucket *bucket1 = CCardinalityTestUtils::PbucketInteger(mp, 1, 5, true, true, frequency, distinct);
+	CBucket *bucket2 = CCardinalityTestUtils::PbucketInteger(mp, 1, 5, false, false, frequency, distinct);
+
+	GPOS_RESULT eres = GPOS_OK;
+
+	if (0 == CBucket::CompareLowerBounds(bucket1, bucket2) || (0 == CBucket::CompareUpperBounds(bucket1, bucket2)))
+	{
+		eres = GPOS_FAILED;
+	}
+
+	delete bucket1;
+	delete bucket2;
+
+	return eres;
+}
+
 // basic statistics test
 GPOS_RESULT
 CStatisticsTest::EresUnittest_CStatisticsBasic()
