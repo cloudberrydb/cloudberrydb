@@ -225,6 +225,11 @@ namespace gpopt
 			// accessor for child operator
 			COperator *Pop(ULONG child_index) const;
 
+			// accessor for grandchild operator
+			COperator *PopGrandchild(ULONG child_index,
+			                         ULONG grandchild_index,
+			                         CCostContext **grandchildContext) const;
+
 			// accessor for expression
 			CExpression *Pexpr() const
 			{

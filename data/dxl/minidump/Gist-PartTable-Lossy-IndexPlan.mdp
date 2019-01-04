@@ -319,7 +319,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
     <dxl:Plan Id="0" SpaceSize="2">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="6.000212" Rows="1.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="6.000208" Rows="1.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="id">
@@ -330,7 +330,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
         <dxl:SortingColumnList/>
         <dxl:Result>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="6.000197" Rows="1.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="6.000193" Rows="1.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="id">
@@ -341,7 +341,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
           <dxl:OneTimeFilter/>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="6.000197" Rows="1.000000" Width="4"/>
+              <dxl:Cost StartupCost="0" TotalCost="6.000193" Rows="1.000000" Width="4"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="id">
@@ -374,7 +374,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
             </dxl:PartitionSelector>
             <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="6.000197" Rows="1.000000" Width="4"/>
+                <dxl:Cost StartupCost="0" TotalCost="6.000193" Rows="1.000000" Width="4"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="id">
@@ -387,13 +387,13 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=1 width=4)
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.491.1.0">
                   <dxl:Ident ColId="2" ColName="p" TypeMdid="0.604.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.604.1.0" IsNull="false" IsByValue="false" Value="AAAAWAMAAAAAAAAAAIBTQAAAAAAAAFNAAAAAAAAA8D8AAAAAAAAAQAAAAAAA&#10;APA/AAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAACAU0AAAAAAAABTQA=="/>
+                  <dxl:ConstValue TypeMdid="0.604.1.0" IsNull="false" IsByValue="false" Value="AAAAWAMAAAAAAAAAAIBTQAAAAAAAAFNAAAAAAAAA8D8AAAAAAAAAQAAAAAAA&#xA;APA/AAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAACAU0AAAAAAAABTQA=="/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:IndexCondList>
                 <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.491.1.0">
                   <dxl:Ident ColId="2" ColName="p" TypeMdid="0.604.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.604.1.0" IsNull="false" IsByValue="false" Value="AAAAWAMAAAAAAAAAAIBTQAAAAAAAAFNAAAAAAAAA8D8AAAAAAAAAQAAAAAAA&#10;APA/AAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAACAU0AAAAAAAABTQA=="/>
+                  <dxl:ConstValue TypeMdid="0.604.1.0" IsNull="false" IsByValue="false" Value="AAAAWAMAAAAAAAAAAIBTQAAAAAAAAFNAAAAAAAAA8D8AAAAAAAAAQAAAAAAA&#xA;APA/AAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAACAU0AAAAAAAABTQA=="/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
               <dxl:IndexDescriptor Mdid="0.574046.1.0" IndexName="partpolyindex_1_prt_1"/>

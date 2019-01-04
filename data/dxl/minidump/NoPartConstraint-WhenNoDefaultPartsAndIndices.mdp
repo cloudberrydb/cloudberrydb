@@ -349,7 +349,7 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.000943" Rows="10.000000" Width="16"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.000889" Rows="10.000000" Width="16"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="id">
@@ -372,7 +372,7 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
         <dxl:SortingColumnList/>
         <dxl:Sequence>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.000347" Rows="10.000000" Width="16"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.000293" Rows="10.000000" Width="16"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="id">
@@ -442,7 +442,7 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
           </dxl:PartitionSelector>
           <dxl:DynamicTableScan PartIndexId="1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000347" Rows="10.000000" Width="16"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000293" Rows="10.000000" Width="16"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="id">

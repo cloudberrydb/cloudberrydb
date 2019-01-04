@@ -386,7 +386,7 @@ explain select * from TestPartitionFilterCasting where p2 = '2015-01-01' and p3 
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.000115" Rows="1.000000" Width="18"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.000109" Rows="1.000000" Width="18"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="d1">
@@ -406,7 +406,7 @@ explain select * from TestPartitionFilterCasting where p2 = '2015-01-01' and p3 
         <dxl:SortingColumnList/>
         <dxl:Sequence>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.000048" Rows="1.000000" Width="18"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.000042" Rows="1.000000" Width="18"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="d1">
@@ -458,7 +458,7 @@ explain select * from TestPartitionFilterCasting where p2 = '2015-01-01' and p3 
           </dxl:PartitionSelector>
           <dxl:DynamicTableScan PartIndexId="1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000048" Rows="1.000000" Width="18"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000042" Rows="1.000000" Width="18"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="d1">

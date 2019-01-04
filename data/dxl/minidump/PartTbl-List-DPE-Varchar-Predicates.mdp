@@ -356,7 +356,7 @@ select * from pt where gender is null;
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1724.000397" Rows="1.000000" Width="12"/>
+          <dxl:Cost StartupCost="0" TotalCost="1724.000349" Rows="1.000000" Width="12"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="id">
@@ -370,7 +370,7 @@ select * from pt where gender is null;
         <dxl:SortingColumnList/>
         <dxl:Append IsTarget="false" IsZapped="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1724.000352" Rows="1.000000" Width="12"/>
+            <dxl:Cost StartupCost="0" TotalCost="1724.000304" Rows="1.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="id">
@@ -383,7 +383,7 @@ select * from pt where gender is null;
           <dxl:Filter/>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="id">
@@ -421,7 +421,7 @@ select * from pt where gender is null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="id">
@@ -456,7 +456,7 @@ select * from pt where gender is null;
           </dxl:Sequence>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="9" Alias="id">
@@ -502,7 +502,7 @@ select * from pt where gender is null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="2">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="9" Alias="id">
@@ -537,7 +537,7 @@ select * from pt where gender is null;
           </dxl:Sequence>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="18" Alias="id">
@@ -610,7 +610,7 @@ select * from pt where gender is null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="3">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="18" Alias="id">
@@ -650,7 +650,7 @@ select * from pt where gender is null;
           </dxl:Sequence>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="27" Alias="id">
@@ -688,7 +688,7 @@ select * from pt where gender is null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="4">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000087" Rows="1.000000" Width="12"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000075" Rows="1.000000" Width="12"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="27" Alias="id">

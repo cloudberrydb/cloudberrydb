@@ -1497,6 +1497,64 @@ CExpressionHandle::Pop
 	return NULL;
 }
 
+COperator *
+CExpressionHandle::PopGrandchild
+	(
+	 ULONG child_index,
+	 ULONG grandchild_index,
+	 CCostContext **grandchildContext
+	)
+	const
+{
+	GPOS_ASSERT(child_index < Arity());
+
+	if (grandchildContext)
+	{
+		*grandchildContext = NULL;
+	}
+
+	if (NULL != m_pexpr)
+	{
+		GPOS_ASSERT(NULL == m_pcc);
+
+		CExpression *childExpr = (*m_pexpr)[child_index];
+
+		if (NULL != childExpr)
+		{
+			return (*childExpr)[grandchild_index]->Pop();
+		}
+
+		return NULL;
+	}
+
+	if (NULL != m_pcc)
+	{
+		COptimizationContext *pocChild = (*m_pcc->Pdrgpoc())[child_index];
+		GPOS_ASSERT(NULL != pocChild);
+
+		CCostContext *pccChild = pocChild->PccBest();
+		GPOS_ASSERT(NULL != pccChild);
+
+		COptimizationContext *pocGrandchild =(*pccChild->Pdrgpoc())[grandchild_index];
+
+		if (NULL != pocGrandchild)
+		{
+			CCostContext *pccgrandchild = pocGrandchild->PccBest();
+
+			if (grandchildContext)
+			{
+				*grandchildContext = pccgrandchild;
+			}
+
+			return pccgrandchild->Pgexpr()->Pop();
+		}
+
+	}
+
+	return NULL;
+}
+
+
 
 //---------------------------------------------------------------------------
 //	@function:

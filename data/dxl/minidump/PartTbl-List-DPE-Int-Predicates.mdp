@@ -313,7 +313,7 @@ select * from foo where b is not null;
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1724.000339" Rows="1.000000" Width="8"/>
+          <dxl:Cost StartupCost="0" TotalCost="1724.000307" Rows="1.000000" Width="8"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -327,7 +327,7 @@ select * from foo where b is not null;
         <dxl:SortingColumnList/>
         <dxl:Append IsTarget="false" IsZapped="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1724.000309" Rows="1.000000" Width="8"/>
+            <dxl:Cost StartupCost="0" TotalCost="1724.000277" Rows="1.000000" Width="8"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -340,7 +340,7 @@ select * from foo where b is not null;
           <dxl:Filter/>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="a">
@@ -376,7 +376,7 @@ select * from foo where b is not null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="a">
@@ -409,7 +409,7 @@ select * from foo where b is not null;
           </dxl:Sequence>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="9" Alias="a">
@@ -423,8 +423,7 @@ select * from foo where b is not null;
               <dxl:Properties>
                 <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
               </dxl:Properties>
-              <dxl:ProjList>
-              </dxl:ProjList>
+              <dxl:ProjList/>
               <dxl:PartEqFilters>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:PartEqFilters>
@@ -452,7 +451,7 @@ select * from foo where b is not null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="2">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="9" Alias="a">
@@ -485,7 +484,7 @@ select * from foo where b is not null;
           </dxl:Sequence>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="18" Alias="a">
@@ -499,8 +498,7 @@ select * from foo where b is not null;
               <dxl:Properties>
                 <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
               </dxl:Properties>
-              <dxl:ProjList>
-              </dxl:ProjList>
+              <dxl:ProjList/>
               <dxl:PartEqFilters>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:PartEqFilters>
@@ -543,7 +541,7 @@ select * from foo where b is not null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="3">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="18" Alias="a">
@@ -579,7 +577,7 @@ select * from foo where b is not null;
           </dxl:Sequence>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="27" Alias="a">
@@ -593,8 +591,7 @@ select * from foo where b is not null;
               <dxl:Properties>
                 <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
               </dxl:Properties>
-              <dxl:ProjList>
-              </dxl:ProjList>
+              <dxl:ProjList/>
               <dxl:PartEqFilters>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:PartEqFilters>
@@ -620,7 +617,7 @@ select * from foo where b is not null;
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="4">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000077" Rows="1.000000" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000069" Rows="1.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="27" Alias="a">

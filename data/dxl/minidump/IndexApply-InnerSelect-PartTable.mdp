@@ -547,7 +547,7 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
     <dxl:Plan Id="0" SpaceSize="2">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="437.001266" Rows="1.000000" Width="58"/>
+          <dxl:Cost StartupCost="0" TotalCost="437.001192" Rows="1.000000" Width="58"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="c1">
@@ -595,9 +595,9 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
+        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true" OuterRefAsParam="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="437.001050" Rows="1.000000" Width="58"/>
+            <dxl:Cost StartupCost="0" TotalCost="437.000976" Rows="1.000000" Width="58"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="c1">
@@ -726,7 +726,7 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           </dxl:BroadcastMotion>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="6.000494" Rows="1.000000" Width="33"/>
+              <dxl:Cost StartupCost="0" TotalCost="6.000420" Rows="1.000000" Width="33"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="14" Alias="c1">
@@ -783,7 +783,7 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
             </dxl:PartitionSelector>
             <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="6.000494" Rows="1.000000" Width="33"/>
+                <dxl:Cost StartupCost="0" TotalCost="6.000420" Rows="1.000000" Width="33"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="14" Alias="c1">

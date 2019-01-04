@@ -710,7 +710,7 @@
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.000371" Rows="1.000000" Width="41"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.000292" Rows="1.000000" Width="41"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="c1">
@@ -739,7 +739,7 @@
         <dxl:SortingColumnList/>
         <dxl:Sequence>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.000187" Rows="1.000000" Width="41"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.000108" Rows="1.000000" Width="41"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="c1">
@@ -807,7 +807,7 @@
           </dxl:PartitionSelector>
           <dxl:DynamicTableScan PartIndexId="1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000187" Rows="1.000000" Width="41"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000108" Rows="1.000000" Width="41"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="c1">

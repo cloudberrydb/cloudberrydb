@@ -822,7 +822,7 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
     <dxl:Plan Id="0" SpaceSize="13">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="862.284508" Rows="1.000000" Width="12"/>
+          <dxl:Cost StartupCost="0" TotalCost="862.284504" Rows="1.000000" Width="12"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -839,7 +839,7 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
         <dxl:SortingColumnList/>
         <dxl:HashJoin JoinType="Inner">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="862.284454" Rows="1.000000" Width="12"/>
+            <dxl:Cost StartupCost="0" TotalCost="862.284450" Rows="1.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -893,7 +893,7 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
           </dxl:TableScan>
           <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000054" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000050" Rows="1.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="a">
@@ -912,7 +912,7 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
             </dxl:HashExprList>
             <dxl:Sequence>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000038" Rows="1.000000" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000034" Rows="1.000000" Width="8"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="a">
@@ -1014,7 +1014,7 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
               </dxl:PartitionSelector>
               <dxl:DynamicTableScan PartIndexId="1">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.000038" Rows="1.000000" Width="8"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.000034" Rows="1.000000" Width="8"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="a">

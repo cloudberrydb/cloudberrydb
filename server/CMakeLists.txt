@@ -144,7 +144,8 @@ NoPartConstraint-WhenNoDefaultPartsAndIndices
 PartConstraint-WhenIndicesAndNoDefaultParts PartConstraint-WithOnlyDefaultPartInfo
 PartConstraint-WhenDefaultPartsAndIndices CorrelatedNLJ-PartSelector-Subplan
 DonotPushPartConstThruLimit PartTbl-DPE-Correlated-NLOuter Select-Over-PartTbl
-PartTbl-DPE PartTbl-DPE-WindowFunction PartTbl-DPE-GroupBy PartTbl-DPE-Limit;
+PartTbl-DPE PartTbl-DPE-WindowFunction PartTbl-DPE-GroupBy PartTbl-DPE-Limit
+PartSelectorOnJoinSide PartSelectorOnJoinSide2;
 
 CPartTbl2Test:
 DPE-SemiJoin DPE-IN DPE-NOT-IN HJN-DPE-Bitmap-Outer-Child
