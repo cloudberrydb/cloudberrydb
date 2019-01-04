@@ -326,7 +326,7 @@
     <body>
       <p>The Greenplum Database Global Deadlock Detector backend
         process collects lock information on all segments and uses a directed algorithm to detect the
-        existence of local and global deadlocks. This algorithm allows Greenplum Dabase to relax
+        existence of local and global deadlocks. This algorithm allows Greenplum Database to relax
         concurrent update and delete restrictions on heap tables. (Greenplum Database still employs table-level
        locking on AO/CO tables, restricting concurrent <codeph>UPDATE</codeph>,
        <codeph>DELETE</codeph>, and <codeph>SELECT ... FOR UPDATE</codeph> operations.)</p>
