@@ -418,17 +418,13 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	 */
 	estate->es_sharenode = (List **) palloc0(sizeof(List *));
 
-	/*
-	 * Initialize the motion layer for this query.
-	 *
-	 * NOTE: need to be in estate->es_query_cxt before the call.
-	 */
-	initMotionLayerStructs((MotionLayerState **)&estate->motionlayer_context);
-
 	/* Reset workfile disk full flag */
 	WorkfileDiskspace_SetFull(false /* isFull */);
 	/* Initialize per-query resource (diskspace) tracking */
 	WorkfileQueryspace_InitEntry(gp_session_id, gp_command_count);
+
+	if (queryDesc->plannedstmt->nMotionNodes > 0)
+		estate->motionlayer_context = createMotionLayerState(queryDesc->plannedstmt->nMotionNodes);
 
 	/*
 	 * Handling of the Slice table depends on context.
@@ -538,15 +534,11 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		 * *after* we've set up the interconnect */
 		if (queryDesc->plannedstmt->nMotionNodes > 0)
 		{
-			int			i;
-
 			PG_TRY();
 			{
-				for (i=1; i <= queryDesc->plannedstmt->nMotionNodes; i++)
-				{
-					InitMotionLayerNode(estate->motionlayer_context, i);
-				}
-
+				/*
+				 * Initialize the motion layer for this query.
+				 */
 				Assert(!estate->interconnect_context);
 				SetupInterconnect(estate);
 				UpdateMotionExpectedReceivers(estate->motionlayer_context, estate->es_sliceTable);

@@ -119,6 +119,8 @@ reconstructTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry, TupleRem
 void
 RemoveMotionLayer(MotionLayerState *mlStates)
 {
+	if (!mlStates)
+		return;
 
 	if (Gp_role == GP_ROLE_UTILITY)
 		return;
@@ -140,16 +142,6 @@ RemoveMotionLayer(MotionLayerState *mlStates)
 #endif
 
 	/*
-	 * free our some resources to be safe. The rest will get freed with
-	 * MemoryContextDelete()
-	 */
-	if (mlStates->mnEntries != NULL)
-		pfree(mlStates->mnEntries);
-
-	mlStates->mnEntries = NULL;
-	mlStates->mneCount = 0;
-
-	/*
 	 * Free all memory used by the Motion Layer in the processing of this
 	 * query.
 	 */
@@ -158,15 +150,16 @@ RemoveMotionLayer(MotionLayerState *mlStates)
 }
 
 
-void
-initMotionLayerStructs(MotionLayerState **mlStates)
+MotionLayerState *
+createMotionLayerState(int maxMotNodeID)
 {
 	MemoryContext oldCtxt;
 	MemoryContext ml_mctx;
 	uint8	   *pData;
+	MotionLayerState *mlState;
 
 	if (Gp_role == GP_ROLE_UTILITY)
-		return;
+		return NULL;
 
 	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
 		Gp_max_tuple_chunk_size = Gp_max_packet_size - sizeof(struct icpkthdr) - TUPLE_CHUNK_HEADER_SIZE;
@@ -207,18 +200,30 @@ initMotionLayerStructs(MotionLayerState **mlStates)
 							  ALLOCSET_DEFAULT_MAXSIZE);	/* use a setting bigger
 															 * than "small" */
 
-
 	/*
 	 * Switch to the Motion Layer memory context, so that we can clean things
 	 * up easily.
 	 */
 	oldCtxt = MemoryContextSwitchTo(ml_mctx);
 
-	Assert(*mlStates == NULL);
-	*mlStates = palloc0(sizeof(MotionLayerState));
+	mlState = palloc0(sizeof(MotionLayerState));
 
-	(*mlStates)->mnEntries = palloc0(MNE_INITIAL_COUNT * sizeof(MotionNodeEntry));
-	(*mlStates)->mneCount = MNE_INITIAL_COUNT;
+	mlState->mnEntries = palloc0(maxMotNodeID * sizeof(MotionNodeEntry));
+	mlState->mneCount = maxMotNodeID;
+
+	for (int motNodeID = 1; motNodeID <= maxMotNodeID; motNodeID++)
+	{
+		MotionNodeEntry *pEntry = &mlState->mnEntries[motNodeID - 1];
+
+		pEntry->motion_node_id = motNodeID;
+		pEntry->valid = true;
+
+		/*
+		 * we'll just set this to 0.  later, ml_ipc will call
+		 * setExpectedReceivers() to set this if we are a "Receiving" motion node.
+		 */
+		pEntry->num_senders = 0;
+	}
 
 	/* Allocation is done.	Go back to caller memory-context. */
 	MemoryContextSwitchTo(oldCtxt);
@@ -226,75 +231,9 @@ initMotionLayerStructs(MotionLayerState **mlStates)
 	/*
 	 * Keep our motion layer memory context in our newly created motion layer.
 	 */
-	(*mlStates)->motion_layer_mctx = ml_mctx;
-}
+	mlState->motion_layer_mctx = ml_mctx;
 
-static void
-AddMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID)
-{
-	/* increase size of our table */
-	MotionNodeEntry *newTable;
-
-	newTable = repalloc(mlStates->mnEntries, motNodeID * sizeof(MotionNodeEntry));
-	mlStates->mnEntries = newTable;
-	/* zero-out the new piece at the end */
-	memset(&mlStates->mnEntries[mlStates->mneCount],
-		   0,
-		   (motNodeID - mlStates->mneCount) * sizeof(MotionNodeEntry));
-	mlStates->mneCount = motNodeID;
-}
-
-/*
- * Initialize a single motion node.  This is called by the executor
- * when a to set up a placeholder which will be filled in during plan
- * initialization.
- *
- * This function is called from:  executorStart()
- */
-void
-InitMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID)
-{
-	MemoryContext oldCtxt;
-	MotionNodeEntry *pEntry;
-
-	/*
-	 * Switch to the Motion Layer's memory-context, so that the motion node
-	 * can be reset later.
-	 */
-	oldCtxt = MemoryContextSwitchTo(mlStates->motion_layer_mctx);
-
-	if (motNodeID > mlStates->mneCount)
-	{
-		AddMotionLayerNode(mlStates, motNodeID);
-	}
-	do
-	{
-		pEntry = &mlStates->mnEntries[motNodeID - 1];
-
-		if (pEntry->valid)
-		{
-			/*
-			 * An entry for this motion node ID already existed.  Initializing
-			 * twice for a given motion node is not allowed.  Having two nodes
-			 * with the same ID is also not allowed.  So, this is pretty
-			 * likely a serious problem.
-			 */
-			EndMotionLayerNode(mlStates, motNodeID, false);
-		}
-	} while (pEntry->valid);
-
-	pEntry->motion_node_id = motNodeID;
-
-	pEntry->valid = true;
-
-	/*
-	 * we'll just set this to 0.  later, ml_ipc will call
-	 * setExpectedReceivers() to set this if we are a "Receiving" motion node.
-	 */
-	pEntry->num_senders = 0;
-
-	/* All done!  Go back to caller memory-context. */
-	MemoryContextSwitchTo(oldCtxt);
+	return mlState;
 }
 
 /*
@@ -309,6 +248,9 @@ UpdateMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool preserve
 	MemoryContext oldCtxt;
 	MotionNodeEntry *pEntry;
 
+	if (motNodeID < 1 || motNodeID > mlStates->mneCount)
+		elog(ERROR, "invalid motion node ID %d", motNodeID);
+
 	AssertArg(tupDesc != NULL);
 
 	/*
@@ -317,26 +259,11 @@ UpdateMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool preserve
 	 */
 	oldCtxt = MemoryContextSwitchTo(mlStates->motion_layer_mctx);
 
-	if (motNodeID > mlStates->mneCount)
-	{
-		AddMotionLayerNode(mlStates, motNodeID);
-	}
-
 	pEntry = &mlStates->mnEntries[motNodeID - 1];
 
-	if (!pEntry->valid)
-	{
-		/*
-		 * we'll just set this to 0.  later, ml_ipc will call
-		 * setExpectedReceivers() to set this if we are a "Receiving" motion
-		 * node.
-		 */
-		pEntry->num_senders = 0;
-	}
+	Assert(pEntry->valid);
 
 	pEntry->motion_node_id = motNodeID;
-
-	pEntry->valid = true;
 
 	/* Finish up initialization of the motion node entry. */
 	pEntry->preserve_order = preserveOrder;

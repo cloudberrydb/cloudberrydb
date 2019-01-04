@@ -48,10 +48,7 @@ extern int Gp_max_tuple_chunk_size;
 /* API FUNCTION CALLS */
 
 /* Initialization of motion layer for this query */
-extern void initMotionLayerStructs(MotionLayerState **ml_states);
-
-/* Initialization of each motion node in execution plan. */
-extern void InitMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID);
+extern MotionLayerState *createMotionLayerState(int maxMotNodeID);
 
 /* Initialization of each motion node in execution plan. */
 extern void UpdateMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool preserveOrder,

@@ -477,15 +477,12 @@ typedef struct MotionLayerState
 	/*
 	 * MOTION NODE STATE - Initialized and used on per-statement basis.
 	 */
-
-#define MNE_INITIAL_COUNT (10)
 	int			mneCount;
 	MotionNodeEntry *mnEntries;
 
 	/*
 	 * GLOBAL MOTION-LAYER STATISTICS
 	 */
-
 	uint32		stat_total_chunks_sent; /* Tuple-chunks sent. */
 	uint32		stat_total_bytes_sent;	/* Bytes sent, including headers. */
 	uint32		stat_tuple_bytes_sent;	/* Bytes of pure tuple-data sent. */
