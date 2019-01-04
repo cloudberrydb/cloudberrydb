@@ -306,7 +306,6 @@ extern bool debug_basebackup;
 /* Latch mechanism debug GUCs */
 extern bool debug_latch;
 
-extern bool gp_upgrade_mode;
 extern bool gp_maintenance_mode;
 extern bool gp_maintenance_conn;
 extern bool allow_segment_DML;
