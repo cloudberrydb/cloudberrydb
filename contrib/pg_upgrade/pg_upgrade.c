@@ -995,10 +995,14 @@ set_frozenxids(bool minmxid_only)
 			 *
 			 * The logic here should keep consistent with function
 			 * should_have_valid_relfrozenxid().
+			 *
+			 * Notes: if we ever backport this to Greenplum 5X, remove 'm' first
+			 * and then replace 'M' with 'm', because 'm' used to be RELKIND
+			 * visimap in 4.3/5X, not matview
 			 */
 									  "WHERE	(relkind IN ('r', 'm', 't') "
 									  "AND NOT relfrozenxid = 0) "
-									  "OR (relkind IN ('t', 'o', 'b', 'm'))",
+									  "OR (relkind IN ('t', 'o', 'b', 'M'))",
 									  old_cluster.controldata.chkpnt_nxtxid));
 
 		/* set pg_class.relminmxid */

@@ -172,10 +172,6 @@ DESCR("");
 #define		  RELKIND_AOSEGMENTS	  'o'		/* AO segment files and eof's */
 #define		  RELKIND_AOBLOCKDIR	  'b'		/* AO block directory */
 #define		  RELKIND_AOVISIMAP		  'M'		/* AO visibility map */
-// GPDB_93_MERGE_FIXME: RELKIND_AOVISIMAP used to be 'm', but that means MATVIEW now.
-// Find all the places where it might be referred to using just 'm', without using this
-// macro. E.g. pg_dump and psql. They might need to also work differently depending
-// on version.
 
 #define		  RELPERSISTENCE_PERMANENT	'p'		/* regular table */
 #define		  RELPERSISTENCE_UNLOGGED	'u'		/* unlogged permanent table */

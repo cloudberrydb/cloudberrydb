@@ -532,7 +532,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 			 "	   ON c.relnamespace = n.oid "
 			 "LEFT OUTER JOIN pg_catalog.pg_index i "
 			 "	   ON c.oid = i.indexrelid "
-			 "WHERE relkind IN ('r', 'o', 'm', 'b', 'i'%s) AND "
+			 "WHERE relkind IN ('r', 'o', 'b', 'i'%s%s) AND "
 
 	/*
 	 * pg_dump only dumps valid indexes;  testing indisready is necessary in
@@ -551,6 +551,9 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 			 "	  c.oid >= %u) "
 			 "  OR (n.nspname = 'pg_catalog' AND "
 	"    relname IN ('pg_largeobject', 'pg_largeobject_loid_pn_index'%s) ));",
+	/* Greenplum 4.3/5X use 'm' as aovisimap which is now matview in 6X and above. */
+			 (GET_MAJOR_VERSION(old_cluster.major_version) <= 803) ?
+			 ", 'm'" : ", 'M'",
 	/* see the comment at the top of old_8_3_create_sequence_script() */
 			 (GET_MAJOR_VERSION(old_cluster.major_version) <= 803) ?
 			 "" : ", 'S'",
