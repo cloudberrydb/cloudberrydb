@@ -50,7 +50,7 @@ typedef struct FormatterData
 	/* formatting */
 	StringInfoData	fmt_databuf;
 	bool			fmt_saw_eof;
-	FmgrInfo   	   *fmt_conv_funcs; /* in_fuctions (RET) or out_functions (WET) */
+	FmgrInfo   	   *fmt_conv_funcs; /* in_functions (RET) or out_functions (WET) */
 	Oid            *fmt_typioparams;
 	MemoryContext	fmt_perrow_ctx;
 	void		   *fmt_user_ctx;

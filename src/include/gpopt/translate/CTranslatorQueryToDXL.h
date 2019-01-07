@@ -209,7 +209,7 @@ namespace gpdxl
 			// update window spec positions of LEAD/LAG functions
 			void UpdateLeadLagWinSpecPos(CDXLNode *project_list_dxlnode, CDXLWindowSpecArray *window_specs_dxlnode) const;
 
-			// manufucture window frame for lead/lag functions
+			// manufacture window frame for lead/lag functions
 			CDXLWindowFrame *CreateWindowFramForLeadLag(BOOL is_lead_func, CDXLNode *dxl_offset) const;
 
 			// translate the child of a set operation

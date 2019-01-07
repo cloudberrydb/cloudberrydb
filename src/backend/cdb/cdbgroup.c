@@ -4363,7 +4363,7 @@ finalize_split_expr_mutator(Node *node, MppGroupContext *ctx)
 
 /* Function lookup_agg_transtype
  *
- * Return the transition type Oid of the given aggregate fuction or throw
+ * Return the transition type Oid of the given aggregate function or throw
  * an error, if none.
  */
 static Oid
