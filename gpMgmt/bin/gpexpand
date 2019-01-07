@@ -443,10 +443,11 @@ class GpExpandStatus():
                         dstHost=self._master_mirror.getSegmentHostName())
             cpCmd.run(validateAfter=True)
 
-    def set_status(self, status, status_info=None):
+    def set_status(self, status, status_info=None, force=False):
         """Sets the current status.  gpexpand status must be set in
            proper order.  Any out of order status result in an
-           InvalidStatusError exception"""
+           InvalidStatusError exception. But if force is True, setting
+           status out of order is allowded"""
         self.logger.debug("Transitioning from %s to %s" % (self._status[-1], status))
 
         if not self._fp:
@@ -454,8 +455,10 @@ class GpExpandStatus():
         if not self._status_values.has_key(status):
             raise InvalidStatusError('%s is an invalid gpexpand status' % status)
         # Only allow state transitions forward or backward 1
+        # If force is True, allow write any status
         if self._status and \
-                        self._status_values[status] != self._status_values[self._status[-1]] + 1:
+                        self._status_values[status] != self._status_values[self._status[-1]] + 1 and \
+                        not force:
             raise InvalidStatusError('Invalid status transition from %s to %s' % (self._status[-1], status))
         if self._master_mirror:
             self._fp_standby.write('%s:%s\n' % (status, status_info))
@@ -533,9 +536,21 @@ class GpExpandStatus():
 
     def can_rollback(self, status):
         """Return if it can rollback under current status"""
-        if int(self._status_values[status]) > int(self._status_values['UPDATE_CATALOG_DONE']):
+        if int(self._status_values[status]) >= int(self._status_values['UPDATE_CATALOG_DONE']):
             return False
         return True
+
+    def rewind(self, status, status_info=None):
+        """
+        Rewind to a particular status.
+        """
+        self.logger.debug("Rewind the status to %s" % status)
+
+        if not self._fp:
+            self._fp = open(self._status_filename, 'a+')
+        if self._master_mirror and not self._fp_standby:
+            self._fp_standby = open(self._status_standby_filename, 'a+')
+        self.set_status(status, status_info, True)
 
 
 # -------------------------------------------------------------------------
@@ -1344,6 +1359,8 @@ class gpexpand:
             dbconn.execSQL(self.conn, progress_view_simple_sql)
 
         self.conn.commit()
+
+        inject_fault('gpexpand retry after releaseing catalog lock fault injection')
 
         self.statusLogger.set_status('SETUP_EXPANSION_SCHEMA_DONE')
 
@@ -2277,6 +2294,36 @@ def main(options, args, parser):
             _gp_expand.cleanup_new_segments()
             _gp_expand.update_catalog()
             _gp_expand.unlock_catalog()
+            _gp_expand.setup_schema()
+            _gp_expand.prepare_schema()
+            _gp_expand.sync_new_mirrors()
+            logger.info('************************************************')
+            logger.info('Initialization of the system expansion complete.')
+            logger.info('To begin table expansion onto the new segments')
+            logger.info('rerun gpexpand')
+            logger.info('************************************************')
+        elif gpexpand_file_status is not None and not _gp_expand.statusLogger.can_rollback(gpexpand_file_status):
+            """
+            gpexpand cannot rollback if new segments are online and catalog lock has been released in phase1
+            So if gpexpand fails after releasing catalog lock in phase1, it must retry the failing work
+            """
+            logger.warn('The last gpexpand setup did not complete successfully.')
+            logger.warn('But you can not rollback to the original state, for new segments have been online.')
+            logger.warn('So retry the failing work again in gpexpand setup.')
+
+            """Clean the schema first"""
+            conn = dbconn.connect(_gp_expand.dburl, encoding='UTF8')
+            dbconn.execSQL(conn, drop_schema_sql)
+            conn.commit()
+            conn.close()
+
+            """
+            Reset status to UPDATA_CATALOG_DONE
+            So following work can continue
+            """
+            _gp_expand.statusLogger.rewind('UPDATE_CATALOG_DONE', 'Reset status forcedly to retry the following work')
+
+            """Redo the following work"""
             _gp_expand.setup_schema()
             _gp_expand.prepare_schema()
             _gp_expand.sync_new_mirrors()
