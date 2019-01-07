@@ -207,6 +207,9 @@ main(int argc, char **argv)
 			case PQPING_NO_ATTEMPT:
 				printf(_("no attempt\n"));
 				break;
+			case PQPING_MIRROR_READY:
+				printf(_("mirror ready\n"));
+				break;
 			default:
 				printf(_("unknown\n"));
 		}

@@ -122,7 +122,15 @@ typedef enum
 	PQPING_REJECT,				/* server is alive but rejecting connections */
 	PQPING_NO_RESPONSE,			/* could not establish connection */
 	PQPING_NO_ATTEMPT,			/* connection not attempted (bad params) */
-	PQPING_MIRROR_READY         /* mirror completed startup sequence */
+
+	/*
+	 * GPDB-specific additions, starting at 64 to avoid collisions with
+	 * upstream. (This is only somewhat arbitrary; values above 255 would
+	 * increase the size of the PGPing type, but values above 125 would also
+	 * conflict with Bash-specific signal codes. We take roughly half of what's
+	 * left.)
+	 */
+	PQPING_MIRROR_READY = 64,	/* mirror completed startup sequence */
 } PGPing;
 
 /* PGconn encapsulates a connection to the backend.
