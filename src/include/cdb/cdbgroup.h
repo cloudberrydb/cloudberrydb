@@ -23,7 +23,7 @@
 #include "nodes/plannodes.h"
 #include "nodes/relation.h"
 
-#include "optimizer/clauses.h" /* AggClauseCounts */
+#include "optimizer/clauses.h" /* AggClauseCosts */
 #include "optimizer/planmain.h"   /* GroupContext */
 
 extern Plan *cdb_grouping_planner(PlannerInfo* root,
