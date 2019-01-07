@@ -5519,17 +5519,15 @@ SendEosUDPIFC(ChunkTransportState *transportStates,
 					if (retry >= MAX_TRY)
 						break;
 				}
-			}
 
-			if ((!conn->cdbProc) || (icBufferListLength(&conn->unackQueue) == 0 &&
-									 icBufferListLength(&conn->sndQueue) == 0))
-			{
-				conn->state = mcsEosSent;
-				conn->stillActive = false;
-			}
-			else
-			{
-				activeCount++;
+				if ((!conn->cdbProc) || (icBufferListLength(&conn->unackQueue) == 0 &&
+										 icBufferListLength(&conn->sndQueue) == 0))
+				{
+					conn->state = mcsEosSent;
+					conn->stillActive = false;
+				}
+				else
+					activeCount++;
 			}
 		}
 	}
