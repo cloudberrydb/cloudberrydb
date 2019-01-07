@@ -25,6 +25,6 @@ extern void ExecReScanHashJoin(HashJoinState *node);
 extern void ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
 								  HashJoinTable hashtable, ExecWorkFile **fileptr,
 								  MemoryContext bfCxt);
-extern void ExecEagerFreeHashJoin(HashJoinState *node);
+extern void ExecSquelchHashJoin(HashJoinState *node);
 
 #endif   /* NODEHASHJOIN_H */

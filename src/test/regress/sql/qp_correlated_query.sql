@@ -892,8 +892,23 @@ EXPLAIN SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.i = qp_non_eq_b
 SELECT * FROM qp_non_eq_a, qp_non_eq_b WHERE qp_non_eq_a.i = qp_non_eq_b.i AND qp_non_eq_a.i = ANY('{1,2,3}'::numeric[]);
 
 -- ----------------------------------------------------------------------
+-- Test: Nestloop within a correlated subquery.
+-- Nestloop get empty results from outer in the first run and we cannot
+-- squelch (early end of retrieval) inner node if the outer expected to
+-- be rescanned.
+-- ----------------------------------------------------------------------
+CREATE TABLE qp_nl_tab1 (c1 int, c2 int);
+CREATE TABLE qp_nl_tab2 (c1 int, c2 int);
+INSERT INTO qp_nl_tab1 values (1, 0), (1, 1);
+INSERT INTO qp_nl_tab2 values (1, 1), (1, 1);
+VACUUM qp_nl_tab2;
+SELECT * FROM qp_nl_tab1 t1 WHERE t1.c1 + 5 > ANY(SELECT t2.c2 FROM qp_nl_tab2 t2, generate_series(1, 1) i WHERE i = t1.c2 LIMIT 1);
+
+
+-- ----------------------------------------------------------------------
 -- Test: teardown.sql
 -- ----------------------------------------------------------------------
+
 
 -- start_ignore
 drop schema qp_correlated_query cascade;

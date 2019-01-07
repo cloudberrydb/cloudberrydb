@@ -184,7 +184,6 @@ ExecInitRecursiveUnion(RecursiveUnion *node, EState *estate, int eflags)
 	rustate = makeNode(RecursiveUnionState);
 	rustate->ps.plan = (Plan *) node;
 	rustate->ps.state = estate;
-	rustate->ps.delayEagerFree = (eflags & EXEC_FLAG_REWIND) != 0;
 
 	rustate->eqfunctions = NULL;
 	rustate->hashfunctions = NULL;
@@ -359,7 +358,7 @@ ExecReScanRecursiveUnion(RecursiveUnionState *node)
 }
 
 void
-ExecEagerFreeRecursiveUnion(RecursiveUnionState *node)
+ExecSquelchRecursiveUnion(RecursiveUnionState *node)
 {
 	if (node->working_table != NULL)
 		tuplestore_end(node->working_table);
@@ -370,5 +369,6 @@ ExecEagerFreeRecursiveUnion(RecursiveUnionState *node)
 	node->working_table = NULL;
 	node->intermediate_table = NULL;
 
-	ExecEagerFreeChildNodes((PlanState *) node, false);
+	ExecSquelchNode(outerPlanState(node));
+	ExecSquelchNode(innerPlanState(node));
 }

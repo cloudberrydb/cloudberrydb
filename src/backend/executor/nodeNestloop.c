@@ -60,8 +60,8 @@ static void extractFuncExprArgs(FuncExprState *fstate, List **lclauses, List **r
  *			   are prepared to return the first tuple.
  * ----------------------------------------------------------------
  */
-TupleTableSlot *
-ExecNestLoop(NestLoopState *node)
+static TupleTableSlot *
+ExecNestLoop_guts(NestLoopState *node)
 {
 	NestLoop   *nl;
 	PlanState  *innerPlan;
@@ -125,22 +125,17 @@ ExecNestLoop(NestLoopState *node)
 				(node->nl_InnerJoinKeys && isJoinExprNull(node->nl_InnerJoinKeys, econtext)))
 		{
 			/*
-			 * If LASJ_NOTIN and a null was found on the inner side, then clean out.
+			 * If LASJ_NOTIN and a null was found on the inner side, all tuples
 			 * We'll read no more from either inner or outer subtree. To keep our
-			 * sibling QEs from being starved, tell source QEs not to
-			 * clog up the pipeline with our never-to-be-consumed
-			 * data.
+			 * in outer sider will be treated as "not in" tuples in inner side.
 			 */
 			ENL1_printf("Found NULL tuple on the inner side, clean out");
-			ExecSquelchNode(outerPlan);
-			ExecSquelchNode(innerPlan);
 			return NULL;
 		}
 
 		ExecReScan(innerPlan);
 		ResetExprContext(econtext);
 
-		node->nl_innerSquelchNeeded = false; /* no need to squelch inner since it was completely prefetched */
 		node->prefetch_inner = false;
 		node->reset_inner = false;
 	}
@@ -168,29 +163,6 @@ ExecNestLoop(NestLoopState *node)
 			if (TupIsNull(outerTupleSlot))
 			{
 				ENL1_printf("no outer tuple, ending join");
-
-				/*
-				 * CDB: If outer tuple stream was empty, notify inner
-				 * subplan that we won't fetch its results, so QEs in
-				 * lower gangs won't keep trying to send to us.  Else
-				 * we have reached inner end-of-data at least once and
-				 * squelch is not needed.
-				 */
-				if (node->nl_innerSquelchNeeded)
-				{
-					ExecSquelchNode(innerPlan);
-				}
-
-				/*
-				 * The memory used by child nodes might not be freed because
-				 * they are not eager free safe. However, when the nestloop is done,
-				 * we can free the memory used by the child nodes.
-				 */
-				if (!node->js.ps.delayEagerFree)
-				{
-					ExecEagerFreeChildNodes((PlanState *)node, false);
-				}
-
 				return NULL;
 			}
 
@@ -297,15 +269,11 @@ ExecNestLoop(NestLoopState *node)
 				(node->nl_InnerJoinKeys && isJoinExprNull(node->nl_InnerJoinKeys, econtext)))
 		{
 			/*
-			 * If LASJ_NOTIN and a null was found on the inner side, then clean out.
+			 * If LASJ_NOTIN and a null was found on the inner side, all tuples
 			 * We'll read no more from either inner or outer subtree. To keep our
-			 * sibling QEs from being starved, tell source QEs not to
-			 * clog up the pipeline with our never-to-be-consumed
-			 * data.
+			 * in outer sider will be treated as "not in" tuples in inner side.
 			 */
 			ENL1_printf("Found NULL tuple on the inner side, clean out");
-			ExecSquelchNode(outerPlan);
-			ExecSquelchNode(innerPlan);
 			return NULL;
 		}
 
@@ -366,6 +334,28 @@ ExecNestLoop(NestLoopState *node)
 	}
 }
 
+TupleTableSlot *
+ExecNestLoop(NestLoopState *node)
+{
+	TupleTableSlot *result;
+
+	result = ExecNestLoop_guts(node);
+
+	if (TupIsNull(result) && !node->delayEagerFree)
+	{
+
+		/*
+		 * CDB: We'll read no more from inner subtree. To keep our
+		 * sibling QEs from being starved, tell source QEs not to
+		 * clog up the pipeline with our never-to-be-consumed
+		 * data.
+		 */
+		ExecSquelchNode((PlanState *) node);
+	}
+
+	return result;
+}
+
 /* ----------------------------------------------------------------
  *		ExecInitNestLoop
  * ----------------------------------------------------------------
@@ -407,8 +397,8 @@ ExecInitNestLoop(NestLoop *node, EState *estate, int eflags)
 	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
 	 * then this node is not eager free safe.
 	 */
-	nlstate->js.ps.delayEagerFree =
-		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
+	nlstate->delayEagerFree =
+               ((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
 
 	/*
 	 * initialize child expressions
@@ -497,8 +487,6 @@ ExecInitNestLoop(NestLoop *node, EState *estate, int eflags)
 	 */
 	nlstate->nl_NeedNewOuter = true;
 	nlstate->nl_MatchedOuter = false;
-	nlstate->nl_innerSquelchNeeded = true;		/*CDB*/
-
 
     if (node->join.jointype == JOIN_LASJ_NOTIN)
     {
@@ -581,7 +569,6 @@ ExecReScanNestLoop(NestLoopState *node)
 	node->nl_NeedNewOuter = true;
 	node->nl_MatchedOuter = false;
 	node->nl_innerSideScanned = false;
-	/* CDB: We intentionally leave node->nl_innerSquelchNeeded unchanged on ReScan */
 }
 
 /* ----------------------------------------------------------------

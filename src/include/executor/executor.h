@@ -39,7 +39,7 @@ struct ChunkTransportState;             /* #include "cdb/cdbinterconnect.h" */
  * should be performed.
  *
  * REWIND indicates that the plan node should expect to be rescanned. This
- * implies delaying freeing up resources when EagerFree is called.
+ * implies delaying freeing up resources when EagerFree is called. XXX
  *
  * BACKWARD indicates that the plan node must respect the es_direction flag.
  * When this is not passed, the plan node will only be run forwards.
@@ -118,9 +118,6 @@ extern void ExecRestrPos(PlanState *node);
 extern bool ExecSupportsMarkRestore(NodeTag plantype);
 extern bool ExecSupportsBackwardScan(Plan *node);
 extern bool ExecMaterializesOutput(NodeTag plantype);
-
-extern void ExecEagerFree(PlanState *node);
-extern void ExecEagerFreeChildNodes(PlanState *node, bool subplanDone);
 
 /*
  * prototypes from functions in execCurrent.c

@@ -303,3 +303,14 @@ ExecReScanMergeAppend(MergeAppendState *node)
 	binaryheap_reset(node->ms_heap);
 	node->ms_initialized = false;
 }
+
+void
+ExecSquelchMergeAppend(MergeAppendState *node)
+{
+	int			i;
+
+	for (i = 0; i < node->ms_nplans; i++)
+	{
+		ExecSquelchNode(node->mergeplans[i]);
+	}
+}

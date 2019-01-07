@@ -52,6 +52,7 @@ typedef struct FunctionScanPerFuncState
 
 static TupleTableSlot *FunctionNext(FunctionScanState *node);
 static void ExecFunctionScanExplainEnd(PlanState *planstate, struct StringInfoData *buf);
+static void ExecEagerFreeFunctionScan(FunctionScanState *node);
 
 
 /* ----------------------------------------------------------------
@@ -65,7 +66,7 @@ static void ExecFunctionScanExplainEnd(PlanState *planstate, struct StringInfoDa
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-FunctionNext(FunctionScanState *node)
+FunctionNext_guts(FunctionScanState *node)
 {
 	EState	   *estate;
 	ScanDirection direction;
@@ -132,12 +133,6 @@ FunctionNext(FunctionScanState *node)
 									   ScanDirectionIsForward(direction),
 									   false,
 									   scanslot);
-
-		if (TupIsNull(scanslot) && !node->ss.ps.delayEagerFree)
-		{
-			ExecEagerFreeFunctionScan((FunctionScanState *)(&node->ss.ps));
-		}
-
 		return scanslot;
 	}
 
@@ -290,12 +285,20 @@ FunctionNext(FunctionScanState *node)
 	if (!alldone)
 		ExecStoreVirtualTuple(scanslot);
 
-	if (TupIsNull(scanslot) && !node->ss.ps.delayEagerFree)
-	{
-		ExecEagerFreeFunctionScan((FunctionScanState *)(&node->ss.ps));
-	}
-
 	return scanslot;
+}
+
+static TupleTableSlot *
+FunctionNext(FunctionScanState *node)
+{
+	TupleTableSlot *result;
+
+	result = FunctionNext_guts(node);
+
+	if (TupIsNull(result) && !node->delayEagerFree)
+		ExecEagerFreeFunctionScan((FunctionScanState *) &node->ss.ps);
+
+	return result;
 }
 
 /*
@@ -567,7 +570,7 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
 	 * then this node is not eager free safe.
 	 */
-	scanstate->ss.ps.delayEagerFree =
+	scanstate->delayEagerFree =
 		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
 
 	/*
@@ -583,7 +586,7 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 	 * an arugment of that function, and we'll need to always rescan it.)
 	 */
 	if (nfuncs > 0)
-		scanstate->ss.ps.delayEagerFree = true;
+		scanstate->delayEagerFree = true;
 
 	/*
 	 * Create a memory context that ExecMakeTableFunctionResult can use to
@@ -707,7 +710,7 @@ ExecReScanFunctionScan(FunctionScanState *node)
 	}
 }
 
-void
+static void
 ExecEagerFreeFunctionScan(FunctionScanState *node)
 {
 	int			i;
@@ -728,4 +731,10 @@ ExecEagerFreeFunctionScan(FunctionScanState *node)
 			fs->tstore = NULL;
 		}
 	}
+}
+
+void
+ExecSquelchFunctionScan(FunctionScanState *node)
+{
+	ExecEagerFreeFunctionScan(node);
 }

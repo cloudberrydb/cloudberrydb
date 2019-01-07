@@ -22,6 +22,5 @@ extern SeqScanState *ExecInitSeqScanForPartition(SeqScan *node, EState *estate, 
 extern TupleTableSlot *ExecSeqScan(SeqScanState *node);
 extern void ExecEndSeqScan(SeqScanState *node);
 extern void ExecReScanSeqScan(SeqScanState *node);
-extern void ExecEagerFreeSeqScan(SeqScanState *node);
 
 #endif   /* NODESEQSCAN_H */

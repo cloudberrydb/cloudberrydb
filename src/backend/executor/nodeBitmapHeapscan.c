@@ -63,6 +63,8 @@ static TupleTableSlot *BitmapHeapNext(BitmapHeapScanState *node);
 static TupleTableSlot *BitmapAppendOnlyNext(BitmapHeapScanState *node);
 static void bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres);
 
+static void ExecEagerFreeBitmapHeapScan(BitmapHeapScanState *node);
+
 /*
  * Initialize the fetch descriptor, if it is not initialized.
  */
@@ -1060,9 +1062,15 @@ ExecInitBitmapHeapScanForPartition(BitmapHeapScan *node, EState *estate, int efl
 	return scanstate;
 }
 
-void
+static void
 ExecEagerFreeBitmapHeapScan(BitmapHeapScanState *node)
 {
 	freeFetchDesc(node);
 	freeBitmapState(node);
+}
+
+void
+ExecSquelchBitmapHeapScan(BitmapHeapScanState *node)
+{
+	ExecEagerFreeBitmapHeapScan(node);
 }

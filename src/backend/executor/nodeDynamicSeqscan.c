@@ -53,13 +53,6 @@ ExecInitDynamicSeqScan(DynamicSeqScan *node, EState *estate, int eflags)
 	ExecInitResultTupleSlot(estate, &state->ss.ps);
 	ExecAssignResultTypeFromTL(&state->ss.ps);
 
-	/*
-	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
-	 * then this node is not eager free safe.
-	 */
-	state->ss.ps.delayEagerFree =
-		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
-
 	reloid = getrelid(node->seqscan.scanrelid, estate->es_range_table);
 	Assert(OidIsValid(reloid));
 

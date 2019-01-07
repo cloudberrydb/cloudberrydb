@@ -306,7 +306,21 @@ ExecEndSeqScan(SeqScanState *node)
 	/*
 	 * close heap scan
 	 */
-	ExecEagerFreeSeqScan(node);
+	if (node->ss_currentScanDesc_heap)
+	{
+		heap_endscan(node->ss_currentScanDesc_heap);
+		node->ss_currentScanDesc_heap = NULL;
+	}
+	if (node->ss_currentScanDesc_ao)
+	{
+		appendonly_endscan(node->ss_currentScanDesc_ao);
+		node->ss_currentScanDesc_ao = NULL;
+	}
+	if (node->ss_currentScanDesc_aocs)
+	{
+		aocs_endscan(node->ss_currentScanDesc_aocs);
+		node->ss_currentScanDesc_aocs = NULL;
+	}
 
 	/*
 	 * close the heap relation.
@@ -381,24 +395,4 @@ InitAOCSScanOpaque(SeqScanState *scanstate, Relation currentRelation)
 
 	scanstate->ss_aocs_ncol = ncol;
 	scanstate->ss_aocs_proj = proj;
-}
-
-void
-ExecEagerFreeSeqScan(SeqScanState *node)
-{
-	if (node->ss_currentScanDesc_heap)
-	{
-		heap_endscan(node->ss_currentScanDesc_heap);
-		node->ss_currentScanDesc_heap = NULL;
-	}
-	if (node->ss_currentScanDesc_ao)
-	{
-		appendonly_endscan(node->ss_currentScanDesc_ao);
-		node->ss_currentScanDesc_ao = NULL;
-	}
-	if (node->ss_currentScanDesc_aocs)
-	{
-		aocs_endscan(node->ss_currentScanDesc_aocs);
-		node->ss_currentScanDesc_aocs = NULL;
-	}
 }

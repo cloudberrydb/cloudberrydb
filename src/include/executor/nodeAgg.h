@@ -228,7 +228,7 @@ extern Datum invoke_agg_trans_func(AggState *aggstate,
 
 extern Datum datumCopyWithMemManager(Datum oldvalue, Datum value, bool typByVal, int typLen,
 									 MemoryManagerContainer *mem_manager);
-extern void ExecEagerFreeAgg(AggState *aggstate);
+extern void ExecSquelchAgg(AggState *aggstate);
 
 extern List *combineAggrefArgs(Aggref *aggref, List **sort_clauses);
 

@@ -157,3 +157,10 @@ ExecReScanSequence(SequenceState *node)
 
 	node->initState = true;
 }
+
+void
+ExecSquelchSequence(SequenceState *node)
+{
+	for (int i = 0; i < node->numSubplans; i++)
+		ExecSquelchNode(node->subplans[i]);
+}

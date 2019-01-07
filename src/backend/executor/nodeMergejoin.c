@@ -624,8 +624,8 @@ ExecMergeTupleDump(MergeJoinState *mergestate)
  *		ExecMergeJoin
  * ----------------------------------------------------------------
  */
-TupleTableSlot *
-ExecMergeJoin(MergeJoinState *node)
+static TupleTableSlot *
+ExecMergeJoin_guts(MergeJoinState *node)
 {
 	List	   *joinqual;
 	List	   *otherqual;
@@ -677,7 +677,6 @@ ExecMergeJoin(MergeJoinState *node)
 		ExecReScan(innerPlan);
 		ResetExprContext(econtext);
 
-		node->mj_squelchInner = false; /* we will never need to Squelch the inner, we've fetched it all */
 		node->prefetch_inner = false;
 	}
 
@@ -744,23 +743,6 @@ ExecMergeJoin(MergeJoinState *node)
 							break;
 						}
 
-						/*
-						 * CDB: We'll read no more from inner subtree. To keep our
-						 * sibling QEs from being starved, tell source QEs not to
-						 * clog up the pipeline with our never-to-be-consumed
-						 * data.
-						 */
-						if (node->mj_squelchInner)
-							ExecSquelchNode(innerPlan);
-
-						/*
-						 * The memory used by child nodes might not be freed because
-						 * they are not eager free safe. However, when the merge join
-						 * is done, we can free the memory used by the child nodes.
-						 */
-						if (!node->js.ps.delayEagerFree)
-							ExecEagerFreeMergeJoin(node);
-
 						/* Otherwise we're done. */
 						return NULL;
 				}
@@ -817,17 +799,6 @@ ExecMergeJoin(MergeJoinState *node)
 							node->mj_MatchedOuter = false;
 							break;
 						}
-
-						/*
-						 * CDB: We'll read no more from outer subtree. To keep our
-						 * sibling QEs from being starved, tell source QEs not to
-						 * clog up the pipeline with our never-to-be-consumed
-						 * data.
-						 */
-						ExecSquelchNode(outerPlan);
-
-						if (!node->js.ps.delayEagerFree)
-							ExecEagerFreeMergeJoin(node);
 
 						/* Otherwise we're done. */
 						return NULL;
@@ -1001,9 +972,6 @@ ExecMergeJoin(MergeJoinState *node)
 
 						if (((MergeJoin*)node->js.ps.plan)->unique_outer)
 						{
-							if (!node->js.ps.delayEagerFree)
-								ExecEagerFreeMergeJoin(node);
-
 							/* we are done */
 							return NULL;
 						}
@@ -1226,17 +1194,6 @@ ExecMergeJoin(MergeJoinState *node)
 								break;
 							}
 
-							/*
-							 * CDB: We'll read no more from outer subtree. To keep
-							 * our sibling QEs from being starved, tell source QEs
-							 * not to clog up the pipeline with our
-							 * never-to-be-consumed data.
-							 */
-							ExecSquelchNode(outerPlan);
-
-							if (!node->js.ps.delayEagerFree)
-								ExecEagerFreeMergeJoin(node);
-
 							/* Otherwise we're done. */
 							return NULL;
 					}
@@ -1358,17 +1315,6 @@ ExecMergeJoin(MergeJoinState *node)
 							node->mj_JoinState = EXEC_MJ_ENDOUTER;
 							break;
 						}
-						/*
-						 * CDB: We'll read no more from inner subtree. To keep our
-						 * sibling QEs from being starved, tell source QEs not to
-						 * clog up the pipeline with our never-to-be-consumed
-						 * data.
-						 */
-						if (!TupIsNull(innerTupleSlot) && node->mj_squelchInner)
-							ExecSquelchNode(innerPlan);
-
-						if (!node->js.ps.delayEagerFree)
-							ExecEagerFreeMergeJoin(node);
 
 						/* Otherwise we're done. */
 						return NULL;
@@ -1485,10 +1431,6 @@ ExecMergeJoin(MergeJoinState *node)
 				if (TupIsNull(innerTupleSlot))
 				{
 					MJ_printf("ExecMergeJoin: end of inner subplan\n");
-
-					if (!node->js.ps.delayEagerFree)
-						ExecEagerFreeMergeJoin(node);
-
 					return NULL;
 				}
 
@@ -1531,10 +1473,6 @@ ExecMergeJoin(MergeJoinState *node)
 				if (TupIsNull(outerTupleSlot))
 				{
 					MJ_printf("ExecMergeJoin: end of outer subplan\n");
-
-					if (!node->js.ps.delayEagerFree)
-						ExecEagerFreeMergeJoin(node);
-
 					return NULL;
 				}
 
@@ -1549,6 +1487,26 @@ ExecMergeJoin(MergeJoinState *node)
 					 (int) node->mj_JoinState);
 		}
 	}
+}
+
+TupleTableSlot *
+ExecMergeJoin(MergeJoinState *node)
+{
+	TupleTableSlot *result;
+
+	result = ExecMergeJoin_guts(node);
+
+	if (TupIsNull(result) && !node->delayEagerFree)
+	{
+		/*
+		 * CDB: We'll read no more from inner subtree. To keep our sibling
+		 * QEs from being starved, tell source QEs not to clog up the
+		 * pipeline with our never-to-be-consumed data.
+		 */
+		ExecSquelchNode((PlanState *) node);
+	}
+
+	return result;
 }
 
 /* ----------------------------------------------------------------
@@ -1574,7 +1532,7 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 	mergestate = makeNode(MergeJoinState);
 	mergestate->js.ps.plan = (Plan *) node;
 	mergestate->js.ps.state = estate;
-	mergestate->js.ps.delayEagerFree = (eflags & EXEC_FLAG_REWIND) != 0;
+	mergestate->delayEagerFree = (eflags & EXEC_FLAG_REWIND) != 0;
 
 	/*
 	 * Miscellaneous initialization
@@ -1607,7 +1565,6 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 	mergestate->mj_ConstFalseJoin = false;
 
 	mergestate->prefetch_inner = node->join.prefetch_inner;
-	mergestate->mj_squelchInner = true;
 	/* Prepare inner operators for rewind after the prefetch */
 	rewindflag = mergestate->prefetch_inner ? EXEC_FLAG_REWIND : 0;
 
@@ -1800,14 +1757,4 @@ ExecReScanMergeJoin(MergeJoinState *node)
 	if (node->js.ps.righttree->chgParam == NULL)
 		ExecReScan(node->js.ps.righttree);
 
-}
-
-void
-ExecEagerFreeMergeJoin(MergeJoinState *node)
-{
-	/*
-	 * Since MergeJoin might call Mark/restore on its child nodes, its child nodes
-	 * are not eager free safe. We will free their memory here.
-	 */
-	ExecEagerFreeChildNodes((PlanState *)node, false);
 }

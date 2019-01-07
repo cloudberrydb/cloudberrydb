@@ -21,6 +21,6 @@ extern BitmapHeapScanState *ExecInitBitmapHeapScanForPartition(BitmapHeapScan *n
 extern TupleTableSlot *ExecBitmapHeapScan(BitmapHeapScanState *node);
 extern void ExecEndBitmapHeapScan(BitmapHeapScanState *node);
 extern void ExecReScanBitmapHeapScan(BitmapHeapScanState *node);
-extern void ExecEagerFreeBitmapHeapScan(BitmapHeapScanState *node);
+extern void ExecSquelchBitmapHeapScan(BitmapHeapScanState *node);
 
 #endif   /* NODEBITMAPHEAPSCAN_H */

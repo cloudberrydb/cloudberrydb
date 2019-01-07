@@ -2637,9 +2637,10 @@ ExecReScanWindowAgg(WindowAggState *node)
 }
 
 void
-ExecEagerFreeWindowAgg(WindowAggState *node)
+ExecSquelchWindowAgg(WindowAggState *node)
 {
-	// TODO FIXME
+	// TODO: do some eager freeing here?
+	ExecSquelchNode(outerPlanState(node));
 }
 
 /*

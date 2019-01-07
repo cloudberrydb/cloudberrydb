@@ -59,6 +59,7 @@ static void ReleaseHashTable(HashJoinState *node);
 
 static void SpillCurrentBatch(HashJoinState *node);
 static bool ExecHashJoinReloadHashTable(HashJoinState *hjstate);
+static void ExecEagerFreeHashJoin(HashJoinState *node);
 
 /* ----------------------------------------------------------------
  *		ExecHashJoin
@@ -69,8 +70,8 @@ static bool ExecHashJoinReloadHashTable(HashJoinState *hjstate);
  *			  the other one is "outer".
  * ----------------------------------------------------------------
  */
-TupleTableSlot *				/* return: a tuple or NULL */
-ExecHashJoin(HashJoinState *node)
+static TupleTableSlot *				/* return: a tuple or NULL */
+ExecHashJoin_guts(HashJoinState *node)
 {
 	EState	   *estate;
 	PlanState  *outerNode;
@@ -223,19 +224,7 @@ ExecHashJoin(HashJoinState *node)
 				 * If LASJ_NOTIN and a null was found on the inner side, then clean out.
 				 */
 				if (node->js.jointype == JOIN_LASJ_NOTIN && hashNode->hs_hashkeys_null)
-				{
-					/*
-					 * CDB: We'll read no more from outer subtree. To keep sibling QEs
-					 * from being starved, tell source QEs not to clog up the pipeline
-					 * with our never-to-be-consumed data.
-					 */
-					ExecSquelchNode(outerNode);
-					/* end of join */
-
-					ExecEagerFreeHashJoin(node);
-
 					return NULL;
-				}
 
 				/*
 				 * If the inner relation is completely empty, and we're not
@@ -243,19 +232,7 @@ ExecHashJoin(HashJoinState *node)
 				 * outer relation.
 				 */
 				if (hashtable->totalTuples == 0 && !HJ_FILL_OUTER(node))
-				{
-					/*
-					 * CDB: We'll read no more from outer subtree. To keep sibling QEs
-					 * from being starved, tell source QEs not to clog up the pipeline
-					 * with our never-to-be-consumed data.
-					 */
-					ExecSquelchNode(outerNode);
-					/* end of join */
-
-					ExecEagerFreeHashJoin(node);
-
 					return NULL;
-				}
 
 				/*
 				 * We just scanned the entire inner side and built the hashtable
@@ -288,9 +265,7 @@ ExecHashJoin(HashJoinState *node)
 				{
 					hashtable->curbatch = 0;
 					if (!ExecHashJoinReloadHashTable(node))
-					{
 						return NULL;
-					}
 				}
 
 				/*
@@ -506,12 +481,8 @@ ExecHashJoin(HashJoinState *node)
 				 * Try to advance to next batch.  Done if there are no more.
 				 */
 				if (!ExecHashJoinNewBatch(node))
-				{
-					if (!node->reuse_hashtable)
-						ExecEagerFreeHashJoin(node);
-
 					return NULL;	/* end of join */
-				}
+
 				node->hj_JoinState = HJ_NEED_NEW_OUTER;
 				break;
 
@@ -521,6 +492,28 @@ ExecHashJoin(HashJoinState *node)
 		}
 	}
 }
+
+TupleTableSlot *
+ExecHashJoin(HashJoinState *node)
+{
+	TupleTableSlot *result;
+
+	result = ExecHashJoin_guts(node);
+
+	if (TupIsNull(result) && !node->reuse_hashtable)
+	{
+		/*
+		 * CDB: We'll read no more from inner subtree. To keep our
+		 * sibling QEs from being starved, tell source QEs not to
+		 * clog up the pipeline with our never-to-be-consumed
+		 * data.
+		 */
+		ExecSquelchNode((PlanState *) node);
+	}
+
+	return result;
+}
+
 
 /* ----------------------------------------------------------------
  *		ExecInitHashJoin
@@ -1333,7 +1326,7 @@ isNotDistinctJoin(List *qualList)
 	return false;
 }
 
-void
+static void
 ExecEagerFreeHashJoin(HashJoinState *node)
 {
 	if (node->hj_HashTable != NULL && !node->hj_HashTable->eagerlyReleased)
@@ -1341,6 +1334,15 @@ ExecEagerFreeHashJoin(HashJoinState *node)
 		ReleaseHashTable(node);
 	}
 }
+
+void
+ExecSquelchHashJoin(HashJoinState *node)
+{
+	ExecEagerFreeHashJoin(node);
+	ExecSquelchNode(outerPlanState(node));
+	ExecSquelchNode(innerPlanState(node));
+}
+
 
 /*
  * In our hybrid hash join we either spill when we increase number of batches

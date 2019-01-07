@@ -24,7 +24,6 @@ extern void ExecEndIndexScan(IndexScanState *node);
 extern void ExecIndexMarkPos(IndexScanState *node);
 extern void ExecIndexRestrPos(IndexScanState *node);
 extern void ExecReScanIndexScan(IndexScanState *node);
-extern void ExecEagerFreeIndexScan(IndexScanState *node);
 
 /*
  * These routines are exported to share code with nodeIndexonlyscan.c and
@@ -40,7 +39,5 @@ extern void ExecIndexEvalRuntimeKeys(ExprContext *econtext,
 extern bool ExecIndexEvalArrayKeys(ExprContext *econtext,
 					   IndexArrayKeyInfo *arrayKeys, int numArrayKeys);
 extern bool ExecIndexAdvanceArrayKeys(IndexArrayKeyInfo *arrayKeys, int numArrayKeys);
-
-extern TupleTableSlot *IndexNext(IndexScanState *node);
 
 #endif   /* NODEINDEXSCAN_H */

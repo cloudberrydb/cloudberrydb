@@ -941,6 +941,9 @@ ExecProcNode(PlanState *node)
 	if (node->chgParam != NULL) /* something changed */
 		ExecReScan(node);		/* let ReScan handle this */
 
+	if (node->squelched)
+		elog(ERROR, "cannot execute squelched plan node");
+
 	if (node->instrument)
 		InstrStartNode(node->instrument);
 
@@ -1164,31 +1167,6 @@ ExecProcNode(PlanState *node)
 
 	if (node->plan)
 		TRACE_POSTGRESQL_EXECPROCNODE_EXIT(GpIdentity.segindex, currentSliceId, nodeTag(node), node->plan->plan_node_id);
-
-	/*
-	 * Eager free and squelch the subplans, unless it's a nested subplan.
-	 * In that case we cannot free or squelch, because it will be re-executed.
-	 */
-	if (TupIsNull(result))
-	{
-		ListCell *subp;
-		foreach(subp, node->subPlan)
-		{
-			SubPlanState *subplanState = (SubPlanState *)lfirst(subp);
-			Assert(subplanState != NULL &&
-				   subplanState->planstate != NULL);
-
-			bool subplanAtTopNestLevel = (node->state->currentSubplanLevel == 0);
-
-			if (subplanAtTopNestLevel)
-			{
-				ExecSquelchNode(subplanState->planstate);
-				ExecEagerFreeChildNodes(subplanState->planstate, subplanAtTopNestLevel);
-				ExecEagerFree(subplanState->planstate);
-			}
-		}
-	}
-
 	}
 	END_MEMORY_ACCOUNT();
 	return result;
@@ -1261,85 +1239,6 @@ MultiExecProcNode(PlanState *node)
 	END_MEMORY_ACCOUNT();
 	return result;
 }
-
-/* ----------------------------------------------------------------
- *		ExecSquelchNode
- *
- *		When a node decides that it will not consume any more
- *		input tuples from a subtree that has not yet returned
- *		end-of-data, it must call ExecSquelchNode() on the subtree.
- * ----------------------------------------------------------------
- */
-
-static CdbVisitOpt
-squelchNodeWalker(PlanState *node,
-				  void *context)
-{
-	if (IsA(node, ShareInputScanState))
-	{
-		ShareInputScanState* sisc_state = (ShareInputScanState *)node;
-		ShareType share_type = ((ShareInputScan *)sisc_state->ss.ps.plan)->share_type;
-		bool isWriter = outerPlanState(sisc_state) != NULL;
-		bool tuplestoreInitialized = sisc_state->ts_state != NULL;
-
-		/*
-		 * If there is a SharedInputScan that is shared within the same slice
-		 * then its subtree may still need to be executed and the motions in the
-		 * subtree cannot yet be stopped. Thus, we short-circuit
-		 * squelchNodeWalker in this case.
-		 *
-		 * In squelching a cross-slice SharedInputScan writer, we need to
-		 * ensure we don't block any reader on other slices as a result of
-		 * not materializing the shared plan.
-		 *
-		 * Note that we emphatically can't "fake" an empty tuple store
-		 * and just go ahead waking up the readers because that can
-		 * lead to wrong results.  c.f. nodeShareInputScan.c
-		*/
-		switch (share_type)
-		{
-			case SHARE_MATERIAL:
-			case SHARE_SORT:
-				return CdbVisit_Skip;
-
-			case SHARE_MATERIAL_XSLICE:
-			case SHARE_SORT_XSLICE:
-				if (isWriter && !tuplestoreInitialized)
-					ExecProcNode(node);
-				break;
-			case SHARE_NOTSHARED:
-				break;
-		}
-	}
-	else if (IsA(node, MotionState))
-	{
-		ExecStopMotion((MotionState *) node);
-		return CdbVisit_Skip;	/* don't visit subtree */
-	}
-	else if (IsA(node, ExternalScanState))
-	{
-		ExecStopExternalScan((ExternalScanState *) node);
-		/* ExternalScan nodes are expected to be leaf nodes (without subplans) */
-	}
-
-	return CdbVisit_Walk;
-}	/* squelchNodeWalker */
-
-
-void
-ExecSquelchNode(PlanState *node)
-{
-	/*
-	 * If parameters have changed, then node can be part of subquery
-	 * execution. In this case we cannot squelch node, otherwise next subquery
-	 * invocations will receive no tuples from lower motion nodes (MPP-13921).
-	 */
-	if (node->chgParam == NULL)
-	{
-		planstate_walk_node_extended(node, squelchNodeWalker, NULL, PSW_IGNORE_INITPLAN);
-	}
-}	/* ExecSquelchNode */
-
 
 static CdbVisitOpt
 transportUpdateNodeWalker(PlanState *node, void *context)
@@ -1801,6 +1700,8 @@ planstate_walk_kids(PlanState *planstate,
 				Assert(!planstate->lefttree && !planstate->righttree);
 				break;
 			}
+
+			/* FIXME: MergeAppendState handling is missing. */
 
 		case T_ModifyTableState:
 			{

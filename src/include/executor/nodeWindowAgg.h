@@ -21,6 +21,6 @@ extern TupleTableSlot *ExecWindowAgg(WindowAggState *node);
 extern void ExecEndWindowAgg(WindowAggState *node);
 extern void ExecReScanWindowAgg(WindowAggState *node);
 
-extern void ExecEagerFreeWindowAgg(WindowAggState *node);
+extern void ExecSquelchWindowAgg(WindowAggState *node);
 
 #endif   /* NODEWINDOWAGG_H */

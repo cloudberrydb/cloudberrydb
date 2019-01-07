@@ -22,7 +22,7 @@ extern ShareInputScanState *ExecInitShareInputScan(ShareInputScan *node, EState 
 extern TupleTableSlot *ExecShareInputScan(ShareInputScanState *node);
 extern void ExecEndShareInputScan(ShareInputScanState *node);
 extern void ExecReScanShareInputScan(ShareInputScanState *node);
-extern void ExecEagerFreeShareInputScan(ShareInputScanState *node);
+extern void ExecSquelchShareInputScan(ShareInputScanState *node);
 
 extern void ExecSliceDependencyShareInputScan(ShareInputScanState *node);
 

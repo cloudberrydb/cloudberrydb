@@ -19,7 +19,6 @@
  *		ExecExternalNext				retrieve next tuple in sequential order.
  *		ExecInitExternalScan			creates and initializes a externalscan node.
  *		ExecEndExternalScan				releases any storage allocated.
- *		ExecStopExternalScan			closes external resources before EOD.
  *		ExecExternalReScan				rescans the relation
  */
 #include "postgres.h"
@@ -37,6 +36,7 @@
 #include "optimizer/clauses.h"
 
 static TupleTableSlot *ExternalNext(ExternalScanState *node);
+static void ExecEagerFreeExternalScan(ExternalScanState *node);
 
 static bool
 ExternalConstraintCheck(TupleTableSlot *slot, ExternalScanState *node)
@@ -116,7 +116,7 @@ ExternalNext(ExternalScanState *node)
 	ScanDirection direction;
 	TupleTableSlot *slot;
 	bool		scanNext = true;
-	List* filter_quals = NULL;
+	List	   *filter_quals = NIL;
 
 	/*
 	 * get information from the estate and scan state
@@ -126,9 +126,8 @@ ExternalNext(ExternalScanState *node)
 	direction = estate->es_direction;
 	slot = node->ss.ss_ScanTupleSlot;
 
-	if (gp_external_enable_filter_pushdown) {
+	if (gp_external_enable_filter_pushdown)
 		filter_quals = node->ss.ps.plan->qual;
-	}
 
 	/*
 	 * get the next tuple from the file access methods
@@ -166,14 +165,10 @@ ExternalNext(ExternalScanState *node)
 		{
 			ExecClearTuple(slot);
 
-			if (!node->ss.ps.delayEagerFree)
-			{
-				ExecEagerFreeExternalScan(node);
-			}
+			ExecEagerFreeExternalScan(node);
 		}
 		scanNext = false;
 	}
-
 
 	return slot;
 }
@@ -287,13 +282,6 @@ ExecInitExternalScan(ExternalScan *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&externalstate->ss.ps);
 	ExecAssignScanProjectionInfo(&externalstate->ss);
 
-	/*
-	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
-	 * then this node is not eager free safe.
-	 */
-	externalstate->ss.ps.delayEagerFree =
-		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
-
 	return externalstate;
 }
 
@@ -336,31 +324,6 @@ ExecEndExternalScan(ExternalScanState *node)
 	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
-/* ----------------------------------------------------------------
-*		ExecStopExternalScan
-*
-*		Performs identically to ExecEndExternalScan except that
-*		closure errors are ignored.  This function is called for
-*		normal termination when the external data source is NOT
-*		exhausted (such as for a LIMIT clause).
-* ----------------------------------------------------------------
-*/
-void
-ExecStopExternalScan(ExternalScanState *node)
-{
-	FileScanDesc fileScanDesc;
-
-	/*
-	 * get information from node
-	 */
-	fileScanDesc = node->ess_ScanDesc;
-
-	/*
-	 * stop the file scan
-	 */
-	external_stopscan(fileScanDesc);
-}
-
 
 /* ----------------------------------------------------------------
 *						Join Support
@@ -383,9 +346,36 @@ ExecReScanExternal(ExternalScanState *node)
 	external_rescan(fileScan);
 }
 
-void
+static void
 ExecEagerFreeExternalScan(ExternalScanState *node)
 {
 	Assert(node->ess_ScanDesc != NULL);
 	external_endscan(node->ess_ScanDesc);
+}
+
+/* ----------------------------------------------------------------
+*		ExecSquelchExternalScan
+*
+*		Performs identically to ExecEndExternalScan except that
+*		closure errors are ignored.  This function is called for
+*		normal termination when the external data source is NOT
+*		exhausted (such as for a LIMIT clause).
+* ----------------------------------------------------------------
+*/
+void
+ExecSquelchExternalScan(ExternalScanState *node)
+{
+	FileScanDesc fileScanDesc;
+
+	/*
+	 * get information from node
+	 */
+	fileScanDesc = node->ess_ScanDesc;
+
+	/*
+	 * stop the file scan
+	 */
+	external_stopscan(fileScanDesc);
+
+	ExecEagerFreeExternalScan(node);
 }

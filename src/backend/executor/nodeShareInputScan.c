@@ -49,6 +49,7 @@ typedef struct ShareInput_Lk_Context
 
 static void writer_wait_for_acks(ShareInput_Lk_Context *pctxt, int share_id, int xslice);
 
+static void ExecEagerFreeShareInputScan(ShareInputScanState *node);
 
 /*
  * init_tuplestore_state
@@ -864,7 +865,7 @@ shareinput_writer_waitdone(void *ctxt, int share_id, int nsharer_xslice)
  * inter-slice share nodes have their own pointer to the buffer and
  * there is not way to tell this reference over Motions anyway.
  */
-void
+static void
 ExecEagerFreeShareInputScan(ShareInputScanState *node)
 {
 
@@ -919,4 +920,44 @@ ExecEagerFreeShareInputScan(ShareInputScanState *node)
 		snEntry->refcount--;
 	}
 	node->freed = true;
+}
+
+void
+ExecSquelchShareInputScan(ShareInputScanState *node)
+{
+	ShareType share_type = ((ShareInputScan *) node->ss.ps.plan)->share_type;
+	bool isWriter = outerPlanState(node) != NULL;
+	bool tuplestoreInitialized = node->ts_state != NULL;
+
+	/*
+	 * If this SharedInputScan is shared within the same slice then its
+	 * subtree may still need to be executed and the motions in the subtree
+	 * cannot yet be stopped. Thus, don't recurse in this case.
+	 *
+	 * In squelching a cross-slice SharedInputScan writer, we need to ensure
+	 * we don't block any reader on other slices as a result of not
+	 * materializing the shared plan.
+	 *
+	 * Note that we emphatically can't "fake" an empty tuple store and just
+	 * go ahead waking up the readers because that can lead to wrong results.
+	 */
+	switch (share_type)
+	{
+		case SHARE_MATERIAL:
+		case SHARE_SORT:
+			/* don't recurse into child */
+			return;
+
+		case SHARE_MATERIAL_XSLICE:
+		case SHARE_SORT_XSLICE:
+			if (isWriter && !tuplestoreInitialized)
+				ExecProcNode((PlanState *) node);
+			break;
+		case SHARE_NOTSHARED:
+			break;
+	}
+	ExecSquelchNode(outerPlanState(node));
+
+	/* Free any resources that we can. */
+	ExecEagerFreeShareInputScan(node);
 }

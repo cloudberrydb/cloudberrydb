@@ -35,6 +35,10 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
+
+static TupleTableSlot *IndexNext(IndexScanState *node);
+
+
 /* ----------------------------------------------------------------
  *		IndexNext
  *
@@ -42,7 +46,7 @@
  *		using the index specified in the IndexScanState information.
  * ----------------------------------------------------------------
  */
-TupleTableSlot *
+static TupleTableSlot *
 IndexNext(IndexScanState *node)
 {
 	EState	   *estate;
@@ -420,7 +424,8 @@ ExecEndIndexScan(IndexScanState *node)
 	/*
 	 * close the index relation (no-op if we didn't open it)
 	 */
-	ExecEagerFreeIndexScan(node);
+	if (indexScanDesc)
+		index_endscan(node->iss_ScanDesc);
 	if (indexRelationDesc)
 		index_close(indexRelationDesc, NoLock);
 
@@ -629,13 +634,6 @@ ExecInitIndexScanForPartition(IndexScan *node, EState *estate, int eflags,
 		index_rescan(indexstate->iss_ScanDesc,
 					 indexstate->iss_ScanKeys, indexstate->iss_NumScanKeys,
 				indexstate->iss_OrderByKeys, indexstate->iss_NumOrderByKeys);
-
-	/*
-	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
-	 * then this node is not eager free safe.
-	 */
-	indexstate->ss.ps.delayEagerFree =
-		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
 
 	/*
 	 * all done.
@@ -1196,14 +1194,4 @@ ExecIndexBuildScanKeys(PlanState *planstate, Relation index,
 	}
 	else if (n_array_keys != 0)
 		elog(ERROR, "ScalarArrayOpExpr index qual found where not allowed");
-}
-
-void
-ExecEagerFreeIndexScan(IndexScanState *node)
-{
-	if (node->iss_ScanDesc != NULL)
-	{
-		index_endscan(node->iss_ScanDesc);
-		node->iss_ScanDesc = NULL;
-	}
 }

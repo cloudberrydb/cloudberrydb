@@ -81,6 +81,9 @@ ExecReScan(PlanState *node)
 	if (node->instrument)
 		InstrEndLoop(node->instrument);
 
+	/* no longer squelched */
+	node->squelched = false;
+
 	/*
 	 * If we have changed parameters, propagate that info.
 	 *
@@ -570,250 +573,166 @@ ExecSupportsBackwardScan(Plan *node)
 }
 
 /*
- * ExecEagerFree
- *    Eager free the memory that is used by the given node.
+ * ExecSquelchNode
+ *
+ * When a node decides that it will not consume any more input tuples from a
+ * subtree that has not yet returned end-of-data, it must call
+ * ExecSquelchNode() on the subtree.
+ *
+ * This is necessary, to avoid deadlock with Motion nodes. There might be a
+ * receiving Motion node in the subtree, and it needs to let the sender side
+ * of the Motion know that we will not be reading any more tuples. We might
+ * have sibling QE processes in other segments that are still waiting for
+ * tuples from the sender Motion, but if the sender's send queue is full, it
+ * will never send them. By explicitly telling the sender that we will not be
+ * reading any more tuples, it knows to not wait for us, and can skip over,
+ * and send tuples to the other QEs that might be waiting.
+ *
+ * This also gives memory-hungry nodes a chance to release memory earlier, so
+ * that other nodes higher up in the plan can make use of it. The Squelch
+ * function for many node call a separate node-specific ExecEagerFree*()
+ * function to do that.
+ *
+ * After a node has been squelched, you mustn't try to read more tuples from
+ * it. However, ReScanning the node will "un-squelch" it, allowing to read
+ * again. Squelching a node is roughly equivalent to fetching and discarding
+ * all tuples from it.
  */
 void
-ExecEagerFree(PlanState *node)
+ExecSquelchNode(PlanState *node)
 {
+	ListCell   *lc;
+
+	if (!node)
+		return;
+
+	if (node->squelched)
+		return;
+
 	switch (nodeTag(node))
 	{
-		/* No need for eager free */
+		case T_MotionState:
+			ExecSquelchMotion((MotionState *) node);
+			break;
+
+			/*
+			 * Node types that need custom code to recurse.
+			 */
 		case T_AppendState:
+			ExecSquelchAppend((AppendState *) node);
+			break;
+
+		case T_MergeAppendState:
+			ExecSquelchMergeAppend((MergeAppendState *) node);
+			break;
+
+		case T_SequenceState:
+			ExecSquelchSequence((SequenceState *) node);
+			break;
+
+			/*
+			 * Node types that need no special handling, just recurse to
+			 * children.
+			 */
 		case T_AssertOpState:
 		case T_BitmapAndState:
 		case T_BitmapOrState:
-		case T_BitmapIndexScanState:
 		case T_DynamicBitmapHeapScanState:
-		case T_DynamicBitmapIndexScanState:
 		case T_LimitState:
-		case T_MotionState:
 		case T_NestLoopState:
+		case T_MergeJoinState:
 		case T_RepeatState:
-		case T_ResultState:
 		case T_SetOpState:
 		case T_SubqueryScanState:
-		case T_TidScanState:
 		case T_UniqueState:
 		case T_HashState:
-		case T_ValuesScanState:
-		case T_TableFunctionState:
-		case T_DynamicSeqScanState:
-		case T_DynamicIndexScanState:
-		case T_IndexOnlyScanState:
-		case T_SequenceState:
 		case T_PartitionSelectorState:
 		case T_WorkTableScanState:
-		case T_ForeignScanState:
-			break;
-
-		case T_SeqScanState:
-			ExecEagerFreeSeqScan((SeqScanState *)node);
-			break;
-
-		case T_ExternalScanState:
-			ExecEagerFreeExternalScan((ExternalScanState *)node);
-			break;
-			
-		case T_IndexScanState:
-			ExecEagerFreeIndexScan((IndexScanState *)node);
-			break;
-			
-		case T_BitmapHeapScanState:
-			ExecEagerFreeBitmapHeapScan((BitmapHeapScanState *)node);
-			break;
-
-		case T_FunctionScanState:
-			ExecEagerFreeFunctionScan((FunctionScanState *)node);
-			break;
-			
-		case T_MergeJoinState:
-			ExecEagerFreeMergeJoin((MergeJoinState *)node);
-			break;
-			
-		case T_HashJoinState:
-			ExecEagerFreeHashJoin((HashJoinState *)node);
-			break;
-			
-		case T_MaterialState:
-			ExecEagerFreeMaterial((MaterialState*)node);
-			break;
-			
-		case T_SortState:
-			ExecEagerFreeSort((SortState *)node);
-			break;
-			
-		case T_AggState:
-			ExecEagerFreeAgg((AggState*)node);
-			break;
-
-		case T_WindowAggState:
-			ExecEagerFreeWindowAgg((WindowAggState *)node);
-			break;
-
-		case T_ShareInputScanState:
-			ExecEagerFreeShareInputScan((ShareInputScanState *)node);
-			break;
-
-		case T_RecursiveUnionState:
-			ExecEagerFreeRecursiveUnion((RecursiveUnionState *)node);
-			break;
-
-		default:
-			Insist(false);
-			break;
-	}
-}
-
-/*
- * EagerFreeChildNodesContext
- *    Store the context info for eager freeing child nodes.
- */
-typedef struct EagerFreeChildNodesContext
-{
-	/*
-	 * Indicate whether the eager free is called when a subplan
-	 * is finished. This is used to indicate whether we should
-	 * free the Material node under the Result (to support
-	 * correlated subqueries (CSQ)).
-	 */
-	bool subplanDone;
-} EagerFreeChildNodesContext;
-
-/*
- * EagerFreeWalker
- *    Walk the tree, and eager free the memory.
- */
-static CdbVisitOpt
-EagerFreeWalker(PlanState *node, void *context)
-{
-	EagerFreeChildNodesContext *ctx = (EagerFreeChildNodesContext *)context;
-
-	if (node == NULL)
-	{
-		return CdbVisit_Walk;
-	}
-	
-	if (IsA(node, MotionState))
-	{
-		/* Skip the subtree */
-		return CdbVisit_Skip;
-	}
-
-	if (IsA(node, ResultState))
-	{
-		ResultState *resultState = (ResultState *)node;
-		PlanState *lefttree = resultState->ps.lefttree;
-
-		/*
-		 * If the child node for the Result node is a Material, and the child node for
-		 * the Material is a Broadcast Motion, we can't eagerly free the memory for
-		 * the Material node until the subplan is done.
-		 */
-		if (!ctx->subplanDone && lefttree != NULL && IsA(lefttree, MaterialState))
-		{
-			PlanState *matLefttree = lefttree->lefttree;
-			Assert(matLefttree != NULL);
-			
-			if (IsA(matLefttree, MotionState) &&
-				((Motion*)matLefttree->plan)->motionType == MOTIONTYPE_FIXED)
-			{
-				ExecEagerFree(node);
-
-				/* Skip the subtree */
-				return CdbVisit_Skip;
-			}
-		}
-	}
-
-	ExecEagerFree(node);
-	
-	return CdbVisit_Walk;
-}
-
-/*
- * ExecEagerFreeChildNodes
- *    Eager free the memory for the child nodes.
- *
- * If this function is called when a subplan is finished, this function eagerly frees
- * the memory for all child nodes. Otherwise, it stops when it sees a Result node on top of
- * a Material and a Broadcast Motion. The reason that the Material node below the
- * Result can not be freed until the parent node of the subplan is finished.
- */
-void
-ExecEagerFreeChildNodes(PlanState *node, bool subplanDone)
-{
-	EagerFreeChildNodesContext ctx;
-	ctx.subplanDone = subplanDone;
-	
-	switch(nodeTag(node))
-	{
-		case T_AssertOpState:
-		case T_BitmapIndexScanState:
-		case T_LimitState:
-		case T_RepeatState:
 		case T_ResultState:
-		case T_SetOpState:
-		case T_ShareInputScanState:
-		case T_SubqueryScanState:
-		case T_TidScanState:
-		case T_UniqueState:
-		case T_HashState:
-		case T_ValuesScanState:
+			ExecSquelchNode(outerPlanState(node));
+			ExecSquelchNode(innerPlanState(node));
+			break;
+
+			/*
+			 * These node types have nothing to do, and have no children.
+			 */
 		case T_SeqScanState:
+		case T_IndexScanState:
 		case T_DynamicSeqScanState:
 		case T_DynamicIndexScanState:
 		case T_IndexOnlyScanState:
-		case T_ExternalScanState:
-		case T_IndexScanState:
-		case T_BitmapHeapScanState:
-		case T_DynamicBitmapHeapScanState:
-		case T_FunctionScanState:
-		case T_MaterialState:
-		case T_SortState:
-		case T_AggState:
-		case T_WindowAggState:
+		case T_DynamicBitmapIndexScanState:
+		case T_BitmapIndexScanState:
 		case T_ForeignScanState:
-		{
-			planstate_walk_node(outerPlanState(node), EagerFreeWalker, &ctx);
+		case T_ValuesScanState:
+		case T_TidScanState:
+		case T_TableFunctionState:
 			break;
-		}
 
-		case T_NestLoopState:
-		case T_MergeJoinState:
-		case T_BitmapAndState:
-		case T_BitmapOrState:
-		case T_HashJoinState:
+			/*
+			 * Node types that consume resources that we want to free eagerly,
+			 * as soon as possible.
+			 */
 		case T_RecursiveUnionState:
-		{
-			planstate_walk_node(innerPlanState(node), EagerFreeWalker, &ctx);
-			planstate_walk_node(outerPlanState(node), EagerFreeWalker, &ctx);
+			ExecSquelchRecursiveUnion((RecursiveUnionState *) node);
 			break;
-		}
-		
-		case T_AppendState:
-		{
-			AppendState *appendState = (AppendState *)node;
-			for (int planNo = 0; planNo < appendState->as_nplans; planNo++)
-			{
-				planstate_walk_node(appendState->appendplans[planNo], EagerFreeWalker, &ctx);
-			}
-			
+
+		case T_ExternalScanState:
+			ExecSquelchExternalScan((ExternalScanState *) node);
 			break;
-		}
-			
-		case T_MotionState:
-		{
-			/* do nothing */
+
+		case T_BitmapHeapScanState:
+			ExecSquelchBitmapHeapScan((BitmapHeapScanState *) node);
 			break;
-		}
-			
+
+		case T_FunctionScanState:
+			ExecSquelchFunctionScan((FunctionScanState *) node);
+			break;
+
+		case T_HashJoinState:
+			ExecSquelchHashJoin((HashJoinState *) node);
+			break;
+
+		case T_MaterialState:
+			ExecSquelchMaterial((MaterialState*) node);
+			break;
+
+		case T_SortState:
+			ExecSquelchSort((SortState *) node);
+			break;
+
+		case T_AggState:
+			ExecSquelchAgg((AggState*) node);
+			break;
+
+		case T_WindowAggState:
+			ExecSquelchWindowAgg((WindowAggState *) node);
+			break;
+
+		case T_ShareInputScanState:
+			ExecSquelchShareInputScan((ShareInputScanState *) node);
+			break;
+
 		default:
-		{
-			Insist(false);
+			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));
 			break;
-		}
 	}
+
+	/*
+	 * Also recurse into subplans, if any. (InitPlans are handled as a separate step,
+	 * at executor startup, and don't need squelching.)
+	 */
+	foreach(lc, node->subPlan)
+	{
+		SubPlanState *sps = (SubPlanState *) lfirst(lc);
+		PlanState  *ips = sps->planstate;
+
+		if (!ips)
+			elog(ERROR, "subplan has no planstate");
+		ExecSquelchNode(ips);
+	}
+
+	node->squelched = true;
 }
 
 /*

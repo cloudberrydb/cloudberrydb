@@ -2127,15 +2127,6 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 	 */
 	if (ds)
 	{
-		/*
-		 * If we are finishing a query before all the tuples of the query
-		 * plan were fetched we must call ExecSquelchNode before checking
-		 * the dispatch results in order to tell the nodes below we no longer
-		 * need any more tuples.
-		 */
-		if (estate->es_interconnect_is_setup && !estate->es_got_eos)
-			ExecSquelchNode(queryDesc->planstate);
-
 		estate->dispatcherState = NULL;
 		CdbDispatchHandleError(ds);
 	}

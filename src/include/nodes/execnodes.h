@@ -1402,14 +1402,6 @@ typedef struct PlanState
 	Bitmapset  *chgParam;		/* set of IDs of changed Params */
 
 	/*
-	 * Indicate whether it is unsafe to eager free the memory used by this node when
-	 * this node outputted its last row.
-	 *
-	 * The unsafe cases are Mark/Restore, Rescan on Material/Sort on top of a Motion.
-	 */
-	bool		delayEagerFree;
-
-	/*
 	 * Other run-time state needed by most if not all node types.
 	 */
 	TupleTableSlot *ps_ResultTupleSlot; /* slot for my result tuples */
@@ -1429,8 +1421,9 @@ typedef struct PlanState
 	 */
 	int		gpmon_plan_tick;
 	gpmon_packet_t gpmon_pkt;
-
 	bool		fHadSentNodeStart;
+
+	bool		squelched;		/* has ExecSquelchNode() been called already? */
 
 	/* MemoryAccount to use for recording the memory usage of different plan nodes. */
 	MemoryAccountIdType memoryAccountId;
@@ -2065,6 +2058,9 @@ typedef struct FunctionScanState
 	ItemPointerData cdb_fake_ctid;
 	ItemPointerData cdb_mark_ctid;
 	MemoryContext argcontext;
+
+	bool		delayEagerFree;		/* is is safe to free memory used by this node,
+									 * when this node has outputted its last row? */
 } FunctionScanState;
 
 
@@ -2277,7 +2273,6 @@ typedef struct NestLoopState
 	JoinState	js;				/* its first field is NodeTag */
 	bool		nl_NeedNewOuter;
 	bool		nl_MatchedOuter;
-	bool		nl_innerSquelchNeeded;	/*CDB*/
 	bool		shared_outer;
 	bool		prefetch_inner;
 	bool		reset_inner; /*CDB-OLAP*/
@@ -2289,6 +2284,9 @@ typedef struct NestLoopState
 	List	   *nl_OuterJoinKeys;        /* list of ExprState nodes */
 	bool		nl_innerSideScanned;      /* set to true once we've scanned all inner tuples the first time */
 	bool		nl_qualResultForNull;     /* the value of the join condition when one of the sides contains a NULL */
+
+	bool		delayEagerFree;		/* is is safe to free memory used by this node,
+									 * when this node has outputted its last row? */
 } NestLoopState;
 
 /* ----------------
@@ -2335,7 +2333,9 @@ typedef struct MergeJoinState
 	ExprContext *mj_OuterEContext;
 	ExprContext *mj_InnerEContext;
 	bool		prefetch_inner; /* MPP-3300 */
-	bool		mj_squelchInner; /* MPP-3300 */
+
+	bool		delayEagerFree;		/* is is safe to free memory used by this node,
+									 * when this node has outputted its last row? */
 } MergeJoinState;
 
 /* ----------------
@@ -2435,6 +2435,9 @@ typedef struct MaterialState
 	bool		eof_underlying; /* reached end of underlying plan? */
 	bool		ts_destroyed;	/* called destroy tuple store? */
 
+	bool		delayEagerFree;		/* is is safe to free memory used by this node,
+									 * when this node has outputted its last row? */
+
 	GenericTupStore *ts_state;	/* private state of tuplestore.c */
 	void	   *ts_pos;
 	void	   *ts_markpos;
@@ -2484,6 +2487,9 @@ typedef struct SortState
 	int64		bound_Done;		/* value of bound we did the sort with */
 	GenericTupStore *tuplesortstate; /* private state of tuplesort.c */
 	bool		noduplicates;	/* true if discard duplicate rows */
+
+	bool		delayEagerFree;		/* is is safe to free memory used by this node,
+									 * when this node has outputted its last row? */
 
 	void	   *share_lk_ctxt;
 
@@ -2769,6 +2775,9 @@ typedef struct LimitState
 	LimitStateCond lstate;		/* state machine status, as above */
 	int64		position;		/* 1-based index of last tuple returned */
 	TupleTableSlot *subSlot;	/* tuple last obtained from subplan */
+
+	bool		delayEagerFree;		/* is is safe to free memory used by this node,
+									 * when this node has outputted its last row? */
 } LimitState;
 
 /*

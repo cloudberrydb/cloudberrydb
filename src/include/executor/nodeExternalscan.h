@@ -19,8 +19,7 @@
 extern ExternalScanState *ExecInitExternalScan(ExternalScan *node, EState *estate, int eflags);
 extern TupleTableSlot *ExecExternalScan(ExternalScanState *node);
 extern void ExecEndExternalScan(ExternalScanState *node);
-extern void ExecStopExternalScan(ExternalScanState *node);
 extern void ExecReScanExternal(ExternalScanState *node);
-extern void ExecEagerFreeExternalScan(ExternalScanState *node);
+extern void ExecSquelchExternalScan(ExternalScanState *node);
 
 #endif   /* NODEEXTERNALSCAN_H */

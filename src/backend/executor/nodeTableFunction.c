@@ -23,7 +23,6 @@
  *	 ExecTableFunctionNext			retrieve next tuple in sequential order.
  *	 ExecInitTableFunctionScan		creates and initializes a externalscan node.
  *	 ExecEndTableFunctionScan		releases any storage allocated.
- *	 ExecStopTableFunctionScan		closes external resources before EOD.
  *	 ExecTableFunctionReScan		rescans the relation
  *
  * Portions Copyright (c) 2011, EMC

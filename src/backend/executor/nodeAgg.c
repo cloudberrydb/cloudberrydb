@@ -190,6 +190,7 @@ static void clear_agg_object(AggState *aggstate);
 static TupleTableSlot *agg_retrieve_direct(AggState *aggstate);
 static TupleTableSlot *agg_retrieve_hash_table(AggState *aggstate);
 static void ExecAggExplainEnd(PlanState *planstate, struct StringInfoData *buf);
+static void ExecEagerFreeAgg(AggState *node);
 
 static void *
 cxt_alloc(void *manager, Size len)
@@ -2815,7 +2816,7 @@ get_grouping_groupid(TupleTableSlot *slot, int grping_attno)
 	return grouping;
 }
 
-void
+static void
 ExecEagerFreeAgg(AggState *node)
 {
 	/* Close any open tuplesorts */
@@ -2856,4 +2857,11 @@ ExecEagerFreeAgg(AggState *node)
 		pfree(node->grp_firstTuple);
 		node->grp_firstTuple = NULL;
 	}
+}
+
+void
+ExecSquelchAgg(AggState *node)
+{
+	ExecEagerFreeAgg(node);
+	ExecSquelchNode(outerPlanState(node));
 }

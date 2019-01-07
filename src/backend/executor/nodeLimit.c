@@ -39,8 +39,8 @@ static void pass_down_bound(LimitState *node, PlanState *child_node);
  *		filtering on the stream of tuples returned by a subplan.
  * ----------------------------------------------------------------
  */
-TupleTableSlot *				/* return: a tuple or NULL */
-ExecLimit(LimitState *node)
+static TupleTableSlot *				/* return: a tuple or NULL */
+ExecLimit_guts(LimitState *node)
 {
 	ScanDirection direction;
 	TupleTableSlot *slot;
@@ -83,14 +83,6 @@ ExecLimit(LimitState *node)
 			if (node->count <= 0 && !node->noCount)
 			{
 				node->lstate = LIMIT_EMPTY;
-
-				/*
-				 * CDB: We'll read no more from outer subtree. To keep our
-				 * sibling QEs from being starved, tell source QEs not to clog
-				 * up the pipeline with our never-to-be-consumed data.
-				 */
-				ExecSquelchNode(outerPlan);
-
 				return NULL;
 			}
 
@@ -126,7 +118,6 @@ ExecLimit(LimitState *node)
 			 * The subplan is known to return no tuples (or not more than
 			 * OFFSET tuples, in general).  So we return no tuples.
 			 */
-			ExecSquelchNode(outerPlan); /* CDB */
 			return NULL;
 
 		case LIMIT_INWINDOW:
@@ -142,7 +133,6 @@ ExecLimit(LimitState *node)
 					node->position - node->offset >= node->count)
 				{
 					node->lstate = LIMIT_WINDOWEND;
-					ExecSquelchNode(outerPlan); /* CDB */
 					return NULL;
 				}
 
@@ -167,7 +157,6 @@ ExecLimit(LimitState *node)
 				if (node->position <= node->offset + 1)
 				{
 					node->lstate = LIMIT_WINDOWSTART;
-					ExecSquelchNode(outerPlan); /* CDB */
 					return NULL;
 				}
 
@@ -235,6 +224,26 @@ ExecLimit(LimitState *node)
 	Assert(!TupIsNull(slot));
 
 	return slot;
+}
+
+TupleTableSlot *
+ExecLimit(LimitState *node)
+{
+	TupleTableSlot *result;
+
+	result = ExecLimit_guts(node);
+
+	if (TupIsNull(result) && !node->delayEagerFree)
+	{
+		/*
+		 * CDB: We'll read no more from inner subtree. To keep our sibling
+		 * QEs from being starved, tell source QEs not to clog up the
+		 * pipeline with our never-to-be-consumed data.
+		 */
+		ExecSquelchNode((PlanState *) node);
+	}
+
+	return result;
 }
 
 /*
@@ -400,6 +409,8 @@ ExecInitLimit(Limit *node, EState *estate, int eflags)
 	limitstate->ps.state = estate;
 
 	limitstate->lstate = LIMIT_INITIAL;
+
+	limitstate->delayEagerFree = (eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD)) != 0;
 
 	/*
 	 * Miscellaneous initialization

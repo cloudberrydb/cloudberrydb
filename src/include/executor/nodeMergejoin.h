@@ -20,6 +20,5 @@ extern MergeJoinState *ExecInitMergeJoin(MergeJoin *node, EState *estate, int ef
 extern TupleTableSlot *ExecMergeJoin(MergeJoinState *node);
 extern void ExecEndMergeJoin(MergeJoinState *node);
 extern void ExecReScanMergeJoin(MergeJoinState *node);
-extern void ExecEagerFreeMergeJoin(MergeJoinState *node);
 
 #endif   /* NODEMERGEJOIN_H */

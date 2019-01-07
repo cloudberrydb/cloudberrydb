@@ -21,4 +21,6 @@ extern TupleTableSlot *ExecMergeAppend(MergeAppendState *node);
 extern void ExecEndMergeAppend(MergeAppendState *node);
 extern void ExecReScanMergeAppend(MergeAppendState *node);
 
+extern void ExecSquelchMergeAppend(MergeAppendState *node);
+
 #endif   /* NODEMERGEAPPEND_H */

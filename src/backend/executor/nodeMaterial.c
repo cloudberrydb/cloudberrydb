@@ -36,6 +36,7 @@ static void ExecMaterialExplainEnd(PlanState *planstate, struct StringInfoData *
 static void ExecChildRescan(MaterialState *node);
 static void DestroyTupleStore(MaterialState *node);
 
+static void ExecEagerFreeMaterial(MaterialState *node);
 
 /* ----------------------------------------------------------------
  *		ExecMaterial
@@ -220,7 +221,7 @@ ExecMaterial(MaterialState *node)
 		if (TupIsNull(outerslot))
 		{
 			node->eof_underlying = true;
-			if (!node->ss.ps.delayEagerFree)
+			if (!node->delayEagerFree)
 			{
 				ExecEagerFreeMaterial(node);
 			}
@@ -238,7 +239,7 @@ ExecMaterial(MaterialState *node)
 	}
 
 
-	if (!node->ss.ps.delayEagerFree)
+	if (!node->delayEagerFree)
 	{
 		ExecEagerFreeMaterial(node);
 	}
@@ -315,7 +316,7 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
 	 * then this node is not eager free safe.
 	 */
-	matstate->ss.ps.delayEagerFree =
+	matstate->delayEagerFree =
 		((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
 
 	/*
@@ -355,7 +356,7 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	 */
 	if (IsA(outerPlan((Plan *)node), Motion))
 	{
-		matstate->ss.ps.delayEagerFree = true;
+		matstate->delayEagerFree = true;
 	}
 
 	/*
@@ -598,7 +599,7 @@ ExecReScanMaterial(MaterialState *node)
 	}
 }
 
-void
+static void
 ExecEagerFreeMaterial(MaterialState *node)
 {
 	Material   *ma = (Material *) node->ss.ps.plan;
@@ -640,4 +641,11 @@ ExecEagerFreeMaterial(MaterialState *node)
 
 		DestroyTupleStore(node);
 	}
+}
+
+void
+ExecSquelchMaterial(MaterialState *node)
+{
+	ExecEagerFreeMaterial(node);
+	ExecSquelchNode(outerPlanState(node));
 }
