@@ -24,7 +24,7 @@ OBJS	= pg_rewind.o parsexlog.o xlogreader.o datapagemap.o timeline.o \
 	fetch.o file_ops.o copy_fetch.o libpq_fetch.o filemap.o logging.o compat.o \
 	$(WIN32RES)
 
-EXTRA_CLEAN = xlogreader.c compact.c
+EXTRA_CLEAN = xlogreader.c compat.c
 
 REGRESS = basictest extrafiles databases pg_xlog_symlink unclean_shutdown simple_no_rewind_required ao_rewind bitmaptest
 REGRESS_OPTS=--use-existing --launcher=./launcher
