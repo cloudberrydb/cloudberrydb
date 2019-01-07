@@ -1691,51 +1691,6 @@ build_exclude_list(char **exclude_list, int num)
 }
 
 static void
-create_replication_slot(const char *slot_name)
-{
-	PGresult   *res;
-	char *create_slot_command;
-	bool is_result_an_error;
-	bool is_unexpected_number_of_tuples;
-	bool is_unexpected_number_of_fields;
-
-	const int expected_number_of_tuples = 1;
-	const int expected_number_of_fields = 4;
-
-	create_slot_command = psprintf("CREATE_REPLICATION_SLOT \"%s\" PHYSICAL",
-	                               slot_name);
-
-	res = PQexec(conn, create_slot_command);
-
-	is_result_an_error = PQresultStatus(res) != PGRES_TUPLES_OK;
-
-	if (is_result_an_error)
-	{
-		fprintf(stderr, _("%s: could not send replication command \"%s\": %s"),
-		        progname, create_slot_command, PQerrorMessage(conn));
-		disconnect_and_exit(1);
-	}
-
-	is_unexpected_number_of_tuples = PQntuples(res) !=
-			expected_number_of_tuples;
-
-	is_unexpected_number_of_fields = PQnfields(res) !=
-			expected_number_of_fields;
-	
-	if (is_unexpected_number_of_tuples || is_unexpected_number_of_fields)
-	{
-		fprintf(stderr,
-		        _("%s: could not create replication slot \"%s\": got %d rows and %d fields, expected %d rows and %d fields\n"),
-		        progname, slot_name, PQntuples(res), PQnfields(res),
-		        expected_number_of_tuples, expected_number_of_fields);
-		disconnect_and_exit(1);
-	}
-
-	Assert(strncmp(slot_name, PQgetvalue(res, 0, 0), strlen(slot_name)) == 0);
-	PQclear(res);
-}
-
-static void
 BaseBackup(void)
 {
 	PGresult   *res;
@@ -1805,7 +1760,7 @@ BaseBackup(void)
 	 */
 	if (replication_slot)
 	{
-		create_replication_slot(replication_slot);
+		CreateReplicationSlot(conn, replication_slot, NULL, NULL, true);
 	}
 
 	/*
