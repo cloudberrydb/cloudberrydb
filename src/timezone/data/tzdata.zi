@@ -1,4 +1,4 @@
-# version 2018h
+# version 2018i
 # This zic input file is in the public domain.
 R d 1916 o - Jun 14 23s 1 S
 R d 1916 1919 - O Sun>=1 23s 0 -
@@ -267,7 +267,8 @@ Z Indian/Reunion 3:41:52 - LMT 1911 Jun
 Z Africa/Sao_Tome 0:26:56 - LMT 1884
 -0:36:45 - LMT 1912 Ja 1 0u
 0 - GMT 2018 Ja 1 1
-1 - WAT
+1 - WAT 2019 Ja 1 2
+0 - GMT
 Z Indian/Mahe 3:41:48 - LMT 1906 Jun
 4 - +04
 R SA 1942 1943 - S Sun>=15 2 1 -
