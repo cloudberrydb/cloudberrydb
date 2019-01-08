@@ -21,6 +21,37 @@ from gppylib.utils import parseKeyColonValueLines
 
 logger = gplog.get_default_logger()
 
+# Return codes for PQping(), exported by libpq and returned from pg_isready.
+PQPING_OK = 0
+PQPING_REJECT = 1
+PQPING_NO_RESPONSE = 2
+PQPING_NO_ATTEMPT = 3
+PQPING_MIRROR_READY = 64
+
+def _get_segment_status(segment):
+    cmd = base.Command('pg_isready for segment',
+                       "pg_isready -q -h %s -p %d" % (segment.hostname, segment.port))
+    cmd.run()
+
+    rc = cmd.get_return_code()
+
+    if rc == PQPING_OK:
+        if segment.role == gparray.ROLE_PRIMARY:
+            return 'Up'
+        elif segment.role == gparray.ROLE_MIRROR:
+            return 'Acting as Primary'
+    elif rc == PQPING_REJECT:
+        return 'Rejecting Connections'
+    elif rc == PQPING_NO_RESPONSE:
+        return 'Down'
+    elif rc == PQPING_MIRROR_READY:
+        if segment.role == gparray.ROLE_PRIMARY:
+            return 'Acting as Mirror'
+        elif segment.role == gparray.ROLE_MIRROR:
+            return 'Up'
+
+    return None
+
 #
 # todo: the file containing this should be renamed since it gets more status than just from transition
 #
@@ -87,39 +118,6 @@ class GpSegStatusProgram:
             'pidValue' : pidValue
         }
 
-    def __processMirrorStatusOutput(self, str):
-        data = parseKeyColonValueLines(str)
-
-        if data is None:
-            return data
-
-        # verify that all expected ones are there
-        for expected in ["mode","segmentState","dataState", "postmasterState", "databaseStatus", "isFullResync",
-                            "resyncNumCompleted","resyncTotalToComplete","estimatedCompletionTimeSecondsSinceEpoch",
-                            "totalResyncObjectCount", "curResyncObjectCount", "changeTrackingBytesUsed"]:
-            if expected not in data:
-                logger.warn("Missing data key %s from str %s" % (expected, str))
-                return None
-
-        # convert some to long integers
-        for toConvert in ["resyncNumCompleted","resyncTotalToComplete","estimatedCompletionTimeSecondsSinceEpoch",
-                            "changeTrackingBytesUsed"]:
-            value = data[toConvert]
-            try:
-                data[toConvert] = long(value)
-            except ValueError:
-                logger.warn("Invalid integer value %s from str %s" % (value, str))
-                return None
-
-        # convert some to booleans
-        for toConvert in ["isFullResync"]:
-            if data[toConvert] != "1" and data[toConvert] != "0":
-                logger.warn("Invalid boolean str %s" % (str))
-                return None
-            data[toConvert] = (data[toConvert] == "1")
-
-        return data
-
     def run(self):
 
         if self.__options.statusQueryRequests is None:
@@ -143,9 +141,9 @@ class GpSegStatusProgram:
                         data = data.rstrip()
 
                 elif statusRequest == gp.SEGMENT_STATUS__GET_MIRROR_STATUS:
-#                    data = self.getStatusUsingTransition(seg, statusRequest, pidRunningStatus)
+                    data = _get_segment_status(seg)
                     if data is not None:
-                        data = self.__processMirrorStatusOutput(data)
+                        data = {'databaseStatus': data}
 
                 elif statusRequest == gp.SEGMENT_STATUS__GET_PID:
                     data = self.getPidStatus(seg, pidRunningStatus)

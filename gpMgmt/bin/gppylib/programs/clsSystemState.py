@@ -1103,7 +1103,7 @@ class GpSystemStateProgram:
                 databaseStatusIsWarning = True
             else:
                 databaseStatus = segmentData[gp.SEGMENT_STATUS__GET_MIRROR_STATUS]["databaseStatus"]
-                databaseStatusIsWarning = databaseStatus == "Uninitialized" or databaseStatus == "Down"
+                databaseStatusIsWarning = databaseStatus != "Up"
 
             if seg.isSegmentMirror(current_role=True):
                 data.addValue(VALUE__MIRROR_SEGMENT_STATUS, databaseStatus, databaseStatusIsWarning)
