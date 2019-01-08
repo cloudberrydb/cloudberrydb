@@ -607,7 +607,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 				nunused;
 	IndexBulkDeleteResult **indstats;
 	int			i;
-	int reindex_count = 1;
 	PGRUsage	ru0;
 	Buffer		vmbuffer = InvalidBuffer;
 	BlockNumber next_not_all_visible_block;
@@ -756,10 +755,9 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 
 			/* Remove index entries */
 			for (i = 0; i < nindexes; i++)
-				lazy_vacuum_index(Irel[i], &indstats[i], vacrelstats);
-
-			reindex_count++;
-
+				lazy_vacuum_index(Irel[i],
+								  &indstats[i],
+								  vacrelstats);
 			/* Remove tuples from heap */
 			lazy_vacuum_heap(onerel, vacrelstats);
 
@@ -1264,10 +1262,9 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 
 		/* Remove index entries */
 		for (i = 0; i < nindexes; i++)
-			lazy_vacuum_index(Irel[i], &indstats[i], vacrelstats);
-
-		reindex_count++;
-
+			lazy_vacuum_index(Irel[i],
+							  &indstats[i],
+							  vacrelstats);
 		/* Remove tuples from heap */
 		lazy_vacuum_heap(onerel, vacrelstats);
 		vacrelstats->num_index_scans++;

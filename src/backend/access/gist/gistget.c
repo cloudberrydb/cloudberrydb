@@ -133,7 +133,7 @@ gistindex_keytest(IndexScanDesc scan,
 			 * always be zero, but might as well pass it for possible future
 			 * use.)
 			 *
-			 * We initialize the recheck flag to true (the safest assumptison)
+			 * We initialize the recheck flag to true (the safest assumption)
 			 * in case the Consistent function forgets to set it.
 			 */
 			recheck = true;

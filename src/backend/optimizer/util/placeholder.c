@@ -4,7 +4,6 @@
  *	  PlaceHolderVar and PlaceHolderInfo manipulation routines
  *
  *
- * Portions Copyright (c) 2017, Pivotal Software Inc
  * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -22,7 +21,6 @@
 #include "optimizer/planmain.h"
 #include "optimizer/var.h"
 #include "utils/lsyscache.h"
-#include "parser/parse_expr.h"
 
 /* Local functions */
 static void find_placeholders_recurse(PlannerInfo *root, Node *jtnode);
@@ -314,7 +312,7 @@ update_placeholder_eval_levels(PlannerInfo *root, SpecialJoinInfo *new_sjinfo)
 					{
 						/* no, so add them in */
 						eval_at = bms_add_members(eval_at,
-												sjinfo->min_lefthand);
+												  sjinfo->min_lefthand);
 						eval_at = bms_add_members(eval_at,
 												  sjinfo->min_righthand);
 						/* we'll need another iteration */

@@ -6615,7 +6615,6 @@ PostmasterMarkPIDForWorkerNotify(int pid)
  */
 extern slock_t *ShmemLock;
 extern slock_t *ProcStructLock;
-extern PROC_HDR *ProcGlobal;
 extern PGPROC *AuxiliaryProcs;
 extern PMSignalData *PMSignalState;
 extern pgsocket pgStatSock;

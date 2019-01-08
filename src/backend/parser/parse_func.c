@@ -588,7 +588,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 
 	/*
 	 * If it's a variadic function call, transform the last nvargs arguments
-	 * into an array -- unless it's an "any" variadic.
+	 * into an array --- unless it's an "any" variadic.
 	 */
 	if (nvargs > 0 && vatype != ANYOID)
 	{

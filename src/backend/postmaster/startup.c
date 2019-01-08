@@ -242,8 +242,8 @@ StartupProcessMain(void)
 	StartupXLOG();
 
 	/*
-	 * Exit normally. Exit code 0 tells postmaster that we completed
-	 * recovery successfully.
+	 * Exit normally. Exit code 0 tells postmaster that we completed recovery
+	 * successfully.
 	 */
 	proc_exit(0);
 }

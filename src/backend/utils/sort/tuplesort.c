@@ -174,8 +174,8 @@ typedef struct
 {
 	MemTuple	tuple;			/* the tuple proper */
 	Datum		datum1;			/* value of first key column */
-	int			tupindex;		/* see notes above */
 	bool		isnull1;		/* is first key column NULL? */
+	int			tupindex;		/* see notes above */
 } SortTuple;
 
 
@@ -2952,7 +2952,6 @@ tuplesort_heap_insert(Tuplesortstate *state, SortTuple *tuple,
 {
 	SortTuple  *memtuples;
 	int			j;
-	int			comparestat;
 
 	/*
 	 * Save the tupleindex --- see notes above about writing on *tuple. It's a
@@ -2976,13 +2975,11 @@ tuplesort_heap_insert(Tuplesortstate *state, SortTuple *tuple,
 	{
 		int			i = (j - 1) >> 1;
 
-		comparestat = HEAPCOMPARE(tuple, &memtuples[i]);
-		if (comparestat >= 0)
+		if (HEAPCOMPARE(tuple, &memtuples[i]) >= 0)
 			break;
 		memtuples[j] = memtuples[i];
 		j = i;
 	}
-
 	memtuples[j] = *tuple;
 }
 

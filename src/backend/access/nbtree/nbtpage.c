@@ -22,7 +22,6 @@
  */
 #include "postgres.h"
 
-#include "access/heapam.h"	/* For RelationFetchGpRelationNodeForXLog. */
 #include "access/nbtree.h"
 #include "access/transam.h"
 #include "miscadmin.h"
@@ -729,7 +728,7 @@ _bt_relandgetbuf(Relation rel, Buffer obuf, BlockNumber blkno, int access)
  * Lock and pin (refcount) are both dropped.
  */
 void
-_bt_relbuf(Relation rel __attribute__((unused)), Buffer buf)
+_bt_relbuf(Relation rel, Buffer buf)
 {
 	UnlockReleaseBuffer(buf);
 }
@@ -805,10 +804,8 @@ _bt_delitems_vacuum(Relation rel, Buffer buf,
 					OffsetNumber *itemnos, int nitems,
 					BlockNumber lastBlockVacuumed)
 {
-	Page		page;
+	Page		page = BufferGetPage(buf);
 	BTPageOpaque opaque;
-
-	page = BufferGetPage(buf);
 
 	/* No ereport(ERROR) until changes are logged */
 	START_CRIT_SECTION();
@@ -818,8 +815,8 @@ _bt_delitems_vacuum(Relation rel, Buffer buf,
 		PageIndexMultiDelete(page, itemnos, nitems);
 
 	/*
-	 * If this is within VACUUM, we can clear the vacuum cycle ID since this
-	 * page has certainly been processed by the current vacuum scan.
+	 * We can clear the vacuum cycle ID since this page has certainly been
+	 * processed by the current vacuum scan.
 	 */
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	opaque->btpo_cycleid = 0;
