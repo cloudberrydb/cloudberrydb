@@ -91,9 +91,9 @@ ALTER
 SELECT * FROM rg_name_view;
  rsgname                      | concurrency 
 ------------------------------+-------------
- newlines 
- s p a c e s 
- t	a	b	s | 2           
+ newlines
+s p a c e s
+t	a	b	s | 2           
 (1 row)
 DROP   RESOURCE GROUP "newlines s p a c e s t	a	b	s";
 DROP
@@ -105,7 +105,7 @@ ALTER
 SELECT * FROM rg_name_view;
  rsgname                       | concurrency 
 -------------------------------+-------------
- !#$%&`()*+,-./:;<=>?@[]^_{ | }~ | 2           
+ !#$%&`()*+,-./:;<=>?@[]^_{|}~ | 2           
 (1 row)
 DROP   RESOURCE GROUP "!#$%&`()*+,-./:;<=>?@[]^_{|}~";
 DROP
