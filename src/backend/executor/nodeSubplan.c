@@ -1187,7 +1187,7 @@ PG_TRY();
 	}
 
 	/*
-	 * If we dispatched to QEs, wait for completion and check for errors.
+	 * If we dispatched to QEs, wait for completion.
 	 */
 	if (shouldDispatch && 
 		queryDesc && queryDesc->estate &&
@@ -1196,8 +1196,15 @@ PG_TRY();
 	{
 		CdbDispatcherState *ds = queryDesc->estate->dispatcherState;
 
-		/* Wait for all gangs to finish. */
-		cdbdisp_checkDispatchResult(ds, DISPATCH_WAIT_NONE);
+		/*
+		 * We are in a subplan, the eflags always contains EXEC_FLAG_REWIND which
+		 * means we cannot squelch the motion node earlier and some QEs still keep
+		 * sending tuples.
+		 *
+		 * we get all the tuples we needed, DISPATCH_WAIT_FINISH tell QEs stopping
+		 * sending tuples and wait them to complete.
+		 */
+		cdbdisp_checkDispatchResult(ds, DISPATCH_WAIT_FINISH);
 
 		/* If EXPLAIN ANALYZE, collect execution stats from qExecs. */
 		if (planstate->instrument && planstate->instrument->need_cdb)
