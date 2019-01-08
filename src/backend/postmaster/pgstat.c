@@ -70,8 +70,6 @@
 #include "utils/tqual.h"
 #include "cdb/cdbvars.h"
 
-// for mkdir
-#include "sys/stat.h"
 
 /* ----------
  * Timer definitions.
@@ -359,13 +357,6 @@ pgstat_init(void)
 	 */
 	StaticAssertStmt(sizeof(PgStat_Msg) <= PGSTAT_MAX_MSG_SIZE,
 				   "maximum stats message size exceeds PGSTAT_MAX_MSG_SIZE");
-
-	/*
-	 * Create stats temp directory if not present; ignore errors.
-	 * This avoids the need to initdb... This is temporary code, and
-	 * can be removed in the future, as initdb does this for us.
-	 */
-	mkdir("pg_stat_tmp", 0700);
 
 	/*
 	 * Create the UDP socket for sending and receiving statistic messages
