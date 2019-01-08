@@ -176,9 +176,9 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 
 	/*
 	 * Any xid >= xmax is in-progress, distributed xmax points to the
-	 * committer, so it must be visible, so ">" instead of ">="
+	 * latestCompletedDxid + 1.
 	 */
-	if (distribXid > ds->xmax)
+	if (distribXid >= ds->xmax)
 	{
 		elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 			 "distributedsnapshot committed but invisible: distribXid %d dxmax %d dxmin %d distribSnapshotId %d",

@@ -1,4 +1,6 @@
--- Test to validate GetSnapshotData()'s computation of globalXmin using
+-- Distributed snapshot tests
+
+-- Scenario1: Test to validate GetSnapshotData()'s computation of globalXmin using
 -- distributed snapshot. It mainly uses a old read-only transaction to help
 -- create situation where globalXmin can be lower than distributed oldestXmin
 -- when calling DistributedLog_AdvanceOldestXmin().
@@ -36,3 +38,18 @@ CREATE TABLE distributed_snapshot_test1 (a int);
 1: SELECT gp_inject_fault('distributedlog_advance_oldest_xmin', 'reset', dbid)
    from gp_segment_configuration where content = 0 and role = 'p';
 3<:
+
+-- Scenario2: This scenario tests the boundary condition for Xmax in distributed snapshot
+
+-- Setup
+CREATE TABLE distributed_snapshot_test2 (a int);
+
+-- start transaction assigns distributed xid.
+1: BEGIN ISOLATION LEVEL REPEATABLE READ;
+-- this sets latestCompletedXid
+2: INSERT INTO distributed_snapshot_test2 VALUES(1);
+-- here, take distributed snapshot
+1: SELECT 123 AS "establish snapshot";
+2: INSERT INTO distributed_snapshot_test2 VALUES(2);
+-- expected to see just VALUES(1)
+1: SELECT * FROM distributed_snapshot_test2;
