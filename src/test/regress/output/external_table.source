@@ -297,8 +297,8 @@ GRANT INSERT ON PROTOCOL demoprot TO extprotu;
 -- print with tuples-only mode : suppress diff related to user string length.
 SELECT ptcname, ptcacl FROM PG_EXTPROTOCOL WHERE ptcname = 'demoprot';
  demoprot | {@gpcurusername@=ar/@gpcurusername@,extprotu=ar/@gpcurusername@}
-\t off
 
+\t off
 SET SESSION AUTHORIZATION extprotu;
 CREATE WRITABLE EXTERNAL TABLE ext_w(a int) location('demoprot://demoprotfile.txt') format 'text'; -- should succeed
 -- For tables using custom protocol should have dependency

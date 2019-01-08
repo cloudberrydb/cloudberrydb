@@ -1366,10 +1366,24 @@ sub atmsort_bigloop
             {
                 $matches_copy_to_stdout = 1;
             }
-            # regex example: ---- or ---+---
-            # need at least 3 dashes to avoid confusion with "--" comments
+
+            # Try to detect the beginning of result set, as printed by psql
+            #
+            # Examples:
+            #
+            #    hdr    
+            # ----------
+            #
+            #  a | b 
+            # ---+---
+            #
+            # The previous line should be the header. It should have a space at the
+            # beginning and end. This line should consist of dashes and plus signs,
+            # with at least three dashes for each column.
+            #
             if (($matches_copy_to_stdout && $ini !~ m/order by/i) ||
-					$ini =~ m/^\s*(?:(?:\-\-)(?:\-)+(?:\+(?:\-)+)*)+\s*$/)
+                (scalar(@outarr) > 1 && $outarr[-1] =~ m/^\s+.*\s$/ &&
+                 $ini =~ m/^(?:(?:\-\-)(?:\-)+(?:\+(?:\-)+)*)$/))
                 # special case for copy select
             { # sort this region
 
