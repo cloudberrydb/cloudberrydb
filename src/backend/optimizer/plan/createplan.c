@@ -984,7 +984,6 @@ create_result_plan(PlannerInfo *root, ResultPath *best_path)
 	List	   *tlist;
 	List	   *quals;
 
-
 	/* The tlist will be installed later, since we have no RelOptInfo */
 	Assert(best_path->path.parent == NULL);
 	tlist = NIL;
@@ -5388,7 +5387,7 @@ find_ec_member_for_tle(EquivalenceClass *ec,
  *				targetlist or insert a Result node atop the subplan to
  *				evaluate sort key exprs that are not already present in the
  *				subplan's tlist.
-x */
+ */
 Sort *
 make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree, List *pathkeys,
 						double limit_tuples, bool add_keys_to_targetlist)

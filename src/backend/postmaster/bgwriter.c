@@ -101,6 +101,7 @@ static void BgSigHupHandler(SIGNAL_ARGS);
 static void ReqShutdownHandler(SIGNAL_ARGS);
 static void bgwriter_sigusr1_handler(SIGNAL_ARGS);
 
+
 /*
  * Main entry point for bgwriter process
  *

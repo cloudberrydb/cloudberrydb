@@ -221,7 +221,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 
 		elog(DEBUG3,"reserving %d semaphores",numSemas);
 		PGReserveSemaphores(numSemas, port);
-		
 	}
 	else
 	{

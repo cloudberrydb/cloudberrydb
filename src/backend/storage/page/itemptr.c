@@ -93,4 +93,3 @@ ItemPointerToString2(ItemPointer tid)
 {
 	return ItemPointerToBuffer(itemPointerBuffer2, tid);
 }
-

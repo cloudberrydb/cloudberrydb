@@ -376,7 +376,6 @@ CheckIndexCompatible(Oid oldId,
 	return ret;
 }
 
-
 /*
  * DefineIndex
  *		Creates a new index.

@@ -8409,7 +8409,6 @@ heap_xlog_insert(XLogRecPtr lsn, XLogRecord *record)
 		buffer = XLogReadBuffer(xlrec->target.node, blkno, false);
 		if (!BufferIsValid(buffer))
 			return;
-
 		page = (Page) BufferGetPage(buffer);
 
 		if (lsn <= PageGetLSN(page))	/* changes are applied */

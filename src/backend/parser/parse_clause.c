@@ -1703,20 +1703,20 @@ checkTargetlistEntrySQL92(ParseState *pstate, TargetEntry *tle,
 				contain_aggs_of_level((Node *) tle->expr, 0))
 				ereport(ERROR,
 						(errcode(ERRCODE_GROUPING_ERROR),
-						 /* translator: %s is name of a SQL construct, eg GROUP BY */
+				/* translator: %s is name of a SQL construct, eg GROUP BY */
 						 errmsg("aggregate functions are not allowed in %s",
 								ParseExprKindName(exprKind)),
 						 parser_errposition(pstate,
-											locate_agg_of_level((Node *) tle->expr, 0))));
+							   locate_agg_of_level((Node *) tle->expr, 0))));
 			if (pstate->p_hasWindowFuncs &&
 				contain_windowfuncs((Node *) tle->expr))
 				ereport(ERROR,
 						(errcode(ERRCODE_WINDOWING_ERROR),
-						 /* translator: %s is name of a SQL construct, eg GROUP BY */
+				/* translator: %s is name of a SQL construct, eg GROUP BY */
 						 errmsg("window functions are not allowed in %s",
 								ParseExprKindName(exprKind)),
 						 parser_errposition(pstate,
-											locate_windowfunc((Node *) tle->expr))));
+									locate_windowfunc((Node *) tle->expr))));
 			break;
 		case EXPR_KIND_ORDER_BY:
 			/* no extra checks needed */

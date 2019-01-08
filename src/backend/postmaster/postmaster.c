@@ -485,7 +485,6 @@ static void ConnFree(Port *port);
 static void reset_shared(int port);
 static void SIGHUP_handler(SIGNAL_ARGS);
 static void pmdie(SIGNAL_ARGS);
-
 static void reaper(SIGNAL_ARGS);
 static bool ServiceProcessesExist(int excludeFlags);
 static bool StopServices(int excludeFlags, int signal);
@@ -4600,7 +4599,6 @@ BackendStartup(Port *port)
 	pid = backend_forkexec(port);
 #else							/* !EXEC_BACKEND */
 	pid = fork_process();
-
 	if (pid == 0)				/* child */
 	{
 		free(bn);

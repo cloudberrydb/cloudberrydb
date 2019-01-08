@@ -586,15 +586,11 @@ scalarineqsel(PlannerInfo *root, Oid operator, bool isgt,
  * The function result is the MCV selectivity, and the fraction of the
  * total population is returned into *sumcommonp.  Zeroes are returned
  * if there is no MCV list.
- *
  */
-
 double
-mcv_selectivity(VariableStatData   *vardata,
-                    FmgrInfo           *opproc,
-				    Datum               constval,
-                    bool                varonleft,
-				    double        *sumcommonp)     /* OUT */
+mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
+				Datum constval, bool varonleft,
+				double *sumcommonp)
 {
 	double		mcv_selec,
 				sumcommon;

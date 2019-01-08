@@ -218,7 +218,8 @@ add_vars_to_targetlist(PlannerInfo *root, List *vars,
 			{
 				/* Variable not yet requested, so add to reltargetlist */
 				/* XXX is copyObject necessary here? */
-				rel->reltargetlist = lappend(rel->reltargetlist, copyObject(var));
+				rel->reltargetlist = lappend(rel->reltargetlist,
+											 copyObject(var));
 			}
 			rel->attr_needed[attno] = bms_add_members(rel->attr_needed[attno],
 													   where_needed);

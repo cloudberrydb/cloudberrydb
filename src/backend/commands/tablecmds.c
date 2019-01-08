@@ -9004,7 +9004,6 @@ ATExecAddIndexConstraint(AlteredTableInfo *tab, Relation rel,
 /*
  * ALTER TABLE ADD CONSTRAINT
  */
-
 static void
 ATExecAddConstraint(List **wqueue, AlteredTableInfo *tab, Relation rel,
 					Constraint *newConstraint, bool recurse, bool is_readd,
@@ -9163,7 +9162,6 @@ ATAddCheckConstraint(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	 * Propagate to children as appropriate.  Unlike most other ALTER
 	 * routines, we have to do this one level of recursion at a time; we can't
 	 * use find_all_inheritors to do it in one pass.
-
 	 */
 	children = find_inheritance_children(RelationGetRelid(rel), lockmode);
 
@@ -19425,7 +19423,7 @@ void
 AlterTableNamespaceInternal(Relation rel, Oid oldNspOid, Oid nspOid,
 							ObjectAddresses *objsMoved)
 {
-	Relation        classRel;
+	Relation	classRel;
 
 	Assert(objsMoved != NULL);
 

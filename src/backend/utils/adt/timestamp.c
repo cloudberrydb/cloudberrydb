@@ -4194,6 +4194,7 @@ interval_avg(PG_FUNCTION_ARGS)
 							   Float8GetDatum((double) N.time));
 }
 
+
 /* timestamp_age()
  * Calculate time difference while retaining year/month fields.
  * Note that this does not result in an accurate absolute time span

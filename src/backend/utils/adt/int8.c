@@ -672,6 +672,7 @@ int8mod(PG_FUNCTION_ARGS)
 	PG_RETURN_INT64(arg1 % arg2);
 }
 
+
 Datum
 int8inc(PG_FUNCTION_ARGS)
 {

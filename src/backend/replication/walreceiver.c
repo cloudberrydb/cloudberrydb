@@ -488,7 +488,6 @@ WalReceiverMain(void)
 							endofwal = true;
 							break;
 						}
-
 						len = walrcv_receive(0, &buf);
 					}
 

@@ -415,14 +415,14 @@ InitLocks(void)
 	 * calculations must agree with LockShmemSize!
 	 */
 	max_table_size = NLOCKENTS();
-	
-		/* Allow for extra entries if resource locking is enabled. */
+
+	/* Allow for extra entries if resource locking is enabled. */
 	if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled())
 	{
 		add_size(max_table_size, NRESLOCKENTS() );
 		//add_size(max_plock_table_size, NRESPROCLOCKENTS() );
 	}
-	
+
 	init_table_size = max_table_size / 2;
 
 	/*
@@ -1173,7 +1173,7 @@ LockAcquireExtended(const LOCKTAG *locktag,
 				*locallockp = NULL;
 			return LOCKACQUIRE_NOT_AVAIL;
 		}
-		
+
 		if (Gp_role == GP_ROLE_EXECUTE)
 		{
 			if (!Gp_is_writer)
@@ -1185,7 +1185,7 @@ LockAcquireExtended(const LOCKTAG *locktag,
 					 locktag->locktag_field1, locktag->locktag_field2,
 					 lock_mode_names[lockmode]);
 		}
-		
+
 		/*
 		 * Set bitmask of locks this process already holds on this object.
 		 */

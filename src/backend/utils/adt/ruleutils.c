@@ -2679,6 +2679,7 @@ set_deparse_context_planstate(List *dpcontext,
 	/* Set our attention on the specific plan node passed in */
 	set_deparse_planstate(dpns, (PlanState *) planstate);
 	dpns->ancestors = ancestors;
+
 	return dpcontext;
 }
 
@@ -5345,7 +5346,6 @@ get_rule_windowspec(WindowClause *wc, List *targetList,
 	ListCell   *l;
 
 	appendStringInfoChar(buf, '(');
-
 	if (wc->refname)
 	{
 		appendStringInfoString(buf, quote_identifier(wc->refname));

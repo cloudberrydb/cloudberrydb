@@ -91,6 +91,7 @@ ProtectMemoryPoolBuffers()
  *		backend.
  */
 
+
 /*
  * Initialize shared buffer pool
  *

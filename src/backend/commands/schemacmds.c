@@ -40,8 +40,8 @@
 #include "cdb/cdbsrlz.h"
 #include "cdb/cdbvars.h"
 
-static void AlterSchemaOwner_internal(HeapTuple tup, Relation rel, Oid newOwnerId);
 
+static void AlterSchemaOwner_internal(HeapTuple tup, Relation rel, Oid newOwnerId);
 
 /*
  * CREATE SCHEMA
@@ -253,6 +253,7 @@ RemoveSchemaById(Oid schemaOid)
 
 	heap_close(relation, RowExclusiveLock);
 }
+
 
 /*
  * Rename schema

@@ -97,6 +97,7 @@ static bool IsForInput;
 /* local state for LockBufferForCleanup */
 static volatile BufferDesc *PinCountWaitBuf = NULL;
 
+
 static Buffer ReadBuffer_common(SMgrRelation reln, char relpersistence,
 				  ForkNumber forkNum, BlockNumber blockNum,
 				  ReadBufferMode mode, BufferAccessStrategy strategy,
@@ -1074,7 +1075,6 @@ retry:
 		/* safety check: should definitely not be our *own* pin */
 		if (PrivateRefCount[buf->buf_id] != 0)
 			elog(ERROR, "buffer is pinned in InvalidateBuffer");
-
 		WaitIO(buf);
 		goto retry;
 	}
@@ -1830,7 +1830,7 @@ SyncOneBuffer(int buf_id, bool skip_recently_used)
 {
 	volatile BufferDesc *bufHdr = &BufferDescriptors[buf_id];
 	int			result = 0;
-	
+
 	/*
 	 * Check whether buffer needs writing.
 	 *
@@ -2606,7 +2606,7 @@ FlushRelationBuffers(Relation rel)
 				Page		localpage;
 
 				localpage = (char *) LocalBufHdrGetBlock(bufHdr);
-				
+
 				/* Setup error traceback support for ereport() */
 				errcallback.callback = local_buffer_write_error_callback;
 				errcallback.arg = (void *) bufHdr;
@@ -2793,7 +2793,6 @@ IncrBufferRefCount(Buffer buffer)
 	ResourceOwnerRememberBuffer(CurrentResourceOwner, buffer);
 }
 
-
 /*
  * MarkBufferDirtyHint
  *
@@ -2932,7 +2931,6 @@ MarkBufferDirtyHint(Buffer buffer, bool buffer_std)
 		}
 	}
 }
-
 
 /*
  * Release buffer content locks for shared buffers.

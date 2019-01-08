@@ -392,6 +392,7 @@ the index.  (indcheckxmin is only needed because non-concurrent CREATE
 INDEX doesn't want to wait; its stronger lock would create too much risk of
 deadlock if it did.)
 
+
 DROP INDEX CONCURRENTLY
 -----------------------
 

@@ -155,7 +155,7 @@ record_in(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 				 errmsg("malformed record literal: \"%s\"", string),
-				 errdetail("Missing left parenthesis.")));		
+				 errdetail("Missing left parenthesis.")));
 	}
 
 	initStringInfo(&buf);
@@ -213,7 +213,7 @@ record_in(PG_FUNCTION_ARGS)
 							(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 							 errmsg("malformed record literal: \"%s\"",
 									string),
-							 errdetail("Unexpected end of input.")));					
+							 errdetail("Unexpected end of input.")));
 				}
 				if (ch == '\\')
 				{

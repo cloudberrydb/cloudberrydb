@@ -280,6 +280,7 @@ strtoint(const char *nptr, char **endptr, int base)
 	return (int) val;
 }
 
+
 /*
  * Calendar time to Julian date conversions.
  * Julian date is commonly used in astronomical applications,

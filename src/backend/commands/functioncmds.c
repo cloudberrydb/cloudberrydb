@@ -212,8 +212,8 @@ interpret_function_parameter_list(List *parameters,
 	Datum	   *paramModes;
 	Datum	   *paramNames;
 	int			outCount = 0;
-	int         varCount = 0;
-	int         multisetCount = 0;
+	int			varCount = 0;
+	int			multisetCount = 0;
 	bool		have_names = false;
 	bool		have_defaults = false;
 	ListCell   *x;

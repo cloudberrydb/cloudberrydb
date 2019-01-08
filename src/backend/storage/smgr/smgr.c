@@ -711,6 +711,7 @@ smgrimmedsync(SMgrRelation reln, ForkNumber forknum)
 	mdimmedsync(reln, forknum);
 }
 
+
 /*
  *	smgrpreckpt() -- Prepare for checkpoint.
  */
@@ -721,7 +722,7 @@ smgrpreckpt(void)
 }
 
 /*
- *     smgrsync() -- Sync files to disk during checkpoint.
+ *	smgrsync() -- Sync files to disk during checkpoint.
  */
 void
 smgrsync(void)

@@ -1872,7 +1872,7 @@ WalSndCheckTimeOut(void)
 		 * standby.
 		 */
 		ereport(COMMERROR,
-				(errmsg("terminating walsender process due to replication timeout")));
+		(errmsg("terminating walsender process due to replication timeout")));
 
 		WalSndShutdown();
 	}

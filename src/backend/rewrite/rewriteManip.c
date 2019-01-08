@@ -1124,6 +1124,7 @@ replace_rte_variables(Node *node, int target_varno, int sublevels_up,
 		else
 			elog(ERROR, "replace_rte_variables inserted a SubLink, but has noplace to record it");
 	}
+
 	return result;
 }
 
@@ -1166,7 +1167,7 @@ replace_rte_variables_mutator(Node *node,
 			 */
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("WHERE CURRENT OF on a view is not implemented")));
+				   errmsg("WHERE CURRENT OF on a view is not implemented")));
 		}
 		/* otherwise fall through to copy the expr normally */
 	}
@@ -1191,6 +1192,7 @@ replace_rte_variables_mutator(Node *node,
 	return expression_tree_mutator(node, replace_rte_variables_mutator,
 								   (void *) context);
 }
+
 
 /*
  * map_variable_attnos() finds all user-column Vars in an expression tree
@@ -1218,10 +1220,10 @@ replace_rte_variables_mutator(Node *node,
 
 typedef struct
 {
-	int			target_varno;		/* RTE index to search for */
-	int			sublevels_up;		/* (current) nesting depth */
+	int			target_varno;	/* RTE index to search for */
+	int			sublevels_up;	/* (current) nesting depth */
 	const AttrNumber *attno_map;	/* map array for user attnos */
-	int			map_length;			/* number of entries in attno_map[] */
+	int			map_length;		/* number of entries in attno_map[] */
 	bool	   *found_whole_row;	/* output flag */
 } map_variable_attnos_context;
 
@@ -1239,8 +1241,8 @@ map_variable_attnos_mutator(Node *node,
 			var->varlevelsup == context->sublevels_up)
 		{
 			/* Found a matching variable, make the substitution */
-			Var	   *newvar = (Var *) palloc(sizeof(Var));
-			int		attno = var->varattno;
+			Var		   *newvar = (Var *) palloc(sizeof(Var));
+			int			attno = var->varattno;
 
 			*newvar = *var;
 			if (attno > 0)

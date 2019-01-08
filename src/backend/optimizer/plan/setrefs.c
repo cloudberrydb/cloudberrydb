@@ -1665,7 +1665,6 @@ fix_scan_expr_walker(Node *node, fix_scan_expr_context *context)
 	if (node == NULL)
 		return false;
 	Assert(!IsA(node, PlaceHolderVar));
-
 	fix_expr_common(context->root, node);
 	return expression_tree_walker(node, fix_scan_expr_walker,
 								  (void *) context);

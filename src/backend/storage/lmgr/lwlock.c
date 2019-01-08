@@ -683,7 +683,7 @@ LWLockAcquireCommon(LWLock *l, LWLockMode mode, uint64 *valptr, uint64 val)
 		else
 			lock->tail->lwWaitLink = proc;
 		lock->tail = proc;
-		
+
 		/* Can release the mutex now */
 		SpinLockRelease(&lock->mutex);
 
@@ -1246,7 +1246,6 @@ LWLockRelease(LWLock *l)
 	}
 	if (i < 0)
 		elog(ERROR, "lock %s %d is not held", T_NAME(l), T_ID(l));
-
 	num_held_lwlocks--;
 	for (; i < num_held_lwlocks; i++)
 	{
@@ -1378,6 +1377,7 @@ LWLockRelease(LWLock *l)
 	 */
 	RESUME_INTERRUPTS();
 }
+
 
 /*
  * LWLockReleaseAll - release all currently-held locks

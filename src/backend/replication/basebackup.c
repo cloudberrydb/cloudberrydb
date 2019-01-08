@@ -970,7 +970,7 @@ sendTablespace(char *path, bool sizeonly)
 	}
 	if (!sizeonly)
 		_tarWriteHeader(tablespace_version_directory(), NULL, &statbuf);
-	size = 512;		/* Size of the header just added */
+	size = 512;					/* Size of the header just added */
 
 	/* Send all the files in the tablespace version directory */
 	size += sendDir(pathbuf, strlen(path), sizeonly, NIL, NIL);

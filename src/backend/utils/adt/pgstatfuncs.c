@@ -784,7 +784,7 @@ pg_stat_get_activity(PG_FUNCTION_ARGS)
 			else
 			{
 				if (beentry->st_clientaddr.addr.ss_family == AF_INET
-					#ifdef HAVE_IPV6
+#ifdef HAVE_IPV6
 					|| beentry->st_clientaddr.addr.ss_family == AF_INET6
 #endif
 						)
@@ -932,6 +932,7 @@ pg_stat_get_backend_pid(PG_FUNCTION_ARGS)
 	PG_RETURN_INT32(beentry->st_procpid);
 }
 
+
 Datum
 pg_stat_get_backend_session_id(PG_FUNCTION_ARGS)
 {
@@ -943,7 +944,6 @@ pg_stat_get_backend_session_id(PG_FUNCTION_ARGS)
 
 	PG_RETURN_INT32(beentry->st_session_id);
 }
-
 
 
 Datum
@@ -1009,6 +1009,7 @@ pg_stat_get_backend_waiting(PG_FUNCTION_ARGS)
 
 	PG_RETURN_BOOL(result);
 }
+
 
 Datum
 pg_stat_get_backend_activity_start(PG_FUNCTION_ARGS)

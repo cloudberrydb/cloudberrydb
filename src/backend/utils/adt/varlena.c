@@ -1522,6 +1522,7 @@ varstr_cmp(char *arg1, int len1, char *arg2, int len2, Oid collid)
 	return result;
 }
 
+
 /* text_cmp()
  * Internal comparison function for text strings.
  * Returns -1, 0 or 1
@@ -3243,8 +3244,8 @@ split_text(PG_FUNCTION_ARGS)
 	text	   *inputstring = PG_GETARG_TEXT_PP(0);
 	text	   *fldsep = PG_GETARG_TEXT_PP(1);
 	int			fldnum = PG_GETARG_INT32(2);
-	int			inputstring_len; 
-	int			fldsep_len; 
+	int			inputstring_len;
+	int			fldsep_len;
 	TextPositionState state;
 	int			start_posn;
 	int			end_posn;
