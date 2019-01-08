@@ -16,17 +16,17 @@ BEGIN
 2: DELETE FROM ao WHERE a = 1;
 DELETE 1
 2: SELECT * FROM locktest_master WHERE coalesce = 'ao';
-coalesce|mode               |locktype                |node  
---------+-------------------+------------------------+------
-ao      |AccessExclusiveLock|append-only segment file|master
-ao      |AccessShareLock    |relation                |master
-ao      |ExclusiveLock      |relation                |master
+ coalesce | mode                | locktype                 | node   
+----------+---------------------+--------------------------+--------
+ ao       | AccessExclusiveLock | append-only segment file | master 
+ ao       | AccessShareLock     | relation                 | master 
+ ao       | ExclusiveLock       | relation                 | master 
 (3 rows)
 2: SELECT * FROM locktest_segments WHERE coalesce = 'ao';
-coalesce|mode            |locktype|node      
---------+----------------+--------+----------
-ao      |AccessShareLock |relation|n segments
-ao      |RowExclusiveLock|relation|n segments
+ coalesce | mode             | locktype | node       
+----------+------------------+----------+------------
+ ao       | AccessShareLock  | relation | n segments 
+ ao       | RowExclusiveLock | relation | n segments 
 (2 rows)
 -- The case here should delete a tuple at the same seg with(1).
 -- Under jump hash, (3) and (1) are on the same seg(seg2).
@@ -40,16 +40,16 @@ COMMIT
 3: BEGIN;
 BEGIN
 3: SELECT * FROM ao WHERE a < 5 ORDER BY a;
-a
--
-2
-4
+ a 
+---
+ 2 
+ 4 
 (2 rows)
 3: COMMIT;
 COMMIT
 2U: SELECT * FROM gp_toolkit.__gp_aovisimap('ao');
-tid             |segno|row_num
-----------------+-----+-------
-(33554432,32769)|1    |1      
-(33554432,32770)|1    |2      
+ tid              | segno | row_num 
+------------------+-------+---------
+ (33554432,32769) | 1     | 1       
+ (33554432,32770) | 1     | 2       
 (2 rows)

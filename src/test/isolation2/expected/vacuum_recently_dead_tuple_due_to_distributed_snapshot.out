@@ -33,9 +33,9 @@ CREATE
 -- afunc(). (But first sleep a bit to make sure afunc() has established a
 -- snapshot before the delete.)
 2: select pg_sleep(1);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 2: delete from test_recently_dead_utility;
 DELETE 100
@@ -46,7 +46,7 @@ VACUUM
 
 -- Continue afunc().  It should see all the rows in the table, ie. 100 rows.
 1<:  <... completed>
-afunc
------
-100  
+ afunc 
+-------
+ 100   
 (1 row)

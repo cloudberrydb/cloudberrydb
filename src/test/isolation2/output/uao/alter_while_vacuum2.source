@@ -18,9 +18,9 @@ INSERT 100000
 DELETE FROM alter_while_vacuum2_@orientation@ WHERE a < 12000;
 DELETE 71994
 1: SELECT COUNT(*) FROM alter_while_vacuum2_@orientation@;
-count 
-------
-528006
+ count  
+--------
+ 528006 
 (1 row)
 2: set debug_appendonly_print_compaction=true;
 SET
@@ -30,7 +30,7 @@ ALTER
 2<:  <... completed>
 VACUUM
 1: SELECT COUNT(*) FROM alter_while_vacuum2_@orientation@ WHERE a < 12010;
-count
------
-60   
+ count 
+-------
+ 60    
 (1 row)

@@ -29,31 +29,31 @@ INSERT 4
 
 
 SELECT pg_cancel_backend(pid, 'test pg_cancel_backend') FROM pg_stat_activity WHERE query LIKE 'select pybusyloop()%' ORDER BY pid LIMIT 2;
-pg_cancel_backend
------------------
-t                
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
+ t                 
 (2 rows)
 SELECT pg_cancel_backend(pid, 'test pg_cancel_backend') FROM pg_stat_activity WHERE query LIKE 'select pysleep()%' ORDER BY pid LIMIT 2;
-pg_cancel_backend
------------------
-t                
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
+ t                 
 (2 rows)
 SELECT pg_cancel_backend(pid, 'test pg_cancel_backend') FROM pg_stat_activity WHERE query LIKE 'select pyspisleep()%' ORDER BY pid LIMIT 1;
-pg_cancel_backend
------------------
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
 (1 row)
 SELECT pg_cancel_backend(pid, 'test pg_cancel_backend') FROM pg_stat_activity WHERE query LIKE 'select pynestsleep()%' ORDER BY pid LIMIT 1;
-pg_cancel_backend
------------------
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
 (1 row)
 SELECT pg_cancel_backend(pid, 'test pg_cancel_backend') FROM pg_stat_activity WHERE query LIKE 'select pynestsleep2()%' ORDER BY pid LIMIT 1;
-pg_cancel_backend
------------------
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
 (1 row)
 -- start_ignore
 -- start_ignore

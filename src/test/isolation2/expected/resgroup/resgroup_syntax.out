@@ -9,46 +9,46 @@ DROP
 CREATE ROLE rg_test_role;
 CREATE
 SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role';
-rolresgroup
------------
-6437       
+ rolresgroup 
+-------------
+ 6437        
 (1 row)
 CREATE ROLE rg_test_role_super SUPERUSER;
 CREATE
 SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role_super';
-rolresgroup
------------
-6438       
+ rolresgroup 
+-------------
+ 6438        
 (1 row)
 
 ALTER ROLE rg_test_role RESOURCE GROUP none;
 ALTER
 SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role';
-rolresgroup
------------
-6437       
+ rolresgroup 
+-------------
+ 6437        
 (1 row)
 ALTER ROLE rg_test_role_super RESOURCE GROUP none;
 ALTER
 SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role_super';
-rolresgroup
------------
-6438       
+ rolresgroup 
+-------------
+ 6438        
 (1 row)
 
 ALTER ROLE rg_test_role RESOURCE GROUP default_group;
 ALTER
 SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role';
-rolresgroup
------------
-6437       
+ rolresgroup 
+-------------
+ 6437        
 (1 row)
 ALTER ROLE rg_test_role_super RESOURCE GROUP admin_group;
 ALTER
 SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role_super';
-rolresgroup
------------
-6438       
+ rolresgroup 
+-------------
+ 6438        
 (1 row)
 
 
@@ -80,10 +80,10 @@ ERROR:  resource group "rg_test_group" does not exist
 --end_ignore
 
 SELECT * FROM gp_toolkit.gp_resgroup_config;
-groupid|groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota|memory_spill_ratio|proposed_memory_spill_ratio|memory_auditor|cpuset
--------+-------------+-----------+--------------------+--------------+------------+---------------------+-------------------+----------------------------+------------------+---------------------------+--------------+------
-6437   |default_group|20         |20                  |30            |30          |30                   |50                 |50                          |20                |20                         |vmtracker     |-1    
-6438   |admin_group  |2          |2                   |10            |10          |10                   |50                 |50                          |10                |10                         |vmtracker     |-1    
+ groupid | groupname     | concurrency | proposed_concurrency | cpu_rate_limit | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota | memory_spill_ratio | proposed_memory_spill_ratio | memory_auditor | cpuset 
+---------+---------------+-------------+----------------------+----------------+--------------+-----------------------+---------------------+------------------------------+--------------------+-----------------------------+----------------+--------
+ 6437    | default_group | 20          | 20                   | 30             | 30           | 30                    | 50                  | 50                           | 20                 | 20                          | vmtracker      | -1     
+ 6438    | admin_group   | 2           | 2                    | 10             | 10           | 10                    | 50                  | 50                           | 10                 | 10                          | vmtracker      | -1     
 (2 rows)
 
 -- negative
@@ -190,18 +190,18 @@ ERROR:  resource group "none" does not exist
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10);
 CREATE
 SELECT groupname,concurrency,proposed_concurrency,cpu_rate_limit,memory_limit,proposed_memory_limit,memory_shared_quota,memory_spill_ratio FROM gp_toolkit.gp_resgroup_config WHERE groupname='rg_test_group';
-groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|memory_spill_ratio
--------------+-----------+--------------------+--------------+------------+---------------------+-------------------+------------------
-rg_test_group|20         |20                  |10            |10          |10                   |20                 |20                
+ groupname     | concurrency | proposed_concurrency | cpu_rate_limit | memory_limit | proposed_memory_limit | memory_shared_quota | memory_spill_ratio 
+---------------+-------------+----------------------+----------------+--------------+-----------------------+---------------------+--------------------
+ rg_test_group | 20          | 20                   | 10             | 10           | 10                    | 20                  | 20                 
 (1 row)
 DROP RESOURCE GROUP rg_test_group;
 DROP
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpuset='0', memory_limit=10, memory_shared_quota=70, memory_spill_ratio=30);
 CREATE
 SELECT groupname,concurrency,proposed_concurrency,cpu_rate_limit,memory_limit,proposed_memory_limit,memory_shared_quota,memory_spill_ratio FROM gp_toolkit.gp_resgroup_config WHERE groupname='rg_test_group';
-groupname    |concurrency|proposed_concurrency|cpu_rate_limit|memory_limit|proposed_memory_limit|memory_shared_quota|memory_spill_ratio
--------------+-----------+--------------------+--------------+------------+---------------------+-------------------+------------------
-rg_test_group|1          |1                   |-1            |10          |10                   |70                 |30                
+ groupname     | concurrency | proposed_concurrency | cpu_rate_limit | memory_limit | proposed_memory_limit | memory_shared_quota | memory_spill_ratio 
+---------------+-------------+----------------------+----------------+--------------+-----------------------+---------------------+--------------------
+ rg_test_group | 1           | 1                    | -1             | 10           | 10                    | 70                  | 30                 
 (1 row)
 DROP RESOURCE GROUP rg_test_group;
 DROP
@@ -463,16 +463,16 @@ CREATE
 ALTER RESOURCE GROUP rg_test_group SET CPUSET '0';
 ALTER
 SELECT groupname,cpu_rate_limit,memory_limit,cpuset FROM gp_toolkit.gp_resgroup_config WHERE groupname='rg_test_group';
-groupname    |cpu_rate_limit|memory_limit|cpuset
--------------+--------------+------------+------
-rg_test_group|-1            |10          |0     
+ groupname     | cpu_rate_limit | memory_limit | cpuset 
+---------------+----------------+--------------+--------
+ rg_test_group | -1             | 10           | 0      
 (1 row)
 ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 10;
 ALTER
 SELECT groupname,cpu_rate_limit,memory_limit,cpuset FROM gp_toolkit.gp_resgroup_config WHERE groupname='rg_test_group';
-groupname    |cpu_rate_limit|memory_limit|cpuset
--------------+--------------+------------+------
-rg_test_group|10            |10          |-1    
+ groupname     | cpu_rate_limit | memory_limit | cpuset 
+---------------+----------------+--------------+--------
+ rg_test_group | 10             | 10           | -1     
 (1 row)
 DROP RESOURCE GROUP rg_test_group;
 DROP

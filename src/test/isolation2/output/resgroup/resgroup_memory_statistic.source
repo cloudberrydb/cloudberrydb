@@ -62,27 +62,27 @@ GRANT
 SET
 -- check initial state
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1: BEGIN;
 BEGIN
 1: SELECT * FROM eat_memory_on_qd;
-hold_memory
------------
-0          
+ hold_memory 
+-------------
+ 0           
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |20     
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 20      
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 
@@ -91,25 +91,25 @@ rg2_memory_test|1       |0
 SET
 -- check initial state
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1: SELECT * FROM eat_memory_on_qd;
-hold_memory
------------
-0          
+ hold_memory 
+-------------
+ 0           
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 
@@ -117,17 +117,17 @@ rg2_memory_test|1       |0
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT 1 FROM eat_memory_on_one_slice;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 
@@ -137,17 +137,17 @@ SET
 1: BEGIN;
 BEGIN
 1: SELECT 1 FROM eat_memory_on_one_slice;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |20     
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 20      
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 
@@ -155,32 +155,32 @@ rg2_memory_test|1       |0
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT 1 FROM eat_memory_on_one_slice;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1: SET ROLE TO role2_memory_test;
 SET
 1: SELECT 1 FROM eat_memory_on_one_slice;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 
@@ -188,28 +188,28 @@ rg2_memory_test|1       |0
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT 1 FROM eat_memory_on_slices;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 
 -- recheck after cleanup
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 
 -- 4) single role concurrency test
@@ -219,22 +219,22 @@ SET
 SET
 -- QEs on multiple slices
 1: SELECT 1 FROM eat_memory_on_slices;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 2: SELECT 1 FROM eat_memory_on_slices;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 2q: ... <quitting>
@@ -246,22 +246,22 @@ SET
 SET
 -- QEs on multiple slices
 1: SELECT * FROM eat_memory_on_slices;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2: SELECT * FROM eat_memory_on_slices;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 SELECT * FROM memory_result;
-rsgname        |ismaster|avg_mem
----------------+--------+-------
-rg1_memory_test|0       |0      
-rg1_memory_test|1       |0      
-rg2_memory_test|0       |0      
-rg2_memory_test|1       |0      
+ rsgname         | ismaster | avg_mem 
+-----------------+----------+---------
+ rg1_memory_test | 0        | 0       
+ rg1_memory_test | 1        | 0       
+ rg2_memory_test | 0        | 0       
+ rg2_memory_test | 1        | 0       
 (4 rows)
 1q: ... <quitting>
 2q: ... <quitting>

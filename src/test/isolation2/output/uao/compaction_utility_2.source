@@ -12,20 +12,20 @@ INSERT 100
 DELETE FROM foo WHERE a < 20;
 DELETE 19
 SELECT COUNT(*) FROM foo;
-count
------
-81   
+ count 
+-------
+ 81    
 (1 row)
 2U: VACUUM foo;
 VACUUM
 SELECT COUNT(*) FROM foo;
-count
------
-81   
+ count 
+-------
+ 81    
 (1 row)
 2U: SELECT segno, tupcount FROM gp_ao_or_aocs_seg('foo');
-segno|tupcount
------+--------
-0    |40      
-1    |0       
+ segno | tupcount 
+-------+----------
+ 0     | 40       
+ 1     | 0        
 (2 rows)

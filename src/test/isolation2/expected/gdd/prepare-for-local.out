@@ -20,13 +20,13 @@
 
 -- the new setting need some time to be loaded
 SELECT pg_sleep(2);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 
 SHOW gp_global_deadlock_detector_period;
-gp_global_deadlock_detector_period
-----------------------------------
-2min                              
+ gp_global_deadlock_detector_period 
+------------------------------------
+ 2min                               
 (1 row)

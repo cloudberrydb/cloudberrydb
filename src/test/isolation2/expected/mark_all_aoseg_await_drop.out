@@ -30,20 +30,20 @@ DELETE 30
 
 -- We should see all 3 aosegs in state 1
 0U: SELECT segno, state FROM gp_toolkit.__gp_aoseg('mark_all_aoseg_await_drop');
-segno|state
------+-----
-1    |1    
-2    |1    
-3    |1    
+ segno | state 
+-------+-------
+ 1     | 1     
+ 2     | 1     
+ 3     | 1     
 (3 rows)
 
 -- VACUUM while another session holds lock
 1: BEGIN;
 BEGIN
 1: SELECT COUNT(*) FROM mark_all_aoseg_await_drop;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: INSERT INTO mark_all_aoseg_await_drop SELECT i FROM generate_series(1, 10)i;
 INSERT 10
@@ -59,10 +59,10 @@ END
 -- correctly skipped segno 1 and continued to cycle through the aoseg
 -- entries.
 0U: SELECT segno, state FROM gp_toolkit.__gp_aoseg('mark_all_aoseg_await_drop');
-segno|state
------+-----
-1    |1    
-2    |2    
-3    |2    
-4    |1    
+ segno | state 
+-------+-------
+ 1     | 1     
+ 2     | 2     
+ 3     | 2     
+ 4     | 1     
 (4 rows)

@@ -12,14 +12,14 @@ BEGIN
 1: DECLARE cur CURSOR FOR SELECT a FROM ao ORDER BY a;
 DECLARE
 1: FETCH NEXT IN cur;
-a
--
-1
+ a 
+---
+ 1 
 (1 row)
 1: FETCH NEXT IN cur;
-a
--
-2
+ a 
+---
+ 2 
 (1 row)
 2: BEGIN;
 BEGIN
@@ -29,19 +29,19 @@ DELETE 4
 COMMIT
 2&: VACUUM FULL ao;  <waiting ...>
 1: FETCH NEXT IN cur;
-a
--
-3
+ a 
+---
+ 3 
 (1 row)
 1: FETCH NEXT IN cur;
-a
--
-4
+ a 
+---
+ 4 
 (1 row)
 1: FETCH NEXT IN cur;
-a
--
-5
+ a 
+---
+ 5 
 (1 row)
 1: CLOSE cur;
 CLOSE
@@ -54,9 +54,9 @@ BEGIN
 3: DECLARE cur CURSOR FOR SELECT a FROM ao ORDER BY a;
 DECLARE
 3: FETCH NEXT IN cur;
-a
--
-5
+ a 
+---
+ 5 
 (1 row)
 3: CLOSE cur;
 CLOSE

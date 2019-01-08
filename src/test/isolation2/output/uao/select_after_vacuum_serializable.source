@@ -58,16 +58,16 @@ DELETE 2667
 1: BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 BEGIN
 1: SELECT COUNT(*) FROM ao2;
-count
------
-1000 
+ count 
+-------
+ 1000  
 (1 row)
 2: VACUUM ao;
 VACUUM
 1: SELECT COUNT(*) FROM ao;
-count
------
-18333
+ count 
+-------
+ 18333 
 (1 row)
 1: COMMIT;
 COMMIT

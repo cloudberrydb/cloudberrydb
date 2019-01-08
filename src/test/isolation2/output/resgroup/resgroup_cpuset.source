@@ -59,45 +59,45 @@ BEGIN
 10&: SELECT * FROM busy;  <waiting ...>
 
 select pg_sleep(2);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 
 11: BEGIN;
 BEGIN
 11: SELECT check_cpuset('rg1_cpuset_test', '0');
-check_cpuset
-------------
-t           
+ check_cpuset 
+--------------
+ t            
 (1 row)
 
 ALTER RESOURCE GROUP rg1_cpuset_test SET cpuset '1';
 ALTER
 select pg_sleep(2);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 
 11: SELECT check_cpuset('rg1_cpuset_test', '1');
-check_cpuset
-------------
-t           
+ check_cpuset 
+--------------
+ t            
 (1 row)
 
 ALTER RESOURCE GROUP rg1_cpuset_test SET cpuset '0,1';
 ALTER
 select pg_sleep(2);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 
 11: SELECT check_cpuset('rg1_cpuset_test', '0,1');
-check_cpuset
-------------
-t           
+ check_cpuset 
+--------------
+ t            
 (1 row)
 11: END;
 END
@@ -109,9 +109,9 @@ ALTER
 -- cancel the transaction
 -- start_ignore
 select * from cancel_all;
-pg_cancel_backend
------------------
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
 (1 row)
 
 10<:  <... completed>
@@ -128,25 +128,25 @@ BEGIN
 10&: SELECT * FROM busy;  <waiting ...>
 
 select pg_sleep(2);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 
 11: BEGIN;
 BEGIN
 11: SELECT check_cpuset('rg1_cpuset_test', '');
-check_cpuset
-------------
-t           
+ check_cpuset 
+--------------
+ t            
 (1 row)
 
 -- cancel the transaction
 -- start_ignore
 select * from cancel_all;
-pg_cancel_backend
------------------
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
 (1 row)
 
 10<:  <... completed>
@@ -163,24 +163,24 @@ BEGIN
 10&: SELECT * FROM busy;  <waiting ...>
 
 select pg_sleep(2);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 
 11: BEGIN;
 BEGIN
 11: select (cpu_usage::json->>'0')::float > 50 from gp_toolkit.gp_resgroup_status where rsgname='rg1_cpuset_test';
-?column?
---------
-t       
+ ?column? 
+----------
+ t        
 (1 row)
 -- cancel the transaction
 -- start_ignore
 select * from cancel_all;
-pg_cancel_backend
------------------
-t                
+ pg_cancel_backend 
+-------------------
+ t                 
 (1 row)
 
 10<:  <... completed>
@@ -193,100 +193,100 @@ ERROR:  canceling statement due to user request
 -- default group value must be valid
 -- suppose the cores numbered 0 & 1 are available
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 CREATE RESOURCE GROUP rg1_test_group WITH (memory_limit=10, cpuset='0');
 CREATE
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 CREATE RESOURCE GROUP rg2_test_group WITH (memory_limit=10, cpuset='1');
 CREATE
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 ALTER RESOURCE GROUP rg1_test_group SET cpu_rate_limit 1;
 ALTER
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 ALTER RESOURCE GROUP rg1_test_group SET cpuset '0';
 ALTER
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 ALTER RESOURCE GROUP rg1_test_group SET cpu_rate_limit 1;
 ALTER
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 DROP RESOURCE GROUP rg1_test_group;
 DROP
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 DROP RESOURCE GROUP rg2_test_group;
 DROP
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 -- positive: create a resource group contains all cpu core
 -- the minimum numbered core left in default cpuset group
 SELECT create_allcores_group('rg1_test_group');
-create_allcores_group
----------------------
-t                    
+ create_allcores_group 
+-----------------------
+ t                     
 (1 row)
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 DROP RESOURCE GROUP rg1_test_group;
 DROP
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 -- negative: simulate DDL fail
 -- create fail
 SELECT gp_inject_fault('create_resource_group_fail', 'error', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 CREATE RESOURCE GROUP rg1_test_group WITH (memory_limit=10, cpuset='0');
 ERROR:  fault triggered, fault name:'create_resource_group_fail' fault type:'error'
 SELECT groupid, groupname, cpuset FROM gp_toolkit.gp_resgroup_config WHERE cpuset != '-1';
-groupid|groupname|cpuset
--------+---------+------
+ groupid | groupname | cpuset 
+---------+-----------+--------
 (0 rows)
 SELECT check_rules();
-check_rules
------------
-t          
+ check_rules 
+-------------
+ t           
 (1 row)
 SELECT gp_inject_fault('create_resource_group_fail', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 
 REVOKE ALL ON busy FROM role1_cpuset_test;

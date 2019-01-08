@@ -41,37 +41,37 @@ SET
 set gp_enable_mk_sort=on;
 SET
 select avg(i2) from (select i1,i2 from testsort order by i2) foo;
-avg  
------
-499.5
+ avg   
+-------
+ 499.5 
 (1 row)
 select * from sort_spill.is_workfile_created('explain analyze select i1,i2 from testsort order by i2;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 select * from sort_spill.is_workfile_created('explain analyze select i1,i2 from testsort order by i2 limit 50000;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 
 set gp_enable_mk_sort=off;
 SET
 select avg(i2) from (select i1,i2 from testsort order by i2) foo;
-avg  
------
-499.5
+ avg   
+-------
+ 499.5 
 (1 row)
 select * from sort_spill.is_workfile_created('explain analyze select i1,i2 from testsort order by i2;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 select * from sort_spill.is_workfile_created('explain analyze select i1,i2 from testsort order by i2 limit 50000;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 
 drop schema sort_spill cascade;

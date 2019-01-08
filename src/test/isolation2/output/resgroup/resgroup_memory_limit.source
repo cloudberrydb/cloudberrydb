@@ -41,14 +41,14 @@ CREATE
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT hold_memory_by_percent(0.14 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.14 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.14 / 0.52);
 ERROR:  Out of memory
@@ -61,14 +61,14 @@ SET
 1: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.14 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.14 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.14 / 0.52);
 ERROR:  Out of memory
@@ -88,14 +88,14 @@ CONTEXT:  SQL function "hold_memory_by_percent" statement 1
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.14 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.14 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.14 / 0.52)=0;
 ERROR:  Out of memory  (seg0 slice1 10.152.10.56:25432 pid=18610)
@@ -139,19 +139,19 @@ CREATE
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
 ERROR:  Out of memory
@@ -164,19 +164,19 @@ SET
 1: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.12 / 0.52);
 ERROR:  Out of memory
@@ -196,19 +196,19 @@ CONTEXT:  SQL function "hold_memory_by_percent" statement 1
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.12 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.12 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.12 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.12 / 0.52)=0;
 ERROR:  Out of memory  (seg0 slice1 10.152.10.56:25432 pid=19259)
@@ -251,14 +251,14 @@ CREATE
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT hold_memory_by_percent(0.25 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.25 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.25 / 0.52);
 ERROR:  Out of memory
@@ -271,14 +271,14 @@ SET
 1: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.25 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.25 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1: SELECT hold_memory_by_percent(0.25 / 0.52);
 ERROR:  Out of memory
@@ -298,14 +298,14 @@ CONTEXT:  SQL function "hold_memory_by_percent" statement 1
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.25 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.25 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.25 / 0.52)=0;
 ERROR:  Out of memory  (seg0 slice1 10.152.10.56:25432 pid=19875)
@@ -356,14 +356,14 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.28 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2: SELECT hold_memory_by_percent(0.28 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1q: ... <quitting>
 2q: ... <quitting>
@@ -378,9 +378,9 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.32 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2: SELECT hold_memory_by_percent(0.32 / 0.52);
 ERROR:  Out of memory
@@ -399,20 +399,20 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.32 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1q: ... <quitting>
 SELECT pg_sleep(1);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 2: SELECT hold_memory_by_percent(0.32 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2q: ... <quitting>
 
@@ -427,14 +427,14 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.28 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.28 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1q: ... <quitting>
 2q: ... <quitting>
@@ -449,9 +449,9 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.32 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.32 / 0.52)=0;
 ERROR:  Out of memory  (seg0 slice1 10.152.10.56:25432 pid=21102)
@@ -470,20 +470,20 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.32 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1q: ... <quitting>
 SELECT pg_sleep(1);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.32 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2q: ... <quitting>
 
@@ -523,15 +523,15 @@ BEGIN
 BEGIN
 -- reserve all the group shared quota
 1: SELECT hold_memory_by_percent(0.39 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 -- must allocate from global share
 2: SELECT hold_memory_by_percent(0.2 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1q: ... <quitting>
 2q: ... <quitting>
@@ -546,9 +546,9 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.39 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2: SELECT hold_memory_by_percent(0.39 / 0.52);
 ERROR:  Out of memory
@@ -567,20 +567,20 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.39 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1q: ... <quitting>
 SELECT pg_sleep(1);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 2: SELECT hold_memory_by_percent(0.39 / 0.52);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2q: ... <quitting>
 
@@ -596,15 +596,15 @@ BEGIN
 BEGIN
 -- reserve all the group shared quota
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.39 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 -- must allocate from global share
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.2 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1q: ... <quitting>
 2q: ... <quitting>
@@ -619,9 +619,9 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.39 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.39 / 0.52)=0;
 ERROR:  Out of memory  (seg0 slice1 10.152.10.56:25432 pid=21783)
@@ -640,20 +640,20 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.39 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1q: ... <quitting>
 SELECT pg_sleep(1);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.39 / 0.52)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2q: ... <quitting>
 
@@ -697,14 +697,14 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.2 / 0.2);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2: SELECT hold_memory_by_percent(0.2 / 0.2);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1q: ... <quitting>
 2q: ... <quitting>
@@ -719,9 +719,9 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.3 / 0.2);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2: SELECT hold_memory_by_percent(0.3 / 0.2);
 ERROR:  Out of memory
@@ -740,20 +740,20 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(0.3 / 0.2);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1q: ... <quitting>
 SELECT pg_sleep(1);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 2: SELECT hold_memory_by_percent(0.3 / 0.2);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 2q: ... <quitting>
 
@@ -768,14 +768,14 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.2 / 0.2)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.2 / 0.2)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1q: ... <quitting>
 2q: ... <quitting>
@@ -790,9 +790,9 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.3 / 0.2)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.3 / 0.2)=0;
 ERROR:  Out of memory  (seg0 slice1 10.152.10.56:25432 pid=22464)
@@ -811,20 +811,20 @@ BEGIN
 2: BEGIN;
 BEGIN
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.3 / 0.2)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1q: ... <quitting>
 SELECT pg_sleep(1);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.3 / 0.2)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 2q: ... <quitting>
 
@@ -879,9 +879,9 @@ ALTER
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT hold_memory_by_percent(0.2 / 0.3);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 1q: ... <quitting>
 
@@ -907,9 +907,9 @@ ALTER
 1: SET ROLE TO role1_memory_test;
 SET
 1: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(0.2 / 0.3)=0;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 1q: ... <quitting>
 

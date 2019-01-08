@@ -5,23 +5,23 @@ CREATE
 
 -- make sure we are in-sync for the primary we will be testing with
 select content, role, preferred_role, mode, status from gp_segment_configuration;
-content|role|preferred_role|mode|status
--------+----+--------------+----+------
--1     |p   |p             |n   |u     
--1     |m   |m             |s   |u     
-2      |p   |p             |s   |u     
-2      |m   |m             |s   |u     
-1      |p   |p             |s   |u     
-1      |m   |m             |s   |u     
-0      |p   |p             |s   |u     
-0      |m   |m             |s   |u     
+ content | role | preferred_role | mode | status 
+---------+------+----------------+------+--------
+ -1      | p    | p              | n    | u      
+ -1      | m    | m              | s    | u      
+ 2       | p    | p              | s    | u      
+ 2       | m    | m              | s    | u      
+ 1       | p    | p              | s    | u      
+ 1       | m    | m              | s    | u      
+ 0       | p    | p              | s    | u      
+ 0       | m    | m              | s    | u      
 (8 rows)
 
 -- print synchronous_standby_names should be set to '*' at start of test
 0U: show synchronous_standby_names;
-synchronous_standby_names
--------------------------
-*                        
+ synchronous_standby_names 
+---------------------------
+ *                         
 (1 row)
 
 -- create table and show commits are not blocked
@@ -34,35 +34,35 @@ INSERT 1
 create extension if not exists gp_inject_fault;
 CREATE
 select gp_inject_fault('fts_probe', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 select gp_inject_fault_infinite('fts_probe', 'skip', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 -- force scan to trigger the fault
 select gp_request_fts_probe_scan();
-gp_request_fts_probe_scan
--------------------------
-t                        
+ gp_request_fts_probe_scan 
+---------------------------
+ t                         
 (1 row)
 -- verify the failure should be triggered once
 select gp_wait_until_triggered_fault('fts_probe', 1, 1);
-gp_wait_until_triggered_fault
------------------------------
-t                            
+ gp_wait_until_triggered_fault 
+-------------------------------
+ t                             
 (1 row)
 
 -- stop a mirror and show commit on dbid 2 will block
 -1U: select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' and c.content=0), 'stop');
-pg_ctl                                              
-----------------------------------------------------
-waiting for server to shut down done
+ pg_ctl                                               
+------------------------------------------------------
+ waiting for server to shut down done
 server stopped
-
+ 
 (1 row)
 -- We should insert a tuple to segment 0.
 -- With jump consistent hash as the underlying hash algorithm,
@@ -71,13 +71,13 @@ server stopped
 
 -- restart primary dbid 2
 -1U: select pg_ctl((select datadir from gp_segment_configuration c where c.role='p' and c.content=0), 'restart');
-pg_ctl                                                                                              
-----------------------------------------------------------------------------------------------------
-waiting for server to shut down done
+ pg_ctl                                                                                               
+------------------------------------------------------------------------------------------------------
+ waiting for server to shut down done
 server stopped
 waiting for server to start done
 server started
-
+ 
 (1 row)
 
 -- should show dbid 2 utility mode connection closed because of primary restart
@@ -89,9 +89,9 @@ server closed the connection unexpectedly
 
 -- synchronous_standby_names should be set to '*' after primary restart
 0U: show synchronous_standby_names;
-synchronous_standby_names
--------------------------
-*                        
+ synchronous_standby_names 
+---------------------------
+ *                         
 (1 row)
 
 -- this should block since mirror is not up and sync replication is on
@@ -107,10 +107,10 @@ INSERT 1
 
 -- bring the mirror back up
 -1U: select pg_ctl_start(datadir, port, content, dbid) from gp_segment_configuration where role = 'm' and content = 0;
-pg_ctl_start    
-----------------
-server starting
-
+ pg_ctl_start     
+------------------
+ server starting
+ 
 (1 row)
 
 -- should unblock and commit now that mirror is back up and in-sync
@@ -119,29 +119,29 @@ COMMIT
 
 -- resume FTS probes
 select gp_inject_fault('fts_probe', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 
 -- everything should be back to normal
 4: insert into segwalrep_commit_blocking select i from generate_series(1,10)i;
 INSERT 10
 4: select * from segwalrep_commit_blocking order by a;
-a 
---
-1 
-1 
-1 
-2 
-3 
-3 
-4 
-4 
-5 
-6 
-7 
-8 
-9 
-10
+ a  
+----
+ 1  
+ 1  
+ 1  
+ 2  
+ 3  
+ 3  
+ 4  
+ 4  
+ 5  
+ 6  
+ 7  
+ 8  
+ 9  
+ 10 
 (14 rows)

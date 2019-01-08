@@ -18,8 +18,8 @@ INSERT 1
 2: BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 BEGIN
 2: SELECT * from distributed_snapshot_test1;
-a
--
+ a 
+---
 (0 rows)
 -- Complete transaction 1, so that it no more appears in in-progress transaction
 -- list for following transactions.
@@ -33,15 +33,15 @@ INSERT 1
 -- Hold after walking over ProcArray in GetSnpashotData(), right at start of
 -- DistributedLog_AdvanceOldestXmin()
 1: SELECT gp_inject_fault('distributedlog_advance_oldest_xmin', 'suspend', '', 'postgres', '', 1, -1, 5, dbid) from gp_segment_configuration where content = 0 and role = 'p';
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 3&:@db_name postgres: SELECT count(*) > 0 from gp_dist_random('gp_id');  <waiting ...>
 1: SELECT gp_wait_until_triggered_fault('distributedlog_advance_oldest_xmin', 1, dbid) from gp_segment_configuration where content = 0 and role = 'p';
-gp_wait_until_triggered_fault
------------------------------
-t                            
+ gp_wait_until_triggered_fault 
+-------------------------------
+ t                             
 (1 row)
 2: COMMIT;
 COMMIT
@@ -51,12 +51,12 @@ COMMIT
 INSERT 1
 -- let session 3 now move forward to compute distributed oldest xmin
 1: SELECT gp_inject_fault('distributedlog_advance_oldest_xmin', 'reset', dbid) from gp_segment_configuration where content = 0 and role = 'p';
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 3<:  <... completed>
-?column?
---------
-t       
+ ?column? 
+----------
+ t        
 (1 row)

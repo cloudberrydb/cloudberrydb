@@ -35,11 +35,11 @@ REINDEX
 INSERT 12
 -- Expect two distinct relfilenodes per segment in old_relfilenodes table.
 1: select distinct count(distinct relfilenode), relname from old_relfilenodes group by dbid, relname;
-count|relname                                         
------+------------------------------------------------
-2    |idx_reindex_crtab_part_aoco_btree               
-2    |idx_reindex_crtab_part_aoco_btree_1_prt_de_fault
-2    |idx_reindex_crtab_part_aoco_btree_1_prt_p_one   
+ count | relname                                          
+-------+--------------------------------------------------
+ 2     | idx_reindex_crtab_part_aoco_btree                
+ 2     | idx_reindex_crtab_part_aoco_btree_1_prt_de_fault 
+ 2     | idx_reindex_crtab_part_aoco_btree_1_prt_p_one    
 (3 rows)
 2: COMMIT;
 COMMIT
@@ -49,25 +49,25 @@ COMMIT
 INSERT 12
 -- Expect three distinct relfilenodes per segment for "1_prt_de_fault" index.
 1: select distinct count(distinct relfilenode), relname from old_relfilenodes group by dbid, relname;
-count|relname                                         
------+------------------------------------------------
-2    |idx_reindex_crtab_part_aoco_btree               
-2    |idx_reindex_crtab_part_aoco_btree_1_prt_p_one   
-3    |idx_reindex_crtab_part_aoco_btree_1_prt_de_fault
+ count | relname                                          
+-------+--------------------------------------------------
+ 2     | idx_reindex_crtab_part_aoco_btree                
+ 2     | idx_reindex_crtab_part_aoco_btree_1_prt_p_one    
+ 3     | idx_reindex_crtab_part_aoco_btree_1_prt_de_fault 
 (3 rows)
 
 3: select count(*) from reindex_crtab_part_aoco_btree where id = 998;
-count
------
-2    
+ count 
+-------
+ 2     
 (1 row)
 3: set enable_seqscan=false;
 SET
 3: set enable_indexscan=true;
 SET
 3: select count(*) from reindex_crtab_part_aoco_btree where id = 999;
-count
------
-2    
+ count 
+-------
+ 2     
 (1 row)
 

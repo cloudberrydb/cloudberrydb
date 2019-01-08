@@ -25,9 +25,9 @@ BEGIN
 
 -- c10 acquired the catalog lock in exclusive mode
 10: select gp_expand_lock_catalog();
-gp_expand_lock_catalog
-----------------------
-                      
+ gp_expand_lock_catalog 
+------------------------
+                        
 (1 row)
 
 -- c11 has to wait for c10
@@ -38,9 +38,9 @@ END
 
 -- c10 released the lock, c11 acquired it now
 11<:  <... completed>
-gp_expand_lock_catalog
-----------------------
-                      
+ gp_expand_lock_catalog 
+------------------------
+                        
 (1 row)
 11: end;
 END
@@ -102,9 +102,9 @@ ROLLBACK
 
 -- ... until both c20 and c30 released it
 10<:  <... completed>
-gp_expand_lock_catalog
-----------------------
-                      
+ gp_expand_lock_catalog 
+------------------------
+                        
 (1 row)
 10: end;
 END
@@ -142,9 +142,9 @@ ROLLBACK
 
 -- c20 released the lock, c10 acquired it now
 10<:  <... completed>
-gp_expand_lock_catalog
-----------------------
-                      
+ gp_expand_lock_catalog 
+------------------------
+                        
 (1 row)
 10: end;
 END
@@ -162,18 +162,18 @@ BEGIN
 
 -- c10 acquired the catalog lock in exclusive mode
 10: select gp_expand_lock_catalog();
-gp_expand_lock_catalog
-----------------------
-                      
+ gp_expand_lock_catalog 
+------------------------
+                        
 (1 row)
 
 -- c20 and c30 can still run DMLs
 20: insert into t20 values (1,1);
 INSERT 1
 20: select * from t20;
-c1|c2
---+--
-1 |1 
+ c1 | c2 
+----+----
+ 1  | 1  
 (1 row)
 20: update t20 set c2=c1+1;
 UPDATE 1
@@ -183,9 +183,9 @@ DELETE 1
 30: insert into t30 values (1,1);
 INSERT 1
 30: select * from t30;
-c1|c2
---+--
-1 |1 
+ c1 | c2 
+----+----
+ 1  | 1  
 (1 row)
 30: update t30 set c2=c1+1;
 UPDATE 1
@@ -194,14 +194,14 @@ DELETE 1
 
 -- c20 and c30 can also run query catalogs
 20: select relname from pg_class where oid='t20'::regclass;
-relname
--------
-t20    
+ relname 
+---------
+ t20     
 (1 row)
 30: select relname from pg_class where oid='t30'::regclass;
-relname
--------
-t30    
+ relname 
+---------
+ t30     
 (1 row)
 
 20: rollback;
@@ -225,9 +225,9 @@ BEGIN
 
 -- c10 acquired the catalog lock in exclusive mode
 10: select gp_expand_lock_catalog();
-gp_expand_lock_catalog
-----------------------
-                      
+ gp_expand_lock_catalog 
+------------------------
+                        
 (1 row)
 
 -- c30 has a new transaction

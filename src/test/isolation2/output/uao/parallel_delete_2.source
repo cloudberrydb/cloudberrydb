@@ -16,15 +16,15 @@ BEGIN
 2: DELETE FROM ao WHERE a = 1;
 DELETE 1
 2: SELECT * FROM locktest_master WHERE coalesce = 'ao';
-coalesce|mode               |locktype                |node  
---------+-------------------+------------------------+------
-ao      |AccessExclusiveLock|append-only segment file|master
-ao      |ExclusiveLock      |relation                |master
+ coalesce | mode                | locktype                 | node   
+----------+---------------------+--------------------------+--------
+ ao       | AccessExclusiveLock | append-only segment file | master 
+ ao       | ExclusiveLock       | relation                 | master 
 (2 rows)
 2: SELECT * FROM locktest_segments WHERE coalesce = 'ao';
-coalesce|mode            |locktype|node     
---------+----------------+--------+---------
-ao      |RowExclusiveLock|relation|1 segment
+ coalesce | mode             | locktype | node      
+----------+------------------+----------+-----------
+ ao       | RowExclusiveLock | relation | 1 segment 
 (1 row)
 1&: DELETE FROM ao WHERE a = 2;  <waiting ...>
 2: COMMIT;
@@ -36,15 +36,15 @@ COMMIT
 3: BEGIN;
 BEGIN
 3: SELECT * FROM ao WHERE a < 5 ORDER BY a;
-a
--
-3
-4
+ a 
+---
+ 3 
+ 4 
 (2 rows)
 3: COMMIT;
 COMMIT
 2U: SELECT * FROM gp_toolkit.__gp_aovisimap('ao');
-tid             |segno|row_num
-----------------+-----+-------
-(33554432,32769)|1    |1      
+ tid              | segno | row_num 
+------------------+-------+---------
+ (33554432,32769) | 1     | 1       
 (1 row)

@@ -3,9 +3,9 @@ DROP
 1:create view mpp25160 as select * from pg_class;
 CREATE
 1:select viewname from pg_views where viewname = 'mpp25160';
-viewname
---------
-mpp25160
+ viewname 
+----------
+ mpp25160 
 (1 row)
 
 -- One transaction drops the view, and before it commits, another
@@ -24,7 +24,7 @@ DROP
 1:commit;
 COMMIT
 2<:  <... completed>
-viewname|definition
---------+----------
-mpp25160|          
+ viewname | definition 
+----------+------------
+ mpp25160 |            
 (1 row)

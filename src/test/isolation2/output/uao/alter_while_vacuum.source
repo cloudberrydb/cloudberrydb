@@ -8,9 +8,9 @@ INSERT 100000
 DELETE FROM alter_while_vacuum_@orientation@ WHERE a < 12000;
 DELETE 11999
 1: SELECT COUNT(*) FROM alter_while_vacuum_@orientation@;
-count
------
-88001
+ count 
+-------
+ 88001 
 (1 row)
 1>: ALTER TABLE alter_while_vacuum_@orientation@ ADD COLUMN d bigint DEFAULT 10;  <waiting ...>
 2: VACUUM alter_while_vacuum_@orientation@;
@@ -18,16 +18,16 @@ VACUUM
 1<:  <... completed>
 ALTER
 1: SELECT * FROM alter_while_vacuum_@orientation@ WHERE a < 12010;
-a    |b    |d 
------+-----+--
-12000|12000|10
-12001|12001|10
-12002|12002|10
-12003|12003|10
-12004|12004|10
-12005|12005|10
-12006|12006|10
-12007|12007|10
-12008|12008|10
-12009|12009|10
+ a     | b     | d  
+-------+-------+----
+ 12000 | 12000 | 10 
+ 12001 | 12001 | 10 
+ 12002 | 12002 | 10 
+ 12003 | 12003 | 10 
+ 12004 | 12004 | 10 
+ 12005 | 12005 | 10 
+ 12006 | 12006 | 10 
+ 12007 | 12007 | 10 
+ 12008 | 12008 | 10 
+ 12009 | 12009 | 10 
 (10 rows)

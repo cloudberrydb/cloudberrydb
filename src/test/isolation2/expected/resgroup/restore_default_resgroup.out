@@ -48,24 +48,24 @@
 -- end_ignore
 
 show gp_resource_manager;
-gp_resource_manager
--------------------
-group              
+ gp_resource_manager 
+---------------------
+ group               
 (1 row)
 show gp_resource_group_cpu_limit;
-gp_resource_group_cpu_limit
----------------------------
-0.9                        
+ gp_resource_group_cpu_limit 
+-----------------------------
+ 0.9                         
 (1 row)
 show gp_resource_group_memory_limit;
-gp_resource_group_memory_limit
-------------------------------
-0.9                           
+ gp_resource_group_memory_limit 
+--------------------------------
+ 0.9                            
 (1 row)
 show max_connections;
-max_connections
----------------
-40             
+ max_connections 
+-----------------
+ 40              
 (1 row)
 
 -- by default admin_group has concurrency set to -1 which leads to

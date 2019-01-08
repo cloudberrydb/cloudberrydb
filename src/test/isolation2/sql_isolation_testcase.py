@@ -97,7 +97,7 @@ class SQLIsolationExecutor(object):
             r = self.pipe.recv()
             if r is None:
                 raise Exception("Execution failed")
-            print >>self.out_file, r.strip()
+            print >>self.out_file, r.rstrip()
 
         def fork(self, command, blocking):
             print >>self.out_file, " <waiting ...>"
@@ -117,7 +117,7 @@ class SQLIsolationExecutor(object):
                 r = self.pipe.recv()
             if r is None:
                 raise Exception("Execution failed")
-            print >>self.out_file, r.strip()
+            print >>self.out_file, r.rstrip()
             self.has_open = False
 
         def stop(self):
@@ -191,24 +191,70 @@ class SQLIsolationExecutor(object):
                 return (None, int(r[0][1]))
             return (r[0][0], int(r[0][1]))
 
+        # Print out a pygresql result set (a Query object, after the query
+        # has been executed), in a format that imitates the default
+        # formatting of psql. This isn't a perfect imitation: we left-justify
+        # all the fields and headers, whereas psql centers the header, and
+        # right-justifies numeric fields. But this is close enough, to make
+        # gpdiff.pl recognize the result sets as such. (We used to just call
+        # str(r), and let PyGreSQL do the formatting. But even though
+        # PyGreSQL's default formatting is close to psql's, it's not close
+        # enough.)
         def printout_result(self, r):
-            """
-                This is a pretty dirty, but apprently the only way
-                to get the pretty output of the query result.
-                The reason is that for some python internal reason  
-                print(r) calls the correct function while neighter str(r)
-                nor repr(r) output something useful. 
+            widths = []
 
-                FIXME: once we upgrade to a modern pygresql this can probably go
-                away entirely; it looks like 5.0 may have consolidated the
-                internal print/str code.
-            """
-            with tempfile.TemporaryFile() as f:
-                print >>f, r
+            # Figure out the widths of each column.
+            fields = r.listfields()
+            for f in fields:
+                widths.append(len(str(f)))
 
-                f.seek(0) # rewind
-                ppr = f.read()
-                return ppr.strip() + "\n"
+            rset = r.getresult()
+            for row in rset:
+                colno = 0
+                for col in row:
+                    if col is None:
+                        col = ""
+                    widths[colno] = max(widths[colno], len(str(col)))
+                    colno = colno + 1
+
+            # Start printing. Header first.
+            result = ""
+            colno = 0
+            for f in fields:
+                if colno > 0:
+                    result += "|"
+                result += " " + f.ljust(widths[colno]) + " "
+                colno = colno + 1
+            result += "\n"
+
+            # Then the bar ("----+----")
+            colno = 0
+            for f in fields:
+                if colno > 0:
+                    result += "+"
+                result += "".ljust(widths[colno] + 2, "-")
+                colno = colno + 1
+            result += "\n"
+
+            # Then the result set itself
+            for row in rset:
+                colno = 0
+                for col in row:
+                    if colno > 0:
+                        result += "|"
+                    if col is None:
+                        col = ""
+                    result += " " + str(col).ljust(widths[colno]) + " "
+                    colno = colno + 1
+                result += "\n"
+
+            # Finally, the row count
+            if len(rset) == 1:
+                result += "(1 row)\n"
+            else:
+                result += "(" + str(len(rset)) +" rows)\n"
+
+            return result
 
         def execute_command(self, command):
             """
@@ -218,7 +264,7 @@ class SQLIsolationExecutor(object):
                 r = self.con.query(command)
                 if r and type(r) == str:
                     echo_content = command[:-1].partition(" ")[0].upper()
-                    return "%s %s" % (echo_content, self.printout_result(r))
+                    return "%s %s" % (echo_content, r)
                 elif r:
                     return self.printout_result(r)
                 else:

@@ -45,9 +45,9 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 50;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|60          |60                   |50                 |50                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 60           | 60                    | 50                  | 50                           
 (1 row)
 
 1: SET ROLE TO role1_memory_test;
@@ -55,9 +55,9 @@ SET
 1: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(1,0.1);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 -- proc 1 gets a quota of 60%*50%/2=15%
 -- it has consumed 60%*10%=6%
@@ -69,9 +69,9 @@ ALTER
 -- now the group has 60%*80%-15%=33% free quota and 60%*20%=12% free shared quota,
 -- so memory_shared_quota shall be the new value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|60          |60                   |20                 |20                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 60           | 60                    | 20                  | 20                           
 (1 row)
 
 ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 70;
@@ -80,9 +80,9 @@ ALTER
 -- now the group has 60%*30%-15%=3% free quota and 60%*70%=42% free shared quota,
 -- so memory_shared_quota shall be the new value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|60          |60                   |70                 |70                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 60           | 60                    | 70                  | 70                           
 (1 row)
 
 --
@@ -95,9 +95,9 @@ ALTER
 -- now the group has 60%*20%-15%=-3% free quota and 60%*80%=48% free shared quota,
 -- so memory_shared_quota shall be the old value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|60          |60                   |80                 |80                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 60           | 60                    | 80                  | 80                           
 (1 row)
 
 1q: ... <quitting>
@@ -114,9 +114,9 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 60;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|40          |40                   |60                 |60                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 40           | 40                    | 60                  | 60                           
 (1 row)
 
 1: SET ROLE TO role1_memory_test;
@@ -151,17 +151,17 @@ SET
 -- proc4 shall be pending
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|40          |40                   |70                 |70                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 40           | 40                    | 70                  | 70                           
 (1 row)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|resgroup      |active             |BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test | resgroup       | active              | BEGIN; 
 (4 rows)
 
 ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 40;
@@ -173,17 +173,17 @@ ALTER
 4<:  <... completed>
 BEGIN
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|40          |40                   |40                 |40                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 40           | 40                    | 40                  | 40                           
 (1 row)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
 (4 rows)
 
 1q: ... <quitting>
@@ -203,9 +203,9 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 60;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|50          |50                   |60                 |60                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 50           | 50                    | 60                  | 60                           
 (1 row)
 
 1: SET ROLE TO role1_memory_test;
@@ -213,9 +213,9 @@ SET
 1: BEGIN;
 BEGIN
 1: SELECT hold_memory_by_percent(1,0.1);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 -- proc 1 gets a quota of 50%*40%/2=10%
 -- it has consumed 50%*10%=5%
@@ -228,9 +228,9 @@ ALTER
 -- so memory_limit can be the new value, however at the moment we don't update
 -- value when increasing memory_limit, so it's still the old value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|60          |60                   |60                 |60                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 60           | 60                    | 60                  | 60                           
 (1 row)
 
 ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_LIMIT 40;
@@ -239,9 +239,9 @@ ALTER
 -- now the group has 40%*40%-10%=6% free quota and 40%*60%=24% free shared quota,
 -- so memory_limit shall be the new value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|40          |40                   |60                 |60                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 40           | 40                    | 60                  | 60                           
 (1 row)
 
 --
@@ -254,9 +254,9 @@ ALTER
 -- now the group has 10%*40%-10%=-6% free quota and 10%*60%=6% free shared quota,
 -- so memory_limit shall be the old value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|10          |10                   |60                 |60                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 10           | 10                    | 60                  | 60                           
 (1 row)
 
 --
@@ -272,15 +272,15 @@ ALTER
 
 -- now the group has 40%*40%-10%=6% free quota and 40%*60%=24% free shared quota,
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|40          |40                   |60                 |60                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 40           | 40                    | 60                  | 60                           
 (1 row)
 
 1: SELECT hold_memory_by_percent(1,0.5);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 -- proc 1 has consumed another 50%*50%=25%, in total 30%
 -- now it has consumed all its 10% quota, as well as 20% shared quota
@@ -292,9 +292,9 @@ ALTER
 -- now the group has 40%*80%-10%=22% free quota and 40%*20%-20%=-12% free shared quota,
 -- so memory_shared_quota shall be the old value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|40          |40                   |20                 |20                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 40           | 40                    | 20                  | 20                           
 (1 row)
 
 ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_LIMIT 30;
@@ -303,9 +303,9 @@ ALTER
 -- now the group has 30%*80%-10%=14% free quota and 30%*20%-20%=-14% free shared quota,
 -- so memory_limit shall be the old value.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|30          |30                   |20                 |20                          
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 30           | 30                    | 20                  | 20                           
 (1 row)
 
 1q: ... <quitting>
@@ -333,10 +333,10 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_LIMIT 31;
 ERROR:  total memory_limit exceeded the limit of 100
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|30          |30                   |0                  |0                           
-rg2_memory_test|30          |30                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 30           | 30                    | 0                   | 0                            
+ rg2_memory_test | 30           | 30                    | 0                   | 0                            
 (2 rows)
 
 -- but increase could succeed if another rg is first decreased.
@@ -346,10 +346,10 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_LIMIT 40;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|40          |40                   |0                  |0                           
-rg2_memory_test|20          |20                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 40           | 40                    | 0                   | 0                            
+ rg2_memory_test | 20           | 20                    | 0                   | 0                            
 (2 rows)
 
 --
@@ -371,10 +371,10 @@ ALTER RESOURCE GROUP rg2_memory_test SET MEMORY_SHARED_QUOTA 0;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|30          |30                   |0                  |0                           
-rg2_memory_test|30          |30                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 30           | 30                    | 0                   | 0                            
+ rg2_memory_test | 30           | 30                    | 0                   | 0                            
 (2 rows)
 
 11: SET ROLE TO role1_memory_test;
@@ -411,18 +411,18 @@ BEGIN
 -- proc21 gets a quota of 40%/2=20% from rg2
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|15          |15                   |0                  |0                           
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 15           | 15                    | 0                   | 0                            
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
 (4 rows)
 
 11q: ... <quitting>
@@ -432,16 +432,16 @@ rg2_memory_test|              |idle in transaction|BEGIN;
 -- proc12 ends, 10%-5%=5% quota is returned to sys
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|15          |15                   |0                  |0                           
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 15           | 15                    | 0                   | 0                            
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
 (2 rows)
 
 -- now rg2 shall be able to get 10% free quota from sys
@@ -452,17 +452,17 @@ BEGIN
 -- proc22 gets a quota of 40%/2=20% from rg2
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|15          |15                   |0                  |0                           
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 15           | 15                    | 0                   | 0                            
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
 (3 rows)
 
 13q: ... <quitting>
@@ -490,10 +490,10 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 0;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|30          |30                   |0                  |0                           
-rg2_memory_test|30          |30                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 30           | 30                    | 0                   | 0                            
+ rg2_memory_test | 30           | 30                    | 0                   | 0                            
 (2 rows)
 
 11: SET ROLE TO role1_memory_test;
@@ -537,19 +537,19 @@ SET
 -- but as rg2 only has 30%-20%=10% free quota now,
 -- it shall be pending.
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|15          |15                   |0                  |0                           
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 15           | 15                    | 0                   | 0                            
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|resgroup      |active             |BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test | resgroup       | active              | BEGIN; 
 (5 rows)
 
 11: END;
@@ -558,18 +558,18 @@ END
 -- proc11 ends, 10%-5%=5% quota is returned to sys
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|15          |15                   |0                  |0                           
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 15           | 15                    | 0                   | 0                            
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|resgroup      |active             |BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test | resgroup       | active              | BEGIN; 
 (4 rows)
 
 12: END;
@@ -582,17 +582,17 @@ END
 22<:  <... completed>
 BEGIN
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|15          |15                   |0                  |0                           
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 15           | 15                    | 0                   | 0                            
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
 (3 rows)
 
 13q: ... <quitting>
@@ -620,10 +620,10 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 60;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|30          |30                   |60                 |60                          
-rg2_memory_test|30          |30                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 30           | 30                    | 60                  | 60                           
+ rg2_memory_test | 30           | 30                    | 0                   | 0                            
 (2 rows)
 
 11: SET ROLE TO role1_memory_test;
@@ -667,19 +667,19 @@ SET
 -- proc24 shall be pending.
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|20          |20                   |60                 |60                          
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 20           | 20                    | 60                  | 60                           
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|resgroup      |active             |BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test | resgroup       | active              | BEGIN; 
 (5 rows)
 
 ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 30;
@@ -693,19 +693,19 @@ ALTER
 24<:  <... completed>
 BEGIN
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|20          |20                   |30                 |30                          
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 20           | 20                    | 30                  | 30                           
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg1_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg1_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
 (5 rows)
 
 11q: ... <quitting>
@@ -735,10 +735,10 @@ ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 90;
 ALTER
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|30          |30                   |90                 |90                          
-rg2_memory_test|30          |30                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 30           | 30                    | 90                  | 90                           
+ rg2_memory_test | 30           | 30                    | 0                   | 0                            
 (2 rows)
 
 11: SET ROLE TO role1_memory_test;
@@ -746,9 +746,9 @@ SET
 11: BEGIN;
 BEGIN
 11: SELECT hold_memory_by_percent(1,0.90);
-hold_memory_by_percent
-----------------------
-0                     
+ hold_memory_by_percent 
+------------------------
+ 0                      
 (1 row)
 -- proc11 gets a quota of 30%*10%/10=0.3% from rg1
 -- rg1 has a free quota of 30%*10%-0.3%=2.7%
@@ -791,19 +791,19 @@ SET
 -- proc24 shall be pending.
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|20          |20                   |90                 |90                          
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 20           | 20                    | 90                  | 90                           
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query                                 
----------------+--------------+-------------------+--------------------------------------
-rg1_memory_test|              |idle in transaction|SELECT hold_memory_by_percent(1,0.90);
-rg2_memory_test|              |idle in transaction|BEGIN;                                
-rg2_memory_test|              |idle in transaction|BEGIN;                                
-rg2_memory_test|              |idle in transaction|BEGIN;                                
-rg2_memory_test|resgroup      |active             |BEGIN;                                
+ rsgname         | waiting_reason | state               | query                                  
+-----------------+----------------+---------------------+----------------------------------------
+ rg1_memory_test |                | idle in transaction | SELECT hold_memory_by_percent(1,0.90); 
+ rg2_memory_test |                | idle in transaction | BEGIN;                                 
+ rg2_memory_test |                | idle in transaction | BEGIN;                                 
+ rg2_memory_test |                | idle in transaction | BEGIN;                                 
+ rg2_memory_test | resgroup       | active              | BEGIN;                                 
 (5 rows)
 
 ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 30;
@@ -811,19 +811,19 @@ ALTER
 -- rg1 can't free any shared quota as all of them are in use by proc11
 
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|20          |20                   |30                 |30                          
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 20           | 20                    | 30                  | 30                           
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query                                 
----------------+--------------+-------------------+--------------------------------------
-rg1_memory_test|              |idle in transaction|SELECT hold_memory_by_percent(1,0.90);
-rg2_memory_test|              |idle in transaction|BEGIN;                                
-rg2_memory_test|              |idle in transaction|BEGIN;                                
-rg2_memory_test|              |idle in transaction|BEGIN;                                
-rg2_memory_test|resgroup      |active             |BEGIN;                                
+ rsgname         | waiting_reason | state               | query                                  
+-----------------+----------------+---------------------+----------------------------------------
+ rg1_memory_test |                | idle in transaction | SELECT hold_memory_by_percent(1,0.90); 
+ rg2_memory_test |                | idle in transaction | BEGIN;                                 
+ rg2_memory_test |                | idle in transaction | BEGIN;                                 
+ rg2_memory_test |                | idle in transaction | BEGIN;                                 
+ rg2_memory_test | resgroup       | active              | BEGIN;                                 
 (5 rows)
 
 11q: ... <quitting>
@@ -835,18 +835,18 @@ rg2_memory_test|resgroup      |active             |BEGIN;
 24<:  <... completed>
 BEGIN
 SELECT * FROM rg_mem_status;
-groupname      |memory_limit|proposed_memory_limit|memory_shared_quota|proposed_memory_shared_quota
----------------+------------+---------------------+-------------------+----------------------------
-rg1_memory_test|20          |20                   |30                 |30                          
-rg2_memory_test|40          |40                   |0                  |0                           
+ groupname       | memory_limit | proposed_memory_limit | memory_shared_quota | proposed_memory_shared_quota 
+-----------------+--------------+-----------------------+---------------------+------------------------------
+ rg1_memory_test | 20           | 20                    | 30                  | 30                           
+ rg2_memory_test | 40           | 40                    | 0                   | 0                            
 (2 rows)
 SELECT * FROM rg_activity_status;
-rsgname        |waiting_reason|state              |query 
----------------+--------------+-------------------+------
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
-rg2_memory_test|              |idle in transaction|BEGIN;
+ rsgname         | waiting_reason | state               | query  
+-----------------+----------------+---------------------+--------
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
+ rg2_memory_test |                | idle in transaction | BEGIN; 
 (4 rows)
 
 21q: ... <quitting>
@@ -899,9 +899,9 @@ RESET
 
 -- should still be 5% on both QD and QE
 select memory_limit from gp_toolkit.gp_resgroup_config where groupname = 'rg_test_group';
-memory_limit
-------------
-5           
+ memory_limit 
+--------------
+ 5            
 (1 row)
 
 --
@@ -931,9 +931,9 @@ RESET
 
 -- should still be 4% on both QD and QE
 select memory_limit from gp_toolkit.gp_resgroup_config where groupname = 'rg_test_group';
-memory_limit
-------------
-4           
+ memory_limit 
+--------------
+ 4            
 (1 row)
 
 DROP ROLE rg_test_role;

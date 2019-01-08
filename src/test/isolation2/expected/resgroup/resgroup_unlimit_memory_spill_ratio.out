@@ -54,66 +54,66 @@ CREATE
 SET MEMORY_SPILL_RATIO TO 60;
 SET
 SHOW MEMORY_SPILL_RATIO;
-memory_spill_ratio
-------------------
-60                
+ memory_spill_ratio 
+--------------------
+ 60                 
 (1 row)
 SELECT 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 
 SET MEMORY_SPILL_RATIO TO 0;
 SET
 SHOW MEMORY_SPILL_RATIO;
-memory_spill_ratio
-------------------
-0                 
+ memory_spill_ratio 
+--------------------
+ 0                  
 (1 row)
 SELECT 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 
 SET MEMORY_SPILL_RATIO TO 100;
 SET
 SHOW MEMORY_SPILL_RATIO;
-memory_spill_ratio
-------------------
-100               
+ memory_spill_ratio 
+--------------------
+ 100                
 (1 row)
 SELECT 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 
 SET MEMORY_SPILL_RATIO TO -1;
 ERROR:  -1 is outside the valid range for parameter "memory_spill_ratio" (0 .. 100)
 SHOW MEMORY_SPILL_RATIO;
-memory_spill_ratio
-------------------
-100               
+ memory_spill_ratio 
+--------------------
+ 100                
 (1 row)
 SELECT 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 
 SET MEMORY_SPILL_RATIO TO 101;
 ERROR:  101 is outside the valid range for parameter "memory_spill_ratio" (0 .. 100)
 SHOW MEMORY_SPILL_RATIO;
-memory_spill_ratio
-------------------
-100               
+ memory_spill_ratio 
+--------------------
+ 100                
 (1 row)
 SELECT 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 
 DROP RESOURCE GROUP rg_spill_test;
@@ -139,9 +139,9 @@ ANALYZE
 
 --test normal DML
 SELECT count(*) FROM test_zero_workmem;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 
 --clean env

@@ -35,9 +35,9 @@ REINDEX
 INSERT 4
 -- Expect two distinct relfilenodes per segment in old_relfilenodes table.
 1: select distinct count(distinct relfilenode), relname from old_relfilenodes group by dbid, relname;
-count|relname                    
------+---------------------------
-2    |idx_reindex_crtab_ao_bitmap
+ count | relname                     
+-------+-----------------------------
+ 2     | idx_reindex_crtab_ao_bitmap 
 (1 row)
 2: COMMIT;
 COMMIT
@@ -47,22 +47,22 @@ COMMIT
 INSERT 4
 -- Expect three distinct relfilenodes per segment in old_relfilenodes table.
 1: select distinct count(distinct relfilenode), relname from old_relfilenodes group by dbid, relname;
-count|relname                    
------+---------------------------
-3    |idx_reindex_crtab_ao_bitmap
+ count | relname                     
+-------+-----------------------------
+ 3     | idx_reindex_crtab_ao_bitmap 
 (1 row)
 
 3: select count(*) from reindex_crtab_ao_bitmap where a = 1000;
-count
------
-2    
+ count 
+-------
+ 2     
 (1 row)
 3: set enable_seqscan=false;
 SET
 3: set enable_indexscan=true;
 SET
 3: select count(*) from reindex_crtab_ao_bitmap where a = 1000;
-count
------
-2    
+ count 
+-------
+ 2     
 (1 row)

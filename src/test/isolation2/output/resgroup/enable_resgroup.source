@@ -33,9 +33,9 @@ limit = (2 << 30) * 1.0 * nsegs / 3 / total return os.system('gpconfig -c gp_res
 CREATE
 
 SELECT adjust_memory_limit(count(hostname)) FROM gp_segment_configuration WHERE preferred_role = 'p' GROUP BY hostname ORDER BY count(hostname) DESC LIMIT 1;
-adjust_memory_limit
--------------------
-0                  
+ adjust_memory_limit 
+---------------------
+ 0                   
 (1 row)
 
 DROP FUNCTION adjust_memory_limit(bigint);
@@ -58,23 +58,23 @@ DROP
 -- after the restart we need a new connection to run the queries
 
 0: SHOW gp_resource_manager;
-gp_resource_manager
--------------------
-group              
+ gp_resource_manager 
+---------------------
+ group               
 (1 row)
 
 -- resource queue statistics should not crash
 0: SELECT * FROM pg_resqueue_status;
-rsqname|rsqcountlimit|rsqcountvalue|rsqcostlimit|rsqcostvalue|rsqwaiters|rsqholders
--------+-------------+-------------+------------+------------+----------+----------
+ rsqname | rsqcountlimit | rsqcountvalue | rsqcostlimit | rsqcostvalue | rsqwaiters | rsqholders 
+---------+---------------+---------------+--------------+--------------+------------+------------
 (0 rows)
 0: SELECT * FROM gp_toolkit.gp_resqueue_status;
-queueid|rsqname|rsqcountlimit|rsqcountvalue|rsqcostlimit|rsqcostvalue|rsqmemorylimit|rsqmemoryvalue|rsqwaiters|rsqholders
--------+-------+-------------+-------------+------------+------------+--------------+--------------+----------+----------
+ queueid | rsqname | rsqcountlimit | rsqcountvalue | rsqcostlimit | rsqcostvalue | rsqmemorylimit | rsqmemoryvalue | rsqwaiters | rsqholders 
+---------+---------+---------------+---------------+--------------+--------------+----------------+----------------+------------+------------
 (0 rows)
 0: SELECT * FROM gp_toolkit.gp_resq_priority_backend;
-rqpsession|rqpcommand|rqppriority|rqpweight
-----------+----------+-----------+---------
+ rqpsession | rqpcommand | rqppriority | rqpweight 
+------------+------------+-------------+-----------
 (0 rows)
 
 -- by default admin_group has concurrency set to -1 which leads to

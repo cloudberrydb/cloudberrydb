@@ -44,19 +44,19 @@
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 CREATE
 SELECT gp_inject_fault_infinite('fts_probe', 'skip', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 SELECT gp_request_fts_probe_scan();
-gp_request_fts_probe_scan
--------------------------
-t                        
+ gp_request_fts_probe_scan 
+---------------------------
+ t                         
 (1 row)
 select gp_wait_until_triggered_fault('fts_probe', 1, 1);
-gp_wait_until_triggered_fault
------------------------------
-t                            
+ gp_wait_until_triggered_fault 
+-------------------------------
+ t                             
 (1 row)
 CREATE OR REPLACE FUNCTION test_excep (arg INTEGER) RETURNS INTEGER AS $$ DECLARE res INTEGER; /* in func */ BEGIN /* in func */ res := 100 / arg; /* in func */ RETURN res; /* in func */ EXCEPTION /* in func */ WHEN division_by_zero /* in func */ THEN  RETURN 999; /* in func */ END; /* in func */ $$ LANGUAGE plpgsql;
 CREATE
@@ -64,16 +64,16 @@ CREATE
 CREATE OR REPLACE FUNCTION test_protocol_allseg(mid int, mshop int, mgender character) RETURNS VOID AS $$ DECLARE tfactor int default 0; /* in func */ BEGIN /* in func */ BEGIN /* in func */ CREATE TABLE employees(id int, shop_id int, gender character) DISTRIBUTED BY (id); /* in func */  INSERT INTO employees VALUES (0, 1, 'm'); /* in func */ END; /* in func */ BEGIN /* in func */ BEGIN /* in func */ IF EXISTS (select 1 from employees where id = mid) THEN /* in func */ RAISE EXCEPTION 'Duplicate employee id'; /* in func */ ELSE /* in func */ IF NOT (mshop between 1 AND 2) THEN /* in func */ RAISE EXCEPTION 'Invalid shop id' ; /* in func */ END IF; /* in func */ END IF; /* in func */ SELECT * INTO tfactor FROM test_excep(0); /* in func */ BEGIN /* in func */ INSERT INTO employees VALUES (mid, mshop, mgender); /* in func */ EXCEPTION /* in func */ WHEN OTHERS THEN /* in func */ BEGIN /* in func */ RAISE NOTICE 'catching the exception ...3'; /* in func */ END; /* in func */ END; /* in func */ EXCEPTION /* in func */ WHEN OTHERS THEN /* in func */ RAISE NOTICE 'catching the exception ...2'; /* in func */ END; /* in func */ EXCEPTION /* in func */ WHEN OTHERS THEN /* in func */ RAISE NOTICE 'catching the exception ...1'; /* in func */ END; /* in func */ END; /* in func */ $$ LANGUAGE plpgsql;
 CREATE
 SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
-role|preferred_role|content|mode|status
-----+--------------+-------+----+------
-m   |m             |-1     |s   |u     
-m   |m             |0      |s   |u     
-m   |m             |1      |s   |u     
-m   |m             |2      |s   |u     
-p   |p             |-1     |n   |u     
-p   |p             |0      |s   |u     
-p   |p             |1      |s   |u     
-p   |p             |2      |s   |u     
+ role | preferred_role | content | mode | status 
+------+----------------+---------+------+--------
+ m    | m              | -1      | s    | u      
+ m    | m              | 0       | s    | u      
+ m    | m              | 1       | s    | u      
+ m    | m              | 2       | s    | u      
+ p    | p              | -1      | n    | u      
+ p    | p              | 0       | s    | u      
+ p    | p              | 1       | s    | u      
+ p    | p              | 2       | s    | u      
 (8 rows)
 SET debug_dtm_action_segment=0;
 SET
@@ -92,9 +92,9 @@ ERROR:  PANIC for debug_dtm_action = 4, debug_dtm_action_protocol =  Begin Inter
 CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 9 during statement block entry
 -- make sure segment recovery is complete after panic.
 0U: select 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 0Uq: ... <quitting>
 select * from employees;
@@ -120,9 +120,9 @@ ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
 CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 19 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 0Uq: ... <quitting>
 select * from employees;
@@ -148,9 +148,9 @@ ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
 CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 19 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 0Uq: ... <quitting>
 select * from employees;
@@ -176,9 +176,9 @@ ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
 CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 18 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 0Uq: ... <quitting>
 select * from employees;
@@ -204,9 +204,9 @@ ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
 CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 18 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 0Uq: ... <quitting>
 select * from employees;
@@ -232,9 +232,9 @@ ERROR:  DTX RollbackAndReleaseCurrentSubTransaction dispatch failed
 CONTEXT:  PL/pgSQL function test_protocol_allseg(integer,integer,character) line 18 during exception cleanup
 -- make sure segment recovery is complete after panic.
 0U: select 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 0Uq: ... <quitting>
 select * from employees;
@@ -243,7 +243,7 @@ LINE 1: select * from employees;
                       ^
 
 SELECT gp_inject_fault('fts_probe', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)

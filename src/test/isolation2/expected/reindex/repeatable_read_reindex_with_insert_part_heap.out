@@ -30,9 +30,9 @@ BEGIN
 1: SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 SET
 1: select 'dummy select to establish snapshot';
-?column?                          
-----------------------------------
-dummy select to establish snapshot
+ ?column?                           
+------------------------------------
+ dummy select to establish snapshot 
 (1 row)
 2: BEGIN;
 BEGIN
@@ -41,34 +41,34 @@ INSERT 2
 2: COMMIT;
 COMMIT
 1: select id,owner,target,v,f from reindex_serialize_ins_tab_heap_part where id > 1000 order by 1;
-id|owner|target|v|f
---+-----+------+-+-
+ id | owner | target | v | f 
+----+-------+--------+---+---
 (0 rows)
 1: select id,owner,target,v,f from reindex_serialize_ins_tab_heap_part where id = 1111;
-id|owner|target|v|f
---+-----+------+-+-
+ id | owner | target | v | f 
+----+-------+--------+---+---
 (0 rows)
 1: reindex table reindex_serialize_ins_tab_heap_part;
 REINDEX
 1: COMMIT;
 COMMIT
 4: select id,owner,target,v,f from reindex_serialize_ins_tab_heap_part where id > 1000 order by 1;
-id  |owner   |target      |v|f
-----+--------+------------+-+-
-1111|user1111|<(76,76),76>| | 
-1112|user1112|<(76,76),76>| | 
+ id   | owner    | target       | v | f 
+------+----------+--------------+---+---
+ 1111 | user1111 | <(76,76),76> |   |   
+ 1112 | user1112 | <(76,76),76> |   |   
 (2 rows)
 4: select id,owner,target,v,f from reindex_serialize_ins_tab_heap_part where id = 1111;
-id  |owner   |target      |v|f
-----+--------+------------+-+-
-1111|user1111|<(76,76),76>| | 
+ id   | owner    | target       | v | f 
+------+----------+--------------+---+---
+ 1111 | user1111 | <(76,76),76> |   |   
 (1 row)
 3: set enable_seqscan=false;
 SET
 3: set enable_indexscan=true;
 SET
 3: select id,owner,target,v,f from reindex_serialize_ins_tab_heap_part where id = 1111;
-id  |owner   |target      |v|f
-----+--------+------------+-+-
-1111|user1111|<(76,76),76>| | 
+ id   | owner    | target       | v | f 
+------+----------+--------------+---+---
+ 1111 | user1111 | <(76,76),76> |   |   
 (1 row)

@@ -15,10 +15,10 @@ INSERT 1
 update unlogged_heap_table_managers set name = 'Susan' where id = 2;
 UPDATE 1
 select * from unlogged_heap_table_managers order by id;
-id|name 
---+-----
-1 |Joe  
-2 |Susan
+ id | name  
+----+-------
+ 1  | Joe   
+ 2  | Susan 
 (2 rows)
 
 
@@ -26,8 +26,8 @@ id|name
 
 -- expect inserts/updates are truncated after crash recovery
 2: select * from unlogged_heap_table_managers;
-id|name
---+----
+ id | name 
+----+------
 (0 rows)
 
 
@@ -39,20 +39,20 @@ INSERT 1
 3: update unlogged_heap_table_managers set name = 'Susan' where id = 2;
 UPDATE 1
 3: select * from unlogged_heap_table_managers order by id;
-id|name 
---+-----
-1 |Joe  
-2 |Susan
+ id | name  
+----+-------
+ 1  | Joe   
+ 2  | Susan 
 (2 rows)
 
 -- force a clean stop and recovery:
 
 -- expect: inserts/updates are persisted
 4: select * from unlogged_heap_table_managers order by id;
-id|name 
---+-----
-1 |Joe  
-2 |Susan
+ id | name  
+----+-------
+ 1  | Joe   
+ 2  | Susan 
 (2 rows)
 
 -- expect: drop table succeeds

@@ -39,9 +39,9 @@ SET
 4&:BEGIN;  <waiting ...>
 
 SELECT dump_test_check();
-dump_test_check
----------------
-t              
+ dump_test_check 
+-----------------
+ t               
 (1 row)
 
 2:END;

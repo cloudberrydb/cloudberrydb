@@ -13,9 +13,9 @@ UPDATE 1
 1&: ALTER TABLE alter_block SET DISTRIBUTED BY (b);  <waiting ...>
 -- Alter process should be blocked
 2: SELECT waiting FROM pg_stat_activity where query like 'ALTER TABLE alter_block %';
-waiting
--------
-t      
+ waiting 
+---------
+ t       
 (1 row)
 2: COMMIT;
 COMMIT
@@ -28,9 +28,9 @@ BEGIN
 ALTER
 1&: UPDATE alter_block SET b = b + 1;  <waiting ...>
 2: SELECT waiting FROM pg_stat_activity where query like 'UPDATE alter_block SET %';
-waiting
--------
-t      
+ waiting 
+---------
+ t       
 (1 row)
 2: COMMIT;
 COMMIT

@@ -43,9 +43,9 @@ CREATE 400000
 
 -- check that the result looks sane
 select count(*), sum(t1a), sum(t2a), sum(t1a - t2a) from spilltestresult1;
-count |sum        |sum        |sum
-------+-----------+-----------+---
-400000|80000200000|80000200000|0  
+ count  | sum         | sum         | sum 
+--------+-------------+-------------+-----
+ 400000 | 80000200000 | 80000200000 | 0   
 (1 row)
 
 -- Test Hash Aggregation when the work mem is too small for the hash table
@@ -61,63 +61,63 @@ set enable_groupagg=off;
 SET
 
 select b,count(*) from spilltest group by b order by b;
-b |count
---+-----
-0 |320  
-1 |320  
-2 |320  
-3 |320  
-4 |320  
-5 |320  
-6 |320  
-7 |320  
-8 |320  
-9 |320  
-10|320  
-11|320  
-12|320  
-13|320  
-14|320  
-15|320  
-16|320  
-17|320  
-18|320  
-19|320  
-20|320  
-21|320  
-22|320  
-23|320  
-24|320  
+ b  | count 
+----+-------
+ 0  | 320   
+ 1  | 320   
+ 2  | 320   
+ 3  | 320   
+ 4  | 320   
+ 5  | 320   
+ 6  | 320   
+ 7  | 320   
+ 8  | 320   
+ 9  | 320   
+ 10 | 320   
+ 11 | 320   
+ 12 | 320   
+ 13 | 320   
+ 14 | 320   
+ 15 | 320   
+ 16 | 320   
+ 17 | 320   
+ 18 | 320   
+ 19 | 320   
+ 20 | 320   
+ 21 | 320   
+ 22 | 320   
+ 23 | 320   
+ 24 | 320   
 (25 rows)
 
 select b,count(*) from spilltest group by b order by b;
-b |count
---+-----
-0 |320  
-1 |320  
-2 |320  
-3 |320  
-4 |320  
-5 |320  
-6 |320  
-7 |320  
-8 |320  
-9 |320  
-10|320  
-11|320  
-12|320  
-13|320  
-14|320  
-15|320  
-16|320  
-17|320  
-18|320  
-19|320  
-20|320  
-21|320  
-22|320  
-23|320  
-24|320  
+ b  | count 
+----+-------
+ 0  | 320   
+ 1  | 320   
+ 2  | 320   
+ 3  | 320   
+ 4  | 320   
+ 5  | 320   
+ 6  | 320   
+ 7  | 320   
+ 8  | 320   
+ 9  | 320   
+ 10 | 320   
+ 11 | 320   
+ 12 | 320   
+ 13 | 320   
+ 14 | 320   
+ 15 | 320   
+ 16 | 320   
+ 17 | 320   
+ 18 | 320   
+ 19 | 320   
+ 20 | 320   
+ 21 | 320   
+ 22 | 320   
+ 23 | 320   
+ 24 | 320   
 (25 rows)
 -- Test Hash Join when the work mem is too small for the hash table
 drop table if exists spilltest;
@@ -137,9 +137,9 @@ create temporary table spilltestresult2 as select t1.a as t1a, t1.b as t1b, t2.a
 CREATE 800000
 -- check that the result looks sane
 select count(*), sum(t1a), sum(t2a), sum(t2a), sum(t2b), sum(t1a * t1b) from spilltestresult2;
-count |sum         |sum         |sum         |sum    |sum          
-------+------------+------------+------------+-------+-------------
-800000|320000400000|320000400000|320000400000|9600000|3840036800000
+ count  | sum          | sum          | sum          | sum     | sum           
+--------+--------------+--------------+--------------+---------+---------------
+ 800000 | 320000400000 | 320000400000 | 320000400000 | 9600000 | 3840036800000 
 (1 row)
 
 drop table spilltest1;

@@ -4,60 +4,60 @@ CREATE
 CREATE
 
 1:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
-role|preferred_role|content|mode|status
-----+--------------+-------+----+------
-m   |m             |-1     |s   |u     
-m   |m             |0      |s   |u     
-m   |m             |1      |s   |u     
-m   |m             |2      |s   |u     
-p   |p             |-1     |n   |u     
-p   |p             |0      |s   |u     
-p   |p             |1      |s   |u     
-p   |p             |2      |s   |u     
+ role | preferred_role | content | mode | status 
+------+----------------+---------+------+--------
+ m    | m              | -1      | s    | u      
+ m    | m              | 0       | s    | u      
+ m    | m              | 1       | s    | u      
+ m    | m              | 2       | s    | u      
+ p    | p              | -1      | n    | u      
+ p    | p              | 0       | s    | u      
+ p    | p              | 1       | s    | u      
+ p    | p              | 2       | s    | u      
 (8 rows)
 -- transaction of session 2 suspend after inserted 'COMMIT' record
 1:select gp_inject_fault_infinite('dtm_broadcast_commit_prepared', 'suspend', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 -- checkpoint suspend before scanning proc array
 1:select gp_inject_fault_infinite('checkpoint_dtx_info', 'suspend', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 1&:CHECKPOINT;  <waiting ...>
 
 -- wait till checkpoint reaches intended point
 2:select gp_wait_until_triggered_fault('checkpoint_dtx_info', 1, 1);
-gp_wait_until_triggered_fault
------------------------------
-t                            
+ gp_wait_until_triggered_fault 
+-------------------------------
+ t                             
 (1 row)
 -- the 'COMMIT' record is logically after REDO pointer
 2&:insert into crash_test_redundant values (1);  <waiting ...>
 
 -- resume checkpoint
 3:select gp_inject_fault('checkpoint_dtx_info', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 1<:  <... completed>
 CHECKPOINT
 
 -- wait till insert reaches intended point
 1:select gp_wait_until_triggered_fault('dtm_broadcast_commit_prepared', 1, 1);
-gp_wait_until_triggered_fault
------------------------------
-t                            
+ gp_wait_until_triggered_fault 
+-------------------------------
+ t                             
 (1 row)
 -- trigger crash
 1:select gp_inject_fault('before_read_command', 'panic', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 -- start_ignore
 -- We ignore the output here because PANIC output is intermittent and is
@@ -76,7 +76,7 @@ server closed the connection unexpectedly
 
 -- transaction of session 2 should be recovered properly
 4:select * from crash_test_redundant;
-c1
---
-1 
+ c1 
+----
+ 1  
 (1 row)

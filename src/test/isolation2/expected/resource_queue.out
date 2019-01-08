@@ -18,23 +18,23 @@ PREPARE
 
 -- EXECUTE statement(cached plan) will be blocked when the concurrency limit of the resource queue is reached.
 0:SELECT rsqcountvalue FROM gp_toolkit.gp_resqueue_status WHERE rsqname='rq_concurrency_test';
-rsqcountvalue
--------------
-1            
+ rsqcountvalue 
+---------------
+ 1             
 (1 row)
 0:SELECT waiting_reason from pg_stat_activity where query = 'EXECUTE fooplan;';
-waiting_reason
---------------
-lock          
+ waiting_reason 
+----------------
+ lock           
 (1 row)
 
 1:END;
 END
 
 2<:  <... completed>
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 2:END;
 END

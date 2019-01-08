@@ -31,107 +31,107 @@ INSERT 10
 -- Downgrade to GPDB4 (AO version 2).
 --start_ignore
 *U: SELECT set_ao_formatversion( (SELECT segrelid FROM pg_appendonly WHERE relid = 'ao_upgrade_test'::regclass), 2::smallint, false);
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 *U: SELECT set_ao_formatversion( (SELECT segrelid FROM pg_appendonly WHERE relid = 'aocs_upgrade_test'::regclass), 2::smallint, true);
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 *U: SELECT set_ao_formatversion( (SELECT segrelid FROM pg_appendonly WHERE relid = 'aocs_rle_upgrade_test'::regclass), 2::smallint, true);
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 
-set_ao_formatversion
---------------------
-t                   
+ set_ao_formatversion 
+----------------------
+ t                    
 (1 row)
 --end_ignore
 
 -- Scan test. The numerics should be fixed again.
 SELECT * FROM ao_upgrade_test;
-rowid|n                                                                                                    
------+-----------------------------------------------------------------------------------------------------
-2    |0                                                                                                    
-5    |0.00001                                                                                              
-6    |0.000010000                                                                                          
-9    |NaN                                                                                                  
-1    |12.345                                                                                               
-3    |-12.345                                                                                              
-4    |10000                                                                                                
-7    |10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-8    |362880                                                                                               
+ rowid | n                                                                                                     
+-------+-------------------------------------------------------------------------------------------------------
+ 2     | 0                                                                                                     
+ 5     | 0.00001                                                                                               
+ 6     | 0.000010000                                                                                           
+ 9     | NaN                                                                                                   
+ 1     | 12.345                                                                                                
+ 3     | -12.345                                                                                               
+ 4     | 10000                                                                                                 
+ 7     | 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 
+ 8     | 362880                                                                                                
 (9 rows)
 SELECT * FROM aocs_upgrade_test;
-rowid|n                                                                                                    
------+-----------------------------------------------------------------------------------------------------
-2    |0                                                                                                    
-5    |0.00001                                                                                              
-6    |0.000010000                                                                                          
-9    |NaN                                                                                                  
-4    |10000                                                                                                
-7    |10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-8    |362880                                                                                               
-1    |12.345                                                                                               
-3    |-12.345                                                                                              
+ rowid | n                                                                                                     
+-------+-------------------------------------------------------------------------------------------------------
+ 2     | 0                                                                                                     
+ 5     | 0.00001                                                                                               
+ 6     | 0.000010000                                                                                           
+ 9     | NaN                                                                                                   
+ 4     | 10000                                                                                                 
+ 7     | 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 
+ 8     | 362880                                                                                                
+ 1     | 12.345                                                                                                
+ 3     | -12.345                                                                                               
 (9 rows)
 SELECT * FROM aocs_rle_upgrade_test;
-rowid|n     
------+------
-1    |362880
-2    |362880
-3    |362880
-4    |362880
-5    |362880
-6    |362880
-7    |362880
-8    |362880
-9    |362880
-10   |362880
+ rowid | n      
+-------+--------
+ 1     | 362880 
+ 2     | 362880 
+ 3     | 362880 
+ 4     | 362880 
+ 5     | 362880 
+ 6     | 362880 
+ 7     | 362880 
+ 8     | 362880 
+ 9     | 362880 
+ 10    | 362880 
 (10 rows)
 
 -- Fetch test. To force fetches, we'll add bitmap indexes and disable sequential
@@ -150,62 +150,62 @@ SET
 -- the only thing that this test needs to verify is that a fetch-based scan is
 -- in use. Other diffs are fine.
 EXPLAIN SELECT n FROM ao_upgrade_test WHERE n = (9 !);
-QUERY PLAN                                                                                           
------------------------------------------------------------------------------------------------------
-Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                     
-  ->  Bitmap Heap Scan on ao_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9)
-        Recheck Cond: n = 362880::numeric                                                            
-        ->  Bitmap Index Scan on ao_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                
-              Index Cond: n = 362880::numeric                                                        
-Settings:  enable_seqscan=off                                                                        
-Optimizer status: legacy query optimizer                                                             
+ QUERY PLAN                                                                                            
+-------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                      
+   ->  Bitmap Heap Scan on ao_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9) 
+         Recheck Cond: n = 362880::numeric                                                             
+         ->  Bitmap Index Scan on ao_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                 
+               Index Cond: n = 362880::numeric                                                         
+ Settings:  enable_seqscan=off                                                                         
+ Optimizer status: legacy query optimizer                                                              
 (7 rows)
 EXPLAIN SELECT n FROM aocs_upgrade_test WHERE n = (9 !);
-QUERY PLAN                                                                                                
-----------------------------------------------------------------------------------------------------------
-Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                          
-  ->  Bitmap Heap Scan on aocs_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9)
-        Recheck Cond: n = 362880::numeric                                                                 
-        ->  Bitmap Index Scan on aocs_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                   
-              Index Cond: n = 362880::numeric                                                             
-Settings:  enable_seqscan=off                                                                             
-Optimizer status: legacy query optimizer                                                                  
+ QUERY PLAN                                                                                                 
+------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                           
+   ->  Bitmap Heap Scan on aocs_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9) 
+         Recheck Cond: n = 362880::numeric                                                                  
+         ->  Bitmap Index Scan on aocs_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                    
+               Index Cond: n = 362880::numeric                                                              
+ Settings:  enable_seqscan=off                                                                              
+ Optimizer status: legacy query optimizer                                                                   
 (7 rows)
 EXPLAIN SELECT n FROM aocs_rle_upgrade_test WHERE n = (9 !);
-QUERY PLAN                                                                                                    
---------------------------------------------------------------------------------------------------------------
-Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                              
-  ->  Bitmap Heap Scan on aocs_rle_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9)
-        Recheck Cond: n = 362880::numeric                                                                     
-        ->  Bitmap Index Scan on aocs_rle_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                   
-              Index Cond: n = 362880::numeric                                                                 
-Settings:  enable_seqscan=off                                                                                 
-Optimizer status: legacy query optimizer                                                                      
+ QUERY PLAN                                                                                                     
+----------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                               
+   ->  Bitmap Heap Scan on aocs_rle_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9) 
+         Recheck Cond: n = 362880::numeric                                                                      
+         ->  Bitmap Index Scan on aocs_rle_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                    
+               Index Cond: n = 362880::numeric                                                                  
+ Settings:  enable_seqscan=off                                                                                  
+ Optimizer status: legacy query optimizer                                                                       
 (7 rows)
 
 SELECT n FROM ao_upgrade_test WHERE n = (9 !);
-n     
-------
-362880
+ n      
+--------
+ 362880 
 (1 row)
 SELECT n FROM aocs_upgrade_test WHERE n = (9 !);
-n     
-------
-362880
+ n      
+--------
+ 362880 
 (1 row)
 SELECT n FROM aocs_rle_upgrade_test WHERE n = (9 !);
-n     
-------
-362880
-362880
-362880
-362880
-362880
-362880
-362880
-362880
-362880
-362880
+ n      
+--------
+ 362880 
+ 362880 
+ 362880 
+ 362880 
+ 362880 
+ 362880 
+ 362880 
+ 362880 
+ 362880 
+ 362880 
 (10 rows)
 
 RESET enable_seqscan;

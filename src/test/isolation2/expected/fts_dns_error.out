@@ -41,9 +41,9 @@ CREATE
 
 -- no down segment in the beginning
 select count(*) from gp_segment_configuration where status = 'd';
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 
 -- probe to make sure when we call gp_request_fts_probe_scan() next
@@ -51,32 +51,32 @@ count
 -- process. As if that happens, due to race condition will not trigger
 -- the fault and fail the test.
 select gp_request_fts_probe_scan();
-gp_request_fts_probe_scan
--------------------------
-t                        
+ gp_request_fts_probe_scan 
+---------------------------
+ t                         
 (1 row)
 -- trigger a DNS error
 select gp_inject_fault_infinite('get_dns_cached_address', 'skip', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 select gp_request_fts_probe_scan();
-gp_request_fts_probe_scan
--------------------------
-t                        
+ gp_request_fts_probe_scan 
+---------------------------
+ t                         
 (1 row)
 select gp_inject_fault_infinite('get_dns_cached_address', 'reset', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 
 -- verify a fts failover happens
 select count(*) from gp_segment_configuration where status = 'd';
-count
------
-1    
+ count 
+-------
+ 1     
 (1 row)
 
 -- fully recover the failed primary as new mirror
@@ -227,9 +227,9 @@ DO
 
 -- verify no segment is down after recovery
 select count(*) from gp_segment_configuration where status = 'd';
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 
 !\retcode gpconfig -r gp_fts_probe_retries --masteronly;

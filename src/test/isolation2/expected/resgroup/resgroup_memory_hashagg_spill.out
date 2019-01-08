@@ -45,28 +45,28 @@ SET
 -- the number of rows returned by the query varies depending on the number of segments, so
 -- only print the first 10
 select * from (select max(i1) from testhagg group by i2) foo order by 1 limit 10;
-max
----
-1  
-2  
-3  
-4  
-5  
-6  
-7  
-8  
-9  
-10 
+ max 
+-----
+ 1   
+ 2   
+ 3   
+ 4   
+ 5   
+ 6   
+ 7   
+ 8   
+ 9   
+ 10  
 (10 rows)
 select * from hashagg_spill.is_workfile_created('explain analyze select max(i1) from testhagg group by i2;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 select * from hashagg_spill.is_workfile_created('explain analyze select max(i1) from testhagg group by i2 limit 45000;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 
 
@@ -101,9 +101,9 @@ CREATE
 0: ALTER ROLE role1_memory_test RESOURCE GROUP rg1_memory_test;
 ALTER
 select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 1) g;
-count 
-------
-900000
+ count  
+--------
+ 900000 
 (1 row)
 
 -- Reduce the statement memory to induce spilling
@@ -116,14 +116,14 @@ CREATE
 0: ALTER ROLE role1_memory_test RESOURCE GROUP rg1_memory_test;
 ALTER
 select overflows >= 1 from hashagg_spill.num_hashagg_overflows('explain analyze select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 2) g') overflows;
-?column?
---------
-t       
+ ?column? 
+----------
+ t        
 (1 row)
 select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 2) g;
-count
------
-90000
+ count 
+-------
+ 90000 
 (1 row)
 
 -- Reduce the statement memory, nbatches and entrysize even further to cause multiple overflows
@@ -135,15 +135,15 @@ ALTER
 ALTER
 
 select overflows > 1 from hashagg_spill.num_hashagg_overflows('explain analyze select count(*) from (select i, count(*) from aggspill group by i,j,t having count(*) = 3) g') overflows;
-?column?
---------
-t       
+ ?column? 
+----------
+ t        
 (1 row)
 
 select count(*) from (select i, count(*) from aggspill group by i,j,t having count(*) = 3) g;
-count
------
-10000
+ count 
+-------
+ 10000 
 (1 row)
 
 drop schema hashagg_spill cascade;

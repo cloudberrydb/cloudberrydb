@@ -73,13 +73,13 @@ SET
 
 -- This is the actual test query.
 select * FROM test_mat_small as t1 left outer join test_mat_large AS t2 on t1.i1=t2.i2;
-i1 |i1 |i2 |i3 |i4 |i5 |i6 |i7 |i8 
----+---+---+---+---+---+---+---+---
-101|101|101|101|101|101|101|101|101
-102|102|102|102|102|102|102|102|102
-103|103|103|103|103|103|103|103|103
-104|104|104|104|104|104|104|104|104
-105|105|105|105|105|105|105|105|105
+ i1  | i1  | i2  | i3  | i4  | i5  | i6  | i7  | i8  
+-----+-----+-----+-----+-----+-----+-----+-----+-----
+ 101 | 101 | 101 | 101 | 101 | 101 | 101 | 101 | 101 
+ 102 | 102 | 102 | 102 | 102 | 102 | 102 | 102 | 102 
+ 103 | 103 | 103 | 103 | 103 | 103 | 103 | 103 | 103 
+ 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 
+ 105 | 105 | 105 | 105 | 105 | 105 | 105 | 105 | 105 
 (5 rows)
 
 -- Check that the Materialize node spilled to disk, to make sure we're testing spilling
@@ -88,25 +88,25 @@ i1 |i1 |i2 |i3 |i4 |i5 |i6 |i7 |i8
 -- node to only be executed, and spilled, on as many segments as there nodes that hold
 -- data from test_mat_small.
 select n - (select count (distinct gp_segment_id) from test_mat_small) as difference from num_workfiles_created($$ explain analyze select * FROM test_mat_small as t1 left outer join test_mat_large AS t2 on t1.i1=t2.i2 $$) as n;
-difference
-----------
-0         
+ difference 
+------------
+ 0          
 (1 row)
 
 -- Repeat, with a LIMIT. This causes the underlying scan to finish earlier.
 select * FROM test_mat_small as t1 left outer join test_mat_large AS t2 on t1.i1=t2.i2 limit 10;
-i1 |i1 |i2 |i3 |i4 |i5 |i6 |i7 |i8 
----+---+---+---+---+---+---+---+---
-101|101|101|101|101|101|101|101|101
-102|102|102|102|102|102|102|102|102
-103|103|103|103|103|103|103|103|103
-104|104|104|104|104|104|104|104|104
-105|105|105|105|105|105|105|105|105
+ i1  | i1  | i2  | i3  | i4  | i5  | i6  | i7  | i8  
+-----+-----+-----+-----+-----+-----+-----+-----+-----
+ 101 | 101 | 101 | 101 | 101 | 101 | 101 | 101 | 101 
+ 102 | 102 | 102 | 102 | 102 | 102 | 102 | 102 | 102 
+ 103 | 103 | 103 | 103 | 103 | 103 | 103 | 103 | 103 
+ 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 
+ 105 | 105 | 105 | 105 | 105 | 105 | 105 | 105 | 105 
 (5 rows)
 select n - (select count (distinct gp_segment_id) from test_mat_small) as difference from num_workfiles_created($$ explain analyze select * FROM test_mat_small as t1 left outer join test_mat_large AS t2 on t1.i1=t2.i2 limit 10 $$) as n;
-difference
-----------
-0         
+ difference 
+------------
+ 0          
 (1 row)
 
 drop schema materialize_spill cascade;

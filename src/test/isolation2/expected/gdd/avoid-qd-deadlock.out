@@ -14,33 +14,33 @@ INSERT INTO tsudf select i, i+1 from generate_series(1,10) i;
 INSERT 10
 
 SELECT gp_inject_fault('upgrade_row_lock', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 SELECT gp_inject_fault('upgrade_row_lock', 'sleep', '', '', '', 1, -1, 10, 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 
 3&: SELECT * FROM func1(1);  <waiting ...>
 4: SELECT * FROM func1(2);
-func1
------
-2    
+ func1 
+-------
+ 2     
 (1 row)
 
 3<:  <... completed>
-func1
------
-1    
+ func1 
+-------
+ 1     
 (1 row)
 3q: ... <quitting>
 4q: ... <quitting>
 
 SELECT gp_inject_fault('upgrade_row_lock', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)

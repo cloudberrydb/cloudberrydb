@@ -23,6 +23,6 @@ UPDATE 0
 2: COMMIT;
 COMMIT
 SELECT * FROM ao WHERE b < 2;
-a|b
--+-
+ a | b 
+---+---
 (0 rows)

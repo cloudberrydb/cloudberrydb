@@ -25,9 +25,9 @@ COMMIT
 2<:  <... completed>
 ERROR:  table "t1" does not exist
 2:select count(*) from newt1;
-count
------
-10   
+ count 
+-------
+ 10    
 (1 row)
 
 -- DROP is executed concurrently with ALTER RENAME but not ANALYZE.
@@ -49,9 +49,9 @@ COMMIT
 2<:  <... completed>
 ERROR:  table "t2" does not exist
 2:select count(*) from newt2;
-count
------
-10   
+ count 
+-------
+ 10    
 (1 row)
 
 -- The same, but with DROP IF EXISTS. (We used to have a bug, where the DROP
@@ -76,16 +76,16 @@ ERROR:  relation "t3" does not exist
 LINE 1: select count(*) from t3;
                              ^
 2:select relname from pg_class where relname like 't3%';
-relname
--------
-t3_new 
+ relname 
+---------
+ t3_new  
 (1 row)
 2:select relname from gp_dist_random('pg_class') where relname like 't3%';
-relname
--------
-t3_new 
-t3_new 
-t3_new 
+ relname 
+---------
+ t3_new  
+ t3_new  
+ t3_new  
 (3 rows)
 
 1:drop table if exists t3;

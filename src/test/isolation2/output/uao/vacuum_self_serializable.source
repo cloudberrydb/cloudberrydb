@@ -12,25 +12,25 @@ DELETE 19
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 SET
 SELECT COUNT(*) FROM ao;
-count
------
-81   
+ count 
+-------
+ 81    
 (1 row)
 SELECT segno, tupcount FROM gp_ao_or_aocs_seg('ao');
-segno|tupcount
------+--------
-1    |100     
+ segno | tupcount 
+-------+----------
+ 1     | 100      
 (1 row)
 VACUUM ao;
 VACUUM
 SELECT segno, tupcount FROM gp_ao_or_aocs_seg('ao');
-segno|tupcount
------+--------
-1    |0       
-2    |81      
+ segno | tupcount 
+-------+----------
+ 1     | 0        
+ 2     | 81       
 (2 rows)
 SELECT COUNT(*) FROM ao;
-count
------
-81   
+ count 
+-------
+ 81    
 (1 row)

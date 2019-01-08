@@ -43,24 +43,24 @@ CREATE
 -- verify the function
 -- Data distribution is sensitive to the underlying hash algorithm.
 SELECT segid(0,1);
-segid
------
-4    
+ segid 
+-------
+ 4     
 (1 row)
 SELECT segid(0,2);
-segid
------
-7    
+ segid 
+-------
+ 7     
 (1 row)
 SELECT segid(1,1);
-segid
------
-2    
+ segid 
+-------
+ 2     
 (1 row)
 SELECT segid(1,2);
-segid
------
-5    
+ segid 
+-------
+ 5     
 (1 row)
 
 -- start_ignore
@@ -80,13 +80,13 @@ segid
 
 -- the new setting need some time to be loaded
 SELECT pg_sleep(2);
-pg_sleep
---------
-        
+ pg_sleep 
+----------
+          
 (1 row)
 
 SHOW gp_global_deadlock_detector_period;
-gp_global_deadlock_detector_period
-----------------------------------
-10s                               
+ gp_global_deadlock_detector_period 
+------------------------------------
+ 10s                                
 (1 row)

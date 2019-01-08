@@ -39,19 +39,19 @@ SET
 set gp_workfile_type_hashjoin=buffile;
 SET
 select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
-avg  
------
-499.5
+ avg   
+-------
+ 499.5 
 (1 row)
 select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 
 set gp_workfile_type_hashjoin=bfz;
@@ -59,37 +59,37 @@ SET
 set gp_workfile_compress_algorithm=zlib;
 SET
 select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
-avg  
------
-499.5
+ avg   
+-------
+ 499.5 
 (1 row)
 select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 
 set gp_workfile_compress_algorithm=NONE;
 SET
 select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
-avg  
------
-499.5
+ avg   
+-------
+ 499.5 
 (1 row)
 select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
-is_workfile_created
--------------------
-1                  
+ is_workfile_created 
+---------------------
+ 1                   
 (1 row)
 
 drop schema hashjoin_spill cascade;

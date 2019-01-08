@@ -12,14 +12,14 @@ BEGIN
 1: DECLARE cur CURSOR FOR SELECT a,b FROM ao ORDER BY a;
 DECLARE
 1: FETCH NEXT IN cur;
-a|b
--+-
-1|1
+ a | b 
+---+---
+ 1 | 1 
 (1 row)
 1: FETCH NEXT IN cur;
-a|b
--+-
-2|2
+ a | b 
+---+---
+ 2 | 2 
 (1 row)
 2: BEGIN;
 BEGIN
@@ -28,19 +28,19 @@ UPDATE 4
 2: COMMIT;
 COMMIT
 1: FETCH NEXT IN cur;
-a|b
--+-
-3|3
+ a | b 
+---+---
+ 3 | 3 
 (1 row)
 1: FETCH NEXT IN cur;
-a|b
--+-
-4|4
+ a | b 
+---+---
+ 4 | 4 
 (1 row)
 1: FETCH NEXT IN cur;
-a|b
--+-
-5|5
+ a | b 
+---+---
+ 5 | 5 
 (1 row)
 1: CLOSE cur;
 CLOSE
@@ -51,9 +51,9 @@ BEGIN
 3: DECLARE cur CURSOR FOR SELECT a,b FROM ao ORDER BY a;
 DECLARE
 3: FETCH NEXT IN cur;
-a|b
--+-
-1|8
+ a | b 
+---+---
+ 1 | 8 
 (1 row)
 3: CLOSE cur;
 CLOSE

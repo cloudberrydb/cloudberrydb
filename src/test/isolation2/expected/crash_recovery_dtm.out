@@ -17,16 +17,16 @@ CREATE OR REPLACE FUNCTION wait_till_master_shutsdown() RETURNS void AS $$ BEGIN
 CREATE
 
 1:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
-role|preferred_role|content|mode|status
-----+--------------+-------+----+------
-m   |m             |-1     |s   |u     
-m   |m             |0      |s   |u     
-m   |m             |1      |s   |u     
-m   |m             |2      |s   |u     
-p   |p             |-1     |n   |u     
-p   |p             |0      |s   |u     
-p   |p             |1      |s   |u     
-p   |p             |2      |s   |u     
+ role | preferred_role | content | mode | status 
+------+----------------+---------+------+--------
+ m    | m              | -1      | s    | u      
+ m    | m              | 0       | s    | u      
+ m    | m              | 1       | s    | u      
+ m    | m              | 2       | s    | u      
+ p    | p              | -1      | n    | u      
+ p    | p              | 0       | s    | u      
+ p    | p              | 1       | s    | u      
+ p    | p              | 2       | s    | u      
 (8 rows)
 -- Scenario 1: Test to fail broadcasting of COMMIT PREPARED to one
 -- segment and hence trigger PANIC in master while after completing
@@ -43,15 +43,15 @@ p   |p             |2      |s   |u
 CREATE
 -- Inject fault to fail the COMMIT PREPARED always on one segment, till fault is not reset
 1: SELECT gp_inject_fault_infinite('finish_prepared_start_of_function', 'error', 2);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 -- create utility session to segment which will be used to reset the fault
 0U: SELECT 1;
-?column?
---------
-1       
+ ?column? 
+----------
+ 1        
 (1 row)
 -- Start looping in background, till master panics and closes the session
 3&: SELECT wait_till_master_shutsdown();  <waiting ...>
@@ -63,9 +63,9 @@ server closed the connection unexpectedly
 	before or while processing the request.
 -- Reset the fault using utility mode connection
 0U: SELECT gp_inject_fault('finish_prepared_start_of_function', 'reset', 2);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 -- Join back to know master has completed postmaster reset.
 3<:  <... completed>
@@ -74,15 +74,15 @@ server closed the connection unexpectedly
 	before or while processing the request.
 -- Start a session on master which would complete the DTM recovery and hence COMMIT PREPARED
 4: SELECT * from commit_phase1_panic;
-a|b
--+-
+ a | b 
+---+---
 (0 rows)
 4: INSERT INTO commit_phase1_panic select i,i from generate_series(1, 10)i;
 INSERT 10
 4: SELECT count(*) from commit_phase1_panic;
-count
------
-10   
+ count 
+-------
+ 10    
 (1 row)
 
 -- Scenario 2: Inject FATAL on master after recording commit but
@@ -96,9 +96,9 @@ count
 -- session
 5&: SELECT wait_till_master_shutsdown();  <waiting ...>
 6: SELECT gp_inject_fault('dtm_broadcast_commit_prepared', 'fatal', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 6: CREATE TABLE commit_fatal_fault_test_table(a int, b int);
 PANIC:  fault triggered, fault name:'dtm_broadcast_commit_prepared' fault type:'fatal'
@@ -111,18 +111,18 @@ server closed the connection unexpectedly
 	before or while processing the request.
 -- Start a session on master which would complete the DTM recovery and hence COMMIT PREPARED
 7: SELECT count(*) from commit_fatal_fault_test_table;
-count
------
-0    
+ count 
+-------
+ 0     
 (1 row)
 7: SELECT * FROM gp_dist_random('pg_prepared_xacts');
-transaction|gid|prepared|owner|database
------------+---+--------+-----+--------
+ transaction | gid | prepared | owner | database 
+-------------+-----+----------+-------+----------
 (0 rows)
 7: SELECT gp_inject_fault('dtm_broadcast_commit_prepared', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 
 -- Scenario 3: Inject ERROR after prepare phase has completed to
@@ -137,14 +137,14 @@ t
 -- session
 8&: SELECT wait_till_master_shutsdown();  <waiting ...>
 9: SELECT gp_inject_fault('transaction_abort_after_distributed_prepared', 'error', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 9: SELECT gp_inject_fault('dtm_broadcast_abort_prepared', 'fatal', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 9: CREATE TABLE abort_fatal_fault_test_table(a int, b int);
 ERROR:  fault triggered, fault name:'transaction_abort_after_distributed_prepared' fault type:'error'
@@ -161,18 +161,18 @@ ERROR:  relation "abort_fatal_fault_test_table" does not exist
 LINE 1: SELECT count(*) from abort_fatal_fault_test_table;
                              ^
 10: SELECT * FROM gp_dist_random('pg_prepared_xacts');
-transaction|gid|prepared|owner|database
------------+---+--------+-----+--------
+ transaction | gid | prepared | owner | database 
+-------------+-----+----------+-------+----------
 (0 rows)
 10: SELECT gp_inject_fault('transaction_abort_after_distributed_prepared', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 10: SELECT gp_inject_fault('dtm_broadcast_abort_prepared', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 
 -- Scenario 4: QE panics after writing prepare xlog record. This
@@ -190,31 +190,31 @@ CHECKPOINT
 SET
 -- skip FTS probes always
 11: SELECT gp_inject_fault_infinite('fts_probe', 'skip', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 11: SELECT gp_request_fts_probe_scan();
-gp_request_fts_probe_scan
--------------------------
-t                        
+ gp_request_fts_probe_scan 
+---------------------------
+ t                         
 (1 row)
 11: select gp_wait_until_triggered_fault('fts_probe', 1, 1);
-gp_wait_until_triggered_fault
------------------------------
-t                            
+ gp_wait_until_triggered_fault 
+-------------------------------
+ t                             
 (1 row)
 11: SET debug_abort_after_segment_prepared = true;
 SET
 11: DELETE FROM QE_panic_test_table;
 ERROR:  Raise an error as directed by Debug_abort_after_segment_prepared  (seg0 127.0.0.1:40000 pid=547)
 11: SELECT count(*) from QE_panic_test_table;
-count
------
-10   
+ count 
+-------
+ 10    
 (1 row)
 11: SELECT gp_inject_fault('fts_probe', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)

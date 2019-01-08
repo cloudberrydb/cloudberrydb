@@ -27,19 +27,19 @@ SET
 -- Check the age of the table just before vacuum (use BETWEEN to mask minor
 -- differences that might happen if e.g. autovacuum kicks in)
 1: select age(relfrozenxid) between 7 and 9, regexp_replace(replace(relname, 'ao_@orientation@_vacuum_cleanup2'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and relstorage not in ('x','f','v') and (relname like '%' || 'ao_@orientation@_vacuum_cleanup2'::regclass::oid || '%') and gp_segment_id = 0;
-?column?|regexp_replace    
---------+------------------
-t       |pg_<seg>_<oid>    
-t       |pg_aovisimap_<oid>
+ ?column? | regexp_replace     
+----------+--------------------
+ t        | pg_<seg>_<oid>     
+ t        | pg_aovisimap_<oid> 
 (2 rows)
 
 -- Hold AccessShareLock to make AO VACUUM skip drop phase
 2: begin;
 BEGIN
 2: select count(*) from ao_@orientation@_vacuum_cleanup2;
-count
------
-100  
+ count 
+-------
+ 100   
 (1 row)
 1: vacuum ao_@orientation@_vacuum_cleanup2;
 VACUUM
@@ -48,10 +48,10 @@ VACUUM
 -- vacuum were frozen. The relfrozenxid will be the xid of the last
 -- transaction before the vacuum (in this case it is the update statement)
 1: select age(relfrozenxid) < 7, regexp_replace(replace(relname, 'ao_@orientation@_vacuum_cleanup2'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and relstorage not in ('x','f','v') and (relname like '%' || 'ao_@orientation@_vacuum_cleanup2'::regclass::oid || '%') and gp_segment_id = 0;
-?column?|regexp_replace    
---------+------------------
-t       |pg_<seg>_<oid>    
-t       |pg_aovisimap_<oid>
+ ?column? | regexp_replace     
+----------+--------------------
+ t        | pg_<seg>_<oid>     
+ t        | pg_aovisimap_<oid> 
 (2 rows)
 2: end;
 END
@@ -68,45 +68,45 @@ DELETE 100
 -- Check the age of the table before vacuum to make sure that clean phase gets
 -- performed
 1: select age(relfrozenxid) between 3 and 5, regexp_replace(replace(relname, 'ao_@orientation@_vacuum_cleanup3'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and relstorage not in ('x','f','v') and (relname like '%' || 'ao_@orientation@_vacuum_cleanup3'::regclass::oid || '%') and gp_segment_id = 0;
-?column?|regexp_replace    
---------+------------------
-t       |pg_<seg>_<oid>    
-t       |pg_aovisimap_<oid>
+ ?column? | regexp_replace     
+----------+--------------------
+ t        | pg_<seg>_<oid>     
+ t        | pg_aovisimap_<oid> 
 (2 rows)
 1: select gp_inject_fault_infinite('vacuum_relation_open_relation_during_drop_phase', 'suspend', 1);
-gp_inject_fault_infinite
-------------------------
-t                       
+ gp_inject_fault_infinite 
+--------------------------
+ t                        
 (1 row)
 1&: vacuum ao_@orientation@_vacuum_cleanup3;  <waiting ...>
 
 -- Wait till compaction phase is completed and only then start the serializable
 -- transaction to ensure that only drop phase is skipped
 2: select wait_for_trigger_fault((select current_database()), 'vacuum_relation_open_relation_during_drop_phase', 1);
-wait_for_trigger_fault
-----------------------
-t                     
+ wait_for_trigger_fault 
+------------------------
+ t                      
 (1 row)
 2: begin isolation level serializable;
 BEGIN
 2: select 123;
-?column?
---------
-123     
+ ?column? 
+----------
+ 123      
 (1 row)
 2: select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'reset', 1);
-gp_inject_fault
----------------
-t              
+ gp_inject_fault 
+-----------------
+ t               
 (1 row)
 
 1<:  <... completed>
 VACUUM
 1: select age(relfrozenxid) < 5, regexp_replace(replace(relname, 'ao_@orientation@_vacuum_cleanup3'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and relstorage not in ('x','f','v') and (relname like '%' || 'ao_@orientation@_vacuum_cleanup3'::regclass::oid || '%') and gp_segment_id = 0;
-?column?|regexp_replace    
---------+------------------
-t       |pg_<seg>_<oid>    
-t       |pg_aovisimap_<oid>
+ ?column? | regexp_replace     
+----------+--------------------
+ t        | pg_<seg>_<oid>     
+ t        | pg_aovisimap_<oid> 
 (2 rows)
 
 -- Validate that the drop phase was skipped. segfile 1 should be in state 2
@@ -114,14 +114,14 @@ t       |pg_aovisimap_<oid>
 -- This result is related to data distribution.
 -- Current hash algorithm is jump-consistent-hash.
 1: SELECT gp_ao_or_aocs_seg('ao_@orientation@_vacuum_cleanup3') from gp_dist_random('gp_id');
-gp_ao_or_aocs_seg
------------------
-(1,28,1,3,2)     
-(2,0,1,3,1)      
-(1,32,1,3,2)     
-(2,0,1,3,1)      
-(1,40,1,3,2)     
-(2,0,1,3,1)      
+ gp_ao_or_aocs_seg 
+-------------------
+ (1,28,1,3,2)      
+ (2,0,1,3,1)       
+ (1,32,1,3,2)      
+ (2,0,1,3,1)       
+ (1,40,1,3,2)      
+ (2,0,1,3,1)       
 (6 rows)
 
 2: commit;
