@@ -5809,10 +5809,7 @@ get_variable(Var *var, int levelsup, bool istoplevel, deparse_context *context)
 
 		tle = get_tle_by_resno(dpns->outer_tlist, var->varattno);
 		if (!tle)
-		{
 			elog(ERROR, "bogus varattno for OUTER_VAR var: %d", var->varattno);
-			return NULL;
-		}
 
 		Assert(netlevelsup == 0);
 		push_child_plan(dpns, dpns->outer_planstate, &save_dpns);

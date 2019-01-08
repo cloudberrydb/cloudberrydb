@@ -689,9 +689,9 @@ int8inc(PG_FUNCTION_ARGS)
 		int64	   *arg = (int64 *) PG_GETARG_POINTER(0);
 		int64		result;
 
-		result = arg + 1;
+		result = *arg + 1;
 		/* Overflow check */
-		if (result < 0 && arg > 0)
+		if (result < 0 && *arg > 0)
 			ereport(ERROR,
 					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 					 errmsg("bigint out of range")));
