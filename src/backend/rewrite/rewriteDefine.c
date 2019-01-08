@@ -44,10 +44,6 @@
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
-#include "catalog/heap.h"
-#include "cdb/cdbdisp_query.h"
-#include "cdb/cdbvars.h"
-
 
 static void checkRuleResultList(List *targetList, TupleDesc resultDesc,
 					bool isSelect, bool requireColumnNameMatch);

@@ -29,8 +29,7 @@
 #include "utils/bytea.h"
 #include "utils/lsyscache.h"
 #include "utils/pg_locale.h"
-#include "utils/string_wrapper.h"
-#include "utils/memutils.h"
+
 
 /* GUC variable */
 int			bytea_output = BYTEA_OUTPUT_HEX;

@@ -61,7 +61,6 @@
 #include "utils/faultinjector.h"
 #include "utils/timestamp.h"
 
-#include "tcop/tcopprot.h" /* quickdie() */
 
 /*
  * GUC parameters

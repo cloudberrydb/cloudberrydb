@@ -74,8 +74,6 @@
 #include "utils/rel.h"
 #include "utils/tuplesort.h"
 
-#include "cdb/cdbvars.h"
-
 
 /*
  * Status record for spooling/sorting phase.  (Note we may have two of
