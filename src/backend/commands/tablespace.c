@@ -554,8 +554,8 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 							tablespaceoid);
 
 	/*
-	 * Acquire TablespaceCreateLock to ensure that no
-	 * MirroredFileSysObj_JustInTimeDbDirCreate is running concurrently.
+	 * Acquire TablespaceCreateLock to ensure that no TablespaceCreateDbspace
+	 * is running concurrently.
 	 */
 	LWLockAcquire(TablespaceCreateLock, LW_EXCLUSIVE);
 
@@ -620,7 +620,7 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 	ForceSyncCommit();
 
 	/*
-	 * Allow MirroredFileSysObj_JustInTimeDbDirCreate again.
+	 * Allow TablespaceCreateDbspace again.
 	 */
 	LWLockRelease(TablespaceCreateLock);
 
@@ -793,7 +793,7 @@ destroy_tablespace_directories(Oid tablespaceoid, bool redo)
 	 * still files in that subdirectory, so give up.  (We do not have to worry
 	 * about undoing any already completed rmdirs, since the next attempt to
 	 * use the tablespace from that database will simply recreate the
-	 * subdirectory via MirroredFileSysObj_JustInTimeDbDirCreate.)
+	 * subdirectory via TablespaceCreateDbspace.)
 	 *
 	 * Since we hold TablespaceCreateLock, no one else should be creating any
 	 * fresh subdirectories in parallel. It is possible that new files are
