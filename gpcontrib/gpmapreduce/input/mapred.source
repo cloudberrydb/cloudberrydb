@@ -177,8 +177,9 @@ SELECT lanname, lanispl, lanpltrusted FROM pg_language WHERE lanname = 'plperlu'
 --
 -- Check 2) Find gpmapreduce and print the help file
 --
--- ignore
+-- start_ignore
 select execute( '@gpwhich_gpmapreduce@ --help' );
+-- end_ignore
 
 --
 -- TEST 1) complain about missing file
