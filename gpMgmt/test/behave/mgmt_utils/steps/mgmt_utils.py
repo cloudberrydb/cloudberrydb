@@ -425,14 +425,14 @@ def impl(context, dbname, dirname):
             out_file_path = os.path.join(dirname, filename_prefix + '.out')
             diff_file_path = os.path.join(dirname, filename_prefix + '.diff')
             # run the command to get the exact data from the source system
-            command = '%s -f %s > %s' % (dbconn_src, os.path.join(dirname, filename), ans_file_path)
+            command = '%s -a -f %s > %s' % (dbconn_src, os.path.join(dirname, filename), ans_file_path)
             run_command(context, command)
 
             # run the command to get the data from the destination system, locally
-            command = '%s -f %s > %s' % (dbconn_dest, os.path.join(dirname, filename), out_file_path)
+            command = '%s -a -f %s > %s' % (dbconn_dest, os.path.join(dirname, filename), out_file_path)
             run_command(context, command)
 
-            gpdiff_cmd = 'gpdiff.pl -w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s' % (
+            gpdiff_cmd = 'gpdiff.pl -u -w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s' % (
             ans_file_path, out_file_path, diff_file_path)
             run_command(context, gpdiff_cmd)
             if context.ret_code != 0:
