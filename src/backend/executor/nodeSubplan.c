@@ -1075,12 +1075,6 @@ PG_TRY();
 			prm->isnull = false;
 			found = true;
 
-			if (shouldDispatch)
-			{
-				/* Tell MPP we're done with this plan. */
-				ExecSquelchNode(planstate);
-			}
-
 			break;
 		}
 
