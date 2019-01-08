@@ -698,9 +698,6 @@ transformRangeSubselect(ParseState *pstate, RangeSubselect *r)
 							  getLockedRefname(pstate, r->alias->aliasname));
 
 	/* Restore state */
-	pstate->p_expr_kind = EXPR_KIND_NONE;
-
-	/* Restore state */
 	pstate->p_lateral_active = false;
 	pstate->p_expr_kind = EXPR_KIND_NONE;
 
