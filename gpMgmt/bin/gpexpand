@@ -19,7 +19,7 @@ try:
     from gppylib.commands.unix import *
     from gppylib.fault_injection import inject_fault
     from gppylib.commands.gp import *
-    from gppylib.gparray import GpArray, MODE_CHANGELOGGING, STATUS_DOWN
+    from gppylib.gparray import GpArray, MODE_NOT_SYNC, STATUS_DOWN
     from gppylib.gpparseopts import OptParser, OptChecker
     from gppylib.gplog import *
     from gppylib.db import catalog
@@ -1323,12 +1323,12 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
         self.gparray.dumpToFile(self.statusLogger.get_gp_segment_configuration_backup())
         self.statusLogger.set_status('UPDATE_CATALOG_STARTED', self.statusLogger.get_gp_segment_configuration_backup())
 
-        # Put expansion segment primaries in change tracking
+        # Mark expansion segment primaries not in sync
         for seg in self.gparray.getExpansionSegDbList():
             if seg.isSegmentMirror() == True:
                 continue
             if self.gparray.get_mirroring_enabled() == True:
-                seg.setSegmentMode(MODE_CHANGELOGGING)
+                seg.setSegmentMode(MODE_NOT_SYNC)
 
         # Set expansion segment mirror state = down
         for seg in self.gparray.getExpansionSegDbList():
