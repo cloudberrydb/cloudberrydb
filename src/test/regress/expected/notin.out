@@ -221,22 +221,22 @@ explain select c1 from t1,
 (select c2 from t2 where c2 not in 
 	(select c3 from t3) and c2 > 4) foo 
 	where c1 = foo.c2;
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=4.41..7.59 rows=4 width=4)
-   ->  Hash Join  (cost=4.41..7.59 rows=2 width=4)
-         Hash Cond: t1.c1 = t2.c2
-         ->  Seq Scan on t1  (cost=0.00..3.12 rows=3 width=4)
-               Filter: c1 > 4
-         ->  Hash  (cost=4.37..4.37 rows=2 width=4)
-               ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..4.37 rows=2 width=4)
-                     Hash Cond: t2.c2 = t3.c3
-                     ->  Seq Scan on t2  (cost=0.00..2.06 rows=1 width=4)
-                           Filter: c2 > 4
-                     ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
-                                 ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
- Optimizer status: legacy query optimizer
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=5.34..8.58 rows=4 width=4)
+   ->  Hash Left Anti Semi (Not-In) Join  (cost=5.34..8.58 rows=2 width=4)
+         Hash Cond: (t2.c2 = t3.c3)
+         ->  Hash Join  (cost=3.08..6.26 rows=2 width=8)
+               Hash Cond: (t1.c1 = t2.c2)
+               ->  Seq Scan on t1  (cost=0.00..3.12 rows=3 width=4)
+                     Filter: (c1 > 4)
+               ->  Hash  (cost=3.06..3.06 rows=1 width=4)
+                     ->  Seq Scan on t2  (cost=0.00..3.06 rows=1 width=4)
+                           Filter: (c2 > 4)
+         ->  Hash  (cost=2.15..2.15 rows=3 width=4)
+               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                     ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
+ Optimizer: legacy query optimizer
 (14 rows)
 
 select c1 from t1, 
@@ -309,20 +309,20 @@ select c1 from t1 where c1 > 6 and c1 not in
 --
 explain select c1 from t1,t2 where c1 not in 
 	(select c3 from t3) and c1 = c2;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=4.37..7.62 rows=4 width=4)
-   ->  Hash Left Anti Semi (Not-In) Join  (cost=4.37..7.62 rows=2 width=4)
-         Hash Cond: t1.c1 = t3.c3
-         ->  Hash Join  (cost=2.11..5.30 rows=2 width=4)
-               Hash Cond: t1.c1 = t2.c2
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=5.38..8.62 rows=4 width=4)
+   ->  Hash Join  (cost=5.38..8.62 rows=2 width=4)
+         Hash Cond: (t1.c1 = t2.c2)
+         ->  Hash Left Anti Semi (Not-In) Join  (cost=2.26..5.46 rows=2 width=4)
+               Hash Cond: (t1.c1 = t3.c3)
                ->  Seq Scan on t1  (cost=0.00..3.10 rows=4 width=4)
-               ->  Hash  (cost=2.05..2.05 rows=2 width=4)
-                     ->  Seq Scan on t2  (cost=0.00..2.05 rows=2 width=4)
-         ->  Hash  (cost=2.15..2.15 rows=3 width=4)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
-                     ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
- Optimizer status: legacy query optimizer
+               ->  Hash  (cost=2.15..2.15 rows=3 width=4)
+                     ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.15 rows=3 width=4)
+                           ->  Seq Scan on t3  (cost=0.00..2.03 rows=1 width=4)
+         ->  Hash  (cost=3.05..3.05 rows=2 width=4)
+               ->  Seq Scan on t2  (cost=0.00..3.05 rows=2 width=4)
+ Optimizer: legacy query optimizer
 (12 rows)
 
 select c1 from t1,t2 where c1 not in 
