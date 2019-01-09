@@ -868,7 +868,7 @@
     <dxl:Plan Id="0" SpaceSize="5456">
       <dxl:Limit>
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="274377996010803.593750" Rows="100.000000" Width="128"/>
+          <dxl:Cost StartupCost="0" TotalCost="274377996915268.812500" Rows="100.000000" Width="128"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="73" Alias="char_length">
@@ -970,7 +970,7 @@
         </dxl:ProjList>
         <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="274377996010777.593750" Rows="100.000000" Width="128"/>
+            <dxl:Cost StartupCost="0" TotalCost="274377996915242.812500" Rows="100.000000" Width="128"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="73" Alias="char_length">
@@ -1107,7 +1107,7 @@
           </dxl:SortingColumnList>
           <dxl:Limit>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="274377996010770.343750" Rows="100.000000" Width="128"/>
+              <dxl:Cost StartupCost="0" TotalCost="274377996915235.562500" Rows="100.000000" Width="128"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="73" Alias="char_length">
@@ -1209,7 +1209,7 @@
             </dxl:ProjList>
             <dxl:Sort SortDiscardDuplicates="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="274377996010756.843750" Rows="1541.100000" Width="128"/>
+                <dxl:Cost StartupCost="0" TotalCost="274377996915222.062500" Rows="6151.200000" Width="128"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="73" Alias="char_length">
@@ -1348,7 +1348,7 @@
               <dxl:LimitOffset/>
               <dxl:Result>
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="274377995774295.750000" Rows="1541.100000" Width="128"/>
+                  <dxl:Cost StartupCost="0" TotalCost="274377995774872.031250" Rows="6151.200000" Width="128"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="73" Alias="char_length">
@@ -1516,7 +1516,7 @@
                 <dxl:OneTimeFilter/>
                 <dxl:HashJoin JoinType="Inner">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="274377995774102.125000" Rows="1541.100000" Width="2274497"/>
+                    <dxl:Cost StartupCost="0" TotalCost="274377995774102.125000" Rows="6151.200000" Width="2274497"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="c0">
@@ -1727,7 +1727,7 @@
                         </dxl:FuncExpr>
                       </dxl:HashExpr>
                     </dxl:HashExprList>
-                    <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="false">
+                    <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                       <dxl:Properties>
                         <dxl:Cost StartupCost="0" TotalCost="263141538717429.625000" Rows="193.600000" Width="1369700"/>
                       </dxl:Properties>
@@ -1801,7 +1801,7 @@
                           </dxl:FuncExpr>
                         </dxl:Comparison>
                       </dxl:JoinFilter>
-                      <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="false">
+                      <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="26629051806206.457031" Rows="44.000000" Width="955900"/>
                         </dxl:Properties>
@@ -2189,7 +2189,7 @@
                         </dxl:FuncExpr>
                       </dxl:HashExpr>
                     </dxl:HashExprList>
-                    <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+                    <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false" OuterRefAsParam="false">
                       <dxl:Properties>
                         <dxl:Cost StartupCost="0" TotalCost="11236456106098.410156" Rows="100.000000" Width="1046589"/>
                       </dxl:Properties>

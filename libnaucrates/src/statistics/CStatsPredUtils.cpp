@@ -372,24 +372,6 @@ CStatsPredUtils::IsPredCmpColsOrIgnoreCast
 
 	if (NULL == *col_ref_left || NULL == *col_ref_right)
 	{
-		// if the scalar cmp is of equality type, we may not have been able to extract
-		// the column referenes of scalar ident if they had any other expression than cast
-		// on top of them.
-		// in such cases, check if there is still a possibility to extract scalar ident,
-		// if there is more than one column reference on either side, this is unsupported
-		// If supported, mark the comparison as NDV-based
-		if (*stats_pred_cmp_type == CStatsPred::EstatscmptEq)
-		{
-			(*col_ref_left) = CUtils::PcrExtractFromScExpression(expr_left);
-			(*col_ref_right) = CUtils::PcrExtractFromScExpression(expr_right);
-			
-			if (NULL == *col_ref_left || NULL == *col_ref_right)
-			{
-				return false;
-			}
-			(*stats_pred_cmp_type) = CStatsPred::EstatscmptEqNDV;
-			return true;
-		}
 		// failed to extract a scalar ident
 		return false;
 	}

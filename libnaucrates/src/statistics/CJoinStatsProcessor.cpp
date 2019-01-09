@@ -102,7 +102,7 @@ CJoinStatsProcessor::JoinHistograms
 				scale_factor
 				);
 
-		if (CStatsPred::EstatscmptEq == stats_cmp_type || CStatsPred::EstatscmptINDF == stats_cmp_type || CStatsPred::EstatscmptEqNDV == stats_cmp_type)
+		if (CStatsPred::EstatscmptEq == stats_cmp_type || CStatsPred::EstatscmptINDF == stats_cmp_type)
 		{
 			if (histogram1->WereNDVsScaled())
 			{

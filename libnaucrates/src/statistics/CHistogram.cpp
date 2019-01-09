@@ -651,16 +651,6 @@ CHistogram::MakeJoinHistogramNormalize
 {
 	GPOS_ASSERT(NULL != other_histogram);
 
-	if (CStatsPred::EstatscmptEqNDV == stats_cmp_type)
-	{
-		*scale_factor = std::max
-								 (
-								  std::max(CHistogram::MinDistinct.Get(), GetNumDistinct().Get()),
-								  std::max(CHistogram::MinDistinct.Get(), other_histogram->GetNumDistinct().Get())
-								  );
-		return MakeNDVBasedJoinHistogramEqualityFilter(mp, other_histogram);
-	}
-
 	BOOL fEqOrINDF = (CStatsPred::EstatscmptEq == stats_cmp_type || CStatsPred::EstatscmptINDF == stats_cmp_type);
 	if (!fEqOrINDF)
 	{

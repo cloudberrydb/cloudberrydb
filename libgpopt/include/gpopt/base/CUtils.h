@@ -1077,12 +1077,6 @@ namespace gpopt
 			static
 			BOOL FCrossJoin(CExpression *pexpr);
 
-			// extract scalar ident column reference from scalar expression containing
-			// only one scalar ident in the tree
-			const static
-			CColRef *PcrExtractFromScExpression(CExpression *pexpr);
-
-
 			// search the given array of predicates for predicates with equality or IS NOT
 			// DISTINCT FROM operators that has one side equal to the given expression
 			static

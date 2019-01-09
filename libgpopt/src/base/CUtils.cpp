@@ -5126,22 +5126,6 @@ CUtils::FCrossJoin
 	return fCrossJoin;
 }
 
-// extract scalar ident column reference from scalar expression containing
-// only one scalar ident in the tree
-const CColRef *
-CUtils::PcrExtractFromScExpression
-	(
- 	CExpression *pexpr
-	)
-{
-	CDrvdPropScalar *pdrvdPropScalar = CDrvdPropScalar::GetDrvdScalarProps(pexpr->PdpDerive());
-	if (pdrvdPropScalar->PcrsUsed()->Size() == 1)
-		return pdrvdPropScalar->PcrsUsed()->PcrFirst();
-
-	return NULL;
-}
-
-
 // search the given array of predicates for predicates with equality or IS NOT
 // DISTINCT FROM operators that has one side equal to the given expression, if
 // found, return the other side of equality, otherwise return NULL
