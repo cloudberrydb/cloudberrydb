@@ -1009,48 +1009,6 @@ dolink(char const *fromfield, char const *tofield, bool staysymlink)
 static zic_t const min_time = MINVAL(zic_t, TIME_T_BITS_IN_FILE);
 static zic_t const max_time = MAXVAL(zic_t, TIME_T_BITS_IN_FILE);
 
-/*
- * Estimated time of the Big Bang, in seconds since the POSIX epoch.
- * rounded downward to the negation of a power of two that is
- * comfortably outside the error bounds.
- *
- * For the time of the Big Bang, see:
- *
- * Ade PAR, Aghanim N, Armitage-Caplan C et al.  Planck 2013 results.
- * I. Overview of products and scientific results.
- * arXiv:1303.5062 2013-03-20 20:10:01 UTC
- * <https://arxiv.org/pdf/1303.5062v1> [PDF]
- *
- * Page 36, Table 9, row Age/Gyr, column Planck+WP+highL+BAO 68% limits
- * gives the value 13.798 plus-or-minus 0.037 billion years.
- * Multiplying this by 1000000000 and then by 31557600 (the number of
- * seconds in an astronomical year) gives a value that is comfortably
- * less than 2**59, so BIG_BANG is - 2**59.
- *
- * BIG_BANG is approximate, and may change in future versions.
- * Please do not rely on its exact value.
- */
-
-#ifndef BIG_BANG
-#define BIG_BANG (- (((zic_t) 1) << 59))
-#endif
-
-/* If true, work around GNOME bug 730332
-   <https://bugzilla.gnome.org/show_bug.cgi?id=730332>
-   by refusing to output time stamps before BIG_BANG.
-   Such time stamps are physically suspect anyway.
-
-   The GNOME bug is scheduled to be fixed in GNOME 3.22, and if so
-   this workaround will no longer be needed when GNOME 3.21 and
-   earlier are obsolete, say in the year 2021.  */
-enum
-{
-WORK_AROUND_GNOME_BUG_730332 = true};
-
-static const zic_t early_time = (WORK_AROUND_GNOME_BUG_730332
-								 ? BIG_BANG
-								 : MINVAL(zic_t, TIME_T_BITS_IN_FILE));
-
 /* Return true if NAME is a directory.  */
 static bool
 itsdir(char const *name)
@@ -2081,20 +2039,6 @@ writezone(const char *const name, const char *const string, char version,
 	}
 
 	/*
-	 * Work around QTBUG-53071 for time stamps less than y2038_boundary - 1,
-	 * by inserting a no-op transition at time y2038_boundary - 1. This works
-	 * only for timestamps before the boundary, which should be good enough in
-	 * practice as QTBUG-53071 should be long-dead by 2038.
-	 */
-	if (WORK_AROUND_QTBUG_53071 && timecnt != 0
-		&& ats[timecnt - 1] < y2038_boundary - 1 && strchr(string, '<'))
-	{
-		ats[timecnt] = y2038_boundary - 1;
-		types[timecnt] = types[timecnt - 1];
-		timecnt++;
-	}
-
-	/*
 	 * Correct for leap seconds.
 	 */
 	for (i = 0; i < timecnt; ++i)
@@ -2976,9 +2920,9 @@ outzone(const struct zone *zpfirst, ptrdiff_t zonecount)
 		 */
 		stdoff = 0;
 		zp = &zpfirst[i];
-		usestart = i > 0 && (zp - 1)->z_untiltime > early_time;
+		usestart = i > 0 && (zp - 1)->z_untiltime > min_time;
 		useuntil = i < (zonecount - 1);
-		if (useuntil && zp->z_untiltime <= early_time)
+		if (useuntil && zp->z_untiltime <= min_time)
 			continue;
 		gmtoff = zp->z_gmtoff;
 		eat(zp->z_filename, zp->z_linenum);
