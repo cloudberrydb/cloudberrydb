@@ -527,11 +527,14 @@ cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b)
 	 * keys should be compatible; otherwise the caller should not be building
 	 * a join directly between these two rels (a Motion would be needed).
 	 */
-	Assert(CdbPathLocus_IsHashed(a) || CdbPathLocus_IsHashedOJ(a));
-	Assert(CdbPathLocus_IsHashed(b) || CdbPathLocus_IsHashedOJ(b));
-	Assert(a.distkey != NIL &&
-		   CdbPathLocus_NumSegments(a) == CdbPathLocus_NumSegments(b) &&
-		   list_length(a.distkey) == list_length(b.distkey));
+	if (!(CdbPathLocus_IsHashed(a) || CdbPathLocus_IsHashedOJ(a)))
+		elog(ERROR, "could not be construct join with non-hashed path");
+	if (!(CdbPathLocus_IsHashed(b) || CdbPathLocus_IsHashedOJ(b)))
+		elog(ERROR, "could not be construct join with non-hashed path");
+	if (a.distkey == NIL ||
+		CdbPathLocus_NumSegments(a) != CdbPathLocus_NumSegments(b) ||
+		list_length(a.distkey) != list_length(b.distkey))
+		elog(ERROR, "could not construct hashed join locus with incompatible distribution keys");
 
 	/*
 	 * For a LEFT/RIGHT OUTER JOIN, we can use key of the outer, non-nullable

@@ -1362,6 +1362,8 @@ cdbpath_motion_for_join(PlannerInfo *root,
 		/* Last resort: If possible, move all partitions of other rel to single QE. */
 		else if (!other_immovable)
 			other->move_to = single->locus;
+		else
+			goto fail;
 	}							/* singleQE or entry */
 
 	/*

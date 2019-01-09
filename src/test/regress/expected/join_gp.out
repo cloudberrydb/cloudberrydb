@@ -574,3 +574,20 @@ select * from t6215 a full join t6215 b on true;
 (9 rows)
 
 drop table t6215;
+--
+-- This tripped an assertion while deciding the locus for the joins.
+-- The code was failing to handle join between SingleQE and Hash correctly,
+-- when there were join order restricitions. (see
+-- https://github.com/greenplum-db/gpdb/issues/6643
+--
+select a.f1, b.f1, t.thousand, t.tenthous from
+  (select sum(f1) as f1 from int4_tbl i4b) b
+   left outer join
+     (select sum(f1)+1 as f1 from int4_tbl i4a) a ON a.f1 = b.f1
+      left outer join
+        tenk1 t ON b.f1 = t.thousand and (a.f1+b.f1+999) = t.tenthous;
+ f1 | f1 | thousand | tenthous 
+----+----+----------+----------
+    |  0 |          |         
+(1 row)
+
