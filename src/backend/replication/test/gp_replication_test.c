@@ -61,7 +61,7 @@ test_setup(WalSndCtlData *data, WalSndState state)
 	WalSndCtl = data;
 	data->walsnds[0].pid = 1;
 	data->walsnds[0].state = state;
-
+	data->walsnds[0].is_for_gp_walreceiver = true;
 	expect_lwlock(LW_SHARED);
 }
 
