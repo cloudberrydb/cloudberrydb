@@ -758,6 +758,11 @@ DistributedLog_Startup(TransactionId oldestActiveXid,
 		Assert(currentPage <= TransactionIdToPage(MaxTransactionId));
 		Assert(endPage <= TransactionIdToPage(MaxTransactionId));
 
+		/*
+		 * Clean the pg_distributedlog directory
+		 */
+		SimpleLruTruncateWithLock(DistributedLogCtl, currentPage);
+
 		do
 		{
 			if (currentPage > TransactionIdToPage(MaxTransactionId))

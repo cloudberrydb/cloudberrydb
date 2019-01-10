@@ -123,6 +123,10 @@ test_BinaryUpgradeZeroesOutDistributedLogFittingOnSinglePage(void **state)
 
 	setup(nextXid);
 
+	expect_value(SimpleLruTruncateWithLock, ctl, DistributedLogCtl);
+	expect_value(SimpleLruTruncateWithLock, cutoffPage, TransactionIdToPage(oldestActiveXid));
+	will_be_called(SimpleLruTruncateWithLock);
+
 	expect_value(SimpleLruZeroPage, ctl, DistributedLogCtl);
 	expect_value(SimpleLruZeroPage, pageno, TransactionIdToPage(oldestActiveXid));
 	will_return(SimpleLruZeroPage, 0);
@@ -142,6 +146,10 @@ test_BinaryUpgradeZeroesOutDistributedLogFittingOnThreePages(void **state)
 	TransactionId nextXid = FirstNormalTransactionId + ENTRIES_PER_PAGE * 2;
 
 	setup(nextXid);
+
+	expect_value(SimpleLruTruncateWithLock, ctl, DistributedLogCtl);
+	expect_value(SimpleLruTruncateWithLock, cutoffPage, TransactionIdToPage(oldestActiveXid));
+	will_be_called(SimpleLruTruncateWithLock);
 
 	expect_value(SimpleLruZeroPage, ctl, DistributedLogCtl);
 	expect_value(SimpleLruZeroPage, pageno, TransactionIdToPage(oldestActiveXid));
@@ -171,6 +179,10 @@ test_BinaryUpgradeZeroesOutDistributedLogWithTransactionIdWraparound(void **stat
 
 	setup(nextXid);
 
+	expect_value(SimpleLruTruncateWithLock, ctl, DistributedLogCtl);
+	expect_value(SimpleLruTruncateWithLock, cutoffPage, TransactionIdToPage(oldestActiveXid));
+	will_be_called(SimpleLruTruncateWithLock);
+
 	expect_value(SimpleLruZeroPage, ctl, DistributedLogCtl);
 	expect_value(SimpleLruZeroPage, pageno, TransactionIdToPage(oldestActiveXid));
 	will_return(SimpleLruZeroPage, 0);
@@ -195,6 +207,10 @@ test_ConvertMasterDataDirToSegmentZeroesOutDistributedLogFittingOnSinglePage(voi
 
 	setup(nextXid);
 
+	expect_value(SimpleLruTruncateWithLock, ctl, DistributedLogCtl);
+	expect_value(SimpleLruTruncateWithLock, cutoffPage, TransactionIdToPage(oldestActiveXid));
+	will_be_called(SimpleLruTruncateWithLock);
+
 	expect_value(SimpleLruZeroPage, ctl, DistributedLogCtl);
 	expect_value(SimpleLruZeroPage, pageno, TransactionIdToPage(oldestActiveXid));
 	will_return(SimpleLruZeroPage, 0);
@@ -214,6 +230,10 @@ test_ConvertMasterDataDirToSegmentZeroesOutDistributedLogFittingOnThreePages(voi
 	TransactionId nextXid = FirstNormalTransactionId + ENTRIES_PER_PAGE * 2;
 
 	setup(nextXid);
+
+	expect_value(SimpleLruTruncateWithLock, ctl, DistributedLogCtl);
+	expect_value(SimpleLruTruncateWithLock, cutoffPage, TransactionIdToPage(oldestActiveXid));
+	will_be_called(SimpleLruTruncateWithLock);
 
 	expect_value(SimpleLruZeroPage, ctl, DistributedLogCtl);
 	expect_value(SimpleLruZeroPage, pageno, TransactionIdToPage(oldestActiveXid));
@@ -242,6 +262,10 @@ test_ConvertMasterDataDirToSegmentZeroesOutDistributedLogWithTransactionIdWrapar
 	TransactionId nextXid = MaxTransactionId + 10;
 
 	setup(nextXid);
+
+	expect_value(SimpleLruTruncateWithLock, ctl, DistributedLogCtl);
+	expect_value(SimpleLruTruncateWithLock, cutoffPage, TransactionIdToPage(oldestActiveXid));
+	will_be_called(SimpleLruTruncateWithLock);
 
 	expect_value(SimpleLruZeroPage, ctl, DistributedLogCtl);
 	expect_value(SimpleLruZeroPage, pageno, TransactionIdToPage(oldestActiveXid));
