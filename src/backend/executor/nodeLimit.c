@@ -233,7 +233,7 @@ ExecLimit(LimitState *node)
 
 	result = ExecLimit_guts(node);
 
-	if (TupIsNull(result) && !node->delayEagerFree)
+	if (TupIsNull(result) && ScanDirectionIsForward(node->ps.state->es_direction))
 	{
 		/*
 		 * CDB: We'll read no more from inner subtree. To keep our sibling
@@ -409,8 +409,6 @@ ExecInitLimit(Limit *node, EState *estate, int eflags)
 	limitstate->ps.state = estate;
 
 	limitstate->lstate = LIMIT_INITIAL;
-
-	limitstate->delayEagerFree = (eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD)) != 0;
 
 	/*
 	 * Miscellaneous initialization

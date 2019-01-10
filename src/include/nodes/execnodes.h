@@ -2284,9 +2284,6 @@ typedef struct NestLoopState
 	List	   *nl_OuterJoinKeys;        /* list of ExprState nodes */
 	bool		nl_innerSideScanned;      /* set to true once we've scanned all inner tuples the first time */
 	bool		nl_qualResultForNull;     /* the value of the join condition when one of the sides contains a NULL */
-
-	bool		delayEagerFree;		/* is is safe to free memory used by this node,
-									 * when this node has outputted its last row? */
 } NestLoopState;
 
 /* ----------------
@@ -2333,9 +2330,6 @@ typedef struct MergeJoinState
 	ExprContext *mj_OuterEContext;
 	ExprContext *mj_InnerEContext;
 	bool		prefetch_inner; /* MPP-3300 */
-
-	bool		delayEagerFree;		/* is is safe to free memory used by this node,
-									 * when this node has outputted its last row? */
 } MergeJoinState;
 
 /* ----------------
@@ -2775,9 +2769,6 @@ typedef struct LimitState
 	LimitStateCond lstate;		/* state machine status, as above */
 	int64		position;		/* 1-based index of last tuple returned */
 	TupleTableSlot *subSlot;	/* tuple last obtained from subplan */
-
-	bool		delayEagerFree;		/* is is safe to free memory used by this node,
-									 * when this node has outputted its last row? */
 } LimitState;
 
 /*

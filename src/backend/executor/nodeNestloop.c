@@ -341,9 +341,8 @@ ExecNestLoop(NestLoopState *node)
 
 	result = ExecNestLoop_guts(node);
 
-	if (TupIsNull(result) && !node->delayEagerFree)
+	if (TupIsNull(result))
 	{
-
 		/*
 		 * CDB: We'll read no more from inner subtree. To keep our
 		 * sibling QEs from being starved, tell source QEs not to
@@ -392,13 +391,6 @@ ExecInitNestLoop(NestLoop *node, EState *estate, int eflags)
 	 * create expression context for node
 	 */
 	ExecAssignExprContext(estate, &nlstate->js.ps);
-
-	/*
-	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
-	 * then this node is not eager free safe.
-	 */
-	nlstate->delayEagerFree =
-               ((eflags & (EXEC_FLAG_REWIND | EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)) != 0);
 
 	/*
 	 * initialize child expressions

@@ -1496,7 +1496,7 @@ ExecMergeJoin(MergeJoinState *node)
 
 	result = ExecMergeJoin_guts(node);
 
-	if (TupIsNull(result) && !node->delayEagerFree)
+	if (TupIsNull(result))
 	{
 		/*
 		 * CDB: We'll read no more from inner subtree. To keep our sibling
@@ -1532,7 +1532,6 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 	mergestate = makeNode(MergeJoinState);
 	mergestate->js.ps.plan = (Plan *) node;
 	mergestate->js.ps.state = estate;
-	mergestate->delayEagerFree = (eflags & EXEC_FLAG_REWIND) != 0;
 
 	/*
 	 * Miscellaneous initialization
