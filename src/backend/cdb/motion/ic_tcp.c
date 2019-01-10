@@ -561,7 +561,6 @@ setupOutgoingConnection(ChunkTransportState *transportStates, ChunkTransportStat
 {
 	CdbProcess *cdbProc = conn->cdbProc;
 
-	int			sockopt;
 	int			n;
 
 	int			ret;
@@ -581,9 +580,6 @@ setupOutgoingConnection(ChunkTransportState *transportStates, ChunkTransportStat
 	 * IP addr might be IPv6, it might have ':' embedded, so in that case, put
 	 * '[]' around it so we can see that the string is an IP and port
 	 * (otherwise it might look just like an IP).
-	 *
-	 * Should we really put this info into these fields? Later we replace this
-	 * with the source IP and port (after the bind call).
 	 */
 	if (strchr(cdbProc->listenerAddr, ':') != 0)
 		snprintf(conn->remoteHostAndPort, sizeof(conn->remoteHostAndPort),
@@ -648,88 +644,6 @@ setupOutgoingConnection(ChunkTransportState *transportStates, ChunkTransportStat
 				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 				 errmsg("interconnect error setting up outgoing connection"),
 				 errdetail("%s: %m", "fcntl(O_NONBLOCK)")));
-
-	/* Allow bind() to succeed even if the port is in TIME_WAIT state. */
-	sockopt = 1;
-	if (setsockopt(conn->sockfd, SOL_SOCKET, SO_REUSEADDR,
-				   (void *) &sockopt, sizeof(sockopt)) < 0)
-		ereport(ERROR,
-				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-				 errmsg("interconnect error setting up outgoing connection"),
-				 errdetail("%s: %m", "setsockopt(SO_REUSEADDR)")));
-
-
-	/*
-	 * To help with fault tolerance, try to use the same LAN adapter as was
-	 * used to connect the session to us.
-	 *
-	 * Bind that IP address to the socket.   But, we must insure that the
-	 * source address is the same address family as the destination address.
-	 *
-	 * The is especially important to check on the QD, since local sessions
-	 * are often AF_UNIX, and even if TCP, they could be either v6 or v4.
-	 *
-	 */
-
-
-	struct sockaddr_storage saddr;
-	int			saddr_len = addrs->ai_addrlen;
-
-	memset(&saddr, 0, sizeof(saddr));
-
-	if (MyProcPort->laddr.addr.ss_family == addrs->ai_family)
-	{
-		/* We need to copy the address so we can clear the port */
-
-		memcpy(&saddr, &MyProcPort->laddr.addr, MyProcPort->laddr.salen);
-		if (saddr.ss_family == AF_INET)
-			((struct sockaddr_in *) &saddr)->sin_port = 0;	/* pick any available
-															 * outbound port */
-		else if (saddr.ss_family == AF_INET6)
-			((struct sockaddr_in6 *) &saddr)->sin6_port = 0;
-
-
-		if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
-		{
-			char		debugmsg[128];
-
-			inet_ntop(saddr.ss_family, (struct sockaddr *) &saddr, debugmsg, sizeof(debugmsg));
-			ereport(DEBUG4, (errmsg("bind outbound  %s", debugmsg)));
-		}
-	}
-	else
-	{
-		/*
-		 * bind to the "any ip address" "any port".  Not really necessary to
-		 * use bind() but this allows us to get the system assigned source IP
-		 * and port without waiting until after the connect() call.
-		 */
-		saddr.ss_family = addrs->ai_family;
-
-		/*
-		 * We could set the address to INADDR_ANY or INADDR_ANY6 but those are
-		 * just zeros anyway
-		 */
-	}
-
-	if (bind(conn->sockfd, (struct sockaddr *) &saddr, saddr_len) < 0)
-	{
-		char		debugmsg[128];
-
-		inet_ntop(saddr.ss_family, (struct sockaddr *) &saddr, debugmsg, sizeof(debugmsg));
-		/* Should never get EADDRINUSE because we know it's our port. */
-		ereport(ERROR,
-				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-				 errmsg("interconnect error setting up outgoing connection"),
-				 errdetail("Could not bind to local addr %s: %m", debugmsg)));
-	}
-
-	/*
-	 * Get the source IP address and Port
-	 */
-	format_sockaddr((struct sockaddr *) &saddr, conn->remoteHostAndPort,
-					sizeof(conn->remoteHostAndPort));
-
 
 	if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
 		ereport(DEBUG1, (errmsg("Interconnect connecting to seg%d slice%d %s "
