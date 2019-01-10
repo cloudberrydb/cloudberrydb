@@ -155,6 +155,7 @@ void FtsProbeMain(int argc, char *argv[]);
  * assumption is am_ftshandler must be set if this is set.
  */
 bool am_mirror = false;
+/* GPDB specific flag to handle deadlocks during parallel segment start. */
 bool pm_launch_walreceiver = false;
 
 /*
@@ -6167,7 +6168,7 @@ MaybeStartWalReceiver(void)
 	{
 		WalReceiverPID = StartWalReceiver();
 		WalReceiverRequested = false;
-		/* GPDB_94_MERGE_FIXME: pg94 stable does not have pm_launch_walreceiver. Do we need that? */
+
 		/* wal receiver has been launched */
 		pm_launch_walreceiver = true;
 	}
