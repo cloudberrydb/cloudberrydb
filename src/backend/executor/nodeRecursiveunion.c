@@ -360,14 +360,8 @@ ExecReScanRecursiveUnion(RecursiveUnionState *node)
 void
 ExecSquelchRecursiveUnion(RecursiveUnionState *node)
 {
-	if (node->working_table != NULL)
-		tuplestore_end(node->working_table);
-
-	if (node->intermediate_table != NULL)
-		tuplestore_end(node->intermediate_table);
-
-	node->working_table = NULL;
-	node->intermediate_table = NULL;
+	tuplestore_clear(node->working_table);
+	tuplestore_clear(node->intermediate_table);
 
 	ExecSquelchNode(outerPlanState(node));
 	ExecSquelchNode(innerPlanState(node));
