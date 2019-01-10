@@ -699,17 +699,14 @@ ReadNext:
 			}
 		}
 
-		AOTupleIdInit_Init(&aoTupleId);
-		AOTupleIdInit_segmentFileNum(&aoTupleId, curseginfo->segno);
-
 		scan->cur_seg_row++;
 		if (rowNum == INT64CONST(-1))
 		{
-			AOTupleIdInit_rowNum(&aoTupleId, scan->cur_seg_row);
+			AOTupleIdInit(&aoTupleId, curseginfo->segno, scan->cur_seg_row);
 		}
 		else
 		{
-			AOTupleIdInit_rowNum(&aoTupleId, rowNum);
+			AOTupleIdInit(&aoTupleId, curseginfo->segno, rowNum);
 		}
 
 		if (!isSnapshotAny && !AppendOnlyVisimap_IsVisible(&scan->visibilityMap, &aoTupleId))
@@ -972,9 +969,7 @@ aocs_insert_values(AOCSInsertDesc idesc, Datum *d, bool *null, AOTupleId *aoTupl
 
 	Assert(idesc->numSequences >= 0);
 
-	AOTupleIdInit_Init(aoTupleId);
-	AOTupleIdInit_segmentFileNum(aoTupleId, idesc->cur_segno);
-	AOTupleIdInit_rowNum(aoTupleId, idesc->lastSequence);
+	AOTupleIdInit(aoTupleId, idesc->cur_segno, idesc->lastSequence);
 
 	/*
 	 * If the allocated fast sequence numbers are used up, we request for a

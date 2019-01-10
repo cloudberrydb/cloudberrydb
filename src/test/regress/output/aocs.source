@@ -935,9 +935,9 @@ select count(*) from gp_toolkit.__gp_aocsseg('tenk_aocs1') where modcount > 1;
 CREATE TABLE syscoltest(a int) WITH (appendonly=true, orientation=column);
 INSERT INTO syscoltest VALUES(1);
 SELECT ctid FROM syscoltest;
-       ctid       
-------------------
- (33554432,32769)
+     ctid     
+--------------
+ (33554432,1)
 (1 row)
 
 DROP TABLE syscoltest;

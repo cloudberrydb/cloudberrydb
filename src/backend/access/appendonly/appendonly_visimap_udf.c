@@ -89,7 +89,7 @@ gp_aovisimap(PG_FUNCTION_ARGS)
 								   context->aorel->rd_appendonly->visimapidxid,
 								   AccessShareLock,
 								   GetLatestSnapshot());
-		AOTupleIdInit_Init(&context->aoTupleId);
+		AOTupleIdSetInvalid(&context->aoTupleId);
 
 		funcctx->user_fctx = (void *) context;
 

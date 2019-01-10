@@ -750,12 +750,6 @@ BitmapAppendOnlyNext(BitmapHeapScanState *node)
 		{
 			Assert(node->baos_cindex <= tbmres->ntuples);
 			psuedoHeapOffset = tbmres->offsets[node->baos_cindex];
-
-			/*
-			 * Ensure that the reserved 16-th bit is always ON for offsets from
-			 * lossless bitmap pages [MPP-24326].
-			 */
-			Assert(((uint16)(psuedoHeapOffset & 0x8000)) > 0);
 		}
 
 		/*

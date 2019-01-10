@@ -1011,9 +1011,7 @@ AppendOnlyExecutorReadBlock_ProcessTuple(AppendOnlyExecutorReadBlock *executorRe
 
 	AORelationVersion_CheckValid(formatVersion);
 
-	AOTupleIdInit_Init(aoTupleId);
-	AOTupleIdInit_segmentFileNum(aoTupleId, executorReadBlock->segmentFileNum);
-	AOTupleIdInit_rowNum(aoTupleId, rowNum);
+	AOTupleIdInit(aoTupleId, executorReadBlock->segmentFileNum, rowNum);
 
 	if (slot)
 	{
@@ -3028,9 +3026,7 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 
 	tupleOid = MemTupleGetOid(tup, aoInsertDesc->mt_bind);
 
-	AOTupleIdInit_Init(aoTupleId);
-	AOTupleIdInit_segmentFileNum(aoTupleId, aoInsertDesc->cur_segno);
-	AOTupleIdInit_rowNum(aoTupleId, aoInsertDesc->lastSequence);
+	AOTupleIdInit(aoTupleId, aoInsertDesc->cur_segno, aoInsertDesc->lastSequence);
 
 	/*
 	 * If the allocated fast sequence numbers are used up, we request for a

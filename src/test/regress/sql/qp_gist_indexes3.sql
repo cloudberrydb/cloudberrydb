@@ -258,6 +258,24 @@ CREATE TABLE GistTable14 (
 CREATE INDEX GistIndex14a ON GistTable14 USING HASH (id);
 CREATE INDEX GistIndex14b ON GistTable14 USING HASH (property);
 
+-- ----------------------------------------------------------------------
+-- Test GiST index on an AO table
+-- ----------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+-- PURPOSE:
+--     Test the logic in forming TIDs for AO tuples. Before GPDB 6, the
+--     offset numbers in AO tids ran from 32768 to 65535, which collided
+--     with the special offsets used in GiST to mark invalid tuples. This
+--     test reproduced an error with that.
+------------------------------------------------------------------------------
+create table ao_points (i int, p point) with (appendonly=true) distributed by(i);
+create index on ao_points using gist (p);
+
+insert into ao_points select 1, point(g,g) from generate_series(1, 70000) g;
+
+select count(*) from ao_points where p <@ box('(32600,32600)', '(32800,32800)');
+
 
 -- ----------------------------------------------------------------------
 -- Test: teardown.sql

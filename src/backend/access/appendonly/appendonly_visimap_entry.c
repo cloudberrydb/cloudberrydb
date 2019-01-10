@@ -627,13 +627,7 @@ AppendOnlyVisimapEntry_GetNextInvisible(
 	if (offset >= 0)
 	{
 		rowNum = visiMapEntry->firstRowNum + offset;
-		AOTupleIdInit_Init(tupleId);
-		AOTupleIdInit_segmentFileNum(
-									 tupleId,
-									 visiMapEntry->segmentFileNum);
-		AOTupleIdInit_rowNum(
-							 tupleId,
-							 rowNum);
+		AOTupleIdInit(tupleId, visiMapEntry->segmentFileNum, rowNum);
 		return true;
 	}
 	else

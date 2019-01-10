@@ -338,7 +338,7 @@ AppendOnlyVisimapScan_GetNextInvisible(
 				visiMapScan->isFinished = true;
 				return false;
 			}
-			AOTupleIdInit_Init(tupleId);
+			AOTupleIdSetInvalid(tupleId);
 		}
 
 		if (!AppendOnlyVisimapEntry_GetNextInvisible(
