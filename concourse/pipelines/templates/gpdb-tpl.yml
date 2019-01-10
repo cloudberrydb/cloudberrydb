@@ -478,13 +478,13 @@ resources:
   type: docker-image
   source:
     repository: pivotaldata/centos7-build
-    tag: 'gpdb6-latest'
+    tag: gpdb6-latest
 
-- name: centos-gpdb-test-7
+- name: centos7-test-gpdb6
   type: docker-image
   source:
     repository: pivotaldata/centos7-test
-    tag: 'gpdb5-latest'
+    tag: gpdb6-latest
 
 {% endif %}
 {% if "ubuntu16" in os_types %}
@@ -1212,10 +1212,10 @@ jobs:
       resource: bin_gpdb_centos7
       passed: [compile_gpdb_centos7]
       trigger: [[ test_trigger ]]
-    - get: centos-gpdb-test-7
+    - get: centos7-test-gpdb6
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos-gpdb-test-7
+    image: centos7-test-gpdb6
     params:
       MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=on' installcheck-world
       TEST_OS: centos
@@ -1230,10 +1230,10 @@ jobs:
       passed: [compile_gpdb_centos7]
       resource: bin_gpdb_centos7
       trigger: [[ test_trigger ]]
-    - get: centos-gpdb-test-7
+    - get: centos7-test-gpdb6
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos-gpdb-test-7
+    image: centos7-test-gpdb6
     params:
       MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' installcheck-world
       TEST_OS: centos
@@ -1249,10 +1249,10 @@ jobs:
       passed: [compile_gpdb_centos7]
       resource: bin_gpdb_centos7
       trigger: [[ test_trigger ]]
-    - get: centos-gpdb-test-7
+    - get: centos7-test-gpdb6
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos-gpdb-test-7
+    image: centos7-test-gpdb6
     params:
       MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' installcheck-world
       TEST_OS: centos
@@ -2289,13 +2289,13 @@ jobs:
     - get: bin_gpdb
       resource: bin_gpdb_centos7
       passed: [madlib_build_gppkg]
-    - get: centos-gpdb-test-7
+    - get: centos7-test-gpdb6
     - get: madlib_gppkg
       passed: [madlib_build_gppkg]
       trigger: true
   - task: MADlib_Test_gppkg
     file: madlib_ci/concourse/tasks/madlib_test_gppkg.yml
-    image: centos-gpdb-test-7
+    image: centos7-test-gpdb6
     params:
       TEST_OS: centos
       ORCA: "off"
@@ -2310,13 +2310,13 @@ jobs:
     - get: bin_gpdb
       resource: bin_gpdb_centos7
       passed: [madlib_build_gppkg]
-    - get: centos-gpdb-test-7
+    - get: centos7-test-gpdb6
     - get: madlib_gppkg
       passed: [madlib_build_gppkg]
       trigger: true
   - task: MADlib_Test_gppkg
     file: madlib_ci/concourse/tasks/madlib_test_gppkg.yml
-    image: centos-gpdb-test-7
+    image: centos7-test-gpdb6
     params:
       TEST_OS: centos
       ORCA: "on"
