@@ -646,6 +646,18 @@ ExecEagerFreeMaterial(MaterialState *node)
 void
 ExecSquelchMaterial(MaterialState *node)
 {
-	ExecEagerFreeMaterial(node);
-	ExecSquelchNode(outerPlanState(node));
+	/*
+	 * If this Material is shielding the underlying nodes from rescanning (for
+	 * example, if there is a Motion node below), then keep the tuplestore.
+	 * Also, don't recurse to the subtree in that case, because we might need
+	 * to read more tuples from it after a ReScan. Most likely we have already
+	 * read all the tuples from the underlying node in that case, but it's
+	 * possible that ExecMaterial hasn't been called even once yet, and we
+	 * haven't created the tuplestore yet.
+	 */
+	if (!node->delayEagerFree)
+	{
+		ExecEagerFreeMaterial(node);
+		ExecSquelchNode(outerPlanState(node));
+	}
 }
