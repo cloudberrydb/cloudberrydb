@@ -696,13 +696,6 @@ COptTasks::OptimizeTask
 			// scope for MD accessor
 			CMDAccessor mda(mp, CMDCache::Pcache(), default_sysid, relcache_provider);
 
-			// ColId generator
-			CIdGenerator colid_generator(GPDXL_COL_ID_START);
-			CIdGenerator cteid_generator(GPDXL_CTE_ID_START);
-
-			// map that stores gpdb att to optimizer col mapping
-			CMappingVarColId *var_colid_mapping = GPOS_NEW(mp) CMappingVarColId(mp);
-
 			ULONG num_segments = gpdb::GetGPSegmentCount();
 			ULONG num_segments_for_costing = optimizer_segments;
 			if (0 == num_segments_for_costing)
@@ -715,11 +708,7 @@ COptTasks::OptimizeTask
 							(
 							mp,
 							&mda,
-							&colid_generator,
-							&cteid_generator,
-							var_colid_mapping,
-							(Query*) opt_ctxt->m_query,
-							0 /* query_level */
+							(Query*) opt_ctxt->m_query
 							);
 
 			ICostModel *cost_model = GetCostModel(mp, num_segments_for_costing);

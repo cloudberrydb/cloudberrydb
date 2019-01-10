@@ -62,27 +62,92 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CTranslatorScalarToDXL::CTranslatorScalarToDXL
 	(
-	IMemoryPool *mp,
+	CContextQueryToDXL *context,
 	CMDAccessor *md_accessor,
-	CIdGenerator *colid_generator,
-	CIdGenerator *cte_id_generator,
 	ULONG query_level,
-	BOOL is_query_mode,
 	HMUlCTEListEntry *cte_entries,
 	CDXLNodeArray *cte_dxlnode_array
 	)
 	:
-	m_mp(mp),
+	m_context(context),
+	m_mp(context->m_mp),
 	m_md_accessor(md_accessor),
-	m_colid_generator(colid_generator),
-	m_cte_id_generator(cte_id_generator),
 	m_query_level(query_level),
-	m_has_distributed_tables(false),
-	m_is_query_mode(is_query_mode),
 	m_op_type(EpspotNone),
 	m_cte_entries(cte_entries),
 	m_cte_producers(cte_dxlnode_array)
 {
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorScalarToDXL::CTranslatorScalarToDXL
+//
+//	@doc:
+//		Private constructor for TranslateStandaloneExprToDXL
+//---------------------------------------------------------------------------
+CTranslatorScalarToDXL::CTranslatorScalarToDXL
+	(
+	IMemoryPool *mp,
+	CMDAccessor *mda
+	)
+	:
+	m_context(NULL),
+	m_mp(mp),
+	m_md_accessor(mda),
+	m_query_level(0),
+	m_op_type(EpspotNone),
+	m_cte_entries(NULL),
+	m_cte_producers(NULL)
+{
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorScalarToDXL::CreateSubqueryTranslator
+//
+//	@doc:
+//		Construct a new CTranslatorQueryToDXL object, for translating
+//		a subquery of the current query.
+//---------------------------------------------------------------------------
+CTranslatorQueryToDXL *
+CTranslatorScalarToDXL::CreateSubqueryTranslator
+	(
+	Query *subquery,
+	const CMappingVarColId *var_colid_mapping
+	)
+{
+	if (m_context == NULL)
+	{
+		// This is a stand-alone expression. Subqueries are not allowed.
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLError, GPOS_WSZ_LIT("Subquery in a stand-alone expression"));
+	}
+
+	return GPOS_NEW(m_context->m_mp) CTranslatorQueryToDXL
+		(
+		m_context,
+		m_md_accessor,
+		var_colid_mapping,
+		subquery,
+		m_query_level + 1,
+		false,  // is_top_query_dml
+		m_cte_entries
+		);
+}
+
+CDXLNode *
+CTranslatorScalarToDXL::TranslateStandaloneExprToDXL
+	(
+	IMemoryPool *mp,
+	CMDAccessor *mda,
+	const CMappingVarColId* var_colid_mapping,
+	const Expr *expr
+	)
+{
+	CTranslatorScalarToDXL scalar_translator(mp,mda);
+
+	return scalar_translator.TranslateScalarToDXL(expr, var_colid_mapping);
 }
 
 //---------------------------------------------------------------------------
@@ -162,7 +227,9 @@ CTranslatorScalarToDXL::TranslateVarToDXL
 	}
 	else
 	{
-		id = m_colid_generator->next_id();
+		if (m_context == NULL)
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Var with no existing mapping in a stand-alone context"));
+		id = m_context->m_colid_counter->next_id();
 	}
 	CMDName *mdname = GPOS_NEW(m_mp) CMDName(m_mp, str);
 
@@ -204,8 +271,7 @@ CDXLNode *
 CTranslatorScalarToDXL::TranslateScalarToDXL
 	(
 	const Expr *expr,
-	const CMappingVarColId* var_colid_mapping,
-	BOOL *has_distributed_tables // output
+	const CMappingVarColId* var_colid_mapping
 	)
 {
 	static const STranslatorElem translators[] =
@@ -238,15 +304,6 @@ CTranslatorScalarToDXL::TranslateScalarToDXL
 	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
 	NodeTag tag = expr->type;
 
-	// if an output variable is provided, we need to reset the member variable
-	if (NULL != has_distributed_tables)
-	{
-		m_has_distributed_tables = false;
-	}
-
-	// save old value for distributed tables flag
-	BOOL has_distributed_tables_old = m_has_distributed_tables;
-
 	// find translator for the expression type
 	ExprToDXLFn func_ptr = NULL;
 	for (ULONG ul = 0; ul < num_translators; ul++)
@@ -276,14 +333,6 @@ CTranslatorScalarToDXL::TranslateScalarToDXL
 	}
 
 	CDXLNode *return_node = (this->*func_ptr)(expr, var_colid_mapping);
-
-	// combine old and current values for distributed tables flag
-	m_has_distributed_tables = m_has_distributed_tables || has_distributed_tables_old;
-
-	if (NULL != has_distributed_tables && m_has_distributed_tables)
-	{
-		*has_distributed_tables = true;
-	}
 
 	return return_node;
 }
@@ -869,15 +918,14 @@ CTranslatorScalarToDXL::TranslateScalarChildren
 	(
 	CDXLNode *dxlnode,
 	List *list,
-	const CMappingVarColId* var_colid_mapping,
-	BOOL *has_distributed_tables // output
+	const CMappingVarColId* var_colid_mapping
 	)
 {
 	ListCell *lc = NULL;
 	ForEach (lc, list)
 	{
 		Expr *child_expr = (Expr *) lfirst(lc);
-		CDXLNode *child_node = TranslateScalarToDXL(child_expr, var_colid_mapping, has_distributed_tables);
+		CDXLNode *child_node = TranslateScalarToDXL(child_expr, var_colid_mapping);
 		GPOS_ASSERT(NULL != child_node);
 		dxlnode->AddChild(child_node);
 	}
@@ -1400,7 +1448,7 @@ CTranslatorScalarToDXL::TranslateAggrefToDXL
 	ForEach (lc, aggref->args)
 	{
 		TargetEntry *tle = (TargetEntry *) lfirst(lc);
-		CDXLNode *child_node = TranslateScalarToDXL(tle->expr, var_colid_mapping, NULL);
+		CDXLNode *child_node = TranslateScalarToDXL(tle->expr, var_colid_mapping);
 		GPOS_ASSERT(NULL != child_node);
 		dxlnode->AddChild(child_node);
 	}
@@ -1422,8 +1470,7 @@ CTranslatorScalarToDXL::TranslateWindowFrameToDXL
 	const Node *start_offset,
 	const Node *end_offset,
 	const CMappingVarColId* var_colid_mapping,
-	CDXLNode *new_scalar_proj_list,
-	BOOL *has_distributed_tables // output
+	CDXLNode *new_scalar_proj_list
 	)
 {
 	EdxlFrameSpec frame_spec;
@@ -1473,12 +1520,12 @@ CTranslatorScalarToDXL::TranslateWindowFrameToDXL
 	// translate the lead and trail value
 	if (NULL != end_offset)
 	{
-		lead_edge->AddChild(TranslateWindowFrameEdgeToDXL(end_offset, var_colid_mapping, new_scalar_proj_list, has_distributed_tables));
+		lead_edge->AddChild(TranslateWindowFrameEdgeToDXL(end_offset, var_colid_mapping, new_scalar_proj_list));
 	}
 
 	if (NULL != start_offset)
 	{
-		trail_edge->AddChild(TranslateWindowFrameEdgeToDXL(start_offset, var_colid_mapping, new_scalar_proj_list, has_distributed_tables));
+		trail_edge->AddChild(TranslateWindowFrameEdgeToDXL(start_offset, var_colid_mapping, new_scalar_proj_list));
 	}
 
 	CDXLWindowFrame *window_frame_dxl = GPOS_NEW(m_mp) CDXLWindowFrame(m_mp, frame_spec, strategy, lead_edge, trail_edge);
@@ -1499,18 +1546,20 @@ CTranslatorScalarToDXL::TranslateWindowFrameEdgeToDXL
 	(
 	const Node *node,
 	const CMappingVarColId* var_colid_mapping,
-	CDXLNode *new_scalar_proj_list,
-	BOOL *has_distributed_tables
+	CDXLNode *new_scalar_proj_list
 	)
 {
-	CDXLNode *val_node = TranslateScalarToDXL((Expr *) node, var_colid_mapping, has_distributed_tables);
+	CDXLNode *val_node = TranslateScalarToDXL((Expr *) node, var_colid_mapping);
 
-	if (m_is_query_mode && !IsA(node, Var) && !IsA(node, Const))
+	if (!m_context)
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Window Frame in a stand-alone expression"));
+
+	if (!IsA(node, Var) && !IsA(node, Const))
 	{
 		GPOS_ASSERT(NULL != new_scalar_proj_list);
 		CWStringConst unnamed_col(GPOS_WSZ_LIT("?column?"));
 		CMDName *alias_mdname = GPOS_NEW(m_mp) CMDName(m_mp, &unnamed_col);
-		ULONG project_element_id = m_colid_generator->next_id();
+		ULONG project_element_id = m_context->m_colid_counter->next_id();
 
 		// construct a projection element
 		CDXLNode *project_element_node = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarProjElem(m_mp, project_element_id, alias_mdname));
@@ -1570,11 +1619,10 @@ CTranslatorScalarToDXL::TranslateWindowFuncToDXL
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("DISTINCT-qualified Window Aggregate"));
 	}
 
-	ULONG win_spec_pos = (ULONG) 0;
-	if (m_is_query_mode)
-	{
-		win_spec_pos = (ULONG) window_func->winref - 1;
-	}
+	if (!m_context)
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Window function in a stand-alone expression"));
+
+	ULONG win_spec_pos = (ULONG) window_func->winref - 1;
 
 	/*
 	 * ORCA's ScalarWindowRef object doesn't have fields for the 'winstar'
@@ -1615,8 +1663,7 @@ CDXLNode *
 CTranslatorScalarToDXL::CreateScalarCondFromQual
 	(
 	List *quals,
-	const CMappingVarColId* var_colid_mapping,
-	BOOL *has_distributed_tables
+	const CMappingVarColId* var_colid_mapping
 	)
 {
 	if (NULL == quals || 0 == gpdb::ListLength(quals))
@@ -1627,7 +1674,7 @@ CTranslatorScalarToDXL::CreateScalarCondFromQual
 	if (1 == gpdb::ListLength(quals))
 	{
 		Expr *expr = (Expr *) gpdb::ListNth(quals, 0);
-		return TranslateScalarToDXL(expr, var_colid_mapping, has_distributed_tables);
+		return TranslateScalarToDXL(expr, var_colid_mapping);
 	}
 	else
 	{
@@ -1635,7 +1682,7 @@ CTranslatorScalarToDXL::CreateScalarCondFromQual
 		// Here we build the left deep AND tree
 		CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarBoolExpr(m_mp, Edxland));
 
-		TranslateScalarChildren(dxlnode, quals, var_colid_mapping, has_distributed_tables);
+		TranslateScalarChildren(dxlnode, quals, var_colid_mapping);
 
 		return dxlnode;
 	}
@@ -1655,8 +1702,7 @@ CTranslatorScalarToDXL::CreateFilterFromQual
 	(
 	List *quals,
 	const CMappingVarColId* var_colid_mapping,
-	Edxlopid filter_type,
-	BOOL *has_distributed_tables // output
+	Edxlopid filter_type
 	)
 {
 	CDXLScalarFilter *dxlop = NULL;
@@ -1679,7 +1725,7 @@ CTranslatorScalarToDXL::CreateFilterFromQual
 
 	CDXLNode *filter_dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, dxlop);
 
-	CDXLNode *cond_node = CreateScalarCondFromQual(quals, var_colid_mapping, has_distributed_tables);
+	CDXLNode *cond_node = CreateScalarCondFromQual(quals, var_colid_mapping);
 
 	if (NULL != cond_node)
 	{
@@ -1742,20 +1788,9 @@ CTranslatorScalarToDXL::CreateQuantifiedSubqueryFromSublink
 	const CMappingVarColId* var_colid_mapping
 	)
 {
-	CMappingVarColId *var_colid_map_copy = var_colid_mapping->CopyMapColId(m_mp);
-
 	CAutoP<CTranslatorQueryToDXL> query_to_dxl_translator;
-	query_to_dxl_translator = CTranslatorQueryToDXL::QueryToDXLInstance
-							(
-							m_mp,
-							m_md_accessor,
-							m_colid_generator,
-							m_cte_id_generator,
-							var_colid_map_copy,
-							(Query *) sublink->subselect,
-							m_query_level + 1,
-							m_cte_entries
-							);
+	query_to_dxl_translator = CreateSubqueryTranslator((Query *) sublink->subselect,
+							   var_colid_mapping);
 
 	CDXLNode *inner_dxlnode = query_to_dxl_translator->TranslateSelectQueryToDXL();
 
@@ -1767,8 +1802,6 @@ CTranslatorScalarToDXL::CreateQuantifiedSubqueryFromSublink
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Non-Scalar Subquery"));
 	}
-
-	m_has_distributed_tables = m_has_distributed_tables || query_to_dxl_translator->HasDistributedTables();
 
 	CDXLNode *dxl_sc_ident = (*query_output_dxlnode_array)[0];
 	GPOS_ASSERT(NULL != dxl_sc_ident);
@@ -1847,21 +1880,9 @@ CTranslatorScalarToDXL::CreateScalarSubqueryFromSublink
 	const CMappingVarColId *var_colid_mapping
 	)
 {
-	CMappingVarColId *var_colid_map_copy = var_colid_mapping->CopyMapColId(m_mp);
-
 	Query *subselect = (Query *) sublink->subselect;
 	CAutoP<CTranslatorQueryToDXL> query_to_dxl_translator;
-	query_to_dxl_translator = CTranslatorQueryToDXL::QueryToDXLInstance
-							(
-							m_mp,
-							m_md_accessor,
-							m_colid_generator,
-							m_cte_id_generator,
-							var_colid_map_copy,
-							subselect,
-							m_query_level + 1,
-							m_cte_entries
-							);
+	query_to_dxl_translator = CreateSubqueryTranslator(subselect, var_colid_mapping);
 	CDXLNode *subquery_dxlnode = query_to_dxl_translator->TranslateSelectQueryToDXL();
 
 	CDXLNodeArray *query_output_dxlnode_array = query_to_dxl_translator->GetQueryOutputCols();
@@ -1870,7 +1891,6 @@ CTranslatorScalarToDXL::CreateScalarSubqueryFromSublink
 
 	CDXLNodeArray *cte_dxlnode_array = query_to_dxl_translator->GetCTEs();
 	CUtils::AddRefAppend(m_cte_producers, cte_dxlnode_array);
-	m_has_distributed_tables = m_has_distributed_tables || query_to_dxl_translator->HasDistributedTables();
 
 	// get dxl scalar identifier
 	CDXLNode *dxl_sc_ident = (*query_output_dxlnode_array)[0];
@@ -2048,26 +2068,14 @@ CTranslatorScalarToDXL::CreateExistSubqueryFromSublink
 	)
 {
 	GPOS_ASSERT(NULL != sublink);
-	CMappingVarColId *var_colid_map_copy = var_colid_mapping->CopyMapColId(m_mp);
-
 	CAutoP<CTranslatorQueryToDXL> query_to_dxl_translator;
-	query_to_dxl_translator = CTranslatorQueryToDXL::QueryToDXLInstance
-							(
-							m_mp,
-							m_md_accessor,
-							m_colid_generator,
-							m_cte_id_generator,
-							var_colid_map_copy,
-							(Query *) sublink->subselect,
-							m_query_level + 1,
-							m_cte_entries
-							);
+	query_to_dxl_translator = CreateSubqueryTranslator((Query *) sublink->subselect,
+							   var_colid_mapping);
 	CDXLNode *root_dxlnode = query_to_dxl_translator->TranslateSelectQueryToDXL();
 	
 	CDXLNodeArray *cte_dxlnode_array = query_to_dxl_translator->GetCTEs();
 	CUtils::AddRefAppend(m_cte_producers, cte_dxlnode_array);
-	m_has_distributed_tables = m_has_distributed_tables || query_to_dxl_translator->HasDistributedTables();
-	
+
 	CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarSubqueryExists(m_mp));
 	dxlnode->AddChild(root_dxlnode);
 

@@ -21,10 +21,9 @@
 #include "postgres.h"
 #include "nodes/primnodes.h"
 
+#include "gpopt/translate/CContextQueryToDXL.h"
 #include "gpopt/translate/CMappingVarColId.h"
 #include "gpopt/translate/CCTEListEntry.h"
-
-#include "naucrates/dxl/CIdGenerator.h"
 
 #include "naucrates/base/IDatum.h"
 
@@ -54,7 +53,6 @@ namespace gpdxl
 	using namespace gpmd;
 
 	// fwd decl
-	class CIdGenerator;
 	class CMappingVarColId;
 	class CDXLDatum;
 
@@ -67,6 +65,12 @@ namespace gpdxl
 		typedef CDXLDatum * (DxlDatumFromDatum)(IMemoryPool *mp, const IMDType *md_type, BOOL is_null, ULONG len, Datum datum);
 
 		private:
+			// private constructor for TranslateStandaloneExprToDXL
+			CTranslatorScalarToDXL
+				(
+				IMemoryPool *mp,
+				CMDAccessor *mda
+				);
 
 			// pair of node tag and translator function
 			struct STranslatorElem
@@ -75,26 +79,18 @@ namespace gpdxl
 				ExprToDXLFn func_ptr;
 			};
 
+			// context for the whole query being translated, or NULL if this is
+			// standalone expression (e.g. the DEFAULT expression of a column).
+			CContextQueryToDXL *m_context;
+
 			// memory pool
 			IMemoryPool *m_mp;
 
 			// meta data accessor
 			CMDAccessor *m_md_accessor;
 
-			// counter for generating unique column ids
-			CIdGenerator *m_colid_generator;
-
-			// counter for generating unique CTE ids
-			CIdGenerator *m_cte_id_generator;
-
 			// absolute level of query whose vars will be translated
 			ULONG m_query_level;
-
-			// does the currently translated scalar have distributed tables
-			BOOL m_has_distributed_tables;
-
-			// is scalar being translated in query mode
-			BOOL m_is_query_mode;
 
 			// physical operator that created this translator
 			EPlStmtPhysicalOpType m_op_type;
@@ -107,13 +103,18 @@ namespace gpdxl
 
 			EdxlBoolExprType EdxlbooltypeFromGPDBBoolType(BoolExprType) const;
 
+			CTranslatorQueryToDXL *CreateSubqueryTranslator
+				(
+				Query *subquery,
+				const CMappingVarColId *var_colid_mapping
+				);
+
 			// translate list elements and add them as children of the DXL node
 			void TranslateScalarChildren
 				(
 				CDXLNode *dxlnode,
 				List *list,
-				const CMappingVarColId* var_colid_mapping,
-				BOOL *has_distributed_tables = NULL
+				const CMappingVarColId* var_colid_mapping
 				);
 
 			// create a DXL scalar distinct comparison node from a GPDB DistinctExpr
@@ -127,8 +128,7 @@ namespace gpdxl
 			CDXLNode *CreateScalarCondFromQual
 				(
 				List *quals,
-				const CMappingVarColId* var_colid_mapping,
-				BOOL *has_distributed_tables
+				const CMappingVarColId* var_colid_mapping
 				);
 
 			// create a DXL scalar comparison node from a GPDB op expression
@@ -354,8 +354,7 @@ namespace gpdxl
 				(
 				const Node *node,
 				const CMappingVarColId* var_colid_mapping,
-				CDXLNode *new_scalar_proj_list,
-				BOOL *has_distributed_tables
+				CDXLNode *new_scalar_proj_list
 				);
 
 		public:
@@ -363,12 +362,9 @@ namespace gpdxl
 			// ctor
 			CTranslatorScalarToDXL
 				(
-				IMemoryPool *mp,
+				CContextQueryToDXL *context,
 				CMDAccessor *md_accessor,
-				CIdGenerator *colid_generator,
-				CIdGenerator *cte_id_generator,
 				ULONG query_level,
-				BOOL is_query_mode,
 				HMUlCTEListEntry *cte_entries,
 				CDXLNodeArray *cte_dxlnode_array
 				);
@@ -395,8 +391,7 @@ namespace gpdxl
 			CDXLNode *TranslateScalarToDXL
 				(
 				const Expr *expr,
-				const CMappingVarColId* var_colid_mapping,
-				BOOL *has_distributed_tables = NULL
+				const CMappingVarColId* var_colid_mapping
 				);
 
 			// create a DXL scalar filter node from a GPDB qual list
@@ -404,8 +399,7 @@ namespace gpdxl
 				(
 				List *quals,
 				const CMappingVarColId* var_colid_mapping,
-				Edxlopid filter_type,
-				BOOL *has_distributed_tables = NULL
+				Edxlopid filter_type
 				);
 
 			// create a DXL WindowFrame node from a GPDB expression
@@ -415,8 +409,17 @@ namespace gpdxl
 				const Node *start_offset,
 				const Node *end_offset,
 				const CMappingVarColId* var_colid_mapping,
-				CDXLNode *new_scalar_proj_list,
-				BOOL *has_distributed_tables = NULL
+				CDXLNode *new_scalar_proj_list
+				);
+
+			// translate stand-alone expression that's not part of a query
+			static
+			CDXLNode *TranslateStandaloneExprToDXL
+				(
+				IMemoryPool *mp,
+				CMDAccessor *mda,
+				const CMappingVarColId* var_colid_mapping,
+				const Expr *expr
 				);
 
 			// translate GPDB Const to CDXLDatum

@@ -7,7 +7,7 @@
 //
 //	@doc:
 //		Class providing access to CIdGenerators (needed to number initplans, motion
-//		nodes as well as params), list of RangeTableEntires and Subplans
+//		nodes as well as params), list of RangeTableEntries and Subplans
 //		generated so far during DXL-->PlStmt translation.
 //
 //	@test:
@@ -51,7 +51,7 @@ namespace gpdxl
 	//
 	//	@doc:
 	//		Class providing access to CIdGenerators (needed to number initplans, motion
-	//		nodes as well as params), list of RangeTableEntires and Subplans
+	//		nodes as well as params), list of RangeTableEntries and Subplans
 	//		generated so far during DXL-->PlStmt translation.
 	//
 	//---------------------------------------------------------------------------

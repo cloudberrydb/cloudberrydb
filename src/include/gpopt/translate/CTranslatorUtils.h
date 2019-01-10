@@ -17,7 +17,7 @@
 #define GPDXL_CTranslatorUtils_H
 #define GPDXL_SYSTEM_COLUMNS 8
 
-#include "gpopt/translate/CTranslatorScalarToDXL.h"
+#include "gpopt/translate/CMappingVarColId.h"
 
 #include "gpos/base.h"
 #include "gpos/common/CBitSet.h"

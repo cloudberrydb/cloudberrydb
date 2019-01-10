@@ -1,0 +1,73 @@
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2011 Greenplum, Inc.
+//
+//	@filename:
+//		CContextQueryToDXL.h
+//
+//	@doc:
+//		Class to hold information about a whole top-level query, while
+//		recursively translating a Query tree to DXL tree.
+//
+//---------------------------------------------------------------------------
+
+#ifndef GPDXL_CContextQueryToDXL_H
+#define GPDXL_CContextQueryToDXL_H
+
+#include "gpopt/translate/CTranslatorUtils.h"
+
+#include "gpos/base.h"
+
+#include "naucrates/dxl/operators/CDXLNode.h"
+#include "naucrates/dxl/CIdGenerator.h"
+
+#define GPDXL_CTE_ID_START 1
+#define GPDXL_COL_ID_START 1
+
+namespace gpdxl
+{
+	// fwd declarations
+	class CTranslatorQueryToDXL;
+	class CTranslatorScalarToDXL;
+
+	//---------------------------------------------------------------------------
+	//	@class:
+	//		CContextQueryToDXL
+	//
+	//	@doc:
+	//		Class to hold information about a whole top-level query, while
+	//		recursively translating a Query tree to DXL tree.
+	//
+	//---------------------------------------------------------------------------
+	class CContextQueryToDXL
+	{
+		friend CTranslatorQueryToDXL;
+		friend CTranslatorScalarToDXL;
+
+		private:
+			// memory pool
+			IMemoryPool *m_mp;
+
+			// counter for generating unique column ids
+			CIdGenerator *m_colid_counter;
+
+			// counter for generating unique CTE ids
+			CIdGenerator *m_cte_id_counter;
+
+			// does the query have any distributed tables?
+			BOOL m_has_distributed_tables;
+
+		public:
+			// ctor
+			CContextQueryToDXL
+				(
+				IMemoryPool *mp
+				);
+
+			// dtor
+			~CContextQueryToDXL();
+	};
+}
+#endif // GPDXL_CContextQueryToDXL_H
+
+//EOF
