@@ -20,5 +20,6 @@ extern SubqueryScanState *ExecInitSubqueryScan(SubqueryScan *node, EState *estat
 extern TupleTableSlot *ExecSubqueryScan(SubqueryScanState *node);
 extern void ExecEndSubqueryScan(SubqueryScanState *node);
 extern void ExecReScanSubqueryScan(SubqueryScanState *node);
+extern void ExecSquelchSubqueryScan(SubqueryScanState *node);
 
 #endif   /* NODESUBQUERYSCAN_H */

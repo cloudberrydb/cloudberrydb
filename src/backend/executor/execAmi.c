@@ -630,6 +630,10 @@ ExecSquelchNode(PlanState *node)
 			ExecSquelchSequence((SequenceState *) node);
 			break;
 
+		case T_SubqueryScanState:
+			ExecSquelchSubqueryScan((SubqueryScanState *) node);
+			break;
+
 			/*
 			 * Node types that need no special handling, just recurse to
 			 * children.
@@ -643,7 +647,6 @@ ExecSquelchNode(PlanState *node)
 		case T_MergeJoinState:
 		case T_RepeatState:
 		case T_SetOpState:
-		case T_SubqueryScanState:
 		case T_UniqueState:
 		case T_HashState:
 		case T_PartitionSelectorState:

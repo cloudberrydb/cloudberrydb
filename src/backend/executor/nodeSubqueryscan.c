@@ -234,3 +234,10 @@ ExecReScanSubqueryScan(SubqueryScanState *node)
 
 	CheckSendPlanStateGpmonPkt(&node->ss.ps);
 }
+
+void
+ExecSquelchSubqueryScan(SubqueryScanState *node)
+{
+	/* Recurse to subquery */
+	ExecSquelchNode(node->subplan);
+}
