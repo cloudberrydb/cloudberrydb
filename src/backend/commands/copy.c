@@ -4022,17 +4022,9 @@ CopyFrom(CopyState cstate)
 			if (resultRelInfo->ri_RelationDesc->rd_att->constr)
 				ExecConstraints(resultRelInfo, slot, estate);
 
-			if (useHeapMultiInsert)
-			{
-				char relstorage = RelinfoGetStorage(resultRelInfo);
-				if (relstorage == RELSTORAGE_AOROWS ||
-					relstorage == RELSTORAGE_AOCOLS ||
-					relstorage == RELSTORAGE_EXTERNAL)
-					useHeapMultiInsert = false;
-			}
-
 			/* OK, store the tuple and create index entries for it */
-			if (useHeapMultiInsert) {
+			if (useHeapMultiInsert && relstorage == RELSTORAGE_HEAP)
+			{
 				HeapTuple	tuple;
 				if (resultRelInfo->nBufferedTuples == 0)
 					firstBufferedLineNo = cstate->cur_lineno;
@@ -4072,7 +4064,9 @@ CopyFrom(CopyState cstate)
 					nTotalBufferedTuples = 0;
 					totalBufferedTuplesSize = 0;
 				}
-			} else {
+			}
+			else
+			{
 				List	   *recheckIndexes = NIL;
 
 				if (relstorage == RELSTORAGE_AOROWS)

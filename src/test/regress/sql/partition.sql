@@ -642,6 +642,34 @@ select * from foo_p;
 select * from foo_p_1_prt_p1;
 select * from foo_p_1_prt_p2;
 drop table foo_p;
+
+-- Same as above, but the input is ordered so that the inserts to the heap
+-- partition happen first. Had a bug related flushing the multi-insert
+-- buffers in that scenario at one point.
+-- (https://github.com/greenplum-db/gpdb/issues/6678
+create table mixed_ao_part(distkey int, partkey int)
+with (appendonly=true) distributed by(distkey)
+partition by range(partkey) (
+  partition p1 start(0) end(100) with (appendonly = false),
+   partition p2 start(100) end(199)
+);
+copy mixed_ao_part from stdin;
+1	95
+2	96
+3	97
+4	98
+5	99
+1	100
+2	101
+3	102
+4	103
+5	104
+\.
+select * from mixed_ao_part;
+
+-- Don't drop the table, so that we leave behind a mixed table in the
+-- regression database for pg_dump/restore testing.
+
 -- MPP-3283
 CREATE TABLE PARTSUPP (
 PS_PARTKEY INTEGER,
