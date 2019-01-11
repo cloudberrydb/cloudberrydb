@@ -14,6 +14,7 @@
 
 #include "gpopt/base/CMaxCard.h"
 #include "unittest/gpopt/base/CMaxCardTest.h"
+#include "unittest/gpopt/CTestUtils.h"
 
 using namespace gpopt;
 
@@ -30,7 +31,8 @@ CMaxCardTest::EresUnittest()
 {
 	CUnittest rgut[] =
 		{
-		GPOS_UNITTEST_FUNC(CMaxCardTest::EresUnittest_Basics)
+		GPOS_UNITTEST_FUNC(CMaxCardTest::EresUnittest_Basics),
+		GPOS_UNITTEST_FUNC(CMaxCardTest::EresUnittest_RunMinidumpTests)
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -75,5 +77,20 @@ CMaxCardTest::EresUnittest_Basics()
 	return GPOS_OK;
 }
 
+GPOS_RESULT
+CMaxCardTest::EresUnittest_RunMinidumpTests()
+{
+	ULONG ulTestCounter = 0;
+	// minidump files
+	const CHAR *rgszFileNames[] =
+	{
+		"../data/dxl/minidump/FullOuterJoinMaxCardRightChild.mdp",
+		"../data/dxl/minidump/FullOuterJoinMaxCardLeftChild.mdp",
+		"../data/dxl/minidump/FullOuterJoinZeroMaxCard.mdp",
+		"../data/dxl/minidump/FullOuterJoinLeftMultiplyRightMaxCard.mdp",
+	};
+
+	return CTestUtils::EresUnittest_RunTests(rgszFileNames, &ulTestCounter, GPOS_ARRAY_SIZE(rgszFileNames));
+}
 
 // EOF

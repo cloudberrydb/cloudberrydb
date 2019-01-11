@@ -55,7 +55,23 @@ CLogicalFullOuterJoin::Maxcard
 	)
 	const
 {
-	return CLogical::Maxcard(exprhdl, 2 /*ulScalarIndex*/, MaxcardDef(exprhdl));
+
+	CMaxCard left_child_maxcard = exprhdl.GetRelationalProperties(0)->Maxcard();
+	CMaxCard right_child_maxcard = exprhdl.GetRelationalProperties(1)->Maxcard();
+
+	if (left_child_maxcard.Ull() > 0 && right_child_maxcard.Ull() > 0)
+	{
+		CMaxCard result_max_card = left_child_maxcard;
+		result_max_card *= right_child_maxcard;
+		return result_max_card;
+	}
+
+	if (left_child_maxcard <= right_child_maxcard)
+	{
+		return right_child_maxcard;
+	}
+
+	return left_child_maxcard;
 }
 
 //---------------------------------------------------------------------------
