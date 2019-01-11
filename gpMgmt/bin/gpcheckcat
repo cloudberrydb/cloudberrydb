@@ -29,6 +29,7 @@ try:
     from gppylib.db import dbconn
     from gppylib.gpcatalog import *
     from gppylib.commands.unix import *
+    from gppylib.commands.gp import conflict_with_gpexpand
     from gppylib.system.info import *
     from pygresql.pgdb import DatabaseError
     from pygresql import pg
@@ -4382,6 +4383,13 @@ def truncate_batch_size(primaries):
         GV.opt['-B'] = primaries
         myprint("Truncated batch size to number of primaries: %d" % primaries)
 
+def check_gpexpand():
+    check_result, msg = conflict_with_gpexpand("gpcheckcat",
+                                               refuse_phase1=True,
+                                               refuse_phase2=False)
+    if not check_result:
+        myprint(msg)
+        sys.exit(1)
 
 def main():
     parseCommandLine()
@@ -4393,6 +4401,9 @@ def main():
     if GV.version < "4.0":
         myprint("Error: only Greenplum database version >= 4.0 are supported\n")
         sys.exit(GV.retcode)
+
+    # gpcheckcat should check gpexpand runnning status
+    check_gpexpand()
 
     GV.cfg = getGPConfiguration()
     truncate_batch_size(len(GV.cfg.keys()))

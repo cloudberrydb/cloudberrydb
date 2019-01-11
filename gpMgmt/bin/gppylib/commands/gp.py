@@ -1236,6 +1236,28 @@ def get_gpexpand_status():
     status.get_status()
     return status
 
+def conflict_with_gpexpand(utility, refuse_phase1=True, refuse_phase2=False):
+    '''
+    Generate error message when gpexpand is running in specified phases.
+    Some utilities can not run in parallel with gpexpand, this function can be
+    used to simplify the checks on gpexpand status.
+    '''
+    status = get_gpexpand_status()
+
+    if status.phase == 1 and refuse_phase1:
+        err_msg = ("ERROR: Usage of {utility} is not supported while the "
+                   "cluster is in a reconfiguration state, "
+                   "exit {utility}")
+        return (False, err_msg.format(utility=utility))
+
+    if status.phase == 2 and refuse_phase2:
+        err_msg = ("ERROR: Usage of {utility} is not supported while the "
+                   "cluster has tables waiting for expansion, "
+                   "exit {utility}")
+        return (False, err_msg.format(utility=utility))
+
+    return (True, "")
+
 #=-=-=-=-=-=-=-=-=-= Bash Migration Helper Functions =-=-=-=-=-=-=-=-
 
 def start_standbymaster(host, datadir, port, era=None,

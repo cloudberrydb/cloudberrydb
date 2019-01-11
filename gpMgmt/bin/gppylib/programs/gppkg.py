@@ -75,6 +75,13 @@ class GpPkgProgram:
                 raise ExceptionNoStackTraceNeeded('Invalid syntax, expecting "gppkg --migrate <from_gphome> <to_gphome>".')
             self.migrate = (args[0], args[1])
 
+        # gppkg should check gpexpand status
+        check_result, msg = gp.conflict_with_gpexpand("gppkg",
+                                                      refuse_phase1=True,
+                                                      refuse_phase2=False)
+        if not check_result:
+            raise ExceptionNoStackTraceNeeded(msg)
+
     @staticmethod
     def create_parser():
         parser = OptParser(option_class=OptChecker,
