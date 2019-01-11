@@ -18,14 +18,15 @@ Usage: gpcheckcat [<option>] [dbname]
 
 '''
 import getopt
+import logging
 import re
 import sys
 import time
 from datetime import datetime
 
 try:
+    from gppylib import gplog
     from gppylib.db import dbconn
-    from gppylib.gplog import *
     from gppylib.gpcatalog import *
     from gppylib.commands.unix import *
     from gppylib.system.info import *
@@ -45,9 +46,9 @@ oidmap = {}
 
 # -------------------------------------------------------------------------------
 EXECNAME = os.path.split(__file__)[-1]
-setup_tool_logging(EXECNAME, getLocalHostname(), getUserName())
-very_quiet_stdout_logging()
-logger = get_default_logger()
+gplog.setup_tool_logging(EXECNAME, getLocalHostname(), getUserName())
+gplog.very_quiet_stdout_logging()
+logger = gplog.get_default_logger()
 
 sysinfo = SystemInfo(logger)
 
@@ -242,7 +243,7 @@ def parseCommandLine():
     if GV.opt['-l']: return
 
     if GV.opt['-v']:
-        enable_verbose_logging()
+        gplog.enable_verbose_logging()
 
     setdef('-P', 'PGPASSWORD')
     setdef('-U', 'PGUSER')
@@ -2395,9 +2396,9 @@ def checkTableACL(cat):
             logger.error('  %s acl check has %d issue(s)' % (catname, nrows))
 
             fields = curs.listfields()
-            log_literal(logger, logging.ERROR, "    " + " | ".join(fields))
+            gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(fields))
             for row in curs.getresult():
-                log_literal(logger, logging.ERROR, "    " + " | ".join(map(str, row)))
+                gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(map(str, row)))
             processACLResult(catname, fields, curs.getresult())
 
     except Exception, e:
@@ -2528,10 +2529,10 @@ def checkTableMissingEntry(cat):
                         ('WARNING' if log_level == logging.WARNING else 'FAIL'))
             logger_with_level('  %s has %d issue(s)' % (catname, nrows))
             fields = curs.listfields()
-            log_literal(logger, log_level, "    " + " | ".join(fields))
+            gplog.log_literal(logger, log_level, "    " + " | ".join(fields))
             results = curs.getresult()
             for row in results:
-                log_literal(logger, log_level, "    " + " | ".join(map(str, row)))
+                gplog.log_literal(logger, log_level, "    " + " | ".join(map(str, row)))
             processMissingDuplicateEntryResult(catname, fields, results, "missing")
             if catname == 'pg_type':
                 generateVerifyFile(catname, fields, results, 'missing_extraneous')
@@ -2682,9 +2683,9 @@ def checkTableInconsistentEntry(cat):
             logger.error('  %s has %d issue(s)' % (catname, nrows))
 
             fields = curs.listfields()
-            log_literal(logger, logging.ERROR, "    " + " | ".join(fields))
+            gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(fields))
             for row in curs.getresult():
-                log_literal(logger, logging.ERROR, "    " + " | ".join(map(str, row)))
+                gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(map(str, row)))
             results = curs.getresult()
             processInconsistentEntryResult(catname, pkey, fields, results)
             if catname == 'pg_type':
@@ -2821,10 +2822,10 @@ def checkTableDuplicateEntry(cat):
             logger.error('  %s has %d issue(s)' % (catname, nrows))
 
             fields = curs.listfields()
-            log_literal(logger, logging.ERROR, "    " + " | ".join(fields))
+            gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(fields))
             results = curs.getresult()
             for row in results:
-                log_literal(logger, logging.ERROR, "    " + " | ".join(map(str, row)))
+                gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(map(str, row)))
             processMissingDuplicateEntryResult(catname, fields, results, "duplicate")
             if catname == 'pg_type':
                 generateVerifyFile(catname, fields, results, 'duplicate')
@@ -4170,7 +4171,7 @@ def checkcatReport():
     myprint('SUMMARY REPORT')
     myprint('===================================================================')
     elapsed = datetime.timedelta(seconds=int(GV.elapsedTime))
-    endTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    endTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     myprint('Completed %d test(s) on database \'%s\' at %s with elapsed time %s' \
             % (GV.totalCheckRun, GV.dbname, endTime, elapsed))
 
@@ -4185,7 +4186,7 @@ def checkcatReport():
         if total == 0:
             myprint('Found no catalog issue\n')
             if par.catname in ['pg_constraint']:
-                myprint('Warnings were generated, see %s for detail\n' % get_logfile())
+                myprint('Warnings were generated, see %s for detail\n' % gplog.get_logfile())
         else:
             myprint('Found a total of %d issue(s)' % total)
 
@@ -4245,11 +4246,11 @@ def checkcatReport():
     notReported = set(GV.failedChecks).difference(reportedCheck)
     if len(notReported) > 0:
         myprint('Failed test(s) that are not reported here: %s' % (', '.join(notReported)))
-        myprint('See %s for detail\n' % get_logfile())
+        myprint('See %s for detail\n' % gplog.get_logfile())
 
 
 def _myprint(str, level=logging.CRITICAL):
-    log_literal(logger, level, str)
+    gplog.log_literal(logger, level, str)
 
 
 myprint = _myprint

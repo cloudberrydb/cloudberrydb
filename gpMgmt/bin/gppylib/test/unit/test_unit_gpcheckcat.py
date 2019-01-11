@@ -135,7 +135,7 @@ class GpCheckCatTestCase(GpTestCase):
 
     @patch('gpcheckcat.GPCatalog', return_value=Mock())
     @patch('sys.exit')
-    @patch('gpcheckcat.log_literal')
+    @patch('gppylib.gplog.log_literal')
     def test_truncate_batch_size(self, mock_log, mock_gpcheckcat, mock_sys_exit):
         self.subject.GV.opt['-B'] = 300  # override the setting from available memory
         # setup conditions for 50 primaries and plenty of RAM such that max threads > 50
