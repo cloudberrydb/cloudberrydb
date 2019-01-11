@@ -702,6 +702,34 @@ COPY trigger_aocs_test FROM STDIN;
 SELECT * FROM trigger_ao_test;
 SELECT * FROM trigger_aocs_test;
 
+-----------------
+-- Inheritance
+-----------------
+
+CREATE TABLE ao_inh_p1(a int, b int) WITH (appendonly = true);
+CREATE TABLE ao_inh_p2(a int, b int) INHERITS (ao_inh_p1) WITH (appendonly = true);
+CREATE TABLE ao_inh_p3(a int, b int) INHERITS (ao_inh_p1) WITH (appendonly = true);
+CREATE TABLE ao_inh_p4(a int, b int, c int) INHERITS (ao_inh_p2) WITH (appendonly = true);
+
+insert into ao_inh_p1 values (1, 1);
+insert into ao_inh_p2 values (2, 2);
+insert into ao_inh_p3 values (3, 3);
+insert into ao_inh_p4 values (4, 4);
+insert into ao_inh_p4 select g, g, g from generate_series(10, 15) g;
+
+select * from ao_inh_p1;
+select * from ao_inh_p2;
+select * from ao_inh_p4;
+
+update ao_inh_p1 set a = a + 1;
+update ao_inh_p2 set b = b + 1;
+
+delete from ao_inh_p1 where a = 13;
+
+select * from ao_inh_p1;
+select * from ao_inh_p4;
+
+
 --------------------------------------------------------------------------------
 -- Finally check to detect if any dangling gp_fastsequence entries are left
 -- behind by this SQL file

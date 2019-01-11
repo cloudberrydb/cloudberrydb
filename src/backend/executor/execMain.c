@@ -91,6 +91,7 @@
 #include "utils/faultinjector.h"
 #include "utils/resource_manager.h"
 
+#include "catalog/pg_inherits_fn.h"
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_class.h"
 
@@ -1739,7 +1740,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 		{
 			List	   *resultRelations = plannedstmt->resultRelations;
 			int			numResultRelations = list_length(resultRelations);
-			List 	*all_relids = NIL;
+			List	   *all_relids;
 			Oid		 relid = getrelid(linitial_int(plannedstmt->resultRelations), rangeTable);
 
 			if (rel_is_child_partition(relid))
@@ -1752,9 +1753,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 			/*
 			 * list all the relids that may take part in this insert operation
 			 */
-			all_relids = lappend_oid(all_relids, relid);
-			all_relids = list_concat(all_relids,
-									 all_partition_relids(estate->es_result_partitions));
+			all_relids = find_all_inheritors(relid, NoLock, NULL);
 
 			/*
 			 * We also assign a segno for a deletion operation.
