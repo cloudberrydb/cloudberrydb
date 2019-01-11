@@ -26,6 +26,7 @@
       <li id="py219064">
         <xref href="#topic14" type="topic" format="dita"/>
       </li>
+      <li><xref href="#topic_g12_gwt_3gb" format="dita"/></li>
       <li id="py217165">
         <xref href="#topic15" type="topic" format="dita"/>
       </li>
@@ -185,12 +186,13 @@ LANGUAGE 'plr';</codeblock>
           <codeblock>--Create TYPE to store model results
 DROP TYPE IF EXISTS wj_model_results CASCADE;
 CREATE TYPE wj_model_results AS (
-  cs text, coefext float, ci_95_lower float, ci_95_upper float, 
-  ci_90_lower, float, ci_90_upper float, ci_80_lower, 
-  float, ci_80_upper float);
+  cs text, coefext float, ci_95_lower float, ci_95_upper float,
+  ci_90_lower float, ci_90_upper float, ci_80_lower float,
+  ci_80_upper float);
 
 --Create PL/R function to run model in R
-DROP FUNCTION wj.plr.RE(response float [ ], cs text [ ])
+DROP FUNCTION IF EXISTS wj_plr_RE(float [ ], text [ ]);
+CREATE FUNCTION wj_plr_RE(response float [ ], cs text [ ])
 RETURNS SETOF wj_model_results AS
 $$
   library(arm)
@@ -202,7 +204,7 @@ $$
   n_cs_unique&lt;- length(cs_unique)
   temp_m0&lt;- data.frame(matrix0,n_cs_unique, 7))
   for (i in 1:n_cs_unique){temp_m0[i,]&lt;-
-    c(exp(coef(m0)$cs[i,1] + c(0,-1.96,1.96,-1.65,1.65
+    c(exp(coef(m0)$cs[i,1] + c(0,-1.96,1.96,-1.65,1.65,
       -1.28,1.28)*se.ranef(m0)$cs[i]))}
   names(temp_m0)&lt;- c("Coefest", "CI_95_Lower",
     "CI_95_Upper", "CI_90_Lower", "CI_90_Upper",
@@ -216,8 +218,8 @@ LANGUAGE 'plr';
 --table
 DROP TABLE IF EXISTS wj_model_results_roi;
 CREATE TABLE wj_model_results_roi AS SELECT * 
-  FROM wj.plr_RE((SELECT wj.droi2_array), 
-  (SELECT cs FROM wj.droi2_array));</codeblock>
+  FROM wj_plr_RE((SELECT wj_droi2_array),
+  (SELECT cs FROM wj_droi2_array));</codeblock>
         </body>
       </topic>
     </topic>
@@ -239,7 +241,7 @@ CREATE TABLE wj_model_results_roi AS SELECT *
           <li id="py218997">For an R package, identify all dependent R packages and each package web
             URL. The information can be found by selecting the given package from the following
             navigation page: <p><xref
-                href="http://cran.r-project.org/web/packages/available_packages_by_name.html"
+                href="https://cran.r-project.org/web/packages/available_packages_by_name.html"
                 format="html" scope="external"/></p><p>As an example, the page for the R package arm
               indicates that the package requires the following R libraries: Matrix, lattice, lme4,
               R2WinBUGS, coda, abind, foreign, and MASS.</p><p>You can also try installing the
@@ -249,7 +251,7 @@ CREATE TABLE wj_model_results_roi AS SELECT *
               Matrix package requires a newer version. </p></li>
           <li id="py219006">From the command line, use the <codeph>wget</codeph> utility to download
             the <codeph>tar.gz</codeph> files for the arm package to the Greenplum Database master
-            host:<codeblock>wget http://cran.r-project.org/src/contrib/Archive/arm/arm_1.5-03.tar.gz</codeblock><codeblock>wget http://cran.r-project.org/src/contrib/Archive/Matrix/Matrix_0.9996875-1.tar.gz</codeblock></li>
+            host:<codeblock>wget https://cran.r-project.org/src/contrib/Archive/arm/arm_1.5-03.tar.gz</codeblock><codeblock>wget https://cran.r-project.org/src/contrib/Archive/Matrix/Matrix_0.9996875-1.tar.gz</codeblock></li>
           <li id="py219012">Use the <codeph>gpscp</codeph> utility and the
               <codeph>hosts_all</codeph> file to copy the <codeph>tar.gz</codeph> files to the same
             directory on all nodes of the Greenplum Database cluster. The <codeph>hosts_all</codeph>
@@ -316,16 +318,37 @@ LANGUAGE 'plr';</codeblock><p>This
         <codeblock>$ R -e 'help("MASS")'</codeblock>
       </body>
     </topic>
+    <topic id="topic_g12_gwt_3gb">
+      <title>Loading R Modules at Startup</title>
+      <body>
+        <p>PL/R can automatically load saved R code during interpreter initialization. To use this
+          feature, you create the <codeph>plr_modules</codeph> database table and then insert the R
+          modules you want to auto-load into the table. If the table exists, PL/R will load the code
+          it contains into the interpreter.</p>
+        <p>In a Greenplum Database system, table rows are usually distributed so that each row
+          exists at only one segment instance. The R interpreter at each segment instance, however,
+          needs to load all of the modules, so a normally distributed table will not work. You must
+          create the <codeph>plr_modules</codeph> table as a <i>replicated table</i> in the default
+          schema so that all rows in the table are present at every segment instance. For
+          example:</p>
+        <codeblock>CREATE TABLE public.plr_modules {
+  modseq int4,
+  modsrc text
+) DISTRIBUTED REPLICATED;</codeblock>
+        <p>See <xref href="https://www.joeconway.com/plr/doc/plr-module-funcs.html" format="html"
+            scope="external"/> for more information about using the PL/R auto-load feature.</p>
+      </body>
+    </topic>
     <topic id="topic15" xml:lang="en">
       <title id="py216497">References</title>
       <body>
-        <p><xref href="http://www.r-project.org/" scope="external" format="html"
-            >http://www.r-project.org/</xref> - The R Project home page</p>
+        <p><xref href="https://www.r-project.org/" scope="external" format="html"
+            >https://www.r-project.org/</xref> - The R Project home page</p>
         <p><xref href="https://cran.r-project.org/web/packages/PivotalR/" format="html"
             scope="external">https://cran.r-project.org/web/packages/PivotalR/</xref> - The home
           page for PivotalR, a package that provides an R interface to operate on Greenplum Database
           tables and views that is similar to the R <cmdname>data.frame</cmdname>. PivotalR also
-          supports using the machine learning package <xref href="http://madlib.apache.org/"
+          supports using the machine learning package <xref href="https://madlib.apache.org/"
             format="html" scope="external">MADlib</xref> directly from R.</p>
         <p>R documentation is installed with the Greenplum R package:</p>
         <p>
@@ -336,9 +359,9 @@ LANGUAGE 'plr';</codeblock><p>This
         <title>R Functions and Arguments</title>
         <body>
           <ul id="ul_yky_5l2_4p">
-            <li id="py214453">See <xref href="http://www.joeconway.com/doc/plr-funcs.html"
+            <li id="py214453">See <xref href="https://www.joeconway.com/doc/plr-funcs.html"
                 scope="external" format="html"
-              >http://www.joeconway.com/doc/plr-funcs.html</xref></li>
+              >https://www.joeconway.com/doc/plr-funcs.html</xref></li>
           </ul>
         </body>
       </topic>
@@ -346,9 +369,9 @@ LANGUAGE 'plr';</codeblock><p>This
         <title>Passing Data Values in R</title>
         <body>
           <ul id="ul_fly_5l2_4p">
-            <li id="py214456">See <xref href="http://www.joeconway.com/doc/plr-data.html"
+            <li id="py214456">See <xref href="https://www.joeconway.com/doc/plr-data.html"
                 scope="external" format="html"
-              >http://www.joeconway.com/doc/plr-data.html</xref></li>
+              >https://www.joeconway.com/doc/plr-data.html</xref></li>
           </ul>
         </body>
       </topic>
@@ -356,9 +379,9 @@ LANGUAGE 'plr';</codeblock><p>This
         <title>Aggregate Functions in R</title>
         <body>
           <ul id="ul_jly_5l2_4p">
-            <li id="py214459">See <xref href="http://www.joeconway.com/doc/plr-aggregate-funcs.html"
-                scope="external" format="html"
-                >http://www.joeconway.com/doc/plr-aggregate-funcs.html</xref></li>
+            <li id="py214459">See <xref
+                href="https://www.joeconway.com/doc/plr-aggregate-funcs.html" scope="external"
+                format="html">https://www.joeconway.com/doc/plr-aggregate-funcs.html</xref></li>
           </ul>
         </body>
       </topic>
