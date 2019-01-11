@@ -189,6 +189,24 @@ def stop_database(context):
     if context.exception:
         raise context.exception
 
+def stop_primary(context, content_id):
+    get_psegment_sql = 'select datadir, hostname from gp_segment_configuration where content=%i and role=\'p\';' % content_id
+    with dbconn.connect(dbconn.DbURL(dbname='template1')) as conn:
+        cur = dbconn.execSQL(conn, get_psegment_sql)
+        rows = cur.fetchall()
+        seg_data_dir = rows[0][0]
+        seg_host = rows[0][1]
+    pid = get_pid_for_segment(seg_data_dir, seg_host)
+    kill_process(pid)
+
+
+def trigger_fts_probe():
+    run_cmd('psql -c "select gp_request_fts_probe_scan()" postgres')
+
+
+def run_gprecoverseg():
+    run_cmd('gprecoverseg -a -v')
+
 
 def getRows(dbname, exec_sql):
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:

@@ -1,6 +1,13 @@
 Feature: Replication Slots
 
-  Scenario: A new cluster setup
+  Scenario: Lifecycle of cluster's replication slots
     Given I have a machine with no cluster
     When I create a cluster
     Then the primaries and mirrors should be replicating using replication slots
+
+    Given a preferred primary has failed
+    When primary and mirror switch to non-preferred roles
+    Then the primaries and mirrors should be replicating using replication slots
+
+    When the user runs "gprecoverseg -ra"
+    Then gprecoverseg should return a return code of 0
