@@ -15,6 +15,7 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <replication/slot.h>
 
 #include "access/xlog.h"
 #include "libpq/pqformat.h"
@@ -319,6 +320,56 @@ HandleFtsWalRepSyncRepOff(void)
 }
 
 static void
+CreateReplicationSlotOnPromote(const char *name)
+{
+	int             i;
+
+	Assert(MyReplicationSlot == NULL);
+
+	/*
+	 * Check for name collision, and identify an allocatable slot.  We need to
+	 * hold ReplicationSlotControlLock in shared mode for this, so that nobody
+	 * else can change the in_use flags while we're looking at them.
+	 */
+	LWLockAcquire(ReplicationSlotControlLock, LW_SHARED);
+	for (i = 0; i < max_replication_slots; i++)
+	{
+		ReplicationSlot *s = &ReplicationSlotCtl->replication_slots[i];
+
+		if (s->in_use && strcmp(name, NameStr(s->data.name)) == 0)
+			MyReplicationSlot = s;
+	}
+	LWLockRelease(ReplicationSlotControlLock);
+
+	if (MyReplicationSlot == NULL)
+	{
+		ereport(LOG, (errmsg("creating replication slot %s", name)));
+		ReplicationSlotCreate(name, false, RS_PERSISTENT);
+	}
+	else
+		ereport(LOG, (errmsg("replication slot %s exists", name)));
+
+	/*
+	 * Only on promote signal replication slot is created on mirror. If
+	 * node was acting as mirror, no replication slot should exists on it.
+	 * Hence, no-zero restart_lsn means was set by previous attempt on promote
+	 * signal and hence no need to overwrite the same.
+	 */
+	if (MyReplicationSlot->data.restart_lsn == 0)
+	{
+		/* Starting reserving WAL right away for pg_rewind to work later */
+		ReplicationSlotReserveWal();
+		/* Write this slot to disk */
+		ReplicationSlotMarkDirty();
+		ReplicationSlotSave();
+		if (MyReplicationSlot->active)
+			ReplicationSlotRelease();
+	}
+
+	MyReplicationSlot = NULL;
+}
+
+static void
 HandleFtsWalRepPromote(void)
 {
 	FtsResponse response = {
@@ -349,6 +400,9 @@ HandleFtsWalRepPromote(void)
 		 * sync_standby_names.
 		 */
 		UnsetSyncStandbysDefined();
+
+		CreateReplicationSlotOnPromote(INTERNAL_WAL_REPLICATION_SLOT_NAME);
+
 		SignalPromote();
 	}
 	else

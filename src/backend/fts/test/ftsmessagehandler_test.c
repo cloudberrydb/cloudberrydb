@@ -130,9 +130,23 @@ test_HandleFtsWalRepProbeMirror(void **state)
 	HandleFtsWalRepProbe();
 }
 
+static void
+set_replication_slot(ReplicationSlotCtlData *repCtl)
+{
+	MyReplicationSlot = &repCtl->replication_slots[0];
+	/*
+	 * any number except 1 to avoid calling ReplicationSlotReserveWal and
+	 * other friends.
+	 */
+	MyReplicationSlot->data.restart_lsn = 8948;
+}
+
 void
 test_HandleFtsWalRepPromoteMirror(void **state)
 {
+	ReplicationSlotCtlData repCtl;
+	ReplicationSlotCtl = &repCtl;
+	max_replication_slots = 1;
 	am_mirror = true;
 
 	will_return(GetCurrentDBState, DB_IN_STANDBY_MODE);
@@ -145,6 +159,19 @@ test_HandleFtsWalRepPromoteMirror(void **state)
 	mockresponse.IsSyncRepEnabled = false;
 	mockresponse.IsRoleMirror     = am_mirror;
 	mockresponse.RequestRetry     = false;
+
+	expect_value(LWLockAcquire, l, ReplicationSlotControlLock);
+	expect_value(LWLockAcquire, mode, LW_SHARED);
+	will_return(LWLockAcquire, true);
+
+	expect_value(LWLockRelease, l, ReplicationSlotControlLock);
+	will_be_called(LWLockRelease);
+
+	expect_value(ReplicationSlotCreate, name, INTERNAL_WAL_REPLICATION_SLOT_NAME);
+	expect_value(ReplicationSlotCreate, db_specific, false);
+	expect_value(ReplicationSlotCreate, persistency, RS_PERSISTENT);
+	will_be_called_with_sideeffect(ReplicationSlotCreate,
+								   set_replication_slot, &ReplicationSlotCtl);
 
 	/* expect SignalPromote() */
 	expectSendFtsResponse(FTS_MSG_PROMOTE, &mockresponse);

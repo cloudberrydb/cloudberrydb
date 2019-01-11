@@ -14,7 +14,8 @@ ftsmessagehandler.t: \
     $(MOCK_DIR)/backend/libpq/pqcomm_mock.o \
     $(MOCK_DIR)/backend/tcop/dest_mock.o \
     $(MOCK_DIR)/backend/postmaster/postmaster_mock.o \
-    $(MOCK_DIR)/backend/access/transam/xlog_mock.o
+    $(MOCK_DIR)/backend/access/transam/xlog_mock.o \
+    $(MOCK_DIR)/backend/replication/slot_mock.o
 
 ftsprobe.t: \
     $(MOCK_DIR)/backend/fts/fts_mock.o \
