@@ -577,6 +577,7 @@ DECLARE
     skewaot bool;
     skewsegid int;
     skewtablename record;
+    skewreplicated record;
 
 BEGIN
 
@@ -602,18 +603,35 @@ BEGIN
         SELECT * INTO skewtablename FROM gp_toolkit.__gp_fullname
         WHERE fnoid = $1;
 
-        OPEN skewcrs
-            FOR
-            EXECUTE
-                'SELECT ' || $1 || '::oid, segid, CASE WHEN gp_segment_id IS NULL THEN 0 ELSE cnt END ' ||
-                'FROM (SELECT generate_series(0, numsegments - 1) FROM gp_toolkit.__gp_number_of_segments) segs(segid) ' ||
-                'LEFT OUTER JOIN ' ||
-                    '(SELECT gp_segment_id, COUNT(*) AS cnt FROM ' ||
+        SELECT * INTO skewreplicated FROM gp_distribution_policy WHERE policytype = 'r' AND localoid = $1;
+
+        IF FOUND THEN
+            -- replicated table, gp_segment_id is user-invisible and all replicas have same count of tuples.
+            OPEN skewcrs
+                FOR
+                EXECUTE
+                    'SELECT ' || $1 || '::oid, segid, ' ||
+                    '(' ||
+                        'SELECT COUNT(*) AS cnt FROM ' ||
                         quote_ident(skewtablename.fnnspname) ||
                         '.' ||
                         quote_ident(skewtablename.fnrelname) ||
-                    ' GROUP BY 1) details ' ||
-                'ON segid = gp_segment_id';
+                    ') '
+                    'FROM (SELECT generate_series(0, numsegments - 1) FROM gp_toolkit.__gp_number_of_segments) segs(segid)';
+        ELSE
+            OPEN skewcrs
+                FOR
+                EXECUTE
+                    'SELECT ' || $1 || '::oid, segid, CASE WHEN gp_segment_id IS NULL THEN 0 ELSE cnt END ' ||
+                    'FROM (SELECT generate_series(0, numsegments - 1) FROM gp_toolkit.__gp_number_of_segments) segs(segid) ' ||
+                    'LEFT OUTER JOIN ' ||
+                        '(SELECT gp_segment_id, COUNT(*) AS cnt FROM ' ||
+                            quote_ident(skewtablename.fnnspname) ||
+                            '.' ||
+                            quote_ident(skewtablename.fnrelname) ||
+                        ' GROUP BY 1) details ' ||
+                    'ON segid = gp_segment_id';
+        END IF;
 
         FOR skewsegid IN
             SELECT generate_series(1, numsegments)

@@ -138,6 +138,13 @@ select btdrelpages > 0 as btdrelpages_over_0,
 from gp_toolkit.gp_bloat_expected_pages where btdrelid = 'toolkit_skew'::regclass;
 select * from gp_toolkit.gp_bloat_diag where bdirelid = 'toolkit_skew'::regclass;
 
+-- Test that gp_toolkit.gp_skew* functions works for the replicated table.
+create table toolkit_skew_rpt (i int, j int) distributed replicated;
+insert into toolkit_skew_rpt select i, i from generate_series(1, 100) i;
+select segid, segtupcount FROM gp_toolkit.gp_skew_details('toolkit_skew_rpt'::regclass);
+select skccoeff from gp_toolkit.gp_skew_coefficient('toolkit_skew_rpt'::regclass);
+select siffraction from gp_toolkit.gp_skew_idle_fraction('toolkit_skew_rpt'::regclass);
+
 -- Make sure gp_toolkit.gp_bloat_expected_pages does not report partition roots
 create table do_not_report_partition_root (i int, j int) distributed by (i)
 partition by range(j)

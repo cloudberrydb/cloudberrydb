@@ -271,6 +271,29 @@ select * from gp_toolkit.gp_bloat_diag where bdirelid = 'toolkit_skew'::regclass
 ----------+------------+------------+-------------+-------------+---------
 (0 rows)
 
+-- Test that gp_toolkit.gp_skew* functions works for the replicated table.
+create table toolkit_skew_rpt (i int, j int) distributed replicated;
+insert into toolkit_skew_rpt select i, i from generate_series(1, 100) i;
+select segid, segtupcount FROM gp_toolkit.gp_skew_details('toolkit_skew_rpt'::regclass);
+ segid | segtupcount 
+-------+-------------
+     0 |         100
+     1 |         100
+     2 |         100
+(3 rows)
+
+select skccoeff from gp_toolkit.gp_skew_coefficient('toolkit_skew_rpt'::regclass);
+        skccoeff         
+-------------------------
+ 0.000000000000000000000
+(1 row)
+
+select siffraction from gp_toolkit.gp_skew_idle_fraction('toolkit_skew_rpt'::regclass);
+      siffraction       
+------------------------
+ 0.00000000000000000000
+(1 row)
+
 -- Make sure gp_toolkit.gp_bloat_expected_pages does not report partition roots
 create table do_not_report_partition_root (i int, j int) distributed by (i)
 partition by range(j)
@@ -629,13 +652,14 @@ drop resource queue q;
 -- view.
 select autnspname, autrelname, autrelkind, autoid::regclass, autrelacl
 from gp_toolkit.__gp_user_data_tables_readable where autrelname like 'toolkit%';
- autnspname |  autrelname  | autrelkind |       autoid        | autrelacl 
-------------+--------------+------------+---------------------+-----------
- public     | toolkit_ao   | r          | public.toolkit_ao   | 
- public     | toolkit_heap | r          | public.toolkit_heap | 
- public     | toolkit_skew | r          | public.toolkit_skew | 
- tktest     | toolkit_ao2  | r          | toolkit_ao2         | 
-(4 rows)
+ autnspname |    autrelname    | autrelkind |         autoid          | autrelacl 
+------------+------------------+------------+-------------------------+-----------
+ public     | toolkit_ao       | r          | public.toolkit_ao       | 
+ public     | toolkit_heap     | r          | public.toolkit_heap     | 
+ public     | toolkit_skew     | r          | public.toolkit_skew     | 
+ public     | toolkit_skew_rpt | r          | public.toolkit_skew_rpt | 
+ tktest     | toolkit_ao2      | r          | toolkit_ao2             | 
+(5 rows)
 
 -- Switch to non-privileged user, and test that they are no longer visible.
 set session authorization toolkit_user1;
