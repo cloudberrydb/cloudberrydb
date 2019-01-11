@@ -44,6 +44,7 @@ static ControlFileData ControlFile_target;
 static ControlFileData ControlFile_source;
 
 static bool writerecoveryconf = false;
+static char *replication_slot = NULL;
 
 const char *progname;
 
@@ -66,6 +67,7 @@ usage(const char *progname)
 	printf(_("      --source-pgdata=DIRECTORY  source data directory to synchronize with\n"));
 	printf(_("      --source-server=CONNSTR    source server to synchronize with\n"));
 	printf(_("  -R, --write-recovery-conf      write recovery.conf after backup\n"));
+	printf(_("  -S, --slot=SLOTNAME            replication slot to use\n"));
 	printf(_("  -n, --dry-run                  stop before modifying anything\n"));
 	printf(_("  -P, --progress                 write progress messages\n"));
 	printf(_("      --debug                    write a lot of debug messages\n"));
@@ -82,6 +84,7 @@ main(int argc, char **argv)
 		{"help", no_argument, NULL, '?'},
 		{"target-pgdata", required_argument, NULL, 'D'},
 		{"write-recovery-conf", no_argument, NULL, 'R'},
+		{"slot", required_argument, NULL, 'S'},
 		{"source-pgdata", required_argument, NULL, 1},
 		{"source-server", required_argument, NULL, 2},
 		{"version", no_argument, NULL, 'V'},
@@ -122,7 +125,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	while ((c = getopt_long(argc, argv, "D:nPR", long_options, &option_index)) != -1)
+	while ((c = getopt_long(argc, argv, "D:nPR:S", long_options, &option_index)) != -1)
 	{
 		switch (c)
 		{
@@ -140,6 +143,10 @@ main(int argc, char **argv)
 
 			case 'R':
 				writerecoveryconf = true;
+				break;
+
+			case 'S':
+				replication_slot = pg_strdup(optarg);
 				break;
 
 			case 3:
@@ -184,6 +191,13 @@ main(int argc, char **argv)
 	{
 		fprintf(stderr, _("%s: too many command-line arguments (first is \"%s\")\n"),
 				progname, argv[optind]);
+		fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
+		exit(1);
+	}
+
+	if (!writerecoveryconf && replication_slot != NULL)
+	{
+		fprintf(stderr, _("%s: --slot can be specified only if --write-recovery-conf is specified\n"), progname);
 		fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
 		exit(1);
 	}
@@ -289,7 +303,7 @@ main(int argc, char **argv)
 
 		if (writerecoveryconf && connstr_source)
 		{
-			GenerateRecoveryConf();
+			GenerateRecoveryConf(replication_slot);
 			WriteRecoveryConf();
 		}
 
@@ -385,7 +399,7 @@ main(int argc, char **argv)
 
 	if (writerecoveryconf && connstr_source)
 	{
-		GenerateRecoveryConf();
+		GenerateRecoveryConf(replication_slot);
 		WriteRecoveryConf();
 	}
 

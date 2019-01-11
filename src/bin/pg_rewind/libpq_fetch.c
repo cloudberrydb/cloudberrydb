@@ -661,7 +661,7 @@ escape_quotes(const char *src)
  * Create a recovery.conf file in memory using a PQExpBuffer
  */
 void
-GenerateRecoveryConf(void)
+GenerateRecoveryConf(char *replication_slot)
 {
 	PQconninfoOption *connOptions;
 	PQconninfoOption *option;
@@ -724,6 +724,13 @@ GenerateRecoveryConf(void)
 	escaped = escape_quotes(conninfo_buf.data);
 	appendPQExpBuffer(recoveryconfcontents, "primary_conninfo = '%s'\n", escaped);
 	free(escaped);
+
+	if (replication_slot)
+	{
+		escaped = escape_quotes(replication_slot);
+		appendPQExpBuffer(recoveryconfcontents, "primary_slot_name = '%s'\n", replication_slot);
+		free(escaped);
+	}
 
 	if (PQExpBufferBroken(recoveryconfcontents) ||
 		PQExpBufferDataBroken(conninfo_buf))
