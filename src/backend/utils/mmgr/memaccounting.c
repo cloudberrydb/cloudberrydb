@@ -1136,6 +1136,8 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "X_Append";
 	case MEMORY_OWNER_TYPE_Exec_Sequence:
 		return "X_Sequence";
+	case MEMORY_OWNER_TYPE_Exec_MergeAppend:
+		return "X_MergeAppend";
 	case MEMORY_OWNER_TYPE_Exec_BitmapAnd:
 		return "X_BitmapAnd";
 	case MEMORY_OWNER_TYPE_Exec_BitmapOr:

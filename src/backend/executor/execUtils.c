@@ -2244,7 +2244,8 @@ MotionStateFinderWalker(PlanState *node,
  * Given a slice index, find the motionstate that corresponds to this slice index. This will iterate over the planstate tree
  * to get the right node.
  */
-MotionState *getMotionState(struct PlanState *ps, int sliceIndex)
+MotionState *
+getMotionState(struct PlanState *ps, int sliceIndex)
 {
 	Assert(ps);
 	Assert(sliceIndex > -1);
@@ -2253,7 +2254,10 @@ MotionState *getMotionState(struct PlanState *ps, int sliceIndex)
 	ctx.motionId = sliceIndex;
 	ctx.motionState = NULL;
 	planstate_walk_node(ps, MotionStateFinderWalker, &ctx);
-	Assert(ctx.motionState != NULL);
+
+	if (ctx.motionState == NULL)
+		elog(ERROR, "could not find MotionState in executor tree");
+
 	return ctx.motionState;
 }
 

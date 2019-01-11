@@ -664,3 +664,17 @@ select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
 union all
 select null, null, array_dims(array_agg(x)) from mergeappend_test r
 order by 1,2;
+
+-- This used to trip an assertion in MotionStateFinderWalker(), when we were
+-- missing support for MergeAppend in planstate_walk_kids().
+-- (https://github.com/greenplum-db/gpdb/issues/6668)
+select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
+union all
+select null, null, array_dims(array_agg(x)) FROM mergeappend_test r, pg_sleep(0)
+order by 1,2;
+
+-- check that EXPLAIN ANALYZE works on MergeAppend, too.
+explain analyze select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
+union all
+select null, null, array_dims(array_agg(x)) FROM mergeappend_test r
+order by 1,2;

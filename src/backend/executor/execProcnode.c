@@ -350,8 +350,14 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			break;
 
 		case T_MergeAppend:
+			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, MergeAppend);
+
+			START_MEMORY_ACCOUNT(curMemoryAccountId);
+			{
 			result = (PlanState *) ExecInitMergeAppend((MergeAppend *) node,
 													   estate, eflags);
+			}
+			END_MEMORY_ACCOUNT();
 			break;
 
 		case T_RecursiveUnion:
@@ -1701,7 +1707,14 @@ planstate_walk_kids(PlanState *planstate,
 				break;
 			}
 
-			/* FIXME: MergeAppendState handling is missing. */
+		case T_MergeAppendState:
+			{
+				MergeAppendState *ms = (MergeAppendState *) planstate;
+
+				v = planstate_walk_array(ms->mergeplans, ms->ms_nplans, walker, context, flags);
+				Assert(!planstate->lefttree && !planstate->righttree);
+				break;
+			}
 
 		case T_ModifyTableState:
 			{

@@ -1782,3 +1782,56 @@ order by 1,2;
  Optimizer: PQO version 2.74.0
 (17 rows)
 
+-- This used to trip an assertion in MotionStateFinderWalker(), when we were
+-- missing support for MergeAppend in planstate_walk_kids().
+-- (https://github.com/greenplum-db/gpdb/issues/6668)
+select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
+union all
+select null, null, array_dims(array_agg(x)) FROM mergeappend_test r, pg_sleep(0)
+order by 1,2;
+ a | b | array_dims 
+---+---+------------
+ 0 | 0 | [1:99]
+ 1 | 1 | [1:100]
+ 2 | 2 | [1:100]
+ 3 | 3 | [1:100]
+ 4 | 4 | [1:100]
+ 5 | 5 | [1:1]
+   |   | [1:500]
+(7 rows)
+
+-- check that EXPLAIN ANALYZE works on MergeAppend, too.
+explain analyze select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
+union all
+select null, null, array_dims(array_agg(x)) FROM mergeappend_test r
+order by 1,2;
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..862.11 rows=22 width=16) (actual time=1.024..1.029 rows=4 loops=2)
+   Merge Key: mergeappend_test.a, mergeappend_test.b
+   ->  Sort  (cost=0.00..862.11 rows=8 width=16) (actual time=0.797..0.800 rows=2 loops=2)
+         Sort Key: mergeappend_test.a, mergeappend_test.b
+         Sort Method:  quicksort  Memory: 99kB
+         ->  Append  (cost=0.00..862.11 rows=8 width=16) (actual time=0.240..0.783 rows=2 loops=2)
+               ->  Result  (cost=0.00..431.09 rows=7 width=16) (actual time=0.240..0.353 rows=2 loops=2)
+                     ->  GroupAggregate  (cost=0.00..431.09 rows=7 width=16) (actual time=0.237..0.349 rows=2 loops=2)
+                           Group Key: mergeappend_test.a, mergeappend_test.b
+                           ->  Sort  (cost=0.00..431.09 rows=167 width=12) (actual time=0.181..0.228 rows=150 loops=2)
+                                 Sort Key: mergeappend_test.a, mergeappend_test.b
+                                 Sort Method:  quicksort  Memory: 115kB
+                                 ->  Seq Scan on mergeappend_test  (cost=0.00..431.00 rows=167 width=12) (actual time=0.005..0.032 rows=150 loops=2)
+               ->  Result  (cost=0.00..431.01 rows=1 width=16) (actual time=0.692..0.693 rows=0 loops=2)
+                     ->  Redistribute Motion 1:3  (slice2)  (cost=0.00..431.01 rows=1 width=8) (actual time=0.689..0.690 rows=0 loops=2)
+                           ->  Aggregate  (cost=0.00..431.01 rows=1 width=8) (actual time=0.723..0.723 rows=0 loops=2)
+                                 ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.01 rows=500 width=4) (actual time=0.140..0.645 rows=250 loops=2)
+                                       ->  Seq Scan on mergeappend_test mergeappend_test_1  (cost=0.00..431.00 rows=167 width=4) (actual time=0.006..0.042 rows=150 loops=2)
+ Planning time: 21.621 ms
+   (slice0)    Executor memory: 384K bytes.
+   (slice1)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
+   (slice2)    Executor memory: 215K bytes (entry db).
+   (slice3)    Executor memory: 229K bytes avg x 3 workers, 244K bytes max (seg0).  Work_mem: 49K bytes max.
+ Memory used:  128000kB
+ Optimizer: PQO version 3.18.0
+ Execution time: 3.142 ms
+(26 rows)
+

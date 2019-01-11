@@ -106,6 +106,7 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_Exec_Result,
 	MEMORY_OWNER_TYPE_Exec_Append,
 	MEMORY_OWNER_TYPE_Exec_Sequence,
+	MEMORY_OWNER_TYPE_Exec_MergeAppend,
 	MEMORY_OWNER_TYPE_Exec_BitmapAnd,
 	MEMORY_OWNER_TYPE_Exec_BitmapOr,
 	MEMORY_OWNER_TYPE_Exec_SeqScan,
