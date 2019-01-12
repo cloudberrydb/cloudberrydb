@@ -123,7 +123,7 @@ EXPLAIN (COSTS OFF) UPDATE keo1 SET user_vie_act_cntr_marg_cum = 234.682 FROM
                 (SELECT min (keo4.keo_para_budget_date) FROM keo4)))
     ) t1
 WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
-                                                                                                    QUERY PLAN                                                                                                    
+                                                                                                    QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Update
    ->  Result
@@ -132,7 +132,7 @@ WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
                      ->  Split
                            ->  Result
                                  ->  Hash Join
-                                       Hash Cond: (((keo1.user_vie_project_code_pk)::text = (keo1_1.user_vie_project_code_pk)::text) AND ((keo1.user_vie_project_code_pk)::text = (keo2.projects_pk)::text))
+                                       Hash Cond: ((keo1.user_vie_project_code_pk)::text = (keo1_1.user_vie_project_code_pk)::text)
                                        ->  Seq Scan on keo1
                                        ->  Hash
                                              ->  Broadcast Motion 3:3  (slice7; segments: 3)
@@ -165,7 +165,7 @@ WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
                                                          ->  Hash
                                                                ->  Broadcast Motion 3:3  (slice6; segments: 3)
                                                                      ->  Seq Scan on keo2
- Optimizer: PQO version 2.74.0
+ Optimizer: PQO version 3.19.0
 (41 rows)
 
 UPDATE keo1 SET user_vie_act_cntr_marg_cum = 234.682 FROM

@@ -11112,106 +11112,99 @@ WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilter1, onet
         1 |        0 | 10
 (10 rows)
 
--- Test predicate inference for certain cast exprs
-create table foid (a oid);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-create table infer_vc (a varchar);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-create table infer_txt (a text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-CREATE TABLE infer_part_vc (id int, gender varchar(1)) 
-  DISTRIBUTED BY (id)
-  PARTITION BY LIST (gender)
-  ( PARTITION girls VALUES ('F'), 
-    PARTITION boys VALUES ('M'), 
-    DEFAULT PARTITION other );
-NOTICE:  CREATE TABLE will create partition "infer_part_vc_1_prt_girls" for table "infer_part_vc"
-NOTICE:  CREATE TABLE will create partition "infer_part_vc_1_prt_boys" for table "infer_part_vc"
-NOTICE:  CREATE TABLE will create partition "infer_part_vc_1_prt_other" for table "infer_part_vc"
-analyze foid;
-analyze infer_txt;
-analyze infer_vc;
-analyze infer_part_vc;
-explain select * from foid f1 inner join foid f2 on (f1.a = f2.a) where f2.a = 5;
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=8)
-         Hash Cond: (foid.a = foid_1.a)
-         ->  Seq Scan on foid  (cost=0.00..431.00 rows=1 width=4)
-               Filter: (a = 5::oid)
-         ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Seq Scan on foid foid_1  (cost=0.00..431.00 rows=1 width=4)
-                     Filter: (a = 5::oid)
- Planning time: 183.805 ms
- Optimizer: PQO version 3.9.0
-(10 rows)
-
-explain select * from infer_txt f1 inner join infer_txt f2 on (f1.a = f2.a) where f1.a = 'K';
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16)
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=16)
-         Hash Cond: (infer_txt.a = infer_txt_1.a)
-         ->  Seq Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
-               Filter: (a = 'K'::text)
-         ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-               ->  Seq Scan on infer_txt infer_txt_1  (cost=0.00..431.00 rows=1 width=8)
-                     Filter: (a = 'K'::text)
- Planning time: 167.390 ms
- Optimizer: PQO version 3.9.0
-(10 rows)
-
-explain select * from infer_vc f1 inner join infer_txt f2 on (f1.a = f2.a) where f1.a = 'K';
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16)
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=16)
-         Hash Cond: ((infer_vc.a)::text = infer_txt.a)
-         ->  Seq Scan on infer_vc  (cost=0.00..431.00 rows=1 width=8)
-               Filter: ((a)::text = 'K'::text)
-         ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-               ->  Seq Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
-                     Filter: (a = 'K'::text)
- Planning time: 172.337 ms
- Optimizer: PQO version 3.9.0
-(10 rows)
-
-explain select * from infer_vc f1 inner join infer_vc f2 on (f1.a = f2.a) where f1.a = 'K';
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=16)
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=16)
-         Hash Cond: ((infer_vc.a)::text = (infer_vc_1.a)::text)
-         ->  Seq Scan on infer_vc  (cost=0.00..431.00 rows=1 width=8)
-               Filter: ((a)::text = 'K'::text)
-         ->  Hash  (cost=431.00..431.00 rows=1 width=8)
-               ->  Seq Scan on infer_vc infer_vc_1  (cost=0.00..431.00 rows=1 width=8)
-                     Filter: ((a)::text = 'K'::text)
- Planning time: 172.441 ms
- Optimizer: PQO version 3.9.0
-(10 rows)
-
-explain select * from infer_part_vc inner join infer_txt on (infer_part_vc.gender = infer_txt.a) and infer_txt.a = 'M';
-                                                          QUERY PLAN                                                           
--------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=20)
-   ->  Hash Join  (cost=0.00..862.00 rows=1 width=20)
-         Hash Cond: (infer_txt.a = (infer_part_vc.gender)::text)
-         ->  Seq Scan on infer_txt  (cost=0.00..431.00 rows=1 width=8)
-               Filter: (a = 'M'::text)
-         ->  Hash  (cost=431.00..431.00 rows=1 width=12)
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
-                     Hash Key: infer_part_vc.gender
-                     ->  Sequence  (cost=0.00..431.00 rows=1 width=12)
-                           ->  Partition Selector for infer_part_vc (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
-                                 Partitions selected: 1 (out of 3)
-                           ->  Dynamic Seq Scan on infer_part_vc (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=12)
-                                 Filter: ((gender)::text = 'M'::text)
- Planning time: 235.596 ms
- Optimizer: PQO version 3.9.0
-(15 rows)
-
+-- start_ignore
+DROP SCHEMA orca CASCADE;
+NOTICE:  drop cascades to 92 other objects
+DETAIL:  drop cascades to table bar1
+drop cascades to table bar2
+drop cascades to table r
+drop cascades to table s
+drop cascades to table m
+drop cascades to table m1
+drop cascades to table rcte
+drop cascades to table onek
+drop cascades to table pp
+drop cascades to table multilevel_p
+drop cascades to table t
+drop cascades to table t_date
+drop cascades to table t_text
+drop cascades to type employee
+drop cascades to function emp_equal(employee,employee)
+drop cascades to operator =(employee,employee)
+drop cascades to operator family employee_op_class for access method btree
+drop cascades to table t_employee
+drop cascades to table t_ceeval_ints
+drop cascades to function csq_f(integer)
+drop cascades to table csq_r
+drop cascades to table fooh1
+drop cascades to table fooh2
+drop cascades to append only table t77
+drop cascades to table prod9
+drop cascades to table toanalyze
+drop cascades to table ur
+drop cascades to table us
+drop cascades to table ut
+drop cascades to table uu
+drop cascades to table twf1
+drop cascades to table twf2
+drop cascades to table tab1
+drop cascades to table tab2
+drop cascades to function sum_sfunc(anyelement,anyelement)
+drop cascades to function sum_combinefunc(anyelement,anyelement)
+drop cascades to function myagg1(anyelement)
+drop cascades to function sum_sfunc2(anyelement,anyelement,anyelement)
+drop cascades to function myagg2(anyelement,anyelement)
+drop cascades to function gptfp(anyarray,anyelement)
+drop cascades to function gpffp(anyarray)
+drop cascades to function myagg3(anyelement)
+drop cascades to table array_table
+drop cascades to table mpp22453
+drop cascades to table mpp22791
+drop cascades to table p1
+drop cascades to append only table tmp_verd_s_pp_provtabs_agt_0015_extract1
+drop cascades to table arrtest
+drop cascades to table foo_missing_stats
+drop cascades to table bar_missing_stats
+drop cascades to table cust
+drop cascades to table datedim
+drop cascades to table sales
+drop cascades to function plusone(integer)
+drop cascades to table bm_test
+drop cascades to table bm_dyn_test
+drop cascades to table bm_dyn_test_onepart
+drop cascades to table my_tt_agg_opt
+drop cascades to table my_tq_agg_opt_part
+drop cascades to function plusone(numeric)
+drop cascades to table ggg
+drop cascades to table t3
+drop cascades to table index_test
+drop cascades to table btree_test
+drop cascades to table bitmap_test
+drop cascades to type rainbow
+drop cascades to table foo
+drop cascades to table foo_ctas
+drop cascades to table input_tab1
+drop cascades to table input_tab2
+drop cascades to table tab_1
+drop cascades to table tab_2
+drop cascades to table tab_3
+drop cascades to table t_outer
+drop cascades to table t_inner
+drop cascades to table test1
+drop cascades to table t_new
+drop cascades to table x_tab
+drop cascades to table y_tab
+drop cascades to table z_tab
+drop cascades to function test_func_pg_stats()
+drop cascades to table bar
+drop cascades to type myint
+drop cascades to function myintout(myint)
+drop cascades to function myintin(cstring)
+drop cascades to function myint_int8(myint)
+drop cascades to table csq_cast_param_outer
+drop cascades to table csq_cast_param_inner
+drop cascades to function myint_numeric(myint)
+drop cascades to cast from myint to numeric
+drop cascades to table onetimefilter1
+drop cascades to table onetimefilter2
+-- end_ignore

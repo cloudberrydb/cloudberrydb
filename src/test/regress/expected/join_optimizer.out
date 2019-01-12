@@ -2674,7 +2674,7 @@ select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
          ->  Broadcast Motion 3:3  (slice1; segments: 3)
                ->  Seq Scan on tidv
          ->  Index Scan using tidv_idv_idx on tidv tidv_1
-               Index Cond: ((idv = tidv.idv) AND ((idv)::record = (tidv.idv)::record))
+               Index Cond: (idv = tidv.idv)
  Optimizer: PQO version 3.9.0
 (8 rows)
 
@@ -2690,8 +2690,8 @@ select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
          ->  Broadcast Motion 3:3  (slice1; segments: 3)
                ->  Seq Scan on tidv
          ->  Index Scan using tidv_idv_idx on tidv tidv_1
-               Index Cond: ((idv = tidv.idv) AND ((idv)::record = (tidv.idv)::record))
- Optimizer: PQO version 3.9.0
+               Index Cond: (idv = tidv.idv)
+ Optimizer: PQO version 3.19.0
 (8 rows)
 
 rollback;
