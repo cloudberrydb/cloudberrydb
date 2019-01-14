@@ -24,17 +24,6 @@ class RepairTestCase(GpTestCase):
 
         self.subject = Repair(self.context, "issuetype", "some desc")
         self.repair_sql_contents = ["some sql1", "some sql2"]
-        extra_missing_repair_obj = Mock(spec=['get_segment_to_oid_mapping', 'get_delete_sql'])
-        extra_missing_repair_obj.get_segment_to_oid_mapping.return_value = {
-            -1: set([49401, 49402]),
-             0: set([49403]),
-             1: set([49403, 49404])
-        }
-
-        extra_missing_repair_obj.get_delete_sql.return_value = "delete_sql"
-        self.apply_patches([
-            patch("gpcheckcat_modules.repair.RepairMissingExtraneous", return_value=extra_missing_repair_obj)
-        ])
 
     def test_create_repair__normal(self):
         repair_dir = self.subject.create_repair(self.repair_sql_contents)
@@ -52,11 +41,24 @@ class RepairTestCase(GpTestCase):
         self.verify_repair_dir_contents(os.path.join(repair_dir, "somedb_issuetype_timestamp.sql"), sql_contents)
         self.verify_repair_dir_contents(os.path.join(repair_dir, "runsql_timestamp.sh"), bash_contents)
 
-    def test_create_repair_extra__normal(self):
+    @patch('gpcheckcat_modules.repair.RepairMissingExtraneous', autospec=True)
+    def test_create_repair_extra__normal(self, mock_repair):
         self.subject = Repair(self.context, "extra", "some desc")
         catalog_table_obj = Mock()
         catalog_table_name = "catalog"
         catalog_table_obj.getTableName.return_value = catalog_table_name
+
+        # Mock out RepairMissingExtraneous. Set up the dbid-to-OID map, and
+        # return a hardcoded string for the DELETE SQL.
+        extra_missing_repair_obj = Mock(spec=['get_segment_to_oid_mapping', 'get_delete_sql'])
+        extra_missing_repair_obj.get_segment_to_oid_mapping.return_value = {
+            -1: set([49401, 49402]),
+            0: set([49403]),
+            1: set([49403, 49404])
+        }
+        extra_missing_repair_obj.get_delete_sql.return_value = "delete_sql"
+        mock_repair.return_value = extra_missing_repair_obj
+
         repair_dir = self.subject.create_repair_for_extra_missing(catalog_table_obj, issues=None, pk_name=None, segments=self.context.cfg)
         self.assertEqual(repair_dir, self.repair_dir_path)
         bash_contents =[
