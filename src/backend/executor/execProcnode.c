@@ -361,7 +361,7 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			break;
 
 		case T_RecursiveUnion:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, Sequence);
+			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, RecursiveUnion);
 
 			START_MEMORY_ACCOUNT(curMemoryAccountId);
 			{
