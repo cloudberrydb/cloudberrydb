@@ -499,16 +499,11 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
 			/*
 			 * The proposed join could still be legal, but only if we're
 			 * allowed to associate it into the RHS of this SJ.  That means
-			 * this SJ must be a LEFT join (not SEMI or ANTI, and certainly
-			 * not FULL) and the proposed join must not overlap the LHS.
+			 * this SJ must be a LEFT join (not SEMI, ANTI or LASJ, and
+			 * certainly not FULL) and the proposed join must not overlap the
+			 * LHS.
 			 */
-			/*
-			 * GPDB_94_MERGE_STABLE_FIXME: As soon as possible.
-			 *
-			 * explain select * from a where a.i not in
-			 * 					(select b.i from b left join c on b.i = c.i);
-			 */
-			if ((sjinfo->jointype != JOIN_LEFT && sjinfo->jointype != JOIN_LASJ_NOTIN) ||
+			if (sjinfo->jointype != JOIN_LEFT ||
 				bms_overlap(joinrelids, sjinfo->min_lefthand))
 				return false;	/* invalid join path */
 

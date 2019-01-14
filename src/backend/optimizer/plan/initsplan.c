@@ -1128,7 +1128,7 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
  *	left_rels: the base Relids syntactically on outer side of join
  *	right_rels: the base Relids syntactically on inner side of join
  *	inner_join_rels: base Relids participating in inner joins below this one
- *	jointype: what it says (must always be LEFT, FULL, SEMI, or ANTI)
+ *	jointype: what it says (must always be LEFT, FULL, SEMI, ANTI, or LASJ)
  *	clause: the outer join's join condition (in implicit-AND format)
  *
  * The node should eventually be appended to root->join_info_list, but we
@@ -1273,7 +1273,7 @@ make_outerjoininfo(PlannerInfo *root,
 		 * min_lefthand + min_righthand.  This is because there might be other
 		 * OJs below this one that this one can commute with, but we cannot
 		 * commute with them if we don't with this one.)  Also, if the current
-		 * join is a semijoin or antijoin, we must preserve ordering
+		 * join is a semijoin, antijoin or lasj, we must preserve ordering
 		 * regardless of strictness.
 		 *
 		 * Note: I believe we have to insist on being strict for at least one
@@ -1283,6 +1283,7 @@ make_outerjoininfo(PlannerInfo *root,
 		{
 			if (bms_overlap(clause_relids, otherinfo->syn_righthand) &&
 				(jointype == JOIN_SEMI || jointype == JOIN_ANTI ||
+				 jointype == JOIN_LASJ_NOTIN ||
 				 !bms_overlap(strict_relids, otherinfo->min_righthand)))
 			{
 				min_lefthand = bms_add_members(min_lefthand,
@@ -1304,7 +1305,7 @@ make_outerjoininfo(PlannerInfo *root,
 		 * confuse join_is_legal (see discussion in backend/optimizer/README).
 		 *
 		 * Also, we must preserve ordering anyway if either the current join
-		 * or the lower OJ is either a semijoin or an antijoin.
+		 * or the lower OJ is a semijoin, antijoin or lasj.
 		 *
 		 * Here, we have to consider that "our join condition" includes any
 		 * clauses that syntactically appeared above the lower OJ and below
@@ -1323,8 +1324,10 @@ make_outerjoininfo(PlannerInfo *root,
 				!bms_overlap(clause_relids, otherinfo->min_lefthand) ||
 				jointype == JOIN_SEMI ||
 				jointype == JOIN_ANTI ||
+				jointype == JOIN_LASJ_NOTIN ||
 				otherinfo->jointype == JOIN_SEMI ||
 				otherinfo->jointype == JOIN_ANTI ||
+				otherinfo->jointype == JOIN_LASJ_NOTIN ||
 				!otherinfo->lhs_strict || otherinfo->delay_upper_joins)
 			{
 				min_righthand = bms_add_members(min_righthand,
