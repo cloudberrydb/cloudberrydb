@@ -38,8 +38,8 @@ class RepairTestCase(GpTestCase):
                          'psql -X -a -h somehost -p 15432 -f "somedb_issuetype_timestamp.sql" '
                          '"somedb" >> somedb_issuetype_timestamp.out 2>&1\n']
 
-        self.verify_repair_dir_contents(os.path.join(repair_dir, "somedb_issuetype_timestamp.sql"), sql_contents)
-        self.verify_repair_dir_contents(os.path.join(repair_dir, "runsql_timestamp.sh"), bash_contents)
+        self.verify_repair_dir_contents("somedb_issuetype_timestamp.sql", sql_contents)
+        self.verify_repair_dir_contents("runsql_timestamp.sh", bash_contents)
 
     @patch('gpcheckcat_modules.repair.RepairMissingExtraneous', autospec=True)
     def test_create_repair_extra__normal(self, mock_repair):
@@ -74,7 +74,8 @@ class RepairTestCase(GpTestCase):
                     "echo \"some desc\"\n",
                     "psql -X -a -h somehost -p 15432 -c \"delete_sql\" \"somedb\" >> somedb_extra_timestamp.out 2>&1\n"]
 
-        self.verify_repair_dir_contents(os.path.join(repair_dir, "run_somedb_extra_{0}_timestamp.sh".format(catalog_table_name)), bash_contents)
+        self.verify_repair_dir_contents("run_somedb_extra_{}_timestamp.sh".format(catalog_table_name),
+                                        bash_contents)
 
     def test_create_segment_repair_scripts(self):
         self.subject = Repair(self.context, "orphan_toast_tables", "some desc")
@@ -100,7 +101,7 @@ class RepairTestCase(GpTestCase):
             "echo \"some desc\"\n",
             "PGOPTIONS='-c gp_session_role=utility' psql -X -a -h somehost -p 25434 -f \"2.somehost.25434.somedb.timestamp.sql\" \"somedb\" >> somedb_orphan_toast_tables_timestamp.out 2>&1\n"]
 
-        self.verify_repair_dir_contents(os.path.join(repair_dir, "runsql_timestamp.sh"), bash_contents)
+        self.verify_repair_dir_contents("runsql_timestamp.sh", bash_contents)
 
 
     def test_append_content_to_bash_script__with_catalog_table(self):
@@ -112,7 +113,7 @@ class RepairTestCase(GpTestCase):
             "cd $(dirname $0)\n",
             "some script here"]
 
-        self.verify_repair_dir_contents(os.path.join(self.repair_dir_path, "run_somedb_issuetype_catalog_timestamp.sh".format(catalog_table_name)),
+        self.verify_repair_dir_contents("run_somedb_issuetype_{}_timestamp.sh".format(catalog_table_name),
                                         bash_contents)
 
     def test_append_content_to_bash_script__without_catalog_table(self):
@@ -123,9 +124,10 @@ class RepairTestCase(GpTestCase):
             "cd $(dirname $0)\n",
             "some script here"]
 
-        self.verify_repair_dir_contents(os.path.join(self.repair_dir_path, "runsql_timestamp.sh"), bash_contents)
+        self.verify_repair_dir_contents("runsql_timestamp.sh", bash_contents)
 
-    def verify_repair_dir_contents(self, file_path, contents):
+    def verify_repair_dir_contents(self, repair_script, contents):
+        file_path = os.path.join(self.repair_dir_path, repair_script)
         with open(file_path) as f:
             file_contents = f.readlines()
 
