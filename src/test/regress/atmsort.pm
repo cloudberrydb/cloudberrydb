@@ -1362,7 +1362,7 @@ sub atmsort_bigloop
             #  copy test1 to stdout
             #  \copy test1 to stdout
             my $matches_copy_to_stdout = 0;
-            if ($ini =~ m/^(?:\\)?copy\s+(?:(?:\(select.*\))|\w+)\s+to stdout.*$/i)
+            if ($ini =~ m/^(?:\\)?copy\s+(?:(?:\(select.*\))|\S+)\s+to stdout.*$/i)
             {
                 $matches_copy_to_stdout = 1;
             }

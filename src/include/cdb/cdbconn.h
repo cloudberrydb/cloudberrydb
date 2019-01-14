@@ -100,4 +100,7 @@ void cdbconn_setQEIdentifier(SegmentDatabaseDescriptor *segdbDesc, int sliceInde
  * (not necessarily received by the target process).
  */
 bool cdbconn_signalQE(SegmentDatabaseDescriptor *segdbDesc, char *errbuf, bool isCancel);
+
+extern void forwardQENotices(void);
+
 #endif   /* CDBCONN_H */

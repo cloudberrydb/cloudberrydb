@@ -23,7 +23,7 @@ test: gp_tablespace gp_aggregates gp_metadata variadic_parameters default_parame
 test: spi_processed64bit
 test: python_processed64bit
 
-test: leastsquares opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin percentile join_gp union_gp gpcopy gp_create_table gp_create_view window_views namespace_gp
+test: leastsquares opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin percentile join_gp union_gp gpcopy gpcopy_encoding gp_create_table gp_create_view window_views namespace_gp
 
 # GPDB_94_MERGE_FIXME: explain_format test was dropped for below group. It's
 # failing without asserts but passing with asserts. Need investigation for the
@@ -33,7 +33,7 @@ test: filter gpctas gpdist matrix toast sublink table_functions olap_setup compl
 # bitmap_index triggers recovery, run it seperately
 test: bitmap_index
 test: gp_dump_query_oids analyze gp_owner_permission incremental_analyze
-test: indexjoin as_alias regex_gp gpparams with_clause transient_types gp_rules
+test: indexjoin as_alias regex_gp gpparams with_clause transient_types gp_rules dispatch_encoding
 # dispatch should always run seperately from other cases.
 test: dispatch
 

@@ -91,3 +91,7 @@ copy 計算機用語 to stdout;
 コンピュータディスプレイ	機A01上	\N
 コンピュータグラフィックス	分B10中	\N
 コンピュータプログラマー	人Z01下	\N
+-- start_ignore
+-- The end. (This comment is needed, so that gpdiff.pl recognizes the end of
+-- COPY output).
+-- end_ignore

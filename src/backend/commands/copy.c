@@ -56,6 +56,7 @@
 #include "access/fileam.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbaocsam.h"
+#include "cdb/cdbconn.h"
 #include "cdb/cdbcopy.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbdispatchresult.h"
@@ -2648,7 +2649,8 @@ CopyToDispatch(CopyState cstate)
 
 		cdbCopyStart(cdbCopy, stmt,
 					 RelationBuildPartitionDesc(cstate->rel, false),
-					 NIL);
+					 NIL,
+					 cstate->file_encoding);
 
 		if (cstate->binary)
 		{
@@ -3741,7 +3743,7 @@ CopyFrom(CopyState cstate)
 		elog(DEBUG5, "COPY command sent to segdbs");
 
 		cdbCopyStart(cdbCopy, glob_copystmt,
-					 estate->es_result_partitions, cstate->ao_segnos);
+					 estate->es_result_partitions, cstate->ao_segnos, cstate->file_encoding);
 
 		/*
 		 * Skip header processing if dummy file get from master for COPY FROM ON

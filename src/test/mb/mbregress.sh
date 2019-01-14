@@ -49,9 +49,9 @@ do
 		EXPECTED="expected/${i}.out"
 	fi
 
-	if [ `gpdiff.pl ${EXPECTED} results/${i}.out | wc -l` -ne 0 ]
+	if [ `gpdiff.pl -I GP_IGNORE: ${EXPECTED} results/${i}.out | wc -l` -ne 0 ]
 	then
-		( diff -C3 ${EXPECTED} results/${i}.out; \
+		( gpdiff.pl -I GP_IGNORE: -C3 ${EXPECTED} results/${i}.out; \
 		echo "";  \
 		echo "----------------------"; \
 		echo "" ) >> regression.diffs

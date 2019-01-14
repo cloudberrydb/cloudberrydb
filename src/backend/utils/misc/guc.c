@@ -7392,6 +7392,13 @@ DispatchSetPGVariable(const char *name, List *args, bool is_local)
 	if (Gp_role != GP_ROLE_DISPATCH || IsBootstrapProcessingMode())
 		return;
 
+	/*
+	 * client_encoding is always kept at SQL_ASCII in QE processes. (See also
+	 * cdbconn_doConnectStart().)
+	 */
+	if (strcmp(name, "client_encoding") == 0)
+		return;
+
 	initStringInfo( &buffer );
 
 	if (args == NIL)

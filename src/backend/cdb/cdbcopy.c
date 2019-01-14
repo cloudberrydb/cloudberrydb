@@ -64,6 +64,9 @@
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
+#include "commands/defrem.h"
+#include "mb/pg_wchar.h"
+#include "nodes/makefuncs.h"
 #include "storage/pmsignal.h"
 #include "tcop/tcopprot.h"
 #include "utils/faultinjector.h"
@@ -126,7 +129,7 @@ makeCdbCopy(bool is_copy_in)
  */
 void
 cdbCopyStart(CdbCopy *c, CopyStmt *stmt,
-			 PartitionNode *partitions, List *ao_segnos)
+			 PartitionNode *partitions, List *ao_segnos, int file_encoding)
 {
 	int			flags;
 
@@ -137,6 +140,53 @@ cdbCopyStart(CdbCopy *c, CopyStmt *stmt,
 
 	/* add in AO segno map for dispatch */
 	stmt->ao_segnos = ao_segnos;
+
+	/*
+	 * If the output needs to be in a different encoding, tell the segment.
+	 * Normally, when we run normal queries, we keep the segment connections
+	 * in database encoding, and do the encoding conversions in the QD, just
+	 * before sending results to the client. But in COPY TO, we don't do
+	 * any conversions to the data we receive from the segments, so they
+	 * must produce the output in the correct encoding.
+	 *
+	 * We do this by adding "ENCODING 'xxx'" option to the options list of
+	 * the CopyStmt that we dispatch.
+	 */
+	if (file_encoding != GetDatabaseEncoding())
+	{
+		bool		found;
+		ListCell   *option;
+
+		/*
+		 * But first check if the encoding option is already in the options
+		 * list (i.e the user specified it explicitly in the COPY command)
+		 */
+		found = false;
+		foreach(option, stmt->options)
+		{
+			DefElem    *defel = (DefElem *) lfirst(option);
+
+			if (strcmp(defel->defname, "encoding") == 0)
+			{
+				/*
+				 * The 'file_encoding' came from the options, so they should match, but
+				 * let's sanity-check.
+				 */
+				if (pg_char_to_encoding(defGetString(defel)) != file_encoding)
+					elog(ERROR, "encoding option in original COPY command does not match encoding being dispatched");
+				found = true;
+			}
+		}
+
+		if (!found)
+		{
+			const char *encname = pg_encoding_to_char(file_encoding);
+
+			stmt->options = lappend(stmt->options,
+									makeDefElem("encoding",
+												(Node *) makeString(pstrdup(encname))));
+		}
+	}
 
 	flags = DF_WITH_SNAPSHOT | DF_CANCEL_ON_ERROR;
 	if (c->copy_in)
@@ -469,6 +519,8 @@ cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 			}
 		}
 
+		forwardQENotices();
+
 		/*
 		 * Fetch any error status existing on completion of the COPY command.
 		 * It is critical that for any connection that had an asynchronous
@@ -481,6 +533,9 @@ cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 		{
 			elog(DEBUG1, "PQgetResult got status %d seg %d    ",
 				 PQresultStatus(res), q->segindex);
+
+			forwardQENotices();
+
 			/* if the COPY command had a data error */
 			if (PQresultStatus(res) == PGRES_FATAL_ERROR)
 			{

@@ -579,6 +579,8 @@ dispatchCommand(CdbDispatchResult *dispatchResult,
 						dispatchResult->segdbDesc->whoami, msg ? msg : "unknown error")));
 	}
 
+	forwardQENotices();
+
 	if (DEBUG1 >= log_min_messages)
 	{
 		TimestampDifference(beforeSend, GetCurrentTimestamp(), &secs, &usecs);
@@ -639,6 +641,7 @@ handlePollError(CdbDispatchCmdAsync *pParms)
 			dispatchResult->stillRunning = false;
 		}
 	}
+	forwardQENotices();
 
 	return;
 }
@@ -852,6 +855,7 @@ processResults(CdbDispatchResult *dispatchResult)
 									   segdbDesc->whoami, msg ? msg : "unknown error");
 		return true;
 	}
+	forwardQENotices();
 
 	/*
 	 * If we have received one or more complete messages, process them.
@@ -862,6 +866,8 @@ processResults(CdbDispatchResult *dispatchResult)
 		PGresult   *pRes;
 		ExecStatusType resultStatus;
 		int			resultIndex;
+
+		forwardQENotices();
 
 		/*
 		 * PQisBusy() does some error handling, which can cause the connection
@@ -979,6 +985,8 @@ processResults(CdbDispatchResult *dispatchResult)
 		}
 	}
 
+	forwardQENotices();
+
 	/*
 	 * If there was nextval request then respond back on this libpq connection
 	 * with the next value. Check and process nextval message only if QD has not
@@ -1022,6 +1030,8 @@ processResults(CdbDispatchResult *dispatchResult)
 	}
 	if (nextval)
 		PQfreemem(nextval);
+
+	forwardQENotices();
 
 	return false;				/* we must keep on monitoring this socket */
 }
