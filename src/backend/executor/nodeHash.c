@@ -62,9 +62,6 @@ ExecHashTableExplainBatches(HashJoinTable   hashtable,
                             int             ibatch_end,
                             const char     *title);
 
-/* Amount of metadata memory required per bucket */
-#define MD_MEM_PER_BUCKET (sizeof(HashJoinTuple) + sizeof(uint64))
-
 /* ----------------------------------------------------------------
  *		ExecHash
  *
@@ -983,7 +980,7 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
  * and stored at *hashvalue.  A FALSE result means the tuple cannot match
  * because it contains a null attribute, and hence it should be discarded
  * immediately.  (If keep_nulls is true then FALSE is never returned.)
- * Found_null indicates all the hashkeys are null.
+ * hashkeys_null indicates all the hashkeys are null.
  */
 bool
 ExecHashGetHashValue(HashState *hashState, HashJoinTable hashtable,
