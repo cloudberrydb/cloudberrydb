@@ -40,9 +40,6 @@
         describe how to monitor the health of a Greenplum Database system and examine certain state
         information for a Greenplum Database system.</p>
       <ul>
-        <li id="kj166984">
-          <xref href="#topic4" type="topic" format="dita"/>
-        </li>
         <li id="kj167000">
           <xref href="#topic12" type="topic" format="dita"/>
         </li>
