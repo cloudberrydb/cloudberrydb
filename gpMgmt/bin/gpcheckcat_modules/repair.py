@@ -25,26 +25,36 @@ class Repair:
     def create_repair(self, sql_repair_contents):
         repair_dir = self.create_repair_dir()
 
-        sql_file_name = self.__create_sql_file_in_repair_dir(repair_dir, sql_repair_contents)
+        master_segment = next(segment for segment in self._context.cfg.values() if segment['content'] == -1)
 
-        self.__create_bash_script_in_repair_dir(repair_dir, sql_file_name, segment_id=-1)
+        sql_filename = self.__create_sql_file_in_repair_dir(repair_dir, sql_repair_contents, master_segment)
+        self.__create_bash_script_in_repair_dir(repair_dir, sql_filename, master_segment)
 
         return repair_dir
 
-    def create_repair_for_extra_missing(self, catalog_table_obj, issues, pk_name):
-
+    def create_repair_for_extra_missing(self, catalog_table_obj, issues, pk_name, segments):
         catalog_name = catalog_table_obj.getTableName()
         extra_missing_repair_obj = RepairMissingExtraneous(catalog_table_obj=catalog_table_obj,
                                                            issues=issues,
                                                            pk_name=pk_name)
         repair_dir = self.create_repair_dir()
-        all_seg_ids = self._context.report_cfg.keys()
-        segment_to_oid_map = extra_missing_repair_obj.get_segment_to_oid_mapping(all_seg_ids)
+        segment_to_oids_map = extra_missing_repair_obj.get_segment_to_oid_mapping(map(lambda config: config['content'], segments.values()))
 
-        for segment_id, oids in segment_to_oid_map.iteritems():
+        for segment_id, oids in segment_to_oids_map.iteritems():
+            segment = next(segment for segment in self._context.cfg.values() if segment['content'] == segment_id)
+
             sql_content = extra_missing_repair_obj.get_delete_sql(oids)
             self.__create_bash_script_in_repair_dir(repair_dir, sql_content,
-                                                    segment_id=segment_id, catalog_name=catalog_name)
+                                                    segment=segment, catalog_name=catalog_name)
+
+        return repair_dir
+
+    def create_segment_repair_scripts(self, segments):
+        repair_dir = self.create_repair_dir()
+
+        for segment in segments:
+            sql_filename = self.__create_sql_file_in_repair_dir(repair_dir, segment['repair_statements'], segment)
+            self.__create_bash_script_in_repair_dir(repair_dir, sql_filename, segment)
 
         return repair_dir
 
@@ -65,46 +75,49 @@ class Repair:
 
         os.chmod(bash_file_path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
-    def __create_sql_file_in_repair_dir(self, repair_dir, sql_repair_contents):
-        sql_file_name = self.__get_sql_filename()
-        sql_file_path = os.path.join(repair_dir, sql_file_name)
+    def __create_sql_file_in_repair_dir(self, repair_dir, sql_repair_contents, segment):
+        sql_filename = self.__get_sql_filename(segment) + ".sql"
+        sql_file_path = os.path.join(repair_dir, sql_filename)
 
         with open(sql_file_path, 'w') as sql_file:
             for content in sql_repair_contents:
                 sql_file.write(content + "\n")
 
-        return sql_file_name
+        return sql_filename
 
-    def __create_bash_script_in_repair_dir(self, repair_dir, sql, segment_id, catalog_name=None):
+    def __create_bash_script_in_repair_dir(self, repair_dir, sql, segment, catalog_name=None):
         if not sql:
             return
 
-        bash_script_content = self.__get_bash_script_content(sql, segment_id)
+        bash_script_content = self.__get_bash_script_content(sql, segment)
         self.append_content_to_bash_script(repair_dir, bash_script_content, catalog_name)
 
-    def __get_sql_filename(self):
-        return '%s_%s_%s.sql' % (self._context.dbname, self._issue_type, self._context.timestamp)
+    def __get_bash_or_out_filename(self):
+        return '%s_%s_%s' % (self._context.dbname, self._issue_type, self._context.timestamp)
 
-    def __get_bash_filepath(self, repair_dir, catalog_name):
-        bash_file_name = 'runsql_%s.sh' % self._context.timestamp
+    def __get_sql_filename(self, segment):
+        if segment['content'] == -1:
+            return self.__get_bash_or_out_filename()
+        else:
+            filename = '%i.%s.%i.%s.%s' % (segment['dbid'], segment['hostname'], segment['port'], self._context.dbname, self._context.timestamp)
+            return filename.replace(' ', '_')
+
+    def __get_bash_filepath(self, repair_dir, catalog_name=None):
+        bash_filename = 'runsql_%s.sh' % self._context.timestamp
 
         if self._issue_type and catalog_name:
-            bash_file_name = 'run_{0}_{1}_{2}_{3}.sh'.format(self._context.dbname, self._issue_type,
-                                                             catalog_name, self._context.timestamp)
+            bash_filename = 'run_{0}_{1}_{2}_{3}.sh'.format(self._context.dbname, self._issue_type, catalog_name, self._context.timestamp)
 
-        return os.path.join(repair_dir, bash_file_name)
+        return os.path.join(repair_dir, bash_filename)
 
-    def __get_bash_script_content(self, filename, segment_id):
-        c = self._context.report_cfg[segment_id]
-        out_filename = "{0}_{1}_{2}".format(self._context.dbname, self._issue_type, self._context.timestamp)
+    def __get_bash_script_content(self, sql, segment):
+        out_filename = self.__get_bash_or_out_filename() + ".out"
+
         bash_script_content = '\necho "{0}"\n'.format(self._desc)
-        bash_script_content += self.__get_psql_command(segment_id).format(hostname=c['hostname'],
-                                                                          port=c['port'], sql=filename,
-                                                                          dbname=self._context.dbname,
-                                                                          filename=out_filename)
+        bash_script_content += self.__get_psql_command(segment, sql, out_filename)
         return bash_script_content
 
-    def __get_psql_command(self, segment_id):
+    def __get_psql_command(self, segment, sql, out_filename):
         """
         cases to consider
         self._issue_type : extra/missing vs everything else(policies, owner, constraint)
@@ -112,18 +125,18 @@ class Repair:
         """
         psql_cmd = ""
 
-        if segment_id > -1:  # segment node
+        if segment['content'] != -1:
             psql_cmd += 'PGOPTIONS=\'-c gp_session_role=utility\' '
 
-        psql_cmd += 'psql -X -a -h {hostname} -p {port} '
+        psql_cmd += 'psql -X -a -h {hostname} -p {port} '.format(hostname=segment['hostname'], port=segment['port'])
 
         if self._issue_type == 'extra' or self._issue_type == 'missing':
             psql_cmd += '-c '
         else:
             psql_cmd += '-f '
 
-        psql_cmd += '"{sql}" "{dbname}" >> {filename}.out 2>&1\n'
-
+        psql_cmd += '"{sql}" "{dbname}" >> {out_filename} 2>&1\n'.format(
+            sql=sql,
+            dbname=self._context.dbname,
+            out_filename=out_filename)
         return psql_cmd
-
-
