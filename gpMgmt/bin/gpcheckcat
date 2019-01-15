@@ -17,12 +17,12 @@ Usage: gpcheckcat [<option>] [dbname]
     -C catname : run cross consistency, FK and ACL tests for this catalog table
 
 '''
+import datetime
 import getopt
 import logging
 import re
 import sys
 import time
-from datetime import datetime
 
 try:
     from gppylib import gplog
@@ -95,6 +95,8 @@ def setError(level):
 ###############################
 class Global():
     def __init__(self):
+        self.timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
         self.retcode = SUCCESS
         self.opt = {}
         self.opt['-h'] = None
@@ -105,7 +107,7 @@ class Global():
         self.opt['-V'] = False
         self.opt['-t'] = False
 
-        self.opt['-g'] = 'gpcheckcat.repair.' + Repair.TIMESTAMP
+        self.opt['-g'] = 'gpcheckcat.repair.' + self.timestamp
         self.opt['-B'] = parallelism
         self.opt['-T'] = None
 
@@ -3177,7 +3179,7 @@ def print_repair_issues(repair_dir_path):
 def checkReindexRepair():
     if len(GV.Reindex) > 0:
         # dbname.type.timestamp.sql
-        filename = '%s.%s.%s.sql' % (GV.dbname, "reindex", Repair.TIMESTAMP)
+        filename = '%s.%s.%s.sql' % (GV.dbname, "reindex", GV.timestamp)
         fullpath = '%s/%s' % (GV.opt['-g'], filename)
         try:
             file = open(fullpath, 'w')
@@ -3209,7 +3211,7 @@ def checkPoliciesRepair():
 def checkSegmentRepair(maybeRemove, catmod_guc, seg):
     # dbid.host.port.dbname.timestamp.sql
     c = GV.cfg[seg]
-    filename = '%i.%s.%i.%s.%s.sql' % (seg, c['hostname'], c['port'], GV.dbname, Repair.TIMESTAMP)
+    filename = '%i.%s.%i.%s.%s.sql' % (seg, c['hostname'], c['port'], GV.dbname, GV.timestamp)
     filename = filename.replace(' ', '_')
     fullpath = '%s/%s' % (GV.opt['-g'], filename)
     try:
@@ -4171,7 +4173,7 @@ def checkcatReport():
     myprint('SUMMARY REPORT')
     myprint('===================================================================')
     elapsed = datetime.timedelta(seconds=int(GV.elapsedTime))
-    endTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    endTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     myprint('Completed %d test(s) on database \'%s\' at %s with elapsed time %s' \
             % (GV.totalCheckRun, GV.dbname, endTime, elapsed))
 
@@ -4266,7 +4268,7 @@ def generateVerifyFile(catname, fields, results, checkname):
           ) alltyprelids
           GROUP BY relname, oid ORDER BY count(*) desc
     '''.format(in_clause=in_clause)
-    filename = 'gpcheckcat.verify.%s.%s.%s.%s.sql' % (GV.dbname, catname, checkname, Repair.TIMESTAMP)
+    filename = 'gpcheckcat.verify.%s.%s.%s.%s.sql' % (GV.dbname, catname, checkname, GV.timestamp)
     try:
         with open(filename, 'w') as fp:
             fp.write(verify_sql + '\n')

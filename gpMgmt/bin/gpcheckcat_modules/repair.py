@@ -13,19 +13,14 @@ Creates repair for the following gpcheckcat checks
 
 import os
 import stat
-from datetime import datetime
 from gpcheckcat_modules.repair_missing_extraneous import RepairMissingExtraneous
 
 
 class Repair:
-
-    TIMESTAMP = datetime.now().strftime("%Y%m%d%H%M%S")
-
     def __init__(self, context=None, issue_type=None, desc=None):
         self._context = context
         self._issue_type = issue_type
         self._desc = desc
-        self._repair_script = 'runsql_%s.sh' % self.TIMESTAMP
 
     def create_repair(self, sql_repair_contents):
         repair_dir = self.create_repair_dir()
@@ -88,20 +83,20 @@ class Repair:
         self.append_content_to_bash_script(repair_dir, bash_script_content, catalog_name)
 
     def __get_sql_filename(self):
-        return '%s_%s_%s.sql' % (self._context.dbname, self._issue_type, self.TIMESTAMP)
+        return '%s_%s_%s.sql' % (self._context.dbname, self._issue_type, self._context.timestamp)
 
     def __get_bash_filepath(self, repair_dir, catalog_name):
-        bash_file_name = self._repair_script
+        bash_file_name = 'runsql_%s.sh' % self._context.timestamp
 
         if self._issue_type and catalog_name:
             bash_file_name = 'run_{0}_{1}_{2}_{3}.sh'.format(self._context.dbname, self._issue_type,
-                                                             catalog_name, self.TIMESTAMP)
+                                                             catalog_name, self._context.timestamp)
 
         return os.path.join(repair_dir, bash_file_name)
 
     def __get_bash_script_content(self, filename, segment_id):
         c = self._context.report_cfg[segment_id]
-        out_filename = "{0}_{1}_{2}".format(self._context.dbname, self._issue_type, self.TIMESTAMP)
+        out_filename = "{0}_{1}_{2}".format(self._context.dbname, self._issue_type, self._context.timestamp)
         bash_script_content = '\necho "{0}"\n'.format(self._desc)
         bash_script_content += self.__get_psql_command(segment_id).format(hostname=c['hostname'],
                                                                           port=c['port'], sql=filename,

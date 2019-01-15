@@ -10,6 +10,7 @@ class RepairTestCase(GpTestCase):
         self.repair_dir_path = tempfile.mkdtemp()
 
         self.context = Mock()
+        self.context.timestamp = 'timestamp'
         self.context.opt = dict()
         self.context.opt["-g"] = self.repair_dir_path
         self.context.report_cfg = {0: {'segname': 'seg1', 'hostname': 'somehost', 'port': 25432},
@@ -19,8 +20,6 @@ class RepairTestCase(GpTestCase):
         self.context.dbname = "somedb"
 
         self.subject = Repair(self.context, "issuetype", "some desc")
-        self.subject.TIMESTAMP = "timestamp"
-        self.subject._repair_script = "runsql_timestamp.sh"
         self.repair_sql_contents = ["some sql1", "some sql2"]
         extra_missing_repair_obj = Mock(spec=['get_segment_to_oid_mapping', 'get_delete_sql'])
         extra_missing_repair_obj.get_segment_to_oid_mapping.return_value = {
@@ -52,7 +51,6 @@ class RepairTestCase(GpTestCase):
 
     def test_create_repair_extra__normal(self):
         self.subject = Repair(self.context, "extra", "some desc")
-        self.subject.TIMESTAMP = "timestamp"
         catalog_table_obj = Mock()
         catalog_table_name = "catalog"
         catalog_table_obj.getTableName.return_value = catalog_table_name
