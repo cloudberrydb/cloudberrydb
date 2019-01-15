@@ -2338,7 +2338,6 @@ jobs:
       - icw_planner_ictcp_centos6
       - icw_extensions_gpcloud_centos6
       - icw_extensions_gpcloud_ubuntu16
-      - client_loader_remote_test_aix
       - resource_group_centos6
       - resource_group_centos7
       - resource_group_sles12
