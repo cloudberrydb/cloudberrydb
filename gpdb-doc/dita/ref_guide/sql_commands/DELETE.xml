@@ -26,6 +26,8 @@
                 the specific circumstances. </p>
             <p>If the <codeph>WHERE CURRENT OF</codeph> clause is specified, the row that is deleted
                 is the one most recently fetched from the specified cursor. </p>
+            <p>The <codeph>WHERE CURRENT OF</codeph> clause is not supported with replicated
+                tables.</p>
             <p>The optional <codeph>RETURNING</codeph> clause causes <codeph>DELETE</codeph> to
                 compute and return value(s) based on each row actually deleted. Any expression using
                 the table's columns, and/or columns of other tables mentioned in
