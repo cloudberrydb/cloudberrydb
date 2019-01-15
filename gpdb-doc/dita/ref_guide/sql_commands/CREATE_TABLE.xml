@@ -170,7 +170,10 @@
         to improve query performance by preventing broadcast motions for the table. The
           <codeph>DISTRIBUTED REPLICATED</codeph> clause cannot be used with the <codeph>PARTITION
           BY</codeph> clause or the <codeph>INHERITS</codeph> clause. A replicated table also cannot
-        be inherited by another table.</p>
+        be inherited by another table. The hidden system columns (<codeph>ctid</codeph>,
+          <codeph>cmin</codeph>, <codeph>cmax</codeph>, <codeph>xmin</codeph>,
+        <codeph>xmax</codeph>, and <codeph>gp_segment_id</codeph>) cannot be referenced in user
+        queries on replicated tables because they have no single, unambiguous value.</p>
       <p>The <codeph>PARTITION BY</codeph> clause allows you to divide the table into multiple
         sub-tables (or parts) that, taken together, make up the parent table and share its schema.
         Though the sub-tables exist as independent tables, the Greenplum Database restricts their

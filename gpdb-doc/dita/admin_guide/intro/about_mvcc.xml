@@ -65,6 +65,13 @@
         distributed transactions IDs. If you could execute the command in an individual segment
         database, the <codeph>xmin</codeph> and <codeph>xmax</codeph> values would be the segment's
         local XIDs.</p>
+      <note>Greenplum Database distributes all of a replicated table's rows to every segment, so
+        each row is duplicated on every segment. Each segment instance maintains its own values for
+        the system columns <codeph>xmin</codeph>, <codeph>xmax</codeph>, <codeph>cmin</codeph>, and
+          <codeph>cmax</codeph>, as well as for the <codeph>gp_segment_id</codeph> and
+          <codeph>ctid</codeph>system columns. Greenplum Database does not permit user queries to
+        access these system columns for replicated tables because they have no single, unambiguous
+        value to evaluate in a query.</note>
     </section>
     <section>
       <title>Transaction ID Wraparound</title>

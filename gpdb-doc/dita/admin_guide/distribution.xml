@@ -78,6 +78,16 @@ FROM (SELECT count(*) c, gp_segment_id FROM facts GROUP BY 2) AS a;</codeblock>
               randomly distributed table are assigned to the first segment and will result
               in data skew. Greenplum Database more evenly distributes data from bulk inserts.</p>
           </section>
+      <section id="section_unk_dpf_kgb">
+        <title>Considerations for Replicated Tables</title>
+        <p>When you create a replicated table (with the <codeph>CREATE TABLE</codeph> clause
+            <codeph>DISTRIBUTED REPLICATED</codeph>), Greenplum Database distributes every table row
+          to every segment instance. Replicated table data is evenly distributed because every
+          segment has the same rows. A query that uses the <codeph>gp_segment_id</codeph> system
+          column on a replicated table to verify evenly distributed data, will fail because
+          Greenplum Database does not allow queries to reference replicated tables' system
+          columns.</p>
+      </section>
         </body>
       </topic>
       <topic id="topic3">

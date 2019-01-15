@@ -191,11 +191,11 @@
     <topic id="topic20" xml:lang="en">
       <title id="kj155117">Checking for Data Distribution Skew</title>
       <body>
-        <p>All tables in Greenplum Database are distributed, meaning their data is divided evenly
-          across all of the segments in the system. Unevenly distributed data may diminish query
-          processing performance. A table's distribution policy is determined at table creation
-          time. For information about choosing the table distribution policy, see the following
-          topics:</p>
+        <p>All tables in Greenplum Database are distributed, meaning their data is divided across
+        all of the segments in the system. Unevenly distributed data may diminish query processing
+        performance. A table's distribution policy, set at table creation time, determines how the
+        table's rows are distributed. For information about choosing the table distribution policy,
+        see the following topics:</p>
         <ul>
           <li id="kj191663">
             <xref href="#topic21" type="topic" format="dita"/>
@@ -229,6 +229,11 @@ Has OIDs: no
 Distributed by: (sale_id)
 </codeblock>
           </p>
+        <p>When you create a <i>replicated</i> table, Greenplum Database stores all rows in the
+          table on every segment. Replicated tables have no distribution key. Where the
+            <codeph>\d+</codeph> meta-command reports the distribution key for a normally
+          distributed table, it shows <codeph>Distributed Replicated</codeph> for a replicated
+          table.</p>
         </body>
       </topic>
       <topic id="topic22" xml:lang="en">
@@ -243,6 +248,12 @@ Distributed by: (sale_id)
           </p>
           <p>A table is considered to have a balanced distribution if all segments have roughly the
             same number of rows.</p>
+        <note>
+          <p>If you run this query on a replicated table it fails because Greenplum Database does
+            not permit user queries to reference the <codeph>gp_segment_id</codeph> system column in
+            replicated tables. Because every segment has all of the tables' rows, replicated tables
+            are evenly distributed by definition.</p>
+        </note>
         </body>
       </topic>
       <topic id="topic23" xml:lang="en">
@@ -263,6 +274,9 @@ Distributed by: (sale_id)
           </p>
           <p>This will show the number of rows returned by segment for the given
               <codeph>WHERE</codeph> predicate.</p>
+        <p>As noted in <xref href="#topic22" format="dita"/>, this query will fail if you run it on
+          a replicated table because you cannot reference the <codeph>gp_segment_id</codeph> system
+          column in a query on a replicated table.</p>
           <section>
             <title>Avoiding an Extreme Skew Warning</title>
             <p>You may receive the following warning message while executing a query that performs a
