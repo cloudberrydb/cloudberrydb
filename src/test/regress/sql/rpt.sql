@@ -327,6 +327,14 @@ alter table qux set distributed replicated;
 drop view v_qux;
 alter table qux set distributed replicated;
 
+-- Test cursor for update also works for replicated table
+create table cursor_update (c1 int, c2 int) distributed replicated;
+insert into cursor_update select i, i from generate_series(1, 10) i;
+begin;
+declare c1 cursor for select * from cursor_update order by c2 for update;
+fetch next from c1;
+end;
+
 -- start_ignore
 drop schema rpt cascade;
 -- end_ignore

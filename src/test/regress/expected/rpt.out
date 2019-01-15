@@ -656,6 +656,18 @@ DETAIL:  view v_qux depends on table qux column ctid
 HINT:  system columns of replicated table will be exposed to users after altering, resolve dependencies first
 drop view v_qux;
 alter table qux set distributed replicated;
+-- Test cursor for update also works for replicated table
+create table cursor_update (c1 int, c2 int) distributed replicated;
+insert into cursor_update select i, i from generate_series(1, 10) i;
+begin;
+declare c1 cursor for select * from cursor_update order by c2 for update;
+fetch next from c1;
+ c1 | c2 
+----+----
+  1 |  1
+(1 row)
+
+end;
 -- start_ignore
 drop schema rpt cascade;
 NOTICE:  drop cascades to 4 other objects

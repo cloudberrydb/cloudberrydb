@@ -3081,7 +3081,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			{
 				RelOptInfo *brel = root->simple_rel_array[rc->rti];
 
-				if (GpPolicyIsPartitioned(brel->cdbpolicy))
+				if (GpPolicyIsPartitioned(brel->cdbpolicy) ||
+					GpPolicyIsReplicated(brel->cdbpolicy))
 				{
 					if (rc->markType == ROW_MARK_EXCLUSIVE)
 						rc->markType = ROW_MARK_TABLE_EXCLUSIVE;
