@@ -44,14 +44,14 @@ WITH all_entries AS (
 SELECT tmid, ssid, ccnt,segid, pid, nid, tuplecount, nloops, ntuples
 FROM all_entries
 ORDER BY segid;
-GRANT SELECT ON gp_instrument_shmem_details TO public;
 
-CREATE TABLE a (id int) DISTRIBUTED BY (id);
-INSERT INTO a SELECT * FROM generate_series(1, 50);
+CREATE TABLE a (id int, c char) DISTRIBUTED BY (id);
+INSERT INTO a SELECT *, 'a' FROM generate_series(1, 50);
 SET OPTIMIZER=OFF;
 ANALYZE a;
 -- end_ignore
 
+-- test 1: pg_terminate_backend
 -- only this query in instrument slots, expected 1
 SELECT count(*) FROM (SELECT 1 FROM gp_instrument_shmem_detail GROUP BY ssid, ccnt) t;
 
@@ -70,6 +70,7 @@ FROM pg_stat_activity WHERE query LIKE 'EXPLAIN ANALYZE CREATE TEMP TABLE t1 AS 
 -- query backend to ensure no PANIC on postmaster and wait cleanup done
 SELECT count(*) FROM foo, pg_sleep(2);
 
+-- test 2: pg_cancel_backend
 -- Expected result is 1 row, means only current query in instrument slots,
 -- If more than one row returned, means previous test has leaked slots.
 SELECT count(*) FROM (SELECT 1 FROM gp_instrument_shmem_detail GROUP BY ssid, ccnt) t;
@@ -82,6 +83,65 @@ FROM pg_stat_activity WHERE query LIKE 'EXPLAIN ANALYZE CREATE TEMP TABLE t2 AS 
 -- start_ignore
 2<:
 2q:
+-- end_ignore
+
+-- query backend to ensure no PANIC on postmaster and wait cleanup done
+SELECT count(*) FROM foo, pg_sleep(2);
+
+-- test 3: DML should expose plan_node_id for whole plan tree
+-- Expected result is 1 row, means only current query in instrument slots,
+-- If more than one row returned, means previous test has leaked slots.
+SELECT count(*) FROM (SELECT 1 FROM gp_instrument_shmem_detail GROUP BY ssid, ccnt) t;
+
+-- this query will be cancelled by 'test pg_cancel_backend'
+3&:SET OPTIMIZER TO off;EXPLAIN ANALYZE INSERT INTO QUERY_METRICS.a SELECT *, pg_sleep(1) FROM generate_series(1,10);
+
+-- validate plan nodes exist in instrument solts
+SELECT ro, CASE WHEN max(nid) > 2 THEN 'ok' ELSE 'wrong' END isok FROM (
+  SELECT CASE WHEN segid >= 0 THEN 's' ELSE 'm' END ro, nid FROM gp_instrument_shmem_detail
+  WHERE ssid <> (SELECT setting FROM pg_settings WHERE name = 'gp_session_id')::int AND nid > 0
+) dt
+GROUP BY (ro) ORDER BY ro;
+-- cancel the query
+SELECT pg_cancel_backend(pid, 'test DML')
+FROM pg_stat_activity WHERE query LIKE 'SET OPTIMIZER TO off;EXPLAIN ANALYZE INSERT INTO QUERY_METRICS.a SELECT%' ORDER BY pid LIMIT 1;
+
+-- start_ignore
+3<:
+3q:
+-- end_ignore
+
+-- query backend to ensure no PANIC on postmaster and wait cleanup done
+SELECT count(*) FROM foo, pg_sleep(2);
+
+-- test 4: Merge Append should expose plan_node_id for whole plan tree
+CREATE TABLE QUERY_METRICS.mergeappend_test (a int, b int, x int) DISTRIBUTED BY (a,b);
+INSERT INTO QUERY_METRICS.mergeappend_test SELECT g/100, g/100, g FROM generate_series(1, 500) g;
+ANALYZE QUERY_METRICS.mergeappend_test;
+
+-- Expected result is 1 row, means only current query in instrument slots,
+-- If more than one row returned, means previous test has leaked slots.
+SELECT count(*) FROM (SELECT 1 FROM gp_instrument_shmem_detail GROUP BY ssid, ccnt) t;
+
+-- this query will be cancelled by 'test pg_cancel_backend'
+4&:SET OPTIMIZER TO off;SELECT a, b, array_dims(array_agg(x)) FROM QUERY_METRICS.mergeappend_test r GROUP BY a, b
+UNION ALL
+SELECT NULL, NULL, array_dims(array_agg(x)) FROM QUERY_METRICS.mergeappend_test r, pg_sleep(10)
+ORDER BY 1,2;
+
+-- validate plan nodes exist in instrument solts
+SELECT ro, CASE WHEN max(nid) > 5 THEN 'ok' ELSE 'wrong' END isok FROM (
+  SELECT CASE WHEN segid >= 0 THEN 's' ELSE 'm' END ro, nid FROM gp_instrument_shmem_detail
+  WHERE ssid <> (SELECT setting FROM pg_settings WHERE name = 'gp_session_id')::int AND nid > 0
+) dt
+GROUP BY (ro) ORDER BY ro;
+-- cancel the query
+SELECT pg_cancel_backend(pid, 'test MergeAppend')
+FROM pg_stat_activity WHERE query LIKE 'SET OPTIMIZER TO off;SELECT a, b, array_dims(array_agg(x)) FROM QUERY_METRICS.mergeappend_test%' ORDER BY pid LIMIT 1;
+
+-- start_ignore
+4<:
+4q:
 -- end_ignore
 
 -- query backend to ensure no PANIC on postmaster and wait cleanup done

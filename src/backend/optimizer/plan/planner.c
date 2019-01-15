@@ -488,9 +488,9 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		/*
-		 * Generate a plan node id for each node. Used by gpmon. Note that
-		 * this needs to be the last step of the planning when the structure
-		 * of the plan is final.
+		 * Generate a plan node id for each node. Used by gpmon and instrument.
+		 * Note that this needs to be the last step of the planning when the
+		 * structure of the plan is final.
 		 */
 		assign_plannode_id(result);
 	}

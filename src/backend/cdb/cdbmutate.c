@@ -1937,74 +1937,24 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 
 typedef struct
 {
+	plan_tree_base_prefix base; /* Required prefix for
+								 * plan_tree_walker/mutator */
 	int			nextPlanId;
-} assign_plannode_id_walker_context;
+} assign_plannode_id_context;
 
-static void
-assign_plannode_id_walker(Node *node, assign_plannode_id_walker_context *ctxt)
+static bool
+assign_plannode_id_walker(Node *node, assign_plannode_id_context *ctxt)
 {
-	Plan	   *plan;
-
 	if (node == NULL)
-		return;
+		return false;
 
-	if (IsA(node, List))
-	{
-		List	   *l = (List *) node;
-		ListCell   *lc;
+	if (is_plan_node(node))
+		((Plan *) node)->plan_node_id = ++ctxt->nextPlanId;
 
-		foreach(lc, l)
-		{
-			Node	   *n = lfirst(lc);
+	if (IsA(node, SubPlan))
+		return false;
 
-			assign_plannode_id_walker(n, ctxt);
-		}
-		return;
-	}
-
-	if (!is_plan_node(node))
-		return;
-
-	plan = (Plan *) node;
-
-	plan->plan_node_id = ++ctxt->nextPlanId;
-
-	if (IsA(node, Append))
-	{
-		ListCell   *cell;
-		Append	   *app = (Append *) node;
-
-		foreach(cell, app->appendplans)
-			assign_plannode_id_walker((Node *) lfirst(cell), ctxt);
-	}
-	else if (IsA(node, BitmapAnd))
-	{
-		ListCell   *cell;
-		BitmapAnd  *ba = (BitmapAnd *) node;
-
-		foreach(cell, ba->bitmapplans)
-			assign_plannode_id_walker((Node *) lfirst(cell), ctxt);
-	}
-	else if (IsA(node, BitmapOr))
-	{
-		ListCell   *cell;
-		BitmapOr   *bo = (BitmapOr *) node;
-
-		foreach(cell, bo->bitmapplans)
-			assign_plannode_id_walker((Node *) lfirst(cell), ctxt);
-	}
-	else if (IsA(node, SubqueryScan))
-	{
-		SubqueryScan *subqscan = (SubqueryScan *) node;
-
-		assign_plannode_id_walker((Node *) subqscan->subplan, ctxt);
-	}
-	else
-	{
-		assign_plannode_id_walker((Node *) plan->lefttree, ctxt);
-		assign_plannode_id_walker((Node *) plan->righttree, ctxt);
-		assign_plannode_id_walker((Node *) plan->initPlan, ctxt);
-	}
+	return plan_tree_walker(node, assign_plannode_id_walker, ctxt);
 }
 
 /*
@@ -2703,14 +2653,16 @@ apply_shareinput_xslice(Plan *plan, PlannerInfo *root)
 }
 
 /*
- * assign_plannode_id - Assign an id for each plan node.  Used by gpmon.
+ * assign_plannode_id - Assign an id for each plan node.
+ * Used by gpmon and instrument.
  */
 void
 assign_plannode_id(PlannedStmt *stmt)
 {
-	assign_plannode_id_walker_context ctxt;
+	assign_plannode_id_context ctxt;
 	ListCell   *lc;
 
+	ctxt.base.node = (Node *) stmt->planTree;
 	ctxt.nextPlanId = 0;
 
 	assign_plannode_id_walker((Node *) stmt->planTree, &ctxt);
