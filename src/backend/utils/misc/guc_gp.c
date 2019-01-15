@@ -4156,7 +4156,7 @@ struct config_int ConfigureNamesInt_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_penalize_broadcast_threshold,
-		10000000, 0, INT_MAX,
+		100000, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 
