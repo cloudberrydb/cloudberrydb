@@ -3,7 +3,6 @@ top_builddir=../../../..
 include $(top_builddir)/src/Makefile.global
 
 TARGETS=cdbbufferedread \
-	cdbsrlz \
 	cdbdistributedsnapshot
 
 TARGETS += cdbappendonlyxlog
