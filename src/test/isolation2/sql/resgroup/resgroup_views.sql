@@ -30,7 +30,7 @@ select rsgname
      , memory_shared_used
   from gp_toolkit.gp_resgroup_status_per_segment
  where rsgname='default_group'
- order by segment_id;
+   and segment_id=-1;
 
 -- also log the raw output of the views, if any of above tests failed it is
 -- easier to find out the causes with these logs.
