@@ -168,6 +168,15 @@ extern void ResGroupCreateOnAbort(const ResourceGroupCallbackContext *callbackCt
 extern void ResGroupAlterOnCommit(const ResourceGroupCallbackContext *callbackCtx);
 extern void ResGroupCheckForDrop(Oid groupId, char *name);
 
+/*
+ * Get resource group id of my proc.
+ *
+ * This function is not dead code although there is no consumer in the gpdb
+ * code tree.  Some extensions require this to get the internal resource group
+ * information.
+ */
+extern Oid GetMyResGroupId(void);
+
 extern int32 ResGroupGetVmemLimitChunks(void);
 extern int32 ResGroupGetVmemChunkSizeInBits(void);
 extern int32 ResGroupGetMaxChunksPerQuery(void);

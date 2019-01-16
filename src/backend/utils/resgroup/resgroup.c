@@ -932,6 +932,27 @@ ResGroupIsAssigned(void)
 	return selfIsAssigned();
 }
 
+/*
+ * Get resource group id of my proc.
+ *
+ * Returns InvalidOid in any of below cases:
+ * - resource group is not enabled;
+ * - resource group is not activated (initialized);
+ * - my proc is not running inside a transaction;
+ * - my proc is not assigned a resource group yet;
+ *
+ * Otherwise a valid resource group id is returned.
+ *
+ * This function is not dead code although there is no consumer in the gpdb
+ * code tree.  Some extensions require this to get the internal resource group
+ * information.
+ */
+Oid
+GetMyResGroupId(void)
+{
+	return self->groupId;
+}
+
 int32
 ResGroupGetVmemLimitChunks(void)
 {
