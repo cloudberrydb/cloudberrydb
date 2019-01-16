@@ -539,14 +539,14 @@ resources:
     secret_access_key: {{bucket-secret-access-key}}
     versioned_file: release_candidates/bin_gpdb_centos7/gpdb6/((rc-build-type))/bin_gpdb.tar.gz
 
-- name: bin_gpdb_sles11_rc
-  type: s3
-  source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{gpdb-stable-builds-bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: release_candidates/bin_gpdb_sles11/gpdb6/((rc-build-type))/bin_gpdb.tar.gz
+    ## - name: bin_gpdb_sles11_rc
+    ##   type: s3
+    ##   source:
+    ##     access_key_id: {{bucket-access-key-id}}
+    ##     bucket: {{gpdb-stable-builds-bucket-name}}
+    ##     region_name: {{aws-region}}
+    ##     secret_access_key: {{bucket-secret-access-key}}
+    ##     versioned_file: release_candidates/bin_gpdb_sles11/gpdb6/((rc-build-type))/bin_gpdb.tar.gz
 
 {% endif %}
 {% if "ubuntu16" in os_types %}
@@ -2322,37 +2322,37 @@ jobs:
       - compile_gpdb_centos6
       - compile_gpdb_open_source_centos6
       - compile_gpdb_centos7
-      - compile_gpdb_sles11
-      - compile_gpdb_ubuntu16
-      - compile_gpdb_aix7_remote
+ ##     - compile_gpdb_sles11
+ ##     - compile_gpdb_ubuntu16
+ ##     - compile_gpdb_aix7_remote
       - icw_planner_centos6
       - icw_gporca_centos6
       - icw_gporca_centos7
       - icw_planner_centos7
       - icw_planner_centos7_online_expand
-      - icw_gporca_sles11
-      - icw_gporca_sles12
-      - icw_planner_sles12
-      - icw_planner_ubuntu16
-      - icw_gporca_conan_ubuntu16
-      - gpdb_packaging_ubuntu16
+ ##     - icw_gporca_sles11
+ ##     - icw_gporca_sles12
+ ##     - icw_planner_sles12
+ ##     - icw_planner_ubuntu16
+ ##     - icw_gporca_conan_ubuntu16
+ ##     - gpdb_packaging_ubuntu16
       - icw_planner_ictcp_centos6
       - icw_extensions_gpcloud_centos6
-      - icw_extensions_gpcloud_ubuntu16
+ ##     - icw_extensions_gpcloud_ubuntu16
       - resource_group_centos6
       - resource_group_centos7
-      - resource_group_sles12
+ ##     - resource_group_sles12
       - regression_tests_gphdfs_hadoop_centos
       - regression_tests_gphdfs_mapr_centos
 {% for test_name in CLI_1_suites +
                     CLI_2_suites %}
       - [[ test_name ]]
 {% endfor %}
-      - madlib_build_gppkg
-      - MADlib_Test_orca_centos6
-      - MADlib_Test_planner_centos6
-      - MADlib_Test_orca_centos7
-      - MADlib_Test_planner_centos7
+ ##     - madlib_build_gppkg
+ ##     - MADlib_Test_orca_centos6
+ ##     - MADlib_Test_planner_centos6
+ ##     - MADlib_Test_orca_centos7
+ ##     - MADlib_Test_planner_centos7
       - pg_upgrade
       - gpaddmirrors
       - gpexpand
@@ -2369,7 +2369,7 @@ jobs:
       - icw_gporca_centos6
       - icw_planner_ictcp_centos6
       - icw_extensions_gpcloud_centos6
-      - client_loader_remote_test_aix
+ ##   - client_loader_remote_test_aix
       - resource_group_centos6
       - regression_tests_gphdfs_hadoop_centos
       - regression_tests_gphdfs_mapr_centos
@@ -2377,8 +2377,8 @@ jobs:
                     CLI_2_suites %}
       - [[ test_name ]]
 {% endfor %}
-      - MADlib_Test_orca_centos6
-      - MADlib_Test_planner_centos6
+ ##     - MADlib_Test_orca_centos6
+ ##     - MADlib_Test_planner_centos6
       - gpexpand
       - gpcheck
       - gppkg
@@ -2393,16 +2393,16 @@ jobs:
       - icw_planner_centos7
       - icw_planner_centos7_online_expand
       - resource_group_centos7
-      - MADlib_Test_orca_centos7
-      - MADlib_Test_planner_centos7
-    - get: bin_gpdb_sles11
-      trigger: true
-      passed:
-      - compile_gpdb_sles11
-      - icw_gporca_sles11
-      - icw_gporca_sles12
-      - icw_planner_sles12
-      - resource_group_sles12
+ ##     - MADlib_Test_orca_centos7
+ ##     - MADlib_Test_planner_centos7
+ ##     - get: bin_gpdb_sles11
+ ##     trigger: true
+ ##     passed:
+ ##     - compile_gpdb_sles11
+ ##     - icw_gporca_sles11
+ ##     - icw_gporca_sles12
+ ##     - icw_planner_sles12
+ ##     - resource_group_sles12
 
 - name: Release_Candidate
   plan:
@@ -2416,9 +2416,9 @@ jobs:
     - get: bin_gpdb_centos7
       trigger: true
       passed: [gate_release_candidate_start]
-    - get: bin_gpdb_sles11
-      trigger: true
-      passed: [gate_release_candidate_start]
+##   - get: bin_gpdb_sles11
+##     trigger: true
+##     passed: [gate_release_candidate_start]
   - task: verify_gpdb_versions
     file: gpdb_src/concourse/tasks/verify_gpdb_versions.yml
   - put: bin_gpdb_centos6_rc
@@ -2427,9 +2427,9 @@ jobs:
   - put: bin_gpdb_centos7_rc
     params:
       file: bin_gpdb_centos7/bin_gpdb.tar.gz
-  - put: bin_gpdb_sles11_rc
-    params:
-      file: bin_gpdb_sles11/bin_gpdb.tar.gz
+## - put: bin_gpdb_sles11_rc
+##   params:
+##      file: bin_gpdb_sles11/bin_gpdb.tar.gz
 {% endif %}
 
 ## ======================================================================
