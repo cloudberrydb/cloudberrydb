@@ -27,8 +27,8 @@ class Repair:
 
         master_segment = next(segment for segment in self._context.cfg.values() if segment['content'] == -1)
 
-        sql_filename = self.__create_sql_file_in_repair_dir(repair_dir, sql_repair_contents, master_segment)
-        self.__create_bash_script_in_repair_dir(repair_dir, sql_filename, master_segment)
+        sql_filename = self._create_sql_file_in_repair_dir(repair_dir, sql_repair_contents, master_segment)
+        self._create_bash_script_in_repair_dir(repair_dir, sql_filename, master_segment)
 
         return repair_dir
 
@@ -44,8 +44,8 @@ class Repair:
             segment = next(segment for segment in self._context.cfg.values() if segment['content'] == segment_id)
 
             sql_content = extra_missing_repair_obj.get_delete_sql(oids)
-            self.__create_bash_script_in_repair_dir(repair_dir, sql_content,
-                                                    segment=segment, catalog_name=catalog_name)
+            self._create_bash_script_in_repair_dir(repair_dir, sql_content,
+                                                   segment=segment, catalog_name=catalog_name)
 
         return repair_dir
 
@@ -53,8 +53,8 @@ class Repair:
         repair_dir = self.create_repair_dir()
 
         for segment in segments:
-            sql_filename = self.__create_sql_file_in_repair_dir(repair_dir, segment['repair_statements'], segment)
-            self.__create_bash_script_in_repair_dir(repair_dir, sql_filename, segment)
+            sql_filename = self._create_sql_file_in_repair_dir(repair_dir, segment['repair_statements'], segment)
+            self._create_bash_script_in_repair_dir(repair_dir, sql_filename, segment)
 
         return repair_dir
 
@@ -66,7 +66,7 @@ class Repair:
         return repair_dir
 
     def append_content_to_bash_script(self, repair_dir_path, script, catalog_name=None):
-        bash_file_path = self.__get_bash_filepath(repair_dir_path, catalog_name)
+        bash_file_path = self._get_bash_filepath(repair_dir_path, catalog_name)
         if not os.path.isfile(bash_file_path):
             script = '#!/bin/bash\ncd $(dirname $0)\n' + script
 
@@ -75,8 +75,8 @@ class Repair:
 
         os.chmod(bash_file_path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
 
-    def __create_sql_file_in_repair_dir(self, repair_dir, sql_repair_contents, segment):
-        sql_filename = self.__get_sql_filename(segment) + ".sql"
+    def _create_sql_file_in_repair_dir(self, repair_dir, sql_repair_contents, segment):
+        sql_filename = self._get_sql_filename(segment) + ".sql"
         sql_file_path = os.path.join(repair_dir, sql_filename)
 
         with open(sql_file_path, 'w') as sql_file:
@@ -85,24 +85,24 @@ class Repair:
 
         return sql_filename
 
-    def __create_bash_script_in_repair_dir(self, repair_dir, sql, segment, catalog_name=None):
+    def _create_bash_script_in_repair_dir(self, repair_dir, sql, segment, catalog_name=None):
         if not sql:
             return
 
-        bash_script_content = self.__get_bash_script_content(sql, segment)
+        bash_script_content = self._get_bash_script_content(sql, segment)
         self.append_content_to_bash_script(repair_dir, bash_script_content, catalog_name)
 
-    def __get_bash_or_out_filename(self):
+    def _get_bash_or_out_filename(self):
         return '%s_%s_%s' % (self._context.dbname, self._issue_type, self._context.timestamp)
 
-    def __get_sql_filename(self, segment):
+    def _get_sql_filename(self, segment):
         if segment['content'] == -1:
-            return self.__get_bash_or_out_filename()
+            return self._get_bash_or_out_filename()
         else:
             filename = '%i.%s.%i.%s.%s' % (segment['dbid'], segment['hostname'], segment['port'], self._context.dbname, self._context.timestamp)
             return filename.replace(' ', '_')
 
-    def __get_bash_filepath(self, repair_dir, catalog_name=None):
+    def _get_bash_filepath(self, repair_dir, catalog_name=None):
         bash_filename = 'runsql_%s.sh' % self._context.timestamp
 
         if self._issue_type and catalog_name:
@@ -110,14 +110,14 @@ class Repair:
 
         return os.path.join(repair_dir, bash_filename)
 
-    def __get_bash_script_content(self, sql, segment):
-        out_filename = self.__get_bash_or_out_filename() + ".out"
+    def _get_bash_script_content(self, sql, segment):
+        out_filename = self._get_bash_or_out_filename() + ".out"
 
         bash_script_content = '\necho "{0}"\n'.format(self._desc)
-        bash_script_content += self.__get_psql_command(segment, sql, out_filename)
+        bash_script_content += self._get_psql_command(segment, sql, out_filename)
         return bash_script_content
 
-    def __get_psql_command(self, segment, sql, out_filename):
+    def _get_psql_command(self, segment, sql, out_filename):
         """
         cases to consider
         self._issue_type : extra/missing vs everything else(policies, owner, constraint)
