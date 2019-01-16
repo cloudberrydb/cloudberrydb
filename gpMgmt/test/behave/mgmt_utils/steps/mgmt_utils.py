@@ -18,8 +18,9 @@ import commands
 import signal
 from collections import defaultdict
 
+import psutil
 from behave import given, when, then
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 
 from gppylib.gparray import GpArray, ROLE_PRIMARY, ROLE_MIRROR
@@ -750,6 +751,48 @@ def impl(context):
     cmd_str = 'gpssh-exkeys %s' % host_str
     run_gpcommand(context, cmd_str)
 
+def _process_exists(pid, host):
+    """
+    Returns True if a process of the given PID exists on the given host, and
+    False otherwise. If host is None, this check is done locally instead of
+    remotely.
+    """
+    if host is None:
+        # Local case is easy.
+        return psutil.pid_exists(pid)
+
+    # Remote case.
+    cmd = Command(name="check for pid %d" % pid,
+                  cmdStr="ps -p %d > /dev/null" % pid,
+                  ctxt=REMOTE,
+                  remoteHost=host)
+
+    cmd.run()
+    return cmd.get_return_code() == 0
+
+def _wait_for_process_exit(pid, host, timeout=30):
+    """
+    Waits up to timeout (default 30) seconds for the process with the given PID
+    to exit. Returns True if this occurs within the timeout and False otherwise.
+
+    Be mindful of the inherent problems with this approach -- if you pass a PID
+    that never existed, it will appear to have "exited" here. Conversely, if the
+    OS is quick enough to recycle a process' PID after it exits, this function
+    may incorrectly show that the exit never happened.
+    """
+    end_time = datetime.now() + timedelta(seconds=timeout)
+    interval = 0.05
+
+    while _process_exists(pid, host):
+        if end_time < datetime.now():
+            # Time's up.
+            return False
+
+        # Sleep with exponential backoff and a maximum of 1 second.
+        time.sleep(interval)
+        interval = min(interval * 2, 1)
+
+    return True
 
 @given('user kills a primary postmaster process')
 @when('user kills a primary postmaster process')
@@ -773,8 +816,7 @@ def impl(context):
         raise Exception('Unable to locate segment "%s" on host "%s"' % (seg_data_dir, seg_host))
 
     kill_process(int(pid), seg_host, signal.SIGKILL)
-
-    has_process_eventually_stopped(pid, seg_host)
+    _wait_for_process_exit(pid, seg_host)
 
     pid = get_pid_for_segment(seg_data_dir, seg_host)
     if pid is not None:
@@ -817,8 +859,7 @@ def impl(context, segment_type, signal_name):
             raise Exception('Unable to locate segment "%s" on host "%s"' % (seg_data_dir, seg_host))
 
         kill_process(int(pid), seg_host, signal_code)
-
-        has_process_eventually_stopped(pid, seg_host)
+        _wait_for_process_exit(pid, seg_host)
 
         pid = get_pid_for_segment(seg_data_dir, seg_host)
         if pid is not None:
