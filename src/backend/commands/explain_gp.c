@@ -94,7 +94,6 @@ const char *sort_method_enum_str[] = {
 typedef struct CdbExplain_StatInst
 {
 	NodeTag		pstype;			/* PlanState node type */
-	bool		running;		/* True if we've completed first tuple */
 	instr_time	starttime;		/* Start time of current iteration of node */
 	instr_time	counter;		/* Accumulated runtime for this node */
 	double		firsttuple;		/* Time for first tuple of this cycle */
@@ -949,9 +948,6 @@ cdbexplain_collectStatsFromNode(PlanState *planstate, CdbExplain_SendStatCtx *ct
 
 	Insist(instr);
 
-	/* Save the state whether this node is completed the first tuple */
-	bool		running = instr->running;
-
 	/* We have to finalize statistics, since ExecutorEnd hasn't been called. */
 	InstrEndLoop(instr);
 
@@ -968,7 +964,6 @@ cdbexplain_collectStatsFromNode(PlanState *planstate, CdbExplain_SendStatCtx *ct
 		appendStringInfoChar(ctx->notebuf, '\0');
 
 	/* Transfer this node's statistics from Instrumentation into StatInst. */
-	si->running = running;
 	si->starttime = instr->starttime;
 	si->counter = instr->counter;
 	si->firsttuple = instr->firsttuple;
@@ -1148,8 +1143,6 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 	cdbexplain_depStatAcc_init0(&vmem_reserved);
 	cdbexplain_depStatAcc_init0(&memory_accounting_global_peak);
 
-	bool		isRunning = false;
-
 	/* Examine the statistics from each qExec. */
 	for (imsgptr = 0; imsgptr < ctx->nmsgptr; imsgptr++)
 	{
@@ -1174,11 +1167,6 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 		 */
 		if (ctx->extratextbuf)
 			nsi->bnotes = nsi->enotes = 0;
-
-		if (nsi->running)
-		{
-			isRunning = true;
-		}
 
 		/* Update per-node accumulators. */
 		cdbexplain_depStatAcc_upd(&ntuples, rsi->ntuples, rsh, rsi, nsi);
@@ -1218,14 +1206,12 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 	ctx->workmemused_max = Max(ctx->workmemused_max, workmemused.agg.vmax);
 	ctx->workmemwanted_max = Max(ctx->workmemwanted_max, workmemwanted.agg.vmax);
 
-	instr->running = isRunning;
 	instr->total = ntuples.max_total;
 	INSTR_TIME_ASSIGN(instr->firststart, ntuples.firststart_of_max_total);
 
 	/* Put winner's stats into qDisp PlanState's Instrument node. */
 	if (ntuples.agg.vcnt > 0)
 	{
-		instr->running = ntuples.nsimax->running;
 		instr->starttime = ntuples.nsimax->starttime;
 		instr->counter = ntuples.nsimax->counter;
 		instr->firsttuple = ntuples.nsimax->firsttuple;
