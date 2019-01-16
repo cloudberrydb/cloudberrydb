@@ -238,7 +238,6 @@ Feature: gpstate tests
             | \S+  | .*/dbfast3/demoDataDir2         | [0-9]+ |
             | \S+  | .*/dbfast_mirror3/demoDataDir2  | [0-9]+ |
 
-    # todo: replace .* with a more specific matcher for `Greenplum current version` once it works
     @detailed_status_with_a_default_cluster
     Scenario: gpstate -s logs detailed information
         Given a standard local demo cluster is running
@@ -251,7 +250,7 @@ Feature: gpstate tests
             | Master port                   = [0-9]+                 |
             | Master current role           = dispatch               |
             | Greenplum initsystem version  = [0-9]+\.[0-9]+\.[0-9]+ |
-            | Greenplum current version     =                        |
+            | Greenplum current version     = PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
             | Postgres version              = [0-9]+\.[0-9]+\.[0-9]+ |
             | Master standby                =                        |
             | Standby master state          = Standby host passive   |
@@ -347,4 +346,55 @@ Feature: gpstate tests
             | Configuration reports status as = Up                   |
             | Segment status                  = Up                   |
 
-    # todo: add gpstate -i test
+    @version
+    Scenario: gpstate -i logs version info for all segments
+        Given a standard local demo cluster is running
+        When the user runs "gpstate -i"
+        Then gpstate output looks like
+		  | Host | Datadir                        | Port   | Version                                                                           |
+		  | \S+  | .*/qddir/demoDataDir-1         | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/standby                     | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast1/demoDataDir0        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror1/demoDataDir0 | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast2/demoDataDir1        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror2/demoDataDir1 | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast3/demoDataDir2        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror3/demoDataDir2 | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		And gpstate should print "All segments are running the same software version" to stdout
+
+    @version_with_mirrors_marked_down
+    Scenario: gpstate -i warns if any mirrors are marked down
+        Given a standard local demo cluster is running
+          And user kills all mirror processes
+          And an FTS probe is triggered
+        When the user runs "gpstate -i"
+        Then gpstate output looks like
+		  | Host | Datadir                        | Port   | Version                                                                           |
+		  | \S+  | .*/qddir/demoDataDir-1         | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/standby                     | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast1/demoDataDir0        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror1/demoDataDir0 | [0-9]+ | unable to retrieve version                                                        |
+		  | \S+  | .*/dbfast2/demoDataDir1        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror2/demoDataDir1 | [0-9]+ | unable to retrieve version                                                        |
+		  | \S+  | .*/dbfast3/demoDataDir2        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror3/demoDataDir2 | [0-9]+ | unable to retrieve version                                                        |
+		And gpstate should print "Unable to retrieve version data from all segments" to stdout
+
+    @version_with_killed_mirrors
+    Scenario: gpstate -i warns if any up mirrors cannot be contacted
+        Given a standard local demo cluster is running
+          And user kills all mirror processes
+          # We intentionally do not wait for an FTS probe here; we want the
+          # mirrors to still be marked up when we try to get their version.
+        When the user runs "gpstate -i"
+        Then gpstate output looks like
+		  | Host | Datadir                        | Port   | Version                                                                           |
+		  | \S+  | .*/qddir/demoDataDir-1         | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/standby                     | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast1/demoDataDir0        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror1/demoDataDir0 | [0-9]+ | unable to retrieve version                                                        |
+		  | \S+  | .*/dbfast2/demoDataDir1        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror2/demoDataDir1 | [0-9]+ | unable to retrieve version                                                        |
+		  | \S+  | .*/dbfast3/demoDataDir2        | [0-9]+ | PostgreSQL [0-9]+\.[0-9]+\.[0-9]+ \(Greenplum Database [0-9]+\.[0-9]+\.[0-9]+.*\) |
+		  | \S+  | .*/dbfast_mirror3/demoDataDir2 | [0-9]+ | unable to retrieve version                                                        |
+		And gpstate should print "Unable to retrieve version data from all segments" to stdout
