@@ -48,8 +48,6 @@
  */
 #define DISPATCH_WAIT_CANCEL_TIMEOUT_MSEC 100
 
-DispatcherCheckPerms_hook_type DispatcherCheckPerms_hook = NULL;
-
 typedef struct CdbDispatchCmdAsync
 {
 
@@ -539,12 +537,6 @@ checkDispatchResult(CdbDispatcherState *ds,
 			{
 				ftsVersion = getFtsVersion();
 				checkSegmentAlive(pParms);
-			}
-
-			/* Hook to check permissions when dispatcher timeout */
-			if (DispatcherCheckPerms_hook && pParms->waitMode == DISPATCH_WAIT_NONE)
-			{
-				(*DispatcherCheckPerms_hook)();
 			}
 
 			if (!wait)

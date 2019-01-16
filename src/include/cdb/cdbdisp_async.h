@@ -18,12 +18,4 @@
 
 extern DispatcherInternalFuncs DispatcherAsyncFuncs;
 
-/*
- * Hook for plugins to check permissions in dispatcher
- * One example is to check whether disk quota limit is 
- * exceeded for the table which is loading data.
- */
-typedef bool (*DispatcherCheckPerms_hook_type) (void);
-extern PGDLLIMPORT DispatcherCheckPerms_hook_type DispatcherCheckPerms_hook;
-
 #endif

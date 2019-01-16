@@ -23,11 +23,6 @@
 #include "cdb/cdbbufferedappend.h"
 #include "utils/guc.h"
 
-/*
- * Hook function in BufferedAppendWrite, used by plugins to call
- * when the size of AO table is increased.
- */
-BufferedAppendWrite_hook_type BufferedAppendWrite_hook = NULL;
 static void BufferedAppendWrite(
 					BufferedAppend *bufferedAppend,
 					bool needsWAL);
@@ -201,8 +196,6 @@ BufferedAppendWrite(BufferedAppend *bufferedAppend, bool needsWAL)
 		   bufferedAppend->filePathName,
 		   bufferedAppend->largeWritePosition,
 		   bytestotal);
-	if (BufferedAppendWrite_hook)
-		(*BufferedAppendWrite_hook)(bufferedAppend);
 
 	/*
 	 * Log each varblock to the XLog. Write to the file first, before

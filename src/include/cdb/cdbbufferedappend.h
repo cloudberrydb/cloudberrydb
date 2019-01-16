@@ -182,8 +182,4 @@ extern void BufferedAppendCompleteFile(
 extern void BufferedAppendFinish(
     BufferedAppend *bufferedAppend);
 
-/* Hook type and declaration in BufferedAppendWrite */
-typedef void (*BufferedAppendWrite_hook_type)(BufferedAppend *bufferedAppend);
-extern PGDLLIMPORT BufferedAppendWrite_hook_type BufferedAppendWrite_hook;
-
 #endif   /* CDBBUFFEREDAPPEND_H */
