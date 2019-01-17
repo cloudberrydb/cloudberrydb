@@ -20,6 +20,7 @@ static void check_external_partition(void);
 static void check_covering_aoindex(void);
 static void check_partition_indexes(void);
 static void check_orphaned_toastrels(void);
+static void check_online_expansion(void);
 
 /*
  *	check_greenplum
@@ -32,10 +33,79 @@ static void check_orphaned_toastrels(void);
 void
 check_greenplum(void)
 {
+	check_online_expansion();
 	check_external_partition();
 	check_covering_aoindex();
 	check_partition_indexes();
 	check_orphaned_toastrels();
+}
+
+/*
+ *	check_online_expansion
+ *
+ *	Check for online expansion status and refuse the upgrade if online
+ *	expansion is in progress.
+ */
+static void
+check_online_expansion(void)
+{
+	bool		expansion = false;
+	int			dbnum;
+
+	/*
+	 * Only need to check cluster expansion status in gpdb6 or later.
+	 */
+	if (GET_MAJOR_VERSION(old_cluster.major_version) < 804)
+		return;
+
+	/*
+	 * We only need to check the cluster expansion status on master.
+	 * On the other hand the status can not be detected correctly on segments.
+	 */
+	if (user_opts.segment_mode == SEGMENT)
+		return;
+
+	prep_status("Checking for online expansion status");
+
+	/* Check if the cluster is in expansion status */
+	for (dbnum = 0; dbnum < old_cluster.dbarr.ndbs; dbnum++)
+	{
+		PGresult   *res;
+		int			ntups;
+		DbInfo	   *active_db = &old_cluster.dbarr.dbs[dbnum];
+		PGconn	   *conn;
+
+		conn = connectToServer(&old_cluster, active_db->db_name);
+		res = executeQueryOrDie(conn,
+								"SELECT true AS expansion "
+								"FROM pg_catalog.gp_distribution_policy d "
+								"JOIN (SELECT count(*) segcount "
+								"      FROM pg_catalog.gp_segment_configuration "
+								"      WHERE content >= 0 and role = 'p') s "
+								"ON d.numsegments <> s.segcount "
+								"LIMIT 1;");
+
+		ntups = PQntuples(res);
+
+		if (ntups > 0)
+			expansion = true;
+
+		PQclear(res);
+		PQfinish(conn);
+
+		if (expansion)
+			break;
+	}
+
+	if (expansion)
+	{
+		pg_log(PG_REPORT, "fatal\n");
+		pg_log(PG_FATAL,
+			   "| Your installation is in progress of online expansion,\n"
+			   "| must complete that job before the upgrade.\n\n");
+	}
+	else
+		check_ok();
 }
 
 /*

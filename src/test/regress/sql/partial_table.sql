@@ -584,3 +584,11 @@ rollback;
 -- to perform distributed commit on the other segments.
 --
 insert into r1 (c4) values (pg_relation_size('r2'));
+
+-- start_ignore
+-- We need to do a cluster expansion which will check if there are partial
+-- tables, we need to drop the partial tables to keep the cluster expansion
+-- run correctly.
+reset search_path;
+drop schema test_partial_table cascade;
+-- end_ignore
