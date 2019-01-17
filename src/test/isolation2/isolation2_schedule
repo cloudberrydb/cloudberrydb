@@ -171,3 +171,6 @@ test: reindex/vacuum_while_reindex_ao_bitmap reindex/vacuum_while_reindex_heap_b
 test: cancel_plpython
 
 test: concurrent_update
+
+# Tests for getting numsegments in utility mode
+test: upgrade_numsegments
