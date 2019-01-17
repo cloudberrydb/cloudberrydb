@@ -6,6 +6,7 @@
 {% set CLI_2_suites = ['analyzedb',
                       'gpperfmon',
                       'gpinitsystem',
+                      'gpstate',
                       'replication_slots'] %}
 ## ======================================================================
 ##   __ _ _ __ ___  _   _ _ __  ___

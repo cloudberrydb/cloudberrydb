@@ -22,7 +22,7 @@ from behave import given, when, then
 from datetime import datetime
 from time import sleep
 
-
+from gppylib.gparray import GpArray, ROLE_PRIMARY, ROLE_MIRROR
 from gppylib.commands.gp import SegmentStart, GpStandbyStart, MasterStop
 from gppylib.commands import gp
 from gppylib.commands.unix import findCmdInPath, Scp
@@ -41,72 +41,91 @@ master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
 if master_data_dir is None:
     raise Exception('Please set MASTER_DATA_DIRECTORY in environment')
 
-@given('the cluster config is generated with HBA_HOSTNAMES "{hba_hostnames_toggle}"')
-def impl(context, hba_hostnames_toggle):
-    stop_database(context)
+def create_local_demo_cluster(context, extra_config='', with_mirrors='true', with_standby='true', num_primaries=None):
+    stop_database_if_started(context)
+
+    if num_primaries is None:
+        num_primaries = os.getenv('NUM_PRIMARY_MIRROR_PAIRS', 3)
+
+    standby_port = ''
+    if with_standby == 'true':
+        standby_port=os.getenv('STANDBY_DEMO_PORT', 16432)
 
     cmd = """
-    cd ../gpAux/gpdemo; \
-        export MASTER_DEMO_PORT={master_port} && \
-        export DEMO_PORT_BASE={port_base} && \
-        export NUM_PRIMARY_MIRROR_PAIRS={num_primary_mirror_pairs} && \
-        export WITH_MIRRORS={with_mirrors} && \
-        ./demo_cluster.sh -d && ./demo_cluster.sh -c && \
-        env EXTRA_CONFIG="HBA_HOSTNAMES={hba_hostnames_toggle}" ONLY_PREPARE_CLUSTER_ENV=true ./demo_cluster.sh
+        cd ../gpAux/gpdemo &&
+        export MASTER_DEMO_PORT={master_port} &&
+        export DEMO_PORT_BASE={port_base} &&
+        export STANDBY_DEMO_PORT={standby_port} &&
+        export NUM_PRIMARY_MIRROR_PAIRS={num_primary_mirror_pairs} &&
+        export WITH_STANDBY={with_standby} &&
+        export WITH_MIRRORS={with_mirrors} &&
+        ./demo_cluster.sh -d && ./demo_cluster.sh -c &&
+        {extra_config} ./demo_cluster.sh
     """.format(master_port=os.getenv('MASTER_PORT', 15432),
                port_base=os.getenv('PORT_BASE', 25432),
-               num_primary_mirror_pairs=os.getenv('NUM_PRIMARY_MIRROR_PAIRS', 3),
-               with_mirrors='true',
-               hba_hostnames_toggle=hba_hostnames_toggle)
-
+               standby_port=standby_port,
+               num_primary_mirror_pairs=num_primaries,
+               with_mirrors=with_mirrors,
+               with_standby=with_standby,
+               extra_config=extra_config)
     run_command(context, cmd)
 
     if context.ret_code != 0:
         raise Exception('%s' % context.error_message)
+
+def _cluster_contains_standard_demo_segments():
+    """
+    Returns True iff a cluster contains a master, a standby, and three
+    primary/mirror pairs, and each segment is in the correct role.
+    """
+    # We expect four pairs -- one for each demo cluster content ID. The set
+    # contains a (content, role, preferred_role) tuple for each segment.
+    expected_segments = set()
+    for contentid in [-1, 0, 1, 2]:
+        expected_segments.add( (contentid, 'p', 'p') )
+        expected_segments.add( (contentid, 'm', 'm') )
+
+    # Now check to see if the actual segments match expectations.
+    gparray = GpArray.initFromCatalog(dbconn.DbURL())
+    segments = gparray.getDbList()
+
+    actual_segments = set()
+    for seg in segments:
+        actual_segments.add( (seg.content, seg.role, seg.preferred_role) )
+
+    return expected_segments == actual_segments
+
+@given('a standard local demo cluster is running')
+def impl(context):
+    if (check_database_is_running(context)
+        and master_data_dir.endswith("demoDataDir-1")
+        and _cluster_contains_standard_demo_segments()
+        and are_segments_running()):
+        return
+
+    create_local_demo_cluster(context, num_primaries=3)
+
+@given('a standard local demo cluster is created')
+def impl(context):
+    create_local_demo_cluster(context, num_primaries=3)
+
+@given('the cluster config is generated with HBA_HOSTNAMES "{hba_hostnames_toggle}"')
+def impl(context, hba_hostnames_toggle):
+    extra_config = 'env EXTRA_CONFIG="HBA_HOSTNAMES={}" ONLY_PREPARE_CLUSTER_ENV=true'.format(hba_hostnames_toggle)
+    create_local_demo_cluster(context, extra_config=extra_config)
 
 @given('the cluster config is generated with data_checksums "{checksum_toggle}"')
 def impl(context, checksum_toggle):
-    stop_database(context)
-
-    cmd = """
-    cd ../gpAux/gpdemo; \
-        export MASTER_DEMO_PORT={master_port} && \
-        export DEMO_PORT_BASE={port_base} && \
-        export NUM_PRIMARY_MIRROR_PAIRS={num_primary_mirror_pairs} && \
-        export WITH_MIRRORS={with_mirrors} && \
-        ./demo_cluster.sh -d && ./demo_cluster.sh -c && \
-        env EXTRA_CONFIG="HEAP_CHECKSUM={checksum_toggle}" ONLY_PREPARE_CLUSTER_ENV=true ./demo_cluster.sh
-    """.format(master_port=os.getenv('MASTER_PORT', 15432),
-               port_base=os.getenv('PORT_BASE', 25432),
-               num_primary_mirror_pairs=os.getenv('NUM_PRIMARY_MIRROR_PAIRS', 3),
-               with_mirrors='true',
-               checksum_toggle=checksum_toggle)
-    run_command(context, cmd)
-
-    if context.ret_code != 0:
-        raise Exception('%s' % context.error_message)
+    extra_config = 'env EXTRA_CONFIG="HEAP_CHECKSUM={}" ONLY_PREPARE_CLUSTER_ENV=true'.format(checksum_toggle)
+    create_local_demo_cluster(context, extra_config=extra_config)
 
 @given('the cluster is generated with "{num_primaries}" primaries only')
 def impl(context, num_primaries):
-    cmd = """
-    cd ../gpAux/gpdemo; \
-        export MASTER_DEMO_PORT={master_port} && \
-        export DEMO_PORT_BASE={port_base} && \
-        export NUM_PRIMARY_MIRROR_PAIRS={num_primary_mirror_pairs} && \
-        export WITH_MIRRORS=false && \
-        export WITH_STANDBY=false && \
-        ./demo_cluster.sh -d && ./demo_cluster.sh
-    """.format(master_port=os.getenv('MASTER_PORT', 15432),
-               port_base=os.getenv('PORT_BASE', 25432),
-               num_primary_mirror_pairs=os.getenv('NUM_PRIMARY_MIRROR_PAIRS', num_primaries))
-
     os.environ['PGPORT'] = '15432'
     demoDir = os.path.abspath("%s/../gpAux/gpdemo" % os.getcwd())
     os.environ['MASTER_DATA_DIRECTORY'] = "%s/datadirs/qddir/demoDataDir-1" % demoDir
-    run_command(context, cmd)
 
-    if context.ret_code != 0:
-        raise Exception('%s' % context.error_message)
+    create_local_demo_cluster(context, with_mirrors='false', with_standby='false', num_primaries=num_primaries)
 
     context.gpexpand_mirrors_enabled = False
 
@@ -765,28 +784,45 @@ def impl(context):
     context.killed_seg_port = seg_port
 
 
-@given('user kills all primary processes')
-@when('user kills all primary processes')
-@then('user kills all primary processes')
-def impl(context):
+@given('user kills all {segment_type} processes')
+@when('user kills all {segment_type} processes')
+@then('user kills all {segment_type} processes')
+def impl(context, segment_type):
+    context.execute_steps(
+        u'given user kills all {} processes with SIGTERM'.format(segment_type)
+    )
+
+@given('user kills all {segment_type} processes with {signal_name}')
+@when('user kills all {segment_type} processes with {signal_name}')
+@then('user kills all {segment_type} processes with {signal_name}')
+def impl(context, segment_type, signal_name):
+    # Look up the signal code by name. This is easier in Python 3, with the
+    # introduction of signal.Signals, but for now we do it the hard way.
+    if (not signal_name.startswith('SIG')) or signal_name.startswith('SIG_'):
+        raise Exception("'{}' is not a valid signal name".format(signal_name))
+    try:
+        signal_code = signal.__dict__[signal_name]
+    except KeyError:
+        raise Exception("'{}' is not a valid signal name".format(signal_name))
+
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    for seg in gparray.getDbList():
-        if seg.isSegmentPrimary():
-            seg_data_dir = seg.getSegmentDataDirectory()
-            seg_host = seg.getSegmentHostName()
-            seg_port = seg.getSegmentPort()
+    role = ROLE_PRIMARY if segment_type == 'primary' else ROLE_MIRROR
+    filtered_segments = filter(lambda seg: seg.preferred_role == role and seg.content != -1, gparray.getDbList())
+    for seg in filtered_segments:
+        seg_data_dir = seg.getSegmentDataDirectory()
+        seg_host = seg.getSegmentHostName()
 
-            pid = get_pid_for_segment(seg_data_dir, seg_host)
-            if pid is None:
-                raise Exception('Unable to locate segment "%s" on host "%s"' % (seg_data_dir, seg_host))
+        pid = get_pid_for_segment(seg_data_dir, seg_host)
+        if pid is None:
+            raise Exception('Unable to locate segment "%s" on host "%s"' % (seg_data_dir, seg_host))
 
-            kill_process(int(pid), seg_host, signal.SIGKILL)
+        kill_process(int(pid), seg_host, signal_code)
 
-            has_process_eventually_stopped(pid, seg_host)
+        has_process_eventually_stopped(pid, seg_host)
 
-            pid = get_pid_for_segment(seg_data_dir, seg_host)
-            if pid is not None:
-                raise Exception('Unable to kill postmaster with pid "%d" datadir "%s"' % (pid, seg_data_dir))
+        pid = get_pid_for_segment(seg_data_dir, seg_host)
+        if pid is not None:
+            raise Exception('Unable to kill postmaster with pid "%d" datadir "%s"' % (pid, seg_data_dir))
 
 
 @given('user can start transactions')
@@ -2299,6 +2335,7 @@ def impl(context):
         return
 
 @given('an FTS probe is triggered')
+@when('an FTS probe is triggered')
 def impl(context):
     with dbconn.connect(dbconn.DbURL(dbname='postgres')) as conn:
         dbconn.execSQLForSingleton(conn, "SELECT gp_request_fts_probe_scan()")
