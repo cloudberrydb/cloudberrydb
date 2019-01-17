@@ -39,8 +39,19 @@ export PATH
 
 # Adjust these paths for your environment
 TESTROOT=$PWD/tmp_check_$TEST_SUITE
-TEST_MASTER=$TESTROOT/data_master
-TEST_STANDBY=$TESTROOT/data_standby
+TEST_MASTER=$TESTROOT/$TESTNAME/data_master
+TEST_STANDBY=$TESTROOT/$TESTNAME/data_standby
+
+# Remove data dirs from previous passing tests. Only retain the ones that
+# failed. We parse regression.out to determine which previous tests directories
+# can be deleted. Unfortunately this has the effect of leaving the last test
+# untouched. We could check the last test inside the Makefile if we wish to.
+if [ -f regression.out ]; then
+	PASSED_TEST=`tail -2 regression.out | grep -w "ok" | cut -d " " -f2`
+	if [ ! -z $PASSED_TEST ]; then
+		rm -rf $TESTROOT/$PASSED_TEST
+	fi
+fi
 
 # Create the root folder for test data
 mkdir -p $TESTROOT

@@ -13,7 +13,7 @@ TESTNAME=pg_xlog_symlink
 # Change location of pg_xlog and symlink to new location
 function before_master
 {
-	TEST_XLOG=$TESTROOT/pg_xlog
+	TEST_XLOG=$TESTROOT/$TESTNAME/pg_xlog
 	rm -rf $TEST_XLOG
 	mkdir $TEST_XLOG
 	cp -r $TEST_MASTER/pg_xlog/* $TEST_XLOG/
