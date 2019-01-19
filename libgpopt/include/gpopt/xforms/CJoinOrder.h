@@ -58,12 +58,15 @@ namespace gpopt
 				
 				// associated conjunct
 				CExpression *m_pexpr;
+
+				// tracks if the associated join is a LOJ
+				BOOL m_is_loj;
 				
 				// a flag to mark edge as used
 				BOOL m_fUsed;
 
 				// ctor
-				SEdge(IMemoryPool *mp, CExpression *pexpr);
+				SEdge(IMemoryPool *mp, CExpression *pexpr, BOOL is_loj);
 				
 				// dtor
 				~SEdge();
