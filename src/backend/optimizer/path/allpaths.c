@@ -113,7 +113,7 @@ static void check_output_expressions(Query *subquery,
 						 pushdown_safety_info *safetyInfo);
 static void compare_tlist_datatypes(List *tlist, List *colTypes,
 						pushdown_safety_info *safetyInfo);
-static bool qual_is_pushdown_safe(Query *subquery, RangeTblEntry *rte, Index rti, Node *qual,
+static bool qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
 					  pushdown_safety_info *safetyInfo);
 static void subquery_push_qual(Query *subquery,
 				   RangeTblEntry *rte, Index rti, Node *qual);
@@ -2103,7 +2103,7 @@ push_down_restrict(PlannerInfo *root, RelOptInfo *rel,
 			Node	   *clause = (Node *) rinfo->clause;
 
 			if (!rinfo->pseudoconstant &&
-				qual_is_pushdown_safe(subquery, rte, rti, clause, &safetyInfo))
+				qual_is_pushdown_safe(subquery, rti, clause, &safetyInfo))
 			{
 				/* Push it down */
 				subquery_push_qual(subquery, rte, rti, clause);
@@ -2182,6 +2182,12 @@ subquery_is_pushdown_safe(Query *subquery, Query *topquery,
 	/* Check point 1 */
 	if (subquery->limitOffset != NULL || subquery->limitCount != NULL)
 		return false;
+
+#if 0
+	/* Check point 2 */
+	if (subquery->hasWindowFuncs)
+		return false;
+#endif
 
 	/* Targetlist must not contain SRF */
 	if (expression_returns_set((Node *) subquery->targetList))
@@ -2405,82 +2411,6 @@ compare_tlist_datatypes(List *tlist, List *colTypes,
 }
 
 /*
- * does qual include a reference to window function node?
- */
-static bool
-qual_contains_window_function(Query *subquery, RangeTblEntry *rte, Index rti, Node *qual)
-{
-	bool result = false;
-	if (NULL != subquery && NIL != subquery->windowClause)
-	{
-		/*
-		 * qual needs to be resolved first to map qual columns
-		 * to the underlying set of produced columns,
-		 * e.g., if we work on a setop child
-		 */
-		Node	   *qualNew;
-
-		qualNew = ReplaceVarsFromTargetList(qual, rti, 0, rte,
-											subquery->targetList,
-											REPLACEVARS_REPORT_ERROR, 0,
-											NULL);
-
-		result = contain_window_function(qualNew);
-		pfree(qualNew);
-	}
-
-	return result;
-}
-
-
-/*
- * is a particular qual safe to push down under set operation?
- * if the qual contains references to windowref node, its not
- * safe to push it down.
- */
-static bool
-qual_is_pushdown_safe_set_operation(Query *query, RangeTblEntry *rte, Index rti, Node *qual)
-{
-
-	Query *subquery = NULL;
-	/*
-	 * In case of CTE, cte->query is passed in as query, so the vars
-	 * should be resolved via the input query
-	 */
-	if (rte->rtekind == RTE_CTE)
-		subquery = query;
-	else
-		subquery = rte->subquery;
-	Assert(subquery);
-
-	SetOperationStmt *setop = (SetOperationStmt *)subquery->setOperations;
-	Assert(setop);
-
-	/*
-	 * for queries of the form:
-	 *   SELECT * from (SELECT max(i) over () as w from X Union Select 1 as w) as foo where w > 0
-	 * the qual (w > 0) is not push_down_safe since it uses a window ref
-	 *
-	 * we check if this is the case for either left or right set operation inputs.
-	 * The check for window function is only at the top level of the set
-	 * operation inputs. It does not recurse deep inside the set operation
-	 * child for resolving the qual reference for queries of the form:
-	 *  SELECT w FROM ( (SELECT w FROM Y, Z, (SELECT max(i) over () as w from X) AS bar) UNION SELECT 1 AS w) AS foo WHERE w > 0;
-	 *
-	 */
-	RangeTblEntry *rteLeft = rt_fetch(((RangeTblRef *)setop->larg)->rtindex, subquery->rtable);
-	RangeTblEntry *rteRight = rt_fetch(((RangeTblRef *)setop->rarg)->rtindex, subquery->rtable);
-	if (qual_contains_window_function(rteLeft->subquery, rte, rti, qual) ||
-		qual_contains_window_function(rteRight->subquery, rte, rti, qual))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-
-/*
  * qual_is_pushdown_safe - is a particular qual safe to push down?
  *
  * qual is a restriction clause applying to the given subquery (whose RTE
@@ -2504,7 +2434,7 @@ qual_is_pushdown_safe_set_operation(Query *query, RangeTblEntry *rte, Index rti,
  * found to be unsafe to reference by subquery_is_pushdown_safe().
  */
 static bool
-qual_is_pushdown_safe(Query *subquery, RangeTblEntry *rte, Index rti, Node *qual,
+qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
 					  pushdown_safety_info *safetyInfo)
 {
 	bool		safe = true;
@@ -2530,11 +2460,7 @@ qual_is_pushdown_safe(Query *subquery, RangeTblEntry *rte, Index rti, Node *qual
 	 * the moment we could never see any in a qual anyhow.  (The same applies
 	 * to aggregates, which we check for in pull_var_clause below.)
 	 */
-	if (NULL != subquery->setOperations &&
-		!qual_is_pushdown_safe_set_operation(subquery, rte, rti, qual))
-	{
-		return false;
-	}
+	Assert(!contain_window_function(qual));
 
 	/*
 	 * Examine all Vars used in clause; since it's a restriction clause, all
