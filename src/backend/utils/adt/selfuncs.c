@@ -4600,7 +4600,7 @@ static void
 examine_simple_variable(PlannerInfo *root, Var *var,
 						VariableStatData *vardata)
 {
-	RangeTblEntry *rte = rt_fetch(var->varno, root->parse->rtable);
+	RangeTblEntry *rte = root->simple_rte_array[var->varno];
 
 	Assert(IsA(rte, RangeTblEntry));
 
@@ -4648,21 +4648,23 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 	}
 	else if (rte->inh)
 	{
+		RelOptInfo *rel = root->simple_rel_array[var->varno];
+
 		/*
 		 * If gp_statistics_pullup_from_child_partition is set, we attempt to pull up statistics from
 		 * the largest child partition in an inherited or a partitioned table.
 		 */
 		if (gp_statistics_pullup_from_child_partition  &&
-			vardata->rel->cheapest_total_path != NULL)
+			rel->cheapest_total_path != NULL)
 		{
-			RelOptInfo *childrel = largest_child_relation(root, vardata->rel);
+			RelOptInfo *childrel = largest_child_relation(root, rel);
 			vardata->statsTuple = NULL;
 
 			if (childrel)
 			{
 				RangeTblEntry *child_rte = NULL;
 
-				child_rte = rt_fetch(childrel->relid, root->parse->rtable);
+				child_rte = root->simple_rte_array[childrel->relid];
 
 				Assert(child_rte != NULL);
 				const char *attname = get_relid_attribute_name(rte->relid, var->varattno);
