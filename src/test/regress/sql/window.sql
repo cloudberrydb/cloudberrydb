@@ -320,6 +320,16 @@ SELECT * FROM
    FROM empsalary) emp
 WHERE depname = 'sales';
 
+-- pushdown is unsafe because the subquery contains window functions and the qual is volatile:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY depname) depsalary,
+          min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales' OR RANDOM() > 0.5;
+
+
 -- cleanup
 DROP TABLE empsalary;
 

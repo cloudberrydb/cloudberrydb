@@ -1119,6 +1119,89 @@ FROM empsalary;
                            ->  Sort
                                  Sort Key: depname, salary, enroll_date
                                  ->  Seq Scan on empsalary
+ Optimizer: PQO version 3.23.0
+(14 rows)
+
+-- Test pushdown of quals into a subquery containing window functions
+-- pushdown is safe because all PARTITION BY clauses include depname:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY depname) depsalary,
+          min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales';
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Result
+         ->  WindowAgg
+               Partition By: (((depname)::text || 'A'::text)), depname
+               ->  Sort
+                     Sort Key: (((depname)::text || 'A'::text)), depname
+                     ->  WindowAgg
+                           Partition By: depname
+                           ->  Result
+                                 ->  Sort
+                                       Sort Key: depname
+                                       ->  Seq Scan on empsalary
+                                             Filter: ((depname)::text = 'sales'::text)
+ Optimizer: PQO version 3.23.0
+(14 rows)
+
+-- pushdown is unsafe because there's a PARTITION BY clause without depname:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY enroll_date) enroll_salary,
+          min(salary) OVER (PARTITION BY depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales';
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)
+   ->  WindowAgg
+         Partition By: depname
+         ->  Sort
+               Sort Key: depname
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: depname
+                     ->  Result
+                           Filter: ((depname)::text = 'sales'::text)
+                           ->  WindowAgg
+                                 Partition By: enroll_date
+                                 ->  Sort
+                                       Sort Key: enroll_date
+                                       ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                                             Hash Key: enroll_date
+                                             ->  Seq Scan on empsalary
+ Optimizer: PQO version 3.23.0
+(17 rows)
+
+-- pushdown is unsafe because the subquery contains window functions and the qual is volatile:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY depname) depsalary,
+          min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales' OR RANDOM() > 0.5;
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Result
+         ->  WindowAgg
+               Partition By: (((depname)::text || 'A'::text)), depname
+               ->  Sort
+                     Sort Key: (((depname)::text || 'A'::text)), depname
+                     ->  WindowAgg
+                           Partition By: depname
+                           ->  Result
+                                 ->  Sort
+                                       Sort Key: depname
+                                       ->  Seq Scan on empsalary
+                                             Filter: (((depname)::text = 'sales'::text) OR (random() > 0.5::double precision))
+ Optimizer: PQO version 3.23.0
 (14 rows)
 
 -- cleanup
