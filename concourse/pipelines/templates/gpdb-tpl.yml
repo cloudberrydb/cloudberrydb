@@ -310,7 +310,10 @@ resource_types:
   type: docker-image
   source:
     repository: ljfranklin/terraform-resource
-
+- name: gcs
+  type: docker-image
+  source:
+    repository: frodenas/gcs-resource
 ## ======================================================================
 ##  _ __ ___  ___  ___  _   _ _ __ ___ ___  ___
 ## | '__/ _ \/ __|/ _ \| | | | '__/ __/ _ \/ __|
@@ -419,6 +422,38 @@ resources:
   source:
     branch: ((debian-release-git-branch))
     uri: ((debian-release-git-remote))
+
+{% endif %}
+{% if "centos6" in os_types %}
+- name: libquicklz-centos6
+  type: gcs
+  source:
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    regexp: centos6/libquicklz-(\d.*)\.el6\.x86_64\.rpm
+
+- name: libquicklz-devel-centos6
+  type: gcs
+  source:
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    regexp: centos6/libquicklz-devel-(\d.*)\.el6\.x86_64\.rpm
+
+{% endif %}
+{% if "centos7" in os_types %}
+- name: libquicklz-centos7
+  type: gcs
+  source:
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    regexp: centos7/libquicklz-(\d.*)\.el7\.x86_64\.rpm
+
+- name: libquicklz-devel-centos7
+  type: gcs
+  source:
+    bucket: ((pivotal-gp-internal-artifacts-gcs-bucket))
+    json_key: ((gcs-key))
+    regexp: centos7/libquicklz-devel-(\d.*)\.el7\.x86_64\.rpm
 
 {% endif %}
 {% if "centos6" in os_types or "sles" in os_types or "aix7" in os_types %}
@@ -801,6 +836,10 @@ jobs:
       trigger: ((reduced-frequency-trigger-flag))
     - get: gpaddon_src
     - get: centos6-build-gpdb6
+    - get: libquicklz-installer
+      resource: libquicklz-centos6
+    - get: libquicklz-devel-installer
+      resource: libquicklz-devel-centos6
   - task: sync_tools
     file: gpdb_src/concourse/tasks/sync_tools.yml
     image: centos6-build-gpdb6
@@ -837,6 +876,10 @@ jobs:
       trigger: ((gpdb_src-trigger-flag))
     - get: gpaddon_src
     - get: centos7-build-gpdb6
+    - get: libquicklz-installer
+      resource: libquicklz-centos7
+    - get: libquicklz-devel-installer
+      resource: libquicklz-devel-centos7
   - task: sync_tools
     file: gpdb_src/concourse/tasks/sync_tools.yml
     image: centos7-build-gpdb6

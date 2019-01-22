@@ -15,6 +15,12 @@ function expand_glob_ensure_exists() {
   echo "${glob[0]}"
 }
 
+function install_deps_for_centos() {
+  # quicklz is proprietary code that we cannot put in our public Docker images.
+  rpm -i libquicklz-installer/libquicklz-*.rpm
+  rpm -i libquicklz-devel-installer/libquicklz-*.rpm
+}
+
 function prep_env_for_centos() {
   case "${TARGET_OS_VERSION}" in
     6)
@@ -152,6 +158,7 @@ function export_gpdb_win32_ccl() {
 function _main() {
   case "${TARGET_OS}" in
    centos)
+      install_deps_for_centos
       prep_env_for_centos
       ;;
     sles)
