@@ -1171,9 +1171,6 @@ inheritance_planner(PlannerInfo *root)
 	{
 		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
 
-		/*
-		 * GPDB_94_STABLE_MERGE_FIXME: Is CTE handled right here?
-		 */
 		if (rte->rtekind == RTE_SUBQUERY || rte->rtekind == RTE_CTE)
 			subqueryRTindexes = bms_add_member(subqueryRTindexes, rti);
 		rti++;
