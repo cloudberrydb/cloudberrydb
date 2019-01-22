@@ -2183,24 +2183,18 @@ subquery_is_pushdown_safe(Query *subquery, Query *topquery,
 	if (subquery->limitOffset != NULL || subquery->limitCount != NULL)
 		return false;
 
-#if 0
 	/* Check point 2 */
 	if (subquery->hasWindowFuncs)
-		return false;
-#endif
-
-	/* Targetlist must not contain SRF */
-	if (expression_returns_set((Node *) subquery->targetList))
-		return false;
-
-	/* See point 5. */
-	if (subquery->groupClause != NULL &&
-		contain_extended_grouping(subquery->groupClause))
 		return false;
 
 	/* Check point 4 */
 	if (subquery->distinctClause)
 		safetyInfo->unsafeVolatile = true;
+
+	/* Check point 5 */
+	if (subquery->groupClause != NULL &&
+		contain_extended_grouping(subquery->groupClause))
+		return false;
 
 	/*
 	 * If we're at a leaf query, check for unsafe expressions in its target
@@ -2335,37 +2329,11 @@ check_output_expressions(Query *subquery, pushdown_safety_info *safetyInfo)
 			continue;
 		}
 
-
 		/* Refuse subplans */
 		if (contain_subplans((Node *) tle->expr))
 		{
 			safetyInfo->unsafeColumns[tle->resno] = true;
 			break;
-		}
-
-		/* MPP-19244:
-		 * if subquery has WINDOW clause, it is safe to push-down quals that
-		 * use columns included in the Partition-By clauses of every OVER
-		 * clause in the subquery
-		 */
-		if (subquery->windowClause != NIL)
-		{
-			ListCell   *lc;
-
-			foreach(lc, subquery->windowClause)
-			{
-				WindowClause *wc = (WindowClause *) lfirst(lc);
-
-				if (!targetIsInSortList(tle, InvalidOid, wc->partitionClause))
-				{
-					/*
-					 * qual's columns are not included in Partition-By clause,
-					 * so fail
-					 */
-					safetyInfo->unsafeColumns[tle->resno] = true;
-					break;
-				}
-			}
 		}
 	}
 }
