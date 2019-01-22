@@ -164,31 +164,31 @@ class ConfExpSegCmd(Command):
                     raise
 
                 logger.info("Updating %s/postgresql.conf" % self.datadir)
-                modifyPostgresqlConfCmd = ModifyPostgresqlConfSetting('Updating %s/postgresql.conf' % self.datadir,
-                                                                      self.datadir + '/postgresql.conf',
-                                                                      'port', self.port, optType='number')
+                modifyConfCmd = ModifyConfSetting('Updating %s/postgresql.conf' % self.datadir,
+                                                  self.datadir + '/postgresql.conf',
+                                                  'port', self.port, optType='number')
                 try:
-                    modifyPostgresqlConfCmd.run(validateAfter=True)
+                    modifyConfCmd.run(validateAfter=True)
                 except:
-                    self.set_results(modifyPostgresqlConfCmd.get_results())
+                    self.set_results(modifyConfCmd.get_results())
                     raise
 
-                modifyPostgresqlConfCmd = ModifyPostgresqlConfSetting('Updating %s/postgresql.conf' % self.datadir,
+                modifyConfCmd = ModifyConfSetting('Updating %s/postgresql.conf' % self.datadir,
                                                                       self.datadir + '/postgresql.conf',
                                                                       'gp_contentid', self.contentid, optType='number')
                 try:
-                    modifyPostgresqlConfCmd.run(validateAfter=True)
+                    modifyConfCmd.run(validateAfter=True)
                 except:
-                    self.set_results(modifyPostgresqlConfCmd.get_results())
+                    self.set_results(modifyConfCmd.get_results())
                     raise
 
-                modifyPostgresqlConfCmd = ModifyPostgresqlConfSetting('Updating %s/internal.auto.conf' % self.datadir,
-                                                                      self.datadir + '/internal.auto.conf',
-                                                                      'gp_dbid', self.dbid, optType='number')
+                modifyConfCmd = ModifyConfSetting('Updating %s/internal.auto.conf' % self.datadir,
+                                                  self.datadir + '/internal.auto.conf',
+                                                  'gp_dbid', self.dbid, optType='number')
                 try:
-                    modifyPostgresqlConfCmd.run(validateAfter=True)
+                    modifyConfCmd.run(validateAfter=True)
                 except:
-                    self.set_results(modifyPostgresqlConfCmd.get_results())
+                    self.set_results(modifyConfCmd.get_results())
                     raise
 
             # We might need to stop the segment if the last setup failed past this point
