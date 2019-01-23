@@ -121,3 +121,138 @@ SELECT * FROM altable ORDER BY 1;
 -- (There used to be a quoting bug in the internal query this issues.)
 create table "foo'bar" (id int4, t text);
 alter table "foo'bar" alter column t type integer using length(t);
+--
+-- ADD/DROP/ALTER COLUMN on root partition is approved.
+--
+-- Heap table
+DROP TABLE IF EXISTS test_part_col;
+NOTICE:  table "test_part_col" does not exist, skipping
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+DISTRIBUTED BY(a)
+PARTITION BY RANGE (b)
+( START (1) END (2) EVERY (1),
+    DEFAULT PARTITION other_b);
+NOTICE:  CREATE TABLE will create partition "test_part_col_1_prt_other_b" for table "test_part_col"
+NOTICE:  CREATE TABLE will create partition "test_part_col_1_prt_2" for table "test_part_col"
+ALTER TABLE ONLY test_part_col ADD COLUMN f int; --error
+ERROR:  can't add a column to "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT; --error
+ERROR:  can't alter a column datatype of "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f; --error
+ERROR:  can't drop a column from "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col DROP COLUMN f;
+ALTER TABLE ONLY test_part_col_1_prt_other_b ADD COLUMN f int;
+ERROR:  can't add a column to "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b ADD COLUMN f int;
+ERROR:  can't add a column to "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+ALTER TABLE ONLY test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT; --error
+ERROR:  can't alter a column datatype of "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT;
+ERROR:  can't alter a column datatype of "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+ALTER TABLE ONLY test_part_col_1_prt_other_b DROP COLUMN e; --error
+ERROR:  can't drop a column from "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b DROP COLUMN e;
+ERROR:  can't drop a column from "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+DROP TABLE test_part_col;
+-- Non-partition heap table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int) DISTRIBUTED BY(a);
+ALTER TABLE ONLY test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f;
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE test_part_col DROP COLUMN f;
+DROP TABLE test_part_col;
+-- AO table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true)
+DISTRIBUTED BY(a)
+PARTITION BY RANGE (b)
+( START (1) END (2) EVERY (1),
+    DEFAULT PARTITION other_b);
+NOTICE:  CREATE TABLE will create partition "test_part_col_1_prt_other_b" for table "test_part_col"
+NOTICE:  CREATE TABLE will create partition "test_part_col_1_prt_2" for table "test_part_col"
+ALTER TABLE ONLY test_part_col ADD COLUMN f int; --error
+ERROR:  can't add a column to "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT; --error
+ERROR:  can't alter a column datatype of "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f; --error
+ERROR:  can't drop a column from "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col DROP COLUMN f;
+ALTER TABLE ONLY test_part_col_1_prt_other_b ADD COLUMN f int;
+ERROR:  can't add a column to "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b ADD COLUMN f int;
+ERROR:  can't add a column to "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+ALTER TABLE ONLY test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT; --error
+ERROR:  can't alter a column datatype of "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT;
+ERROR:  can't alter a column datatype of "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+ALTER TABLE ONLY test_part_col_1_prt_other_b DROP COLUMN e; --error
+ERROR:  can't drop a column from "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b DROP COLUMN e;
+ERROR:  can't drop a column from "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+DROP TABLE test_part_col;
+-- Non-partition AO table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true) DISTRIBUTED BY(a);
+ALTER TABLE ONLY test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f;
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE test_part_col DROP COLUMN f;
+DROP TABLE test_part_col;
+-- AOCS table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true, orientation=column)
+DISTRIBUTED BY(a)
+PARTITION BY RANGE (b)
+( START (1) END (2) EVERY (1),
+    DEFAULT PARTITION other_b);
+NOTICE:  CREATE TABLE will create partition "test_part_col_1_prt_other_b" for table "test_part_col"
+NOTICE:  CREATE TABLE will create partition "test_part_col_1_prt_2" for table "test_part_col"
+ALTER TABLE ONLY test_part_col ADD COLUMN f int; --error
+ERROR:  can't add a column to "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT; --error
+ERROR:  can't alter a column datatype of "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f; --error
+ERROR:  can't drop a column from "test_part_col"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col DROP COLUMN f;
+ALTER TABLE ONLY test_part_col_1_prt_other_b ADD COLUMN f int;
+ERROR:  can't add a column to "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b ADD COLUMN f int;
+ERROR:  can't add a column to "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+ALTER TABLE ONLY test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT; --error
+ERROR:  can't alter a column datatype of "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT;
+ERROR:  can't alter a column datatype of "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+ALTER TABLE ONLY test_part_col_1_prt_other_b DROP COLUMN e; --error
+ERROR:  can't drop a column from "test_part_col_1_prt_other_b"; it is a partitioned table or part thereof
+ALTER TABLE test_part_col_1_prt_other_b DROP COLUMN e;
+ERROR:  can't drop a column from "test_part_col_1_prt_other_b"; it is part of a partitioned table
+HINT:  You may be able to perform the operation on the partitioned table as a whole.
+DROP TABLE test_part_col;
+-- Non-partition AOCS table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true, orientation=column) DISTRIBUTED BY(a);
+ALTER TABLE ONLY test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f;
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE test_part_col DROP COLUMN f;
+DROP TABLE test_part_col;

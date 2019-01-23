@@ -81,3 +81,131 @@ SELECT * FROM altable ORDER BY 1;
 -- (There used to be a quoting bug in the internal query this issues.)
 create table "foo'bar" (id int4, t text);
 alter table "foo'bar" alter column t type integer using length(t);
+
+--
+-- ADD/DROP/ALTER COLUMN on root partition is approved.
+--
+-- Heap table
+DROP TABLE IF EXISTS test_part_col;
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+DISTRIBUTED BY(a)
+PARTITION BY RANGE (b)
+( START (1) END (2) EVERY (1),
+    DEFAULT PARTITION other_b);
+
+ALTER TABLE ONLY test_part_col ADD COLUMN f int; --error
+ALTER TABLE test_part_col ADD COLUMN f int;
+
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT; --error
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+
+ALTER TABLE ONLY test_part_col DROP COLUMN f; --error
+ALTER TABLE test_part_col DROP COLUMN f;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b ADD COLUMN f int;
+ALTER TABLE test_part_col_1_prt_other_b ADD COLUMN f int;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT; --error
+ALTER TABLE test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b DROP COLUMN e; --error
+ALTER TABLE test_part_col_1_prt_other_b DROP COLUMN e;
+
+DROP TABLE test_part_col;
+
+-- Non-partition heap table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int) DISTRIBUTED BY(a);
+
+ALTER TABLE ONLY test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f;
+
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE test_part_col DROP COLUMN f;
+
+DROP TABLE test_part_col;
+
+-- AO table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true)
+DISTRIBUTED BY(a)
+PARTITION BY RANGE (b)
+( START (1) END (2) EVERY (1),
+    DEFAULT PARTITION other_b);
+
+ALTER TABLE ONLY test_part_col ADD COLUMN f int; --error
+ALTER TABLE test_part_col ADD COLUMN f int;
+
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT; --error
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+
+ALTER TABLE ONLY test_part_col DROP COLUMN f; --error
+ALTER TABLE test_part_col DROP COLUMN f;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b ADD COLUMN f int;
+ALTER TABLE test_part_col_1_prt_other_b ADD COLUMN f int;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT; --error
+ALTER TABLE test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b DROP COLUMN e; --error
+ALTER TABLE test_part_col_1_prt_other_b DROP COLUMN e;
+
+DROP TABLE test_part_col;
+
+-- Non-partition AO table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true) DISTRIBUTED BY(a);
+
+ALTER TABLE ONLY test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f;
+
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE test_part_col DROP COLUMN f;
+
+DROP TABLE test_part_col;
+
+-- AOCS table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true, orientation=column)
+DISTRIBUTED BY(a)
+PARTITION BY RANGE (b)
+( START (1) END (2) EVERY (1),
+    DEFAULT PARTITION other_b);
+
+ALTER TABLE ONLY test_part_col ADD COLUMN f int; --error
+ALTER TABLE test_part_col ADD COLUMN f int;
+
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT; --error
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+
+ALTER TABLE ONLY test_part_col DROP COLUMN f; --error
+ALTER TABLE test_part_col DROP COLUMN f;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b ADD COLUMN f int;
+ALTER TABLE test_part_col_1_prt_other_b ADD COLUMN f int;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT; --error
+ALTER TABLE test_part_col_1_prt_other_b ALTER COLUMN e TYPE TEXT;
+
+ALTER TABLE ONLY test_part_col_1_prt_other_b DROP COLUMN e; --error
+ALTER TABLE test_part_col_1_prt_other_b DROP COLUMN e;
+
+DROP TABLE test_part_col;
+
+-- Non-partition AOCS table
+CREATE TABLE test_part_col(a int, b int, c int, d int, e int)
+WITH (appendonly=true, orientation=column) DISTRIBUTED BY(a);
+
+ALTER TABLE ONLY test_part_col ADD COLUMN f int;
+ALTER TABLE ONLY test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE ONLY test_part_col DROP COLUMN f;
+
+ALTER TABLE test_part_col ADD COLUMN f int;
+ALTER TABLE test_part_col ALTER COLUMN f TYPE TEXT;
+ALTER TABLE test_part_col DROP COLUMN f;
+
+DROP TABLE test_part_col;

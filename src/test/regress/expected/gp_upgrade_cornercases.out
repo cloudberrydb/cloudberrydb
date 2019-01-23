@@ -39,6 +39,7 @@ NOTICE:  CREATE TABLE will create partition "part_1_prt_part_1" for table "part"
 INSERT INTO part VALUES (1, 2, 3), (4, 5, 6);
 ALTER TABLE part DROP COLUMN c;
 ALTER TABLE ONLY part DROP COLUMN b; -- note the ONLY here!
+ERROR:  can't drop a column from "part"; it is a partitioned table or part thereof
 -- DROP all the columns
 CREATE TABLE no_cols_left (a int, b int, c int) DISTRIBUTED RANDOMLY;
 INSERT INTO no_cols_left VALUES (1, 2, 3), (4, 5, 6), (7, 8, 9);

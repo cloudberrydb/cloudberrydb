@@ -4290,7 +4290,12 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 			 * recursing.
 			 */
 			ATExternalPartitionCheck(cmd->subtype, rel, recursing);
-			ATPartitionCheck(cmd->subtype, rel, false, recursing);
+
+			/*
+			 * (!recurse) indicate that we can not only add column to root
+			 * partition
+			 */
+			ATPartitionCheck(cmd->subtype, rel, !recurse /* rejectroot */, recursing);
 			/* Performs own recursion */
 			ATPrepAddColumn(wqueue, rel, recurse, recursing, cmd, lockmode);
 			/* Recursion occurs during execution phase */
@@ -4376,7 +4381,12 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 						 ATT_TABLE | ATT_COMPOSITE_TYPE | ATT_FOREIGN_TABLE);
 			ATPrepDropColumn(wqueue, rel, recurse, recursing, cmd, lockmode);
 			ATExternalPartitionCheck(cmd->subtype, rel, recursing);
-			ATPartitionCheck(cmd->subtype, rel, false, recursing);
+
+			/*
+			 * (!recurse) indicate that we can not only drop column to root
+			 * partition
+			 */
+			ATPartitionCheck(cmd->subtype, rel, !recurse /* rejectroot */, recursing);
 			/* Recursion occurs during execution phase */
 			pass = AT_PASS_DROP;
 			break;
@@ -4470,7 +4480,12 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 			ATSimplePermissions(rel,
 						 ATT_TABLE | ATT_COMPOSITE_TYPE | ATT_FOREIGN_TABLE);
 			ATExternalPartitionCheck(cmd->subtype, rel, recursing);
-			ATPartitionCheck(cmd->subtype, rel, false, recursing);
+
+			/*
+			 * (!recurse) indicate that we can not only alter type to root
+			 * partition
+			 */
+			ATPartitionCheck(cmd->subtype, rel, !recurse /* rejectroot */, recursing);
 			/* Performs own recursion */
 			ATPrepAlterColumnType(wqueue, tab, rel, recurse, recursing, cmd, lockmode);
 			pass = AT_PASS_ALTER_TYPE;
