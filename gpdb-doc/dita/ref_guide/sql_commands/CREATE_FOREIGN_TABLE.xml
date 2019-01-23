@@ -98,11 +98,23 @@
                 <plentry>
                     <pt>mpp_execute { 'master | 'any' | 'all segments' }</pt>
                     <pd>
-                      <p>Option that identifies the host from which the foreign data-wrapper requests data: the
-                        master host, any (master or single segment) host, or all segment hosts. The default option value
-                       is '<codeph>master</codeph>'.</p>
-                      <p>Use of the foreign table <codeph>mpp_execute</codeph> option, and the
-                       specific modes supported, is foreign data-wrapper-specific.</p>
+                        <p>An option that identifies the host from which the foreign data-wrapper
+                            requests data: <ul id="ul_zcg_2vd_mgb">
+                                <li><codeph>master</codeph> (the default)—Request data from the
+                                    master host.</li>
+                                <li><codeph>any</codeph>—Request data from either the master host or
+                                    any one segment, depending on which path costs less.</li>
+                                <li><codeph>all segments</codeph>—Request data from all segments. To
+                                    support this option value, the foreign data-wrapper must have a
+                                    policy that matches the segments to data.</li>
+                            </ul></p>
+                        <p>Use of the foreign table <codeph>mpp_execute</codeph> option, and the
+                            specific modes supported, is foreign data-wrapper-specific.</p>
+                        <p>The <codeph>mpp_execute</codeph> option can be specified in multiple
+                            commands: <codeph>CREATE FOREIGN TABLE</codeph>, <codeph>CREATE
+                                SERVER</codeph>, and <codeph>CREATE FOREIGN DATA WRAPPER</codeph>.
+                            The foreign table setting takes precedence over the foreign server
+                            setting, followed by the foreign data wrapper setting.</p>
                     </pd>
                 </plentry>
             </parml>
