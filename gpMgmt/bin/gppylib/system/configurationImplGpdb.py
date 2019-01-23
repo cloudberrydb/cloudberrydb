@@ -126,10 +126,8 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         for seg in update.mirror_to_add:
             mirror_map[ seg.getSegmentContentId() ] = seg
 
-        # reset dbId of new primary and mirror segments to -1
+        # reset dbId of new mirror segments to -1
         # before invoking the operations which will assign them new ids
-        for seg in update.primary_to_add:
-            seg.setSegmentDbId(-1)
         for seg in update.mirror_to_add:
             seg.setSegmentDbId(-1)
 
@@ -273,16 +271,22 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
 
     def __callSegmentAdd(self, conn, gpArray, seg):
         """
-        Call gp_add_segment_primary() to add the primary.
-        Return the new segment's dbid.
+        Ideally, should call gp_add_segment_primary() to add the
+        primary. But due to chicken-egg problem, need dbid for
+        creating the segment but can't add to catalog before creating
+        segment. Hence, instead using gp_add_segment() which takes
+        dbid and registers in catalog using the same.  Return the new
+        segment's dbid.
         """
         logger.debug('callSegmentAdd %s' % repr(seg))
 
-        sql = "SELECT gp_add_segment_primary(%s, %s, %s, %s)" \
+        sql = "SELECT gp_add_segment(%s::int2, %s::int2, 'p', 'p', 'n', 'u', %s, %s, %s, %s)" \
             % (
+                self.__toSqlIntValue(seg.getSegmentDbId()),
+                self.__toSqlIntValue(seg.getSegmentContentId()),
+                self.__toSqlIntValue(seg.getSegmentPort()),
                 self.__toSqlTextValue(seg.getSegmentHostName()),
                 self.__toSqlTextValue(seg.getSegmentAddress()),
-                self.__toSqlIntValue(seg.getSegmentPort()),
                 self.__toSqlTextValue(seg.getSegmentDataDirectory()),
               )
         logger.debug(sql)
