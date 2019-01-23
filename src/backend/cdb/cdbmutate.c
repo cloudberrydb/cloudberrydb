@@ -1818,7 +1818,13 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 			if (root->glob->finalrtable == NULL)
 			{
 				rel = find_base_rel(root, subqscan->scan.scanrelid);
-				Assert(rel->subplan == subqscan->subplan);
+				/*
+				 * The Assert() on RelOptInfo's subplan being
+				 * same as the subqueryscan's subplan, is valid
+				 * in Upstream but for not for GPDB, since we
+				 * create a new copy of the subplan if two
+				 * SubPlans refer to the same initplan.
+				 */
 				subroot = rel->subroot;
 				glob->share.curr_rtable = subroot->parse->rtable;
 			}
