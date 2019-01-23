@@ -595,7 +595,22 @@ namespace gpopt
 								CWStringDynamic *pstrExpected,
 								BOOL fIgnoreMismatch = true
 								);
-			
+
+			static
+			CHAR* ExtractFilenameFromPath
+					(
+					 CHAR* file_path
+					);
+		
+			static
+			void CreateExpectedAndActualFile
+								(
+								IMemoryPool *mp,
+								const CHAR *file_name,
+								CWStringDynamic *strExpected,
+								CWStringDynamic *strActual
+								);
+
 			// match given two plans using string comparison
 			static
 			BOOL FPlanMatch
@@ -607,7 +622,8 @@ namespace gpopt
 				ULLONG ullPlanSpaceSizeFst,
 				const CDXLNode *second_child_dxlnode,
 				ULLONG ullPlanIdSnd,
-				ULLONG ullPlanSpaceSizeSnd
+				ULLONG ullPlanSpaceSizeSnd,
+				const CHAR *file_name
 				);
 
 			// compare given DXL plans
@@ -623,7 +639,8 @@ namespace gpopt
 				ULLONG ullPlanIdSnd,
 				ULLONG ullPlanSpaceSizeSnd,
 				BOOL fMatchPlans,
-				INT iCmpSpaceSize
+				INT iCmpSpaceSize,
+				const CHAR *file_name
 				);
 
 			// run minidumps while loading metadata from passed file

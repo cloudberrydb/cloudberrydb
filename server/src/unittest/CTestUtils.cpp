@@ -71,6 +71,8 @@
 #include "unittest/gpopt/CSubqueryTestUtils.h"
 #include "unittest/gpopt/CTestUtils.h"
 
+#include <fstream>
+
 #define GPOPT_SEGMENT_COUNT 2 // number segments for testing
 
 using namespace gpopt;
@@ -3247,6 +3249,60 @@ CTestUtils::EresCompare
 	}
 }
 
+CHAR*
+CTestUtils::ExtractFilenameFromPath
+	(
+	 CHAR* file_path
+	)
+{
+	CHAR *filename = NULL;
+	CHAR *token = strtok(file_path, "/");
+
+	while (token != NULL)
+	{
+		filename = token;
+		token = strtok(NULL, "/");
+	}
+
+	return filename;
+}
+
+void
+CTestUtils::CreateExpectedAndActualFile
+	(
+	IMemoryPool *mp,
+	const CHAR *file_name,
+	CWStringDynamic *strExpected,
+	CWStringDynamic *strActual)
+{
+	CHAR *filepath = GPOS_NEW_ARRAY(mp, CHAR, strlen(file_name));
+	clib::Strncpy(filepath, file_name, strlen(file_name));
+	filepath[strlen(file_name) - 1] = '\0';
+	CWStringDynamic expected_file(mp);
+	CWStringDynamic actual_file(mp);
+	CHAR *basename = ExtractFilenameFromPath(filepath);
+	
+	expected_file.AppendFormat(GPOS_WSZ_LIT("../server/%s_expected"), basename);
+	actual_file.AppendFormat(GPOS_WSZ_LIT("../server/%s_actual"), basename);
+	
+	CAutoP<std::wofstream> wos_expected;
+	CAutoP<COstreamBasic> os_expected;
+	
+	CAutoP<std::wofstream> wos_actual;
+	CAutoP<COstreamBasic> os_actual;
+	
+	wos_expected = GPOS_NEW(mp) std::wofstream(CUtils::CreateMultiByteCharStringFromWCString(m_mp, const_cast<WCHAR *>(expected_file.GetBuffer())));
+	os_expected = GPOS_NEW(mp) COstreamBasic(wos_expected.Value());
+	
+	wos_actual = GPOS_NEW(mp) std::wofstream(CUtils::CreateMultiByteCharStringFromWCString(m_mp, const_cast<WCHAR *>(actual_file.GetBuffer())));
+	os_actual = GPOS_NEW(mp) COstreamBasic(wos_actual.Value());
+
+	*os_expected << strExpected->GetBuffer() << std::endl;
+	*os_actual << strActual->GetBuffer() << std::endl;
+	
+	GPOS_DELETE_ARRAY(filepath);
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -3266,9 +3322,11 @@ CTestUtils::FPlanMatch
 	ULLONG ullPlanSpaceSizeActual,
 	const CDXLNode *pdxlnExpected,
 	ULLONG ullPlanIdExpected,
-	ULLONG ullPlanSpaceSizeExpected
+	ULLONG ullPlanSpaceSizeExpected,
+	const CHAR* file_name
 	)
 {
+	
 	if (NULL == pdxlnActual && NULL == pdxlnExpected)
 	{
 		CAutoTrace at(mp);
@@ -3339,8 +3397,9 @@ CTestUtils::FPlanMatch
 
 		os << "Expected: " << std::endl;
 		os << strExpected.GetBuffer() << std::endl;
+		
+		CreateExpectedAndActualFile(mp, file_name, &strExpected, &strActual);
 	}
-	
 	
 	GPOS_CHECK_ABORT;
 	return result;
@@ -3366,7 +3425,8 @@ CTestUtils::FPlanCompare
 	ULLONG ullPlanIdExpected,
 	ULLONG ullPlanSpaceSizeExpected,
 	BOOL fMatchPlans,
-	INT iCmpSpaceSize
+	INT iCmpSpaceSize,
+	const CHAR* file_name
 	)
 {
 	BOOL fPlanSpaceUnchanged = true;
@@ -3405,7 +3465,7 @@ CTestUtils::FPlanCompare
 	}
 
 	// perform deep matching on plan bodies
-	return FPlanMatch(mp, os, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected) && fPlanSpaceUnchanged;
+	return FPlanMatch(mp, os, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, file_name) && fPlanSpaceUnchanged;
 }
 
 //---------------------------------------------------------------------------
@@ -3584,7 +3644,8 @@ CTestUtils::EresRunMinidump
 			pdxlmd->GetPlanId(),
 			pdxlmd->GetPlanSpaceSize(),
 			fMatchPlans,
-			iCmpSpaceSize
+			iCmpSpaceSize,
+			file_name
 			)
 		)
 		{
