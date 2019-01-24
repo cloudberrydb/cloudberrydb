@@ -14539,9 +14539,9 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 				char tmpExtTable[500] = {0};
 				relname = pg_strdup(PQgetvalue(res, i, i_relname));
 				snprintf(tmpExtTable, sizeof(tmpExtTable), "%s%s", relname, EXT_PARTITION_NAME_POSTFIX);
-				const char *qualTmpExtTable = fmtQualifiedId(fout->remoteVersion,
-															 tbinfo->dobj.namespace->dobj.name,
-															 tmpExtTable);
+				char *qualTmpExtTable = pg_strdup(fmtQualifiedId(fout->remoteVersion,
+																 tbinfo->dobj.namespace->dobj.name,
+																 tmpExtTable));
 
 				appendPQExpBuffer(q, "ALTER TABLE %s ", qualrelname);
 				/*
