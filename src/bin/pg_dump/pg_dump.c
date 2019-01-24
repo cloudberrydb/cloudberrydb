@@ -14566,6 +14566,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 
 				appendPQExpBuffer(q, "\n");
 				free(relname);
+				free(qualTmpExtTable);
 			}
 
 			PQclear(res);
