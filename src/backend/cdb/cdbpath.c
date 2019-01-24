@@ -50,13 +50,7 @@ cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath)
 	double		recvrows;
 	double		sendrows;
 
-	/* GPDB_94_MERGE_FIXME: I removed the IndexPath check in pg 94 stable merge.
-	 * It seems that we should remove checking code for BitmapHeapPath,
-	 * BitmapAppendOnlyPath and UniquePath also?
-	 */
-	if (! IsA(subpath, BitmapHeapPath) &&
-		! IsA(subpath, UniquePath) &&
-		CdbPathLocus_IsReplicated(motionpath->path.locus))
+	if (CdbPathLocus_IsReplicated(motionpath->path.locus))
 		/* FIXME: should use other.numsegments instead of cdbpath_segments */
 		motionpath->path.rows = subpath->rows * root->config->cdbpath_segments;
 	else
