@@ -203,3 +203,28 @@ class ReplicationInfoTestCase(unittest.TestCase):
 
         assert mock_connect.return_value.close.called
         assert mock_execSQL.return_value.close.called
+
+class GpStateDataTestCase(unittest.TestCase):
+    def test_switchSegment_sets_current_segment_correctly(self):
+        data = GpStateData()
+        primary = create_primary(dbid=1)
+        mirror = create_mirror(dbid=2)
+
+        data.beginSegment(primary)
+        data.beginSegment(mirror)
+
+        data.switchSegment(primary)
+        data.addValue(VALUE__HOSTNAME, 'foo')
+        data.addValue(VALUE__ADDRESS, 'bar')
+
+        data.switchSegment(mirror)
+        data.addValue(VALUE__DATADIR, 'baz')
+        data.addValue(VALUE__PORT, 'abc')
+
+        self.assertEqual('foo', data.getStrValue(primary, VALUE__HOSTNAME))
+        self.assertEqual('bar', data.getStrValue(primary, VALUE__ADDRESS))
+        self.assertEqual('baz', data.getStrValue(mirror, VALUE__DATADIR))
+        self.assertEqual('abc', data.getStrValue(mirror, VALUE__PORT))
+
+        self.assertEqual('', data.getStrValue(mirror, VALUE__HOSTNAME))
+        self.assertEqual('', data.getStrValue(primary, VALUE__DATADIR))

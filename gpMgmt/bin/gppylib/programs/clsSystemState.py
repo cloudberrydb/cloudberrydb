@@ -161,6 +161,10 @@ class GpStateData:
         self.__segmentData.append(self.__currentSegmentData)
         self.__segmentDbIdToSegmentData[segment.getSegmentDbId()] = self.__currentSegmentData
 
+    def switchSegment(self, segment):
+        dbid = segment.getSegmentDbId()
+        self.__currentSegmentData = self.__segmentDbIdToSegmentData[dbid]
+
     def addValue(self, key, value, isWarning=False):
         self.__currentSegmentData["values"][key] = value
         self.__currentSegmentData["isWarning"][key] = isWarning
