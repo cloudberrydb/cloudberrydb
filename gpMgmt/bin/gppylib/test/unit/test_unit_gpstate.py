@@ -54,14 +54,30 @@ class ReplicationInfoTestCase(unittest.TestCase):
         self.mirror = create_mirror(dbid=2)
 
         self.data = GpStateData()
+        self.data.beginSegment(self.primary)
         self.data.beginSegment(self.mirror)
 
-    # this test should be removed once we have replication slot information for
-    # a primary
-    def test_add_replication_info_does_nothing_for_primary(self):
-        data = mock.Mock()
-        GpSystemStateProgram._add_replication_info(data, self.primary, None)
-        self.assertFalse(data.called)
+    def mock_pg_stat_replication(self, mock_execSQL, rows):
+        cursor = mock.MagicMock()
+        mock_execSQL.return_value = cursor
+
+        cursor.rowcount = len(rows)
+        cursor.fetchall.return_value = rows
+
+    def stub_replication_entry(self, **kwargs):
+        # The row returned here must match the order and contents expected by
+        # the pg_stat_replication query performed in _add_replication_info().
+        # It's put here so there is just a single place to fix the tests if that
+        # query changes.
+        return (
+            kwargs.get('application_name', 'gp_walreceiver'),
+            kwargs.get('state', 'streaming'),
+            kwargs.get('sent_location', '0/0'),
+            kwargs.get('flush_location', '0/0'),
+            kwargs.get('flush_left', 0),
+            kwargs.get('replay_location', '0/0'),
+            kwargs.get('replay_left', 0),
+        )
 
     def test_add_replication_info_adds_unknowns_if_primary_is_down(self):
         self.primary.status = gparray.STATUS_DOWN
@@ -84,8 +100,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
     def test_add_replication_info_adds_unknowns_if_pg_stat_replication_has_no_entries(self, mock_connect, mock_execSQL):
-        # The cursor returned by dbconn.execSQL() should have a rowcount of 0.
-        mock_execSQL.return_value.configure_mock(rowcount=0)
+        self.mock_pg_stat_replication(mock_execSQL, [])
 
         GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
 
@@ -95,9 +110,11 @@ class ReplicationInfoTestCase(unittest.TestCase):
 
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
-    def test_add_replication_info_adds_unknowns_if_pg_stat_replication_has_too_many_entries(self, mock_connect, mock_execSQL):
-        # The cursor returned by dbconn.execSQL() should have more than one row.
-        mock_execSQL.return_value.configure_mock(rowcount=2)
+    def test_add_replication_info_adds_unknowns_if_pg_stat_replication_has_too_many_mirrors(self, mock_connect, mock_execSQL):
+        self.mock_pg_stat_replication(mock_execSQL, [
+            self.stub_replication_entry(application_name='gp_walreceiver'),
+            self.stub_replication_entry(application_name='gp_walreceiver'),
+        ])
 
         GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
 
@@ -108,27 +125,16 @@ class ReplicationInfoTestCase(unittest.TestCase):
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
     def test_add_replication_info_populates_correctly_from_pg_stat_replication(self, mock_connect, mock_execSQL):
-        cursor = mock.MagicMock()
-        mock_execSQL.return_value = cursor
-
-        # The cursor returned by dbconn.execSQL() should have exactly one row.
-        cursor.rowcount = 1
-
         # Set up the row definition.
-        sent_location   = '0/1000'
-        flush_location  = '0/0800'
-        flush_left      = 2048
-        replay_location = '0/0000'
-        replay_left     = 4096
-
-        cursor.fetchone.return_value = (
-            'streaming',
-            sent_location,
-            flush_location,
-            flush_left,
-            replay_location,
-            replay_left,
-        )
+        self.mock_pg_stat_replication(mock_execSQL, [
+            self.stub_replication_entry(
+                sent_location='0/1000',
+                flush_location='0/0800',
+                flush_left=2048,
+                replay_location='0/0000',
+                replay_left=4096,
+            )
+        ])
 
         GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
 
@@ -140,27 +146,16 @@ class ReplicationInfoTestCase(unittest.TestCase):
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
     def test_add_replication_info_omits_lag_info_if_WAL_locations_are_identical(self, mock_connect, mock_execSQL):
-        cursor = mock.MagicMock()
-        mock_execSQL.return_value = cursor
-
-        # The cursor returned by dbconn.execSQL() should have exactly one row.
-        cursor.rowcount = 1
-
         # Set up the row definition.
-        sent_location   = '0/1000'
-        flush_location  = '0/1000'
-        flush_left      = 0
-        replay_location = '0/1000'
-        replay_left     = 0
-
-        cursor.fetchone.return_value = (
-            'streaming',
-            sent_location,
-            flush_location,
-            flush_left,
-            replay_location,
-            replay_left,
-        )
+        self.mock_pg_stat_replication(mock_execSQL, [
+            self.stub_replication_entry(
+                sent_location='0/1000',
+                flush_location='0/1000',
+                flush_left=0,
+                replay_location='0/1000',
+                replay_left=0,
+            )
+        ])
 
         GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
 
@@ -171,21 +166,16 @@ class ReplicationInfoTestCase(unittest.TestCase):
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
     def test_add_replication_info_adds_unknowns_if_pg_stat_replication_is_incomplete(self, mock_connect, mock_execSQL):
-        cursor = mock.MagicMock()
-        mock_execSQL.return_value = cursor
-
-        # The cursor returned by dbconn.execSQL() should have exactly one row.
-        cursor.rowcount = 1
-
         # Set up the row definition.
-        cursor.fetchone.return_value = (
-            'starting',
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
+        self.mock_pg_stat_replication(mock_execSQL, [
+            self.stub_replication_entry(
+                sent_location=None,
+                flush_location=None,
+                flush_left=None,
+                replay_location=None,
+                replay_left=None,
+            )
+        ])
 
         GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
 
@@ -196,13 +186,58 @@ class ReplicationInfoTestCase(unittest.TestCase):
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
     def test_add_replication_info_closes_connections_and_cursors(self, mock_connect, mock_execSQL):
-        # The cursor returned by dbconn.execSQL() should have a rowcount of 0.
-        mock_execSQL.return_value.configure_mock(rowcount=0)
+        self.mock_pg_stat_replication(mock_execSQL, [])
 
         GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
 
         assert mock_connect.return_value.close.called
         assert mock_execSQL.return_value.close.called
+
+    @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
+    @mock.patch('gppylib.db.dbconn.connect', autospec=True)
+    def test_add_replication_info_displays_full_backup_state_on_primary(self, mock_connect, mock_execSQL):
+        self.mock_pg_stat_replication(mock_execSQL, [
+            self.stub_replication_entry(
+                application_name='some_backup_utility',
+                state='backup',
+                sent_location='0/0', # this matches the real-world behavior but is unimportant to the test
+                flush_location=None,
+                flush_left=None,
+                replay_location=None,
+                replay_left=None,
+            )
+        ])
+
+        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+
+        self.assertEqual('Copying files from primary', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
+
+    @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
+    @mock.patch('gppylib.db.dbconn.connect', autospec=True)
+    def test_add_replication_info_displays_simultaneous_backup_and_replication(self, mock_connect, mock_execSQL):
+        self.mock_pg_stat_replication(mock_execSQL, [
+            self.stub_replication_entry(
+                application_name='some_backup_utility',
+                state='backup',
+                sent_location='0/0', # this matches the real-world behavior but is unimportant to the test
+                flush_location=None,
+                flush_left=None,
+                replay_location=None,
+                replay_left=None,
+            ),
+            self.stub_replication_entry(
+                state='streaming',
+            ),
+        ])
+
+        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+
+        self.assertEqual('Copying files from primary', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
+        self.assertEqual('Streaming', self.data.getStrValue(self.mirror, VALUE__MIRROR_STATUS))
+
+    def test_set_mirror_replication_values_complains_about_incorrect_kwargs(self):
+        with self.assertRaises(TypeError):
+            GpSystemStateProgram._set_mirror_replication_values(self.data, self.mirror, badarg=1)
 
 class GpStateDataTestCase(unittest.TestCase):
     def test_switchSegment_sets_current_segment_correctly(self):

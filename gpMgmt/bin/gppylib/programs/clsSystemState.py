@@ -247,6 +247,14 @@ class GpStateData:
                     val = str(val)
                 tabLog.infoOrWarn(isWarningMap[k], ["%s%s" %(indent, k), "= %s" % val])
 
+
+def replication_state_to_string(state):
+    if state == 'backup':
+        return 'Copying files from primary'
+    else:
+        return state.capitalize()
+
+
 #-------------------------------------------------------------------------
 class GpSystemStateProgram:
 
@@ -855,73 +863,98 @@ class GpSystemStateProgram:
         If segment is a mirror, peer should be set to its corresponding primary.
         Otherwise, peer is ignored.
         """
-        if segment.isSegmentPrimary(current_role=True):
-            # Once we have replication slot information, we'll display it as a
-            # property of the primary. For now, though, we only display
-            # replication state for mirrors.
-            return
-
-        state = None
-        sent_location = None
-        flush_location = None
-        flush_left = None
-        replay_location = None
-        replay_left = None
+        # Preload the mirror's replication info with Unknowns so that we'll
+        # still have usable UI information on an early exit from this function.
+        GpSystemStateProgram._set_mirror_replication_values(data, segment)
 
         # Even though this information is considered part of the mirror's state,
         # we have to connect to the primary to get it.
-        conn = None
-        if peer.isSegmentUp():
-            try:
-                url = dbconn.DbURL(hostname=peer.hostname, port=peer.port, dbname='template1')
-                conn = dbconn.connect(url, utility=True)
-            except pgdb.InternalError as ie:
-                logger.warning('could not connect to segment {} ({}:{})'.format(
-                        peer.dbid, peer.hostname, peer.port
-                ), exc_info=ie)
+        if not peer.isSegmentUp():
+            return
 
-        # If we were able to connect, query pg_stat_replication for the info we
-        # want.
-        if conn:
+        # Query pg_stat_replication for the info we want.
+        rows = []
+        try:
+            url = dbconn.DbURL(hostname=peer.hostname, port=peer.port, dbname='template1')
+            conn = dbconn.connect(url, utility=True)
+
             with closing(conn) as conn:
                 cursor = dbconn.execSQL(conn,
-                    "SELECT state, sent_location, flush_location, "
+                    "SELECT application_name, state, sent_location, "
+                           "flush_location, "
                            "sent_location - flush_location AS flush_left, "
                            "replay_location, "
                            "sent_location - replay_location AS replay_left "
-                    "FROM pg_stat_replication "
-                    "WHERE state <> 'backup';"
+                    "FROM pg_stat_replication;"
                 )
 
-                if cursor.rowcount == 1:
-                    row = cursor.fetchone()
-
-                    state = row[0]
-                    sent_location = row[1]
-                    flush_location = row[2]
-                    flush_left = row[3]
-                    replay_location = row[4]
-                    replay_left = row[5]
-
-                elif cursor.rowcount:
-                    logger.warning('pg_stat_replication shows more than one standby connection')
-                else:
-                    logger.warning('pg_stat_replication shows no standby connections')
-
+                rows = cursor.fetchall()
                 cursor.close()
 
-        #
-        # Now fill in the GpStateData. We have to sanely handle not only the
-        # case where we couldn't connect, but also cases where
-        # pg_stat_replication is incomplete or contains unexpected data.
-        #
+        except pgdb.InternalError as ie:
+            logger.warning('could not query segment {} ({}:{})'.format(
+                    peer.dbid, peer.hostname, peer.port
+            ), exc_info=ie)
+            return
+
+        # Successfully queried pg_stat_replication. If there are any backup
+        # connections, mention them in the primary status.
+        backup_connections = [r for r in rows if r[1] == 'backup']
+        if backup_connections:
+            row = backup_connections[0]
+            data.switchSegment(peer)
+            data.addValue(VALUE__MIRROR_STATUS, replication_state_to_string(row[1]))
+
+        # Now fill in the information for the standby connection. There should
+        # be exactly one such entry; otherwise we bail.
+        standby_connections = [r for r in rows if r[0] == 'gp_walreceiver']
+        if not standby_connections:
+            logger.warning('pg_stat_replication shows no standby connections')
+            return
+        elif len(standby_connections) > 1:
+            logger.warning('pg_stat_replication shows more than one standby connection')
+            return
+
+        row = standby_connections[0]
+
+        GpSystemStateProgram._set_mirror_replication_values(data, segment,
+            state=row[1],
+            sent_location=row[2],
+            flush_location=row[3],
+            flush_left=row[4],
+            replay_location=row[5],
+            replay_left=row[6],
+        )
+
+    @staticmethod
+    def _set_mirror_replication_values(data, mirror, **kwargs):
+        """
+        Fill GpStateData with replication information for a mirror. We have to
+        sanely handle not only the case where we couldn't connect, but also
+        cases where pg_stat_replication is incomplete or contains unexpected
+        data, so any or all of the keyword arguments may be None.
+
+        This is tightly coupled to _add_replication_info()'s SQL query; see that
+        implementation for the kwargs that may be passed.
+        """
+        data.switchSegment(mirror)
+
+        state = kwargs.pop('state', None)
+        sent_location = kwargs.pop('sent_location', None)
+        flush_location = kwargs.pop('flush_location', None)
+        flush_left = kwargs.pop('flush_left', None)
+        replay_location = kwargs.pop('replay_location', None)
+        replay_left = kwargs.pop('replay_left', None)
+
+        if kwargs:
+            raise TypeError('unexpected keyword argument {!r}'.format(kwargs.keys()[0]))
 
         if state:
-            # Sharp eyes will notice that we've already set the replication
-            # status in the output at this point, but that was a broad
-            # "synchronized vs. not synchronized" determination; we can do
+            # Sharp eyes will notice that we may have already set the
+            # replication status in the output at this point, but that was a
+            # broad "synchronized vs. not synchronized" determination; we can do
             # better if we have access to pg_stat_replication.
-            data.addValue(VALUE__MIRROR_STATUS, state.capitalize())
+            data.addValue(VALUE__MIRROR_STATUS, replication_state_to_string(state))
 
         data.addValue(VALUE__REPL_SENT_LOCATION,
                       sent_location if sent_location else 'Unknown',
@@ -943,13 +976,11 @@ class GpSystemStateProgram:
         data = GpStateData()
         primaryByContentId = GpArray.getSegmentsByContentId(\
                                 [s for s in gpArray.getSegDbList() if s.isSegmentPrimary(current_role=True)])
-        for seg in gpArray.getSegDbList():
-            (statusFetchWarning, outputFromCmd) = hostNameToResults[seg.getSegmentHostName()]
 
-            peerPrimary = None
-            if gpArray.hasMirrors and seg.isSegmentMirror(current_role=True):
-                peerPrimary = primaryByContentId[seg.getSegmentContentId()][0]
+        segments = gpArray.getSegDbList()
 
+        # Create segment entries in the state data.
+        for seg in segments:
             data.beginSegment(seg)
             data.addValue(VALUE__DBID, seg.getSegmentDbId())
             data.addValue(VALUE__CONTENTID, seg.getSegmentContentId())
@@ -957,14 +988,29 @@ class GpSystemStateProgram:
             data.addValue(VALUE__ADDRESS, seg.getSegmentAddress())
             data.addValue(VALUE__DATADIR, seg.getSegmentDataDirectory())
             data.addValue(VALUE__PORT, seg.getSegmentPort())
-
             data.addValue(VALUE__CURRENT_ROLE, "Primary" if seg.isSegmentPrimary(current_role=True) else "Mirror")
             data.addValue(VALUE__PREFERRED_ROLE, "Primary" if seg.isSegmentPrimary(current_role=False) else "Mirror")
+
             if gpArray.hasMirrors:
                 data.addValue(VALUE__MIRROR_STATUS, gparray.getDataModeLabel(seg.getSegmentMode()))
             else:
                 data.addValue(VALUE__MIRROR_STATUS, "Physical replication not configured")
 
+        # Add replication info on a per-pair basis.
+        if gpArray.hasMirrors:
+            for pair in gpArray.segmentPairs:
+                primary, mirror = pair.primaryDB, pair.mirrorDB
+                data.switchSegment(mirror)
+                self._add_replication_info(data, mirror, primary)
+
+        for seg in segments:
+            data.switchSegment(seg)
+
+            peerPrimary = None
+            if gpArray.hasMirrors and seg.isSegmentMirror(current_role=True):
+                peerPrimary = primaryByContentId[seg.getSegmentContentId()][0]
+
+            (statusFetchWarning, outputFromCmd) = hostNameToResults[seg.getSegmentHostName()]
             if statusFetchWarning is not None:
                 segmentData = None
                 data.addValue(VALUE__ERROR_GETTING_SEGMENT_STATUS, statusFetchWarning)
@@ -972,14 +1018,7 @@ class GpSystemStateProgram:
                 segmentData = outputFromCmd[seg.getSegmentDbId()]
 
                 #
-                # Able to fetch from that segment, proceed
-                #
-
-                if gpArray.hasMirrors:
-                    self._add_replication_info(data, seg, peerPrimary)
-
-                #
-                # Now PID status
+                # Able to fetch from that segment, proceed with PID status
                 #
                 pidData = segmentData[gp.SEGMENT_STATUS__GET_PID]
 
