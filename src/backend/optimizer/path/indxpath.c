@@ -33,6 +33,7 @@
 #include "optimizer/paths.h"
 #include "optimizer/predtest.h"
 #include "optimizer/restrictinfo.h"
+#include "optimizer/subselect.h"
 #include "optimizer/var.h"
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
@@ -804,7 +805,7 @@ get_index_paths(PlannerInfo *root, RelOptInfo *rel,
 			 * pg upstream? test co_nestloop_idxscan output will diff with and
 			 * without this line.
 			 */
-			(!root->config->enable_seqscan ||
+			(!enable_seqscan ||
 			 ipath->path.pathkeys == NIL ||
 			 ipath->indexselectivity < 1.0))
 			*bitindexpaths = lappend(*bitindexpaths, ipath);

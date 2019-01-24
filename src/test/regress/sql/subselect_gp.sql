@@ -774,3 +774,4 @@ create table init_main_plan_parallel (c1 int, c2 int);
 select relname from pg_class where exists(select * from init_main_plan_parallel);
 -- case2: init plan is not parallel, main plan is parallel
 select * from init_main_plan_parallel where exists (select * from pg_class);
+

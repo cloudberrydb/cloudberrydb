@@ -183,7 +183,7 @@ cost_seqscan(Path *path, PlannerInfo *root,
 	else
 		path->rows = baserel->rows;
 
-	if (!(root ? root->config->enable_seqscan : enable_seqscan))
+	if (!enable_seqscan)
 		startup_cost += disable_cost;
 
 	/* fetch estimated page cost for tablespace containing table */
@@ -308,7 +308,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count)
 		allclauses = baserel->baserestrictinfo;
 	}
 
-	if (!(root ? root->config->enable_indexscan : enable_indexscan))
+	if (!enable_indexscan)
 		startup_cost += disable_cost;
 	/* we don't need to check enable_indexonlyscan; indxpath.c does that */
 
@@ -695,7 +695,7 @@ cost_bitmap_heap_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 	else
 		path->rows = baserel->rows;
 
-	if (!(root ? root->config->enable_bitmapscan : enable_bitmapscan))
+	if (!enable_bitmapscan)
 		startup_cost += disable_cost;
 
 	/*
@@ -1104,7 +1104,7 @@ cost_tidscan(Path *path, PlannerInfo *root,
 		Assert(baserel->baserestrictcost.startup >= disable_cost);
 		startup_cost -= disable_cost;
 	}
-	else if (!(root ? root->config->enable_tidscan : enable_tidscan))
+	else if (!enable_tidscan)
 		startup_cost += disable_cost;
 
 	/*

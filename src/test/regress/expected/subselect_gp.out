@@ -1793,14 +1793,14 @@ EXPLAIN SELECT * FROM dedup_test3, dedup_test1 WHERE c = 7 AND dedup_test3.b IN 
 EXPLAIN SELECT * FROM dedup_test3, dedup_test1 WHERE c = 7 AND EXISTS (SELECT b FROM dedup_test1) AND dedup_test3.b IN (SELECT b FROM dedup_test1);
                 QUERY PLAN                
 ------------------------------------------
- Result  (cost=0.53..0.54 rows=1 width=0)
+ Result  (cost=1.53..0.54 rows=1 width=0)
    One-Time Filter: false
  Optimizer: legacy query optimizer
 (3 rows)
 
 -- start_ignore
 DROP TABLE IF EXISTS dedup_test1;
-DROP TABLE IF EXISTS dedup_test2;
+DROP TABLE IF EXISTS dedup_test3;
 DROP TABLE IF EXISTS dedup_test3;
 -- end_ignore
 -- Test init/main plan are not both parallel

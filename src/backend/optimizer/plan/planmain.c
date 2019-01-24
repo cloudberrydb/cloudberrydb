@@ -346,10 +346,6 @@ PlannerConfig *DefaultPlannerConfig(void)
 {
 	PlannerConfig *c1 = (PlannerConfig *) palloc(sizeof(PlannerConfig));
 	c1->cdbpath_segments = planner_segment_count(NULL);
-	c1->enable_seqscan = enable_seqscan;
-	c1->enable_indexscan = enable_indexscan;
-	c1->enable_bitmapscan = enable_bitmapscan;
-	c1->enable_tidscan = enable_tidscan;
 	c1->enable_sort = enable_sort;
 	c1->enable_hashagg = enable_hashagg;
 	c1->enable_groupagg = enable_groupagg;
@@ -372,7 +368,6 @@ PlannerConfig *DefaultPlannerConfig(void)
 	c1->gp_eager_two_phase_agg = gp_eager_two_phase_agg;
 	c1->gp_enable_groupext_distinct_pruning = gp_enable_groupext_distinct_pruning;
 	c1->gp_enable_groupext_distinct_gather = gp_enable_groupext_distinct_gather;
-	c1->gp_enable_sort_limit = gp_enable_sort_limit;
 	c1->gp_enable_sort_distinct = gp_enable_sort_distinct;
 
 	c1->gp_enable_direct_dispatch = gp_enable_direct_dispatch;
@@ -381,6 +376,8 @@ PlannerConfig *DefaultPlannerConfig(void)
 	c1->gp_cte_sharing = gp_cte_sharing;
 
 	c1->honor_order_by = true;
+
+	c1->is_under_subplan = false;
 
 	return c1;
 }
