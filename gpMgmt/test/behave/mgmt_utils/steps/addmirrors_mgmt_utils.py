@@ -1,4 +1,4 @@
-from behave import given, then
+from behave import given, when, then
 
 from test.behave_utils.utils import *
 
@@ -14,7 +14,7 @@ def _generate_input_config(spread=False):
     datadir_config = _write_datadir_config()
 
     mirror_config_output_file = "/tmp/test_gpaddmirrors.config"
-    cmd_str = 'gpaddmirrors -o %s -m %s' % (mirror_config_output_file, datadir_config)
+    cmd_str = 'gpaddmirrors -a -o %s -m %s' % (mirror_config_output_file, datadir_config)
     if spread:
         cmd_str += " -s"
     Command('generate mirror_config file', cmd_str).run(validateAfter=True)
@@ -91,6 +91,7 @@ def impl(context):
 
 
 @given('gpaddmirrors adds mirrors')
+@when('gpaddmirrors adds mirrors')
 @then('gpaddmirrors adds mirrors')
 def impl(context):
     add_mirrors(context)

@@ -57,6 +57,22 @@ Feature: Tests for gpaddmirrors
         Then verify the database has mirrors
         And the user runs "gpstop -aqM fast"
 
+    @gpaddmirrors_mirrors_restart
+    Scenario: gpaddmirrors mirrors are recognized after a cluster restart
+        Given a working directory of the test as '/tmp/gpaddmirrors'
+        And the database is killed on hosts "mdw,sdw1"
+        And a cluster is created with no mirrors on "mdw" and "sdw1"
+        When gpaddmirrors adds mirrors
+        Then verify the database has mirrors
+        When an FTS probe is triggered
+        And the user runs "gpstop -a"
+        And wait until the process "gpstop" goes down
+        And the user runs "gpstart -a"
+        And wait until the process "gpstart" goes down
+        Then all the segments are running
+        And the segments are synchronized
+        And the user runs "gpstop -aqM fast"
+
     @gpaddmirrors_workload
     Scenario: gpaddmirrors when the primaries have data
         Given a working directory of the test as '/tmp/gpaddmirrors'
