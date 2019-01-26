@@ -3645,7 +3645,7 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 	PQExpBufferData buf;
 	PGresult   *res;
 	printQueryOpt myopt = pset.popt;
-	static const bool translate_columns[] = {false, false, true, false, false, false, false};
+	static const bool translate_columns[] = {false, false, true, false, false /* Storage */, false, false, false, false};
 
 	/* If tabtypes is empty, we default to \dtvmsE (but see also command.c) */
 	if (!(showTables || showIndexes || showViews || showMatViews || showSeq || showForeign))
@@ -3690,7 +3690,8 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 					  gettext_noop("Type"),
 					  gettext_noop("Owner"));
 
-	if (isGPDB())   /* GPDB? */
+	/* Show Storage type for tables */
+	if (showTables && isGPDB())
 	{
 		appendPQExpBuffer(&buf, ", CASE c.relstorage");
 		appendPQExpBuffer(&buf, " WHEN 'h' THEN '%s'", gettext_noop("heap"));
