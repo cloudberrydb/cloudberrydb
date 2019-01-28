@@ -1134,12 +1134,6 @@ ExecEvalWholeRowSlow(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 		*isDone = ExprSingleResult;
 	*isNull = false;
 
-	/*
-	 * GPDB_92_MERGE_FIXME: Previous code does not have the code block below, 
-	 * but in theory this is needed. So why there is not test failure on gpdb master?
-	 * Besides, we should consider to follow pg to use ExecEvalVar() for Var code entrance.
-	 */
-
 	/* Get the input slot we want */
 	switch (variable->varno)
 	{
