@@ -35,6 +35,11 @@ COMMAND_NOT_FOUND=127
 #Default size of thread pool for gpstart and gpsegstart
 DEFAULT_GPSTART_NUM_WORKERS=64
 
+# Application name used by the pg_rewind instance that gprecoverseg starts
+# during incremental recovery. gpstate uses this to figure out when incremental
+# recovery is active.
+RECOVERY_REWIND_APPNAME = '__gprecoverseg_pg_rewind__'
+
 def get_postmaster_pid_locally(datadir):
     cmdStr = "ps -ef | grep postgres | grep -v grep | awk '{print $2}' | grep `cat %s/postmaster.pid | head -1` || echo -1" % (datadir)
     name = "get postmaster"
@@ -407,7 +412,11 @@ class SegmentRewind(Command):
                  verbose=False, ctxt=REMOTE):
 
         # Construct the source server libpq connection string
-        source_server = "host=%s port=%s dbname=template1" % (source_host, source_port)
+        # We set application_name here so gpstate can identify whether an
+        # incremental recovery is occurring.
+        source_server = "host={} port={} dbname=template1 application_name={}".format(
+            source_host, source_port, RECOVERY_REWIND_APPNAME
+        )
 
         # Build the pg_rewind command. Do not run pg_rewind if recovery.conf
         # file exists in target data directory because the target instance can

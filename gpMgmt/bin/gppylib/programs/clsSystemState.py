@@ -877,6 +877,7 @@ class GpSystemStateProgram:
 
         # Query pg_stat_replication for the info we want.
         rows = []
+        rewinding = False
         try:
             url = dbconn.DbURL(hostname=primary.hostname, port=primary.port, dbname='template1')
             conn = dbconn.connect(url, utility=True)
@@ -895,6 +896,14 @@ class GpSystemStateProgram:
                 rows = cursor.fetchall()
                 cursor.close()
 
+                if mirror.isSegmentDown():
+                    result = dbconn.execSQLForSingleton(conn,
+                        "SELECT count(*) "
+                        "FROM pg_stat_activity "
+                        "WHERE application_name = '%s'" % gp.RECOVERY_REWIND_APPNAME
+                    )
+                    rewinding = result > 0
+
         except pgdb.InternalError as ie:
             logger.warning('could not query segment {} ({}:{})'.format(
                     primary.dbid, primary.hostname, primary.port
@@ -902,13 +911,23 @@ class GpSystemStateProgram:
             return
 
         # Successfully queried pg_stat_replication. If there are any backup
-        # connections, mention them in the primary status.
+        # or pg_rewind connections, mention them in the primary status.
+        state = None
+        start_time = None
         backup_connections = [r for r in rows if r[1] == 'backup']
+
         if backup_connections:
             row = backup_connections[0]
-            data.switchSegment(primary)
-            data.addValue(VALUE__MIRROR_STATUS, replication_state_to_string(row[1]))
-            data.addValue(VALUE__MIRROR_RECOVERY_START, (row[7]))
+            state = replication_state_to_string(row[1])
+            start_time = row[7]
+        elif rewinding:
+            state = "Rewinding history to match primary timeline"
+
+        data.switchSegment(primary)
+        if state:
+            data.addValue(VALUE__MIRROR_STATUS, state)
+        if start_time:
+            data.addValue(VALUE__MIRROR_RECOVERY_START, start_time)
 
         # Now fill in the information for the standby connection. There should
         # be exactly one such entry; otherwise we bail.

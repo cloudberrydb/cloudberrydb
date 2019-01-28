@@ -64,6 +64,9 @@ class ReplicationInfoTestCase(unittest.TestCase):
         cursor.rowcount = len(rows)
         cursor.fetchall.return_value = rows
 
+    def mock_pg_stat_activity(self, mock_execSQLForSingleton, count):
+        mock_execSQLForSingleton.return_value = count
+
     def stub_replication_entry(self, **kwargs):
         # The row returned here must match the order and contents expected by
         # the pg_stat_replication query performed in _add_replication_info().
@@ -255,6 +258,29 @@ class ReplicationInfoTestCase(unittest.TestCase):
 
         self.assertEqual('Copying files from primary', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
         self.assertEqual('Streaming', self.data.getStrValue(self.mirror, VALUE__MIRROR_STATUS))
+
+    @mock.patch('gppylib.db.dbconn.execSQLForSingleton', autospec=True)
+    @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
+    @mock.patch('gppylib.db.dbconn.connect', autospec=True)
+    def test_add_replication_info_displays_status_when_pg_rewind_is_active_and_mirror_is_down(self, mock_connect, mock_execSQL, mock_execSQLForSingleton):
+        self.mock_pg_stat_replication(mock_execSQL, [])
+        self.mirror.status = gparray.STATUS_DOWN
+        self.mock_pg_stat_activity(mock_execSQLForSingleton, 1)
+
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
+
+        self.assertEqual('Rewinding history to match primary timeline', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
+
+    @mock.patch('gppylib.db.dbconn.execSQLForSingleton', autospec=True)
+    @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
+    @mock.patch('gppylib.db.dbconn.connect', autospec=True)
+    def test_add_replication_info_does_not_query_pg_stat_activity_when_mirror_is_up(self, mock_connect, mock_execSQL, mock_execSQLForSingleton):
+        self.mock_pg_stat_replication(mock_execSQL, [])
+        self.mock_pg_stat_activity(mock_execSQLForSingleton, 1)
+
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
+
+        self.assertFalse(mock_execSQLForSingleton.called)
 
     def test_set_mirror_replication_values_complains_about_incorrect_kwargs(self):
         with self.assertRaises(TypeError):
