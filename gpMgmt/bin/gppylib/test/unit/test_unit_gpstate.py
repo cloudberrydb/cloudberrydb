@@ -81,7 +81,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
 
     def test_add_replication_info_adds_unknowns_if_primary_is_down(self):
         self.primary.status = gparray.STATUS_DOWN
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_SENT_LOCATION))
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_FLUSH_LOCATION))
@@ -91,7 +91,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
     def test_add_replication_info_adds_unknowns_if_connection_cannot_be_made(self, mock_connect):
         # Simulate a connection failure in dbconn.connect().
         mock_connect.side_effect = pgdb.InternalError('connection failure forced by unit test')
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_SENT_LOCATION))
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_FLUSH_LOCATION))
@@ -102,7 +102,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
     def test_add_replication_info_adds_unknowns_if_pg_stat_replication_has_no_entries(self, mock_connect, mock_execSQL):
         self.mock_pg_stat_replication(mock_execSQL, [])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_SENT_LOCATION))
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_FLUSH_LOCATION))
@@ -116,7 +116,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
             self.stub_replication_entry(application_name='gp_walreceiver'),
         ])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_SENT_LOCATION))
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_FLUSH_LOCATION))
@@ -136,7 +136,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
             )
         ])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Streaming', self.data.getStrValue(self.mirror, VALUE__MIRROR_STATUS))
         self.assertEqual('0/1000', self.data.getStrValue(self.mirror, VALUE__REPL_SENT_LOCATION))
@@ -157,7 +157,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
             )
         ])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('0/1000', self.data.getStrValue(self.mirror, VALUE__REPL_SENT_LOCATION))
         self.assertEqual('0/1000', self.data.getStrValue(self.mirror, VALUE__REPL_FLUSH_LOCATION))
@@ -177,7 +177,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
             )
         ])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_SENT_LOCATION))
         self.assertEqual('Unknown', self.data.getStrValue(self.mirror, VALUE__REPL_FLUSH_LOCATION))
@@ -188,7 +188,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
     def test_add_replication_info_closes_connections_and_cursors(self, mock_connect, mock_execSQL):
         self.mock_pg_stat_replication(mock_execSQL, [])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         assert mock_connect.return_value.close.called
         assert mock_execSQL.return_value.close.called
@@ -208,7 +208,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
             )
         ])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Copying files from primary', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
 
@@ -230,7 +230,7 @@ class ReplicationInfoTestCase(unittest.TestCase):
             ),
         ])
 
-        GpSystemStateProgram._add_replication_info(self.data, self.mirror, self.primary)
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Copying files from primary', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
         self.assertEqual('Streaming', self.data.getStrValue(self.mirror, VALUE__MIRROR_STATUS))

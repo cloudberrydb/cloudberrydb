@@ -856,7 +856,7 @@ class GpSystemStateProgram:
         return 1 if hasWarnings else 0
 
     @staticmethod
-    def _add_replication_info(data, segment, peer):
+    def _add_replication_info(data, primary, mirror):
         """
         Adds WAL replication information for a segment to GpStateData.
 
@@ -865,17 +865,17 @@ class GpSystemStateProgram:
         """
         # Preload the mirror's replication info with Unknowns so that we'll
         # still have usable UI information on an early exit from this function.
-        GpSystemStateProgram._set_mirror_replication_values(data, segment)
+        GpSystemStateProgram._set_mirror_replication_values(data, mirror)
 
         # Even though this information is considered part of the mirror's state,
         # we have to connect to the primary to get it.
-        if not peer.isSegmentUp():
+        if not primary.isSegmentUp():
             return
 
         # Query pg_stat_replication for the info we want.
         rows = []
         try:
-            url = dbconn.DbURL(hostname=peer.hostname, port=peer.port, dbname='template1')
+            url = dbconn.DbURL(hostname=primary.hostname, port=primary.port, dbname='template1')
             conn = dbconn.connect(url, utility=True)
 
             with closing(conn) as conn:
@@ -893,7 +893,7 @@ class GpSystemStateProgram:
 
         except pgdb.InternalError as ie:
             logger.warning('could not query segment {} ({}:{})'.format(
-                    peer.dbid, peer.hostname, peer.port
+                    primary.dbid, primary.hostname, primary.port
             ), exc_info=ie)
             return
 
@@ -902,7 +902,7 @@ class GpSystemStateProgram:
         backup_connections = [r for r in rows if r[1] == 'backup']
         if backup_connections:
             row = backup_connections[0]
-            data.switchSegment(peer)
+            data.switchSegment(primary)
             data.addValue(VALUE__MIRROR_STATUS, replication_state_to_string(row[1]))
 
         # Now fill in the information for the standby connection. There should
@@ -917,7 +917,7 @@ class GpSystemStateProgram:
 
         row = standby_connections[0]
 
-        GpSystemStateProgram._set_mirror_replication_values(data, segment,
+        GpSystemStateProgram._set_mirror_replication_values(data, mirror,
             state=row[1],
             sent_location=row[2],
             flush_location=row[3],
@@ -1001,7 +1001,7 @@ class GpSystemStateProgram:
             for pair in gpArray.segmentPairs:
                 primary, mirror = pair.primaryDB, pair.mirrorDB
                 data.switchSegment(mirror)
-                self._add_replication_info(data, mirror, primary)
+                self._add_replication_info(data, primary, mirror)
 
         for seg in segments:
             data.switchSegment(seg)
