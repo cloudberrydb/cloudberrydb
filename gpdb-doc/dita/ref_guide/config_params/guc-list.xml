@@ -1670,7 +1670,9 @@
   <topic id="default_transaction_isolation">
     <title>default_transaction_isolation</title>
     <body>
-      <p>Controls the default isolation level of each new transaction.</p>
+      <p>Controls the default isolation level of each new transaction. Greenplum Database treats
+          <codeph>read uncommitted</codeph> the same as <codeph>read committed</codeph>, and treats
+          <codeph>serializable</codeph> the same as <codeph>repeatable read</codeph>. </p>
       <table id="default_transaction_isolation_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -1685,7 +1687,8 @@
           </thead>
           <tbody>
             <row>
-              <entry colname="col1">read committed<p>read uncommitted</p><p>serializable</p></entry>
+              <entry colname="col1">read committed<p>read uncommitted</p><p>repeatable
+                  read</p><p>serializable</p></entry>
               <entry colname="col2">read committed</entry>
               <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
