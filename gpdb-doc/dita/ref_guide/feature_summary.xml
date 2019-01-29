@@ -475,6 +475,12 @@ NEXT 10 ROWS ONLY; </codeblock><p>Greenplum
               <entry colname="col3"/>
             </row>
             <row>
+              <entry><codeph>CREATE MATERIALIZED VIEW</codeph></entry>
+              <entry>NO</entry>
+              <entry>Greenplum Database does not support materialized views (a PostgreSQL
+                extension).</entry>
+            </row>
+            <row>
               <entry colname="col1"><codeph>CREATE OPERATOR</codeph></entry>
               <entry colname="col2">YES</entry>
               <entry colname="col3"><b>Limitations:</b><p>The function used to implement the
@@ -821,6 +827,12 @@ NEXT 10 ROWS ONLY; </codeblock><p>Greenplum
               <entry colname="col1"><codeph>REASSIGN OWNED</codeph></entry>
               <entry colname="col2">YES</entry>
               <entry colname="col3"/>
+            </row>
+            <row>
+              <entry><codeph>REFRESH MATERIALIZED VIEW</codeph></entry>
+              <entry>NO</entry>
+              <entry>Greenplum Database does not support materialized views (a PostgreSQL
+                extension).</entry>
             </row>
             <row>
               <entry colname="col1"><codeph>REINDEX</codeph></entry>
