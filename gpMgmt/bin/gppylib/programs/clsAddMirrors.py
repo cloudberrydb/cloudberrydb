@@ -44,7 +44,8 @@ class GpMirrorBuildCalculator:
     The class uses internal state for tracking so cannot be reused after calling getSpreadMirrors or getGroupMirrors
     """
 
-    def __init__(self, gpArray, mirrorPortOffset, mirrorDataDirs):
+    def __init__(self, gpArray, mirrorDataDirs, options):
+        self.__options = options
         self.__gpArray = gpArray
         self.__primaries = [seg for seg in gpArray.getDbList() if seg.isSegmentPrimary(False)]
         self.__primariesByHost = GpArray.getSegmentsByHostName(self.__primaries)
@@ -63,7 +64,7 @@ class GpMirrorBuildCalculator:
             self.__primariesUpdatedToHaveMirrorsByHost[hostName] = 0
             segments.sort(comparePorts)
 
-        self.__mirrorPortOffset = mirrorPortOffset
+        self.__mirrorPortOffset = options.mirrorOffset
         self.__mirrorDataDirs = mirrorDataDirs
 
         standard, message = self.__gpArray.isStandardArray()
@@ -72,7 +73,7 @@ class GpMirrorBuildCalculator:
             logger.warn(message)
             logger.warn('gpaddmirrors will not be able to symmetrically distribute the new mirrors.')
             logger.warn('It is recommended that you specify your own input file with appropriate values.')
-            if not ask_yesno('', "Are you sure you want to continue with this gpaddmirrors session?", 'N'):
+            if self.__options.interactive and not ask_yesno('', "Are you sure you want to continue with this gpaddmirrors session?", 'N'):
                 logger.info("User Aborted. Exiting...")
                 sys.exit(0)
             self.__isStandard = False
@@ -297,7 +298,7 @@ class GpAddMirrorsProgram:
         segsByContentId = GpArray.getSegmentsByContentId(primaries)
 
         # note: passed port offset in this call should not matter
-        calc = GpMirrorBuildCalculator(gpArray, self.__options.mirrorOffset, [])
+        calc = GpMirrorBuildCalculator(gpArray, [], self.__options)
 
         for row in fileData.getRows():
             fixedValues = row.getFixedValuesMap()
@@ -399,7 +400,7 @@ class GpAddMirrorsProgram:
                 maxPrimariesPerHost = len(hostSegments)
 
         dataDirs = self.__getDataDirectoriesForMirrors(maxPrimariesPerHost, gpArray)
-        calc = GpMirrorBuildCalculator(gpArray, self.__options.mirrorOffset, dataDirs)
+        calc = GpMirrorBuildCalculator(gpArray, dataDirs, self.__options)
         if self.__options.spreadMirroring:
             toBuild = calc.getSpreadMirrors()
         else:
