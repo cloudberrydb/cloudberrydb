@@ -151,5 +151,8 @@ add_subdirectory(libnaucrates)
 add_subdirectory(libgpdbcost)
 add_subdirectory(libgpopt)
 
+install(FILES ${XERCES_LIBRARY} DESTINATION lib)
+install(DIRECTORY ${XERCES_INCLUDE_DIR}/xercesc DESTINATION include)
+
 # Tests.
 add_subdirectory(server)
