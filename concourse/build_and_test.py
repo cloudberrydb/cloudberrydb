@@ -21,15 +21,9 @@ def num_cpus():
     # Guess
     return 2
 
-def install_dependencies(dependencies, output_dir):
-    for dependency in args:
-        status = install_dependency(dependency, output_dir)
-        if status:
-            return status
-
-def install_dependency(dependency_name, output_dir):
+def install_dependency(dependency_name):
     return subprocess.call(
-        ["tar -xzf " + dependency_name + "/*.tar.gz -C " + output_dir], shell=True)
+        ["tar -xzf " + dependency_name + "/*.tar.gz -C /usr/local"], shell=True)
 
 def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxflags = None, thirty_two_bit = False):
     os.mkdir("build")
@@ -85,10 +79,10 @@ def main():
     parser.add_option("--32", dest="thirty_two_bit", default=False)
 
     (options, args) = parser.parse_args()
-    # install deps for building
-    status = install_dependencies(args)
-    if status:
-        return status
+    for dependency in args:
+        status = install_dependency(dependency)
+        if status:
+            return status
     status = cmake_configure("orca_src",
                              options.build_type,
                              options.output_dir,
@@ -104,9 +98,6 @@ def main():
     if status:
         return status
     status = install()
-    if status:
-        return status
-    status = install_dependencies(args, output_dir)
     if status:
         return status
     return 0
