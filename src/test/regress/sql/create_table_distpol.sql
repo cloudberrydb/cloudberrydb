@@ -106,3 +106,26 @@ create table distpol_ctas4 as select 1 as col1, i, j from (select i, j from foo)
 
 -- Check the results.
 select localoid::regclass, distkey from gp_distribution_policy where localoid::regclass::text like 'distpol_ctas%';
+
+
+--
+-- Test using various datatypes as distribution keys.
+--
+
+-- Arrays can be used, if the base type is hashable.
+create table distpol_text (t text[]) distributed by (t);
+
+-- 'point' doesn't have a hash opclass, so these aren't allowed
+create table distpol_point (p point) distributed by (p);
+create table distpol_point_array (p point[]) distributed by (p);
+
+-- Same with ranges
+create table distpol_intrange (t int4range) distributed by (t);
+
+-- tsvector has a btree opfamily, so you can create a range type on it, but
+-- no hash opfamily, so its range type can't be used as distribution key.
+
+create type tsvector_range as range (subtype = tsvector);
+
+create table distpol_tsvector (t tsvector) distributed by (t);
+create table distpol_tsvector_range (t tsvector_range) distributed by (t);

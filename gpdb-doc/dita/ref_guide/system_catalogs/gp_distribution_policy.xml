@@ -60,6 +60,15 @@
             <entry colname="col3">pg_attribute.distkey</entry>
             <entry colname="col4">The column number(s) of the distribution column(s).</entry>
           </row>
+          <row>
+            <entry colname="col1">
+              <codeph>distclass</codeph>
+            </entry>
+            <entry colname="col2">oidvector</entry>
+            <entry colname="col3">pg_attribute.distclass</entry>
+            <entry colname="col4">The operator class identifier(s) of the distribution
+              column(s).</entry>
+          </row>
         </tbody>
       </tgroup>
     </table>

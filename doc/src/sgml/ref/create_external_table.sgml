@@ -94,7 +94,7 @@ CREATE WRITABLE EXTERNAL [TEMPORARY | TEMP] TABLE table_name
                [ESCAPE [AS] 'escape'] )]
            | 'CUSTOM' (Formatter=<formatter specifications>)
     [ ENCODING 'write_encoding' ]
-    [ DISTRIBUTED BY (column, [ ... ] ) | DISTRIBUTED RANDOMLY ]
+    [ DISTRIBUTED BY (column [opclass], [ ... ] ) | DISTRIBUTED RANDOMLY ]
 CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE table_name
     ( column_name data_type [, ...] | LIKE other_table )
     EXECUTE 'command' [ON ALL]
@@ -110,7 +110,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE table_name
                [ESCAPE [AS] 'escape'] )]
            | 'CUSTOM' (Formatter=<formatter specifications>)
     [ ENCODING 'write_encoding' ]
-    [ DISTRIBUTED BY (column, [ ... ] ) | DISTRIBUTED RANDOMLY ]
+    [ DISTRIBUTED BY (column [opclass], [ ... ] ) | DISTRIBUTED RANDOMLY ]
 
 </synopsis>
 

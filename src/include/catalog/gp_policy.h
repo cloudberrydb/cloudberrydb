@@ -34,6 +34,7 @@ CATALOG(gp_distribution_policy,5002) BKI_WITHOUT_OIDS
 	int32		numsegments;
 #ifdef CATALOG_VARLEN			/* variable-length fields start here */
 	int2vector	distkey;		/* column numbers of distribution key cols */
+	oidvector	distclass;		/* opclass identifiers */
 #endif
 } FormData_gp_policy;
 
@@ -47,11 +48,12 @@ FOREIGN_KEY(localoid REFERENCES pg_class(oid));
  */
 typedef FormData_gp_policy *Form_gp_policy;
 
-#define Natts_gp_policy		4
+#define Natts_gp_policy		5
 #define Anum_gp_policy_localoid		1
 #define Anum_gp_policy_policytype	2
 #define Anum_gp_policy_numsegments	3
 #define Anum_gp_policy_distkey		4
+#define Anum_gp_policy_distclass	5
 
 /*
  * Symbolic values for Anum_gp_policy_type column
@@ -146,6 +148,7 @@ typedef struct GpPolicy
 	/* These fields apply to POLICYTYPE_PARTITIONED. */
 	int			nattrs;
 	AttrNumber *attrs;		/* array of attribute numbers  */
+	Oid		   *opclasses;	/* and their opclasses */
 } GpPolicy;
 
 /*
@@ -199,7 +202,7 @@ extern bool GpPolicyIsEntry(const GpPolicy *policy);
 extern GpPolicy *makeGpPolicy(GpPolicyType ptype, int nattrs, int numsegments);
 extern GpPolicy *createReplicatedGpPolicy(int numsegments);
 extern GpPolicy *createRandomPartitionedPolicy(int numsegments);
-extern GpPolicy *createHashPartitionedPolicy(List *keys, int numsegments);
+extern GpPolicy *createHashPartitionedPolicy(List *keys, List *opclasses, int numsegments);
 
 extern bool IsReplicatedTable(Oid relid);
 

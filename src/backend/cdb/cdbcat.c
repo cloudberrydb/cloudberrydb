@@ -16,12 +16,16 @@
 #include "postgres.h"
 
 #include "access/genam.h"
+#include "catalog/dependency.h"
 #include "catalog/gp_policy.h"
 #include "catalog/indexing.h"
+#include "catalog/objectaddress.h"
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_namespace.h"
+#include "catalog/pg_opclass.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbcat.h"
+#include "cdb/cdbhash.h"
 #include "cdb/cdbrelsize.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"		/* Gp_role */
@@ -56,7 +60,8 @@ makeGpPolicy(GpPolicyType ptype, int nattrs, int numsegments)
 	char	   *p;
 
 	size = MAXALIGN(sizeof(GpPolicy)) +
-		MAXALIGN(nattrs * sizeof(AttrNumber));
+		MAXALIGN(nattrs * sizeof(AttrNumber)) +
+		MAXALIGN(nattrs * sizeof(Oid));
 	p = palloc(size);
 	policy = (GpPolicy *) p;
 	p += MAXALIGN(sizeof(GpPolicy));
@@ -64,10 +69,13 @@ makeGpPolicy(GpPolicyType ptype, int nattrs, int numsegments)
 	{
 		policy->attrs = (AttrNumber *) p;
 		p += MAXALIGN(nattrs * sizeof(AttrNumber));
+		policy->opclasses = (Oid *) p;
+		p += MAXALIGN(nattrs * sizeof(Oid));
 	}
 	else
 	{
 		policy->attrs = NULL;
+		policy->opclasses = NULL;
 	}
 
 	policy->type = T_GpPolicy;
@@ -108,20 +116,25 @@ createRandomPartitionedPolicy(int numsegments)
  * partitioned by keys 
  */
 GpPolicy *
-createHashPartitionedPolicy(List *keys, int numsegments)
+createHashPartitionedPolicy(List *keys, List *opclasses, int numsegments)
 {
 	GpPolicy	*policy;
 	ListCell 	*lc;
+	ListCell 	*lop;
 	int 		idx = 0;
 	int 		len = list_length(keys);
+
+	Assert(list_length(keys) == list_length(opclasses));
 
 	if (len == 0)
 		return createRandomPartitionedPolicy(numsegments);
 
 	policy = makeGpPolicy(POLICYTYPE_PARTITIONED, len, numsegments);
-	foreach(lc, keys)
+	forboth(lc, keys, lop, opclasses)
 	{
-		policy->attrs[idx++] = (AttrNumber)lfirst_int(lc);
+		policy->attrs[idx] = (AttrNumber) lfirst_int(lc);
+		policy->opclasses[idx] = (Oid) lfirst_oid(lop);
+		idx++;
 	}
 
 	return policy;	
@@ -144,7 +157,10 @@ GpPolicyCopy(const GpPolicy *src)
 	tgt = makeGpPolicy(src->ptype, src->nattrs, src->numsegments);
 
 	for (i = 0; i < src->nattrs; i++)
+	{
 		tgt->attrs[i] = src->attrs[i];
+		tgt->opclasses[i] = src->opclasses[i];
+	}
 
 	return tgt;
 }								/* GpPolicyCopy */
@@ -173,8 +189,12 @@ GpPolicyEqual(const GpPolicy *lft, const GpPolicy *rgt)
 		return false;
 
 	for (i = 0; i < lft->nattrs; i++)
+	{
 		if (lft->attrs[i] != rgt->attrs[i])
 			return false;
+		if (lft->opclasses[i] != rgt->opclasses[i])
+			return false;
+	}
 
 	return true;
 }								/* GpPolicyEqual */
@@ -306,6 +326,7 @@ GpPolicyFetch(Oid tbloid)
 		int			i;
 		int			nattrs;
 		int2vector *distkey;
+		oidvector  *distopclasses;
 
 		switch (policyform->policytype)
 		{
@@ -325,7 +346,15 @@ GpPolicyFetch(Oid tbloid)
 				 * Get distribution keys only if this table has a policy.
 				 */
 				if (!isNull)
+				{
 					nattrs = distkey->dim1;
+					distopclasses = (oidvector *) DatumGetPointer(
+						SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
+										Anum_gp_policy_distclass,
+										&isNull));
+					Assert(!isNull);
+					Assert(distopclasses->dim1 == nattrs);
+				}
 				else
 					nattrs = 0;
 
@@ -336,6 +365,7 @@ GpPolicyFetch(Oid tbloid)
 				for (i = 0; i < nattrs; i++)
 				{
 					policy->attrs[i] = distkey->values[i];
+					policy->opclasses[i] = distopclasses->values[i];
 				}
 				break;
 			default:
@@ -366,15 +396,26 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 	Relation	gp_policy_rel;
 	HeapTuple	gp_policy_tuple = NULL;
 
-	bool		nulls[4];
-	Datum		values[4];
+	bool		nulls[5];
+	Datum		values[5];
+	ObjectAddress myself,
+				referenced;
+	int			i;
 
-	Insist(policy->ptype != POLICYTYPE_ENTRY);
+	/* Sanity check the policy and its opclasses before storing it. */
+	if (policy->ptype == POLICYTYPE_ENTRY)
+		elog(ERROR, "cannot store entry-type policy in gp_distribution_policy");
+	for (i = 0; i < policy->nattrs; i++)
+	{
+		if (policy->opclasses[i] == InvalidOid)
+			elog(ERROR, "no hash operator class for distribution key column %d", i + 1);
+	}
 
 	nulls[0] = false;
 	nulls[1] = false;
 	nulls[2] = false;
 	nulls[3] = false;
+	nulls[4] = false;
 	values[0] = ObjectIdGetDatum(tbloid);
 	values[2] = Int32GetDatum(policy->numsegments);
 
@@ -397,14 +438,37 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 		values[1] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
 	}
 	int2vector *attrnums = buildint2vector(policy->attrs, policy->nattrs);
+	oidvector  *opclasses = buildoidvector(policy->opclasses, policy->nattrs);
 
 	values[3] = PointerGetDatum(attrnums);
+	values[4] = PointerGetDatum(opclasses);
 
 	gp_policy_tuple = heap_form_tuple(RelationGetDescr(gp_policy_rel), values, nulls);
 
 	/* Insert tuple into the relation */
 	simple_heap_insert(gp_policy_rel, gp_policy_tuple);
 	CatalogUpdateIndexes(gp_policy_rel, gp_policy_tuple);
+
+	/*
+	 * Register the table as dependent on the operator classes used in the
+	 * distribution key.
+	 *
+	 * XXX: This prevents you from dropping the operator class, which is
+	 * good. However, CASCADE behaviour is not so nice: if you do DROP
+	 * OPERATOR CLASS CASCADE, we drop the whole table. Ideally, we would
+	 * just change the policy to randomly distributed.
+	 */
+	myself.classId = RelationRelationId;
+	myself.objectId = tbloid;
+	myself.objectSubId = 0;
+	for (i = 0; i < policy->nattrs; i++)
+	{
+		referenced.classId = OperatorClassRelationId;
+		referenced.objectId = policy->opclasses[i];
+		referenced.objectSubId = 0;
+
+		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+	}
 
 	/*
 	 * Close the gp_distribution_policy relcache entry without unlocking. We
@@ -425,16 +489,27 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 	HeapTuple	gp_policy_tuple = NULL;
 	SysScanDesc scan;
 	ScanKeyData skey;
-	bool		nulls[4];
-	Datum		values[4];
-	bool		repl[4];
+	bool		nulls[5];
+	Datum		values[5];
+	bool		repl[5];
+	ObjectAddress myself,
+				referenced;
+	int			i;
 
-	Insist(!GpPolicyIsEntry(policy));
+	/* Sanity check the policy and its opclasses before storing it. */
+	if (policy->ptype == POLICYTYPE_ENTRY)
+		elog(ERROR, "cannot store entry-type policy in gp_distribution_policy");
+	for (i = 0; i < policy->nattrs; i++)
+	{
+		if (policy->opclasses[i] == InvalidOid)
+			elog(ERROR, "no hash operator class for distribution key column %d", i + 1);
+	}
 
 	nulls[0] = false;
 	nulls[1] = false;
 	nulls[2] = false;
 	nulls[3] = false;
+	nulls[4] = false;
 	values[0] = ObjectIdGetDatum(tbloid);
 	values[2] = Int32GetDatum(policy->numsegments);
 
@@ -457,13 +532,16 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 		values[1] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
 	}
 	int2vector *attrnums = buildint2vector(policy->attrs, policy->nattrs);
+	oidvector  *opclasses = buildoidvector(policy->opclasses, policy->nattrs);
 
 	values[3] = PointerGetDatum(attrnums);
+	values[4] = PointerGetDatum(opclasses);
 
 	repl[0] = false;
 	repl[1] = true;
 	repl[2] = true;
 	repl[3] = true;
+	repl[4] = true;
 
 
 	/*
@@ -497,6 +575,25 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 		CatalogUpdateIndexes(gp_policy_rel, gp_policy_tuple);
 	}
 	systable_endscan(scan);
+
+	/*
+	 * Remove old dependencies on opclasses, and store dependencies on the
+	 * new ones.
+	 */
+	deleteDependencyRecordsForClass(RelationRelationId, tbloid,
+									OperatorClassRelationId, DEPENDENCY_NORMAL);
+
+	myself.classId = RelationRelationId;
+	myself.objectId = tbloid;
+	myself.objectSubId = 0;
+	for (i = 0; i < policy->nattrs; i++)
+	{
+		referenced.classId = OperatorClassRelationId;
+		referenced.objectId = policy->opclasses[i];
+		referenced.objectSubId = 0;
+
+		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+	}
 
 	/*
 	 * Close the gp_distribution_policy relcache entry without unlocking. We
@@ -540,6 +637,11 @@ GpPolicyRemove(Oid tbloid)
 	systable_endscan(sscan);
 
 	/*
+	 * This is currently only used while dropping the whole relation, which
+	 * removes all pg_depend entries. So no need to remove them here.
+	 */
+
+	/*
 	 * Close the gp_distribution_policy relcache entry without unlocking. We
 	 * have updated the catalog: consequently the lock must be held until end
 	 * of transaction.
@@ -569,6 +671,7 @@ checkPolicyForUniqueIndex(Relation rel, AttrNumber *indattr, int nidxatts,
 	Bitmapset  *polbm = NULL;
 	Bitmapset  *indbm = NULL;
 	int			i;
+	TupleDesc	desc = RelationGetDescr(rel);
 
 	/*
 	 * Firstly, unique/primary key indexes aren't supported if we're
@@ -637,8 +740,25 @@ checkPolicyForUniqueIndex(Relation rel, AttrNumber *indattr, int nidxatts,
 		for (i = 0; i < nidxatts; i++)
 		{
 			AttrNumber attno = indattr[i];
+			Oid			opclass;
+
+			opclass = cdb_default_distribution_opclass_for_type(desc->attrs[attno - 1]->atttypid);
+			if (!opclass)
+			{
+				/*
+				 * The datatype has no default opclass. Can't use it in the
+				 * distribution key.
+				 */
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+						 errmsg("%s must contain all columns in the "
+								"distribution key of relation \"%s\"",
+								isprimary ? "PRIMARY KEY" : "UNIQUE index",
+								RelationGetRelationName(rel))));
+			}
 
 			policy->attrs[i] = attno;
+			policy->opclasses[i] = opclass;
 		}
 
 		GpPolicyReplace(rel->rd_id, policy);

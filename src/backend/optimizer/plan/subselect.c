@@ -2729,7 +2729,7 @@ finalize_plan(PlannerInfo *root, Plan *plan, Bitmapset *valid_params,
 
 		case T_Motion:
 
-			finalize_primnode((Node *) ((Motion *) plan)->hashExpr,
+			finalize_primnode((Node *) ((Motion *) plan)->hashExprs,
 							  &context);
 			break;
 

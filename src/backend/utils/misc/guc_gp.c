@@ -25,6 +25,7 @@
 #include "access/xlog_internal.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbdisp.h"
+#include "cdb/cdbhash.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
 #include "cdb/memquota.h"
@@ -633,6 +634,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&gp_maintenance_conn,
+		false,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_use_legacy_hashops", PGC_USERSET, COMPAT_OPTIONS_PREVIOUS,
+			gettext_noop("If set, new tables will use legacy distribution hashops by default"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_use_legacy_hashops,
 		false,
 		NULL, NULL, NULL
 	},

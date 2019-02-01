@@ -506,9 +506,9 @@ create_scan_plan(PlannerInfo *root, Path *best_path)
 	 * If plan has a flow node, ensure all entries of hashExpr
 	 * are in the targetlist.
 	 */
-	if (plan->flow && plan->flow->hashExpr)
+	if (plan->flow && plan->flow->hashExprs)
 	{
-		plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExpr, true /* resjunk */ );
+		plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExprs, true /* resjunk */ );
 	}
 
 	/*
@@ -654,9 +654,9 @@ disuse_physical_tlist(PlannerInfo *root, Plan *plan, Path *path)
 			 * If plan has a flow node, ensure all entries of hashExpr
 			 * are in the targetlist.
 			 */
-			if (plan->flow && plan->flow->hashExpr)
+			if (plan->flow && plan->flow->hashExprs)
 			{
-				plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExpr, true /* resjunk */);
+				plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExprs, true /* resjunk */);
 			}
 			break;
 		default:
@@ -785,9 +785,9 @@ create_join_plan(PlannerInfo *root, JoinPath *best_path)
 	 * If plan has a flow node, ensure all entries of hashExpr
 	 * are in the targetlist.
 	 */
-	if (plan->flow && plan->flow->hashExpr)
+	if (plan->flow && plan->flow->hashExprs)
 	{
-		plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExpr, true /* resjunk */ );
+		plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExprs, true /* resjunk */ );
 	}
 
 	/*
@@ -6209,6 +6209,7 @@ make_result(PlannerInfo *root,
 
 	node->numHashFilterCols = 0;
 	node->hashFilterColIdx = NULL;
+	node->hashFilterFuncs = NULL;
 
 	return node;
 }
@@ -6394,7 +6395,8 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 			int			rti = lfirst_int(lcr);
 			Plan	   *subplan = (Plan *) lfirst(lcp);
 			RangeTblEntry *rte = rt_fetch(rti, root->parse->rtable);
-			List	   *hashExpr = NIL;
+			List	   *hashExprs = NIL;
+			List	   *hashOpfamilies = NIL;
 			GpPolicy   *targetPolicy;
 			GpPolicyType targetPolicyType;
 
@@ -6423,15 +6425,24 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 				}
 
 				if (gp_enable_fast_sri && IsA(subplan, Result))
-					sri_optimize_for_result(root, subplan, rte, &targetPolicy, &hashExpr);
+					sri_optimize_for_result(root, subplan, rte,
+											&targetPolicy, &hashExprs, &hashOpfamilies);
 
-				if (!hashExpr)
-					hashExpr = getExprListFromTargetList(subplan->targetlist,
-														 targetPolicy->nattrs,
-														 targetPolicy->attrs,
-														 false);
+				if (!hashExprs)
+				{
+					hashExprs = getExprListFromTargetList(subplan->targetlist,
+														  targetPolicy->nattrs,
+														  targetPolicy->attrs,
+														  false);
+					hashOpfamilies = NIL;
+					for (int i = 0; i < targetPolicy->nattrs; i++)
+					{
+						hashOpfamilies = lappend_oid(hashOpfamilies,
+													 get_opclass_family(targetPolicy->opclasses[i]));
+					}
+				}
 
-				if (!repartitionPlan(subplan, false, false, hashExpr, targetPolicy->numsegments))
+				if (!repartitionPlan(subplan, false, false, hashExprs, hashOpfamilies, numsegments))
 					ereport(ERROR,
 							(errcode(ERRCODE_GP_FEATURE_NOT_YET),
 							 errmsg("cannot parallelize that INSERT yet")));
@@ -6572,7 +6583,9 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 					 (targetPolicy->nattrs == 0 && qry->needReshuffle)) &&
 					 !is_dummy_plan(subplan))
 				{
-					List	   *hashExpr;
+					List	   *hashExprs;
+					List	   *hashOpfamilies;
+					int			i;
 					Plan	*new_subplan;
 
 					Assert(node->operation == CMD_UPDATE);
@@ -6598,11 +6611,18 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 					else
 					{
 						/* Only update hash keys and do not need reshuffle */
-						hashExpr = getExprListFromTargetList(new_subplan->targetlist,
-															 targetPolicy->nattrs,
-															 targetPolicy->attrs,
-															 false);
-						if (!repartitionPlan(new_subplan, false, false, hashExpr,
+						hashExprs = getExprListFromTargetList(new_subplan->targetlist,
+															  targetPolicy->nattrs,
+															  targetPolicy->attrs,
+															  false);
+						hashOpfamilies = NIL;
+						for (i = 0; i < targetPolicy->nattrs; i++)
+						{
+							hashOpfamilies = lappend_oid(hashOpfamilies,
+														 get_opclass_family(targetPolicy->opclasses[i]));
+						}
+						if (!repartitionPlan(new_subplan, false, false,
+											 hashExprs, hashOpfamilies,
 											 targetPolicy->numsegments))
 							ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
 											errmsg("Cannot parallelize that UPDATE yet")));
@@ -6642,7 +6662,8 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node, List *is_split_upd
 
 					/* request a GatherMotion node */
 					subplan->flow->req_move = MOVEMENT_FOCUS;
-					subplan->flow->hashExpr = NIL;
+					subplan->flow->hashExprs = NIL;
+					subplan->flow->hashOpfamilies = NIL;
 					subplan->flow->segindex = 0;
 				}
 				else
@@ -7026,16 +7047,20 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 	else if (CdbPathLocus_IsHashed(path->path.locus) ||
 			 CdbPathLocus_IsHashedOJ(path->path.locus))
 	{
-		List	   *hashExpr = cdbpathlocus_get_distkey_exprs(path->path.locus,
-															  path->path.parent->relids,
-															  subplan->targetlist);
-		if (!hashExpr)
+		List	   *hashExprs;
+		List	   *hashOpfamilies;
+
+		cdbpathlocus_get_distkey_exprs(path->path.locus,
+									   path->path.parent->relids,
+									   subplan->targetlist,
+									   &hashExprs, &hashOpfamilies);
+		if (!hashExprs)
 			elog(ERROR, "could not find hash distribution key expressions in target list");
 
 		/**
          * If there are subplans in the hashExpr, push it down to lower level.
          */
-		if (contain_subplans((Node *) hashExpr))
+		if (contain_subplans((Node *) hashExprs))
 		{
 			/* make a Result node to do the projection if necessary */
 			if (!is_projection_capable_plan(subplan))
@@ -7045,11 +7070,12 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 				subplan = (Plan *) make_result(root, tlist, NULL, subplan);
 			}
 			subplan->targetlist = add_to_flat_tlist_junk(subplan->targetlist,
-														 hashExpr,
+														 hashExprs,
 														 true /* resjunk */);
         }
         motion = make_hashed_motion(subplan,
-                                    hashExpr,
+									hashExprs,
+									hashOpfamilies,
                                     false /* useExecutorVarFormat */,
 									numsegments);
     }
@@ -7072,11 +7098,11 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 	 * then ensure all entries of hashExpr are in the targetlist.
 	 */
 	if (subplan->flow &&
-		subplan->flow->hashExpr &&
+		subplan->flow->hashExprs &&
 		is_projection_capable_plan(subplan))
 	{
 		subplan->targetlist = add_to_flat_tlist_junk(subplan->targetlist,
-													 subplan->flow->hashExpr,
+													 subplan->flow->hashExprs,
 													 true /* resjunk */);
 	}
 

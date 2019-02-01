@@ -1900,6 +1900,15 @@ dumpDatabaseConfig(PGconn *conn, const char *dbname)
 		}
 	}
 
+	/*
+	 * If we're upgrading from GPDB 5 or below, use the legacy hash ops.
+	 */
+	if (binary_upgrade && server_version < 90400)
+	{
+		makeAlterConfigCommand(conn, "gp_use_legacy_hashops=on",
+							   "DATABASE", dbname, NULL, NULL);
+	}
+
 	destroyPQExpBuffer(buf);
 }
 

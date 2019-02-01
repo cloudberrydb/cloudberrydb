@@ -49,9 +49,11 @@
 #include "rewrite/rewriteManip.h"
 #include "utils/rel.h"
 
+#include "cdb/cdbhash.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
 #include "catalog/gp_policy.h"
+#include "commands/defrem.h"
 #include "access/htup_details.h"
 #include "optimizer/clauses.h"
 #include "optimizer/tlist.h"
@@ -3662,7 +3664,7 @@ get_distkey_by_name(char *key, IntoClause *into, Query *qry, bool *found)
 static void
 setQryDistributionPolicy(IntoClause *into, Query *qry)
 {
-	ListCell   *keys = NULL;
+	ListCell   *lc;
 	DistributedBy *dist;
 
 	Assert(Gp_role == GP_ROLE_DISPATCH);
@@ -3678,7 +3680,7 @@ setQryDistributionPolicy(IntoClause *into, Query *qry)
 	 * We have a DISTRIBUTED BY column list specified by the user
 	 * Process it now and set the distribution policy.
 	 */
-	if (list_length(dist->keys) > MaxPolicyAttributeNumber)
+	if (list_length(dist->keyCols) > MaxPolicyAttributeNumber)
 		ereport(ERROR,
 				(errcode(ERRCODE_TOO_MANY_COLUMNS),
 				 errmsg("number of distributed by columns exceeds limit (%d)",
@@ -3689,25 +3691,36 @@ setQryDistributionPolicy(IntoClause *into, Query *qry)
 	else
 	{
 		List	*policykeys = NIL;
-		foreach(keys, dist->keys)
+		List	*policyopclasses = NIL;
+
+		foreach(lc, dist->keyCols)
 		{
-			char	   *key = strVal(lfirst(keys));
+			IndexElem  *ielem = (IndexElem *) lfirst(lc);
 			bool		found = false;
-			int keyindex;
+			int			keyindex;
+			Oid			keytype;
+			Oid			keyopclass;
+			TargetEntry *tle;
 
-			keyindex = get_distkey_by_name(key, into, qry, &found);
-
+			keyindex = get_distkey_by_name(ielem->name, into, qry, &found);
 			if (!found)
 				ereport(ERROR,
 						(errcode(ERRCODE_UNDEFINED_COLUMN),
 						 errmsg("column \"%s\" named in DISTRIBUTED BY "
 								"clause does not exist",
-								key)));
+								ielem->name)));
+
+			tle = list_nth(qry->targetList, keyindex - 1);
+
+			keytype = exprType((Node *) tle->expr);
+			keyopclass = GetIndexOpClass(ielem->opclass, keytype, "hash", HASH_AM_OID);
 
 			policykeys = lappend_int(policykeys, keyindex);
+			policyopclasses = lappend_oid(policyopclasses, keyopclass);
 		}
 
 		qry->intoPolicy = createHashPartitionedPolicy(policykeys,
+													  policyopclasses,
 													  dist->numsegments);
 	}
 }

@@ -749,3 +749,25 @@ select * from a full join b on (a.i=b.i) full join c on (b.i=c.i);
  3 | 3 | 3
 (7 rows)
 
+--
+-- 'xid' datatype has a hash opclass, but no b-tree operators. Test that.
+--
+-- While we don't particularly care about 'xid' datatype as such, let alone
+-- using it as distribution key, this case might arise for user-defined
+-- datatypes, too.
+--
+create table xidtab (x xid) distributed by (x);
+insert into xidtab select g::text::xid from generate_series(1,5) g;
+select * from xidtab a, xidtab b, xidtab c where a.x=b.x and b.x = c.x;
+ x | x | x 
+---+---+---
+ 1 | 1 | 1
+ 2 | 2 | 2
+ 3 | 3 | 3
+ 4 | 4 | 4
+ 5 | 5 | 5
+(5 rows)
+
+select * from xidtab group by x;
+ERROR:  could not identify an ordering operator for type xid
+HINT:  Use an explicit ordering operator or modify the query.

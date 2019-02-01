@@ -386,3 +386,38 @@ alter table atsdb set distributed by (c1);
 select * from atsdb;
 alter table atsdb set distributed by (c2);
 select * from atsdb;
+
+--
+-- ALTER TABLE SET DATA TYPE tests, where the column is part of the
+-- distribution key.
+--
+CREATE TABLE distpol_typechange (i int2) DISTRIBUTED BY (i);
+INSERT INTO distpol_typechange values (123);
+ALTER TABLE distpol_typechange ALTER COLUMN i SET DATA TYPE int4;
+DROP TABLE distpol_typechange;
+CREATE TABLE distpol_typechange (p text) DISTRIBUTED BY (p);
+
+-- This should throw an error, you can't change the datatype of a distribution
+-- key column.
+INSERT INTO distpol_typechange VALUES ('(1,1)');
+ALTER TABLE distpol_typechange ALTER COLUMN p TYPE point USING p::point;
+
+-- unless it's completely empty! But 'point' doesn't have hash a opclass,
+-- so it cannot be part of the distribution key. We silently turn the
+-- table randomly distributed.
+TRUNCATE distpol_typechange;
+ALTER TABLE distpol_typechange ALTER COLUMN p TYPE point USING p::point;
+
+select policytype, distkey, distclass from gp_distribution_policy where localoid='distpol_typechange'::regclass;
+
+
+-- Similar case, but with CREATE UNIQUE INDEX, rather than ALTER TABLE.
+-- Creating a unique index on a completely empty table automatically updates
+-- the distribution key to match the unique index.  (This allows the common
+-- case, where no DISTRIBUTED BY was given explicitly, and the system just
+-- picked the first column, which isn't compatible with the unique index
+-- that's created later, to work.) But not if the unique column doesn't
+-- have a hash opclass!
+CREATE TABLE tstab (i int4, t tsvector) distributed by (i);
+CREATE UNIQUE INDEX tstab_idx ON tstab(t);
+INSERT INTO tstab VALUES (1, 'foo');

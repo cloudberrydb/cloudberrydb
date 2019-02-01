@@ -16825,7 +16825,7 @@ addDistributedBy(Archive *fout, PQExpBuffer q, TableInfo *tbinfo, int actual_att
 		PGresult   *res;
 
 		appendPQExpBuffer(query,
-						  "SELECT pg_get_table_distributedby(%u)",
+						  "SELECT pg_catalog.pg_get_table_distributedby(%u)",
 						  tbinfo->dobj.catId.oid);
 
 		res = ExecuteSqlQueryForSingleRow(fout, query->data);
@@ -16852,7 +16852,7 @@ addDistributedByOld(Archive *fout, PQExpBuffer q, TableInfo *tbinfo, int actual_
 	char	   *policycol;
 
 	appendPQExpBuffer(query,
-					  "SELECT attrnums FROM gp_distribution_policy as p "
+					  "SELECT attrnums FROM pg_catalog.gp_distribution_policy as p "
 					  "WHERE p.localoid = %u",
 					  tbinfo->dobj.catId.oid);
 

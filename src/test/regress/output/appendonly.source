@@ -296,11 +296,11 @@ WHERE relname='tenk_ao1'));
    case    | objmod | last_sequence | gp_segment_id 
 -----------+--------+---------------+---------------
  NormalXid |      0 |             0 |             1
- NormalXid |      1 |         16900 |             1
+ NormalXid |      1 |         17100 |             1
  NormalXid |      0 |             0 |             2
- NormalXid |      1 |         17000 |             2
+ NormalXid |      1 |         16400 |             2
  NormalXid |      0 |             0 |             0
- NormalXid |      1 |         16900 |             0
+ NormalXid |      1 |         17000 |             0
 (6 rows)
 
 -- commit
@@ -1151,11 +1151,11 @@ WHERE relname='ao_selection'));
    case    | objmod | last_sequence | gp_segment_id 
 -----------+--------+---------------+---------------
  NormalXid |      0 |             0 |             0
- NormalXid |      1 |         33400 |             0
+ NormalXid |      1 |         33500 |             0
  NormalXid |      0 |             0 |             1
  NormalXid |      1 |         33400 |             1
  NormalXid |      0 |             0 |             2
- NormalXid |      1 |         33400 |             2
+ NormalXid |      1 |         33300 |             2
 (6 rows)
 
 -- Following insert without concurrency is also using same segfile as above
@@ -1167,11 +1167,11 @@ WHERE relname='ao_selection'));
    case    | objmod | last_sequence | gp_segment_id 
 -----------+--------+---------------+---------------
  NormalXid |      0 |             0 |             0
- NormalXid |      1 |         66800 |             0
+ NormalXid |      1 |         67000 |             0
  NormalXid |      0 |             0 |             1
  NormalXid |      1 |         66800 |             1
  NormalXid |      0 |             0 |             2
- NormalXid |      1 |         66800 |             2
+ NormalXid |      1 |         66600 |             2
 (6 rows)
 
 -- Check compression and distribution
@@ -1193,7 +1193,7 @@ select get_ao_compression_ratio('ao_compress_table') > 1.2 and get_ao_compressio
 select get_ao_distribution('ao_compress_table');
  get_ao_distribution 
 ---------------------
- (2,1)
+ (1,1)
 (1 row)
 
 truncate table ao_compress_table; -- after truncate, reclaim space from the table and index

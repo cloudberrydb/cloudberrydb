@@ -249,6 +249,7 @@ select localoid::regclass, distkey, policytype, numsegments
 drop table t;
 
 create table t as select * from t1 distributed randomly;
+
 select localoid::regclass, distkey, policytype, numsegments
 	from gp_distribution_policy where localoid in ('t'::regclass);
 drop table t;
