@@ -572,6 +572,9 @@ extern int writable_external_table_bufsize;
 /* Enable passing of query constraints to external table providers */
 extern bool gp_external_enable_filter_pushdown;
 
+/* Enable the Global Deadlock Detector */
+extern bool gp_enable_global_deadlock_detector;
+
 typedef enum
 {
 	INDEX_CHECK_NONE,

@@ -467,6 +467,9 @@ bool		gp_external_enable_filter_pushdown = true;
 bool		gp_enable_mk_sort = true;
 bool		gp_enable_motion_mk_sort = true;
 
+/* Enable GDD */
+bool		gp_enable_global_deadlock_detector = false;
+
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
 	{"csv", 1},
@@ -3020,6 +3023,15 @@ struct config_bool ConfigureNamesBool_gp[] =
 			NULL
 		},
 		&create_restartpoint_on_ckpt_record_replay,
+		false, NULL, NULL
+	},
+
+	{
+		{"gp_enable_global_deadlock_detector", PGC_POSTMASTER, CUSTOM_OPTIONS,
+			gettext_noop("Enables the Global Deadlock Detector."),
+			NULL
+		},
+		&gp_enable_global_deadlock_detector,
 		false, NULL, NULL
 	},
 
