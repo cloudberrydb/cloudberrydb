@@ -7688,6 +7688,15 @@ StartupXLOG(void)
 	 */
 	InRecovery = false;
 
+	/*
+	 * If we are a standby with contentid -1 and undergoing promotion,
+	 * update ourselves as the new master in catalog.  This does not
+	 * apply to a mirror (standby of a GPDB segment) because it is
+	 * managed by FTS.
+	 */
+	bool needToPromoteCatalog = (IS_QUERY_DISPATCHER() &&
+								 ControlFile->state == DB_IN_ARCHIVE_RECOVERY);
+
 	LWLockAcquire(ControlFileLock, LW_EXCLUSIVE);
 	ControlFile->state = DB_IN_PRODUCTION;
 	ControlFile->time = (pg_time_t) time(NULL);
@@ -7726,15 +7735,6 @@ StartupXLOG(void)
 
 	/* Reload shared-memory state for prepared transactions */
 	RecoverPreparedTransactions();
-
-	/*
-	 * If we are a standby with contentid -1 and undergoing promotion,
-	 * update ourselves as the new master in catalog.  This does not
-	 * apply to a mirror (standby of a GPDB segment) because it is
-	 * managed by FTS.
-	 */
-	bool needToPromoteCatalog = (IS_QUERY_DISPATCHER() &&
-								 ControlFile->state == DB_IN_ARCHIVE_RECOVERY);
 
 	ereport(LOG, (errmsg("database system is ready")));
 
