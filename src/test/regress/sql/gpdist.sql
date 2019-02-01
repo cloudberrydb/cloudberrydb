@@ -422,7 +422,7 @@ create table distby_with_constraint21 (col1 int4, col2 int4, col3 int4, UNIQUE  
 create table distby_with_constraint22 (col1 int4, col2 int4, col3 int4, UNIQUE      (col1, col2), PRIMARY KEY (col3, col1));
 
 -- Check what distribution key was chosen for all the cases above.
-select c.relname, policytype, attrnums from pg_class c, gp_distribution_policy p where c.oid = p.localoid and relname LIKE 'distby_with_%' order by relname;
+select c.relname, policytype, distkey from pg_class c, gp_distribution_policy p where c.oid = p.localoid and relname LIKE 'distby_with_%' order by relname;
 
 
 --

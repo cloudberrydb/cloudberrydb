@@ -489,23 +489,23 @@ create table distby_with_constraint18 (col1 int4, col2 int4, PRIMARY KEY (col1, 
 create table distby_with_constraint21 (col1 int4, col2 int4, col3 int4, UNIQUE      (col1, col2), UNIQUE (col3, col1));
 create table distby_with_constraint22 (col1 int4, col2 int4, col3 int4, UNIQUE      (col1, col2), PRIMARY KEY (col3, col1));
 -- Check what distribution key was chosen for all the cases above.
-select c.relname, policytype, attrnums from pg_class c, gp_distribution_policy p where c.oid = p.localoid and relname LIKE 'distby_with_%' order by relname;
-         relname          | policytype | attrnums 
---------------------------+------------+----------
- distby_with_constraint01 | p          | {1}
- distby_with_constraint02 | p          | {1}
+select c.relname, policytype, distkey from pg_class c, gp_distribution_policy p where c.oid = p.localoid and relname LIKE 'distby_with_%' order by relname;
+         relname          | policytype | distkey 
+--------------------------+------------+---------
+ distby_with_constraint01 | p          | 1
+ distby_with_constraint02 | p          | 1
  distby_with_constraint03 | r          | 
  distby_with_constraint04 | r          | 
- distby_with_constraint11 | p          | {1}
- distby_with_constraint12 | p          | {1}
- distby_with_constraint13 | p          | {2}
- distby_with_constraint14 | p          | {2}
- distby_with_constraint15 | p          | {2,1}
- distby_with_constraint16 | p          | {2,1}
- distby_with_constraint17 | p          | {1,2}
- distby_with_constraint18 | p          | {1,2}
- distby_with_constraint21 | p          | {1}
- distby_with_constraint22 | p          | {1}
+ distby_with_constraint11 | p          | 1
+ distby_with_constraint12 | p          | 1
+ distby_with_constraint13 | p          | 2
+ distby_with_constraint14 | p          | 2
+ distby_with_constraint15 | p          | 2 1
+ distby_with_constraint16 | p          | 2 1
+ distby_with_constraint17 | p          | 1 2
+ distby_with_constraint18 | p          | 1 2
+ distby_with_constraint21 | p          | 1
+ distby_with_constraint22 | p          | 1
 (14 rows)
 
 --

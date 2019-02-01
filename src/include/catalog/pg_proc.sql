@@ -424,6 +424,8 @@ CREATE FUNCTION hyperloglog_add_item_agg_default(counter hyperloglog_estimator, 
 
 CREATE FUNCTION hyperloglog_accum(anyelement) RETURNS hyperloglog_estimator LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=7164, proisagg="t", DESCRIPTION="Adds every data value to a hyperloglog counter and returns the counter");
 
+CREATE FUNCTION pg_get_table_distributedby(oid) RETURNS text LANGUAGE internal STABLE STRICT AS 'pg_get_table_distributedby' WITH (OID=6232, DESCRIPTION="deparse DISTRIBUTED BY clause for a given relation");
+
 -- hash functions for a few built-in datatypes that are missing hash support
 -- in upstream for some reason.
 CREATE FUNCTION hashtid(tid) RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'hashtid' WITH (OID=6114, DESCRIPTION="hash function for tid");

@@ -11345,3 +11345,83 @@ pg_get_partition_template_def(PG_FUNCTION_ARGS)
 
 	PG_RETURN_TEXT_P(string_to_text(str));
 }
+
+/* ----------
+ * get_table_distributedby		- Get the DISTRIBUTED BY definition of a table.
+ * ----------
+ */
+Datum
+pg_get_table_distributedby(PG_FUNCTION_ARGS)
+{
+	Oid			relid = PG_GETARG_OID(0);
+	HeapTuple	gp_policy_tuple;
+	Form_gp_policy policyform;
+	StringInfoData buf;
+
+	/*
+	 * Fetch the policy tuple
+	 */
+	gp_policy_tuple = SearchSysCache1(GPPOLICYID, ObjectIdGetDatum(relid));
+	if (!HeapTupleIsValid(gp_policy_tuple))
+	{
+		/* not distributed */
+		PG_RETURN_TEXT_P(cstring_to_text(""));
+	}
+	policyform = (Form_gp_policy) GETSTRUCT(gp_policy_tuple);
+
+	initStringInfo(&buf);
+
+	if (policyform->policytype == SYM_POLICYTYPE_REPLICATED)
+	{
+		appendStringInfo(&buf, "DISTRIBUTED REPLICATED");
+	}
+	else if (policyform->policytype == POLICYTYPE_PARTITIONED)
+	{
+		int			nkeys;
+		bool		isNull;
+		int2vector *distkey;
+
+		/*
+		 * Get the attributes on which to partition.
+		 */
+		distkey = (int2vector *) DatumGetPointer(
+			SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
+							Anum_gp_policy_distkey,
+							&isNull));
+
+		nkeys = isNull ? 0 : distkey->dim1;
+
+		if (nkeys == 0)
+			appendStringInfo(&buf, "DISTRIBUTED RANDOMLY");
+		else
+		{
+			int			keyno;
+			char	   *sep;
+
+			appendStringInfoString(&buf, "DISTRIBUTED BY (");
+
+			sep = "";
+			for (keyno = 0; keyno < nkeys; keyno++)
+			{
+				AttrNumber	attnum = distkey->values[keyno];
+				char	   *attname;
+
+				appendStringInfoString(&buf, sep);
+				sep = ", ";
+
+				attname = get_relid_attribute_name(relid, attnum);
+				appendStringInfoString(&buf, quote_identifier(attname));
+			}
+			appendStringInfoChar(&buf, ')');
+		}
+	}
+	else
+	{
+		elog(ERROR, "unexpected policy type '%c'", policyform->policytype);
+	}
+
+	/* Clean up */
+	ReleaseSysCache(gp_policy_tuple);
+
+	PG_RETURN_TEXT_P(string_to_text(buf.data));
+}

@@ -3131,99 +3131,143 @@ add_distributed_by_footer(printTableContent *const cont, const char *oid)
 	if (isGPDB6000OrLater())
 	{
 		printfPQExpBuffer(&tempbuf,
-						  "SELECT attrnums, policytype \n"
-						  "FROM pg_catalog.gp_distribution_policy t\n"
-						  "WHERE localoid = '%s'",
+						  "SELECT pg_catalog.pg_get_table_distributedby('%s')",
 						  oid);
+
+		result1 = PSQLexec(tempbuf.data, false);
+		if (!result1)
+		{
+			/* Error:  Well, so what?  Best to continue */
+			return;
+		}
+
+		char	   *distributedby = PQgetvalue(result1, 0, 0);
+
+		if (strcmp(distributedby, "") != 0)
+		{
+			if (strcmp(distributedby, "DISTRIBUTED RANDOMLY") == 0)
+			{
+				printfPQExpBuffer(&buf, "Distributed randomly");
+			}
+			else if (strcmp(distributedby, "DISTRIBUTED REPLICATED") == 0)
+			{
+				printfPQExpBuffer(&buf, "Distributed Replicated");
+			}
+			else if (strncmp(distributedby, "DISTRIBUTED BY ", strlen("DISTRIBUTED BY ")) == 0)
+			{
+				printfPQExpBuffer(&buf, "Distributed by: %s",
+								  &distributedby[strlen("DISTRIBUTED BY ")]);
+			}
+			else
+			{
+				/*
+				 * This probably prints something silly like "Distributed by: DISTRIBUTED ...".
+				 * But if we don't recognize it, it's the best we can do.
+				 */
+				printfPQExpBuffer(&buf, "Distributed by: %s", distributedby);
+			}
+
+			printTableAddFooter(cont, buf.data);
+		}
+
+		PQclear(result1);
+
+		termPQExpBuffer(&tempbuf);
+		termPQExpBuffer(&buf);
+
+		return; /* success */
 	}
 	else
 	{
 		printfPQExpBuffer(&tempbuf,
-						  "SELECT attrnums, '%c' as policytype \n"
+						  "SELECT attrnums \n"
 						  "FROM pg_catalog.gp_distribution_policy t\n"
 						  "WHERE localoid = '%s'",
-						  SYM_POLICYTYPE_PARTITIONED, oid);
-	}
+						  oid);
 
-	result1 = PSQLexec(tempbuf.data, false);
-	if (!result1)
-	{
-		/* Error:  Well, so what?  Best to continue */
-		return;
-	}
-
-	is_distributed = PQntuples(result1);
-	if (is_distributed)
-	{
-		char	   *col;
-		char	   *dist_columns = PQgetvalue(result1, 0, 0);
-		char		policytype = *(char *)PQgetvalue(result1, 0, 1);
-		char	   *dist_colname;
-
-		if (policytype == SYM_POLICYTYPE_REPLICATED)
+		result1 = PSQLexec(tempbuf.data, false);
+		if (!result1)
 		{
-			printfPQExpBuffer(&buf, "Distributed Replicated");
+			/* Error:  Well, so what?  Best to continue */
+			return;
 		}
-		else if (dist_columns && strlen(dist_columns) > 0)
+
+		is_distributed = PQntuples(result1);
+		if (is_distributed)
 		{
-			dist_columns[strlen(dist_columns)-1] = '\0'; /* remove '}' */
-			dist_columns++;  /* skip '{' */
+			char	   *col;
+			char	   *dist_columns = PQgetvalue(result1, 0, 0);
+			char	   *dist_colname;
 
-			/* Get the attname for the first distribution column.*/
-			printfPQExpBuffer(&tempbuf,
-							  "SELECT attname FROM pg_catalog.pg_attribute \n"
-							  "WHERE attrelid = '%s' \n"
-							  "AND attnum = '%d' ",
-							  oid,
-							  atoi(dist_columns));
-			result2 = PSQLexec(tempbuf.data, false);
-			if (!result2)
-				return;
-			dist_colname = PQgetvalue(result2, 0, 0);
-			if (!dist_colname)
-				return;
-			printfPQExpBuffer(&buf, "Distributed by: (%s",
-							  dist_colname);
-			PQclear(result2);
-			dist_colname = NULL;
-			col = strchr(dist_columns,',');
-
-			while (col != NULL)
+			if (dist_columns && strlen(dist_columns) > 0)
 			{
-				col++;
-				/* Get the attname for next distribution columns.*/
+				dist_columns[strlen(dist_columns)-1] = '\0'; /* remove '}' */
+				dist_columns++;  /* skip '{' */
+
+				/* Get the attname for the first distribution column.*/
 				printfPQExpBuffer(&tempbuf,
 								  "SELECT attname FROM pg_catalog.pg_attribute \n"
 								  "WHERE attrelid = '%s' \n"
 								  "AND attnum = '%d' ",
 								  oid,
-								  atoi(col));
+								  atoi(dist_columns));
 				result2 = PSQLexec(tempbuf.data, false);
 				if (!result2)
 					return;
 				dist_colname = PQgetvalue(result2, 0, 0);
 				if (!dist_colname)
 					return;
-				appendPQExpBuffer(&buf, ", %s", dist_colname);
+				printfPQExpBuffer(&buf, "Distributed by: (%s",
+								  dist_colname);
 				PQclear(result2);
-				col = strchr(col, ',');
+				dist_colname = NULL;
+
+				if (!isGPDB6000OrLater())
+					col = strchr(dist_columns, ',');
+				else
+					col = strchr(dist_columns, ' ');
+
+				while (col != NULL)
+				{
+					col++;
+					/* Get the attname for next distribution columns.*/
+					printfPQExpBuffer(&tempbuf,
+									  "SELECT attname FROM pg_catalog.pg_attribute \n"
+									  "WHERE attrelid = '%s' \n"
+									  "AND attnum = '%d' ",
+									  oid,
+									  atoi(col));
+					result2 = PSQLexec(tempbuf.data, false);
+					if (!result2)
+						return;
+					dist_colname = PQgetvalue(result2, 0, 0);
+					if (!dist_colname)
+						return;
+					appendPQExpBuffer(&buf, ", %s", dist_colname);
+					PQclear(result2);
+
+					if (!isGPDB6000OrLater())
+						col = strchr(col, ',');
+					else
+						col = strchr(col, ' ');
+				}
+				appendPQExpBuffer(&buf, ")");
 			}
-			appendPQExpBuffer(&buf, ")");
-		}
-		else
-		{
-			printfPQExpBuffer(&buf, "Distributed randomly");
+			else
+			{
+				printfPQExpBuffer(&buf, "Distributed randomly");
+			}
+
+			printTableAddFooter(cont, buf.data);
 		}
 
-		printTableAddFooter(cont, buf.data);
+		PQclear(result1);
+
+		termPQExpBuffer(&tempbuf);
+		termPQExpBuffer(&buf);
+
+		return; /* success */
 	}
-
-	PQclear(result1);
-
-	termPQExpBuffer(&tempbuf);
-	termPQExpBuffer(&buf);
-
-	return; /* success */
 }
 
 /*

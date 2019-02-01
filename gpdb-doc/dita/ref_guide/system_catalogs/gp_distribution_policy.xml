@@ -34,14 +34,6 @@
           </row>
           <row>
             <entry colname="col1">
-              <codeph>attrnums</codeph>
-            </entry>
-            <entry colname="col2">smallint[]</entry>
-            <entry colname="col3">pg_attribute.attnum</entry>
-            <entry colname="col4">The column number(s) of the distribution column(s).</entry>
-          </row>
-          <row>
-            <entry colname="col1">
               <codeph>policytype</codeph>
             </entry>
             <entry colname="col2">char</entry>
@@ -59,6 +51,14 @@
             <entry colname="col3"/>
             <entry colname="col4">The number of segment instances on which the table data is
               distributed.</entry>
+          </row>
+          <row>
+            <entry colname="col1">
+              <codeph>distkey</codeph>
+            </entry>
+            <entry colname="col2">int2vector</entry>
+            <entry colname="col3">pg_attribute.distkey</entry>
+            <entry colname="col4">The column number(s) of the distribution column(s).</entry>
           </row>
         </tbody>
       </tgroup>

@@ -30,19 +30,28 @@
 CATALOG(gp_distribution_policy,5002) BKI_WITHOUT_OIDS
 {
 	Oid			localoid;
-	int16		attrnums[1];
 	char		policytype; /* distribution policy type */
 	int32		numsegments;
+#ifdef CATALOG_VARLEN			/* variable-length fields start here */
+	int2vector	distkey;		/* column numbers of distribution key cols */
+#endif
 } FormData_gp_policy;
 
 /* GPDB added foreign key definitions for gpcheckcat. */
 FOREIGN_KEY(localoid REFERENCES pg_class(oid));
 
+/* ----------------
+ *		Form_gp_policy corresponds to a pointer to a tuple with
+ *		the format of gp_distribution_policy relation.
+ * ----------------
+ */
+typedef FormData_gp_policy *Form_gp_policy;
+
 #define Natts_gp_policy		4
-#define Anum_gp_policy_localoid	1
-#define Anum_gp_policy_attrnums	2
-#define Anum_gp_policy_type	3
-#define Anum_gp_policy_numsegments	4
+#define Anum_gp_policy_localoid		1
+#define Anum_gp_policy_policytype	2
+#define Anum_gp_policy_numsegments	3
+#define Anum_gp_policy_distkey		4
 
 /*
  * Symbolic values for Anum_gp_policy_type column
@@ -130,13 +139,13 @@ typedef enum GpPolicyType
  */
 typedef struct GpPolicy
 {
-	NodeTag         type;
+	NodeTag		type;
 	GpPolicyType ptype;
 	int			numsegments;
 
 	/* These fields apply to POLICYTYPE_PARTITIONED. */
 	int			nattrs;
-	AttrNumber	*attrs;		/* pointer to the first of nattrs attribute numbers.  */
+	AttrNumber *attrs;		/* array of attribute numbers  */
 } GpPolicy;
 
 /*

@@ -1595,7 +1595,7 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
     n.oid as schemaoid,
     c.oid as tableoid,
-    p.attrnums as distribution_policy,
+    p.distkey as distribution_policy,
     now() as last_updated,
     %s,
     p.policytype as distribution_policy_type,
@@ -1691,7 +1691,7 @@ SELECT
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
     n.oid as schemaoid,
     c.oid as tableoid,
-    d.attrnums as distributed_policy,
+    d.distkey as distributed_policy,
     now() as last_updated,
     %s,
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as root_partition_name

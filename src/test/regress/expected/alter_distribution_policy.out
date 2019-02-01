@@ -23,18 +23,18 @@ WARNING:  distribution policy of relation "atsdb" already set to (i)
 HINT:  Use ALTER TABLE "atsdb" SET WITH (REORGANIZE=TRUE) DISTRIBUTED BY (i) to force redistribution
 -- should work
 alter table atsdb set distributed randomly;
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
- localoid | attrnums 
-----------+----------
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
+ localoid | distkey 
+----------+---------
  atsdb    | 
 (1 row)
 
 -- not possible to correctly verify random distribution
 alter table atsdb set distributed by (j);
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
- localoid | attrnums 
-----------+----------
- atsdb    | {2}
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
+ localoid | distkey 
+----------+---------
+ atsdb    | 2
 (1 row)
 
 -- verify that the data is correctly redistributed by building a fresh
@@ -49,10 +49,10 @@ select gp_segment_id, * from atsdb;
 
 drop table ats_test;
 alter table atsdb set distributed by (i, j);
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
- localoid | attrnums 
-----------+----------
- atsdb    | {1,2}
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
+ localoid | distkey 
+----------+---------
+ atsdb    | 1 2
 (1 row)
 
 -- verify
@@ -66,10 +66,10 @@ select gp_segment_id, * from atsdb;
 
 drop table ats_test;
 alter table atsdb set distributed by (j, i);
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
- localoid | attrnums 
-----------+----------
- atsdb    | {2,1}
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
+ localoid | distkey 
+----------+---------
+ atsdb    | 2 1
 (1 row)
 
 -- verify
@@ -195,7 +195,7 @@ select * from atsdb;
 drop table atsdb;
 create view distcheck as select relname as rel, attname from
 gp_distribution_policy g, pg_attribute p, pg_class c
-where g.localoid = p.attrelid and attnum = any(g.attrnums) and
+where g.localoid = p.attrelid and attnum = any(g.distkey) and
 c.oid = p.attrelid;
 -- dropped columns
 create table atsdb (i int, j int, t text, n numeric) distributed by (j);

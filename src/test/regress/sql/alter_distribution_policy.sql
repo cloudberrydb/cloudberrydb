@@ -15,11 +15,11 @@ alter table atsdb set distributed by (i);
 
 -- should work
 alter table atsdb set distributed randomly;
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
 -- not possible to correctly verify random distribution
 
 alter table atsdb set distributed by (j);
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
 -- verify that the data is correctly redistributed by building a fresh
 -- table with the same policy
 create table ats_test (i int, j text) distributed by (j);
@@ -29,7 +29,7 @@ select gp_segment_id, * from atsdb;
 drop table ats_test;
 
 alter table atsdb set distributed by (i, j);
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
 -- verify
 create table ats_test (i int, j text) distributed by (i, j);
 insert into ats_test :DATA;
@@ -38,7 +38,7 @@ select gp_segment_id, * from atsdb;
 drop table ats_test;
 
 alter table atsdb set distributed by (j, i);
-select localoid::regclass, attrnums from gp_distribution_policy where localoid = 'atsdb'::regclass;
+select localoid::regclass, distkey from gp_distribution_policy where localoid = 'atsdb'::regclass;
 -- verify
 create table ats_test (i int, j text) distributed by (j, i);
 insert into ats_test :DATA;
@@ -92,7 +92,7 @@ drop table atsdb;
 
 create view distcheck as select relname as rel, attname from
 gp_distribution_policy g, pg_attribute p, pg_class c
-where g.localoid = p.attrelid and attnum = any(g.attrnums) and
+where g.localoid = p.attrelid and attnum = any(g.distkey) and
 c.oid = p.attrelid;
 
 -- dropped columns

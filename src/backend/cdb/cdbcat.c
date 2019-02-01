@@ -47,24 +47,33 @@
  */
 int			gp_create_table_default_numsegments = GP_DEFAULT_NUMSEGMENTS_FULL;
 
-static void extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp);
 
 GpPolicy *
 makeGpPolicy(GpPolicyType ptype, int nattrs, int numsegments)
 {
-	GpPolicy *policy;
-	size_t	size;
+	GpPolicy   *policy;
+	size_t		size;
+	char	   *p;
 
-	size = sizeof(GpPolicy) + nattrs * sizeof(AttrNumber);
-	policy = palloc(size);
-	policy->type = T_GpPolicy;
-	policy->numsegments = numsegments;
-	policy->ptype = ptype; 
-	policy->nattrs = nattrs; 
+	size = MAXALIGN(sizeof(GpPolicy)) +
+		MAXALIGN(nattrs * sizeof(AttrNumber));
+	p = palloc(size);
+	policy = (GpPolicy *) p;
+	p += MAXALIGN(sizeof(GpPolicy));
 	if (nattrs > 0)
-		policy->attrs = (AttrNumber *) ((char*)policy + sizeof(GpPolicy));
+	{
+		policy->attrs = (AttrNumber *) p;
+		p += MAXALIGN(nattrs * sizeof(AttrNumber));
+	}
 	else
+	{
 		policy->attrs = NULL;
+	}
+
+	policy->type = T_GpPolicy;
+	policy->ptype = ptype; 
+	policy->numsegments = numsegments;
+	policy->nattrs = nattrs; 
 
 	Assert(numsegments > 0);
 	if (numsegments == __GP_POLICY_EVIL_NUMSEGMENTS)
@@ -292,59 +301,41 @@ GpPolicyFetch(Oid tbloid)
 	 */
 	if (HeapTupleIsValid(gp_policy_tuple))
 	{
+		Form_gp_policy policyform = (Form_gp_policy) GETSTRUCT(gp_policy_tuple);
 		bool		isNull;
-		Datum		attr;
-		int			i,
-					numsegments,
-					nattrs = 0;
-		int16	   *attrnums = NULL;
+		int			i;
+		int			nattrs;
+		int2vector *distkey;
 
-		attr = SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
-							   Anum_gp_policy_numsegments,
-							   &isNull);
-
-		if (isNull)
-			numsegments = GP_POLICY_ALL_NUMSEGMENTS;
-		else
-			numsegments = DatumGetInt32(attr);
-
-		attr = SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
-							   Anum_gp_policy_type,
-							   &isNull);
-
-		Assert(!isNull);
-
-		char ptype = DatumGetChar(attr);
-
-		switch (ptype)
+		switch (policyform->policytype)
 		{
 			case SYM_POLICYTYPE_REPLICATED:
-				policy = createReplicatedGpPolicy(numsegments);
+				policy = createReplicatedGpPolicy(policyform->numsegments);
 				break;
 			case SYM_POLICYTYPE_PARTITIONED:
 				/*
 				 * Get the attributes on which to partition.
 				 */
-				attr = SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
-									   Anum_gp_policy_attrnums,
-									   &isNull);
+				distkey = (int2vector *) DatumGetPointer(
+					SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
+									Anum_gp_policy_distkey,
+									&isNull));
 
 				/*
 				 * Get distribution keys only if this table has a policy.
 				 */
 				if (!isNull)
-				{
-					extract_INT2OID_array(attr, &nattrs, &attrnums);
-					Assert(nattrs >= 0);
-				}
+					nattrs = distkey->dim1;
+				else
+					nattrs = 0;
 
 				/* Create a GpPolicy object. */
 				policy = makeGpPolicy(POLICYTYPE_PARTITIONED,
-									  nattrs, numsegments);
+									  nattrs, policyform->numsegments);
 
 				for (i = 0; i < nattrs; i++)
 				{
-					policy->attrs[i] = attrnums[i];
+					policy->attrs[i] = distkey->values[i];
 				}
 				break;
 			default:
@@ -365,29 +356,6 @@ GpPolicyFetch(Oid tbloid)
 	return policy;
 }								/* GpPolicyFetch */
 
-
-/*
- * Extract len and pointer to buffer from an int16[] (vector) Datum
- * representing a PostgreSQL INT2OID type.
- */
-static void
-extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp)
-{
-	ArrayType  *array_type;
-
-	Assert(lenp != NULL);
-	Assert(vecp != NULL);
-
-	array_type = DatumGetArrayTypeP(array_datum);
-	Assert(ARR_NDIM(array_type) == 1);
-	Assert(ARR_ELEMTYPE(array_type) == INT2OID);
-	Assert(ARR_LBOUND(array_type)[0] == 1);
-	*lenp = ARR_DIMS(array_type)[0];
-	*vecp = (int16 *) ARR_DATA_PTR(array_type);
-
-	return;
-}
-
 /*
  * Sets the policy of a table into the gp_distribution_policy table
  * from a GpPolicy structure.
@@ -397,8 +365,6 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 {
 	Relation	gp_policy_rel;
 	HeapTuple	gp_policy_tuple = NULL;
-
-	ArrayType  *attrnums;
 
 	bool		nulls[4];
 	Datum		values[4];
@@ -410,7 +376,7 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 	nulls[2] = false;
 	nulls[3] = false;
 	values[0] = ObjectIdGetDatum(tbloid);
-	values[3] = Int32GetDatum(policy->numsegments);
+	values[2] = Int32GetDatum(policy->numsegments);
 
 	/*
 	 * Open and lock the gp_distribution_policy catalog.
@@ -419,36 +385,20 @@ GpPolicyStore(Oid tbloid, const GpPolicy *policy)
 
 	if (GpPolicyIsReplicated(policy))
 	{
-		nulls[1] = true;
-		values[2] = CharGetDatum(SYM_POLICYTYPE_REPLICATED);
+		values[1] = CharGetDatum(SYM_POLICYTYPE_REPLICATED);
 	}
 	else
 	{
 		/*
 		 * Convert C arrays into Postgres arrays.
 		 */
-		int			i;
-		Datum	   *akey;
-
 		Assert(GpPolicyIsPartitioned(policy));
 
-		if (policy->nattrs > 0)
-		{
-			akey = (Datum *) palloc(policy->nattrs * sizeof(Datum));
-			for (i = 0; i < policy->nattrs; i++)
-				akey[i] = Int16GetDatum(policy->attrs[i]);
-			attrnums = construct_array(akey, policy->nattrs,
-					INT2OID, 2, true, 's');
-
-			values[1] = PointerGetDatum(attrnums); 
-			values[2] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
-		}
-		else
-		{
-			nulls[1] = true;
-			values[2] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
-		}
+		values[1] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
 	}
+	int2vector *attrnums = buildint2vector(policy->attrs, policy->nattrs);
+
+	values[3] = PointerGetDatum(attrnums);
 
 	gp_policy_tuple = heap_form_tuple(RelationGetDescr(gp_policy_rel), values, nulls);
 
@@ -475,7 +425,6 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 	HeapTuple	gp_policy_tuple = NULL;
 	SysScanDesc scan;
 	ScanKeyData skey;
-	ArrayType  *attrnums;
 	bool		nulls[4];
 	Datum		values[4];
 	bool		repl[4];
@@ -487,7 +436,7 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 	nulls[2] = false;
 	nulls[3] = false;
 	values[0] = ObjectIdGetDatum(tbloid);
-	values[3] = Int32GetDatum(policy->numsegments);
+	values[2] = Int32GetDatum(policy->numsegments);
 
 	/*
 	 * Open and lock the gp_distribution_policy catalog.
@@ -496,37 +445,20 @@ GpPolicyReplace(Oid tbloid, const GpPolicy *policy)
 
 	if (GpPolicyIsReplicated(policy))
 	{
-		nulls[1] = true;
-		values[2] = CharGetDatum(SYM_POLICYTYPE_REPLICATED);
+		values[1] = CharGetDatum(SYM_POLICYTYPE_REPLICATED);
 	}
 	else
 	{
 		/*
 		 * Convert C arrays into Postgres arrays.
 		 */
-		int			i;
-		Datum	   *akey;
-
 		Assert(GpPolicyIsPartitioned(policy));
 
-		if (policy->nattrs > 0)
-		{
-			akey = (Datum *) palloc(policy->nattrs * sizeof(Datum));
-			for (i = 0; i < policy->nattrs; i++)
-				akey[i] = Int16GetDatum(policy->attrs[i]);
-			attrnums = construct_array(akey, policy->nattrs,
-					INT2OID, 2, true, 's');
-
-			values[1] = PointerGetDatum(attrnums); 
-			values[2] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
-		}
-		else
-		{
-
-			nulls[1] = true;
-			values[2] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
-		}
+		values[1] = CharGetDatum(SYM_POLICYTYPE_PARTITIONED);
 	}
+	int2vector *attrnums = buildint2vector(policy->attrs, policy->nattrs);
+
+	values[3] = PointerGetDatum(attrnums);
 
 	repl[0] = false;
 	repl[1] = true;
@@ -703,7 +635,11 @@ checkPolicyForUniqueIndex(Relation rel, AttrNumber *indattr, int nidxatts,
 										rel->rd_cdbpolicy->numsegments);
 
 		for (i = 0; i < nidxatts; i++)
-			policy->attrs[i] = indattr[i];
+		{
+			AttrNumber attno = indattr[i];
+
+			policy->attrs[i] = attno;
+		}
 
 		GpPolicyReplace(rel->rd_id, policy);
 		rel->rd_cdbpolicy = policy;
