@@ -284,7 +284,6 @@ status_detail_table_sql = """CREATE TABLE gpexpand.status_detail
                           fq_name text,
                           table_oid oid,
                           root_partition_name text,
-                          storage_options text,
                           rank int,
                           status text,
                           expansion_started timestamp,
@@ -1605,7 +1604,7 @@ WHERE
                 full_name = '%s.%s' % (dbname, fqname)
                 rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                fp.write("""%s\t%s\t%s\t%s\t%d\t%s\tNULL\tNULL\t%d\n""" % (
                     dbname, fqname, table_oid,
                     root_partition_name, rank, undone_status, rel_bytes))
         except Exception, e:
@@ -1685,7 +1684,7 @@ ORDER BY fq_name, tableoid desc;
                 full_name = '%s.%s' % (dbname, fqname)
                 rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                fp.write("""%s\t%s\t%s\t%s\t%d\t%s\tNULL\tNULL\t%d\n""" % (
                     dbname, fqname, table_oid,
                     root_partition_name, rank, undone_status, rel_bytes))
         except Exception:
@@ -1929,7 +1928,7 @@ class ExpandTable():
         if row is not None:
             (self.dbname, self.fq_name, self.table_oid,
              self.root_partition_name,
-             self.storage_options, self.rank, self.status,
+             self.rank, self.status,
              self.expansion_started, self.expansion_finished,
              self.source_bytes) = row
         if self.fq_name == self.root_partition_name:
@@ -1938,10 +1937,10 @@ class ExpandTable():
     def add_table(self, conn):
         insertSQL = """INSERT INTO gpexpand.status_detail
                             VALUES ('%s','%s',%s,
-                                    '%s','%s',%d,'%s','%s','%s',%d)
+                                    '%s',%d,'%s','%s','%s',%d)
                     """ % (self.dbname, self.fq_name.replace("\'", "\'\'"), self.table_oid,
                            self.root_partition_name,
-                           self.storage_options, self.rank, self.status,
+                           self.rank, self.status,
                            self.expansion_started, self.expansion_finished,
                            self.source_bytes)
         logger.info('Added table %s.%s' % (self.dbname.decode('utf-8'), self.fq_name.decode('utf-8')))
@@ -1987,10 +1986,6 @@ class ExpandTable():
             only_str = ""
         else:
             only_str = "ONLY"
-
-        new_storage_options = ''
-        if self.storage_options:
-            new_storage_options = ',' + self.storage_options
 
         sql = 'ALTER TABLE %s %s EXPAND TABLE' % (only_str, self.fq_name)
 
