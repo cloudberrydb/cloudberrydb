@@ -282,7 +282,6 @@ status_table_sql = """CREATE TABLE gpexpand.status
 status_detail_table_sql = """CREATE TABLE gpexpand.status_detail
                         ( dbname text,
                           fq_name text,
-                          schema_oid oid,
                           table_oid oid,
                           root_partition_name text,
                           storage_options text,
@@ -1572,7 +1571,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
         src_bytes_str = "0" if self.options.simple_progress else "pg_relation_size(quote_ident(n.nspname) || '.' || quote_ident(c.relname))"
         sql = """SELECT
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
-    n.oid as schemaoid,
     c.oid as tableoid,
     now() as last_updated,
     %s,
@@ -1601,15 +1599,14 @@ WHERE
             fp = open(sql_file, 'w')
             for row in rows:
                 fqname = row[0]
-                schema_oid = row[1]
-                table_oid = row[2]
-                rel_bytes = int(row[4])
-                root_partition_name = row[5]
+                table_oid = row[1]
+                rel_bytes = int(row[3])
+                root_partition_name = row[4]
                 full_name = '%s.%s' % (dbname, fqname)
                 rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
-                    dbname, fqname, schema_oid, table_oid,
+                fp.write("""%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                    dbname, fqname, table_oid,
                     root_partition_name, rank, undone_status, rel_bytes))
         except Exception, e:
             raise ExpansionError(e)
@@ -1654,7 +1651,6 @@ WHERE
         sql = """
 SELECT
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
-    n.oid as schemaoid,
     c.oid as tableoid,
     now() as last_updated,
     %s,
@@ -1683,15 +1679,14 @@ ORDER BY fq_name, tableoid desc;
 
             for row in rows:
                 fqname = row[0]
-                schema_oid = row[1]
-                table_oid = row[2]
-                rel_bytes = int(row[4])
-                root_partition_name = row[5]
+                table_oid = row[1]
+                rel_bytes = int(row[3])
+                root_partition_name = row[4]
                 full_name = '%s.%s' % (dbname, fqname)
                 rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
-                    dbname, fqname, schema_oid, table_oid,
+                fp.write("""%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                    dbname, fqname, table_oid,
                     root_partition_name, rank, undone_status, rel_bytes))
         except Exception:
             raise
@@ -1932,7 +1927,7 @@ class ExpandTable():
         self.options = options
         self.is_root_partition = False
         if row is not None:
-            (self.dbname, self.fq_name, self.schema_oid, self.table_oid,
+            (self.dbname, self.fq_name, self.table_oid,
              self.root_partition_name,
              self.storage_options, self.rank, self.status,
              self.expansion_started, self.expansion_finished,
@@ -1942,9 +1937,9 @@ class ExpandTable():
 
     def add_table(self, conn):
         insertSQL = """INSERT INTO gpexpand.status_detail
-                            VALUES ('%s','%s',%s,%s,
+                            VALUES ('%s','%s',%s,
                                     '%s','%s',%d,'%s','%s','%s',%d)
-                    """ % (self.dbname, self.fq_name.replace("\'", "\'\'"), self.schema_oid, self.table_oid,
+                    """ % (self.dbname, self.fq_name.replace("\'", "\'\'"), self.table_oid,
                            self.root_partition_name,
                            self.storage_options, self.rank, self.status,
                            self.expansion_started, self.expansion_finished,
@@ -1965,10 +1960,10 @@ class ExpandTable():
         sql = """UPDATE gpexpand.status_detail
                   SET status = '%s', expansion_started='%s',
                       source_bytes = %d
-                  WHERE dbname = '%s' AND schema_oid = %s
+                  WHERE dbname = '%s'
                         AND table_oid = %s """ % (start_status, start_time,
                                                   src_bytes, self.dbname,
-                                                  self.schema_oid, self.table_oid)
+                                                  self.table_oid)
 
         logger.debug("Mark Started: " + sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
@@ -1977,9 +1972,9 @@ class ExpandTable():
     def reset_started(self, status_conn):
         sql = """UPDATE gpexpand.status_detail
                  SET status = '%s', expansion_started=NULL, expansion_finished=NULL
-                 WHERE dbname = '%s' AND schema_oid = %s
+                 WHERE dbname = '%s'
                  AND table_oid = %s """ % (undone_status,
-                                           self.dbname, self.schema_oid, self.table_oid)
+                                           self.dbname, self.table_oid)
 
         logger.debug('Resetting detailed_status: %s' % sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
@@ -2020,9 +2015,9 @@ class ExpandTable():
     def mark_finished(self, status_conn, start_time, finish_time):
         sql = """UPDATE gpexpand.status_detail
                   SET status = '%s', expansion_started='%s', expansion_finished='%s'
-                  WHERE dbname = '%s' AND schema_oid = %s
+                  WHERE dbname = '%s'
                   AND table_oid = %s """ % (done_status, start_time, finish_time,
-                                            self.dbname, self.schema_oid, self.table_oid)
+                                            self.dbname, self.table_oid)
         logger.debug(sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
         status_conn.commit()
@@ -2030,9 +2025,9 @@ class ExpandTable():
     def mark_does_not_exist(self, status_conn, finish_time):
         sql = """UPDATE gpexpand.status_detail
                   SET status = '%s', expansion_finished='%s'
-                  WHERE dbname = '%s' AND schema_oid = %s
+                  WHERE dbname = '%s'
                   AND table_oid = %s """ % (does_not_exist_status, finish_time,
-                                            self.dbname, self.schema_oid, self.table_oid)
+                                            self.dbname, self.table_oid)
         logger.debug(sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
         status_conn.commit()
@@ -2141,9 +2136,7 @@ class ExpandCommand(SQLCommand):
         # validate table hasn't been dropped
         start_time = None
         try:
-            sql = """select * from pg_class c, pg_namespace n
-            where c.oid = %d and n.oid = c.relnamespace and n.oid=%d""" % (self.table.table_oid,
-                                                                           self.table.schema_oid)
+            sql = """select * from pg_class c where c.oid = %d """ % (self.table.table_oid)
 
             cursor = dbconn.execSQL(table_conn, sql)
 
