@@ -284,10 +284,6 @@ status_detail_table_sql = """CREATE TABLE gpexpand.status_detail
                           fq_name text,
                           schema_oid oid,
                           table_oid oid,
-                          distribution_policy smallint[],
-                          distribution_policy_names text,
-                          distribution_policy_coloids text,
-                          distribution_policy_type text,
                           root_partition_name text,
                           storage_options text,
                           rank int,
@@ -1578,10 +1574,8 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
     n.oid as schemaoid,
     c.oid as tableoid,
-    p.distkey as distribution_policy,
     now() as last_updated,
     %s,
-    p.policytype as distribution_policy_type,
     NULL as root_partition_name
 FROM
             pg_class c
@@ -1609,26 +1603,14 @@ WHERE
                 fqname = row[0]
                 schema_oid = row[1]
                 table_oid = row[2]
-                if row[3]:
-                    self.logger.debug("dist policy raw: %s " % row[3].decode('utf-8'))
-                else:
-                    self.logger.debug("dist policy raw: NULL")
-                dist_policy = row[3]
-                (policy_name, policy_oids) = self.form_dist_policy_name(table_conn, row[3], table_oid)
-                rel_bytes = int(row[5])
-
-                if dist_policy is None:
-                    dist_policy = 'NULL'
-
-                dist_policy_type = row[6];
-                root_partition_name = row[7]
+                rel_bytes = int(row[4])
+                root_partition_name = row[5]
                 full_name = '%s.%s' % (dbname, fqname)
                 rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                fp.write("""%s\t%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
                     dbname, fqname, schema_oid, table_oid,
-                    dist_policy, policy_name, policy_oids,
-                    dist_policy_type, root_partition_name, rank, undone_status, rel_bytes))
+                    root_partition_name, rank, undone_status, rel_bytes))
         except Exception, e:
             raise ExpansionError(e)
         finally:
@@ -1674,7 +1656,6 @@ SELECT
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
     n.oid as schemaoid,
     c.oid as tableoid,
-    d.distkey as distributed_policy,
     now() as last_updated,
     %s,
     quote_ident(n.nspname) || '.' || quote_ident(c.relname) as root_partition_name
@@ -1704,26 +1685,14 @@ ORDER BY fq_name, tableoid desc;
                 fqname = row[0]
                 schema_oid = row[1]
                 table_oid = row[2]
-                if row[3]:
-                    self.logger.debug("dist policy raw: %s " % row[3])
-                else:
-                    self.logger.debug("dist policy raw: NULL")
-                dist_policy = row[3]
-                (policy_name, policy_oids) = self.form_dist_policy_name(table_conn, row[3], table_oid)
-                rel_bytes = int(row[5])
-
-                if dist_policy is None:
-                    dist_policy = 'NULL'
-
-                dist_policy_type = 'p';
-                root_partition_name = row[6]
+                rel_bytes = int(row[4])
+                root_partition_name = row[5]
                 full_name = '%s.%s' % (dbname, fqname)
                 rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                fp.write("""%s\t%s\t%s\t%s\t%s\tNULL\t%d\t%s\tNULL\tNULL\t%d\n""" % (
                     dbname, fqname, schema_oid, table_oid,
-                    dist_policy, policy_name, policy_oids,
-                    dist_policy_type, root_partition_name, rank, undone_status, rel_bytes))
+                    root_partition_name, rank, undone_status, rel_bytes))
         except Exception:
             raise
         finally:
@@ -1741,31 +1710,6 @@ ORDER BY fq_name, tableoid desc;
 
         table_conn.commit()
         table_conn.close()
-
-    def form_dist_policy_name(self, conn, rs_val, table_oid):
-        if rs_val is None:
-            return (None, None)
-        rs_val = rs_val.lstrip('{').rstrip('}').strip()
-
-        namedict = {}
-        oiddict = {}
-        sql = "select attnum, attname, attrelid from pg_attribute where attrelid = %s and attnum > 0" % table_oid
-        cursor = dbconn.execSQL(conn, sql)
-        for row in cursor:
-            namedict[row[0]] = row[1]
-            oiddict[row[0]] = row[2]
-
-        name_list = []
-        oid_list = []
-
-        if rs_val != "":
-            rs_list = rs_val.split(',')
-
-            for colnum in rs_list:
-                name_list.append(namedict[int(colnum)])
-                oid_list.append(str(oiddict[int(colnum)]))
-
-        return (' , '.join(name_list), ' , '.join(oid_list))
 
     def perform_expansion(self):
         """Performs the actual table re-organizations"""
@@ -1989,8 +1933,7 @@ class ExpandTable():
         self.is_root_partition = False
         if row is not None:
             (self.dbname, self.fq_name, self.schema_oid, self.table_oid,
-             self.distrib_policy, self.distrib_policy_names, self.distrib_policy_coloids,
-             self.distrib_policy_type, self.root_partition_name,
+             self.root_partition_name,
              self.storage_options, self.rank, self.status,
              self.expansion_started, self.expansion_finished,
              self.source_bytes) = row
@@ -2000,10 +1943,9 @@ class ExpandTable():
     def add_table(self, conn):
         insertSQL = """INSERT INTO gpexpand.status_detail
                             VALUES ('%s','%s',%s,%s,
-                                    '%s','%s', '%s', '%s', '%s','%s',%d,'%s','%s','%s',%d)
+                                    '%s','%s',%d,'%s','%s','%s',%d)
                     """ % (self.dbname, self.fq_name.replace("\'", "\'\'"), self.schema_oid, self.table_oid,
-                           self.distrib_policy, self.distrib_policy_names, self.distrib_policy_coloids,
-                           self.distrib_policy_type, self.root_partition_name,
+                           self.root_partition_name,
                            self.storage_options, self.rank, self.status,
                            self.expansion_started, self.expansion_finished,
                            self.source_bytes)
