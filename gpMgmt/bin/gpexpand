@@ -276,17 +276,14 @@ start_status = "IN PROGRESS"
 done_status = "COMPLETED"
 does_not_exist_status = 'NO LONGER EXISTS'
 
-gpexpand_schema = 'gpexpand'
-create_schema_sql = "CREATE SCHEMA " + gpexpand_schema
-drop_schema_sql = "DROP schema IF EXISTS %s CASCADE" % gpexpand_schema
+create_schema_sql = "CREATE SCHEMA gpexpand"
+drop_schema_sql = "DROP SCHEMA IF EXISTS gpexpand CASCADE"
 
-status_table = 'status'
-status_table_sql = """CREATE TABLE %s.%s
+status_table_sql = """CREATE TABLE gpexpand.status
                         ( status text,
-                          updated timestamp ) """ % (gpexpand_schema, status_table)
+                          updated timestamp ) """
 
-status_detail_table = 'status_detail'
-status_detail_table_sql = """CREATE TABLE %s.%s
+status_detail_table_sql = """CREATE TABLE gpexpand.status_detail
                         ( dbname text,
                           fq_name text,
                           schema_oid oid,
@@ -301,20 +298,18 @@ status_detail_table_sql = """CREATE TABLE %s.%s
                           status text,
                           expansion_started timestamp,
                           expansion_finished timestamp,
-                          source_bytes numeric ) """ % (gpexpand_schema, status_detail_table)
+                          source_bytes numeric ) """
 # gpexpand views
-progress_view = 'expansion_progress'
-progress_view_simple_sql = """CREATE VIEW %s.%s AS
+progress_view_simple_sql = """CREATE VIEW gpexpand.expansion_progress AS
 SELECT
     CASE status
         WHEN '%s' THEN 'Tables Expanded'
         WHEN '%s' THEN 'Tables Left'
     END AS Name,
     count(*)::text AS Value
-FROM %s.%s GROUP BY status""" % (gpexpand_schema, progress_view,
-                                 done_status, undone_status, gpexpand_schema, status_detail_table)
+FROM gpexpand.status_detail GROUP BY status""" % (done_status, undone_status)
 
-progress_view_sql = """CREATE VIEW %s.%s AS
+progress_view_sql = """CREATE VIEW gpexpand.expansion_progress AS
 SELECT
     CASE status
         WHEN '%s' THEN 'Tables Expanded'
@@ -322,7 +317,7 @@ SELECT
         WHEN '%s' THEN 'Tables In Progress'
     END AS Name,
     count(*)::text AS Value
-FROM %s.%s GROUP BY status
+FROM gpexpand.status_detail GROUP BY status
 
 UNION
 
@@ -333,17 +328,17 @@ SELECT
         WHEN '%s' THEN 'Bytes In Progress'
     END AS Name,
     SUM(source_bytes)::text AS Value
-FROM %s.%s GROUP BY status
+FROM gpexpand.status_detail GROUP BY status
 
 UNION
 
 SELECT
     'Estimated Expansion Rate' AS Name,
     (SUM(source_bytes) / (1 + extract(epoch FROM (max(expansion_finished) - min(expansion_started)))) / 1024 / 1024)::text || ' MB/s' AS Value
-FROM %s.%s
+FROM gpexpand.status_detail
 WHERE status = '%s'
 AND
-expansion_started > (SELECT updated FROM %s.%s WHERE status = '%s' ORDER BY updated DESC LIMIT 1)
+expansion_started > (SELECT updated FROM gpexpand.status WHERE status = '%s' ORDER BY updated DESC LIMIT 1)
 
 UNION
 
@@ -351,27 +346,19 @@ SELECT
 'Estimated Time to Completion' AS Name,
 CAST((SUM(source_bytes) / (
 SELECT 1 + SUM(source_bytes) / (1 + (extract(epoch FROM (max(expansion_finished) - min(expansion_started)))))
-FROM %s.%s
+FROM gpexpand.status_detail
 WHERE status = '%s'
 AND
-expansion_started > (SELECT updated FROM %s.%s WHERE status = '%s' ORDER BY
+expansion_started > (SELECT updated FROM gpexpand.status WHERE status = '%s' ORDER BY
 updated DESC LIMIT 1)))::text || ' seconds' as interval)::text AS Value
-FROM %s.%s
+FROM gpexpand.status_detail
 WHERE status = '%s'
-  OR status = '%s'""" % (gpexpand_schema, progress_view,
+  OR status = '%s'""" % (done_status, undone_status, start_status,
                          done_status, undone_status, start_status,
-                         gpexpand_schema, status_detail_table,
-                         done_status, undone_status, start_status,
-                         gpexpand_schema, status_detail_table,
-                         gpexpand_schema, status_detail_table,
                          done_status,
-                         gpexpand_schema, status_table,
                          'EXPANSION STARTED',
-                         gpexpand_schema, status_detail_table,
                          done_status,
-                         gpexpand_schema, status_table,
                          'EXPANSION STARTED',
-                         gpexpand_schema, status_detail_table,
                          start_status, undone_status)
 
 unalterable_table_sql = """
@@ -1554,7 +1541,7 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
             self.gparray = GpArray.initFromCatalog(self.dburl)
 
         nowStr = datetime.datetime.now()
-        statusSQL = "INSERT INTO %s.%s VALUES ( 'SETUP', '%s' ) " % (gpexpand_schema, status_table, nowStr)
+        statusSQL = "INSERT INTO gpexpand.status VALUES ( 'SETUP', '%s' ) " % (nowStr)
 
         dbconn.execSQL(self.conn, statusSQL)
 
@@ -1564,14 +1551,14 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
             dbname = db[0]
             if dbname == 'template0':
                 continue
-            self.logger.info('Populating %s.%s with data from database %s' % (
-                gpexpand_schema, status_detail_table, dbname.decode('utf-8')))
+            self.logger.info('Populating gpexpand.status_detail with data from database %s' % (
+                dbname.decode('utf-8')))
             self._populate_regular_tables(dbname)
             self._populate_partitioned_tables(dbname)
             inject_fault('gpexpand MPP-14620 fault injection')
 
         nowStr = datetime.datetime.now()
-        statusSQL = "INSERT INTO %s.%s VALUES ( 'SETUP DONE', '%s' ) " % (gpexpand_schema, status_table, nowStr)
+        statusSQL = "INSERT INTO gpexpand.status VALUES ( 'SETUP DONE', '%s' ) " % (nowStr)
         dbconn.execSQL(self.conn, statusSQL)
 
         self.conn.commit()
@@ -1619,7 +1606,7 @@ WHERE
         curs = dbconn.execSQL(table_conn, sql)
         rows = curs.fetchall()
         try:
-            sql_file = os.path.abspath('./%s.dat' % status_detail_table)
+            sql_file = os.path.abspath('./status_detail.dat')
             self.logger.debug('status_detail data file: %s' % sql_file)
             fp = open(sql_file, 'w')
             for row in rows:
@@ -1652,7 +1639,7 @@ WHERE
             if fp: fp.close()
 
         try:
-            copySQL = """COPY %s.%s FROM '%s' NULL AS 'NULL'""" % (gpexpand_schema, status_detail_table, sql_file)
+            copySQL = """COPY gpexpand.status_detail FROM '%s' NULL AS 'NULL'""" % (sql_file)
 
             self.logger.debug(copySQL)
             dbconn.execSQL(self.conn, copySQL)
@@ -1713,7 +1700,7 @@ ORDER BY fq_name, tableoid desc;
         rows = curs.fetchall()
 
         try:
-            sql_file = os.path.abspath('./%s.dat' % status_detail_table)
+            sql_file = os.path.abspath('./status_detail.dat')
             self.logger.debug('status_detail data file: %s' % sql_file)
             fp = open(sql_file, 'w')
 
@@ -1747,7 +1734,7 @@ ORDER BY fq_name, tableoid desc;
             if fp: fp.close()
 
         try:
-            copySQL = """COPY %s.%s FROM '%s' NULL AS 'NULL'""" % (gpexpand_schema, status_detail_table, sql_file)
+            copySQL = """COPY gpexpand.status_detail FROM '%s' NULL AS 'NULL'""" % (sql_file)
 
             self.logger.debug(copySQL)
             dbconn.execSQL(self.conn, copySQL)
@@ -1793,8 +1780,8 @@ ORDER BY fq_name, tableoid desc;
 
         # go through and reset any "IN PROGRESS" tables
         self.conn = dbconn.connect(self.dburl, encoding='UTF8')
-        sql = "INSERT INTO %s.%s VALUES ( 'EXPANSION STARTED', '%s' ) " % (
-            gpexpand_schema, status_table, expansionStart)
+        sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STARTED', '%s' ) " % (
+            expansionStart)
         dbconn.execSQL(self.conn, sql)
         self.conn.commit()
 
@@ -1803,7 +1790,7 @@ ORDER BY fq_name, tableoid desc;
         self.conn.commit()
 
         # read schema and queue up commands
-        sql = "SELECT * FROM %s.%s WHERE status = 'NOT STARTED' ORDER BY rank" % (gpexpand_schema, status_detail_table)
+        sql = "SELECT * FROM gpexpand.status_detail WHERE status = 'NOT STARTED' ORDER BY rank"
         cursor = dbconn.execSQL(self.conn, sql)
 
         for row in cursor:
@@ -1845,8 +1832,8 @@ ORDER BY fq_name, tableoid desc;
 
         if stoppedEarly:
             logger.info('End time reached.  Stopping expansion.')
-            sql = "INSERT INTO %s.%s VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
-                gpexpand_schema, status_table, expansionStopped)
+            sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
+                expansionStopped)
             cursor = dbconn.execSQL(self.conn, sql)
             self.conn.commit()
             logger.info('You can resume expansion by running gpexpand again')
@@ -1860,15 +1847,15 @@ ORDER BY fq_name, tableoid desc;
             # going into read only mode, this will fail.  That's ok though as
             # gpexpand will resume next run
             try:
-                sql = "INSERT INTO %s.%s VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
-                    gpexpand_schema, status_table, expansionStopped)
+                sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
+                    expansionStopped)
                 cursor = dbconn.execSQL(self.conn, sql)
                 self.conn.commit()
             except:
                 pass
         else:
-            sql = "INSERT INTO %s.%s VALUES ( 'EXPANSION COMPLETE', '%s' ) " % (
-                gpexpand_schema, status_table, expansionStopped)
+            sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION COMPLETE', '%s' ) " % (
+                expansionStopped)
             cursor = dbconn.execSQL(self.conn, sql)
             self.conn.commit()
             logger.info("EXPANSION COMPLETED SUCCESSFULLY")
@@ -1886,8 +1873,8 @@ ORDER BY fq_name, tableoid desc;
 
         try:
             expansionStopped = datetime.datetime.now()
-            sql = "INSERT INTO %s.%s VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
-                gpexpand_schema, status_table, expansionStopped)
+            sql = "INSERT INTO gpexpand.status VALUES ( 'EXPANSION STOPPED', '%s' ) " % (
+                expansionStopped)
             cursor = dbconn.execSQL(self.conn, sql)
             self.conn.commit()
 
@@ -1915,8 +1902,7 @@ ORDER BY fq_name, tableoid desc;
             c = dbconn.connect(self.dburl, encoding='UTF8')
             self.logger.warn('Expansion has not yet completed.  Removing the expansion')
             self.logger.warn('schema now will leave the following tables unexpanded:')
-            unexpanded_tables_sql = "SELECT fq_name FROM %s.%s WHERE status = 'NOT STARTED' ORDER BY rank" % (
-                gpexpand_schema, status_detail_table)
+            unexpanded_tables_sql = "SELECT fq_name FROM gpexpand.status_detail WHERE status = 'NOT STARTED' ORDER BY rank"
 
             cursor = dbconn.execSQL(c, unexpanded_tables_sql)
             unexpanded_tables_text = ''.join("\t%s\n" % row[0] for row in cursor)
@@ -2016,11 +2002,10 @@ class ExpandTable():
             self.is_root_partition = True
 
     def add_table(self, conn):
-        insertSQL = """INSERT INTO %s.%s
+        insertSQL = """INSERT INTO gpexpand.status_detail
                             VALUES ('%s','%s',%s,%s,
                                     '%s','%s', '%s', '%s', '%s','%s',%d,'%s','%s','%s',%d)
-                    """ % (gpexpand_schema, status_detail_table,
-                           self.dbname, self.fq_name.replace("\'", "\'\'"), self.schema_oid, self.table_oid,
+                    """ % (self.dbname, self.fq_name.replace("\'", "\'\'"), self.schema_oid, self.table_oid,
                            self.distrib_policy, self.distrib_policy_names, self.distrib_policy_coloids,
                            self.distrib_policy_type, self.root_partition_name,
                            self.storage_options, self.rank, self.status,
@@ -2039,12 +2024,11 @@ class ExpandTable():
         src_bytes = int(row[0])
         logger.debug(" Table: %s has %d bytes" % (self.fq_name.decode('utf-8'), src_bytes))
 
-        sql = """UPDATE %s.%s
+        sql = """UPDATE gpexpand.status_detail
                   SET status = '%s', expansion_started='%s',
                       source_bytes = %d
                   WHERE dbname = '%s' AND schema_oid = %s
-                        AND table_oid = %s """ % (gpexpand_schema, status_detail_table,
-                                                  start_status, start_time,
+                        AND table_oid = %s """ % (start_status, start_time,
                                                   src_bytes, self.dbname,
                                                   self.schema_oid, self.table_oid)
 
@@ -2053,10 +2037,10 @@ class ExpandTable():
         status_conn.commit()
 
     def reset_started(self, status_conn):
-        sql = """UPDATE %s.%s
+        sql = """UPDATE gpexpand.status_detail
                  SET status = '%s', expansion_started=NULL, expansion_finished=NULL
                  WHERE dbname = '%s' AND schema_oid = %s
-                 AND table_oid = %s """ % (gpexpand_schema, status_detail_table, undone_status,
+                 AND table_oid = %s """ % (undone_status,
                                            self.dbname, self.schema_oid, self.table_oid)
 
         logger.debug('Resetting detailed_status: %s' % sql.decode('utf-8'))
@@ -2096,22 +2080,20 @@ class ExpandTable():
         return False
 
     def mark_finished(self, status_conn, start_time, finish_time):
-        sql = """UPDATE %s.%s
+        sql = """UPDATE gpexpand.status_detail
                   SET status = '%s', expansion_started='%s', expansion_finished='%s'
                   WHERE dbname = '%s' AND schema_oid = %s
-                  AND table_oid = %s """ % (gpexpand_schema, status_detail_table,
-                                            done_status, start_time, finish_time,
+                  AND table_oid = %s """ % (done_status, start_time, finish_time,
                                             self.dbname, self.schema_oid, self.table_oid)
         logger.debug(sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
         status_conn.commit()
 
     def mark_does_not_exist(self, status_conn, finish_time):
-        sql = """UPDATE %s.%s
+        sql = """UPDATE gpexpand.status_detail
                   SET status = '%s', expansion_finished='%s'
                   WHERE dbname = '%s' AND schema_oid = %s
-                  AND table_oid = %s """ % (gpexpand_schema, status_detail_table,
-                                            does_not_exist_status, finish_time,
+                  AND table_oid = %s """ % (does_not_exist_status, finish_time,
                                             self.dbname, self.schema_oid, self.table_oid)
         logger.debug(sql.decode('utf-8'))
         dbconn.execSQL(status_conn, sql)
