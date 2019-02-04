@@ -44,10 +44,6 @@ except ImportError, e:
 MAX_PARALLEL_EXPANDS = 96
 MAX_BATCH_SIZE = 128
 
-GPDB_STOPPED = 1
-GPDB_STARTED = 2
-GPDB_UTILITY = 3
-
 SEGMENT_CONFIGURATION_BACKUP_FILE = "gpexpand.gp_segment_configuration"
 
 #global var
@@ -1753,7 +1749,7 @@ ORDER BY fq_name, tableoid desc;
 
         namedict = {}
         oiddict = {}
-        sql = "select attnum, attname, attrelid from pg_attribute where attrelid =  %s and attnum > 0" % table_oid
+        sql = "select attnum, attname, attrelid from pg_attribute where attrelid = %s and attnum > 0" % table_oid
         cursor = dbconn.execSQL(conn, sql)
         for row in cursor:
             namedict[row[0]] = row[1]
