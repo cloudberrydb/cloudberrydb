@@ -3902,13 +3902,13 @@ select gp_segment_id, relname from gp_dist_random('pg_class') where relkind = 'r
 alter table sales drop column tax;
 
 create table newpart(like sales);
-alter table newpart add constraint partable_pkey primary key(pkid, option3);
+alter table newpart add constraint newpart_pkey primary key(pkid, option3);
 alter table sales split partition for(1) at (50) into (partition aa1, partition aa2);
 
 select table_schema, table_name, constraint_name, constraint_type
 	from information_schema.table_constraints
 	where table_name in ('sales', 'newpart')
-	and constraint_name = 'partable_pkey'
+	and constraint_name in ('partable_pkey', 'newpart_pkey')
 	order by table_name desc;
 
 alter table sales exchange partition for (101) with table newpart;
