@@ -13,20 +13,8 @@
 -- s/Planning time: \d+\.\d+ ms/Planning time: ##.### ms/
 -- m/cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+/
 -- s/\(cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+\)/(cost=##.###..##.### rows=### width=###)/
--- m/Peak memory: \d+\w? bytes\./
--- s/Peak memory: \d+\w? bytes\./Peak memory: ### bytes./
--- m/Peak memory: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)./
--- s/Peak memory: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)\./Peak memory: ### bytes avg x # workers, ### bytes max (seg#)./
--- m/Vmem reserved: \d+\w? bytes\./
--- s/Vmem reserved: \d+\w? bytes\./Vmem reserved: ### bytes./
--- m/Vmem reserved: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)/
--- s/Vmem reserved: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)/Vmem reserved: ### bytes avg x # workers, ### bytes max (seg#)/
--- m/Total memory used across slices: \d+\w bytes./
--- s/Total memory used across slices: \d+\w bytes./Total memory used across slices: ### bytes./
 -- m/Memory used:  \d+\w?B/
 -- s/Memory used:  \d+\w?B/Memory used: ###B/
--- m/ORCA Memory used: peak \d+\w?B  allocated \d+\w?B  freed \d+\w?B/
--- s/ORCA Memory used: peak \d+\w?B  allocated \d+\w?B  freed \d+\w?B/ORCA Memory used: peak ##B  allocated ##B  freed ##B/
 -- end_matchsubs
 --
 -- DEFAULT syntax
@@ -36,61 +24,57 @@ CREATE TABLE box_locations(id int PRIMARY KEY, address text);
 CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES box_locations(id));
 WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
 WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
--- Activate GUC that will show more memory information
-SET explain_memory_verbosity = 'summary';
 --- Check Explain Text format output
 -- explain_processing_off
 EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=4626.75..9514.96 rows=77900 width=84)
-   ->  Hash Left Join  (cost=4626.75..9514.96 rows=25967 width=84)
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=4626.75..9520.88 rows=77900 width=84)
+   ->  Hash Left Join  (cost=4626.75..9520.88 rows=25967 width=84)
          Hash Cond: (boxes.location_id = box_locations.id)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=3410.75..7227.84 rows=25967 width=48)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=3410.75..7233.75 rows=25967 width=48)
                Hash Key: boxes.location_id
-               ->  Hash Right Join  (cost=3410.75..5669.84 rows=25967 width=48)
+               ->  Hash Right Join  (cost=3410.75..5675.75 rows=25967 width=48)
                      Hash Cond: (apples.id = boxes.apple_id)
-                     ->  Seq Scan on apples  (cost=0.00..1106.70 rows=33190 width=36)
+                     ->  Seq Scan on apples  (cost=0.00..1111.00 rows=33334 width=36)
                      ->  Hash  (cost=2437.00..2437.00 rows=25967 width=12)
                            ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2437.00 rows=25967 width=12)
                                  Hash Key: boxes.apple_id
                                  ->  Seq Scan on boxes  (cost=0.00..879.00 rows=25967 width=12)
          ->  Hash  (cost=596.00..596.00 rows=16534 width=36)
                ->  Seq Scan on box_locations  (cost=0.00..596.00 rows=16534 width=36)
- Planning time: 2.925 ms
  Optimizer: legacy query optimizer
-(16 rows)
+(15 rows)
 
 -- explain_processing_on
 --- Check Explain Analyze Text output that include the slices information
 -- explain_processing_off
 EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
-                                                                                                        QUERY PLAN                                                                                                        
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=4626.75..9514.96 rows=77900 width=84) (actual time=2.571..2.571 rows=0 loops=2)
-   ->  Hash Left Join  (cost=4626.75..9514.96 rows=25967 width=84) (actual time=0.000..4.643 rows=0 loops=1)
+                                                               QUERY PLAN                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=4626.75..9520.88 rows=77900 width=84) (actual time=7.762..7.762 rows=0 loops=1)
+   ->  Hash Left Join  (cost=4626.75..9520.88 rows=25967 width=84) (never executed)
          Hash Cond: (boxes.location_id = box_locations.id)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=3410.75..7227.84 rows=25967 width=48) (actual time=0.000..3.396 rows=0 loops=1)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=3410.75..7233.75 rows=25967 width=48) (never executed)
                Hash Key: boxes.location_id
-               ->  Hash Right Join  (cost=3410.75..5669.84 rows=25967 width=48) (actual time=0.000..2.122 rows=0 loops=1)
+               ->  Hash Right Join  (cost=3410.75..5675.75 rows=25967 width=48) (never executed)
                      Hash Cond: (apples.id = boxes.apple_id)
-                     ->  Seq Scan on apples  (cost=0.00..1106.70 rows=33190 width=36) (never executed)
-                     ->  Hash  (cost=2437.00..2437.00 rows=25967 width=12) (actual time=0.000..0.008 rows=0 loops=1)
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2437.00 rows=25967 width=12) (actual time=0.000..0.007 rows=0 loops=1)
+                     ->  Seq Scan on apples  (cost=0.00..1111.00 rows=33334 width=36) (never executed)
+                     ->  Hash  (cost=2437.00..2437.00 rows=25967 width=12) (never executed)
+                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..2437.00 rows=25967 width=12) (never executed)
                                  Hash Key: boxes.apple_id
-                                 ->  Seq Scan on boxes  (cost=0.00..879.00 rows=25967 width=12) (actual time=0.000..0.017 rows=0 loops=1)
-         ->  Hash  (cost=596.00..596.00 rows=16534 width=36) (actual time=0.000..0.022 rows=0 loops=1)
-               ->  Seq Scan on box_locations  (cost=0.00..596.00 rows=16534 width=36) (actual time=0.000..0.020 rows=0 loops=1)
- Planning time: 2.298 ms
-   (slice0)    Executor memory: 386K bytes.  Peak memory: 1507K bytes.  Vmem reserved: 1024K bytes.
-   (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).  Peak memory: 1K bytes avg x 3 workers, 638K bytes max (seg1).
-   (slice2)    Executor memory: 2122K bytes avg x 3 workers, 2122K bytes max (seg0).  Peak memory: 3K bytes avg x 3 workers, 2694K bytes max (seg0).  Vmem reserved: 2048K bytes avg x 3 workers, 2048K bytes max (seg0).
-   (slice3)    Executor memory: 1110K bytes avg x 3 workers, 1110K bytes max (seg0).  Peak memory: 2K bytes avg x 3 workers, 1836K bytes max (seg1).  Vmem reserved: 2048K bytes avg x 3 workers, 2048K bytes max (seg0).
- Total memory used across slices: 17008K bytes 
+                                 ->  Seq Scan on boxes  (cost=0.00..879.00 rows=25967 width=12) (never executed)
+         ->  Hash  (cost=596.00..596.00 rows=16534 width=36) (never executed)
+               ->  Seq Scan on box_locations  (cost=0.00..596.00 rows=16534 width=36) (never executed)
+ Planning time: 0.791 ms
+   (slice0)    Executor memory: 127K bytes.
+   (slice1)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
+   (slice2)    Executor memory: 2128K bytes avg x 3 workers, 2128K bytes max (seg0).
+   (slice3)    Executor memory: 1104K bytes avg x 3 workers, 1104K bytes max (seg0).
  Memory used:  128000kB
  Optimizer: legacy query optimizer
- Execution time: 21.273 ms
-(23 rows)
+ Execution time: 29.929 ms
+(22 rows)
 
 -- explain_processing_on
 -- Unaligned output format is better for the YAML / XML / JSON outputs.
@@ -120,8 +104,6 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- s/ Memory: \d+/ Memory: ###/
 -- m/Maximum Memory Used: \d+/
 -- s/Maximum Memory Used: \d+/Maximum Memory Used: ###/
--- m/Work Maximum Memory: \d+/
--- s/Work Maximum Memory: \d+/Work Maximum Memory: ###/
 -- m/Workers: \d+/
 -- s/Workers: \d+/Workers: ##/
 -- m/Average: \d+/
@@ -130,8 +112,6 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- s/Total memory used across slices: \d+\s*/Total memory used across slices: ###/
 -- m/Memory used: \d+/
 -- s/Memory used: \d+/Memory used: ###/
--- m/ORCA Memory Used \w+: \d+/
--- s/ORCA Memory Used (\w+): \d+\s+/ORCA Memory Used $1: ##/
 -- end_matchsubs
 -- Check Explain YAML output
 EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
@@ -144,7 +124,7 @@ QUERY PLAN
     Segments: 3
     Gang Type: "primary reader"
     Startup Cost: 4626.75
-    Total Cost: 9514.96
+    Total Cost: 9520.88
     Plan Rows: 77900
     Plan Width: 84
     Plans: 
@@ -155,7 +135,7 @@ QUERY PLAN
         Gang Type: "primary reader"
         Join Type: "Left"
         Startup Cost: 4626.75
-        Total Cost: 9514.96
+        Total Cost: 9520.88
         Plan Rows: 77900
         Plan Width: 84
         Hash Cond: "(boxes.location_id = box_locations.id)"
@@ -168,7 +148,7 @@ QUERY PLAN
             Segments: 3
             Gang Type: "primary reader"
             Startup Cost: 3410.75
-            Total Cost: 7227.84
+            Total Cost: 7233.75
             Plan Rows: 77900
             Plan Width: 48
             Hash Key: "boxes.location_id"
@@ -180,7 +160,7 @@ QUERY PLAN
                 Gang Type: "primary reader"
                 Join Type: "Right"
                 Startup Cost: 3410.75
-                Total Cost: 5669.84
+                Total Cost: 5675.75
                 Plan Rows: 77900
                 Plan Width: 48
                 Hash Cond: "(apples.id = boxes.apple_id)"
@@ -193,8 +173,8 @@ QUERY PLAN
                     Relation Name: "apples"
                     Alias: "apples"
                     Startup Cost: 0.00
-                    Total Cost: 1106.70
-                    Plan Rows: 99570
+                    Total Cost: 1111.00
+                    Plan Rows: 100000
                     Plan Width: 36
                   - Node Type: "Hash"
                     Parent Relationship: "Inner"
@@ -251,7 +231,6 @@ QUERY PLAN
                 Total Cost: 596.00
                 Plan Rows: 49600
                 Plan Width: 36
-  Planning Time: 2.442
   Settings: 
     Optimizer: "legacy query optimizer"
 (1 row)
@@ -267,13 +246,13 @@ QUERY PLAN
     Segments: 3
     Gang Type: "primary reader"
     Startup Cost: 4626.75
-    Total Cost: 9514.96
+    Total Cost: 9520.88
     Plan Rows: 77900
     Plan Width: 84
-    Actual Startup Time: 2.463
-    Actual Total Time: 2.463
+    Actual Startup Time: 7.816
+    Actual Total Time: 7.816
     Actual Rows: 0
-    Actual Loops: 2
+    Actual Loops: 1
     Plans: 
       - Node Type: "Hash Join"
         Parent Relationship: "Outer"
@@ -282,13 +261,13 @@ QUERY PLAN
         Gang Type: "primary reader"
         Join Type: "Left"
         Startup Cost: 4626.75
-        Total Cost: 9514.96
+        Total Cost: 9520.88
         Plan Rows: 77900
         Plan Width: 84
         Actual Startup Time: 0.000
-        Actual Total Time: 4.477
+        Actual Total Time: 0.000
         Actual Rows: 0
-        Actual Loops: 1
+        Actual Loops: 0
         Hash Cond: "(boxes.location_id = box_locations.id)"
         Plans: 
           - Node Type: "Redistribute Motion"
@@ -299,13 +278,13 @@ QUERY PLAN
             Segments: 3
             Gang Type: "primary reader"
             Startup Cost: 3410.75
-            Total Cost: 7227.84
+            Total Cost: 7233.75
             Plan Rows: 77900
             Plan Width: 48
             Actual Startup Time: 0.000
-            Actual Total Time: 3.469
+            Actual Total Time: 0.000
             Actual Rows: 0
-            Actual Loops: 1
+            Actual Loops: 0
             Hash Key: "boxes.location_id"
             Plans: 
               - Node Type: "Hash Join"
@@ -315,13 +294,13 @@ QUERY PLAN
                 Gang Type: "primary reader"
                 Join Type: "Right"
                 Startup Cost: 3410.75
-                Total Cost: 5669.84
+                Total Cost: 5675.75
                 Plan Rows: 77900
                 Plan Width: 48
                 Actual Startup Time: 0.000
-                Actual Total Time: 2.554
+                Actual Total Time: 0.000
                 Actual Rows: 0
-                Actual Loops: 1
+                Actual Loops: 0
                 Hash Cond: "(apples.id = boxes.apple_id)"
                 Plans: 
                   - Node Type: "Seq Scan"
@@ -332,8 +311,8 @@ QUERY PLAN
                     Relation Name: "apples"
                     Alias: "apples"
                     Startup Cost: 0.00
-                    Total Cost: 1106.70
-                    Plan Rows: 99570
+                    Total Cost: 1111.00
+                    Plan Rows: 100000
                     Plan Width: 36
                     Actual Startup Time: 0.000
                     Actual Total Time: 0.000
@@ -349,9 +328,9 @@ QUERY PLAN
                     Plan Rows: 77900
                     Plan Width: 12
                     Actual Startup Time: 0.000
-                    Actual Total Time: 0.010
+                    Actual Total Time: 0.000
                     Actual Rows: 0
-                    Actual Loops: 1
+                    Actual Loops: 0
                     Plans: 
                       - Node Type: "Redistribute Motion"
                         Senders: 3
@@ -365,9 +344,9 @@ QUERY PLAN
                         Plan Rows: 77900
                         Plan Width: 12
                         Actual Startup Time: 0.000
-                        Actual Total Time: 0.008
+                        Actual Total Time: 0.000
                         Actual Rows: 0
-                        Actual Loops: 1
+                        Actual Loops: 0
                         Hash Key: "boxes.apple_id"
                         Plans: 
                           - Node Type: "Seq Scan"
@@ -382,9 +361,9 @@ QUERY PLAN
                             Plan Rows: 77900
                             Plan Width: 12
                             Actual Startup Time: 0.000
-                            Actual Total Time: 0.024
+                            Actual Total Time: 0.000
                             Actual Rows: 0
-                            Actual Loops: 1
+                            Actual Loops: 0
           - Node Type: "Hash"
             Parent Relationship: "Inner"
             Slice: 3
@@ -395,9 +374,9 @@ QUERY PLAN
             Plan Rows: 49600
             Plan Width: 36
             Actual Startup Time: 0.000
-            Actual Total Time: 0.020
+            Actual Total Time: 0.000
             Actual Rows: 0
-            Actual Loops: 1
+            Actual Loops: 0
             Plans: 
               - Node Type: "Seq Scan"
                 Parent Relationship: "Outer"
@@ -411,57 +390,34 @@ QUERY PLAN
                 Plan Rows: 49600
                 Plan Width: 36
                 Actual Startup Time: 0.000
-                Actual Total Time: 0.019
+                Actual Total Time: 0.000
                 Actual Rows: 0
-                Actual Loops: 1
-  Planning Time: 2.374
+                Actual Loops: 0
+  Planning Time: 0.661
   Triggers: 
   Slice statistics: 
     - Slice: 0
-      Executor Memory: 394432
-      Global Peak Memory: 1522496
-      Virtual Memory: 1048576
+      Executor Memory: 130048
     - Slice: 1
       Executor Memory: 
-        Average: 66728
+        Average: 60584
         Workers: 3
-        Maximum Memory Used: 66728
-      Global Peak Memory: 
-        Average: 664458
-        Workers: 3
-        Maximum Memory Used: 665040
+        Maximum Memory Used: 60584
     - Slice: 2
       Executor Memory: 
-        Average: 2171952
+        Average: 2178096
         Workers: 3
-        Maximum Memory Used: 2171952
-      Global Peak Memory: 
-        Average: 2757704
-        Workers: 3
-        Maximum Memory Used: 2757736
-      Virtual Memory: 
-        Average: 2097152
-        Workers: 3
-        Maximum Memory Used: 2097152
+        Maximum Memory Used: 2178096
     - Slice: 3
       Executor Memory: 
-        Average: 1135744
+        Average: 1129520
         Workers: 3
-        Maximum Memory Used: 1135744
-      Global Peak Memory: 
-        Average: 1879320
-        Workers: 3
-        Maximum Memory Used: 1879352
-      Virtual Memory: 
-        Average: 2097152
-        Workers: 3
-        Maximum Memory Used: 2097152
-  Total memory used across slices: 6667
+        Maximum Memory Used: 1129520
   Statement statistics: 
     Memory used: 128000
   Settings: 
     Optimizer: "legacy query optimizer"
-  Execution Time: 5.915
+  Execution Time: 8.490
 (1 row)
 -- explain_processing_on
 --

@@ -13,20 +13,8 @@
 -- s/Planning time: \d+\.\d+ ms/Planning time: ##.### ms/
 -- m/cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+/
 -- s/\(cost=\d+\.\d+\.\.\d+\.\d+ rows=\d+ width=\d+\)/(cost=##.###..##.### rows=### width=###)/
--- m/Peak memory: \d+\w? bytes\./
--- s/Peak memory: \d+\w? bytes\./Peak memory: ### bytes./
--- m/Peak memory: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)./
--- s/Peak memory: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)\./Peak memory: ### bytes avg x # workers, ### bytes max (seg#)./
--- m/Vmem reserved: \d+\w? bytes\./
--- s/Vmem reserved: \d+\w? bytes\./Vmem reserved: ### bytes./
--- m/Vmem reserved: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)/
--- s/Vmem reserved: \d+\w? bytes avg x \d+ workers, \d+\w? bytes max \(seg\d+\)/Vmem reserved: ### bytes avg x # workers, ### bytes max (seg#)/
--- m/Total memory used across slices: \d+\w bytes./
--- s/Total memory used across slices: \d+\w bytes./Total memory used across slices: ### bytes./
 -- m/Memory used:  \d+\w?B/
 -- s/Memory used:  \d+\w?B/Memory used: ###B/
--- m/ORCA Memory used: peak \d+\w?B  allocated \d+\w?B  freed \d+\w?B/
--- s/ORCA Memory used: peak \d+\w?B  allocated \d+\w?B  freed \d+\w?B/ORCA Memory used: peak ##B  allocated ##B  freed ##B/
 -- end_matchsubs
 --
 -- DEFAULT syntax
@@ -34,9 +22,6 @@ CREATE TABLE apples(id int PRIMARY KEY, type text);
 INSERT INTO apples(id) SELECT generate_series(1, 100000);
 CREATE TABLE box_locations(id int PRIMARY KEY, address text);
 CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES box_locations(id));
-
--- Activate GUC that will show more memory information
-SET explain_memory_verbosity = 'summary';
 
 --- Check Explain Text format output
 -- explain_processing_off
@@ -76,8 +61,6 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- s/ Memory: \d+/ Memory: ###/
 -- m/Maximum Memory Used: \d+/
 -- s/Maximum Memory Used: \d+/Maximum Memory Used: ###/
--- m/Work Maximum Memory: \d+/
--- s/Work Maximum Memory: \d+/Work Maximum Memory: ###/
 -- m/Workers: \d+/
 -- s/Workers: \d+/Workers: ##/
 -- m/Average: \d+/
@@ -86,8 +69,6 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
 -- s/Total memory used across slices: \d+\s*/Total memory used across slices: ###/
 -- m/Memory used: \d+/
 -- s/Memory used: \d+/Memory used: ###/
--- m/ORCA Memory Used \w+: \d+/
--- s/ORCA Memory Used (\w+): \d+\s+/ORCA Memory Used $1: ##/
 -- end_matchsubs
 -- Check Explain YAML output
 EXPLAIN (FORMAT YAML) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
