@@ -17,6 +17,9 @@
  * under the License.
  */
 
+#ifndef _LIBCHURL_H_
+#define _LIBCHURL_H_
+
 #include "pxfutils.h"
 
 /*
@@ -143,3 +146,5 @@ void		print_http_headers(CHURL_HEADERS headers);
 #define LocalhostIpV4Entry ":127.0.0.1"
 #define LocalhostIpV4 "localhost"
 #define REST_HEADER_JSON_RESPONSE "Accept: application/json"
+
+#endif							/* _LIBCHURL_H_ */
