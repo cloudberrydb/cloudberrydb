@@ -427,16 +427,6 @@
           </ul></p>
       </body>
     </topic>
-    <topic id="topic15" xml:lang="en">
-      <title>Redistributing Tables with User-Defined Data Types</title>
-      <body>
-        <p>You cannot perform redistribution with the expansion utility on tables with dropped
-          columns of user-defined data types. To redistribute tables with dropped columns of
-          user-defined types, first re-create the table using <codeph>CREATE TABLE AS
-            SELECT</codeph>. After this process removes the dropped columns, redistribute the table
-          with <codeph>gpexpand</codeph>.</p>
-      </body>
-    </topic>
     <topic id="topic16" xml:lang="en">
       <title>Redistributing Partitioned Tables</title>
       <body>

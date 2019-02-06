@@ -351,36 +351,6 @@ WHERE status = '%s'
                          'EXPANSION STARTED',
                          start_status, undone_status)
 
-unalterable_table_sql = """
-SELECT
-    current_database() AS database,
-    pg_catalog.quote_ident(nspname) || '.' ||
-    pg_catalog.quote_ident(relname) AS table,
-    attnum,
-    attlen,
-    attbyval,
-    attstorage,
-    attalign,
-    atttypmod,
-    attndims,
-    reltoastrelid != 0 AS istoasted
-FROM
-    pg_catalog.pg_attribute,
-    pg_catalog.pg_class,
-    pg_catalog.pg_namespace
-WHERE
-    attisdropped
-    AND attnum >= 0
-    AND attrelid = pg_catalog.pg_class.oid
-    AND relnamespace = pg_catalog.pg_namespace.oid
-    AND (attlen, attbyval, attalign, attstorage) NOT IN
-        (SELECT typlen, typbyval, typalign, typstorage
-        FROM pg_catalog.pg_type
-        WHERE typisdefined AND typtype='b' )
-ORDER BY
-    attrelid, attnum
-"""
-
 has_unique_index_sql = """
 SELECT
     current_database() || '.' || pg_catalog.quote_ident(nspname) || '.' || pg_catalog.quote_ident(relname) AS table
@@ -1021,46 +991,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
             self.logger.error('a time.  This will lead to connection errors.  Either')
             self.logger.error('reduce the value for -n passed to gpexpand or raise')
             self.logger.error('max_connections in postgresql.conf')
-            return False
-
-        return True
-
-    def validate_unalterable_tables(self):
-        conn = None
-        unalterable_tables = []
-
-        try:
-            conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
-            databases = catalog.getDatabaseList(conn)
-            conn.close()
-
-            tempurl = copy.deepcopy(self.dburl)
-            for db in databases:
-                if db[0] == 'template0':
-                    continue
-                self.logger.info('Checking database %s for unalterable tables...' % db[0].decode('utf-8'))
-                tempurl.pgdb = db[0]
-                conn = dbconn.connect(tempurl, utility=True, encoding='UTF8')
-                cursor = dbconn.execSQL(conn, unalterable_table_sql)
-                for row in cursor:
-                    unalterable_tables.append(row)
-                cursor.close()
-                conn.close()
-
-        except DatabaseError, ex:
-            if self.options.verbose:
-                logger.exception(ex)
-            logger.error('Failed to check for unalterable tables.')
-            if conn: conn.close()
-            raise ex
-
-        if len(unalterable_tables) > 0:
-            self.logger.error('The following tables cannot be altered because they contain')
-            self.logger.error('dropped columns of user defined types:')
-            for t in unalterable_tables:
-                self.logger.error('\t%s.%s' % (t[0].decode('utf-8'), t[1].decode('utf-8')))
-            self.logger.error('Please consult the documentation for instructions on how to')
-            self.logger.error('correct this issue, then run gpexpand again')
             return False
 
         return True
@@ -2460,8 +2390,6 @@ def main(options, args, parser):
             logger.info('If you want to expand again, run gpexpand -c to remove')
             logger.info('the gpexpand schema and begin a new expansion')
         elif gpexpand_db_status is None and gpexpand_file_status is None and options.filename:
-            if not _gp_expand.validate_unalterable_tables():
-                raise ValidationError()
             if _gp_expand.check_unique_indexes():
                 logger.warn("Tables with unique indexes exist.  Until these tables are successfully")
                 logger.warn("redistributed, unique constraints may be violated.  For more information")
