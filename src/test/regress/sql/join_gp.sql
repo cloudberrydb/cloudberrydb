@@ -191,22 +191,8 @@ insert into dept select i, 99 from generate_series(100,15000) as i;
 
 ANALYZE dept;
 
--- Test rescannable hashjoin with spilling hashtable for buffile
+-- Test rescannable hashjoin with spilling hashtable
 set statement_mem='1000kB';
-set gp_workfile_type_hashjoin=buffile;
-WITH RECURSIVE subdept(id, parent_department, name) AS
-(
-	-- non recursive term
-	SELECT * FROM dept WHERE name = 'root'
-	UNION ALL
-	-- recursive term
-	SELECT d.* FROM dept AS d, subdept AS sd
-		WHERE d.pid = sd.id
-)
-SELECT count(*) FROM subdept;
-
--- Test rescannable hashjoin with spilling hashtable for bfz
-set gp_workfile_type_hashjoin=bfz;
 WITH RECURSIVE subdept(id, parent_department, name) AS
 (
 	-- non recursive term

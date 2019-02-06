@@ -417,12 +417,6 @@
               <xref href="#gp_vmem_protect_segworker_cache_limit"/>
             </li>
             <li>
-              <xref href="#gp_workfile_checksumming"/>
-            </li>
-            <li>
-              <xref href="#gp_workfile_compress_algorithm"/>
-            </li>
-            <li>
               <xref href="#gp_workfile_limit_files_per_query"/>
             </li>
             <li>
@@ -5266,69 +5260,6 @@
               <entry colname="col1">number of megabytes</entry>
               <entry colname="col2">500</entry>
               <entry colname="col3">local<p>system</p><p>restart</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="gp_workfile_checksumming">
-    <title>gp_workfile_checksumming</title>
-    <body>
-      <p>Adds a checksum value to each block of a work file (or spill file) used by
-          <codeph>HashAgg</codeph> and <codeph>HashJoin</codeph> query operators. This adds an
-        additional safeguard from faulty OS disk drivers writing corrupted blocks to disk. When a
-        checksum operation fails, the query will cancel and rollback rather than potentially writing
-        bad data to disk. </p>
-      <table id="gp_workfile_checksumming_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">Boolean</entry>
-              <entry colname="col2">on</entry>
-              <entry colname="col3">master<p>session</p><p>reload</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="gp_workfile_compress_algorithm">
-    <title>gp_workfile_compress_algorithm</title>
-    <body>
-      <p>When a hash aggregation or hash join operation spills to disk during query processing,
-        specifies the compression algorithm to use on the spill files. If using zlib, the zlib
-        library must be installed on all hosts in the Greenplum Database cluster. </p>
-      <p>If your Greenplum Database installation uses serial ATA (SATA) disk drives, setting the
-        value of this parameter to <codeph>zlib</codeph> might help to avoid overloading the disk
-        subsystem with IO operations.</p>
-      <table id="gp_workfile_compress_algorithm_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">none<p>zlib</p></entry>
-              <entry colname="col2">none</entry>
-              <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>

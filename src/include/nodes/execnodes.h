@@ -2556,9 +2556,6 @@ typedef struct AggState
 	bool	   *replIsnull;
 	bool	   *doReplace;
 
-	/* set if the operator created workfiles */
-	bool		workfiles_created;
-
 	/*
 	 * Most executor nodes in GPDB don't support SRFs in target lists, the
 	 * planner tries to insulate them from SRFs by adding Result nodes. But

@@ -13,6 +13,6 @@ top_builddir = ../../../..
 include $(top_builddir)/src/Makefile.global
 
 OBJS = fd.o buffile.o copydir.o reinit.o
-OBJS += bfz.o compress_nothing.o compress_zlib.o gp_compress.o
+OBJS += gp_compress.o
 
 include $(top_srcdir)/src/backend/common.mk

@@ -55,8 +55,8 @@ test__AppendOnlyVisimapDelete_Finish_outoforder(void **state)
 	expect_any(hash_destroy, hashp);
 	will_be_called(hash_destroy);
 
-	expect_any(ExecWorkFile_Close, workfile);
-	will_return(ExecWorkFile_Close, 0);
+	expect_any(BufFileClose, file);
+	will_return(BufFileClose, 0);
 
 	expect_any(hash_get_num_entries, hashp);
 	will_return(hash_get_num_entries, 0);

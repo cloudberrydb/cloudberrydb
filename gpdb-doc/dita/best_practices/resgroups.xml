@@ -60,15 +60,6 @@
             terminated. The default is zero, which allows an unlimited number of spill files and may
             fill up the file system. </p>
         </li>
-        <li>
-          <p>
-            <b>gp_workfile_compress_algorithm</b>
-          </p>
-          <p>If there are numerous spill files then set
-              <codeph>gp_workfile_compress_algorithm</codeph> to compress the spill files.
-            Compressing spill files may help to avoid overloading the disk subsystem with IO
-            operations. </p>
-        </li>
       </ul>
       <p>Other considerations:</p>
       <ul id="ul_xv2_phn_2z">

@@ -82,7 +82,6 @@
 
 #include "postgres.h"
 
-#include "executor/execWorkfile.h"
 #include "utils/logtape.h"
 
 #include "cdb/cdbvars.h"                /* currentSliceId */
@@ -124,7 +123,7 @@ struct LogicalTape
  */
 struct LogicalTapeSet
 {
-	ExecWorkFile    *pfile;			/* underlying file for whole tape set */
+	BufFile    *pfile;			/* underlying file for whole tape set */
 	long		nFileBlocks;	/* # of blocks used in underlying file */
 
 	/*
@@ -158,20 +157,28 @@ static void ltsWriteBlock(LogicalTapeSet *lts, int64 blocknum, void *buffer);
 static void ltsReadBlock(LogicalTapeSet *lts, int64 blocknum, void *buffer);
 static long ltsGetFreeBlock(LogicalTapeSet *lts);
 static void ltsReleaseBlock(LogicalTapeSet *lts, int64 blocknum);
-static LogicalTapeSet *LogicalTapeSetCreate_Named(const char *set_prefix, int ntapes, bool del_on_close);
 
 /*
  * Writes state of a LogicalTapeSet to a state file
  */
-static void DumpLogicalTapeSetState(ExecWorkFile *statefile, LogicalTapeSet *lts, LogicalTape *lt)
+static void
+DumpLogicalTapeSetState(BufFile *statefile, LogicalTapeSet *lts, LogicalTape *lt)
 {
+	size_t		written;
+
 	Assert(lts && lt && lt->frozen);
 
-	bool res = ExecWorkFile_Write(statefile, &(lts->nFileBlocks), sizeof(lts->nFileBlocks));
-	Assert(res);
+	written = BufFileWrite(statefile, &(lts->nFileBlocks), sizeof(lts->nFileBlocks));
+	if (written != sizeof(lts->nFileBlocks))
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to temporary file: %m")));
 
-	res = ExecWorkFile_Write(statefile, &(lt->firstBlkNum), sizeof(lt->firstBlkNum));
-	Assert(res);
+	written = BufFileWrite(statefile, &(lt->firstBlkNum), sizeof(lt->firstBlkNum));
+	if (written != sizeof(lt->firstBlkNum))
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to temporary file: %m")));
 }
 
 /*
@@ -181,7 +188,7 @@ static void DumpLogicalTapeSetState(ExecWorkFile *statefile, LogicalTapeSet *lts
  *   tapefile is an open ExecWorkfile containing the tapeset
  */
 LogicalTapeSet *
-LoadLogicalTapeSetState(ExecWorkFile *statefile, ExecWorkFile *tapefile)
+LoadLogicalTapeSetState(BufFile *statefile, BufFile *tapefile)
 {
 	Assert(NULL != statefile);
 	Assert(NULL != tapefile);
@@ -195,7 +202,7 @@ LoadLogicalTapeSetState(ExecWorkFile *statefile, ExecWorkFile *tapefile)
 	lts->nTapes = 1;
 	lt = &lts->tapes[0];
 
-	readSize = ExecWorkFile_Read(statefile, &(lts->nFileBlocks), sizeof(lts->nFileBlocks));
+	readSize = BufFileRead(statefile, &(lts->nFileBlocks), sizeof(lts->nFileBlocks));
 	if(readSize != sizeof(lts->nFileBlocks))
 		elog(ERROR, "Load logicaltapeset failed to read nFileBlocks");
 
@@ -209,7 +216,7 @@ LoadLogicalTapeSetState(ExecWorkFile *statefile, ExecWorkFile *tapefile)
 	lt->writing = false;
 	lt->frozen = true;
 
-	readSize = ExecWorkFile_Read(statefile, &(lt->firstBlkNum), sizeof(lt->firstBlkNum));
+	readSize = BufFileRead(statefile, &(lt->firstBlkNum), sizeof(lt->firstBlkNum));
 	if(readSize != sizeof(lt->firstBlkNum))
 		elog(ERROR, "Load logicaltapeset failed to read tape firstBlkNum");
 
@@ -235,8 +242,8 @@ static void
 ltsWriteBlock(LogicalTapeSet *lts, int64 blocknum, void *buffer)
 {
 	Assert(lts != NULL);
-	if (ExecWorkFile_Seek(lts->pfile, blocknum * BLCKSZ, SEEK_SET) != 0 ||
-			!ExecWorkFile_Write(lts->pfile, buffer, BLCKSZ))
+	if (BufFileSeekBlock(lts->pfile, blocknum) != 0 ||
+		BufFileWrite(lts->pfile, buffer, BLCKSZ) != BLCKSZ)
 	{
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -255,8 +262,8 @@ static void
 ltsReadBlock(LogicalTapeSet *lts, int64 blocknum, void *buffer)
 {
 	Assert(lts != NULL);
-	if (ExecWorkFile_Seek(lts->pfile, blocknum * BLCKSZ, SEEK_SET) != 0 ||
-			ExecWorkFile_Read(lts->pfile, buffer, BLCKSZ) != BLCKSZ)
+	if (BufFileSeek(lts->pfile, 0 /* fileno */, blocknum * BLCKSZ, SEEK_SET) != 0 ||
+		BufFileRead(lts->pfile, buffer, BLCKSZ) != BLCKSZ)
 	{
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -405,42 +412,20 @@ LogicalTapeSetCreate_Internal(int ntapes)
 /*
  * Creates a LogicalTapeSet with a generated file name.
  */
-LogicalTapeSet *LogicalTapeSetCreate(int ntapes, bool del_on_close)
-{
-	char tmpprefix[MAXPGPATH];
-	int len = snprintf(tmpprefix, MAXPGPATH, "slice%d_sort",
-			currentSliceId);
-
-	if (len >= MAXPGPATH)
-		elog(ERROR, "could not generate temporary file name");
-
-	StringInfo uniquename = ExecWorkFile_AddUniqueSuffix(tmpprefix);
-
-	LogicalTapeSet *lts = LogicalTapeSetCreate_Named(uniquename->data, ntapes, del_on_close);
-
-	pfree(uniquename->data);
-	pfree(uniquename);
-
-	return lts;
-}
-
-/*
- * Creates a LogicalTapeSet with a given name.
- *
- * Note: Requires the pgsql_tmp/ directory to be part of the prefix
- */
-static LogicalTapeSet *
-LogicalTapeSetCreate_Named(const char *set_prefix, int ntapes, bool del_on_close)
+LogicalTapeSet *
+LogicalTapeSetCreate(int ntapes)
 {
 	LogicalTapeSet *lts = LogicalTapeSetCreate_Internal(ntapes);
-	lts->pfile = ExecWorkFile_Create(set_prefix, BUFFILE, del_on_close, 0 /* compressType */);
+	lts->pfile = BufFileCreateTemp("Sort", false /* interXact */);
+
 	return lts;
 }
 
 /*
  * Creates a LogicalTapeSet with a given underlying file
  */
-LogicalTapeSet *LogicalTapeSetCreate_File(ExecWorkFile *ewfile, int ntapes)
+LogicalTapeSet *
+LogicalTapeSetCreate_File(BufFile *ewfile, int ntapes)
 {
 	LogicalTapeSet *lts = LogicalTapeSetCreate_Internal(ntapes);
 	lts->pfile = ewfile;
@@ -454,7 +439,7 @@ void
 LogicalTapeSetClose(LogicalTapeSet *lts, workfile_set *workset)
 {
 	Assert(lts != NULL);
-	workfile_mgr_close_file(workset, lts->pfile);
+	BufFileClose(lts->pfile);
 	if(lts->freeBlocks)
 		pfree(lts->freeBlocks);
 	pfree(lts);
@@ -670,12 +655,12 @@ LogicalTapeFreeze(LogicalTapeSet *lts, LogicalTape *lt)
  * We assume the tape has been frozen before this call 
  */
 void
-LogicalTapeFlush(LogicalTapeSet *lts, LogicalTape *lt, ExecWorkFile *pstatefile)
+LogicalTapeFlush(LogicalTapeSet *lts, LogicalTape *lt, BufFile *pstatefile)
 {
 	Assert(lts && lts->pfile);
 	Assert(lt->frozen);
 
-	ExecWorkFile_Flush(lts->pfile);
+	BufFileFlush(lts->pfile);
 	DumpLogicalTapeSetState(pstatefile, lts, lt);
 }
 

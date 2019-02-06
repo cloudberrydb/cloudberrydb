@@ -226,10 +226,6 @@ kernel.shmall = 4000000000</codeblock>
       </ul>
       <p>See the <i>Greenplum Database Reference Guide</i> for descriptions of the columns in these
         views.</p>
-      <p>The <codeph>gp_workfile_compress_algorithm</codeph> configuration parameter specifies a
-        compression algorithm to apply to spill files. It can have the value <codeph>none</codeph>
-        (the default) or <codeph>zlib</codeph>. Setting this parameter to <codeph>zlib</codeph> can
-        improve performance when spill files are used.</p>
     </section>
   </body>
 </topic>

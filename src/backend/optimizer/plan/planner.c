@@ -61,8 +61,9 @@
 #include "cdb/cdbsetop.h"		/* motion utilities */
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
-
 #include "storage/lmgr.h"
+#include "utils/guc.h"
+
 
 /* GUC parameter */
 double		cursor_tuple_fraction = DEFAULT_CURSOR_TUPLE_FRACTION;

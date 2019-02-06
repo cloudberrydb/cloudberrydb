@@ -398,10 +398,8 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 		/*
 		 * allocate and initialize the file arrays in hashCxt
 		 */
-		hashtable->innerBatchFile = (ExecWorkFile **)
-			palloc0(nbatch * sizeof(ExecWorkFile *));
-		hashtable->outerBatchFile = (ExecWorkFile **)
-			palloc0(nbatch * sizeof(ExecWorkFile *));
+		hashtable->innerBatchFile = (BufFile **) palloc0(nbatch * sizeof(BufFile *));
+		hashtable->outerBatchFile = (BufFile **) palloc0(nbatch * sizeof(BufFile *));
 		/* The files will not be opened until needed... */
 		/* ... but make sure we have temp tablespaces established for them */
 		PrepareTempTablespaces();
@@ -676,9 +674,9 @@ ExecHashTableDestroy(HashState *hashState, HashJoinTable hashtable)
 		for (i = 0; i < hashtable->nbatch; i++)
 		{
 			if (hashtable->innerBatchFile[i])
-				workfile_mgr_close_file(hashtable->work_set, hashtable->innerBatchFile[i]);
+				BufFileClose(hashtable->innerBatchFile[i]);
 			if (hashtable->outerBatchFile[i])
-				workfile_mgr_close_file(hashtable->work_set, hashtable->outerBatchFile[i]);
+				BufFileClose(hashtable->outerBatchFile[i]);
 			hashtable->innerBatchFile[i] = NULL;
 			hashtable->outerBatchFile[i] = NULL;
 		}
@@ -739,24 +737,22 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	if (hashtable->innerBatchFile == NULL)
 	{
 		/* we had no file arrays before */
-		hashtable->innerBatchFile = (ExecWorkFile **)
-			palloc0(nbatch * sizeof(ExecWorkFile *));
-		hashtable->outerBatchFile = (ExecWorkFile **)
-			palloc0(nbatch * sizeof(ExecWorkFile *));
+		hashtable->innerBatchFile = (BufFile **) palloc0(nbatch * sizeof(BufFile *));
+		hashtable->outerBatchFile = (BufFile **) palloc0(nbatch * sizeof(BufFile *));
 		/* time to establish the temp tablespaces, too */
 		PrepareTempTablespaces();
 	}
 	else
 	{
 		/* enlarge arrays and zero out added entries */
-		hashtable->innerBatchFile = (ExecWorkFile **)
-			repalloc(hashtable->innerBatchFile, nbatch * sizeof(ExecWorkFile *));
-		hashtable->outerBatchFile = (ExecWorkFile **)
-			repalloc(hashtable->outerBatchFile, nbatch * sizeof(ExecWorkFile *));
+		hashtable->innerBatchFile = (BufFile **) repalloc(hashtable->innerBatchFile,
+														  nbatch * sizeof(BufFile *));
+		hashtable->outerBatchFile = (BufFile **) repalloc(hashtable->outerBatchFile,
+														  nbatch * sizeof(BufFile *));
 		MemSet(hashtable->innerBatchFile + oldnbatch, 0,
-			   (nbatch - oldnbatch) * sizeof(ExecWorkFile *));
+			   (nbatch - oldnbatch) * sizeof(BufFile *));
 		MemSet(hashtable->outerBatchFile + oldnbatch, 0,
-			   (nbatch - oldnbatch) * sizeof(ExecWorkFile *));
+			   (nbatch - oldnbatch) * sizeof(BufFile *));
 	}
 
 	/* EXPLAIN ANALYZE batch statistics */
@@ -1675,8 +1671,12 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
         /* How much was read from outer workfiles for current batch? */
 		if (hashtable->outerBatchFile &&
 			hashtable->outerBatchFile[curbatch] != NULL)
-            batchstats->ordbytes =
-				ExecWorkFile_Tell64(hashtable->outerBatchFile[curbatch]);
+		{
+			off_t		pos;
+
+			BufFileTell(hashtable->outerBatchFile[curbatch], NULL, &pos);
+			batchstats->ordbytes = pos;
+		}
 
 		/*
 		 * How much was written to workfiles for the remaining batches?
@@ -1688,7 +1688,12 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 
 			if (hashtable->outerBatchFile &&
 				hashtable->outerBatchFile[i] != NULL)
-				filebytes = ExecWorkFile_Tell64(hashtable->outerBatchFile[i]);
+			{
+				off_t		pos;
+
+				BufFileTell(hashtable->outerBatchFile[i], NULL, &pos);
+				filebytes = pos;
+			}
 
 			Assert(filebytes >= bs->outerfilesize);
 			owrbytes += filebytes - bs->outerfilesize;
@@ -1698,7 +1703,12 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 
 			if (hashtable->innerBatchFile &&
 				hashtable->innerBatchFile[i])
-				filebytes = ExecWorkFile_Tell64(hashtable->innerBatchFile[i]);
+			{
+				off_t		pos;
+
+				BufFileTell(hashtable->innerBatchFile[i], NULL, &pos);
+				filebytes = pos;
+			}
 
 			Assert(filebytes >= bs->innerfilesize);
 			iwrbytes += filebytes - bs->innerfilesize;

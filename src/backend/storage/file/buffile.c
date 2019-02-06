@@ -42,10 +42,10 @@
 #include "storage/fd.h"
 #include "storage/buffile.h"
 #include "storage/buf_internals.h"
-//#include "miscadmin.h"
 #include "utils/resowner.h"
 
 #include "cdb/cdbvars.h"
+#include "utils/faultinjector.h"
 #include "utils/workfile_mgr.h"
 
 /*
@@ -58,7 +58,6 @@ struct BufFile
 	File		file;			/* palloc'd file */
 
 	bool		isTemp;			/* can only add files if this is TRUE */
-	bool		isWorkfile;		/* true is file is managed by the workfile manager */
 	bool		dirty;			/* does buffer need to be written? */
 
 	int64		offset;			/* offset part of current pos */
@@ -93,7 +92,6 @@ makeBufFile(File firstfile)
 	file->file = firstfile;
 
 	file->isTemp = false;
-	file->isWorkfile = false;
 	file->dirty = false;
 	/*
 	 * "current pos" is a position of start of buffer within the logical file.
@@ -117,12 +115,28 @@ makeBufFile(File firstfile)
  *
  * Note: if interXact is true, the caller had better be calling us in a
  * memory context that will survive across transaction boundaries.
+ *
+ * A unique filename will be chosen.
  */
 BufFile *
-BufFileCreateTemp(const char *filePrefix, bool interXact)
+BufFileCreateTemp(char *operation_name, bool interXact)
+{
+	workfile_set *work_set;
+
+	work_set = workfile_mgr_create_set(operation_name, NULL);
+
+	return BufFileCreateTempInSet(work_set, interXact);
+}
+
+
+BufFile *
+BufFileCreateTempInSet(workfile_set *work_set, bool interXact)
 {
 	BufFile	   *file;
 	File		pfile;
+	char		filePrefix[MAXPGPATH];
+
+	snprintf(filePrefix, MAXPGPATH, "_%s_", workfile_mgr_get_prefix(work_set));
 
 	pfile = OpenTemporaryFile(interXact, filePrefix);
 	Assert(pfile >= 0);
@@ -130,8 +144,14 @@ BufFileCreateTemp(const char *filePrefix, bool interXact)
 	file = makeBufFile(pfile);
 	file->isTemp = true;
 
+	FileSetIsWorkfile(file->file);
+	RegisterFileWithSet(file->file, work_set);
+
+	SIMPLE_FAULT_INJECTOR(WorkfileCreationFail);
+
 	return file;
 }
+
 
 /*
  * Create a BufFile for a new file.
@@ -144,21 +164,32 @@ BufFileCreateTemp(const char *filePrefix, bool interXact)
  * Note: if interXact is true, the caller had better be calling us in a
  * memory context, and with a resource owner, that will survive across
  * transaction boundaries.
+ *
+ * This variant creates the file with the exact given name. The caller
+ * must ensure that it's unique. If 'work_set' is given, the file is
+ * associated with that workfile set. Otherwise, it is not tracked
+ * by the workfile manager.
  */
 BufFile *
-BufFileCreateNamedTemp(const char *fileName, bool delOnClose, bool interXact)
+BufFileCreateNamedTemp(const char *fileName, bool interXact, workfile_set *work_set)
 {
 	File		pfile;
 	BufFile	   *file;
 
 	pfile = OpenNamedTemporaryFile(fileName,
 								   true, /* create */
-								   delOnClose,
+								   true, /* delOnClose */
 								   interXact);
 	Assert(pfile >= 0);
 
 	file = makeBufFile(pfile);
-	file->isTemp = delOnClose;
+	file->isTemp = true;
+
+	if (work_set)
+	{
+		FileSetIsWorkfile(file->file);
+		RegisterFileWithSet(file->file, work_set);
+	}
 
 	return file;
 }
@@ -169,14 +200,14 @@ BufFileCreateNamedTemp(const char *fileName, bool delOnClose, bool interXact)
  * Adds the pgsql_tmp/ prefix to the file path before opening.
  */
 BufFile *
-BufFileOpenNamedTemp(const char *fileName, bool delOnClose, bool interXact)
+BufFileOpenNamedTemp(const char *fileName, bool interXact)
 {
 	File		pfile;
 	BufFile	   *file;
 
 	pfile = OpenNamedTemporaryFile(fileName,
 								   false,	/* create */
-								   delOnClose,
+								   false,	/* delOnClose */
 								   interXact);
 	/*
 	 * If we are trying to open an existing file and it failed,
@@ -188,7 +219,7 @@ BufFileOpenNamedTemp(const char *fileName, bool delOnClose, bool interXact)
 	Assert(pfile >= 0);
 
 	file = makeBufFile(pfile);
-	file->isTemp = delOnClose;
+	file->isTemp = false;
 
 	/* Open existing file, initialize its size */
 	file->maxoffset = FileDiskSize(file->file);
@@ -204,20 +235,12 @@ BufFileOpenNamedTemp(const char *fileName, bool delOnClose, bool interXact)
 void
 BufFileClose(BufFile *file)
 {
-	if (file->isWorkfile && WorkfileDiskspace_IsFull())
+	/* flush any unwritten data */
+	if (!file->isTemp)
 	{
-		elog(gp_workfile_caching_loglevel, "closing workfile while workfile diskspace full, skipping flush");
+		/* This can thrown an exception */
+		BufFileFlush(file);
 	}
-	else
-	{
-		/* flush any unwritten data */
-		if (!file->isTemp)
-		{
-			/* This can thrown an exception */
-			BufFileFlush(file);
-		}
-	}
-
 
 	FileClose(file->file);
 
@@ -292,18 +315,7 @@ BufFileDumpBuffer(BufFile *file, const void* buffer, Size nbytes)
 
 		wrote = FileWrite(file->file, (char *)buffer + wpos, (int)bytestowrite);
 		if (wrote != bytestowrite)
-		{
-			if (file->isWorkfile)
-			{
-				elog(gp_workfile_caching_loglevel, "FileWrite failed while writing to a workfile. Marking IO Error flag."
-				     " offset=" INT64_FORMAT " pos=" INT64_FORMAT " maxoffset=" INT64_FORMAT " wpos=%d",
-				     file->offset, file->pos, file->maxoffset, (int) wpos);
-
-				Assert(!WorkfileDiskspace_IsFull());
-				WorkfileDiskspace_SetFull(true /* isFull */);
-			}
-			elog(ERROR, "could not write %d bytes to temporary file: %m", (int)bytestowrite);
-		}
+			elog(ERROR, "could not write %d bytes to temporary file: %m", (int) bytestowrite);
 		file->offset += wrote;
 		wpos += wrote;
 
@@ -391,6 +403,32 @@ BufFileRead(BufFile *file, void *ptr, size_t size)
 }
 
 /*
+ * BufFileReadFromBuffer
+ *
+ * This function provides a faster implementation of Read which applies
+ * when the data is already in the underlying buffer.
+ * In that case, it returns a pointer to the data in the buffer
+ * If the data is not in the buffer, returns NULL and the caller must
+ * call the regular BufFileRead with a destination buffer.
+ */
+void *
+BufFileReadFromBuffer(BufFile *file, size_t size)
+{
+	void	   *result = NULL;
+
+	if (file->dirty)
+		BufFileFlush(file);
+
+	if (file->pos + size < file->nbytes)
+	{
+		result = file->buffer + file->pos;
+		file->pos += size;
+	}
+
+	return result;
+}
+
+/*
  * BufFileWrite
  *
  * Like fwrite() except we assume 1-byte element size.
@@ -400,6 +438,8 @@ BufFileWrite(BufFile *file, const void *ptr, size_t size)
 {
 	size_t		nwritten = 0;
 	size_t		nthistime;
+
+	SIMPLE_FAULT_INJECTOR(WorkfileWriteFail);
 
 	while (size > 0)
 	{
@@ -616,12 +656,25 @@ BufFileGetSize(BufFile *buffile)
 	return buffile->maxoffset;
 }
 
-/*
- * Mark this file as being managed by the workfile manager
- */
-void
-BufFileSetWorkfile(BufFile *buffile)
+const char *
+BufFileGetFilename(BufFile *buffile)
 {
-	Assert(NULL != buffile);
-	buffile->isWorkfile = true;
+	return FileGetFilename(buffile->file);
+}
+
+void
+BufFileSuspend(BufFile *buffile)
+{
+	BufFileFlush(buffile);
+	pfree(buffile->buffer);
+	buffile->buffer = NULL;
+	buffile->nbytes = 0;
+}
+
+void
+BufFileResume(BufFile *buffile)
+{
+	buffile->buffer = palloc(BLCKSZ);
+
+	BufFileSeek(buffile, 0, 0, SEEK_SET);
 }

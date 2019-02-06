@@ -671,8 +671,8 @@ dumpSharedLocalSnapshot_forCursor(void)
 	CurrentResourceOwner = TopTransactionResourceOwner;
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	f = BufFileCreateNamedTemp(fname,
-							   true, /* delOnClose */
-							   false /* interXact */);
+							   false /* interXact */,
+							   NULL /* work_set */);
 
 	/*
 	 * Remember our file, so that we can close it at end of transaction.
@@ -774,7 +774,6 @@ readSharedLocalSnapshot_forCursor(Snapshot snapshot)
 		QEDtxContextInfo.curcid, QEDtxContextInfo.segmateSync);
 
 	f = BufFileOpenNamedTemp(fname,
-							 false, /* delOnClose */
 							 false /* interXact */);
 	/* we have our file. */
 

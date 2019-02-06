@@ -123,7 +123,6 @@
 
 #include "access/genam.h"
 #include "cdb/cdbvars.h"
-#include "executor/execWorkfile.h"
 #include "executor/instrument.h"        /* Instrumentation */
 #include "executor/nodeSort.h"          /* Gpmon */
 #include "lib/stringinfo.h"             /* StringInfo */
@@ -258,6 +257,9 @@ struct Tuplesortstate
 	int			tapeRange;		/* maxTapes-1 (Knuth's P) */
 	MemoryContext sortcontext;	/* memory context holding all sort data */
 	LogicalTapeSet *tapeset;	/* logtape.c object for tapes in a temp file */
+
+	/* set holding the temporary files, if this is a shared sort */
+	workfile_set *work_set;
 
 	/*
 	 * These function pointers decouple the routines that must know what kind
@@ -443,7 +445,7 @@ struct Tuplesortstate
 	 * File for dump/load logical tape set state.  Used by sharing sort across slice
 	 */
 	char       *pfile_rwfile_prefix;
-	ExecWorkFile *pfile_rwfile_state;
+	BufFile *pfile_rwfile_state;
 
 	/* gpmon */
 	gpmon_packet_t *gpmon_pkt;
@@ -640,6 +642,7 @@ tuplesort_begin_common(int workMem, bool randomAccess, bool allocmemtuple)
 	state->availMemMin01 = state->availMemMin;
 	state->sortcontext = sortcontext;
 	state->tapeset = NULL;
+	state->work_set = NULL;
 
 	state->memtupcount = 0;
 
@@ -993,7 +996,6 @@ tuplesort_end(Tuplesortstate *state)
 {
 	/* context swap probably not needed, but let's be safe */
 	MemoryContext oldcontext = MemoryContextSwitchTo(state->sortcontext);
-
 	long		spaceUsed;
 
 	if (state->tapeset)
@@ -1018,7 +1020,7 @@ tuplesort_end(Tuplesortstate *state)
 
 		if (state->pfile_rwfile_state)
         {
-			workfile_mgr_close_file(NULL /* workset */, state->pfile_rwfile_state);
+			BufFileClose(state->pfile_rwfile_state);
         }
 	}
 
@@ -2046,16 +2048,22 @@ inittapes(Tuplesortstate *state, const char* rwfile_prefix)
 	/*
 	 * Create the tape set and allocate the per-tape data arrays.
 	 */
-	if(!rwfile_prefix){
-		state->tapeset = LogicalTapeSetCreate(maxTapes, true /* del_on_close */);
+	if (!rwfile_prefix)
+	{
+		Assert(state->work_set == NULL);
+		state->tapeset = LogicalTapeSetCreate(maxTapes);
 	}
 	else
 	{
-		/* We are shared XSLICE, use given prefix to create files so that consumers can find them */
-    	ExecWorkFile *tape_file = ExecWorkFile_Create(rwfile_prefix,
-    			BUFFILE,
-    			true /* delOnClose */,
-    			0 /* compressType */);
+		/*
+		 * We are shared XSLICE, use given prefix to create files so that
+		 * consumers can find them. (The work set and the "state" were created
+		 * earlier alerady.)
+		 */
+		Assert(state->work_set != NULL);
+		BufFile *tape_file = BufFileCreateNamedTemp(rwfile_prefix,
+													false /* interXact */,
+													state->work_set /* work_set */);
 
 		state->tapeset = LogicalTapeSetCreate_File(tape_file, maxTapes);
 	}
@@ -3874,18 +3882,18 @@ tuplesort_begin_heap_file_readerwriter(ScanState *ss,
 	if(isWriter)
 	{
 		/*
-		 * Writer is a oridinary tuplesort, except the underlying buf file are named by
+		 * Writer is an ordinary tuplesort, except the underlying buf file are named by
 		 * rwfile_prefix.
 		 */
 		state = tuplesort_begin_heap(NULL, tupDesc, nkeys, attNums,
 									 sortOperators, sortCollations, nullsFirstFlags,
 									 workMem, randomAccess);
 
+		state->work_set = workfile_mgr_create_set("SharedSort", rwfile_prefix);
 		state->pfile_rwfile_prefix = MemoryContextStrdup(state->sortcontext, rwfile_prefix);
-		state->pfile_rwfile_state = ExecWorkFile_Create(statedump,
-				BUFFILE,
-				true /* delOnClose */ ,
-				0 /* compressType */ );
+		state->pfile_rwfile_state = BufFileCreateNamedTemp(statedump,
+														   false /* interXact */,
+														   state->work_set);
 		Assert(state->pfile_rwfile_state != NULL);
 
 		return state;
@@ -3906,15 +3914,11 @@ tuplesort_begin_heap_file_readerwriter(ScanState *ss,
 		state->readtup = readtup_heap;
 
 		state->pfile_rwfile_prefix = MemoryContextStrdup(state->sortcontext, rwfile_prefix);
-		state->pfile_rwfile_state = ExecWorkFile_Open(statedump,
-				BUFFILE,
-				false /* delOnClose */,
-				0 /* compressType */);
+		state->pfile_rwfile_state = BufFileOpenNamedTemp(statedump,
+														 false /* interXact */);
 
-		ExecWorkFile *tapefile = ExecWorkFile_Open(rwfile_prefix,
-				BUFFILE,
-				false /* delOnClose */,
-				0 /* compressType */);
+		BufFile *tapefile = BufFileOpenNamedTemp(rwfile_prefix,
+												 false /* interXact */);
 
 		state->tapeset = LoadLogicalTapeSetState(state->pfile_rwfile_state, tapefile);
 		state->currentRun = 0;
@@ -3937,7 +3941,7 @@ void tuplesort_flush(Tuplesortstate *state)
 	Assert(state->tapeset && state->pfile_rwfile_state);
 	Assert(state->pos.cur_work_tape == NULL);
 	LogicalTapeFlush(state->tapeset, state->result_tape, state->pfile_rwfile_state);
-	ExecWorkFile_Flush(state->pfile_rwfile_state);
+	BufFileFlush(state->pfile_rwfile_state);
 }
 
 static void

@@ -25,9 +25,8 @@ typedef struct NTupleStore NTupleStore;
 void ntuplestore_setinstrument(NTupleStore* ts, struct Instrumentation *ins);
 
 /* Tuple store method */
-extern NTupleStore *ntuplestore_create(int64 maxBytes);
+extern NTupleStore *ntuplestore_create(int64 maxBytes, char *operation_name);
 extern NTupleStore *ntuplestore_create_readerwriter(const char* filename, int64 maxBytes, bool isWriter);
-extern NTupleStore *ntuplestore_create_workset(workfile_set *workSet, int64 maxBytes);
 extern bool ntuplestore_is_readerwriter_reader(NTupleStore* nts);
 extern void ntuplestore_flush(NTupleStore *ts);
 extern void ntuplestore_destroy(NTupleStore *ts);

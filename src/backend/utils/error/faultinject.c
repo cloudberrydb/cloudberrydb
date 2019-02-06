@@ -18,7 +18,6 @@
 
 #include "cdb/cdbvars.h"
 #include "miscadmin.h"
-#include "storage/bfz.h"
 #include "storage/buffile.h"
 
 #include "postmaster/syslogger.h"
@@ -106,8 +105,6 @@ static char * longmsg =
 static char *multiline = "1234567890\n1234567890\n";
 static char *quotestr = "\"\"\nXXX\nYYY\"\"\n\r\n\"\tZZZ\t\"\"\\\\\"";
 
-static void open_many_files(int file_type);
-
 bool gp_fault_inject_segment_failure = false;
 int gp_fault_inject_segment_failure_segment_id = -1;
 
@@ -170,10 +167,6 @@ gp_fault_inject_impl(int32 reason, int64 arg)
 		case GP_FAULT_USER_SEGV_LWLOCK:
 			LWLockAcquire(WALWriteLock, LW_EXCLUSIVE);
 			*(volatile int *) 0 = 1234;
-			break;
- 	
-		case GP_FAULT_USER_OPEN_MANY_FILES:
-			open_many_files((int) arg);
 			break;
 
 		case GP_FAULT_USER_MP_CONFIG:
@@ -239,54 +232,4 @@ gp_fault_inject_impl(int32 reason, int64 arg)
 	return 0; 
 }
 
-/*
- * Open many bfz files to simulate running out of file handles.
- * file_type values:
- *   0 - bfz, no compression
- *   1 - bfz, zlib compression
- *   2 - buffile
- */
-static void
-open_many_files(int file_type)
-{
-	char file_name[MAXPGPATH];
-	int iter = 0;
-
-	while (true)
-	{
-		CHECK_FOR_INTERRUPTS();
-		snprintf(file_name, MAXPGPATH, "fake_file_%d", iter);
-		switch(file_type)
-		{
-		case 0:
-		case 1:
-			;
-#if USE_ASSERT_CHECKING
-			bfz_t *bfz_file =
 #endif
-			bfz_create(file_name, true /* delOnClose */, file_type);
-			Assert(NULL != bfz_file);
-			break;
-
-		case 2:
-			;
-#if USE_ASSERT_CHECKING
-			BufFile *buf_file =
-#endif
-			BufFileCreateTemp(file_name, false /* interXact */ );
-			Assert(NULL != buf_file);
-			break;
-
-		default:
-			Assert(false && "argument for fault type not supported");
-		}
-
-		iter++;
-	}
-
-	return;
-}
-
-#endif
-
-	

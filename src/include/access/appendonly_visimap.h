@@ -25,7 +25,7 @@
 #include "access/appendonlytid.h"
 #include "access/appendonly_visimap_entry.h"
 #include "access/appendonly_visimap_store.h"
-#include "executor/execWorkfile.h"
+#include "storage/buffile.h"
 #include "utils/tqual.h"
 
 /*
@@ -94,7 +94,7 @@ typedef struct AppendOnlyVisimapDelete
 	 * list of dirty (compressed) visimap bitmaps that needs to be updated in
 	 * the visimap later.
 	 */
-	ExecWorkFile *workfile;
+	BufFile *workfile;
 } AppendOnlyVisimapDelete;
 
 

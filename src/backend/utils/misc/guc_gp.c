@@ -39,7 +39,6 @@
 #include "postmaster/syslogger.h"
 #include "postmaster/fts.h"
 #include "replication/walsender.h"
-#include "storage/bfz.h"
 #include "storage/proc.h"
 #include "tcop/idle_resource_cleaner.h"
 #include "utils/builtins.h"
@@ -73,8 +72,6 @@
 /*
  * Assign/Show hook functions defined in this module
  */
-static bool check_gp_workfile_compress_algorithm(char **newval, void **extra, GucSource source);
-static void assign_gp_workfile_compress_algorithm(const char *newval, void *extra);
 static bool check_optimizer(bool *newval, void **extra, GucSource source);
 static bool check_verify_gpfdists_cert(bool *newval, void **extra, GucSource source);
 static bool check_dispatch_log_stats(bool *newval, void **extra, GucSource source);
@@ -221,14 +218,12 @@ bool create_restartpoint_on_ckpt_record_replay = false;
 
 char	   *data_directory;
 
-static char *gp_resource_manager_str;
-
 /*
- * These variables are all dummies that don't do anything, except in some
+ * This variable is a dummy that doesn't do anything, except in some
  * cases provide the value for SHOW to display.  The real state is elsewhere
  * and is kept in sync by assign_hooks.
  */
-static char *gp_workfile_compress_algorithm_str;
+static char *gp_resource_manager_str;
 
 /* Backoff-related GUCs */
 bool		gp_enable_resqueue_priority;
@@ -565,12 +560,6 @@ static const struct config_enum_entry gp_resqueue_memory_policies[] = {
 	{NULL, 0}
 };
 
-static const struct config_enum_entry gp_workfile_type_hashjoin_options[] = {
-	{"bfz", BFZ},
-	{"buffile", BUFFILE},
-	{NULL, 0}
-};
-
 static const struct config_enum_entry gp_gpperfmon_log_alert_level[] = {
 	{"none", GPPERFMON_LOG_ALERT_LEVEL_NONE},
 	{"warning", GPPERFMON_LOG_ALERT_LEVEL_WARNING},
@@ -703,17 +692,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			gettext_noop("If false, planner does not copy predicates.")
 		},
 		&gp_enable_predicate_propagation,
-		true,
-		NULL, NULL, NULL
-	},
-	{
-		{"gp_workfile_checksumming", PGC_USERSET, QUERY_TUNING_OTHER,
-			gettext_noop("Enable checksumming on the executor work files in order to "
-				"catch possible faulty writes caused by your disk drivers."),
-			NULL,
-			GUC_GPDB_ADDOPT
-		},
-		&gp_workfile_checksumming,
 		true,
 		NULL, NULL, NULL
 	},
@@ -3251,6 +3229,28 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
+		{"gp_workfile_limit_per_segment", PGC_POSTMASTER, RESOURCES,
+			gettext_noop("Maximum disk space (in KB) used for workfiles per segment."),
+			gettext_noop("0 for no limit. Current query is terminated when limit is exceeded."),
+			GUC_UNIT_KB
+		},
+		&gp_workfile_limit_per_segment,
+		0, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_workfile_limit_per_query", PGC_USERSET, RESOURCES,
+			gettext_noop("Maximum disk space (in KB) used for workfiles per query per segment."),
+			gettext_noop("0 for no limit. Current query is terminated when limit is exceeded."),
+			GUC_GPDB_ADDOPT | GUC_UNIT_KB
+		},
+		&gp_workfile_limit_per_query,
+		0, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"gp_vmem_idle_resource_timeout", PGC_USERSET, CLIENT_CONN_OTHER,
 			gettext_noop("Sets the time a session can be idle (in milliseconds) before we release gangs on the segment DBs to free resources."),
 			gettext_noop("A value of 0 turns off the timeout."),
@@ -4024,17 +4024,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		NULL, NULL, NULL
 	},
 
-	{
-		{"gp_workfile_bytes_to_checksum", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("The number of bytes to be checksummed in every WORKFILE_SAFEWRITE_SIZE bytes."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_workfile_bytes_to_checksum,
-		16, 0, WORKFILE_SAFEWRITE_SIZE,
-		NULL, NULL, NULL
-	},
-
 	/* for pljava */
 	{
 		{"pljava_statement_cache_size", PGC_SUSET, CUSTOM_OPTIONS,
@@ -4296,28 +4285,6 @@ struct config_real ConfigureNamesReal_gp[] =
 	},
 
 	{
-		{"gp_workfile_limit_per_segment", PGC_POSTMASTER, RESOURCES,
-			gettext_noop("Maximum disk space (in KB) used for workfiles per segment."),
-			gettext_noop("0 for no limit. Current query is terminated when limit is exceeded."),
-			GUC_UNIT_KB
-		},
-		&gp_workfile_limit_per_segment,
-		0, 0, SIZE_MAX / 1024,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_workfile_limit_per_query", PGC_USERSET, RESOURCES,
-			gettext_noop("Maximum disk space (in KB) used for workfiles per query per segment."),
-			gettext_noop("0 for no limit. Current query is terminated when limit is exceeded."),
-			GUC_GPDB_ADDOPT | GUC_UNIT_KB
-		},
-		&gp_workfile_limit_per_query,
-		0, 0, SIZE_MAX / 1024,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"gp_motion_cost_per_row", PGC_USERSET, QUERY_TUNING_COST,
 			gettext_noop("Sets the planner's estimate of the cost of "
 						 "moving a row between worker processes."),
@@ -4475,17 +4442,6 @@ struct config_real ConfigureNamesReal_gp[] =
 
 struct config_string ConfigureNamesString_gp[] =
 {
-	{
-		{"gp_workfile_compress_algorithm", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Specify the compression algorithm that work files in the query executor use."),
-			gettext_noop("Valid values are \"NONE\", \"ZLIB\"."),
-			GUC_GPDB_ADDOPT
-		},
-		&gp_workfile_compress_algorithm_str,
-		"none",
-		check_gp_workfile_compress_algorithm, assign_gp_workfile_compress_algorithm, NULL
-	},
-
 	{
 		{"memory_profiler_run_id", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Set the unique run ID for memory profiling"),
@@ -4902,17 +4858,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 	},
 
 	{
-		{"gp_workfile_type_hashjoin", PGC_USERSET, QUERY_TUNING_OTHER,
-			gettext_noop("Specify the type of work files to use for executing hash join plans."),
-			gettext_noop("Valid values are \"BFZ\", \"BUFFILE\"."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_workfile_type_hashjoin,
-		BFZ, gp_workfile_type_hashjoin_options,
-		NULL, NULL, NULL
-	},
-
-	{
 		{"gpperfmon_log_alert_level", PGC_USERSET, LOGGING,
 			gettext_noop("Specify the log alert level used by gpperfmon."),
 			gettext_noop("Valid values are 'none', 'warning', 'error', 'fatal', 'panic'.")
@@ -4979,26 +4924,6 @@ check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source)
 
 	GUC_check_errmsg("SET gp_resource_group_bypass cannot run inside a transaction block");
 	return false;
-}
-
-static bool
-check_gp_workfile_compress_algorithm(char **newval, void **extra, GucSource source)
-{
-	int			i = bfz_string_to_compression(*newval);
-
-	if (i == -1)
-		return false;			/* fail */
-	else
-		return true;				/* OK */
-}
-
-static void
-assign_gp_workfile_compress_algorithm(const char *newval, void *extra)
-{
-	int			i = bfz_string_to_compression(newval);
-
-	Assert(i != -1);
-	gp_workfile_compress_algorithm = i;
 }
 
 static bool

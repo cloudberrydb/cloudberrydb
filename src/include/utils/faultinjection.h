@@ -29,7 +29,6 @@
 #define GP_FAULT_USER_ASSERT_FAILURE   10   /* Assert failure */
 #define GP_FAULT_USER_SEGV_CRITICAL    11   /* SEGV inside critical section */
 #define GP_FAULT_USER_SEGV_LWLOCK	12		/* SEGV while holding LWLock */
-#define GP_FAULT_USER_OPEN_MANY_FILES	13		/* Open very many temporary files */
 
 /* Fault group 2: From User, cause some fault in MP */
 #define GP_FAULT_USER_MP_CONFIG 	100	/* Show vmem_max guc */

@@ -137,4 +137,8 @@ extern int gp_retry_close(int fd);
 
 extern char *GetTempFilePath(const char *filename, bool createdir);
 
+extern const char *FileGetFilename(File file);
+
+extern void FileSetIsWorkfile(File file);
+
 #endif   /* FD_H */

@@ -13,7 +13,7 @@ $$
 	SELECT C.* FROM gp_workfile_mgr_test_on_segments($1) as C;
 $$
 LANGUAGE SQL;
-SELECT gp_workfile_mgr_test('workfile_queryspace');
+SELECT gp_workfile_mgr_test('fd_tests');
  gp_workfile_mgr_test 
 ----------------------
  t

@@ -491,8 +491,8 @@ dumpSharedComboCommandId(TransactionId xmin, CommandId cmin, CommandId cmax, Com
 		 * synchronized with open files at (sub-) xact boundaries.
 		 */
 		combocid_map = BufFileCreateNamedTemp(path,
-											  true /* delOnClose */,
-											  true /* interXact */);
+											  true /* interXact */,
+											  NULL /* work_set */);
 		MemoryContextSwitchTo(oldCtx);
 	}
 	Assert(combocid_map != NULL);
@@ -546,7 +546,6 @@ loadSharedComboCommandId(TransactionId xmin, CommandId combocid, CommandId *cmin
 		/* open our file, as appropriate: this will throw an error if the create-fails. */
 		oldCtx = MemoryContextSwitchTo(TopMemoryContext);
 		combocid_map = BufFileOpenNamedTemp(path,
-											false /* delOnClose */,
 											true /* interXact */);
 		MemoryContextSwitchTo(oldCtx);
 	}

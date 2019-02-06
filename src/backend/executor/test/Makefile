@@ -2,7 +2,7 @@ subdir=src/backend/executor
 top_builddir=../../../..
 include $(top_builddir)/src/Makefile.global
 
-TARGETS=nodeSubplan nodeShareInputScan execHHashagg
+TARGETS=nodeSubplan nodeShareInputScan
 
 include $(top_builddir)/src/backend/mock.mk
 
@@ -17,6 +17,3 @@ nodeSubplan.t: \
 nodeShareInputScan.t: \
 	$(MOCK_DIR)/backend/executor/execUtils_mock.o \
 	$(MOCK_DIR)/backend/utils/sort/tuplestorenew_mock.o
-
-execHHashagg.t: \
-	$(MOCK_DIR)/backend/utils/workfile_manager/workfile_file_mock.o

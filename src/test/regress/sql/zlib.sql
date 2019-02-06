@@ -1,3 +1,7 @@
+-- These tests were written, to test compressed temporary files. However,
+-- support for compressing temporary files was later on removed. Now they just
+-- test temporary file handling in general.
+
 -- start_ignore
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 -- end_ignore
@@ -8,8 +12,8 @@ INSERT INTO test_zlib_hashjoin SELECT i,i,i,i,i,i,i,i FROM
 	(select generate_series(1, nsegments * 333333) as i from 
 	(select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0) foo) bar;
 
-SET gp_workfile_type_hashjoin=bfz;
-SET gp_workfile_compress_algorithm=zlib;
+--SET gp_workfile_type_hashjoin=bfz;
+--SET gp_workfile_compress_algorithm=zlib;
 SET statement_mem=5000;
 
 --Fail after workfile creation and before add it to workfile set
@@ -44,7 +48,7 @@ create table test_zlib (i int, j text);
 insert into test_zlib select i, i from generate_series(1,1000000) as i;
 create table test_zlib_t1(i int, j int);
 
-set gp_workfile_compress_algorithm ='zlib';
+--set gp_workfile_compress_algorithm ='zlib';
 set statement_mem='10MB';
 
 create or replace function FuncA()

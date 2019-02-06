@@ -31,6 +31,7 @@
 #include "storage/lmgr.h"
 #include "utils/builtins.h"
 #include "utils/faultinjector.h"
+#include "utils/guc.h"
 #include "utils/int8.h"
 #include "utils/lsyscache.h"
 #include "utils/snapmgr.h"

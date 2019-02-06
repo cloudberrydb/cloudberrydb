@@ -45,7 +45,6 @@ NOTICE:  Success:
  t
 (1 row)
 
-set gp_workfile_type_hashjoin=buffile;
 set statement_mem=2048;
 set gp_autostats_mode = none;
 begin;
@@ -89,7 +88,6 @@ select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used
 drop table if exists segspace_t1_created;
 NOTICE:  table "segspace_t1_created" does not exist, skipping
 create table segspace_t1_created (i1 int, i2 int, i3 int, i4 int, i5 int, i6 int, i7 int, i8 int) DISTRIBUTED BY (i1);
-set gp_workfile_type_hashjoin=buffile;
 set statement_mem=2048;
 set gp_autostats_mode = none;
 -- enable the fault injector
@@ -145,7 +143,6 @@ drop table if exists segspace_t1_created;
 ------------ Interrupting CREATE TABLE AS query that spills -------------------
 drop table if exists segspace_t1_created;
 NOTICE:  table "segspace_t1_created" does not exist, skipping
-set gp_workfile_type_hashjoin=buffile;
 set statement_mem=2048;
 set gp_autostats_mode = none;
 -- enable the fault injector

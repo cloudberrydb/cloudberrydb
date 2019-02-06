@@ -419,11 +419,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	 */
 	estate->es_sharenode = (List **) palloc0(sizeof(List *));
 
-	/* Reset workfile disk full flag */
-	WorkfileDiskspace_SetFull(false /* isFull */);
-	/* Initialize per-query resource (diskspace) tracking */
-	WorkfileQueryspace_InitEntry(gp_session_id, gp_command_count);
-
 	if (queryDesc->plannedstmt->nMotionNodes > 0)
 		estate->motionlayer_context = createMotionLayerState(queryDesc->plannedstmt->nMotionNodes);
 
@@ -1231,8 +1226,6 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
      * structures in an inconsistent state.
      */
 	ExecEndPlan(queryDesc->planstate, estate);
-
-	WorkfileQueryspace_ReleaseEntry();
 
 	/*
 	 * Remove our own query's motion layer.

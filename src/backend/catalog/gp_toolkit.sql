@@ -2097,15 +2097,11 @@ LANGUAGE C IMMUTABLE STRICT NO SQL;
 -- @out:
 --        int - segment id
 --        text - path to workfile set,
---        int - hash value of the spilling operator,
 --        bigint - size in bytes,
---        int - state,
---        int - workmem in kilobytes,
---        int - type of the spilling operator,
+--        text - type of the spilling operation,
 --        int - containing slice,
 --        int - sessionid,
 --        int - command_cnt,
---        timestamptz - time of query start,
 --        int - number of files
 --
 -- @doc:
@@ -2142,48 +2138,38 @@ WITH all_entries AS (
    SELECT C.*
           FROM gp_toolkit.__gp_workfile_entries_f_on_master() AS C (
             segid int,
-            path text,
-            hash int,
+            prefix text,
             size bigint,
-            state int,
-            workmem int,
             optype text,
             slice int,
             sessionid int,
             commandid int,
-            query_start timestamptz,
             numfiles int
           )
     UNION ALL
     SELECT C.*
           FROM gp_toolkit.__gp_workfile_entries_f_on_segments() AS C (
             segid int,
-            path text,
-            hash int,
+            prefix text,
             size bigint,
-            state int,
-            workmem int,
             optype text,
             slice int,
             sessionid int,
             commandid int,
-            query_start timestamptz,
             numfiles int
           ))
 SELECT S.datname,
-       (CASE WHEN (C.state = 1) THEN S.pid ELSE NULL END) AS pid,
+       S.pid,
        C.sessionid as sess_id,
        C.commandid as command_cnt,
        S.usename,
-       (CASE WHEN (C.state = 1) THEN S.query ELSE NULL END) as query,
+       S.query,
        C.segid,
        C.slice,
        C.optype,
-       C.workmem,
        C.size,
        C.numfiles,
-       C.path as directory,
-       (CASE WHEN (C.state = 1) THEN 'RUNNING' WHEN (C.state = 2) THEN 'CACHED' WHEN (C.state = 3) THEN 'DELETING' ELSE 'UNKNOWN' END) as state
+       C.prefix
 FROM all_entries C LEFT OUTER JOIN
 pg_stat_activity as S
 ON C.sessionid = S.sess_id;
@@ -2222,10 +2208,10 @@ GRANT SELECT ON gp_toolkit.gp_workfile_usage_per_segment TO public;
 --------------------------------------------------------------------------------
 
 CREATE VIEW gp_toolkit.gp_workfile_usage_per_query AS
-SELECT datname, pid, sess_id, command_cnt, usename, query, segid, state,
+SELECT datname, pid, sess_id, command_cnt, usename, query, segid,
     SUM(size) AS size, SUM(numfiles) AS numfiles
 FROM gp_toolkit.gp_workfile_entries
-GROUP BY (datname, pid, sess_id, command_cnt, usename, query, segid, state);
+GROUP BY (datname, pid, sess_id, command_cnt, usename, query, segid);
 
 GRANT SELECT ON gp_toolkit.gp_workfile_usage_per_query TO public;
 

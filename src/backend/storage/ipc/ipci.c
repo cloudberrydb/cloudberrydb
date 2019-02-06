@@ -136,7 +136,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		size = add_size(size, BufferShmemSize());
 		size = add_size(size, LockShmemSize());
 		size = add_size(size, PredicateLockShmemSize());
-		size = add_size(size, workfile_mgr_shmem_size());
 		if (Gp_role == GP_ROLE_DISPATCH)
 			size = add_size(size, AppendOnlyWriterShmemSize());
 
@@ -179,6 +178,7 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		size = add_size(size, tmShmemSize());
 		size = add_size(size, CheckpointerShmemSize());
 		size = add_size(size, CancelBackendMsgShmemSize());
+		size = add_size(size, WorkFileShmemSize());
 
 #ifdef FAULT_INJECTOR
 		size = add_size(size, FaultInjector_ShmemSize());
@@ -338,8 +338,8 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 	BTreeShmemInit();
 	SyncScanShmemInit();
 	AsyncShmemInit();
-	workfile_mgr_cache_init();
 	BackendCancelShmemInit();
+	WorkFileShmemInit();
 
 	/*
 	 * Set up Instrumentation free list

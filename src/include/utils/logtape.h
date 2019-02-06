@@ -16,6 +16,7 @@
 #ifndef LOGTAPE_H
 #define LOGTAPE_H
 
+#include "storage/buffile.h"
 #include "utils/workfile_mgr.h"
 
 typedef struct LogicalTapePos
@@ -34,16 +35,16 @@ typedef struct LogicalTapeSet LogicalTapeSet;
  */
 
 extern LogicalTape *LogicalTapeCreate(LogicalTapeSet *lts, LogicalTape *lt); 
-extern LogicalTapeSet *LogicalTapeSetCreate(int ntapes, bool del_on_close);
-extern LogicalTapeSet *LogicalTapeSetCreate_File(ExecWorkFile *ewfile, int ntapes);
-extern LogicalTapeSet *LoadLogicalTapeSetState(ExecWorkFile *pfile, ExecWorkFile *tapefile);
+extern LogicalTapeSet *LogicalTapeSetCreate(int ntapes);
+extern LogicalTapeSet *LogicalTapeSetCreate_File(BufFile *ewfile, int ntapes);
+extern LogicalTapeSet *LoadLogicalTapeSetState(BufFile *pfile, BufFile *tapefile);
 
 extern void LogicalTapeSetClose(LogicalTapeSet *lts, workfile_set *workset);
 extern void LogicalTapeSetForgetFreeSpace(LogicalTapeSet *lts);
 
 extern size_t LogicalTapeRead(LogicalTapeSet *lts, LogicalTape *lt, void *ptr, size_t size);
 extern void LogicalTapeWrite(LogicalTapeSet *lts, LogicalTape *lt, void *ptr, size_t size);
-extern void LogicalTapeFlush(LogicalTapeSet *lts, LogicalTape *lt, ExecWorkFile *pstatefile);
+extern void LogicalTapeFlush(LogicalTapeSet *lts, LogicalTape *lt, BufFile *pstatefile);
 extern void LogicalTapeRewind(LogicalTapeSet *lts, LogicalTape *lt, bool forWrite);
 extern void LogicalTapeFreeze(LogicalTapeSet *lts, LogicalTape *lt);
 extern bool LogicalTapeBackspace(LogicalTapeSet *lts, LogicalTape *lt, size_t size);

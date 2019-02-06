@@ -49,7 +49,7 @@ static TupleTableSlot *ExecHashJoinOuterGetTuple(PlanState *outerNode,
 						  HashJoinState *hjstate,
 						  uint32 *hashvalue);
 static TupleTableSlot *ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
-						  ExecWorkFile *file,
+						  BufFile *file,
 						  uint32 *hashvalue,
 						  TupleTableSlot *tupleSlot);
 static bool ExecHashJoinNewBatch(HashJoinState *hjstate);
@@ -839,7 +839,7 @@ ExecHashJoinOuterGetTuple(PlanState *outerNode,
 	}
 	else if (curbatch < hashtable->nbatch)
 	{
-		ExecWorkFile    *file = hashtable->outerBatchFile[curbatch];
+		BufFile	   *file = hashtable->outerBatchFile[curbatch];
 
 		/*
 		 * In outer-join cases, we could get here even though the batch file
@@ -910,7 +910,7 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 		 * away to free disk space.
 		 */
 		if (hashtable->outerBatchFile[curbatch])
-			workfile_mgr_close_file(hashtable->work_set, hashtable->outerBatchFile[curbatch]);
+			BufFileClose(hashtable->outerBatchFile[curbatch]);
 		hashtable->outerBatchFile[curbatch] = NULL;
 	}
 
@@ -1014,10 +1014,10 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 		/* We can ignore this batch. */
 		/* Release associated temp files right away. */
 		if (hashtable->innerBatchFile[curbatch] && !hjstate->reuse_hashtable)
-			workfile_mgr_close_file(hashtable->work_set, hashtable->innerBatchFile[curbatch]);
+			BufFileClose(hashtable->innerBatchFile[curbatch]);
 		hashtable->innerBatchFile[curbatch] = NULL;
 		if (hashtable->outerBatchFile[curbatch])
-			workfile_mgr_close_file(hashtable->work_set, hashtable->outerBatchFile[curbatch]);
+			BufFileClose(hashtable->outerBatchFile[curbatch]);
 		hashtable->outerBatchFile[curbatch] = NULL;
 
 		curbatch++;
@@ -1041,7 +1041,7 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 	 */
 	if (hashtable->outerBatchFile[curbatch] != NULL)
 	{
-		if (!ExecWorkFile_Rewind(hashtable->outerBatchFile[curbatch]))
+		if (BufFileSeek(hashtable->outerBatchFile[curbatch], 0, 0, SEEK_SET) != 0)
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not access temporary file")));
@@ -1063,17 +1063,16 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
  */
 void
 ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
-					  HashJoinTable hashtable, ExecWorkFile **fileptr,
+					  HashJoinTable hashtable, BufFile **fileptr,
 					  MemoryContext bfCxt)
 {
-	ExecWorkFile *file = *fileptr;
+	BufFile	   *file = *fileptr;
 
 	if (hashtable->work_set == NULL)
 	{
 		/*
 		 * First time spilling.
 		 */
-		hashtable->hjstate->workfiles_created = true;
 		if (hashtable->hjstate->js.ps.instrument)
 		{
 			hashtable->hjstate->js.ps.instrument->workfileCreated = true;
@@ -1082,9 +1081,7 @@ ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
 		MemoryContext oldcxt;
 
 		oldcxt = MemoryContextSwitchTo(bfCxt);
-		hashtable->work_set = workfile_mgr_create_set(gp_workfile_type_hashjoin,
-				true, /* can_be_reused */
-				&hashtable->hjstate->js.ps);
+		hashtable->work_set = workfile_mgr_create_set("HashJoin", NULL);
 		MemoryContextSwitchTo(oldcxt);
 	}
 
@@ -1096,24 +1093,28 @@ ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
 
 		/* First write to this batch file, so create it */
 		Assert(hashtable->work_set != NULL);
-		file = workfile_mgr_create_file(hashtable->work_set);
+		file = BufFileCreateTempInSet(hashtable->work_set, false /* interXact */);
 		*fileptr = file;
 
-		elog(gp_workfile_caching_loglevel, "create batch file %s with gp_workfile_compress_algorithm=%d",
-			 ExecWorkFile_GetFileName(file),
-			 hashtable->work_set->metadata.bfz_compress_type);
+		elog(gp_workfile_caching_loglevel, "create batch file %s",
+			 BufFileGetFilename(file));
 
 		MemoryContextSwitchTo(oldcxt);
 	}
 
-	if (!ExecWorkFile_Write(file, (void *) &hashvalue, sizeof(uint32)))
+	if (BufFileWrite(file, (void *) &hashvalue, sizeof(uint32)) != sizeof(uint32))
 	{
-		workfile_mgr_report_error();
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to temporary file: %m")));
 	}
 
-	if (!ExecWorkFile_Write(file, (void *) tuple, memtuple_get_size(tuple)))
+	int		tupsize	= memtuple_get_size(tuple);
+	if (BufFileWrite(file, (void *) tuple, tupsize) != tupsize)
 	{
-		workfile_mgr_report_error();
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to temporary file: %m")));
 	}
 
 	if (ps)
@@ -1131,7 +1132,7 @@ ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
  */
 static TupleTableSlot *
 ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
-						  ExecWorkFile *file,
+						  BufFile *file,
 						  uint32 *hashvalue,
 						  TupleTableSlot *tupleSlot)
 {
@@ -1151,7 +1152,7 @@ ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
 	 * we can read them both in one BufFileRead() call without any type
 	 * cheating.
 	 */
-	nread = ExecWorkFile_Read(file, (void *) header, sizeof(header));
+	nread = BufFileRead(file, (void *) header, sizeof(header));
 	if (nread != sizeof(header))				/* end of file */
 	{
 		ExecClearTuple(tupleSlot);
@@ -1162,9 +1163,9 @@ ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
 	tuple = (MemTuple) palloc(memtuple_size_from_uint32(header[1]));
 	memtuple_set_mtlen(tuple, header[1]);
 
-	nread = ExecWorkFile_Read(file,
-							  (void *) ((char *) tuple + sizeof(uint32)),
-							  memtuple_size_from_uint32(header[1]) - sizeof(uint32));
+	nread = BufFileRead(file,
+						(void *) ((char *) tuple + sizeof(uint32)),
+						memtuple_size_from_uint32(header[1]) - sizeof(uint32));
 	
 	if (nread != memtuple_size_from_uint32(header[1]) - sizeof(uint32))
 		ereport(ERROR,
@@ -1398,9 +1399,7 @@ ExecHashJoinReloadHashTable(HashJoinState *hjstate)
 	if (hashtable->innerBatchFile[curbatch] != NULL)
 	{
 		/* Rewind batch file */
-		bool		result = ExecWorkFile_Rewind(hashtable->innerBatchFile[curbatch]);
-
-		if (!result)
+		if (BufFileSeek(hashtable->innerBatchFile[curbatch], 0, 0, SEEK_SET) != 0)
 		{
 			ereport(ERROR, (errcode_for_file_access(),
 							errmsg("could not access temporary file")));
@@ -1434,9 +1433,11 @@ ExecHashJoinReloadHashTable(HashJoinState *hjstate)
 		 */
 		if (hjstate->js.ps.instrument && hjstate->js.ps.instrument->need_cdb)
 		{
+			off_t		pos;
+
 			Assert(hashtable->stats);
-			hashtable->stats->batchstats[curbatch].innerfilesize =
-				ExecWorkFile_Tell64(hashtable->innerBatchFile[curbatch]);
+			BufFileTell(hashtable->innerBatchFile[curbatch], NULL, &pos);
+			hashtable->stats->batchstats[curbatch].innerfilesize = pos;
 		}
 
 		SIMPLE_FAULT_INJECTOR(WorkfileHashJoinFailure);
@@ -1451,12 +1452,13 @@ ExecHashJoinReloadHashTable(HashJoinState *hjstate)
 		 * XXX: Currently, we actually always close the file, and recreate it
 		 * afterwards, even if there are no changes. That's because the workfile
 		 * API doesn't support appending to a file that's already been read from.
+		 * FIXME: could fix that now
 		 */
 #if 0
 		if (!hjstate->reuse_hashtable || nmoved > 0 || hashtable->nbatch != orignbatch)
 #endif
 		{
-			workfile_mgr_close_file(hashtable->work_set, hashtable->innerBatchFile[curbatch]);
+			BufFileClose(hashtable->innerBatchFile[curbatch]);
 			hashtable->innerBatchFile[curbatch] = NULL;
 		}
 	}

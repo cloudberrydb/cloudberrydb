@@ -50,6 +50,7 @@
 #include "catalog/pg_appendonly_fn.h"
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_inherits_fn.h"
+#include "utils/guc.h"
 
 
 /* GUC parameter */

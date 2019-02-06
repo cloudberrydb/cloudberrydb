@@ -868,7 +868,6 @@ shareinput_writer_waitdone(void *ctxt, int share_id, int nsharer_xslice)
 static void
 ExecEagerFreeShareInputScan(ShareInputScanState *node)
 {
-
 	/*
 	 * no need to call tuplestore end.  Underlying ShareInput will take
 	 * care of releasing tuplestore resources
@@ -893,6 +892,14 @@ ExecEagerFreeShareInputScan(ShareInputScanState *node)
 			{
 				ntuplestore_destroy(node->ts_state->matstore);
 			}
+		}
+	}
+	if (sisc->share_type == SHARE_SORT_XSLICE)
+	{
+		if (NULL != node->ts_state && NULL != node->ts_state->sortstore)
+		{
+			tuplesort_end(node->ts_state->sortstore);
+			node->ts_state->sortstore = NULL;
 		}
 	}
 

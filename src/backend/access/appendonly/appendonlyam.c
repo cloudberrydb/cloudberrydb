@@ -55,6 +55,7 @@
 #include "pgstat.h"
 #include "utils/datum.h"
 #include "utils/faultinjector.h"
+#include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"

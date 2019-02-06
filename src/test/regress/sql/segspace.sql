@@ -38,7 +38,6 @@ ANALYZE segspace_test_hj_skew;
 select gp_inject_fault('exec_hashjoin_new_batch', 'reset', 2);
 select gp_inject_fault('exec_hashjoin_new_batch', 'interrupt', 2);
 
-set gp_workfile_type_hashjoin=buffile;
 set statement_mem=2048;
 set gp_autostats_mode = none;
 
@@ -68,7 +67,6 @@ select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used
 drop table if exists segspace_t1_created;
 create table segspace_t1_created (i1 int, i2 int, i3 int, i4 int, i5 int, i6 int, i7 int, i8 int) DISTRIBUTED BY (i1);
 
-set gp_workfile_type_hashjoin=buffile;
 set statement_mem=2048;
 set gp_autostats_mode = none;
 
@@ -107,7 +105,6 @@ drop table if exists segspace_t1_created;
 ------------ Interrupting CREATE TABLE AS query that spills -------------------
 
 drop table if exists segspace_t1_created;
-set gp_workfile_type_hashjoin=buffile;
 set statement_mem=2048;
 set gp_autostats_mode = none;
 

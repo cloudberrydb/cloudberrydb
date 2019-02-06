@@ -172,6 +172,7 @@ int			max_safe_fds = 32;	/* default if not changed */
 /* these are the assigned bits in fdstate below: */
 #define FD_TEMPORARY		(1 << 0)	/* T = delete when closed */
 #define FD_XACT_TEMPORARY	(1 << 1)	/* T = delete at eoXact */
+#define FD_WORKFILE			(1 << 2)	/* tracked by workfile manager */
 
 typedef struct vfd
 {
@@ -1558,6 +1559,9 @@ FileClose(File file)
 		else
 			stat_errno = 0;
 
+		if (vfdP->fdstate & FD_WORKFILE)
+			WorkFileDeleted(file);
+
 		/* in any case do the unlink */
 		if (unlink(vfdP->fileName))
 			elog(LOG, "could not unlink file \"%s\": %m", vfdP->fileName);
@@ -1746,6 +1750,23 @@ FileWrite(File file, char *buffer, int amount)
 				 errmsg("temporary file size exceeds temp_file_limit (%dkB)",
 						temp_file_limit)));
 		}
+	}
+
+	/*
+	 * Also update the stats in workfile manager. This might also
+	 * throw an error, if we're over the limits.
+	 *
+	 * Because we update the stats in workfile manager first, if the write
+	 * fails, the workfile manager's status will be out of sync with reality.
+	 * That's OK, the inaccuracy doens't accumulate, and it doesn't need to be
+	 * totallyaccurate.
+	 */
+	if ((VfdCache[file].fdstate & FD_WORKFILE) != 0)
+	{
+		off_t		newPos = VfdCache[file].seekPos + amount;
+
+		if (newPos > VfdCache[file].fileSize)
+			UpdateWorkFileSize(file, newPos);
 	}
 
 retry:
@@ -2710,8 +2731,6 @@ CleanupTempFiles(bool isProcExit)
 		have_xact_temporary_files = false;
 	}
 
-	workfile_mgr_cleanup();
-
 	/* Clean up "allocated" stdio files, dirs and fds. */
 	while (numAllocatedDescs > 0)
 		FreeDesc(&allocatedDescs[0]);
@@ -3286,4 +3305,27 @@ fsync_parent_path(const char *fname, int elevel)
 		return -1;
 
 	return 0;
+}
+
+const char *
+FileGetFilename(File file)
+{
+
+	Assert(FileIsValid(file));
+
+	DO_DB(elog(LOG, "FileSeek: %d (%s) " INT64_FORMAT " " INT64_FORMAT " %d",
+			   file, VfdCache[file].fileName,
+			   (int64) VfdCache[file].seekPos,
+			   (int64) offset, whence));
+
+	return VfdCache[file].fileName;
+}
+
+/*
+ * Mark the file as a "work file" that should be tracked by the workfile manager.
+ */
+void
+FileSetIsWorkfile(File file)
+{
+	VfdCache[file].fdstate |= FD_WORKFILE;
 }

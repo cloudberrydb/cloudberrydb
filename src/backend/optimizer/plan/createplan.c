@@ -48,6 +48,7 @@
 #include "parser/parse_clause.h"
 #include "parser/parsetree.h"
 #include "parser/parse_oper.h"	/* ordering_oper_opid */
+#include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/uri.h"
 

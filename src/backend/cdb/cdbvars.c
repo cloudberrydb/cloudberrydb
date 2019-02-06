@@ -271,17 +271,13 @@ int			gp_workfile_caching_loglevel = DEBUG1;
 int			gp_sessionstate_loglevel = DEBUG1;
 
 /* Maximum disk space to use for workfiles on a segment, in kilobytes */
-double		gp_workfile_limit_per_segment = 0;
+int			gp_workfile_limit_per_segment = 0;
 
 /* Maximum disk space to use for workfiles per query on a segment, in kilobytes */
-double		gp_workfile_limit_per_query = 0;
+int			gp_workfile_limit_per_query = 0;
 
 /* Maximum number of workfiles to be created by a query */
 int			gp_workfile_limit_files_per_query = 0;
-int			gp_workfile_bytes_to_checksum = 16;
-
-/* The type of work files that HashJoin should use */
-int			gp_workfile_type_hashjoin = 0;
 
 /* Gpmon */
 bool		gp_enable_gpperfmon = false;

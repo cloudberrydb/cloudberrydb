@@ -23,7 +23,7 @@ extern void ExecEndHashJoin(HashJoinState *node);
 extern void ExecReScanHashJoin(HashJoinState *node);
 
 extern void ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
-								  HashJoinTable hashtable, ExecWorkFile **fileptr,
+								  HashJoinTable hashtable, BufFile **fileptr,
 								  MemoryContext bfCxt);
 extern void ExecSquelchHashJoin(HashJoinState *node);
 

@@ -797,16 +797,12 @@ typedef enum
 extern int gpperfmon_log_alert_level;
 
 
-extern int gp_workfile_compress_algorithm;
-extern bool gp_workfile_checksumming;
-extern double gp_workfile_limit_per_segment;
-extern double gp_workfile_limit_per_query;
+extern int gp_workfile_limit_per_segment;
+extern int gp_workfile_limit_per_query;
 extern int gp_workfile_limit_files_per_query;
 extern int gp_workfile_caching_loglevel;
 extern int gp_sessionstate_loglevel;
 extern int gp_workfile_bytes_to_checksum;
-/* The type of work files that HashJoin should use */
-extern int gp_workfile_type_hashjoin;
 
 extern bool coredump_on_memerror;
 

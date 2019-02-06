@@ -76,6 +76,7 @@
 #include "nodes/makefuncs.h"
 #include "storage/ipc.h"
 #include "cdb/cdbllize.h"
+#include "utils/guc.h"
 #include "utils/workfile_mgr.h"
 #include "utils/metrics_utils.h"
 
@@ -2153,9 +2154,6 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 		pfree(queryDesc->gpmon_pkt);
 		queryDesc->gpmon_pkt = NULL;
 	}
-
-	/* Workfile manager per-query resource accounting */
-	WorkfileQueryspace_ReleaseEntry();
 
 	ReportOOMConsumption();
 

@@ -1,520 +1,766 @@
 /*-------------------------------------------------------------------------
  *
  * workfile_mgr.c
- *	 Implementation of workfile manager and workfile caching.
+ *		Exposes information about BufFiles in shared memory
  *
- * Portions Copyright (c) 2011, EMC Corp.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- *
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	    src/backend/utils/workfile_manager/workfile_mgr.c
+ *	  src/backend/utils/workfile_manager/workfile_mgr.c
+ *
+ * NOTES:
+ *
+ * If a BufFile is created directly with BufFile* functions, it forms its
+ * own workfile set.
+ *
+ *
+ * There are three ways to use this:
+ *
+ * 1. Use the normal upstream BufFile functions, ignoring work files
+ * altogether. A workfile set will be created for each BufFile automatically.
+ * This ensures that files created by unmodified upstream code is tracked.
+ *
+ * 2. Use BufFile functions, and call XXX to add extra information to
+ * the workfile set.
+ *
+ * 3. Use workfile_mgr_create_set() to create an explicit working set.
+ *
+ *
+ * Workfile set is removed automatically when the last file associated with
+ * it is closed.
+ *
+ *
+ * The purpose of this tracking is twofold:
+ * 1. Provide the gp_toolkit views, so that you can view temporary file
+ * usage from a different psql session.
+ *
+ * 2. Enforce gp_* limits.
  *
  *-------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
-#include <unistd.h>
-#include <sys/stat.h>
-
-#include "utils/workfile_mgr.h"
-#include "miscadmin.h"
 #include "cdb/cdbvars.h"
-#include "nodes/print.h"
+#include "funcapi.h"
+#include "lib/ilist.h"
+#include "storage/buffile.h"
 #include "storage/fd.h"
+#include "storage/ipc.h"
 #include "utils/builtins.h"
-#include "utils/memutils.h"
-
-#define WORKFILE_SET_MASK  "XXXXXXXXXX"
-
-/* Type of temp file to use for storing the plan */
-#define WORKFILE_PLAN_FILE_TYPE BUFFILE
-
-/* Information needed to populate a new workfile_set structure */
-typedef struct workset_info
-{
-	ExecWorkFileType file_type;
-	NodeTag nodeType;
-	TimestampTz session_start_time;
-	uint64 operator_work_mem;
-	char *dir_path;
-} workset_info;
-
-/* Counter to keep track of workfile segspace used without a workfile set. */
-static int64 used_segspace_not_in_workfile_set;
-
-/* Forward declarations */
-static void workfile_mgr_populate_set(const void *resource, const void *param);
-static void workfile_mgr_cleanup_set(const void *resource);
-static void workfile_mgr_delete_set_directory(char *workset_path);
-static void workfile_mgr_unlink_directory(const char *dirpath);
-static const char *get_name_from_nodeType(const NodeTag node_type);
-static uint64 get_operator_work_mem(PlanState *ps);
-static char *create_workset_directory(NodeTag node_type, int slice_id);
-
-static workfile_set *open_workfile_sets = NULL;
-static bool workfile_sets_resowner_callback_registered = false;
-
-
-static void
-workfile_set_free_callback(ResourceReleasePhase phase,
-					 bool isCommit,
-					 bool isTopLevel,
-					 void *arg)
-{
-	workfile_set *curr;
-	workfile_set *next;
-
-	if (phase != RESOURCE_RELEASE_AFTER_LOCKS)
-		return;
-
-	next = open_workfile_sets;
-	while (next)
-	{
-		curr = next;
-		next = curr->next;
-
-		if (curr->owner == CurrentResourceOwner)
-		{
-			if (isCommit)
-				elog(WARNING, "workfile_set reference leak: %p still referenced", curr);
-			workfile_mgr_close_set(curr);
-		}
-	}
-}
-
-
-/* Workfile manager cache is stored here, once attached to */
-Cache *workfile_mgr_cache = NULL;
-
-/* Workfile error type */
-WorkfileError workfileError = WORKFILE_ERROR_UNKNOWN;
+#include "utils/faultinjector.h"
+#include "utils/workfile_mgr.h"
 
 /*
- * Initialize the cache in shared memory, or attach to an existing one
+ * GUC: Number of unique workfile sets that can be open at any time. Each
+ * workfile set can contain multiple files, however. A hashjoin for example
+ * will create one file per batch, but they all belong to the same workfile
+ * set.
+ */
+int			gp_workfile_max_entries = 8192;
+
+/*
+ * Shared memory data structures.
+ *
+ * One workfile_set per workfile. Each workfile_set entry is owned by a backend.
+ *
+ * Per-query summary. These could be computed by scanning the workifle_set array,
+ * but we keep a summary in a separate hash table so that we can quickly detect
+ * if the per-query limit is exceeded. This is needed to enforce
+ * gp_workfile_limit_files_per_query
+ *
+ * Local:
+ *
+ * In addition to the bookkeeping in shared memory, we keep an array in backend
+ * private memory. The array is indeed by the virtual file descriptor, File.
+ *
  *
  */
-void
-workfile_mgr_cache_init(void)
+
+typedef struct
 {
-	CacheCtl cacheCtl;
-	MemSet(&cacheCtl, 0, sizeof(CacheCtl));
+	/* hash key */
+	int32		session_id;
+	int32		command_count;
 
-	cacheCtl.maxSize = gp_workfile_max_entries;
-	cacheCtl.cacheName = "Workfile Manager Cache";
-	cacheCtl.entrySize = sizeof(workfile_set);
-	cacheCtl.keySize = sizeof(((workfile_set *)0)->key);
-	cacheCtl.keyOffset = GPDB_OFFSET(workfile_set, key);
+	int32		refcount;		/* number of working sets */
 
-	cacheCtl.hash = int32_hash;
-	cacheCtl.keyCopy = (HashCopyFunc) memcpy;
-	cacheCtl.match = (HashCompareFunc) memcmp;
-	cacheCtl.cleanupEntry = workfile_mgr_cleanup_set;
-	cacheCtl.populateEntry = workfile_mgr_populate_set;
+	int32		num_files;
+	uint64		total_bytes;
 
-	cacheCtl.baseLWLockId = FirstWorkfileMgrLock;
-	cacheCtl.numPartitions = NUM_WORKFILEMGR_PARTITIONS;
+	bool		active;
 
-	workfile_mgr_cache = Cache_Create(&cacheCtl);
-	Assert(NULL != workfile_mgr_cache);
+} WorkFileUsagePerQuery;
 
-	/*
-	 * Initialize the WorkfileDiskspace and WorkfileQueryspace APIs
-	 * to track disk space usage
-	 */
-	WorkfileDiskspace_Init();
+#define SizeOfWorkFileUsagePerQueryKey (2 * sizeof(int32));
 
-	used_segspace_not_in_workfile_set = 0;
-}
+#define WORKFILE_PREFIX_LEN		64
+
+struct workfile_set
+{
+	/* Session id for the query creating the workfile set */
+	int			session_id;
+
+	/* Command count for the query creating the workfile set */
+	int			command_count;
+
+	/* Number of files in set */
+	uint32		num_files;
+
+	/* Size in bytes of the files in this workfile set */
+	int64		total_bytes;
+
+	/* Prefix of files in the workfile set */
+	char		prefix[WORKFILE_PREFIX_LEN];
+
+	/* Type of operator creating the workfile set */
+	char		operator[NAMEDATALEN];
+
+	/* Slice in which the spilling operator was */
+	int			slice_id;
+
+	WorkFileUsagePerQuery *perquery;
+
+	dlist_node	node;
+
+	bool		active;
+};
+
+typedef struct workfile_set WorkFileSetSharedEntry;
 
 /*
- * Returns pointer to the workfile manager cache
+ * Protected by WorkFileManagerLock (except for sizes, which use atomics)
  */
-Cache *
-workfile_mgr_get_cache(void)
+typedef struct
 {
-	Assert(NULL != workfile_mgr_cache);
-	return workfile_mgr_cache;
-}
+	dlist_head	freeList;
+	dlist_head	activeList;
+	int			num_active;
+
+	uint64		total_bytes;
+
+	HTAB	   *per_query_hash;
+
+	WorkFileSetSharedEntry entries[];
+
+} WorkFileShared;
+
+static WorkFileShared *workfile_shared;
+
+/* indexed by virtual File descriptor */
+typedef struct
+{
+	WorkFileSetSharedEntry *work_set;	/* pointer into the shared array */
+	int64		size;
+} WorkFileLocalEntry;
+
+static WorkFileLocalEntry *localEntries = NULL;
+static int sizeLocalEntries = 0;
+
+static workfile_set *workfile_mgr_create_set_internal(const char *operator_name, const char *prefix);
+
+static void AtProcExit_WorkFile(int code, Datum arg);
+
+static bool proc_exit_hook_registered = false;
+
+Datum gp_workfile_mgr_cache_entries(PG_FUNCTION_ARGS);
+Datum gp_workfile_mgr_used_diskspace(PG_FUNCTION_ARGS);
 
 /*
- * compute the size of shared memory for the workfile manager
+ * Shared memory initialization
  */
 Size
-workfile_mgr_shmem_size(void)
+WorkFileShmemSize(void)
 {
-	return Cache_SharedMemSize(gp_workfile_max_entries, sizeof(workfile_set)) +
-			WorkfileDiskspace_ShMemSize() + WorkfileQueryspace_ShMemSize();
+	Size		size;
+
+	size = offsetof(WorkFileShared, entries);
+	size = add_size(size, mul_size(gp_workfile_max_entries,
+								   sizeof(WorkFileSetSharedEntry)));
+
+	size = add_size(size, hash_estimate_size(gp_workfile_max_entries,
+											 sizeof(WorkFileUsagePerQuery)));
+
+	return size;
 }
 
-
-
-/*
- * Retrieves the operator name.
- * Result is palloc-ed in the current memory context.
- */
-static const char *
-get_name_from_nodeType(const NodeTag node_type)
+void
+WorkFileShmemInit(void)
 {
-	switch ( node_type )
+	Size		size;
+	bool		found;
+
+	size = offsetof(WorkFileShared, entries);
+	size = add_size(size, mul_size(gp_workfile_max_entries,
+								   sizeof(WorkFileSetSharedEntry)));
+
+	workfile_shared = (WorkFileShared *)
+		ShmemInitStruct("WorkFile Data", size, &found);
+	if (!found)
 	{
-		case T_AggState:
-			return "Agg";
-		case T_HashJoinState:
-			return "HashJoin";
-		case T_MaterialState:
-			return "Material";
-		case T_SortState:
-			return "Sort";
-		case T_Invalid:
-			/* When spilling from a builtin function, we don't have a valid node type */
-			return "BuiltinFunction";
-		default:
-			elog(ERROR, "Operator not supported by the workfile manager");
+		HASHCTL hctl;
+
+		memset(workfile_shared, 0, size);
+
+		dlist_init(&workfile_shared->freeList);
+		dlist_init(&workfile_shared->activeList);
+		workfile_shared->num_active = 0;
+
+		for (int i = 0; i < gp_workfile_max_entries; i++)
+		{
+			WorkFileSetSharedEntry *entry = &workfile_shared->entries[i];
+
+			dlist_push_tail(&workfile_shared->freeList, &entry->node);
+			entry->active = false;
+		}
+
+		/* Initialize per-query hashtable */
+		memset(&hctl, 0, sizeof(hctl));
+		hctl.keysize = SizeOfWorkFileUsagePerQueryKey;
+		hctl.entrysize = sizeof(WorkFileUsagePerQuery);
+		hctl.hash = tag_hash;
+
+		workfile_shared->per_query_hash =
+			ShmemInitHash("per-query workfile usage hash",
+						  gp_workfile_max_entries,
+						  gp_workfile_max_entries,
+						  &hctl,
+						  HASH_ELEM | HASH_FUNCTION);
 	}
-	return NULL; /* keep compiler quiet */
 }
 
 /*
- * Create a new file set
- *   type is the WorkFileType for the files: BUFFILE or BFZ
- *   can_be_reused: if set to false, then we don't insert this set into the cache,
- *     since the caller is telling us there is no point. This can happen for
- *     example when spilling during index creation.
- *   ps is the PlanState for the subtree rooted at the operator
- *   snapshot contains snapshot information for the current transaction
+ * Callback function, to delist all our temporary files from shared memory.
  *
+ * We are about to exit, and the temporary files are about to deleted. We
+ * have to delist them from shared memory before that, while we still
+ * have access to shared memory. fd.c's on_proc_exit callback runs after
+ * detaching from shared memory, which is too late.
+ */
+static void
+AtProcExit_WorkFile(int code, Datum arg)
+{
+	int			i;
+
+	for (i = 0; i < sizeLocalEntries; i++)
+		WorkFileDeleted(i);
+}
+
+/*
+ * Enlarge the local array if necessary, so that it has space for 'file'.
+ */
+static void
+ensureLocalEntriesSize(File file)
+{
+	int			oldsize = sizeLocalEntries;
+	int			newsize;
+
+	if (file < 0)
+		elog(ERROR, "invalid virtual file descriptor: %d", file);
+
+	if (file < sizeLocalEntries)
+		return;
+
+	newsize = file * 2 + 5;
+	if (sizeLocalEntries == 0)
+		localEntries = (WorkFileLocalEntry *)
+			MemoryContextAlloc(TopMemoryContext,
+							   newsize * sizeof(WorkFileLocalEntry));
+	else
+		localEntries = (WorkFileLocalEntry *)
+			repalloc(localEntries, newsize * sizeof(WorkFileLocalEntry));
+	sizeLocalEntries = newsize;
+
+	/* initialize the newly-allocated entries to all-zeros. */
+	memset(&localEntries[oldsize], 0,
+		   (newsize - oldsize) * sizeof(WorkFileLocalEntry));
+}
+
+/*
+ * fd.c / buffile.c call these
+ */
+
+/*
+ * Buffile.c calls this whenever a new BufFile is created, with a known
+ * workfile set. Registers the file with the workfile set.
+ */
+void
+RegisterFileWithSet(File file, workfile_set *work_set)
+{
+	WorkFileLocalEntry *localEntry;
+
+	ensureLocalEntriesSize(file);
+	localEntry = &localEntries[file];
+
+	if (localEntry->work_set != NULL)
+		elog(ERROR, "workfile is already registered with another workfile set");
+
+	LWLockAcquire(WorkFileManagerLock, LW_EXCLUSIVE);
+
+	Assert(work_set->active);
+	Assert(work_set->perquery->active);
+
+	localEntry->work_set = work_set;
+	work_set->num_files++;
+	work_set->perquery->num_files++;
+
+	/* Enforce the limit on number of files */
+	if (gp_workfile_limit_files_per_query > 0 &&
+		work_set->perquery->num_files > gp_workfile_limit_files_per_query)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+				 errmsg("number of workfiles per query limit exceeded")));
+	}
+
+	LWLockRelease(WorkFileManagerLock);
+}
+
+/*
+ * Update the totals of the workfile set for given file.
+ *
+ * If the given file is not associated with a workfile set yet,
+ * a new workfile set is created.
+ *
+ * fd.c calls this whenever a (potentially) file is enlarged.
+ */
+void
+UpdateWorkFileSize(File file, uint64 newsize)
+{
+	WorkFileLocalEntry *localEntry;
+	WorkFileSetSharedEntry *work_set;
+	WorkFileUsagePerQuery *perquery;
+	int64		diff;
+
+	ensureLocalEntriesSize(file);
+	localEntry = &localEntries[file];
+
+	diff = (int64) newsize - localEntry->size;
+	if (diff == 0)
+		return;
+
+	if (!proc_exit_hook_registered)
+	{
+		/* register proc-exit hook to ensure temp files are dropped at exit */
+		before_shmem_exit(AtProcExit_WorkFile, 0);
+		proc_exit_hook_registered = true;
+	}
+
+	LWLockAcquire(WorkFileManagerLock, LW_EXCLUSIVE);
+
+	/*
+	 * If this file doesn't belong to a working set yet, create a new one,
+	 * so that it can be tracked.
+	 *
+	 * XXX: perhaps we should skip this for very small files, to reduce
+	 * overhead?
+	 */
+	if (localEntry->work_set == NULL)
+	{
+		Assert(localEntry->size == 0);
+
+		work_set = workfile_mgr_create_set_internal(NULL, NULL);
+		localEntry->work_set = work_set;
+		work_set->num_files++;
+
+		perquery = work_set->perquery;
+		perquery->num_files++;
+
+		/*
+		 * Enforce the limit on number of files.
+		 *
+		 * We do this after associating the file with the set, so the
+		 * shared memory will reflect the state where we are already over
+		 * the limit. That seems accurate, we have already created the
+		 * file, after all. Transaction abort will delete it shortly, so
+		 * this is a very transient state.
+		 */
+		if (gp_workfile_limit_files_per_query > 0 &&
+			perquery->num_files > gp_workfile_limit_files_per_query)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+					 errmsg("number of workfiles per query limit exceeded")));
+		}
+
+	}
+	else
+	{
+		work_set = localEntry->work_set;
+		perquery = work_set->perquery;
+	}
+	Assert(work_set->active);
+	Assert(perquery->active);
+
+	/*
+	 * If the file is being enlraged, enforce the limits.
+	 */
+	if (diff > 0)
+	{
+		if (gp_workfile_limit_per_query > 0 &&
+			(perquery->total_bytes + diff + 1023) / 1024 > gp_workfile_limit_per_query)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+					 errmsg("workfile per query size limit exceeded")));
+		}
+		if (gp_workfile_limit_per_segment &&
+			(workfile_shared->total_bytes + diff) / 1024 > gp_workfile_limit_per_segment)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+					 errmsg("workfile per segment size limit exceeded")));
+		}
+	}
+
+	/*
+	 * Update the summaries in shared memory.
+	 */
+	work_set->total_bytes += diff;
+	perquery->total_bytes += diff;
+	workfile_shared->total_bytes += diff;
+
+	/* also update the local entry */
+	localEntry->size = newsize;
+
+	LWLockRelease(WorkFileManagerLock);
+}
+
+void
+WorkFileDeleted(File file)
+{
+	WorkFileLocalEntry *localEntry;
+	WorkFileSetSharedEntry *work_set;
+	WorkFileUsagePerQuery *perquery;
+	int64		oldsize;
+
+	if (file < 0)
+		elog(ERROR, "invalid virtual file descriptor: %d", file);
+	if (file >= sizeLocalEntries)
+		return;		/* not a tracked work file */
+	localEntry = &localEntries[file];
+
+	if (!localEntry->work_set)
+		return;		/* not a tracked work file */
+
+	LWLockAcquire(WorkFileManagerLock, LW_EXCLUSIVE);
+
+	work_set = localEntry->work_set;
+	perquery = work_set->perquery;
+	oldsize = localEntry->size;
+
+	Assert(work_set->active);
+	Assert(perquery->active);
+
+	/*
+	 * Update the summaries in shared memory
+	 */
+	Assert(work_set->num_files > 0);
+	work_set->num_files--;
+	work_set->total_bytes -= oldsize;
+
+	Assert(perquery->num_files > 0);
+	perquery->num_files--;
+	perquery->total_bytes -= oldsize;
+
+	workfile_shared->total_bytes -= oldsize;
+
+	/*
+	 * Update the workfile_set. If this was the last file in this
+	 * set, remove it.
+	 */
+	if (work_set->num_files == 0)
+	{
+		perquery->refcount--;
+
+		Assert(work_set->total_bytes == 0);
+		/* Unlink from the active list */
+		dlist_delete(&work_set->node);
+		workfile_shared->num_active--;
+
+		/* and add to the free list */
+		dlist_push_head(&workfile_shared->freeList, &work_set->node);
+		work_set->active = false;
+
+		/*
+		 * Similarly, update / remove the per-query entry.
+		 */
+		if (perquery->refcount == 0)
+		{
+			bool		found;
+
+			Assert(perquery->total_bytes == 0);
+
+			perquery->active = false;
+			(void) hash_search(workfile_shared->per_query_hash,
+							   perquery,
+							   HASH_REMOVE, &found);
+			if (!found)
+				elog(PANIC, "per-query hash table is corrupt");
+		}
+	}
+
+	localEntry->size = 0;
+	localEntry->work_set = NULL;
+
+	LWLockRelease(WorkFileManagerLock);
+}
+
+
+/*
+ * Public API for creating a workfile set
  */
 workfile_set *
-workfile_mgr_create_set(enum ExecWorkFileType type, bool can_be_reused, PlanState *ps)
+workfile_mgr_create_set(const char *operator_name, const char *prefix)
 {
-	Assert(NULL != workfile_mgr_cache);
+	workfile_set *work_set;
 
-	Plan *plan = NULL;
-	if (ps != NULL)
+	if (!proc_exit_hook_registered)
 	{
-		plan = ps->plan;
+		/* register proc-exit hook to ensure temp files are dropped at exit */
+		before_shmem_exit(AtProcExit_WorkFile, 0);
+		proc_exit_hook_registered = true;
 	}
 
-	AssertImply(can_be_reused, plan != NULL);
+	LWLockAcquire(WorkFileManagerLock, LW_EXCLUSIVE);
 
-	NodeTag node_type = T_Invalid;
-	if (ps != NULL)
-	{
-		node_type = ps->type;
-	}
-	char *dir_path = create_workset_directory(node_type, currentSliceId);
+	work_set = workfile_mgr_create_set_internal(operator_name, prefix);
 
-
-	if (!workfile_sets_resowner_callback_registered)
-	{
-		RegisterResourceReleaseCallback(workfile_set_free_callback, NULL);
-		workfile_sets_resowner_callback_registered = true;
-	}
-
-	/* Create parameter info for the populate function */
-	workset_info set_info;
-	set_info.file_type = type;
-	set_info.nodeType = node_type;
-	set_info.dir_path = dir_path;
-	set_info.session_start_time = GetCurrentTimestamp();
-	set_info.operator_work_mem = get_operator_work_mem(ps);
-
-	CacheEntry *newEntry = Cache_AcquireEntry(workfile_mgr_cache, &set_info);
-
-	if (NULL == newEntry)
-	{
-		/* Clean up the directory we created. */
-		workfile_mgr_delete_set_directory(dir_path);
-
-		/* Could not acquire another entry from the cache - we filled it up */
-		ereport(ERROR,
-				(errmsg("could not create workfile manager entry: exceeded number of concurrent spilling queries")));
-	}
-
-	/* Path has now been copied to the workfile_set. We can free it */
-	pfree(dir_path);
-
-	/* Complete initialization of the entry with post-acquire actions */
-	Assert(NULL != newEntry);
-	workfile_set *work_set = CACHE_ENTRY_PAYLOAD(newEntry);
-	Assert(work_set != NULL);
-
-	elog(gp_workfile_caching_loglevel, "new spill file set. key=0x%x prefix=%s opMemKB=" INT64_FORMAT,
-			work_set->key, work_set->path, work_set->metadata.operator_work_mem);
+	LWLockRelease(WorkFileManagerLock);
 
 	return work_set;
 }
 
 /*
- * Creates the workset directory and returns the path.
- * Throws an error if path or directory cannot be created.
- *
- * Returns the name of the directory created.
- * The name returned is palloc-ed in the current memory context.
- *
+ * lock must be held
  */
-static char *
-create_workset_directory(NodeTag node_type, int slice_id)
+static workfile_set *
+workfile_mgr_create_set_internal(const char *operator_name, const char *prefix)
 {
-	/* Create workset directory here */
-	char	   *dirname;
-	char	   *workfile_path_masked;
-	char	   *workfile_path_unmasked;
-	int			dirpos;
-	char	   *final_dirname;
+	WorkFileUsagePerQuery *perquery;
+	bool		found;
+	WorkFileUsagePerQuery key;
+	workfile_set *work_set;
 
-	dirname = psprintf("%s_%s_Slice%d.%s",
-					   WORKFILE_SET_PREFIX,
-					   get_name_from_nodeType(node_type),
-					   slice_id,
-					   WORKFILE_SET_MASK);
+	Assert(proc_exit_hook_registered);
 
-	workfile_path_masked = GetTempFilePath(dirname, true);
-
-	/* We assume that GetTempFilePath() returns 'dirname', with some prefix. Verify. */
-	if (strlen(workfile_path_masked) <= strlen(dirname))
-		elog(ERROR, "unexpected path returned by GetTempFilePath()");
-	dirpos = strlen(workfile_path_masked) - strlen(dirname);
-	if (strcmp(&workfile_path_masked[dirpos], dirname) != 0)
-		elog(ERROR, "unexpected path returned by GetTempFilePath()");
-
-	workfile_path_unmasked = gp_mkdtemp(workfile_path_masked);
-	if (workfile_path_unmasked == NULL)
+	if (dlist_is_empty(&workfile_shared->freeList))
 	{
+		/* Could not acquire another entry from the cache - we filled it up */
 		ereport(ERROR,
-				(errcode(ERRCODE_IO_ERROR),
-				errmsg("could not create spill file directory: %m")));
+				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+				 errmsg("could not create workfile manager entry: exceeded number of concurrent spilling queries")));
 	}
 
-	/* Extract just the directory name from the path. */
-	Assert(strlen(workfile_path_unmasked) > dirpos);
-	final_dirname = pstrdup(&workfile_path_unmasked[dirpos]);
+	/*
+	 * Find our per-query entry (or allocate, on first use)
+	 */
+	key.session_id = gp_session_id;
+	key.command_count = gp_command_count;
+	perquery = (WorkFileUsagePerQuery *) hash_search(workfile_shared->per_query_hash,
+													 &key,
+													 HASH_ENTER_NULL, &found);
+	if (!perquery)
+	{
+		/*
+		 * The hash table was full. (The hash table is sized so that this
+		 * should never happen.)
+		 */
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+				 errmsg("could not create workfile manager entry: per-query hash table is full")));
+	}
+	if (!found)
+	{
+		perquery->num_files = 0;
+		perquery->total_bytes = 0;
+		perquery->active = true;
+	}
+	perquery->refcount++;
+	Assert(perquery->active);
 
-	pfree(workfile_path_masked);
+	/*
+	 * Allocate a workfile_set entry, and initialize it.
+	 */
+	work_set = dlist_container(WorkFileSetSharedEntry, node,
+							   dlist_pop_head_node(&workfile_shared->freeList));
+	Assert(!work_set->active);
+	dlist_push_head(&workfile_shared->activeList, &work_set->node);
+	workfile_shared->num_active++;
 
-	return final_dirname;
-}
-
-/*
- * SharedCache callback. Populates a newly acquired workfile_set before
- * returning it to the caller.
- */
-static void
-workfile_mgr_populate_set(const void *resource, const void *param)
-{
-	Assert(NULL != resource);
-	Assert(NULL != param);
-
-	workfile_set *work_set = (workfile_set *) resource;
-	workset_info *set_info = (workset_info *) param;
-
-	work_set->metadata.operator_work_mem = set_info->operator_work_mem;
-
-	work_set->no_files = 0;
-	work_set->size = 0L;
-	work_set->in_progress_size = 0L;
-	work_set->node_type = set_info->nodeType;
-	work_set->metadata.type = set_info->file_type;
-	work_set->metadata.bfz_compress_type = gp_workfile_compress_algorithm;
-	work_set->slice_id = currentSliceId;
 	work_set->session_id = gp_session_id;
 	work_set->command_count = gp_command_count;
-	work_set->session_start_time = set_info->session_start_time;
+	work_set->slice_id = currentSliceId;
+	work_set->perquery = perquery;
+	work_set->num_files = 0;
+	work_set->total_bytes = 0;
+	work_set->active = true;
 
-	work_set->owner = CurrentResourceOwner;
-	work_set->next = open_workfile_sets;
-	work_set->prev = NULL;
-	if (open_workfile_sets)
-		open_workfile_sets->prev = work_set;
-	open_workfile_sets = work_set;
+	if (operator_name)
+		strlcpy(work_set->operator, operator_name, sizeof(work_set->operator));
+	else
+		work_set->operator[0] = '\0';
 
-	Assert(strlen(set_info->dir_path) < MAXPGPATH);
-	strlcpy(work_set->path, set_info->dir_path, MAXPGPATH);
-}
-
-/*
- * Determine operatorMemKB for this operator.
- * For HashJoin, this is given by the right child, for everyone else it is the actual node.
- *
- * If PlanState is NULL (e.g. when spilling from a built-in function), return 0.
- */
-static uint64
-get_operator_work_mem(PlanState *ps)
-{
-	if (NULL == ps)
+	if (prefix)
 	{
-		return 0;
+		strlcpy(work_set->prefix, prefix, sizeof(work_set->prefix));
+	}
+	else if (operator_name)
+	{
+		snprintf(work_set->prefix, sizeof(work_set->prefix), "%s_%d",
+				 operator_name,
+				 (int) (work_set - workfile_shared->entries) + 1);
+	}
+	else
+	{
+		snprintf(work_set->prefix, sizeof(work_set->prefix), "workfile_set_%d",
+				 (int) (work_set - workfile_shared->entries) + 1);
 	}
 
-	PlanState *psOp = ps;
-	if (IsA(ps,HashJoinState))
-	{
-		Assert(IsA(ps->righttree, HashState));
-		psOp = ps->righttree;
-	}
-
-	return PlanStateOperatorMemKB(psOp);
+	return work_set;
 }
 
-/*
- * Physically delete a spill set. Path must not include database prefix.
- */
-static void
-workfile_mgr_delete_set_directory(char *workset_path)
-{
-	/* Add filespace prefix to path */
-	char	   *reldirpath = GetTempFilePath(workset_path, false);
-
-	workfile_mgr_unlink_directory(reldirpath);
-	pfree(reldirpath);
-}
-
-/*
- * Physically delete a spill file set. Path is assumed to be database relative.
- */
-static void
-workfile_mgr_unlink_directory(const char *dirpath)
-{
-
-	elog(gp_workfile_caching_loglevel, "deleting spill file set directory %s", dirpath);
-
-	int res = rmtree(dirpath,true);
-
-	if (!res)
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_IO_ERROR),
-				errmsg("could not remove spill file directory")));
-	}
-
-}
-
-/*
- * Workfile-manager specific function to clean up before releasing a
- * workfile set from the cache.
- *
- */
-static void
-workfile_mgr_cleanup_set(const void *resource)
-{
-	workfile_set *work_set = (workfile_set *) resource;
-
-	ereport(gp_workfile_caching_loglevel,
-			(errmsg("workfile mgr cleanup deleting set: key=0x%0xd, size=" INT64_FORMAT
-					" in_progress_size=" INT64_FORMAT " path=%s",
-					work_set->key,
-					work_set->size,
-					work_set->in_progress_size,
-					work_set->path),
-					errprintstack(true)));
-
-	workfile_mgr_delete_set_directory(work_set->path);
-
-	/*
-	 * The most accurate size of a workset is recorded in work_set->in_progress_size.
-	 * work_set->size is only updated when we close a file, so it lags behind
-	 */
-
-	Assert(work_set->in_progress_size >= work_set->size);
-	int64 size_to_delete = work_set->in_progress_size;
-
-	elog(gp_workfile_caching_loglevel, "Subtracting " INT64_FORMAT " from workfile diskspace", size_to_delete);
-
-	/*
-	 * When subtracting the size of this workset from our accounting,
-	 * only update the per-query counter if we created the workset.
-	 * In that case, the state is ACQUIRED, otherwise is CACHED or DELETED
-	 */
-	CacheEntry *cacheEntry = CACHE_ENTRY_HEADER(resource);
-	bool update_query_space = (cacheEntry->state == CACHE_ENTRY_ACQUIRED);
-
-	WorkfileDiskspace_Commit(0, size_to_delete, update_query_space);
-}
-
-/*
- * Close a spill file set. If we're planning to re-use it, insert it in the
- * cache. If not, let the cleanup routine delete the files and free up memory.
- */
 void
 workfile_mgr_close_set(workfile_set *work_set)
 {
-	Assert(work_set!=NULL);
-	/* Although work_set is in shared memory only this process has access to it */
-	if (work_set->prev)
-		work_set->prev->next = work_set->next;
-	else
-		open_workfile_sets = work_set->next;
-	if (work_set->next)
-		work_set->next->prev = work_set->prev;
+	/* no op */
+}
 
-	elog(gp_workfile_caching_loglevel, "closing workfile set: location: %s, size=" INT64_FORMAT
-			" in_progress_size=" INT64_FORMAT,
-		 work_set->path,
-		 work_set->size, work_set->in_progress_size);
-
-	CacheEntry *cache_entry = CACHE_ENTRY_HEADER(work_set);
-	Cache_Release(workfile_mgr_cache, cache_entry);
+char *
+workfile_mgr_get_prefix(workfile_set *work_set)
+{
+	return work_set->prefix;
 }
 
 /*
- * This function is called at transaction commit or abort to delete closed
- * workfiles.
+ * User-visible function, for the view
  */
-void
-workfile_mgr_cleanup(void)
+
+typedef struct
 {
-	Assert(NULL != workfile_mgr_cache);
-	Cache_SurrenderClientEntries(workfile_mgr_cache);
-	WorkfileDiskspace_Commit(0, used_segspace_not_in_workfile_set, false /* update_query_space */);
-	used_segspace_not_in_workfile_set = 0;
+	int			num_entries;
+	int			index;
+
+	WorkFileSetSharedEntry copied_entries[];
+} get_entries_cxt;
+
+/*
+ * Function returning all workfile cache entries for one segment
+ */
+Datum
+gp_workfile_mgr_cache_entries_internal(PG_FUNCTION_ARGS)
+{
+	FuncCallContext *funcctx;
+	get_entries_cxt *cxt;
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		MemoryContext oldcontext;
+		int			num_entries;
+		dlist_iter iter;
+		int			i;
+
+		/* create a function context for cross-call persistence */
+		funcctx = SRF_FIRSTCALL_INIT();
+
+		/* Switch to memory context appropriate for multiple function calls */
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		/*
+		 * Build a tuple descriptor for our result type
+		 * The number and type of attributes have to match the definition of the
+		 * view gp_workfile_mgr_cache_entries
+		 */
+#define NUM_CACHE_ENTRIES_ELEM 8
+		TupleDesc tupdesc = CreateTemplateTupleDesc(NUM_CACHE_ENTRIES_ELEM, false);
+
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "segid", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "prefix", TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "size", INT8OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "operation", TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "slice", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "sessionid", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "commandid", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "numfiles", INT4OID, -1, 0);
+
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+		/*
+		 * Now copy all the active entries from shared memory.
+		 */
+		LWLockAcquire(WorkFileManagerLock, LW_SHARED);
+
+		num_entries = workfile_shared->num_active;
+		cxt = (get_entries_cxt *) palloc(offsetof(get_entries_cxt, copied_entries) +
+										 num_entries * sizeof(WorkFileSetSharedEntry));
+
+		i = 0;
+		dlist_foreach(iter, &workfile_shared->activeList)
+		{
+			WorkFileSetSharedEntry *e = dlist_container(WorkFileSetSharedEntry, node, iter.cur);
+
+			memcpy(&cxt->copied_entries[i], e, sizeof(WorkFileSetSharedEntry));
+			i++;
+		}
+		Assert(i == num_entries);
+
+		LWLockRelease(WorkFileManagerLock);
+
+		cxt->num_entries = num_entries;
+		cxt->index = 0;
+
+		funcctx->user_fctx = cxt;
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	funcctx = SRF_PERCALL_SETUP();
+	cxt = (get_entries_cxt *) funcctx->user_fctx;
+
+	while (cxt->index < cxt->num_entries)
+	{
+		WorkFileSetSharedEntry *work_set = &cxt->copied_entries[cxt->index];
+		Datum		values[NUM_CACHE_ENTRIES_ELEM];
+		bool		nulls[NUM_CACHE_ENTRIES_ELEM];
+		HeapTuple tuple;
+		Datum		result;
+
+		MemSet(nulls, 0, sizeof(nulls));
+
+		values[0] = Int32GetDatum(GpIdentity.segindex);
+		values[1] = CStringGetTextDatum(work_set->prefix);
+		values[2] = Int64GetDatum(work_set->total_bytes);
+		values[3] = CStringGetTextDatum(work_set->operator);
+		values[4] = UInt32GetDatum(work_set->slice_id);
+		values[5] = UInt32GetDatum(work_set->session_id);
+		values[6] = UInt32GetDatum(work_set->command_count);
+		values[7] = UInt32GetDatum(work_set->num_files);
+
+		cxt->index++;
+
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+		result = HeapTupleGetDatum(tuple);
+
+		SRF_RETURN_NEXT(funcctx, result);
+	}
+
+	SRF_RETURN_DONE(funcctx);
 }
 
 /*
- * Updates the in-progress size of a workset while it is being created.
+ * Get the total number of bytes used across all workfiles
  */
-void
-workfile_set_update_in_progress_size(workfile_set *work_set, int64 size)
+uint64
+WorkfileSegspace_GetSize(void)
 {
-	if (NULL != work_set)
-	{
-		work_set->in_progress_size += size;
-		Assert(work_set->in_progress_size >= 0);
-	}
-	else
-	{
-		used_segspace_not_in_workfile_set += size;
-		Assert(used_segspace_not_in_workfile_set >= 0);
-	}
+	uint64		result;
+
+	LWLockAcquire(WorkFileManagerLock, LW_SHARED);
+
+	result = workfile_shared->total_bytes;
+
+	LWLockRelease(WorkFileManagerLock);
+
+	return result;
 }
-
-/*
- * Reports corresponding error message when the query or segment size limit is exceeded.
- */
-void 
-workfile_mgr_report_error(void)
-{
-	char* message = NULL;
-
-	switch(workfileError)
-	{
-		case WORKFILE_ERROR_LIMIT_PER_QUERY:
-				message = "workfile per query size limit exceeded";
-				break;
-		case WORKFILE_ERROR_LIMIT_PER_SEGMENT:
-				message = "workfile per segment size limit exceeded";
-				break;
-		case WORKFILE_ERROR_LIMIT_FILES_PER_QUERY:
-				message = "number of workfiles per query limit exceeded";
-				break;
-		default:
-				message = "could not write to workfile";
-				break;
-	}
-
-	ereport(ERROR, (errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-		errmsg("%s", message)));
-}
-
-/* EOF */

@@ -17,8 +17,8 @@
 #define HASHJOIN_H
 
 #include "nodes/execnodes.h"
-#include "executor/execWorkfile.h"
 #include "cdb/cdbexplain.h"			/* CdbExplain_Agg */
+#include "storage/buffile.h"
 #include "utils/workfile_mgr.h"
 
 struct StringInfoData;                  /* #include "lib/stringinfo.h" */
@@ -176,13 +176,13 @@ typedef struct HashJoinTableData
 	 * elements never get used, since we will process rather than dump out any
 	 * tuples of batch zero.
 	 */
-	ExecWorkFile **innerBatchFile; /* buffered virtual temp file per batch */
-	ExecWorkFile **outerBatchFile; /* buffered virtual temp file per batch */
+	BufFile	  **innerBatchFile; /* buffered virtual temp file per batch */
+	BufFile   **outerBatchFile; /* buffered virtual temp file per batch */
 
 	/* Representation of all spill file names, for spill file reuse */
 	workfile_set * work_set;
 
-	ExecWorkFile * state_file;
+	BufFile	   *state_file;
 
 	/*
 	 * Info about the datatype-specific hash functions for the datatypes being

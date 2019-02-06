@@ -16,6 +16,4 @@ OBJS = attoptcache.o catcache.o evtcache.o inval.o plancache.o relcache.o \
 	relmapper.o relfilenodemap.o spccache.o syscache.o lsyscache.o \
 	typcache.o ts_cache.o
 
-OBJS +=	syncrefhashtable.o sharedcache.o
-
 include $(top_srcdir)/src/backend/common.mk

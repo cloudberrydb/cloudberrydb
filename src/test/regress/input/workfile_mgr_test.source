@@ -16,4 +16,4 @@ $$
 $$
 LANGUAGE SQL;
 
-SELECT gp_workfile_mgr_test('workfile_queryspace');
+SELECT gp_workfile_mgr_test('fd_tests');

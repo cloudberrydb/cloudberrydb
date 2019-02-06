@@ -113,7 +113,6 @@
 #include "miscadmin.h"
 #include "pg_trace.h"
 #include "utils/datum.h"
-#include "executor/execWorkfile.h"
 #include "utils/logtape.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
@@ -221,7 +220,7 @@ struct Tuplesortstate_mk
 
 	ScanState  *ss;
 
-	/* Representation of all spill file names, for spill file reuse */
+	/* set holding the temporary files, if this is a shared sort */
 	workfile_set *work_set;
 
 	/*
@@ -378,7 +377,7 @@ struct Tuplesortstate_mk
 	 * State file used to load a logical tape set. Used by sharing sort across
 	 * slice
 	 */
-	ExecWorkFile *tapeset_state_file;
+	BufFile	   *tapeset_state_file;
 
 	/* Gpmon */
 	gpmon_packet_t *gpmon_pkt;
@@ -836,10 +835,10 @@ tuplesort_begin_heap_file_readerwriter_mk(ScanState *ss,
 
 		state->tapeset_file_prefix = MemoryContextStrdup(state->sortcontext, rwfile_prefix);
 
-		state->tapeset_state_file = ExecWorkFile_Create(statedump,
-														BUFFILE,
-													  true /* delOnClose */ ,
-													  0 /* compressType */ );
+		state->work_set = workfile_mgr_create_set("SharedSort", rwfile_prefix);
+		state->tapeset_state_file = BufFileCreateNamedTemp(statedump,
+														   false /* interXact */,
+														   state->work_set);
 		Assert(state->tapeset_state_file != NULL);
 
 		return state;
@@ -864,14 +863,10 @@ tuplesort_begin_heap_file_readerwriter_mk(ScanState *ss,
 
 		state->tapeset_file_prefix = MemoryContextStrdup(state->sortcontext, rwfile_prefix);
 
-		state->tapeset_state_file = ExecWorkFile_Open(statedump,
-													  BUFFILE,
-													  false /* delOnClose */ ,
-													  0 /* compressType */ );
-		ExecWorkFile *tapefile = ExecWorkFile_Open(rwfile_prefix,
-												   BUFFILE,
-												   false /* delOnClose */ ,
-												   0 /* compressType */ );
+		state->tapeset_state_file = BufFileOpenNamedTemp(statedump,
+														 false /* interXact */);
+		BufFile *tapefile = BufFileOpenNamedTemp(rwfile_prefix,
+												 false /* interXact */);
 
 		state->tapeset = LoadLogicalTapeSetState(state->tapeset_state_file, tapefile);
 		state->currentRun = 0;
@@ -1054,7 +1049,7 @@ tuplesort_end_mk(Tuplesortstate_mk *state)
 
 		if (state->tapeset_state_file)
 		{
-			workfile_mgr_close_file(state->work_set, state->tapeset_state_file);
+			BufFileClose(state->tapeset_state_file);
 		}
 	}
 
@@ -1461,7 +1456,7 @@ tuplesort_flush_mk(Tuplesortstate_mk *state)
 	Assert(state->pos.cur_work_tape == NULL);
 	elog(gp_workfile_caching_loglevel, "tuplesort_mk: writing logical tape state to file");
 	LogicalTapeFlush(state->tapeset, state->result_tape, state->tapeset_state_file);
-	ExecWorkFile_Flush(state->tapeset_state_file);
+	BufFileFlush(state->tapeset_state_file);
 }
 
 /*
@@ -1880,30 +1875,26 @@ inittapes_mk(Tuplesortstate_mk *state, const char *rwfile_prefix)
 	 * inaccurate.)
 	 */
 	tapeSpace = maxTapes * TAPE_BUFFER_OVERHEAD;
-	Assert(state->work_set == NULL);
 
 	/*
 	 * Create the tape set and allocate the per-tape data arrays.
 	 */
 	if (!rwfile_prefix)
 	{
-		state->work_set = workfile_mgr_create_set(BUFFILE, false /* can_be_reused */ , NULL /* ps */ );
-		state->tapeset_state_file = workfile_mgr_create_fileno(state->work_set, WORKFILE_NUM_MKSORT_METADATA);
-
-		ExecWorkFile *tape_file = workfile_mgr_create_fileno(state->work_set, WORKFILE_NUM_MKSORT_TAPESET);
-
-		state->tapeset = LogicalTapeSetCreate_File(tape_file, maxTapes);
+		Assert(state->work_set == NULL);
+		state->tapeset = LogicalTapeSetCreate(maxTapes);
 	}
 	else
 	{
 		/*
 		 * We are shared XSLICE, use given prefix to create files so that
-		 * consumers can find them
+		 * consumers can find them. (The work set and the "state" were created
+		 * earlier alerady.)
 		 */
-		ExecWorkFile *tape_file = ExecWorkFile_Create(rwfile_prefix,
-													  BUFFILE,
-													  true /* delOnClose */ ,
-													  0 /* compressType */ );
+		Assert(state->work_set != NULL);
+		BufFile *tape_file = BufFileCreateNamedTemp(rwfile_prefix,
+													false /* interXact */,
+													state->work_set /* work_set */);
 
 		state->tapeset = LogicalTapeSetCreate_File(tape_file, maxTapes);
 	}
