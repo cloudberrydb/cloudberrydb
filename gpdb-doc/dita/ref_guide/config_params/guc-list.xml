@@ -417,6 +417,9 @@
               <xref href="#gp_vmem_protect_segworker_cache_limit"/>
             </li>
             <li>
+              <xref href="#gp_workfile_compression"/>
+            </li>
+            <li>
               <xref href="#gp_workfile_limit_files_per_query"/>
             </li>
             <li>
@@ -5260,6 +5263,38 @@
               <entry colname="col1">number of megabytes</entry>
               <entry colname="col2">500</entry>
               <entry colname="col3">local<p>system</p><p>restart</p></entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </body>
+  </topic>
+  <topic id="gp_workfile_compression">
+    <title>gp_workfile_compression</title>
+    <body>
+      <p>Specifies whether the temporary files created, when a hash aggregation or hash join
+         operation spills to disk, are compressed. If enabled, zstd
+        library must be installed on all hosts in the Greenplum Database cluster. </p>
+      <p>If your Greenplum Database installation uses serial ATA (SATA) disk drives, enabling
+        compression might help to avoid overloading the disk
+        subsystem with IO operations.</p>
+      <table id="gp_workfile_compression_table">
+        <tgroup cols="3">
+          <colspec colnum="1" colname="col1" colwidth="1*"/>
+          <colspec colnum="2" colname="col2" colwidth="1*"/>
+          <colspec colnum="3" colname="col3" colwidth="1*"/>
+          <thead>
+            <row>
+              <entry colname="col1">Value Range</entry>
+              <entry colname="col2">Default</entry>
+              <entry colname="col3">Set Classifications</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry colname="col1">Boolean</entry>
+              <entry colname="col2">off</entry>
+              <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>

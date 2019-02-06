@@ -1,3 +1,10 @@
+-- Ignore "workfile compresssion is not supported by this build" (see
+-- 'zlib' test):
+--
+-- start_matchignore
+-- m/ERROR:  workfile compresssion is not supported by this build/
+-- end_matchignore
+
 create schema hashjoin_spill;
 set search_path to hashjoin_spill;
 
@@ -35,8 +42,21 @@ insert into test_hj_spill SELECT i,i,i%1000,i,i,i,i,i from
 SET statement_mem=1024;
 set gp_resqueue_print_operator_memory_limits=on;
 
+set gp_workfile_compression = on;
 select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
-select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2;');
+select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
 select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
+
+set gp_workfile_compression = off;
+select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
+select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
+select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
+
+-- Test with a larger data set, so that all the operations don't fit in a
+-- single compression buffer.
+set gp_workfile_compression = on;
+select count(1) from generate_series(1, 1000000) t1 left join generate_series(1, 50000) t2 on t1 = t2;
+set gp_workfile_compression = off;
+select count(1) from generate_series(1, 1000000) t1 left join generate_series(1, 50000) t2 on t1 = t2;
 
 drop schema hashjoin_spill cascade;

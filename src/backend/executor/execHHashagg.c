@@ -1134,6 +1134,7 @@ getSpillFile(workfile_set *work_set, SpillSet *set, int file_no, int *p_alloc_si
 		/* Initialize to NULL in case the create function below throws an exception */
 		spill_file->file_info->wfile = NULL; 
 		spill_file->file_info->wfile = BufFileCreateTempInSet(work_set, false /* interXact */);
+		BufFilePledgeSequential(spill_file->file_info->wfile);	/* allow compression */
 
 		elog(HHA_MSG_LVL, "HashAgg: create %d level batch file %d",
 			 set->level, file_no);

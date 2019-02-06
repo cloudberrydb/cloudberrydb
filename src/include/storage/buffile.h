@@ -60,4 +60,7 @@ extern BufFile *BufFileCreateInSet(struct workfile_set *work_set, const char *fi
 extern void BufFileSuspend(BufFile *buffile);
 extern void BufFileResume(BufFile *buffile);
 
+extern bool gp_workfile_compression;
+extern void BufFilePledgeSequential(BufFile *buffile);
+
 #endif   /* BUFFILE_H */

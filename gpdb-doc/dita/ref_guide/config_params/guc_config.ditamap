@@ -164,6 +164,7 @@
             <topicref href="guc-list.xml#gp_vmem_idle_resource_timeout"/>
             <topicref href="guc-list.xml#gp_vmem_protect_limit"/>
             <topicref href="guc-list.xml#gp_vmem_protect_segworker_cache_limit"/>
+            <topicref href="guc-list.xml#gp_workfile_compression"/>
             <topicref href="guc-list.xml#gp_workfile_limit_files_per_query"/>
             <topicref href="guc-list.xml#gp_workfile_limit_per_query"/>
             <topicref href="guc-list.xml#gp_workfile_limit_per_segment"/>

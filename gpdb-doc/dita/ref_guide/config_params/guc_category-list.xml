@@ -592,6 +592,10 @@
                 <xref href="guc-list.xml#gp_enable_groupext_distinct_pruning" type="section"
                   >gp_enable_groupext_distinct_pruning</xref>
               </p>
+              <p>
+                <xref href="guc-list.xml#gp_workfile_compression" type="section"
+                  >gp_workfile_compression</xref>
+              </p>
             </stentry>
           </strow>
         </simpletable>
@@ -620,6 +624,10 @@
               <p>
                 <xref href="guc-list.xml#gp_statistics_use_fkeys" type="section"
                   >gp_statistics_use_fkeys</xref>
+              </p>
+              <p>
+                <xref href="guc-list.xml#gp_workfile_compression" type="section"
+                  >gp_workfile_compression</xref>
               </p>
             </stentry>
           </strow>

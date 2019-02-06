@@ -596,6 +596,9 @@
                 <p>
                   <codeph>gp_enable_groupext_distinct_pruning</codeph>
                 </p>
+                <p>
+                  <codeph>gp_workfile_compression</codeph>
+                </p>
               </stentry>
             </strow>
           </simpletable>
@@ -620,6 +623,9 @@
               <stentry>
                 <p>
                   <codeph>gp_statistics_use_fkeys</codeph>
+                </p>
+                <p>
+                  <codeph>gp_workfile_compression</codeph>
                 </p>
               </stentry>
             </strow>

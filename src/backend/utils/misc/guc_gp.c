@@ -76,6 +76,7 @@ static bool check_optimizer(bool *newval, void **extra, GucSource source);
 static bool check_verify_gpfdists_cert(bool *newval, void **extra, GucSource source);
 static bool check_dispatch_log_stats(bool *newval, void **extra, GucSource source);
 static bool check_gp_hashagg_default_nbatches(int *newval, void **extra, GucSource source);
+static bool check_gp_workfile_compression(bool *newval, void **extra, GucSource source);
 
 /* Helper function for guc setter */
 bool gpvars_check_gp_resqueue_priority_default_value(char **newval,
@@ -1141,6 +1142,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 		&Gp_write_shared_snapshot,
 		false,
 		NULL, assign_gp_write_shared_snapshot, NULL
+	},
+
+	{
+		{"gp_workfile_compression", PGC_USERSET, RESOURCES_DISK,
+			gettext_noop("Enables compression of temporary files."),
+			NULL,
+			GUC_GPDB_ADDOPT
+		},
+		&gp_workfile_compression,
+		false,
+		check_gp_workfile_compression, NULL, NULL
 	},
 
 	{
@@ -5184,4 +5196,18 @@ lookup_autostats_mode_by_value(GpAutoStatsModeValue val)
 
 	elog(ERROR, "could not find autostats mode %d", val);
 	return NULL;				/* silence compiler */
+}
+
+
+static bool
+check_gp_workfile_compression(bool *newval, void **extra, GucSource source)
+{
+#ifndef HAVE_LIBZSTD
+	if (*newval)
+	{
+		GUC_check_errmsg("workfile compresssion is not supported by this build");
+		return false;
+	}
+#endif
+	return true;
 }

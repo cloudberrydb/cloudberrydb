@@ -226,6 +226,9 @@ kernel.shmall = 4000000000</codeblock>
       </ul>
       <p>See the <i>Greenplum Database Reference Guide</i> for descriptions of the columns in these
         views.</p>
+      <p>The <codeph>gp_workfile_compression</codeph> configuration parameter specifies whether
+        the spill files are compressed. It is <codeph>off</codeph> by default. Enabling compression
+        can improve performance when spill files are used.</p>
     </section>
   </body>
 </topic>

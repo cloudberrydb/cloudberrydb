@@ -1094,6 +1094,7 @@ ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
 		/* First write to this batch file, so create it */
 		Assert(hashtable->work_set != NULL);
 		file = BufFileCreateTempInSet(hashtable->work_set, false /* interXact */);
+		BufFilePledgeSequential(file);	/* allow compression */
 		*fileptr = file;
 
 		elog(gp_workfile_caching_loglevel, "create batch file %s",
@@ -1433,11 +1434,9 @@ ExecHashJoinReloadHashTable(HashJoinState *hjstate)
 		 */
 		if (hjstate->js.ps.instrument && hjstate->js.ps.instrument->need_cdb)
 		{
-			off_t		pos;
-
 			Assert(hashtable->stats);
-			BufFileTell(hashtable->innerBatchFile[curbatch], NULL, &pos);
-			hashtable->stats->batchstats[curbatch].innerfilesize = pos;
+			hashtable->stats->batchstats[curbatch].innerfilesize =
+				BufFileGetSize(hashtable->innerBatchFile[curbatch]);
 		}
 
 		SIMPLE_FAULT_INJECTOR(WorkfileHashJoinFailure);

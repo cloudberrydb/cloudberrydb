@@ -1,5 +1,15 @@
+-- Extra GPDB tests for joins.
 
+-- Ignore "workfile compresssion is not supported by this build" (see
+-- 'zlib' test):
+--
+-- start_matchignore
+-- m/ERROR:  workfile compresssion is not supported by this build/
+-- end_matchignore
+
+--
 -- test numeric hash join
+--
 
 set enable_hashjoin to on;
 set enable_mergejoin to off;
@@ -193,6 +203,20 @@ ANALYZE dept;
 
 -- Test rescannable hashjoin with spilling hashtable
 set statement_mem='1000kB';
+set gp_workfile_compression = off;
+WITH RECURSIVE subdept(id, parent_department, name) AS
+(
+	-- non recursive term
+	SELECT * FROM dept WHERE name = 'root'
+	UNION ALL
+	-- recursive term
+	SELECT d.* FROM dept AS d, subdept AS sd
+		WHERE d.pid = sd.id
+)
+SELECT count(*) FROM subdept;
+
+-- Test rescannable hashjoin with spilling hashtable, with compression
+set gp_workfile_compression = on;
 WITH RECURSIVE subdept(id, parent_department, name) AS
 (
 	-- non recursive term

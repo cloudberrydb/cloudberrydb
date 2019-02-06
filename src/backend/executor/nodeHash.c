@@ -1672,10 +1672,7 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 		if (hashtable->outerBatchFile &&
 			hashtable->outerBatchFile[curbatch] != NULL)
 		{
-			off_t		pos;
-
-			BufFileTell(hashtable->outerBatchFile[curbatch], NULL, &pos);
-			batchstats->ordbytes = pos;
+			batchstats->ordbytes = BufFileGetSize(hashtable->outerBatchFile[curbatch]);
 		}
 
 		/*
@@ -1689,10 +1686,7 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 			if (hashtable->outerBatchFile &&
 				hashtable->outerBatchFile[i] != NULL)
 			{
-				off_t		pos;
-
-				BufFileTell(hashtable->outerBatchFile[i], NULL, &pos);
-				filebytes = pos;
+				filebytes = BufFileGetSize(hashtable->outerBatchFile[i]);
 			}
 
 			Assert(filebytes >= bs->outerfilesize);
@@ -1704,10 +1698,7 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 			if (hashtable->innerBatchFile &&
 				hashtable->innerBatchFile[i])
 			{
-				off_t		pos;
-
-				BufFileTell(hashtable->innerBatchFile[i], NULL, &pos);
-				filebytes = pos;
+				filebytes = BufFileGetSize(hashtable->innerBatchFile[i]);
 			}
 
 			Assert(filebytes >= bs->innerfilesize);

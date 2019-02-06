@@ -1,10 +1,21 @@
--- These tests were written, to test compressed temporary files. However,
--- support for compressing temporary files was later on removed. Now they just
--- test temporary file handling in general.
+-- Test temporary file compression.
+--
+-- The test file is called 'zlib' for historical reasons. GPDB uses Zstandard
+-- rather than zlib for temporary file compression, nowadays.
 
 -- start_ignore
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 -- end_ignore
+
+-- If the server is built without libzstd (configure --without-zstd), this
+-- fails with error "workfile compresssion is not supported by this build".
+-- The tests are less interesting in that case, but they should still pass.
+-- So use a gpdiff rule to ignore that error:
+--
+-- start_matchignore
+-- m/ERROR:  workfile compresssion is not supported by this build/
+-- end_matchignore
+SET gp_workfile_compression = on;
 
 DROP TABLE IF EXISTS test_zlib_hashjoin;
 CREATE TABLE test_zlib_hashjoin (i1 int, i2 int, i3 int, i4 int, i5 int, i6 int, i7 int, i8 int) WITH (APPENDONLY=true) DISTRIBUTED BY (i1) ; 
@@ -12,8 +23,6 @@ INSERT INTO test_zlib_hashjoin SELECT i,i,i,i,i,i,i,i FROM
 	(select generate_series(1, nsegments * 333333) as i from 
 	(select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0) foo) bar;
 
---SET gp_workfile_type_hashjoin=bfz;
---SET gp_workfile_compress_algorithm=zlib;
 SET statement_mem=5000;
 
 --Fail after workfile creation and before add it to workfile set
@@ -48,7 +57,6 @@ create table test_zlib (i int, j text);
 insert into test_zlib select i, i from generate_series(1,1000000) as i;
 create table test_zlib_t1(i int, j int);
 
---set gp_workfile_compress_algorithm ='zlib';
 set statement_mem='10MB';
 
 create or replace function FuncA()
