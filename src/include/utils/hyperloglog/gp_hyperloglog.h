@@ -28,8 +28,8 @@
  * or implied, of the Authors.
  */
 
-#ifndef _HYPERLOGLOG_H_
-#define _HYPERLOGLOG_H_
+#ifndef _GP_HYPERLOGLOG_H_
+#define _GP_HYPERLOGLOG_H_
 /* This is an implementation of HyperLogLog algorithm as described in the
  * paper "HyperLogLog: the analysis of near-optimal cardinality estimation
  * algorithm", published by Flajolet, Fusy, Gandouet and Meunier in 2007.
@@ -88,7 +88,7 @@
 #define UNPACKED 2
 #define UNPACKED_UNPACKED 3
 
-#define HLL_DENSE_GET_REGISTER(target,p,regnum,hll_bits) do { \
+#define GP_HLL_DENSE_GET_REGISTER(target,p,regnum,hll_bits) do { \
     uint8_t *_p = (uint8_t*) p; \
     unsigned long _byte = regnum*hll_bits/8; \
     unsigned long _fb = regnum*hll_bits&7; \
@@ -100,7 +100,7 @@
 
 /* Set the value of the register at position 'regnum' to 'val'.
  * 'p' is an array of unsigned bytes. */
-#define HLL_DENSE_SET_REGISTER(p,regnum,val,hll_bits) do { \
+#define GP_HLL_DENSE_SET_REGISTER(p,regnum,val,hll_bits) do { \
     uint8_t *_p = (uint8_t*) p; \
     unsigned long _byte = regnum*hll_bits/8; \
     unsigned long _fb = regnum*hll_bits&7; \
@@ -113,13 +113,13 @@
 } while(0)
 
 /* ------------------------ type declarations -------------------------- */
-typedef struct HLLData {
+typedef struct GpHLLData {
     
     /* length of the structure (varlena) used heavily by postgres internally*/
     char vl_len_[4];
     
     /* Number bits used to index the buckets - this is determined depending
-     * on the requested error rate - see hll_create() for details.
+     * on the requested error rate - see gp_hll_create() for details.
      * This variable is unsigned as a negative version is used to indicate
      * the data is compressed and requires decompression */
     int8_t b; /* bits for bin index */
@@ -162,40 +162,40 @@ typedef struct HLLData {
      * is palloc'ed and treated as part of the data array ) */
     char data[1];
     
-} HLLData;
+} GpHLLData;
 
-typedef HLLData * HLLCounter;
+typedef GpHLLData * GpHLLCounter;
 
 /* ---------------------- function declarations ------------------------ */
 
 /* creates an optimal bitmap able to count a multiset with the expected
  * cardinality and the given error rate. */
-HLLCounter hll_create(double ndistinct, float error, uint8_t format);
+GpHLLCounter gp_hll_create(double ndistinct, float error, uint8_t format);
 
 /* Helper function to return the size of a fully populated counter with
  * the given parameters. */
-int hll_get_size(double ndistinct, float error);
+int gp_hll_get_size(double ndistinct, float error);
 
 /* Returns a copy of the counter */
-HLLCounter hll_copy(HLLCounter counter);
+GpHLLCounter gp_hll_copy(GpHLLCounter counter);
 
 /* Merges two counters into one. The final counter can either be a modified 
  * counter1 or completely new copy. */
-HLLCounter hll_merge(HLLCounter counter1, HLLCounter counter2);
+GpHLLCounter gp_hll_merge(GpHLLCounter counter1, GpHLLCounter counter2);
 
 /* add element existence */
-HLLCounter hll_add_element(HLLCounter hloglog, const char * element, int elen);
+GpHLLCounter gp_hll_add_element(GpHLLCounter hloglog, const char * element, int elen);
 
 /* get an estimate from the hyperloglog counter */
-double hll_estimate(HLLCounter hloglog);
+double gp_hll_estimate(GpHLLCounter hloglog);
 
 /* reset a counter */
-void hll_reset_internal(HLLCounter hloglog);
+void gp_hll_reset_internal(GpHLLCounter hloglog);
 
 /* data compression/decompression */
-HLLCounter hll_compress(HLLCounter hloglog);
-HLLCounter hll_decompress(HLLCounter hloglog);
-HLLCounter hll_unpack(HLLCounter hloglog);
+GpHLLCounter gp_hll_compress(GpHLLCounter hloglog);
+GpHLLCounter gp_hll_decompress(GpHLLCounter hloglog);
+GpHLLCounter gp_hll_unpack(GpHLLCounter hloglog);
 
 /* shoot for 2^64 distinct items and 0.8125% error rate by default */
 #define DEFAULT_NDISTINCT   1ULL << 63
@@ -203,13 +203,13 @@ HLLCounter hll_unpack(HLLCounter hloglog);
 
 
 /* ------------- function declarations for local functions --------------- */
-extern HLLCounter hyperloglog_add_item(HLLCounter hllcounter, Datum element, int16 typlen, bool typbyval, char typalign);
+extern GpHLLCounter gp_hyperloglog_add_item(GpHLLCounter hllcounter, Datum element, int16 typlen, bool typbyval, char typalign);
 
-extern double hyperloglog_estimate(HLLCounter hyperloglog);
-extern HLLCounter hyperloglog_merge_counters(HLLCounter counter1, HLLCounter counter2);
+extern double gp_hyperloglog_estimate(GpHLLCounter hyperloglog);
+extern GpHLLCounter gp_hyperloglog_merge_counters(GpHLLCounter counter1, GpHLLCounter counter2);
 
-extern HLLCounter hyperloglog_init_def(void);
-extern int hyperloglog_len(HLLCounter hyperloglog);
+extern GpHLLCounter gp_hyperloglog_init_def(void);
+extern int gp_hyperloglog_len(GpHLLCounter hyperloglog);
 
 
 /*
@@ -245,7 +245,7 @@ extern int hyperloglog_len(HLLCounter hyperloglog);
 
 /* Alpha * m * m constants, for various numbers of 'b'.
  * 
- * According to hyperloglog_create the 'b' values are between 4 and 16,
+ * According to gp_hyperloglog_create the 'b' values are between 4 and 16,
  * so the array has 16 non-zero items matching indexes 4, 5, ..., 16.
  * This makes it very easy to access the constants.
  *
@@ -413,11 +413,11 @@ static const double PE[NUM_OF_PRECOMPUTED_EXPONENTS] = { 1.,
 /* Provides encoding and decoding to convert the estimator bytes into a human
  * readable form. Currently only base 64 encoding is provided. */
 
-int hll_b64_encode(const char *src, unsigned len, char *dst);
-int hll_b64_decode(const char *src, unsigned len, char *dst);
-int b64_enc_len(const char *src, unsigned srclen);
-int b64_dec_len(const char *src, unsigned srclen);
+int gp_hll_b64_encode(const char *src, unsigned len, char *dst);
+int gp_hll_b64_decode(const char *src, unsigned len, char *dst);
+int gp_b64_enc_len(const char *src, unsigned srclen);
+int gp_b64_dec_len(const char *src, unsigned srclen);
 
-uint64_t MurmurHash64A (const void * key, int len, unsigned int seed);
+uint64_t GpMurmurHash64A (const void * key, int len, unsigned int seed);
 
-#endif // #ifndef _HYPERLOGLOG_H_
+#endif // #ifndef _GP_HYPERLOGLOG_H_
