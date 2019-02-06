@@ -1012,3 +1012,38 @@ DETAIL:  drop cascades to table inherit_t1_p2
 drop cascades to table inherit_t1_p4
 drop cascades to table inherit_t1_p3
 drop cascades to table inherit_t1_p5
+--
+-- Test expanding a table with a domain type as distribution key.
+--
+select gp_debug_set_create_table_default_numsegments(2);
+ gp_debug_set_create_table_default_numsegments 
+-----------------------------------------------
+ 2
+(1 row)
+
+create domain myintdomain as int4;
+create table expand_domain_tab(d myintdomain, oldseg int4) distributed by(d);
+insert into expand_domain_tab select generate_series(1,10);
+update expand_domain_tab set oldseg = gp_segment_id;
+select gp_segment_id, count(*) from expand_domain_tab group by gp_segment_id;
+ gp_segment_id | count 
+---------------+-------
+             0 |     8
+             1 |     2
+(2 rows)
+
+alter table expand_domain_tab expand table;
+select gp_segment_id, count(*) from expand_domain_tab group by gp_segment_id;
+ gp_segment_id | count 
+---------------+-------
+             0 |     5
+             1 |     1
+             2 |     4
+(3 rows)
+
+select numsegments from gp_distribution_policy where localoid='expand_domain_tab'::regclass;
+ numsegments 
+-------------
+           3
+(1 row)
+

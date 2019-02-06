@@ -417,3 +417,21 @@ alter table inherit_t1_p1 expand table;
 select count(*) > 0 from inherit_t1_p1 where gp_segment_id = 2;
 
 DROP TABLE inherit_t1_p1 CASCADE;
+
+
+--
+-- Test expanding a table with a domain type as distribution key.
+--
+select gp_debug_set_create_table_default_numsegments(2);
+create domain myintdomain as int4;
+
+create table expand_domain_tab(d myintdomain, oldseg int4) distributed by(d);
+insert into expand_domain_tab select generate_series(1,10);
+
+update expand_domain_tab set oldseg = gp_segment_id;
+
+select gp_segment_id, count(*) from expand_domain_tab group by gp_segment_id;
+
+alter table expand_domain_tab expand table;
+select gp_segment_id, count(*) from expand_domain_tab group by gp_segment_id;
+select numsegments from gp_distribution_policy where localoid='expand_domain_tab'::regclass;

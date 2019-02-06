@@ -1597,7 +1597,7 @@ make_reshuffle(PlannerInfo *root,
 		Oid			typeoid = exprType((Node *) tle->expr);
 		Oid			hashFunc;
 
-		hashFunc = get_opfamily_proc(opfamily, typeoid, typeoid, HASHPROC);
+		hashFunc = cdb_hashproc_in_opfamily(opfamily, typeoid);
 
 		reshufflePlan->policyAttrs[i] = policy->attrs[i];
 		reshufflePlan->policyHashFuncs[i] = hashFunc;
