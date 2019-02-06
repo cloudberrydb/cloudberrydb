@@ -151,9 +151,12 @@ DEFPORT=5432
 ORCA_CONFIG=--enable-orca
 ifneq "$(findstring $(BLD_ARCH),win32 win64)" ""
 APR_CONFIG=--with-apr-config=$(GPPGDIR)/src/bin/gpfdist/ext/bin/apr-1-config
-APU_CONFIG=--with-apu-config=$(BLD_THIRDPARTY_BIN_DIR)/apu-1-config
 OPENSSL=openssl-1.0.2l
 BLD_THIRDPARTY_OPENSSL_INCLUDES=-I$(GPPGDIR)/src/bin/gpfdist/ext/$(OPENSSL)/include
+endif
+
+ifneq "$(findstring $(BLD_ARCH),suse11_x86_64 sles11_x86_64)" ""
+APU_CONFIG=--with-apu-config=$(BLD_THIRDPARTY_BIN_DIR)/apu-1-config
 endif
 
 aix7_ppc_64_CONFIGFLAGS=--disable-gpcloud --without-readline --without-libcurl --disable-orca --disable-pxf --without-zstd $(APR_CONFIG)
