@@ -429,6 +429,20 @@ testdb=#</codeblock>
             shown.</pd>
         </plentry>
         <plentry>
+          <pt>\ddp [<varname>pattern</varname>]</pt>
+          <pd> Lists default access privilege settings.  An entry is shown for
+            each role (and schema, if applicable) for which the default
+            privilege settings have been changed from the built-in defaults.
+            If <varname>pattern</varname> is
+            specified, only entries whose role name or schema name matches
+            the pattern are listed.
+          </pd>
+          <pd>The <xref href="../../ref_guide/sql_commands/ALTER_DEFAULT_PRIVILEGES.xml#topic1"
+              >ALTER DEFAULT PRIVILEGES</xref> command is used to set default access privileges. The
+            meaning of the privilege display is explained under <xref
+              href="../../ref_guide/sql_commands/GRANT.xml#topic1">GRANT</xref>. </pd>
+        </plentry>
+        <plentry>
           <pt>\dD [<varname>domain_pattern</varname>]</pt>
           <pd>Lists all available domains. If pattern is specified, only matching domains are
             shown.</pd>
@@ -495,6 +509,19 @@ testdb=#</codeblock>
             access privileges. If pattern is specified, only tables, views and sequences whose names
             match the pattern are listed. The <codeph>GRANT</codeph> and <codeph>REVOKE</codeph>
             commands are used to set access privileges. </pd>
+        </plentry>
+        <plentry>
+          <pt>\drds [<varname>role-pattern</varname>]</pt>
+          <pd>Lists defined configuration settings.  These settings can be role-specific,
+            database-specific, or both.  <varname>role-pattern</varname> and
+            <varname>database-pattern</varname> are used to select
+            specific roles and database to list, respectively; if omitted, or * is specified,
+            all settings are listed, including those not role-specific or database-specific,
+            respectively.
+          </pd>
+          <pd>The <xref format="dita" href="../../ref_guide/sql_commands/ALTER_ROLE.xml">ALTER ROLE</xref> and <xref format="dita"
+              href="../../ref_guide/sql_commands/ALTER_DATABASE.xml">ALTER DATABASE</xref> commands
+            are used to define per-database role configuration settings. </pd>
         </plentry>
         <plentry>
           <pt>\dT [<varname>datatype_pattern</varname>] | \dT+

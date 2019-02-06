@@ -26,11 +26,12 @@ ALTER ROLE <varname>name</varname> [ [WITH] <varname>option</varname> [ ... ] ]<
     | CREATEUSER | NOCREATEUSER
     | CREATEEXTTABLE | NOCREATEEXTTABLE 
       [ ( <varname>attribute</varname>='<varname>value</varname>'[, ...] ) ]
-           where <varname>attributes</varname> and <varname>value</varname> are:
+           where <varname>attribute</varname> and <varname>value</varname> are:
            type='readable'|'writable'
            protocol='gpfdist'|'http'
     | INHERIT | NOINHERIT
     | LOGIN | NOLOGIN
+    | REPLICATE | NOREPLICATION
     | CONNECTION LIMIT <varname>connlimit</varname>
     | [ENCRYPTED | UNENCRYPTED] PASSWORD '<varname>password</varname>'
     | VALID UNTIL '<varname>timestamp</varname>'
@@ -106,16 +107,17 @@ ALTER ROLE <varname>name</varname> [ [WITH] <varname>option</varname> [ ... ] ]<
         </plentry>
         <plentry>
           <pt><varname>config_parameter=value</varname></pt>
-          <pd>Set this role's session default for the specified configuration
-            parameter to the given value. If <varname>value</varname> is
-              <codeph>DEFAULT</codeph> or if <codeph>RESET</codeph> is used, the
-            role-specific variable setting is removed, so the role will inherit
-            the system-wide default setting in new sessions. Use <codeph>RESET
-              ALL</codeph> to clear all role-specific settings. <codeph>SET FROM
-              CURRENT</codeph> saves the session's current value of the
-            parameter as the role-specific value. If <codeph>IN
-              DATABASE</codeph> is specified, the configuration parameter is set
-            or removed for the given role and database only. </pd>
+          <pd>Set this role's session default for the specified configuration parameter to the given
+            value. If <varname>value</varname> is <codeph>DEFAULT</codeph> or if
+              <codeph>RESET</codeph> is used, the role-specific parameter setting is removed, so the
+            role will inherit the system-wide default setting in new sessions. Use <codeph>RESET
+              ALL</codeph> to clear all role-specific settings. <codeph>SET FROM CURRENT</codeph>
+            saves the session's current value of the parameter as the role-specific value. If
+              <codeph>IN DATABASE</codeph> is specified, the configuration parameter is set or
+            removed for the given role and database only.  Whenever the role subsequently starts a
+            new session, the specified value becomes the session default, overriding whatever
+            setting is present in <codeph>postgresql.conf</codeph> or has been received from the
+            command line.</pd>
           <pd>Role-specific variable settings take effect only at login;
               <codeph>SET ROLE</codeph> does not process role-specific variable
             settings. </pd>

@@ -2,7 +2,7 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1"><title id="bn20941">CREATE CAST</title><body><p id="sql_command_desc">Defines a new cast.</p><section id="section2"><title>Synopsis</title><codeblock id="sql_command_synopsis">CREATE CAST (<varname>sourcetype</varname> AS <varname>targettype</varname>) 
-       WITH FUNCTION <varname>funcname</varname> (<varname>argtypes</varname>) 
+       WITH FUNCTION <varname>funcname</varname> (<varname>argtype</varname> [, ...]) 
        [AS ASSIGNMENT | AS IMPLICIT]
 
 CREATE CAST (<varname>sourcetype</varname> AS <varname>targettype</varname>)
@@ -83,7 +83,8 @@ made explicit-only. </p>
 <p>To be able to create a cast, you must own the source or the target
   data type and have <codeph>USAGE</codeph> privilege on the other type. To
   create a binary-coercible cast, you must be superuser.</p></section>
-<section id="section4"><title>Parameters</title><parml><plentry><pt><varname>sourcetype</varname></pt><pd>The name of the source data type of the cast. </pd></plentry><plentry><pt><varname>targettype</varname></pt><pd>The name of the target data type of the cast. </pd></plentry><plentry><pt><varname>funcname(argtypes)</varname></pt><pd>The function used to perform the cast. The function name may be schema-qualified.
+<section id="section4"><title>Parameters</title><parml><plentry><pt><varname>sourcetype</varname></pt><pd>The name of the source data type of the cast. </pd></plentry><plentry><pt><varname>targettype</varname></pt><pd>The name of the target data type of the cast. </pd></plentry><plentry><pt><varname>funcname</varname>(<varname>argtype</varname> [, ...])</pt>
+  <pd>The function used to perform the cast. The function name may be schema-qualified.
 If it is not, Greenplum Database looks for the function in the schema search path.
 The function's result data type must match the target type of the cast.</pd><pd>Cast implementation functions may have one to three arguments. The first argument type must be
             identical to or binary-coercible from the cast's source type. The second

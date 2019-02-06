@@ -7,7 +7,9 @@
     <p id="sql_command_desc">Garbage-collects and optionally analyzes a database.</p>
     <section id="section2">
       <title>Synopsis</title>
-      <codeblock id="sql_command_synopsis">VACUUM [FULL] [FREEZE] [VERBOSE] [<varname>table</varname>]
+      <codeblock id="sql_command_synopsis">VACUUM [({ FULL | FREEZE | VERBOSE | ANALYZE } [, ...])] [<varname>table</varname> [(<varname>column</varname> [, ...] )]]
+        
+ VACUUM [FULL] [FREEZE] [VERBOSE] [<varname>table</varname>]
 
 VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
               [<varname>table</varname> [(<varname>column</varname> [, ...] )]]</codeblock>
@@ -43,7 +45,14 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
         across blocks to try to compact the table to the minimum number of disk blocks. This form is
         much slower and requires an Access Exclusive lock on each table while it is being processed.
         The Access Exclusive lock guarantees that the holder is the only transaction accessing the
-        table in any way.</p>
+        table in any way.
+      </p>
+      <p>When the option list is surrounded by parentheses, the options can be
+        written in any order.  Without parentheses, options must be specified
+        in exactly the order shown above.
+        In earlier Greenplum Database releases, the unparenthesized syntax was the only supported 
+        syntax. It is expected that all new options will be supported only with the parenthesized syntax.
+      </p>
       <note type="important">For information on the use of <codeph>VACUUM</codeph>, <codeph>VACUUM
           FULL</codeph>, and <codeph>VACUUM ANALYZE</codeph>, see <xref href="#topic1/section6"
           type="section" format="dita"/>
@@ -90,7 +99,8 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
           <pt>
             <varname>column</varname>
           </pt>
-          <pd>The name of a specific column to analyze. Defaults to all columns.</pd>
+          <pd>The name of a specific column to analyze. Defaults to all columns. If a column list is 
+            specified, <codeph>ANALYZE</codeph> is implied.</pd>
         </plentry>
       </parml>
     </section>
@@ -143,10 +153,11 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
     </section>
     <section id="section7">
       <title>Examples</title>
+      <codeblock>VACUUM (VERBOSE, ANALYZE) onek;</codeblock>
       <p>Vacuum all tables in the current database:</p>
       <codeblock>VACUUM;</codeblock>
       <p>Vacuum a specific table only:</p>
-      <codeblock>VACUUM mytable;</codeblock>
+      <codeblock>VACUUM (VERBOSE, ANALYZE) mytable;</codeblock>
       <p>Vacuum all tables in the current database and collect statistics for the query
         optimizer:</p>
       <codeblock>VACUUM ANALYZE;</codeblock>

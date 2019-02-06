@@ -26,6 +26,8 @@
     | IN ROLE <varname>rolename</varname> [, ...]
     | ROLE <varname>rolename</varname> [, ...]
     | ADMIN <varname>rolename</varname> [, ...]
+    | USER <varname>rolename</varname> [, ...]
+    | SYSID <varname>uid</varname> [, ...]
     | RESOURCE QUEUE <varname>queue_name</varname>
     | RESOURCE GROUP <varname>group_name</varname>
     | [ DENY <varname>deny_point</varname> ]
@@ -298,7 +300,7 @@
                 do in the standard. </p>
             <p><codeph>CREATE ROLE</codeph> is in the SQL standard, but the standard only requires
                 the syntax:</p>
-            <codeblock>CREATE ROLE name [WITH ADMIN rolename]</codeblock>
+            <codeblock>CREATE ROLE <varname>name</varname> [WITH ADMIN <varname>rolename</varname>]</codeblock>
             <p>Allowing multiple initial administrators, and all the other options of <codeph>CREATE
                     ROLE</codeph>, are Greenplum Database extensions.</p>
             <p>The behavior specified by the SQL standard is most closely approximated by giving

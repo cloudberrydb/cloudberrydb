@@ -29,14 +29,14 @@ ALTER TABLE <varname>name</varname>
                         <codeblock>  ADD [COLUMN] <varname>column_name type</varname> [ DEFAULT <varname>default_expr</varname> ]
       [<varname>column_constraint</varname> [ ... ]]
       [ ENCODING ( <varname>storage_directive</varname> [,...] ) ]
-  DROP [COLUMN] <varname>column</varname> [RESTRICT | CASCADE]
+  DROP [COLUMN] [IF EXISTS] <varname>column</varname> [RESTRICT | CASCADE]
   ALTER [COLUMN] <varname>column</varname> [ SET DATA ] TYPE <varname>type</varname> [USING <varname>expression</varname>]
   ALTER [COLUMN] <varname>column</varname> SET DEFAULT <varname>expression</varname>
   ALTER [COLUMN] <varname>column</varname> DROP DEFAULT
   ALTER [COLUMN] <varname>column</varname> { SET | DROP } NOT NULL
   ALTER [COLUMN] <varname>column</varname> SET STATISTICS <varname>integer</varname>
   ADD <varname>table_constraint</varname>
-  DROP CONSTRAINT <varname>constraint_name</varname> [RESTRICT | CASCADE]
+  DROP CONSTRAINT [IF EXISTS] <varname>constraint_name</varname> [RESTRICT | CASCADE]
   DISABLE TRIGGER [<varname>trigger_name</varname> | ALL | USER]
   ENABLE TRIGGER [<varname>trigger_name</varname> | ALL | USER]
   CLUSTER ON <varname>index_name</varname>
@@ -119,14 +119,16 @@ ALTER TABLE <varname>name</varname>
                                                 TABLE</xref></codeph>. The <codeph>ENCODING</codeph>
                                         clause is valid only for append-optimized, column-oriented
                                         tables.</li>
-                                <li><b>DROP COLUMN</b> — Drops a column from a table. Note that if
-                                        you drop table columns that are being used as the Greenplum
-                                        Database distribution key, the distribution policy for the
-                                        table will be changed to <codeph>DISTRIBUTED
-                                                RANDOMLY</codeph>. Indexes and table constraints
-                                        involving the column will be automatically dropped as well.
-                                        You will need to say <codeph>CASCADE</codeph> if anything
-                                        outside the table depends on the column (such as views). </li>
+                                <li><b>DROP COLUMN [IF EXISTS]</b> — Drops a column from a table. 
+                                        Note that if you drop table columns that are being used as 
+                                        the Greenplum Database distribution key, the distribution 
+                                        policy for the table will be changed to <codeph>DISTRIBUTED
+                                        RANDOMLY</codeph>. Indexes and table constraints
+                                        involving the column are automatically dropped as well.
+                                        You need to say <codeph>CASCADE</codeph> if anything
+                                        outside the table depends on the column (such as views). If 
+                                        <codeph>IF EXISTS</codeph> is specified and the column does 
+                                        not exist, no error is thrown; a notice is issued instead.</li>
                                 <li id="ay136879"><b>SET DATA TYPE</b> — This form changes the data
                                         type of a column of a table. Note that you cannot alter
                                         column data types that are being used as distribution or
@@ -154,14 +156,33 @@ ALTER TABLE <varname>name</varname>
                                 <li id="ay136944"><b>SET STATISTICS</b> — Sets the per-column
                                         statistics-gathering target for subsequent
                                                 <codeph>ANALYZE</codeph> operations. The target can
-                                        be set in the range 1 to 1000, or set to -1 to revert to
+                                        be set in the range 100 to 10000, or set to -1 to revert to
                                         using the system default statistics target
                                                 (<codeph>default_statistics_target</codeph>).</li>
+                                <li><b>SET STATISTICS DISTINCT</b> — Overrides the
+                                        number-of-distinct-values estimate made by subsequent
+                                                <codeph>ANALYZE</codeph> operations. When set to a
+                                        positive value, <codeph>ANALYZE</codeph> will assume that
+                                        the column contains exactly the specified number of distinct
+                                        non-null values. When set to a negative value, which must be
+                                        greater than or equal to -1, <codeph>ANALYZE</codeph> will
+                                        assume that the number of distinct non-null values in the
+                                        column is linear in the size of the table; the exact count
+                                        is to be computed by multiplying the estimated table size by
+                                        the absolute value of the given number. For example, a value
+                                        of -1 implies that all values in the column are distinct,
+                                        while a value of -0.5 implies that each value appears twice
+                                        on the average. This can be useful when the size of the
+                                        table changes over time, since the multiplication by the
+                                        number of rows in the table is not performed until query
+                                        planning time. Specify a value of 0 to revert to estimating
+                                        the number of distinct values normally.</li>
                                 <li id="ay137022"><b>ADD <varname>table_constraint</varname></b> —
                                         Adds a new constraint to a table (not just a partition)
                                         using the same syntax as <codeph>CREATE TABLE</codeph>. </li>
-                                <li id="ay137038"><b>DROP CONSTRAINT</b> — Drops the specified
-                                        constraint on a table.</li>
+                                <li id="ay137038"><b>DROP CONSTRAINT [IF EXISTS]</b> — Drops the
+                                        specified constraint on a table. If <codeph>IF EXISTS</codeph> is specified and the constraint
+                                        does not exist, no error is thrown. In this case a notice is issued instead.</li>
                                 <li id="ay137055"><b>DISABLE/ENABLE TRIGGER</b> — Disables or
                                         enables trigger(s) belonging to the table. A disabled
                                         trigger is still known to the system, but is not executed
@@ -306,7 +327,11 @@ ALTER TABLE <varname>name</varname>
                                                 If the <codeph>ONLY</codeph> keyword is not used,
                                                 the operation will be performed on the named table
                                                 and any child table partitions associated with that
-                                                table.</pd>
+                                                table. <note>Adding or dropping a column, or
+                                                  changing a column's type, in a parent or
+                                                  descendant table only is not permitted. The parent
+                                                  table and its descendents must always have the
+                                                  same columns and types.</note></pd>
                                 </plentry>
                                 <plentry>
                                         <pt>
@@ -339,7 +364,7 @@ ALTER TABLE <varname>name</varname>
                                         <pt>
                                                 <varname>new_column</varname>
                                         </pt>
-                                        <pd>New name for an existing column. </pd>
+                                        <pd>New name for an existing column.</pd>
                                 </plentry>
                                 <plentry>
                                         <pt>
@@ -761,9 +786,10 @@ ALTER TABLE <varname>name</varname>
                                 semantically-visible change in the table, but the command forces
                                 rewriting, which gets rid of no-longer-useful data.</p>
                         <p>If a table is partitioned or has any descendant tables, it is not
-                                permitted to add, rename, or change the type of a column in the
-                                parent table without doing the same to the descendants. This ensures
-                                that the descendants always have columns matching the parent. </p>
+                                permitted to add or drop a column, to rename a column, or to change
+                                the type of a column in the parent table without doing the same to
+                                the descendants. This ensures that the descendants always have
+                                columns matching the parent. </p>
                         <p>To see the structure of a partitioned table, you can use the view
                                                 <codeph><xref
                                                 href="../system_catalogs/pg_partitions.xml"

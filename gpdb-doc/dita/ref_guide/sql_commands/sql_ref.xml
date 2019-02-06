@@ -18,6 +18,7 @@
       <li id="ad139890">
         <xref href="./ALTER_DATABASE.xml#topic1" type="topic" format="dita"/>
       </li>
+      <li><xref href="ALTER_DEFAULT_PRIVILEGES.xml#topic1"/></li>
       <li id="ad139891">
         <xref href="./ALTER_DOMAIN.xml#topic1" type="topic" format="dita"/>
       </li>

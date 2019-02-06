@@ -11,13 +11,11 @@
       <title>Synopsis</title>
       <codeblock id="sql_command_synopsis">CREATE [[GLOBAL | LOCAL] {TEMPORARY | TEMP}] TABLE <varname>table_name</varname> ( 
 [ { <varname>column_name</varname> <varname>data_type</varname> [ DEFAULT <varname>default_expr</varname> ] 
-   [<varname>column_constraint</varname> [ ... ]
-[ ENCODING ( <varname>storage_directive</varname> [,...] ) ]
+   [<varname>column_constraint</varname> [ ... ] [ ENCODING ( <varname>storage_directive</varname> [,...] ) ]
 ] 
    | <varname>table_constraint</varname>
-   | LIKE <varname>other_table</varname> [{INCLUDING | EXCLUDING} 
-                      {DEFAULTS | CONSTRAINTS}] ...}
-   [, ... ] ]
+   | LIKE <varname>other_table</varname> [ <varname>like_option</varname> ... }
+     [, ... ] ]
    )
    [ INHERITS ( <varname>parent_table</varname> [, ... ] ) ]
    [ WITH ( <varname>storage_parameter</varname>=<varname>value</varname> [, ... ] )
@@ -71,10 +69,13 @@
                  [WITH ( FILLFACTOR=<varname>value</varname> )] 
    | CHECK ( <varname>expression</varname> )
    | FOREIGN KEY ( <varname>column_name</varname> [, ... ] )
-            REFERENCES table_name [ ( column_name [, ... ] ) ]
+            REFERENCES <varname>table_name</varname> [ ( <varname>column_name</varname> [, ... ] ) ]
             [ <varname>key_match_type</varname> ]
             [ <varname>key_action</varname> ]
             [ <varname>key_checking_mode</varname> ]</codeblock>
+      <p>where <i>like_option</i>
+        is:<codeblock>{ INCLUDING | EXCLUDING } 
+         { DEFFAULTS | CONSTRAINTS | INDEXES | STORAGE | COMMENTS | ALL }</codeblock></p>
       <p>where <varname>key_match_type</varname> is:</p>
       <codeblock>    MATCH FULL
   | SIMPLE</codeblock>
@@ -273,12 +274,14 @@
             expression will be merged into one copy. Notice that an unnamed <codeph>CHECK</codeph>
             constraint in the new table will never be merged, since a unique name will always be
             chosen for it.</pd>
+          <pd>Column <codeph>STORAGE</codeph> settings are also copied from parent tables.</pd>
         </plentry>
         <plentry>
-          <pt>LIKE <varname>other_table</varname> [{INCLUDING | EXCLUDING} {DEFAULTS |
-            CONSTRAINTS}]</pt>
+          <pt>LIKE <varname>other_table</varname>
+            <varname>like_option</varname>
+            <codeph>...</codeph>]</pt>
           <pd>The <codeph>LIKE</codeph> clause specifies a table from which the new table
-            automatically copies all column names, data types, not-null constraints, and
+            automatically copies all column names, their data types, not-null constraints, and
             distribution policy. Storage properties like append-optimized or partition structure are
             not copied. Unlike <codeph>INHERITS</codeph>, the new table and original table are
             completely decoupled after creation is complete.</pd>
@@ -291,10 +294,33 @@
             other types of constraints will <varname>never</varname> be copied. Also, no distinction
             is made between column constraints and table constraints — when constraints are
             requested, all check constraints are copied. </pd>
-          <pd>Note also that unlike <codeph>INHERITS</codeph>, copied columns and constraints are
-            not merged with similarly named columns and constraints. If the same name is specified
-            explicitly or in another <codeph>LIKE</codeph> clause an error is signalled. </pd>
-        </plentry>
+          <pd>Any indexes on the original table will not be created on the new table, unless the
+              <codeph>INCLUDING INDEXES</codeph> clause is specified.</pd>
+          <pd><codeph>STORAGE</codeph> settings for the copied column definitions will only
+            be copied if <codeph>INCLUDING STORAGE</codeph> is specified. The
+            default behavior is to exclude <codeph>STORAGE</codeph> settings, resulting
+            in the copied columns in the new table having type-specific default
+            settings. 
+           </pd>
+           <pd>
+             Comments for the copied columns, constraints, and indexes
+             will only be copied if <codeph>INCLUDING COMMENTS</codeph>
+             is specified. The default behavior is to exclude comments, resulting in
+             the copied columns and constraints in the new table having no comments.
+           </pd>
+           <pd>
+             <codeph>INCLUDING ALL</codeph> is an abbreviated form of
+             <codeblock>INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES 
+               INCLUDING STORAGE INCLUDING COMMENTS</codeblock>
+            </pd>
+            <pd>
+              Note also that unlike <codeph>INHERITS</codeph>, columns and
+              constraints copied by <codeph>LIKE</codeph> are not merged with similarly
+              named columns and constraints.
+              If the same name is specified explicitly or in another
+              <codeph>LIKE</codeph> clause, an error is signalled.
+            </pd>
+          </plentry>
         <plentry>
           <pt>CONSTRAINT <varname>constraint_name</varname></pt>
           <pd>An optional name for a column or table constraint. If the constraint is violated, the
@@ -313,6 +339,24 @@
               <codeph>NULL</codeph> is the default.</pd>
         </plentry>
         <plentry>
+          <pt>CHECK( <varname>expression</varname> )</pt>
+          <pd>The <varname>CHECK</varname> clause specifies an expression producing a
+            Boolean result which new or updated rows must satisfy for an
+            insert or update operation to succeed. Expressions evaluating
+            to TRUE or UNKNOWN succeed. Should any row of an insert or
+            update operation produce a FALSE result an error exception is
+            raised and the insert or update does not alter the database.  A
+            check constraint specified as a column constraint should
+            reference that column's value only, while an expression
+            appearing in a table constraint can reference multiple columns.
+          </pd>
+          <pd>
+            Currently, <varname>CHECK</varname> expressions cannot contain
+            subqueries nor refer to variables other than columns of the
+            current row.
+          </pd>
+        </plentry>          
+        <plentry>
           <pt>UNIQUE ( <varname>column constraint</varname> )</pt>
           <pt>UNIQUE ( <varname>column_name</varname> [, ... ] ) ( <varname>table
               constraint</varname> )</pt>
@@ -327,6 +371,45 @@
             simple <codeph>UNIQUE INDEX</codeph>.</pd>
           <pd>For information about unique constraint management and limitations, see <xref
               href="#topic1/section5" format="dita"/>.</pd>
+        </plentry>
+        <plentry>
+          <pt>EXCLUDE [ USING <varname>index_method</varname> ] ( <varname>exclude_element</varname> WITH <varname>operator</varname> [, ... ] ) <varname>index_parameters</varname> [ WHERE ( <varname>predicate</varname> ) ]</pt>
+          <pd>The <codeph>EXCLUDE</codeph> clause defines an exclusion
+            constraint, which guarantees that if
+            any two rows are compared on the specified column(s) or
+            expression(s) using the specified operator(s), not all of these
+            comparisons will return <codeph>TRUE</codeph>. If all of the
+            specified operators test for equality, this is equivalent to a
+              <codeph>UNIQUE</codeph> constraint, although an ordinary unique constraint
+            will be faster. However, exclusion constraints can specify
+            constraints that are more general than simple equality.
+            For example, you can specify a constraint that
+            no two rows in the table contain overlapping circles
+            by using the <codeph>&amp;&amp;</codeph> operator.
+          </pd>
+          <pd>
+            Exclusion constraints are implemented using
+            an index, so each specified operator must be associated with an
+            appropriate operator class for the index access
+            method <codeph>index_method</codeph>.
+            The operators are required to be commutative.
+            Each <codeph>exclude_element</codeph>
+            can optionally specify an operator class and/or ordering options;
+            these are described fully under
+            <xref href="CREATE_INDEX.xml" format="dita"></xref>.
+          </pd>
+          <pd>
+            The access method must support <codeph>amgettuple</codeph>; at present this means GIN
+            cannot be used.  Although it's allowed, there is little point in using
+            btree or hash indexes with an exclusion constraint, because this
+            does nothing that an ordinary unique constraint doesn't do better.
+            So in practice the access method will always be GiST.
+          </pd>
+          <pd>
+             The <codeph>predicate</codeph> allows you to specify an
+             exclusion constraint on a subset of the table; internally this creates a
+             partial index. Note that parentheses are required around the predicate.                     
+          </pd>
         </plentry>
         <plentry>
           <pt>PRIMARY KEY ( <varname>column constraint</varname> )</pt>
@@ -347,26 +430,12 @@
               href="#topic1/section5" format="dita"/>.</pd>
         </plentry>
         <plentry>
-          <pt>CHECK ( <varname>expression</varname> )</pt>
-          <pd>The <codeph>CHECK</codeph> clause specifies an expression producing a Boolean result
-            which new or updated rows must satisfy for an insert or update operation to succeed.
-            Expressions evaluating to <codeph>TRUE</codeph> or <codeph>UNKNOWN</codeph> succeed.
-            Should any row of an insert or update operation produce a <codeph>FALSE</codeph> result
-            an error exception is raised and the insert or update does not alter the database. A
-            check constraint specified as a column constraint should reference that column's value
-            only, while an expression appearing in a table constraint may reference multiple
-            columns. <codeph>CHECK</codeph> expressions cannot contain subqueries nor refer to
-            variables other than columns of the current row.</pd>
-        </plentry>
-        <plentry>
           <pt>REFERENCES <varname>table_name</varname> [ ( <varname>column_name</varname> [, ... ] )
             ]</pt>
-          <pt>[<varname> key_match_type </varname>] [ <varname>key_action</varname> ]</pt>
-          <pt>FOREIGN KEY ( <varname>column_name</varname> [, ... ] )</pt>
-          <pt>   REFERENCES <varname>table_name</varname> [ ( <varname>column_name</varname> [, ...
-            ] )</pt>
-          <pt> [<varname> key_match_type </varname>] [ <varname>key_action</varname> [
-              <varname>key_checking_mode</varname> ]</pt>
+          <pt>[<varname>key_match_type</varname>] [<varname>key_action</varname>]</pt>
+          <pt>FOREIGN KEY (<varname>column_name</varname> [, ...])</pt>
+          <pt>  REFERENCES <varname>table_name</varname> [(<varname>column_name</varname> [, ...])</pt>
+          <pt>  [key_match_type] [key_action] [key_checking_mode]</pt>
           <pd>The <codeph>REFERENCES</codeph> and <codeph>FOREIGN KEY</codeph> clauses specify
             referential integrity constraints (foreign key constraints). Greenplum accepts
             referential integrity constraints as specified in PostgreSQL syntax but does not enforce
@@ -375,8 +444,9 @@
         </plentry>
         <plentry id="with_storage">
           <pt>WITH ( <varname>storage_option=value</varname> )</pt>
-          <pd>The <codeph>WITH</codeph> clause can be used to set storage options for the table or
-            its indexes. Note that you can also set storage parameters on a particular partition or
+          <pd>The <codeph>WITH</codeph> clause can specify storage parameters for tables, and for
+            indexes associated with a <codeph>UNIQUE</codeph>, <codeph>PRIMARY</codeph>, or
+            <codeph>EXCLUDE</codeph> constraint. Note that you can also set storage parameters on a particular partition or
             subpartition by declaring the <codeph>WITH</codeph> clause in the partition
             specification. The lowest-level settings have priority.</pd>
           <pd>The defaults for some of the table storage options can be specified with the server
@@ -387,7 +457,7 @@
           <pd><b>APPENDONLY</b> — Set to <codeph>TRUE</codeph> to create the table as an
             append-optimized table. If <codeph>FALSE</codeph> or not declared, the table will be
             created as a regular heap-storage table.</pd>
-          <pd><b>BLOCKSIZE</b> — Set to the size, in bytes for each block in a table. The
+          <pd><b>BLOCKSIZE</b> — Set to the size, in bytes, for each block in a table. The
               <codeph>BLOCKSIZE</codeph> must be between 8192 and 2097152 bytes, and be a multiple
             of 8192. The default is 32768.</pd>
           <pd><b>ORIENTATION</b> — Set to <codeph>column</codeph> for column-oriented storage, or
@@ -463,7 +533,8 @@
         <plentry>
           <pt>USING INDEX TABLESPACE <varname>tablespace</varname></pt>
           <pd>This clause allows selection of the tablespace in which the index associated with a
-              <codeph>UNIQUE</codeph> or <codeph>PRIMARY KEY</codeph> constraint will be created. If
+              <codeph>UNIQUE</codeph>, <codeph>PRIMARY KEY</codeph>, or <codeph>EXCLUDE</codeph> 
+            constraint will be created. If
             not specified, the database's default tablespace is used. </pd>
         </plentry>
         <plentry>

@@ -7,10 +7,9 @@
         <p id="sql_command_desc">Defines a new function.</p>
         <section id="section2"
             ><title>Synopsis</title><codeblock id="sql_command_synopsis">CREATE [OR REPLACE] FUNCTION <varname>name</varname>    
-    ( [ [<varname>argmode</varname>] [<varname>argname</varname>] <varname>argtype</varname> [ { DEFAULT | = } <varname>defexpr</varname> ] [, ...] ] )
-      [ RETURNS { [ SETOF ] rettype 
-        | TABLE ([{ <varname>column_name</varname> <varname>column_type</varname> [, ...] ] | LIKE <varname>other_table</varname> } )
-        } ]
+    ( [ [<varname>argmode</varname>] [<varname>argname</varname>] <varname>argtype</varname> [ { DEFAULT | = } <varname>default_expr</varname> ] [, ...] ] )
+      [ RETURNS <varname>rettype</varname> 
+        | RETURNS TABLE ( <varname>column_name</varname> <varname>column_type</varname> [, ...] ) ]
     { LANGUAGE <varname>langname</varname>
     | WINDOW
     | IMMUTABLE | STABLE | VOLATILE
@@ -27,15 +26,17 @@
                     FUNCTION</codeph> will either create a new function, or replace an existing
                 definition.</p><p>The name of the new function must not match any existing function with the same input argument
                 types in the same schema. However, functions of different argument types may share a
-                name (overloading). </p><p>To update the definition of an existing function, use
-                    <codeph>CREATE OR REPLACE FUNCTION</codeph>. It is not possible to change the
-                name or argument types of a function this way (this would actually create a new,
-                distinct function). Also, <codeph>CREATE OR REPLACE FUNCTION</codeph> will not let
-                you change the return type of an existing function. To do that, you must drop and
-                recreate the function. If you drop and then recreate a function, you will have to
-                drop existing objects (rules, views, triggers, and so on) that refer to the old
-                function. Use <codeph>CREATE OR REPLACE FUNCTION</codeph> to change a function
-                definition without breaking objects that refer to the function.</p><p>For more
+                name (overloading). </p><p>To update the definition of an existing function, use <codeph>CREATE OR REPLACE
+                FUNCTION</codeph>. It is not possible to change the name or argument types of a
+                function this way (this would actually create a new, distinct function). Also,
+                    <codeph>CREATE OR REPLACE FUNCTION</codeph> will not let you change the return
+                type of an existing function. To do that, you must drop and recreate the function.
+                When using <codeph>OUT</codeph> parameters, that means you cannot chnge the types of
+                any <codeph>OUT</codeph> parameters except by dropping the function.  If you drop
+                and then recreate a function, you will have to drop existing objects (rules, views,
+                triggers, and so on) that refer to the old function. Use <codeph>CREATE OR REPLACE
+                    FUNCTION</codeph> to change a function definition without breaking objects that
+                refer to the function.</p><p>For more
                 information about creating functions, see the <xref
                     href="https://www.postgresql.org/docs/8.3/xfunc.html" scope="external"
                     format="html">User Defined Functions</xref> section of the PostgreSQL
@@ -100,10 +101,12 @@ SELECT foo();</codeblock><p>In
                     <pt><varname>argname</varname></pt>
                     <pd>The name of an argument. Some languages (currently only PL/pgSQL) let you
                         use the name in the function body. For other languages the name of an input
-                        argument is just extra documentation. But the name of an output argument is
-                        significant, since it defines the column name in the result row type. (If
-                        you omit the name for an output argument, the system will choose a default
-                        column name.) </pd>
+                        argument is just extra documentation, so far as
+                        the function itself is concerned; but you can use input argument names
+                        when calling a function to improve readability. In any case, the name of 
+                        an output argument is significant, since it defines the column name in the 
+                        result row type. (If you omit the name for an output argument, the system 
+                        will choose a default column name.) </pd>
                 </plentry>
                 <plentry>
                     <pt><varname>argtype</varname></pt>
@@ -120,7 +123,7 @@ SELECT foo();</codeblock><p>In
                         to the definition of a table. </pd>
                 </plentry>
                 <plentry>
-                    <pt><varname>defexpr</varname></pt>
+                    <pt><varname>default_expr</varname></pt>
                     <pd>An expression to be used as the default value if the parameter is not
                         specified. The expression must be coercible to the argument type of the
                         parameter. Only <codeph>IN</codeph> and <codeph>INOUT</codeph> parameters
@@ -358,6 +361,16 @@ $SomeTag$Dianne's horse$SomeTag$</codeblock>
                     <codeph>STRICT</codeph>, the strictness check tests that the variadic array as a
                 whole is non-null. PL/pgSQL will still call the function if the array has null
                 elements.</p>
+            <p>When replacing an existing function with <codeph>CREATE OR REPLACE
+                FUNCTION</codeph>, there are restrictions on changing parameter names.
+                You cannot change the name already assigned to any input parameter
+                (although you can add names to parameters that had none before).
+                If there is more than one output parameter, you cannot change the
+                names of the output parameters, because that would change the
+                column names of the anonymous composite type that describes the
+                function's result. These restrictions are made to ensure that
+                existing calls of the function do not stop working when it is replaced.
+            </p>
             <sectiondiv id="section7"><b>Using Functions with Queries on Distributed Data</b><p>In
                     some cases, Greenplum Database does not support using functions in a query where
                     the data in a table specified in the <codeph>FROM</codeph> clause is distributed

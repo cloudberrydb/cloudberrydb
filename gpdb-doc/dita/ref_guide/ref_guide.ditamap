@@ -12,6 +12,7 @@
 			<topicref href="sql_commands/ALTER_AGGREGATE.xml"/>
 			<topicref href="sql_commands/ALTER_CONVERSION.xml"/>
 			<topicref href="sql_commands/ALTER_DATABASE.xml"/>
+			<topicref href="sql_commands/ALTER_DEFAULT_PRIVILEGES.xml"/>
 			<topicref href="sql_commands/ALTER_DOMAIN.xml"/>
 			<topicref href="sql_commands/ALTER_EXTENSION.xml"/>
 			<topicref href="sql_commands/ALTER_EXTERNAL_TABLE.xml"/>
