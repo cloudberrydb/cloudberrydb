@@ -7,7 +7,7 @@
                 <p id="sql_command_desc">Defines a new index.</p>
                 <section id="section2">
                         <title>Synopsis</title>
-                        <codeblock id="sql_command_synopsis">CREATE [UNIQUE] INDEX <varname>name</varname> ON <varname>table</varname>
+                        <codeblock id="sql_command_synopsis">CREATE [UNIQUE] INDEX [<varname>name</varname>] ON <varname>table</varname>
        [USING btree|bitmap|gist|gin]
        ( {<varname>column</varname> | (<varname>expression</varname>)} [<varname>opclass</varname>] [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] )
        [ WITH ( <varname>storage_parameter</varname> = <varname>value</varname> ) ]
@@ -16,9 +16,10 @@
                 </section>
                 <section id="section3">
                         <title>Description</title>
-                        <p><codeph>CREATE INDEX</codeph> constructs a named index on the specified
-                                table. Indexes are primarily used to enhance database performance
-                                (though inappropriate use can result in slower performance). </p>
+                        <p><codeph>CREATE INDEX</codeph> constructs an index on the specified
+                                column(s) of the specified table. Indexes are primarily used to 
+                                enhance database performance (though inappropriate use can result in
+                                slower performance). </p>
                         <p>The key field(s) for the index are specified as column names, or
                                 alternatively as expressions written in parentheses. Multiple fields
                                 can be specified if the index method supports multicolumn
@@ -74,7 +75,11 @@
                                                 <varname>name</varname>
                                         </pt>
                                         <pd>The name of the index to be created. The index is always
-                                                created in the same schema as its parent table.</pd>
+                                                created in the same schema as its parent table. If the 
+                                                name is omitted, Greenplum Database chooses a
+                                                suitable name based on the parent table's name and the 
+                                                indexed column name(s).
+                                        </pd>
                                 </plentry>
                                 <plentry>
                                         <pt>
@@ -163,7 +168,7 @@
                                         <pt><varname>storage_parameter</varname></pt>
                                         <pd>The name of an index-method-specific storage parameter.
                                                 Each index method has its own set of allowed storage
-                                                parameters. B-tree, bitmap, and GiST index methods all
+                                                parameters. B-tree, hash, bitmap, and GiST index methods all
                                                 accept a single parameter, <codeph>FILLFACTOR</codeph>.
                                                 GIN indexes accept a different parameter,
                                                 <codeph>FASTUPDATE</codeph>.</pd>
@@ -172,12 +177,12 @@
                                                 will try to pack index pages. For B-trees, leaf
                                                 pages are filled to this percentage during initial
                                                 index build, and also when extending the index at
-                                                the right (largest key values). If pages
+                                                the right (adding new largest key values). If pages
                                                 subsequently become completely full, they will be
                                                 split, leading to gradual degradation in the index's
                                                 efficiency. </pd>
-                                        <pd>B-trees use a default fillfactor of 90, but any value
-                                                from 10 to 100 can be selected. If the table is
+                                        <pd>B-trees use a default fillfactor of 90, but any integer 
+                                                value from 10 to 100 can be selected. If the table is
                                                 static then fillfactor 100 is best to minimize the
                                                 index's physical size, but for heavily updated
                                                 tables a smaller fillfactor is better to minimize
@@ -298,16 +303,24 @@
 (gender);</codeblock>
                         <p>To create an index on the expression <codeph>lower(title)</codeph>,
                                 allowing efficient case-insensitive searches:</p>
-                        <codeblock>CREATE INDEX lower_title_idx ON films ((lower(title)));</codeblock>
+                        <codeblock>CREATE INDEX ON films ((lower(title)));</codeblock>
+                        <p>(In this example we have chosen to omit the index name, so the system
+                                will choose a name, typically <codeph>films_lower_idx</codeph>.)
+                        </p>
                         <p>To create an index with non-default fill factor:</p>
                         <codeblock>CREATE UNIQUE INDEX title_idx ON films (title) WITH 
 (fillfactor = 70);</codeblock>
                         <p>To create a GIN index with fast updates disabled:</p>
-                        <codeblock>CREATE INDEX gin_idx ON documents_table (locations) WITH (fastupdate = off);</codeblock>
+                        <codeblock>CREATE INDEX gin_idx ON documents_table USING gin (locations) WITH (fastupdate = off);</codeblock>
                         <p>To create an index on the column <codeph>code</codeph> in the table
                                         <codeph>films</codeph> and have the index reside in the
                                 tablespace <codeph>indexspace</codeph>:</p>
                         <codeblock>CREATE INDEX code_idx ON films(code) TABLESPACE indexspace;</codeblock>
+                        <p>To create a GiST index on a point attribute so that we
+                                can efficiently use box operators on the result of the
+                                conversion function:</p>
+                        <codeblock>CREATE INDEX pointloc ON points USING gist (box(location,location));
+SELECT * FROM points WHERE box(location,location) &amp;&amp; '(0,0),(1,1)'::box;</codeblock>
                 </section>
                 <section id="section7">
                         <title>Compatibility</title>

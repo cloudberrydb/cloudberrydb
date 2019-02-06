@@ -3,6 +3,7 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1"><title id="ec20941">REVOKE</title><body><p id="sql_command_desc">Removes access privileges.</p><section id="section2"><title>Synopsis</title><codeblock id="sql_command_synopsis">REVOKE [GRANT OPTION FOR] { {SELECT | INSERT | UPDATE | DELETE 
        | REFERENCES | TRIGGER | TRUNCATE } [,...] | ALL [PRIVILEGES] }
+
        ON { [TABLE] <varname>table_name</varname> [, ...]
             | ALL TABLES IN SCHEMA schema_name [, ...] }
        FROM { [ GROUP ] <varname>role_name</varname> | PUBLIC} [, ...]
@@ -49,6 +50,7 @@ REVOKE [GRANT OPTION FOR] {EXECUTE | ALL [PRIVILEGES]}
 
 REVOKE [GRANT OPTION FOR] {USAGE | ALL [PRIVILEGES]}
        ON LANGUAGE <varname>langname</varname> [, ...]
+
        FROM { [ GROUP ]  <varname>role_name</varname> | PUBLIC} [, ...]
        [ CASCADE | RESTRICT ]
 

@@ -216,7 +216,7 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition</varname> [ (<var
         avoid this, raise the amount of statistics collected by <codeph>ANALYZE</codeph> by
         adjusting the <varname>default_statistics_target</varname> configuration parameter, or on a
         column-by-column basis by setting the per-column statistics target with <codeph>ALTER TABLE
-          ... ALTER COLUMN ... SET STATISTICS</codeph> (see <codeph>ALTER TABLE</codeph>). The
+          ... ALTER COLUMN ... SET (n_distinct ...)</codeph> (see <codeph>ALTER TABLE</codeph>). The
         target value sets the maximum number of entries in the most-common-value list and the
         maximum number of bins in the histogram. The default target value is 100, but this can be
         adjusted up or down to trade off accuracy of planner estimates against the time taken for

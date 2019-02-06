@@ -31,7 +31,7 @@
                 function this way (this would actually create a new, distinct function). Also,
                     <codeph>CREATE OR REPLACE FUNCTION</codeph> will not let you change the return
                 type of an existing function. To do that, you must drop and recreate the function.
-                When using <codeph>OUT</codeph> parameters, that means you cannot chnge the types of
+                When using <codeph>OUT</codeph> parameters, that means you cannot change the types of
                 any <codeph>OUT</codeph> parameters except by dropping the function.  If you drop
                 and then recreate a function, you will have to drop existing objects (rules, views,
                 triggers, and so on) that refer to the old function. Use <codeph>CREATE OR REPLACE

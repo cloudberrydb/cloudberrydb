@@ -24,7 +24,13 @@ that does not specify a value for the column. If a default value is defined
 for a particular column, it overrides any default associated with the
 domain. In turn, the domain default overrides any default value associated
 with the underlying data type.</pd></plentry><plentry><pt>CONSTRAINT <varname>constraint_name</varname></pt><pd>An optional name for a constraint. If not specified, the system generates
-a name. </pd></plentry><plentry><pt>NOT NULL</pt><pd>Values of this domain are not allowed to be null. </pd></plentry><plentry><pt>NULL</pt><pd>Values of this domain are allowed to be null. This is the default.
+  a name. </pd></plentry><plentry><pt>NOT NULL</pt><pd>Values of this domain are normally prevented from being null.
+    However, it is still possible for a domain with this constraint
+    to take a null value if it is assigned a matching domain type
+    that has become null, e.g. via a left outer join, or a command such as
+    <codeph>INSERT INTO tab (domcol) VALUES ((SELECT domcol FROM
+      tab WHERE false))</codeph>.
+  </pd></plentry><plentry><pt>NULL</pt><pd>Values of this domain are allowed to be null. This is the default.
 This clause is only intended for compatibility with nonstandard SQL databases.
 Its use is discouraged in new applications.</pd></plentry><plentry><pt>CHECK <varname>(expression)</varname></pt><pd><codeph>CHECK</codeph> clauses specify integrity constraints or tests
 which values of the domain must satisfy. Each constraint must be an expression

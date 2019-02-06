@@ -233,10 +233,10 @@ SELECT * FROM foo LIMIT 5;</codeblock></p><p>See
             <pd>A sub-<codeph>SELECT</codeph> can appear in the <codeph>FROM</codeph> clause. This
               acts as though its output were created as a temporary table for the duration of this
               single <codeph>SELECT</codeph> command. Note that the sub-<codeph>SELECT</codeph> must
-              be surrounded by parentheses, and an alias must be provided for it. A
-                <codeph>VALUES</codeph> command can also be used here. See "Non-standard Clauses" in
-              the <xref href="#topic1/section19" format="dita"/> section for limitations of using
-              correlated sub-selects in Greenplum Database.</pd>
+              be surrounded by parentheses, and an alias must be provided for it. A <codeph><xref
+                  href="VALUES.xml#topic1">VALUES</xref></codeph> command can also be used here. See
+              "Non-standard Clauses" in the <xref href="#topic1/section19" format="dita"/> section
+              for limitations of using correlated sub-selects in Greenplum Database.</pd>
           </plentry>
           <plentry>
             <pt>
@@ -503,8 +503,8 @@ WINDOW mywindow AS (ORDER BY sum(prc*qty));</codeblock><p>A
                 frame</i> for window functions that depend on the frame (not all do). The window
               frame is a set of related rows for each row of the query (called the <i>current
                 row</i>). The <codeph><varname>frame_clause</varname></codeph> can be one of
-              <codeblock>{ RANGE | ROWS } <varname>frame_start</varname>
-{ RANGE | ROWS } BETWEEN <varname>frame_start</varname> AND <varname>frame_end</varname></codeblock>where
+              <codeblock>[ RANGE | ROWS ] <varname>frame_start</varname>
+[ RANGE | ROWS ] BETWEEN <varname>frame_start</varname> AND <varname>frame_end</varname></codeblock>where
                   <codeph><varname>frame_start</varname></codeph> and
                   <codeph><varname>frame_end</varname></codeph> can be one of<ul id="ul_ehq_kws_1gb">
                 <li><codeph>UNBOUNDED PRECEDING</codeph></li>
@@ -525,26 +525,26 @@ WINDOW mywindow AS (ORDER BY sum(prc*qty));</codeblock><p>A
             <pd>The default framing option is <codeph>RANGE UNBOUNDED PRECEDING</codeph>, which is
               the same as <codeph>RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</codeph>; it
               sets the frame to be all rows from the partition start up through the current row's
-              last peer (a row that <codeph>ORDER BY</codeph> considers equivalent to the current
-              row, or all rows if there is no <codeph>ORDER BY</codeph> clause). <codeph>UNBOUNDED
-                PRECEDING</codeph> means that the frame starts with the first row of the partition,
-              and <codeph>UNBOUNDED FOLLOWING</codeph> means that the frame ends with the last row
-              of the partition (regardless of <codeph>RANGE</codeph> or <codeph>ROWS</codeph> mode).
-              In <codeph>ROWS</codeph> mode, <codeph>CURRENT ROW</codeph> means that the frame
-              starts or ends with the current row; but in <codeph>RANGE</codeph> mode, it means that
-              the frame starts or ends with the current row's first or last peer in the
-                <codeph>ORDER BY</codeph> ordering. The <codeph><varname>value</varname>
-                PRECEDING</codeph> and <codeph><varname>value</varname> FOLLOWING</codeph> cases are
-              currently only allowed in <codeph>ROWS</codeph> mode. They indicate that the frame
-              starts or ends with the row that many rows before or after the current row.
-                  <codeph><varname>value</varname></codeph> must be an integer expression not
+              last peer in the <codeph>ORDER BY</codeph> ordering (which means all rows if there is
+              no <codeph>ORDER BY</codeph>). In general, <codeph>UNBOUNDED PRECEDING</codeph> means
+              that the frame starts with the first row of the partition, and similarly
+                <codeph>UNBOUNDED FOLLOWING</codeph> means that the frame ends with the last row of
+              the partition (regardless of <codeph>RANGE</codeph> or <codeph>ROWS</codeph> mode). In
+                <codeph>ROWS</codeph> mode, <codeph>CURRENT ROW</codeph> means that the frame starts
+              or ends with the current row; but in <codeph>RANGE</codeph> mode it means that the
+              frame starts or ends with the current row's first or last peer in the <codeph>ORDER
+                BY</codeph> ordering. The <varname>value</varname>
+              <codeph>PRECEDING</codeph> and <varname>value</varname>
+              <codeph>FOLLOWING</codeph> cases are currently only allowed in <codeph>ROWS</codeph>
+              mode. They indicate that the frame starts or ends with the row that many rows before
+              or after the current row. <varname>value</varname> must be an integer expression not
               containing any variables, aggregate functions, or window functions. The value must not
-              be null or negative; but it can be zero, which selects the current row itself.</pd>
+              be null or negative; but it can be zero, which selects the current row itself. </pd>
             <pd>Beware that the <codeph>ROWS</codeph> options can produce unpredictable results if
               the <codeph>ORDER BY</codeph> ordering does not order the rows uniquely. The
                 <codeph>RANGE</codeph> options are designed to ensure that rows that are peers in
-              the <codeph>ORDER BY</codeph> ordering are treated alike; all peer rows will be in the
-              same frame. </pd>
+              the <codeph>ORDER BY</codeph> ordering are treated alike; any two peer rows will be
+              both in or both not in the frame. </pd>
             <pd>Use either a <codeph>ROWS</codeph> or <codeph>RANGE</codeph> clause to express the
               bounds of the window. The window bound can be one, many, or all rows of a partition.
               You can express the bound of the window either in terms of a range of data values
@@ -834,13 +834,13 @@ OFFSET <varname>start</varname></codeblock><p>where
             <codeph>SELECT</codeph> query, the rows that are locked are exactly those that are
           returned by the query; in the case of a join query, the rows locked are those that
           contribute to returned join rows. In addition, rows that satisfied the query conditions as
-          of the query snapshot will be locked, although they will not be returned if they have
-          since been updated to not satisfy the query conditions. If a <codeph>LIMIT</codeph> is
-          used, locking stops once enough rows have been returned to satisfy the limit (but note
-          that rows skipped over by <codeph>OFFSET</codeph> will get locked). Similarly, if
-            <codeph>FOR UPDATE</codeph> or <codeph>FOR SHARE</codeph> is used in a cursor's query,
-          only rows actually fetched or stepped past by the cursor will be locked.</p><p>When
-            <codeph>FOR UPDATE</codeph> or <codeph>FOR SHARE</codeph> appears in a
+          of the query snapshot will be locked, although they will not be returned if they were
+          updated after the snapshot and no longer satisfy the query conditions. If a
+            <codeph>LIMIT</codeph> is used, locking stops once enough rows have been returned to
+          satisfy the limit (but note that rows skipped over by <codeph>OFFSET</codeph> will get
+          locked). Similarly, if <codeph>FOR UPDATE</codeph> or <codeph>FOR SHARE</codeph> is used
+          in a cursor's query, only rows actually fetched or stepped past by the cursor will be
+          locked.</p><p>When <codeph>FOR UPDATE</codeph> or <codeph>FOR SHARE</codeph> appears in a
             sub-<codeph>SELECT</codeph>, the rows locked are those returned to the outer query by
           the sub-query. This might involve fewer rows than inspection of the sub-query alone would
           suggest, since conditions from the outer query might be used to optimize execution of the

@@ -15,7 +15,10 @@ an operator name, since they will be taken as the start of a comment.
 unless the name also contains at least one of these characters: <codeph>~
 ! @ # % ^ &amp; | ` ?</codeph></li></ul><p>For example, <codeph>@-</codeph> is an allowed operator name, but <codeph>*-</codeph>
 is not. This restriction allows Greenplum Database to parse SQL-compliant
-commands without requiring spaces between tokens. </p><p>The operator <codeph>!=</codeph> is mapped to <codeph>&lt;&gt;</codeph>
+commands without requiring spaces between tokens. </p>
+<p>The use of <codeph>=&gt;</codeph> as an operator name is deprecated.  
+It may be disallowed altogether in a future release.</p>
+<p>The operator <codeph>!=</codeph> is mapped to <codeph>&lt;&gt;</codeph>
 on input, so these two names are always equivalent. </p><p>At least one of <codeph>LEFTARG</codeph> and <codeph>RIGHTARG</codeph>
 must be defined. For binary operators, both must be defined. For right
 unary operators, only <codeph>LEFTARG</codeph> should be defined, while
@@ -145,11 +148,23 @@ must represent equality for some data type or pair of data types. </pd>
                         operator is used. Also, although not strictly required, a btree operator
                         family that supports multiple data types should be able to provide equality
                         operators for every combination of the data types; this allows better
-                        optimization. <note>SORT1, SORT2, LTCMP, and GTCMP were formerly used to
-                            specify the names of sort operators associated with a merge-joinable
-                            operator. Information about associated operators is now found by looking
-                            at B-tree operator families; specifying any of these operators will be
-                            ignored, except that it will implicitly set MERGES to true. </note></pd></plentry></parml></section><section id="section5"><title>Notes</title><p>Any functions used to implement the operator must be defined as <codeph>IMMUTABLE</codeph>.</p></section><section id="section6"><title>Examples</title><p>Here is an example of creating an operator for adding two complex numbers,
+                        optimization. <note><codeph>SORT1</codeph>, <codeph>SORT2</codeph>,
+                                <codeph>LTCMP</codeph>, and <codeph>GTCMP</codeph> were formerly
+                            used to specify the names of sort operators associated with a
+                            merge-joinable operator. Information about associated operators is now
+                            found by looking at B-tree operator families; specifying any of these
+                            operators will be ignored, except that it will implicitly set
+                                <codeph>MERGES</codeph> to true. </note></pd></plentry></parml></section><section id="section5"><title>Notes</title><p>Any functions used to implement the operator must be defined as <codeph>IMMUTABLE</codeph>.</p>
+                     <p>   It is not possible to specify an operator's lexical precedence in
+                           <codeph>CREATE OPERATOR</codeph>, because the parser's precedence behavior
+                         is hard-wired. See <xref href="https://www.postgresql.org/docs/9.4/sql-syntax-lexical.html#SQL-PRECEDENCE" 
+                             scope="external" format="html">Operator Precedence</xref> in the PostgreSQL 
+                         documentation for precedence details.</p>
+                      <p>Use <codeph><xref href="DROP_OPERATOR.xml#topic1">DROP
+                    OPERATOR</xref></codeph> to delete user-defined operators from a database. Use
+                        <codeph><xref href="ALTER_OPERATOR.xml#topic1">ALTER
+                    OPERATOR</xref></codeph> to modify operators in a database.</p></section>
+    <section id="section6"><title>Examples</title><p>Here is an example of creating an operator for adding two complex numbers,
 assuming we have already created the definition of type <codeph>complex</codeph>.
 First define the function that does the work, then define the operator:
 </p><codeblock>CREATE FUNCTION complex_add(complex, complex)

@@ -8,6 +8,9 @@ and <varname>checkpoint_timeout</varname>. The <codeph>CHECKPOINT</codeph> comma
 forces an immediate checkpoint when the command is issued, without waiting
 for a scheduled checkpoint. </p><p>A checkpoint is a point in the transaction log sequence at which all
 data files have been updated to reflect the information in the log. All
-data files will be flushed to disk.</p><p>Only superusers may call <codeph>CHECKPOINT</codeph>. The command
+data files will be flushed to disk.</p>
+  <p>If executed during recovery, the <codeph>CHECKPOINT</codeph> command
+    will force a restartpoint rather than writing a new checkpoint.</p>
+  <p>Only superusers may call <codeph>CHECKPOINT</codeph>. The command
 is not intended for use during normal operation.</p></section><section id="section4"><title>Compatibility</title><p>The <codeph>CHECKPOINT</codeph> command is a Greenplum Database language
 extension.</p></section></body></topic>

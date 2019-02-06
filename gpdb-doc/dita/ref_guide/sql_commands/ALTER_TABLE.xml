@@ -35,7 +35,9 @@ ALTER TABLE <varname>name</varname>
   ALTER [COLUMN] <varname>column</varname> DROP DEFAULT
   ALTER [COLUMN] <varname>column</varname> { SET | DROP } NOT NULL
   ALTER [COLUMN] <varname>column</varname> SET STATISTICS <varname>integer</varname>
-  ADD <varname>table_constraint</varname>
+  ALTER [COLUMN] column SET ( <varname>attribute_option</varname> = <varname>value</varname> [, ... ] )
+  ALTER [COLUMN] column RESET ( <varname>attribute_option</varname> [, ... ] )
+  ADD <varname>table_constraint</varname>
   DROP CONSTRAINT [IF EXISTS] <varname>constraint_name</varname> [RESTRICT | CASCADE]
   DISABLE TRIGGER [<varname>trigger_name</varname> | ALL | USER]
   ENABLE TRIGGER [<varname>trigger_name</varname> | ALL | USER]
@@ -159,24 +161,41 @@ ALTER TABLE <varname>name</varname>
                                         be set in the range 100 to 10000, or set to -1 to revert to
                                         using the system default statistics target
                                                 (<codeph>default_statistics_target</codeph>).</li>
-                                <li><b>SET STATISTICS DISTINCT</b> — Overrides the
-                                        number-of-distinct-values estimate made by subsequent
-                                                <codeph>ANALYZE</codeph> operations. When set to a
-                                        positive value, <codeph>ANALYZE</codeph> will assume that
-                                        the column contains exactly the specified number of distinct
-                                        non-null values. When set to a negative value, which must be
-                                        greater than or equal to -1, <codeph>ANALYZE</codeph> will
-                                        assume that the number of distinct non-null values in the
-                                        column is linear in the size of the table; the exact count
-                                        is to be computed by multiplying the estimated table size by
-                                        the absolute value of the given number. For example, a value
-                                        of -1 implies that all values in the column are distinct,
-                                        while a value of -0.5 implies that each value appears twice
-                                        on the average. This can be useful when the size of the
-                                        table changes over time, since the multiplication by the
-                                        number of rows in the table is not performed until query
-                                        planning time. Specify a value of 0 to revert to estimating
-                                        the number of distinct values normally.</li>
+                                <li>
+                                        <p><b>SET ( <varname>attribute_option</varname> =
+                                                  <varname>value</varname> [, ... ]) </b></p>
+                                        <p><b>RESET ( <varname>attribute_option [, ...]
+                                                  )</varname></b>— Sets or resets attribute-level
+                                                options. Currently, the only defined attribute-level
+                                                options are <codeph>n_distinct</codeph> and
+                                                  <codeph>n_distinct_inherited</codeph>, which
+                                                override the number-of-distinct-values estimate made
+                                                by subsequent <codeph><xref
+                                                  href="ANALYZE.xml#topic1">ANALYZE</xref></codeph>
+                                                operations. <codeph>n_distinct</codeph> affects the
+                                                statistics for the table itself, while
+                                                  <codeph>n_distinct_inherited</codeph> affects the
+                                                statistics gathered for the table and its
+                                                inheritance children. When set to a positive value,
+                                                  <codeph>ANALYZE</codeph> will assume that the
+                                                column contains exactly the specified number of
+                                                distinct non-null values. When set to a negative
+                                                value, which must be greater than or equal to -1,
+                                                  <codeph>ANALYZE</codeph> will assume that the
+                                                number of distinct non-null values in the column is
+                                                linear in the size of the table; the exact count is
+                                                to be computed by multiplying the estimated table
+                                                size by the absolute value of the given number. For
+                                                example, a value of -1 implies that all values in
+                                                the column are distinct, while a value of -0.5
+                                                implies that each value appears twice on the
+                                                average. This can be useful when the size of the
+                                                table changes over time, since the multiplication by
+                                                the number of rows in the table is not performed
+                                                until query planning time. Specify a value of 0 to
+                                                revert to estimating the number of distinct values
+                                                normally.</p>
+                                </li>
                                 <li id="ay137022"><b>ADD <varname>table_constraint</varname></b> —
                                         Adds a new constraint to a table (not just a partition)
                                         using the same syntax as <codeph>CREATE TABLE</codeph>. </li>
@@ -423,13 +442,18 @@ ALTER TABLE <varname>name</varname>
                                 <plentry>
                                         <pt>ALL</pt>
                                         <pd>Disable or enable all triggers belonging to the table
-                                                including constraint related triggers. This requires
-                                                superuser privilege.</pd>
+                                           including constraint related triggers. This requires superuser privilege 
+                                           if any of the triggers are internally generated constraint triggers such 
+                                           as those that are used to implement foreign key constraints or deferrable 
+                                           uniqueness and exclusion constraints.</pd>
                                 </plentry>
                                 <plentry>
                                         <pt>USER</pt>
-                                        <pd>Disable or enable all user-created triggers belonging to
-                                                the table. </pd>
+                                        <pd>Disable or enable all triggers belonging to the table except for 
+                                            internally generated constraint triggers such as those that are used
+                                            to implement foreign key constraints or deferrable uniqueness and
+                                            exclusion constraints.
+                                        </pd>
                                 </plentry>
                                 <plentry>
                                         <pt>
@@ -759,7 +783,8 @@ ALTER TABLE <varname>name</varname>
                                 rows in the table are initialized with the column's default value,
                                 or <codeph>NULL</codeph> if no <codeph>DEFAULT</codeph> clause is
                                 specified. Adding a column with a non-null default or changing the
-                                type of an existing column will require the entire table to be
+                                type of an existing column will require the entire table and indexes 
+                                to be
                                 rewritten. This may take a significant amount of time for a large
                                 table; and it will temporarily require double the disk space. Adding
                                 or removing a system <codeph>oid</codeph> column also requires

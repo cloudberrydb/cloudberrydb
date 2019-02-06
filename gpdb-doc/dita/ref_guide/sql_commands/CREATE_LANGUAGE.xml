@@ -7,10 +7,12 @@
         <p id="sql_command_desc">Defines a new procedural language.</p>
         <section id="section2">
             <title>Synopsis</title>
-            <codeblock id="sql_command_synopsis">CREATE [PROCEDURAL] LANGUAGE <varname>name</varname>
+            <codeblock id="sql_command_synopsis">CREATE [ OR REPLACE ] [ PROCEDURAL ] LANGUAGE <varname>name</varname>
 
-CREATE [TRUSTED] [PROCEDURAL] LANGUAGE <varname>name</varname>
-       HANDLER <varname>call_handler</varname> [ INLINE <varname>inline_handler</varname> ] [VALIDATOR <varname>valfunction</varname>]</codeblock>
+CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname>
+    HANDLER <varname>call_handler</varname> [ INLINE <varname>inline_handler</varname> ] 
+   [ VALIDATOR <varname>valfunction</varname> ]
+            </codeblock>
         </section>
         <section id="section3">
             <title>Description</title>
@@ -23,9 +25,24 @@ CREATE [TRUSTED] [PROCEDURAL] LANGUAGE <varname>name</varname>
                     <codeph>tmpldbacreate</codeph> field is true. The default configuration allows
                 only trusted languages to be registered by database owners. The creator of a
                 language becomes its owner and can later drop it, rename it, or assign ownership to
-                a new user.</p>
-            <p><codeph>CREATE LANGUAGE</codeph> effectively associates the language name with a call
-                handler that is responsible for executing functions written in that language. For a
+                a new owner.</p>
+            <p><codeph>CREATE OR REPLACE LANGUAGE</codeph> will either create a
+                new language, or replace an existing definition. If the language
+                already exists, its parameters are updated according to the values
+                specified or taken from <varname>pg_pltemplate</varname>,
+                but the language's ownership and permissions settings do not change,
+                and any existing functions written in the language are assumed to still
+                be valid. In addition to the normal privilege requirements for creating
+                a language, the user must be superuser or owner of the existing language.
+                The <codeph>REPLACE</codeph> case is mainly meant to be used to
+                ensure that the language exists. If the language has a
+                <varname>pg_pltemplate</varname> entry then <codeph>REPLACE</codeph>
+                will not actually change anything about an existing definition, except in
+                the unusual case where the <varname>pg_pltemplate</varname> entry
+                has been modified since the language was created.
+            </p>
+            <p><codeph>CREATE LANGUAGE</codeph> effectively associates the language name with
+                handler function(s) that are responsible for executing functions written in that language. For a
                 function written in a procedural language (a language other than C or SQL), the
                 database server has no built-in knowledge about how to interpret the function's
                 source code. The task is passed to a special handler that knows the details of the
@@ -64,12 +81,12 @@ CREATE [TRUSTED] [PROCEDURAL] LANGUAGE <varname>name</varname>
             <parml>
                 <plentry>
                     <pt>TRUSTED</pt>
-                    <pd>Ignored if the server has an entry for the specified language name in
-                            <codeph>pg_pltemplate</codeph>. Specifies that the call handler for the
-                        language is safe and does not offer an unprivileged user any functionality
-                        to bypass access restrictions. If this key word is omitted when registering
-                        the language, only users with the superuser privilege can use this language
-                        to create new functions.</pd>
+                    <pd><codeph>TRUSTED</codeph> specifies that the language does
+                        not grant access to data that the user would not otherwise
+                        have. If this key word is omitted
+                        when registering the language, only users with the
+                        Greenplum Database superuser privilege can
+                        use this language to create new functions.</pd>
                 </plentry>
                 <plentry>
                     <pt>PROCEDURAL</pt>
@@ -146,7 +163,7 @@ CREATE [TRUSTED] [PROCEDURAL] LANGUAGE <varname>name</varname>
         <section id="section6">
             <title>Examples</title>
             <p>The preferred way of creating any of the standard procedural languages:</p>
-            <codeblock>CREATE LANGUAGE plpgsql;
+            <codeblock>CREATE LANGUAGE plperl;
 CREATE LANGUAGE plr;</codeblock>
             <p>For a language not known in the <codeph>pg_pltemplate</codeph> catalog:</p>
             <codeblock>CREATE FUNCTION plsample_call_handler() RETURNS 
@@ -165,7 +182,8 @@ CREATE LANGUAGE plsample
             <p><codeph><xref href="ALTER_LANGUAGE.xml#topic1" type="topic" format="dita"/></codeph>,
                         <codeph><xref href="CREATE_FUNCTION.xml#topic1" type="topic" format="dita"
                     /></codeph>, <codeph><xref href="./DROP_LANGUAGE.xml#topic1" type="topic"
-                        format="dita"/></codeph>
+                        format="dita"/></codeph>, <codeph><xref href="./GRANT.xml#topic1"
+                        type="topic" format="dita"/></codeph>
                 <codeph><xref href="DO.xml#topic1"/></codeph></p>
         </section>
     </body>
