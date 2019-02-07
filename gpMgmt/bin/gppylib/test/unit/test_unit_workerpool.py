@@ -140,6 +140,104 @@ class WorkerPoolTest(unittest.TestCase):
         done = self.pool.join(2) # should be immediate, but there's still a race
         self.assertTrue(done)
 
+    def test_completed_returns_number_of_completed_commands(self):
+        for _ in range(3):
+            cmd = mock.Mock(spec=Command)
+            self.pool.addCommand(cmd)
+
+        self.pool.join()
+        self.assertEqual(self.pool.completed, 3)
+
+    def test_completed_can_be_cleared_back_to_zero(self):
+        for _ in range(3):
+            cmd = mock.Mock(spec=Command)
+            self.pool.addCommand(cmd)
+
+        self.pool.join()
+        self.pool.empty_completed_items()
+        self.assertEqual(self.pool.completed, 0)
+
+    def test_completed_is_reset_to_zero_after_getCompletedItems(self):
+        for _ in range(3):
+            cmd = mock.Mock(spec=Command)
+            self.pool.addCommand(cmd)
+
+        self.pool.join()
+        self.pool.getCompletedItems()
+        self.assertEqual(self.pool.completed, 0)
+
+    def test_assigned_returns_number_of_assigned_commands(self):
+        for _ in range(3):
+            cmd = mock.Mock(spec=Command)
+            self.pool.addCommand(cmd)
+
+        self.assertEqual(self.pool.assigned, 3)
+
+    def test_assigned_is_decremented_when_completed_items_are_emptied(self):
+        for _ in range(3):
+            cmd = mock.Mock(spec=Command)
+            self.pool.addCommand(cmd)
+
+        self.pool.join()
+        self.pool.empty_completed_items()
+
+        self.assertEqual(self.pool.assigned, 0)
+
+    def test_assigned_is_decremented_when_completed_items_are_checked(self):
+        cmd = mock.Mock(spec=Command)
+
+        # Command.get_results() returns a CommandResult.
+        # CommandResult.wasSuccessful() should return True if the command
+        # succeeds.
+        result = cmd.get_results.return_value
+        result.wasSuccessful.return_value = True
+
+        self.pool.addCommand(cmd)
+
+        self.pool.join()
+        self.pool.check_results()
+
+        self.assertEqual(self.pool.assigned, 0)
+
+    def test_assigned_is_decremented_when_completed_items_are_popped(self):
+        # The first command will finish immediately.
+        cmd1 = mock.Mock(spec=Command)
+        self.pool.addCommand(cmd1)
+
+        # The other command will wait until we allow it to continue.
+        cmd2 = mock.Mock(spec=Command)
+
+        # cmd.run() will block until this Event is set.
+        event = threading.Event()
+        def wait_for_event():
+            event.wait()
+        cmd2.run.side_effect = wait_for_event
+
+        try:
+            self.pool.addCommand(cmd2)
+            self.assertEqual(self.pool.assigned, 2)
+
+            # Avoid race flakes; make sure we actually complete the first
+            # command.
+            while self.pool.completed < 1:
+                self.pool.join(0.001)
+
+            # Pop the completed item.
+            self.assertEqual(self.pool.getCompletedItems(), [cmd1])
+
+            # Now we should be down to one assigned command.
+            self.assertEqual(self.pool.assigned, 1)
+
+        finally:
+            # Make sure that we unblock the thread even on a test failure.
+            event.set()
+
+        self.pool.join()
+
+        # Pop the other completed item.
+        self.assertEqual(self.pool.getCompletedItems(), [cmd2])
+        self.assertEqual(self.pool.assigned, 0)
+
     def test_join_and_indicate_progress_prints_nothing_if_pool_is_done(self):
         stdout = StringIO.StringIO()
         join_and_indicate_progress(self.pool, stdout)

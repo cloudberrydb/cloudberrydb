@@ -1620,7 +1620,7 @@ ORDER BY fq_name, tableoid desc;
         # wait till done.
         while not self.queue.isDone():
             logger.debug(
-                "woke up.  queue: %d finished %d  " % (self.queue.num_assigned, self.queue.completed_queue.qsize()))
+                "woke up.  queue: %d finished %d  " % (self.queue.assigned, self.queue.completed_queue.qsize()))
             if stopTime and datetime.datetime.now() >= stopTime:
                 stoppedEarly = True
                 break

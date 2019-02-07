@@ -58,19 +58,19 @@ class WorkerPool(object):
         self.should_stop = False
         self.work_queue = Queue()
         self.completed_queue = Queue()
-        self.num_assigned = 0
+        self._assigned = 0
         self.daemonize = daemonize
+        self.logger = logger
+
         if items is not None:
             for item in items:
-                self.work_queue.put(item)
-                self.num_assigned += 1
+                self.addCommand(item)
 
         for i in range(0, numWorkers):
             w = Worker("worker%d" % i, self)
             self.workers.append(w)
             w.start()
         self.numWorkers = numWorkers
-        self.logger = logger
 
     ###
     def getNumWorkers(self):
@@ -89,7 +89,7 @@ class WorkerPool(object):
     def addCommand(self, cmd):
         self.logger.debug("Adding cmd to work_queue: %s" % cmd.cmdStr)
         self.work_queue.put(cmd)
-        self.num_assigned += 1
+        self._assigned += 1
 
     def print_progress(self, command_count):
         while True:
@@ -147,11 +147,20 @@ class WorkerPool(object):
         for w in self.workers:
             w.join()
 
+    def _pop_completed(self):
+        """
+        Pops an item off the completed queue and decrements the assigned count.
+        If the queue is empty, throws Queue.Empty.
+        """
+        item = self.completed_queue.get(False)
+        self._assigned -= 1
+        return item
+
     def getCompletedItems(self):
         completed_list = []
         try:
             while True:
-                item = self.completed_queue.get(False)  # will throw Empty
+                item = self._pop_completed() # will throw Empty
                 if item is not None:
                     completed_list.append(item)
         except Empty:
@@ -165,7 +174,7 @@ class WorkerPool(object):
         """
         try:
             while True:
-                item = self.completed_queue.get(False)
+                item = self._pop_completed() # will throw Empty
                 if not item.get_results().wasSuccessful():
                     raise ExecutionError("Error Executing Command: ", item)
         except Empty:
@@ -173,11 +182,29 @@ class WorkerPool(object):
 
     def empty_completed_items(self):
         while not self.completed_queue.empty():
-            self.completed_queue.get(False)
+            self._pop_completed()
 
     def isDone(self):
         # TODO: not sure that qsize() is safe
-        return (self.num_assigned == self.completed_queue.qsize())
+        return (self.assigned == self.completed_queue.qsize())
+
+    @property
+    def assigned(self):
+        """
+        A read-only count of the number of commands that have been added to the
+        pool. This count is only decremented when items are removed from the
+        completed queue via getCompletedItems(), empty_completed_items(), or
+        check_results().
+        """
+        return self._assigned
+
+    @property
+    def completed(self):
+        """
+        A read-only count of the items in the completed queue. Will be reset to
+        zero after a call to empty_completed_items() or getCompletedItems().
+        """
+        return self.completed_queue.qsize()
 
     def haltWork(self):
         self.logger.debug("WorkerPool haltWork()")

@@ -1297,12 +1297,13 @@ class AnalyzeWorkerPool(WorkerPool):
         self.work_queue = Queue()
         self.completed_queue = Queue()
         self.should_stop = False
-        self.num_assigned = 0
+        self._assigned = 0
         self.daemonize = False
+        self.logger = logger
+
         if items is not None:
             for item in items:
-                self.work_queue.put(item)
-                self.num_assigned += 1
+                self.addCommand(item)
 
         for i in range(0, numWorkers):
             # use AnalyzeWorker instead of Worker
@@ -1310,7 +1311,6 @@ class AnalyzeWorkerPool(WorkerPool):
             self.workers.append(w)
             w.start()
         self.numWorkers = numWorkers
-        self.logger = logger
 
 
 class AnalyzeWorker(Worker):
