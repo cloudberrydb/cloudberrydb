@@ -128,7 +128,7 @@ class WorkerPool(object):
             while self.work_queue.unfinished_tasks:
                 if (timeout <= 0):
                     # Timed out.
-                    return
+                    return False
 
                 start_time = time.time()
                 done_condition.wait(timeout)
@@ -136,9 +136,23 @@ class WorkerPool(object):
         finally:
             done_condition.release()
 
-    def join(self):
-        self.work_queue.join()
         return True
+
+    def join(self, timeout=None):
+        """
+        Waits (up to an optional timeout) for the worker queue to be fully
+        completed, and returns True if the pool is now done with its work.
+
+        A None timeout indicates that join() should wait forever; the return
+        value is always True in this case. Zero and negative timeouts indicate
+        that join() will query the queue status and return immediately, whether
+        the queue is done or not.
+        """
+        if timeout is None:
+            self.work_queue.join()
+            return True
+
+        return self._join_work_queue_with_timeout(timeout)
 
     def joinWorkers(self):
         for w in self.workers:

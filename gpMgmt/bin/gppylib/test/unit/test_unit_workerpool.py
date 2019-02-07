@@ -1,5 +1,6 @@
 import unittest
 import threading
+import time
 
 import mock
 
@@ -47,10 +48,14 @@ class WorkerPoolTest(unittest.TestCase):
 
         self.assertTrue(self.pool.isDone())
 
-        self.pool.addCommand(cmd)
-        self.assertFalse(self.pool.isDone())
+        try:
+            self.pool.addCommand(cmd)
+            self.assertFalse(self.pool.isDone())
 
-        event.set()
+        finally:
+            # Make sure that we unblock the thread even on a test failure.
+            event.set()
+
         self.pool.join()
 
         self.assertTrue(self.pool.isDone())
@@ -91,3 +96,44 @@ class WorkerPoolTest(unittest.TestCase):
 
         with self.assertRaises(ExecutionError):
             self.pool.check_results()
+
+    def test_join_with_timeout_returns_done_immediately_if_there_is_nothing_to_do(self):
+        start = time.time()
+        done = self.pool.join(10)
+        delta = time.time() - start
+
+        self.assertTrue(done)
+
+        # "Returns immediately" is a difficult thing to test. Longer than two
+        # seconds seems like a reasonable failure case, even on a heavily loaded
+        # test container.
+        self.assertLess(delta, 2)
+
+    def test_join_with_timeout_doesnt_return_done_until_all_commands_complete(self):
+        cmd = mock.Mock(spec=Command)
+
+        # cmd.run() will block until this Event is set.
+        event = threading.Event()
+        def wait_for_event():
+            event.wait()
+        cmd.run.side_effect = wait_for_event
+
+        try:
+            self.pool.addCommand(cmd)
+
+            done = self.pool.join(0.001)
+            self.assertFalse(done)
+
+            # Test zero and negative timeouts too.
+            done = self.pool.join(0)
+            self.assertFalse(done)
+
+            done = self.pool.join(-1)
+            self.assertFalse(done)
+
+        finally:
+            # Make sure that we unblock the thread even on a test failure.
+            event.set()
+
+        done = self.pool.join(2) # should be immediate, but there's still a race
+        self.assertTrue(done)
