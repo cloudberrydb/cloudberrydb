@@ -42,10 +42,11 @@
  */
 #define MaxAllocSize	((Size) 0x3fffffff)		/* 1 gigabyte - 1 */
 
-static inline bool AllocSizeIsValid(Size sz)
-{
-        return (sz < MaxAllocSize);
-}
+#define AllocSizeIsValid(size)	((Size) (size) <= MaxAllocSize)
+
+#define MaxAllocHugeSize	(SIZE_MAX / 2)
+
+#define AllocHugeSizeIsValid(size)	((Size) (size) <= MaxAllocHugeSize)
 
 /*
  * Multiple chunks can share a SharedChunkHeader if their shared information
@@ -64,10 +65,6 @@ typedef struct SharedChunkHeader
 	struct SharedChunkHeader *prev;
 	struct SharedChunkHeader *next;
 } SharedChunkHeader;
-
-#define MaxAllocHugeSize	(SIZE_MAX / 2)
-
-#define AllocHugeSizeIsValid(size)	((Size) (size) <= MaxAllocHugeSize)
 
 /*
  * All chunks allocated by any memory context manager are required to be
