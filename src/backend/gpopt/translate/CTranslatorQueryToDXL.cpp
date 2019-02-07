@@ -3142,7 +3142,15 @@ CTranslatorQueryToDXL::NoteDistributionPolicyOpclasses
 	{
 		Relation rel = gpdb::GetRelation(rte->relid);
 		GpPolicy *policy = rel->rd_cdbpolicy;
-		int policy_nattrs = policy ? policy->nattrs : 0;
+
+		// master-only tables
+		if (NULL == policy)
+		{
+			gpdb::CloseRelation(rel);
+			return;
+		}
+
+		int policy_nattrs = policy->nattrs;
 		TupleDesc desc = rel->rd_att;
 		bool contains_default_hashops = false;
 		bool contains_legacy_hashops = false;
