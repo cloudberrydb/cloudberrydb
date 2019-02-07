@@ -1545,7 +1545,6 @@ make_two_stage_agg_plan(PlannerInfo *root,
 									   "partial_aggregation",
 									   &current_pathkeys,
 									   result_plan,
-									   !ctx->is_grpext,
 									   true);
 
 	if (ctx->is_grpext)
@@ -2247,7 +2246,7 @@ make_plan_for_one_dqa(PlannerInfo *root, MppGroupContext *ctx, int dqa_index,
 										   "partial_aggregation",
 										   &current_pathkeys,
 										   result_plan,
-										   true, false);
+										   false);
 	}
 
 	/*
@@ -2324,7 +2323,6 @@ make_plan_for_one_dqa(PlannerInfo *root, MppGroupContext *ctx, int dqa_index,
 									   "partial_aggregation",
 									   &current_pathkeys,
 									   result_plan,
-									   true,
 									   false);
 
 	/* Final sort */
@@ -3621,13 +3619,18 @@ deconstruct_agg_info(MppGroupContext *ctx)
 	{
 		TargetEntry *sub_tle,
 				   *prelim_tle;
+		char	   *resname;
 
 		sub_tle = get_tle_by_resno(ctx->sub_tlist, ctx->groupColIdx[i]);
+
+		if (sub_tle->resname)
+			resname = pstrdup(sub_tle->resname);
+		else
+			resname = psprintf("prelim_aggref_%d", sub_tle->ressortgroupref);
+
 		prelim_tle = makeTargetEntry(copyObject(sub_tle->expr),
 									 list_length(ctx->grps_tlist) + 1,
-									 (sub_tle->resname == NULL) ?
-									 NULL :
-									 pstrdup(sub_tle->resname),
+									 resname,
 									 false);
 		prelim_tle->ressortgroupref = sub_tle->ressortgroupref;
 		prelim_tle->resjunk = false;
@@ -4477,7 +4480,6 @@ add_second_stage_agg(PlannerInfo *root,
 					 const char *alias,
 					 List **p_current_pathkeys,
 					 Plan *result_plan,
-					 bool use_root,
 					 bool adjust_scatter)
 {
 	Query	   *parse = root->parse;
@@ -4539,7 +4541,7 @@ add_second_stage_agg(PlannerInfo *root,
 			tle->resjunk = false;
 			if (tle->resname == NULL)
 			{
-				if (use_root && IsA(tle->expr, Var))
+				if (IsA(tle->expr, Var))
 				{
 					Var		   *var = (Var *) tle->expr;
 					RangeTblEntry *rte = rt_fetch(var->varno, root->parse->rtable);
@@ -4586,18 +4588,13 @@ add_second_stage_agg(PlannerInfo *root,
 	parse->rowMarks = NIL;
 
 	/*
-	 * <EXECUTE s> uses parse->targetList to derive the portal's tupDesc, so
-	 * when use_root is true, the caller owns the responsibility to make sure
-	 * it ends up in an appropriate form at the end of planning.
+	 * Set the target list of outer Query tree to match the new range table.
 	 */
-	if (use_root)
+	if (adjust_scatter)
 	{
-		if (adjust_scatter)
-		{
-			UpdateScatterClause(parse, upper_tlist);
-		}
-		parse->targetList = copyObject(upper_tlist);	/* Match range. */
+		UpdateScatterClause(parse, upper_tlist);
 	}
+	parse->targetList = copyObject(upper_tlist);	/* Match range. */
 
 	result_plan = add_subqueryscan(root, p_current_pathkeys,
 								   1, subquery, result_plan);

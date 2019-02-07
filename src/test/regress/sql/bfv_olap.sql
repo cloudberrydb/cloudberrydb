@@ -348,6 +348,16 @@ GROUP BY ROLLUP( (sale.dt,sale.cn),(sale.pn),(sale.vn));
 
 
 --
+-- Another ROLLUP query, that hit a bug in setting up the planner-generated
+-- subquery's targetlist. (https://github.com/greenplum-db/gpdb/issues/6754)
+--
+SELECT sale.vn, rank() over (partition by sale.vn)
+FROM vendor, sale
+WHERE sale.vn=vendor.vn
+GROUP BY ROLLUP( sale.vn);
+
+
+--
 -- Test window function with constant PARTITION BY
 --
 CREATE TABLE testtab (a int4);

@@ -891,7 +891,7 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 										context->agg_costs,
 										"rollup",
 										&context->current_pathkeys,
-										agg_node, false, false);
+										agg_node, false);
 
 		/* Set inputHasGrouping */
 		((Agg *)agg_node)->inputHasGrouping = true;
@@ -1001,7 +1001,6 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 										context->agg_costs,
 										"rollup", &context->current_pathkeys,
 										agg_node,
-										false,
 										false);
 
 		if (context->aggstrategy == AGG_HASHED)
