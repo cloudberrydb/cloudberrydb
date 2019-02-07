@@ -179,10 +179,6 @@ int			Gp_interconnect_transmit_timeout = 3600;
 int			Gp_interconnect_min_retries_before_timeout = 100;
 int			Gp_interconnect_debug_retry_interval = 10;
 
-int			Gp_interconnect_hash_multiplier = 2;	/* sets the size of the
-													 * hash table used by the
-													 * UDP-IC */
-
 int			interconnect_setup_timeout = 7200;
 
 int			Gp_interconnect_type = INTERCONNECT_TYPE_UDPIFC;

@@ -293,9 +293,6 @@
               <xref href="#gp_interconnect_fc_method"/>
             </li>
             <li>
-              <xref href="#gp_interconnect_hash_multiplier"/>
-            </li>
-            <li>
               <xref href="#gp_interconnect_queue_depth"/>
             </li>
             <li>
@@ -3922,37 +3919,6 @@
             <row>
               <entry colname="col1">CAPACITY<p>LOSS</p></entry>
               <entry colname="col2">LOSS</entry>
-              <entry colname="col3">master<p>session</p><p>reload</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="gp_interconnect_hash_multiplier">
-    <title>gp_interconnect_hash_multiplier</title>
-    <body>
-      <p>Sets the size of the hash table used by the Greenplum Database to track interconnect
-        connections with the default UDPIFC interconnect. This number is multiplied by the number of
-        segments to determine the number of buckets in the hash table. Increasing the value may
-        increase interconnect performance for complex multi-slice queries (while consuming slightly
-        more memory on the segment hosts).</p>
-      <table id="gp_interconnect_hash_multiplier_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">2-25</entry>
-              <entry colname="col2">2</entry>
               <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
           </tbody>

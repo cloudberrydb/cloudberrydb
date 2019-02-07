@@ -1118,9 +1118,6 @@
                   <codeph>gp_interconnect_fc_method</codeph>
                 </p>
                 <p>
-                  <codeph>gp_interconnect_hash_multiplier</codeph>
-                </p>
-                <p>
                   <codeph>gp_interconnect_queue_depth</codeph>
                 </p>
                 <p>
