@@ -780,8 +780,8 @@ CBucket::MakeBucketIntersect
 
 	// TODO: , May 1 2013, distance function for data types such as bpchar/varchar
 	// that require binary comparison
-	GPOS_ASSERT_IMP(!upper_new->GetDatum()->SupportsBinaryComp(lower_new->GetDatum()), distance_new <= Width());
-	GPOS_ASSERT_IMP(!upper_new->GetDatum()->SupportsBinaryComp(lower_new->GetDatum()), distance_new <= bucket->Width());
+	GPOS_ASSERT(distance_new <= Width());
+	GPOS_ASSERT(distance_new <= bucket->Width());
 
 	CDouble ratio1 = distance_new / Width();
 	CDouble ratio2 = distance_new / bucket->Width();

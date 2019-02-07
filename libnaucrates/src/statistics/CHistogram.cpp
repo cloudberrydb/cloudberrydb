@@ -592,17 +592,20 @@ CHistogram::IsValid
 		return false;
 	}
 
-	for (ULONG bucket_index = 1; bucket_index < m_histogram_buckets->Size(); bucket_index++)
+	if (!IsHistogramForTextRelatedTypes())
 	{
-		CBucket *bucket = (*m_histogram_buckets)[bucket_index];
-		CBucket *previous_bucket = (*m_histogram_buckets)[bucket_index - 1];
-
-		// the later bucket's lower point must be greater than or equal to
-		// earlier bucket's upper point. Even if the underlying datum does not
-		// support ordering, the check is safe.
-		if (bucket->GetLowerBound()->IsLessThan(previous_bucket->GetUpperBound()))
+		for (ULONG bucket_index = 1; bucket_index < m_histogram_buckets->Size(); bucket_index++)
 		{
-			return false;
+			CBucket *bucket = (*m_histogram_buckets)[bucket_index];
+			CBucket *previous_bucket = (*m_histogram_buckets)[bucket_index - 1];
+
+			// the later bucket's lower point must be greater than or equal to
+			// earlier bucket's upper point. Even if the underlying datum does not
+			// support ordering, the check is safe.
+			if (bucket->GetLowerBound()->IsLessThan(previous_bucket->GetUpperBound()))
+			{
+				return false;
+			}
 		}
 	}
 	return true;
@@ -1032,6 +1035,25 @@ CHistogram::CopyHistogram
 
 	return histogram_copy;
 }
+
+BOOL
+CHistogram::SupportsTextFilter
+	(
+	CStatsPred::EStatsCmpType stats_cmp_type
+	)
+{
+	// is the scalar comparison type one of =, <>
+	switch (stats_cmp_type)
+	{
+		case CStatsPred::EstatscmptEq:
+		case CStatsPred::EstatscmptNEq:
+			return true;
+		default:
+			return false;
+	}
+}
+
+
 
 // is statistics comparison type supported for filter?
 BOOL
@@ -2150,6 +2172,16 @@ CHistogram::AddEmptyHistogram
 	}
 }
 
-
+BOOL
+CHistogram::IsHistogramForTextRelatedTypes()
+const
+{
+	if (m_histogram_buckets->Size() > 0)
+	{
+		IMDId *mdid = (*m_histogram_buckets)[0]->GetLowerBound()->GetDatum()->MDId();
+		return CStatsPredUtils::IsTextRelatedType(mdid);
+	}
+	return false;
+}
 // EOF
 

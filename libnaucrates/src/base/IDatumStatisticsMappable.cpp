@@ -39,9 +39,8 @@ IDatumStatisticsMappable::StatsAreEqual
 	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 #endif // GPOS_DEBUG
 	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
-	BOOL is_binary_comparison = this->SupportsBinaryComp(datum) && datum_cast->SupportsBinaryComp(this);
 
-	GPOS_ASSERT(is_double_comparison || is_lint_comparison || is_binary_comparison);
+	GPOS_ASSERT(is_double_comparison || is_lint_comparison);
 
 	if (this->IsNull())
 	{
@@ -52,11 +51,6 @@ IDatumStatisticsMappable::StatsAreEqual
 	if (datum_cast->IsNull())
 	{
 		return false;
-	}
-
-	if (is_binary_comparison)
-	{
-		return StatsEqualBinary(datum);
 	}
 
 	if (is_lint_comparison)
@@ -97,9 +91,8 @@ IDatumStatisticsMappable::StatsAreLessThan
 	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 #endif // GPOS_DEBUG
 	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
-	BOOL is_binary_comparison = this->SupportsBinaryComp(datum) && datum_cast->SupportsBinaryComp(this);
 
-	GPOS_ASSERT(is_double_comparison || is_lint_comparison || is_binary_comparison);
+	GPOS_ASSERT(is_double_comparison || is_lint_comparison);
 
 	if (this->IsNull())
 	{
@@ -110,11 +103,6 @@ IDatumStatisticsMappable::StatsAreLessThan
 	if (datum_cast->IsNull())
 	{
 		return false;
-	}
-
-	if (is_binary_comparison)
-	{
-		return StatsLessThanBinary(datum);
 	}
 
 	if (is_lint_comparison)
@@ -155,9 +143,8 @@ IDatumStatisticsMappable::GetStatsDistanceFrom
 	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 #endif // GPOS_DEBUG
 	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
-	BOOL is_binary_comparison = this->SupportsBinaryComp(datum) && datum_cast->SupportsBinaryComp(this);
 
-	GPOS_ASSERT(is_double_comparison || is_lint_comparison || is_binary_comparison);
+	GPOS_ASSERT(is_double_comparison || is_lint_comparison);
 
 	if (this->IsNull())
 	{
@@ -168,16 +155,6 @@ IDatumStatisticsMappable::GetStatsDistanceFrom
 	if (datum_cast->IsNull())
 	{
 		return false;
-	}
-
-	if (is_binary_comparison)
-	{
-		// TODO: , May 1 2013, distance function for data types such as bpchar/varchar
-		// that require binary comparison
-		LINT l1 = this->GetLINTMapping();
-		LINT l2 = datum_cast->GetLINTMapping();
-
-		return fabs(CDouble(l1 - l2).Get());
 	}
 
 	if (is_lint_comparison)
@@ -248,9 +225,8 @@ IDatumStatisticsMappable::StatsAreComparable
 	// datums can be compared based on either LINT or Doubles or BYTEA values
 	BOOL is_double_comparison = this->IsDatumMappableToDouble() && datum_cast->IsDatumMappableToDouble();
 	BOOL is_lint_comparison = this->IsDatumMappableToLINT() && datum_cast->IsDatumMappableToLINT();
-	BOOL is_binary_comparison = this->SupportsBinaryComp(datum_cast) && datum_cast->SupportsBinaryComp(this);
 
-	return is_double_comparison || is_lint_comparison || is_binary_comparison;
+	return is_double_comparison || is_lint_comparison;
 }
 
 //EOF

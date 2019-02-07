@@ -175,6 +175,8 @@ namespace gpnaucrates
 			static
 			BOOL DoNDVBasedCardEstimation(const CHistogram *histogram);
 
+			BOOL IsHistogramForTextRelatedTypes() const;
+
 		public:
 
 			// ctors
@@ -461,6 +463,10 @@ namespace gpnaucrates
 
 			// cap the total number of distinct values (NDVs) in buckets to the number of rows
 			void CapNDVs(CDouble rows);
+
+			// is comparison type supported for filters for text columns
+			static
+			BOOL SupportsTextFilter(CStatsPred::EStatsCmpType stats_cmp_type);
 
 			// is comparison type supported for filters
 			static

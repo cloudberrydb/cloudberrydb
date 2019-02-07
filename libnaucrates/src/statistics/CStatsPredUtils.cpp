@@ -234,6 +234,14 @@ CStatsPredUtils::GetStatsCmpType
 }
 
 
+BOOL
+CStatsPredUtils::IsTextRelatedType(const IMDId *mdid)
+{
+	return mdid->Equals(&CMDIdGPDB::m_mdid_varchar)
+	|| mdid->Equals(&CMDIdGPDB::m_mdid_bpchar)
+	|| mdid->Equals(&CMDIdGPDB::m_mdid_text);
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CStatsPredUtils::GetPredStats
@@ -294,6 +302,14 @@ CStatsPredUtils::GetPredStats
 	GPOS_ASSERT(NULL != scalar_const_op);
 
 	IDatum *datum = scalar_const_op->GetDatum();
+
+	BOOL is_text_related_type = IsTextRelatedType(datum->MDId()) && IsTextRelatedType(col_ref->RetrieveType()->MDId());
+	if (is_text_related_type && !CHistogram::SupportsTextFilter(stats_cmp_type))
+	{
+		return GPOS_NEW(mp) CStatsPredUnsupported(col_ref->Id(), stats_cmp_type);
+	}
+
+
 	if (!CHistogram::SupportsFilter(stats_cmp_type) || !IMDType::StatsAreComparable(col_ref->RetrieveType(), datum))
 	{
 		// case 1: unsupported predicate for stats calculations

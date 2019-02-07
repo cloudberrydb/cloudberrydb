@@ -178,12 +178,6 @@ CMCVTest::EresUnittest_MergeHistMCV()
 		"../data/dxl/statistics/Merge-Input-MCV-Numeric.xml",
 		"../data/dxl/statistics/Merge-Input-Histogram-Numeric.xml",
 		"../data/dxl/statistics/Merge-Output-Numeric.xml"
-		},
-
-		{
-		"../data/dxl/statistics/Merge-Input-MCV-BPChar.xml",
-		"../data/dxl/statistics/Merge-Input-Histogram-BPChar.xml",
-		"../data/dxl/statistics/Merge-Output-BPChar.xml"
 		}
 	};
 

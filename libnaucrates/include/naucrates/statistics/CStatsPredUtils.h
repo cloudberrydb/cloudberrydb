@@ -202,6 +202,10 @@ namespace gpopt
 			static
 			BOOL IsUnsupportedPredOnDefinedCol(CStatsPred *pred_stats);
 
+			// is the type varchar, bpchar or text
+			static
+			BOOL IsTextRelatedType(const IMDId *mdid);
+
 	}; // class CStatsPredUtils
 }
 

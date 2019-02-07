@@ -77,17 +77,6 @@ namespace gpnaucrates
 				return LINT(Value());
 			}
 
-			//  supports statistical comparisons based on the byte array representation of datum
-			virtual
-			BOOL SupportsBinaryComp
-				(
-				const IDatum * //datum
-				) 
-				const
-			{
-				return false;
-			}
-
 			// byte array representation of datum
 			virtual
 			const BYTE *GetByteArrayValue() const
@@ -114,30 +103,6 @@ namespace gpnaucrates
 			{
 				GPOS_ASSERT(!"Invalid invocation of MakePaddedDatum");
 				return NULL;
-			}
-
-			// statistics equality based on byte array representation of datums
-			virtual
-			BOOL StatsEqualBinary
-				(
-				const IDatum * //datum
-				)
-				const
-			{
-				GPOS_ASSERT(!"Invalid invocation of StatsEqualBinary");
-				return false;
-			}
-
-			// statistics less than based on byte array representation of datums
-			virtual
-			BOOL StatsLessThanBinary
-				(
-				const IDatum * //datum
-				)
-				const
-			{
-				GPOS_ASSERT(!"Invalid invocation of StatsLessThanBinary");
-				return false;
 			}
 
 			// does datum support like predicate

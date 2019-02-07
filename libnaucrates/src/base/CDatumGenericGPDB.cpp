@@ -325,27 +325,6 @@ CDatumGenericGPDB::IsDatumMappableToLINT() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDatumGenericGPDB::SupportsBinaryComp
-//
-//	@doc:
-//		For statistics computation, can we compare byte array
-//
-//---------------------------------------------------------------------------
-BOOL
-CDatumGenericGPDB::SupportsBinaryComp
-		(
-				const IDatum *datum_other
-		)
-	const
-{
-	return ((MDId()->Equals(&CMDIdGPDB::m_mdid_bpchar)
-			|| MDId()->Equals(&CMDIdGPDB::m_mdid_varchar)
-			|| MDId()->Equals(&CMDIdGPDB::m_mdid_text))
-			&& (this->MDId()->Sysid().Equals(datum_other->MDId()->Sysid())));
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CDatumGenericGPDB::MakeCopyOfValue
 //
 //	@doc:
@@ -600,108 +579,6 @@ CDatumGenericGPDB::GetTrailingWildcardSelectivity
 	}
 
 	return CDouble(1.0);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CDatumGenericGPDB::StatsEqualBinary
-//
-//	@doc:
-//		Equality based on byte array
-//
-//---------------------------------------------------------------------------
-BOOL
-CDatumGenericGPDB::StatsEqualBinary
-	(
-	const IDatum *datum_other
-	)
-	const
-{
-	GPOS_ASSERT(NULL != datum_other);
-	GPOS_ASSERT(this->SupportsBinaryComp(datum_other) && datum_other->SupportsBinaryComp(this));
-
-	// ensure that both datums are from the same system
-	// for instance, disallow comparison between GPDB char and HD char
-	GPOS_ASSERT(this->MDId()->Sysid().Equals(datum_other->MDId()->Sysid()));
-
-	if (IsNull() || datum_other->IsNull())
-	{
-		return false;
-	}
-
-	const ULONG length = this->Size();
-	const ULONG length_other = datum_other->Size();
-
-	if (length != length_other)
-	{
-		return false;
-	}
-
-	// compare the two BYTEA after offsetting used by the GPDB datum header length
-	const BYTE *byte_array_value = this->GetByteArrayValue();
-	const BYTE *other_byte_array_value = datum_other->GetByteArrayValue();
-	INT result = gpos::clib::Memcmp
-								(
-										byte_array_value + GPDB_DATUM_HDRSZ, 
-										other_byte_array_value + GPDB_DATUM_HDRSZ,
-								length - GPDB_DATUM_HDRSZ
-								);
-
-	return (0 == result);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CDatumGenericGPDB::StatsLessThanBinary
-//
-//	@doc:
-//		Less-than comparison based on byte array
-//
-//---------------------------------------------------------------------------
-BOOL
-CDatumGenericGPDB::StatsLessThanBinary
-	(
-	const IDatum *datum_other
-	)
-	const
-{
-	GPOS_ASSERT(NULL != datum_other);
-	GPOS_ASSERT(this->SupportsBinaryComp(datum_other) && datum_other->SupportsBinaryComp(this));
-
-	// ensure that both datums are from the same system
-	// for instance, disallow comparison between GPDB char and HD char
-	GPOS_ASSERT(this->MDId()->Sysid().Equals(datum_other->MDId()->Sysid()));
-
-	if (IsNull() || datum_other->IsNull())
-	{
-		return false;
-	}
-
-	const ULONG length_other = datum_other->Size();
-
-	ULONG length_self = this->Size();
-	if (this->Size() > length_other)
-	{
-		length_self = length_other;
-	}
-
-	const BYTE *byte_array_value = this->GetByteArrayValue();
-	const BYTE *byte_array_value_other = datum_other->GetByteArrayValue();
-
-	// compare the two BYTEA after offset-ing used by the GPDB datum header length
-	INT result = gpos::clib::Memcmp
-								(
-										byte_array_value + GPDB_DATUM_HDRSZ,
-								byte_array_value_other + GPDB_DATUM_HDRSZ,
-								length_self - GPDB_DATUM_HDRSZ
-								);
-
-	if (0 > result)
-	{
-		return true;
-	}
-
-	return (0 == result && this->Size() < length_other);
 }
 
 // EOF

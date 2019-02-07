@@ -151,21 +151,9 @@ namespace gpnaucrates
 			virtual
 			CDouble GetLikePredicateScaleFactor() const = 0;
 
-			// supports statistical comparisons based on the byte array representation of datum
-			virtual
-			BOOL SupportsBinaryComp(const IDatum *datum) const = 0;
-
 			// byte array for char/varchar columns
 			virtual
 			const BYTE *GetByteArrayValue() const = 0;
-
-			// statistics equality based on byte array representation of datums
-			virtual
-			BOOL StatsEqualBinary(const IDatum *datum) const = 0;
-
-			// statistics less than based on byte array representation of datums
-			virtual
-			BOOL StatsLessThanBinary(const IDatum *datum) const = 0;
 
 			// comparison function sorting idatums
 			static

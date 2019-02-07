@@ -146,10 +146,6 @@ class CDatumGenericGPDB : public IDatumGeneric
 			return m_stats_comp_val_int;
 		}
 
-		//  supports statistical comparisons based on the byte array representation of datum
-		virtual
-		BOOL SupportsBinaryComp(const IDatum *datum) const;
-
 		// byte array representation of datum
 		virtual
 		const BYTE *GetByteArrayValue() const;
@@ -165,14 +161,6 @@ class CDatumGenericGPDB : public IDatumGeneric
 		// return the padded datum
 		virtual
 		IDatum *MakePaddedDatum(IMemoryPool *mp, ULONG col_len) const;
-
-		// statistics equality based on byte array representation of datums
-		virtual
-		BOOL StatsEqualBinary(const IDatum *datum) const;
-
-		// statistics less than based on byte array representation of datums
-		virtual
-		BOOL StatsLessThanBinary(const IDatum *datum) const;
 
 		// does datum support like predicate
 		virtual
