@@ -131,4 +131,8 @@ clean distclean maintainer-clean:
 	rm -rf tmp_check
 
 check:
-	echo "ssl check temporarily disabled."
+ifeq ($(with_openssl),yes)
+	$(prove_check)
+else
+	@echo "SSL is disabled for this build"
+endif

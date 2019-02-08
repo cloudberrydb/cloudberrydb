@@ -148,6 +148,14 @@ $(call recurse,installcheck-world, \
 			   gpcontrib \
 			   src/bin/ \
 			   gpMgmt/bin,installcheck)
+
+# GPDB: Postgres disables the SSL tests during ICW because of the TCP port that
+# it opens to other users on the same machine during testing. GPDB makes no such
+# security guarantees during tests: currently, it is unsafe to run
+# installcheck-world on a machine with untrusted users.
+$(call recurse,installcheck-world, \
+			   src/test/ssl,check)
+
 .PHONY: installcheck-gpcheckcat
 installcheck-world: installcheck-gpcheckcat
 installcheck-gpcheckcat:
