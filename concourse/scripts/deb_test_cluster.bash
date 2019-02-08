@@ -14,10 +14,9 @@ if [ "$OUTPUT" != "1" ]; then
 fi
 
 # open source should not include the proprietary quicklz library. Make sure any attempt to use it will fail.
-psql -U gpadmin testdb -c "CREATE TABLE foo (a int, b text) WITH (appendonly=true, compresstype=quicklz, compresslevel=1);"
 set +e
-quicklz_error=$(psql testdb -c "INSERT INTO foo VALUES (1, 'abc');" 2>&1)
+quicklz_error=$(psql -U gpadmin testdb -c "CREATE TABLE foo (a int, b text) WITH (appendonly=true, compresstype=quicklz, compresslevel=1);" 2>&1)
 set -e
 
-echo $quicklz_error | grep "unknown compress type \"quicklz\""
+echo $quicklz_error | grep "QuickLZ library is not supported by this build"
 exit $?
