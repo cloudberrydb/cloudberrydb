@@ -1575,6 +1575,7 @@ Alter type int_rle_type set default encoding (compresstype=zlib,compresslevel=1)
 Insert into co_create_type_rle_type_8192_4(a1,after_rename_a3,a4,a5,a6)  select a1,after_rename_a3,a4,a5,a6 from co_create_type_rle_type_8192_4 ;
 Select count(*) from co_create_type_rle_type_8192_4; 
 
+-- Given an AO/CO with zlib type compression
 Drop table if exists mpp17012_compress_test2;
 create table mpp17012_compress_test2 (
 col1 character(2),
@@ -1588,10 +1589,30 @@ distributed by (col1);
 select pg_size_pretty(pg_relation_size('mpp17012_compress_test2')),
 get_ao_compression_ratio('mpp17012_compress_test2');
 \d+ mpp17012_compress_test2
+-- When I insert data
 insert into mpp17012_compress_test2 values('a',generate_series(1,250),'ksjdhfksdhfksdhfksjhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+-- Then the data will be compressed according to a consistent compression ratio
 select pg_size_pretty(pg_relation_size('mpp17012_compress_test2')),
 get_ao_compression_ratio('mpp17012_compress_test2');
 
--- compute compression ratio on empty aorow table
-create table empty_aorow_table (c int) with (appendonly=true) distributed by (c);
-select get_ao_compression_ratio('empty_aorow_table');
+-- Test that an AO/CO table with compresstype zlib and invalid compress level will error at create
+create table a_aoco_table_with_zlib_and_invalid_compression_level(col text) WITH (APPENDONLY=true, COMPRESSTYPE=zlib, compresslevel=-1, ORIENTATION=column);
+
+-- Check that callbacks are registered
+SELECT * FROM pg_compression WHERE compname='zlib';
+
+-- Given an AO/CO with RLE type compression
+create table a_aoco_table_with_rle_type_compression(col int) WITH (APPENDONLY=true, COMPRESSTYPE=rle_type, compresslevel=1, ORIENTATION=column);
+select pg_size_pretty(pg_relation_size('a_aoco_table_with_rle_type_compression')),
+       get_ao_compression_ratio('a_aoco_table_with_rle_type_compression');
+-- When I insert data
+insert into a_aoco_table_with_rle_type_compression select i from generate_series(1,100)i;
+-- Then the data will be compressed according to a consistent compression ratio
+select pg_size_pretty(pg_relation_size('a_aoco_table_with_rle_type_compression')),
+       get_ao_compression_ratio('a_aoco_table_with_rle_type_compression');
+
+-- Test that an AO/CO table with compresstype rle and invalid compress level will error at create
+create table a_aoco_table_with_rle_type_and_invalid_compression_level(col int) WITH (APPENDONLY=true, COMPRESSTYPE=rle_type, compresslevel=-1, ORIENTATION=column);
+
+-- Check that callbacks are registered
+SELECT * FROM pg_compression WHERE compname='rle_type';
