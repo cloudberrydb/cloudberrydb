@@ -6,6 +6,19 @@ use Test::More tests => 29;
 use ServerSetup;
 use File::Copy;
 
+# Like TestLib.pm, we use IPC::Run
+BEGIN
+{
+	eval {
+		require IPC::Run;
+		import IPC::Run qw(run start);
+		1;
+	} or do
+	{
+		plan skip_all => "IPC::Run not available";
+	  }
+}
+
 #### Some configuration
 
 # This is the hostname used to connect to the server. This cannot be a
@@ -22,9 +35,11 @@ sub run_test_psql
 	my $connstr   = $_[0];
 	my $logstring = $_[1];
 
+	local $ENV{PGOPTIONS} = '-c gp_session_role=utility';
+
 	my $cmd = [
-		'psql', '-X', '-A', '-t', '-c', "'SELECT version();'",
-		'-d', "'" . "$connstr" . "'" ];
+		'psql', '-X', '-A', '-t', '-c', "SELECT 'connected with $connstr'",
+		'-d', "$connstr" ];
 
 	my $result = run_log($cmd);
 	return $result;
@@ -34,6 +49,8 @@ sub run_test_psql
 # The first argument is a (part of a) connection string, and it's also printed
 # out as the test case name. It is appended to $common_connstr global variable,
 # which also contains a libpq connection string.
+#
+# The second argument is a hostname to connect to.
 sub test_connect_ok
 {
 	my $connstr = $_[0];
@@ -58,10 +75,15 @@ chmod 0600, "ssl/client_tmp.key";
 
 #### Part 0. Set up the server.
 
-note "setting up data directory";
-my $node = get_new_demo_node();
-
+note "setting up data directory...";
+my $node = get_new_node('master');
 $node->init;
+
+# PGHOST is enforced here to set up the node, subsequent connections
+# will use a dedicated connection string.
+$ENV{PGHOST} = $node->host;
+$ENV{PGPORT} = $node->port;
+$node->start;
 configure_test_server_for_ssl($node, $SERVERHOSTADDR);
 switch_server_cert($node, 'server-cn-only');
 
