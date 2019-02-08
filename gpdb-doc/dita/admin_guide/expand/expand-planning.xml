@@ -409,24 +409,6 @@
           setting on the new hosts to avoid disk space shortage. </note>
       </body>
     </topic>
-    <topic id="topic14" xml:lang="en">
-      <title>Redistributing Tables with Primary Key Constraints</title>
-      <body>
-        <p>There is a time period during which primary key constraints cannot be enforced between
-          the initialization of new segments and successful table redistribution. Duplicate data
-          inserted into tables during this period prevents the expansion utility from redistributing
-          the affected tables.</p>
-        <p>After a table is redistributed, the primary key constraint is properly enforced again. If
-          an expansion process violates constraints, the expansion utility logs errors and displays
-          warnings when it completes. To fix constraint violations, perform one of the following
-            remedies:<ul id="ul_g1d_jfr_g4">
-            <li id="no169634">Clean up duplicate data in the primary key columns, and re-run
-                <codeph>gpexpand</codeph>. </li>
-            <li id="no169656">Drop the primary key constraints, and re-run
-              <codeph>gpexpand</codeph>. </li>
-          </ul></p>
-      </body>
-    </topic>
     <topic id="topic16" xml:lang="en">
       <title>Redistributing Partitioned Tables</title>
       <body>

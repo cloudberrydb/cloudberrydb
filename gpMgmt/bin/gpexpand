@@ -71,7 +71,7 @@ Remaining TODO items:
 ====================
 """,
 
-         """* smarter heuristics on setting ranks. """,
+         """* smarter heuristics on deciding which tables to reorder first. """,
 
          """* make sure system isn't in "readonly mode" during setup. """,
 
@@ -284,7 +284,6 @@ status_detail_table_sql = """CREATE TABLE gpexpand.status_detail
                           fq_name text,
                           table_oid oid,
                           root_partition_name text,
-                          rank int,
                           status text,
                           expansion_started timestamp,
                           expansion_finished timestamp,
@@ -350,22 +349,6 @@ WHERE status = '%s'
                          done_status,
                          'EXPANSION STARTED',
                          start_status, undone_status)
-
-has_unique_index_sql = """
-SELECT
-    current_database() || '.' || pg_catalog.quote_ident(nspname) || '.' || pg_catalog.quote_ident(relname) AS table
-FROM
-    pg_class c,
-    pg_namespace n,
-    pg_index i
-WHERE
-  i.indrelid = c.oid
-  AND c.relnamespace = n.oid
-  AND i.indisunique
-  AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast',
-                        'pg_bitmapindex', 'pg_aoseg')
-"""
-
 
 # -------------------------------------------------------------------------
 class InvalidStatusError(Exception): pass
@@ -865,7 +848,6 @@ class gpexpand:
         self.options = options
         self.numworkers = parallel
         self.gparray = gparray
-        self.unique_index_tables = {}
         self.conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8', allowSystemTableMods=True)
         self.old_segments = self.gparray.getSegDbList()
         if dburl.pgdb == 'template0' or dburl.pgdb == 'template1' or dburl.pgdb == 'postgres':
@@ -994,41 +976,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
             return False
 
         return True
-
-    def check_unique_indexes(self):
-        """ Checks if there are tables with unique indexes.
-        Returns true if unique indexes exist"""
-
-        conn = None
-        has_unique_indexes = False
-
-        try:
-            conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
-            databases = catalog.getDatabaseList(conn)
-            conn.close()
-
-            tempurl = copy.deepcopy(self.dburl)
-            for db in databases:
-                if db[0] == 'template0':
-                    continue
-                self.logger.info('Checking database %s for tables with unique indexes...' % db[0].decode('utf-8'))
-                tempurl.pgdb = db[0]
-                conn = dbconn.connect(tempurl, utility=True, encoding='UTF8')
-                cursor = dbconn.execSQL(conn, has_unique_index_sql)
-                for row in cursor:
-                    has_unique_indexes = True
-                    self.unique_index_tables[row[0]] = True
-                cursor.close()
-                conn.close()
-
-        except DatabaseError, ex:
-            if self.options.verbose:
-                logger.exception(ex)
-            logger.error('Failed to check for unique indexes.')
-            if conn: conn.close()
-            raise ex
-
-        return has_unique_indexes
 
     def rollback(self, dburl):
         """Rolls back and expansion setup that didn't successfully complete"""
@@ -1532,11 +1479,10 @@ WHERE
                 rel_bytes = int(row[3])
                 root_partition_name = row[4]
                 full_name = '%s.%s' % (dbname, fqname)
-                rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                fp.write("""%s\t%s\t%s\t%s\t%s\tNULL\tNULL\t%d\n""" % (
                     dbname, fqname, table_oid,
-                    root_partition_name, rank, undone_status, rel_bytes))
+                    root_partition_name, undone_status, rel_bytes))
         except Exception, e:
             raise ExpansionError(e)
         finally:
@@ -1612,11 +1558,10 @@ ORDER BY fq_name, tableoid desc;
                 rel_bytes = int(row[3])
                 root_partition_name = row[4]
                 full_name = '%s.%s' % (dbname, fqname)
-                rank = 1 if self.unique_index_tables.has_key(full_name) else 2
 
-                fp.write("""%s\t%s\t%s\t%s\t%d\t%s\tNULL\tNULL\t%d\n""" % (
+                fp.write("""%s\t%s\t%s\t%s\t%s\tNULL\tNULL\t%d\n""" % (
                     dbname, fqname, table_oid,
-                    root_partition_name, rank, undone_status, rel_bytes))
+                    root_partition_name, undone_status, rel_bytes))
         except Exception:
             raise
         finally:
@@ -1654,7 +1599,7 @@ ORDER BY fq_name, tableoid desc;
         self.conn.commit()
 
         # read schema and queue up commands
-        sql = "SELECT * FROM gpexpand.status_detail WHERE status = 'NOT STARTED' ORDER BY rank"
+        sql = "SELECT * FROM gpexpand.status_detail WHERE status = 'NOT STARTED'"
         cursor = dbconn.execSQL(self.conn, sql)
 
         for row in cursor:
@@ -1766,7 +1711,7 @@ ORDER BY fq_name, tableoid desc;
             c = dbconn.connect(self.dburl, encoding='UTF8')
             self.logger.warn('Expansion has not yet completed.  Removing the expansion')
             self.logger.warn('schema now will leave the following tables unexpanded:')
-            unexpanded_tables_sql = "SELECT fq_name FROM gpexpand.status_detail WHERE status = 'NOT STARTED' ORDER BY rank"
+            unexpanded_tables_sql = "SELECT fq_name FROM gpexpand.status_detail WHERE status = 'NOT STARTED'"
 
             cursor = dbconn.execSQL(c, unexpanded_tables_sql)
             unexpanded_tables_text = ''.join("\t%s\n" % row[0] for row in cursor)
@@ -1858,7 +1803,7 @@ class ExpandTable():
         if row is not None:
             (self.dbname, self.fq_name, self.table_oid,
              self.root_partition_name,
-             self.rank, self.status,
+             self.status,
              self.expansion_started, self.expansion_finished,
              self.source_bytes) = row
         if self.fq_name == self.root_partition_name:
@@ -2390,13 +2335,6 @@ def main(options, args, parser):
             logger.info('If you want to expand again, run gpexpand -c to remove')
             logger.info('the gpexpand schema and begin a new expansion')
         elif gpexpand_db_status is None and gpexpand_file_status is None and options.filename:
-            if _gp_expand.check_unique_indexes():
-                logger.warn("Tables with unique indexes exist.  Until these tables are successfully")
-                logger.warn("redistributed, unique constraints may be violated.  For more information")
-                logger.warn("on this issue, see the Greenplum Database Administrator Guide")
-                if not options.silent:
-                    if not ask_yesno(None, "Would you like to continue with System Expansion", 'N'):
-                        raise ValidationError()
             _gp_expand.validate_heap_checksums()
             newSegList = _gp_expand.read_input_files()
             _gp_expand.addNewSegments(newSegList)
