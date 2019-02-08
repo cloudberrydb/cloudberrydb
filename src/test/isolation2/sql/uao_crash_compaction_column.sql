@@ -5,6 +5,31 @@
 -- m/ERROR:.*server closed the connection unexpectedly/
 -- s/ERROR:.*server closed the connection unexpectedly/ERROR: server closed the connection unexpectedly/gm
 -- end_matchsubs
+include: helpers/server_helpers.sql;
+
+create or replace function wait_for_replication_replay (retries int) returns bool as
+$$
+declare
+	i int; /* in func */
+	result bool; /* in func */
+begin /* in func */
+	i := 0; /* in func */
+	-- Wait until all mirrors has replayed up to flush location
+	loop /* in func */
+		SELECT flush_location = replay_location INTO result from gp_stat_replication where gp_segment_id = 0; /* in func */
+		if result then /* in func */
+			return true; /* in func */
+		end if; /* in func */
+
+		if i >= retries then /* in func */
+		   return false; /* in func */
+		end if; /* in func */
+		perform pg_sleep(0.1); /* in func */
+		i := i + 1; /* in func */
+	end loop; /* in func */
+end; /* in func */
+$$ language plpgsql;
+
 3:CREATE extension if NOT EXISTS gp_inject_fault;
 3:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
 --
@@ -59,6 +84,7 @@
 
 -- wait for segment to complete recovering
 0U: SELECT 1;
+0Uq:
 
 -- reset faults as protection incase tests failed and panic didn't happen
 1:SELECT gp_inject_fault('compaction_before_cleanup_phase', 'reset', 2);
@@ -155,3 +181,36 @@ SELECT gp_wait_until_triggered_fault('compaction_before_cleanup_phase', 1, 1);
 4:INSERT INTO crash_master_before_segmentfile_drop VALUES(21, 1, 'c'), (26, 1, 'c');
 4:UPDATE crash_master_before_segmentfile_drop SET b = b+10 WHERE a=26;
 4:SELECT * FROM crash_master_before_segmentfile_drop ORDER BY a,b;
+
+-- Scenario for validating mirror replays fine and doesn't crash on
+-- truncate record replay even if file is missing.
+
+4:SET gp_default_storage_options="appendonly=true,orientation=column";
+4:CREATE TABLE crash_vacuum_in_appendonly_insert_1 (a INT, b INT, c CHAR(20));
+-- just sanity check to make sure appendonly table is created
+4:SELECT count(*) from pg_appendonly where relid in (select oid from pg_class where relname='crash_vacuum_in_appendonly_insert_1');
+4:INSERT INTO crash_vacuum_in_appendonly_insert_1 SELECT i AS a, 1 AS b, 'hello world' AS c FROM generate_series(1, 10) AS i;
+4:UPDATE crash_vacuum_in_appendonly_insert_1 SET b = 2;
+4:SELECT gp_inject_fault('xlog_ao_insert', 'infinite_loop', 2);
+-- This will cause file to be created on primary for segno 2 but crash
+-- just before creating the xlog record. Hence, primary will have the
+-- file but not mirror.
+4&:VACUUM crash_vacuum_in_appendonly_insert_1;
+5:SELECT gp_wait_until_triggered_fault('xlog_ao_insert', 1, 2);
+-- to make sure xlog gets flushed till this point to persist the
+-- changes to pg_aocsseg.
+5:CHECKPOINT;
+-- Restart the primary to interrupt vacuum at that exact point.
+5:select pg_ctl((select datadir from gp_segment_configuration c
+where c.role='p' and c.content=0), 'restart');
+4<:
+-- Shows entries for new files added to pg_aocsseg table. These are
+-- the entries next vacuum command will use to perform truncate.
+0U:SELECT segno,column_num,physical_segno,tupcount,modcount,state FROM gp_toolkit.__gp_aocsseg('crash_vacuum_in_appendonly_insert_1');
+-- generates truncate xlog record for all the files having entry in
+-- pg_aocsseg table.
+6:VACUUM crash_vacuum_in_appendonly_insert_1;
+-- Make sure mirror is able to successfully replay all the truncate
+-- records generated and doesn't encounter the "WAL contains
+-- references to invalid pages" PANIC.
+6:SELECT * from wait_for_replication_replay(1000);

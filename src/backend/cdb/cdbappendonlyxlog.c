@@ -22,7 +22,8 @@
 #include "cdb/cdbappendonlyxlog.h"
 #include "storage/fd.h"
 #include "catalog/catalog.h"
-
+#include "utils/faultinjector.h"
+#include "utils/faultinjector_lists.h"
 #include "access/xlogutils.h"
 
 /*
@@ -57,6 +58,7 @@ xlog_ao_insert(RelFileNode relFileNode, int32 segmentFileNum,
 		rdata[1].next = NULL;
 	}
 
+	SIMPLE_FAULT_INJECTOR(XLogAoInsert);
 	XLogInsert(RM_APPEND_ONLY_ID, XLOG_APPENDONLY_INSERT, rdata);
 }
 
@@ -166,7 +168,20 @@ ao_truncate_replay(XLogRecord *record)
 	file = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
 	if (file < 0)
 	{
-		XLogAOSegmentFile(xlrec->target.node, xlrec->target.segment_filenum);
+		/*
+		 * Primary creates the file first and then writes the xlog record for
+		 * the creation for AO tables similar to heap.  Hence, file can get
+		 * created on primary without writing xlog record if failure happens
+		 * on primary just after creating the file. This creates situation
+		 * where VACUUM can generate truncate record based on aoseg entry with
+		 * eof 0 and file present on primary. Then during replay mirror may
+		 * not have the file, as was never created on mirror. So, avoid adding
+		 * the entry to invalid hash table for truncate at offset zero
+		 * (EOF=0).  This avoids mirror PANIC, as anyways truncate to zero is
+		 * same as file not present.
+		 */
+		if (xlrec->target.offset != 0)
+			XLogAOSegmentFile(xlrec->target.node, xlrec->target.segment_filenum);
 		return;
 	}
 
