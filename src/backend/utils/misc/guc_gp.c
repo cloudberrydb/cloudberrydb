@@ -420,6 +420,7 @@ bool		optimizer_array_constraints;
 bool		optimizer_cte_inlining;
 bool		optimizer_enable_space_pruning;
 bool		optimizer_enable_associativity;
+bool		optimizer_enable_eageragg;
 
 /* Analyze related GUCs for Optimizer */
 bool		optimizer_analyze_root_partition;
@@ -3039,6 +3040,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_enable_global_deadlock_detector,
 		false, NULL, NULL
+    },
+
+	{
+		{"optimizer_enable_eageragg", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enable Eager Agg transform for pushing aggregate below an innerjoin."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_eageragg,
+		false,
+		NULL, NULL, NULL
 	},
 
 	/* End-of-list marker */
@@ -5162,7 +5174,7 @@ set_gp_replication_config(const char *name, const char *value)
 	List *args = list_make1(&aconst);
 	VariableSetStmt setstmt = {.type = T_VariableSetStmt, .kind = VAR_SET_VALUE, .name = pstrdup(name), .args = args};
 	AlterSystemStmt alterSystemStmt = {.type = T_AlterSystemStmt, .setstmt = &setstmt};
-	
+    
 	AlterSystemSetConfigFile(&alterSystemStmt);
 }
 
