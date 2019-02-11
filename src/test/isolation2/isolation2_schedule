@@ -2,6 +2,16 @@ test: select_dropped_table
 # test update hash col under utility mode
 test: update_hash_col_utilitymode
 
+# Tests for crash recovery
+test: uao_crash_compaction_column
+test: uao_crash_compaction_row
+test: crash_recovery
+test: crash_recovery_redundant_dtx
+test: crash_recovery_dtm
+test: unlogged_heap_tables
+test: unlogged_appendonly_tables
+test: udf_exception_blocks_panic_scenarios
+
 # Tests on global deadlock detector
 test: select_for_update
 test: gdd/prepare
@@ -141,16 +151,6 @@ test: segwalrep/cancel_commit_pending_replication
 test: segwalrep/twophase_tolerance_with_mirror_promotion
 test: pg_basebackup
 test: pg_basebackup_with_tablespaces
-
-# Tests for crash recovery
-test: crash_recovery
-test: crash_recovery_redundant_dtx
-test: crash_recovery_dtm
-test: uao_crash_compaction_row
-test: uao_crash_compaction_column
-test: unlogged_heap_tables
-test: unlogged_appendonly_tables
-test: udf_exception_blocks_panic_scenarios
 
 # Reindex tests
 test: reindex/abort_reindex

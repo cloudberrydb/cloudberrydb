@@ -213,4 +213,4 @@ where c.role='p' and c.content=0), 'restart');
 -- Make sure mirror is able to successfully replay all the truncate
 -- records generated and doesn't encounter the "WAL contains
 -- references to invalid pages" PANIC.
-6:SELECT * from wait_for_replication_replay(1000);
+6:SELECT * from wait_for_replication_replay(5000);
