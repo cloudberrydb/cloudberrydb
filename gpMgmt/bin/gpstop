@@ -60,6 +60,28 @@ class SegStopStatus:
             self.db.dbid, self.db.hostname, self.db.datadir, self.reason)
 
 
+def print_progress(pool, interval=10):
+    """
+    Waits for a WorkerPool to complete, printing a progress percentage marker
+    once at the beginning of the call, and thereafter at the provided interval
+    (default ten seconds). A final 100% marker is printed upon completion.
+    """
+    def print_completed_percentage():
+        # pool.completed can change asynchronously; save its value.
+        completed = pool.completed
+
+        pct = 0
+        if pool.assigned:
+            pct = float(completed) / pool.assigned
+
+        pool.logger.info('%0.2f%% of jobs completed' % (pct * 100))
+        return completed >= pool.assigned
+
+    # print_completed_percentage() returns True if we're done.
+    while not print_completed_percentage():
+        pool.join(interval)
+
+
 # ---------------------------------------------------------------
 class GpStop:
     ######
@@ -572,8 +594,6 @@ class GpStop:
 
     ######
     def _stopseg_cmds(self, includePrimaries, includeMirrors, segs):
-        dispatch_count = 0
-
         host_segs_map = {}
         for seg in segs:
             if seg.getSegmentHostName() in host_segs_map.keys():
@@ -603,10 +623,8 @@ class GpStop:
                                   verbose=logging_is_verbose(), ctxt=base.REMOTE, remoteHost=hostname,
                                   logfileDirectory=self.logfileDirectory)
             self.pool.addCommand(cmd)
-            dispatch_count += 1
 
-        self.pool.print_progress(dispatch_count)
-        pass
+        print_progress(self.pool)
 
     ######
     def _process_segment_stop(self, failed_seg_status):

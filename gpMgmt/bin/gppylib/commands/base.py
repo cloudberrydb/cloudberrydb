@@ -91,17 +91,6 @@ class WorkerPool(object):
         self.work_queue.put(cmd)
         self._assigned += 1
 
-    def print_progress(self, command_count):
-        while True:
-            num_completed = self.completed_queue.qsize()
-            num_completed_percentage = 0
-            if command_count:
-                num_completed_percentage = float(num_completed) / command_count
-            self.logger.info('%0.2f%% of jobs completed' % (num_completed_percentage * 100))
-            if num_completed >= command_count:
-                return
-            self._join_work_queue_with_timeout(10)
-
     def _join_work_queue_with_timeout(self, timeout):
         """
         Queue.join() unfortunately doesn't take a timeout (see

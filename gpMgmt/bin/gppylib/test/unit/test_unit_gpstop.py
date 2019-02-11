@@ -1,10 +1,16 @@
 import imp
+import logging
 import os
 import sys
+import time
+import unittest
 
-from gparray import Segment, GpArray, SegmentPair
-from mock import Mock, patch
+from mock import Mock, call, patch
+
+from gppylib.gparray import Segment, GpArray, SegmentPair
 from gppylib.test.unit.gp_unittest import GpTestCase, run_tests
+from gppylib.commands import base
+from gppylib.commands.base import Command, WorkerPool
 from gppylib.commands.gp import GpSegStopCmd
 from gppylib.mainUtils import ProgramArgumentValidationException
 
@@ -44,6 +50,7 @@ class GpStop(GpTestCase):
             patch('gpstop.RemoteOperation'),
             patch('gpstop.base.WorkerPool'),
             patch('gpstop.socket.gethostname'),
+            patch('gpstop.print_progress'),
         ])
 
         sys.argv = ["gpstop"]  # reset to relatively empty args list
@@ -393,6 +400,52 @@ class GpStop(GpTestCase):
         log_message = self.get_info_messages()
         self.assertTrue("Stopping master standby host smdw mode=fast" not in log_message)
         self.assertTrue("No standby master host configured" not in log_message)
+
+
+# Perform an 'import gpstop', as above.
+_gpstop_file = os.path.abspath(os.path.dirname(__file__) + "/../../../gpstop")
+gpstop = imp.load_source('gpstop', _gpstop_file)
+
+
+class GpStopPrintProgressTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.logger = Mock(spec=logging.Logger)
+        self.pool = WorkerPool(numWorkers=1, logger=self.logger)
+
+    def tearDown(self):
+        self.pool.haltWork()
+
+    def test_print_progress_prints_once_with_completed_pool(self):
+        self.pool.addCommand(Mock(spec=Command))
+        self.pool.addCommand(Mock(spec=Command))
+        self.pool.join()
+
+        gpstop.print_progress(self.pool)
+        self.logger.info.assert_called_once_with('100.00% of jobs completed')
+
+    def test_print_progress_prints_once_with_empty_pool(self):
+        gpstop.print_progress(self.pool)
+        self.logger.info.assert_called_once_with('0.00% of jobs completed')
+
+    def test_print_progress_prints_intermediate_progress(self):
+        duration = 0.01
+
+        cmd = Mock(spec=Command)
+        def wait_for_duration():
+            time.sleep(duration)
+        cmd.run.side_effect = wait_for_duration
+
+        self.pool.addCommand(Mock(spec=Command))
+        self.pool.addCommand(cmd)
+
+        # We run a command for ten milliseconds, printing progress every
+        # millisecond, so at some point we should transition from 50% to 100%.
+        gpstop.print_progress(self.pool, interval=(duration / 10))
+        self.logger.info.assert_has_calls([
+            call('50.00% of jobs completed'),
+            call('100.00% of jobs completed'),
+        ])
 
 if __name__ == '__main__':
     run_tests()
