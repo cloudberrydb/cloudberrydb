@@ -162,7 +162,6 @@ class StartSegmentsOperation:
             logger.info("Commencing parallel primary and mirror segment instance startup, please wait...")
         else:
             logger.info("Commencing parallel segment instance startup, please wait...")
-        dispatchCount=0
 
         dbIdToPeerMap = gpArray.getDbIdToPeerMap()
 
@@ -202,9 +201,11 @@ class StartSegmentsOperation:
                                    parallel=self.__parallel,
                                    logfileDirectory=self.logfileDirectory)
             self.__workerPool.addCommand(cmd)
-            dispatchCount+=1
 
-        self.__workerPool.wait_and_printdots(dispatchCount, self.__quiet)
+        if self.__quiet:
+            self.__workerPool.join()
+        else:
+            base.join_and_indicate_progress(self.__workerPool)
 
         # process results
         self.__processStartOrConvertCommands(resultOut)

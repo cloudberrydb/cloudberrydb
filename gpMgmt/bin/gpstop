@@ -743,7 +743,6 @@ class GpStop:
 
         self.pool = SighupWorkerPool(numWorkers=workers)
         dbList = self.gparray.getDbList()
-        dispatch_count = 0
         hostname = socket.gethostname()
         logger.info("Signalling all postmaster processes to reload")
         for db in dbList:
@@ -758,8 +757,12 @@ class GpStop:
                                   remoteHost=remote_host
                                   )
             self.pool.addCommand(cmd)
-            dispatch_count = dispatch_count + 1
-        self.pool.wait_and_printdots(dispatch_count, self.quiet)
+
+        if self.quiet:
+            self.pool.join()
+        else:
+            base.join_and_indicate_progress(self.pool)
+
         self.pool.check_results()
         self.pool.empty_completed_items()
 

@@ -1,10 +1,12 @@
 import unittest
+import StringIO
 import threading
 import time
 
 import mock
 
-from gppylib.commands.base import Command, ExecutionError, WorkerPool
+from gppylib.commands.base import Command, ExecutionError, WorkerPool, \
+                                  join_and_indicate_progress
 
 class WorkerPoolTest(unittest.TestCase):
     def setUp(self):
@@ -137,3 +139,46 @@ class WorkerPoolTest(unittest.TestCase):
 
         done = self.pool.join(2) # should be immediate, but there's still a race
         self.assertTrue(done)
+
+    def test_join_and_indicate_progress_prints_nothing_if_pool_is_done(self):
+        stdout = StringIO.StringIO()
+        join_and_indicate_progress(self.pool, stdout)
+
+        self.assertEqual(stdout.getvalue(), '')
+
+    def test_join_and_indicate_progress_prints_dots_until_pool_is_done(self):
+        # To avoid false negatives from the race conditions here, let's set up a
+        # situation where we'll print ten dots on average, and verify that there
+        # were at least five dots printed.
+        duration = 0.01
+
+        cmd = mock.Mock(spec=Command)
+        def wait_for_duration():
+            time.sleep(duration)
+        cmd.run.side_effect = wait_for_duration
+        self.pool.addCommand(cmd)
+
+        stdout = StringIO.StringIO()
+        join_and_indicate_progress(self.pool, stdout, interval=(duration / 10))
+
+        results = stdout.getvalue()
+        self.assertIn('.....', results)
+        self.assertTrue(results.endswith('\n'))
+
+    def test_join_and_indicate_progress_flushes_every_dot(self):
+        # Set up a test scenario like the progress test above.
+        duration = 0.005
+
+        cmd = mock.Mock(spec=Command)
+        def wait_for_duration():
+            time.sleep(duration)
+        cmd.run.side_effect = wait_for_duration
+        self.pool.addCommand(cmd)
+
+        stdout = mock.Mock(spec=file)
+        join_and_indicate_progress(self.pool, stdout, interval=(duration / 5))
+
+        for i, call in enumerate(stdout.mock_calls):
+            # Every written dot should be followed by a flush().
+            if call == mock.call.write('.'):
+                self.assertEqual(stdout.mock_calls[i + 1], mock.call.flush())

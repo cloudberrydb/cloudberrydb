@@ -560,7 +560,6 @@ class GpSystemStateProgram:
         logger.info("Gathering data from segments...")
         segmentsByHost = GpArray.getSegmentsByHostName(gpArray.getDbList())
         segmentData = {}
-        dispatchCount = 0
         hostNameToCmd = {}
         for hostName, segments in segmentsByHost.iteritems():
             cmd = gp.GpGetSegmentStatusValues("get segment version status", segments,
@@ -575,8 +574,7 @@ class GpSystemStateProgram:
                                remoteHost=segments[0].getSegmentAddress())
             hostNameToCmd[hostName] = cmd
             self.__pool.addCommand(cmd)
-            dispatchCount+=1
-        self.__poolWait(dispatchCount)
+        self.__poolWait()
 
         hostNameToResults = {}
         for hostName, cmd in hostNameToCmd.iteritems():
@@ -1278,8 +1276,11 @@ class GpSystemStateProgram:
 
         # done printing pg_stat_replication table
 
-    def __poolWait(self, dispatchCount):
-        self.__pool.wait_and_printdots(dispatchCount, self.__options.quiet)
+    def __poolWait(self):
+        if self.__options.quiet:
+            self.__pool.join()
+        else:
+            base.join_and_indicate_progress(self.__pool)
 
     def __showVersionInfo(self, gpEnv, gpArray):
 
@@ -1291,7 +1292,6 @@ class GpSystemStateProgram:
 
         # fetch from hosts
         segmentsByHost = GpArray.getSegmentsByHostName(upSegmentsAndMaster)
-        dispatchCount = 0
         for hostName, segments in segmentsByHost.iteritems():
             cmd = gp.GpGetSegmentStatusValues("get segment version status", segments,
                                [gp.SEGMENT_STATUS__GET_VERSION],
@@ -1299,9 +1299,8 @@ class GpSystemStateProgram:
                                ctxt=base.REMOTE,
                                remoteHost=segments[0].getSegmentAddress())
             self.__pool.addCommand(cmd)
-            dispatchCount+=1
 
-        self.__poolWait(dispatchCount)
+        self.__poolWait()
 
         # group output
         dbIdToVersion = {}

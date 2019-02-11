@@ -91,17 +91,6 @@ class WorkerPool(object):
         self.work_queue.put(cmd)
         self.num_assigned += 1
 
-    def wait_and_printdots(self, command_count, quiet=True):
-        while self.completed_queue.qsize() < command_count:
-            time.sleep(1)
-
-            if not quiet:
-                sys.stdout.write(".")
-                sys.stdout.flush()
-        if not quiet:
-            print " "
-        self.join()
-
     def print_progress(self, command_count):
         while True:
             num_completed = self.completed_queue.qsize()
@@ -196,6 +185,25 @@ class WorkerPool(object):
         for w in self.workers:
             w.haltWork()
             self.work_queue.put(self.halt_command)
+
+
+def join_and_indicate_progress(pool, outfile=sys.stdout, interval=1):
+    """
+    Waits for a WorkerPool to complete its work, flushing dots to stdout every
+    second. If any dots are printed (i.e. the work takes longer than the
+    printing interval), a newline is also printed upon completion.
+
+    The file to print to and the interval between printings can be overridden.
+    """
+    printed = False
+
+    while not pool.join(interval):
+        outfile.write('.')
+        outfile.flush()
+        printed = True
+
+    if printed:
+        outfile.write('\n')
 
 
 class OperationWorkerPool(WorkerPool):

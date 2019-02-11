@@ -37,7 +37,6 @@ class GpSegmentRebalanceOperation:
         self.logger.info("Getting unbalanced segments")
         unbalanced_primary_segs = GpArray.getSegmentsByHostName(self.gpArray.get_unbalanced_primary_segdbs())
         pool = base.WorkerPool()
-        count = 0
 
         try:
             # Disable ctrl-c
@@ -54,9 +53,8 @@ class GpSegmentRebalanceOperation:
                                    remoteHost=hostname,
                                    timeout=600)
                 pool.addCommand(cmd)
-                count += 1
 
-            pool.wait_and_printdots(count, False)
+            base.join_and_indicate_progress(pool)
             
             failed_count = 0
             completed = pool.getCompletedItems()

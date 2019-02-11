@@ -395,7 +395,11 @@ class GpMirrorListToBuild:
         for cmd in cmds:
             self.__pool.addCommand(cmd)
 
-        self.__pool.wait_and_printdots(len(cmds), self.__quiet)
+        if self.__quiet:
+            self.__pool.join()
+        else:
+            base.join_and_indicate_progress(self.__pool)
+
         if not suppressErrorCheck:
             self.__pool.check_results()
         self.__pool.empty_completed_items()
@@ -456,7 +460,12 @@ class GpMirrorListToBuild:
             cmds.append(createConfigureNewSegmentCommand(hostName, 'validate blank segments', True))
         for cmd in cmds:
             self.__pool.addCommand(cmd)
-        self.__pool.wait_and_printdots(len(cmds), self.__quiet)
+
+        if self.__quiet:
+            self.__pool.join()
+        else:
+            base.join_and_indicate_progress(self.__pool)
+
         validationErrors = []
         for item in self.__pool.getCompletedItems():
             results = item.get_results()
