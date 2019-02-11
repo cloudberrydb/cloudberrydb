@@ -2287,6 +2287,7 @@ RelationClearRelation(Relation relation, bool rebuild)
  		Oid			save_relid = RelationGetRelid(relation);
 		bool		keep_tupdesc;
 		bool		keep_rules;
+		bool		keep_policy;
 
 		/* Build temporary entry, but don't link it into hashtable */
 		newrel = RelationBuildDesc(save_relid, false);
@@ -2316,6 +2317,7 @@ RelationClearRelation(Relation relation, bool rebuild)
 
 		keep_tupdesc = equalTupleDescs(relation->rd_att, newrel->rd_att, true);
 		keep_rules = equalRuleLocks(relation->rd_rules, newrel->rd_rules);
+		keep_policy = GpPolicyEqual(relation->rd_cdbpolicy, newrel->rd_cdbpolicy);
 
 		/*
 		 * Perform swapping of the relcache entry contents.  Within this
@@ -2364,6 +2366,10 @@ RelationClearRelation(Relation relation, bool rebuild)
 			SWAPFIELD(RuleLock *, rd_rules);
 			SWAPFIELD(MemoryContext, rd_rulescxt);
  		}
+		/* also preserve old policy if no logical change */
+		if (keep_policy)
+			SWAPFIELD(GpPolicy *, rd_cdbpolicy);
+
 		/* pgstat_info must be preserved */
 		SWAPFIELD(struct PgStat_TableStatus *, pgstat_info);
 

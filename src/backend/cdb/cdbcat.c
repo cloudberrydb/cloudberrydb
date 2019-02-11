@@ -33,6 +33,7 @@
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
+#include "utils/memutils.h"
 #include "utils/tqual.h"
 #include "utils/syscache.h"
 
@@ -762,7 +763,10 @@ checkPolicyForUniqueIndex(Relation rel, AttrNumber *indattr, int nidxatts,
 		}
 
 		GpPolicyReplace(rel->rd_id, policy);
-		rel->rd_cdbpolicy = policy;
+
+		MemoryContext oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
+		rel->rd_cdbpolicy = GpPolicyCopy(policy);
+		MemoryContextSwitchTo(oldcontext);
 
 		if (Gp_role == GP_ROLE_DISPATCH)
 			elog(NOTICE, "updating distribution policy to match new %s", isprimary ? "primary key" : "unique index");
