@@ -7,6 +7,7 @@
 TODO: docs!
 """
 import os, pickle, base64, time
+import os.path
 
 import re, socket
 
@@ -1307,13 +1308,8 @@ def chk_local_db_running(datadir, port):
         finally:
             f.close()
 
-    cmd=FileDirExists('check for /tmp/.s.PGSQL file file', "/tmp/.s.PGSQL.%d" % port)
-    cmd.run(validateAfter=True)
-    tmpfile_exists = cmd.filedir_exists()
-
-    cmd=FileDirExists('check for lock file', get_lockfile_name(port))
-    cmd.run(validateAfter=True)
-    lockfile_exists = cmd.filedir_exists()
+    tmpfile_exists = os.path.exists("/tmp/.s.PGSQL.%d" % port)
+    lockfile_exists = os.path.exists(get_lockfile_name(port))
 
     netstat_port_active = PgPortIsActive.local('check netstat for postmaster port',"/tmp/.s.PGSQL.%d" % port, port)
 
