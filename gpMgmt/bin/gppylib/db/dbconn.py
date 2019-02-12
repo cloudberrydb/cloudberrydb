@@ -114,7 +114,10 @@ class DbURL:
             self.pgdb = dbname
 
         if username is None:
-            self.pguser = os.environ.get('PGUSER', os.environ.get('USER', UserId.local('Get uid')))
+            self.pguser = os.environ.get('PGUSER', os.environ.get('USER', None))
+            if self.pguser is None:
+                # fall back to /usr/bin/id
+                self.pguser = UserId.local('Get uid')
             if self.pguser is None or self.pguser == '':
                 raise Exception('Both $PGUSER and $USER env variables are not set!')
         else:
