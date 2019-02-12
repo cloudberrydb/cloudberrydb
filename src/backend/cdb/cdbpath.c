@@ -484,7 +484,6 @@ cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
 			ListCell   *i;
 			RestrictInfo *rinfo = (RestrictInfo *) lfirst(rcell);
 
-			Assert(rinfo->left_ec);
 			update_mergeclause_eclasses(ctx->root, rinfo);
 
 			if (bms_is_subset(rinfo->right_relids, ctx->path->parent->relids))
@@ -636,8 +635,7 @@ cdbpath_match_preds_to_both_distkeys(PlannerInfo *root,
 			RestrictInfo *rinfo = (RestrictInfo *) lfirst(rcell);
 			ListCell   *i;
 
-			if (!rinfo->left_ec)
-				update_mergeclause_eclasses(root, rinfo);
+			update_mergeclause_eclasses(root, rinfo);
 
 			/* Skip predicate if neither side matches outer distkey item. */
 			foreach(i, outer_dk->dk_eclasses)
@@ -711,9 +709,6 @@ cdbpath_distkeys_from_preds(PlannerInfo *root,
 		Oid			lhs_opno;
 		Oid			rhs_opno;
 		Oid			opfamily;
-
-		Assert(rinfo->left_ec != NULL);
-		Assert(rinfo->right_ec != NULL);
 
 		update_mergeclause_eclasses(root, rinfo);
 
