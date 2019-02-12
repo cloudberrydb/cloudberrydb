@@ -224,7 +224,6 @@ Datum		pg_ts_template_is_visible(PG_FUNCTION_ARGS);
 Datum		pg_ts_config_is_visible(PG_FUNCTION_ARGS);
 Datum		pg_my_temp_schema(PG_FUNCTION_ARGS);
 Datum		pg_is_other_temp_schema(PG_FUNCTION_ARGS);
-Datum       pg_objname_to_oid(PG_FUNCTION_ARGS);
 
 
 /*
@@ -4485,14 +4484,4 @@ pg_is_other_temp_schema(PG_FUNCTION_ARGS)
 	Oid			oid = PG_GETARG_OID(0);
 
 	PG_RETURN_BOOL(isOtherTempNamespace(oid));
-}
-
-Datum
-pg_objname_to_oid(PG_FUNCTION_ARGS)
-{
-    text *s = PG_GETARG_TEXT_P(0); 
-    RangeVar *rv = makeRangeVarFromNameList(textToQualifiedNameList(s));
-    Oid relid = RangeVarGetRelid(rv, NoLock, true);
-
-    PG_RETURN_OID(relid);
 }
