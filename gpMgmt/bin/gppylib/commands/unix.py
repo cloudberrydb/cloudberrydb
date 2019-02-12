@@ -740,10 +740,7 @@ class Echo(Command):
 # --------------get user id ----------------------
 class UserId(Command):
     def __init__(self, name, ctxt=LOCAL, remoteHost=None):
-        idCmd = findCmdInPath('id')
-        trCmd = findCmdInPath('tr')
-        awkCmd = findCmdInPath('awk')
-        cmdStr = "%s|%s '(' ' '|%s ')' ' '|%s '{print $2}'" % (idCmd, trCmd, trCmd, awkCmd)
+        cmdStr = "%s -un" % findCmdInPath('id')
         Command.__init__(self, name, cmdStr, ctxt, remoteHost)
 
     @staticmethod
