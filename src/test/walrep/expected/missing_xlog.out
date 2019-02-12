@@ -55,6 +55,7 @@ begin
 	-- WAL record is created right after the checkpoint record, which
 	-- doesn't get replayed on the mirror until something else forces it
 	-- out.
+	drop table if exists dummy;
 	create temp table dummy (id int4) distributed randomly;
 
 	-- Wait until all mirrors have replayed up to the location we
@@ -106,6 +107,9 @@ end;
 $$ language plpgsql;
 -- checkpoint to ensure clean xlog replication before bring down mirror
 select checkpoint_and_wait_for_replication_replay(500);
+NOTICE:  table "dummy" does not exist, skipping
+CONTEXT:  SQL statement "drop table if exists dummy"
+PL/pgSQL function checkpoint_and_wait_for_replication_replay(integer) line 27 at SQL statement
  checkpoint_and_wait_for_replication_replay 
 --------------------------------------------
  t
@@ -222,6 +226,18 @@ select count(*) = 2 as mirror_up from gp_segment_configuration
  where content=0 and status='u';
  mirror_up 
 -----------
+ t
+(1 row)
+
+-- make sure leave the test only after mirror is in sync to avoid
+-- affecting other tests. Thumb rule: leave cluster in same state as
+-- test started. Usage of checkpoint_and_wait_for_replication_replay()
+-- is little heavy for the purpose as we only wish to check mirror is
+-- in sync but does the job by avoiding need for new function to check
+-- that exact requirement.
+select checkpoint_and_wait_for_replication_replay(5000);
+ checkpoint_and_wait_for_replication_replay 
+--------------------------------------------
  t
 (1 row)
 

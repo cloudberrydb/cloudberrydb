@@ -58,6 +58,7 @@ begin
 	-- WAL record is created right after the checkpoint record, which
 	-- doesn't get replayed on the mirror until something else forces it
 	-- out.
+	drop table if exists dummy;
 	create temp table dummy (id int4) distributed randomly;
 
 	-- Wait until all mirrors have replayed up to the location we
@@ -153,3 +154,10 @@ select gp_request_fts_probe_scan();
 -- Validate that the mirror for content=0 is marked up.
 select count(*) = 2 as mirror_up from gp_segment_configuration
  where content=0 and status='u';
+-- make sure leave the test only after mirror is in sync to avoid
+-- affecting other tests. Thumb rule: leave cluster in same state as
+-- test started. Usage of checkpoint_and_wait_for_replication_replay()
+-- is little heavy for the purpose as we only wish to check mirror is
+-- in sync but does the job by avoiding need for new function to check
+-- that exact requirement.
+select checkpoint_and_wait_for_replication_replay(5000);
