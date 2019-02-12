@@ -25,6 +25,7 @@
 #include <locale.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <catalog/storage.h>
 
 #include "access/transam.h"
 #include "access/genam.h"
@@ -1389,6 +1390,13 @@ movedb(const char *dbname, const char *tblspcname)
 								PointerGetDatum(&fparms));
 
 	/*
+	 * GPDB: GPDB uses two phase commit and pending deletes, hence cannot locally
+	 * commit here. The rest of the logic related to the non-catalog changes from
+	 * this function is extracted into DropDatabseDirectory() which is executed at
+	 * commit time.
+	 */
+#if 0
+	/*
 	 * Commit the transaction so that the pg_database update is committed. If
 	 * we crash while removing files, the database won't be corrupt, we'll
 	 * just leave some orphaned files in the old directory.
@@ -1404,14 +1412,43 @@ movedb(const char *dbname, const char *tblspcname)
 
 	/* Start new transaction for the remaining work; don't need a snapshot */
 	StartTransactionCommand();
+#endif
 
+	if (Gp_role == GP_ROLE_EXECUTE)
+	{
+		/*
+		 * QE needs to release session level locks as can't Prepare Transaction
+		 * with session locks.
+		 */
+		UnlockSharedObjectForSession(DatabaseRelationId, db_id, 0,
+									 AccessExclusiveLock);
+	}
+
+	/*
+	 * register the db_id with pending deletes list to schedule removing database
+	 * directory on transaction commit.
+	 */
+	DatabaseDropStorage(db_id, src_tblspcoid);
+
+	SIMPLE_FAULT_INJECTOR(InsideMoveDbTransaction);
+}
+
+/*
+ * This functions contains non-catalog modifications to be performed for movedb().
+ * Its called after successfully marking the transaction as committed via pending
+ * deletes.
+ */
+void
+DropDatabaseDirectory(Oid db_id, Oid tblspcoid)
+{
+	char *dbpath = GetDatabasePath(db_id, tblspcoid);
 	/*
 	 * Remove files from the old tablespace
 	 */
-	if (!rmtree(src_dbpath, true))
+	if (!rmtree(dbpath, true))
 		ereport(WARNING,
 				(errmsg("some useless files may be left behind in old database directory \"%s\"",
-						src_dbpath)));
+						dbpath)));
 
 	/*
 	 * Record the filesystem change in XLOG
@@ -1421,7 +1458,7 @@ movedb(const char *dbname, const char *tblspcname)
 		XLogRecData rdata[1];
 
 		xlrec.db_id = db_id;
-		xlrec.tablespace_id = src_tblspcoid;
+		xlrec.tablespace_id = tblspcoid;
 
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = sizeof(xl_dbase_drop_rec);
@@ -1431,9 +1468,12 @@ movedb(const char *dbname, const char *tblspcname)
 		(void) XLogInsert(RM_DBASE_ID, XLOG_DBASE_DROP, rdata);
 	}
 
-	/* Now it's safe to release the database lock */
-	UnlockSharedObjectForSession(DatabaseRelationId, db_id, 0,
-								 AccessExclusiveLock);
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		/* Now it's safe to release the database lock */
+		UnlockSharedObjectForSession(DatabaseRelationId, db_id, 0,
+									AccessExclusiveLock);
+	}
 }
 
 /* Error cleanup callback for movedb */
@@ -1500,9 +1540,33 @@ AlterDatabase(AlterDatabaseStmt *stmt, bool isTopLevel)
 	{
 		/* currently, can't be specified along with any other options */
 		Assert(!dconnlimit);
-		/* this case isn't allowed within a transaction block */
-		PreventTransactionChain(isTopLevel, "ALTER DATABASE SET TABLESPACE");
+		if (Gp_role != GP_ROLE_EXECUTE)
+		{
+			/*
+			 * GPDB: allow this in query executor, as distributed transaction
+			 * participants. The QD already checked this, and should've prevented
+			 * running this in any genuine transaction block.
+			 */
+			/* this case isn't allowed within a transaction block */
+			PreventTransactionChain(isTopLevel, "ALTER DATABASE SET TABLESPACE");
+		}
 		movedb(stmt->dbname, strVal(dtablespace->arg));
+		if (Gp_role == GP_ROLE_DISPATCH)
+		{
+			char	*cmd;
+
+			cmd = psprintf("ALTER DATABASE %s SET TABLESPACE %s",
+							quote_identifier(stmt->dbname),
+							quote_identifier(strVal(dtablespace->arg)));
+
+			CdbDispatchCommand(cmd,
+								DF_CANCEL_ON_ERROR|
+								DF_NEED_TWO_PHASE|
+								DF_WITH_SNAPSHOT,
+								NULL);
+			pfree(cmd);
+		}
+
 		return InvalidOid;
 	}
 

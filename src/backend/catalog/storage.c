@@ -26,6 +26,7 @@
 #include "catalog/storage.h"
 #include "catalog/storage_xlog.h"
 #include "common/relpath.h"
+#include "commands/dbcommands.h"
 #include "storage/freespace.h"
 #include "storage/smgr.h"
 #include "utils/memutils.h"
@@ -58,6 +59,7 @@ typedef struct PendingRelDelete
 	bool		atCommit;		/* T=delete at commit; F=delete at abort */
 	int			nestLevel;		/* xact nesting level of request */
 	struct PendingRelDelete *next;		/* linked-list link */
+	bool		dbOperation;	/* T=operate on database; F=operate on relation */
 } PendingRelDelete;
 
 static PendingRelDelete *pendingDeletes = NULL; /* head of linked list */
@@ -114,6 +116,7 @@ RelationCreateStorage(RelFileNode rnode, char relpersistence, char relstorage)
 	pending->backend = backend;
 	pending->atCommit = false;	/* delete if abort */
 	pending->nestLevel = GetCurrentTransactionNestLevel();
+	pending->dbOperation = false;
 	pending->next = pendingDeletes;
 	pendingDeletes = pending;
 }
@@ -158,6 +161,7 @@ RelationDropStorage(Relation rel)
 	pending->backend = rel->rd_backend;
 	pending->atCommit = true;	/* delete if commit */
 	pending->nestLevel = GetCurrentTransactionNestLevel();
+	pending->dbOperation = false;
 	pending->next = pendingDeletes;
 	pendingDeletes = pending;
 
@@ -172,6 +176,35 @@ RelationDropStorage(Relation rel)
 	 */
 
 	RelationCloseSmgr(rel);
+}
+
+/*
+ * DatabaseDropStorage
+ *		Schedule unlinking of database directory at transaction commit.
+ */
+void
+DatabaseDropStorage(Oid db_id, Oid tablespace_id)
+{
+	/*
+	 * Drop/Alter database cannot be part of a transaction, therefore
+	 * pendingDeletes should be empty
+	 */
+	Assert(pendingDeletes == NULL);
+	PendingRelDelete *pending;
+
+	/* Add the relation to the list of stuff to delete at commit */
+	pending = (PendingRelDelete *)
+		MemoryContextAlloc(TopMemoryContext, sizeof(PendingRelDelete));
+	pending->relnode.node.spcNode = tablespace_id;
+	pending->relnode.node.dbNode = db_id;
+	pending->relnode.node.relNode = InvalidOid;
+
+	pending->backend = InvalidBackendId;
+	pending->atCommit = true;	/* delete if commit */
+	pending->nestLevel = GetCurrentTransactionNestLevel();
+	pending->dbOperation = true;
+	pending->next = pendingDeletes;
+	pendingDeletes = pending;
 }
 
 /*
@@ -340,6 +373,16 @@ smgrDoPendingDeletes(bool isCommit)
 			/* do deletion if called for */
 			if (pending->atCommit == isCommit)
 			{
+				if (pending->dbOperation)
+				{
+					Assert(next == NULL);
+					Assert(pending->relnode.node.relNode == InvalidOid);
+					DropDatabaseDirectory(pending->relnode.node.dbNode,
+										pending->relnode.node.spcNode);
+					pfree(pending);
+					return;
+				}
+
 				SMgrRelation srel;
 				srel = smgropen(pending->relnode.node, pending->backend);
 
@@ -413,7 +456,8 @@ smgrGetPendingDeletes(bool forCommit, RelFileNodeWithStorageType **ptr)
 	nrels = 0;
 	for (pending = pendingDeletes; pending != NULL; pending = pending->next)
 	{
-		if (pending->nestLevel >= nestLevel && pending->atCommit == forCommit
+		if (pending->nestLevel >= nestLevel && pending->atCommit == forCommit &&
+			!pending->dbOperation
 			/*
 			 * Greenplum allows transactions that access temporary tables to be
 			 * prepared.
@@ -431,7 +475,8 @@ smgrGetPendingDeletes(bool forCommit, RelFileNodeWithStorageType **ptr)
 	*ptr = rptr;
 	for (pending = pendingDeletes; pending != NULL; pending = pending->next)
 	{
-		if (pending->nestLevel >= nestLevel && pending->atCommit == forCommit
+		if (pending->nestLevel >= nestLevel && pending->atCommit == forCommit &&
+			!pending->dbOperation
 			/*
 			 * Keep this loop condition identical to above
 			 */

@@ -1,0 +1,54 @@
+-- Scenario 1: Where alter database set tablespace successfully changes the
+-- underlying tablespace directory.
+
+-- Given we create a database
+CREATE DATABASE alter_db_1;
+\c alter_db_1
+
+-- functions to help validation later
+CREATE FUNCTION rel_filepath_on_master(regclass) RETURNS TABLE(gp_segment_id int, filepath text)
+STRICT STABLE LANGUAGE SQL AS
+  $fn$
+  SELECT gp_execution_segment(), pg_relation_filepath($1) AS filepath
+  $fn$
+EXECUTE ON MASTER;
+
+CREATE FUNCTION rel_filepaths_on_segments(regclass) RETURNS TABLE(gp_segment_id int, filepath text)
+STRICT STABLE LANGUAGE SQL AS
+  $fn$
+  SELECT gp_execution_segment(), pg_relation_filepath($1) AS filepath
+  $fn$
+EXECUTE ON ALL SEGMENTS;
+
+CREATE FUNCTION rel_filepaths(regclass) RETURNS TABLE(gp_segment_id int, filepath text)
+  STRICT STABLE LANGUAGE SQL AS
+$fn$
+SELECT * FROM rel_filepath_on_master($1)
+UNION ALL
+SELECT * FROM rel_filepaths_on_segments($1);
+$fn$;
+
+-- And create a table in that database with data
+CREATE TABLE tbl_1(id int, name text);
+INSERT INTO tbl_1 VALUES (1, 'a'), (2, 'b'), (5, 'c');
+
+-- When we create a tablespace
+\! mkdir -p '@testtablespace@/alter_tblspc_1';
+CREATE TABLESPACE alter_tblspc_1 LOCATION '@testtablespace@/alter_tblspc_1';
+
+-- And alter the database to use the new tablespace
+\c regression
+ALTER DATABASE alter_db_1 SET TABLESPACE alter_tblspc_1;
+
+-- Then all the database files from QD and all QEs should be moved into the new
+-- tablespace. We use the fact that default tablespace names begin with 'base'
+-- where as user created tablespaces begin with 'pg_tblspc'
+\c alter_db_1
+
+SELECT gp_segment_id, substring(filepath FOR 5) AS filepath_prefix FROM rel_filepaths('tbl_1') WHERE filepath LIKE 'pg_tblspc%';
+SELECT gp_segment_id, substring(filepath FOR 5) AS filepath_prefix FROM rel_filepaths('tbl_1') WHERE filepath LIKE 'base%';
+SELECT * FROM tbl_1;
+
+\c regression
+DROP DATABASE alter_db_1;
+DROP TABLESPACE alter_tblspc_1;

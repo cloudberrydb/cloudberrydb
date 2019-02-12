@@ -255,6 +255,8 @@ FI_IDENT(DecreaseToastMaxChunkSize, "decrease_toast_max_chunk_size")
 FI_IDENT(CleanupQE, "cleanup_qe")
 /* inject fault in xLog_ao_insert() just before writing AO xlog record */
 FI_IDENT(XLogAoInsert, "xlog_ao_insert")
+/* inject fault just before commiting alter database set tablespace */
+FI_IDENT(InsideMoveDbTransaction, "inside_move_db_transaction")
 #endif
 
 /*
