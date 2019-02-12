@@ -110,6 +110,23 @@ begin
 end;
 $$ language plpgsql;
 
+-- function to wait for mirror to come up in sync (10 minute timeout)
+create or replace function wait_for_mirror_sync(contentid smallint)
+	returns void as $$
+declare
+	updated bool;
+begin
+for i in 1 .. 1200 loop
+perform gp_request_fts_probe_scan();
+select (mode = 's' and status = 'u') into updated
+from gp_segment_configuration
+where content = contentid and role = 'm';
+exit when updated;
+perform pg_sleep(0.5);
+end loop;
+end;
+$$ language plpgsql;
+
 -- checkpoint to ensure clean xlog replication before bring down mirror
 select checkpoint_and_wait_for_replication_replay(500);
 
@@ -156,8 +173,6 @@ select count(*) = 2 as mirror_up from gp_segment_configuration
  where content=0 and status='u';
 -- make sure leave the test only after mirror is in sync to avoid
 -- affecting other tests. Thumb rule: leave cluster in same state as
--- test started. Usage of checkpoint_and_wait_for_replication_replay()
--- is little heavy for the purpose as we only wish to check mirror is
--- in sync but does the job by avoiding need for new function to check
--- that exact requirement.
-select checkpoint_and_wait_for_replication_replay(5000);
+-- test started.
+select wait_for_mirror_sync((select dbid::smallint from gp_segment_configuration c where c.role='p' and c.content=0));
+select role, preferred_role, content, mode, status from gp_segment_configuration;

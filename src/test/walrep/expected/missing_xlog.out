@@ -105,6 +105,22 @@ begin
 	end loop;
 end;
 $$ language plpgsql;
+-- function to wait for mirror to come up in sync (10 minute timeout)
+create or replace function wait_for_mirror_sync(contentid smallint)
+	returns void as $$
+declare
+	updated bool;
+begin
+for i in 1 .. 1200 loop
+perform gp_request_fts_probe_scan();
+select (mode = 's' and status = 'u') into updated
+from gp_segment_configuration
+where content = contentid and role = 'm';
+exit when updated;
+perform pg_sleep(0.5);
+end loop;
+end;
+$$ language plpgsql;
 -- checkpoint to ensure clean xlog replication before bring down mirror
 select checkpoint_and_wait_for_replication_replay(500);
 NOTICE:  table "dummy" does not exist, skipping
@@ -231,13 +247,23 @@ select count(*) = 2 as mirror_up from gp_segment_configuration
 
 -- make sure leave the test only after mirror is in sync to avoid
 -- affecting other tests. Thumb rule: leave cluster in same state as
--- test started. Usage of checkpoint_and_wait_for_replication_replay()
--- is little heavy for the purpose as we only wish to check mirror is
--- in sync but does the job by avoiding need for new function to check
--- that exact requirement.
-select checkpoint_and_wait_for_replication_replay(5000);
- checkpoint_and_wait_for_replication_replay 
---------------------------------------------
- t
+-- test started.
+select wait_for_mirror_sync((select dbid::smallint from gp_segment_configuration c where c.role='p' and c.content=0));
+ wait_for_mirror_sync 
+----------------------
+ 
 (1 row)
+
+select role, preferred_role, content, mode, status from gp_segment_configuration;
+ role | preferred_role | content | mode | status 
+------+----------------+---------+------+--------
+ p    | p              |      -1 | n    | u
+ p    | p              |       0 | s    | u
+ m    | m              |       0 | s    | u
+ p    | p              |       1 | s    | u
+ m    | m              |       1 | s    | u
+ p    | p              |       2 | s    | u
+ m    | m              |       2 | s    | u
+ m    | m              |      -1 | s    | u
+(8 rows)
 
