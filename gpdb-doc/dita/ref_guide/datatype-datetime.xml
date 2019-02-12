@@ -719,8 +719,9 @@ January 8 04:05:06 1999 PST
     <p>In all cases, timezone names and abbreviations are recognized case-insensitively.</p>
 
     <p>Neither timezone names nor abbreviations are hard-wired into the server; they are obtained
-     from configuration files<ph otherprops="pivotal"> (see <xref
-       href="../install_guide/localization.xml">Configuring Localization Settings</xref>)</ph>.</p>
+     from configuration files <ph otherprops="pivotal"> (see <xref
+       href="../install_guide/localization.xml" scope="peer">Configuring Localization
+       Settings</xref>)</ph>.</p>
 
     <p>The <codeph>TimeZone</codeph> configuration parameter can be set in the file , or in any of
      the other standard ways for setting configuration parameters. There are also some special ways
