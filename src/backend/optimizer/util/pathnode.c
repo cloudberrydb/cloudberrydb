@@ -3046,32 +3046,47 @@ create_nestloop_path(PlannerInfo *root,
 		pathkeys = NIL;
 
 	/*
+	 * If this join path is parameterized by a parameter above this path, then
+	 * this path needs to be rescannable. A NestLoop is rescannable, when both
+	 * outer and inner paths rescannable, so make them both rescannable.
+	 */
+	if (!outer_path->rescannable && !bms_is_empty(required_outer))
+	{
+		MaterialPath *matouter = create_material_path(root, outer_path->parent, outer_path);
+
+		matouter->cdb_shield_child_from_rescans = true;
+
+		outer_path = (Path *) matouter;
+	}
+
+	/*
 	 * If outer has at most one row, NJ will make at most one pass over inner.
 	 * Else materialize inner rel after motion so NJ can loop over results.
-	 * Skip if an intervening Unique operator will materialize.
 	 */
-	if (!outer_path->parent->onerow)
+	if (!inner_path->rescannable &&
+		(!outer_path->parent->onerow || !bms_is_empty(required_outer)))
 	{
-		if (!inner_path->rescannable)
-		{
-			/*
-			 * NLs potentially rescan the inner; if our inner path
-			 * isn't rescannable we have to add a materialize node
-			 */
-			inner_path = (Path *)create_material_path(root, inner_path->parent, inner_path);
+		/*
+		 * NLs potentially rescan the inner; if our inner path
+		 * isn't rescannable we have to add a materialize node
+		 */
+		MaterialPath *matinner = create_material_path(root, inner_path->parent, inner_path);
 
-			/*
-			 * If we have motion on the outer, to avoid a deadlock; we
-			 * need to set cdb_strict. In order for materialize to
-			 * fully fetch the underlying (required to avoid our
-			 * deadlock hazard) we must set cdb_strict!
-			 */
-			if (inner_path->motionHazard && outer_path->motionHazard)
-			{
-				((MaterialPath *) inner_path)->cdb_strict = true;
-				inner_path->motionHazard = false;
-			}
+		matinner->cdb_shield_child_from_rescans = true;
+
+		/*
+		 * If we have motion on the outer, to avoid a deadlock; we
+		 * need to set cdb_strict. In order for materialize to
+		 * fully fetch the underlying (required to avoid our
+		 * deadlock hazard) we must set cdb_strict!
+		 */
+		if (inner_path->motionHazard && outer_path->motionHazard)
+		{
+			matinner->cdb_strict = true;
+			matinner->path.motionHazard = false;
 		}
+
+		inner_path = (Path *) matinner;
 	}
 
 	/*

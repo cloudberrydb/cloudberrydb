@@ -269,6 +269,19 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 		eflags |= EXEC_FLAG_REWIND;
 
 	/*
+	 * If the Material node was inserted to protect the child node from rescanning, don't
+	 * eager free.
+	 *
+	 * XXX: The planner doesn't always set the flag for Material nodes that are put
+	 * directly on top of Motion nodes, so check for that, too. (Or is this for ORCA?)
+	 */
+	if (node->cdb_shield_child_from_rescans ||
+		IsA(outerPlan((Plan *) node), Motion))
+	{
+		eflags |= EXEC_FLAG_REWIND;
+	}
+
+	/*
 	 * We must have a tuplestore buffering the subplan output to do backward
 	 * scan or mark/restore.  We also prefer to materialize the subplan output
 	 * if we might be called on to rewind and replay it many times. However,
@@ -347,15 +360,6 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	if (list_length(node->plan.targetlist) != list_length(outerPlan->targetlist))
 		elog(ERROR, "Material operator does not support projection");
 	outerPlanState(matstate) = ExecInitNode(outerPlan, estate, eflags);
-
-	/*
-	 * If the child node of a Material is a Motion, then this Material node is
-	 * not eager free safe.
-	 */
-	if (IsA(outerPlan((Plan *)node), Motion))
-	{
-		matstate->delayEagerFree = true;
-	}
 
 	/*
 	 * initialize tuple type.  no need to initialize projection info because

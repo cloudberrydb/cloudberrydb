@@ -966,7 +966,8 @@ _outMaterial(StringInfo str, const Material *node)
 {
 	WRITE_NODE_TYPE("MATERIAL");
 
-    WRITE_BOOL_FIELD(cdb_strict);
+	WRITE_BOOL_FIELD(cdb_strict);
+	WRITE_BOOL_FIELD(cdb_shield_child_from_rescans);
 
 	WRITE_ENUM_FIELD(share_type, ShareType);
 	WRITE_INT_FIELD(share_id);
@@ -2160,7 +2161,8 @@ _outMaterialPath(StringInfo str, const MaterialPath *node)
 	WRITE_NODE_TYPE("MATERIALPATH");
 
 	_outPathInfo(str, (const Path *) node);
-    WRITE_BOOL_FIELD(cdb_strict);
+	WRITE_BOOL_FIELD(cdb_strict);
+	WRITE_BOOL_FIELD(cdb_shield_child_from_rescans);
 
 	WRITE_NODE_FIELD(subpath);
 }

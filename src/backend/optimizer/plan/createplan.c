@@ -1017,6 +1017,7 @@ create_material_plan(PlannerInfo *root, MaterialPath *best_path)
 	plan = make_material(subplan);
 
 	plan->cdb_strict = best_path->cdb_strict;
+	plan->cdb_shield_child_from_rescans = best_path->cdb_shield_child_from_rescans;
 
 	copy_path_costsize(root, &plan->plan, (Path *) best_path);
 

@@ -977,6 +977,7 @@ typedef struct Material
 {
 	Plan		plan;
 	bool		cdb_strict;
+	bool		cdb_shield_child_from_rescans;
 
 	/* Material can be shared */
 	ShareType 	share_type;

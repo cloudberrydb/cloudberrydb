@@ -1219,6 +1219,14 @@ typedef struct MaterialPath
                                  *            before yielding output tuples
                                  * false => memoize tuples as they stream thru
                                  */
+
+	/*
+	 * If 'cdb_shield_child_from_rescans' is set, the sub-plan is not
+	 * rescannable, and the Material never call rescan on it. (The Material
+	 * node will keep all tuples, even if REWIND/BACKWARD/MARK executor flags
+	 * are not set.)
+	 */
+	bool		cdb_shield_child_from_rescans;
 } MaterialPath;
 
 /*
