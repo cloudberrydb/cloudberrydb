@@ -902,10 +902,10 @@ class GpSystemStateProgram:
                     )
                     rewinding = result > 0
 
-        except pgdb.InternalError as ie:
+        except pgdb.InternalError:
             logger.warning('could not query segment {} ({}:{})'.format(
                     primary.dbid, primary.hostname, primary.port
-            ), exc_info=ie)
+            ))
             return
 
         # Successfully queried pg_stat_replication. If there are any backup
