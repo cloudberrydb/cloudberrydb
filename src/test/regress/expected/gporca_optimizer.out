@@ -9914,11 +9914,7 @@ select sum(i) i_sum, sum(j) j_sum, sum(t::integer) t_sum from bm.het_bm where i=
 
 -- Drop and recreate index after we dropped column
 drop index bm.het_bm_i_idx;
-WARNING:  only dropped the index "het_bm_i_idx"
-HINT:  To drop other indexes on child partitions, drop each one explicitly.
 drop index bm.het_bm_j_idx;
-WARNING:  only dropped the index "het_bm_j_idx"
-HINT:  To drop other indexes on child partitions, drop each one explicitly.
 create index het_bm_i_idx on bm.het_bm using bitmap (i);
 NOTICE:  building index for child partition "het_bm_1_prt_part0"
 NOTICE:  building index for child partition "het_bm_1_prt_part1"

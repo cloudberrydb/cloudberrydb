@@ -2636,7 +2636,7 @@ drop table foo;
 -- created tables due to split.
 drop table mpp14613_list;
 --
--- Drop index on a partitioned table. The indexes on the partitions remain.
+-- Drop index on a partitioned table. The indexes on the partitions are removed.
 --
 create table pt_indx_tab (c1 integer, c2 int, c3 text) partition by range (c1) (partition A start (integer '0') end (integer '5') every (integer '1'));
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
@@ -2665,8 +2665,6 @@ select count(*) from pg_index where indrelid='pt_indx_tab_1_prt_a_1'::regclass;
 (1 row)
 
 drop index pt_indx_drop;
-WARNING:  only dropped the index "pt_indx_drop"
-HINT:  To drop other indexes on child partitions, drop each one explicitly.
 select count(*) from pg_index where indrelid='pt_indx_tab'::regclass;
  count 
 -------
@@ -2676,7 +2674,7 @@ select count(*) from pg_index where indrelid='pt_indx_tab'::regclass;
 select count(*) from pg_index where indrelid='pt_indx_tab_1_prt_a_1'::regclass;
  count 
 -------
-     1
+     0
 (1 row)
 
 --
@@ -2786,33 +2784,24 @@ select * from pg_indexes where tablename like 'mpp7635%';
  public     | mpp7635_aoi_table2_1_prt_2 | mpp7635_aoi_table2_1_prt_2_id_idx |            | CREATE INDEX mpp7635_aoi_table2_1_prt_2_id_idx ON public.mpp7635_aoi_table2_1_prt_2 USING bitmap (id)
 (3 rows)
 
--- Drop it. This only drops it from the root table, not the partitions.
+-- Drop it
 DROP INDEX mpp7635_ix3;
-WARNING:  only dropped the index "mpp7635_ix3"
-HINT:  To drop other indexes on child partitions, drop each one explicitly.
 select * from pg_indexes where tablename like 'mpp7635%';
- schemaname |         tablename          |             indexname             | tablespace |                                               indexdef                                                
-------------+----------------------------+-----------------------------------+------------+-------------------------------------------------------------------------------------------------------
- public     | mpp7635_aoi_table2_1_prt_1 | mpp7635_aoi_table2_1_prt_1_id_idx |            | CREATE INDEX mpp7635_aoi_table2_1_prt_1_id_idx ON public.mpp7635_aoi_table2_1_prt_1 USING bitmap (id)
- public     | mpp7635_aoi_table2_1_prt_2 | mpp7635_aoi_table2_1_prt_2_id_idx |            | CREATE INDEX mpp7635_aoi_table2_1_prt_2_id_idx ON public.mpp7635_aoi_table2_1_prt_2 USING bitmap (id)
-(2 rows)
+ schemaname | tablename | indexname | tablespace | indexdef 
+------------+-----------+-----------+------------+----------
+(0 rows)
 
--- Create it again. This creates the index on the partitions, too, so you
--- end up with duplicate indexes on the partitions. It's a bit silly, but
--- should still work, and not throw a "relation already exists" error, for
--- example.
+-- Create it again.
 CREATE INDEX mpp7635_ix3 ON mpp7635_aoi_table2 (id);
 NOTICE:  building index for child partition "mpp7635_aoi_table2_1_prt_1"
 NOTICE:  building index for child partition "mpp7635_aoi_table2_1_prt_2"
 select * from pg_indexes where tablename like 'mpp7635%';
- schemaname |         tablename          |             indexname              | tablespace |                                               indexdef                                                
-------------+----------------------------+------------------------------------+------------+-------------------------------------------------------------------------------------------------------
- public     | mpp7635_aoi_table2_1_prt_1 | mpp7635_aoi_table2_1_prt_1_id_idx  |            | CREATE INDEX mpp7635_aoi_table2_1_prt_1_id_idx ON public.mpp7635_aoi_table2_1_prt_1 USING bitmap (id)
- public     | mpp7635_aoi_table2_1_prt_2 | mpp7635_aoi_table2_1_prt_2_id_idx  |            | CREATE INDEX mpp7635_aoi_table2_1_prt_2_id_idx ON public.mpp7635_aoi_table2_1_prt_2 USING bitmap (id)
- public     | mpp7635_aoi_table2         | mpp7635_ix3                        |            | CREATE INDEX mpp7635_ix3 ON public.mpp7635_aoi_table2 USING btree (id)
- public     | mpp7635_aoi_table2_1_prt_1 | mpp7635_aoi_table2_1_prt_1_id_idx1 |            | CREATE INDEX mpp7635_aoi_table2_1_prt_1_id_idx1 ON public.mpp7635_aoi_table2_1_prt_1 USING btree (id)
- public     | mpp7635_aoi_table2_1_prt_2 | mpp7635_aoi_table2_1_prt_2_id_idx1 |            | CREATE INDEX mpp7635_aoi_table2_1_prt_2_id_idx1 ON public.mpp7635_aoi_table2_1_prt_2 USING btree (id)
-(5 rows)
+ schemaname |         tablename          |             indexname             | tablespace |                                               indexdef                                               
+------------+----------------------------+-----------------------------------+------------+------------------------------------------------------------------------------------------------------
+ public     | mpp7635_aoi_table2         | mpp7635_ix3                       |            | CREATE INDEX mpp7635_ix3 ON public.mpp7635_aoi_table2 USING btree (id)
+ public     | mpp7635_aoi_table2_1_prt_1 | mpp7635_aoi_table2_1_prt_1_id_idx |            | CREATE INDEX mpp7635_aoi_table2_1_prt_1_id_idx ON public.mpp7635_aoi_table2_1_prt_1 USING btree (id)
+ public     | mpp7635_aoi_table2_1_prt_2 | mpp7635_aoi_table2_1_prt_2_id_idx |            | CREATE INDEX mpp7635_aoi_table2_1_prt_2_id_idx ON public.mpp7635_aoi_table2_1_prt_2 USING btree (id)
+(3 rows)
 
 --
 -- Test handling of NULL values in SPLIT PARTITION.

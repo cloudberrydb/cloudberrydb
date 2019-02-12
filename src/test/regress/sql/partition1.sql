@@ -1297,7 +1297,7 @@ drop table foo;
 drop table mpp14613_list;
 
 --
--- Drop index on a partitioned table. The indexes on the partitions remain.
+-- Drop index on a partitioned table. The indexes on the partitions are removed.
 --
 create table pt_indx_tab (c1 integer, c2 int, c3 text) partition by range (c1) (partition A start (integer '0') end (integer '5') every (integer '1'));
 
@@ -1397,14 +1397,11 @@ INSERT INTO mpp7635_aoi_table2(id) VALUES (0);
 CREATE INDEX mpp7635_ix3 ON mpp7635_aoi_table2 USING BITMAP (id);
 select * from pg_indexes where tablename like 'mpp7635%';
 
--- Drop it. This only drops it from the root table, not the partitions.
+-- Drop it
 DROP INDEX mpp7635_ix3;
 select * from pg_indexes where tablename like 'mpp7635%';
 
--- Create it again. This creates the index on the partitions, too, so you
--- end up with duplicate indexes on the partitions. It's a bit silly, but
--- should still work, and not throw a "relation already exists" error, for
--- example.
+-- Create it again.
 CREATE INDEX mpp7635_ix3 ON mpp7635_aoi_table2 (id);
 select * from pg_indexes where tablename like 'mpp7635%';
 

@@ -511,8 +511,6 @@ select a, count(*) from pt where a<2 group by a;
 
 -- CLEANUP
 drop index pt_c;
-WARNING:  only dropped the index "pt_c"
-HINT:  To drop other indexes on child partitions, drop each one explicitly.
 drop table if exists pt;
 drop table if exists t;
 --
