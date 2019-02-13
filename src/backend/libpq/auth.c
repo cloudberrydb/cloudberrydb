@@ -97,7 +97,7 @@ static int	auth_peer(hbaPort *port);
 
 static int	CheckPAMAuth(Port *port, char *user, char *password);
 static int pam_passwd_conv_proc(int num_msg, const struct pam_message ** msg,
-                     struct pam_response ** resp, void *appdata_ptr);
+					 struct pam_response ** resp, void *appdata_ptr);
 
 static struct pam_conv pam_passw_conv = {
 	&pam_passwd_conv_proc,

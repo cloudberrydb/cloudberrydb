@@ -3747,7 +3747,7 @@ AlterTable(Oid relid, LOCKMODE lockmode, AlterTableStmt *stmt)
 	rel = relation_open(relid, NoLock);
 
 	ATVerifyObject(stmt, rel);
-	
+
 	CheckTableNotInUse(rel, "ALTER TABLE");
 
 	ATController(rel, stmt->cmds, interpretInhOption(stmt->relation->inhOpt),
@@ -9955,7 +9955,6 @@ transformColumnNameList(Oid relId, List *colList,
 		HeapTuple	atttuple;
 
 		atttuple = SearchSysCacheAttName(relId, attname);
-
 		if (!HeapTupleIsValid(atttuple))
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_COLUMN),
@@ -9968,9 +9967,7 @@ transformColumnNameList(Oid relId, List *colList,
 							INDEX_MAX_KEYS)));
 		attnums[attnum] = ((Form_pg_attribute) GETSTRUCT(atttuple))->attnum;
 		atttypids[attnum] = ((Form_pg_attribute) GETSTRUCT(atttuple))->atttypid;
-
 		ReleaseSysCache(atttuple);
-
 		attnum++;
 	}
 
@@ -13625,6 +13622,7 @@ inherit_parent(Relation parent_rel, Relation child_rel, bool is_partition, List 
 	while (HeapTupleIsValid(inheritsTuple = systable_getnext(scan)))
 	{
 		Form_pg_inherits inh = (Form_pg_inherits) GETSTRUCT(inheritsTuple);
+
 		if (inh->inhparent == RelationGetRelid(parent_rel))
 			ereport(ERROR,
 					(errcode(ERRCODE_DUPLICATE_TABLE),

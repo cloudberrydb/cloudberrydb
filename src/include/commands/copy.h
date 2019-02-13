@@ -301,7 +301,6 @@ extern DestReceiver *CreateCopyDestReceiver(void);
 
 extern List *CopyGetAttnums(TupleDesc tupDesc, Relation rel, List *attnamelist);
 
-extern bool CopyReadLine(CopyState cstate);
 extern void CopyOneRowTo(CopyState cstate, Oid tupleOid,
 						 Datum *values, bool *nulls);
 extern void CopyOneCustomRowTo(CopyState cstate, bytea *value);

@@ -82,6 +82,7 @@ static void intorel_receive(TupleTableSlot *slot, DestReceiver *self);
 static void intorel_shutdown(DestReceiver *self);
 static void intorel_destroy(DestReceiver *self);
 
+
 /*
  * create_ctas_internal
  *
@@ -754,12 +755,11 @@ intorel_shutdown(DestReceiver *self)
 	if (RelationIsAoRows(into_rel) && myState->ao_insertDesc)
 		appendonly_insert_finish(myState->ao_insertDesc);
 	else if (RelationIsAoCols(into_rel) && myState->aocs_insertDes)
-        aocs_insert_finish(myState->aocs_insertDes);
+		aocs_insert_finish(myState->aocs_insertDes);
 
 	/* close rel, but keep lock until commit */
 	heap_close(into_rel, NoLock);
 	myState->rel = NULL;
-
 }
 
 /*

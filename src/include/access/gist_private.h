@@ -186,8 +186,8 @@ typedef GISTScanOpaqueData *GISTScanOpaque;
 
 typedef struct gistxlogPageUpdate
 {
-	RelFileNode 	node;
-	BlockNumber 	blkno;
+	RelFileNode node;
+	BlockNumber blkno;
 
 	/*
 	 * If this operation completes a page split, by inserting a downlink for

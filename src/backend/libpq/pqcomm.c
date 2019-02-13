@@ -157,6 +157,7 @@ static bool PqCommBusy;			/* busy sending data to the client */
 static bool PqCommReadingMsg;	/* in the middle of reading a message */
 static bool DoingCopyOut;		/* in old-protocol COPY OUT processing */
 
+
 /* Internal functions */
 static void pq_close(int code, Datum arg);
 static int	internal_putbytes(const char *s, size_t len);

@@ -263,7 +263,6 @@ RenameSchema(const char *oldname, const char *newname)
 {
 	Oid			nspOid;
 	HeapTuple	tup;
-	Oid			nsoid;
 	Relation	rel;
 	AclResult	aclresult;
 
@@ -284,8 +283,7 @@ RenameSchema(const char *oldname, const char *newname)
 				 errmsg("schema \"%s\" already exists", newname)));
 
 	/* must be owner */
-	nsoid = HeapTupleGetOid(tup);
-	if (!pg_namespace_ownercheck(nsoid, GetUserId()))
+	if (!pg_namespace_ownercheck(nspOid, GetUserId()))
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_NAMESPACE,
 					   oldname);
 
@@ -321,7 +319,7 @@ RenameSchema(const char *oldname, const char *newname)
 	/* MPP-6929: metadata tracking */
 	if (Gp_role == GP_ROLE_DISPATCH)
 		MetaTrackUpdObject(NamespaceRelationId,
-						   nsoid,
+						   nspOid,
 						   GetUserId(),
 						   "ALTER", "RENAME"
 				);

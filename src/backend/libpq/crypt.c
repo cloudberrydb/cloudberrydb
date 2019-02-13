@@ -224,6 +224,7 @@ hashed_passwd_verify(const Port *port, const char *role, char *client_pass,
 			crypt_pwd = shadow_pass;
 			break;
 	}
+
 	if (strcmp(crypt_client_pass, crypt_pwd) == 0)
 	{
 		/*

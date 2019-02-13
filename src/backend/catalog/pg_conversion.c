@@ -131,6 +131,7 @@ ConversionCreate(const char *conname, Oid connamespace,
 	/* create dependency on owner */
 	recordDependencyOnOwner(ConversionRelationId, HeapTupleGetOid(tup),
 							conowner);
+
 	/* dependency on extension */
 	recordDependencyOnCurrentExtension(&myself, false);
 

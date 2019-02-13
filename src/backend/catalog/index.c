@@ -3190,7 +3190,6 @@ validate_index_callback(ItemPointer itemptr, void *opaque)
 	v_i_state  *state = (v_i_state *) opaque;
 
 	tuplesort_putdatum(state->tuplesort, PointerGetDatum(itemptr), false);
-
 	state->itups += 1;
 	return false;				/* never actually delete anything */
 }
@@ -3336,8 +3335,8 @@ validate_index_heapscan(Relation heapRelation,
 				pfree(indexcursor);
 			}
 
-			tuplesort_empty = !tuplesort_getdatum(state->tuplesort,
-												  true, &ts_val, &ts_isnull);
+			tuplesort_empty = !tuplesort_getdatum(state->tuplesort, true,
+												  &ts_val, &ts_isnull);
 			Assert(tuplesort_empty || !ts_isnull);
 			indexcursor = (ItemPointer) DatumGetPointer(ts_val);
 		}
@@ -3778,7 +3777,6 @@ reindex_index(Oid indexId, bool skip_constraint_checks)
  * Returns true if any indexes were rebuilt (including toast table's index
  * when relevant).  Note that a CommandCounterIncrement will occur after each
  * index rebuild.
- *
  */
 bool
 reindex_relation(Oid relid, int flags)

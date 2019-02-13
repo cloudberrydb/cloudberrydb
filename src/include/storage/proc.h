@@ -202,6 +202,7 @@ struct PGPROC
 
 /* NOTE: "typedef struct PGPROC PGPROC" appears in storage/lock.h. */
 
+
 extern PGDLLIMPORT PGPROC *MyProc;
 extern PGDLLIMPORT struct PGXACT *MyPgXact;
 extern PGDLLIMPORT struct TMGXACT *MyTmGxact;
@@ -261,7 +262,6 @@ typedef struct PROC_HDR
 	Latch	   *checkpointerLatch;
 	/* Current shared estimate of appropriate spins_per_delay value */
 	int			spins_per_delay;
-
 	/* The proc of the Startup process, since not in ProcArray */
 	PGPROC	   *startupProc;
 	int			startupProcPid;

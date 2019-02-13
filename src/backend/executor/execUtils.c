@@ -756,6 +756,7 @@ ExecAssignProjectionInfo(PlanState *planstate,
 								inputDesc);
 }
 
+
 /* ----------------
  *		ExecFreeExprContext
  *

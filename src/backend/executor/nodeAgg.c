@@ -574,19 +574,19 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup)
 				for (i = 0; i < numTransInputs; i++)
 				{
 					value = slot_getattr(slot, i+1, &isnull);
-					
+
 					if (isnull)
 						break; /* arg loop */
 				}
 				if (i < numTransInputs)
 					continue;
 			}
-			
+
 			/* OK, put the tuple into the tuplesort object */
 			if (peraggstate->numInputs == 1)
 			{
 				value = slot_getattr(slot, 1, &isnull);
-				
+
 				tuplesort_putdatum(peraggstate->sortstate,
 								   value, isnull);
 			}
@@ -711,7 +711,8 @@ process_ordered_aggregate_single(AggState *aggstate,
 	 * pfree them when they are no longer needed.
 	 */
 
-	while (tuplesort_getdatum(peraggstate->sortstate, true, newVal, isNull))
+	while (tuplesort_getdatum(peraggstate->sortstate, true,
+							  newVal, isNull))
 	{
 		/*
 		 * Clear and select the working context for evaluation of the equality
@@ -755,7 +756,6 @@ process_ordered_aggregate_single(AggState *aggstate,
 		pfree(DatumGetPointer(oldVal));
 
 	tuplesort_end(peraggstate->sortstate);
-
 	peraggstate->sortstate = NULL;
 }
 
@@ -1595,7 +1595,6 @@ agg_retrieve_direct(AggState *aggstate)
 					process_ordered_aggregate_multi(aggstate,
 													peraggstate,
 													pergroupstate);
-
 			}
 
 			finalize_aggregate(aggstate, peraggstate, pergroupstate,
@@ -1702,7 +1701,7 @@ agg_retrieve_direct(AggState *aggstate)
 }
 
 /*
- * ExecAgg for hashed case: retrieve groups from hash table
+ * ExecAgg for hashed case: phase 2, retrieving groups from hash table
  */
 static TupleTableSlot *
 agg_retrieve_hash_table(AggState *aggstate)

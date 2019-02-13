@@ -4137,6 +4137,7 @@ check_search_path(char **newval, void **extra, GucSource source)
 	 * here and so can't consult the system catalogs anyway.  So now, the only
 	 * requirement is syntactic validity of the identifier list.
 	 */
+
 	pfree(rawname);
 	list_free(namelist);
 

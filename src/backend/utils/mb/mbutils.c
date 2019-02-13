@@ -750,7 +750,6 @@ perform_default_encoding_conversion(const char *src, int len,
 				  CStringGetDatum((char *) src),
 				  CStringGetDatum(result),
 				  Int32GetDatum(len));
-		
 	return result;
 }
 

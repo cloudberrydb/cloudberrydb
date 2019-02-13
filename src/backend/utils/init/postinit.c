@@ -314,6 +314,7 @@ PerformAuthentication(Port *port)
 	ClientAuthInProgress = false;		/* client_min_messages is active now */
 }
 
+
 /*
  * CheckMyDatabase -- fetch information from the pg_database entry for our DB
  */
@@ -453,6 +454,7 @@ InitCommunication(void)
 		CreateSharedMemoryAndSemaphores(true, 0);
 	}
 }
+
 
 /*
  * pg_split_opts -- split a string of options and append it to an argv array

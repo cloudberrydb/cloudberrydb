@@ -92,6 +92,7 @@ static MemoryContext parsed_hba_context = NULL;
 static List *parsed_ident_lines = NIL;
 static MemoryContext parsed_ident_context = NULL;
 
+
 static MemoryContext tokenize_file(const char *filename, FILE *file,
 			  List **lines, List **line_nums, List **raw_lines);
 static List *tokenize_inc_file(List *tokens, const char *outer_filename,
@@ -437,6 +438,7 @@ tokenize_file(const char *filename, FILE *file,
 
 	return linecxt;
 }
+
 
 /*
  * Does user belong to role?

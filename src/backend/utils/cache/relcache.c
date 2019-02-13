@@ -706,7 +706,6 @@ RelationBuildRuleLock(Relation relation)
 	 */
 	rewrite_desc = heap_open(RewriteRelationId, AccessShareLock);
 	rewrite_tupdesc = RelationGetDescr(rewrite_desc);
-
 	rewrite_scan = systable_beginscan(rewrite_desc,
 									  RewriteRelRulenameIndexId,
 									  true, NULL,
@@ -915,7 +914,6 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	relation->rd_isnailed = false;
 	relation->rd_createSubid = InvalidSubTransactionId;
 	relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
-
 	switch (relation->rd_rel->relpersistence)
 	{
 		case RELPERSISTENCE_UNLOGGED:
@@ -1786,7 +1784,6 @@ RelationIdGetRelation(Oid relationId)
 	rd = RelationBuildDesc(relationId, true);
 	if (RelationIsValid(rd))
 		RelationIncrementReferenceCount(rd);
-
 	return rd;
 }
 
@@ -2278,13 +2275,13 @@ RelationClearRelation(Relation relation, bool rebuild)
 		 * structures won't move while they are working with an open relcache
 		 * entry.  (Note: the refcount mechanism for tupledescs might someday
 		 * allow us to remove this hack for the tupledesc.)
- 		 *
- 		 * Note that this process does not touch CurrentResourceOwner; which
- 		 * is good because whatever ref counts the entry may have do not
- 		 * necessarily belong to that resource owner.
+		 *
+		 * Note that this process does not touch CurrentResourceOwner; which
+		 * is good because whatever ref counts the entry may have do not
+		 * necessarily belong to that resource owner.
  		 */
 		Relation	newrel;
- 		Oid			save_relid = RelationGetRelid(relation);
+		Oid			save_relid = RelationGetRelid(relation);
 		bool		keep_tupdesc;
 		bool		keep_rules;
 		bool		keep_policy;
@@ -2337,7 +2334,7 @@ RelationClearRelation(Relation relation, bool rebuild)
 		} while (0)
 
 		/* swap all Relation struct fields */
- 		{
+		{
 			RelationData tmpstruct;
 
 			memcpy(&tmpstruct, newrel, sizeof(RelationData));
@@ -2362,14 +2359,13 @@ RelationClearRelation(Relation relation, bool rebuild)
 		if (keep_tupdesc)
 			SWAPFIELD(TupleDesc, rd_att);
 		if (keep_rules)
- 		{
+		{
 			SWAPFIELD(RuleLock *, rd_rules);
 			SWAPFIELD(MemoryContext, rd_rulescxt);
- 		}
+		}
 		/* also preserve old policy if no logical change */
 		if (keep_policy)
 			SWAPFIELD(GpPolicy *, rd_cdbpolicy);
-
 		/* pgstat_info must be preserved */
 		SWAPFIELD(struct PgStat_TableStatus *, pgstat_info);
 

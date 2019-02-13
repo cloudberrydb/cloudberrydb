@@ -181,8 +181,8 @@ LockTableRecurse(Oid reloid, LOCKMODE lockmode, bool nowait)
 				continue;		/* child concurrently dropped, just skip it */
 			ereport(ERROR,
 					(errcode(ERRCODE_LOCK_NOT_AVAILABLE),
-							errmsg("could not obtain lock on relation \"%s\"",
-								   relname)));
+					 errmsg("could not obtain lock on relation \"%s\"",
+							relname)));
 		}
 
 		/*

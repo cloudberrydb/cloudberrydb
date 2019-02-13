@@ -579,9 +579,8 @@ ExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into, ExplainState *es,
 	if (into)
 		eflags |= GetIntoRelEFlags(into);
 
-
-			queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(
-			queryDesc->plannedstmt);
+	queryDesc->plannedstmt->query_mem =
+		ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
 	/* call ExecutorStart to prepare the plan for execution */
 	ExecutorStart(queryDesc, eflags);
@@ -2559,7 +2558,6 @@ show_sort_group_keys(PlanState *planstate, const char *qlabel,
 	 *	appendStringInfo(es->str, " (%d times)", rollup_gs_times);
 	 */
 }
-
 
 /*
  * If it's EXPLAIN ANALYZE, show tuplesort stats for a sort node

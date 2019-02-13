@@ -115,16 +115,16 @@ Oid			binary_upgrade_next_heap_pg_class_oid = InvalidOid;
 Oid			binary_upgrade_next_toast_pg_class_oid = InvalidOid;
 
 static void AddNewRelationTuple(Relation pg_class_desc,
-								Relation new_rel_desc,
-								Oid new_rel_oid,
-								Oid new_type_oid,
-								Oid reloftype,
-								Oid relowner,
-								char relkind,
-								char relstorage,
-								Datum relacl,
-								Datum reloptions,
-								bool is_part_parent);
+					Relation new_rel_desc,
+					Oid new_rel_oid,
+					Oid new_type_oid,
+					Oid reloftype,
+					Oid relowner,
+					char relkind,
+					char relstorage,
+					Datum relacl,
+					Datum reloptions,
+					bool is_part_parent);
 static Oid AddNewRelationType(const char *typeName,
 				   Oid typeNamespace,
 				   Oid new_rel_oid,
@@ -146,6 +146,7 @@ static Node *cookConstraint(ParseState *pstate,
 			   Node *raw_constraint,
 			   char *relname);
 static List *insert_ordered_unique_oid(List *list, Oid datum);
+
 
 /* ----------------------------------------------------------------
  *				XXX UGLY HARD CODED BADNESS FOLLOWS XXX

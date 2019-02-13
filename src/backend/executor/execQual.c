@@ -73,8 +73,8 @@ static Datum ExecEvalArrayRef(ArrayRefExprState *astate,
 				 bool *isNull, ExprDoneCond *isDone);
 static bool isAssignmentIndirectionExpr(ExprState *exprstate);
 static Datum ExecEvalAggref(AggrefExprState *aggref,
-		   ExprContext *econtext,
-		   bool *isNull, ExprDoneCond *isDone);
+			   ExprContext *econtext,
+			   bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalGroupingFunc(GroupingFuncExprState *gstate,
 							  ExprContext *econtext,
 							  bool *isNull, ExprDoneCond *isDone);
@@ -5207,18 +5207,18 @@ ExecEvalArrayCoerceExpr(ArrayCoerceExprState *astate,
 }
 
 /* ----------------------------------------------------------------
- *    ExecEvalCurrentOfExpr
+ *		ExecEvalCurrentOfExpr
  *
- *    Evaluate CURRENT OF
+ * Evaluate CURRENT OF
  *
- *    Constant folding must have bound observed values of
- * 	gp_segment_id, ctid, and tableoid into the CurrentOfExpr for
- *	this function's consumption.
+ * Constant folding must have bound observed values of gp_segment_id,
+ * ctid, and tableoid into the CurrentOfExpr for this function's
+ * consumption.
  * ----------------------------------------------------------------
  */
 static Datum
 ExecEvalCurrentOfExpr(ExprState *exprstate, ExprContext *econtext,
-						bool *isNull, ExprDoneCond *isDone)
+					  bool *isNull, ExprDoneCond *isDone)
 {
 	CurrentOfExpr 	*cexpr = (CurrentOfExpr *) exprstate->expr;
 	bool 			result = false;
@@ -5257,7 +5257,7 @@ ExecEvalCurrentOfExpr(ExprState *exprstate, ExprContext *econtext,
 
 	return BoolGetDatum(result);
 }
- 
+
 /* ----------------------------------------------------------------
  *		ExecEvalReshuffleExpr
  *
@@ -5438,7 +5438,6 @@ ExecInitExpr(Expr *node, PlanState *parent)
 			state->evalfunc = ExecEvalCaseTestExpr;
 			break;
 		case T_Aggref:
-
 			{
 				Aggref	   *aggref = (Aggref *) node;
 				AggrefExprState *astate = makeNode(AggrefExprState);

@@ -210,6 +210,8 @@ static const char *show_log_file_mode(void);
 static int	defunct_int = 0;
 static bool	defunct_bool = false;
 static double defunct_double = 0;
+
+
 /*
  * Options for enum values defined in this module.
  *
@@ -502,6 +504,7 @@ static int	effective_io_concurrency;
 
 /* should be static, but commands/variable.c needs to get at this */
 char	   *role_string;
+
 
 /*
  * Displayable names for context types (enum GucContext)
@@ -1628,7 +1631,7 @@ static struct config_int ConfigureNamesInt[] =
 	{
 		{"geqo_threshold", PGC_USERSET, DEFUNCT_OPTIONS,
 			gettext_noop("Unused. Syntax check only for PostgreSQL compatibility."),
-            NULL,
+			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&defunct_int,
@@ -1638,7 +1641,7 @@ static struct config_int ConfigureNamesInt[] =
 	{
 		{"geqo_effort", PGC_USERSET, DEFUNCT_OPTIONS,
 			gettext_noop("Unused. Syntax check only for PostgreSQL compatibility."),
-            NULL,
+			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&defunct_int,
@@ -1649,7 +1652,7 @@ static struct config_int ConfigureNamesInt[] =
 	{
 		{"geqo_pool_size", PGC_USERSET, DEFUNCT_OPTIONS,
 			gettext_noop("Unused. Syntax check only for PostgreSQL compatibility."),
-            NULL,
+			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&defunct_int,
@@ -1659,7 +1662,7 @@ static struct config_int ConfigureNamesInt[] =
 	{
 		{"geqo_generations", PGC_USERSET, DEFUNCT_OPTIONS,
 			gettext_noop("Unused. Syntax check only for PostgreSQL compatibility."),
-            NULL,
+			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&defunct_int,
@@ -2832,6 +2835,7 @@ static struct config_string ConfigureNamesString[] =
 		"",
 		check_temp_tablespaces, assign_temp_tablespaces, NULL
 	},
+
 	{
 		{"dynamic_library_path", PGC_SUSET, CLIENT_CONN_OTHER,
 			gettext_noop("Sets the path for dynamically loadable modules."),
@@ -9151,10 +9155,8 @@ GUCArrayDelete(ArrayType *array, const char *name)
 			&& val[strlen(name)] == '=')
 			continue;
 
-
 		/* else add it to the output array */
 		if (newarray)
-		{
 			newarray = array_set(newarray, 1, &index,
 								 d,
 								 false,
@@ -9162,7 +9164,6 @@ GUCArrayDelete(ArrayType *array, const char *name)
 								 -1 /* TEXT's typlen */ ,
 								 false /* TEXT's typbyval */ ,
 								 'i' /* TEXT's typalign */ );
-		}
 		else
 			newarray = construct_array(&d, 1,
 									   TEXTOID,
@@ -9173,6 +9174,7 @@ GUCArrayDelete(ArrayType *array, const char *name)
 
 	return newarray;
 }
+
 
 /*
  * Given a GUC array, delete all settings from it that our permission
@@ -9190,7 +9192,7 @@ GUCArrayReset(ArrayType *array)
 	if (!array)
 		return NULL;
 
-	/* if we're superuser, we can delete everything */
+	/* if we're superuser, we can delete everything, so just do it */
 	if (superuser())
 		return NULL;
 
@@ -9210,7 +9212,6 @@ GUCArrayReset(ArrayType *array)
 					  false /* TEXT's typbyval */ ,
 					  'i' /* TEXT's typalign */ ,
 					  &isnull);
-
 		if (isnull)
 			continue;
 		val = TextDatumGetCString(d);
@@ -10029,4 +10030,5 @@ show_log_file_mode(void)
 	snprintf(buf, sizeof(buf), "%04o", Log_file_mode);
 	return buf;
 }
+
 #include "guc-file.c"

@@ -166,6 +166,7 @@ static void CopyFromInsertBatch(CopyState cstate, EState *estate,
 					BulkInsertState bistate,
 					int nBufferedTuples, HeapTuple *bufferedTuples,
 					uint64 firstBufferedLineNo);
+static bool CopyReadLine(CopyState cstate);
 static bool CopyReadLineText(CopyState cstate);
 static int	CopyReadAttributesText(CopyState cstate);
 static int	CopyReadAttributesCSV(CopyState cstate);
@@ -5701,7 +5702,7 @@ EndCopyFrom(CopyState cstate)
  * by newline.  The terminating newline or EOF marker is not included
  * in the final value of line_buf.
  */
-bool
+static bool
 CopyReadLine(CopyState cstate)
 {
 	bool		result;

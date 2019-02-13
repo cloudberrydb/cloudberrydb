@@ -582,7 +582,6 @@ AlterObjectNamespace_oid(Oid classId, Oid objid, Oid nspOid,
 	return oldNspOid;
 }
 
-
 /*
  * Generic function to change the namespace of a given object, for simple
  * cases (won't work for tables, nor other cases where we need to do more
@@ -759,6 +758,7 @@ ExecAlterOwnerStmt_internal(AlterOwnerStmt *stmt)
 			return AlterEventTriggerOwner(strVal(linitial(stmt->object)),
 										  newowner);
 
+			/* Generic cases */
 		case OBJECT_EXTPROTOCOL:
 		case OBJECT_AGGREGATE:
 		case OBJECT_COLLATION:

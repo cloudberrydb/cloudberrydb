@@ -1714,7 +1714,6 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 		}
 		estate->es_result_relations = resultRelInfos;
 		estate->es_num_result_relations = numResultRelations;
-
 		/* es_result_relation_info is NULL except when within ModifyTable */
 		estate->es_result_relation_info = NULL;
 

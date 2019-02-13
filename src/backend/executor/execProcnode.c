@@ -1096,6 +1096,10 @@ ExecProcNode(PlanState *node)
 			result = ExecAgg((AggState *) node);
 			break;
 
+		case T_WindowAggState:
+			result = ExecWindowAgg((WindowAggState *) node);
+			break;
+
 		case T_UniqueState:
 			result = ExecUnique((UniqueState *) node);
 			break;
@@ -1122,10 +1126,6 @@ ExecProcNode(PlanState *node)
 
 		case T_ShareInputScanState:
 			result = ExecShareInputScan((ShareInputScanState *) node);
-			break;
-
-		case T_WindowAggState:
-			result = ExecWindowAgg((WindowAggState *) node);
 			break;
 
 		case T_RepeatState:

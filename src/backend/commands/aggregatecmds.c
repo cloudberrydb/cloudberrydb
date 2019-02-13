@@ -416,41 +416,41 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	/*
 	 * Most of the argument-checking is done inside of AggregateCreate
 	 */
-	Oid			aggOid;
-	aggOid = AggregateCreate(aggName,	/* aggregate name */
-					aggNamespace,		/* namespace */
-					aggKind,
-					numArgs,
-					numDirectArgs,
-					parameterTypes,
-					PointerGetDatum(allParameterTypes),
-					PointerGetDatum(parameterModes),
-					PointerGetDatum(parameterNames),
-					parameterDefaults,
-					variadicArgType,
-					transfuncName,		/* step function name */
-					finalfuncName,		/* final function name */
-					combinefuncName,		/* combine function name */
-					serialfuncName,		/* serial function name */
-					deserialfuncName,	/* deserial function name */
-					mtransfuncName,	/* fwd trans function name */
-					minvtransfuncName,	/* inv trans function name */
-					mfinalfuncName,	/* final function name */
-					finalfuncExtraArgs,
-					mfinalfuncExtraArgs,
-					sortoperatorName,	/* sort operator name */
-					transTypeId,	/* transition data type */
-					transSpace,		/* transition space */
-					mtransTypeId,	/* transition data type */
-					mtransSpace, /* transition space */
-					initval,		/* initial condition */
-					minitval);	/* initial condition */
+	Oid			aOid;
+	aOid = AggregateCreate(aggName,				/* aggregate name */
+						   aggNamespace,		/* namespace */
+						   aggKind,
+						   numArgs,
+						   numDirectArgs,
+						   parameterTypes,
+						   PointerGetDatum(allParameterTypes),
+						   PointerGetDatum(parameterModes),
+						   PointerGetDatum(parameterNames),
+						   parameterDefaults,
+						   variadicArgType,
+						   transfuncName,		/* step function name */
+						   finalfuncName,		/* final function name */
+						   combinefuncName,		/* combine function name */
+						   serialfuncName,		/* serial function name */
+						   deserialfuncName,	/* deserial function name */
+						   mtransfuncName,		/* fwd trans function name */
+						   minvtransfuncName,	/* inv trans function name */
+						   mfinalfuncName,		/* final function name */
+						   finalfuncExtraArgs,
+						   mfinalfuncExtraArgs,
+						   sortoperatorName,	/* sort operator name */
+						   transTypeId, /* transition data type */
+						   transSpace,	/* transition space */
+						   mtransTypeId,		/* transition data type */
+						   mtransSpace, /* transition space */
+						   initval,		/* initial condition */
+						   minitval);	/* initial condition */
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		DefineStmt * stmt = makeNode(DefineStmt);
 		stmt->kind = OBJECT_AGGREGATE;
-		stmt->oldstyle = oldstyle;  
+		stmt->oldstyle = oldstyle;
 		stmt->defnames = name;
 		stmt->args = orig_args;
 		stmt->definition = parameters;
@@ -462,5 +462,5 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 									NULL);
 	}
 
-	return aggOid;
+	return aOid;
 }
