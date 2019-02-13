@@ -18,7 +18,6 @@
 
 #include "fmgr.h"
 #include "nodes/parsenodes.h"
-#include "executor/executor.h" /* for AttrMap */
 
 /*
  *		Defined in adt/
@@ -1375,7 +1374,8 @@ extern Datum percentile_cont_trans(PG_FUNCTION_ARGS);
 extern Datum percentile_disc_trans(PG_FUNCTION_ARGS);
 
 /* gp_partition_functions.c */
-extern void dumpDynamicTableScanPidIndex(EState *estate, int index);
+struct EState;
+extern void dumpDynamicTableScanPidIndex(struct EState *estate, int index);
 
 /* XForms */
 extern Datum disable_xform(PG_FUNCTION_ARGS);

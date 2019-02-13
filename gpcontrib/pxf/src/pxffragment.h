@@ -26,6 +26,7 @@
 #include "pxfuriparser.h"
 
 #include "lib/stringinfo.h"
+#include "utils/rel.h"
 
 /*
  * Context for the Fragmenter

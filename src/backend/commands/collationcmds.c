@@ -37,6 +37,7 @@
 
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdisp_query.h"
+#include "storage/fd.h"
 
 typedef struct
 {

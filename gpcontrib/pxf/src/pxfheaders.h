@@ -26,6 +26,8 @@
 #include "libchurl.h"
 #include "pxfuriparser.h"
 
+#include "utils/rel.h"
+
 /*
  * Contains the data necessary to build the HTTP headers required for calling on the pxf service
  */

@@ -16,6 +16,7 @@
 #include "catalog/namespace.h"
 #include "catalog/oid_dispatch.h"
 #include "catalog/pg_authid.h"
+#include "catalog/pg_class.h"
 #include "catalog/pg_enum.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_type.h"

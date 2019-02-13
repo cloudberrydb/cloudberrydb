@@ -16,6 +16,7 @@
 #include "utils/builtins.h"
 #include "cdb/cdbutil.h"
 #include "catalog/gp_policy.h"
+#include "catalog/pg_type.h"
 
 
 #ifdef PG_MODULE_MAGIC

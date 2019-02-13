@@ -24,6 +24,7 @@
 #include "cdb/cdbpartition.h"
 #include "cdb/partitionselection.h"
 #include "cdb/cdbvars.h"
+#include "executor/executor.h"
 #include "nodes/makefuncs.h"
 #include "parser/parse_expr.h"
 #include "utils/array.h"

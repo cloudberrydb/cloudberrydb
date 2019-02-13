@@ -19,6 +19,7 @@
 #include "postgres.h"
 
 #include "cdb/cdbhash.h"
+#include "catalog/pg_type.h"
 #include "commands/defrem.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
