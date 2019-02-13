@@ -39,7 +39,7 @@ OBJS = acl.o arrayfuncs.o array_selfuncs.o array_typanalyze.o \
 
 like.o: like.c like_match.c
 
-# GPDB additionso
+# GPDB additions
 OBJS +=	complex_type.o gp_dump_oids.o gp_optimizer_functions.o \
 	gp_partition_functions.o interpolate.o matrix.o \
 	pivot.o

@@ -52,7 +52,7 @@ endif
 # are not cleaned here.
 clean:
 	rm -f probes.h
-	rm -f pg_proc_combied.h
+	rm -f pg_proc_combined.h
 
 maintainer-clean: clean
 	rm -f fmgroids.h fmgrtab.c errcodes.h
