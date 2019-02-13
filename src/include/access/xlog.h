@@ -50,8 +50,7 @@ typedef struct XLogRecord
 	uint32		xl_len;			/* total len of rmgr data */
 	uint8		xl_info;		/* flag bits, see below */
 	RmgrId		xl_rmid;		/* resource manager for this record */
-	uint8       xl_extended_info; /* flag bits, see below */
-	/* 1 byte of padding here, initialize to zero */
+	/* 2 bytes of padding here, initialize to zero */
 	XLogRecPtr	xl_prev;		/* ptr to previous record in log */
 	pg_crc32	xl_crc;			/* CRC for this record */
 

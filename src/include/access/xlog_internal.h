@@ -48,12 +48,9 @@ typedef struct BkpBlock
 	BlockNumber block;			/* block number */
 	uint16		hole_offset;	/* number of bytes before "hole" */
 	uint16		hole_length;	/* number of bytes in "hole" */
-	uint8       block_info;    /* flags, controls to apply the block or not for now */
+
 	/* ACTUAL BLOCK DATA FOLLOWS AT END OF STRUCT */
 } BkpBlock;
-
-/* Information stored in block_info */
-#define BLOCK_APPLY 0x01 /* page image should be restored during replay */
 
 /*
  * Each page of XLOG file has a header like this:
