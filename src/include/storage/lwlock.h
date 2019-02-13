@@ -164,7 +164,6 @@ extern PGDLLIMPORT LWLockPadded *MainLWLockArray;
  * It's a bit odd to declare NUM_BUFFER_PARTITIONS and NUM_LOCK_PARTITIONS
  * here, but we need them to figure out offsets within MainLWLockArray, and
  * having this file include lock.h or bufmgr.h would be backwards.
- * This also applies for WORKFILE_HASHSTABLE_NUM_PARTITIONS.
  */
 
 /* Number of partitions of the shared buffer mapping hashtable */

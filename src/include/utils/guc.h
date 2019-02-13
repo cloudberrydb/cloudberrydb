@@ -27,8 +27,6 @@
 */
 #define RESERVED_FTS_CONNECTIONS (1)
 
-struct StringInfoData;                  /* #include "lib/stringinfo.h" */
-
 
 /*
  * Automatic configuration file name for ALTER SYSTEM.

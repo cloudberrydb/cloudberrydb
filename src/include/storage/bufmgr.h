@@ -55,15 +55,11 @@ typedef enum
 extern PGDLLIMPORT int NBuffers;
 
 /* in bufmgr.c */
-
 extern bool zero_damaged_pages;
 extern int	bgwriter_lru_maxpages;
 extern double bgwriter_lru_multiplier;
 extern bool track_io_timing;
 extern int	target_prefetch_pages;
-extern bool bgwriter_flush_all_buffers;
-
-extern PGDLLIMPORT bool IsUnderPostmaster; /* from utils/init/globals.c */
 
 /* in buf_init.c */
 extern PGDLLIMPORT char *BufferBlocks;
