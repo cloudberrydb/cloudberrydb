@@ -98,11 +98,17 @@ typedef struct varatt_indirect
  * Type tag for the various sorts of "TOAST pointer" datums.  The peculiar
  * value for VARTAG_ONDISK comes from a requirement for on-disk compatibility
  * with a previous notion that the tag field was the pointer datum's length.
+ *
+ * GPDB: In PostgreSQL VARTAG_ONDISK is set to 18 in order to match the
+ * historic (VARHDRSZ_EXTERNAL + sizeof(struct varatt_external)) value of the
+ * pointer datum's length. In Greenplum VARHDRSZ_EXTERNAL is two bytes longer
+ * than PostgreSQL due to extra padding in varattrib_1b_e, so VARTAG_ONDISK has
+ * to be set to 20.
  */
 typedef enum vartag_external
 {
 	VARTAG_INDIRECT = 1,
-	VARTAG_ONDISK = 18
+	VARTAG_ONDISK = 20
 } vartag_external;
 
 #define VARTAG_SIZE(tag) \
@@ -140,11 +146,7 @@ typedef struct
 	char		va_data[1];		/* Data begins here */
 } varattrib_1b;
 
-/* NOT Like Postgres! ...In GPDB, We waste a few bytes of padding, and don't always set the va_len_1be to anything */
-/* GPDB_94_MERGE_FIXME: The va_len_1be field was changed to va_tag in PostgreSQL 9.4.
- * There were comments here that va_len_1be was ignored in GPDB. Does this change to
- * va_tag work correctly with pg_upgrade in GPDB?
- */
+/* NOT Like Postgres! ...In GPDB, We waste a few bytes of padding */
 typedef struct
 {
 	uint8		va_header;		/* Always 0x80  */
