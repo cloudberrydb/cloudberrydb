@@ -1817,8 +1817,10 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 	 * derive other clauses from this, though, so remember this qual for later.
 	 * (We cannot do predicate propagation yet, because we haven't built all
 	 * the equivalence classes yet.)
+	 * We do not consider it if it is an outer-join qual.
 	 */
-	root->non_eq_clauses = lappend(root->non_eq_clauses, restrictinfo);
+	if (outerjoin_nonnullable == NULL)
+		root->non_eq_clauses = lappend(root->non_eq_clauses, restrictinfo);
 }
 
 /*

@@ -150,10 +150,6 @@ gen_implied_qual(PlannerInfo *root,
 	if (subexpression_match((Expr *) new_expr, old_rinfo->clause))
 		return;
 
-	/* No inferences may be performed across an outer join */
-	if (old_rinfo->outer_relids)
-		return;
-
 	/*
 	 * Have we seen this clause before? This is needed to avoid infinite
 	 * recursion.
@@ -229,6 +225,9 @@ gen_implied_quals(PlannerInfo *root, RestrictInfo *rinfo)
 	Expr	   *item1;
 	Expr	   *item2;
 	ListCell   *lcec;
+
+	/* No inferences may be performed across an outer join */
+	Assert(rinfo->outer_relids == NULL);
 
 	if (rinfo->pseudoconstant)
 		return;
