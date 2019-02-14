@@ -141,6 +141,30 @@ def impl(context, dbname, psql_cmd):
         raise Exception('%s' % context.error_message)
 
 
+@given('the user connects to "{dbname}" with named connection "{cname}"')
+def impl(context, dbname, cname):
+    if not hasattr(context, 'named_conns'):
+        context.named_conns = {}
+    if cname in context.named_conns:
+        context.named_conns[cname].close()
+        del context.named_conns[cname]
+    context.named_conns[cname] = dbconn.connect(dbconn.DbURL(dbname=dbname))
+
+
+@given('the user executes "{sql}" with named connection "{cname}"')
+def impl(context, cname, sql):
+    conn = context.named_conns[cname]
+    dbconn.execSQL(conn, sql)
+    conn.commit()
+
+
+@then('the user drops the named connection "{cname}"')
+def impl(context, cname):
+    if cname in context.named_conns:
+        context.named_conns[cname].close()
+        del context.named_conns[cname]
+
+
 @given('the database is running')
 @then('the database is running')
 def impl(context):

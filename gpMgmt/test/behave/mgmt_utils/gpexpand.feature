@@ -176,6 +176,8 @@ Feature: expand the cluster by adding more segments
         And the database is not running
         And the cluster is generated with "1" primaries only
         And database "gptest" exists
+        And the user connects to "gptest" with named connection "default"
+        And the user executes "CREATE TEMP TABLE temp_t1 (c1 int) DISTRIBUTED BY (c1)" with named connection "default"
         And the user runs psql with "-c 'CREATE TABLE public.redistribute (i int) DISTRIBUTED BY (i)'" against database "gptest"
         And the user runs psql with "-c 'INSERT INTO public.redistribute SELECT generate_series(1, 10000)'" against database "gptest"
         And distribution information from table "public.redistribute" with data in "gptest" is saved
@@ -185,6 +187,7 @@ Feature: expand the cluster by adding more segments
         Then the number of segments have been saved
         When the user runs gpexpand with the latest gpexpand_inputfile with additional parameters "--silent"
         Then verify that the cluster has 3 new segments
+         And the user drops the named connection "default"
         When the user runs gpexpand against database "gptest" to redistribute
         Then distribution information from table "public.redistribute" with data in "gptest" is verified against saved data
 

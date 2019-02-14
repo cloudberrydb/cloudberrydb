@@ -1462,6 +1462,7 @@ WHERE
     AND pr.parchildrelid is NULL
     AND n.nspname != 'gpexpand'
     AND n.nspname != 'pg_bitmapindex'
+    AND c.relpersistence != 't'
     AND c.relstorage != 'x';
 
                   """ % (src_bytes_str)
