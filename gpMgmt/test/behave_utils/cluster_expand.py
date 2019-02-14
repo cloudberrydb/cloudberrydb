@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE
 from utils import run_gpcommand
 
 from gppylib.commands.base import Command
+from gppylib.db import dbconn
 
 class Gpexpand:
     def __init__(self, context, working_directory=None, database='pivotal'):
@@ -67,6 +68,17 @@ class Gpexpand:
         input_files = sorted(glob.glob('%s/gpexpand_inputfile*' % self.working_directory))
         return run_gpcommand(self.context, "gpexpand -D %s -i %s %s" % (self.database, input_files[-1], additional_params))
 
+    def get_redistribute_status(self):
+        sql = 'select status from gpexpand.status order by updated desc limit 1'
+        dburl = dbconn.DbURL(dbname=self.database)
+        conn = dbconn.connect(dburl, encoding='UTF8')
+        status = dbconn.execSQLForSingleton(conn, sql)
+        if status == 'EXPANSION COMPLETE':
+            rc = 0
+        else:
+            rc = 1
+        return rc
+
     def redistribute(self, duration, endtime):
         # Can flake with "[ERROR]:-End time occurs in the past"
         # if duration is set too low.
@@ -78,7 +90,10 @@ class Gpexpand:
         else:
             flags = ""
 
-        return run_gpcommand(self.context, "gpexpand -D %s %s" % (self.database, flags))
+        rc, stderr, stdout = run_gpcommand(self.context, "gpexpand -D %s %s" % (self.database, flags))
+        if rc == 0:
+            rc = self.get_redistribute_status()
+        return (rc, stderr, stdout)
 
     def rollback(self):
         return run_gpcommand(self.context, "gpexpand -D %s -r" % (self.database))
