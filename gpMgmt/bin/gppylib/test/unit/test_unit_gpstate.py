@@ -57,15 +57,45 @@ class ReplicationInfoTestCase(unittest.TestCase):
         self.data.beginSegment(self.primary)
         self.data.beginSegment(self.mirror)
 
-    def mock_pg_stat_replication(self, mock_execSQL, rows):
-        cursor = mock.MagicMock()
-        mock_execSQL.return_value = cursor
+        # Implementation detail for the mock_pg_[table] functions. _pg_rows maps
+        # a query fragment to the set of rows that should be returned from
+        # dbconn.execSQL() for a matching query. Reset this setup for every
+        # test.
+        self._pg_rows = {}
 
+    def _get_rows_for_query(self, *args):
+        """
+        Mock implementation of dbconn.execSQL() for these unit tests. Don't use
+        this directly; use one of the mock_pg_xxx() helpers.
+        """
+        query = args[1]
+        rows = None
+
+        # Try to match the execSQL() query against one of our stored fragments.
+        for fragment in self._pg_rows:
+            if fragment in query:
+                rows = self._pg_rows[fragment]
+                break
+
+        if rows is None:
+            self.fail(
+                'Expected one of the query fragments {!r} to be in the query {!r}.'.format(
+                    self._pg_rows.keys(), query
+                )
+            )
+
+        # Mock out the cursor's rowcount, fetchall(), and fetchone().
+        # fetchone.side_effect conveniently lets us return one row from the list
+        # at a time.
+        cursor = mock.MagicMock()
         cursor.rowcount = len(rows)
         cursor.fetchall.return_value = rows
+        cursor.fetchone.side_effect = rows
+        return cursor
 
-    def mock_pg_stat_activity(self, mock_execSQLForSingleton, count):
-        mock_execSQLForSingleton.return_value = count
+    def mock_pg_stat_replication(self, mock_execSQL, rows):
+        self._pg_rows['pg_stat_replication'] = rows
+        mock_execSQL.side_effect = self._get_rows_for_query
 
     def stub_replication_entry(self, **kwargs):
         # The row returned here must match the order and contents expected by
@@ -81,6 +111,18 @@ class ReplicationInfoTestCase(unittest.TestCase):
             kwargs.get('replay_location', '0/0'),
             kwargs.get('replay_left', 0),
             kwargs.get('backend_start', None)
+        )
+
+    def mock_pg_stat_activity(self, mock_execSQL, rows):
+        self._pg_rows['pg_stat_activity'] = rows
+        mock_execSQL.side_effect = self._get_rows_for_query
+
+    def stub_activity_entry(self, **kwargs):
+        # The row returned here must match the order and contents expected by
+        # the pg_stat_activity query performed in _add_replication_info(); see
+        # stub_replication_entry() above.
+        return (
+            kwargs.get('backend_start', None),
         )
 
     def test_add_replication_info_adds_unknowns_if_primary_is_down(self):
@@ -189,13 +231,12 @@ class ReplicationInfoTestCase(unittest.TestCase):
 
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
-    def test_add_replication_info_closes_connections_and_cursors(self, mock_connect, mock_execSQL):
+    def test_add_replication_info_closes_connections(self, mock_connect, mock_execSQL):
         self.mock_pg_stat_replication(mock_execSQL, [])
 
         GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         assert mock_connect.return_value.close.called
-        assert mock_execSQL.return_value.close.called
 
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
@@ -259,28 +300,55 @@ class ReplicationInfoTestCase(unittest.TestCase):
         self.assertEqual('Copying files from primary', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
         self.assertEqual('Streaming', self.data.getStrValue(self.mirror, VALUE__MIRROR_STATUS))
 
-    @mock.patch('gppylib.db.dbconn.execSQLForSingleton', autospec=True)
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
-    def test_add_replication_info_displays_status_when_pg_rewind_is_active_and_mirror_is_down(self, mock_connect, mock_execSQL, mock_execSQLForSingleton):
+    def test_add_replication_info_displays_status_when_pg_rewind_is_active_and_mirror_is_down(self, mock_connect, mock_execSQL):
         self.mock_pg_stat_replication(mock_execSQL, [])
         self.mirror.status = gparray.STATUS_DOWN
-        self.mock_pg_stat_activity(mock_execSQLForSingleton, 1)
+        self.mock_pg_stat_activity(mock_execSQL, [self.stub_activity_entry()])
 
         GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
         self.assertEqual('Rewinding history to match primary timeline', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
 
-    @mock.patch('gppylib.db.dbconn.execSQLForSingleton', autospec=True)
     @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
     @mock.patch('gppylib.db.dbconn.connect', autospec=True)
-    def test_add_replication_info_does_not_query_pg_stat_activity_when_mirror_is_up(self, mock_connect, mock_execSQL, mock_execSQLForSingleton):
+    def test_add_replication_info_does_not_update_mirror_status_when_mirror_is_down_and_there_is_no_recovery_underway(self, mock_connect, mock_execSQL):
         self.mock_pg_stat_replication(mock_execSQL, [])
-        self.mock_pg_stat_activity(mock_execSQLForSingleton, 1)
+        self.mirror.status = gparray.STATUS_DOWN
+        self.mock_pg_stat_activity(mock_execSQL, [])
+
+        self.data.switchSegment(self.primary)
+        self.data.addValue(VALUE__MIRROR_STATUS, 'previous value')
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
+
+        # The mirror status should not have been touched in this case.
+        self.assertEqual('previous value', self.data.getStrValue(self.primary, VALUE__MIRROR_STATUS))
+
+    @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
+    @mock.patch('gppylib.db.dbconn.connect', autospec=True)
+    def test_add_replication_info_displays_start_time_when_pg_rewind_is_active_and_mirror_is_down(self, mock_connect, mock_execSQL):
+        mock_date = '1970-01-01 00:00:00.000000-00'
+        self.mock_pg_stat_replication(mock_execSQL, [self.stub_replication_entry()])
+        self.mock_pg_stat_activity(mock_execSQL, [self.stub_activity_entry(backend_start=mock_date)])
+        self.mirror.status = gparray.STATUS_DOWN
 
         GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
 
-        self.assertFalse(mock_execSQLForSingleton.called)
+        self.assertEqual(mock_date, self.data.getStrValue(self.primary, VALUE__MIRROR_RECOVERY_START))
+
+    @mock.patch('gppylib.db.dbconn.execSQL', autospec=True)
+    @mock.patch('gppylib.db.dbconn.connect', autospec=True)
+    def test_add_replication_info_does_not_query_pg_stat_activity_when_mirror_is_up(self, mock_connect, mock_execSQL):
+        self.mock_pg_stat_replication(mock_execSQL, [])
+        self.mock_pg_stat_activity(mock_execSQL, [self.stub_activity_entry()])
+
+        GpSystemStateProgram._add_replication_info(self.data, self.primary, self.mirror)
+
+        for call in mock_execSQL.mock_calls:
+            args = call[1]  # positional args are the second item in the tuple
+            query = args[1] # query is the second argument to execSQL()
+            self.assertFalse('pg_stat_activity' in query)
 
     def test_set_mirror_replication_values_complains_about_incorrect_kwargs(self):
         with self.assertRaises(TypeError):
@@ -308,5 +376,7 @@ class GpStateDataTestCase(unittest.TestCase):
         self.assertEqual('baz', data.getStrValue(mirror, VALUE__DATADIR))
         self.assertEqual('abc', data.getStrValue(mirror, VALUE__PORT))
 
+        # Make sure that neither the mirror nor the primary were accidentally
+        # updated in lieu of the other.
         self.assertEqual('', data.getStrValue(mirror, VALUE__HOSTNAME))
         self.assertEqual('', data.getStrValue(primary, VALUE__DATADIR))

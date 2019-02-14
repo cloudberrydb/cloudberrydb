@@ -875,6 +875,7 @@ class GpSystemStateProgram:
 
         # Query pg_stat_replication for the info we want.
         rows = []
+        rewind_start_time = None
         rewinding = False
         try:
             url = dbconn.DbURL(hostname=primary.hostname, port=primary.port, dbname='template1')
@@ -895,12 +896,22 @@ class GpSystemStateProgram:
                 cursor.close()
 
                 if mirror.isSegmentDown():
-                    result = dbconn.execSQLForSingleton(conn,
-                        "SELECT count(*) "
+                    cursor = dbconn.execSQL(conn,
+                        "SELECT backend_start "
                         "FROM pg_stat_activity "
                         "WHERE application_name = '%s'" % gp.RECOVERY_REWIND_APPNAME
                     )
-                    rewinding = result > 0
+
+                    if cursor.rowcount > 0:
+                        rewinding = True
+
+                        if cursor.rowcount > 1:
+                            logger.warning('pg_stat_activity has more than one rewinding mirror')
+
+                        stat_activity_row = cursor.fetchone()
+                        rewind_start_time = stat_activity_row[0]
+
+                    cursor.close()
 
         except pgdb.InternalError:
             logger.warning('could not query segment {} ({}:{})'.format(
@@ -920,6 +931,7 @@ class GpSystemStateProgram:
             start_time = row[7]
         elif rewinding:
             state = "Rewinding history to match primary timeline"
+            start_time = rewind_start_time
 
         data.switchSegment(primary)
         if state:
