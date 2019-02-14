@@ -1029,6 +1029,8 @@ jobs:
       resource: libquicklz-centos6
     - get: libquicklz-devel-installer
       resource: libquicklz-devel-centos6
+    - get: libsigar-installer
+      resource: libsigar-centos6
     - get: python-tarball
       resource: python-centos6
   - task: sync_tools
