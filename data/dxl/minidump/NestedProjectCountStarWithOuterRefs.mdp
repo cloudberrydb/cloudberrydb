@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+ <dxl:Comment><![CDATA[
+  create table x(i int, j int);
+  create table y(i int, j int);
+  explain select (select 1+ (select 1+count(*) from x where y.j=x.j) from (values(1))r ) from y;
+  ]]>
+  </dxl:Comment>
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
@@ -766,7 +772,7 @@
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:Result>
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="788.488300" Rows="10.000000" Width="8"/>
+          <dxl:Cost StartupCost="0" TotalCost="771.863300" Rows="10.000000" Width="8"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="22" Alias="?column?">
@@ -777,7 +783,7 @@
               </dxl:ParamList>
               <dxl:Result>
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="145.292988" Rows="1.000000" Width="8"/>
+                  <dxl:Cost StartupCost="0" TotalCost="128.667988" Rows="1.000000" Width="8"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="21" Alias="?column?">
@@ -881,29 +887,18 @@
                 </dxl:ProjList>
                 <dxl:Filter/>
                 <dxl:OneTimeFilter/>
-                <dxl:Materialize Eager="false">
+                <dxl:Result>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="144.277363" Rows="1000.000000" Width="8"/>
+                    <dxl:Cost StartupCost="0" TotalCost="0.001953" Rows="1.000000" Width="1"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="9" Alias="">
-                      <dxl:Ident ColId="9" ColName="" TypeMdid="0.16.1.0"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                     </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:Filter/>
-                  <dxl:Result>
-                    <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="0.001953" Rows="1.000000" Width="1"/>
-                    </dxl:Properties>
-                    <dxl:ProjList>
-                      <dxl:ProjElem ColId="9" Alias="">
-                        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                      </dxl:ProjElem>
-                    </dxl:ProjList>
-                    <dxl:Filter/>
-                    <dxl:OneTimeFilter/>
-                  </dxl:Result>
-                </dxl:Materialize>
+                  <dxl:OneTimeFilter/>
+                </dxl:Result>
               </dxl:Result>
             </dxl:SubPlan>
           </dxl:ProjElem>

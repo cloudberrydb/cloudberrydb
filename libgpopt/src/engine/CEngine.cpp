@@ -2259,7 +2259,7 @@ CEngine::FCheckEnfdProps
 		(CDistributionSpec::EdtAny != prpp->Ped()->PdsRequired()->Edt());
 
 	BOOL fRewindabilityReqd =
-		!GPOS_FTRACE(EopttraceDisableSpool) && prpp->Per()->PrsRequired()->IsRewindable();
+		!GPOS_FTRACE(EopttraceDisableSpool) && (prpp->Per()->PrsRequired()->IsCheckRequired());
 
 	BOOL fPartPropagationReqd =
 		!GPOS_FTRACE(EopttraceDisablePartPropagation) &&
@@ -2512,8 +2512,7 @@ CEngine::FCheckReqdProps
 	// check if spool operator is passed a non-rewindable spec;
 	// this check is required to avoid self-deadlocks, i.e.
 	// spool optimizing same group with the same optimization context;
-	BOOL fRewindabilityReqd = prpp->Per()->PrsRequired()->IsRewindable();
-	if (!fRewindabilityReqd && COperator::EopPhysicalSpool == op_id)
+	if (!prpp->Per()->PrsRequired()->IsCheckRequired() && COperator::EopPhysicalSpool == op_id)
 	{
 		return false;
 	}

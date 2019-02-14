@@ -35,37 +35,60 @@ namespace gpopt
 
 		public:
 
-			// Rewindability Spec is enforced along two dimensions: Rewindability and Motion Hazard.
-			// Following enums, can be perceived together, in required and derive context as follows:
-			// 1. RewindableMotion - {ErtRewindable, EmhtMotion}
-			//	  require: I require my child to be rewindable and to handle motion hazard (if necessary)
-			//	  derive: I am rewindable and I impose a motion hazard (for example, a streaming
-			//	  spool with a motion underneath it, will derive this)
+			// From the perspective of the operator, the enum values mean the
+			// following (in required & derived contexts):
 			//
-			// 2. RewindableNoMotion - {ErtRewindable, EmhtNoMotion}
-			//	  require: I require my child to be rewindable and also motion hazard handling is unnecessary.
-			//	  derive: I am rewindable and I do not impose motion hazard (any rewindable operator without
-			//	  a motion underneath it or a blocking spool with a motion underneath it, will derive this)
+			// 1. ErtRewindable:
+			//    require:
+			//      I require my child to be rewindable. This is required by NLJ of
+			//      its inner child.
+			//    derive:
+			//      I am rewindable. (e.g Spool, Sort, Scan)
 			//
-			// 3. NotRewindableMotion - {ErtNotRewindable, EmhtMotion}
-			//	  require: I do not require my child to be rewindable but it may need to handle motion hazard.
-			//	  derive: I am not rewindable and I impose motion hazard (all motions except gather motion will
-			//    derive this)
+			// 2. ErtRescannable:
+			//    require:
+			//      I require my child to be rescannable, so that I can re-execute
+			//      the entire subtree if needed. This is required by correlated
+			//      joins of their inner child.
+			//    derive:
+			//      I am not rewindable, but I am rescannable. (e.g TVF containing a
+			//      volatile function)
 			//
-			// 4. NotRewindableNoMotion - {ErtNotRewindable, EmhtNoMotion}
-			//	  require: I do not require my child to be rewindable, also, motion hazard handling is unnecessary.
-			//	  This is the default rewindability request.
-			//	  derive: I am not rewindable and I do not impose any motion hazard.
-
+			// 3. ErtNone
+			//    require:
+			//      I do not require my child to be rewindable or rescannable. (e.g
+			//      Sort that is not on the inner side of a correlated join)
+			//    derive:
+			//      I am neither rewindable nor rescannable. (e.g Motions, External
+			//      table scans)
 			enum ERewindabilityType
 			{
 				ErtRewindable, // rewindability of all intermediate query results
 
-				ErtNotRewindable, // no rewindability
+				ErtRescannable, // not rewindable, but can be reexecuted from scratch
+
+				ErtNone, // neither rewindability nor rescannable
 
 				ErtSentinel
 			};
 
+			// From the perspective of the operator, the enum values mean the
+			// following (in required & derived contexts):
+			//
+			// 1. EmhtMotion:
+			//	  require:
+			//	    I require my child to handle motion hazard (if necessary)
+			//	  derive:
+			//	    I impose a motion hazard (for example, a streaming spool with a
+			//	    motion underneath it, will derive this)
+			//
+			// 2. EmhtNoMotion:
+			//	  require:
+			//	    Motion hazard handling is unnecessary.
+			//	  derive:
+			//	    I do not impose motion hazard (derived by a rewindable operator
+			//	    without no motion in its subtree or a blocking spool with or
+			//	    without a motion underneath it)
 			enum EMotionHazardType
 			{
 				EmhtMotion, // motion hazard in the tree
@@ -73,7 +96,7 @@ namespace gpopt
 				EmhtNoMotion, // no motion hazard in the tree
 
 				EmhtSentinel
-            };
+			};
 
 		private:
 
@@ -142,6 +165,16 @@ namespace gpopt
 			BOOL IsRewindable() const
 			{
 				return Ert() == ErtRewindable;
+			}
+
+			BOOL IsRescannable() const
+			{
+				return Ert() == ErtRescannable;
+			}
+
+			BOOL IsCheckRequired() const
+			{
+				return Ert() == ErtRescannable || Ert() == ErtRewindable ;
 			}
 
 			BOOL HasMotionHazard() const

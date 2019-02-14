@@ -324,8 +324,11 @@ CPhysicalSequence::PrsRequired
 	)
 	const
 {
-	// no rewindability required on the children
-	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, prsRequired->Emht());
+	// TODO: shardikar; Handle outer refs in the subtree correctly, by passing
+	// "Rescannable' Also, maybe it should pass through the prsRequired, since it
+	// doesn't materialize any results? It's important to consider performance
+	// consequences of that also.
+	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone, prsRequired->Emht());
 }
 
 //---------------------------------------------------------------------------
@@ -413,8 +416,10 @@ CPhysicalSequence::PrsDerive
 		}
 	}
 
-	// no rewindability by sequence
-	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, motion_hazard);
+	// TODO: shardikar; Fix this implementation. Although CPhysicalSequence is
+	// not rewindable, all its children might be rewindable. This implementation
+	// ignores the rewindability of the op's children
+	return GPOS_NEW(m_mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone, motion_hazard);
 }
 
 

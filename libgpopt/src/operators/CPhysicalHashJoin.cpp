@@ -221,16 +221,24 @@ CPhysicalHashJoin::PrsRequired
 	GPOS_ASSERT(child_index < 2 &&
 				"Required rewindability can be computed on the relational child only");
 
-	// if there are outer references, then we need a materialize on both children
-	if (exprhdl.HasOuterRefs())
-	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
-	}
-
 	if (1 == child_index)
 	{
-		// inner child does not have to be rewindable
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, prsRequired->Emht());
+		// If the inner child contains outer references, and the required
+		// rewindability is not ErtNone, we must ensure that the inner subtree is
+		// at least rescannable, even though a Hash op on the inner side
+		// materialized the subtree results.
+		if (exprhdl.HasOuterRefs(1) && (prsRequired->Ert() == CRewindabilitySpec::ErtRescannable ||
+										prsRequired->Ert() == CRewindabilitySpec::ErtRewindable))
+		{
+			return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRescannable, prsRequired->Emht());
+		}
+		// Otherwise, the inner Hash op will take care of materializing the
+		// subtree, so no rewindability type is required
+		else
+		{
+			return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone, prsRequired->Emht());
+
+		}
 	}
 		
 	// pass through requirements to outer child

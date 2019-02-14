@@ -302,7 +302,9 @@ CCostContext::IsValid
 		IOstream &os = at.Os();
 
 		os << std::endl << "PROPERTY MISMATCH:" << std::endl;
-		os << std::endl << "GEXPR:" << std::endl << Pgexpr();
+		os << std::endl << "GROUP ID: " << Pgexpr()->Pgroup()->Id() << std::endl;
+		os << std::endl << "GEXPR:" << std::endl;
+		Pgexpr()->OsPrint(at.Os());
 		os << std::endl << "REQUIRED PROPERTIES:" << std::endl << *(m_poc->Prpp());
 		os << std::endl << "DERIVED PROPERTIES:" << std::endl << *pdprel << std::endl << *m_pdpplan;
 	}

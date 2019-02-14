@@ -139,7 +139,7 @@ SELECT 0 IS DISTINCT FROM (SELECT COUNT(*) FROM (SELECT UNNEST(ARRAY[1,2,3,4])) 
         </dxl:LogicalConstTable>
       </dxl:LogicalProject>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="12">
+    <dxl:Plan Id="0" SpaceSize="18">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="431.000113" Rows="1.000000" Width="1"/>

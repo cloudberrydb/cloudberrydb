@@ -155,7 +155,7 @@
         </dxl:LogicalConstTable>
       </dxl:LogicalProject>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1650">
+    <dxl:Plan Id="0" SpaceSize="1998">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="18.062500" Rows="1.000000" Width="1"/>

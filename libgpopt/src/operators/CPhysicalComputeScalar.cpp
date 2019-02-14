@@ -277,12 +277,6 @@ CPhysicalComputeScalar::PrsRequired
 {
 	GPOS_ASSERT(0 == child_index);
 
-	// if there are outer references, then we need a materialize
-	if (exprhdl.HasOuterRefs())
-	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
-	}
-
 	return PrsPassThru(mp, exprhdl, prsRequired, child_index);
 }
 
@@ -450,7 +444,7 @@ CPhysicalComputeScalar::PrsDerive
 	if (pdpscalar->FHasNonScalarFunction() || IMDFunction::EfsVolatile == pdpscalar->Pfp()->Efs())
 	{
 		// ComputeScalar is not rewindable if it has non-scalar/volatile functions in project list
-		CRewindabilitySpec * prs = GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, prsChild->Emht());
+		CRewindabilitySpec * prs = GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRescannable, prsChild->Emht());
 		prsChild->Release();
 		return prs;
 	}

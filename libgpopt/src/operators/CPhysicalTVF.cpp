@@ -319,11 +319,15 @@ CPhysicalTVF::PrsDerive
 	)
 	const
 {
-	if (IMDFunction::EfsVolatile == exprhdl.GetRelationalProperties()->Pfp()->Efs() || 0 < exprhdl.Arity())
+	// TODO: shardikar; If the executor materializes the function results, aren't
+	// volatile functions rewindable? Or should they be rescannable and
+	// re-executed every time?
+	if (IMDFunction::EfsVolatile == exprhdl.GetRelationalProperties()->Pfp()->Efs())
 	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, CRewindabilitySpec::EmhtNoMotion);
+		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRescannable, CRewindabilitySpec::EmhtNoMotion);
 	}
 
+	// TVF scan materializes the results of its execution, and so is rewindable.
 	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, CRewindabilitySpec::EmhtNoMotion);
 }
 
@@ -394,12 +398,6 @@ CPhysicalTVF::EpetRewindability
 	{
 	 	// required distribution is already provided
 	 	return CEnfdProp::EpetUnnecessary;
-	}
-
-	if (exprhdl.HasOuterRefs())
-	{
-		// a TVF should not have a materialize on top of it if it has an outer ref
-		return CEnfdProp::EpetProhibited;
 	}
 
 	return CEnfdProp::EpetRequired;

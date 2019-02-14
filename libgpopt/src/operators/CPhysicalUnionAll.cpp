@@ -396,6 +396,7 @@ CPhysicalUnionAll::PrsDerive
 	)
 const
 {
+	// TODO: shardikar; This should check all the children, not only the outer child.
 	return PrsDerivePassThruOuter(exprhdl);
 }
 

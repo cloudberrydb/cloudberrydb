@@ -418,13 +418,6 @@ CPhysicalAgg::PrsRequired
 {
 	GPOS_ASSERT(0 == child_index);
 
-	// if there are outer refs that are not coming from the child, this means
-	// that the grouping columns have outer refs, so we need a materialize
-	if (exprhdl.HasOuterRefs() && !exprhdl.HasOuterRefs(0))
-	{
-		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prsRequired->Emht());
-	}
-
 	return PrsPassThru(mp, exprhdl, prsRequired, child_index);
 }
 

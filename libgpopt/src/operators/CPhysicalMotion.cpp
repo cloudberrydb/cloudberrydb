@@ -177,9 +177,10 @@ CPhysicalMotion::PrsRequired
 {
 	GPOS_ASSERT(0 == child_index);
 
-	// motion does not preserve rewindability;
-	// child does not need to be rewindable
-	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, CRewindabilitySpec::EmhtNoMotion);
+	// A motion is a hard barrier for rewindability since it executes in a
+	// different slice; and thus it cannot require any rewindability property
+	// from its child
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone, CRewindabilitySpec::EmhtNoMotion);
 }
 
 //---------------------------------------------------------------------------
@@ -308,8 +309,8 @@ CPhysicalMotion::PrsDerive
 	)
 	const
 {
-	// output of motion is non-rewindable and imposes a motion hazard
-	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNotRewindable, CRewindabilitySpec::EmhtMotion);
+	// A motion does not preserve rewindability and is also not rescannable.
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone, CRewindabilitySpec::EmhtMotion);
 }
 
 

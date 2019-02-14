@@ -139,7 +139,7 @@ CPhysicalNLJoin::PrsRequired
 
 	GPOS_ASSERT(0 == child_index);
 
-	return PrsRequiredForNLJoinOuterChild(mp, exprhdl, prsRequired);
+	return PrsPassThru(mp, exprhdl, prsRequired, 0 /*child_index*/);
 }
 
 //---------------------------------------------------------------------------

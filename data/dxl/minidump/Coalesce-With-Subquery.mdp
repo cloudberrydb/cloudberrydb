@@ -852,7 +852,7 @@
         </dxl:LogicalProject>
       </dxl:LogicalLimit>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="3168">
+    <dxl:Plan Id="0" SpaceSize="5302">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="282440.388516" Rows="4.000000" Width="269"/>
