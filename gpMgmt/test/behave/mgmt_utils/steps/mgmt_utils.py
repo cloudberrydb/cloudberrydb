@@ -2130,6 +2130,12 @@ def _gpexpand_redistribute(context, dbname, duration=False, endtime=False):
     gpexpand = Gpexpand(context, working_directory=context.working_directory, database=dbname)
     context.command = gpexpand
     ret_code, std_err, std_out = gpexpand.redistribute(duration, endtime)
+    if duration or endtime:
+        if ret_code != 0:
+            # gpexpand exited on time, it's expected
+            return
+        else:
+            raise Exception("gpexpand didn't stop at duration / endtime.\nstderr=%s\nstdout=%s" % (std_err, std_out))
     if ret_code != 0:
         raise Exception("gpexpand exited with return code: %d.\nstderr=%s\nstdout=%s" % (ret_code, std_err, std_out))
 
