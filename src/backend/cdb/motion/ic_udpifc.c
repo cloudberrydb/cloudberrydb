@@ -3178,6 +3178,12 @@ SetupUDPIFCInterconnect(EState *estate)
 	ChunkTransportState *icContext = NULL;
 	PG_TRY();
 	{
+		/*
+		 * The rx-thread might have set an error since last teardown,
+		 * technically it is not part of current query, discard it directly.
+		 */
+		resetRxThreadError();
+
 		icContext = SetupUDPIFCInterconnect_Internal(estate->es_sliceTable);
 
 		/* Internal error if we locked the mutex but forgot to unlock it. */
