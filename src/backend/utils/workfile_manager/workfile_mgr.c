@@ -79,7 +79,7 @@ int			gp_workfile_max_entries = 8192;
  *
  */
 
-typedef struct
+typedef struct WorkFileUsagePerQuery
 {
 	/* hash key */
 	int32		session_id;
@@ -95,38 +95,6 @@ typedef struct
 } WorkFileUsagePerQuery;
 
 #define SizeOfWorkFileUsagePerQueryKey (2 * sizeof(int32));
-
-#define WORKFILE_PREFIX_LEN		64
-
-struct workfile_set
-{
-	/* Session id for the query creating the workfile set */
-	int			session_id;
-
-	/* Command count for the query creating the workfile set */
-	int			command_count;
-
-	/* Number of files in set */
-	uint32		num_files;
-
-	/* Size in bytes of the files in this workfile set */
-	int64		total_bytes;
-
-	/* Prefix of files in the workfile set */
-	char		prefix[WORKFILE_PREFIX_LEN];
-
-	/* Type of operator creating the workfile set */
-	char		operator[NAMEDATALEN];
-
-	/* Slice in which the spilling operator was */
-	int			slice_id;
-
-	WorkFileUsagePerQuery *perquery;
-
-	dlist_node	node;
-
-	bool		active;
-};
 
 typedef struct workfile_set WorkFileSetSharedEntry;
 
@@ -628,10 +596,36 @@ workfile_mgr_close_set(workfile_set *work_set)
 	/* no op */
 }
 
-char *
-workfile_mgr_get_prefix(workfile_set *work_set)
+/*
+ * Function copying all workfile cache entries for one segment
+ */
+workfile_set *
+workfile_mgr_cache_entries_get_copy(int *num_active)
 {
-	return work_set->prefix;
+	int				num_entries;
+	workfile_set	*copied_entries;
+	dlist_iter		iter;
+	int				i;
+
+	LWLockAcquire(WorkFileManagerLock, LW_SHARED);
+
+	num_entries = workfile_shared->num_active;
+	copied_entries = (WorkFileSetSharedEntry *) palloc0(num_entries * sizeof(WorkFileSetSharedEntry));
+
+	i = 0;
+	dlist_foreach(iter, &workfile_shared->activeList)
+	{
+		WorkFileSetSharedEntry *e = dlist_container(WorkFileSetSharedEntry, node, iter.cur);
+
+		memcpy(&copied_entries[i], e, sizeof(WorkFileSetSharedEntry));
+		i++;
+	}
+	Assert(i == num_entries);
+
+	LWLockRelease(WorkFileManagerLock);
+
+	*num_active = num_entries;
+	return copied_entries;
 }
 
 /*
@@ -643,7 +637,7 @@ typedef struct
 	int			num_entries;
 	int			index;
 
-	WorkFileSetSharedEntry copied_entries[];
+	WorkFileSetSharedEntry *copied_entries;
 } get_entries_cxt;
 
 /*
@@ -658,9 +652,6 @@ gp_workfile_mgr_cache_entries_internal(PG_FUNCTION_ARGS)
 	if (SRF_IS_FIRSTCALL())
 	{
 		MemoryContext oldcontext;
-		int			num_entries;
-		dlist_iter iter;
-		int			i;
 
 		/* create a function context for cross-call persistence */
 		funcctx = SRF_FIRSTCALL_INIT();
@@ -690,25 +681,8 @@ gp_workfile_mgr_cache_entries_internal(PG_FUNCTION_ARGS)
 		/*
 		 * Now copy all the active entries from shared memory.
 		 */
-		LWLockAcquire(WorkFileManagerLock, LW_SHARED);
-
-		num_entries = workfile_shared->num_active;
-		cxt = (get_entries_cxt *) palloc(offsetof(get_entries_cxt, copied_entries) +
-										 num_entries * sizeof(WorkFileSetSharedEntry));
-
-		i = 0;
-		dlist_foreach(iter, &workfile_shared->activeList)
-		{
-			WorkFileSetSharedEntry *e = dlist_container(WorkFileSetSharedEntry, node, iter.cur);
-
-			memcpy(&cxt->copied_entries[i], e, sizeof(WorkFileSetSharedEntry));
-			i++;
-		}
-		Assert(i == num_entries);
-
-		LWLockRelease(WorkFileManagerLock);
-
-		cxt->num_entries = num_entries;
+		cxt = (get_entries_cxt *) palloc(sizeof(get_entries_cxt));
+		cxt->copied_entries = workfile_mgr_cache_entries_get_copy(&cxt->num_entries);
 		cxt->index = 0;
 
 		funcctx->user_fctx = cxt;

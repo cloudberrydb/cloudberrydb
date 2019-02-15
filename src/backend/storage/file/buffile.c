@@ -199,7 +199,7 @@ BufFileCreateTempInSet(workfile_set *work_set, bool interXact)
 	File		pfile;
 	char		filePrefix[MAXPGPATH];
 
-	snprintf(filePrefix, MAXPGPATH, "_%s_", workfile_mgr_get_prefix(work_set));
+	snprintf(filePrefix, MAXPGPATH, "_%s_", work_set->prefix);
 
 	pfile = OpenTemporaryFile(interXact, filePrefix);
 	Assert(pfile >= 0);
