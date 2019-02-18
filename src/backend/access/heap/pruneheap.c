@@ -98,15 +98,7 @@ heap_page_prune_opt(Relation relation, Buffer buffer)
 	else
 		OldestXmin = RecentGlobalDataXmin;
 
-	/*
-	 * In GPDB we may call into here without having a local snapshot and thus
-	 * no valid OldestXmin transaction id. Exit early if so.
-	 *
-	 * GPDB_94_MERGE_FIXME: Is that still true, or could we turn this back
-	 * into an assertion?
-	 */
-	if (!TransactionIdIsValid(OldestXmin))
-		return;
+	Assert(TransactionIdIsValid(OldestXmin));
 
 	/*
 	 * Let's see if we really need pruning.
