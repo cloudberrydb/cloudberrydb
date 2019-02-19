@@ -275,6 +275,14 @@ typedef struct TmControlBlock
 #define TMCONTROLBLOCK_BYTES(num_gxacts) \
 	(offsetof(TmControlBlock, committed_gxact_array) + sizeof(TMGXACT_LOG) * (num_gxacts))
 
+#define DTM_DEBUG3 (Debug_print_full_dtm ? LOG : DEBUG3)
+#define DTM_DEBUG5 (Debug_print_full_dtm ? LOG : DEBUG5)
+
+extern volatile bool *shmTmRecoverred;
+extern volatile bool *shmDtmStarted;
+extern LWLockId shmControlLock;
+extern int max_tm_gxacts;
+
 extern DtxContext DistributedTransactionContext;
 
 /* state variables for how much of the log file has been flushed */
@@ -347,6 +355,10 @@ extern void UtilityModeFindOrCreateDtmRedoFile(void);
 extern void UtilityModeCloseDtmRedoFile(void);
 
 extern bool doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType);
+extern bool doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
+							 char *gid, DistributedTransactionId gxid,
+							 bool *badGangs, bool raiseError, List *twophaseSegments,
+							 char *serializedDtxContextInfo, int serializedDtxContextInfoLen);
 
 extern void markCurrentGxactWriterGangLost(void);
 
