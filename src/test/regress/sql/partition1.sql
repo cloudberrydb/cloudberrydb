@@ -1188,7 +1188,7 @@ alter table dcl_messaging_test drop default partition;
 alter table dcl_messaging_test add partition start (timestamp '2011-09-15') inclusive end (timestamp '2011-09-16') exclusive;
 
 -- EXCHANGE case
-create table dcl_candidate(like dcl_messaging_test) with (appendonly=true);
+create table dcl_candidate(like dcl_messaging_test including indexes) with (appendonly=true);
 insert into dcl_candidate(message_create_date) values (timestamp '2011-09-06');
 alter table dcl_messaging_test exchange partition for ('2011-09-06') with table dcl_candidate;
 

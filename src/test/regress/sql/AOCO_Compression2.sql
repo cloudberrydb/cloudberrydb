@@ -298,6 +298,10 @@ Insert into co_cr_sub_partzlib8192_1_exch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12
 
 Insert into co_cr_sub_partzlib8192_1_defexch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from co_cr_sub_partzlib8192_1 where a1 =10 and a2!='C';
 
+CREATE INDEX ON co_cr_sub_partzlib8192_1_exch USING bitmap (a1);
+
+CREATE INDEX ON co_cr_sub_partzlib8192_1_exch (a9);
+
 Alter table co_cr_sub_partzlib8192_1 alter partition FOR (RANK(1)) exchange partition sp1 with table co_cr_sub_partzlib8192_1_exch;
 \d+ co_cr_sub_partzlib8192_1_1_prt_1_2_prt_sp1
 
@@ -444,6 +448,10 @@ Drop Table if exists co_cr_sub_partzlib8192_1_2_defexch;
 Insert into co_cr_sub_partzlib8192_1_2_exch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from co_cr_sub_partzlib8192_1_2 where  a1=10 and a2!='C';
 
 Insert into co_cr_sub_partzlib8192_1_2_defexch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from co_cr_sub_partzlib8192_1_2 where a1 =10 and a2!='C';
+
+CREATE INDEX ON co_cr_sub_partzlib8192_1_2_exch USING bitmap (a1);
+
+CREATE INDEX ON co_cr_sub_partzlib8192_1_2_exch(a9);
 
 Alter table co_cr_sub_partzlib8192_1_2 alter partition p2 exchange partition FOR (RANK(1)) with table co_cr_sub_partzlib8192_1_2_exch;
 \d+ co_cr_sub_partzlib8192_1_2_1_prt_p2_2_prt_2
@@ -597,6 +605,10 @@ Insert into co_wt_sub_partrle_type8192_1_exch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11
 
 Insert into co_wt_sub_partrle_type8192_1_defexch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from co_wt_sub_partrle_type8192_1 where a1 =10 and a2!='C';
 
+CREATE INDEX ON co_wt_sub_partrle_type8192_1_exch USING bitmap (a1);
+
+CREATE INDEX ON co_wt_sub_partrle_type8192_1_exch(a9);
+
 Alter table co_wt_sub_partrle_type8192_1 alter partition FOR (RANK(1)) exchange partition sp1 with table co_wt_sub_partrle_type8192_1_exch;
 \d+ co_wt_sub_partrle_type8192_1_1_prt_1_2_prt_sp1
 
@@ -742,6 +754,10 @@ Drop Table if exists co_wt_sub_partrle_type8192_1_2_defexch;
 Insert into co_wt_sub_partrle_type8192_1_2_exch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from co_wt_sub_partrle_type8192_1_2 where  a1=10 and a2!='C';
 
 Insert into co_wt_sub_partrle_type8192_1_2_defexch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from co_wt_sub_partrle_type8192_1_2 where a1 =10 and a2!='C';
+
+CREATE INDEX ON co_wt_sub_partrle_type8192_1_2_exch USING bitmap (a1);
+
+CREATE INDEX ON co_wt_sub_partrle_type8192_1_2_exch (a9);
 
 Alter table co_wt_sub_partrle_type8192_1_2 alter partition p1 exchange partition FOR (RANK(1)) with table co_wt_sub_partrle_type8192_1_2_exch;
 \d+ co_wt_sub_partrle_type8192_1_2_1_prt_p1_2_prt_2
@@ -894,6 +910,10 @@ Insert into ao_wt_sub_partzlib8192_5_exch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12
 
 Insert into ao_wt_sub_partzlib8192_5_defexch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from ao_wt_sub_partzlib8192_5 where a1 =10 and a2!='C';
 
+CREATE INDEX ON ao_wt_sub_partzlib8192_5_exch USING bitmap (a1);
+
+CREATE INDEX ON ao_wt_sub_partzlib8192_5_exch (a9);
+
 Alter table ao_wt_sub_partzlib8192_5 alter partition FOR (RANK(1)) exchange partition sp1 with table ao_wt_sub_partzlib8192_5_exch;
 \d+ ao_wt_sub_partzlib8192_5_1_prt_1_2_prt_sp1
 
@@ -1039,6 +1059,10 @@ Drop Table if exists ao_wt_sub_partzlib8192_5_2_defexch;
 Insert into ao_wt_sub_partzlib8192_5_2_exch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from ao_wt_sub_partzlib8192_5_2 where  a1=10 and a2!='C';
 
 Insert into ao_wt_sub_partzlib8192_5_2_defexch(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42) select a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42 from ao_wt_sub_partzlib8192_5_2 where a1 =10 and a2!='C';
+
+CREATE INDEX ON ao_wt_sub_partzlib8192_5_2_exch USING bitmap (a1);
+
+CREATE INDEX ON ao_wt_sub_partzlib8192_5_2_exch (a9);
 
 Alter table ao_wt_sub_partzlib8192_5_2 alter partition p1 exchange partition FOR (RANK(1)) with table ao_wt_sub_partzlib8192_5_2_exch;
 \d+ ao_wt_sub_partzlib8192_5_2_1_prt_p1_2_prt_2
