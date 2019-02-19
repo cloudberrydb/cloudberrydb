@@ -893,6 +893,9 @@ cdbcomponent_getComponentInfo(int contentId)
 void
 cdb_setup(void)
 {
+	int	i;
+	static const int DtxRecoveryWaitTime = 40;
+
 	elog(DEBUG1, "Initializing Greenplum components...");
 
 	/* If gp_role is UTILITY, skip this call. */
@@ -902,10 +905,22 @@ cdb_setup(void)
 		InitMotionLayerIPC();
 	}
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	/*
+	 * Backend process requires consistent state, it cannot proceed until
+	 * dtx recovery process finish up the recovery of distributed transactions.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && !*shmDtmStarted)
 	{
-		/* initialize TM */
-		initTM();
+		for (i = 0; i < DtxRecoveryWaitTime; i++)
+		{
+			pg_usleep(100 * 1000); /* 100ms */
+			if (*shmDtmStarted)
+				return;
+		}
+
+		ereport(FATAL,
+				(errcode(ERRCODE_CANNOT_CONNECT_NOW),
+				 errmsg("the database system is recovering distributed transactions")));
 	}
 }
 

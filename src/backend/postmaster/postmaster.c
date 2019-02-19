@@ -215,6 +215,7 @@ typedef enum pmsub_type
 	BackoffProc,
 	PerfmonSegmentInfoProc,
 	GlobalDeadLockDetectorProc,
+	DtxRecoveryProc,
 	MaxPMSubType
 } PMSubType;
 
@@ -428,6 +429,9 @@ static PMSubProc PMSubProcList[MaxPMSubType] =
 	{0, GlobalDeadLockDetectorProc,
 	(PMSubStartCallback*)&global_deadlock_detector_start,
 	"global deadlock detector process", PMSUBPROC_FLAG_QD, true},
+	{0, DtxRecoveryProc,
+	(PMSubStartCallback*)&dtx_recovery_start,
+	"dtx recovery process", PMSUBPROC_FLAG_QD, true},
 };
 
 static PMSubProc *FTSSubProc = &PMSubProcList[FtsProbeProc];
@@ -1765,6 +1769,8 @@ ServiceStartable(PMSubProc *subProc)
 	else if (subProc->procType == PerfmonSegmentInfoProc && !gp_enable_gpperfmon && !gp_enable_query_metrics)
 		result = 0;
 	else if (subProc->procType == GlobalDeadLockDetectorProc && !gp_enable_global_deadlock_detector)
+		result = 0;
+	else if (subProc->procType == DtxRecoveryProc && *shmDtmStarted)
 		result = 0;
 	else
 		result = ((subProc->flags & flagNeeded) != 0);
@@ -6417,6 +6423,31 @@ bgworker_should_start_now(BgWorkerStartTime start_time)
 }
 
 /*
+ * Does the current postmaster state require starting a worker with the
+ * specified start_time?
+ */
+static bool
+bgworker_should_start_mpp(BackgroundWorker *worker)
+{
+	BgWorkerStartTime start_time = worker->bgw_start_time;
+
+	/*
+	 * background worker is not scheduled until distributed transactions
+	 * are recovered if it needs to start at BgWorkerStart_RecoveryFinished
+	 * (read-write ready) or BgWorkerStart_ConsistentState (ready-only ready)
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		if (!*shmDtmStarted &&
+			(start_time == BgWorkerStart_ConsistentState ||
+			 start_time == BgWorkerStart_RecoveryFinished))
+			return false;
+	}
+
+	return true;
+}
+
+/*
  * Allocate the Backend struct for a connected background worker, but don't
  * add it to the list of backends just yet.
  *
@@ -6546,6 +6577,13 @@ maybe_start_bgworker(void)
 
 		if (bgworker_should_start_now(rw->rw_worker.bgw_start_time))
 		{
+			if (!bgworker_should_start_mpp(&rw->rw_worker))
+			{
+				/* tell ServerLoop to try again */
+				StartWorkerNeeded = true;
+				continue;
+			}
+
 			/* reset crash time before trying to start worker */
 			rw->rw_crashed_at = 0;
 

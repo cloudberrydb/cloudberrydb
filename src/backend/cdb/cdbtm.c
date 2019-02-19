@@ -1085,8 +1085,6 @@ tmShmemInit(void)
 	if (!shared)
 		elog(FATAL, "could not initialize transaction manager share memory");
 
-	shmControlLock = shared->ControlLock;
-	shmTmRecoverred = &shared->recoverred;
 	shmDistribTimeStamp = &shared->distribTimeStamp;
 	shmGIDSeq = &shared->seqno;
 	/* Only initialize this if we are the creator of the shared memory */
@@ -1113,12 +1111,8 @@ tmShmemInit(void)
 	if (!IsUnderPostmaster)
 		/* Initialize locks and shared memory area */
 	{
-		shared->ControlLock = LWLockAssign();
-		shmControlLock = shared->ControlLock;
-
 		*shmNextSnapshotId = 0;
 		*shmDtmStarted = false;
-		*shmTmRecoverred = false;
 		*shmNumCommittedGxacts = 0;
 	}
 }

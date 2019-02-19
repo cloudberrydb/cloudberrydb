@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * dtxrecovery.c
+ * cdbdtxrecovery.c
  *	  Routine to recover distributed transactions
  *
  *
@@ -14,18 +14,28 @@
 #include <unistd.h>
 
 #include "access/xact.h"
-#include "utils/faultinjector.h"
-#include "utils/guc.h"
 #include "cdb/cdbtm.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbdisp_query.h"
+#include "postmaster/fork_process.h"
+#include "postmaster/postmaster.h"
+#include "storage/ipc.h"
+#include "storage/procsignal.h"
+#include "storage/proc.h"
+#include "storage/sinvaladt.h"
+#include "tcop/tcopprot.h"
+#include "utils/faultinjector.h"
+#include "utils/guc.h"
+#include "utils/ps_status.h"
+#include "utils/syscache.h"
+#include "utils/snapmgr.h"
 
+#include "libpq/pqsignal.h"
 #include "libpq-fe.h"
 #include "libpq-int.h"
 
-volatile bool *shmTmRecoverred;
 volatile bool *shmDtmStarted;
 
 /* transactions need recover */
@@ -34,6 +44,8 @@ volatile int *shmNumCommittedGxacts;
 
 static int	redoFileFD = -1;
 static int	redoFileOffset;
+
+bool		am_dtx_recovery;
 
 typedef struct InDoubtDtx
 {
@@ -59,9 +71,9 @@ static bool doNotifyCommittedInDoubt(char *gid);
 static void UtilityModeSaveRedo(bool committed, TMGXACT_LOG *gxact_log);
 static void ReplayRedoFromUtilityMode(void);
 static void RemoveRedoUtilityModeFile(void);
-
-/* static void resolveInDoubtDtx(void); */
 static void dumpRMOnlyDtx(HTAB *htab, StringInfoData *buff);
+
+NON_EXEC_STATIC void DtxRecoveryMain(int argc, char *argv[]);
 
 static bool
 doNotifyCommittedInDoubt(char *gid)
@@ -133,14 +145,8 @@ recoverTM(void)
 {
 	elog(DTM_DEBUG3, "Starting to Recover DTM...");
 
-	if (Gp_role == GP_ROLE_UTILITY)
-	{
-		elog(DTM_DEBUG3, "DB in Utility mode.  Defer DTM recovery till later.");
-		return;
-	}
-
 	/*
-	 * Attempt to recover all in-doubt transactions.
+	 * attempt to recover all in-doubt transactions.
 	 *
 	 * first resolve all in-doubt transactions from the DTM's perspective and
 	 * then resolve any remaining in-doubt transactions that the RMs have.
@@ -152,7 +158,8 @@ recoverTM(void)
 	elog(LOG, "DTM Started");
 }
 
-/* recoverInDoubtTransactions:
+/* 
+ * recoverInDoubtTransactions:
  * Go through all in-doubt transactions that the DTM knows about and
  * resolve them.
  */
@@ -193,8 +200,8 @@ recoverInDoubtTransactions(void)
 	*shmNumCommittedGxacts = 0;
 
 	/*
-	 * UNDONE: Thus, any in-doubt transctions found will be for aborted
-	 * transactions. UNDONE: Gather in-boubt transactions and issue aborts.
+	 * Any in-doubt transctions found will be for aborted
+	 * transactions. Gather in-boubt transactions and issue aborts.
 	 */
 	htab = gatherRMInDoubtTransactions();
 
@@ -230,7 +237,7 @@ recoverInDoubtTransactions(void)
 
 		dumpRMOnlyDtx(htab, &indoubtBuff);
 
-		ereport(ERROR,
+		ereport(FATAL,
 				(errcode(ERRCODE_INTERNAL_ERROR),
 				 errmsg("DTM Log recovery failed, There are still unresolved "
 						"in-doubt transactions on some of the segment databases "
@@ -266,15 +273,15 @@ gatherRMInDoubtTransactions(void)
 
 	HASHCTL		hctl;
 	HTAB	   *htab = NULL;
-	int			i;
-	int			j,
+	int			i,
+				j,
 				rows;
 	bool		found;
 
 	/* call to all QE to get in-doubt transactions */
 	CdbDispatchCommand(cmdbuf, DF_NONE, &cdb_pgresults);
 
-	/* If any result set is nonempty, there are in-doubt transactions. */
+	/* if any result set is nonempty, there are in-doubt transactions. */
 	for (i = 0; i < cdb_pgresults.numResults; i++)
 	{
 		rs = cdb_pgresults.pg_results[i];
@@ -304,7 +311,7 @@ gatherRMInDoubtTransactions(void)
 
 			gid = PQgetvalue(rs, j, 0);
 
-			/* Now we can add entry to hash table */
+			/* now we can add entry to hash table */
 			lastDtx = (InDoubtDtx *) hash_search(htab, gid, HASH_ENTER, &found);
 
 			/*
@@ -377,62 +384,6 @@ dumpRMOnlyDtx(HTAB *htab, StringInfoData *buff)
 	appendStringInfo(buff, ")");
 }
 
-
-/*
- * Error handling in initTM() is our caller.
- *
- * recoverTM() may throw errors.
- */
-static void
-initTM_recover_as_needed(void)
-{
-	Assert(shmTmRecoverred != NULL);
-
-	/* Need to recover ? */
-	if (!*shmTmRecoverred)
-	{
-		LWLockAcquire(shmControlLock, LW_EXCLUSIVE);
-
-		/* Still need to recover? */
-		if (!*shmTmRecoverred)
-		{
-			volatile int savedInterruptHoldoffCount = InterruptHoldoffCount;
-
-			/*
-			 * We have to catch errors here, otherwise the silly TmLock will
-			 * stay in the backend process until this process goes away.
-			 */
-			PG_TRY();
-			{
-				recoverTM();
-				*shmTmRecoverred = true;
-			}
-			PG_CATCH();
-			{
-				/*
-				 * We can't simply use HOLD_INTERRUPTS as in LWLockRelease,
-				 * because at this point we don't know if other LWLocks have
-				 * been acquired by myself.  Also, we don't know if
-				 * releaseTmLock actually releases the lock, depending on
-				 * ControlLockCount. Instead, restore the previous value,
-				 * which is reset to 0 in errfinish.
-				 */
-				InterruptHoldoffCount = savedInterruptHoldoffCount;
-				LWLockRelease(shmControlLock);
-
-				/* Assuming we have a catcher above... */
-				PG_RE_THROW();
-			}
-			PG_END_TRY();
-		}
-
-		LWLockRelease(shmControlLock);
-	}
-}
-
-/*
- *
- */
 static void
 UtilityModeSaveRedo(bool committed, TMGXACT_LOG *gxact_log)
 {
@@ -657,7 +608,10 @@ redoDistributedForgetCommitRecord(TMGXACT_LOG *gxact_log)
 				 "Crash recovery redo removed committed distributed transaction gid = %s for forget",
 				 gxact_log->gid);
 
-			/* there's no concurrent access to shmCommittedGxactArray during recovery */
+			/*
+			 * there's no concurrent access to shmCommittedGxactArray during
+			 * recovery
+			 */
 			(*shmNumCommittedGxacts)--;
 			if (i != *shmNumCommittedGxacts)
 				shmCommittedGxactArray[i] = shmCommittedGxactArray[*shmNumCommittedGxacts];
@@ -669,90 +623,217 @@ redoDistributedForgetCommitRecord(TMGXACT_LOG *gxact_log)
 	elog((Debug_print_full_dtm ? WARNING : DEBUG5),
 		 "Crash recovery redo did not find committed distributed transaction gid = %s for forget",
 		 gxact_log->gid);
-
 }
 
 /*
- * Initialize TM, called by cdb_setup() for each QD process.
+ * Main entry point for dtx recovery process.
  *
- * First call to this function will trigger tm recovery.
- *
- * MPP-9894: in 4.0, if we've been started with enough segments to
- * run, but without having them in the right "roles" (see
- * gp_segment_configuration), we need to prober to convert them -- our
- * first attempt to dispatch will fail, we've got to catch that! The
- * retry should be fine, if not we're in serious "FATAL" trouble.
+ * This code is heavily based on pgarch.c, q.v.
  */
-void
-initTM(void)
+int
+dtx_recovery_start(void)
 {
-	MemoryContext oldcontext;
-	bool		succeeded,
-				first;
+	pid_t		pid;
 
-	Assert(shmTmRecoverred != NULL);
-
-	/* Need to recover ? */
-	if (!*shmTmRecoverred)
+	switch ((pid = fork_process()))
 	{
-		SIMPLE_FAULT_INJECTOR(DtmInit);
+		case -1:
+			ereport(LOG,
+					(errmsg("could not fork dtx recovery process: %m")));
+			return 0;
 
-		oldcontext = CurrentMemoryContext;
-		succeeded = false;
-		first = true;
-		while (true)
-		{
-			/*
-			 * MPP-9894: during startup, we don't have a top-level
-			 * PG_TRY/PG_CATCH block yet, the dispatcher may throw errors: we
-			 * need to catch them.
-			 */
-			PG_TRY();
-			{
-				initTM_recover_as_needed();
-				succeeded = true;
-			}
-			PG_CATCH();
-			{
-				MemoryContextSwitchTo(oldcontext);
-
-				elog(LOG, "DTM initialization, caught exception: "
-					 "looking for failed segments.");
-
-				/* Log the error. */
-				elog_demote(LOG);
-				EmitErrorReport();
-				FlushErrorState();
-
-				/*
-				 * Keep going outside of PG_TRY block even if we want to
-				 * retry; don't jumping out of this block without PG_END_TRY.
-				 */
-			}
-			PG_END_TRY();
-
-			if (!succeeded)
-			{
-				if (first)
-				{
-					first = false;
-					continue;
-				}
-				else
-				{
-					elog(LOG, "DTM initialization, failed on retry.");
-					elog(FATAL, "DTM initialization: failure during startup "
-						 "recovery, retry failed, check segment status");
-				}
-			}
-
-			Assert(!LWLockHeldByMe(shmControlLock));
-
-			/*
-			 * We are done with the recovery.
-			 */
+		case 0:
+			/* in postmaster child ... */
+			/* Close the postmaster's sockets */
+			ClosePostmasterPorts(false);
+			DtxRecoveryMain(0, NULL);
 			break;
-		}
+
+		default:
+			return (int) pid;
 	}
+
+	/* shouldn't get here */
+	return 0;
 }
 
+/*
+ * DtxRecoveryMain
+ */
+NON_EXEC_STATIC void
+DtxRecoveryMain(int argc, char *argv[])
+{
+	sigjmp_buf	local_sigjmp_buf;
+	char	   *fullpath;
+
+	IsUnderPostmaster = true;
+
+	am_dtx_recovery = true;
+
+	/* Stay away from PMChildSlot */
+	MyPMChildSlot = -1;
+
+	/* Reset MyProcPid */
+	MyProcPid = getpid();
+
+	/* Record Start Time for logging */
+	MyStartTime = time(NULL);
+
+	/* Lose the postmaster's on-exit routines */
+	on_exit_reset();
+
+	/*
+	 * If possible, make this process a group leader, so that the postmaster
+	 * can signal any child processes too
+	 */
+#ifdef HAVE_SETSID
+	if (setsid() < 0)
+		elog(FATAL, "setsid() failed: %m");
+#endif
+
+	/* Identify myself via ps */
+	init_ps_display("dtx recovery process", "", "", "");
+
+	SetProcessingMode(InitProcessing);
+
+	pqsignal(SIGHUP, SIG_IGN);
+	pqsignal(SIGINT, StatementCancelHandler);
+	pqsignal(SIGTERM, die);
+	pqsignal(SIGQUIT, quickdie);
+	pqsignal(SIGALRM, SIG_IGN);
+
+	pqsignal(SIGPIPE, SIG_IGN);
+	pqsignal(SIGUSR1, procsignal_sigusr1_handler);
+	/* We don't listen for async notifies */
+	pqsignal(SIGUSR2, SIG_IGN);
+	pqsignal(SIGFPE, FloatExceptionHandler);
+	pqsignal(SIGCHLD, SIG_DFL);
+
+	/*
+	 * Create a resource owner to keep track of our resources (currently only
+	 * buffer pins).
+	 */
+	CurrentResourceOwner = ResourceOwnerCreate(NULL, "DtxRecovery");
+
+	/* Early initialization */
+	BaseInit();
+
+	/*
+	 * Create a per-backend PGPROC struct in shared memory. We must do this
+	 * before we can use LWLocks (and in the EXEC_BACKEND case we already had
+	 * to do some stuff with LWLocks).
+	 */
+	InitProcess();
+	InitBufferPoolBackend();
+	InitXLOGAccess();
+
+	SetProcessingMode(NormalProcessing);
+
+	/*
+	 * If an exception is encountered, processing resumes here.
+	 *
+	 * See notes in postgres.c about the design of this coding.
+	 */
+	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
+	{
+		/* Prevents interrupts while cleaning up */
+		HOLD_INTERRUPTS();
+
+		/* Report the error to the server log */
+		EmitErrorReport();
+
+		/*
+		 * We can now go away.	Note that because we'll call InitProcess, a
+		 * callback will be registered to do ProcKill, which will clean up
+		 * necessary state.
+		 */
+		proc_exit(1);
+	}
+
+	/* We can now handle ereport(ERROR) */
+	PG_exception_stack = &local_sigjmp_buf;
+
+	PG_SETMASK(&UnBlockSig);
+
+	/*
+	 * The following additional initialization allows us to call the
+	 * persistent meta-data modules.
+	 */
+
+	/*
+	 * Add my PGPROC struct to the ProcArray.
+	 *
+	 * Once I have done this, I am visible to other backends!
+	 */
+	InitProcessPhase2();
+
+	/*
+	 * Initialize my entry in the shared-invalidation manager's array of
+	 * per-backend data.
+	 *
+	 * Sets up MyBackendId, a unique backend identifier.
+	 */
+	MyBackendId = InvalidBackendId;
+
+	SharedInvalBackendInit(false);
+
+	if (MyBackendId > MaxBackends || MyBackendId <= 0)
+		elog(FATAL, "bad backend id: %d", MyBackendId);
+
+	/*
+	 * Bufmgr needs another initialization call too
+	 */
+	InitBufferPoolBackend();
+
+	/* Heap access requires the rel-cache */
+	RelationCacheInitialize();
+	InitCatalogCache();
+
+	/*
+	 * It's now possible to do real access to the system catalogs.
+	 *
+	 * Load relcache entries for the system catalogs.  This must create at
+	 * least the minimum set of "nailed-in" cache entries.
+	 */
+	RelationCacheInitializePhase2();
+
+	/*
+	 * Start a new transaction here before first access to db, and get a
+	 * snapshot.  We don't have a use for the snapshot itself, but we're
+	 * interested in the secondary effect that it sets RecentGlobalXmin.
+	 */
+	StartTransactionCommand();
+	(void) GetTransactionSnapshot();
+
+	/*
+	 * In order to access the catalog, we need a database, and a tablespace;
+	 * our access to the heap is going to be slightly limited, so we'll just
+	 * use some defaults.
+	 */
+	if (!FindMyDatabase(DB_FOR_COMMON_ACCESS, &MyDatabaseId, &MyDatabaseTableSpace))
+		ereport(FATAL,
+				(errcode(ERRCODE_UNDEFINED_DATABASE),
+				 errmsg("database \"%s\" does not exit", DB_FOR_COMMON_ACCESS)));
+
+	/*
+	 * Now we can mark our PGPROC entry with the database ID
+	 * (We assume this is an atomic store so no lock is needed)
+	 */
+	MyProc->databaseId = MyDatabaseId;
+
+	fullpath = GetDatabasePath(MyDatabaseId, MyDatabaseTableSpace);
+
+	SetDatabasePath(fullpath);
+
+	RelationCacheInitializePhase3();
+
+	InitializeSessionUserIdStandalone();
+
+	/* do the real job of dtx recovery process */
+	recoverTM();
+
+	CommitTransactionCommand();
+
+	/* One iteration done, go away */
+	proc_exit(0);
+}
