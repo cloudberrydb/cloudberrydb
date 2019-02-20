@@ -4147,12 +4147,8 @@ simplify_boolean_equality(Oid opno, List *args)
  * will be done even if simplification of the function call itself is not
  * possible.
  */
-/*
- * GPDB_92_MERGE_FIXME: please check if the arguments input by whom is
- * called this function is correct,?
- */
-static Expr *simplify_function(Oid funcid,
-				  Oid result_type, int32 result_typmod,
+static Expr *
+simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
 				  Oid result_collid, Oid input_collid, List **args_p,
 				  bool funcvariadic, bool process_args, bool allow_non_const,
 				  eval_const_expressions_context *context)
