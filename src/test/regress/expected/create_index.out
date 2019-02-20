@@ -2610,9 +2610,6 @@ Indexes:
 --
 -- Try some concurrent index drops
 --
--- GPDB_93_MERGE_FIXME: These are inside a big start/end-ignore block currently.
--- Even if we don't support CREATE INDEX CONCURRENTLY, we can still support, and
--- should test, DROP INDEX CONCURRENTLY.
 DROP INDEX CONCURRENTLY "concur_index2";				-- works
 ERROR:  syntax error at or near "CONCURRENTLY"
 LINE 1: DROP INDEX CONCURRENTLY "concur_index2";
