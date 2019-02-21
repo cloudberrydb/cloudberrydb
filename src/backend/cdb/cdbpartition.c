@@ -48,6 +48,7 @@
 #include "parser/parse_relation.h"
 #include "parser/parse_target.h"
 #include "parser/parse_utilcmd.h"
+#include "storage/lmgr.h"
 #include "tcop/utility.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -67,6 +68,7 @@
 typedef struct
 {
 	char	   *key;
+	bool        indexed_cons;
 	List	   *table_cons;
 	List	   *part_cons;
 	List	   *cand_cons;

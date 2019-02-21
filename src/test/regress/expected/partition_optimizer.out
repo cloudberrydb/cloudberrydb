@@ -4113,6 +4113,13 @@ select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
  public     | ti_1_prt_p3 | ti_1_prt_p3_j_idx |            | CREATE INDEX ti_1_prt_p3_j_idx ON public.ti_1_prt_p3 USING bitmap (j)
 (8 rows)
 
+-- Should not be able to drop child indexes added implicitly via ADD PARTITION
+drop index ti_1_prt_p3_i_idx;
+ERROR:  cannot drop index ti_1_prt_p3_i_idx because index ti_pkey requires it
+HINT:  You can drop index ti_pkey instead.
+drop index ti_1_prt_p3_j_idx;
+ERROR:  cannot drop index ti_1_prt_p3_j_idx because index ti_j_idx requires it
+HINT:  You can drop index ti_j_idx instead.
 alter table ti split partition p3 at (7) into (partition pnew1, partition pnew2);
 NOTICE:  exchanged partition "p3" of relation "ti" with relation "pg_temp_4039681"
 NOTICE:  dropped partition "p3" for relation "ti"
@@ -4132,6 +4139,28 @@ select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
  public     | ti_1_prt_pnew1 | ti_1_prt_pnew1_i_idx |            | CREATE UNIQUE INDEX ti_1_prt_pnew1_i_idx ON public.ti_1_prt_pnew1 USING btree (i)
  public     | ti_1_prt_pnew1 | ti_1_prt_pnew1_j_idx |            | CREATE INDEX ti_1_prt_pnew1_j_idx ON public.ti_1_prt_pnew1 USING bitmap (j)
 (10 rows)
+
+-- Should not be able to drop child indexes added implicitly via SPLIT PARTITION
+drop index ti_1_prt_pnew1_i_idx;
+ERROR:  cannot drop index ti_1_prt_pnew1_i_idx because index ti_pkey requires it
+HINT:  You can drop index ti_pkey instead.
+drop index ti_1_prt_pnew1_j_idx;
+ERROR:  cannot drop index ti_1_prt_pnew1_j_idx because index ti_j_idx requires it
+HINT:  You can drop index ti_j_idx instead.
+drop index ti_1_prt_pnew2_i_idx;
+ERROR:  cannot drop index ti_1_prt_pnew2_i_idx because index ti_pkey requires it
+HINT:  You can drop index ti_pkey instead.
+drop index ti_1_prt_pnew2_j_idx;
+ERROR:  cannot drop index ti_1_prt_pnew2_j_idx because index ti_j_idx requires it
+HINT:  You can drop index ti_j_idx instead.
+-- Index drop should cascade to all partitions- including those later added via
+-- ADD PARTITION or SPLIT PARTITION
+drop index ti_pkey;
+drop index ti_j_idx;
+select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
+ schemaname | tablename | indexname | tablespace | indexdef 
+------------+-----------+-----------+------------+----------
+(0 rows)
 
 drop table ti;
 -- MPP-6611, make sure rename works with default partitions

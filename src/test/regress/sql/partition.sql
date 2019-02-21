@@ -2114,7 +2114,20 @@ create index ti_j_idx on ti using bitmap(j);
 select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
 alter table ti add partition p3 start(3) end(10);
 select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
+-- Should not be able to drop child indexes added implicitly via ADD PARTITION
+drop index ti_1_prt_p3_i_idx;
+drop index ti_1_prt_p3_j_idx;
 alter table ti split partition p3 at (7) into (partition pnew1, partition pnew2);
+select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
+-- Should not be able to drop child indexes added implicitly via SPLIT PARTITION
+drop index ti_1_prt_pnew1_i_idx;
+drop index ti_1_prt_pnew1_j_idx;
+drop index ti_1_prt_pnew2_i_idx;
+drop index ti_1_prt_pnew2_j_idx;
+-- Index drop should cascade to all partitions- including those later added via
+-- ADD PARTITION or SPLIT PARTITION
+drop index ti_pkey;
+drop index ti_j_idx;
 select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
 drop table ti;
 
