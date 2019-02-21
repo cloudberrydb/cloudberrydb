@@ -19621,6 +19621,11 @@ AtEOSubXact_on_commit_actions(bool isCommit, SubTransactionId mySubid,
 static void
 ATPrepDropConstraint(List **wqueue, Relation rel, AlterTableCmd *cmd, bool recurse, bool recursing)
 {
+	HeapTuple       tuple;
+	ScanKeyData scankey;
+	SysScanDesc sscan;
+	Relation        pgcon;
+
 	/*
 	 * This command never recurses, but the offered relation may be partitioned,
 	 * in which case, we need to act as if the command specified the top-level
@@ -19634,7 +19639,34 @@ ATPrepDropConstraint(List **wqueue, Relation rel, AlterTableCmd *cmd, bool recur
 	 * not ONLY the root.
 	 */
 	ATExternalPartitionCheck(cmd->subtype, rel, recursing);
-	ATPartitionCheck(cmd->subtype, rel, (!recurse && !recursing), recursing);
+
+	/*
+	 * Don't allow check constraints on partitions to be dropped. Scan pg_constraint
+	 * to find the constraint that we are dropping.
+	 */
+	pgcon = heap_open(ConstraintRelationId, AccessShareLock);
+
+	ScanKeyInit(&scankey, Anum_pg_constraint_conrelid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(RelationGetRelid(rel)));
+	sscan = systable_beginscan(pgcon, ConstraintRelidIndexId, true,
+							   NULL, 1, &scankey);
+
+	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
+	{
+
+		Form_pg_constraint constraint = (Form_pg_constraint) GETSTRUCT(tuple);
+		if (namestrcmp(&constraint->conname, cmd->name) == 0)
+		{
+			if (constraint->contype == CONSTRAINT_CHECK)
+				ATPartitionCheck(cmd->subtype, rel, (!recurse && !recursing), recursing);
+
+			break;
+		}
+	}
+
+	systable_endscan(sscan);
+	heap_close(pgcon, AccessShareLock);
 }
 
 
