@@ -396,7 +396,7 @@
                         </dxl:Comparison>
                       </dxl:Filter>
                       <dxl:OneTimeFilter/>
-                      <dxl:Materialize Eager="false">
+                      <dxl:Materialize Eager="true">
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="3.035156" Rows="2.000000" Width="8"/>
                         </dxl:Properties>

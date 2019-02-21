@@ -72,6 +72,7 @@ const CHAR *rgszSubqueryFileNames[] =
 		"../data/dxl/minidump/AnySubqueryWithVolatileComp.mdp",
 		"../data/dxl/minidump/AnySubqueryWithVolatileFunc.mdp",
 		"../data/dxl/minidump/SubqueryOuterRefTVF.mdp",
+		"../data/dxl/minidump/SubqueryOuterRefLimit.mdp",
 	#ifndef GPOS_32BIT
 		// TODO:  - 05/14/2014: the plan generates a different plan only for
 		// 32-bit rhel

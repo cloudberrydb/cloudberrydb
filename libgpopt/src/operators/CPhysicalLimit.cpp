@@ -254,6 +254,18 @@ CPhysicalLimit::PrsRequired
 {
 	GPOS_ASSERT(0 == child_index);
 
+	if (exprhdl.HasOuterRefs())
+	{
+		// If the Limit op or its subtree contains an outer ref, then it must
+		// request rewindability with a motion hazard (a Blocking Spool) from its
+		// subtree. Otherwise, if a streaming Spool is added to the subtree, it will 
+		// only return tuples it materialized in its first execution (i.e with the
+		// first value of the outer ref) for every re-execution. This can produce
+		// wrong results.
+		// E.g select *, (select 1 from generate_series(1, 10) limit t1.a) from t1;
+		return GPOS_NEW(mp) CRewindabilitySpec(prsRequired->Ert(), CRewindabilitySpec::EmhtMotion);
+	}
+
 	return PrsPassThru(mp, exprhdl, prsRequired, child_index);
 }
 
