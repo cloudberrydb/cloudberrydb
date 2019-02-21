@@ -1062,7 +1062,7 @@ partitionRegularityChecks = {
                                 select
                                     localoid::regclass,
                                     distkey,
-                                    coalesce(1+array_length(distkey,1),0)
+                                    array_length(distkey, 1)
                                 from
                                     gp_distribution_policy
                             ) as d(relid, distkey, attrcnt)
