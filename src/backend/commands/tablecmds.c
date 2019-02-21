@@ -462,6 +462,7 @@ const char *synthetic_sql = "(internally generated SQL command)";
 /* ALTER TABLE ... PARTITION */
 
 
+static void AttachPartitionEnsureIndexes(Relation rel, Relation attachrel);
 static void ATExecDetachPartitionInheritance(Relation rel, RangeVar *name);
 static void ATExecAttachPartitionIdx(List **wqueue, Relation parentIdx,
 									 AlterPartitionId *alterpartId);
@@ -16492,6 +16493,8 @@ exchange_part_inheritance(Oid oldrelid, Oid newrelid)
 					     RelationGetRelationName(oldrel), -1));
 
 	inherit_parent(parent, newrel, true /* it's a partition */, NIL);
+
+	AttachPartitionEnsureIndexes(parent, newrel);
 	heap_close(parent, NoLock);
 	heap_close(oldrel, NoLock);
 	heap_close(newrel, NoLock);
@@ -16637,6 +16640,7 @@ ATPExecPartExchange(AlteredTableInfo *tab, Relation rel, AlterPartitionCmd *pc)
 		char			*oldname;
 		Relation		 newrel;
 		Relation		 oldrel;
+		Relation		 parentrel = NULL;
 		AttrMap			*newmap; /* used for compatability check below only */
 		AttrMap			*oldmap; /* used for compatability check below only */
 		List			*newcons;
@@ -16644,6 +16648,7 @@ ATPExecPartExchange(AlteredTableInfo *tab, Relation rel, AlterPartitionCmd *pc)
 		bool			 validate	= intVal(pc2->arg1) ? true : false;
 		Oid				 oldnspid	= InvalidOid;
 		Oid				 newnspid	= InvalidOid;
+		Oid				 parentrelid = InvalidOid;
 		char			*newNspName = NULL;
 		char			*oldNspName = NULL;
 
@@ -16673,8 +16678,14 @@ ATPExecPartExchange(AlteredTableInfo *tab, Relation rel, AlterPartitionCmd *pc)
 		ok = map_part_attrs(rel, oldrel, &oldmap, TRUE);
 		Assert(ok);
 
+		parentrelid = rel_partition_get_root(oldrelid);
+		if (parentrelid != RelationGetRelid(rel))
+			parentrel = heap_open(parentrelid, AccessExclusiveLock);
+
 		newcons = cdb_exchange_part_constraints(
-				rel, oldrel, newrel, validate, is_split, pc);
+			(parentrel == NULL) ? rel : parentrel,
+			oldrel, newrel, validate, is_split, pc);
+
 		tab->constraints = list_concat(tab->constraints, newcons);
 		CommandCounterIncrement();
 
@@ -16690,6 +16701,8 @@ ATPExecPartExchange(AlteredTableInfo *tab, Relation rel, AlterPartitionCmd *pc)
 
 		heap_close(newrel, NoLock);
 		heap_close(oldrel, NoLock);
+		if (parentrel != NULL)
+			heap_close(parentrel, NoLock);
 
 		/* RenameRelation renames the type too */
 		RenameRelationInternal(oldrelid, tmpname1, true);
@@ -17829,7 +17842,8 @@ ATPExecPartSplit(Relation *rel,
 		ct->relation = tmprv;
 		ct->relKind = RELKIND_RELATION;
 		ct->ownerid = (*rel)->rd_rel->relowner;
-		ct->is_split_part = true;
+		/* Don't treat this table differently than a normal CREATE TABLE LIKE */
+		ct->is_split_part = false;
 		/* No transformation happens for this stmt in parse_analyze() */
 		q = parse_analyze((Node *) ct, synthetic_sql, NULL, 0);
 		ProcessUtility((Node *)q->utilityStmt,
@@ -20104,6 +20118,146 @@ RangeVarCallbackForAlterRelation(const RangeVar *rv, Oid relid, Oid oldrelid,
 						rv->relname)));
 
 	ReleaseSysCache(tuple);
+}
+/*
+ * AttachPartitionEnsureIndexes
+ *		subroutine for ATExecAttachPartition to create/match indexes
+ *
+ * Enforce the indexing rule for partitioned tables during ALTER TABLE / ATTACH
+ * PARTITION: every partition must have an index attached to each index on the
+ * partitioned table.
+ */
+static void
+AttachPartitionEnsureIndexes(Relation rel, Relation attachrel)
+{
+	List	   *idxes;
+	List	   *attachRelIdxs;
+	Relation   *attachrelIdxRels;
+	IndexInfo **attachInfos;
+	int			i;
+	ListCell   *cell;
+	MemoryContext cxt;
+	MemoryContext oldcxt;
+
+	cxt = AllocSetContextCreate(CurrentMemoryContext,
+								"AttachPartitionEnsureIndexes",
+								ALLOCSET_DEFAULT_SIZES);
+	oldcxt = MemoryContextSwitchTo(cxt);
+
+	idxes = RelationGetIndexList(rel);
+	attachRelIdxs = RelationGetIndexList(attachrel);
+	attachrelIdxRels = palloc(sizeof(Relation) * list_length(attachRelIdxs));
+	attachInfos = palloc(sizeof(IndexInfo *) * list_length(attachRelIdxs));
+
+	/* Build arrays of all existing indexes and their IndexInfos */
+	i = 0;
+	foreach(cell, attachRelIdxs)
+	{
+		Oid			cldIdxId = lfirst_oid(cell);
+
+		attachrelIdxRels[i] = index_open(cldIdxId, AccessShareLock);
+		attachInfos[i] = BuildIndexInfo(attachrelIdxRels[i]);
+		i++;
+	}
+
+	/*
+	 * For each index on the partitioned table, find a matching one in the
+	 * partition-to-be; if one is not found, create one.
+	 */
+	foreach(cell, idxes)
+	{
+		Oid			idx = lfirst_oid(cell);
+		Relation	idxRel;
+		IndexInfo  *info;
+		AttrNumber *attmap;
+		bool		found = false;
+		Oid			constraintOid;
+
+		/*
+		 * Ignore indexes in the partitioned table other than partitioned
+		 * indexes.
+		 */
+		if (!has_subclass(idx))
+		{
+			continue;
+		}
+
+		idxRel = index_open(idx, AccessShareLock);
+
+		/* construct an indexinfo to compare existing indexes against */
+		info = BuildIndexInfo(idxRel);
+		attmap = convert_tuples_by_name_map(RelationGetDescr(attachrel),
+											RelationGetDescr(rel),
+											gettext_noop("could not convert row type"));
+		constraintOid = get_relation_idx_constraint_oid(RelationGetRelid(rel), idx);
+
+		/*
+		 * Scan the list of existing indexes in the partition-to-be, and mark
+		 * the first matching, unattached one we find, if any, as partition of
+		 * the parent index.  If we find one, we're done.
+		 */
+		for (i = 0; i < list_length(attachRelIdxs); i++)
+		{
+			Oid			cldIdxId = RelationGetRelid(attachrelIdxRels[i]);
+			Oid			cldConstrOid = InvalidOid;
+
+			/* does this index have a parent?  if so, can't use it */
+			if (has_superclass(cldIdxId))
+				continue;
+
+			if (CompareIndexInfo(attachInfos[i], info,
+								 attachrelIdxRels[i]->rd_indcollation,
+								 idxRel->rd_indcollation,
+								 attachrelIdxRels[i]->rd_opfamily,
+								 idxRel->rd_opfamily,
+								 attmap,
+								 RelationGetDescr(rel)->natts))
+			{
+				/*
+				 * If this index is being created in the parent because of a
+				 * constraint, then the child needs to have a constraint also,
+				 * so look for one.  If there is no such constraint, this
+				 * index is no good, so keep looking.
+				 */
+				if (OidIsValid(constraintOid))
+				{
+					cldConstrOid =
+						get_relation_idx_constraint_oid(RelationGetRelid(attachrel),
+														cldIdxId);
+					/* no dice */
+					if (!OidIsValid(cldConstrOid))
+						continue;
+				}
+
+				/* bingo. */
+				IndexSetParentIndex(attachrelIdxRels[i], idx);
+				if (OidIsValid(constraintOid))
+					ConstraintSetParentConstraint(cldConstrOid, constraintOid);
+				found = true;
+				break;
+			}
+		}
+
+		/*
+		 * If no suitable index was found in the partition-to-be, throw an error.
+		 */
+		if (!found)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+						errmsg("index like \"%s\" does not exist on \"%s\"",
+							RelationGetRelationName(idxRel),
+							RelationGetRelationName(attachrel))));
+		}
+
+		index_close(idxRel, AccessShareLock);
+	}
+
+	/* Clean up. */
+	for (i = 0; i < list_length(attachRelIdxs); i++)
+		index_close(attachrelIdxRels[i], AccessShareLock);
+	MemoryContextSwitchTo(oldcxt);
+	MemoryContextDelete(cxt);
 }
 
 /*
