@@ -507,9 +507,8 @@ def checkDistribPolicy():
       join  pg_class rel on (pk.conrelid = rel.oid)
       join  pg_namespace n on (rel.relnamespace = n.oid)
       join  gp_distribution_policy d on (rel.oid = d.localoid)
-    where pk.contype in ('p', 'u') and d.policytype = 'p' and
-          (d.distkey = '' or not
-           d.distkey::int2[] operator(pg_catalog.<@) pk.conkey)
+    where pk.contype in ('p', 'u') and d.policytype = 'p'
+      and not d.distkey::int2[] operator(pg_catalog.<@) pk.conkey
     '''
     try:
         curs = db.query(qry)
