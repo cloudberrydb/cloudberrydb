@@ -1177,6 +1177,19 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			 */
 			scaleFactor = 1.0;
 		}
+		else if (plan->flow != NULL && CdbPathLocus_IsSegmentGeneral(*(plan->flow)))
+		{
+			/* Replicated table has full data on every segment */
+			scaleFactor = 1.0;
+		}
+		else if (plan->flow != NULL && es->pstmt->planGen == PLANGEN_PLANNER)
+		{
+			/*
+			 * The plan node is executed on multiple nodes, so scale down the
+			 * number of rows seen by each segment
+			 */
+			scaleFactor = CdbPathLocus_NumSegments(*(plan->flow));
+		}
 		else
 		{
 			/*
