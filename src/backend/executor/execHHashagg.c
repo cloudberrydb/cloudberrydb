@@ -758,14 +758,9 @@ calcHashAggTableSizes(double memquota,	/* Memory quota in bytes. */
 
 		if (IsResGroupEnabled() && out_hats->memquota > orig_memquota)
 		{
-			ereport(WARNING,
-					(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-					 errmsg("No enough memory quota reserved for AggHash operator."),
-					 errdetail("The operator needs a minimal of %.0f bytes memory, "
-							   "but only %.0f bytes are reserved.  "
-							   "Temporarily increased the memory quota to execute the operator.",
-							   out_hats->memquota, orig_memquota),
-					 errhint("Consider increase memory_spill_ratio for better performance.")));
+			elog(HHA_MSG_LVL,
+				 "HashAgg: auto enlarge operator memory from %.0f to %.0f in resource group mode",
+				 out_hats->memquota, orig_memquota);
 		}
 	}
 	
