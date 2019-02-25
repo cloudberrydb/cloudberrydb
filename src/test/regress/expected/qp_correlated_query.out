@@ -473,6 +473,35 @@ select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i n
  -1
 (10 rows)
 
+explain select A.i from A where A.j = (select C.j from C where C.j = A.j and C.i = any (select B.i from B where C.i = B.i and B.i !=10));
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..33.51 rows=1 width=4)
+   ->  Seq Scan on a  (cost=0.00..33.51 rows=1 width=4)
+         Filter: (j = (SubPlan 1))
+         SubPlan 1  (slice3; segments: 3)
+           ->  Hash Semi Join  (cost=3.14..6.29 rows=2 width=4)
+                 Hash Cond: (c.i = b.i)
+                 ->  Result  (cost=0.00..3.12 rows=1 width=8)
+                       Filter: (c.j = a.j)
+                       ->  Materialize  (cost=0.00..3.12 rows=1 width=8)
+                             ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.11 rows=1 width=8)
+                                   ->  Seq Scan on c  (cost=0.00..3.11 rows=1 width=8)
+                 ->  Hash  (cost=3.08..3.08 rows=2 width=4)
+                       ->  Result  (cost=0.00..3.10 rows=2 width=4)
+                             ->  Materialize  (cost=0.00..3.10 rows=2 width=4)
+                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..3.08 rows=2 width=4)
+                                         ->  Seq Scan on b  (cost=0.00..3.08 rows=2 width=4)
+                                               Filter: (i <> 10)
+ Optimizer: legacy query optimizer
+(18 rows)
+
+select A.i from A where A.j = (select C.j from C where C.j = A.j and C.i = any (select B.i from B where C.i = B.i and B.i !=10));
+ i  
+----
+ 99
+(1 row)
+
 -- ----------------------------------------------------------------------
 -- Test: csq_heap_any.sql - Correlated Subquery: CSQ using ANY clause (Heap)
 -- ----------------------------------------------------------------------
@@ -3640,9 +3669,86 @@ explain select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
 select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
  a | count 
 ---+-------
- 1 |     1
  2 |     2
  3 |     3
+ 1 |     1
+(3 rows)
+
+-- with limit
+explain select t1.a, (select count(*) c from (select city from supplier limit t1.a) x) from t1;
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..3.99 rows=3 width=4)
+   ->  Seq Scan on t1  (cost=0.00..3.99 rows=1 width=4)
+         SubPlan 1  (slice2; segments: 3)
+           ->  Aggregate  (cost=0.64..0.65 rows=1 width=8)
+                 ->  Limit  (cost=0.00..0.63 rows=1 width=2)
+                       ->  Limit  (cost=0.00..0.61 rows=1 width=2)
+                             ->  Result  (cost=0.00..3.07 rows=2 width=2)
+                                   ->  Materialize  (cost=0.00..3.07 rows=2 width=2)
+                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..3.05 rows=2 width=2)
+                                               ->  Seq Scan on supplier  (cost=0.00..3.05 rows=2 width=2)
+ Optimizer: legacy query optimizer
+(11 rows)
+
+select t1.a, (select count(*) c from (select city from supplier limit t1.a) x) from t1;
+ a | c 
+---+---
+ 1 | 1
+ 2 | 2
+ 3 | 3
+(3 rows)
+
+-- with nested join
+explain select t1.*, (select count(*) as ct from generate_series(1, a), t1) from t1;
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..30000000533.18 rows=3 width=8)
+   ->  Seq Scan on t1  (cost=0.00..30000000533.18 rows=1 width=8)
+         SubPlan 1  (slice2; segments: 3)
+           ->  Aggregate  (cost=10000000177.04..10000000177.05 rows=1 width=8)
+                 ->  Nested Loop  (cost=10000000000.00..10000000049.54 rows=1000 width=0)
+                       ->  Function Scan on generate_series  (cost=0.00..10.00 rows=334 width=0)
+                       ->  Materialize  (cost=0.00..2.04 rows=1 width=0)
+                             ->  Result  (cost=0.00..2.04 rows=1 width=0)
+                                   ->  Materialize  (cost=0.00..2.04 rows=1 width=0)
+                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.03 rows=1 width=0)
+                                               ->  Seq Scan on t1 t1_1  (cost=0.00..2.03 rows=1 width=0)
+ Optimizer: legacy query optimizer
+(12 rows)
+
+select t1.*, (select count(*) as ct from generate_series(1, a), t1) from t1;
+ a | b | ct 
+---+---+----
+ 1 | 1 |  3
+ 2 | 2 |  6
+ 3 | 3 |  9
+(3 rows)
+
+explain select * from t1 where 0 < (select count(*) from generate_series(1, a), t1);
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..30000000533.19 rows=1 width=8)
+   ->  Seq Scan on t1  (cost=0.00..30000000533.19 rows=1 width=8)
+         Filter: (0 < (SubPlan 1))
+         SubPlan 1  (slice2; segments: 3)
+           ->  Aggregate  (cost=10000000177.04..10000000177.05 rows=1 width=8)
+                 ->  Nested Loop  (cost=10000000000.00..10000000049.54 rows=1000 width=0)
+                       ->  Function Scan on generate_series  (cost=0.00..10.00 rows=334 width=0)
+                       ->  Materialize  (cost=0.00..2.04 rows=1 width=0)
+                             ->  Result  (cost=0.00..2.04 rows=1 width=0)
+                                   ->  Materialize  (cost=0.00..2.04 rows=1 width=0)
+                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.03 rows=1 width=0)
+                                               ->  Seq Scan on t1 t1_1  (cost=0.00..2.03 rows=1 width=0)
+ Optimizer: legacy query optimizer
+(13 rows)
+
+select * from t1 where 0 < (select count(*) from generate_series(1, a), t1);
+ a | b 
+---+---
+ 1 | 1
+ 2 | 2
+ 3 | 3
 (3 rows)
 
 reset optimizer_enforce_subplans;

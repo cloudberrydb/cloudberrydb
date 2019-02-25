@@ -139,6 +139,8 @@ select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j
 explain select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i not in (select B.i from B where C.i = B.i and B.i !=10)) order by A.j limit 10;
 select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i not in (select B.i from B where C.i = B.i and B.i !=10)) order by A.j limit 10;
 
+explain select A.i from A where A.j = (select C.j from C where C.j = A.j and C.i = any (select B.i from B where C.i = B.i and B.i !=10));
+select A.i from A where A.j = (select C.j from C where C.j = A.j and C.i = any (select B.i from B where C.i = B.i and B.i !=10));
 
 
 -- ----------------------------------------------------------------------
@@ -722,6 +724,17 @@ set optimizer_enforce_subplans = 1;
 -- with TVF
 explain select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
 select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
+
+-- with limit
+explain select t1.a, (select count(*) c from (select city from supplier limit t1.a) x) from t1;
+select t1.a, (select count(*) c from (select city from supplier limit t1.a) x) from t1;
+
+-- with nested join
+explain select t1.*, (select count(*) as ct from generate_series(1, a), t1) from t1;
+select t1.*, (select count(*) as ct from generate_series(1, a), t1) from t1;
+
+explain select * from t1 where 0 < (select count(*) from generate_series(1, a), t1);
+select * from t1 where 0 < (select count(*) from generate_series(1, a), t1);
 
 reset optimizer_enforce_subplans;
 
