@@ -15116,7 +15116,17 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 
 		if (ldistro && ldistro->ptype == POLICYTYPE_PARTITIONED && ldistro->keyCols == NIL)
 		{
+			bool hasPrimaryKey = relationHasPrimaryKey(rel);
+			bool hasUniqueIndex = relationHasUniqueIndex(rel);
 			rand_pol = true;
+
+			if (hasPrimaryKey || hasUniqueIndex)
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+						 errmsg("cannot set to DISTRIBUTED RANDOMLY because relation has %s", hasPrimaryKey ? "primary Key" : "unique index"),
+						 errhint("Drop the %s first.", hasPrimaryKey ? "primary key" : "unique index")));
+			}
 
 			if (!force_reorg)
 			{
