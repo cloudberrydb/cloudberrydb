@@ -85,7 +85,6 @@ static void ComputeIndexAttrs(IndexInfo *indexInfo,
 static char *ChooseIndexNameAddition(List *colnames);
 static void RangeVarCallbackForReindexIndex(const RangeVar *relation,
 								Oid relId, Oid oldRelId, void *arg);
-static bool relationHasUniqueIndex(Relation rel);
 
 
 /*
@@ -2065,43 +2064,6 @@ ChooseIndexColumnNames(List *indexElems)
 		/* And attach to the result list */
 		result = lappend(result, pstrdup(curname));
 	}
-	return result;
-}
-
-/*
- * relationHasUniqueIndex -
- *
- *	See whether an existing relation has a unique index.
- */
-static bool
-relationHasUniqueIndex(Relation rel)
-{
-	bool		result = false;
-	List	   *indexoidlist;
-	ListCell   *indexoidscan;
-
-	/*
-	 * Get the list of index OIDs for the table from the relcache, and look up
-	 * each one in the pg_index syscache until we find one marked unique
-	 */
-	indexoidlist = RelationGetIndexList(rel);
-
-	foreach(indexoidscan, indexoidlist)
-	{
-		Oid			indexoid = lfirst_oid(indexoidscan);
-		HeapTuple	indexTuple;
-
-		indexTuple = SearchSysCache1(INDEXRELID, ObjectIdGetDatum(indexoid));
-		if (!HeapTupleIsValid(indexTuple))		/* should not happen */
-			elog(ERROR, "cache lookup failed for index %u", indexoid);
-		result = ((Form_pg_index) GETSTRUCT(indexTuple))->indisunique;
-		ReleaseSysCache(indexTuple);
-		if (result)
-			break;
-	}
-
-	list_free(indexoidlist);
-
 	return result;
 }
 
