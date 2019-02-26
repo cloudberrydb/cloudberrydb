@@ -706,6 +706,29 @@ SELECT * FROM qp_nl_tab1 t1 WHERE t1.c1 + 5 > ANY(SELECT t2.c2 FROM qp_nl_tab2 t
 
 
 -- ----------------------------------------------------------------------
+-- Test: Various single & skip-level correlated subqueries
+-- ----------------------------------------------------------------------
+DROP TABLE IF EXISTS t1;
+DROP TABLE IF EXISTS supplier;
+create table t1(a int, b int);
+create table supplier(city text);
+insert into t1 values (1, 1), (2, 2), (3, 3);
+insert into supplier values ('a'),('b'),('c'),('d'),('e');
+analyze t1;
+analyze supplier;
+
+set optimizer_enforce_subplans = 1;
+
+-- with TVF
+explain select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
+select x1.a, (select count(*) from generate_series(1, x1.a)) from t1 x1;
+
+reset optimizer_enforce_subplans;
+
+DROP TABLE IF EXISTS t1;
+DROP TABLE IF EXISTS supplier;
+
+-- ----------------------------------------------------------------------
 -- Test: teardown.sql
 -- ----------------------------------------------------------------------
 set client_min_messages='warning';
