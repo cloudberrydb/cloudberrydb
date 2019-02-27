@@ -425,8 +425,10 @@ class GpExpandStatus():
                 self._fp_standby = open(self._status_standby_filename, 'w')
                 self._fp_standby.write('UNINITIALIZED:None\n')
                 self._fp_standby.flush()
+                os.fsync(self._fp_standby)
             self._fp.write('UNINITIALIZED:None\n')
             self._fp.flush()
+            os.fsync(self._fp)
             self._status.append('UNINITIALIZED')
             self._status_info.append('None')
         except IOError:
@@ -463,9 +465,11 @@ class GpExpandStatus():
         if self._master_mirror:
             self._fp_standby.write('%s:%s\n' % (status, status_info))
             self._fp_standby.flush()
+            os.fsync(self._fp_standby)
             self._sync_status_file()
         self._fp.write('%s:%s\n' % (status, status_info))
         self._fp.flush()
+        os.fsync(self._fp)
         self._status.append(status)
         self._status_info.append(status_info)
 
@@ -2262,7 +2266,7 @@ def main(options, args, parser):
                     logger.error('There is no partially completed setup to rollback.')
                     sys.exit(1)
                 _gp_expand.rollback(dburl)
-                logger.info('Rollback complete.  Greenplum Database can now be started')
+                logger.info('Rollback complete.')
                 sys.exit(0)
             except ExpansionError, e:
                 logger.error(e)
