@@ -2369,7 +2369,7 @@ def impl(context):
 
 @then('the tables have finished expanding')
 def impl(context):
-    dbname = 'gptest'
+    dbname = 'postgres'
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
         query = """select fq_name from gpexpand.status_detail WHERE expansion_finished IS NULL"""
         cursor = dbconn.execSQL(conn, query)
