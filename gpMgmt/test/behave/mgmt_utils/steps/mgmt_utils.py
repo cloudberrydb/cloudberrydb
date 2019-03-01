@@ -2088,7 +2088,7 @@ def impl(context, num_of_segments, num_of_hosts, hostnames):
     for i in range(0, num_of_segments):
         directory_pairs.append((primary_dir,mirror_dir))
 
-    gpexpand = Gpexpand(context, working_directory=context.working_directory, database='gptest')
+    gpexpand = Gpexpand(context, working_directory=context.working_directory)
     output, returncode = gpexpand.do_interview(hosts=hosts,
                                                num_of_segments=num_of_segments,
                                                directory_pairs=directory_pairs,
@@ -2102,30 +2102,30 @@ def impl(context):
 
 @when('the user runs gpexpand with the latest gpexpand_inputfile with additional parameters {additional_params}')
 def impl(context, additional_params=''):
-    gpexpand = Gpexpand(context, working_directory=context.working_directory, database='gptest')
+    gpexpand = Gpexpand(context, working_directory=context.working_directory)
     ret_code, std_err, std_out = gpexpand.initialize_segments(additional_params)
     if ret_code != 0:
         raise Exception("gpexpand exited with return code: %d.\nstderr=%s\nstdout=%s" % (ret_code, std_err, std_out))
 
 @when('the user runs gpexpand with the latest gpexpand_inputfile without ret code check')
 def impl(context):
-    gpexpand = Gpexpand(context, working_directory=context.working_directory, database='gptest')
+    gpexpand = Gpexpand(context, working_directory=context.working_directory)
     gpexpand.initialize_segments()
 
-@when('the user runs gpexpand against database "{dbname}" to redistribute with duration "{duration}"')
-def impl(context, dbname, duration):
-    _gpexpand_redistribute(context, dbname, duration)
+@when('the user runs gpexpand to redistribute with duration "{duration}"')
+def impl(context, duration):
+    _gpexpand_redistribute(context, duration)
 
-@when('the user runs gpexpand against database "{dbname}" to redistribute with the --end flag')
-def impl(context, dbname):
-    _gpexpand_redistribute(context, dbname, endtime=True)
+@when('the user runs gpexpand to redistribute with the --end flag')
+def impl(context):
+    _gpexpand_redistribute(context, endtime=True)
 
-@when('the user runs gpexpand against database "{dbname}" to redistribute')
-def impl(context, dbname):
-    _gpexpand_redistribute(context, dbname)
+@when('the user runs gpexpand to redistribute')
+def impl(context):
+    _gpexpand_redistribute(context)
 
-def _gpexpand_redistribute(context, dbname, duration=False, endtime=False):
-    gpexpand = Gpexpand(context, working_directory=context.working_directory, database=dbname)
+def _gpexpand_redistribute(context, duration=False, endtime=False):
+    gpexpand = Gpexpand(context, working_directory=context.working_directory)
     context.command = gpexpand
     ret_code, std_err, std_out = gpexpand.redistribute(duration, endtime)
     if duration or endtime:
@@ -2148,7 +2148,7 @@ sdw1:sdw1:21503:/tmp/gpexpand_behave/data/mirror/gpseg3:9:3:m"""
     with open(inputfile_name, 'w') as fd:
         fd.write(inputfile_contents)
 
-    gpexpand = Gpexpand(context, working_directory=context.working_directory, database='gptest')
+    gpexpand = Gpexpand(context, working_directory=context.working_directory)
     ret_code, std_err, std_out = gpexpand.initialize_segments()
     if ret_code != 0:
         raise Exception("gpexpand exited with return code: %d.\nstderr=%s\nstdout=%s" % (ret_code, std_err, std_out))
@@ -2555,11 +2555,11 @@ def impl(context, fault):
 def impl(context):
     os.environ['GPMGMT_FAULT_POINT'] = ""
 
-@given('run rollback with database "{database}"')
-@then('run rollback with database "{database}"')
-@when('run rollback with database "{database}"')
-def impl(context, database):
-    gpexpand = Gpexpand(context, working_directory=context.working_directory, database=database)
+@given('run rollback')
+@then('run rollback')
+@when('run rollback')
+def impl(context):
+    gpexpand = Gpexpand(context, working_directory=context.working_directory)
     ret_code, std_err, std_out = gpexpand.rollback()
     if ret_code != 0:
         raise Exception("rollback exited with return code: %d.\nstderr=%s\nstdout=%s" % (ret_code, std_err, std_out))
