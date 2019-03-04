@@ -1072,3 +1072,10 @@ select numsegments from gp_distribution_policy where localoid='expand_domain_tab
            3
 (1 row)
 
+-- start_ignore
+-- We need to do a cluster expansion which will check if there are partial
+-- tables, we need to drop the partial tables to keep the cluster expansion
+-- run correctly.
+reset search_path;
+drop schema test_reshuffle cascade;
+-- end_ignore

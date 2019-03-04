@@ -75,3 +75,10 @@ select gp_segment_id, * from b;
              0 |  345
 (10 rows)
 
+-- start_ignore
+-- We need to do a cluster expansion which will check if there are partial
+-- tables, we need to drop the partial tables to keep the cluster expansion
+-- run correctly.
+reset search_path;
+drop schema test_expand_table_regression cascade;
+-- end_ignore

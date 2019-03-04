@@ -447,3 +447,11 @@ select gp_segment_id, count(*) from expand_domain_tab group by gp_segment_id;
 alter table expand_domain_tab expand table;
 select gp_segment_id, count(*) from expand_domain_tab group by gp_segment_id;
 select numsegments from gp_distribution_policy where localoid='expand_domain_tab'::regclass;
+
+-- start_ignore
+-- We need to do a cluster expansion which will check if there are partial
+-- tables, we need to drop the partial tables to keep the cluster expansion
+-- run correctly.
+reset search_path;
+drop schema test_reshuffle cascade;
+-- end_ignore

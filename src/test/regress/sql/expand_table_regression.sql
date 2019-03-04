@@ -39,3 +39,11 @@ select gp_segment_id, * from b;
 -- data expansion should tolerant it
 alter table b expand table;
 select gp_segment_id, * from b;
+
+-- start_ignore
+-- We need to do a cluster expansion which will check if there are partial
+-- tables, we need to drop the partial tables to keep the cluster expansion
+-- run correctly.
+reset search_path;
+drop schema test_expand_table_regression cascade;
+-- end_ignore
