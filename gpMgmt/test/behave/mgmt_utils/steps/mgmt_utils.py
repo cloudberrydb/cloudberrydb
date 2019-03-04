@@ -1607,6 +1607,7 @@ def impl(context, path, num):
         raise Exception("expected %s items but found %s items in path %s" % (num, result, path))
 
 
+@when('the user runs all the repair scripts in the dir "{dir}"')
 @then('run all the repair scripts in the dir "{dir}"')
 def impl(context, dir):
     bash_files = glob.glob("%s/*.sh" % dir)
