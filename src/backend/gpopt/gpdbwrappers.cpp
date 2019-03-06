@@ -2661,7 +2661,7 @@ gpdb::GetComponentDatabases(void)
 	GP_WRAP_START;
 	{
 		/* catalog tables: gp_segment_config */
-		return cdbcomponent_getCdbComponents(true);
+		return cdbcomponent_getCdbComponents();
 	}
 	GP_WRAP_END;
 	return NULL;

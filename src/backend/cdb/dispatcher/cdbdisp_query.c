@@ -1485,7 +1485,7 @@ formIdleSegmentIdList(void)
 	List					*segments = NIL;
 	int						i, j;
 
-	cdbs = cdbcomponent_getCdbComponents(true);
+	cdbs = cdbcomponent_getCdbComponents();
 
 	if (cdbs->segment_db_info != NULL)
 	{

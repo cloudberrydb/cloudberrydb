@@ -140,7 +140,7 @@ extern void cdb_cleanup(int code, Datum arg  __attribute__((unused)) );
  * The same is true for pointer-based values in CdbComponentDatabaseInfo.  The caller is responsible
  * for setting the current storage context and releasing the storage occupied the returned values.
  */
-CdbComponentDatabases * cdbcomponent_getCdbComponents(bool DNSLookupAsError);
+CdbComponentDatabases * cdbcomponent_getCdbComponents(void);
 void cdbcomponent_destroyCdbComponents(void);
 
 void cdbcomponent_updateCdbComponents(void);

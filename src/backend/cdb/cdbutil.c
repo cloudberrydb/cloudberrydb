@@ -67,7 +67,7 @@ static CdbComponentDatabases *cdb_component_dbs = NULL;
 /*
  * Helper Functions
  */
-static CdbComponentDatabases *getCdbComponentInfo(bool DnsLookupFailureIsError);
+static CdbComponentDatabases *getCdbComponentInfo(void);
 static void cleanupComponentIdleQEs(CdbComponentDatabaseInfo *cdi, bool includeWriter);
 
 static int	CdbComponentDatabaseInfoCompare(const void *p1, const void *p2);
@@ -97,7 +97,7 @@ typedef struct HostSegsEntry
  *  Internal function to initialize each component info
  */
 static CdbComponentDatabases *
-getCdbComponentInfo(bool DNSLookupAsError)
+getCdbComponentInfo(void)
 {
 	MemoryContext oldContext;
 	CdbComponentDatabaseInfo *pOld = NULL;
@@ -138,6 +138,7 @@ getCdbComponentInfo(bool DNSLookupAsError)
 
 	bool		found;
 	HostSegsEntry *hsEntry;
+	bool		DNSLookupAsError = !am_ftsprobe;
 
 	if (!CdbComponentsContext)
 		CdbComponentsContext = AllocSetContextCreate(TopMemoryContext, "cdb components Context",
@@ -553,7 +554,7 @@ cdbcomponent_updateCdbComponents(void)
 	{
 		if (cdb_component_dbs == NULL)
 		{
-			cdb_component_dbs = getCdbComponentInfo(true);
+			cdb_component_dbs = getCdbComponentInfo();
 			cdb_component_dbs->fts_version = ftsVersion;
 			cdb_component_dbs->expand_version = GetGpExpandVersion();
 		}
@@ -571,7 +572,7 @@ cdbcomponent_updateCdbComponents(void)
 			{
 				ELOG_DISPATCHER_DEBUG("FTS rescanned, get new component databases info.");
 				cdbcomponent_destroyCdbComponents();
-				cdb_component_dbs = getCdbComponentInfo(true);
+				cdb_component_dbs = getCdbComponentInfo();
 				cdb_component_dbs->fts_version = ftsVersion;
 				cdb_component_dbs->expand_version = expandVersion;
 			}
@@ -596,13 +597,13 @@ cdbcomponent_updateCdbComponents(void)
  * structures are allocated from the caller's context.
  */
 CdbComponentDatabases *
-cdbcomponent_getCdbComponents(bool DNSLookupAsError)
+cdbcomponent_getCdbComponents()
 {
 	PG_TRY();
 	{
 		if (cdb_component_dbs == NULL)
 		{
-			cdb_component_dbs = getCdbComponentInfo(DNSLookupAsError);
+			cdb_component_dbs = getCdbComponentInfo();
 			cdb_component_dbs->fts_version = getFtsVersion();
 			cdb_component_dbs->expand_version = GetGpExpandVersion();
 		}
@@ -846,7 +847,7 @@ cdbcomponent_getComponentInfo(int contentId)
 	CdbComponentDatabaseInfo *cdbInfo = NULL;
 	CdbComponentDatabases *cdbs;
 
-	cdbs = cdbcomponent_getCdbComponents(true);
+	cdbs = cdbcomponent_getCdbComponents();
 
 	if (contentId < -1 || contentId >= cdbs->total_segments)
 		ereport(FATAL,
@@ -1516,7 +1517,7 @@ cdbcomponent_getCdbComponentsList(void)
 	List *segments = NIL;
 	int i;
 
-	cdbs = cdbcomponent_getCdbComponents(true);
+	cdbs = cdbcomponent_getCdbComponents();
 
 	for (i = 0; i < cdbs->total_segments; i++)
 	{
@@ -1537,7 +1538,7 @@ getgpsegmentCount(void)
 	int32 numsegments = 1;
 
 	if (Gp_role == GP_ROLE_DISPATCH)
-		numsegments = cdbcomponent_getCdbComponents(true)->total_segments;
+		numsegments = cdbcomponent_getCdbComponents()->total_segments;
 	else if (Gp_role == GP_ROLE_EXECUTE)
 		numsegments = numsegmentsFromQD;
 	/*
@@ -1552,7 +1553,7 @@ getgpsegmentCount(void)
 			 IsBinaryUpgrade &&
 			 IS_QUERY_DISPATCHER())
 	{
-		numsegments = cdbcomponent_getCdbComponents(true)->total_segments;
+		numsegments = cdbcomponent_getCdbComponents()->total_segments;
 	}
 
 	return numsegments;
