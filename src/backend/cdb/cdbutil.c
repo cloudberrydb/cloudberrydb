@@ -1155,7 +1155,8 @@ getAddressesForDBid(CdbComponentDatabaseInfo *c, int elevel)
 	memset(c->hostaddrs, 0, COMPONENT_DBS_MAX_ADDRS * sizeof(char *));
 
 #ifdef FAULT_INJECTOR
-	if (SIMPLE_FAULT_INJECTOR(GetDnsCachedAddress) == FaultInjectorTypeSkip)
+	if (am_ftsprobe &&
+		SIMPLE_FAULT_INJECTOR(GetDnsCachedAddress) == FaultInjectorTypeSkip)
 	{
 		/* inject a dns error for primary of segment 0 */
 		if (c->segindex == 0 &&
