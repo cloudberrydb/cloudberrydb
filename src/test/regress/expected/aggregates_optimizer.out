@@ -374,7 +374,7 @@ select
   (select max((select i.unique2 from tenk1 i where i.unique1 = o.unique1)))
 from tenk1 o;
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  Query-to-DXL Translation: Aggregate functions with outer references entry found due to incorrect normalization of query
+DETAIL:  Query-to-DXL Translation: No attribute entry found due to incorrect normalization of query
  max  
 ------
  9999
@@ -1431,7 +1431,7 @@ select (select count(*) filter (where outer_c <> 0)
         from (values (1)) t0(inner_c))
 from (values (2),(3)) t1(outer_c); -- outer query is aggregation query
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  Query-to-DXL Translation: Aggregate functions with outer references entry found due to incorrect normalization of query
+DETAIL:  Feature not supported: Aggregate functions with FILTER
  count 
 -------
      2
@@ -1453,7 +1453,7 @@ select
      filter (where o.unique1 < 10))
 from tenk1 o;					-- outer query is aggregation query
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  Query-to-DXL Translation: Aggregate functions with outer references entry found due to incorrect normalization of query
+DETAIL:  Query-to-DXL Translation: No attribute entry found due to incorrect normalization of query
  max  
 ------
  9998
@@ -1903,7 +1903,7 @@ select (select count(*) filter (where outer_c <> 0)
         from (values (1)) t0(inner_c))
 from (values (2),(3)) t1(outer_c); -- outer query is aggregation query
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  Query-to-DXL Translation: Aggregate functions with outer references entry found due to incorrect normalization of query
+DETAIL:  Feature not supported: Aggregate functions with FILTER
  count 
 -------
      2
@@ -1925,7 +1925,7 @@ select
      filter (where o.unique1 < 10))
 from tenk1 o;					-- outer query is aggregation query
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  Query-to-DXL Translation: Aggregate functions with outer references entry found due to incorrect normalization of query
+DETAIL:  Query-to-DXL Translation: No attribute entry found due to incorrect normalization of query
  max  
 ------
  9998
