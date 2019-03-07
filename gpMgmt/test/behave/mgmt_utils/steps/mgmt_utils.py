@@ -647,6 +647,14 @@ def impl(context):
     temp_data_dir = tempfile.mkdtemp() + "/standby_datadir"
     run_gpinitstandby(context, hostname, os.environ.get("PGPORT"), temp_data_dir)
 
+@when('the user initializes a standby on the same host as master and the same data directory')
+def impl(context):
+    hostname = get_master_hostname('postgres')[0][0]
+    master_port = int(os.environ.get("PGPORT"))
+
+    cmd = "gpinitstandby -a -s %s -P %d" % (hostname, master_port + 1)
+    run_gpcommand(context, cmd)
+
 @when('the user runs gpinitstandby with options "{options}"')
 @then('the user runs gpinitstandby with options "{options}"')
 @given('the user runs gpinitstandby with options "{options}"')
