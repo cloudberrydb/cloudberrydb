@@ -637,7 +637,7 @@ def run_gpinitstandby(context, hostname, port, standby_data_dir, options='', rem
         # We do not set port nor data dir here to test gpinitstandby's ability to autogather that info
         cmd = "gpinitstandby -a -s %s" % hostname
     else:
-        cmd = "gpinitstandby -a -s %s -P %s -S %s" % (hostname, port, standby_data_dir)
+        cmd = "gpinitstandby -a -s %s -P %s -F %s" % (hostname, port, standby_data_dir)
 
     run_gpcommand(context, cmd + ' ' + options)
 
@@ -646,14 +646,6 @@ def impl(context):
     hostname = get_master_hostname('postgres')[0][0]
     temp_data_dir = tempfile.mkdtemp() + "/standby_datadir"
     run_gpinitstandby(context, hostname, os.environ.get("PGPORT"), temp_data_dir)
-
-@when('the user initializes a standby on the same host as master and the same data directory')
-def impl(context):
-    hostname = get_master_hostname('postgres')[0][0]
-    master_port = int(os.environ.get("PGPORT"))
-
-    cmd = "gpinitstandby -a -s %s -P %d" % (hostname, master_port + 1)
-    run_gpcommand(context, cmd)
 
 @when('the user runs gpinitstandby with options "{options}"')
 @then('the user runs gpinitstandby with options "{options}"')
@@ -729,7 +721,7 @@ def impl(context):
         # We do not set port nor data dir here to test gpinitstandby's ability to autogather that info
         cmd = "gpinitstandby -a -s %s" % context.master_hostname
     else:
-        cmd = "gpinitstandby -a -s %s -P %s -S %s" % (context.master_hostname, context.master_port, master_data_dir)
+        cmd = "gpinitstandby -a -s %s -P %s -F %s" % (context.master_hostname, context.master_port, master_data_dir)
 
     context.execute_steps(u'''Then the user runs command "%s" from standby master''' % cmd)
 
@@ -1927,12 +1919,14 @@ def impl(context, gppkg_name):
 def impl(context, gppkg_name):
     _remove_gppkg_from_host(context, gppkg_name, is_master_host=True)
 
-@then('gpAdminLogs directory has no "{expected_file}" files')
-def impl(context, expected_file):
+
+@given('gpAdminLogs directory has no "{prefix}" files')
+def impl(context, prefix):
     log_dir = _get_gpAdminLogs_directory()
-    files_found = glob.glob('%s/%s' % (log_dir, expected_file))
-    if files_found:
-        raise Exception("expected no %s files in %s, but found %s" % (expected_file, log_dir, files_found))
+    items = glob.glob('%s/%s_*.log' % (log_dir, prefix))
+    for item in items:
+        os.remove(item)
+
 
 @given('"{filepath}" is copied to the install directory')
 def impl(context, filepath):
