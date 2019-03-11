@@ -32,6 +32,9 @@
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.65.1.0" Name="int4eq" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
         <dxl:EqualityOp Mdid="0.91.1.0"/>
         <dxl:InequalityOp Mdid="0.85.1.0"/>
@@ -82,6 +85,10 @@
         <dxl:Commutator Mdid="0.412.1.0"/>
         <dxl:InverseOp Mdid="0.414.1.0"/>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBAgg Mdid="0.2147.1.0" Name="count" IsSplittable="true">
+        <dxl:ResultType Mdid="0.20.1.0"/>
+        <dxl:IntermediateResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBAgg>
       <dxl:GPDBAgg Mdid="0.2803.1.0" Name="count" IsSplittable="true">
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
@@ -148,7 +155,7 @@
         </dxl:LogicalConstTable>
       </dxl:LogicalProject>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1254">
+    <dxl:Plan Id="0" SpaceSize="1650">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="18.062500" Rows="1.000000" Width="1"/>
@@ -165,8 +172,8 @@
                   <dxl:Cost StartupCost="0" TotalCost="6.058594" Rows="1.000000" Width="5"/>
                 </dxl:Properties>
                 <dxl:ProjList>
-                  <dxl:ProjElem ColId="9" Alias="ColRef_0009">
-                    <dxl:Ident ColId="9" ColName="ColRef_0009" TypeMdid="0.16.1.0"/>
+                  <dxl:ProjElem ColId="10" Alias="ColRef_0010">
+                    <dxl:Ident ColId="10" ColName="ColRef_0010" TypeMdid="0.16.1.0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
@@ -176,7 +183,7 @@
                     <dxl:Cost StartupCost="0" TotalCost="6.058594" Rows="1.000000" Width="5"/>
                   </dxl:Properties>
                   <dxl:ProjList>
-                    <dxl:ProjElem ColId="9" Alias="ColRef_0009">
+                    <dxl:ProjElem ColId="10" Alias="ColRef_0010">
                       <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="2" Alias="?column?">

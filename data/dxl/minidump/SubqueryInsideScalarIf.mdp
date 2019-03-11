@@ -578,6 +578,9 @@
           <dxl:OpClass Mdid="0.7027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.150.1.0" Name="int4ge" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
         <dxl:EqualityOp Mdid="0.91.1.0"/>
         <dxl:InequalityOp Mdid="0.85.1.0"/>
@@ -1126,6 +1129,10 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
+      <dxl:GPDBAgg Mdid="0.2147.1.0" Name="count" IsSplittable="true">
+        <dxl:ResultType Mdid="0.20.1.0"/>
+        <dxl:IntermediateResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBAgg>
       <dxl:GPDBAgg Mdid="0.2108.1.0" Name="sum" IsSplittable="true" HashAggCapable="true">
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
@@ -2455,7 +2462,7 @@
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1056">
+    <dxl:Plan Id="0" SpaceSize="1722">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1356710918.164982" Rows="10002.000000" Width="12"/>
@@ -2506,15 +2513,15 @@
                       <dxl:Cost StartupCost="0" TotalCost="1324049.882899" Rows="3.000000" Width="1"/>
                     </dxl:Properties>
                     <dxl:ProjList>
-                      <dxl:ProjElem ColId="38" Alias="ColRef_0038">
+                      <dxl:ProjElem ColId="39" Alias="ColRef_0039">
                         <dxl:If TypeMdid="0.16.1.0">
                           <dxl:IsNull>
-                            <dxl:Ident ColId="36" ColName="ColRef_0036" TypeMdid="0.20.1.0"/>
+                            <dxl:Ident ColId="37" ColName="ColRef_0037" TypeMdid="0.20.1.0"/>
                           </dxl:IsNull>
                           <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                           <dxl:If TypeMdid="0.16.1.0">
                             <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
-                              <dxl:Ident ColId="37" ColName="ColRef_0037" TypeMdid="0.20.1.0"/>
+                              <dxl:Ident ColId="38" ColName="ColRef_0038" TypeMdid="0.20.1.0"/>
                               <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
                             </dxl:Comparison>
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
@@ -2525,7 +2532,7 @@
                               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
                               <dxl:If TypeMdid="0.16.1.0">
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
-                                  <dxl:Ident ColId="36" ColName="ColRef_0036" TypeMdid="0.20.1.0"/>
+                                  <dxl:Ident ColId="37" ColName="ColRef_0037" TypeMdid="0.20.1.0"/>
                                   <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
                                 </dxl:Comparison>
                                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -2544,14 +2551,14 @@
                       </dxl:Properties>
                       <dxl:GroupingColumns/>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="36" Alias="ColRef_0036">
-                          <dxl:AggFunc AggMdid="0.2108.1.0" AggDistinct="false" AggStage="Normal">
-                            <dxl:Ident ColId="34" ColName="ColRef_0034" TypeMdid="0.23.1.0"/>
-                          </dxl:AggFunc>
-                        </dxl:ProjElem>
                         <dxl:ProjElem ColId="37" Alias="ColRef_0037">
                           <dxl:AggFunc AggMdid="0.2108.1.0" AggDistinct="false" AggStage="Normal">
                             <dxl:Ident ColId="35" ColName="ColRef_0035" TypeMdid="0.23.1.0"/>
+                          </dxl:AggFunc>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="38" Alias="ColRef_0038">
+                          <dxl:AggFunc AggMdid="0.2108.1.0" AggDistinct="false" AggStage="Normal">
+                            <dxl:Ident ColId="36" ColName="ColRef_0036" TypeMdid="0.23.1.0"/>
                           </dxl:AggFunc>
                         </dxl:ProjElem>
                       </dxl:ProjList>
@@ -2561,7 +2568,7 @@
                           <dxl:Cost StartupCost="0" TotalCost="1324049.879311" Rows="3003.000000" Width="8"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="34" Alias="ColRef_0034">
+                          <dxl:ProjElem ColId="35" Alias="ColRef_0035">
                             <dxl:If TypeMdid="0.23.1.0">
                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                 <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
@@ -2571,7 +2578,7 @@
                               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
                             </dxl:If>
                           </dxl:ProjElem>
-                          <dxl:ProjElem ColId="35" Alias="ColRef_0035">
+                          <dxl:ProjElem ColId="36" Alias="ColRef_0036">
                             <dxl:If TypeMdid="0.23.1.0">
                               <dxl:IsNull>
                                 <dxl:Ident ColId="12" ColName="c" TypeMdid="0.23.1.0"/>

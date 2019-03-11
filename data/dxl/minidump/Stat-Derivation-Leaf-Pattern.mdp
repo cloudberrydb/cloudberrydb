@@ -352,6 +352,9 @@ AND
           <dxl:OpClass Mdid="0.3031.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.62.1.0" Name="nameeq" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:GPDBScalarOp Mdid="0.2799.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.27.1.0"/>
         <dxl:RightType Mdid="0.27.1.0"/>

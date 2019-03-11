@@ -130,6 +130,10 @@
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.9255103.1.1.6" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:GPDBAgg Mdid="0.2147.1.0" Name="count" IsSplittable="true">
+        <dxl:ResultType Mdid="0.20.1.0"/>
+        <dxl:IntermediateResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBAgg>
       <dxl:GPDBAgg Mdid="0.2108.1.0" Name="sum" IsSplittable="true" HashAggCapable="true">
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
@@ -721,6 +725,9 @@
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.65.1.0" Name="int4eq" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:GPDBAgg Mdid="0.2803.1.0" Name="count" IsSplittable="true" HashAggCapable="true">
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
@@ -1171,7 +1178,7 @@
         </dxl:LogicalGet>
       </dxl:LogicalProject>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1441">
+    <dxl:Plan Id="0" SpaceSize="324625">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="9309.072976" Rows="3000000.000000" Width="32"/>
@@ -1191,21 +1198,21 @@
           </dxl:ProjElem>
           <dxl:ProjElem ColId="9" Alias="case">
             <dxl:If TypeMdid="0.23.1.0">
-              <dxl:Ident ColId="25" ColName="ColRef_0025" TypeMdid="0.16.1.0"/>
+              <dxl:Ident ColId="28" ColName="ColRef_0028" TypeMdid="0.16.1.0"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
             </dxl:If>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="12" Alias="case">
             <dxl:If TypeMdid="0.23.1.0">
-              <dxl:Ident ColId="26" ColName="ColRef_0026" TypeMdid="0.16.1.0"/>
+              <dxl:Ident ColId="29" ColName="ColRef_0029" TypeMdid="0.16.1.0"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
             </dxl:If>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="15" Alias="case">
             <dxl:If TypeMdid="0.23.1.0">
-              <dxl:Ident ColId="27" ColName="ColRef_0027" TypeMdid="0.16.1.0"/>
+              <dxl:Ident ColId="30" ColName="ColRef_0030" TypeMdid="0.16.1.0"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
             </dxl:If>
@@ -1230,14 +1237,14 @@
             <dxl:ProjElem ColId="3" Alias="field4">
               <dxl:Ident ColId="3" ColName="field4" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="25" Alias="ColRef_0025">
-              <dxl:Ident ColId="25" ColName="ColRef_0025" TypeMdid="0.16.1.0"/>
+            <dxl:ProjElem ColId="28" Alias="ColRef_0028">
+              <dxl:Ident ColId="28" ColName="ColRef_0028" TypeMdid="0.16.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="26" Alias="ColRef_0026">
-              <dxl:Ident ColId="26" ColName="ColRef_0026" TypeMdid="0.16.1.0"/>
+            <dxl:ProjElem ColId="29" Alias="ColRef_0029">
+              <dxl:Ident ColId="29" ColName="ColRef_0029" TypeMdid="0.16.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="27" Alias="ColRef_0027">
-              <dxl:Ident ColId="27" ColName="ColRef_0027" TypeMdid="0.16.1.0"/>
+            <dxl:ProjElem ColId="30" Alias="ColRef_0030">
+              <dxl:Ident ColId="30" ColName="ColRef_0030" TypeMdid="0.16.1.0"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
@@ -1259,7 +1266,7 @@
               <dxl:ProjElem ColId="3" Alias="field4">
                 <dxl:Ident ColId="3" ColName="field4" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="25" Alias="ColRef_0025">
+              <dxl:ProjElem ColId="28" Alias="ColRef_0028">
                 <dxl:SubPlan TypeMdid="0.16.1.0" SubPlanType="AnySubPlan">
                   <dxl:TestExpr>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
@@ -1284,8 +1291,8 @@
                         <dxl:Cost StartupCost="0" TotalCost="0.000011" Rows="1.000000" Width="5"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="25" Alias="ColRef_0025">
-                          <dxl:Ident ColId="25" ColName="ColRef_0025" TypeMdid="0.16.1.0"/>
+                        <dxl:ProjElem ColId="28" Alias="ColRef_0028">
+                          <dxl:Ident ColId="28" ColName="ColRef_0028" TypeMdid="0.16.1.0"/>
                         </dxl:ProjElem>
                         <dxl:ProjElem ColId="8" Alias="a">
                           <dxl:Ident ColId="8" ColName="a" TypeMdid="0.23.1.0"/>
@@ -1297,7 +1304,7 @@
                           <dxl:Cost StartupCost="0" TotalCost="0.000006" Rows="1.000000" Width="5"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="25" Alias="ColRef_0025">
+                          <dxl:ProjElem ColId="28" Alias="ColRef_0028">
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="8" Alias="a">
@@ -1323,7 +1330,7 @@
                   </dxl:Result>
                 </dxl:SubPlan>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="26" Alias="ColRef_0026">
+              <dxl:ProjElem ColId="29" Alias="ColRef_0029">
                 <dxl:SubPlan TypeMdid="0.16.1.0" SubPlanType="AnySubPlan">
                   <dxl:TestExpr>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
@@ -1348,8 +1355,8 @@
                         <dxl:Cost StartupCost="0" TotalCost="0.000011" Rows="1.000000" Width="5"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="26" Alias="ColRef_0026">
-                          <dxl:Ident ColId="26" ColName="ColRef_0026" TypeMdid="0.16.1.0"/>
+                        <dxl:ProjElem ColId="29" Alias="ColRef_0029">
+                          <dxl:Ident ColId="29" ColName="ColRef_0029" TypeMdid="0.16.1.0"/>
                         </dxl:ProjElem>
                         <dxl:ProjElem ColId="11" Alias="b">
                           <dxl:Ident ColId="11" ColName="b" TypeMdid="0.23.1.0"/>
@@ -1361,7 +1368,7 @@
                           <dxl:Cost StartupCost="0" TotalCost="0.000006" Rows="1.000000" Width="5"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="26" Alias="ColRef_0026">
+                          <dxl:ProjElem ColId="29" Alias="ColRef_0029">
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="11" Alias="b">
@@ -1387,7 +1394,7 @@
                   </dxl:Result>
                 </dxl:SubPlan>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="27" Alias="ColRef_0027">
+              <dxl:ProjElem ColId="30" Alias="ColRef_0030">
                 <dxl:SubPlan TypeMdid="0.16.1.0" SubPlanType="AnySubPlan">
                   <dxl:TestExpr>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
@@ -1412,8 +1419,8 @@
                         <dxl:Cost StartupCost="0" TotalCost="0.000011" Rows="1.000000" Width="5"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="27" Alias="ColRef_0027">
-                          <dxl:Ident ColId="27" ColName="ColRef_0027" TypeMdid="0.16.1.0"/>
+                        <dxl:ProjElem ColId="30" Alias="ColRef_0030">
+                          <dxl:Ident ColId="30" ColName="ColRef_0030" TypeMdid="0.16.1.0"/>
                         </dxl:ProjElem>
                         <dxl:ProjElem ColId="14" Alias="c">
                           <dxl:Ident ColId="14" ColName="c" TypeMdid="0.23.1.0"/>
@@ -1425,7 +1432,7 @@
                           <dxl:Cost StartupCost="0" TotalCost="0.000006" Rows="1.000000" Width="5"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="27" Alias="ColRef_0027">
+                          <dxl:ProjElem ColId="30" Alias="ColRef_0030">
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="14" Alias="c">

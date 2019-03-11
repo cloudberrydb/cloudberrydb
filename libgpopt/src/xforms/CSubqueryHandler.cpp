@@ -545,8 +545,8 @@ CSubqueryHandler::FGenerateCorrelatedApplyForScalarSubquery
 //			SELECT											SELECT
 //			/		|									/			|
 //			R		=			==>				INNER-APPLY			=
-//			/		|							/		|		/	|
-//			a		GrpBy						R		GrpBy	a	 x
+//				/	|							/		|		/	|
+//				a	GrpBy						R		GrpBy	a	 x
 //					/		|							/	|
 //					S	x:=sum(b)						S	x:=sum(b)
 //
@@ -584,7 +584,7 @@ CSubqueryHandler::FRemoveScalarSubqueryInternal
 	BOOL fSuccess = true;
 	if (psd->m_fValueSubquery)
 	{
-		fSuccess = FCreateOuterApply(mp, pexprOuter, pexprInner, pexprSubquery, psd->m_fHasOuterRefs, ppexprNewOuter, ppexprResidualScalar);
+		fSuccess = FCreateOuterApply(mp, pexprOuter, pexprInner, pexprSubquery, NULL /* pexprPredicate */, psd->m_fHasOuterRefs, ppexprNewOuter, ppexprResidualScalar, false /* not null opt for quant*/);
 		if (!fSuccess)
 		{
 			pexprInner->Release();
@@ -608,8 +608,16 @@ CSubqueryHandler::FRemoveScalarSubqueryInternal
 //	@doc:
 //		Helper for creating an inner select expression when creating
 //		outer apply;
-//		we create a disjunctive predicate to handle null values from
-//		inner expression
+//		create a select node with a <pexprPredicate> IS NOT FALSE
+//		predicate to allow rows where the comparision evaluates to
+//		true or NULL.
+//		We apply one optimization: If we are dealing with a not nullable
+//		column on the inner table and if the comparison operator is "very
+//		strict" (is strict and never returns NULL on non-NULL inputs), then
+//		we can use a regular comparison. The only way such a comparison can
+//		evaluate to NULL is for the outer column to be NULL.
+//		If we use this optimization, then we need to add another condition
+//		that handles the outer column in CSubqueryHandler::PexprScalarIf.
 //
 //---------------------------------------------------------------------------
 CExpression *
@@ -618,21 +626,40 @@ CSubqueryHandler::PexprInnerSelect
 	IMemoryPool *mp,
 	const CColRef *pcrInner,
 	CExpression *pexprInner,
-	CExpression *pexprPredicate
+	CExpression *pexprPredicate,
+	BOOL *useNotNullableInnerOpt
 	)
 {
-	GPOS_ASSERT(!CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsNotNull()->FMember(pcrInner) &&
-			"subquery's column is not nullable");
+	CExpression *predToUse = NULL;
+	CScalarCmp *pscalarCmp = CScalarCmp::PopConvert(pexprPredicate->Pop());
+	BOOL innerIsNullable = !CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsNotNull()->FMember(pcrInner);
 
-	CExpression *pexprIsNull = CUtils::PexprIsNull(mp, CUtils::PexprScalarIdent(mp, pcrInner));
-	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	GPOS_ASSERT(NULL != pscalarCmp);
+
+	*useNotNullableInnerOpt = false;
 	pexprPredicate->AddRef();
-	pdrgpexpr->Append(pexprPredicate);
-	pdrgpexpr->Append(pexprIsNull);
-	CExpression *pexprDisj = CPredicateUtils::PexprDisjunction(mp, pdrgpexpr);
+
+	if (innerIsNullable ||
+		!CPredicateUtils::FBuiltInComparisonIsVeryStrict(pscalarCmp->MdIdOp()))
+	{
+		predToUse =
+				GPOS_NEW(mp) CExpression
+					(
+					 mp,
+					 GPOS_NEW(mp) CScalarBooleanTest (mp,
+													  CScalarBooleanTest::EbtIsNotFalse),
+					 pexprPredicate
+					);
+	}
+	else
+	{
+		predToUse = pexprPredicate;
+		*useNotNullableInnerOpt = true;
+	}
+
 	pexprInner->AddRef();
 
-	return CUtils::PexprLogicalSelect(mp, pexprInner, pexprDisj);
+	return CUtils::PexprLogicalSelect(mp, pexprInner, predToUse);
 }
 
 
@@ -812,7 +839,96 @@ CSubqueryHandler::FCreateGrpCols
 
 	return true;
 }
+//---------------------------------------------------------------------------
+//	@function:
+//		CSubqueryHandler::CreateGroupByNode
+//
+//	@doc:
+//		Given a <child>, a <colref>, an initial list of grouping columns
+//		<colref_array> and a <predicate>, generate the following
+//		CExpression tree:
+//		- For exists subqueries:
+//
+//						GbAgg [<colref_array>, <colref>]
+//						/			|
+//					<child>			<no aggregates>
+//
+//		- For quantified subqueries:
+//
+//						GbAgg [<colref_array>]
+//						/			|
+//					  Proj			 count(<CR1>)
+//					 /	 \			 sum(<CR2>)
+//					/	  |
+//				<child>	  CR2: case when <predicate> is null then 1 else 0 end
+//
+//		For quantified subqueries, return the newly generated colrefs for
+//		the count and sum aggregates.
+//---------------------------------------------------------------------------
+CExpression *
+CSubqueryHandler::CreateGroupByNode
+	(
+	 IMemoryPool *mp,
+	 CExpression *pexprChild,
+	 CColRefArray *colref_array,
+	 BOOL fExistential,
+	 CColRef *colref,
+	 CExpression *pexprPredicate,
+	 CColRef **pcrCount,
+	 CColRef **pcrSum
+	)
+{
+	GPOS_ASSERT(NULL == *pcrCount);
+	GPOS_ASSERT(NULL == *pcrSum);
+	GPOS_ASSERT(NULL != colref);
+	// create project list of group by expression
+	CExpression *pexprPrjList = NULL;
+	CExpression *pexprNewChild = pexprChild;
+	if (fExistential)
+	{
+		// add the new column introduced by project node as a groupby column,
+		// this will be "true" if the subquery returns rows and NULL if it doesn't
+		colref_array->Append(colref);
+		// for existential queries, we don't compute any aggregates
+		pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp));
+	}
+	else
+	{
+		// quantified subqueries -- generate count(*) and sum(null indicator) expressions
+		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
+		CExpression *pexprCount = CUtils::PexprCount(mp, colref, false /* is_distinct */);
+		CScalarAggFunc *popCount = CScalarAggFunc::PopConvert(pexprCount->Pop());
+		const IMDType *pmdtypeCount = md_accessor->RetrieveType(popCount->MdidType());
+		*pcrCount = col_factory->PcrCreate(pmdtypeCount, popCount->TypeModifier());
+		CExpression *pexprPrjElemCount = CUtils::PexprScalarProjectElement(mp, *pcrCount, pexprCount);
+
+		pexprPredicate->AddRef();
+		CExpression *sumExpr = CXformUtils::PexprNullIndicator(mp, pexprPredicate);
+		// now make a project for sumExpr so we get a colref
+		pexprNewChild = CUtils::PexprAddProjection(mp, pexprChild, sumExpr);
+		CExpression *pexprPrjListForSum = (*pexprNewChild)[1];
+		CColRef *colrefForSum = CScalarProjectElement::PopConvert((*pexprPrjListForSum)[0]->Pop())->Pcr();
+		CExpression *pexprSum = CUtils::PexprSum(mp, colrefForSum);
+		CScalarAggFunc *popSum = CScalarAggFunc::PopConvert(pexprSum->Pop());
+		const IMDType *pmdtypeSum = md_accessor->RetrieveType(popSum->MdidType());
+		*pcrSum = col_factory->PcrCreate(pmdtypeSum, popSum->TypeModifier());
+		CExpression *pexprPrjElemSum = CUtils::PexprScalarProjectElement(mp, *pcrSum, pexprSum);
+
+		pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), pexprPrjElemCount, pexprPrjElemSum);
+	}
+
+	CExpression *pexprGb =
+		GPOS_NEW(mp) CExpression
+			(
+			mp,
+			GPOS_NEW(mp) CLogicalGbAgg(mp, colref_array, COperator::EgbaggtypeGlobal /*egbaggtype*/),
+			pexprNewChild,
+			pexprPrjList
+			);
+	return pexprGb;
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -823,11 +939,26 @@ CSubqueryHandler::FCreateGrpCols
 //		subqueries; see below for an example:
 //
 //		For queries similar to
-//			select (select T.i in (select R.i from R)) from T;
+//			select (select T.i <op> ANY|ALL (select R.i from R)) from T;
 //
 //		the expectation is to return for each row in T one of three possible values
-//		{TRUE, FALSE, NULL) based on the semantics of IN subquery.
-//		For example,
+//		{TRUE, FALSE, NULL) based on the semantics of the subquery. This depends on
+//		the comparison result of T.i with all the qualifying rows of R:
+//
+//		set of                                               (see below)
+//		comparison results  ANY subquery  ALL subquery  C3: count  C4: sum
+//		T.i <op> R.i        result        result        aggregate  aggregate
+//		------------------  ------------  ------------  ---------  ---------
+//		{}                     false         true           0        null
+//		{false}                false         false          0        null
+//		{null}                 null          false          n         n
+//		{true}                 true          true           n         0
+//		{null, false}          null          false          n         n
+//		{null, true}           true          null           n        <n
+//		{false, true}          true          false          n         0
+//		{null, false, true}    true          false          n        <n
+//
+//		For example, for an = ANY subquery:
 //			- if T.i=1 and R.i = {1,2,3}, return TRUE
 //			- if T.i=1 and R.i = {2,3}, return FALSE
 //			- if T.i=1 and R.i = {2,3, NULL}, return NULL
@@ -838,30 +969,60 @@ CSubqueryHandler::FCreateGrpCols
 //		optimizer can generate a special plan alternative during subquery decorrelation
 //		that can be simplified as follows:
 //
-//		+-If (c1 > 0)
-//			|    |---{return TRUE}
-//			|    +-- else if (c2  > 0)
-//			|                   |---{return NULL}
-//			|                   +---else {return FALSE}
-//			|
-//			+--Gb[T.i] , c1 = count(*), c2 = count(NULL values in R.i)
-//				+---LOJ_(T.i=R.i  OR  R.i is NULL)
-//					|---T
-//					+---R
+//		+-Select
+//			+--Gb[T.i, T.ctid, T.gp_segment_id], C3 = count(C0), C4 = sum(C1)
+//			|	+---Project
+//			|		|---LOApply
+//			|		|	|---T
+//			|		|	+---Select ((T.i=R.i) IS NOT FALSE)
+//			|		|		+---Project
+//			|		|			|---R
+//			|		|			+--- (C0: constant(true))
+//			|		+---- (C1: case when (T.i=R.i) is null then 1 else 0 end)
+//			+--If (C3 > 0)
+//				|-- if (C3 > C4)
+//				|	 +---{return TRUE}
+//				|	 +---else {return NULL}
+//				+---{return FALSE}
+//
+//		Note: The picture shows the groupby above the LOApply, but the groupby can
+//			  also appear as the inner child of the LOApply
 //
 //		The reasoning behind this alternative is the following:
 //
-//		- LOJ will return T.i values along with their matching R.i values.
-//			The LOJ will also join a T tuple with any R tuple if R.i is NULL
+//		- Meaning of the two aggregate columns, C2, C3:
+//			C3: The number of rows in the subquery that evaluate to NULL or true
+//				(NULL means 0 such rows)
+//			C4: Number of rows in the subquery that evaluate to NULL
+//
+//		- LOApply will return T.i values along with their matching R.i values, along
+//		  with a boolean "true" (C0) that will be turned into a NULL when the subquery
+//		  is empty.
+//		  The LOApply will also join a T tuple with any R tuple if R.i <op> T.i is NULL,
+//		  but it will eliminate all the rows where T.i <op> R.i is FALSE. The table
+//		  above shows that this is ok for ANY subqueries. For ALL subqueries, those
+//		  get transformed into the equivalent of an ANY subquery, and it is also ok
+//		  to eliminate the FALSE rows:
+//
+//			x <op> ALL (SQ)		<==>	NOT(x <inv-op> ANY (SQ))
 //
 //		- The Gb on top of LOJ groups join results based on T.i values, and for each
-//			group, it computes the size of the group  (count(*)), as well as the number
-//			of NULL values in R.i
+//		  group, it computes the size of the group  (count(C0)), as well as the number
+//		  of NULL values in R.i. The count is zero when there is no match for T.i
+//		  in the LOApply.
+//
+//		- The Gb may appear on top of the LOJ or as its right child. If it is on top,
+//		  the grouping columns will include a unique key of the left child and T.i.
+//		  In this case, the count(C0) aggregate will return 0 for an empty result
+//		  set from the subquery, because the outer join returns a NULL for C0.
+//		  If the groupby is the right child of the LOJ, then we only group on T.i
+//		  and the result of count(C0) for an empty subquery result will be a NULL,
+//		  as seen from above the apply.
 //
 //		- After the Gb, the optimizer generates an If operator that checks the values
-//		of the two computed aggregates (c1 and c2) and determines what value
-//		(TRUE/FALSE/NULL) should be generated for each T tuple based on the IN subquery
-//		semantics described above.
+//		  of the two computed aggregates (C3 and C4) and determines what value
+//		  (TRUE/FALSE/NULL) should be generated for each T tuple based on the IN subquery
+//		  semantics described above.
 //
 //
 //---------------------------------------------------------------------------
@@ -872,9 +1033,11 @@ CSubqueryHandler::FCreateOuterApplyForExistOrQuant
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	CExpression *pexprSubquery,
+	CExpression *pexprPredicate,
 	BOOL fOuterRefsUnderInner,
 	CExpression **ppexprNewOuter,
-	CExpression **ppexprResidualScalar
+	CExpression **ppexprResidualScalar,
+	BOOL useNotNullableInnerOpt
 	)
 {
 	BOOL fExistential = CUtils::FExistentialSubquery(pexprSubquery->Pop());
@@ -890,73 +1053,56 @@ CSubqueryHandler::FCreateOuterApplyForExistOrQuant
 	GPOS_ASSERT(0 < colref_array->Size());
 
 	// add a project node on top of inner expression
-	CExpression *pexprPrj = NULL;
-	AddProjectNode(mp, pexprInner, pexprSubquery, &pexprPrj);
-	CExpression *pexprPrjList = (*pexprPrj)[1];
-	CColRef *colref = CScalarProjectElement::PopConvert((*pexprPrjList)[0]->Pop())->Pcr();
+	CExpression *pexprPrjInner = NULL;
 
-	// create project list of group by expression
-	pexprPrjList = NULL;
-	CColRef *pcrBool = colref;
+	AddProjectNode(mp, pexprInner, &pexprPrjInner);
+	CExpression *pexprPrjList = (*pexprPrjInner)[1];
+	CColRef *colref = CScalarProjectElement::PopConvert((*pexprPrjList)[0]->Pop())->Pcr();
+	const CColRef *pcrSubquery = colref;
+
+
+	if (!fExistential)
+	{
+		// for quantified subqueries, we are going to use <outer col> <op> <inner col> for
+		// the actual comparison, but we'll pass just <inner col> to the apply as the inner
+		// colref
+		pcrSubquery = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->Pcr();
+	}
+
 	CColRef *pcrCount = NULL;
 	CColRef *pcrSum = NULL;
-	if (fExistential)
-	{
-		// add the new column introduced by project node
-		colref_array->Append(colref);
-		pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp));
-	}
-	else
-	{
-		// quantified subqueries -- generate count(*) and sum(null indicator) expressions
-		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
-		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-
-		CExpression *pexprCount = CUtils::PexprCountStar(mp);
-		CScalarAggFunc *popCount = CScalarAggFunc::PopConvert(pexprCount->Pop());
-		const IMDType *pmdtypeCount = md_accessor->RetrieveType(popCount->MdidType());
-		pcrCount = col_factory->PcrCreate(pmdtypeCount, popCount->TypeModifier());
-		CExpression *pexprPrjElemCount = CUtils::PexprScalarProjectElement(mp, pcrCount, pexprCount);
-
-		CExpression *pexprSum = CUtils::PexprSum(mp, colref);
-		CScalarAggFunc *popSum = CScalarAggFunc::PopConvert(pexprSum->Pop());
-		const IMDType *pmdtypeSum = md_accessor->RetrieveType(popSum->MdidType());
-		pcrSum = col_factory->PcrCreate(pmdtypeSum, popSum->TypeModifier());
-		CExpression *pexprPrjElemSum = CUtils::PexprScalarProjectElement(mp, pcrSum, pexprSum);
-		pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), pexprPrjElemCount, pexprPrjElemSum);
-	}
 
 	if (fGbOnInner)
 	{
-		CExpression *pexprGb =
-			GPOS_NEW(mp) CExpression
-				(
-				mp,
-				GPOS_NEW(mp) CLogicalGbAgg(mp, colref_array, COperator::EgbaggtypeGlobal /*egbaggtype*/),
-				pexprPrj,
-				pexprPrjList
-				);
+		CExpression *pexprGb = CreateGroupByNode(mp,
+												 pexprPrjInner,	// child on which to create the project
+												 colref_array,	// group by cols
+												 fExistential,
+												 colref,			// "true"
+												 pexprPredicate,	// comparison op for quantified SQ
+												 &pcrCount,		// out: count aggregate colref
+												 &pcrSum);		// out: sum aggregate colref
 
 		// generate an outer apply between outer expression and a group by on inner expression
-		*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftOuterApply>(mp, pexprOuter, pexprGb, colref, COperator::EopScalarSubquery);
+		*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftOuterApply>(mp, pexprOuter, pexprGb, pcrSubquery, COperator::EopScalarSubquery);
 	}
 	else
 	{
 		// generate an outer apply between outer expression and the new project expression
-		CExpression *pexprLeftOuterApply = CUtils::PexprLogicalApply<CLogicalLeftOuterApply>(mp, pexprOuter, pexprPrj, colref, COperator::EopScalarSubquery);
+		CExpression *result = CUtils::PexprLogicalApply<CLogicalLeftOuterApply>(mp, pexprOuter, pexprPrjInner, pcrSubquery, COperator::EopScalarSubquery);
 
-		*ppexprNewOuter =
-			GPOS_NEW(mp) CExpression
-				(
-				mp,
-				GPOS_NEW(mp) CLogicalGbAgg(mp, colref_array, COperator::EgbaggtypeGlobal /*egbaggtype*/),
-				pexprLeftOuterApply,
-				pexprPrjList
-				);
+		*ppexprNewOuter = CreateGroupByNode(mp,
+											result,
+											colref_array,
+											fExistential,
+											colref,
+											pexprPredicate,
+											&pcrCount,
+											&pcrSum);
 	}
 
 	// residual scalar examines introduced columns
-	*ppexprResidualScalar = PexprScalarIf(mp, pcrBool, pcrSum, pcrCount, pexprSubquery);
+	*ppexprResidualScalar = PexprScalarIf(mp, colref, pcrSum, pcrCount, pexprSubquery, useNotNullableInnerOpt);
 
 	return true;
 }
@@ -977,9 +1123,11 @@ CSubqueryHandler::FCreateOuterApply
 	CExpression *pexprOuter,
 	CExpression *pexprInner,
 	CExpression *pexprSubquery,
+	CExpression *pexprPredicate,
 	BOOL fOuterRefsUnderInner,
 	CExpression **ppexprNewOuter,
-	CExpression **ppexprResidualScalar
+	CExpression **ppexprResidualScalar,
+	BOOL useNotNullableInnerOpt
 	)
 {
 	COperator *popSubquery = pexprSubquery->Pop();
@@ -988,7 +1136,7 @@ CSubqueryHandler::FCreateOuterApply
 
 	if (fExistential || fQuantified)
 	{
-		return FCreateOuterApplyForExistOrQuant(mp, pexprOuter, pexprInner, pexprSubquery, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar);
+		return FCreateOuterApplyForExistOrQuant(mp, pexprOuter, pexprInner, pexprSubquery, pexprPredicate, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar, useNotNullableInnerOpt);
 	}
 
 	return FCreateOuterApplyForScalarSubquery(mp, pexprOuter, pexprInner, pexprSubquery, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar);
@@ -1200,10 +1348,11 @@ CSubqueryHandler::FCreateCorrelatedApplyForExistOrQuant
 //		CSubqueryHandler::FRemoveAnySubquery
 //
 //	@doc:
-//		Replace a subquery ANY node with a constant True, and create
-//		a new Apply expression
+//		Replace a subquery ANY node <pexprSubquery> with a new predicate
+//		<*ppexprResidualScalar> and put the relational part of the subquery
+//		on top of an existing relational node <pexprOuter>:
 //
-//		Example:
+//		Example, for filter context:
 //
 //			SELECT									SELECT
 //			/		|								/		|
@@ -1211,9 +1360,12 @@ CSubqueryHandler::FCreateCorrelatedApplyForExistOrQuant
 //				/	|					/		|
 //				R.a	ANY					R		SELECT
 //					/	|						/	 |
-//					S	S.b						S		=
+//					S	S.b						S	  =
 //													/	|
 //													R.a	S.b
+//
+//		For a picture of the tree in a value context, see method
+//		CSubqueryHandler::FCreateOuterApplyForExistOrQuant().
 //
 //---------------------------------------------------------------------------
 BOOL
@@ -1236,6 +1388,8 @@ CSubqueryHandler::FRemoveAnySubquery
 			"Constant subqueries must be unnested during preprocessing");
 #endif // GPOS_DEBUG
 
+	CScalarSubqueryAny *pScalarSubqAny = CScalarSubqueryAny::PopConvert(pexprSubquery->Pop());
+
 	if (m_fEnforceCorrelatedApply)
 	{
 		return FCreateCorrelatedApplyForExistOrQuant(mp, pexprOuter, pexprSubquery, esqctxt, ppexprNewOuter, ppexprResidualScalar);
@@ -1254,20 +1408,40 @@ CSubqueryHandler::FRemoveAnySubquery
 	// generate a select for the quantified predicate
 	pexprInner->AddRef();
 	CExpression *pexprSelect = CUtils::PexprLogicalSelect(mp, pexprResult, pexprPredicate);
-
 	BOOL fSuccess = true;
+	BOOL fUseCorrelated = false;
+	BOOL fUseNotNullableInnerOpt = false;
+
 	if (EsqctxtValue == esqctxt)
 	{
-		if (!CDrvdPropRelational::GetRelationalProperties(pexprResult->PdpDerive())->PcrsNotNull()->FMember(colref))
+		CExpression *pexprNewSelect = PexprInnerSelect(mp, colref, pexprResult, pexprPredicate, &fUseNotNullableInnerOpt);
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+		const IMDScalarOp *pmdOp = md_accessor->RetrieveScOp(pScalarSubqAny->MdIdOp());
+		// function attributes of the comparison operator itself
+		// TODO: Synthesize the function attibutes of general operators, like
+		//       CScalarSubqueryAny/All, CScalarCmp, CScalarOp by providing a
+		//       PfpDerive() method in these classes.
+		//       Once we do that, we can remove the line below and related code.
+		const IMDFunction *pmdFunc = md_accessor->RetrieveFunc(pmdOp->FuncMdId());
+		// function attributes for the children of the subquery
+		CDrvdPropScalar *pdpscalar = CDrvdPropScalar::GetDrvdScalarProps(pexprSubquery->PdpDerive());
+
+		if (IMDFunction::EfsVolatile == pmdFunc->GetFuncStability() ||
+			IMDFunction::EfsVolatile == pdpscalar->Pfp()->Efs())
 		{
-			// if inner column is nullable, we create a disjunction to handle null values
-			CExpression *pexprNewSelect = PexprInnerSelect(mp, colref, pexprResult, pexprPredicate);
-			pexprSelect->Release();
-			pexprSelect = pexprNewSelect;
+			// the non-correlated plan would evaluate the comparison operation twice
+			// per outer row, that is not a good idea when the operation is volatile
+			fUseCorrelated = true;
 		}
 
-		fSuccess = FCreateOuterApply(mp, pexprOuter, pexprSelect, pexprSubquery, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar);
-		if (!fSuccess)
+		pexprSelect->Release();
+		pexprSelect = pexprNewSelect;
+
+		if (!fUseCorrelated)
+		{
+			fSuccess = FCreateOuterApply(mp, pexprOuter, pexprSelect, pexprSubquery, pexprPredicate, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar, fUseNotNullableInnerOpt);
+		}
+		if (!fSuccess || fUseCorrelated)
 		{
 			pexprSelect->Release();
 			fSuccess = FCreateCorrelatedApplyForExistOrQuant(mp, pexprOuter, pexprSubquery, esqctxt, ppexprNewOuter, ppexprResidualScalar);
@@ -1329,24 +1503,27 @@ CSubqueryHandler::PexprIsNotNull
 //		CSubqueryHandler::FRemoveAllSubquery
 //
 //	@doc:
-//		Replace a subquery ALL node with a constant True, and create
-//		a new Apply expression
+//		Replace a subquery ALL node <pexprSubquery> with a new predicate
+//		<*ppexprResidualScalar> and put the relational part of the subquery
+//		on top of an existing relational node <pexprOuter>:
 //
-//		Example:
+//		Example, for filter context:
 //
-//		SELECT									SELECT
+//		 SELECT									SELECT
 //		/		|								/		|
 //		R		<>			==>			LAS-APPLY		true
-//				/	|				 /				|
-//			   R.a	ALL			SELECT				|
+//				/	|				 /			  |
+//			   R.a	ALL			SELECT			  |
 //			  		/	|		/	|				SELECT
 //					S	S.b		R	IS_NOT_NULL		/	|
 //											|		S	IS_NOT_FALSE
-//											R.a				|
-//															=
+//											R.a				  |
+//															  =
 //															/	|
 //															R.a	S.b
 //
+//		For a picture of the tree in a value context, see method
+//		CSubqueryHandler::FCreateOuterApplyForExistOrQuant().
 //
 //---------------------------------------------------------------------------
 BOOL
@@ -1374,6 +1551,7 @@ CSubqueryHandler::FRemoveAllSubquery
 	}
 
 	BOOL fSuccess = true;
+	BOOL fUseCorrelated = false;
 	CExpression *pexprInnerSelect = NULL;
 	CExpression *pexprPredicate = NULL;
 	CExpression *pexprInner = (*pexprSubquery)[0];
@@ -1381,6 +1559,7 @@ CSubqueryHandler::FRemoveAllSubquery
 	const CColRef *colref = CScalarSubqueryAll::PopConvert(pexprSubquery->Pop())->Pcr();
 
 	BOOL fOuterRefsUnderInner = pexprInner->HasOuterRefs();
+	BOOL fUseNotNullOptimization = false;
 	pexprInner->AddRef();
 
 	if (fOuterRefsUnderInner)
@@ -1399,22 +1578,35 @@ CSubqueryHandler::FRemoveAllSubquery
 
 	CExpression *pexprInversePred = CXformUtils::PexprInversePred(mp, pexprSubquery);
 	// generate a select with the inverse predicate as the selection predicate
+	// TODO: Handle the case where pexprInversePred == NULL
 	pexprPredicate = pexprInversePred;
 	pexprInnerSelect = CUtils::PexprLogicalSelect(mp, pexprInner, pexprPredicate);
 
 	if (EsqctxtValue == esqctxt)
 	{
-		const CColRef *colref = CScalarSubqueryAll::PopConvert(pexprSubquery->Pop())->Pcr();
-		if (!CDrvdPropRelational::GetRelationalProperties(pexprInner->PdpDerive())->PcrsNotNull()->FMember(colref))
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+		CScalarCmp *scalarComp = CScalarCmp::PopConvert(pexprPredicate->Pop());
+
+		if (NULL != scalarComp)
 		{
-			// if inner column is nullable, we create a disjunction to handle null values
-			CExpression *pexprNewInnerSelect = PexprInnerSelect(mp, colref, pexprInner, pexprPredicate);
-			pexprInnerSelect->Release();
-			pexprInnerSelect = pexprNewInnerSelect;
+			const IMDScalarOp *pmdOp = md_accessor->RetrieveScOp(scalarComp->MdIdOp());
+			const IMDFunction *pmdFunc = md_accessor->RetrieveFunc(pmdOp->FuncMdId());
+			if (IMDFunction::EfsVolatile == pmdFunc->GetFuncStability())
+				// the non-correlated plan would evaluate the comparison operation twice
+				// per outer row, that is not a good idea when the operation is volatile
+				fUseCorrelated = true;
 		}
 
-		fSuccess = FCreateOuterApply(mp, pexprOuter, pexprInnerSelect, pexprSubquery, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar);
-		if (!fSuccess)
+		CExpression *pexprNewInnerSelect = PexprInnerSelect(mp, colref, pexprInner, pexprPredicate, &fUseNotNullOptimization);
+
+		pexprInnerSelect->Release();
+		pexprInnerSelect = pexprNewInnerSelect;
+
+		if (!fUseCorrelated)
+		{
+			fSuccess = FCreateOuterApply(mp, pexprOuter, pexprInnerSelect, pexprSubquery, pexprPredicate, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar, fUseNotNullOptimization);
+		}
+		if (!fSuccess || fUseCorrelated)
 		{
 			pexprInnerSelect->Release();
 			fSuccess = FCreateCorrelatedApplyForExistOrQuant(mp, pexprOuter, pexprSubquery, esqctxt, ppexprNewOuter, ppexprResidualScalar);
@@ -1440,8 +1632,9 @@ CSubqueryHandler::FRemoveAllSubquery
 //	@doc:
 //		Helper for adding a Project node with a const TRUE on top of
 //		the given expression;
-//		this is needed as part of unnesting to outer Apply
-//
+//		For EXISTS subqueries, this acts as the select list. For
+//		quantified subqueries, this is used as the argument of the
+//		count aggregate to count the number of rows in the subquery.
 //
 //---------------------------------------------------------------------------
 void
@@ -1449,28 +1642,15 @@ CSubqueryHandler::AddProjectNode
 	(
 	IMemoryPool *mp,
 	CExpression *pexpr,
-	CExpression *pexprSubquery,
 	CExpression **ppexprResult
 	)
 {
 	GPOS_ASSERT(NULL != ppexprResult);
 
-	GPOS_ASSERT(CUtils::FExistentialSubquery(pexprSubquery->Pop()) ||
-			CUtils::FQuantifiedSubquery(pexprSubquery->Pop()));
-
-	CExpression *pexprProjected = NULL;
-	if (CUtils::FExistentialSubquery(pexprSubquery->Pop()))
-	{
-		pexprProjected = CUtils::PexprScalarConstBool(mp, true /*value*/);
-	}
-	else
-	{
-		// quantified subquery -- generate a NULL indicator for inner column
-		const CColRef *pcrInner = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->Pcr();
-		pexprProjected = CXformUtils::PexprNullIndicator(mp, CUtils::PexprScalarIdent(mp, pcrInner));
-	}
+	CExpression *pexprProjected = CUtils::PexprScalarConstBool(mp, true /*value*/);
 
 	*ppexprResult = CUtils::PexprAddProjection(mp, pexpr, pexprProjected);
+
 }
 
 
@@ -1490,7 +1670,8 @@ CSubqueryHandler::PexprScalarIf
 	CColRef *pcrBool,
 	CColRef *pcrSum,
 	CColRef *pcrCount,
-	CExpression *pexprSubquery
+	CExpression *pexprSubquery,
+	BOOL useNotNullableInnerOpt
 	)
 {
 	COperator *popSubquery = pexprSubquery->Pop();
@@ -1503,6 +1684,7 @@ CSubqueryHandler::PexprScalarIf
 	GPOS_ASSERT(fExistential || fQuantified);
 	GPOS_ASSERT_IMP(fExistential, NULL != pcrBool);
 	GPOS_ASSERT_IMP(fQuantified, NULL != pcrSum && NULL != pcrCount);
+	GPOS_ASSERT_IMP(useNotNullableInnerOpt, !fExistential);
 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	const IMDTypeBool *pmdtypebool = md_accessor->PtMDType<IMDTypeBool>();
@@ -1529,14 +1711,26 @@ CSubqueryHandler::PexprScalarIf
 	}
 
 	// quantified subquery
+
+	// sum = count
 	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrSum, pcrCount);
-	CExpression *pexprSumIsNotNull = CUtils::PexprIsNotNull(mp, CUtils::PexprScalarIdent(mp, pcrSum));
-	mdid->AddRef();
+
+	CExpression *pexprRowCountGreaterZero = CUtils::PexprScalarCmp
+		(
+		 mp,
+		 pcrCount,
+		 CUtils::PexprScalarConstInt8(mp, 0),
+		 IMDType::EcmptG
+		);
+
 	mdid->AddRef();
 
-	// if sum(null indicators) = count(*), all joins involved null values from inner side,
-	// in this case, we need to produce a null value in the join result,
-	// otherwise we examine nullness of sum to see if a full join result was produced by outer join
+	// If sum(null indicators) = count(*), that means that the subquery comparison op returned some
+	// NULL values and maybe some "false" values, but no "true" values. In that case, the subquery
+	// evaluates to NULL. Otherwise, the count must be greater than sum(null indicators). Since we
+	// are eliminating "false" values before we reach the groupby, that means that some of the rows
+	// in the subquery evaluated to "true" in the comparison op. That means the subquery evaluates
+	// to "value".
 
 	CExpression *pexprScalarIf =
 		GPOS_NEW(mp) CExpression
@@ -1545,28 +1739,44 @@ CSubqueryHandler::PexprScalarIf
 			GPOS_NEW(mp) CScalarIf(mp, mdid),
 			pexprEquality,
 			CUtils::PexprScalarConstBool(mp, false /*value*/, true /*is_null*/),
-			GPOS_NEW(mp) CExpression
-				(
-				mp,
-				GPOS_NEW(mp) CScalarIf(mp, mdid),
-				pexprSumIsNotNull,
-				CUtils::PexprScalarConstBool(mp, value),
-				CUtils::PexprScalarConstBool(mp, !value)
-				)
+			CUtils::PexprScalarConstBool(mp, value)
 			);
 
-	// add an outer ScalarIf to check nullness of outer value
-	CExpression *pexprScalar = (*pexprSubquery)[1];
-	pexprScalar->AddRef();
+	// If count(row indicator) = 0, or count(row indicator) is NULL that means that the subquery
+	// returned no rows (except maybe some rows that evaluated to "false"). The subquery evaluates
+	// to "!value".
+	// Otherwise, the result is determined by the expression in pexprScalarIf that we built above.
+	// create the outer if: if (count(...) > 0) then <inner if> else <!value>
+
 	mdid->AddRef();
-	return GPOS_NEW(mp) CExpression
+	CExpression *result = GPOS_NEW(mp) CExpression
 					(
 					mp,
 					GPOS_NEW(mp) CScalarIf(mp, mdid),
-					CUtils::PexprIsNotNull(mp, pexprScalar),
+					pexprRowCountGreaterZero,
 					pexprScalarIf,
-					CUtils::PexprScalarConstBool(mp, false /*value*/, true /*is_null*/)
+					CUtils::PexprScalarConstBool(mp, !value)
 					);
+
+	if (useNotNullableInnerOpt)
+	{
+		// add another case/if statement that returns NULL if the outer column is null,
+		// we do this if the inner column is not nullable and if we use a well-known
+		// comparison operator
+		CExpression *pexprScalar = (*pexprSubquery)[1];
+		pexprScalar->AddRef();
+		mdid->AddRef();
+		result = GPOS_NEW(mp) CExpression
+					(
+					 mp,
+					 GPOS_NEW(mp) CScalarIf(mp, mdid),
+					 CUtils::PexprIsNull(mp, pexprScalar),
+					 CUtils::PexprScalarConstBool(mp, false /*value*/, true /*is_null*/),
+					 result
+					);
+	}
+
+	return result;
 
 }
 
@@ -1648,7 +1858,7 @@ CSubqueryHandler::FRemoveExistentialSubquery
 	BOOL fSuccess = true;
 	if (EsqctxtValue == esqctxt)
 	{
-		fSuccess = FCreateOuterApply(mp, pexprOuter, pexprInner, pexprSubquery, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar);
+		fSuccess = FCreateOuterApply(mp, pexprOuter, pexprInner, pexprSubquery, NULL /* pexprPredicate */, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar, false);
 		if (!fSuccess)
 		{
 			pexprInner->Release();
@@ -1817,7 +2027,7 @@ CSubqueryHandler::FRecursiveHandler
 		// Note that conjunction is special cased here. Multiple non-scalar subqueries
 		// will produce nested Apply expressions which are implicitly AND-ed. Thus,
 		// unlike disjuctions or negations, it is not neccesary to use the Value
-		// context for disjuctions.  This enables us to generate optimal plans with
+		// context for disjunctions.  This enables us to generate optimal plans with
 		// nested joins for queries like:
 		// SELECT * FROM t3 WHERE EXISTS(SELECT c FROM t2) AND NOT EXISTS (SELECT c from t3);
 		//

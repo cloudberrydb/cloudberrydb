@@ -1168,7 +1168,17 @@ CNormalizer::PexprPullUpAndCombineProjects
 		CUtils::AddRefAppend(pdrgpexprPrElPullUp, pexprPrLOld->PdrgPexpr());
 		pdrgpexprChildren->Release();
 		CExpression *pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), pdrgpexprPrElPullUp);
-		GPOS_ASSERT(CDrvdPropRelational::GetRelationalProperties(pexprRelational->PdpDerive())->PcrsOutput()->ContainsAll(CDrvdPropScalar::GetDrvdScalarProps(pexprPrjList->PdpDerive())->PcrsUsed()));
+
+#ifdef GPOS_DEBUG
+		CDrvdPropRelational *childRelProps = CDrvdPropRelational::GetRelationalProperties(pexprRelational->PdpDerive());
+		CColRefSet *availableCRs = GPOS_NEW(mp) CColRefSet(mp);
+
+		availableCRs->Include(childRelProps->PcrsOutput());
+		availableCRs->Include(childRelProps->PcrsOuter());
+		// check that the new project node has all the values it needs
+		GPOS_ASSERT(availableCRs->ContainsAll(CDrvdPropScalar::GetDrvdScalarProps(pexprPrjList->PdpDerive())->PcrsUsed()));
+		availableCRs->Release();
+#endif
 
 		return GPOS_NEW(mp) CExpression(mp, pop, pexprRelational, pexprPrjList);
 	}

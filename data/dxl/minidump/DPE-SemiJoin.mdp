@@ -809,6 +809,9 @@ Select * from X where X.a < ANY (select a from P);
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.66.1.0" Name="int4lt" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:RelationStatistics Mdid="2.24719017.1.1" Name="x" Rows="11000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.24719017.1.1" Name="x" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,1">
         <dxl:Columns>

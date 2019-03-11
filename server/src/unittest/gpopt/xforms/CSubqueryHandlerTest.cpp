@@ -284,6 +284,10 @@ CSubqueryHandlerTest::EresUnittest_SubqueryWithConstSubqueries()
 	
 	}
 
+	// This test checks for an assert in CSubqueryHandler::FRemoveAnySubquery that
+	// will trigger for the subquery we created above. If we reach here, the test
+	// has failed, since the assert didn't trigger (note that this means that this
+	// test will likely fail in a retail build).
 	return GPOS_FAILED;
 }
 

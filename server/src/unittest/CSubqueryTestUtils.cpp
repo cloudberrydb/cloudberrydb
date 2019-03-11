@@ -1815,30 +1815,33 @@ CSubqueryTestUtils::PexprSubqueryWithDisjunction
 	CTableDescriptor *ptabdescR = CTestUtils::PtabdescCreate(mp, 3 /*num_cols*/, pmdidR, CName(&strNameR));
 
 	CExpression *pexprOuter = CTestUtils::PexprLogicalGet(mp, ptabdescR, &strNameR);
-	CExpression *pexprConstTableGet = CTestUtils::PexprConstTableGet(mp, 3 /* ulElements */);
-
-	// get random columns from inner expression
-	CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprConstTableGet->PdpDerive())->PcrsOutput();
-	const CColRef *pcrInner = pcrs->PcrAny();
-
-	// get random columns from outer expression
-	pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
-	const CColRef *pcrOuter = pcrs->PcrAny();
-
-	const CWStringConst *str = GPOS_NEW(mp) CWStringConst(GPOS_WSZ_LIT("="));
-
-	CExpression *pexprSubquery = GPOS_NEW(mp) CExpression
-									(
-									mp,
-									GPOS_NEW(mp) CScalarSubqueryAny(mp, GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_EQ_OP), str, pcrInner),
-									pexprConstTableGet,
-									CUtils::PexprScalarIdent(mp, pcrOuter)
-									);
-	pexprSubquery->AddRef();
 
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-	pdrgpexpr->Append(pexprSubquery);
-	pdrgpexpr->Append(pexprSubquery);
+
+	for (int i=0; i<2; i++)
+	{
+		CExpression *pexprConstTableGet = CTestUtils::PexprConstTableGet(mp, 3 /* ulElements */);
+		// get random columns from inner expression
+		CColRefSet *pcrs = CDrvdPropRelational::GetRelationalProperties(pexprConstTableGet->PdpDerive())->PcrsOutput();
+		const CColRef *pcrInner = pcrs->PcrAny();
+
+		// get random columns from outer expression
+		pcrs = CDrvdPropRelational::GetRelationalProperties(pexprOuter->PdpDerive())->PcrsOutput();
+		const CColRef *pcrOuter = pcrs->PcrAny();
+
+		const CWStringConst *str = GPOS_NEW(mp) CWStringConst(GPOS_WSZ_LIT("="));
+
+		CExpression *pexprSubquery = GPOS_NEW(mp) CExpression
+										(
+										mp,
+										GPOS_NEW(mp) CScalarSubqueryAny(mp, GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4_EQ_OP), str, pcrInner),
+										pexprConstTableGet,
+										CUtils::PexprScalarIdent(mp, pcrOuter)
+										);
+		pdrgpexpr->Append(pexprSubquery);
+	}
+
+
 
 	// generate a disjunction of the subquery with itself
 	CExpression *pexprBoolOp = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EboolopOr, pdrgpexpr);

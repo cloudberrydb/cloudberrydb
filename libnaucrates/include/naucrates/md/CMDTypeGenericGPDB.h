@@ -19,6 +19,16 @@
 #include "naucrates/md/IMDTypeGeneric.h"
 #include "naucrates/md/CMDIdGPDB.h"
 
+// some metadata ids for types that don't have their specific header files (yet)
+// keep this in sync with Postgres file pg_operator.h
+#define GPDB_TEXT_EQ_OP OID(98)
+#define GPDB_TEXT_NEQ_OP OID(531)
+#define GPDB_TEXT_LT_OP OID(664)
+#define GPDB_TEXT_LEQ_OP OID(665)
+#define GPDB_TEXT_GT_OP OID(666)
+#define GPDB_TEXT_GEQ_OP OID(667)
+
+
 // fwd decl
 namespace gpdxl
 {

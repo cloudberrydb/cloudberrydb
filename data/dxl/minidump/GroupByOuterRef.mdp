@@ -155,6 +155,9 @@ where t.a in (select count(s.i) from s);
         <dxl:Commutator Mdid="0.416.1.0"/>
         <dxl:InverseOp Mdid="0.36.1.0"/>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.852.1.0" Name="int48eq" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.20.1.0"/>
         <dxl:RightType Mdid="0.20.1.0"/>

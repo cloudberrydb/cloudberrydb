@@ -96,6 +96,9 @@
         <dxl:Commutator Mdid="0.518.1.0"/>
         <dxl:InverseOp Mdid="0.96.1.0"/>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.144.1.0" Name="int4ne" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:ColumnStatistics Mdid="1.90115.1.0.0" Name="c2" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.010000" DistinctValues="30024.270000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="88"/>

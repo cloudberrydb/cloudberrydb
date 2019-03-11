@@ -115,6 +115,9 @@
           <dxl:OpClass Mdid="0.7027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBFunc Mdid="0.150.1.0" Name="int4ge" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+	    <dxl:ResultType Mdid="0.16.1.0"/>
+      </dxl:GPDBFunc>
       <dxl:GPDBScalarOp Mdid="0.654.1.0" Name="||" ComparisonType="Other" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.25.1.0"/>
         <dxl:RightType Mdid="0.25.1.0"/>
@@ -239,6 +242,10 @@
           <dxl:OpClass Mdid="0.7028.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
+      <dxl:GPDBAgg Mdid="0.2147.1.0" Name="count" IsSplittable="true">
+        <dxl:ResultType Mdid="0.20.1.0"/>
+        <dxl:IntermediateResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBAgg>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.385.1.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
@@ -378,7 +385,7 @@
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="14">
+    <dxl:Plan Id="0" SpaceSize="23">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1324032.428517" Rows="1.000000" Width="15"/>
@@ -427,15 +434,15 @@
                           <dxl:Cost StartupCost="0" TotalCost="431.000098" Rows="3.000000" Width="1"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="28" Alias="ColRef_0028">
+                          <dxl:ProjElem ColId="29" Alias="ColRef_0029">
                             <dxl:If TypeMdid="0.16.1.0">
                               <dxl:IsNull>
-                                <dxl:Ident ColId="26" ColName="ColRef_0026" TypeMdid="0.20.1.0"/>
+                                <dxl:Ident ColId="27" ColName="ColRef_0027" TypeMdid="0.20.1.0"/>
                               </dxl:IsNull>
                               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                               <dxl:If TypeMdid="0.16.1.0">
                                 <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
-                                  <dxl:Ident ColId="27" ColName="ColRef_0027" TypeMdid="0.20.1.0"/>
+                                  <dxl:Ident ColId="28" ColName="ColRef_0028" TypeMdid="0.20.1.0"/>
                                   <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
                                 </dxl:Comparison>
                                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
@@ -446,7 +453,7 @@
                                   <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
                                   <dxl:If TypeMdid="0.16.1.0">
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
-                                      <dxl:Ident ColId="26" ColName="ColRef_0026" TypeMdid="0.20.1.0"/>
+                                      <dxl:Ident ColId="27" ColName="ColRef_0027" TypeMdid="0.20.1.0"/>
                                       <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
                                     </dxl:Comparison>
                                     <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -465,14 +472,14 @@
                           </dxl:Properties>
                           <dxl:GroupingColumns/>
                           <dxl:ProjList>
-                            <dxl:ProjElem ColId="26" Alias="ColRef_0026">
-                              <dxl:AggFunc AggMdid="0.2108.1.0" AggDistinct="false" AggStage="Normal">
-                                <dxl:Ident ColId="24" ColName="ColRef_0024" TypeMdid="0.23.1.0"/>
-                              </dxl:AggFunc>
-                            </dxl:ProjElem>
                             <dxl:ProjElem ColId="27" Alias="ColRef_0027">
                               <dxl:AggFunc AggMdid="0.2108.1.0" AggDistinct="false" AggStage="Normal">
                                 <dxl:Ident ColId="25" ColName="ColRef_0025" TypeMdid="0.23.1.0"/>
+                              </dxl:AggFunc>
+                            </dxl:ProjElem>
+                            <dxl:ProjElem ColId="28" Alias="ColRef_0028">
+                              <dxl:AggFunc AggMdid="0.2108.1.0" AggDistinct="false" AggStage="Normal">
+                                <dxl:Ident ColId="26" ColName="ColRef_0026" TypeMdid="0.23.1.0"/>
                               </dxl:AggFunc>
                             </dxl:ProjElem>
                           </dxl:ProjList>
@@ -482,7 +489,7 @@
                               <dxl:Cost StartupCost="0" TotalCost="431.000094" Rows="3.000000" Width="8"/>
                             </dxl:Properties>
                             <dxl:ProjList>
-                              <dxl:ProjElem ColId="24" Alias="ColRef_0024">
+                              <dxl:ProjElem ColId="25" Alias="ColRef_0025">
                                 <dxl:If TypeMdid="0.23.1.0">
                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                     <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
@@ -492,7 +499,7 @@
                                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
                                 </dxl:If>
                               </dxl:ProjElem>
-                              <dxl:ProjElem ColId="25" Alias="ColRef_0025">
+                              <dxl:ProjElem ColId="26" Alias="ColRef_0026">
                                 <dxl:If TypeMdid="0.23.1.0">
                                   <dxl:IsNull>
                                     <dxl:Ident ColId="12" ColName="c" TypeMdid="0.23.1.0"/>

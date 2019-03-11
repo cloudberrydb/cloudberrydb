@@ -117,9 +117,22 @@ namespace gpopt
 				(
 				IMemoryPool *mp,
 				CExpression *pexpr,
-				CExpression *pexprSubquery,
 				CExpression **ppexprResult
 				);
+
+			// helper for creating a groupby node above or below the apply
+			static
+			CExpression *CreateGroupByNode
+				(
+				 IMemoryPool *mp,
+				 CExpression *pexprChild,
+				 CColRefArray *colref_array,
+				 BOOL fExistential,
+				 CColRef *colref,
+				 CExpression *pexprPredicate,
+				 CColRef **pcrCount,
+				 CColRef **pcrSum
+				 );
 
 			// helper for creating an inner select expression when creating outer apply
 			static
@@ -128,7 +141,8 @@ namespace gpopt
 				IMemoryPool *mp,
 				const CColRef *pcrInner,
 				CExpression *pexprInner,
-				CExpression *pexprPredicate
+				CExpression *pexprPredicate,
+				BOOL *useNotNullableInnerOpt
 				);
 
 			// helper for creating outer apply expression for scalar subqueries
@@ -165,9 +179,11 @@ namespace gpopt
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression *pexprSubquery,
+				CExpression *pexprPredicate,
 				BOOL fOuterRefsUnderInner,
 				CExpression **ppexprNewOuter,
-				CExpression **ppexprResidualScalar
+				CExpression **ppexprResidualScalar,
+				BOOL useNotNullableInnerOpt
 				);
 
 			// helper for creating outer apply expression
@@ -178,14 +194,24 @@ namespace gpopt
 				CExpression *pexprOuter,
 				CExpression *pexprInner,
 				CExpression *pexprSubquery,
+				CExpression *pexprPredicate,
 				BOOL fOuterRefsUnderInner,
 				CExpression **ppexprNewOuter,
-				CExpression **ppexprResidualScalar
+				CExpression **ppexprResidualScalar,
+				BOOL useNotNullableInnerOpt
 				);
 
 			// helper for creating a scalar if expression used when generating an outer apply
 			static
-			CExpression *PexprScalarIf(IMemoryPool *mp, CColRef *pcrBool, CColRef *pcrSum, CColRef *pcrCount, CExpression *pexprSubquery);
+			CExpression *PexprScalarIf
+				(
+				IMemoryPool *mp,
+				CColRef *pcrBool,
+				CColRef *pcrSum,
+				CColRef *pcrCount,
+				CExpression *pexprSubquery,
+				BOOL useNotNullableInnerOpt
+				);
 
 			// helper for creating a correlated apply expression for existential subquery
 			static

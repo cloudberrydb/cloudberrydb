@@ -795,7 +795,7 @@ CXformUtils::QuantifiedToAgg
 //
 //		Examples:
 //
-//			- For 'b1 in (select b2 from R)', with b2 not-nullable, we produce the following:
+//			- For 'b1 in (select b2 from R)', with b2 not-nullable and is a well-known operator, we produce the following:
 //			* New Subquery: (select count(*) as cc from R where b1=b2))
 //			* New Scalar: cc > 0
 //
@@ -831,14 +831,19 @@ CXformUtils::SubqueryAnyToAgg
 	CExpression *pexprResult = NULL;
 	CSubqueryHandler sh(mp, false /* fEnforceCorrelatedApply */);
 	CExpression *pexprSubqPred = sh.PexprSubqueryPred(pexprInner, pexprSubquery, &pexprResult);
+	CScalarCmp *scalarCmp = CScalarCmp::PopConvert(pexprSubqPred->Pop());
+
+	GPOS_ASSERT(NULL != scalarCmp);
 
 	const CColRef *pcrSubq = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->Pcr();
-	BOOL fUsesNullableCol = CUtils::FUsesNullableCol(mp, pexprSubqPred, pexprResult);
+	BOOL fCanEvaluateToNull = (CUtils::FUsesNullableCol(mp, pexprSubqPred, pexprResult) ||
+							   !CPredicateUtils::FBuiltInComparisonIsVeryStrict(scalarCmp->MdIdOp()));
 
 	CExpression *pexprInnerNew = NULL;
 	pexprInner->AddRef();
-	if (fUsesNullableCol)
+	if (fCanEvaluateToNull)
 	{
+		// TODO: change this to <pexprSubqPred> is not false, get rid of pexprNullIndicator
 		// add a null indicator
 		CExpression *pexprNullIndicator = PexprNullIndicator(mp, CUtils::PexprScalarIdent(mp, pcrSubq));
 		CExpression *pexprPrj = CUtils::PexprAddProjection(mp, pexprResult, pexprNullIndicator);
@@ -853,7 +858,7 @@ CXformUtils::SubqueryAnyToAgg
 	}
 
 	CExpression *pexprSelect = CUtils::PexprLogicalSelect(mp, pexprResult, pexprSubqPred);
-	if (fUsesNullableCol)
+	if (fCanEvaluateToNull)
 	{
 		const CColRef *pcrNullIndicator = CScalarProjectElement::PopConvert((*(*(*pexprSelect)[0])[1])[0]->Pop())->Pcr();
 		pexprInnerNew = CUtils::PexprCountStarAndSum(mp, pcrNullIndicator, pexprSelect);
@@ -894,6 +899,8 @@ CXformUtils::SubqueryAnyToAgg
 	}
 	else
 	{
+		// replace <col1> <op> ANY (select <col2> from SQ) with
+		//         (select count(*) from (select )) > 0
 		pexprInnerNew = CUtils::PexprCountStar(mp, pexprSelect);
 		const CColRef *pcrCount = CScalarProjectElement::PopConvert((*(*pexprInnerNew)[1])[0]->Pop())->Pcr();
 
@@ -1160,6 +1167,7 @@ CXformUtils::PexprInversePred
 //
 //	@doc:
 //		Helper for creating a null indicator
+//		Creates an expression case when <pexpr> is null then 1 else 0 end
 //
 //
 //---------------------------------------------------------------------------
