@@ -360,9 +360,6 @@
                 be much slower than rebuilding the index with the <codeph>CREATE INDEX</codeph>
                 command.</li>
             </ul></p>
-          <p>The server configuration parameter <codeph><xref
-                href="../../ref_guide/config_params/guc-list.xml#gp_expand_method"
-                >gp_expand_method</xref></codeph> controls the redistribution method.</p>
         </section>
         <section>
           <title>Systems with Abundant Free Disk Space</title>

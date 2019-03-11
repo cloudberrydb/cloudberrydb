@@ -106,7 +106,6 @@
             <topicref href="guc-list.xml#gp_enable_segment_copy_checking"/>
             <topicref href="guc-list.xml#gp_enable_sort_distinct"/>
             <topicref href="guc-list.xml#gp_enable_sort_limit"/>
-            <topicref href="guc-list.xml#gp_expand_method"/>
             <topicref href="guc-list.xml#gp_external_enable_exec"/>
             <topicref href="guc-list.xml#gp_external_max_segs"/>
             <topicref href="guc-list.xml#gp_external_enable_filter_pushdown"/>
