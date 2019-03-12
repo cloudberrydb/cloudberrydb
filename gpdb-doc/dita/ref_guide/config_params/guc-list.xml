@@ -3058,15 +3058,11 @@
           otherprops="op-print"> in the <cite>Greenplum Database Administrator Guide</cite></ph>.
         The default is <codeph>off</codeph>, the Global Deadlock Detector is disabled. </p>
       <p>If the Global Deadlock Detector is disabled (the default), Greenplum Database executes
-        these types of concurrent operations serially.</p>
-      <ul id="ul_trv_qqr_qgb">
-        <li>Concurrent update operations on a table distribution key</li>
-        <li>Concurrent update operations where a subplan in a query plan contains a motion
-          operation</li>
-      </ul>
-      <p>If the Global Deadlock Detector is enabled, Greenplum Database returns an error for the
-        concurrent operations if a deadlock is detected.</p>
-      <p>The parameter can be set for a database system, an individual database, or a session.</p>
+        concurrent update and delete operations on a heap table serially.</p>
+      <p>If the Global Deadlock Detector is enabled, concurrent updates are permitted and the Global 
+        Deadlock Detector determines when a deadlock exists, and
+        breaks the deadlock by cancelling one or more backend processes associated with the youngest
+        transaction(s) involved. </p>
       <table id="table_vcm_p3r_qgb">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -3083,7 +3079,7 @@
             <row>
               <entry colname="col1">Boolean</entry>
               <entry colname="col2">off</entry>
-              <entry colname="col3">master<p>session</p><p>restart</p></entry>
+              <entry colname="col3">master<p>system</p><p>restart</p></entry>
             </row>
           </tbody>
         </tgroup>
