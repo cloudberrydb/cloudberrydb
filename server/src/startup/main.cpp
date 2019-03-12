@@ -62,6 +62,7 @@
 #include "unittest/gpopt/base/CConstraintTest.h"
 #include "unittest/gpopt/engine/CEngineTest.h"
 #include "unittest/gpopt/engine/CEnumeratorTest.h"
+#include "unittest/gpopt/engine/CBindingTest.h"
 
 #include "unittest/gpopt/metadata/CColumnDescriptorTest.h"
 #include "unittest/gpopt/metadata/CNameTest.h"
@@ -201,6 +202,7 @@ static gpos::CUnittest rgut[] =
 #if !defined(GPOS_32BIT)
 	GPOS_UNITTEST_STD(CSubqueryHandlerTest),
 #endif  // !defined(GPOS_32BIT)
+	GPOS_UNITTEST_STD(CBindingTest),
 	GPOS_UNITTEST_STD(CEngineTest),
 	GPOS_UNITTEST_STD(CEquivalenceClassesTest),
 	GPOS_UNITTEST_STD(CExpressionTest),

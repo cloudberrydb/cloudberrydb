@@ -167,6 +167,24 @@ CBinding::PexprExtract
 		return GPOS_NEW(mp) CExpression(mp, pgexpr->Pop(), pgexpr);
 	}
 
+	// for a scalar operator, there is always only one group expression in it's
+	// group. scalar operators are required to derive the scalar properties only
+	// and no xforms are applied to them (i.e no PxfsCandidates in scalar op)
+	// specifically which will generate equivalent scalar operators in the same group.
+	// so, if a scalar op been extracted once, there is no need to explore
+	// all the child bindings, as the scalar properites will remain the same.
+	if (NULL != pexprLast && pgexpr->Pgroup()->FScalar())
+	{
+		// there is only 1 group expression in the scalar group
+		GPOS_ASSERT(1 == pgexpr->Pgroup()->UlGExprs());
+
+		// the last operator and the current group expression will be same
+		// for a scalar operator, as there is only one group expression in
+		// the group
+		GPOS_ASSERT(pexprLast->Pop()->Eopid() == pgexpr->Pop()->Eopid());
+		return NULL;
+	}
+
 	CExpressionArray *pdrgpexpr = NULL;
 	ULONG arity = pgexpr->Arity();
 	if (0 == arity && NULL != pexprLast)

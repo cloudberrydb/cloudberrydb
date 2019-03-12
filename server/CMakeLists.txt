@@ -398,6 +398,7 @@ if (GPOS_ARCH_BITS EQUAL 64)
   add_orca_test(CSubqueryHandlerTest)
 endif()
 
+add_orca_test(CBindingTest)
 add_orca_test(CEngineTest)
 add_orca_test(CEquivalenceClassesTest)
 add_orca_test(CExpressionTest)
