@@ -836,7 +836,8 @@ CGroupExpression::Transform
 	IMemoryPool *pmpLocal,
 	CXform *pxform,
 	CXformResult *pxfres,
-	ULONG *pulElapsedTime // output: elapsed time in millisecond
+	ULONG *pulElapsedTime, // output: elapsed time in millisecond
+	ULONG *pulNumberOfBindings
 	)
 {
 	GPOS_ASSERT(NULL != pulElapsedTime);
@@ -884,6 +885,7 @@ CGroupExpression::Transform
 	CExpression *pexpr = binding.PexprExtract(mp, this, pexprPattern , NULL);
 	while (NULL != pexpr)
 	{
+		++(*pulNumberOfBindings);
 		ULONG ulNumResults = pxfres->Pdrgpexpr()->Size();
 		pxform->Transform(pxfctxt, pxfres, pexpr);
 		ulNumResults = pxfres->Pdrgpexpr()->Size() - ulNumResults;

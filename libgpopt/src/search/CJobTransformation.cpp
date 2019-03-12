@@ -152,8 +152,9 @@ CJobTransformation::EevtTransform
 	// insert transformation results to memo
 	CXformResult *pxfres = GPOS_NEW(pmpGlobal) CXformResult(pmpGlobal);
 	ULONG ulElapsedTime = 0;
-	pgexpr->Transform(pmpGlobal, pmpLocal, pxform, pxfres, &ulElapsedTime);
-	psc->Peng()->InsertXformResult(pgexpr->Pgroup(), pxfres, pxform->Exfid(), pgexpr, ulElapsedTime);
+	ULONG ulNumberOfBindings = 0;
+	pgexpr->Transform(pmpGlobal, pmpLocal, pxform, pxfres, &ulElapsedTime, &ulNumberOfBindings);
+	psc->Peng()->InsertXformResult(pgexpr->Pgroup(), pxfres, pxform->Exfid(), pgexpr, ulElapsedTime, ulNumberOfBindings);
 	pxfres->Release();
 
 	return eevCompleted;
