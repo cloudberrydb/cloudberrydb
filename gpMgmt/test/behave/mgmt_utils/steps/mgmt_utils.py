@@ -2173,7 +2173,7 @@ sdw1:sdw1:21502:/data/gpdata/gpexpand/data/mirror/gpseg2:8:2:m"""
     with open(inputfile_name, 'w') as fd:
         fd.write(inputfile_contents)
 
-    gpexpand = Gpexpand(context, working_directory=context.working_directory, database='gptest')
+    gpexpand = Gpexpand(context, working_directory=context.working_directory)
     gpexpand.initialize_segments()
 
 @given('the master pid has been saved')
