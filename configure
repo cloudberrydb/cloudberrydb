@@ -777,6 +777,7 @@ GCOV
 enable_debug
 enable_gpperfmon
 enable_orafce
+enable_debug_extensions
 enable_pxf
 enable_gpfdist
 enable_rpath
@@ -846,6 +847,7 @@ enable_spinlocks
 enable_atomics
 enable_gpfdist
 enable_pxf
+enable_debug_extensions
 enable_orafce
 enable_gpperfmon
 enable_debug
@@ -1533,6 +1535,8 @@ Optional Features:
   --disable-atomics       do not use atomic operations
   --disable-gpfdist       do not use gpfdist
   --disable-pxf           do not build pxf
+  --enable-debug-extensions
+                          include debug extensions in gpcontrib
   --enable-orafce         build with Oracle compatibility functions
   --enable-gpperfmon      build with gpperfmon
   --enable-debug          build with debugging symbols (-g)
@@ -3540,6 +3544,34 @@ if test "${enable_pxf+set}" = set; then :
 
 else
   enable_pxf=yes
+
+fi
+
+
+
+
+#
+# include debug extensions in gpcontrib
+#
+
+
+# Check whether --enable-debug-extensions was given.
+if test "${enable_debug_extensions+set}" = set; then :
+  enableval=$enable_debug_extensions;
+  case $enableval in
+    yes)
+      :
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-debug-extensions option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_debug_extensions=no
 
 fi
 

@@ -854,7 +854,7 @@ jobs:
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: gpdb6-centos6-build
     params:
-      CONFIGURE_FLAGS: {{configure_flags}}
+      CONFIGURE_FLAGS: {{configure_flags_with_extensions}}
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
       BLD_TARGETS: "clients loaders"
@@ -897,7 +897,7 @@ jobs:
     image: gpdb6-centos7-build
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     params:
-      CONFIGURE_FLAGS: {{configure_flags}}
+      CONFIGURE_FLAGS: {{configure_flags_with_extensions}}
       TARGET_OS: centos
       TARGET_OS_VERSION: 7
       BLD_TARGETS: "clients loaders"
@@ -931,7 +931,7 @@ jobs:
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb_sles11.yml
     params:
-      CONFIGURE_FLAGS: {{configure_flags}}
+      CONFIGURE_FLAGS: {{configure_flags_with_extensions}}
       TARGET_OS: sles
       TARGET_OS_VERSION:
       BLD_TARGETS: "clients loaders"

@@ -33,6 +33,7 @@ function build_gpdb() {
         CWD=$(pwd)
         LD_LIBRARY_PATH=${CWD}/depends/build/lib CC=$(which gcc) CXX=$(which g++) ./configure --enable-mapreduce --enable-orafce --with-gssapi --with-perl --with-libxml \
           --with-python \
+          --enable-debug-extensions \
           --with-libraries=${CWD}/depends/build/lib \
           --with-includes=${CWD}/depends/build/include \
           --prefix=${GREENPLUM_INSTALL_DIR} \
