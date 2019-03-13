@@ -3868,7 +3868,7 @@ CopyFrom(CopyState cstate)
 				MemSet(partNulls, true, relnatts * sizeof(bool));
 
 				reconstructTupleValues(map, baseValues, baseNulls, (int) num_phys_attrs,
-									   partValues, partNulls, (int) attr_count);
+									   partValues, partNulls, relnatts);
 				ExecStoreVirtualTuple(slot);
 			}
 			else
