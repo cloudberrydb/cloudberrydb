@@ -16047,7 +16047,8 @@ ATPExecPartAlter(List **wqueue, AlteredTableInfo *tab, Relation *rel,
 	AlterPartitionCmd 	*pc2		   = NULL;
 	bool				 bPartitionCmd = true;	/* true if a "partition" cmd */
 	Relation			 rel2		   = NULL;
-	bool				prepCmd		= false;	/* true if the sub command of ALTER PARTITION is a SPLIT PARTITION */
+	bool				 prepSplit	   = false;	/* true if the sub command of ALTER PARTITION is a SPLIT PARTITION */
+	bool				 prepExchange  = false;	/* true if the sub command of ALTER PARTITION is a SPLIT PARTITION */
 
 	while (1)
 	{
@@ -16072,7 +16073,7 @@ ATPExecPartAlter(List **wqueue, AlteredTableInfo *tab, Relation *rel,
 	{
 		case AT_PartSplit:				/* Split */
 		{
-			prepCmd = true; /* if sub-command is split partition then it will require some preprocessing */
+			prepSplit = true; /* if sub-command is split partition then it will require some preprocessing */
 		}
 		case AT_PartAdd:				/* Add */
 		case AT_PartAddForSplit:		/* Add, as part of a split */
@@ -16092,7 +16093,11 @@ ATPExecPartAlter(List **wqueue, AlteredTableInfo *tab, Relation *rel,
 
 				*/
 		case AT_PartRename:	 			/* Rename */
+				break;
 		case AT_PartExchange:			/* Exchange */
+		{
+			prepExchange = true; /* if sub-command is exchange partition then it will require some preprocessing */
+		}
 		case AT_PartTruncate:			/* Truncate */
 				break;
 
@@ -16135,7 +16140,7 @@ ATPExecPartAlter(List **wqueue, AlteredTableInfo *tab, Relation *rel,
 
 			pc2->partid = (Node *)pid2;
 
-			if (prepCmd) /* Prep the split partition sub-command */
+			if (prepSplit)
 			{
 				PgPartRule			*prule1	= NULL;
 				bool is_at = true;
@@ -16145,6 +16150,15 @@ ATPExecPartAlter(List **wqueue, AlteredTableInfo *tab, Relation *rel,
 					is_at = false;
 
 				prepSplitCmd(*rel, prule1, is_at);
+			}
+			else if (prepExchange)
+			{
+				ATPartitionCheck(atc->subtype, *rel, false, false);
+				if (Gp_role == GP_ROLE_UTILITY)
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("EXCHANGE is not supported in utility mode")));
+				ATPrepExchange(*rel, pc2);
 			}
 		}
 		else /* treat as a table */
