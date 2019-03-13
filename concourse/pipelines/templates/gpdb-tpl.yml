@@ -1025,7 +1025,7 @@ jobs:
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: gpdb6-centos6-build
     params:
-      CONFIGURE_FLAGS: {{configure_flags}}
+      CONFIGURE_FLAGS: {{configure_flags_with_extensions}}
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
       BLD_TARGETS: "clients loaders"
@@ -1379,7 +1379,7 @@ jobs:
     image: ubuntu-gpdb-dev-16
     params:
       MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' installcheck-world
-      CONFIGURE_FLAGS: {{configure_flags}}
+      CONFIGURE_FLAGS: {{configure_flags_with_extensions}}
 
 - name: icw_gporca_conan_ubuntu16
   plan:
