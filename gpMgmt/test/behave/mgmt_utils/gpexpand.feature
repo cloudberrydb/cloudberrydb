@@ -191,6 +191,24 @@ Feature: expand the cluster by adding more segments
         When the user runs gpexpand to redistribute
         Then distribution information from table "public.redistribute" with data in "gptest" is verified against saved data
 
+    @gpexpand_verify_writable_external_redistribution
+    Scenario: Verify policy of writable external table is correctly updated after redistribution 
+        Given a working directory of the test as '/data/gpdata/gpexpand'
+        And the database is killed on hosts "localhost"
+        And a temporary directory under "/data/gpdata/gpexpand/expandedData" to expand into
+        And the database is not running
+        And the cluster is generated with "1" primaries only
+        And database "gptest" exists
+        And the user create a writable external table with name "ext_test"
+        And there are no gpexpand_inputfiles
+        And the cluster is setup for an expansion on hosts "localhost"
+        When the user runs gpexpand interview to add 3 new segment and 0 new host "ignored.host"
+        Then the number of segments have been saved
+        When the user runs gpexpand with the latest gpexpand_inputfile with additional parameters "--silent"
+        Then verify that the cluster has 3 new segments
+        When the user runs gpexpand against database "gptest" to redistribute
+        Then the numsegments of table "ext_test" is 4
+
     @gpexpand_icw_db_concourse
     Scenario: Use a dump of the ICW database for expansion
         Given a working directory of the test as '/data/gpdata/gpexpand'

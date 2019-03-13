@@ -44,6 +44,7 @@
 #include "catalog/pg_compression.h"
 #include "catalog/pg_constraint.h"
 #include "catalog/pg_depend.h"
+#include "catalog/pg_exttable.h"
 #include "catalog/pg_foreign_table.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_inherits_fn.h"
@@ -3640,7 +3641,6 @@ ATVerifyObject(AlterTableStmt *stmt, Relation rel)
 				case AT_AddInherit:
 				case AT_DropInherit:
 				case AT_SetDistributedBy:
-				case AT_ExpandTable:
 				case AT_PartAdd:
 				case AT_PartAddForSplit:
 				case AT_PartAlter:
@@ -3652,7 +3652,7 @@ ATVerifyObject(AlterTableStmt *stmt, Relation rel)
 				case AT_PartTruncate:
 				case AT_PartAddInternal:
 					ereport(ERROR,
-							(errcode(ERRCODE_INVALID_COLUMN_DEFINITION),
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							 errmsg("unsupported ALTER command for external table")));
 					break;
 
@@ -14806,7 +14806,21 @@ ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd)
 			rootCmd->def = (Node*)makeNode(ExpandStmtSpec);
 	}
 
-	ATExecExpandTableCTAS(rootCmd, rel, cmd);
+	if (RelationIsExternal(rel))
+	{
+		ExtTableEntry* ext = GetExtTableEntry(relid);
+		bool           iswritable = ext->iswritable;
+
+		relation_close(rel, NoLock);
+		if (!iswritable)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							errmsg("unsupported ALTER command for external table")));
+	}
+	else
+	{
+		ATExecExpandTableCTAS(rootCmd, rel, cmd);
+	}
 
 	/* Update numsegments to cluster size */
 	newPolicy->numsegments = getgpsegmentCount();

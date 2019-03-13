@@ -150,6 +150,14 @@ def impl(context, dbname, cname):
         del context.named_conns[cname]
     context.named_conns[cname] = dbconn.connect(dbconn.DbURL(dbname=dbname))
 
+@given('the user create a writable external table with name "{tabname}"')
+def impl(conetxt, tabname):
+    dbname = 'gptest'
+    with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
+        sql = ("create writable external table {tabname}(a int) location "
+               "('gpfdist://host.invalid:8000/file') format 'text'").format(tabname=tabname)
+        dbconn.execSQL(conn, sql)
+        conn.commit()
 
 @given('the user executes "{sql}" with named connection "{cname}"')
 def impl(context, cname, sql):
@@ -2191,6 +2199,20 @@ def impl(context):
         return
 
     raise Exception("The master pid has been changed.\nprevious: %s\ncurrent: %s" % (context.master_pid, current_master_pid))
+
+@then('the numsegments of table "{tabname}" is {numsegments}')
+def impl(context, tabname, numsegments):
+    dbname = 'gptest'
+    with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
+        query = "select numsegments from gp_distribution_policy where localoid = '{tabname}'::regclass".format(tabname=tabname)
+        ns = dbconn.execSQLForSingleton(conn, query)
+
+    if ns == int(numsegments):
+        return
+
+    raise Exception("The numsegments of the writable external table {tabname} is {ns} (expected to be {numsegments})".format(tabname=tabname,
+                                                                                                                             ns=str(ns),
+                                                                                                                             numsegments=str(numsegments)))
 
 @given('the number of segments have been saved')
 @then('the number of segments have been saved')
