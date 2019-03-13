@@ -9,6 +9,7 @@ from test.behave_utils.utils import (
     trigger_fts_probe,
     run_gprecoverseg,
     execute_sql,
+    wait_for_unblocked_transactions,
 )
 
 
@@ -88,6 +89,7 @@ def step_impl(context):
 @when(u'a mirror has crashed')
 def step_impl(context):
     run_command(context, "ps aux | grep dbfast_mirror1 | awk '{print $2}' | xargs kill -9")
+    wait_for_unblocked_transactions(context)
 
 
 @when(u'I create a cluster')
@@ -128,6 +130,7 @@ def step_impl(context):
 @given(u'a preferred primary has failed')
 def step_impl(context):
     stop_primary(context, 0)
+    wait_for_unblocked_transactions(context)
 
 
 @when('primary and mirror switch to non-preferred roles')

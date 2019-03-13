@@ -781,3 +781,25 @@ def replace_special_char_env(str):
 
 def escape_string(string, conn):
     return pg.DB(db=conn).escape_string(string)
+
+
+def wait_for_unblocked_transactions(context, num_retries=150):
+    """
+    Tries once a second to successfully commit a transaction to the database
+    running on PGHOST/PGPORT. Raises an Exception after failing <num_retries>
+    times.
+    """
+    attempt = 0
+    while attempt < num_retries:
+        try:
+            with dbconn.connect(dbconn.DbURL()) as conn:
+                # Cursor.execute() will issue an implicit BEGIN for us.
+                conn.cursor().execute('COMMIT')
+                break
+        except Exception as e:
+            attempt += 1
+            pass
+        time.sleep(1)
+
+    if attempt == num_retries:
+        raise Exception('Unable to establish a connection to database !!!')
