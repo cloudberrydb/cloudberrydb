@@ -1766,11 +1766,11 @@ drop table mpp_5397;
 
 -- MPP-4987 -- make sure we can't damage a partitioning configuration
 -- MPP-8405: disallow OIDS on partitioned tables 
-create table rank_damage (i int, j int) with oids partition by range(j) (start(1) end(10)
-every(1));
+create table rank_damage (i int, j int) with oids
+partition by range(j) (start(1) end(5) every(1));
 -- this works
-create table rank_damage (i int, j int)  partition by range(j) (start(1) end(10)
-every(1));
+create table rank_damage (i int, j int)
+partition by range(j) (start(1) end(5) every(1));
 -- should all fail
 alter table rank_damage_1_prt_1 no inherit rank_damage;
 create table rank2_damage(like rank_damage);
