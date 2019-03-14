@@ -309,7 +309,7 @@ begin;
    (slice2)    Executor memory: 66K bytes avg x 2 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 3244K bytes avg x 2 workers, 4270K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Execution time: 9.956 ms
 (26 rows)
 
@@ -341,7 +341,7 @@ begin;
    (slice2)    Executor memory: 66K bytes avg x 2 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 3232K bytes avg x 2 workers, 4258K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Execution time: 3.839 ms
 (26 rows)
 
@@ -413,7 +413,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice3)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
    (slice4)    Executor memory: 129K bytes avg x 3 workers, 129K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 14.189 ms
 (30 rows)
 
@@ -438,7 +438,7 @@ begin;
                      ->  Broadcast Motion 1:2  (slice1; segments: 1)  (cost=0.00..1.04 rows=3 width=22)
                            ->  Seq Scan on d1 b  (cost=0.00..1.00 rows=1 width=22)
  Planning time: 0.915 ms
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
 (9 rows)
 
     update d2 a set c3=b.c3 from d1 b returning *;
@@ -458,7 +458,7 @@ begin;
                ->  Seq Scan on d1 a  (cost=0.00..1.00 rows=1 width=22)
                ->  Seq Scan on d2 b  (cost=0.00..1.00 rows=1 width=22)
  Planning time: 0.799 ms
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
 (7 rows)
 
     update d1 a set c3=b.c3 from d2 b returning *;
@@ -780,7 +780,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4170K bytes avg x 3 workers, 4170K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 6.541 ms
 (13 rows)
 
@@ -796,7 +796,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes avg x 3 workers, 78K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.148 ms
 (11 rows)
 
@@ -812,7 +812,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.205 ms
 (11 rows)
 
@@ -828,7 +828,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.027 ms
 (11 rows)
 
@@ -845,7 +845,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4170K bytes avg x 3 workers, 4170K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.919 ms
 (13 rows)
 
@@ -862,7 +862,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.182 ms
 (14 rows)
 
@@ -878,7 +878,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.165 ms
 (11 rows)
 
@@ -894,7 +894,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.223 ms
 (11 rows)
 
@@ -910,7 +910,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.053 ms
 (11 rows)
 
@@ -926,7 +926,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.028 ms
 (11 rows)
 
@@ -942,7 +942,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.135 ms
 (11 rows)
 
@@ -958,7 +958,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.070 ms
 (11 rows)
 
@@ -975,7 +975,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4170K bytes avg x 3 workers, 4170K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 6.008 ms
 (13 rows)
 
@@ -992,7 +992,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.638 ms
 (14 rows)
 
@@ -1008,7 +1008,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.094 ms
 (11 rows)
 
@@ -1024,7 +1024,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.085 ms
 (11 rows)
 
@@ -1041,7 +1041,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4170K bytes avg x 3 workers, 4170K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.583 ms
 (13 rows)
 
@@ -1058,7 +1058,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4170K bytes avg x 3 workers, 4170K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.447 ms
 (13 rows)
 
@@ -1077,7 +1077,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.039 ms
 (13 rows)
 
@@ -1096,7 +1096,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4170K bytes avg x 3 workers, 4170K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 5.340 ms
 (14 rows)
 
@@ -1112,7 +1112,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.370 ms
 (11 rows)
 
@@ -1128,7 +1128,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.071 ms
 (11 rows)
 
@@ -1146,7 +1146,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.588 ms
 (13 rows)
 
@@ -1165,7 +1165,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 5.159 ms
 (14 rows)
 
@@ -1185,7 +1185,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.018 ms
 (16 rows)
 
@@ -1204,7 +1204,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.289 ms
 (14 rows)
 
@@ -1220,7 +1220,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.036 ms
 (11 rows)
 
@@ -1236,7 +1236,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.005 ms
 (11 rows)
 
@@ -1256,7 +1256,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.589 ms
 (16 rows)
 
@@ -1276,7 +1276,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 2.643 ms
 (16 rows)
 
@@ -1294,7 +1294,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.490 ms
 (13 rows)
 
@@ -1313,7 +1313,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.184 ms
 (14 rows)
 
@@ -1329,7 +1329,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.169 ms
 (11 rows)
 
@@ -1345,7 +1345,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.995 ms
 (11 rows)
 
@@ -1363,7 +1363,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.364 ms
 (13 rows)
 
@@ -1381,7 +1381,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.899 ms
 (13 rows)
 
@@ -1400,7 +1400,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.164 ms
 (13 rows)
 
@@ -1419,7 +1419,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4170K bytes avg x 3 workers, 4170K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.722 ms
 (14 rows)
 
@@ -1439,7 +1439,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.343 ms
 (16 rows)
 
@@ -1458,7 +1458,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.357 ms
 (14 rows)
 
@@ -1476,7 +1476,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.651 ms
 (13 rows)
 
@@ -1495,7 +1495,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.546 ms
 (14 rows)
 
@@ -1511,7 +1511,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.190 ms
 (11 rows)
 
@@ -1527,7 +1527,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.001 ms
 (11 rows)
 
@@ -1543,7 +1543,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.951 ms
 (11 rows)
 
@@ -1559,7 +1559,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.969 ms
 (11 rows)
 
@@ -1575,7 +1575,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.075 ms
 (11 rows)
 
@@ -1591,7 +1591,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.028 ms
 (11 rows)
 
@@ -1609,7 +1609,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.647 ms
 (13 rows)
 
@@ -1628,7 +1628,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.610 ms
 (14 rows)
 
@@ -1648,7 +1648,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.470 ms
 (16 rows)
 
@@ -1668,7 +1668,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.332 ms
 (16 rows)
 
@@ -1686,7 +1686,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.497 ms
 (13 rows)
 
@@ -1704,7 +1704,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.561 ms
 (13 rows)
 
@@ -1727,7 +1727,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 12.201 ms
 (17 rows)
 
@@ -1743,7 +1743,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes avg x 3 workers, 78K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.957 ms
 (11 rows)
 
@@ -1759,7 +1759,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.908 ms
 (11 rows)
 
@@ -1775,7 +1775,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.960 ms
 (11 rows)
 
@@ -1797,7 +1797,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.328 ms
 (17 rows)
 
@@ -1816,7 +1816,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.556 ms
 (14 rows)
 
@@ -1832,7 +1832,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.972 ms
 (11 rows)
 
@@ -1848,7 +1848,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.972 ms
 (11 rows)
 
@@ -1864,7 +1864,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.893 ms
 (11 rows)
 
@@ -1880,7 +1880,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.869 ms
 (11 rows)
 
@@ -1896,7 +1896,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.087 ms
 (11 rows)
 
@@ -1912,7 +1912,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.045 ms
 (11 rows)
 
@@ -1934,7 +1934,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.302 ms
 (17 rows)
 
@@ -1953,7 +1953,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.654 ms
 (14 rows)
 
@@ -1969,7 +1969,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.075 ms
 (11 rows)
 
@@ -1985,7 +1985,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.943 ms
 (11 rows)
 
@@ -2007,7 +2007,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.498 ms
 (17 rows)
 
@@ -2029,7 +2029,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.819 ms
 (17 rows)
 
@@ -2047,7 +2047,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.543 ms
 (13 rows)
 
@@ -2063,7 +2063,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes avg x 3 workers, 78K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.907 ms
 (11 rows)
 
@@ -2079,7 +2079,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.952 ms
 (11 rows)
 
@@ -2095,7 +2095,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.982 ms
 (11 rows)
 
@@ -2112,7 +2112,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.448 ms
 (13 rows)
 
@@ -2129,7 +2129,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.552 ms
 (14 rows)
 
@@ -2149,7 +2149,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.561 ms
 (16 rows)
 
@@ -2169,7 +2169,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 2.434 ms
 (16 rows)
 
@@ -2185,7 +2185,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.985 ms
 (11 rows)
 
@@ -2201,7 +2201,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.906 ms
 (11 rows)
 
@@ -2221,7 +2221,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.536 ms
 (16 rows)
 
@@ -2241,7 +2241,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.429 ms
 (16 rows)
 
@@ -2258,7 +2258,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.601 ms
 (13 rows)
 
@@ -2275,7 +2275,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.023 ms
 (14 rows)
 
@@ -2291,7 +2291,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.015 ms
 (11 rows)
 
@@ -2307,7 +2307,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.979 ms
 (11 rows)
 
@@ -2324,7 +2324,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.549 ms
 (13 rows)
 
@@ -2341,7 +2341,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.448 ms
 (13 rows)
 
@@ -2360,7 +2360,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.737 ms
 (13 rows)
 
@@ -2379,7 +2379,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.268 ms
 (14 rows)
 
@@ -2395,7 +2395,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.996 ms
 (11 rows)
 
@@ -2411,7 +2411,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.024 ms
 (11 rows)
 
@@ -2429,7 +2429,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.685 ms
 (13 rows)
 
@@ -2448,7 +2448,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.813 ms
 (14 rows)
 
@@ -2468,7 +2468,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.531 ms
 (16 rows)
 
@@ -2488,7 +2488,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.583 ms
 (16 rows)
 
@@ -2504,7 +2504,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.013 ms
 (11 rows)
 
@@ -2520,7 +2520,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.973 ms
 (11 rows)
 
@@ -2540,7 +2540,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.479 ms
 (16 rows)
 
@@ -2560,7 +2560,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.539 ms
 (16 rows)
 
@@ -2578,7 +2578,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.531 ms
 (13 rows)
 
@@ -2597,7 +2597,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.228 ms
 (14 rows)
 
@@ -2613,7 +2613,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.921 ms
 (11 rows)
 
@@ -2629,7 +2629,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.033 ms
 (11 rows)
 
@@ -2647,7 +2647,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.668 ms
 (13 rows)
 
@@ -2665,7 +2665,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.610 ms
 (13 rows)
 
@@ -2688,7 +2688,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 5.593 ms
 (17 rows)
 
@@ -2707,7 +2707,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.922 ms
 (14 rows)
 
@@ -2727,7 +2727,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 2.487 ms
 (16 rows)
 
@@ -2746,7 +2746,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.554 ms
 (14 rows)
 
@@ -2768,7 +2768,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 5.554 ms
 (17 rows)
 
@@ -2787,7 +2787,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.969 ms
 (14 rows)
 
@@ -2807,7 +2807,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.870 ms
 (16 rows)
 
@@ -2827,7 +2827,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.182 ms
 (16 rows)
 
@@ -2843,7 +2843,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.074 ms
 (11 rows)
 
@@ -2859,7 +2859,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.981 ms
 (11 rows)
 
@@ -2879,7 +2879,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 2.081 ms
 (16 rows)
 
@@ -2899,7 +2899,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.325 ms
 (16 rows)
 
@@ -2921,7 +2921,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 6.261 ms
 (17 rows)
 
@@ -2940,7 +2940,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.018 ms
 (14 rows)
 
@@ -2960,7 +2960,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 2.591 ms
 (16 rows)
 
@@ -2980,7 +2980,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 2.802 ms
 (16 rows)
 
@@ -3002,7 +3002,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.749 ms
 (17 rows)
 
@@ -3024,7 +3024,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 5.359 ms
 (17 rows)
 
@@ -3047,7 +3047,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.784 ms
 (17 rows)
 
@@ -3063,7 +3063,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes avg x 3 workers, 78K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.954 ms
 (11 rows)
 
@@ -3079,7 +3079,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.063 ms
 (11 rows)
 
@@ -3095,7 +3095,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.968 ms
 (11 rows)
 
@@ -3117,7 +3117,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 6.142 ms
 (17 rows)
 
@@ -3136,7 +3136,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.862 ms
 (14 rows)
 
@@ -3156,7 +3156,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.285 ms
 (16 rows)
 
@@ -3176,7 +3176,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.063 ms
 (16 rows)
 
@@ -3192,7 +3192,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.946 ms
 (11 rows)
 
@@ -3208,7 +3208,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 78K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.883 ms
 (11 rows)
 
@@ -3228,7 +3228,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.353 ms
 (16 rows)
 
@@ -3248,7 +3248,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
    (slice2)    Executor memory: 66K bytes (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 3.353 ms
 (16 rows)
 
@@ -3270,7 +3270,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 5.253 ms
 (17 rows)
 
@@ -3289,7 +3289,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice1)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice2)    Executor memory: 4182K bytes avg x 3 workers, 4182K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.098 ms
 (14 rows)
 
@@ -3305,7 +3305,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 1.022 ms
 (11 rows)
 
@@ -3321,7 +3321,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice0)    Executor memory: 386K bytes.
    (slice1)    Executor memory: 98K bytes avg x 3 workers, 98K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 0.923 ms
 (11 rows)
 
@@ -3343,7 +3343,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 6.083 ms
 (17 rows)
 
@@ -3365,7 +3365,7 @@ select gp_debug_reset_create_table_default_numsegments();
    (slice2)    Executor memory: 66K bytes avg x 3 workers, 66K bytes max (seg0).
    (slice3)    Executor memory: 4174K bytes avg x 3 workers, 4174K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: legacy query optimizer
+ Optimizer: Postgres query optimizer
  Total runtime: 4.955 ms
 (17 rows)
 
