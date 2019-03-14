@@ -1524,11 +1524,16 @@ alter table mpp3621 add partition a9 start ('2007-06-01') end ('2007-07-01');
 
 drop table mpp3621;
 
--- Check for MPP-3679
-create table list_test (a text, b text) partition by list (a) (partition foo
-values ('foo'), partition bar values ('bar'), default partition baz);
-alter table list_test split default partition at ('baz') into (partition bing,
-default partition);
+-- Check for MPP-3679 and MPP-3692
+create table list_test (a text, b text) partition by list (a) (
+  partition foo values ('foo'),
+  partition bar values ('bar'),
+  default partition baz);
+insert into list_test values ('foo', 'blah');
+insert into list_test values ('bar', 'blah');
+insert into list_test values ('baz', 'blah');
+alter table list_test split default partition at ('baz')
+  into (partition bing, default partition);
 drop table list_test;
 
 -- MPP-3816: cannot drop column  which is the subject of partition config

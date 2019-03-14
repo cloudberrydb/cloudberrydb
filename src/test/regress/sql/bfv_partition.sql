@@ -483,14 +483,6 @@ alter table mpp3588 split partition for(1) at (1,2) into (partition f6a, partiti
 alter table mpp3588 split partition for(1) at (1,2) into (partition f7a, partition f7b);
 
 drop table mpp3588;
---  MPP-3692, MPP-3679
-create table mpp3679 (a text, b text) partition by list (a) (partition foo values ('foo'), partition bar values ('bar'), default partition baz); 
-insert into mpp3679 values ('foo', 'blah');
-insert into mpp3679 values ('bar', 'blah');
-insert into mpp3679 values ('baz', 'blah');
-
-alter table mpp3679 split default partition at ('baz') into (partition bing, default partition);
-drop table mpp3679;
 -- MPP-3691, MPP-3681
 create table mpp3681 (id int, date date, amt decimal(10,2)) distributed by (id) partition by range(date) (start (date '2008-01-01') inclusive end ('2008-04-01') exclusive every (interval '1 month')); 
 
