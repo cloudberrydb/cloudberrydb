@@ -76,8 +76,7 @@ ALTER SYSTEM RESET ALL</codeblock>
     </p>
     </section>
     <section id="section8"><title>See Also</title>
-      <p><codeph><xref
-            href="./set.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref
-            href="./show.xml#topic1" type="topic" format="dita"/></codeph></p></section>
+      <p><codeph><xref href="./SET.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref
+            href="./SHOW.xml#topic1" type="topic" format="dita"/></codeph></p></section>
   </body>
 </topic>
