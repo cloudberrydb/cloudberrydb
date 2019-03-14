@@ -276,21 +276,10 @@ SELECT * FROM TIMESTAMP_MONTH_listp WHERE f2 = TO_DATE('2000-01-03', 'YYYY-MM-DD
   1 | Mon Jan 03 00:00:00 2000
 (1 row)
 
--- CLEANUP
--- start_ignore
-DROP TABLE TIMESTAMP_MONTH_listp;
-DROP TABLE TIMESTAMP_MONTH_rangep_STARTEXCL;
-DROP TABLE TIMESTAMP_MONTH_rangep_STARTINCL;
--- end_ignore
 --
 -- Data Engineer can see partition key in psql
 --
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS T26002_T1;
-NOTICE:  table "t26002_t1" does not exist, skipping
-DROP TABLE IF EXISTS T26002_T2;
-NOTICE:  table "t26002_t2" does not exist, skipping
 CREATE TABLE T26002_T1 (empid int, departmentid int, year int, region varchar(20))
 DISTRIBUTED BY (empid)
   PARTITION BY RANGE (year)
@@ -312,7 +301,6 @@ NOTICE:  CREATE TABLE will create partition "t26002_t1_1_prt_2_2_prt_usa" for ta
 NOTICE:  CREATE TABLE will create partition "t26002_t1_1_prt_2_2_prt_europe" for table "t26002_t1_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "t26002_t1_1_prt_2_2_prt_asia" for table "t26002_t1_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "t26002_t1_1_prt_2_2_prt_other_regions" for table "t26002_t1_1_prt_2"
--- end_ignore
 -- TEST
 -- expected to see the partition key
 \d T26002_T1;
@@ -429,21 +417,11 @@ Distributed by: (empid)
  region       | character varying(20) |           | extended |              | 
 Distributed by: (empid)
 
--- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS T26002_T1;
-DROP TABLE IF EXISTS T26002_T2;
--- end_ignore
 --
--- Testing whether test gives wrong results with partition tables when sub-partitions are distributed differently than the parent partition.
+-- Test whether test gives wrong results with partition tables when
+-- sub-partitions are distributed differently than the parent partition.
 --
 -- SETUP
--- start_ignore
-drop table if exists pt;
-NOTICE:  table "pt" does not exist, skipping
-drop table if exists t;
-NOTICE:  table "t" does not exist, skipping
--- end_ignore
 create table pt(a int, b int, c int) distributed by (a) partition by range(b) (start(0) end(10) every (2));
 NOTICE:  CREATE TABLE will create partition "pt_1_prt_1" for table "pt"
 NOTICE:  CREATE TABLE will create partition "pt_1_prt_2" for table "pt"
@@ -509,19 +487,10 @@ select a, count(*) from pt where a<2 group by a;
  0 |     2
 (2 rows)
 
--- CLEANUP
-drop index pt_c;
-drop table if exists pt;
-drop table if exists t;
 --
 -- Partition table with appendonly leaf, full join
 --
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-NOTICE:  table "foo" does not exist, skipping
-DROP TABLE IF EXISTS bar;
-NOTICE:  table "bar" does not exist, skipping
 CREATE TABLE foo (a int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -544,7 +513,6 @@ NOTICE:  CREATE TABLE will create partition "bar_1_prt_1_2_prt_2" for table "bar
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2" for table "bar"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_1" for table "bar_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_2" for table "bar_1_prt_2"
--- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
@@ -555,19 +523,11 @@ SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
 (2 rows)
 
 -- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-DROP TABLE IF EXISTS bar;
--- end_ignore
+DROP TABLE IF EXISTS foo, bar;
 --
 -- Partition table with appendonly set at middlevel partition, full join
 --
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-NOTICE:  table "foo" does not exist, skipping
-DROP TABLE IF EXISTS bar;
-NOTICE:  table "bar" does not exist, skipping
 CREATE TABLE foo (a int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -590,7 +550,6 @@ NOTICE:  CREATE TABLE will create partition "bar_1_prt_1_2_prt_2" for table "bar
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2" for table "bar"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_1" for table "bar_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_2" for table "bar_1_prt_2"
--- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
@@ -601,19 +560,11 @@ SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
 (2 rows)
 
 -- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-DROP TABLE IF EXISTS bar;
--- end_ignore
+DROP TABLE IF EXISTS foo, bar;
 --
 -- Partition table with appendonly set at root partition, full join
 --
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-NOTICE:  table "foo" does not exist, skipping
-DROP TABLE IF EXISTS bar;
-NOTICE:  table "bar" does not exist, skipping
 CREATE TABLE foo (a int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -636,7 +587,6 @@ NOTICE:  CREATE TABLE will create partition "bar_1_prt_1_2_prt_2" for table "bar
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2" for table "bar"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_1" for table "bar_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_2" for table "bar_1_prt_2"
--- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
@@ -5211,12 +5161,8 @@ select c1, dt, count(*) from mpp6724 group by 1,2 having count(*) > 1;
 
 drop table mpp6724;
 -- Test for partition cleanup
--- start_ignore
-drop schema partition_999 cascade;
-ERROR:  schema "partition_999" does not exist
 create schema partition_999;
 set search_path=bfv_partition,partition_999;
--- end_ignore
 create table partition_cleanup1 (a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 ( partition aa start (1) end (10) every (1) );

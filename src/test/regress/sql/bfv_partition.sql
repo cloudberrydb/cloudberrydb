@@ -98,24 +98,12 @@ SELECT * FROM TIMESTAMP_MONTH_listp WHERE f2 = '2000-01-03';
 SELECT * FROM TIMESTAMP_MONTH_listp WHERE f2 = TO_TIMESTAMP('2000-01-03', 'YYYY-MM-DD');
 SELECT * FROM TIMESTAMP_MONTH_listp WHERE f2 = TO_DATE('2000-01-03', 'YYYY-MM-DD');
 
--- CLEANUP
--- start_ignore
-DROP TABLE TIMESTAMP_MONTH_listp;
-DROP TABLE TIMESTAMP_MONTH_rangep_STARTEXCL;
-DROP TABLE TIMESTAMP_MONTH_rangep_STARTINCL;
--- end_ignore
-
 
 --
 -- Data Engineer can see partition key in psql
 --
 
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS T26002_T1;
-DROP TABLE IF EXISTS T26002_T2;
-
-
 CREATE TABLE T26002_T1 (empid int, departmentid int, year int, region varchar(20))
 DISTRIBUTED BY (empid)
   PARTITION BY RANGE (year)
@@ -127,7 +115,6 @@ DISTRIBUTED BY (empid)
        DEFAULT SUBPARTITION other_regions)
 ( START (2012) END (2015) EVERY (3),
   DEFAULT PARTITION outlying_years);
--- end_ignore
 
 -- TEST
 -- expected to see the partition key
@@ -152,23 +139,13 @@ DISTRIBUTED BY (empid);
 
 \d+ T26002_T2;
 
--- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS T26002_T1;
-DROP TABLE IF EXISTS T26002_T2;
--- end_ignore
-
 
 --
--- Testing whether test gives wrong results with partition tables when sub-partitions are distributed differently than the parent partition.
+-- Test whether test gives wrong results with partition tables when
+-- sub-partitions are distributed differently than the parent partition.
 --
 
 -- SETUP
--- start_ignore
-drop table if exists pt;
-drop table if exists t;
--- end_ignore
-
 create table pt(a int, b int, c int) distributed by (a) partition by range(b) (start(0) end(10) every (2));
 alter table pt_1_prt_1 set distributed randomly;
 
@@ -190,21 +167,12 @@ select a, count(*) from pt group by a;
 select b, count(*) from pt group by b;
 select a, count(*) from pt where a<2 group by a;
 
--- CLEANUP
-drop index pt_c;
-drop table if exists pt;
-drop table if exists t;
-
 
 --
 -- Partition table with appendonly leaf, full join
 --
 
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-DROP TABLE IF EXISTS bar;
-
 CREATE TABLE foo (a int);
 
 CREATE TABLE bar (b int, c int)
@@ -218,27 +186,19 @@ PARTITION BY RANGE (b)
   START (1) END (10) ,
   START (10) END (20)
 ); 
--- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
 
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
 
 -- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-DROP TABLE IF EXISTS bar;
--- end_ignore
+DROP TABLE IF EXISTS foo, bar;
 
 --
 -- Partition table with appendonly set at middlevel partition, full join
 --
 
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-DROP TABLE IF EXISTS bar;
-
 CREATE TABLE foo (a int);
 
 CREATE TABLE bar (b int, c int)
@@ -252,27 +212,19 @@ PARTITION BY RANGE (b)
   START (1) END (10) WITH (appendonly=true),
   START (10) END (20)
 ); 
--- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
 
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
 
 -- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-DROP TABLE IF EXISTS bar;
--- end_ignore
+DROP TABLE IF EXISTS foo, bar;
 
 --
 -- Partition table with appendonly set at root partition, full join
 --
 
 -- SETUP
--- start_ignore
-DROP TABLE IF EXISTS foo;
-DROP TABLE IF EXISTS bar;
-
 CREATE TABLE foo (a int);
 
 CREATE TABLE bar (b int, c int) WITH (appendonly=true)
@@ -286,7 +238,6 @@ PARTITION BY RANGE (b)
   START (1) END (10),
   START (10) END (20)
 ); 
--- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
 
@@ -1663,13 +1614,9 @@ select c1, dt, count(*) from mpp6724 group by 1,2 having count(*) > 1;
 drop table mpp6724;
 
 -- Test for partition cleanup
-
--- start_ignore
-drop schema partition_999 cascade;
 create schema partition_999;
 
 set search_path=bfv_partition,partition_999;
--- end_ignore
 
 create table partition_cleanup1 (a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
