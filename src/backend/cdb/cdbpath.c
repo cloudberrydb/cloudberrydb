@@ -111,7 +111,6 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		if (CdbPathLocus_IsEntry(subpath->locus) &&
 			CdbPathLocus_IsEntry(locus))
 		{
-			/* FIXME: how to reach here? what's the proper value for numsegments? */
 			subpath->locus.numsegments = getgpsegmentCount();
 			return subpath;
 		}
@@ -197,11 +196,10 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		/* No motion needed if subpath can run anywhere giving same output. */
 		if (CdbPathLocus_IsGeneral(subpath->locus))
 		{
-			if (CdbPathLocus_NumSegments(subpath->locus) <
-				CdbPathLocus_NumSegments(locus))
-			{
-				/* FIXME: is a motion needed? */
-			}
+			/*
+			 * general-->(entry|singleqe), no motion is needed, can run
+			 * directly on any of the common segments
+			 */
 			subpath->locus.numsegments = numsegments;
 			return subpath;
 		}
@@ -908,8 +906,6 @@ cdbpath_motion_for_join(PlannerInfo *root,
 	outer.has_wts = cdbpath_contains_wts(outer.path);
 	inner.has_wts = cdbpath_contains_wts(inner.path);
 
-	/* FIXME: special optimization for numsegments=1 */
-
 	/* For now, inner path should not contain WorkTableScan */
 	Assert(!inner.has_wts);
 
@@ -1091,13 +1087,8 @@ cdbpath_motion_for_join(PlannerInfo *root,
 					   CdbPathLocus_NumSegments(other->locus));
 
 				/*
-				 * FIXME: if "replicate table" in below comments means the
-				 * DISTRIBUTED REPLICATED table then maybe the logic should
-				 * not be put here.
-				 */
-				/*
-				 * execute the plan in the segment which replicate table is
-				 * storaged.
+				 * Only need to broadcast other to the segments of the
+				 * replicated table.
 				 */
 				if (CdbPathLocus_NumSegments(segGeneral->locus) <
 					CdbPathLocus_NumSegments(other->locus))
