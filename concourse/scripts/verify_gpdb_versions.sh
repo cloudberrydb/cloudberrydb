@@ -1,38 +1,31 @@
 #!/bin/bash
-set -eo pipefail
-#set -x
+set -xeo pipefail
 
-GREENPLUM_INSTALL_DIR=/usr/local/greenplum-db-devel
-
-compare_bin_gpdb_version_with_gpdb_src() {
+install_greenplum() {
   local bin_gpdb=$1
+  local install_dir=/usr/local/greenplum-db-devel
 
-  # Install GPDB from bin_gpdb
-  rm -rf ${GREENPLUM_INSTALL_DIR}
-  mkdir -p ${GREENPLUM_INSTALL_DIR}
-  tar -xf "${bin_gpdb}/bin_gpdb.tar.gz" -C "${GREENPLUM_INSTALL_DIR}/"
-
-  # Get gpdb commit SHA
-  source "${GREENPLUM_INSTALL_DIR}/greenplum_path.sh"
-  bin_gpdb_version=$(postgres --gp-version | sed 's/.*build commit:\(.*\)/\1/')
-
-  if [ "${bin_gpdb_version}" != "${GPDB_SRC_VERSION}" ]; then
-    echo "bin_gpdb version: ${bin_gpdb_version} does not match gpdb_src version: ${GPDB_SRC_VERSION}, please wait for the next build. Exiting..."
-    exit 1
-  fi
-
+  rm -rf "$install_dir"
+  mkdir -p "$install_dir"
+  tar -xf "${bin_gpdb}/bin_gpdb.tar.gz" -C "$install_dir"
+  source "${install_dir}/greenplum_path.sh"
 }
 
-# Install dependencies
-yum -y install git
+assert_postgres_version_matches() {
+  local gpdb_src_sha=$1
 
-# Get commit SHA from gpdb_src
-pushd gpdb_src
-  GPDB_SRC_VERSION=$(git rev-parse HEAD)
-popd
+  if [[ ! "$(postgres --gp-version)" =~ "commit:$gpdb_src_sha" ]]; then
+    echo "bin_gpdb version: '$(postgres --gp-version)' does not match gpdb_src commit: '${gpdb_src_sha}'. Exiting..."
+    exit 1
+  fi
+}
 
-for bin_gpdb in bin_gpdb_centos{6,7} ; do
-  compare_bin_gpdb_version_with_gpdb_src "${bin_gpdb}"
+yum -d1 -y install git
+
+GPDB_SRC_SHA=$(cd gpdb_src && git rev-parse HEAD)
+for bin_gpdb in bin_gpdb_centos{6,7}; do
+  install_greenplum "$bin_gpdb"
+  assert_postgres_version_matches "$GPDB_SRC_SHA"
 done
 
-echo "Release Candidate: ${GPDB_SRC_VERSION}"
+echo "Release Candidate SHA: ${GPDB_SRC_SHA}"
