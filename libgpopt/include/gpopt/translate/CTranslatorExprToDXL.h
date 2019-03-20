@@ -232,7 +232,7 @@ namespace gpopt
 				CColRefArray *pdrgpcrOrder
 				);
 
-			CDXLNode *PdxlnResult
+			CDXLNode *PdxlnFromFilter
 				(
 				CExpression *pexprFilter, 
 				CColRefArray *colref_array, 
