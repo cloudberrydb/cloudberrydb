@@ -4,7 +4,6 @@
                       'gpinitstandby',
                       'gpactivatestandby'] %}
 {% set CLI_2_suites = ['analyzedb',
-                      'gpperfmon',
                       'gpinitsystem',
                       'gpstate',
                       'replication_slots'] %}
@@ -81,6 +80,17 @@ groups:
 {% endif %}
 {% if "sles" in os_types %}
   - resource_group_sles12
+{% endif %}
+{% endif %}
+{% if "Gpperfmon" in test_sections %}
+  ## --------------------------------------------------------------------
+  - gate_gpperfmon_start
+  - gpperfmon_centos6
+{% if "centos7" in os_types %}
+  - gpperfmon_centos7
+{% endif %}
+{% if "sles" in os_types %}
+  - gpperfmon_sles12
 {% endif %}
 {% endif %}
 {% if "CLI" in test_sections %}
@@ -240,6 +250,24 @@ groups:
 {% endif %}
 
 {% endif %}
+{% if "Gpperfmon" in test_sections %}
+## ======================================================================
+
+- name: Gpperfmon
+  jobs:
+  - gate_gpperfmon_start
+  - gpperfmon_centos6
+  - compile_gpdb_centos6
+{% if "centos7" in os_types %}
+  - gpperfmon_centos7
+  - compile_gpdb_centos7
+{% endif %}
+{% if "sles" in os_types %}
+  - gpperfmon_sles12
+  - compile_gpdb_sles11
+{% endif %}
+
+{% endif %}
 {% if "CLI" in test_sections %}
 ## ======================================================================
 
@@ -306,6 +334,7 @@ resource_types:
 resources:
 {% if ("ICW"    in test_sections and "sles" in os_types) or
       "ResourceGroups"     in test_sections or
+      ("Gpperfmon"    in test_sections and "sles" in os_types) or
       "CLI"      in test_sections %}
 - name: ccp_src
   type: git
@@ -1642,6 +1671,134 @@ jobs:
 {% endif %}
 
 {% endif %}
+
+{% if "Gpperfmon" in test_sections %}
+## ======================================================================
+##                               __
+##   __ _ _ __  _ __   ___ _ __ / _|_ __ ___   ___  _ __
+##  / _` | '_ \| '_ \ / _ \ '__| |_| '_ ` _ \ / _ \| '_ \
+## | (_| | |_) | |_) |  __/ |  |  _| | | | | | (_) | | | |
+##  \__, | .__/| .__/ \___|_|  |_| |_| |_| |_|\___/|_| |_|
+##  |___/|_|   |_|
+## ======================================================================
+
+- name: gate_gpperfmon_start
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed:
+      - compile_gpdb_centos6
+{% if "sles" in os_types %}
+      - compile_gpdb_sles11
+{% endif %}
+{% if "centos7" in os_types %}
+      - compile_gpdb_centos7
+{% endif %}
+      trigger: true
+    - get: bin_gpdb_centos6
+      passed:
+      - compile_gpdb_centos6
+{% if "centos7" in os_types %}
+    - get: bin_gpdb_centos7
+      passed:
+      - compile_gpdb_centos7
+{% endif %}
+{% if "sles" in os_types %}
+    - get: bin_gpdb_sles11
+      passed:
+      - compile_gpdb_sles11
+{% endif %}
+{% if "centos6" in os_types or "centos7" in os_types %}
+    - get: binary_swap_gpdb
+      passed: [compile_gpdb_binary_swap_centos6]
+      resource: binary_swap_gpdb_centos6
+      trigger: [[ test_trigger ]]
+{% endif %}
+
+- name: gpperfmon_centos6
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules:
+        - gpMgmt/bin/pythonSrc/ext
+      passed: [gate_gpperfmon_start]
+    - get: bin_gpdb
+      resource: bin_gpdb_centos6
+      passed: [gate_gpperfmon_start]
+      trigger: true
+    - get: gpdb6-centos6-test
+  - task: gpperfmon
+    file: gpdb_src/concourse/tasks/behave_gpdb.yml
+    image: gpdb6-centos6-test
+    params:
+      BEHAVE_TAGS: gpperfmon
+
+{% if "centos7" in os_types %}
+- name: gpperfmon_centos7
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules:
+        - gpMgmt/bin/pythonSrc/ext
+      passed: [gate_gpperfmon_start]
+    - get: bin_gpdb
+      resource: bin_gpdb_centos7
+      passed: [gate_gpperfmon_start]
+      trigger: true
+    - get: gpdb6-centos7-test
+  - task: gpperfmon
+    file: gpdb_src/concourse/tasks/behave_gpdb.yml
+    image: gpdb6-centos7-test
+    params:
+      BEHAVE_TAGS: gpperfmon
+
+{% endif %}
+{% if "sles" in os_types %}
+- name: gpperfmon_sles12
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules:
+        - gpMgmt/bin/pythonSrc/ext
+      passed: [gate_gpperfmon_start]
+    - get: gpdb_binary
+      resource: bin_gpdb_sles11
+      passed: [gate_gpperfmon_start]
+      trigger: true
+    - get: ccp_src
+    - get: ccp-image
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        PLATFORM: sles12
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+      # PLATFORM is necessary to generate correct ssh config
+      PLATFORM: sles12
+  - task: gpinitsystem
+    file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_behave_on_ccp_cluster.yml
+    image: ccp-image
+    params:
+      BEHAVE_FLAGS: --tags=gpperfmon
+      TEST_OS: sles12
+    on_success:
+      <<: *ccp_destroy
+  ensure:
+    <<: *set_failed
+
+{% endif %}
+
+{% endif %}
+
 {% if "CLI" in test_sections %}
 ## ======================================================================
 ##   ____ _     ___
@@ -2096,6 +2253,9 @@ jobs:
  ##     - icw_extensions_gpcloud_ubuntu16
       - resource_group_centos6
       - resource_group_centos7
+      - gpperfmon_centos6
+      - gpperfmon_centos7
+      - gpperfmon_sles12
  ##     - resource_group_sles12
 {% for test_name in CLI_1_suites +
                     CLI_2_suites %}

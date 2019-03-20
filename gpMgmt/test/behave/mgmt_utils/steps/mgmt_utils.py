@@ -1748,17 +1748,23 @@ def impl(context, table_name, db_name):
         dbconn.execSQL(conn, index_qry)
         conn.commit()
 
+@when("the user installs gpperfmon")
+def impl(context):
+    master_port = os.getenv('PGPORT', 15432)
+    cmd = "gpperfmon_install --port {master_port} --enable --password foo".format(master_port=master_port)
+    run_command(context, cmd)
 
 @given('gpperfmon is configured and running in qamode')
 @then('gpperfmon is configured and running in qamode')
 def impl(context):
+    master_port = os.getenv('PGPORT', 15432)
     target_line = 'qamode = 1'
     gpperfmon_config_file = "%s/gpperfmon/conf/gpperfmon.conf" % os.getenv("MASTER_DATA_DIRECTORY")
     if not check_db_exists("gpperfmon", "localhost"):
         context.execute_steps(u'''
-                              When the user runs "gpperfmon_install --port 15432 --enable --password foo"
+                              When the user runs "gpperfmon_install --port {master_port} --enable --password foo"
                               Then gpperfmon_install should return a return code of 0
-                              ''')
+                              '''.format(master_port=master_port))
 
     if not file_contains_line(gpperfmon_config_file, target_line):
         context.execute_steps(u'''
