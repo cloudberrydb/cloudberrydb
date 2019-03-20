@@ -196,6 +196,16 @@ def connect(dburl, utility=False, verbose=False,
         cstr    = "dbname='%s'" % dbbase
         retries = 1
 
+    options = []
+    #by default, libpq will print WARNINGS to stdout
+    if not verbose:
+        options.append("-c CLIENT_MIN_MESSAGES=ERROR")
+
+    # set client encoding if needed
+    if encoding:
+        options.append("-c CLIENT_ENCODING=%s" % encoding)
+    cstr += " options='%s'" % " ".join(options)
+
     # This flag helps to avoid logging the connection string in some special
     # situations as requested
     if (logConn == True):
@@ -216,20 +226,6 @@ def connect(dburl, utility=False, verbose=False,
         raise ConnectionError('Failed to connect to %s' % dbbase)
 
     conn = pgdb.pgdbCnx(cnx)
-
-    #by default, libpq will print WARNINGS to stdout
-    if not verbose:
-        cursor=conn.cursor()
-        cursor.execute("SET CLIENT_MIN_MESSAGES='ERROR'")
-        conn.commit()
-        cursor.close()
-
-    # set client encoding if needed
-    if encoding:
-        cursor=conn.cursor()
-        cursor.execute("SET CLIENT_ENCODING='%s'" % encoding)
-        conn.commit()
-        cursor.close()
 
     def __enter__(self):
         return self

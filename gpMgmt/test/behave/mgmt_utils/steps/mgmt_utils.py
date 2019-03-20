@@ -915,6 +915,8 @@ def impl(context):
     while attempt < num_retries:
         try:
             with dbconn.connect(dbconn.DbURL()) as conn:
+                # Cursor.execute() will issue an implicit BEGIN for us.
+                conn.cursor().execute('COMMIT')
                 break
         except Exception as e:
             attempt += 1
