@@ -110,9 +110,21 @@ add_paths_to_joinrel(PlannerInfo *root,
     Assert(innerrel->pathlist &&
            innerrel->cheapest_total_path);
 
-	/* Don't consider paths that have WorkTableScan as inner rel */
+	/*
+	 * Don't consider paths that have WorkTableScan as inner rel. If the outer
+	 * rel has a WorkTableScan as well, we won't be able to produce a usable
+	 * join so we need to error out.  This case can happen when to RECURSIVE
+	 * clauses are joined. RECURSIVE_CTE_FIXME: Revisit this when we gain
+	 * rescannable motions.
+	 */
 	if (innerrel->cheapest_startup_path && cdbpath_contains_wts(innerrel->cheapest_startup_path))
+	{
+		if (outerrel->cheapest_startup_path && cdbpath_contains_wts(outerrel->cheapest_startup_path))
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("joining nested RECURSIVE clauses is not supported")));
 		return;
+	}
 	if (cdbpath_contains_wts(innerrel->cheapest_total_path))
 		return;
 
