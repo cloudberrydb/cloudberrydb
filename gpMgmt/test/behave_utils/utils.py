@@ -181,13 +181,8 @@ def start_database(context):
 
 
 def stop_database_if_started(context):
-    try:
+    if check_database_is_running(context):
         stop_database(context)
-    except Exception, err:
-        if check_database_is_running(context):
-            raise Exception(err)
-        else:
-            context.exception = None
 
 
 def stop_database(context):
