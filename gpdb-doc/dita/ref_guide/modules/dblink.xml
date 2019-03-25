@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_lv4_czp_fz">
-  <title>dblink Functions</title>
+  <title>dblink</title>
   <shortdesc>The <codeph>dblink</codeph> module supports connections to other Greenplum Database
     databases from within a database session. These databases can reside in the same Greenplum
     Database system, or in a remote system. </shortdesc>
