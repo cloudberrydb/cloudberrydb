@@ -175,6 +175,22 @@ function export_gpdb_clients() {
   popd
 }
 
+function build_xerces()
+{
+    OUTPUT_DIR="gpdb_src/gpAux/ext/${BLD_ARCH}"
+    mkdir -p xerces_patch/concourse
+    cp -r orca_src/concourse/xerces-c xerces_patch/concourse
+    cp -r orca_src/patches/ xerces_patch
+    /usr/bin/python xerces_patch/concourse/xerces-c/build_xerces.py --output_dir=${OUTPUT_DIR}
+    rm -rf build
+}
+
+function build_and_test_orca()
+{
+    OUTPUT_DIR="gpdb_src/gpAux/ext/${BLD_ARCH}"
+    orca_src/concourse/build_and_test.py --build_type=RelWithDebInfo --output_dir=${OUTPUT_DIR}
+}
+
 function _main() {
   # Copy input ext dir; assuming ext doesnt exist
   mv gpAux_ext/ext ${GPDB_SRC_PATH}/gpAux
@@ -182,6 +198,8 @@ function _main() {
   case "${TARGET_OS}" in
     centos)
       prep_env_for_centos
+      build_xerces
+      build_and_test_orca
       install_deps_for_centos
       link_tools_for_centos
       ;;
