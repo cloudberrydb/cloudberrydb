@@ -1027,7 +1027,9 @@ CGroup::MergeGroup()
 		m_ulGExprs--;
 
 		pgexpr->Reset(pgroupTarget, pgroupTarget->m_ulGExprs++);
-		pgroupTarget->m_listGExprs.Append(pgexpr);
+		pgroupTarget->m_lock.Lock();
+		pgroupTarget->Insert(pgexpr);
+		pgroupTarget->m_lock.Unlock();
 
 		GPOS_CHECK_ABORT;
 	}

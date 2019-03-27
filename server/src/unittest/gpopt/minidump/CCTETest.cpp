@@ -58,6 +58,7 @@ const CHAR *rgszCTEFileNames[] =
 	"../data/dxl/minidump/Select-Over-CTEAnchor.mdp",
 	"../data/dxl/minidump/CTEinlining.mdp",
 	"../data/dxl/minidump/CTE-ValuesScan-ProjList.mdp",
+	"../data/dxl/minidump/CTEWithMergedGroup.mdp",
 	};
 
 
