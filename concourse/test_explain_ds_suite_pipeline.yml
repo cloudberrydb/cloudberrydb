@@ -1,5 +1,10 @@
 groups: []
 resources:
+- name: centos5-build
+  type: docker-image
+  source:
+    repository: yolo/orcadev
+    tag: centos5
 - name: gporca-commits-to-test
   type: git
   source:
@@ -175,11 +180,17 @@ jobs:
       passed:
       - clone_repos_to_test
       trigger: true
+    - get: gpdb_tarball
+      passed:
+      - clone_repos_to_test
   - task: untar_build_and_test_release
-    file: orca_main_src/concourse/untar_build_and_test_centos5_release.yml
+    file: orca_main_src/concourse/untar_build_and_test_centos.yml
+    params:
+      build_type: RelWithDebInfo
+      outputDirectory: build_and_test/install
   - put: bin_orca_centos5_release
     params:
-      from: package_tarball_release/bin_orca_centos5_release.tar.gz
+      from: package_tarball/bin_orca_centos5_release.tar.gz
 - name: clone_repos_to_test
   plan:
   - aggregate:
@@ -215,10 +226,15 @@ jobs:
       resource: bin_xerces_centos5
     - get: gpdb_tarball
       passed:
-      - clone_repos_to_test
+      - orca_centos5_release
     - get: gpdb_main_src
   - task: build_with_orca
     file: gpdb_main_src/concourse/tasks/untar_build_with_orca.yml
+    params:
+      ACTION: build
+      MODE: orca
+      CONFIGURE_OPTION: --disable-gpcloud --enable-debug-extensions
+      BLDWRAP_POSTGRES_CONF_ADDONS: statement_mem=250MB
   - put: bin_gpdb_centos6
     params:
       from: package_tarball/bin_gpdb.tar.gz
@@ -240,13 +256,21 @@ jobs:
     - get: bin_xerces_centos5
       passed:
       - xerces_centos5
+    - get: centos5-build
   - task: build_and_test_release
-    file: orca_main_src/concourse/build_and_test_centos5_release.yml
+    image: centos5-build
+    file: orca_main_src/concourse/build_and_test_centos.yml
+    params:
+      BUILD_TYPE: --build_type=RelWithDebInfo
+      OUTPUT_DIR: --output_dir=build_and_test/install
   - task: package_tarball_release
-    file: orca_main_src/concourse/package_tarball_centos5_release.yml
+    file: orca_main_src/concourse/package_tarball_centos.yml
+    params:
+      src_root: build_and_test/install
+      dst_tarball: package_tarball/bin_orca_centos5_release.tar.gz
   - put: bin_orca_baseline_centos5_release
     params:
-      from: package_tarball_release/bin_orca_centos5_release.tar.gz
+      from: package_tarball/bin_orca_centos5_release.tar.gz
 
 - name: build_gpdb_baseline
   plan:
@@ -265,8 +289,17 @@ jobs:
       trigger: true
   - task: build_with_orca
     file: gpdb_main_src/concourse/tasks/build_with_orca.yml
+    params:
+      MODE: "--mode=orca"
+      OUTPUTDIR: "--output_dir=bin_gpdb/install"
+      ACTION: "--action=build"
+      CONFIGURE_OPTION: "--configure-option=--disable-gpcloud --configure-option=--enable-debug-extensions"
+      OTHER_CONFIGS: "--orca-in-gpdb-install-location bin_orca bin_xerces"
   - task: package_tarball
     file: gpdb_main_src/concourse/tasks/package_tarball.yml
+    params:
+      src_root: bin_gpdb/install
+      dst_tarball: package_tarball/bin_gpdb.tar.gz
   - task: package_gpdb_baseline_src
     config:
       platform: linux
@@ -321,9 +354,12 @@ jobs:
       - build_gpdb
     - get: explain_test_suite
   - task: run_explain_suite
-    file: gpdb_main_src/concourse/tasks/untar_test_with_orca.yml
+    file: gpdb_main_src/concourse/tasks/untar_build_with_orca.yml
     params:
+      MODE: orca
       ACTION: test_explain_suite
+      BLDWRAP_POSTGRES_CONF_ADDONS: statement_mem=250MB
+      CONFIGURE_OPTION: --disable-gpcloud --enable-debug-extensions
     timeout: 90m
   - put: explain_output
     params:
@@ -362,9 +398,12 @@ jobs:
     - get: explain_test_suite
   - task: run_explain_suite_baseline
     timeout: 64m
-    file: gpdb_main_src/concourse/tasks/untar_test_with_orca.yml
+    file: gpdb_main_src/concourse/tasks/untar_build_with_orca.yml
     params:
+      MODE: orca
       ACTION: test_explain_suite
+      BLDWRAP_POSTGRES_CONF_ADDONS: statement_mem=250MB
+      CONFIGURE_OPTION: --disable-gpcloud --enable-debug-extensions
     timeout: 90m
   - put: explain_output_baseline
     params:

@@ -6,11 +6,11 @@ image_resource:
     tag: centos5
 inputs:
   - name: orca_src
-  - name: build_and_test_debug
+  - name: build_and_test
 outputs:
-  - name: package_tarball_debug
+  - name: package_tarball
 run:
   path: orca_src/concourse/package_tarball.bash
 params:
-  src_root: build_and_test_debug/install
-  dst_tarball: package_tarball_debug/bin_orca_centos5_debug.tar.gz
+  src_root:
+  dst_tarball:

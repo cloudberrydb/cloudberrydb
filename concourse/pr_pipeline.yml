@@ -70,10 +70,16 @@ jobs:
       status: pending
   - aggregate:
     - task: build_and_test_release
-      file: orca_src/concourse/build_and_test_centos5_release.yml
+      file: orca_src/concourse/build_and_test_centos.yml
+      params:
+        BUILD_TYPE: --build_type=RelWithDebInfo
+        OUTPUT_DIR: --output_dir=build_and_test/install_release
       timeout: 30m
     - task: build_and_test_debug
-      file: orca_src/concourse/build_and_test_centos5_debug.yml
+      file: orca_src/concourse/build_and_test_centos.yml
+      params:
+        BUILD_TYPE: --build_type=DEBUG
+        OUTPUT_DIR: --output_dir=build_and_test/install_debug
       timeout: 30m
     on_failure: &pr_failure
       put: orca_pr

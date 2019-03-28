@@ -13,10 +13,10 @@ caches:
   - path: .ccache
 
 outputs:
-  - name: build_and_test_release
-  - name: package_tarball_release
+  - name: build_and_test
+  - name: package_tarball
 run:
   path: orca_main_src/concourse/untar_build_and_test.py
 params:
-  build_type: RelWithDebInfo
-  outputDirectory: build_and_test_release
+  build_type:
+  outputDirectory:
