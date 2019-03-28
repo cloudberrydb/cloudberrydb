@@ -10,6 +10,8 @@ inputs:
   - name: bin_gpdb
   - name: gpdb_main_src
   - name: gpdb_tarball
+  - name: explain_test_suite
+    optional: true
 outputs:
   - name: icg_output
 run:

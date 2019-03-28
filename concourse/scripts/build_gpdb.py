@@ -1,5 +1,6 @@
 #!/usr/bin/python2
 
+import glob
 import optparse
 import os
 import shutil
@@ -35,6 +36,17 @@ def create_gpadmin_user():
     if status:
         return status
 
+def extract_explain_test_suite():
+    tarfiles = glob.glob('explain_test_suite/*.tar.gz')
+    if len(tarfiles) != 1:
+        print("Expected to find 1 tar file.")
+        return 1
+    status = subprocess.call(["tar", "xvf", tarfiles[0]])
+    return status
+
+def tar_explain_output():
+    status = subprocess.call(["tar", "czvf", "icg_output/explain_ouput.tar.gz", "out/"])
+    return status
 
 def copy_output():
     for dirpath, dirs, diff_files in os.walk('gpdb_src/'):
@@ -73,7 +85,7 @@ def main():
     parser.add_option("--gcc-env-file", dest="gcc_env_file", help="GCC env file to be sourced")
     parser.add_option("--orca-in-gpdb-install-location", dest="orca_in_gpdb_install_location", action="store_true",
                       help="Install ORCA header and library files in GPDB install directory")
-    parser.add_option("--action", choices=['build', 'test'], dest="action", default='build',
+    parser.add_option("--action", choices=['build', 'test', 'test_explain_suite'], dest="action", default='build',
                       help="Build GPDB or Run Install Check")
     parser.add_option("--gpdb_name", dest="gpdb_name")
     (options, args) = parser.parse_args()
@@ -86,7 +98,7 @@ def main():
     gpBuild.set_gcc_env_file(options.gcc_env_file)
 
     install_dir = INSTALL_DIR if options.orca_in_gpdb_install_location else DEPENDENCY_INSTALL_DIR
-    if options.action == 'test':
+    if options.action.startswith('test'):
         # if required, install orca and xerces library & header
         # in the install directory of gpdb to avoid packaging from multiple directories
         status = gpBuild.install_dependency(options.gpdb_name, INSTALL_DIR)
@@ -134,6 +146,17 @@ def main():
         if status:
             copy_output()
         return status
+
+    elif options.action == 'test_explain_suite':
+        status = create_gpadmin_user()
+        fail_on_error(status)
+        status = extract_explain_test_suite()
+        fail_on_error(status)
+        status = gpBuild.run_explain_test_suite()
+        fail_on_error(status)
+        status = tar_explain_output()
+        fail_on_error(status)
+        return 0
 
     return 0
 
