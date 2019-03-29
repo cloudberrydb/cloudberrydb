@@ -1026,7 +1026,7 @@ sendTablespace(char *path, bool sizeonly)
 	 * the version directory in it that belongs to us.
 	 */
 	snprintf(pathbuf, sizeof(pathbuf), "%s/%s", path,
-			 tablespace_version_directory());
+			 GP_TABLESPACE_VERSION_DIRECTORY);
 
 	/*
 	 * Store a directory entry in the tar file so we get the permissions
@@ -1044,7 +1044,7 @@ sendTablespace(char *path, bool sizeonly)
 		return 0;
 	}
 	if (!sizeonly)
-		_tarWriteHeader(tablespace_version_directory(), NULL, &statbuf);
+		_tarWriteHeader(GP_TABLESPACE_VERSION_DIRECTORY, NULL, &statbuf);
 	size = 512;					/* Size of the header just added */
 
 	/* Send all the files in the tablespace version directory */
