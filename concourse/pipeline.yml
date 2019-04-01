@@ -43,7 +43,7 @@ resources:
     branch: master
     uri: https://github.com/greenplum-db/gpdb
     paths:
-      - config/orca.m4
+      - gpAux/releng/releng.mk
 
 - name: centos5-build
   type: docker-image
@@ -405,7 +405,6 @@ jobs:
           - bin_orca_centos5_release.tar.gz
       passed:
       - orca_publish_tag
-      trigger: true
     - get: bin_xerces
       resource: bin_xerces_centos5
       passed:
@@ -413,6 +412,7 @@ jobs:
     - get: gpdb_src
       params:
         submodules: none
+      trigger: true
   - task: build_with_orca
     file: gpdb_src/concourse/tasks/build_with_orca.yml
     params:
