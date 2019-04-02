@@ -13,6 +13,7 @@
 #include <apr_pools.h>
 #include <apr_strings.h>
 #include <apr_time.h>
+#include <apr_general.h>
 #include <event.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -3260,23 +3261,23 @@ static int request_parse_gp_headers(request_t *r, int opt_g)
 
 	for (i = 0; i < r->in.req->hc; i++)
 	{
-		if (0 == strcmp("X-GP-XID", r->in.req->hname[i]))
+		if (0 == strcasecmp("X-GP-XID", r->in.req->hname[i]))
 			xid = r->in.req->hvalue[i];
-		else if (0 == strcmp("X-GP-CID", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-CID", r->in.req->hname[i]))
 			cid = r->in.req->hvalue[i];
-		else if (0 == strcmp("X-GP-SN", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-SN", r->in.req->hname[i]))
 			sn = r->in.req->hvalue[i];
-		else if (0 == strcmp("X-GP-CSVOPT", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-CSVOPT", r->in.req->hname[i]))
 			r->csvopt = r->in.req->hvalue[i];
-		else if (0 == strcmp("X-GP-PROTO", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-PROTO", r->in.req->hname[i]))
 			gp_proto = r->in.req->hvalue[i];
-		else if (0 == strcmp("X-GP-DONE", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-DONE", r->in.req->hname[i]))
 			r->is_final = 1;
-		else if (0 == strcmp("X-GP-SEGMENT-COUNT", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-SEGMENT-COUNT", r->in.req->hname[i]))
 			r->totalsegs = atoi(r->in.req->hvalue[i]);
-		else if (0 == strcmp("X-GP-SEGMENT-ID", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-SEGMENT-ID", r->in.req->hname[i]))
 			r->segid = atoi(r->in.req->hvalue[i]);
-		else if (0 == strcmp("X-GP-LINE-DELIM-STR", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-LINE-DELIM-STR", r->in.req->hname[i]))
 		{
 			if (NULL == r->in.req->hvalue[i] ||  ((int)strlen(r->in.req->hvalue[i])) % 2 == 1 || !base16_decode(r->in.req->hvalue[i]))
 			{
@@ -3287,13 +3288,13 @@ static int request_parse_gp_headers(request_t *r, int opt_g)
 			}
 			r->line_delim_str = r->in.req->hvalue[i];
 		}
-		else if (0 == strcmp("X-GP-LINE-DELIM-LENGTH", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-LINE-DELIM-LENGTH", r->in.req->hname[i]))
 			r->line_delim_length = atoi(r->in.req->hvalue[i]);
 #ifdef GPFXDIST
-		else if (0 == strcmp("X-GP-TRANSFORM", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-TRANSFORM", r->in.req->hname[i]))
 			r->trans.name = r->in.req->hvalue[i];
 #endif
-		else if (0 == strcmp("X-GP-SEQ", r->in.req->hname[i]))
+		else if (0 == strcasecmp("X-GP-SEQ", r->in.req->hname[i]))
 		{
 			r->seq = atol(r->in.req->hvalue[i]);
 			/* sequence number starting from 1 */
