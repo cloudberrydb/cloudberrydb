@@ -128,7 +128,7 @@ struct BufFile
 	 */
 	size_t		uncompressed_bytes;
 
-	/* This holds holds compressed input, during decompression. */
+	/* This holds compressed input, during decompression. */
 	ZSTD_inBuffer compressed_buffer;
 	bool		decompression_finished;
 #endif
@@ -937,7 +937,7 @@ BufFilePledgeSequential(BufFile *buffile)
 #define BUFFILE_ZSTD_COMPRESSION_LEVEL 1
 
 /*
- * Temporary buffer used during compresion. It's used only within the
+ * Temporary buffer used during compression. It's used only within the
  * functions, so we can allocate this once and reuse it for all files.
  */
 static char *compression_buffer;

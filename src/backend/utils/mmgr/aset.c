@@ -322,7 +322,7 @@ static void dump_allocset_block(FILE *file, AllocBlock block)
 		fprintf(file, "\t\tchunk|%p|%ld", chunk, chunk->size);
 
 #ifdef MEMORY_CONTEXT_CHECKING
-		fprintf(file, "%ld", chunk->requested_size);
+		fprintf(file, "|%ld", chunk->requested_size);
 #endif
 
 		fprintf(file, "\n");
@@ -357,7 +357,7 @@ static void dump_allocset_freelist(FILE *file, AllocSet set)
 			fprintf(file, "\t\tfreelist_%d|%p|%ld", size << i, chunk, chunk->size);
 
 #ifdef MEMORY_CONTEXT_CHECKING
-			fprintf(file, "%ld", chunk->requested_size);
+			fprintf(file, "|%ld", chunk->requested_size);
 #endif
 
 			fprintf(file, "\n");
