@@ -411,6 +411,9 @@ jobs:
 - name: diff_explain_results_with_baseline
   plan:
   - aggregate:
+    - get: gporca-commits-to-test
+      passed:
+      - test_explain_suite
     - get: gpdb_main_src
       passed:
       - test_explain_suite
@@ -426,6 +429,7 @@ jobs:
   - task: diff_explain_results_with_baseline
     timeout: 64m
     file: gpdb_main_src/concourse/tasks/diff_explain_results_with_baseline.yml
-  - put: explain_test_results
-    params:
-      file: diffs/explain_test_results.tar.gz
+    ensure:
+      put: explain_test_results
+      params:
+        file: diffs/explain_test_results.tar.gz
