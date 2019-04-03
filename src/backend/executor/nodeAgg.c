@@ -1945,9 +1945,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&aggstate->ss.ps);
 	ExecAssignProjectionInfo(&aggstate->ss.ps, NULL);
 
-#if 0
-	aggstate->ss.ps.ps_TupFromTlist = false;
-#endif
+	aggstate->ps_TupFromTlist = false;
 
 	/*
 	 * get the count of aggregates in targetlist and quals

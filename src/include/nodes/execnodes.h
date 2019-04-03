@@ -2643,6 +2643,15 @@ typedef struct WindowAggState
 	TupleTableSlot *agg_row_slot;
 	TupleTableSlot *temp_slot_1;
 	TupleTableSlot *temp_slot_2;
+
+	/*
+	 * Most executor nodes in GPDB don't support SRFs in target lists, the
+	 * planner tries to insulate them from SRFs by adding Result nodes. But
+	 * WindowAgg needs to handle them, because a Result can't evaluate
+	 * WindowFunc, which an WindowAgg's target list usually has.
+	 * This is the same logic as for AggState.
+	 */
+	bool		ps_TupFromTlist;
 } WindowAggState;
 
 /* ----------------
