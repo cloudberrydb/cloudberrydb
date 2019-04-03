@@ -45,17 +45,13 @@ void
 test_parseGPHDUri_ValidURI(void **state)
 {
 	GPHDUri    *parsed = parseGPHDUri(uri);
-	StringInfoData port;
-
-	initStringInfo(&port);
-	appendStringInfo(&port, "%d", PxfDefaultPort);
 
 	assert_true(parsed != NULL);
 	assert_string_equal(parsed->uri, uri);
 
 	assert_string_equal(parsed->protocol, "pxf");
-	assert_string_equal(parsed->host, PxfDefaultHost);
-	assert_string_equal(parsed->port, pstrdup(port.data));
+	assert_string_equal(parsed->host, PXF_DEFAULT_HOST);
+	assert_string_equal(parsed->port, psprintf("%d", PXF_DEFAULT_PORT));
 	assert_string_equal(parsed->data, "some/path/and/table.tbl");
 
 	List	   *options = parsed->options;
