@@ -164,7 +164,10 @@ class GpRecoversegTestCase(GpTestCase):
         self.return_one = False
 
         with self.assertRaises(SystemExit):
-            self.subject.run()
+            # XXX Disable live FTS probes. The fact that we have to do this
+            # indicates that these are not really unit tests.
+            with patch.object(self.subject, 'trigger_fts_probe'):
+                self.subject.run()
 
         self.subject.logger.info.assert_any_call('No checksum validation necessary when '
                                                  'there are no segments to recover.')
@@ -257,7 +260,10 @@ class GpRecoversegTestCase(GpTestCase):
         self.mock_build_mirrors.return_value = True
 
         with self.assertRaises(SystemExit) as cm:
-            self.subject.run()
+            # XXX Disable live FTS probes. The fact that we have to do this
+            # indicates that these are not really unit tests.
+            with patch.object(self.subject, 'trigger_fts_probe'):
+                self.subject.run()
 
         self.assertEqual(cm.exception.code, 0)
 
