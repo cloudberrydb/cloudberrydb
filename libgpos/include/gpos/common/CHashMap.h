@@ -184,7 +184,7 @@ namespace gpos
 		public:
 		
 			// ctor
-			CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> (IMemoryPool *mp, ULONG num_chains = 128)
+			CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> (IMemoryPool *mp, ULONG num_chains = 127)
             :
             m_mp(mp),
             m_num_chains(num_chains),

@@ -172,7 +172,7 @@ namespace gpos
 		public:
 
 			// ctor
-			CHashSet<T, HashFn, EqFn, CleanupFn> (IMemoryPool *mp, ULONG size = 128)
+			CHashSet<T, HashFn, EqFn, CleanupFn> (IMemoryPool *mp, ULONG size = 127)
             :
             m_mp(mp),
             m_num_chains(size),
