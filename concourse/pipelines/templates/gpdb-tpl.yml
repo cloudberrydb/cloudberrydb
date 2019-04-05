@@ -1,11 +1,3 @@
-
-{% set gppkg_additional_task = "
-        - task: setup_gppkg_second_install
-          file: gpdb_src/concourse/tasks/gppkg_behave.yml
-          params:
-            SECOND_BINARY_INSTALL_LOCATION: /tmp/gppkg_migrate"
-%}
-
 {% set CLI_BEHAVE_TESTS = [
                       {'name': 'gpmovemirrors',
                        'use_concourse_cluster': true,
@@ -13,8 +5,7 @@
                       {'name': 'gpcheck',
                        'use_concourse_cluster': false},
                       {'name': 'gppkg',
-                       'use_concourse_cluster': true,
-                       'additional_tasks': gppkg_additional_task},
+                       'use_concourse_cluster': true},
                       {'name': 'analyzedb',
                        'use_concourse_cluster': false},
                       {'name': 'gpinitsystem',
@@ -1744,7 +1735,6 @@ jobs:
             <<: *ccp_gen_cluster_default_params
         - task: gpinitsystem
           file: ccp_src/ci/tasks/gpinitsystem.yml
-        [[ test.additional_tasks ]]
         - task: [[ test.name ]]_concourse_cluster_tests
           file: gpdb_src/concourse/tasks/run_behave.yml
           image: ccp-image

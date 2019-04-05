@@ -1948,6 +1948,47 @@ def impl(context, gppkg_name):
 def impl(context, gppkg_name):
     _remove_gppkg_from_host(context, gppkg_name, is_master_host=True)
 
+
+@given('a gphome copy is created at {location} on all hosts')
+def impl(context, location):
+    """
+    Copies the contents of GPHOME from the local machine into a different
+    directory location for all hosts in the cluster.
+    """
+    gphome = os.environ["GPHOME"]
+    greenplum_path = path.join(gphome, 'greenplum_path.sh')
+
+    # First replace the GPHOME envvar in greenplum_path.sh.
+    subprocess.check_call([
+        'sed',
+        '-i.bak', # we use this backup later
+        '-e', r's|^GPHOME=.*$|GPHOME={}|'.format(location),
+        greenplum_path,
+    ])
+
+    try:
+        # Now copy all the files over.
+        hosts = set(get_all_hostnames_as_list(context, 'template1'))
+
+        host_opts = []
+        for host in hosts:
+            host_opts.extend(['-h', host])
+
+        subprocess.check_call([
+            'gpscp',
+            '-rv',
+            ] + host_opts + [
+            os.getenv('GPHOME'),
+            '=:{}'.format(location),
+        ])
+
+    finally:
+        # Put greenplum_path.sh back the way it was.
+        subprocess.check_call([
+            'mv', '{}.bak'.format(greenplum_path), greenplum_path
+        ])
+
+
 @then('gpAdminLogs directory has no "{expected_file}" files')
 def impl(context, expected_file):
     log_dir = _get_gpAdminLogs_directory()
