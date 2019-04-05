@@ -6,15 +6,33 @@ CWDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "${CWDIR}/common.bash"
 
 function gen_env(){
-  cat > /opt/run_test.sh <<-EOF
+    cat > /opt/run_test.sh <<-EOF
+		set -x
+
+		# virtualenv 16.0 and greater does not support python2.6, which is
+		# used on centos6
+		pip install --user virtualenv~=15.0
+		export PATH=\$PATH:~/.local/bin
+
+		# create virtualenv before sourcing greenplum_path since greenplum_path
+		# modifies PYTHONHOME and PYTHONPATH
+		LD_LIBRARY_PATH=/usr/local/greenplum-db-devel/ext/python/lib/ \
+		    virtualenv \
+		    --python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
+
+		# activate virtualenv after sourcing greenplum_path, so that virtualenv
+		# takes precedence
+		source /usr/local/greenplum-db-devel/greenplum_path.sh
+		source /tmp/venv/bin/activate
+
+		cd "\${1}/gpdb_src/gpAux"
+		source gpdemo/gpdemo-env.sh
+
+		cd "\${1}/gpdb_src/gpMgmt/"
+		pip install -r requirements-dev.txt
 
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
 		BEHAVE_FLAGS="${BEHAVE_FLAGS}"
-
-		source /usr/local/greenplum-db-devel/greenplum_path.sh
-		cd "\${1}/gpdb_src/gpAux"
-		source gpdemo/gpdemo-env.sh
-		cd "\${1}/gpdb_src/gpMgmt/"
 		if [ ! -z "\${BEHAVE_TAGS}" ]; then
 		    make -f Makefile.behave behave tags=\${BEHAVE_TAGS}
 		else
@@ -22,7 +40,7 @@ function gen_env(){
 		fi
 	EOF
 
-	chmod a+x /opt/run_test.sh
+    chmod a+x /opt/run_test.sh
 }
 
 function gpcheck_setup() {
@@ -69,7 +87,9 @@ function _main() {
     time install_gpdb
     time ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash
 
-    time make_cluster
+    # Run inside a subshell so it does not pollute the environment after
+    # sourcing greenplum_path
+    time (make_cluster)
 
     time gen_env
 
