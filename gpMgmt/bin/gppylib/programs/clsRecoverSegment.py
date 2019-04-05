@@ -20,9 +20,6 @@ from gppylib.mainUtils import *
 
 from optparse import OptionGroup
 import os, sys, signal, time
-
-from pygresql import pg
-
 from gppylib import gparray, gplog, userinput, utils
 from gppylib.util import gp_utils
 from gppylib.commands import gp, pg, unix
@@ -663,13 +660,8 @@ class GpRecoverSegmentProgram:
     def trigger_fts_probe(self, port=0):
         self.logger.info('Triggering FTS probe')
         with dbconn.connect(dbconn.DbURL(port=port)) as conn:
-            db = pg.DB(conn)
-
-            # XXX Perform two probe scans in a row, to work around a known
-            # race where gp_request_fts_probe_scan() can return early during the
-            # first call. Remove this duplication once that race is fixed.
-            for _ in range(2):
-                db.query("SELECT gp_request_fts_probe_scan()")
+            res = dbconn.execSQL(conn, "SELECT gp_request_fts_probe_scan()")
+        return res.fetchall()
 
     def validate_heap_checksum_consistency(self, gpArray, mirrorBuilder):
         live_segments = [target.getLiveSegment() for target in mirrorBuilder.getMirrorsToBuild()]
