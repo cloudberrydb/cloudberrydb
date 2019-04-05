@@ -70,6 +70,7 @@ groups:
   - icw_planner_ictcp_centos6
 {% endif %}
 {% if "centos6" in os_types and "CLI" in test_sections %}
+  - gpexpand
   - pg_upgrade
 {% endif %}
 {% if "centos7" in os_types %}
@@ -122,7 +123,6 @@ groups:
 {% for test in CLI_BEHAVE_TESTS %}
   - [[ test.name ]]
 {% endfor %}
-  - gpexpand
   - check_centos
 {% endif %}
 {% if "AA" in test_sections %}
@@ -285,10 +285,10 @@ groups:
 {% for test in CLI_BEHAVE_TESTS %}
   - [[ test.name ]]
 {% endfor %}
-  - gpexpand
   - check_centos
   - compile_gpdb_centos6
 {% if "centos6" in os_types and "ICW" in test_sections %}
+  - gpexpand
   - pg_upgrade
 {% endif %}
 
