@@ -50,6 +50,7 @@ RUN apt-get update -y && \
     ssh \
     sudo \
     time \
+    unzip \
     vim \
     wget \
     zlib1g-dev && \
