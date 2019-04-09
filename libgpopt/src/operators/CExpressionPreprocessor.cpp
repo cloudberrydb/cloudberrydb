@@ -1107,7 +1107,8 @@ CExpressionPreprocessor::PexprOuterJoinToInnerJoin
 	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 }
 
-// generate equality predicates between the columns in the given set,
+// generate n*(n-1)/2 equality predicates, up to GPOPT_MAX_DERIVED_PREDS, between
+// the n columns in the given equivalence class (set),
 CExpression *
 CExpressionPreprocessor::PexprConjEqualityPredicates
 	(
@@ -1737,7 +1738,7 @@ CExpressionPreprocessor::AddPredsToCTEProducers
 	phm->Release();
 }
 
-// derive constraints on given expression, and add new predicates by implication
+// derive constraints on given expression tree, and add new predicates by implication
 CExpression *
 CExpressionPreprocessor::PexprAddPredicatesFromConstraints
 	(
@@ -1745,15 +1746,24 @@ CExpressionPreprocessor::PexprAddPredicatesFromConstraints
 	CExpression *pexpr
 	)
 {
-	// generate additional predicates from constraint properties
+	// normalize the tree, push down predicates (since we infer predicates bottom-up,
+	// we want the predicates/constraints to be at the lowest possible point in the tree)
+	CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexpr);
+
+	// walk the tree and generate additional predicates from constraint properties
+	// based on equivalence classes, e.g. constraint a=1 and equiv class {a,b} adds pred b=1
 	CColRefSet *pcrsProcessed = GPOS_NEW(mp) CColRefSet(mp);
-	CExpression *pexprConstraints = PexprFromConstraints(mp, pexpr, pcrsProcessed);
+	CExpression *pexprConstraints = PexprFromConstraints(mp, pexprNormalized, pcrsProcessed);
 	GPOS_CHECK_ABORT;
+	pexprNormalized->Release();
 	pcrsProcessed->Release();
 
-	// generate equality predicates for columns in equivalence classes
+	// walk the tree again and generate equality predicates for columns in
+	// equivalence classes, e.g. {cr1,cr2,cr3} results in cr1=cr2 and cr1=cr3 and cr2=cr3
 	pcrsProcessed = GPOS_NEW(mp) CColRefSet(mp);
 	CExpression *pexprAddEqualityPreds = PexprAddEqualityPreds(mp, pexprConstraints, pcrsProcessed);
+
+	// normalize the tree, push down predicates
 	CExpression *pexprEqualityNormalized = CNormalizer::PexprNormalize(mp, pexprAddEqualityPreds);
 	GPOS_CHECK_ABORT;
 	pcrsProcessed->Release();
