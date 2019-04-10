@@ -43,6 +43,7 @@
 #include "utils/syscache.h"
 
 #include "libpq-fe.h"
+#include "foreign/fdwapi.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbvars.h"
@@ -463,6 +464,27 @@ pg_relation_size(PG_FUNCTION_ARGS)
 	 */
 	if (rel == NULL)
 		PG_RETURN_NULL();
+
+	if(RelationIsForeign(rel))
+	{
+		FdwRoutine *fdwroutine;
+		bool        ok = false;
+
+		fdwroutine = GetFdwRoutineForRelation(rel, false);
+
+		if (fdwroutine->GetRelationSize != NULL)
+			ok = fdwroutine->GetRelationSize(rel, &size);
+
+		if (!ok)
+			ereport(WARNING,
+					(errmsg("skipping \"%s\" --- cannot calculate this foreign table size",
+							RelationGetRelationName(rel))));
+
+		relation_close(rel, AccessShareLock);
+
+		PG_RETURN_INT64(size);
+
+	}
 
 	forkNumber = forkname_to_number(text_to_cstring(forkName));
 
