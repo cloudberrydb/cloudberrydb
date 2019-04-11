@@ -43,7 +43,7 @@ def replacePlanSize(filename, actual, expected):
     with open(filename, 'w') as fp:
         fp.write(filedata)
 
-def replaceTextBetween(filename, innerContent):
+def replacePlanInFile(filename, innerContent):
     with open(filename, "r") as fp:
         filedata = fp.read()
     filedata = re.sub('    <dxl:Plan.*</dxl:Plan>\n',innerContent,filedata,flags=re.DOTALL)
@@ -54,43 +54,50 @@ def replaceTextBetween(filename, innerContent):
 def processLogFile(logFileLines):
     current_file =""
     read_plan = 0
-    buffer_string = ""
+    actual_plan = ""
     errorfile = ""
     actualSize = 0
 
-    for lines in logFileLines:
-        fileNameMatch = re.match(r'.*../data/dxl/minidump/*.', lines)
-        actualPlanMatch = re.match(r'Actual:', lines)
-        planBegin = re.match(r'.*<dxl:Plan*.', lines)
-        planEnd = re.match(r'.*</dxl:Plan>*.', lines)
-        actualSizeMatch = re.search(r'Actual size:', lines)
-        expectedSizeMatch = re.search(r'Expected size:', lines)
-        errorLogMatch = re.search(r',ERROR,', lines)
-        failureMatch = re.search(r'[*][*][*] FAILED [*][*][*]', lines)
+    for line in logFileLines:
+        fileNameMatch = re.match(r'.*../data/dxl/minidump/*.', line)
+        actualPlanMatch = re.match(r'Actual:', line)
+        planBegin = re.match(r'.*<dxl:Plan*.', line)
+        planEnd = re.match(r'.*</dxl:Plan>*.', line)
+        actualSizeMatch = re.search(r'Actual size:', line)
+        expectedSizeMatch = re.search(r'Expected size:', line)
+        errorLogMatch = re.search(r',ERROR,', line)
+        failureMatch = re.search(r'[*][*][*] FAILED [*][*][*]', line)
 
         if fileNameMatch:
-            current_file = lines.split()[-1]
+            current_file = line.split()[-1]
             current_file = current_file.split('\"')[0]
+            if read_plan > 0:
+                print "Log file contains partial plans for %, please update this file by hand" % (current_file)
+                read_plan = 0
         elif actualPlanMatch:
             read_plan = 1
+            actual_plan = ""
         elif planBegin and read_plan == 1:
-            buffer_string = buffer_string + "    " + lines
+            actual_plan = actual_plan + "    " + line
             read_plan = 2
         elif planEnd and read_plan > 1:
             read_plan = 0
-            buffer_string = buffer_string + "    " + lines
+            actual_plan = actual_plan + "    " + line
             if not dryrun:
-                replaceTextBetween(current_file, buffer_string )
+                replacePlanInFile(current_file, actual_plan )
                 print "Changed query plan in %s \n" % (current_file)
             else:
                 print "Query plan is different in %s \n" % (current_file)
-            buffer_string = ""
         elif read_plan > 1:
-            buffer_string = buffer_string + "    " + lines
+            actual_plan = actual_plan + "    " + line
+            if re.search(r',TRACE,', line):
+                # we reached the end of the plan section without finding the end plan tag
+                print "Log file contains partial plans for %s, please update this file by hand" % (current_file)
+                read_plan = 0
         elif actualSizeMatch:
-            actualSize = re.search('Actual size: (\d+)', lines).group(1)
+            actualSize = re.search('Actual size: (\d+)', line).group(1)
         elif expectedSizeMatch:
-            expectedSize = re.search('Expected size: (\d+)', lines).group(1)
+            expectedSize = re.search('Expected size: (\d+)', line).group(1)
             if not dryrun:
                 replacePlanSize(current_file, actualSize, expectedSize)
                 print "Changed plan size in %s \n" % (current_file)
@@ -98,9 +105,9 @@ def processLogFile(logFileLines):
                 print "Plan size is different in %s \n" % (current_file)
             failureMatch = 0
         elif errorLogMatch:
-            print "Error in file %s: %s" % (current_file, lines)
+            print "Error in file %s: %s" % (current_file, line)
         elif failureMatch:
-            if not re.search(r'Plan [a-z ]*comparison', lines) and not re.search(r'Unittest', lines):
+            if not re.search(r'Plan [a-z ]*comparison', line) and not re.search(r'Unittest', line):
                 if errorfile != current_file:
                     print "File %s failed for some other reason\n" % (current_file)
                     errorfile = current_file
