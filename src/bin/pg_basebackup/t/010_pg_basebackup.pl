@@ -106,7 +106,7 @@ SKIP: {
 			{
 				-l "$tempdir/backup1/pg_tblspc/$_"
 				  and readlink "$tempdir/backup1/pg_tblspc/$_" eq
-				  "$tempdir/tbackup/tblspc1"
+				  "$tempdir/tbackup/tblspc1/1"
 			  } readdir($dh)),
 		"tablespace symlink was updated");
 	closedir $dh;
