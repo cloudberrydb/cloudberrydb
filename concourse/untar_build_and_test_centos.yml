@@ -15,8 +15,13 @@ caches:
 outputs:
   - name: build_and_test
   - name: package_tarball
-run:
-  path: orca_main_src/concourse/untar_build_and_test.py
 params:
-  build_type:
-  outputDirectory:
+  BUILD_TYPE:
+  OUTPUT_DIR:
+  SKIP_TESTS:
+run:
+  path: sh 
+  args:
+  - -exc
+  - |
+    orca_main_src/concourse/untar_build_and_test.py ${BUILD_TYPE} ${OUTPUT_DIR} ${SKIP_TESTS} bin_xerces_centos5

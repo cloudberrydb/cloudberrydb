@@ -186,8 +186,9 @@ jobs:
   - task: untar_build_and_test_release
     file: orca_main_src/concourse/untar_build_and_test_centos.yml
     params:
-      build_type: RelWithDebInfo
-      outputDirectory: build_and_test/install
+      BUILD_TYPE: --build_type=RelWithDebInfo
+      OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: --skiptests
   - put: bin_orca_centos5_release
     params:
       from: package_tarball/bin_orca_centos5_release.tar.gz
@@ -263,6 +264,7 @@ jobs:
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: --skiptests
   - task: package_tarball_release
     file: orca_main_src/concourse/package_tarball_centos.yml
     params:

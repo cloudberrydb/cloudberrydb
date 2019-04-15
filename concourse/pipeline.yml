@@ -258,6 +258,7 @@ jobs:
     params:
       BUILD_TYPE: --build_type=RelWithDebInfo
       OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: ''
   - task: package_tarball_release
     file: orca_src/concourse/package_tarball_centos.yml
     params:
@@ -282,6 +283,7 @@ jobs:
     params:
       BUILD_TYPE: --build_type=DEBUG
       OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: ''
   - task: package_tarball_debug
     image: centos5-build
     file: orca_src/concourse/package_tarball_centos.yml

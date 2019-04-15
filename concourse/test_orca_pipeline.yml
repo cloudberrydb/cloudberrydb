@@ -135,8 +135,9 @@ jobs:
   - task: untar_build_and_test_release
     file: orca_main_src/concourse/untar_build_and_test_centos.yml
     params:
-      build_type: RelWithDebInfo
-      outputDirectory: build_and_test
+      BUILD_TYPE: --build_type=RelWithDebInfo
+      OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: ''
   - put: bin_orca_centos5_release
     params:
       from: package_tarball/bin_orca_centos5_release.tar.gz
@@ -161,8 +162,9 @@ jobs:
   - task: untar_build_and_test_debug
     file: orca_main_src/concourse/untar_build_and_test_centos.yml
     params:
-      build_type: DEBUG
-      outputDirectory: build_and_test
+      BUILD_TYPE: --build_type=DEBUG
+      OUTPUT_DIR: --output_dir=build_and_test/install
+      SKIP_TESTS: ''
   - aggregate:
     - put: bin_orca_centos5_debug
       params:
@@ -260,7 +262,7 @@ jobs:
       - put: regression_out
         params:
           file: icg_output/regression.out
-    timeout: 90m
+    timeout: 180m
 - name: gpdb_icg_with_planner
   max_in_flight: 1
   plan:
@@ -305,4 +307,4 @@ jobs:
       - put: regression_out
         params:
           file: icg_output/regression.out
-    timeout: 90m
+    timeout: 180m

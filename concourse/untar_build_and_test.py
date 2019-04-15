@@ -3,9 +3,10 @@ import subprocess
 import os
 import sys
 
-outputDirectory = os.environ['outputDirectory']
-build_type = os.environ['build_type']
-if build_type == 'DEBUG':
+BUILD_TYPE=os.environ['BUILD_TYPE']
+OUTPUT_DIR=os.environ['OUTPUT_DIR']
+SKIP_TESTS=os.environ['SKIP_TESTS']
+if 'DEBUG' in BUILD_TYPE:
     path_identifier = 'debug'
 else:
     path_identifier = 'release'
@@ -18,7 +19,9 @@ def exec_command(cmd):
 
 untar_orca_cmd = "mkdir -p orca_src && tar -xf orca_tarball/orca_src.tar.gz -C orca_src --strip 1"
 exec_command(untar_orca_cmd)
-build_and_test_orca_cmd = "orca_main_src/concourse/build_and_test.py --build_type={0} --output_dir={1}/install bin_xerces_centos5".format(build_type, outputDirectory)
+build_and_test_orca_cmd = "orca_main_src/concourse/build_and_test.py {0} {1} {2} bin_xerces_centos5".format(BUILD_TYPE, OUTPUT_DIR, SKIP_TESTS)
 exec_command(build_and_test_orca_cmd)
-package_tarball_cmd = "env dst_tarball=package_tarball/bin_orca_centos5_{0}.tar.gz src_root={1}/install orca_main_src/concourse/package_tarball.bash".format(path_identifier, outputDirectory)
+
+SRC_DIR=OUTPUT_DIR.split('=')[1]
+package_tarball_cmd = "env dst_tarball=package_tarball/bin_orca_centos5_{0}.tar.gz src_root={1} orca_main_src/concourse/package_tarball.bash".format(path_identifier, SRC_DIR)
 exec_command(package_tarball_cmd)
