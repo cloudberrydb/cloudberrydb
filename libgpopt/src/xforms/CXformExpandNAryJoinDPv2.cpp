@@ -1,9 +1,9 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2013 EMC Corp.
+// Greenplum Database
+// Copyright (C) 2019 Pivotal Inc.
 //
 //	@filename:
-//		CXformExpandNAryJoinDP.cpp
+//		CXformExpandNAryJoinDPv2.cpp
 //
 //	@doc:
 //		Implementation of n-ary join expansion using dynamic programming
@@ -17,9 +17,9 @@
 #include "gpopt/operators/ops.h"
 #include "gpopt/operators/CNormalizer.h"
 #include "gpopt/operators/CPredicateUtils.h"
-#include "gpopt/xforms/CXformExpandNAryJoinDP.h"
+#include "gpopt/xforms/CXformExpandNAryJoinDPv2.h"
 #include "gpopt/xforms/CXformUtils.h"
-#include "gpopt/xforms/CJoinOrderDP.h"
+#include "gpopt/xforms/CJoinOrderDPv2.h"
 
 
 
@@ -28,13 +28,13 @@ using namespace gpopt;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformExpandNAryJoinDP::CXformExpandNAryJoinDP
+//		CXformExpandNAryJoinDPv2::CXformExpandNAryJoinDPv2
 //
 //	@doc:
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CXformExpandNAryJoinDP::CXformExpandNAryJoinDP
+CXformExpandNAryJoinDPv2::CXformExpandNAryJoinDPv2
 	(
 	IMemoryPool *mp
 	)
@@ -55,14 +55,14 @@ CXformExpandNAryJoinDP::CXformExpandNAryJoinDP
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformExpandNAryJoinDP::Exfp
+//		CXformExpandNAryJoinDPv2::Exfp
 //
 //	@doc:
 //		Compute xform promise for a given expression handle
 //
 //---------------------------------------------------------------------------
 CXform::EXformPromise
-CXformExpandNAryJoinDP::Exfp
+CXformExpandNAryJoinDPv2::Exfp
 	(
 	CExpressionHandle &exprhdl
 	)
@@ -88,7 +88,7 @@ CXformExpandNAryJoinDP::Exfp
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformExpandNAryJoinDP::Transform
+//		CXformExpandNAryJoinDPv2::Transform
 //
 //	@doc:
 //		Actual transformation of n-ary join to cluster of inner joins using
@@ -96,7 +96,7 @@ CXformExpandNAryJoinDP::Exfp
 //
 //---------------------------------------------------------------------------
 void
-CXformExpandNAryJoinDP::Transform
+CXformExpandNAryJoinDPv2::Transform
 	(
 	CXformContext *pxfctxt,
 	CXformResult *pxfres,
@@ -114,6 +114,7 @@ CXformExpandNAryJoinDP::Transform
 	const ULONG arity = pexpr->Arity();
 	GPOS_ASSERT(arity >= 3);
 
+	// Make an expression array with all the one-way-join childs
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
 	for (ULONG ul = 0; ul < arity - 1; ul++)
 	{
@@ -122,31 +123,23 @@ CXformExpandNAryJoinDP::Transform
 		pdrgpexpr->Append(pexprChild);
 	}
 
+	// Make an expression array with all the join conditions, one entry for
+	// every conjunct (ANDed condition)
 	CExpression *pexprScalar = (*pexpr)[arity - 1];
 	CExpressionArray *pdrgpexprPreds = CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
 
-	// create join order using dynamic programming
-	CJoinOrderDP jodp(mp, pdrgpexpr, pdrgpexprPreds);
-	CExpression *pexprResult = jodp.PexprExpand();
+	// create join order using dynamic programming v2, record topk results in jodp
+	CJoinOrderDPv2 jodp(mp, pdrgpexpr, pdrgpexprPreds);
+	jodp.PexprExpand();
 
-	if (NULL != pexprResult)
+	// Retrieve top K join orders from jodp and add as alternatives
+	const ULONG UlTopKJoinOrders = jodp.PdrgpexprTopK()->Size();
+	for (ULONG ul = 0; ul < UlTopKJoinOrders; ul++)
 	{
-		// normalize resulting expression
-		CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexprResult);
-		pexprResult->Release();
-		pxfres->Add(pexprNormalized);
+		CExpression *pexprJoinOrder = (*jodp.PdrgpexprTopK())[ul];
+		CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexprJoinOrder);
 
-		const ULONG UlTopKJoinOrders = jodp.PdrgpexprTopK()->Size();
-		for (ULONG ul = 0; ul < UlTopKJoinOrders; ul++)
-		{
-			CExpression *pexprJoinOrder = (*jodp.PdrgpexprTopK())[ul];
-			if (pexprJoinOrder != pexprResult)
-			{
-				// We should consider normalizing this expression before inserting it, as we do for pexprResult
-				pexprJoinOrder->AddRef();
-				pxfres->Add(pexprJoinOrder);
-			}
-		}
+		pxfres->Add(pexprNormalized);
 	}
 }
 

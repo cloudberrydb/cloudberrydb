@@ -216,6 +216,7 @@ namespace gpopt
 				ExfLeftOuterJoinWithInnerSelect2IndexGetApply,
 				ExfExpandNAryJoinGreedy,
 				ExfEagerAgg,
+				ExfExpandNAryJoinDPv2,
 				ExfInvalid,
 				ExfSentinel = ExfInvalid
 			};
@@ -346,6 +347,14 @@ namespace gpopt
 			// for join order
 			static
 			CBitSet *PbsJoinOrderOnGreedyXforms(IMemoryPool *mp);
+
+			// returns a set containing xforms to use for exhaustive join order
+			static
+			CBitSet *PbsJoinOrderOnExhaustiveXforms(IMemoryPool *mp);
+
+			// returns a set containing xforms to use for exhaustive2 join order
+			static
+			CBitSet *PbsJoinOrderOnExhaustive2Xforms(IMemoryPool *mp);
 
 			// return true if xform should be applied only once.
 			// for expression of type CPatternTree, in deep trees, the number

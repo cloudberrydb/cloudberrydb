@@ -69,6 +69,7 @@
 #include "gpopt/xforms/CXformExpandNAryJoinMinCard.h"
 #include "gpopt/xforms/CXformExpandNAryJoinGreedy.h"
 #include "gpopt/xforms/CXformExpandNAryJoinDP.h"
+#include "gpopt/xforms/CXformExpandNAryJoinDPv2.h"
 #include "gpopt/xforms/CXformJoinSwap.h"
 #include "gpopt/xforms/CXformSemiJoinSemiJoinSwap.h"
 #include "gpopt/xforms/CXformSemiJoinAntiSemiJoinSwap.h"
