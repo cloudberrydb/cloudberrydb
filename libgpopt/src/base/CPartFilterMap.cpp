@@ -12,6 +12,7 @@
 #include "naucrates/statistics/IStatistics.h"
 #include "gpopt/base/CPartFilterMap.h"
 #include "gpopt/operators/CExpression.h"
+#include "gpopt/operators/CPredicateUtils.h"
 
 #ifdef GPOS_DEBUG
 #include "gpopt/base/COptCtxt.h"
@@ -304,16 +305,48 @@ CPartFilterMap::FCopyPartFilter
 	(
 	IMemoryPool *mp,
 	ULONG scan_id,
-	CPartFilterMap *ppfmSource
+	CPartFilterMap *ppfmSource,
+	CColRefSet *filter_colrefs
 	)
 {
 	GPOS_ASSERT(NULL != ppfmSource);
 	GPOS_ASSERT(this != ppfmSource);
 
 	CPartFilter *ppf = ppfmSource->m_phmulpf->Find(&scan_id);
+
 	if (NULL != ppf)
 	{
-		ppf->AddRef();
+		if (NULL != filter_colrefs)
+		{
+			// separate the conjuncts in the filter and see if we can individually push down the
+			// constraints that are semantically equivalent.
+			CExpressionArray *pushable_conjuncts = GPOS_NEW(mp) CExpressionArray(mp);
+			CExpressionArray *conjuncts = CPredicateUtils::PdrgpexprConjuncts(mp, ppf->Pexpr());
+
+			for (ULONG ul=0; ul< conjuncts->Size(); ++ul)
+			{
+				CExpression *conjunct = (*conjuncts)[ul];
+				CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(conjunct->PdpDerive())->PcrsUsed();
+				if (filter_colrefs->ContainsAll(pcrsUsed))
+				{
+					conjunct->AddRef();
+					pushable_conjuncts->Append(conjunct);
+				}
+			}
+			conjuncts->Release();
+			if (0 == pushable_conjuncts->Size())
+			{
+				pushable_conjuncts->Release();
+				return false;
+			}
+
+			CExpression *pexprPushableFilter = CPredicateUtils::PexprConjunction(mp, pushable_conjuncts);
+			ppf = GPOS_NEW(mp) CPartFilter(ppf->ScanId(), pexprPushableFilter);
+		}
+		else
+		{
+			ppf->AddRef();
+		}
 		ULONG *pulScanId = GPOS_NEW(mp) ULONG(scan_id);
 		BOOL fSuccess = m_phmulpf->Insert(pulScanId, ppf);
 		GPOS_ASSERT(fSuccess);

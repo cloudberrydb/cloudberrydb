@@ -298,7 +298,7 @@ CReqdPropPlan::PpfmCombineDerived
 	for (ULONG ul = 0; ul < ulConsumers; ul++)
 	{
 		ULONG scan_id = ppartinfo->ScanId(ul);
-		BOOL fCopied = ppfmDerived->FCopyPartFilter(mp, scan_id, prppInput->Pepp()->PpfmDerived());
+		BOOL fCopied = ppfmDerived->FCopyPartFilter(mp, scan_id, prppInput->Pepp()->PpfmDerived(), NULL);
 		if (fCopied)
 		{
 #ifdef GPOS_DEBUG
@@ -321,7 +321,7 @@ CReqdPropPlan::PpfmCombineDerived
 
 			if (!fFound)
 			{
-				BOOL fCopied = ppfmDerived->FCopyPartFilter(mp, scan_id, pdpplan->Ppfm());
+				BOOL fCopied = ppfmDerived->FCopyPartFilter(mp, scan_id, pdpplan->Ppfm(), NULL);
 				if (fCopied)
 				{
 #ifdef GPOS_DEBUG

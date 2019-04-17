@@ -331,7 +331,8 @@ namespace gpopt
 				IMemoryPool *mp,
 				CExpressionHandle &exprhdl,
 				CPartitionPropagationSpec *pppsRequired,
-				EPropogatePartConstraint eppcPropogate
+				EPropogatePartConstraint eppcPropogate,
+				CColRefSet *filter_cols
 				);
 			
 			// pass cte requirement to the child

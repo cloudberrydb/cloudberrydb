@@ -179,7 +179,9 @@ CPartTbl6Test:
 PartTbl-PredicateWithCast PartTbl-IDFList PartTbl-IDFNull
 PartTbl-PredicateWithCast PartTbl-EqPredicateWithCastRange
 PartTbl-PredicateWithCastList PartTbl-IDFWithCast
-PartTbl-PredicateWithCastMultiLevelList;
+PartTbl-PredicateWithCastMultiLevelList PartTbl-WindowFuncPredPushDown
+PartTbl-WindowFuncPartialPredPushDown PartTbl-WindowFuncNoPredPushDown
+PartTbl-WindowFuncNoDisjunctPredPushDown PartTbl-WindowFuncSinglePredPushDown;
 
 CSetop1Test:
 ValueScanWithDuplicateAndSelfComparison PushGbBelowNaryUnionAll

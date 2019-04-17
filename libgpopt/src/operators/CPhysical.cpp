@@ -943,7 +943,8 @@ CPhysical::PppsRequiredPushThruUnresolvedUnary
 	IMemoryPool *mp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
-	EPropogatePartConstraint eppcPropogate
+	EPropogatePartConstraint eppcPropogate,
+	CColRefSet *filter_colrefs
 	)
 {
 	GPOS_ASSERT(NULL != pppsRequired);
@@ -976,7 +977,7 @@ CPhysical::PppsRequiredPushThruUnresolvedUnary
 				// for some logical operators such as limit while we push the part index map, we cannot push the constraints
 				// since they are NOT semantically equivalent. So only push the constraints when the operator asks this
 				// utility function to do so
-				(void) ppfmResult->FCopyPartFilter(mp, part_idx_id, ppfmReqd);
+				(void) ppfmResult->FCopyPartFilter(mp, part_idx_id, ppfmReqd, filter_colrefs);
 			}
 		}
 	}

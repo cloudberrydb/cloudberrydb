@@ -13,6 +13,7 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CRefCount.h"
+#include "gpopt/base/CColRefSet.h"
 #include "gpos/common/CHashMap.h"
 #include "gpopt/base/CDrvdProp.h"
 
@@ -178,7 +179,7 @@ namespace gpopt
 				);
 
 			// look for given scan id in given map and, if found, copy the corresponding entry to current map
-			BOOL FCopyPartFilter(IMemoryPool *mp, ULONG scan_id, CPartFilterMap *ppfmSource);
+			BOOL FCopyPartFilter(IMemoryPool *mp, ULONG scan_id, CPartFilterMap *ppfmSource, CColRefSet *filter_colrefs);
 
 			// copy all part filters from source map to current map
 			void CopyPartFilterMap(IMemoryPool *mp, CPartFilterMap *ppfmSource);

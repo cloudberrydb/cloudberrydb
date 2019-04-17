@@ -4890,16 +4890,17 @@ CTranslatorExprToDXL::ConstructLevelFilters4PartitionSelector
 			}
 			else // list partition
 			{
+				CExpression *pexprIdent = CUtils::PexprScalarIdent(m_mp, pcrPartKey);
 				// Create a ScalarIdent expression from the partition key
 				CDXLNode *pdxlnPartKey = CTranslatorExprToDXLUtils::PdxlnListFilterPartKey
 															(
 															m_mp,
 															m_pmda,
-															CUtils::PexprScalarIdent(m_mp, pcrPartKey),
+															pexprIdent,
 															pmdidTypePartKey,
 															ulLevel
 															);
-
+				pexprIdent->Release();
 				filter_dxlnode = CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 								(
 								m_mp,

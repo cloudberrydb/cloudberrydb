@@ -53,6 +53,10 @@ CPhysicalSequenceProject::CPhysicalSequenceProject
 	GPOS_ASSERT(NULL != pdrgpwf);
 	GPOS_ASSERT(CDistributionSpec::EdtHashed == pds->Edt() ||
 			CDistributionSpec::EdtSingleton == pds->Edt());
+	// we don't create LogicalSequenceProject with equivalent hashed distribution specs at this time
+	if (CDistributionSpec::EdtHashed == pds->Edt()) {
+		GPOS_ASSERT(NULL == CDistributionSpecHashed::PdsConvert(pds)->PdshashedEquiv());
+	}
 	CreateOrderSpec(mp);
 	ComputeRequiredLocalColumns(mp);
 }
@@ -413,7 +417,23 @@ CPhysicalSequenceProject::PppsRequired
 	GPOS_ASSERT(0 == child_index);
 	GPOS_ASSERT(NULL != pppsRequired);
 
-	return CPhysical::PppsRequiredPushThruUnresolvedUnary(mp, exprhdl, pppsRequired, CPhysical::EppcAllowed);
+	// The logic here is similar to CNormalizer::FPushableThruSeqPrjChild(). We only consider the keys
+	// used in the starting hash distribution spec as we do not have the equivalent distribution spec
+	CColRefSet *pcrsPartCols;
+	if (CDistributionSpec::EdtHashed == Pds()->Edt())
+	{
+		GPOS_ASSERT(NULL == CDistributionSpecHashed::PdsConvert(Pds())->PdshashedEquiv());
+		pcrsPartCols = CUtils::PcrsExtractColumns(mp, CDistributionSpecHashed::PdsConvert(Pds())->Pdrgpexpr());
+	}
+	else
+	{
+		pcrsPartCols = GPOS_NEW(mp) CColRefSet(mp);
+	}
+
+	CPartitionPropagationSpec *spec = CPhysical::PppsRequiredPushThruUnresolvedUnary(mp, exprhdl, pppsRequired, CPhysical::EppcAllowed, pcrsPartCols);
+
+	pcrsPartCols->Release();
+	return spec;
 }
 
 //---------------------------------------------------------------------------

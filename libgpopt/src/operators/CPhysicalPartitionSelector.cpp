@@ -637,7 +637,7 @@ CPhysicalPartitionSelector::PppsRequired
 		ppartcnstr->AddRef();
 
 		ppim->Insert(scan_id, ppartcnstrmap, epim, ulExpectedPropagators, mdid, pdrgppartkeys, ppartcnstr);
-		(void) ppfm->FCopyPartFilter(m_mp, scan_id, ppfmInput);
+		(void) ppfm->FCopyPartFilter(m_mp, scan_id, ppfmInput, NULL);
 	}
 
 	// cleanup
