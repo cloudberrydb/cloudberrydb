@@ -1,7 +1,6 @@
 @gprecoverseg
 Feature: gprecoverseg tests
 
-    @skip  # tablespaces are being reworked and currently do not work with pg_rewind
     Scenario: incremental recovery works with tablespaces
         Given the database is running
           And a tablespace is created with data
@@ -19,7 +18,6 @@ Feature: gprecoverseg tests
           And the tablespace is valid
           And the other tablespace is valid
 
-    @skip  # tablespaces are being reworked and currently do not work with pg_rewind
     Scenario: full recovery works with tablespaces
         Given the database is running
           And a tablespace is created with data
@@ -228,7 +226,6 @@ Feature: gprecoverseg tests
         # validate the the new segment has the correct setting by getting admin connection to that segment
         Then the saved primary segment reports the same value for sql "show data_checksums" db "template1" as was saved
 
-    @skip  # tablespaces are being reworked and currently do not work with pg_rewind
     @concourse_cluster
     Scenario: incremental recovery works with tablespaces on a multi-host environment
         Given the database is running
@@ -247,7 +244,6 @@ Feature: gprecoverseg tests
           And the tablespace is valid
           And the other tablespace is valid
 
-    @skip  # tablespaces are being reworked and currently do not work with pg_rewind
     @concourse_cluster
     Scenario: full recovery works with tablespaces on a multi-host environment
         Given the database is running
