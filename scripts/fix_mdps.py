@@ -100,7 +100,7 @@ def processLogFile(logFileLines):
         elif errorLogMatch:
             print "Error in file %s: %s" % (current_file, lines)
         elif failureMatch:
-            if not re.search(r'.*Plan .* comparison.*', lines):
+            if not re.search(r'Plan [a-z ]*comparison', lines) and not re.search(r'Unittest', lines):
                 if errorfile != current_file:
                     print "File %s failed for some other reason\n" % (current_file)
                     errorfile = current_file

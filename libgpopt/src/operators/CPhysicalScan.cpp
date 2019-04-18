@@ -229,7 +229,9 @@ CPhysicalScan::PdsDerive
 	const
 {
 	BOOL fIndexOrBitmapScan = COperator::EopPhysicalIndexScan == Eopid() ||
-				COperator::EopPhysicalBitmapTableScan == Eopid();
+				COperator::EopPhysicalBitmapTableScan == Eopid() ||
+				COperator::EopPhysicalDynamicIndexScan == Eopid() ||
+				COperator::EopPhysicalDynamicBitmapTableScan == Eopid();
 	if (fIndexOrBitmapScan &&
 		CDistributionSpec::EdtHashed == m_pds->Edt() &&
 		exprhdl.HasOuterRefs())
