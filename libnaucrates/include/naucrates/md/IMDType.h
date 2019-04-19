@@ -110,6 +110,10 @@ namespace gpmd
 			virtual 
 			BOOL IsHashable() const = 0;
 
+			// type is merge joinable on '='
+			virtual
+			BOOL IsMergeJoinable() const = 0;
+
 			// is type redistributable
 			virtual
 			BOOL IsRedistributable() const = 0;

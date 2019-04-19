@@ -522,6 +522,7 @@ namespace gpdxl
 		EdxltokenMDType,
 		EdxltokenMDTypeRedistributable,
 		EdxltokenMDTypeHashable,
+		EdxltokenMDTypeMergeJoinable,
 		EdxltokenMDTypeComposite,
 		EdxltokenMDTypeFixedLength,
 		EdxltokenMDTypeLength,

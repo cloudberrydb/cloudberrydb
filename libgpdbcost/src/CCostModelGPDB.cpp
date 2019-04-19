@@ -93,7 +93,9 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] =
 	{COperator::EopPhysicalCorrelatedLeftSemiNLJoin, CostNLJoin},
 	{COperator::EopPhysicalCorrelatedInLeftSemiNLJoin, CostNLJoin},
 	{COperator::EopPhysicalCorrelatedLeftAntiSemiNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin, CostNLJoin}
+	{COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin, CostNLJoin},
+
+	{COperator::EopPhysicalFullMergeJoin, CostMergeJoin},
 };
 
 //---------------------------------------------------------------------------
@@ -974,6 +976,70 @@ CCostModelGPDB::CostHashJoin
 			pci->Rows() * pci->Width() * dJoinOutputTupCostUnit
 			));
 	}
+	CCost costChild = CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
+
+	return costChild + costLocal;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CCostModelGPDB::CostMergeJoin
+//
+//	@doc:
+//		Cost of merge join
+//
+//---------------------------------------------------------------------------
+CCost
+CCostModelGPDB::CostMergeJoin
+	(
+	CMemoryPool *mp,
+	CExpressionHandle &exprhdl,
+	const CCostModelGPDB *pcmgpdb,
+	const SCostingInfo *pci
+	)
+{
+	GPOS_ASSERT(NULL != pcmgpdb);
+	GPOS_ASSERT(NULL != pci);
+#ifdef GPOS_DEBUG
+	COperator::EOperatorId op_id = exprhdl.Pop()->Eopid();
+	GPOS_ASSERT(COperator::EopPhysicalFullMergeJoin == op_id);
+#endif // GPOS_DEBUG
+
+	const DOUBLE num_rows_outer = pci->PdRows()[0];
+	const DOUBLE dWidthOuter = pci->GetWidth()[0];
+	const DOUBLE dRowsInner = pci->PdRows()[1];
+	const DOUBLE dWidthInner = pci->GetWidth()[1];
+
+	const CDouble dJoinFeedingTupColumnCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpJoinFeedingTupColumnCostUnit)->Get();
+	const CDouble dJoinFeedingTupWidthCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpJoinFeedingTupWidthCostUnit)->Get();
+	const CDouble dJoinOutputTupCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpJoinOutputTupCostUnit)->Get();
+	const CDouble dFilterColCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpFilterColCostUnit)->Get();
+	const CDouble dOutputTupCostUnit = pcmgpdb->GetCostModelParams()->PcpLookup(CCostModelParamsGPDB::EcpOutputTupCostUnit)->Get();
+	GPOS_ASSERT(0 < dJoinFeedingTupColumnCostUnit);
+	GPOS_ASSERT(0 < dJoinFeedingTupWidthCostUnit);
+	GPOS_ASSERT(0 < dJoinOutputTupCostUnit);
+	GPOS_ASSERT(0 < dFilterColCostUnit);
+	GPOS_ASSERT(0 < dOutputTupCostUnit);
+
+	// get the number of columns used in join condition
+	CExpression *pexprJoinCond= exprhdl.PexprScalarChild(2);
+	CColRefSet *pcrsUsed = CDrvdPropScalar::GetDrvdScalarProps(pexprJoinCond->PdpDerive())->PcrsUsed();
+	const ULONG ulColsUsed = pcrsUsed->Size();
+
+	// We assume for costing, that the outer tuples are unique. This means that
+	// we will never have to rescan a portion of the inner side.
+	CCost costLocal = CCost(pci->NumRebinds() * (
+		// feeding cost of outer
+		ulColsUsed * num_rows_outer * dJoinFeedingTupColumnCostUnit +
+		dWidthOuter * num_rows_outer * dJoinFeedingTupWidthCostUnit +
+		// cost of matching
+		(dRowsInner + num_rows_outer) * ulColsUsed * dFilterColCostUnit +
+		// cost of extracting matched inner side
+		pci->Rows() * dWidthInner * dOutputTupCostUnit +
+		// cost of output tuples
+		pci->Rows() * pci->Width() * dJoinOutputTupCostUnit
+		));
+
 	CCost costChild = CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
 
 	return costChild + costLocal;

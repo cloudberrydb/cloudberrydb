@@ -112,7 +112,10 @@ namespace gpmd
 
 			// is type hashable
 			BOOL m_is_hashable;
-		
+
+			// is type merge joinable using '='
+			BOOL m_is_merge_joinable;
+
 			// is type composite
 			BOOL m_is_composite_type;
 
@@ -155,6 +158,7 @@ namespace gpmd
 				IMDId *pmdidSum,
 				IMDId *pmdidCount,
 				BOOL is_hashable,
+				BOOL is_merge_joinable,
 				BOOL is_composite_type,
 				IMDId *mdid_base_relation,
 				IMDId *mdid_type_array,
@@ -228,6 +232,13 @@ namespace gpmd
 			BOOL IsHashable() const
 			{
 				return m_is_hashable;
+			}
+
+			// is type merge joinable on '='
+			virtual
+			BOOL IsMergeJoinable() const
+			{
+				return m_is_merge_joinable;
 			}
 			
 			// id of the relation corresponding to a composite type

@@ -120,7 +120,7 @@ namespace gpopt
 				)
 				const
 			{
-				// rewindability of output is always true
+				// mark-restorability of output is always true
 				return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtMarkRestore, CRewindabilitySpec::EmhtNoMotion);
 			}
 

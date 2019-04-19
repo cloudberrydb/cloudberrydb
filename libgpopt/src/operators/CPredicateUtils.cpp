@@ -1164,6 +1164,42 @@ CPredicateUtils::FIdentIDFConst
 	return true;
 }
 
+// is the given expression of the form (col = col)
+BOOL
+CPredicateUtils::FEqIdentsOfSameType
+	(
+	CExpression *pexpr
+	)
+{
+	if (!CPredicateUtils::IsEqualityOp(pexpr))
+	{
+		return false;
+	}
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+
+	// left side must be scalar ident
+	if (COperator::EopScalarIdent != pexprLeft->Pop()->Eopid())
+	{
+		return false;
+	}
+
+	// right side must be a scalar ident
+	if (COperator::EopScalarIdent != pexprRight->Pop()->Eopid())
+	{
+		return false;
+	}
+
+	CScalarIdent *left_ident = CScalarIdent::PopConvert(pexprLeft->Pop());
+	CScalarIdent *right_ident = CScalarIdent::PopConvert(pexprRight->Pop());
+	if (!left_ident->MdidType()->Equals(right_ident->MdidType()))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 
 // is the given expression is of the form (col IS DISTINCT FROM const)
 // ignoring cast on either sides
@@ -2885,6 +2921,36 @@ CPredicateUtils::FBuiltInComparisonIsVeryStrict(IMDId *mdid)
 		// this operator might also qualify but unfortunately we can't be sure
 		return false;
 	}
+}
+
+BOOL
+CPredicateUtils::ExprContainsOnlyStrictComparisons(CMemoryPool *mp, CExpression *expr)
+{
+	CExpressionArray *conjuncts = PdrgpexprConjuncts(mp, expr);
+	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	BOOL result = true;
+	for (ULONG ul = 0; ul < conjuncts->Size(); ++ul)
+	{
+		CExpression *conjunct = (*conjuncts)[ul];
+		if (FComparison(conjunct))
+		{
+			CScalarCmp *pscalarCmp = CScalarCmp::PopConvert(conjunct->Pop());
+			if (!CMDAccessorUtils::FScalarOpReturnsNullOnNullInput(mda, pscalarCmp->MdIdOp()))
+			{
+				result = false;
+				break;
+			}
+		}
+		else
+		{
+			result = false;
+			break;
+		}
+	}
+
+	conjuncts->Release();
+	return result;
 }
 
 // EOF

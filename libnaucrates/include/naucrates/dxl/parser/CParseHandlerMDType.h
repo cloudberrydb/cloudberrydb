@@ -102,6 +102,9 @@ namespace gpdxl
 			// is type hashable
 			BOOL m_is_hashable;
 
+			// is type merge joinable on '='
+			BOOL m_is_merge_joinable;
+
 			// is type composite
 			BOOL m_is_composite;
 

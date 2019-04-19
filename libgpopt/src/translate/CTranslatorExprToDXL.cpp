@@ -250,6 +250,7 @@ CTranslatorExprToDXL::InitPhysicalTranslators()
 			{COperator::EopPhysicalAssert, &gpopt::CTranslatorExprToDXL::PdxlnAssert},
 			{COperator::EopPhysicalCTEProducer, &gpopt::CTranslatorExprToDXL::PdxlnCTEProducer},
 			{COperator::EopPhysicalCTEConsumer, &gpopt::CTranslatorExprToDXL::PdxlnCTEConsumer},
+			{COperator::EopPhysicalFullMergeJoin, &gpopt::CTranslatorExprToDXL::PdxlnMergeJoin},
 	};
 
 	const ULONG translators_mapping_len = GPOS_ARRAY_SIZE(rgPhysicalTranslators);
@@ -3860,6 +3861,123 @@ CTranslatorExprToDXL::PdxlnNLJoin
 #endif
 
 	return pdxlnNLJ;
+}
+
+CDXLNode *
+CTranslatorExprToDXL::PdxlnMergeJoin
+	(
+	CExpression *pexprMJ,
+	CColRefArray *colref_array,
+	CDistributionSpecArray *pdrgpdsBaseTables,
+	ULONG *pulNonGatherMotions,
+	BOOL *pfDML
+	)
+{
+	GPOS_ASSERT(NULL != pexprMJ);
+	GPOS_ASSERT(3 == pexprMJ->Arity());
+
+	// extract components
+	CPhysical *pop = CPhysical::PopConvert(pexprMJ->Pop());
+
+	CExpression *pexprOuterChild = (*pexprMJ)[0];
+	CExpression *pexprInnerChild = (*pexprMJ)[1];
+	CExpression *pexprScalar = (*pexprMJ)[2];
+
+	EdxlJoinType join_type = EdxljtSentinel;
+	switch (pop->Eopid())
+	{
+		case COperator::EopPhysicalFullMergeJoin:
+			join_type = EdxljtFull;
+			break;
+
+		default:
+			GPOS_ASSERT(!"Invalid join type");
+	}
+
+	// translate relational child expressions
+	CDXLNode *pdxlnOuterChild = CreateDXLNode(pexprOuterChild, NULL /*colref_array*/, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
+	CDXLNode *pdxlnInnerChild = CreateDXLNode(pexprInnerChild, NULL /*colref_array*/, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
+
+	CDXLNode *dxlnode_merge_conds =
+		GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarMergeCondList(m_mp));
+
+	CExpressionArray *pdrgpexprPredicates = CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprScalar);
+	const ULONG length = pdrgpexprPredicates->Size();
+	for (ULONG ul = 0; ul < length; ul++)
+	{
+		CExpression *pexprPred = (*pdrgpexprPredicates)[ul];
+		// At this point, they all better be merge joinable
+		GPOS_ASSERT(CPhysicalJoin::FMergeJoinCompatible(pexprPred, pexprOuterChild, pexprInnerChild));
+		CExpression *pexprPredOuter = (*pexprPred)[0];
+		CExpression *pexprPredInner = (*pexprPred)[1];
+
+		// align extracted columns with outer and inner children of the join
+		CColRefSet *pcrsOuterChild =
+			CDrvdPropRelational::GetRelationalProperties(pexprOuterChild->Pdp(DrvdPropArray::EptRelational))->PcrsOutput();
+		CColRefSet *pcrsPredInner = CDrvdPropScalar::GetDrvdScalarProps(pexprPredInner->PdpDerive())->PcrsUsed();
+#ifdef GPOS_DEBUG
+		CColRefSet *pcrsInnerChild =
+			CDrvdPropRelational::GetRelationalProperties(pexprInnerChild->Pdp(DrvdPropArray::EptRelational))->PcrsOutput();
+		CColRefSet *pcrsPredOuter = CDrvdPropScalar::GetDrvdScalarProps(pexprPredOuter->PdpDerive())->PcrsUsed();
+#endif
+
+		if (pcrsOuterChild->ContainsAll(pcrsPredInner))
+		{
+			GPOS_ASSERT(pcrsInnerChild->ContainsAll(pcrsPredOuter));
+			std::swap(pexprPredOuter, pexprPredInner);
+#ifdef GPOS_DEBUG
+			std::swap(pcrsPredOuter, pcrsPredInner);
+#endif
+
+			pexprPredOuter->AddRef();
+			pexprPredInner->AddRef();
+			pexprPred = CUtils::PexprScalarEqCmp(m_mp, pexprPredOuter, pexprPredInner);
+		}
+		else
+		{
+			pexprPred->AddRef();
+		}
+
+		GPOS_ASSERT(pcrsOuterChild->ContainsAll(pcrsPredOuter) && pcrsInnerChild->ContainsAll(pcrsPredInner) &&
+					"merge join keys are not aligned with children");
+
+		dxlnode_merge_conds->AddChild(PdxlnScalar(pexprPred));
+		pexprPred->Release();
+	}
+	pdrgpexprPredicates->Release();
+
+	// construct a join node
+	CDXLPhysicalMergeJoin *pdxlopMJ =
+		GPOS_NEW(m_mp) CDXLPhysicalMergeJoin(m_mp, join_type, false /* is_unique_outer */);
+
+	// construct projection list
+	// compute required columns
+	GPOS_ASSERT(NULL != pexprMJ->Prpp());
+	CColRefSet *pcrsOutput = pexprMJ->Prpp()->PcrsRequired();
+
+	CDXLNode *proj_list_dxlnode = PdxlnProjList(pcrsOutput, colref_array);
+
+	CDXLNode *pdxlnMJ = GPOS_NEW(m_mp) CDXLNode(m_mp, pdxlopMJ);
+	CDXLPhysicalProperties *dxl_properties = GetProperties(pexprMJ);
+	pdxlnMJ->SetProperties(dxl_properties);
+
+	// construct an empty plan filter and join filter
+	CDXLNode *filter_dxlnode = PdxlnFilter(NULL);
+	CDXLNode *dxlnode_join_filter = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarJoinFilter(m_mp));
+
+	// add children
+	pdxlnMJ->AddChild(proj_list_dxlnode);
+	pdxlnMJ->AddChild(filter_dxlnode);
+	pdxlnMJ->AddChild(dxlnode_join_filter);
+	pdxlnMJ->AddChild(dxlnode_merge_conds);
+	pdxlnMJ->AddChild(pdxlnOuterChild);
+	pdxlnMJ->AddChild(pdxlnInnerChild);
+
+#ifdef GPOS_DEBUG
+	pdxlnMJ->AssertValid(false /* validate_children */);
+#endif
+
+	return pdxlnMJ;
 }
 
 //---------------------------------------------------------------------------

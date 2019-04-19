@@ -184,11 +184,11 @@ namespace gpopt
 			// true if group hold scalar expressions
 			BOOL m_fScalar;
 
-			// hash join keys for outer child (only for scalar groups)
-			CExpressionArray *m_pdrgpexprHashJoinKeysOuter;
+			// join keys for outer child (only for scalar groups) (used by hash & merge joins)
+			CExpressionArray *m_pdrgpexprJoinKeysOuter;
 
-			// hash join keys for inner child (only for scalar groups)
-			CExpressionArray *m_pdrgpexprHashJoinKeysInner;
+			// join keys for inner child (only for scalar groups) (used by hash & merge joins)
+			CExpressionArray *m_pdrgpexprJoinKeysInner;
 
 			// list of group expressions
 			CList<CGroupExpression> m_listGExprs;
@@ -272,7 +272,7 @@ namespace gpopt
 			void SetState(EState estNewState);
 
 			// set hash join keys
-			void SetHashJoinKeys(CExpressionArray *pdrgpexprOuter, CExpressionArray *pdrgpexprInner);
+			void SetJoinKeys(CExpressionArray *pdrgpexprOuter, CExpressionArray *pdrgpexprInner);
 
 			// insert new group expression
 			void Insert(CGroupExpression *pgexpr);
@@ -390,16 +390,16 @@ namespace gpopt
 				return m_fScalar;
 			}
 
-			// hash join keys of outer child
-			CExpressionArray *PdrgpexprHashJoinKeysOuter() const
+			// join keys of outer child
+			CExpressionArray *PdrgpexprJoinKeysOuter() const
 			{
-				return m_pdrgpexprHashJoinKeysOuter;
+				return m_pdrgpexprJoinKeysOuter;
 			}
 
-			// hash join keys of inner child
-			CExpressionArray *PdrgpexprHashJoinKeysInner() const
+			// join keys of inner child
+			CExpressionArray *PdrgpexprJoinKeysInner() const
 			{
-				return m_pdrgpexprHashJoinKeysInner;
+				return m_pdrgpexprJoinKeysInner;
 			}
 
 			// return cached scalar expression

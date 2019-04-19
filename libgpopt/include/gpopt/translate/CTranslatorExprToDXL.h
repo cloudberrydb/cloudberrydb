@@ -288,7 +288,9 @@ namespace gpopt
 			CDXLNode *PdxlnWindow(CExpression *pexprSeqPrj, CColRefArray *colref_array, CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
 		
 			CDXLNode *PdxlnNLJoin(CExpression *pexprNLJ, CColRefArray *colref_array, CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
-			
+
+			CDXLNode *PdxlnMergeJoin(CExpression *pexprMJ, CColRefArray *colref_array, CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
+
 			CDXLNode *PdxlnHashJoin(CExpression *pexprHJ, CColRefArray *colref_array, CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
 
 			CDXLNode *PdxlnCorrelatedNLJoin(CExpression *pexprNLJ, CColRefArray *colref_array, CDistributionSpecArray *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);

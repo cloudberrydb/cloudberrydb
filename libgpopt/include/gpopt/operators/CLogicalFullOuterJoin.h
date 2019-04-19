@@ -107,7 +107,11 @@ namespace gpopt
 				)
 				const
 			{
-				// Low to prefer the stats coming from the equivalent UNION expression
+				// Disable stats derivation for CLogicalFullOuterJoin because it is
+				// currently not implemented. Instead rely on stats coming from the
+				// equivalent UNION expression (formed using ExfExpandFullOuterJoin).
+				// Also see CXformCTEAnchor2Sequence::Transform() and
+				// CXformCTEAnchor2TrivialSelect::Transform().
 				return EspLow;
 			}
 

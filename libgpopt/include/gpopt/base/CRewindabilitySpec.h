@@ -38,13 +38,14 @@ namespace gpopt
 			// From the perspective of the operator, the enum values mean the
 			// following (in required & derived contexts):
 			//
-			// 1. ErtMarRestore:
+			// 1. ErtMarkRestore:
 			//    require:
 			//      I require my child to be mark-restorable. This is required by MJ of
 			//      its inner child.
 			//    derive:
 			//      I am mark-restorable. (e.g Spool, Sort, Scan)
-			//    (NB: I cannot derive mark-restorable just because my child is mark-restorable.)
+			//    (NB: I cannot derive mark-restorable just because my child is mark-restorable.
+			//    	   However, I can derive rewindable.)
 			//
 			// 2. ErtRewindable:
 			//    require:

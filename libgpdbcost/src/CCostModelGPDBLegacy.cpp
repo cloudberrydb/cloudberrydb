@@ -80,7 +80,7 @@ const CCostModelGPDBLegacy::SCostMapping CCostModelGPDBLegacy::m_rgcm[] =
 	{COperator::EopPhysicalCorrelatedLeftSemiNLJoin, CostNLJoin},
 	{COperator::EopPhysicalCorrelatedInLeftSemiNLJoin, CostNLJoin},
 	{COperator::EopPhysicalCorrelatedLeftAntiSemiNLJoin, CostNLJoin},
-	{COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin, CostNLJoin}
+	{COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin, CostNLJoin},
 };
 
 //---------------------------------------------------------------------------

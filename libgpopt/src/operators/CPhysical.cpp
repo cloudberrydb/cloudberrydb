@@ -532,6 +532,8 @@ CPhysical::PrsDerivePassThruOuter
 {
 	CRewindabilitySpec *prs = exprhdl.Pdpplan(0 /*child_index*/)->Prs();
 
+	// I cannot derive mark-restorable just because my child is mark-restorable.
+	// However, I am rewindable.
 	if (CRewindabilitySpec::ErtMarkRestore == prs->Ert())
 	{
 		prs = GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, prs->Emht());

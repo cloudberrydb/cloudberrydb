@@ -223,6 +223,7 @@ namespace gpopt
 				EopPhysicalCorrelatedLeftAntiSemiNLJoin,
 				EopPhysicalLeftAntiSemiNLJoinNotIn,
 				EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin,
+				EopPhysicalFullMergeJoin,
 				EopPhysicalDynamicTableScan,
 				EopPhysicalSequence,
 				EopPhysicalTVF,

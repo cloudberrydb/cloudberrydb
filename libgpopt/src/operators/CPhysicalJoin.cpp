@@ -532,18 +532,67 @@ CPhysicalJoin::FHashJoinCompatible
 	IMDId *pmdidTypeOuter = CScalar::PopConvert(pexprPredOuter->Pop())->MdidType();
 	IMDId *pmdidTypeInner = CScalar::PopConvert(pexprPredInner->Pop())->MdidType();
 
-	BOOL fPredKeysSeparated = FPredKeysSeparated(pexprInner, pexprOuter,
-												 pexprPredInner, pexprPredOuter);
-
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
-	BOOL fCompatible = fPredKeysSeparated &&
-		md_accessor->RetrieveType(pmdidTypeOuter)->IsHashable() &&
-		md_accessor->RetrieveType(pmdidTypeInner)->IsHashable();
+	if (md_accessor->RetrieveType(pmdidTypeOuter)->IsHashable() &&
+		md_accessor->RetrieveType(pmdidTypeInner)->IsHashable())
+	{
+		return  FPredKeysSeparated(pexprInner, pexprOuter,
+								pexprPredInner, pexprPredOuter);
+	}
 
-	return fCompatible;
+	return false;
 }
 
+BOOL
+CPhysicalJoin::FMergeJoinCompatible
+	(
+	CExpression *pexprPred,		// predicate in question
+	CExpression *pexprOuter,	// outer child of the join
+	CExpression* pexprInner		// inner child of the join
+	)
+{
+	GPOS_ASSERT(NULL != pexprPred);
+	GPOS_ASSERT(NULL != pexprOuter);
+	GPOS_ASSERT(NULL != pexprInner);
+	GPOS_ASSERT(pexprOuter != pexprInner);
+
+	CExpression *pexprPredOuter = NULL;
+	CExpression *pexprPredInner = NULL;
+	// Only merge join between ScalarIdents of the same types is currently supported
+	if (CPredicateUtils::FEqIdentsOfSameType(pexprPred))
+	{
+		pexprPredOuter = (*pexprPred)[0];
+		pexprPredInner = (*pexprPred)[1];
+		GPOS_ASSERT(CUtils::FScalarIdent(pexprPredOuter));
+		GPOS_ASSERT(CUtils::FScalarIdent(pexprPredInner));
+	}
+	else
+	{
+		return false;
+	}
+
+	IMDId *pmdidTypeOuter = CScalar::PopConvert(pexprPredOuter->Pop())->MdidType();
+	IMDId *pmdidTypeInner = CScalar::PopConvert(pexprPredInner->Pop())->MdidType();
+
+	// MJ sends a distribution request for merge clauses on both sides, they
+	// must, therefore, be hashable and merge joinable.
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	if (md_accessor->RetrieveType(pmdidTypeOuter)->IsHashable() &&
+		md_accessor->RetrieveType(pmdidTypeInner)->IsHashable() &&
+		md_accessor->RetrieveType(pmdidTypeOuter)->IsMergeJoinable() &&
+		md_accessor->RetrieveType(pmdidTypeInner)->IsMergeJoinable())
+	{
+		return FPredKeysSeparated(pexprInner, pexprOuter,
+								  pexprPredInner, pexprPredOuter);
+	}
+
+	return false;
+}
+
+// Check for equality and INDFs in the predicates, and also aligns the expressions inner and outer keys with the predicates
+// For example foo (a int, b int) and bar (c int, d int), will need to be aligned properly if the predicate is d = a)
 void
 CPhysicalJoin::AlignJoinKeyOuterInner
 	(

@@ -85,7 +85,7 @@ CRewindabilitySpec::Matches
 //	| None        | T    | T           | T          | T           |
 //	| Rescannable | F    | M           | M          | M           |
 //	| Rewindable  | F    | F           | M          | M           |
-//  | MarkRestore | F    | F           | F          | M           |
+//	| MarkRestore | F    | F           | F          | M           |
 //	+-------------+------+-------------+------------+-------------+
 //
 //	Table 2 - Motion hazard check matrix:

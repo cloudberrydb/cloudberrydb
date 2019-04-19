@@ -189,6 +189,13 @@ namespace gpmd
 			return true;
 		}
 
+		// is type merge joinable
+		virtual
+		BOOL IsMergeJoinable() const
+		{
+			return true;
+		}
+
 		virtual 
 		IMDId *GetArrayTypeMdid() const
 		{

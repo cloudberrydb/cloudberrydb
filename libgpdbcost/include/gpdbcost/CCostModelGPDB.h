@@ -171,6 +171,10 @@ namespace gpdbcost
 			static
 			CCost CostHashJoin(CMemoryPool *mp, CExpressionHandle &exprhdl, const CCostModelGPDB *pcmgpdb, const SCostingInfo *pci);
 
+			// cost of merge join
+			static
+			CCost CostMergeJoin(CMemoryPool *mp, CExpressionHandle &exprhdl, const CCostModelGPDB *pcmgpdb, const SCostingInfo *pci);
+
 			// cost of nljoin
 			static
 			CCost CostNLJoin(CMemoryPool *mp,CExpressionHandle &exprhdl,  const CCostModelGPDB *pcmgpdb, const SCostingInfo *pci);

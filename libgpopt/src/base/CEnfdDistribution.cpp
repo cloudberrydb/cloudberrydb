@@ -100,13 +100,12 @@ CEnfdDistribution::FCompatible
 			return pds->FSatisfies(m_pds);
 
 		case EdmSubset:
-			GPOS_ASSERT(CDistributionSpec::EdtHashed == m_pds->Edt());
-			GPOS_ASSERT(CDistributionSpec::EdtHashed == pds->Edt());
-
-			return dynamic_cast<const CDistributionSpecHashed *>(pds)->FMatchSubset
-						(
-						dynamic_cast<const CDistributionSpecHashed *>(m_pds)
-						);
+			if (CDistributionSpec::EdtHashed == m_pds->Edt() &&
+				CDistributionSpec::EdtHashed == pds->Edt())
+			{
+				return CDistributionSpecHashed::PdsConvert(pds)->FMatchSubset
+						(CDistributionSpecHashed::PdsConvert(m_pds));
+			}
 
 		case (EdmSentinel):
 			GPOS_ASSERT("invalid matching type");

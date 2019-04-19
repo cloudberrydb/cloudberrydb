@@ -2530,16 +2530,10 @@ CXformUtils::PcrProjectElement
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformUtils::LookupHashJoinKeys
-//
-//	@doc:
-//		Lookup hash join keys in scalar child group
-//
-//---------------------------------------------------------------------------
+
+// Lookup join keys in scalar child group
 void
-CXformUtils::LookupHashJoinKeys
+CXformUtils::LookupJoinKeys
 	(
 	CMemoryPool *mp,
 	CExpression *pexpr,
@@ -2562,17 +2556,17 @@ CXformUtils::LookupHashJoinKeys
 	CColRefSet *pcrsInnerOutput = CDrvdPropRelational::GetRelationalProperties((*pexpr)[1]->PdpDerive())->PcrsOutput();
 
 	CGroup *pgroupScalar = pgexprScalarOrigin->Pgroup();
-	if (NULL == pgroupScalar->PdrgpexprHashJoinKeysOuter())
+	if (NULL == pgroupScalar->PdrgpexprJoinKeysOuter())
 	{
 		// hash join keys not found
 		return;
 	}
 
-	GPOS_ASSERT(NULL != pgroupScalar->PdrgpexprHashJoinKeysInner());
+	GPOS_ASSERT(NULL != pgroupScalar->PdrgpexprJoinKeysInner());
 
 	// extract used columns by hash join keys
-	CColRefSet *pcrsUsedOuter = CUtils::PcrsExtractColumns(mp, pgroupScalar->PdrgpexprHashJoinKeysOuter());
-	CColRefSet *pcrsUsedInner = CUtils::PcrsExtractColumns(mp, pgroupScalar->PdrgpexprHashJoinKeysInner());
+	CColRefSet *pcrsUsedOuter = CUtils::PcrsExtractColumns(mp, pgroupScalar->PdrgpexprJoinKeysOuter());
+	CColRefSet *pcrsUsedInner = CUtils::PcrsExtractColumns(mp, pgroupScalar->PdrgpexprJoinKeysInner());
 
 	BOOL fOuterKeysUsesOuterChild = pcrsOuterOutput->ContainsAll(pcrsUsedOuter);
 	BOOL fInnerKeysUsesInnerChild = pcrsInnerOutput->ContainsAll(pcrsUsedInner);
@@ -2584,21 +2578,21 @@ CXformUtils::LookupHashJoinKeys
 	{
 		CGroupProxy gp(pgroupScalar);
 
-		pgroupScalar->PdrgpexprHashJoinKeysOuter()->AddRef();
-		pgroupScalar->PdrgpexprHashJoinKeysInner()->AddRef();
+		pgroupScalar->PdrgpexprJoinKeysOuter()->AddRef();
+		pgroupScalar->PdrgpexprJoinKeysInner()->AddRef();
 
 		// align hash join keys with join child
 		if (fOuterKeysUsesOuterChild && fInnerKeysUsesInnerChild)
 		{
-			*ppdrgpexprOuter = pgroupScalar->PdrgpexprHashJoinKeysOuter();
-			*ppdrgpexprInner = pgroupScalar->PdrgpexprHashJoinKeysInner();
+			*ppdrgpexprOuter = pgroupScalar->PdrgpexprJoinKeysOuter();
+			*ppdrgpexprInner = pgroupScalar->PdrgpexprJoinKeysInner();
 		}
 		else
 		{
 			GPOS_ASSERT(fInnerKeysUsesOuterChild && fOuterKeysUsesInnerChild);
 
-			*ppdrgpexprOuter = pgroupScalar->PdrgpexprHashJoinKeysInner();
-			*ppdrgpexprInner = pgroupScalar->PdrgpexprHashJoinKeysOuter();
+			*ppdrgpexprOuter = pgroupScalar->PdrgpexprJoinKeysInner();
+			*ppdrgpexprInner = pgroupScalar->PdrgpexprJoinKeysOuter();
 		}
 	}
 
@@ -2607,16 +2601,9 @@ CXformUtils::LookupHashJoinKeys
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformUtils::CacheHashJoinKeys
-//
-//	@doc:
-//		Cache hash join keys on scalar child group
-//
-//---------------------------------------------------------------------------
+// Cache join keys on scalar child group
 void
-CXformUtils::CacheHashJoinKeys
+CXformUtils::CacheJoinKeys
 	(
 	CExpression *pexpr,
 	CExpressionArray *pdrgpexprOuter,
@@ -2633,7 +2620,7 @@ CXformUtils::CacheHashJoinKeys
 
 		{	// scope of group proxy
 			CGroupProxy gp(pgroupScalar);
-			gp.SetHashJoinKeys(pdrgpexprOuter, pdrgpexprInner);
+			gp.SetJoinKeys(pdrgpexprOuter, pdrgpexprInner);
 		}
 	}
 }

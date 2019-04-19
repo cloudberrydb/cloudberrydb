@@ -411,7 +411,7 @@ CDistributionSpecHashed::FMatchHashedDistribution
 	GPOS_ASSERT(NULL != pdshashed);
 
 	if (m_pdrgpexpr->Size() != pdshashed->m_pdrgpexpr->Size() ||
-		FNullsColocated() != pdshashed->FNullsColocated() ||
+		!FNullsColocatedCompatible(pdshashed) ||
 		IsDuplicateSensitive() != pdshashed->IsDuplicateSensitive())
 	{
 		return false;

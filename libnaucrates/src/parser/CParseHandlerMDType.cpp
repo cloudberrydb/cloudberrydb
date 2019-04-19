@@ -165,6 +165,15 @@ CParseHandlerMDType::StartElement
 										EdxltokenMDType
 										);
 
+			// parse if type is merge joinable
+			m_is_merge_joinable = CDXLOperatorFactory::ExtractConvertAttrValueToBool
+										(
+										m_parse_handler_mgr->GetDXLMemoryManager(),
+										attrs,
+										EdxltokenMDTypeMergeJoinable,
+										EdxltokenMDType
+										);
+
 			// parse if type is composite
 			const XMLCh *attribute_val_xml = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenMDTypeComposite));
 			if (NULL == attribute_val_xml)
@@ -453,6 +462,7 @@ CParseHandlerMDType::EndElement
 										m_mdid_sum_op,
 										m_mdid_count_op,
 										m_is_hashable,
+										m_is_merge_joinable,
 										m_is_composite,
 										m_mdid_base_rel,
 										m_mdid_array_type,

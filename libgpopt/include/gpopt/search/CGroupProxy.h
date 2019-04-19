@@ -68,13 +68,13 @@ namespace gpopt
 			}
 
 			// set hash join keys
-			void SetHashJoinKeys
+			void SetJoinKeys
 				(
 				CExpressionArray *pdrgpexprOuter,
 				CExpressionArray *pdrgpexprInner
 				)
 			{
-				m_pgroup->SetHashJoinKeys(pdrgpexprOuter, pdrgpexprInner);
+				m_pgroup->SetJoinKeys(pdrgpexprOuter, pdrgpexprInner);
 			}
 
 			// insert group expression

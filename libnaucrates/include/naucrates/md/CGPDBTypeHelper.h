@@ -40,6 +40,7 @@ namespace gpmd
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenName), mdtype->Mdname().GetMDName());
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeRedistributable), mdtype->IsRedistributable());
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeHashable), mdtype->IsHashable());
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeMergeJoinable), mdtype->IsMergeJoinable());
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeComposite), mdtype->IsComposite());
 
                 if (mdtype->IsComposite())

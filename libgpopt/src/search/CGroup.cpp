@@ -168,8 +168,8 @@ CGroup::CGroup
 	m_mp(mp),
 	m_id(GPOPT_INVALID_GROUP_ID),
 	m_fScalar(fScalar),
-	m_pdrgpexprHashJoinKeysOuter(NULL),
-	m_pdrgpexprHashJoinKeysInner(NULL),
+	m_pdrgpexprJoinKeysOuter(NULL),
+	m_pdrgpexprJoinKeysInner(NULL),
 	m_pdp(NULL),
 	m_pstats(NULL),
 	m_pexprScalar(NULL),
@@ -217,8 +217,8 @@ CGroup::CGroup
 //---------------------------------------------------------------------------
 CGroup::~CGroup()
 {
-	CRefCount::SafeRelease(m_pdrgpexprHashJoinKeysOuter);
-	CRefCount::SafeRelease(m_pdrgpexprHashJoinKeysInner);
+	CRefCount::SafeRelease(m_pdrgpexprJoinKeysOuter);
+	CRefCount::SafeRelease(m_pdrgpexprJoinKeysInner);
 	CRefCount::SafeRelease(m_pdp);
 	CRefCount::SafeRelease(m_pexprScalar);
 	CRefCount::SafeRelease(m_pccDummy);
@@ -554,16 +554,8 @@ CGroup::SetState
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CGroup::SetHashJoinKeys
-//
-//	@doc:
-//		Set group hash join keys;
-//
-//---------------------------------------------------------------------------
 void
-CGroup::SetHashJoinKeys
+CGroup::SetJoinKeys
 	(
 	CExpressionArray *pdrgpexprOuter,
 	CExpressionArray *pdrgpexprInner
@@ -573,19 +565,19 @@ CGroup::SetHashJoinKeys
 	GPOS_ASSERT(NULL != pdrgpexprOuter);
 	GPOS_ASSERT(NULL != pdrgpexprInner);
 
-	if (NULL != m_pdrgpexprHashJoinKeysOuter)
+	if (NULL != m_pdrgpexprJoinKeysOuter)
 	{
-		GPOS_ASSERT(NULL != m_pdrgpexprHashJoinKeysInner);
+		GPOS_ASSERT(NULL != m_pdrgpexprJoinKeysInner);
 
 		// hash join keys have been already set, exit here
 		return;
 	}
 
 	pdrgpexprOuter->AddRef();
-	m_pdrgpexprHashJoinKeysOuter = pdrgpexprOuter;
+	m_pdrgpexprJoinKeysOuter = pdrgpexprOuter;
 
 	pdrgpexprInner->AddRef();
-	m_pdrgpexprHashJoinKeysInner = pdrgpexprInner;
+	m_pdrgpexprJoinKeysInner = pdrgpexprInner;
 }
 
 
@@ -1763,27 +1755,27 @@ CGroup::OsPrintGrpScalarProps
 
 	GPOS_CHECK_ABORT;
 
-	if (NULL != m_pdrgpexprHashJoinKeysOuter)
+	if (NULL != m_pdrgpexprJoinKeysOuter)
 	{
-		os << szPrefix << "Outer Hash Join Keys: " << std::endl;
+		os << szPrefix << "Outer Join Keys: " << std::endl;
 
-		const ULONG size = m_pdrgpexprHashJoinKeysOuter->Size();
+		const ULONG size = m_pdrgpexprJoinKeysOuter->Size();
 		for (ULONG ul = 0; ul < size; ul++)
 		{
-			os << szPrefix << *(*m_pdrgpexprHashJoinKeysOuter)[ul]<< std::endl;
+			os << szPrefix << *(*m_pdrgpexprJoinKeysOuter)[ul]<< std::endl;
 		}
 	}
 
 	GPOS_CHECK_ABORT;
 
-	if (NULL != m_pdrgpexprHashJoinKeysInner)
+	if (NULL != m_pdrgpexprJoinKeysInner)
 	{
-		os << szPrefix << "Inner Hash Join Keys: " << std::endl;
+		os << szPrefix << "Inner Join Keys: " << std::endl;
 
-		const ULONG size = m_pdrgpexprHashJoinKeysInner->Size();
+		const ULONG size = m_pdrgpexprJoinKeysInner->Size();
 		for (ULONG ul = 0; ul < size; ul++)
 		{
-			os << szPrefix << *(*m_pdrgpexprHashJoinKeysInner)[ul]<< std::endl;
+			os << szPrefix << *(*m_pdrgpexprJoinKeysInner)[ul]<< std::endl;
 		}
 	}
 

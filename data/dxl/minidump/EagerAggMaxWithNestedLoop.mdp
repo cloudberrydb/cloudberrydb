@@ -140,7 +140,7 @@
                 <dxl:Triggers/>
                 <dxl:CheckConstraints/>
             </dxl:Relation>
-            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsRedistributable="true" Length="1" Mdid="0.16.1.0" Name="bool" PassByValue="true">
+            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsMergeJoinable="true" IsRedistributable="true" Length="1" Mdid="0.16.1.0" Name="bool" PassByValue="true">
                 <dxl:EqualityOp Mdid="0.91.1.0"/>
                 <dxl:InequalityOp Mdid="0.85.1.0"/>
                 <dxl:LessThanOp Mdid="0.58.1.0"/>
@@ -161,7 +161,7 @@
                 <dxl:ResultType Mdid="0.23.1.0"/>
                 <dxl:OpFunc Mdid="0.156.1.0"/>
             </dxl:GPDBScalarOp>
-            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsRedistributable="true" Length="8" Mdid="0.20.1.0" Name="Int8" PassByValue="true">
+            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsMergeJoinable="true" IsRedistributable="true" Length="8" Mdid="0.20.1.0" Name="Int8" PassByValue="true">
                 <dxl:EqualityOp Mdid="0.410.1.0"/>
                 <dxl:InequalityOp Mdid="0.411.1.0"/>
                 <dxl:LessThanOp Mdid="0.412.1.0"/>
@@ -176,7 +176,7 @@
                 <dxl:SumAgg Mdid="0.2107.1.0"/>
                 <dxl:CountAgg Mdid="0.2147.1.0"/>
             </dxl:Type>
-            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsRedistributable="true" Length="4" Mdid="0.23.1.0" Name="int4" PassByValue="true">
+            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsMergeJoinable="true" IsRedistributable="true" Length="4" Mdid="0.23.1.0" Name="int4" PassByValue="true">
                 <dxl:EqualityOp Mdid="0.96.1.0"/>
                 <dxl:InequalityOp Mdid="0.518.1.0"/>
                 <dxl:LessThanOp Mdid="0.97.1.0"/>
@@ -2504,7 +2504,7 @@
                 </dxl:StatsBucket>
             </dxl:ColumnStatistics>
             <dxl:RelationStatistics EmptyRelation="false" Mdid="2.16408.1.0" Name="jazz" Rows="99028.000000"/>
-            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsRedistributable="true" Length="4" Mdid="0.26.1.0" Name="oid" PassByValue="true">
+            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsMergeJoinable="true" IsRedistributable="true" Length="4" Mdid="0.26.1.0" Name="oid" PassByValue="true">
                 <dxl:EqualityOp Mdid="0.607.1.0"/>
                 <dxl:InequalityOp Mdid="0.608.1.0"/>
                 <dxl:LessThanOp Mdid="0.609.1.0"/>
@@ -2519,7 +2519,7 @@
                 <dxl:SumAgg Mdid="0.0.0.0"/>
                 <dxl:CountAgg Mdid="0.2147.1.0"/>
             </dxl:Type>
-            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="false" IsRedistributable="true" Length="6" Mdid="0.27.1.0" Name="tid" PassByValue="false">
+            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="false" IsMergeJoinable="false" IsRedistributable="true" Length="6" Mdid="0.27.1.0" Name="tid" PassByValue="false">
                 <dxl:EqualityOp Mdid="0.387.1.0"/>
                 <dxl:InequalityOp Mdid="0.402.1.0"/>
                 <dxl:LessThanOp Mdid="0.2799.1.0"/>
@@ -2571,7 +2571,7 @@
                 <dxl:Triggers/>
                 <dxl:CheckConstraints/>
             </dxl:Relation>
-            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsRedistributable="false" Length="4" Mdid="0.29.1.0" Name="cid" PassByValue="true">
+            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsMergeJoinable="true" IsRedistributable="false" Length="4" Mdid="0.29.1.0" Name="cid" PassByValue="true">
                 <dxl:EqualityOp Mdid="0.385.1.0"/>
                 <dxl:InequalityOp Mdid="0.0.0.0"/>
                 <dxl:LessThanOp Mdid="0.0.0.0"/>
@@ -2586,7 +2586,7 @@
                 <dxl:SumAgg Mdid="0.0.0.0"/>
                 <dxl:CountAgg Mdid="0.2147.1.0"/>
             </dxl:Type>
-            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsRedistributable="false" Length="4" Mdid="0.28.1.0" Name="xid" PassByValue="true">
+            <dxl:Type IsComposite="false" IsFixedLength="true" IsHashable="true" IsMergeJoinable="true" IsRedistributable="false" Length="4" Mdid="0.28.1.0" Name="xid" PassByValue="true">
                 <dxl:EqualityOp Mdid="0.352.1.0"/>
                 <dxl:InequalityOp Mdid="0.0.0.0"/>
                 <dxl:LessThanOp Mdid="0.0.0.0"/>

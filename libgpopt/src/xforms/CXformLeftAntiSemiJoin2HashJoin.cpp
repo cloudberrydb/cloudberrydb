@@ -95,7 +95,7 @@ CXformLeftAntiSemiJoin2HashJoin::Transform
 		if (CXformUtils::FProcessGPDBAntiSemiHashJoin(pxfctxt->Pmp(), pexpr, &pexprProcessed))
 		{
 			// try again after simplifying join predicate
-			CXformUtils::ImplementHashJoin<CPhysicalLeftAntiSemiHashJoinNotIn>(pxfctxt, pxfres, pexprProcessed);
+			CXformUtils::ImplementHashJoin<CPhysicalLeftAntiSemiHashJoin>(pxfctxt, pxfres, pexprProcessed);
 			pexprProcessed->Release();
 		}
 	}
