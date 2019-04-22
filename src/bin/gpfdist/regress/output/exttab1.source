@@ -528,8 +528,8 @@ format 'text' ( delimiter '|' newline 'cr');
 create external table ext_willfail(a int)
 location('gpfdist://@hostname@:7070/exttab1/nation.tbl' )
 format 'text' ( delimiter '|' newline 'blah'); -- should fail with invalid newline.
-ERROR:  invalid value for NEWLINE (blah)
-HINT:  valid options are: 'LF', 'CRLF', 'CR'
+ERROR:  invalid value for NEWLINE "blah"
+HINT:  Valid options are: 'LF', 'CRLF' and 'CR'.
 select * from ext_newline1; -- should pass. using the correct linefeed. file has 'lf'.
  n_nationkey |     n_name     | n_regionkey |                                                     n_comment                                                      
 -------------+----------------+-------------+--------------------------------------------------------------------------------------------------------------------
