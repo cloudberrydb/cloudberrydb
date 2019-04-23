@@ -4091,19 +4091,6 @@ static int gpfdist_socket_receive(const request_t *r, void *buf, const size_t bu
 	return ( recv(r->sock, buf, buflen, 0) );
 }
 
-
-#ifdef USE_SSL
-/*
- * gpfdist_SSL_receive
- *
- * read from an SSL socket
- */
-static int gpfdist_SSL_receive(const request_t *r, void *buf, const size_t buflen)
-{
-	return ( BIO_read(r->io, buf, buflen) );
-	/* todo: add error checks here */
-}
-
 /*
  * request_shutdown_sock
  *
@@ -4120,6 +4107,18 @@ static void request_shutdown_sock(const request_t* r)
 	{
 		gprintln(r, "failed to shutdown socket, errno: %d, msg: %s", errno, strerror(errno));
 	}
+}
+
+#ifdef USE_SSL
+/*
+ * gpfdist_SSL_receive
+ *
+ * read from an SSL socket
+ */
+static int gpfdist_SSL_receive(const request_t *r, void *buf, const size_t buflen)
+{
+	return ( BIO_read(r->io, buf, buflen) );
+	/* todo: add error checks here */
 }
 
 /*
