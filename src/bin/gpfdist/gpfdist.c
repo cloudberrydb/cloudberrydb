@@ -4104,6 +4104,23 @@ static int gpfdist_SSL_receive(const request_t *r, void *buf, const size_t bufle
 	/* todo: add error checks here */
 }
 
+/*
+ * request_shutdown_sock
+ *
+ * Shutdown request socket transmission.
+ */
+static void request_shutdown_sock(const request_t* r)
+{
+	int ret = shutdown(r->sock, SHUT_WR);
+	if (ret == 0)
+	{
+		gprintlnif(r, "successfully shutdown socket");
+	}
+	else
+	{
+		gprintln(r, "failed to shutdown socket, errno: %d, msg: %s", errno, strerror(errno));
+	}
+}
 
 /*
  * free_SSL_resources
@@ -4112,12 +4129,15 @@ static int gpfdist_SSL_receive(const request_t *r, void *buf, const size_t bufle
  */
 static void free_SSL_resources(const request_t *r)
 {
-	BIO_ssl_shutdown(r->sbio);
-	BIO_vfree(r->io);
+	//send close_notify to client
+	SSL_shutdown(r->ssl);  //or BIO_ssl_shutdown(r->ssl_bio);
+
+	request_shutdown_sock(r);
+
+	BIO_vfree(r->io);  //ssl_bio is pushed to r->io list, so ssl_bio is freed too.
 	BIO_vfree(r->sbio);
 	//BIO_vfree(r->ssl_bio);
 	SSL_free(r->ssl);
-
 }
 
 
@@ -4134,7 +4154,7 @@ static void handle_ssl_error(SOCKET sock, BIO *sbio, SSL *ssl)
 		ERR_print_errors(gcb.bio_err);
 	}
 
-	BIO_ssl_shutdown(sbio);
+	SSL_shutdown(ssl);
 	SSL_free(ssl);
 }
 
@@ -4262,7 +4282,6 @@ static void do_close(int fd, short event, void *arg)
 	fflush(stdout);
 }
 
-
 /*
  * request_cleanup
  *
@@ -4270,16 +4289,7 @@ static void do_close(int fd, short event, void *arg)
  */
 static void request_cleanup(request_t *r)
 {
-	int ret = shutdown(r->sock, SHUT_WR);
-	if (ret == 0)
-	{
-		gprintlnif(r, "successfully shutdown socket");
-	}
-	else
-	{
-		gprintln(r, "failed to shutdown socket, errno: %d, msg: %s", errno, strerror(errno));
-	}
-
+	request_shutdown_sock(r);
 	setup_do_close(r);
 }
 
@@ -4307,9 +4317,9 @@ static void request_cleanup_and_free_SSL_resources(request_t *r)
 	gprintln(r, "SSL cleanup and free");
 
 	/* Clean up request resources */
-	request_cleanup(r);
+	setup_do_close(r);
 
-	/* Release SSL related memory */
+	/* Shutdown SSL gracefully and Release SSL related memory */
 	free_SSL_resources(r);
 }
 #endif
