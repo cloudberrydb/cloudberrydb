@@ -237,6 +237,8 @@ extern void GetAllTransactionXids(
 	DistributedTransactionId	*distribXid,
 	TransactionId				*localXid,
 	TransactionId				*subXid);
+extern DistributedTransactionId GetCurrentDistributedTransactionId(void);
+extern void SetCurrentDistributedTransactionId(DistributedTransactionId gxid);
 extern TransactionId GetTopTransactionId(void);
 extern TransactionId GetTopTransactionIdIfAny(void);
 extern TransactionId GetCurrentTransactionId(void);

@@ -407,7 +407,7 @@ ProcArrayEndGxact(void)
 	if (InvalidDistributedTransactionId != gxid &&
 		TransactionIdPrecedes(ShmemVariableCache->latestCompletedDxid, gxid))
 		ShmemVariableCache->latestCompletedDxid = gxid;
-	initGxact(MyTmGxact);
+	initGxact(MyTmGxact, true);
 }
 
 /*
@@ -1934,26 +1934,17 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 		DistributedTransactionId gxid;
 		DistributedTransactionId dxid;
 
+		/* Update globalXminDistributedSnapshots to be the smallest valid dxid */
+		dxid = gxact_candidate->xminDistributedSnapshot;
+		if (dxid != InvalidDistributedTransactionId && dxid < globalXminDistributedSnapshots)
+			globalXminDistributedSnapshots = dxid;
+
 		/* just fetch once */
 		gxid = gxact_candidate->gxid;
 		if (gxid == InvalidDistributedTransactionId)
 			continue;
 
-		/*
-		 * NB: We must include transactions in DTX_STATE_ACTIVE_NOT_DISTRIBUTED
-		 * state. All transactions start in that state, even if they become
-		 * distribute later on.
-		 */
-
 		Assert(gxact_candidate->state != DTX_STATE_NONE);
-
-		/* Update globalXminDistributedSnapshots to be the smallest valid dxid */
-		dxid = gxact_candidate->xminDistributedSnapshot;
-		if ((dxid != InvalidDistributedTransactionId) &&
-			dxid < globalXminDistributedSnapshots)
-		{
-			globalXminDistributedSnapshots = dxid;
-		}
 
 		/*
 		 * Include the current distributed transaction in the min/max
@@ -2012,7 +2003,7 @@ CreateDistributedSnapshot(DistributedSnapshot *ds)
 	ds->xmax = xmax;
 	ds->count = count;
 
-	if (xmin < MyTmGxact->xminDistributedSnapshot)
+	if (MyTmGxact->xminDistributedSnapshot == InvalidDistributedTransactionId)
 		MyTmGxact->xminDistributedSnapshot = xmin;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
