@@ -123,7 +123,9 @@ class FileState:
                 self.plans.append(self.curr_plan)
                 self.curr_plan = []
         elif optimizerMatch:
-            if (not re.search(' PQO ', line)):
+            # Since this script can be used on older explain logs, match both
+            # original and new ORCA names
+            if (not re.search(' PQO ', line) and not re.search(' Pivotal Optimizer ', line)):
                 if self.planning_time1 < 0:
                     self.comment1 = self.comment1 + "Fallback "
                 else:
