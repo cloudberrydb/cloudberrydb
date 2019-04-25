@@ -234,7 +234,7 @@ AlterSetting(Oid databaseid, Oid roleid, VariableSetStmt *setstmt)
 			appendStringInfo(&buffer, "ALTER DATABASE %s ",
 							 quote_identifier(dbname));
 		else
-			elog(ERROR, "ALTER without DATABASE or ROLE"); /* shouldn't happen */
+			appendStringInfo(&buffer, "ALTER ROLE ALL ");
 
 		if (setstmt->kind ==  VAR_RESET_ALL)
 			appendStringInfo(&buffer, "RESET ALL");
