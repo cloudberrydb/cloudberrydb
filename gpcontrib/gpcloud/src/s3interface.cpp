@@ -31,26 +31,13 @@ S3InterfaceService::~S3InterfaceService() {
 
 Response S3InterfaceService::getResponseWithRetries(const string &url, HTTPHeaders &headers,
                                                     uint64_t retries) {
-    string code;
     string message;
     uint64_t retry = retries;
 
     while (retry--) {
         try {
             return this->restfulService->get(url, headers);
-        } catch (S3Exception &e) {
-            if (e.getType() != "S3ConnectionError" || e.getType() != "S3LogicError") {
-                break;
-            }
-
-            code = e.getCode();
-            if (code == "NoSuchKey") {
-                sleep(1);
-                continue;
-            } else if (!code.empty()) {
-                break;
-            }
-
+        } catch (S3ConnectionError &e) {
             message = e.getMessage();
             if (S3QueryIsAbortInProgress()) {
                 S3_DIE(S3QueryAbort, "Downloading is interrupted");
