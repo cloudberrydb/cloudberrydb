@@ -3938,14 +3938,9 @@ CTranslatorExprToDXL::PdxlnHashJoin
 	// construct hash condition
 	CDXLNode *pdxlnHashCondList = GPOS_NEW(m_mp) CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarHashCondList(m_mp));
 
-	// output of outer side
-	CColRefSet *outer_refs =  CDrvdPropRelational::GetRelationalProperties(pexprOuterChild->Pdp(DrvdPropArray::EptRelational))->PcrsOutput();
-
 #ifdef GPOS_DEBUG
-	// output of inner side
-	CColRefSet *pcrsInner = CDrvdPropRelational::GetRelationalProperties(pexprInnerChild->Pdp(DrvdPropArray::EptRelational))->PcrsOutput();
 	ULONG ulHashJoinPreds = 0;
-#endif // GPOS_DEBUG
+#endif
 
 	CExpressionArray *pdrgpexprPredicates = CPredicateUtils::PdrgpexprConjuncts(m_mp, pexprScalar);
 	CExpressionArray *pdrgpexprRemainingPredicates = GPOS_NEW(m_mp) CExpressionArray(m_mp);
@@ -3955,45 +3950,29 @@ CTranslatorExprToDXL::PdxlnHashJoin
 		CExpression *pexprPred = (*pdrgpexprPredicates)[ul];
 		if (CPhysicalJoin::FHashJoinCompatible(pexprPred, pexprOuterChild, pexprInnerChild))
 		{
-			 CExpression *pexprPredOuter = NULL;
-			 CExpression *pexprPredInner = NULL;
-			 CPhysicalJoin::ExtractHashJoinExpressions(pexprPred, &pexprPredOuter, &pexprPredInner);
+			CExpression *pexprPredOuter;
+			CExpression *pexprPredInner;
+			CPhysicalJoin::AlignJoinKeyOuterInner(pexprPred, pexprOuterChild, pexprInnerChild,
+												   &pexprPredOuter, &pexprPredInner);
 
-			 // align extracted columns with outer and inner children of the join
-			 CColRefSet *pcrsPredInner = CDrvdPropScalar::GetDrvdScalarProps(pexprPredInner->PdpDerive())->PcrsUsed();
-#ifdef GPOS_DEBUG
-			 CColRefSet *pcrsPredOuter = CDrvdPropScalar::GetDrvdScalarProps(pexprPredOuter->PdpDerive())->PcrsUsed();
-#endif // GPOS_DEBUG
-			 if (outer_refs->ContainsAll(pcrsPredInner))
-			 {
-				 // extracted expressions are not aligned with join children, we need to swap them
-				 GPOS_ASSERT(pcrsInner->ContainsAll(pcrsPredOuter));
-				 std::swap(pexprPredOuter, pexprPredInner);
-#ifdef GPOS_DEBUG
-				 std::swap(pcrsPredOuter, pcrsPredInner);
-#endif
-			 }
-			 GPOS_ASSERT(outer_refs->ContainsAll(pcrsPredOuter) && pcrsInner->ContainsAll(pcrsPredInner) &&
-					 "hash join keys are not aligned with hash join children");
-
-			 pexprPredOuter->AddRef();
-			 pexprPredInner->AddRef();
-			 // create hash join predicate based on conjunct type
-			 if (CPredicateUtils::IsEqualityOp(pexprPred))
-			 {
+			pexprPredOuter->AddRef();
+			pexprPredInner->AddRef();
+			// create hash join predicate based on conjunct type
+			if (CPredicateUtils::IsEqualityOp(pexprPred))
+			{
 				pexprPred = CUtils::PexprScalarEqCmp(m_mp, pexprPredOuter, pexprPredInner);
-			 }
-			 else
-			 {
+			}
+			else
+			{
 				GPOS_ASSERT(CPredicateUtils::FINDF(pexprPred));
 				pexprPred = CUtils::PexprINDF(m_mp, pexprPredOuter, pexprPredInner);
-			 }
+			}
 
-			 CDXLNode *pdxlnPred = PdxlnScalar(pexprPred);
-			 pdxlnHashCondList->AddChild(pdxlnPred);
-			 pexprPred->Release();
+			CDXLNode *pdxlnPred = PdxlnScalar(pexprPred);
+			pdxlnHashCondList->AddChild(pdxlnPred);
+			pexprPred->Release();
 #ifdef GPOS_DEBUG
-			 ulHashJoinPreds ++;
+			 ulHashJoinPreds++;
 #endif // GPOS_DEBUG
 		}
 		else

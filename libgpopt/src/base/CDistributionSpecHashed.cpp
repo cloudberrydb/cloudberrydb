@@ -191,7 +191,9 @@ CDistributionSpecHashed::FMatchSubset
 	const ULONG ulOwnExprs = m_pdrgpexpr->Size();
 	const ULONG ulOtherExprs = pdsHashed->m_pdrgpexpr->Size();
 
-	if (ulOtherExprs < ulOwnExprs || !FNullsColocated(pdsHashed) || !FDuplicateSensitiveCompatible(pdsHashed))
+	if (ulOtherExprs < ulOwnExprs ||
+		!FNullsColocatedCompatible(pdsHashed) ||
+		!FDuplicateSensitiveCompatible(pdsHashed))
 	{
 		return false;
 	}

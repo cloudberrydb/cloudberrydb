@@ -51,7 +51,7 @@ namespace gpopt
 			// HD1 satisfies HD2 if:
 			//	* HD1 colocates NULLs or
 			//  * HD2 doesn't care about NULLs
-			BOOL FNullsColocated(const CDistributionSpecHashed *pds) const
+			BOOL FNullsColocatedCompatible(const CDistributionSpecHashed *pds) const
 			{
 				return (m_fNullsColocated || !pds->m_fNullsColocated);
 			}

@@ -227,16 +227,6 @@ namespace gpopt
 			static
 			BOOL FOuterProvidesReqdCols(CExpressionHandle &exprhdl, CColRefSet *pcrsRequired);
 
-			// helper for adding a pair of hash join keys to given arrays
-			static
-			void AddHashKeys
-				(
-				CExpression *pexprPred,
-				CExpression *pexprOuter,
-				CExpression *pexprInner,
-				CExpressionArray *pdrgpexprOuter,
-				CExpressionArray *pdrgpexprInner
-				);
 			
 			// helper to add filter on part key
 			static
@@ -266,9 +256,11 @@ namespace gpopt
 				CColRefSet *pcrsAllowedRefs
 				);
 
-			// are the given predicate parts hash-join compatible?
+			// Do each of the given predicate children use columns from a different
+			// join child?
 			static
-			BOOL FHashJoinCompatible(CExpression *pexprOuter, CExpression* pexprInner, CExpression *pexprPredOuter, CExpression *pexprPredInner);
+			BOOL FPredKeysSeparated(CExpression *pexprOuter, CExpression* pexprInner,
+									CExpression *pexprPredOuter, CExpression *pexprPredInner);
 
 		public:
 
@@ -429,24 +421,22 @@ namespace gpopt
 			static
 			BOOL FHashJoinCompatible(CExpression *pexprPred, CExpression *pexprOuter, CExpression* pexprInner);
 
-			// extract expressions that can be used in hash-join from the given predicate
-			static
-			void ExtractHashJoinExpressions(CExpression *pexprPred, CExpression **ppexprLeft, CExpression **ppexprRight);
-
-			// can expression be implemented with hash join
-			static
-			BOOL FHashJoinPossible
-				(
-				CMemoryPool *mp,
-				CExpression *pexpr,
-				CExpressionArray *pdrgpexprOuter,
-				CExpressionArray *pdrgpexprInner,
-				CExpression **ppexprResult // output: join expression to be tarnsformed to hash join
-				);
-
 			// return number of distribution requests for correlated join
 			static
 			ULONG UlDistrRequestsForCorrelatedJoin();
+
+			static
+			void AlignJoinKeyOuterInner
+				(
+				CExpression *pexprConjunct,
+				CExpression *pexprOuter,
+				CExpression *pexprInner,
+				CExpression **ppexprKeyOuter,
+				CExpression **ppexprKeyInner
+				);
+
+			static
+			CRewindabilitySpec *PrsRequiredForNLJoinOuterChild(IMemoryPool *pmp, CExpressionHandle &exprhdl, CRewindabilitySpec *prsRequired);
 
 	}; // class CPhysicalJoin
 
