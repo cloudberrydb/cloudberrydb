@@ -342,6 +342,7 @@ update_file(${mdp_tests_inl} ${mdp_tests})
 
 # Naucrates tests.
 add_orca_test(CCostTest)
+add_orca_test(CExternalTableTest)
 add_orca_test(CDatumTest)
 add_orca_test(CDXLMemoryManagerTest)
 add_orca_test(CDXLUtilsTest)

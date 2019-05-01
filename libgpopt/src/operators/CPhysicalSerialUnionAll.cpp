@@ -137,6 +137,13 @@ CPhysicalSerialUnionAll::PdsRequired
 		return GPOS_NEW(mp) CDistributionSpecReplicated();
 	}
 
+	if (CDistributionSpec::EdtExternal == pdsOuter->Edt())
+	{
+		// if the outer child delivers external spec, require inner child
+		// to provide any spec
+		return GPOS_NEW(mp) CDistributionSpecAny(this->Eopid());
+	}
+
 	// outer child is non-replicated and is distributed across segments,
 	// we need to the inner child to be distributed across segments that does
 	// not generate duplicate results. That is, inner child should not be replicated.
