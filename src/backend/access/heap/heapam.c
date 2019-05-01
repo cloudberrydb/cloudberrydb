@@ -2363,6 +2363,11 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 
 	gp_expand_protect_catalog_changes(relation);
 
+#ifdef FAULT_INJECTOR
+	FaultInjector_InjectFaultIfSet(HeapInsert, DDLNotSpecified, "",
+								   RelationGetRelationName(relation));
+#endif
+
 	/*
 	 * Fill in tuple header fields, assign an OID, and toast the tuple if
 	 * necessary.
