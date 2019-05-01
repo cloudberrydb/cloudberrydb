@@ -215,12 +215,12 @@ CXformUpdate2DML::Transform
 	}
 	// create logical DML
 	ptabdesc->AddRef();
-	pdrgpcrInsert->AddRef();
+	pdrgpcrDelete->AddRef();
 	CExpression *pexprDML =
 		GPOS_NEW(mp) CExpression
 			(
 			mp,
-			GPOS_NEW(mp) CLogicalDML(mp, CLogicalDML::EdmlUpdate, ptabdesc, pdrgpcrInsert, pbsModified, pcrAction, pcrTableOid, pcrCtid, pcrSegmentId, pcrTupleOid),
+			GPOS_NEW(mp) CLogicalDML(mp, CLogicalDML::EdmlUpdate, ptabdesc, pdrgpcrDelete, pbsModified, pcrAction, pcrTableOid, pcrCtid, pcrSegmentId, pcrTupleOid),
 			pexprProject
 			);
 	

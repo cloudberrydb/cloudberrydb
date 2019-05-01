@@ -765,7 +765,7 @@
       </dxl:LogicalUpdate>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="88">
-      <dxl:DMLUpdate Columns="0,18" ActionCol="23" OidCol="24" CtidCol="2" SegmentIdCol="8" InputSorted="false" PreserveOids="false">
+      <dxl:DMLUpdate Columns="0,1" ActionCol="23" OidCol="24" CtidCol="2" SegmentIdCol="8" InputSorted="false" PreserveOids="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="56.097656" Rows="100.000000" Width="1"/>
         </dxl:Properties>
@@ -774,8 +774,8 @@
           <dxl:ProjElem ColId="0" Alias="a">
             <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="18" Alias="b">
-            <dxl:Ident ColId="18" ColName="b" TypeMdid="0.23.1.0"/>
+          <dxl:ProjElem ColId="1" Alias="b">
+            <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:TableDescriptor Mdid="0.284632.1.1" TableName="r">
@@ -799,8 +799,8 @@
             <dxl:ProjElem ColId="0" Alias="a">
               <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="18" Alias="b">
-              <dxl:Ident ColId="18" ColName="b" TypeMdid="0.23.1.0"/>
+            <dxl:ProjElem ColId="1" Alias="b">
+              <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="2" Alias="ctid">
               <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>
@@ -825,14 +825,14 @@
               <dxl:ProjElem ColId="0" Alias="a">
                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
+              <dxl:ProjElem ColId="1" Alias="b">
+                <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
               <dxl:ProjElem ColId="2" Alias="ctid">
                 <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="8" Alias="gp_segment_id">
                 <dxl:Ident ColId="8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="18" Alias="b">
-                <dxl:Ident ColId="18" ColName="b" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="23" Alias="ColRef_0023">
                 <dxl:Ident ColId="23" ColName="ColRef_0023" TypeMdid="0.23.1.0"/>
@@ -855,8 +855,8 @@
                 <dxl:ProjElem ColId="0" Alias="a">
                   <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="18" Alias="b">
-                  <dxl:Ident ColId="18" ColName="b" TypeMdid="0.23.1.0"/>
+                <dxl:ProjElem ColId="1" Alias="b">
+                  <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="2" Alias="ctid">
                   <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>

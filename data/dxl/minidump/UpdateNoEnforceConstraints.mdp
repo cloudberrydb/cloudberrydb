@@ -239,7 +239,7 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
       </dxl:LogicalUpdate>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="2">
-      <dxl:DMLUpdate Columns="0,10,11" ActionCol="12" OidCol="13" CtidCol="3" SegmentIdCol="9" InputSorted="false" PreserveOids="false">
+      <dxl:DMLUpdate Columns="0,1,2" ActionCol="12" OidCol="13" CtidCol="3" SegmentIdCol="9" InputSorted="false" PreserveOids="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="431.088622" Rows="1.000000" Width="1"/>
         </dxl:Properties>
@@ -248,11 +248,11 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
           <dxl:ProjElem ColId="0" Alias="id">
             <dxl:Ident ColId="0" ColName="id" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="10" Alias="notnullcol">
-            <dxl:Ident ColId="10" ColName="notnullcol" TypeMdid="0.25.1.0"/>
+          <dxl:ProjElem ColId="1" Alias="notnullcol">
+            <dxl:Ident ColId="1" ColName="notnullcol" TypeMdid="0.25.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="11" Alias="positivecol">
-            <dxl:Ident ColId="11" ColName="positivecol" TypeMdid="0.23.1.0"/>
+          <dxl:ProjElem ColId="2" Alias="positivecol">
+            <dxl:Ident ColId="2" ColName="positivecol" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:TableDescriptor Mdid="0.16410.1.0" TableName="constraints_tab">
@@ -277,11 +277,11 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
             <dxl:ProjElem ColId="0" Alias="id">
               <dxl:Ident ColId="0" ColName="id" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="10" Alias="notnullcol">
-              <dxl:Ident ColId="10" ColName="notnullcol" TypeMdid="0.25.1.0"/>
+            <dxl:ProjElem ColId="1" Alias="notnullcol">
+              <dxl:Ident ColId="1" ColName="notnullcol" TypeMdid="0.25.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="11" Alias="positivecol">
-              <dxl:Ident ColId="11" ColName="positivecol" TypeMdid="0.23.1.0"/>
+            <dxl:ProjElem ColId="2" Alias="positivecol">
+              <dxl:Ident ColId="2" ColName="positivecol" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="3" Alias="ctid">
               <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>
@@ -306,11 +306,11 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
               <dxl:ProjElem ColId="0" Alias="id">
                 <dxl:Ident ColId="0" ColName="id" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="10" Alias="notnullcol">
-                <dxl:Ident ColId="10" ColName="notnullcol" TypeMdid="0.25.1.0"/>
+              <dxl:ProjElem ColId="1" Alias="notnullcol">
+                <dxl:Ident ColId="1" ColName="notnullcol" TypeMdid="0.25.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="11" Alias="positivecol">
-                <dxl:Ident ColId="11" ColName="positivecol" TypeMdid="0.23.1.0"/>
+              <dxl:ProjElem ColId="2" Alias="positivecol">
+                <dxl:Ident ColId="2" ColName="positivecol" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="3" Alias="ctid">
                 <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>

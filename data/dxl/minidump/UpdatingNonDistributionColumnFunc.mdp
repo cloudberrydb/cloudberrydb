@@ -239,7 +239,7 @@
       </dxl:LogicalUpdate>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="2">
-      <dxl:DMLUpdate Columns="0,9" ActionCol="10" OidCol="11" CtidCol="2" SegmentIdCol="8" InputSorted="false" PreserveOids="false">
+      <dxl:DMLUpdate Columns="0,1" ActionCol="10" OidCol="11" CtidCol="2" SegmentIdCol="8" InputSorted="false" PreserveOids="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="439.861379" Rows="100.000000" Width="1"/>
         </dxl:Properties>
@@ -248,8 +248,8 @@
           <dxl:ProjElem ColId="0" Alias="a">
             <dxl:Ident ColId="0" ColName="a" TypeMdid="0.1043.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="9" Alias="b">
-            <dxl:Ident ColId="9" ColName="b" TypeMdid="0.1043.1.0"/>
+          <dxl:ProjElem ColId="1" Alias="b">
+            <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1043.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:TableDescriptor Mdid="0.40973.1.0" TableName="s">
@@ -273,8 +273,8 @@
             <dxl:ProjElem ColId="0" Alias="a">
               <dxl:Ident ColId="0" ColName="a" TypeMdid="0.1043.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="9" Alias="b">
-              <dxl:Ident ColId="9" ColName="b" TypeMdid="0.1043.1.0"/>
+            <dxl:ProjElem ColId="1" Alias="b">
+              <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1043.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="2" Alias="ctid">
               <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>
@@ -299,8 +299,8 @@
               <dxl:ProjElem ColId="0" Alias="a">
                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.1043.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="9" Alias="b">
-                <dxl:Ident ColId="9" ColName="b" TypeMdid="0.1043.1.0"/>
+              <dxl:ProjElem ColId="1" Alias="b">
+                <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1043.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="2" Alias="ctid">
                 <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>
