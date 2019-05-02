@@ -851,7 +851,7 @@
     <dxl:Plan Id="0" SpaceSize="32">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1293.004076" Rows="1.000000" Width="24"/>
+          <dxl:Cost StartupCost="0" TotalCost="1293.002620" Rows="1.000000" Width="24"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="28" Alias="bookname">
@@ -868,7 +868,7 @@
         <dxl:SortingColumnList/>
         <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1293.003986" Rows="1.000000" Width="24"/>
+            <dxl:Cost StartupCost="0" TotalCost="1293.002531" Rows="1.000000" Width="24"/>
           </dxl:Properties>
           <dxl:GroupingColumns>
             <dxl:GroupingColumn ColId="28"/>
@@ -890,7 +890,7 @@
           <dxl:Filter/>
           <dxl:Sort SortDiscardDuplicates="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="1293.003958" Rows="1.000000" Width="24"/>
+              <dxl:Cost StartupCost="0" TotalCost="1293.002502" Rows="1.000000" Width="24"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="12" Alias="measurename">
@@ -912,7 +912,7 @@
             <dxl:LimitOffset/>
             <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="1293.003958" Rows="1.000000" Width="24"/>
+                <dxl:Cost StartupCost="0" TotalCost="1293.002502" Rows="1.000000" Width="24"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="12" Alias="measurename">
@@ -937,7 +937,7 @@
               </dxl:HashExprList>
               <dxl:Result>
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="1293.003920" Rows="1.000000" Width="24"/>
+                  <dxl:Cost StartupCost="0" TotalCost="1293.002465" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="12" Alias="measurename">
@@ -954,7 +954,7 @@
                 <dxl:OneTimeFilter/>
                 <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="1293.003920" Rows="1.000000" Width="24"/>
+                    <dxl:Cost StartupCost="0" TotalCost="1293.002465" Rows="1.000000" Width="24"/>
                   </dxl:Properties>
                   <dxl:GroupingColumns>
                     <dxl:GroupingColumn ColId="28"/>
@@ -976,98 +976,17 @@
                   <dxl:Filter/>
                   <dxl:Sort SortDiscardDuplicates="false">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="1293.003907" Rows="1.000000" Width="24"/>
+                      <dxl:Cost StartupCost="0" TotalCost="1293.002452" Rows="1.000000" Width="24"/>
                     </dxl:Properties>
                     <dxl:ProjList>
-                      <dxl:ProjElem ColId="0" Alias="riskrunid">
-                        <dxl:Ident ColId="0" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="1" Alias="riskrunsubid">
-                        <dxl:Ident ColId="1" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="2" Alias="businessdate">
-                        <dxl:Ident ColId="2" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="3" Alias="ticket">
-                        <dxl:Ident ColId="3" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="4" Alias="longticket">
-                        <dxl:Ident ColId="4" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="5" Alias="counterpartyid">
-                        <dxl:Ident ColId="5" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="6" Alias="entity">
-                        <dxl:Ident ColId="6" ColName="entity" TypeMdid="0.1042.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="7" Alias="tradetype">
-                        <dxl:Ident ColId="7" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="8" Alias="subtype">
-                        <dxl:Ident ColId="8" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="9" Alias="contractid">
-                        <dxl:Ident ColId="9" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="10" Alias="tradingaccount">
-                        <dxl:Ident ColId="10" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="11" Alias="productidtype">
-                        <dxl:Ident ColId="11" ColName="productidtype" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
                       <dxl:ProjElem ColId="12" Alias="measurename">
                         <dxl:Ident ColId="12" ColName="measurename" TypeMdid="0.1043.1.0"/>
                       </dxl:ProjElem>
                       <dxl:ProjElem ColId="13" Alias="value">
                         <dxl:Ident ColId="13" ColName="value" TypeMdid="0.701.1.0"/>
                       </dxl:ProjElem>
-                      <dxl:ProjElem ColId="14" Alias="uomname">
-                        <dxl:Ident ColId="14" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="15" Alias="marketstatename">
-                        <dxl:Ident ColId="15" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="16" Alias="process2">
-                        <dxl:Ident ColId="16" ColName="process2" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="17" Alias="observablename">
-                        <dxl:Ident ColId="17" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="18" Alias="axis1">
-                        <dxl:Ident ColId="18" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="19" Alias="axis2">
-                        <dxl:Ident ColId="19" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="20" Alias="errormessage">
-                        <dxl:Ident ColId="20" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="21" Alias="partyid">
-                        <dxl:Ident ColId="21" ColName="partyid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="22" Alias="entityid">
-                        <dxl:Ident ColId="22" ColName="entityid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="23" Alias="bookid">
-                        <dxl:Ident ColId="23" ColName="bookid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="24" Alias="ccyid">
-                        <dxl:Ident ColId="24" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="25" Alias="productid">
-                        <dxl:Ident ColId="25" ColName="productid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="26" Alias="tradetypeid">
-                        <dxl:Ident ColId="26" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="27" Alias="valuationmodelid">
-                        <dxl:Ident ColId="27" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
-                      </dxl:ProjElem>
                       <dxl:ProjElem ColId="28" Alias="bookname">
                         <dxl:Ident ColId="28" ColName="bookname" TypeMdid="0.1043.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="32" Alias="measuretype">
-                        <dxl:Ident ColId="32" ColName="measuretype" TypeMdid="0.25.1.0"/>
                       </dxl:ProjElem>
                     </dxl:ProjList>
                     <dxl:Filter/>
@@ -1079,239 +998,44 @@
                     <dxl:LimitOffset/>
                     <dxl:Append IsTarget="false" IsZapped="false">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="1293.003907" Rows="1.000000" Width="24"/>
+                        <dxl:Cost StartupCost="0" TotalCost="1293.002452" Rows="1.000000" Width="24"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="0" Alias="riskrunid">
-                          <dxl:Ident ColId="0" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="1" Alias="riskrunsubid">
-                          <dxl:Ident ColId="1" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="2" Alias="businessdate">
-                          <dxl:Ident ColId="2" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="3" Alias="ticket">
-                          <dxl:Ident ColId="3" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="4" Alias="longticket">
-                          <dxl:Ident ColId="4" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="5" Alias="counterpartyid">
-                          <dxl:Ident ColId="5" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="6" Alias="entity">
-                          <dxl:Ident ColId="6" ColName="entity" TypeMdid="0.1042.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="7" Alias="tradetype">
-                          <dxl:Ident ColId="7" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="8" Alias="subtype">
-                          <dxl:Ident ColId="8" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="9" Alias="contractid">
-                          <dxl:Ident ColId="9" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="10" Alias="tradingaccount">
-                          <dxl:Ident ColId="10" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="11" Alias="productidtype">
-                          <dxl:Ident ColId="11" ColName="productidtype" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
                         <dxl:ProjElem ColId="12" Alias="measurename">
                           <dxl:Ident ColId="12" ColName="measurename" TypeMdid="0.1043.1.0"/>
                         </dxl:ProjElem>
                         <dxl:ProjElem ColId="13" Alias="value">
                           <dxl:Ident ColId="13" ColName="value" TypeMdid="0.701.1.0"/>
                         </dxl:ProjElem>
-                        <dxl:ProjElem ColId="14" Alias="uomname">
-                          <dxl:Ident ColId="14" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="15" Alias="marketstatename">
-                          <dxl:Ident ColId="15" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="16" Alias="process2">
-                          <dxl:Ident ColId="16" ColName="process2" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="17" Alias="observablename">
-                          <dxl:Ident ColId="17" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="18" Alias="axis1">
-                          <dxl:Ident ColId="18" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="19" Alias="axis2">
-                          <dxl:Ident ColId="19" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="20" Alias="errormessage">
-                          <dxl:Ident ColId="20" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="21" Alias="partyid">
-                          <dxl:Ident ColId="21" ColName="partyid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="22" Alias="entityid">
-                          <dxl:Ident ColId="22" ColName="entityid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="23" Alias="bookid">
-                          <dxl:Ident ColId="23" ColName="bookid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="24" Alias="ccyid">
-                          <dxl:Ident ColId="24" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="25" Alias="productid">
-                          <dxl:Ident ColId="25" ColName="productid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="26" Alias="tradetypeid">
-                          <dxl:Ident ColId="26" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="27" Alias="valuationmodelid">
-                          <dxl:Ident ColId="27" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
                         <dxl:ProjElem ColId="28" Alias="bookname">
                           <dxl:Ident ColId="28" ColName="bookname" TypeMdid="0.1043.1.0"/>
-                        </dxl:ProjElem>
-                        <dxl:ProjElem ColId="32" Alias="measuretype">
-                          <dxl:Ident ColId="32" ColName="measuretype" TypeMdid="0.25.1.0"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
                       <dxl:Filter/>
                       <dxl:Result>
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="431.001300" Rows="1.000000" Width="204"/>
+                          <dxl:Cost StartupCost="0" TotalCost="431.000815" Rows="1.000000" Width="24"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="0" Alias="riskrunid">
-                            <dxl:Ident ColId="0" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="1" Alias="riskrunsubid">
-                            <dxl:Ident ColId="1" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="2" Alias="businessdate">
-                            <dxl:Ident ColId="2" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="3" Alias="ticket">
-                            <dxl:Ident ColId="3" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="4" Alias="longticket">
-                            <dxl:Ident ColId="4" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="5" Alias="counterpartyid">
-                            <dxl:Ident ColId="5" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="6" Alias="entity">
-                            <dxl:Ident ColId="6" ColName="entity" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="7" Alias="tradetype">
-                            <dxl:Ident ColId="7" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="8" Alias="subtype">
-                            <dxl:Ident ColId="8" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="9" Alias="contractid">
-                            <dxl:Ident ColId="9" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="10" Alias="tradingaccount">
-                            <dxl:Ident ColId="10" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="11" Alias="productidtype">
-                            <dxl:Ident ColId="11" ColName="productidtype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="12" Alias="measurename">
                             <dxl:Ident ColId="12" ColName="measurename" TypeMdid="0.1043.1.0"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="13" Alias="value">
                             <dxl:Ident ColId="13" ColName="value" TypeMdid="0.701.1.0"/>
                           </dxl:ProjElem>
-                          <dxl:ProjElem ColId="14" Alias="uomname">
-                            <dxl:Ident ColId="14" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="15" Alias="marketstatename">
-                            <dxl:Ident ColId="15" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="16" Alias="process2">
-                            <dxl:Ident ColId="16" ColName="process2" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="17" Alias="observablename">
-                            <dxl:Ident ColId="17" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="18" Alias="axis1">
-                            <dxl:Ident ColId="18" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="19" Alias="axis2">
-                            <dxl:Ident ColId="19" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="20" Alias="errormessage">
-                            <dxl:Ident ColId="20" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="21" Alias="partyid">
-                            <dxl:Ident ColId="21" ColName="partyid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="22" Alias="entityid">
-                            <dxl:Ident ColId="22" ColName="entityid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="23" Alias="bookid">
-                            <dxl:Ident ColId="23" ColName="bookid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="24" Alias="ccyid">
-                            <dxl:Ident ColId="24" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="25" Alias="productid">
-                            <dxl:Ident ColId="25" ColName="productid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="26" Alias="tradetypeid">
-                            <dxl:Ident ColId="26" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="27" Alias="valuationmodelid">
-                            <dxl:Ident ColId="27" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="28" Alias="bookname">
                             <dxl:Ident ColId="28" ColName="bookname" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="32" Alias="measuretype">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAADUNhc2hmbG93cw==" LintValue="397042542"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
                         <dxl:OneTimeFilter/>
                         <dxl:Sequence>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="431.001096" Rows="1.000000" Width="196"/>
+                            <dxl:Cost StartupCost="0" TotalCost="431.000791" Rows="1.000000" Width="32"/>
                           </dxl:Properties>
                           <dxl:ProjList>
-                            <dxl:ProjElem ColId="0" Alias="riskrunid">
-                              <dxl:Ident ColId="0" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="1" Alias="riskrunsubid">
-                              <dxl:Ident ColId="1" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
                             <dxl:ProjElem ColId="2" Alias="businessdate">
                               <dxl:Ident ColId="2" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="3" Alias="ticket">
-                              <dxl:Ident ColId="3" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="4" Alias="longticket">
-                              <dxl:Ident ColId="4" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="5" Alias="counterpartyid">
-                              <dxl:Ident ColId="5" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="6" Alias="entity">
-                              <dxl:Ident ColId="6" ColName="entity" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="7" Alias="tradetype">
-                              <dxl:Ident ColId="7" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="8" Alias="subtype">
-                              <dxl:Ident ColId="8" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="9" Alias="contractid">
-                              <dxl:Ident ColId="9" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="10" Alias="tradingaccount">
-                              <dxl:Ident ColId="10" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="11" Alias="productidtype">
-                              <dxl:Ident ColId="11" ColName="productidtype" TypeMdid="0.1043.1.0"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="12" Alias="measurename">
                               <dxl:Ident ColId="12" ColName="measurename" TypeMdid="0.1043.1.0"/>
@@ -1319,47 +1043,8 @@
                             <dxl:ProjElem ColId="13" Alias="value">
                               <dxl:Ident ColId="13" ColName="value" TypeMdid="0.701.1.0"/>
                             </dxl:ProjElem>
-                            <dxl:ProjElem ColId="14" Alias="uomname">
-                              <dxl:Ident ColId="14" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="15" Alias="marketstatename">
-                              <dxl:Ident ColId="15" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="16" Alias="process2">
-                              <dxl:Ident ColId="16" ColName="process2" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="17" Alias="observablename">
-                              <dxl:Ident ColId="17" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="18" Alias="axis1">
-                              <dxl:Ident ColId="18" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="19" Alias="axis2">
-                              <dxl:Ident ColId="19" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="20" Alias="errormessage">
-                              <dxl:Ident ColId="20" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="21" Alias="partyid">
-                              <dxl:Ident ColId="21" ColName="partyid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="22" Alias="entityid">
-                              <dxl:Ident ColId="22" ColName="entityid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
                             <dxl:ProjElem ColId="23" Alias="bookid">
                               <dxl:Ident ColId="23" ColName="bookid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="24" Alias="ccyid">
-                              <dxl:Ident ColId="24" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="25" Alias="productid">
-                              <dxl:Ident ColId="25" ColName="productid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="26" Alias="tradetypeid">
-                              <dxl:Ident ColId="26" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="27" Alias="valuationmodelid">
-                              <dxl:Ident ColId="27" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="28" Alias="bookname">
                               <dxl:Ident ColId="28" ColName="bookname" TypeMdid="0.1043.1.0"/>
@@ -1391,44 +1076,11 @@
                           </dxl:PartitionSelector>
                           <dxl:DynamicTableScan PartIndexId="1">
                             <dxl:Properties>
-                              <dxl:Cost StartupCost="0" TotalCost="431.001096" Rows="1.000000" Width="196"/>
+                              <dxl:Cost StartupCost="0" TotalCost="431.000791" Rows="1.000000" Width="32"/>
                             </dxl:Properties>
                             <dxl:ProjList>
-                              <dxl:ProjElem ColId="0" Alias="riskrunid">
-                                <dxl:Ident ColId="0" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="1" Alias="riskrunsubid">
-                                <dxl:Ident ColId="1" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
                               <dxl:ProjElem ColId="2" Alias="businessdate">
                                 <dxl:Ident ColId="2" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="3" Alias="ticket">
-                                <dxl:Ident ColId="3" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="4" Alias="longticket">
-                                <dxl:Ident ColId="4" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="5" Alias="counterpartyid">
-                                <dxl:Ident ColId="5" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="6" Alias="entity">
-                                <dxl:Ident ColId="6" ColName="entity" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="7" Alias="tradetype">
-                                <dxl:Ident ColId="7" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="8" Alias="subtype">
-                                <dxl:Ident ColId="8" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="9" Alias="contractid">
-                                <dxl:Ident ColId="9" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="10" Alias="tradingaccount">
-                                <dxl:Ident ColId="10" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="11" Alias="productidtype">
-                                <dxl:Ident ColId="11" ColName="productidtype" TypeMdid="0.1043.1.0"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="12" Alias="measurename">
                                 <dxl:Ident ColId="12" ColName="measurename" TypeMdid="0.1043.1.0"/>
@@ -1436,47 +1088,8 @@
                               <dxl:ProjElem ColId="13" Alias="value">
                                 <dxl:Ident ColId="13" ColName="value" TypeMdid="0.701.1.0"/>
                               </dxl:ProjElem>
-                              <dxl:ProjElem ColId="14" Alias="uomname">
-                                <dxl:Ident ColId="14" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="15" Alias="marketstatename">
-                                <dxl:Ident ColId="15" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="16" Alias="process2">
-                                <dxl:Ident ColId="16" ColName="process2" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="17" Alias="observablename">
-                                <dxl:Ident ColId="17" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="18" Alias="axis1">
-                                <dxl:Ident ColId="18" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="19" Alias="axis2">
-                                <dxl:Ident ColId="19" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="20" Alias="errormessage">
-                                <dxl:Ident ColId="20" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="21" Alias="partyid">
-                                <dxl:Ident ColId="21" ColName="partyid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="22" Alias="entityid">
-                                <dxl:Ident ColId="22" ColName="entityid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
                               <dxl:ProjElem ColId="23" Alias="bookid">
                                 <dxl:Ident ColId="23" ColName="bookid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="24" Alias="ccyid">
-                                <dxl:Ident ColId="24" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="25" Alias="productid">
-                                <dxl:Ident ColId="25" ColName="productid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="26" Alias="tradetypeid">
-                                <dxl:Ident ColId="26" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="27" Alias="valuationmodelid">
-                                <dxl:Ident ColId="27" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="28" Alias="bookname">
                                 <dxl:Ident ColId="28" ColName="bookname" TypeMdid="0.1043.1.0"/>
@@ -1541,142 +1154,28 @@
                       </dxl:Result>
                       <dxl:Result>
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="431.001300" Rows="1.000000" Width="204"/>
+                          <dxl:Cost StartupCost="0" TotalCost="431.000815" Rows="1.000000" Width="24"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="33" Alias="riskrunid">
-                            <dxl:Ident ColId="33" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="34" Alias="riskrunsubid">
-                            <dxl:Ident ColId="34" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="35" Alias="businessdate">
-                            <dxl:Ident ColId="35" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="36" Alias="ticket">
-                            <dxl:Ident ColId="36" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="37" Alias="longticket">
-                            <dxl:Ident ColId="37" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="38" Alias="counterpartyid">
-                            <dxl:Ident ColId="38" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="39" Alias="entity">
-                            <dxl:Ident ColId="39" ColName="entity" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="40" Alias="tradetype">
-                            <dxl:Ident ColId="40" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="41" Alias="subtype">
-                            <dxl:Ident ColId="41" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="42" Alias="contractid">
-                            <dxl:Ident ColId="42" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="43" Alias="tradingaccount">
-                            <dxl:Ident ColId="43" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="44" Alias="productidtype">
-                            <dxl:Ident ColId="44" ColName="productidtype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="45" Alias="measurename">
                             <dxl:Ident ColId="45" ColName="measurename" TypeMdid="0.1043.1.0"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="46" Alias="value">
                             <dxl:Ident ColId="46" ColName="value" TypeMdid="0.701.1.0"/>
                           </dxl:ProjElem>
-                          <dxl:ProjElem ColId="47" Alias="uomname">
-                            <dxl:Ident ColId="47" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="48" Alias="marketstatename">
-                            <dxl:Ident ColId="48" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="49" Alias="process2">
-                            <dxl:Ident ColId="49" ColName="process2" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="50" Alias="observablename">
-                            <dxl:Ident ColId="50" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="51" Alias="axis1">
-                            <dxl:Ident ColId="51" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="52" Alias="axis2">
-                            <dxl:Ident ColId="52" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="53" Alias="errormessage">
-                            <dxl:Ident ColId="53" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="54" Alias="partyid">
-                            <dxl:Ident ColId="54" ColName="partyid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="55" Alias="entityid">
-                            <dxl:Ident ColId="55" ColName="entityid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="56" Alias="bookid">
-                            <dxl:Ident ColId="56" ColName="bookid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="57" Alias="ccyid">
-                            <dxl:Ident ColId="57" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="58" Alias="productid">
-                            <dxl:Ident ColId="58" ColName="productid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="59" Alias="tradetypeid">
-                            <dxl:Ident ColId="59" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="60" Alias="valuationmodelid">
-                            <dxl:Ident ColId="60" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="61" Alias="bookname">
                             <dxl:Ident ColId="61" ColName="bookname" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="65" Alias="measuretype">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACkRlbHRhcw==" LintValue="326787900"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
                         <dxl:OneTimeFilter/>
                         <dxl:Sequence>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="431.001096" Rows="1.000000" Width="196"/>
+                            <dxl:Cost StartupCost="0" TotalCost="431.000791" Rows="1.000000" Width="32"/>
                           </dxl:Properties>
                           <dxl:ProjList>
-                            <dxl:ProjElem ColId="33" Alias="riskrunid">
-                              <dxl:Ident ColId="33" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="34" Alias="riskrunsubid">
-                              <dxl:Ident ColId="34" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
                             <dxl:ProjElem ColId="35" Alias="businessdate">
                               <dxl:Ident ColId="35" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="36" Alias="ticket">
-                              <dxl:Ident ColId="36" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="37" Alias="longticket">
-                              <dxl:Ident ColId="37" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="38" Alias="counterpartyid">
-                              <dxl:Ident ColId="38" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="39" Alias="entity">
-                              <dxl:Ident ColId="39" ColName="entity" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="40" Alias="tradetype">
-                              <dxl:Ident ColId="40" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="41" Alias="subtype">
-                              <dxl:Ident ColId="41" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="42" Alias="contractid">
-                              <dxl:Ident ColId="42" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="43" Alias="tradingaccount">
-                              <dxl:Ident ColId="43" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="44" Alias="productidtype">
-                              <dxl:Ident ColId="44" ColName="productidtype" TypeMdid="0.1043.1.0"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="45" Alias="measurename">
                               <dxl:Ident ColId="45" ColName="measurename" TypeMdid="0.1043.1.0"/>
@@ -1684,47 +1183,8 @@
                             <dxl:ProjElem ColId="46" Alias="value">
                               <dxl:Ident ColId="46" ColName="value" TypeMdid="0.701.1.0"/>
                             </dxl:ProjElem>
-                            <dxl:ProjElem ColId="47" Alias="uomname">
-                              <dxl:Ident ColId="47" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="48" Alias="marketstatename">
-                              <dxl:Ident ColId="48" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="49" Alias="process2">
-                              <dxl:Ident ColId="49" ColName="process2" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="50" Alias="observablename">
-                              <dxl:Ident ColId="50" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="51" Alias="axis1">
-                              <dxl:Ident ColId="51" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="52" Alias="axis2">
-                              <dxl:Ident ColId="52" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="53" Alias="errormessage">
-                              <dxl:Ident ColId="53" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="54" Alias="partyid">
-                              <dxl:Ident ColId="54" ColName="partyid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="55" Alias="entityid">
-                              <dxl:Ident ColId="55" ColName="entityid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
                             <dxl:ProjElem ColId="56" Alias="bookid">
                               <dxl:Ident ColId="56" ColName="bookid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="57" Alias="ccyid">
-                              <dxl:Ident ColId="57" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="58" Alias="productid">
-                              <dxl:Ident ColId="58" ColName="productid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="59" Alias="tradetypeid">
-                              <dxl:Ident ColId="59" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="60" Alias="valuationmodelid">
-                              <dxl:Ident ColId="60" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="61" Alias="bookname">
                               <dxl:Ident ColId="61" ColName="bookname" TypeMdid="0.1043.1.0"/>
@@ -1756,44 +1216,11 @@
                           </dxl:PartitionSelector>
                           <dxl:DynamicTableScan PartIndexId="2">
                             <dxl:Properties>
-                              <dxl:Cost StartupCost="0" TotalCost="431.001096" Rows="1.000000" Width="196"/>
+                              <dxl:Cost StartupCost="0" TotalCost="431.000791" Rows="1.000000" Width="32"/>
                             </dxl:Properties>
                             <dxl:ProjList>
-                              <dxl:ProjElem ColId="33" Alias="riskrunid">
-                                <dxl:Ident ColId="33" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="34" Alias="riskrunsubid">
-                                <dxl:Ident ColId="34" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
                               <dxl:ProjElem ColId="35" Alias="businessdate">
                                 <dxl:Ident ColId="35" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="36" Alias="ticket">
-                                <dxl:Ident ColId="36" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="37" Alias="longticket">
-                                <dxl:Ident ColId="37" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="38" Alias="counterpartyid">
-                                <dxl:Ident ColId="38" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="39" Alias="entity">
-                                <dxl:Ident ColId="39" ColName="entity" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="40" Alias="tradetype">
-                                <dxl:Ident ColId="40" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="41" Alias="subtype">
-                                <dxl:Ident ColId="41" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="42" Alias="contractid">
-                                <dxl:Ident ColId="42" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="43" Alias="tradingaccount">
-                                <dxl:Ident ColId="43" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="44" Alias="productidtype">
-                                <dxl:Ident ColId="44" ColName="productidtype" TypeMdid="0.1043.1.0"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="45" Alias="measurename">
                                 <dxl:Ident ColId="45" ColName="measurename" TypeMdid="0.1043.1.0"/>
@@ -1801,47 +1228,8 @@
                               <dxl:ProjElem ColId="46" Alias="value">
                                 <dxl:Ident ColId="46" ColName="value" TypeMdid="0.701.1.0"/>
                               </dxl:ProjElem>
-                              <dxl:ProjElem ColId="47" Alias="uomname">
-                                <dxl:Ident ColId="47" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="48" Alias="marketstatename">
-                                <dxl:Ident ColId="48" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="49" Alias="process2">
-                                <dxl:Ident ColId="49" ColName="process2" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="50" Alias="observablename">
-                                <dxl:Ident ColId="50" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="51" Alias="axis1">
-                                <dxl:Ident ColId="51" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="52" Alias="axis2">
-                                <dxl:Ident ColId="52" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="53" Alias="errormessage">
-                                <dxl:Ident ColId="53" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="54" Alias="partyid">
-                                <dxl:Ident ColId="54" ColName="partyid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="55" Alias="entityid">
-                                <dxl:Ident ColId="55" ColName="entityid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
                               <dxl:ProjElem ColId="56" Alias="bookid">
                                 <dxl:Ident ColId="56" ColName="bookid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="57" Alias="ccyid">
-                                <dxl:Ident ColId="57" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="58" Alias="productid">
-                                <dxl:Ident ColId="58" ColName="productid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="59" Alias="tradetypeid">
-                                <dxl:Ident ColId="59" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="60" Alias="valuationmodelid">
-                                <dxl:Ident ColId="60" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="61" Alias="bookname">
                                 <dxl:Ident ColId="61" ColName="bookname" TypeMdid="0.1043.1.0"/>
@@ -1906,142 +1294,28 @@
                       </dxl:Result>
                       <dxl:Result>
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="431.001300" Rows="1.000000" Width="204"/>
+                          <dxl:Cost StartupCost="0" TotalCost="431.000815" Rows="1.000000" Width="24"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="66" Alias="riskrunid">
-                            <dxl:Ident ColId="66" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="67" Alias="riskrunsubid">
-                            <dxl:Ident ColId="67" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="68" Alias="businessdate">
-                            <dxl:Ident ColId="68" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="69" Alias="ticket">
-                            <dxl:Ident ColId="69" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="70" Alias="longticket">
-                            <dxl:Ident ColId="70" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="71" Alias="counterpartyid">
-                            <dxl:Ident ColId="71" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="72" Alias="entity">
-                            <dxl:Ident ColId="72" ColName="entity" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="73" Alias="tradetype">
-                            <dxl:Ident ColId="73" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="74" Alias="subtype">
-                            <dxl:Ident ColId="74" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="75" Alias="contractid">
-                            <dxl:Ident ColId="75" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="76" Alias="tradingaccount">
-                            <dxl:Ident ColId="76" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="77" Alias="productidtype">
-                            <dxl:Ident ColId="77" ColName="productidtype" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="78" Alias="measurename">
                             <dxl:Ident ColId="78" ColName="measurename" TypeMdid="0.1043.1.0"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="79" Alias="value">
                             <dxl:Ident ColId="79" ColName="value" TypeMdid="0.701.1.0"/>
                           </dxl:ProjElem>
-                          <dxl:ProjElem ColId="80" Alias="uomname">
-                            <dxl:Ident ColId="80" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="81" Alias="marketstatename">
-                            <dxl:Ident ColId="81" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="82" Alias="process2">
-                            <dxl:Ident ColId="82" ColName="process2" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="83" Alias="observablename">
-                            <dxl:Ident ColId="83" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="84" Alias="axis1">
-                            <dxl:Ident ColId="84" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="85" Alias="axis2">
-                            <dxl:Ident ColId="85" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="86" Alias="errormessage">
-                            <dxl:Ident ColId="86" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="87" Alias="partyid">
-                            <dxl:Ident ColId="87" ColName="partyid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="88" Alias="entityid">
-                            <dxl:Ident ColId="88" ColName="entityid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="89" Alias="bookid">
-                            <dxl:Ident ColId="89" ColName="bookid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="90" Alias="ccyid">
-                            <dxl:Ident ColId="90" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="91" Alias="productid">
-                            <dxl:Ident ColId="91" ColName="productid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="92" Alias="tradetypeid">
-                            <dxl:Ident ColId="92" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="93" Alias="valuationmodelid">
-                            <dxl:Ident ColId="93" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="94" Alias="bookname">
                             <dxl:Ident ColId="94" ColName="bookname" TypeMdid="0.1043.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="98" Alias="measuretype">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACkdhbW1hcw==" LintValue="18506620"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
                         <dxl:OneTimeFilter/>
                         <dxl:Sequence>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="431.001096" Rows="1.000000" Width="196"/>
+                            <dxl:Cost StartupCost="0" TotalCost="431.000791" Rows="1.000000" Width="32"/>
                           </dxl:Properties>
                           <dxl:ProjList>
-                            <dxl:ProjElem ColId="66" Alias="riskrunid">
-                              <dxl:Ident ColId="66" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="67" Alias="riskrunsubid">
-                              <dxl:Ident ColId="67" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
                             <dxl:ProjElem ColId="68" Alias="businessdate">
                               <dxl:Ident ColId="68" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="69" Alias="ticket">
-                              <dxl:Ident ColId="69" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="70" Alias="longticket">
-                              <dxl:Ident ColId="70" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="71" Alias="counterpartyid">
-                              <dxl:Ident ColId="71" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="72" Alias="entity">
-                              <dxl:Ident ColId="72" ColName="entity" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="73" Alias="tradetype">
-                              <dxl:Ident ColId="73" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="74" Alias="subtype">
-                              <dxl:Ident ColId="74" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="75" Alias="contractid">
-                              <dxl:Ident ColId="75" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="76" Alias="tradingaccount">
-                              <dxl:Ident ColId="76" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="77" Alias="productidtype">
-                              <dxl:Ident ColId="77" ColName="productidtype" TypeMdid="0.1043.1.0"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="78" Alias="measurename">
                               <dxl:Ident ColId="78" ColName="measurename" TypeMdid="0.1043.1.0"/>
@@ -2049,47 +1323,8 @@
                             <dxl:ProjElem ColId="79" Alias="value">
                               <dxl:Ident ColId="79" ColName="value" TypeMdid="0.701.1.0"/>
                             </dxl:ProjElem>
-                            <dxl:ProjElem ColId="80" Alias="uomname">
-                              <dxl:Ident ColId="80" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="81" Alias="marketstatename">
-                              <dxl:Ident ColId="81" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="82" Alias="process2">
-                              <dxl:Ident ColId="82" ColName="process2" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="83" Alias="observablename">
-                              <dxl:Ident ColId="83" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="84" Alias="axis1">
-                              <dxl:Ident ColId="84" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="85" Alias="axis2">
-                              <dxl:Ident ColId="85" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="86" Alias="errormessage">
-                              <dxl:Ident ColId="86" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="87" Alias="partyid">
-                              <dxl:Ident ColId="87" ColName="partyid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="88" Alias="entityid">
-                              <dxl:Ident ColId="88" ColName="entityid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
                             <dxl:ProjElem ColId="89" Alias="bookid">
                               <dxl:Ident ColId="89" ColName="bookid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="90" Alias="ccyid">
-                              <dxl:Ident ColId="90" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="91" Alias="productid">
-                              <dxl:Ident ColId="91" ColName="productid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="92" Alias="tradetypeid">
-                              <dxl:Ident ColId="92" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="93" Alias="valuationmodelid">
-                              <dxl:Ident ColId="93" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="94" Alias="bookname">
                               <dxl:Ident ColId="94" ColName="bookname" TypeMdid="0.1043.1.0"/>
@@ -2121,44 +1356,11 @@
                           </dxl:PartitionSelector>
                           <dxl:DynamicTableScan PartIndexId="3">
                             <dxl:Properties>
-                              <dxl:Cost StartupCost="0" TotalCost="431.001096" Rows="1.000000" Width="196"/>
+                              <dxl:Cost StartupCost="0" TotalCost="431.000791" Rows="1.000000" Width="32"/>
                             </dxl:Properties>
                             <dxl:ProjList>
-                              <dxl:ProjElem ColId="66" Alias="riskrunid">
-                                <dxl:Ident ColId="66" ColName="riskrunid" TypeMdid="0.20.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="67" Alias="riskrunsubid">
-                                <dxl:Ident ColId="67" ColName="riskrunsubid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
                               <dxl:ProjElem ColId="68" Alias="businessdate">
                                 <dxl:Ident ColId="68" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="69" Alias="ticket">
-                                <dxl:Ident ColId="69" ColName="ticket" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="70" Alias="longticket">
-                                <dxl:Ident ColId="70" ColName="longticket" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="71" Alias="counterpartyid">
-                                <dxl:Ident ColId="71" ColName="counterpartyid" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="72" Alias="entity">
-                                <dxl:Ident ColId="72" ColName="entity" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="73" Alias="tradetype">
-                                <dxl:Ident ColId="73" ColName="tradetype" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="74" Alias="subtype">
-                                <dxl:Ident ColId="74" ColName="subtype" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="75" Alias="contractid">
-                                <dxl:Ident ColId="75" ColName="contractid" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="76" Alias="tradingaccount">
-                                <dxl:Ident ColId="76" ColName="tradingaccount" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="77" Alias="productidtype">
-                                <dxl:Ident ColId="77" ColName="productidtype" TypeMdid="0.1043.1.0"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="78" Alias="measurename">
                                 <dxl:Ident ColId="78" ColName="measurename" TypeMdid="0.1043.1.0"/>
@@ -2166,47 +1368,8 @@
                               <dxl:ProjElem ColId="79" Alias="value">
                                 <dxl:Ident ColId="79" ColName="value" TypeMdid="0.701.1.0"/>
                               </dxl:ProjElem>
-                              <dxl:ProjElem ColId="80" Alias="uomname">
-                                <dxl:Ident ColId="80" ColName="uomname" TypeMdid="0.1042.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="81" Alias="marketstatename">
-                                <dxl:Ident ColId="81" ColName="marketstatename" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="82" Alias="process2">
-                                <dxl:Ident ColId="82" ColName="process2" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="83" Alias="observablename">
-                                <dxl:Ident ColId="83" ColName="observablename" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="84" Alias="axis1">
-                                <dxl:Ident ColId="84" ColName="axis1" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="85" Alias="axis2">
-                                <dxl:Ident ColId="85" ColName="axis2" TypeMdid="0.1043.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="86" Alias="errormessage">
-                                <dxl:Ident ColId="86" ColName="errormessage" TypeMdid="0.25.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="87" Alias="partyid">
-                                <dxl:Ident ColId="87" ColName="partyid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="88" Alias="entityid">
-                                <dxl:Ident ColId="88" ColName="entityid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
                               <dxl:ProjElem ColId="89" Alias="bookid">
                                 <dxl:Ident ColId="89" ColName="bookid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="90" Alias="ccyid">
-                                <dxl:Ident ColId="90" ColName="ccyid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="91" Alias="productid">
-                                <dxl:Ident ColId="91" ColName="productid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="92" Alias="tradetypeid">
-                                <dxl:Ident ColId="92" ColName="tradetypeid" TypeMdid="0.23.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="93" Alias="valuationmodelid">
-                                <dxl:Ident ColId="93" ColName="valuationmodelid" TypeMdid="0.23.1.0"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="94" Alias="bookname">
                                 <dxl:Ident ColId="94" ColName="bookname" TypeMdid="0.1043.1.0"/>

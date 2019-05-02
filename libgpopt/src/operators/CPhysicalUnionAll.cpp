@@ -5,6 +5,7 @@
 #include "gpopt/operators/CHashedDistributions.h"
 #include "gpopt/base/CDistributionSpecStrictRandom.h"
 #include "gpopt/operators/CScalarIdent.h"
+#include "gpopt/base/CColRefSetIter.h"
 
 using namespace gpopt;
 
@@ -68,17 +69,6 @@ Equals
 	}
 
 	return fEqual;
-}
-
-CColRefSet *
-CPhysicalUnionAll::PcrsInput
-	(
-		ULONG child_index
-	)
-{
-	GPOS_ASSERT(NULL != m_pdrgpcrsInput);
-	CColRefSet *pcrs = (*m_pdrgpcrsInput)[child_index];
-	return pcrs;
 }
 
 // sensitivity to order of inputs
@@ -206,18 +196,17 @@ const
 CColRefSet *
 CPhysicalUnionAll::PcrsRequired
 	(
-		IMemoryPool *, // mp
+		IMemoryPool *mp,
 		CExpressionHandle &,//exprhdl,
-		CColRefSet *, //pcrsRequired,
+		CColRefSet *pcrsRequired,
 		ULONG child_index,
 		CDrvdProp2dArray *, // pdrgpdpCtxt
 		ULONG // ulOptReq
 	)
 {
-	CColRefSet *pcrs = PcrsInput(child_index);
-	pcrs->AddRef();
-
-	return pcrs;
+	return MapOutputColRefsToInput(mp,
+								   pcrsRequired,
+								   child_index);
 }
 
 //---------------------------------------------------------------------------
@@ -956,6 +945,35 @@ const
 
 	return pdrgpul;
 }
+
+CColRefSet *
+CPhysicalUnionAll::MapOutputColRefsToInput(IMemoryPool *mp,
+										   CColRefSet *out_col_refs,
+										   ULONG child_index)
+{
+	CColRefSet *result = GPOS_NEW(mp) CColRefSet(mp);
+	CColRefArray *all_outcols = m_pdrgpcrOutput;
+	ULONG total_num_cols = all_outcols->Size();
+	CColRefArray *in_colref_array = (*PdrgpdrgpcrInput())[child_index];
+	CColRefSetIter iter(*out_col_refs);
+	while (iter.Advance())
+	{
+		BOOL found = false;
+		// find the index in the complete list of output columns
+		for (ULONG i = 0; i < total_num_cols && !found; i++)
+		{
+			if (iter.Bit() == (*all_outcols)[i]->Id())
+			{
+				// the input colref will have the same index, but in the list of input cols
+				result->Include((*in_colref_array)[i]);
+				found = true;
+			}
+		}
+		GPOS_ASSERT(found);
+	}
+	return result;
+}
+
 
 #ifdef GPOS_DEBUG
 

@@ -1927,10 +1927,27 @@ CTranslatorExprToDXL::PdxlnAppend
 	GPOS_ASSERT(NULL != pexprUnionAll);
 
 	CPhysicalUnionAll *popUnionAll = CPhysicalUnionAll::PopConvert(pexprUnionAll->Pop());
-	CColRefArray *pdrgpcrOutput = popUnionAll->PdrgpcrOutput();
+	CColRefArray *pdrgpcrOutputAll = popUnionAll->PdrgpcrOutput();
+	CColRefSet *reqdCols = pexprUnionAll->Prpp()->PcrsRequired();
 
 	CDXLPhysicalAppend *dxl_op = GPOS_NEW(m_mp) CDXLPhysicalAppend(m_mp, false, false);
 	CDXLNode *pdxlnAppend = GPOS_NEW(m_mp) CDXLNode(m_mp, dxl_op);
+
+	// compute a list of indexes of output columns that are actually required
+	CColRefArray *reqd_col_array = GPOS_NEW(m_mp) CColRefArray(m_mp);
+	ULONG num_total_cols = pdrgpcrOutputAll->Size();
+	for (ULONG c=0; c<num_total_cols; c++)
+	{
+		if (reqdCols->FMember((*pdrgpcrOutputAll)[c]))
+		{
+			reqd_col_array->Append((*pdrgpcrOutputAll)[c]);
+		}
+	}
+	ULongPtrArray *reqd_col_positions = pdrgpcrOutputAll->IndexesOfSubsequence(reqd_col_array);
+	CColRefArray *requiredOutput = pdrgpcrOutputAll->CreateReducedArray(reqd_col_positions);
+	reqd_col_array->Release();
+
+	GPOS_ASSERT(NULL != reqd_col_positions);
 
 	// set properties
 	CDXLPhysicalProperties *dxl_properties = GetProperties(pexprUnionAll);
@@ -1938,14 +1955,16 @@ CTranslatorExprToDXL::PdxlnAppend
 
 	// translate project list
 	CColRefSet *pcrsOutput = GPOS_NEW(m_mp) CColRefSet(m_mp);
-	pcrsOutput->Include(pdrgpcrOutput);
+	pcrsOutput->Include(reqdCols);
 
-	// the append node does not re-order or trim it input or output columns. The trimming
-	// and re-ordering of its output columns has to be done above it (if needed)
+	// the append node does not re-order its input or output columns. The
+	// re-ordering of its output columns has to be done above it (if needed)
 	// via a separate result node
-	CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcrOutput);
+	CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, requiredOutput);
 	pcrsOutput->Release();
+	requiredOutput->Release();
 	pcrsOutput = NULL;
+	requiredOutput = NULL;
 
 	pdxlnAppend->AddChild(pdxlnPrL);
 
@@ -1963,9 +1982,10 @@ CTranslatorExprToDXL::PdxlnAppend
 	{
 		// translate child
 		CColRefArray *pdrgpcrInput = (*pdrgpdrgpcrInput)[ul];
+		CColRefArray *requiredInput = pdrgpcrInput->CreateReducedArray(reqd_col_positions);
 
 		CExpression *pexprChild = (*pexprUnionAll)[ul];
-		CDXLNode *child_dxlnode = CreateDXLNode(pexprChild, pdrgpcrInput, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
+		CDXLNode *child_dxlnode = CreateDXLNode(pexprChild, requiredInput, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
 
 		// add a result node on top if necessary so the order of the input project list
 		// matches the order in which the append node requires it
@@ -1973,12 +1993,14 @@ CTranslatorExprToDXL::PdxlnAppend
 											(
 											pexprChild,
 											child_dxlnode,
-											pdrgpcrInput /* required input columns */,
-											pdrgpcrInput /* order of the input columns */
+											requiredInput /* required input columns */,
+											requiredInput /* order of the input columns */
 											);
 
 		pdxlnAppend->AddChild(pdxlnChildProjected);
+		requiredInput->Release();
 	}
+	reqd_col_positions->Release();
 
 	return pdxlnAppend;
 }

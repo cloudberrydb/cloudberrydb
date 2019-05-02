@@ -335,6 +335,21 @@ namespace gpos
 				}
                 return indexes;
             }
+
+			// Eliminate members from an array that are not contained in a given list of indexes
+			CDynamicPtrArray<T, CleanupFn> *CreateReducedArray(ULongPtrArray *indexes_to_choose)
+			{
+				CDynamicPtrArray<T, CleanupFn> *result =
+					GPOS_NEW(m_mp) CDynamicPtrArray<T, CleanupFn>(m_mp, m_min_size, m_expansion_factor);
+				ULONG list_size = indexes_to_choose->Size();
+
+				for (ULONG i = 0; i < list_size; i++)
+				{
+					result->Append((*this)[*((*indexes_to_choose)[i])]);
+				}
+				return result;
+			}
+
 	}; // class CDynamicPtrArray
 }
 

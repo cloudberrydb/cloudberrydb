@@ -36,6 +36,13 @@ namespace gpopt
 			// map given array of scalar ident expressions to positions of UnionAll input columns in the given child;
 			ULongPtrArray *PdrgpulMap(IMemoryPool *mp, CExpressionArray *pdrgpexpr, ULONG child_index) const;
 
+			// map given ColRefSet, expressed in terms of outputs,
+			// into an equivalent ColRefSet, expressed in terms
+			// of input number n
+			CColRefSet *MapOutputColRefsToInput(IMemoryPool *mp,
+												CColRefSet *out_col_refs,
+												ULONG child_index);
+
 			// derive hashed distribution from child operators
 			CDistributionSpecHashed *PdshashedDerive(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
@@ -50,8 +57,6 @@ namespace gpopt
 			CDistributionSpec *PdsDeriveFromChildren(IMemoryPool *mp, CExpressionHandle &exprhdl) const;
 
 		protected:
-
-			CColRefSet *PcrsInput(ULONG child_index);
 
 			// compute required hashed distribution of the n-th child
 			CDistributionSpecHashed *
