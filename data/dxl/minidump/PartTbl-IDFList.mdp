@@ -205,7 +205,7 @@ EXPLAIN SELECT * FROM listfoo WHERE b IS DISTINCT FROM 2;
       <dxl:LogicalSelect>
         <dxl:IsDistinctFrom OperatorMdid="0.96.1.0">
           <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:IsDistinctFrom>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.319609.1.0" TableName="listfoo">
@@ -264,21 +264,21 @@ EXPLAIN SELECT * FROM listfoo WHERE b IS DISTINCT FROM 2;
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:Or>
                 <dxl:Or>
                   <dxl:Or>
                     <dxl:ArrayComp OperatorName="&gt;" OperatorMdid="0.521.1.0" OperatorType="Any">
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                       <dxl:PartListValues Level="0" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                     </dxl:ArrayComp>
                     <dxl:DefaultPart Level="0"/>
                   </dxl:Or>
                   <dxl:Or>
                     <dxl:ArrayComp OperatorName="&lt;" OperatorMdid="0.97.1.0" OperatorType="Any">
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                       <dxl:PartListValues Level="0" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                     </dxl:ArrayComp>
                     <dxl:DefaultPart Level="0"/>
@@ -291,20 +291,20 @@ EXPLAIN SELECT * FROM listfoo WHERE b IS DISTINCT FROM 2;
               </dxl:Or>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:Or>
                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Comparison>
                 <dxl:IsNull>
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
@@ -330,7 +330,7 @@ EXPLAIN SELECT * FROM listfoo WHERE b IS DISTINCT FROM 2;
             <dxl:Filter>
               <dxl:IsDistinctFrom OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
               </dxl:IsDistinctFrom>
             </dxl:Filter>
             <dxl:TableDescriptor Mdid="0.319609.1.0" TableName="listfoo">

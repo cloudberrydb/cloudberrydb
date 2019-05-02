@@ -13,7 +13,7 @@
       <dxl:LogicalProject>
         <dxl:ProjList>
           <dxl:ProjElem ColId="2" Alias="a">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:LogicalConstTable>
@@ -21,7 +21,7 @@
             <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
           </dxl:Columns>
           <dxl:ConstTuple>
-            <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:ConstTuple>
         </dxl:LogicalConstTable>
       </dxl:LogicalProject>

@@ -7,7 +7,7 @@
       </dxl:Properties>
       <dxl:ProjList>
         <dxl:ProjElem ColId="7" Alias="?column?">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:ProjElem>
       </dxl:ProjList>
       <dxl:Filter/>
@@ -18,7 +18,7 @@
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="6" Alias="?column?">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>

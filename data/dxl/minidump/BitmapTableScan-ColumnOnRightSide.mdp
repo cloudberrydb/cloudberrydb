@@ -256,8 +256,8 @@ SELECT * FROM my_tq_agg_small tq WHERE 110 >= tq.ets;
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.5" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.4" Name="end_ts" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1200"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1200"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1200"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Index Mdid="0.31763881.1.0" Name="my_idx" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
@@ -271,28 +271,28 @@ SELECT * FROM my_tq_agg_small tq WHERE 110 >= tq.ets;
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.8" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.1" Name="sym" Width="2.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABWE=" LintValue="160440876"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABWE=" LintValue="160440876"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.0" Name="ets" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.11" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.10" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.3" Name="ask_price" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="200000"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="200000"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.31763855.1.1.2" Name="bid_price" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="300000"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="300000"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="300000"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="300000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
     </dxl:Metadata>
@@ -308,7 +308,7 @@ SELECT * FROM my_tq_agg_small tq WHERE 110 >= tq.ets;
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
           <dxl:Ident ColId="1" ColName="ets" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="110"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="110"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.31763855.1.1" TableName="my_tq_agg_small">
@@ -379,14 +379,14 @@ SELECT * FROM my_tq_agg_small tq WHERE 110 >= tq.ets;
           <dxl:RecheckCond>
             <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
               <dxl:Ident ColId="0" ColName="ets" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="110"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="110"/>
             </dxl:Comparison>
           </dxl:RecheckCond>
           <dxl:BitmapIndexProbe>
             <dxl:IndexCondList>
               <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                 <dxl:Ident ColId="0" ColName="ets" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="110"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="110"/>
               </dxl:Comparison>
             </dxl:IndexCondList>
             <dxl:IndexDescriptor Mdid="0.31763881.1.0" IndexName="my_idx"/>

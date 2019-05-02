@@ -167,7 +167,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0" OperatorFuncMdid="0.65.1.0">
           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.18534.1.1" TableName="p">
@@ -216,7 +216,7 @@
           <dxl:Filter>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0" OperatorFuncMdid="0.65.1.0">
               <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:OneTimeFilter/>
@@ -239,10 +239,10 @@
               <dxl:ProjList>
                 <dxl:ProjElem ColId="9" Alias="gp_partition_propagation">
                   <dxl:FuncExpr FuncId="0.17037.1.0" FuncRetSet="false" TypeMdid="0.2278.1.0">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                     <dxl:FuncExpr FuncId="0.17038.1.0" FuncRetSet="false" TypeMdid="0.26.1.0">
-                      <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="18534"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                      <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="18534"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                     </dxl:FuncExpr>
                   </dxl:FuncExpr>
                 </dxl:ProjElem>

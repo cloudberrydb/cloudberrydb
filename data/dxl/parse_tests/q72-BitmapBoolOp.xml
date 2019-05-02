@@ -39,7 +39,7 @@
         <dxl:Filter>
           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
             <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1000"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1000"/>
           </dxl:Comparison>
         </dxl:Filter>
         <dxl:RecheckCond>
@@ -47,16 +47,16 @@
             <dxl:Or>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
               </dxl:Comparison>
             </dxl:Or>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:RecheckCond>
@@ -66,7 +66,7 @@
               <dxl:IndexCondList>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
               <dxl:IndexDescriptor Mdid="0.197454.1.1" IndexName="foo_ab"/>
@@ -75,7 +75,7 @@
               <dxl:IndexCondList>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
               <dxl:IndexDescriptor Mdid="0.197454.1.1" IndexName="foo_ab"/>
@@ -85,7 +85,7 @@
             <dxl:IndexCondList>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
               </dxl:Comparison>
             </dxl:IndexCondList>
             <dxl:IndexDescriptor Mdid="0.197454.1.1" IndexName="foo_ab"/>

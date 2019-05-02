@@ -69,7 +69,7 @@
         <dxl:LogicalProject>
           <dxl:ProjList>
             <dxl:ProjElem ColId="2" Alias="?column?">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:LogicalConstTable>
@@ -77,7 +77,7 @@
               <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
         </dxl:LogicalProject>
@@ -85,8 +85,8 @@
           <dxl:ProjList>
             <dxl:ProjElem ColId="4" Alias="generate_series">
               <dxl:FuncExpr FuncId="0.1067.1.0" FuncRetSet="true" TypeMdid="0.23.1.0">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
               </dxl:FuncExpr>
             </dxl:ProjElem>
           </dxl:ProjList>
@@ -95,7 +95,7 @@
               <dxl:Column ColId="3" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
         </dxl:LogicalProject>
@@ -140,7 +140,7 @@
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="?column?">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
@@ -151,7 +151,7 @@
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="">
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
@@ -165,8 +165,8 @@
             <dxl:ProjList>
               <dxl:ProjElem ColId="3" Alias="generate_series">
                 <dxl:FuncExpr FuncId="0.1067.1.0" FuncRetSet="true" TypeMdid="0.23.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                 </dxl:FuncExpr>
               </dxl:ProjElem>
             </dxl:ProjList>
@@ -178,7 +178,7 @@
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="2" Alias="">
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>

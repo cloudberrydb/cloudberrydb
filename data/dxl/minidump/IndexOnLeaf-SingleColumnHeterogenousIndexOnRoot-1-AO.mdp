@@ -121,21 +121,21 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c < 10;
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
               </dxl:Comparison>
             </dxl:And>
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
               </dxl:Comparison>
             </dxl:And>
           </dxl:Or>
@@ -211,21 +211,21 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c < 10;
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
               </dxl:Comparison>
             </dxl:And>
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
               </dxl:Comparison>
             </dxl:And>
           </dxl:Or>
@@ -237,11 +237,11 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c < 10;
         <dxl:And>
           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
           </dxl:Comparison>
         </dxl:And>
       </dxl:CheckConstraint>
@@ -267,11 +267,11 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c < 10;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -290,7 +290,7 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c < 10;
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
           <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.827775.1.0" TableName="foo_1_prt_p1">
@@ -350,14 +350,14 @@ EXPLAIN SELECT * FROM foo_1_prt_p1 WHERE c < 10;
           <dxl:RecheckCond>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:RecheckCond>
           <dxl:BitmapIndexProbe>
             <dxl:IndexCondList>
               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                 <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
               </dxl:Comparison>
             </dxl:IndexCondList>
             <dxl:IndexDescriptor Mdid="0.827831.1.0" IndexName="idx_p1_c"/>

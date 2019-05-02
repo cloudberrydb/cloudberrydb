@@ -11,7 +11,7 @@
       <dxl:And>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
           <dxl:Ident ColId="1" ColName="t1" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="50"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="50"/>
         </dxl:Comparison>
         <dxl:SubqueryAny OperatorName="=" OperatorMdid="0.96.1.0" ColId="12">
           <dxl:Ident ColId="2" ColName="t2" TypeMdid="0.23.1.0"/>
@@ -19,7 +19,7 @@
             <dxl:SortingColumnList/>
             <dxl:LimitCount>
               <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
               </dxl:FuncExpr>
             </dxl:LimitCount>
             <dxl:LimitOffset/>

@@ -20,7 +20,7 @@
             <dxl:Ident ColId="7" ColName="r.b" TypeMdid="0.23.1.0"/>
             <dxl:Ident ColId="10" ColName="r.a" TypeMdid="0.23.1.0"/>
           </dxl:Comparison>
-          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
         </dxl:IsDistinctFrom>
       </dxl:JoinFilter>
       <dxl:HashJoin JoinType="In">

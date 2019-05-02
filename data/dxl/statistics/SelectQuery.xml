@@ -9,7 +9,7 @@
     <dxl:LogicalSelect>
       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
         <dxl:Ident ColId="2" ColName="B" TypeMdid="0.16.1.0"/>
-        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
       </dxl:Comparison>
       <dxl:LogicalGet>
         <dxl:TableDescriptor Mdid="0.1234.1.1" TableName="T">

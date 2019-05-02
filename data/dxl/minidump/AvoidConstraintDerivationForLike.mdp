@@ -174,7 +174,7 @@ select * from like_error where some_text LIKE ANY (ARRAY['%text1%']);
         <dxl:ArrayComp OperatorName="~~" OperatorMdid="0.1209.1.0" OperatorType="Any">
           <dxl:Ident ColId="1" ColName="some_text" TypeMdid="0.25.1.0"/>
           <dxl:Array ArrayType="0.1009.1.0" ElementType="0.25.1.0" MultiDimensional="false">
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACyV0ZXh0MSU=" LintValue="650421166"/>
+            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACyV0ZXh0MSU=" LintValue="650421166"/>
           </dxl:Array>
         </dxl:ArrayComp>
         <dxl:LogicalGet>
@@ -218,7 +218,7 @@ select * from like_error where some_text LIKE ANY (ARRAY['%text1%']);
             <dxl:ArrayComp OperatorName="~~" OperatorMdid="0.1209.1.0" OperatorType="Any">
               <dxl:Ident ColId="0" ColName="some_text" TypeMdid="0.25.1.0"/>
               <dxl:Array ArrayType="0.1009.1.0" ElementType="0.25.1.0" MultiDimensional="false">
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACyV0ZXh0MSU=" LintValue="650421166"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACyV0ZXh0MSU=" LintValue="650421166"/>
               </dxl:Array>
             </dxl:ArrayComp>
           </dxl:Filter>

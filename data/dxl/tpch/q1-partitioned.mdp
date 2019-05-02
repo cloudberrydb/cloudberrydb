@@ -448,7 +448,7 @@
                 <dxl:OpExpr OperatorName="*" OperatorMdid="0.1760.1.0">
                   <dxl:Ident ColId="6" ColName="l_extendedprice" TypeMdid="0.1700.1.0"/>
                   <dxl:OpExpr OperatorName="-" OperatorMdid="0.1759.1.0">
-                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                     <dxl:Ident ColId="7" ColName="l_discount" TypeMdid="0.1700.1.0"/>
                   </dxl:OpExpr>
                 </dxl:OpExpr>
@@ -460,12 +460,12 @@
                   <dxl:OpExpr OperatorName="*" OperatorMdid="0.1760.1.0">
                     <dxl:Ident ColId="6" ColName="l_extendedprice" TypeMdid="0.1700.1.0"/>
                     <dxl:OpExpr OperatorName="-" OperatorMdid="0.1759.1.0">
-                      <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                      <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                       <dxl:Ident ColId="7" ColName="l_discount" TypeMdid="0.1700.1.0"/>
                     </dxl:OpExpr>
                   </dxl:OpExpr>
                   <dxl:OpExpr OperatorName="+" OperatorMdid="0.1758.1.0">
-                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                     <dxl:Ident ColId="8" ColName="l_tax" TypeMdid="0.1700.1.0"/>
                   </dxl:OpExpr>
                 </dxl:OpExpr>
@@ -493,7 +493,7 @@
           <dxl:LogicalSelect>
             <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2346.1.0">
               <dxl:Ident ColId="11" ColName="l_shipdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMDujOzX//8=" DoubleValue="-44064000000000"/>
+              <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" Value="AMDujOzX//8=" DoubleValue="-44064000000000"/>
             </dxl:Comparison>
             <dxl:LogicalGet>
               <dxl:TableDescriptor Mdid="0.38557.1.1" TableName="lineitem">
@@ -600,7 +600,7 @@
                 <dxl:OpExpr OperatorName="*" OperatorMdid="0.1760.1.0">
                   <dxl:Ident ColId="5" ColName="l_extendedprice" TypeMdid="0.1700.1.0"/>
                   <dxl:OpExpr OperatorName="-" OperatorMdid="0.1759.1.0">
-                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                     <dxl:Ident ColId="6" ColName="l_discount" TypeMdid="0.1700.1.0"/>
                   </dxl:OpExpr>
                 </dxl:OpExpr>
@@ -612,12 +612,12 @@
                   <dxl:OpExpr OperatorName="*" OperatorMdid="0.1760.1.0">
                     <dxl:Ident ColId="5" ColName="l_extendedprice" TypeMdid="0.1700.1.0"/>
                     <dxl:OpExpr OperatorName="-" OperatorMdid="0.1759.1.0">
-                      <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                      <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                       <dxl:Ident ColId="6" ColName="l_discount" TypeMdid="0.1700.1.0"/>
                     </dxl:OpExpr>
                   </dxl:OpExpr>
                   <dxl:OpExpr OperatorName="+" OperatorMdid="0.1758.1.0">
-                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                    <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                     <dxl:Ident ColId="7" ColName="l_tax" TypeMdid="0.1700.1.0"/>
                   </dxl:OpExpr>
                 </dxl:OpExpr>
@@ -735,7 +735,7 @@
                 <dxl:Filter>
                   <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2346.1.0">
                     <dxl:Ident ColId="10" ColName="l_shipdate" TypeMdid="0.1082.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMDujOzX//8=" DoubleValue="-44064000000000"/>
+                    <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" Value="AMDujOzX//8=" DoubleValue="-44064000000000"/>
                   </dxl:Comparison>
                 </dxl:Filter>
                 <dxl:OneTimeFilter/>
@@ -773,7 +773,7 @@
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="44" Alias="gp_partition_propagation">
                         <dxl:FuncExpr FuncId="0.6083.1.0" FuncRetSet="false" TypeMdid="0.2278.1.0">
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
                           <dxl:Ident ColId="39" ColName="gp_partition_propagation" TypeMdid="0.26.1.0"/>
                         </dxl:FuncExpr>
                       </dxl:ProjElem>
@@ -804,7 +804,7 @@
                       <dxl:Filter>
                         <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2346.1.0">
                           <dxl:Ident ColId="40" ColName="min" TypeMdid="0.1082.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMDujOzX//8=" DoubleValue="-44064000000000"/>
+                          <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" Value="AMDujOzX//8=" DoubleValue="-44064000000000"/>
                         </dxl:Comparison>
                       </dxl:Filter>
                       <dxl:OneTimeFilter/>
@@ -829,7 +829,7 @@
                             <dxl:Ident ColId="43" ColName="maxinc" TypeMdid="0.16.1.0"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
-                        <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="38557"/>
+                        <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="38557"/>
                       </dxl:TableValuedFunction>
                     </dxl:Result>
                   </dxl:Result>

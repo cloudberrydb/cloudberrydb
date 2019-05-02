@@ -114,7 +114,7 @@ select count(*) from ( select unnest(arr) i, unnest(arr) j  from (    select str
           <dxl:LogicalProject>
             <dxl:ProjList>
               <dxl:ProjElem ColId="2" Alias="arr">
-                <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" IsByValue="false" Value="AAAAOAEAAAAAAAAAGQAAAAQAAAABAAAAAAAABmFhAAAAAAAGYmIAAAAAAAZj&#10;YwAAAAAABmRkAAA="/>
+                <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" Value="AAAAOAEAAAAAAAAAGQAAAAQAAAABAAAAAAAABmFhAAAAAAAGYmIAAAAAAAZj&#10;YwAAAAAABmRkAAA="/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalConstTable>
@@ -122,7 +122,7 @@ select count(*) from ( select unnest(arr) i, unnest(arr) j  from (    select str
                 <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
               </dxl:Columns>
               <dxl:ConstTuple>
-                <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
               </dxl:ConstTuple>
             </dxl:LogicalConstTable>
           </dxl:LogicalProject>
@@ -178,7 +178,7 @@ select count(*) from ( select unnest(arr) i, unnest(arr) j  from (    select str
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="1" Alias="arr">
-                  <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" IsByValue="false" Value="AAAAOAEAAAAAAAAAGQAAAAQAAAABAAAAAAAABmFhAAAAAAAGYmIAAAAAAAZj&#10;YwAAAAAABmRkAAA="/>
+                  <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" Value="AAAAOAEAAAAAAAAAGQAAAAQAAAABAAAAAAAABmFhAAAAAAAGYmIAAAAAAAZj&#10;YwAAAAAABmRkAAA="/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
@@ -189,7 +189,7 @@ select count(*) from ( select unnest(arr) i, unnest(arr) j  from (    select str
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="">
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>

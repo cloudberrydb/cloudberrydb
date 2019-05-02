@@ -73,13 +73,6 @@ namespace gpdxl
 				return CDXLDatum::EdxldatumInt8;
 			}
 
-			// is type passed by value
-			virtual
-			BOOL IsPassedByValue() const
-			{
-				return true;
-			}
-
 			// conversion function
 			static
 			CDXLDatumInt8 *Cast

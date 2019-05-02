@@ -239,7 +239,7 @@ explain select * from R where b::int8=5::int8;
           <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
           </dxl:FuncExpr>
-          <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="5"/>
+          <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="5"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.24593.1.0" TableName="r">
@@ -291,7 +291,7 @@ explain select * from R where b::int8=5::int8;
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:Or>
@@ -302,7 +302,7 @@ explain select * from R where b::int8=5::int8;
                         <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                         </dxl:Cast>
-                        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="5"/>
                       </dxl:Comparison>
                       <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                     </dxl:And>
@@ -310,7 +310,7 @@ explain select * from R where b::int8=5::int8;
                       <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                       </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="5"/>
                     </dxl:Comparison>
                   </dxl:Or>
                   <dxl:Or>
@@ -319,7 +319,7 @@ explain select * from R where b::int8=5::int8;
                         <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                         </dxl:Cast>
-                        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="5"/>
                       </dxl:Comparison>
                       <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
                     </dxl:And>
@@ -327,7 +327,7 @@ explain select * from R where b::int8=5::int8;
                       <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                       </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="5"/>
                     </dxl:Comparison>
                   </dxl:Or>
                 </dxl:And>
@@ -338,17 +338,17 @@ explain select * from R where b::int8=5::int8;
               </dxl:Or>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
                 <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="5"/>
               </dxl:Comparison>
             </dxl:PrintableFilter>
           </dxl:PartitionSelector>
@@ -369,7 +369,7 @@ explain select * from R where b::int8=5::int8;
                 <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="5"/>
               </dxl:Comparison>
             </dxl:Filter>
             <dxl:TableDescriptor Mdid="0.24593.1.0" TableName="r">

@@ -139,46 +139,46 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
       <dxl:ColumnStatistics Mdid="1.3736759.1.0.8" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.3736759.1.0.1" Name="year" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.3736759.1.0.0" Name="id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsMergeJoinable="false" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -215,46 +215,46 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
       <dxl:ColumnStatistics Mdid="1.3736759.1.0.10" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="120.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.3736759.1.0.3" Name="day" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.3736759.1.0.2" Name="month" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.3736759.1.0.5" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="10.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
@@ -319,11 +319,11 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
         <dxl:And>
           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
           </dxl:Comparison>
         </dxl:And>
         <dxl:LogicalGet>
@@ -397,45 +397,45 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
               <dxl:And>
                 <dxl:Or>
                   <dxl:ArrayComp OperatorName="&lt;=" OperatorMdid="0.523.1.0" OperatorType="Any">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                     <dxl:PartListValues Level="1" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                   </dxl:ArrayComp>
                   <dxl:DefaultPart Level="1"/>
                 </dxl:Or>
                 <dxl:Or>
                   <dxl:ArrayComp OperatorName="&gt;=" OperatorMdid="0.525.1.0" OperatorType="Any">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                     <dxl:PartListValues Level="1" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                   </dxl:ArrayComp>
                   <dxl:DefaultPart Level="1"/>
                 </dxl:Or>
               </dxl:And>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="2" ColName="month" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                   <dxl:Ident ColId="2" ColName="month" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:PrintableFilter>
@@ -465,11 +465,11 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="2" ColName="month" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                   <dxl:Ident ColId="2" ColName="month" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:Filter>

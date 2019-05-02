@@ -19,7 +19,7 @@
       <dxl:Filter>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
           <dxl:Ident ColId="0" ColName="BaseTable.column_0000" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
         </dxl:Comparison>
       </dxl:Filter>
       <dxl:OneTimeFilter/>

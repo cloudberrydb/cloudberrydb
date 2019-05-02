@@ -242,7 +242,7 @@ EXPLAIN SELECT (SELECT COUNT(*) FROM bar GROUP BY c LIMIT 1) FROM foo;
               <dxl:LogicalLimit>
                 <dxl:SortingColumnList/>
                 <dxl:LimitCount>
-                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="1"/>
                 </dxl:LimitCount>
                 <dxl:LimitOffset/>
                 <dxl:LogicalGroupBy>
@@ -336,7 +336,7 @@ EXPLAIN SELECT (SELECT COUNT(*) FROM bar GROUP BY c LIMIT 1) FROM foo;
               </dxl:ProjList>
               <dxl:Filter/>
               <dxl:JoinFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
               </dxl:JoinFilter>
               <dxl:TableScan>
                 <dxl:Properties>
@@ -468,10 +468,10 @@ EXPLAIN SELECT (SELECT COUNT(*) FROM bar GROUP BY c LIMIT 1) FROM foo;
                       </dxl:Result>
                     </dxl:GatherMotion>
                     <dxl:LimitCount>
-                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="1"/>
                     </dxl:LimitCount>
                     <dxl:LimitOffset>
-                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                     </dxl:LimitOffset>
                   </dxl:Limit>
                 </dxl:BroadcastMotion>

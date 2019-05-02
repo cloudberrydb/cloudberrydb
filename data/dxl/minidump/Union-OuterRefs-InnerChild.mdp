@@ -287,7 +287,7 @@ select * from y where m in (select 1 union select n from x);
             <dxl:LogicalProject>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="11" Alias="?column?">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:LogicalConstTable>
@@ -295,7 +295,7 @@ select * from y where m in (select 1 union select n from x);
                   <dxl:Column ColId="10" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                 </dxl:Columns>
                 <dxl:ConstTuple>
-                  <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:ConstTuple>
               </dxl:LogicalConstTable>
             </dxl:LogicalProject>
@@ -414,7 +414,7 @@ select * from y where m in (select 1 union select n from x);
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="10" Alias="?column?">
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
                       <dxl:Filter/>
@@ -425,7 +425,7 @@ select * from y where m in (select 1 union select n from x);
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="9" Alias="">
-                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>

@@ -54,7 +54,6 @@ namespace gpdxl
 				CMemoryPool *mp,
 				IMDId *mdid_type,
 				INT type_modifier,
-				BOOL is_passed_by_value,
 				BOOL is_null,
 				BYTE *byte_array,
 				ULONG length,

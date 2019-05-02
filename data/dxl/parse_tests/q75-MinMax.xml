@@ -9,13 +9,13 @@
       <dxl:ProjList>
         <dxl:ProjElem ColId="2" Alias="least">
           <dxl:Minimum TypeMdid="0.23.1.0">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
             <dxl:Maximum TypeMdid="0.23.1.0">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
             </dxl:Maximum>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
           </dxl:Minimum>
         </dxl:ProjElem>
       </dxl:ProjList>
@@ -24,7 +24,7 @@
           <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
         </dxl:Columns>
         <dxl:ConstTuple>
-          <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+          <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
         </dxl:ConstTuple>
       </dxl:LogicalConstTable>
     </dxl:LogicalProject>

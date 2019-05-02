@@ -198,12 +198,12 @@ EXPLAIN SELECT * FROM t1 LEFT OUTER JOIN t2 ON t1.a = t2.a WHERE t2.b IS NOT DIS
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.40960.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.500000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.500000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.40963.1.0.1" Name="b" Width="4.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
@@ -235,7 +235,7 @@ EXPLAIN SELECT * FROM t1 LEFT OUTER JOIN t2 ON t1.a = t2.a WHERE t2.b IS NOT DIS
         <dxl:Not>
           <dxl:IsDistinctFrom OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="11" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
           </dxl:IsDistinctFrom>
         </dxl:Not>
         <dxl:LogicalJoin JoinType="Left">
@@ -319,7 +319,7 @@ EXPLAIN SELECT * FROM t1 LEFT OUTER JOIN t2 ON t1.a = t2.a WHERE t2.b IS NOT DIS
             <dxl:Not>
               <dxl:IsDistinctFrom OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="10" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
               </dxl:IsDistinctFrom>
             </dxl:Not>
           </dxl:Filter>

@@ -209,13 +209,13 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
             <dxl:FuncExpr FuncId="0.1740.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
               <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
             </dxl:FuncExpr>
-            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
+            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1752.1.0">
             <dxl:FuncExpr FuncId="0.1740.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
               <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
             </dxl:FuncExpr>
-            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
           </dxl:Comparison>
         </dxl:And>
         <dxl:LogicalGet>
@@ -289,14 +289,14 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:Or>
                 <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1752.1.0" OperatorType="Any">
-                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
+                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
                   <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                     <dxl:PartListValues Level="0" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                   </dxl:ArrayCoerceExpr>
@@ -305,20 +305,20 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
               </dxl:Or>
               <dxl:Or>
                 <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1752.1.0" OperatorType="Any">
-                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                   <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                     <dxl:PartListValues Level="1" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                   </dxl:ArrayCoerceExpr>
                 </dxl:ArrayComp>
                 <dxl:DefaultPart Level="1"/>
               </dxl:Or>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:And>
@@ -326,13 +326,13 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
                   <dxl:Cast TypeMdid="0.1700.1.0" FuncId="0.1740.1.0">
                     <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
+                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1752.1.0">
                   <dxl:Cast TypeMdid="0.1700.1.0" FuncId="0.1740.1.0">
                     <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:PrintableFilter>
@@ -364,13 +364,13 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
                   <dxl:Cast TypeMdid="0.1700.1.0" FuncId="0.1740.1.0">
                     <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
+                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1752.1.0">
                   <dxl:Cast TypeMdid="0.1700.1.0" FuncId="0.1740.1.0">
                     <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
+                  <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:Filter>

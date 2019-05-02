@@ -435,7 +435,7 @@ Physical plan:
                             </dxl:CoerceToDomain>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="17" Alias="ColRef_0017">
-                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>

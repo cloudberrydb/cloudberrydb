@@ -14,14 +14,14 @@
               <dxl:Ident ColId="2" ColName="t2" TypeMdid="0.23.1.0"/>
             </dxl:OpExpr>
             <dxl:SwitchCase>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="111"/>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACW90aGVy"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="111"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACW90aGVy"/>
             </dxl:SwitchCase>
             <dxl:SwitchCase>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2232"/>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACW90aGVy"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2232"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACW90aGVy"/>
             </dxl:SwitchCase>
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACW90aGVy"/>
+            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACW90aGVy"/>
           </dxl:Switch>
         </dxl:ProjElem>
       </dxl:ProjList>

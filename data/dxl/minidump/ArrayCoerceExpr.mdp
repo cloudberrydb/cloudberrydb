@@ -196,8 +196,8 @@ explain select * from foo where d in ('a', 'b');
           </dxl:Cast>
           <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="false" CoercionForm="2" Location="0">
             <dxl:Array ArrayType="0.1015.1.0" ElementType="0.1043.1.0" MultiDimensional="false">
-              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
-              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABWI=" LintValue="160449068"/>
+              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABWE=" LintValue="160440876"/>
+              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABWI=" LintValue="160449068"/>
             </dxl:Array>
           </dxl:ArrayCoerceExpr>
         </dxl:ArrayComp>
@@ -252,8 +252,8 @@ explain select * from foo where d in ('a', 'b');
               </dxl:Cast>
               <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="false" CoercionForm="2" Location="0">
                 <dxl:Array ArrayType="0.1015.1.0" ElementType="0.1043.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
-                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABWI=" LintValue="160449068"/>
+                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABWE=" LintValue="160440876"/>
+                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABWI=" LintValue="160449068"/>
                 </dxl:Array>
               </dxl:ArrayCoerceExpr>
             </dxl:ArrayComp>

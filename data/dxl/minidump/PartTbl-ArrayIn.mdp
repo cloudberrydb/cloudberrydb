@@ -231,8 +231,8 @@ WHERE b in (1,2);
         <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
           <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
           <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
           </dxl:Array>
         </dxl:ArrayComp>
         <dxl:LogicalGet>
@@ -299,7 +299,7 @@ WHERE b in (1,2);
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:Or>
@@ -309,26 +309,26 @@ WHERE b in (1,2);
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                         </dxl:Comparison>
                         <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                       </dxl:And>
                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                       </dxl:Comparison>
                     </dxl:Or>
                     <dxl:Or>
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                         </dxl:Comparison>
                         <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
                       </dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                       </dxl:Comparison>
                     </dxl:Or>
                   </dxl:And>
@@ -337,26 +337,26 @@ WHERE b in (1,2);
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                         </dxl:Comparison>
                         <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                       </dxl:And>
                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                       </dxl:Comparison>
                     </dxl:Or>
                     <dxl:Or>
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                         </dxl:Comparison>
                         <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
                       </dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                       </dxl:Comparison>
                     </dxl:Or>
                   </dxl:And>
@@ -368,17 +368,17 @@ WHERE b in (1,2);
               </dxl:Or>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
                 <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                 <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Array>
               </dxl:ArrayComp>
             </dxl:PrintableFilter>
@@ -405,8 +405,8 @@ WHERE b in (1,2);
               <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
                 <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                 <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Array>
               </dxl:ArrayComp>
             </dxl:Filter>

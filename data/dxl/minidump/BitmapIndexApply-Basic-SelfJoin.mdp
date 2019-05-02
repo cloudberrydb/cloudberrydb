@@ -460,7 +460,7 @@ explain SELECT * FROM t i1, t t2 where t2.c2 = i1.c2;
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:JoinFilter>
           <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
             <dxl:Properties>

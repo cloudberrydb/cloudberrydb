@@ -253,7 +253,7 @@
           <dxl:IndexCondList>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
               <dxl:Ident ColId="1" ColName="b" TypeMdid="0.16.1.0"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
             </dxl:Comparison>
           </dxl:IndexCondList>
           <dxl:IndexDescriptor Mdid="0.296558.1.0" IndexName="s_b"/>

@@ -35,14 +35,12 @@ CDXLDatumGeneric::CDXLDatumGeneric
 	CMemoryPool *mp,
 	IMDId *mdid_type,
 	INT type_modifier,
-	BOOL is_passed_by_value,
 	BOOL is_null,
 	BYTE *byte_array,
 	ULONG length
 	)
 	:
 	CDXLDatum(mp, mdid_type, type_modifier, is_null, length),
-	m_is_passed_by_value(is_passed_by_value),
 	m_byte_array(byte_array)
 {
 	GPOS_ASSERT_IMP(m_is_null, (m_byte_array == NULL) && (m_length == 0));
@@ -95,7 +93,6 @@ CDXLDatumGeneric::Serialize
 		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTypeMod), m_type_modifier);
 	}
 	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsNull), m_is_null);
-	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsByValue), m_is_passed_by_value);
 	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenValue), m_is_null, GetByteArray(), Length());
 }
 

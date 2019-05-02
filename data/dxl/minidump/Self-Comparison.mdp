@@ -187,11 +187,11 @@
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0">
               <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:OpExpr>
             <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0">
               <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:OpExpr>
           </dxl:Comparison>
         </dxl:Or>

@@ -194,7 +194,7 @@ select * from t2;
               <dxl:ProjElem ColId="10" Alias="c">
                 <dxl:FuncExpr FuncId="0.2765.1.0" FuncRetSet="true" TypeMdid="0.25.1.0">
                   <dxl:Ident ColId="1" ColName="a" TypeMdid="0.25.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABSw=" LintValue="161055276"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABSw=" LintValue="161055276"/>
                 </dxl:FuncExpr>
               </dxl:ProjElem>
             </dxl:ProjList>
@@ -221,7 +221,7 @@ select * from t2;
               <dxl:ProjElem ColId="13" Alias="d">
                 <dxl:FuncExpr FuncId="0.2765.1.0" FuncRetSet="true" TypeMdid="0.25.1.0">
                   <dxl:Ident ColId="12" ColName="b" TypeMdid="0.25.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABTs=" LintValue="161178156"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABTs=" LintValue="161178156"/>
                 </dxl:FuncExpr>
               </dxl:ProjElem>
             </dxl:ProjList>
@@ -261,7 +261,7 @@ select * from t2;
             <dxl:ProjElem ColId="22" Alias="d">
               <dxl:FuncExpr FuncId="0.2765.1.0" FuncRetSet="true" TypeMdid="0.25.1.0">
                 <dxl:Ident ColId="23" ColName="b" TypeMdid="0.25.1.0"/>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABTs=" LintValue="161178156"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABTs=" LintValue="161178156"/>
               </dxl:FuncExpr>
             </dxl:ProjElem>
           </dxl:ProjList>
@@ -275,7 +275,7 @@ select * from t2;
               <dxl:ProjElem ColId="21" Alias="c">
                 <dxl:FuncExpr FuncId="0.2765.1.0" FuncRetSet="true" TypeMdid="0.25.1.0">
                   <dxl:Ident ColId="24" ColName="a" TypeMdid="0.25.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABSw=" LintValue="161055276"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABSw=" LintValue="161055276"/>
                 </dxl:FuncExpr>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="23" Alias="b">

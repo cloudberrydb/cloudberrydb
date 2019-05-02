@@ -54,7 +54,7 @@ namespace gpdxl
 	class CDXLDatum;
 
 	// shorthand for functions for translating a DXL datum
-	typedef CDXLDatum* (PfPdxldatum) (CDXLMemoryManager *, const Attributes &, Edxltoken , IMDId *, BOOL , BOOL);
+	typedef CDXLDatum* (PfPdxldatum) (CDXLMemoryManager *, const Attributes &, Edxltoken , IMDId *, BOOL);
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -106,8 +106,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			static
@@ -117,8 +116,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			static
@@ -128,8 +126,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			static
@@ -139,8 +136,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			static
@@ -150,8 +146,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			// parse a dxl datum of type generic
@@ -162,8 +157,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			// parse a dxl datum of types that need double mapping
@@ -174,8 +168,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			// parse a dxl datum of types that need lint mapping
@@ -186,8 +179,7 @@ namespace gpdxl
 								const Attributes &attrs,
 								Edxltoken target_elem,
 								IMDId *mdid,
-								BOOL is_const_null ,
-								BOOL is_const_by_val
+								BOOL is_const_null
 								);
 
 			// create a table scan operator

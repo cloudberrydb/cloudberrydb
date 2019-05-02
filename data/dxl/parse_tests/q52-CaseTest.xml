@@ -20,9 +20,9 @@
                   <dxl:Ident ColId="3" ColName="t3" TypeMdid="0.23.1.0"/>
                 </dxl:IsDistinctFrom>
               </dxl:Not>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABXM=" LintValue="160588332"/>
             </dxl:SwitchCase>
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWM=" LintValue="160457260"/>
+            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABWM=" LintValue="160457260"/>
           </dxl:Switch>
         </dxl:ProjElem>
       </dxl:ProjList>

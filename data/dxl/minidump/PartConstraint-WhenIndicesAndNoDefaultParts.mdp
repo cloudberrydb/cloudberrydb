@@ -123,11 +123,11 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                           <dxl:And>
                                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                             </dxl:Comparison>
                                                           </dxl:And>
                                                           <dxl:And>
@@ -135,26 +135,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                             <dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                             </dxl:Comparison>
                                                             </dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                                             </dxl:Comparison>
                                                             </dxl:Or>
                                                             <dxl:And>
                                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                             </dxl:Comparison>
                                                             </dxl:And>
                                                           </dxl:And>
@@ -164,26 +164,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                             <dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                                             </dxl:Comparison>
                                                             </dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                                             </dxl:Comparison>
                                                           </dxl:Or>
                                                           <dxl:And>
                                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                             </dxl:Comparison>
                                                           </dxl:And>
                                                         </dxl:And>
@@ -193,26 +193,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                           <dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                                             </dxl:Comparison>
                                                           </dxl:Or>
                                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                                           </dxl:Comparison>
                                                         </dxl:Or>
                                                         <dxl:And>
                                                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                           </dxl:Comparison>
                                                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                           </dxl:Comparison>
                                                         </dxl:And>
                                                       </dxl:And>
@@ -222,26 +222,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                         <dxl:Or>
                                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                                           </dxl:Comparison>
                                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                                           </dxl:Comparison>
                                                         </dxl:Or>
                                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                                         </dxl:Comparison>
                                                       </dxl:Or>
                                                       <dxl:And>
                                                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                         </dxl:Comparison>
                                                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                         </dxl:Comparison>
                                                       </dxl:And>
                                                     </dxl:And>
@@ -251,26 +251,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                       <dxl:Or>
                                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                         </dxl:Comparison>
                                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                         </dxl:Comparison>
                                                       </dxl:Or>
                                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                                       </dxl:Comparison>
                                                     </dxl:Or>
                                                     <dxl:And>
                                                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                       </dxl:Comparison>
                                                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                       </dxl:Comparison>
                                                     </dxl:And>
                                                   </dxl:And>
@@ -280,26 +280,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                     <dxl:Or>
                                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                                       </dxl:Comparison>
                                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                                       </dxl:Comparison>
                                                     </dxl:Or>
                                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                                     </dxl:Comparison>
                                                   </dxl:Or>
                                                   <dxl:And>
                                                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                     </dxl:Comparison>
                                                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                     </dxl:Comparison>
                                                   </dxl:And>
                                                 </dxl:And>
@@ -309,26 +309,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                   <dxl:Or>
                                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                                     </dxl:Comparison>
                                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                                     </dxl:Comparison>
                                                   </dxl:Or>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                                   </dxl:Comparison>
                                                 </dxl:Or>
                                                 <dxl:And>
                                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                   </dxl:Comparison>
                                                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                   </dxl:Comparison>
                                                 </dxl:And>
                                               </dxl:And>
@@ -338,26 +338,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                 <dxl:Or>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                                   </dxl:Comparison>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                                   </dxl:Comparison>
                                                 </dxl:Or>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                                 </dxl:Comparison>
                                               </dxl:Or>
                                               <dxl:And>
                                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                 </dxl:Comparison>
                                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                 </dxl:Comparison>
                                               </dxl:And>
                                             </dxl:And>
@@ -367,38 +367,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                               <dxl:And>
                                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                 </dxl:Comparison>
                                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                                 </dxl:Comparison>
                                               </dxl:And>
                                               <dxl:Or>
                                                 <dxl:Or>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                   </dxl:Comparison>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                   </dxl:Comparison>
                                                 </dxl:Or>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                                 </dxl:Comparison>
                                               </dxl:Or>
                                             </dxl:And>
                                             <dxl:And>
                                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                               </dxl:Comparison>
                                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                               </dxl:Comparison>
                                             </dxl:And>
                                           </dxl:And>
@@ -408,38 +408,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                             <dxl:And>
                                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                               </dxl:Comparison>
                                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                               </dxl:Comparison>
                                             </dxl:And>
                                             <dxl:Or>
                                               <dxl:Or>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                 </dxl:Comparison>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                 </dxl:Comparison>
                                               </dxl:Or>
                                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                               </dxl:Comparison>
                                             </dxl:Or>
                                           </dxl:And>
                                           <dxl:And>
                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                             </dxl:Comparison>
                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                             </dxl:Comparison>
                                           </dxl:And>
                                         </dxl:And>
@@ -449,38 +449,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                           <dxl:And>
                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                             </dxl:Comparison>
                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                             </dxl:Comparison>
                                           </dxl:And>
                                           <dxl:Or>
                                             <dxl:Or>
                                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                               </dxl:Comparison>
                                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                               </dxl:Comparison>
                                             </dxl:Or>
                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                             </dxl:Comparison>
                                           </dxl:Or>
                                         </dxl:And>
                                         <dxl:And>
                                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                           </dxl:Comparison>
                                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                           </dxl:Comparison>
                                         </dxl:And>
                                       </dxl:And>
@@ -490,38 +490,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                         <dxl:And>
                                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                           </dxl:Comparison>
                                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                           </dxl:Comparison>
                                         </dxl:And>
                                         <dxl:Or>
                                           <dxl:Or>
                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                             </dxl:Comparison>
                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                             </dxl:Comparison>
                                           </dxl:Or>
                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                           </dxl:Comparison>
                                         </dxl:Or>
                                       </dxl:And>
                                       <dxl:And>
                                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                         </dxl:Comparison>
                                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                         </dxl:Comparison>
                                       </dxl:And>
                                     </dxl:And>
@@ -531,38 +531,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                       <dxl:And>
                                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                         </dxl:Comparison>
                                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                         </dxl:Comparison>
                                       </dxl:And>
                                       <dxl:Or>
                                         <dxl:Or>
                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                           </dxl:Comparison>
                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                           </dxl:Comparison>
                                         </dxl:Or>
                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                         </dxl:Comparison>
                                       </dxl:Or>
                                     </dxl:And>
                                     <dxl:And>
                                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                       </dxl:Comparison>
                                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                       </dxl:Comparison>
                                     </dxl:And>
                                   </dxl:And>
@@ -572,38 +572,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                     <dxl:And>
                                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                       </dxl:Comparison>
                                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                       </dxl:Comparison>
                                     </dxl:And>
                                     <dxl:Or>
                                       <dxl:Or>
                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                         </dxl:Comparison>
                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                         </dxl:Comparison>
                                       </dxl:Or>
                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                       </dxl:Comparison>
                                     </dxl:Or>
                                   </dxl:And>
                                   <dxl:And>
                                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                     </dxl:Comparison>
                                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                     </dxl:Comparison>
                                   </dxl:And>
                                 </dxl:And>
@@ -613,38 +613,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                   <dxl:And>
                                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                     </dxl:Comparison>
                                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                     </dxl:Comparison>
                                   </dxl:And>
                                   <dxl:Or>
                                     <dxl:Or>
                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                       </dxl:Comparison>
                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                       </dxl:Comparison>
                                     </dxl:Or>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                     </dxl:Comparison>
                                   </dxl:Or>
                                 </dxl:And>
                                 <dxl:And>
                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                   </dxl:Comparison>
                                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                   </dxl:Comparison>
                                 </dxl:And>
                               </dxl:And>
@@ -654,38 +654,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                 <dxl:And>
                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                   </dxl:Comparison>
                                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                   </dxl:Comparison>
                                 </dxl:And>
                                 <dxl:Or>
                                   <dxl:Or>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                     </dxl:Comparison>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                     </dxl:Comparison>
                                   </dxl:Or>
                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                   </dxl:Comparison>
                                 </dxl:Or>
                               </dxl:And>
                               <dxl:And>
                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                 </dxl:Comparison>
                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                 </dxl:Comparison>
                               </dxl:And>
                             </dxl:And>
@@ -695,38 +695,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                               <dxl:And>
                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                 </dxl:Comparison>
                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                 </dxl:Comparison>
                               </dxl:And>
                               <dxl:Or>
                                 <dxl:Or>
                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                   </dxl:Comparison>
                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                   </dxl:Comparison>
                                 </dxl:Or>
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                 </dxl:Comparison>
                               </dxl:Or>
                             </dxl:And>
                             <dxl:And>
                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                               </dxl:Comparison>
                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                               </dxl:Comparison>
                             </dxl:And>
                           </dxl:And>
@@ -736,38 +736,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                             <dxl:And>
                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                               </dxl:Comparison>
                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                               </dxl:Comparison>
                             </dxl:And>
                             <dxl:Or>
                               <dxl:Or>
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                 </dxl:Comparison>
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                 </dxl:Comparison>
                               </dxl:Or>
                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                               </dxl:Comparison>
                             </dxl:Or>
                           </dxl:And>
                           <dxl:And>
                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                             </dxl:Comparison>
                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                             </dxl:Comparison>
                           </dxl:And>
                         </dxl:And>
@@ -777,38 +777,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                           <dxl:And>
                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                             </dxl:Comparison>
                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                             </dxl:Comparison>
                           </dxl:And>
                           <dxl:Or>
                             <dxl:Or>
                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                               </dxl:Comparison>
                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                               </dxl:Comparison>
                             </dxl:Or>
                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                             </dxl:Comparison>
                           </dxl:Or>
                         </dxl:And>
                         <dxl:And>
                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                           </dxl:Comparison>
                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                           </dxl:Comparison>
                         </dxl:And>
                       </dxl:And>
@@ -818,38 +818,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                         <dxl:And>
                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                           </dxl:Comparison>
                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                           </dxl:Comparison>
                         </dxl:And>
                         <dxl:Or>
                           <dxl:Or>
                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                             </dxl:Comparison>
                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                             </dxl:Comparison>
                           </dxl:Or>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                           </dxl:Comparison>
                         </dxl:Or>
                       </dxl:And>
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                         </dxl:Comparison>
                       </dxl:And>
                     </dxl:And>
@@ -859,38 +859,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                         </dxl:Comparison>
                       </dxl:And>
                       <dxl:Or>
                         <dxl:Or>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                           </dxl:Comparison>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                           </dxl:Comparison>
                         </dxl:Or>
                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                         </dxl:Comparison>
                       </dxl:Or>
                     </dxl:And>
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                       </dxl:Comparison>
                     </dxl:And>
                   </dxl:And>
@@ -900,38 +900,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                       </dxl:Comparison>
                     </dxl:And>
                     <dxl:Or>
                       <dxl:Or>
                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                         </dxl:Comparison>
                       </dxl:Or>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                       </dxl:Comparison>
                     </dxl:Or>
                   </dxl:And>
                   <dxl:And>
                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                     </dxl:Comparison>
                   </dxl:And>
                 </dxl:And>
@@ -941,38 +941,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                   <dxl:And>
                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                     </dxl:Comparison>
                   </dxl:And>
                   <dxl:Or>
                     <dxl:Or>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                       </dxl:Comparison>
                     </dxl:Or>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                     </dxl:Comparison>
                   </dxl:Or>
                 </dxl:And>
                 <dxl:And>
                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                   </dxl:Comparison>
                 </dxl:And>
               </dxl:And>
@@ -982,38 +982,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                 <dxl:And>
                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                   </dxl:Comparison>
                 </dxl:And>
                 <dxl:Or>
                   <dxl:Or>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                     </dxl:Comparison>
                   </dxl:Or>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                   </dxl:Comparison>
                 </dxl:Or>
               </dxl:And>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:And>
@@ -1183,11 +1183,11 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                           <dxl:And>
                                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                             </dxl:Comparison>
                                                           </dxl:And>
                                                           <dxl:And>
@@ -1195,26 +1195,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                             <dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                             </dxl:Comparison>
                                                             </dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                                             </dxl:Comparison>
                                                             </dxl:Or>
                                                             <dxl:And>
                                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                             </dxl:Comparison>
                                                             </dxl:And>
                                                           </dxl:And>
@@ -1224,26 +1224,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                             <dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                                             </dxl:Comparison>
                                                             </dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                                             </dxl:Comparison>
                                                           </dxl:Or>
                                                           <dxl:And>
                                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                             </dxl:Comparison>
                                                           </dxl:And>
                                                         </dxl:And>
@@ -1253,26 +1253,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                           <dxl:Or>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                                             </dxl:Comparison>
                                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                                             </dxl:Comparison>
                                                           </dxl:Or>
                                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                                           </dxl:Comparison>
                                                         </dxl:Or>
                                                         <dxl:And>
                                                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                           </dxl:Comparison>
                                                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                           </dxl:Comparison>
                                                         </dxl:And>
                                                       </dxl:And>
@@ -1282,26 +1282,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                         <dxl:Or>
                                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                                           </dxl:Comparison>
                                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                                           </dxl:Comparison>
                                                         </dxl:Or>
                                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                                         </dxl:Comparison>
                                                       </dxl:Or>
                                                       <dxl:And>
                                                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                                         </dxl:Comparison>
                                                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                         </dxl:Comparison>
                                                       </dxl:And>
                                                     </dxl:And>
@@ -1311,26 +1311,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                       <dxl:Or>
                                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                         </dxl:Comparison>
                                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                         </dxl:Comparison>
                                                       </dxl:Or>
                                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                                       </dxl:Comparison>
                                                     </dxl:Or>
                                                     <dxl:And>
                                                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                       </dxl:Comparison>
                                                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                       </dxl:Comparison>
                                                     </dxl:And>
                                                   </dxl:And>
@@ -1340,26 +1340,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                     <dxl:Or>
                                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                                       </dxl:Comparison>
                                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                                       </dxl:Comparison>
                                                     </dxl:Or>
                                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                                     </dxl:Comparison>
                                                   </dxl:Or>
                                                   <dxl:And>
                                                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                     </dxl:Comparison>
                                                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                     </dxl:Comparison>
                                                   </dxl:And>
                                                 </dxl:And>
@@ -1369,26 +1369,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                   <dxl:Or>
                                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                                     </dxl:Comparison>
                                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                                     </dxl:Comparison>
                                                   </dxl:Or>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                                   </dxl:Comparison>
                                                 </dxl:Or>
                                                 <dxl:And>
                                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                   </dxl:Comparison>
                                                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                   </dxl:Comparison>
                                                 </dxl:And>
                                               </dxl:And>
@@ -1398,26 +1398,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                                 <dxl:Or>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                                   </dxl:Comparison>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                                   </dxl:Comparison>
                                                 </dxl:Or>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                                 </dxl:Comparison>
                                               </dxl:Or>
                                               <dxl:And>
                                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                                 </dxl:Comparison>
                                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                                                 </dxl:Comparison>
                                               </dxl:And>
                                             </dxl:And>
@@ -1427,38 +1427,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                               <dxl:And>
                                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                 </dxl:Comparison>
                                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                                 </dxl:Comparison>
                                               </dxl:And>
                                               <dxl:Or>
                                                 <dxl:Or>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                   </dxl:Comparison>
                                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                   </dxl:Comparison>
                                                 </dxl:Or>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                                 </dxl:Comparison>
                                               </dxl:Or>
                                             </dxl:And>
                                             <dxl:And>
                                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                               </dxl:Comparison>
                                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                               </dxl:Comparison>
                                             </dxl:And>
                                           </dxl:And>
@@ -1468,38 +1468,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                             <dxl:And>
                                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                               </dxl:Comparison>
                                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                               </dxl:Comparison>
                                             </dxl:And>
                                             <dxl:Or>
                                               <dxl:Or>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                                 </dxl:Comparison>
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                                 </dxl:Comparison>
                                               </dxl:Or>
                                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                               </dxl:Comparison>
                                             </dxl:Or>
                                           </dxl:And>
                                           <dxl:And>
                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                             </dxl:Comparison>
                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                             </dxl:Comparison>
                                           </dxl:And>
                                         </dxl:And>
@@ -1509,38 +1509,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                           <dxl:And>
                                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                             </dxl:Comparison>
                                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                             </dxl:Comparison>
                                           </dxl:And>
                                           <dxl:Or>
                                             <dxl:Or>
                                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                               </dxl:Comparison>
                                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                               </dxl:Comparison>
                                             </dxl:Or>
                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                             </dxl:Comparison>
                                           </dxl:Or>
                                         </dxl:And>
                                         <dxl:And>
                                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                           </dxl:Comparison>
                                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                           </dxl:Comparison>
                                         </dxl:And>
                                       </dxl:And>
@@ -1550,38 +1550,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                         <dxl:And>
                                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                           </dxl:Comparison>
                                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                           </dxl:Comparison>
                                         </dxl:And>
                                         <dxl:Or>
                                           <dxl:Or>
                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                                             </dxl:Comparison>
                                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                                             </dxl:Comparison>
                                           </dxl:Or>
                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                                           </dxl:Comparison>
                                         </dxl:Or>
                                       </dxl:And>
                                       <dxl:And>
                                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                         </dxl:Comparison>
                                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                         </dxl:Comparison>
                                       </dxl:And>
                                     </dxl:And>
@@ -1591,38 +1591,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                       <dxl:And>
                                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                         </dxl:Comparison>
                                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                         </dxl:Comparison>
                                       </dxl:And>
                                       <dxl:Or>
                                         <dxl:Or>
                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                           </dxl:Comparison>
                                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                           </dxl:Comparison>
                                         </dxl:Or>
                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                         </dxl:Comparison>
                                       </dxl:Or>
                                     </dxl:And>
                                     <dxl:And>
                                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                       </dxl:Comparison>
                                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                       </dxl:Comparison>
                                     </dxl:And>
                                   </dxl:And>
@@ -1632,38 +1632,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                     <dxl:And>
                                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                       </dxl:Comparison>
                                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                       </dxl:Comparison>
                                     </dxl:And>
                                     <dxl:Or>
                                       <dxl:Or>
                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                                         </dxl:Comparison>
                                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                                         </dxl:Comparison>
                                       </dxl:Or>
                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                                       </dxl:Comparison>
                                     </dxl:Or>
                                   </dxl:And>
                                   <dxl:And>
                                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                     </dxl:Comparison>
                                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                     </dxl:Comparison>
                                   </dxl:And>
                                 </dxl:And>
@@ -1673,38 +1673,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                   <dxl:And>
                                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                     </dxl:Comparison>
                                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                     </dxl:Comparison>
                                   </dxl:And>
                                   <dxl:Or>
                                     <dxl:Or>
                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                       </dxl:Comparison>
                                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                       </dxl:Comparison>
                                     </dxl:Or>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                     </dxl:Comparison>
                                   </dxl:Or>
                                 </dxl:And>
                                 <dxl:And>
                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                   </dxl:Comparison>
                                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                   </dxl:Comparison>
                                 </dxl:And>
                               </dxl:And>
@@ -1714,38 +1714,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                                 <dxl:And>
                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                   </dxl:Comparison>
                                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                                   </dxl:Comparison>
                                 </dxl:And>
                                 <dxl:Or>
                                   <dxl:Or>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                                     </dxl:Comparison>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                                     </dxl:Comparison>
                                   </dxl:Or>
                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                                   </dxl:Comparison>
                                 </dxl:Or>
                               </dxl:And>
                               <dxl:And>
                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                 </dxl:Comparison>
                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                                 </dxl:Comparison>
                               </dxl:And>
                             </dxl:And>
@@ -1755,38 +1755,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                               <dxl:And>
                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                 </dxl:Comparison>
                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                   <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                                 </dxl:Comparison>
                               </dxl:And>
                               <dxl:Or>
                                 <dxl:Or>
                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                   </dxl:Comparison>
                                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                   </dxl:Comparison>
                                 </dxl:Or>
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                                 </dxl:Comparison>
                               </dxl:Or>
                             </dxl:And>
                             <dxl:And>
                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                               </dxl:Comparison>
                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                 <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                               </dxl:Comparison>
                             </dxl:And>
                           </dxl:And>
@@ -1796,38 +1796,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                             <dxl:And>
                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                               </dxl:Comparison>
                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                                 <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                               </dxl:Comparison>
                             </dxl:And>
                             <dxl:Or>
                               <dxl:Or>
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                 </dxl:Comparison>
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                   <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                                 </dxl:Comparison>
                               </dxl:Or>
                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                               </dxl:Comparison>
                             </dxl:Or>
                           </dxl:And>
                           <dxl:And>
                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                             </dxl:Comparison>
                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                               <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                             </dxl:Comparison>
                           </dxl:And>
                         </dxl:And>
@@ -1837,38 +1837,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                           <dxl:And>
                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                             </dxl:Comparison>
                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                               <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                             </dxl:Comparison>
                           </dxl:And>
                           <dxl:Or>
                             <dxl:Or>
                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                               </dxl:Comparison>
                               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                 <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                               </dxl:Comparison>
                             </dxl:Or>
                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                             </dxl:Comparison>
                           </dxl:Or>
                         </dxl:And>
                         <dxl:And>
                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                           </dxl:Comparison>
                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                           </dxl:Comparison>
                         </dxl:And>
                       </dxl:And>
@@ -1878,38 +1878,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                         <dxl:And>
                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                           </dxl:Comparison>
                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                             <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                           </dxl:Comparison>
                         </dxl:And>
                         <dxl:Or>
                           <dxl:Or>
                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                             </dxl:Comparison>
                             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                               <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                             </dxl:Comparison>
                           </dxl:Or>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                           </dxl:Comparison>
                         </dxl:Or>
                       </dxl:And>
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                           <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                         </dxl:Comparison>
                       </dxl:And>
                     </dxl:And>
@@ -1919,38 +1919,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                           <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                         </dxl:Comparison>
                       </dxl:And>
                       <dxl:Or>
                         <dxl:Or>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                           </dxl:Comparison>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                           </dxl:Comparison>
                         </dxl:Or>
                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                         </dxl:Comparison>
                       </dxl:Or>
                     </dxl:And>
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                         <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                       </dxl:Comparison>
                     </dxl:And>
                   </dxl:And>
@@ -1960,38 +1960,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                         <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                       </dxl:Comparison>
                     </dxl:And>
                     <dxl:Or>
                       <dxl:Or>
                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                           <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
                         </dxl:Comparison>
                       </dxl:Or>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
                       </dxl:Comparison>
                     </dxl:Or>
                   </dxl:And>
                   <dxl:And>
                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                       <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                     </dxl:Comparison>
                   </dxl:And>
                 </dxl:And>
@@ -2001,38 +2001,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                   <dxl:And>
                     <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                       <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                     </dxl:Comparison>
                   </dxl:And>
                   <dxl:Or>
                     <dxl:Or>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                       </dxl:Comparison>
                     </dxl:Or>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                     </dxl:Comparison>
                   </dxl:Or>
                 </dxl:And>
                 <dxl:And>
                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                     <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                   </dxl:Comparison>
                 </dxl:And>
               </dxl:And>
@@ -2042,38 +2042,38 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                 <dxl:And>
                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="21"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="21"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                     <dxl:Ident ColId="4" ColName="day" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="31"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="31"/>
                   </dxl:Comparison>
                 </dxl:And>
                 <dxl:Or>
                   <dxl:Or>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                     </dxl:Comparison>
                   </dxl:Or>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="3" ColName="month" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                   </dxl:Comparison>
                 </dxl:Or>
               </dxl:And>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2007"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2007"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                   <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2012"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2012"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:And>
@@ -2086,46 +2086,46 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
       <dxl:ColumnStatistics Mdid="1.3747400.1.0.10" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="16.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.3747400.1.0.3" Name="day" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.3747400.1.0.2" Name="month" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:GPDBScalarOp Mdid="0.96.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
@@ -2157,46 +2157,46 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
       <dxl:ColumnStatistics Mdid="1.3747400.1.0.8" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.3747400.1.0.1" Name="year" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.3747400.1.0.0" Name="id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="8"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.111111" DistinctValues="1.111111">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
     </dxl:Metadata>
@@ -2213,11 +2213,11 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
         <dxl:And>
           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
             <dxl:Ident ColId="2" ColName="year" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2003"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2003"/>
           </dxl:Comparison>
         </dxl:And>
         <dxl:LogicalGet>
@@ -2291,9 +2291,9 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:Or>
@@ -2302,26 +2302,26 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                       </dxl:Comparison>
                       <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
                     </dxl:And>
                     <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                       <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                     </dxl:Comparison>
                   </dxl:Or>
                   <dxl:Or>
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                         <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2003"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2003"/>
                       </dxl:Comparison>
                       <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                     </dxl:And>
                     <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                       <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2003"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2003"/>
                     </dxl:Comparison>
                   </dxl:Or>
                 </dxl:And>
@@ -2330,24 +2330,24 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
                   <dxl:PartBoundOpen Level="0" LowerBound="false"/>
                 </dxl:Or>
               </dxl:Or>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                   <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2003"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2003"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:PrintableFilter>
@@ -2378,11 +2378,11 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                   <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2003"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2003"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:RecheckCond>
@@ -2390,11 +2390,11 @@ EXPLAIN SELECT * FROM date_parts WHERE year BETWEEN 2002 AND 2003;
               <dxl:IndexCondList>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                   <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
                   <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2003"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2003"/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
               <dxl:IndexDescriptor Mdid="0.3748065.1.0" IndexName="date_parts_ind_1_prt_1_2_prt_q1_3_prt_1"/>

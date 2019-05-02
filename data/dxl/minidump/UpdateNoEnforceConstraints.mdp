@@ -184,7 +184,7 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
       <dxl:CheckConstraint Mdid="0.16413.1.0" Name="constraints_tab_positivecol_check" RelationMdid="0.16410.1.0">
         <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
           <dxl:Ident ColId="3" ColName="positivecol" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
         </dxl:Comparison>
       </dxl:CheckConstraint>
       <dxl:ColumnStatistics Mdid="1.16410.1.0.0" Name="id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -213,10 +213,10 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
         <dxl:LogicalProject>
           <dxl:ProjList>
             <dxl:ProjElem ColId="11" Alias="notnullcol">
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" LintValue="0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="12" Alias="positivecol">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="-1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="-1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:LogicalGet>
@@ -293,7 +293,7 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
               <dxl:Ident ColId="12" ColName="ColRef_0012" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="13" Alias="ColRef_0013">
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="16410"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="16410"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
@@ -337,10 +337,10 @@ update constraints_tab SET notnullcol = NULL, positivecol =-1;
                   <dxl:Ident ColId="2" ColName="positivecol" TypeMdid="0.23.1.0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="10" Alias="notnullcol">
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="true" LintValue="0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="11" Alias="positivecol">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="-1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="-1"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="3" Alias="ctid">
                   <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>

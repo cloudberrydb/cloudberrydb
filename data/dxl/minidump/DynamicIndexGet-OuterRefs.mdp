@@ -188,11 +188,11 @@ WHERE
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1900"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1900"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
               <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2100"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2100"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -670,11 +670,11 @@ WHERE
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1900"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1900"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
               <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2100"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2100"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -1193,11 +1193,11 @@ WHERE
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1900"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1900"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
               <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2100"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2100"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -1364,7 +1364,7 @@ WHERE
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="89" ColName="d_year" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:LogicalJoin>
@@ -1491,7 +1491,7 @@ WHERE
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:JoinFilter>
           <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
             <dxl:Properties>
@@ -1510,16 +1510,16 @@ WHERE
                   <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
                     <dxl:Coalesce TypeMdid="0.20.1.0">
                       <dxl:Ident ColId="201" ColName="ColRef_0201" TypeMdid="0.20.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                     </dxl:Coalesce>
-                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
                     <dxl:Coalesce TypeMdid="0.20.1.0">
                       <dxl:Ident ColId="202" ColName="ColRef_0202" TypeMdid="0.20.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                      <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                     </dxl:Coalesce>
-                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                   </dxl:Comparison>
                 </dxl:Or>
               </dxl:Filter>
@@ -1644,7 +1644,7 @@ WHERE
                           </dxl:ProjList>
                           <dxl:Filter/>
                           <dxl:JoinFilter>
-                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                           </dxl:JoinFilter>
                           <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                             <dxl:Properties>
@@ -1683,19 +1683,19 @@ WHERE
                                 </dxl:Properties>
                                 <dxl:ProjList/>
                                 <dxl:PartEqFilters>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:PartEqFilters>
                                 <dxl:PartFilters>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:PartFilters>
                                 <dxl:ResidualFilter>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:ResidualFilter>
                                 <dxl:PropagationExpression>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                                 </dxl:PropagationExpression>
                                 <dxl:PrintableFilter>
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                                 </dxl:PrintableFilter>
                               </dxl:PartitionSelector>
                               <dxl:DynamicTableScan PartIndexId="1">
@@ -1740,19 +1740,19 @@ WHERE
                               </dxl:Properties>
                               <dxl:ProjList/>
                               <dxl:PartEqFilters>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:PartEqFilters>
                               <dxl:PartFilters>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:PartFilters>
                               <dxl:ResidualFilter>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:ResidualFilter>
                               <dxl:PropagationExpression>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                               </dxl:PropagationExpression>
                               <dxl:PrintableFilter>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:PrintableFilter>
                             </dxl:PartitionSelector>
                             <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="2">
@@ -1768,7 +1768,7 @@ WHERE
                                 </dxl:Comparison>
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                                   <dxl:Ident ColId="88" ColName="d_year" TypeMdid="0.23.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2002"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2002"/>
                                 </dxl:Comparison>
                               </dxl:IndexCondList>
                               <dxl:IndexDescriptor Mdid="0.1096283.1.0" IndexName="date_dim_1_prt_p1_1_pkey"/>
@@ -1834,7 +1834,7 @@ WHERE
                         </dxl:ProjList>
                         <dxl:Filter/>
                         <dxl:JoinFilter>
-                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                         </dxl:JoinFilter>
                         <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                           <dxl:Properties>
@@ -1854,19 +1854,19 @@ WHERE
                               </dxl:Properties>
                               <dxl:ProjList/>
                               <dxl:PartEqFilters>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:PartEqFilters>
                               <dxl:PartFilters>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:PartFilters>
                               <dxl:ResidualFilter>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:ResidualFilter>
                               <dxl:PropagationExpression>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
                               </dxl:PropagationExpression>
                               <dxl:PrintableFilter>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                               </dxl:PrintableFilter>
                             </dxl:PartitionSelector>
                             <dxl:DynamicTableScan PartIndexId="4">
@@ -1906,19 +1906,19 @@ WHERE
                             </dxl:Properties>
                             <dxl:ProjList/>
                             <dxl:PartEqFilters>
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                             </dxl:PartEqFilters>
                             <dxl:PartFilters>
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                             </dxl:PartFilters>
                             <dxl:ResidualFilter>
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                             </dxl:ResidualFilter>
                             <dxl:PropagationExpression>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                             </dxl:PropagationExpression>
                             <dxl:PrintableFilter>
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                             </dxl:PrintableFilter>
                           </dxl:PartitionSelector>
                           <dxl:DynamicTableScan PartIndexId="3">

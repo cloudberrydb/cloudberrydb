@@ -11,10 +11,10 @@
         </dxl:ProjElem>
       </dxl:ProjList>
       <dxl:ValuesList>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
       </dxl:ValuesList>
       <dxl:ValuesList>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
       </dxl:ValuesList>
     </dxl:Values>
   </dxl:Plan>

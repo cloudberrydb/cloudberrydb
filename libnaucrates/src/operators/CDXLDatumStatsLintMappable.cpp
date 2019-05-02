@@ -35,14 +35,13 @@ CDXLDatumStatsLintMappable::CDXLDatumStatsLintMappable
 	CMemoryPool *mp,
 	IMDId *mdid_type,
 	INT type_modifier,
-	BOOL is_passed_by_value,
 	BOOL is_null,
 	BYTE *byte_array,
 	ULONG length,
 	LINT value
 	)
 	:
-	CDXLDatumGeneric(mp, mdid_type, type_modifier, is_passed_by_value, is_null, byte_array, length),
+	CDXLDatumGeneric(mp, mdid_type, type_modifier, is_null, byte_array, length),
 	m_val(value)
 {
 }
@@ -68,7 +67,6 @@ CDXLDatumStatsLintMappable::Serialize
 		xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenTypeMod), TypeModifier());
 	}
 	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsNull), m_is_null);
-	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenIsByValue), m_is_passed_by_value);
 	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenValue), m_is_null, GetByteArray(), Length());
 	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenLintValue), GetLINTMapping());
 }

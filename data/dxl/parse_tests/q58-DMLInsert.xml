@@ -89,10 +89,10 @@
                   <dxl:Ident ColId="2" ColName="s3" TypeMdid="0.23.1.0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="10" Alias="ColRef_0010">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="11" Alias="ColRef_0011">
-                  <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="187376"/>
+                  <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="187376"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
@@ -115,7 +115,7 @@
                 <dxl:Filter>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="0" ColName="s1" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
                   </dxl:Comparison>
                 </dxl:Filter>
                 <dxl:TableDescriptor Mdid="0.899663.1.1" TableName="s">

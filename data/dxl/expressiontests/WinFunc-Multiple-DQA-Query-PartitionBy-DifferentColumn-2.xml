@@ -30,13 +30,13 @@ SQL:
           <dxl:ProjElem ColId="13" Alias="?column?">
             <dxl:OpExpr OperatorName="+" OperatorMdid="0.688.1.0" OperatorType="0.20.1.0">
               <dxl:Ident ColId="11" ColName="count" TypeMdid="0.20.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:OpExpr>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="14" Alias="?column?">
             <dxl:OpExpr OperatorName="+" OperatorMdid="0.688.1.0" OperatorType="0.20.1.0">
               <dxl:Ident ColId="12" ColName="sum" TypeMdid="0.20.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
             </dxl:OpExpr>
           </dxl:ProjElem>
         </dxl:ProjList>

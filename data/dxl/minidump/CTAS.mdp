@@ -188,7 +188,7 @@
       <dxl:CheckConstraint Mdid="0.133330.1.0" Name="r_b_check" RelationMdid="0.133315.1.0">
         <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
           <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
         </dxl:Comparison>
       </dxl:CheckConstraint>
       <dxl:ColumnStatistics Mdid="1.133315.1.1.5" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
@@ -255,7 +255,7 @@
               <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="9" Alias="ColRef_0009">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>

@@ -445,7 +445,7 @@ explain SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
             <dxl:Ident ColId="15" ColName="c1" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
           </dxl:Comparison>
         </dxl:And>
       </dxl:LogicalJoin>
@@ -551,7 +551,7 @@ explain SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:JoinFilter>
           <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
             <dxl:Properties>
@@ -660,7 +660,7 @@ explain SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
             <dxl:Filter>
               <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                 <dxl:Ident ColId="14" ColName="c1" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
               </dxl:Comparison>
             </dxl:Filter>
             <dxl:IndexCondList>

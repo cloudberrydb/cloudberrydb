@@ -269,13 +269,13 @@
             <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
               <dxl:Ident ColId="1" ColName="month_id" TypeMdid="0.1043.1.0"/>
             </dxl:Cast>
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
+            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.667.1.0">
             <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
               <dxl:Ident ColId="1" ColName="month_id" TypeMdid="0.1043.1.0"/>
             </dxl:Cast>
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
           </dxl:Comparison>
         </dxl:And>
         <dxl:LogicalGet>
@@ -335,13 +335,13 @@
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:And>
                 <dxl:Or>
                   <dxl:ArrayComp OperatorName="&gt;" OperatorMdid="0.666.1.0" OperatorType="Any">
-                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
                     <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                       <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
                     </dxl:ArrayCoerceExpr>
@@ -350,7 +350,7 @@
                 </dxl:Or>
                 <dxl:Or>
                   <dxl:ArrayComp OperatorName="&lt;=" OperatorMdid="0.665.1.0" OperatorType="Any">
-                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
                     <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                       <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
                     </dxl:ArrayCoerceExpr>
@@ -360,10 +360,10 @@
               </dxl:And>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:And>
@@ -371,13 +371,13 @@
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="0" ColName="month_id" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.667.1.0">
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="0" ColName="month_id" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:PrintableFilter>
@@ -403,13 +403,13 @@
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="0" ColName="month_id" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.667.1.0">
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="0" ColName="month_id" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
                 </dxl:Comparison>
               </dxl:And>
             </dxl:Filter>

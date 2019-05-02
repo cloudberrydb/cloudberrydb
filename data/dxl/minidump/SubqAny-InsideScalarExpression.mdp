@@ -169,8 +169,8 @@
       <dxl:ColumnStatistics Mdid="1.16385.1.0.1" Name="b" Width="5.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.16385.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="2.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="100"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="100"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="200"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:GPDBScalarOp Mdid="0.410.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
@@ -262,8 +262,8 @@
       <dxl:ColumnStatistics Mdid="1.16385.1.0.3" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.16385.1.0.2" Name="c" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="2.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:GPDBAgg Mdid="0.2147.1.0" Name="count" IsSplittable="true">
@@ -422,7 +422,7 @@
               <dxl:If TypeMdid="0.16.1.0">
                 <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
                   <dxl:Ident ColId="21" ColName="ColRef_0021" TypeMdid="0.20.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                 </dxl:Comparison>
                 <dxl:If TypeMdid="0.16.1.0">
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
@@ -430,9 +430,9 @@
                     <dxl:Ident ColId="21" ColName="ColRef_0021" TypeMdid="0.20.1.0"/>
                   </dxl:Comparison>
                   <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:If>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
               </dxl:If>
             </dxl:Comparison>
           </dxl:Filter>
@@ -628,8 +628,8 @@
                                 <dxl:Ident ColId="12" ColName="c" TypeMdid="0.23.1.0"/>
                               </dxl:Comparison>
                             </dxl:IsNull>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
                           </dxl:If>
                         </dxl:ProjElem>
                         <dxl:ProjElem ColId="0" Alias="a">
@@ -761,7 +761,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="20" Alias="ColRef_0020">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="12" Alias="c">
                               <dxl:Ident ColId="12" ColName="c" TypeMdid="0.23.1.0"/>

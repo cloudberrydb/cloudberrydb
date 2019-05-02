@@ -202,7 +202,7 @@ SELECT b[1] AS typmod_in_array_ref FROM foo;
             <dxl:ArrayRef ElementType="0.1700.1.0" TypeModifier="196612" ArrayType="0.1231.1.0" TypeMdid="0.1700.1.0">
               <dxl:ArrayIndexList Bound="Lower"/>
               <dxl:ArrayIndexList Bound="Upper">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ArrayIndexList>
               <dxl:RefExpr>
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.1231.1.0" TypeModifier="196612"/>
@@ -249,7 +249,7 @@ SELECT b[1] AS typmod_in_array_ref FROM foo;
               <dxl:ArrayRef ElementType="0.1700.1.0" TypeModifier="196612" ArrayType="0.1231.1.0" TypeMdid="0.1700.1.0">
                 <dxl:ArrayIndexList Bound="Lower"/>
                 <dxl:ArrayIndexList Bound="Upper">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:ArrayIndexList>
                 <dxl:RefExpr>
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1231.1.0" TypeModifier="196612"/>

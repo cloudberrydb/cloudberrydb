@@ -17,7 +17,7 @@
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
           <dxl:Ident ColId="0" ColName="pk" TypeMdid="0.23.1.0"/>
           <dxl:FuncExpr FuncId="0.74752.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
           </dxl:FuncExpr>
         </dxl:Comparison>
       </dxl:Filter>
@@ -55,7 +55,7 @@
             <dxl:ProjList>
               <dxl:ProjElem ColId="10" Alias="gp_partition_propagation">
                 <dxl:FuncExpr FuncId="0.17039.1.0" FuncRetSet="false" TypeMdid="0.2278.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="15"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="15"/>
                   <dxl:Ident ColId="9" ColName="gp_partition_propagation" TypeMdid="0.26.1.0"/>
                 </dxl:FuncExpr>
               </dxl:ProjElem>
@@ -71,7 +71,7 @@
                   <dxl:Ident ColId="9" ColName="gp_partition_expansion" TypeMdid="0.26.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="74764"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="74764"/>
             </dxl:TableValuedFunction>
           </dxl:Result>
           <dxl:DynamicTableScan PartIndexId="0">

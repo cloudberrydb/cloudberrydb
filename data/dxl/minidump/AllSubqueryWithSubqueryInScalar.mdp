@@ -288,7 +288,7 @@
               <dxl:SortingColumnList/>
               <dxl:LimitCount>
                 <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:FuncExpr>
               </dxl:LimitCount>
               <dxl:LimitOffset/>
@@ -362,7 +362,7 @@
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:JoinFilter>
           <dxl:TableScan>
             <dxl:Properties>
@@ -425,7 +425,7 @@
                     <dxl:AssertConstraint ErrorMessage="Expected no more than one row to be returned by expression">
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.416.1.0">
                         <dxl:Ident ColId="29" ColName="row_number" TypeMdid="0.20.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                       </dxl:Comparison>
                     </dxl:AssertConstraint>
                   </dxl:AssertConstraintList>
@@ -488,11 +488,11 @@
                       </dxl:GatherMotion>
                       <dxl:LimitCount>
                         <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                         </dxl:Cast>
                       </dxl:LimitCount>
                       <dxl:LimitOffset>
-                        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                       </dxl:LimitOffset>
                     </dxl:Limit>
                     <dxl:WindowKeyList>

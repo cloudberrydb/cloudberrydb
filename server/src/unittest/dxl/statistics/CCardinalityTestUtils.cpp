@@ -206,7 +206,6 @@ CCardinalityTestUtils::PpointNumeric
 											mp,
 											mdid,
 											default_type_modifier,
-											pmdtype->IsPassedByValue() /*is_const_by_val*/,
 											false /*is_const_null*/,
 											data,
 											ulbaSize,

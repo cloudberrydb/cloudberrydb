@@ -190,8 +190,8 @@ EXPLAIN SELECT b::varchar(40) FROM tab1;
           <dxl:ProjElem ColId="10" Alias="b">
             <dxl:FuncExpr FuncId="0.669.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0" TypeModifier="44">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.1043.1.0" TypeModifier="14"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="44"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="44"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:FuncExpr>
           </dxl:ProjElem>
         </dxl:ProjList>
@@ -233,8 +233,8 @@ EXPLAIN SELECT b::varchar(40) FROM tab1;
             <dxl:ProjElem ColId="9" Alias="b">
               <dxl:FuncExpr FuncId="0.669.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0" TypeModifier="44">
                 <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1043.1.0" TypeModifier="14"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="44"/>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="44"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
               </dxl:FuncExpr>
             </dxl:ProjElem>
           </dxl:ProjList>

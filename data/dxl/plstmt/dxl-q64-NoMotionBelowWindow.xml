@@ -76,10 +76,10 @@
           </dxl:SortingColumnList>
           <dxl:WindowFrame FrameSpec="Range" ExclusionStrategy="Nulls">
             <dxl:TrailingEdge TrailingBoundary="BoundedPreceding">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:TrailingEdge>
             <dxl:LeadingEdge LeadingBoundary="BoundedFollowing">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="15"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="15"/>
             </dxl:LeadingEdge>
           </dxl:WindowFrame>
         </dxl:WindowKey>

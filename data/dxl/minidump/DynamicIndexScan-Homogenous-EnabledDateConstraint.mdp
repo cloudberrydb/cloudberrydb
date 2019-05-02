@@ -146,21 +146,21 @@
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="HxEAAA==" DoubleValue="378691200000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="HxEAAA==" DoubleValue="378691200000000"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="1BEAAA==" DoubleValue="394329600000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="1BEAAA==" DoubleValue="394329600000000"/>
               </dxl:Comparison>
             </dxl:And>
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="1REAAA==" DoubleValue="394416000000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="1REAAA==" DoubleValue="394416000000000"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="jBIAAA==" DoubleValue="410227200000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="jBIAAA==" DoubleValue="410227200000000"/>
               </dxl:Comparison>
             </dxl:And>
           </dxl:Or>
@@ -226,21 +226,21 @@
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="HxEAAA==" DoubleValue="378691200000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="HxEAAA==" DoubleValue="378691200000000"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="1BEAAA==" DoubleValue="394329600000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="1BEAAA==" DoubleValue="394329600000000"/>
               </dxl:Comparison>
             </dxl:And>
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="1REAAA==" DoubleValue="394416000000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="1REAAA==" DoubleValue="394416000000000"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="jBIAAA==" DoubleValue="410227200000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="jBIAAA==" DoubleValue="410227200000000"/>
               </dxl:Comparison>
             </dxl:And>
           </dxl:Or>
@@ -297,21 +297,21 @@
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="HxEAAA==" DoubleValue="378691200000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="HxEAAA==" DoubleValue="378691200000000"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="1BEAAA==" DoubleValue="394329600000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="1BEAAA==" DoubleValue="394329600000000"/>
               </dxl:Comparison>
             </dxl:And>
             <dxl:And>
               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="1REAAA==" DoubleValue="394416000000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="1REAAA==" DoubleValue="394416000000000"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
                 <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="jBIAAA==" DoubleValue="410227200000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="jBIAAA==" DoubleValue="410227200000000"/>
               </dxl:Comparison>
             </dxl:And>
           </dxl:Or>
@@ -328,7 +328,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1093.1.0">
           <dxl:Ident ColId="2" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-          <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="PxEAAA==" DoubleValue="381456000000000"/>
+          <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="PxEAAA==" DoubleValue="381456000000000"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.310650.1.1" TableName="test_orders">
@@ -387,21 +387,21 @@
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
+              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1093.1.0">
                 <dxl:Ident ColId="1" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
               </dxl:Comparison>
             </dxl:PrintableFilter>
           </dxl:PartitionSelector>
@@ -424,7 +424,7 @@
             <dxl:IndexCondList>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1093.1.0">
                 <dxl:Ident ColId="1" ColName="ship_date" TypeMdid="0.1082.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
+                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="PxEAAA==" DoubleValue="381456000000000.000000"/>
               </dxl:Comparison>
             </dxl:IndexCondList>
             <dxl:IndexDescriptor Mdid="0.310765.1.0" IndexName="ord_ind_1_prt_orders_1"/>

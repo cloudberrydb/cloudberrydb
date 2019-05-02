@@ -168,7 +168,7 @@ INSERT INTO t VALUES (11),(12),(13);
               <dxl:Column ColId="1" Attno="1" ColName="column1" TypeMdid="0.23.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
           <dxl:LogicalConstTable>
@@ -176,7 +176,7 @@ INSERT INTO t VALUES (11),(12),(13);
               <dxl:Column ColId="2" Attno="1" ColName="column1" TypeMdid="0.23.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
           <dxl:LogicalConstTable>
@@ -184,7 +184,7 @@ INSERT INTO t VALUES (11),(12),(13);
               <dxl:Column ColId="3" Attno="1" ColName="column1" TypeMdid="0.23.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="13"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="13"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
         </dxl:UnionAll>
@@ -222,7 +222,7 @@ INSERT INTO t VALUES (11),(12),(13);
               <dxl:Ident ColId="0" ColName="column1" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="3" Alias="ColRef_0003">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
@@ -259,7 +259,7 @@ INSERT INTO t VALUES (11),(12),(13);
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="column1">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
@@ -288,7 +288,7 @@ INSERT INTO t VALUES (11),(12),(13);
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="1" Alias="column1">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="12"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="12"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
@@ -317,7 +317,7 @@ INSERT INTO t VALUES (11),(12),(13);
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="2" Alias="column1">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="13"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="13"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>

@@ -204,7 +204,7 @@ select count(*) from foo where a = 1;
         <dxl:LogicalSelect>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:Comparison>
           <dxl:LogicalGet>
             <dxl:TableDescriptor Mdid="0.6374062.1.1" TableName="foo">
@@ -269,7 +269,7 @@ select count(*) from foo where a = 1;
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:TableDescriptor Mdid="0.6374062.1.1" TableName="foo">

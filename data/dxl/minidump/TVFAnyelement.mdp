@@ -53,9 +53,9 @@
           <dxl:Column ColId="1" Attno="1" ColName="unnest1" TypeMdid="0.23.1.0"/>
         </dxl:Columns>
         <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="123"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="456"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="789"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="123"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="456"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="789"/>
         </dxl:Array>
       </dxl:LogicalTVF>
     </dxl:Query>
@@ -70,9 +70,9 @@
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="123"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="456"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="789"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="123"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="456"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="789"/>
         </dxl:Array>
       </dxl:TableValuedFunction>
     </dxl:Plan>

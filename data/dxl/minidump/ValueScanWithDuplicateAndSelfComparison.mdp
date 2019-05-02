@@ -81,7 +81,7 @@ select * from (values (2),(null),(1)) v(k) where k = k;
               <dxl:Column ColId="1" Attno="1" ColName="column1" TypeMdid="0.23.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
           <dxl:LogicalConstTable>
@@ -97,7 +97,7 @@ select * from (values (2),(null),(1)) v(k) where k = k;
               <dxl:Column ColId="3" Attno="1" ColName="column1" TypeMdid="0.23.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
         </dxl:UnionAll>
@@ -136,7 +136,7 @@ select * from (values (2),(null),(1)) v(k) where k = k;
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="column1">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
@@ -194,7 +194,7 @@ select * from (values (2),(null),(1)) v(k) where k = k;
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="2" Alias="column1">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>

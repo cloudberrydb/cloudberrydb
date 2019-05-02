@@ -63,12 +63,6 @@ namespace gpdxl
 			virtual
 			void Serialize(CXMLSerializer *xml_serializer);
 
-			// is type passed by value
-			virtual BOOL IsPassedByValue() const
-			{
-				return true;
-			}
-
 			// datum type
 			virtual
 			EdxldatumType GetDatumType() const

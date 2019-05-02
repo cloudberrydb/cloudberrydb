@@ -12,13 +12,13 @@
               <dxl:Ident ColId="1" ColName="c" TypeMdid="0.23.1.0"/>
               <dxl:Ident ColId="4" ColName="f" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="25"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="25"/>
             <dxl:If TypeMdid="0.23.1.0">
               <dxl:Comparison ComparisonOperator="lt" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="1" ColName="c" TypeMdid="0.23.1.0"/>
                 <dxl:Ident ColId="4" ColName="f" TypeMdid="0.23.1.0"/>
               </dxl:Comparison>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
               <dxl:If TypeMdid="0.23.1.0">
                 <dxl:Or>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
@@ -30,8 +30,8 @@
                     <dxl:Ident ColId="4" ColName="f" TypeMdid="0.23.1.0"/>
                   </dxl:Comparison>
                 </dxl:Or>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="15"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="15"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
               </dxl:If>
             </dxl:If>
           </dxl:If>
@@ -41,7 +41,7 @@
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
           <dxl:Ident ColId="1" ColName="c" TypeMdid="0.23.1.0"/>
           <dxl:OpExpr OperatorName="*" OperatorMdid="0.514.1.0">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0">
               <dxl:Ident ColId="2" ColName="d" TypeMdid="0.23.1.0"/>
               <dxl:Ident ColId="3" ColName="e" TypeMdid="0.23.1.0"/>

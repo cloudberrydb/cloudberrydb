@@ -26,18 +26,18 @@
               <dxl:SwitchCase>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:CaseTest TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                 </dxl:Comparison>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB29uZQ=="/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB29uZQ=="/>
               </dxl:SwitchCase>
               <dxl:SwitchCase>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:CaseTest TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                 </dxl:Comparison>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACHplcm8="/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACHplcm8="/>
               </dxl:SwitchCase>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACW90aGVy"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACW90aGVy"/>
             </dxl:Switch>
           </dxl:ProjElem>
         </dxl:ProjList>

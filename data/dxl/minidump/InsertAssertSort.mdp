@@ -30,7 +30,7 @@ explain insert into tbl_cds_buysell_orders_new (a,b,c)
       <dxl:CheckConstraint Mdid="0.30252099.1.0" Name="tbl_cds_buysell_orders_new_b_check" RelationMdid="0.30252084.1.0">
         <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
           <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
         </dxl:Comparison>
       </dxl:CheckConstraint>
       <dxl:GPDBScalarOp Mdid="0.521.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
@@ -486,9 +486,9 @@ explain insert into tbl_cds_buysell_orders_new (a,b,c)
                 <dxl:IsDistinctFrom OperatorMdid="0.91.1.0">
                   <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                     <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
                   </dxl:Comparison>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
                 </dxl:IsDistinctFrom>
               </dxl:AssertConstraint>
             </dxl:AssertConstraintList>
@@ -498,7 +498,7 @@ explain insert into tbl_cds_buysell_orders_new (a,b,c)
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="14" Alias="ColRef_0014">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="10" Alias="d">
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>

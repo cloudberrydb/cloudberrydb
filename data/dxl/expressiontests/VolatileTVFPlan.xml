@@ -21,7 +21,7 @@
       </dxl:ProjList>
       <dxl:Filter/>
       <dxl:JoinFilter>
-        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
       </dxl:JoinFilter>
       <dxl:TableValuedFunction FuncId="0.74752.1.0" Name="funcvolatile" TypeMdid="0.23.1.0">
         <dxl:Properties>
@@ -32,7 +32,7 @@
             <dxl:Ident ColId="0" ColName="funcvolatile" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
       </dxl:TableValuedFunction>
       <dxl:Materialize Eager="false">
         <dxl:Properties>

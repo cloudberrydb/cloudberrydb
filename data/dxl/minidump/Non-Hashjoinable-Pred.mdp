@@ -228,7 +228,7 @@
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.480.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                 <dxl:FuncExpr FuncId="0.1574.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                  <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" IsByValue="true" Value="AMAAAA=="/>
+                  <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" Value="AMAAAA=="/>
                 </dxl:FuncExpr>
               </dxl:FuncExpr>
             </dxl:DefaultValue>
@@ -329,7 +329,7 @@
                 <dxl:Ident ColId="12" ColName="j" TypeMdid="0.23.1.0"/>
               </dxl:FuncExpr>
             </dxl:Coalesce>
-            <dxl:ConstValue TypeMdid="0.701.1.0" IsNull="false" IsByValue="true" Value="AAAAAAAAAEA=" DoubleValue="2.000000"/>
+            <dxl:ConstValue TypeMdid="0.701.1.0" IsNull="false" Value="AAAAAAAAAEA=" DoubleValue="2.000000"/>
           </dxl:Comparison>
         </dxl:LogicalJoin>
       </dxl:LogicalLimit>
@@ -417,7 +417,7 @@
                     <dxl:Ident ColId="11" ColName="j" TypeMdid="0.23.1.0"/>
                   </dxl:FuncExpr>
                 </dxl:Coalesce>
-                <dxl:ConstValue TypeMdid="0.701.1.0" IsNull="false" IsByValue="true" Value="AAAAAAAAAEA=" DoubleValue="2.000000"/>
+                <dxl:ConstValue TypeMdid="0.701.1.0" IsNull="false" Value="AAAAAAAAAEA=" DoubleValue="2.000000"/>
               </dxl:Comparison>
             </dxl:JoinFilter>
             <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">

@@ -14,8 +14,8 @@
               <dxl:Ident ColId="2" ColName="t2" TypeMdid="0.23.1.0"/>
             </dxl:OpExpr>
             <dxl:SwitchCase>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABXM=" LintValue="160588332"/>
             </dxl:SwitchCase>
           </dxl:Switch>
         </dxl:ProjElem>

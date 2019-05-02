@@ -86,9 +86,9 @@
             </dxl:ProjElem>
             <dxl:ProjElem ColId="18" Alias="gp_partition_propagation">
               <dxl:FuncExpr FuncId="0.17515.1.0" FuncRetSet="false" TypeMdid="0.2278.1.0">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                 <dxl:FuncExpr FuncId="0.17516.1.0" FuncRetSet="false" TypeMdid="0.26.1.0">
-                  <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="1607053"/>
+                  <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="1607053"/>
                   <dxl:Ident ColId="9" ColName="s.c" TypeMdid="0.23.1.0"/>
                 </dxl:FuncExpr>
               </dxl:FuncExpr>
@@ -111,7 +111,7 @@
             <dxl:Filter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="10" ColName="s.d" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="15"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="15"/>
               </dxl:Comparison>
             </dxl:Filter>
             <dxl:TableDescriptor Mdid="0.1607053.1.1" TableName="s">

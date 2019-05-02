@@ -25,7 +25,7 @@
         <dxl:IndexCondList>
           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
             <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="19"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="19"/>
           </dxl:Comparison>
         </dxl:IndexCondList>
         <dxl:IndexDescriptor Mdid="0.197514.1.1" IndexName="foo_bitmap_c"/>

@@ -240,7 +240,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
         <dxl:LogicalSelect>
           <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.499.1.0">
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.603.1.0"/>
-            <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" IsByValue="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
+            <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
           </dxl:Comparison>
           <dxl:LogicalGet>
             <dxl:TableDescriptor Mdid="0.566277.1.0" TableName="aoco_gist_tbl">
@@ -317,14 +317,14 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
               <dxl:RecheckCond>
                 <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.499.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.603.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" IsByValue="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
+                  <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
                 </dxl:Comparison>
               </dxl:RecheckCond>
               <dxl:BitmapIndexProbe>
                 <dxl:IndexCondList>
                   <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.499.1.0">
                     <dxl:Ident ColId="1" ColName="b" TypeMdid="0.603.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" IsByValue="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
+                    <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
                   </dxl:Comparison>
                 </dxl:IndexCondList>
                 <dxl:IndexDescriptor Mdid="0.566300.1.0" IndexName="boxindex"/>

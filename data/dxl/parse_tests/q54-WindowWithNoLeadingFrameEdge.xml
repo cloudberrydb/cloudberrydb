@@ -14,7 +14,7 @@
           </dxl:SortingColumnList>
           <dxl:WindowFrame FrameSpec="Row" ExclusionStrategy="Nulls">
             <dxl:TrailingEdge TrailingBoundary="BoundedPreceding">
-              <dxl:ConstValue TypeMdid="0.701.1.0" IsNull="false" IsByValue="true" Value="AAAAAAAA8D8=" DoubleValue="1.000000"/>
+              <dxl:ConstValue TypeMdid="0.701.1.0" IsNull="false" Value="AAAAAAAA8D8=" DoubleValue="1.000000"/>
             </dxl:TrailingEdge>
             <dxl:LeadingEdge LeadingBoundary="CurrentRow"/>
           </dxl:WindowFrame>

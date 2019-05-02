@@ -196,12 +196,12 @@ union all
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.1259.1.0.4" Name="relam" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.629630" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="0"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="0"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" Value="0"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" Value="0"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.370370" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="403"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="403"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" Value="403"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" Value="403"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -286,8 +286,8 @@ union all
       <dxl:ColumnStatistics Mdid="1.2031673.1.0.0" Name="a" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.1247.1.0.11" Name="typelem" Width="4.000000" NullFreq="0.000000" NdvRemain="63.000000" FreqRemain="0.175439" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.824561" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="0"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="0"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" Value="0"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" Value="0"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:RelationStatistics Mdid="2.1247.1.0" Name="pg_type" Rows="399.000000" EmptyRelation="false"/>
@@ -837,7 +837,7 @@ union all
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:JoinFilter>
           <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
             <dxl:Properties>
@@ -932,7 +932,7 @@ union all
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:JoinFilter>
           <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
             <dxl:Properties>

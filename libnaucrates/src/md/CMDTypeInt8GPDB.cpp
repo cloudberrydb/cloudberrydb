@@ -256,7 +256,6 @@ CMDTypeInt8GPDB::GetDatumForDXLConstVal
 	const
 {
 	CDXLDatumInt8 *dxl_datum = CDXLDatumInt8::Cast(const_cast<CDXLDatum *>(dxl_op->GetDatumVal()));
-	GPOS_ASSERT(dxl_datum->IsPassedByValue());
 
 	return GPOS_NEW(m_mp) CDatumInt8GPDB(m_mdid->Sysid(), dxl_datum->Value(), dxl_datum->IsNull());
 }
@@ -278,7 +277,6 @@ CMDTypeInt8GPDB::GetDatumForDXLDatum
 	const
 {
 	CDXLDatumInt8 *int8_dxl_datum = CDXLDatumInt8::Cast(const_cast<CDXLDatum *>(dxl_datum));
-	GPOS_ASSERT(int8_dxl_datum->IsPassedByValue());
 
 	LINT val = int8_dxl_datum->Value();
 	BOOL is_null = int8_dxl_datum->IsNull();

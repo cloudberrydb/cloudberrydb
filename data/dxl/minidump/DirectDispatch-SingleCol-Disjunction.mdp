@@ -176,11 +176,11 @@ explain select * from r where a=1 or a=3;
         <dxl:Or>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
           </dxl:Comparison>
         </dxl:Or>
         <dxl:LogicalGet>
@@ -231,8 +231,8 @@ explain select * from r where a=1 or a=3;
             <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
               <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
               <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
               </dxl:Array>
             </dxl:ArrayComp>
           </dxl:Filter>
@@ -253,10 +253,10 @@ explain select * from r where a=1 or a=3;
       </dxl:GatherMotion>
       <dxl:DirectDispatchInfo>
         <dxl:KeyValue>
-          <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+          <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
         </dxl:KeyValue>
         <dxl:KeyValue>
-          <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+          <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
         </dxl:KeyValue>
       </dxl:DirectDispatchInfo>
     </dxl:Plan>

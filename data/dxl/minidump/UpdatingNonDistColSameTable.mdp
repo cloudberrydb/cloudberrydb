@@ -288,7 +288,7 @@
               <dxl:Ident ColId="10" ColName="ColRef_0010" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="11" Alias="ColRef_0011">
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="49159"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="49159"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>

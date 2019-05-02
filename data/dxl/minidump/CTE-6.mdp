@@ -183,7 +183,7 @@
           <dxl:LogicalSelect>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="11" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
             </dxl:Comparison>
             <dxl:LogicalCTEConsumer CTEId="2" Columns="11"/>
           </dxl:LogicalSelect>
@@ -214,7 +214,7 @@
           <dxl:Filter>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="18" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:TableDescriptor Mdid="0.824686.1.1" TableName="s">

@@ -189,7 +189,7 @@
         <dxl:LogicalSelect>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="1" ColName="t1" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
           </dxl:Comparison>
           <dxl:LogicalGet>
             <dxl:TableDescriptor Mdid="0.187376.1.1" TableName="t_trig">
@@ -308,7 +308,7 @@
                     <dxl:Ident ColId="9" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="10" Alias="ColRef_0010">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
@@ -337,7 +337,7 @@
                   <dxl:Filter>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="0" ColName="t1" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:TableDescriptor Mdid="0.187376.1.1" TableName="t_trig">

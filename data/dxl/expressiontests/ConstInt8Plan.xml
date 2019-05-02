@@ -30,7 +30,7 @@
         <dxl:Filter>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
             <dxl:Ident ColId="0" ColName="bar.a" TypeMdid="0.20.1.0"/>
-            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="1000000000"/>
+            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="1000000000"/>
           </dxl:Comparison>
         </dxl:Filter>
         <dxl:TableDescriptor Mdid="0.239963.1.1" TableName="bar">

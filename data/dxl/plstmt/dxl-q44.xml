@@ -52,7 +52,7 @@
           <dxl:Filter>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="14"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="14"/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:TableDescriptor Mdid="0.18017.1.1" TableName="p_1_prt_extra">
@@ -81,7 +81,7 @@
           <dxl:Filter>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="6" ColName="c" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="11"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="11"/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:TableDescriptor Mdid="0.18040.1.1" TableName="p_1_prt_2">
@@ -110,7 +110,7 @@
           <dxl:Filter>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="9" ColName="c" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:TableDescriptor Mdid="0.18064.1.1" TableName="p_1_prt_3">

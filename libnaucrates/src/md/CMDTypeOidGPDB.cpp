@@ -250,7 +250,6 @@ CMDTypeOidGPDB::GetDatumForDXLConstVal
 	const
 {
 	CDXLDatumOid *dxl_datum = CDXLDatumOid::Cast(const_cast<CDXLDatum *>(dxl_op->GetDatumVal()));
-	GPOS_ASSERT(dxl_datum->IsPassedByValue());
 
 	return GPOS_NEW(m_mp) CDatumOidGPDB(m_mdid->Sysid(), dxl_datum->OidValue(), dxl_datum->IsNull());
 }
@@ -272,7 +271,6 @@ CMDTypeOidGPDB::GetDatumForDXLDatum
 	const
 {
 	CDXLDatumOid *dxl_datumOid = CDXLDatumOid::Cast(const_cast<CDXLDatum *>(dxl_datum));
-	GPOS_ASSERT(dxl_datumOid->IsPassedByValue());
 	OID oid_value = dxl_datumOid->OidValue();
 	BOOL is_null = dxl_datumOid->IsNull();
 

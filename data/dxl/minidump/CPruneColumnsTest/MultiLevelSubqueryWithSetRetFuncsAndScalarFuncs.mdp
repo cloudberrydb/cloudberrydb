@@ -250,7 +250,7 @@ select count(*) from (select (select 1 as p) i, unnest(string_to_array(c, '|')) 
                 <dxl:LogicalProject>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="11" Alias="p">
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                     </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:LogicalConstTable>
@@ -258,7 +258,7 @@ select count(*) from (select (select 1 as p) i, unnest(string_to_array(c, '|')) 
                       <dxl:Column ColId="10" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                     </dxl:Columns>
                     <dxl:ConstTuple>
-                      <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                      <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                     </dxl:ConstTuple>
                   </dxl:LogicalConstTable>
                 </dxl:LogicalProject>
@@ -270,7 +270,7 @@ select count(*) from (select (select 1 as p) i, unnest(string_to_array(c, '|')) 
                   <dxl:FuncExpr FuncId="0.401.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
                     <dxl:Ident ColId="2" ColName="c" TypeMdid="0.1042.1.0"/>
                   </dxl:FuncExpr>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXw=" LintValue="160662060"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABXw=" LintValue="160662060"/>
                 </dxl:FuncExpr>
               </dxl:FuncExpr>
             </dxl:ProjElem>
@@ -340,7 +340,7 @@ select count(*) from (select (select 1 as p) i, unnest(string_to_array(c, '|')) 
                       <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.401.1.0">
                         <dxl:Ident ColId="1" ColName="c" TypeMdid="0.1042.1.0"/>
                       </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXw=" LintValue="160662060"/>
+                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABXw=" LintValue="160662060"/>
                     </dxl:FuncExpr>
                   </dxl:FuncExpr>
                 </dxl:ProjElem>

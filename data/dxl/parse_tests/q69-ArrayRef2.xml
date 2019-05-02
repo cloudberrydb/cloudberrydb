@@ -40,57 +40,57 @@
             <dxl:ProjElem ColId="2" Alias="a">
               <dxl:ArrayRef ElementType="0.21.1.0" ArrayType="0.1005.1.0" TypeMdid="0.1005.1.0">
                 <dxl:ArrayIndexList Bound="Lower">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:ArrayIndexList>
                 <dxl:ArrayIndexList Bound="Upper">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                 </dxl:ArrayIndexList>
                 <dxl:RefExpr>
                   <dxl:ConstValue TypeMdid="0.1005.1.0" IsNull="true" IsByValue="false"/>
                 </dxl:RefExpr>
                 <dxl:AssignExpr>
-                  <dxl:ConstValue TypeMdid="0.1005.1.0" IsNull="false" IsByValue="false" Value="AAAAIgEAAAAAAAAAFQAAAAUAAAABAAAAAQACAAMABAAFAA=="/>
+                  <dxl:ConstValue TypeMdid="0.1005.1.0" IsNull="false" Value="AAAAIgEAAAAAAAAAFQAAAAUAAAABAAAAAQACAAMABAAFAA=="/>
                 </dxl:AssignExpr>
               </dxl:ArrayRef>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="3" Alias="b">
               <dxl:ArrayRef ElementType="0.23.1.0" ArrayType="0.1007.1.0" TypeMdid="0.1007.1.0">
                 <dxl:ArrayIndexList Bound="Lower">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:ArrayIndexList>
                 <dxl:ArrayIndexList Bound="Upper">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:ArrayIndexList>
                 <dxl:RefExpr>
                   <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="true" IsByValue="false"/>
                 </dxl:RefExpr>
                 <dxl:AssignExpr>
-                  <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="false" IsByValue="false" Value="AAAAOAMAAAAAAAAAFwAAAAEAAAACAAAAAgAAAAEAAAABAAAAAQAAAAAAAAAA&#10;AAAAAQAAAAIAAAA="/>
+                  <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="false" Value="AAAAOAMAAAAAAAAAFwAAAAEAAAACAAAAAgAAAAEAAAABAAAAAQAAAAAAAAAA&#10;AAAAAQAAAAIAAAA="/>
                 </dxl:AssignExpr>
               </dxl:ArrayRef>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="4" Alias="c">
-              <dxl:ConstValue TypeMdid="0.1003.1.0" IsNull="false" IsByValue="false" Value="AAAAEAAAAAAAAAAAEwAAAA=="/>
+              <dxl:ConstValue TypeMdid="0.1003.1.0" IsNull="false" Value="AAAAEAAAAAAAAAAAEwAAAA=="/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="5" Alias="d">
-              <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" IsByValue="false" Value="AAAAEAAAAAAAAAAAGQAAAA=="/>
+              <dxl:ConstValue TypeMdid="0.1009.1.0" IsNull="false" Value="AAAAEAAAAAAAAAAAGQAAAA=="/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="6" Alias="f">
               <dxl:FuncExpr FuncId="0.1291.1.0" FuncRetSet="false" TypeMdid="0.1014.1.0">
-                <dxl:ConstValue TypeMdid="0.1014.1.0" IsNull="false" IsByValue="false" Value="AAAAEAAAAAAAAAAAEgQAAA=="/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+                <dxl:ConstValue TypeMdid="0.1014.1.0" IsNull="false" Value="AAAAEAAAAAAAAAAAEgQAAA=="/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
               </dxl:FuncExpr>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="7" Alias="g">
               <dxl:FuncExpr FuncId="0.1291.1.0" FuncRetSet="false" TypeMdid="0.1015.1.0">
-                <dxl:ConstValue TypeMdid="0.1015.1.0" IsNull="false" IsByValue="false" Value="AAAAEAAAAAAAAAAAEwQAAA=="/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+                <dxl:ConstValue TypeMdid="0.1015.1.0" IsNull="false" Value="AAAAEAAAAAAAAAAAEwQAAA=="/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="9"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
               </dxl:FuncExpr>
             </dxl:ProjElem>
           </dxl:ProjList>
@@ -99,7 +99,7 @@
               <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
         </dxl:LogicalProject>

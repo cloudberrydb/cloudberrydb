@@ -235,7 +235,7 @@
           <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
             <dxl:Ident ColId="1" ColName="month_id" TypeMdid="0.1043.1.0"/>
           </dxl:Cast>
-          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.364347.1.1" TableName="ds_4">
@@ -294,23 +294,23 @@
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="0" ColName="month_id" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
               </dxl:Comparison>
             </dxl:PrintableFilter>
           </dxl:PartitionSelector>
@@ -334,7 +334,7 @@
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="0" ColName="month_id" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
               </dxl:Comparison>
             </dxl:Filter>
             <dxl:TableDescriptor Mdid="0.364347.1.1" TableName="ds_4">

@@ -34,7 +34,7 @@
           <dxl:ProjList>
             <dxl:ProjElem ColId="4" Alias="partitionpropagation">
               <dxl:FuncExpr FuncId="0.396072.1.0" FuncRetSet="false" TypeMdid="0.2278.1.0">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
                 <dxl:FuncExpr FuncId="0.387972.1.0" FuncRetSet="false" TypeMdid="0.26.1.0">
                   <dxl:Ident ColId="3" ColName="PartId" TypeMdid="0.23.1.0"/>
                 </dxl:FuncExpr>
@@ -49,7 +49,7 @@
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="3" Alias="PartId">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="16"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="16"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>

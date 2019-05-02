@@ -52,8 +52,8 @@
         <dxl:Columns>
           <dxl:Column ColId="1" Attno="1" ColName="generate_series" TypeMdid="0.23.1.0"/>
         </dxl:Columns>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
       </dxl:LogicalTVF>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="1">
@@ -66,8 +66,8 @@
             <dxl:Ident ColId="0" ColName="generate_series" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
       </dxl:TableValuedFunction>
     </dxl:Plan>
   </dxl:Thread>

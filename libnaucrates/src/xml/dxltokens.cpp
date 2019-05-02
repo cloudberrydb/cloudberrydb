@@ -482,7 +482,6 @@ CDXLTokens::Init
 			{EdxltokenColumnStatsBucket, GPOS_WSZ_LIT("StatsBucket")},
 			{EdxltokenEmptyRelation, GPOS_WSZ_LIT("EmptyRelation")},
 			
-			{EdxltokenIsByValue, GPOS_WSZ_LIT("IsByValue")},
 			{EdxltokenIsNull, GPOS_WSZ_LIT("IsNull")},
 			{EdxltokenLintValue, GPOS_WSZ_LIT("LintValue")},
 			{EdxltokenDoubleValue, GPOS_WSZ_LIT("DoubleValue")},

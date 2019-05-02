@@ -46,9 +46,6 @@ namespace gpdxl
 
 		protected:
 
-			// is datum passed by value or by reference
-			BOOL m_is_passed_by_value;
-
 			// datum byte array
 			BYTE *m_byte_array;
 
@@ -59,7 +56,6 @@ namespace gpdxl
 				CMemoryPool *mp,
 				IMDId *mdid_type,
 				INT type_modifier,
-				BOOL is_passed_by_value,
 				BOOL is_null,
 				BYTE *data,
 				ULONG length
@@ -75,12 +71,6 @@ namespace gpdxl
 			// serialize the datum as the given element
 			virtual
 			void Serialize(CXMLSerializer *xml_serializer);
-
-			// is type passed by value
-			virtual BOOL IsPassedByValue() const
-			{
-				return m_is_passed_by_value;
-			}
 
 			// datum type
 			virtual

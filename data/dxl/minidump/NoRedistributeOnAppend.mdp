@@ -263,7 +263,7 @@ GROUP BY b;
           <dxl:LogicalProject>
             <dxl:ProjList>
               <dxl:ProjElem ColId="10" Alias="c">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalGroupBy>
@@ -293,7 +293,7 @@ GROUP BY b;
           <dxl:LogicalProject>
             <dxl:ProjList>
               <dxl:ProjElem ColId="29" Alias="c">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalGroupBy>
@@ -343,7 +343,7 @@ GROUP BY b;
           <dxl:LogicalProject>
             <dxl:ProjList>
               <dxl:ProjElem ColId="48" Alias="c">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalGroupBy>
@@ -396,7 +396,7 @@ GROUP BY b;
             <dxl:LogicalProject>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="55" Alias="c">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:LogicalGroupBy>
@@ -449,7 +449,7 @@ GROUP BY b;
               <dxl:Ident ColId="48" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="96" Alias="c">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>

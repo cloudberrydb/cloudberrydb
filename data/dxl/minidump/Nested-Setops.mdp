@@ -77,8 +77,8 @@
       <dxl:ColumnStatistics Mdid="1.25307.1.1.1" Name="b" Width="0.000000" NullFreq="1.000000"/>
       <dxl:ColumnStatistics Mdid="1.25307.1.1.0" Name="a" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.17005.1.1.9" Name="tableoid" Width="4.000000"/>
@@ -195,7 +195,7 @@
           </dxl:Column>
           <dxl:Column Name="d" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="e" Attno="3" Mdid="0.17054.1.0" Nullable="false" ColWidth="8">

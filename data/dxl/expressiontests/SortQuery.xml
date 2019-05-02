@@ -14,7 +14,7 @@
       <dxl:LimitCount/>
       <dxl:LimitOffset>
         <dxl:FuncExpr FuncId="0.481.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="50"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="50"/>
         </dxl:FuncExpr>
       </dxl:LimitOffset>
       <dxl:LogicalGet>

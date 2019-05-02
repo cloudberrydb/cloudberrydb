@@ -321,7 +321,7 @@ EXPLAIN SELECT (SELECT count(*) FROM bar where c = a) FROM foo;
           <dxl:ProjElem ColId="19" Alias="?column?">
             <dxl:Coalesce TypeMdid="0.20.1.0">
               <dxl:Ident ColId="20" ColName="ColRef_0020" TypeMdid="0.20.1.0"/>
-              <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
             </dxl:Coalesce>
           </dxl:ProjElem>
         </dxl:ProjList>

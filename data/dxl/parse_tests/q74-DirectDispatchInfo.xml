@@ -30,7 +30,7 @@
         <dxl:Filter>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:Comparison>
         </dxl:Filter>
         <dxl:TableDescriptor Mdid="0.1813600.1.1" TableName="r">
@@ -50,7 +50,7 @@
     </dxl:GatherMotion>
     <dxl:DirectDispatchInfo>
       <dxl:KeyValue>
-        <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+        <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
       </dxl:KeyValue>
     </dxl:DirectDispatchInfo>
   </dxl:Plan>

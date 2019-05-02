@@ -67,7 +67,7 @@
           <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
           <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0">
             <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:OpExpr>
         </dxl:Comparison>
       </dxl:CheckConstraint>
@@ -142,7 +142,7 @@
       <dxl:CheckConstraint Mdid="0.602006.1.0" Name="x_c_check" RelationMdid="0.601994.1.0">
         <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
           <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
         </dxl:Comparison>
       </dxl:CheckConstraint>
       <dxl:Relation Mdid="0.601994.1.0" Name="x" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3">
@@ -244,7 +244,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
           <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.601994.1.1" TableName="x">
@@ -320,7 +320,7 @@
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:OneTimeFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
           </dxl:OneTimeFilter>
         </dxl:Result>
       </dxl:Result>

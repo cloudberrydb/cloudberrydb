@@ -142,20 +142,20 @@
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUI=" LintValue="160711212"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUI=" LintValue="160711212"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWI=" LintValue="160449068"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABWI=" LintValue="160449068"/>
               </dxl:Comparison>
             </dxl:Or>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
               <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                 <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
               </dxl:Cast>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXg=" LintValue="160629292"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABXg=" LintValue="160629292"/>
             </dxl:Comparison>
           </dxl:Or>
         </dxl:PartConstraint>
@@ -279,20 +279,20 @@
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUI=" LintValue="160711212"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUI=" LintValue="160711212"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWI=" LintValue="160449068"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABWI=" LintValue="160449068"/>
               </dxl:Comparison>
             </dxl:Or>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
               <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                 <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
               </dxl:Cast>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXg=" LintValue="160629292"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABXg=" LintValue="160629292"/>
             </dxl:Comparison>
           </dxl:Or>
         </dxl:PartConstraint>
@@ -359,20 +359,20 @@
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUI=" LintValue="160711212"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUI=" LintValue="160711212"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWI=" LintValue="160449068"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABWI=" LintValue="160449068"/>
               </dxl:Comparison>
             </dxl:Or>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
               <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                 <dxl:Ident ColId="1" ColName="timest" TypeMdid="0.1043.1.0"/>
               </dxl:Cast>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXg=" LintValue="160629292"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABXg=" LintValue="160629292"/>
             </dxl:Comparison>
           </dxl:Or>
         </dxl:PartConstraint>
@@ -393,7 +393,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
           <dxl:Ident ColId="3" ColName="tag1" TypeMdid="0.1042.1.0"/>
-          <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAABTE=" LintValue="161096236"/>
+          <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAABTE=" LintValue="161096236"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.566955.1.1" TableName="testbug_char5">
@@ -459,19 +459,19 @@
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:PrintableFilter>
           </dxl:PartitionSelector>
           <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="1">
@@ -496,7 +496,7 @@
             <dxl:IndexCondList>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
                 <dxl:Ident ColId="2" ColName="tag1" TypeMdid="0.1042.1.0"/>
-                <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAABTE=" LintValue="161096236"/>
+                <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAABTE=" LintValue="161096236"/>
               </dxl:Comparison>
             </dxl:IndexCondList>
             <dxl:IndexDescriptor Mdid="0.567110.1.0" IndexName="testbug_char5_tag1_1_prt_part201203"/>

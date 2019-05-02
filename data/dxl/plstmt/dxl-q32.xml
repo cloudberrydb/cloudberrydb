@@ -16,7 +16,7 @@
       <dxl:Filter>
         <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
           <dxl:Ident ColId="1" ColName="x" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="false" IsByValue="false" Value="AAAAKAEAAAAAAAAAFwAAAAQAAAABAAAACgAAABQAAAAeAAAAKAAAAA=="/>
+          <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="false" Value="AAAAKAEAAAAAAAAAFwAAAAQAAAABAAAACgAAABQAAAAeAAAAKAAAAA=="/>
         </dxl:ArrayComp>
       </dxl:Filter>
       <dxl:TableDescriptor Mdid="0.17230.1.1" TableName="t1">

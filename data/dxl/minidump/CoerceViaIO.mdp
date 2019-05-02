@@ -189,7 +189,7 @@ SELECT * FROM foo WHERE id::text = 'foo';
           <dxl:CoerceViaIO TypeMdid="0.25.1.0" CoercionForm="1" Location="0">
             <dxl:Ident ColId="1" ColName="id" TypeMdid="0.23.1.0"/>
           </dxl:CoerceViaIO>
-          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB2Zvbw==" LintValue="563733292"/>
+          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB2Zvbw==" LintValue="563733292"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.2560411.1.1" TableName="foo">
@@ -233,7 +233,7 @@ SELECT * FROM foo WHERE id::text = 'foo';
               <dxl:CoerceViaIO TypeMdid="0.25.1.0" CoercionForm="1" Location="0">
                 <dxl:Ident ColId="0" ColName="id" TypeMdid="0.23.1.0"/>
               </dxl:CoerceViaIO>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB2Zvbw==" LintValue="563733292"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB2Zvbw==" LintValue="563733292"/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:TableDescriptor Mdid="0.2560411.1.1" TableName="foo">

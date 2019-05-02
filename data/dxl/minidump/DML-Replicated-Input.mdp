@@ -204,14 +204,14 @@ WHERE  sach_vsnr = 465132477;
       <dxl:ColumnStatistics Mdid="1.42167032.1.1.8" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.42167032.1.1.0" Name="ag" Width="2.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.21.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.21.1.0" IsNull="false" IsByValue="true" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.21.1.0" IsNull="false" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.21.1.0" IsNull="false" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.42167032.1.1.1" Name="sach_vsnr" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="465132477"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="465132477"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="465132477"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="465132477"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:GPDBFunc Mdid="0.480.1.0" Name="int4" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
@@ -316,7 +316,7 @@ WHERE  sach_vsnr = 465132477;
             <dxl:LogicalSelect>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="2" ColName="sach_vsnr" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="465132477"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="465132477"/>
               </dxl:Comparison>
               <dxl:LogicalGet>
                 <dxl:TableDescriptor Mdid="0.42167032.1.1" TableName="test_row_number_step1">
@@ -345,7 +345,7 @@ WHERE  sach_vsnr = 465132477;
         </dxl:Properties>
         <dxl:DirectDispatchInfo>
           <dxl:KeyValue>
-            <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="465132477"/>
+            <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="465132477"/>
           </dxl:KeyValue>
         </dxl:DirectDispatchInfo>
         <dxl:ProjList>
@@ -415,7 +415,7 @@ WHERE  sach_vsnr = 465132477;
                 </dxl:FuncExpr>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="11" Alias="ColRef_0011">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
@@ -465,7 +465,7 @@ WHERE  sach_vsnr = 465132477;
                   <dxl:Filter>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="1" ColName="sach_vsnr" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="465132477"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="465132477"/>
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:TableDescriptor Mdid="0.42167032.1.1" TableName="test_row_number_step1">

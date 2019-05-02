@@ -187,11 +187,11 @@ explain select i, count(j) from pt2  where k=5 group by i;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -238,11 +238,11 @@ explain select i, count(j) from pt2  where k=5 group by i;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -261,11 +261,11 @@ explain select i, count(j) from pt2  where k=5 group by i;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -339,7 +339,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
         <dxl:LogicalSelect>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="3" ColName="k" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
           </dxl:Comparison>
           <dxl:LogicalGet>
             <dxl:TableDescriptor Mdid="0.1695223.1.1" TableName="pt2">
@@ -504,21 +504,21 @@ explain select i, count(j) from pt2  where k=5 group by i;
                         </dxl:Properties>
                         <dxl:ProjList/>
                         <dxl:PartEqFilters>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                         </dxl:PartEqFilters>
                         <dxl:PartFilters>
-                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                         </dxl:PartFilters>
                         <dxl:ResidualFilter>
-                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                         </dxl:ResidualFilter>
                         <dxl:PropagationExpression>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                         </dxl:PropagationExpression>
                         <dxl:PrintableFilter>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                           </dxl:Comparison>
                         </dxl:PrintableFilter>
                       </dxl:PartitionSelector>
@@ -541,7 +541,7 @@ explain select i, count(j) from pt2  where k=5 group by i;
                         <dxl:IndexCondList>
                           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                             <dxl:Ident ColId="2" ColName="k" TypeMdid="0.23.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                           </dxl:Comparison>
                         </dxl:IndexCondList>
                         <dxl:IndexDescriptor Mdid="0.1695490.1.0" IndexName="pt2_idx_1_prt_1"/>

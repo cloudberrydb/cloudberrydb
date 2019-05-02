@@ -285,7 +285,7 @@
         <dxl:LogicalProject>
           <dxl:ProjList>
             <dxl:ProjElem ColId="19" Alias="c">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:LogicalJoin JoinType="Inner">
@@ -375,7 +375,7 @@
               <dxl:Ident ColId="19" ColName="ColRef_0019" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="20" Alias="ColRef_0020">
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="17147"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="17147"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
@@ -477,7 +477,7 @@
                       <dxl:Ident ColId="9" ColName="a" TypeMdid="0.23.1.0"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="18" Alias="c">
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="2" Alias="ctid">
                       <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>

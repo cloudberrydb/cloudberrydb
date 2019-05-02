@@ -215,11 +215,11 @@ select * from bar, (select * from foo where foo.a in (select h.a from bar h, bar
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -269,11 +269,11 @@ select * from bar, (select * from foo where foo.a in (select h.a from bar h, bar
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="6"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -470,7 +470,7 @@ select * from bar, (select * from foo where foo.a in (select h.a from bar h, bar
             </dxl:ProjList>
             <dxl:Filter/>
             <dxl:JoinFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:JoinFilter>
             <dxl:TableScan>
               <dxl:Properties>
@@ -517,19 +517,19 @@ select * from bar, (select * from foo where foo.a in (select h.a from bar h, bar
                 </dxl:Properties>
                 <dxl:ProjList/>
                 <dxl:PartEqFilters>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:PartEqFilters>
                 <dxl:PartFilters>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:PartFilters>
                 <dxl:ResidualFilter>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:ResidualFilter>
                 <dxl:PropagationExpression>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:PropagationExpression>
                 <dxl:PrintableFilter>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                 </dxl:PrintableFilter>
               </dxl:PartitionSelector>
               <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="1">

@@ -52,10 +52,10 @@
             <dxl:ProjList>
               <dxl:ProjElem ColId="9" Alias="gp_partition_propagation">
                 <dxl:FuncExpr FuncId="0.396072.1.0" FuncRetSet="false" TypeMdid="0.2278.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                   <dxl:FuncExpr FuncId="0.387972.1.0" FuncRetSet="false">
-                    <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="17614"/>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+                    <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="17614"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
                   </dxl:FuncExpr>
                 </dxl:FuncExpr>
               </dxl:ProjElem>

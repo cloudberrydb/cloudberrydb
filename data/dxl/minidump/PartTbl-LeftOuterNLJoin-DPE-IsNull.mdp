@@ -408,19 +408,19 @@ select * from t2 left outer join t1 on t1.b = t2.d where t1.b is null;
                     </dxl:Properties>
                     <dxl:ProjList/>
                     <dxl:PartEqFilters>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                     </dxl:PartEqFilters>
                     <dxl:PartFilters>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                     </dxl:PartFilters>
                     <dxl:ResidualFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                     </dxl:ResidualFilter>
                     <dxl:PropagationExpression>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                     </dxl:PropagationExpression>
                     <dxl:PrintableFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                     </dxl:PrintableFilter>
                   </dxl:PartitionSelector>
                   <dxl:DynamicTableScan PartIndexId="1">

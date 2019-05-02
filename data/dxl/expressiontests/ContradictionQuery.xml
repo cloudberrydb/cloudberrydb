@@ -9,8 +9,8 @@
     <dxl:CTEList/>
     <dxl:LogicalSelect>
       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
       </dxl:Comparison>
       <dxl:LogicalGet>
         <dxl:TableDescriptor Mdid="0.899686.1.1" TableName="t">

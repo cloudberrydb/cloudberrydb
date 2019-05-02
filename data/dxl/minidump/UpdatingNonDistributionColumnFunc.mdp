@@ -214,8 +214,8 @@
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="1" ColName="a" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:FuncExpr>
               </dxl:Cast>
             </dxl:ProjElem>
@@ -286,7 +286,7 @@
               <dxl:Ident ColId="10" ColName="ColRef_0010" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="11" Alias="ColRef_0011">
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="40973"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="40973"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
@@ -329,8 +329,8 @@
                       <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                         <dxl:Ident ColId="0" ColName="a" TypeMdid="0.1043.1.0"/>
                       </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                     </dxl:FuncExpr>
                   </dxl:Cast>
                 </dxl:ProjElem>

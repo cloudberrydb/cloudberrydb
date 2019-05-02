@@ -80,8 +80,8 @@
           <dxl:Columns>
             <dxl:Column ColId="1" Attno="1" ColName="generate_series" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:LogicalTVF>
       </dxl:LogicalCTAS>
     </dxl:Query>
@@ -126,7 +126,7 @@
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="ColRef_0001">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="0" Alias="generate_series">
                 <dxl:Ident ColId="0" ColName="generate_series" TypeMdid="0.23.1.0"/>
@@ -143,8 +143,8 @@
                   <dxl:Ident ColId="0" ColName="generate_series" TypeMdid="0.23.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:TableValuedFunction>
           </dxl:Result>
         </dxl:Result>

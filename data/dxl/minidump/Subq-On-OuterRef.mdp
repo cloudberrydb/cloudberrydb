@@ -256,7 +256,7 @@
               <dxl:Column ColId="19" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
         </dxl:SubqueryAny>

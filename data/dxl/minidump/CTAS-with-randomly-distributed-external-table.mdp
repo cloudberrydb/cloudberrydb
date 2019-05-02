@@ -258,7 +258,7 @@ EXPLAIN CREATE TABLE Test AS SELECT * FROM test_ext DISTRIBUTED RANDOMLY;
               <dxl:Ident ColId="2" ColName="c" TypeMdid="0.25.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="10" Alias="ColRef_0010">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>

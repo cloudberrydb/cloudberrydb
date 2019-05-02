@@ -252,7 +252,6 @@ CMDTypeBoolGPDB::GetDatumForDXLConstVal
 	const
 {
 	CDXLDatumBool *dxl_datum = CDXLDatumBool::Cast(const_cast<CDXLDatum *>(dxl_op->GetDatumVal()));
-	GPOS_ASSERT(dxl_datum->IsPassedByValue());
 
 	return GPOS_NEW(m_mp) CDatumBoolGPDB(m_mdid->Sysid(), dxl_datum->GetValue(), dxl_datum->IsNull());
 }
@@ -274,7 +273,6 @@ CMDTypeBoolGPDB::GetDatumForDXLDatum
 	const
 {
 	CDXLDatumBool *dxl_datum_bool = CDXLDatumBool::Cast(const_cast<CDXLDatum *>(dxl_datum));
-	GPOS_ASSERT(dxl_datum_bool->IsPassedByValue());
 	BOOL value = dxl_datum_bool->GetValue();
 	BOOL is_null = dxl_datum_bool->IsNull();
 	

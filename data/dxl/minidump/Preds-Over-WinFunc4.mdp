@@ -203,11 +203,11 @@
         <dxl:Or>
           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
             <dxl:Ident ColId="1" ColName="i" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
             <dxl:Ident ColId="2" ColName="j" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
           </dxl:Comparison>
         </dxl:Or>
         <dxl:LogicalWindow>
@@ -315,11 +315,11 @@
             <dxl:Or>
               <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                 <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                 <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
               </dxl:Comparison>
             </dxl:Or>
           </dxl:Filter>

@@ -188,7 +188,7 @@ explain select * from t_numeric where c5 in (10, 11);
         <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1756.1.0">
           <dxl:Ident ColId="2" ColName="c5" TypeMdid="0.1700.1.0"/>
           <dxl:FuncExpr FuncId="0.1740.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
           </dxl:FuncExpr>
         </dxl:Comparison>
       </dxl:CheckConstraint>
@@ -266,8 +266,8 @@ explain select * from t_numeric where c5 in (10, 11);
         <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1752.1.0" OperatorType="Any">
           <dxl:Ident ColId="2" ColName="c5" TypeMdid="0.1700.1.0"/>
           <dxl:Array ArrayType="0.1231.1.0" ElementType="0.1700.1.0" MultiDimensional="false">
-            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAAKAA==" DoubleValue="10.000000"/>
-            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAALAA==" DoubleValue="11.000000"/>
+            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAAKAA==" DoubleValue="10.000000"/>
+            <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAALAA==" DoubleValue="11.000000"/>
           </dxl:Array>
         </dxl:ArrayComp>
         <dxl:LogicalGet>
@@ -318,8 +318,8 @@ explain select * from t_numeric where c5 in (10, 11);
             <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1752.1.0" OperatorType="Any">
               <dxl:Ident ColId="1" ColName="c5" TypeMdid="0.1700.1.0"/>
               <dxl:Array ArrayType="0.1231.1.0" ElementType="0.1700.1.0" MultiDimensional="false">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAAKAA==" DoubleValue="10.000000"/>
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAALAA==" DoubleValue="11.000000"/>
+                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAAKAA==" DoubleValue="10.000000"/>
+                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACgAAAAALAA==" DoubleValue="11.000000"/>
               </dxl:Array>
             </dxl:ArrayComp>
           </dxl:Filter>

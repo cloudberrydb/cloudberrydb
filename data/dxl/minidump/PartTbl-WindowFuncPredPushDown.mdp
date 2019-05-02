@@ -350,11 +350,11 @@
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1097.1.0">
               <dxl:Ident ColId="14" ColName="date" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
+              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
               <dxl:Ident ColId="16" ColName="region" TypeMdid="0.25.1.0"/>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
             </dxl:Comparison>
           </dxl:And>
           <dxl:LogicalCTEConsumer CTEId="1" Columns="13,14,15,16,17"/>
@@ -484,14 +484,14 @@
                   </dxl:Properties>
                   <dxl:ProjList/>
                   <dxl:PartEqFilters>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:PartEqFilters>
                   <dxl:PartFilters>
                     <dxl:Or>
                       <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1097.1.0">
                         <dxl:PartBound Level="0" Type="0.1082.1.0" LowerBound="false"/>
-                        <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
+                        <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
                       </dxl:Comparison>
                       <dxl:Or>
                         <dxl:DefaultPart Level="0"/>
@@ -500,27 +500,27 @@
                     </dxl:Or>
                     <dxl:Or>
                       <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
-                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
+                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
                         <dxl:PartListValues Level="1" ResultType="0.1009.1.0" ElementType="0.25.1.0"/>
                       </dxl:ArrayComp>
                       <dxl:DefaultPart Level="1"/>
                     </dxl:Or>
                   </dxl:PartFilters>
                   <dxl:ResidualFilter>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:ResidualFilter>
                   <dxl:PropagationExpression>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                   </dxl:PropagationExpression>
                   <dxl:PrintableFilter>
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1097.1.0">
                         <dxl:Ident ColId="13" ColName="date" TypeMdid="0.1082.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
+                        <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                         <dxl:Ident ColId="15" ColName="region" TypeMdid="0.25.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
+                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
                       </dxl:Comparison>
                     </dxl:And>
                   </dxl:PrintableFilter>
@@ -547,11 +547,11 @@
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1097.1.0">
                         <dxl:Ident ColId="13" ColName="date" TypeMdid="0.1082.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
+                        <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" Value="7Q8AAA==" DoubleValue="352252800000000.000000"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                         <dxl:Ident ColId="15" ColName="region" TypeMdid="0.25.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
+                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB3VzYQ==" LintValue="2607030223"/>
                       </dxl:Comparison>
                     </dxl:And>
                   </dxl:Filter>

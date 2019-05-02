@@ -8,12 +8,12 @@
     <dxl:RelationStatistics Mdid="2.1234.1.2" Name="T" Rows="1234.123400" EmptyRelation="false"/>
     <dxl:ColumnStatistics Mdid="1.1234.1.2.1" Name="T.a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
       <dxl:StatsBucket Frequency="0.500000" DistinctValues="5.000000">
-        <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-        <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="15"/>
+        <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+        <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="15"/>
       </dxl:StatsBucket>
       <dxl:StatsBucket Frequency="0.500000" DistinctValues="2.000000">
-        <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="15"/>
-        <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+        <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="15"/>
+        <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
       </dxl:StatsBucket>
     </dxl:ColumnStatistics>
     <dxl:Relation Mdid="0.2013612.1.0" Name="Toid" IsTemporary="false" HasOids="true" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" NumberLeafPartitions="0">
@@ -68,11 +68,11 @@
         <dxl:And>
           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
             <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1900"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1900"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
             <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2100"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2100"/>
           </dxl:Comparison>
         </dxl:And>
       </dxl:PartConstraint>
@@ -209,11 +209,11 @@
         <dxl:And>
           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
           </dxl:Comparison>
         </dxl:And>
       </dxl:PartConstraint>

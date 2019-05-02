@@ -71,12 +71,12 @@ SELECT * FROM T2;
               <dxl:Column ColId="2" Attno="2" ColName="column2" TypeMdid="0.23.1.0"/>
             </dxl:Columns>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:ConstTuple>
             <dxl:ConstTuple>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+              <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
             </dxl:ConstTuple>
           </dxl:LogicalConstTable>
         </dxl:LogicalCTEProducer>
@@ -86,7 +86,7 @@ SELECT * FROM T2;
               <dxl:ProjElem ColId="7" Alias="a">
                 <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0" OperatorType="0.23.1.0">
                   <dxl:Ident ColId="5" ColName="a" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                 </dxl:OpExpr>
               </dxl:ProjElem>
             </dxl:ProjList>
@@ -109,7 +109,7 @@ SELECT * FROM T2;
           <dxl:ProjElem ColId="5" Alias="a">
             <dxl:OpExpr OperatorName="+" OperatorMdid="0.551.1.0" OperatorType="0.23.1.0">
               <dxl:Ident ColId="7" ColName="column1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:OpExpr>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="6" Alias="b">
@@ -131,12 +131,12 @@ SELECT * FROM T2;
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:ValuesList>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
           </dxl:ValuesList>
           <dxl:ValuesList>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="20"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
           </dxl:ValuesList>
         </dxl:Values>
       </dxl:Result>

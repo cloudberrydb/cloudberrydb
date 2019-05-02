@@ -201,7 +201,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
           <dxl:Ident ColId="1" ColName="n_nationkey" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
         </dxl:Comparison>
         <dxl:LogicalExternalGet>
           <dxl:TableDescriptor Mdid="0.133758.1.1" TableName="ext_nation">
@@ -264,7 +264,7 @@
           <dxl:Filter>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="0" ColName="n_nationkey" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Comparison>
           </dxl:Filter>
           <dxl:TableDescriptor Mdid="0.133758.1.1" TableName="ext_nation">

@@ -21,7 +21,7 @@
             <dxl:Coalesce TypeMdid="0.23.1.0">
               <dxl:Ident ColId="696" ColName="t.t1" TypeMdid="0.23.1.0"/>
               <dxl:Ident ColId="697" ColName="t.t2" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
             </dxl:Coalesce>
           </dxl:ProjElem>
         </dxl:ProjList>

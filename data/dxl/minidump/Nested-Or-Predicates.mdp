@@ -418,7 +418,7 @@
           </dxl:Column>
           <dxl:Column Name="clm_expan_id" Attno="60" Mdid="0.1042.1.0" Nullable="false" ColWidth="5">
             <dxl:DefaultValue>
-              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACSAgICAg" LintValue="553648934"/>
+              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACSAgICAg" LintValue="553648934"/>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="facil_typ_cd" Attno="61" Mdid="0.1042.1.0" Nullable="false" ColWidth="2">
@@ -427,32 +427,32 @@
           <dxl:Column Name="hra_pd_amt" Attno="62" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="589830"/>
+                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="589830"/>
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="aso_pd_amt" Attno="63" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="589830"/>
+                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="589830"/>
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="fully_ins_pd_amt" Attno="64" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="589830"/>
+                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="589830"/>
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="alt_fnd_pd_amt" Attno="65" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
-                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="589830"/>
+                <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="589830"/>
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
@@ -575,20 +575,20 @@
           <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
             <dxl:Ident ColId="34" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
             <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
-              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACUoxNDM4" LintValue="81199916"/>
-              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACUoxNzQ1" LintValue="90088292"/>
+              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACUoxNDM4" LintValue="81199916"/>
+              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACUoxNzQ1" LintValue="90088292"/>
             </dxl:Array>
           </dxl:ArrayComp>
           <dxl:And>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
               <dxl:Ident ColId="34" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACUozNDkw" LintValue="374735660"/>
+              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACUozNDkw" LintValue="374735660"/>
             </dxl:Comparison>
             <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
               <dxl:Ident ColId="31" ColName="prim_diag_cd" TypeMdid="0.1042.1.0"/>
               <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
-                <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAABzcxNA==" LintValue="928154476"/>
-                <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACDcxNDA=" LintValue="880149348"/>
+                <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAABzcxNA==" LintValue="928154476"/>
+                <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACDcxNDA=" LintValue="880149348"/>
               </dxl:Array>
             </dxl:ArrayComp>
           </dxl:And>
@@ -1083,20 +1083,20 @@
               <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
                 <dxl:Ident ColId="33" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
                 <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACUoxNDM4" LintValue="81199916"/>
-                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACUoxNzQ1" LintValue="90088292"/>
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACUoxNDM4" LintValue="81199916"/>
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACUoxNzQ1" LintValue="90088292"/>
                 </dxl:Array>
               </dxl:ArrayComp>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
                   <dxl:Ident ColId="33" ColName="hlth_serv_cd" TypeMdid="0.1042.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACUozNDkw" LintValue="374735660"/>
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACUozNDkw" LintValue="374735660"/>
                 </dxl:Comparison>
                 <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1054.1.0" OperatorType="Any">
                   <dxl:Ident ColId="30" ColName="prim_diag_cd" TypeMdid="0.1042.1.0"/>
                   <dxl:Array ArrayType="0.1014.1.0" ElementType="0.1042.1.0" MultiDimensional="false">
-                    <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAABzcxNA==" LintValue="928154476"/>
-                    <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACDcxNDA=" LintValue="880149348"/>
+                    <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAABzcxNA==" LintValue="928154476"/>
+                    <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAACDcxNDA=" LintValue="880149348"/>
                   </dxl:Array>
                 </dxl:ArrayComp>
               </dxl:And>

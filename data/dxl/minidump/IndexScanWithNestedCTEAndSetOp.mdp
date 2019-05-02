@@ -312,7 +312,7 @@ SELECT a FROM y WHERE (a IN (SELECT b FROM bar WHERE b = 2));
           <dxl:LogicalProject>
             <dxl:ProjList>
               <dxl:ProjElem ColId="18" Alias="cust_type">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalCTEConsumer CTEId="1" Columns="17"/>
@@ -327,7 +327,7 @@ SELECT a FROM y WHERE (a IN (SELECT b FROM bar WHERE b = 2));
               <dxl:LogicalSelect>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="21" ColName="b" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Comparison>
                 <dxl:LogicalGet>
                   <dxl:TableDescriptor Mdid="0.53639.1.0" TableName="bar">
@@ -460,7 +460,7 @@ SELECT a FROM y WHERE (a IN (SELECT b FROM bar WHERE b = 2));
               <dxl:IndexCondList>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="50" ColName="b" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
               <dxl:IndexDescriptor Mdid="0.53653.1.0" IndexName="idx1"/>

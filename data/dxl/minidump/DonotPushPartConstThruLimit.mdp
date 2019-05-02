@@ -210,14 +210,14 @@ select * from (select * from h order by j limit 2) x where j = 2;
       <dxl:ColumnStatistics Mdid="1.16527.1.1.8" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="3.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.16527.1.1.1" Name="i" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="0.333333" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.666667" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.16527.1.1.0" Name="j" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="0.333333" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.666667" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
     </dxl:Metadata>
@@ -230,14 +230,14 @@ select * from (select * from h order by j limit 2) x where j = 2;
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
           <dxl:Ident ColId="1" ColName="j" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
         </dxl:Comparison>
         <dxl:LogicalLimit>
           <dxl:SortingColumnList>
             <dxl:SortingColumn ColId="1" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
           </dxl:SortingColumnList>
           <dxl:LimitCount>
-            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="2"/>
+            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="2"/>
           </dxl:LimitCount>
           <dxl:LimitOffset/>
           <dxl:LogicalGet>
@@ -274,7 +274,7 @@ select * from (select * from h order by j limit 2) x where j = 2;
         <dxl:Filter>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="0" ColName="j" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
           </dxl:Comparison>
         </dxl:Filter>
         <dxl:OneTimeFilter/>
@@ -336,19 +336,19 @@ select * from (select * from h order by j limit 2) x where j = 2;
                   </dxl:Properties>
                   <dxl:ProjList/>
                   <dxl:PartEqFilters>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:PartEqFilters>
                   <dxl:PartFilters>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:PartFilters>
                   <dxl:ResidualFilter>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:ResidualFilter>
                   <dxl:PropagationExpression>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                   </dxl:PropagationExpression>
                   <dxl:PrintableFilter>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:PrintableFilter>
                 </dxl:PartitionSelector>
                 <dxl:Sort SortDiscardDuplicates="false">
@@ -399,18 +399,18 @@ select * from (select * from h order by j limit 2) x where j = 2;
                 </dxl:Sort>
               </dxl:Sequence>
               <dxl:LimitCount>
-                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="2"/>
               </dxl:LimitCount>
               <dxl:LimitOffset>
-                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
               </dxl:LimitOffset>
             </dxl:Limit>
           </dxl:GatherMotion>
           <dxl:LimitCount>
-            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="2"/>
+            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="2"/>
           </dxl:LimitCount>
           <dxl:LimitOffset>
-            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
           </dxl:LimitOffset>
         </dxl:Limit>
       </dxl:Result>

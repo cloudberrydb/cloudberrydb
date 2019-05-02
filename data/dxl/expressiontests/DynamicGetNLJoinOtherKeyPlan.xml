@@ -65,7 +65,7 @@
             <dxl:ProjList>
               <dxl:ProjElem ColId="19" Alias="gp_partition_propagation">
                 <dxl:FuncExpr FuncId="0.396072.1.0" FuncRetSet="false" TypeMdid="0.2278.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
                   <dxl:Ident ColId="18" ColName="gp_partition_propagation" TypeMdid="0.26.1.0"/>
                 </dxl:FuncExpr>
               </dxl:ProjElem>
@@ -81,7 +81,7 @@
                   <dxl:Ident ColId="18" ColName="gp_partition_expansion" TypeMdid="0.26.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="25064"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="25064"/>
             </dxl:TableValuedFunction>
           </dxl:Result>
           <dxl:DynamicTableScan PartIndexId="0">

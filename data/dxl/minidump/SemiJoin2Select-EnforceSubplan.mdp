@@ -337,7 +337,7 @@ explain select * from x where x.i in (select x.y from y);
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="22" Alias="ColRef_0022">
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                     </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:Filter/>
@@ -375,7 +375,7 @@ explain select * from x where x.i in (select x.y from y);
                         <dxl:Filter>
                           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
                             <dxl:Ident ColId="19" ColName="ColRef_0019" TypeMdid="0.20.1.0"/>
-                            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
                           </dxl:Comparison>
                         </dxl:Filter>
                         <dxl:OneTimeFilter/>

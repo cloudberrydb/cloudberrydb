@@ -282,7 +282,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
           <dxl:Ident ColId="20" ColName="cj" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
         </dxl:Comparison>
         <dxl:LogicalJoin JoinType="Inner">
           <dxl:LogicalJoin JoinType="Left">
@@ -339,7 +339,7 @@
           <dxl:And>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="19" ColName="ci" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="20" ColName="cj" TypeMdid="0.23.1.0"/>
@@ -407,7 +407,7 @@
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="1" ColName="fj" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:TableDescriptor Mdid="0.232622.1.0" TableName="foo">
@@ -450,21 +450,21 @@
                   </dxl:Properties>
                   <dxl:ProjList/>
                   <dxl:PartEqFilters>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                   </dxl:PartEqFilters>
                   <dxl:PartFilters>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:PartFilters>
                   <dxl:ResidualFilter>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
                   </dxl:ResidualFilter>
                   <dxl:PropagationExpression>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                   </dxl:PropagationExpression>
                   <dxl:PrintableFilter>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="10" ColName="bj" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                     </dxl:Comparison>
                   </dxl:PrintableFilter>
                 </dxl:PartitionSelector>
@@ -480,7 +480,7 @@
                   <dxl:Filter>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="10" ColName="bj" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:TableDescriptor Mdid="0.232625.1.0" TableName="bar">
@@ -524,11 +524,11 @@
                 <dxl:And>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="18" ColName="ci" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="19" ColName="cj" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
                   </dxl:Comparison>
                 </dxl:And>
               </dxl:Filter>

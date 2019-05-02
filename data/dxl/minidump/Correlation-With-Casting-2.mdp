@@ -268,8 +268,8 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr <> c.u_v
                   <dxl:ProjElem ColId="22" Alias="substr">
                     <dxl:FuncExpr FuncId="0.877.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
                       <dxl:Ident ColId="21" ColName="max" TypeMdid="0.25.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                     </dxl:FuncExpr>
                   </dxl:ProjElem>
                 </dxl:ProjList>
@@ -283,16 +283,16 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr <> c.u_v
                             <dxl:FuncExpr FuncId="0.819.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                               <dxl:Ident ColId="12" ColName="u_zj" TypeMdid="0.1043.1.0"/>
                             </dxl:FuncExpr>
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="50"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="50"/>
                           </dxl:Comparison>
                           <dxl:OpExpr OperatorName="||" OperatorMdid="0.654.1.0" OperatorType="0.25.1.0">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABjIw" LintValue="873595684"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABjIw" LintValue="873595684"/>
                             <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                               <dxl:Ident ColId="12" ColName="u_zj" TypeMdid="0.1043.1.0"/>
                             </dxl:Cast>
                           </dxl:OpExpr>
                           <dxl:OpExpr OperatorName="||" OperatorMdid="0.654.1.0" OperatorType="0.25.1.0">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABjE5" LintValue="882058028"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABjE5" LintValue="882058028"/>
                             <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                               <dxl:Ident ColId="12" ColName="u_zj" TypeMdid="0.1043.1.0"/>
                             </dxl:Cast>
@@ -599,8 +599,8 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr <> c.u_v
                       <dxl:ProjElem ColId="21" Alias="substr">
                         <dxl:FuncExpr FuncId="0.877.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
                           <dxl:Ident ColId="20" ColName="max" TypeMdid="0.25.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                         </dxl:FuncExpr>
                       </dxl:ProjElem>
                     </dxl:ProjList>
@@ -619,16 +619,16 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr <> c.u_v
                                 <dxl:FuncExpr FuncId="0.819.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                                   <dxl:Ident ColId="11" ColName="u_zj" TypeMdid="0.1043.1.0"/>
                                 </dxl:FuncExpr>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="50"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="50"/>
                               </dxl:Comparison>
                               <dxl:OpExpr OperatorName="||" OperatorMdid="0.654.1.0" OperatorType="0.25.1.0">
-                                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABjIw" LintValue="873595684"/>
+                                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABjIw" LintValue="873595684"/>
                                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                                   <dxl:Ident ColId="11" ColName="u_zj" TypeMdid="0.1043.1.0"/>
                                 </dxl:Cast>
                               </dxl:OpExpr>
                               <dxl:OpExpr OperatorName="||" OperatorMdid="0.654.1.0" OperatorType="0.25.1.0">
-                                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABjE5" LintValue="882058028"/>
+                                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABjE5" LintValue="882058028"/>
                                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                                   <dxl:Ident ColId="11" ColName="u_zj" TypeMdid="0.1043.1.0"/>
                                 </dxl:Cast>

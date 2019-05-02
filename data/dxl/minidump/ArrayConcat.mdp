@@ -77,13 +77,13 @@
           <dxl:ProjElem ColId="2" Alias="{0,1,2,3}">
             <dxl:OpExpr OperatorName="||" OperatorMdid="0.349.1.0" OperatorType="0.1007.1.0">
               <dxl:OpExpr OperatorName="||" OperatorMdid="0.374.1.0" OperatorType="0.1007.1.0">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
                 <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Array>
               </dxl:OpExpr>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
             </dxl:OpExpr>
           </dxl:ProjElem>
         </dxl:ProjList>
@@ -92,7 +92,7 @@
             <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
           </dxl:Columns>
           <dxl:ConstTuple>
-            <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
           </dxl:ConstTuple>
         </dxl:LogicalConstTable>
       </dxl:LogicalProject>
@@ -106,13 +106,13 @@
           <dxl:ProjElem ColId="1" Alias="{0,1,2,3}">
             <dxl:OpExpr OperatorName="||" OperatorMdid="0.349.1.0" OperatorType="0.1007.1.0">
               <dxl:OpExpr OperatorName="||" OperatorMdid="0.374.1.0" OperatorType="0.1007.1.0">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
                 <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
                 </dxl:Array>
               </dxl:OpExpr>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
             </dxl:OpExpr>
           </dxl:ProjElem>
         </dxl:ProjList>
@@ -124,7 +124,7 @@
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="">
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>

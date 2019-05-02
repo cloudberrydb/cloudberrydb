@@ -111,10 +111,6 @@ namespace gpdxl
 			virtual
 			void Serialize(CXMLSerializer *xml_serializer, const CWStringConst *datum_string);
 
-			// is type passed by value
-			virtual
-			BOOL IsPassedByValue() const = 0;
-
 			// serialize the datum as the given element
 			virtual
 			void Serialize(CXMLSerializer *xml_serializer) = 0;

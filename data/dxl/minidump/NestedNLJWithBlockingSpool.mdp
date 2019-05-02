@@ -61,7 +61,7 @@
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.480.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                 <dxl:FuncExpr FuncId="0.1574.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                  <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" IsByValue="true" Value="AIABAA=="/>
+                  <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" Value="AIABAA=="/>
                 </dxl:FuncExpr>
               </dxl:FuncExpr>
             </dxl:DefaultValue>

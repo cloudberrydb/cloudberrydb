@@ -447,7 +447,6 @@ namespace gpdxl
 		EdxltokenColumnStats,
 		EdxltokenColumnStatsBucket,
 		EdxltokenEmptyRelation,
-		EdxltokenIsByValue,
 		EdxltokenIsNull,
 		EdxltokenLintValue,
 		EdxltokenDoubleValue,
