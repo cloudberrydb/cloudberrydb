@@ -72,6 +72,9 @@ namespace gpopt
 			static
 			BOOL FSimplifySelectOnOuterJoin(IMemoryPool *mp, CExpression *pexprOuterJoin, CExpression *pexprPred, CExpression **ppexprResult);
 
+			static
+			BOOL FSimplifySelectOnFullJoin(IMemoryPool *mp, CExpression *pexprFullJoin, CExpression *pexprPred, CExpression **ppexprResult);
+
 			// call normalizer recursively on expression children
 			static
 			CExpression *PexprRecursiveNormalize(IMemoryPool *mp, CExpression *pexpr);

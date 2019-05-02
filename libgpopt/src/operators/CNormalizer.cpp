@@ -400,6 +400,71 @@ CNormalizer::FSimplifySelectOnOuterJoin
 	return false;
 }
 
+// A SELECT on top of FOJ, where SELECT's predicate is NULL-filtering and uses
+// columns from FOJ's outer child, is simplified as a SELECT on top of a
+// Left-Join
+// Example:
+//   select * from lhs full join rhs on (lhs.a=rhs.a) where lhs.a = 5;
+// is converted to:
+//   select * from lhs left join rhs on (lhs.a=rhs.a) where lhs.a = 5;;
+BOOL
+CNormalizer::FSimplifySelectOnFullJoin
+	(
+	IMemoryPool *mp,
+	CExpression *pexprFullJoin,
+	CExpression *pexprPred, // selection predicate
+	CExpression **ppexprResult
+	)
+{
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(COperator::EopLogicalFullOuterJoin == pexprFullJoin->Pop()->Eopid());
+	GPOS_ASSERT(pexprPred->Pop()->FScalar());
+	GPOS_ASSERT(NULL != ppexprResult);
+
+	if (0 == pexprFullJoin->Arity())
+	{
+		// exit early for leaf patterns extracted from memo
+		*ppexprResult = NULL;
+		return false;
+	}
+
+	CExpression *pexprLeftChild = (*pexprFullJoin)[0];
+	CExpression *pexprRightChild = (*pexprFullJoin)[1];
+	CExpression *pexprJoinPred = (*pexprFullJoin)[2];
+
+	CColRefSet *pcrsOutputLeftChild = CDrvdPropRelational::GetRelationalProperties(pexprLeftChild->PdpDerive())->PcrsOutput();
+
+	if (CPredicateUtils::FNullRejecting(mp, pexprPred, pcrsOutputLeftChild))
+	{
+		// we have a predicate on top of FOJ that uses FOJ's outer child,
+		// if the predicate filters-out nulls, we can convert the FOJ to LOJ
+		pexprLeftChild->AddRef();
+		pexprRightChild->AddRef();
+		pexprJoinPred->AddRef();
+		pexprPred->AddRef();
+
+		*ppexprResult = GPOS_NEW(mp) CExpression
+					(
+					mp,
+					GPOS_NEW(mp) CLogicalSelect(mp),
+					GPOS_NEW(mp) CExpression
+							(
+							mp,
+							GPOS_NEW(mp) CLogicalLeftOuterJoin(mp),
+							pexprLeftChild,
+							pexprRightChild,
+							pexprJoinPred
+							),
+					pexprPred
+					);
+
+		return true;
+	}
+
+	// failed to convert FOJ to LOJ
+	return false;
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -434,18 +499,26 @@ CNormalizer::PushThruSelect
 	}
 
 	COperator::EOperatorId op_id = pexprLogicalChild->Pop()->Eopid();
-	if (COperator::EopLogicalLeftOuterJoin == op_id)
+	CExpression *pexprSimplified = NULL;
+	if (COperator::EopLogicalLeftOuterJoin == op_id &&
+		FSimplifySelectOnOuterJoin(mp, pexprLogicalChild, pexprPred, &pexprSimplified))
 	{
-		CExpression *pexprSimplified = NULL;
-		if (FSimplifySelectOnOuterJoin(mp, pexprLogicalChild, pexprPred, &pexprSimplified))
-		{
-			// simplification succeeded, normalize resulting expression
-			*ppexprResult = PexprNormalize(mp, pexprSimplified);
-			pexprPred->Release();
-			pexprSimplified->Release();
+		// simplification succeeded, normalize resulting expression
+		*ppexprResult = PexprNormalize(mp, pexprSimplified);
+		pexprPred->Release();
+		pexprSimplified->Release();
 
-			return;
-		}
+		return;
+	}
+	if (COperator::EopLogicalFullOuterJoin == op_id &&
+		FSimplifySelectOnFullJoin(mp, pexprLogicalChild, pexprPred, &pexprSimplified))
+	{
+		// simplification succeeded, normalize resulting expression
+		*ppexprResult = PexprNormalize(mp, pexprSimplified);
+		pexprPred->Release();
+		pexprSimplified->Release();
+
+		return;
 	}
 
 	if (FPushThruOuterChild(pexprLogicalChild))
@@ -506,15 +579,21 @@ CNormalizer::PexprSelect
 
 	CExpression *pexprLogicalChild = (*pexprSelect)[0];
 	COperator::EOperatorId eopidChild = pexprLogicalChild->Pop()->Eopid();
-	if (COperator::EopLogicalLeftOuterJoin != eopidChild)
-	{
-		// child of Select is not an outer join, return created Select expression
-		return pexprSelect;
-	}
 
 	// we have a Select on top of Outer Join expression, attempt simplifying expression into InnerJoin
 	CExpression *pexprSimplified = NULL;
-	if (FSimplifySelectOnOuterJoin(mp, pexprLogicalChild, (*pexprSelect)[1], &pexprSimplified))
+	if (COperator::EopLogicalLeftOuterJoin == eopidChild &&
+		FSimplifySelectOnOuterJoin(mp, pexprLogicalChild, (*pexprSelect)[1], &pexprSimplified))
+	{
+		// simplification succeeded, normalize resulting expression
+		pexprSelect->Release();
+		CExpression *pexprResult = PexprNormalize(mp, pexprSimplified);
+		pexprSimplified->Release();
+
+		return pexprResult;
+	}
+	else if (COperator::EopLogicalFullOuterJoin == eopidChild &&
+			 FSimplifySelectOnFullJoin(mp, pexprLogicalChild, (*pexprSelect)[1], &pexprSimplified))
 	{
 		// simplification succeeded, normalize resulting expression
 		pexprSelect->Release();
