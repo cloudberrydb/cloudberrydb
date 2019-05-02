@@ -186,11 +186,11 @@ WHERE tt.event_ts >= tq.ets AND
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -244,11 +244,11 @@ WHERE tt.event_ts >= tq.ets AND
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -354,11 +354,11 @@ WHERE tt.event_ts >= tq.ets AND
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -375,11 +375,11 @@ WHERE tt.event_ts >= tq.ets AND
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="400000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="400000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -399,14 +399,14 @@ WHERE tt.event_ts >= tq.ets AND
       <dxl:ColumnStatistics Mdid="1.32989821.1.1.8" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.32989821.1.1.1" Name="event_ts" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.32989821.1.1.0" Name="symbol" Width="17.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" Value="AAAAFEEgICAgICAgICAgICAgICA=" LintValue="570426148"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" Value="AAAAFEEgICAgICAgICAgICAgICA=" LintValue="570426148"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" Value="AAAAFEEgICAgICAgICAgICAgICA=" LintValue="570426148"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" Value="AAAAFEEgICAgICAgICAgICAgICA=" LintValue="570426148"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:GPDBScalarOp Mdid="0.97.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
@@ -457,14 +457,14 @@ WHERE tt.event_ts >= tq.ets AND
       <dxl:ColumnStatistics Mdid="1.32989821.1.1.10" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.32989821.1.1.3" Name="trade_volume" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="30"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="30"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="30"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="30"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.32989821.1.1.2" Name="trade_price" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="20"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="20"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="20"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:RelationStatistics Mdid="2.32989821.1.1" Name="my_tt_agg_small" Rows="1.000000" EmptyRelation="false"/>
@@ -564,7 +564,7 @@ WHERE tt.event_ts >= tq.ets AND
             <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
               <dxl:Ident ColId="13" ColName="sym" TypeMdid="0.1043.1.0"/>
             </dxl:Cast>
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB1NZTQ==" LintValue="751674220"/>
+            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAB1NZTQ==" LintValue="751674220"/>
           </dxl:Comparison>
         </dxl:And>
       </dxl:LogicalJoin>
@@ -698,13 +698,13 @@ WHERE tt.event_ts >= tq.ets AND
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
                 <dxl:If TypeMdid="0.23.1.0">
@@ -716,20 +716,20 @@ WHERE tt.event_ts >= tq.ets AND
                       <dxl:Or>
                         <dxl:And>
                           <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                             <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                           </dxl:Comparison>
                           <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                         </dxl:And>
                         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                         </dxl:Comparison>
                       </dxl:Or>
                       <dxl:Or>
                         <dxl:And>
                           <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                             <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                           </dxl:Comparison>
                           <dxl:Not>
@@ -737,13 +737,13 @@ WHERE tt.event_ts >= tq.ets AND
                           </dxl:Not>
                         </dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                           <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                         </dxl:Comparison>
                       </dxl:Or>
                     </dxl:And>
                   </dxl:And>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
                   <dxl:If TypeMdid="0.23.1.0">
                     <dxl:And>
                       <dxl:Not>
@@ -753,20 +753,20 @@ WHERE tt.event_ts >= tq.ets AND
                         <dxl:Or>
                           <dxl:And>
                             <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                               <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                             </dxl:Comparison>
                             <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                           </dxl:And>
                           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                             <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                           </dxl:Comparison>
                         </dxl:Or>
                         <dxl:Or>
                           <dxl:And>
                             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="400000"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="400000"/>
                               <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                             </dxl:Comparison>
                             <dxl:Not>
@@ -774,13 +774,13 @@ WHERE tt.event_ts >= tq.ets AND
                             </dxl:Not>
                           </dxl:And>
                           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="400000"/>
+                            <dxl:ConstValue TypeMdid="0.23.1.0" Value="400000"/>
                             <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                           </dxl:Comparison>
                         </dxl:Or>
                       </dxl:And>
                     </dxl:And>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
                     <dxl:If TypeMdid="0.23.1.0">
                       <dxl:And>
                         <dxl:Not>
@@ -790,20 +790,20 @@ WHERE tt.event_ts >= tq.ets AND
                           <dxl:Or>
                             <dxl:And>
                               <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="400000"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" Value="400000"/>
                                 <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                               </dxl:Comparison>
                               <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                             </dxl:And>
                             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="400000"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="400000"/>
                               <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                             </dxl:Comparison>
                           </dxl:Or>
                           <dxl:Or>
                             <dxl:And>
                               <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
                                 <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                               </dxl:Comparison>
                               <dxl:Not>
@@ -811,20 +811,20 @@ WHERE tt.event_ts >= tq.ets AND
                               </dxl:Not>
                             </dxl:And>
                             <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
                               <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                             </dxl:Comparison>
                           </dxl:Or>
                         </dxl:And>
                       </dxl:And>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
                       <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
                     </dxl:If>
                   </dxl:If>
                 </dxl:If>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>
             <dxl:Append IsTarget="false" IsZapped="false">
@@ -854,7 +854,7 @@ WHERE tt.event_ts >= tq.ets AND
                 </dxl:ProjList>
                 <dxl:Filter/>
                 <dxl:JoinFilter>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                 </dxl:JoinFilter>
                 <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                   <dxl:Properties>
@@ -931,7 +931,7 @@ WHERE tt.event_ts >= tq.ets AND
                       <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                         <dxl:Ident ColId="12" ColName="sym" TypeMdid="0.1043.1.0"/>
                       </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB1NZTQ==" LintValue="751674220"/>
+                      <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAB1NZTQ==" LintValue="751674220"/>
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:IndexCondList>
@@ -976,7 +976,7 @@ WHERE tt.event_ts >= tq.ets AND
                 </dxl:ProjList>
                 <dxl:Filter/>
                 <dxl:JoinFilter>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                 </dxl:JoinFilter>
                 <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                   <dxl:Properties>
@@ -1061,7 +1061,7 @@ WHERE tt.event_ts >= tq.ets AND
                         <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                           <dxl:Ident ColId="46" ColName="sym" TypeMdid="0.1043.1.0"/>
                         </dxl:Cast>
-                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB1NZTQ==" LintValue="751674220"/>
+                        <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAB1NZTQ==" LintValue="751674220"/>
                       </dxl:Comparison>
                     </dxl:And>
                   </dxl:Filter>
@@ -1117,7 +1117,7 @@ WHERE tt.event_ts >= tq.ets AND
                       <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                         <dxl:Ident ColId="69" ColName="sym" TypeMdid="0.1043.1.0"/>
                       </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB1NZTQ==" LintValue="751674220"/>
+                      <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAB1NZTQ==" LintValue="751674220"/>
                     </dxl:Comparison>
                   </dxl:And>
                 </dxl:JoinFilter>

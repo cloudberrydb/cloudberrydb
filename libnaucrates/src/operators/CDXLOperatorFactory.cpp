@@ -2895,7 +2895,7 @@ CDXLOperatorFactory::GetDatumVal
 	CMDIdGPDB *gpdb_mdid = CMDIdGPDB::CastMdid(mdid);
 
 	// get the type id from string
-	BOOL is_const_null = ExtractConvertAttrValueToBool(dxl_memory_manager, attrs, EdxltokenIsNull, target_elem);
+	BOOL is_const_null = ExtractConvertAttrValueToBool(dxl_memory_manager, attrs, EdxltokenIsNull, target_elem, true, false);
 
 	SDXLDatumFactoryElem translators_mapping[] =
 	{

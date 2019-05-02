@@ -240,7 +240,7 @@ EXPLAIN SELECT * FROM listfoo WHERE b IS DISTINCT FROM NULL;
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:Or>
@@ -249,10 +249,10 @@ EXPLAIN SELECT * FROM listfoo WHERE b IS DISTINCT FROM NULL;
               </dxl:Or>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
             </dxl:ResidualFilter>
             <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:PropagationExpression>
             <dxl:PrintableFilter>
               <dxl:Not>

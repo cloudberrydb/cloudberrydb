@@ -257,7 +257,7 @@ SELECT 1 FROM inverse WHERE NOT (cidr <<= ANY(SELECT * FROM inverse));
       <dxl:LogicalProject>
         <dxl:ProjList>
           <dxl:ProjElem ColId="17" Alias="?column?">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:LogicalSelect>
@@ -304,7 +304,7 @@ SELECT 1 FROM inverse WHERE NOT (cidr <<= ANY(SELECT * FROM inverse));
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="16" Alias="?column?">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
@@ -326,7 +326,7 @@ SELECT 1 FROM inverse WHERE NOT (cidr <<= ANY(SELECT * FROM inverse));
                 <dxl:If TypeMdid="0.16.1.0">
                   <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
                     <dxl:Ident ColId="18" ColName="ColRef_0018" TypeMdid="0.20.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
+                    <dxl:ConstValue TypeMdid="0.20.1.0" Value="0"/>
                   </dxl:Comparison>
                   <dxl:If TypeMdid="0.16.1.0">
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
@@ -334,9 +334,9 @@ SELECT 1 FROM inverse WHERE NOT (cidr <<= ANY(SELECT * FROM inverse));
                       <dxl:Ident ColId="18" ColName="ColRef_0018" TypeMdid="0.20.1.0"/>
                     </dxl:Comparison>
                     <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                   </dxl:If>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                 </dxl:If>
               </dxl:Not>
             </dxl:Filter>
@@ -526,8 +526,8 @@ SELECT 1 FROM inverse WHERE NOT (cidr <<= ANY(SELECT * FROM inverse));
                                     <dxl:Ident ColId="8" ColName="cidr" TypeMdid="0.869.1.0"/>
                                   </dxl:Comparison>
                                 </dxl:IsNull>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                               </dxl:If>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="0" Alias="cidr">
@@ -610,7 +610,7 @@ SELECT 1 FROM inverse WHERE NOT (cidr <<= ANY(SELECT * FROM inverse));
                               </dxl:Properties>
                               <dxl:ProjList>
                                 <dxl:ProjElem ColId="17" Alias="ColRef_0017">
-                                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                  <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                                 </dxl:ProjElem>
                                 <dxl:ProjElem ColId="8" Alias="cidr">
                                   <dxl:Ident ColId="8" ColName="cidr" TypeMdid="0.869.1.0"/>

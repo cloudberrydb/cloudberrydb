@@ -25,13 +25,13 @@
       <dxl:LogicalProject>
         <dxl:ProjList>
           <dxl:ProjElem ColId="11" Alias="t2">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:LogicalSelect>
           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
             <dxl:Ident ColId="3" ColName="t3" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="7"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="7"/>
           </dxl:Comparison>
           <dxl:LogicalGet>
             <dxl:TableDescriptor Mdid="0.899686.1.1" TableName="t">

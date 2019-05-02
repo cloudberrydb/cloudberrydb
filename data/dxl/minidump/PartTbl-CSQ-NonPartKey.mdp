@@ -255,7 +255,7 @@
             <dxl:LogicalLimit>
               <dxl:SortingColumnList/>
               <dxl:LimitCount>
-                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.20.1.0" Value="1"/>
               </dxl:LimitCount>
               <dxl:LimitOffset/>
               <dxl:LogicalProject>
@@ -263,7 +263,7 @@
                   <dxl:ProjElem ColId="23" Alias="?column?">
                     <dxl:OpExpr OperatorName="||" OperatorMdid="0.654.1.0">
                       <dxl:Ident ColId="4" ColName="decodetxt" TypeMdid="0.25.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABWI=" LintValue="160449068"/>
+                      <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABWI=" LintValue="160449068"/>
                     </dxl:OpExpr>
                   </dxl:ProjElem>
                 </dxl:ProjList>
@@ -378,7 +378,7 @@
                       <dxl:ProjElem ColId="22" Alias="?column?">
                         <dxl:OpExpr OperatorName="||" OperatorMdid="0.654.1.0">
                           <dxl:Ident ColId="3" ColName="decodetxt" TypeMdid="0.25.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABWI=" LintValue="160449068"/>
+                          <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABWI=" LintValue="160449068"/>
                         </dxl:OpExpr>
                       </dxl:ProjElem>
                     </dxl:ProjList>
@@ -432,19 +432,19 @@
                               </dxl:Properties>
                               <dxl:ProjList/>
                               <dxl:PartEqFilters>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                               </dxl:PartEqFilters>
                               <dxl:PartFilters>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                               </dxl:PartFilters>
                               <dxl:ResidualFilter>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                               </dxl:ResidualFilter>
                               <dxl:PropagationExpression>
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
                               </dxl:PropagationExpression>
                               <dxl:PrintableFilter>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                               </dxl:PrintableFilter>
                             </dxl:PartitionSelector>
                             <dxl:DynamicTableScan PartIndexId="2">
@@ -478,10 +478,10 @@
                     </dxl:Result>
                   </dxl:Result>
                   <dxl:LimitCount>
-                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.20.1.0" Value="1"/>
                   </dxl:LimitCount>
                   <dxl:LimitOffset>
-                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
+                    <dxl:ConstValue TypeMdid="0.20.1.0" Value="0"/>
                   </dxl:LimitOffset>
                 </dxl:Limit>
               </dxl:SubPlan>
@@ -512,19 +512,19 @@
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="1">

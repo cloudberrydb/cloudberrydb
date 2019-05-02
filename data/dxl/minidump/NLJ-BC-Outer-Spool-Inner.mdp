@@ -149,24 +149,24 @@ insert into int4_tbl values(123456), (-2147483647), (0), (-123456), (2147483647)
       <dxl:ColumnStatistics Mdid="1.38364130.1.1.1" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.38364130.1.1.0" Name="f1" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.199800" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="-2147483647"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="-2147483647"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="-2147483647"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="-2147483647"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.199800" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="-123456"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="-123456"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="-123456"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="-123456"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.199800" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.199800" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="123456"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="123456"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="123456"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="123456"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.199800" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2147483647"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2147483647"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2147483647"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2147483647"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.38364130.1.1.7" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>

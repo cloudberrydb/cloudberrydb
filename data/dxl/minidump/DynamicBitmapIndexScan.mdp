@@ -321,11 +321,11 @@ see sql/DynamicBitmapIndexScan.sql
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -386,11 +386,11 @@ see sql/DynamicBitmapIndexScan.sql
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -454,7 +454,7 @@ see sql/DynamicBitmapIndexScan.sql
               <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                 <dxl:Ident ColId="9" ColName="language" TypeMdid="0.1043.1.0"/>
               </dxl:Cast>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB1pIUw==" LintValue="686711588"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAB1pIUw==" LintValue="686711588"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:LogicalJoin>
@@ -501,7 +501,7 @@ see sql/DynamicBitmapIndexScan.sql
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
           </dxl:JoinFilter>
           <dxl:RedistributeMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
             <dxl:Properties>
@@ -539,7 +539,7 @@ see sql/DynamicBitmapIndexScan.sql
               </dxl:ProjList>
               <dxl:Filter/>
               <dxl:JoinFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:JoinFilter>
               <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
                 <dxl:Properties>
@@ -590,7 +590,7 @@ see sql/DynamicBitmapIndexScan.sql
                     <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                       <dxl:Ident ColId="8" ColName="language" TypeMdid="0.1043.1.0"/>
                     </dxl:Cast>
-                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB1pIUw==" LintValue="686711588"/>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAB1pIUw==" LintValue="686711588"/>
                   </dxl:Comparison>
                 </dxl:Filter>
                 <dxl:TableDescriptor Mdid="0.16929.1.1" TableName="outer_table">
@@ -623,19 +623,19 @@ see sql/DynamicBitmapIndexScan.sql
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>
             <dxl:DynamicBitmapTableScan PartIndexId="1">

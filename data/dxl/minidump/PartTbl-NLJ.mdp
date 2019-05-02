@@ -134,104 +134,104 @@
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.18234.1.1.0" Name="a" Width="4.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="AQAAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="KQAAAA=="/>
+          <dxl:LowerBound Value="AQAAAA=="/>
+          <dxl:UpperBound Value="KQAAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="KQAAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="UQAAAA=="/>
+          <dxl:LowerBound Value="KQAAAA=="/>
+          <dxl:UpperBound Value="UQAAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="UQAAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="eQAAAA=="/>
+          <dxl:LowerBound Value="UQAAAA=="/>
+          <dxl:UpperBound Value="eQAAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="eQAAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="oQAAAA=="/>
+          <dxl:LowerBound Value="eQAAAA=="/>
+          <dxl:UpperBound Value="oQAAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="oQAAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="yQAAAA=="/>
+          <dxl:LowerBound Value="oQAAAA=="/>
+          <dxl:UpperBound Value="yQAAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="yQAAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="8QAAAA=="/>
+          <dxl:LowerBound Value="yQAAAA=="/>
+          <dxl:UpperBound Value="8QAAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="8QAAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="GQEAAA=="/>
+          <dxl:LowerBound Value="8QAAAA=="/>
+          <dxl:UpperBound Value="GQEAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="GQEAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="QQEAAA=="/>
+          <dxl:LowerBound Value="GQEAAA=="/>
+          <dxl:UpperBound Value="QQEAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="QQEAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="aQEAAA=="/>
+          <dxl:LowerBound Value="QQEAAA=="/>
+          <dxl:UpperBound Value="aQEAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="aQEAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="kQEAAA=="/>
+          <dxl:LowerBound Value="aQEAAA=="/>
+          <dxl:UpperBound Value="kQEAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="kQEAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="uQEAAA=="/>
+          <dxl:LowerBound Value="kQEAAA=="/>
+          <dxl:UpperBound Value="uQEAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="uQEAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="4QEAAA=="/>
+          <dxl:LowerBound Value="uQEAAA=="/>
+          <dxl:UpperBound Value="4QEAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="4QEAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="CQIAAA=="/>
+          <dxl:LowerBound Value="4QEAAA=="/>
+          <dxl:UpperBound Value="CQIAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="CQIAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="MQIAAA=="/>
+          <dxl:LowerBound Value="CQIAAA=="/>
+          <dxl:UpperBound Value="MQIAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="MQIAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="WQIAAA=="/>
+          <dxl:LowerBound Value="MQIAAA=="/>
+          <dxl:UpperBound Value="WQIAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="WQIAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="gQIAAA=="/>
+          <dxl:LowerBound Value="WQIAAA=="/>
+          <dxl:UpperBound Value="gQIAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="gQIAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="qQIAAA=="/>
+          <dxl:LowerBound Value="gQIAAA=="/>
+          <dxl:UpperBound Value="qQIAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="qQIAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="0QIAAA=="/>
+          <dxl:LowerBound Value="qQIAAA=="/>
+          <dxl:UpperBound Value="0QIAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="0QIAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="+QIAAA=="/>
+          <dxl:LowerBound Value="0QIAAA=="/>
+          <dxl:UpperBound Value="+QIAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="+QIAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="IQMAAA=="/>
+          <dxl:LowerBound Value="+QIAAA=="/>
+          <dxl:UpperBound Value="IQMAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="IQMAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="SQMAAA=="/>
+          <dxl:LowerBound Value="IQMAAA=="/>
+          <dxl:UpperBound Value="SQMAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="SQMAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="cQMAAA=="/>
+          <dxl:LowerBound Value="SQMAAA=="/>
+          <dxl:UpperBound Value="cQMAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="cQMAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="mQMAAA=="/>
+          <dxl:LowerBound Value="cQMAAA=="/>
+          <dxl:UpperBound Value="mQMAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="mQMAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="wQMAAA=="/>
+          <dxl:LowerBound Value="mQMAAA=="/>
+          <dxl:UpperBound Value="wQMAAA=="/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="0.040000">
-          <dxl:LowerBound IsNull="false" Value="wQMAAA=="/>
-          <dxl:UpperBound IsNull="false" Value="6AMAAA=="/>
+          <dxl:LowerBound Value="wQMAAA=="/>
+          <dxl:UpperBound Value="6AMAAA=="/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:RelationStatistics Mdid="2.18234.1.1" Name="r" Rows="0.000000"/>

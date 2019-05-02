@@ -61,11 +61,11 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="1" ColName="id" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="1" ColName="id" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -265,11 +265,11 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="1" ColName="id" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="1" ColName="id" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -293,7 +293,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.499.1.0">
           <dxl:Ident ColId="2" ColName="b" TypeMdid="0.603.1.0"/>
-          <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
+          <dxl:ConstValue TypeMdid="0.603.1.0" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.566304.1.0" TableName="part_gist_tbl">
@@ -355,19 +355,19 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>
             <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="1">
@@ -385,13 +385,13 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.499.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.603.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
+                  <dxl:ConstValue TypeMdid="0.603.1.0" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:IndexCondList>
                 <dxl:Comparison ComparisonOperator="~=" OperatorMdid="0.499.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.603.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.603.1.0" IsNull="false" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
+                  <dxl:ConstValue TypeMdid="0.603.1.0" Value="AAAAAAAACEAAAAAAAAAQQAAAAAAAAPA/AAAAAAAAAEA="/>
                 </dxl:Comparison>
               </dxl:IndexCondList>
               <dxl:IndexDescriptor Mdid="0.566356.1.0" IndexName="partboxindex_1_prt_1"/>

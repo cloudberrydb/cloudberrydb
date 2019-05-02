@@ -55,7 +55,7 @@
             <dxl:Ident ColId="11" ColName="ColRef_0011" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="12" Alias="ColRef_0012">
-            <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="899686"/>
+            <dxl:ConstValue TypeMdid="0.26.1.0" Value="899686"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
@@ -99,7 +99,7 @@
                 <dxl:Ident ColId="2" ColName="t3" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="10" Alias="t2">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="3" Alias="ctid">
                 <dxl:Ident ColId="3" ColName="ctid" TypeMdid="0.27.1.0"/>

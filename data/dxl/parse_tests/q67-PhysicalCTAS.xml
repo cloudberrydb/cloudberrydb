@@ -23,7 +23,7 @@
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="1" Alias="?column?">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
@@ -34,7 +34,7 @@
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="">
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>

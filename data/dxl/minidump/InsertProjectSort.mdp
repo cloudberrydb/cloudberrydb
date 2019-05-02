@@ -363,7 +363,7 @@ explain insert into tbl_cds_buysell_orders_new (a,b,c)
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="14" Alias="ColRef_0014">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>

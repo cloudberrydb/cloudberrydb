@@ -260,7 +260,7 @@ select * from pt where gender is null;
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="2" ColName="gender" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUY=" LintValue="160743980"/>
               </dxl:Comparison>
               <dxl:LogicalGet>
                 <dxl:TableDescriptor Mdid="0.321479.1.1" TableName="pt">
@@ -283,7 +283,7 @@ select * from pt where gender is null;
                 <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                   <dxl:Ident ColId="11" ColName="gender" TypeMdid="0.1043.1.0"/>
                 </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABU0=" LintValue="160801324"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABU0=" LintValue="160801324"/>
               </dxl:Comparison>
               <dxl:LogicalGet>
                 <dxl:TableDescriptor Mdid="0.321479.1.1" TableName="pt">
@@ -309,8 +309,8 @@ select * from pt where gender is null;
               </dxl:Cast>
               <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="false" CoercionForm="2" Location="0">
                 <dxl:Array ArrayType="0.1015.1.0" ElementType="0.1043.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
-                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABkZN" LintValue="689808164"/>
+                  <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABUY=" LintValue="160743980"/>
+                  <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABkZN" LintValue="689808164"/>
                 </dxl:Array>
               </dxl:ArrayCoerceExpr>
             </dxl:ArrayComp>
@@ -399,23 +399,23 @@ select * from pt where gender is null;
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUY=" LintValue="160743980"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="1" ColName="gender" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUY=" LintValue="160743980"/>
                 </dxl:Comparison>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>
@@ -436,7 +436,7 @@ select * from pt where gender is null;
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="1" ColName="gender" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUY=" LintValue="160743980"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:TableDescriptor Mdid="0.321479.1.1" TableName="pt">
@@ -472,12 +472,12 @@ select * from pt where gender is null;
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
                 <dxl:Or>
                   <dxl:ArrayComp OperatorName="&gt;=" OperatorMdid="0.667.1.0" OperatorType="Any">
-                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABU0=" LintValue="160801324"/>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABU0=" LintValue="160801324"/>
                     <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                       <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
                     </dxl:ArrayCoerceExpr>
@@ -486,17 +486,17 @@ select * from pt where gender is null;
                 </dxl:Or>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
                 <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.665.1.0">
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="10" ColName="gender" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABU0=" LintValue="160801324"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABU0=" LintValue="160801324"/>
                 </dxl:Comparison>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>
@@ -517,7 +517,7 @@ select * from pt where gender is null;
                   <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
                     <dxl:Ident ColId="10" ColName="gender" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABU0=" LintValue="160801324"/>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABU0=" LintValue="160801324"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:TableDescriptor Mdid="0.321479.1.1" TableName="pt">
@@ -553,14 +553,14 @@ select * from pt where gender is null;
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
                 <dxl:Or>
                   <dxl:Or>
                     <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
                       <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                        <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
+                        <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABUY=" LintValue="160743980"/>
                       </dxl:Cast>
                       <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                         <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
@@ -571,7 +571,7 @@ select * from pt where gender is null;
                   <dxl:Or>
                     <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
                       <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                        <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABkZN" LintValue="689808164"/>
+                        <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABkZN" LintValue="689808164"/>
                       </dxl:Cast>
                       <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                         <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
@@ -582,10 +582,10 @@ select * from pt where gender is null;
                 </dxl:Or>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
                 <dxl:Or>
@@ -594,7 +594,7 @@ select * from pt where gender is null;
                       <dxl:Ident ColId="19" ColName="gender" TypeMdid="0.1043.1.0"/>
                     </dxl:Cast>
                     <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                      <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
+                      <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABUY=" LintValue="160743980"/>
                     </dxl:Cast>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
@@ -602,7 +602,7 @@ select * from pt where gender is null;
                       <dxl:Ident ColId="19" ColName="gender" TypeMdid="0.1043.1.0"/>
                     </dxl:Cast>
                     <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                      <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABkZN" LintValue="689808164"/>
+                      <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABkZN" LintValue="689808164"/>
                     </dxl:Cast>
                   </dxl:Comparison>
                 </dxl:Or>
@@ -627,8 +627,8 @@ select * from pt where gender is null;
                   </dxl:Cast>
                   <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" IsExplicit="false" CoercionForm="2" Location="0">
                     <dxl:Array ArrayType="0.1015.1.0" ElementType="0.1043.1.0" MultiDimensional="false">
-                      <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABUY=" LintValue="160743980"/>
-                      <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" Value="AAAABkZN" LintValue="689808164"/>
+                      <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABUY=" LintValue="160743980"/>
+                      <dxl:ConstValue TypeMdid="0.1043.1.0" Value="AAAABkZN" LintValue="689808164"/>
                     </dxl:Array>
                   </dxl:ArrayCoerceExpr>
                 </dxl:ArrayComp>
@@ -666,7 +666,7 @@ select * from pt where gender is null;
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
                 <dxl:Or>
@@ -675,10 +675,10 @@ select * from pt where gender is null;
                 </dxl:Or>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
                 <dxl:IsNull>

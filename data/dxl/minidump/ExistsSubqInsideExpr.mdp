@@ -166,8 +166,8 @@
       <dxl:ColumnStatistics Mdid="1.16385.1.0.1" Name="b" Width="5.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.16385.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="2.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="100"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="100"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="200"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -246,8 +246,8 @@
       <dxl:ColumnStatistics Mdid="1.16385.1.0.3" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.16385.1.0.2" Name="c" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="2.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:GPDBScalarOp Mdid="0.91.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
@@ -474,8 +474,8 @@
                           <dxl:Ident ColId="20" ColName="ColRef_0020" TypeMdid="0.16.1.0"/>
                         </dxl:IsNull>
                       </dxl:Not>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                     </dxl:If>
                   </dxl:Comparison>
                 </dxl:Filter>
@@ -506,7 +506,7 @@
                   </dxl:ProjList>
                   <dxl:Filter/>
                   <dxl:JoinFilter>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                   </dxl:JoinFilter>
                   <dxl:TableScan>
                     <dxl:Properties>
@@ -572,7 +572,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="20" Alias="ColRef_0020">
-                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                            <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>

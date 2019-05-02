@@ -121,7 +121,7 @@
       <dxl:CheckConstraint Mdid="0.17017.1.0" Name="r_c_check" RelationMdid="0.17005.1.0">
         <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
           <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
         </dxl:Comparison>
       </dxl:CheckConstraint>
       <dxl:GPDBScalarOp Mdid="0.521.1.0" Name="&gt;" ComparisonType="GT">
@@ -261,10 +261,10 @@
           <dxl:LogicalProject>
             <dxl:ProjList>
               <dxl:ProjElem ColId="2" Alias="a">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="3" Alias="b">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalConstTable>
@@ -272,7 +272,7 @@
                 <dxl:Column ColId="1" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
               </dxl:Columns>
               <dxl:ConstTuple>
-                <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ConstTuple>
             </dxl:LogicalConstTable>
           </dxl:LogicalProject>
@@ -286,7 +286,7 @@
         </dxl:Properties>
         <dxl:DirectDispatchInfo>
           <dxl:KeyValue>
-            <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:Datum TypeMdid="0.23.1.0" Value="1"/>
           </dxl:KeyValue>
         </dxl:DirectDispatchInfo>
         <dxl:ProjList>
@@ -374,16 +374,16 @@
                     <dxl:Ident ColId="4" ColName="d" TypeMdid="0.23.1.0"/>
                     <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
                   </dxl:Comparison>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                 </dxl:IsDistinctFrom>
               </dxl:AssertConstraint>
               <dxl:AssertConstraint ErrorMessage="Check constraint r_c_check for table r was violated">
                 <dxl:IsDistinctFrom OperatorMdid="0.91.1.0">
                   <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                     <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                   </dxl:Comparison>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                 </dxl:IsDistinctFrom>
               </dxl:AssertConstraint>
             </dxl:AssertConstraintList>
@@ -423,7 +423,7 @@
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="5" Alias="ColRef_0005">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="3" Alias="c">
                     <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
@@ -432,10 +432,10 @@
                     <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="1" Alias="a">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="2" Alias="b">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
@@ -446,7 +446,7 @@
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="">
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:Filter/>

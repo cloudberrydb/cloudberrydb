@@ -3,10 +3,10 @@
   <dxl:ScalarExpr>
     <dxl:FuncExpr FuncId="0.1346.1.0" FuncRetSet="false" TypeMdid="0.701.1.0">
       <dxl:FuncExpr FuncId="0.316.1.0" FuncRetSet="false" TypeMdid="0.701.1.0">
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="222"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" Value="222"/>
       </dxl:FuncExpr>
       <dxl:FuncExpr FuncId="0.316.1.0" FuncRetSet="false" TypeMdid="0.701.1.0">
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="333"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" Value="333"/>
       </dxl:FuncExpr>
     </dxl:FuncExpr>
   </dxl:ScalarExpr>

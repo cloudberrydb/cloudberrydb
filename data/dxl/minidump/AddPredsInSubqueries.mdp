@@ -315,7 +315,7 @@
               </dxl:Comparison>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="19" ColName="a2" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="40"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="40"/>
               </dxl:Comparison>
             </dxl:And>
           </dxl:LogicalJoin>
@@ -428,7 +428,7 @@
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="9" ColName="a" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="40"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="40"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:TableDescriptor Mdid="0.795185.1.1" TableName="foo">
@@ -456,7 +456,7 @@
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                   <dxl:Ident ColId="18" ColName="a" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="40"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="40"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:TableDescriptor Mdid="0.795208.1.1" TableName="bar">

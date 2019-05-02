@@ -339,7 +339,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.1042.1.0" TypeModifier="6"/>
-          <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAAHDlFd0g4SWV6RWVteldnQlFWZ0lWbkFBIA==" LintValue="2019149050"/>
+          <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAAHDlFd0g4SWV6RWVteldnQlFWZ0lWbkFBIA==" LintValue="2019149050"/>
         </dxl:Comparison>
         <dxl:LogicalJoin JoinType="Inner">
           <dxl:LogicalJoin JoinType="Inner">
@@ -497,7 +497,7 @@
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
                   <dxl:Ident ColId="0" ColName="a" TypeMdid="0.1042.1.0" TypeModifier="6"/>
-                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" Value="AAAAHDlFd0g4SWV6RWVteldnQlFWZ0lWbkFBIA==" LintValue="2019149050"/>
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" Value="AAAAHDlFd0g4SWV6RWVteldnQlFWZ0lWbkFBIA==" LintValue="2019149050"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:TableDescriptor Mdid="0.49156.1.0" TableName="t1">

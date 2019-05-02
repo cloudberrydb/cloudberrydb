@@ -116,22 +116,22 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.57461.1.0.1" Name="d" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.57461.1.0.0" Name="c" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -196,22 +196,22 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.57461.1.0.2" Name="e" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.57425.1.0.0" Name="a" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.300000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.700000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:RelationStatistics Mdid="2.57425.1.0" Name="r_p" Rows="10.000000" EmptyRelation="false"/>
@@ -642,19 +642,19 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
                       </dxl:Properties>
                       <dxl:ProjList/>
                       <dxl:PartEqFilters>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                       </dxl:PartEqFilters>
                       <dxl:PartFilters>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                       </dxl:PartFilters>
                       <dxl:ResidualFilter>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                       </dxl:ResidualFilter>
                       <dxl:PropagationExpression>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                       </dxl:PropagationExpression>
                       <dxl:PrintableFilter>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                       </dxl:PrintableFilter>
                     </dxl:PartitionSelector>
                     <dxl:DynamicTableScan PartIndexId="1">

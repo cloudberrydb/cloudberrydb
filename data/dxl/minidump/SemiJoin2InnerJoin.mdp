@@ -96,227 +96,227 @@
       <dxl:ColumnStatistics Mdid="1.721635.1.1.8" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.721635.1.1.1" Name="d" Width="4.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="2400"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="0"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="2400"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2400"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="4800"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2400"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="4800"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="4800"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="7200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="4800"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="7200"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="7200"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="9600"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="7200"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="9600"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="9600"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="12000"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="9600"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="12000"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="12000"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="14400"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="12000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="14400"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="14400"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="16800"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="14400"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="16800"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="16800"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="19200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="16800"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="19200"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="19200"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="21600"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="19200"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="21600"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="21600"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="24000"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="21600"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="24000"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="24000"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="26400"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="24000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="26400"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="26400"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="28800"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="26400"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="28800"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="28800"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="31200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="28800"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="31200"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="31200"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="33600"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="31200"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="33600"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="33600"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="36000"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="33600"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="36000"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="36000"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="38400"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="36000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="38400"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="38400"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="40800"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="38400"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="40800"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="40800"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="43200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="40800"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="43200"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="43200"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="45600"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="43200"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="45600"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="45600"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="48000"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="45600"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="48000"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="48000"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="50400"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="48000"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="50400"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="50400"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="52800"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="50400"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="52800"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="52800"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="55200"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="52800"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="55200"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="55200"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="57600"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="55200"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="57600"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="57600"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="60000"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="57600"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="60000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.721635.1.1.0" Name="c" Width="4.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="2001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="2001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="4001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="4001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="4001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="6001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="4001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="6001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="6001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="8001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="6001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="8001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="8001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="10001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="8001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="10001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="12001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="10001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="12001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="12001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="14001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="12001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="14001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="14001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="16001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="14001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="16001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="16001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="18001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="16001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="18001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="18001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="20001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="18001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="20001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="20001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="22001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="20001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="22001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="22001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="24001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="22001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="24001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="24001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="26001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="24001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="26001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="26001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="28001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="26001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="28001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="28001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="30001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="28001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="30001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="30001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="32001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="30001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="32001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="32001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="34001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="32001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="34001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="34001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="36001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="34001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="36001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="36001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="38001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="36001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="38001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="38001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="40001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="38001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="40001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="40001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="42001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="40001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="42001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="42001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="44001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="42001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="44001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="44001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="46001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="44001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="46001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="46001"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" Value="48001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="46001"/>
+          <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" Value="48001"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="400.040000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="48001"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="50001"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="48001"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="50001"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.721612.1.1.8" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.721612.1.1.1" Name="b" Width="4.000000">
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="3"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.721612.1.1.0" Name="a" Width="4.000000">
         <dxl:StatsBucket Frequency="0.750000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="1"/>
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.250000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="2"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:GPDBScalarOp Mdid="0.97.1.0" Name="&lt;" ComparisonType="LT">

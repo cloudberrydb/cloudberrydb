@@ -85,16 +85,16 @@
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="1" ColName="x" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.531.1.0">
               <dxl:Ident ColId="2" ColName="y" TypeMdid="0.25.1.0"/>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAEGNoZWNrIGZhaWxlZA==" LintValue="555254574"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAEGNoZWNrIGZhaWxlZA==" LintValue="555254574"/>
             </dxl:Comparison>
           </dxl:And>
           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
             <dxl:Ident ColId="1" ColName="x" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="8"/>
           </dxl:Comparison>
         </dxl:And>
       </dxl:CheckConstraint>
@@ -190,26 +190,26 @@
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.480.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                 <dxl:FuncExpr FuncId="0.1574.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                  <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" Value="7yEMAA=="/>
+                  <dxl:ConstValue TypeMdid="0.2205.1.0" Value="7yEMAA=="/>
                 </dxl:FuncExpr>
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="y" Attno="2" Mdid="0.25.1.0" Nullable="true">
             <dxl:DefaultValue>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACi1OVUxMLQ==" LintValue="462267174"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAACi1OVUxMLQ==" LintValue="462267174"/>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="z" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.480.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                 <dxl:OpExpr OperatorName="*" OperatorMdid="0.694.1.0" OperatorType="0.20.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="-1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="-1"/>
                   <dxl:OpExpr OperatorName="-" OperatorMdid="0.689.1.0" OperatorType="0.20.1.0">
                     <dxl:FuncExpr FuncId="0.1574.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                      <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" Value="7yEMAA=="/>
+                      <dxl:ConstValue TypeMdid="0.2205.1.0" Value="7yEMAA=="/>
                     </dxl:FuncExpr>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:OpExpr>
                 </dxl:OpExpr>
               </dxl:FuncExpr>
@@ -266,7 +266,7 @@
             <dxl:Ident ColId="1" ColName="x" TypeMdid="0.23.1.0"/>
             <dxl:Ident ColId="3" ColName="z" TypeMdid="0.23.1.0"/>
           </dxl:OpExpr>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
         </dxl:Comparison>
       </dxl:CheckConstraint>
       <dxl:GPDBScalarOp Mdid="0.551.1.0" Name="+" ComparisonType="Other">
@@ -303,26 +303,26 @@
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.480.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                 <dxl:FuncExpr FuncId="0.1574.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                  <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" Value="7yEMAA=="/>
+                  <dxl:ConstValue TypeMdid="0.2205.1.0" Value="7yEMAA=="/>
                 </dxl:FuncExpr>
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="y" Attno="2" Mdid="0.25.1.0" Nullable="true">
             <dxl:DefaultValue>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAACi1OVUxMLQ==" LintValue="462267174"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAACi1OVUxMLQ==" LintValue="462267174"/>
             </dxl:DefaultValue>
           </dxl:Column>
           <dxl:Column Name="z" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.480.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                 <dxl:OpExpr OperatorName="*" OperatorMdid="0.694.1.0" OperatorType="0.20.1.0">
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="-1"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="-1"/>
                   <dxl:OpExpr OperatorName="-" OperatorMdid="0.689.1.0" OperatorType="0.20.1.0">
                     <dxl:FuncExpr FuncId="0.1574.1.0" FuncRetSet="false" TypeMdid="0.20.1.0">
-                      <dxl:ConstValue TypeMdid="0.2205.1.0" IsNull="false" Value="7yEMAA=="/>
+                      <dxl:ConstValue TypeMdid="0.2205.1.0" Value="7yEMAA=="/>
                     </dxl:FuncExpr>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:OpExpr>
                 </dxl:OpExpr>
               </dxl:FuncExpr>
@@ -381,13 +381,13 @@
         <dxl:LogicalProject>
           <dxl:ProjList>
             <dxl:ProjElem ColId="11" Alias="y">
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAEGNoZWNrIGZhaWxlZA==" LintValue="555254574"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAEGNoZWNrIGZhaWxlZA==" LintValue="555254574"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:LogicalSelect>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="1" ColName="x" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
             </dxl:Comparison>
             <dxl:LogicalGet>
               <dxl:TableDescriptor Mdid="0.795132.1.1" TableName="insert_tbl">
@@ -464,7 +464,7 @@
               <dxl:Ident ColId="11" ColName="ColRef_0011" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="12" Alias="ColRef_0012">
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="795132"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" Value="795132"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
@@ -532,9 +532,9 @@
                         <dxl:Ident ColId="0" ColName="x" TypeMdid="0.23.1.0"/>
                         <dxl:Ident ColId="2" ColName="z" TypeMdid="0.23.1.0"/>
                       </dxl:OpExpr>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                     </dxl:Comparison>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                   </dxl:IsDistinctFrom>
                 </dxl:AssertConstraint>
                 <dxl:AssertConstraint ErrorMessage="Check constraint insert_con for table insert_tbl was violated">
@@ -543,19 +543,19 @@
                       <dxl:And>
                         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
                           <dxl:Ident ColId="0" ColName="x" TypeMdid="0.23.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
                         </dxl:Comparison>
                         <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.531.1.0">
                           <dxl:Ident ColId="10" ColName="y" TypeMdid="0.25.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAAEGNoZWNrIGZhaWxlZA==" LintValue="555254574"/>
+                          <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAAEGNoZWNrIGZhaWxlZA==" LintValue="555254574"/>
                         </dxl:Comparison>
                       </dxl:And>
                       <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
                         <dxl:Ident ColId="0" ColName="x" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="8"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" Value="8"/>
                       </dxl:Comparison>
                     </dxl:And>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                   </dxl:IsDistinctFrom>
                 </dxl:AssertConstraint>
               </dxl:AssertConstraintList>
@@ -653,7 +653,7 @@
                     </dxl:ProjList>
                     <dxl:Filter/>
                     <dxl:OneTimeFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                     </dxl:OneTimeFilter>
                   </dxl:Result>
                 </dxl:Result>

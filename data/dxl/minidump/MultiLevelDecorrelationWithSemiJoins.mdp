@@ -481,7 +481,7 @@
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="48" Alias="ColRef_0048">
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
@@ -498,7 +498,7 @@
                   <dxl:Filter>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
                       <dxl:Ident ColId="41" ColName="ColRef_0041" TypeMdid="0.16.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:OneTimeFilter/>
@@ -512,11 +512,11 @@
                           <dxl:IsNull>
                             <dxl:Ident ColId="39" ColName="ColRef_0039" TypeMdid="0.20.1.0"/>
                           </dxl:IsNull>
-                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                          <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                           <dxl:If TypeMdid="0.16.1.0">
                             <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
                               <dxl:Ident ColId="40" ColName="ColRef_0040" TypeMdid="0.20.1.0"/>
-                              <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
+                              <dxl:ConstValue TypeMdid="0.20.1.0" Value="0"/>
                             </dxl:Comparison>
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
                             <dxl:If TypeMdid="0.16.1.0">
@@ -527,10 +527,10 @@
                               <dxl:If TypeMdid="0.16.1.0">
                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
                                   <dxl:Ident ColId="39" ColName="ColRef_0039" TypeMdid="0.20.1.0"/>
-                                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
+                                  <dxl:ConstValue TypeMdid="0.20.1.0" Value="0"/>
                                 </dxl:Comparison>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
-                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                               </dxl:If>
                             </dxl:If>
                           </dxl:If>
@@ -568,8 +568,8 @@
                                 <dxl:Ident ColId="8" ColName="c2" TypeMdid="0.23.1.0"/>
                                 <dxl:Ident ColId="16" ColName="c3" TypeMdid="0.23.1.0"/>
                               </dxl:Comparison>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                             </dxl:If>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="38" Alias="ColRef_0038">
@@ -577,8 +577,8 @@
                               <dxl:IsNull>
                                 <dxl:Ident ColId="16" ColName="c3" TypeMdid="0.23.1.0"/>
                               </dxl:IsNull>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                             </dxl:If>
                           </dxl:ProjElem>
                         </dxl:ProjList>
@@ -606,7 +606,7 @@
                                 </dxl:Properties>
                                 <dxl:ProjList>
                                   <dxl:ProjElem ColId="47" Alias="ColRef_0047">
-                                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                    <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                                   </dxl:ProjElem>
                                 </dxl:ProjList>
                                 <dxl:Filter/>
@@ -623,7 +623,7 @@
                                   <dxl:Filter>
                                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
                                       <dxl:Ident ColId="46" ColName="ColRef_0046" TypeMdid="0.16.1.0"/>
-                                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                                     </dxl:Comparison>
                                   </dxl:Filter>
                                   <dxl:OneTimeFilter/>
@@ -637,11 +637,11 @@
                                           <dxl:IsNull>
                                             <dxl:Ident ColId="44" ColName="ColRef_0044" TypeMdid="0.20.1.0"/>
                                           </dxl:IsNull>
-                                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                          <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                                           <dxl:If TypeMdid="0.16.1.0">
                                             <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.413.1.0">
                                               <dxl:Ident ColId="45" ColName="ColRef_0045" TypeMdid="0.20.1.0"/>
-                                              <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
+                                              <dxl:ConstValue TypeMdid="0.20.1.0" Value="0"/>
                                             </dxl:Comparison>
                                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
                                             <dxl:If TypeMdid="0.16.1.0">
@@ -652,10 +652,10 @@
                                               <dxl:If TypeMdid="0.16.1.0">
                                                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
                                                   <dxl:Ident ColId="44" ColName="ColRef_0044" TypeMdid="0.20.1.0"/>
-                                                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="0"/>
+                                                  <dxl:ConstValue TypeMdid="0.20.1.0" Value="0"/>
                                                 </dxl:Comparison>
-                                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
-                                                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="false"/>
+                                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
+                                                <dxl:ConstValue TypeMdid="0.16.1.0" Value="false"/>
                                               </dxl:If>
                                             </dxl:If>
                                           </dxl:If>
@@ -693,8 +693,8 @@
                                                 <dxl:Ident ColId="16" ColName="c3" TypeMdid="0.23.1.0"/>
                                                 <dxl:Ident ColId="24" ColName="c4" TypeMdid="0.23.1.0"/>
                                               </dxl:Comparison>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                                             </dxl:If>
                                           </dxl:ProjElem>
                                           <dxl:ProjElem ColId="43" Alias="ColRef_0043">
@@ -702,8 +702,8 @@
                                               <dxl:IsNull>
                                                 <dxl:Ident ColId="24" ColName="c4" TypeMdid="0.23.1.0"/>
                                               </dxl:IsNull>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
-                                              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
+                                              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                                             </dxl:If>
                                           </dxl:ProjElem>
                                         </dxl:ProjList>

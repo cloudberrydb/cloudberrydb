@@ -219,13 +219,13 @@
         <dxl:LogicalProject>
           <dxl:ProjList>
             <dxl:ProjElem ColId="10" Alias="b">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:LogicalSelect>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:LogicalGet>
               <dxl:TableDescriptor Mdid="0.224805.1.1" TableName="p">
@@ -298,16 +298,16 @@
             <dxl:Ident ColId="1" ColName="c" TypeMdid="0.23.1.0"/>
           </dxl:PartEqFilters>
           <dxl:PartFilters>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
           </dxl:PartFilters>
           <dxl:ResidualFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
           </dxl:ResidualFilter>
           <dxl:PropagationExpression>
             <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
           </dxl:PropagationExpression>
           <dxl:PrintableFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
           </dxl:PrintableFilter>
           <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
             <dxl:Properties>
@@ -370,7 +370,7 @@
                     <dxl:Ident ColId="1" ColName="c" TypeMdid="0.23.1.0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="9" Alias="b">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="2" Alias="ctid">
                     <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>
@@ -405,19 +405,19 @@
                     </dxl:Properties>
                     <dxl:ProjList/>
                     <dxl:PartEqFilters>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:PartEqFilters>
                     <dxl:PartFilters>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:PartFilters>
                     <dxl:ResidualFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:ResidualFilter>
                     <dxl:PropagationExpression>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                     </dxl:PropagationExpression>
                     <dxl:PrintableFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:PrintableFilter>
                   </dxl:PartitionSelector>
                   <dxl:DynamicTableScan PartIndexId="1">
@@ -441,7 +441,7 @@
                     <dxl:Filter>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="0" ColName="b" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                       </dxl:Comparison>
                     </dxl:Filter>
                     <dxl:TableDescriptor Mdid="0.224805.1.1" TableName="p">

@@ -304,7 +304,7 @@
       <dxl:LogicalProject>
         <dxl:ProjList>
           <dxl:ProjElem ColId="43" Alias="?column?">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:LogicalSelect>
@@ -313,7 +313,7 @@
               <dxl:LogicalProject>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="19" Alias="?column?">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:LogicalSelect>
@@ -343,7 +343,7 @@
               <dxl:LogicalProject>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="42" Alias="?column?">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:LogicalSelect>
@@ -394,7 +394,7 @@
                                       <dxl:LogicalProject>
                                         <dxl:ProjList>
                                           <dxl:ProjElem ColId="21" Alias="i">
-                                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUE=" LintValue="1160449149"/>
+                                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUE=" LintValue="1160449149"/>
                                           </dxl:ProjElem>
                                         </dxl:ProjList>
                                         <dxl:LogicalConstTable>
@@ -402,14 +402,14 @@
                                             <dxl:Column ColId="20" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                                           </dxl:Columns>
                                           <dxl:ConstTuple>
-                                            <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                            <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                                           </dxl:ConstTuple>
                                         </dxl:LogicalConstTable>
                                       </dxl:LogicalProject>
                                       <dxl:LogicalProject>
                                         <dxl:ProjList>
                                           <dxl:ProjElem ColId="23" Alias="i">
-                                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUI=" LintValue="328139519"/>
+                                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUI=" LintValue="328139519"/>
                                           </dxl:ProjElem>
                                         </dxl:ProjList>
                                         <dxl:LogicalConstTable>
@@ -417,7 +417,7 @@
                                             <dxl:Column ColId="22" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                                           </dxl:Columns>
                                           <dxl:ConstTuple>
-                                            <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                            <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                                           </dxl:ConstTuple>
                                         </dxl:LogicalConstTable>
                                       </dxl:LogicalProject>
@@ -425,7 +425,7 @@
                                     <dxl:LogicalProject>
                                       <dxl:ProjList>
                                         <dxl:ProjElem ColId="25" Alias="i">
-                                          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUM=" LintValue="3539024654"/>
+                                          <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUM=" LintValue="3539024654"/>
                                         </dxl:ProjElem>
                                       </dxl:ProjList>
                                       <dxl:LogicalConstTable>
@@ -433,7 +433,7 @@
                                           <dxl:Column ColId="24" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                                         </dxl:Columns>
                                         <dxl:ConstTuple>
-                                          <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                          <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                                         </dxl:ConstTuple>
                                       </dxl:LogicalConstTable>
                                     </dxl:LogicalProject>
@@ -441,7 +441,7 @@
                                   <dxl:LogicalProject>
                                     <dxl:ProjList>
                                       <dxl:ProjElem ColId="27" Alias="i">
-                                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUQ=" LintValue="3279475550"/>
+                                        <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUQ=" LintValue="3279475550"/>
                                       </dxl:ProjElem>
                                     </dxl:ProjList>
                                     <dxl:LogicalConstTable>
@@ -449,7 +449,7 @@
                                         <dxl:Column ColId="26" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                                       </dxl:Columns>
                                       <dxl:ConstTuple>
-                                        <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                        <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                                       </dxl:ConstTuple>
                                     </dxl:LogicalConstTable>
                                   </dxl:LogicalProject>
@@ -457,7 +457,7 @@
                                 <dxl:LogicalProject>
                                   <dxl:ProjList>
                                     <dxl:ProjElem ColId="29" Alias="i">
-                                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUU=" LintValue="220308849"/>
+                                      <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUU=" LintValue="220308849"/>
                                     </dxl:ProjElem>
                                   </dxl:ProjList>
                                   <dxl:LogicalConstTable>
@@ -465,7 +465,7 @@
                                       <dxl:Column ColId="28" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                                     </dxl:Columns>
                                     <dxl:ConstTuple>
-                                      <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                      <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                                     </dxl:ConstTuple>
                                   </dxl:LogicalConstTable>
                                 </dxl:LogicalProject>
@@ -473,7 +473,7 @@
                               <dxl:LogicalProject>
                                 <dxl:ProjList>
                                   <dxl:ProjElem ColId="31" Alias="i">
-                                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUY=" LintValue="2671423861"/>
+                                    <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUY=" LintValue="2671423861"/>
                                   </dxl:ProjElem>
                                 </dxl:ProjList>
                                 <dxl:LogicalConstTable>
@@ -481,7 +481,7 @@
                                     <dxl:Column ColId="30" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                                   </dxl:Columns>
                                   <dxl:ConstTuple>
-                                    <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                    <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                                   </dxl:ConstTuple>
                                 </dxl:LogicalConstTable>
                               </dxl:LogicalProject>
@@ -489,7 +489,7 @@
                             <dxl:LogicalProject>
                               <dxl:ProjList>
                                 <dxl:ProjElem ColId="33" Alias="i">
-                                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUc=" LintValue="1505605646"/>
+                                  <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUc=" LintValue="1505605646"/>
                                 </dxl:ProjElem>
                               </dxl:ProjList>
                               <dxl:LogicalConstTable>
@@ -497,7 +497,7 @@
                                   <dxl:Column ColId="32" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                                 </dxl:Columns>
                                 <dxl:ConstTuple>
-                                  <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                  <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                                 </dxl:ConstTuple>
                               </dxl:LogicalConstTable>
                             </dxl:LogicalProject>
@@ -505,7 +505,7 @@
                           <dxl:LogicalProject>
                             <dxl:ProjList>
                               <dxl:ProjElem ColId="35" Alias="i">
-                                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUg=" LintValue="669527808"/>
+                                <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUg=" LintValue="669527808"/>
                               </dxl:ProjElem>
                             </dxl:ProjList>
                             <dxl:LogicalConstTable>
@@ -513,7 +513,7 @@
                                 <dxl:Column ColId="34" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                               </dxl:Columns>
                               <dxl:ConstTuple>
-                                <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                                <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                               </dxl:ConstTuple>
                             </dxl:LogicalConstTable>
                           </dxl:LogicalProject>
@@ -521,7 +521,7 @@
                         <dxl:LogicalProject>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="37" Alias="i">
-                              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUk=" LintValue="1487257655"/>
+                              <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUk=" LintValue="1487257655"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:LogicalConstTable>
@@ -529,7 +529,7 @@
                               <dxl:Column ColId="36" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                             </dxl:Columns>
                             <dxl:ConstTuple>
-                              <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ConstTuple>
                           </dxl:LogicalConstTable>
                         </dxl:LogicalProject>
@@ -537,7 +537,7 @@
                       <dxl:LogicalProject>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="39" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUo=" LintValue="284351552"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUo=" LintValue="284351552"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:LogicalConstTable>
@@ -545,7 +545,7 @@
                             <dxl:Column ColId="38" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                           </dxl:Columns>
                           <dxl:ConstTuple>
-                            <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                            <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                           </dxl:ConstTuple>
                         </dxl:LogicalConstTable>
                       </dxl:LogicalProject>
@@ -553,7 +553,7 @@
                     <dxl:LogicalProject>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="41" Alias="i">
-                          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUs=" LintValue="3345477028"/>
+                          <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUs=" LintValue="3345477028"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
                       <dxl:LogicalConstTable>
@@ -561,7 +561,7 @@
                           <dxl:Column ColId="40" Attno="1" ColName="" TypeMdid="0.16.1.0"/>
                         </dxl:Columns>
                         <dxl:ConstTuple>
-                          <dxl:Datum TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                          <dxl:Datum TypeMdid="0.16.1.0" Value="true"/>
                         </dxl:ConstTuple>
                       </dxl:LogicalConstTable>
                     </dxl:LogicalProject>
@@ -595,7 +595,7 @@
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="42" Alias="?column?">
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
@@ -653,7 +653,7 @@
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="41" Alias="?column?">
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="20" Alias="i">
                       <dxl:Ident ColId="20" ColName="i" TypeMdid="0.25.1.0"/>
@@ -690,7 +690,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="20" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUE=" LintValue="1160449149"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUE=" LintValue="1160449149"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -701,7 +701,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="19" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -714,7 +714,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="22" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUI=" LintValue="328139519"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUI=" LintValue="328139519"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -725,7 +725,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="21" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -738,7 +738,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="24" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUM=" LintValue="3539024654"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUM=" LintValue="3539024654"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -749,7 +749,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="23" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -762,7 +762,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="26" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUQ=" LintValue="3279475550"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUQ=" LintValue="3279475550"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -773,7 +773,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="25" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -786,7 +786,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="28" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUU=" LintValue="220308849"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUU=" LintValue="220308849"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -797,7 +797,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="27" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -810,7 +810,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="30" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUY=" LintValue="2671423861"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUY=" LintValue="2671423861"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -821,7 +821,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="29" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -834,7 +834,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="32" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUc=" LintValue="1505605646"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUc=" LintValue="1505605646"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -845,7 +845,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="31" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -858,7 +858,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="34" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUg=" LintValue="669527808"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUg=" LintValue="669527808"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -869,7 +869,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="33" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -882,7 +882,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="36" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUk=" LintValue="1487257655"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUk=" LintValue="1487257655"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -893,7 +893,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="35" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -906,7 +906,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="38" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUo=" LintValue="284351552"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUo=" LintValue="284351552"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -917,7 +917,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="37" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -930,7 +930,7 @@
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="40" Alias="i">
-                            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" Value="AAAABUs=" LintValue="3345477028"/>
+                            <dxl:ConstValue TypeMdid="0.25.1.0" Value="AAAABUs=" LintValue="3345477028"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -941,7 +941,7 @@
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="39" Alias="">
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                              <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                             </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:Filter/>
@@ -1019,7 +1019,7 @@
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="18" Alias="?column?">
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="9" Alias="a">
                       <dxl:Ident ColId="9" ColName="a" TypeMdid="0.25.1.0"/>

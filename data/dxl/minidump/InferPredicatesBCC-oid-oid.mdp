@@ -187,7 +187,7 @@
       <dxl:LogicalSelect>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
           <dxl:Ident ColId="9" ColName="a" TypeMdid="0.26.1.0"/>
-          <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="5"/>
+          <dxl:ConstValue TypeMdid="0.26.1.0" Value="5"/>
         </dxl:Comparison>
         <dxl:LogicalJoin JoinType="Inner">
           <dxl:LogicalGet>
@@ -295,7 +295,7 @@
             <dxl:Filter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
                 <dxl:Ident ColId="8" ColName="a" TypeMdid="0.26.1.0"/>
-                <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="5"/>
+                <dxl:ConstValue TypeMdid="0.26.1.0" Value="5"/>
               </dxl:Comparison>
             </dxl:Filter>
             <dxl:TableDescriptor Mdid="0.16400.1.0" TableName="foid">

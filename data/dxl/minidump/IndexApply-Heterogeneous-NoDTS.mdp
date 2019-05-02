@@ -280,11 +280,11 @@ ORDER BY 1 asc ;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -341,11 +341,11 @@ ORDER BY 1 asc ;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -400,11 +400,11 @@ ORDER BY 1 asc ;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -417,11 +417,11 @@ ORDER BY 1 asc ;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="3" ColName="bid_price" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -706,13 +706,13 @@ ORDER BY 1 asc ;
                     </dxl:Properties>
                     <dxl:ProjList/>
                     <dxl:PartEqFilters>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:PartEqFilters>
                     <dxl:PartFilters>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:PartFilters>
                     <dxl:ResidualFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:ResidualFilter>
                     <dxl:PropagationExpression>
                       <dxl:If TypeMdid="0.23.1.0">
@@ -724,20 +724,20 @@ ORDER BY 1 asc ;
                             <dxl:Or>
                               <dxl:And>
                                 <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                                   <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                                 </dxl:Comparison>
                                 <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                               </dxl:And>
                               <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="0"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" Value="0"/>
                                 <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                               </dxl:Comparison>
                             </dxl:Or>
                             <dxl:Or>
                               <dxl:And>
                                 <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                                   <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                                 </dxl:Comparison>
                                 <dxl:Not>
@@ -745,13 +745,13 @@ ORDER BY 1 asc ;
                                 </dxl:Not>
                               </dxl:And>
                               <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-                                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                                <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                                 <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                               </dxl:Comparison>
                             </dxl:Or>
                           </dxl:And>
                         </dxl:And>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="2"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" Value="2"/>
                         <dxl:If TypeMdid="0.23.1.0">
                           <dxl:And>
                             <dxl:Not>
@@ -761,20 +761,20 @@ ORDER BY 1 asc ;
                               <dxl:Or>
                                 <dxl:And>
                                   <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                                     <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                                   </dxl:Comparison>
                                   <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
                                 </dxl:And>
                                 <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="200000"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="200000"/>
                                   <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
                                 </dxl:Comparison>
                               </dxl:Or>
                               <dxl:Or>
                                 <dxl:And>
                                   <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+                                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
                                     <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                                   </dxl:Comparison>
                                   <dxl:Not>
@@ -782,19 +782,19 @@ ORDER BY 1 asc ;
                                   </dxl:Not>
                                 </dxl:And>
                                 <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-                                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="900000"/>
+                                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="900000"/>
                                   <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
                                 </dxl:Comparison>
                               </dxl:Or>
                             </dxl:And>
                           </dxl:And>
-                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
                           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
                         </dxl:If>
                       </dxl:If>
                     </dxl:PropagationExpression>
                     <dxl:PrintableFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                     </dxl:PrintableFilter>
                   </dxl:PartitionSelector>
                   <dxl:Append IsTarget="false" IsZapped="false">
@@ -818,7 +818,7 @@ ORDER BY 1 asc ;
                       </dxl:ProjList>
                       <dxl:Filter/>
                       <dxl:JoinFilter>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                       </dxl:JoinFilter>
                       <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                         <dxl:Properties>
@@ -922,7 +922,7 @@ ORDER BY 1 asc ;
                       </dxl:ProjList>
                       <dxl:Filter/>
                       <dxl:JoinFilter>
-                        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                        <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
                       </dxl:JoinFilter>
                       <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                         <dxl:Properties>

@@ -167,11 +167,11 @@ select least(4, greatest(b, NULL, 5), a) from foo;
         <dxl:ProjList>
           <dxl:ProjElem ColId="11" Alias="least">
             <dxl:Minimum TypeMdid="0.23.1.0">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
               <dxl:Maximum TypeMdid="0.23.1.0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
                 <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="5"/>
               </dxl:Maximum>
               <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
             </dxl:Minimum>
@@ -214,11 +214,11 @@ select least(4, greatest(b, NULL, 5), a) from foo;
           <dxl:ProjList>
             <dxl:ProjElem ColId="10" Alias="least">
               <dxl:Minimum TypeMdid="0.23.1.0">
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="4"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="4"/>
                 <dxl:Maximum TypeMdid="0.23.1.0">
                   <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="5"/>
                 </dxl:Maximum>
                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
               </dxl:Minimum>

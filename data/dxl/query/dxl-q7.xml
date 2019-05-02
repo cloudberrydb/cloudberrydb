@@ -5,7 +5,7 @@
       <dxl:ProjElem ColId="3" Alias="?column?">
         <dxl:OpExpr OperatorName="+" OperatorMdid="551">
           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" ConstByValue="true" Value="121"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" ConstByValue="true" Value="121"/>
         </dxl:OpExpr>
       </dxl:ProjElem>
     </dxl:ProjList>

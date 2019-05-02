@@ -3,14 +3,14 @@
   <dxl:LogicalProject>
     <dxl:ProjList>
       <dxl:ProjElem ColId="1" Alias="?column?">
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" ConstByValue="true" Value="233"/>
+        <dxl:ConstValue TypeMdid="0.23.1.0" ConstByValue="true" Value="233"/>
       </dxl:ProjElem>
     </dxl:ProjList>
     <dxl:LogicalSelect>
       <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.674.1.0">
         <dxl:FuncExpr FuncId="1598" FuncRetSet="false" TypeMdid="0.701.1.0"/>
         <dxl:FuncExpr FuncId="316" FuncRetSet="false" TypeMdid="0.701.1.0">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" ConstByValue="true" Value="121"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" ConstByValue="true" Value="121"/>
         </dxl:FuncExpr>
       </dxl:Comparison>
     </dxl:LogicalSelect>

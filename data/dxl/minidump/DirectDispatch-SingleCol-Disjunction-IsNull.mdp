@@ -176,7 +176,7 @@ explain select * from r where a=1 or a is null;
         <dxl:Or>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
             <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
           </dxl:Comparison>
           <dxl:IsNull>
             <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>
@@ -233,7 +233,7 @@ explain select * from r where a=1 or a is null;
               </dxl:IsNull>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:Comparison>
             </dxl:Or>
           </dxl:Filter>
@@ -254,7 +254,7 @@ explain select * from r where a=1 or a is null;
       </dxl:GatherMotion>
       <dxl:DirectDispatchInfo>
         <dxl:KeyValue>
-          <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+          <dxl:Datum TypeMdid="0.23.1.0" Value="1"/>
         </dxl:KeyValue>
         <dxl:KeyValue>
           <dxl:Datum TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>

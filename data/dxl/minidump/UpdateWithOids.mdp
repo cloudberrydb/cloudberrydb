@@ -179,13 +179,13 @@
         <dxl:LogicalProject>
           <dxl:ProjList>
             <dxl:ProjElem ColId="11" Alias="a">
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="5"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:LogicalSelect>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
             </dxl:Comparison>
             <dxl:LogicalGet>
               <dxl:TableDescriptor Mdid="0.199797.1.1" TableName="s">
@@ -259,7 +259,7 @@
               <dxl:Ident ColId="11" ColName="ColRef_0011" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="12" Alias="ColRef_0012">
-              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" Value="199797"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" Value="199797"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
@@ -331,7 +331,7 @@
                     <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="10" Alias="a">
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="5"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="5"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="2" Alias="ctid">
                     <dxl:Ident ColId="2" ColName="ctid" TypeMdid="0.27.1.0"/>
@@ -369,7 +369,7 @@
                   <dxl:Filter>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="3"/>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" Value="3"/>
                     </dxl:Comparison>
                   </dxl:Filter>
                   <dxl:TableDescriptor Mdid="0.199797.1.1" TableName="s">

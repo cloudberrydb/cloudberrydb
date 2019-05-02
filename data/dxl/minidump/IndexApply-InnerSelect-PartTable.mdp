@@ -87,11 +87,11 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="1" ColName="c1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="1" ColName="c1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -150,11 +150,11 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="1" ColName="c1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="1" ColName="c1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -236,14 +236,14 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
       <dxl:ColumnStatistics Mdid="1.32553318.1.1.8" Name="xmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.32553318.1.1.1" Name="c2" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB2FiYw==" LintValue="578839396"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.25.1.0" IsNull="false" Value="AAAAB2FiYw==" LintValue="578839396"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.25.1.0" Value="AAAAB2FiYw==" LintValue="578839396"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.25.1.0" Value="AAAAB2FiYw==" LintValue="578839396"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.32553318.1.1.0" Name="c1" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
-          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
-          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+          <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
+          <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" Value="10"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -314,11 +314,11 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           <dxl:And>
             <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
               <dxl:Ident ColId="1" ColName="c1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
               <dxl:Ident ColId="1" ColName="c1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10000"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="10000"/>
             </dxl:Comparison>
           </dxl:And>
         </dxl:PartConstraint>
@@ -539,7 +539,7 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           </dxl:Comparison>
           <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
             <dxl:Ident ColId="15" ColName="c1" TypeMdid="0.23.1.0"/>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+            <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
           </dxl:Comparison>
         </dxl:And>
       </dxl:LogicalJoin>
@@ -645,7 +645,7 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
           </dxl:ProjList>
           <dxl:Filter/>
           <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+            <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
           </dxl:JoinFilter>
           <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
             <dxl:Properties>
@@ -757,27 +757,27 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:PartEqFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:PartEqFilters>
               <dxl:PartFilters>
                 <dxl:Or>
                   <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                     <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
                   </dxl:Comparison>
                   <dxl:PartBoundOpen Level="0" LowerBound="false"/>
                 </dxl:Or>
               </dxl:PartFilters>
               <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" Value="true"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" Value="true"/>
               </dxl:ResidualFilter>
               <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
                 <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                   <dxl:Ident ColId="14" ColName="c1" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
                 </dxl:Comparison>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>
@@ -811,7 +811,7 @@ SELECT * FROM s i1, t t2 where t2.c2 = i1.c2 and t2.c1 > 10;
               <dxl:Filter>
                 <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
                   <dxl:Ident ColId="14" ColName="c1" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+                  <dxl:ConstValue TypeMdid="0.23.1.0" Value="10"/>
                 </dxl:Comparison>
               </dxl:Filter>
               <dxl:IndexCondList>

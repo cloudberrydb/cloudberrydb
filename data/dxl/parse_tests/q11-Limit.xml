@@ -39,10 +39,10 @@
         </dxl:TableDescriptor>
       </dxl:TableScan>
       <dxl:LimitCount>
-        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="100000"/>
+        <dxl:ConstValue TypeMdid="0.20.1.0" Value="100000"/>
       </dxl:LimitCount>
       <dxl:LimitOffset>
-        <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" Value="100000"/>
+        <dxl:ConstValue TypeMdid="0.20.1.0" Value="100000"/>
       </dxl:LimitOffset>
     </dxl:Limit>
   </dxl:Plan>

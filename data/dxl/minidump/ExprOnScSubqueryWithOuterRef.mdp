@@ -233,7 +233,7 @@ select (select b from bar) + 1 from foo;
                   </dxl:TableDescriptor>
                 </dxl:LogicalGet>
               </dxl:ScalarSubquery>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+              <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
             </dxl:OpExpr>
           </dxl:ProjElem>
         </dxl:ProjList>
@@ -325,7 +325,7 @@ select (select b from bar) + 1 from foo;
                     </dxl:Materialize>
                   </dxl:Result>
                 </dxl:SubPlan>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" Value="1"/>
+                <dxl:ConstValue TypeMdid="0.23.1.0" Value="1"/>
               </dxl:OpExpr>
             </dxl:ProjElem>
           </dxl:ProjList>

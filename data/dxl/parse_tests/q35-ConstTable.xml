@@ -14,10 +14,10 @@
             <dxl:Column ColId="3" Attno="1" ColName="" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
           <dxl:ConstTuple>
-            <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="10"/>
+            <dxl:Datum TypeMdid="0.23.1.0" Value="10"/>
           </dxl:ConstTuple>
           <dxl:ConstTuple>
-            <dxl:Datum TypeMdid="0.23.1.0" IsNull="false" Value="15"/>
+            <dxl:Datum TypeMdid="0.23.1.0" Value="15"/>
           </dxl:ConstTuple>
         </dxl:LogicalConstTable>
       </dxl:SubqueryAny>
