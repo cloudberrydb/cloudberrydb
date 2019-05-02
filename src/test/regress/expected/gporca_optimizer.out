@@ -11111,6 +11111,20 @@ WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilter1, onet
         1 |        0 | 10
 (10 rows)
 
+-- full joins with predicates
+DROP TABLE IF EXISTS ffoo, fbar;
+NOTICE:  table "ffoo" does not exist, skipping
+NOTICE:  table "fbar" does not exist, skipping
+CREATE TABLE ffoo (a, b) AS (VALUES (1, 2), (2, 3), (4, 5), (5, 6), (6, 7)) DISTRIBUTED BY (a);
+CREATE TABLE fbar (c, d) AS (VALUES (1, 42), (2, 43), (4, 45), (5, 46)) DISTRIBUTED BY (c);
+SELECT d FROM ffoo FULL OUTER JOIN fbar ON a = c WHERE b BETWEEN 5 and 9;
+ d  
+----
+ 46
+   
+ 45
+(3 rows)
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 NOTICE:  drop cascades to 92 other objects
@@ -11206,4 +11220,6 @@ drop cascades to function myint_numeric(myint)
 drop cascades to cast from myint to numeric
 drop cascades to table onetimefilter1
 drop cascades to table onetimefilter2
+drop cascades to table ffoo
+drop cascades to table fbar
 -- end_ignore
