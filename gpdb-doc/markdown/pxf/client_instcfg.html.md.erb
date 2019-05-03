@@ -70,11 +70,11 @@ Perform the following procedure to configure the desired PXF Hadoop-related conn
 
 ## <a id="client-cfg-update"></a>Updating Hadoop Configuration
 
-If you update your Hadoop, Hive, or HBase configuration while the PXF service is running, you must re-sync the PXF configuration to your Greenplum Database cluster and restart PXF on each segment host in the cluster. For example:
+If you update your Hadoop, Hive, or HBase configuration while the PXF service is running, you must copy the updated configuration to the `$PXF_CONF/servers/default` directory and re-sync the PXF configuration to your Greenplum Database cluster. For example:
 
 ``` shell
+gpadmin@gpmaster$ cd $PXF_CONF/servers/default
+gpadmin@gpmaster$ scp hiveuser@hivehost:/etc/hive/conf/hive-site.xml .
 gpadmin@gpmaster$ $GPHOME/pxf/bin/pxf cluster sync
-gpadmin@gpmaster$ $GPHOME/pxf/bin/pxf cluster stop
-gpadmin@gpmaster$ $GPHOME/pxf/bin/pxf cluster start
 ```
 
