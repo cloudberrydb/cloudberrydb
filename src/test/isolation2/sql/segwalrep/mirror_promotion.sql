@@ -11,8 +11,6 @@
 -- between primary and mirror is still alive and hence walreceiver
 -- also exist during promotion.
 
-create extension if not exists gp_inject_fault;
-
 include: helpers/server_helpers.sql;
 
 SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;

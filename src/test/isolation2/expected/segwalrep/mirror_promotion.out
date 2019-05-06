@@ -11,9 +11,6 @@
 -- between primary and mirror is still alive and hence walreceiver
 -- also exist during promotion.
 
-create extension if not exists gp_inject_fault;
-CREATE
-
 include: helpers/server_helpers.sql;
 CREATE
 

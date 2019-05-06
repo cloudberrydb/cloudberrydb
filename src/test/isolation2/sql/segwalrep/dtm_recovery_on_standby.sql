@@ -2,8 +2,6 @@
 
 include: helpers/server_helpers.sql;
 
-CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
-
 -- Check that are starting with a clean slate, standby must be in sync
 -- with master.
 select application_name, state, sync_state from pg_stat_replication;
