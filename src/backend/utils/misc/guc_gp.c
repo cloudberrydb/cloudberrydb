@@ -336,6 +336,7 @@ bool		optimizer_enable_bitmapscan;
 bool		optimizer_enable_outerjoin_to_unionall_rewrite;
 bool		optimizer_enable_ctas;
 bool		optimizer_enable_partial_index;
+bool		optimizer_enable_dml;
 bool		optimizer_enable_dml_triggers;
 bool		optimizer_enable_dml_constraints;
 bool		optimizer_enable_master_only_queries;
@@ -2678,6 +2679,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_enable_partial_index,
+		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"optimizer_enable_dml", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enable DML plans in Pivotal Optimizer (GPORCA)."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_dml,
 		true,
 		NULL, NULL, NULL
 	},
