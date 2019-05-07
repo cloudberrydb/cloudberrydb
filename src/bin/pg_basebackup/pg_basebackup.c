@@ -238,7 +238,7 @@ usage(void)
 	printf(_("  %s [OPTION]...\n"), progname);
 	printf(_("\nOptions controlling the output:\n"));
 	printf(_("  -D, --pgdata=DIRECTORY receive base backup into directory\n"));
-	printf(_("  -F, --format=p|t       output format (plain (default), tar)\n"));
+	printf(_("  -F, --format=p|t       output format (plain (default), tar (Unsupported in GPDB))\n"));
 	printf(_("  -r, --max-rate=RATE    maximum transfer rate to transfer data directory\n"
 			 "                         (in kB/s, or use suffix \"k\" or \"M\")\n"));
 	printf(_("  -R, --write-recovery-conf\n"
@@ -2432,6 +2432,17 @@ main(int argc, char **argv)
 	 */
 	if (format == 'p' || strcmp(basedir, "-") != 0)
 		verify_dir_is_empty_or_create(basedir);
+
+	/*
+	 * GPDB: Backups in tar mode will not have the internal.auto.conf file,
+	 * nor will any tablespaces have the dbid appended to their symlinks in
+	 * pg_tblspc. The backups are still, in theory, valid, but the tablespace
+	 * mapping and internal.auto.conf files will need to be added manually
+	 * when extracting the backups.
+	 */
+	if (format == 't')
+		fprintf(stderr,
+			_("WARNING: tar backups are not supported on GPDB\n"));
 
 	/* Create transaction log symlink, if required */
 	if (strcmp(xlog_dir, "") != 0)
