@@ -4272,7 +4272,7 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
         </dxl:LogicalGroupBy>
       </dxl:LogicalLimit>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="104">
+    <dxl:Plan Id="0" SpaceSize="114">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="974268139.795765" Rows="58129406.108810" Width="25"/>

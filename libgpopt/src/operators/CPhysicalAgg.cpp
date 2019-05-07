@@ -86,9 +86,13 @@ CPhysicalAgg::CPhysicalAgg
 		if (pdrgpcrArgDQA != NULL && 0 != pdrgpcrArgDQA->Size())
 		{
 			// If the local aggregate has distinct columns we generate
-			// one optimization requests for its children:
-			// (1) hash distribution on the distinct columns
-			ulDistrReqs = 1;
+			// two optimization requests for its children:
+			// (1) hash distribution on the distinct columns only
+			// (2) hash distribution on the grouping and distinct
+			//     columns (only if the grouping columns are not empty)
+			if (0 == m_pdrgpcr->Size()) {
+				ulDistrReqs = 1;
+			}
 		}
 	}
 	else if (COperator::EgbaggtypeIntermediate == egbaggtype)
@@ -235,8 +239,21 @@ CPhysicalAgg::PdsRequiredAgg
 
 	if (COperator::EgbaggtypeLocal == m_egbaggtype && m_pdrgpcrArgDQA != NULL && 0 != m_pdrgpcrArgDQA->Size())
 	{
-		GPOS_ASSERT(0 == ulOptReq);
-		return PdsMaximalHashed(mp, m_pdrgpcrArgDQA);
+		if (ulOptReq == 0)
+		{
+			return PdsMaximalHashed(mp, m_pdrgpcrArgDQA);
+		}
+		else
+		{
+			GPOS_ASSERT(1 == ulOptReq);
+			GPOS_ASSERT(0 < m_pdrgpcr->Size());
+			CColRefArray *grpAndDistinctCols = GPOS_NEW(mp) CColRefArray(mp);
+			grpAndDistinctCols->AppendArray(m_pdrgpcr);
+			grpAndDistinctCols->AppendArray(m_pdrgpcrArgDQA);
+			CDistributionSpec *pdsSpec = PdsMaximalHashed(mp, grpAndDistinctCols);
+			grpAndDistinctCols->Release();
+			return pdsSpec;
+		}
 	}
 
 	GPOS_ASSERT(0 == ulOptReq || 1 == ulOptReq);
