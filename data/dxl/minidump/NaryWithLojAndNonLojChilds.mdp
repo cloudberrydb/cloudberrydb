@@ -1729,10 +1729,10 @@
         </dxl:Comparison>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="349">
+    <dxl:Plan Id="0" SpaceSize="277">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="2155.818741" Rows="17.263546" Width="24"/>
+          <dxl:Cost StartupCost="0" TotalCost="2155.818024" Rows="17.263546" Width="24"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -1758,7 +1758,7 @@
         <dxl:SortingColumnList/>
         <dxl:HashJoin JoinType="Left">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="2155.817196" Rows="17.263546" Width="24"/>
+            <dxl:Cost StartupCost="0" TotalCost="2155.816480" Rows="17.263546" Width="24"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -1790,7 +1790,7 @@
           </dxl:HashCondList>
           <dxl:HashJoin JoinType="Inner">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="1724.808338" Rows="17.263546" Width="20"/>
+              <dxl:Cost StartupCost="0" TotalCost="1724.807621" Rows="17.263546" Width="20"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="a">
@@ -1814,10 +1814,6 @@
             <dxl:HashCondList>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-                <dxl:Ident ColId="9" ColName="c" TypeMdid="0.23.1.0"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                <dxl:Ident ColId="27" ColName="g" TypeMdid="0.23.1.0"/>
                 <dxl:Ident ColId="9" ColName="c" TypeMdid="0.23.1.0"/>
               </dxl:Comparison>
             </dxl:HashCondList>

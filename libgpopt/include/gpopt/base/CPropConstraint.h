@@ -70,7 +70,7 @@ namespace gpopt
 			// mapping
 			CColRefSet *PcrsEquivClass
 				(
-				CColRef *colref
+				const CColRef *colref
 				)
 				const
 			{

@@ -36,6 +36,7 @@ ULONG CICGTest::m_ulUnsupportedTestCounter = 0; // start from first unsupported 
 ULONG CICGTest::m_ulTestCounterPreferHashJoinToIndexJoin = 0;
 ULONG CICGTest::m_ulTestCounterPreferIndexJoinToHashJoin = 0;
 ULONG CICGTest::m_ulNegativeIndexApplyTestCounter = 0;
+ULONG CICGTest::m_ulTestCounterNoAdditionTraceFlag = 0;
 
 // minidump files
 const CHAR *rgszFileNames[] =
@@ -45,6 +46,10 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/OptimizerConfigWithSegmentsForCosting.mdp",
 		"../data/dxl/minidump/QueryMismatchedDistribution.mdp",
 		"../data/dxl/minidump/QueryMismatchedDistribution-DynamicIndexScan.mdp",
+		"../data/dxl/minidump/3WayJoinOnMultiDistributionColumnsTables.mdp",
+		"../data/dxl/minidump/3WayJoinOnMultiDistributionColumnsTablesNoMotion.mdp",
+		"../data/dxl/minidump/4WayJoinInferredPredsRemovedWith2Motion.mdp",
+		"../data/dxl/minidump/NoRedistributeOnAppend.mdp",
 
 #ifndef GPOS_DEBUG
 		// TODO:  - Jul 14 2015; disabling it for debug build to reduce testing time
@@ -120,6 +125,7 @@ CICGTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_NegativeIndexApplyTests),
 
 		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_RunMinidumpTests),
+		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_RunTestsWithoutAdditionalTraceFlags),
 
 #ifndef GPOS_DEBUG
 		// This test is slow in debug build because it has to free a lot of memory structures
@@ -148,6 +154,23 @@ GPOS_RESULT
 CICGTest::EresUnittest_RunMinidumpTests()
 {
 	return CTestUtils::EresUnittest_RunTests(rgszFileNames, &m_ulTestCounter, GPOS_ARRAY_SIZE(rgszFileNames));
+}
+
+GPOS_RESULT
+CICGTest::EresUnittest_RunTestsWithoutAdditionalTraceFlags()
+{
+	const CHAR *rgszFileNames[] =
+	{
+		"../data/dxl/minidump/Union-On-HJNs.mdp",
+	};
+	return CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
+			(
+			rgszFileNames,
+			&m_ulTestCounterNoAdditionTraceFlag,
+			GPOS_ARRAY_SIZE(rgszFileNames),
+			true,
+			true
+			);
 }
 
 

@@ -149,7 +149,7 @@ CPhysicalInnerNLJoin::PdsRequired
 					// create a matching hashed distribution request
 					BOOL fNullsColocated = pdshashed->FNullsColocated();
 					CDistributionSpecHashed *pdshashedEquiv = GPOS_NEW(mp) CDistributionSpecHashed(pdrgpexprMatching, fNullsColocated);
-
+					pdshashedEquiv->ComputeEquivHashExprs(mp, exprhdl);
 					return pdshashedEquiv;
 				}
 				pdrgpexprMatching->Release();

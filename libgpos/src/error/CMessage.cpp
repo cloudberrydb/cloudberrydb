@@ -169,8 +169,8 @@ CMessage::GetMessage
 	{
 		CMessage(CException(CException::ExmaInvalid, CException::ExmiInvalid),
 				 CException::ExsevError,
-				 GPOS_WSZ_WSZLEN("Unknown error"),
-				 0, // # params
+				 GPOS_WSZ_WSZLEN("Unknown error: %ls"),
+				 1, // # params
 				 GPOS_WSZ_WSZLEN("This message is used if no error message "
 								 "can be found at handling time")),
 

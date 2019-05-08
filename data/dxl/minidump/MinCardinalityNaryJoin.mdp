@@ -13358,10 +13358,10 @@
         </dxl:LogicalSelect>
       </dxl:LogicalGroupBy>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="63735661952">
+    <dxl:Plan Id="0" SpaceSize="66714549544">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="14782.567233" Rows="122051.162098" Width="191"/>
+          <dxl:Cost StartupCost="0" TotalCost="14736.095443" Rows="122051.162098" Width="191"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="3" Alias="ccd">
@@ -13417,7 +13417,7 @@
         <dxl:SortingColumnList/>
         <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="14695.692029" Rows="122051.162098" Width="191"/>
+            <dxl:Cost StartupCost="0" TotalCost="14649.220239" Rows="122051.162098" Width="191"/>
           </dxl:Properties>
           <dxl:GroupingColumns>
             <dxl:GroupingColumn ColId="3"/>
@@ -13492,7 +13492,7 @@
           <dxl:Filter/>
           <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="14610.799791" Rows="122051.162098" Width="191"/>
+              <dxl:Cost StartupCost="0" TotalCost="14564.328001" Rows="122051.162098" Width="191"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="fl_yr">
@@ -13592,7 +13592,7 @@
             </dxl:HashExprList>
             <dxl:Result>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="14586.477842" Rows="122051.162098" Width="191"/>
+                <dxl:Cost StartupCost="0" TotalCost="14540.006052" Rows="122051.162098" Width="191"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="1" Alias="fl_yr">
@@ -13648,7 +13648,7 @@
               <dxl:OneTimeFilter/>
               <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="14586.477842" Rows="122051.162098" Width="191"/>
+                  <dxl:Cost StartupCost="0" TotalCost="14540.006052" Rows="122051.162098" Width="191"/>
                 </dxl:Properties>
                 <dxl:GroupingColumns>
                   <dxl:GroupingColumn ColId="3"/>
@@ -13723,7 +13723,7 @@
                 <dxl:Filter/>
                 <dxl:HashJoin JoinType="Inner">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="10708.336783" Rows="5719390.578080" Width="189"/>
+                    <dxl:Cost StartupCost="0" TotalCost="10661.864993" Rows="5719390.578080" Width="189"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="1" Alias="fl_yr">
@@ -13785,7 +13785,7 @@
                   </dxl:HashCondList>
                   <dxl:HashJoin JoinType="Inner">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="8628.019982" Rows="965277.538797" Width="167"/>
+                      <dxl:Cost StartupCost="0" TotalCost="8581.548192" Rows="965277.538797" Width="167"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="1" Alias="fl_yr">
@@ -13847,7 +13847,7 @@
                     </dxl:HashCondList>
                     <dxl:HashJoin JoinType="Inner">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="7921.088899" Rows="965277.538797" Width="163"/>
+                        <dxl:Cost StartupCost="0" TotalCost="7874.617109" Rows="965277.538797" Width="163"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="1" Alias="fl_yr">
@@ -13906,21 +13906,14 @@
                           <dxl:Ident ColId="38" ColName="cck" TypeMdid="0.21.1.0"/>
                           <dxl:Ident ColId="386" ColName="cck" TypeMdid="0.21.1.0"/>
                         </dxl:Comparison>
-                        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.94.1.0">
-                          <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
-                          <dxl:Ident ColId="386" ColName="cck" TypeMdid="0.21.1.0"/>
-                        </dxl:Comparison>
                       </dxl:HashCondList>
                       <dxl:HashJoin JoinType="Inner">
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="7190.301701" Rows="965277.504323" Width="165"/>
+                          <dxl:Cost StartupCost="0" TotalCost="7172.184085" Rows="965277.504323" Width="163"/>
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="1" Alias="fl_yr">
                             <dxl:Ident ColId="1" ColName="fl_yr" TypeMdid="0.21.1.0"/>
-                          </dxl:ProjElem>
-                          <dxl:ProjElem ColId="2" Alias="cck">
-                            <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="3" Alias="ccd">
                             <dxl:Ident ColId="3" ColName="ccd" TypeMdid="0.1043.1.0" TypeModifier="104"/>
@@ -13978,14 +13971,11 @@
                         </dxl:HashCondList>
                         <dxl:HashJoin JoinType="Inner">
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="6487.306706" Rows="965277.504323" Width="153"/>
+                            <dxl:Cost StartupCost="0" TotalCost="6471.833307" Rows="965277.504323" Width="151"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="1" Alias="fl_yr">
                               <dxl:Ident ColId="1" ColName="fl_yr" TypeMdid="0.21.1.0"/>
-                            </dxl:ProjElem>
-                            <dxl:ProjElem ColId="2" Alias="cck">
-                              <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
                             </dxl:ProjElem>
                             <dxl:ProjElem ColId="3" Alias="ccd">
                               <dxl:Ident ColId="3" ColName="ccd" TypeMdid="0.1043.1.0" TypeModifier="104"/>
@@ -14043,14 +14033,11 @@
                           </dxl:HashCondList>
                           <dxl:HashJoin JoinType="Inner">
                             <dxl:Properties>
-                              <dxl:Cost StartupCost="0" TotalCost="5754.971702" Rows="965277.504323" Width="150"/>
+                              <dxl:Cost StartupCost="0" TotalCost="5742.142520" Rows="965277.504323" Width="148"/>
                             </dxl:Properties>
                             <dxl:ProjList>
                               <dxl:ProjElem ColId="1" Alias="fl_yr">
                                 <dxl:Ident ColId="1" ColName="fl_yr" TypeMdid="0.21.1.0"/>
-                              </dxl:ProjElem>
-                              <dxl:ProjElem ColId="2" Alias="cck">
-                                <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
                               </dxl:ProjElem>
                               <dxl:ProjElem ColId="3" Alias="ccd">
                                 <dxl:Ident ColId="3" ColName="ccd" TypeMdid="0.1043.1.0" TypeModifier="104"/>
@@ -14108,14 +14095,11 @@
                             </dxl:HashCondList>
                             <dxl:HashJoin JoinType="Inner">
                               <dxl:Properties>
-                                <dxl:Cost StartupCost="0" TotalCost="4787.219510" Rows="965277.504323" Width="150"/>
+                                <dxl:Cost StartupCost="0" TotalCost="4777.034544" Rows="965277.504323" Width="148"/>
                               </dxl:Properties>
                               <dxl:ProjList>
                                 <dxl:ProjElem ColId="1" Alias="fl_yr">
                                   <dxl:Ident ColId="1" ColName="fl_yr" TypeMdid="0.21.1.0"/>
-                                </dxl:ProjElem>
-                                <dxl:ProjElem ColId="2" Alias="cck">
-                                  <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
                                 </dxl:ProjElem>
                                 <dxl:ProjElem ColId="3" Alias="ccd">
                                   <dxl:Ident ColId="3" ColName="ccd" TypeMdid="0.1043.1.0" TypeModifier="104"/>
@@ -14175,14 +14159,11 @@
                               </dxl:HashCondList>
                               <dxl:HashJoin JoinType="Inner">
                                 <dxl:Properties>
-                                  <dxl:Cost StartupCost="0" TotalCost="4103.250534" Rows="965277.504323" Width="133"/>
+                                  <dxl:Cost StartupCost="0" TotalCost="4095.709786" Rows="965277.504323" Width="131"/>
                                 </dxl:Properties>
                                 <dxl:ProjList>
                                   <dxl:ProjElem ColId="1" Alias="fl_yr">
                                     <dxl:Ident ColId="1" ColName="fl_yr" TypeMdid="0.21.1.0"/>
-                                  </dxl:ProjElem>
-                                  <dxl:ProjElem ColId="2" Alias="cck">
-                                    <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
                                   </dxl:ProjElem>
                                   <dxl:ProjElem ColId="3" Alias="ccd">
                                     <dxl:Ident ColId="3" ColName="ccd" TypeMdid="0.1043.1.0" TypeModifier="104"/>
@@ -14240,14 +14221,11 @@
                                 </dxl:HashCondList>
                                 <dxl:HashJoin JoinType="Inner">
                                   <dxl:Properties>
-                                    <dxl:Cost StartupCost="0" TotalCost="3434.696282" Rows="965277.504323" Width="102"/>
+                                    <dxl:Cost StartupCost="0" TotalCost="3429.799751" Rows="965277.504323" Width="100"/>
                                   </dxl:Properties>
                                   <dxl:ProjList>
                                     <dxl:ProjElem ColId="1" Alias="fl_yr">
                                       <dxl:Ident ColId="1" ColName="fl_yr" TypeMdid="0.21.1.0"/>
-                                    </dxl:ProjElem>
-                                    <dxl:ProjElem ColId="2" Alias="cck">
-                                      <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
                                     </dxl:ProjElem>
                                     <dxl:ProjElem ColId="3" Alias="ccd">
                                       <dxl:Ident ColId="3" ColName="ccd" TypeMdid="0.1043.1.0" TypeModifier="104"/>
@@ -14302,14 +14280,11 @@
                                   </dxl:HashCondList>
                                   <dxl:HashJoin JoinType="Inner">
                                     <dxl:Properties>
-                                      <dxl:Cost StartupCost="0" TotalCost="2815.047361" Rows="965277.713032" Width="91"/>
+                                      <dxl:Cost StartupCost="0" TotalCost="2812.795046" Rows="965277.713032" Width="89"/>
                                     </dxl:Properties>
                                     <dxl:ProjList>
                                       <dxl:ProjElem ColId="1" Alias="fl_yr">
                                         <dxl:Ident ColId="1" ColName="fl_yr" TypeMdid="0.21.1.0"/>
-                                      </dxl:ProjElem>
-                                      <dxl:ProjElem ColId="2" Alias="cck">
-                                        <dxl:Ident ColId="2" ColName="cck" TypeMdid="0.21.1.0"/>
                                       </dxl:ProjElem>
                                       <dxl:ProjElem ColId="3" Alias="ccd">
                                         <dxl:Ident ColId="3" ColName="ccd" TypeMdid="0.1043.1.0" TypeModifier="104"/>

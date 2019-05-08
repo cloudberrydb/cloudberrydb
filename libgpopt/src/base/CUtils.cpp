@@ -33,6 +33,7 @@
 #include "gpopt/mdcache/CMDAccessorUtils.h"
 #include "gpopt/exception.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
+#include "gpopt/operators/CExpressionPreprocessor.h"
 
 #include "naucrates/base/IDatumInt2.h"
 #include "naucrates/base/IDatumInt4.h"
@@ -5184,7 +5185,136 @@ CUtils::PexprMatchEqualityOrINDF
 		}
 	}
 
+	if (NULL != pexprMatching)
+		return CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprMatching);
 	return pexprMatching;
 }
 
+// from the input join expression, remove the inferred predicates
+// and return the new join expression without inferred predicate
+CExpression *
+CUtils::MakeJoinWithoutInferredPreds
+	(
+	IMemoryPool *mp,
+	CExpression *join_expr
+	)
+{
+	GPOS_ASSERT(COperator::EopLogicalInnerJoin == join_expr->Pop()->Eopid());
+
+	CExpressionHandle expression_handle(mp);
+	expression_handle.Attach(join_expr);
+	CExpression *scalar_expr = expression_handle.PexprScalarChild(join_expr->Arity() - 1);
+	CExpression *scalar_expr_without_inferred_pred = CPredicateUtils::PexprRemoveImpliedConjuncts(mp, scalar_expr, expression_handle);
+
+	// create a new join expression using the scalar expr without inferred predicate
+	CExpression *left_child_expr = (*join_expr)[0];
+	CExpression *right_child_expr = (*join_expr)[1];
+	left_child_expr->AddRef();
+	right_child_expr->AddRef();
+	COperator *join_op = join_expr->Pop();
+	join_op->AddRef();
+	return GPOS_NEW(mp) CExpression(mp, join_op, left_child_expr, right_child_expr, scalar_expr_without_inferred_pred);
+}
+
+// check if the input expr array contains the expr
+BOOL
+CUtils::Contains
+	(
+	const CExpressionArray *exprs,
+	CExpression *expr_to_match
+	)
+{
+	if (NULL == exprs)
+	{
+		return false;
+	}
+
+	BOOL contains = false;
+	for (ULONG ul = 0; ul < exprs->Size() && !contains; ul++)
+	{
+		CExpression *expr = (*exprs)[ul];
+		contains = CUtils::Equals(expr, expr_to_match);
+	}
+	return contains;
+}
+
+BOOL
+CUtils::Equals
+	(
+	const CExpressionArrays *exprs_arr,
+	const CExpressionArrays *other_exprs_arr
+	)
+{
+	GPOS_CHECK_STACK_SIZE;
+
+	// NULL arrays are equal
+	if (NULL == exprs_arr || NULL == other_exprs_arr)
+	{
+		return NULL == exprs_arr && NULL == other_exprs_arr;
+	}
+
+	// do pointer comparision
+	if (exprs_arr == other_exprs_arr)
+	{
+		return true;
+	}
+
+	// if the size is not equal, the two arrays are not equal
+	if (exprs_arr->Size() != other_exprs_arr->Size())
+	{
+		return false;
+	}
+
+	// if all the elements are equal, then both the arrays are equal
+	BOOL equal = true;
+	for (ULONG id = 0; id < exprs_arr->Size() && equal; id++)
+	{
+		equal = CUtils::Equals((*exprs_arr)[id], (*other_exprs_arr)[id]);
+	}
+	return equal;
+}
+
+// operators from which the inferred predicates can be removed
+// NB: currently, only inner join is included, but we can add more later.
+BOOL
+CUtils::CanRemoveInferredPredicates
+	(
+	COperator::EOperatorId op_id
+	)
+{
+	return op_id == COperator::EopLogicalInnerJoin;
+}
+
+CExpressionArrays *
+CUtils::GetCombinedExpressionArrays
+	(
+	IMemoryPool *mp,
+	CExpressionArrays *exprs_array,
+	CExpressionArrays *exprs_array_other
+	)
+{
+	CExpressionArrays *result_exprs = GPOS_NEW(mp) CExpressionArrays(mp);
+	AddExprs(result_exprs, exprs_array);
+	AddExprs(result_exprs, exprs_array_other);
+
+	return result_exprs;
+}
+
+void
+CUtils::AddExprs
+	(
+	CExpressionArrays *results_exprs,
+	CExpressionArrays *input_exprs
+	)
+{
+	GPOS_ASSERT(NULL != results_exprs);
+	GPOS_ASSERT(NULL != input_exprs);
+	for (ULONG ul = 0; ul < input_exprs->Size(); ul++)
+	{
+		CExpressionArray *exprs = (*input_exprs)[ul];
+		exprs->AddRef();
+		results_exprs->Append(exprs);
+	}
+	GPOS_ASSERT(results_exprs->Size() >= input_exprs->Size());
+}
 // EOF

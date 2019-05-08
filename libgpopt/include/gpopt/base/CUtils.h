@@ -28,6 +28,7 @@
 #include "gpopt/operators/CScalarAggFunc.h"
 #include "naucrates/md/CMDTypeInt4GPDB.h"
 #include "naucrates/statistics/IStatistics.h"
+#include "gpopt/base/CDistributionSpecHashed.h"
 
 // fwd declarations
 namespace gpmd
@@ -1085,6 +1086,25 @@ namespace gpopt
 				CExpression *pexprToMatch,
 				CExpressionArray *pdrgpexpr // array of predicates to inspect
 				);
+
+			static
+			CExpression *MakeJoinWithoutInferredPreds(IMemoryPool *mp, CExpression *join_expr);
+
+			static
+			BOOL Contains(const CExpressionArray *exprs, CExpression *expr_to_match);
+
+			static
+			BOOL Equals(const CExpressionArrays *exprs_arr, const CExpressionArrays *other_exprs_arr);
+
+			static
+			BOOL CanRemoveInferredPredicates(COperator::EOperatorId op_id);
+
+			static
+			CExpressionArrays *
+			GetCombinedExpressionArrays(IMemoryPool *mp, CExpressionArrays *exprs_array, CExpressionArrays *exprs_array_other);
+
+			static
+			void AddExprs(CExpressionArrays *results_exprs, CExpressionArrays *input_exprs);
 	}; // class CUtils
 
 	// hash set from expressions

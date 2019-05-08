@@ -136,6 +136,15 @@ namespace gpopt
 				return Edt() == pds->Edt();
 			}
 
+			// default implementation for all the classes inheriting from
+			// CDistributionSpec, if any class requires special Equals
+			// handling, they should override it.
+			virtual
+			BOOL Equals(const CDistributionSpec *pds) const
+			{
+				return Matches(pds);
+			}
+
 			// return a copy of the distribution spec with remapped columns
 			virtual
 			CDistributionSpec *PdsCopyWithRemappedColumns

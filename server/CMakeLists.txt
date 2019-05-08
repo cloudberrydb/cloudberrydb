@@ -196,7 +196,7 @@ Union-OuterRefs-Output Union-OuterRefs-Casting-Output
 Union-OuterRefs-InnerChild MS-UnionAll-2;
 
 CSetop3Test:
-UnionWithOuterRefs UnionAll Union-On-HJNs
+UnionWithOuterRefs UnionAll
 Union-Distributed-Table-With-Const-Table ExceptAllCompatibleDataType
 UnionAllCompatibleDataType UnionOfDQAQueries Union-Volatile-Func
 Intersect-Volatile-Func Except-Volatile-Func;

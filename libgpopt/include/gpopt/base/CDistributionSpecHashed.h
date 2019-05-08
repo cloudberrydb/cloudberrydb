@@ -42,6 +42,11 @@ namespace gpopt
 			// equivalent hashed distribution introduced by a hash join
 			CDistributionSpecHashed *m_pdshashedEquiv;
 
+			// array of expression arrays, an array at position n
+			// is the list of expression which are equivalent to the distribution expr
+			// at position n in m_pdrgpexpr array.
+			CExpressionArrays *m_equiv_hash_exprs;
+
 			// check if specs are compatible wrt to co-location of nulls;
 			// HD1 satisfies HD2 if:
 			//	* HD1 colocates NULLs or
@@ -134,7 +139,7 @@ namespace gpopt
 			BOOL FMatchSubset(const CDistributionSpecHashed *pds) const;
 
 			// equality function
-			BOOL Equals(const CDistributionSpecHashed *pds) const;
+			BOOL Equals(const CDistributionSpec *pds) const;
 
 			// return a copy of the distribution spec with remapped columns
 			virtual
@@ -196,6 +201,24 @@ namespace gpopt
 				return pdsHashed;
 			}
 
+			CExpressionArrays *HashSpecEquivExprs() const
+			{
+				return m_equiv_hash_exprs;
+			}
+
+			void ComputeEquivHashExprs(IMemoryPool *mp, CExpressionHandle &expression_handle);
+
+			// does the current spec or equivalent spec cover the input expression array
+			BOOL IsCoveredBy(const CExpressionArray *dist_cols_expr_array) const;
+
+			// create a copy of the distribution spec
+			CDistributionSpecHashed *Copy(IMemoryPool *mp);
+
+			// get distribution expr array from the current and its equivalent spec
+			CExpressionArrays *GetAllDistributionExprs(IMemoryPool *mp);
+
+			// return a new spec created after merging the current spec with the input spec as equivalents
+			CDistributionSpecHashed *Combine(IMemoryPool *mp, CDistributionSpecHashed *other_spec);
 	}; // class CDistributionSpecHashed
 
 }

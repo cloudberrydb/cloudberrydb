@@ -319,7 +319,12 @@ CGroup::UpdateBestCost
 		pocFound = shta.Find();
 	}
 
-	GPOS_ASSERT(NULL != pocFound);
+	if (NULL == pocFound)
+	{
+		// it should never happen, but instead of crashing, raise an exception
+		GPOS_RAISE(CException::ExmaInvalid, CException::ExmiInvalid,
+				   GPOS_WSZ_LIT("Updating cost for non-existing optimization context"));
+	}
 
 	// update best cost context
 	CCostContext *pccBest = pocFound->PccBest();

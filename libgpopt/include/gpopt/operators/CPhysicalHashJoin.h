@@ -112,7 +112,7 @@ namespace gpopt
 		protected:
 			
 			// helper for computing a hashed distribution matching the given distribution
-                        CDistributionSpecHashed *PdshashedMatching(IMemoryPool *mp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
+			CDistributionSpecHashed *PdshashedMatching(IMemoryPool *mp, CDistributionSpecHashed *pdshashed, ULONG ulSourceChild) const;
 
 			// check whether the hash keys from one child are nullable
 			BOOL FNullableHashKeys(CColRefSet *pcrsNotNullInner, BOOL fInner) const;

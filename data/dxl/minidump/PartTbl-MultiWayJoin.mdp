@@ -407,10 +407,10 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
         </dxl:LogicalJoin>
       </dxl:LogicalGroupBy>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="57634">
+    <dxl:Plan Id="0" SpaceSize="2552495">
       <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1724.018711" Rows="1.000000" Width="8"/>
+          <dxl:Cost StartupCost="0" TotalCost="1724.010556" Rows="1.000000" Width="8"/>
         </dxl:Properties>
         <dxl:GroupingColumns/>
         <dxl:ProjList>
@@ -423,7 +423,7 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
         <dxl:Filter/>
         <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1724.018710" Rows="1.000000" Width="8"/>
+            <dxl:Cost StartupCost="0" TotalCost="1724.010556" Rows="1.000000" Width="8"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="42" Alias="ColRef_0042">
@@ -434,7 +434,7 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
           <dxl:SortingColumnList/>
           <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="1724.018680" Rows="1.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="1724.010526" Rows="1.000000" Width="8"/>
             </dxl:Properties>
             <dxl:GroupingColumns/>
             <dxl:ProjList>
@@ -445,7 +445,7 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
             <dxl:Filter/>
             <dxl:HashJoin JoinType="Inner">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="1724.018680" Rows="640.000000" Width="1"/>
+                <dxl:Cost StartupCost="0" TotalCost="1724.010526" Rows="640.000000" Width="1"/>
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:Filter/>
@@ -455,29 +455,14 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
                   <dxl:Ident ColId="22" ColName="d" TypeMdid="0.23.1.0"/>
                   <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
                 </dxl:Comparison>
-                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                  <dxl:Ident ColId="33" ColName="e" TypeMdid="0.23.1.0"/>
-                  <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-                </dxl:Comparison>
-                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                  <dxl:Ident ColId="22" ColName="d" TypeMdid="0.23.1.0"/>
-                  <dxl:Ident ColId="11" ColName="c" TypeMdid="0.23.1.0"/>
-                </dxl:Comparison>
-                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                  <dxl:Ident ColId="33" ColName="e" TypeMdid="0.23.1.0"/>
-                  <dxl:Ident ColId="11" ColName="c" TypeMdid="0.23.1.0"/>
-                </dxl:Comparison>
               </dxl:HashCondList>
               <dxl:HashJoin JoinType="Inner">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="862.002154" Rows="32.000000" Width="8"/>
+                  <dxl:Cost StartupCost="0" TotalCost="862.001856" Rows="32.000000" Width="4"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="22" Alias="d">
                     <dxl:Ident ColId="22" ColName="d" TypeMdid="0.23.1.0"/>
-                  </dxl:ProjElem>
-                  <dxl:ProjElem ColId="33" Alias="e">
-                    <dxl:Ident ColId="33" ColName="e" TypeMdid="0.23.1.0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
@@ -575,14 +560,11 @@ explain select count(*) from r_p, s c, s d, s e where r_p.a = c.c and r_p.a = d.
               </dxl:HashJoin>
               <dxl:HashJoin JoinType="Inner">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="862.002508" Rows="40.000000" Width="8"/>
+                  <dxl:Cost StartupCost="0" TotalCost="862.002228" Rows="40.000000" Width="4"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="a">
                     <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-                  </dxl:ProjElem>
-                  <dxl:ProjElem ColId="11" Alias="c">
-                    <dxl:Ident ColId="11" ColName="c" TypeMdid="0.23.1.0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>

@@ -451,7 +451,7 @@ explain select * from foo left join bar on (foo.a=bar.b and foo.b = bar.a and ba
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:SortingColumnList/>
-        <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+        <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="1299.001579" Rows="3.000000" Width="48"/>
           </dxl:Properties>
@@ -479,7 +479,7 @@ explain select * from foo left join bar on (foo.a=bar.b and foo.b = bar.a and ba
           <dxl:JoinFilter>
             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
           </dxl:JoinFilter>
-          <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true">
+          <dxl:NestedLoopJoin JoinType="Left" IndexNestedLoopJoin="true" OuterRefAsParam="false">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="437.000482" Rows="2.000000" Width="32"/>
             </dxl:Properties>
@@ -516,10 +516,8 @@ explain select * from foo left join bar on (foo.a=bar.b and foo.b = bar.a and ba
               <dxl:Filter/>
               <dxl:SortingColumnList/>
               <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.25.1.0">
-                  <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                    <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1043.1.0"/>
-                  </dxl:Cast>
+                <dxl:HashExpr TypeMdid="0.1043.1.0">
+                  <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1043.1.0"/>
                 </dxl:HashExpr>
               </dxl:HashExprList>
               <dxl:TableScan>

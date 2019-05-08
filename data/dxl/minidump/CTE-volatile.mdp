@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
-    <dxl:Stacktrace>1    0x0000000001465681 gpos::CException::Raise + 113
-2    0x0000000001d5d42c gpdxl::CDXLUtils::PphdxlParseDXLFile + 1148
-3    0x0000000000373577 COptTasks::PdrgPssLoad + 71
-4    0x000000000037388a COptTasks::PvOptimizeTask + 448
-5    0x000000000143a5d2 gpos::CTask::Execute + 178
-6    0x0000000001434282 gpos::CWorker::Execute + 194
-7    0x000000000143c579 gpos::CAutoTaskProxy::Execute + 305
-8    0x000000000146fc59 gpos_exec + 969
-</dxl:Stacktrace>
     <dxl:TraceFlags Value="103027,103001,101000,101001"/>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
@@ -419,7 +410,7 @@
         </dxl:LogicalJoin>
       </dxl:LogicalCTEAnchor>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="60">
+    <dxl:Plan Id="0" SpaceSize="52">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="19.769531" Rows="100.000000" Width="24"/>

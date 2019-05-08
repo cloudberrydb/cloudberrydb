@@ -20,7 +20,7 @@ EXPLAIN SELECT * FROM t1 INNER JOIN t2 ON a =b INNER JOIN t3 ON b = c;
                                    QUERY PLAN
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1293.75 rows=1 width=12)
    ->  Hash Join  (cost=0.00..1293.75 rows=1 width=12)
-         Hash Cond: t2.b = t3.c AND t1.a = t3.c
+         Hash Cond: t2.b = t3.c
          ->  Hash Join  (cost=0.00..862.75 rows=1 width=8)
                Hash Cond: t1.a = t2.b
                ->  Table Scan on t1  (cost=0.00..431.06 rows=3334 width=4)
@@ -28,6 +28,8 @@ EXPLAIN SELECT * FROM t1 INNER JOIN t2 ON a =b INNER JOIN t3 ON b = c;
                      ->  Table Scan on t2  (cost=0.00..431.01 rows=334 width=4)
          ->  Hash  (cost=431.00..431.00 rows=4 width=4)
                ->  Table Scan on t3  (cost=0.00..431.00 rows=4 width=4)
+ Settings:  optimizer_join_order_threshold=2
+ Optimizer status: PQO version 3.35.0
 -->
 
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
@@ -1143,10 +1145,10 @@ EXPLAIN SELECT * FROM t1 INNER JOIN t2 ON a =b INNER JOIN t3 ON b = c;
         </dxl:Comparison>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="121">
+    <dxl:Plan Id="0" SpaceSize="88">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1293.748282" Rows="1.000000" Width="12"/>
+          <dxl:Cost StartupCost="0" TotalCost="1293.748028" Rows="1.000000" Width="12"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -1163,7 +1165,7 @@ EXPLAIN SELECT * FROM t1 INNER JOIN t2 ON a =b INNER JOIN t3 ON b = c;
         <dxl:SortingColumnList/>
         <dxl:HashJoin JoinType="Inner">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1293.748237" Rows="1.000000" Width="12"/>
+            <dxl:Cost StartupCost="0" TotalCost="1293.747984" Rows="1.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -1181,10 +1183,6 @@ EXPLAIN SELECT * FROM t1 INNER JOIN t2 ON a =b INNER JOIN t3 ON b = c;
           <dxl:HashCondList>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="8" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:Ident ColId="16" ColName="c" TypeMdid="0.23.1.0"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-              <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
               <dxl:Ident ColId="16" ColName="c" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
           </dxl:HashCondList>

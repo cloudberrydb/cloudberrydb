@@ -262,7 +262,7 @@ CJoinOrderGreedy::PickBestJoin
 	{
 		// ideally we should always find a best component, but fallback
 		// if not found.
-		GPOS_RAISE(CException::ExmaInvalid, CException::ExmiInvalid);
+		GPOS_RAISE(CException::ExmaInvalid, CException::ExmiInvalid, GPOS_WSZ_LIT("Unable to find best join component."));
 	}
 #endif
 

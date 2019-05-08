@@ -97,7 +97,7 @@ CDistributionSpec *
 CPhysicalInnerIndexNLJoin::PdsRequired
 	(
 	IMemoryPool *mp,
-	CExpressionHandle &,//exprhdl,
+	CExpressionHandle &exprhdl,
 	CDistributionSpec *,//pdsRequired,
 	ULONG child_index,
 	CDrvdProp2dArray *pdrgpdpCtxt,
@@ -135,7 +135,9 @@ CPhysicalInnerIndexNLJoin::PdsRequired
 		{
 			// request hashed distribution from outer
 			pdshashedEquiv->Pdrgpexpr()->AddRef();
-			return GPOS_NEW(mp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
+			CDistributionSpecHashed *pdsHashedRequired = GPOS_NEW(mp) CDistributionSpecHashed(pdshashedEquiv->Pdrgpexpr(), pdshashedEquiv->FNullsColocated());
+			pdsHashedRequired->ComputeEquivHashExprs(mp, exprhdl);
+			return pdsHashedRequired;
 		}
 	}
 

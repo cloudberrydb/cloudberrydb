@@ -231,7 +231,7 @@ CDrvdPropPlan::Equals
 	const
 {
 	return m_pos->Matches(pdpplan->Pos()) &&
-			m_pds->Matches(pdpplan->Pds()) &&
+			m_pds->Equals(pdpplan->Pds()) &&
 			m_prs->Matches(pdpplan->Prs()) &&
 			m_ppim->Equals(pdpplan->Ppim()) &&
 			m_pcm->Equals(pdpplan->GetCostModel());

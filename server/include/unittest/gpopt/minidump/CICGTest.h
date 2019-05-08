@@ -51,6 +51,9 @@ namespace gpopt
 			// counter to mark last successful test for index joins versus hash joins
 			static ULONG m_ulTestCounterPreferIndexJoinToHashJoin;
 
+			// counter to mark last successful test without additional traceflag
+			static ULONG m_ulTestCounterNoAdditionTraceFlag;
+
 			// check if all the operators in the given dxl fragment satisfy the given predicate
 			static
 			BOOL FDXLOpSatisfiesPredicate(CDXLNode *pdxl, FnDXLOpPredicate fdop);
@@ -91,6 +94,9 @@ namespace gpopt
 			// test that hash join is preferred versus index join when estimation risk is high
 			static
 			GPOS_RESULT EresUnittest_PreferHashJoinVersusIndexJoinWhenRiskIsHigh();
+
+			static
+			GPOS_RESULT EresUnittest_RunTestsWithoutAdditionalTraceFlags();
 
 	}; // class CICGTest
 }

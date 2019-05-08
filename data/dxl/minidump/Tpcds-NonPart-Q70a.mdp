@@ -14867,7 +14867,7 @@ with results as
         </dxl:LogicalCTEAnchor>
       </dxl:LogicalCTEAnchor>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1165408616448">
+    <dxl:Plan Id="0" SpaceSize="1293694341120">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="21949.250066" Rows="20.062500" Width="36"/>
