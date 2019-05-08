@@ -118,13 +118,12 @@ explain update constr_tab set a = 10;
  Update  (cost=0.00..431.09 rows=1 width=1)
    ->  Result  (cost=0.00..431.00 rows=1 width=34)
          ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=30)
-               Hash Key: "outer".a
-               ->  Result  (cost=0.00..431.00 rows=1 width=30)
-                     ->  Split  (cost=0.00..431.00 rows=1 width=30)
-                           ->  Result  (cost=0.00..431.00 rows=1 width=30)
-                                 ->  Seq Scan on constr_tab  (cost=0.00..431.00 rows=1 width=26)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.74.0
-(9 rows)
+               Hash Key: constr_tab.a
+               ->  Split  (cost=0.00..431.00 rows=1 width=30)
+                     ->  Result  (cost=0.00..431.00 rows=1 width=30)
+                           ->  Seq Scan on constr_tab  (cost=0.00..431.00 rows=1 width=26)
+ Optimizer: Pivotal Optimizer (GPORCA) version 3.39.0
+(8 rows)
 
 -- Test ORCA fallback on "FROM ONLY"
 CREATE TABLE homer (a int, b int, c int)
