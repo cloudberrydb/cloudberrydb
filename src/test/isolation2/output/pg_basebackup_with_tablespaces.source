@@ -107,19 +107,12 @@ drop database some_database_without_tablespace;
 DROP
 drop tablespace some_basebackup_tablespace;
 DROP
-!\retcode gpconfig -c create_restartpoint_on_ckpt_record_replay -v on;
+!\retcode rm -rf @testtablespace@/some_basebackup_datadir/;
 -- start_ignore
 
 -- end_ignore
 (exited with code 0)
-!\retcode gpstop -u;
--- start_ignore
-
--- end_ignore
-(exited with code 0)
-checkpoint;
-CHECKPOINT
-!\retcode rm -rf @testtablespace@;
+!\retcode rm -rf @testtablespace@/some_basebackup_tablespace/100;
 -- start_ignore
 
 -- end_ignore
@@ -203,19 +196,12 @@ drop database some_database_without_tablespace;
 DROP
 drop tablespace some_basebackup_tablespace;
 DROP
-checkpoint;
-CHECKPOINT
-!\retcode rm -rf @testtablespace@;
+!\retcode rm -rf @testtablespace@/some_basebackup_datadir/;
 -- start_ignore
 
 -- end_ignore
 (exited with code 0)
-!\retcode gpconfig -r create_restartpoint_on_ckpt_record_replay;
--- start_ignore
-
--- end_ignore
-(exited with code 0)
-!\retcode gpstop -u;
+!\retcode rm -rf @testtablespace@/some_basebackup_tablespace_c0/100;
 -- start_ignore
 
 -- end_ignore

@@ -53,10 +53,8 @@ select validate_tablespace_symlink('@testtablespace@/some_basebackup_datadir', '
 drop database some_database_with_tablespace;
 drop database some_database_without_tablespace;
 drop tablespace some_basebackup_tablespace;
-!\retcode gpconfig -c create_restartpoint_on_ckpt_record_replay -v on;
-!\retcode gpstop -u;
-checkpoint;
-!\retcode rm -rf @testtablespace@;
+!\retcode rm -rf @testtablespace@/some_basebackup_datadir/;
+!\retcode rm -rf @testtablespace@/some_basebackup_tablespace/100;
 
 -- Given a segment (content=0) with a tablespace mapped to a location different from that of other segments
 !\retcode mkdir -p @testtablespace@/some_basebackup_tablespace;
@@ -95,8 +93,6 @@ select validate_tablespace_symlink('@testtablespace@/some_basebackup_datadir', '
 0U: select pg_drop_replication_slot('some_replication_slot');
 drop database some_database_without_tablespace;
 drop tablespace some_basebackup_tablespace;
-checkpoint;
-!\retcode rm -rf @testtablespace@;
-!\retcode gpconfig -r create_restartpoint_on_ckpt_record_replay;
-!\retcode gpstop -u;
+!\retcode rm -rf @testtablespace@/some_basebackup_datadir/;
+!\retcode rm -rf @testtablespace@/some_basebackup_tablespace_c0/100;
 

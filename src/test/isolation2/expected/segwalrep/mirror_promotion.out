@@ -141,13 +141,6 @@ select content, preferred_role, role, status, mode from gp_segment_configuration
 
 -- end_ignore
 (exited with code 0)
-
--- Set GUC to force tablespace drop replay to complete on mirror before
--- removing the directory
-!\retcode gpconfig -c create_restartpoint_on_ckpt_record_replay -v on;
--- start_ignore
--- end_ignore
-(exited with code 0)
 !\retcode gpstop -u;
 -- start_ignore
 -- end_ignore
@@ -161,7 +154,7 @@ select content, preferred_role, role, status, mode from gp_segment_configuration
 (1 row)
 
 -- create tablespace to test if it works with gprecoverseg -F (pg_basebackup)
-!\retcode mkdir /tmp/mirror_promotion_tablespace_loc;
+!\retcode mkdir -p /tmp/mirror_promotion_tablespace_loc;
 -- start_ignore
 
 -- end_ignore
@@ -181,27 +174,6 @@ drop table mirror_promotion_tblspc_heap_table;
 DROP
 drop tablespace mirror_promotion_tablespace;
 DROP
--- Force the mirror to replay the drop before moving forward with tablespace
--- directory deletion
-checkpoint;
-CHECKPOINT
-!\retcode rm -rf /tmp/mirror_promotion_tablespace_loc;
--- start_ignore
-
--- end_ignore
-(exited with code 0)
-
--- Reset create_restartpoint_on_ckpt_record_replay guc
-!\retcode gpconfig -r create_restartpoint_on_ckpt_record_replay;
--- start_ignore
-
--- end_ignore
-(exited with code 0)
-!\retcode gpstop -u;
--- start_ignore
-
--- end_ignore
-(exited with code 0)
 
 -- loop while segments come in sync
 do $$ begin /* in func */ for i in 1..120 loop /* in func */ if (select mode = 's' from gp_segment_configuration where content = 0 limit 1) then /* in func */ return; /* in func */ end if; /* in func */ perform gp_request_fts_probe_scan(); /* in func */ end loop; /* in func */ end; /* in func */ $$;
