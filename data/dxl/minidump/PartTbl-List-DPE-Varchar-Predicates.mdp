@@ -412,10 +412,10 @@ select * from pt where gender is null;
               </dxl:PropagationExpression>
               <dxl:PrintableFilter>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                  <dxl:Ident ColId="1" ColName="gender" TypeMdid="0.1043.1.0"/>
-                  <dxl:Cast TypeMdid="0.1043.1.0" FuncId="0.0.0.0">
-                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
+                  <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                    <dxl:Ident ColId="1" ColName="gender" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
                 </dxl:Comparison>
               </dxl:PrintableFilter>
             </dxl:PartitionSelector>

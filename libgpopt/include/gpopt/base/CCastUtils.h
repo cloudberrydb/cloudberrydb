@@ -36,6 +36,9 @@ namespace gpopt
 			static
 			BOOL FBinaryCoercibleCastedScId(CExpression *pexpr);
 
+			static
+			BOOL FBinaryCoercibleCastedConst(CExpression *pexpr);
+
 			// extract the column reference if the given expression a scalar identifier
 			// or a cast of a scalar identifier or a function that casts a scalar identifier. 
 			// Else return NULL.

@@ -15,6 +15,7 @@
 #define GPOPT_CMDAccessorUtils_H
 
 #include "gpopt/mdcache/CMDAccessor.h"
+#include "gpopt/operators/CExpression.h"
 
 namespace gpopt
 {
@@ -48,6 +49,24 @@ namespace gpopt
 			// does a scalar comparison object between given types exist
 			static
 			BOOL FCmpExists(CMDAccessor *md_accessor, IMDId *left_mdid, IMDId *right_mdid, IMDType::ECmpType cmp_type);
+
+			// get scalar comparison mdid between the given types
+			static
+			IMDId *GetScCmpMdid(CMDAccessor *md_accessor, IMDId *left_mdid, IMDId *right_mdid, IMDType::ECmpType cmp_type);
+
+			// check is a comparison between given types or a comparison after casting
+			// one side to an another exists
+			static
+			BOOL FCmpOrCastedCmpExists(IMDId *left_mdid, IMDId *right_mdid, IMDType::ECmpType cmp_type);
+
+			// return the mdid of the given scalar comparison between the two types
+			// also considering casts
+			static
+			IMDId *GetScCmpMdIdConsiderCasts(CMDAccessor *md_accessor, IMDId *left_mdid, IMDId *right_mdid, IMDType::ECmpType cmp_type);
+
+			// similar to GetScCmpMdIdConsiderCasts() but also add the appropriate casts
+			static
+			IMDId *GetScCmpMdIdApplyCasts(IMemoryPool *mp, CMDAccessor *md_accessor, CExpression*& pexprLeft, CExpression*& pexprRight, IMDType::ECmpType cmp_type);
 
 			// is scalar operator commutative? this can be used with ScalarOp and ScalarCmp
 			static

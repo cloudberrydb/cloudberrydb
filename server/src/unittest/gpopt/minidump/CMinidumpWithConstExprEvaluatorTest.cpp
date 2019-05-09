@@ -42,6 +42,7 @@ const CHAR *rgszConstExprEvaluatorOnFileNames[] =
 	{
 	 	"../data/dxl/minidump/DynamicIndexScan-Homogenous-EnabledDateConstraint.mdp",
 	 	"../data/dxl/minidump/DynamicIndexScan-Heterogenous-EnabledDateConstraint.mdp",
+		"../data/dxl/minidump/RemoveImpliedPredOnBCCPredicates.mdp"
 	};
 
 

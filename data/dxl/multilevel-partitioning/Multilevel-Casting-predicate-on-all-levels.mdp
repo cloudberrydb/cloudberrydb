@@ -386,10 +386,10 @@ explain select * from TestPartitionFilterCasting where p1 = 'a' and p2 = '2015-0
             <dxl:PrintableFilter>
               <dxl:And>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                  <dxl:Ident ColId="1" ColName="p1" TypeMdid="0.1043.1.0"/>
-                  <dxl:Cast TypeMdid="0.1043.1.0" FuncId="0.0.0.0">
-                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
+                  <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                    <dxl:Ident ColId="1" ColName="p1" TypeMdid="0.1043.1.0"/>
                   </dxl:Cast>
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
                 </dxl:Comparison>
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1093.1.0">
                   <dxl:Ident ColId="2" ColName="p2" TypeMdid="0.1082.1.0"/>

@@ -919,18 +919,9 @@ CStatsPredUtils::ProcessArrayCmp
 	GPOS_ASSERT(NULL != pred_stats_array);
 	GPOS_ASSERT(NULL != predicate_expr);
 	GPOS_ASSERT(2 == predicate_expr->Arity());
-	CExpression *expr_ident = NULL;
-	CScalarArrayCmp *scalar_array_cmp_op = CScalarArrayCmp::PopConvert(predicate_expr->Pop());
-	if (CUtils::FScalarIdent((*predicate_expr)[0]))
-	{
-		expr_ident = (*predicate_expr)[0];
-	}
-	else if (CCastUtils::FBinaryCoercibleCast((*predicate_expr)[0]))
-	{
-		expr_ident = (*(*predicate_expr)[0])[0];
-	}
-	CExpression *expr_scalar_array = CUtils::PexprScalarArrayChild(predicate_expr);
 
+	CScalarArrayCmp *scalar_array_cmp_op = CScalarArrayCmp::PopConvert(predicate_expr->Pop());
+	CExpression *expr_scalar_array = CUtils::PexprScalarArrayChild(predicate_expr);
 	BOOL is_cmp_to_const_and_scalar_idents = CPredicateUtils::FCompareCastIdentToConstArray(predicate_expr) ||
 										  CPredicateUtils::FCompareScalarIdentToConstAndScalarIdentArray(predicate_expr);
 
@@ -941,6 +932,18 @@ CStatsPredUtils::ProcessArrayCmp
 			gpos::ulong_max, CStatsPred::EstatscmptOther));
 
 		return;
+	}
+
+	CExpression *expr_ident;
+	CExpression *left_expr = (*predicate_expr)[0];
+	if (CUtils::FScalarIdent(left_expr))
+	{
+		expr_ident = left_expr;
+	}
+	else
+	{
+		GPOS_ASSERT(CCastUtils::FBinaryCoercibleCast((*predicate_expr)[0]));
+		expr_ident = (*left_expr)[0];
 	}
 
 	CStatsPredPtrArry *pred_stats_child_array = pred_stats_array;
