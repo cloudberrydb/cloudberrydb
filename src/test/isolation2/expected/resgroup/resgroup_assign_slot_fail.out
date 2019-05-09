@@ -1,5 +1,6 @@
 -- If the function AssignResGroupOnMaster() fails after getting a slot,
 -- test the slot will be unassigned correctly.
+
 DROP ROLE IF EXISTS role_test;
 DROP
 -- start_ignore
