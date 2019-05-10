@@ -344,6 +344,8 @@ bool		optimizer_enable_hashjoin;
 bool		optimizer_enable_dynamictablescan;
 bool		optimizer_enable_indexscan;
 bool		optimizer_enable_tablescan;
+bool		optimizer_enable_hashagg;
+bool		optimizer_enable_groupagg;
 bool		optimizer_enable_full_join;
 
 /* Optimizer plan enumeration related GUCs */
@@ -2379,6 +2381,28 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_enable_tablescan,
+		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"optimizer_enable_hashagg", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enables Pivotal Optimizer (GPORCA) to use hash aggregates."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_hashagg,
+		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"optimizer_enable_groupagg", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enables Pivotal Optimizer (GPORCA) to use group aggregates."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_groupagg,
 		true,
 		NULL, NULL, NULL
 	},

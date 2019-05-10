@@ -110,6 +110,12 @@ PARTITION BY range(b)
             START(40) END(46) EVERY(3)
         )
 (START(0) END(4) EVERY(2));
+NOTICE:  CREATE TABLE will create partition "homer_1_prt_1" for table "homer"
+NOTICE:  CREATE TABLE will create partition "homer_1_prt_1_2_prt_1" for table "homer_1_prt_1"
+NOTICE:  CREATE TABLE will create partition "homer_1_prt_1_2_prt_2" for table "homer_1_prt_1"
+NOTICE:  CREATE TABLE will create partition "homer_1_prt_2" for table "homer"
+NOTICE:  CREATE TABLE will create partition "homer_1_prt_2_2_prt_1" for table "homer_1_prt_2"
+NOTICE:  CREATE TABLE will create partition "homer_1_prt_2_2_prt_2" for table "homer_1_prt_2"
 INSERT INTO homer VALUES (1,0,40),(2,1,43),(3,2,41),(4,3,44);
 SELECT * FROM ONLY homer;
  a | b | c 
@@ -201,3 +207,43 @@ EXPLAIN DELETE FROM ONLY homer WHERE a = 3;
 (4 rows)
 
 set optimizer_enable_dml=on;
+create table foo(a int, b int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into foo select i%100, i%100 from generate_series(1,10000)i;
+set optimizer_enable_hashagg = on;
+set optimizer_enable_groupagg = on;
+explain select count(*) from foo group by a;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=163.00..164.00 rows=100 width=12)
+   ->  HashAggregate  (cost=163.00..164.00 rows=34 width=12)
+         Group Key: a
+         ->  Seq Scan on foo  (cost=0.00..113.00 rows=3334 width=4)
+ Optimizer: Postgres query optimizer
+(5 rows)
+
+set optimizer_enable_hashagg = off;
+set optimizer_enable_groupagg = on;
+explain select count(*) from foo group by a;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=163.00..164.00 rows=100 width=12)
+   ->  HashAggregate  (cost=163.00..164.00 rows=34 width=12)
+         Group Key: a
+         ->  Seq Scan on foo  (cost=0.00..113.00 rows=3334 width=4)
+ Optimizer: Postgres query optimizer
+(5 rows)
+
+set optimizer_enable_hashagg = off;
+set optimizer_enable_groupagg = off;
+explain select count(*) from foo group by a;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=163.00..164.00 rows=100 width=12)
+   ->  HashAggregate  (cost=163.00..164.00 rows=34 width=12)
+         Group Key: a
+         ->  Seq Scan on foo  (cost=0.00..113.00 rows=3334 width=4)
+ Optimizer: Postgres query optimizer
+(5 rows)
+

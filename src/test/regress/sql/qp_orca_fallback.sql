@@ -89,3 +89,15 @@ EXPLAIN INSERT INTO homer VALUES (1,0,40),(2,1,43),(3,2,41),(4,3,44);
 EXPLAIN UPDATE ONLY homer SET c = c + 1;
 EXPLAIN DELETE FROM ONLY homer WHERE a = 3;
 set optimizer_enable_dml=on;
+
+create table foo(a int, b int);
+insert into foo select i%100, i%100 from generate_series(1,10000)i;
+set optimizer_enable_hashagg = on;
+set optimizer_enable_groupagg = on;
+explain select count(*) from foo group by a;
+set optimizer_enable_hashagg = off;
+set optimizer_enable_groupagg = on;
+explain select count(*) from foo group by a;
+set optimizer_enable_hashagg = off;
+set optimizer_enable_groupagg = off;
+explain select count(*) from foo group by a;
