@@ -534,14 +534,14 @@ resources:
   source:
     bucket: ((gcs-bucket))
     json_key: ((concourse-gcs-resources-service-account-key))
-    regexp: server/published/master/clients-rc-(.*)-rhel6_x86_64((rc-build-type-gcs)).tar.gz
+    regexp: clients/published/master/clients-rc-(.*)-rhel6_x86_64((rc-build-type-gcs)).tar.gz
 
 - name: bin_gpdb_clients_centos7_rc
   type: gcs
   source:
     bucket: ((gcs-bucket))
     json_key: ((concourse-gcs-resources-service-account-key))
-    regexp: server/published/master/clients-rc-(.*)-rhel7_x86_64((rc-build-type-gcs)).tar.gz
+    regexp: clients/published/master/clients-rc-(.*)-rhel7_x86_64((rc-build-type-gcs)).tar.gz
 
 {% endif %}
 {% if "centos6" in os_types %}
