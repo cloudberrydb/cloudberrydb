@@ -389,14 +389,6 @@ IsAbortInProgress(void)
 }
 
 bool
-IsCommitInProgress(void)
-{
-	TransactionState s = CurrentTransactionState;
-
-	return (s->state == TRANS_COMMIT);
-}
-
-bool
 IsTransactionPreparing(void)
 {
 	TransactionState s = CurrentTransactionState;

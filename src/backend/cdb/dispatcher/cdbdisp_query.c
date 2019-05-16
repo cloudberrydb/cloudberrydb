@@ -1480,7 +1480,7 @@ formIdleSegmentIdList(void)
 		{
 			CdbComponentDatabaseInfo *cdi = &cdbs->segment_db_info[i];
 			for (j = 0; j < cdi->numIdleQEs; j++)
-				segments = lappend_int(segments, cdi->segindex);
+				segments = lappend_int(segments, cdi->config->segindex);
 		}
 	}
 
