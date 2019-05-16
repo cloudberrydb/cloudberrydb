@@ -267,7 +267,7 @@ namespace gpmd
 			IDatum *GetDatumForDXLDatum(CMemoryPool *mp, const CDXLDatum *dxl_datum) const;
 
 			// return the GPDB length
-			INT
+			virtual INT
 			GetGPDBLength() const
 			{
 				return m_gpdb_length;

@@ -20,7 +20,7 @@ SELECT * FROM information_schema.tables;
       <dxl:ColumnStatistics Mdid="1.6040.1.1.14" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.6040.1.1.7" Name="fmterrtbl" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.6040.1.1.6" Name="rejectlimittype" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:Type Mdid="0.1034.1.0" Name="_aclitem" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1034.1.0" Name="_aclitem" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>
@@ -65,7 +65,7 @@ SELECT * FROM information_schema.tables;
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.1043.1.0" Name="varchar" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1043.1.0" Name="varchar" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
         <dxl:LessThanOp Mdid="0.664.1.0"/>
@@ -129,7 +129,7 @@ SELECT * FROM information_schema.tables;
         <dxl:ResultType Mdid="0.16.1.0"/>
       </dxl:GPDBFunc>
       <dxl:RelationStatistics Mdid="2.6040.1.1" Name="pg_exttable" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
         <dxl:LessThanOp Mdid="0.664.1.0"/>
@@ -616,7 +616,7 @@ SELECT * FROM information_schema.tables;
         <dxl:SumAgg Mdid="0.2110.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.10688.1.0" Name="character_data" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.10688.1.0" Name="character_data" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
         <dxl:LessThanOp Mdid="0.664.1.0"/>
@@ -631,7 +631,7 @@ SELECT * FROM information_schema.tables;
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.10689.1.0" Name="sql_identifier" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.10689.1.0" Name="sql_identifier" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
         <dxl:LessThanOp Mdid="0.664.1.0"/>
@@ -1220,7 +1220,7 @@ SELECT * FROM information_schema.tables;
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>

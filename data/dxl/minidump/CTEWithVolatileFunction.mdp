@@ -47,7 +47,7 @@
         <dxl:Commutator Mdid="0.413.1.0"/>
         <dxl:InverseOp Mdid="0.415.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
         <dxl:InequalityOp Mdid="0.1753.1.0"/>
         <dxl:LessThanOp Mdid="0.1754.1.0"/>

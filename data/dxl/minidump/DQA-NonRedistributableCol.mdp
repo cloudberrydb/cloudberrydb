@@ -67,7 +67,7 @@ explain select count(distinct h) from testhstore;
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Type Mdid="0.32774.1.0" Name="hstore" IsRedistributable="false" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.32774.1.0" Name="hstore" IsRedistributable="false" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.32837.1.0"/>
         <dxl:InequalityOp Mdid="0.32836.1.0"/>
         <dxl:LessThanOp Mdid="0.32840.1.0"/>

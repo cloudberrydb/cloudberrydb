@@ -9,7 +9,7 @@
       <dxl:TraceFlags Value="103027,101001,101013,102024,103001"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
-      <dxl:Type Mdid="0.1034.1.0" Name="_aclitem" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1034.1.0" Name="_aclitem" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>
@@ -1017,7 +1017,7 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>

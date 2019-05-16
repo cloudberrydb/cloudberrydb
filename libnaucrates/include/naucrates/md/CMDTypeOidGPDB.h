@@ -171,6 +171,13 @@ namespace gpmd
 				return true;
 			}
 
+			// return the GPDB length
+			virtual INT
+			GetGPDBLength() const
+			{
+				return GPDB_OID_LENGTH;
+			}
+
 			virtual
 			const IMDId *CmpOpMdid() const
 			{

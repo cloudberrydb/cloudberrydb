@@ -170,6 +170,13 @@ namespace gpmd
 			return GPDB_INT8_LENGTH;
 		}
 
+		// return the GPDB length
+		virtual INT
+		GetGPDBLength() const
+		{
+			return GPDB_INT8_LENGTH;
+		}
+
 		virtual
 		BOOL IsPassedByValue() const
 		{

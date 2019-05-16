@@ -211,17 +211,15 @@ CParseHandlerMDType::StartElement
 											EdxltokenMDTypeFixedLength,
 											EdxltokenMDType
 											);
-			if (m_istype_fixed_Length)
-			{
-				// get type length
-				m_type_length = CDXLOperatorFactory::ExtractConvertAttrValueToInt
-											(
-											m_parse_handler_mgr->GetDXLMemoryManager(),
-											attrs,
-											EdxltokenMDTypeLength,
-											EdxltokenMDType
-											);
-			}
+
+			// get type length
+			m_type_length = CDXLOperatorFactory::ExtractConvertAttrValueToInt
+										(
+										m_parse_handler_mgr->GetDXLMemoryManager(),
+										attrs,
+										EdxltokenMDTypeLength,
+										EdxltokenMDType
+										);
 		}
 	}
 	else

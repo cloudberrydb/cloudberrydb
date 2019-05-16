@@ -370,7 +370,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.1034.1.0" Name="_aclitem" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1034.1.0" Name="_aclitem" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>
@@ -581,7 +581,7 @@
       <dxl:ColumnStatistics Mdid="1.5011.1.1.8" Name="parrangestart" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.0" Name="paroid" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.1" Name="parchildrelid" Width="8.000000"/>
-      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
         <dxl:LessThanOp Mdid="0.664.1.0"/>
@@ -846,7 +846,7 @@
         <dxl:Commutator Mdid="0.607.1.0"/>
         <dxl:InverseOp Mdid="0.608.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>

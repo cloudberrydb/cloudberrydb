@@ -50,10 +50,7 @@ namespace gpmd
 
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeFixedLength), mdtype->IsFixedLength());
 
-                if (mdtype->IsFixedLength())
-                {
-                    xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLength), mdtype->Length());
-                }
+                xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeLength), mdtype->GetGPDBLength());
 
                 xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenMDTypeByValue), mdtype->IsPassedByValue());
 

@@ -69,7 +69,7 @@
         <dxl:OpFunc Mdid="0.1726.1.0"/>
         <dxl:Commutator Mdid="0.1760.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
         <dxl:InequalityOp Mdid="0.1753.1.0"/>
         <dxl:LessThanOp Mdid="0.1754.1.0"/>
@@ -293,7 +293,7 @@
           <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="100"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:Type Mdid="0.17.1.0" Name="bytea" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.17.1.0" Name="bytea" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1955.1.0"/>
         <dxl:InequalityOp Mdid="0.1956.1.0"/>
         <dxl:LessThanOp Mdid="0.1957.1.0"/>

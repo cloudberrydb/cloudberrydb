@@ -123,7 +123,7 @@ SELECT b[1] AS typmod_in_array_ref FROM foo;
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false"
-                IsFixedLength="false" PassByValue="false">
+                IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
         <dxl:InequalityOp Mdid="0.1753.1.0"/>
         <dxl:LessThanOp Mdid="0.1754.1.0"/>
@@ -139,7 +139,7 @@ SELECT b[1] AS typmod_in_array_ref FROM foo;
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:Type Mdid="0.1231.1.0" Name="_numeric" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false"
-                IsFixedLength="false" PassByValue="false">
+                IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>

@@ -172,6 +172,13 @@ namespace gpmd
 			{
 				return GPDB_INT2_LENGTH;
 			}
+
+			// return the GPDB length
+			virtual INT
+			GetGPDBLength() const
+			{
+				return GPDB_INT2_LENGTH;
+			}
 			
 			// is type passed by value
 			virtual

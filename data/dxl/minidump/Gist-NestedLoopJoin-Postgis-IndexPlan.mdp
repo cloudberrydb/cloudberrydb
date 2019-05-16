@@ -47,7 +47,7 @@ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..433.00 rows=1 width=24)
       <dxl:TraceFlags Value="101013,102074,102146,102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
-      <dxl:Type Mdid="0.566477.1.0" Name="geometry" IsRedistributable="false" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.566477.1.0" Name="geometry" IsRedistributable="false" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.566530.1.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
         <dxl:LessThanOp Mdid="0.566528.1.0"/>

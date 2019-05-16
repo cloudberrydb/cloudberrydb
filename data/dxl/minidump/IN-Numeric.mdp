@@ -192,7 +192,7 @@ explain select * from t_numeric where c5 in (10, 11);
           </dxl:FuncExpr>
         </dxl:Comparison>
       </dxl:CheckConstraint>
-      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
         <dxl:InequalityOp Mdid="0.1753.1.0"/>
         <dxl:LessThanOp Mdid="0.1754.1.0"/>

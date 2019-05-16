@@ -159,7 +159,7 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.320000.1.0.2" Name="k" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1700.1.0" Name="numeric" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1752.1.0"/>
         <dxl:InequalityOp Mdid="0.1753.1.0"/>
         <dxl:LessThanOp Mdid="0.1754.1.0"/>

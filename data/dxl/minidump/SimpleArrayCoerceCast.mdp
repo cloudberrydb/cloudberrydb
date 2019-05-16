@@ -46,7 +46,7 @@
           <dxl:OpClass Mdid="0.3015.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:Type Mdid="0.1231.1.0" Name="_numeric" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1231.1.0" Name="_numeric" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>
@@ -62,7 +62,7 @@
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:ArrayCoerceCast Mdid="3.1007.1.0;1231.1.0" Name="numeric" CoercePathType="3" BinaryCoercible="false" SourceTypeId="0.1007.1.0" DestinationTypeId="0.1231.1.0" CastFuncId="0.1740.1.0" IsExplicit="false" CoercionForm="2" Location="-1"/>
-      <dxl:Type Mdid="0.1007.1.0" Name="_int4" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.1007.1.0" Name="_int4" IsRedistributable="true" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
         <dxl:LessThanOp Mdid="0.1072.1.0"/>

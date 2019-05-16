@@ -216,7 +216,7 @@ SELECT 1 FROM inverse WHERE NOT (cidr <<= ANY(SELECT * FROM inverse));
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:Type Mdid="0.869.1.0" Name="inet" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.869.1.0" Name="inet" IsRedistributable="true" IsHashable="true" IsMergeJoinable="true" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1201.1.0"/>
         <dxl:InequalityOp Mdid="0.1202.1.0"/>
         <dxl:LessThanOp Mdid="0.1203.1.0"/>

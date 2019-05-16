@@ -188,7 +188,7 @@ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=4)
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.604.1.0" Name="polygon" IsRedistributable="false" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
+      <dxl:Type Mdid="0.604.1.0" Name="polygon" IsRedistributable="false" IsHashable="false" IsMergeJoinable="false" IsComposite="false" IsFixedLength="false" Length="-1" PassByValue="false">
         <dxl:EqualityOp Mdid="0.0.0.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
         <dxl:LessThanOp Mdid="0.0.0.0"/>
