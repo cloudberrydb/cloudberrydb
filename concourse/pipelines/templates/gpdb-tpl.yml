@@ -73,6 +73,10 @@ groups:
   - icw_gporca_centos7
   - icw_planner_centos7
 {% endif %}
+{% if "ubuntu18.04" in os_types %}
+  - icw_gporca_ubuntu18.04
+  - icw_planner_ubuntu18.04
+{% endif %}
 {% if "sles" in os_types %}
   - icw_gporca_sles11
   - icw_gporca_sles12
@@ -184,6 +188,10 @@ groups:
   - icw_gporca_centos7
   - icw_planner_centos7
   - compile_gpdb_centos7
+{% endif %}
+{% if "ubuntu18.04" in os_types %}
+  - icw_gporca_ubuntu18.04
+  - icw_planner_ubuntu18.04
 {% endif %}
 {% if "sles" in os_types %}
   - icw_gporca_sles11
@@ -496,6 +504,13 @@ resources:
   source:
     repository: pivotaldata/gpdb6-ubuntu18.04-build
     tag: latest
+
+- name: gpdb6-ubuntu18.04-test
+  type: docker-image
+  source:
+    repository: pivotaldata/gpdb6-ubuntu18.04-test
+    tag: latest
+
 {% endif %}
 {% if "centos6" in os_types %}
 - name: bin_gpdb_centos6
@@ -1164,6 +1179,44 @@ jobs:
       MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' installcheck-world
       TEST_OS: centos
       CONFIGURE_FLAGS: {{configure_flags}}
+
+{% endif %}
+{% if "ubuntu18.04" in os_types %}
+- name: icw_gporca_ubuntu18.04
+  plan:
+    - aggregate:
+        - get: gpdb_src
+          passed: [compile_gpdb_ubuntu18.04]
+        - get: bin_gpdb
+          resource: bin_gpdb_ubuntu18.04
+          passed: [compile_gpdb_ubuntu18.04]
+          trigger: [[ test_trigger ]]
+        - get: gpdb6-ubuntu18.04-test
+    - task: ic_gpdb
+      file: gpdb_src/concourse/tasks/ic_gpdb.yml
+      image: gpdb6-ubuntu18.04-test
+      params:
+        MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=on' installcheck-world
+        TEST_OS: ubuntu
+        CONFIGURE_FLAGS: {{configure_flags}}
+
+- name: icw_planner_ubuntu18.04
+  plan:
+    - aggregate:
+        - get: gpdb_src
+          passed: [compile_gpdb_ubuntu18.04]
+        - get: bin_gpdb
+          passed: [compile_gpdb_ubuntu18.04]
+          resource: bin_gpdb_ubuntu18.04
+          trigger: [[ test_trigger ]]
+        - get: gpdb6-ubuntu18.04-test
+    - task: ic_gpdb
+      file: gpdb_src/concourse/tasks/ic_gpdb.yml
+      image: gpdb6-ubuntu18.04-test
+      params:
+        MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' installcheck-world
+        TEST_OS: ubuntu
+        CONFIGURE_FLAGS: {{configure_flags}}
 
 {% endif %}
 {% if "sles" in os_types %}
