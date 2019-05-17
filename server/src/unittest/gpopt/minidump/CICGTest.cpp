@@ -59,7 +59,6 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/TPCH-Q5.mdp",
 		"../data/dxl/minidump/TPCDS-39-InnerJoin-JoinEstimate.mdp",
 		"../data/dxl/minidump/TPCH-Partitioned-256GB.mdp",
-		"../data/dxl/minidump/Tpcds-NonPart-Q70a.mdp",
 		// TODO:  - Jul 31st 2018; disabling it since new cost model picks up Indexed nested Loop Joi
 		// however the comment on file says that it should not pick Indexed Nested Loop Join.
 		// disabling it for now. Revisit this test when we upgrade scan cost model.
@@ -162,6 +161,7 @@ CICGTest::EresUnittest_RunTestsWithoutAdditionalTraceFlags()
 	const CHAR *rgszFileNames[] =
 	{
 		"../data/dxl/minidump/Union-On-HJNs.mdp",
+		"../data/dxl/minidump/Tpcds-NonPart-Q70a.mdp"
 	};
 	return CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
 			(
