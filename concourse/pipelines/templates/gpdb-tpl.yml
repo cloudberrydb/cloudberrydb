@@ -552,6 +552,13 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: server/published/master/server-rc-(.*)-rhel7_x86_64((rc-build-type-gcs)).tar.gz
 
+- name: bin_gpdb_ubuntu18.04_rc
+  type: gcs
+  source:
+    bucket: ((gcs-bucket))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    regexp: server/published/master/server-rc-(.*)-ubuntu18.04_x86_64((rc-build-type-gcs)).tar.gz
+
 # DEPRECATED: Use the above GCS resources instead of these S3 resources.
 - name: bin_gpdb_centos6_rc_s3
   type: s3
@@ -592,6 +599,13 @@ resources:
     bucket: ((gcs-bucket))
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: clients/published/master/clients-rc-(.*)-rhel7_x86_64((rc-build-type-gcs)).tar.gz
+
+- name: bin_gpdb_clients_ubuntu18.04_rc
+  type: gcs
+  source:
+    bucket: ((gcs-bucket))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    regexp: clients/published/master/clients-rc-(.*)-ubuntu18.04_x86_64((rc-build-type-gcs)).tar.gz
 
 {% endif %}
 {% if "centos6" in os_types %}
@@ -2031,11 +2045,14 @@ jobs:
       - compile_gpdb_centos6
       - compile_gpdb_open_source_centos6
       - compile_gpdb_centos7
+      - compile_gpdb_ubuntu18.04
  ##     - compile_gpdb_sles11
       - icw_planner_centos6
       - icw_gporca_centos6
       - icw_gporca_centos7
       - icw_planner_centos7
+      - icw_gporca_ubuntu18.04
+      - icw_planner_ubuntu18.04
  ##     - icw_gporca_sles11
  ##     - icw_gporca_sles12
  ##     - icw_planner_sles12
@@ -2099,6 +2116,15 @@ jobs:
     - get: bin_gpdb_clients_centos7
       passed:
       - compile_gpdb_centos7
+    - get: bin_gpdb_ubuntu18.04
+      trigger: true
+      passed:
+      - compile_gpdb_ubuntu18.04
+      - icw_gporca_ubuntu18.04
+      - icw_planner_ubuntu18.04
+    - get: bin_gpdb_clients_ubuntu18.04
+      passed:
+      - compile_gpdb_ubuntu18.04
 
 - name: Release_Candidate
   plan:
@@ -2112,10 +2138,16 @@ jobs:
     - get: bin_gpdb_centos7
       trigger: true
       passed: [gate_release_candidate_start]
+    - get: bin_gpdb_ubuntu18.04
+      trigger: true
+      passed: [gate_release_candidate_start]
     - get: bin_gpdb_clients_centos6
       trigger: true
       passed: [gate_release_candidate_start]
     - get: bin_gpdb_clients_centos7
+      trigger: true
+      passed: [gate_release_candidate_start]
+    - get: bin_gpdb_clients_ubuntu18.04
       trigger: true
       passed: [gate_release_candidate_start]
     - get: gpdb6-centos6-build
@@ -2131,8 +2163,10 @@ jobs:
         - name: gpdb_src
         - name: bin_gpdb_centos6
         - name: bin_gpdb_centos7
+        - name: bin_gpdb_ubuntu18.04
         - name: bin_gpdb_clients_centos6
         - name: bin_gpdb_clients_centos7
+        - name: bin_gpdb_clients_ubuntu18.04
         outputs:
         - name: bin_gpdb_centos_gcs
         run:
@@ -2143,8 +2177,10 @@ jobs:
             gpdb_semver=$(gpdb_src/getversion | cut -d' ' -f1)
             cp -v bin_gpdb_centos6/bin_gpdb.tar.gz bin_gpdb_centos_gcs/server-rc-${gpdb_semver}-rhel6_x86_64((rc-build-type-gcs)).tar.gz
             cp -v bin_gpdb_centos7/bin_gpdb.tar.gz bin_gpdb_centos_gcs/server-rc-${gpdb_semver}-rhel7_x86_64((rc-build-type-gcs)).tar.gz
+            cp -v bin_gpdb_ubuntu18.04/bin_gpdb.tar.gz bin_gpdb_centos_gcs/server-rc-${gpdb_semver}-ubuntu18.04_x86_64((rc-build-type-gcs)).tar.gz
             cp -v bin_gpdb_clients_centos6/bin_gpdb_clients.tar.gz bin_gpdb_centos_gcs/clients-rc-${gpdb_semver}-rhel6_x86_64((rc-build-type-gcs)).tar.gz
             cp -v bin_gpdb_clients_centos7/bin_gpdb_clients.tar.gz bin_gpdb_centos_gcs/clients-rc-${gpdb_semver}-rhel7_x86_64((rc-build-type-gcs)).tar.gz
+            cp -v bin_gpdb_clients_ubuntu18.04/bin_gpdb_clients.tar.gz bin_gpdb_centos_gcs/clients-rc-${gpdb_semver}-ubuntu18.04_x86_64((rc-build-type-gcs)).tar.gz
     - task: verify_gpdb_versions
       file: gpdb_src/concourse/tasks/verify_gpdb_versions.yml
   - aggregate:
@@ -2154,12 +2190,18 @@ jobs:
     - put: bin_gpdb_centos7_rc
       params:
         file: "bin_gpdb_centos_gcs/server-rc-*rhel7*.tar.gz"
+    - put: bin_gpdb_ubuntu18.04_rc
+      params:
+        file: "bin_gpdb_centos_gcs/server-rc-*ubuntu18.04*.tar.gz"
     - put: bin_gpdb_clients_centos6_rc
       params:
         file: "bin_gpdb_centos_gcs/clients-rc-*rhel6*.tar.gz"
     - put: bin_gpdb_clients_centos7_rc
       params:
         file: "bin_gpdb_centos_gcs/clients-rc-*rhel7*.tar.gz"
+    - put: bin_gpdb_clients_ubuntu18.04_rc
+      params:
+        file: "bin_gpdb_centos_gcs/clients-rc-*ubuntu18.04*.tar.gz"
     - put: bin_gpdb_centos6_rc_s3
       params:
         file: bin_gpdb_centos6/bin_gpdb.tar.gz
