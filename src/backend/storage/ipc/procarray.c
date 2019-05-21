@@ -429,56 +429,13 @@ ProcArrayEndGxact(void)
  * PGPROC entry. This can only happen for commit; when !isCommit, this always
  * clears the PGPROC entry.
  */
-bool
-ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit)
+void
+ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool lockHeld)
 {
 	PGXACT	   *pgxact = &allPgXact[proc->pgprocno];
-	bool needNotifyCommittedDtxTransaction;
-
-	/*
-	 * MyProc->localDistribXactData is only used for debugging purpose by
-	 * backend itself on segments only hence okay to modify without holding
-	 * the lock.
-	 */
-	if (MyProc->localDistribXactData.state != LOCALDISTRIBXACT_STATE_NONE)
-	{
-		switch (DistributedTransactionContext)
-		{
-			case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
-			case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
-			case DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT:
-				LocalDistribXact_ChangeState(MyProc->pgprocno,
-											 isCommit ?
-											 LOCALDISTRIBXACT_STATE_COMMITTED :
-											 LOCALDISTRIBXACT_STATE_ABORTED);
-				break;
-
-			case DTX_CONTEXT_QE_READER:
-			case DTX_CONTEXT_QE_ENTRY_DB_SINGLETON:
-				// QD or QE Writer will handle it.
-				break;
-
-			case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
-			case DTX_CONTEXT_QD_RETRY_PHASE_2:
-			case DTX_CONTEXT_QE_PREPARED:
-			case DTX_CONTEXT_QE_FINISH_PREPARED:
-				elog(PANIC, "Unexpected distribute transaction context: '%s'",
-					 DtxContextToString(DistributedTransactionContext));
-
-			default:
-				elog(PANIC, "Unrecognized DTX transaction context: %d",
-					 (int) DistributedTransactionContext);
-		}
-	}
-
-	if (isCommit && notifyCommittedDtxTransactionIsNeeded())
-		needNotifyCommittedDtxTransaction = true;
-	else
-		needNotifyCommittedDtxTransaction = false;
 
 	if (TransactionIdIsValid(latestXid))
 	{
-		LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
 		/*
 		 * We must lock ProcArrayLock while clearing our advertised XID, so
 		 * that we do not exit the set of "running" transactions while someone
@@ -487,36 +444,29 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit)
 		 */
 		Assert(TransactionIdIsValid(allPgXact[proc->pgprocno].xid) ||
 			   (IsBootstrapProcessingMode() && latestXid == BootstrapTransactionId));
+		if (!lockHeld)
+			LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
 
-		if (! needNotifyCommittedDtxTransaction)
-		{
-			pgxact->xid = InvalidTransactionId;
-			proc->lxid = InvalidLocalTransactionId;
-			pgxact->xmin = InvalidTransactionId;
-			/* must be cleared with xid/xmin: */
-			pgxact->vacuumFlags &= ~PROC_VACUUM_STATE_MASK;
-			pgxact->delayChkpt = false;		/* be sure this is cleared in abort */
-			proc->recoveryConflictPending = false;
-			proc->serializableIsoLevel = false;
+		pgxact->xid = InvalidTransactionId;
+		proc->lxid = InvalidLocalTransactionId;
+		pgxact->xmin = InvalidTransactionId;
+		/* must be cleared with xid/xmin: */
+		pgxact->vacuumFlags &= ~PROC_VACUUM_STATE_MASK;
+		pgxact->delayChkpt = false;		/* be sure this is cleared in abort */
+		proc->recoveryConflictPending = false;
+		proc->serializableIsoLevel = false;
 
-			/* Clear the subtransaction-XID cache too while holding the lock */
-			pgxact->nxids = 0;
-			pgxact->overflowed = false;
-		}
+		/* Clear the subtransaction-XID cache too while holding the lock */
+		pgxact->nxids = 0;
+		pgxact->overflowed = false;
 
 		/* Also advance global latestCompletedXid while holding the lock */
-		/*
-		 * Note: we do this in GPDB even if we didn't clear our XID entry
-		 * just yet. There is no harm in advancing latestCompletedXid a
-		 * little bit earlier than strictly necessary, and this way we don't
-		 * need to remember out latest XID when we later actually clear the
-		 * entry.
-		 */
 		if (TransactionIdPrecedes(ShmemVariableCache->latestCompletedXid,
 								  latestXid))
 			ShmemVariableCache->latestCompletedXid = latestXid;
 
-		LWLockRelease(ProcArrayLock);
+		if (!lockHeld)
+			LWLockRelease(ProcArrayLock);
 	}
 	else
 	{
@@ -538,8 +488,6 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit)
 		Assert(pgxact->nxids == 0);
 		Assert(pgxact->overflowed == false);
 	}
-
-	return needNotifyCommittedDtxTransaction;
 }
 
 
@@ -552,7 +500,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit)
  * too.  We just have to clear out our own PGXACT.
  */
 void
-ProcArrayClearTransaction(PGPROC *proc, bool commit)
+ProcArrayClearTransaction(PGPROC *proc)
 {
 	PGXACT	   *pgxact = &allPgXact[proc->pgprocno];
 
@@ -577,21 +525,6 @@ ProcArrayClearTransaction(PGPROC *proc, bool commit)
 	/* Clear the subtransaction-XID cache too */
 	pgxact->nxids = 0;
 	pgxact->overflowed = false;
-}
-
-/*
- * Clears the current transaction from PGPROC.
- *
- * Must be called while holding the ProcArrayLock.
- */
-void
-ClearTransactionFromPgProc_UnderLock(PGPROC *proc, bool commit)
-{
-	/*
-	 * ProcArrayClearTransaction() doesn't take the lock, so we can just call it
-	 * directly.
-	 */
-	ProcArrayClearTransaction(proc, commit);
 }
 
 /*

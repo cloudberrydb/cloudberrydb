@@ -97,7 +97,6 @@ static void clearAndResetGxact(void);
 static void resetCurrentGxact(void);
 static void doPrepareTransaction(void);
 static void doInsertForgetCommitted(void);
-static void clearTransactionState(void);
 static void doNotifyingCommitPrepared(void);
 static void doNotifyingAbort(void);
 static void retryAbortPrepared(void);
@@ -107,7 +106,6 @@ static bool isDtxQueryDispatcher(void);
 static void performDtxProtocolCommitPrepared(const char *gid, bool raiseErrorIfNotFound);
 static void performDtxProtocolAbortPrepared(const char *gid, bool raiseErrorIfNotFound);
 
-extern void resetSessionForPrimaryGangLoss(bool resetSession);
 extern void CheckForResetSession(void);
 
 /**
@@ -495,8 +493,8 @@ doInsertForgetCommitted(void)
 	setCurrentGxactState(DTX_STATE_INSERTED_FORGET_COMMITTED);
 }
 
-static void
-clearTransactionState(void)
+void
+ClearTransactionState(TransactionId latestXid)
 {
 	/*
 	 * These two actions must be performed for a distributed transaction under
@@ -529,9 +527,10 @@ clearTransactionState(void)
 	 * proc->xid here with ProcArryLock held.
 	 */
 	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-	ClearTransactionFromPgProc_UnderLock(MyProc, true);
+	ProcArrayEndTransaction(MyProc, latestXid, true);
 	ProcArrayEndGxact();
 	LWLockRelease(ProcArrayLock);
+	resetCurrentGxact();
 }
 
 static void
@@ -640,9 +639,6 @@ doNotifyingCommitPrepared(void)
 		 "succeeded to all the segments for gid = %s.", currentGxact->gid);
 
 	doInsertForgetCommitted();
-
-	clearTransactionState();
-	resetCurrentGxact();
 }
 
 static void

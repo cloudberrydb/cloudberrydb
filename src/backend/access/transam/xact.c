@@ -345,6 +345,7 @@ static void AtSubCommit_Memory(void);
 static void AtSubStart_Memory(void);
 static void AtSubStart_ResourceOwner(void);
 
+static void EndLocalDistribXact(bool isCommit);
 static void ShowTransactionState(const char *str);
 static void ShowTransactionStateRec(TransactionState state);
 static const char *BlockStateAsString(TBlockState blockState);
@@ -2556,8 +2557,6 @@ CommitTransaction(void)
 	TransactionState s = CurrentTransactionState;
 	TransactionId latestXid;
 
-	bool needNotifyCommittedDtxTransaction = false;
-
 	ShowTransactionState("CommitTransaction");
 
 	/*
@@ -2683,19 +2682,9 @@ CommitTransaction(void)
 
 	TRACE_POSTGRESQL_TRANSACTION_COMMIT(MyProc->lxid);
 
-	/*
-	 * Let others know about no transaction in progress by me. Note that this
-	 * must be done _before_ releasing locks we hold and _after_
-	 * RecordTransactionCommit.
-	 */
-	needNotifyCommittedDtxTransaction = ProcArrayEndTransaction(MyProc,
-																latestXid,
-																true);
-	/*
-	 * Note that in GPDB, ProcArrayEndTransaction does *not* clear the PGPROC
-	 * entry, if it sets *needNotifyCommittedDtxTransaction!
-	 */
-	if (needNotifyCommittedDtxTransaction)
+	EndLocalDistribXact(true);
+
+	if (notifyCommittedDtxTransactionIsNeeded())
 	{
 		/*
 		 * Do 2nd phase of commit to all QE. NOTE: we can't process
@@ -2714,6 +2703,20 @@ CommitTransaction(void)
 		 * happen after using the dispatcher.
 		 */
 		notifyCommittedDtxTransaction();
+
+		/*
+		 * Clear both local and distributed transaction states.
+		 */
+		ClearTransactionState(latestXid);
+	}
+	else
+	{
+		/*
+		 * Let others know about no transaction in progress by me. Note that this
+		 * must be done _before_ releasing locks we hold and _after_
+		 * RecordTransactionCommit.
+		 */
+		ProcArrayEndTransaction(MyProc, latestXid, false);
 	}
 
 	/*
@@ -3035,7 +3038,7 @@ PrepareTransaction(void)
 	 * someone may think it is unlocked and recyclable.
 	 */
 	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-	ClearTransactionFromPgProc_UnderLock(MyProc, false);
+	ProcArrayClearTransaction(MyProc);
 	LWLockRelease(ProcArrayLock);
 
 	/*
@@ -3247,6 +3250,7 @@ AbortTransaction(void)
 
 	TRACE_POSTGRESQL_TRANSACTION_ABORT(MyProc->lxid);
 
+	EndLocalDistribXact(false);
 	/*
 	 * Let others know about no transaction in progress by me. Note that this
 	 * must be done _before_ releasing locks we hold and _after_
@@ -5852,6 +5856,50 @@ TransStateAsString(TransState state)
 			return "PREPARE";
 	}
 	return "UNRECOGNIZED";
+}
+
+/*
+ * EndLocalDistribXact
+ *		Debug support
+ */
+static void
+EndLocalDistribXact(bool isCommit)
+{
+	if (MyProc->localDistribXactData.state == LOCALDISTRIBXACT_STATE_NONE)
+		return;
+
+	/*
+	 * MyProc->localDistribXactData is only used for debugging purpose by
+	 * backend itself on segments only hence okay to modify without holding
+	 * the lock.
+	 */
+	switch (DistributedTransactionContext)
+	{
+		case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
+		case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
+		case DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT:
+			LocalDistribXact_ChangeState(MyProc->pgprocno,
+										 isCommit ?
+										 LOCALDISTRIBXACT_STATE_COMMITTED :
+										 LOCALDISTRIBXACT_STATE_ABORTED);
+			break;
+
+		case DTX_CONTEXT_QE_READER:
+		case DTX_CONTEXT_QE_ENTRY_DB_SINGLETON:
+			// QD or QE Writer will handle it.
+			break;
+
+		case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
+		case DTX_CONTEXT_QD_RETRY_PHASE_2:
+		case DTX_CONTEXT_QE_PREPARED:
+		case DTX_CONTEXT_QE_FINISH_PREPARED:
+			elog(PANIC, "Unexpected distribute transaction context: '%s'",
+				 DtxContextToString(DistributedTransactionContext));
+
+		default:
+			elog(PANIC, "Unrecognized DTX transaction context: %d",
+				 (int) DistributedTransactionContext);
+	}
 }
 
 /*

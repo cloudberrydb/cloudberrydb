@@ -355,5 +355,6 @@ extern void addToGxactTwophaseSegments(struct Gang* gp);
 
 extern int dtx_recovery_start(void);
 extern DistributedTransactionId generateGID(void);
+extern void ClearTransactionState(TransactionId latestXid);
 
 #endif   /* CDBTM_H */
