@@ -15,6 +15,9 @@ from gp_segment_configuration where content = -1 and role = 'p';
 
 1&: create table committed_by_standby(a int, b int);
 
+select gp_wait_until_triggered_fault('dtm_broadcast_commit_prepared', 1, dbid)
+from gp_segment_configuration where content = -1 and role = 'p';
+
 -- Scenario2: standby broadcasts abort-prepared for a transaction that
 -- doesn't have distributed commit recorded in XLOG.  Inject faults
 -- such that the QD backend errors out after prepare broadcast and
@@ -27,9 +30,6 @@ from gp_segment_configuration where content = -1 and role = 'p';
 
 2&: create table aborted_by_standby(a int, b int);
 
--- Wait for the two transactions to be suspended on master
-select gp_wait_until_triggered_fault('dtm_broadcast_commit_prepared', 1, dbid)
-from gp_segment_configuration where content = -1 and role = 'p';
 select gp_wait_until_triggered_fault('transaction_abort_failure', 1, dbid)
 from gp_segment_configuration where content = -1 and role = 'p';
 
