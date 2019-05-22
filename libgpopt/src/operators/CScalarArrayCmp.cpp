@@ -20,6 +20,8 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPredicateUtils.h"
 
+#include "gpopt/optimizer/COptimizerConfig.h"
+
 #include "naucrates/md/IMDTypeBool.h"
 
 using namespace gpopt;
@@ -217,6 +219,8 @@ CScalarArrayCmp::PexprExpand
 	GPOS_ASSERT(NULL != pexprArrayCmp);
 	GPOS_ASSERT(EopScalarArrayCmp == pexprArrayCmp->Pop()->Eopid());
 
+	COptimizerConfig *optimizer_config = COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
+	ULONG array_expansion_threshold = optimizer_config->GetHint()->UlArrayExpansionThreshold();
 	CExpression *pexprIdent = (*pexprArrayCmp)[0];
 	CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexprArrayCmp);
 	CScalarArrayCmp *popArrayCmp = CScalarArrayCmp::PopConvert(pexprArrayCmp->Pop());
@@ -228,7 +232,7 @@ CScalarArrayCmp::PexprExpand
 	}
 
 	// if this condition is true, we know the right child of ArrayCmp is a constant.
-	if (0 == ulArrayElems)
+	if (0 == ulArrayElems || ulArrayElems > array_expansion_threshold)
 	{
 		// if right child is not an actual array (e.g., Const of type array), return input
 		// expression without expansion
