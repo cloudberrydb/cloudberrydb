@@ -59,6 +59,7 @@
 #include "tcop/idle_resource_cleaner.h"
 #include "utils/acl.h"
 #include "utils/backend_cancel.h"
+#include "utils/faultinjector.h"
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
 #include "utils/pg_locale.h"
@@ -791,7 +792,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	}
 	else if (am_mirror)
 	{
-		Assert(am_ftshandler);
+		Assert(am_ftshandler || IsFaultHandler);
 		/*
 		 * A mirror must receive and act upon FTS messages.  Performing proper
 		 * authentication involves reading pg_authid.  Heap access is not
@@ -881,7 +882,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 					 errmsg("must be superuser or replication role to start walsender")));
 	}
 
-	if (am_ftshandler && !am_superuser)
+	if ((am_ftshandler || IsFaultHandler) && !am_superuser)
 		ereport(FATAL,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("must be superuser role to handle FTS request")));
@@ -892,7 +893,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	 * backend startup by processing any options from the startup packet, and
 	 * we're done.
 	 */
-	if ((am_walsender && !am_db_walsender) || am_ftshandler)
+	if ((am_walsender && !am_db_walsender) || am_ftshandler || IsFaultHandler)
 	{
 		/* process any options passed in the startup packet */
 		if (MyProcPort != NULL)

@@ -17,6 +17,9 @@
 
 #define INFINITE_END_OCCURRENCE -1
 
+#define Natts_fault_message_response 1
+#define Anum_fault_message_response_status 0
+
 /*
  *
  */
@@ -118,13 +121,21 @@ extern int FaultInjector_SetFaultInjection(
 extern bool FaultInjector_IsFaultInjected(
 							char* faultName);
 
+extern char *InjectFault(
+	char *faultName, char *type, char *ddlStatement, char *databaseName,
+	char *tableName, int startOccurrence, int endOccurrence, int extraArg);
+
+extern void HandleFaultMessage(const char* msg);
 
 #ifdef FAULT_INJECTOR
+extern bool am_faulthandler;
+#define IsFaultHandler am_faulthandler
 #define SIMPLE_FAULT_INJECTOR(FaultIdentifier) \
 	FaultInjector_InjectFaultIfSet(FaultIdentifier, DDLNotSpecified, "", "")
 #define SIMPLE_FAULT_NAME_INJECTOR(FaultName) \
 	FaultInjector_InjectFaultNameIfSet(FaultName, DDLNotSpecified, "", "")
 #else
+#define IsFaultHandler false
 #define SIMPLE_FAULT_INJECTOR(FaultIdentifier)
 #define SIMPLE_FAULT_NAME_INJECTOR(FaultName)
 #endif

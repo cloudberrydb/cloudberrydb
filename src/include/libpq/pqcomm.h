@@ -218,5 +218,6 @@ typedef struct CancelRequestPacket
 
 #define GPCONN_TYPE "gpconntype"
 #define GPCONN_TYPE_FTS "fts"
+#define GPCONN_TYPE_FAULT "fault"
 
 #endif   /* PQCOMM_H */

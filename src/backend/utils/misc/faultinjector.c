@@ -27,6 +27,8 @@
 #endif
 #include "access/xact.h"
 #include "cdb/cdbutil.h"
+#include "libpq/libpq.h"
+#include "libpq/pqformat.h"
 #include "postmaster/autovacuum.h"
 #include "postmaster/bgwriter.h"
 #include "postmaster/fts.h"
@@ -53,6 +55,8 @@ typedef struct FaultInjectorShmem_s {
 	
 	HTAB		*hash;
 } FaultInjectorShmem_s;
+
+bool am_faulthandler = false;
 
 static	FaultInjectorShmem_s *faultInjectorShmem = NULL;
 
@@ -1013,5 +1017,156 @@ exit:
 						FaultInjectorTypeEnumToString[entry->faultInjectorType])));
 	}
 	return isCompleted;
+}
+
+void
+HandleFaultMessage(const char* msg)
+{
+	char name[NAMEDATALEN];
+	char type[NAMEDATALEN];
+	char ddl[NAMEDATALEN];
+	char db[NAMEDATALEN];
+	char table[NAMEDATALEN];
+	int start;
+	int end;
+	int extra;
+	char *result;
+	int len;
+
+	if (sscanf(msg, "faultname=%s type=%s ddl=%s db=%s table=%s "
+			   "start=%d end=%d extra=%d",
+			   name, type, ddl, db, table, &start, &end, &extra) != 8)
+		elog(ERROR, "invalid fault message: %s", msg);
+	/* The value '#' means not specified. */
+	if (ddl[0] == '#')
+		ddl[0] = '\0';
+	if (db[0] == '#')
+		db[0] = '\0';
+	if (table[0] == '#')
+		table[0] = '\0';
+
+	result = InjectFault(name, type, ddl, db, table, start, end, extra);
+	len = strlen(result);
+
+	StringInfoData buf;
+	pq_beginmessage(&buf, 'T');
+	pq_sendint(&buf, Natts_fault_message_response, 2);
+
+	pq_sendstring(&buf, "status");
+	pq_sendint(&buf, 0, 4);		/* table oid */
+	pq_sendint(&buf, Anum_fault_message_response_status, 2);		/* attnum */
+	pq_sendint(&buf, TEXTOID, 4);		/* type oid */
+	pq_sendint(&buf, -1, 2);	/* typlen */
+	pq_sendint(&buf, -1, 4);		/* typmod */
+	pq_sendint(&buf, 0, 2);		/* format code */
+	pq_endmessage(&buf);
+
+	/* Send a DataRow message */
+	pq_beginmessage(&buf, 'D');
+	pq_sendint(&buf, Natts_fault_message_response, 2);		/* # of columns */
+
+	pq_sendint(&buf, len, 4);
+	pq_sendbytes(&buf, result, len);
+	pq_endmessage(&buf);
+	EndCommand(GPCONN_TYPE_FAULT, DestRemote);
+	pq_flush();
+}
+
+char *
+InjectFault(char *faultName, char *type, char *ddlStatement, char *databaseName,
+			char *tableName, int startOccurrence, int endOccurrence, int extraArg)
+{
+	StringInfo buf = makeStringInfo();
+	FaultInjectorEntry_s    faultInjectorEntry;
+
+	elog(DEBUG1, "FAULT INJECTED: Name %s Type %s, DDL %s, DB %s, Table %s, StartOccurrence %d, EndOccurrence %d, extraArg %d",
+		 faultName, type, ddlStatement, databaseName, tableName, startOccurrence, endOccurrence, extraArg );
+
+	strlcpy(faultInjectorEntry.faultName, faultName, sizeof(faultInjectorEntry.faultName));
+	faultInjectorEntry.faultInjectorIdentifier = FaultInjectorIdentifierStringToEnum(faultName);
+	if (faultInjectorEntry.faultInjectorIdentifier == FaultInjectorIdNotSpecified) {
+		ereport(COMMERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not recognize fault name")));
+
+		appendStringInfo(buf, "Failure: could not recognize fault name");
+		goto exit;
+	}
+
+	faultInjectorEntry.faultInjectorType = FaultInjectorTypeStringToEnum(type);
+	if (faultInjectorEntry.faultInjectorType == FaultInjectorTypeNotSpecified ||
+		faultInjectorEntry.faultInjectorType == FaultInjectorTypeMax) {
+		ereport(COMMERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not recognize fault type")));
+
+		appendStringInfo(buf, "Failure: could not recognize fault type");
+		goto exit;
+	}
+
+	faultInjectorEntry.extraArg = extraArg;
+
+	if (faultInjectorEntry.faultInjectorType == FaultInjectorTypeSleep)
+	{
+		if (extraArg < 0 || extraArg > 7200) {
+			ereport(COMMERROR,
+					(errcode(ERRCODE_PROTOCOL_VIOLATION),
+					 errmsg("invalid sleep time, allowed range [0, 7200 sec]")));
+
+			appendStringInfo(buf, "Failure: invalid sleep time, allowed range [0, 7200 sec]");
+			goto exit;
+		}
+	}
+
+	faultInjectorEntry.ddlStatement = FaultInjectorDDLStringToEnum(ddlStatement);
+	if (faultInjectorEntry.ddlStatement == DDLMax) {
+		ereport(COMMERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not recognize DDL statement")));
+
+		appendStringInfo(buf, "Failure: could not recognize DDL statement");
+		goto exit;
+	}
+
+	snprintf(faultInjectorEntry.databaseName, sizeof(faultInjectorEntry.databaseName), "%s", databaseName);
+
+	snprintf(faultInjectorEntry.tableName, sizeof(faultInjectorEntry.tableName), "%s", tableName);
+
+	if (startOccurrence < 1 || startOccurrence > 1000)
+	{
+		ereport(COMMERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("invalid start occurrence number, allowed range [1, 1000]")));
+
+		appendStringInfo(buf, "Failure: invalid occurrence number, allowed range [1, 1000]");
+		goto exit;
+	}
+
+	if (endOccurrence != INFINITE_END_OCCURRENCE && endOccurrence < startOccurrence)
+	{
+		ereport(COMMERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("invalid end occurrence number, allowed range [startOccurrence, ] or -1")));
+
+		appendStringInfo(buf, "Failure: invalid end occurrence number, allowed range [startOccurrence, ] or -1");
+		goto exit;
+	}
+
+	faultInjectorEntry.startOccurrence = startOccurrence;
+	faultInjectorEntry.endOccurrence = endOccurrence;
+
+
+	if (FaultInjector_SetFaultInjection(&faultInjectorEntry) == STATUS_OK)
+	{
+		if (faultInjectorEntry.faultInjectorType == FaultInjectorTypeStatus)
+			appendStringInfo(buf, "%s", faultInjectorEntry.bufOutput);
+		else
+			appendStringInfo(buf, "Success:");
+	}
+	else
+		appendStringInfo(buf, "Failure: %s", faultInjectorEntry.bufOutput);
+
+exit:
+	return buf->data;
 }
 #endif

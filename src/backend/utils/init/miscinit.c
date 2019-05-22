@@ -45,6 +45,7 @@
 #include "storage/proc.h"
 #include "storage/procarray.h"
 #include "utils/builtins.h"
+#include "utils/faultinjector.h"
 #include "utils/gdd.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
@@ -472,6 +473,7 @@ InitializeSessionUserIdStandalone(void)
 				|| am_startup
 				|| am_dtx_recovery
 				|| (am_ftshandler && am_mirror)
+				|| (IsFaultHandler && am_mirror)
 				|| am_global_deadlock_detector);
 
 	/* call only once */
