@@ -108,18 +108,16 @@ FaultInjectorStateEnumToString[] = {
 #undef FI_STATE
 };
 
-/*
- *
- */
 FaultInjectorType_e
-FaultInjectorTypeStringToEnum(
-							  char*		faultTypeString)
+FaultInjectorTypeStringToEnum(char* faultTypeString)
 {
 	FaultInjectorType_e	faultTypeEnum = FaultInjectorTypeMax;
 	int	ii;
 	
-	for (ii=0; ii < FaultInjectorTypeMax; ii++) {
-		if (strcmp(FaultInjectorTypeEnumToString[ii], faultTypeString) == 0) {
+	for (ii=FaultInjectorTypeNotSpecified+1; ii < FaultInjectorTypeMax; ii++)
+	{
+		if (strcmp(FaultInjectorTypeEnumToString[ii], faultTypeString) == 0)
+		{
 			faultTypeEnum = ii;
 			break;
 		}
@@ -127,18 +125,16 @@ FaultInjectorTypeStringToEnum(
 	return faultTypeEnum;
 }
 
-/*
- *
- */
 FaultInjectorIdentifier_e
-FaultInjectorIdentifierStringToEnum(
-									char*	faultName)
+FaultInjectorIdentifierStringToEnum(char* faultName)
 {
 	FaultInjectorIdentifier_e	faultId = FaultInjectorIdMax;
 	int	ii;
 	
-	for (ii=0; ii < FaultInjectorIdMax; ii++) {
-		if (strcmp(FaultInjectorIdentifierEnumToString[ii], faultName) == 0) {
+	for (ii=FaultInjectorIdNotSpecified+1; ii < FaultInjectorIdMax; ii++)
+	{
+		if (strcmp(FaultInjectorIdentifierEnumToString[ii], faultName) == 0)
+		{
 			faultId = ii;
 			break;
 		}
@@ -146,18 +142,16 @@ FaultInjectorIdentifierStringToEnum(
 	return faultId;
 }
 
-/*
- *
- */
 DDLStatement_e
-FaultInjectorDDLStringToEnum(
-									char*	ddlString)
+FaultInjectorDDLStringToEnum(char* ddlString)
 {
 	DDLStatement_e	ddlEnum = DDLMax;
 	int	ii;
 	
-	for (ii=0; ii < DDLMax; ii++) {
-		if (strcmp(FaultInjectorDDLEnumToString[ii], ddlString) == 0) {
+	for (ii=DDLNotSpecified; ii < DDLMax; ii++)
+	{
+		if (strcmp(FaultInjectorDDLEnumToString[ii], ddlString) == 0)
+		{
 			ddlEnum = ii;
 			break;
 		}
@@ -1077,96 +1071,68 @@ InjectFault(char *faultName, char *type, char *ddlStatement, char *databaseName,
 			char *tableName, int startOccurrence, int endOccurrence, int extraArg)
 {
 	StringInfo buf = makeStringInfo();
-	FaultInjectorEntry_s    faultInjectorEntry;
+	FaultInjectorEntry_s faultEntry;
 
-	elog(DEBUG1, "FAULT INJECTED: Name %s Type %s, DDL %s, DB %s, Table %s, StartOccurrence %d, EndOccurrence %d, extraArg %d",
-		 faultName, type, ddlStatement, databaseName, tableName, startOccurrence, endOccurrence, extraArg );
+	elog(DEBUG1, "injecting fault: name %s, type %s, DDL %s, db %s, table %s, startOccurrence %d, endOccurrence %d, extraArg %d",
+		 faultName, type, ddlStatement, databaseName, tableName,
+		 startOccurrence, endOccurrence, extraArg );
 
-	strlcpy(faultInjectorEntry.faultName, faultName, sizeof(faultInjectorEntry.faultName));
-	faultInjectorEntry.faultInjectorIdentifier = FaultInjectorIdentifierStringToEnum(faultName);
-	if (faultInjectorEntry.faultInjectorIdentifier == FaultInjectorIdNotSpecified) {
-		ereport(COMMERROR,
+	strlcpy(faultEntry.faultName, faultName, sizeof(faultEntry.faultName));
+	faultEntry.faultInjectorIdentifier = FaultInjectorIdentifierStringToEnum(faultName);
+	if (faultEntry.faultInjectorIdentifier == FaultInjectorIdMax)
+		ereport(ERROR,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
-				 errmsg("could not recognize fault name")));
+				 errmsg("could not recognize fault name '%s'", faultName)));
 
-		appendStringInfo(buf, "Failure: could not recognize fault name");
-		goto exit;
-	}
-
-	faultInjectorEntry.faultInjectorType = FaultInjectorTypeStringToEnum(type);
-	if (faultInjectorEntry.faultInjectorType == FaultInjectorTypeNotSpecified ||
-		faultInjectorEntry.faultInjectorType == FaultInjectorTypeMax) {
-		ereport(COMMERROR,
+	faultEntry.faultInjectorType = FaultInjectorTypeStringToEnum(type);
+	if (faultEntry.faultInjectorType == FaultInjectorTypeMax)
+		ereport(ERROR,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
-				 errmsg("could not recognize fault type")));
+				 errmsg("could not recognize fault type '%s'", type)));
 
-		appendStringInfo(buf, "Failure: could not recognize fault type");
-		goto exit;
-	}
-
-	faultInjectorEntry.extraArg = extraArg;
-
-	if (faultInjectorEntry.faultInjectorType == FaultInjectorTypeSleep)
+	faultEntry.extraArg = extraArg;
+	if (faultEntry.faultInjectorType == FaultInjectorTypeSleep)
 	{
-		if (extraArg < 0 || extraArg > 7200) {
-			ereport(COMMERROR,
+		if (extraArg < 0 || extraArg > 7200)
+			ereport(ERROR,
 					(errcode(ERRCODE_PROTOCOL_VIOLATION),
 					 errmsg("invalid sleep time, allowed range [0, 7200 sec]")));
-
-			appendStringInfo(buf, "Failure: invalid sleep time, allowed range [0, 7200 sec]");
-			goto exit;
-		}
 	}
 
-	faultInjectorEntry.ddlStatement = FaultInjectorDDLStringToEnum(ddlStatement);
-	if (faultInjectorEntry.ddlStatement == DDLMax) {
-		ereport(COMMERROR,
+	faultEntry.ddlStatement = FaultInjectorDDLStringToEnum(ddlStatement);
+	if (faultEntry.ddlStatement == DDLMax)
+		ereport(ERROR,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg("could not recognize DDL statement")));
 
-		appendStringInfo(buf, "Failure: could not recognize DDL statement");
-		goto exit;
-	}
+	snprintf(faultEntry.databaseName, sizeof(faultEntry.databaseName), "%s", databaseName);
 
-	snprintf(faultInjectorEntry.databaseName, sizeof(faultInjectorEntry.databaseName), "%s", databaseName);
-
-	snprintf(faultInjectorEntry.tableName, sizeof(faultInjectorEntry.tableName), "%s", tableName);
+	snprintf(faultEntry.tableName, sizeof(faultEntry.tableName), "%s", tableName);
 
 	if (startOccurrence < 1 || startOccurrence > 1000)
-	{
-		ereport(COMMERROR,
+		ereport(ERROR,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg("invalid start occurrence number, allowed range [1, 1000]")));
 
-		appendStringInfo(buf, "Failure: invalid occurrence number, allowed range [1, 1000]");
-		goto exit;
-	}
 
 	if (endOccurrence != INFINITE_END_OCCURRENCE && endOccurrence < startOccurrence)
-	{
-		ereport(COMMERROR,
+		ereport(ERROR,
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg("invalid end occurrence number, allowed range [startOccurrence, ] or -1")));
 
-		appendStringInfo(buf, "Failure: invalid end occurrence number, allowed range [startOccurrence, ] or -1");
-		goto exit;
-	}
+	faultEntry.startOccurrence = startOccurrence;
+	faultEntry.endOccurrence = endOccurrence;
 
-	faultInjectorEntry.startOccurrence = startOccurrence;
-	faultInjectorEntry.endOccurrence = endOccurrence;
-
-
-	if (FaultInjector_SetFaultInjection(&faultInjectorEntry) == STATUS_OK)
+	if (FaultInjector_SetFaultInjection(&faultEntry) == STATUS_OK)
 	{
-		if (faultInjectorEntry.faultInjectorType == FaultInjectorTypeStatus)
-			appendStringInfo(buf, "%s", faultInjectorEntry.bufOutput);
+		if (faultEntry.faultInjectorType == FaultInjectorTypeStatus)
+			appendStringInfo(buf, "%s", faultEntry.bufOutput);
 		else
 			appendStringInfo(buf, "Success:");
 	}
 	else
-		appendStringInfo(buf, "Failure: %s", faultInjectorEntry.bufOutput);
+		appendStringInfo(buf, "Failure: %s", faultEntry.bufOutput);
 
-exit:
 	return buf->data;
 }
 #endif
