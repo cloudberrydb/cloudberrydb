@@ -414,7 +414,9 @@ FaultInjector_InjectFaultNameIfSet(
 							entryLocal->faultName,
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));
 
-			for (ii=0; ii < cnt; ii++)
+			for (ii=0;
+				 ii < cnt && FaultInjector_LookupHashEntry(entryLocal->faultName);
+				 ii++)
 			{
 				pg_usleep(1000000L); // sleep for 1 sec (1 sec * 3600 = 1 hour)
 				CHECK_FOR_INTERRUPTS();
@@ -1128,7 +1130,10 @@ InjectFault(char *faultName, char *type, char *ddlStatement, char *databaseName,
 		if (faultEntry.faultInjectorType == FaultInjectorTypeStatus)
 			appendStringInfo(buf, "%s", faultEntry.bufOutput);
 		else
+		{
 			appendStringInfo(buf, "Success:");
+			elog(LOG, "injected fault '%s' type '%s'", faultName, type);
+		}
 	}
 	else
 		appendStringInfo(buf, "Failure: %s", faultEntry.bufOutput);
