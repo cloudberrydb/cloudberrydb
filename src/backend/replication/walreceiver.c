@@ -1029,6 +1029,12 @@ XLogWalRcvFlush(bool dying)
 {
 	if (LogstreamResult.Flush < LogstreamResult.Write)
 	{
+#ifdef FAULT_INJECTOR
+		/* Simulate the case that the standby / mirror is lagging behind. */
+		if (SIMPLE_FAULT_INJECTOR(WalRecvSkipFlush) == FaultInjectorTypeSkip)
+			return;
+#endif
+
 		/* use volatile pointer to prevent code rearrangement */
 		volatile WalRcvData *walrcv = WalRcv;
 

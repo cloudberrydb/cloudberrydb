@@ -261,6 +261,8 @@ FI_IDENT(InsideMoveDbTransaction, "inside_move_db_transaction")
 FI_IDENT(CheckpointAfterRedoCalculated, "checkpoint_after_redo_calculated")
 /* inject fault at the beginning of heap insert */
 FI_IDENT(HeapInsert, "heap_insert")
+/* inject fault to skip WAL flush on WAL receiver */
+FI_IDENT(WalRecvSkipFlush, "walrecv_skip_flush")
 #endif
 
 /*
