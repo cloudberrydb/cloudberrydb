@@ -218,6 +218,8 @@ FI_IDENT(BeforeReadCommand, "before_read_command")
 FI_IDENT(CheckPointDtxInfo, "checkpoint_dtx_info")
 /* inject fault at WalSndLoop() function */
 FI_IDENT(WalSenderLoop, "wal_sender_loop")
+/* inject fault after WAL sender has processed caughtup within range */
+FI_IDENT(WalSenderAfterCaughtupWithinRange, "wal_sender_after_caughtup_within_range")
 /* inject fault at SyncRepWaitForLSN function for QueryCancelPending */
 FI_IDENT(SyncRepQueryCancel, "sync_rep_query_cancel")
 /* inject fault at start of function DistributedLog_AdvanceOldestXmin() */

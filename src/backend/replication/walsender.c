@@ -1956,6 +1956,8 @@ WalSndLoop(WalSndSendDataCallback send_data)
 		if (pq_flush_if_writable() != 0)
 			WalSndShutdown();
 
+		SIMPLE_FAULT_INJECTOR(WalSenderAfterCaughtupWithinRange);
+
 		/* If nothing remains to be sent right now ... */
 		if (WalSndCaughtUp && !pq_is_send_pending())
 		{
