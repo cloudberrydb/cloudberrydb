@@ -172,8 +172,6 @@ SendFtsResponse(FtsResponse *response, const char *messagetype)
 {
 	StringInfoData buf;
 
-	initStringInfo(&buf);
-
 	BeginCommand(messagetype, DestRemote);
 
 	pq_beginmessage(&buf, 'T');
