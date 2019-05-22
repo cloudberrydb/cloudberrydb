@@ -1114,54 +1114,8 @@ objectDescription(const char *pattern, bool showSystem)
 		appendPQExpBufferStr(&buf, "WHERE n.nspname <> 'pg_catalog'\n"
 							 "      AND n.nspname <> 'information_schema'\n");
 
-	processSQLNamePattern(pset.db, &buf, pattern, !showSystem && !pattern, false,
-						  "n.nspname", "o.oprname", NULL,
-						  "pg_catalog.pg_operator_is_visible(o.oid)");
-
-	/* Type descriptions */
-	appendPQExpBuffer(&buf,
-					  "UNION ALL\n"
-					  "  SELECT t.oid as oid, t.tableoid as tableoid,\n"
-					  "  n.nspname as nspname,\n"
-					  "  pg_catalog.format_type(t.oid, NULL) as name,"
-					  "  CAST('%s' AS pg_catalog.text) as object\n"
-					  "  FROM pg_catalog.pg_type t\n"
-	"       LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace\n",
-					  gettext_noop("data type"));
-
-	if (!showSystem && !pattern)
-		appendPQExpBuffer(&buf, "WHERE n.nspname <> 'pg_catalog'\n"
-						  "      AND n.nspname <> 'information_schema'\n");
-
-	processSQLNamePattern(pset.db, &buf, pattern, !showSystem && !pattern, false,
-						  "n.nspname", "pg_catalog.format_type(t.oid, NULL)",
-						  NULL,
-						  "pg_catalog.pg_type_is_visible(t.oid)");
-
-	/* Relation (tables, views, indexes, sequences, external) descriptions */
-	appendPQExpBuffer(&buf,
-					  "UNION ALL\n"
-					  "  SELECT c.oid as oid, c.tableoid as tableoid,\n"
-					  "  n.nspname as nspname,\n"
-					  "  CAST(c.relname AS pg_catalog.text) as name,\n"
-					  "  CAST(\n"
-					  "    CASE c.relkind WHEN 'r' THEN '%s' WHEN 'v' THEN '%s' WHEN 'i' THEN '%s' WHEN 'S' THEN '%s' WHEN 'f' THEN '%s' END"
-					  "  AS pg_catalog.text) as object\n"
-					  "  FROM pg_catalog.pg_class c\n"
-	 "       LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n"
-					  "  WHERE c.relkind IN ('r', 'v', 'i', 'S', 'f')\n",
-					  gettext_noop("table"),
-					  gettext_noop("view"),
-					  gettext_noop("index"),
-					  gettext_noop("sequence"),
-					  gettext_noop("foreign table"));
-
-	if (!showSystem && !pattern)
-		appendPQExpBuffer(&buf, "      AND n.nspname <> 'pg_catalog'\n"
-						  "      AND n.nspname <> 'information_schema'\n");
-
-	processSQLNamePattern(pset.db, &buf, pattern, true, false,
-						  "n.nspname", "c.relname", NULL,
+	processSQLNamePattern(pset.db, &buf, pattern, !showSystem && !pattern,
+						  false, "n.nspname", "pgc.conname", NULL,
 						  "pg_catalog.pg_table_is_visible(c.oid)");
 
 	/*
