@@ -3096,46 +3096,36 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	}
 
 	/*
-	 * If there is a FOR [KEY] UPDATE/SHARE clause, add the LockRows node.
-	 * (Note: we intentionally test parse->rowMarks not root->rowMarks here.
-	 * If there are only non-locking rowmarks, they should be handled by the
-	 * ModifyTable node instead.)
+	 * Greenplum specific behavior:
+	 * The implementation of select statement with locking clause
+	 * (for update | no key update | share | key share) in postgres
+	 * is to hold RowShareLock on tables during parsing stage, and
+	 * generate a LockRows plan node for executor to lock the tuples.
+	 * It is not easy to lock tuples in Greenplum database, since
+	 * tuples may be fetched through motion nodes.
+	 *
+	 * But when Global Deadlock Detector is enabled, and the select
+	 * statement with locking clause contains only one table, we are
+	 * sure that there are no motions. For such simple cases, we could
+	 * make the behavior just the same as Postgres.
+	 *
+	 * The conflict with UPDATE|DELETE is implemented by locking the entire
+	 * table in ExclusiveMode. More details please refer docs.
 	 */
 	if (parse->rowMarks)
 	{
 		ListCell   *lc;
-		List	   *newmarks = NIL;
+		List   *newmarks = NIL;
 
-		/*
-		 * select for update will lock the whole table, we do it at addRangeTableEntry.
-		 * The reason is that gpdb is an MPP database, the result tuples may not be on
-		 * the same segment. And for cursor statement, reader gang cannot get Xid to lock
-		 * the tuples. (More details: https://groups.google.com/a/greenplum.org/forum/#!topic/gpdb-dev/p-6_dNjnRMQ)
-		 * Upgrading the lock mode (see below) for distributed table is probably
-		 * not needed for all the cases and we may want to enhance this later.
-		 */
 		foreach(lc, root->rowMarks)
 		{
 			PlanRowMark *rc = (PlanRowMark *) lfirst(lc);
 
-			if (rc->markType == ROW_MARK_EXCLUSIVE || rc->markType == ROW_MARK_SHARE)
+			if (parse->canOptSelectLockingClause)
 			{
-				RelOptInfo *brel = root->simple_rel_array[rc->rti];
-
-				if (GpPolicyIsPartitioned(brel->cdbpolicy) ||
-					GpPolicyIsReplicated(brel->cdbpolicy))
-				{
-					if (rc->markType == ROW_MARK_EXCLUSIVE)
-						rc->markType = ROW_MARK_TABLE_EXCLUSIVE;
-					else
-						rc->markType = ROW_MARK_TABLE_SHARE;
-				}
-			}
-
-			/* We only need LockRows for the tuple-level locks */
-			if (rc->markType != ROW_MARK_TABLE_EXCLUSIVE &&
-				rc->markType != ROW_MARK_TABLE_SHARE)
+				rc->canOptSelectLockingClause = true;
 				newmarks = lappend(newmarks, rc);
+			}
 		}
 
 		if (newmarks)
