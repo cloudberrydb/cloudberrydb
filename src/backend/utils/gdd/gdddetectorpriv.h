@@ -206,6 +206,12 @@ struct GddVert
 
 	List		*edgesIn;		/* List<Edge>, directed edges to vert */
 	List		*edgesOut;		/* List<Edge>, directed edges from vert */
+
+	/*
+	 * The data set and used only by the caller, GDD does not touch or access
+	 * it.
+	 */
+	void		*data;
 };
 
 /*

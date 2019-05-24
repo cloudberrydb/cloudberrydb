@@ -70,8 +70,10 @@ GddCtxNew(void)
 
 /*
  * Add an edge to one local graph.
+ *
+ * Return the edge.
  */
-void
+GddEdge *
 GddCtxAddEdge(GddCtx *ctx, int segid, int from, int to, bool solid)
 {
 	GddEdge		*edge;
@@ -94,6 +96,8 @@ GddCtxAddEdge(GddCtx *ctx, int segid, int from, int to, bool solid)
 	 * and update global in/out degrees.
 	 */
 	gddEdgeLink(edge);
+
+	return edge;
 }
 
 /*
@@ -404,6 +408,7 @@ gddVertNew(int id)
 	vert->id = id;
 	vert->edgesIn = NIL;
 	vert->edgesOut = NIL;
+	vert->data = NULL;
 
 	return vert;
 }
