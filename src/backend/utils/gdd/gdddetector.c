@@ -31,7 +31,6 @@ static GddGraph *gddGraphNew(int id);
 static GddVert *gddGraphGetVert(GddGraph *graph, int vid);
 static GddEdge *gddGraphMakeEdge(GddGraph *graph, int from, int to, bool solid);
 static void gddGraphRemoveVid(GddGraph *graph, int vid);
-static void gddGraphDump(GddGraph *graph, StringInfo str);
 
 static GddVert *gddVertNew(int id);
 static void gddVertBindStats(GddVert *vert, GddStat *global, GddStat *topstat);
@@ -45,7 +44,6 @@ static void gddEdgeLink(GddEdge *edge);
 static void gddEdgeUnlink(GddEdge *edge, GddListIter *fromiter, GddListIter *toiter);
 static void gddEdgeUnlinkFrom(GddEdge *edge, GddListIter *fromiter);
 static void gddEdgeUnlinkTo(GddEdge *edge, GddListIter *toiter);
-static void gddEdgeDump(GddEdge *edge, StringInfo str);
 
 static void gddMapInit(GddMap *map);
 static void gddMapEnsureCapacity(GddMap *map, int capacity);
@@ -176,32 +174,6 @@ GddCtxEmpty(GddCtx *ctx)
 	Assert(ctx->topstat.indeg == ctx->topstat.outdeg);
 
 	return ctx->topstat.indeg == 0;
-}
-
-/*
- * Dump the graphs.
- */
-void
-GddCtxDump(GddCtx *ctx, StringInfo str)
-{
-	GddMapIter	iter;
-
-	Assert(ctx != NULL);
-	Assert(str != NULL);
-
-	appendStringInfo(str, "{");
-
-	gdd_ctx_foreach_graph(iter, ctx)
-	{
-		GddGraph	*graph = gdd_map_iter_get_ptr(iter);
-
-		gddGraphDump(graph, str);
-
-		if (gdd_map_iter_has_next(iter))
-			appendStringInfo(str, ",");
-	}
-
-	appendStringInfo(str, "}");
 }
 
 /***************************************************************************/
@@ -417,36 +389,6 @@ gddGraphRemoveVid(GddGraph *graph, int vid)
 		/* Only one vert could have vert id equals to vid */
 		break;
 	}
-}
-
-/*
- * Dump the verts and edges.
- */
-static void
-gddGraphDump(GddGraph *graph, StringInfo str)
-{
-	GddMapIter	vertiter;
-	GddListIter	edgeiter;
-	bool		first = true;
-
-	Assert(graph != NULL);
-	Assert(str != NULL);
-
-	appendStringInfo(str, "\"seg%d\": [", graph->id);
-
-	gdd_graph_foreach_out_edge(vertiter, edgeiter, graph)
-	{
-		GddEdge		*edge = gdd_list_iter_get_ptr(edgeiter);
-
-		if (first)
-			first = false;
-		else
-			appendStringInfo(str, ",");
-
-		gddEdgeDump(edge, str);
-	}
-
-	appendStringInfo(str, "]");
 }
 
 /***************************************************************************/
@@ -705,25 +647,6 @@ gddEdgeUnlinkTo(GddEdge *edge, GddListIter *toiter)
 	}
 	else
 		edge->to->edgesIn = list_delete_ptr(edge->to->edgesIn, edge);
-}
-
-/*
- * Dump edge.
- */
-static void
-gddEdgeDump(GddEdge *edge, StringInfo str)
-{
-	Assert(edge != NULL);
-	Assert(edge->from != NULL);
-	Assert(edge->to != NULL);
-	Assert(str != NULL);
-
-	appendStringInfo(str, "\"%d(Master Pid: %d)%s%d(Master Pid: %d)\"",
-					 edge->from->id,
-					 GetPidByGxid(edge->from->id),
-					 edge->solid ? "==>" : "~~>",
-					 edge->to->id,
-					 GetPidByGxid(edge->to->id));
 }
 
 /***************************************************************************/

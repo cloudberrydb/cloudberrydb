@@ -31,6 +31,5 @@ extern void GddCtxAddEdge(GddCtx *ctx, int segid, int from, int to, bool solid);
 extern void GddCtxReduce(GddCtx *ctx);
 extern List *GddCtxBreakDeadLock(GddCtx *ctx);
 extern bool GddCtxEmpty(GddCtx *ctx);
-extern void GddCtxDump(GddCtx *ctx, StringInfo str);
 
 #endif   /* GDD_DETECTOR_H */
