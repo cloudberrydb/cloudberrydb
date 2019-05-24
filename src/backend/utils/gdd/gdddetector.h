@@ -17,6 +17,14 @@
 #include "lib/stringinfo.h"
 
 typedef struct GddCtx		GddCtx;
+typedef struct GddPair		GddPair;
+typedef struct GddMap		GddMap;
+typedef struct GddMapIter	GddMapIter;
+typedef struct GddListIter	GddListIter;
+typedef struct GddEdge		GddEdge;
+typedef struct GddVert		GddVert;
+typedef struct GddGraph		GddGraph;
+typedef struct GddStat		GddStat;
 
 extern GddCtx *GddCtxNew(void);
 extern void GddCtxAddEdge(GddCtx *ctx, int segid, int from, int to, bool solid);
