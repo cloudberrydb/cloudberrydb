@@ -91,7 +91,7 @@ static bool check_pljava_classpath_insecure(bool *newval, void **extra, GucSourc
 static void assign_pljava_classpath_insecure(bool newval, void *extra);
 static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source);
 
-static bool check_memory_spill_ratio(const char **newval, void **extra, GucSource source);
+static bool check_memory_spill_ratio(char **newval, void **extra, GucSource source);
 static void assign_memory_spill_ratio(const char *newval, void *extra);
 static const char *show_memory_spill_ratio(void);
 
@@ -5056,15 +5056,15 @@ check_gp_workfile_compression(bool *newval, void **extra, GucSource source)
 }
 
 
-bool
-check_memory_spill_ratio(const char **newval, void **extra, GucSource source)
+static bool
+check_memory_spill_ratio(char **newval, void **extra, GucSource source)
 {
-	ResGroupMemorySpillFromStr(*newval);
+	ResGroupMemorySpillFromStr((const char *)*newval);
 
 	return true;
 }
 
-void
+static void
 assign_memory_spill_ratio(const char *newval, void *extra)
 {
 	int32		value = ResGroupMemorySpillFromStr(newval);
@@ -5072,7 +5072,7 @@ assign_memory_spill_ratio(const char *newval, void *extra)
 	memory_spill_ratio = value;
 }
 
-const char *
+static const char *
 show_memory_spill_ratio(void)
 {
 	static char buf[16];
