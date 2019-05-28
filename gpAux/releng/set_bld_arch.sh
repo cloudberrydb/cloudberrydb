@@ -20,7 +20,7 @@ case "`uname -s`" in
             ;;
         esac
     fi
-    if [ -f /etc/os-release ]; then
+    if [ -z "${BLD_ARCH_HOST}" -a -f /etc/os-release ]; then
         BLD_ARCH_HOST="$(. /etc/os-release; echo ${ID}${VERSION_ID}_$(uname -p))"
     fi
     ;;
