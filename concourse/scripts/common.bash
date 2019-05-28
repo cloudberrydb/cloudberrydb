@@ -55,9 +55,6 @@ function install_and_configure_gpdb() {
 function make_cluster() {
   source /usr/local/greenplum-db-devel/greenplum_path.sh
   export BLDWRAP_POSTGRES_CONF_ADDONS=${BLDWRAP_POSTGRES_CONF_ADDONS}
-  # Currently, the max_concurrency tests in src/test/isolation2
-  # require max_connections of at least 129.
-  export DEFAULT_QD_MAX_CONNECT=150
   export STATEMENT_MEM=250MB
   pushd gpdb_src/gpAux/gpdemo
   su gpadmin -c "source /usr/local/greenplum-db-devel/greenplum_path.sh; make create-demo-cluster"
