@@ -417,7 +417,8 @@ IsAbortedTransactionBlockState(void)
 bool
 TransactionDidWriteXLog(void)
 {
-	return (XactLastRecEnd != InvalidXLogRecPtr);
+	TransactionState s = CurrentTransactionState;
+	return s->didLogXid;
 }
 
 bool
