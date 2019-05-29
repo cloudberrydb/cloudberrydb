@@ -128,6 +128,7 @@ function include_zstd() {
     case "${TARGET_OS}" in
       centos) libdir=/usr/lib64 ;;
       ubuntu) libdir=/usr/lib ;;
+      *) return ;;
     esac
     cp ${libdir}/pkgconfig/libzstd.pc lib/pkgconfig
     cp -d ${libdir}/libzstd.so* lib
@@ -141,6 +142,7 @@ function include_quicklz() {
     case "${TARGET_OS}" in
       centos) libdir=/usr/lib64 ;;
       ubuntu) libdir=/usr/local/lib ;;
+      *) return ;;
     esac
     cp -d ${libdir}/libquicklz.so* lib
   popd
