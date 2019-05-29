@@ -352,7 +352,7 @@ CPhysicalSort::PrsDerive
 	const
 {
 	// rewindability of output is always true
-	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, CRewindabilitySpec::EmhtNoMotion);
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtMarkRestore, CRewindabilitySpec::EmhtNoMotion);
 }
 
 

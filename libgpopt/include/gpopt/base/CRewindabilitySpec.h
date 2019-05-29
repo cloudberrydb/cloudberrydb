@@ -38,14 +38,22 @@ namespace gpopt
 			// From the perspective of the operator, the enum values mean the
 			// following (in required & derived contexts):
 			//
-			// 1. ErtRewindable:
+			// 1. ErtMarRestore:
+			//    require:
+			//      I require my child to be mark-restorable. This is required by MJ of
+			//      its inner child.
+			//    derive:
+			//      I am mark-restorable. (e.g Spool, Sort, Scan)
+			//    (NB: I cannot derive mark-restorable just because my child is mark-restorable.)
+			//
+			// 2. ErtRewindable:
 			//    require:
 			//      I require my child to be rewindable. This is required by NLJ of
 			//      its inner child.
 			//    derive:
 			//      I am rewindable. (e.g Spool, Sort, Scan)
 			//
-			// 2. ErtRescannable:
+			// 3. ErtRescannable:
 			//    require:
 			//      I require my child to be rescannable, so that I can re-execute
 			//      the entire subtree if needed. This is required by correlated
@@ -54,7 +62,7 @@ namespace gpopt
 			//      I am not rewindable, but I am rescannable. (e.g TVF containing a
 			//      volatile function)
 			//
-			// 3. ErtNone
+			// 4. ErtNone
 			//    require:
 			//      I do not require my child to be rewindable or rescannable. (e.g
 			//      Sort that is not on the inner side of a correlated join)
@@ -63,6 +71,8 @@ namespace gpopt
 			//      table scans)
 			enum ERewindabilityType
 			{
+				ErtMarkRestore, // rewindability with mark & restore support
+
 				ErtRewindable, // rewindability of all intermediate query results
 
 				ErtRescannable, // not rewindable, but can be reexecuted from scratch
@@ -164,7 +174,7 @@ namespace gpopt
 
 			BOOL IsRewindable() const
 			{
-				return Ert() == ErtRewindable;
+				return Ert() == ErtRewindable || Ert() == ErtMarkRestore;
 			}
 
 			BOOL IsRescannable() const
@@ -174,7 +184,7 @@ namespace gpopt
 
 			BOOL IsCheckRequired() const
 			{
-				return Ert() == ErtRescannable || Ert() == ErtRewindable ;
+				return Ert() != ErtNone;
 			}
 
 			BOOL HasMotionHazard() const

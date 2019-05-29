@@ -350,12 +350,14 @@ CPhysicalFilter::PdsDerive
 CRewindabilitySpec *
 CPhysicalFilter::PrsDerive
 	(
-	CMemoryPool *, // mp
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return PrsDerivePassThruOuter(exprhdl);
+	// In theory, CPhysicalFilter can support Mark Restore - we disable it
+	// here for now similar to ExecSupportsMarkRestore().
+	return PrsDerivePassThruOuter(mp, exprhdl);
 }
 
 

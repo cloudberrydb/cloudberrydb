@@ -391,13 +391,13 @@ const
 CRewindabilitySpec *
 CPhysicalUnionAll::PrsDerive
 	(
-		CMemoryPool *, // mp
+		CMemoryPool *mp,
 		CExpressionHandle &exprhdl
 	)
 const
 {
 	// TODO: shardikar; This should check all the children, not only the outer child.
-	return PrsDerivePassThruOuter(exprhdl);
+	return PrsDerivePassThruOuter(mp, exprhdl);
 }
 
 //---------------------------------------------------------------------------

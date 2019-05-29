@@ -436,7 +436,7 @@ namespace gpopt
 				);
 
 			static
-			CRewindabilitySpec *PrsRequiredForNLJoinOuterChild(IMemoryPool *pmp, CExpressionHandle &exprhdl, CRewindabilitySpec *prsRequired);
+			CRewindabilitySpec *PrsRequiredForNLJoinOuterChild(CMemoryPool *pmp, CExpressionHandle &exprhdl, CRewindabilitySpec *prsRequired);
 
 	}; // class CPhysicalJoin
 

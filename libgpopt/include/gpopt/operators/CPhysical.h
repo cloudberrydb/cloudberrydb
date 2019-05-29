@@ -354,7 +354,7 @@ namespace gpopt
 
 			// helper for common case of rewindability derivation
 			static
-			CRewindabilitySpec *PrsDerivePassThruOuter(CExpressionHandle &exprhdl);
+			CRewindabilitySpec *PrsDerivePassThruOuter(CMemoryPool *mp, CExpressionHandle &exprhdl);
 
 			// helper for checking if output columns of a unary operator
 			// that defines no new columns include the required columns

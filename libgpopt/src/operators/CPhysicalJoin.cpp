@@ -405,14 +405,14 @@ CPhysicalJoin::PrsDerive
 		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtRewindable, motion_hazard);
 	}
 
-	// If either child is ErtNone (neither rewindable or rescannable), then the join is also ErtNone
+	// If either child is ErtNone (neither rewindable, rescannable nor mark-restore), then the join is also ErtNone
 	else if (prsOuter->Ert() == CRewindabilitySpec::ErtNone ||
 			prsInner->Ert() == CRewindabilitySpec::ErtNone)
 	{
 		return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone, motion_hazard);
 	}
 
-	// If the children are in any other combination, e.g (rescannable, rewindable) etc,
+	// If the children are in any other combination, e.g (rescannable, rewindable, markrestore) etc,
 	// derive rescannable for the join
 	else
 	{

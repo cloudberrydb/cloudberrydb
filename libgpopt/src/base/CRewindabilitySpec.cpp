@@ -78,14 +78,15 @@ CRewindabilitySpec::Matches
 //	  T - Satisfied
 //	  F - Not satisfied; enforcer required
 //	  M - Maybe satisfied; check motion hazard satisfiability (see below)
-//	+-------------+------+-------------+------------+
-//	|  Derive ->  | None | Rescannable | Rewindable |
-//	|  Required   |      |             |            |
-//	+-------------+------+-------------+------------+
-//	| None        | T    | T           | T          |
-//	| Rescannable | F    | M           | M          |
-//	| Rewindable  | F    | F           | M          |
-//	+-------------+------+-------------+------------+
+//	+-------------+------+-------------+------------+-------------+
+//	|  Derive ->  | None | Rescannable | Rewindable | MarkRestore |
+//	|  Required   |      |             |            |             |
+//	+-------------+------+-------------+------------+-------------+
+//	| None        | T    | T           | T          | T           |
+//	| Rescannable | F    | M           | M          | M           |
+//	| Rewindable  | F    | F           | M          | M           |
+//  | MarkRestore | F    | F           | F          | M           |
+//	+-------------+------+-------------+------------+-------------+
 //
 //	Table 2 - Motion hazard check matrix:
 //	(NB: only applies to the 3 cases in the previous table):
@@ -110,18 +111,23 @@ CRewindabilitySpec::FSatisfies
 		return true;
 	}
 	// ErtNone derived op cannot satisfy rewindable or rescannable requests
-	// (rows 2-3, col 1 in table 1)
+	// (rows 2-4, col 1 in table 1)
 	else if (Ert() == ErtNone)
 	{
 		return false;
 	}
-	// A rewindable request cannot be satisfied by a rescannable op
-	// (row 3 col 2 in table 1)
-	if (Ert() == ErtRescannable && prs->Ert() == ErtRewindable)
+	// A rewindable/MarkRestore request cannot be satisfied by a rescannable op
+	// (row 3-4 col 2 in table 1)
+	if (Ert() == ErtRescannable && (prs->Ert() == ErtRewindable || prs->Ert() == ErtMarkRestore))
 	{
 		return false;
 	}
-
+	// A MarkRestore request cannot be satisified by a rewindable op
+	// (row 4 col 3 in table 1)
+	if (Ert() == ErtRewindable && prs->Ert() == ErtMarkRestore)
+	{
+		return false;
+	}
 	// For the rest, check motion hazard satisfiability:
 
 	// A request to handle motion hazard cannot be satisfied by an op that
@@ -229,6 +235,10 @@ CRewindabilitySpec::OsPrint
 
 		case ErtNone:
 			os << "NONE";
+			break;
+
+		case ErtMarkRestore:
+			os << "MARK-RESTORE";
 			break;
 
 		default:

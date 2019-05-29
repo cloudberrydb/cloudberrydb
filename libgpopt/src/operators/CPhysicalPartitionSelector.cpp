@@ -787,12 +787,12 @@ CPhysicalPartitionSelector::PpimDerive
 CRewindabilitySpec *
 CPhysicalPartitionSelector::PrsDerive
 	(
-	CMemoryPool *, // mp
+	CMemoryPool *mp,
 	CExpressionHandle &exprhdl
 	)
 	const
 {
-	return PrsDerivePassThruOuter(exprhdl);
+	return PrsDerivePassThruOuter(mp, exprhdl);
 }
 
 //---------------------------------------------------------------------------
@@ -844,13 +844,21 @@ CPhysicalPartitionSelector::EpetDistribution
 CEnfdProp::EPropEnforcingType
 CPhysicalPartitionSelector::EpetRewindability
 	(
-	CExpressionHandle &, // exprhdl
-	const CEnfdRewindability * // per
+	CExpressionHandle &exprhdl,
+	const CEnfdRewindability *per
 	)
 	const
 {
-	// rewindability is preserved on operator's output
-	return CEnfdProp::EpetOptional;
+	// get rewindability delivered by the node
+	CRewindabilitySpec *prs = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Prs();
+	if (per->FCompatible(prs))
+	{
+		// required rewindability is already provided
+		return CEnfdProp::EpetUnnecessary;
+	}
+
+	// always force spool to be on top of filter
+	return CEnfdProp::EpetRequired;
 }
 
 //---------------------------------------------------------------------------

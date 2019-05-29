@@ -438,7 +438,7 @@ CPhysicalComputeScalar::PrsDerive
 	)
 	const
 {
-	CRewindabilitySpec *prsChild = PrsDerivePassThruOuter(exprhdl);
+	CRewindabilitySpec *prsChild = PrsDerivePassThruOuter(mp, exprhdl);
 
 	CDrvdPropScalar *pdpscalar = exprhdl.GetDrvdScalarProps(1 /*ulChildIndex*/);
 	if (pdpscalar->FHasNonScalarFunction() || IMDFunction::EfsVolatile == pdpscalar->Pfp()->Efs())

@@ -143,6 +143,18 @@ namespace gpopt
 			{
 				return GPOS_NEW(mp) CPartIndexMap(mp);
 			}
+
+			virtual
+			CRewindabilitySpec *PrsDerive
+				(
+				CMemoryPool *mp,
+				CExpressionHandle & // exprhdl
+				)
+				const
+			{
+				// rewindability of output is always true
+				return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtMarkRestore, CRewindabilitySpec::EmhtNoMotion);
+			}
 			
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties
