@@ -81,6 +81,38 @@ function gen_env(){
     chmod a+x /opt/run_test.sh
 }
 
+function setup_coverage() {
+    # Enables coverage.py on this machine. Note that this function modifies
+    # greenplum_path.sh, so callers need to source that file AFTER this is done.
+    local commit_sha
+    read -r commit_sha < ./gpdb_src/.git/HEAD
+    local coverage_path="$(pwd)/coverage/$commit_sha"
+
+    # This file will be copied into GPDB's PYTHONPATH; it sets up the coverage
+    # hook for all Python source files that are executed.
+    cat > /tmp/sitecustomize.py <<SITEEOF
+import coverage
+coverage.process_startup()
+SITEEOF
+
+    # Set up coverage.py to handle analysis from multiple parallel processes.
+    cat > /tmp/coveragerc <<COVEOF
+[run]
+branch = True
+data_file = $coverage_path/coverage
+parallel = True
+COVEOF
+
+    # Now copy everything over to the installation.
+    cp /tmp/sitecustomize.py /usr/local/greenplum-db-devel/lib/python
+    cp /tmp/coveragerc /usr/local/greenplum-db-devel
+    mkdir -p $coverage_path
+    chown gpadmin:gpadmin $coverage_path
+
+    # Enable coverage instrumentation after sourcing greenplum_path.
+    echo 'export COVERAGE_PROCESS_START=/usr/local/greenplum-db-devel/coveragerc' >> /usr/local/greenplum-db-devel/greenplum_path.sh
+}
+
 function _main() {
 
     if [ -z "${BEHAVE_TAGS}" ] && [ -z "${BEHAVE_FLAGS}" ]; then
@@ -99,7 +131,17 @@ function _main() {
     time install_python_requirements
     time gen_env
 
+    # Enable coverage.py.
+    time setup_coverage
+
     time run_test
+
+    # Uniquify the coverage files a little bit with the $TEST_NAME.
+    pushd ./coverage/*
+        for f in *; do
+            mv "$f" "$TEST_NAME.$f"
+        done
+    popd
 }
 
 _main "$@"

@@ -2,6 +2,8 @@ platform: linux
 inputs:
  - name: ccp_src
  - name: cluster_env_files
+outputs:
+ - name: coverage
 run:
   path: bash
   args:
@@ -30,3 +32,18 @@ run:
     # TODO: ask CCP maintainers for a feature to do this for us
     scp cluster_env_files/hostfile_all mdw:/tmp
     ssh -t mdw "$CUSTOM_ENV bash /home/gpadmin/gpdb_src/concourse/scripts/run_behave_test.sh \"$BEHAVE_FLAGS\""
+
+    # Collect coverage data.
+    while read -r host; do
+        scp -r "$host:/tmp/coverage/*" ./coverage/
+    done < cluster_env_files/hostfile_all
+
+    # Uniquify the coverage files a little bit with the $TEST_NAME.
+    pushd coverage/*
+        for f in *; do
+            mv "$f" "$TEST_NAME.$f"
+        done
+
+        # Compress coverage files and remove the originals
+        tar --remove-files -cf "ccp-$TEST_NAME.tar" *
+    popd

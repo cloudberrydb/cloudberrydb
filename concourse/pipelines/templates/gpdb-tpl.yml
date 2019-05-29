@@ -462,6 +462,8 @@ resources:
     repository: pivotaldata/gpdb6-centos7-build
     tag: latest
 
+{% endif %}
+{% if "centos7" in os_types or "CLI" in test_sections %}
 - name: gpdb6-centos7-test
   type: docker-image
   source:
@@ -1460,6 +1462,7 @@ jobs:
             - gpMgmt/bin/pythonSrc/ext
         passed: [gate_cli_start]
       - get: gpdb6-centos6-test
+      - get: gpdb6-centos7-test
     - aggregate:
       {% if test.use_concourse_cluster %}
       - do:
@@ -1486,10 +1489,25 @@ jobs:
           image: ccp-image
           params:
             BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=concourse_cluster
+            TEST_NAME: [[ test.name ]]
           on_success:
             <<: *ccp_destroy
           ensure:
             <<: *set_failed
+          output_mapping:
+            coverage: ccp-coverage
+        - task: publish_ccp_coverage
+          image: gpdb6-centos7-test
+          config:
+            platform: linux
+            inputs:
+              - name: gpdb_src
+              - name: ccp-coverage
+            run:
+              path: gpdb_src/concourse/scripts/gsutil_sync
+              args: [ "./ccp-coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+            params:
+              JSON_KEY: ((concourse-gcs-resources-service-account-key))
       {% endif %}
       - do:
         - get: bin_gpdb
@@ -1501,6 +1519,21 @@ jobs:
           image: gpdb6-centos6-test
           params:
             BEHAVE_FLAGS: --tags=[[ test.name ]] --tags=~concourse_cluster,demo_cluster
+            TEST_NAME: [[ test.name ]]
+          output_mapping:
+            coverage: demo-coverage
+        - task: publish_demo_coverage
+          image: gpdb6-centos7-test
+          config:
+            platform: linux
+            inputs:
+              - name: gpdb_src
+              - name: demo-coverage
+            run:
+              path: gpdb_src/concourse/scripts/gsutil_sync
+              args: [ "./demo-coverage/", "gs://((coverage-bucket-name))/((pipeline-name))/" ]
+            params:
+              JSON_KEY: ((concourse-gcs-resources-service-account-key))
 
 {% endfor %}
 

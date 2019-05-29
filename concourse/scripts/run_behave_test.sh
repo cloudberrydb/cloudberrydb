@@ -3,6 +3,40 @@ set -ex
 
 BEHAVE_FLAGS=$@
 
+function setup_coverage() {
+    # Enables coverage.py on all hosts in the cluster. Note that this function
+    # modifies greenplum_path.sh, so callers need to source that file AFTER this
+    # is done.
+    local commit_sha
+    read -r commit_sha < /home/gpadmin/gpdb_src/.git/HEAD
+    local coverage_path="/tmp/coverage/$commit_sha"
+
+    # This file will be copied into GPDB's PYTHONPATH; it sets up the coverage
+    # hook for all Python source files that are executed.
+    cat > /tmp/sitecustomize.py <<SITEEOF
+import coverage
+coverage.process_startup()
+SITEEOF
+
+    # Set up coverage.py to handle analysis from multiple parallel processes.
+    cat > /tmp/coveragerc <<COVEOF
+[run]
+branch = True
+data_file = $coverage_path/coverage
+parallel = True
+COVEOF
+
+    # Now copy everything over to the hosts.
+    while read -r host; do
+        scp /tmp/sitecustomize.py "$host":/usr/local/greenplum-db-devel/lib/python
+        scp /tmp/coveragerc "$host":/usr/local/greenplum-db-devel
+        ssh "$host" "mkdir -p $coverage_path" < /dev/null
+
+        # Enable coverage instrumentation after sourcing greenplum_path.
+        ssh "$host" "echo 'export COVERAGE_PROCESS_START=/usr/local/greenplum-db-devel/coveragerc' >> /usr/local/greenplum-db-devel/greenplum_path.sh" < /dev/null
+    done < /tmp/hostfile_all
+}
+
 # virtualenv 16.0 and greater does not support python2.6, which is
 # used on centos6
 pip install --user virtualenv~=15.0
@@ -26,10 +60,14 @@ virtualenv \
 mkdir -p /tmp/py-requirements
 source /tmp/venv/bin/activate
     pip install --prefix /tmp/py-requirements -r /home/gpadmin/gpdb_src/gpMgmt/requirements-dev.txt
-    while read host; do
-        rsync -rz /tmp/py-requirements/ $host:/usr/local/greenplum-db-devel/ext/python/
+    while read -r host; do
+        rsync -rz /tmp/py-requirements/ "$host":/usr/local/greenplum-db-devel/ext/python/
     done < /tmp/hostfile_all
 deactivate
+
+# Enable coverage.py on all hosts. (This modifies greenplum_path.sh and must
+# come before the source below.)
+setup_coverage
 
 cat > ~/gpdb-env.sh << EOF
   source /usr/local/greenplum-db-devel/greenplum_path.sh

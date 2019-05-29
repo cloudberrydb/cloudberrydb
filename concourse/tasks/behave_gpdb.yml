@@ -5,9 +5,11 @@ inputs:
   - name: gpdb_src
   - name: bin_gpdb
 outputs:
+  - name: coverage
 params:
   BEHAVE_TAGS: ""
   BEHAVE_FLAGS: ""
   BLDWRAP_POSTGRES_CONF_ADDONS: ""
+  TEST_NAME: ""
 run:
   path: gpdb_src/concourse/scripts/behave_gpdb.bash
