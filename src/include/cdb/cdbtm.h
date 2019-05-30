@@ -291,6 +291,9 @@ extern DistributedTransactionTimeStamp getDtxStartTime(void);
 extern void dtxCrackOpenGid(const char	*gid,
 							DistributedTransactionTimeStamp	*distribTimeStamp,
 							DistributedTransactionId		*distribXid);
+extern void dtxFormGID(char *gid,
+					   DistributedTransactionTimeStamp tstamp,
+					   DistributedTransactionId gxid);
 extern DistributedTransactionId getDistributedTransactionId(void);
 extern bool getDistributedTransactionIdentifier(char *id);
 
