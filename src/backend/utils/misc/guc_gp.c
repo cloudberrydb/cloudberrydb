@@ -562,6 +562,7 @@ static const struct config_enum_entry optimizer_join_order_options[] = {
 	{"query", JOIN_ORDER_IN_QUERY},
 	{"greedy", JOIN_ORDER_GREEDY_SEARCH},
 	{"exhaustive", JOIN_ORDER_EXHAUSTIVE_SEARCH},
+	{"exhaustive2", JOIN_ORDER_EXHAUSTIVE2_SEARCH},
 	{NULL, 0}
 };
 
@@ -4726,7 +4727,7 @@ struct config_enum ConfigureNamesEnum_gp[] =
 	{
 		{"optimizer_join_order", PGC_USERSET, QUERY_TUNING_OTHER,
 			gettext_noop("Set optimizer join heuristic model."),
-			gettext_noop("Valid values are query, greedy and exhaustive"),
+			gettext_noop("Valid values are query, greedy, exhaustive and exhaustive2"),
 			GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_join_order,
