@@ -78,9 +78,6 @@ namespace gpopt
 			static GPOS_RESULT EresUnittest_IndexPartConstraint();
 			static GPOS_RESULT EresUnittest_Cast();
 			static GPOS_RESULT EresUnittest_ScCmp();
-
-			static GPOS_RESULT EresUnittest_ConcurrentAccessSingleMDA();
-			static GPOS_RESULT EresUnittest_ConcurrentAccessMultipleMDA();
 			static GPOS_RESULT EresUnittest_PrematureMDIdRelease();
 
 	}; // class CMDAccessorTest
