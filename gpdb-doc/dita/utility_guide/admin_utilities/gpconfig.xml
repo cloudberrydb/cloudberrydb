@@ -80,6 +80,7 @@
             mirrors, the master, and the standby master.</pd>
           <pd>The utility correctly quotes the value when adding the setting to the
               <codeph>postgresql.conf</codeph> files.</pd>
+          <pd>To set the value to an empty string, enter empty single quotes (<codeph>''</codeph>). </pd>
         </plentry>
         <plentry>
           <pt>-m | --mastervalue <varname>master_value</varname></pt>
