@@ -44,7 +44,6 @@
             <topicref href="admin_utilities/gpreload.xml"/>
             <topicref href="admin_utilities/gprestore.xml"/>
             <topicref href="admin_utilities/gpscp.xml"/>
-            <topicref href="admin_utilities/gpseginstall.xml"/>
             <topicref href="admin_utilities/gpssh.xml"/>
             <topicref href="admin_utilities/gpssh-exkeys.xml"/>
             <topicref href="admin_utilities/gpstart.xml"/>
