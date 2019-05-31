@@ -6,11 +6,6 @@ ifeq "$(BLD_ARCH)" ""
 export BLD_ARCH:=$(shell $(BLD_TOP)/releng/set_bld_arch.sh)
 endif
 
-# map builds on OpenSUSE to look like SUSE enterprise 10, for now
-ifeq "$(BLD_ARCH)" "suse11.4_x86_64"
-export BLD_ARCH=suse10_x86_64
-endif
-
 # include thirdparty infrastructure which depends on WHERE_THE...
 BLD_WHERE_THE_LIBRARY_THINGS_ARE=LD_LIBRARY_PATH
 aix7_ppc_64_WHERE_THE_LIBRARY_THINGS_ARE=LIBPATH
@@ -65,9 +60,7 @@ aix7_ppc_64_PYTHONHOME=/opt/freeware
 rhel6_x86_64_PYTHONHOME=$(BLD_THIRDPARTY_DIR)/python-2.7.12
 rhel7_x86_64_PYTHONHOME=$(BLD_THIRDPARTY_DIR)/python-2.7.12
 ubuntu18.04_x86_64_PYTHONHOME=$(BLD_THIRDPARTY_DIR)/python-2.7.12
-suse10_x86_64_PYTHONHOME=$(BLD_THIRDPARTY_DIR)/python-2.7.12
-suse11_x86_64_PYTHONHOME=$(BLD_THIRDPARTY_DIR)/python-2.7.12
-sles11_x86_64_PYTHONHOME=$(BLD_THIRDPARTY_DIR)/python-2.7.12
+
 ifneq "$($(BLD_ARCH)_PYTHONHOME)" ""
 export PYTHONHOME=$($(BLD_ARCH)_PYTHONHOME)
 endif
@@ -106,9 +99,6 @@ export NO_M64=1
 # 32-bit/64-bit compiler/linker flag settings
 rhel6_x86_64_BLD_CFLAGS=-m64 -gdwarf-2 -gstrict-dwarf
 rhel7_x86_64_BLD_CFLAGS=-m64
-suse10_x86_64_BLD_CFLAGS=-m64
-suse11_x86_64_BLD_CFLAGS=-m64
-sles11_x86_64_BLD_CFLAGS=-m64
 aix7_ppc_64_BLD_CFLAGS=-maix64
 BLD_CFLAGS=$($(BLD_ARCH)_BLD_CFLAGS)
 

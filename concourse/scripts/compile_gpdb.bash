@@ -62,12 +62,6 @@ function link_python() {
   ln -sf $(pwd)/${GPDB_SRC_PATH}/gpAux/ext/${BLD_ARCH}/python-2.7.12 /opt/python-2.7.12
 }
 
-function prep_env_for_sles() {
-  export JAVA_HOME=$(expand_glob_ensure_exists /usr/java/jdk1.7*)
-  export PATH=${JAVA_HOME}/bin:${PATH}
-  source /opt/gcc_env.sh
-}
-
 function generate_build_number() {
   pushd ${GPDB_SRC_PATH}
     #Only if its git repro, add commit SHA as build number
@@ -76,10 +70,6 @@ function generate_build_number() {
       echo "commit:`git rev-parse HEAD`" > BUILD_NUMBER
     fi
   popd
-}
-
-function link_tools_for_sles() {
-  ln -sf "$(expand_glob_ensure_exists $(pwd)/${GPDB_SRC_PATH}/gpAux/ext/*/python-2.7.12 )" /opt
 }
 
 function build_gpdb() {
@@ -229,16 +219,12 @@ function _main() {
       install_deps
       link_python
       ;;
-    sles)
-      prep_env_for_sles
-      link_tools_for_sles
-      ;;
     win32)
         export BLD_ARCH=win32
         CONFIGURE_FLAGS="${CONFIGURE_FLAGS} --disable-pxf"
         ;;
     *)
-        echo "only centos, sles, ubuntu, and win32 are supported TARGET_OS'es"
+        echo "only centos, ubuntu, and win32 are supported TARGET_OS'es"
         false
         ;;
   esac

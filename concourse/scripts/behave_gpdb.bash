@@ -10,16 +10,7 @@ function install_python_hacks() {
     # LD_LIBRARY_PATH which causes virtualenv to fail (because the system and
     # vendored libpythons collide). We'll try our best to install patchelf to
     # fix this later, but it's not available on all platforms.
-    if which zypper > /dev/null; then
-        zypper addrepo https://download.opensuse.org/repositories/devel:tools:building/SLE_12_SP4/devel:tools:building.repo
-        # Note that this will fail on SLES11.
-        if ! zypper --non-interactive --gpg-auto-import-keys install patchelf; then
-            set +x
-            echo 'WARNING: could not install patchelf; virtualenv may fail later'
-            echo 'WARNING: This is a known issue on SLES11.'
-            set -x
-        fi
-    elif which yum > /dev/null; then
+    if which yum > /dev/null; then
         yum install -y patchelf
     else
         set +x

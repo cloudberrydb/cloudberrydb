@@ -57,9 +57,6 @@ groups:
 {% if "win" in os_types %}
   - compile_gpdb_clients_windows
 {% endif %}
-{% if "sles" in os_types %}
-  - compile_gpdb_sles11
-{% endif %}
 {% if "ICW" in test_sections %}
   ## --------------------------------------------------------------------
 {% if "centos6" in os_types %}
@@ -80,11 +77,6 @@ groups:
   - icw_gporca_ubuntu18.04
   - icw_planner_ubuntu18.04
 {% endif %}
-{% if "sles" in os_types %}
-  - icw_gporca_sles11
-  - icw_gporca_sles12
-  - icw_planner_sles12
-{% endif %}
   - gate_icw_end
 {% endif %}
 {% if "Interconnect" in test_sections %}
@@ -98,9 +90,6 @@ groups:
 {% if "centos7" in os_types %}
   - resource_group_centos7
 {% endif %}
-{% if "sles" in os_types %}
-  - resource_group_sles12
-{% endif %}
 {% endif %}
 {% if "Gpperfmon" in test_sections %}
   ## --------------------------------------------------------------------
@@ -108,9 +97,6 @@ groups:
   - gpperfmon_centos6
 {% if "centos7" in os_types %}
   - gpperfmon_centos7
-{% endif %}
-{% if "sles" in os_types %}
-  - gpperfmon_sles12
 {% endif %}
 {% endif %}
 {% if "CLI" in test_sections %}
@@ -168,9 +154,6 @@ groups:
 {% if "ubuntu18.04" in os_types %}
   - compile_gpdb_ubuntu18.04
 {% endif %}
-{% if "sles" in os_types %}
-  - compile_gpdb_sles11
-{% endif %}
 {% if "win" in os_types %}
   - compile_gpdb_clients_windows
 {% endif %}
@@ -198,12 +181,6 @@ groups:
 {% if "ubuntu18.04" in os_types %}
   - icw_gporca_ubuntu18.04
   - icw_planner_ubuntu18.04
-{% endif %}
-{% if "sles" in os_types %}
-  - icw_gporca_sles11
-  - icw_gporca_sles12
-  - icw_planner_sles12
-  - compile_gpdb_sles11
 {% endif %}
   - gate_icw_end
 
@@ -242,10 +219,6 @@ groups:
   - resource_group_centos7
   - compile_gpdb_centos7
 {% endif %}
-{% if "sles" in os_types %}
-  - resource_group_sles12
-  - compile_gpdb_sles11
-{% endif %}
 
 {% endif %}
 {% if "Gpperfmon" in test_sections %}
@@ -259,10 +232,6 @@ groups:
 {% if "centos7" in os_types %}
   - gpperfmon_centos7
   - compile_gpdb_centos7
-{% endif %}
-{% if "sles" in os_types %}
-  - gpperfmon_sles12
-  - compile_gpdb_sles11
 {% endif %}
 
 {% endif %}
@@ -327,10 +296,7 @@ resource_types:
 ## ======================================================================
 
 resources:
-{% if ("ICW"    in test_sections and "sles" in os_types) or
-      "ResourceGroups"     in test_sections or
-      ("Gpperfmon"    in test_sections and "sles" in os_types) or
-      "CLI"      in test_sections %}
+{% if "ResourceGroups" in test_sections or "CLI" in test_sections %}
 - name: ccp_src
   type: git
   source:
@@ -477,7 +443,7 @@ resources:
     versioned_file: ubuntu18.04/python-2.7.12.tar.gz
 
 {% endif %}
-{% if "centos6" in os_types or "sles" in os_types %}
+{% if "centos6" in os_types %}
 - name: gpdb6-centos6-build
   type: docker-image
   source:
@@ -583,15 +549,6 @@ resources:
     secret_access_key: {{bucket-secret-access-key}}
     versioned_file: release_candidates/bin_gpdb_centos7/master/((rc-build-type))/bin_gpdb.tar.gz
 
-    ## - name: bin_gpdb_sles11_rc
-    ##   type: s3
-    ##   source:
-    ##     access_key_id: {{bucket-access-key-id}}
-    ##     bucket: {{gpdb-stable-builds-bucket-name}}
-    ##     region_name: {{aws-region}}
-    ##     secret_access_key: {{bucket-secret-access-key}}
-    ##     versioned_file: release_candidates/bin_gpdb_sles11/master/((rc-build-type))/bin_gpdb.tar.gz
-
 - name: bin_gpdb_clients_centos6_rc
   type: gcs
   source:
@@ -653,15 +610,6 @@ resources:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
     versioned_file: ((pipeline-name))/bin_gpdb_clients_ubuntu18.04/bin_gpdb_clients.tar.gz
-
-{% endif %}
-{% if "sles" in os_types %}
-- name: bin_gpdb_sles11
-  type: gcs
-  source:
-    bucket: ((gcs-bucket-intermediates))
-    json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_sles11/bin_gpdb.tar.gz
 
 {% endif %}
 {% if "win" in os_types %}
@@ -947,39 +895,6 @@ jobs:
     - put: bin_gpdb_clients_centos7
       params:
         file: gpdb_artifacts/gpdb-clients-centos7.tar.gz
-
-{% endif %}
-{% if "sles" in os_types %}
-- name: compile_gpdb_sles11
-  plan:
-  - aggregate:
-    - get: reduced-frequency-trigger
-      trigger: ((reduced-frequency-trigger-flag))
-    - get: gpdb_src
-      trigger: ((gpdb_src-trigger-flag))
-    - get: gpdb6-centos7-build
-  - task: sync_tools
-    file: gpdb_src/concourse/tasks/sync_tools.yml
-    image: gpdb6-centos7-build
-    params:
-      IVYREPO_HOST: {{ivyrepo_host}}
-      IVYREPO_REALM: {{ivyrepo_realm}}
-      IVYREPO_USER: {{ivyrepo_user}}
-      IVYREPO_PASSWD: {{ivyrepo_passwd}}
-      TARGET_OS: sles
-      TARGET_OS_VERSION:
-      TASK_OS: centos
-      TASK_OS_VERSION: 7
-  - task: compile_gpdb
-    file: gpdb_src/concourse/tasks/compile_gpdb_sles11.yml
-    params:
-      CONFIGURE_FLAGS: {{configure_flags_with_extensions}}
-      TARGET_OS: sles
-      TARGET_OS_VERSION:
-      BLD_TARGETS: "clients loaders"
-  - put: bin_gpdb_sles11
-    params:
-      file: gpdb_artifacts/bin_gpdb.tar.gz
 
 {% endif %}
 {% if "centos6" in os_types %}
@@ -1268,104 +1183,6 @@ jobs:
         CONFIGURE_FLAGS: {{configure_flags}}
 
 {% endif %}
-{% if "sles" in os_types %}
-- name: icw_gporca_sles11
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_sles11]
-    - get: bin_gpdb
-      resource: bin_gpdb_sles11
-      passed: [compile_gpdb_sles11]
-      trigger: [[ test_trigger ]]
-  - task: ic_gpdb
-    file: gpdb_src/concourse/tasks/ic_gpdb_sles11.yml
-    params:
-      MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=on' installcheck-world
-      TEST_OS: sles
-      CONFIGURE_FLAGS: {{configure_flags}}
-
-- name: icw_gporca_sles12
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_sles11]
-    - get: gpdb_binary
-      resource: bin_gpdb_sles11
-      passed: [compile_gpdb_sles11]
-      trigger: true
-    - get: ccp_src
-    - get: ccp-image
-  - put: terraform
-    params:
-      <<: *ccp_default_params
-      vars:
-        <<: *ccp_default_vars
-        PLATFORM: sles12
-        disk_size: 128
-        number_of_nodes: 1
-        default_image_user: root
-        instance_type: n1-standard-4
-  - task: gen_cluster
-    file: ccp_src/ci/tasks/gen_cluster.yml
-    params:
-      <<: *ccp_gen_cluster_default_params
-      # PLATFORM is necessary to generate correct ssh config
-      PLATFORM: sles12
-  - task: gpinitsystem
-    file: ccp_src/ci/tasks/gpinitsystem.yml
-  - task: run_tests
-    file: gpdb_src/concourse/tasks/ic_gpdb_sles12.yml
-    image: ccp-image
-    params:
-      MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=on' installcheck-world
-      TEST_OS: sles12
-    on_success:
-      <<: *ccp_destroy
-  ensure:
-    <<: *set_failed
-
-- name: icw_planner_sles12
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_sles11]
-    - get: gpdb_binary
-      resource: bin_gpdb_sles11
-      passed: [compile_gpdb_sles11]
-      trigger: true
-    - get: ccp_src
-    - get: ccp-image
-  - put: terraform
-    params:
-      <<: *ccp_default_params
-      vars:
-        <<: *ccp_default_vars
-        PLATFORM: sles12
-        disk_size: 128
-        number_of_nodes: 1
-        default_image_user: root
-        instance_type: n1-standard-4
-  - task: gen_cluster
-    file: ccp_src/ci/tasks/gen_cluster.yml
-    params:
-      <<: *ccp_gen_cluster_default_params
-      # PLATFORM is necessary to generate correct ssh config
-      PLATFORM: sles12
-  - task: gpinitsystem
-    file: ccp_src/ci/tasks/gpinitsystem.yml
-  - task: run_tests
-    file: gpdb_src/concourse/tasks/ic_gpdb_sles12.yml
-    image: ccp-image
-    params:
-      MAKE_TEST_COMMAND: -k PGOPTIONS='-c optimizer=off' installcheck-world
-      TEST_OS: sles12
-    on_success:
-      <<: *ccp_destroy
-  ensure:
-    <<: *set_failed
-
-{% endif %}
 - name: gate_icw_end
   plan:
   - aggregate:
@@ -1398,11 +1215,6 @@ jobs:
 {% endif %}
 {% if "centos7" in os_types %}
       - icw_gporca_centos7
-{% endif %}
-{% if "sles" in os_types %}
-      - icw_gporca_sles11
-      - icw_gporca_sles12
-      - icw_planner_sles12
 {% endif %}
       trigger: true
 {% if pipeline_configuration == "prod" and "centos6" in os_types %}
@@ -1457,9 +1269,6 @@ jobs:
     - get: gpdb_src
       passed:
       - compile_gpdb_centos6
-{% if "sles" in os_types %}
-      - compile_gpdb_sles11
-{% endif %}
 {% if "centos7" in os_types %}
       - compile_gpdb_centos7
 {% endif %}
@@ -1471,11 +1280,6 @@ jobs:
     - get: bin_gpdb_centos7
       passed:
       - compile_gpdb_centos7
-{% endif %}
-{% if "sles" in os_types %}
-    - get: bin_gpdb_sles11
-      passed:
-      - compile_gpdb_sles11
 {% endif %}
 {% if "centos6" in os_types or "centos7" in os_types %}
     - get: binary_swap_gpdb
@@ -1562,47 +1366,6 @@ jobs:
     <<: *set_failed
 
 {% endif %}
-{% if "sles" in os_types %}
-- name: resource_group_sles12
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [gate_resource_groups_start]
-    - get: gpdb_binary
-      resource: bin_gpdb_sles11
-      passed: [gate_resource_groups_start]
-      trigger: true
-    - get: ccp_src
-    - get: ccp-image
-  - put: terraform
-    params:
-      <<: *ccp_default_params
-      vars:
-        <<: *ccp_default_vars
-        PLATFORM: sles12
-        instance_type: n1-standard-2
-        default_image_user: root
-  - task: gen_cluster
-    file: ccp_src/ci/tasks/gen_cluster.yml
-    params:
-      <<: *ccp_gen_cluster_default_params
-      # PLATFORM is necessary to generate correct ssh config
-      PLATFORM: sles12
-  - task: gpinitsystem
-    file: ccp_src/ci/tasks/gpinitsystem.yml
-  - task: run_tests
-    file: gpdb_src/concourse/tasks/ic_gpdb_resgroup.yml
-    image: ccp-image
-    params:
-      TEST_OS: sles12
-      # TODO: remove this line as soon as zstd is vendored in the binary installer for SLES12
-      CONFIGURE_FLAGS: --without-zstd
-    on_success:
-      <<: *ccp_destroy
-  ensure:
-    <<: *set_failed
-
-{% endif %}
 
 {% endif %}
 
@@ -1622,9 +1385,6 @@ jobs:
     - get: gpdb_src
       passed:
       - compile_gpdb_centos6
-{% if "sles" in os_types %}
-      - compile_gpdb_sles11
-{% endif %}
 {% if "centos7" in os_types %}
       - compile_gpdb_centos7
 {% endif %}
@@ -1636,11 +1396,6 @@ jobs:
     - get: bin_gpdb_centos7
       passed:
       - compile_gpdb_centos7
-{% endif %}
-{% if "sles" in os_types %}
-    - get: bin_gpdb_sles11
-      passed:
-      - compile_gpdb_sles11
 {% endif %}
 {% if "centos6" in os_types or "centos7" in os_types %}
     - get: binary_swap_gpdb
@@ -1687,47 +1442,6 @@ jobs:
     image: gpdb6-centos7-test
     params:
       BEHAVE_TAGS: gpperfmon
-
-{% endif %}
-{% if "sles" in os_types %}
-- name: gpperfmon_sles12
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      params:
-        submodules:
-        - gpMgmt/bin/pythonSrc/ext
-      passed: [gate_gpperfmon_start]
-    - get: gpdb_binary
-      resource: bin_gpdb_sles11
-      passed: [gate_gpperfmon_start]
-      trigger: true
-    - get: ccp_src
-    - get: ccp-image
-  - put: terraform
-    params:
-      <<: *ccp_default_params
-      vars:
-        <<: *ccp_default_vars
-        PLATFORM: sles12
-  - task: gen_cluster
-    file: ccp_src/ci/tasks/gen_cluster.yml
-    params:
-      <<: *ccp_gen_cluster_default_params
-      # PLATFORM is necessary to generate correct ssh config
-      PLATFORM: sles12
-  - task: gpinitsystem
-    file: ccp_src/ci/tasks/gpinitsystem.yml
-  - task: run_tests
-    file: gpdb_src/concourse/tasks/run_behave_on_ccp_cluster.yml
-    image: ccp-image
-    params:
-      BEHAVE_FLAGS: --tags=gpperfmon
-      TEST_OS: sles12
-    on_success:
-      <<: *ccp_destroy
-  ensure:
-    <<: *set_failed
 
 {% endif %}
 
@@ -2081,24 +1795,18 @@ jobs:
       - compile_gpdb_open_source_centos6
       - compile_gpdb_centos7
       - compile_gpdb_ubuntu18.04
- ##     - compile_gpdb_sles11
       - icw_planner_centos6
       - icw_gporca_centos6
       - icw_gporca_centos7
       - icw_planner_centos7
       - icw_gporca_ubuntu18.04
       - icw_planner_ubuntu18.04
- ##     - icw_gporca_sles11
- ##     - icw_gporca_sles12
- ##     - icw_planner_sles12
       - icw_planner_ictcp_centos6
       - icw_extensions_gpcloud_centos6
       - resource_group_centos6
       - resource_group_centos7
       - gpperfmon_centos6
       - gpperfmon_centos7
-      - gpperfmon_sles12
- ##     - resource_group_sles12
 {% for test in CLI_BEHAVE_TESTS %}
       - [[ test.name ]]
 {% endfor %}
@@ -2137,14 +1845,6 @@ jobs:
       - resource_group_centos7
  ##     - MADlib_Test_orca_centos7
  ##     - MADlib_Test_planner_centos7
- ##     - get: bin_gpdb_sles11
- ##     trigger: true
- ##     passed:
- ##     - compile_gpdb_sles11
- ##     - icw_gporca_sles11
- ##     - icw_gporca_sles12
- ##     - icw_planner_sles12
- ##     - resource_group_sles12
     - get: bin_gpdb_clients_centos6
       passed:
       - compile_gpdb_centos6
@@ -2186,9 +1886,6 @@ jobs:
       trigger: true
       passed: [gate_release_candidate_start]
     - get: gpdb6-centos6-build
-##   - get: bin_gpdb_sles11
-##     trigger: true
-##     passed: [gate_release_candidate_start]
   - aggregate:
     - task: rename_rc_artifacts
       file: gpdb_src/concourse/tasks/rename_rc_artifacts.yml
@@ -2222,9 +1919,6 @@ jobs:
       params:
         file: bin_gpdb_centos7/bin_gpdb.tar.gz
 
-## - put: bin_gpdb_sles11_rc
-##   params:
-##      file: bin_gpdb_sles11/bin_gpdb.tar.gz
 {% endif %}
 
 ## ======================================================================

@@ -71,11 +71,6 @@ JOBS_THAT_SHOULD_NOT_BLOCK_RELEASE = (
         'compile_gpdb_clients_windows',
         'icw_gporca_centos6_gpos_memory',
         'walrep_2',
-        'compile_gpdb_sles11',
-        'icw_gporca_sles11',
-        'icw_gporca_sles12',
-        'icw_planner_sles12',
-        'resource_group_sles12',
         'madlib_build_gppkg',
         'MADlib_Test_planner_centos6',
         'MADlib_Test_orca_centos6',
@@ -294,7 +289,7 @@ def main():
         action='store',
         dest='os_types',
         default=['centos6'],
-        choices=['centos6', 'centos7', 'sles', 'ubuntu18.04', 'win'],
+        choices=['centos6', 'centos7', 'ubuntu18.04', 'win'],
         nargs='+',
         help='List of OS values to support'
     )
@@ -382,7 +377,7 @@ def main():
         args.pipeline_configuration = 'prod'
 
     if args.pipeline_configuration == 'prod' or args.pipeline_configuration == 'full':
-        args.os_types = ['centos6', 'centos7', 'sles', 'ubuntu18.04', 'win']
+        args.os_types = ['centos6', 'centos7', 'ubuntu18.04', 'win']
         args.test_sections = [
             'ICW',
             'Replication',

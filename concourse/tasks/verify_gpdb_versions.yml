@@ -12,7 +12,6 @@ inputs:
   - name: bin_gpdb_centos6
   - name: bin_gpdb_centos7
   - name: bin_gpdb_ubuntu18.04
-  # - name: bin_gpdb_sles11
 
 run:
   path: gpdb_src/concourse/scripts/verify_gpdb_versions.bash
