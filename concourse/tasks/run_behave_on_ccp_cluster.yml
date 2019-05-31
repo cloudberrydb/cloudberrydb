@@ -27,4 +27,6 @@ run:
         fi
     '"
 
+    # TODO: ask CCP maintainers for a feature to do this for us
+    scp cluster_env_files/hostfile_all mdw:/tmp
     ssh -t mdw "$CUSTOM_ENV bash /home/gpadmin/gpdb_src/concourse/scripts/run_behave_test.sh \"$BEHAVE_FLAGS\""

@@ -54,17 +54,19 @@ function gen_env(){
 				--python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
 		fi
 
-		# activate virtualenv after sourcing greenplum_path, so that virtualenv
-		# takes precedence
-		source /usr/local/greenplum-db-devel/greenplum_path.sh
+		# Install requirements into the vendored Python stack.
+		mkdir -p /tmp/py-requirements
 		source /tmp/venv/bin/activate
+		    pip install --prefix /tmp/py-requirements -r "\${1}/gpdb_src/gpMgmt/requirements-dev.txt"
+		    cp -r /tmp/py-requirements/* /usr/local/greenplum-db-devel/ext/python/
+		deactivate
+
+		source /usr/local/greenplum-db-devel/greenplum_path.sh
 
 		cd "\${1}/gpdb_src/gpAux"
 		source gpdemo/gpdemo-env.sh
 
 		cd "\${1}/gpdb_src/gpMgmt/"
-		pip install -r requirements-dev.txt
-
 		BEHAVE_TAGS="${BEHAVE_TAGS}"
 		BEHAVE_FLAGS="${BEHAVE_FLAGS}"
 		if [ ! -z "\${BEHAVE_TAGS}" ]; then

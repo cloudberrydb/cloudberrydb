@@ -22,6 +22,14 @@ patchelf \
 virtualenv \
     --python /usr/local/greenplum-db-devel/ext/python/bin/python /tmp/venv
 
+# Install requirements into the vendored Python stack on all hosts.
+mkdir -p /tmp/py-requirements
+source /tmp/venv/bin/activate
+    pip install --prefix /tmp/py-requirements -r /home/gpadmin/gpdb_src/gpMgmt/requirements-dev.txt
+    while read host; do
+        rsync -rz /tmp/py-requirements/ $host:/usr/local/greenplum-db-devel/ext/python/
+    done < /tmp/hostfile_all
+deactivate
 
 cat > ~/gpdb-env.sh << EOF
   source /usr/local/greenplum-db-devel/greenplum_path.sh
@@ -39,10 +47,5 @@ if gpstate > /dev/null 2>&1 ; then
   gpstop -u
 fi
 
-# activate virtualenv after sourcing greenplum_path, so that virtualenv takes
-# precedence
-source /tmp/venv/bin/activate
-
 cd /home/gpadmin/gpdb_src/gpMgmt
-pip install -r requirements-dev.txt
 make -f Makefile.behave behave flags="$BEHAVE_FLAGS"
